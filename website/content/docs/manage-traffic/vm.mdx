@@ -17,7 +17,7 @@ When you use cluster peering to connect datacenters through their admin partitio
 
 However, the `service-splitter` and `service-router` configuration entry kinds do not natively support directly targeting a service instance hosted on a peer. Before you can split or route traffic to a service on a peer, you must define the service hosted on the peer as an upstream service by configuring a failover in the `service-resolver` configuration entry. Then, you can set up a redirect in a second service resolver to interact with the peer service by name.
 
-For more information about formatting, updating, and managing configuration entries in Consul, refer to [How to use configuration entries](/consul/docs/agent/config-entries).
+For more information about formatting, updating, and managing configuration entries in Consul, refer to [How to use configuration entries](/consul/docs/fundamentals/config-entry).
 
 ## Configure dynamic traffic between peers
 

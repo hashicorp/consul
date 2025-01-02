@@ -13,7 +13,7 @@ The guidelines in the [Consul security model](/consul/docs/security/security-mod
 
 ## Gossip Encryption
 
-Consul uses a [gossip protocol](/consul/docs/architecture/gossip) to perform the following cluster operations:
+Consul uses a [gossip protocol](/consul/docs/concept/gossip) to perform the following cluster operations:
 
 - Identify datacenter members.
 - Quickly detect failed members and notify the rest of the cluster.
@@ -35,7 +35,7 @@ To learn more about enabling gossip encryption on your Consul datacenter and rot
 
 Consul uses several communication protocols over different ports that you can secure using mTLS:
 
-- A [consensus protocol](/consul/docs/architecture/consensus) provides data consistency between Consul servers. It typically uses [port `8300`](/consul/docs/install/ports#server-rpc).
+- A [consensus protocol](/consul/docs/concept/consensus) provides data consistency between Consul servers. It typically uses [port `8300`](/consul/docs/install/ports#server-rpc).
 - Remote Procedure Calls (RPC) forward requests from client agents to server agents. They use the same port the consensus protocol uses.
 - An HTTP or HTTPS interface permits client communication with the Consul API, CLI, and UI. It typically uses [port `8500`](/consul/docs/install/ports#http) and [port `8501`](/consul/docs/install/ports#https).
 - A gRPC interface receives incoming traffic from the gateways and Envoy proxies registered to the agent node. It typically uses [port `8502`](/consul/docs/install/ports#client-grpc) and [port `8503`](/consul/docs/install/ports#client-grpc-tls).

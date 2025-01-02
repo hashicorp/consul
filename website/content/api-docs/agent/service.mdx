@@ -20,7 +20,7 @@ or added dynamically using the HTTP API.
 It is important to note that the services known by the agent may be different
 from those reported by the catalog. This is usually due to changes being made
 while there is no leader elected. The agent performs active
-[anti-entropy](/consul/docs/architecture/anti-entropy), so in most situations
+[anti-entropy](/consul/docs/concept/consistency), so in most situations
 everything will be in sync within a few seconds.
 
 @include 'legacy/http_api_results_filtered_by_acls.mdx'
@@ -136,7 +136,7 @@ configuration that was registered with the instance.
 It is important to note that the services known by the agent may be different
 from those reported by the catalog. This is usually due to changes being made
 while there is no leader elected. The agent performs active
-[anti-entropy](/consul/docs/architecture/anti-entropy), so in most situations
+[anti-entropy](/consul/docs/concept/consistency), so in most situations
 everything will be in sync within a few seconds.
 
 | Method | Path                         | Produces           |
@@ -681,7 +681,7 @@ The `/agent/service/register` endpoint supports camel case and _snake case_ for 
   Weights only apply to the locally registered service. 
   If multiple nodes register the same service, each node implements `EnableTagOverride` and other service configuration items independently. Updating the tags for the service registered
   on one node does not necessarily update the same tags on services with the same name registered on another node. If `EnableTagOverride` is not specified the default value is
-  `false`. See [anti-entropy syncs](/consul/docs/architecture/anti-entropy) for
+  `false`. See [anti-entropy syncs](/consul/docs/concept/consistency) for
   additional information.
 
 @include 'legacy/http-api-body-options-partition.mdx'

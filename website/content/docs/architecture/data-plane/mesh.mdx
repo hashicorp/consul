@@ -15,7 +15,7 @@ Consul service mesh is enabled by default when you install Consul on Kubernetes 
 
 - [Installation and Configuration](#installation-and-configuration) in this topic
 - [Consul Helm chart reference](/consul/docs/k8s/helm)
-- [Simplified Service Mesh with Consul Dataplane](/consul/docs/connect/dataplane)
+- [Simplified Service Mesh with Consul Dataplane](/consul/docs/architecture/control-plane/dataplane)
 
 If `connectInject.default` is set to `false` or you want to explicitly enable service mesh sidecar proxy injection for a specific deployment, add the `consul.hashicorp.com/connect-inject` annotation to the pod specification template and set it to `true` when connecting services to the mesh.
 

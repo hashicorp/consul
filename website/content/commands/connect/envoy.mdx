@@ -167,7 +167,7 @@ compatibility with Envoy and prevent potential issues. Default is `false`.
 
   If Envoy is configured as an ingress gateway, Consul instantiates a `/ready` HTTP endpoint at the specified IP and port. Consul uses `/ready` HTTP endpoints
   to check gateway health. Ingress gateways also use the specified IP when instantiating user-defined listeners configured in the
-  [ingress gateway configuration entry](/consul/docs/connect/config-entries/ingress-gateway).
+  [ingress gateway configuration entry](/consul/docs/reference/config-entry/ingress-gateway).
 
   ~> **Note**: Ensure that user-defined ingress gateway listeners use a
      different port than the port specified in `-address` so that they do not

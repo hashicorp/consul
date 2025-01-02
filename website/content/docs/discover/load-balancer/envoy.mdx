@@ -11,7 +11,7 @@ Load balancing is a mechanism of distributing traffic between multiple targets i
 
 Load balancing policies apply to both requests from internal services inside the service mesh, and requests from external clients accessing services in your datacenter through an ingress gateway.
 
-The policies will be defined using a [`service-resolver`](/consul/docs/connect/config-entries/service-resolver) configuration entry.
+The policies will be defined using a [`service-resolver`](/consul/docs/reference/config-entry/service-resolver) configuration entry.
 
 This tutorial will guide you through the steps needed to change the load balancing policy for a service in your mesh. You will learn how to configure sticky session for services using the _maglev_ policy and how to setup a _least_request_ policy that will take into account the amount of requests on service instances for load balancing traffic.
 

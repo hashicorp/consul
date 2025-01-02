@@ -45,13 +45,13 @@ Other optional service mesh configurations that you can set in the server config
 
 If you would like to use Envoy as your service mesh proxy you will need to [enable gRPC](/consul/docs/reference/agent#grpc_port).
 
-Additionally if you plan on using the observability features of Consul service mesh, it can be convenient to configure your proxies and services using [configuration entries](/consul/docs/agent/config-entries) which you can interact with using the CLI or API, or by creating configuration entry files. You will want to enable [centralized service configuration](/consul/docs/reference/agent#enable_central_service_config) on clients, which allows each service's proxy configuration to be managed centrally via API.
+Additionally if you plan on using the observability features of Consul service mesh, it can be convenient to configure your proxies and services using [configuration entries](/consul/docs/fundamentals/config-entry) which you can interact with using the CLI or API, or by creating configuration entry files. You will want to enable [centralized service configuration](/consul/docs/reference/agent#enable_central_service_config) on clients, which allows each service's proxy configuration to be managed centrally via API.
 
 !> **Security note:** Enabling service mesh is enough to try the feature but doesn't automatically ensure complete security. Please read the [service mesh production tutorial](/consul/tutorials/developer-mesh/service-mesh-production-checklist) to understand the additional steps needed for a secure deployment.
 
 ## Centralized proxy and service configuration
 
-If your network contains many instances of the same service and many colocated sidecar proxies, you can specify global settings for proxies or services in [Configuration Entries](/consul/docs/agent/config-entries). You can override the centralized configurations for individual proxy instances in their [sidecar service definitions](/consul/docs/reference/proxy/sidecar), and the default protocols for service instances in their [service definitions](/consul/docs/register/service/vm/define).
+If your network contains many instances of the same service and many colocated sidecar proxies, you can specify global settings for proxies or services in [Configuration Entries](/consul/docs/fundamentals/config-entry). You can override the centralized configurations for individual proxy instances in their [sidecar service definitions](/consul/docs/reference/proxy/sidecar), and the default protocols for service instances in their [service definitions](/consul/docs/register/service/vm/define).
 
 ## Schedulers
 

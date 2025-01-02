@@ -112,12 +112,12 @@ To downgrade Consul edition on Kubernetes, modify the image version in your Helm
     ```
 
 1. If applicable, modify the following configuration entries:
-   - [Service resolver](/consul/docs/connect/config-entries/service-resolver):
+   - [Service resolver](/consul/docs/reference/config-entry/service-resolver):
      1. Remove services configured as failovers in non-default namespaces or services that belong to a sameness group.
      1. Remove services configured as redirects that belong to non-default namespaces or partitions.
-   - [Service splitter](/consul/docs/connect/config-entries/service-splitter):
+   - [Service splitter](/consul/docs/reference/config-entry/service-splitter):
      1. Remove services configured as splits that belong to non-default namespaces or partitions.
-   - [Service router](/consul/docs/connect/config-entries/service-router):
+   - [Service router](/consul/docs/reference/config-entry/service-router):
      1. Remove services configured as a destination that belong to non-default namespaces or partitions.
 
 ## Perform the downgrade

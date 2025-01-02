@@ -430,7 +430,7 @@ Specifies key-value pairs to add to the KV store when the configuration entry is
 
 ### `JWT`
 
-Specifies a JSON Web Token provider configured in a [JWT provider configuration entry](/consul/docs/connect/config-entries/jwt-provider), as well as additional configurations for verifying a service's JWT before authorizing communication between services
+Specifies a JSON Web Token provider configured in a [JWT provider configuration entry](/consul/docs/reference/config-entry/jwt-provider), as well as additional configurations for verifying a service's JWT before authorizing communication between services
 
 #### Values
 
@@ -439,7 +439,7 @@ Specifies a JSON Web Token provider configured in a [JWT provider configuration 
 
 ### `JWT{}.Providers`
 
-Specifies the names of one or more previously configured [JWT provider configuration entries](/consul/docs/connect/config-entries/jwt-provider), which include the information necessary to validate a JSON web token.
+Specifies the names of one or more previously configured [JWT provider configuration entries](/consul/docs/reference/config-entry/jwt-provider), which include the information necessary to validate a JSON web token.
 
 #### Values
 
@@ -448,7 +448,7 @@ Specifies the names of one or more previously configured [JWT provider configura
 
 ### `JWT{}.Providers[].Name`
 
-Specifies the name of a JWT provider defined in the `Name` field of the [`jwt-provider` configuration entry](/consul/docs/connect/config-entries/jwt-provider). You must write the JWT Provider to Consul before referencing it in a service intention.
+Specifies the name of a JWT provider defined in the `Name` field of the [`jwt-provider` configuration entry](/consul/docs/reference/config-entry/jwt-provider). You must write the JWT Provider to Consul before referencing it in a service intention.
 
 #### Values
 
@@ -520,7 +520,7 @@ Specifies the name of the source that the intention allows or denies traffic fro
 
 ### `Sources[].Peer`
 
-Specifies the name of a peered Consul cluster that the intention allows or denies traffic from. Refer to [Cluster peering overview](/consul/docs/connect/cluster-peering) for additional information about peers.
+Specifies the name of a peered Consul cluster that the intention allows or denies traffic from. Refer to [Cluster peering overview](/consul/docs/east-west/cluster-peering) for additional information about peers.
 
 The `Peer` and `Partition` fields are mutually exclusive.
 
@@ -551,7 +551,7 @@ The `Peer` and `Partition` fields are mutually exclusive.
 
 ### `Sources[].SamenessGroup` <EnterpriseAlert inline />
 
-Specifies the name of a sameness group that the intention allows or denies traffic from. Refer to [create sameness groups](/consul/docs/connect/cluster-peering/usage/create-sameness-groups) for additional information.
+Specifies the name of a sameness group that the intention allows or denies traffic from. Refer to [create sameness groups](/consul/docs/multi-tenant/sameness-group/vm) for additional information.
 
 #### Values
 
@@ -780,7 +780,7 @@ You can also specify a wildcard character (`*`) to match all services that are m
 
 ### `spec.jwt`
 
-Specifies a JSON Web Token provider configured in a [JWT provider configuration entry](/consul/docs/connect/config-entries/jwt-provider), as well as additional configurations for verifying a service's JWT before authorizing communication between services
+Specifies a JSON Web Token provider configured in a [JWT provider configuration entry](/consul/docs/reference/config-entry/jwt-provider), as well as additional configurations for verifying a service's JWT before authorizing communication between services
 
 #### Values
 
@@ -789,7 +789,7 @@ Specifies a JSON Web Token provider configured in a [JWT provider configuration 
 
 ### `spec.jwt.providers`
 
-Specifies the names of one or more previously configured [JWT provider configuration entries](/consul/docs/connect/config-entries/jwt-provider), which include the information necessary to validate a JSON web token.
+Specifies the names of one or more previously configured [JWT provider configuration entries](/consul/docs/reference/config-entry/jwt-provider), which include the information necessary to validate a JSON web token.
 
 #### Values
 
@@ -798,7 +798,7 @@ Specifies the names of one or more previously configured [JWT provider configura
 
 ### `spec.jwt.providers[].name`
 
-Specifies the name of a JWT provider defined in the `metadata.name` field of the [JWT provider configuration entry](/consul/docs/connect/config-entries/jwt-provider). You must write the JWT Provider to Consul before referencing it in a service intention.
+Specifies the name of a JWT provider defined in the `metadata.name` field of the [JWT provider configuration entry](/consul/docs/reference/config-entry/jwt-provider). You must write the JWT Provider to Consul before referencing it in a service intention.
 
 #### Values
 
@@ -865,7 +865,7 @@ Specifies the name of the source that the intention allows or denies traffic fro
 
 ### `spec.sources[].peer`
 
-Specifies the name of a peered Consul cluster that the intention allows or denies traffic from. Refer to [Cluster peering overview](/consul/docs/connect/cluster-peering) for additional information about peers. The `peer` and `partition` fields are mutually exclusive.
+Specifies the name of a peered Consul cluster that the intention allows or denies traffic from. Refer to [Cluster peering overview](/consul/docs/east-west/cluster-peering) for additional information about peers. The `peer` and `partition` fields are mutually exclusive.
 #### Values
 
 - Default: None

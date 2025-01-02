@@ -7,7 +7,7 @@ description: >-
 
 # Cluster peering technical specifications
 
-This reference topic describes the technical specifications associated with using cluster peering in your deployments. These specifications include required Consul components and their configurations. To learn more about Consul's cluster peering feature, refer to [cluster peering overview](/consul/docs/connect/cluster-peering).
+This reference topic describes the technical specifications associated with using cluster peering in your deployments. These specifications include required Consul components and their configurations. To learn more about Consul's cluster peering feature, refer to [cluster peering overview](/consul/docs/east-west/cluster-peering).
 
 For cluster peering requirements in Kubernetes deployments, refer to [cluster peering on Kubernetes technical specifications](/consul/docs/k8s/connect/cluster-peering/tech-specs).
 
@@ -73,7 +73,7 @@ The Envoy proxies that function as sidecars in your service mesh require configu
 
 The `exported-services` configuration entry is required in order for services to communicate across partitions with cluster peering connections. Basic guidance on using the `exported-services` configuration entry is included in [Establish cluster peering connections](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering#export-services-between-clusters).
 
-Refer to the [`exported-services` configuration entry](/consul/docs/connect/config-entries/exported-services) reference for more information.
+Refer to the [`exported-services` configuration entry](/consul/docs/reference/config-entry/exported-services) reference for more information.
 
 ## ACL specifications
 

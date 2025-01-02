@@ -22,7 +22,7 @@ to fine-tune these trade-offs for their own use case at two levels:
 Consul servers are responsible for maintaining state information like the registration and
 health status of services and nodes. To protect this state against the potential failure of
 Consul servers, this state is replicated across three or more Consul servers in production using a
-[consensus protocol](/consul/docs/architecture/consensus).
+[consensus protocol](/consul/docs/concept/consensus).
 
 One Consul server is elected leader and acts as the ultimate authority on Consul's state.
 If a majority of Consul servers agree to a state change, the leader is responsible for recording

@@ -12,7 +12,7 @@ For more information about the information returned when querying the catalog, i
 
 ## Introduction
 
-Consul tracks information about registered services through its catalog API. This API records user-defined information about the external services, such as their partitions and required health checks. It also records information that Consul assigns for its own operations, such as an ID for each service instance and the [Raft indices](/consul/docs/architecture/consensus) when the instance is registered and modified.
+Consul tracks information about registered services through its catalog API. This API records user-defined information about the external services, such as their partitions and required health checks. It also records information that Consul assigns for its own operations, such as an ID for each service instance and the [Raft indices](/consul/docs/concept/consensus) when the instance is registered and modified.
 
 ### v2 Catalog
 
@@ -36,4 +36,4 @@ When Consul registers a service instance using the v1 catalog API, it records th
 | Partition | The name of the admin partition the service is registered in. Refer to [admin partitions](/consul/docs/enterprise/admin-partitions) for more information. | Defined by user |
 | Locality | Region and availability zone of the service. Refer to [`locality`](/consul/docs/agent/config/config-files#locality) for more information. | Defined by user |
 
-Depending on the configuration entries or custom resource definitions you apply to your Consul installation, additional information such as [proxy default behavior](/consul/docs/connect/config-entries/proxy-defaults) is automatically recorded to the catalog for services. You can return this information using the [`/catalog` HTTP API endpoint](/consul/api-docs/catalog).
+Depending on the configuration entries or custom resource definitions you apply to your Consul installation, additional information such as [proxy default behavior](/consul/docs/reference/config-entry/proxy-defaults) is automatically recorded to the catalog for services. You can return this information using the [`/catalog` HTTP API endpoint](/consul/api-docs/catalog).

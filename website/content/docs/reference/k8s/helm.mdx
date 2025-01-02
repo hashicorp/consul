@@ -841,7 +841,7 @@ Use these links to navigate to a particular top-level stanza.
     _will not_ automatically secure pod communication, this
     setting will only enable usage of the feature. Consul will automatically initialize
     a new CA and set of certificates. Additional service mesh settings can be configured
-    by setting the `server.extraConfig` value or by applying [configuration entries](/consul/docs/connect/config-entries).
+    by setting the `server.extraConfig` value or by applying [configuration entries](/consul/docs/fundamentals/config-entry).
 
   - `enableAgentDebug` ((#v-server-enableagentdebug)) (`boolean: false`) - When set to true, enables Consul to report additional debugging information, including runtime profiling (pprof) data.
     This setting is only required for clusters without ACL enabled. Sets `enable_debug` in server agent config to `true`.
@@ -919,7 +919,7 @@ Use these links to navigate to a particular top-level stanza.
       --set 'server.disruptionBudget.maxUnavailable=0'` flag to the helm chart installation
       command because of a limitation in the Helm templating language.
 
-  - `extraConfig` ((#v-server-extraconfig)) (`string: {}`) - A raw string of extra [JSON configuration](/consul/docs/agent/config/config-files) for Consul
+  - `extraConfig` ((#v-server-extraconfig)) (`string: {}`) - A raw string of extra [JSON configuration](/consul/docs/reference/agent/configuration-file) for Consul
     servers. This will be saved as-is into a ConfigMap that is read by the Consul
     server agents. This can be used to add additional configuration that
     isn't directly exposed by the chart.
@@ -1339,7 +1339,7 @@ Use these links to navigate to a particular top-level stanza.
 
     - `tlsInit` ((#v-client-containersecuritycontext-tlsinit)) (`map`) - The tls-init initContainer
 
-  - `extraConfig` ((#v-client-extraconfig)) (`string: {}`) - A raw string of extra [JSON configuration](/consul/docs/agent/config/config-files) for Consul
+  - `extraConfig` ((#v-client-extraconfig)) (`string: {}`) - A raw string of extra [JSON configuration](/consul/docs/reference/agent/configuration-file) for Consul
     clients. This will be saved as-is into a ConfigMap that is read by the Consul
     client agents. This can be used to add additional configuration that
     isn't directly exposed by the chart.

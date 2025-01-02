@@ -65,7 +65,7 @@ If you are able to tolerate downtime for your applications, you should delete pr
   $ consul-k8s install -config-file values.yaml
   ```
 
-1. Create `ServiceIntentions` allowing `Gateways` to communicate with any backend services that they route to. Refer to [Service intentions configuration entry reference](/consul/docs/connect/config-entries/service-intentions) for additional information.
+1. Create `ServiceIntentions` allowing `Gateways` to communicate with any backend services that they route to. Refer to [Service intentions configuration entry reference](/consul/docs/reference/config-entry/service-intentions) for additional information.
 
 1. Change any existing `Gateways` to reference the new `GatewayClass` `consul`. Refer to [gatewayClass](/consul/docs/connect/gateways/api-gateway/configuration/gateway#gatewayclassname) for additional information.
 
@@ -128,7 +128,7 @@ If you are unable to tolerate any downtime, you can complete the following steps
   $ consul-k8s install -config-file values.yaml
   ```
 
-1. Create `ServiceIntentions` allowing `Gateways` to communicate with any backend services that they route to. Refer to [Service intentions configuration entry reference](/consul/docs/connect/config-entries/service-intentions) for additional information.
+1. Create `ServiceIntentions` allowing `Gateways` to communicate with any backend services that they route to. Refer to [Service intentions configuration entry reference](/consul/docs/reference/config-entry/service-intentions) for additional information.
 
 1. Change any existing `Gateways` to reference the new `GatewayClass` `consul`. Refer to [gatewayClass](/consul/docs/connect/gateways/api-gateway/configuration/gateway#gatewayclassname) for additional information.
 

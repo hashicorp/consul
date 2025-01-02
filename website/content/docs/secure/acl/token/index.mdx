@@ -195,7 +195,7 @@ Snapshots are artifacts created with the [snapshot API](/consul/api-docs/snapsho
 The ACL agent token ([`acl.tokens.agent`](/consul/docs/reference/agent#acl_tokens_agent)) is a special token that Consul uses for internal agent operations. Consul does not use this token directly for any user-initiated operations like the default ACL token ([`acl.tokens.default`](/consul/docs/reference/agent#acl_tokens_default). However, if you do not define the ACL agent token, Consul will use the default ACL token for internal agent operations. Consul uses the ACL agent token for the following agent operations:
 
 1. Updating the agent's node entry using the [Catalog API](/consul/api-docs/catalog). This includes updating its node metadata, tagged addresses, and network coordinates.
-2. Performing [anti-entropy](/consul/docs/architecture/anti-entropy) syncing, in particular reading the node metadata and services registered with the catalog.
+2. Performing [anti-entropy](/consul/docs/concept/consistency) syncing, in particular reading the node metadata and services registered with the catalog.
 3. Reading and writing the special `_rexec` section of the KV store when executing [`consul exec`](/consul/commands/exec) commands.
 
 The following example is the minimum policy required to perform the internal agent operations for a node called `mynode`. The `service_prefix` policy needs read access to any services that can be registered on the agent. If [remote execution is disabled](/consul/docs/reference/agent#disable_remote_exec) (default behavior), you can omit the `key_prefix` policy.

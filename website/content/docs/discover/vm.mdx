@@ -11,7 +11,7 @@ This topic provides an overview of Consul service discovery operations on virtua
 
 ## Introduction
 
-When a service registers with Consul, the catalog records the address of each service's node. Consul then updates an instance's catalog entry with the results of each health check it performs. Consul agents replicate catalog information between each other using the [Raft consensus protocol](/consul/docs/architecture/consensus), enabling high availability service networking through any Consul agent.
+When a service registers with Consul, the catalog records the address of each service's node. Consul then updates an instance's catalog entry with the results of each health check it performs. Consul agents replicate catalog information between each other using the [Raft consensus protocol](/consul/docs/concept/consensus), enabling high availability service networking through any Consul agent.
 
 Consul's service discovery operations use [Consul DNS addresses](/consul/docs/discover/dns) to route traffic to healthy service instances and return information about service nodes registered to Consul.
 

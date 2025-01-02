@@ -168,7 +168,7 @@ When you use cluster peering to connect admin partitions between datacenters, us
 Cluster peering also extends service discovery across different datacenters independent of service mesh functions. After you peer datacenters, you can refer to services between datacenters with `<service>.virtual.peer.consul` in Consul DNS. For Consul Enterprise, your query string may need to include the namespace, partition, or both. Refer to the [Consul DNS documentation](/consul/docs/services/discovery/dns-static-lookups#service-virtual-ip-lookups) for details on building virtual service lookups.
 
 For more information on cluster peering, refer to:
-- [Cluster peering documentation](/consul/docs/connect/cluster-peering)
+- [Cluster peering documentation](/consul/docs/east-west/cluster-peering)
   for a more detailed explanation
 - [Cluster peering tutorial](/consul/tutorials/implement-multi-tenancy/cluster-peering)
   to learn how to implement cluster peering

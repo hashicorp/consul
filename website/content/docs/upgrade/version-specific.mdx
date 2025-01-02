@@ -46,7 +46,7 @@ stanza before upgrading to Consul v1.19 or later.
 The `.apiGateway` stanza is associated with the legacy API gateway that was
 [deprecated in Consul v1.16.0](https://developer.hashicorp.com/consul/docs/release-notes/consul/v1_16_x#what-s-deprecated).
 The Kubernetes-only legacy API gateway is superseded by the modern, multi-runtime
-[API gateway](/consul/docs/connect/config-entries/api-gateway).
+[API gateway](/consul/docs/reference/config-entry/api-gateway).
 On Kubernetes, the modern API gateway is associated with the `connectInject.apiGateway` stanza.
 
 ### Mesh traffic request path normalization enabled by default
@@ -265,7 +265,7 @@ As of Consul v1.15.15, inbound traffic to mesh proxies will have Envoy request [
 ### Service Mesh Compatibility
 Prior to Consul 1.14, cluster peering and Consul service mesh were disabled by default.
 A breaking change was made in Consul 1.14 that:
-- [Cluster Peering is enabled by default.](/consul/docs/connect/cluster-peering)
+- [Cluster Peering is enabled by default.](/consul/docs/east-west/cluster-peering)
   Cluster peering and WAN federation can coexist,
   so there is no need to disable cluster peering to upgrade existing WAN federated datacenters.
   To disable cluster peering nonetheless, set [`peering.enabled`](/consul/docs/agent/config/config-files#peering_enabled) to `false`.
@@ -317,7 +317,7 @@ If you already use gRPC encryption, change the following fields to ensure compat
 
 #### Changes to peering
 
-[Cluster peering](/consul/docs/connect/cluster-peering) was released in Consul 1.13 as an experimental feature.
+[Cluster peering](/consul/docs/east-west/cluster-peering) was released in Consul 1.13 as an experimental feature.
 In Consul 1.14, cluster peering has been improved and is now considered stable. All experimental peering
 connections created by 1.13 should be
 [deleted](/consul/docs/connect/cluster-peering/usage/manage-connections#delete-peering-connections)
@@ -772,7 +772,7 @@ namespace with a query parameter of `?ns=*`.
 
 Upgrading to Consul 1.9.0 will trigger a one-time background migration of
 [intentions](/consul/docs/connect/intentions) into an equivalent set of
-[`service-intentions`](/consul/docs/connect/config-entries/service-intentions) config
+[`service-intentions`](/consul/docs/reference/config-entry/service-intentions) config
 entries. This process will wait until all of the Consul servers in the primary
 datacenter are running Consul 1.9.0+.
 

@@ -37,7 +37,7 @@ The `consul.raft.logstore.verifier.write_checksum_failures` metric increments wh
 
 ## Resolve checksum failures
 
-If either type of corruption is detected, complete the instructions for [reverting to BoltDB](/consul/docs/agent/wal-logstore/revert-to-boltdb). If the server already uses BoltDB, the errors likely indicate a latent bug in BoltDB or a bug in the verification code. In both cases, you should follow the revert instructions. 
+If either type of corruption is detected, complete the instructions for [reverting to BoltDB](/consul/docs/deploy/server/wal/revert-boltdb). If the server already uses BoltDB, the errors likely indicate a latent bug in BoltDB or a bug in the verification code. In both cases, you should follow the revert instructions. 
 
 Report all verification failures as a [GitHub
 issue](https://github.com/hashicorp/consul/issues/new?assignees=&labels=&template=bug_report.md&title=WAL:%20Checksum%20Failure).

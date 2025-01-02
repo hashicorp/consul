@@ -265,8 +265,8 @@ The table below shows this endpoint's support for
 
 - `merge-central-config` - Include this flag in a request for `connect-proxy` kind or `*-gateway` kind
   services to return a fully resolved service definition that includes merged values from the
-  [proxy-defaults/global](/consul/docs/connect/config-entries/proxy-defaults) and 
-  [service-defaults/:service](/consul/docs/connect/config-entries/service-defaults) config entries.
+  [proxy-defaults/global](/consul/docs/reference/config-entry/proxy-defaults) and 
+  [service-defaults/:service](/consul/docs/reference/config-entry/service-defaults) config entries.
   Returning a fully resolved service definition is useful when a service was registered using the 
   [/catalog/register](/consul/api-docs/catalog#register_entity) endpoint, which does not automatically merge config entries.
 

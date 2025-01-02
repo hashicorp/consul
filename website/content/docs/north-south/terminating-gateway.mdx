@@ -96,7 +96,7 @@ If the Consul client agent on the gateway's node is not configured to use the de
 must also provide `agent:read` for its node's name in order to discover the agent's gRPC port. gRPC is used to expose Envoy's xDS API to Envoy proxies.
 
 You can link services and destinations to a terminating gateway with a `terminating-gateway`
-[configuration entry](/consul/docs/connect/config-entries/terminating-gateway). This config entry can be applied via the
+[configuration entry](/consul/docs/reference/config-entry/terminating-gateway). This config entry can be applied via the
 [CLI](/consul/commands/config/write) or [API](/consul/api-docs/config#apply-configuration).
 
 Gateways with the same name in Consul's service catalog are configured with a single configuration entry.
@@ -105,7 +105,7 @@ Adding replicas of a gateway that routes to a particular set of services require
 [envoy subcommand](/consul/commands/connect/envoy#terminating-gateways) on additional hosts and specifying
 the same gateway name with the `service` flag.
 
-~> [Configuration entries](/consul/docs/agent/config-entries) are global in scope. A configuration entry for a gateway name applies
+~> [Configuration entries](/consul/docs/fundamentals/config-entry) are global in scope. A configuration entry for a gateway name applies
 across all federated Consul datacenters. If terminating gateways in different Consul datacenters need to route to different
 sets of services within their datacenter then the terminating gateways **must** be registered with different names.
 
@@ -119,7 +119,7 @@ All services registered in the Consul catalog must be associated with a node, ev
 not managed by a Consul client agent. All agent-less services with the same address can be registered under the same node name and address.
 However, ensure that the [node name](/consul/api-docs/catalog#node) for external services registered directly in the catalog
 does not match the node name of any Consul client agent node. If the node name overlaps with the node name of a Consul client agent,
-Consul's [anti-entropy sync](/consul/docs/architecture/anti-entropy) will delete the services registered via the `/catalog/register` HTTP API endpoint.
+Consul's [anti-entropy sync](/consul/docs/concept/consistency) will delete the services registered via the `/catalog/register` HTTP API endpoint.
 
 Service-defaults [destinations](/consul/docs/connect/config-entries/service-defaults#destination) let you
 define endpoints external to the mesh and routable through a terminating gateway in transparent mode.

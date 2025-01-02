@@ -55,8 +55,8 @@ limits = {
 
 ## Monitor request rate traffic
 
-You should continue to monitor request traffic to ensure that request rates remain within the threshold you defined. Refer to [Monitor traffic rate limit data](/consul/docs/agent/limits/usage/monitor-rate-limits) for instructions about checking metrics and log entries, as well as troubleshooting information.
+You should continue to monitor request traffic to ensure that request rates remain within the threshold you defined. Refer to [Monitor traffic rate limit data](/consul/docs/manage/rate-limit/monitor) for instructions about checking metrics and log entries, as well as troubleshooting information.
 
 ## Disable request rate limits
 
-Set the [`limits.request_limits.mode`](/consul/docs/agent/config/config-files#mode-1) to `disabled` to allow services to exceed the specified read and write requests limits, even limits specified in the [control plane request limits configuration entry](/consul/docs/connect/config-entries/control-plane-request-limit). Note that any other mode specified in the agent configuration only applies to global traffic rate limits.
+Set the [`limits.request_limits.mode`](/consul/docs/agent/config/config-files#mode-1) to `disabled` to allow services to exceed the specified read and write requests limits, even limits specified in the [control plane request limits configuration entry](/consul/docs/reference/config-entry/control-plane-request-limit). Note that any other mode specified in the agent configuration only applies to global traffic rate limits.

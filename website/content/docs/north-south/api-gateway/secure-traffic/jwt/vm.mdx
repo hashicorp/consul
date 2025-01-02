@@ -108,7 +108,7 @@ Listeners = [
 
 ## Configure verification for specific HTTP routes
 
-Define filters to enable route-specific JWT verification settings in the [HTTP route configuration entry](/consul/docs/connect/config-entries/http-route).
+Define filters to enable route-specific JWT verification settings in the [HTTP route configuration entry](/consul/docs/reference/config-entry/http-route).
 
 1. Add a `JWT` configuration to the `rules.filter` block. Route-specific configurations that overlap the [default settings ](/consul/docs/connect/config-entries/api-gateway#listeners-default-jwt) in the API gateway configuration entry take precedence. Configurations defined in the [listener override settings](/consul/docs/connect/config-entries/api-gateway#listeners-override-jwt) take the highest precedence.
 1. Apply the settings in the API gateway configuration entry. You can use the [`/config` API endpoint](/consul/api-docs/config#apply-configuration) or the [`consul config write` command](/consul/commands/config/write).

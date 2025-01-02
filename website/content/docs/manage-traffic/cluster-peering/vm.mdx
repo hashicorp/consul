@@ -7,7 +7,7 @@ description: >-
 
 # Manage L7 traffic for VMs with cluster peering connections
 
-This usage topic describes how to configure and apply the [`service-resolver` configuration entry](/consul/docs/connect/config-entries/service-resolver) to set up redirects and failovers between services that have an existing cluster peering connection.
+This usage topic describes how to configure and apply the [`service-resolver` configuration entry](/consul/docs/reference/config-entry/service-resolver) to set up redirects and failovers between services that have an existing cluster peering connection.
 
 For Kubernetes-specific guidance for managing L7 traffic with cluster peering, refer to [Manage L7 traffic with cluster peering on Kubernetes](/consul/docs/k8s/connect/cluster-peering/usage/l7-traffic).
 
@@ -17,7 +17,7 @@ When you use cluster peering to connect datacenters through their admin partitio
 
 However, the `service-splitter` and `service-router` configuration entry kinds do not natively support directly targeting a service instance hosted on a peer. Before you can split or route traffic to a service on a peer, you must define the service hosted on the peer as an upstream service by configuring a failover in the `service-resolver` configuration entry. Then, you can set up a redirect in a second service resolver to interact with the peer service by name.
 
-For more information about formatting, updating, and managing configuration entries in Consul, refer to [How to use configuration entries](/consul/docs/agent/config-entries).
+For more information about formatting, updating, and managing configuration entries in Consul, refer to [How to use configuration entries](/consul/docs/fundamentals/config-entry).
 
 ## Configure dynamic traffic between peers
 
@@ -25,7 +25,7 @@ To configure L7 traffic management behavior in deployments with cluster peering 
 
 1. Define the peer cluster as a failover target in the service resolver configuration.
 
-  The following examples update the [`service-resolver` configuration entry](/consul/docs/connect/config-entries/service-resolver) in `cluster-01` so that Consul redirects traffic intended for the `frontend` service to a backup instance in peer `cluster-02` when it detects multiple connection failures.
+  The following examples update the [`service-resolver` configuration entry](/consul/docs/reference/config-entry/service-resolver) in `cluster-01` so that Consul redirects traffic intended for the `frontend` service to a backup instance in peer `cluster-02` when it detects multiple connection failures.
 
   <CodeTabs tabs={[ "HCL", "JSON", "YAML" ]}>
 

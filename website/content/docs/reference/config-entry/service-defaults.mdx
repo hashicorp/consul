@@ -570,8 +570,8 @@ Specifies a set of custom key-value pairs to add to the [Consul KV](/consul/docs
 Specifies the default protocol for the service. In service mesh use cases, the `protocol` configuration is required to enable the following features and components:
 
 - [observability](/consul/docs/connect/observability)
-- [service splitter configuration entry](/consul/docs/connect/config-entries/service-splitter)
-- [service router configuration entry](/consul/docs/connect/config-entries/service-router)
+- [service splitter configuration entry](/consul/docs/reference/config-entry/service-splitter)
+- [service router configuration entry](/consul/docs/reference/config-entry/service-router)
 - [L7 intentions](/consul/docs/connect/intentions#l7-traffic-intentions)
 
 You can set the global protocol for proxies in the [`proxy-defaults`](/consul/docs/connect/config-entries/proxy-defaults#default-protocol) configuration entry, but the protocol specified in the `service-defaults` configuration entry overrides the `proxy-defaults` configuration.
@@ -1032,8 +1032,8 @@ Map that contains the details about the `ServiceDefaults` configuration entry. T
 Specifies the default protocol for the service. In service service mesh use cases, the `protocol` configuration is required to enable the following features and components:
 
 - [observability](/consul/docs/connect/observability)
-- [`service-splitter` configuration entry](/consul/docs/connect/config-entries/service-splitter)
-- [`service-router` configuration entry](/consul/docs/connect/config-entries/service-router)
+- [`service-splitter` configuration entry](/consul/docs/reference/config-entry/service-splitter)
+- [`service-router` configuration entry](/consul/docs/reference/config-entry/service-router)
 - [L7 intentions](/consul/docs/connect/intentions#l7-traffic-intentions)
 
 You can set the global protocol for proxies in the [`ProxyDefaults` configuration entry](/consul/docs/connect/config-entries/proxy-defaults#default-protocol), but the protocol specified in the `ServiceDefaults` configuration entry overrides the `ProxyDefaults` configuration.

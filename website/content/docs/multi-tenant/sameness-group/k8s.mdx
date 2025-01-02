@@ -16,9 +16,9 @@ Sameness groups are a user-defined set of partitions with identical configuratio
 
 To create and use sameness groups in your network, complete the following steps:
 
-- **Create sameness group custom resource definitions (CRDs) for each member of the group**. For each partition that you want to include in the sameness group, you must write and apply a sameness group CRD that defines the group’s members from that partition’s perspective. Refer to the [sameness group configuration entry reference](/consul/docs/connect/config-entries/sameness-group) for details on configuration hierarchy, default values, and specifications.
-- **Export services to members of the sameness group**. You must write and apply an exported services CRD that makes the partition’s services available to other members of the group. Refer to [exported services configuration entry reference](/consul/docs/connect/config-entries/exported-services) for additional specification information.
-- **Create service intentions for each member of the sameness group**. For each partition that you want to include in the sameness group, you must write and apply service intentions CRDs to authorize traffic to your services from all members of the group. Refer to the [service intentions configuration entry reference](/consul/docs/connect/config-entries/service-intentions) for additional specification information.
+- **Create sameness group custom resource definitions (CRDs) for each member of the group**. For each partition that you want to include in the sameness group, you must write and apply a sameness group CRD that defines the group’s members from that partition’s perspective. Refer to the [sameness group configuration entry reference](/consul/docs/reference/config-entry/sameness-group) for details on configuration hierarchy, default values, and specifications.
+- **Export services to members of the sameness group**. You must write and apply an exported services CRD that makes the partition’s services available to other members of the group. Refer to [exported services configuration entry reference](/consul/docs/reference/config-entry/exported-services) for additional specification information.
+- **Create service intentions for each member of the sameness group**. For each partition that you want to include in the sameness group, you must write and apply service intentions CRDs to authorize traffic to your services from all members of the group. Refer to the [service intentions configuration entry reference](/consul/docs/reference/config-entry/service-intentions) for additional specification information.
 
 ## Requirements
 
@@ -55,7 +55,7 @@ To create a sameness group, you must write and apply a set of three CRDs for eac
 
 ### Define the sameness group from each partition’s perspective
 
-To define a sameness group for a partition, create a [sameness group CRD](/consul/docs/connect/config-entries/sameness-group) that describes the partitions and cluster peers that are part of the group. Typically, this order follows this pattern:
+To define a sameness group for a partition, create a [sameness group CRD](/consul/docs/reference/config-entry/sameness-group) that describes the partitions and cluster peers that are part of the group. Typically, this order follows this pattern:
 
 1. The local partition
 1. Other partitions in the same datacenter
@@ -130,7 +130,7 @@ Then, repeat the process to create and apply a CRD for every partition that is a
 
 ### Export services to other partitions in the sameness group
 
-To make services available to other members of the sameness group, you must write and apply an [exported services CRD](/consul/docs/connect/config-entries/exported-services) for each partition in the group. This CRD exports the local partition's services to the rest of the group members. In each CRD, set the sameness group as the `consumer` for the exported services. You can export multiple services in a single exported services configuration entry.
+To make services available to other members of the sameness group, you must write and apply an [exported services CRD](/consul/docs/reference/config-entry/exported-services) for each partition in the group. This CRD exports the local partition's services to the rest of the group members. In each CRD, set the sameness group as the `consumer` for the exported services. You can export multiple services in a single exported services configuration entry.
 
 Because you are configuring the consumer to reference the sameness group instead of listing out each partition and cluster peer, you do not need to edit this configuration again when you add a partition or peer to the group.
 
@@ -191,7 +191,7 @@ spec:
 
 </CodeTabs>
 
-For more information about exporting services, including examples of CRDs that export multiple services at the same time, refer to the [exported services configuration entry reference](/consul/docs/connect/config-entries/exported-services).
+For more information about exporting services, including examples of CRDs that export multiple services at the same time, refer to the [exported services configuration entry reference](/consul/docs/reference/config-entry/exported-services).
 
 After you create each exported services configuration entry, apply it to the Consul server with the following CLI command:
 
@@ -209,7 +209,7 @@ If your goal for peering clusters is to create a sameness group, you can write a
 
 Exporting the service to other members of the sameness group makes the services visible to remote partitions, but you must also create service intentions so that local services are authorized to send and receive traffic from a member of the sameness group.
 
-For each partition that is a member of the group, write and apply a [service intentions CRD](/consul/docs/connect/config-entries/service-intentions) that defines intentions for the services that are part of the group. In the `sources` block of the configuration entry, include the service name, its namespace, the sameness group and grant `allow` permissions.
+For each partition that is a member of the group, write and apply a [service intentions CRD](/consul/docs/reference/config-entry/service-intentions) that defines intentions for the services that are part of the group. In the `sources` block of the configuration entry, include the service name, its namespace, the sameness group and grant `allow` permissions.
 
 Because you are using the sameness group in the `sources` block rather than listing out each partition and cluster peer, you do not have to make further edits to the service intentions configuration entries when members are added to or removed from the group.
 

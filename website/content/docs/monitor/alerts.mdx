@@ -15,7 +15,7 @@ While each host environment and Consul deployment is unique, these recommendatio
 
 A Consul datacenter is the smallest unit of Consul infrastructure that can perform basic Consul operations like service discovery or service mesh. A datacenter contains at least one Consul server agent, but a real-world deployment contains three or five server agents and several Consul client agents. 
 
-Consul server agents store all state information, including service and node IP addresses, health checks, and configuration. Consul clients report node and service health status to the Consul cluster. In a typical deployment, you must run client agents on every compute node in your datacenter. If you have Kubernetes workloads, you can also run Consul with an alternate service mesh configuration that deploys Envoy proxies but not client agents. Refer to [Simplified service mesh with Consul dataplanes](/consul/docs/connect/dataplane) for more information.
+Consul server agents store all state information, including service and node IP addresses, health checks, and configuration. Consul clients report node and service health status to the Consul cluster. In a typical deployment, you must run client agents on every compute node in your datacenter. If you have Kubernetes workloads, you can also run Consul with an alternate service mesh configuration that deploys Envoy proxies but not client agents. Refer to [Simplified service mesh with Consul dataplanes](/consul/docs/architecture/control-plane/dataplane) for more information.
 
 We recommend monitoring the following parameters for Consul agents health:
 

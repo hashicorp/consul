@@ -349,7 +349,7 @@ Specifies a list of cipher suites that the listener supports when negotiating co
 
 ### `Listeners[].TLS.Certificates[]`
 
-The list of references to [file system](/consul/docs/connect/config-entries/file-system-certificate) or [inline certificates](/consul/docs/connect/config-entries/inline-certificate) that the listener uses for TLS termination. You should create the configuration entry for the certificate separately and then reference the configuration entry in the `Name` field.
+The list of references to [file system](/consul/docs/reference/config-entry/file-system-certificate) or [inline certificates](/consul/docs/reference/config-entry/inline-certificate) that the listener uses for TLS termination. You should create the configuration entry for the certificate separately and then reference the configuration entry in the `Name` field.
 
 #### Values
 
@@ -372,7 +372,7 @@ The list of references to certificates that the listener uses for TLS terminatio
 
 ### `Listeners[].TLS.Certificates[].Name`
 
-Specifies the name of the [file system certificate](/consul/docs/connect/config-entries/file-system-certificate) or [inline certificate](/consul/docs/connect/config-entries/inline-certificate) that the listener uses for TLS termination.
+Specifies the name of the [file system certificate](/consul/docs/reference/config-entry/file-system-certificate) or [inline certificate](/consul/docs/reference/config-entry/inline-certificate) that the listener uses for TLS termination.
 
 #### Values
 
@@ -400,7 +400,7 @@ Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partiti
 
 ### `Listeners[].default`
 
-Specifies a block of default configurations to apply to the gateway listener. All routes attached to the listener inherit the default configurations. You can specify override configurations that have precedence over default configurations in the [`override` block](#listeners-override) as well as in the `JWT` block in the [HTTP route configuration entry](/consul/docs/connect/config-entries/http-route).
+Specifies a block of default configurations to apply to the gateway listener. All routes attached to the listener inherit the default configurations. You can specify override configurations that have precedence over default configurations in the [`override` block](#listeners-override) as well as in the `JWT` block in the [HTTP route configuration entry](/consul/docs/reference/config-entry/http-route).
 
 #### Values
 

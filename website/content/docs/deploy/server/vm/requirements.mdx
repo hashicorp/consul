@@ -7,7 +7,7 @@ description: >-
 
 # Consul server requirements on VMs
 
-Since Consul servers run a [consensus protocol](/consul/docs/architecture/consensus) to
+Since Consul servers run a [consensus protocol](/consul/docs/concept/consensus) to
 process all write operations and are contacted on nearly all read operations, server
 performance is critical for overall throughput and health of a Consul cluster. Servers
 are generally I/O bound for writes because the underlying Raft log store performs a sync

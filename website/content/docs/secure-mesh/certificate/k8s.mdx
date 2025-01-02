@@ -7,7 +7,7 @@ description: >-
 
 # Configure service mesh certificate authority (CA) for Consul on Kubernetes
 
-If `connect` is enabled, the built-in Consul CA provider is automatically enabled for the service mesh certificate authority (CA). You can use different CA providers with Consul service mesh. Refer to [Service Mesh Certificate Management](/consul/docs/connect/ca) for supported providers.
+If `connect` is enabled, the built-in Consul CA provider is automatically enabled for the service mesh certificate authority (CA). You can use different CA providers with Consul service mesh. Refer to [Service Mesh Certificate Management](/consul/docs/secure-mesh/certificate) for supported providers.
 
 ## Overview
 
@@ -34,7 +34,7 @@ The following instructions are only valid for Consul K8s CLI 0.37.0 and prior. I
 
 To configure Vault as a CA provider for Consul service mesh,
 first, create a provider configuration JSON file.
-Please refer to [Vault as a service mesh CA](/consul/docs/connect/ca/vault) for the configuration options.
+Please refer to [Vault as a service mesh CA](/consul/docs/secure-mesh/certificate/vault) for the configuration options.
 You will need to provide a Vault token to the `token` property.
 Please refer to [these docs](/consul/docs/connect/ca/vault#token) for the permissions that the token needs to have.
 This token should be [renewable](/vault/api-docs/auth/token#renewable).
