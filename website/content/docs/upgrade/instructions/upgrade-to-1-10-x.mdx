@@ -14,7 +14,7 @@ The page describes the process to update a Consul deployment to v1.10.x and main
 
 This guide explains how to best upgrade a single Consul Enterprise datacenter to latest v1.10.x
 from a version of Consul that is forward compatible with v1.10. If you are on a major
-version of Consul prior to 1.8, you must first [upgrade to latest 1.8.x](/consul/docs/upgrading/instructions/upgrade-to-1-8-x)
+version of Consul prior to 1.8, you must first [upgrade to latest 1.8.x](/consul/docs/consul/docs/upgrade/instructions/upgrade-to-1-8-x)
 before continuing with this guide. If you are already on a major version of 1.8 or 1.9, then
 this guide will go over the procedures required for upgrading to v1.10.x. This process
 will require intermediate version upgrades to a forward-compatible release of v1.8 or v1.9,
@@ -22,7 +22,7 @@ as well as other licensing related configuration changes. If you have multiple C
 upgrade them in the normal order and take the following instructions into account for each upgrade.
 
 For Consul Community Edition, please follow the
-[General Upgrade Process](/consul/docs/upgrading/instructions/general-process).
+[General Upgrade Process](/consul/docs/consul/docs/upgrade/instructions/general-process).
 
 ~> You can only upgrade to Consul Enterprise 1.10 from a version of Consul Enterprise
 1.8 >= 1.8.13 or 1.9 >= 1.9.7. Other versions of Consul Enterprise are not forward
@@ -32,13 +32,13 @@ agents failing to start due to [changes in the way we manage licenses](/consul/d
 ## Requirements
 
 - All Consul servers, clients, and snapshot agents should be on a version of Consul >= 1.8.0 and < 1.10.0. If
-  they are not at the minimum version or higher, follow the [normal upgrade procedures](/consul/docs/upgrading) to upgrade them until the version requirement is met.
+  they are not at the minimum version or higher, follow the [normal upgrade procedures](/consul/docs/upgrade) to upgrade them until the version requirement is met.
 
 ## Assumptions
 
 This guides makes the following assumptions:
 
-- You are familiar with the [General Upgrade Process](/consul/docs/upgrading/instructions/general-process).
+- You are familiar with the [General Upgrade Process](/consul/docs/consul/docs/upgrade/instructions/general-process).
 - You have the ability to run Consul CLI commands.
 - If ACLs are in use, then you possess a token with at least `operator:read` permissions.
 
@@ -56,7 +56,7 @@ We strongly recommend reviewing the changes prior to upgrading.
 ~> Any steps in the following section that mention upgrading servers/clients assume that normal safe upgrade
 procedures are followed. Licensing-related configuration changes are required for upgrading to 1.10.
 Intermediate version upgrades are also required to ensure forward compatibility.
-Refer to our documentation for the [basic server upgrade process](/consul/docs/upgrading/instructions/general-process),
+Refer to our documentation for the [basic server upgrade process](/consul/docs/consul/docs/upgrade/instructions/general-process),
 and for [autopilot assisted upgrades](/consul/tutorials/datacenter-operations/upgrade-automation)
 for more information.
 

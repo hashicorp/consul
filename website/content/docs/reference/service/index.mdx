@@ -390,7 +390,7 @@ Larger integer values increase the weight state. Services have the following def
 - `"passing" : 1` 
 - `"warning" : 1`
 
-Services in a `critical` state are excluded from DNS responses by default. Services with `warning` checks are included in responses by default. Refer to [Perform Static DNS Queries](/consul/docs/services/discovery/dns-static-lookups) for additional information.
+Services in a `critical` state are excluded from DNS responses by default. Services with `warning` checks are included in responses by default. Refer to [Perform Static DNS Queries](/consul/docs/discover/service/static) for additional information.
 
 In the following example, service instances in a `passing`  state respond to DNS SRV requests, while instances in a `critical` instance can still respond at a lower frequency:
 
@@ -430,7 +430,7 @@ service {
 
 String value that specifies the ACL token to present when registering the service if ACLs are enabled. The token is required for the service to interact with the service catalog. 
 
-If [ACLs](/consul/docs/security/acl) and [namespaces](/consul/docs/multi-tenant/namespace) are enabled, you can register services scoped to the specific [`namespace`](#namespace) associated with the ACL token in a Consul cluster.
+If [ACLs](/consul/docs/secure/acl) and [namespaces](/consul/docs/multi-tenant/namespace) are enabled, you can register services scoped to the specific [`namespace`](#namespace) associated with the ACL token in a Consul cluster.
 
 Services registered with a service definition do not inherit the namespace associated with the ACL token specified in the token field. The `namespace` and `token` parameters must be included in the service definition for the service to be registered to the namespace that the ACL token is scoped to.
 

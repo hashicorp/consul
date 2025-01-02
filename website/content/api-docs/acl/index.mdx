@@ -10,7 +10,7 @@ The `/acl` endpoints are used to manage ACL tokens and policies in Consul, [boot
 
 For more information on how to setup ACLs, refer to the following resources: 
 
-- [Access control list (ACL) overview](/consul/docs/security/acl)
+- [Access control list (ACL) overview](/consul/docs/secure/acl)
 - [ACL tutorial](/consul/tutorials/security/access-control-setup-production)
 
 ## Bootstrap ACLs
@@ -195,7 +195,7 @@ $ curl \
 ## Login to Auth Method
 
 This endpoint was added in Consul 1.5.0 and is used to exchange an [auth
-method](/consul/docs/security/acl/auth-methods) bearer token for a newly-created
+method](/consul/docs/secure/acl/auth-method) bearer token for a newly-created
 Consul ACL token.
 
 | Method | Path         | Produces           |
@@ -329,7 +329,7 @@ $ curl \
 </EnterpriseAlert>
 
 This endpoint was added in Consul 1.8.0 and is used to obtain an authorization
-URL from Consul to start an [OIDC login flow](/consul/docs/security/acl/auth-methods/oidc).
+URL from Consul to start an [OIDC login flow](/consul/docs/secure/acl/auth-method/oidc).
 
 | Method | Path                 | Produces           |
 | ------ | -------------------- | ------------------ |
@@ -360,7 +360,7 @@ replication enabled.
 ### JSON Request Body Schema
 
 - `AuthMethod` `(string: <required>)` - The name of the auth method to use for
-  login. This must be of type [`oidc`](/consul/docs/security/acl/auth-methods/oidc).
+  login. This must be of type [`oidc`](/consul/docs/secure/acl/auth-method/oidc).
 
 - `RedirectURI` `(string: <required>)` - See [Redirect
   URIs](/consul/docs/security/acl/auth-methods/oidc#redirect-uris) for more information.
@@ -443,7 +443,7 @@ replication enabled.
 ### JSON Request Body Schema
 
 - `AuthMethod` `(string: <required>)` - The name of the auth method to use for
-  login. This must be of type [`oidc`](/consul/docs/security/acl/auth-methods/oidc).
+  login. This must be of type [`oidc`](/consul/docs/secure/acl/auth-method/oidc).
 
 - `State` `(string: <required>)` - Opaque state ID that is part of the
   Authorization URL and will be included in the redirect following

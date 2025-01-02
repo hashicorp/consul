@@ -525,7 +525,7 @@ Use these links to navigate to a particular top-level stanza.
       This address must be reachable from the Consul servers in the primary datacenter.
       This auth method will be used to provision ACL tokens for Consul components and is different
       from the one used by the Consul Service Mesh.
-      Please refer to the [Kubernetes Auth Method documentation](/consul/docs/security/acl/auth-methods/kubernetes).
+      Please refer to the [Kubernetes Auth Method documentation](/consul/docs/secure/acl/auth-method/k8s).
 
       If `externalServers.enabled` is set to true, `global.federation.k8sAuthMethodHost` and
       `externalServers.k8sAuthMethodHost` should be set to the same value.
@@ -1246,7 +1246,7 @@ Use these links to navigate to a particular top-level stanza.
   - `k8sAuthMethodHost` ((#v-externalservers-k8sauthmethodhost)) (`string: null`) - If you are setting `global.acls.manageSystemACLs` and
     `connectInject.enabled` to true, set `k8sAuthMethodHost` to the address of the Kubernetes API server.
     This address must be reachable from the Consul servers.
-    Please refer to the [Kubernetes Auth Method documentation](/consul/docs/security/acl/auth-methods/kubernetes).
+    Please refer to the [Kubernetes Auth Method documentation](/consul/docs/secure/acl/auth-method/k8s).
 
     If `global.federation.enabled` is set to true, `global.federation.k8sAuthMethodHost` and
     `externalServers.k8sAuthMethodHost` should be set to the same value.

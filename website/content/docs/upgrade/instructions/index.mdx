@@ -18,7 +18,7 @@ release, each upgrade should jump at most 2 major versions, except where
 [dedicated instructions](#dedicated-instructions-for-specific-upgrade-paths)
 are provided for a larger jump between specific versions.
 If your upgrade path has no applicable [dedicated instructions](#dedicated-instructions-for-specific-upgrade-paths),
-review the [version-specific upgrade details](/consul/docs/upgrading/upgrade-specific)
+review the [version-specific upgrade details](/consul/docs/upgrade/version-specific)
 to plan your upgrade, starting from the next version and working
 upwards to your target version.
 
@@ -36,7 +36,7 @@ For example, to upgrade from Consul 1.12 to Consul 1.15:
 
 Consul Enterprise [Long Term Support (LTS)](/consul/docs/upgrade/lts)
 releases allow jumping at most 3 major versions by upgrading from one LTS release to the next.
-Review the [version-specific upgrade details](/consul/docs/upgrading/upgrade-specific)
+Review the [version-specific upgrade details](/consul/docs/upgrade/version-specific)
 to plan your upgrade, starting from the next major version and working upwards to your target version.
 
 ## Dedicated instructions for specific upgrade paths
@@ -47,15 +47,15 @@ to a destination version.
 
 | Starting Version Range | Destination Version | Upgrade Instructions |
 | ---------------------- | ------------------- | -------------------- |
-| 1.8.0 - 1.9.17         | 1.10.12             | Refer to [upgrading to latest 1.10.x](/consul/docs/upgrading/instructions/upgrade-to-1-10-x) |
-| 1.6.9 - 1.8.18         | 1.8.19              | Refer to [upgrading to latest 1.8.x](/consul/docs/upgrading/instructions/upgrade-to-1-8-x) |
-| 1.2.4 - 1.6.9          | 1.6.10              | Refer to [upgrading to latest 1.6.x](/consul/docs/upgrading/instructions/upgrade-to-1-6-x) |
-| 0.8.5 - 1.2.3          | 1.2.4               | Refer to [upgrading to latest 1.2.x](/consul/docs/upgrading/instructions/upgrade-to-1-2-x) |
+| 1.8.0 - 1.9.17         | 1.10.12             | Refer to [upgrading to latest 1.10.x](/consul/docs/consul/docs/upgrade/instructions/upgrade-to-1-10-x) |
+| 1.6.9 - 1.8.18         | 1.8.19              | Refer to [upgrading to latest 1.8.x](/consul/docs/consul/docs/upgrade/instructions/upgrade-to-1-8-x) |
+| 1.2.4 - 1.6.9          | 1.6.10              | Refer to [upgrading to latest 1.6.x](/consul/docs/consul/docs/upgrade/instructions/upgrade-to-1-6-x) |
+| 0.8.5 - 1.2.3          | 1.2.4               | Refer to [upgrading to latest 1.2.x](/consul/docs/consul/docs/upgrade/instructions/upgrade-to-1-2-x) |
 
 For example, to upgrade from Consul 1.3.1 to latest 1.12:
 1. Upgrade to Consul 1.6.10 using the dedicated instructions.
 1. Upgrade to Consul 1.8.19 using the dedicated instructions.
 1. Upgrade to Consul 1.10.12 using the dedicated instructions.
 1. Upgrade to latest Consul 1.12.x after consulting the
-   [version-specific upgrade details](/consul/docs/upgrading/upgrade-specific)
+   [version-specific upgrade details](/consul/docs/upgrade/version-specific)
    for 1.11 and 1.12.

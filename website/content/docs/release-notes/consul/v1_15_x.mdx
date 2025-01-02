@@ -20,8 +20,8 @@ Current supported extensions include the [Lua](/consul/docs/connect/proxies/envo
 
 - **Limit traffic rates to Consul servers:** You can now configure global RPC rate limits to mitigate the risks to Consul servers when clients send excessive read or write requests to Consul resources. Refer to [Limit traffic rates overview](/consul/docs/manage/rate-limit) for more details on how to use the new troubleshooting commands.
 
-- **Service-to-service troubleshooting:** Consul includes a built-in tool for troubleshooting communication between services in a service mesh. The `consul troubleshoot` command enables you to validate communication between upstream and downstream Envoy proxies on VM and Kubernetes deployments. Refer to [Service-to-service troubleshooting overview](/consul/docs/troubleshoot/troubleshoot-services) for more details on how to use the new troubleshooting commands.
-Refer to [Service-to-service troubleshooting overview](/consul/docs/troubleshoot/troubleshoot-services) for more details on how to use the new troubleshooting commands.
+- **Service-to-service troubleshooting:** Consul includes a built-in tool for troubleshooting communication between services in a service mesh. The `consul troubleshoot` command enables you to validate communication between upstream and downstream Envoy proxies on VM and Kubernetes deployments. Refer to [Service-to-service troubleshooting overview](/consul/docs/troubleshoot/service-communication) for more details on how to use the new troubleshooting commands.
+Refer to [Service-to-service troubleshooting overview](/consul/docs/troubleshoot/service-communication) for more details on how to use the new troubleshooting commands.
 
 - **Raft write-ahead log (Experimental):** Consul provides an experimental storage backend called write-ahead log (WAL). WAL implements a traditional log with rotating, append-only log files which resolves a number of performance issues with the current BoltDB storage backend. Refer to [Experimental WAL LogStore backend overview](/consul/docs/deploy/server/wal) for more details.
 

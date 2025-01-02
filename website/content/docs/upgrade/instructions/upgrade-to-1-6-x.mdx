@@ -14,7 +14,7 @@ The page describes the process to update a Consul deployment to v1.6.x and maint
 
 This guide explains how to best upgrade a multi-datacenter Consul deployment that is using
 a version of Consul >= 1.2.4 and < 1.6.10 while maintaining replication. If you are on a version
-older than 1.2.4, please review our [Upgrading to 1.2.4](/consul/docs/upgrading/instructions/upgrade-to-1-2-x)
+older than 1.2.4, please review our [Upgrading to 1.2.4](/consul/docs/consul/docs/upgrade/instructions/upgrade-to-1-2-x)
 guide. Due to changes to the ACL system, an ACL token migration will need to be performed
 as part of this upgrade. The 1.6.x series is the last series that had support for legacy
 ACL tokens, so this migration _must_ happen before upgrading past the 1.6.x release series.
@@ -100,7 +100,7 @@ You should receive output similar to this:
 }
 ```
 
-**3.** Upgrade DC2 agents to version 1.6.10 by following our [General Upgrade Process](/consul/docs/upgrading/instructions/general-process). _**Leave all DC1 agents at 1.2.4.**_ You should start observing log messages like this after that:
+**3.** Upgrade DC2 agents to version 1.6.10 by following our [General Upgrade Process](/consul/docs/consul/docs/upgrade/instructions/general-process). _**Leave all DC1 agents at 1.2.4.**_ You should start observing log messages like this after that:
 
 ```log
 2020/09/08 15:51:29 [DEBUG] acl: Cannot upgrade to new ACLs, servers in acl datacenter have not upgraded - found servers: true, mode: 3
@@ -160,7 +160,7 @@ Failed to retrieve the token list: Unexpected response code: 500 (The ACL system
 
 This is because Consul in legacy mode. ACL CLI commands will not work and you have to hit the old ACL HTTP endpoints (which is why `curl` is being used above rather than the `consul` CLI client).
 
-**5.** Upgrade DC1 agents to version 1.6.10 by following our [General Upgrade Process](/consul/docs/upgrading/instructions/general-process).
+**5.** Upgrade DC1 agents to version 1.6.10 by following our [General Upgrade Process](/consul/docs/consul/docs/upgrade/instructions/general-process).
 
 Once this is complete, you should observe a log entry like this from your server agents:
 

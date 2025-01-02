@@ -92,7 +92,7 @@ information.
   only the given `-encrypt` key will be available on startup. This defaults to false.
 
 - `-enable-script-checks` ((#\_enable_script_checks)) This controls whether
-  [health checks that execute scripts](/consul/docs/services/usage/checks) are enabled on this
+  [health checks that execute scripts](/consul/docs/register/health-check/vm) are enabled on this
   agent, and defaults to `false` so operators must opt-in to allowing these. This
   was added in Consul 0.9.0.
 
@@ -148,7 +148,7 @@ information.
   to close the agent or `SIGHUP` to update check definitions) to the agent.
 
 - `-protocol` ((#\_protocol)) - The Consul protocol version to use. Consul
-  agents speak protocol 2 by default, however agents will automatically use protocol > 2 when speaking to compatible agents. This should be set only when [upgrading](/consul/docs/upgrading). You can view the protocol versions supported by Consul by running `consul version`.
+  agents speak protocol 2 by default, however agents will automatically use protocol > 2 when speaking to compatible agents. This should be set only when [upgrading](/consul/docs/upgrade). You can view the protocol versions supported by Consul by running `consul version`.
 
 - `-raft-protocol` ((#\_raft_protocol)) - This controls the internal version
   of the Raft consensus protocol used for server communications. This must be set

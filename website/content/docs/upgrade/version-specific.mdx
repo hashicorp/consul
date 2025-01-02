@@ -8,7 +8,7 @@ description: >-
 
 # Upgrading Specific Versions
 
-The [upgrading page](/consul/docs/upgrading) covers the details of doing a
+The [upgrading page](/consul/docs/upgrade) covers the details of doing a
 standard upgrade. However, specific versions of Consul may have more details
 provided for their upgrades as a result of new features or changed behavior.
 This page is used to document those details separately from the standard
@@ -663,7 +663,7 @@ agents require that either the [`start_join`](/consul/docs/agent/config/config-f
 agents. If those stipulations are not met, attempting to start the client or snapshot agent will
 result in it immediately shutting down.
 
-For the step by step upgrade procedures see the [Upgrading to 1.10.0](/consul/docs/upgrading/instructions/upgrade-to-1-10-x) documentation.
+For the step by step upgrade procedures see the [Upgrading to 1.10.0](/consul/docs/consul/docs/upgrade/instructions/upgrade-to-1-10-x) documentation.
 For answers to common licensing questions please refer to the [FAQ](/consul/docs/enterprise/license/faq)
 
 ### Envoy xDS Protocol Upgrades
@@ -1104,7 +1104,7 @@ peers.json](/consul/tutorials/datacenter-operations/recovery-outage#manual-recov
 for a description of the required format.
 
 Please note that the Raft protocol is different from Consul's internal protocol
-as described on the [Protocol Compatibility Promise](/consul/docs/upgrading/compatibility)
+as described on the [Protocol Compatibility Promise](/consul/docs/upgrade/compatibility)
 page, and as is shown in commands like `consul members` and `consul version`.
 To see the version of the Raft protocol in use on each server, use the `consul operator raft list-peers` command.
 

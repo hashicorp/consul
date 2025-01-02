@@ -38,7 +38,7 @@ The token types are:
 - `dns` - Specifies the token that agents use to request information needed to respond to DNS queries.
   If the `dns` token is not set, Consul uses the `default` token by default.
   Because the `default` token allows unauthenticated HTTP API access to list nodes and services, we
-  strongly recommend using the `dns` token. Create DNS tokens using the [templated policy](/consul/docs/security/acl/tokens/create/create-a-dns-token#create_a_dns_token) option
+  strongly recommend using the `dns` token. Create DNS tokens using the [templated policy](/consul/docs/secure/acl/token/dns) option
   to ensure that the token has the permissions needed to respond to all DNS queries.
 
 - `config_file_service_registration` - This is the token that the agent uses to

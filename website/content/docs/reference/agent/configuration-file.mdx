@@ -283,7 +283,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
     - `static` This object controls configuring the static authorizer setup in the Consul
       configuration file. Almost all sub-keys are identical to those provided by the [JWT
-      Auth Method](/consul/docs/security/acl/auth-methods/jwt).
+      Auth Method](/consul/docs/secure/acl/auth-method/jwt).
 
       - `jwt_validation_pub_keys` (Defaults to `[]`) A list of PEM-encoded public keys
         to use to authenticate signatures locally.
@@ -882,7 +882,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
     secondary Consul datacenters will perform replication of only ACL policies and
     roles. Setting this configuration will will enable ACL token replication and
     allow for the creation of both [local tokens](/consul/api-docs/acl/tokens#local) and
-    [auth methods](/consul/docs/security/acl/auth-methods) in connected secondary datacenters.
+    [auth methods](/consul/docs/secure/acl/auth-method) in connected secondary datacenters.
 
     ~> **Warning:** When enabling ACL token replication on the secondary datacenter,
     global tokens already present in the secondary datacenter will be lost. For
@@ -943,7 +943,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
       [`acl.tokens.agent_recovery`](#acl_tokens_agent_recovery).**
 
     - `config_file_service_registration` ((#acl_tokens_config_file_service_registration)) - Specifies the ACL
-      token the agent uses to register services and checks from [service](/consul/docs/services/usage/define-services) and [check](/consul/docs/services/usage/checks) definitions
+      token the agent uses to register services and checks from [service](/consul/docs/register/service/vm/define) and [check](/consul/docs/register/health-check/vm) definitions
       specified in configuration files or fragments passed to the agent using the `-hcl`
       flag.
 
@@ -966,7 +966,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
     - `dns` ((#acl_tokens_dns)) - Specifies the token that agents use to request information needed to respond to DNS queries.
       If the `dns` token is not set, the `default` token is used instead.
       Because the `default` token allows unauthenticated HTTP API access to list nodes and services, we
-      strongly recommend using the `dns` token. Create DNS tokens using the [templated policy](/consul/docs/security/acl/tokens/create/create-a-dns-token#create_a_dns_token)
+      strongly recommend using the `dns` token. Create DNS tokens using the [templated policy](/consul/docs/secure/acl/token/dns)
       option to ensure that the token has the permissions needed to respond to all DNS queries.
 
     - `replication` ((#acl_tokens_replication)) - Specifies the token that the agent uses to
@@ -1303,7 +1303,7 @@ subsystem that provides Consul's service mesh capabilities.
 ## DNS and Domain Parameters
 
 - `dns_config` This object allows a number of sub-keys
-  to be set which can tune how DNS queries are serviced. Refer to [DNS caching](/consul/docs/services/discovery/dns-cache) for more information.
+  to be set which can tune how DNS queries are serviced. Refer to [DNS caching](/consul/docs/discover/dns/scale) for more information.
 
   The following sub-keys are available:
 

@@ -16,7 +16,7 @@ As a result, roles can provide a more convenient authentication infrastructure t
 
 Roles are configurations linking several policies to a token. The following procedure describes the workflow for implementing roles.
 
-1. Assemble rules into policies (see [Policies](/consul/docs/security/acl/acl-policies)) and register them in Consul.
+1. Assemble rules into policies (see [Policies](/consul/docs/secure/acl/policy)) and register them in Consul.
 1. Define a role and include the policy IDs or names.
 1. Register the role in Consul and link it to a token.
 1. Distribute the tokens to users for implementation.
@@ -119,7 +119,7 @@ node_prefix "" {
 }
 ```
 
-Refer to the [rules reference](/consul/docs/security/acl/acl-rules) for information about the rules in the policy.
+Refer to the [rules reference](/consul/docs/reference/acl/rule) for information about the rules in the policy.
 
 ### Example
 
@@ -216,7 +216,7 @@ node_prefix "" {
 }
 ```
 
-Refer to the [rules reference](/consul/docs/security/acl/acl-rules) for information about the rules in the policy.
+Refer to the [rules reference](/consul/docs/reference/acl/rule) for information about the rules in the policy.
 
 ### Example
 
@@ -349,7 +349,7 @@ service_prefix "" {
 }
 ```
 
-Refer to the [rules reference](/consul/docs/security/acl/acl-rules) for information about the rules in the policy.
+Refer to the [rules reference](/consul/docs/reference/acl/rule) for information about the rules in the policy.
 
 ### Example
 

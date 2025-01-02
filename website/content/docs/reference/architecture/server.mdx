@@ -115,7 +115,7 @@ Here are some general recommendations:
   [`allow_stale`](/consul/docs/agent/config/config-files#allow_stale) configuration option will allow reads to
   scale across all Consul servers, not just the leader. Consul 0.7 and later enables stale reads
   for DNS by default. See [Stale Reads](/consul/docs/services/discovery/dns-cache#stale-reads) in the
-  [DNS Caching](/consul/docs/services/discovery/dns-cache) guide for more details. It's also good to set
+  [DNS Caching](/consul/docs/discover/dns/scale) guide for more details. It's also good to set
   reasonable, non-zero [DNS TTL values](/consul/docs/services/discovery/dns-cache#ttl-values) if your clients will
   respect them.
 

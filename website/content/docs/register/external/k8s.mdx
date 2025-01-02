@@ -13,7 +13,7 @@ This page provides an overview for registering services in the Consul catalog wh
 
 Because Kubernetes has built-in service discovery capabilities, Consul on Kubernetes includes components such as [Consul dataplanes](/consul/docs/architecture/control-plane/dataplane) and [service sync](/consul/docs/register/service/k8s/service-sync) so that operators can continue to use Kubernetes tools and processes. However, this approach to service networking still requires a service to run on a node that Consul is aware of, either through a local Consul client agent or the Kubernetes cluster. We call services that run on external nodes that Consul cannot automatically recognize _external services_.
 
-Previously, the only way to register an external service when running Consul on Kubernetes was using Consul's HTTP API. This approach requires additional ACLs and direct access to Consul's HTTP API endpoint. Consul now supports registering external services and their associated health checks in the Consul catalog using a [`Registration` custom resource definition (CRD)](/consul/docs/reference/config-entry/registration) that follows the format of [Consul's service definitions](/consul/docs/services/configuration/services-configuration-reference).
+Previously, the only way to register an external service when running Consul on Kubernetes was using Consul's HTTP API. This approach requires additional ACLs and direct access to Consul's HTTP API endpoint. Consul now supports registering external services and their associated health checks in the Consul catalog using a [`Registration` custom resource definition (CRD)](/consul/docs/reference/config-entry/registration) that follows the format of [Consul's service definitions](/consul/docs/reference/service).
 
 ## Workflows
 
@@ -34,5 +34,5 @@ The following resources are available to help you register external services to 
 
 - [`Registration` custom resource definition (CRD) configuration reference](/consul/docs/reference/config-entry/registration)
 - [`/catalog/register` HTTP API endpoint reference](/consul/api-docs/catalog#register-entity)
-- [Service configuration reference](/consul/docs/services/configuration/services-configuration-reference)
-- [Health check configuration reference](/consul/docs/services/configuration/checks-configuration-reference)
+- [Service configuration reference](/consul/docs/reference/service)
+- [Health check configuration reference](/consul/docs/reference/health-check)

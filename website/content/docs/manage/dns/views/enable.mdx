@@ -30,7 +30,7 @@ dns:
 
 ### ACLs
 
-We recommend you create a dedicated [ACL token with DNS permissions](/consul/docs/security/acl/tokens/create/create-a-dns-token) for the Consul DNS proxy. The Consul DNS proxy requires these ACL permissions.
+We recommend you create a dedicated [ACL token with DNS permissions](/consul/docs/secure/acl/token/dns) for the Consul DNS proxy. The Consul DNS proxy requires these ACL permissions.
 
 ```hcl
 node_prefix "" {
@@ -96,7 +96,7 @@ For more information about using a `coredns-custom` resource, refer to the [Rewr
 
 After you enable the Consul DNS proxy, services in the Kubernetes cluster can resolve Consul DNS addresses.
 
-- To learn more about Consul DNS for service discovery, refer to [DNS usage overview](/consul/docs/services/discovery/dns-overview).
-- If your datacenter has ACLs enabled, create a [Consul ACL token](/consul/docs/security/acl/tokens) for the Consul DNS proxy and then restart the DNS proxy.
+- To learn more about Consul DNS for service discovery, refer to [DNS usage overview](/consul/docs/discover/dns).
+- If your datacenter has ACLs enabled, create a [Consul ACL token](/consul/docs/secure/acl/token) for the Consul DNS proxy and then restart the DNS proxy.
 - To enable service discovery across admin partitions, [export services between partitions](/consul/docs/reference/config-entry/exported-services).
 - To use Consul DNS for service discovery with other runtimes, across cloud regions, or between cloud providers, [establish a cluster peering connection](/consul/docs/east-west/cluster-peering/establish/k8s).

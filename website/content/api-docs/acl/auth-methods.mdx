@@ -15,7 +15,7 @@ ACL auth methods in Consul.
 
 For more information on how to setup ACLs, refer to the following resources: 
 
-- [Access control list (ACL) overview](/consul/docs/security/acl)
+- [Access control list (ACL) overview](/consul/docs/secure/acl)
 - [ACL tutorial](/consul/tutorials/security/access-control-setup-production)
 
 ## Create an Auth Method
@@ -51,7 +51,7 @@ The corresponding CLI command is [`consul acl auth-method create`](/consul/comma
 
 - `Type` `(string: <required>)` - The type of auth method being configured.
   This field is immutable. For allowed values see the [auth method
-  documentation](/consul/docs/security/acl/auth-methods).
+  documentation](/consul/docs/secure/acl/auth-method).
 
 - `Description` `(string: "")` - Free form human readable description of the
   auth method.
@@ -76,7 +76,7 @@ The corresponding CLI command is [`consul acl auth-method create`](/consul/comma
 - `Config` `(map[string]string: <required>)` - The raw configuration to use for
   the chosen auth method. Contents will vary depending upon the type chosen.
   For more information on configuring specific auth method types, see the [auth
-  method documentation](/consul/docs/security/acl/auth-methods).
+  method documentation](/consul/docs/secure/acl/auth-method).
 
 - `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of
   the auth method you create. This field takes precedence over the `ns` query parameter,
@@ -267,7 +267,7 @@ The corresponding CLI command is [`consul acl auth-method update`](/consul/comma
 - `Config` `(map[string]string: <required>)` - The raw configuration to use for
   the chosen auth method. Contents will vary depending upon the type chosen.
   For more information on configuring specific auth method types, see the [auth
-  method documentation](/consul/docs/security/acl/auth-methods).
+  method documentation](/consul/docs/secure/acl/auth-method).
 
 - `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of
   the auth method you update. This field takes precedence over the `ns` query parameter,

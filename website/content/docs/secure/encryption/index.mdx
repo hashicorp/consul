@@ -9,7 +9,7 @@ description: >-
 
 This topic provides an overview of the two distinct encryption systems available in Consul. [Gossip encryption](/consul/docs/security/encryption#gossip-encryption) and [Mutual TLS encryption](/consul/docs/security/encryption#mutual-tls-mtls-encryption) are the foundations of a secure Consul datacenter.
 
-The guidelines in the [Consul security model](/consul/docs/security/security-models/core) for operating a secure Consul deployment recommends using both encryption systems.
+The guidelines in the [Consul security model](/consul/docs/secure/security-model/core) for operating a secure Consul deployment recommends using both encryption systems.
 
 ## Gossip Encryption
 
@@ -29,7 +29,7 @@ Gossip encryption is symmetric and based on a single key that is shared across a
 - [`encrypt_verify_incoming`](/consul/docs/agent/config/config-files#encrypt_verify_incoming). Only used when upshifting from unencrypted to encrypted gossip on a running cluster.
 - [`encrypt_verify_outgoing`](/consul/docs/agent/config/config-files#encrypt_verify_outgoing). Only used when upshifting from unencrypted to encrypted gossip on a running cluster.
 
-To learn more about enabling gossip encryption on your Consul datacenter and rotating gossip keys, refer to [manage gossip encryption](/consul/docs/security/encryption/gossip).
+To learn more about enabling gossip encryption on your Consul datacenter and rotating gossip keys, refer to [manage gossip encryption](/consul/docs/secure/encryption/gossip/enable).
 
 ## Mutual TLS (mTLS) Encryption
 

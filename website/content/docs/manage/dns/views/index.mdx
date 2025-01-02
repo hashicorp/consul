@@ -30,7 +30,7 @@ The process to enable Consul DNS views for service discovery in Kubernetes deplo
 1. Look up the IP address for the Consul DNS proxy in the Kubernetes cluster.
 1. Update the ConfigMap resource in the Kubernetes cluster so that it forwards requests for the `.consul` domain to the IP address of the Consul DNS proxy.
 
-For more information about the underlying concepts described in this workflow, refer to [DNS forwarding overview](/consul/docs/services/discovery/dns-forwarding).
+For more information about the underlying concepts described in this workflow, refer to [DNS forwarding overview](/consul/docs/discover/dns/forwarding).
 
 ## Benefits
 
@@ -38,7 +38,7 @@ Consul on Kubernetes currently uses [Consul dataplanes](/consul/docs/architectur
 
 - **Use Kubernetes DNS and Consul DNS in a single deployment**. The Consul DNS proxy enables any application in a Pod to resolve an address through Consul DNS without disrupting the underlying Kubernetes DNS functionality.
 - **Consul service discovery using fewer resources**. When you use the Consul DNS proxy for service discovery, you do not need to schedule Consul client agents or dataplanes as sidecars. One Kubernetes Service that uses the same resources as a single Consul dataplane provides Pods access to the Consul service catalog.
-- **Consul DNS without gossip communication**. The Consul DNS service runs on both Consul server and Consul client agents, which use [gossip communication](/consul/docs/security/encryption/gossip) to ensure that service discovery results are up-to-date. The Consul DNS proxy provides access to Consul DNS without the security overhead of agent-to-agent gossip.
+- **Consul DNS without gossip communication**. The Consul DNS service runs on both Consul server and Consul client agents, which use [gossip communication](/consul/docs/secure/encryption/gossip/enable) to ensure that service discovery results are up-to-date. The Consul DNS proxy provides access to Consul DNS without the security overhead of agent-to-agent gossip.
 
 ## Constraints and limitations
 
