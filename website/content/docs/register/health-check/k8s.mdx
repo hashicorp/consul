@@ -34,6 +34,6 @@ then use the respective service instance for service mesh traffic.
 In the case where no user defined health checks are assigned to a pod, the default behavior is that the Consul health check will
 be marked `passing` until the pod becomes unready.
 
--> It is highly recommended to [enable TLS](/consul/docs/k8s/helm#v-global-tls-enabled) for all production configurations to mitigate any
+-> It is highly recommended to [enable TLS](/consul/docs/reference/k8s/helm#v-global-tls-enabled) for all production configurations to mitigate any
 security concerns should the pod network ever be compromised. The controller makes calls across the network to Consul agents on all
 nodes so an attacker could potentially sniff ACL tokens *if those calls are not encrypted* via TLS.

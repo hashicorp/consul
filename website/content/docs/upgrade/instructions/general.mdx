@@ -37,7 +37,7 @@ Docker containers are available at these locations:
 <Tab heading="Kubernetes">
 
 If you are using Kubernetes, then please review our documentation for
-[Upgrading Consul on Kubernetes](/consul/docs/k8s/upgrade).
+[Upgrading Consul on Kubernetes](/consul/docs/upgrade/k8s).
 
 </Tab>
 </Tabs>
@@ -86,7 +86,7 @@ When you change the cluster's log level, Consul gives you more information to wo
 To experience a smoother upgrade process on Consul Enterprise, we recommend that you disable the upgrade migration feature.
 </Note>
 
-Consul Enterprise supports [automated upgrades](/consul/docs/enterprise/upgrades), but the autopilot feature may cause a node running an updated Consul version to elect a new leader before the version is updated on the existing cluster leader.
+Consul Enterprise supports [automated upgrades](/consul/docs/upgrade/automated), but the autopilot feature may cause a node running an updated Consul version to elect a new leader before the version is updated on the existing cluster leader.
 
 If your datacenter runs Consul Enterprise, update your server agent configuration file to disable autopilot's upgrade migration or run the following CLI command:
 

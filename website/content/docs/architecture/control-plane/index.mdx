@@ -7,7 +7,7 @@ description: >-
 
 # Consul control plane architecture
 
-This topic provides an overview of the Consul architecture. We recommend reviewing the Consul [glossary](/consul/docs/install/glossary) as a companion to this topic to help you become familiar with HashiCorp terms.
+This topic provides an overview of the Consul architecture. We recommend reviewing the Consul [glossary](/consul/docs/consul/docs/glossary) as a companion to this topic to help you become familiar with HashiCorp terms.
 
 > Refer to the [Reference Architecture tutorial](/consul/tutorials/production-deploy/reference-architecture) for hands-on guidance about deploying Consul in production.
 
@@ -21,11 +21,11 @@ When using Consul’s service mesh capabilities, Consul dynamically configures s
 
 ## Datacenters
 
-The Consul control plane contains one or more _datacenters_. A datacenter is the smallest unit of Consul infrastructure that can perform basic Consul operations. A datacenter contains at least one [Consul server agent](#server-agents), but a real-world deployment contains three or five server agents and several [Consul client agents](#client-agents). You can create multiple datacenters and allow nodes in different datacenters to interact with each other. Refer to [Bootstrap a Datacenter](/consul/docs/install/bootstrapping) for information about how to create a datacenter.
+The Consul control plane contains one or more _datacenters_. A datacenter is the smallest unit of Consul infrastructure that can perform basic Consul operations. A datacenter contains at least one [Consul server agent](#server-agents), but a real-world deployment contains three or five server agents and several [Consul client agents](#client-agents). You can create multiple datacenters and allow nodes in different datacenters to interact with each other. Refer to [Bootstrap a Datacenter](/consul/docs/deploy/server/vm/bootstrap) for information about how to create a datacenter.
 
 ### Clusters
 
-A collection of Consul agents that are aware of each other is called a _cluster_. The terms _datacenter_ and _cluster_ are often used interchangeably. In some cases, however, _cluster_ refers only to Consul server agents, such as in [HCP Consul Dedicated](https://cloud.hashicorp.com/products/consul). In other contexts, such as the [_admin partitions_](/consul/docs/enterprise/admin-partitions) feature included with Consul Enterprise, a cluster may refer to collection of client agents.
+A collection of Consul agents that are aware of each other is called a _cluster_. The terms _datacenter_ and _cluster_ are often used interchangeably. In some cases, however, _cluster_ refers only to Consul server agents, such as in [HCP Consul Dedicated](https://cloud.hashicorp.com/products/consul). In other contexts, such as the [_admin partitions_](/consul/docs/multi-tenant/admin-partition) feature included with Consul Enterprise, a cluster may refer to collection of client agents.
 
 ## Agents
 
@@ -109,6 +109,6 @@ In the following diagram, the servers in each data center participate in a WAN g
 
 ### Cluster peering
 
-You can create peering connections between two or more independent clusters so that services deployed to different datacenters or admin partitions can communicate. An [admin partition](/consul/docs/enterprise/admin-partitions) is a feature in Consul Enterprise that enables you to define isolated network regions that use the same Consul servers. In the cluster peering model, you create a token in one of the datacenters or partitions and configure another datacenter or partition to present the token to establish the connection. 
+You can create peering connections between two or more independent clusters so that services deployed to different datacenters or admin partitions can communicate. An [admin partition](/consul/docs/multi-tenant/admin-partition) is a feature in Consul Enterprise that enables you to define isolated network regions that use the same Consul servers. In the cluster peering model, you create a token in one of the datacenters or partitions and configure another datacenter or partition to present the token to establish the connection. 
  
 Refer to [What is Cluster Peering?](/consul/docs/east-west/cluster-peering) for additional information.

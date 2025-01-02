@@ -35,7 +35,7 @@ We are pleased to announce the following Consul updates.
 
   Enterprises can use sameness groups to simplify operations and increase service availability for multi-cluster or multi-region deployments.
 
-  Refer to the documentation for [creating sameness groups](/consul/docs/multi-tenant/sameness-group/vm) or [creating sameness groups on Kubernetes](/consul/docs/k8s/connect/cluster-peering/usage/create-sameness-groups) for more information.
+  Refer to the documentation for [creating sameness groups](/consul/docs/multi-tenant/sameness-group/vm) or [creating sameness groups on Kubernetes](/consul/docs/multi-tenant/sameness-group/k8s) for more information.
 
 - **JWT-based authentication and authorization for API Gateway (Enterprise):** You can configure API gateway to use policies that control access to services based on JSON Web Tokens (JWT) embedded in the network traffic sent by external clients. These policies can control access to services, and even specific URLs, based on the claims contained in JWTs.
 
@@ -72,7 +72,7 @@ We are pleased to announce the following Consul updates.
 
 ## What's removed
 
-- **Legacy API Gateway support is removed**: The Consul API Gateway that was previously packaged as `consul-api-gateway`, released separately from Consul K8s, and deprecated in Consul v1.16.x is now removed. This gateway is referred to as the _legacy API Gateway_. As of Consul v1.17.0, you must [install](/consul/docs/north-south/api-gateway/k8s/enable) the _native API Gateway_ and configure it using the [`connectInject.apiGateway`](/consul/docs/k8s/helm#apigateway) stanza. 
+- **Legacy API Gateway support is removed**: The Consul API Gateway that was previously packaged as `consul-api-gateway`, released separately from Consul K8s, and deprecated in Consul v1.16.x is now removed. This gateway is referred to as the _legacy API Gateway_. As of Consul v1.17.0, you must [install](/consul/docs/north-south/api-gateway/k8s/enable) the _native API Gateway_ and configure it using the [`connectInject.apiGateway`](/consul/docs/reference/k8s/helm#apigateway) stanza. 
 
 ## Upgrading
 

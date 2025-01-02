@@ -11,7 +11,7 @@ We are pleased to announce the following Consul updates.
 
 ## Release highlights
 
-- **External Services CRD**: You can now configure and register external services, including their health checks, alongside existing Kubernetes application manifests with the new [`Registration` Custom Resource Definition (CRD)](/consul/docs/reference/config-entry/registration). This CRD changes the workflow to register a service running on an external node with the Consul catalog. A terminating gateway is still required to enable downstream services in the service mesh to communicate with external services. Refer to [Register external services on Kubernetes overview](/consul/docs/k8s/deployment-configurations/external-service) for more information.
+- **External Services CRD**: You can now configure and register external services, including their health checks, alongside existing Kubernetes application manifests with the new [`Registration` Custom Resource Definition (CRD)](/consul/docs/reference/config-entry/registration). This CRD changes the workflow to register a service running on an external node with the Consul catalog. A terminating gateway is still required to enable downstream services in the service mesh to communicate with external services. Refer to [Register external services on Kubernetes overview](/consul/docs/register/external/k8s) for more information.
 
 - **Transparent Proxy on Nomad**: Consul’s CNI plugin enables the use of transparent proxy for seamlessly redirecting traffic through the Envoy proxy without requiring application changes, or elevated network privileges for the workload. As a result, you can onboard applications without additional configuration between a service and its upstreams.
 
@@ -23,7 +23,7 @@ We are pleased to announce the following Consul updates.
 
   Consul on Kubernetes deployments that use `consul-k8s` Helm chart v1.5.0 or later use file system certificates without additional configuration. For more information, refer to [File system certificate configuration reference](/consul/docs/reference/config-entry/file-system-certificate).
 
-- **Argo Rollouts Plugin**: A new Argo Rollouts plugin for progressive delivery is now available for `consul-k8s`. This plugin supports canary deployments by allowing you to incrementally release and test new versions of applications and roll back to previous versions by splitting traffic between subsets of services. Refer to [Argo Rollouts Progressive Delivery with Consul on Kubernetes](/consul/docs/k8s/deployment-configurations/argo-rollouts-configuration) for more information.
+- **Argo Rollouts Plugin**: A new Argo Rollouts plugin for progressive delivery is now available for `consul-k8s`. This plugin supports canary deployments by allowing you to incrementally release and test new versions of applications and roll back to previous versions by splitting traffic between subsets of services. Refer to [Argo Rollouts Progressive Delivery with Consul on Kubernetes](/consul/docs/manage-traffic/progressive-rollouts/argo) for more information.
 
 ## What's deprecated
 

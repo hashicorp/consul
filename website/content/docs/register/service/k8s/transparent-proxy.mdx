@@ -10,7 +10,7 @@ This topic describes how to run Consul in permissive mTLS mode so that you can s
 
 ## Background
 
-When [transparent proxy mode](/consul/docs/k8s/connect/transparent-proxy) is enabled, all service-to-service traffic is secured by mTLS. Until the services that you want to add to the network are fully onboarded, your network may have a mix of mTLS and non-mTLS traffic, which can result in broken service-to-service communication. This situation occurs because sidecar proxies for existing mesh services reject traffic from services that are not yet onboarded.
+When [transparent proxy mode](/consul/docs/connect/proxy/transparent-proxy) is enabled, all service-to-service traffic is secured by mTLS. Until the services that you want to add to the network are fully onboarded, your network may have a mix of mTLS and non-mTLS traffic, which can result in broken service-to-service communication. This situation occurs because sidecar proxies for existing mesh services reject traffic from services that are not yet onboarded.
 
 You can enable the `permissive` mTLS mode to ensure existing non-mTLS service-to-service traffic is allowed during the onboarding phase. The `permissive` mTLS mode enables sidecar proxies to accept both mTLS and non-mTLS traffic to an application. Using this mode enables you to onboard without downtime and without being required to reconfigure or redeploy your application.
 
@@ -189,7 +189,7 @@ Check the following Envoy listener statistics for the sidecar proxy to determine
 - The `tcp.permissive_public_listener.*` statistics indicate non-mTLS traffic. If these metrics are static over a sufficient period of time, that indicates the sidecar is not receiving non-mTLS traffic.
 - The `tcp.public_listener.*` statistics indicate mTLS traffic. If incoming traffic is expected to this service and these statistics are changing, then the sidecar is receiving mTLS traffic.
 
-Refer to the [service mesh observability overview](/consul/docs/observe/tech-specs) and [metrics configuration for Consul on Kubernetes documentation](/consul/docs/k8s/connect/observability/metrics) for additional information.
+Refer to the [service mesh observability overview](/consul/docs/observe/tech-specs) and [metrics configuration for Consul on Kubernetes documentation](/consul/docs/observe/telemetry/k8s) for additional information.
 
 If your service is still receiving non-mTLS traffic, complete the following steps to determine the source of the non-mTLS traffic:
 

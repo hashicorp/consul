@@ -122,7 +122,7 @@ Use these links to navigate to a particular top-level stanza.
   - `secretsBackend` ((#v-global-secretsbackend)) - secretsBackend is used to configure Vault as the secrets backend for the Consul on Kubernetes installation.
     The Vault cluster needs to have the Kubernetes Auth Method, KV2 and PKI secrets engines enabled
     and have necessary secrets, policies and roles created prior to installing Consul.
-    Refer to [Vault as the Secrets Backend](/consul/docs/k8s/deployment-configurations/vault)
+    Refer to [Vault as the Secrets Backend](/consul/docs/deploy/server/k8s/vault)
     documentation for full instructions.
 
     The Vault cluster _must_ not have the Consul cluster installed by this Helm chart as its storage backend
@@ -326,7 +326,7 @@ Use these links to navigate to a particular top-level stanza.
     - `verify` ((#v-global-tls-verify)) (`boolean: true`) - If true, `verify_outgoing`, `verify_server_hostname`,
       and `verify_incoming` for internal RPC communication will be set to `true` for Consul servers and clients.
       Set this to false to incrementally roll out TLS on an existing Consul cluster.
-      Please refer to [TLS on existing clusters](/consul/docs/k8s/operations/tls-on-existing-cluster)
+      Please refer to [TLS on existing clusters](/consul/docs/secure/encryption/tls/rolling)
       for more details.
 
     - `httpsOnly` ((#v-global-tls-httpsonly)) (`boolean: true`) - If true, the Helm chart will configure Consul to disable the HTTP port on
@@ -1130,7 +1130,7 @@ Use these links to navigate to a particular top-level stanza.
 
   - `auditLogs` ((#v-server-auditlogs)) - <EnterpriseAlert inline /> Added in Consul 1.8, the audit object allow users to enable auditing
     and configure a sink and filters for their audit logs. Please refer to
-    [audit logs](/consul/docs/enterprise/audit-logging) documentation
+    [audit logs](/consul/docs/monitor/log/audit) documentation
     for further information.
 
     - `enabled` ((#v-server-auditlogs-enabled)) (`boolean: false`) - Controls whether Consul logs out each time a user performs an operation.

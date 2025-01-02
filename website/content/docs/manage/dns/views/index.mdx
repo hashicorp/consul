@@ -18,7 +18,7 @@ Consul on Kubernetes supports [configuring Kubernetes to resolve Consul DNS](/co
 - Kubernetes requires Consul to use gossip communication with agents or dataplanes in order to enable Consul DNS.
 - Consul requires that admin partitions be included in the DNS address. Otherwise, DNS queries assume the `default` partition by default.
 
-The `consul-dns` proxy does not require the presence of Consul client agents or Consul dataplanes, removing gossip communication as a requirement for Consul DNS on Kubernetes. The proxy is also designed for deployment in a Kubernetes cluster with [external servers enabled](/consul/docs/k8s/deployment-configurations/servers-outside-kubernetes). When a cluster runs in a non-default admin partition and uses the proxy to query external servers, Consul automatically recognizes the admin partition that originated the request and returns service discovery results scoped to that specific admin partition.
+The `consul-dns` proxy does not require the presence of Consul client agents or Consul dataplanes, removing gossip communication as a requirement for Consul DNS on Kubernetes. The proxy is also designed for deployment in a Kubernetes cluster with [external servers enabled](/consul/docs/deploy/server/k8s/external). When a cluster runs in a non-default admin partition and uses the proxy to query external servers, Consul automatically recognizes the admin partition that originated the request and returns service discovery results scoped to that specific admin partition.
 
 To use Consul DNS for service discovery on Kubernetes, deploy a `dns-proxy` service in each Kubernetes Pod that needs to resolve Consul DNS. Kubernetes sends all DNS requests to the Kubernetes controller first. The controller forwards requests for the `.consul` domain to the `dns-proxy` service, which then queries the Consul catalog and returns service discovery results.
 
@@ -26,7 +26,7 @@ To use Consul DNS for service discovery on Kubernetes, deploy a `dns-proxy` serv
 
 The process to enable Consul DNS views for service discovery in Kubernetes deployments consists of the following steps:
 
-1. In a cluster configured to use [external Consul servers](/consul/docs/k8s/deployment-configurations/servers-outside-kubernetes), update the Helm values for your Consul on Kubernetes deployment so that `dns.proxy.enabled=true`. When you apply the updated configuration, Kubernetes deploys the Consul DNS proxy.
+1. In a cluster configured to use [external Consul servers](/consul/docs/deploy/server/k8s/external), update the Helm values for your Consul on Kubernetes deployment so that `dns.proxy.enabled=true`. When you apply the updated configuration, Kubernetes deploys the Consul DNS proxy.
 1. Look up the IP address for the Consul DNS proxy in the Kubernetes cluster.
 1. Update the ConfigMap resource in the Kubernetes cluster so that it forwards requests for the `.consul` domain to the IP address of the Consul DNS proxy.
 

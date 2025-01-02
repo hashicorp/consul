@@ -16,7 +16,7 @@ This topic provides information about potential error messages associated with C
 
 ## Missing local module
 
-If you configured the CTS cluster to run in [high availability mode](/consul/docs/nia/usage/run-ha) and the local module is missing, then the following message appears in the log:
+If you configured the CTS cluster to run in [high availability mode](/consul/docs/automate/infrastructure/high-availability) and the local module is missing, then the following message appears in the log:
 
 ```log hideClipboard
 [ERROR] ha.compat: error="compatibility check failure: stat ./example-module: no such file or directory"
@@ -127,11 +127,11 @@ Identify and send the request to the leader CTS instance. You can identify the l
 
 **Conditions**:
 
-- You called the [`status/cluster` API endpoint](/consul/docs/reference/cts/api/status#cluster-status) without configuring CTS for [high availability](/consul/docs/nia/usage/run-ha).
+- You called the [`status/cluster` API endpoint](/consul/docs/reference/cts/api/status#cluster-status) without configuring CTS for [high availability](/consul/docs/automate/infrastructure/high-availability).
 
 **Resolution**:
 
-Configure CTS to run in [high availability mode](/consul/docs/nia/usage/run-ha).
+Configure CTS to run in [high availability mode](/consul/docs/automate/infrastructure/high-availability).
 
 ## Unsupported status parameter value
 

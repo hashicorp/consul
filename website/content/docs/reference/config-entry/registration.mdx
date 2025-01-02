@@ -6,7 +6,7 @@ description: The Registration CRD enables Consul on Kubernetes to register an ex
 
 # Registration CRD configuration reference
 
-This topic provides reference information for `Registration` custom resource definitions (CRDs). You can use this CRD to register an external service with Consul on Kubernetes. For more information. Refer to [Register services running on external nodes to Consul on Kubernetes](/consul/docs/k8s/deployment-configurations/external-service) for more information.
+This topic provides reference information for `Registration` custom resource definitions (CRDs). You can use this CRD to register an external service with Consul on Kubernetes. For more information. Refer to [Register services running on external nodes to Consul on Kubernetes](/consul/docs/register/external/k8s) for more information.
 
 ## Configuration model
 
@@ -322,7 +322,7 @@ Specifies human readable output in response to a health check.
 
 ### `spec.check.partition` <EnterpriseAlert inline />
 
-Specifies the Consul admin partition the health check applies to. Refer to [admin partitions](/consul/docs/enterprise/admin-partitions) for more information.
+Specifies the Consul admin partition the health check applies to. Refer to [admin partitions](/consul/docs/multi-tenant/admin-partition) for more information.
 
 #### Values
 
@@ -512,7 +512,7 @@ Specifies a name for the service. We recommend using valid DNS labels for servic
 
 ### `spec.service.namespace` <EnterpriseAlert inline />
 
-Specifies the Consul namespace to register the service in. Refer to [namespaces](/consul/docs/enterprise/namespaces) for more information.
+Specifies the Consul namespace to register the service in. Refer to [namespaces](/consul/docs/multi-tenant/namespace) for more information.
 
 #### Values
 
@@ -521,7 +521,7 @@ Specifies the Consul namespace to register the service in. Refer to [namespaces]
 
 ### `spec.service.partition` <EnterpriseAlert inline />
 
-Specifies the Consul admin partition to register the service in. Refer to [admin partitions](/consul/docs/enterprise/admin-partitions) for more information.
+Specifies the Consul admin partition to register the service in. Refer to [admin partitions](/consul/docs/multi-tenant/admin-partition) for more information.
 
 #### Values
 

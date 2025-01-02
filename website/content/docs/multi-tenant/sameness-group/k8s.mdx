@@ -22,8 +22,8 @@ To create and use sameness groups in your network, complete the following steps:
 
 ## Requirements
 
-- All datacenters where you want to create sameness groups must run Consul v1.16 or later. Refer to [upgrade instructions](/consul/docs/k8s/upgrade) for more information about how to upgrade your deployment.
-- A [Consul Enterprise license](/consul/docs/enterprise/license/overview) is required.
+- All datacenters where you want to create sameness groups must run Consul v1.16 or later. Refer to [upgrade instructions](/consul/docs/upgrade/k8s) for more information about how to upgrade your deployment.
+- A [Consul Enterprise license](/consul/docs/enterprise/license) is required.
 
 ### Before you begin
 
@@ -41,7 +41,7 @@ Mesh gateways are required for cluster peering connections and recommended to se
 
 #### Establish cluster peering relationships between remote partitions
 
-You must establish connections with cluster peers before you can create a sameness group that includes them. A cluster peering connection exists between two admin partitions in different datacenters, and each connection between two partitions must be established separately with each peer. Refer to [establish cluster peering connections](/consul/docs/k8s/connect/cluster-peering/usage/establish-peering) for step-by-step instructions.
+You must establish connections with cluster peers before you can create a sameness group that includes them. A cluster peering connection exists between two admin partitions in different datacenters, and each connection between two partitions must be established separately with each peer. Refer to [establish cluster peering connections](/consul/docs/east-west/cluster-peering/establish/k8s) for step-by-step instructions.
 
 To establish cluster peering connections and define a group as part of the same workflow, follow instructions up to [Export services between clusters](/consul/docs/k8s/connect/cluster-peering/usage/establish-peering#export-services-between-clusters). You can use the same exported services and service intention configuration entries to establish the cluster peering connection and create the sameness group.
 

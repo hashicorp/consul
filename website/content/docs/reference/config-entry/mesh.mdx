@@ -104,7 +104,7 @@ spec:
 </Tab>
 </Tabs>
 
-Note that the Kubernetes example does not include a `partition` field. Configuration entries are applied on Kubernetes using [custom resource definitions (CRD)](/consul/docs/k8s/crds), which can only be scoped to their own partition.
+Note that the Kubernetes example does not include a `partition` field. Configuration entries are applied on Kubernetes using [custom resource definitions (CRD)](/consul/docs/fundamentals/config-entry), which can only be scoped to their own partition.
 
 ### Mesh Destinations Only
 
@@ -185,7 +185,7 @@ spec:
 </Tab>
 </Tabs>
 
-Note that the Kubernetes example does not include a `partition` field. Configuration entries are applied on Kubernetes using [custom resource definitions (CRD)](/consul/docs/k8s/crds), which can only be scoped to their own partition.
+Note that the Kubernetes example does not include a `partition` field. Configuration entries are applied on Kubernetes using [custom resource definitions (CRD)](/consul/docs/fundamentals/config-entry), which can only be scoped to their own partition.
 
 ###  Peer Through Mesh Gateways
 
@@ -265,7 +265,7 @@ spec:
 </Tab>
 </Tabs>
 
-Note that the Kubernetes example does not include a `partition` field. Configuration entries are applied on Kubernetes using [custom resource definitions (CRD)](/consul/docs/k8s/crds), which can only be scoped to their own partition.
+Note that the Kubernetes example does not include a `partition` field. Configuration entries are applied on Kubernetes using [custom resource definitions (CRD)](/consul/docs/fundamentals/config-entry), which can only be scoped to their own partition.
 
 ### Request Normalization
 
@@ -351,7 +351,7 @@ spec:
       type: `string: "default"`,
       enterprise: true,
       description:
-        'Specifies the name of the admin partition in which the configuration entry applies. Refer to the [Admin Partitions documentation](/consul/docs/enterprise/admin-partitions) for additional information.',
+        'Specifies the name of the admin partition in which the configuration entry applies. Refer to the [Admin Partitions documentation](/consul/docs/multi-tenant/admin-partition) for additional information.',
       yaml: false,
     },
     {

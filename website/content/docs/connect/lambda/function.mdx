@@ -58,7 +58,7 @@ The following diagram shows the invocation procedure:
 
 ## Invoke a Lambda Function
 
-Before you can invoke a Lambda function, register the service used to invoke the Lambda function and the service running in Lambda with Consul (refer to [registration](/consul/docs/lambda/registration) for instructions). The service used to invoke the function must be deployed to the service mesh.
+Before you can invoke a Lambda function, register the service used to invoke the Lambda function and the service running in Lambda with Consul (refer to [registration](/consul/docs/register/service/lambda) for instructions). The service used to invoke the function must be deployed to the service mesh.
 
 1. Update the invoking service to use the Lambda service as an upstream. In the following example, the `destination_name` for the invoking service (`api`) points to a Lambda service called `authentication`:
 

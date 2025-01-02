@@ -43,7 +43,7 @@ network infrastructure. The following [drivers](/consul/docs/nia/network-drivers
 - Terraform driver
 - HCP Terraform driver<EnterpriseAlert inline />
 
-Each driver includes a set of providers that [enables support](/consul/docs/nia/terraform-modules) for a wide variety of infrastructure applications.
+Each driver includes a set of providers that [enables support](/consul/docs/automate/infrastructure/module) for a wide variety of infrastructure applications.
 
 ## State storage and persistence  
 
@@ -55,20 +55,20 @@ By default, CTS stores [Terraform state data](/terraform/language/state) in the 
 
 ### CTS task and event data 
 
-By default, CTS stores task and event data in memory. This data is transient and does not persist. If you configure [CTS to run with high availability enabled](/consul/docs/nia/usage/run-ha), CTS stores the data in the Consul KV. High availability is an enterprise feature that promotes CTS resiliency. When high availability is enabled, CTS stores and persists task changes and events that occur when an instance stops.  
+By default, CTS stores task and event data in memory. This data is transient and does not persist. If you configure [CTS to run with high availability enabled](/consul/docs/automate/infrastructure/high-availability), CTS stores the data in the Consul KV. High availability is an enterprise feature that promotes CTS resiliency. When high availability is enabled, CTS stores and persists task changes and events that occur when an instance stops.  
 
 The data stored when operating in high availability mode includes task changes made using the task API or CLI. Examples of task changes include creating a new task, deleting a task, and enabling or disabling a task. You can empty the leader’s stored state information by starting CTS with the [`-reset-storage` flag](/consul/docs/nia/cli/start#options).
 
 ## Instance compatibility checks (high availability)
 
-If you [run CTS with high availability enabled](/consul/docs/nia/usage/run-ha), CTS performs instance compatibility checks to ensure that all instances in the cluster behave consistently. Consistent instance behavior enables CTS to properly perform automations configured in the state storage. 
+If you [run CTS with high availability enabled](/consul/docs/automate/infrastructure/high-availability), CTS performs instance compatibility checks to ensure that all instances in the cluster behave consistently. Consistent instance behavior enables CTS to properly perform automations configured in the state storage. 
 
 The CTS instance compatibility check reports an error if the task [module](/consul/docs/nia/configuration#module) is configured with a local module, but the module does not exist on the CTS instance. Refer to the [Terraform documentation](/terraform/language/modules/sources#module-sources) for additional information about module sources. Example log:
 
 ```shell-session
 [ERROR] ha.compat: error="compatibility check failure: stat ./example-module: no such file or directory"
 ```
-Refer to [Error Messages](/consul/docs/nia/usage/errors-ref) for additional information.
+Refer to [Error Messages](/consul/docs/error-messages/cts) for additional information.
 
 CTS instances perform a compatibility check on start-up based on the stored state and every five minutes after starting. If the check detects an incompatible CTS instance, it generates a log so that an operator can address it. 
 

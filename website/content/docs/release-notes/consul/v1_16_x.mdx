@@ -15,13 +15,13 @@ We are pleased to announce the following Consul updates.
 
    <Note> Sameness groups is currently a beta feature in Consul Enterprise v1.16.0. </Note>
 
-- **Permissive mTLS:** You can enable the `permissive` mTLS mode to enable sidecar proxies to accept both mTLS and non-mTLS traffic. Using this mode enables you to onboard services without downtime and without reconfiguring or redeploying your application. Refer to the [Onboard services while in transparent proxy mode](/consul/docs/k8s/connect/onboarding-tproxy-mode) for more information on how to use permissive mTLS to onboard services to Consul.
+- **Permissive mTLS:** You can enable the `permissive` mTLS mode to enable sidecar proxies to accept both mTLS and non-mTLS traffic. Using this mode enables you to onboard services without downtime and without reconfiguring or redeploying your application. Refer to the [Onboard services while in transparent proxy mode](/consul/docs/register/service/k8s/transparent-proxy) for more information on how to use permissive mTLS to onboard services to Consul.
 
 - **Transparent proxy enhancements for failover and virtual services:** We have made several internal improvements, such as ensuring that virtual IPs are always available, to reduce the friction associated with operating Consul in transparent proxy mode. Onboarding services, configuring failover redirects, and other operations require less administrative effort and ensure a smoother experience. Refer to the following documentation for additional information: 
 
-    - [Onboard services while in transparent proxy mode](/consul/docs/k8s/connect/onboarding-tproxy-mode)
-    - [Route traffic to virtual services](/consul/docs/k8s/l7-traffic/route-to-virtual-services)
-    - [Configure failover services](/consul/docs/k8s/l7-traffic/failover-tproxy).
+    - [Onboard services while in transparent proxy mode](/consul/docs/register/service/k8s/transparent-proxy)
+    - [Route traffic to virtual services](/consul/docs/manage-traffic/virtual-service)
+    - [Configure failover services](/consul/docs/manage-traffic/failover/k8s).
 
 - **Granular server-side rate limits (Enterprise):** You can now set limits per source IP address. The following steps describe the general process for setting global read and write rate limits:
 
@@ -39,11 +39,11 @@ We are pleased to announce the following Consul updates.
 
 - **Simplified API Gateway installation for Consul on Kubernetes:** API Gateway is now built into Consul. This enables a simplified installation and configuration process for Consul on Kubernetes. Refer to the [API Gateway installation](/consul/docs/north-south/api-gateway/k8s/enable) for more information on the simplified native installation method. 
 
-- **FIPS compliance (Enterprise):** HashiCorp now offers FIPS 140-2 compliant builds of Consul Enterprise that meet the security needs of federal agencies protecting sensitive, unclassified information with approved cryptographic measures. These builds use certified cryptographic modules and restrict configuration settings to comply with FIPS 140-2 Level 1 requirements, enabling compliant Consul deployments. Refer to the [Consul Enterprise FIPS](/consul/docs/enterprise/fips) for more information on FIPS compliance.
+- **FIPS compliance (Enterprise):** HashiCorp now offers FIPS 140-2 compliant builds of Consul Enterprise that meet the security needs of federal agencies protecting sensitive, unclassified information with approved cryptographic measures. These builds use certified cryptographic modules and restrict configuration settings to comply with FIPS 140-2 Level 1 requirements, enabling compliant Consul deployments. Refer to the [Consul Enterprise FIPS](/consul/docs/deploy/server/fips) for more information on FIPS compliance.
 
 - **JWT Authorization with service intentions:** Consul can now authorize connections based on claims present in JSON Web Token (JWT). You can configure Consul to use one or more JWT providers, which lets you control access to services and specific HTTP paths based on the validity of JWT claims embedded in the service traffic. This ensures a uniform and low latency mechanism to validate and authorize communication based on JWT claims across all services in a diverse service-oriented architecture. Refer to the [Use JWT authorization with service intentions](/consul/docs/secure-mesh/intention/jwt) for more information.
 
-- **Automated license utilization reporting (Enterprise):** Consul Enterprise now provides automated license utilization reporting, which sends minimal product-license metering data to HashiCorp. You can use these reports to understand how much more you can deploy under your current contract, which can help you protect against overutilization and budget for predicted consumption. Refer to the [Automated license utilization reporting documentation](/consul/docs/enterprise/license/utilization-reporting) for more information. 
+- **Automated license utilization reporting (Enterprise):** Consul Enterprise now provides automated license utilization reporting, which sends minimal product-license metering data to HashiCorp. You can use these reports to understand how much more you can deploy under your current contract, which can help you protect against overutilization and budget for predicted consumption. Refer to the [Automated license utilization reporting documentation](/consul/docs/enterprise/license/reporting) for more information. 
 
 ## What's deprecated
 

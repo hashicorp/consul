@@ -11,7 +11,7 @@ This page describes the requirements to set up Consul on Kubernetes deployments 
 
 If you already have a Consul cluster deployed on Kubernetes and
 would like to turn on TLS for internal Consul communication,
-refer to [Configuring TLS on an Existing Cluster](/consul/docs/k8s/operations/tls-on-existing-cluster).
+refer to [Configuring TLS on an Existing Cluster](/consul/docs/secure/encryption/tls/rolling).
 
 ## Requirements
 
@@ -54,7 +54,7 @@ If you upgrade Consul from a version that uses client agents to a version the us
     prepareDataplanesUpgrade: true
   ```
 
-1. Consul dataplanes disables Consul clients by default, but during an upgrade you need to ensure Consul clients continue to run. Edit your Helm chart configuration and set the [`client.enabled`](/consul/docs/k8s/helm#v-client-enabled) field to `true` and specify an action for Consul to take during the upgrade process in the [`client.updateStrategy`](/consul/docs/k8s/helm#v-client-updatestrategy) field:
+1. Consul dataplanes disables Consul clients by default, but during an upgrade you need to ensure Consul clients continue to run. Edit your Helm chart configuration and set the [`client.enabled`](/consul/docs/reference/k8s/helm#v-client-enabled) field to `true` and specify an action for Consul to take during the upgrade process in the [`client.updateStrategy`](/consul/docs/reference/k8s/helm#v-client-updatestrategy) field:
 
   ```yaml filename="values.yaml"
   client:

@@ -111,7 +111,7 @@ Hang tight while we grab the latest from your chart repositories...
 Update Complete. ⎈Happy Helming!⎈
 ```
 
-Refer to [Install with Helm Chart](/consul/docs/k8s/installation/install) for further installation
+Refer to [Install with Helm Chart](/consul/docs/deploy/server/k8s/helm) for further installation
 instructions.
 
 **Note**: Configuration entries require `connectInject` to be enabled, which is a default behavior in the official Helm Chart. If you disabled this setting, you must re-enable it to use CRDs.
@@ -326,7 +326,7 @@ The details on each configuration are:
    in the Consul namespace `web-ns`. In the same vein, a `ServiceDefaults` custom resource with
    name `web` in Kubernetes namespace `web-ns` configures that same service.
 
-   This is configured with [`connectInject.consulNamespaces`](/consul/docs/k8s/helm#v-connectinject-consulnamespaces):
+   This is configured with [`connectInject.consulNamespaces`](/consul/docs/reference/k8s/helm#v-connectinject-consulnamespaces):
 
    <CodeBlockConfig highlight="6-7">
 
@@ -347,7 +347,7 @@ The details on each configuration are:
    in the Consul namespace `k8s-web-ns`. In the same vein, a `ServiceDefaults` custom resource with
    name `web` in Kubernetes namespace `web-ns` configures that same service.
 
-   This is configured with [`connectInject.consulNamespaces`](/consul/docs/k8s/helm#v-connectinject-consulnamespaces):
+   This is configured with [`connectInject.consulNamespaces`](/consul/docs/reference/k8s/helm#v-connectinject-consulnamespaces):
 
    <CodeBlockConfig highlight="8">
 
@@ -374,7 +374,7 @@ The details on each configuration are:
    service is running in Kubernetes namespace `web-ns` because the `ServiceDefaults`
    resource ends up registered into the same Consul namespace `my-ns`.
 
-   This is configured with [`connectInject.consulNamespaces`](/consul/docs/k8s/helm#v-connectinject-consulnamespaces):
+   This is configured with [`connectInject.consulNamespaces`](/consul/docs/reference/k8s/helm#v-connectinject-consulnamespaces):
 
    <CodeBlockConfig highlight="7">
 

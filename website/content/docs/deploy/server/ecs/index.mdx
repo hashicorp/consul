@@ -121,7 +121,7 @@ Provide Consul server connection settings to the mesh task module so that the mo
   ]
   ```
 
-  When you apply the configuration, the mesh task module interpolates the server configuration variables, builds a `config.tf` file, and injects the settings into the appropriate containers. For additional information about the `config.tf` file, refer to the [JSON schema reference documentation](/consul/docs/ecs/reference/consul-server-json).
+  When you apply the configuration, the mesh task module interpolates the server configuration variables, builds a `config.tf` file, and injects the settings into the appropriate containers. For additional information about the `config.tf` file, refer to the [JSON schema reference documentation](/consul/docs/reference/ecs/server-json).
 
 ## Configure an ECS service to run your task instances
 
@@ -378,8 +378,8 @@ Refer to the [Terraform documentation](/terraform/docs) for more information and
 
 After deploying the Consul service mesh infrastructure, you must still define routes between service instances as well as configure the bind address for your applications so that they only receive traffic through the mesh. Refer to the following topics:
 
-- [Configure routes between ECS tasks](/consul/docs/ecs/deploy/configure-routes)
-- [Configure the ECS task bind address](/consul/docs/ecs/deploy/bind-addresses)
+- [Configure routes between ECS tasks](/consul/docs/connect/ecs)
+- [Configure the ECS task bind address](/consul/docs/register/service/ecs/task-bind-address)
 
 ## Gateway task configuration examples
 

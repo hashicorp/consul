@@ -479,7 +479,7 @@ Specifies a name for the gateway. The name is metadata that you can use to refer
 
 ### `Namespace` <EnterpriseAlert inline/>
 
-Specifies the namespace to apply the configuration entry in. Refer to [Namespaces](/consul/docs/enterprise/namespaces) for additional information about Consul namespaces.
+Specifies the namespace to apply the configuration entry in. Refer to [Namespaces](/consul/docs/multi-tenant/namespace) for additional information about Consul namespaces.
 
 If unspecified, the ingress gateway is applied to the `default` namespace. You can override the namespace when using the [`/config` API endpoint](/consul/api-docs/config) to register the configuration entry by specifying the `ns` query parameter.
 
@@ -490,7 +490,7 @@ If unspecified, the ingress gateway is applied to the `default` namespace. You c
 
 ### `Partition` <EnterpriseAlert inline/>
 
-Specifies the admin partition that the ingress gateway applies to. The value must match the partition in which the gateway is registered. Refer to [Admin partitions](/consul/docs/enterprise/admin-partitions) for additional information.
+Specifies the admin partition that the ingress gateway applies to. The value must match the partition in which the gateway is registered. Refer to [Admin partitions](/consul/docs/multi-tenant/admin-partition) for additional information.
 
 If unspecified, the ingress gateway is applied to the `default` partition. You can override the partition when using the [`/config` API endpoint](/consul/api-docs/config) to register the configuration entry by specifying the `partition` query parameter.
 
@@ -1019,7 +1019,7 @@ Specifies a name for the gateway. The name is metadata that you can use to refer
 
 ### `metadata.namespace` <EnterpriseAlert inline/>
 
-Specifies the namespace to apply the configuration entry in. Refer to [Namespaces](/consul/docs/enterprise/namespaces) for additional information about Consul namespaces.
+Specifies the namespace to apply the configuration entry in. Refer to [Namespaces](/consul/docs/multi-tenant/namespace) for additional information about Consul namespaces.
 
 If unspecified, the ingress gateway is applied to the `default` namespace. You can override the namespace when using the [`/config` API endpoint](/consul/api-docs/config) to register the configuration entry by specifying the `ns` query parameter.
 
@@ -1654,8 +1654,8 @@ TLS is enabled on every listener. The `max_connections` of the ingress gateway p
 
 The Consul Enterprise version implements the following additional configurations:
 
-- The ingress gateway is set up in the `default` [namespace](/consul/docs/enterprise/namespaces) and proxies traffic to all services in the `frontend` namespace.
-- The `api` and `web` services are proxied to team-specific [admin partitions](/consul/docs/enterprise/admin-partitions):
+- The ingress gateway is set up in the `default` [namespace](/consul/docs/multi-tenant/namespace) and proxies traffic to all services in the `frontend` namespace.
+- The `api` and `web` services are proxied to team-specific [admin partitions](/consul/docs/multi-tenant/admin-partition):
 
 #### Consul CE
 

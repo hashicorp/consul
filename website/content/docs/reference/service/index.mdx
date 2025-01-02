@@ -430,7 +430,7 @@ service {
 
 String value that specifies the ACL token to present when registering the service if ACLs are enabled. The token is required for the service to interact with the service catalog. 
 
-If [ACLs](/consul/docs/security/acl) and [namespaces](/consul/docs/enterprise/namespaces) are enabled, you can register services scoped to the specific [`namespace`](#namespace) associated with the ACL token in a Consul cluster.
+If [ACLs](/consul/docs/security/acl) and [namespaces](/consul/docs/multi-tenant/namespace) are enabled, you can register services scoped to the specific [`namespace`](#namespace) associated with the ACL token in a Consul cluster.
 
 Services registered with a service definition do not inherit the namespace associated with the ACL token specified in the token field. The `namespace` and `token` parameters must be included in the service definition for the service to be registered to the namespace that the ACL token is scoped to.
 

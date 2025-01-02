@@ -547,7 +547,7 @@ Specifies the Consul namespace that the configuration entry applies to.
 
 ### `Partition` <EnterpriseAlert inline/>
 
-Specifies the name of the Consul admin partition that the configuration entry applies to.  Refer to [Admin Partitions](/consul/docs/enterprise/admin-partitions) for additional information.
+Specifies the name of the Consul admin partition that the configuration entry applies to.  Refer to [Admin Partitions](/consul/docs/multi-tenant/admin-partition) for additional information.
 
 #### Values
 
@@ -556,7 +556,7 @@ Specifies the name of the Consul admin partition that the configuration entry ap
 
 ### `Meta`
 
-Specifies a set of custom key-value pairs to add to the [Consul KV](/consul/docs/dynamic-app-config/kv) store.
+Specifies a set of custom key-value pairs to add to the [Consul KV](/consul/docs/automate/kv) store.
 
 #### Values
 
@@ -860,7 +860,7 @@ Map that specifies a set of rules that enable Consul to remove hosts from the up
 
 ### `TransparentProxy`
 
-Controls configurations specific to proxies in transparent mode. Refer to [Transparent Proxy Mode](/consul/docs/k8s/connect/transparent-proxy) for additional information.
+Controls configurations specific to proxies in transparent mode. Refer to [Transparent Proxy Mode](/consul/docs/connect/proxy/transparent-proxy) for additional information.
 
 You can configure the following parameters in the `TransparentProxy` block:
 
@@ -900,7 +900,7 @@ The following table describes how to configure values in the `EnvoyExtensions` m
 
 Configures the destination for service traffic through terminating gateways. Refer to [Terminating Gateway](/consul/docs/north-south/terminating-gateway) for additional information.
 
-To use the `Destination` block, proxy services must be in transparent proxy mode. Refer to [Enable transparent proxy mode](/consul/docs/k8s/connect/transparent-proxy/enable-transparent-proxy) for additional information.
+To use the `Destination` block, proxy services must be in transparent proxy mode. Refer to [Enable transparent proxy mode](/consul/docs/connect/proxy/transparent-proxy/k8s) for additional information.
 
 You can configure the following parameters in the `Destination` block:
 
@@ -1378,7 +1378,7 @@ The following table describes how to configure values in the `envoyExtensions` m
 
 Map of configurations that specify one or more destinations for service traffic routed through terminating gateways. Refer to [Terminating Gateway](/consul/docs/north-south/terminating-gateway) for additional information.
 
-To use the `destination` block, proxy services must be in transparent proxy mode. Refer to [Enable transparent proxy mode](/consul/docs/k8s/connect/transparent-proxy/enable-transparent-proxy) for additional information.
+To use the `destination` block, proxy services must be in transparent proxy mode. Refer to [Enable transparent proxy mode](/consul/docs/connect/proxy/transparent-proxy/k8s) for additional information.
 
 #### Values
 
@@ -1695,7 +1695,7 @@ spec:
 
 The following examples creates a default destination assigned to a terminating gateway. A destination
 represents a location outside the Consul cluster. Services can dial destinations dialed directly when transparent proxy mode is enabled.
-Proxy services must be in transparent proxy mode to configure destinations. Refer to [Enable transparent proxy mode](/consul/docs/k8s/connect/transparent-proxy/enable-transparent-proxy) for additional information.
+Proxy services must be in transparent proxy mode to configure destinations. Refer to [Enable transparent proxy mode](/consul/docs/connect/proxy/transparent-proxy/k8s) for additional information.
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 

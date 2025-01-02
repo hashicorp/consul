@@ -17,9 +17,9 @@ To configure an external CA provider using the Consul Helm chart, complete the f
 
 1. Create a configuration file containing your provider information.
 1. Create a Kubernetes secret containing the configuration file.
-1. Reference the Kubernetes secret in the [`server.extraVolumes`](/consul/docs/k8s/helm#v-server-extravolumes) value in the Helm chart.
+1. Reference the Kubernetes secret in the [`server.extraVolumes`](/consul/docs/reference/k8s/helm#v-server-extravolumes) value in the Helm chart.
 
-To configure the Vault service mesh provider, refer to [Vault as the Service Mesh Certificate Provider on Kubernetes](/consul/docs/k8s/deployment-configurations/vault/data-integration/connect-ca).
+To configure the Vault service mesh provider, refer to [Vault as the Service Mesh Certificate Provider on Kubernetes](/consul/docs/deploy/server/k8s/vault/data).
 
 ## Configuring Vault as a Service Mesh CA (Consul K8s 0.37.0 and earlier)
 

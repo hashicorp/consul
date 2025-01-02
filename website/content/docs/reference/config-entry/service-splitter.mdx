@@ -244,7 +244,7 @@ Specifies a name for the configuration entry. The name is metadata that you can 
 
 ### `Namespace` <EnterpriseAlert inline />
 
-Specifies the [namespace](/consul/docs/enterprise/namespaces) to apply the configuration entry.
+Specifies the [namespace](/consul/docs/multi-tenant/namespace) to apply the configuration entry.
 
 #### Values
 
@@ -253,7 +253,7 @@ Specifies the [namespace](/consul/docs/enterprise/namespaces) to apply the confi
 
 ### `Partition` <EnterpriseAlert inline />
 
-Specifies the [admin partition](/consul/docs/enterprise/admin-partitions) to apply the configuration entry.
+Specifies the [admin partition](/consul/docs/multi-tenant/admin-partition) to apply the configuration entry.
 
 #### Values
 
@@ -320,7 +320,7 @@ You can define service subsets in a [service resolver configuration entry](/cons
 
 ### `Splits[].Namespace` <EnterpriseAlert inline />
 
-Specifies the [namespace](/consul/docs/enterprise/namespaces) to use in the FQDN when resolving the service. 
+Specifies the [namespace](/consul/docs/multi-tenant/namespace) to use in the FQDN when resolving the service. 
 
 #### Values
 
@@ -329,7 +329,7 @@ Specifies the [namespace](/consul/docs/enterprise/namespaces) to use in the FQDN
 
 ### `Splits[].Partition` <EnterpriseAlert inline />
 
-Specifies the [admin partition](/consul/docs/enterprise/admin-partitions) to use in the FQDN when resolving the service. 
+Specifies the [admin partition](/consul/docs/multi-tenant/admin-partition) to use in the FQDN when resolving the service. 
 
 #### Values
 
@@ -491,7 +491,7 @@ Specifies a subset of the service to resolve. This field overrides the `DefaultS
 
 ### `spec.splits[].namespace` <EnterpriseAlert inline />
 
-Specifies the [namespace](/consul/docs/enterprise/namespaces) to use when resolving the service. 
+Specifies the [namespace](/consul/docs/multi-tenant/namespace) to use when resolving the service. 
 
 #### Values
 
@@ -500,7 +500,7 @@ Specifies the [namespace](/consul/docs/enterprise/namespaces) to use when resolv
 
 ### `spec.splits[].partition` <EnterpriseAlert inline />
 
-Specifies which [admin partition](/consul/docs/enterprise/admin-partitions) to use in the FQDN when resolving the service. 
+Specifies which [admin partition](/consul/docs/multi-tenant/admin-partition) to use in the FQDN when resolving the service. 
 
 #### Values
 

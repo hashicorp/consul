@@ -21,7 +21,7 @@ We are pleased to announce the following updates to Consul API Gateway.
 
 - **Distroless Envoy Containers:** API Gateway now uses the `envoy-distroless` container image of the Envoy proxy. This improves the security of a gateway by reducing the attack surface of Envoy. Consul Helm chart `1.0.0` or greater is required to use the distroless container image.
 
-- **Support for Kubernetes Tolerations:** You can now configure toleration settings for the Consul API Gateway controller and Gateway instances made with the managed gateway class directly from the [Helm chart](/consul/docs/k8s/helm#h-apigateway). Kubernetes toleration settings allow you to control which nodes in a K8s cluster that the API Gateway pods should be deployed on. Refer to  [Taints and Tolerations](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) in the Kubernetes documentation for more information. 
+- **Support for Kubernetes Tolerations:** You can now configure toleration settings for the Consul API Gateway controller and Gateway instances made with the managed gateway class directly from the [Helm chart](/consul/docs/reference/k8s/helm#h-apigateway). Kubernetes toleration settings allow you to control which nodes in a K8s cluster that the API Gateway pods should be deployed on. Refer to  [Taints and Tolerations](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) in the Kubernetes documentation for more information. 
 
 ## Supported software
 

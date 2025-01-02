@@ -31,8 +31,8 @@ You must also configure the following service mesh components in order to establ
 
 Consul's default configuration supports cluster peering connections directly between clusters. In production environments, we recommend using mesh gateways to securely route service mesh traffic between partitions with cluster peering connections. The following values must be set in the Helm chart to enable mesh gateways:
 
-- [`global.tls.enabled = true`](/consul/docs/k8s/helm#v-global-tls-enabled)
-- [`meshGateway.enabled = true`](/consul/docs/k8s/helm#v-meshgateway-enabled)
+- [`global.tls.enabled = true`](/consul/docs/reference/k8s/helm#v-global-tls-enabled)
+- [`meshGateway.enabled = true`](/consul/docs/reference/k8s/helm#v-meshgateway-enabled)
 
 Refer to the following example Helm configuration:
 

@@ -202,8 +202,8 @@ Service registration requires that the [Consul token](/consul/docs/reference/cts
 
 | Parameter | Required | Type | Description | Default |
 | --------- | -------- | ---- | ----------- | ------- |
-| `enabled` | Optional | boolean | Enables CTS to register itself as a service with Consul. When service registration is enabled for a [CTS instance configured for high availability](/consul/docs/nia/usage/run-ha), the instance also registers itself with a new tag using the `cts-cluster:<cluster-name>` format. | `true` |
-| `service_name` | Optional | string | The service name for CTS. We recommended specifying the same name used for [`high_availability.cluster.name`](#high-availability-cluster) value if [CTS is configured for high availability](/consul/docs/nia/usage/run-ha). | `consul-terraform-sync` |
+| `enabled` | Optional | boolean | Enables CTS to register itself as a service with Consul. When service registration is enabled for a [CTS instance configured for high availability](/consul/docs/automate/infrastructure/high-availability), the instance also registers itself with a new tag using the `cts-cluster:<cluster-name>` format. | `true` |
+| `service_name` | Optional | string | The service name for CTS. We recommended specifying the same name used for [`high_availability.cluster.name`](#high-availability-cluster) value if [CTS is configured for high availability](/consul/docs/automate/infrastructure/high-availability). | `consul-terraform-sync` |
 | `address` | Optional | string | The IP address or hostname for CTS. | IP address of the Consul agent node |
 | `namespace` | Optional | string |  <EnterpriseAlert inline /> The namespace to register CTS in. | In order of precedence: <br/> 1. Inferred from the CTS ACL token <br/> 2. The `default` namespace. |
 | `default_check.enabled` | Optional | boolean | Enables CTS to create the default health check. | `true` |
@@ -228,7 +228,7 @@ The default health check is an [HTTP check](/consul/docs/register/service/vm/hea
 
 ## High availability
 
-Add a `high_availability` block to your configuration to enable CTS to run in high availability mode. Refer to [Run Consul-Terraform-Sync with High Availability](/consul/docs/nia/usage/run-ha) for additional information. The `high_availability` block contains the following configuration items.
+Add a `high_availability` block to your configuration to enable CTS to run in high availability mode. Refer to [Run Consul-Terraform-Sync with High Availability](/consul/docs/automate/infrastructure/high-availability) for additional information. The `high_availability` block contains the following configuration items.
 
 ### High availability cluster
 
@@ -693,7 +693,7 @@ driver "terraform" {
 
 The Terraform Cloud driver enables CTS Enterprise to integrate with **Terraform Cloud**, including both the [self-hosted distribution](https://www.hashicorp.com/products/terraform/editions/enterprise) and the [managed service](https://www.hashicorp.com/products/terraform/editions/cloud). With this driver, CTS automates Terraform runs and remote operations for workspaces.
 
-An overview of features enabled with Terraform Cloud can be viewed within the [Network Drivers](/consul/docs/nia/network-drivers) documentation.
+An overview of features enabled with Terraform Cloud can be viewed within the [Network Drivers](/consul/docs/automate/infrastructure/network-driver) documentation.
 
 Only one network driver can be configured per deployment of CTS.
 

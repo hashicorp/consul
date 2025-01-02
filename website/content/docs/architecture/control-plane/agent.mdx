@@ -28,7 +28,7 @@ The following process describes the agent lifecycle within the context of an exi
 1. **An agent is started** either manually or through an automated or programmatic process.
    Newly-started agents are unaware of other nodes in the cluster.
 1. **An agent joins a cluster**, which enables the agent to discover agent peers.
-   Agents join clusters on startup when the [`join`](/consul/commands/join) command is issued or according the [auto-join configuration](/consul/docs/install/cloud-auto-join).
+   Agents join clusters on startup when the [`join`](/consul/commands/join) command is issued or according the [auto-join configuration](/consul/docs/deploy/server/vm/cloud-auto-join).
 1. **Information about the agent is gossiped to the entire cluster**.
    As a result, all nodes will eventually become aware of each other.
 1. **Existing servers will begin replicating to the new node** if the agent is a server.
@@ -72,8 +72,8 @@ Instances of Consul can run in separate VMs or as separate containers.
 At least one server agent per Consul deployment is required, but three to five server agents are recommended.
 Refer to the following sections for information about host, port, memory, and other requirements:
 
-- [Server Performance](/consul/docs/install/performance)
-- [Required Ports](/consul/docs/install/ports)
+- [Server Performance](/consul/docs/reference/server)
+- [Required Ports](/consul/docs/reference/architecture/ports)
 
 The [Datacenter Deploy tutorial](/consul/tutorials/production-deploy/reference-architecture#deployment-system-requirements) contains additional information, including licensing configuration, environment variables, and other details.
 

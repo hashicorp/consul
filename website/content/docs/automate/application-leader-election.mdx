@@ -7,7 +7,7 @@ description: >-
 
 # Application leader election
 
-This topic describes the process for building client-side leader elections for service instances using Consul's [session mechanism for building distributed locks](/consul/docs/dynamic-app-config/sessions) and the [Consul key/value store](/consul/docs/dynamic-app-config/kv), which is Consul's key/value datastore. 
+This topic describes the process for building client-side leader elections for service instances using Consul's [session mechanism for building distributed locks](/consul/docs/automate/session) and the [Consul key/value store](/consul/docs/automate/kv), which is Consul's key/value datastore. 
 
 This topic is not related to Consul's leader election. For more information about the Raft leader election used internally by Consul, refer to
 [consensus protocol](/consul/docs/concept/consensus) documentation.
@@ -16,7 +16,7 @@ This topic is not related to Consul's leader election. For more information abou
 
 Some distributed applications, like HDFS or ActiveMQ, require setting up one instance as a leader to ensure application data is current and stable.
 
-Consul's support for [sessions](/consul/docs/dynamic-app-config/sessions) and [watches](/consul/docs/dynamic-app-config/watches) allows you to build a client-side leader election process where clients use a lock on a key in the KV datastore to ensure mutual exclusion and to gracefully handle failures.
+Consul's support for [sessions](/consul/docs/automate/session) and [watches](/consul/docs/automate/watch) allows you to build a client-side leader election process where clients use a lock on a key in the KV datastore to ensure mutual exclusion and to gracefully handle failures.
 
 All service instances that are participating should coordinate on a key format. We recommend the following pattern:
 

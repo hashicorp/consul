@@ -9,7 +9,7 @@ description: >-
 
 ## Release Highlights
 
-- **Admin Partitions (Enterprise)**: Consul 1.11.0 Enterprise introduces a new entity for defining administrative and networking boundaries within a Consul deployment. This feature also enables servers to communicate with clients over a specific gossip segment created for each partition. This release also enables cross partition communication between services across partitions, using Mesh Gateways. For more information refer to the [Admin Partitions](/consul/docs/enterprise/admin-partitions) documentation.
+- **Admin Partitions (Enterprise)**: Consul 1.11.0 Enterprise introduces a new entity for defining administrative and networking boundaries within a Consul deployment. This feature also enables servers to communicate with clients over a specific gossip segment created for each partition. This release also enables cross partition communication between services across partitions, using Mesh Gateways. For more information refer to the [Admin Partitions](/consul/docs/multi-tenant/admin-partition) documentation.
 
 - **Virtual IPs for services deployed with Consul Service Mesh**:  Consul will now generate a unique virtual IP for each service deployed within Consul Service Mesh, allowing transparent proxy to route to services within a data center that exist in different clusters or outside the service mesh.
 
@@ -17,7 +17,7 @@ description: >-
 
 - **TLS Certificates for Ingress Gateways via an SDS source**: Ingress Gateways can now be configured to retrieve TLS certificates from an external SDS Service and load the TLS certificates for Ingress listeners. This configuration is set using the `ingress-gateway` configuration entry via the [SDS](/consul/docs/connect/config-entries/ingress-gateway#sds) stanza within the Ingress Gateway TLS configuration.
 
-- **Vault Auth Method support for service mesh CA Vault Provider**: Consul now supports configuring the service mesh CA Vault provider to use auth methods for authentication to Vault. Consul supports using any non-deprecated auth method that is available in Vault v1.8.5, including AppRole, AliCloud, AWS, Azure, Cloud Foundry, GitHub, Google Cloud, JWT/OIDC, Kerberos, Kubernetes, LDAP, Oracle Cloud Infrastructure, Okta, Radius, TLS Certificates, and Username & Password. The Vault Auth Method for service mesh CA Provider is utilized by default for the [Vault Secrets Backend](/consul/docs/k8s/deployment-configurations/vault) feature on Consul on Kubernetes. Utilizing a Vault Auth method would no longer require a Vault token to be managed or provisioned ahead of time to be used for authentication to Vault.
+- **Vault Auth Method support for service mesh CA Vault Provider**: Consul now supports configuring the service mesh CA Vault provider to use auth methods for authentication to Vault. Consul supports using any non-deprecated auth method that is available in Vault v1.8.5, including AppRole, AliCloud, AWS, Azure, Cloud Foundry, GitHub, Google Cloud, JWT/OIDC, Kerberos, Kubernetes, LDAP, Oracle Cloud Infrastructure, Okta, Radius, TLS Certificates, and Username & Password. The Vault Auth Method for service mesh CA Provider is utilized by default for the [Vault Secrets Backend](/consul/docs/deploy/server/k8s/vault) feature on Consul on Kubernetes. Utilizing a Vault Auth method would no longer require a Vault token to be managed or provisioned ahead of time to be used for authentication to Vault.
 
 ## What's Changed
 

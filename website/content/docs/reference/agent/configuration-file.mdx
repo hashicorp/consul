@@ -546,7 +546,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
 - `leave_on_terminate` If enabled, when the agent receives a TERM signal, it will send a `Leave` message to the rest of the cluster and gracefully leave. The default behavior for this feature varies based on whether or not the agent is running as a client or a server (prior to Consul 0.7 the default value was unconditionally set to `false`). On agents in client-mode, this defaults to `true` and for agents in server-mode, this defaults to `false`.
 
-- `license_path` <EnterpriseAlert inline /> This specifies the path to a file that contains the Consul Enterprise license. Alternatively the license may also be specified in either the `CONSUL_LICENSE` or `CONSUL_LICENSE_PATH` environment variables. See the [licensing documentation](/consul/docs/enterprise/license/overview) for more information about Consul Enterprise license management. Added in versions 1.10.0, 1.9.7 and 1.8.13. Prior to version 1.10.0 the value may be set for all agents to facilitate forwards compatibility with 1.10 but will only actually be used by client agents.
+- `license_path` <EnterpriseAlert inline /> This specifies the path to a file that contains the Consul Enterprise license. Alternatively the license may also be specified in either the `CONSUL_LICENSE` or `CONSUL_LICENSE_PATH` environment variables. See the [licensing documentation](/consul/docs/enterprise/license) for more information about Consul Enterprise license management. Added in versions 1.10.0, 1.9.7 and 1.8.13. Prior to version 1.10.0 the value may be set for all agents to facilitate forwards compatibility with 1.10 but will only actually be used by client agents.
 
 - `limits`: This block specifies various types of limits that the Consul server agent enforces.
 
@@ -583,14 +583,14 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 - `partition` <EnterpriseAlert inline /> - This flag is used to set
   the name of the admin partition the agent belongs to. An agent can only join
   and communicate with other agents within its admin partition. Review the
-  [Admin Partitions documentation](/consul/docs/enterprise/admin-partitions) for more
+  [Admin Partitions documentation](/consul/docs/multi-tenant/admin-partition) for more
   details. By default, this is an empty string, which is the `default` admin
   partition. This cannot be set on a server agent.
 
   ~> **Warning:** The `partition` option cannot be used either the
   [`segment`](#segment-2) option or [`-segment`](/consul/docs/agent/config/cli-flags#_segment) flag.
 
-- `performance` Available in Consul 0.7 and later, this is a nested object that allows tuning the performance of different subsystems in Consul. See the [Server Performance](/consul/docs/install/performance) documentation for more details. The following parameters are available:
+- `performance` Available in Consul 0.7 and later, this is a nested object that allows tuning the performance of different subsystems in Consul. See the [Server Performance](/consul/docs/reference/server) documentation for more details. The following parameters are available:
 
   - `leave_drain_time` - A duration that a server will dwell during a graceful leave in order to allow requests to be retried against other Consul servers. Under normal circumstances, this can prevent clients from experiencing "no leader" errors when performing a rolling update of the Consul servers. This was added in Consul 1.0. Must be a duration value such as 10s. Defaults to 5s.
 
@@ -730,7 +730,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
 - `segments` <EnterpriseAlert inline /> - (Server agents only) This is a list of nested objects
   that specifies user-defined network segments, not including the `<default>` segment, which is
-  created automatically. Refer to the [network segments documentation](/consul/docs/enterprise/network-segments/create-network-segment)for additional information.
+  created automatically. Refer to the [network segments documentation](/consul/docs/multi-tenant/network-segment/vm)for additional information.
   for more details.
 
   - `name` ((#segment_name)) - The name of the segment. Must be a string
@@ -821,7 +821,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
 - `watches` - Watches is a list of watch specifications which
   allow an external process to be automatically invoked when a particular data view
-  is updated. See the [watch documentation](/consul/docs/dynamic-app-config/watches) for more detail.
+  is updated. See the [watch documentation](/consul/docs/automate/watch) for more detail.
   Watches can be modified when the configuration is reloaded.
 
 ## ACL Parameters
@@ -2162,7 +2162,7 @@ specially crafted certificate signed by the CA can be used to gain full access t
       will not make use of TLS for outgoing connections. This applies to clients
       and servers as both will make outgoing connections. This setting does not
       apply to the gRPC interface as Consul makes no outgoing connections on this
-      interface. When set to true for the HTTPS interface, this parameter applies to [watches](/consul/docs/dynamic-app-config/watches), which operate by making HTTPS requests to the local agent.
+      interface. When set to true for the HTTPS interface, this parameter applies to [watches](/consul/docs/automate/watch), which operate by making HTTPS requests to the local agent.
 
   - `grpc` ((#tls_grpc)) Provides settings for the gRPC/xDS interface. To enable
     the gRPC interface you must define a port via [`ports.grpc_tls`](#grpc_tls_port).

@@ -9,7 +9,7 @@ description: >-
 
 -> **Consul Enterprise 1.11.0+:** Admin partitions are supported in Consul Enterprise versions 1.11.0 and newer.
 
-Mesh gateways enable you to route service mesh traffic between different Consul [admin partitions](/consul/docs/enterprise/admin-partitions).
+Mesh gateways enable you to route service mesh traffic between different Consul [admin partitions](/consul/docs/multi-tenant/admin-partition).
 Partitions can reside in different clouds or runtime environments where general interconnectivity between all services
 in all partitions isn't feasible.
 
@@ -24,7 +24,7 @@ Ensure that your Consul environment meets the following requirements.
 * Consul Enterprise version 1.11.0 or newer.
 * A local Consul agent is required to manage its configuration.
 * Consul service mesh must be enabled in all partitions. Refer to the [`connect` documentation](/consul/docs/agent/config/config-files#connect) for details.
-* Each partition must have a unique name. Refer to the [admin partitions documentation](/consul/docs/enterprise/admin-partitions) for details.
+* Each partition must have a unique name. Refer to the [admin partitions documentation](/consul/docs/multi-tenant/admin-partition) for details.
 * If you want to [enable gateways globally](/consul/docs/connect/gateways/mesh-gateway#enabling-gateways-globally) you must enable [centralized configuration](/consul/docs/agent/config/config-files#enable_central_service_config).
 
 ### Proxy

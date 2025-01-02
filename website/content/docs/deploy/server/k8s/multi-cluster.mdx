@@ -7,7 +7,7 @@ description: >-
 
 # Deploy Single Consul Datacenter Across Multiple Kubernetes Clusters
 
-~> **Note:** When running Consul across multiple Kubernetes clusters, we recommend using [admin partitions](/consul/docs/enterprise/admin-partitions) for production environments. This Consul Enterprise feature allows you to accommodate multiple tenants without resource collisions when administering a cluster at scale. Admin partitions also enable you to run Consul on Kubernetes clusters across a non-flat network.
+~> **Note:** When running Consul across multiple Kubernetes clusters, we recommend using [admin partitions](/consul/docs/multi-tenant/admin-partition) for production environments. This Consul Enterprise feature allows you to accommodate multiple tenants without resource collisions when administering a cluster at scale. Admin partitions also enable you to run Consul on Kubernetes clusters across a non-flat network.
 
 This page describes deploying a single Consul datacenter in multiple Kubernetes clusters,
 with servers running in one cluster and only Consul on Kubernetes components in the rest of the clusters.

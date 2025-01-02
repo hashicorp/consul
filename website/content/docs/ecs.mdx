@@ -11,7 +11,7 @@ This overview provides information about connecting your workloads managed by [A
 
 ## Workflow
 
-You can install Consul on ECS with the [HashiCorp Terraform modules](/consul/docs/ecs/deploy/terraform) or by [manually configuring the task definition](/consul/docs/ecs/deploy/manual). We strongly recommend using the Terraform modules and resources because Terraform automatically builds and enables Consul service mesh containers for your workloads. The Terraform module installation method also allows you to add your existing ECS task definitions to the Consul service mesh without additional configuration. 
+You can install Consul on ECS with the [HashiCorp Terraform modules](/consul/docs/register/service/ecs/) or by [manually configuring the task definition](/consul/docs/register/service/ecs/manual). We strongly recommend using the Terraform modules and resources because Terraform automatically builds and enables Consul service mesh containers for your workloads. The Terraform module installation method also allows you to add your existing ECS task definitions to the Consul service mesh without additional configuration. 
 
 ### Terraform module installation 
 
@@ -21,7 +21,7 @@ You can install Consul on ECS with the [HashiCorp Terraform modules](/consul/doc
 
 ### Manual installation
 
-To manually install Consul, you must create definitions for each container that operates in the ECS cluster. Refer to [Architecture](/consul/docs/ecs/architecture) for information about the Consul containers you must deploy. Note that there is no manual process for creating gateway task containers. Gateways enable you to connect multiple datacenters or admin partitions. You must use Terraform if you want to deploy gateways to your network.
+To manually install Consul, you must create definitions for each container that operates in the ECS cluster. Refer to [Architecture](/consul/docs/reference/ecs/architecture) for information about the Consul containers you must deploy. Note that there is no manual process for creating gateway task containers. Gateways enable you to connect multiple datacenters or admin partitions. You must use Terraform if you want to deploy gateways to your network.
 
 ## Guidance
 
@@ -39,15 +39,15 @@ You can also refer to the following example configurations:
 
 ### Documentation
  
-- [Install Consul on ECS with Terraform](/consul/docs/ecs/deploy/terraform)
-- [Configure routes between ECS tasks](/consul/docs/ecs/deploy/configure-routes)
-- [Configure the ECS task bind address](/consul/docs/ecs/deploy/bind-addresses)
-- [Install Consul on ECS manually](/consul/docs/ecs/deploy/manual)
+- [Install Consul on ECS with Terraform](/consul/docs/register/service/ecs/)
+- [Configure routes between ECS tasks](/consul/docs/connect/ecs)
+- [Configure the ECS task bind address](/consul/docs/register/service/ecs/task-bind-address)
+- [Install Consul on ECS manually](/consul/docs/register/service/ecs/manual)
 
 ### Reference
 
-- [Architecture](/consul/docs/ecs/architecture)
-- [Technical specifications](/consul/docs/ecs/tech-specs)
-- [Task configuration reference](/consul/docs/ecs/reference/configuration-reference)
-- [Cross-compatibility reference](/consul/docs/ecs/reference/compatibility)
-- [Consul server JSON schema reference](/consul/docs/ecs/reference/consul-server-json)
+- [Architecture](/consul/docs/reference/ecs/architecture)
+- [Technical specifications](/consul/docs/reference/ecs/tech-specs)
+- [Task configuration reference](/consul/docs/reference/ecs)
+- [Cross-compatibility reference](/consul/docs/upgrade/ecs)
+- [Consul server JSON schema reference](/consul/docs/reference/ecs/server-json)
