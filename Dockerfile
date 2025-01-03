@@ -29,6 +29,13 @@ LABEL org.opencontainers.image.authors="Consul Team <consul@hashicorp.com>" \
       org.opencontainers.image.vendor="HashiCorp" \
       org.opencontainers.image.title="consul" \
       org.opencontainers.image.description="Consul is a datacenter runtime that provides service discovery, configuration, and orchestration." \
+      name="Consul" \
+      maintainer="Consul Team <consul@hashicorp.com>" \
+      vendor="HashiCorp" \
+      release=${PRODUCT_REVISION} \
+      revision=${PRODUCT_REVISION} \
+      summary="Consul is a datacenter runtime that provides service discovery, configuration, and orchestration." \
+      description="Consul is a datacenter runtime that provides service discovery, configuration, and orchestration." \
       version=${VERSION}
 
 # This is the location of the releases.
@@ -137,6 +144,13 @@ LABEL org.opencontainers.image.authors="Consul Team <consul@hashicorp.com>" \
       org.opencontainers.image.title="consul" \
       org.opencontainers.image.description="Consul is a datacenter runtime that provides service discovery, configuration, and orchestration." \
       org.opencontainers.image.licenses="BSL-1.1" \
+      name="Consul" \
+      maintainer="Consul Team <consul@hashicorp.com>" \
+      vendor="HashiCorp" \
+      release=${PRODUCT_REVISION} \
+      revision=${PRODUCT_REVISION} \
+      summary="Consul is a datacenter runtime that provides service discovery, configuration, and orchestration." \
+      description="Consul is a datacenter runtime that provides service discovery, configuration, and orchestration." \
       version=${PRODUCT_VERSION}
 
 COPY LICENSE /usr/share/doc/$PRODUCT_NAME/LICENSE.txt
@@ -227,6 +241,13 @@ LABEL org.opencontainers.image.authors="Consul Team <consul@hashicorp.com>" \
       org.opencontainers.image.title="consul" \
       org.opencontainers.image.description="Consul is a datacenter runtime that provides service discovery, configuration, and orchestration." \
       org.opencontainers.image.licenses="BSL-1.1" \
+      name="Consul" \
+      maintainer="Consul Team <consul@hashicorp.com>" \
+      vendor="HashiCorp" \
+      release=${PRODUCT_REVISION} \
+      revision=${PRODUCT_REVISION} \
+      summary="Consul is a datacenter runtime that provides service discovery, configuration, and orchestration." \
+      description="Consul is a datacenter runtime that provides service discovery, configuration, and orchestration." \
       version=${PRODUCT_VERSION}
 
 COPY LICENSE /usr/share/doc/$PRODUCT_NAME/LICENSE.txt
