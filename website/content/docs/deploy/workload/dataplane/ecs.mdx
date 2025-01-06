@@ -11,7 +11,7 @@ This page describes the requirements to set up Consul on ECS deployments to use 
 
 If you already have a Consul cluster deployed on Kubernetes and
 would like to turn on TLS for internal Consul communication,
-refer to [Configuring TLS on an Existing Cluster](/consul/docs/k8s/operations/tls-on-existing-cluster).
+refer to [Configuring TLS on an Existing Cluster](/consul/docs/secure/encryption/tls/rolling).
 
 ## Requirements
 
@@ -22,12 +22,12 @@ refer to [Configuring TLS on an Existing Cluster](/consul/docs/k8s/operations/tl
 
 Refer to the following documentation for Consul on ECS workloads:
 
-- [Deploy Consul with the Terraform module](/consul/docs/ecs/deploy/terraform)
+- [Deploy Consul with the Terraform module](/consul/docs/register/service/ecs/)
 - [Deploy Consul manually](/consul/ecs/install-manul)
 
 ## Upgrading to Consul Dataplanes
 
-Since v0.7.0, Consul service mesh on ECS uses [Consul dataplanes](/consul/docs/connect/dataplane), which are lightweight processes for managing Envoy proxies in containerized networks. Refer to the [release notes](/consul/docs/release-notes/consul-ecs/v0_7_x) for additional information about the switch to Consul dataplanes.
+Since v0.7.0, Consul service mesh on ECS uses [Consul dataplanes](/consul/docs/architecture/control-plane/dataplane), which are lightweight processes for managing Envoy proxies in containerized networks. Refer to the [release notes](/consul/docs/release-notes/consul-ecs/v0_7_x) for additional information about the switch to Consul dataplanes.
 
 ### Requirements
 

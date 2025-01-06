@@ -10,9 +10,9 @@ description: >-
 Consul service mesh provides service-to-service connection authorization and
 encryption using mutual Transport Layer Security (TLS).
 
-Applications can use [sidecar proxies](/consul/docs/connect/proxies) in a service mesh configuration to
+Applications can use [sidecar proxies](/consul/docs/connect/proxy) in a service mesh configuration to
 establish TLS connections for inbound and outbound connections without being aware of the service mesh at all. 
-Applications may also [natively integrate with Consul service mesh](/consul/docs/connect/native) for optimal performance and security. 
+Applications may also [natively integrate with Consul service mesh](/consul/docs/automate/native) for optimal performance and security. 
 Consul service mesh can help you secure your services and provide data about service-to-service communications.
 
 The noun _connect_ is used throughout this documentation to refer to the connect
@@ -35,7 +35,7 @@ Review the video below to learn more about Consul service mesh from HashiCorp's 
 Consul service mesh enables secure deployment best-practices with automatic
 service-to-service encryption, and identity-based authorization.
 Consul uses the registered service identity, rather than IP addresses, to
-enforce access control with [intentions](/consul/docs/connect/intentions). This
+enforce access control with [intentions](/consul/docs/secure-mesh/intention). This
 makes it easier to control access and enables services to be
 rescheduled by orchestrators, including Kubernetes and Nomad. Intention
 enforcement is network agnostic, so Consul service mesh works with physical networks, cloud

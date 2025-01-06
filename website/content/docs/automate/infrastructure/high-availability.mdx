@@ -36,14 +36,14 @@ The following diagram shows the CTS cluster state after the leader stops. CTS In
 - The time it takes for a new leader to be elected is determined by the `high_availability.cluster.storage.session_ttl` configuration. The minimum failover time is equal to the `session_ttl` value. The maximum failover time is double the `session_ttl` value.
 - If failover occurs during task execution, a new leader is elected. The new leader will attempt to run all tasks once before continuing to monitor for changes.
 - If using the [HCP Terraform driver](/consul/docs/nia/network-drivers/terraform-cloud), the task finishes and CTS starts a new leader that attempts to queue a run for each task in HCP Terraform in once-mode.
-- If using [Terraform driver](/consul/docs/nia/network-drivers/terraform), the task may complete depending on the cause of the failover. The new leader starts and attempts to run each task in [once-mode](/consul/docs/nia/cli/start#modes). Depending on the module and provider, the task may require manual intervention to fix any inconsistencies between the infrastructure and Terraform state.
+- If using [Terraform driver](/consul/docs/automate/infrastructure/network-driver/terraform), the task may complete depending on the cause of the failover. The new leader starts and attempts to run each task in [once-mode](/consul/docs/nia/cli/start#modes). Depending on the module and provider, the task may require manual intervention to fix any inconsistencies between the infrastructure and Terraform state.
 - If failover occurs when no task is executing, CTS elects a new leader that attempts to run all tasks in once-mode.
 
 Note that driver behavior is consistent whether or not CTS is running in high availability mode.
 
 ## Requirements
 
-Verify that you have met the [basic requirements](/consul/docs/nia/usage/requirements) for running CTS.
+Verify that you have met the [basic requirements](/consul/docs/automate/infrastructure/requirements) for running CTS.
 
 * CTS Enterprise 0.7 or later
 * Terraform CLI 0.13 or later
@@ -81,7 +81,7 @@ high_availability {
 
 ### ACL permissions
 
-The `session` and `keys` resources in your Consul environment must have `write` permissions. Refer to the [ACL documentation](/consul/docs/security/acl) for details on how to define ACL policies.
+The `session` and `keys` resources in your Consul environment must have `write` permissions. Refer to the [ACL documentation](/consul/docs/secure/acl) for details on how to define ACL policies.
 
 If the `high_availability.cluster.storage.namespace` field is configured, then your ACL policy must also enable `write` permissions for the `namespace` resource.
 
@@ -89,12 +89,12 @@ If the `high_availability.cluster.storage.namespace` field is configured, then y
 
 We recommend deploying a cluster that includes three CTS instances. This is so that the cluster has one leader and two followers.
 
-1. Create an HCL configuration file that includes the settings you want to include, including the `high_availability` block. Refer to [Configuration Options for Consul-Terraform-Sync](/consul/docs/nia/configuration) for all configuration options.
+1. Create an HCL configuration file that includes the settings you want to include, including the `high_availability` block. Refer to [Configuration Options for Consul-Terraform-Sync](/consul/docs/reference/cts) for all configuration options.
 1. Issue the startup command and pass the configuration file. Refer to the [`start` command reference](/consul/docs/nia/cli/start#modes) for additional information about CTS startup modes.
   ```shell-session
   $ consul-terraform-sync start -config-file ha-config.hcl
   ```
-1. You can call the `/status` API endpoint to verify the status of tasks CTS is configured to monitor. Only the leader of the cluster will return a successful response. Refer to the [`/status` API reference documentation](/consul/docs/nia/api/status) for information about usage and responses.
+1. You can call the `/status` API endpoint to verify the status of tasks CTS is configured to monitor. Only the leader of the cluster will return a successful response. Refer to the [`/status` API reference documentation](/consul/docs/reference/cts/api/status) for information about usage and responses.
 
   ```shell-session
   $ curl localhost:<port>/status/tasks

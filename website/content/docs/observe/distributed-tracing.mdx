@@ -231,7 +231,7 @@ config to take effect.
 
     </CodeTabs>
 
-1. Requests through [Ingress Gateways](/consul/docs/connect/gateways/ingress-gateway) will not be traced unless the header
+1. Requests through [Ingress Gateways](/consul/docs/north-south/ingress-gateway) will not be traced unless the header
    `x-client-trace-id: 1` is set (see [hashicorp/consul#6645](https://github.com/hashicorp/consul/issues/6645)).
 
 1. Consul's proxies do not currently support [OpenTelemetry](https://opentelemetry.io/) spans, as Envoy has not

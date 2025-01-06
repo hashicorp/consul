@@ -22,7 +22,7 @@ Routes and the gateways they are attached to are eventually-consistent objects. 
 The following requirements must be satisfied to use API gateways on VMs:
 
 - Consul 1.15 or later
-- A Consul cluster with service mesh enabled. Refer to [`connect`](/consul/docs/agent/config/config-files#connect)
+- A Consul cluster with service mesh enabled. Refer to [`connect`](/consul/docs/reference/agent/configuration-file#connect)
 - Network connectivity between the machine deploying the API Gateway and a Consul cluster agent or server
 
 ### ACL requirements
@@ -50,7 +50,7 @@ Define route configurations and bind them to listeners configured on the gateway
       - `Matches`
       - `Services`
 
-   Refer to the [HTTP route configuration entry](/consul/docs/connect/config-entries/http-route) and [TCP route configuration entry](/consul/docs/connect/config-entries/tcp-route) reference for details about configuring routes.
+   Refer to the [HTTP route configuration entry](/consul/docs/reference/config-entry/http-route) and [TCP route configuration entry](/consul/docs/reference/config-entry/tcp-route) reference for details about configuring routes.
 
 1. Configure any additional fields necessary for your use case, such as the namespace or admin partition.
 1. Save the configuration.

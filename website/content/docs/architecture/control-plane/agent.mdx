@@ -15,7 +15,7 @@ Agents run in either client or server mode. Client nodes are lightweight process
 They interface with the server nodes for most operations and maintain very little state of their own.
 Clients run on every node where services are running.
 
-In addition to the core agent operations, server nodes participate in the [consensus quorum](/consul/docs/architecture/consensus).
+In addition to the core agent operations, server nodes participate in the [consensus quorum](/consul/docs/concept/consensus).
 The quorum is based on the Raft protocol, which provides strong consistency and availability in the case of failure.
 Server nodes should run on dedicated instances because they are more resource intensive than client nodes.
 
@@ -28,7 +28,7 @@ The following process describes the agent lifecycle within the context of an exi
 1. **An agent is started** either manually or through an automated or programmatic process.
    Newly-started agents are unaware of other nodes in the cluster.
 1. **An agent joins a cluster**, which enables the agent to discover agent peers.
-   Agents join clusters on startup when the [`join`](/consul/commands/join) command is issued or according the [auto-join configuration](/consul/docs/install/cloud-auto-join).
+   Agents join clusters on startup when the [`join`](/consul/commands/join) command is issued or according the [auto-join configuration](/consul/docs/deploy/server/vm/cloud-auto-join).
 1. **Information about the agent is gossiped to the entire cluster**.
    As a result, all nodes will eventually become aware of each other.
 1. **Existing servers will begin replicating to the new node** if the agent is a server.
@@ -44,7 +44,7 @@ As a result, agent crashes are handled in the same manner is network failures.
 Once a node is marked as failed, this information is updated in the service
 catalog.
 
--> **Note:** Updating the catalog is only possible if the servers can still [form a quorum](/consul/docs/architecture/consensus).
+-> **Note:** Updating the catalog is only possible if the servers can still [form a quorum](/consul/docs/concept/consensus).
 Once the network recovers or a crashed agent restarts, the cluster will repair itself and unmark a node as failed.
 The health check in the catalog will also be updated to reflect the current state.
 
@@ -63,7 +63,7 @@ causing all associated services to be deregistered.
 
 ## Limit traffic rates
 
-You can define a set of rate limiting configurations that help operators protect Consul servers from excessive or peak usage. The configurations enable you to gracefully degrade Consul servers to avoid a global interruption of service. Consul supports global server rate limiting, which lets configure Consul servers to deny requests that exceed the read or write limits. Refer to [Traffic Rate Limits Overview](/consul/docs/agent/limits).
+You can define a set of rate limiting configurations that help operators protect Consul servers from excessive or peak usage. The configurations enable you to gracefully degrade Consul servers to avoid a global interruption of service. Consul supports global server rate limiting, which lets configure Consul servers to deny requests that exceed the read or write limits. Refer to [Traffic Rate Limits Overview](/consul/docs/manage/rate-limit).
 
 ## Requirements
 
@@ -72,8 +72,8 @@ Instances of Consul can run in separate VMs or as separate containers.
 At least one server agent per Consul deployment is required, but three to five server agents are recommended.
 Refer to the following sections for information about host, port, memory, and other requirements:
 
-- [Server Performance](/consul/docs/install/performance)
-- [Required Ports](/consul/docs/install/ports)
+- [Server Performance](/consul/docs/reference/server)
+- [Required Ports](/consul/docs/reference/architecture/ports)
 
 The [Datacenter Deploy tutorial](/consul/tutorials/production-deploy/reference-architecture#deployment-system-requirements) contains additional information, including licensing configuration, environment variables, and other details.
 
@@ -113,7 +113,7 @@ The following example starts an agent in dev mode and stores agent state data in
 $ consul agent -data-dir=tmp/consul -dev
 ```
 
-Agents are highly configurable, which enables you to deploy Consul to any infrastructure. Many of the default options for the `agent` command are suitable for becoming familiar with a local instance of Consul. In practice, however, several additional configuration options must be specified for Consul to function as expected. Refer to [Agent Configuration](/consul/docs/agent/config) topic for a complete list of configuration options.
+Agents are highly configurable, which enables you to deploy Consul to any infrastructure. Many of the default options for the `agent` command are suitable for becoming familiar with a local instance of Consul. In practice, however, several additional configuration options must be specified for Consul to function as expected. Refer to [Agent Configuration](/consul/docs/fundamentals/agent) topic for a complete list of configuration options.
 
 ### Understanding the agent startup output
 
@@ -196,8 +196,8 @@ The following settings are commonly used in the configuration file (also called 
 | `data_dir`   | String value that specifies a directory for storing agent state data. <br/>See [`-data-dir`](/consul/docs/agent/config/cli-flags#_data_dir) for details.                                                                                                                                   | none                                                                                                             |
 | `log_level`  | String value that specifies the level of logging the agent reports. <br/>See [`-log-level`](/consul/docs/agent/config/cli-flags#_log_level) for details.                                                                                                                                    | `info`                                                                                                           |
 | `retry_join` | Array of string values that specify one or more agent addresses to join after startup. The agent will continue trying to join the specified agents until it has successfully joined another member. <br/>See [`-retry-join`](/consul/docs/agent/config/cli-flags#_retry_join) for details. | none                                                                                                             |
-| `addresses`  | Block of nested objects that define addresses bound to the agent for internal cluster communication.                                                                                                                                                                       | `"http": "0.0.0.0"` See the Agent Configuration page for [default address values](/consul/docs/agent/config/config-files#addresses) |
-| `ports`      | Block of nested objects that define ports bound to agent addresses. <br/>See (link to addresses option) for details.                                                                                                                                                       | See the Agent Configuration page for [default port values](/consul/docs/agent/config/config-files#ports)                            |
+| `addresses`  | Block of nested objects that define addresses bound to the agent for internal cluster communication.                                                                                                                                                                       | `"http": "0.0.0.0"` See the Agent Configuration page for [default address values](/consul/docs/reference/agent/configuration-file#addresses) |
+| `ports`      | Block of nested objects that define ports bound to agent addresses. <br/>See (link to addresses option) for details.                                                                                                                                                       | See the Agent Configuration page for [default port values](/consul/docs/reference/agent/configuration-file#ports)                            |
 
 ### Server node in a service mesh
 
@@ -250,7 +250,7 @@ connect {
 ### Server node with encryption enabled
 
 The following example shows a server node configured with encryption enabled.
-Refer to the [Security](/consul/docs/security) chapter for additional information about how to configure security options for Consul.
+Refer to the [Security](/consul/docs/secure) chapter for additional information about how to configure security options for Consul.
 
 <CodeTabs>
 
@@ -317,7 +317,7 @@ tls {
 ### Client node registering a service
 
 Using Consul as a central service registry is a common use case.
-The following example configuration includes common settings to register a service with a Consul agent and enable health checks. Refer to [Define Health Checks](/consul/docs/services/usage/checks) to learn more about health checks.
+The following example configuration includes common settings to register a service with a Consul agent and enable health checks. Refer to [Define Health Checks](/consul/docs/register/health-check/vm) to learn more about health checks.
 
 <CodeTabs>
 
@@ -376,9 +376,9 @@ service {
 
 The following example shows how to configure Consul to listen on multiple interfaces or IP addresses using a [go-sockaddr template].
 
-The `bind_addr` is used for internal RPC and Serf communication ([read the Agent Configuration for more information](/consul/docs/agent/config/config-files#bind_addr)).
+The `bind_addr` is used for internal RPC and Serf communication ([read the Agent Configuration for more information](/consul/docs/reference/agent/configuration-file#bind_addr)).
 
-The `client_addr` configuration specifies IP addresses used for HTTP, HTTPS, DNS and gRPC servers. ([read the Agent Configuration for more information](/consul/docs/agent/config/config-files#client_addr)).
+The `client_addr` configuration specifies IP addresses used for HTTP, HTTPS, DNS and gRPC servers. ([read the Agent Configuration for more information](/consul/docs/reference/agent/configuration-file#client_addr)).
 
 <CodeTabs>
 
@@ -456,8 +456,8 @@ may not be important for your use case. For example, for a web server and load
 balancer setup, both result in the same outcome: the web node is removed
 from the load balancer pool.
 
-The [`skip_leave_on_interrupt`](/consul/docs/agent/config/config-files#skip_leave_on_interrupt) and
-[`leave_on_terminate`](/consul/docs/agent/config/config-files#leave_on_terminate) configuration
+The [`skip_leave_on_interrupt`](/consul/docs/reference/agent/configuration-file#skip_leave_on_interrupt) and
+[`leave_on_terminate`](/consul/docs/reference/agent/configuration-file#leave_on_terminate) configuration
 options allow you to adjust this behavior.
 
 <!-- list of reference-style links -->

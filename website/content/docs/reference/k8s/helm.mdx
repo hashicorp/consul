@@ -122,7 +122,7 @@ Use these links to navigate to a particular top-level stanza.
   - `secretsBackend` ((#v-global-secretsbackend)) - secretsBackend is used to configure Vault as the secrets backend for the Consul on Kubernetes installation.
     The Vault cluster needs to have the Kubernetes Auth Method, KV2 and PKI secrets engines enabled
     and have necessary secrets, policies and roles created prior to installing Consul.
-    Refer to [Vault as the Secrets Backend](/consul/docs/k8s/deployment-configurations/vault)
+    Refer to [Vault as the Secrets Backend](/consul/docs/deploy/server/k8s/vault)
     documentation for full instructions.
 
     The Vault cluster _must_ not have the Consul cluster installed by this Helm chart as its storage backend
@@ -326,7 +326,7 @@ Use these links to navigate to a particular top-level stanza.
     - `verify` ((#v-global-tls-verify)) (`boolean: true`) - If true, `verify_outgoing`, `verify_server_hostname`,
       and `verify_incoming` for internal RPC communication will be set to `true` for Consul servers and clients.
       Set this to false to incrementally roll out TLS on an existing Consul cluster.
-      Please refer to [TLS on existing clusters](/consul/docs/k8s/operations/tls-on-existing-cluster)
+      Please refer to [TLS on existing clusters](/consul/docs/secure/encryption/tls/rolling)
       for more details.
 
     - `httpsOnly` ((#v-global-tls-httpsonly)) (`boolean: true`) - If true, the Helm chart will configure Consul to disable the HTTP port on
@@ -525,7 +525,7 @@ Use these links to navigate to a particular top-level stanza.
       This address must be reachable from the Consul servers in the primary datacenter.
       This auth method will be used to provision ACL tokens for Consul components and is different
       from the one used by the Consul Service Mesh.
-      Please refer to the [Kubernetes Auth Method documentation](/consul/docs/security/acl/auth-methods/kubernetes).
+      Please refer to the [Kubernetes Auth Method documentation](/consul/docs/secure/acl/auth-method/k8s).
 
       If `externalServers.enabled` is set to true, `global.federation.k8sAuthMethodHost` and
       `externalServers.k8sAuthMethodHost` should be set to the same value.
@@ -841,7 +841,7 @@ Use these links to navigate to a particular top-level stanza.
     _will not_ automatically secure pod communication, this
     setting will only enable usage of the feature. Consul will automatically initialize
     a new CA and set of certificates. Additional service mesh settings can be configured
-    by setting the `server.extraConfig` value or by applying [configuration entries](/consul/docs/connect/config-entries).
+    by setting the `server.extraConfig` value or by applying [configuration entries](/consul/docs/fundamentals/config-entry).
 
   - `enableAgentDebug` ((#v-server-enableagentdebug)) (`boolean: false`) - When set to true, enables Consul to report additional debugging information, including runtime profiling (pprof) data.
     This setting is only required for clusters without ACL enabled. Sets `enable_debug` in server agent config to `true`.
@@ -919,7 +919,7 @@ Use these links to navigate to a particular top-level stanza.
       --set 'server.disruptionBudget.maxUnavailable=0'` flag to the helm chart installation
       command because of a limitation in the Helm templating language.
 
-  - `extraConfig` ((#v-server-extraconfig)) (`string: {}`) - A raw string of extra [JSON configuration](/consul/docs/agent/config/config-files) for Consul
+  - `extraConfig` ((#v-server-extraconfig)) (`string: {}`) - A raw string of extra [JSON configuration](/consul/docs/reference/agent/configuration-file) for Consul
     servers. This will be saved as-is into a ConfigMap that is read by the Consul
     server agents. This can be used to add additional configuration that
     isn't directly exposed by the chart.
@@ -1130,7 +1130,7 @@ Use these links to navigate to a particular top-level stanza.
 
   - `auditLogs` ((#v-server-auditlogs)) - <EnterpriseAlert inline /> Added in Consul 1.8, the audit object allow users to enable auditing
     and configure a sink and filters for their audit logs. Please refer to
-    [audit logs](/consul/docs/enterprise/audit-logging) documentation
+    [audit logs](/consul/docs/monitor/log/audit) documentation
     for further information.
 
     - `enabled` ((#v-server-auditlogs-enabled)) (`boolean: false`) - Controls whether Consul logs out each time a user performs an operation.
@@ -1185,7 +1185,7 @@ Use these links to navigate to a particular top-level stanza.
     - `requestLimits` ((#v-server-limits-requestlimits)) - This object specifies configurations that limit the rate of RPC and gRPC
       requests on the Consul server. Limiting the rate of gRPC and RPC requests
       also limits HTTP requests to the Consul server.
-      /consul/docs/agent/config/config-files#request_limits
+      /consul/docs/reference/agent/configuration-file#request_limits
 
       - `mode` ((#v-server-limits-requestlimits-mode)) (`string: disabled`) - Setting for disabling or enabling rate limiting.  If not disabled, it
         enforces the action that will occur when RequestLimitsReadRate
@@ -1246,7 +1246,7 @@ Use these links to navigate to a particular top-level stanza.
   - `k8sAuthMethodHost` ((#v-externalservers-k8sauthmethodhost)) (`string: null`) - If you are setting `global.acls.manageSystemACLs` and
     `connectInject.enabled` to true, set `k8sAuthMethodHost` to the address of the Kubernetes API server.
     This address must be reachable from the Consul servers.
-    Please refer to the [Kubernetes Auth Method documentation](/consul/docs/security/acl/auth-methods/kubernetes).
+    Please refer to the [Kubernetes Auth Method documentation](/consul/docs/secure/acl/auth-method/k8s).
 
     If `global.federation.enabled` is set to true, `global.federation.k8sAuthMethodHost` and
     `externalServers.k8sAuthMethodHost` should be set to the same value.
@@ -1339,7 +1339,7 @@ Use these links to navigate to a particular top-level stanza.
 
     - `tlsInit` ((#v-client-containersecuritycontext-tlsinit)) (`map`) - The tls-init initContainer
 
-  - `extraConfig` ((#v-client-extraconfig)) (`string: {}`) - A raw string of extra [JSON configuration](/consul/docs/agent/config/config-files) for Consul
+  - `extraConfig` ((#v-client-extraconfig)) (`string: {}`) - A raw string of extra [JSON configuration](/consul/docs/reference/agent/configuration-file) for Consul
     clients. This will be saved as-is into a ConfigMap that is read by the Consul
     client agents. This can be used to add additional configuration that
     isn't directly exposed by the chart.
@@ -1605,16 +1605,16 @@ Use these links to navigate to a particular top-level stanza.
       will inherit from `global.metrics.enabled` value.
 
     - `provider` ((#v-ui-metrics-provider)) (`string: prometheus`) - Provider for metrics. Refer to
-      [`metrics_provider`](/consul/docs/agent/config/config-files#ui_config_metrics_provider)
+      [`metrics_provider`](/consul/docs/reference/agent/configuration-file#ui_config_metrics_provider)
       This value is only used if `ui.enabled` is set to true.
 
     - `baseURL` ((#v-ui-metrics-baseurl)) (`string: http://prometheus-server`) - baseURL is the URL of the prometheus server, usually the service URL.
       This value is only used if `ui.enabled` is set to true.
 
-  - `dashboardURLTemplates` ((#v-ui-dashboardurltemplates)) - Corresponds to [`dashboard_url_templates`](/consul/docs/agent/config/config-files#ui_config_dashboard_url_templates)
+  - `dashboardURLTemplates` ((#v-ui-dashboardurltemplates)) - Corresponds to [`dashboard_url_templates`](/consul/docs/reference/agent/configuration-file#ui_config_dashboard_url_templates)
     configuration.
 
-    - `service` ((#v-ui-dashboardurltemplates-service)) (`string: ""`) - Sets [`dashboardURLTemplates.service`](/consul/docs/agent/config/config-files#ui_config_dashboard_url_templates_service).
+    - `service` ((#v-ui-dashboardurltemplates-service)) (`string: ""`) - Sets [`dashboardURLTemplates.service`](/consul/docs/reference/agent/configuration-file#ui_config_dashboard_url_templates_service).
 
 ### syncCatalog ((#h-synccatalog))
 
@@ -2303,9 +2303,9 @@ Use these links to navigate to a particular top-level stanza.
 
 ### meshGateway ((#h-meshgateway))
 
-- `meshGateway` ((#v-meshgateway)) - [Mesh Gateways](/consul/docs/connect/gateways/mesh-gateway) enable Consul Connect to work across Consul datacenters.
+- `meshGateway` ((#v-meshgateway)) - [Mesh Gateways](/consul/docs/east-west/mesh-gateway) enable Consul Connect to work across Consul datacenters.
 
-  - `enabled` ((#v-meshgateway-enabled)) (`boolean: false`) - If [mesh gateways](/consul/docs/connect/gateways/mesh-gateway) are enabled, a Deployment will be created that runs
+  - `enabled` ((#v-meshgateway-enabled)) (`boolean: false`) - If [mesh gateways](/consul/docs/east-west/mesh-gateway) are enabled, a Deployment will be created that runs
     gateways and Consul service mesh will be configured to use gateways.
     This setting is required for [Cluster Peering](/consul/docs/connect/cluster-peering/k8s).
     Requirements: consul 1.6.0+ if using `global.acls.manageSystemACLs``.

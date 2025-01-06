@@ -8,7 +8,7 @@ description: >-
 
 The `/status` endpoints return status-related information for tasks. This endpoint returns a count of successful and failed task events that are recorded whenever tasks execute an automation. Currently, only the five most recent events are stored in Consul-Terraform-Sync (CTS). For more information on the hierarchy of status information and how it is collected, refer to [Status Information](/consul/docs/reference/cts/task#status-information).
 
-If CTS is configured [for high availability](/consul/docs/nia/usage/run-ha), you can send requests to the [`/status/cluster` endpoint path](#cluster-status) on any CTS cluster member instance to receive information about the entire cluster. Calling the `status` endpoint path (without `/cluster`), however, returns a 400 error if the request is sent to a follower instance. The error message depends on what information the follower instance is able to obtain about the leader. Refer to [Error Messages](/consul/docs/error-messages/cts) for more information. 
+If CTS is configured [for high availability](/consul/docs/automate/infrastructure/high-availability), you can send requests to the [`/status/cluster` endpoint path](#cluster-status) on any CTS cluster member instance to receive information about the entire cluster. Calling the `status` endpoint path (without `/cluster`), however, returns a 400 error if the request is sent to a follower instance. The error message depends on what information the follower instance is able to obtain about the leader. Refer to [Error Messages](/consul/docs/error-messages/cts) for more information. 
 
 ## Status for all tasks
 
@@ -229,7 +229,7 @@ Response:
 
 ## Cluster status
 
-The `/v1/status/cluster` API endpoint returns information about high-availability clusters and its members, such as health status and leadership. This endpoint is only supported when using CTS in [high availability mode](/consul/docs/nia/usage/run-ha). If you call the endpoint without configuring CTS for high availability, then CTS prints an error to the console. Refer to [Error Messages](/consul/docs/error-messages/cts) for information about CTS error messages. 
+The `/v1/status/cluster` API endpoint returns information about high-availability clusters and its members, such as health status and leadership. This endpoint is only supported when using CTS in [high availability mode](/consul/docs/automate/infrastructure/high-availability). If you call the endpoint without configuring CTS for high availability, then CTS prints an error to the console. Refer to [Error Messages](/consul/docs/error-messages/cts) for information about CTS error messages. 
 
 | Method | Path              | Response format    |
 | ------ | ----------------- | ------------------ |

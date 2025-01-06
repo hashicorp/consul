@@ -12,7 +12,7 @@ services are available to Consul agents and services in Consul can be available
 as first-class Kubernetes services. This functionality is provided by the
 [consul-k8s project](https://github.com/hashicorp/consul-k8s) and can be
 automatically installed and configured using the
-[Consul K8s Helm chart](/consul/docs/k8s/installation/install).
+[Consul K8s Helm chart](/consul/docs/deploy/server/k8s/helm).
 
 ![screenshot of a Kubernetes service in the UI](/img/k8s-service.png)
 
@@ -20,7 +20,7 @@ automatically installed and configured using the
 Consul catalog enable Kubernetes services to be accessed by any node that
 is part of the Consul cluster, including other distinct Kubernetes clusters.
 For non-Kubernetes nodes, they can access services using the standard
-[Consul DNS](/consul/docs/services/discovery/dns-overview) or HTTP API.
+[Consul DNS](/consul/docs/discover/dns) or HTTP API.
 
 **Why sync Consul services to Kubernetes?** Syncing Consul services to
 Kubernetes services enables non-Kubernetes services to be accessed using kube-dns and Kubernetes-specific

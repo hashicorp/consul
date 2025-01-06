@@ -444,7 +444,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
     the Consul server gains leadership. This option is only applicable to server
     nodes. Each bootstrap entry will be created only if it does not exist. When reloading,
     any new entries that have been added to the configuration will be processed.
-    Refer to the [configuration entry docs](/consul/docs/agent/config-entries) for more
+    Refer to the [configuration entry docs](/consul/docs/fundamentals/config-entry) for more
     details about the contents of each entry.
 
 - `datacenter` Equivalent to the [`-datacenter` command-line flag](/consul/docsreference-cli/agent#_datacenter).
@@ -472,7 +472,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
   `cert_file`, `ca_file`, `ca_path`, and `server_name`) to set up the client for HTTP or gRPC health checks. This allows services requiring 2-way TLS to be checked using the agent's credentials. This was added in Consul 1.0.1 and defaults to false.
 
 - `enable_central_service_config` When set, the Consul agent will look for any
-  [centralized service configuration](/consul/docs/agent/config-entries)
+  [centralized service configuration](/consul/docs/fundamentals/config-entry)
   that match a registering service instance. If it finds any, the agent will merge the centralized defaults with the service instance configuration. This allows for things like service protocol or proxy configuration to be defined centrally and inherited by any affected service registrations.
   This defaults to `false` in versions of Consul prior to 1.9.0, and defaults to `true` in Consul 1.9.0 and later.
 
@@ -972,7 +972,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
       services "A" and "B" in order to successfully register both services. If the token is missing
       `service:write` permissions for service "B", the agent will successfully register service "A"
       and fail to register service "B". Failed registration requests are eventually retried as part
-      of [anti-entropy enforcement](/consul/docs/architecture/anti-entropy). If a registration request is
+      of [anti-entropy enforcement](/consul/docs/concept/consistency). If a registration request is
       failing due to missing permissions, the token for this agent can be updated with
       additional policy rules or the `config_file_service_registration` token can be replaced using
       the [Set Agent Token](/consul/commands/acl/set-agent-token) CLI command.
@@ -1318,7 +1318,7 @@ subsystem that provides Consul's service mesh capabilities.
         corresponding to the NIST P-\* curves of the same name.
       - `private_key_type = rsa`: `2048, 4096`
 
-- `locality` <EnterpriseAlert inline/>: Specifies a map of configurations that set the region and zone of the Consul agent. When specified on server agents, `locality` applies to all partitions on the server. When specified on clients, `locality` applies to all services registered to the client. Configure this field to enable Consul to route traffic to the nearest physical service instance. This field is intended for use primarily with VM and Nomad workloads. Refer to [Route traffic to local upstreams](/consul/docs/connect/manage-traffic/route-to-local-upstreams) for additional information.
+- `locality` <EnterpriseAlert inline/>: Specifies a map of configurations that set the region and zone of the Consul agent. When specified on server agents, `locality` applies to all partitions on the server. When specified on clients, `locality` applies to all services registered to the client. Configure this field to enable Consul to route traffic to the nearest physical service instance. This field is intended for use primarily with VM and Nomad workloads. Refer to [Route traffic to local upstreams](/consul/docs/manage-traffic/route-local) for additional information.
   - `region`:  String value that specifies the region where the Consul agent is running. Consul assigns this value to services registered to that agent. When service proxy regions match, Consul is able to prioritize routes between service instances in the same region over instances in other regions. You must specify values that are consistent with how regions are defined in your network, for example `us-west-1` for networks in AWS.
   - `zone`: String value that specifies the availability zone where the Consul agent is running. Consul assigns this value to services registered to that agent. When service proxy regions match, Consul is able to prioritize routes between service instances in the same region and zone over instances in other regions and zones. When healthy service instances are available in multiple zones within the most-local region, Consul prioritizes instances that also match the downstream proxy's `zone`. You must specify values that are consistent with how zones are defined in your network, for example `us-west-1a` for networks in AWS.
 

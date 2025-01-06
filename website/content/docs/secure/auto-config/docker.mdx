@@ -12,7 +12,7 @@ This topic provides an overview for Consul auto-config on Docker.
 ## Overview
 
 Consul `auto_config` is a highly scalable method used to distribute secure 
-properties such as [Access Control List (ACL) tokens](/consul/docs/security/acl), [TLS certificates](/consul/docs/security/security-models/core#secure-configuration), [gossip encryption keys](/consul/docs/security/encryption#gossip-encryption), 
+properties such as [Access Control List (ACL) tokens](/consul/docs/secure/acl), [TLS certificates](/consul/docs/security/security-models/core#secure-configuration), [gossip encryption keys](/consul/docs/security/encryption#gossip-encryption), 
 and other configuration settings to all Consul agents in a datacenter. This can 
 provide a great boost in usability for securing agents against eavesdropping, 
 tampering, and spoofing without having to manually distribute or rotate secrets 
@@ -427,7 +427,7 @@ metadata field (value). In this example, `"/consul/hostname": "node_name"`
 checks the value of the `node_name` variable against the metadata value of 
 `/consul/hostname`. 
 
-Check the Consul [configuration documentation](/consul/docs/agent/config/config-files#auto_config) to learn more.
+Check the Consul [configuration documentation](/consul/docs/reference/agent/configuration-file#auto_config) to learn more.
 
 ### Consul client configuration
 
@@ -467,7 +467,7 @@ Each Consul client configuration file uses the following `auto_config` options:
 
 - `enabled` - Setting this key to `true` enables the `auto_config` client 
 service on the agent. Enabling this option also turns on 
-[Consul service mesh](/consul/docs/agent/config/config-files#connect) 
+[Consul service mesh](/consul/docs/reference/agent/configuration-file#connect) 
 because it is required for `auto_config` to issue certificates to client agents 
 using the Consul service mesh CA.
 
@@ -478,9 +478,9 @@ using the Consul service mesh CA.
 datacenter to use for the initial RPC. These addresses support 
 [Cloud Auto-Joining](/consul/docs/agent/config/cli-flags#cloud-auto-joining) 
 and can optionally include a port to use when making the outbound connection. If 
-not port is provided the [server RPC port](/consul/docs/agent/config/config-files#server_rpc_port) will be used. 
+not port is provided the [server RPC port](/consul/docs/reference/agent/configuration-file#server_rpc_port) will be used. 
 
-Check the Consul [configuration](/consul/docs/agent/config/config-files) 
+Check the Consul [configuration](/consul/docs/reference/agent/configuration-file) 
 documentation to learn more.
 
 ## Create the Consul datacenter
@@ -1087,7 +1087,7 @@ making a request to the `auto_config` authorization servers.
 metadata field (value). In this example, `"sub": "node_name"` checks the value 
 of the `node_name` variable against the metadata value of the `sub` attribute. 
 
-Check the Consul [configuration documentation](/consul/docs/agent/config/config-files#auto_config) to learn more.
+Check the Consul [configuration documentation](/consul/docs/reference/agent/configuration-file#auto_config) to learn more.
 
 ### Consul client configuration
 
@@ -1126,7 +1126,7 @@ Each Consul client configuration file uses the following `auto_config` options:
 
 - `enabled` - Setting this key to `true` enables the `auto_config` client 
 service on the agent. Enabling this option also turns on 
-[Consul service mesh](/consul/docs/agent/config/config-files#connect) 
+[Consul service mesh](/consul/docs/reference/agent/configuration-file#connect) 
 because it is required for `auto_config` to issue certificates to client agents 
 using the Consul service mesh CA.
 
@@ -1135,11 +1135,11 @@ using the Consul service mesh CA.
 
 - `server_addresses` - This specifies the addresses of servers in the local 
 datacenter to use for the initial RPC. These addresses support 
-[Cloud Auto-Joining](/consul/docs/agent/config/config-files#cloud-auto-joining) 
+[Cloud Auto-Joining](/consul/docs/reference/agent/configuration-file#cloud-auto-joining) 
 and can optionally include a port to use when making the outbound connection. If 
-not port is provided the [server RPC port](/consul/docs/agent/config/config-files#server_rpc_port) will be used. 
+not port is provided the [server RPC port](/consul/docs/reference/agent/configuration-file#server_rpc_port) will be used. 
 
-Check the Consul [configuration](/consul/docs/agent/config/config-files) 
+Check the Consul [configuration](/consul/docs/reference/agent/configuration-file) 
 documentation to learn more.
 
 ## Create the Consul datacenter

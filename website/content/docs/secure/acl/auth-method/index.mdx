@@ -34,10 +34,10 @@ with minimal operator intervention.
 
 | Types                                             | Consul Version                    |
 | ------------------------------------------------- | --------------------------------- |
-| [`kubernetes`](/consul/docs/security/acl/auth-methods/kubernetes) | 1.5.0+                            |
-| [`jwt`](/consul/docs/security/acl/auth-methods/jwt)               | 1.8.0+                            |
-| [`oidc`](/consul/docs/security/acl/auth-methods/oidc)             | 1.8.0+ <EnterpriseAlert inline /> |
-| [`aws-iam`](/consul/docs/security/acl/auth-methods/aws-iam)       | 1.12.0+                           |
+| [`kubernetes`](/consul/docs/secure/acl/auth-method/k8s) | 1.5.0+                            |
+| [`jwt`](/consul/docs/secure/acl/auth-method/jwt)               | 1.8.0+                            |
+| [`oidc`](/consul/docs/secure/acl/auth-method/oidc)             | 1.8.0+ <EnterpriseAlert inline /> |
+| [`aws-iam`](/consul/docs/secure/acl/auth-method/aws)       | 1.12.0+                           |
 
 ## Operator Configuration
 
@@ -59,7 +59,7 @@ using the API or command line before they can be used by applications.
   endpoints](/consul/api-docs/acl/binding-rules).
 
 -> **Note** - To configure auth methods in any connected secondary datacenter,
-[ACL token replication](/consul/docs/agent/config/config-files#acl_enable_token_replication)
+[ACL token replication](/consul/docs/reference/agent/configuration-file#acl_enable_token_replication)
 must be enabled. Auth methods require the ability to create local tokens which
 is restricted to the primary datacenter and any secondary datacenters with ACL
 token replication enabled.
@@ -67,7 +67,7 @@ token replication enabled.
 ## Binding Rules
 
 Binding rules allow an operator to express a systematic way of automatically
-linking [roles](/consul/docs/security/acl/acl-roles) and [service
+linking [roles](/consul/docs/secure/acl/role) and [service
 identities](/consul/docs/security/acl/acl-roles#service-identities) to newly created
 tokens without operator intervention.
 
@@ -86,7 +86,7 @@ Each binding rule is composed of two portions:
   `"serviceaccount.namespace==default and serviceaccount.name!=vault"`
 
 - **Bind Type and Name** - A binding rule can bind a token to a
-  [role](/consul/docs/security/acl/acl-roles) or to a [service
+  [role](/consul/docs/secure/acl/role) or to a [service
   identity](/consul/docs/security/acl/acl-roles#service-identities) by name. The name
   can be specified with a plain string or the bind name can be lightly
   templated using [HIL syntax](https://github.com/hashicorp/hil) to interpolate

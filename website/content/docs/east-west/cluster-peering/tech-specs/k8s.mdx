@@ -7,9 +7,9 @@ description: >-
 
 # Cluster peering on Kubernetes technical specifications
 
-This reference topic describes the technical specifications associated with using cluster peering in your Kubernetes deployments. These specifications include [required Helm values](#helm-requirements) and [required custom resource definitions (CRDs)](#crd-requirements), as well as required Consul components and their configurations. To learn more about Consul's cluster peering feature, refer to [cluster peering overview](/consul/docs/connect/cluster-peering).
+This reference topic describes the technical specifications associated with using cluster peering in your Kubernetes deployments. These specifications include [required Helm values](#helm-requirements) and [required custom resource definitions (CRDs)](#crd-requirements), as well as required Consul components and their configurations. To learn more about Consul's cluster peering feature, refer to [cluster peering overview](/consul/docs/east-west/cluster-peering).
 
-For cluster peering requirements in non-Kubernetes deployments, refer to [cluster peering technical specifications](/consul/docs/connect/cluster-peering/tech-specs).
+For cluster peering requirements in non-Kubernetes deployments, refer to [cluster peering technical specifications](/consul/docs/east-west/cluster-peering/tech-specs).
 
 ## General requirements
 
@@ -31,8 +31,8 @@ You must also configure the following service mesh components in order to establ
 
 Consul's default configuration supports cluster peering connections directly between clusters. In production environments, we recommend using mesh gateways to securely route service mesh traffic between partitions with cluster peering connections. The following values must be set in the Helm chart to enable mesh gateways:
 
-- [`global.tls.enabled = true`](/consul/docs/k8s/helm#v-global-tls-enabled)
-- [`meshGateway.enabled = true`](/consul/docs/k8s/helm#v-meshgateway-enabled)
+- [`global.tls.enabled = true`](/consul/docs/reference/k8s/helm#v-global-tls-enabled)
+- [`meshGateway.enabled = true`](/consul/docs/reference/k8s/helm#v-meshgateway-enabled)
 
 Refer to the following example Helm configuration:
 
@@ -158,4 +158,4 @@ To learn how to change the mesh gateway mode to `local` on your Kubernetes deplo
 
 The `exported-services` CRD is required in order for services to communicate across partitions with cluster peering connections. Basic guidance on using the `exported-services` configuration entry is included in [Establish cluster peering connections](/consul/docs/k8s/connect/cluster-peering/usage/establish-peering#export-services-between-clusters).
 
-Refer to [`exported-services` configuration entry](/consul/docs/connect/config-entries/exported-services) for more information.
+Refer to [`exported-services` configuration entry](/consul/docs/reference/config-entry/exported-services) for more information.

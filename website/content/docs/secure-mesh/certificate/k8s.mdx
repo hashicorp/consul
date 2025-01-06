@@ -7,7 +7,7 @@ description: >-
 
 # Configure service mesh certificate authority (CA) for Consul on Kubernetes
 
-If `connect` is enabled, the built-in Consul CA provider is automatically enabled for the service mesh certificate authority (CA). You can use different CA providers with Consul service mesh. Refer to [Service Mesh Certificate Management](/consul/docs/connect/ca) for supported providers.
+If `connect` is enabled, the built-in Consul CA provider is automatically enabled for the service mesh certificate authority (CA). You can use different CA providers with Consul service mesh. Refer to [Service Mesh Certificate Management](/consul/docs/secure-mesh/certificate) for supported providers.
 
 ## Overview
 
@@ -17,9 +17,9 @@ To configure an external CA provider using the Consul Helm chart, complete the f
 
 1. Create a configuration file containing your provider information.
 1. Create a Kubernetes secret containing the configuration file.
-1. Reference the Kubernetes secret in the [`server.extraVolumes`](/consul/docs/k8s/helm#v-server-extravolumes) value in the Helm chart.
+1. Reference the Kubernetes secret in the [`server.extraVolumes`](/consul/docs/reference/k8s/helm#v-server-extravolumes) value in the Helm chart.
 
-To configure the Vault service mesh provider, refer to [Vault as the Service Mesh Certificate Provider on Kubernetes](/consul/docs/k8s/deployment-configurations/vault/data-integration/connect-ca).
+To configure the Vault service mesh provider, refer to [Vault as the Service Mesh Certificate Provider on Kubernetes](/consul/docs/deploy/server/k8s/vault/data).
 
 ## Configuring Vault as a Service Mesh CA (Consul K8s 0.37.0 and earlier)
 
@@ -34,7 +34,7 @@ The following instructions are only valid for Consul K8s CLI 0.37.0 and prior. I
 
 To configure Vault as a CA provider for Consul service mesh,
 first, create a provider configuration JSON file.
-Please refer to [Vault as a service mesh CA](/consul/docs/connect/ca/vault) for the configuration options.
+Please refer to [Vault as a service mesh CA](/consul/docs/secure-mesh/certificate/vault) for the configuration options.
 You will need to provide a Vault token to the `token` property.
 Please refer to [these docs](/consul/docs/connect/ca/vault#token) for the permissions that the token needs to have.
 This token should be [renewable](/vault/api-docs/auth/token#renewable).
@@ -192,5 +192,5 @@ To update any settings under these keys, you must use Consul's [Update CA Config
 To renew the Vault token, use the [`vault token renew`](/vault/docs/commands/token/renew) CLI command
 or API.
 
-[`ca_config`]: /consul/docs/agent/config/config-files#connect_ca_config
-[`ca_provider`]: /consul/docs/agent/config/config-files#connect_ca_provider
+[`ca_config`]: /consul/docs/reference/agent/configuration-file#connect_ca_config
+[`ca_provider`]: /consul/docs/reference/agent/configuration-file#connect_ca_provider

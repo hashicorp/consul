@@ -89,7 +89,7 @@ The following table lists information about the Consul API's gRPC port defaults:
 | :----------- | :------- | :------------------ |
 | `8502`       | TCP      | Disabled by default |
 
-When using [Consul Dataplane](/consul/docs/connect/dataplane), this port receives incoming traffic from the dataplanes.
+When using [Consul Dataplane](/consul/docs/architecture/control-plane/dataplane), this port receives incoming traffic from the dataplanes.
 
 We recommend using gRPC TLS instead, so this port is disabled by default. You can enable it in the [agent configuration file](/consul/docs/reference/agent#ports) or using the [`consul agent` CLI command](/consul/docsreference-cli/agent).
 
@@ -103,7 +103,7 @@ The following table lists information about the Consul API's gRPC with TLS port 
 | :----------- | :------- | :------------------ | :---------------------------- |
 | `8503`       | TCP      | Enabled by default  | `8502`                        |
 
-This port receives incoming traffic from the dataplanes when using [Consul Dataplane](/consul/docs/connect/dataplane) instead of client agents. We recommend using `8503` as your conventional gRPC port number because it allows some tools to work automatically.
+This port receives incoming traffic from the dataplanes when using [Consul Dataplane](/consul/docs/architecture/control-plane/dataplane) instead of client agents. We recommend using `8503` as your conventional gRPC port number because it allows some tools to work automatically.
 
 In deployments with [cluster peering connections](/consul/docs/east-west/cluster-peering), this port provides incoming and outgoing access between remote server peers. Specifically, the dialing peer needs outgoing access and the accepting peer needs incoming access. The address dialed depends on whether or not the cluster peering connection uses mesh gateways and whether the mesh gateway is in remote or local mode:
 
@@ -139,7 +139,7 @@ The following table lists information about the LAN serf port defaults:
 | :----------- | :-----------| :----------------- | :---------------------------- |
 | `8301`       | TCP and UDP | Enabled by default | `8301`                        |
 
-This port sends and receives traffic from Consul clients and other Consul servers in the same datacenter. Refer to [gossip protocol](/consul/docs/architecture/gossip) for more information.
+This port sends and receives traffic from Consul clients and other Consul servers in the same datacenter. Refer to [gossip protocol](/consul/docs/concept/gossip) for more information.
 
 When running Enterprise deployments that use multiple admin partitions, all Consul clients across all partitions still require access to this port on all servers. Servers also require access to this port on all clients.
 
@@ -240,6 +240,6 @@ The following table lists information about the Consul client's LAN serf port de
 | :----------- | :---------- | :----------------- |
 | `8301`       | TCP and UDP | Enabled by default |
 
-This port sends and receives traffic from Consul clients and Consul servers in the same datacenter. Refer to [gossip protocol](/consul/docs/architecture/gossip) for more information.
+This port sends and receives traffic from Consul clients and Consul servers in the same datacenter. Refer to [gossip protocol](/consul/docs/concept/gossip) for more information.
 
 When running Enterprise deployments that use network segments or admin partitions, Consul clients _within_ a segment or partition require access to each other's ports. Clients do not require port access _across_ segments or partitions.

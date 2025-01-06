@@ -9,7 +9,7 @@ description: >-
 
 This topic describes mutual TLS (mTLS) encryption between agents in a Consul datacenter.
 
-This mTLS encryption is distinct from Consul service mesh mTLS encryption. To learn about encrypted mTLS communication between services, refer to [service mesh certificate authority](/consul/docs/connect/ca).
+This mTLS encryption is distinct from Consul service mesh mTLS encryption. To learn about encrypted mTLS communication between services, refer to [service mesh certificate authority](/consul/docs/secure-mesh/certificate).
 
 ## Benefits of TLS encryption
 
@@ -29,9 +29,9 @@ Mutual TLS (mTLS) requires that all clients and servers have key pairs that are 
 
 The following parameters in agent configuration files define the agent verification behavior:
 
-- [`tls.defaults.verify_incoming`](/consul/docs/agent/config/config-files#tls_defaults_verify_incoming)
-- [`tls.defaults.verify_outgoing`](/consul/docs/agent/config/config-files#tls_defaults_verify_outgoing) 
-- [`tls.defaults.verify_server_hostname`](/consul/docs/agent/config/config-files#tls_default_verify_server_hostname)
+- [`tls.defaults.verify_incoming`](/consul/docs/reference/agent/configuration-file#tls_defaults_verify_incoming)
+- [`tls.defaults.verify_outgoing`](/consul/docs/reference/agent/configuration-file#tls_defaults_verify_outgoing) 
+- [`tls.defaults.verify_server_hostname`](/consul/docs/reference/agent/configuration-file#tls_default_verify_server_hostname)
 
 ## Workflow
 
@@ -66,7 +66,7 @@ The CA key, `consul-agent-ca-key.pem`, signs certificates for Consul nodes. You 
 
 ## Create server certificates
 
-To authenticate Consul servers, servers are provided with a special certificate that lists `server.<domain>.<datacenter>` in the `Common Name` and `Subject Alternative Name` fields. When you enable [`tls.defaults.verify_server_hostname`](/consul/docs/agent/config/config-files#tls_default_verify_server_hostname), only agents that provide this certificate are allowed to boot as a server.
+To authenticate Consul servers, servers are provided with a special certificate that lists `server.<domain>.<datacenter>` in the `Common Name` and `Subject Alternative Name` fields. When you enable [`tls.defaults.verify_server_hostname`](/consul/docs/reference/agent/configuration-file#tls_default_verify_server_hostname), only agents that provide this certificate are allowed to boot as a server.
 
 Without `tls.defaults.verify_server_hostname = true`, an attacker who compromises a Consul client agent can restart the agent as a server to get access to all the data in your datacenter. You must keep the server key private to protect your Consul data.
 
@@ -516,8 +516,8 @@ tls {
 Your agents are now configured with mTLS for encrypted communication. With the auto encryption method, your
 client certificates are managed by the server. With the operator method, you distributed all the certificates manually, but have a more flexible configuration.
 
-Documentation for the commands used in this topic is available at [Consul agent configuration - TLS configuration reference](/consul/docs/agent/config/config-files#tls-configuration-reference) and the [`consul tls` CLI command reference](/consul/commands/tls). 
+Documentation for the commands used in this topic is available at [Consul agent configuration - TLS configuration reference](/consul/docs/reference/agent/configuration-file#tls-configuration-reference) and the [`consul tls` CLI command reference](/consul/commands/tls). 
 
-To learn how to automate TLS certificate generation and rotation, refer to the [Generate mTLS Certificates for Consul with Vault](/consul/tutorials/operate-consul/vault-pki-consul-secure-tls) tutorial.
+To learn how to automate TLS certificate generation and rotation, refer to the [Generate mTLS Certificates for Consul with Vault](/consul/docs/automate/consul-template/vault/mtls) tutorial.
 
-To continue securing your Consul deployment, add [gossip encryption](/consul/docs/security/encryption/gossip) and enable [Access Control Lists (ACLs)](/consul/docs/security/acl) with the default deny policy.
+To continue securing your Consul deployment, add [gossip encryption](/consul/docs/secure/encryption/gossip/enable) and enable [Access Control Lists (ACLs)](/consul/docs/secure/acl) with the default deny policy.

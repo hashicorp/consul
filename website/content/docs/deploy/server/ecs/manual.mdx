@@ -18,11 +18,11 @@ You should have some familiarity with AWS ECS. Refer to [What is Amazon Elastic 
 You must meet the following requirements and prerequisites to enable security features in Consul service mesh:
 
 - Enable [TLS encryption](https://developer.hashicorp.com/consul/docs/security/encryption#rpc-encryption-with-tls) on your Consul servers so that they can communicate security with Consul dataplane containers over gRPC.
-- Enable [access control lists (ACLs)](/consul/docs/security/acl) on your Consul servers. ACLs provide authentication and authorization for access to Consul servers on the mesh.
+- Enable [access control lists (ACLs)](/consul/docs/secure/acl) on your Consul servers. ACLs provide authentication and authorization for access to Consul servers on the mesh.
 - You should be familiar with specifying sensitive data on ECS. Refer to [Passing sensitive data to a container](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/specifying-sensitive-data.html) in the AWS documentation for additional information.
 
 You should be familiar with configuring Consul's secure features, including how to create ACL tokens and policies. Refer to the following resources:
-- [Create a service token](/consul/docs/security/acl/tokens/create/create-a-service-token)
+- [Create a service token](/consul/docs/secure/acl/token/service)
 - [Day 1: Security tutorial](https://developer.hashicorp.com/consul/tutorials/security) for additional information.
 
 Consul requires a unique IAM role for each ECS task family. Task IAM roles cannot be shared by different task families because the task family is unique to each Consul service.
@@ -250,7 +250,7 @@ On the Consul server, create a policy that grants the following access for the c
 - `node:write`
 - `service:write`
 
-The policy allows Consul to generate a token linked to the policy. Refer to [Create a service token](/consul/docs/security/acl/tokens/create/create-a-service-token) for instructions.
+The policy allows Consul to generate a token linked to the policy. Refer to [Create a service token](/consul/docs/secure/acl/token/service) for instructions.
 
 ### ECS task role
 
@@ -333,11 +333,11 @@ You can reference stored secrets using their ARN. The examples show ARNs for sec
 
 ### Configure audit logging <EnterpriseAlert inline/>
 
-You can configure Consul servers connected to your ECS workloads to capture a log of authenticated events. Refer to [Audit Logging](/consul/docs/enterprise/audit-logging) for details.
+You can configure Consul servers connected to your ECS workloads to capture a log of authenticated events. Refer to [Audit Logging](/consul/docs/monitor/log/audit) for details.
 
 ## Next steps
 
 After deploying the Consul service mesh infrastructure, you must still define routes between service instances as well as configure the bind address for your applications so that they only receive traffic through the mesh. Refer to the following topics:
 
-- [Configure routes between ECS tasks](/consul/docs/ecs/deploy/configure-routes)
-- [Configure the ECS task bind address](/consul/docs/ecs/deploy/bind-addresses)
+- [Configure routes between ECS tasks](/consul/docs/connect/ecs)
+- [Configure the ECS task bind address](/consul/docs/register/service/ecs/task-bind-address)

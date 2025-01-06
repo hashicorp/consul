@@ -44,7 +44,7 @@ For this tutorial, you will need:
 - An [AWS account](https://aws.amazon.com/account/) configured for [use with Terraform](https://registry.terraform.io/providers/hashicorp/aws/latest/docs#authentication-and-configuration)
 - [terraform >= 1.0](/terraform/tutorials/aws-get-started/install-cli)
 - [consul >= 1.17.0](/consul/downloads/)
-- [consul-k8s >= 1.2.1](/consul/docs/k8s/installation/install-cli)
+- [consul-k8s >= 1.2.1](/consul/docs/reference-cli/consul-k8s)
 - [helm >= 3.0](https://helm.sh/docs/using_helm/)
 - [git >= 2.0](https://git-scm.com/downloads)
 - [kubectl > 1.24](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
@@ -205,7 +205,7 @@ terminatingGateways:
 
 </CodeBlockConfig>
 
-Refer to the [Consul metrics for Kubernetes documentation](/consul/docs/k8s/connect/observability/metrics) and official [Helm chart values](/consul/docs/k8s/helm#configuration-values) to learn more about metrics configuration options and details.
+Refer to the [Consul metrics for Kubernetes documentation](/consul/docs/observe/telemetry/k8s) and official [Helm chart values](/consul/docs/reference/k8s/helm#configuration-values) to learn more about metrics configuration options and details.
 
 <Tabs>
 <Tab heading="Consul K8S CLI (Mac only)">
@@ -216,7 +216,7 @@ Update Consul in your Kubernetes cluster with Consul K8S CLI to deploy a termina
 $ consul-k8s upgrade -config-file=helm/consul-v2-terminating-gw.yaml
 ```
 
-Refer to the [Consul K8S CLI documentation](/consul/docs/k8s/k8s-cli) to learn more about additional settings.
+Refer to the [Consul K8S CLI documentation](/consul/docs/reference-cli/consul-k8s) to learn more about additional settings.
 
 </Tab>
 <Tab heading="Helm">
@@ -232,7 +232,7 @@ $ helm upgrade --values consul-v2-terminating-gw.yaml consul hashicorp/consul --
 
 The Consul update could take up to 5 minutes to complete. 
 
-Review the official [Helm chart values](/consul/docs/k8s/helm#configuration-values) to learn more about these settings.
+Review the official [Helm chart values](/consul/docs/reference/k8s/helm#configuration-values) to learn more about these settings.
 
 Verify the Consul terminating gateway successfully deployed in your environment.
 
@@ -287,7 +287,7 @@ Review your unique Consul service configuration file.
 
 </CodeBlockConfig>
 
-Refer to the [Consul services configuration documentation](/consul/docs/services/configuration/services-configuration-reference) to learn more about Consul service configuration options and details.
+Refer to the [Consul services configuration documentation](/consul/docs/reference/service) to learn more about Consul service configuration options and details.
 
 Register `managed-aws-rds` as a service in Consul.
 
@@ -299,7 +299,7 @@ $ curl -k \
    $CONSUL_HTTP_ADDR/v1/catalog/register
 ```
 
-Apply the Consul service defaults for the external `managed-aws-rds`service. The configuration in `service-defaults.yaml` creates a [virtual service](/consul/docs/k8s/l7-traffic/route-to-virtual-services) in Consul, which allows the services within your service mesh to communicate with the external service using Consul DNS.
+Apply the Consul service defaults for the external `managed-aws-rds`service. The configuration in `service-defaults.yaml` creates a [virtual service](/consul/docs/manage-traffic/virtual-service) in Consul, which allows the services within your service mesh to communicate with the external service using Consul DNS.
 
 ```shell-session
 $ kubectl apply --filename config/service-defaults.yaml
@@ -355,7 +355,7 @@ intentions = "read"
 
 </CodeBlockConfig>
 
-Review the [Consul ACL Policies](/consul/docs/security/acl/acl-policies) documentation to learn more.
+Review the [Consul ACL Policies](/consul/docs/secure/acl/policy) documentation to learn more.
 
 Retrieve the terminating gateway ACL role ID and set it as an environment variable.
 

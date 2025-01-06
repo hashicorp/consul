@@ -7,7 +7,7 @@ description: >-
 
 # Service intentions configuration entry reference
 
-This topic provides reference information for the service intentions configuration entry. Intentions are configurations for controlling access between services in the service mesh. A single service intentions configuration entry specifies one destination service and one or more L4 traffic sources, L7 traffic sources, or combination of traffic sources. Refer to [Service mesh intentions overview](/consul/docs/connect/intentions) for additional information.
+This topic provides reference information for the service intentions configuration entry. Intentions are configurations for controlling access between services in the service mesh. A single service intentions configuration entry specifies one destination service and one or more L4 traffic sources, L7 traffic sources, or combination of traffic sources. Refer to [Service mesh intentions overview](/consul/docs/secure-mesh/intention) for additional information.
 
 ## Configuration model
 
@@ -399,7 +399,7 @@ You can also specify a wildcard character (`*`) to match all services without in
 
 ### `Namespace` <EnterpriseAlert inline />
 
-Specifies the [namespace](/consul/docs/enterprise/namespaces) that the configuration entry applies to. Services in the namespace are the traffic destinations that the intentions allow or deny traffic to.
+Specifies the [namespace](/consul/docs/multi-tenant/namespace) that the configuration entry applies to. Services in the namespace are the traffic destinations that the intentions allow or deny traffic to.
 
 #### Values
 
@@ -410,7 +410,7 @@ You can also specify a wildcard character (`*`) to match all namespaces. Intenti
 
 ### `Partition` <EnterpriseAlert inline />
 
-Specifies the [admin partition](/consul/docs/enterprise/admin-partitions) to apply the configuration entry. Services in the specified partition are the traffic destinations that the intentions allow or deny traffic to.
+Specifies the [admin partition](/consul/docs/multi-tenant/admin-partition) to apply the configuration entry. Services in the specified partition are the traffic destinations that the intentions allow or deny traffic to.
 
 #### Values
 
@@ -430,7 +430,7 @@ Specifies key-value pairs to add to the KV store when the configuration entry is
 
 ### `JWT`
 
-Specifies a JSON Web Token provider configured in a [JWT provider configuration entry](/consul/docs/connect/config-entries/jwt-provider), as well as additional configurations for verifying a service's JWT before authorizing communication between services
+Specifies a JSON Web Token provider configured in a [JWT provider configuration entry](/consul/docs/reference/config-entry/jwt-provider), as well as additional configurations for verifying a service's JWT before authorizing communication between services
 
 #### Values
 
@@ -439,7 +439,7 @@ Specifies a JSON Web Token provider configured in a [JWT provider configuration 
 
 ### `JWT{}.Providers`
 
-Specifies the names of one or more previously configured [JWT provider configuration entries](/consul/docs/connect/config-entries/jwt-provider), which include the information necessary to validate a JSON web token.
+Specifies the names of one or more previously configured [JWT provider configuration entries](/consul/docs/reference/config-entry/jwt-provider), which include the information necessary to validate a JSON web token.
 
 #### Values
 
@@ -448,7 +448,7 @@ Specifies the names of one or more previously configured [JWT provider configura
 
 ### `JWT{}.Providers[].Name`
 
-Specifies the name of a JWT provider defined in the `Name` field of the [`jwt-provider` configuration entry](/consul/docs/connect/config-entries/jwt-provider). You must write the JWT Provider to Consul before referencing it in a service intention.
+Specifies the name of a JWT provider defined in the `Name` field of the [`jwt-provider` configuration entry](/consul/docs/reference/config-entry/jwt-provider). You must write the JWT Provider to Consul before referencing it in a service intention.
 
 #### Values
 
@@ -520,7 +520,7 @@ Specifies the name of the source that the intention allows or denies traffic fro
 
 ### `Sources[].Peer`
 
-Specifies the name of a peered Consul cluster that the intention allows or denies traffic from. Refer to [Cluster peering overview](/consul/docs/connect/cluster-peering) for additional information about peers.
+Specifies the name of a peered Consul cluster that the intention allows or denies traffic from. Refer to [Cluster peering overview](/consul/docs/east-west/cluster-peering) for additional information about peers.
 
 The `Peer` and `Partition` fields are mutually exclusive.
 
@@ -540,7 +540,7 @@ Specifies the traffic source namespace that the intention allows or denies traff
 
 ### `Sources[].Partition` <EnterpriseAlert inline />
 
-Specifies the name of an admin partition that the intention allows or denies traffic from. Refer to [Admin Partitions](/consul/docs/enterprise/admin-partitions) for additional information about partitions.
+Specifies the name of an admin partition that the intention allows or denies traffic from. Refer to [Admin Partitions](/consul/docs/multi-tenant/admin-partition) for additional information about partitions.
 
 The `Peer` and `Partition` fields are mutually exclusive.
 
@@ -551,7 +551,7 @@ The `Peer` and `Partition` fields are mutually exclusive.
 
 ### `Sources[].SamenessGroup` <EnterpriseAlert inline />
 
-Specifies the name of a sameness group that the intention allows or denies traffic from. Refer to [create sameness groups](/consul/docs/connect/cluster-peering/usage/create-sameness-groups) for additional information.
+Specifies the name of a sameness group that the intention allows or denies traffic from. Refer to [create sameness groups](/consul/docs/multi-tenant/sameness-group/vm) for additional information.
 
 #### Values
 
@@ -582,7 +582,7 @@ Specifies a list of permissions for L7 traffic sources. The list contains one or
 
 Consul applies permissions in the order specified in the configuration. Beginning at the top of the list, Consul applies the first matching request and stops evaluating against the remaining configurations.
 
-For requests that do not match any of the defined permissions, Consul applies the intention behavior defined in the [`acl_default_policy`](/consul/docs/agent/config/config-files#acl_default_policy) configuration.
+For requests that do not match any of the defined permissions, Consul applies the intention behavior defined in the [`acl_default_policy`](/consul/docs/reference/agent/configuration-file#acl_default_policy) configuration.
 
 Do not configure this field for L4 intentions. Use the [`Sources.Action`](#sources-action) parameter instead.
 
@@ -740,7 +740,7 @@ Specifies an arbitrary name for the configuration entry. Note that in other conf
 
 ### `metadata.namespace` <EnterpriseAlert inline />
 
-Specifies the [namespace](/consul/docs/enterprise/namespaces) that the configuration entry applies to. Refer to [Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for information about how Consul namespaces map to Kubernetes Namespaces. Consul Community Edition (Consul CE) ignores the `metadata.namespace` configuration.
+Specifies the [namespace](/consul/docs/multi-tenant/namespace) that the configuration entry applies to. Refer to [Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for information about how Consul namespaces map to Kubernetes Namespaces. Consul Community Edition (Consul CE) ignores the `metadata.namespace` configuration.
 
 #### Values
 
@@ -780,7 +780,7 @@ You can also specify a wildcard character (`*`) to match all services that are m
 
 ### `spec.jwt`
 
-Specifies a JSON Web Token provider configured in a [JWT provider configuration entry](/consul/docs/connect/config-entries/jwt-provider), as well as additional configurations for verifying a service's JWT before authorizing communication between services
+Specifies a JSON Web Token provider configured in a [JWT provider configuration entry](/consul/docs/reference/config-entry/jwt-provider), as well as additional configurations for verifying a service's JWT before authorizing communication between services
 
 #### Values
 
@@ -789,7 +789,7 @@ Specifies a JSON Web Token provider configured in a [JWT provider configuration 
 
 ### `spec.jwt.providers`
 
-Specifies the names of one or more previously configured [JWT provider configuration entries](/consul/docs/connect/config-entries/jwt-provider), which include the information necessary to validate a JSON web token.
+Specifies the names of one or more previously configured [JWT provider configuration entries](/consul/docs/reference/config-entry/jwt-provider), which include the information necessary to validate a JSON web token.
 
 #### Values
 
@@ -798,7 +798,7 @@ Specifies the names of one or more previously configured [JWT provider configura
 
 ### `spec.jwt.providers[].name`
 
-Specifies the name of a JWT provider defined in the `metadata.name` field of the [JWT provider configuration entry](/consul/docs/connect/config-entries/jwt-provider). You must write the JWT Provider to Consul before referencing it in a service intention.
+Specifies the name of a JWT provider defined in the `metadata.name` field of the [JWT provider configuration entry](/consul/docs/reference/config-entry/jwt-provider). You must write the JWT Provider to Consul before referencing it in a service intention.
 
 #### Values
 
@@ -865,7 +865,7 @@ Specifies the name of the source that the intention allows or denies traffic fro
 
 ### `spec.sources[].peer`
 
-Specifies the name of a peered Consul cluster that the intention allows or denies traffic from. Refer to [Cluster peering overview](/consul/docs/connect/cluster-peering) for additional information about peers. The `peer` and `partition` fields are mutually exclusive.
+Specifies the name of a peered Consul cluster that the intention allows or denies traffic from. Refer to [Cluster peering overview](/consul/docs/east-west/cluster-peering) for additional information about peers. The `peer` and `partition` fields are mutually exclusive.
 #### Values
 
 - Default: None
@@ -882,7 +882,7 @@ Specifies the traffic source namespace that the intention allows or denies traff
 
 ### `spec.sources[].partition` <EnterpriseAlert inline />
 
-Specifies the name of an admin partition that the intention allows or denies traffic from. Refer to [Admin Partitions](/consul/docs/enterprise/admin-partitions) for additional information about partitions. The `peer` and `partition` fields are mutually exclusive.
+Specifies the name of an admin partition that the intention allows or denies traffic from. Refer to [Admin Partitions](/consul/docs/multi-tenant/admin-partition) for additional information about partitions. The `peer` and `partition` fields are mutually exclusive.
 
 #### Values
 
@@ -891,7 +891,7 @@ Specifies the name of an admin partition that the intention allows or denies tra
 
 ### `spec.sources[].samenessGroup` <EnterpriseAlert inline />
 
-Specifies the name of a sameness group that the intention allows or denies traffic from. Refer to [create sameness groups](/consul/docs/k8s/connect/cluster-peering/usage/create-sameness-groups) for additional information.
+Specifies the name of a sameness group that the intention allows or denies traffic from. Refer to [create sameness groups](/consul/docs/multi-tenant/sameness-group/k8s) for additional information.
 
 #### Values
 
@@ -914,7 +914,7 @@ Specifies a list of permissions for L7 traffic sources. The list contains one or
 
 Consul applies permissions in the order specified in the configuration. Starting at the beginning of the list, Consul applies the first matching request and stops evaluating against the remaining configurations.
 
-For requests that do not match any of the defined permissions, Consul applies the intention behavior defined in the [`acl_default_policy`](/consul/docs/agent/config/config-files#acl_default_policy) configuration.
+For requests that do not match any of the defined permissions, Consul applies the intention behavior defined in the [`acl_default_policy`](/consul/docs/reference/agent/configuration-file#acl_default_policy) configuration.
 
 Do not configure this field for L4 intentions. Use the [`spec.sources.action`](#sources-action) parameter instead.
 

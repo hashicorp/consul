@@ -6,7 +6,7 @@ description: The Registration CRD enables Consul on Kubernetes to register an ex
 
 # Registration CRD configuration reference
 
-This topic provides reference information for `Registration` custom resource definitions (CRDs). You can use this CRD to register an external service with Consul on Kubernetes. For more information. Refer to [Register services running on external nodes to Consul on Kubernetes](/consul/docs/k8s/deployment-configurations/external-service) for more information.
+This topic provides reference information for `Registration` custom resource definitions (CRDs). You can use this CRD to register an external service with Consul on Kubernetes. For more information. Refer to [Register services running on external nodes to Consul on Kubernetes](/consul/docs/register/external/k8s) for more information.
 
 ## Configuration model
 
@@ -221,7 +221,7 @@ Specifies the IP address where the external service is available.
 
 Specifies details for a health check. Health checks perform several safety functions, such as allowing a web balancer to gracefully remove failing nodes and allowing a database to replace a failed secondary. You can configure health checks to monitor the health of the entire node.
 
-For more information about configuring health checks for Consul, refer to [health check configuration reference](/consul/docs/services/configuration/checks-configuration-reference).
+For more information about configuring health checks for Consul, refer to [health check configuration reference](/consul/docs/reference/health-check).
 
 #### Values
 
@@ -262,7 +262,7 @@ Requires child parameters `deregisterCriticalServiceAfterDuration`, `intervalDur
 | `spec.check.definition.tcp`                                    | Specifies an IP address or host and port number that the check establishes a TCP connection with. | String | None |
 | `spec.check.definition.tcpUseTLS`                              | Enables TLS for TCP checks when set to `true`. | Boolean | `false` |
 | `spec.check.definition.timeoutDuration`                        | Specifies how long unsuccessful requests take to end with a timeout. This parameter is required to configure `spec.check.definition`. | String | `"10s"` |
-| `spec.check.definition.tlsServerName`                          | Specifies the server name used to verify the hostname on the returned certificates unless `tls_skip_verify` is configured. This value is also included in the client's handshake to support SNI. It is recommended that this field be left unspecified. Refer to [health check configuration reference](/consul/docs/services/configuration/checks-configuration-reference#check-block) for more information. | String | None |
+| `spec.check.definition.tlsServerName`                          | Specifies the server name used to verify the hostname on the returned certificates unless `tls_skip_verify` is configured. This value is also included in the client's handshake to support SNI. It is recommended that this field be left unspecified. Refer to [health check configuration reference](consul/docs/reference/health-check#check-block) for more information. | String | None |
 | `spec.check.definition.tlsSkipVerify`                          | Determines if the check verifies the chain and hostname of the certificate that the server presents. Set to `true` to disable verification. We recommend setting to `false` in production environments. | Boolean | `false` |
 | `spec.check.definition.udp`                                    | Specifies an IP address or host and port number for the check to send UDP datagrams to. | String | None |
 
@@ -322,7 +322,7 @@ Specifies human readable output in response to a health check.
 
 ### `spec.check.partition` <EnterpriseAlert inline />
 
-Specifies the Consul admin partition the health check applies to. Refer to [admin partitions](/consul/docs/enterprise/admin-partitions) for more information.
+Specifies the Consul admin partition the health check applies to. Refer to [admin partitions](/consul/docs/multi-tenant/admin-partition) for more information.
 
 #### Values
 
@@ -432,7 +432,7 @@ Specifies the admin partition of the node to register.
 
 Specifies the service to register. The `Service.Service` field is required. If `Service.ID` is not provided, the default is the `Service.Service`.
 
-You can only specify one service with a given `ID` per node. We recommend using valid DNS labels for service definition names. Refer to [Internet Engineering Task Force's RFC 1123](https://datatracker.ietf.org/doc/html/rfc1123#page-72) for additional information. Service names that conform to standard usage ensures compatibility with external DNSs. Refer to [Services Configuration Reference](/consul/docs/services/configuration/services-configuration-reference#name) for more information.
+You can only specify one service with a given `ID` per node. We recommend using valid DNS labels for service definition names. Refer to [Internet Engineering Task Force's RFC 1123](https://datatracker.ietf.org/doc/html/rfc1123#page-72) for additional information. Service names that conform to standard usage ensures compatibility with external DNSs. Refer to [Services Configuration Reference](/consul/docs/reference/service#name) for more information.
 
 #### Values
 
@@ -474,7 +474,7 @@ Specifies an ID for the service. Services on the same node must have unique IDs.
 
 ### `spec.service.locality`
 
-Specifies the region and zone in the cloud service provider (CSP) where the service is available. Configure this field to enable Consul to route traffic to the nearest physical service instance. Services inherit the `locality` configuration of the Consul agent they are registered with, but you can explicitly define locality for your service instances if an override is needed. Refer to [Route traffic to local upstreams](/consul/docs/connect/manage-traffic/route-to-local-upstreams) for additional information.
+Specifies the region and zone in the cloud service provider (CSP) where the service is available. Configure this field to enable Consul to route traffic to the nearest physical service instance. Services inherit the `locality` configuration of the Consul agent they are registered with, but you can explicitly define locality for your service instances if an override is needed. Refer to [Route traffic to local upstreams](/consul/docs/manage-traffic/route-local) for additional information.
 
 #### Values
 
@@ -512,7 +512,7 @@ Specifies a name for the service. We recommend using valid DNS labels for servic
 
 ### `spec.service.namespace` <EnterpriseAlert inline />
 
-Specifies the Consul namespace to register the service in. Refer to [namespaces](/consul/docs/enterprise/namespaces) for more information.
+Specifies the Consul namespace to register the service in. Refer to [namespaces](/consul/docs/multi-tenant/namespace) for more information.
 
 #### Values
 
@@ -521,7 +521,7 @@ Specifies the Consul namespace to register the service in. Refer to [namespaces]
 
 ### `spec.service.partition` <EnterpriseAlert inline />
 
-Specifies the Consul admin partition to register the service in. Refer to [admin partitions](/consul/docs/enterprise/admin-partitions) for more information.
+Specifies the Consul admin partition to register the service in. Refer to [admin partitions](/consul/docs/multi-tenant/admin-partition) for more information.
 
 #### Values
 

@@ -12,11 +12,11 @@ servers. It includes cleanup of dead servers, monitoring the state of the Raft
 cluster, and stable server introduction.
 
 To use autopilot features (with the exception of dead server cleanup), the
-[`raft_protocol`](/consul/docs/agent/config/config-files#_raft_protocol)
+[`raft_protocol`](/consul/docs/reference/agent/configuration-file#_raft_protocol)
 setting in the Consul agent configuration must be set to 3 or higher on all
 servers. In Consul `0.8` this setting defaults to 2; in Consul `1.0` it will
 default to 3. For more information, check the [Version Upgrade
-section](/consul/docs/upgrading/upgrade-specific) on Raft protocol
+section](/consul/docs/upgrade/version-specific) on Raft protocol
 versions in Consul `1.0`.
 
 In this tutorial you will learn how Consul tracks the stability of servers, how 
@@ -33,7 +33,7 @@ are starting with Autopilot enabled by default.
 ## Default configuration
 
 The configuration of Autopilot is loaded by the leader from the agent's
-[autopilot settings](/consul/docs/agent/config/config-files#autopilot)
+[autopilot settings](/consul/docs/reference/agent/configuration-file#autopilot)
 when initially bootstrapping the datacenter. Since autopilot and its features
 are already enabled, you only need to update the configuration to disable them.
 
@@ -291,8 +291,8 @@ In this tutorial you got an overview of the autopilot features and got examples
 on how and when tune the default values.
 
 To learn more about the Autopilot settings you did not configure in this tutorial,
-[last_contact_threshold](/consul/docs/agent/config/config-files#last_contact_threshold)
+[last_contact_threshold](/consul/docs/reference/agent/configuration-file#last_contact_threshold)
 and
-[max_trailing_logs](/consul/docs/agent/config/config-files#max_trailing_logs),
+[max_trailing_logs](/consul/docs/reference/agent/configuration-file#max_trailing_logs),
 either read the agent configuration documentation or use the help flag with the
 operator autopilot `consul operator autopilot set-config -h`.

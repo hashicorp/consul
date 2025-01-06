@@ -86,7 +86,7 @@ Consul Enterprise users can use redundancy zones to improve fault tolerance with
 
 ### Redundancy zones <EnterpriseAlert inline />
 
-Use Consul Enterprise [redundancy zones](/consul/docs/enterprise/redundancy) to improve fault tolerance without the performance penalty of increasing the number of voting servers.
+Use Consul Enterprise [redundancy zones](/consul/docs/manage/redundancy-zone) to improve fault tolerance without the performance penalty of increasing the number of voting servers.
 
 ![Reference architecture diagram for Consul Redundancy zones](/img/architecture/consul-redundancy-zones-light.png#light-theme-only)
 ![Reference architecture diagram for Consul Redundancy zones](/img/architecture/consul-redundancy-zones-dark.png#dark-theme-only)
@@ -120,7 +120,7 @@ to also gain the infrastructure-level fault tolerance benefits provided by avail
 However, Consul redundancy zones can be used even without the backing of infrastructure availability zones.
 
 For more information on redundancy zones, refer to:
-- [Redundancy zone documentation](/consul/docs/enterprise/redundancy)
+- [Redundancy zone documentation](/consul/docs/manage/redundancy-zone)
   for a more detailed explanation
 - [Redundancy zone tutorial](/consul/tutorials/enterprise/redundancy-zones)
   to learn how to use them
@@ -163,12 +163,12 @@ Cluster peering lets you connect two or more independent Consul clusters using m
 
 Cluster peering is the preferred way to interconnect clusters because it is operationally easier to configure and manage than WAN federation. Cluster peering communication between two datacenters runs only on one port on the related Consul mesh gateway, which makes it operationally easy to expose for routing purposes.
 
-When you use cluster peering to connect admin partitions between datacenters, use Consul’s dynamic traffic management functionalities `service-splitter`, `service-router` and `service-failover` to configure your service mesh to automatically forward or failover service traffic between peer clusters. Consul can then manage the traffic intended for the service and do [failover](/consul/docs/connect/config-entries/service-resolver#spec-failover), [load-balancing](/consul/docs/connect/config-entries/service-resolver#spec-loadbalancer), or [redirection](/consul/docs/connect/config-entries/service-resolver#spec-redirect).
+When you use cluster peering to connect admin partitions between datacenters, use Consul’s dynamic traffic management functionalities `service-splitter`, `service-router` and `service-failover` to configure your service mesh to automatically forward or failover service traffic between peer clusters. Consul can then manage the traffic intended for the service and do [failover](/consul/docs/reference/config-entry/service-resolver#spec-failover), [load-balancing](/consul/docs/reference/config-entry/service-resolver#spec-loadbalancer), or [redirection](/consul/docs/reference/config-entry/service-resolver#spec-redirect).
 
 Cluster peering also extends service discovery across different datacenters independent of service mesh functions. After you peer datacenters, you can refer to services between datacenters with `<service>.virtual.peer.consul` in Consul DNS. For Consul Enterprise, your query string may need to include the namespace, partition, or both. Refer to the [Consul DNS documentation](/consul/docs/services/discovery/dns-static-lookups#service-virtual-ip-lookups) for details on building virtual service lookups.
 
 For more information on cluster peering, refer to:
-- [Cluster peering documentation](/consul/docs/connect/cluster-peering)
+- [Cluster peering documentation](/consul/docs/east-west/cluster-peering)
   for a more detailed explanation
 - [Cluster peering tutorial](/consul/tutorials/implement-multi-tenancy/cluster-peering)
   to learn how to implement cluster peering

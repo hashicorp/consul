@@ -11,7 +11,7 @@ Consul service mesh enables secure service-to-service communication over mutual 
 provides both in-transit data encryption as well as authorization. This page
 will document how to secure the service mesh. To try service mesh locally, complete the
 [Getting Started guide](/consul/tutorials/kubernetes-deploy/service-mesh?utm_source=docs) or for a full security model reference,
-see the dedicated [Consul security model](/consul/docs/security) page. When
+see the dedicated [Consul security model](/consul/docs/secure) page. When
 setting up service mesh in production, review this [tutorial](/consul/tutorials/developer-mesh/service-mesh-production-checklist?utm_source=consul.io&utm_medium=docs).
 
 Consul service mesh will function in any Consul configuration. However, unless the checklist
@@ -20,7 +20,7 @@ built for. The checklist below can be incrementally adopted towards full
 security if you prefer to operate in less secure models initially.
 
 ~> **Warning**: The checklist below should not be considered exhaustive. Please
-read and understand the [Consul security model](/consul/docs/security)
+read and understand the [Consul security model](/consul/docs/secure)
 in depth to assess whether your deployment satisfies the security requirements
 of Consul.
 
@@ -30,7 +30,7 @@ of Consul.
 
 Consul should be configured with a default deny intention policy. This forces
 all service-to-service communication to be explicitly
-allowed via an allow [intention](/consul/docs/connect/intentions).
+allowed via an allow [intention](/consul/docs/secure-mesh/intention).
 
 One advantage of using a default deny policy in combination with specific "allow" rules
 is that a failure of intentions due to misconfiguration always results in
@@ -59,7 +59,7 @@ enabling the strictest set that does not interfere with application traffic.
 
 We also recommend that you review L7 intention header match rules for potential
 issues with multiple header values. Refer to the [service intentions
-configuration entry reference](/consul/docs/connect/config-entries/service-intentions#spec-sources-permissions-http-header)
+configuration entry reference](/consul/docs/reference/config-entry/service-intentions#spec-sources-permissions-http-header)
 for more information.
 
 You do not need to enable request normalization if you are not using L7 intentions. 
@@ -94,7 +94,7 @@ to verify server authenticity with each server having a unique TLS certificate.
 affect service mesh since requests must also always contain a valid ACL token.
 Clients calling Consul APIs should be forced over encrypted connections.
 
-See the [Consul agent encryption page](/consul/docs/security/encryption) to
+See the [Consul agent encryption page](/consul/docs/secure/encryption) to
 learn more about configuring agent encryption.
 
 **If encryption is not enabled**, a malicious actor can sniff network
@@ -108,7 +108,7 @@ clients and servers should be protected from unauthorized access. This
 protection must be done outside of Consul via access control systems provided
 by your target operating system.
 
-The [full Consul security model](/consul/docs/security) explains the
+The [full Consul security model](/consul/docs/secure) explains the
 risk of unauthorized access for both client agents and server agents. In
 general, the blast radius of unauthorized access for client agent directories
 is much smaller than servers. However, both must be protected against
@@ -117,8 +117,8 @@ unauthorized access.
 ### Prevent Non-Mesh Traffic to Services
 
 For services that are using
-[proxies](/consul/docs/connect/proxies)
-(are not [natively integrated](/consul/docs/connect/native)),
+[proxies](/consul/docs/connect/proxy)
+(are not [natively integrated](/consul/docs/automate/native)),
 network access via their unencrypted listeners must be restricted
 to only the proxy. This requires at a minimum restricting the listener
 to bind to loopback only. More complex solutions may involve using
@@ -133,7 +133,7 @@ mechanisms must be used.
 
 For developer or operator access to a service, we recommend
 using a local service mesh proxy. This is documented in the
-[development and debugging guide](/consul/docs/connect/dev).
+[development and debugging guide](/consul/docs/troubleshoot/mesh).
 
 **If non-proxy traffic can communicate with the service**, this traffic
 will not be encrypted or authorized via service mesh.

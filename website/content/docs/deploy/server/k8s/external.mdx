@@ -21,7 +21,7 @@ The `externalServers.hosts` value must be provided and should be set to a DNS, a
 or an `exec=` string with a command returning Consul IPs. Please see [this documentation](https://github.com/hashicorp/go-netaddrs)
 on how the `exec=` string works.
 Other values in the `externalServers` section are optional. Please refer to
-[Helm Chart configuration](/consul/docs/k8s/helm#h-externalservers) for more details.
+[Helm Chart configuration](/consul/docs/reference/k8s/helm#h-externalservers) for more details.
 
 <CodeBlockConfig filename="values.yaml">
 
@@ -37,7 +37,7 @@ externalServers:
 
 With the introduction of [Consul Dataplane](/consul/docs/connect/dataplane#what-is-consul-dataplane), Consul installation on Kubernetes is simplified by removing the Consul Client agents.
 This requires the Helm installation and rest of the consul-k8s components installed on Kubernetes to talk to Consul Servers directly on various ports.
-Before starting the installation, ensure that the Consul Servers are configured to have the gRPC port enabled `8502/tcp` using the [`ports.grpc = 8502`](/consul/docs/agent/config/config-files#grpc) configuration option.
+Before starting the installation, ensure that the Consul Servers are configured to have the gRPC port enabled `8502/tcp` using the [`ports.grpc = 8502`](/consul/docs/reference/agent/configuration-file#grpc) configuration option.
 
 
 ## Configuring TLS
@@ -111,7 +111,7 @@ The bootstrap token requires the following minimal permissions:
 Next, configure external servers. The Helm chart will use this configuration to talk to the Consul server's API
 to create policies, tokens, and an auth method. If you are [enabling Consul service mesh](/consul/docs/k8s/connect),
 `k8sAuthMethodHost` should be set to the address of your Kubernetes API server
-so that the Consul servers can validate a Kubernetes service account token when using the [Kubernetes auth method](/consul/docs/security/acl/auth-methods/kubernetes)
+so that the Consul servers can validate a Kubernetes service account token when using the [Kubernetes auth method](/consul/docs/secure/acl/auth-method/k8s)
 with `consul login`.
 
 -> **Note:** If `externalServers.k8sAuthMethodHost` is set and you are also using WAN federation 

@@ -17,7 +17,7 @@ The Consul control plane consists of server agents that store all state informat
 
 The Consul data plane consists of proxies deployed locally alongside each service instance. These proxies, called sidecar proxies, receive mesh configuration data from the control plane, and control network communication between their local service instance and other services in the network. The sidecar proxy handles inbound and outbound service connections, and ensures TLS connections between services are both verified and encrypted.
 
-If you have Kubernetes workloads, you can also run Consul with an alternate service mesh configuration that deploys Envoy proxies but not client agents. Refer to [Simplified service mesh with Consul dataplanes](/consul/docs/connect/dataplane) for more information.
+If you have Kubernetes workloads, you can also run Consul with an alternate service mesh configuration that deploys Envoy proxies but not client agents. Refer to [Simplified service mesh with Consul dataplanes](/consul/docs/architecture/control-plane/dataplane) for more information.
 
 ## Consul control plane monitoring
 
@@ -43,7 +43,7 @@ It is important to have a highly performant network with low network latency. En
 
 ### Raft recommendations
 
-Consul uses [Raft for consensus protocol](/consul/docs/architecture/consensus). High saturation of the Raft goroutines can lead to elevated latency in the rest of the system and may cause the Consul cluster to be unstable. As a result, it is important to monitor Raft to track your control plane health. We recommend the following actions to keep control plane healthy:
+Consul uses [Raft for consensus protocol](/consul/docs/concept/consensus). High saturation of the Raft goroutines can lead to elevated latency in the rest of the system and may cause the Consul cluster to be unstable. As a result, it is important to monitor Raft to track your control plane health. We recommend the following actions to keep control plane healthy:
 - Create an alert that notifies you when [Raft thread saturation](/consul/docs/agent/telemetry#raft-thread-saturation) exceeds 50%.
 - Monitor [Raft replication capacity](/consul/docs/agent/telemetry#raft-replication-capacity-issues) when Consul is handling large amounts of data and high write throughput.
 - Lower [`raft_multiplier`](/consul/docs/install/performance#production) to keep your Consul cluster stable. The value of `raft_multiplier` defines the scaling factor for Consul. Default value for raft_multiplier is 5.
@@ -56,7 +56,7 @@ Raft uses BoltDB for storing data and maintaining its own state. Refer to the [B
 
 ## Consul data plane monitoring
 
-The data plane of Consul consists of Consul clients or [Connect proxies](/consul/docs/connect/proxies) interacting with each other through service-to-service communication. Service-to-service traffic always stays within the data plane, while the control plane only enforces traffic rules. Monitoring service-to-service communication is important but may become extremely  complex in an enterprise setup with multiple services communicating to each other across federated Consul clusters through mesh, ingress and terminating gateways.
+The data plane of Consul consists of Consul clients or [Connect proxies](/consul/docs/connect/proxy) interacting with each other through service-to-service communication. Service-to-service traffic always stays within the data plane, while the control plane only enforces traffic rules. Monitoring service-to-service communication is important but may become extremely  complex in an enterprise setup with multiple services communicating to each other across federated Consul clusters through mesh, ingress and terminating gateways.
 
 ### Service monitoring
 

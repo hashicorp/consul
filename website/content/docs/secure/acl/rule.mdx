@@ -363,7 +363,7 @@ EOF
 }
 ```
 
-For more detailed information, refer to  the [Consul Sentinel documentation](/consul/docs/agent/sentinel).
+For more detailed information, refer to  the [Consul Sentinel documentation](/consul/docs/secure/acl/sentinel).
 
 ## Keyring Rules
 
@@ -593,7 +593,7 @@ The [`acl.token.default`](/consul/docs/reference/agent#acl_tokens_default) used 
 
 Node rules are used to filter query results when reading from the catalog or retrieving information from the health endpoints. This allows for configurations where a token has access to a given service name, but only on an allowed subset of node names.
 
-Consul agents check tokens locally when health checks are registered and when Consul performs periodic [anti-entropy](/consul/docs/architecture/anti-entropy) syncs.
+Consul agents check tokens locally when health checks are registered and when Consul performs periodic [anti-entropy](/consul/docs/concept/consistency) syncs.
 These actions may required an ACL token to complete. Use the following methods to configure ACL tokens for registration events:
 
 * Configure a global token in the [acl.tokens.default](/consul/docs/reference/agent#acl_tokens_default) parameter.
@@ -604,7 +604,7 @@ These actions may required an ACL token to complete. Use the following methods t
 
 ### Reading Imported Nodes
 
-Nodes rules affect read access to nodes with services exported by [`exported-services` configuration entries](/consul/docs/connect/config-entries/exported-services#reading-services), including nodes imported from [cluster peerings](/consul/docs/connect/cluster-peering) or [admin partitions](/consul/docs/enterprise/admin-partitions) (Enterprise-only).
+Nodes rules affect read access to nodes with services exported by [`exported-services` configuration entries](/consul/docs/reference/config-entry/exported-services#reading-services), including nodes imported from [cluster peerings](/consul/docs/east-west/cluster-peering) or [admin partitions](/consul/docs/multi-tenant/admin-partition) (Enterprise-only).
 Read access to all imported nodes is granted when either of the following rule sets are attached to a token:
 - `service:write` is granted to any service.
 - `node:read` is granted to all nodes.
@@ -818,7 +818,7 @@ used to filter the results of the query.
 
 Service rules come into play when using the [Agent API](/consul/api-docs/agent) to register services or
 checks. The agent will check tokens locally as a service or check is registered, and Consul also
-performs periodic [anti-entropy](/consul/docs/architecture/anti-entropy) syncs, which may require an
+performs periodic [anti-entropy](/consul/docs/concept/consistency) syncs, which may require an
 ACL token to complete. To accommodate this, Consul provides two methods of configuring ACL tokens
 to use for registration events:
 
@@ -843,7 +843,7 @@ set to `true` in order to enable script checks.
 
 ### Reading Imported Services
 
-Service rules affect read access to services exported by [`exported-services` configuration entries](/consul/docs/reference/config-entry/exported-services#reading-services), including services exported between [cluster peerings](/consul/docs/east-west/cluster-peering) or [admin partitions](/consul/docs/enterprise/admin-partitions) (Enterprise-only).
+Service rules affect read access to services exported by [`exported-services` configuration entries](/consul/docs/reference/config-entry/exported-services#reading-services), including services exported between [cluster peerings](/consul/docs/east-west/cluster-peering) or [admin partitions](/consul/docs/multi-tenant/admin-partition) (Enterprise-only).
 Read access to all imported services is granted when either of the following rule sets are attached to a token:
 - `service:write` is granted to any service.
 - `service:read` is granted to all services.

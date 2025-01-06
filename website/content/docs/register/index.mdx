@@ -9,7 +9,7 @@ description: >-
 
 This topic provides overview information about services and how to make them discoverable in Consul when your network operates on virtual machines. If service mesh is enabled in your network, refer to the following articles for additional information about connecting services in a mesh:
 
-- [How Service Mesh Works](/consul/docs/concepts/service-mesh)
+- [How Service Mesh Works](/consul/docs/use-case/service-mesh)
 - [How Consul Service Mesh Works on Kubernetes](/consul/docs/k8s/connect)
 
 ## Introduction
@@ -26,7 +26,7 @@ For service discovery, the core Consul workflow for services consists of three s
 
 1. **Register services and health checks**: After defining your services and health checks, you must register them with a Consul agent. Refer to [Register Services and Health Checks](/consul/docs/register/service/vm) for additional information.
 
-1. **Query for services**: After registering your services and health checks, other services in your network can use the DNS to perform static or dynamic lookups to access your service. Refer to [DNS Usage Overview](/consul/docs/services/discovery/dns-overview) for additional information about the different ways to discover services in your datacenters.
+1. **Query for services**: After registering your services and health checks, other services in your network can use the DNS to perform static or dynamic lookups to access your service. Refer to [DNS Usage Overview](/consul/docs/discover/dns) for additional information about the different ways to discover services in your datacenters.
 
 ## Service mesh use cases
 

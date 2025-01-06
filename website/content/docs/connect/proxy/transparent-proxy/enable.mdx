@@ -180,13 +180,13 @@ metadata:
 By default, `connect-inject` is disabled. As a result, Consul on Kubernetes uses a mechanism for traffic redirection that interferes with [Kubernetes HTTP health
 probes](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/). This is because probes expect the kubelet to reach the application container on the probe's endpoint. Instead, traffic is redirected through the sidecar proxy. As a result, health probes return errors because the kubelet does not encrypt that traffic using a mesh proxy.
 
-There are two methods for solving this issue. The first method is to set the `connectInject.transparentProxy.defaultOverwriteProbes` annotation to overwrite the Kubernetes HTTP health probes so that they point to the proxy. The second method is to [enable the Consul container network interface (CNI) plugin](#enable-the-consul-cni-plugin) to perform traffic redirection. Refer to the [Consul on Kubernetes installation instructions](/consul/docs/k8s/installation/install) for additional information.
+There are two methods for solving this issue. The first method is to set the `connectInject.transparentProxy.defaultOverwriteProbes` annotation to overwrite the Kubernetes HTTP health probes so that they point to the proxy. The second method is to [enable the Consul container network interface (CNI) plugin](#enable-the-consul-cni-plugin) to perform traffic redirection. Refer to the [Consul on Kubernetes installation instructions](/consul/docs/deploy/server/k8s/helm) for additional information.
 
 ### Overwrite Kubernetes HTTP health probes
 
 You can either include the `connectInject.transparentProxy.defaultOverwriteProbes` Helm value to your command or add the `consul.hashicorp.com/transparent-proxy-overwrite-probes` Kubernetes annotation to your pod configuration to overwrite health probes.
 
-Refer to [Kubernetes Health Checks in Consul on Kubernetes](/consul/docs/k8s/connect/health) for additional information.
+Refer to [Kubernetes Health Checks in Consul on Kubernetes](/consul/docs/register/health-check/k8s) for additional information.
 
 ## Dial services across Kubernetes cluster
 

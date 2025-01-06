@@ -17,7 +17,7 @@ The following instructions describe how to install the latest version of `consul
 
 <Note>
 
-You must install the correct version of the CLI for your Consul on Kubernetes deployment. To deploy a previous version of Consul on Kubernetes, download the specific version of the CLI that matches the version of the control plane that you would like to deploy. Refer to the [compatibility matrix](/consul/docs/k8s/compatibility) for details.
+You must install the correct version of the CLI for your Consul on Kubernetes deployment. To deploy a previous version of Consul on Kubernetes, download the specific version of the CLI that matches the version of the control plane that you would like to deploy. Refer to the [compatibility matrix](/consul/docs/upgrade/k8s/compatibility) for details.
 
 </Note>
 
@@ -110,7 +110,7 @@ The [Homebrew](https://brew.sh) package manager is required to complete the foll
 
 ### Install a previous version
 
-Complete the following instructions to install a specific version of the CLI so that your tool is compatible with your Consul on Kubernetes control plane. Refer to the [compatibility matrix](/consul/docs/k8s/compatibility) for additional information.
+Complete the following instructions to install a specific version of the CLI so that your tool is compatible with your Consul on Kubernetes control plane. Refer to the [compatibility matrix](/consul/docs/upgrade/k8s/compatibility) for additional information.
 
 <Tabs>
 
@@ -365,7 +365,7 @@ This command lists proxies and their `Type`. Types of proxies include:
 - `API Gateway`: These pods run a proxy to manage connections with networks
   outside of the Consul cluster. Read more about [API gateways](/consul/docs/api-gateway).
 - `Ingress Gateway`: These pods run a proxy to manage ingress into the
-  Kubernetes cluster. Read more about [ingress gateways](/consul/docs/k8s/connect/ingress-gateways).
+  Kubernetes cluster. Read more about [ingress gateways](/consul/docs/north-south/ingress-gateway/k8s).
 - `Terminating Gateway`: These pods run a proxy to control connections to
   external services. Read more about [terminating gateways](/consul/docs/register/external/terminating-gateway/k8s).
 - `Mesh Gateway`: These pods run a proxy to manage connections between

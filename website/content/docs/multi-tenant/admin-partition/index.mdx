@@ -51,21 +51,21 @@ the lookup uses the admin partition of the Consul agent that received the query.
 Server agents always exist within the `default` admin partition.
 Client agents are configured to operate within a specific admin partition.
 
-By default, Consul on Kubernetes uses [Consul dataplanes](/consul/docs/connect/dataplane) instead of client agents to manage communication between service instances. But to use the Consul DNS for service discovery, you must start a Consul client in client admin partitions.
+By default, Consul on Kubernetes uses [Consul dataplanes](/consul/docs/architecture/control-plane/dataplane) instead of client agents to manage communication between service instances. But to use the Consul DNS for service discovery, you must start a Consul client in client admin partitions.
 
 ### Service Mesh Configurations
 
-The partition in which [`proxy-defaults`](/consul/docs/connect/config-entries/proxy-defaults) and [`mesh`](/consul/docs/connect/config-entries/mesh) configurations are created define the scope of the configurations. Services registered in a partition will use the `proxy-defaults` and `mesh` configurations that have been created in the partition.
+The partition in which [`proxy-defaults`](/consul/docs/reference/config-entry/proxy-defaults) and [`mesh`](/consul/docs/reference/config-entry/mesh) configurations are created define the scope of the configurations. Services registered in a partition will use the `proxy-defaults` and `mesh` configurations that have been created in the partition.
 
 ### Cross-partition Networking
 
-You can configure services to be discoverable by downstream services in any partition within the datacenter. Specify the upstream services that you want to be available for discovery by configuring the `exported-services` configuration entry in the partition where the services are registered. Refer to the [`exported-services` documentation](/consul/docs/connect/config-entries/exported-services) for details. Additionally, the requests made by downstream applications must have the correct DNS name for the Virtual IP Service lookup to occur. Service Virtual IP lookups allow for communications across Admin Partitions when using Transparent Proxy. Refer to the [Service Virtual IP Lookups for Consul Enterprise](/consul/docs/services/discovery/dns-static-lookups#service-virtual-ip-lookups-for-consul-enterprise) for additional information.
+You can configure services to be discoverable by downstream services in any partition within the datacenter. Specify the upstream services that you want to be available for discovery by configuring the `exported-services` configuration entry in the partition where the services are registered. Refer to the [`exported-services` documentation](/consul/docs/reference/config-entry/exported-services) for details. Additionally, the requests made by downstream applications must have the correct DNS name for the Virtual IP Service lookup to occur. Service Virtual IP lookups allow for communications across Admin Partitions when using Transparent Proxy. Refer to the [Service Virtual IP Lookups for Consul Enterprise](/consul/docs/services/discovery/dns-static-lookups#service-virtual-ip-lookups-for-consul-enterprise) for additional information.
 
 -> **Export mesh gateway **: When ACL is enabled in Consul-k8s and `meshgateway.mode` is set to `local`, the `mesh-gateway` service must be exported to their consumers for cross-partition traffic.
 
 ### Cluster Peering
 
-You can use [cluster peering](/consul/docs/connect/cluster-peering/) between two admin partitions to connect clusters owned by different operators. Without Consul Enterprise, cluster peering is limited to the `default` partitions in each datacenter. Enterprise users can [establish cluster peering connections](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering) between any two admin partitions as long as the partitions are in separate datacenters. It is not possible to establish cluster peering connections between two partitions in a single datacenter.
+You can use [cluster peering](/consul/docs/connect/cluster-peering/) between two admin partitions to connect clusters owned by different operators. Without Consul Enterprise, cluster peering is limited to the `default` partitions in each datacenter. Enterprise users can [establish cluster peering connections](/consul/docs/east-west/cluster-peering/establish/vm) between any two admin partitions as long as the partitions are in separate datacenters. It is not possible to establish cluster peering connections between two partitions in a single datacenter.
 
 ## Known Limitations
 

@@ -32,7 +32,7 @@ external service monitoring, and is not intended for production use.
 
 For this tutorial, you will deploy a Consul agent running locally in `-dev` mode
 with the Consul `-ui` enabled. You'll use the
-[`-enable-script-checks`](/consul/docs/agent/config/config-files#_enable_script_checks)
+[`-enable-script-checks`](/consul/docs/reference/agent/configuration-file#_enable_script_checks)
 flag to allow simple ping-based health checks, and will specify a node name of
 `web` rather than the default of `hostname` to make the examples clearer.
 
@@ -45,20 +45,20 @@ $ consul agent -dev -enable-script-checks -node=web -ui
 Throughout the tutorial, you will use `curl` to interact with Consul's [HTTP API](/consul/api-docs/)
 as well as Consul's Web UI, available at http://localhost:8500/ui.
 
-~> **Security Warning**: Because [`-enable-script-checks`](/consul/docs/agent/config/config-files#_enable_script_checks)
+~> **Security Warning**: Because [`-enable-script-checks`](/consul/docs/reference/agent/configuration-file#_enable_script_checks)
 allows script checks to be registered via HTTP API, it may introduce a
 [remote execution vulnerability](https://www.hashicorp.com/blog/protecting-consul-from-rce-risk-in-specific-configurations)
 known to be targeted by malware. For production environments, we strongly recommend using
-[`-enable-local-script-checks`](/consul/docs/agent/config/config-files#_enable_local_script_checks)
+[`-enable-local-script-checks`](/consul/docs/reference/agent/configuration-file#_enable_local_script_checks)
 instead, which removes that vulnerability by allowing script checks to only be
-defined in the Consul agent's [local configuration files](/consul/docs/agent/config/config-files#_config_dir),
+defined in the Consul agent's [local configuration files](/consul/docs/reference/agent/configuration-file#_config_dir),
 not via HTTP API.
 
 ## Register an internal service with a health check
 
 First you will register an internal service. Internal services run on the same
 node (machine) as a Consul agent. You register internal services via
-[service definitions](/consul/docs/services/configuration/services-configuration-overview),
+[service definitions](/consul/docs/fundamentals/configuration/service),
 which you supply in configuration files that Consul loads from the Consul
 agent's data directory, either when the Consul agent starts, or after the agent
 has started via the local HTTP API endpoint at
@@ -92,7 +92,7 @@ port `80` and have one health check.
 The health check verifies that the web service can connect to the public
 internet by pinging hashicorp.com every 30 seconds. In the case of an actual web
 service, you should configure a more useful health check. Consul provides
-several kinds of [health checks](/consul/docs/services/usage/checks),
+several kinds of [health checks](/consul/docs/register/health-check/vm),
 including: Script, HTTP, TCP, Time to Live (TTL), Docker, and gPRC.
 
 Register the example web service by calling the HTTP API with a PUT request:
@@ -201,7 +201,7 @@ is slightly different than for an internal service registered via an agent:
   health check.
 
 - The `Definition` field can be provided with details for a TCP or HTTP health
-  check. For more information, check the [Health Checks](/consul/docs/services/usage/checks)
+  check. For more information, check the [Health Checks](/consul/docs/register/health-check/vm)
   documentation.
 
 To understand how external service registration works, register an external
@@ -427,4 +427,4 @@ In this tutorial, you registered both internal and external services with heath
 checks, using the Consul ESM to monitor health of the external service. Consul
 provides several kinds of health checks including: Script , HTTP, TCP, Time to
 Live (TTL), Docker, and gPRC. To learn more about health check options in
-Consul, please visit the [health check documentation](/consul/docs/services/usage/checks).
+Consul, please visit the [health check documentation](/consul/docs/register/health-check/vm).

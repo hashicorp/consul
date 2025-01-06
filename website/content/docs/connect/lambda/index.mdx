@@ -13,7 +13,7 @@ You can configure Consul to allow services in your mesh to invoke Lambda functio
 
 The first step is to register your Lambda functions into Consul. We recommend using the [Lambda registrator module](https://github.com/hashicorp/terraform-aws-consul-lambda/tree/main/modules/lambda-registrator) to automatically synchronize Lambda functions into Consul. You can also manually register Lambda functions into Consul if you are unable to use the Lambda registrator.
 
-Refer to [Lambda Function Registration Requirements](/consul/docs/lambda/registration) for additional information about registering Lambda functions into Consul.
+Refer to [Lambda Function Registration Requirements](/consul/docs/register/service/lambda) for additional information about registering Lambda functions into Consul.
 
 ## Invoke Lambda functions from Consul service mesh
 
@@ -33,7 +33,7 @@ You can also add the `consul-lambda-extension` plugin as a layer in your Lambda 
 
 ![Invoke mesh service from Lambda function](/img/invoke-service-from-lambda-flow.svg)
 
-Refer to [Invoke Services from Lambda Functions](/consul/docs/lambda/invoke-from-lambda) for additional information about registering Lambda functions into Consul.
+Refer to [Invoke Services from Lambda Functions](/consul/docs/connect/lambda-service) for additional information about registering Lambda functions into Consul.
 
 Consul mesh gateways are required to send requests from Lambda functions to mesh services. Refer to [Mesh Gateways](/consul/docs/east-west/mesh-gateway/) for additional information.
 

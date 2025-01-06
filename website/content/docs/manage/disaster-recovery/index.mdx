@@ -31,13 +31,13 @@ For Consul clusters deployed to HashiCorp Cloud Platform (HCP), the recommended 
 
 ## Backup Management
 
-- Snapshots should be taken on a regular basis. They can be automated through the use of scripting, 3rd party tools, or the [automated backups](/consul/docs/enterprise/backups) feature of Consul Enterprise. 
+- Snapshots should be taken on a regular basis. They can be automated through the use of scripting, 3rd party tools, or the [automated backups](/consul/docs/manage/automated-backup) feature of Consul Enterprise. 
 
 - How frequently snapshots are taken should align with the RTO and RPO set forth within each customer’s disaster recovery policies. 
 
 <Note>
 
- Consul Enterprise offers the native ability to automatically back up Consul state to cloud storage (e.g. AWS S3, Azure Blob, etc.), via [automated backups](/consul/docs/enterprise/backups). 
+ Consul Enterprise offers the native ability to automatically back up Consul state to cloud storage (e.g. AWS S3, Azure Blob, etc.), via [automated backups](/consul/docs/manage/automated-backup). 
 
 </Note>
 
@@ -51,9 +51,9 @@ For Consul clusters deployed to HashiCorp Cloud Platform (HCP), the recommended 
 
 - When you restore a snapshot to a new Consul cluster, Note the following behavior: 
 
-  - If [token persistence](/consul/docs/agent/config/config-files) was enabled on client agents **prior** to performing a snapshot restore, then the client agents will continue to function after the restore.
+  - If [token persistence](/consul/docs/reference/agent/configuration-file) was enabled on client agents **prior** to performing a snapshot restore, then the client agents will continue to function after the restore.
 
-  - If the ACL token is specified directly in the [client agent configuration](/consul/docs/agent/config/config-files) **prior** to performing a snapshot restore, then the client agents will continue to function after the restore.
+  - If the ACL token is specified directly in the [client agent configuration](/consul/docs/reference/agent/configuration-file) **prior** to performing a snapshot restore, then the client agents will continue to function after the restore.
 
   - If neither of the above options were configured **prior** to a snapshot restore, then client agents will not function after the restore as they will not have permissions to register with the new Consul cluster.
 
@@ -92,7 +92,7 @@ In the event of a total region failure, Consul and your services are likely down
 
 ## Service failure
 
-To architect against outages caused by disasters that impact services registered with Consul, use [cluster peering failover with sameness groups](/consul/docs/connect/cluster-peering/usage/create-sameness-groups). With this setup, Consul can transparently failover requests to an unhealthy service to the same service in a different region and datacenter.
+To architect against outages caused by disasters that impact services registered with Consul, use [cluster peering failover with sameness groups](/consul/docs/multi-tenant/sameness-group/vm). With this setup, Consul can transparently failover requests to an unhealthy service to the same service in a different region and datacenter.
 
 ## Multi-cluster disaster recovery
 

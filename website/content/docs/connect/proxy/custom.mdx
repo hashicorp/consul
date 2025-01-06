@@ -119,7 +119,7 @@ If you are only implementing L4 support in your proxy, set the [`OverrideProtoco
 
 For each [target](/consul/docs/connect/manage-traffic/discovery-chain#targets) in the resulting discovery chain, a list of healthy, mesh-capable endpoints may be fetched from the [`/v1/health/connect/:service_id`] API endpoint as described in the [Service Discovery](#service-discovery) section.
 
-The remaining nodes in the chain include configurations that should be translated into the nearest equivalent for features, such as HTTP routing, connection timeouts, connection pool settings, rate limits, etc. See the full [discovery chain] documentation and relevant [config entry](/consul/docs/agent/config-entries) documentation for details about supported configuration parameters.
+The remaining nodes in the chain include configurations that should be translated into the nearest equivalent for features, such as HTTP routing, connection timeouts, connection pool settings, rate limits, etc. See the full [discovery chain] documentation and relevant [config entry](/consul/docs/fundamentals/config-entry) documentation for details about supported configuration parameters.
 
 ### Service Discovery
 

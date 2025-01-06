@@ -22,7 +22,7 @@ to fine-tune these trade-offs for their own use case at two levels:
 Consul servers are responsible for maintaining state information like the registration and
 health status of services and nodes. To protect this state against the potential failure of
 Consul servers, this state is replicated across three or more Consul servers in production using a
-[consensus protocol](/consul/docs/architecture/consensus).
+[consensus protocol](/consul/docs/concept/consensus).
 
 One Consul server is elected leader and acts as the ultimate authority on Consul's state.
 If a majority of Consul servers agree to a state change, the leader is responsible for recording
@@ -74,8 +74,8 @@ Each HTTP API endpoint documents its support for the three read consistency mode
 ~> **Scaling read requests**: The most effective way to increase read scalability
 is to convert non-`stale` reads to `stale` reads. If most requests are already
 `stale` reads and additional load reduction is desired, use Consul Enterprise
-[redundancy zones](/consul/docs/enterprise/redundancy) or
-[read replicas](/consul/docs/enterprise/read-scale)
+[redundancy zones](/consul/docs/manage/redundancy-zone) or
+[read replicas](/consul/docs/manage/read-replica)
 to spread `stale` reads across additional, _non-voting_ Consul servers.
 Non-voting servers enhance read scalability without increasing the number
 of voting servers; adding more then 5 voting servers is not recommended because
@@ -111,7 +111,7 @@ When making a request across federated Consul datacenters, requests are forwarde
 a local server to any remote server. Once in the remote datacenter, the request path
 is the same as a [local request with the same consistency mode](#intra-datacenter-request-behavior).
 The following diagrams show the cross-datacenter request paths when Consul servers in datacenters are
-[federated either directly or via mesh gateways](/consul/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways).
+[federated either directly or via mesh gateways](/consul/docs/east-west/mesh-gateway/enable).
 
 <Tabs>
 <Tab heading="Traditional WAN federation">
@@ -131,7 +131,7 @@ The following diagrams show the cross-datacenter request paths when Consul serve
 
 ### Consul DNS Queries
 
-When DNS queries are issued to [Consul's DNS interface](/consul/docs/services/discovery/dns-overview),
+When DNS queries are issued to [Consul's DNS interface](/consul/docs/discover/dns),
 Consul uses the `stale` consistency mode by default when interfacing with its
 underlying Consul service discovery HTTP APIs
 ([Catalog](/consul/api-docs/catalog), [Health](/consul/api-docs/health), and [Prepared Query](/consul/api-docs/query)).
@@ -273,6 +273,6 @@ semantics as `stale` consistency mode but different trade offs. This behavior is
 [agent caching feature documentation](/consul/api-docs/features/caching)
 
 <!-- Common links references -->
-[`dns_config.allow_stale`]: /consul/docs/agent/config/config-files#allow_stale
-[`dns_config.max_stale`]: /consul/docs/agent/config/config-files#max_stale
-[`discovery_max_stale`]: /consul/docs/agent/config/config-files#discovery_max_stale
+[`dns_config.allow_stale`]: /consul/docs/reference/agent/configuration-file#allow_stale
+[`dns_config.max_stale`]: /consul/docs/reference/agent/configuration-file#max_stale
+[`discovery_max_stale`]: /consul/docs/reference/agent/configuration-file#discovery_max_stale

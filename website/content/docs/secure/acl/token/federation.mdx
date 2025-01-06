@@ -89,7 +89,7 @@ Complete this process on all server agents. If you are configuring ACLs for the 
 
 ## Create the replication token
 
-You must configure servers in secondary datacenters to point to the primary datacenter. You need to provide the ACL replication token to the secondary datacenters. Replication tokens are required to replicate ACL tokens and to create [configuration entries](/consul/docs/agent/config-entries) and [auth methods](/consul/docs/secure-consul/acl/auth-methods) in connected secondary datacenters.
+You must configure servers in secondary datacenters to point to the primary datacenter. You need to provide the ACL replication token to the secondary datacenters. Replication tokens are required to replicate ACL tokens and to create [configuration entries](/consul/docs/fundamentals/config-entry) and [auth methods](/consul/docs/secure-consul/acl/auth-methods) in connected secondary datacenters.
 
 Replication tokens require the following permissions:
 
@@ -224,7 +224,7 @@ When enabling ACL token replication in secondary datacenters, global tokens pres
 
 </Warning>
 
-If you are using [Consul Enterprise](/consul/docs/enterprise) and the [admin partitions](/consul/docs/enterprise/admin-partitions), only ACL tokens in the default partition are replicated to other datacenters.
+If you are using [Consul Enterprise](/consul/docs/enterprise) and the [admin partitions](/consul/docs/multi-tenant/admin-partition), only ACL tokens in the default partition are replicated to other datacenters.
 
 ## Apply the replication token to Consul servers
 

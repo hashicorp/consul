@@ -14,8 +14,8 @@ Consul service mesh automates service-to-service authorization and encryption ac
 Consul service mesh is enabled by default when you install Consul on Kubernetes using the Consul Helm chart. Consul also automatically injects sidecars into the pods in your clusters that run Envoy. These sidecar proxies,  called Consul dataplanes, are enabled when `connectInject.default` is set to `false` in the Helm chart. Refer to the following documentation for additional information about these concepts:
 
 - [Installation and Configuration](#installation-and-configuration) in this topic
-- [Consul Helm chart reference](/consul/docs/k8s/helm)
-- [Simplified Service Mesh with Consul Dataplane](/consul/docs/connect/dataplane)
+- [Consul Helm chart reference](/consul/docs/reference/k8s/helm)
+- [Simplified Service Mesh with Consul Dataplane](/consul/docs/architecture/control-plane/dataplane)
 
 If `connectInject.default` is set to `false` or you want to explicitly enable service mesh sidecar proxy injection for a specific deployment, add the `consul.hashicorp.com/connect-inject` annotation to the pod specification template and set it to `true` when connecting services to the mesh.
 
@@ -27,7 +27,7 @@ When the service is onboarded, the name registered in Consul is set to the name 
 
 By default, the Consul service mesh runs in transparent proxy mode. This mode forces inbound and outbound traffic through the sidecar proxy even though the service binds to all interfaces. Transparent proxy infers the location of upstream services using Consul service intentions, and also allows you to use Kubernetes DNS as you normally would for your workloads.
 
-When transparent proxy mode is enabled, all service-to-service traffic is required to use mTLS. When onboarding new services to service mesh, your network may have mixed mTLS and non-mTLS traffic, which can result in broken service-to-service communication. You can temporarily enable permissive mTLS mode during the onboarding process so that existing mesh services can accept traffic from services that are not yet fully onboarded. Permissive mTLS enables sidecar proxies to access both mTLS and non-mTLS traffic. Refer to [Onboard mesh services in transparent proxy mode](/consul/docs/k8s/connect/onboarding-tproxy-mode) for additional information.
+When transparent proxy mode is enabled, all service-to-service traffic is required to use mTLS. When onboarding new services to service mesh, your network may have mixed mTLS and non-mTLS traffic, which can result in broken service-to-service communication. You can temporarily enable permissive mTLS mode during the onboarding process so that existing mesh services can accept traffic from services that are not yet fully onboarded. Permissive mTLS enables sidecar proxies to access both mTLS and non-mTLS traffic. Refer to [Onboard mesh services in transparent proxy mode](/consul/docs/register/service/k8s/transparent-proxy) for additional information.
 
 ### Kubernetes service mesh workload scenarios
 
@@ -157,7 +157,7 @@ spec:
 By default when ACLs are enabled or when ACLs default policy is `allow`,
 Consul will automatically configure proxies with all upstreams from the same datacenter.
 When ACLs are enabled with default `deny` policy,
-you must supply an [intention](/consul/docs/connect/intentions) to tell Consul which upstream you need to talk to.
+you must supply an [intention](/consul/docs/secure-mesh/intention) to tell Consul which upstream you need to talk to.
 
 When upstreams are specified explicitly with the
 [`consul.hashicorp.com/connect-service-upstreams` annotation](/consul/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams),
@@ -177,7 +177,7 @@ $ kubectl exec deploy/static-client -- curl --silent http://static-server/
 "hello world"
 ```
 
-You can control access to the server using [intentions](/consul/docs/connect/intentions).
+You can control access to the server using [intentions](/consul/docs/secure-mesh/intention).
 If you use the Consul UI or [CLI](/consul/commands/intention/create) to
 deny communication between
 "static-client" and "static-server", connections are immediately rejected
@@ -522,10 +522,10 @@ call the connect injector provided by the
 [consul-k8s project](https://github.com/hashicorp/consul-k8s).
 This enables the automatic pod mutation shown in the usage section above.
 Installation of the mutating admission webhook is automated using the
-[Helm chart](/consul/docs/k8s/installation/install).
+[Helm chart](/consul/docs/deploy/server/k8s/helm).
 
 To install the connect injector, enable the connect injection feature using
-[Helm values](/consul/docs/k8s/helm#configuration-values) and
+[Helm values](/consul/docs/reference/k8s/helm#configuration-values) and
 upgrade the installation using `helm upgrade` for existing installs or
 `helm install` for a fresh install.
 
@@ -686,7 +686,7 @@ There are three options available:
 
 When [transparent proxy](/consul/docs/connect/transparent-proxy) is enabled and ACLs are disabled,
 the upstreams will be configured automatically across Consul namespaces.
-When ACLs are enabled, you must configure it by specifying an [intention](/consul/docs/connect/intentions),
+When ACLs are enabled, you must configure it by specifying an [intention](/consul/docs/secure-mesh/intention),
 allowing services across Consul namespaces to talk to each other.
 
 If you wish to specify an upstream explicitly via the `consul.hashicorp.com/connect-service-upstreams` annotation,

@@ -8,9 +8,9 @@ description: >-
 # Inline certificate configuration entry reference
 
 This topic provides reference information for the inline certificate
-configuration entry. The inline certificate secures TLS for the Consul API gateway on VMs. In production environments, we recommend you use the more secure [file system certificate configuration entry](/consul/docs/connect/config-entries/file-system-certificate) instead.
+configuration entry. The inline certificate secures TLS for the Consul API gateway on VMs. In production environments, we recommend you use the more secure [file system certificate configuration entry](/consul/docs/reference/config-entry/file-system-certificate) instead.
 
-The inline certificate configuration entry is not used for Consul on Kubernetes deployments. To learn about configuring certificates for Kubernetes environments, refer to [Gateway Resource Configuration](/consul/docs/connect/gateways/api-gateway/configuration/gateway).
+The inline certificate configuration entry is not used for Consul on Kubernetes deployments. To learn about configuring certificates for Kubernetes environments, refer to [Gateway Resource Configuration](/consul/docs/reference/k8s/api-gateway/gateway).
 
 ## Configuration model
 
@@ -91,7 +91,7 @@ as applying a configuration entry to a specific cluster.
 
 ### `Namespace` <EnterpriseAlert inline />
 
-Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) to apply to the configuration entry.
+Specifies the Enterprise [namespace](/consul/docs/multi-tenant/namespace) to apply to the configuration entry.
 
 #### Values
 
@@ -100,7 +100,7 @@ Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) to appl
 
 ### `Partition` <EnterpriseAlert inline />
 
-Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partitions) to apply to the configuration entry.
+Specifies the Enterprise [admin partition](/consul/docs/multi-tenant/admin-partition) to apply to the configuration entry.
 
 #### Values
 

@@ -63,7 +63,7 @@ $ curl --silent --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" http://127.0.0.1:8
 
 ## Kubernetes storage requirements
 
-When you set up persistent volumes (PV) resources, you should define the correct server storage class parameter because the defaults are likely insufficient in performance. To set the [storageClass Helm chart parameter](/consul/docs/k8s/helm#v-server-storageclass), refer to the [Kubernetes documentation on storageClasses](https://kubernetes.io/docs/concepts/storage/storage-classes/) for more information about your specific cloud provider.
+When you set up persistent volumes (PV) resources, you should define the correct server storage class parameter because the defaults are likely insufficient in performance. To set the [storageClass Helm chart parameter](/consul/docs/reference/k8s/helm#v-server-storageclass), refer to the [Kubernetes documentation on storageClasses](https://kubernetes.io/docs/concepts/storage/storage-classes/) for more information about your specific cloud provider.
 
 ## Read and write heavy workload recommendations
 
@@ -71,8 +71,8 @@ In production, your use case may lead to Consul performing read-heavy workloads,
 
 | Workload type | Instance Recommendations | Workload element examples |  Enterprise Feature Recommendations |
 | ------------- | ------------------------- | ------------------------ | ------------------------ |
-| Read-heavy    | Instances of type `m5.4xlarge (AWS)`, `Standard_D16s_v3 (Azure)`, `n2-standard-16 (GCP)` | Raft RPCs calls, DNS queries, key/value retrieval | [Read replicas](/consul/docs/enterprise/read-scale) |
-| Write-heavy   | IOPS performance of `10 000+` | Consul agent joins and leaves, services registration and deregistration, key/value writes | [Network segments](/consul/docs/enterprise/network-segments/network-segments-overview) |
+| Read-heavy    | Instances of type `m5.4xlarge (AWS)`, `Standard_D16s_v3 (Azure)`, `n2-standard-16 (GCP)` | Raft RPCs calls, DNS queries, key/value retrieval | [Read replicas](/consul/docs/manage/read-replica) |
+| Write-heavy   | IOPS performance of `10 000+` | Consul agent joins and leaves, services registration and deregistration, key/value writes | [Network segments](/consul/docs/multi-tenant/network-segment) |
 
 For recommendations on troubleshooting issues with read-heavy or write-heavy workloads, refer to [Consul at Scale](/consul/docs/architecture/scale#resource-usage-and-metrics-recommendations).
 
@@ -137,9 +137,9 @@ The recommended maximum size for a single datacenter is 5,000 Consul client agen
 If you require more than 5,000 client agents, you should break up the single Consul datacenter into multiple smaller datacenters. 
 
 - When the nodes are spread across separate physical locations such as different regions, you can model multiple datacenter structures based on physical locations.
-- Use [network segments](/consul/docs/enterprise/network-segments/network-segments-overview) in a single available zone or region to lower overall resource usage in a single datacenter.
+- Use [network segments](/consul/docs/multi-tenant/network-segment) in a single available zone or region to lower overall resource usage in a single datacenter.
 
-When deploying [Consul in Kubernetes](/consul/docs/k8s), we recommend you set both _requests_ and  _limits_ in the Helm chart. Refer to the [Helm chart documentation](/consul/docs/k8s/helm#v-server-resources) for more information.
+When deploying [Consul in Kubernetes](/consul/docs/k8s), we recommend you set both _requests_ and  _limits_ in the Helm chart. Refer to the [Helm chart documentation](/consul/docs/reference/k8s/helm#v-server-resources) for more information.
 
 - Requests allocate the required resources for your Consul workloads.
 - Limits prevent your pods from being terminated and restarted if they consume more resources than requested and Kubernetes needs to reclaim these resources. Limits can prevent outage situations where the Consul leader's container gets terminated and redeployed due to resource constraints.
@@ -165,8 +165,8 @@ resources:
 
 ### Raft tuning
 
-Consul uses the [Raft consensus algorithm](/consul/docs/architecture/consensus) to provide consistency.
-You may need to adjust Raft to suit your specific environment. Adjust the [`raft_multiplier` configuration](/consul/docs/agent/config/config-files#raft_multiplier) to define the trade-off between leader stability and time to recover from a leader failure.
+Consul uses the [Raft consensus algorithm](/consul/docs/concept/consensus) to provide consistency.
+You may need to adjust Raft to suit your specific environment. Adjust the [`raft_multiplier` configuration](/consul/docs/reference/agent/configuration-file#raft_multiplier) to define the trade-off between leader stability and time to recover from a leader failure.
 
 - A lower multiplier minimizes failure detection and election time, but it may trigger frequently in high latency situations.
 - A higher multiplier reduces the chances that failures cause leadership churn, but your cluster takes longer to detect real failures and restore availability.

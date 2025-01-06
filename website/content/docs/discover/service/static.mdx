@@ -75,7 +75,7 @@ consul.     0 IN  SOA ns.consul. postmaster.consul. 1392836399 3600 600 86400 0
 
 ### Node lookups for Consul Enterprise
 
-Consul Enterprise includes the admin partition concept, which is an abstraction that lets you define isolated administrative network areas. Refer to [Admin partitions](/consul/docs/enterprise/admin-partitions) for additional information.
+Consul Enterprise includes the admin partition concept, which is an abstraction that lets you define isolated administrative network areas. Refer to [Admin partitions](/consul/docs/multi-tenant/admin-partition) for additional information.
 
 Consul nodes reside in admin partitions within a datacenter. By default, node lookups query the same partition and datacenter of the Consul agent that received the DNS query.
 
@@ -109,7 +109,7 @@ To perform standard service lookups, specify tags, the name of the service, data
 
 - The `datacenter` subdomain is optional. By default, Consul interrogates the querying agent's datacenter.
 
-- The `cluster-peer` name is optional, and specifies the [cluster peer](/consul/docs/connect/cluster-peering) whose [exported services](/consul/docs/connect/config-entries/exported-services) should be the target of the query.
+- The `cluster-peer` name is optional, and specifies the [cluster peer](/consul/docs/east-west/cluster-peering) whose [exported services](/consul/docs/reference/config-entry/exported-services) should be the target of the query.
 
 - The `sameness-group` name is optional, and specifies the [sameness group](/consul/docs/east-west/cluster-peering/usage/create-sameness-groups) that should be the target of the query. When Consul receives a DNS request for a service that is tied to a sameness group, it returns service instances from the first healthy member of the sameness group. If the local partition is a member of a sameness group, its service instances take precedence over the members of its sameness group. Optionally, you can include a namespace or admin partition when performing a lookup on a sameness group. Refer to [Service lookups for Consul Enterprise](#service-lookups-for-consul-enterprise) for more information.
 

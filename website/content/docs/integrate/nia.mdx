@@ -11,7 +11,7 @@ HashiCorp's Network Infrastructure Automation (NIA) Integration Program allows p
 
 ## Network Infrastructure Automation
 
-Network Infrastructure Automation (NIA) relies on a declarative, workflow and service driven network automation architecture. NIA is carried out by [`Consul-Terraform-Sync`](/consul/docs/nia) which leverages Terraform as the underlying automation tool and utilizes the Terraform provider ecosystem to drive relevant change to the network infrastructure. This usage of the Terraform provider in conjunction with Consul-Terraform-Sync allows for HashiCorp Consul to act as the core data source where it is updated with the state of the infrastructure.
+Network Infrastructure Automation (NIA) relies on a declarative, workflow and service driven network automation architecture. NIA is carried out by [`Consul-Terraform-Sync`](/consul/docs/automate/infrastructure) which leverages Terraform as the underlying automation tool and utilizes the Terraform provider ecosystem to drive relevant change to the network infrastructure. This usage of the Terraform provider in conjunction with Consul-Terraform-Sync allows for HashiCorp Consul to act as the core data source where it is updated with the state of the infrastructure.
 
 Consul-Terraform-Sync executes one or more automation tasks with an appropriate value of service variables based on updates from the Consul service catalog. Each task consists of a runbook automation written as a compatible Terraform module using resources and data sources for the underlying network infrastructure. The Consul-Terraform-Sync daemon runs on the same node as a Consul agent.
 
@@ -43,7 +43,7 @@ Please begin by providing the following details: [NIA Integration Program](https
 Consul-Terraform-Sync compatible Terraform module development process is fairly straightforward and simple when technology partners have experience with building Terraform configuration files. Adopting Terraform best practices helps expedite the review and release cycles.
 
 - Consul [documentation](/consul/docs)
-- Consul-Terraform-Sync [documentation](/consul/docs/nia)
+- Consul-Terraform-Sync [documentation](/consul/docs/automate/infrastructure)
 - Writing Consul-Terraform-Sync compatible Terraform modules using our [guide](/consul/docs/reference/cts/terraform-module) and [tutorial](/consul/tutorials/network-infrastructure-automation/consul-terraform-sync-module?utm_source=docs)
 - Example Terraform Modules for reference: [PAN-OS](https://registry.terraform.io/modules/PaloAltoNetworks/dag-nia/panos/latest), [Simple Print Module](https://registry.terraform.io/modules/findkim/print/cts/latest) and a [Template to structure your Terraform Modules](https://github.com/hashicorp/consul-terraform-sync-template-module)
 - Publishing to the Terraform Registry [guidelines](/terraform/registry/modules/publish)

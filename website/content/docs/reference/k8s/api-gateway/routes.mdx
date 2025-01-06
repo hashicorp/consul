@@ -113,7 +113,7 @@ Refer to [Example cross-namespace backendRef](#example-cross-namespace-backendre
 
 ### `rules.filters`
 
-The `filters` block defines steps for processing requests. You can configure filters to modify the properties of matching incoming requests and enable Consul API Gateway features, such as rewriting path prefixes (refer to [Reroute HTTP requests](/consul/docs/connect/gateways/api-gateway/define-routes/reroute-http-requests) for additional information).
+The `filters` block defines steps for processing requests. You can configure filters to modify the properties of matching incoming requests and enable Consul API Gateway features, such as rewriting path prefixes (refer to [Reroute HTTP requests](/consul/docs/north-south/api-gateway/define-route/k8s/reroute) for additional information).
 
 - Type: Array of objects
 - Required: Optional
@@ -162,7 +162,7 @@ Specifies rules for rewriting the URL of incoming requests when `rules.filters.t
 
 ### `rules.filters.urlRewrite.path`
 
-Specifies a list of objects that determine how Consul API Gateway rewrites URL paths (refer to [Reroute HTTP requests](/consul/docs/connect/gateways/api-gateway/define-routes/reroute-http-requests) for additional information).
+Specifies a list of objects that determine how Consul API Gateway rewrites URL paths (refer to [Reroute HTTP requests](/consul/docs/north-south/api-gateway/define-route/k8s/reroute) for additional information).
 
 The following table describes the parameters for `path`:
 
@@ -180,7 +180,7 @@ You can configure the following parameters:
 | Parameter | Description | Data type | Default |
 | ---       | ---         | ---       | ---     |
 | `group`   | Specifies the resource group.           | String    | None    |
-| `kind`    | Specifies the type of extension reference. You can specify the following types: <ul><li>`RouteAuthFilter`: Contains JWT verification settings. Refer to [Use JWTs to verify requests to API gateways on Kubernetes](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-k8s) for additional information.</li><li>`RouteRetryFilter`: Defines retry logic for the route if the request is unsuccessful. Refer to [RouteRetryFilter configuration reference](/consul/docs/reference/k8s/api-gateway/routeretryfilter) for additional information.</li><li>`RouteTimeoutFilter`: Specifies timeout settings for specific routes. Refer to [RouteTimeoutFilter configuration reference](/consul/docs/reference/k8s/api-gateway/routetimeoutfilter) for additional information. </li> </ul> | String | None |
+| `kind`    | Specifies the type of extension reference. You can specify the following types: <ul><li>`RouteAuthFilter`: Contains JWT verification settings. Refer to [Use JWTs to verify requests to API gateways on Kubernetes](/consul/docs/north-south/api-gateway/secure-traffic/jwt/k8s) for additional information.</li><li>`RouteRetryFilter`: Defines retry logic for the route if the request is unsuccessful. Refer to [RouteRetryFilter configuration reference](/consul/docs/reference/k8s/api-gateway/routeretryfilter) for additional information.</li><li>`RouteTimeoutFilter`: Specifies timeout settings for specific routes. Refer to [RouteTimeoutFilter configuration reference](/consul/docs/reference/k8s/api-gateway/routetimeoutfilter) for additional information. </li> </ul> | String | None |
 | `name` | Specifies the name of the filter to attach to the route. | String | None |
 
 ### `rules.matches`
@@ -240,7 +240,7 @@ Specifies a list of strings that define matches based on HTTP request method. Yo
 
 Refer to the following Consul and Kubernetes Gateway API documentation for additional information:
 
-- [Define routes on Kubernetes](/consul/docs/connect/gateways/api-gateway/define-routes/routes-k8s)
+- [Define routes on Kubernetes](/consul/docs/north-south/api-gateway/k8s/route)
 - [`HTTPRoute` in Kubernetes documentation](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.HTTPRoute)
 - [`TCPRoute`  in Kubernetes documentation](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.TCPRoute)
 

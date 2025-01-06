@@ -20,7 +20,7 @@ You can establish a failover strategy by configuring sameness group behavior in 
 - Service resolver configuration entry
 - Prepared queries
 
-You can also configure service instances to route to upstreams in the same availability region during a failover. Refer to [Route traffic to local upstreams](/consul/docs/connect/manage-traffic/route-to-local-upstreams) for additional information.
+You can also configure service instances to route to upstreams in the same availability region during a failover. Refer to [Route traffic to local upstreams](/consul/docs/manage-traffic/route-local) for additional information.
 
 ### Failover with a sameness group configuration entry
 
@@ -200,4 +200,4 @@ The following example demonstrates a prepared query that can be referenced with 
 }
 ```
 
-In prepared queries, the sameness group is mutually exclusive with the [`Failover`](/consul/api-docs/query#failover) field because the sameness group includes failover targets based on the sameness group’s members. For more information about using prepared queries, refer to [Enable dynamic DNS queries](/consul/docs/services/discovery/dns-dynamic-lookups).
+In prepared queries, the sameness group is mutually exclusive with the [`Failover`](/consul/api-docs/query#failover) field because the sameness group includes failover targets based on the sameness group’s members. For more information about using prepared queries, refer to [Enable dynamic DNS queries](/consul/docs/discover/service/dynamic).

@@ -294,8 +294,8 @@ spec:
 You can apply your `service-defaults` configuration entry using the [`consul config` command](/consul/commands/config) or by calling the [`/config` API endpoint](/consul/api-docs/config). In Kubernetes environments, apply the `service-defaults` custom resource definitions (CRD) to implement and manage Consul configuration entries.
 
 Refer to the following topics for details about applying configuration entries:
-- [How to Use Configuration Entries](/consul/docs/agent/config-entries)
-- [Custom Resource Definitions for Consul on Kubernetes](/consul/docs/k8s/crds)
+- [How to Use Configuration Entries](/consul/docs/fundamentals/config-entry)
+- [Custom Resource Definitions for Consul on Kubernetes](/consul/docs/fundamentals/config-entry)
 
 ## Define multiple services in a single file
 
@@ -393,7 +393,7 @@ services {
 
 ## Modify anti-entropy synchronization
 
-By default, the Consul agent uses anti-entropy mechanisms to maintain information about services and service health, and synchronize local states with the Consul catalog. You can enable the `enable_tag_override` option in the service configuration, which lets external agents change the tags for a service. This can be useful in situations where an external monitoring service needs to be the source of truth for tag information. Refer [Anti-entropy](/consul/docs/architecture/anti-entropy) for details.
+By default, the Consul agent uses anti-entropy mechanisms to maintain information about services and service health, and synchronize local states with the Consul catalog. You can enable the `enable_tag_override` option in the service configuration, which lets external agents change the tags for a service. This can be useful in situations where an external monitoring service needs to be the source of truth for tag information. Refer [Anti-entropy](/consul/docs/concept/consistency) for details.
 
 Add the `enable_tag_override` option to the `service` block and set the value to `true`:
 

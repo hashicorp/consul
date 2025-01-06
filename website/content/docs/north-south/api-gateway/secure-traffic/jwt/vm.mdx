@@ -6,7 +6,7 @@ description: Learn how to use JSON web tokens (JWT) to verify requests from exte
 
 # Use JWTs to verify requests to API gateways on virtual machines
 
-This topic describes how to use JSON web tokens (JWT) to verify requests to API gateways on virtual machines (VM). If your services are deployed to Kubernetes-orchestrated containers, refer to [Use JWTs to verify requests to API gateways on Kubernetes](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-k8s).
+This topic describes how to use JSON web tokens (JWT) to verify requests to API gateways on virtual machines (VM). If your services are deployed to Kubernetes-orchestrated containers, refer to [Use JWTs to verify requests to API gateways on Kubernetes](/consul/docs/north-south/api-gateway/secure-traffic/jwt/k8s).
 
 <EnterpriseAlert> This feature is available in Consul Enterprise. </EnterpriseAlert>
 
@@ -58,8 +58,8 @@ For more information about the fields you can configure in this CRD, refer to [`
 
 Define default and override settings for JWT verification in the [API gateway configuration entry](/consul/docs/connect/gateways/api-gateway/configuration/api-gateway).
 
-1. Add a `default.JWT` block to the listener that you want to apply JWT verification to. Consul applies these configurations to routes attached to the listener. Refer to the [`Listeners.default.JWT`](/consul/docs/connect/config-entries/api-gateway#listeners-default-jwt) configuration reference for details.
-1. Add an `override.JWT` block to the listener that you want to apply JWT verification policies to. Consul applies these configurations to all routes attached to the listener, regardless of the `default` or route-specific settings. Refer to the [`Listeners.override.JWT`](/consul/docs/connect/config-entries/api-gateway#listeners-override-jwt) configuration reference for details.
+1. Add a `default.JWT` block to the listener that you want to apply JWT verification to. Consul applies these configurations to routes attached to the listener. Refer to the [`Listeners.default.JWT`](/consul/docs/reference/config-entry/api-gateway#listeners-default-jwt) configuration reference for details.
+1. Add an `override.JWT` block to the listener that you want to apply JWT verification policies to. Consul applies these configurations to all routes attached to the listener, regardless of the `default` or route-specific settings. Refer to the [`Listeners.override.JWT`](/consul/docs/reference/config-entry/api-gateway#listeners-override-jwt) configuration reference for details.
 1. Apply the settings in the API gateway configuration entry. You can use the [`/config` API endpoint](/consul/api-docs/config#apply-configuration) or the [`consul config write` command](/consul/commands/config/write).
 
 The following examples configure a Gateway so that every request coming through the listener must meet these conditions:
@@ -108,9 +108,9 @@ Listeners = [
 
 ## Configure verification for specific HTTP routes
 
-Define filters to enable route-specific JWT verification settings in the [HTTP route configuration entry](/consul/docs/connect/config-entries/http-route).
+Define filters to enable route-specific JWT verification settings in the [HTTP route configuration entry](/consul/docs/reference/config-entry/http-route).
 
-1. Add a `JWT` configuration to the `rules.filter` block. Route-specific configurations that overlap the [default settings ](/consul/docs/connect/config-entries/api-gateway#listeners-default-jwt) in the API gateway configuration entry take precedence. Configurations defined in the [listener override settings](/consul/docs/connect/config-entries/api-gateway#listeners-override-jwt) take the highest precedence.
+1. Add a `JWT` configuration to the `rules.filter` block. Route-specific configurations that overlap the [default settings ](/consul/docs/reference/config-entry/api-gateway#listeners-default-jwt) in the API gateway configuration entry take precedence. Configurations defined in the [listener override settings](/consul/docs/reference/config-entry/api-gateway#listeners-override-jwt) take the highest precedence.
 1. Apply the settings in the API gateway configuration entry. You can use the [`/config` API endpoint](/consul/api-docs/config#apply-configuration) or the [`consul config write` command](/consul/commands/config/write).
 
 The following example configures an HTTPRoute so that every request to `api-gateway-fqdn:3002/admin` must meet these conditions:

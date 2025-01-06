@@ -6,7 +6,7 @@ description: Learn how to configure a Consul API gateway on VMs.
 
 # API gateway configuration reference
 
-This topic provides reference information for the API gateway configuration entry that you can deploy to networks in virtual machine (VM) environments. For reference information about configuring Consul API gateways on Kubernetes, refer to [Gateway Resource Configuration](/consul/docs/connect/gateways/api-gateway/configuration/gateway).
+This topic provides reference information for the API gateway configuration entry that you can deploy to networks in virtual machine (VM) environments. For reference information about configuring Consul API gateways on Kubernetes, refer to [Gateway Resource Configuration](/consul/docs/reference/k8s/api-gateway/gateway).
 
 ## Introduction
 
@@ -210,7 +210,7 @@ such as applying a configuration entry to a specific cluster.
 
 ### `Namespace` <EnterpriseAlert inline />
 
-Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) to apply to the configuration entry.
+Specifies the Enterprise [namespace](/consul/docs/multi-tenant/namespace) to apply to the configuration entry.
 
 #### Values
 
@@ -219,7 +219,7 @@ Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) to appl
 
 ### `Partition` <EnterpriseAlert inline />
 
-Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partitions) to apply to the configuration entry.
+Specifies the Enterprise [admin partition](/consul/docs/multi-tenant/admin-partition) to apply to the configuration entry.
 
 #### Values
 
@@ -349,7 +349,7 @@ Specifies a list of cipher suites that the listener supports when negotiating co
 
 ### `Listeners[].TLS.Certificates[]`
 
-The list of references to [file system](/consul/docs/connect/config-entries/file-system-certificate) or [inline certificates](/consul/docs/connect/config-entries/inline-certificate) that the listener uses for TLS termination. You should create the configuration entry for the certificate separately and then reference the configuration entry in the `Name` field.
+The list of references to [file system](/consul/docs/reference/config-entry/file-system-certificate) or [inline certificates](/consul/docs/reference/config-entry/inline-certificate) that the listener uses for TLS termination. You should create the configuration entry for the certificate separately and then reference the configuration entry in the `Name` field.
 
 #### Values
 
@@ -372,7 +372,7 @@ The list of references to certificates that the listener uses for TLS terminatio
 
 ### `Listeners[].TLS.Certificates[].Name`
 
-Specifies the name of the [file system certificate](/consul/docs/connect/config-entries/file-system-certificate) or [inline certificate](/consul/docs/connect/config-entries/inline-certificate) that the listener uses for TLS termination.
+Specifies the name of the [file system certificate](/consul/docs/reference/config-entry/file-system-certificate) or [inline certificate](/consul/docs/reference/config-entry/inline-certificate) that the listener uses for TLS termination.
 
 #### Values
 
@@ -382,7 +382,7 @@ Specifies the name of the [file system certificate](/consul/docs/connect/config-
 
 ### `Listeners[].TLS.Certificates[].Namespace` <EnterpriseAlert inline />
 
-Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) where the certificate can be found.
+Specifies the Enterprise [namespace](/consul/docs/multi-tenant/namespace) where the certificate can be found.
 
 #### Values
 
@@ -391,7 +391,7 @@ Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) where t
 
 ### `Listeners[].TLS.Certificates[].Partition` <EnterpriseAlert inline />
 
-Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partitions) where the certificate can be found.
+Specifies the Enterprise [admin partition](/consul/docs/multi-tenant/admin-partition) where the certificate can be found.
 
 #### Values
 
@@ -400,7 +400,7 @@ Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partiti
 
 ### `Listeners[].default`
 
-Specifies a block of default configurations to apply to the gateway listener. All routes attached to the listener inherit the default configurations. You can specify override configurations that have precedence over default configurations in the [`override` block](#listeners-override) as well as in the `JWT` block in the [HTTP route configuration entry](/consul/docs/connect/config-entries/http-route).
+Specifies a block of default configurations to apply to the gateway listener. All routes attached to the listener inherit the default configurations. You can specify override configurations that have precedence over default configurations in the [`override` block](#listeners-override) as well as in the `JWT` block in the [HTTP route configuration entry](/consul/docs/reference/config-entry/http-route).
 
 #### Values
 
@@ -409,7 +409,7 @@ Specifies a block of default configurations to apply to the gateway listener. Al
 
 ### `Listeners[].default{}.JWT`
 
-Specifies a block of default JWT verification configurations to apply to the gateway listener. Specify configurations that have precedence over the defaults in either the [`override.JWT` block](#listeners-override) or in the [`JWT` block](/consul/docs/connect/config-entries/http-route#rules-filters-jwt) in the HTTP route configuration. Refer to [Use JWTs to verify requests to API gateways](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-vms) for order of precedence and other details about using JWT verification in API gateways.
+Specifies a block of default JWT verification configurations to apply to the gateway listener. Specify configurations that have precedence over the defaults in either the [`override.JWT` block](#listeners-override) or in the [`JWT` block](/consul/docs/reference/config-entry/http-route#rules-filters-jwt) in the HTTP route configuration. Refer to [Use JWTs to verify requests to API gateways](/consul/docs/north-south/api-gateway/secure-traffic/jwt/vm) for order of precedence and other details about using JWT verification in API gateways.
 
 #### Values
 
@@ -418,7 +418,7 @@ Specifies a block of default JWT verification configurations to apply to the gat
 
 ### `Listeners[].default{}.JWT{}.Providers`
 
-Specifies a list of default JWT provider configurations to apply to the gateway listener. A provider configuration contains the name of the provider and claims. Specify configurations that have precedence over the defaults in either the [`override.JWT.Providers` block](#listeners-override-providers) or in the [`JWT` block](/consul/docs/connect/config-entries/http-route#rules-filters-jwt-providers) of the HTTP route configuration. Refer to [Use JWTs to verify requests to API gateways](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-vms) for order of precedence and other details about using JWT verification in API gateways.
+Specifies a list of default JWT provider configurations to apply to the gateway listener. A provider configuration contains the name of the provider and claims. Specify configurations that have precedence over the defaults in either the [`override.JWT.Providers` block](#listeners-override-providers) or in the [`JWT` block](/consul/docs/reference/config-entry/http-route#rules-filters-jwt-providers) of the HTTP route configuration. Refer to [Use JWTs to verify requests to API gateways](/consul/docs/north-south/api-gateway/secure-traffic/jwt/vm) for order of precedence and other details about using JWT verification in API gateways.
 
 #### Values
 

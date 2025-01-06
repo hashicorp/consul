@@ -283,7 +283,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
     - `static` This object controls configuring the static authorizer setup in the Consul
       configuration file. Almost all sub-keys are identical to those provided by the [JWT
-      Auth Method](/consul/docs/security/acl/auth-methods/jwt).
+      Auth Method](/consul/docs/secure/acl/auth-method/jwt).
 
       - `jwt_validation_pub_keys` (Defaults to `[]`) A list of PEM-encoded public keys
         to use to authenticate signatures locally.
@@ -442,7 +442,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
     the Consul server gains leadership. This option is only applicable to server
     nodes. Each bootstrap entry will be created only if it does not exist. When reloading,
     any new entries that have been added to the configuration will be processed.
-    See the [configuration entry docs](/consul/docs/agent/config-entries) for more
+    See the [configuration entry docs](/consul/docs/fundamentals/config-entry) for more
     details about the contents of each entry.
 
 - `datacenter` Equivalent to the [`-datacenter` command-line flag](/consul/docs/agent/config/cli-flags#_datacenter).
@@ -474,7 +474,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
   `cert_file`, `ca_file`, `ca_path`, and `server_name`) to set up the client for HTTP or gRPC health checks. This allows services requiring 2-way TLS to be checked using the agent's credentials. This was added in Consul 1.0.1 and defaults to false.
 
 - `enable_central_service_config` When set, the Consul agent will look for any
-  [centralized service configuration](/consul/docs/agent/config-entries)
+  [centralized service configuration](/consul/docs/fundamentals/config-entry)
   that match a registering service instance. If it finds any, the agent will merge the centralized defaults with the service instance configuration. This allows for things like service protocol or proxy configuration to be defined centrally and inherited by any affected service registrations.
   This defaults to `false` in versions of Consul prior to 1.9.0, and defaults to `true` in Consul 1.9.0 and later.
 
@@ -546,7 +546,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
 - `leave_on_terminate` If enabled, when the agent receives a TERM signal, it will send a `Leave` message to the rest of the cluster and gracefully leave. The default behavior for this feature varies based on whether or not the agent is running as a client or a server (prior to Consul 0.7 the default value was unconditionally set to `false`). On agents in client-mode, this defaults to `true` and for agents in server-mode, this defaults to `false`.
 
-- `license_path` <EnterpriseAlert inline /> This specifies the path to a file that contains the Consul Enterprise license. Alternatively the license may also be specified in either the `CONSUL_LICENSE` or `CONSUL_LICENSE_PATH` environment variables. See the [licensing documentation](/consul/docs/enterprise/license/overview) for more information about Consul Enterprise license management. Added in versions 1.10.0, 1.9.7 and 1.8.13. Prior to version 1.10.0 the value may be set for all agents to facilitate forwards compatibility with 1.10 but will only actually be used by client agents.
+- `license_path` <EnterpriseAlert inline /> This specifies the path to a file that contains the Consul Enterprise license. Alternatively the license may also be specified in either the `CONSUL_LICENSE` or `CONSUL_LICENSE_PATH` environment variables. See the [licensing documentation](/consul/docs/enterprise/license) for more information about Consul Enterprise license management. Added in versions 1.10.0, 1.9.7 and 1.8.13. Prior to version 1.10.0 the value may be set for all agents to facilitate forwards compatibility with 1.10 but will only actually be used by client agents.
 
 - `limits`: This block specifies various types of limits that the Consul server agent enforces.
 
@@ -583,14 +583,14 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 - `partition` <EnterpriseAlert inline /> - This flag is used to set
   the name of the admin partition the agent belongs to. An agent can only join
   and communicate with other agents within its admin partition. Review the
-  [Admin Partitions documentation](/consul/docs/enterprise/admin-partitions) for more
+  [Admin Partitions documentation](/consul/docs/multi-tenant/admin-partition) for more
   details. By default, this is an empty string, which is the `default` admin
   partition. This cannot be set on a server agent.
 
   ~> **Warning:** The `partition` option cannot be used either the
   [`segment`](#segment-2) option or [`-segment`](/consul/docs/agent/config/cli-flags#_segment) flag.
 
-- `performance` Available in Consul 0.7 and later, this is a nested object that allows tuning the performance of different subsystems in Consul. See the [Server Performance](/consul/docs/install/performance) documentation for more details. The following parameters are available:
+- `performance` Available in Consul 0.7 and later, this is a nested object that allows tuning the performance of different subsystems in Consul. See the [Server Performance](/consul/docs/reference/server) documentation for more details. The following parameters are available:
 
   - `leave_drain_time` - A duration that a server will dwell during a graceful leave in order to allow requests to be retried against other Consul servers. Under normal circumstances, this can prevent clients from experiencing "no leader" errors when performing a rolling update of the Consul servers. This was added in Consul 1.0. Must be a duration value such as 10s. Defaults to 5s.
 
@@ -646,10 +646,10 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
   - `server` ((#server_rpc_port)) - Server RPC address. Default 8300. TCP
     only.
   - `sidecar_min_port` ((#sidecar_min_port)) - Inclusive minimum port number
-    to use for automatically assigned [sidecar service registrations](/consul/docs/connect/proxies/deploy-sidecar-services).
+    to use for automatically assigned [sidecar service registrations](/consul/docs/connect/proxy/sidecar).
     Default 21000. Set to `0` to disable automatic port assignment.
   - `sidecar_max_port` ((#sidecar_max_port)) - Inclusive maximum port number
-    to use for automatically assigned [sidecar service registrations](/consul/docs/connect/proxies/deploy-sidecar-services).
+    to use for automatically assigned [sidecar service registrations](/consul/docs/connect/proxy/sidecar).
     Default 21255. Set to `0` to disable automatic port assignment.
   - `expose_min_port` ((#expose_min_port)) - Inclusive minimum port number
     to use for automatically assigned [exposed check listeners](/consul/docs/connect/proxies/proxy-config-reference#expose-paths-configuration-reference).
@@ -730,7 +730,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
 - `segments` <EnterpriseAlert inline /> - (Server agents only) This is a list of nested objects
   that specifies user-defined network segments, not including the `<default>` segment, which is
-  created automatically. Refer to the [network segments documentation](/consul/docs/enterprise/network-segments/create-network-segment)for additional information.
+  created automatically. Refer to the [network segments documentation](/consul/docs/multi-tenant/network-segment/vm)for additional information.
   for more details.
 
   - `name` ((#segment_name)) - The name of the segment. Must be a string
@@ -821,7 +821,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
 - `watches` - Watches is a list of watch specifications which
   allow an external process to be automatically invoked when a particular data view
-  is updated. See the [watch documentation](/consul/docs/dynamic-app-config/watches) for more detail.
+  is updated. See the [watch documentation](/consul/docs/automate/watch) for more detail.
   Watches can be modified when the configuration is reloaded.
 
 ## ACL Parameters
@@ -882,7 +882,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
     secondary Consul datacenters will perform replication of only ACL policies and
     roles. Setting this configuration will will enable ACL token replication and
     allow for the creation of both [local tokens](/consul/api-docs/acl/tokens#local) and
-    [auth methods](/consul/docs/security/acl/auth-methods) in connected secondary datacenters.
+    [auth methods](/consul/docs/secure/acl/auth-method) in connected secondary datacenters.
 
     ~> **Warning:** When enabling ACL token replication on the secondary datacenter,
     global tokens already present in the secondary datacenter will be lost. For
@@ -943,7 +943,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
       [`acl.tokens.agent_recovery`](#acl_tokens_agent_recovery).**
 
     - `config_file_service_registration` ((#acl_tokens_config_file_service_registration)) - Specifies the ACL
-      token the agent uses to register services and checks from [service](/consul/docs/services/usage/define-services) and [check](/consul/docs/services/usage/checks) definitions
+      token the agent uses to register services and checks from [service](/consul/docs/register/service/vm/define) and [check](/consul/docs/register/health-check/vm) definitions
       specified in configuration files or fragments passed to the agent using the `-hcl`
       flag.
 
@@ -958,7 +958,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
       services "A" and "B" in order to successfully register both services. If the token is missing
       `service:write` permissions for service "B", the agent will successfully register service "A"
       and fail to register service "B". Failed registration requests are eventually retried as part
-      of [anti-entropy enforcement](/consul/docs/architecture/anti-entropy). If a registration request is
+      of [anti-entropy enforcement](/consul/docs/concept/consistency). If a registration request is
       failing due to missing permissions, the token for this agent can be updated with
       additional policy rules or the `config_file_service_registration` token can be replaced using
       the [Set Agent Token](/consul/commands/acl/set-agent-token) CLI command.
@@ -966,7 +966,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
     - `dns` ((#acl_tokens_dns)) - Specifies the token that agents use to request information needed to respond to DNS queries.
       If the `dns` token is not set, the `default` token is used instead.
       Because the `default` token allows unauthenticated HTTP API access to list nodes and services, we
-      strongly recommend using the `dns` token. Create DNS tokens using the [templated policy](/consul/docs/security/acl/tokens/create/create-a-dns-token#create_a_dns_token)
+      strongly recommend using the `dns` token. Create DNS tokens using the [templated policy](/consul/docs/secure/acl/token/dns)
       option to ensure that the token has the permissions needed to respond to all DNS queries.
 
     - `replication` ((#acl_tokens_replication)) - Specifies the token that the agent uses to
@@ -1064,7 +1064,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
   set [`acl.enable_token_replication`](#acl_enable_token_replication) to true for backward compatibility.
 
   If there's a partition or other outage affecting the authoritative datacenter, and the
-  [`acl_down_policy`](/consul/docs/agent/config/config-files#acl_down_policy) is set to "extend-cache", tokens not
+  [`acl_down_policy`](/consul/docs/reference/agent/configuration-file#acl_down_policy) is set to "extend-cache", tokens not
   in the cache can be resolved during the outage using the replicated set of ACLs.
 
 - `acl_token` ((#acl_token_legacy)) - **Deprecated in Consul 1.4.0. See
@@ -1296,14 +1296,14 @@ subsystem that provides Consul's service mesh capabilities.
         corresponding to the NIST P-\* curves of the same name.
       - `private_key_type = rsa`: `2048, 4096`
 
-- `locality` <EnterpriseAlert inline/>: Specifies a map of configurations that set the region and zone of the Consul agent. When specified on server agents, `locality` applies to all partitions on the server. When specified on clients, `locality` applies to all services registered to the client. Configure this field to enable Consul to route traffic to the nearest physical service instance. This field is intended for use primarily with VM and Nomad workloads. Refer to [Route traffic to local upstreams](/consul/docs/connect/manage-traffic/route-to-local-upstreams) for additional information.
+- `locality` <EnterpriseAlert inline/>: Specifies a map of configurations that set the region and zone of the Consul agent. When specified on server agents, `locality` applies to all partitions on the server. When specified on clients, `locality` applies to all services registered to the client. Configure this field to enable Consul to route traffic to the nearest physical service instance. This field is intended for use primarily with VM and Nomad workloads. Refer to [Route traffic to local upstreams](/consul/docs/manage-traffic/route-local) for additional information.
   - `region`:  String value that specifies the region where the Consul agent is running. Consul assigns this value to services registered to that agent. When service proxy regions match, Consul is able to prioritize routes between service instances in the same region over instances in other regions. You must specify values that are consistent with how regions are defined in your network, for example `us-west-1` for networks in AWS.
   - `zone`: String value that specifies the availability zone where the Consul agent is running. Consul assigns this value to services registered to that agent. When service proxy regions match, Consul is able to prioritize routes between service instances in the same region and zone over instances in other regions and zones. When healthy service instances are available in multiple zones within the most-local region, Consul prioritizes instances that also match the downstream proxy's `zone`. You must specify values that are consistent with how zones are defined in your network, for example `us-west-1a` for networks in AWS.
 
 ## DNS and Domain Parameters
 
 - `dns_config` This object allows a number of sub-keys
-  to be set which can tune how DNS queries are serviced. Refer to [DNS caching](/consul/docs/services/discovery/dns-cache) for more information.
+  to be set which can tune how DNS queries are serviced. Refer to [DNS caching](/consul/docs/discover/dns/scale) for more information.
 
   The following sub-keys are available:
 
@@ -1580,10 +1580,10 @@ subsystem that provides Consul's service mesh capabilities.
 
 - `retry_interval_wan` Equivalent to the [`-retry-interval-wan` command-line flag](/consul/docs/agent/config/cli-flags#_retry_interval_wan).
 
-- `start_join` **Deprecated in Consul 1.15. Use the [`retry_join`](/consul/docs/agent/config/config-files#retry_join) field instead. This field will be removed in a future version of Consul.**
+- `start_join` **Deprecated in Consul 1.15. Use the [`retry_join`](/consul/docs/reference/agent/configuration-file#retry_join) field instead. This field will be removed in a future version of Consul.**
   This field is an alias of `retry_join`.
 
-- `start_join_wan` **Deprecated in Consul 1.15. Use the [`retry_join_wan`](/consul/docs/agent/config/config-files#retry_join_wan) field instead. This field will be removed in a future version of Consul.**
+- `start_join_wan` **Deprecated in Consul 1.15. Use the [`retry_join_wan`](/consul/docs/reference/agent/configuration-file#retry_join_wan) field instead. This field will be removed in a future version of Consul.**
   This field is an alias of `retry_join_wan`.
 
 ## Log Parameters
@@ -1657,7 +1657,7 @@ subsystem that provides Consul's service mesh capabilities.
     engine to use to persist logs. Valid options are `boltdb` or `wal`. Default
     is `boltdb`. The `wal` option specifies an experimental backend that
     should be used with caution. Refer to
-    [Experimental WAL LogStore backend](/consul/docs/agent/wal-logstore)
+    [Experimental WAL LogStore backend](/consul/docs/deploy/server/wal)
     for more information.
 
   - `disable_log_cache` ((#raft_logstore_disable_log_cache)) Disables the in-memory cache for recent logs. We recommend using it for performance testing purposes, as no significant improvement has been measured when the cache is disabled. While the in-memory log cache theoretically prevents disk reads for recent logs, recent logs are also stored in the OS page cache, which does not slow either the `boltdb` or `wal` backend's ability to read them.
@@ -1682,7 +1682,7 @@ subsystem that provides Consul's service mesh capabilities.
     data directory, and restart so it can be caught back up with a correct
     server again. Please report verification failures including details about
     your hardware and workload via GitHub issues. Refer to
-    [Experimental WAL LogStore backend](/consul/docs/agent/wal-logstore)
+    [Experimental WAL LogStore backend](/consul/docs/deploy/server/wal)
     for more information.
 
     - `enabled` ((#raft_logstore_verification_enabled)) - Set to `true` to
@@ -1707,7 +1707,7 @@ subsystem that provides Consul's service mesh capabilities.
     within the file.
 
   - `wal` ((#raft_logstore_wal)) - Object that configures the `wal` backend.
-    Refer to [Experimental WAL LogStore backend](/consul/docs/agent/wal-logstore)
+    Refer to [Experimental WAL LogStore backend](/consul/docs/deploy/server/wal)
     for more information.
 
     - `segment_size_mb` ((#raft_logstore_wal_segment_size_mb)) - Integer value
@@ -2054,7 +2054,7 @@ subsystem that provides Consul's service mesh capabilities.
     - `service` ((#ui_config_dashboard_url_templates_service)) - This is the URL
       to use when linking to the dashboard for a specific service. It is shown
       as part of the [Topology
-      Visualization](/consul/docs/connect/observability/ui-visualization).
+      Visualization](/consul/docs/observe/telemetry/vm).
 
       The placeholders available are:
 
@@ -2162,7 +2162,7 @@ specially crafted certificate signed by the CA can be used to gain full access t
       will not make use of TLS for outgoing connections. This applies to clients
       and servers as both will make outgoing connections. This setting does not
       apply to the gRPC interface as Consul makes no outgoing connections on this
-      interface. When set to true for the HTTPS interface, this parameter applies to [watches](/consul/docs/dynamic-app-config/watches), which operate by making HTTPS requests to the local agent.
+      interface. When set to true for the HTTPS interface, this parameter applies to [watches](/consul/docs/automate/watch), which operate by making HTTPS requests to the local agent.
 
   - `grpc` ((#tls_grpc)) Provides settings for the gRPC/xDS interface. To enable
     the gRPC interface you must define a port via [`ports.grpc_tls`](#grpc_tls_port).

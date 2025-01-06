@@ -11,7 +11,7 @@ Network Infrastructure Automation (NIA) enables dynamic updates to network infra
 
 CTS executes one or more automation tasks with the most recent service variable values from the Consul service catalog. Each task consists of a runbook automation written as a CTS compatible Terraform module using resources and data sources for the underlying network infrastructure. The `consul-terraform-sync` daemon runs on the same node as a Consul agent.
 
-CTS is available as an open source and enterprise distribution. Follow the [Automate your network configuration with Consul-Terraform-Sync tutorial](/consul/tutorials/network-infrastructure-automation/consul-terraform-sync-intro?utm_source=docs) to get started with CTS OSS or read more about [CTS Enterprise](/consul/docs/nia/enterprise).
+CTS is available as an open source and enterprise distribution. Follow the [Automate your network configuration with Consul-Terraform-Sync tutorial](/consul/tutorials/network-infrastructure-automation/consul-terraform-sync-intro?utm_source=docs) to get started with CTS OSS or read more about [CTS Enterprise](/consul/docs/enterprise/cts).
 
 ## Use Cases
 
@@ -31,7 +31,7 @@ CTS is available as an open source and enterprise distribution. Follow the [Auto
 
   -> **Note:** The terminology "tasks" used throughout the documentation refers to all types of tasks except when specifically stated otherwise.
 
-- `Network Drivers` - CTS uses [network drivers](/consul/docs/nia/network-drivers) to execute and update network infrastructure. Drivers transform Consul service-level information into downstream changes by processing and abstracting API and resource details tied to specific network infrastructure.
+- `Network Drivers` - CTS uses [network drivers](/consul/docs/automate/infrastructure/network-driver) to execute and update network infrastructure. Drivers transform Consul service-level information into downstream changes by processing and abstracting API and resource details tied to specific network infrastructure.
 
 - `Network Infrastructure Automation (NIA)` - Enables dynamic updates to network infrastructure devices triggered when specific conditions, such as service changes and registration, are met.
 
@@ -73,4 +73,4 @@ module.
 - [Contribute](https://github.com/hashicorp/consul-terraform-sync) to the open source project
 - [Report](https://github.com/hashicorp/consul-terraform-sync/issues) bugs or request enhancements
 - [Discuss](https://discuss.hashicorp.com/tags/c/consul/29/consul-terraform-sync) with the community or ask questions
-- [Build integrations](/consul/docs/nia/terraform-modules) for CTS
+- [Build integrations](/consul/docs/automate/infrastructure/module) for CTS

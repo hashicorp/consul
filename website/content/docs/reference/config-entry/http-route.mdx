@@ -7,7 +7,7 @@ description: >-
 
 # HTTP route configuration entry reference
 
-This topic provides reference information for the gateway routes configuration entry. Refer to [Route Resource Configuration](/consul/docs/connect/gateways/api-gateway/configuration/routes) for information about configuring API gateway routes in Kubernetes environments.
+This topic provides reference information for the gateway routes configuration entry. Refer to [Route Resource Configuration](/consul/docs/reference/k8s/api-gateway/routes) for information about configuring API gateway routes in Kubernetes environments.
 
 ## Configuration model
 
@@ -390,7 +390,7 @@ such as applying a configuration entry to a specific cluster.
 
 ### `Namespace` <EnterpriseAlert inline />
 
-Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) to apply to the configuration entry.
+Specifies the Enterprise [namespace](/consul/docs/multi-tenant/namespace) to apply to the configuration entry.
 
 #### Values
 
@@ -399,7 +399,7 @@ Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) to appl
 
 ### `Partition` <EnterpriseAlert inline />
 
-Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partitions) to apply to the configuration entry.
+Specifies the Enterprise [admin partition](/consul/docs/multi-tenant/admin-partition) to apply to the configuration entry.
 
 #### Values
 
@@ -452,7 +452,7 @@ Specifies the name of the api-gateway to bind to.
 
 ### `Parents[].Namespace` <EnterpriseAlert inline />
 
-Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) to apply to the configuration entry.
+Specifies the Enterprise [namespace](/consul/docs/multi-tenant/namespace) to apply to the configuration entry.
 
 #### Values
 
@@ -461,7 +461,7 @@ Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) to appl
 
 ### `Parents[].Partition` <EnterpriseAlert inline />
 
-Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partitions) to apply to the configuration entry.
+Specifies the Enterprise [admin partition](/consul/docs/multi-tenant/admin-partition) to apply to the configuration entry.
 
 #### Values
 
@@ -528,7 +528,7 @@ Specifies rule for rewriting the URL of incoming requests when an incoming reque
 
 ### `Rules[].Filters[].URLRewrite.Path`
 
-Specifies a path that determines how Consul API Gateway rewrites a URL path. Refer to [Reroute HTTP requests](/consul/docs/connect/gateways/api-gateway/define-routes/reroute-http-requests) for additional information.
+Specifies a path that determines how Consul API Gateway rewrites a URL path. Refer to [Reroute HTTP requests](/consul/docs/north-south/api-gateway/define-route/k8s/reroute) for additional information.
 
 #### Values
 
@@ -634,7 +634,7 @@ The following table describes the settings you can configure in the `TimeoutFilt
 
 ### `Rules[].Filters{}.JWT`
 
-Specifies a block of JWT verification configurations to apply to the route. These route-specific settings have precedence over default configurations defined for listeners the route attaches to on the API gateway.  Refer to [`Listeners[].default{}.JWT`](/consul/docs/connect/config-entries/api-gateway#listeners-default-jwt) for additional information.
+Specifies a block of JWT verification configurations to apply to the route. These route-specific settings have precedence over default configurations defined for listeners the route attaches to on the API gateway.  Refer to [`Listeners[].default{}.JWT`](/consul/docs/reference/config-entry/api-gateway#listeners-default-jwt) for additional information.
 
 #### Values
 
@@ -855,7 +855,7 @@ Specifies the name of an HTTP-based service to route to.
 
 ### `Rules[].Services[].Namespace` <EnterpriseAlert inline />
 
-Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) to apply to the configuration entry.
+Specifies the Enterprise [namespace](/consul/docs/multi-tenant/namespace) to apply to the configuration entry.
 
 #### Values
 
@@ -864,7 +864,7 @@ Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) to appl
 
 ### `Rules[].Services.Partition` <EnterpriseAlert inline />
 
-Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partitions) to apply to the configuration entry.
+Specifies the Enterprise [admin partition](/consul/docs/multi-tenant/admin-partition) to apply to the configuration entry.
 
 #### Values
 

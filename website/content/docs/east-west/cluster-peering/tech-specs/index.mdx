@@ -7,9 +7,9 @@ description: >-
 
 # Cluster peering technical specifications
 
-This reference topic describes the technical specifications associated with using cluster peering in your deployments. These specifications include required Consul components and their configurations. To learn more about Consul's cluster peering feature, refer to [cluster peering overview](/consul/docs/connect/cluster-peering).
+This reference topic describes the technical specifications associated with using cluster peering in your deployments. These specifications include required Consul components and their configurations. To learn more about Consul's cluster peering feature, refer to [cluster peering overview](/consul/docs/east-west/cluster-peering).
 
-For cluster peering requirements in Kubernetes deployments, refer to [cluster peering on Kubernetes technical specifications](/consul/docs/k8s/connect/cluster-peering/tech-specs).
+For cluster peering requirements in Kubernetes deployments, refer to [cluster peering on Kubernetes technical specifications](/consul/docs/east-west/cluster-peering/tech-specs/k8s).
 
 ## Requirements
 
@@ -18,7 +18,7 @@ Consul's default configuration supports cluster peering connections directly bet
 In addition, make sure your Consul environment meets the following prerequisites:
 
 - Consul v1.14 or higher.
-- Use [Envoy proxies](/consul/docs/connect/proxies/envoy). Envoy is the only proxy with mesh gateway capabilities in Consul.
+- Use [Envoy proxies](/consul/docs/reference/proxy/envoy). Envoy is the only proxy with mesh gateway capabilities in Consul.
 - A local Consul agent is required to manage mesh gateway configurations.
 
 ## Mesh gateway specifications
@@ -62,7 +62,7 @@ Refer to [mesh gateway modes](/consul/docs/connect/gateways/mesh-gateway#modes) 
 
 ## Sidecar proxy specifications
 
-The Envoy proxies that function as sidecars in your service mesh require configuration in order to properly route traffic to peers. Sidecar proxies are defined in the [service definition](/consul/docs/services/usage/define-services).
+The Envoy proxies that function as sidecars in your service mesh require configuration in order to properly route traffic to peers. Sidecar proxies are defined in the [service definition](/consul/docs/register/service/vm/define).
 
 - Configure the `proxy.upstreams` parameters to route traffic to the correct service, namespace, and peer. Refer to the [`upstreams`](/consul/docs/connect/proxies/proxy-config-reference#upstream-configuration-reference) documentation for details.
 - The `proxy.upstreams.destination_name` parameter is always required.
@@ -73,7 +73,7 @@ The Envoy proxies that function as sidecars in your service mesh require configu
 
 The `exported-services` configuration entry is required in order for services to communicate across partitions with cluster peering connections. Basic guidance on using the `exported-services` configuration entry is included in [Establish cluster peering connections](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering#export-services-between-clusters).
 
-Refer to the [`exported-services` configuration entry](/consul/docs/connect/config-entries/exported-services) reference for more information.
+Refer to the [`exported-services` configuration entry](/consul/docs/reference/config-entry/exported-services) reference for more information.
 
 ## ACL specifications
 

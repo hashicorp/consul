@@ -17,7 +17,7 @@ keep in mind when using Consul.
 
 This page documents how to upgrade Consul when a new version is released.
 
--> **Tip:** For Consul Enterprise, see the [Automated Upgrades documentation](/consul/docs/enterprise/upgrades).
+-> **Tip:** For Consul Enterprise, see the [Automated Upgrades documentation](/consul/docs/upgrade/automated).
 
 ## Standard Upgrades
 
@@ -25,12 +25,12 @@ For upgrades we strive to ensure backwards compatibility. To support this,
 nodes gossip their protocol version and builds. This enables clients and
 servers to intelligently enable new features when available, or to gracefully
 fallback to a backward compatible mode of operation otherwise.
-Visit the [General Upgrade Process](/consul/docs/upgrading/instructions/general-process) for a detailed upgrade guide.
+Visit the [General Upgrade Process](/consul/docs/consul/docs/upgrade/instructions/general-process) for a detailed upgrade guide.
 
 For most upgrades, the process is simple. Assuming the current version of
 Consul is A, and version B is released.
 
-1. Check the [version's upgrade notes](/consul/docs/upgrading/upgrade-specific) to ensure
+1. Check the [version's upgrade notes](/consul/docs/upgrade/version-specific) to ensure
    there are no compatibility issues that will affect your workload. If there
    are plan accordingly before continuing.
 
@@ -70,12 +70,12 @@ every 4 months to the latest major release.
 ### Consul Enterprise
 
 Standard major releases of Consul Enterprise are maintained for approximately 1 year.
-[Consul Enterprise Long Term Support (LTS)](/consul/docs/enterprise/long-term-support)
+[Consul Enterprise Long Term Support (LTS)](/consul/docs/upgrade/lts)
 releases are maintained for approximately 2 years.
 
 For Consul Enterprise customers,
 consistently operating a maintained version requires a major upgrade every 12 months
-on average when using [LTS](/consul/docs/enterprise/long-term-support) releases.
+on average when using [LTS](/consul/docs/upgrade/lts) releases.
 LTS releases support an upgrade jump of at most 3 major versions.
 For more details, refer to
 [Long Term Support upgrade recommendation](/consul/docs/enterprise/long-term-support#annual-upgrade-to-next-lts-release).
@@ -84,7 +84,7 @@ For more details, refer to
 
 If your Consul deployment is many major versions behind the latest release
 and you need to upgrade, review our
-[upgrade instructions](/consul/docs/upgrading/instructions)
+[upgrade instructions](/consul/docs/consul/docs/upgrade/instructions)
 for more information about how to perform those upgrades.
 
 After upgrading to a maintained version of Consul, refer to our
@@ -115,7 +115,7 @@ version B comes out.
    You can verify this is the case by running `consul members` to
    make sure all members are speaking the same, latest protocol version.
 
-The key to making this work is the [protocol compatibility](/consul/docs/upgrading/compatibility)
+The key to making this work is the [protocol compatibility](/consul/docs/upgrade/compatibility)
 of Consul. The protocol version system is discussed below.
 
 ## Protocol Versions
@@ -158,7 +158,7 @@ your cluster so that you can run the latest protocol version.
 
 ## Upgrading on Kubernetes
 
-See the dedicated [Upgrading Consul on Kubernetes](/consul/docs/k8s/upgrade) page.
+See the dedicated [Upgrading Consul on Kubernetes](/consul/docs/upgrade/k8s) page.
 
 ## Upgrading federated datacenters
 

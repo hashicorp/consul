@@ -15,7 +15,7 @@ Consul is a distributed service networking system deployed as a centralized set 
 
 Consul can be deployed in either a single datacenter or across multiple datacenters by establishing WAN federation or peering connections. In this context, a datacenter refers to a named environment whose hosts can communicate with low networking latency. Typically, users map a Consul datacenter to a cloud provider region such as AWS `us-east-1` or Azure `East US`.
 
-To ensure consistency and high availability, Consul servers share data using the [Raft consensus protocol](/consul/docs/architecture/consensus). When persisting data, Consul uses BoltDB to store Raft logs and a custom file format for state snapshots. For more information, refer to [Consul architecture](/consul/docs/architecture).
+To ensure consistency and high availability, Consul servers share data using the [Raft consensus protocol](/consul/docs/concept/consensus). When persisting data, Consul uses BoltDB to store Raft logs and a custom file format for state snapshots. For more information, refer to [Consul architecture](/consul/docs/architecture/control-plane).
 
 ## General deployment recommendations
 
@@ -45,13 +45,13 @@ When a large number services are deployed to a single datacenter, the Consul ser
 To ensure resiliency, we recommend limiting deployments to a maximum of 5,000 Consul client agents per Consul datacenter. There are two reasons for this recommendation:
 
 1. **Blast radius reduction**: When Consul suffers a server outage in a datacenter or region, _blast radius_ refers to the number of Consul clients or dataplanes attached to that datacenter that can no longer communicate as a result. We recommend limiting the total number of clients attached to a single Consul datacenter in order to reduce the size of its blast radius. Even though Consul is able to run clusters with 10,000 or more nodes, it takes longer to bring larger deployments back online after an outage, which impacts time to recovery.
-1. **Agent gossip management**: Consul agents use the [gossip protocol](/consul/docs/architecture/gossip) to share membership information in a gossip pool. By default, all client agents in a single Consul datacenter are in a single gossip pool. Whenever an agent joins or leaves the gossip pool, the other agents propagate that event throughout the pool. If a Consul datacenter experiences _agent churn_, or a consistently high rate of agents joining and leaving a single pool, cluster performance may be affected by gossip messages being generated faster than they can be transmitted. The result is an ever-growing message queue.
+1. **Agent gossip management**: Consul agents use the [gossip protocol](/consul/docs/concept/gossip) to share membership information in a gossip pool. By default, all client agents in a single Consul datacenter are in a single gossip pool. Whenever an agent joins or leaves the gossip pool, the other agents propagate that event throughout the pool. If a Consul datacenter experiences _agent churn_, or a consistently high rate of agents joining and leaving a single pool, cluster performance may be affected by gossip messages being generated faster than they can be transmitted. The result is an ever-growing message queue.
 
 To mitigate these risks, we recommend a maximum of 5,000 Consul client agents in a single gossip pool. There are several strategies for making gossip pools smaller:
 
 1. Run exactly one Consul agent per host in the infrastructure.
 1. Break up the single Consul datacenter into multiple smaller datacenters.
-1. Enterprise users can define [network segments](/consul/docs/enterprise/network-segments/network-segments-overview) to divide the single gossip pool in the Consul datacenter into multiple smaller pools.
+1. Enterprise users can define [network segments](/consul/docs/multi-tenant/network-segment) to divide the single gossip pool in the Consul datacenter into multiple smaller pools.
 
 If appropriate for your use case, we recommend breaking up a single Consul datacenter into multiple smaller datacenters. Running multiple datacenters reduces your network’s blast radius more than applying network segments.
 
@@ -65,7 +65,7 @@ For most use cases, a limit of 5,000 agents is appropriate. When the `consul.ser
 
 In Kubernetes, even though it is possible to deploy Consul agents inside pods alongside services running in the same pod, this unsupported deployment pattern has known performance issues at scale. At large volumes, pod registration and deregistration in Kubernetes causes gossip instability that can lead to cascading failures as services are marked unhealthy, resulting in further cluster churn.
 
-In Consul v1.14 and higher, Consul on Kubernetes does not need to run client agents on every node in a cluster for service discovery and service mesh. This deployment configuration lowers Consul’s resource usage in the data plane, but requires additional resources in the control plane to process [xDS resources](/consul/docs/reference/agent#xds-server-parameters). To learn more, refer to [simplified service mesh with Consul Dataplane](/consul/docs/connect/dataplane).
+In Consul v1.14 and higher, Consul on Kubernetes does not need to run client agents on every node in a cluster for service discovery and service mesh. This deployment configuration lowers Consul’s resource usage in the data plane, but requires additional resources in the control plane to process [xDS resources](/consul/docs/reference/agent#xds-server-parameters). To learn more, refer to [simplified service mesh with Consul Dataplane](/consul/docs/architecture/control-plane/dataplane).
 
 **If you use Kubernetes and Consul as a backend for Vault**: Use Vault’s integrated storage backend instead of Consul. A runtime dependency conflict prevents Consul dataplanes from being compatible with Vault. If you need to use Consul v1.14 and higher as a backend for Vault in your Kubernetes deployment, create a separate Consul datacenter that is not federated or peered to your other Consul servers. You can size this datacenter according to your needs and use it exclusively for backend storage for Vault.
 
@@ -78,7 +78,7 @@ Consul server agents are an important part of Consul’s architecture. This sect
 Consul servers can be deployed on a few different runtimes:
 
 - **HashiCorp Cloud Platform (HCP) Consul (Managed)**. These Consul servers are deployed in a hosted environment managed by HCP. To get started with HCP Consul servers in Kubernetes or VM deployments, refer to the [Deploy HCP Consul tutorial](/consul/tutorials/get-started-hcp/hcp-gs-deploy).
-- **VMs or bare metal servers (Self-managed)**. To get started with Consul on VMs or bare metal servers, refer to the [Deploy Consul server tutorial](/consul/tutorials/get-started-vms/virtual-machine-gs-deploy). For a full list of configuration options, refer to [Agents Overview](/consul/docs/agent).
+- **VMs or bare metal servers (Self-managed)**. To get started with Consul on VMs or bare metal servers, refer to the [Deploy Consul server tutorial](/consul/tutorials/get-started-vms/virtual-machine-gs-deploy). For a full list of configuration options, refer to [Agents Overview](/consul/docs/architecture/control-plane/agent).
 - **Kubernetes (Self-managed)**. To get started with Consul on Kubernetes, refer to the [Deploy Consul on Kubernetes tutorial](/consul/tutorials/get-started-kubernetes/kubernetes-gs-deploy).
 - **Other container environments, including Docker, Rancher, and Mesos (Self-managed)**.
 
@@ -96,7 +96,7 @@ Fault tolerance should determine your initial decision for how many Consul serve
 - **With redundancy zones**: Deploy 6 Consul servers across 3 availability zones. This deployment provides the performance of a 3 server deployment with the fault tolerance of a 7 server deployment.
 - **Without redundancy zones**: Deploy 5 Consul servers across 3 availability zones. All 5 servers should be voting servers, not [read replicas](/consul/docs/manage-consul/read-replicas).
 
-For more details, refer to [Improving Consul Resilience](/consul/docs/architecture/improving-consul-resilience).
+For more details, refer to [Improving Consul Resilience](/consul/docs/concept/reliability).
 
 ### Server requirements
 
@@ -144,14 +144,14 @@ The highest CPU load usually belongs to the current leader. If the CPU load is h
 
 - `consul.rpc.*` - Traditional RPC metrics. The most relevant metrics for understanding server CPU load in read-heavy workloads are `consul.rpc.query` and `consul.rpc.queries_blocking`.
 - `consul.grpc.server.*` - Metrics for the number of streams being processed by the server.
-- `consul.xds.server.*` - Metrics for the Envoy xDS resources being processed by the server. In Consul v1.14 and higher, these metrics have the potential to become a significant source of read load. Refer to [Consul dataplanes](/consul/docs/connect/dataplane) for more information.
+- `consul.xds.server.*` - Metrics for the Envoy xDS resources being processed by the server. In Consul v1.14 and higher, these metrics have the potential to become a significant source of read load. Refer to [Consul dataplanes](/consul/docs/architecture/control-plane/dataplane) for more information.
 
 Depending on your needs, choose one of the following strategies to mitigate server CPU load:
 
 - The fastest mitigation strategy is to vertically scale servers. However, this strategy increases compute costs and does not scale indefinitely.
 - The most effective long term mitigation strategy is to use [stale consistency mode](/consul/api-docs/features/consistency#stale) for as many read requests as possible. In Consul v1.12 and higher, operators can use the [`consul.rpc.server.call` metric](/consul/docs/agent/telemetry#server-workload) to identify the most frequent type of read requests made to the Consul servers. Cross reference the results with each endpoint’s [HTTP API documentation](/consul/api-docs) and use stale consistency for endpoints that support it.
 - If most read requests already use stale consistency mode and you still need to reduce your request load, add more non-voting servers to your deployment. You can use either [redundancy zones](/consul/docs/manage-consul/redundancy-zones) or [read replicas](/consul/docs/manage-consul/read-replicas) to scale reads without impacting write latency. We recommend adding more servers to redundancy zones because they improve both fault tolerance and stale read scalability.
-- In Consul v1.14 and higher, servers handle Envoy XDS streams for [Consul Dataplane deployments](/consul/docs/connect/dataplane) in stale consistency mode. As a result, server consistency mode is not configurable. Use the `consul.xds.server.*` metrics to identify issues related to XDS streams.
+- In Consul v1.14 and higher, servers handle Envoy XDS streams for [Consul Dataplane deployments](/consul/docs/architecture/control-plane/dataplane) in stale consistency mode. As a result, server consistency mode is not configurable. Use the `consul.xds.server.*` metrics to identify issues related to XDS streams.
 
 ### Write-heavy workload sources and solutions
 
@@ -165,7 +165,7 @@ For more information, refer to the [server performance read/write tuning](/consu
 
 ### Raft database performance sources and solutions
 
-Consul servers use the [Raft consensus protocol](/consul/docs/architecture/consensus) to maintain a consistent and fault-tolerant state. Raft stores most Consul data in a MemDB database, which is an in-memory database with indexing. In order to tolerate restarts and power outages, Consul writes Raft logs to disk using BoltDB. Refer to [Agent telemetry](/consul/docs/agent/telemetry) for more information on metrics for detecting write health.
+Consul servers use the [Raft consensus protocol](/consul/docs/concept/consensus) to maintain a consistent and fault-tolerant state. Raft stores most Consul data in a MemDB database, which is an in-memory database with indexing. In order to tolerate restarts and power outages, Consul writes Raft logs to disk using BoltDB. Refer to [Agent telemetry](/consul/docs/agent/telemetry) for more information on metrics for detecting write health.
 
 To monitor overall transaction performance, check for spikes in the [Transaction timing metrics](/consul/docs/agent/telemetry#transaction-timing). You can also use the [Raft replication capacity issues metrics](/consul/docs/agent/telemetry#raft-replication-capacity-issues) to monitor Raft log snapshots and restores, as spikes and longer durations can be symptoms of overall write and disk contention issues.
 

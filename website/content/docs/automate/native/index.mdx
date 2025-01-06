@@ -15,13 +15,13 @@ will still operate as designed, we do not recommend leveraging this feature beca
 removed when the long term replacement to native application integration (such as a proxyless gRPC service mesh integration) is delivered. Refer to [GH-10339](https://github.com/hashicorp/consul/issues/10339) for additional information and to track progress toward one potential solution that is tracked as replacement functionality.
 
 The Native App Integration does not support many of the Consul's service mesh features, and is not under active development.
-The [Envoy proxy](/consul/docs/connect/proxies/envoy) should be used for most production environments. 
+The [Envoy proxy](/consul/docs/reference/proxy/envoy) should be used for most production environments. 
 
 </Note>
 
 Applications can natively integrate with Consul's service mesh API to support accepting
 and establishing connections to other mesh services without the overhead of a
-[proxy sidecar](/consul/docs/connect/proxies). This option is especially useful
+[proxy sidecar](/consul/docs/connect/proxy). This option is especially useful
 for applications that may be experiencing performance issues with the proxy
 sidecar deployment. This page will cover the high-level overview of
 integration, registering the service, etc. For language-specific examples, see
@@ -33,7 +33,7 @@ can easily integrate with Consul service mesh. There is no custom protocol in us
 any language that supports TLS can accept and establish mesh-based
 connections.
 
-We currently provide an easy-to-use [Go integration](/consul/docs/connect/native/go)
+We currently provide an easy-to-use [Go integration](/consul/docs/automate/native/go)
 to assist with the getting the proper certificates, verifying connections,
 etc. We plan to add helper libraries for other languages in the future.
 However, without library support, it is still possible for any major language
@@ -136,7 +136,7 @@ on certificate updates, this translates to only one TCP connection to the
 Consul server.
 
 Some language libraries such as the
-[Go library](/consul/docs/connect/native/go) automatically handle updating
+[Go library](/consul/docs/automate/native/go) automatically handle updating
 and locally caching the certificates.
 
 ## Service registration
@@ -144,9 +144,9 @@ and locally caching the certificates.
 Mesh-native applications must tell Consul that they support service mesh
 natively. This enables the service to be returned as part of service
 discovery for service mesh-capable services used by other mesh-native applications
-and client [proxies](/consul/docs/connect/proxies).
+and client [proxies](/consul/docs/connect/proxy).
 
-You can enable native service mesh support directly in the [service definition](/consul/docs/services/configuration/services-configuration-reference#connect) by configuring the `connect` block. In the following example, the `redis` service is configured to support service mesh natively:
+You can enable native service mesh support directly in the [service definition](/consul/docs/reference/service#connect) by configuring the `connect` block. In the following example, the `redis` service is configured to support service mesh natively:
 
 ```json
 {

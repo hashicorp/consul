@@ -7,11 +7,11 @@ description: >-
 
 # Proxy defaults configuration entry reference
 
-This topic provides reference information for proxy defaults configuration entries. Refer to [Service mesh proxy overview](/consul/docs/connect/proxies) for information about using proxies in Consul.
+This topic provides reference information for proxy defaults configuration entries. Refer to [Service mesh proxy overview](/consul/docs/connect/proxy) for information about using proxies in Consul.
 
 ## Introduction
 
-Proxy defaults configuration entries set global passthrough Envoy settings for proxies in the service mesh, including sidecars and gateways. Proxy defaults configuration entries do not control features for peered clusters, transparent proxy, or TLS behavior. For information about configuring Consul settings that affect service mesh behavior, refer to the [mesh configuration entry reference](/consul/docs/connect/config-entries/mesh).
+Proxy defaults configuration entries set global passthrough Envoy settings for proxies in the service mesh, including sidecars and gateways. Proxy defaults configuration entries do not control features for peered clusters, transparent proxy, or TLS behavior. For information about configuring Consul settings that affect service mesh behavior, refer to the [mesh configuration entry reference](/consul/docs/reference/config-entry/mesh).
 
 Consul only supports one global proxy defaults configuration entry at a time. If multiple configuration entries are defined in Consul Enterprise, Consul implements the configuration entry in the `default` partition.
 
@@ -305,7 +305,7 @@ Specifies the namespace that the proxy defaults apply to. You can only specify t
 
 ### `Partition`
 
-Specifies the local admin partition that the proxy defaults apply to. Refer to [admin partitions](/consul/docs/enterprise/admin-partitions) for more information.
+Specifies the local admin partition that the proxy defaults apply to. Refer to [admin partitions](/consul/docs/multi-tenant/admin-partition) for more information.
 
 #### Values
 
@@ -337,7 +337,7 @@ Specifies an arbitrary map of configuration values used by service mesh proxies.
 
 ### `EnvoyExtensions`
 
-Specifies a list of extensions that modify Envoy proxy configurations. Refer to [Envoy extensions](/consul/docs/connect/proxies/envoy-extensions) for additional information.
+Specifies a list of extensions that modify Envoy proxy configurations. Refer to [Envoy extensions](/consul/docs/envoy-extension) for additional information.
 
 #### Values
 
@@ -374,7 +374,7 @@ Specifies a mode for how proxies direct inbound and outbound traffic. You can sp
 
 ### `TransparentProxy`
 
-Contains configurations for proxies that are running in transparent proxy mode. This mode enables permissive mTLS for Consul so that you can use your Kubernetes cluster's DNS service instead of Consul DNS. Refer to [Transparent proxy mode](/consul/docs/k8s/connect/transparent-proxy) for additional information.
+Contains configurations for proxies that are running in transparent proxy mode. This mode enables permissive mTLS for Consul so that you can use your Kubernetes cluster's DNS service instead of Consul DNS. Refer to [Transparent proxy mode](/consul/docs/connect/proxy/transparent-proxy) for additional information.
 
 #### Values
 
@@ -388,7 +388,7 @@ The following table describes how to configure values in the `TransparentProxy` 
 | Parameter | Description | Data type | Default |
 | ---       | ---         | ---       | ---     |
 | `OutboundListenerPort` | Specifies the port that the proxy listens on for outbound traffic. Outbound application traffic must be captured and redirected to this port. | Integer | `15001` |
-| `DialedDirectly` | Determines whether other proxies in transparent mode can directly dial this proxy instance's IP address. Proxies in transparent mode commonly dial upstreams at the [`virtual` tagged address](/consul/docs/services/configuration/services-configuration-reference#tagged_addresses-virtual), which load balances across instances. Dialing individual instances can be helpful when sending requests to stateful services, such as database clusters with a leader. | Boolean | `false` |
+| `DialedDirectly` | Determines whether other proxies in transparent mode can directly dial this proxy instance's IP address. Proxies in transparent mode commonly dial upstreams at the [`virtual` tagged address](/consul/docs/reference/service#tagged_addresses-virtual), which load balances across instances. Dialing individual instances can be helpful when sending requests to stateful services, such as database clusters with a leader. | Boolean | `false` |
 
 ### `MutualTLSMode`
 
@@ -434,7 +434,7 @@ Example use-cases include exposing the `/metrics` endpoint to a monitoring syste
 
 ### `Expose{}.Checks`
 
-Exposes all HTTP and gRPC checks registered with the agent when set to `true`. Envoy exposes listeners for the checks and only accepts connections originating from localhost or the [Consul agent's `advertise_addr`](/consul/docs/agent/config/config-files#advertise). The ports for the listeners are dynamically allocated from the [agent's `expose_min_port`](/consul/docs/agent/config/config-files#expose_min_port) and [`expose_max_port`](/consul/docs/agent/config/config-files#expose_max_port) configurations.
+Exposes all HTTP and gRPC checks registered with the agent when set to `true`. Envoy exposes listeners for the checks and only accepts connections originating from localhost or the [Consul agent's `advertise_addr`](/consul/docs/reference/agent/configuration-file#advertise). The ports for the listeners are dynamically allocated from the [agent's `expose_min_port`](/consul/docs/reference/agent/configuration-file#expose_min_port) and [`expose_max_port`](/consul/docs/reference/agent/configuration-file#expose_max_port) configurations.
 
 We recommend enabling the `Checks` configuration when a Consul client cannot reach registered services over localhost.
 
@@ -465,7 +465,7 @@ The following table describes the parameters for each map you can define in the 
 
 Sets a mode for the service that allows instances to prioritize upstream targets that are in the same network region and zone. You can specify the following string values for the `mode` field:
 
-- `failover`: If the upstream targets that a service is connected to become unreachable, the service prioritizes healthy upstream instances with matching `Locality` configuration. Refer to [Route traffic to local upstreams](/consul/docs/connect/manage-traffic/route-to-local-upstreams) for additional information.
+- `failover`: If the upstream targets that a service is connected to become unreachable, the service prioritizes healthy upstream instances with matching `Locality` configuration. Refer to [Route traffic to local upstreams](/consul/docs/manage-traffic/route-local) for additional information.
 
 #### Values
 
@@ -566,7 +566,7 @@ Specifies an arbitrary map of configuration values used by service mesh proxies.
 
 ### `spec.envoyExtensions`
 
-Specifies a list of extensions that modify Envoy proxy configurations. Refer to [Envoy extensions](/consul/docs/connect/proxies/envoy-extensions) for additional information.
+Specifies a list of extensions that modify Envoy proxy configurations. Refer to [Envoy extensions](/consul/docs/envoy-extension) for additional information.
 
 #### Values
 
@@ -603,7 +603,7 @@ Specifies a mode for how proxies direct inbound and outbound traffic. You can sp
 
 ### `spec.transparentProxy`
 
-Contains configurations for proxies that are running in transparent proxy mode. This mode enables permissive mTLS for Consul so that you can use your Kubernetes cluster's DNS service instead of Consul DNS. Refer to [Transparent proxy mode](/consul/docs/k8s/connect/transparent-proxy) for additional information.
+Contains configurations for proxies that are running in transparent proxy mode. This mode enables permissive mTLS for Consul so that you can use your Kubernetes cluster's DNS service instead of Consul DNS. Refer to [Transparent proxy mode](/consul/docs/connect/proxy/transparent-proxy) for additional information.
 
 #### Values
 
@@ -617,7 +617,7 @@ The following table describes how to configure values in the `TransparentProxy` 
 | Parameter | Description | Data type | Default |
 | ---       | ---         | ---       | ---     |
 | `outboundListenerPort` | Specifies the port that the proxy listens on for outbound traffic. Outbound application traffic must be captured and redirected to this port. | Integer | `15001` |
-| `dialedDirectly` | Determines whether other proxies in transparent mode can directly dial this proxy instance's IP address. Proxies in transparent mode commonly dial upstreams at the [`virtual` tagged address](/consul/docs/services/configuration/services-configuration-reference#tagged_addresses-virtual), which load balances across instances. Dialing individual instances can be helpful when sending requests to stateful services, such as database clusters with a leader. | Boolean | `false` |
+| `dialedDirectly` | Determines whether other proxies in transparent mode can directly dial this proxy instance's IP address. Proxies in transparent mode commonly dial upstreams at the [`virtual` tagged address](/consul/docs/reference/service#tagged_addresses-virtual), which load balances across instances. Dialing individual instances can be helpful when sending requests to stateful services, such as database clusters with a leader. | Boolean | `false` |
 
 ### `spec.mutualTLSMode`
 
@@ -663,7 +663,7 @@ Example use-cases include exposing the `/metrics` endpoint to a monitoring syste
 
 ### `spec.expose{}.checks`
 
-Exposes all HTTP and gRPC checks registered with the agent when set to `true`. Envoy exposes listeners for the checks and only accepts connections originating from localhost or the [Consul agent's `advertise_addr`](/consul/docs/agent/config/config-files#advertise). The ports for the listeners are dynamically allocated from the [agent's `expose_min_port`](/consul/docs/agent/config/config-files#expose_min_port) and [`expose_max_port`](/consul/docs/agent/config/config-files#expose_max_port) configurations.
+Exposes all HTTP and gRPC checks registered with the agent when set to `true`. Envoy exposes listeners for the checks and only accepts connections originating from localhost or the [Consul agent's `advertise_addr`](/consul/docs/reference/agent/configuration-file#advertise). The ports for the listeners are dynamically allocated from the [agent's `expose_min_port`](/consul/docs/reference/agent/configuration-file#expose_min_port) and [`expose_max_port`](/consul/docs/reference/agent/configuration-file#expose_max_port) configurations.
 
 We recommend enabling the `Checks` configuration when a Consul client cannot reach registered services over localhost, such as when Consul agents run in their own pods in Kubernetes.
 
@@ -694,7 +694,7 @@ The following table describes the parameters for each map you can define in the 
 
 Sets a mode for the service that allows instances to prioritize upstream targets that are in the same network region and zone. You can specify the following string values for the `mode` field:
 
-- `failover`: If the upstream targets that a service is connected to become unreachable, the service prioritizes healthy upstream instances with matching `locality` configuration. Refer to [Route traffic to local upstreams](/consul/docs/connect/manage-traffic/route-to-local-upstreams) for additional information.
+- `failover`: If the upstream targets that a service is connected to become unreachable, the service prioritizes healthy upstream instances with matching `locality` configuration. Refer to [Route traffic to local upstreams](/consul/docs/manage-traffic/route-local) for additional information.
 
 #### Values
 
@@ -874,7 +874,7 @@ spec:
 
 ### Access Logs
 
-The following example enables access logs for all proxies. Refer to [access logs](/consul/docs/connect/observability/access-logs) for more detailed examples.
+The following example enables access logs for all proxies. Refer to [access logs](/consul/docs/observe/access-log) for more detailed examples.
 
 <Tabs>
 <Tab heading="HCL" group="hcl">

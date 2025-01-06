@@ -34,14 +34,14 @@ After defining your Terraform configuration, use `terraform apply` to deploy Con
 You must meet the following requirements and prerequisites to enable security features in Consul service mesh:
 
 - Enable [TLS encryption](/consul/docs/security/encryption#rpc-encryption-with-tls) on your Consul servers so that they can communicate securely with Consul containers over gRPC.
-- Enable [access control lists (ACLs)](/consul/docs/security/acl) on your Consul servers. ACLs provide authentication and authorization for access to Consul servers on the mesh.
+- Enable [access control lists (ACLs)](/consul/docs/secure/acl) on your Consul servers. ACLs provide authentication and authorization for access to Consul servers on the mesh.
 - You should be familiar with specifying sensitive data on ECS. Refer to [Passing sensitive data to a container](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/specifying-sensitive-data.html) in the AWS documentation for additional information.
 
 Additionally, Consul requires a unique IAM role for each ECS task family. Task IAM roles cannot be shared by different task families because the task family is unique to each Consul service.
 
 You should be familiar with configuring Consul's secure features, including how to create ACL tokens and policies. Refer to the following resources for additional information:
 
-- [Create a service token](/consul/docs/security/acl/tokens/create/create-a-service-token)
+- [Create a service token](/consul/docs/secure/acl/token/service)
 - [Day 1: Security tutorial](https://developer.hashicorp.com/consul/tutorials/security)
 
 ## Create the task definition
@@ -121,7 +121,7 @@ Provide Consul server connection settings to the mesh task module so that the mo
   ]
   ```
 
-  When you apply the configuration, the mesh task module interpolates the server configuration variables, builds a `config.tf` file, and injects the settings into the appropriate containers. For additional information about the `config.tf` file, refer to the [JSON schema reference documentation](/consul/docs/ecs/reference/consul-server-json).
+  When you apply the configuration, the mesh task module interpolates the server configuration variables, builds a `config.tf` file, and injects the settings into the appropriate containers. For additional information about the `config.tf` file, refer to the [JSON schema reference documentation](/consul/docs/reference/ecs/server-json).
 
 ## Configure an ECS service to run your task instances
 
@@ -160,8 +160,8 @@ The `gateway-task` module deploys a mesh gateway, which enables service-to-servi
 
 Refer to the following documentation for additional information:
 
-- [WAN Federation via Mesh Gateways](/consul/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways)
-- [Service-to-service Traffic Across Datacenters](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters)
+- [WAN Federation via Mesh Gateways](/consul/docs/east-west/mesh-gateway/enable)
+- [Service-to-service Traffic Across Datacenters](/consul/docs/east-west/mesh-gateway/federation)
 
 To use mesh gateways, TLS must be enabled in your cluster. Refer to the [requirements section](#requirements) for additional information.
 
@@ -215,8 +215,8 @@ Verify that you have completed the prerequisites described in [Secure configurat
     - `node:write`
     - `service:write`
 
-    The policy allows Consul to generate a token linked to the policy. Refer to [Create a service token](/consul/docs/security/acl/tokens/create/create-a-service-token) for instructions.
-1. Create a token and link it to the ACL controller policy. Refer to the [ACL tokens documentation](/consul/docs/security/acl/tokens) for instructions.
+    The policy allows Consul to generate a token linked to the policy. Refer to [Create a service token](/consul/docs/secure/acl/token/service) for instructions.
+1. Create a token and link it to the ACL controller policy. Refer to the [ACL tokens documentation](/consul/docs/secure/acl/token) for instructions.
 
 ### Configure an AWS secrets manager secret
 
@@ -378,8 +378,8 @@ Refer to the [Terraform documentation](/terraform/docs) for more information and
 
 After deploying the Consul service mesh infrastructure, you must still define routes between service instances as well as configure the bind address for your applications so that they only receive traffic through the mesh. Refer to the following topics:
 
-- [Configure routes between ECS tasks](/consul/docs/ecs/deploy/configure-routes)
-- [Configure the ECS task bind address](/consul/docs/ecs/deploy/bind-addresses)
+- [Configure routes between ECS tasks](/consul/docs/connect/ecs)
+- [Configure the ECS task bind address](/consul/docs/register/service/ecs/task-bind-address)
 
 ## Gateway task configuration examples
 
@@ -453,7 +453,7 @@ module "my_mesh_gateway" {
 
 ### WAN federation
 
-Configure the following options in the `gateway-task` to enable [WAN federation through mesh gateways](/consul/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways).
+Configure the following options in the `gateway-task` to enable [WAN federation through mesh gateways](/consul/docs/east-west/mesh-gateway/enable).
 
 | Option | Type | Description |
 | ---    | ---  | ---         |
@@ -476,4 +476,4 @@ module "my_mesh_gateway" {
 
 </CodeBlockConfig>
 
-When federating Consul datacenters over the WAN with ACLs enabled, [ACL Token replication](/consul/docs/security/acl/acl-federated-datacenters) must be enabled on all server and client agents in all datacenters.
+When federating Consul datacenters over the WAN with ACLs enabled, [ACL Token replication](/consul/docs/secure/acl/token/federation) must be enabled on all server and client agents in all datacenters.
