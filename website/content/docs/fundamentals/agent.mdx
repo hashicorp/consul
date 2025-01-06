@@ -54,39 +54,39 @@ required ports and their default settings.
 Some agent configuration options are reloadable at runtime.
 You can run the [`consul reload` command](/consul/commands/reload) to manually reload supported options from configuration files in the configuration directory.
 To configure the agent to automatically reload configuration files updated on disk,
-set the [`auto_reload_config` configuration option](/consul/docs/agent/config/config-files#auto_reload_config) parameter to `true`.
+set the [`auto_reload_config` configuration option](/consul/docs/reference/agent/configuration-file#auto_reload_config) parameter to `true`.
 
 The following agent configuration options are reloadable at runtime: 
 - ACL Tokens
-- [Configuration Entry Bootstrap](/consul/docs/agent/config/config-files#config_entries_bootstrap)
+- [Configuration Entry Bootstrap](/consul/docs/reference/agent/configuration-file#config_entries_bootstrap)
 - Checks
-- [Discard Check Output](/consul/docs/agent/config/config-files#discard_check_output)
+- [Discard Check Output](/consul/docs/reference/agent/configuration-file#discard_check_output)
 - HTTP Client Address
 - Log level
-- [Metric Prefix Filter](/consul/docs/agent/config/config-files#telemetry-prefix_filter)
-- [Node Metadata](/consul/docs/agent/config/config-files#node_meta)
+- [Metric Prefix Filter](/consul/docs/reference/agent/configuration-file#telemetry-prefix_filter)
+- [Node Metadata](/consul/docs/reference/agent/configuration-file#node_meta)
 - Some Raft options (since Consul 1.10.0)
-  - [`raft_snapshot_threshold`](/consul/docs/agent/config/config-files#_raft_snapshot_threshold)
-  - [`raft_snapshot_interval`](/consul/docs/agent/config/config-files#_raft_snapshot_interval)
-  - [`raft_trailing_logs`](/consul/docs/agent/config/config-files#_raft_trailing_logs)
+  - [`raft_snapshot_threshold`](/consul/docs/reference/agent/configuration-file#_raft_snapshot_threshold)
+  - [`raft_snapshot_interval`](/consul/docs/reference/agent/configuration-file#_raft_snapshot_interval)
+  - [`raft_trailing_logs`](/consul/docs/reference/agent/configuration-file#_raft_trailing_logs)
   - These can be important in certain outage situations so being able to control
     them without a restart provides a recovery path that doesn't involve
     downtime. They generally shouldn't be changed otherwise.
-- [RPC rate limits](/consul/docs/agent/config/config-files#limits)
-- [Reporting](/consul/docs/agent/config/config-files#reporting)
-- [HTTP Maximum Connections per Client](/consul/docs/agent/config/config-files#http_max_conns_per_client)
+- [RPC rate limits](/consul/docs/reference/agent/configuration-file#limits)
+- [Reporting](/consul/docs/reference/agent/configuration-file#reporting)
+- [HTTP Maximum Connections per Client](/consul/docs/reference/agent/configuration-file#http_max_conns_per_client)
 - Services
 - TLS Configuration
   - Please be aware that this is currently limited to reload a configuration that is already TLS enabled. You cannot enable or disable TLS only with reloading.
   - To avoid a potential security issue, the following TLS configuration parameters do not automatically reload when [-auto-reload-config](/consul/docs/agent/config/cli-flags#_auto_reload_config) is enabled:
-    - [encrypt_verify_incoming](/consul/docs/agent/config/config-files#encrypt_verify_incoming)
-    - [verify_incoming](/consul/docs/agent/config/config-files#verify_incoming)
-    - [verify_incoming_rpc](/consul/docs/agent/config/config-files#verify_incoming_rpc)
-    - [verify_incoming_https](/consul/docs/agent/config/config-files#verify_incoming_https)
-    - [verify_outgoing](/consul/docs/agent/config/config-files#verify_outgoing)
-    - [verify_server_hostname](/consul/docs/agent/config/config-files#verify_server_hostname)
-    - [ca_file](/consul/docs/agent/config/config-files#ca_file)
-    - [ca_path](/consul/docs/agent/config/config-files#ca_path)
+    - [encrypt_verify_incoming](/consul/docs/reference/agent/configuration-file#encrypt_verify_incoming)
+    - [verify_incoming](/consul/docs/reference/agent/configuration-file#verify_incoming)
+    - [verify_incoming_rpc](/consul/docs/reference/agent/configuration-file#verify_incoming_rpc)
+    - [verify_incoming_https](/consul/docs/reference/agent/configuration-file#verify_incoming_https)
+    - [verify_outgoing](/consul/docs/reference/agent/configuration-file#verify_outgoing)
+    - [verify_server_hostname](/consul/docs/reference/agent/configuration-file#verify_server_hostname)
+    - [ca_file](/consul/docs/reference/agent/configuration-file#ca_file)
+    - [ca_path](/consul/docs/reference/agent/configuration-file#ca_path)
 
     If any of those configurations are changed while [-auto-reload-config](/consul/docs/agent/config/cli-flags#_auto_reload_config) is enabled,
     Consul will issue the following warning, `Static Runtime config has changed and need a manual config reload to be applied`.

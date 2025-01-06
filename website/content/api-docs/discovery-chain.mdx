@@ -66,14 +66,14 @@ The table below shows this endpoint's support for
 ### JSON Request Body Schema
 
 - `OverrideConnectTimeout` `(duration: 0s)` - Overrides the final [connect
-  timeout](/consul/docs/connect/config-entries/service-resolver#connecttimeout) for
+  timeout](/consul/docs/reference/config-entry/service-resolver#connecttimeout) for
   any service resolved in the compiled chain.
 
   This value comes from the `connect_timeout_ms` key in the opaque `config` field of the [upstream
   configuration](/consul/docs/connect/proxies/proxy-config-reference#upstream-configuration-reference).
 
 - `OverrideProtocol` `(string: "")` - Overrides the final
-  [protocol](/consul/docs/connect/config-entries/service-defaults#protocol) used in
+  [protocol](/consul/docs/reference/config-entry/service-defaults#protocol) used in
   the compiled discovery chain.
 
   If the chain ordinarily would be TCP and an L7 protocol is passed here the

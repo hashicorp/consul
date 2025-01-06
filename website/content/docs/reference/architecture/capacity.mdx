@@ -166,7 +166,7 @@ resources:
 ### Raft tuning
 
 Consul uses the [Raft consensus algorithm](/consul/docs/concept/consensus) to provide consistency.
-You may need to adjust Raft to suit your specific environment. Adjust the [`raft_multiplier` configuration](/consul/docs/agent/config/config-files#raft_multiplier) to define the trade-off between leader stability and time to recover from a leader failure.
+You may need to adjust Raft to suit your specific environment. Adjust the [`raft_multiplier` configuration](/consul/docs/reference/agent/configuration-file#raft_multiplier) to define the trade-off between leader stability and time to recover from a leader failure.
 
 - A lower multiplier minimizes failure detection and election time, but it may trigger frequently in high latency situations.
 - A higher multiplier reduces the chances that failures cause leadership churn, but your cluster takes longer to detect real failures and restore availability.

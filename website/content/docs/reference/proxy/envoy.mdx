@@ -181,7 +181,7 @@ responsibility for correctly configuring Envoy and ensuring version support etc.
 ## Intention Enforcement
 
 [Intentions](/consul/docs/secure-mesh/intention) are enforced using Envoy's RBAC filters. Depending on the
-configured [protocol](/consul/docs/connect/config-entries/service-defaults#protocol) of the proxied service, intentions are either enforced
+configured [protocol](/consul/docs/reference/config-entry/service-defaults#protocol) of the proxied service, intentions are either enforced
 per-connection (L4) using a network filter, or per-request (L7) using an HTTP
 filter.
 
@@ -366,7 +366,7 @@ and also for the upstream listeners used by the service.
 
 One example is how users can define a service's protocol in the `Protocol` field of [`service-defaults` configuration
 entry](/consul/docs/reference/config-entry/service-defaults). Agents with
-[`enable_central_service_config`](/consul/docs/agent/config/config-files#enable_central_service_config)
+[`enable_central_service_config`](/consul/docs/reference/agent/configuration-file#enable_central_service_config)
 set to true will automatically discover the protocol when configuring a proxy
 for a service. The proxy will discover the main protocol of the service it
 represents and use this to configure its main public listener. It will also
@@ -413,7 +413,7 @@ defaults that are inherited by all services.
     metrics with `gRPC-status` trailer codes.
 
     ~> **Note:** The protocol of a service should ideally be configured via the
-    [`protocol`](/consul/docs/connect/config-entries/service-defaults#protocol)
+    [`protocol`](/consul/docs/reference/config-entry/service-defaults#protocol)
     field of a
     [`service-defaults`](/consul/docs/reference/config-entry/service-defaults)
     config entry for the service. Configuring it in a
@@ -465,7 +465,7 @@ definition](/consul/docs/reference/proxy/connect-proxy) or
   the upstream.
 
   ~> **Note:** The protocol of a service should ideally be configured via the
-  [`protocol`](/consul/docs/connect/config-entries/service-defaults#protocol)
+  [`protocol`](/consul/docs/reference/config-entry/service-defaults#protocol)
   field of a
   [`service-defaults`](/consul/docs/reference/config-entry/service-defaults)
   config entry for the upstream destination service. Configuring it in a
@@ -479,7 +479,7 @@ definition](/consul/docs/reference/proxy/connect-proxy) or
 
   ~> **Note:** The connection timeout for a service should ideally be
   configured via the
-  [`connect_timeout`](/consul/docs/connect/config-entries/service-resolver#connecttimeout)
+  [`connect_timeout`](/consul/docs/reference/config-entry/service-resolver#connecttimeout)
   field of a
   [`service-resolver`](/consul/docs/reference/config-entry/service-resolver)
   config entry for the upstream destination service. Configuring it in a
@@ -547,7 +547,7 @@ will continue to be supported.
 - `connect_timeout_ms` - The number of milliseconds to allow when making upstream
   connections before timing out. Defaults to 5000 (5 seconds). If the upstream
   service has the configuration option
-  [`connect_timeout_ms`](/consul/docs/connect/config-entries/service-resolver#connecttimeout)
+  [`connect_timeout_ms`](/consul/docs/reference/config-entry/service-resolver#connecttimeout)
   set for the `service-resolver`, that timeout value will take precedence over
   this gateway option.
 

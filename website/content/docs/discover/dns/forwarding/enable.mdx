@@ -57,7 +57,7 @@ Domains=~consul
 When using systemd 245 and older, you cannot specify port numbers in the `DNS` configuration field. systemd-resolved only uses port `53`, which is a privileged port.
 
 When you cannot specify ports for the system's configuration, there are two workarounds:
- - [Configure Consul DNS service to listen on port `53`](/consul/docs/agent/config/config-files#dns_port) instead of `8600`.
+ - [Configure Consul DNS service to listen on port `53`](/consul/docs/reference/agent/configuration-file#dns_port) instead of `8600`.
  - Map port `53` to `8600` using `iptables`. 
 
 Binding to port `53` usually requires running Consul as a privileged user or running Linux with the `CAP_NET_BIND_SERVICE` capability. 
@@ -350,7 +350,7 @@ include: "/etc/unbound/unbound.conf.d/*.conf"
 
 If you do not have a local DNS server on the Consul agent node, use `iptables` to forward DNS requests on port `53` to the Consul agent running on the same machine without using a secondary service.
 
-This configuration realizes full DNS forwarding, which means that all DNS queries for the host are forwarded to Consul, not just the ones for the `.consul` top level domain. Consul's default configuration resolves only the `.consul` top level domain, so you must set the [`recursors`](/consul/docs/agent/config/config-files#recursors) flag if you want your node to be able to resolve other domains when using `iptables` configuration.
+This configuration realizes full DNS forwarding, which means that all DNS queries for the host are forwarded to Consul, not just the ones for the `.consul` top level domain. Consul's default configuration resolves only the `.consul` top level domain, so you must set the [`recursors`](/consul/docs/reference/agent/configuration-file#recursors) flag if you want your node to be able to resolve other domains when using `iptables` configuration.
 
 If you use DNS relay hosts in your network, do not place them on the same host as Consul. The redirects may intercept the traffic.
 

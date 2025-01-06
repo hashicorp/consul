@@ -16,7 +16,7 @@ For more information on how to setup ACLs, refer to the following resources:
 ## Bootstrap ACLs
 
 This endpoint does a special one-time bootstrap of the ACL system, making the first
-management token if the [`acl.tokens.initial_management`](/consul/docs/agent/config/config-files#acl_tokens_initial_management)
+management token if the [`acl.tokens.initial_management`](/consul/docs/reference/agent/configuration-file#acl_tokens_initial_management)
 configuration entry is not specified in the Consul server configuration and if the
 cluster has not been bootstrapped previously. An operator created token can be provided in the body of the request to
 bootstrap the cluster if required. The provided token should be presented in a UUID format.
@@ -155,7 +155,7 @@ $ curl \
 
 - `SourceDatacenter` - The authoritative ACL datacenter that ACLs are being
   replicated from and will match the
-  [`primary_datacenter`](/consul/docs/agent/config/config-files#primary_datacenter) configuration.
+  [`primary_datacenter`](/consul/docs/reference/agent/configuration-file#primary_datacenter) configuration.
 
 - `ReplicationType` - The type of replication that is currently in use.
 
@@ -214,7 +214,7 @@ The table below shows this endpoint's support for
 
 -> **Note** - To use the login process to create tokens in any connected
 secondary datacenter, [ACL
-replication](/consul/docs/agent/config/config-files#acl_enable_token_replication) must be
+replication](/consul/docs/reference/agent/configuration-file#acl_enable_token_replication) must be
 enabled. Login requires the ability to create local tokens which is restricted
 to the primary datacenter and any secondary datacenters with ACL token
 replication enabled.
@@ -347,7 +347,7 @@ The table below shows this endpoint's support for
 
 -> **Note** - To use the login process to create tokens in any connected
 secondary datacenter, [ACL
-replication](/consul/docs/agent/config/config-files#acl_enable_token_replication) must be
+replication](/consul/docs/reference/agent/configuration-file#acl_enable_token_replication) must be
 enabled. Login requires the ability to create local tokens which is restricted
 to the primary datacenter and any secondary datacenters with ACL token
 replication enabled.
@@ -430,7 +430,7 @@ The table below shows this endpoint's support for
 
 -> **Note** - To use the login process to create tokens in any connected
 secondary datacenter, [ACL
-replication](/consul/docs/agent/config/config-files#acl_enable_token_replication) must be
+replication](/consul/docs/reference/agent/configuration-file#acl_enable_token_replication) must be
 enabled. Login requires the ability to create local tokens which is restricted
 to the primary datacenter and any secondary datacenters with ACL token
 replication enabled.

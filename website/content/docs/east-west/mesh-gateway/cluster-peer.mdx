@@ -46,7 +46,7 @@ Register a mesh gateway in each of cluster that will be peered.
 
 - Specify `mesh-gateway` in the `kind` field to register the gateway with Consul.
 - Define the `Proxy.Config` settings using opaque parameters compatible with your proxy. For Envoy, refer to the [Gateway Options](/consul/docs/connect/proxies/envoy#gateway-options) and [Escape-hatch Overrides](/consul/docs/connect/proxies/envoy#escape-hatch-overrides) documentation for additional configuration information.
-- Apply a [Mesh config entry](/consul/docs/connect/config-entries/mesh#peer-through-mesh-gateways) with `PeerThroughMeshGateways = true`. See [modes](#modes) for a discussion of when to apply this.
+- Apply a [Mesh config entry](/consul/docs/reference/config-entry/mesh#peer-through-mesh-gateways) with `PeerThroughMeshGateways = true`. See [modes](#modes) for a discussion of when to apply this.
 
 Alternatively, you can also use the CLI to spin up and register a gateway in Consul. For additional information, refer to the [`consul connect envoy` command](/consul/commands/connect/envoy#mesh-gateways).
 
@@ -109,7 +109,7 @@ partition_prefix "" {
 ### Modes
 
 Connect proxy configuration [Modes](/consul/docs/connect/gateways/mesh-gateway#connect-proxy-configuration#modes) are not applicable to peering control plane traffic.
-The flow of control plane traffic through the gateway is implied by the presence of a [Mesh config entry](/consul/docs/connect/config-entries/mesh#peer-through-mesh-gateways) with `PeerThroughMeshGateways = true`.
+The flow of control plane traffic through the gateway is implied by the presence of a [Mesh config entry](/consul/docs/reference/config-entry/mesh#peer-through-mesh-gateways) with `PeerThroughMeshGateways = true`.
 
 <CodeTabs heading="Example: Enabling Peering Control Plane Traffic for Mesh Gateways">
 

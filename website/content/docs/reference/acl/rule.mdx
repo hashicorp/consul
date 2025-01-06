@@ -637,7 +637,7 @@ These actions may required an ACL token to complete. Use the following methods t
 
 ### Reading Imported Nodes
 
-Nodes rules affect read access to nodes with services exported by [`exported-services` configuration entries](/consul/docs/connect/config-entries/exported-services#reading-services), including nodes imported from [cluster peerings](/consul/docs/east-west/cluster-peering) or [admin partitions](/consul/docs/multi-tenant/admin-partition) (Enterprise-only).
+Nodes rules affect read access to nodes with services exported by [`exported-services` configuration entries](/consul/docs/reference/config-entry/exported-services#reading-services), including nodes imported from [cluster peerings](/consul/docs/east-west/cluster-peering) or [admin partitions](/consul/docs/multi-tenant/admin-partition) (Enterprise-only).
 Read access to all imported nodes is granted when either of the following rule sets are attached to a token:
 - `service:write` is granted to any service.
 - `node:read` is granted to all nodes.

@@ -1064,7 +1064,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
   set [`acl.enable_token_replication`](#acl_enable_token_replication) to true for backward compatibility.
 
   If there's a partition or other outage affecting the authoritative datacenter, and the
-  [`acl_down_policy`](/consul/docs/agent/config/config-files#acl_down_policy) is set to "extend-cache", tokens not
+  [`acl_down_policy`](/consul/docs/reference/agent/configuration-file#acl_down_policy) is set to "extend-cache", tokens not
   in the cache can be resolved during the outage using the replicated set of ACLs.
 
 - `acl_token` ((#acl_token_legacy)) - **Deprecated in Consul 1.4.0. See
@@ -1580,10 +1580,10 @@ subsystem that provides Consul's service mesh capabilities.
 
 - `retry_interval_wan` Equivalent to the [`-retry-interval-wan` command-line flag](/consul/docs/agent/config/cli-flags#_retry_interval_wan).
 
-- `start_join` **Deprecated in Consul 1.15. Use the [`retry_join`](/consul/docs/agent/config/config-files#retry_join) field instead. This field will be removed in a future version of Consul.**
+- `start_join` **Deprecated in Consul 1.15. Use the [`retry_join`](/consul/docs/reference/agent/configuration-file#retry_join) field instead. This field will be removed in a future version of Consul.**
   This field is an alias of `retry_join`.
 
-- `start_join_wan` **Deprecated in Consul 1.15. Use the [`retry_join_wan`](/consul/docs/agent/config/config-files#retry_join_wan) field instead. This field will be removed in a future version of Consul.**
+- `start_join_wan` **Deprecated in Consul 1.15. Use the [`retry_join_wan`](/consul/docs/reference/agent/configuration-file#retry_join_wan) field instead. This field will be removed in a future version of Consul.**
   This field is an alias of `retry_join_wan`.
 
 ## Log Parameters

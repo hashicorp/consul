@@ -388,7 +388,7 @@ The following table describes how to configure values in the `TransparentProxy` 
 | Parameter | Description | Data type | Default |
 | ---       | ---         | ---       | ---     |
 | `OutboundListenerPort` | Specifies the port that the proxy listens on for outbound traffic. Outbound application traffic must be captured and redirected to this port. | Integer | `15001` |
-| `DialedDirectly` | Determines whether other proxies in transparent mode can directly dial this proxy instance's IP address. Proxies in transparent mode commonly dial upstreams at the [`virtual` tagged address](/consul/docs/services/configuration/services-configuration-reference#tagged_addresses-virtual), which load balances across instances. Dialing individual instances can be helpful when sending requests to stateful services, such as database clusters with a leader. | Boolean | `false` |
+| `DialedDirectly` | Determines whether other proxies in transparent mode can directly dial this proxy instance's IP address. Proxies in transparent mode commonly dial upstreams at the [`virtual` tagged address](/consul/docs/reference/service#tagged_addresses-virtual), which load balances across instances. Dialing individual instances can be helpful when sending requests to stateful services, such as database clusters with a leader. | Boolean | `false` |
 
 ### `MutualTLSMode`
 
@@ -434,7 +434,7 @@ Example use-cases include exposing the `/metrics` endpoint to a monitoring syste
 
 ### `Expose{}.Checks`
 
-Exposes all HTTP and gRPC checks registered with the agent when set to `true`. Envoy exposes listeners for the checks and only accepts connections originating from localhost or the [Consul agent's `advertise_addr`](/consul/docs/agent/config/config-files#advertise). The ports for the listeners are dynamically allocated from the [agent's `expose_min_port`](/consul/docs/agent/config/config-files#expose_min_port) and [`expose_max_port`](/consul/docs/agent/config/config-files#expose_max_port) configurations.
+Exposes all HTTP and gRPC checks registered with the agent when set to `true`. Envoy exposes listeners for the checks and only accepts connections originating from localhost or the [Consul agent's `advertise_addr`](/consul/docs/reference/agent/configuration-file#advertise). The ports for the listeners are dynamically allocated from the [agent's `expose_min_port`](/consul/docs/reference/agent/configuration-file#expose_min_port) and [`expose_max_port`](/consul/docs/reference/agent/configuration-file#expose_max_port) configurations.
 
 We recommend enabling the `Checks` configuration when a Consul client cannot reach registered services over localhost.
 
@@ -617,7 +617,7 @@ The following table describes how to configure values in the `TransparentProxy` 
 | Parameter | Description | Data type | Default |
 | ---       | ---         | ---       | ---     |
 | `outboundListenerPort` | Specifies the port that the proxy listens on for outbound traffic. Outbound application traffic must be captured and redirected to this port. | Integer | `15001` |
-| `dialedDirectly` | Determines whether other proxies in transparent mode can directly dial this proxy instance's IP address. Proxies in transparent mode commonly dial upstreams at the [`virtual` tagged address](/consul/docs/services/configuration/services-configuration-reference#tagged_addresses-virtual), which load balances across instances. Dialing individual instances can be helpful when sending requests to stateful services, such as database clusters with a leader. | Boolean | `false` |
+| `dialedDirectly` | Determines whether other proxies in transparent mode can directly dial this proxy instance's IP address. Proxies in transparent mode commonly dial upstreams at the [`virtual` tagged address](/consul/docs/reference/service#tagged_addresses-virtual), which load balances across instances. Dialing individual instances can be helpful when sending requests to stateful services, such as database clusters with a leader. | Boolean | `false` |
 
 ### `spec.mutualTLSMode`
 
@@ -663,7 +663,7 @@ Example use-cases include exposing the `/metrics` endpoint to a monitoring syste
 
 ### `spec.expose{}.checks`
 
-Exposes all HTTP and gRPC checks registered with the agent when set to `true`. Envoy exposes listeners for the checks and only accepts connections originating from localhost or the [Consul agent's `advertise_addr`](/consul/docs/agent/config/config-files#advertise). The ports for the listeners are dynamically allocated from the [agent's `expose_min_port`](/consul/docs/agent/config/config-files#expose_min_port) and [`expose_max_port`](/consul/docs/agent/config/config-files#expose_max_port) configurations.
+Exposes all HTTP and gRPC checks registered with the agent when set to `true`. Envoy exposes listeners for the checks and only accepts connections originating from localhost or the [Consul agent's `advertise_addr`](/consul/docs/reference/agent/configuration-file#advertise). The ports for the listeners are dynamically allocated from the [agent's `expose_min_port`](/consul/docs/reference/agent/configuration-file#expose_min_port) and [`expose_max_port`](/consul/docs/reference/agent/configuration-file#expose_max_port) configurations.
 
 We recommend enabling the `Checks` configuration when a Consul client cannot reach registered services over localhost, such as when Consul agents run in their own pods in Kubernetes.
 

@@ -196,8 +196,8 @@ The following settings are commonly used in the configuration file (also called 
 | `data_dir`   | String value that specifies a directory for storing agent state data. <br/>See [`-data-dir`](/consul/docs/agent/config/cli-flags#_data_dir) for details.                                                                                                                                   | none                                                                                                             |
 | `log_level`  | String value that specifies the level of logging the agent reports. <br/>See [`-log-level`](/consul/docs/agent/config/cli-flags#_log_level) for details.                                                                                                                                    | `info`                                                                                                           |
 | `retry_join` | Array of string values that specify one or more agent addresses to join after startup. The agent will continue trying to join the specified agents until it has successfully joined another member. <br/>See [`-retry-join`](/consul/docs/agent/config/cli-flags#_retry_join) for details. | none                                                                                                             |
-| `addresses`  | Block of nested objects that define addresses bound to the agent for internal cluster communication.                                                                                                                                                                       | `"http": "0.0.0.0"` See the Agent Configuration page for [default address values](/consul/docs/agent/config/config-files#addresses) |
-| `ports`      | Block of nested objects that define ports bound to agent addresses. <br/>See (link to addresses option) for details.                                                                                                                                                       | See the Agent Configuration page for [default port values](/consul/docs/agent/config/config-files#ports)                            |
+| `addresses`  | Block of nested objects that define addresses bound to the agent for internal cluster communication.                                                                                                                                                                       | `"http": "0.0.0.0"` See the Agent Configuration page for [default address values](/consul/docs/reference/agent/configuration-file#addresses) |
+| `ports`      | Block of nested objects that define ports bound to agent addresses. <br/>See (link to addresses option) for details.                                                                                                                                                       | See the Agent Configuration page for [default port values](/consul/docs/reference/agent/configuration-file#ports)                            |
 
 ### Server node in a service mesh
 
@@ -376,9 +376,9 @@ service {
 
 The following example shows how to configure Consul to listen on multiple interfaces or IP addresses using a [go-sockaddr template].
 
-The `bind_addr` is used for internal RPC and Serf communication ([read the Agent Configuration for more information](/consul/docs/agent/config/config-files#bind_addr)).
+The `bind_addr` is used for internal RPC and Serf communication ([read the Agent Configuration for more information](/consul/docs/reference/agent/configuration-file#bind_addr)).
 
-The `client_addr` configuration specifies IP addresses used for HTTP, HTTPS, DNS and gRPC servers. ([read the Agent Configuration for more information](/consul/docs/agent/config/config-files#client_addr)).
+The `client_addr` configuration specifies IP addresses used for HTTP, HTTPS, DNS and gRPC servers. ([read the Agent Configuration for more information](/consul/docs/reference/agent/configuration-file#client_addr)).
 
 <CodeTabs>
 
@@ -456,8 +456,8 @@ may not be important for your use case. For example, for a web server and load
 balancer setup, both result in the same outcome: the web node is removed
 from the load balancer pool.
 
-The [`skip_leave_on_interrupt`](/consul/docs/agent/config/config-files#skip_leave_on_interrupt) and
-[`leave_on_terminate`](/consul/docs/agent/config/config-files#leave_on_terminate) configuration
+The [`skip_leave_on_interrupt`](/consul/docs/reference/agent/configuration-file#skip_leave_on_interrupt) and
+[`leave_on_terminate`](/consul/docs/reference/agent/configuration-file#leave_on_terminate) configuration
 options allow you to adjust this behavior.
 
 <!-- list of reference-style links -->

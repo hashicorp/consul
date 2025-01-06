@@ -102,7 +102,7 @@ $ docker kill --signal=HUP <container_id>
 
 ### Remove servers from the datacenter
 
-As long as there are enough servers in the datacenter to maintain [quorum](/consul/docs/architecture/consensus#deployment-table), Consul's [autopilot](/consul/tutorials/datacenter-operations/autopilot-datacenter-operations) feature will handle removing servers whose containers were stopped. Autopilot's default settings are already configured correctly. If you override them, make sure that the following [settings](/consul/docs/agent/config/config-files#autopilot) are appropriate.
+As long as there are enough servers in the datacenter to maintain [quorum](/consul/docs/architecture/consensus#deployment-table), Consul's [autopilot](/consul/tutorials/datacenter-operations/autopilot-datacenter-operations) feature will handle removing servers whose containers were stopped. Autopilot's default settings are already configured correctly. If you override them, make sure that the following [settings](/consul/docs/reference/agent/configuration-file#autopilot) are appropriate.
 
 - `cleanup_dead_servers` must be set to true to make sure that a stopped container is removed from the datacenter.
 - `last_contact_threshold` should be reasonably small, so that dead servers are removed quickly.

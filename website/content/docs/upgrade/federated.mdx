@@ -49,7 +49,7 @@ You will also need to enable ACL replication, which you can do by following the 
 Datacenters](/consul/tutorials/security-operations/access-control-replication-multiple-datacenters) 
 tutorial.
 
-Lastly, if you are using Consul service mesh, you should set [`enable_central_service_config = true`](/consul/docs/agent/config/config-files#enable_central_service_config)
+Lastly, if you are using Consul service mesh, you should set [`enable_central_service_config = true`](/consul/docs/reference/agent/configuration-file#enable_central_service_config)
 on your Consul clients which will allow you to centrally configure the sidecar 
 and mesh gateway proxies.
 
@@ -80,7 +80,7 @@ tutorial to learn how to perform a snapshot on an existing Consul datacenter.
 
 ### Increase log verbosity on agents
 
-Temporarily modify your Consul server configuration so that their [log_level](/consul/docs/agent/config/config-files#_log_level) 
+Temporarily modify your Consul server configuration so that their [log_level](/consul/docs/reference/agent/configuration-file#_log_level) 
 is set to `debug`. Use the following command on your servers
 to reload the configuration.
 

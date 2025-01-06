@@ -20,10 +20,10 @@ See [Terminating Gateway](/consul/docs/north-south/terminating-gateway) for more
 
 ## TLS Origination
 
-By specifying a path to a [CA file](/consul/docs/connect/config-entries/terminating-gateway#cafile) connections
+By specifying a path to a [CA file](/consul/docs/reference/config-entry/terminating-gateway#cafile) connections
 from the terminating gateway will be encrypted using one-way TLS authentication. If a path to a
-[client certificate](/consul/docs/connect/config-entries/terminating-gateway#certfile)
-and [private key](/consul/docs/connect/config-entries/terminating-gateway#keyfile) are also specified connections
+[client certificate](/consul/docs/reference/config-entry/terminating-gateway#certfile)
+and [private key](/consul/docs/reference/config-entry/terminating-gateway#keyfile) are also specified connections
 from the terminating gateway will be encrypted using mutual TLS authentication.
 
 ~> Setting the `SNI` field is strongly recommended when enabling TLS to a service. If this field is not set,

@@ -604,14 +604,14 @@ The `/agent/service/register` endpoint supports camel case and _snake case_ for 
 
 - `Name` `(string: <required>)` - Specifies the logical name of the service.
   Many service instances may share the same logical service name. We recommend using
-  valid DNS labels for service definition names. Refer to the Internet Engineering Task Force's [RFC 1123](https://datatracker.ietf.org/doc/html/rfc1123#page-72) for additional information. Service names that conform to standard usage ensures compatibility with external DNSs. Refer to [Services Configuration Reference](/consul/docs/services/configuration/services-configuration-reference#name) for additional information.
+  valid DNS labels for service definition names. Refer to the Internet Engineering Task Force's [RFC 1123](https://datatracker.ietf.org/doc/html/rfc1123#page-72) for additional information. Service names that conform to standard usage ensures compatibility with external DNSs. Refer to [Services Configuration Reference](/consul/docs/reference/service#name) for additional information.
 
 - `ID` `(string: "")` - Specifies a unique ID for this service. This must be
   unique per _agent_. This defaults to the `Name` parameter if not provided.
 
 - `Tags` `(array<string>: nil)` - Specifies a list of tags to assign to the
   service. Tags enable you to filter when querying for the services and are exposed in Consul APIs. We recommend using
-  valid DNS labels for tags. Refer to the Internet Engineering Task Force's [RFC 1123](https://datatracker.ietf.org/doc/html/rfc1123#page-72) for additional information. Tags that conform to standard usage ensures compatibility with external DNSs. Refer to [Services Configuration Reference](/consul/docs/services/configuration/services-configuration-reference#tags) for additional information.
+  valid DNS labels for tags. Refer to the Internet Engineering Task Force's [RFC 1123](https://datatracker.ietf.org/doc/html/rfc1123#page-72) for additional information. Tags that conform to standard usage ensures compatibility with external DNSs. Refer to [Services Configuration Reference](/consul/docs/reference/service#tags) for additional information.
 
 - `Address` `(string: "")` - Specifies the address of the service. If not
   provided, the agent's address is used as the address for the service during

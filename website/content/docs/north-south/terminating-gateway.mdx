@@ -10,7 +10,7 @@ description: >-
 -> **1.8.0+:** This feature is available in Consul versions 1.8.0 and newer.
 
 Terminating gateways enable connectivity within your organizational network from services in the Consul service mesh to
-services and [destinations](/consul/docs/connect/config-entries/service-defaults#terminating-gateway-destination) outside the mesh. These gateways effectively act as service mesh proxies that can
+services and [destinations](/consul/docs/reference/config-entry/service-defaults#terminating-gateway-destination) outside the mesh. These gateways effectively act as service mesh proxies that can
 represent more than one service. They terminate service mesh mTLS connections, enforce intentions,
 and forward requests to the appropriate destination.
 
@@ -30,10 +30,10 @@ hold certificates to decrypt Consul service mesh traffic directed at them and ma
 to linked services. Connections over the WAN or open internet should flow through [mesh gateways](/consul/docs/east-west/mesh-gateway)
 whenever possible since they are not capable of decrypting traffic or connecting directly to services.
 
-By specifying a path to a [CA file](/consul/docs/connect/config-entries/terminating-gateway#cafile) connections
+By specifying a path to a [CA file](/consul/docs/reference/config-entry/terminating-gateway#cafile) connections
 from the terminating gateway will be encrypted using one-way TLS authentication. If a path to a
-[client certificate](/consul/docs/connect/config-entries/terminating-gateway#certfile)
-and [private key](/consul/docs/connect/config-entries/terminating-gateway#keyfile) are also specified connections
+[client certificate](/consul/docs/reference/config-entry/terminating-gateway#certfile)
+and [private key](/consul/docs/reference/config-entry/terminating-gateway#keyfile) are also specified connections
 from the terminating gateway will be encrypted using mutual TLS authentication.
 
 If none of these are provided, Consul will **only** encrypt connections to the gateway and not
@@ -58,8 +58,8 @@ Each terminating gateway needs:
 Terminating gateways also require that your Consul datacenters are configured correctly:
 
 - You'll need to use Consul version 1.8.0 or newer.
-- Consul [service mesh](/consul/docs/agent/config/config-files#connect) must be enabled on the datacenter's Consul servers.
-- [gRPC](/consul/docs/agent/config/config-files#grpc_port) must be enabled on all client agents.
+- Consul [service mesh](/consul/docs/reference/agent/configuration-file#connect) must be enabled on the datacenter's Consul servers.
+- [gRPC](/consul/docs/reference/agent/configuration-file#grpc_port) must be enabled on all client agents.
 
 Currently, [Envoy](https://www.envoyproxy.io/) is the only proxy with terminating gateway capabilities in Consul.
 
@@ -121,7 +121,7 @@ However, ensure that the [node name](/consul/api-docs/catalog#node) for external
 does not match the node name of any Consul client agent node. If the node name overlaps with the node name of a Consul client agent,
 Consul's [anti-entropy sync](/consul/docs/concept/consistency) will delete the services registered via the `/catalog/register` HTTP API endpoint.
 
-Service-defaults [destinations](/consul/docs/connect/config-entries/service-defaults#destination) let you
+Service-defaults [destinations](/consul/docs/reference/config-entry/service-defaults#destination) let you
 define endpoints external to the mesh and routable through a terminating gateway in transparent mode.
 After you define a service-defaults configuration entry for each destination, you can use the service-default name as part of the terminating gateway services list.
 If a service and a destination service-defaults have the same name, the terminating gateway will use the service.

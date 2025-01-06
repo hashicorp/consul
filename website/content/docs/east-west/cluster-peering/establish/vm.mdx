@@ -139,7 +139,7 @@ You can dial the `peering/establish` endpoint once per peering token. Peering to
 
 After you establish a connection between the clusters, you need to create an `exported-services` configuration entry that defines the services that are available for other clusters. Consul uses this configuration entry to advertise service information and support service mesh connections across clusters. 
 
-An `exported-services` configuration entry makes services available to another admin partition. While it can target admin partitions either locally or remotely. Clusters peers always export services to remote partitions. Refer to [exported service consumers](/consul/docs/connect/config-entries/exported-services#consumers-1) for more information.
+An `exported-services` configuration entry makes services available to another admin partition. While it can target admin partitions either locally or remotely. Clusters peers always export services to remote partitions. Refer to [exported service consumers](/consul/docs/reference/config-entry/exported-services#consumers-1) for more information.
 
 You must use the Consul CLI to complete this step. The HTTP API and the Consul UI do not support `exported-services` configuration entries.
 
@@ -264,6 +264,6 @@ Read access to all imported services is granted using either of the following ru
   
 For Consul Enterprise, the permissions apply to all imported services in the service's partition. These permissions are satisfied when using a [service identity](/consul/docs/security/acl/acl-roles#service-identities).
 
-Refer to [Reading services](/consul/docs/connect/config-entries/exported-services#reading-services) in the `exported-services` configuration entry documentation for example rules.
+Refer to [Reading services](/consul/docs/reference/config-entry/exported-services#reading-services) in the `exported-services` configuration entry documentation for example rules.
 
 For additional information about how to configure and use ACLs, refer to [ACLs system overview](/consul/docs/secure/acl).

@@ -409,7 +409,7 @@ Specifies a block of default configurations to apply to the gateway listener. Al
 
 ### `Listeners[].default{}.JWT`
 
-Specifies a block of default JWT verification configurations to apply to the gateway listener. Specify configurations that have precedence over the defaults in either the [`override.JWT` block](#listeners-override) or in the [`JWT` block](/consul/docs/connect/config-entries/http-route#rules-filters-jwt) in the HTTP route configuration. Refer to [Use JWTs to verify requests to API gateways](/consul/docs/north-south/api-gateway/secure-traffic/jwt/vm) for order of precedence and other details about using JWT verification in API gateways.
+Specifies a block of default JWT verification configurations to apply to the gateway listener. Specify configurations that have precedence over the defaults in either the [`override.JWT` block](#listeners-override) or in the [`JWT` block](/consul/docs/reference/config-entry/http-route#rules-filters-jwt) in the HTTP route configuration. Refer to [Use JWTs to verify requests to API gateways](/consul/docs/north-south/api-gateway/secure-traffic/jwt/vm) for order of precedence and other details about using JWT verification in API gateways.
 
 #### Values
 
@@ -418,7 +418,7 @@ Specifies a block of default JWT verification configurations to apply to the gat
 
 ### `Listeners[].default{}.JWT{}.Providers`
 
-Specifies a list of default JWT provider configurations to apply to the gateway listener. A provider configuration contains the name of the provider and claims. Specify configurations that have precedence over the defaults in either the [`override.JWT.Providers` block](#listeners-override-providers) or in the [`JWT` block](/consul/docs/connect/config-entries/http-route#rules-filters-jwt-providers) of the HTTP route configuration. Refer to [Use JWTs to verify requests to API gateways](/consul/docs/north-south/api-gateway/secure-traffic/jwt/vm) for order of precedence and other details about using JWT verification in API gateways.
+Specifies a list of default JWT provider configurations to apply to the gateway listener. A provider configuration contains the name of the provider and claims. Specify configurations that have precedence over the defaults in either the [`override.JWT.Providers` block](#listeners-override-providers) or in the [`JWT` block](/consul/docs/reference/config-entry/http-route#rules-filters-jwt-providers) of the HTTP route configuration. Refer to [Use JWTs to verify requests to API gateways](/consul/docs/north-south/api-gateway/secure-traffic/jwt/vm) for order of precedence and other details about using JWT verification in API gateways.
 
 #### Values
 

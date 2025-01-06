@@ -37,7 +37,7 @@ When running a Consul agent with CTS in production, consider that CTS uses [bloc
 
 To avoid reaching the limit prematurely, we recommend using HTTP/2 (requires HTTPS) to communicate between CTS and the Consul agent. When using HTTP/2, CTS establishes a single connection and reuses it for all communication. Refer to the [Consul Configuration section](/consul/docs/nia/configuration#consul) for details.
 
-Alternatively, you can configure the [`limits.http_max_conns_per_client`](/consul/docs/agent/config/config-files#http_max_conns_per_client) option to set a maximum number of connections to meet your needs.
+Alternatively, you can configure the [`limits.http_max_conns_per_client`](/consul/docs/reference/agent/configuration-file#http_max_conns_per_client) option to set a maximum number of connections to meet your needs.
 
 ### Register services
 

@@ -18,7 +18,7 @@ upgrade flow.
 
 ### Mesh traffic request path normalization enabled by default
 
-As of Consul v1.20.1, inbound traffic to mesh proxies will have Envoy request [path normalization](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto#envoy-v3-api-field-extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-normalize-path) applied by default. This should not interfere with the majority of service traffic, but can be disabled if needed by setting `http.incoming.request_normalization.insecure_disable_path_normalization` to `true` in the [global `mesh` configuration entry](/consul/docs/connect/config-entries/mesh#request-normalization). This setting is generally safe to change if not using L7 intentions with path matching.
+As of Consul v1.20.1, inbound traffic to mesh proxies will have Envoy request [path normalization](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto#envoy-v3-api-field-extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-normalize-path) applied by default. This should not interfere with the majority of service traffic, but can be disabled if needed by setting `http.incoming.request_normalization.insecure_disable_path_normalization` to `true` in the [global `mesh` configuration entry](/consul/docs/reference/config-entry/mesh#request-normalization). This setting is generally safe to change if not using L7 intentions with path matching.
 
 ## Consul v1.19.x
 
@@ -51,13 +51,13 @@ On Kubernetes, the modern API gateway is associated with the `connectInject.apiG
 
 ### Mesh traffic request path normalization enabled by default
 
-As of Consul v1.19.3, inbound traffic to mesh proxies will have Envoy request [path normalization](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto#envoy-v3-api-field-extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-normalize-path) applied by default. This should not interfere with the majority of service traffic, but can be disabled if needed by setting `http.incoming.request_normalization.insecure_disable_path_normalization` to `true` in the [global `mesh` configuration entry](/consul/docs/connect/config-entries/mesh#request-normalization). This setting is generally safe to change if not using L7 intentions with path matching.
+As of Consul v1.19.3, inbound traffic to mesh proxies will have Envoy request [path normalization](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto#envoy-v3-api-field-extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-normalize-path) applied by default. This should not interfere with the majority of service traffic, but can be disabled if needed by setting `http.incoming.request_normalization.insecure_disable_path_normalization` to `true` in the [global `mesh` configuration entry](/consul/docs/reference/config-entry/mesh#request-normalization). This setting is generally safe to change if not using L7 intentions with path matching.
 
 ## Consul 1.18.x
 
 ### Mesh traffic request path normalization enabled by default
 
-As of Consul v1.18.5, inbound traffic to mesh proxies will have Envoy request [path normalization](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto#envoy-v3-api-field-extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-normalize-path) applied by default. This should not interfere with the majority of service traffic, but can be disabled if needed by setting `http.incoming.request_normalization.insecure_disable_path_normalization` to `true` in the [global `mesh` configuration entry](/consul/docs/connect/config-entries/mesh#request-normalization). This setting is generally safe to change if not using L7 intentions with path matching.
+As of Consul v1.18.5, inbound traffic to mesh proxies will have Envoy request [path normalization](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto#envoy-v3-api-field-extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-normalize-path) applied by default. This should not interfere with the majority of service traffic, but can be disabled if needed by setting `http.incoming.request_normalization.insecure_disable_path_normalization` to `true` in the [global `mesh` configuration entry](/consul/docs/reference/config-entry/mesh#request-normalization). This setting is generally safe to change if not using L7 intentions with path matching.
 
 ## Consul 1.17.x
 
@@ -71,7 +71,7 @@ After Consul 1.17.0, only timestamps will be included in rotated log file names.
 
 #### Service-defaults upstream config (Enterprise)
 Prior to Consul v1.17.0, [Kubernetes annotations for upstream services](/consul/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams)
-that did not explicitly specify a namespace or partition incorrectly used service-defaults configurations, such as [default protocol](https://developer.hashicorp.com/consul/docs/connect/config-entries/service-defaults#set-the-default-protocol), from the default partition and namespace instead of the local partition and namespace.
+that did not explicitly specify a namespace or partition incorrectly used service-defaults configurations, such as [default protocol](https://developer.hashicorp.com/consul/docs/reference/config-entry/service-defaults#set-the-default-protocol), from the default partition and namespace instead of the local partition and namespace.
 
 This bug is fixed starting in Consul v1.17.0. Now service-defaults configurations from the local partition and namespace are fetched when not specified in annotations.
 If you are using non-default partitions and namespaces with Consul-k8s, we recommend explicitly defining these fields for all upstreams in addition to ensuring that accurate
@@ -110,8 +110,8 @@ Before upgrading, ensure that all of your applications can handle this new API b
 
 #### Remove deprecated service-defaults peer upstream override behavior
 
-When configuring a service defaults configuration entry, the [`UpstreamConfig.Overrides` configuration](/consul/docs/connect/config-entries/service-defaults#upstreamconfig-overrides)
-does not apply to peer upstreams unless the [`Peer`](/consul/docs/connect/config-entries/service-defaults#upstreamconfig-overrides-peer) field is explicitly provided.
+When configuring a service defaults configuration entry, the [`UpstreamConfig.Overrides` configuration](/consul/docs/reference/config-entry/service-defaults#upstreamconfig-overrides)
+does not apply to peer upstreams unless the [`Peer`](/consul/docs/reference/config-entry/service-defaults#upstreamconfig-overrides-peer) field is explicitly provided.
 This change removes the backward-compatibility behavior introduced in Consul 1.15.x. Refer to the [upgrade instructions for 1.15.x](#service-defaults-overrides-for-upstream-peered-services) for more information.
 
 ## Consul 1.15.x
@@ -210,8 +210,8 @@ In Consul v1.15 and higher:
 
 #### `service-defaults` Overrides for Upstream Peered Services
 
-In Consul 1.14.x, `service-defaults` upstream [`overrides`](/consul/docs/connect/config-entries/service-defaults#overrides) apply to both local and peered services as long as the `name` field matches.
-Consul 1.15.0 is backward compatible with 1.14 if the [`peer`](/consul/docs/connect/config-entries/service-defaults#peer) is not set in any override.
+In Consul 1.14.x, `service-defaults` upstream [`overrides`](/consul/docs/reference/config-entry/service-defaults#overrides) apply to both local and peered services as long as the `name` field matches.
+Consul 1.15.0 is backward compatible with 1.14 if the [`peer`](/consul/docs/reference/config-entry/service-defaults#peer) is not set in any override.
 We recommend converting any upstream peer service overrides as a 1.15.x post-upgrade step.
 
 Before Consul v1.15:
@@ -258,7 +258,7 @@ In Consul v1.15 and higher:
 
 ### Mesh traffic request path normalization enabled by default
 
-As of Consul v1.15.15, inbound traffic to mesh proxies will have Envoy request [path normalization](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto#envoy-v3-api-field-extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-normalize-path) applied by default. This should not interfere with the majority of service traffic, but can be disabled if needed by setting `http.incoming.request_normalization.insecure_disable_path_normalization` to `true` in the [global `mesh` configuration entry](/consul/docs/connect/config-entries/mesh#request-normalization). This setting is generally safe to change if not using L7 intentions with path matching.
+As of Consul v1.15.15, inbound traffic to mesh proxies will have Envoy request [path normalization](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto#envoy-v3-api-field-extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-normalize-path) applied by default. This should not interfere with the majority of service traffic, but can be disabled if needed by setting `http.incoming.request_normalization.insecure_disable_path_normalization` to `true` in the [global `mesh` configuration entry](/consul/docs/reference/config-entry/mesh#request-normalization). This setting is generally safe to change if not using L7 intentions with path matching.
 
 ## Consul 1.14.x
 
@@ -268,9 +268,9 @@ A breaking change was made in Consul 1.14 that:
 - [Cluster Peering is enabled by default.](/consul/docs/east-west/cluster-peering)
   Cluster peering and WAN federation can coexist,
   so there is no need to disable cluster peering to upgrade existing WAN federated datacenters.
-  To disable cluster peering nonetheless, set [`peering.enabled`](/consul/docs/agent/config/config-files#peering_enabled) to `false`.
+  To disable cluster peering nonetheless, set [`peering.enabled`](/consul/docs/reference/agent/configuration-file#peering_enabled) to `false`.
 - [Consul service mesh is enabled by default.](/consul/docs/connect)
-  To disable, set [`connect.enabled`](/consul/docs/agent/config/config-files#connect_enabled) to `false`.
+  To disable, set [`connect.enabled`](/consul/docs/reference/agent/configuration-file#connect_enabled) to `false`.
 
 The changes to Consul service mesh in version 1.14 are incompatible with Nomad 1.4.3 and
 earlier. If you operate Consul service mesh using Nomad 1.4.3 or earlier, do not upgrade to
@@ -293,23 +293,23 @@ Set your configuration by calling [set-config](/consul/commands/connect/ca#set-c
 
 #### Changes to gRPC TLS configuration
 
-**Make configuration changes** if using [`ports.grpc`](/consul/docs/agent/config/config-files#grpc_port) in conjunction with any of the following settings that enables encryption:
-1. [`tls.grpc`](/consul/docs/agent/config/config-files#tls_grpc)
-1. [`tls.defaults`](/consul/docs/agent/config/config-files#tls_defaults)
-1. [`auto_encrypt`](/consul/docs/agent/config/config-files#auto_encrypt)
-1. [`auto_config`](/consul/docs/agent/config/config-files#auto_config)
+**Make configuration changes** if using [`ports.grpc`](/consul/docs/reference/agent/configuration-file#grpc_port) in conjunction with any of the following settings that enables encryption:
+1. [`tls.grpc`](/consul/docs/reference/agent/configuration-file#tls_grpc)
+1. [`tls.defaults`](/consul/docs/reference/agent/configuration-file#tls_defaults)
+1. [`auto_encrypt`](/consul/docs/reference/agent/configuration-file#auto_encrypt)
+1. [`auto_config`](/consul/docs/reference/agent/configuration-file#auto_config)
 
 Prior to Consul 1.14, it was possible to encrypt communication between Consul and Envoy over `ports.grpc` using these settings.
 
-Consul 1.14 introduces [`ports.grpc_tls`](/consul/docs/agent/config/config-files#grpc_tls_port), a new configuration
-for encrypting communication over gRPC. The existing [`ports.grpc`](/consul/docs/agent/config/config-files#grpc_port) configuration **no longer supports encryption**. As of version 1.14,
-[`ports.grpc_tls`](/consul/docs/agent/config/config-files#grpc_tls_port) is the only port that serves encrypted gRPC traffic.
+Consul 1.14 introduces [`ports.grpc_tls`](/consul/docs/reference/agent/configuration-file#grpc_tls_port), a new configuration
+for encrypting communication over gRPC. The existing [`ports.grpc`](/consul/docs/reference/agent/configuration-file#grpc_port) configuration **no longer supports encryption**. As of version 1.14,
+[`ports.grpc_tls`](/consul/docs/reference/agent/configuration-file#grpc_tls_port) is the only port that serves encrypted gRPC traffic.
 The default value for the gRPC TLS port is 8503 for Consul servers. To disable the gRPC TLS port, use value -1.
 
 If you already use gRPC encryption, change the following fields to ensure compatibility:
 
-+ Change `ports.grpc` to `ports.grpc_tls`. Refer to the [`grpc_tls_port` documentation](/consul/docs/agent/config/config-files#grpc_tls_port) for details.
-+ Change `addresses.grpc` to `addresses.grpc_tls`. Refer to the [`grpc_tls` documentation](/consul/docs/agent/config/config-files#grpc_tls) for details.
++ Change `ports.grpc` to `ports.grpc_tls`. Refer to the [`grpc_tls_port` documentation](/consul/docs/reference/agent/configuration-file#grpc_tls_port) for details.
++ Change `addresses.grpc` to `addresses.grpc_tls`. Refer to the [`grpc_tls` documentation](/consul/docs/reference/agent/configuration-file#grpc_tls) for details.
 + Update `consul connect envoy` command invocations to specify gRPC CA certificates with one of the new configuration options:
 [`-grpc-ca-file`](/consul/commands/connect/envoy#grpc-ca-file) or
 [`-grpc-ca-path`](/consul/commands/connect/envoy#grpc-ca-path)
@@ -349,8 +349,8 @@ This bug is fixed in Consul versions 1.13.1 and newer.
 #### Service mesh deployments using auto-encrypt or auto-config
 
 Upgrade to **Consul version 1.13.2 or later** if using
-[auto-encrypt](/consul/docs/agent/config/config-files#auto_encrypt) or
-[auto-config](/consul/docs/agent/config/config-files#auto_config).
+[auto-encrypt](/consul/docs/reference/agent/configuration-file#auto_encrypt) or
+[auto-config](/consul/docs/reference/agent/configuration-file#auto_config).
 
 In Consul 1.13.0 - 1.13.1, auto-encrypt and auto-config both cause Consul
 to require TLS for gRPC communication with Envoy proxies.
@@ -359,7 +359,7 @@ to use TLS for gRPC, upgrading to Consul 1.13.0 - 1.13.1 will cause
 Envoy proxies to disconnect from the control plane (Consul agents).
 
 If upgrading to version 1.13.2 or later, you must enable
-[tls.grpc.use_auto_cert](/consul/docs/agent/config/config-files#use_auto_cert)
+[tls.grpc.use_auto_cert](/consul/docs/reference/agent/configuration-file#use_auto_cert)
 if you currently rely on Consul agents presenting the auto-encrypt or
 auto-config certs as the TLS server certs on the gRPC port.
 The new `use_auto_cert` flag enables TLS for gRPC based on the presence
@@ -368,7 +368,7 @@ of auto-encrypt certs.
 #### Service mesh deployments without the HTTPS port enabled on Consul agents ((#grpc-tls))
 
 If the HTTPS port is not enabled
-([`ports { https = POSITIVE_INTEGER }`](/consul/docs/agent/config/config-files#https_port))
+([`ports { https = POSITIVE_INTEGER }`](/consul/docs/reference/agent/configuration-file#https_port))
 on a pre-1.13 Consul agent,
 **[modify the agent's TLS configuration before upgrading](#modify-the-consul-agent-s-tls-configuration)**
 to avoid Envoy proxies disconnecting from the control plane (Consul agents).
@@ -384,7 +384,7 @@ Envoy proxies when using Consul service mesh.
 A Consul agent's gRPC traffic is often loopback-only,
 which TLS encryption is not important for.
 
-Prior to Consul 1.13, if [`ports { https = POSITIVE_INTEGER }`](/consul/docs/agent/config/config-files#https_port)
+Prior to Consul 1.13, if [`ports { https = POSITIVE_INTEGER }`](/consul/docs/reference/agent/configuration-file#https_port)
 was configured, TLS was enabled for both HTTP *and* gRPC.
 This was inconvenient for deployments that
 needed TLS for HTTP, but not for gRPC.
@@ -394,15 +394,15 @@ with its Consul agent via TLS over gRPC.
 
 Consul 1.13 addresses this inconvenience by fully decoupling the TLS configuration for HTTP and gRPC interfaces.
 TLS for gRPC is no longer enabled by setting
-[`ports { https = POSITIVE_INTEGER }`](/consul/docs/agent/config/config-files#https_port).
+[`ports { https = POSITIVE_INTEGER }`](/consul/docs/reference/agent/configuration-file#https_port).
 TLS configuration for gRPC is now determined exclusively by:
 
-1. [`tls.grpc`](/consul/docs/agent/config/config-files#tls_grpc), which overrides
-1. [`tls.defaults`](/consul/docs/agent/config/config-files#tls_defaults), which overrides
-1. [Deprecated TLS options](/consul/docs/agent/config/config-files#tls_deprecated_options) such as
-   [`ca_file`](/consul/docs/agent/config/config-files#ca_file-4),
-   [`cert_file`](/consul/docs/agent/config/config-files#cert_file-4), and
-   [`key_file`](/consul/docs/agent/config/config-files#key_file-4).
+1. [`tls.grpc`](/consul/docs/reference/agent/configuration-file#tls_grpc), which overrides
+1. [`tls.defaults`](/consul/docs/reference/agent/configuration-file#tls_defaults), which overrides
+1. [Deprecated TLS options](/consul/docs/reference/agent/configuration-file#tls_deprecated_options) such as
+   [`ca_file`](/consul/docs/reference/agent/configuration-file#ca_file-4),
+   [`cert_file`](/consul/docs/reference/agent/configuration-file#cert_file-4), and
+   [`key_file`](/consul/docs/reference/agent/configuration-file#key_file-4).
 
 This decoupling has a side effect that requires a
 [TLS configuration change](#modify-the-consul-agent-s-tls-configuration)
@@ -414,37 +414,37 @@ that continue to use gRPC *without* TLS.
 
 ##### Modify the Consul agent's TLS configuration
 
-If [`tls.grpc`](/consul/docs/agent/config/config-files#tls_grpc),
-[`tls.defaults`](/consul/docs/agent/config/config-files#tls_defaults),
-or the [deprecated TLS options](/consul/docs/agent/config/config-files#tls_deprecated_options)
+If [`tls.grpc`](/consul/docs/reference/agent/configuration-file#tls_grpc),
+[`tls.defaults`](/consul/docs/reference/agent/configuration-file#tls_defaults),
+or the [deprecated TLS options](/consul/docs/reference/agent/configuration-file#tls_deprecated_options)
 define TLS material in their
 `ca_file`, `ca_path`, `cert_file`, or `key_file` fields,
 TLS for gRPC will be enabled in Consul 1.13, even if
-[`ports { https = POSITIVE_INTEGER }`](/consul/docs/agent/config/config-files#https_port)
+[`ports { https = POSITIVE_INTEGER }`](/consul/docs/reference/agent/configuration-file#https_port)
 is not set.
 
 This will cause Envoy proxies to disconnect from the control plane
 after upgrading to Consul 1.13 if associated pre-1.13 Consul agents
 have **not** set
-[`ports { https = POSITIVE_INTEGER }`](/consul/docs/agent/config/config-files#https_port).
+[`ports { https = POSITIVE_INTEGER }`](/consul/docs/reference/agent/configuration-file#https_port).
 To avoid this problem, make the following agent configuration changes:
 
 1. Remove TLS material from the Consul agents'
    interface-generic TLS configuration options:
-   [`tls.defaults`](/consul/docs/agent/config/config-files#tls_grpc) and
-   [deprecated TLS options](/consul/docs/agent/config/config-files#tls_deprecated_options)
+   [`tls.defaults`](/consul/docs/reference/agent/configuration-file#tls_grpc) and
+   [deprecated TLS options](/consul/docs/reference/agent/configuration-file#tls_deprecated_options)
 1. Reapply TLS material to the non-gRPC interfaces that need it with the
    interface-specific TLS configuration stanzas
    [introduced in Consul 1.12](/consul/docs/upgrading/upgrade-specific#tls-configuration):
-   [`tls.https`](/consul/docs/agent/config/config-files#tls_https) and
-   [`tls.internal_rpc`](/consul/docs/agent/config/config-files#tls_internal_rpc).
+   [`tls.https`](/consul/docs/reference/agent/configuration-file#tls_https) and
+   [`tls.internal_rpc`](/consul/docs/reference/agent/configuration-file#tls_internal_rpc).
 
    If upgrading directly from pre-1.12 Consul,
    the above configuration change cannot be made before upgrading.
    Therefore, consider upgrading agents to Consul 1.12 before upgrading to 1.13.
 
 If pre-1.13 Consul agents have set
-[`ports { https = POSITIVE_INTEGER }`](/consul/docs/agent/config/config-files#https_port),
+[`ports { https = POSITIVE_INTEGER }`](/consul/docs/reference/agent/configuration-file#https_port),
 this configuration change is not required to upgrade.
 That setting means the pre-1.13 Consul agent requires TLS for gRPC *already*,
 and will continue to do so after upgrading to 1.13.
@@ -466,7 +466,7 @@ Refer to the [Vault CA provider documentation](/consul/docs/connect/ca/vault#vau
 for updated example Vault policies for use with Vault-managed or Consul-managed PKI paths.
 
 You are using the Vault CA provider if either of the following configurations exists:
-- The Consul server agent configuration option [`connect.ca_provider`](/consul/docs/agent/config/config-files#connect_ca_provider) is set to `vault`, or
+- The Consul server agent configuration option [`connect.ca_provider`](/consul/docs/reference/agent/configuration-file#connect_ca_provider) is set to `vault`, or
 - The Consul on Kubernetes Helm Chart [`global.secretsBackend.vault.connectCA`](/consul/docs/reference/k8s/helm#v-global-secretsbackend-vault-connectca) value is configured.
 
 Though this guidance is listed in the 1.13.x section, it applies to several release series.
@@ -493,7 +493,7 @@ to ensure the operation of your service mesh and to enable CA TTL modification.
 
 #### Removing configuration options
 
-The [`disable_compat_19`](/consul/docs/agent/config/config-files#telemetry-disable_compat_1.9) telemetry configuration option is now removed.
+The [`disable_compat_19`](/consul/docs/reference/agent/configuration-file#telemetry-disable_compat_1.9) telemetry configuration option is now removed.
 In prior Consul versions (1.10.x through 1.11.x), the config defaulted to `false`. In 1.12.x it defaulted to `true`.
 If you were using this flag, you must remove it before upgrading.
 
@@ -527,7 +527,7 @@ to Consul 1.12.6 or later to avoid the breaking nature of that change.
 
 #### Changing the default behavior for option
 
-The [`disable_compat_19`](/consul/docs/agent/config/config-files#telemetry-disable_compat_1.9) telemetry configuration option now defaults
+The [`disable_compat_19`](/consul/docs/reference/agent/configuration-file#telemetry-disable_compat_1.9) telemetry configuration option now defaults
 to `true`. In prior Consul versions (1.10.x through 1.11.x), the config defaulted to `false`. If you require 1.9 style
 `consul.http...` metrics, you may enable them by setting the flag to `false`. However, be advised that these metrics, as
 well as the flag will be removed in upcoming Consul 1.13. We recommend changing your instrumentation to use 1.10 and later
@@ -545,7 +545,7 @@ The Consul Enterprise codebase was updated with a fix for this issue in version 
 
 You can now configure TLS differently for each of Consul's exposed ports. As a
 result, the following top-level configuration fields are deprecated and should
-be replaced with the new [`tls` stanza](/consul/docs/agent/config/config-files#tls-configuration-reference):
+be replaced with the new [`tls` stanza](/consul/docs/reference/agent/configuration-file#tls-configuration-reference):
 
 - `cert_file`
 - `key_file`
@@ -588,7 +588,7 @@ Due to this rename the following endpoint is also deprecated:
 These config keys are now deprecated:
 
  - `audit.sink[].name`
- - [`dns_config.dns_prefer_namespace`](/consul/docs/agent/config/config-files#dns_prefer_namespace)
+ - [`dns_config.dns_prefer_namespace`](/consul/docs/reference/agent/configuration-file#dns_prefer_namespace)
 
 ### Deprecated CLI Subcommands
 
@@ -658,8 +658,8 @@ have a license loaded from a configuration file or from their environment the sa
 agents must have the license specified. Both agents can still perform automatic retrieval of their
 license but with a few extra stipulations. First, license auto-retrieval now requires that ACLs
 are on and that the client or snapshot agent is configured with a valid ACL token. Secondly, client
-agents require that either the [`start_join`](/consul/docs/agent/config/config-files#start_join) or
-[`retry_join`](/consul/docs/agent/config/config-files#retry_join) configurations are set and that they resolve to server
+agents require that either the [`start_join`](/consul/docs/reference/agent/configuration-file#start_join) or
+[`retry_join`](/consul/docs/reference/agent/configuration-file#retry_join) configurations are set and that they resolve to server
 agents. If those stipulations are not met, attempting to start the client or snapshot agent will
 result in it immediately shutting down.
 
@@ -753,7 +753,7 @@ to Consul 1.9.0.
 
 ### Changes to Configuration Defaults
 
-The [`enable_central_service_config`](/consul/docs/agent/config/config-files#enable_central_service_config)
+The [`enable_central_service_config`](/consul/docs/reference/agent/configuration-file#enable_central_service_config)
 configuration now defaults to `true`.
 
 ### Changes to Intentions
@@ -800,29 +800,29 @@ re-created via the old endpoints. Fields that are being removed or changing
 behavior:
 
 - `Intention.ID` after migration is stored in the
-  [`LegacyID`](/consul/docs/connect/config-entries/service-intentions#legacyid) field.
+  [`LegacyID`](/consul/docs/reference/config-entry/service-intentions#legacyid) field.
   After transitioning this field is cleared.
 
 - `Intention.CreatedAt` after migration is stored in the
-  [`LegacyCreateTime`](/consul/docs/connect/config-entries/service-intentions#legacycreatetime)
+  [`LegacyCreateTime`](/consul/docs/reference/config-entry/service-intentions#legacycreatetime)
   field. After transitioning this field is cleared.
 
 - `Intention.UpdatedAt` after migration is stored in the
-  [`LegacyUpdateTime`](/consul/docs/connect/config-entries/service-intentions#legacyupdatetime)
+  [`LegacyUpdateTime`](/consul/docs/reference/config-entry/service-intentions#legacyupdatetime)
   field. After transitioning this field is cleared.
 
 - `Intention.Meta` after migration is stored in the
-  [`LegacyMeta`](/consul/docs/connect/config-entries/service-intentions#legacymeta)
+  [`LegacyMeta`](/consul/docs/reference/config-entry/service-intentions#legacymeta)
   field. To complete the transition, this field **must be cleared manually**
   and the metadata moved up to the enclosing config entry's
-  [`Meta`](/consul/docs/connect/config-entries/service-intentions#meta) field. This is
+  [`Meta`](/consul/docs/reference/config-entry/service-intentions#meta) field. This is
   not done automatically since it is potentially a lossy operation.
 
 ## Consul 1.8.0
 
 #### Removal of Deprecated Features
 
-The [`acl_enforce_version_8`](/consul/docs/agent/config/config-files#acl_enforce_version_8)
+The [`acl_enforce_version_8`](/consul/docs/reference/agent/configuration-file#acl_enforce_version_8)
 configuration has been removed (with version 8 ACL support by being on by
 default).
 
@@ -865,7 +865,7 @@ to more precisely capture the view of _active_ blocking queries.
 
 ### Vault: default `http_max_conns_per_client` too low to run Vault properly
 
-Consul 1.7.0 introduced [limiting of connections per client](/consul/docs/agent/config/config-files#http_max_conns_per_client). The default value
+Consul 1.7.0 introduced [limiting of connections per client](/consul/docs/reference/agent/configuration-file#http_max_conns_per_client). The default value
 was 100, but Vault could use up to 128, which caused problems. If you want to use Vault with Consul 1.7.0, you should change the value to 200.
 Starting with Consul 1.7.1 this is the new default.
 
@@ -873,7 +873,7 @@ Starting with Consul 1.7.1 this is the new default.
 
 ### Vault: default `http_max_conns_per_client` too low to run Vault properly
 
-Consul 1.6.3 introduced [limiting of connections per client](/consul/docs/agent/config/config-files#http_max_conns_per_client). The default value
+Consul 1.6.3 introduced [limiting of connections per client](/consul/docs/reference/agent/configuration-file#http_max_conns_per_client). The default value
 was 100, but Vault could use up to 128, which caused problems. If you want to use Vault with Consul 1.6.3 through 1.7.0, you should change the value to 200.
 Starting with Consul 1.7.1 this is the new default.
 
@@ -912,7 +912,7 @@ datacenter". All configuration is backwards compatible and shouldn't need to
 change prior to upgrade although it's strongly recommended to migrate ACL
 configuration to the new syntax soon after upgrade. This includes moving to
 `primary_datacenter` rather than `acl_datacenter` and `acl_*` to the new [ACL
-block](/consul/docs/agent/config/config-files#acl).
+block](/consul/docs/reference/agent/configuration-file#acl).
 
 Datacenters can be upgraded in any order although secondaries will remain in
 [Legacy ACL mode](#legacy-acl-mode) until the primary datacenter is fully
@@ -1034,11 +1034,11 @@ The following previously deprecated fields and config options have been removed:
 Consul 1.0.1 (and earlier versions of Consul) checked for raft snapshots every
 5 seconds, and created new snapshots for every 8192 writes. These defaults cause
 constant disk IO in large busy clusters. Consul 1.1.0 increases these to larger values,
-and makes them tunable via the [raft_snapshot_interval](/consul/docs/agent/config/config-files#_raft_snapshot_interval) and
-[raft_snapshot_threshold](/consul/docs/agent/config/config-files#_raft_snapshot_threshold) parameters. We recommend
+and makes them tunable via the [raft_snapshot_interval](/consul/docs/reference/agent/configuration-file#_raft_snapshot_interval) and
+[raft_snapshot_threshold](/consul/docs/reference/agent/configuration-file#_raft_snapshot_threshold) parameters. We recommend
 keeping the new defaults. However, operators can go back to the old defaults by changing their
-config if they prefer more frequent snapshots. See the documentation for [raft_snapshot_interval](/consul/docs/agent/config/config-files#_raft_snapshot_interval)
-and [raft_snapshot_threshold](/consul/docs/agent/config/config-files#_raft_snapshot_threshold) to understand the trade-offs
+config if they prefer more frequent snapshots. See the documentation for [raft_snapshot_interval](/consul/docs/reference/agent/configuration-file#_raft_snapshot_interval)
+and [raft_snapshot_threshold](/consul/docs/reference/agent/configuration-file#_raft_snapshot_threshold) to understand the trade-offs
 when tuning these.
 
 ## Consul 1.0.7
@@ -1066,7 +1066,7 @@ before proceeding.
 #### Carefully Check and Remove Stale Servers During Rolling Upgrades
 
 Consul 1.0 (and earlier versions of Consul when running with [Raft protocol
-3](/consul/docs/agent/config/config-files#_raft_protocol) had an issue where performing
+3](/consul/docs/reference/agent/configuration-file#_raft_protocol) had an issue where performing
 rolling updates of Consul servers could result in an outage from old servers
 remaining in the cluster.
 [Autopilot](/consul/tutorials/datacenter-operations/autopilot-datacenter-operations)
@@ -1157,20 +1157,20 @@ upgrading. Here's the complete list of removed options and their equivalents:
 | `-retry-join-gce-tag-name`                             | [`-retry-join`](/consul/docs/agent/config/cli-flags#_retry_join)                                                                                                                       |
 | `-retry-join-gce-zone-pattern`                         | [`-retry-join`](/consul/docs/agent/config/cli-flags#_retry_join)                                                                                                                       |
 | `addresses.rpc`                                        | None, the RPC server for CLI commands is no longer supported.                                                                                                          |
-| `advertise_addrs`                                      | [`ports`](/consul/docs/agent/config/config-files#ports) with [`advertise_addr`](/consul/docs/agent/config/config-files#advertise_addr) and/or [`advertise_addr_wan`](/consul/docs/agent/config/config-files#advertise_addr_wan) |
-| `dogstatsd_addr`                                       | [`telemetry.dogstatsd_addr`](/consul/docs/agent/config/config-files#telemetry-dogstatsd_addr)                                                                                             |
-| `dogstatsd_tags`                                       | [`telemetry.dogstatsd_tags`](/consul/docs/agent/config/config-files#telemetry-dogstatsd_tags)                                                                                             |
-| `legacy/http_api_response_headers`                            | [`http_config.response_headers`](/consul/docs/agent/config/config-files#response_headers)                                                                                                 |
+| `advertise_addrs`                                      | [`ports`](/consul/docs/reference/agent/configuration-file#ports) with [`advertise_addr`](/consul/docs/reference/agent/configuration-file#advertise_addr) and/or [`advertise_addr_wan`](/consul/docs/reference/agent/configuration-file#advertise_addr_wan) |
+| `dogstatsd_addr`                                       | [`telemetry.dogstatsd_addr`](/consul/docs/reference/agent/configuration-file#telemetry-dogstatsd_addr)                                                                                             |
+| `dogstatsd_tags`                                       | [`telemetry.dogstatsd_tags`](/consul/docs/reference/agent/configuration-file#telemetry-dogstatsd_tags)                                                                                             |
+| `legacy/http_api_response_headers`                            | [`http_config.response_headers`](/consul/docs/reference/agent/configuration-file#response_headers)                                                                                                 |
 | `ports.rpc`                                            | None, the RPC server for CLI commands is no longer supported.                                                                                                          |
 
-| `recursor`                                             | [`recursors`](/consul/docs/agent/config/config-files#recursors)                                                          |
-| `retry_join_azure`                                     | [`retry-join`](/consul/docs/agent/config/config-files#retry_join)                                                                                                                       |
-| `retry_join_ec2`                                       | [`retry-join`](/consul/docs/agent/config/config-files#retry_join)                                                                                                                       |
-| `retry_join_gce`                                       | [`retry-join`](/consul/docs/agent/config/config-files#retry_join)                                                                                                                       |
-| `statsd_addr`                                          | [`telemetry.statsd_address`](/consul/docs/agent/config/config-files#telemetry-statsd_address)                            |
-| `statsite_addr`                                        | [`telemetry.statsite_address`](/consul/docs/agent/config/config-files#telemetry-statsite_address)                        |
-| `statsite_prefix`                                      | [`telemetry.metrics_prefix`](/consul/docs/agent/config/config-files#telemetry-metrics_prefix)                                                                                             |
-| `telemetry.statsite_prefix`                            | [`telemetry.metrics_prefix`](/consul/docs/agent/config/config-files#telemetry-metrics_prefix)                                                                                             |
+| `recursor`                                             | [`recursors`](/consul/docs/reference/agent/configuration-file#recursors)                                                          |
+| `retry_join_azure`                                     | [`retry-join`](/consul/docs/reference/agent/configuration-file#retry_join)                                                                                                                       |
+| `retry_join_ec2`                                       | [`retry-join`](/consul/docs/reference/agent/configuration-file#retry_join)                                                                                                                       |
+| `retry_join_gce`                                       | [`retry-join`](/consul/docs/reference/agent/configuration-file#retry_join)                                                                                                                       |
+| `statsd_addr`                                          | [`telemetry.statsd_address`](/consul/docs/reference/agent/configuration-file#telemetry-statsd_address)                            |
+| `statsite_addr`                                        | [`telemetry.statsite_address`](/consul/docs/reference/agent/configuration-file#telemetry-statsite_address)                        |
+| `statsite_prefix`                                      | [`telemetry.metrics_prefix`](/consul/docs/reference/agent/configuration-file#telemetry-metrics_prefix)                                                                                             |
+| `telemetry.statsite_prefix`                            | [`telemetry.metrics_prefix`](/consul/docs/reference/agent/configuration-file#telemetry-metrics_prefix)                                                                                             |
 | (service definitions) `serviceid`                      | [`id`](/consul/api-docs/agent/service#id)                                                                                                                                   |
 | (service definitions) `dockercontainerid`              | [`docker_container_id`](/consul/api-docs/agent/check#dockercontainerid)                                                                                                                          |
 | (service definitions) `tlsskipverify`                  | [`tls_skip_verify`](/consul/api-docs/agent/check#tlsskipverify)                                                                                                                              |
@@ -1180,7 +1180,7 @@ upgrading. Here's the complete list of removed options and their equivalents:
 
 Since the `statsite_prefix` configuration option applied to all telemetry
 providers, `statsite_prefix` was renamed to
-[`metrics_prefix`](/consul/docs/agent/config/config-files#telemetry-metrics_prefix).
+[`metrics_prefix`](/consul/docs/reference/agent/configuration-file#telemetry-metrics_prefix).
 Configuration files will need to be updated when upgrading to this version of
 Consul.
 
@@ -1368,12 +1368,12 @@ to the following commands:
 
 #### Version 8 ACLs Are Now Opt-Out
 
-The [`acl_enforce_version_8`](/consul/docs/agent/config/config-files#acl_enforce_version_8)
+The [`acl_enforce_version_8`](/consul/docs/reference/agent/configuration-file#acl_enforce_version_8)
 configuration now defaults to `true` to enable full version 8 ACL support by
 default. If you are upgrading an existing cluster with ACLs enabled, you will
 need to set this to `false` during the upgrade on **both Consul agents and
 Consul servers**. Version 8 ACLs were also changed so that
-[`acl_datacenter`](/consul/docs/agent/config/config-files#acl_datacenter) must be set on
+[`acl_datacenter`](/consul/docs/reference/agent/configuration-file#acl_datacenter) must be set on
 agents in order to enable the agent-side enforcement of ACLs. This makes for a
 smoother experience in clusters where ACLs aren't enabled at all, but where the
 agents would have to wait to contact a Consul server before learning that.
@@ -1381,7 +1381,7 @@ agents would have to wait to contact a Consul server before learning that.
 #### Remote Exec Is Now Opt-In
 
 The default for
-[`disable_remote_exec`](/consul/docs/agent/config/config-files#disable_remote_exec) was
+[`disable_remote_exec`](/consul/docs/reference/agent/configuration-file#disable_remote_exec) was
 changed to "true", so now operators need to opt-in to having agents support
 running commands remotely via [`consul exec`](/consul/commands/exec).
 
@@ -1423,7 +1423,7 @@ process to reap child processes.
 
 #### DNS Resiliency Defaults
 
-The default for [`max_stale`](/consul/docs/agent/config/config-files#max_stale) has been
+The default for [`max_stale`](/consul/docs/reference/agent/configuration-file#max_stale) has been
 increased from 5 seconds to a near-indefinite threshold (10 years) to allow DNS
 queries to continue to be served in the event of a long outage with no leader.
 A new telemetry counter was added at `consul.dns.stale_queries` to track when
@@ -1437,7 +1437,7 @@ to be aware of during an upgrade are categorized below.
 #### Performance Timing Defaults and Tuning
 
 Consul 0.7 now defaults the DNS configuration to allow for stale queries by
-defaulting [`allow_stale`](/consul/docs/agent/config/config-files#allow_stale) to true for
+defaulting [`allow_stale`](/consul/docs/reference/agent/configuration-file#allow_stale) to true for
 better utilization of available servers. If you want to retain the previous
 behavior, set the following configuration:
 
@@ -1450,7 +1450,7 @@ behavior, set the following configuration:
 ```
 
 Consul also 0.7 introduced support for tuning Raft performance using a new
-[performance configuration block](/consul/docs/agent/config/config-files#performance). Also,
+[performance configuration block](/consul/docs/reference/agent/configuration-file#performance). Also,
 the default Raft timing is set to a lower-performance mode suitable for
 [minimal Consul servers](/consul/docs/install/performance#minimum).
 
@@ -1470,8 +1470,8 @@ See the [Server Performance](/consul/docs/reference/server) guide for more detai
 
 #### Leave-Related Configuration Defaults
 
-The default behavior of [`leave_on_terminate`](/consul/docs/agent/config/config-files#leave_on_terminate)
-and [`skip_leave_on_interrupt`](/consul/docs/agent/config/config-files#skip_leave_on_interrupt)
+The default behavior of [`leave_on_terminate`](/consul/docs/reference/agent/configuration-file#leave_on_terminate)
+and [`skip_leave_on_interrupt`](/consul/docs/reference/agent/configuration-file#skip_leave_on_interrupt)
 are now dependent on whether or not the agent is acting as a server or client:
 
 - For servers, `leave_on_terminate` defaults to "false" and `skip_leave_on_interrupt`
@@ -1510,7 +1510,7 @@ using this feature.
 #### WAN Address Translation in HTTP Endpoints
 
 Consul version 0.7 added support for translating WAN addresses in certain
-[HTTP endpoints](/consul/docs/agent/config/config-files#translate_wan_addrs). The servers
+[HTTP endpoints](/consul/docs/reference/agent/configuration-file#translate_wan_addrs). The servers
 and the agents need to be running version 0.7 or later in order to use this
 feature.
 
@@ -1592,7 +1592,7 @@ which require it:
     }
 
 When the DNS interface is queried, the agent's
-[`acl_token`](/consul/docs/agent/config/config-files#acl_token) is used, so be sure
+[`acl_token`](/consul/docs/reference/agent/configuration-file#acl_token) is used, so be sure
 that token has sufficient privileges to return the DNS records you
 expect to retrieve from it.
 

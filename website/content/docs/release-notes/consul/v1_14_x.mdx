@@ -11,7 +11,7 @@ description: >-
 
 - **Cluster Peering (GA):** This version promotes Cluster Peering, a new model to federate Consul clusters for both service mesh and traditional service discovery, to General Availability. Cluster peering allows for service interconnectivity with looser coupling than the existing WAN federation. For more information, refer to the [cluster peering](/consul/docs/east-west/cluster-peering) documentation. Some notable improvements to Cluster Peering include: 
  
-  - **Cluster Peering Failover:** Cluster Peering now supports the ability to redirect to services running on cluster peers with service resolvers. More details for configuring failover across peers is provided in the Service Resolver [failover](/consul/docs/connect/config-entries/service-resolver#failover) stanza.
+  - **Cluster Peering Failover:** Cluster Peering now supports the ability to redirect to services running on cluster peers with service resolvers. More details for configuring failover across peers is provided in the Service Resolver [failover](/consul/docs/reference/config-entry/service-resolver#failover) stanza.
   
   - **Control Plane traffic over Mesh Gateways:** Cluster Peering now supports the establishing peering through Mesh Gateways. More detail on using Mesh Gateways for Cluster Peering are found in [Enabling Peering Control Plane Traffic](/consul/docs/east-west/mesh-gateway/cluster-peer). Mesh Gateways are used by default for [Cluster Peering on Kubernetes](/consul/docs/east-west/cluster-peering/tech-specs/k8s). 
   

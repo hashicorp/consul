@@ -174,7 +174,7 @@ compatibility with Envoy and prevent potential issues. Default is `false`.
      conflict with the health check endpoint.
 
 - `-admin-access-log-path` -
-  **Deprecated in Consul 1.15.0 in favor of [`proxy-defaults` access logs](/consul/docs/connect/config-entries/proxy-defaults#accesslogs).**
+  **Deprecated in Consul 1.15.0 in favor of [`proxy-defaults` access logs](/consul/docs/reference/config-entry/proxy-defaults#accesslogs).**
   The path to write the access log for the administration
   server. If no access log is desired specify `/dev/null`. By default it will
   use `/dev/null`.
@@ -215,7 +215,7 @@ proxy configuration needed.
   be used instead. The scheme can also be set to HTTPS by setting the
   environment variable CONSUL_HTTP_SSL=true. This may be a unix domain socket
   using `unix:///path/to/socket` if the [agent is configured to
-  listen](/consul/docs/agent/config/config-files#addresses) that way.
+  listen](/consul/docs/reference/agent/configuration-file#addresses) that way.
 
   -> **Note:** gRPC uses the same TLS
   settings as the HTTPS API. If HTTPS is enabled then gRPC will require HTTPS

@@ -194,7 +194,7 @@ Next, use the peering token to establish a secure connection between the cluster
 
 After you establish a connection between the clusters, you need to create an `exported-services` CRD that defines the services that are available to another admin partition.
 
-While the CRD can target admin partitions either locally or remotely, clusters peering always exports services to remote admin partitions. Refer to [exported service consumers](/consul/docs/connect/config-entries/exported-services#consumers-1) for more information.
+While the CRD can target admin partitions either locally or remotely, clusters peering always exports services to remote admin partitions. Refer to [exported service consumers](/consul/docs/reference/config-entry/exported-services#consumers-1) for more information.
 
 
 1. For the service in `cluster-02` that you want to export, add the `"consul.hashicorp.com/connect-inject": "true"` annotation to your service's pods prior to deploying. The annotation allows the workload to join the mesh. It is highlighted in the following example:

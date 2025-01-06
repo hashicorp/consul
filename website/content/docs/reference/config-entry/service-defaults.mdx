@@ -574,7 +574,7 @@ Specifies the default protocol for the service. In service mesh use cases, the `
 - [service router configuration entry](/consul/docs/reference/config-entry/service-router)
 - [L7 intentions](/consul/docs/connect/intentions#l7-traffic-intentions)
 
-You can set the global protocol for proxies in the [`proxy-defaults`](/consul/docs/connect/config-entries/proxy-defaults#default-protocol) configuration entry, but the protocol specified in the `service-defaults` configuration entry overrides the `proxy-defaults` configuration.
+You can set the global protocol for proxies in the [`proxy-defaults`](/consul/docs/reference/config-entry/proxy-defaults#default-protocol) configuration entry, but the protocol specified in the `service-defaults` configuration entry overrides the `proxy-defaults` configuration.
 
 #### Values
 
@@ -729,7 +729,7 @@ We recommend configuring the protocol in the main [`Protocol`](#protocol) field 
 
 Specifies how long in milliseconds that the service should attempt to establish an upstream connection before timing out.
 
-We recommend configuring the upstream timeout in the [`connection_timeout`](/consul/docs/connect/config-entries/service-resolver#connecttimeout) field of the `service-resolver` configuration entry for the upstream destination service. Doing so enables you to leverage [L7 features](/consul/docs/manage-traffic). Configuring the timeout in the `service-defaults` upstream configuration limits L7 management functionality.
+We recommend configuring the upstream timeout in the [`connection_timeout`](/consul/docs/reference/config-entry/service-resolver#connecttimeout) field of the `service-resolver` configuration entry for the upstream destination service. Doing so enables you to leverage [L7 features](/consul/docs/manage-traffic). Configuring the timeout in the `service-defaults` upstream configuration limits L7 management functionality.
 
 #### Values
 
@@ -814,7 +814,7 @@ We recommend configuring the protocol in the main [`Protocol`](#protocol) field 
 
 Specifies how long in milliseconds that all services should continue attempting to establish an upstream connection before timing out.
 
-For non-Kubernetes environments, we recommend configuring the upstream timeout in the [`connection_timeout`](/consul/docs/connect/config-entries/service-resolver#connecttimeout) field of the `service-resolver` configuration entry for the upstream destination service. Doing so enables you to leverage [L7 features](/consul/docs/manage-traffic). Configuring the timeout in the `service-defaults` upstream configuration limits L7 management functionality.
+For non-Kubernetes environments, we recommend configuring the upstream timeout in the [`connection_timeout`](/consul/docs/reference/config-entry/service-resolver#connecttimeout) field of the `service-resolver` configuration entry for the upstream destination service. Doing so enables you to leverage [L7 features](/consul/docs/manage-traffic). Configuring the timeout in the `service-defaults` upstream configuration limits L7 management functionality.
 
 - Default: `5000`
 - Data type: Integer
@@ -956,7 +956,7 @@ Specifies default configurations for exposing HTTP paths through Envoy. Exposing
 
 ### `Expose.Checks`
 
-Exposes all HTTP and gRPC checks registered with the agent if set to `true`. Envoy exposes listeners for the checks and only accepts connections originating from localhost or Consul's [`advertise_addr`](/consul/docs/agent/config/config-files#advertise_addr). The ports for the listeners are dynamically allocated from the agent's [`expose_min_port`](/consul/docs/agent/config/config-files#expose_min_port) and [`expose_max_port`](/consul/docs/agent/config/config-files#expose_max_port) configurations.
+Exposes all HTTP and gRPC checks registered with the agent if set to `true`. Envoy exposes listeners for the checks and only accepts connections originating from localhost or Consul's [`advertise_addr`](/consul/docs/reference/agent/configuration-file#advertise_addr). The ports for the listeners are dynamically allocated from the agent's [`expose_min_port`](/consul/docs/reference/agent/configuration-file#expose_min_port) and [`expose_max_port`](/consul/docs/reference/agent/configuration-file#expose_max_port) configurations.
 
 We recommend enabling the `Checks` configuration when a Consul client cannot reach registered services over localhost, such as when Consul agents run in their own pods in Kubernetes.
 
@@ -1036,7 +1036,7 @@ Specifies the default protocol for the service. In service service mesh use case
 - [`service-router` configuration entry](/consul/docs/reference/config-entry/service-router)
 - [L7 intentions](/consul/docs/connect/intentions#l7-traffic-intentions)
 
-You can set the global protocol for proxies in the [`ProxyDefaults` configuration entry](/consul/docs/connect/config-entries/proxy-defaults#default-protocol), but the protocol specified in the `ServiceDefaults` configuration entry overrides the `ProxyDefaults` configuration.
+You can set the global protocol for proxies in the [`ProxyDefaults` configuration entry](/consul/docs/reference/config-entry/proxy-defaults#default-protocol), but the protocol specified in the `ServiceDefaults` configuration entry overrides the `ProxyDefaults` configuration.
 
 #### Values
 
@@ -1193,7 +1193,7 @@ Specifies the protocol to use for requests to the upstream listener. We recommen
 
 Specifies how long in milliseconds that the service should attempt to establish an upstream connection before timing out.
 
-We recommend configuring the upstream timeout in the [`connectTimeout`](/consul/docs/connect/config-entries/service-resolver#connecttimeout) field of the `ServiceResolver` CRD for the upstream destination service. Doing so enables you to leverage [L7 features](/consul/docs/manage-traffic). Configuring the timeout in the `ServiceDefaults` upstream configuration limits L7 management functionality.
+We recommend configuring the upstream timeout in the [`connectTimeout`](/consul/docs/reference/config-entry/service-resolver#connecttimeout) field of the `ServiceResolver` CRD for the upstream destination service. Doing so enables you to leverage [L7 features](/consul/docs/manage-traffic). Configuring the timeout in the `ServiceDefaults` upstream configuration limits L7 management functionality.
 
 #### Values
 
@@ -1273,7 +1273,7 @@ Specifies default protocol for upstream listeners. We recommend configuring the 
 
 Specifies how long in milliseconds that all services should continue attempting to establish an upstream connection before timing out.
 
-We recommend configuring the upstream timeout in the [`connectTimeout`](/consul/docs/connect/config-entries/service-resolver#connecttimeout) field of the `ServiceResolver` CRD for upstream destination services. Doing so enables you to leverage [L7 features](/consul/docs/manage-traffic). Configuring the timeout in the `ServiceDefaults` upstream configuration limits L7 management functionality.
+We recommend configuring the upstream timeout in the [`connectTimeout`](/consul/docs/reference/config-entry/service-resolver#connecttimeout) field of the `ServiceResolver` CRD for upstream destination services. Doing so enables you to leverage [L7 features](/consul/docs/manage-traffic). Configuring the timeout in the `ServiceDefaults` upstream configuration limits L7 management functionality.
 
 #### Values
 
@@ -1447,7 +1447,7 @@ Specifies default configurations for exposing HTTP paths through Envoy. Exposing
 
 ### `spec.expose.checks`
 
-Exposes all HTTP and gRPC checks registered with the agent if set to `true`. Envoy exposes listeners for the checks and only accepts connections originating from localhost or Consul's [`advertise_addr`](/consul/docs/agent/config/config-files#advertise_addr). The ports for the listeners are dynamically allocated from the agent's [`expose_min_port`](/consul/docs/agent/config/config-files#expose_min_port) and [`expose_max_port`](/consul/docs/agent/config/config-files#expose_max_port) configurations.
+Exposes all HTTP and gRPC checks registered with the agent if set to `true`. Envoy exposes listeners for the checks and only accepts connections originating from localhost or Consul's [`advertise_addr`](/consul/docs/reference/agent/configuration-file#advertise_addr). The ports for the listeners are dynamically allocated from the agent's [`expose_min_port`](/consul/docs/reference/agent/configuration-file#expose_min_port) and [`expose_max_port`](/consul/docs/reference/agent/configuration-file#expose_max_port) configurations.
 
 We recommend enabling the `Checks` configuration when a Consul client cannot reach registered services over localhost, such as when Consul agents run in their own pods in Kubernetes.
 
@@ -1511,7 +1511,7 @@ spec:
 
 </CodeTabs>
 
-You can also set the global default protocol for all proxies in the [`proxy-defaults` configuration entry](/consul/docs/connect/config-entries/proxy-defaults#default-protocol), but the protocol specified for individual service instances in the `service-defaults` configuration entry takes precedence over the globally-configured value set in the `proxy-defaults`.
+You can also set the global default protocol for all proxies in the [`proxy-defaults` configuration entry](/consul/docs/reference/config-entry/proxy-defaults#default-protocol), but the protocol specified for individual service instances in the `service-defaults` configuration entry takes precedence over the globally-configured value set in the `proxy-defaults`.
 
 ### Upstream configuration
 

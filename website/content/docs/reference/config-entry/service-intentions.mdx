@@ -582,7 +582,7 @@ Specifies a list of permissions for L7 traffic sources. The list contains one or
 
 Consul applies permissions in the order specified in the configuration. Beginning at the top of the list, Consul applies the first matching request and stops evaluating against the remaining configurations.
 
-For requests that do not match any of the defined permissions, Consul applies the intention behavior defined in the [`acl_default_policy`](/consul/docs/agent/config/config-files#acl_default_policy) configuration.
+For requests that do not match any of the defined permissions, Consul applies the intention behavior defined in the [`acl_default_policy`](/consul/docs/reference/agent/configuration-file#acl_default_policy) configuration.
 
 Do not configure this field for L4 intentions. Use the [`Sources.Action`](#sources-action) parameter instead.
 
@@ -914,7 +914,7 @@ Specifies a list of permissions for L7 traffic sources. The list contains one or
 
 Consul applies permissions in the order specified in the configuration. Starting at the beginning of the list, Consul applies the first matching request and stops evaluating against the remaining configurations.
 
-For requests that do not match any of the defined permissions, Consul applies the intention behavior defined in the [`acl_default_policy`](/consul/docs/agent/config/config-files#acl_default_policy) configuration.
+For requests that do not match any of the defined permissions, Consul applies the intention behavior defined in the [`acl_default_policy`](/consul/docs/reference/agent/configuration-file#acl_default_policy) configuration.
 
 Do not configure this field for L4 intentions. Use the [`spec.sources.action`](#sources-action) parameter instead.
 

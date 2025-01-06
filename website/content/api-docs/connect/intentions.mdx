@@ -76,7 +76,7 @@ The corresponding CLI command is [`consul intention create -replace`](/consul/co
   the `Permissions` field.
 
 - `Permissions` `(array<IntentionPermission>)` - The list of all [additional L7
-  attributes](/consul/docs/connect/config-entries/service-intentions#intentionpermission)
+  attributes](/consul/docs/reference/config-entry/service-intentions#intentionpermission)
   that extend the intention match criteria.
 
   Permission precedence is applied top to bottom. For any given request the
@@ -84,7 +84,7 @@ The corresponding CLI command is [`consul intention create -replace`](/consul/co
   evaluation. As with L4 intentions, traffic that fails to match any of the
   provided permissions in this intention will be subject to the default
   intention behavior is defined by the default [ACL
-  policy](/consul/docs/agent/config/config-files#acl_default_policy).
+  policy](/consul/docs/reference/agent/configuration-file#acl_default_policy).
 
   This should be omitted for an L4 intention as it is mutually exclusive with
   the `Action` field.

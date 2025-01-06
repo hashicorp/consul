@@ -29,20 +29,20 @@ various configuration entries interact in more complex ways. For example:
 
 - If a [`service-resolver`](/consul/docs/reference/config-entry/service-resolver)
   is created with a [service
-  redirect](/consul/docs/connect/config-entries/service-resolver#service) defined,
+  redirect](/consul/docs/reference/config-entry/service-resolver#service) defined,
   then all references made to the original service in any other configuration
   entry is replaced with the redirect destination.
 
 - If a [`service-resolver`](/consul/docs/reference/config-entry/service-resolver)
   is created with a [default
-  subset](/consul/docs/connect/config-entries/service-resolver#defaultsubset)
+  subset](/consul/docs/reference/config-entry/service-resolver#defaultsubset)
   defined then all references made to the original service in any other
   configuration entry that did not specify a subset will be replaced with the
   default.
 
 - If a [`service-splitter`](/consul/docs/reference/config-entry/service-splitter)
   is created with a [service
-  split](/consul/docs/connect/config-entries/service-splitter#splits), and the target service has its
+  split](/consul/docs/reference/config-entry/service-splitter#splits), and the target service has its
   own `service-splitter` then the overall effect is flattened and only a single
   aggregate traffic split is ultimately configured in the proxy.
 
@@ -154,7 +154,7 @@ A single node in the compiled discovery chain.
 
   - `Definition` `(ServiceRoute)` - Relevant portion of underlying
     `service-router`
-    [route](/consul/docs/connect/config-entries/service-router#routes).
+    [route](/consul/docs/reference/config-entry/service-router#routes).
 
   - `NextNode` `(string)` - The name of the next node in the chain in [`Nodes`](#nodes).
 
@@ -162,7 +162,7 @@ A single node in the compiled discovery chain.
   splits.
 
   - `Weight` `(float32)` - Copy of underlying `service-splitter`
-    [`weight`](/consul/docs/connect/config-entries/service-splitter#weight) field.
+    [`weight`](/consul/docs/reference/config-entry/service-splitter#weight) field.
 
   - `NextNode` `(string)` - The name of the next node in the chain in [`Nodes`](#nodes).
 
@@ -173,21 +173,21 @@ A single node in the compiled discovery chain.
     defined for this node and the default was synthesized.
 
   - `ConnectTimeout` `(duration)` - Copy of the underlying `service-resolver`
-    [`ConnectTimeout`](/consul/docs/connect/config-entries/service-resolver#connecttimeout)
+    [`ConnectTimeout`](/consul/docs/reference/config-entry/service-resolver#connecttimeout)
     field. If one is not defined the default of `5s` is returned.
 
   - `Target` `(string)` - The name of the target to use found in [`Targets`](#targets).
 
   - `Failover` `(DiscoveryFailover: <optional>)` - Compiled form of the
     underlying `service-resolver`
-    [`Failover`](/consul/docs/connect/config-entries/service-resolver#failover)
+    [`Failover`](/consul/docs/reference/config-entry/service-resolver#failover)
     definition to use for this request.
 
     - `Targets` `(array<string>)` - List of targets found in
       [`Targets`](#targets) to failover to in order of preference.
 
   - `LoadBalancer` `(LoadBalancer: <optional>`) - Copy of the underlying `service-resolver`
-    [`LoadBalancer`](/consul/docs/connect/config-entries/service-resolver#loadbalancer) field.
+    [`LoadBalancer`](/consul/docs/reference/config-entry/service-resolver#loadbalancer) field.
 
     If a `service-splitter` splits between services with differing `LoadBalancer` configuration
     the first hash-based load balancing policy is copied.
@@ -199,7 +199,7 @@ A single node in the compiled discovery chain.
 - `Service` `(string)` - The service to query when resolving a list of service instances.
 
 - `ServiceSubset` `(string: <optional>)` - The
-  [subset](/consul/docs/connect/config-entries/service-resolver#service-subsets) of
+  [subset](/consul/docs/reference/config-entry/service-resolver#service-subsets) of
   the service to resolve.
 
 - `Partition` `(string)` - The partition to use when resolving a list of service instances.
@@ -210,7 +210,7 @@ A single node in the compiled discovery chain.
 
 - `Subset` `(ServiceResolverSubset)` - Copy of the underlying
   `service-resolver`
-  [`Subsets`](/consul/docs/connect/config-entries/service-resolver#subsets)
+  [`Subsets`](/consul/docs/reference/config-entry/service-resolver#subsets)
   definition for this target.
 
   - `Filter` `(string: "")` - The
@@ -233,7 +233,7 @@ A single node in the compiled discovery chain.
 - `External` `(bool: false)` - True if this target is outside of this consul cluster.
 
 - `ConnectTimeout` `(duration)` - Copy of the underlying `service-resolver`
-  [`ConnectTimeout`](/consul/docs/connect/config-entries/service-resolver#connecttimeout)
+  [`ConnectTimeout`](/consul/docs/reference/config-entry/service-resolver#connecttimeout)
   field. If one is not defined the default of `5s` is returned.
 
 - `SNI` `(string)` - This value should be used as the
@@ -243,4 +243,4 @@ A single node in the compiled discovery chain.
 - `Name` `(string)` - The unique name for this target for use when generating
   load balancer objects. This has a structure similar to [SNI](#sni), but will
   not be affected by SNI customizations such as
-  [`ExternalSNI`](/consul/docs/connect/config-entries/service-defaults#externalsni).
+  [`ExternalSNI`](/consul/docs/reference/config-entry/service-defaults#externalsni).

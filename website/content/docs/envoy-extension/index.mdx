@@ -13,7 +13,7 @@ This topic provides an overview of Envoy extensions in Consul service mesh deplo
 
 Consul supports two methods for modifying Envoy behavior. You can either modify the Envoy resources Consul generates through [escape hatches](/consul/docs/connect/proxies/envoy#escape-hatch-overrides) or configure your services to use Envoy extensions using the `EnvoyExtension` parameter. Implementing escape hatches requires rewriting the Envoy resources so that they are compatible with Consul, a task that also requires understanding how Consul names Envoy resources and enforces intentions.
 
-Instead of modifying Consul code, you can configure your services to use Envoy extensions through the `EnvoyExtensions` field. This field is definable in [`proxy-defaults`](/consul/docs/connect/config-entries/proxy-defaults#envoyextensions) and [`service-defaults`](/consul/docs/connect/config-entries/service-defaults#envoyextensions) configuration entries.
+Instead of modifying Consul code, you can configure your services to use Envoy extensions through the `EnvoyExtensions` field. This field is definable in [`proxy-defaults`](/consul/docs/reference/config-entry/proxy-defaults#envoyextensions) and [`service-defaults`](/consul/docs/reference/config-entry/service-defaults#envoyextensions) configuration entries.
 
 
 ## Supported extensions
