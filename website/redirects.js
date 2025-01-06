@@ -3857,187 +3857,187 @@ module.exports = [
   ///////////////////////////////////
   {
     source: '/consul/tutorials/production-vms/security',
-    destination: '/consul/secure',
+    destination: '/consul/docs/secure',
     permanent: true,
   },
   {
     source: '/consul/tutorials/archive/docker-container-agents',
-    destination: '/consul/docker',
+    destination: '/consul/docs/docker',
     permanent: true,
   },
   {
     source: '/consul/tutorials/archive/tls-encryption-secure',
-    destination: '/consul/secure/encryption/mtls',
+    destination: '/consul/docs/secure/encryption/mtls',
     permanent: true,
   },
   {
     source: '/consul/tutorials/archive/dns-forwarding',
-    destination: '/consul/discover/dns/forwarding',
+    destination: '/consul/docs/discover/dns/forwarding',
     permanent: true,
   },
   {
     source: '/consul/tutorials/archive/get-started-explore-the-ui',
-    destination: '/consul/fundamentals/interface/ui',
+    destination: '/consul/docs/fundamentals/interface/ui',
     permanent: true,
   },
   {
     source: '/consul/tutorials/archive/application-leader-elections',
-    destination: '/consul/automate/application-leader-election',
+    destination: '/consul/docs/automate/application-leader-election',
     permanent: true,
   },
   {
     source: '/consul/tutorials/operate-consul/vault-consul-secrets',
-    destination: '/consul/secure/acl/vault/vm',
+    destination: '/consul/docs/secure/acl/vault/vm',
     permanent: true,
   },
   {
     source: '/consul/tutorials/archive/docker-compose-auto-config',
-    destination: '/consul/secure/auto-config/docker',
+    destination: '/consul/docs/secure/auto-config/docker',
     permanent: true,
   },
   {
     source: '/consul/tutorials/archive/load-balancing-haproxy',
-    destination: '/consul/discover/load-balancer/ha',
+    destination: '/consul/docs/discover/load-balancer/ha',
     permanent: true,
   },
   {
     source: '/consul/tutorials/archive/tls-encryption-openssl-secure',
-    destination: '/consul/secure/encryption/tls/enable/new/openssl',
+    destination: '/consul/docs/secure/encryption/tls/enable/new/openssl',
     permanent: true,
   },
   {
     source: '/consul/tutorials/operate-consul/backup-and-restore',
-    destination: '/consul/manage/disaster-recovery/backup-restore',
+    destination: '/consul/docs/manage/disaster-recovery/backup-restore',
     permanent: true,
   },
   {
     source: '/consul/tutorials/operate-consul/vault-pki-consul-secure-tls',
-    destination: '/consul/automate/consul-template/vault/mtls',
+    destination: '/consul/docs/automate/consul-template/vault/mtls',
     permanent: true,
   },
   {
     source: '/consul/tutorials/archive/federation-gossip-wan',
-    destination: '/consul/east-west/wan-federation/create',
+    destination: '/consul/docs/east-west/wan-federation/create',
     permanent: true,
   },
   {
     source: '/consul/tutorials/archive/docker-compose-observability',
-    destination: '/consul/observe/docker',
+    destination: '/consul/docs/observe/docker',
     permanent: true,
   },
   {
     source: '/consul/tutorials/archive/troubleshooting',
-    destination: '/consul/fundamentals/troubleshoot',
+    destination: '/consul/docs/fundamentals/troubleshoot',
     permanent: true,
   },
   {
     source: '/consul/tutorials/operate-consul/disaster-recovery',
-    destination: '/consul/manage/disaster-recovery',
+    destination: '/consul/docs/manage/disaster-recovery',
     permanent: true,
   },
   {
     source:
       '/consul/tutorials/archive/tls-encryption-secure-existing-datacenter',
-    destination: '/consul/secure/encryption/tls/enable/existing/vm',
+    destination: '/consul/docs/secure/encryption/tls/enable/existing/vm',
     permanent: true,
   },
   {
     source:
       '/consul/tutorials/operate-consul/kubernetes-vault-consul-secrets-management',
-    destination: '/consul/integrate/vault/k8s',
+    destination: '/consul/docs/integrate/vault/k8s',
     permanent: true,
   },
   {
     source: '/consul/tutorials/archive/kubernetes-openshift-red-hat',
-    destination: '/consul/deploy/server/k8s/platform/openshift',
+    destination: '/consul/docs/deploy/server/k8s/platform/openshift',
     permanent: true,
   },
   {
     source: '/consul/tutorials/archive/autopilot-datacenter-operations',
-    destination: '/consul/automate/autopilot',
+    destination: '/consul/docs/automate/autopilot',
     permanent: true,
   },
   {
     source: '/consul/tutorials/operate-consul/vault-kv-consul-secure-gossip',
-    destination: '/consul/automate/consul-template/vault/gossip',
+    destination: '/consul/docs/automate/consul-template/vault/gossip',
     permanent: true,
   },
   {
     source: '/consul/tutorials/archive/single-sign-on-auth0',
-    destination: '/consul/secure/sso/auth0',
+    destination: '/consul/docs/secure/sso/auth0',
     permanent: true,
   },
   {
     source: '/consul/tutorials/archive/federation-network-areas',
-    destination: '/consul/east-west/network-area',
+    destination: '/consul/docs/east-west/network-area',
     permanent: true,
   },
   {
     source: '/consul/tutorials/observe-your-network/audit-logging',
-    destination: '/consul/monitor/log/audit',
+    destination: '/consul/docs/monitor/log/audit',
     permanent: true,
   },
   {
     source:
       '/consul/tutorials/implement-multi-tenancy/namespaces-share-datacenter-access',
-    destination: '/consul/register/service/namespace',
+    destination: '/consul/docs/register/service/namespace',
     permanent: true,
   },
   {
     source: '/consul/tutorials/operate-consul/recovery-outage-primary',
-    destination: '/consul/manage/disaster-recovery/federation',
+    destination: '/consul/docs/manage/disaster-recovery/federation',
     permanent: true,
   },
   {
     source: '/consul/tutorials/archive/upgrade-automation',
-    destination: '/consul/upgrade/automated',
+    destination: '/consul/docs/upgrade/automated',
     permanent: true,
   },
   {
     source: '/consul/tutorials/archive/sync-aws-services',
-    destination: '/consul/register/service/aws',
+    destination: '/consul/docs/register/service/aws',
     permanent: true,
   },
   {
     source: '/consul/tutorials/archive/gossip-encryption-rotate',
-    destination: '/consul/secure/encryption/gossip/rotate/vm',
+    destination: '/consul/docs/secure/encryption/gossip/rotate/vm',
     permanent: true,
   },
   {
     source: '/consul/tutorials/archive/monitor-health-telegraf',
-    destination: '/consul/monitor/telemetry/telegraf',
+    destination: '/consul/docs/monitor/telemetry/telegraf',
     permanent: true,
   },
   {
     source:
       '/consul/tutorials/production-multi-cluster/multi-disaster-recovery',
-    destination: '/consul/manage/disaster-recovery',
+    destination: '/consul/docs/manage/disaster-recovery',
     permanent: true,
   },
   {
     source:
       '/consul/tutorials/implement-multi-tenancy/namespaces-secure-shared-access',
-    destination: '/consul/multi-tenant/namespace/vm',
+    destination: '/consul/docs/multi-tenant/namespace/vm',
     permanent: true,
   },
   {
     source: '/consul/tutorials/archive/upgrade-federated-environment',
-    destination: '/consul/upgrade/federated',
+    destination: '/consul/docs/upgrade/federated',
     permanent: true,
   },
   {
     source: '/consul/tutorials/operate-consul/hcdiag-with-consul',
-    destination: '/consul/integrate/hcdiag',
+    destination: '/consul/docs/integrate/hcdiag',
     permanent: true,
   },
   {
     source: '/consul/tutorials/archive/sync-pivotal-cloud-services',
-    destination: '/consul/discover/dns/pas',
+    destination: '/consul/docs/discover/dns/pas',
     permanent: true,
   },
   {
     source: '/consul/tutorials/archive/monitor-with-appdynamics',
-    destination: '/consul/monitor/telemetry/appdynamics',
+    destination: '/consul/docs/monitor/telemetry/appdynamics',
     permanent: true,
   },
 ]
