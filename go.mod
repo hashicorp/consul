@@ -117,7 +117,7 @@ require (
 	golang.org/x/crypto v0.31.0
 	golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63
 	golang.org/x/net v0.33.0
-	golang.org/x/oauth2 v0.15.0
+	golang.org/x/oauth2 v0.25.0
 	golang.org/x/sync v0.10.0
 	golang.org/x/sys v0.28.0
 	golang.org/x/time v0.3.0
@@ -131,8 +131,7 @@ require (
 )
 
 require (
-	cloud.google.com/go/compute v1.21.0 // indirect
-	cloud.google.com/go/compute/metadata v0.2.3 // indirect
+	cloud.google.com/go/compute/metadata v0.3.0 // indirect
 	cloud.google.com/go/iam v1.1.1 // indirect
 	github.com/Azure/azure-sdk-for-go v68.0.0+incompatible // indirect
 	github.com/Azure/go-autorest v14.2.0+incompatible // indirect
