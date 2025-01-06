@@ -3872,12 +3872,12 @@ module.exports = [
   },
   {
     source: '/consul/tutorials/archive/dns-forwarding',
-    destination: '/consul/discover/dns/forward',
+    destination: '/consul/discover/dns/forwarding',
     permanent: true,
   },
   {
     source: '/consul/tutorials/archive/get-started-explore-the-ui',
-    destination: '/consul/fundamentals/ui',
+    destination: '/consul/fundamentals/interface/ui',
     permanent: true,
   },
   {
@@ -3902,7 +3902,7 @@ module.exports = [
   },
   {
     source: '/consul/tutorials/archive/tls-encryption-openssl-secure',
-    destination: '/consul/secure/encryption/tls/openssl',
+    destination: '/consul/secure/encryption/tls/enable/new/openssl',
     permanent: true,
   },
   {
@@ -3938,7 +3938,7 @@ module.exports = [
   {
     source:
       '/consul/tutorials/archive/tls-encryption-secure-existing-datacenter',
-    destination: '/consul/encryption/tls/existing',
+    destination: '/consul/secure/encryption/tls/enable/existing/vm',
     permanent: true,
   },
   {
@@ -3974,7 +3974,7 @@ module.exports = [
   },
   {
     source: '/consul/tutorials/observe-your-network/audit-logging',
-    destination: '/consul/secure/audit-log',
+    destination: '/consul/monitor/log/audit',
     permanent: true,
   },
   {
@@ -3985,7 +3985,7 @@ module.exports = [
   },
   {
     source: '/consul/tutorials/operate-consul/recovery-outage-primary',
-    destination: '/consul/manage/disaster-recovery/wan-fed',
+    destination: '/consul/manage/disaster-recovery/federation',
     permanent: true,
   },
   {
@@ -4000,7 +4000,7 @@ module.exports = [
   },
   {
     source: '/consul/tutorials/archive/gossip-encryption-rotate',
-    destination: '/consul/secure/encryption/gossip',
+    destination: '/consul/secure/encryption/gossip/rotate/vm',
     permanent: true,
   },
   {
@@ -4022,7 +4022,7 @@ module.exports = [
   },
   {
     source: '/consul/tutorials/archive/upgrade-federated-environment',
-    destination: '/consul/upgrade/vm/wan-fed',
+    destination: '/consul/upgrade/federated',
     permanent: true,
   },
   {
