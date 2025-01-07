@@ -10,7 +10,7 @@ require (
 	github.com/evanphx/json-patch v4.12.0+incompatible
 	github.com/go-jose/go-jose/v3 v3.0.3
 	github.com/hashicorp/consul v1.16.1
-	github.com/hashicorp/consul/api v1.28.4
+	github.com/hashicorp/consul/api v1.28.5
 	github.com/hashicorp/consul/envoyextensions v0.6.2
 	github.com/hashicorp/consul/proto-public v0.6.1
 	github.com/hashicorp/consul/sdk v0.16.0
