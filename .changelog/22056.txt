@@ -1,0 +1,4 @@
+```release-note:improvement
+Upgrade api submodule to 1.21.4
+```
+
