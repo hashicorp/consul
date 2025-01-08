@@ -1,4 +1,3 @@
 ```release-note:improvement
-Upgrade api submodule to 1.21.4
+Upgrade api submodule to 1.28.5
 ```
-
