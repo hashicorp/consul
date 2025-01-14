@@ -5,7 +5,6 @@ package xds
 
 import (
 	"fmt"
-	"reflect"
 
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
@@ -525,24 +524,24 @@ func (s *ResourceGenerator) makeInlineOverrideFilterChains(cfgSnap *proxycfg.Con
 // Only empty or unset values are updated, preserving any existing specific configurations.
 func setAPIGatewayTLSConfig(listenerCfg structs.APIGatewayListener, cfgSnap *proxycfg.ConfigSnapshot) {
 	// Create a local TLS config based on listener configuration
-	gatewayTLSConfig := structs.GatewayTLSConfig{
+	listenerConfig := structs.GatewayTLSConfig{
 		TLSMinVersion: listenerCfg.TLS.MinVersion,
 		TLSMaxVersion: listenerCfg.TLS.MaxVersion,
 		CipherSuites:  listenerCfg.TLS.CipherSuites,
 	}
 
 	// Check and set TLSMinVersion if empty
-	if reflect.ValueOf(cfgSnap.APIGateway.TLSConfig.TLSMinVersion).IsZero() {
-		cfgSnap.APIGateway.TLSConfig.TLSMinVersion = gatewayTLSConfig.TLSMinVersion
+	if cfgSnap.APIGateway.TLSConfig.TLSMinVersion == "" {
+		cfgSnap.APIGateway.TLSConfig.TLSMinVersion = listenerConfig.TLSMinVersion
 	}
 
 	// Check and set TLSMaxVersion if empty
-	if reflect.ValueOf(cfgSnap.APIGateway.TLSConfig.TLSMaxVersion).IsZero() {
-		cfgSnap.APIGateway.TLSConfig.TLSMaxVersion = gatewayTLSConfig.TLSMaxVersion
+	if cfgSnap.APIGateway.TLSConfig.TLSMaxVersion == "" {
+		cfgSnap.APIGateway.TLSConfig.TLSMaxVersion = listenerConfig.TLSMaxVersion
 	}
 
 	// Check and set CipherSuites if empty
 	if len(cfgSnap.APIGateway.TLSConfig.CipherSuites) == 0 {
-		cfgSnap.APIGateway.TLSConfig.CipherSuites = gatewayTLSConfig.CipherSuites
+		cfgSnap.APIGateway.TLSConfig.CipherSuites = listenerConfig.CipherSuites
 	}
 }
