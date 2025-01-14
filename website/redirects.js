@@ -970,7 +970,7 @@ module.exports = [
   },
   {
     source:
-      '/consul/docs/connect/proxies/envoy-extensions/usage/apigee-external-authz',
+      '/consul/docs/connect/proxies/envoy-extensions/usage/apigee-ext-authz',
     destination: '/consul/docs/envoy-extension/apigee-external-authz',
     permanent: true,
   },
@@ -1079,7 +1079,7 @@ module.exports = [
   },
   {
     source: '/consul/docs/ecs/architecture',
-    destination: '/consul/docs/reference/ecs/architecture',
+    destination: '/consul/docs/reference/architecture/ecs',
     permanent: true,
   },
   {
@@ -1573,7 +1573,7 @@ module.exports = [
   },
   {
     source: '/consul/docs/k8s/operations/tls-on-existing-cluster',
-    destination: '/consul/docs/secure/encryption/tls/rolling',
+    destination: '/consul/docs/secure/encryption/tls/rotate/k8s',
     permanent: true,
   },
   {
@@ -2898,7 +2898,7 @@ module.exports = [
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/envoy-extension/apigee-external-authz/',
     destination:
-      '/consul/docs/:version/connect/proxies/envoy-extensions/usage/apigee-external-authz',
+      '/consul/docs/:version/connect/proxies/envoy-extensions/usage/apigee-ext-authz',
     permanent: true,
   },
   {
@@ -3031,7 +3031,7 @@ module.exports = [
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/ecs/architecture/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/architecture/ecs/',
     destination: '/consul/docs/:version/ecs/architecture',
     permanent: true,
   },
@@ -3626,7 +3626,7 @@ module.exports = [
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure/encryption/tls/rolling/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure/encryption/tls/rotate/k8s/',
     destination: '/consul/docs/:version/k8s/operations/tls-on-existing-cluster',
     permanent: true,
   },
