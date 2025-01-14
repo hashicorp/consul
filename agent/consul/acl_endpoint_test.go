@@ -2169,6 +2169,22 @@ func TestACLEndpoint_PolicySet(t *testing.T) {
 		require.Error(t, err)
 	})
 
+	t.Run("Key Dup", func(t *testing.T) {
+		req := structs.ACLPolicySetRequest{
+			Datacenter: "dc1",
+			Policy: structs.ACLPolicy{
+				Description: "foobar",
+				Name:        "baz2",
+				Rules:       "service \"\" { policy = \"read\" policy = \"write\" }",
+			},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
+		}
+		resp := structs.ACLPolicy{}
+
+		err := aclEp.PolicySet(&req, &resp)
+		require.Error(t, err)
+	})
+
 	t.Run("Update it", func(t *testing.T) {
 		req := structs.ACLPolicySetRequest{
 			Datacenter: "dc1",

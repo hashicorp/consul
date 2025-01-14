@@ -1087,8 +1087,23 @@ func (c *Client) doRequest(r *request) (time.Duration, *http.Response, error) {
 	if err != nil {
 		return 0, nil, err
 	}
+
+	contentType := GetContentType(req)
+
+	if req != nil {
+		req.Header.Set(contentTypeHeader, contentType)
+	}
+
 	start := time.Now()
 	resp, err := c.config.HttpClient.Do(req)
+
+	if resp != nil {
+		respContentType := resp.Header.Get(contentTypeHeader)
+		if respContentType == "" || respContentType != contentType {
+			resp.Header.Set(contentTypeHeader, contentType)
+		}
+	}
+
 	diff := time.Since(start)
 	return diff, resp, err
 }

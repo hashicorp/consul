@@ -800,6 +800,11 @@ func (policies ACLPolicies) resolveWithCache(cache *ACLCaches, entConf *acl.Conf
 			continue
 		}
 
+		//pulling from the cache, we don't want to break any rules that are already in the cache
+		if entConf == nil {
+			entConf = &acl.Config{}
+		}
+		entConf.WarnOnDuplicateKey = true
 		p, err := acl.NewPolicyFromSource(policy.Rules, entConf, policy.EnterprisePolicyMeta())
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse %q: %v", policy.Name, err)
