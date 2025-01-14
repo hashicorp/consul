@@ -590,7 +590,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
   ~> **Warning:** The `partition` option cannot be used either the
   [`segment`](#segment-2) option or [`-segment`](/consul/docs/agent/config/cli-flags#_segment) flag.
 
-- `performance` Available in Consul 0.7 and later, this is a nested object that allows tuning the performance of different subsystems in Consul. See the [Server Performance](/consul/docs/reference/server) documentation for more details. The following parameters are available:
+- `performance` Available in Consul 0.7 and later, this is a nested object that allows tuning the performance of different subsystems in Consul. See the [Server Performance](/consul/docs/reference/architecture/server) documentation for more details. The following parameters are available:
 
   - `leave_drain_time` - A duration that a server will dwell during a graceful leave in order to allow requests to be retried against other Consul servers. Under normal circumstances, this can prevent clients from experiencing "no leader" errors when performing a rolling update of the Consul servers. This was added in Consul 1.0. Must be a duration value such as 10s. Defaults to 5s.
 
