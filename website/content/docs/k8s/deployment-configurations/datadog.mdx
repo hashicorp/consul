@@ -293,10 +293,7 @@ during normal operation beyond that of Consul's available metrics.
 See the below [table](#additional-integration-checks-performed) for an outline of the features added by the official integration.
 
 <Note>
-  Currently, the annotations configured by the Helm overrides, when Consul RPC TLS is enabled,
-  presume the user has shared the server and ca certificate secrets with the Datadog agent's Kubernetes namespace and 
-  mount the valid <code>tls.crt</code>, <code>tls.key</code>, and <code>ca.crt</code> secret volumes at the <code>/etc/datadog-agent/conf.d/consul.d/certs</code> 
-  path within the Datadog Agent pod's <code>agent</code> container.
+  When Consul RPC TLS is enabled, the annotations configured by the Helm overrides assume that the user already shared the server and CA certificate secrets with the Datadog agent's Kubernetes namespace. As a result, it mounts `tls.crt`, `tls.key`, and `ca.crt` secret volumes at the `/etc/datadog-agent/conf.d/consul.d/certs` path in the `agent` container of the Datadog agent's Pod.
 </Note>
 
 ### Helm Chart Configuration
