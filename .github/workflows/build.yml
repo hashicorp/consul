@@ -107,6 +107,10 @@ jobs:
     name: Go ${{ needs.get-go-version.outputs.go-version }} ${{ matrix.goos }} ${{ matrix.goarch }} build
     steps:
       - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+      
+      - name: Setup Git
+        if: ${{ endsWith(github.repository, '-enterprise') }}
+        run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
 
       - name: Setup with node and yarn
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
@@ -134,6 +138,7 @@ jobs:
           PRERELEASE_VERSION: ${{ needs.set-product-version.outputs.pre-version }}
           CGO_ENABLED: "0"
           GOLDFLAGS: "${{needs.set-product-version.outputs.shared-ldflags}}"
+          GOTAGS: hashicorpmetrics
         uses: hashicorp/actions-go-build@make-clean-flag-optional
         with:
           product_name: ${{ env.PKG_NAME }}
@@ -145,7 +150,7 @@ jobs:
           clean: false
           instructions: |-
             cp LICENSE $TARGET_DIR/LICENSE.txt
-            go build -ldflags="$GOLDFLAGS" -o "$BIN_PATH" -trimpath -buildvcs=false
+            go build -ldflags="$GOLDFLAGS" -tags="$GOTAGS" -o "$BIN_PATH" -trimpath -buildvcs=false
 
       - name: Copy license file
         if: ${{ !endsWith(github.repository, '-enterprise') }}
@@ -208,6 +213,10 @@ jobs:
     name: Go ${{ needs.get-go-version.outputs.go-version }} ${{ matrix.goos }} ${{ matrix.goarch }} build
     steps:
       - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+      
+      # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
+      - name: Setup Git
+        run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
 
       - name: Setup with node and yarn
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
@@ -235,6 +244,7 @@ jobs:
           PRERELEASE_VERSION: ${{ needs.set-product-version.outputs.pre-version }}
           CGO_ENABLED: "0"
           GOLDFLAGS: "${{needs.set-product-version.outputs.shared-ldflags}}"
+          GOTAGS: hashicorpmetrics
         uses: hashicorp/actions-go-build@make-clean-flag-optional
         with:
           product_name: ${{ env.PKG_NAME }}
@@ -246,7 +256,7 @@ jobs:
           clean: false
           instructions: |-
             cp LICENSE $TARGET_DIR/LICENSE.txt
-            go build -ldflags="$GOLDFLAGS" -o "$BIN_PATH" -trimpath -buildvcs=false
+            go build -ldflags="$GOLDFLAGS" -tags="$GOTAGS" -o "$BIN_PATH" -trimpath -buildvcs=false
 
   build-docker:
     name: Docker ${{ matrix.arch }} build
