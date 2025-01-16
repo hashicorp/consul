@@ -48,7 +48,7 @@ env:
   GOTESTSUM_VERSION: "1.11.0"
   GOARCH: ${{inputs.go-arch}}
   CONSUL_LICENSE: ${{secrets.consul-license}}
-  GOTAGS: ${{ inputs.go-tags}}
+  GOTAGS: hashicorpmetrics ${{ inputs.go-tags}}
   GOPRIVATE: github.com/hashicorp # Required for enterprise deps
   DATADOG_API_KEY: ${{secrets.datadog-api-key}}
   
