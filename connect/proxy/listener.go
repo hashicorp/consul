@@ -12,8 +12,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/go-hclog"
+	metrics "github.com/hashicorp/go-metrics"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/connect"

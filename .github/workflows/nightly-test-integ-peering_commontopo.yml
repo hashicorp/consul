@@ -12,7 +12,7 @@ on:
 env:
   TEST_RESULTS_DIR: /tmp/test-results
   CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
-  GOTAGS: ${{ endsWith(github.repository, '-enterprise') && 'consulent' || '' }}
+  GOTAGS: hashicorpmetrics ${{ endsWith(github.repository, '-enterprise') && 'consulent' || '' }}
   GOTESTSUM_VERSION: "1.10.1"
   CONSUL_BINARY_UPLOAD_NAME: consul-bin
   # strip the hashicorp/ off the front of github.repository for consul

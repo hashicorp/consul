@@ -24,6 +24,10 @@ on:
     secrets:
       elevated-github-token:
         required: true
+        
+env:
+  GOTAGS: hashicorpmetrics ${{ endsWith(github.repository, '-enterprise') && 'consulent' || '' }}
+
 jobs:
   build:
     runs-on: 'windows-2019'
@@ -39,7 +43,7 @@ jobs:
       - name: Build
         env:
           GOARCH: ${{ inputs.goarch }}
-        run: go build .
+        run: go build -tags="$GOTAGS" .
       # save dev build to pass to downstream jobs
       - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         with:

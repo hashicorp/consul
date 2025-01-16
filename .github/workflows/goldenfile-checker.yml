@@ -14,6 +14,9 @@ on:
       - main
       - release/*
 
+env:
+  GOFLAGS: -tags=${{ endsWith(github.repository, '-enterprise') && 'hashicorpmetrics,consulent' || 'hashicorpmetrics' }}
+      
 jobs:
   get-go-version:
     uses: ./.github/workflows/reusable-get-go-version.yml

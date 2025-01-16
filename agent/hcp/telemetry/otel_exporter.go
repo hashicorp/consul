@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"net/url"
 
-	goMetrics "github.com/armon/go-metrics"
+	goMetrics "github.com/hashicorp/go-metrics"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/metric/aggregation"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"

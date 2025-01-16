@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 env:
-  GOTAGS: ${{ endsWith(github.repository, '-enterprise') && 'consulent' || '' }}
+  GOTAGS: ${{ endsWith(github.repository, '-enterprise') && 'consulent,hashicorpmetrics' || 'hashicorpmetrics' }}
   GOPRIVATE: github.com/hashicorp # Required for enterprise deps
 
 concurrency:

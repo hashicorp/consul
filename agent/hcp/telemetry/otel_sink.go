@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	gometrics "github.com/armon/go-metrics"
+	gometrics "github.com/hashicorp/go-metrics"
 	"go.opentelemetry.io/otel/attribute"
 	otelmetric "go.opentelemetry.io/otel/metric"
 	otelsdk "go.opentelemetry.io/otel/sdk/metric"

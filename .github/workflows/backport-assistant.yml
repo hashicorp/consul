@@ -19,7 +19,7 @@ jobs:
   backport:
     if: github.event.pull_request.merged
     runs-on: ubuntu-latest
-    container: hashicorpdev/backport-assistant:0.4.4
+    container: hashicorpdev/backport-assistant:0.5.3
     steps:
       - name: Run Backport Assistant for release branches
         run: |

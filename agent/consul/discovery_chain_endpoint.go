@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"time"
 
-	metrics "github.com/armon/go-metrics"
 	memdb "github.com/hashicorp/go-memdb"
+	metrics "github.com/hashicorp/go-metrics"
 	hashstructure_v2 "github.com/mitchellh/hashstructure/v2"
 
 	"github.com/hashicorp/consul/acl"
