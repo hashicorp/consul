@@ -1,0 +1,3 @@
+```release-note:bug
+api-gateway: Fixed TLS configuration to properly enforce listener TLS versions and cipher suites
+```
