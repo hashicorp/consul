@@ -21,7 +21,7 @@ on:
       elevated-github-token:
         required: true
 env:
-  GOTAGS: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
+  GOTAGS: hashicorpmetrics "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
   GOARCH: ${{inputs.go-arch}}
   GOPRIVATE: github.com/hashicorp # Required for enterprise deps
 

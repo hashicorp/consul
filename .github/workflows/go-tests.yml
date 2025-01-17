@@ -115,6 +115,8 @@ jobs:
     - setup
     - get-go-version
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
+    env:
+      GOTAGS: ${{ endsWith(github.repository, '-enterprise') && 'hashicorpmetrics,consulent' || 'hashicorpmetrics' }}
     steps:
     - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
     # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
@@ -124,7 +126,7 @@ jobs:
     - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
       with:
         go-version: ${{ needs.get-go-version.outputs.go-version }}
-    - run: go install github.com/reillywatson/enumcover/cmd/enumcover@master && enumcover ./...
+    - run: go install github.com/reillywatson/enumcover/cmd/enumcover@master && GOFLAGS="-tags=${GOTAGS}" enumcover ./...
 
   lint-container-test-deps:
     needs:

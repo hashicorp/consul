@@ -53,7 +53,8 @@ env:
   GOARCH: ${{inputs.go-arch}}
   TOTAL_RUNNERS: ${{inputs.runner-count}}
   CONSUL_LICENSE: ${{secrets.consul-license}}
-  GOTAGS: ${{ inputs.go-tags}}
+  GOTAGS: hashicorpmetrics,${{ inputs.go-tags }}
+  GOFLAGS: "-tags=hashicorpmetrics,${{ inputs.go-tags }}"
   GOPRIVATE: github.com/hashicorp # Required for enterprise deps
   DATADOG_API_KEY: ${{secrets.datadog-api-key}}
   
@@ -119,7 +120,7 @@ jobs:
         run: chmod +x $GITHUB_WORKSPACE/${{inputs.directory}}/consul
       - run: go env
       - name: Run tests 
-        working-directory: ${{inputs.directory}}
+        working-directory: ${{inputs.directory}}          
         run: |
           # separate the list
           PACKAGE_NAMES="${{ join(matrix.package, ' ') }}"
@@ -128,6 +129,7 @@ jobs:
           # some tests expect this umask, and arm images have a different default
           umask 0022
 
+          # Note that the build tags will be used from the GOFLAGS environment variable
           go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
           --format=github-actions \
           --format-hide-empty-pkg \
@@ -136,7 +138,6 @@ jobs:
           --rerun-fails-report=/tmp/gotestsum-rerun-fails \
           --packages="$PACKAGE_NAMES" \
           --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml -- \
-          -tags="${{env.GOTAGS}}" \
           ${{inputs.go-test-flags}} \
           -cover -coverprofile=coverage.txt \
           -timeout=30m
