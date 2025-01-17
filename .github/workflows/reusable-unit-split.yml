@@ -54,7 +54,7 @@ env:
   TOTAL_RUNNERS: ${{inputs.runner-count}}
   CONSUL_LICENSE: ${{secrets.consul-license}}
   GOTAGS: hashicorpmetrics ${{ inputs.go-tags }}
-  GOFLAGS: "-tags=\"hashicorpmetrics ${{ inputs.go-tags }}\""
+  GOFLAGS: "-tags=hashicorpmetrics ${{ inputs.go-tags }}"
   GOPRIVATE: github.com/hashicorp # Required for enterprise deps
   DATADOG_API_KEY: ${{secrets.datadog-api-key}}
   
