@@ -134,6 +134,7 @@ jobs:
           PRERELEASE_VERSION: ${{ needs.set-product-version.outputs.pre-version }}
           CGO_ENABLED: "0"
           GOLDFLAGS: "${{needs.set-product-version.outputs.shared-ldflags}}"
+          GOTAGS: hashicorpmetrics
         uses: hashicorp/actions-go-build@make-clean-flag-optional
         with:
           product_name: ${{ env.PKG_NAME }}
@@ -145,7 +146,7 @@ jobs:
           clean: false
           instructions: |-
             cp LICENSE $TARGET_DIR/LICENSE.txt
-            go build -ldflags="$GOLDFLAGS" -o "$BIN_PATH" -trimpath -buildvcs=false
+            go build -ldflags="$GOLDFLAGS" -tags="$GOTAGS" -o "$BIN_PATH" -trimpath -buildvcs=false
 
       - name: Copy license file
         if: ${{ !endsWith(github.repository, '-enterprise') }}
@@ -235,6 +236,7 @@ jobs:
           PRERELEASE_VERSION: ${{ needs.set-product-version.outputs.pre-version }}
           CGO_ENABLED: "0"
           GOLDFLAGS: "${{needs.set-product-version.outputs.shared-ldflags}}"
+          GOTAGS: hashicorpmetrics
         uses: hashicorp/actions-go-build@make-clean-flag-optional
         with:
           product_name: ${{ env.PKG_NAME }}
@@ -246,7 +248,7 @@ jobs:
           clean: false
           instructions: |-
             cp LICENSE $TARGET_DIR/LICENSE.txt
-            go build -ldflags="$GOLDFLAGS" -o "$BIN_PATH" -trimpath -buildvcs=false
+            go build -ldflags="$GOLDFLAGS" -tags="$GOTAGS" -o "$BIN_PATH" -trimpath -buildvcs=false
 
   build-docker:
     name: Docker ${{ matrix.arch }} build
