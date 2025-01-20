@@ -1,0 +1,2 @@
+```release-note:security
+Upgrade Go to use v1.22.11 and bump Go x-repositories to latest.
