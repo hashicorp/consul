@@ -1,3 +1,27 @@
+## 1.18.6 Enterprise (January 13, 2025)
+
+Enterprise LTS: Consul Enterprise 1.18 is a Long-Term Support (LTS) release.
+
+SECURITY:
+
+* Removed ability to use bexpr to filter results without ACL read on endpoint [[GH-21950](https://github.com/hashicorp/consul/issues/21950)]
+* Resolved issue where hcl would allow duplicates of the same key in acl policy configuration. [[GH-21908](https://github.com/hashicorp/consul/issues/21908)]
+* Update `github.com/golang-jwt/jwt/v4` to v4.5.1 to address [GHSA-29wx-vh33-7x7r](https://github.com/golang-jwt/jwt/security/advisories/GHSA-29wx-vh33-7x7r). [[GH-21951](https://github.com/hashicorp/consul/issues/21951)]
+* Update `golang.org/x/crypto` to v0.31.0 to address [GO-2024-3321](https://pkg.go.dev/vuln/GO-2024-3321). [[GH-22001](https://github.com/hashicorp/consul/issues/22001)]
+* Update `golang.org/x/net` to v0.33.0 to address [GO-2024-3333](https://pkg.go.dev/vuln/GO-2024-3333). [[GH-22021](https://github.com/hashicorp/consul/issues/22021)]
+* Update `registry.access.redhat.com/ubi9-minimal` image to 9.5 to address [CVE-2024-3596](https://nvd.nist.gov/vuln/detail/CVE-2024-3596),[CVE-2024-2511](https://nvd.nist.gov/vuln/detail/CVE-2024-2511),[CVE-2024-26458](https://nvd.nist.gov/vuln/detail/CVE-2024-26458). [[GH-22011](https://github.com/hashicorp/consul/issues/22011)]
+* api: Enforces strict content-type header validation to protect against XSS vulnerability. [[GH-21930](https://github.com/hashicorp/consul/issues/21930)]
+
+IMPROVEMENTS:
+
+* Upgrade api submodule to 1.28.5 [[GH-22056](https://github.com/hashicorp/consul/issues/22056)]
+* snapshot agent: **(Enterprise only)**  Implement Service Principal Auth for snapshot agent on azure.
+
+BUG FIXES:
+
+* proxycfg: fix a bug where peered upstreams watches are canceled even when another target needs it. [[GH-21871](https://github.com/hashicorp/consul/issues/21871)]
+* state: ensure that identical manual virtual IP updates result in not bumping the modify indexes [[GH-21909](https://github.com/hashicorp/consul/issues/21909)]
+
 ## 1.18.5 Enterprise (October 29, 2024)
 
 Enterprise LTS: Consul Enterprise 1.18 is a Long-Term Support (LTS) release.
