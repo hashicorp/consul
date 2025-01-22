@@ -8,13 +8,14 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	agentdns "github.com/hashicorp/consul/agent/dns"
 	"math"
 	"net"
 	"regexp"
 	"strings"
 	"sync/atomic"
 	"time"
+
+	agentdns "github.com/hashicorp/consul/agent/dns"
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-radix"
@@ -801,6 +802,15 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, cfg *dnsRe
 	}
 
 	invalid := func() error {
+		// Handle potential QNAME minimization queries
+		// Resolvers using QNAME minimization will send queries with partial names
+		// RFC 9156: Allow queries for partial domain components when they look like QNAME minimization
+		// eg. "service.dc.consul" or "service.consul"
+		if len(queryParts) == 0 && (queryKind != "") {
+			// Return empty non-referral response (RFC 9156 Section 3)
+			resp.Answer = []dns.RR{}
+			return nil
+		}
 		d.logger.Warn("QName invalid", "qname", qName)
 		return errNameNotFound
 	}
