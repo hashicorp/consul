@@ -4,9 +4,11 @@
 package freeport
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"net"
+	"os"
 	"testing"
 
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -228,6 +230,124 @@ func TestIntervalOverlap(t *testing.T) {
 			}
 			if tc.overlap != intervalOverlap(tc.min2, tc.max2, tc.min1, tc.max1) { // 2 vs 1
 				t.Fatalf("expected %v but got %v", tc.overlap, !tc.overlap)
+			}
+		})
+	}
+}
+
+func TestAllowSettingLogLevel(t *testing.T) {
+	cases := []struct {
+		level    LogLevel
+		expected LogLevel
+	}{
+		{DEBUG, DEBUG},
+		{INFO, INFO},
+		{WARN, WARN},
+		{ERROR, ERROR},
+		{DISABLED, DISABLED},
+		{LogLevel(99), DISABLED},
+	}
+
+	for _, tc := range cases {
+		t.Run(fmt.Sprintf("Setting log level to %v", tc.level), func(t *testing.T) {
+			r, w, err := os.Pipe()
+			if err != nil {
+				t.Fatalf("failed to create pipe: %v", err)
+			}
+
+			t.Cleanup(func() {
+				_ = r.Close()
+			})
+
+			os.Stderr = w
+			SetLogLevel(tc.level)
+			if logLevel != tc.expected {
+				t.Fatalf("expected log level to be %v but got %v", tc.level, logLevel)
+			}
+
+			logf(tc.level, "This is a test log message")
+			_ = w.Close()
+
+			var b bytes.Buffer
+			if _, err := io.Copy(&b, r); err != nil {
+				t.Fatalf("failed to read from pipe: %v", err)
+			}
+
+			if tc.level >= DISABLED {
+				if b.String() != "" {
+					t.Fatalf("expected no log output but got %q", b.String())
+				}
+
+				return
+			}
+
+			expectedPrefix := []byte("[" + tc.expected.String() + "]")
+
+			if !bytes.HasPrefix(b.Bytes(), expectedPrefix) {
+				t.Fatalf("expected log output to start with %q but got %q", expectedPrefix, b.Bytes())
+			}
+		})
+	}
+}
+
+func TestLogLevelMessages(t *testing.T) {
+	tests := []struct {
+		level                 LogLevel
+		inputLogLevel         LogLevel
+		expectMessageInStdErr bool
+	}{
+		{
+			level:                 DEBUG,
+			inputLogLevel:         INFO,
+			expectMessageInStdErr: true,
+		},
+		{
+			level:                 INFO,
+			inputLogLevel:         INFO,
+			expectMessageInStdErr: true,
+		},
+		{
+			level:                 WARN,
+			inputLogLevel:         INFO,
+			expectMessageInStdErr: false,
+		},
+		{
+			level:                 ERROR,
+			inputLogLevel:         INFO,
+			expectMessageInStdErr: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(fmt.Sprintf("Setting log level to %v", tc.level), func(t *testing.T) {
+			r, w, err := os.Pipe()
+			if err != nil {
+				t.Fatalf("failed to create pipe: %v", err)
+			}
+
+			t.Cleanup(func() {
+				_ = r.Close()
+			})
+
+			os.Stderr = w
+			SetLogLevel(tc.level)
+
+			logf(tc.inputLogLevel, "This is a test log message")
+			_ = w.Close()
+
+			var b bytes.Buffer
+			if _, err := io.Copy(&b, r); err != nil {
+				t.Fatalf("failed to read from pipe: %v", err)
+			}
+
+			if tc.expectMessageInStdErr {
+				if b.String() == "" {
+					t.Fatalf("expected log output but got none")
+				}
+			} else {
+				if b.String() != "" {
+					t.Fatalf("expected no log output but got %q", b.String())
+				}
 			}
 		})
 	}
