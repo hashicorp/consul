@@ -94,10 +94,6 @@
         "path": "concept/catalog"
       },
       {
-        "title": "Configuration-as-code",
-        "path": "concept/configuration"
-      },
-      {
         "title": "Consensus",
         "path": "concept/consensus"
       },
