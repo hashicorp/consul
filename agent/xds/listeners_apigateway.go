@@ -114,6 +114,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 
 			if isAPIGatewayWithTLS {
 				// construct SNI filter chains
+				setAPIGatewayTLSConfig(listenerCfg, cfgSnap)
 				l.FilterChains, err = s.makeInlineOverrideFilterChains(
 					cfgSnap,
 					cfgSnap.APIGateway.TLSConfig,
@@ -228,7 +229,8 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 			sniFilterChains := []*envoy_listener_v3.FilterChain{}
 
 			if isAPIGatewayWithTLS {
-				sniFilterChains, err = s.makeInlineOverrideFilterChains(cfgSnap, cfgSnap.IngressGateway.TLSConfig, listenerKey.Protocol, filterOpts, certs)
+				setAPIGatewayTLSConfig(listenerCfg, cfgSnap)
+				sniFilterChains, err = s.makeInlineOverrideFilterChains(cfgSnap, cfgSnap.APIGateway.TLSConfig, listenerKey.Protocol, filterOpts, certs)
 				if err != nil {
 					return nil, err
 				}
@@ -514,4 +516,32 @@ func (s *ResourceGenerator) makeInlineOverrideFilterChains(cfgSnap *proxycfg.Con
 	}
 
 	return chains, nil
+}
+
+// setAPIGatewayTLSConfig updates the TLS configuration for an API gateway
+// by setting TLS parameters from a listener configuration if the existing
+// configuration is empty.
+// Only empty or unset values are updated, preserving any existing specific configurations.
+func setAPIGatewayTLSConfig(listenerCfg structs.APIGatewayListener, cfgSnap *proxycfg.ConfigSnapshot) {
+	// Create a local TLS config based on listener configuration
+	listenerConfig := structs.GatewayTLSConfig{
+		TLSMinVersion: listenerCfg.TLS.MinVersion,
+		TLSMaxVersion: listenerCfg.TLS.MaxVersion,
+		CipherSuites:  listenerCfg.TLS.CipherSuites,
+	}
+
+	// Check and set TLSMinVersion if empty
+	if cfgSnap.APIGateway.TLSConfig.TLSMinVersion == "" {
+		cfgSnap.APIGateway.TLSConfig.TLSMinVersion = listenerConfig.TLSMinVersion
+	}
+
+	// Check and set TLSMaxVersion if empty
+	if cfgSnap.APIGateway.TLSConfig.TLSMaxVersion == "" {
+		cfgSnap.APIGateway.TLSConfig.TLSMaxVersion = listenerConfig.TLSMaxVersion
+	}
+
+	// Check and set CipherSuites if empty
+	if len(cfgSnap.APIGateway.TLSConfig.CipherSuites) == 0 {
+		cfgSnap.APIGateway.TLSConfig.CipherSuites = listenerConfig.CipherSuites
+	}
 }

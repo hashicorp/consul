@@ -1,10 +1,10 @@
 module github.com/hashicorp/consul/testing/deployer
 
-go 1.20
+go 1.22.11
 
 require (
 	github.com/avast/retry-go v3.0.0+incompatible
-	github.com/google/go-cmp v0.5.9
+	github.com/google/go-cmp v0.6.0
 	github.com/hashicorp/consul-server-connection-manager v0.1.4
 	github.com/hashicorp/consul/api v1.29.4
 	github.com/hashicorp/consul/proto-public v0.6.2
@@ -18,8 +18,8 @@ require (
 	github.com/mitchellh/copystructure v1.2.0
 	github.com/rboyer/safeio v0.2.2
 	github.com/stretchr/testify v1.8.4
-	golang.org/x/crypto v0.22.0
-	golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63
+	golang.org/x/crypto v0.32.0
+	golang.org/x/exp v0.0.0-20250106191152-7588d65b2ba8
 	google.golang.org/grpc v1.56.3
 	google.golang.org/protobuf v1.33.0
 )
@@ -54,9 +54,9 @@ require (
 	github.com/prometheus/common v0.26.0 // indirect
 	github.com/prometheus/procfs v0.6.0 // indirect
 	github.com/zclconf/go-cty v1.12.1 // indirect
-	golang.org/x/net v0.24.0 // indirect
-	golang.org/x/sys v0.19.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/net v0.34.0 // indirect
+	golang.org/x/sys v0.29.0 // indirect
+	golang.org/x/text v0.21.0 // indirect
 	google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
