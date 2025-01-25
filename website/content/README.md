@@ -1,6 +1,6 @@
 # Consul Documentation | Information Architecture and Content Strategy
 
-This sub-directory contains the written content that appears in [the Consul documentation developer.hashicorp.com](https://developer.hashicorp.com/consul).
+This sub-directory contains the written content that appears in [the Consul documentation on developer.hashicorp.com](https://developer.hashicorp.com/consul). This README describes the structure and design principles for this documentation set.
 
 ## Content overview
 
@@ -17,8 +17,8 @@ The `website/content` directory in the `hashicorp/consul` repo contains the foll
 After you merge a PR into a numbered release branch, changes to these folders appear at the following URLs:
 
 - Changes to `api-docs` appear at [https://developer.hashicorp.com/consul/api-docs](https://developer.hashicorp.com/consul/api-docs).
-- Changes to `commands` appear at [https://developer.hashicorp.com/consul/commands](https://developer.hashicorp.com/consul/commands)
-- Changes to `docs` appear at [https://developer.hashicorp.com/consul/docs](https://developer.hashicorp.com/consul/docs)
+- Changes to `commands` appear at [https://developer.hashicorp.com/consul/commands](https://developer.hashicorp.com/consul/commands).
+- Changes to `docs` appear at [https://developer.hashicorp.com/consul/docs](https://developer.hashicorp.com/consul/docs).
 
 URLs follow the directory structure for each folder and omit the the `.mdx` file extension. Pages named `index.mdx` adopt their directory's name. For example, the file `docs/reference/agent/index.mdx` appears at the URL [https://developer.hashicorp.com/consul/docs/reference/agent](https://developer.hashicorp.com/consul/docs/reference/agent).
 
@@ -28,29 +28,31 @@ Tutorials that appear at [https://developer.hashicorp.com/consul/tutorials](http
 
 ## North Star principles
 
-The design of the content in the `docs/` directory, including structure, filepaths, and labelling, is governed by the following _north star principles_.
+The design of the content in the `docs/` directory, including structure, file paths, and labels, is governed by the following _north star principles_.
 
 1. **Users are humans**. Design for humans first. For example, file paths become URLs; create human-readable descriptions of the content and avoid unnecessary repetition.
 1. **Less is always more**. Prefer single words for folder and file names; add a hyphen and a second word to disambiguate from existing content.
 1. **Document what currently exists**. Do not create speculative folders and files to "reserve space" for future updates and releases. Do not describe Consul as it will exist in the future; describe it as it exists right now.
-1. **Beauty works better**. When creating new files and directories, strive for consistency with the existing structure. For example, use parallel structures across directories and flatten directories that run unsually deep. Tip: If it doesn't look right, it's probably not right.
+1. **Beauty works better**. When creating new files and directories, strive for consistency with the existing structure. For example, use parallel structures across directories and flatten directories that run too deep. Tip: If it doesn't look right, it's probably not right.
 1. **Prefer partials over `ctrl+v`**. Spread content out, but document unique information in one place. When you need to repeat content across multiple pages, use partials to maintain content.
 
 These principles exist to help you navigate ambiguity when making changes to the underlying content. If you add new content and you're not quite sure where to place it or how to name it, use these "north stars" to help you make an informed decision about where to go next.
 
+Over time, Consul may change in ways that require significant changes to this information architecture. Use these north star principles to help you make informed incremental changes over time.
+
 ## Taxonomy
 
-There are three main categories in our docs. This division of categories is not literal to the directory structure, even though the **Reference** category includes the repo's `reference` folder.
+There are three main categories in the Consul docs information architecture. This division of categories is _not literal_ to the directory structure, even though the **Reference** category includes the repo's `reference` folder.
 
 - Intro
 - Usage
 - Reference
 
-The categories align with Diataxis.
+These categories align with Diataxis.
 
 ### Intro
 
-The **Intro** category includes the following folders:
+The **Intro** category includes the following folders in `website/content/docs/`:
 
 - `architecture`
 - `concept`
@@ -70,7 +72,7 @@ The following table lists each term and a definition to help you decide where to
 
 ### Usage
 
-The **Usage** category includes the following folders:
+The **Usage** category includes the following folders in `website/content/docs/`:
 
 - `automate`
 - `connect`
@@ -91,7 +93,7 @@ The **Usage** category includes the following folders:
 - `secure-mesh`
 - `upgrade`
 
-These folders are organized into two groups that are not literal to the directory structure.
+These folders are organized into two groups that are _not literal_ to the directory structure, but are reflected in the navigation bar.
 
 - **Operations**. User actions, workflows, and goals related to installing and operating Consul as a long-running daemon on multiple nodes in a network.
 - **Service networking**. User actions, workflows, and goals related to implementing networking solutions for application workloads.
@@ -130,7 +132,7 @@ Service Networking consists of the following phases, intentionally ordered to re
 
 ### Reference
 
-The **Reference** category includes the following folders:
+The **Reference** category includes the following folders in `website/content/docs/`:
 
 - `error-messages`
 - `reference`
@@ -148,23 +150,23 @@ The following table lists each term and a definition to help you decide where to
 
 ## Path syntax
 
-A major advantage of the information architecture described in this document is the filepath structure. This structure "tags" documentation with keywords that describe the page's content in order to optimize the documentation for Google SEO while also helping human users build a "mental model" of Consul.
+A major component of this information architecture is the file path structure. This structure "tags" documentation with keywords that describe the page's content in order to optimize the documentation for Google SEO while also helping human users build a "mental model" of Consul.
 
-Our syntax creates human-readable filepaths using a controlled vocabulary and intentional permutations. In usage docs, filepaths follow a repeating pattern of "Verb - Noun - Adjective" to describe the content and user goal.
+Our syntax creates human-readable names for file paths using a controlled vocabulary and intentional permutations. In general, the syntax follows a repeating pattern of "Verb - Noun - Adjective" to describe the content and user goal.
 
-For Consul operations, filepaths tend to have the following order:
+For Consul operations, file paths tend to have the following order:
 
 ```plaintext hideClipboard
-Operation -> Component -> Runtime -> Action -> Provider
+Phase -> Component -> Runtime -> Action -> Provider
 ```
 
 Examples:
 
-- `deploy/server/k8s/platform/openshift` contains instructions on deploying a Consul server agent when running OpenShift.
 - `secure/encryption/tls/rotate/vm` contains instructions for rotating TLS certificates Consul agents use to secure their communications when running on virtual machines.
+- `deploy/server/k8s/platform/openshift` contains instructions on deploying a Consul server agent when running OpenShift.
 - `upgrade/k8s/compatibility` contains information about compatible software versions to help you upgrade the version of Consul running on Kubernetes.
 
-For service networking, filepaths tend to have the following order:
+For service networking, file paths tend to have the following order:
 
 ```plaintext hideClipboard
 Phase -> Feature -> Action -> Runtime -> Interface
@@ -174,6 +176,8 @@ Examples:
 
 - `discover/load-balancer/nginx` contains instructions for using NGINX as a load balancer based on Consul service discovery results.
 - `east-west/cluster-peering/establish/k8s` contains instructions for creating new connections between Consul clusters running on Kubernetes in different regions or cloud providers.
+- `register/service/k8s/external` contains information about registering services running on external nodes to Consul on Kubernetes by configuring them to join the Consul datacenter.
+- `register/external/k8s` contains information about registering services running on external nodes to Consul on Kubernetes with Consul External Services Manager (ESM).
 
 ## Controlled vocabulary
 
@@ -332,10 +336,16 @@ Content creation vocabulary
 
 ## Guide to Partials
 
+Partials have file paths that begin with adescription of the type of content. Then it mirrors existing docs structures.
+
 Format -> Content block type -> Phase -> Feature -> Runtime
 Examples -> Component -> Action -> Filetype
 
-Partial structure describes what kind of content the partial is, then follows the existing filepath structures.
+Reasons to use partials:
+
+- Repeating the same information such as steps or requirements across runtimes and providers
+- Reference tables, especially ones that contain version numbers that are updated for each Consul release
+- Configuration examples that can be reused in both reference and usage contexts
 
 ## How to update content
 
