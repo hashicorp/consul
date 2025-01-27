@@ -42,13 +42,13 @@ Over time, Consul may change in ways that require significant changes to this in
 
 ## Taxonomy
 
-There are three main categories in the Consul docs information architecture. This division of categories is _not literal_ to the directory structure, even though the **Reference** category includes the repo's `reference` folder.
+There are three main categories in the Consul docs information architecture. This division of categories is _not literal_ to the directory structure, even though the **Reference** category includes the repository's `reference` folder.
 
 - Intro
 - Usage
 - Reference
 
-These categories align with Diataxis.
+These categories align with [Diataxis](https://diataxis.fr/).
 
 ### Intro
 
@@ -156,9 +156,13 @@ Our syntax creates human-readable names for file paths using a controlled vocabu
 
 For Consul operations, file paths tend to have the following order:
 
-```plaintext hideClipboard
+<CodeBlockConfig hideClipboard>
+
+```plaintext
 Phase -> Component -> Runtime -> Action -> Provider
 ```
+
+</CodeBlockConfig>
 
 Examples:
 
@@ -168,9 +172,13 @@ Examples:
 
 For service networking, file paths tend to have the following order:
 
-```plaintext hideClipboard
+<CodeBlockConfig hideClipboard>
+
+```plaintext
 Phase -> Feature -> Action -> Runtime -> Interface
 ```
+
+</CodeBlockConfig>
 
 Examples:
 
@@ -347,6 +355,20 @@ Reasons to use partials:
 - Reference tables, especially ones that contain version numbers that are updated for each Consul release
 - Configuration examples that can be reused in both reference and usage contexts
 
-## How to update content
-
 ## How to build out content over time
+
+1. Create a file `name.mdx` that serves as an overview combining explanation, usage, and reference information.
+2. When you need more pages, move the file to a folder with `name` and change the filename to `index.mdx`.
+3. Create redirects as required.
+
+For example, "DNS views" was introduced for Kubernetes in Consul v1.20. We created a file, `manage/dns/views.mdx`, then expanded it to `manage/dns/views/index.mdx` and `manage/dns/views/enable` when the content required separate pages. The first file is _always_ reachable at the URL `manage/dns/views`, despite the directory and filename change. The `k8s` label is not used because Kubernetes is the only runtime it supports. Hypothetically, if ECS support for DNS views became available, the directory structure for `content/docs/manage/dns` would become:
+
+```
+.
+├── forwarding.mdx
+└── views
+    ├── enable
+        ├── ecs.mdx
+        └── k8s.mdx
+    └── index.mdx
+```
