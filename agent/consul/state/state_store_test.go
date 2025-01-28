@@ -415,7 +415,7 @@ func TestStateStore_Restore_Abort(t *testing.T) {
 	}
 	restore.Abort()
 
-	idx, entries, err := s.KVSList(nil, "", nil)
+	idx, entries, err := s.KVSList(nil, "", nil, 0)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
