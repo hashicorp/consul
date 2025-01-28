@@ -15,7 +15,7 @@ This topic describes how to enable locality-aware routing so that Consul can pri
 By default, Consul balances traffic to all healthy upstream instances in the cluster, even if the instances are in different network zones. You can specify the cloud service provider (CSP) locality for Consul server agents and services registered to the service mesh, which enables several benefits:
 
 - Consul prioritizes the nearest upstream instances when routing traffic through the mesh.
-- When upstream service instances becomes unhealthy, Consul prioritizes failing over to instances that are in the same region as the downstream service. Refer to [Failover](/consul/docs/connect/traffic-management/failover) for additional information about failover strategies in Consul.
+- When upstream service instances becomes unhealthy, Consul prioritizes failing over to instances that are in the same region as the downstream service. Refer to [Failover](/consul/docs/connect/manage-traffic/failover) for additional information about failover strategies in Consul.
 
 When properly implemented, routing traffic to local upstreams can reduce latency and transfer costs associated with sending requests to other regions.
 
