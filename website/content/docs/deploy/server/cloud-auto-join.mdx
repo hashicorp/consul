@@ -7,6 +7,10 @@ description: >-
 
 # Automatically join clusters to a cloud provider
 
+This page describes how to configure `retry_join` for an agent so that servers can join the datacenter automatically. This configuration can be combined with static IP or DNS addresses or even multiple configurations for different providers.
+
+## Introduction
+
 As of Consul 0.9.1, `retry-join` accepts a unified interface using the [go-discover](https://github.com/hashicorp/go-discover) library for automatically joining a Consul datacenter using cloud metadata. To use `retry-join` with a supported cloud provider, specify the configuration on the command line or configuration file as a `key=value key=value ...` string.
 
 In Consul 0.9.1-0.9.3, the values need to be URL encoded but for most practical purposes you need to replace spaces with `+` signs.
@@ -24,6 +28,8 @@ or via a configuration file:
   "retry_join": ["provider=my-cloud config=val config2=\"some other val\" ..."]
 }
 ```
+
+In order to use discovery behind a proxy, you will need to set `HTTP_PROXY`, `HTTPS_PROXY` and `NO_PROXY` environment variables per [Golang `net/http` library](https://golang.org/pkg/net/http/#ProxyFromEnvironment).
 
 ## Auto-join with Network Segments <EnterpriseAlert inline />
 
@@ -81,15 +87,36 @@ $ consul agent -serf-lan-port=8303 -retry-join "provider=..."
 </Tab>
 </Tabs>
 
-## Provider-specific configurations
+## Kubernetes
 
-The cloud provider-specific configurations are detailed below. This can be combined with static IP or DNS addresses or even multiple configurations for different providers.
+The Kubernetes provider finds the IP addresses of pods with the matching [label or field selector](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/). This is useful for non-Kubernetes agents that are joining a server cluster running within Kubernetes.
 
-In order to use discovery behind a proxy, you will need to set `HTTP_PROXY`, `HTTPS_PROXY` and `NO_PROXY` environment variables per [Golang `net/http` library](https://golang.org/pkg/net/http/#ProxyFromEnvironment).
+The pod IP is used by default, which requires that the agent connecting can network to the pod IP. The `host_network` boolean can be set to true to use the host IP instead, but this requires the agent ports (Gossip, RPC, etc.) to be exported to the host as well.
 
-The following sections give the options specific to each supported cloud provider.
+By default, no port is specified. This causes Consul to use the default gossip port (default behavior with all join requests). The pod may specify the `consul.hashicorp.com/auto-join-port` annotation to set the port. The value may be an integer or a named port.
 
-### Amazon EC2 and ECS
+```shell-session
+$ consul agent -retry-join "provider=k8s label_selector=\"app=consul,component=server\""
+```
+
+```json
+{
+  "retry-join": ["provider=k8s label_selector=..."]
+}
+```
+
+- `provider` (required) - the name of the provider ("k8s" is the provider here)
+- `kubeconfig` (optional) - path to the kubeconfig file. If this isn't
+  set, then in-cluster auth will be attempted. If that fails, the default
+  kubeconfig paths are tried (`$HOME/.kube/config`).
+- `namespace` (optional) - the namespace to search for pods. If this isn't
+  set, it defaults to all namespaces.
+- `label_selector` (optional) - the label selector for matching pods.
+- `field_selector` (optional) - the field selector for matching pods.
+
+The Kubernetes token used by the provider needs to have permissions to list pods in the desired namespace.
+
+## AWS EC2 and ECS
 
 This returns the first private IP address of all servers in the given region which have the given `tag_key` and `tag_value`.
 
@@ -115,7 +142,7 @@ $ consul agent -retry-join "provider=aws tag_key=... tag_value=..."
 - `ecs_family` (optional) - String value limits searches to a AWS ECS task definition family. By default, Consul searches all task definition families with the specified tags.
 - `endpoint` (optional) - String value that specifies the endpoint URL of the AWS service to use. If not set, the AWS client sets the value, which defaults to the public DNS name for the service in the specified region.
 
-#### Authentication & precedence
+### Authentication & precedence
 
 - Static credentials `access_key_id=... secret_access_key=...`
 - Environment variables (`AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`)
@@ -136,7 +163,7 @@ The AWS ECS task role associated with the service attempting to discover the `co
 - `ecs:DescribeTasks`
 If the region is omitted from the configuration, Consul obtains it from the local instance's [ECS V4 metadata endpoint](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-metadata-endpoint-v4.html).
 
-### Microsoft Azure
+## Microsoft Azure
 
 This returns the first private IP address of all servers in the given region which have the given `tag_key` and `tag_value` applied to their virtual NIC in the tenant and subscription, or in the given `resource_group` of a `vm_scale_set` for Virtual Machine Scale Sets.
 
@@ -185,7 +212,7 @@ If the Consul datacenter is hosted on Azure, Consul can use Managed Service Iden
 
 </Note>
 
-### Google Compute Engine
+## Google Compute Engine
 
 This returns the first private IP address of all servers in the given project which have the given `tag_value`.
 
@@ -205,7 +232,7 @@ $ consul agent -retry-join "provider=gce project_name=... tag_value=..."
 - `zone_pattern` (optional) - the list of zones can be restricted through an RE2 compatible regular expression. If omitted, servers in all zones are returned.
 - `credentials_file` (optional) - the credentials file for authentication. Note, if you set `-config-dir` do not store the credentials.json file in the configuration directory as it will be parsed as a config file and Consul will fail to start. See below for more information.
 
-#### Authentication & precedence
+### Authentication & precedence
 
 Discovery requires a [GCE Service Account](https://cloud.google.com/compute/docs/north-south/service-accounts). Credentials are searched using the following paths, in order of precedence.
 
@@ -217,7 +244,7 @@ Discovery requires a [GCE Service Account](https://cloud.google.com/compute/docs
 - On Google Compute Engine, use credentials from the metadata
   server. In this final case any provided scopes are ignored.
 
-### IBM SoftLayer
+## IBM SoftLayer
 
 This returns the first private IP address of all servers for the given datacenter with the given `tag_value`.
 
@@ -239,7 +266,7 @@ $ consul agent -retry-join "provider=softlayer datacenter=... tag_value=... user
 - `username` (required) - the username to use for auth.
 - `api_key` (required) - the api key to use for auth.
 
-### Aliyun (Alibaba Cloud)
+## Aliyun (Alibaba Cloud)
 
 This returns the first private IP address of all servers for the given `region` with the given `tag_key` and `tag_value`.
 
@@ -264,7 +291,7 @@ $ consul agent -retry-join "provider=aliyun region=... tag_key=consul tag_value=
 
 The required RAM permission is `ecs:DescribeInstances`. It is recommended you make a dedicated key used to auto-join.
 
-### Digital Ocean
+## Digital Ocean
 
 This returns the first private IP address of all servers for the given `region` with the given `tag_name`.
 
@@ -283,7 +310,7 @@ $ consul agent -retry-join "provider=digitalocean region=... tag_name=... api_to
 - `tag_name` (required) - the value of the tag to auto-join on.
 - `api_token` (required) -the token to use for auth.
 
-### Openstack
+## Openstack
 
 This returns the first private IP address of all servers for the given `region` with the given `tag_key` and `tag_value`.
 
@@ -314,7 +341,7 @@ $ consul agent -retry-join "provider=os tag_key=consul tag_value=server user_nam
 
 The configuration can also be provided by environment variables.
 
-### Scaleway
+## Scaleway
 
 This returns the first private IP address of all servers for the given `region` with the given `tag_name`.
 
@@ -336,7 +363,7 @@ $ consul agent -retry-join "provider=scaleway organization=my-org tag_name=consu
 - `organization` (required) - the organization access key to use for auth (equal to access key).
 - `token` (required) - the token to use for auth.
 
-### TencentCloud
+## TencentCloud
 
 This returns the first IP address of all servers for the given `region` with the given `tag_key` and `tag_value`.
 
@@ -362,7 +389,7 @@ $ consul agent -retry-join "provider=tencentcloud region=... tag_key=consul tag_
 
 This required permission to 'cvm:DescribeInstances'. It is recommended you make a dedicated key used to auto-join the Consul datacenter.
 
-### Joyent Triton
+## Joyent Triton
 
 This returns the first PrimaryIP addresses for all servers with the given `tag_key` and `tag_value`.
 
@@ -385,7 +412,7 @@ $ consul agent -retry-join "provider=triton account=testaccount url=https://us-s
 - `tag_key` (optional) - the instance tag key to use.
 - `tag_value` (optional) - the tag value to use.
 
-### vSphere
+## vSphere
 
 This returns the first private IP address of all servers for the given region with the given `tag_name` and `category_name`.
 
@@ -410,7 +437,7 @@ $ consul agent -retry-join "provider=vsphere category_name=consul-role tag_name=
 - `insecure_ssl` (optional) - Whether or not to skip SSL certificate validation.
 - `timeout` (optional) - Discovery context timeout (default: 10m)
 
-### Packet
+## Packet
 
 This returns the first private IP address (or the IP address of `address type`) of all servers with the given `project` and `auth_token`.
 
@@ -432,7 +459,7 @@ $ consul agent -retry-join "provider=packet auth_token=token project=uuid url=..
 - `url` (optional) - a REST URL for packet
 - `address_type` (optional) - the type of address to check for in this provider ("private_v4", "public_v4" or "public_v6". Defaults to "private_v4")
 
-### Linode
+## Linode
 
 This returns the first private IP address of all servers for the given `region` with the given `tag_name`.
 
@@ -455,32 +482,3 @@ $ consul agent -retry-join "provider=linode region=us-east tag_name=consul-serve
 Variables can also be provided by environment variables:
 
 - `LINODE_TOKEN` for `api_token`
-
-### Kubernetes (k8s)
-
-The Kubernetes provider finds the IP addresses of pods with the matching [label or field selector](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/). This is useful for non-Kubernetes agents that are joining a server cluster running within Kubernetes.
-
-The pod IP is used by default, which requires that the agent connecting can network to the pod IP. The `host_network` boolean can be set to true to use the host IP instead, but this requires the agent ports (Gossip, RPC, etc.) to be exported to the host as well.
-
-By default, no port is specified. This causes Consul to use the default gossip port (default behavior with all join requests). The pod may specify the `consul.hashicorp.com/auto-join-port` annotation to set the port. The value may be an integer or a named port.
-
-```shell-session
-$ consul agent -retry-join "provider=k8s label_selector=\"app=consul,component=server\""
-```
-
-```json
-{
-  "retry-join": ["provider=k8s label_selector=..."]
-}
-```
-
-- `provider` (required) - the name of the provider ("k8s" is the provider here)
-- `kubeconfig` (optional) - path to the kubeconfig file. If this isn't
-  set, then in-cluster auth will be attempted. If that fails, the default
-  kubeconfig paths are tried (`$HOME/.kube/config`).
-- `namespace` (optional) - the namespace to search for pods. If this isn't
-  set, it defaults to all namespaces.
-- `label_selector` (optional) - the label selector for matching pods.
-- `field_selector` (optional) - the field selector for matching pods.
-
-The Kubernetes token used by the provider needs to have permissions to list pods in the desired namespace.

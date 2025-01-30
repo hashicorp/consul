@@ -1240,7 +1240,7 @@ module.exports = [
   },
   {
     source: '/consul/docs/install/cloud-auto-join',
-    destination: '/consul/docs/deploy/server/vm/cloud-auto-join',
+    destination: '/consul/docs/deploy/server/cloud-auto-join',
     permanent: true,
   },
   {
@@ -3233,7 +3233,7 @@ module.exports = [
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/deploy/server/vm/cloud-auto-join/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/deploy/server/cloud-auto-join/',
     destination: '/consul/docs/:version/install/cloud-auto-join',
     permanent: true,
   },

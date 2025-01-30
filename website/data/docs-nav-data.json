@@ -240,6 +240,10 @@
             "path": "deploy/server/fips"
           },
           {
+            "title": "Automatic agent discovery",
+            "path": "deploy/server/cloud-auto-join"
+          },
+          {
             "title": "WAL LogStore",
             "routes": [
               {
@@ -270,10 +274,6 @@
               {
                 "title": "Bootstrap a datacenter",
                 "path": "deploy/server/vm/bootstrap"
-              },
-              {
-                "title": "Automatic agent discovery",
-                "path": "deploy/server/vm/cloud-auto-join"
               },
               {
                 "title": "Server requirements",
