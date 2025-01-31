@@ -115,6 +115,8 @@ jobs:
     - setup
     - get-go-version
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
+    env:
+      GOTAGS: ${{ endsWith(github.repository, '-enterprise') && 'hashicorpmetrics,consulent' || 'hashicorpmetrics' }}
     steps:
     - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
     # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
@@ -124,7 +126,7 @@ jobs:
     - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
       with:
         go-version: ${{ needs.get-go-version.outputs.go-version }}
-    - run: go install github.com/reillywatson/enumcover/cmd/enumcover@master && enumcover ./...
+    - run: go install github.com/reillywatson/enumcover/cmd/enumcover@master && GOFLAGS="-tags=${GOTAGS}" enumcover ./...
 
   lint-container-test-deps:
     needs:
@@ -280,7 +282,7 @@ jobs:
       runner-count: 6
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
-      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent,consuldev' || '' }}"
       go-version: ${{ needs.get-go-version.outputs.go-version }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
@@ -302,7 +304,7 @@ jobs:
       package-names-command: "go list ./... | grep -E -v '^github.com/hashicorp/consul/agent(/consul|/local|/routine-leak-checker)?$' | grep -E -v '^github.com/hashicorp/consul(/command|/connect|/snapshot)'"
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
-      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent,consuldev' || '' }}"
       go-version: ${{ needs.get-go-version.outputs.go-version }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
@@ -324,7 +326,7 @@ jobs:
       go-test-flags: "-short"
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
-      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent,consuldev' || '' }}"
       go-version: ${{ needs.get-go-version.outputs.go-version }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
@@ -347,7 +349,7 @@ jobs:
   #     go-test-flags: -short"
   #     runs-on: ${{ needs.setup.outputs.compute-large }}
   #     repository-name: ${{ github.repository }}
-  #     go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
+  #     go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent,consuldev' || '' }}"
   #     go-version: ${{ needs.get-go-version.outputs.go-version }}
   #   permissions:
   #     id-token: write # NOTE: this permission is explicitly required for Vault auth.
@@ -367,7 +369,7 @@ jobs:
       directory: envoyextensions
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
-      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent,consuldev' || '' }}"
       go-version: ${{ needs.get-go-version.outputs.go-version }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
@@ -387,7 +389,7 @@ jobs:
       directory: troubleshoot
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
-      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent,consuldev' || '' }}"
       go-version: ${{ needs.get-go-version.outputs.go-version }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
@@ -408,7 +410,7 @@ jobs:
       directory: api
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
-      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent,consuldev' || '' }}"
       go-version: ${{ needs.get-go-version.outputs.go-version-previous }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
@@ -428,7 +430,7 @@ jobs:
       directory: api
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
-      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent,consuldev' || '' }}"
       go-version: ${{ needs.get-go-version.outputs.go-version }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
@@ -449,7 +451,7 @@ jobs:
       directory: sdk
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
-      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent,consuldev' || '' }}"
       go-version: ${{ needs.get-go-version.outputs.go-version-previous }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
@@ -469,7 +471,7 @@ jobs:
       directory: sdk
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
-      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent,consuldev' || '' }}"
       go-version: ${{ needs.get-go-version.outputs.go-version }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
@@ -489,7 +491,7 @@ jobs:
       directory: testing/deployer
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
-      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent,consuldev' || '' }}"
       go-version: ${{ needs.get-go-version.outputs.go-version }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
