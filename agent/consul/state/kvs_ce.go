@@ -59,7 +59,7 @@ func insertKVTxn(tx WriteTxn, entry *structs.DirEntry, updateMax bool, _ bool) e
 	return nil
 }
 
-func kvsListEntriesTxn(tx ReadTxn, ws memdb.WatchSet, prefix string, entMeta acl.EnterpriseMeta) (uint64, structs.DirEntries, error) {
+func kvsListEntriesTxn(tx ReadTxn, ws memdb.WatchSet, prefix string, entMeta acl.EnterpriseMeta, minQueryIndex uint64) (uint64, structs.DirEntries, error) {
 	var ents structs.DirEntries
 	var lindex uint64
 
@@ -72,7 +72,10 @@ func kvsListEntriesTxn(tx ReadTxn, ws memdb.WatchSet, prefix string, entMeta acl
 	// Gather all of the keys found
 	for entry := entries.Next(); entry != nil; entry = entries.Next() {
 		e := entry.(*structs.DirEntry)
-		ents = append(ents, e)
+		// Filter out entries that have an old ModifyIndex (default=0, so keep everything)
+		if e.ModifyIndex >= minQueryIndex {
+			ents = append(ents, e)
+		}
 		if e.ModifyIndex > lindex {
 			lindex = e.ModifyIndex
 		}
