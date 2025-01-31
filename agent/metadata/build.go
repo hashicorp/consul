@@ -42,10 +42,7 @@ func getMemoizedBuildVersion(build string) (bool, *version.Version, error) {
 	if !ok {
 		return false, nil, nil
 	}
-	if tuple.Err != nil {
-		return true, nil, tuple.Err
-	}
-	return true, tuple.Value, nil
+	return true, tuple.Value, tuple.Err
 }
 
 func parseBuildAsVersion(build string) (*version.Version, error) {
