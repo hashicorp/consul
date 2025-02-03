@@ -127,11 +127,6 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 		}
 	}
 
-	buildVersion, err := Build(&m)
-	if err != nil {
-		return false, nil
-	}
-
 	wanJoinPort := 0
 	wanJoinPortStr, ok := m.Tags["wan_join_port"]
 	if ok {
@@ -179,6 +174,11 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 	_, readReplica := m.Tags["read_replica"]
 
 	addr := &net.TCPAddr{IP: m.Addr, Port: port}
+
+	buildVersion, err := Build(&m)
+	if err != nil {
+		return false, nil
+	}
 
 	parts := &Server{
 		Name:                m.Name,
