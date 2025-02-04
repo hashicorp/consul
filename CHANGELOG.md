@@ -1,3 +1,12 @@
+## 1.18.7 Enterprise (January 31, 2025)
+
+Enterprise LTS: Consul Enterprise 1.18 is a Long-Term Support (LTS) release.
+
+BUG FIXES:
+
+* api-gateway: Fixed TLS configuration to properly enforce listener TLS versions and cipher suites [[GH-21984](https://github.com/hashicorp/consul/issues/21984)]
+* aws-auth: Fix bug where calls to AWS IAM and STS services error out due to URL with multiple trailing slashes. [[GH-22109](https://github.com/hashicorp/consul/issues/22109)]
+
 ## 1.18.6 Enterprise (January 13, 2025)
 
 Enterprise LTS: Consul Enterprise 1.18 is a Long-Term Support (LTS) release.
