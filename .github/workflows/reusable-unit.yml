@@ -133,16 +133,22 @@ jobs:
         env:
           DD_ENV: ci
         run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" ${{env.TEST_RESULTS}}/gotestsum-report.xml
-
+      # upload-artifact requires a unique ID per run. These steps will overlap with other users of the reusable workflow.
+      # We use a random string rather than trying to pass in some identifying information.
+      - id: generate-run-id
+        run: |
+          RUN_ID=$(head /dev/urandom | tr -dc A-Z | head -c8)
+          echo "The run ID is $RUN_ID"
+          echo "run-id=$RUN_ID" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         if: ${{ !cancelled() }}
         with:
-          name: test-results
+          name: ${{ steps.generate-run-id.outputs.run-id }}-test-results
           path: ${{env.TEST_RESULTS}}
       - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         if: ${{ !cancelled() }}
         with:
-          name: jsonfile
+          name: ${{ steps.generate-run-id.outputs.run-id }}-jsonfile
           path: /tmp/jsonfile
       - name: "Re-run fails report"
         if: ${{ !cancelled() }}

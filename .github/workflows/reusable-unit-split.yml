@@ -85,6 +85,14 @@ jobs:
           ulimit -Sa
           echo "Hard limits"
           ulimit -Ha   
+      # upload-artifact requires a unique ID per run. These steps will be repeated with the matrix run, and other unit tests
+      # will also overlap with the names here. We use a random string rather than trying to do trickery
+      # with the package matrix.
+      - id: generate-matrix-id
+        run: |
+          MATRIX_RUN_ID=$(head /dev/urandom | tr -dc A-Z | head -c8)
+          echo "The matrix run ID is $MATRIX_RUN_ID"
+          echo "matrix-run-id=$MATRIX_RUN_ID" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
       # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
       - name: Setup Git
@@ -169,12 +177,12 @@ jobs:
       - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         if: ${{ !cancelled() }}
         with:
-          name: test-results
+          name: ${{ steps.generate-matrix-id.outputs.matrix-run-id }}-test-results
           path: ${{env.TEST_RESULTS}}
       - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         if: ${{ !cancelled() }}
         with:
-          name: jsonfile
+          name: ${{ steps.generate-matrix-id.outputs.matrix-run-id }}-jsonfile
           path: /tmp/jsonfile
       - name: "Re-run fails report"
         if: ${{ !cancelled() }}
