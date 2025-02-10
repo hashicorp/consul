@@ -1,3 +1,21 @@
+## 1.15.18 Enterprise (February 07, 2025)
+
+Enterprise LTS: Consul Enterprise 1.15 is a Long-Term Support (LTS) release.
+
+BUG FIXES:
+
+* aws-auth: Fix bug where calls to AWS IAM and STS services error out due to URL with multiple trailing slashes. [[GH-22109](https://github.com/hashicorp/consul/issues/22109)]
+
+## 1.15.17 Enterprise (February 05, 2025)
+
+Enterprise LTS: Consul Enterprise 1.15 is a Long-Term Support (LTS) release.
+
+SECURITY:
+
+* Upgrade Go to use v1.22.11 and bump Go X-Repositories to latest. This addresses CVE
+  [CVE-2024-45341](https://nvd.nist.gov/vuln/detail/CVE-2024-45341) and
+  [CVE-2024-45336](https://nvd.nist.gov/vuln/detail/CVE-2024-45336) [[GH-22084](https://github.com/hashicorp/consul/issues/22084)]
+
 ## 1.15.16 Enterprise (January 13, 2025)
 
 Enterprise LTS: Consul Enterprise 1.15 is a Long-Term Support (LTS) release.
