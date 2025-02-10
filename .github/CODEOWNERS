@@ -3,7 +3,8 @@
 # Techical Writer Review
 
 /website/content/docs/ @hashicorp/consul-docs
-	@@ -6,36 +8,5 @@
+/website/content/commands/ @hashicorp/consul-docs
+/website/content/api-docs/ @hashicorp/consul-docs
 
 
 # release configuration
