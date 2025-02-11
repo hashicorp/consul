@@ -1,0 +1,4 @@
+```release-note:security
+Upgrade Go to use v1.22.12 and bump Go X-Repositories to latest. This addresses CVE
+[CVE-2025-22866](https://nvd.nist.gov/vuln/detail/CVE-2025-22866)
+```
