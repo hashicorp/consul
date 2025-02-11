@@ -28,7 +28,7 @@ func (s *Store) txnKVS(tx WriteTxn, idx uint64, op *structs.TxnKVOp) (structs.Tx
 	var entry *structs.DirEntry
 	var err error
 
-	// enumcover: api.KVOp
+	// enumcover:api.KVOp
 	switch op.Verb {
 	case api.KVSet:
 		entry = &op.DirEnt
@@ -137,7 +137,7 @@ func (s *Store) txnKVS(tx WriteTxn, idx uint64, op *structs.TxnKVOp) (structs.Tx
 func txnSession(tx WriteTxn, idx uint64, op *structs.TxnSessionOp) error {
 	var err error
 
-	// enumcover: api.SessionOp
+	// enumcover:api.SessionOp
 	switch op.Verb {
 	case api.SessionDelete:
 		err = sessionDeleteWithSession(tx, &op.Session, idx)
