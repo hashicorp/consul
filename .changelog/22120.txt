@@ -1,0 +1,3 @@
+```release-note:bug
+Fixed logging error while building for OpenBSD OS [[GH-22120](https://github.com/hashicorp/consul/pull/22120)]
+```
