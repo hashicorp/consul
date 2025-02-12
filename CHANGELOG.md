@@ -1,8 +1,3 @@
-## 1.20.3 (February 12, 2025)
-BUG FIXES:
-
-*  Fixed logging error while building for OpenBSD OS [[GH-22120](https://github.com/hashicorp/consul/pull/22120)]
-
 ## 1.15.18 Enterprise (February 07, 2025)
 
 Enterprise LTS: Consul Enterprise 1.15 is a Long-Term Support (LTS) release.
