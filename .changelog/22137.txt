@@ -1,0 +1,6 @@
+```release-note:improvement
+xDS: Log level change from ERROR to INFO for xDS delta discovery request. Stream can be cancelled on server shutdown and other scenarios. It is retryable and error is a superfluous log.
+```
+```release-note:improvement
+SubMatView: Log level change from ERROR to INFO for subject materialized view as subscription creation is retryable on ACL change.
+```
