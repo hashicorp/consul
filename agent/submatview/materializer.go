@@ -206,9 +206,9 @@ func (m *materializer) handleError(req *pbsubscribe.SubscribeRequest, err error)
 
 	switch {
 	case errors.Is(err, stream.ErrACLChanged):
-		logger.Info("subscribe call failed")
+		logger.Info("subscribe call failed due to ACL change", err)
 	default:
-		logger.Error("subscribe call failed")
+		logger.Error("subscribe call failed", err)
 	}
 }
 
