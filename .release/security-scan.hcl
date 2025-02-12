@@ -38,7 +38,8 @@ container {
 		suppress {
 			vulnerabilities = [
 				"CVE-2024-4067", # libsolv@0:0.7.24-3.el9
-				"CVE-2019-12900" # bzip2-libs@0:1.0.8-8.el9
+				"CVE-2019-12900", # bzip2-libs@0:1.0.8-8.el9
+				"CVE-2024-12797" # openssl-libs@1:3.2.2-6.el9_5
 			]
 			paths = [
 				"internal/tools/proto-gen-rpc-glue/e2e/consul/*",
