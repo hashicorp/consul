@@ -2,8 +2,6 @@ module github.com/hashicorp/consul/api
 
 go 1.22.12
 
-replace github.com/hashicorp/consul/sdk => ../sdk
-
 retract (
 	v1.29.5 // cut from incorrect branch
 	v1.28.0 // tag was mutated
@@ -13,7 +11,7 @@ retract (
 
 require (
 	github.com/google/go-cmp v0.6.0
-	github.com/hashicorp/consul/sdk v0.16.1
+	github.com/hashicorp/consul/sdk v0.16.2
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-hclog v1.5.0
 	github.com/hashicorp/go-multierror v1.1.1
