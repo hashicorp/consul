@@ -16,6 +16,7 @@ To configure Consul to export services contained in a Consul Enterprise admin pa
 You can configure the settings defined in the `exported-services` configuration entry to apply to all namespaces in a Consul Enterprise admin partition.
 
 ## Requirements
+
 - **Enterprise Only**: A corresponding partition that the configuration entry can export from. For example, the `exported-services` configuration entry for a partition named `frontend` requires an existing `frontend` partition.
 
 ## Usage
@@ -767,13 +768,36 @@ spec:
         }
       ]
     }
-  ]
+  ]S
 }
 ```
 
 </CodeTabs>
 </Tab>
 </Tabs>
+
+If you experience errors using the wildcard to export services on Consul on Kubernetes, make sure the [service token](/consul/docs/security/acl/tokens/create/create-a-service-token) is attached to a policy that grants read access to all namespaces:
+
+```hcl
+partition "default" {
+  namespace "default" {
+    query_prefix "" {
+      policy = "read"
+    }
+  }
+}
+
+partition_prefix "" {
+  namespace_prefix "" {S
+    node_prefix "" {
+      policy = "read"
+    }
+    service_prefix "" {
+      policy = "read"
+    }
+   }
+}
+```
 
 ## Reading Services
 
