@@ -65,6 +65,7 @@ func TestCloneSerfLANConfig(t *testing.T) {
 		"MemberlistConfig",
 		"Merge",
 		"MinQueueDepth",
+		"MsgpackUseNewTimeFormat",
 		"NodeName",
 		"ProtocolVersion",
 		"QueryBuffer",

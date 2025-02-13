@@ -29,8 +29,8 @@ issues:
       text: 'SA1019: "io/ioutil" has been deprecated since Go 1.16'
 
     # Allow usage of deprecated values.
-    - linters: [ staticcheck ]
-      text: 'SA1019:'
+    - linters: [staticcheck]
+      text: "SA1019:"
       path: "(agent/grpc-external|agent/grpc-internal)"
 
     # An argument that always receives the same value is often not a problem.
@@ -104,10 +104,14 @@ linters-settings:
       main:
         listMode: lax
         deny:
-        - pkg: net/rpc
-          desc: "only use forked copy in github.com/hashicorp/consul-net-rpc/net/rpc"
-        - pkg: github.com/golang/protobuf
-          desc: "only use google.golang.org/protobuf"
+          - pkg: net/rpc
+            desc: "only use forked copy in github.com/hashicorp/consul-net-rpc/net/rpc"
+          - pkg: github.com/golang/protobuf
+            desc: "only use google.golang.org/protobuf"
+          - pkg: github.com/armon/go-metrics
+            desc: "use github.com/hashicorp/go-metrics"
+          - pkg: github.com/hashicorp/go-metrics/compat
+            desc: "use github.com/hashicorp/go-metrics"
 
 run:
   timeout: 10m

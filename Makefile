@@ -27,6 +27,11 @@ GCI_VERSION='v0.11.2'
 MOCKED_PB_DIRS= pbdns
 
 GOTAGS ?=
+ifeq ("$(GOTAGS)","")
+GOTAGS:=hashicorpmetrics
+else ifneq ($(findstring hashicorpmetrics,$(GOTAGS)),hashicorpmetrics)
+GOTAGS:=hashicorpmetrics,$(GOTAGS)
+endif
 GOPATH=$(shell go env GOPATH)
 GOARCH?=$(shell go env GOARCH)
 MAIN_GOPATH=$(shell go env GOPATH | cut -d: -f1)
@@ -57,10 +62,10 @@ else
 QUIET=
 endif
 
-ifeq ("$(GOTAGS)","")
-CONSUL_COMPAT_TEST_IMAGE=hashicorp/consul
-else
+ifeq ($(findstring consulent,$(GOTAGS)),consulent)
 CONSUL_COMPAT_TEST_IMAGE=hashicorp/consul-enterprise
+else
+CONSUL_COMPAT_TEST_IMAGE=hashicorp/consul
 endif
 
 CONSUL_DEV_IMAGE?=consul-dev
