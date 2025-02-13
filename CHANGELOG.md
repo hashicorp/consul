@@ -1,3 +1,23 @@
+## 1.18.8 Enterprise (February 13, 2025)
+
+Enterprise LTS: Consul Enterprise 1.18 is a Long-Term Support (LTS) release.
+
+SECURITY:
+
+* Upgrade Go to use v1.22.11 and bump Go X-Repositories to latest. This addresses CVE
+[CVE-2024-45341](https://nvd.nist.gov/vuln/detail/CVE-2024-45341) and
+[CVE-2024-45336](https://nvd.nist.gov/vuln/detail/CVE-2024-45336) [[GH-22084](https://github.com/hashicorp/consul/issues/22084)]
+* Upgrade Go to use v1.22.12 and bump Go X-Repositories to latest. This addresses CVE
+[CVE-2025-22866](https://nvd.nist.gov/vuln/detail/CVE-2025-22866) [[GH-22132](https://github.com/hashicorp/consul/issues/22132)]
+
+IMPROVEMENTS:
+
+* metadata: memoize the parsed build versions [[GH-22113](https://github.com/hashicorp/consul/issues/22113)]
+
+BUG FIXES:
+
+* Fixed logging error while building for OpenBSD OS [[GH-22120](https://github.com/hashicorp/consul/pull/22120)] [[GH-22120](https://github.com/hashicorp/consul/issues/22120)]
+
 ## 1.18.7 Enterprise (January 31, 2025)
 
 Enterprise LTS: Consul Enterprise 1.18 is a Long-Term Support (LTS) release.
