@@ -768,7 +768,7 @@ spec:
         }
       ]
     }
-  ]
+  ]S
 }
 ```
 
@@ -776,7 +776,7 @@ spec:
 </Tab>
 </Tabs>
 
-If you experience errors using the wildcard to export services on Consul on Kubernetes, make sure the [service token](consul/docs/security/acl/tokens/create/create-a-service-token) is attached to a policy that grants read access to all namespaces:
+If you experience errors using the wildcard to export services on Consul on Kubernetes, make sure the [service token](/consul/docs/security/acl/tokens/create/create-a-service-token) is attached to a policy that grants read access to all namespaces:
 
 ```hcl
 partition "default" {
@@ -788,7 +788,7 @@ partition "default" {
 }
 
 partition_prefix "" {
-  namespace_prefix "" {
+  namespace_prefix "" {S
     node_prefix "" {
       policy = "read"
     }
