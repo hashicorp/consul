@@ -7,6 +7,3 @@ node "{{.Name}}" {
 service_prefix "" {
   policy = "write"
 }
-key_prefix "" {
-  policy = "read"
-}
