@@ -1,3 +1,24 @@
+## 1.20.3 (February 13, 2025)
+
+SECURITY:
+
+* Upgrade Go to use v1.22.11 and bump Go X-Repositories to latest. This addresses CVE 
+[CVE-2024-45341](https://nvd.nist.gov/vuln/detail/CVE-2024-45341) and
+[CVE-2024-45336](https://nvd.nist.gov/vuln/detail/CVE-2024-45336) [[GH-22084](https://github.com/hashicorp/consul/issues/22084)]
+* Upgrade Go to use v1.22.12 and bump Go X-Repositories to latest. This addresses CVE
+[CVE-2025-22866](https://nvd.nist.gov/vuln/detail/CVE-2025-22866) [[GH-22132](https://github.com/hashicorp/consul/issues/22132)]
+
+IMPROVEMENTS:
+
+* connect: update supported envoy versions to 1.33.0, 1.32.3 [[GH-22138](https://github.com/hashicorp/consul/issues/22138)]
+* metadata: memoize the parsed build versions [[GH-22113](https://github.com/hashicorp/consul/issues/22113)]
+
+BUG FIXES:
+
+* Fixed logging error while building for OpenBSD OS [[GH-22120](https://github.com/hashicorp/consul/pull/22120)] [[GH-22120](https://github.com/hashicorp/consul/issues/22120)]
+* api-gateway: Fixed TLS configuration to properly enforce listener TLS versions and cipher suites [[GH-21984](https://github.com/hashicorp/consul/issues/21984)]
+* aws-auth: Fix bug where calls to AWS IAM and STS services error out due to URL with multiple trailing slashes. [[GH-22109](https://github.com/hashicorp/consul/issues/22109)]
+
 ## 1.20.2 (December 26, 2024)
 SECURITY:
 * Removed ability to use bexpr to filter results without ACL read on endpoint [[GH-21950](https://github.com/hashicorp/consul/issues/21950)]
