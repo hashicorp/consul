@@ -1409,10 +1409,6 @@
         "title": "External services",
         "routes": [
           {
-            "title": "Overview",
-            "path": "register/external"
-          },
-          {
             "title": "External service monitoring (ESM)",
             "path": "register/external/esm"
           },
@@ -1502,10 +1498,6 @@
       {
         "title": "Load balancing",
         "routes": [
-          {
-            "title": "Overview",
-            "path": "discover/load-balancer"
-          },
           {
             "title": "Envoy",
             "path": "discover/load-balancer/envoy"
@@ -1948,25 +1940,11 @@
           },
           {
             "title": "Bootstrap certificate authority (CA)",
-            "routes": [
-              {
-                "title": "Virtual machine (VM)",
-                "path": "secure-mesh/certificate/bootstrap/vm"
-              },
-              {
-                "title": "Kubernetes",
-                "path": "secure-mesh/certificate/bootstrap/k8s"
-              }
-            ]
+            "path": "secure-mesh/certificate/bootstrap"
           },
           {
-            "title": "Rotate certificate",
-            "routes": [
-              {
-                "title": "Rotate TLS keys",
-                "path": "secure-mesh/certificate/rotate/tls"
-              }
-            ]
+            "title": "Rotate TLS certificates",
+            "path": "secure-mesh/certificate/rotate"
           },
           {
             "title": "Configure CA for Kubernetes",
@@ -2622,10 +2600,6 @@
         "path": "reference-cli/consul-k8s"
       },
       {
-        "title": "consul-dataplane",
-        "path": "reference-cli/consul-dataplane"
-      },
-      {
         "title": "consul-aws",
         "path": "reference-cli/consul-aws"
       }
@@ -2950,8 +2924,8 @@
         "title": "Dataplanes",
         "routes": [
           {
-            "title": "Configuration",
-            "path": "reference/dataplane"
+            "title": "CLI reference",
+            "path": "reference/dataplane/cli"
           },
           {
             "title": "Telemetry",
