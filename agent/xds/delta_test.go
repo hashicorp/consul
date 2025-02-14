@@ -15,7 +15,6 @@ import (
 
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 
-	"github.com/armon/go-metrics"
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
@@ -29,6 +28,7 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/version"
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-metrics"
 	goversion "github.com/hashicorp/go-version"
 	"github.com/stretchr/testify/require"
 	rpcstatus "google.golang.org/genproto/googleapis/rpc/status"
