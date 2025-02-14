@@ -30,6 +30,10 @@ The process to deploy additional server agents in a cluster consists of the foll
 
 After you deploy it, you must secure a Consul cluster to prepare it for production environments. Refer to [Secure Consul](/consul/docs/secure) for more information about Consul's security model.
 
+### Automatic agent discovery
+
+You can configure the `retry_join` stanza so that when a Consul agent starts, it automatically joins a cluster. This ability is called _cloud auto-join_. Configuration requirements vary by cloud provider. For more information, refer to [automatically join clusters to a cloud provider](/deploy/server/cloud-auto-join).
+
 ## Guidance
 
 Runtime-specific instructions are available to help you deploy Consul server agents.
@@ -42,7 +46,6 @@ The following guides are also available:
 
 - [Consul server requirements on VMs](/consul/docs/deploy/server/vm/requirements)
 - [Bootstrap a Consul cluster](/consul/docs/deploy/server/vm/bootstrap)
-- [Configure cloud auto-join](/consul/docs/deploy/server/cloud-auto-join)
 
 ### Kubernetes
 

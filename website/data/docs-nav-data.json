@@ -852,11 +852,24 @@
         ]
       },
       {
-        "title": "Configure DNS on Kubernetes",
+        "title": "DNS operations",
         "routes": [
           {
             "title": "DNS forwarding",
-            "path": "manage/dns/forwarding"
+            "routes": [
+              {
+                "title": "Overview",
+                "path": "manage/dns/forwarding"
+              },
+              {
+                "title": "Virtual Machines (VMs)",
+                "path": "manage/dns/forwarding/enable"
+              },
+              {
+                "title": "Kubernetes",
+                "path": "manage/dns/forwarding/k8s"
+              }
+            ]
           },
           {
             "title": "DNS views",
@@ -891,39 +904,40 @@
         ]
       },
       {
-        "title": "Automated backups",
-        "badge": {
-          "text": "ENTERPRISE",
-          "type": "outlined",
-          "color": "neutral"
-        },
-        "path": "manage/automated-backup"
-      },
-      {
-        "title": "Redundancy zones",
-        "badge": {
-          "text": "ENTERPRISE",
-          "type": "outlined",
-          "color": "neutral"
-        },
-        "path": "manage/redundancy-zone"
-      },
-      {
-        "title": "Read replicas",
-        "badge": {
-          "text": "ENTERPRISE",
-          "type": "outlined",
-          "color": "neutral"
-        },
-        "path": "manage/read-replica"
-      },
-      {
-        "title": "Consul at Scale",
-        "path": "manage/scale"
-      },
-      {
-        "title": "Snapshot",
-        "path": "manage/snapshot"
+        "title": "Operations at scale",
+        "routes": [
+          {
+            "title": "Best practices",
+            "path": "manage/scale"
+          },
+          {
+            "title": "Automated backups",
+            "badge": {
+              "text": "ENTERPRISE",
+              "type": "outlined",
+              "color": "neutral"
+            },
+            "path": "manage/scale/automated-backup"
+          },
+          {
+            "title": "Redundancy zones",
+            "badge": {
+              "text": "ENTERPRISE",
+              "type": "outlined",
+              "color": "neutral"
+            },
+            "path": "manage/scale/redundancy-zone"
+          },
+          {
+            "title": "Read replicas",
+            "badge": {
+              "text": "ENTERPRISE",
+              "type": "outlined",
+              "color": "neutral"
+            },
+            "path": "manage/scale/read-replica"
+          }
+        ]
       }
     ]
   },
