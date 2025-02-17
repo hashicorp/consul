@@ -138,7 +138,8 @@
                 "filename": "mycert.crt"
               }
             }
-          }
+          },
+          "sni": "test.test.com"
         }
       },
       "type": "STATIC"
