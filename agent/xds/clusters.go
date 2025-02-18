@@ -242,6 +242,7 @@ func makeJWTProviderCluster(p *structs.JWTProviderConfigEntry) (*envoy_cluster_v
 	if scheme == "https" {
 		jwksTLSContext, err := makeUpstreamTLSTransportSocket(
 			&envoy_tls_v3.UpstreamTlsContext{
+				Sni: hostname,
 				CommonTlsContext: &envoy_tls_v3.CommonTlsContext{
 					ValidationContextType: &envoy_tls_v3.CommonTlsContext_ValidationContext{
 						ValidationContext: makeJWTCertValidationContext(p.JSONWebKeySet.Remote.JWKSCluster),
