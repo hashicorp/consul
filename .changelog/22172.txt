@@ -1,3 +1,3 @@
 ```release-note:bug
-Fixed api submodule checksum mismatch issue and retracted 1.31.1 version [[GH-22172](https://github.com/hashicorp/consul/pull/22172)]
+api: Fixed api submodule checksum mismatch issue by retracted 1.31.1 version [[GH-22172](https://github.com/hashicorp/consul/pull/22172)]
 ```
