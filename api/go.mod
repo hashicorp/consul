@@ -5,6 +5,7 @@ go 1.22.12
 replace github.com/hashicorp/consul/sdk => ../sdk
 
 retract (
+	v1.31.1
 	v1.29.5 // cut from incorrect branch
 	v1.28.0 // tag was mutated
 	v1.27.1 // tag was mutated
