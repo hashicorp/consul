@@ -196,7 +196,7 @@
     "webpack": "^5.74.0"
   },
   "engines": {
-    "node": "18"
+    "node": "20"
   },
   "ember": {
     "edition": "octane"
@@ -211,7 +211,7 @@
     ]
   },
   "volta": {
-    "node": "18"
+    "node": "20"
   },
   "dependencies": {
     "doctoc": "^2.0.0",
