@@ -1,0 +1,64 @@
+---
+layout: docs
+page_title: Configure Consul Template
+description: >-
+  Consul Template is a tool available as a distinct binary that enables dynamic application configuration and secrets rotation for Consul deployments based on Go templates.
+---
+
+# Configure Consul Templatee
+
+Configuration files are written in the [HashiCorp Configuration Language][hcl].
+By proxy, this means the configuration is also JSON compatible.
+
+Instruct Consul Template to use a configuration file with the `-config` flag:
+
+```shell
+$ consul-template -config "/my/config.hcl"
+```
+
+This argument may be specified multiple times to load multiple configuration
+files. The right-most configuration takes the highest precedence. If the path to
+a directory is provided (as opposed to the path to a file), all of the files in
+the given directory will be merged in
+[lexical order](http://golang.org/pkg/path/filepath/#Walk), recursively. Please
+note that symbolic links are _not_ followed.
+
+**Commands specified on the CLI take precedence over a config file!**
+
+Note that not all fields listed below are required. If you are not retrieving
+secrets from Vault, you do not need to specify a Vault configuration section.
+Similarly, if you are not logging to syslog, you do not need to specify a
+syslog configuration.
+
+For additional security, tokens may also be read from the environment using the
+`CONSUL_TOKEN` or `VAULT_TOKEN` environment variables respectively. It is highly
+recommended that you do not put your tokens in plain-text in a configuration
+file.
+
+## Example
+
+The example HCL configuration file below connects Consul Template to a Consul
+agent and renders a template with a value from [Consul KV][consul-kv]. The
+output is written to a file on disk.
+
+```hcl
+consul {
+  address = "127.0.0.1:8500"
+
+  auth {
+    enabled = true
+    username = "test"
+    password = "test"
+  }
+}
+
+log_level = "warn"
+
+template {
+  contents = "{{key \"hello\"}}"
+  destination = "out.txt"
+  exec {
+    command = "cat out.txt"
+  }
+}
+```

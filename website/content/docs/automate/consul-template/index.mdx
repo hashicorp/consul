@@ -19,19 +19,6 @@ In a typical scenario, you run `consul-template` as a daemon that fetches the in
 
 The Consul template tool is flexible, it can fit into many different environments and workflows. Depending on the use case, you may have a single `consul-template` instance on a handful of hosts, or you may need to run several instances on every host. Each `consul-template` process can manage multiple unrelated files and removes duplicated information as needed when files share data dependencies.
 
----
-id: dfa8928f-3eea-48cf-b639-8d1e73164c1e
-name: Service configuration with Consul Template
-short_name: Consul Template
-products_used:
-  - consul
-description: >-
-  Programmatically render configuration files from a variety of locations
-  including Consul KV with Consul Template
-read_time: 10
-default_collection_context: consul/developer-configuration
----
-
 The Consul template tool provides a programmatic method for rendering 
 configuration files from a variety of locations, including Consul KV. It is an 
 ideal option for replacing complicated API queries that often require custom 

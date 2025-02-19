@@ -2177,42 +2177,20 @@
             "path": "automate/consul-template/install"
           },
           {
-            "title": "Fundamentals",
-            "routes": [
-              {
-                "title": "Get Started",
-                "path": "automate/consul-template/fundamentals"
-              },
-              {
-                "title": "Run modes",
-                "path": "automate/consul-template/fundamentals/modes"
-              },
-              {
-                "title": "Logging",
-                "path": "automate/consul-template/fundamentals/logging"
-              },
-              {
-                "title": "Plugins",
-                "path": "automate/consul-template/fundamentals/plugins"
-              }
-            ]
+            "title": "Render templates",
+            "path": "automate/consul-template/render"
           },
           {
-            "title": "Reference",
-            "routes": [
-              {
-                "title": "CLI",
-                "path": "automate/consul-template/reference/cli"
-              },
-              {
-                "title": "Configuration file",
-                "path": "automate/consul-template/reference/configuration"
-              },
-              {
-                "title": "Templating language",
-                "path": "automate/consul-template/reference/template"
-              }
-            ]
+            "title": "Change modes",
+            "path": "automate/consul-template/mode"
+          },
+          {
+            "title": "View logs",
+            "path": "automate/consul-template/log"
+          },
+          {
+            "title": "Use custom plugins",
+            "path": "automate/consul-template/plugins"
           },
           {
             "title": "Vault integrations",
@@ -2924,6 +2902,23 @@
           {
             "title": "Terminating gateways",
             "path": "reference/config-entry/terminating-gateway"
+          }
+        ]
+      },
+      {
+        "title": "Consul Template",
+        "routes": [
+          {
+            "title": "CLI",
+            "path": "reference/consul-template/cli"
+          },
+          {
+            "title": "Configuration file",
+            "path": "reference/consul-template/configuration"
+          },
+          {
+            "title": "Go syntax",
+            "path": "reference/consul-template/go"
           }
         ]
       },
