@@ -9,24 +9,19 @@ description: >-
 
 This topic provides an overview of the Consul Template tool, which enables a programmatic method for rendering configuration files from a variety of locations, including the Consul KV store. It is an effective workflow option for replacing complicated API queries that often require custom formatting.
 
-For more information about the KV store and using it to automatically configure application deployments, refer to [dynamically configure applications](/consul/docs/dynamic-app/consul-template).
+For more information about the KV store and using it to automatically configure application deployments, refer to [Consul key/value (KV) store overview](/consul/docs/automate/kv).
 
 ## Introduction
 
-The Consul template tool is not part of the Consul binary. It has a [dedicated GitHub repo](https://github.com/hashicorp/consul-template) and you must [install `consul-template`](https://github.com/hashicorp/consul-template#installation) before running it on the command line. Consul templates are based on Go templates and shares many of the same attributes. When initiated, the rool reads one or more template files and queries Consul for all data needed to render them.
+The Consul template tool is not part of the Consul binary. It has a [dedicated GitHub repo](https://github.com/hashicorp/consul-template) and you must [install `consul-template`](https://github.com/hashicorp/consul-template#installation) before running it on the command line.
+
+Consul templates are based on Go templates and shares many of the same attributes. When initiated, Consul Template reads one or more template files and queries Consul for data to render the full configuration.
 
 In a typical scenario, you run `consul-template` as a daemon that fetches the initial values and then continues to watch for updates. The template re-renders whenever there are relevant changes in the datacenter. The template can also run arbitrary commands after the update process completes. For example, it can send the HUP signal to the load balancer service after a configuration change has been made.
 
-The Consul template tool is flexible, it can fit into many different environments and workflows. Depending on the use case, you may have a single `consul-template` instance on a handful of hosts, or you may need to run several instances on every host. Each `consul-template` process can manage multiple unrelated files and removes duplicated information as needed when files share data dependencies.
+The Consul template tool is flexible, and it can fit into many different environments and workflows. Depending on the use case, you may have a single `consul-template` instance on a handful of hosts, or you may need to run several instances on every host. Each `consul-template` process can manage multiple unrelated files and removes duplicated information as needed when files share data dependencies.
 
-The Consul template tool provides a programmatic method for rendering 
-configuration files from a variety of locations, including Consul KV. It is an 
-ideal option for replacing complicated API queries that often require custom 
-formatting.
-The template tool is based on Go templates and shares many of the same attributes.
-
-Consul template is a useful tool with several applications. This tutorial will 
-focus on two of its use cases.
+Use Consul Template in the following situations:
 
 1. _Update configuration files_. The Consul template tool can be used
    to update service configuration files. A common use case is managing load
@@ -39,60 +34,16 @@ focus on two of its use cases.
    service addresses for the Redis service. Note, this use case has limited
    scope for production.
 
-In this tutorial, you will get an introduction on how `consul-template` works,
-how to install it, and two use cases.
+## Workflow
 
-Before completing this tutorial, you should have some familiarity with
-[Consul KV](/consul/tutorials/interactive/get-started-key-value-store)
-and [Go templates](https://golang.org/pkg/text/template/).
+A typical workflow to add Consul Template to your datacenter consists of the following steps:
 
-## Introduction to Consul template
-
-Consul template is a simple, yet powerful tool. When initiated, it reads one or 
-more template files and queries Consul for all data needed to render them. 
-Typically, you run `consul-template` as a daemon which will fetch the initial 
-values and then continue to watch for updates, re-rendering the template 
-whenever there are relevant changes in the datacenter. You can alternatively use 
-the `-once` flag to fetch and render the template once which is useful for 
-testing and setup scripts that are triggered by some other automation for 
-example a provisioning tool. Finally, the template can also run arbitrary 
-commands after the update process completes. For example, it can send the HUP 
-signal to the load balancer service after a configuration change has been made.
-
-The Consul template tool is flexible, it can fit into many different 
-environments and workflows. Depending on the use-case, you may have a single 
-`consul-template` instance on a handful of hosts or may need to run several 
-instances on every host. Each `consul-template` process can manage multiple 
-unrelated files though and will de-duplicate the fetches as needed if those 
-files share data dependencies so it can reduce the load on Consul servers to 
-share where possible.
-
-## Install Consul template
-
-For this tutorial, you will use a local Consul agent in development mode which 
-can be started with `consul agent -dev`. To quickly set up a local Consul agent, 
-refer to the getting started [tutorial](/consul/tutorials/get-started-vms/virtual-machine-gs-deploy). 
-The Consul agent must be running to complete all of the following steps.
-
-The Consul template tool is not included with the Consul binary and will need to 
-be installed separately. It can be installed from a precompiled binary or 
-compiled from source. You will be installing the precompiled binary.
-
-First, download the binary from the 
-[Consul Template releases page](https://releases.hashicorp.com/consul-template/).
-
-```shell-session
-$ curl -O https://releases.hashicorp.com/consul-template/0.19.5/consul-template<_version_OS>.tgz
-```
-
-Next, extract the binary and move it into your `$PATH`.
-
-```shell-session
-$ tar -zxf consul-template<_version_OS>.tgz
-```
-
-To compile from source, check the instructions in the
-[contributing section in GitHub](https://github.com/hashicorp/consul-template#contributing).
+1. [Install Consul Template](/consul/docs/automate/consul-template) on nodes in your datacenter.
+1. [Configure a template](/consul/docs/automate/consul-template/configure).
+1. [Define custom scripts with plugins](/consul/docs/automate/consul-template/plugins).
+1. [Choose the mode to watch for updates](/consul/docs/automate/consul-template/mode).
+1. [Render the template](/consul/docs/automate/consul-template/render) and apply it to your datacenter.
+1. [View Consul Template logs](/consul/docs/automate/consul-template/log) to debug issues.
 
 ## Use case: Consul KV
 
@@ -204,14 +155,6 @@ For example:
 104.131.109.224
 104.131.59.59
 ```
-
-## Tutorials
-
-To get started with Consul Template and learn more about how you can use it to configure and manage application deployments, refer to the following tutorials:
-
--  Learn how to use Consul and Consul template to automatically update an NGINX configuration file with the latest list of backend servers found by Consul's service discovery in the [Load Balancing with NGINX and Consul Template tutorial](/consul/tutorials/load-balancing/load-balancing-nginx).
--  Learn how to use Vault's PKI Secrets Engine to generate and renew dynamic X.509 certificates and then use `consul-template` to rotate your certificates in the [Generate mTLS Certificates for Consul with Vault tutorial](/consul/tutorials/vault-secure/vault-pki-consul-secure-tls).
--  Learn how to use Vault to store a gossip encryption key and then use `consul-template` to retrieve and rotate the key automatically in the [Automatically Rotate Gossip Encryption Keys Secured in Vault tutorial](/consul/tutorials/vault-secure/vault-kv-consul-secure-gossip).
 
 ## Next steps
 
