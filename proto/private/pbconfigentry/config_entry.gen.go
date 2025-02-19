@@ -1592,6 +1592,7 @@ func JWTProviderToStructs(s *JWTProvider, t *structs.JWTProviderConfigEntry) {
 		JWTCacheConfigToStructs(s.CacheConfig, &x)
 		t.CacheConfig = &x
 	}
+	t.UseSNI = s.UseSNI
 	t.Meta = s.Meta
 	t.Hash = s.Hash
 }
@@ -1627,6 +1628,7 @@ func JWTProviderFromStructs(t *structs.JWTProviderConfigEntry, s *JWTProvider) {
 		JWTCacheConfigFromStructs(t.CacheConfig, &x)
 		s.CacheConfig = &x
 	}
+	s.UseSNI = t.UseSNI
 	s.Meta = t.Meta
 	s.Hash = t.Hash
 }

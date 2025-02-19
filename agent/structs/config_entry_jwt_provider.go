@@ -67,6 +67,12 @@ type JWTProviderConfigEntry struct {
 	// multiple times.
 	CacheConfig *JWTCacheConfig `json:",omitempty" alias:"cache_config"`
 
+	// UseSNI determines whether the hostname should be set in SNI
+	// header for TLS connection.
+	//
+	// Default value is false.
+	UseSNI bool `json:",omitempty" alias:"use_sni"`
+
 	Meta               map[string]string `json:",omitempty"`
 	Hash               uint64            `json:",omitempty" hash:"ignore"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`

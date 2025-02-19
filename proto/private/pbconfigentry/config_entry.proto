@@ -1199,6 +1199,7 @@ message JWTProvider {
   // mog: func-to=int func-from=int32
   int32 ClockSkewSeconds = 8;
   uint64 Hash = 9;
+  bool UseSNI = 10;
 }
 
 // mog annotation:

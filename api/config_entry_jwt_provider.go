@@ -77,6 +77,12 @@ type JWTProviderConfigEntry struct {
 	// Namespace is the namespace the JWTProviderConfigEntry applies to.
 	// Namespacing is a Consul Enterprise feature.
 	Namespace string `json:",omitempty"`
+
+	// UseSNI determines whether the hostname should be set in SNI
+	// header for TLS connection.
+	//
+	// Default value is false.
+	UseSNI bool `json:",omitempty"`
 }
 
 // JWTLocation is a location where the JWT could be present in requests.
