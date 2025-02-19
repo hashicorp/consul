@@ -30,8 +30,7 @@
             "filename": "mycert.crt"
           }
         }
-      },
-      "sni": "example-okta.com"
+      }
     }
   },
   "type": "STATIC"

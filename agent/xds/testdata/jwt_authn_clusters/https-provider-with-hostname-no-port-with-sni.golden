@@ -9,8 +9,8 @@
             "endpoint": {
               "address": {
                 "socketAddress": {
-                  "address": "127.0.0.1",
-                  "portValue": 9091
+                  "address": "example-okta.com",
+                  "portValue": 443
                 }
               }
             }
@@ -30,7 +30,8 @@
             "filename": "mycert.crt"
           }
         }
-      }
+      },
+      "sni": "example-okta.com"
     }
   },
   "type": "STATIC"

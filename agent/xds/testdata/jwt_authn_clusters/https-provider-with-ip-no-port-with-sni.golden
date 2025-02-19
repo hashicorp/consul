@@ -10,7 +10,7 @@
               "address": {
                 "socketAddress": {
                   "address": "127.0.0.1",
-                  "portValue": 9091
+                  "portValue": 443
                 }
               }
             }
@@ -30,7 +30,8 @@
             "filename": "mycert.crt"
           }
         }
-      }
+      },
+      "sni": "127.0.0.1"
     }
   },
   "type": "STATIC"
