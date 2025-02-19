@@ -1,0 +1,4 @@
+```release-note:feature
+config: add UseSNI flag in JWTProviderConfigEntry
+agent: send TLS SNI in JWT auth provider
+```
