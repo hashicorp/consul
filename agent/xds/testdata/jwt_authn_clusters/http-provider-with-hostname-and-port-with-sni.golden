@@ -20,18 +20,5 @@
     ]
   },
   "name": "jwks_cluster_okta",
-  "transportSocket": {
-    "name": "tls",
-    "typedConfig": {
-      "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
-      "commonTlsContext": {
-        "validationContext": {
-          "trustedCa": {
-            "filename": "mycert.crt"
-          }
-        }
-      }
-    }
-  },
   "type": "STATIC"
 }
