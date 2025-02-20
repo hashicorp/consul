@@ -1,0 +1,5 @@
+```release-note:security
+Upgrade Go to use v1.22.11 and bump Go X-Repositories to latest. This addresses CVE 
+[CVE-2024-45341](https://nvd.nist.gov/vuln/detail/CVE-2024-45341) and
+[CVE-2024-45336](https://nvd.nist.gov/vuln/detail/CVE-2024-45336)
+```

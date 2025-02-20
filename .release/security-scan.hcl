@@ -37,13 +37,9 @@ container {
 	triage {
 		suppress {
 			vulnerabilities = [
-				"CVE-2024-8096", # curl@8.9.1-r2,
-				"CVE-2024-9143", # openssl@3.3.2-r0,
-				"CVE-2024-3596", # openssl@3.3.2-r0,
-				"CVE-2024-2236", # openssl@3.3.2-r0,
-				"CVE-2024-26458", # openssl@3.3.2-r0,
-				"CVE-2024-2511", # openssl@3.3.2-r0,
-				#the above can be resolved when they're resolved in the alpine image
+				"CVE-2024-4067", # libsolv@0:0.7.24-3.el9
+				"CVE-2019-12900", # bzip2-libs@0:1.0.8-8.el9
+				"CVE-2024-12797" # openssl-libs@1:3.2.2-6.el9_5
 			]
 			paths = [
 				"internal/tools/proto-gen-rpc-glue/e2e/consul/*",

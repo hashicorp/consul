@@ -1,3 +1,179 @@
+## 1.20.3 (February 13, 2025)
+
+SECURITY:
+
+* Upgrade Go to use v1.22.11 and bump Go X-Repositories to latest. This addresses CVE
+  [CVE-2024-45341](https://nvd.nist.gov/vuln/detail/CVE-2024-45341) and
+  [CVE-2024-45336](https://nvd.nist.gov/vuln/detail/CVE-2024-45336) [[GH-22084](https://github.com/hashicorp/consul/issues/22084)]
+* Upgrade Go to use v1.22.12 and bump Go X-Repositories to latest. This addresses CVE
+  [CVE-2025-22866](https://nvd.nist.gov/vuln/detail/CVE-2025-22866) [[GH-22132](https://github.com/hashicorp/consul/issues/22132)]
+
+IMPROVEMENTS:
+
+* connect: update supported envoy versions to 1.33.0, 1.32.3 [[GH-22138](https://github.com/hashicorp/consul/issues/22138)]
+* metadata: memoize the parsed build versions [[GH-22113](https://github.com/hashicorp/consul/issues/22113)]
+
+BUG FIXES:
+
+* Fixed logging error while building for OpenBSD OS [[GH-22120](https://github.com/hashicorp/consul/pull/22120)] [[GH-22120](https://github.com/hashicorp/consul/issues/22120)]
+* api-gateway: Fixed TLS configuration to properly enforce listener TLS versions and cipher suites [[GH-21984](https://github.com/hashicorp/consul/issues/21984)]
+* aws-auth: Fix bug where calls to AWS IAM and STS services error out due to URL with multiple trailing slashes. [[GH-22109](https://github.com/hashicorp/consul/issues/22109)]
+
+## 1.19.5 Enterprise (February 13, 2025)
+
+SECURITY:
+
+* Upgrade Go to use v1.22.11 and bump Go X-Repositories to latest. This addresses CVE
+  [CVE-2024-45341](https://nvd.nist.gov/vuln/detail/CVE-2024-45341) and
+  [CVE-2024-45336](https://nvd.nist.gov/vuln/detail/CVE-2024-45336) [[GH-22084](https://github.com/hashicorp/consul/issues/22084)]
+* Upgrade Go to use v1.22.12 and bump Go X-Repositories to latest. This addresses CVE
+  [CVE-2025-22866](https://nvd.nist.gov/vuln/detail/CVE-2025-22866) [[GH-22132](https://github.com/hashicorp/consul/issues/22132)]
+
+IMPROVEMENTS:
+
+* metadata: memoize the parsed build versions [[GH-22113](https://github.com/hashicorp/consul/issues/22113)]
+
+BUG FIXES:
+
+* Fixed logging error while building for OpenBSD OS [[GH-22120](https://github.com/hashicorp/consul/pull/22120)] [[GH-22120](https://github.com/hashicorp/consul/issues/22120)]
+* api-gateway: Fixed TLS configuration to properly enforce listener TLS versions and cipher suites [[GH-21984](https://github.com/hashicorp/consul/issues/21984)]
+* aws-auth: Fix bug where calls to AWS IAM and STS services error out due to URL with multiple trailing slashes. [[GH-22109](https://github.com/hashicorp/consul/issues/22109)]
+
+## 1.18.8 Enterprise (February 13, 2025)
+
+Enterprise LTS: Consul Enterprise 1.18 is a Long-Term Support (LTS) release.
+
+SECURITY:
+
+* Upgrade Go to use v1.22.11 and bump Go X-Repositories to latest. This addresses CVE
+  [CVE-2024-45341](https://nvd.nist.gov/vuln/detail/CVE-2024-45341) and
+  [CVE-2024-45336](https://nvd.nist.gov/vuln/detail/CVE-2024-45336) [[GH-22084](https://github.com/hashicorp/consul/issues/22084)]
+* Upgrade Go to use v1.22.12 and bump Go X-Repositories to latest. This addresses CVE
+  [CVE-2025-22866](https://nvd.nist.gov/vuln/detail/CVE-2025-22866) [[GH-22132](https://github.com/hashicorp/consul/issues/22132)]
+
+IMPROVEMENTS:
+
+* metadata: memoize the parsed build versions [[GH-22113](https://github.com/hashicorp/consul/issues/22113)]
+
+BUG FIXES:
+
+* Fixed logging error while building for OpenBSD OS [[GH-22120](https://github.com/hashicorp/consul/pull/22120)] [[GH-22120](https://github.com/hashicorp/consul/issues/22120)]
+
+## 1.15.18 Enterprise (February 07, 2025)
+
+Enterprise LTS: Consul Enterprise 1.15 is a Long-Term Support (LTS) release.
+
+BUG FIXES:
+
+* aws-auth: Fix bug where calls to AWS IAM and STS services error out due to URL with multiple trailing slashes. [[GH-22109](https://github.com/hashicorp/consul/issues/22109)]
+
+## 1.15.17 Enterprise (February 05, 2025)
+
+Enterprise LTS: Consul Enterprise 1.15 is a Long-Term Support (LTS) release.
+
+SECURITY:
+
+* Upgrade Go to use v1.22.11 and bump Go X-Repositories to latest. This addresses CVE
+  [CVE-2024-45341](https://nvd.nist.gov/vuln/detail/CVE-2024-45341) and
+  [CVE-2024-45336](https://nvd.nist.gov/vuln/detail/CVE-2024-45336) [[GH-22084](https://github.com/hashicorp/consul/issues/22084)]
+
+## 1.18.7 Enterprise (January 31, 2025)
+
+Enterprise LTS: Consul Enterprise 1.18 is a Long-Term Support (LTS) release.
+
+BUG FIXES:
+
+* api-gateway: Fixed TLS configuration to properly enforce listener TLS versions and cipher suites [[GH-21984](https://github.com/hashicorp/consul/issues/21984)]
+* aws-auth: Fix bug where calls to AWS IAM and STS services error out due to URL with multiple trailing slashes. [[GH-22109](https://github.com/hashicorp/consul/issues/22109)]
+
+## 1.20.2 (December 26, 2024)
+SECURITY:
+* Removed ability to use bexpr to filter results without ACL read on endpoint [[GH-21950](https://github.com/hashicorp/consul/issues/21950)]
+* Resolved issue where hcl would allow duplicates of the same key in acl policy configuration. [[GH-21908](https://github.com/hashicorp/consul/issues/21908)]
+* Update `github.com/golang-jwt/jwt/v4` to v4.5.1 to address [GHSA-29wx-vh33-7x7r](https://github.com/golang-jwt/jwt/security/advisories/GHSA-29wx-vh33-7x7r). [[GH-21951](https://github.com/hashicorp/consul/issues/21951)]
+* Update `golang.org/x/crypto` to v0.31.0 to address [GO-2024-3321](https://pkg.go.dev/vuln/GO-2024-3321). [[GH-22001](https://github.com/hashicorp/consul/issues/22001)]
+* Update `golang.org/x/net` to v0.33.0 to address [GO-2024-3333](https://pkg.go.dev/vuln/GO-2024-3333). [[GH-22021](https://github.com/hashicorp/consul/issues/22021)]
+* Update `registry.access.redhat.com/ubi9-minimal` image to 9.5 to address [CVE-2024-3596](https://nvd.nist.gov/vuln/detail/CVE-2024-3596),[CVE-2024-2511](https://nvd.nist.gov/vuln/detail/CVE-2024-2511),[CVE-2024-26458](https://nvd.nist.gov/vuln/detail/CVE-2024-26458). [[GH-22011](https://github.com/hashicorp/consul/issues/22011)]
+* api: Enforces strict content-type header validation to protect against XSS vulnerability. [[GH-21930](https://github.com/hashicorp/consul/issues/21930)]
+  FEATURES:
+* docs: added the docs for the grafana dashboards [[GH-21795](https://github.com/hashicorp/consul/issues/21795)]
+  BUG FIXES:
+* proxycfg: fix a bug where peered upstreams watches are canceled even when another target needs it. [[GH-21871](https://github.com/hashicorp/consul/issues/21871)]
+* state: ensure that identical manual virtual IP updates result in not bumping the modify indexes [[GH-21909](https://github.com/hashicorp/consul/issues/21909)]
+
+## 1.19.4 Enterprise (January 10, 2025)
+BREAKING CHANGES:
+
+* mesh: **(Enterprise Only)** Enable Envoy `HttpConnectionManager.normalize_path` by default on inbound traffic to mesh proxies. This resolves [CVE-2024-10005](https://nvd.nist.gov/vuln/detail/CVE-2024-10005).
+
+SECURITY:
+
+* Removed ability to use bexpr to filter results without ACL read on endpoint [[GH-21950](https://github.com/hashicorp/consul/issues/21950)]
+* Resolved issue where hcl would allow duplicates of the same key in acl policy configuration. [[GH-21908](https://github.com/hashicorp/consul/issues/21908)]
+* Update `github.com/golang-jwt/jwt/v4` to v4.5.1 to address [GHSA-29wx-vh33-7x7r](https://github.com/golang-jwt/jwt/security/advisories/GHSA-29wx-vh33-7x7r). [[GH-21951](https://github.com/hashicorp/consul/issues/21951)]
+* Update `golang.org/x/crypto` to v0.31.0 to address [GO-2024-3321](https://pkg.go.dev/vuln/GO-2024-3321). [[GH-22001](https://github.com/hashicorp/consul/issues/22001)]
+* Update `golang.org/x/net` to v0.33.0 to address [GO-2024-3333](https://pkg.go.dev/vuln/GO-2024-3333). [[GH-22021](https://github.com/hashicorp/consul/issues/22021)]
+* Update `registry.access.redhat.com/ubi9-minimal` image to 9.5 to address [CVE-2024-3596](https://nvd.nist.gov/vuln/detail/CVE-2024-3596),[CVE-2024-2511](https://nvd.nist.gov/vuln/detail/CVE-2024-2511),[CVE-2024-26458](https://nvd.nist.gov/vuln/detail/CVE-2024-26458). [[GH-22011](https://github.com/hashicorp/consul/issues/22011)]
+* api: Enforces strict content-type header validation to protect against XSS vulnerability. [[GH-21930](https://github.com/hashicorp/consul/issues/21930)]
+* mesh: **(Enterprise Only)** Add `contains` and `ignoreCase` to L7 Intentions HTTP header matching criteria to support configuration resilient to variable casing and multiple values. This resolves [CVE-2024-10006](https://nvd.nist.gov/vuln/detail/CVE-2024-10006).
+* mesh: **(Enterprise Only)** Add `http.incoming.requestNormalization` to Mesh configuration entry to support inbound service traffic request normalization. This resolves [CVE-2024-10005](https://nvd.nist.gov/vuln/detail/CVE-2024-10005) and [CVE-2024-10006](https://nvd.nist.gov/vuln/detail/CVE-2024-10006).
+
+IMPROVEMENTS:
+
+* Upgrade api submodule to 1.29.6 [[GH-22058](https://github.com/hashicorp/consul/issues/22058)]
+* snapshot agent: **(Enterprise only)**  Implement Service Principal Auth for snapshot agent on azure.
+* xds: configures Envoy to load balance over all instances of an external service configured with hostnames when "envoy_dns_discovery_type" is set to "STRICT_DNS" [[GH-21655](https://github.com/hashicorp/consul/issues/21655)]
+
+BUG FIXES:
+
+* proxycfg: fix a bug where peered upstreams watches are canceled even when another target needs it. [[GH-21871](https://github.com/hashicorp/consul/issues/21871)]
+* state: ensure that identical manual virtual IP updates result in not bumping the modify indexes [[GH-21909](https://github.com/hashicorp/consul/issues/21909)]
+
+## 1.18.6 Enterprise (January 13, 2025)
+
+Enterprise LTS: Consul Enterprise 1.18 is a Long-Term Support (LTS) release.
+
+SECURITY:
+
+* Removed ability to use bexpr to filter results without ACL read on endpoint [[GH-21950](https://github.com/hashicorp/consul/issues/21950)]
+* Resolved issue where hcl would allow duplicates of the same key in acl policy configuration. [[GH-21908](https://github.com/hashicorp/consul/issues/21908)]
+* Update `github.com/golang-jwt/jwt/v4` to v4.5.1 to address [GHSA-29wx-vh33-7x7r](https://github.com/golang-jwt/jwt/security/advisories/GHSA-29wx-vh33-7x7r). [[GH-21951](https://github.com/hashicorp/consul/issues/21951)]
+* Update `golang.org/x/crypto` to v0.31.0 to address [GO-2024-3321](https://pkg.go.dev/vuln/GO-2024-3321). [[GH-22001](https://github.com/hashicorp/consul/issues/22001)]
+* Update `golang.org/x/net` to v0.33.0 to address [GO-2024-3333](https://pkg.go.dev/vuln/GO-2024-3333). [[GH-22021](https://github.com/hashicorp/consul/issues/22021)]
+* Update `registry.access.redhat.com/ubi9-minimal` image to 9.5 to address [CVE-2024-3596](https://nvd.nist.gov/vuln/detail/CVE-2024-3596),[CVE-2024-2511](https://nvd.nist.gov/vuln/detail/CVE-2024-2511),[CVE-2024-26458](https://nvd.nist.gov/vuln/detail/CVE-2024-26458). [[GH-22011](https://github.com/hashicorp/consul/issues/22011)]
+* api: Enforces strict content-type header validation to protect against XSS vulnerability. [[GH-21930](https://github.com/hashicorp/consul/issues/21930)]
+
+IMPROVEMENTS:
+
+* Upgrade api submodule to 1.28.5 [[GH-22056](https://github.com/hashicorp/consul/issues/22056)]
+* snapshot agent: **(Enterprise only)**  Implement Service Principal Auth for snapshot agent on azure.
+
+BUG FIXES:
+
+* proxycfg: fix a bug where peered upstreams watches are canceled even when another target needs it. [[GH-21871](https://github.com/hashicorp/consul/issues/21871)]
+* state: ensure that identical manual virtual IP updates result in not bumping the modify indexes [[GH-21909](https://github.com/hashicorp/consul/issues/21909)]
+
+## 1.15.16 Enterprise (January 13, 2025)
+
+Enterprise LTS: Consul Enterprise 1.15 is a Long-Term Support (LTS) release.
+
+SECURITY:
+
+* Removed ability to use bexpr to filter results without ACL read on endpoint [[GH-21950](https://github.com/hashicorp/consul/issues/21950)]
+* Resolved issue where hcl would allow duplicates of the same key in acl policy configuration. [[GH-21908](https://github.com/hashicorp/consul/issues/21908)]
+* Update `github.com/golang-jwt/jwt/v4` to v4.5.1 to address [GHSA-29wx-vh33-7x7r](https://github.com/golang-jwt/jwt/security/advisories/GHSA-29wx-vh33-7x7r). [[GH-21951](https://github.com/hashicorp/consul/issues/21951)]
+* Update `registry.access.redhat.com/ubi9-minimal` image to 9.5 to address [CVE-2024-3596](https://nvd.nist.gov/vuln/detail/CVE-2024-3596),[CVE-2024-2511](https://nvd.nist.gov/vuln/detail/CVE-2024-2511),[CVE-2024-26458](https://nvd.nist.gov/vuln/detail/CVE-2024-26458). [[GH-22011](https://github.com/hashicorp/consul/issues/22011)]
+* api: Enforces strict content-type header validation to protect against XSS vulnerability. [[GH-21930](https://github.com/hashicorp/consul/issues/21930)]
+
+IMPROVEMENTS:
+
+* Upgrade api submodule to 1.21.4 [[GH-22055](https://github.com/hashicorp/consul/issues/22055)]
+* snapshot agent: **(Enterprise only)**  Implement Service Principal Auth for snapshot agent on azure.
+
+BUG FIXES:
+
+* proxycfg: fix a bug where peered upstreams watches are canceled even when another target needs it. [[GH-21871](https://github.com/hashicorp/consul/issues/21871)]
+
 ## 1.20.1 (October 29, 2024)
 BREAKING CHANGES:
 
