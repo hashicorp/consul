@@ -292,12 +292,12 @@ func makeTestProviderWithJWKS(uri string, useSNI bool) *structs.JWTProviderConfi
 		Kind:   "jwt-provider",
 		Name:   "okta",
 		Issuer: "test-issuer",
-		UseSNI: useSNI,
 		JSONWebKeySet: &structs.JSONWebKeySet{
 			Remote: &structs.RemoteJWKS{
 				RequestTimeoutMs:    1000,
 				FetchAsynchronously: true,
 				URI:                 uri,
+				UseSNI:              useSNI,
 				JWKSCluster: &structs.JWKSCluster{
 					DiscoveryType:  structs.DiscoveryTypeStatic,
 					ConnectTimeout: time.Duration(5) * time.Second,

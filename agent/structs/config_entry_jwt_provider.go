@@ -67,12 +67,6 @@ type JWTProviderConfigEntry struct {
 	// multiple times.
 	CacheConfig *JWTCacheConfig `json:",omitempty" alias:"cache_config"`
 
-	// UseSNI determines whether the hostname should be set in SNI
-	// header for TLS connection.
-	//
-	// Default value is false.
-	UseSNI bool `json:",omitempty" alias:"use_sni"`
-
 	Meta               map[string]string `json:",omitempty"`
 	Hash               uint64            `json:",omitempty" hash:"ignore"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
@@ -261,6 +255,12 @@ type RemoteJWKS struct {
 	//
 	// Default value is false.
 	FetchAsynchronously bool `json:",omitempty" alias:"fetch_asynchronously"`
+
+	// UseSNI determines whether the hostname should be set in SNI
+	// header for TLS connection.
+	//
+	// Default value is false.
+	UseSNI bool `json:",omitempty" alias:"use_sni"`
 
 	// RetryPolicy defines a retry policy for fetching JWKS.
 	//

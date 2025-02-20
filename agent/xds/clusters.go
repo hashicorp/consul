@@ -243,7 +243,7 @@ func makeJWTProviderCluster(p *structs.JWTProviderConfigEntry) (*envoy_cluster_v
 		sniHostname := ""
 
 		// Set SNI to hostname when enabled.
-		if p.UseSNI {
+		if p.JSONWebKeySet.Remote.UseSNI {
 			sniHostname = hostname
 		}
 
@@ -1819,11 +1819,11 @@ func configureClusterWithHostnames(
 	logger hclog.Logger,
 	cluster *envoy_cluster_v3.Cluster,
 	dnsDiscoveryType string,
-	// hostnameEndpoints is a list of endpoints with a hostname as their address
+// hostnameEndpoints is a list of endpoints with a hostname as their address
 	hostnameEndpoints structs.CheckServiceNodes,
-	// isRemote determines whether the cluster is in a remote DC or partition and we should prefer a WAN address
+// isRemote determines whether the cluster is in a remote DC or partition and we should prefer a WAN address
 	isRemote bool,
-	// onlyPassing determines whether endpoints that do not have a passing status should be considered unhealthy
+// onlyPassing determines whether endpoints that do not have a passing status should be considered unhealthy
 	onlyPassing bool,
 ) {
 	// When a service instance is addressed by a hostname we have Envoy do the DNS resolution

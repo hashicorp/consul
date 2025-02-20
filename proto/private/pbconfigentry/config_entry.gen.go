@@ -1592,7 +1592,6 @@ func JWTProviderToStructs(s *JWTProvider, t *structs.JWTProviderConfigEntry) {
 		JWTCacheConfigToStructs(s.CacheConfig, &x)
 		t.CacheConfig = &x
 	}
-	t.UseSNI = s.UseSNI
 	t.Meta = s.Meta
 	t.Hash = s.Hash
 }
@@ -1628,7 +1627,6 @@ func JWTProviderFromStructs(t *structs.JWTProviderConfigEntry, s *JWTProvider) {
 		JWTCacheConfigFromStructs(t.CacheConfig, &x)
 		s.CacheConfig = &x
 	}
-	s.UseSNI = t.UseSNI
 	s.Meta = t.Meta
 	s.Hash = t.Hash
 }
@@ -1922,6 +1920,7 @@ func RemoteJWKSToStructs(s *RemoteJWKS, t *structs.RemoteJWKS) {
 	t.RequestTimeoutMs = int(s.RequestTimeoutMs)
 	t.CacheDuration = structs.DurationFromProto(s.CacheDuration)
 	t.FetchAsynchronously = s.FetchAsynchronously
+	t.UseSNI = s.UseSNI
 	if s.RetryPolicy != nil {
 		var x structs.JWKSRetryPolicy
 		JWKSRetryPolicyToStructs(s.RetryPolicy, &x)
@@ -1941,6 +1940,7 @@ func RemoteJWKSFromStructs(t *structs.RemoteJWKS, s *RemoteJWKS) {
 	s.RequestTimeoutMs = int32(t.RequestTimeoutMs)
 	s.CacheDuration = structs.DurationToProto(t.CacheDuration)
 	s.FetchAsynchronously = t.FetchAsynchronously
+	s.UseSNI = t.UseSNI
 	if t.RetryPolicy != nil {
 		var x JWKSRetryPolicy
 		JWKSRetryPolicyFromStructs(t.RetryPolicy, &x)
