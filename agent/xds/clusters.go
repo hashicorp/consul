@@ -240,16 +240,16 @@ func makeJWTProviderCluster(p *structs.JWTProviderConfigEntry) (*envoy_cluster_v
 	}
 
 	if scheme == "https" {
-		sniHostname := ""
+		sni := ""
 
 		// Set SNI to hostname when enabled.
 		if p.JSONWebKeySet.Remote.UseSNI {
-			sniHostname = hostname
+			sni = hostname
 		}
 
 		jwksTLSContext, err := makeUpstreamTLSTransportSocket(
 			&envoy_tls_v3.UpstreamTlsContext{
-				Sni: sniHostname,
+				Sni: sni,
 				CommonTlsContext: &envoy_tls_v3.CommonTlsContext{
 					ValidationContextType: &envoy_tls_v3.CommonTlsContext_ValidationContext{
 						ValidationContext: makeJWTCertValidationContext(p.JSONWebKeySet.Remote.JWKSCluster),
