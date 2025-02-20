@@ -2507,16 +2507,12 @@
     "title": "Integrations",
     "routes": [
       {
-        "title": "Overview",
+        "title": "Consul integration program",
         "path": "integrate"
       },
       {
         "title": "Consul tools",
         "path": "integrate/consul-tools"
-      },
-      {
-        "title": "Consul integration program",
-        "path": "integrate/consul"
       },
       {
         "title": "NIA integration program",
@@ -2581,31 +2577,6 @@
     "heading": "Reference docs"
   },
   {
-    "title": "CLI Reference",
-    "routes": [
-      {
-        "title": "Overview",
-        "path": "reference-cli"
-      },
-      {
-        "title": "Agent",
-        "path": "reference-cli/agent"
-      },
-      {
-        "title": "Consul",
-        "href": "/consul/commands"
-      },
-      {
-        "title": "consul-k8s",
-        "path": "reference-cli/consul-k8s"
-      },
-      {
-        "title": "consul-aws",
-        "path": "reference-cli/consul-aws"
-      }
-    ]
-  },
-  {
     "title": "Error messages",
     "routes": [
       {
@@ -2655,6 +2626,40 @@
   {
     "title": "Reference",
     "routes": [
+      {
+        "title": "CLI documentation",
+        "routes": [
+          {
+            "title": "consul",
+            "href": "/consul/commands"
+          },
+          {
+            "title": "consul-k8s",
+            "path": "reference-cli/consul-k8s"
+          },
+          {
+            "title": "consul-aws",
+            "path": "reference-cli/consul-aws"
+          },
+          {
+            "title": "consul-terraform-sync",
+            "routes": [
+              {
+                "title": "Overview",
+                "path": "reference/cts/cli"
+              },
+              {
+                "title": "task",
+                "path": "reference/cts/cli/task"
+              },
+              {
+                "title": "start",
+                "path": "reference/cts/cli/start"
+              }
+            ]
+          }
+        ]
+      },
       {
         "title": "Architecture",
         "routes": [
@@ -2731,7 +2736,7 @@
           },
           {
             "title": "CLI flag reference",
-            "path": "reference/agent/cli-flags"
+            "href": "/commands/agent"
           },
           {
             "title": "Telemetry reference",
@@ -2773,19 +2778,19 @@
           },
           {
             "title": "Gateway CRD",
-            "href": "reference/config-entry/gateway"
+            "href": "reference/k8s/api-gateway/gateway"
           },
           {
             "title": "GatewayClass CRD",
-            "href": "reference/config-entry/gatewayclass"
+            "href": "reference/k8s/api-gateway/gatewayclass"
           },
           {
             "title": "GatewayClassConfig CRD",
-            "href": "reference/config-entry/gatewayclassconfig"
+            "href": "reference/k8s/api-gateway/gatewayclassconfig"
           },
           {
             "title": "GatewayPolicy CRD",
-            "href": "reference/config-entry/gatewaypolicy"
+            "href": "reference/k8s/api-gateway/gatewaypolicy"
           },
           {
             "title": "HTTP route",
@@ -2809,7 +2814,7 @@
           },
           {
             "title": "MeshService CRD",
-            "href": "reference/config-entry/meshservice"
+            "href": "reference/k8s/api-gateway/meshservice"
           },
           {
             "title": "Proxy defaults",
@@ -2821,19 +2826,19 @@
           },
           {
             "title": "Routes CRD",
-            "href": "reference/config-entry/routes"
+            "href": "reference/k8s/api-gateway/routes"
           },
           {
             "title": "RouteAuthFilter CRD",
-            "href": "reference/config-entry/routeauthfilter"
+            "href": "reference/k8s/api-gateway/routeauthfilter"
           },
           {
             "title": "RouteRetryFilter CRD",
-            "href": "reference/config-entry/routeretryfilter"
+            "href": "reference/k8s/api-gateway/routeretryfilter"
           },
           {
             "title": "RouteTimeoutFilter CRD",
-            "href": "reference/config-entry/routetimeoutfilter"
+            "href": "reference/k8s/api-gateway/routetimeoutfilter"
           },
           {
             "title": "Sameness group",
@@ -2894,23 +2899,6 @@
               {
                 "title": "Health",
                 "path": "reference/cts/api/health"
-              }
-            ]
-          },
-          {
-            "title": "CLI",
-            "routes": [
-              {
-                "title": "Overview",
-                "path": "reference/cts/cli"
-              },
-              {
-                "title": "task",
-                "path": "reference/cts/cli/task"
-              },
-              {
-                "title": "start",
-                "path": "reference/cts/cli/start"
               }
             ]
           },
