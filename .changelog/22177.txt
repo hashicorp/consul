@@ -1,4 +1,4 @@
 ```release-note:feature
-config: add UseSNI flag in JWTProviderConfigEntry
-agent: send TLS SNI in JWT auth provider
+config: add UseSNI flag in remote JSONWebKeySet
+agent: send TLS SNI in remote JSONWebKeySet
 ```
