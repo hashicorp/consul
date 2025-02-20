@@ -28,6 +28,7 @@ The following list outlines field hierarchy, language-specific data types, and r
     - [`RequestTimeoutMs`](#jsonwebkeyset-remote-requesttimeoutms): integer
     - [`CacheDuration`](#jsonwebkeyset-remote-cacheduration): string | `5m`
     - [`FetchAsynchronously`](#jsonwebkeyset-remote-fetchasynchronously): boolean | `false`
+    - [`UseSNI`](#jsonwebkeyset-remote-usesni): boolean | `false`
     - [`JWKSCluster`](#jsonwebkeyset-remote-jwkscluster): map
       - [`DiscoveryType`](#jsonwebkeyset-remote-jwkscluster-discoverytype): string | `STRICT_DNS`
       - [`ConnectTimeout`](#jsonwebkeyset-remote-jwkscluster-connecttimeout): string | `5s`
@@ -82,6 +83,7 @@ The following list outlines field hierarchy, language-specific data types, and r
       - [`requestTimeoutMs`](#spec-jsonwebkeyset-remote-requesttimeoutms): integer
       - [`cacheDuration`](#spec-jsonwebkeyset-remote-cacheduration): string | `5m`
       - [`fetchAsynchronously`](#spec-jsonwebkeyset-remote-fetchasynchronously): boolean | `false`
+      - [`useSNI`](#spec-jsonwebkeyset-remote-usesni): boolean | `false`
       - [`retryPolicy`](#spec-jsonwebkeyset-remote-retrypolicy): map
         - [`numRetries`](#spec-jsonwebkeyset-remote-retrypolicy-numretries): integer | `0`
         - [`retryPolicyBackoff`](#spec-jsonwebkeyset-remote-retrypolicy-retry-policy-backoff): map
@@ -143,6 +145,7 @@ JSONWebKeySet = {
     RequestTimeoutMs = 1500
     CacheDuration = "5m"
     FetchAsynchronously = false
+    UseSNI = false
     RetryPolicy = {
       NumRetries = 0
       RetryPolicyBackoff = {
@@ -224,6 +227,7 @@ CacheConfig = {
       "RequestTimeoutMs": "1500",
       "CacheDuration": "5m",
       "FetchAsynchronously": "false",
+      "UseSNI": "false",
       "RetryPolicy": {
         "NumRetries": "0",
         "RetryPolicyBackOff": {
@@ -306,6 +310,7 @@ spec:                                             # required
       requestTimeoutMs: 1500
       cacheDuration: 5m
       fetchAsynchronously: false
+      useSNI: false
       retryPolicy:
         numRetries: 0
         retryPolicyBackoff:
@@ -439,6 +444,7 @@ Specifies a remote source for the JSON Web Key Set and configures behavior when 
   - [`RequestTimeoutMs`](#jsonwebkeyset-remote-requesttimeoutms)
   - [`CacheDuration`](#jsonwebkeyset-remote-cacheduration)
   - [`FetchAsynchronously`](#jsonwebkeyset-remote-fetchasynchronously)
+  - [`UseSNI`](#jsonwebkeyset-remote-usesni)
   - [`RetryPolicy`](#jsonwebkeyset-remote-retrypolicy)
   - [`JWKSCluster`](#jsonwebkeyset-remote-jwkscluster)
 
@@ -474,6 +480,17 @@ The default cache duration is 5 minutes.
 ### `JSONWebKeySet{}.Remote{}.FetchAsynchronously`
 
 Determines if the JSON Web Key Set is fetched before a client request arrives. When enabled, the JWKS is fetched before incoming requests. When not enabled, the JWKS is fetched after each request arrives and the proxy listener waits for the JWKS to be fetched before activating.
+
+This parameter is set to `false` by default.
+
+#### Values
+
+- Default: `false`
+- Data type: Boolean
+
+### `JSONWebKeySet{}.Remote{}.UseSNI`
+
+Determines whether to add hostname in SNI for connection over TLS.
 
 This parameter is set to `false` by default.
 
@@ -885,6 +902,7 @@ Specifies a remote source for the JSON Web Key Set and configures behavior when 
   - [`requestTimeoutMs`](#spec-jsonwebkeyset-remote-requesttimeoutms)
   - [`cacheDuration`](#spec-jsonwebkeyset-remote-cacheduration)
   - [`fetchAsynchronously`](#spec-jsonwebkeyset-remote-fetchasynchronously)
+  - [`useSNI`](#spec-jsonwebkeyset-remote-usesni)
   - [`retryPolicy`](#spec-jsonwebkeyset-remote-retrypolicy)
 
 ### `spec.jsonWebKeySet.remote.uri`
@@ -919,6 +937,17 @@ The default cache duration is 5 minutes.
 ### `spec.jsonWebKeySet.remote.fetchAsynchronously`
 
 Determines if the JSON Web Key Set is fetched before a client request arrives. When enabled, the JWKS is fetched before incoming requests. When not enabled, the JWKS is fetched after each request arrives and the proxy listener waits for the JWKS to be fetched before activating.
+
+This parameter is set to `false` by default.
+
+#### Values
+
+- Default: `false`
+- Data type: Boolean
+
+### `spec.jsonWebKeySet.remote.useSNI`
+
+Determines whether to add hostname in SNI for connection over TLS.
 
 This parameter is set to `false` by default.
 
