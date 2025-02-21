@@ -1815,10 +1815,15 @@ func (s *ResourceGenerator) makeGatewayCluster(snap *proxycfg.ConfigSnapshot, op
 	return cluster
 }
 
-// configureClusterWithHostnames
-// hostnameEndpoints is a list of endpoints with a hostname as their address
-// isRemote determines whether the cluster is in a remote DC or partition and we should prefer a WAN address
-// onlyPassing determines whether endpoints that do not have a passing status should be considered unhealthy
+// configureClusterWithHostnames configures the Envoy cluster for service instance addressed by hostname.
+// We have Envoy do the DNS resolution by setting a DNS cluster type and passing the hostname endpoints via CDS.
+//
+// logger represents the hclog.Logger for logging.
+// cluster represents the Envoy cluster configuration.
+// dnsDiscoveryType indicates the DNS service discovery type.
+// hostnameEndpoints is a list of endpoints with a hostname as their address.
+// isRemote determines whether the cluster is in a remote DC or partition and we should prefer a WAN address.
+// onlyPassing determines whether endpoints that do not have a passing status should be considered unhealthy.
 func configureClusterWithHostnames(
 	logger hclog.Logger,
 	cluster *envoy_cluster_v3.Cluster,
@@ -1827,8 +1832,6 @@ func configureClusterWithHostnames(
 	isRemote bool,
 	onlyPassing bool,
 ) {
-	// When a service instance is addressed by a hostname we have Envoy do the DNS resolution
-	// by setting a DNS cluster type and passing the hostname endpoints via CDS.
 	rate := 10 * time.Second
 	cluster.DnsRefreshRate = durationpb.New(rate)
 	cluster.DnsLookupFamily = envoy_cluster_v3.Cluster_V4_ONLY
