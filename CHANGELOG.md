@@ -1,3 +1,13 @@
+## 1.18.9 Enterprise (February 20, 2025)
+
+IMPROVEMENTS:
+
+* dependency: upgrade consul/api to use Go 1.31.2 [[GH-22174](https://github.com/hashicorp/consul/issues/22174)]
+
+BUG FIXES:
+
+* api: Fixed api submodule checksum mismatch issue by retracted 1.31.1 version [[GH-22172](https://github.com/hashicorp/consul/pull/22172)] [[GH-22172](https://github.com/hashicorp/consul/issues/22172)]
+
 ## 1.18.8 Enterprise (February 13, 2025)
 
 Enterprise LTS: Consul Enterprise 1.18 is a Long-Term Support (LTS) release.
