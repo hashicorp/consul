@@ -14,7 +14,7 @@ Corresponding HTTP API Endpoint: [\[PUT\] /v1/agent/token/:type](/consul/api-doc
 This command updates the ACL tokens currently in use by the agent. It can be used to introduce
 ACL tokens to the agent for the first time, or to update tokens that were initially loaded from
 the agent's configuration. Tokens are not persisted unless
-[`acl.enable_token_persistence`](/consul/docs/agent/config/config-files#acl_enable_token_persistence)
+[`acl.enable_token_persistence`](/consul/docs/reference/agent/configuration-file/acl#acl_enable_token_persistence)
 is `true`, so tokens will need to be updated again if that option is `false` and
 the agent is restarted.
 
@@ -38,7 +38,7 @@ The token types are:
 - `dns` - Specifies the token that agents use to request information needed to respond to DNS queries.
   If the `dns` token is not set, Consul uses the `default` token by default.
   Because the `default` token allows unauthenticated HTTP API access to list nodes and services, we
-  strongly recommend using the `dns` token. Create DNS tokens using the [templated policy](/consul/docs/security/acl/tokens/create/create-a-dns-token#create_a_dns_token) option
+  strongly recommend using the `dns` token. Create DNS tokens using the [templated policy](/consul/docs/secure/acl/token/dns) option
   to ensure that the token has the permissions needed to respond to all DNS queries.
 
 - `config_file_service_registration` - This is the token that the agent uses to
@@ -61,9 +61,9 @@ The token types are:
 
 ### API Options
 
-@include 'http_api_options_client.mdx'
+@include 'legacy/http_api_options_client.mdx'
 
-@include 'http_api_options_server.mdx'
+@include 'legacy/http_api_options_server.mdx'
 
 ## Examples
 

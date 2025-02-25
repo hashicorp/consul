@@ -22,7 +22,7 @@ isn't practical (e.g. cross-DC traffic over mesh gateways).
 
 The diagram below shows all the possible routing flows:
 
-[server port]: https://www.consul.io/docs/agent/config/config-files#server_rpc_port
+[server port]: https://developer.hashicorp.com/docs/reference/agent/configuration-files/general#server_rpc_port
 
 ![RPC Routing](./routing.svg)
 

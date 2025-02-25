@@ -351,7 +351,7 @@ function generate_systemd_config {
   local -r unit_config=$(cat <<EOF
 [Unit]
 Description="HashiCorp Consul - A service mesh solution"
-Documentation=https://www.consul.io/
+Documentation=https://developer.hashicorp.com/
 Requires=network-online.target
 After=network-online.target
 ConditionFileNotEmpty=$config_path

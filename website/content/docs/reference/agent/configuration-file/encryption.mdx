@@ -1,0 +1,73 @@
+---
+layout: docs
+page_title: Encryption parameters for Consul agent configuration files
+description: >-
+  Use agent configuration files to assign attributes to agents and configure multiple agents at once. Learn about agent configuration file parameters and formatting with this reference page and sample code.
+---
+
+# Encryption parameters for Consul agent configuration files
+
+The page provides reference information for encryption parameters in a Consul agent configuration file.
+
+## Encryption parameters
+
+- `auto_encrypt` This object allows setting options for the `auto_encrypt` feature.
+
+  The following sub-keys are available:
+
+  - `allow_tls` (Defaults to `false`) This option enables
+    `auto_encrypt` on the servers and allows them to automatically distribute certificates
+    from the service mesh CA to the clients. If enabled, the server can accept incoming
+    connections from both the built-in CA and the service mesh CA, as well as their certificates.
+    Note, the server will only present the built-in CA and certificate, which the
+    client can verify using the CA it received from `auto_encrypt` endpoint. If disabled,
+    a client configured with `auto_encrypt.tls` will be unable to start.
+
+  - `tls` (Defaults to `false`) Allows the client to request the
+    service mesh CA and certificates from the servers, for encrypting RPC communication.
+    The client will make the request to any servers listed in the `-retry-join`
+    option. This requires that every server to have `auto_encrypt.allow_tls` enabled.
+    When both `auto_encrypt` options are used, it allows clients to receive certificates
+    that are generated on the servers. If the `-server-port` is not the default one,
+    it has to be provided to the client as well. Usually this is discovered through
+    LAN gossip, but `auto_encrypt` provision happens before the information can be
+    distributed through gossip. The most secure `auto_encrypt` setup is when the
+    client is provided with the built-in CA, `verify_server_hostname` is turned on,
+    and when an ACL token with `node.write` permissions is setup. It is also possible
+    to use `auto_encrypt` with a CA and ACL, but without `verify_server_hostname`,
+    or only with a ACL enabled, or only with CA and `verify_server_hostname`, or
+    only with a CA, or finally without a CA and without ACL enabled. In any case,
+    the communication to the `auto_encrypt` endpoint is always TLS encrypted.
+
+    ~> **Warning:** Enabling `auto_encrypt.tls` conflicts with the [`auto_config`](/consul/docs/reference/agent/configuration-file/auto-config) feature.
+    Only one option may be specified.
+
+  - `dns_san` (Defaults to `[]`) When this option is being
+    used, the certificates requested by `auto_encrypt` from the server have these
+    `dns_san` set as DNS SAN.
+
+  - `ip_san` (Defaults to `[]`) When this option is being used,
+    the certificates requested by `auto_encrypt` from the server have these `ip_san`
+    set as IP SAN.
+
+- `encrypt` ((#\_encrypt)) - Specifies the secret key to use for encryption
+  of Consul network traffic. This key must be 32-bytes that are Base64-encoded. The
+  easiest way to create an encryption key is to use [`consul keygen`](/consul/commands/keygen).
+  All nodes within a cluster must share the same encryption key to communicate. The
+  provided key is automatically persisted to the data directory and loaded automatically
+  whenever the agent is restarted. This means that to encrypt Consul's gossip protocol,
+  this option only needs to be provided once on each agent's initial startup sequence.
+  If it is provided after Consul has been initialized with an encryption key, then
+  the provided key is ignored and a warning will be displayed.
+
+- `encrypt_verify_incoming` - This is an optional
+  parameter that can be used to disable enforcing encryption for incoming gossip
+  in order to upshift from unencrypted to encrypted gossip on a running cluster.
+  See [this section](/consul/docs/security/encryption#configuring-gossip-encryption-on-an-existing-cluster)
+  for more information. Defaults to true.
+
+- `encrypt_verify_outgoing` - This is an optional
+  parameter that can be used to disable enforcing encryption for outgoing gossip
+  in order to upshift from unencrypted to encrypted gossip on a running cluster.
+  See [this section](/consul/docs/security/encryption#configuring-gossip-encryption-on-an-existing-cluster)
+  for more information. Defaults to true.

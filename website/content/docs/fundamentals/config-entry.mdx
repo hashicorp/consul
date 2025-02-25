@@ -1,0 +1,131 @@
+---
+layout: docs
+page_title: Configuration entries
+description: >-
+  Configuration entries define the behavior of Consul service mesh components. Learn how to use the `consul config` command to create, manage, and delete configuration entries.
+---
+
+# Configuration entries
+
+Configuration entries explicitly define many of Consul's security, traffic, and cluster management behaviors. You can specify configuration entries in either HCL or JSON. On Kubernetes, specify custom resource definitions in YAML.
+
+## Configuration entry basics
+
+Every configuration entry has at least two fields: `Kind` and `Name`. Those two fields identify a configuration entry for Consul. Configuration entries use either `snake-case` or `CamelCase` for key names.
+
+<CodeBlockConfig heading="Bare metal and VMs">
+
+```hcl
+Kind = "<supported kind>"
+Name = "<name of entry>"
+```
+
+</CodeBlockConfig>
+
+On Kubernetes, `Kind` is set as the custom resource `kind` and `Name` is set
+as `metadata.name`:
+
+<CodeBlockConfig heading="Kubernetes">
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: <supported kind>
+metadata:
+  name: <name of entry>
+```
+
+</CodeBlockConfig>
+
+You should use the [Consul CLI](/consul/commands/config) or [Consul HTTP API](/consul/api-docs/config) to manage configuration entries outside of Kubernetes.
+
+As a convenience for initial cluster bootstrapping, you can also specify configuration entries in the Consul [server agent configuration files](/consul/docs/reference/agent/configuration-file/general#config_entries_bootstrap). When a server gains leadership, it will attempt to initialize the configuration entries. If a configuration entry does not already exist outside of the servers configuration, the server will create it. If a configuration entry does exist, that matches both `kind` and `name`, then the server does nothing.
+
+## Cluster management configuration entries
+
+The following configuration entries define configuration defaults, service-to-service security, service identity, and traffic management for a Consul datacenter.
+
+- [Control plane request limit](/consul/docs/reference/config-entry/control-plane-request-limit) defines read and write rates for the catalog, ACLs, and key/value store on Consul Enterprise clusters.
+- [Exported services](/consul/docs/reference/config-entry/exported-services) enables service access for local admin partitions and remote peers.
+- [Ingress gateway](/consul/docs/reference/config-entry/ingress-gateway) defines the configuration for an ingress gateway. To secure access into the network, we recommend the Consul API gateway instead.
+- [JWT provider](/consul/docs/reference/config-entry/jwt-provider) configures Consul to use a JSON Web Token (JWT) and JSON Web Key Set (JWKS) in order to add JWT validation to proxies in the service mesh.
+- [Mesh](/consul/docs/reference/config-entry/mesh) controls mesh-wide proxy configuration that apply across namespaces and federated datacenters.
+- [Proxy defaults](/consul/docs/reference/config-entry/proxy-defaults) controls default configurations for sidecar proxies.
+- [Sameness group](/consul/docs/reference/config-entry/sameness-group) defines partitions and cluster peers with identical services for failover and traffic management.
+- [Service defaults](/consul/docs/reference/config-entry/service-defaults) configures defaults for all the instances of a given service.
+- [Service intentions](/consul/docs/reference/config-entry/service-intentions) defines how sidecar proxies respond to incoming traffic from services in the service mesh.
+- [Service resolver](/consul/docs/reference/config-entry/service-resolver) defines service subsets, redirects, failover, and load balancing behavior in the service mesh.
+- [Service router](/consul/docs/reference/config-entry/service-router) defines destinations for application traffic based on the HTTP route.
+- [Service splitter](/consul/docs/reference/config-entry/service-splitter) defines how to divide requests for a single HTTP route to subsets of services.
+- [Terminating gateway](/consul/docs/reference/config-entry/terminating-gateway) defines security settings for services to send traffic from inside the service mesh to external services.
+
+## API gateway configuration entries
+
+To secure access to the services in your network for all incoming traffic, we recommend you deploy the Consul API gateway. The following configuration entries define the API gateway and how it handles incoming traffic:
+
+- [API gateway](/consul/docs/reference/config-entry/api-gateway) defines the API gateway, including the port it listens on.
+- [File system certificate](/consul/docs/reference/config-entry/file-system-certificate) defines the paths to a certificate and private key on the local system for API gateway configuration.
+- [HTTP route](/consul/docs/reference/config-entry/http-route) defines rules, match criteria, and response behavior that ther API gateway enforces on incoming HTTP traffic.
+- [Inline certificate](/consul/docs/reference/config-entry/inline-certificate) includes values for a certificate and private key on the local system for API gateway configuration. In production environments, use the file system certificate instead.
+- [TCP route](/consul/docs/reference/config-entry/tcp-route) binds services to listeners on the API gateway.
+
+## Kubernetes custom resource definitions (CRDs)
+
+Instead of configuration entries, Consul on Kubernetes uses custom resources modeled after the configuration entries. You can apply these resources to the cluster using either the `kubectl apply` command or the `consul-k8s` CLI.
+
+Cluster management configuration entries all have a Consul CRD counterpart with a shared name. Their differences are limited to formatting differences between HCL and YAML, so specifications and examples for these configuration entries and CRDs are documented as a single resource.
+
+The `Registration` CRD is unique to Kubernetes. You can use it to register a service running on a external node and configure health checks for Consul to run.
+
+Because the Consul API gateway is deployed and managed differently in a Kubernetes cluster, the API gateway configuration entries are not available as CRDs. Instead the following CRDs exist to define Consul API Gateway behavior on Kubernetes:
+
+- [`Gateway` CRD](/consul/docs/reference/k8s/api-gateway/gateway)
+- [`GatewayClass` CRD](/consul/docs/reference/k8s/api-gateway/gatewayclass)
+- [`GatewayClassConfig` CRD](/consul/docs/reference/k8s/api-gateway/gatewayclassconfig)
+- [`GatewayPolicy` CRD](/consul/docs/reference/k8s/api-gateway/gatewaypolicy)
+- [`MeshService` CRD](/consul/docs/reference/k8s/api-gateway/meshservice)
+- [`Routes` CRD](/consul/docs/reference/k8s/api-gateway/routes)
+- [`RouteAuthFilter` CRD](/consul/docs/reference/k8s/api-gateway/routeauthfilter)
+- [`RouteRetryFilter` CRD](/consul/docs/reference/k8s/api-gateway/routeretryfilter)
+- [`RouteTimeoutFilter` CRD](/consul/docs/reference/k8s/api-gateway/routetimeoutfilter)
+
+For more information about these CRDs and how to use them to configure the API Gateway, refer to the [Consul API gateway overview](/consul/docs/north-south/api-gateway).
+
+## Create or update a configuration entry
+
+You can use the [`consul config write`](/consul/commands/config/write) command to create and update configuration entries. This command will load the configuration entry (JSON or HCL) definition and then apply it to Consul.
+
+The following example shows an HCL configuration file to configure the proxy defaults for the global namespace:
+
+<CodeBlockConfig filename="global-proxy-defaults.hcl">
+
+```hcl
+Kind = "proxy-defaults"
+Name = "global"
+Config {
+  local_connect_timeout_ms = 1000
+  handshake_timeout_ms = 10000
+}
+```
+
+</CodeBlockConfig>
+
+Apply this configuration.
+
+```shell-session
+$ consul config write global-proxy-defaults.hcl
+```
+
+If you need to make changes to a configuration entry, edit the file and then rerun the command. This command will not output anything unless there is an error. The `write` command also supports a `-cas` option to enable performing a compare-and-swap operation to prevent overwriting other unknown modifications.
+
+If you use the HTTP API, include the entry as a payload and send a `PUT` request to the Consul servers.
+
+```shell-session
+$ curl \
+    --request PUT \
+    --data @payload \
+    http://127.0.0.1:8500/v1/config
+```
+
+## Next steps
+
+Now that you learned the basics of Consul configurations, find out how the [Consul Terraform provider](/consul/docs/fundamentals/tf) can automate infrastructure deployment and agent configuration.

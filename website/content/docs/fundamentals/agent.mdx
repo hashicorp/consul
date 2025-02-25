@@ -1,0 +1,215 @@
+---
+layout: docs
+page_title: Configure a Consul agent
+description: >-
+  Agent configuration is the process of defining server and client agent properties with CLI flags and configuration files. Learn what properties can be configured on reload and how Consul sets precedence for configuration settings.
+---
+
+# Configure a Consul agent
+
+The Consul agent is a long running daemon that operates on a node. It is a core unit of Consul operations. Agents are highly configurable, which enables you to deploy Consul to any infrastructure.
+
+Agents can run in either _server mode_ or _client mode_. Server nodes make up the control plane's server cluster, and they are responsible for maintaining the cluster's state. Client nodes are lightweight processes that make up the majority of the cluster. They interface with the server nodes for most operations and maintain little state of their own. Clients run on every node where services are running.
+
+In addition to the core agent operations, server nodes participate in the [consensus quorum](/consul/docs/concept/consensus). The quorum is based on the Raft protocol, which provides strong consistency and availability in the case of failure. Server nodes should run on dedicated instances because they are more resource intensive than client nodes.
+
+## Agent lifecycle
+
+The following process describes the agent lifecycle within the context of an existing cluster:
+
+1. **Start the agent** either manually or through an automated or programmatic process.
+   Newly-started agents are unaware of other nodes in the cluster.
+1. **An agent joins a cluster**, which enables the agent to discover agent peers.
+   Agents join clusters on startup when the [`join`](/consul/commands/join) command is issued or according the [`auto-join` configuration](/consul/docs/deploy/server/cloud-auto-join).
+1. **Agents gossip to the entire cluster**. As a result, all nodes will eventually become aware of each other.
+1. **Existing servers begin replicating to the new node** if the agent is a server.
+
+### Node failures and crashes
+
+In the event of a network failure, some nodes may be unable to reach other nodes. Unreachable nodes will be marked as _failed_.
+
+Distinguishing between a network failure and an agent crash is impossible. As a result, agent crashes are handled in the same manner is network failures.
+
+Once a node is marked as failed, this information is updated in the service catalog.
+
+### Node exits
+
+When a node gracefully exits a cluster, it sends a departure notification, and the cluster marks its status as `left`. In this case, the cluster immediately deregisters all services associated with that node. This behavior differs from node failures, where services remain registered to allow for temporary outages.
+
+When a server agent leaves, replication to the exiting server stops.
+
+To prevent an accumulation of "dead" nodes in either `failed` or `left` states, Consul automatically removes dead nodes from the catalog. This process is called _reaping_.
+
+Reaping occurs on a configurable interval of 72 hours. We do not recommend changing the reap interval due to its consequences during outage situations. For failed nodes, reaping desregisters all of the node's services.
+
+## Agent requirements
+
+You should run one Consul agent per server or host. Instances of Consul can run in separate VMs or as separate containers. At least one server agent per Consul deployment is required, but we recommend three to five server agents.
+
+### Infrastructure requirements
+
+Refer to the following sections for information about host, port, memory, and other infrastructure requirements:
+
+- [Server Performance](/consul/docs/reference/architecture/server)
+- [Required Ports](/consul/docs/reference/architecture/ports)
+
+The [Datacenter Deploy tutorial](/consul/tutorials/production-deploy/reference-architecture#deployment-system-requirements) contains additional information for production environments, including licensing configuration, environment variables, and other details.
+
+### Maximum latency network requirements
+
+Consul uses the gossip protocol to share information across agents. To function properly, you cannot exceed the protocol's _maximum latency threshold_. The latency threshold is calculated according to the total round trip time (RTT) for communication between all agents. Other network usages outside of gossip are not bound by these latency requirements. These uses include client to server RPCs, HTTP API requests, xDS proxy configuration, DNS requests.
+
+Your network must meet the followiong latency requirements for data sent between all Consul agents:
+
+- Average RTT for all traffic cannot exceed 50ms.
+- RTT for 99 percent of traffic cannot exceed 100ms.
+
+## Start the Consul agent
+
+Start a Consul agent with the `consul` command and `agent` subcommand using the following syntax:
+
+```shell-session
+$ consul agent <options>
+```
+
+The minimum information Consul needs to run is the location of a directory for storing agent state data. You can specify the location with the `-data-dir` flag or define the location in an external file and point the file with the `-config-file` flag.
+
+You can also point to a directory containing several configuration files with the `-config-dir` flag. The configuration directory lets you logically group configuration settings into separate files.
+
+The following example starts an agent in developer mode and stores agent state data in the `tmp/consul` directory:
+
+```shell-session
+$ consul agent -data-dir=tmp/consul -dev
+```
+
+<Note>
+
+Do not use developer mode in production environments.
+
+</Note>
+
+### Agent startup output
+
+Consul prints several important messages on startup. The following example shows output from the [`consul agent`](/consul/commands/agent) command:
+
+```shell-session
+$ consul agent -data-dir=/tmp/consul
+==> Starting Consul agent...
+==> Consul agent running!
+       Node name: 'Armons-MacBook-Air'
+      Datacenter: 'dc1'
+          Server: false (bootstrap: false)
+     Client Addr: 127.0.0.1 (HTTP: 8500, DNS: 8600)
+    Cluster Addr: 192.168.1.43 (LAN: 8301, WAN: 8302)
+
+==> Log data will now stream in as it occurs:
+
+    [INFO] serf: EventMemberJoin: Armons-MacBook-Air.local 192.168.1.43
+...
+```
+
+The agent output includes the following information
+
+- **Node name:** A unique name for the agent. By default, this field is the hostname of the machine, but you can customize it using the [`-node`](/consul/commands/agent#_node) flag.
+
+- **Datacenter:** The datacenter where the agent is configured to run. For single-DC configurations, the agent defaults to `dc1`, but you can configure which datacenter the agent reports to with the [`-datacenter` flag](/consul/commands/agent#_datacenter). Consul supports networks with multiple datacenters, so configuring each node to report its datacenter improves agent efficiency.
+
+- **Server:** Indicates whether the agent is running in server mode or client mode. Running an agent in server mode requires additional resource overhead because they participate in the consensus quorum, store cluster state, and handle queries. A server may also be in ["bootstrap" mode](/consul/commands/agent#_bootstrap_expect), which enables the server to elect itself as the Raft leader. Multiple servers cannot be in bootstrap mode because it would put the cluster in an inconsistent state.
+
+- **Client address:** The address used for clients to interface with the agent, including the ports for the HTTP and DNS interfaces. By default, this address binds only to `localhost`. If you change this address or port, specify a `-http-addr` whenever you run commands such as [`consul members`](/consul/commands/members) to indicate how to reach the agent. Other applications can also use the HTTP address and port [to control Consul with the HTTP API](/consul/api-docs).
+
+- **Cluster address:** The address and set of ports used for communication between Consul agents in a cluster. Not all Consul agents in a cluster have to use the same port, but this address **MUST** be reachable by all other nodes.
+
+When running under `systemd` on Linux, Consul sends `READY=1` to the `$NOTIFY_SOCKET` when a LAN join completes. You must either set the `join` or `retry_join` option and the service definition file has to have `Type=notify` set for this notification to send.
+
+## Stop a Consul agent
+
+You can stop an agent in two ways: gracefully or forcefully. Server and client agents behave differently depending on the leave that is performed. There are two potential states a process can be in after a system signal is sent: _left_ and _failed_.
+
+To gracefully halt an agent, send the process an _interrupt signal_ such as `Ctrl-C` from a terminal, or running `kill -INT consul_pid`. 
+
+When a server exits gracefully, the server is marked as _failed_ to minimally impact the consensus quorum. To remove a server from the cluster, the [`force-leave`](/consul/commands/force-leave) command is used. Using `force-leave` puts the server instance in a _left_ state as long as the server agent is not alive.
+
+When a client exits gracefully, the agent first notifies the cluster it intends to leave the cluster. This way, other cluster members notify the cluster that the node has _left_.
+
+Alternatively, you can forcibly stop an agent by sending it a `kill -KILL consul_pid` signal. This command stops any agent immediately. The rest of the cluster will detect that the node has died, usually within a few seconds. Then, the servers update the catalog to indicate that the node has _failed_.
+
+## Configure Consul agents
+
+You can configure Consul agents with the Consul CLI's `consul agent` command or define them in agent configuration files. The following example starts a Consul agent that takes configuration settings from a file called `server.hcl` located in the current working directory:
+
+```shell-session hideClipboard
+$ consul agent -config-file=server.hcl
+```
+
+Configuration precedence is evaluated in the following order:
+
+1. [Command line arguments](/consul/commands/agent)
+1. [Configuration files](/consul/docs/reference/agent/configuration-file)
+
+The Consul agent loads the configuration from files and directories in lexical order. For example, configuration file `basic_config.json` is processed before `extra_config.json`. You can define the configuration in either [HCL](https://github.com/hashicorp/hcl#syntax) or JSON format.
+
+Configurations specified later are merged into configuration specified earlier. In most cases, "merge" means that the later version overrides the earlier one. In some cases, such as event handlers, merging appends the handlers to the existing configuration. The exact merging behavior is specified for each option.
+
+The Consul agent also supports reloading configuration when it receives the `SIGHUP` signal. However, not all changes are respected. You can use the [`consul reload` command](/consul/commands/reload) to trigger a configuration reload.
+
+### Common configuration settings
+
+The following settings are commonly used in the agent configuration file to configure Consul agents:
+
+| Parameter    | Description                                                                                                                                                                                                                                                                | Default                                                                                                          |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `node_name`  | String value that specifies a name for the agent node. <br/>[More information](/consul/commands/agent#_node_id).                                                                                                                                                    | Hostname of the machine                                                                                          |
+| `server`     | Boolean value that determines if the agent runs in server mode. <br/>[More information](/consul/commands/agent#_server).                                                                                                                                           | `false`                                                                                                          |
+| `datacenter` | String value that specifies which datacenter the agent runs in. <br/>[More information](/consul/commands/agent#_datacenter).                                                                                                                                       | `dc1`                                                                                                            |
+| `data_dir`   | String value that specifies a directory for storing agent state data. <br/[More information](/consul/commands/agent#_data_dir).                                                                                                                                  | none                                                                                                             |
+| `log_level`  | String value that specifies the level of logging the agent reports. <br/>[More information](/consul/commands/agent#_log_level).                                                                                                                                    | `info`                                                                                                           |
+| `retry_join` | Array of string values that specify one or more agent addresses to join after startup. The agent will continue trying to join the specified agents until it has successfully joined another member. <br/>[More information](/consul/commands/agent#_retry_join) | none                                                                                                             |
+| `addresses`  | Block of nested objects that define addresses bound to the agent for internal cluster communication.                                                                                                                                                                       | `"http": "0.0.0.0"` Refer to the agent configuration [default address values](/consul/docs/reference/agent/configuration-file/address) |
+| `ports`      | Block of nested objects that define ports bound to agent addresses. <br/>[More information](/consul/commands/agent#advertise-address-options).                                                                                               | Refer to the agent configuration [default port values](/consul/docs/reference/agent/configuration-file/general#ports).
+
+## The `consul.d` configuration directory
+
+Agent configurations can become difficult to maintain when they are contained in a single file. We recommend separating different blocks of the agent configuration into several files located in the `/etc/consul.d` directory. When you add a new configuration or update an existing one, Consul automatically appends the agent's configuration after the agent reboots. If the update is to a supported reloadable configuration, such as ACL tokens, Consul can register the change and propagate it to the rest of the cluster without restarting.
+
+To start using the configuration directory, create a blank file named `consul.hcl` in the `/etc/consul.d` directory. You can add configurations that would exist on every node, such as `datacenter` and `data_dir`, or you can leave the file blank and follow your preferred configuration structure. 
+
+## Reloadable configurations
+
+Some agent configuration options are reloadable at runtime.
+
+You can run the [`consul reload` command](/consul/commands/reload) to manually reload supported options from configuration files in the configuration directory. To configure the agent to automatically reload configuration files updated on disk, set the [`auto_reload_config` configuration option](/consul/docs/reference/agent/configuration-file/general#auto_reload_config) parameter to `true`.
+
+The following agent configuration options are reloadable at runtime:
+
+- ACL tokens
+- Bootstrapped configuration entries
+- Health check definitions
+- [Discard Check Output](/consul/docs/reference/agent/configuration-file/general#discard_check_output)
+- HTTP client address
+- Log level
+- [Metric Prefix Filter](/consul/docs/reference/agent/configuration-file/telemetry#telemetry-prefix_filter)
+- [Node Metadata](/consul/docs/reference/agent/configuration-file/node#node_meta)
+- Some Raft options:
+  - [`raft_snapshot_threshold`](/consul/docs/reference/agent/configuration-file/raft#raft_snapshot_threshold)
+  - [`raft_snapshot_interval`](/consul/docs/reference/agent/configuration-file/raft#raft_snapshot_interval)
+  - [`raft_trailing_logs`](/consul/docs/reference/agent/configuration-file/raft#raft_trailing_logs)
+- [RPC rate limits](/consul/docs/reference/agent/configuration-file/general#limits)
+- [Reporting](/consul/docs/reference/agent/configuration-file/general#reporting)
+- [HTTP maximum connections per client](/consul/docs/reference/agent/configuration-file/general#http_max_conns_per_client)
+- Service definitions
+- TLS configuration. Be aware that this is currently limited to reload a configuration that is already TLS enabled. You cannot enable or disable TLS only with reloading. To avoid a potential security issue, the following TLS configuration parameters do not automatically reload when [-auto-reload-config](/consul/commands/agent#_auto_reload_config) is enabled:
+  - [encrypt_verify_incoming](/consul/docs/reference/agent/configuration-file/tls#encrypt_verify_incoming)
+  - [verify_incoming](/consul/docs/reference/agent/configuration-file/tls#verify_incoming)
+  - [verify_incoming_rpc](/consul/docs/reference/agent/configuration-file/tls#verify_incoming_rpc)
+  - [verify_incoming_https](/consul/docs/reference/agent/configuration-file/tls#verify_incoming_https)
+  - [verify_outgoing](/consul/docs/reference/agent/configuration-file/tls#verify_outgoing)
+  - [verify_server_hostname](/consul/docs/reference/agent/configuration-file/tls#verify_server_hostname)
+  - [ca_file](/consul/docs/reference/agent/configuration-file/tls#ca_file)
+  - [ca_path](/consul/docs/reference/agent/configuration-file/tls#ca_path)
+- [License](/consul/docs/enterprise/license)
+
+## Next steps
+
+Next, learn about the [fundamentals of services in
+Consul](/consul/docs/fundamentals/service)/

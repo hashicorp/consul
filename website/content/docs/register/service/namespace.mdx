@@ -1,0 +1,89 @@
+---
+layout: docs
+page_title: Register services into a namespace
+description: >-
+  Learn how to register a service a particular namespace so that you can use Consul DNS to address it securely.
+---
+
+# Register services into a namespace
+
+This page describes how to to register a service into a particular Consul namespace.
+
+Consul Community Edition supports some functions with its `default` partition and `default` namespace. Full multi-tenancy options requires an Enterprise license. For more information, refer to [Consul Enterprise](/consul/docs/enterprise).
+
+## Introduction
+
+Namespaces allow multiple teams within an organization to share one or more
+Consul datacenters by separating the services, [Consul KV data](/consul/docs/automate/kv), and other Consul
+data of each team. This allows operators to more easily provide
+Consul as a service and enables them to [delegate ACL
+management](/consul/tutorials/namespaces/namespaces-secure-shared-access).
+
+As of version 1.7, Consul registers each service to the `default` namespace unless the configuration for the service specifies another namespace. If you do not specify a namespace during service registration, Consul registers the service into the `default` namespace.
+
+## Register a service into a namespace
+
+You register a service into a namespace by using one of the following methods:
+
+- Add the `namespace` attribute to the service registration file.
+- Add the `-namespace` flag to the API call or CLI command during service registration.
+
+To migrate an existing service into a new namespace, register the service again and provide the namespace with either method shown.
+
+### Use the `namespace` attribute
+
+Include a `namespace` attribute in the service registration file and set the value to a namespace that exists. Refer to the [Service definition reference page](/consul/docs/reference/service) for more information about registering services with the `service` block.
+
+<CodeBlockConfig filename="web-service.hcl" highlight="4">
+
+```hcl
+service {
+  name = "web-service"
+  port = 8080
+  namespace = "app-team-alpha"
+
+  # ...
+}
+```
+
+</CodeBlockConfig>
+
+Register the service with Consul by providing the service registration file.
+
+```shell-session
+$ consul services register web-service.hcl
+```
+
+### Use the `-namespace` flag
+
+Include the `-namespace` flag when registering the service via the Consul CLI.
+
+Refer to the [CLI reference page for the `services register` command](/consul/commands/services/register) for more information and additional configuration options.
+
+```shell-session
+$ consul services register \
+  -name=web-service \
+  -port=8080 \
+  -namespace=app-team-alpha
+```
+
+
+## Specify namespace in a Consul DNS query
+
+Queries to Consul DNS can include datacenter or datacenter _and_ namespace.
+
+<Tabs>
+
+<Tab heading="Format with datacenter only" group="datacenter-only">
+
+`<service-name>.service.<datacenter>.consul`
+
+</Tab>
+
+<Tab heading="Format with datacenter and namespace" group="datacenter-and-namespace">
+
+`<service-name>.service.<namespace>.<datacenter>.consul`
+
+</Tab>
+
+</Tabs>

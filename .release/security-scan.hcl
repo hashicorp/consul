@@ -39,7 +39,17 @@ container {
 			vulnerabilities = [
 				"CVE-2024-4067", # libsolv@0:0.7.24-3.el9
 				"CVE-2019-12900", # bzip2-libs@0:1.0.8-8.el9
-				"CVE-2024-12797" # openssl-libs@1:3.2.2-6.el9_5
+				"CVE-2024-12797", # openssl-libs@1:3.2.2-6.el9_5
+				"CVE-2024-53427", # jq@1.7.1-r0
+				"CVE-2025-31498", # c-ares@1.34.3-r0
+				"CVE-2025-30258", # gnupg@2.4.7-r0
+				"CVE-2025-31498", # c-ares@1.34.3-r0
+				"CVE-2025-30258", #  gnupg@2.4.7-r0
+				"CVE-2024-53427", # jq@1.7.1-r0
+				"CVE-2022-49043", # libxml2@0:2.9.13-6.el9_5.2
+				"CVE-2025-46394",
+				"CVE-2024-58251",
+				"CVE-2025-47268"
 			]
 			paths = [
 				"internal/tools/proto-gen-rpc-glue/e2e/consul/*",

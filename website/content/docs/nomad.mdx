@@ -1,0 +1,58 @@
+---
+layout: docs
+page_title: Consul on Nomad
+description: >-
+  Consul documentation provides reference material for all features and options available in Consul.
+---
+
+# Consul on Nomad
+
+This topic provides an overview of the documentation available for users running Consul with Nomad.
+
+For more information about using Nomad to schedule clusters and applications, refer to the [Nomad documentation](/nomad/docs).
+
+## Introduction
+
+Nomad is HashiCorp’s workload orchestrator. It enables you to run containers, legacy, and batch applications together on the same infrastructure. Just like a Consul client runs as a system daemon on a worker node, Nomad is deployed in a similar fashion. In order to use Consul with Nomad, you must configure Nomad to access the Consul cluster. We recommend running a Consul client alongside each Nomad client.
+
+Consul and Nomad operate independently in their deployment and functions, but can integrate to simplify the other’s operations. For example, Nomad can register tasks as services in the Consul catalog and configure sidecar proxies. Furthermore, Nomad servers can also register themselves as a service in Consul, which helps with bootstrapping a Nomad cluster.
+
+Deployments in Nomad can take advantage of Consul service discovery, service mesh, or both. You can leverage Consul DNS and run the Nomad service workloads, or start a sidecar process for each service to abstract the networking layer within the service mesh environment.
+
+Nomad supports the following Consul features:
+
+- Automatic clustering
+- Concurrent connections to multiple Consul clusters
+- Service discovery
+- Service mesh
+- Key/value store for dynamic application configuration
+- Consul access controls
+- Namespaces
+- Admin partitions
+
+## Tutorials
+
+If you are familiar with virtualized workloads in a Linux environment, we recommend you attempt the [Nomad getting started tutorials](/nomad/tutorials/get-started) to get acquainted with the basics of running workloads in Nomad. Then complete the [Consul getting started on VMs tutorials](/consul/tutorials/get-started-vms) to learn how to configure and deploy Consul. Then review the dedicated Consul and Nomad tutorials to understand how both systems interact together.
+
+To learn more about using Consul with Nomad, refer to the following tutorials in the Nomad documentation:
+
+- [Convert from Nomad service discovery to Consul service discovery](/nomad/tutorials/service-discovery/service-discovery-consul-conversion)
+- [Secure Nomad jobs with Consul service mesh](/nomad/tutorials/integrate-consul/consul-service-mesh)
+- [Consul ACL with Nomad Workload Identities](/nomad/tutorials/integrate-consul/consul-acl)
+- [Use Consul to automatically cluster Nomad nodes](/nomad/tutorials/manage-clusters/clustering#use-consul-to-automatically-cluster-nodes)
+
+## Nomad documentation
+
+[Nomad Consul Service Integration](/nomad/docs/integrations/consul/service-mesh) enables Nomad users to automatically register services to Consul and deploy sidecar proxies alongside their services. The following resources are available in the Nomad documentation to help you define Consul jobs:
+
+- [consul Block specification](/nomad/docs/job-specification/consul)
+- [connect Block specification](/nomad/docs/job-specification/connect)
+- [check Block specification](/nomad/docs/job-specification/check)
+- [check_restart Block specification](/nomad/docs/job-specification/check_restart)
+- [gateway Block specification](/nomad/docs/job-specification/gateway)
+- [identity Block specification](/nomad/docs/job-specification/identity)
+- [proxy Block specification](/nomad/docs/job-specification/proxy)
+- [service Block specification](/nomad/docs/job-specification/service)
+- [sidecar_service Block specification](/nomad/docs/job-specification/sidecar_service)
+- [sidecar_task Block specification](/nomad/docs/job-specification/sidecar_task)
+- [upstreams Block specification](/nomad/docs/job-specification/upstreams)

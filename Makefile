@@ -1,5 +1,5 @@
 # For documentation on building consul from source, refer to:
-# https://www.consul.io/docs/install#compiling-from-source
+# https://developer.hashicorp.com/docs/install#compiling-from-source
 
 SHELL = bash
 
@@ -10,7 +10,7 @@ GO_MODULES := $(shell find . -name go.mod -exec dirname {} \; | grep -v "proto-g
 # These version variables can either be a valid string for "go install <module>@<version>"
 # or the string @DEV to imply use what is currently installed locally.
 ###
-GOLANGCI_LINT_VERSION='v1.56.1'
+GOLANGCI_LINT_VERSION='v1.61.0'
 MOCKERY_VERSION='v2.41.0'
 BUF_VERSION='v1.26.0'
 

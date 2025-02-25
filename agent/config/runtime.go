@@ -90,7 +90,7 @@ type RuntimeConfig struct {
 	// ACLEnableKeyListPolicy is used to opt-in to the "list" policy added to
 	// KV ACLs in Consul 1.0.
 	//
-	// See https://www.consul.io/docs/guides/acl.html#list-policy-for-keys for
+	// See https://developer.hashicorp.com/docs/guides/acl.html#list-policy-for-keys for
 	// more details.
 	//
 	// hcl: acl.enable_key_list_policy = (true|false)
@@ -739,6 +739,13 @@ type RuntimeConfig struct {
 	// time, the connection will be closed by the server.
 	GRPCKeepaliveTimeout time.Duration
 
+	// EnableXDSLoadBalancing controls xDS load balancing between the servers. Enabled by default.
+	// When enabled, Consul balances loads from xDS clients across available servers equally with an error margin of 0.1.
+	//
+	// When disabled, Consul does not restrict on the number of xDS connections on a server.
+	// In this scenario, you should deploy an external load balancer in front of the consul servers and distribute the load accordingly.
+	EnableXDSLoadBalancing bool
+
 	// HTTPAddrs contains the list of TCP addresses and UNIX sockets the HTTP
 	// server will bind to. If the HTTP endpoint is disabled (ports.http <= 0)
 	// the list is empty.
@@ -885,7 +892,7 @@ type RuntimeConfig struct {
 
 	// PrimaryGateways is a list of addresses and/or go-discover expressions to
 	// discovery the mesh gateways in the primary datacenter. See
-	// https://www.consul.io/docs/agent/config/cli-flags#cloud-auto-joining for
+	// https://developer.hashicorp.com/docs/agent/config/cli-flags#cloud-auto-joining for
 	// details.
 	//
 	// hcl: primary_gateways = []string
@@ -1087,7 +1094,7 @@ type RuntimeConfig struct {
 
 	// RetryJoinLAN is a list of addresses and/or go-discover expressions to
 	// join with retry enabled. See
-	// https://www.consul.io/docs/agent/config/cli-flags#cloud-auto-joining for
+	// https://developer.hashicorp.com/docs/agent/config/cli-flags#cloud-auto-joining for
 	// details.
 	//
 	// hcl: retry_join = []string
@@ -1112,7 +1119,7 @@ type RuntimeConfig struct {
 
 	// RetryJoinWAN is a list of addresses and/or go-discover expressions to
 	// join -wan with retry enabled. See
-	// https://www.consul.io/docs/agent/config/cli-flags#cloud-auto-joining for
+	// https://developer.hashicorp.com/docs/agent/config/cli-flags#cloud-auto-joining for
 	// details.
 	//
 	// hcl: retry_join_wan = []string
@@ -1495,7 +1502,7 @@ type RuntimeConfig struct {
 	// handler to act appropriately. These are managed entirely in the
 	// agent layer using the standard APIs.
 	//
-	// See https://www.consul.io/docs/agent/watches.html for details.
+	// See https://developer.hashicorp.com/docs/agent/watches.html for details.
 	//
 	// hcl: watches = [
 	//   { type=string ... },

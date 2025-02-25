@@ -1,0 +1,39 @@
+---
+layout: docs
+page_title: Consul data plane architecture
+description: >-
+  Consul provides features that help you manage your application's data plane. Learn about Consul's data plane, including its architectural components.
+---
+
+# Consul data plane architecture
+
+This topic describes Consul's architecture and operations in an application's data plane. Consul can deploy gateways and sidecar proxies to help you secure, observe, and manage application traffic.
+
+For information about the lightweight workload agents Consul uses for container-based applications on Kubernetes and AWS ECS, refer to [Consul dataplanes](/consul/docs/architecture/control-plane/dataplane).
+
+## Introduction
+
+Consul provides control plane features that help you manage your application's data plane, but the Consul process does not run directly in the data plane.
+
+When using Consul for service discovery, no additional components or configurations are required for the data plane.
+
+When using Consul's service mesh features, you can use Consul to create sidecar proxies and gateways to manage, secure, and observe service-to-service traffic.
+
+## Sidecar proxies
+
+Consul uses proxies to secure, manage, and observe all service-to-service communication. The primary mechanism is sidecar proxies, which are deployed alongside each service instance to handle all incoming and outgoing traffic. Consul includes native support for Envoy proxies, but can be configured to work with other proxy implementations.
+
+## Gateways
+
+Gateways are specialized proxies that manage specific types of traffic into, out of, or across your service mesh. There are four kinds of gateways:
+
+1. **API gateways** handle and secure incoming requests from external clients, routing them to services within the mesh. They offer advanced Layer 7 features like authentication and routing.
+2. **Ingress gateways** (deprecated) handle incoming traffic from external clients to services inside the mesh. API gateway is the recommended alternative.
+3. **Terminating gateways** enable services within the mesh to securely communicate with external services outside the mesh — such as legacy systems or third-party APIs.
+4. **Mesh gateways** enable service-to-service traffic between Consul datacenters or between Consul admin partitions. They also enable datacenters to be federated across wide area networks.
+
+For more information about each type of gateway, refer to [gateways](/consul/docs/architecture/data-plane/gateway).
+
+## Next steps
+
+Learn about [Consul's security architecture](/consul/docs/architecture/security) to learn about the encryption systems and verification protocols Consul uses to secure data plane operations.

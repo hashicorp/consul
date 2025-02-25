@@ -122,7 +122,7 @@ func (b *BasicEnvoyExtender) Extend(resources *xdscommon.IndexedResources, confi
 
 	switch config.Kind {
 	// Currently we only support extensions for terminating gateways and connect proxies.
-	case api.ServiceKindTerminatingGateway, api.ServiceKindConnectProxy:
+	case api.ServiceKindTerminatingGateway, api.ServiceKindConnectProxy, api.ServiceKindAPIGateway:
 	default:
 		return resources, nil
 	}
@@ -287,7 +287,7 @@ func (b *BasicEnvoyExtender) patchListeners(config *RuntimeConfig, listeners Lis
 
 func (b *BasicEnvoyExtender) patchSupportedListenerFilterChains(config *RuntimeConfig, l *envoy_listener_v3.Listener, nameOrSNI string) (*envoy_listener_v3.Listener, error) {
 	switch config.Kind {
-	case api.ServiceKindTerminatingGateway, api.ServiceKindConnectProxy:
+	case api.ServiceKindTerminatingGateway, api.ServiceKindConnectProxy, api.ServiceKindAPIGateway:
 		return b.patchListenerFilterChains(config, l, nameOrSNI)
 	}
 	return l, nil

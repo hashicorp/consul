@@ -1,0 +1,102 @@
+---
+layout: docs
+page_title: Vault as the Consul service mesh certificate authority on Kubernetes
+description: >-
+  Using Vault as the provider for the Service Mesh certificates on Kubernetes.
+---
+
+# Vault as the Consul service mesh certificate authority on Kubernetes
+
+This topic describes how to configure the Consul Helm chart to use TLS certificates issued by Vault for Consul service mesh communication.
+
+-> **Note:** This feature requires Consul 1.11 or higher. As of v1.11,
+Consul allows using Kubernetes auth methods to configure the service mesh CA.
+This allows for automatic token rotation once the renewal is no longer possible.
+
+~> **Compatibility note:** If you use Vault 1.11.0+ as Consul's service mesh CA, versions of Consul released before Dec 13, 2022 will develop an issue with Consul control plane or service mesh communication ([GH-15525](https://github.com/hashicorp/consul/pull/15525)). Use or upgrade to a [Consul version that includes the fix](https://support.hashicorp.com/hc/en-us/articles/11308460105491#01GMC24E6PPGXMRX8DMT4HZYTW) to avoid this problem.
+
+## Overview
+
+To use Vault as the service mesh certificate provider on Kubernetes, you will complete a modified version of the steps outlined in the [Data Integration](/consul/docs/deploy/server/k8s/vault/data) section.
+
+Complete the following steps once:
+  1. Create a Vault policy that authorizes the desired level of access to the secret.
+
+Repeat the following steps for each datacenter in the cluster:
+  1. Create Vault Kubernetes auth roles that link the policy to each Consul on Kubernetes service account that requires access.
+  1. Update the Consul on Kubernetes helm chart.
+
+## Prerequisites
+
+Prior to setting up the data integration between Vault and Consul on Kubernetes, you will need to have:  
+1. Read and completed the steps in the [Systems Integration](/consul/docs/deploy/server/k8s/vault/backend) section of [Vault as a Secrets Backend](/consul/docs/deploy/server/k8s/vault).
+2. Read the [Data Integration Overview](/consul/docs/deploy/server/k8s/vault/data) section of [Vault as a Secrets Backend](/consul/docs/deploy/server/k8s/vault).
+
+## Create Vault policy
+
+To configure [Vault as the provider](/consul/docs/secure-mesh/certificate/vault) for the Consul service mesh certificates,
+you will first need to decide on the type of policy that is suitable for you.
+To see the permissions that Consul would need in Vault, please see [Vault ACL policies](/consul/docs/secure-mesh/certificate/vault#vault-acl-policies)
+documentation.
+
+## Create Vault Authorization Roles for Consul
+
+Next, you will create Kubernetes auth roles for the Consul servers:
+
+```shell-session
+$ vault write auth/kubernetes/role/consul-server \
+    bound_service_account_names=<Consul server service account> \
+    bound_service_account_namespaces=<Consul installation namespace> \
+    policies=<service mesh CA policy> \
+    ttl=1h
+```
+
+To find out the service account name of the Consul server,
+you can run:
+
+```shell-session
+$ helm template --release-name ${RELEASE_NAME} --show-only templates/server-serviceaccount.yaml hashicorp/consul -f values.yaml
+```
+
+## Update Consul on Kubernetes Helm chart
+Now you can configure the Consul Helm chart to use Vault as the service mesh (connect) CA provider:
+
+<CodeBlockConfig filename="values.yaml">
+
+```yaml
+global:
+  secretsBackend:
+    vault:
+      enabled: true
+      consulServerRole: consul-server
+      consulClientRole: consul-client
+      consulCARole: consul-ca
+      connectCA:
+        address: <the address of the Vault server>
+        rootPKIPath: <the path to root PKI>
+        intermediatePKIPath: <the path to intermediate PKI>
+      ca:
+        secretName: <vaultCASecret>
+```
+
+</CodeBlockConfig>
+
+The `address` you provide to the `connectCA` configuration can be a Kubernetes DNS
+address if the Vault cluster is running the same Kubernetes cluster.
+The `rootPKIPath` and `intermediatePKIPath` should be the same as the ones
+defined in your service mesh CA policy. Behind the scenes, Consul will authenticate to Vault using a Kubernetes
+service account using the [Kubernetes auth method](/vault/docs/auth/kubernetes) and will use the Vault token for any API calls to Vault. If the Vault token can not be renewed, Consul will re-authenticate to
+generate a new Vault token.
+
+The `vaultCASecret` is the Kubernetes secret that stores the CA Certificate that is used for Vault communication. To provide a CA, you first need to create a Kubernetes secret containing the CA. For example, you may create a secret with the Vault CA like so:
+
+```shell-session
+$ kubectl create secret generic vault-ca --from-file vault.ca=/path/to/your/vault/ca
+```
+
+### Secondary Datacenters
+
+To configure Vault as the service mesh (connect) CA in secondary datacenters, you need to make sure that the Root CA path is the same,
+but the intermediate is different for each datacenter. In the `connectCA` Helm configuration for a secondary datacenter,
+you can specify a `intermediatePKIPath` that is, for example, prefixed with the datacenter
+for which this configuration is intended (e.g. `dc2/connect-intermediate`).
