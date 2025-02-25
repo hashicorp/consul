@@ -354,6 +354,12 @@ func (s *HTTPHandlers) catalogServiceNodes(resp http.ResponseWriter, req *http.R
 		return nil, nil
 	}
 
+	s.parsePeerName(req, &args)
+	s.parseSamenessGroup(req, &args)
+	if args.SamenessGroup != "" && args.PeerName != "" {
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "peer-name and sameness-group are mutually exclusive"}
+	}
+
 	// Check for a tag
 	params := req.URL.Query()
 	if _, ok := params["tag"]; ok {
