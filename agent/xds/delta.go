@@ -73,7 +73,12 @@ func (s *Server) DeltaAggregatedResources(stream ADSDeltaStream) error {
 				return
 			}
 			if err != nil {
-				s.Logger.Error("Error receiving new DeltaDiscoveryRequest; closing request channel", "error", err)
+				switch {
+				case status.Code(err) == codes.Canceled:
+					s.Logger.Info("Error receiving new DeltaDiscoveryRequest; closing request channel", "error", err)
+				default:
+					s.Logger.Error("Error receiving new DeltaDiscoveryRequest", "error", err)
+				}
 				close(reqCh)
 				return
 			}

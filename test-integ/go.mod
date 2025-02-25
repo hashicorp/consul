@@ -1,10 +1,10 @@
 module github.com/hashicorp/consul/test-integ
 
-go 1.22.11
+go 1.22.12
 
 require (
 	github.com/google/go-cmp v0.6.0
-	github.com/hashicorp/consul/api v1.29.4
+	github.com/hashicorp/consul/api v1.31.2
 	github.com/hashicorp/consul/proto-public v0.6.2
 	github.com/hashicorp/consul/sdk v0.16.1
 	github.com/hashicorp/consul/test/integration/consul-container v0.0.0-20230628201853-bdf4fad7c5a5

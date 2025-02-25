@@ -1,6 +1,6 @@
 module github.com/hashicorp/consul/internal/tools/protoc-gen-consul-rate-limit
 
-go 1.22.11
+go 1.22.12
 
 replace github.com/hashicorp/consul/proto-public => ../../../proto-public
 

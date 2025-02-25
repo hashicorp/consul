@@ -192,6 +192,12 @@ type RemoteJWKS struct {
 	// Default value is false.
 	FetchAsynchronously bool `json:",omitempty" alias:"fetch_asynchronously"`
 
+	// UseSNI determines whether the hostname should be set in SNI
+	// header for TLS connection.
+	//
+	// Default value is false.
+	UseSNI bool `json:",omitempty" alias:"use_sni"`
+
 	// RetryPolicy defines a retry policy for fetching JWKS.
 	//
 	// There is no retry by default.
