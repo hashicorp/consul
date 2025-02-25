@@ -27,7 +27,7 @@ To configure L7 traffic management behavior in deployments with cluster peering 
 
   The following examples update the [`service-resolver` configuration entry](/consul/docs/connect/config-entries/service-resolver) in `cluster-01` so that Consul redirects traffic intended for the `frontend` service to a backup instance in peer `cluster-02` when it detects multiple connection failures.
 
-  <CodeTabs tabs={[ "HCL", "JSON", "YAML" ]}>
+  <CodeTabs tabs={[ "HCL", "JSON", "Kubernetes YAML" ]}>
 
   ```hcl
   Kind           = "service-resolver"
@@ -82,7 +82,7 @@ To configure L7 traffic management behavior in deployments with cluster peering 
 
   The following example splits traffic evenly between `frontend` services hosted on peers by defining the desired behavior locally:
 
-  <CodeTabs tabs={[ "HCL", "JSON", "YAML" ]}>
+  <CodeTabs tabs={[ "HCL", "JSON", "Kubernetes YAML" ]}>
 
   ```hcl
   Kind = "service-splitter"
@@ -132,7 +132,7 @@ To configure L7 traffic management behavior in deployments with cluster peering 
 
 1. Create a local `service-resolver` configuration entry named `frontend-peer` and define a redirect targeting the peer and its service:
 
-  <CodeTabs tabs={[ "HCL", "JSON", "YAML" ]}>
+  <CodeTabs tabs={[ "HCL", "JSON", "Kubernetes YAML" ]}>
 
   ```hcl
   Kind           = "service-resolver"
