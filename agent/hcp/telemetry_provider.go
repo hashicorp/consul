@@ -14,9 +14,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/armon/go-metrics"
 	"github.com/go-openapi/runtime"
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-metrics"
 	"github.com/hashicorp/go-retryablehttp"
 
 	"github.com/hashicorp/consul/agent/hcp/client"

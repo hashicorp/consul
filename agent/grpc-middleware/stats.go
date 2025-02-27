@@ -7,8 +7,8 @@ import (
 	"context"
 	"sync/atomic"
 
-	"github.com/armon/go-metrics"
-	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/go-metrics"
+	"github.com/hashicorp/go-metrics/prometheus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/stats"
 )
