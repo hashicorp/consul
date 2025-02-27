@@ -1,0 +1,4 @@
+```release-note:feature
+config: add UseSNI flag in remote JSONWebKeySet
+agent: send TLS SNI in remote JSONWebKeySet
+```
