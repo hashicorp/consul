@@ -7,12 +7,11 @@ description: >-
 
 # Consul Template logs
 
-This page describes the logging process for Consul Template so that uou can use verbose output
+This page describes the logging process for Consul Template.
 
 ## Set log level
 
-To set the log level for
-Consul Template, use the `-log-level` flag:
+To set the log level for Consul Template, use the `-log-level` flag:
 
 ```shell-session
 $ consul-template -log-level info ...
@@ -71,8 +70,7 @@ The command outputs the log in the standard output.
 ## Log to file
 
 Consul Template can log to file as well.
-Particularly useful in use cases where it's not trivial to capture *stdout* and/or *stderr*
-like for example when Consul Template is deployed as a Windows Service.
+Particularly useful in use cases where it's not trivial to capture *stdout* and/or *stderr* for example when Consul Template is deployed as a long running service.
 
 These are the relevant CLI flags:
 

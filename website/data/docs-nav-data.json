@@ -2177,6 +2177,10 @@
             "path": "automate/consul-template/install"
           },
           {
+            "title": "Configure Consul Template",
+            "path": "automate/consul-template/configure"
+          },
+          {
             "title": "Render templates",
             "path": "automate/consul-template/render"
           },

@@ -5,10 +5,15 @@ data sources, templates, and different run time modes. For simplicity, the
 configuration options are written in context of an HCL configuration file,
 however they can be written in JSON or most options can be set via CLI flags.
 
-## Consul Template
+## General parameters
 
 These options are top level values to configure Consul Template.
 They are not required and will fallback to default values when omitted.
+
+- `reload_signal` (Defaults to `SIGHUP`)  This is the signal to listen for to trigger a reload event. Setting this value to the empty string will cause Consul Template to not listen for any reload signals.
+- `kill_signal` (Defaults to `SIGINT`) This is the signal to listen for to trigger a graceful stop. Setting this value to the empty string will cause Consul Template to not listen for any graceful stop signals. 
+- `max_stale` (Defaults to `10m`) This is the maximum interval to allow "stale" data. By default, only the Consul leader will respond to queries; any requests to a follower will forward the request to the leader. In large clusters with many requests, this is not as scalable, so this option allows any follower to respond to a query, so long as the last-replicated data is within these bounds. Higher values result in less cluster load, but are more likely to have outdated data.
+- `block_query_wait` (Defaults to `60s`) This is amount of time in seconds to do a blocking query for. Many endpoints in Consul support a feature known as "blocking queries". A blocking query is used to wait for a potential change using long polling.
 
 ```hcl
 # This denotes the start of the configuration section for Consul Template.
@@ -107,7 +112,7 @@ log_file {
 }
 ```
 
-## Consul
+## Consul parameters
 
 Enable Consul Template to connect with [Consul][consul] by declaring the
 `consul` block. This configures a Consul client to query values from Consul
@@ -238,7 +243,7 @@ consul {
 }
 ```
 
-## Vault
+## Vault parameters
 
 Enable Consul Template to connect with [Vault][vault] by declaring the `vault`
 block. This configures a Vault client to query secrets from Vault to render
@@ -328,7 +333,7 @@ vault {
 }
 ```
 
-## Nomad
+## Nomad parameters
 
 Enable Consul Template to connect with [Nomad][nomad] by declaring the `nomad`
 block. This configures a Nomad client to query Nomad for native service discovery
@@ -388,7 +393,7 @@ nomad {
 }
 ```
 
-## Templates
+## Template paremeters
 
 A `template` block defines the configuration for a template. Unlike other
 blocks, this block may be specified multiple times to configure multiple
@@ -489,7 +494,7 @@ template {
 }
 ```
 
-## Modes
+## Modes parameters
 
 Configure Consul Template to run in various modes with the following options.
 Visit [documentation on modes](modes.md) for more context on each mode.

@@ -7,8 +7,7 @@ description: >-
 
 # Consul Template modes
 
-Consul Template can run in different modes that changes its runtime behavior
-and process lifecycle.
+Consul Template can run in different modes that changes its runtime behavior and process lifecycle.
 
 - [Once Mode](#once-mode)
 - [De-Duplication Mode](#de-duplication-mode)
@@ -21,8 +20,7 @@ a template specifies a dependency (a request) that does not exist in Consul,
 once mode will wait until Consul returns data for that dependency. Please note
 that "returned data" and "empty data" are not mutually exclusive.
 
-To run in Once mode, include the `-once` flag or enable in the 
-[configuration file](configuration.md#once-mode).
+To run in Once mode, include the `-once` flag or enable in the [configuration file](/consul/docs/reference/consul-template/configuration).
 
 When you query for all healthy services named "foo" (`{{ service "foo" }}`), you
 are asking Consul - "give me all the healthy services named foo". If there are
