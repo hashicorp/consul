@@ -1,46 +1,18 @@
 ---
 layout: docs
-page_title: How does Consul Service Mesh Work on Kubernetes?
+page_title: Kubernetes service mesh workload scenarios
 description: >-
   An injection annotation allows Consul to automatically deploy sidecar proxies on Kubernetes pods, enabling Consul's service mesh for containers running on k8s. Learn how to configure sidecars, enable services with multiple ports, change default injection settings.
 ---
 
-# How does Consul Service Mesh Work on Kubernetes?
+## Kubernetes service mesh workload scenarios
 
-Consul service mesh automates service-to-service authorization and encryption across your Consul services. You can use service mesh in Kubernetes-orchestrated networks to secure communication between pods as well as communication between pods and external Kubernetes services.
-
-## Workflow
-
-Consul service mesh is enabled by default when you install Consul on Kubernetes using the Consul Helm chart. Consul also automatically injects sidecars into the pods in your clusters that run Envoy. These sidecar proxies,  called Consul dataplanes, are enabled when `connectInject.default` is set to `false` in the Helm chart. Refer to the following documentation for additional information about these concepts:
-
-- [Installation and Configuration](#installation-and-configuration) in this topic
-- [Consul Helm chart reference](/consul/docs/reference/k8s/helm)
-- [Simplified Service Mesh with Consul Dataplane](/consul/docs/architecture/control-plane/dataplane)
-
-If `connectInject.default` is set to `false` or you want to explicitly enable service mesh sidecar proxy injection for a specific deployment, add the `consul.hashicorp.com/connect-inject` annotation to the pod specification template and set it to `true` when connecting services to the mesh.
-
-### Service names
-
-When the service is onboarded, the name registered in Consul is set to the name of the Kubernetes Service associated with the Pod. You can use the [`consul.hashicorp.com/connect-service` annotation](/consul/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service) to specify a custom name for the service, but if ACLs are enabled then the name of the service registered in Consul must match the Pod's `ServiceAccount` name.
-
-### Transparent proxy mode
-
-By default, the Consul service mesh runs in transparent proxy mode. This mode forces inbound and outbound traffic through the sidecar proxy even though the service binds to all interfaces. Transparent proxy infers the location of upstream services using Consul service intentions, and also allows you to use Kubernetes DNS as you normally would for your workloads.
-
-When transparent proxy mode is enabled, all service-to-service traffic is required to use mTLS. When onboarding new services to service mesh, your network may have mixed mTLS and non-mTLS traffic, which can result in broken service-to-service communication. You can temporarily enable permissive mTLS mode during the onboarding process so that existing mesh services can accept traffic from services that are not yet fully onboarded. Permissive mTLS enables sidecar proxies to access both mTLS and non-mTLS traffic. Refer to [Onboard mesh services in transparent proxy mode](/consul/docs/register/service/k8s/transparent-proxy) for additional information.
-
-### Kubernetes service mesh workload scenarios
+This page provides example workflows for registering workloads on Kubernetes into Consul's service mesh in different scenarios. Each scenario provides an example Kubernetes manifest to demonstrate how to use Consul's service mesh with a specific Kubernetes workload type.
 
 -> **Note:** A Kubernetes Service is required in order to register services on the Consul service mesh. Consul monitors the lifecycle of the Kubernetes Service and its service instances using the service object. In addition, the Kubernetes service is used to register and de-register the service from Consul's catalog.
 
-The following configurations are examples for registering workloads on Kubernetes into Consul's service mesh in different scenarios. Each scenario provides an example Kubernetes manifest to demonstrate how to use Consul's service mesh with a specific Kubernetes workload type.
 
-- [Kubernetes Pods running as a deployment](#kubernetes-pods-running-as-a-deployment)
-- [Connecting to mesh-enabled Services](#connecting-to-mesh-enabled-services)
-- [Kubernetes Jobs](#kubernetes-jobs)
-- [Kubernetes Pods with multiple ports](#kubernetes-pods-with-multiple-ports)
-
-#### Kubernetes Pods running as a deployment
+## Kubernetes Pods running as a deployment
 
 The following example shows a Kubernetes configuration that specifically enables service mesh connections for the `static-server` service. Consul starts and registers a sidecar proxy that listens on port 20000 by default and proxies valid inbound connections to port 8080.
 
@@ -99,7 +71,7 @@ spec:
 
 To establish a connection to the upstream Pod using service mesh, a client must dial the upstream workload using a mesh proxy. The client mesh proxy will use Consul service discovery to find all available upstream proxies and their public ports.
 
-#### Connecting to mesh-enabled Services
+## Connecting to mesh-enabled Services
 
 The example Deployment specification below configures a Deployment that is capable
 of establishing connections to our previous example "static-server" service. The
@@ -189,7 +161,7 @@ $ kubectl exec deploy/static-client -- curl --silent http://static-server/
 command terminated with exit code 52
 ```
 
-#### Kubernetes Jobs
+## Kubernetes Jobs
 
 Kubernetes Jobs run pods that only make outbound requests to services on the mesh and successfully terminate when they are complete. In order to register a Kubernetes Job with the mesh, you must provide an integer value for the `consul.hashicorp.com/sidecar-proxy-lifecycle-shutdown-grace-period-seconds` annotation. Then, issue a request to the `http://127.0.0.1:20600/graceful_shutdown` API endpoint so that Kubernetes gracefully shuts down the `consul-dataplane` sidecar after the job is complete.
 
@@ -276,7 +248,7 @@ Killing proxy
 Ended test job
 ```
 
-#### Kubernetes Pods with multiple ports
+## Kubernetes Pods with multiple ports
 
 To configure a pod with multiple ports to be a part of the service mesh and receive and send service mesh traffic, you
 will need to add configuration so that a Consul service can be registered per port. This is because services in Consul
@@ -501,205 +473,15 @@ The way this works is that a Consul service instance is being registered per por
 services in this case. An additional Envoy sidecar proxy and `connect-init` init container are also deployed per port in
 the Pod. So the upstream configuration can use the individual service names to reach each port as seen in the example.
 
+### Caveats for Multi-port Pods
 
-#### Caveats for Multi-port Pods
-* Transparent proxy is not supported for multi-port Pods.
-* Metrics and metrics merging is not supported for multi-port Pods.
-* Upstreams will only be set on the first service's Envoy sidecar proxy for the pod.
-  * This means that ServiceIntentions from a multi-port pod to elsewhere, will need to use the first service's name,
+- Transparent proxy is not supported for multi-port Pods.
+- Metrics and metrics merging is not supported for multi-port Pods.
+- Upstreams will only be set on the first service's Envoy sidecar proxy for the pod.
+  - This means that ServiceIntentions from a multi-port pod to elsewhere, will need to use the first service's name,
     `web` in the example above to accept connections from either `web` or `web-admin`. ServiceIntentions from elsewhere
     to a multi-port pod can use the individual service names within the multi-port Pod.
-* Health checking is done on a per-Pod basis, so if any Kubernetes health checks (like readiness, liveness, etc) are
+- Health checking is done on a per-Pod basis, so if any Kubernetes health checks (like readiness, liveness, etc) are
   failing for any container on the Pod, the entire Pod is marked unhealthy, and any Consul service referencing that Pod
   will also be marked as unhealthy. So, if `web` has a failing health check, `web-admin` would also be marked as
   unhealthy for service mesh traffic.
-
-## Installation and Configuration
-
-The service mesh sidecar proxy is injected via a
-[mutating admission webhook](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#admission-webhooks)
-call the connect injector provided by the
-[consul-k8s project](https://github.com/hashicorp/consul-k8s).
-This enables the automatic pod mutation shown in the usage section above.
-Installation of the mutating admission webhook is automated using the
-[Helm chart](/consul/docs/deploy/server/k8s/helm).
-
-To install the connect injector, enable the connect injection feature using
-[Helm values](/consul/docs/reference/k8s/helm#configuration-values) and
-upgrade the installation using `helm upgrade` for existing installs or
-`helm install` for a fresh install.
-
-```yaml
-connectInject:
-  enabled: true
-```
-
-This will configure the injector to inject when the
-[injection annotation](#consul-hashicorp-com-connect-inject)
-is set to `true`. Other values in the Helm chart can be used to limit the namespaces
-the injector runs in, enable injection by default, and more.
-
-### Verifying the Installation
-
-To verify the installation, run the
-["Accepting Inbound Connections"](/consul/docs/k8s/connect#accepting-inbound-connections)
-example from the "Usage" section above. After running this example, run
-`kubectl get pod static-server --output yaml`. In the raw YAML output, you should
-see connect injected containers and an annotation
-`consul.hashicorp.com/connect-inject-status` set to `injected`. This
-confirms that injection is working properly.
-
-If you do not see this, then use `kubectl logs` against the injector pod
-and note any errors.
-
-### Controlling Injection Via Annotation
-
-By default, the injector will inject only when the
-[injection annotation](#consul-hashicorp-com-connect-inject)
-on the pod (not the deployment) is set to `true`:
-
-```yaml
-annotations:
-  'consul.hashicorp.com/connect-inject': 'true'
-```
-
-### Injection Defaults
-
-If you wish for the injector to always inject, you can set the default to `true`
-in the Helm chart:
-
-```yaml
-connectInject:
-  enabled: true
-  default: true
-```
-
-You can then exclude specific pods via annotation:
-
-```yaml
-annotations:
-  'consul.hashicorp.com/connect-inject': 'false'
-```
-
-### Controlling Injection Via Namespace
-
-You can control which Kubernetes namespaces are allowed to be injected via
-the `k8sAllowNamespaces` and `k8sDenyNamespaces` keys:
-
-```yaml
-connectInject:
-  enabled: true
-  k8sAllowNamespaces: ['*']
-  k8sDenyNamespaces: []
-```
-
-In the default configuration (shown above), services from all namespaces are allowed
-to be injected. Whether or not they're injected depends on the value of `connectInject.default`
-and the `consul.hashicorp.com/connect-inject` annotation.
-
-If you wish to only enable injection in specific namespaces, you can list only those
-namespaces in the `k8sAllowNamespaces` key. In the configuration below
-only the `my-ns-1` and `my-ns-2` namespaces will be enabled for injection.
-All other namespaces will be ignored, even if the connect inject [annotation](#consul-hashicorp-com-connect-inject)
-is set.
-
-```yaml
-connectInject:
-  enabled: true
-  k8sAllowNamespaces: ['my-ns-1', 'my-ns-2']
-  k8sDenyNamespaces: []
-```
-
-If you wish to enable injection in every namespace _except_ specific namespaces, you can
-use `*` in the allow list to allow all namespaces and then specify the namespaces to exclude in the deny list:
-
-```yaml
-connectInject:
-  enabled: true
-  k8sAllowNamespaces: ['*']
-  k8sDenyNamespaces: ['no-inject-ns-1', 'no-inject-ns-2']
-```
-
--> **NOTE:** The deny list takes precedence over the allow list. If a namespace
-is listed in both lists, it will **not** be synced.
-
-~> **NOTE:** The `kube-system` and `kube-public` namespaces will never be injected.
-
-### Consul Enterprise Namespaces
-
-Consul Enterprise 1.7+ supports Consul namespaces. When Kubernetes pods are registered
-into Consul, you can control which Consul namespace they are registered into.
-
-There are three options available:
-
-1.  **Single Destination Namespace** – Register all Kubernetes pods, regardless of namespace,
-    into the same Consul namespace.
-
-    This can be configured with:
-
-    ```yaml
-    global:
-      enableConsulNamespaces: true
-
-    connectInject:
-      enabled: true
-      consulNamespaces:
-        consulDestinationNamespace: 'my-consul-ns'
-    ```
-
-    -> **NOTE:** If the destination namespace does not exist we will create it.
-
-1.  **Mirror Namespaces** - Register each Kubernetes pod into a Consul namespace with the same name as its Kubernetes namespace.
-    For example, pod `foo` in Kubernetes namespace `ns-1` will be synced to the Consul namespace `ns-1`.
-    If a mirrored namespace does not exist in Consul, it will be created.
-
-    This can be configured with:
-
-    ```yaml
-    global:
-      enableConsulNamespaces: true
-
-    connectInject:
-      enabled: true
-      consulNamespaces:
-        mirroringK8S: true
-    ```
-
-1.  **Mirror Namespaces With Prefix** - Register each Kubernetes pod into a Consul namespace with the same name as its Kubernetes
-    namespace **with a prefix**.
-    For example, given a prefix `k8s-`, pod `foo` in Kubernetes namespace `ns-1` will be synced to the Consul namespace `k8s-ns-1`.
-
-    This can be configured with:
-
-    ```yaml
-    global:
-      enableConsulNamespaces: true
-
-    connectInject:
-      enabled: true
-      consulNamespaces:
-        mirroringK8S: true
-        mirroringK8SPrefix: 'k8s-'
-    ```
-
-### Consul Enterprise Namespace Upstreams
-
-When [transparent proxy](/consul/docs/connect/transparent-proxy) is enabled and ACLs are disabled,
-the upstreams will be configured automatically across Consul namespaces.
-When ACLs are enabled, you must configure it by specifying an [intention](/consul/docs/secure-mesh/intention),
-allowing services across Consul namespaces to talk to each other.
-
-If you wish to specify an upstream explicitly via the `consul.hashicorp.com/connect-service-upstreams` annotation,
-use the format `[service-name].[namespace]:[port]:[optional datacenter]`:
-
-```yaml
-annotations:
-  'consul.hashicorp.com/connect-inject': 'true'
-  'consul.hashicorp.com/connect-service-upstreams': '[service-name].[namespace]:[port]:[optional datacenter]'
-```
-
-See [consul.hashicorp.com/connect-service-upstreams](/consul/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) for more details.
-
--> **Note:** When you specify upstreams via an upstreams annotation, you will need to use
-`localhost:<port>` with the port from the upstreams annotation instead of KubeDNS to connect to your upstream
-application.

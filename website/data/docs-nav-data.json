@@ -65,10 +65,6 @@
           {
             "title": "Consul service mesh",
             "path": "architecture/data-plane/connect"
-          },
-          {
-            "title": "Kubernetes service mesh",
-            "path": "architecture/data-plane/mesh"
           }
         ]
       },
@@ -1636,7 +1632,20 @@
       },
       {
         "title": "Kubernetes",
-        "path": "connect/k8s"
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "connect/k8s"
+          },
+          {
+            "title": "Connect injector",
+            "path": "connect/k8s/inject"
+          },
+          {
+            "title": "Workload scenario examples",
+            "path": "connect/k8s/workload"
+          }
+        ]
       },
       {
         "title": "ECS",
