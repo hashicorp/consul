@@ -1547,10 +1547,6 @@
         "path": "connect"
       },
       {
-        "title": "Configuration",
-        "path": "connect/configuration"
-      },
-      {
         "title": "Enable service mesh",
         "path": "connect/enable"
       },
