@@ -93,6 +93,10 @@ var (
 	// portLastUser associates ports with a test name in order to debug
 	// which test may be leaking unclosed TCP connections.
 	portLastUser map[int]string
+
+	// logLevel is the verbosity of the logging output.
+	// The default log level is DEBUG.
+	logLevel LogLevel
 )
 
 // initialize is used to initialize freeport.
@@ -105,7 +109,7 @@ func initialize() {
 		panic("freeport: error getting system limit: " + err.Error())
 	}
 	if limit > 0 && limit < blockSize {
-		logf("INFO", "blockSize %d too big for system limit %d. Adjusting...", blockSize, limit)
+		logf(INFO, "blockSize %d too big for system limit %d. Adjusting...", blockSize, limit)
 		blockSize = limit - 3
 	}
 
@@ -161,7 +165,7 @@ func shutdownGoroutine() {
 
 // reset will reverse the setup from initialize() and then redo it (for tests)
 func reset() {
-	logf("INFO", "resetting the freeport package state")
+	logf(INFO, "resetting the freeport package state")
 	shutdownGoroutine()
 
 	mu.Lock()
@@ -189,7 +193,7 @@ func checkFreedPorts(stopCh <-chan struct{}) {
 	for {
 		select {
 		case <-stopCh:
-			logf("INFO", "Closing checkFreedPorts()")
+			logf(INFO, "Closing checkFreedPorts()")
 			return
 		case <-ticker.C:
 			checkFreedPortsOnce()
@@ -209,14 +213,14 @@ func checkFreedPortsOnce() {
 			freePorts.PushBack(port)
 			remove = append(remove, elem)
 		} else {
-			logf("WARN", "port %d still being used by %q", port, portLastUser[port])
+			logf(WARN, "port %d still being used by %q", port, portLastUser[port])
 		}
 	}
 
 	retained := pending - len(remove)
 
 	if retained > 0 {
-		logf("WARN", "%d out of %d pending ports are still in use; something probably didn't wait around for the port to be closed!", retained, pending)
+		logf(WARN, "%d out of %d pending ports are still in use; something probably didn't wait around for the port to be closed!", retained, pending)
 	}
 
 	if len(remove) == 0 {
@@ -239,17 +243,17 @@ func adjustMaxBlocks() (int, error) {
 	}
 
 	if ephemeralPortMin <= 0 || ephemeralPortMax <= 0 {
-		logf("INFO", "ephemeral port range detection not configured for GOOS=%q", runtime.GOOS)
+		logf(INFO, "ephemeral port range detection not configured for GOOS=%q", runtime.GOOS)
 		return maxBlocks, nil
 	}
 
-	logf("INFO", "detected ephemeral port range of [%d, %d]", ephemeralPortMin, ephemeralPortMax)
+	logf(INFO, "detected ephemeral port range of [%d, %d]", ephemeralPortMin, ephemeralPortMax)
 	for block := 0; block < maxBlocks; block++ {
 		min := lowPort + block*blockSize
 		max := min + blockSize
 		overlap := intervalOverlap(min, max-1, ephemeralPortMin, ephemeralPortMax)
 		if overlap {
-			logf("INFO", "reducing max blocks from %d to %d to avoid the ephemeral port range", maxBlocks, block)
+			logf(INFO, "reducing max blocks from %d to %d to avoid the ephemeral port range", maxBlocks, block)
 			return block, nil
 		}
 	}
@@ -283,6 +287,44 @@ func MustTake(n int) (ports []int) {
 		panic(err)
 	}
 	return ports
+}
+
+type LogLevel uint8
+
+const (
+	DEBUG LogLevel = iota
+	INFO
+	WARN
+	ERROR
+	DISABLED
+)
+
+func (l LogLevel) String() string {
+	switch l {
+	case DEBUG:
+		return "DEBUG"
+	case INFO:
+		return "INFO"
+	case WARN:
+		return "WARN"
+	case ERROR:
+		return "ERROR"
+	default:
+		return "DISABLED"
+	}
+}
+
+// SetLogLevel sets the verbosity of the logging output.
+// The default log level is DEBUG.
+func SetLogLevel(level LogLevel) {
+	mu.Lock()
+	defer mu.Unlock()
+
+	if level > DISABLED {
+		level = DISABLED
+	}
+
+	logLevel = level
 }
 
 // Take returns a list of free ports from the reserved port block. It is safe
@@ -321,7 +363,7 @@ func Take(n int) (ports []int, err error) {
 		if used := isPortInUse(port); used {
 			// Something outside of the test suite has stolen this port, possibly
 			// due to assignment to an ephemeral port, remove it completely.
-			logf("WARN", "leaked port %d due to theft; removing from circulation", port)
+			logf(WARN, "leaked port %d due to theft; removing from circulation", port)
 			total--
 			continue
 		}
@@ -394,18 +436,24 @@ func tcpAddr(ip string, port int) *net.TCPAddr {
 // represented by [min1, max1] and [min2, max2] overlap.
 func intervalOverlap(min1, max1, min2, max2 int) bool {
 	if min1 > max1 {
-		logf("WARN", "interval1 is not ordered [%d, %d]", min1, max1)
+		logf(WARN, "interval1 is not ordered [%d, %d]", min1, max1)
 		return false
 	}
 	if min2 > max2 {
-		logf("WARN", "interval2 is not ordered [%d, %d]", min2, max2)
+		logf(WARN, "interval2 is not ordered [%d, %d]", min2, max2)
 		return false
 	}
 	return min1 <= max2 && min2 <= max1
 }
 
-func logf(severity string, format string, a ...interface{}) {
-	fmt.Fprintf(os.Stderr, "["+severity+"] freeport: "+format+"\n", a...)
+func logf(severity LogLevel, format string, a ...interface{}) {
+	if severity >= DISABLED {
+		return
+	}
+
+	if severity >= logLevel {
+		fmt.Fprintf(os.Stderr, "["+severity.String()+"] freeport: "+format+"\n", a...)
+	}
 }
 
 // TestingT is the minimal set of methods implemented by *testing.T that are
@@ -428,7 +476,7 @@ func GetN(t TestingT, n int) []int {
 	if err != nil {
 		t.Fatalf("failed to take %v ports: %w", n, err)
 	}
-	logf("DEBUG", "Test %q took ports %v", t.Name(), ports)
+	logf(DEBUG, "Test %q took ports %v", t.Name(), ports)
 	mu.Lock()
 	for _, p := range ports {
 		portLastUser[p] = t.Name()
@@ -436,7 +484,7 @@ func GetN(t TestingT, n int) []int {
 	mu.Unlock()
 	t.Cleanup(func() {
 		Return(ports)
-		logf("DEBUG", "Test %q returned ports %v", t.Name(), ports)
+		logf(DEBUG, "Test %q returned ports %v", t.Name(), ports)
 	})
 	return ports
 }
