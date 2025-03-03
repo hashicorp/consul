@@ -176,7 +176,7 @@ func generateClusterData(cluster resource.Resource) (gnmmod.HashicorpCloudGlobal
 }
 
 func mapArgsString(m map[string]string) string {
-	args := make([]string, len(m))
+	args := make([]string, 0, len(m))
 	for k, v := range m {
 		args = append(args, fmt.Sprintf("%s=%s", k, v))
 	}
