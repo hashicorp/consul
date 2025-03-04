@@ -1,6 +1,6 @@
 module github.com/hashicorp/consul/troubleshoot
 
-go 1.22.12
+go 1.23.6
 
 replace (
 	github.com/hashicorp/consul/api => ../api
