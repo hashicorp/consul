@@ -1153,7 +1153,7 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 			errorPrefix := fmt.Sprintf("Bad Failover[%q]: ", subset)
 
 			if err := f.ValidateEnterprise(); err != nil {
-				return fmt.Errorf(errorPrefix + err.Error())
+				return fmt.Errorf("%s%s", errorPrefix, err.Error())
 			}
 
 			if subset != "*" && !isSubset(subset) {
