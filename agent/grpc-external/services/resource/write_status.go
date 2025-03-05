@@ -44,7 +44,7 @@ func (s *Server) WriteStatus(ctx context.Context, req *pbresource.WriteStatusReq
 	existing, err := s.Backend.Read(ctx, storage.EventualConsistency, req.Id)
 	switch {
 	case errors.Is(err, storage.ErrNotFound):
-		return nil, status.Errorf(codes.NotFound, err.Error())
+		return nil, status.Errorf(codes.NotFound, "%s", err.Error())
 	case err != nil:
 		return nil, status.Errorf(codes.Internal, "failed read: %v", err)
 	}

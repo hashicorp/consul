@@ -805,7 +805,7 @@ func (c *CheckUDP) check() {
 	}
 	defer conn.Close()
 
-	n, err := fmt.Fprintf(conn, c.Message)
+	n, err := fmt.Fprintf(conn, "%s", c.Message)
 	if err != nil {
 		c.Logger.Warn("Check socket write failed",
 			"check", c.CheckID.String(),
