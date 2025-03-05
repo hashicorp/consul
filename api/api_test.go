@@ -1089,7 +1089,7 @@ func TestAPI_IsRetryableError(t *testing.T) {
 		t.Fatal("should not be a retryable error")
 	}
 
-	if !IsRetryableError(fmt.Errorf(serverError)) {
+	if !IsRetryableError(fmt.Errorf("%s", serverError)) {
 		t.Fatal("should be a retryable error")
 	}
 
