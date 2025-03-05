@@ -1048,7 +1048,7 @@ func logError(t *testing.T, f func() error) func() {
 		t.Helper()
 
 		if err := f(); err != nil {
-			t.Logf(err.Error())
+			t.Logf("%s", err.Error())
 		}
 	}
 }

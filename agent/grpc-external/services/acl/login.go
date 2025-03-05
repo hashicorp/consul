@@ -31,7 +31,7 @@ func (s *Server) Login(ctx context.Context, req *pbacl.LoginRequest) (*pbacl.Log
 
 	if err := s.ValidateEnterpriseRequest(&entMeta, true); err != nil {
 		logger.Error("error during enterprise request validation", "error", err.Error())
-		return nil, status.Errorf(codes.Internal, err.Error())
+		return nil, status.Errorf(codes.Internal, "%s", err.Error())
 	}
 
 	// Forward request to leader in the correct datacenter.
