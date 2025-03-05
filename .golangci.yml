@@ -18,7 +18,7 @@ issues:
   # Disable the default exclude list so that all excludes are explicitly
   # defined in this file.
   exclude-use-default: false
-
+  exclude-dirs-use-default: false
   exclude-rules:
     # Temp Ignore SA9004: only the first constant in this group has an explicit type
     # https://staticcheck.io/docs/checks#SA9004
@@ -111,4 +111,3 @@ linters-settings:
 run:
   timeout: 10m
   concurrency: 4
-  skip-dirs-use-default: false
