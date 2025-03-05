@@ -167,10 +167,6 @@
       {
         "title": "Consul Terraform provider",
         "path": "fundamentals/tf"
-      },
-      {
-        "title": "Troubleshoot Consul",
-        "path": "fundamentals/troubleshoot"
       }
     ]
   },
@@ -2601,6 +2597,10 @@
   {
     "title": "Troubleshoot Consul",
     "routes": [
+      {
+        "title": "Troubleshooting overview",
+        "path": "troubleshoot"
+      },
       {
         "title": "FAQ",
         "path": "troubleshoot/faq"

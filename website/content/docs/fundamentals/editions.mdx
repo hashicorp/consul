@@ -1,11 +1,11 @@
 ---
 layout: docs
-page_title: Consul editions, binaries, and packages
+page_title: Consul editions and tool binaries
 description: >-
   Learn about the various Consul releases and their differences.
 ---
 
-# Consul editions, binaries, and packages
+# Consul editions and tool binaries
 
 This page describes the editions, binaries, and packages of Consul that are currently available. For a complete and up-to-date list of all HashiCorp releases, refer to [releases.hashicorp.com](https://releases.hashicorp.com/).
 
@@ -32,31 +32,39 @@ To run Consul Enterprise, you must configure Consul agents with an Enterprise li
 
 To learn more about Consul Enterprise and its features, refer to [Consul Enterprise](/consul/docs/enterprise).
 
-## Additional tool binaries
+## HCP Consul Dedicated
+
+HCP Consul Dedicated is the networking software as a service (SaaS) product available through the HashiCorp Cloud Platform (HCP). This service provides simplified workflows for common Consul tasks and the option to have HashiCorp set up and manage your Consul servers for you.
+
+On November 12, 2025, HashiCorp will end operations and support for HCP Consul Dedicated clusters. After this date, you will no longer be able to deploy new Dedicated clusters, nor will you be able to access, update, or manage existing Dedicated clusters. Refer to [Migrate Consul Dedicated cluster to self-managed Enterprise](/hcp/docs/consul/migrate) for more information.
+
+### Additional tool binaries and maintained repositories
 
 We make several additional Consul CLI tools available as separate binary releases. These tools can simplify operations and processes for certain runtimes, cloud providers, or complex network requirements.
 
-The following is a list of Consul tools that we have released as separate packages that are actively supported:
+The following is a current list of Consul releases with active support
 
-| Package name                | Consul tool name                         | Description |
-| :-------------------------- | :--------------------------------------- | :---------- |
-| `consul-aws`                | Consul AWS                               |
-| `consul-cni`                | Consul Container Network Interface (CNI) |
-| `consul-dataplane`          | Consul Dataplanes                        |
-| `consul-ecs`                | Consul ECS                               |
-| `consul-esm`                | Consul External Services Manager (ESM)   |
-| `consul-k8s`                | Consul on Kubernetes (consul-k8s)        |
-| `consul-k8s-control-plane`  | 
-| `consul-lambda-extension`   |
-| `consul-lambda-registrator` |
-| `consul-replicate`          |
-| `consul-template`           | Consul Template                          |
-| `consul-terraform-sync`     | Consul-Terraform-Sync (CTS)              |
+| Binary package name         | Consul tool name                         | Description                                                                                                                               |
+| :-------------------------- | :--------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------- |
+| `consul-aws`                | Consul AWS                               | Syncs the services in an AWS CloudMap namespace to a Consul datacenter. Enables native service discovery between Consul and AWS CloudMap. |
+| `consul-cni`                | Consul Container Network Interface (CNI) | Plugin for Consul on Kubernetes to allow configuring traffic redirection rules without escalated container privileges.                    |
+| `consul-dataplane`          | Consul Dataplanes                        | A lightweight process that manages Envoy for Consul service mesh workloads on Kubernetes and ECS.                                         |
+| `consul-ecs`                | Consul ECS                               | Used by the `hashicorp/consul-ecs` Docker image to install and operator Consul on ECS.                                                    |
+| `consul-esm`                | Consul External Services Manager (ESM)   | A daemon to run alongside Consul to manage services on external nodes and run health checks on them.                                      |
+| `consul-k8s`                | Consul on Kubernetes CLI                 | A dedicated tool for managing Consul that does not require direct interaction with Helm, the Consul CLI or `kubectl`.                     |
+| `consul-k8s-control-plane`  | Consul on Kubernetes Helm manager        | Manages Helm components for the `consul-k8s` CLI. The version should match the Helm chart version you want to use.                        |
+| `consul-lambda-extension`   | Lambda extension layer plugin            | Enables Lambda functions to send requests to mesh services.                                                                               |
+| `consul-lambda-registrator` | Lambda registrator                       | Automates and manages Consul service registration and de-registration for Lambda functions.                                               |
+| `consul-replicate`          | Consul Replicate                         | Long-running daemon for KV data replication between datacenters.                                                                          |
+| `consul-template`           | Consul Template                          | Use templates to update Consul configurations dynamically using Go syntax.                                                                |
+| `consul-terraform-sync`     | Consul-Terraform-Sync (CTS)              | Dynamically manage network infrastructure, nearly in real-time.                                                                           |
 
 The following is a list of Consul tools that were used by previous versions of Consul. Some tools may be useful when performing Consul updates with especially large release gaps, while others were deprecated entirely.
 
 - `consul-api-gateway`. This feature was fully integrated into the `consul` package in v1.16.
 - `consul-telemetry-collector`. This tool was developed to support [HCP Consul Central](/hcp/docs/consul/concepts/consul-central).
+
+Consul also supports integrations with tools developed by our community. Refer to [Community tools](/consul/docs/integrate/consul-tools) for more information.
 
 ## Next steps
 
