@@ -135,20 +135,16 @@
         "title": "Interact with Consul",
         "routes": [
           {
-            "title": "Environment variables",
-            "path": "fundamentals/interface/env-var"
+            "title": "Consul HTTP API",
+            "path": "fundamentals/interface/api"
           },
           {
-            "title": "Use Consul CLI",
+            "title": "Consul CLI",
             "path": "fundamentals/interface/cli"
           },
           {
-            "title": "Use Consul UI",
+            "title": "Consul web UI",
             "path": "fundamentals/interface/ui"
-          },
-          {
-            "title": "Use Consul HTTP API",
-            "path": "fundamentals/interface/api"
           }
         ]
       },

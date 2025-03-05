@@ -87,7 +87,14 @@ Command Options
      Joins a server to another server in the WAN pool.
 ```
 
-## Connection variables
+## Environment variables
+
+Consul's CLI reads environment variables to define behavior defaults. Although CLI flags take precedence when used, environment variables can simplify interaction and configuration workflows.
+
+The Consul documentation and tutorials usually assume the following environment variables are already configured or include commands to configure them for you.
+
+- The HTTP address of the local Consul agent for interactions, set to `CONSUL_HTTP_ADDR`
+- An ACL token with sufficient permissions for the operation, set to `CONSUL_HTTP_TOKEN` or `CONSUL_HTTP_TOKEN_FILE`
 
 By default, the `consul` command targets the local instance. To target a specific cluster, provide the address of a Consul server in the `-http-addr` command line flag or from the `CONSUL_HTTP_ADDR` environment variable.
 
@@ -95,7 +102,7 @@ By default, the `consul` command targets the local instance. To target a specifi
 $ CONSUL_HTTP_ADDR=http://127.0.0.1:8500
 ```
 
-When the [ACL system is enabled](/consul/docs/reference/agent/configuration-file#acl) the Consul CLI requires an [ACL token](/consul/docs/security/acl#tokens) with permissions to perform the operations. You can provide the ACL token directly on the command line using the `-token` command line flag, from a file using the `-token-file` command line flag, or from the `CONSUL_HTTP_TOKEN` environment variable.
+When the [ACL system is enabled](/consul/docs/reference/agent/configuration-file#acl) the Consul CLI requires an [ACL token](/consul/docs/security/acl#tokens) with permissions to perform the operations. You can provide the ACL token directly on the command line using the `-token` command line flag, from a file using the `-token-file` command line flag, or from either the `CONSUL_HTTP_TOKEN` or `CONSUL_HTTP_TOKEN_FILE` environment variable.
 
 ```shell-session
 $ CONSUL_HTTP_TOKEN=aba7cbe5-879b-999a-07cc-2efd9ac0ffe

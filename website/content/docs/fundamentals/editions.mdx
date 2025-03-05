@@ -7,19 +7,57 @@ description: >-
 
 # Consul editions, binaries, and packages
 
-This page describes the editions, binaries, and packages of Consul that are currently available. 
+This page describes the editions, binaries, and packages of Consul that are currently available. For a complete and up-to-date list of all HashiCorp releases, refer to [releases.hashicorp.com](https://releases.hashicorp.com/).
 
 ## Overview
 
-- Consul community edition and Enterprise edition
-- Additional CLI tools
-  - consul-k8s
-  - consul-dataplane
-  - consul-aws
-  - consul-esm
+There are two main releases of Consul:
 
-## Commonly used software
+- Consul Community Edition (CE)
+- Consul Enterprise
 
-- Envoy
-- Go
-- Terraform
+To run Consul Enterprise, you must configure Consul agents with an Enterprise license. The following table summarizes the major differences between Consul CE and Consul Enterprise:
+
+|                                     | Consul CE | Consul Enterprise |
+| :---------------------------------- | :-------: | :---------------: |
+| Service discovery support           | &#9989;   | &#9989;           |
+| Service mesh support                | &#9989;   | &#9989;           |
+| KV store support                    | &#9989;   | &#9989;           |
+| Multi-tenancy support               | &#10060;  | &#9989;           |
+| Additional resiliency & scalability | &#10060;  | &#9989;           |
+| Complex topology support            | &#10060;  | &#9989;           |
+| OIDC and JWT authentication support | &#10060;  | &#9989;           |
+| FIPS 140-2 Compliance               | &#10060;  | &#9989;           |
+| Consul-Terraform-Sync               | &#10060;  | &#9989;           |
+
+To learn more about Consul Enterprise and its features, refer to [Consul Enterprise](/consul/docs/enterprise).
+
+## Additional tool binaries
+
+We make several additional Consul CLI tools available as separate binary releases. These tools can simplify operations and processes for certain runtimes, cloud providers, or complex network requirements.
+
+The following is a list of Consul tools that we have released as separate packages that are actively supported:
+
+| Package name                | Consul tool name                         | Description |
+| :-------------------------- | :--------------------------------------- | :---------- |
+| `consul-aws`                | Consul AWS                               |
+| `consul-cni`                | Consul Container Network Interface (CNI) |
+| `consul-dataplane`          | Consul Dataplanes                        |
+| `consul-ecs`                | Consul ECS                               |
+| `consul-esm`                | Consul External Services Manager (ESM)   |
+| `consul-k8s`                | Consul on Kubernetes (consul-k8s)        |
+| `consul-k8s-control-plane`  | 
+| `consul-lambda-extension`   |
+| `consul-lambda-registrator` |
+| `consul-replicate`          |
+| `consul-template`           | Consul Template                          |
+| `consul-terraform-sync`     | Consul-Terraform-Sync (CTS)              |
+
+The following is a list of Consul tools that were used by previous versions of Consul. Some tools may be useful when performing Consul updates with especially large release gaps, while others were deprecated entirely.
+
+- `consul-api-gateway`. This feature was fully integrated into the `consul` package in v1.16.
+- `consul-telemetry-collector`. This tool was developed to support [HCP Consul Central](/hcp/docs/consul/concepts/consul-central).
+
+## Next steps
+
+To continue learning about Consul and its fundamental operations, [download and install Consul](/consul/docs/fundamentals/install). Then [run a Consul agent in developer mode](/consul/docs/fundamentals/install/dev) so you can learn how to use the 3 main Consul interface: [Consul HTTP API](/consul/docs/fundamentals/interface/api), [Consul CLI](/consul/docs/fundamentals/interface/cli), and [Consul web UI](/consul/docs/fundamentals/interface/ui).
