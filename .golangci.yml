@@ -26,6 +26,9 @@ issues:
       text: "SA9004:"
 
     - linters: [staticcheck]
+      text: "SA1006:"
+
+    - linters: [staticcheck]
       text: 'SA1019: "io/ioutil" has been deprecated since Go 1.16'
 
     # Allow usage of deprecated values.
