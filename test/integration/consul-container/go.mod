@@ -8,7 +8,7 @@ require (
 	github.com/docker/docker v24.0.5+incompatible
 	github.com/docker/go-connections v0.4.0
 	github.com/evanphx/json-patch v4.12.0+incompatible
-	github.com/go-jose/go-jose/v3 v3.0.3
+	github.com/go-jose/go-jose/v3 v3.0.4
 	github.com/hashicorp/consul v1.16.1
 	github.com/hashicorp/consul/api v1.31.2
 	github.com/hashicorp/consul/envoyextensions v0.7.3
