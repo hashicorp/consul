@@ -40,6 +40,9 @@ issues:
     - linters: [unparam]
       text: "always receives"
 
+    - linters: [ unparam ]
+      text: 'result \d+ \(bool\) is always false'
+
     # Often functions will implement an interface that returns an error without
     # needing to return an error. Sometimes the error return value is unnecessary
     # but a linter can not tell the difference.
