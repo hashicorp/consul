@@ -1,0 +1,2 @@
+release-note:improvement
+dns: qname minimization handling based on rfc9156

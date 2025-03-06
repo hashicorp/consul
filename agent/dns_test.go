@@ -2231,9 +2231,6 @@ func TestDNS_InvalidQueries(t *testing.T) {
 	// of our query parser.
 	questions := []string{
 		"consul.",
-		"node.consul.",
-		"service.consul.",
-		"query.consul.",
 		"foo.node.dc1.extra.more.consul.",
 		"foo.service.dc1.extra.more.consul.",
 		"foo.query.dc1.extra.more.consul.",
@@ -3436,6 +3433,109 @@ func TestDNS_EffectiveDatacenter(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			got := tc.queryLocality.effectiveDatacenter(tc.defaultDC)
 			require.Equal(t, tc.expected, got)
+		})
+	}
+}
+
+func TestDNS_QNAMEMinimization(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	// Register a node with a service to ensure service lookups have a valid target
+	{
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				Service: "api",
+				Tags:    []string{"a"},
+				Port:    5000,
+			},
+		}
+
+		var out struct{}
+		require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
+	}
+
+	// Test cases for QNAME minimization partial queries - these should return empty success
+	partialQueries := []struct {
+		name      string
+		query     string
+		queryType uint16
+	}{
+		{"service-component", "service.consul.", dns.TypeA},
+		{"service-component-any", "service.consul.", dns.TypeANY},
+		{"node-component", "node.consul.", dns.TypeA},
+		{"node-component-any", "node.consul.", dns.TypeANY},
+		{"addr-component", "addr.consul.", dns.TypeA},
+		{"addr-component-any", "addr.consul.", dns.TypeANY},
+		{"query-component", "query.consul.", dns.TypeA},
+		{"query-component-any", "query.consul.", dns.TypeANY},
+		{"service-txt-type", "service.consul.", dns.TypeTXT},
+	}
+
+	for _, tc := range partialQueries {
+		t.Run(tc.name, func(t *testing.T) {
+			m := new(dns.Msg)
+			m.SetQuestion(tc.query, tc.queryType)
+
+			c := new(dns.Client)
+			in, _, err := c.Exchange(m, a.DNSAddr())
+			require.NoError(t, err)
+			require.Equal(t, dns.RcodeSuccess, in.Rcode)
+			require.Empty(t, in.Answer)
+		})
+	}
+
+	// Test cases for actual service/node lookups - these should return real records
+	fullQueries := []struct {
+		name      string
+		query     string
+		queryType uint16
+		checkFn   func(*testing.T, *dns.Msg)
+	}{
+		{
+			"service-lookup",
+			"api.service.consul.",
+			dns.TypeA,
+			func(t *testing.T, in *dns.Msg) {
+				require.Len(t, in.Answer, 1)
+				aRec, ok := in.Answer[0].(*dns.A)
+				require.True(t, ok)
+				require.Equal(t, net.ParseIP("127.0.0.1").String(), aRec.A.String())
+			},
+		},
+		{
+			"node-lookup",
+			"foo.node.consul.",
+			dns.TypeA,
+			func(t *testing.T, in *dns.Msg) {
+				require.Len(t, in.Answer, 1)
+				aRec, ok := in.Answer[0].(*dns.A)
+				require.True(t, ok)
+				require.Equal(t, net.ParseIP("127.0.0.1").String(), aRec.A.String())
+			},
+		},
+	}
+
+	for _, tc := range fullQueries {
+		t.Run(tc.name, func(t *testing.T) {
+			m := new(dns.Msg)
+			m.SetQuestion(tc.query, tc.queryType)
+
+			c := new(dns.Client)
+			in, _, err := c.Exchange(m, a.DNSAddr())
+			require.NoError(t, err)
+			require.Equal(t, dns.RcodeSuccess, in.Rcode)
+			tc.checkFn(t, in)
 		})
 	}
 }
