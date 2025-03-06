@@ -1,3 +1,30 @@
+## 1.21.0-rc1 (March 06, 2025)
+
+SECURITY:
+
+* Update `golang.org/x/crypto` to v0.35.0 to address [GO-2025-3487](https://pkg.go.dev/vuln/GO-2025-3487).
+Update `golang.org/x/oauth2` to v0.27.0 to address [GO-2025-3488](https://pkg.go.dev/vuln/GO-2025-3488).
+Update `github.com/go-jose/go-jose/v3` to v3.0.4 to address [GO-2025-3485](https://pkg.go.dev/vuln/GO-2025-3485). [[GH-22207](https://github.com/hashicorp/consul/issues/22207)]
+* Upgrade Go to 1.23.6. [[GH-22204](https://github.com/hashicorp/consul/issues/22204)]
+
+FEATURES:
+
+* config: add UseSNI flag in remote JSONWebKeySet
+agent: send TLS SNI in remote JSONWebKeySet [[GH-22177](https://github.com/hashicorp/consul/issues/22177)]
+* v2: remove HCP Link integration [[GH-21883](https://github.com/hashicorp/consul/issues/21883)]
+
+IMPROVEMENTS:
+
+* raft: add a configuration `raft_prevote_disabled` to allow disabling raft prevote [[GH-21758](https://github.com/hashicorp/consul/issues/21758)]
+* raft: update raft library to 1.7.0 which include pre-vote extension [[GH-21758](https://github.com/hashicorp/consul/issues/21758)]
+* SubMatView: Log level change from ERROR to INFO for subject materialized view as subscription creation is retryable on ACL change. [[GH-22141](https://github.com/hashicorp/consul/issues/22141)]
+* ui: Adds a copyable token accessor/secret on the settings page when signed in [[GH-22105](https://github.com/hashicorp/consul/issues/22105)]
+* xDS: Log level change from ERROR to INFO for xDS delta discovery request. Stream can be cancelled on server shutdown and other scenarios. It is retryable and error is a superfluous log. [[GH-22141](https://github.com/hashicorp/consul/issues/22141)]
+
+BUG FIXES:
+
+* logging: Fixed compilation error for OS NetBSD. [[GH-22184](https://github.com/hashicorp/consul/issues/22184)]
+
 ## 1.20.3 (February 13, 2025)
 
 SECURITY:
