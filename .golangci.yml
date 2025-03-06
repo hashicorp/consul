@@ -71,6 +71,7 @@ linters-settings:
       - nilness
       - shadow
       - unusedwrite
+      - printf
   gofmt:
     simplify: true
   forbidigo:
