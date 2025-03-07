@@ -71,7 +71,7 @@ Usage: `consul tls cert create [filename-prefix] [options]`
 - `-dc=<string>` - Provide the datacenter. Matters only for `-server`
   certificates. Defaults to `dc1`.
 
-- `-domain=<string>` - Provide the domain. Matters only if you set such option before `ca create` execution
+- `-domain=<string>` - Provide the domain. Required if you created root certificate with `-name-constraint -domain <domain>` option via `tls ca create` 
 
 - `-key=<string>` - Provide path to the key. Defaults to
   `#DOMAIN#-agent-ca-key.pem`.
