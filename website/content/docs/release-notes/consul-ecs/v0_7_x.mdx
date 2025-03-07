@@ -37,7 +37,7 @@ description: >-
   - Services are registered directly with the central catalog on the Consul servers. Services in the same ECS cluster are registered to the same Consul node name.
 - Replaced the `mesh-init` and `health-sync` commands with a unified `control-plane`.
 - Replaced the `acl-controller` command with `controller`.
-- Add the `go-discover` binary to the Consul ECS image to better support [cloud auto-join](/consul/docs/deploy/server/vm/cloud-auto-join).
+- Add the `go-discover` binary to the Consul ECS image to better support [cloud auto-join](/consul/docs/deploy/server/cloud-auto-join).
 - Changes to `ECS_CONFIG_JSON` schema.
   - Remove the `consulHTTPAddr` and `consulCACertFile` fields.
   - Add the `consulLogin.datacenter` field.

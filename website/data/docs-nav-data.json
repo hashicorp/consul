@@ -3,6 +3,10 @@
     "heading": "Get started"
   },
   {
+    "title": "What is Consul?",
+    "path": "intro"
+  },
+  {
     "title": "Quickstart",
     "routes": [
       {
@@ -22,10 +26,6 @@
   {
     "title": "Architecture",
     "routes": [
-      {
-        "title": "What is Consul?",
-        "path": "architecture"
-      },
       {
         "title": "Control plane",
         "routes": [
@@ -65,10 +65,6 @@
           {
             "title": "Consul service mesh",
             "path": "architecture/data-plane/connect"
-          },
-          {
-            "title": "Kubernetes service mesh",
-            "path": "architecture/data-plane/mesh"
           }
         ]
       },
@@ -139,22 +135,22 @@
         "title": "Interact with Consul",
         "routes": [
           {
-            "title": "Environment variables",
-            "path": "fundamentals/interface/env-var"
+            "title": "Consul HTTP API",
+            "path": "fundamentals/interface/api"
           },
           {
-            "title": "Use Consul CLI",
+            "title": "Consul CLI",
             "path": "fundamentals/interface/cli"
           },
           {
-            "title": "Use Consul UI",
+            "title": "Consul web UI",
             "path": "fundamentals/interface/ui"
-          },
-          {
-            "title": "Use Consul HTTP API",
-            "path": "fundamentals/interface/api"
           }
         ]
+      },
+      {
+        "title": "Identity in Consul",
+        "path": "fundamentals/identity"
       },
       {
         "title": "Consul agent basics",
@@ -165,20 +161,12 @@
         "path": "fundamentals/service"
       },
       {
-        "title": "Identity basics",
-        "path": "fundamentals/identity"
-      },
-      {
         "title": "Configuration entry basics",
         "path": "fundamentals/config-entry"
       },
       {
         "title": "Consul Terraform provider",
         "path": "fundamentals/tf"
-      },
-      {
-        "title": "Troubleshoot Consul",
-        "path": "fundamentals/troubleshoot"
       }
     ]
   },
@@ -240,6 +228,10 @@
             "path": "deploy/server/fips"
           },
           {
+            "title": "Automatic agent discovery",
+            "path": "deploy/server/cloud-auto-join"
+          },
+          {
             "title": "WAL LogStore",
             "routes": [
               {
@@ -270,10 +262,6 @@
               {
                 "title": "Bootstrap a datacenter",
                 "path": "deploy/server/vm/bootstrap"
-              },
-              {
-                "title": "Automatic agent discovery",
-                "path": "deploy/server/vm/cloud-auto-join"
               },
               {
                 "title": "Server requirements",
@@ -852,11 +840,24 @@
         ]
       },
       {
-        "title": "Configure DNS on Kubernetes",
+        "title": "DNS operations",
         "routes": [
           {
             "title": "DNS forwarding",
-            "path": "manage/dns/forwarding"
+            "routes": [
+              {
+                "title": "Overview",
+                "path": "manage/dns/forwarding"
+              },
+              {
+                "title": "Virtual Machines (VMs)",
+                "path": "manage/dns/forwarding/enable"
+              },
+              {
+                "title": "Kubernetes",
+                "path": "manage/dns/forwarding/k8s"
+              }
+            ]
           },
           {
             "title": "DNS views",
@@ -891,39 +892,40 @@
         ]
       },
       {
-        "title": "Automated backups",
-        "badge": {
-          "text": "ENTERPRISE",
-          "type": "outlined",
-          "color": "neutral"
-        },
-        "path": "manage/automated-backup"
-      },
-      {
-        "title": "Redundancy zones",
-        "badge": {
-          "text": "ENTERPRISE",
-          "type": "outlined",
-          "color": "neutral"
-        },
-        "path": "manage/redundancy-zone"
-      },
-      {
-        "title": "Read replicas",
-        "badge": {
-          "text": "ENTERPRISE",
-          "type": "outlined",
-          "color": "neutral"
-        },
-        "path": "manage/read-replica"
-      },
-      {
-        "title": "Consul at Scale",
-        "path": "manage/scale"
-      },
-      {
-        "title": "Snapshot",
-        "path": "manage/snapshot"
+        "title": "Operations at scale",
+        "routes": [
+          {
+            "title": "Best practices",
+            "path": "manage/scale"
+          },
+          {
+            "title": "Automated backups",
+            "badge": {
+              "text": "ENTERPRISE",
+              "type": "outlined",
+              "color": "neutral"
+            },
+            "path": "manage/scale/automated-backup"
+          },
+          {
+            "title": "Redundancy zones",
+            "badge": {
+              "text": "ENTERPRISE",
+              "type": "outlined",
+              "color": "neutral"
+            },
+            "path": "manage/scale/redundancy-zone"
+          },
+          {
+            "title": "Read replicas",
+            "badge": {
+              "text": "ENTERPRISE",
+              "type": "outlined",
+              "color": "neutral"
+            },
+            "path": "manage/scale/read-replica"
+          }
+        ]
       }
     ]
   },
@@ -1301,10 +1303,6 @@
             "title": "Kubernetes",
             "routes": [
               {
-                "title": "Overview",
-                "path": "register/service/k8s"
-              },
-              {
                 "title": "Register services in transparent proxy mode",
                 "path": "register/service/k8s/transparent-proxy"
               },
@@ -1395,10 +1393,6 @@
         "title": "External services",
         "routes": [
           {
-            "title": "Overview",
-            "path": "register/external"
-          },
-          {
             "title": "External service monitoring (ESM)",
             "path": "register/external/esm"
           },
@@ -1459,19 +1453,6 @@
             "path": "discover/dns/configure"
           },
           {
-            "title": "DNS forwarding",
-            "routes": [
-              {
-                "title": "Overview",
-                "path": "discover/dns/forwarding"
-              },
-              {
-                "title": "Enable DNS forwarding",
-                "path": "discover/dns/forwarding/enable"
-              }
-            ]
-          },
-          {
             "title": "Resolve Consul DNS in Kubernetes",
             "path": "discover/dns/k8s"
           },
@@ -1492,10 +1473,6 @@
       {
         "title": "Load balancing",
         "routes": [
-          {
-            "title": "Overview",
-            "path": "discover/load-balancer"
-          },
           {
             "title": "Envoy",
             "path": "discover/load-balancer/envoy"
@@ -1543,10 +1520,6 @@
       {
         "title": "Overview",
         "path": "connect"
-      },
-      {
-        "title": "Configuration",
-        "path": "connect/configuration"
       },
       {
         "title": "Enable service mesh",
@@ -1638,7 +1611,20 @@
       },
       {
         "title": "Kubernetes",
-        "path": "connect/k8s"
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "connect/k8s"
+          },
+          {
+            "title": "Connect injector",
+            "path": "connect/k8s/inject"
+          },
+          {
+            "title": "Workload scenario examples",
+            "path": "connect/k8s/workload"
+          }
+        ]
       },
       {
         "title": "ECS",
@@ -1938,25 +1924,11 @@
           },
           {
             "title": "Bootstrap certificate authority (CA)",
-            "routes": [
-              {
-                "title": "Virtual machine (VM)",
-                "path": "secure-mesh/certificate/bootstrap/vm"
-              },
-              {
-                "title": "Kubernetes",
-                "path": "secure-mesh/certificate/bootstrap/k8s"
-              }
-            ]
+            "path": "secure-mesh/certificate/bootstrap"
           },
           {
-            "title": "Rotate certificate",
-            "routes": [
-              {
-                "title": "Rotate TLS keys",
-                "path": "secure-mesh/certificate/rotate/tls"
-              }
-            ]
+            "title": "Rotate TLS certificates",
+            "path": "secure-mesh/certificate/rotate"
           },
           {
             "title": "Configure CA for Kubernetes",
@@ -2519,16 +2491,12 @@
     "title": "Integrations",
     "routes": [
       {
-        "title": "Overview",
+        "title": "Consul integration program",
         "path": "integrate"
       },
       {
         "title": "Consul tools",
         "path": "integrate/consul-tools"
-      },
-      {
-        "title": "Consul integration program",
-        "path": "integrate/consul"
       },
       {
         "title": "NIA integration program",
@@ -2593,35 +2561,6 @@
     "heading": "Reference docs"
   },
   {
-    "title": "CLI Reference",
-    "routes": [
-      {
-        "title": "Overview",
-        "path": "reference-cli"
-      },
-      {
-        "title": "Agent",
-        "path": "reference-cli/agent"
-      },
-      {
-        "title": "Consul",
-        "href": "/consul/commands"
-      },
-      {
-        "title": "consul-k8s",
-        "path": "reference-cli/consul-k8s"
-      },
-      {
-        "title": "consul-dataplane",
-        "path": "reference-cli/consul-dataplane"
-      },
-      {
-        "title": "consul-aws",
-        "path": "reference-cli/consul-aws"
-      }
-    ]
-  },
-  {
     "title": "Error messages",
     "routes": [
       {
@@ -2645,6 +2584,10 @@
   {
     "title": "Troubleshoot Consul",
     "routes": [
+      {
+        "title": "Troubleshooting overview",
+        "path": "troubleshoot"
+      },
       {
         "title": "FAQ",
         "path": "troubleshoot/faq"
@@ -2671,6 +2614,40 @@
   {
     "title": "Reference",
     "routes": [
+      {
+        "title": "CLI documentation",
+        "routes": [
+          {
+            "title": "consul",
+            "href": "/consul/commands"
+          },
+          {
+            "title": "consul-k8s",
+            "path": "reference/cli/consul-k8s"
+          },
+          {
+            "title": "consul-aws",
+            "path": "reference/cli/consul-aws"
+          },
+          {
+            "title": "consul-terraform-sync",
+            "routes": [
+              {
+                "title": "Overview",
+                "path": "reference/cli/cts"
+              },
+              {
+                "title": "task",
+                "path": "reference/cli/cts/task"
+              },
+              {
+                "title": "start",
+                "path": "reference/cli/cts/start"
+              }
+            ]
+          }
+        ]
+      },
       {
         "title": "Architecture",
         "routes": [
@@ -2747,7 +2724,7 @@
           },
           {
             "title": "CLI flag reference",
-            "path": "reference/agent/cli-flags"
+            "href": "/commands/agent"
           },
           {
             "title": "Telemetry reference",
@@ -2789,19 +2766,19 @@
           },
           {
             "title": "Gateway CRD",
-            "href": "reference/config-entry/gateway"
+            "href": "reference/k8s/api-gateway/gateway"
           },
           {
             "title": "GatewayClass CRD",
-            "href": "reference/config-entry/gatewayclass"
+            "href": "reference/k8s/api-gateway/gatewayclass"
           },
           {
             "title": "GatewayClassConfig CRD",
-            "href": "reference/config-entry/gatewayclassconfig"
+            "href": "reference/k8s/api-gateway/gatewayclassconfig"
           },
           {
             "title": "GatewayPolicy CRD",
-            "href": "reference/config-entry/gatewaypolicy"
+            "href": "reference/k8s/api-gateway/gatewaypolicy"
           },
           {
             "title": "HTTP route",
@@ -2825,7 +2802,7 @@
           },
           {
             "title": "MeshService CRD",
-            "href": "reference/config-entry/meshservice"
+            "href": "reference/k8s/api-gateway/meshservice"
           },
           {
             "title": "Proxy defaults",
@@ -2837,19 +2814,19 @@
           },
           {
             "title": "Routes CRD",
-            "href": "reference/config-entry/routes"
+            "href": "reference/k8s/api-gateway/routes"
           },
           {
             "title": "RouteAuthFilter CRD",
-            "href": "reference/config-entry/routeauthfilter"
+            "href": "reference/k8s/api-gateway/routeauthfilter"
           },
           {
             "title": "RouteRetryFilter CRD",
-            "href": "reference/config-entry/routeretryfilter"
+            "href": "reference/k8s/api-gateway/routeretryfilter"
           },
           {
             "title": "RouteTimeoutFilter CRD",
-            "href": "reference/config-entry/routetimeoutfilter"
+            "href": "reference/k8s/api-gateway/routetimeoutfilter"
           },
           {
             "title": "Sameness group",
@@ -2914,23 +2891,6 @@
             ]
           },
           {
-            "title": "CLI",
-            "routes": [
-              {
-                "title": "Overview",
-                "path": "reference/cts/cli"
-              },
-              {
-                "title": "task",
-                "path": "reference/cts/cli/task"
-              },
-              {
-                "title": "start",
-                "path": "reference/cts/cli/start"
-              }
-            ]
-          },
-          {
             "title": "Version compatibility",
             "path": "reference/cts/compatibility"
           }
@@ -2940,8 +2900,8 @@
         "title": "Dataplanes",
         "routes": [
           {
-            "title": "Configuration",
-            "path": "reference/dataplane"
+            "title": "CLI reference",
+            "path": "reference/dataplane/cli"
           },
           {
             "title": "Telemetry",
