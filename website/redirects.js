@@ -362,11 +362,6 @@ module.exports = [
     permanent: true,
   },
   {
-    source: '/consul/docs/architecture',
-    destination: '/consul/docs/architecture/control-plane',
-    permanent: true,
-  },
-  {
     source: '/consul/docs/architecture/anti-entropy',
     destination: '/consul/docs/concept/consistency',
     permanent: true,
@@ -1288,11 +1283,7 @@ module.exports = [
     destination: '/consul/docs/secure/acl',
     permanent: true,
   },
-  {
-    source: '/consul/docs/intro',
-    destination: '/consul/docs/architecture',
-    permanent: true,
-  },
+
   {
     source: '/consul/docs/k8s/annotations-and-labels',
     destination: '/consul/docs/reference/annotation-label',
@@ -1542,12 +1533,12 @@ module.exports = [
   },
   {
     source: '/consul/docs/k8s/installation/install-cli',
-    destination: '/consul/docs/reference-cli/consul-k8s',
+    destination: '/consul/docs/reference/cli/consul-k8s',
     permanent: true,
   },
   {
     source: '/consul/docs/k8s/k8s-cli',
-    destination: '/consul/docs/reference-cli/consul-k8s',
+    destination: '/consul/docs/reference/cli/consul-k8s',
     permanent: true,
   },
   {
@@ -1662,17 +1653,17 @@ module.exports = [
   },
   {
     source: '/consul/docs/nia/cli',
-    destination: '/consul/docs/reference/cts/cli',
+    destination: '/consul/docs/reference/cli/cts',
     permanent: true,
   },
   {
     source: '/consul/docs/nia/cli/start',
-    destination: '/consul/docs/reference/cts/cli/start',
+    destination: '/consul/docs/reference/cli/cts/start',
     permanent: true,
   },
   {
     source: '/consul/docs/nia/cli/task',
-    destination: '/consul/docs/reference/cts/cli/task',
+    destination: '/consul/docs/reference/cli/cts/task',
     permanent: true,
   },
   {
@@ -3293,12 +3284,6 @@ module.exports = [
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/architecture/',
-    destination: '/consul/docs/:version/intro',
-    permanent: true,
-  },
-  {
-    source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/annotation-label/',
     destination: '/consul/docs/:version/k8s/annotations-and-labels',
     permanent: true,
@@ -3600,13 +3585,13 @@ module.exports = [
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference-cli/consul-k8s/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/cli/consul-k8s/',
     destination: '/consul/docs/:version/k8s/installation/install-cli',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference-cli/consul-k8s/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/cli/consul-k8s/',
     destination: '/consul/docs/:version/k8s/k8s-cli',
     permanent: true,
   },
@@ -3746,19 +3731,19 @@ module.exports = [
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/cts/cli/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/cli/cts/',
     destination: '/consul/docs/:version/nia/cli',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/cts/cli/start/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/cli/cts/start/',
     destination: '/consul/docs/:version/nia/cli/start',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/cts/cli/task/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/cli/cts/task/',
     destination: '/consul/docs/:version/nia/cli/task',
     permanent: true,
   },

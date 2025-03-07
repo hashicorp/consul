@@ -3,6 +3,10 @@
     "heading": "Get started"
   },
   {
+    "title": "What is Consul?",
+    "path": "intro"
+  },
+  {
     "title": "Quickstart",
     "routes": [
       {
@@ -22,10 +26,6 @@
   {
     "title": "Architecture",
     "routes": [
-      {
-        "title": "What is Consul?",
-        "path": "architecture"
-      },
       {
         "title": "Control plane",
         "routes": [
@@ -149,16 +149,16 @@
         ]
       },
       {
+        "title": "Identity in Consul",
+        "path": "fundamentals/identity"
+      },
+      {
         "title": "Consul agent basics",
         "path": "fundamentals/agent"
       },
       {
         "title": "Service and health check basics",
         "path": "fundamentals/service"
-      },
-      {
-        "title": "Identity basics",
-        "path": "fundamentals/identity"
       },
       {
         "title": "Configuration entry basics",
@@ -1303,10 +1303,6 @@
             "title": "Kubernetes",
             "routes": [
               {
-                "title": "Overview",
-                "path": "register/service/k8s"
-              },
-              {
                 "title": "Register services in transparent proxy mode",
                 "path": "register/service/k8s/transparent-proxy"
               },
@@ -1455,19 +1451,6 @@
           {
             "title": "Configure DNS behavior",
             "path": "discover/dns/configure"
-          },
-          {
-            "title": "DNS forwarding",
-            "routes": [
-              {
-                "title": "Overview",
-                "path": "discover/dns/forwarding"
-              },
-              {
-                "title": "Enable DNS forwarding",
-                "path": "discover/dns/forwarding/enable"
-              }
-            ]
           },
           {
             "title": "Resolve Consul DNS in Kubernetes",
@@ -2636,26 +2619,26 @@
           },
           {
             "title": "consul-k8s",
-            "path": "reference-cli/consul-k8s"
+            "path": "reference/cli/consul-k8s"
           },
           {
             "title": "consul-aws",
-            "path": "reference-cli/consul-aws"
+            "path": "reference/cli/consul-aws"
           },
           {
             "title": "consul-terraform-sync",
             "routes": [
               {
                 "title": "Overview",
-                "path": "reference/cts/cli"
+                "path": "reference/cli/cts"
               },
               {
                 "title": "task",
-                "path": "reference/cts/cli/task"
+                "path": "reference/cli/cts/task"
               },
               {
                 "title": "start",
-                "path": "reference/cts/cli/start"
+                "path": "reference/cli/cts/start"
               }
             ]
           }
