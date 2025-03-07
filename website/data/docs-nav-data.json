@@ -90,10 +90,6 @@
         "path": "concept/catalog"
       },
       {
-        "title": "Configuration-as-code",
-        "path": "concept/configuration"
-      },
-      {
         "title": "Consensus",
         "path": "concept/consensus"
       },
@@ -1619,6 +1615,10 @@
           {
             "title": "Connect injector",
             "path": "connect/k8s/inject"
+          },
+          {
+            "title": "Consul CRDs",
+            "path": "connect/k8s/crds"
           },
           {
             "title": "Workload scenario examples",

@@ -230,6 +230,21 @@ The server may respond as `UNAVAILABLE` if it is the leader node and the global 
 
 The `UNAVAILABLE` RPC response is translated into a `503 Service Unavailable` error code on the  RPC requests sent through HTTP interface.
 
+## Runtime config
+
+ Consul outputs the warning `Static Runtime config has changed and need a manual config reload to be applied` when any of the following configurations are changed while [-auto-reload-config](/consul/docs/agent/config/cli-flags#_auto_reload_config) is enabled.
+
+  - [encrypt_verify_incoming](/consul/docs/reference/agent/configuration-file#encrypt_verify_incoming)
+  - [verify_incoming](/consul/docs/reference/agent/configuration-file#verify_incoming)
+  - [verify_incoming_rpc](/consul/docs/reference/agent/configuration-file#verify_incoming_rpc)
+  - [verify_incoming_https](/consul/docs/reference/agent/configuration-file#verify_incoming_https)
+  - [verify_outgoing](/consul/docs/reference/agent/configuration-file#verify_outgoing)
+  - [verify_server_hostname](/consul/docs/reference/agent/configuration-file#verify_server_hostname)
+  - [ca_file](/consul/docs/reference/agent/configuration-file#ca_file)
+  - [ca_path](/consul/docs/reference/agent/configuration-file#ca_path)
+
+To resolve this error, you must manually issue the `consul reload` command or send a `SIGHUP` to the Consul process to reload the new values.
+
 [node_name]: /consul/docs/reference/agent/configuration-file#node_name
 [retry_join]: /consul/docsreference-cli/agent#retry-join
 [license]: /consul/commands/license
