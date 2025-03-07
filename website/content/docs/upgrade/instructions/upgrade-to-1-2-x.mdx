@@ -15,7 +15,7 @@ The page describes the process to update a Consul deployment to v1.2.x and maint
 This guide explains how to best upgrade a multi-datacenter Consul deployment that is using
 a version of Consul >= 0.8.5 and < 1.2.4 while maintaining replication. If you are on a version
 older than 0.8.5, but are in the 0.8.x series, please upgrade to 0.8.5 by following our
-[General Upgrade Process](/consul/docs/consul/docs/upgrade/instructions/general-process). If you are on a version
+[General Upgrade Process](/consul/docs/upgrade/instructions/general). If you are on a version
 older than 0.8.0, please [contact support](https://support.hashicorp.com).
 
 In this guide, we will be using an example with two datacenters (DCs) and will be
@@ -90,7 +90,7 @@ You should receive output similar to this:
 }
 ```
 
-**3.** Upgrade the Consul agents in all DCs to version 1.2.4 by following our [General Upgrade Process](/consul/docs/consul/docs/upgrade/instructions/general-process).
+**3.** Upgrade the Consul agents in all DCs to version 1.2.4 by following our [General Upgrade Process](/consul/docs/upgrade/instructions/general).
 This should be done one DC at a time, leaving the primary DC for last.
 
 **4.** Confirm that replication is still working in DC2 by issuing the following curl command from a
