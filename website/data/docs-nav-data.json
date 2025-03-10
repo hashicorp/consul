@@ -34,10 +34,6 @@
             "path": "architecture/control-plane"
           },
           {
-            "title": "Consul agents",
-            "path": "architecture/control-plane/agent"
-          },
-          {
             "title": "Consul dataplanes",
             "path": "architecture/control-plane/dataplane"
           },
@@ -2719,8 +2715,85 @@
             "path": "reference/agent"
           },
           {
-            "title": "Configuration reference",
-            "path": "reference/agent/configuration-file"
+            "title": "Configuration files",
+            "routes": [
+              {
+                "title": "Overview",
+                "path": "reference/agent/configuration-file"
+              },
+              {
+                "title": "General parameters",
+                "path": "reference/agent/configuration-file/general"
+              },
+              {
+                "title": "ACL parameters",
+                "path": "reference/agent/configuration-file/acl"
+              },
+              {
+                "title": "Advertise address parameters",
+                "path": "reference/agent/configuration-file/address"
+              },
+              {
+                "title": "Bootstrap parameters",
+                "path": "reference/agent/configuration-file/bootstrap"
+              },
+              {
+                "title": "DNS parameters",
+                "path": "reference/agent/configuration-file/dns"
+              },
+              {
+                "title": "Encryption parameters",
+                "path": "reference/agent/configuration-file/encryption"
+              },
+              {
+                "title": "Gossip parameters",
+                "path": "reference/agent/configuration-file/gossip"
+              },
+              {
+                "title": "HCP Consul Dedicated parameters",
+                "path": "reference/agent/configuration-file/hcp"
+              },
+              {
+                "title": "Join parameters",
+                "path": "reference/agent/configuration-file/join"
+              },
+              {
+                "title": "Log parameters",
+                "path": "reference/agent/configuration-file/log"
+              },
+              {
+                "title": "Node parameters",
+                "path": "reference/agent/configuration-file/node"
+              },
+              {
+                "title": "Raft parameters",
+                "path": "reference/agent/configuration-file/raft"
+              },
+              {
+                "title": "Serf parameters",
+                "path": "reference/agent/configuration-file/serf"
+              },
+              {
+                "title": "Service mesh parameters",
+                "path": "reference/agent/configuration-file/service-mesh"
+              },
+              {
+                "title": "Telemetry parameters",
+                "path": "reference/agent/configuration-file/telemetry"
+              },
+              {
+                "title": "TLS parameters",
+                "path": "reference/agent/configuration-file/tls"
+              },
+              {
+                "title": "UI parameters",
+                "path": "reference/agent/configuration-file/ui"
+              },
+              {
+                "title": "xDS parameters",
+                "path": "reference/agent/configuration-file/xds"
+              }
+            ]
           },
           {
             "title": "CLI flag reference",

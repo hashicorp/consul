@@ -1,0 +1,38 @@
+---
+layout: docs
+page_title: Node parameters for Consul agent configuration files
+description: >-
+  Use agent configuration files to assign attributes to agents and configure multiple agents at once. Learn about agent configuration file parameters and formatting with this reference page and sample code.
+---
+
+# Node parameters for Consul agent configuration files
+
+The page provides reference information for node parameters in a Consul agent configuration file.
+
+## Node Parameters
+
+- `node_id` Equivalent to the [`-node-id` command-line flag](/consul/docs/agent/config/cli-flags#_node_id).
+
+- `node_name` Equivalent to the [`-node` command-line flag](/consul/docs/agent/config/cli-flags#_node).
+
+- `node_meta` Available in Consul 0.7.3 and later, This object allows associating arbitrary metadata key/value pairs with the local node, which can then be used for filtering results from certain catalog endpoints. See the [`-node-meta` command-line flag](/consul/docs/agent/config/cli-flags#_node_meta) for more information.
+
+  <CodeTabs heading="Example node_meta configuration">
+
+  ```hcl
+  node_meta {
+    instance_type = "t2.medium"
+  }
+  ```
+
+  ```json
+  {
+    "node_meta": {
+      "instance_type": "t2.medium"
+    }
+  }
+  ```
+
+  </CodeTabs>
+
+- `disable_host_node_id` Equivalent to the [`-disable-host-node-id` command-line flag](/consul/docs/agent/config/cli-flags#_disable_host_node_id).

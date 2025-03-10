@@ -1,0 +1,89 @@
+---
+layout: docs
+page_title: Consul agents configuration file reference
+description: >-
+  Use agent configuration files to assign attributes to agents and configure multiple agents at once. Learn about agent configuration file parameters and formatting with this reference page and sample code.
+---
+
+# Consul agents configuration file reference
+
+This topic describes the parameters for configuring Consul agents. 
+
+For information about how to start Consul agents, refer to [Consul agnet fundamentals](/consul/docs/fundamentals/agent).
+
+## Overview
+
+You can create one or more files to configure the Consul agent on startup. We recommend grouping similar configurations into separate files, such as ACL parameters, to make it easier to manage configuration changes. Using external files may be easier than configuring agents on the command-line when Consul is being configured using a configuration management system.
+
+The configuration files are formatted as HCL or JSON. HCL configurations are designed to be human readable. JSON-formatted configurations consist of a single JSON object with multiple configuration keys specified within it.
+
+<CodeTabs heading="Example Configuration File">
+
+```hcl
+datacenter = "east-aws"
+data_dir = "/opt/consul"
+log_level = "INFO"
+node_name = "foobar"
+server = true
+watches = [
+  {
+    type = "checks"
+    handler = "/usr/bin/health-check-handler.sh"
+  }
+]
+
+telemetry {
+  statsite_address = "127.0.0.1:2180"
+}
+```
+
+```json
+{
+  "datacenter": "east-aws",
+  "data_dir": "/opt/consul",
+  "log_level": "INFO",
+  "node_name": "foobar",
+  "server": true,
+  "watches": [
+    {
+      "type": "checks",
+      "handler": "/usr/bin/health-check-handler.sh"
+    }
+  ],
+  "telemetry": {
+    "statsite_address": "127.0.0.1:2180"
+  }
+}
+```
+
+</CodeTabs>
+
+### Time-to-live values
+
+Consul uses the Go `time` package to parse all time-to-live (TTL) values used in Consul agent configuration files. Specify integer and float values as a string and include one or more of the following units of time:
+
+- `ns`
+- `us`
+- `µs`
+- `ms`
+- `s`
+- `m`
+- `h`
+
+Examples:
+
+- `'300ms'`
+- `'1.5h'`
+- `'2h45m'`
+
+Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDuration) for additional information.
+
+## Example configurations
+
+@include 'partials/examples/agent/server/encrypted.mdx'
+
+@include 'partials/examples/agent/server/service-mesh.mdx'
+
+@include 'partials/examples/agent/client/multi-interface.mdx'
+
+@include 'partials/examples/agent/client/register-service.mdx'

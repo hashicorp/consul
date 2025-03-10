@@ -1,0 +1,21 @@
+---
+layout: docs
+page_title: Serf parameters for Consul agent configuration files
+description: >-
+  Use agent configuration files to assign attributes to agents and configure multiple agents at once. Learn about agent configuration file parameters and formatting with this reference page and sample code.
+---
+
+# Serf parameters for Consul agent configuration files
+
+The page provides reference information for Serf parameters in a Consul agent configuration file.
+
+## Serf parameters
+
+- `serf_lan` ((#serf_lan_bind)) Equivalent to the [`-serf-lan-bind` command-line flag](/consul/docs/agent/config/cli-flags#_serf_lan_bind).
+  This is an IP address, not to be confused with [`ports.serf_lan`](#serf_lan_port).
+
+- `serf_lan_allowed_cidrs` ((#serf_lan_allowed_cidrs)) Equivalent to the [`-serf-lan-allowed-cidrs` command-line flag](/consul/docs/agent/config/cli-flags#_serf_lan_allowed_cidrs).
+
+- `serf_wan` ((#serf_wan_bind)) Equivalent to the [`-serf-wan-bind` command-line flag](/consul/docs/agent/config/cli-flags#_serf_wan_bind).
+
+- `serf_wan_allowed_cidrs` ((#serf_wan_allowed_cidrs)) Equivalent to the [`-serf-wan-allowed-cidrs` command-line flag](/consul/docs/agent/config/cli-flags#_serf_wan_allowed_cidrs).

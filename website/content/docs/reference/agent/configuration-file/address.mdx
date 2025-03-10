@@ -1,0 +1,29 @@
+---
+layout: docs
+page_title: Advertise address parameters for Consul agent configuration files
+description: >-
+  Use agent configuration files to assign attributes to agents and configure multiple agents at once. Learn about agent configuration file parameters and formatting with this reference page and sample code.
+---
+
+# Advertise address parameters for Consul agent configuration files
+
+The page provides reference information for address advertisement parameters in a Consul agent configuration file.
+
+## Advertise Address Parameters
+
+- `advertise_addr` Equivalent to the [`-advertise` command-line flag](/consul/docs/agent/config/cli-flags#_advertise).
+
+- `advertise_addr_ipv4` This was added together with [`advertise_addr_ipv6`](#advertise_addr_ipv6) to support dual stack IPv4/IPv6 environments. Using this, both IPv4 and IPv6 addresses can be specified and requested during eg service discovery.
+
+- `advertise_addr_ipv6` This was added together with [`advertise_addr_ipv4`](#advertise_addr_ipv4) to support dual stack IPv4/IPv6 environments. Using this, both IPv4 and IPv6 addresses can be specified and requested during eg service discovery.
+
+- `advertise_addr_wan` Equivalent to the [`-advertise-wan` command-line flag](/consul/docs/agent/config/cli-flags#_advertise-wan).
+
+- `advertise_addr_wan_ipv4` This was added together with [`advertise_addr_wan_ipv6`](#advertise_addr_wan_ipv6) to support dual stack IPv4/IPv6 environments. Using this, both IPv4 and IPv6 addresses can be specified and requested during eg service discovery.
+
+- `advertise_addr_wan_ipv6` This was added together with [`advertise_addr_wan_ipv4`](#advertise_addr_wan_ipv4) to support dual stack IPv4/IPv6 environments. Using this, both IPv4 and IPv6 addresses can be specified and requested during eg service discovery.
+
+- `advertise_reconnect_timeout` This is a per-agent setting of the [`reconnect_timeout`](#reconnect_timeout) parameter.
+  This agent will advertise to all other nodes in the cluster that after this timeout, the node may be completely
+  removed from the cluster. This may only be set on client agents and if unset then other nodes will use the main
+  `reconnect_timeout` setting when determining when this node may be removed from the cluster.
