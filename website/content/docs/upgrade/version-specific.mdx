@@ -1087,7 +1087,7 @@ Please be sure to read over all the details here before upgrading.
 
 #### Raft Protocol Now Defaults to 3
 
-The [`-raft-protocol`](/consul/docs/agent/config/cli-flags#_raft_protocol) default has
+The [`-raft-protocol`](/consul/commands/agent#_raft_protocol) default has
 been changed from 2 to 3, enabling all
 [Autopilot](/consul/tutorials/datacenter-operations/autopilot-datacenter-operations)
 features by default.
@@ -1116,7 +1116,7 @@ servers, and then slowly stand down each of the older servers in a similar
 fashion.
 
 When using Raft protocol version 3, servers are identified by their
-[`-node-id`](/consul/docs/agent/config/cli-flags#_node_id) instead of their IP address
+[`-node-id`](/consul/commands/agent#_node_id) instead of their IP address
 when Consul makes changes to its internal Raft quorum configuration. This means
 that once a cluster has been upgraded with servers all running Raft protocol
 version 3, it will no longer allow servers running any older Raft protocol
@@ -1131,7 +1131,7 @@ to map the server to its node ID in the Raft quorum configuration.
 As part of supporting the [HCL](https://github.com/hashicorp/hcl#syntax) format
 for Consul's config files, an `.hcl` or `.json` extension is required for all
 config files loaded by Consul, even when using the
-[`-config-file`](/consul/docs/agent/config/cli-flags#_config_file) argument to specify a
+[`-config-file`](/consul/commands/agent#_config_file) argument to specify a
 file directly.
 
 #### Use Snake Case for Service Definition Parameters
@@ -1146,16 +1146,16 @@ upgrading. Here's the complete list of removed options and their equivalents:
 
 | Removed Option                                         | Equivalent                                                                                                                                                             |
 | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `-dc`                                                  | [`-datacenter`](/consul/docs/agent/config/cli-flags#_datacenter)                                                                                                                       |
-| `-retry-join-azure-tag-name`                           | [`-retry-join`](/consul/docs/agent/config/cli-flags#_retry_join)                                                                                                                       |
-| `-retry-join-azure-tag-value`                          | [`-retry-join`](/consul/docs/agent/config/cli-flags#_retry_join)                                                                                                                       |
-| `-retry-join-ec2-region`                               | [`-retry-join`](/consul/docs/agent/config/cli-flags#_retry_join)                                                                                                                       |
-| `-retry-join-ec2-tag-key`                              | [`-retry-join`](/consul/docs/agent/config/cli-flags#_retry_join)                                                                                                                       |
-| `-retry-join-ec2-tag-value`                            | [`-retry-join`](/consul/docs/agent/config/cli-flags#_retry_join)                                                                                                                       |
-| `-retry-join-gce-credentials-file`                     | [`-retry-join`](/consul/docs/agent/config/cli-flags#_retry_join)                                                                                                                       |
-| `-retry-join-gce-project-name`                         | [`-retry-join`](/consul/docs/agent/config/cli-flags#_retry_join)                                                                                                                       |
-| `-retry-join-gce-tag-name`                             | [`-retry-join`](/consul/docs/agent/config/cli-flags#_retry_join)                                                                                                                       |
-| `-retry-join-gce-zone-pattern`                         | [`-retry-join`](/consul/docs/agent/config/cli-flags#_retry_join)                                                                                                                       |
+| `-dc`                                                  | [`-datacenter`](/consul/commands/agent#_datacenter)                                                                                                                       |
+| `-retry-join-azure-tag-name`                           | [`-retry-join`](/consul/commands/agent#_retry_join)                                                                                                                       |
+| `-retry-join-azure-tag-value`                          | [`-retry-join`](/consul/commands/agent#_retry_join)                                                                                                                       |
+| `-retry-join-ec2-region`                               | [`-retry-join`](/consul/commands/agent#_retry_join)                                                                                                                       |
+| `-retry-join-ec2-tag-key`                              | [`-retry-join`](/consul/commands/agent#_retry_join)                                                                                                                       |
+| `-retry-join-ec2-tag-value`                            | [`-retry-join`](/consul/commands/agent#_retry_join)                                                                                                                       |
+| `-retry-join-gce-credentials-file`                     | [`-retry-join`](/consul/commands/agent#_retry_join)                                                                                                                       |
+| `-retry-join-gce-project-name`                         | [`-retry-join`](/consul/commands/agent#_retry_join)                                                                                                                       |
+| `-retry-join-gce-tag-name`                             | [`-retry-join`](/consul/commands/agent#_retry_join)                                                                                                                       |
+| `-retry-join-gce-zone-pattern`                         | [`-retry-join`](/consul/commands/agent#_retry_join)                                                                                                                       |
 | `addresses.rpc`                                        | None, the RPC server for CLI commands is no longer supported.                                                                                                          |
 | `advertise_addrs`                                      | [`ports`](/consul/docs/reference/agent/configuration-file#ports) with [`advertise_addr`](/consul/docs/reference/agent/configuration-file#advertise_addr) and/or [`advertise_addr_wan`](/consul/docs/reference/agent/configuration-file#advertise_addr_wan) |
 | `dogstatsd_addr`                                       | [`telemetry.dogstatsd_addr`](/consul/docs/reference/agent/configuration-file#telemetry-dogstatsd_addr)                                                                                             |
@@ -1192,8 +1192,8 @@ wrongly stated that you could configure both host and port.
 
 #### Escaping Behavior Changed for go-discover Configs
 
-The format for [`-retry-join`](/consul/docs/agent/config/cli-flags#retry-join) and
-[`-retry-join-wan`](/consul/docs/agent/config/cli-flags#retry-join-wan) values that use
+The format for [`-retry-join`](/consul/commands/agent#retry-join) and
+[`-retry-join-wan`](/consul/commands/agent#retry-join-wan) values that use
 [go-discover](https://github.com/hashicorp/go-discover) cloud auto joining has
 changed. Values in `key=val` sequences must no longer be URL encoded and can be
 provided as literals as long as they do not contain spaces, backslashes `\` or
@@ -1311,7 +1311,7 @@ invalid health checks would get skipped.
 
 #### Script Checks Are Now Opt-In
 
-A new [`enable_script_checks`](/consul/docs/agent/config/cli-flags#_enable_script_checks)
+A new [`enable_script_checks`](/consul/commands/agent#_enable_script_checks)
 configuration option was added, and defaults to `false`, meaning that in order
 to allow an agent to run health checks that execute scripts, this will need to
 be configured and set to `true`. This provides a safer out-of-the-box
@@ -1333,10 +1333,10 @@ for more information.
 
 Consul releases will no longer include a `web_ui.zip` file with the compiled
 web assets. These have been built in to the Consul binary since the 0.7.x
-series and can be enabled with the [`-ui`](/consul/docs/agent/config/cli-flags#_ui)
+series and can be enabled with the [`-ui`](/consul/commands/agent#_ui)
 configuration option. These built-in web assets have always been identical to
 the contents of the `web_ui.zip` file for each release. The
-[`-ui-dir`](/consul/docs/agent/config/cli-flags#_ui_dir) option is still available for
+[`-ui-dir`](/consul/commands/agent#_ui_dir) option is still available for
 hosting customized versions of the web assets, but the vast majority of Consul
 users can just use the built in web assets.
 
@@ -1388,7 +1388,7 @@ running commands remotely via [`consul exec`](/consul/commands/exec).
 #### Raft Protocol Version Compatibility
 
 When upgrading to Consul 0.8.0 from a version lower than 0.7.0, users will need
-to set the [`-raft-protocol`](/consul/docs/agent/config/cli-flags#_raft_protocol) option
+to set the [`-raft-protocol`](/consul/commands/agent#_raft_protocol) option
 to 1 in order to maintain backwards compatibility with the old servers during
 the upgrade. After the servers have been migrated to version 0.8.0,
 `-raft-protocol` can be moved up to 2 and the servers restarted to match the

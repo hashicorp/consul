@@ -39,7 +39,7 @@ The page provides reference information for general parameters in a Consul agent
   - `grpc` - The gRPC API. Defaults to `client_addr`
   - `grpc_tls` - The gRPC API with TLS. Defaults to `client_addr`
 
-- `alt_domain` Equivalent to the [`-alt-domain` command-line flag](/consul/docs/agent/config/cli-flags#_alt_domain)
+- `alt_domain` Equivalent to the [`-alt-domain` command-line flag](/consul/commands/agent#_alt_domain)
 
 - `audit` <EnterpriseAlert inline /> - Added in Consul 1.8, the audit object allow users to enable auditing
   and configure a sink and filters for their audit logs. For more information, review the [audit log tutorial](/consul/tutorials/datacenter-operations/audit-logging).
@@ -189,7 +189,7 @@ The page provides reference information for general parameters in a Consul agent
 
   - `server_addresses` (Defaults to `[]`) This specifies the addresses of servers in
     the local datacenter to use for the initial RPC. These addresses support
-    [Cloud Auto-Joining](/consul/docs/agent/config/cli-flags#cloud-auto-joining) and can optionally include a port to
+    [Cloud Auto-Joining](/consul/commands/agent#cloud-auto-joining) and can optionally include a port to
     use when making the outbound connection. If no port is provided, the `server_port`
     will be used.
 
@@ -305,9 +305,9 @@ The page provides reference information for general parameters in a Consul agent
 
         - `partition` <EnterpriseAlert inline /> - The admin partition name the client is requesting.
 
-- `auto_reload_config` Equivalent to the [`-auto-reload-config` command-line flag](/consul/docs/agent/config/cli-flags#_auto_reload_config).
+- `auto_reload_config` Equivalent to the [`-auto-reload-config` command-line flag](/consul/commands/agent#_auto_reload_config).
 
-- `bind_addr` Equivalent to the [`-bind` command-line flag](/consul/docs/agent/config/cli-flags#_bind).
+- `bind_addr` Equivalent to the [`-bind` command-line flag](/consul/commands/agent#_bind).
 
   This parameter can be set to a go-sockaddr template that resolves to a single
   address. Special characters such as backslashes `\` or double quotes `"`
@@ -355,7 +355,7 @@ The page provides reference information for general parameters in a Consul agent
   changes state, the new state and associated output is synchronized immediately.
   To disable this behavior, set the value to "0s".
 
-- `client_addr` Equivalent to the [`-client` command-line flag](/consul/docs/agent/config/cli-flags#_client).
+- `client_addr` Equivalent to the [`-client` command-line flag](/consul/commands/agent#_client).
 
 - `config_entries` This object allows setting options for centralized config entries.
 
@@ -369,9 +369,9 @@ The page provides reference information for general parameters in a Consul agent
     See the [configuration entry docs](/consul/docs/fundamentals/config-entry) for more
     details about the contents of each entry.
 
-- `datacenter` Equivalent to the [`-datacenter` command-line flag](/consul/docs/agent/config/cli-flags#_datacenter).
+- `datacenter` Equivalent to the [`-datacenter` command-line flag](/consul/commands/agent#_datacenter).
 
-- `data_dir` Equivalent to the [`-data-dir` command-line flag](/consul/docs/agent/config/cli-flags#_data_dir).
+- `data_dir` Equivalent to the [`-data-dir` command-line flag](/consul/commands/agent#_data_dir).
 
 - `default_intention_policy` Controls how service-to-service traffic is authorized
   in the absence of specific intentions.
@@ -404,17 +404,17 @@ The page provides reference information for general parameters in a Consul agent
 
 - `enable_debug` (boolean, default is `false`): When set to `true`, enables Consul to report additional debugging information, including runtime profiling (`pprof`) data. This setting is only required for clusters without ACL [enabled](#acl_enabled). If you change this setting, you must restart the agent for the change to take effect.
 
-- `enable_script_checks` Equivalent to the [`-enable-script-checks` command-line flag](/consul/docs/agent/config/cli-flags#_enable_script_checks).
+- `enable_script_checks` Equivalent to the [`-enable-script-checks` command-line flag](/consul/commands/agent#_enable_script_checks).
 
   ACLs must be enabled for agents and the `enable_script_checks` option must be set to `true` to enable script checks in Consul 0.9.0 and later. See [Registering and Querying Node Information](/consul/docs/security/acl/acl-rules#registering-and-querying-node-information) for related information.
 
   ~> **Security Warning:** Enabling script checks in some configurations may introduce a known remote execution vulnerability targeted by malware. We strongly recommend `enable_local_script_checks` instead. Refer to the following article for additional guidance: [_Protecting Consul from RCE Risk in Specific Configurations_](https://www.hashicorp.com/blog/protecting-consul-from-rce-risk-in-specific-configurations)
   for more details.
 
-- `enable_local_script_checks` Equivalent to the [`-enable-local-script-checks` command-line flag](/consul/docs/agent/config/cli-flags#_enable_local_script_checks).
+- `enable_local_script_checks` Equivalent to the [`-enable-local-script-checks` command-line flag](/consul/commands/agent#_enable_local_script_checks).
 
 - `disable_keyring_file` - Equivalent to the
-  [`-disable-keyring-file` command-line flag](/consul/docs/agent/config/cli-flags#_disable_keyring_file).
+  [`-disable-keyring-file` command-line flag](/consul/commands/agent#_disable_keyring_file).
 
 - `disable_coordinates` - Disables sending of [network coordinates](/consul/docs/architecture/coordinates).
   When network coordinates are disabled the `near` query param will not work to sort the nodes,
@@ -491,9 +491,9 @@ The page provides reference information for general parameters in a Consul agent
   - `kv_max_value_size` - **(Advanced)** Configures the maximum number of bytes for a kv request body to the [`/v1/kv`](/consul/api-docs/kv) endpoint. This limit defaults to [raft's](https://github.com/hashicorp/raft) suggested max size (512KB). **Note that tuning these improperly can cause Consul to fail in unexpected ways**, it may potentially affect leadership stability and prevent timely heartbeat signals by increasing RPC IO duration. This option affects the txn endpoint too, but Consul 1.7.2 introduced `txn_max_req_len` which is the preferred way to set the limit for the txn endpoint. If both limits are set, the higher one takes precedence.
   - `txn_max_req_len` - **(Advanced)** Configures the maximum number of bytes for a transaction request body to the [`/v1/txn`](/consul/api-docs/txn) endpoint. This limit defaults to [raft's](https://github.com/hashicorp/raft) suggested max size (512KB). **Note that tuning these improperly can cause Consul to fail in unexpected ways**, it may potentially affect leadership stability and prevent timely heartbeat signals by increasing RPC IO duration.
 
-- `default_query_time` Equivalent to the [`-default-query-time` command-line flag](/consul/docs/agent/config/cli-flags#_default_query_time).
+- `default_query_time` Equivalent to the [`-default-query-time` command-line flag](/consul/commands/agent#_default_query_time).
 
-- `max_query_time` Equivalent to the [`-max-query-time` command-line flag](/consul/docs/agent/config/cli-flags#_max_query_time).
+- `max_query_time` Equivalent to the [`-max-query-time` command-line flag](/consul/commands/agent#_max_query_time).
 
 - `peering` This object allows setting options for cluster peering.
 
@@ -512,7 +512,7 @@ The page provides reference information for general parameters in a Consul agent
   partition. This cannot be set on a server agent.
 
   ~> **Warning:** The `partition` option cannot be used either the
-  [`segment`](#segment-2) option or [`-segment`](/consul/docs/agent/config/cli-flags#_segment) flag.
+  [`segment`](#segment-2) option or [`-segment`](/consul/commands/agent#_segment) flag.
 
 - `performance` Available in Consul 0.7 and later, this is a nested object that allows tuning the performance of different subsystems in Consul. See the [Server Performance](/consul/docs/reference/architecture/server) documentation for more details. The following parameters are available:
 
@@ -540,7 +540,7 @@ The page provides reference information for general parameters in a Consul agent
 
   - `grpc_keepalive_timeout` - A duration that determines how long a Consul server waits for a reply to a keep-alive message. If the server does not receive a reply before the end of the duration, Consul flags the gRPC connection as unhealthy and forcibly removes it. Defaults to `20s`.
 
-- `pid_file` Equivalent to the [`-pid-file` command line flag](/consul/docs/agent/config/cli-flags#_pid_file).
+- `pid_file` Equivalent to the [`-pid-file` command line flag](/consul/commands/agent#_pid_file).
 
 - `ports` This is a nested object that allows setting the bind ports for the following keys:
 
@@ -561,9 +561,9 @@ The page provides reference information for general parameters in a Consul agent
     tools to work automatically. `grpc_tls` is always guaranteed to be encrypted. Both `grpc` and `grpc_tls`
     can be configured at the same time, but they may not utilize the same port number. This field was added in Consul 1.14.
   - `serf_lan` ((#serf_lan_port)) - The Serf LAN port. Default 8301. TCP
-    and UDP. Equivalent to the [`-serf-lan-port` command line flag](/consul/docs/agent/config/cli-flags#_serf_lan_port).
+    and UDP. Equivalent to the [`-serf-lan-port` command line flag](/consul/commands/agent#_serf_lan_port).
   - `serf_wan` ((#serf_wan_port)) - The Serf WAN port. Default 8302.
-    Equivalent to the [`-serf-wan-port` command line flag](/consul/docs/agent/config/cli-flags#_serf_wan_port). Set
+    Equivalent to the [`-serf-wan-port` command line flag](/consul/commands/agent#_serf_wan_port). Set
     to -1 to disable. **Note**: this will disable WAN federation which is not recommended.
     Various catalog and WAN related endpoints will return errors or empty results.
     TCP and UDP.
@@ -591,7 +591,7 @@ The page provides reference information for general parameters in a Consul agent
   enforcement of ACLs.
 
 - `primary_gateways` Equivalent to the [`-primary-gateway`
-  command-line flag](/consul/docs/agent/config/cli-flags#_primary_gateway). Takes a list of addresses to use as the
+  command-line flag](/consul/commands/agent#_primary_gateway). Takes a list of addresses to use as the
   mesh gateways for the primary datacenter when authoritative replicated catalog
   data is not present. Discovery happens every [`primary_gateways_interval`](#primary_gateways_interval)
   until at least one primary mesh gateway is discovered. This was added in Consul
@@ -602,7 +602,7 @@ The page provides reference information for general parameters in a Consul agent
   30s. This was added in Consul 1.8.0.
 
 - `protocol` ((#protocol)) Equivalent to the [`-protocol` command-line
-  flag](/consul/docs/agent/config/cli-flags#_protocol).
+  flag](/consul/commands/agent#_protocol).
 
 - `reap` This controls Consul's automatic reaping of child processes,
   which is useful if Consul is running as PID 1 in a Docker container. If this isn't
@@ -648,7 +648,7 @@ The page provides reference information for general parameters in a Consul agent
     - `license` - The license object allows users to control automatic reporting of license utilization metrics to HashiCorp.
       - `enabled`: (Defaults to `true`) Enables automatic license utilization reporting.
 
-- `segment` <EnterpriseAlert inline /> - Equivalent to the [`-segment` command-line flag](/consul/docs/agent/config/cli-flags#_segment).
+- `segment` <EnterpriseAlert inline /> - Equivalent to the [`-segment` command-line flag](/consul/commands/agent#_segment).
 
   ~> **Warning:** The `segment` option cannot be used with the [`partition`](#partition-1) option.
 
@@ -664,14 +664,14 @@ The page provides reference information for general parameters in a Consul agent
   - `port` ((#segment_port)) - The port to use for the segment's gossip
     layer (required).
   - `advertise` ((#segment_advertise)) - The advertise address to use for
-    the segment's gossip layer. Defaults to the [`-advertise`](/consul/docs/agent/config/cli-flags#_advertise) value
+    the segment's gossip layer. Defaults to the [`-advertise`](/consul/commands/agent#_advertise) value
     if not provided.
   - `rpc_listener` ((#segment_rpc_listener)) - If true, a separate RPC
-    listener will be started on this segment's [`-bind`](/consul/docs/agent/config/cli-flags#_bind) address on the rpc
-    port. Only valid if the segment's bind address differs from the [`-bind`](/consul/docs/agent/config/cli-flags#_bind)
+    listener will be started on this segment's [`-bind`](/consul/commands/agent#_bind) address on the rpc
+    port. Only valid if the segment's bind address differs from the [`-bind`](/consul/commands/agent#_bind)
     address. Defaults to false.
 
-- `server` Equivalent to the [`-server` command-line flag](/consul/docs/agent/config/cli-flags#_server).
+- `server` Equivalent to the [`-server` command-line flag](/consul/commands/agent#_server).
 
 - `server_rejoin_age_max` - controls the allowed maximum age of a stale server attempting to rejoin a cluster.
   If the server has not ran during this period, it will refuse to start up again until an operator intervenes by manually deleting the `server_metadata.json`
@@ -681,7 +681,7 @@ The page provides reference information for general parameters in a Consul agent
 
 - `non_voting_server` - **This field is deprecated in Consul 1.9.1. See the [`read_replica`](#read_replica) field instead.**
 
-- `read_replica` - Equivalent to the [`-read-replica` command-line flag](/consul/docs/agent/config/cli-flags#_read_replica).
+- `read_replica` - Equivalent to the [`-read-replica` command-line flag](/consul/commands/agent#_read_replica).
 
 - `session_ttl_min` The minimum allowed session TTL. This ensures sessions are not created with TTLs
   shorter than the specified limit. It is recommended to keep this limit at or above
@@ -699,14 +699,14 @@ The page provides reference information for general parameters in a Consul agent
   a client will gracefully leave).
 
 - `translate_wan_addrs` If set to true, Consul
-  will prefer a node's configured [WAN address](/consul/docs/agent/config/cli-flags#_advertise-wan)
+  will prefer a node's configured [WAN address](/consul/commands/agent#_advertise-wan)
   when servicing DNS and HTTP requests for a node in a remote datacenter. This allows
   the node to be reached within its own datacenter using its local address, and reached
   from other datacenters using its WAN address, which is useful in hybrid setups
   with mixed networks. This is disabled by default.
 
   Starting in Consul 0.7 and later, node addresses in responses to HTTP requests will also prefer a
-  node's configured [WAN address](/consul/docs/agent/config/cli-flags#_advertise-wan) when querying for a node in a remote
+  node's configured [WAN address](/consul/commands/agent#_advertise-wan) when querying for a node in a remote
   datacenter. An [`X-Consul-Translate-Addresses`](/consul/api-docs/api-structure#translated-addresses) header
   will be present on all responses when translation is enabled to help clients know that the addresses
   may be translated. The `TaggedAddresses` field in responses also have a `lan` address for clients that

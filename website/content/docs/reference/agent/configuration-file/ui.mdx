@@ -12,7 +12,7 @@ This page provides reference information for UI parameters in a Consul agent con
 ## UI parameters
 
 - `ui` - **This field is deprecated in Consul 1.9.0. See the [`ui_config.enabled`](#ui_config_enabled) field instead.**
-  Equivalent to the [`-ui`](/consul/docs/agent/config/cli-flags#_ui) command-line flag.
+  Equivalent to the [`-ui`](/consul/commands/agent#_ui) command-line flag.
 
 - `ui_config` - This object allows a number of sub-keys to be set which controls
   the display or features available in the UI. Configuring the UI with this
@@ -23,16 +23,16 @@ This page provides reference information for UI parameters in a Consul agent con
   - `enabled` ((#ui_config_enabled)) - This enables the service of the web UI
     from this agent. Boolean value, defaults to false. In `-dev` mode this
     defaults to true. Replaces `ui` from before 1.9.0. Equivalent to the
-    [`-ui`](/consul/docs/agent/config/cli-flags#_ui) command-line flag.
+    [`-ui`](/consul/commands/agent#_ui) command-line flag.
 
   - `dir` ((#ui_config_dir)) - This specifies that the web UI should be served
     from an external dir rather than the build in one. This allows for
     customization or development. Replaces `ui_dir` from before 1.9.0.
-    Equivalent to the [`-ui-dir`](/consul/docs/agent/config/cli-flags#_ui_dir) command-line flag.
+    Equivalent to the [`-ui-dir`](/consul/commands/agent#_ui_dir) command-line flag.
 
   - `content_path` ((#ui_config_content_path)) - This specifies the HTTP path
     that the web UI should be served from. Defaults to `/ui/`. Equivalent to the
-    [`-ui-content-path`](/consul/docs/agent/config/cli-flags#_ui_content_path) flag.
+    [`-ui-content-path`](/consul/commands/agent#_ui_content_path) flag.
 
   - `metrics_provider` ((#ui_config_metrics_provider)) - Specifies a named
     metrics provider implementation the UI should use to fetch service metrics.
@@ -137,7 +137,7 @@ This page provides reference information for UI parameters in a Consul agent con
       - `{{Datacenter}}` - Replaced with the current service's datacenter.
 
 - `ui_dir` - **This field is deprecated in Consul 1.9.0. See the [`ui_config.dir`](#ui_config_dir) field instead.**
-  Equivalent to the [`-ui-dir`](/consul/docs/agent/config/cli-flags#_ui_dir) command-line
+  Equivalent to the [`-ui-dir`](/consul/commands/agent#_ui_dir) command-line
   flag. This configuration key is not required as of Consul version 0.7.0 and later.
   Specifying this configuration key will enable the web UI. There is no need to specify
   both ui-dir and ui. Specifying both will result in an error.
