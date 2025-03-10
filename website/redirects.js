@@ -273,7 +273,7 @@ module.exports = [
   ///////////////////////////////////
   {
     source: '/consul/docs/agent',
-    destination: '/consul/docs/architecture/control-plane/agent',
+    destination: '/consul/docs/architecture/fundamentals/agent',
     permanent: true,
   },
   {
@@ -288,7 +288,7 @@ module.exports = [
   },
   {
     source: '/consul/docs/agent/config/cli-flags',
-    destination: '/consul/docs/reference/agent/cli-flags',
+    destination: '/consul/commands/agent',
     permanent: true,
   },
   {
@@ -359,6 +359,11 @@ module.exports = [
   {
     source: '/consul/docs/agent/wal-logstore/revert-to-boltdb',
     destination: '/consul/docs/deploy/server/wal/revert-boltdb',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/architecture',
+    destination: '/consul/docs/architecture/control-plane',
     permanent: true,
   },
   {
@@ -565,6 +570,7 @@ module.exports = [
     destination: '/consul/docs/reference/config-entry/terminating-gateway',
     permanent: true,
   },
+
   {
     source: '/consul/docs/connect/connect-internals',
     destination: '/consul/docs/architecture/data-plane/connect',
@@ -582,7 +588,7 @@ module.exports = [
   },
   {
     source: '/consul/docs/connect/dataplane/consul-dataplane',
-    destination: '/consul/docs/reference-cli/consul-dataplane',
+    destination: '/consul/docs/reference/dataplane/cli',
     permanent: true,
   },
   {
@@ -1067,11 +1073,7 @@ module.exports = [
     destination: '/consul/docs/automate/watch',
     permanent: true,
   },
-  {
-    source: '/consul/docs/ecs',
-    destination: '/consul/docs/ecs',
-    permanent: true,
-  },
+
   {
     source: '/consul/docs/ecs/architecture',
     destination: '/consul/docs/reference/architecture/ecs',
@@ -1145,7 +1147,7 @@ module.exports = [
   },
   {
     source: '/consul/docs/enterprise/backups',
-    destination: '/consul/docs/manage/automated-backup',
+    destination: '/consul/docs/manage/scale/automated-backup',
     permanent: true,
   },
   {
@@ -1163,11 +1165,7 @@ module.exports = [
     destination: '/consul/docs/deploy/server/fips',
     permanent: true,
   },
-  {
-    source: '/consul/docs/enterprise/license/faq',
-    destination: '/consul/docs/enterprise/license/faq',
-    permanent: true,
-  },
+
   {
     source: '/consul/docs/enterprise/license/overview',
     destination: '/consul/docs/enterprise/license',
@@ -1201,12 +1199,12 @@ module.exports = [
   },
   {
     source: '/consul/docs/enterprise/read-scale',
-    destination: '/consul/docs/manage/read-replica',
+    destination: '/consul/docs/manage/scale/read-replica',
     permanent: true,
   },
   {
     source: '/consul/docs/enterprise/redundancy',
-    destination: '/consul/docs/manage/redundancy-zone',
+    destination: '/consul/docs/manage/scale/redundancy-zone',
     permanent: true,
   },
   {
@@ -1297,7 +1295,7 @@ module.exports = [
   },
   {
     source: '/consul/docs/k8s/connect',
-    destination: '/consul/docs/architecture/data-plane/mesh',
+    destination: '/consul/docs/connect/k8s',
     permanent: true,
   },
   {
@@ -1509,7 +1507,7 @@ module.exports = [
   },
   {
     source: '/consul/docs/k8s/dns/enable',
-    destination: '/consul/docs/manage/dns/forwarding',
+    destination: '/consul/docs/manage/dns/forwarding/k8s',
     permanent: true,
   },
   {
@@ -1744,2429 +1742,1799 @@ module.exports = [
     destination: '/consul/docs/automate/infrastructure/high-availability',
     permanent: true,
   },
-  {
-    source: '/consul/docs/security',
-    destination: '/consul/docs/secure',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/security/acl',
-    destination: '/consul/docs/secure/acl',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/security/acl/acl-federated-datacenters',
-    destination: '/consul/docs/secure/acl/token/federation',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/security/acl/acl-policies',
-    destination: '/consul/docs/secure/acl/policy',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/security/acl/acl-roles',
-    destination: '/consul/docs/secure/acl/role',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/security/acl/acl-rules',
-    destination: '/consul/docs/reference/acl/rule',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/security/acl/auth-methods',
-    destination: '/consul/docs/secure/acl/auth-method',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/security/acl/auth-methods/aws-iam',
-    destination: '/consul/docs/secure/acl/auth-method/aws',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/security/acl/auth-methods/jwt',
-    destination: '/consul/docs/secure/acl/auth-method/jwt',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/security/acl/auth-methods/kubernetes',
-    destination: '/consul/docs/secure/acl/auth-method/k8s',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/security/acl/auth-methods/oidc',
-    destination: '/consul/docs/secure/acl/auth-method/oidc',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/security/acl/tokens',
-    destination: '/consul/docs/secure/acl/token',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/security/acl/tokens/create/create-a-consul-esm-token',
-    destination: '/consul/docs/secure/acl/token/esm',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/security/acl/tokens/create/create-a-dns-token',
-    destination: '/consul/docs/secure/acl/token/dns',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/security/acl/tokens/create/create-a-mesh-gateway-token',
-    destination: '/consul/docs/secure/acl/token/mesh-gateway',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/security/acl/tokens/create/create-a-replication-token',
-    destination: '/consul/docs/secure/acl/token/replication',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/security/acl/tokens/create/create-a-service-token',
-    destination: '/consul/docs/secure/acl/token/service',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/security/acl/tokens/create/create-a-snapshot-agent-token',
-    destination: '/consul/docs/secure/acl/token/snapshot-agent',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/security/acl/tokens/create/create-a-terminating-gateway-token',
-    destination: '/consul/docs/secure/acl/token/terminating-gateway',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/security/acl/tokens/create/create-a-token-for-vault-consul-storage',
-    destination: '/consul/docs/secure/acl/token/vault-backend',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/security/acl/tokens/create/create-a-ui-token',
-    destination: '/consul/docs/secure/acl/token/ui',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/security/acl/tokens/create/create-an-agent-token',
-    destination: '/consul/docs/secure/acl/token/agent',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/security/acl/tokens/create/create-an-ingress-gateway-token',
-    destination: '/consul/docs/secure/acl/token/ingress-gateway',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/security/encryption',
-    destination: '/consul/docs/secure/encryption',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/security/encryption/gossip',
-    destination: '/consul/docs/secure/encryption/gossip/enable',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/security/encryption/mtls',
-    destination: '/consul/docs/secure/encryption/tls/mtls',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/security/security-models',
-    destination: '/consul/docs/secure/security-model',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/security/security-models/core',
-    destination: '/consul/docs/secure/security-model/core',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/security/security-models/nia',
-    destination: '/consul/docs/secure/security-model/cts',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/services/configuration/checks-configuration-reference',
-    destination: '/consul/docs/reference/service/health-check',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/services/configuration/services-configuration-overview',
-    destination: '/consul/docs/fundamentals/service',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/services/configuration/services-configuration-reference',
-    destination: '/consul/docs/reference/service',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/services/discovery/dns-cache',
-    destination: '/consul/docs/discover/dns/scale',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/services/discovery/dns-configuration',
-    destination: '/consul/docs/discover/dns/configure',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/services/discovery/dns-dynamic-lookups',
-    destination: '/consul/docs/discover/service/dynamic',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/services/discovery/dns-forwarding',
-    destination: '/consul/docs/discover/dns/forwarding',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/services/discovery/dns-forwarding/enable',
-    destination: '/consul/docs/discover/dns/forwarding/enable',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/services/discovery/dns-overview',
-    destination: '/consul/docs/discover/dns',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/services/discovery/dns-static-lookups',
-    destination: '/consul/docs/discover/service/static',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/services/services',
-    destination: '/consul/docs/fundamentals/service',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/services/usage/checks',
-    destination: '/consul/docs/register/health-check/vm',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/services/usage/define-services',
-    destination: '/consul/docs/register/service/vm/define',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/services/usage/register-services-checks',
-    destination: '/consul/docs/register/service/vm',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/troubleshoot/common-errors',
-    destination: '/consul/docs/error-messages/consul',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/troubleshoot/troubleshoot-services',
-    destination: '/consul/docs/troubleshoot/service-communication',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/upgrading',
-    destination: '/consul/docs/upgrade',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/upgrading/compatibility',
-    destination: '/consul/docs/upgrade/compatibility',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/upgrading/instructions',
-    destination: '/consul/docs/upgrade/instructions',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/upgrading/instructions/general-process',
-    destination: '/consul/docs/upgrade/instructions/general',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/upgrading/instructions/upgrade-to-1-10-x',
-    destination: '/consul/docs/upgrade/instructions/upgrade-to-1-10-x',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/upgrading/instructions/upgrade-to-1-2-x',
-    destination: '/consul/docs/upgrade/instructions/upgrade-to-1-2-x',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/upgrading/instructions/upgrade-to-1-6-x',
-    destination: '/consul/docs/upgrade/instructions/upgrade-to-1-6-x',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/upgrading/instructions/upgrade-to-1-8-x',
-    destination: '/consul/docs/upgrade/instructions/upgrade-to-1-8-x',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/upgrading/upgrade-specific',
-    destination: '/consul/docs/upgrade/version-specific',
-    permanent: true,
-  },
   ///////////////////////////////////
   // Versioned docs compatibility  //
   ///////////////////////////////////
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/architecture/control-plane/agent/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/architecture/fundamentals/agent/',
     destination: '/consul/docs/:version/agent',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/fundamentals/agent/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/fundamentals/agent/',
     destination: '/consul/docs/:version/agent/config',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/fundamentals/config-entry/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/fundamentals/config-entry/',
     destination: '/consul/docs/:version/agent/config-entries',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/agent/cli-flags/',
+      '/consul/commands/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/agent/',
     destination: '/consul/docs/:version/agent/config/cli-flags',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/agent/configuration-file/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/agent/configuration-file/',
     destination: '/consul/docs/:version/agent/config/config-files',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/manage/rate-limit/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/manage/rate-limit/',
     destination: '/consul/docs/:version/agent/limits',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/manage/rate-limit/initialize/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/manage/rate-limit/initialize/',
     destination: '/consul/docs/:version/agent/limits/usage/init-rate-limits',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/manage/rate-limit/source/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/manage/rate-limit/source/',
     destination:
       '/consul/docs/:version/agent/limits/usage/limit-request-rates-from-ips',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/manage/rate-limit/monitor/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/manage/rate-limit/monitor/',
     destination: '/consul/docs/:version/agent/limits/usage/monitor-rate-limits',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/manage/rate-limit/global/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/manage/rate-limit/global/',
     destination:
       '/consul/docs/:version/agent/limits/usage/set-global-traffic-rate-limits',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/monitor/alerts/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/monitor/alerts/',
     destination: '/consul/docs/:version/agent/monitor/alerts',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/monitor/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/monitor/',
     destination: '/consul/docs/:version/agent/monitor/components',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/monitor/telemetry/agent/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/monitor/telemetry/agent/',
     destination: '/consul/docs/:version/agent/monitor/telemetry',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure/acl/sentinel/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/secure/acl/sentinel/',
     destination: '/consul/docs/:version/agent/sentinel',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/deploy/server/wal/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/deploy/server/wal/',
     destination: '/consul/docs/:version/agent/wal-logstore',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/deploy/server/wal/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/deploy/server/wal/',
     destination: '/consul/docs/:version/agent/wal-logstore/enable',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/deploy/server/wal/monitor-raft/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/deploy/server/wal/monitor-raft/',
     destination: '/consul/docs/:version/agent/wal-logstore/monitoring',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/deploy/server/wal/revert-boltdb/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/deploy/server/wal/revert-boltdb/',
     destination: '/consul/docs/:version/agent/wal-logstore/revert-to-boltdb',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/architecture/control-plane/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/architecture/control-plane/',
     destination: '/consul/docs/:version/architecture',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/concept/consistency/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/concept/consistency/',
     destination: '/consul/docs/:version/architecture/anti-entropy',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/architecture/capacity/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/architecture/capacity/',
     destination: '/consul/docs/:version/architecture/capacity-planning',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/concept/catalog/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/concept/catalog/',
     destination: '/consul/docs/:version/architecture/catalog',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/concept/consensus/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/concept/consensus/',
     destination: '/consul/docs/:version/architecture/consensus',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/concept/gossip/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/concept/gossip/',
     destination: '/consul/docs/:version/architecture/gossip',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/concept/reliability/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/concept/reliability/',
     destination:
       '/consul/docs/:version/architecture/improving-consul-resilience',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/concept/consistency/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/concept/consistency/',
     destination: '/consul/docs/:version/architecture/jepsen',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/manage/scale/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/manage/scale/',
     destination: '/consul/docs/:version/architecture/scale',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/use-case/service-discovery/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/use-case/service-discovery/',
     destination: '/consul/docs/:version/concepts/service-discovery',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/use-case/service-mesh/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/use-case/service-mesh/',
     destination: '/consul/docs/:version/concepts/service-mesh',
     permanent: true,
   },
 
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure-mesh/certificate/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/secure-mesh/certificate/',
     destination: '/consul/docs/:version/connect/ca',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure-mesh/certificate/acm/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/secure-mesh/certificate/acm/',
     destination: '/consul/docs/:version/connect/ca/aws',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure-mesh/certificate/built-in/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/secure-mesh/certificate/built-in/',
     destination: '/consul/docs/:version/connect/ca/consul',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure-mesh/certificate/vault/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/secure-mesh/certificate/vault/',
     destination: '/consul/docs/:version/connect/ca/vault',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/east-west/cluster-peering/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/east-west/cluster-peering/',
     destination: '/consul/docs/:version/connect/cluster-peering',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/east-west/cluster-peering/tech-specs/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/east-west/cluster-peering/tech-specs/',
     destination: '/consul/docs/:version/connect/cluster-peering/tech-specs',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/multi-tenant/sameness-group/vm/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/multi-tenant/sameness-group/vm/',
     destination:
       '/consul/docs/:version/connect/cluster-peering/usage/create-sameness-groups',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/east-west/cluster-peering/establish/vm/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/east-west/cluster-peering/establish/vm/',
     destination:
       '/consul/docs/:version/connect/cluster-peering/usage/establish-cluster-peering',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/east-west/cluster-peering/manage/vm/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/east-west/cluster-peering/manage/vm/',
     destination:
       '/consul/docs/:version/connect/cluster-peering/usage/manage-connections',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/manage-traffic/cluster-peering/vm/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/manage-traffic/cluster-peering/vm/',
     destination:
       '/consul/docs/:version/connect/cluster-peering/usage/peering-traffic-management',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/fundamentals/config-entry/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/fundamentals/config-entry/',
     destination: '/consul/docs/:version/connect/config-entries',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/config-entry/api-gateway/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/config-entry/api-gateway/',
     destination: '/consul/docs/:version/connect/config-entries/api-gateway',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/config-entry/control-plane-request-limit/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/config-entry/control-plane-request-limit/',
     destination:
       '/consul/docs/:version/connect/config-entries/control-plane-request-limit',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/config-entry/exported-services/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/config-entry/exported-services/',
     destination:
       '/consul/docs/:version/connect/config-entries/exported-services',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/config-entry/file-system-certificate/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/config-entry/file-system-certificate/',
     destination:
       '/consul/docs/:version/connect/config-entries/file-system-certificate',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/config-entry/http-route/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/config-entry/http-route/',
     destination: '/consul/docs/:version/connect/config-entries/http-route',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/config-entry/ingress-gateway/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/config-entry/ingress-gateway/',
     destination: '/consul/docs/:version/connect/config-entries/ingress-gateway',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/config-entry/inline-certificate/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/config-entry/inline-certificate/',
     destination:
       '/consul/docs/:version/connect/config-entries/inline-certificate',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/config-entry/jwt-provider/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/config-entry/jwt-provider/',
     destination: '/consul/docs/:version/connect/config-entries/jwt-provider',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/config-entry/mesh/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/config-entry/mesh/',
     destination: '/consul/docs/:version/connect/config-entries/mesh',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/config-entry/proxy-defaults/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/config-entry/proxy-defaults/',
     destination: '/consul/docs/:version/connect/config-entries/proxy-defaults',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/config-entry/registration/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/config-entry/registration/',
     destination: '/consul/docs/:version/connect/config-entries/registration',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/config-entry/sameness-group/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/config-entry/sameness-group/',
     destination: '/consul/docs/:version/connect/config-entries/sameness-group',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/config-entry/service-defaults/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/config-entry/service-defaults/',
     destination:
       '/consul/docs/:version/connect/config-entries/service-defaults',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/config-entry/service-intentions/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/config-entry/service-intentions/',
     destination:
       '/consul/docs/:version/connect/config-entries/service-intentions',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/config-entry/service-resolver/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/config-entry/service-resolver/',
     destination:
       '/consul/docs/:version/connect/config-entries/service-resolver',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/config-entry/service-router/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/config-entry/service-router/',
     destination: '/consul/docs/:version/connect/config-entries/service-router',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/config-entry/service-splitter/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/config-entry/service-splitter/',
     destination:
       '/consul/docs/:version/connect/config-entries/service-splitter',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/config-entry/tcp-route/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/config-entry/tcp-route/',
     destination: '/consul/docs/:version/connect/config-entries/tcp-route',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/config-entry/terminating-gateway/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/config-entry/terminating-gateway/',
     destination:
       '/consul/docs/:version/connect/config-entries/terminating-gateway',
     permanent: true,
   },
+
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/architecture/data-plane/connect/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/architecture/data-plane/connect/',
     destination: '/consul/docs/:version/connect/connect-internals',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/architecture/data-plane/gateway/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/architecture/data-plane/gateway/',
     destination: '/consul/docs/:version/connect/connectivity-tasks',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/architecture/control-plane/dataplane/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/architecture/control-plane/dataplane/',
     destination: '/consul/docs/:version/connect/dataplane',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference-cli/consul-dataplane/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/dataplane/cli/',
     destination: '/consul/docs/:version/connect/dataplane/consul-dataplane',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/dataplane/telemetry/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/dataplane/telemetry/',
     destination: '/consul/docs/:version/connect/dataplane/telemetry',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/troubleshoot/mesh/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/troubleshoot/mesh/',
     destination: '/consul/docs/:version/connect/dev',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/observe/distributed-tracing/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/observe/distributed-tracing/',
     destination: '/consul/docs/:version/connect/distributed-tracing',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/architecture/data-plane/gateway/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/architecture/data-plane/gateway/',
     destination: '/consul/docs/:version/connect/gateways',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/north-south/api-gateway/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/north-south/api-gateway/',
     destination: '/consul/docs/:version/connect/gateways/api-gateway',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/north-south/api-gateway/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/north-south/api-gateway/',
     destination:
       '/consul/docs/:version/connect/gateways/api-gateway/configuration',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/k8s/api-gateway/gateway/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/k8s/api-gateway/gateway/',
     destination:
       '/consul/docs/:version/connect/gateways/api-gateway/configuration/gateway',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/k8s/api-gateway/gatewayclass/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/k8s/api-gateway/gatewayclass/',
     destination:
       '/consul/docs/:version/connect/gateways/api-gateway/configuration/gatewayclass',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/k8s/api-gateway/gatewayclassconfig/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/k8s/api-gateway/gatewayclassconfig/',
     destination:
       '/consul/docs/:version/connect/gateways/api-gateway/configuration/gatewayclassconfig',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/k8s/api-gateway/gatewaypolicy/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/k8s/api-gateway/gatewaypolicy/',
     destination:
       '/consul/docs/:version/connect/gateways/api-gateway/configuration/gatewaypolicy',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/k8s/api-gateway/meshservice/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/k8s/api-gateway/meshservice/',
     destination:
       '/consul/docs/:version/connect/gateways/api-gateway/configuration/meshservice',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/k8s/api-gateway/routeauthfilter/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/k8s/api-gateway/routeauthfilter/',
     destination:
       '/consul/docs/:version/connect/gateways/api-gateway/configuration/routeauthfilter',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/k8s/api-gateway/routeretryfilter/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/k8s/api-gateway/routeretryfilter/',
     destination:
       '/consul/docs/:version/connect/gateways/api-gateway/configuration/routeretryfilter',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/k8s/api-gateway/routes/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/k8s/api-gateway/routes/',
     destination:
       '/consul/docs/:version/connect/gateways/api-gateway/configuration/routes',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/k8s/api-gateway/routetimeoutfilter/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/k8s/api-gateway/routetimeoutfilter/',
     destination:
       '/consul/docs/:version/connect/gateways/api-gateway/configuration/routetimeoutfilter',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/north-south/api-gateway/k8s/reroute/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/north-south/api-gateway/k8s/reroute/',
     destination:
       '/consul/docs/:version/connect/gateways/api-gateway/define-routes/reroute-http-requests',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/north-south/api-gateway/k8s/peer/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/north-south/api-gateway/k8s/peer/',
     destination:
       '/consul/docs/:version/connect/gateways/api-gateway/define-routes/route-to-peered-services',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/north-south/api-gateway/k8s/route/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/north-south/api-gateway/k8s/route/',
     destination:
       '/consul/docs/:version/connect/gateways/api-gateway/define-routes/routes-k8s',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/north-south/api-gateway/vm/route/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/north-south/api-gateway/vm/route/',
     destination:
       '/consul/docs/:version/connect/gateways/api-gateway/define-routes/routes-vms',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/north-south/api-gateway/k8s/listener/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/north-south/api-gateway/k8s/listener/',
     destination:
       '/consul/docs/:version/connect/gateways/api-gateway/deploy/listeners-k8s',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/north-south/api-gateway/vm/listener/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/north-south/api-gateway/vm/listener/',
     destination:
       '/consul/docs/:version/connect/gateways/api-gateway/deploy/listeners-vms',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/error-messages/api-gateway/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/error-messages/api-gateway/',
     destination: '/consul/docs/:version/connect/gateways/api-gateway/errors',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/north-south/api-gateway/k8s/enable/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/north-south/api-gateway/k8s/enable/',
     destination:
       '/consul/docs/:version/connect/gateways/api-gateway/install-k8s',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/north-south/api-gateway/secure-traffic/encrypt/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/north-south/api-gateway/secure-traffic/encrypt/',
     destination:
       '/consul/docs/:version/connect/gateways/api-gateway/secure-traffic/encrypt-vms',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/north-south/api-gateway/secure-traffic/jwt/k8s/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/north-south/api-gateway/secure-traffic/jwt/k8s/',
     destination:
       '/consul/docs/:version/connect/gateways/api-gateway/secure-traffic/verify-jwts-k8s',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/north-south/api-gateway/secure-traffic/jwt/vm/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/north-south/api-gateway/secure-traffic/jwt/vm/',
     destination:
       '/consul/docs/:version/connect/gateways/api-gateway/secure-traffic/verify-jwts-vms',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/north-south/api-gateway/k8s/tech-specs/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/north-south/api-gateway/k8s/tech-specs/',
     destination:
       '/consul/docs/:version/connect/gateways/api-gateway/tech-specs',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/upgrade/api-gateway/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/upgrade/api-gateway/',
     destination:
       '/consul/docs/:version/connect/gateways/api-gateway/upgrades-k8s',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/north-south/ingress-gateway/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/north-south/ingress-gateway/',
     destination: '/consul/docs/:version/connect/gateways/ingress-gateway',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/north-south/ingress-gateway/external/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/north-south/ingress-gateway/external/',
     destination:
       '/consul/docs/:version/connect/gateways/ingress-gateway/tls-external-service',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/north-south/ingress-gateway/vm/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/north-south/ingress-gateway/vm/',
     destination: '/consul/docs/:version/connect/gateways/ingress-gateway/usage',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/east-west/mesh-gateway/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/east-west/mesh-gateway/',
     destination: '/consul/docs/:version/connect/gateways/mesh-gateway',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/east-west/mesh-gateway/cluster-peer/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/east-west/mesh-gateway/cluster-peer/',
     destination:
       '/consul/docs/:version/connect/gateways/mesh-gateway/peering-via-mesh-gateways',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/east-west/mesh-gateway/admin-partition/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/east-west/mesh-gateway/admin-partition/',
     destination:
       '/consul/docs/:version/connect/gateways/mesh-gateway/service-to-service-traffic-partitions',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/east-west/mesh-gateway/federation/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/east-west/mesh-gateway/federation/',
     destination:
       '/consul/docs/:version/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/east-west/mesh-gateway/enable/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/east-west/mesh-gateway/enable/',
     destination:
       '/consul/docs/:version/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/north-south/terminating-gateway/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/north-south/terminating-gateway/',
     destination: '/consul/docs/:version/connect/gateways/terminating-gateway',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure-mesh/intention/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/secure-mesh/intention/',
     destination: '/consul/docs/:version/connect/intentions',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure-mesh/intention/create/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/secure-mesh/intention/create/',
     destination:
       '/consul/docs/:version/connect/intentions/create-manage-intentions',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure-mesh/intention/jwt/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/secure-mesh/intention/jwt/',
     destination: '/consul/docs/:version/connect/intentions/jwt-authorization',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure-mesh/intention/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/secure-mesh/intention/',
     destination: '/consul/docs/:version/connect/intentions/legacy',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/manage-traffic/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/manage-traffic/',
     destination: '/consul/docs/:version/connect/manage-traffic',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/manage-traffic/discovery-chain/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/manage-traffic/discovery-chain/',
     destination: '/consul/docs/:version/connect/manage-traffic/discovery-chain',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/manage-traffic/failover/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/manage-traffic/failover/',
     destination: '/consul/docs/:version/connect/manage-traffic/failover',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/manage-traffic/failover/sameness-group/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/manage-traffic/failover/sameness-group/',
     destination:
       '/consul/docs/:version/connect/manage-traffic/failover/sameness',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/troubleshoot/fault-injection/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/troubleshoot/fault-injection/',
     destination: '/consul/docs/:version/connect/manage-traffic/fault-injection',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/manage-traffic/rate-limit/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/manage-traffic/rate-limit/',
     destination:
       '/consul/docs/:version/connect/manage-traffic/limit-request-rates',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/manage-traffic/route-local/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/manage-traffic/route-local/',
     destination:
       '/consul/docs/:version/connect/manage-traffic/route-to-local-upstreams',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/automate/native/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/automate/native/',
     destination: '/consul/docs/:version/connect/native',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/automate/native/go/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/automate/native/go/',
     destination: '/consul/docs/:version/connect/native/go',
     permanent: true,
   },
 
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/observe/tech-specs/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/observe/tech-specs/',
     destination: '/consul/docs/:version/connect/observability',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/observe/access-log/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/observe/access-log/',
     destination: '/consul/docs/:version/connect/observability/access-logs',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/observe/grafana/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/observe/grafana/',
     destination:
       '/consul/docs/:version/connect/observability/grafanadashboards',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/observe/grafana/dataplane/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/observe/grafana/dataplane/',
     destination:
       '/consul/docs/:version/connect/observability/grafanadashboards/consuldataplanedashboard',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/observe/grafana/consul-k8s/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/observe/grafana/consul-k8s/',
     destination:
       '/consul/docs/:version/connect/observability/grafanadashboards/consulk8sdashboard',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/observe/grafana/server/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/observe/grafana/server/',
     destination:
       '/consul/docs/:version/connect/observability/grafanadashboards/consulserverdashboard',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/observe/grafana/service-to-service/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/observe/grafana/service-to-service/',
     destination:
       '/consul/docs/:version/connect/observability/grafanadashboards/service-to-servicedashboard',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/observe/grafana/service/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/observe/grafana/service/',
     destination:
       '/consul/docs/:version/connect/observability/grafanadashboards/servicedashboard',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/observe/grafana/service-to-service/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/observe/grafana/service-to-service/',
     destination: '/consul/docs/:version/connect/observability/service',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/observe/telemetry/vm/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/observe/telemetry/vm/',
     destination: '/consul/docs/:version/connect/observability/ui-visualization',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/connect/proxy/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/connect/proxy/',
     destination: '/consul/docs/:version/connect/proxies',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/proxy/built-in/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/proxy/built-in/',
     destination: '/consul/docs/:version/connect/proxies/built-in',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/connect/proxy/mesh/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/connect/proxy/mesh/',
     destination:
       '/consul/docs/:version/connect/proxies/deploy-service-mesh-proxies',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/connect/proxy/sidecar/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/connect/proxy/sidecar/',
     destination:
       '/consul/docs/:version/connect/proxies/deploy-sidecar-services',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/proxy/envoy/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/proxy/envoy/',
     destination: '/consul/docs/:version/connect/proxies/envoy',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/envoy-extension/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/envoy-extension/',
     destination: '/consul/docs/:version/connect/proxies/envoy-extensions',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/proxy/extensions/ext-authz/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/proxy/extensions/ext-authz/',
     destination:
       '/consul/docs/:version/connect/proxies/envoy-extensions/configuration/ext-authz',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/proxy/extensions/otel/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/proxy/extensions/otel/',
     destination:
       '/consul/docs/:version/connect/proxies/envoy-extensions/configuration/otel-access-logging',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/proxy/extensions/property-override/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/proxy/extensions/property-override/',
     destination:
       '/consul/docs/:version/connect/proxies/envoy-extensions/configuration/property-override',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/proxy/extensions/wasm/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/proxy/extensions/wasm/',
     destination:
       '/consul/docs/:version/connect/proxies/envoy-extensions/configuration/wasm',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/envoy-extension/apigee-external-authz/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/envoy-extension/apigee-external-authz/',
     destination:
       '/consul/docs/:version/connect/proxies/envoy-extensions/usage/apigee-ext-authz',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/envoy-extension/external-authz/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/envoy-extension/external-authz/',
     destination:
       '/consul/docs/:version/connect/proxies/envoy-extensions/usage/ext-authz',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/envoy-extension/lambda/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/envoy-extension/lambda/',
     destination:
       '/consul/docs/:version/connect/proxies/envoy-extensions/usage/lambda',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/envoy-extension/lua/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/envoy-extension/lua/',
     destination:
       '/consul/docs/:version/connect/proxies/envoy-extensions/usage/lua',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/envoy-extension/otel-access-logging/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/envoy-extension/otel-access-logging/',
     destination:
       '/consul/docs/:version/connect/proxies/envoy-extensions/usage/otel-access-logging',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/envoy-extension/property-override/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/envoy-extension/property-override/',
     destination:
       '/consul/docs/:version/connect/proxies/envoy-extensions/usage/property-override',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/envoy-extension/wasm/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/envoy-extension/wasm/',
     destination:
       '/consul/docs/:version/connect/proxies/envoy-extensions/usage/wasm',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/connect/proxy/custom/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/connect/proxy/custom/',
     destination: '/consul/docs/:version/connect/proxies/integrate',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/proxy/connect-proxy/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/proxy/connect-proxy/',
     destination: '/consul/docs/:version/connect/proxies/proxy-config-reference',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure-mesh/best-practice/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/secure-mesh/best-practice/',
     destination: '/consul/docs/:version/connect/security',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/use-case/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/use-case/',
     destination: '/consul/docs/:version/consul-vs-other',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/use-case/api-gateway/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/use-case/api-gateway/',
     destination: '/consul/docs/:version/consul-vs-other/api-gateway-compare',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/use-case/config-management/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/use-case/config-management/',
     destination:
       '/consul/docs/:version/consul-vs-other/config-management-compare',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/use-case/dns/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/use-case/dns/',
     destination: '/consul/docs/:version/consul-vs-other/dns-tools-compare',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/use-case/service-mesh/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/use-case/service-mesh/',
     destination: '/consul/docs/:version/consul-vs-other/service-mesh-compare',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/automate/kv/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/automate/kv/',
     destination: '/consul/docs/:version/dynamic-app-config/kv',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/automate/kv/store/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/automate/kv/store/',
     destination: '/consul/docs/:version/dynamic-app-config/kv/store',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/automate/session/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/automate/session/',
     destination: '/consul/docs/:version/dynamic-app-config/sessions',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/automate/application-leader-election/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/automate/application-leader-election/',
     destination:
       '/consul/docs/:version/dynamic-app-config/sessions/application-leader-election',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/automate/watch/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/automate/watch/',
     destination: '/consul/docs/:version/dynamic-app-config/watches',
     permanent: true,
   },
+
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/ecs/',
-    destination: '/consul/docs/:version/ecs',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/architecture/ecs/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/architecture/ecs/',
     destination: '/consul/docs/:version/ecs/architecture',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/register/service/ecs/task-bind-address/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/register/service/ecs/task-bind-address/',
     destination: '/consul/docs/:version/ecs/deploy/bind-addresses',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/connect/ecs/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/connect/ecs/',
     destination: '/consul/docs/:version/ecs/deploy/configure-routes',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/register/service/ecs/manual/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/register/service/ecs/manual/',
     destination: '/consul/docs/:version/ecs/deploy/manual',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/register/service/ecs/migrate/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/register/service/ecs/migrate/',
     destination: '/consul/docs/:version/ecs/deploy/migrate-existing-tasks',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/register/service/ecs//',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/register/service/ecs//',
     destination: '/consul/docs/:version/ecs/deploy/terraform',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/enterprise/ecs/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/enterprise/ecs/',
     destination: '/consul/docs/:version/ecs/enterprise',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/upgrade/ecs/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/upgrade/ecs/',
     destination: '/consul/docs/:version/ecs/reference/compatibility',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/ecs/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/ecs/',
     destination: '/consul/docs/:version/ecs/reference/configuration-reference',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/ecs/server-json/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/ecs/server-json/',
     destination: '/consul/docs/:version/ecs/reference/consul-server-json',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/ecs/tech-specs/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/ecs/tech-specs/',
     destination: '/consul/docs/:version/ecs/tech-specs',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/upgrade/ecs/dataplane/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/upgrade/ecs/dataplane/',
     destination: '/consul/docs/:version/ecs/upgrade-to-dataplanes',
     permanent: true,
   },
 
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/multi-tenant/admin-partition/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/multi-tenant/admin-partition/',
     destination: '/consul/docs/:version/enterprise/admin-partitions',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/monitor/log/audit/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/monitor/log/audit/',
     destination: '/consul/docs/:version/enterprise/audit-logging',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/manage/automated-backup/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/manage/scale/automated-backup/',
     destination: '/consul/docs/:version/enterprise/backups',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/enterprise/downgrade/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/enterprise/downgrade/',
     destination: '/consul/docs/:version/enterprise/ent-to-ce-downgrades',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/east-west/network-area/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/east-west/network-area/',
     destination: '/consul/docs/:version/enterprise/federation',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/deploy/server/fips/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/deploy/server/fips/',
     destination: '/consul/docs/:version/enterprise/fips',
     permanent: true,
   },
+
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/enterprise/license/faq/',
-    destination: '/consul/docs/:version/enterprise/license/faq',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/enterprise/license/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/enterprise/license/',
     destination: '/consul/docs/:version/enterprise/license/overview',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/enterprise/license/reporting/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/enterprise/license/reporting/',
     destination:
       '/consul/docs/:version/enterprise/license/utilization-reporting',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/upgrade/lts/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/upgrade/lts/',
     destination: '/consul/docs/:version/enterprise/long-term-support',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/multi-tenant/namespace/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/multi-tenant/namespace/',
     destination: '/consul/docs/:version/enterprise/namespaces',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/multi-tenant/network-segment/vm/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/multi-tenant/network-segment/vm/',
     destination:
       '/consul/docs/:version/enterprise/network-segments/create-network-segment',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/multi-tenant/network-segment/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/multi-tenant/network-segment/',
     destination:
       '/consul/docs/:version/enterprise/network-segments/network-segments-overview',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/manage/read-replica/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/manage/scale/read-replica/',
     destination: '/consul/docs/:version/enterprise/read-scale',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/manage/redundancy-zone/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/manage/scale/redundancy-zone/',
     destination: '/consul/docs/:version/enterprise/redundancy',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/upgrade/automated/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/upgrade/automated/',
     destination: '/consul/docs/:version/enterprise/upgrades',
     permanent: true,
   },
+
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/fundamentals/install/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/fundamentals/install/',
     destination: '/consul/docs/:version/install',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/deploy/server/vm/bootstrap/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/deploy/server/vm/bootstrap/',
     destination: '/consul/docs/:version/install/bootstrapping',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/deploy/server/cloud-auto-join/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/deploy/server/cloud-auto-join/',
     destination: '/consul/docs/:version/install/cloud-auto-join',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/glossary/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/glossary/',
     destination: '/consul/docs/:version/install/glossary',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/deploy/server/vm/bootstrap/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/deploy/server/vm/bootstrap/',
     destination: '/consul/docs/:version/install/manual-bootstrap',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/architecture/server/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/architecture/server/',
     destination: '/consul/docs/:version/install/performance',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/architecture/ports/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/architecture/ports/',
     destination: '/consul/docs/:version/install/ports',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/integrate/consul-tools/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/integrate/consul-tools/',
     destination: '/consul/docs/:version/integrate/download-tools',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/integrate/nia/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/integrate/nia/',
     destination: '/consul/docs/:version/integrate/nia-integration',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/integrate/consul/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/integrate/consul/',
     destination: '/consul/docs/:version/integrate/partnerships',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/architecture/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/architecture/',
     destination: '/consul/docs/:version/internals',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure/acl/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/secure/acl/',
     destination: '/consul/docs/:version/internals/acl',
     permanent: true,
   },
+
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/annotation-label/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/k8s/annotation-label/',
     destination: '/consul/docs/:version/k8s/annotations-and-labels',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/architecture/control-plane/k8s/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/architecture/control-plane/k8s/',
     destination: '/consul/docs/:version/k8s/architecture',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/upgrade/k8s/compatibility/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/upgrade/k8s/compatibility/',
     destination: '/consul/docs/:version/k8s/compatibility',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/architecture/data-plane/mesh/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/connect/k8s/',
     destination: '/consul/docs/:version/k8s/connect',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/east-west/cluster-peering/tech-specs/k8s/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/east-west/cluster-peering/tech-specs/k8s/',
     destination: '/consul/docs/:version/k8s/connect/cluster-peering/tech-specs',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/multi-tenant/sameness-group/k8s/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/multi-tenant/sameness-group/k8s/',
     destination:
       '/consul/docs/:version/k8s/connect/cluster-peering/usage/create-sameness-groups',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/east-west/cluster-peering/establish/k8s/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/east-west/cluster-peering/establish/k8s/',
     destination:
       '/consul/docs/:version/k8s/connect/cluster-peering/usage/establish-peering',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/manage-traffic/cluster-peering/k8s/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/manage-traffic/cluster-peering/k8s/',
     destination:
       '/consul/docs/:version/k8s/connect/cluster-peering/usage/l7-traffic',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/east-west/cluster-peering/manage/k8s/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/east-west/cluster-peering/manage/k8s/',
     destination:
       '/consul/docs/:version/k8s/connect/cluster-peering/usage/manage-peering',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure-mesh/certificate/k8s/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/secure-mesh/certificate/k8s/',
     destination: '/consul/docs/:version/k8s/connect/connect-ca-provider',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/register/health-check/k8s/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/register/health-check/k8s/',
     destination: '/consul/docs/:version/k8s/connect/health',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/north-south/ingress-controller/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/north-south/ingress-controller/',
     destination: '/consul/docs/:version/k8s/connect/ingress-controllers',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/north-south/ingress-gateway/k8s/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/north-south/ingress-gateway/k8s/',
     destination: '/consul/docs/:version/k8s/connect/ingress-gateways',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/observe/telemetry/k8s/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/observe/telemetry/k8s/',
     destination: '/consul/docs/:version/k8s/connect/observability/metrics',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/register/service/k8s/transparent-proxy/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/register/service/k8s/transparent-proxy/',
     destination: '/consul/docs/:version/k8s/connect/onboarding-tproxy-mode',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/register/external/terminating-gateway/k8s/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/register/external/terminating-gateway/k8s/',
     destination: '/consul/docs/:version/k8s/connect/terminating-gateways',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/connect/proxy/transparent-proxy/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/connect/proxy/transparent-proxy/',
     destination: '/consul/docs/:version/k8s/connect/transparent-proxy',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/connect/proxy/transparent-proxy/k8s/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/connect/proxy/transparent-proxy/k8s/',
     destination:
       '/consul/docs/:version/k8s/connect/transparent-proxy/enable-transparent-proxy',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/fundamentals/config-entry/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/fundamentals/config-entry/',
     destination: '/consul/docs/:version/k8s/crds',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/fundamentals/config-entry/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/fundamentals/config-entry/',
     destination: '/consul/docs/:version/k8s/crds/upgrade-to-crds',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/manage-traffic/progressive-rollouts/argo/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/manage-traffic/progressive-rollouts/argo/',
     destination:
       '/consul/docs/:version/k8s/deployment-configurations/argo-rollouts-configuration',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/register/service/k8s/external/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/register/service/k8s/external/',
     destination:
       '/consul/docs/:version/k8s/deployment-configurations/clients-outside-kubernetes',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/deploy/server/k8s/enterprise/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/deploy/server/k8s/enterprise/',
     destination:
       '/consul/docs/:version/k8s/deployment-configurations/consul-enterprise',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/monitor/datadog/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/monitor/datadog/',
     destination: '/consul/docs/:version/k8s/deployment-configurations/datadog',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/register/external/k8s/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/register/external/k8s/',
     destination:
       '/consul/docs/:version/k8s/deployment-configurations/external-service',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/east-west/wan-federation/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/east-west/wan-federation/',
     destination:
       '/consul/docs/:version/k8s/deployment-configurations/multi-cluster',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/east-west/wan-federation/k8s/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/east-west/wan-federation/k8s/',
     destination:
       '/consul/docs/:version/k8s/deployment-configurations/multi-cluster/kubernetes',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/east-west/wan-federation/k8s-vm/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/east-west/wan-federation/k8s-vm/',
     destination:
       '/consul/docs/:version/k8s/deployment-configurations/multi-cluster/vms-and-kubernetes',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/deploy/server/k8s/external/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/deploy/server/k8s/external/',
     destination:
       '/consul/docs/:version/k8s/deployment-configurations/servers-outside-kubernetes',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/deploy/server/k8s/multi-cluster/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/deploy/server/k8s/multi-cluster/',
     destination:
       '/consul/docs/:version/k8s/deployment-configurations/single-dc-multi-k8s',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/deploy/server/k8s/vault/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/deploy/server/k8s/vault/',
     destination: '/consul/docs/:version/k8s/deployment-configurations/vault',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/deploy/server/k8s/vault/data/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/deploy/server/k8s/vault/data/',
     destination:
       '/consul/docs/:version/k8s/deployment-configurations/vault/data-integration',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/deploy/server/k8s/vault/data/bootstrap-token/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/deploy/server/k8s/vault/data/bootstrap-token/',
     destination:
       '/consul/docs/:version/k8s/deployment-configurations/vault/data-integration/bootstrap-token',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/deploy/server/k8s/vault/data/enterprise-license/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/deploy/server/k8s/vault/data/enterprise-license/',
     destination:
       '/consul/docs/:version/k8s/deployment-configurations/vault/data-integration/enterprise-license',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/deploy/server/k8s/vault/data/gossip-key/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/deploy/server/k8s/vault/data/gossip-key/',
     destination:
       '/consul/docs/:version/k8s/deployment-configurations/vault/data-integration/gossip',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/deploy/server/k8s/vault/data/partition-token/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/deploy/server/k8s/vault/data/partition-token/',
     destination:
       '/consul/docs/:version/k8s/deployment-configurations/vault/data-integration/partition-token',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/deploy/server/k8s/vault/data/replication-token/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/deploy/server/k8s/vault/data/replication-token/',
     destination:
       '/consul/docs/:version/k8s/deployment-configurations/vault/data-integration/replication-token',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/deploy/server/k8s/vault/data/tls-certificate/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/deploy/server/k8s/vault/data/tls-certificate/',
     destination:
       '/consul/docs/:version/k8s/deployment-configurations/vault/data-integration/server-tls',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/deploy/server/k8s/vault/data/snapshot-agent/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/deploy/server/k8s/vault/data/snapshot-agent/',
     destination:
       '/consul/docs/:version/k8s/deployment-configurations/vault/data-integration/snapshot-agent-config',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/deploy/server/k8s/vault/data/webhook-certificate/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/deploy/server/k8s/vault/data/webhook-certificate/',
     destination:
       '/consul/docs/:version/k8s/deployment-configurations/vault/data-integration/webhook-certs',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/deploy/server/k8s/vault/backend/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/deploy/server/k8s/vault/backend/',
     destination:
       '/consul/docs/:version/k8s/deployment-configurations/vault/systems-integration',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/east-west/wan-federation/vault-backend/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/east-west/wan-federation/vault-backend/',
     destination:
       '/consul/docs/:version/k8s/deployment-configurations/vault/wan-federation',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/manage/dns/forwarding/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/manage/dns/forwarding/k8s/',
     destination: '/consul/docs/:version/k8s/dns/enable',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/manage/dns/views/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/manage/dns/views/',
     destination: '/consul/docs/:version/k8s/dns/views',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/manage/dns/views/enable/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/manage/dns/views/enable/',
     destination: '/consul/docs/:version/k8s/dns/views/enable',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/k8s/helm/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/k8s/helm/',
     destination: '/consul/docs/:version/k8s/helm',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/deploy/server/k8s/helm/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/deploy/server/k8s/helm/',
     destination: '/consul/docs/:version/k8s/installation/install',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/cli/consul-k8s/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/cli/consul-k8s/',
     destination: '/consul/docs/:version/k8s/installation/install-cli',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/cli/consul-k8s/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/cli/consul-k8s/',
     destination: '/consul/docs/:version/k8s/k8s-cli',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/manage-traffic/failover/k8s/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/manage-traffic/failover/k8s/',
     destination: '/consul/docs/:version/k8s/l7-traffic/failover-tproxy',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/manage-traffic/virtual-service/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/manage-traffic/virtual-service/',
     destination:
       '/consul/docs/:version/k8s/l7-traffic/route-to-virtual-services',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure/encryption/tls/rotate/k8s/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/secure/encryption/tls/rotate/k8s/',
     destination: '/consul/docs/:version/k8s/operations/certificate-rotation',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure/encryption/gossip/rotate/k8s/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/secure/encryption/gossip/rotate/k8s/',
     destination:
       '/consul/docs/:version/k8s/operations/gossip-encryption-key-rotation',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure/encryption/tls/rotate/k8s/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/secure/encryption/tls/rotate/k8s/',
     destination: '/consul/docs/:version/k8s/operations/tls-on-existing-cluster',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/upgrade/k8s/uninstall/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/upgrade/k8s/uninstall/',
     destination: '/consul/docs/:version/k8s/operations/uninstall',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/deploy/server/k8s/platform/self-hosted/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/deploy/server/k8s/platform/self-hosted/',
     destination: '/consul/docs/:version/k8s/platforms/self-hosted-kubernetes',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/register/service/k8s/service-sync/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/register/service/k8s/service-sync/',
     destination: '/consul/docs/:version/k8s/service-sync',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/upgrade/k8s/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/upgrade/k8s/',
     destination: '/consul/docs/:version/k8s/upgrade',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/upgrade/k8s/consul-k8s/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/upgrade/k8s/consul-k8s/',
     destination: '/consul/docs/:version/k8s/upgrade/upgrade-cli',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/connect/lambda/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/connect/lambda/',
     destination: '/consul/docs/:version/lambda',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/connect/lambda/function/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/connect/lambda/function/',
     destination: '/consul/docs/:version/lambda/invocation',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/connect/lambda/service/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/connect/lambda/service/',
     destination: '/consul/docs/:version/lambda/invoke-from-lambda',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/register/service/lambda/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/register/service/lambda/',
     destination: '/consul/docs/:version/lambda/registration',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/register/service/lambda/automatic/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/register/service/lambda/automatic/',
     destination: '/consul/docs/:version/lambda/registration/automate',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/register/service/lambda/manual/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/register/service/lambda/manual/',
     destination: '/consul/docs/:version/lambda/registration/manual',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/automate/infrastructure/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/automate/infrastructure/',
     destination: '/consul/docs/:version/nia',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/cts/api/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/cts/api/',
     destination: '/consul/docs/:version/nia/api',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/cts/api/health/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/cts/api/health/',
     destination: '/consul/docs/:version/nia/api/health',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/cts/api/status/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/cts/api/status/',
     destination: '/consul/docs/:version/nia/api/status',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/cts/api/tasks/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/cts/api/tasks/',
     destination: '/consul/docs/:version/nia/api/tasks',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/architecture/cts/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/architecture/cts/',
     destination: '/consul/docs/:version/nia/architecture',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/cli/cts/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/cli/cts/',
     destination: '/consul/docs/:version/nia/cli',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/cli/cts/start/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/cli/cts/start/',
     destination: '/consul/docs/:version/nia/cli/start',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/cli/cts/task/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/cli/cts/task/',
     destination: '/consul/docs/:version/nia/cli/task',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/cts/compatibility/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/cts/compatibility/',
     destination: '/consul/docs/:version/nia/compatibility',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/cts/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/reference/cts/',
     destination: '/consul/docs/:version/nia/configuration',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/enterprise/cts/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/enterprise/cts/',
     destination: '/consul/docs/:version/nia/enterprise',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/enterprise/license/cts/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/enterprise/license/cts/',
     destination: '/consul/docs/:version/nia/enterprise/license',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/automate/infrastructure/configure/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/automate/infrastructure/configure/',
     destination: '/consul/docs/:version/nia/installation/configure',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/automate/infrastructure/install/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/automate/infrastructure/install/',
     destination: '/consul/docs/:version/nia/installation/install',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/automate/infrastructure/network-driver/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/automate/infrastructure/network-driver/',
     destination: '/consul/docs/:version/nia/network-drivers',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/automate/infrastructure/network-driver/hcp-terraform/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/automate/infrastructure/network-driver/hcp-terraform/',
     destination: '/consul/docs/:version/nia/network-drivers/hcp-terraform',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/automate/infrastructure/network-driver/terraform/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/automate/infrastructure/network-driver/terraform/',
     destination: '/consul/docs/:version/nia/network-drivers/terraform',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/automate/infrastructure/task/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/automate/infrastructure/task/',
     destination: '/consul/docs/:version/nia/tasks',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/automate/infrastructure/module/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/automate/infrastructure/module/',
     destination: '/consul/docs/:version/nia/terraform-modules',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/error-messages/cts/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/error-messages/cts/',
     destination: '/consul/docs/:version/nia/usage/errors-ref',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/automate/infrastructure/requirements/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/automate/infrastructure/requirements/',
     destination: '/consul/docs/:version/nia/usage/requirements',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/automate/infrastructure/run/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/automate/infrastructure/run/',
     destination: '/consul/docs/:version/nia/usage/run',
     permanent: true,
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/automate/infrastructure/high-availability/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/automate/infrastructure/high-availability/',
     destination: '/consul/docs/:version/nia/usage/run-ha',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure/',
-    destination: '/consul/docs/:version/security',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure/acl/',
-    destination: '/consul/docs/:version/security/acl',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure/acl/token/federation/',
-    destination: '/consul/docs/:version/security/acl/acl-federated-datacenters',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure/acl/policy/',
-    destination: '/consul/docs/:version/security/acl/acl-policies',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure/acl/role/',
-    destination: '/consul/docs/:version/security/acl/acl-roles',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/acl/rule/',
-    destination: '/consul/docs/:version/security/acl/acl-rules',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure/acl/auth-method/',
-    destination: '/consul/docs/:version/security/acl/auth-methods',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure/acl/auth-method/aws/',
-    destination: '/consul/docs/:version/security/acl/auth-methods/aws-iam',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure/acl/auth-method/jwt/',
-    destination: '/consul/docs/:version/security/acl/auth-methods/jwt',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure/acl/auth-method/k8s/',
-    destination: '/consul/docs/:version/security/acl/auth-methods/kubernetes',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure/acl/auth-method/oidc/',
-    destination: '/consul/docs/:version/security/acl/auth-methods/oidc',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure/acl/token/',
-    destination: '/consul/docs/:version/security/acl/tokens',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure/acl/token/esm/',
-    destination:
-      '/consul/docs/:version/security/acl/tokens/create/create-a-consul-esm-token',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure/acl/token/dns/',
-    destination:
-      '/consul/docs/:version/security/acl/tokens/create/create-a-dns-token',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure/acl/token/mesh-gateway/',
-    destination:
-      '/consul/docs/:version/security/acl/tokens/create/create-a-mesh-gateway-token',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure/acl/token/replication/',
-    destination:
-      '/consul/docs/:version/security/acl/tokens/create/create-a-replication-token',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure/acl/token/service/',
-    destination:
-      '/consul/docs/:version/security/acl/tokens/create/create-a-service-token',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure/acl/token/snapshot-agent/',
-    destination:
-      '/consul/docs/:version/security/acl/tokens/create/create-a-snapshot-agent-token',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure/acl/token/terminating-gateway/',
-    destination:
-      '/consul/docs/:version/security/acl/tokens/create/create-a-terminating-gateway-token',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure/acl/token/vault-backend/',
-    destination:
-      '/consul/docs/:version/security/acl/tokens/create/create-a-token-for-vault-consul-storage',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure/acl/token/ui/',
-    destination:
-      '/consul/docs/:version/security/acl/tokens/create/create-a-ui-token',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure/acl/token/agent/',
-    destination:
-      '/consul/docs/:version/security/acl/tokens/create/create-an-agent-token',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure/acl/token/ingress-gateway/',
-    destination:
-      '/consul/docs/:version/security/acl/tokens/create/create-an-ingress-gateway-token',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure/encryption/',
-    destination: '/consul/docs/:version/security/encryption',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure/encryption/gossip/enable/',
-    destination: '/consul/docs/:version/security/encryption/gossip',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure/encryption/tls/mtls/',
-    destination: '/consul/docs/:version/security/encryption/mtls',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure/security-model/',
-    destination: '/consul/docs/:version/security/security-models',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure/security-model/core/',
-    destination: '/consul/docs/:version/security/security-models/core',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/secure/security-model/cts/',
-    destination: '/consul/docs/:version/security/security-models/nia',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/service/health-check/',
-    destination:
-      '/consul/docs/:version/services/configuration/checks-configuration-reference',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/fundamentals/service/',
-    destination:
-      '/consul/docs/:version/services/configuration/services-configuration-overview',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/reference/service/',
-    destination:
-      '/consul/docs/:version/services/configuration/services-configuration-reference',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/discover/dns/scale/',
-    destination: '/consul/docs/:version/services/discovery/dns-cache',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/discover/dns/configure/',
-    destination: '/consul/docs/:version/services/discovery/dns-configuration',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/discover/service/dynamic/',
-    destination: '/consul/docs/:version/services/discovery/dns-dynamic-lookups',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/discover/dns/forwarding/',
-    destination: '/consul/docs/:version/services/discovery/dns-forwarding',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/discover/dns/forwarding/enable/',
-    destination:
-      '/consul/docs/:version/services/discovery/dns-forwarding/enable',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/discover/dns/',
-    destination: '/consul/docs/:version/services/discovery/dns-overview',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/discover/service/static/',
-    destination: '/consul/docs/:version/services/discovery/dns-static-lookups',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/fundamentals/service/',
-    destination: '/consul/docs/:version/services/services',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/register/health-check/vm/',
-    destination: '/consul/docs/:version/services/usage/checks',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/register/service/vm/define/',
-    destination: '/consul/docs/:version/services/usage/define-services',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/register/service/vm/',
-    destination:
-      '/consul/docs/:version/services/usage/register-services-checks',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/error-messages/consul/',
-    destination: '/consul/docs/:version/troubleshoot/common-errors',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/troubleshoot/service-communication/',
-    destination: '/consul/docs/:version/troubleshoot/troubleshoot-services',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/upgrade/',
-    destination: '/consul/docs/:version/upgrading',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/upgrade/compatibility/',
-    destination: '/consul/docs/:version/upgrading/compatibility',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/upgrade/instructions/',
-    destination: '/consul/docs/:version/upgrading/instructions',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/upgrade/instructions/general/',
-    destination: '/consul/docs/:version/upgrading/instructions/general-process',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/upgrade/instructions/upgrade-to-1-10-x/',
-    destination:
-      '/consul/docs/:version/upgrading/instructions/upgrade-to-1-10-x',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/upgrade/instructions/upgrade-to-1-2-x/',
-    destination:
-      '/consul/docs/:version/upgrading/instructions/upgrade-to-1-2-x',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/upgrade/instructions/upgrade-to-1-6-x/',
-    destination:
-      '/consul/docs/:version/upgrading/instructions/upgrade-to-1-6-x',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/upgrade/instructions/upgrade-to-1-8-x/',
-    destination:
-      '/consul/docs/:version/upgrading/instructions/upgrade-to-1-8-x',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19).x)/upgrade/version-specific/',
-    destination: '/consul/docs/:version/upgrading/upgrade-specific',
     permanent: true,
   },
 
