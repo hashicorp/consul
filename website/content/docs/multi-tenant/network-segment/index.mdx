@@ -50,7 +50,7 @@ Network segments are a subset of other Consul networking models. Understanding t
 
 ### Clusters
 
-You can segment networks within a Consul _cluster_. A cluster is one or more Consul servers that form a Raft quorum and one or more Consul clients that are members of the same [datacenter](/consul/docs/agent/config/cli-flags#_datacenter). The cluster is sometimes called the _local cluster_.  Consul clients discover and make RPC requests to Consul servers in their local cluster through the gossip mechanism. Consul CE uses LAN gossip for intra-cluster communication between agents.
+You can segment networks within a Consul _cluster_. A cluster is one or more Consul servers that form a Raft quorum and one or more Consul clients that are members of the same [datacenter](/consul/commands/agent#_datacenter). The cluster is sometimes called the _local cluster_.  Consul clients discover and make RPC requests to Consul servers in their local cluster through the gossip mechanism. Consul CE uses LAN gossip for intra-cluster communication between agents.
 
 ### LAN gossip pool
 

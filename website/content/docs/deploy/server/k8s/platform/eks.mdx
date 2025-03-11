@@ -18,7 +18,7 @@ To deploy Consul on AKS, you will need:
 - [kubectl >= 1.21](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 - [consul >= 1.14.0](/consul/install/)
 - [Helm v3.6+](https://helm.sh/docs/helm/helm_install/)
-- [consul-k8s v1.0.2+](/consul/docs/reference-cli/consul-k8s#install-the-cli)
+- [consul-k8s v1.0.2+](/consul/docs/reference/cli/consul-k8s#install-the-cli)
 
 ### Create an EKS cluster
 
@@ -100,7 +100,7 @@ Install Consul onto the AKS cluster with `consul-k8s`. Confirm the installation 
 $ consul-k8s install -config-file=values.yaml -set global.image=hashicorp/consul:1.14.0
 ```
 
-Review the official [Consul K8S CLI documentation](/consul/docs/reference-cli/consul-k8s) to learn more about additional settings.
+Review the official [Consul K8S CLI documentation](/consul/docs/reference/cli/consul-k8s) to learn more about additional settings.
 
 </Tab>
 <Tab heading="Helm">

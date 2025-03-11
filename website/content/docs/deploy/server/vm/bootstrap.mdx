@@ -13,7 +13,7 @@ This page describes the process to bootstrap a Consul datacenter running on a vi
 
 In Consul, a datacenter is an organizational unit that governs the assignment of resources such as servers, proxies, and gateways. Objects in a datacenter share security resources, including tokens and mTLS certificates, which are managed by a Consul server cluster. This server cluster is a group of one to five Consul servers deployed within a single cloud region.
 
-When a cluster is first created, it must initiate the consensus protocol and elect a leader before it can service requests. _Bootstrapping a datacenter_ refers to the process of configuring and joining the initial server nodes in a cluster. After you bootstrap a datacenter, you can use [cloud auto-join](/consul/docs/deploy/server/vm/cloud-auto-join) to automatically connect to Consul agents in the control plane and data plane as you deploy them.
+When a cluster is first created, it must initiate the consensus protocol and elect a leader before it can service requests. _Bootstrapping a datacenter_ refers to the process of configuring and joining the initial server nodes in a cluster. After you bootstrap a datacenter, you can use [cloud auto-join](/consul/docs/deploy/server/cloud-auto-join) to automatically connect to Consul agents in the control plane and data plane as you deploy them.
 
 ## Prerequisites
 
@@ -64,7 +64,7 @@ Consul prints a warning message to the console when the number of servers in a c
 
 ## Join the servers
 
-After you start the servers, you must join them in a cluster to initiate the Raft election. To join servers automatically, specify network addresses or [cloud auto join](/consul/docs/deploy/server/vm/cloud-auto-join) tags for supported cloud environments using either the [-retry-join CLI flag](/consul/docsreference-cli/agent#_retry_join) or the [`retry_join` configuration option](/consul/docs/reference/agent#retry_join).
+After you start the servers, you must join them in a cluster to initiate the Raft election. To join servers automatically, specify network addresses or [cloud auto join](/consul/docs/deploy/server/cloud-auto-join) tags for supported cloud environments using either the [-retry-join CLI flag](/consul/docsreference-cli/agent#_retry_join) or the [`retry_join` configuration option](/consul/docs/reference/agent#retry_join).
 
 The following examples demonstrate address options and their formatting for the `-retry-join` CLI flag.
 

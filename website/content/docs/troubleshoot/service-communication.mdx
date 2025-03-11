@@ -9,7 +9,7 @@ description: >-
 
 This topic provides an overview of Consul’s built-in service-to-service troubleshooting capabilities. When communication between an upstream service and a downstream service in a service mesh fails, you can run the `consul troubleshoot` command to initiate a series of automated validation tests.
 
-For more information, refer to the [`consul troubleshoot` CLI documentation](/consul/commands/troubleshoot) or the [`consul-k8s troubleshoot` CLI reference](/consul/docs/reference-cli/consul-k8s#troubleshoot).
+For more information, refer to the [`consul troubleshoot` CLI documentation](/consul/commands/troubleshoot) or the [`consul-k8s troubleshoot` CLI reference](/consul/docs/reference/cli/consul-k8s#troubleshoot).
 
 ## Introduction
 
@@ -147,4 +147,4 @@ In the example output, troubleshooting upstream communication reveals that the `
 
 The output from the troubleshooting process identifies service instances according to their [Consul DNS address](/consul/docs/k8s/dns). Use the DNS information for failing services to diagnose the specific issues affecting the service instance.
 
-For more information, refer to the [`consul-k8s troubleshoot` CLI reference](/consul/docs/reference-cli/consul-k8s#troubleshoot).
+For more information, refer to the [`consul-k8s troubleshoot` CLI reference](/consul/docs/reference/cli/consul-k8s#troubleshoot).

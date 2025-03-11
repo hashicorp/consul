@@ -103,7 +103,7 @@ To downgrade Consul edition on Kubernetes, modify the image version in your Helm
    - [Consul snapshot](/consul/commands/snapshot)
    - [Backup Consul Data and State tutorial](/consul/tutorials/production-deploy/backup-and-restore) 
 
-1. Temporarily modify your Consul configuration so that its [log_level](/consul/docs/agent/config/cli-flags#_log_level)
+1. Temporarily modify your Consul configuration so that its [log_level](/consul/commands/agent#_log_level)
        is set to `debug`. This enables Consul to report detailed information if an error occurs.
 1. Issue the following command on your servers to reload the configuration:
 

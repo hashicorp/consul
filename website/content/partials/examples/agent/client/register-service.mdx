@@ -1,0 +1,57 @@
+### Client node registering a service
+
+Using Consul as a central service registry is a common use case.
+The following example configuration includes common settings to register a service with a Consul agent and enable health checks. Refer to [Define Health Checks](/consul/docs/register/health-check/vm) to learn more about health checks.
+
+<CodeTabs>
+
+```hcl
+node_name  = "consul-client"
+server     = false
+datacenter = "dc1"
+data_dir   = "consul/data"
+log_level  = "INFO"
+retry_join = ["consul-server"]
+service {
+  id      = "dns"
+  name    = "dns"
+  tags    = ["primary"]
+  address = "localhost"
+  port    = 8600
+  check {
+    id       = "dns"
+    name     = "Consul DNS TCP on port 8600"
+    tcp      = "localhost:8600"
+    interval = "10s"
+    timeout  = "1s"
+  }
+}
+
+```
+
+```json
+{
+  "node_name": "consul-client",
+  "server": false,
+  "datacenter": "dc1",
+  "data_dir": "consul/data",
+  "log_level": "INFO",
+  "retry_join": ["consul-server"],
+  "service": {
+    "id": "dns",
+    "name": "dns",
+    "tags": ["primary"],
+    "address": "localhost",
+    "port": 8600,
+    "check": {
+      "id": "dns",
+      "name": "Consul DNS TCP on port 8600",
+      "tcp": "localhost:8600",
+      "interval": "10s",
+      "timeout": "1s"
+    }
+  }
+}
+```
+
+</CodeTabs>

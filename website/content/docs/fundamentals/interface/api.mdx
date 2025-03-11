@@ -1,12 +1,70 @@
 ---
 layout: docs
-page_title: Consul HTTP API
+page_title: Explore the Consul HTTP API
 description: >-
   Consul includes a built-in HTTP API.
 ---
 
-# Consul HTTP API
+# Explore the Consul HTTP API
 
 This page introduces the Consul HTTP API and describes the steps to set up and use the API to interact with Consul deployments.
 
-For more information, refer to the [Consul HTTP API reference documentation](/consul/api-docs).
+For more information, go to the [Consul HTTP API reference documentation](/consul/api-docs).
+
+## Introduction
+
+The Consul HTTP API is a RESTful interface for Consul that exposes endpoints for both Consul operations and service networking functions that return JSON payloads.
+
+You can interact with any Consul agent to use the HTTP API. When ACLs are enabled, requests use the anonymous token. Otherwise, include `--header "X-Consul-Token: <consul token>"` to autheticate with Consul. For more information about the anonymous token, refer to [Built-in tokens](/consul/docs/security/acl/tokens#built-in-tokens).
+
+## How Consul clusters respond to API resquests
+
+In production, a typical Consul datacenter consists of a cluster of 3 to 5 _server agents_ in the control plane, and can potentially include thousands of _client agents_ in the application's data plane. By default, Consul agents send each API request to the [current leader of the server quorum](/consul/docs/concept/consensus) in order to receive the most up-to-date information from the Consul catalog.
+
+At scale, too many requests to a single server slows down cluster operations. Because Consul uses [gossip communication](/consul/docs/concept/gossip) to propagate updates between agents, it is possible to distribute the request load across Consul agents. However, at any individual moment, a single client agent may have different information than others.
+
+Consul includes several API features that help you manage this effect on your requests, especially when Consul operates at scale.
+
+### Consistency modes
+
+All HTTP API read requests use the default consistency mode unless overridden on a per-request basis. We do not recommend changing the consistency mode used by default. You can use the `stale` or `consistent` query parameters on some endpoints to override the default setting. To learn more, refer to [Consistency Modes in the Consul API documentation](/consul/api-docs/features/consistency).
+
+### Blocking queries
+
+Many Consul API endpoints support blocking queries. In a blocking query, Consul waits until an update occurs and then returns a response to the HTTP request. Because connections can remain open without updates occuring, configure timeouts to control blocking query behavior. Blocking queries are an important part of some of Consul's advanced networking automations. To learn more, refer to [Blocking Queries in the Consul API documentation](/consul/api-docs/features/blocking).
+
+### Filtering
+
+Consul supports a `filter` query parameter to include expressions for requests to match in the Consul catalog. Servers filter based on the expression before returning a response, which can greatly reduce operational load at scale. To learn more, refer to [Filtering in the Consul API documentation](/consul/api-docs/features/filtering).
+
+### Agent cache
+
+Some read endpoints in Consul can return results from the local agent's cache, instead of contacting the servers for results. You can use the `?cached` query parameter and the `Cache-Control` header to enabled and define agent cache behavior. On some endpoints, you also have the option to enabled background refresh caching, which uses blocking queries to update the local agent cache when updates occur on the servers. For more information, refer to [Agent caching in the Consul API documentation](/consul/api-docs/features/caching).
+
+## Basic API requests
+
+In a datacenter where ACLs are not enabled, the following request returns a JSON payload that lists the the Consul instances that participated in the cluster's gossip pool, including their state. This HTTP API request corresponds to the `consul members` CLI command.
+
+```shell-session
+$ curl http://127.0.0.1:8500/v1/agent/members
+```
+
+The following request reloads the configuration files in the agent's configuration directory. Use this command to apply configuration updates to your Consul cluster without restarting the agent or node. This HTTP API request corresponds to the `consul reload` CLI command.
+
+```shell-session
+$ curl \
+    --request PUT \
+    http://127.0.0.1:8500/v1/agent/reload
+```
+
+The following request returns a list of nodes, including their IP address, where the `web` service was registered. You can use filtering query parameters to refine the list of services that API request returns.
+
+```shell-session
+$ curl http://127.0.0.1:8500/v1/catalog/service/web
+```
+
+## Next steps
+
+To learn more about the Consul HTTP API and its endpoints, refer to the [Consul API documentation](/consul/api-docs).
+
+To continue learning Consul fundamentals, proceed to either [Explore the Consul CLI](/consul/docs/fundamentals/interface/cli) or [Explore the Consul web UI](/consul/docs/fundamentals/interface/ui).

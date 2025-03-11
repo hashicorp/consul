@@ -1,0 +1,30 @@
+---
+layout: docs
+page_title: Join parameters for Consul agent configuration files
+description: >-
+  Use agent configuration files to assign attributes to agents and configure multiple agents at once. Learn about agent configuration file parameters and formatting with this reference page and sample code.
+---
+
+# Join parameters for Consul agent configuration files
+
+The page provides reference information for join parameters in a Consul agent configuration file.
+
+## Join Parameters
+
+- `rejoin_after_leave` Equivalent to the [`-rejoin` command-line flag](/consul/commands/agent#_rejoin).
+
+- `retry_join` - Equivalent to the [`-retry-join`](/consul/commands/agent#retry-join) command-line flag.
+
+- `retry_interval` Equivalent to the [`-retry-interval` command-line flag](/consul/commands/agent#_retry_interval).
+
+- `retry_max` - Equivalent to the [`-retry-max`](/consul/commands/agent#_retry_max) command-line flag.
+
+- `retry_join_wan` Equivalent to the [`-retry-join-wan` command-line flag](/consul/commands/agent#_retry_join_wan). Takes a list of addresses to attempt joining to WAN every [`retry_interval_wan`](#_retry_interval_wan) until at least one join works.
+
+- `retry_interval_wan` Equivalent to the [`-retry-interval-wan` command-line flag](/consul/commands/agent#_retry_interval_wan).
+
+- `start_join` **Deprecated in Consul 1.15. Use the [`retry_join`](/consul/docs/reference/agent/configuration-file#retry_join) field instead. This field will be removed in a future version of Consul.**
+  This field is an alias of `retry_join`.
+
+- `start_join_wan` **Deprecated in Consul 1.15. Use the [`retry_join_wan`](/consul/docs/reference/agent/configuration-file#retry_join_wan) field instead. This field will be removed in a future version of Consul.**
+  This field is an alias of `retry_join_wan`.
