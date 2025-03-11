@@ -118,6 +118,58 @@ Enable Consul Template to connect with [Consul][consul] by declaring the
 `consul` block. This configures a Consul client to query values from Consul
 features, like [Consul Catalog][consul-catalog] and [Consul KV][consul-kv].
 
+- `consul` This object allows a number of sub-keys to be set which controls the Consul connection. 
+
+  - `auth` This block specifies the basic authentication information to pass with the request. For more information on authentication, please see the Consul documentation.
+
+    - `enabled`
+    - `username`
+    - `password`
+  
+  - `address` This is the address of the Consul agent. By default, this is `127.0.0.1:8500`, which is the default bind and port for a local Consul agent. It is not recommended that you communicate directly with a Consul server, and instead communicate with the local Consul agent. There are many reasons for this, most importantly the Consul agent is able to multiplex connections to the Consul server and reduce the number of open HTTP connections. Additionally, it provides a "well-known" IP address for which clients can connect.
+
+  - `namespace` This is a Consul Enterprise namespace to use for reading/writing. This can also be set via the `CONSUL_NAMESPACE` environment variable. BETA: this is to be considered a beta feature as it has had limited testing
+
+  - `token` This is the ACL token to use when connecting to Consul. If you did not enable ACLs on your Consul cluster, you do not need to set this option. This option is also available via the environment variable `CONSUL_TOKEN` or `CONSUL_HTTP_TOKEN`. It is highly recommended that you do not put your token in plain-text in a configuration file.
+
+  - `token_file` Alternatively, you can specify a path to a file containing the token with this option. This option is also available via the environment variable `CONSUL_TOKEN_FILE` or `CONSUL_HTTP_TOKEN_FILE`.
+
+  - `retry` This object controls the retry behavior when an error is returned from Consul. Consul Template is highly fault tolerant, meaning it does not exit in the face of failure. Instead, it uses exponential back-off and retry functions to wait for the cluster to become available, as is customary in distributed systems.
+
+    - `enabled` (Defaults to `true`) This enabled retries. Retries are enabled by default, so this parameter is redundant.
+
+    - `attempts` This specifies the number of attempts to make before giving up. Each attempt adds the exponential backoff sleep time. Setting this to zero will implement an unlimited number of retries.
+
+    - `backoff` This is the base amount of time to sleep between retry attempts. Each retry sleeps for an exponent of 2 longer than this base. For 5 retries, the sleep times would be: 250ms, 500ms, 1s, 2s, then 4s. 
+
+    - `max_backoff` This is the maximum amount of time to sleep between retry attempts. When max_backoff is set to zero, there is no upper limit to the exponential sleep between retry attempts. If `max_backoff` is set to 10s and `backoff` is set to 1s, sleep times would be: 1s, 2s, 4s, 8s, 10s, 10s, ...
+
+  - `transport` This object configures TCP connection options.
+
+    - `dial_keep_alive` This controls duration between two keep-alive transmissions in idle condition.
+
+    - `dial_timeout` This controls TCP timeout between retries. If consul is down and retries are enabled Consul Template will retry after `dial_timeout`.
+
+    - `disable_keep_alives` This allows you to disable keep alive connections.
+
+    - `max_idle_conns_per_host` This controls amount of maximum idle connections. 
+    
+    - `tls_handshake_timeout` This controls timeout for TLS handshakes with consul.
+
+  - `ssl` This object configures the SSL options for connecting to the Consul server.
+    
+    - `verify` (Defaults to `true`) This enables SSL peer verification. The default value is "true", which will check the global CA chain to make sure the given certificates are valid. If you are using a self-signed certificate that you have not added to the CA chain, you may want to disable SSL verification. However, please understand this is a potential security vulnerability.
+
+    - `cert` This is the path to the certificate to use to authenticate. If just a certificate is provided, it is assumed to contain both the certificate and the key to convert to an X509 certificate. If both the certificate and key are specified, Consul Template will automatically combine them into an X509 certificate for you.
+    
+    - `key` This is the path to the certificate key to use to authenticate.
+
+    - `ca_cert` This is the path to the certificate authority to use as a CA. This is useful for self-signed certificates or for organizations using their own internal certificate authority.
+
+    - `ca_path` This is the path to a directory of PEM-encoded CA cert files. If both `ca_cert` and `ca_path` are specified, `ca_cert` is preferred.
+
+    - `server_name` This sets the SNI server name to use for validation.
+
 ```hcl
 # This denotes the start of the configuration section for Consul. All values
 # contained in this section pertain to Consul.
@@ -249,6 +301,35 @@ Enable Consul Template to connect with [Vault][vault] by declaring the `vault`
 block. This configures a Vault client to query secrets from Vault to render
 secret data into templates.
 
+- `vault` This object allows a number of sub-keys to be set which controls the Vault connection. 
+
+  - `address` This is the address of the Vault leader. The protocol (http(s)) portion of the address is required.
+
+  - `namespace` This is a Vault Enterprise namespace to use for reading/writing secrets. This value can also be specified via the environment variable `VAULT_NAMESPACE`.
+  
+  - `client_user_agent` This is an optional configuration item that, if set, will determine the User-Agent header to use on all requests to Vault.
+
+  - `token` This is the token to use when communicating with the Vault server. Like other tools that integrate with Vault, Consul Template makes the assumption that you provide it with a Vault token; it does not have the incorporated logic to generate tokens via Vault's auth methods. This value can also be specified via the environment variable `VAULT_TOKEN`. It is highly recommended that you do not put your token in plain-text in a configuration file. When using a token from Vault Agent, the `vault_agent_token_file` setting should be used instead, as that will take precedence over this field. 
+    
+  - `vault_agent_token_file` This tells Consul Template to load the Vault token from the contents of a file. If this field is specified:
+    - by default Consul Template will not try to renew the Vault token, if you want it to renew you will need to specify `renew_token = true` as below.
+    - Consul Template will periodically stat the file and update the token if it has changed.
+
+  - `unwrap_token` This tells Consul Template that the provided token is actually a wrapped token that should be unwrapped using Vault's cubbyhole response wrapping before being used. Please see Vault's [cubbyhole response wrapping](/vault/docs/concepts/response-wrapping) documentation for more information.
+
+  - `default_lease_duration` (Defaults to `5m`) The default lease duration Consul Template will use on a Vault secret that does not have a lease duration. This is used to calculate the sleep duration for rechecking a Vault secret value. This field is optional and will default to 5 minutes.
+
+  - `lease_renewal_threshold` (Defaults to `0.90`) The fraction of the lease duration of a non-renewable secret Consul Template will wait for. This is used to calculate the sleep duration for rechecking a Vault secret value. This field is optional and will default to 90% of the lease time.
+
+  - `renew_token` (Defaults to `true`) This option tells Consul Template to automatically renew the Vault token given. If you are unfamiliar with Vault's architecture, Vault requires tokens be renewed at some regular interval or they will be revoked. Consul Template will automatically renew the token at half the lease duration of the token. The default value is true, but this option can be disabled if you want to renew the Vault token using an out-of-band process.
+
+  ~> **Note:** Secrets specified in a template (using `{{secret}}` for example) are always renewed, even if this option is set to false. This option only applies to the top-level Vault token itself.
+
+  - `retry` This section details the retry options for connecting to Vault. Please see the [`retry` options in the Consul section](#retry) for more information (they are the same).
+
+  - `ssl` This section details the SSL options for connecting to the Vault server. Please see the [`SSL` options in the Consul section](#ssl) for more information (they are the same).
+
+
 ```hcl
 # This denotes the start of the configuration section for Vault. All values
 # contained in this section pertain to Vault.
@@ -339,6 +420,24 @@ Enable Consul Template to connect with [Nomad][nomad] by declaring the `nomad`
 block. This configures a Nomad client to query Nomad for native service discovery
 or secrets to render data into templates.
 
+- `nomad` This object allows a number of sub-keys to be set which controls the Nomad connection. 
+
+  - `address` This is the address of the Nomad agent. The protocol (http(s)) portion of the address is required. This value can also be specified via the environment variable `NOMAD_ADDR`.
+
+  - `namespace` This is a Nomad namespace to use for queries. This value can also be specified via the environment variable `NOMAD_NAMESPACE`.
+
+  - `token` This is the token to use when communicating with the Nomad agent. Like other tools that integrate with Nomad, Consul Template makes the assumption that you provide it with a Nomad token; it does not have the incorporated logic to generate tokens via Nomad's auth methods. This value can also be specified via the environment variable `NOMAD_TOKEN`. It is highly recommended that you do not put your token in plain-text in a configuration file.
+  
+  - `auth_username` The HTTP Basic Auth username to use when authenticating with the Nomad API.
+
+  - `auth_password` The HTTP Basic Auth password to use when authenticating with the Nomad API.
+  
+  - `transport` This block configures tcp connection options between Consul Template and Nomad. Please see the [transport options in the Consul section](#transport) for more information (they are the same).
+
+  - `retry` This section details the retry options for connecting to Nomad. Please see the [`retry` options in the Consul section](#retry) for more information (they are the same).
+
+  - `ssl` This section details the SSL options for connecting to the Nomad agent. Please see the [`SSL` options in the Consul section](#ssl) for more information (they are the same).
+
 ```hcl
 # This denotes the start of the configuration section for Nomad. All values
 # contained in this section pertain to Nomad.
@@ -398,6 +497,10 @@ nomad {
 A `template` block defines the configuration for a template. Unlike other
 blocks, this block may be specified multiple times to configure multiple
 templates. It is also possible to configure templates via the CLI directly.
+
+- `template` This object defines the configuration for a single template to be managed by Consul Template.
+
+
 
 ```hcl
 template {
