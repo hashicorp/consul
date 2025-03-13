@@ -1,0 +1,3 @@
+```release-note:bug
+agent: Add the missing Service TaggedAddresses and Check Type fields to Txn API.
+```
