@@ -13,7 +13,7 @@ For more information about the KV store and using it to automatically configure 
 
 ## Introduction
 
-The Consul template tool is not part of the Consul binary. It has a [dedicated GitHub repo](https://github.com/hashicorp/consul-template) and you must [install `consul-template`](https://github.com/hashicorp/consul-template#installation) before running it on the command line.
+The Consul template tool is not part of the Consul binary. It has a [dedicated GitHub repo](https://github.com/hashicorp/consul-template) and you must [install `consul-template`](/consul/docs/automate/consul-template/install) before running it on the command line.
 
 Consul templates are based on Go templates and shares many of the same attributes. When initiated, Consul Template reads one or more template files and queries Consul for data to render the full configuration.
 
@@ -23,25 +23,23 @@ The Consul template tool is flexible, and it can fit into many different environ
 
 Use Consul Template in the following situations:
 
-1. _Update configuration files_. The Consul template tool can be used
-   to update service configuration files. A common use case is managing load
-   balancer configuration files that need to be updated regularly in a dynamic
-   infrastructure.
+1. _Update configuration files_. The Consul template tool can be used to update service configuration files. A common use case is managing load balancer configuration files that need to be updated regularly in a dynamic infrastructure.
 
-1. _Discover data about the Consul datacenter and service_. It is possible to collect
-   information about the services in your Consul datacenter. For example, you could
-   collect a list of all services running on the datacenter or you could discover all
-   service addresses for the Redis service. Note, this use case has limited
-   scope for production.
+1. _Update configuration secrets_. You can configure Consul Template to use Vault secret engines to generate secrets for your application's configuration, such as encryption keys, TLS certificates, passwords, and render them into files or environment variables where they can be consumed by your application.
+
+1. _Discover data about the Consul datacenter and service_. It is possible to collect information about the services in your Consul datacenter. For example, you could
+   collect a list of all services running on the datacenter or you could discover all service addresses for the Redis service. Note, this use case has limited scope for production.
 
 ## Workflow
 
 A typical workflow to add Consul Template to your datacenter consists of the following steps:
 
-1. [Install Consul Template](/consul/docs/automate/consul-template) on nodes in your datacenter.
-1. [Configure a template](/consul/docs/automate/consul-template/configure).
-1. [Define custom scripts with plugins](/consul/docs/automate/consul-template/plugins).
-1. [Choose the mode to watch for updates](/consul/docs/automate/consul-template/mode).
+1. [Install Consul Template](/consul/docs/automate/consul-template/install) on nodes in your datacenter.
+1. [Configure Consul Template](/consul/docs/automate/consul-template/configure) on nodes on your datacenter.
+1. Create a template for the data you need to retrieve. There are different options in order of complexity:
+    1. Use an inline template for simple requests using the [`contents`](/consul/docs/reference/consul-template/configuration#contents) parameter.
+    1. Create a template file using the [available functions](/consul/docs/reference/consul-template/go).
+    1. [Define a custom plugin](/consul/docs/automate/consul-template/plugins) to execute custom data manipulation.
 1. [Render the template](/consul/docs/automate/consul-template/render) and apply it to your datacenter.
 1. [View Consul Template logs](/consul/docs/automate/consul-template/log) to debug issues.
 
