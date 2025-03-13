@@ -16,7 +16,7 @@ We recommend using the [Helm chart installation method](/consul/docs/deploy/serv
 You must meet the following requirements to install Consul on Kubernetes with `consul-k8s`:
 
 - `kubectl` configured to point to the Kubernetes cluster you want to install Consul on
-- `consul-k8s` installed on your local machine. Refer to [Consul on Kubernetes CLI reference](/consul/docs/reference-cli/consul-k8s#install-the-cli) for instructions.
+- `consul-k8s` installed on your local machine. Refer to [Consul on Kubernetes CLI reference](/consul/docs/reference/cli/consul-k8s#install-the-cli) for instructions.
 
    <Note>
 
@@ -29,7 +29,7 @@ You must meet the following requirements to install Consul on Kubernetes with `c
 
 Issue the `install` subcommand to install Consul on your existing Kubernetes cluster. If you do not include any additional options, the `consul-k8s` CLI installs Consul on Kubernetes using the default settings from the Consul Helm chart values. 
 
-You can specify options to configure your Consul install. For example, you can include the `-auto-approve` option set to `true` to proceed with the installation if the pre-install checks pass. Refer to the [Consul K8s CLI reference](/consul/docs/reference-cli/consul-k8s) for details about all commands and available options.
+You can specify options to configure your Consul install. For example, you can include the `-auto-approve` option set to `true` to proceed with the installation if the pre-install checks pass. Refer to the [Consul K8s CLI reference](/consul/docs/reference/cli/consul-k8s) for details about all commands and available options.
 
 The following example installs Consul on Kubernetes with service mesh and CRDs enabled.
 

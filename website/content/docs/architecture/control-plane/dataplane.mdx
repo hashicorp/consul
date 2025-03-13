@@ -15,7 +15,6 @@ This topic provides an overview of Consul Dataplane, a lightweight process for m
 - Dataplanes on Kubernetes requires Consul K8s v1.0.0 and newer.
 - Dataplanes on AWS Elastic Container Services (ECS) requires Consul ECS v0.7.0 and newer.
 
-
 ## What is Consul Dataplane?
 
 When deployed to virtual machines or bare metal environments, the Consul control plane requires _server agents_ and _client agents_. Server agents maintain the service catalog and service mesh, including its security and consistency, while client agents manage communications between service instances, their sidecar proxies, and the servers. While this model is optimal for applications deployed on virtual machines or bare metal servers, orchestrators such as Kubernetes and ECS have native components that support health checking and service location functions typically provided by the client agent.

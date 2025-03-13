@@ -71,7 +71,7 @@ If you are using Kubernetes, then please review our documentation for
   - [`consul snapshot` CLI command](/consul/commands/snapshot)
   - [Backup Consul Data and State tutorial](/consul/tutorials/production-deploy/backup-and-restore)
 
-2. Temporarily modify your Consul configuration to set the agent's [`log_level`](/consul/docs/agent/config/cli-flags#_log_level) is set to `debug`. Then issue the following command on your servers to
+2. Temporarily modify your Consul configuration to set the agent's [`log_level`](/consul/commands/agent#_log_level) is set to `debug`. Then issue the following command on your servers to
 reload the configuration:
 
 ```shell-session
@@ -182,7 +182,7 @@ then the following options for further assistance are available:
 When contacting Hashicorp Support, please include the following information in your ticket:
 
 - Consul version you were upgrading FROM and TO.
-- [Debug level logs](/consul/docs/agent/config/cli-flags#_log_level) from all servers in the cluster
+- [Debug level logs](/consul/commands/agent#_log_level) from all servers in the cluster
   that you are having trouble with. These should include logs from prior to the upgrade attempt
   up through the current time. If your logs were not set at debug level prior to the
   upgrade, please include those logs as well. Also, update your config to use debug logs,
