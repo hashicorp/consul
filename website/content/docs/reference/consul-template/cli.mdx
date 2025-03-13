@@ -11,7 +11,10 @@ This topic describes the available command-line options for the Consul Template 
 
 ## General 
 
+These options are top level values to configure Consul Template.
+
 - `-help` - Prints the full reference for the `consul-template` command.
+
 - `-config=<path>` - Sets the path to a configuration file or folder on disk. This can be specified multiple times to load multiple files or folders. If multiple values are given, they are merged left-to-right, and CLI arguments take the top-most precedence. 
 - `-default-left-delimiter` - The default left delimiter for templating.
 - `-default-right-delimiter` - The default right delimiter for templating.
@@ -30,7 +33,11 @@ This topic describes the available command-line options for the Consul Template 
 
 ## Run modes
 
+These options configure Consul Template run mode. Refer to [run mode documentation](/consul/docs/automate/consul-template/mode) for more information on the different run modes available in Consul Template.
+
 ### Once Mode
+
+When running in Once Mode, Consul template will execute each template exactly once and exit.
 
 - `-once` - Do not run the process as a daemon. This disables wait/quiescence timers.
 

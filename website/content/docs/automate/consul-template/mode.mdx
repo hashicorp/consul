@@ -15,6 +15,8 @@ Consul Template can run in different modes that changes its runtime behavior and
 
 ## Once Mode
 
+When running in Once Mode, Consul template will execute each template exactly once and exit.
+
 In Once mode, Consul Template will wait for all dependencies to be rendered. If
 a template specifies a dependency (a request) that does not exist in Consul,
 once mode will wait until Consul returns data for that dependency. Please note
@@ -30,7 +32,7 @@ response if there are no _healthy_ services named foo.
 Consul template processes input templates multiple times, since the first result
 could impact later dependencies:
 
-```liquid
+```go
 {{ range services }}
 {{ range service .Name }}
 {{ end }}
@@ -45,34 +47,21 @@ that response is non-empty though.
 
 <Note>
 
-Once mode implicitly disables any wait/quiescence timers specified in
-configuration files or passed on the command line.
+Once mode implicitly disables any wait/quiescence timers specified in configuration files or passed on the command line.
 
 </Note>
 
 ## De-Duplication Mode
 
-Consul Template works by parsing templates to determine what data is needed and
-then watching Consul for any changes to that data. This allows Consul Template
-to efficiently re-render templates when a change occurs. However, if there are
-many instances of Consul Template rendering a common template there is a linear
-duplication of work as each instance is querying the same data.
+Consul Template works by parsing templates to determine what data is needed and then watching Consul for any changes to that data. This allows Consul Template to efficiently re-render templates when a change occurs. However, if there are many instances of Consul Template rendering a common template there is a linear duplication of work as each instance is querying the same data.
 
-To make this pattern more efficient Consul Template supports work de-duplication
-across instances. This can be enabled with the `-dedup` flag or via the top level
-[`deduplicate` configuration block](configuration.md#de-duplication-mode). Once enabled,
-Consul Template uses leader election on a per-template basis to have only a single
-node perform the queries. Results are shared among other instances rendering the
-same template by passing compressed data through the Consul K/V store.
+To make this pattern more efficient Consul Template supports work de-duplication across instances. This can be enabled with the `-dedup` flag or via the top level [`deduplicate` configuration block](/consul/docs/reference/consul-template/configuration#de-duplication-mode). Once enabled, Consul Template uses leader election on a per-template basis to have only a single node perform the queries. Results are shared among other instances rendering the same template by passing compressed data through the Consul K/V store.
 
-Please note that no Vault data will be stored in the compressed template.
-Because ACLs around Vault are typically more closely controlled than those ACLs
-around Consul's KV, Consul Template will still request the secret from Vault on
-each iteration.
+Please note that no Vault data will be stored in the compressed template. Because ACLs around Vault are typically more closely controlled than those ACLs around Consul's KV, Consul Template will still request the secret from Vault on each iteration.
 
-When running in de-duplication mode, it is important that local template
-functions resolve correctly. For example, you may have a local template function
-that relies on the `env` helper like this:
+When running in de-duplication mode, it is important that local template functions resolve correctly. 
+
+For example, you may have a local template function that relies on the `env` helper like this:
 
 ```hcl
 {{ key (env "KEY") }}
@@ -164,3 +153,82 @@ carefully before use:
 
 - Individual template reload commands still fire independently of the exec
   command.
+
+## Commands
+
+### Environment
+
+The current process environment is used when executing commands with the following additional environment variables:
+
+- `CONSUL_HTTP_ADDR`
+- `CONSUL_HTTP_TOKEN`
+- `CONSUL_HTTP_TOKEN_FILE`
+- `CONSUL_HTTP_AUTH`
+- `CONSUL_HTTP_SSL`
+- `CONSUL_HTTP_SSL_VERIFY`
+- `NOMAD_ADDR`
+- `NOMAD_NAMESPACE`
+- `NOMAD_TOKEN`
+
+These environment variables are exported with their current values when the command executes. Other Consul tooling reads these environment variables, providing smooth integration with other Consul tools (like `consul maint` or `consul lock`). Additionally, exposing these environment variables gives power users the ability to further customize their command script.
+
+### Multiple Commands
+
+The command configured for running on template rendering must take one of two forms.
+
+The first is as a list of the command and arguments split at spaces. The command can use an absolute path or be found on the execution environment's PATH and must be the first item in the list. This form allows for single or multi-word commands that can be executed directly with a system call.
+
+**Examples**
+
+```hcl
+command = ["echo", "hello"]
+## ...
+command = ["/opt/foo-package/bin/run-foo"]
+## ...
+command = ["foo"]
+```
+
+~> **Note** If you provide a single command without the list denoting square brackets (`[]`), it is converted into a list with a single argument. For example `command = "foo"` gets converted into `command = ["foo"]`
+
+The second form is as a single quoted command using system shell features. This form **requires** a shell named `sh` be on the executable search path (eg. PATH on \*nix). This is the standard on all \*nix systems and should work out of the box on those systems. This won't work on, for example, Docker images with only the executable and without a minimal system like Alpine. Using this form you can join multiple commands with logical operators, `&&` and `||`, use pipelines with `|`, conditionals, etc. Note that the shell `sh` is normally `/bin/sh` on \*nix systems and is either a POSIX shell or a shell running in POSIX compatible mode, so it is best to stick to POSIX shell syntax in this command. 
+
+**Examples**
+
+```hcl
+command = "/opt/foo && /opt/bar"
+##...
+command = "if /opt/foo ; then /opt/bar ; fi"
+```
+
+Using this method you can run as many shell commands as you need with whatever logic you need. Though it is suggested that if it gets too long you might want to wrap it in a shell script, deploy and run that.
+
+### Shell Commands and Exec Mode
+
+Using the system shell based command has one additional caveat when used for the Exec mode process (the managed, executed process to which it will propagate signals). That is to get signals to work correctly means not only does anything the shell runs need to handle signals, but the shell itself needs to handle them. This needs to be managed by you as shells will exit upon receiving most signals.
+
+A common example of this would be wanting the `SIGHUP` signal to trigger a reload of the underlying process and to be ignored by the shell process. To get this you have two options:
+
+- Use `trap` to ignore the signal or.
+
+- Use `exec` to replace the shell with another process.
+
+To use `trap` to ignore the signal, you call `trap` to catch the signal in the shell with no action. 
+For example if you have an underlying nginx process and you want to run it with a shell command and have the shell ignore the HUP signals, you can use the following command:
+
+```hcl
+command = "trap '' HUP; /usr/sbin/nginx -c /etc/nginx/nginx.conf"
+```
+
+The `trap '' HUP;` bit is enough to get the shell to ignore the HUP signal. If you left off the `trap` command nginx would reload but the shell command would exit but leave the nginx still running, not unmanaged.
+
+Alternatively using `exec` will replace the shell's process with a sub-process, keeping the same PID and process grouping (allowing the sub-process to be managed). This is simpler, but a bit less flexible than `trap`, and looks like the following:
+
+```hcl
+command = "exec /usr/sbin/nginx -c /etc/nginx/nginx.conf"
+```
+
+Where the nginx process would replace the enclosing shell process to be managed by consul-template, receiving the Signals directly. Basically `exec` eliminates the shell from the equation.
+
+Refer to your shell's documentation on `trap` and/or `exec` for more details on this.
+
+

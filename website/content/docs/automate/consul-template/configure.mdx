@@ -7,39 +7,28 @@ description: >-
 
 # Configure Consul Template
 
-Configuration files are written in the [HashiCorp Configuration Language][hcl].
-By proxy, this means the configuration is also JSON compatible.
+You configure Consul Template via a configuration file written in the [HashiCorp Configuration Language][hcl]. The configuration is also JSON compatible.
+The full list of all options for Consul Template configuration is available in the [configuration reference](/consul/docs/reference/consul-template/configuration).
 
-Instruct Consul Template to use a configuration file with the `-config` flag:
+With the configuration file available you run Consul template with the `-config` flag pointing at the configuration file:
 
-```shell
+```shell-session
 $ consul-template -config "/my/config.hcl"
 ```
 
-This argument may be specified multiple times to load multiple configuration
-files. The right-most configuration takes the highest precedence. If the path to
-a directory is provided (as opposed to the path to a file), all of the files in
-the given directory will be merged in
-[lexical order](http://golang.org/pkg/path/filepath/#Walk), recursively. Please
-note that symbolic links are _not_ followed.
+This argument may be specified multiple times to load multiple configuration files. The right-most configuration takes the highest precedence. If the path to a directory is provided (as opposed to the path to a file), all of the files in the given directory will be merged in [lexical order](http://golang.org/pkg/path/filepath/#Walk), recursively. Please note that symbolic links are _not_ followed.
 
-**Commands specified on the CLI take precedence over a config file!**
+The full list of available CLI options for Consul Template is available in the [CLI reference](/consul/docs/reference/consul-template/cli).
 
-Note that not all fields listed below are required. If you are not retrieving
-secrets from Vault, you do not need to specify a Vault configuration section.
-Similarly, if you are not logging to syslog, you do not need to specify a
-syslog configuration.
+~> **Note** Commands specified on the CLI take precedence over a config file!
 
-For additional security, tokens may also be read from the environment using the
-`CONSUL_TOKEN` or `VAULT_TOKEN` environment variables respectively. It is highly
-recommended that you do not put your tokens in plain-text in a configuration
-file.
+Not all available fields for the configuration file are required. If you are not retrieving secrets from Vault, you do not need to specify a Vault configuration section. Similarly, if you are not logging to syslog, you do not need to specify a syslog configuration.
+
+For additional security, tokens may also be read from the environment using the `CONSUL_TOKEN` or `VAULT_TOKEN` environment variables respectively. It is highly recommended that you do not put your tokens in plain-text in a configuration file.
 
 ## Example
 
-The example HCL configuration file below connects Consul Template to a Consul
-agent and renders a template with a value from [Consul KV][consul-kv]. The
-output is written to a file on disk.
+The example HCL configuration file below connects Consul Template to a Consul agent and renders a template with a value from [Consul KV][consul-kv]. The output is written to a file on disk.
 
 ```hcl
 consul {
@@ -62,3 +51,4 @@ template {
   }
 }
 ```
+
