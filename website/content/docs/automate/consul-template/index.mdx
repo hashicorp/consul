@@ -41,17 +41,19 @@ A typical workflow to add Consul Template to your datacenter consists of the fol
     1. Create a template file using the [available functions](/consul/docs/reference/consul-template/go).
     1. [Define a custom plugin](/consul/docs/automate/consul-template/plugins) to execute custom data manipulation.
 1. [Render the template](/consul/docs/automate/consul-template/render) and apply it to your datacenter.
-1. [View Consul Template logs](/consul/docs/automate/consul-template/log) to debug issues.
+1. [View Consul Template logs](/consul/docs/automate/consul-template/log) to monitor execution and debug issues.
 
 ## Use case: Consul KV
 
-In this first use case example, you will render a template that pulls the 
-HashiCorp address from Consul KV. To do this, you will create a simple template 
-that contains the HashiCorp address, run `consul-template`, add a value to 
-Consul KV for HashiCorp's address, and finally view the rendered file.
+In this first use case example, you will render a template that pulls the HashiCorp address from Consul KV. To do this, you will create a simple template that contains the HashiCorp address, run `consul-template`, add a value to Consul KV for HashiCorp's address, and finally view the rendered file.
 
-First, you will need to create a template file `find_address.tpl` to query
-Consul's KV store:
+<Tip>
+
+If you don't have a Consul instance you can start a dev instance using `consul agent -dev`. Read more at [Starting the Consul agent](/consul/docs/fundamentals/install/dev).
+
+</Tip>
+
+First, create a template file `find_address.tpl` to query Consul's KV store.
 
 <CodeBlockConfig filename="find_address.tpl">
 
@@ -61,18 +63,15 @@ Consul's KV store:
 
 </CodeBlockConfig>
 
-Next, you will run `consul-template` specifying both the template to use and the 
-file to update.
+Next, run `consul-template` specifying both the template to use and the file to update.
 
 ```shell-session
 $ consul-template -template "find_address.tpl:hashicorp_address.txt"
 ```
 
-The `consul-template` process will continue to run until you kill it with 
-`CTRL+c`. For now, you will leave it running.
+The `consul-template` process will continue to run until you kill it with `CTRL+c`. For now, leave it running.
 
-Finally, open a new terminal so you can write data to the key in Consul using 
-the command line interface.
+Finally, open a new terminal so you can write data to the KV store in Consul using the command line interface.
 
 ```shell-session
 $ consul kv put hashicorp/street_address "101 2nd St"
@@ -80,8 +79,7 @@ $ consul kv put hashicorp/street_address "101 2nd St"
 Success! Data written to: hashicorp/street_address
 ```
 
-You can verify the data was written by viewing the `hashicorp_address.txt` file 
-which will be located in the same directory where `consul-template` was run.
+Verify the data was written by viewing the `hashicorp_address.txt` file which will be located in the same directory where `consul-template` is running.
 
 ```shell-session
 $ cat hashicorp_address.txt
@@ -89,23 +87,31 @@ $ cat hashicorp_address.txt
 101 2nd St
 ```
 
-If you update the key `hashicorp/street_address`, you can see the changes to the 
-file immediately. Go ahead and try `consul kv put hashicorp/street_address "22b Baker ST"`.
+If you update the key `hashicorp/street_address`, you can see the changes to the file immediately. 
 
-You can verify that this simple process can have powerful implications. For 
-example, it is possible to use this same process for updating your 
-[HAProxy load balancer configuration](https://github.com/hashicorp/consul-template/blob/master/examples/haproxy.md).
+Try change the content of the key in Consul.
+
+```shell-session
+$ consul kv put hashicorp/street_address "22b Baker ST"
+
+Success! Data written to: hashicorp/street_address
+```
+
+Verify the new value was written by viewing the `hashicorp_address.txt` file.
+
+```shell-session
+$ cat hashicorp_address.txt
+
+22b Baker ST
+```
 
 You can now kill the `consul-template` process with `CTRL+c`.
 
 ## Use case: discover all services
 
-In this use case example, you will discover all the services running in the 
-Consul datacenter. To follow along, you use the local development agent from the 
-previous example.
+In this use case example, you will discover all the services running in the Consul datacenter. To follow along, use the same Consul agent from the previous example.
 
-First, you will need to create a new template `all-services.tpl` to query all 
-services.
+First, you will need to create a new template `all-services.tpl` to query all services.
 
 <CodeBlockConfig filename="all-services.tpl">
 
@@ -121,22 +127,21 @@ services.
 
 </CodeBlockConfig>
 
-Next, run Consul template specifying the template you just created and the 
-`-once` flag. The `-once` flag will tell the process to run once and then quit.
+Next, run Consul template specifying the template you just created and the `-once` flag. The `-once` flag will tell the process to run once and then quit.
 
 ```shell-session
 $ consul-template -template="all-services.tpl:all-services.txt" -once
 ```
 
-If you complete this on your local development agent, you should still get the 
-`consul` service among the results when viewing `all-services.txt`.
+If you complete this on your local development agent, the answer will only contain the default `consul` service when viewing `all-services.txt`.
 
 ```plaintext hideClipboard
 # consul
-127.0.0.7
+127.0.0.1
 ```
 
 On a development or production datacenter, you would get a list of all the services.
+
 For example:
 
 ```plaintext hideClipboard
@@ -154,8 +159,19 @@ For example:
 104.131.59.59
 ```
 
-## Next steps
+## Real life scenarios
 
-In this tutorial, you learned how to set up and use the Consul template tool.
-To find additional examples, refer to the examples folder
-in [GitHub](https://github.com/hashicorp/consul-template/tree/master/examples).
+The two examples above provide you with a basic idea on how to use Consul Template to render filed dynamically using data in the Consul KV store or in the Consul Catalog.
+
+Extending this simple process you can realize complex configurations.
+
+You can use Consul Template to [automate an NGINX reverse proxy configuration](/consul/tutorials/network-automation/consul-template-load-balancing) using Consul Catalog as a source for the upstream IPs.
+
+You can even use Consul Template to automate Consul operations using Vault as secret management. For example you can:
+
+* [Generate and rotate gossip encryption keys for Consul](/consul/docs/automate/consul-template/vault/gossip)
+* [Generate and rotate mTLS certificates for Consul](/consul/docs/automate/consul-template/vault/mtls)  
+
+To find additional examples, refer to the examples folder in [GitHub](https://github.com/hashicorp/consul-template/tree/master/examples).
+
+To explore the available functions to use in your templates refer to the [Consul Template Go language](/consul/docs/reference/consul-template/go) reference.

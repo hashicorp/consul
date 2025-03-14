@@ -16,8 +16,7 @@ $ consul-template \
     -template "/tmp/template.ctmpl:/tmp/result"
 ```
 
-Render multiple templates in the same process. The optional third argument to
-the template is a command that will execute each time the template changes.
+Render multiple templates in the same process. The optional third argument to the template is a command that will execute each time the template changes.
 
 ```shell-session
 $ consul-template \
@@ -31,7 +30,8 @@ Render a template using a custom Consul and Vault address:
 ```shell-session
 $ consul-template \
     -consul-addr "10.4.4.6:8500" \
-    -vault-addr "https://10.5.32.5:8200"
+    -vault-addr "https://10.5.32.5:8200" \
+    -template "/tmp/template.ctmpl:/tmp/result"
 ```
 
 Render all templates and then spawn and monitor a child process as a supervisor:
@@ -42,8 +42,7 @@ $ consul-template \
   -exec "/sbin/my-server"
 ```
 
-For more information on supervising, please see the
-[Consul Template Exec Mode documentation](modes.md#exec-mode).
+For more information on supervising, please see the [Consul Template Exec Mode documentation](/consul/docs/automate/consul-template/mode#exec-mode).
 
 Instruct Consul Template to use a configuration file with the `-config` flag:
 
