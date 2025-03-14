@@ -12,7 +12,7 @@ either a significant architectural layer, or major functional area of Consul.
 These documents assume a basic understanding of Consul's feature set, which can
 be found in the public [user documentation].
 
-[user documentation]: https://www.consul.io/docs
+[user documentation]: https://developer.hashicorp.com/docs
 
 ![Overview](./overview.svg)
 
@@ -49,7 +49,7 @@ Most top level directories contain Go source code. The directories listed below
 contain other important source related to Consul.
 
 * [ui] contains the source code for the Consul UI.
-* [website] contains the source for [consul.io](https://www.consul.io/). A pull requests
+* [website] contains the source for [consul.io](https://developer.hashicorp.com/). A pull requests
   can update the source code and Consul's documentation at the same time.
 * [.github] contains the source for our CI and GitHub repository
   automation.

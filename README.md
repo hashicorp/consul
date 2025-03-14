@@ -9,8 +9,7 @@
 
 Consul is a distributed, highly available, and data center aware solution to connect and configure applications across dynamic, distributed infrastructure.
 
-* Website: https://www.consul.io
-* Tutorials: [HashiCorp Learn](https://learn.hashicorp.com/consul)
+* Documentation and Tutorials: [https://developer.hashicopr.com/consul]
 * Forum: [Discuss](https://discuss.hashicorp.com/c/consul)
 
 Consul provides several key features:
@@ -40,7 +39,7 @@ Consul provides several key features:
 
 Consul runs on Linux, macOS, FreeBSD, Solaris, and Windows and includes an
 optional [browser based UI](https://demo.consul.io). A commercial version
-called [Consul Enterprise](https://www.consul.io/docs/enterprise) is also
+called [Consul Enterprise](https://developer.hashicorp.com/docs/enterprise) is also
 available.
 
 **Please note**: We take Consul's security and our users' trust very seriously. If you

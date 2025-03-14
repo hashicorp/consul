@@ -1968,7 +1968,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 		expectedWarnings: []string{
-			`bootstrap_expect = 2: A cluster with 2 servers will provide no failure tolerance. See https://www.consul.io/docs/internals/consensus.html#deployment-table`,
+			`bootstrap_expect = 2: A cluster with 2 servers will provide no failure tolerance. See https://developer.hashicorp.com/docs/internals/consensus.html#deployment-table`,
 			`bootstrap_expect > 0: expecting 2 servers`,
 		},
 	})
@@ -1991,7 +1991,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 		expectedWarnings: []string{
-			`bootstrap_expect is even number: A cluster with an even number of servers does not achieve optimum fault tolerance. See https://www.consul.io/docs/internals/consensus.html#deployment-table`,
+			`bootstrap_expect is even number: A cluster with an even number of servers does not achieve optimum fault tolerance. See https://developer.hashicorp.com/docs/internals/consensus.html#deployment-table`,
 			`bootstrap_expect > 0: expecting 4 servers`,
 		},
 	})
