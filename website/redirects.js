@@ -271,6 +271,7 @@ module.exports = [
   ///////////////////////////////////
   //    Old path ---> New path     //
   ///////////////////////////////////
+
   {
     source: '/consul/docs/agent',
     destination: '/consul/docs/architecture/fundamentals/agent',
@@ -1672,7 +1673,7 @@ module.exports = [
   },
   {
     source: '/consul/docs/nia/configuration',
-    destination: '/consul/docs/reference/cts',
+    destination: '/consul/docs/automate/infrastructure/configure',
     permanent: true,
   },
   {
@@ -1740,6 +1741,287 @@ module.exports = [
   {
     source: '/consul/docs/nia/usage/run-ha',
     destination: '/consul/docs/automate/infrastructure/high-availability',
+    permanent: true,
+  },
+
+  {
+    source: '/consul/docs/security',
+    destination: '/consul/docs/secure',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/security/acl',
+    destination: '/consul/docs/secure/acl',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/security/acl/acl-federated-datacenters',
+    destination: '/consul/docs/secure/acl/token/federation',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/security/acl/acl-policies',
+    destination: '/consul/docs/secure/acl/policy',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/security/acl/acl-roles',
+    destination: '/consul/docs/secure/acl/role',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/security/acl/acl-rules',
+    destination: '/consul/docs/reference/acl/rule',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/security/acl/auth-methods',
+    destination: '/consul/docs/secure/acl/auth-method',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/security/acl/auth-methods/aws-iam',
+    destination: '/consul/docs/secure/acl/auth-method/aws',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/security/acl/auth-methods/jwt',
+    destination: '/consul/docs/secure/acl/auth-method/jwt',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/security/acl/auth-methods/kubernetes',
+    destination: '/consul/docs/secure/acl/auth-method/k8s',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/security/acl/auth-methods/oidc',
+    destination: '/consul/docs/secure/acl/auth-method/oidc',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/security/acl/tokens',
+    destination: '/consul/docs/secure/acl/token',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/security/acl/tokens/create/create-a-consul-esm-token',
+    destination: '/consul/docs/secure/acl/token/esm',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/security/acl/tokens/create/create-a-dns-token',
+    destination: '/consul/docs/secure/acl/token/dns',
+    permanent: true,
+  },
+  {
+    source:
+      '/consul/docs/security/acl/tokens/create/create-a-mesh-gateway-token',
+    destination: '/consul/docs/secure/acl/token/mesh-gateway',
+    permanent: true,
+  },
+  {
+    source:
+      '/consul/docs/security/acl/tokens/create/create-a-replication-token',
+    destination: '/consul/docs/secure/acl/token/replication',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/security/acl/tokens/create/create-a-service-token',
+    destination: '/consul/docs/secure/acl/token/service',
+    permanent: true,
+  },
+  {
+    source:
+      '/consul/docs/security/acl/tokens/create/create-a-snapshot-agent-token',
+    destination: '/consul/docs/secure/acl/token/snapshot-agent',
+    permanent: true,
+  },
+  {
+    source:
+      '/consul/docs/security/acl/tokens/create/create-a-terminating-gateway-token',
+    destination: '/consul/docs/secure/acl/token/terminating-gateway',
+    permanent: true,
+  },
+  {
+    source:
+      '/consul/docs/security/acl/tokens/create/create-a-token-for-vault-consul-storage',
+    destination: '/consul/docs/secure/acl/token/vault-backend',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/security/acl/tokens/create/create-a-ui-token',
+    destination: '/consul/docs/secure/acl/token/ui',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/security/acl/tokens/create/create-an-agent-token',
+    destination: '/consul/docs/secure/acl/token/agent',
+    permanent: true,
+  },
+  {
+    source:
+      '/consul/docs/security/acl/tokens/create/create-an-ingress-gateway-token',
+    destination: '/consul/docs/secure/acl/token/ingress-gateway',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/security/encryption',
+    destination: '/consul/docs/secure/encryption',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/security/encryption/gossip',
+    destination: '/consul/docs/secure/encryption/gossip/enable',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/security/encryption/mtls',
+    destination: '/consul/docs/secure/encryption/tls/mtls',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/security/security-models',
+    destination: '/consul/docs/secure/security-model',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/security/security-models/core',
+    destination: '/consul/docs/secure/security-model/core',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/security/security-models/nia',
+    destination: '/consul/docs/secure/security-model/cts',
+    permanent: true,
+  },
+  {
+    source:
+      '/consul/docs/services/configuration/checks-configuration-reference',
+    destination: '/consul/docs/reference/service/health-check',
+    permanent: true,
+  },
+  {
+    source:
+      '/consul/docs/services/configuration/services-configuration-overview',
+    destination: '/consul/docs/fundamentals/service',
+    permanent: true,
+  },
+  {
+    source:
+      '/consul/docs/services/configuration/services-configuration-reference',
+    destination: '/consul/docs/reference/service',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/services/discovery/dns-cache',
+    destination: '/consul/docs/discover/dns/scale',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/services/discovery/dns-configuration',
+    destination: '/consul/docs/discover/dns/configure',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/services/discovery/dns-dynamic-lookups',
+    destination: '/consul/docs/discover/service/dynamic',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/services/discovery/dns-forwarding',
+    destination: '/consul/docs/manage/dns/forwarding',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/services/discovery/dns-forwarding/enable',
+    destination: '/consul/docs/manage/dns/forwarding/enable',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/services/discovery/dns-overview',
+    destination: '/consul/docs/discover/dns',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/services/discovery/dns-static-lookups',
+    destination: '/consul/docs/discover/service/static',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/services/services',
+    destination: '/consul/docs/fundamentals/service',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/services/usage/checks',
+    destination: '/consul/docs/register/health-check/vm',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/services/usage/define-services',
+    destination: '/consul/docs/register/service/vm/define',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/services/usage/register-services-checks',
+    destination: '/consul/docs/register/service/vm',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/troubleshoot/common-errors',
+    destination: '/consul/docs/error-messages/consul',
+    permanent: true,
+  },
+
+  {
+    source: '/consul/docs/troubleshoot/troubleshoot-services',
+    destination: '/consul/docs/troubleshoot/service-communication',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/upgrading',
+    destination: '/consul/docs/upgrade',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/upgrading/compatibility',
+    destination: '/consul/docs/upgrade/compatibility',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/upgrading/instructions',
+    destination: '/consul/docs/upgrade/instructions',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/upgrading/instructions/general-process',
+    destination: '/consul/docs/upgrade/instructions/general',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/upgrading/instructions/upgrade-to-1-10-x',
+    destination: '/consul/docs/upgrade/instructions/upgrade-to-1-10-x',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/upgrading/instructions/upgrade-to-1-2-x',
+    destination: '/consul/docs/upgrade/instructions/upgrade-to-1-2-x',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/upgrading/instructions/upgrade-to-1-6-x',
+    destination: '/consul/docs/upgrade/instructions/upgrade-to-1-6-x',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/upgrading/instructions/upgrade-to-1-8-x',
+    destination: '/consul/docs/upgrade/instructions/upgrade-to-1-8-x',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/upgrading/upgrade-specific',
+    destination: '/consul/docs/upgrade/version-specific',
     permanent: true,
   },
   ///////////////////////////////////

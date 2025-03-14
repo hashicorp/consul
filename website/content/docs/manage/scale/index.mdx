@@ -29,7 +29,7 @@ To make service-to-service communication resilient against outages and failures,
 - Runtime platform instances, such as Kubernetes clusters
 - Consul datacenters
 
-In the event that any individual domain experiences a failure, service failover ensures that healthy instances in other domains remain discoverable. Consul automatically provides service failover between instances within a single [admin partition](/consul/docs/segment/admin-partition) or datacenter.
+In the event that any individual domain experiences a failure, service failover ensures that healthy instances in other domains remain discoverable. Consul automatically provides service failover between instances within a single [admin partition](/consul/docs/multi-tenant/admin-partition) or datacenter.
 
 Service failover across Consul datacenters must be configured in the datacenters before you can use it. Use one of the following methods to configure failover across datacenters:
 

@@ -29,7 +29,7 @@ You can deploy API gateways to networks that implement a variety of computing en
 
 The following steps describe the general workflow for deploying a Consul API gateways:
 
-1. For Kubernetes-orchestrated services, install Consul on your cluster. For Kubernetes-orchestrated services on OpenShift, you must also enable the `openShift.enabled` parameter. Refer to [Install Consul on Kubernetes](/consul/docs/north-south/api-gateway/install) for additional information.
+1. For Kubernetes-orchestrated services, install Consul on your cluster. For Kubernetes-orchestrated services on OpenShift, you must also enable the `openShift.enabled` parameter. Refer to [Install Consul on Kubernetes](/consul/docs/deploy/server/k8s/platform/openshift) for additional information.
 1. Define and deploy the API gateway configurations to create the API gateway artifacts. For VM-hosted services, create configuration entries for the gateway service, listeners configurations, and references to TLS certificates. For Kubernetes-orchestrated, configurations also include `GatewayClassConfig`s and `parametersRef`s.
 1. Define and deploy routes between the gateway listeners and services in the mesh.
 

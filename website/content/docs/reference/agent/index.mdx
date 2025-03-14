@@ -585,7 +585,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 - `partition` <EnterpriseAlert inline /> - This flag is used to set
   the name of the admin partition the agent belongs to. An agent can only join
   and communicate with other agents within its admin partition. Review the
-  [Admin Partitions documentation](/consul/docs/segment/admin-partition) for more
+  [Admin Partitions documentation](/consul/docs/multi-tenant/admin-partition) for more
   details. By default, this is an empty string, which is the `default` admin
   partition. This cannot be set on a server agent.
 
@@ -740,7 +740,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
 - `segments` <EnterpriseAlert inline /> - (Server agents only) This is a list of nested objects
   that specifies user-defined network segments, not including the `<default>` segment, which is
-  created automatically. Refer to the [network segments documentation](/consul/docs/segment/network-segment/vm)for additional information.
+  created automatically. Refer to the [network segments documentation](/consul/docs/multi-tenant/network-segment/vm)for additional information.
   for more details.
 
   - `name` ((#segment_name)) - The name of the segment. Must be a string

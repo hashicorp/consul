@@ -198,7 +198,7 @@ After defining the policies, you can register them with Consul using the command
 
 Run the `consul acl policy create` command and specify the policy rules to create a policy. The following example registers a policy defined in `ui-view-catalog.hcl`.
 
-You can specify an admin partition and namespace when registering policies in Consul Enterprise. Policies are only valid in the scopes specified during registration, but you can grant tokens registered in the `default` partition permission to access resources in a different partition than where the token was registered. Refer to the [admin partition documentation](/consul/docs/segment/admin-partition#default-admin-partition) for additional information.
+You can specify an admin partition and namespace when registering policies in Consul Enterprise. Policies are only valid in the scopes specified during registration, but you can grant tokens registered in the `default` partition permission to access resources in a different partition than where the token was registered. Refer to the [admin partition documentation](/consul/docs/multi-tenant/admin-partition#default-admin-partition) for additional information.
 
 The following example registers the policy in the `default` partition and the `default` namespace because the policy grants cross-partition and cross-namespace access.
 
@@ -254,7 +254,7 @@ $ consul acl token create -partition "default" -namespace "default" \
 
 Send a PUT request to the `/acl/token` endpoint and specify the policy name or ID in the request to create an ACL token linked to the policy. Refer to [ACL Token HTTP API](/consul/api-docs/acl/tokens) for additional information about using the API endpoint.
 
-You can specify an admin partition and namespace when registering policies in Consul Enterprise. Policies are only valid in the scopes specified during registration, but you can grant tokens registered in the `default` partition permission to access resources in a different partition than where the token was registered. Refer to the [admin partition documentation](/consul/docs/segment/admin-partition#default-admin-partition) for additional information.
+You can specify an admin partition and namespace when registering policies in Consul Enterprise. Policies are only valid in the scopes specified during registration, but you can grant tokens registered in the `default` partition permission to access resources in a different partition than where the token was registered. Refer to the [admin partition documentation](/consul/docs/multi-tenant/admin-partition#default-admin-partition) for additional information.
 
 The following example registers the policy in the `default` partition and the `default` namespace because the policy grants cross-partition and cross-namespace access.
 

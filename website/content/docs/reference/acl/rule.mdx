@@ -37,7 +37,7 @@ The following resources are not covered by ACL policies:
 - The datacenter listing operation of the [Catalog API](/consul/api-docs/catalog#list-datacenters) similarly exposes the names of known Consul datacenters, and does not allow modification of any state.
 - The [service mesh CA roots endpoint](/consul/api-docs/connect/ca#list-ca-root-certificates) exposes just the public TLS certificate which other systems can use to verify the TLS connection with Consul.
 
--> **Consul Enterprise Namespace** - In addition to directly-linked policies, roles, and service identities, Consul Enterprise enables ACL policies and roles to be defined in the [Namespaces definition](/consul/docs/segment/namespace#namespace-definition) (Consul Enterprise 1.7.0+).
+-> **Consul Enterprise Namespace** - In addition to directly-linked policies, roles, and service identities, Consul Enterprise enables ACL policies and roles to be defined in the [Namespaces definition](/consul/docs/multi-tenant/namespace#namespace-definition) (Consul Enterprise 1.7.0+).
 
 The following topics provide additional details about the available resources.
 
