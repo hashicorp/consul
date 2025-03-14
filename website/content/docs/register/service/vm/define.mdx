@@ -15,7 +15,7 @@ You must tell Consul about the services deployed to your network if you want the
 
 You can define multiple services individually using `service` blocks or group multiple services into the same `services` configuration block. Refer to [Define multiple services in a single file](#define-multiple-services-in-a-single-file) for additional information.
 
-If Consul service mesh is enabled in your network, you can use the [service defaults configuration entry](/consul/docs/reference/config-entry/service-default) to specify default global values for services. The configuration entry lets you define common service parameter, such as upstreams, namespaces, and partitions. Refer to [Define service defaults](#define-service-defaults) for additional information.
+If Consul service mesh is enabled in your network, you can use the [service defaults configuration entry](/consul/docs/reference/config-entry/service-defaults) to specify default global values for services. The configuration entry lets you define common service parameter, such as upstreams, namespaces, and partitions. Refer to [Define service defaults](#define-service-defaults) for additional information.
 
 ## Requirements
 
@@ -125,7 +125,7 @@ You can register your service using the [`consul services` command](/consul/comm
 ## Define service defaults
 If Consul service mesh is enabled in your network, you can define default values for services in your mesh by creating and applying a `service-defaults` configuration entry containing. Refer to [Service Mesh Configuration Overview](/consul/docs/connect/configuration-entries) for additional information.
 
-Create a file for the configuration entry and specify the required fields. If you are authoring `service-defaults` in HCL or JSON, the `Kind` and `Name` fields are required. On Kubernetes, the `apiVersion`, `kind`, and `metadata.name` fields are required. Refer to [Service Defaults Reference](/consul/docs/reference/config-entry/service-default) for details about the configuration options.
+Create a file for the configuration entry and specify the required fields. If you are authoring `service-defaults` in HCL or JSON, the `Kind` and `Name` fields are required. On Kubernetes, the `apiVersion`, `kind`, and `metadata.name` fields are required. Refer to [Service Defaults Reference](/consul/docs/reference/config-entry/service-defaults) for details about the configuration options.
 
 If you use Consul Enterprise, you can also specify the `Namespace` and `Partition` fields to apply the configuration to services in a specific namespace or partition. For Kubernetes environments, the configuration entry is always created in the same partition as the Kubernetes cluster.
 

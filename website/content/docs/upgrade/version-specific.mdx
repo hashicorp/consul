@@ -858,7 +858,7 @@ in CE, or `web.service.ns1.dc1.consul` for Enterprise.
 
 ### Telemetry: semantics of `consul.rpc.query` changed, see `consul.rpc.queries_blocking`
 
-Consul has changed the semantics of query counts in its [telemetry](/consul/docs/agent/telemetry#metrics-reference).
+Consul has changed the semantics of query counts in its [telemetry](/consul/docs/reference/agent/telemetry).
 `consul.rpc.query` now only increments on the _start_ of a query (blocking or non-blocking), whereas before it would
 measure when blocking queries polled for more data. The `consul.rpc.queries_blocking` gauge has been added
 to more precisely capture the view of _active_ blocking queries.

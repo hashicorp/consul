@@ -144,7 +144,7 @@ acls {
 }
 ```
 
-You need to set up additional ACL tokens as needed by the ACL system. Refer to the [ACLs](/consul/docs/secure-consul/acl) docs
+You need to set up additional ACL tokens as needed by the ACL system. Refer to the [ACLs](/consul/docs/secure/acl) docs
 for more information.
 
 ### Gossip Encryption Key
@@ -258,7 +258,7 @@ You'll need:
      }
    }
    ```
-1. If ACLs are enabled you must also modify the [anonymous token](/consul/docs/secure-consul/acl/tokens#anonymous-token) policy to have the following permissions:
+1. If ACLs are enabled you must also modify the [anonymous token](/consul/docs/secure/acl/tokens#anonymous-token) policy to have the following permissions:
 
    ```hcl
    node_prefix "" {
@@ -321,7 +321,7 @@ kubectl create secret generic consul-federation \
 If ACLs are enabled, you must next determine the Kubernetes API URL for the secondary cluster. The API URL of the
 must be specified in the config files for all secondary clusters because secondary clusters need
 to create global Consul ACL tokens (tokens that are valid in all datacenters) and these tokens can only be created
-by the primary datacenter. By setting the API URL, the secondary cluster will configure a [Consul auth method](/consul/docs/secure-consul/acl/auth-methods)
+by the primary datacenter. By setting the API URL, the secondary cluster will configure a [Consul auth method](/consul/docs/secure/acl/auth-methods)
 in the primary cluster so that components in the secondary cluster can use their Kubernetes ServiceAccount tokens
 to retrieve global Consul ACL tokens from the primary.
 

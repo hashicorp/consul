@@ -19,9 +19,9 @@ If you have not used Consul KV, complete this [Getting Started tutorial](/consul
 
 ## Accessing the KV store
 
-The KV store can be accessed by the [consul kv CLI subcommands](/consul/commands/kv), [HTTP API](/consul/api-docs/kv), and Consul UI. To restrict access, enable and configure [ACLs](/consul/docs/secure-consul/acl). Once the ACL system has been bootstrapped, users and services, will need a valid token with KV [privileges](/consul/docs/secure-consul/acl/rules#key-value-rules) to access the data store, this includes even reads. We recommend creating a token with limited privileges, for example, you could create a token with write privileges on one key for developers to update the value related to their application.
+The KV store can be accessed by the [consul kv CLI subcommands](/consul/commands/kv), [HTTP API](/consul/api-docs/kv), and Consul UI. To restrict access, enable and configure [ACLs](/consul/docs/secure/acl). Once the ACL system has been bootstrapped, users and services, will need a valid token with KV [privileges](/consul/docs/secure/acl/rules#key-value-rules) to access the data store, this includes even reads. We recommend creating a token with limited privileges, for example, you could create a token with write privileges on one key for developers to update the value related to their application.
 
-The datastore itself is located on the Consul servers in the [data directory](/consul/docsreference-cli/agent#_data_dir). To ensure data is not lost in the event of a complete outage, use the [`consul snapshot`](/consul/commands/snapshot/restore) feature to backup the data.
+The datastore itself is located on the Consul servers in the [data directory](/consul/docs/architecture/backend). To ensure data is not lost in the event of a complete outage, use the [`consul snapshot`](/consul/commands/snapshot/restore) feature to backup the data.
 
 ## Using Consul KV
 
@@ -49,7 +49,7 @@ If you plan to use Consul KV as part of your configuration management process re
 
 ### Watches
 
-Consul KV can also be extended with the use of watches. [Watches](/consul/docs/dynamic-app/watches) are a way to monitor data for updates. When an update is detected, an external handler is invoked. To use watches with the KV store the [key](/consul/docs/dynamic-app/watches#key) watch type should be used.
+Consul KV can also be extended with the use of watches. [Watches](/consul/docs/automate/watch) are a way to monitor data for updates. When an update is detected, an external handler is invoked. To use watches with the KV store the [key](/consul/docs/automate/watch#key) watch type should be used.
 
 ### Consul Sessions
 

@@ -25,7 +25,7 @@ This section describes how to create a token that grants read-only access to the
 
 ### Define a policy
 
-You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/secure-consul/acl/rules) for details about all of the rules you can use in your policies.
+You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/secure/acl/rules) for details about all of the rules you can use in your policies.
 
 The following example policy is defined in a file. The policy allows users that login with the token to view all services and nodes in the catalog.
 
@@ -97,7 +97,7 @@ $ curl --request PUT http://127.0.0.1:8500/v1/acl/policy \
 
 ### Link the policy to a token
 
-After registering the policies into Consul, you can create and link tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an [auth method](/consul/docs/secure-consul/acl/auth-methods).
+After registering the policies into Consul, you can create and link tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an [auth method](/consul/docs/secure/acl/auth-methods).
 
 <Tabs>
 
@@ -143,7 +143,7 @@ This section describes how to create a token that grants read-only access to the
 
 ### Define a policy
 
-You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/secure-consul/acl/rules) for details about all of the rules you can use in your policies.
+You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/secure/acl/rules) for details about all of the rules you can use in your policies.
 
 The following example policy is defined in a file. The following policy allows users that log in with the token to view services and nodes in the catalog in any partition and in any namespace. The `operator:read` permission is needed to list partitions. Without this permission, you can still view resources within a partition but cannot easily navigate to other partitions in the Consul UI.
 
@@ -234,7 +234,7 @@ $ curl --request PUT http://127.0.0.1:8500/v1/acl/policy \
 
 ### Link the policy to a token
 
-After registering the policies into Consul, you can create and link tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an [auth method](/consul/docs/secure-consul/acl/auth-methods).
+After registering the policies into Consul, you can create and link tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an [auth method](/consul/docs/secure/acl/auth-methods).
 
 <Tabs>
 
@@ -282,7 +282,7 @@ This section describes how to create a token with read-only access to all resour
 
 ### Define a policy
 
-You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/secure-consul/acl/rules) for details about all of the rules you can use in your policies.
+You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/secure/acl/rules) for details about all of the rules you can use in your policies.
 
 The following example policy is defined in a file. The policy allows users that log in with the token to view all services and nodes in the catalog, all objects in the key/value store, all intentions, and all ACL resources. The `acl:read` permission does not allow viewing the token secret ids.
 
@@ -368,7 +368,7 @@ $ curl --request PUT http://127.0.0.1:8500/v1/acl/policy \
 
 ### Link the policy to a token
 
-After registering the policies into Consul, you can create and link tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an [auth method](/consul/docs/secure-consul/acl/auth-methods).
+After registering the policies into Consul, you can create and link tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an [auth method](/consul/docs/secure/acl/auth-methods).
 
 <Tabs>
 
@@ -414,7 +414,7 @@ This section describes how to create a token with read-only access to all resour
 
 ### Define a policy
 
-You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/secure-consul/acl/rules) for details about all of the rules you can use in your policies.
+You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/secure/acl/rules) for details about all of the rules you can use in your policies.
 
 The following example policy is defined in a file. The policy allows users that log in with the token to view all services and nodes in the catalog, all objects in the key-value store, all intentions, and all ACL resources in any namespace and any partition. The `acl:read` permission does not allow viewing the token secret ids.
 
@@ -516,7 +516,7 @@ $ curl --request PUT http://127.0.0.1:8500/v1/acl/policy \
 
 ### Link the policy to a token
 
-After registering the policies into Consul, you can create and link tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an [auth method](/consul/docs/secure-consul/acl/auth-methods).
+After registering the policies into Consul, you can create and link tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an [auth method](/consul/docs/secure/acl/auth-methods).
 
 <Tabs>
 

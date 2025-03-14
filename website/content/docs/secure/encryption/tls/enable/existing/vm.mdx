@@ -9,7 +9,7 @@ description: >-
 
 This page describes how to enable TLS encryption to secure Consul agent communication. Consul supports using TLS to verify the authenticity of servers and clients. To enable TLS, Consul requires that all servers have certificates that are signed by a single certificate authority (CA). Clients should also have certificates that are authenticated with the same CA.
 
-This page provides instructions for enabling TLS encryption for existing Consul datacenters. If you are adding TLS encryption to an new Consul datacenter, refer to [Enable TLS encryption with built-in CA](/consul/docs/secure-consul/encryption/gossip/builtin.mdx).
+This page provides instructions for enabling TLS encryption for existing Consul datacenters. If you are adding TLS encryption to an new Consul datacenter, refer to [Enable TLS encryption with built-in CA](/consul/docs/secure/encryption/tls/enable/new/builtin.mdx).
 
 ## Workflow
 
@@ -63,7 +63,7 @@ The CA certificate may have different names if you are not using Consul's built-
 
 ### Client certificate for operator method
 
-If you are using the operator method, you must also distribute the client certificate and key file to all your clients. Refer to [operator method](/consul/docs/secure-consul/encryption/tls/builtin#distribute-client-certificate) for more details. All clients should have the following certificates and key file.
+If you are using the operator method, you must also distribute the client certificate and key file to all your clients. Refer to [operator method](/consul/docs/secure/encryption/tls/enable/new/builtin#distribute-client-certificate) for more details. All clients should have the following certificates and key file.
 
 - `consul-agent-ca.pem`
 - `dc1-client-consul-0.pem`

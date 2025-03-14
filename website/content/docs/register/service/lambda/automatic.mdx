@@ -60,7 +60,7 @@ resource "aws_ssm_parameter" "ca-cert" {
 
 ### Optional: Store the ACL token in Parameter Store
 
-If [Consul access control lists (ACLs)](/consul/docs/secure-consul/acl) are enabled, Lambda registrator must present an ACL token stored in Parameter Store to access resources. You can use the Consul CLI, API, or the Terraform provider to facilitate the ACL workflow. The following procedure describes how to create and store a token from the command line:
+If [Consul access control lists (ACLs)](/consul/docs/secure/acl) are enabled, Lambda registrator must present an ACL token stored in Parameter Store to access resources. You can use the Consul CLI, API, or the Terraform provider to facilitate the ACL workflow. The following procedure describes how to create and store a token from the command line:
 
 1. Create an ACL policy that includes the following rule:
 
@@ -127,7 +127,7 @@ The registrator also requires the following IAM permissions to access the parame
 | `consul_datacenter` | Specifies the Consul datacenter to synchronize with AWS Lambda state data. By default, the Lambda registrator manages Lambda services for all Consul datacenters. When configured for a specific datacenter, Lambda registrator only manages Lambda services with a matching datacenter tag. Refer to [Supported tags](#supported-tags) for additional information. |
 | `consul_extension_data_prefix` | Specifies the path prefix in the AWS Parameter Store under which the registrator manages mTLS data. If Lambda functions call mesh services, the value must be set to a non-empty string starting with `/`. |
 | `consul_ca_cert_path` | Specifies the path to the CA certificate stored in the AWS Parameter Store. When Lambda registrator makes an HTTPS request to Consul's API and the Consul API is signed by a custom CA, Lambda registrator uses this CA certificate to verify the authenticity of the Consul API. At startup, Lambda registrator pulls the CA certificate at this path from Parameter Store, writes the certificate to the filesystem and stores the path of that file in `CONSUL_CACERT`.  Also refer to [Optional: Store the CA Certificate in Parameter Store](#optional-store-the-ca-certificate-in-parameter-store).|
-| `consul_http_token_path` |  Specifies the path to the ACL token stored in AWS Parameter Store that Lambda registrator presents to access resources. This parameter is only required when ACLs are enabled for the Consul server. It is used to fetch an ACL token from Parameter Store and is stored in the `CONSUL_HTTP_TOKEN` environment variable. Also refer tp [Optional: Store the ACL Token in Parameter Store](#optional-store-the-acl-token-in-parameter-store).|
+| `consul_http_token_path` |  Specifies the path to the ACL token stored in AWS Parameter Store that Lambda registrator presents to access resources. This parameter is only required when ACLs are enabled for the Consul server. It is used to fetch an ACL token from Parameter Store and is stored in the `CONSUL_HTTP_TOKEN` environment variable. Also refer to [Optional: Store the ACL Token in Parameter Store](#optional-store-the-acl-token-in-parameter-store).|
 | `node_name` | The Consul node name that Lambdas are registered to. Defaults to `lambdas`. |
 | `enterprise` | <EnterpriseAlert inline /> Determines if the Consul server at `consul_http_addr` is running Consul Community Edition or Consul Enterprise. |
 | `partitions` | <EnterpriseAlert inline /> The partitions that Lambda registrator manages. |

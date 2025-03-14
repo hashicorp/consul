@@ -23,11 +23,11 @@ You can attach a sidecar proxy to a service you want to deploy to your mesh:
 
 ## Requirements
 
-If ACLs are enabled and you want to configure global Envoy settings in the [proxy defaults configuration entry](/consul/docs/reference/config-entry/proxy-defaults), you must present a token with `operator:write` permissions. Refer to [Create a service token](/consul/docs/secure-consul/acl/token/service-token) for additional information.
+If ACLs are enabled and you want to configure global Envoy settings in the [proxy defaults configuration entry](/consul/docs/reference/config-entry/proxy-defaults), you must present a token with `operator:write` permissions. Refer to [Create a service token](/consul/docs/secure/acl/token/service-token) for additional information.
 
 ## Configure global Envoy passthrough settings
 
-If you want to define global passthrough settings for all Envoy proxies, create a proxy defaults configuration entry and specify default settings, such as access log configuration. [Service defaults configuration entries](/consul/docs/reference/config-entry/service-default) override proxy defaults and individual service configurations override both configuration entries.
+If you want to define global passthrough settings for all Envoy proxies, create a proxy defaults configuration entry and specify default settings, such as access log configuration. [Service defaults configuration entries](/consul/docs/reference/config-entry/service-defaults) override proxy defaults and individual service configurations override both configuration entries.
 
 1. Create a proxy defaults configuration entry and specify the following parameters:
    - `Kind`: Must be set to `proxy-defaults`

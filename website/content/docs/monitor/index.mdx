@@ -32,27 +32,27 @@ It is important to monitor and establish baseline and alert thresholds for Consu
 
 To help monitor your Consul control plane, we recommend to establish a baseline and standard deviation for the following:
 
-- [Server health](/consul/docs/agent/telemetry#server-health)
-- [Leadership changes](/consul/docs/agent/telemetry#leadership-changes)
-- [Key metrics](/consul/docs/agent/telemetry#key-metrics)
-- [Autopilot](/consul/docs/agent/telemetry#autopilot)
-- [Network activity](/consul/docs/agent/telemetry#network-activity-rpc-count)
-- [Certificate authority expiration](/consul/docs/agent/telemetry#certificate-authority-expiration)
+- [Server health](/consul/docs/reference/agent/telemetry#server-health)
+- [Leadership changes](/consul/docs/reference/agent/telemetry#leadership-changes)
+- [Key metrics](/consul/docs/reference/agent/telemetry#key-metrics)
+- [Autopilot](/consul/docs/reference/agent/telemetry#autopilot)
+- [Network activity](/consul/docs/reference/agent/telemetry#network-activity-rpc-count)
+- [Certificate authority expiration](/consul/docs/reference/agent/telemetry#certificate-authority-expiration)
 
 It is important to have a highly performant network with low network latency. Ensure network latency for gossip in all datacenters are within the 8ms latency budget for all Consul agents. View the [Production server requirements](/consul/docs/install/performance#production-server-requirements) for more information.
 
 ### Raft recommendations
 
 Consul uses [Raft for consensus protocol](/consul/docs/concept/consensus). High saturation of the Raft goroutines can lead to elevated latency in the rest of the system and may cause the Consul cluster to be unstable. As a result, it is important to monitor Raft to track your control plane health. We recommend the following actions to keep control plane healthy:
-- Create an alert that notifies you when [Raft thread saturation](/consul/docs/agent/telemetry#raft-thread-saturation) exceeds 50%.
-- Monitor [Raft replication capacity](/consul/docs/agent/telemetry#raft-replication-capacity-issues) when Consul is handling large amounts of data and high write throughput.
+- Create an alert that notifies you when [Raft thread saturation](/consul/docs/reference/agent/telemetry#raft-thread-saturation) exceeds 50%.
+- Monitor [Raft replication capacity](/consul/docs/reference/agent/telemetry#raft-replication-capacity-issues) when Consul is handling large amounts of data and high write throughput.
 - Lower [`raft_multiplier`](/consul/docs/install/performance#production) to keep your Consul cluster stable. The value of `raft_multiplier` defines the scaling factor for Consul. Default value for raft_multiplier is 5.
 
     A short multiplier minimizes failure detection and election time but may trigger frequently in high latency situations. This can cause constant leadership churn and associated unavailability. A high multiplier reduces the chances that spurious failures will cause leadership churn but it does this at the expense of taking longer to detect real failures and thus takes longer to restore Consul cluster availability.
 
     Wide networks with higher latency will perform better with larger `raft_multiplier` values.
 
-Raft uses BoltDB for storing data and maintaining its own state. Refer to the [Bolt DB performance metrics](/consul/docs/agent/telemetry#bolt-db-performance) when you are troubleshooting Raft performance issues.
+Raft uses BoltDB for storing data and maintaining its own state. Refer to the [Bolt DB performance metrics](/consul/docs/reference/agent/telemetry#bolt-db-performance) when you are troubleshooting Raft performance issues.
 
 ## Consul data plane monitoring
 

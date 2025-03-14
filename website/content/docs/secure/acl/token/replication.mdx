@@ -12,7 +12,7 @@ This topic describes how to configure an ACL token for ACL replication between W
 ## Introduction
 
 Consul agents must present a token linked to policies that grant the appropriate set of permissions.
-Specify the [`replication`](/consul/docs/reference/agent#acl_tokens_replication) token on each server in a non-primary datacenter. For hands-on instructions on how to configure ACL replication across datacenters, refer to [Enable ACLs in WAN federated datacenters](/consul/docs/secure-consul/acl/enable-federated-datacenters).
+Specify the [`replication`](/consul/docs/reference/agent#acl_tokens_replication) token on each server in a non-primary datacenter. For hands-on instructions on how to configure ACL replication across datacenters, refer to [Enable ACLs in WAN federated datacenters](/consul/docs/secure/acl/enable-federated-datacenters).
 
 ## Requirements
 
@@ -32,7 +32,7 @@ To create a token for ACL replication, you must define a policy, register the po
 
 ### Define a policy
 
-You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/secure-consul/acl/rules) for details about all of the rules you can use in your policies.
+You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/secure/acl/rules) for details about all of the rules you can use in your policies.
 
 The following example policy is defined in a file. The policy grants the appropriate permissions for ACL replication.
 
@@ -150,7 +150,7 @@ To create a token for ACL replication, you must define a policy, register the po
 
 ### Define a policy
 
-You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/secure-consul/acl/rules) for details about all of the rules you can use in your policies.
+You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/secure/acl/rules) for details about all of the rules you can use in your policies.
 
 The following example policy is defined in a file. The following example policy grants the appropriate permissions for ACL replication.
 
@@ -242,7 +242,7 @@ $ curl --request PUT http://127.0.0.1:8500/v1/acl/policy \
 
 ### Link the policy to a token
 
-After registering the policy into Consul, you can create and link tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an [auth method](/consul/docs/secure-consul/acl/auth-methods).
+After registering the policy into Consul, you can create and link tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an [auth method](/consul/docs/secure/acl/auth-methods).
 
 <Tabs>
 

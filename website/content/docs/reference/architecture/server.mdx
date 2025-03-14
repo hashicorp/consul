@@ -107,7 +107,7 @@ Here are some general recommendations:
   and CPU until leader elections stabilize, and in Consul 0.7 or later the [performance
   parameters](/consul/docs/reference/agent/configuration-file#performance) configuration now gives you tools
   to trade off performance instead of upsizing servers. You can use the [`consul.raft.leader.lastContact`
-  telemetry](/consul/docs/agent/telemetry#leadership-changes) to observe how the Raft timing is
+  telemetry](/consul/docs/reference/agent/telemetry#leadership-changes) to observe how the Raft timing is
   performing and guide the decision to de-tune Raft performance or add more powerful
   servers.
 
@@ -140,7 +140,7 @@ of a snapshot and log of changes since the previous snapshot for durability.
 When planning for memory requirements, you should typically allocate
 enough RAM for your server agents to contain between 2 to 4 times the working
 set size. You can determine the working set size by noting the value of
-`consul.runtime.alloc_bytes` in the [Telemetry data](/consul/docs/agent/telemetry).
+`consul.runtime.alloc_bytes` in the [Telemetry data](/consul/docs/reference/agent/telemetry).
 
 > NOTE: Consul is not designed to serve as a general purpose database, and you
 > should keep this in mind when choosing what data are populated to the
@@ -174,7 +174,7 @@ To prevent any CPU spikes from a misconfigured client, RPC requests to the serve
 
 ~> **NOTE** Rate limiting is configured on the client agent only.
 
-In addition, two [performance indicators](/consul/docs/agent/telemetry) &mdash; `consul.runtime.alloc_bytes` and `consul.runtime.heap_objects` &mdash; can help diagnose if the current sizing is not adequately meeting the load.
+In addition, two [performance indicators](/consul/docs/reference/agent/telemetry) &mdash; `consul.runtime.alloc_bytes` and `consul.runtime.heap_objects` &mdash; can help diagnose if the current sizing is not adequately meeting the load.
 
 ## Service Mesh Certificate Signing CPU Limits
 

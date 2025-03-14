@@ -78,11 +78,11 @@ Consul server agents are an important part of Consul’s architecture. This sect
 Consul servers can be deployed on a few different runtimes:
 
 - **HashiCorp Cloud Platform (HCP) Consul (Managed)**. These Consul servers are deployed in a hosted environment managed by HCP. To get started with HCP Consul servers in Kubernetes or VM deployments, refer to the [Deploy HCP Consul tutorial](/consul/tutorials/get-started-hcp/hcp-gs-deploy).
-- **VMs or bare metal servers (Self-managed)**. To get started with Consul on VMs or bare metal servers, refer to the [Deploy Consul server tutorial](/consul/tutorials/get-started-vms/virtual-machine-gs-deploy). For a full list of configuration options, refer to [Agents Overview](/consul/docs/architecture/control-plane/agent).
+- **VMs or bare metal servers (Self-managed)**. To get started with Consul on VMs or bare metal servers, refer to the [Deploy Consul server tutorial](/consul/tutorials/get-started-vms/virtual-machine-gs-deploy). For a full list of configuration options, refer to [Agents Overview](/consul/docs/fundamentals/agent).
 - **Kubernetes (Self-managed)**. To get started with Consul on Kubernetes, refer to the [Deploy Consul on Kubernetes tutorial](/consul/tutorials/get-started-kubernetes/kubernetes-gs-deploy).
 - **Other container environments, including Docker, Rancher, and Mesos (Self-managed)**.
 
-When operating Consul at scale, self-managed VM or bare metal server deployments offer the most flexibility. Some Consul Enterprise features that can enhance fault tolerance and read scalability, such as [redundancy zones](/consul/docs/manage-consul/redundancy-zones) and [read replicas](/consul/docs/manage-consul/read-replicas), are not available to server agents on Kubernetes runtimes. To learn more, refer to [Consul Enterprise feature availability by runtime](/consul/docs/enterprise#feature-availability-by-runtime).
+When operating Consul at scale, self-managed VM or bare metal server deployments offer the most flexibility. Some Consul Enterprise features that can enhance fault tolerance and read scalability, such as [redundancy zones](/consul/docs/manage/scale/redundancy-zone) and [read replicas](/consul/docs/manage/scale/read-replica), are not available to server agents on Kubernetes runtimes. To learn more, refer to [Consul Enterprise feature availability by runtime](/consul/docs/enterprise#feature-availability-by-runtime).
 
 ### Number of Consul servers
 
@@ -94,7 +94,7 @@ Determining the number of Consul servers to deploy on your network has two key c
 Fault tolerance should determine your initial decision for how many Consul server agents to deploy. Our recommendation for the number of servers to deploy depends on whether you have access to Consul Enterprise redundancy zones:
 
 - **With redundancy zones**: Deploy 6 Consul servers across 3 availability zones. This deployment provides the performance of a 3 server deployment with the fault tolerance of a 7 server deployment.
-- **Without redundancy zones**: Deploy 5 Consul servers across 3 availability zones. All 5 servers should be voting servers, not [read replicas](/consul/docs/manage-consul/read-replicas).
+- **Without redundancy zones**: Deploy 5 Consul servers across 3 availability zones. All 5 servers should be voting servers, not [read replicas](/consul/docs/manage/scale/read-replica).
 
 For more details, refer to [Improving Consul Resilience](/consul/docs/concept/reliability).
 
@@ -110,7 +110,7 @@ Consul's agents use network sockets for gossip communication with the other node
 
 Auto scaling groups (ASGs) are infrastructure associations in cloud providers used to ensure a specific number of replicas are available for a deployment. When using ASGs for Consul servers, there are specific requirements and processes for bootstrapping Raft and maintaining quorum.
 
-We recommend using the [`bootstrap-expect` command-line flag](/consul/docsreference-cli/agent#_bootstrap_expect) during cluster creation. However, if you spawn new servers to add to a cluster or upgrade servers, do not configure them to automatically bootstrap. If `bootstrap-expect` is set on these replicas, it is possible for them to create a separate Raft system, which causes a _split brain_ and leads to errors and general cluster instability.
+We recommend using the [`bootstrap-expect` command-line flag](/consul/commands/agent#_bootstrap_expect) during cluster creation. However, if you spawn new servers to add to a cluster or upgrade servers, do not configure them to automatically bootstrap. If `bootstrap-expect` is set on these replicas, it is possible for them to create a separate Raft system, which causes a _split brain_ and leads to errors and general cluster instability.
 
 #### NUMA architecture awareness
 
@@ -140,7 +140,7 @@ While operating Consul, monitor the CPU load on the Consul server agents and use
 
 ### Read-heavy workload sources and solutions
 
-The highest CPU load usually belongs to the current leader. If the CPU load is high, request load is likely a major contributor. Check the following [server health metrics](/consul/docs/agent/telemetry#server-health):
+The highest CPU load usually belongs to the current leader. If the CPU load is high, request load is likely a major contributor. Check the following [server health metrics](/consul/docs/reference/agent/telemetry#server-health):
 
 - `consul.rpc.*` - Traditional RPC metrics. The most relevant metrics for understanding server CPU load in read-heavy workloads are `consul.rpc.query` and `consul.rpc.queries_blocking`.
 - `consul.grpc.server.*` - Metrics for the number of streams being processed by the server.
@@ -149,8 +149,8 @@ The highest CPU load usually belongs to the current leader. If the CPU load is h
 Depending on your needs, choose one of the following strategies to mitigate server CPU load:
 
 - The fastest mitigation strategy is to vertically scale servers. However, this strategy increases compute costs and does not scale indefinitely.
-- The most effective long term mitigation strategy is to use [stale consistency mode](/consul/api-docs/features/consistency#stale) for as many read requests as possible. In Consul v1.12 and higher, operators can use the [`consul.rpc.server.call` metric](/consul/docs/agent/telemetry#server-workload) to identify the most frequent type of read requests made to the Consul servers. Cross reference the results with each endpoint’s [HTTP API documentation](/consul/api-docs) and use stale consistency for endpoints that support it.
-- If most read requests already use stale consistency mode and you still need to reduce your request load, add more non-voting servers to your deployment. You can use either [redundancy zones](/consul/docs/manage-consul/redundancy-zones) or [read replicas](/consul/docs/manage-consul/read-replicas) to scale reads without impacting write latency. We recommend adding more servers to redundancy zones because they improve both fault tolerance and stale read scalability.
+- The most effective long term mitigation strategy is to use [stale consistency mode](/consul/api-docs/features/consistency#stale) for as many read requests as possible. In Consul v1.12 and higher, operators can use the [`consul.rpc.server.call` metric](/consul/docs/reference/agent/telemetry#server-workload) to identify the most frequent type of read requests made to the Consul servers. Cross reference the results with each endpoint’s [HTTP API documentation](/consul/api-docs) and use stale consistency for endpoints that support it.
+- If most read requests already use stale consistency mode and you still need to reduce your request load, add more non-voting servers to your deployment. You can use either [redundancy zones](/consul/docs/manage/scale/redundancy-zone) or [read replicas](/consul/docs/manage/scale/read-replica) to scale reads without impacting write latency. We recommend adding more servers to redundancy zones because they improve both fault tolerance and stale read scalability.
 - In Consul v1.14 and higher, servers handle Envoy XDS streams for [Consul Dataplane deployments](/consul/docs/architecture/control-plane/dataplane) in stale consistency mode. As a result, server consistency mode is not configurable. Use the `consul.xds.server.*` metrics to identify issues related to XDS streams.
 
 ### Write-heavy workload sources and solutions
@@ -165,13 +165,13 @@ For more information, refer to the [server performance read/write tuning](/consu
 
 ### Raft database performance sources and solutions
 
-Consul servers use the [Raft consensus protocol](/consul/docs/concept/consensus) to maintain a consistent and fault-tolerant state. Raft stores most Consul data in a MemDB database, which is an in-memory database with indexing. In order to tolerate restarts and power outages, Consul writes Raft logs to disk using BoltDB. Refer to [Agent telemetry](/consul/docs/agent/telemetry) for more information on metrics for detecting write health.
+Consul servers use the [Raft consensus protocol](/consul/docs/concept/consensus) to maintain a consistent and fault-tolerant state. Raft stores most Consul data in a MemDB database, which is an in-memory database with indexing. In order to tolerate restarts and power outages, Consul writes Raft logs to disk using BoltDB. Refer to [Agent telemetry](/consul/docs/reference/agent/telemetry) for more information on metrics for detecting write health.
 
-To monitor overall transaction performance, check for spikes in the [Transaction timing metrics](/consul/docs/agent/telemetry#transaction-timing). You can also use the [Raft replication capacity issues metrics](/consul/docs/agent/telemetry#raft-replication-capacity-issues) to monitor Raft log snapshots and restores, as spikes and longer durations can be symptoms of overall write and disk contention issues.
+To monitor overall transaction performance, check for spikes in the [Transaction timing metrics](/consul/docs/reference/agent/telemetry#transaction-timing). You can also use the [Raft replication capacity issues metrics](/consul/docs/reference/agent/telemetry#raft-replication-capacity-issues) to monitor Raft log snapshots and restores, as spikes and longer durations can be symptoms of overall write and disk contention issues.
 
-In Consul v1.11 and higher, you can also monitor Raft performance with the [`consul.raft.boltdb.*` metrics](/consul/docs/agent/telemetry#bolt-db-performance). We recommend monitoring `consul.raft.boltdb.storeLogs` for increased activity above normal operating patterns.
+In Consul v1.11 and higher, you can also monitor Raft performance with the [`consul.raft.boltdb.*` metrics](/consul/docs/reference/agent/telemetry#bolt-db-performance). We recommend monitoring `consul.raft.boltdb.storeLogs` for increased activity above normal operating patterns.
 
-Refer to [Consul agent telemetry](/consul/docs/agent/telemetry#bolt-db-performance) for more information on agent metrics and how to use them.
+Refer to [Consul agent telemetry](/consul/docs/reference/agent/telemetry#bolt-db-performance) for more information on agent metrics and how to use them.
 
 #### Raft database size
 
@@ -186,17 +186,17 @@ After they are written to disk, Raft logs are eventually captured in a snapshot 
 To figure out if a Consul server’s disk performance issues are the result of BoldDB’s freelist, try the following strategies:
 
 - Compare network bandwidth inbound to the server against disk write bandwidth. If _disk write bandwidth_ is greater than or equal to 5 times the _inbound network bandwidth_, the disks are likely experiencing freelist management performance issues. While BoltDB freelist may cause problems at ratios lower than 5 to 1, high write bandwidth to inbound bandwidth ratios are a reliable indicator that BoltDB freelist is causing a problem.
-- Use the [`consul.raft.leader.dispatchLog` metric](/consul/docs/agent/telemetry#server-health) to get information about how long it takes to write a batch of logs to disk.
-- In Consul v1.13 and higher, you can use [Raft thread saturation metrics](/consul/docs/agent/telemetry#raft-thread-saturation) to figure out if Raft is experiencing back pressure and is unable to accept new work due disk limitations.
+- Use the [`consul.raft.leader.dispatchLog` metric](/consul/docs/reference/agent/telemetry#server-health) to get information about how long it takes to write a batch of logs to disk.
+- In Consul v1.13 and higher, you can use [Raft thread saturation metrics](/consul/docs/reference/agent/telemetry#raft-thread-saturation) to figure out if Raft is experiencing back pressure and is unable to accept new work due disk limitations.
 
-In Consul v1.11 and higher, you can prevent BoltDB from writing the freelist to disk by setting [`raftboltdb.NoFreelistSync`](/consul/docs/reference/agent#NoFreelistSync) to `true`. This setting causes BoltDB to retain the freelist in memory instead. However, be aware that when BoltDB restarts, it needs to scan the database file to manually create the freelist. Small delays in startup may occur. On a fast disk, we measured these delays at the order of tens of seconds for a raft.db file that was 5GiB in size with only 250MiB of used pages.
+In Consul v1.11 and higher, you can prevent BoltDB from writing the freelist to disk by setting [`raftboltdb.NoFreelistSync`](/consul/docs/reference/agent/configuration-file/raft#NoFreeListSync) to `true`. This setting causes BoltDB to retain the freelist in memory instead. However, be aware that when BoltDB restarts, it needs to scan the database file to manually create the freelist. Small delays in startup may occur. On a fast disk, we measured these delays at the order of tens of seconds for a raft.db file that was 5GiB in size with only 250MiB of used pages.
 
-In general, set [`raftboltdb.NoFreelistSync`](/consul/docs/reference/agent#NoFreelistSync) to `true` to produce the following effects:
+In general, set [`raftboltdb.NoFreelistSync`](/consul/docs/reference/agent/configuration-file/raft#NoFreeListSync) to `true` to produce the following effects:
 
 - Reduce the amount of data written to disk
 - Increase the amount of time it takes to load the raft.db file on startup
 
-We recommend operators optimize networks according to their individual concerns. For example, if your server runs into disk performance issues but Consul servers do not restart often, setting [`raftboltdb.NoFreelistSync`](/consul/docs/reference/agent#NoFreelistSync) to `true` may solve your problems. However, the same action causes issues for deployments with large database files and frequent server restarts.
+We recommend operators optimize networks according to their individual concerns. For example, if your server runs into disk performance issues but Consul servers do not restart often, setting [`raftboltdb.NoFreelistSync`](/consul/docs/reference/agent/configuration-file/raft#NoFreeListSync) to `true` may solve your problems. However, the same action causes issues for deployments with large database files and frequent server restarts.
 
 #### Raft snapshots
 
@@ -217,7 +217,7 @@ In Consul v1.10 and higher, operators can try to prevent a snapshot install loop
 - After truncation, the lowest number on `consul.raft.leader.oldestLogAge` should always be at least two times higher than the lowest number for `consul.raft.rpc.installSnapshot`.
 - If these metrics are too close, increase the number of Raft trailing logs, which increases `consul.raft.leader.oldestLogAge`. Do not set the Raft trailing logs higher than necessary, as it can negatively affect write throughput and latency.
 
-For more information, refer to [Raft Replication Capacity Issues](/consul/docs/agent/telemetry#raft-replication-capacity-issues).
+For more information, refer to [Raft Replication Capacity Issues](/consul/docs/reference/agent/telemetry#raft-replication-capacity-issues).
 
 ## Performance considerations for specific use cases
 
@@ -232,7 +232,7 @@ Several factors influence Consul performance at scale when used primarily for it
 - The overall number of registered service instances
 - The use of [stale reads](/consul/api-docs/features/consistency#consul-dns-queries) for DNS queries
 - The number of entities, such as Consul client agents or dataplane components, that are monitoring Consul for changes in a service's instances, including registration and health status. When any service change occurs, all of those entities incur a computational cost because they must process the state change and reconcile it with previously known data for the service. In addition, the Consul server agents also incur a computational cost when sending these updates.
-- Number of [watches](/consul/docs/dynamic-app/watches) monitoring for changes to a service.
+- Number of [watches](/consul/docs/automate/watch) monitoring for changes to a service.
 - Rate of catalog updates, which is affected by the following events:
     - A service instance’s health check status changes
     - A service instance’s node loses connectivity to Consul servers
@@ -278,6 +278,6 @@ In addition, we recommend that you do not use the [blocking query mechanism](/co
 
 At scale, using Consul as a backend for Vault results in increased memory and CPU utilization on Consul servers. It also produces unbounded growth in Consul’s data persistence layer that is proportional to both the amount of data being stored in Vault and the rate the data is updated.
 
-In situations where Consul handles large amounts of data and has high write throughput, we recommend adding monitoring for the [capacity and health of raft replication on servers](/consul/docs/agent/telemetry#raft-replication-capacity-issues). If the server experiences heavy load when the size of its stored data is large enough, a follower may be unable to catch up on replication and become a voter after restarting. This situation occurs when the time it takes for a server to restore from disk takes longer than it takes for the leader to write a new snapshot and truncate its logs. Refer to [Raft snapshots](#raft-snapshots) for more information.
+In situations where Consul handles large amounts of data and has high write throughput, we recommend adding monitoring for the [capacity and health of raft replication on servers](/consul/docs/reference/agent/telemetry#raft-replication-capacity-issues). If the server experiences heavy load when the size of its stored data is large enough, a follower may be unable to catch up on replication and become a voter after restarting. This situation occurs when the time it takes for a server to restore from disk takes longer than it takes for the leader to write a new snapshot and truncate its logs. Refer to [Raft snapshots](#raft-snapshots) for more information.
 
 Vault v1.4 and higher provides [integrated storage](/vault/docs/concepts/integrated-storage) as its recommended storage option. If you currently use Consul as a storage backend for Vault, we recommend switching to integrated storage. For a comparison between Vault's integrated storage and Consul as a backend for Vault, refer to [storage backends in the Vault documentation](/vault/docs/configuration/storage#integrated-storage-vs-consul-as-vault-storage). For detailed guidance on migrating the Vault backend from Consul to Vault's integrated storage, refer to the [storage migration tutorial](/vault/docs/configuration/storage#integrated-storage-vs-consul-as-vault-storage). Integrated storage improves resiliency by preventing a Consul outage from also affecting Vault functionality.

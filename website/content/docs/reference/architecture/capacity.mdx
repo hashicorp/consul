@@ -87,7 +87,7 @@ We recommend completing the [Monitor Consul server health and performance with m
 
 ### Important metrics
 
-In production environments, create baselines for your Consul cluster's metrics. After you discover the baselines, you will be able to define alerts and receive notifications when there are unexpected values. For a detailed explanation on the metrics and their values, refer to [Consul Agent telemetry](/consul/docs/agent/telemetry).
+In production environments, create baselines for your Consul cluster's metrics. After you discover the baselines, you will be able to define alerts and receive notifications when there are unexpected values. For a detailed explanation on the metrics and their values, refer to [Consul Agent telemetry](/consul/docs/reference/agent/telemetry).
 
 ### Transaction metrics
 
@@ -179,7 +179,7 @@ The value of `raft_multiplier` has a default value of 5. It is a scaling factor 
 | ElectionTimeout | 5000ms | 5 x 1000ms |
 | LeaderLeaseTimeout | 2500ms | 5 x 500ms |
 
-You can use the telemetry from [`consul.raft.leader.lastContact`](/consul/docs/agent/telemetry#leadership-changes) to observe Raft timing performance. 
+You can use the telemetry from [`consul.raft.leader.lastContact`](/consul/docs/reference/agent/telemetry#leadership-changes) to observe Raft timing performance. 
 
 Wide networks with more latency perform better with larger values of `raft_multiplier`, but cluster failure detection will take longer. If your network operates with low latency, we recommend that you do not set the Raft multiplier higher than 5. Instead, you should either replace the servers with more powerful ones or minimize the network latency between nodes.
 

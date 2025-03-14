@@ -3292,7 +3292,7 @@ dir. [[GH-10089](https://github.com/hashicorp/consul/issues/10089)]
 * licensing: **(Enterprise Only)** Consul Enterprise has gained the ability update its license via a configuration reload. The same environment variables and configurations will be used to determine the new license. [[GH-10267](https://github.com/hashicorp/consul/issues/10267)]
 * monitoring: optimize the monitoring endpoint to avoid losing logs when under high load. [[GH-10368](https://github.com/hashicorp/consul/issues/10368)]
 * raft: allow reloading of raft trailing logs and snapshot timing to allow recovery from some [replication failure modes](https://github.com/hashicorp/consul/issues/9609).
-telemetry: add metrics and documentation for [monitoring for replication issues](https://consul.io/docs/agent/telemetry#raft-replication-capacity-issues). [[GH-10129](https://github.com/hashicorp/consul/issues/10129)]
+telemetry: add metrics and documentation for [monitoring for replication issues](https://consul.io/docs/reference/agent/telemetry#raft-replication-capacity-issues). [[GH-10129](https://github.com/hashicorp/consul/issues/10129)]
 * streaming: change `use_streaming_backend` to default to true so that streaming is used by default when it is supported. [[GH-10149](https://github.com/hashicorp/consul/issues/10149)]
 * ui: Add 'optional route segments' and move namespaces to use them [[GH-10212](https://github.com/hashicorp/consul/issues/10212)]
 * ui: Adding a notice about how TransparentProxy mode affects the Upstreams list at the top of tab view [[GH-10136](https://github.com/hashicorp/consul/issues/10136)]

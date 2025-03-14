@@ -65,6 +65,10 @@
         ]
       },
       {
+        "title": "Network coordinates",
+        "route": "architecture/coordinates"
+      },
+      {
         "title": "Data directory",
         "path": "architecture/backend"
       },

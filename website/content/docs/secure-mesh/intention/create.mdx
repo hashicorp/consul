@@ -16,13 +16,13 @@ You can create single intentions or create them in batches using the Consul API,
 ## Requirements
 
 - At least two services must be registered in the datacenter.
-- TLS must be enabled to enforce L4 intentions. Refer to [Encryption](/consul/docs/secure-consul/encryption) for additional information.
+- TLS must be enabled to enforce L4 intentions. Refer to [Encryption](/consul/docs/secure/encryption) for additional information.
 
 ### ACL requirements
 
 Consul grants permissions for creating and managing intentions based on the destination, not the source. When ACLs are enabled, services and operators must present a token linked to a policy that grants read and write permissions to the destination service.
 
-Consul implicitly grants `intentions:read` permissions to destination services when they are configured with `service:read` or `service:write` permissions. This is so that the services can allow or deny inbound connections when they attempt to join the service mesh. Refer to [Service rules](/consul/docs/secure-consul/acl/rules#service-rules) for additional information about configuring ACLs for intentions.
+Consul implicitly grants `intentions:read` permissions to destination services when they are configured with `service:read` or `service:write` permissions. This is so that the services can allow or deny inbound connections when they attempt to join the service mesh. Refer to [Service rules](/consul/docs/secure/acl/rules#service-rules) for additional information about configuring ACLs for intentions.
 
 The default ACL policy configuration determines the default behavior for intentions. If the policy is set to `deny`, then all connections or requests are denied and you must enable them explicitly. Refer to [`default_policy`](/consul/docs/reference/agent#acl_default_policy) for details.
 
@@ -165,7 +165,7 @@ Refer to the [example service intentions configurations](/consul/docs/reference/
 
 L7 intentions defined in a configuration entry are restricted to destination services
 configured with an HTTP-based protocol as defined in a corresponding
-[service defaults configuration entry](/consul/docs/reference/config-entry/service-default)
+[service defaults configuration entry](/consul/docs/reference/config-entry/service-defaults)
 or globally in a [proxy defaults configuration entry](/consul/docs/reference/config-entry/proxy-defaults).
 
 ### Apply the service intentions configuration entry

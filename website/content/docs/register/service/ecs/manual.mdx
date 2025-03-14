@@ -17,13 +17,13 @@ You should have some familiarity with AWS ECS. Refer to [What is Amazon Elastic 
 
 You must meet the following requirements and prerequisites to enable security features in Consul service mesh:
 
-- Enable [TLS encryption](/consul/docs/secure-consul/encryption#rpc-encryption-with-tls) on your Consul servers so that they can communicate security with Consul dataplane containers over gRPC.
-- Enable [access control lists (ACLs)](/consul/docs/secure-consul/acl) on your Consul servers. ALCs provide authentication and authorization for access to Consul servers on the mesh.
+- Enable [TLS encryption](/consul/docs/secure/encryption#rpc-encryption-with-tls) on your Consul servers so that they can communicate security with Consul dataplane containers over gRPC.
+- Enable [access control lists (ACLs)](/consul/docs/secure/acl) on your Consul servers. ALCs provide authentication and authorization for access to Consul servers on the mesh.
 - You should be familiar with specifying sensitive data on ECS. Refer to [Passing sensitive data to a container](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/specifying-sensitive-data.html) in the AWS documentation for additional information.
 
 You should be familiar with configuring Consul's secure features, including how to create ACL tokens and policies. Refer to the following resources: '
 
-- [Create a service token](/consul/docs/secure-consul/acl/token/service-token)
+- [Create a service token](/consul/docs/secure/acl/token/service-token)
 
 Consul requires a unique IAM role for each ECS task family. Task IAM roles cannot be shared by different task families because the task family is unique to each Consul service. 
 
@@ -250,11 +250,11 @@ On the Consul server, create a policy that grants the following access for the c
 - `node:write`
 - `service:write`
 
-The policy allows Consul to generate a token linked to the policy. Refer to [Create a service token](/consul/docs/secure-consul/acl/token/service-token) for instructions.
+The policy allows Consul to generate a token linked to the policy. Refer to [Create a service token](/consul/docs/secure/acl/token/service-token) for instructions.
 
 ### ECS task role
 
-1. Create an ECS task role and configure an `iam:GetRole` permission so that it can fetch itself. Refer to [IAM Policies](/consul/docs/secure-consul/acl/auth-methods/aws-iam#iam-policies) for instructions.
+1. Create an ECS task role and configure an `iam:GetRole` permission so that it can fetch itself. Refer to [IAM Policies](/consul/docs/secure/acl/auth-methods/aws-iam#iam-policies) for instructions.
 1. Add an `consul.hashicorp.com.service-name` tag to the task role that contains the Consul service name for the application in the task.
 1. When using Consul Enterprise, you must also include the `consul.hashicorp.com.namespace` tag to specify the namespace to register the service in.
 
@@ -301,7 +301,7 @@ You must specify the following configuration in the `-config` flag:
 | `EnableIAMEntityDetails` | Must be `true` so that the auth method can retrieve IAM role details, such as the role path and role tags. | Boolean |
 | `IAMEntityTags` | Specifies a list of IAM role tags to make available to binding rules. Must include the service name tag. | List |
 
-Refer to the [auth method configuration parameters documentation](/consul/docs/secure-consul/acl/auth-methods/aws-iam#config-parameters) for additional information.
+Refer to the [auth method configuration parameters documentation](/consul/docs/secure/acl/auth-methods/aws-iam#config-parameters) for additional information.
 
 ### Create the binding rule 
 

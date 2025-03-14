@@ -8,7 +8,7 @@ description: Find information about the ports that Consul requires for its netwo
 
 This page provides reference information about the required ports that Consul exposes for its operations.
 
-You can change or disable Consul's default ports in the [agent configuration file](/consul/docs/reference/agent#ports) or using the [`consul agent` CLI command](/consul/docsreference-cli/agent).
+You can change or disable Consul's default ports in the [agent configuration file](/consul/docs/reference/agent#ports) or using the [`consul agent` CLI command](/consul/commands/agent).
 
 ## Overview
 
@@ -77,7 +77,7 @@ This port receives incoming traffic from workloads that make HTTPS API calls.
 
 The server HTTPS port does not need to be open when Consul clients service all HTTPS API calls. Consul does not use this port for internal communication between servers, clients, dataplanes, gateways, and Envoy proxies.
 
-This port is disabled by default. You can enable it in the [agent configuration file](/consul/docs/reference/agent#ports) or using the [`consul agent` CLI command](/consul/docsreference-cli/agent).
+This port is disabled by default. You can enable it in the [agent configuration file](/consul/docs/reference/agent#ports) or using the [`consul agent` CLI command](/consul/commands/agent).
 
 HCP Consul assigns port `443` to HashiCorp-managed clusters, instead of the default `8501`.
 
@@ -91,7 +91,7 @@ The following table lists information about the Consul API's gRPC port defaults:
 
 When using [Consul Dataplane](/consul/docs/architecture/control-plane/dataplane), this port receives incoming traffic from the dataplanes.
 
-We recommend using gRPC TLS instead, so this port is disabled by default. You can enable it in the [agent configuration file](/consul/docs/reference/agent#ports) or using the [`consul agent` CLI command](/consul/docsreference-cli/agent).
+We recommend using gRPC TLS instead, so this port is disabled by default. You can enable it in the [agent configuration file](/consul/docs/reference/agent#ports) or using the [`consul agent` CLI command](/consul/commands/agent).
 
 HCP Consul does not support the gRPC port.
 
@@ -204,7 +204,7 @@ The following table lists information about the Consul client's HTTPS port defau
 
 This port receives incoming traffic from workloads that make HTTPS API calls. Consul does not use this port for internal communication between servers, clients, dataplanes, gateways, and Envoy proxies.
 
-This port is disabled by default. You can enable it in the [agent configuration file](/consul/docs/reference/agent#ports) or using the [`consul agent` CLI command](/consul/docsreference-cli/agent).
+This port is disabled by default. You can enable it in the [agent configuration file](/consul/docs/reference/agent#ports) or using the [`consul agent` CLI command](/consul/commands/agent).
 
 When this port is enabled, the Consul CLI uses it to interact with Consul.
 
@@ -230,7 +230,7 @@ The following table lists information about the Consul client's gRPC with TLS po
 
 This port receives incoming traffic from the gateways and Envoy proxies registered to this client. We recommend using `8503` as your conventional gRPC port number, as it allows some tools to work automatically.
 
-This port is disabled by default. You can enable it in the [agent configuration file](/consul/docs/reference/agent#ports) or using the [`consul agent` CLI command](/consul/docsreference-cli/agent).
+This port is disabled by default. You can enable it in the [agent configuration file](/consul/docs/reference/agent#ports) or using the [`consul agent` CLI command](/consul/commands/agent).
 
 ### Client LAN serf
 

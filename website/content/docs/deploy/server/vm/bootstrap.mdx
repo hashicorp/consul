@@ -28,7 +28,7 @@ Complete the following steps to bootstrap a cluster:
 1. Initiate the cluster and specify the number of server agents to start.
 1. Join the servers either automatically or manually.
 
-Use the [`-bootstrap-expect`](/consul/docsreference-cli/agent#_bootstrap_expect) flag on the command line or configure `bootstrap_expect` in the agent configuration. This option declares the expected number of servers and automatically bootstraps them when the specified number of servers are available. To prevent inconsistencies and deployments where multiple servers consider themselves leader, you should either specify the same value for each server's `bootstrap_expect` parameter or specify no value at all on all the servers. When `-bootstrap-expect` is omitted, Consul defaults to `1` for the number of expected servers.
+Use the [`-bootstrap-expect`](/consul/commands/agent#_bootstrap_expect) flag on the command line or configure `bootstrap_expect` in the agent configuration. This option declares the expected number of servers and automatically bootstraps them when the specified number of servers are available. To prevent inconsistencies and deployments where multiple servers consider themselves leader, you should either specify the same value for each server's `bootstrap_expect` parameter or specify no value at all on all the servers. When `-bootstrap-expect` is omitted, Consul defaults to `1` for the number of expected servers.
 
 The following command bootstraps a datacenter consisting of three Consul servers:
 
@@ -64,7 +64,7 @@ Consul prints a warning message to the console when the number of servers in a c
 
 ## Join the servers
 
-After you start the servers, you must join them in a cluster to initiate the Raft election. To join servers automatically, specify network addresses or [cloud auto join](/consul/docs/deploy/server/cloud-auto-join) tags for supported cloud environments using either the [-retry-join CLI flag](/consul/docsreference-cli/agent#_retry_join) or the [`retry_join` configuration option](/consul/docs/reference/agent#retry_join).
+After you start the servers, you must join them in a cluster to initiate the Raft election. To join servers automatically, specify network addresses or [cloud auto join](/consul/docs/deploy/server/cloud-auto-join) tags for supported cloud environments using either the [-retry-join CLI flag](/consul/commands/agent#_retry_join) or the [`retry_join` configuration option](/consul/docs/reference/agent#retry_join).
 
 The following examples demonstrate address options and their formatting for the `-retry-join` CLI flag.
 

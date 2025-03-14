@@ -113,7 +113,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
   - `grpc` - The gRPC API. Defaults to `client_addr`
   - `grpc_tls` - The gRPC API with TLS. Defaults to `client_addr`
 
-- `alt_domain` Equivalent to the [`-alt-domain` command-line flag](/consul/docsreference-cli/agent#_alt_domain)
+- `alt_domain` Equivalent to the [`-alt-domain` command-line flag](/consul/commands/agent#_alt_domain)
 
 - `audit` <EnterpriseAlert inline /> - Added in Consul 1.8, the audit object allow users to enable auditing
   and configure a sink and filters for their audit logs. For more information, review the [audit log tutorial](/consul/tutorials/datacenter-operations/audit-logging).
@@ -267,7 +267,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
   - `server_addresses` (Defaults to `[]`) This specifies the addresses of servers in
     the local datacenter to use for the initial RPC. These addresses support
-    [Cloud Auto-Joining](/consul/docsreference-cli/agent#cloud-auto-joining) and can optionally include a port to
+    [Cloud Auto-Joining](/consul/commands/agent#cloud-auto-joining) and can optionally include a port to
     use when making the outbound connection. If no port is provided, the `server_port`
     will be used.
 
@@ -285,7 +285,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
     - `static` This object controls configuring the static authorizer setup in the Consul
       configuration file. Almost all sub-keys are identical to those provided by the [JWT
-      Auth Method](/consul/docs/secure-consul/acl/auth-methods/jwt).
+      Auth Method](/consul/docs/secure/acl/auth-methods/jwt).
 
       - `jwt_validation_pub_keys` (Defaults to `[]`) A list of PEM-encoded public keys
         to use to authenticate signatures locally.
@@ -383,9 +383,9 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
         - `partition` <EnterpriseAlert inline /> - The admin partition name the client is requesting.
 
-- `auto_reload_config` Equivalent to the [`-auto-reload-config` command-line flag](/consul/docsreference-cli/agent#_auto_reload_config).
+- `auto_reload_config` Equivalent to the [`-auto-reload-config` command-line flag](/consul/commands/agent#_auto_reload_config).
 
-- `bind_addr` Equivalent to the [`-bind` command-line flag](/consul/docsreference-cli/agent#_bind).
+- `bind_addr` Equivalent to the [`-bind` command-line flag](/consul/commands/agent#_bind).
 
   This parameter can be set to a go-sockaddr template that resolves to a single
   address. Special characters such as backslashes `\` or double quotes `"`
@@ -433,7 +433,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
   changes state, the new state and associated output is synchronized immediately.
   To disable this behavior, set the value to "0s".
 
-- `client_addr` Equivalent to the [`-client` command-line flag](/consul/docsreference-cli/agent#_client).
+- `client_addr` Equivalent to the [`-client` command-line flag](/consul/commands/agent#_client).
 
 - `config_entries` This object allows setting options for centralized config entries.
 
@@ -447,9 +447,9 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
     Refer to the [configuration entry docs](/consul/docs/fundamentals/config-entry) for more
     details about the contents of each entry.
 
-- `datacenter` Equivalent to the [`-datacenter` command-line flag](/consul/docsreference-cli/agent#_datacenter).
+- `datacenter` Equivalent to the [`-datacenter` command-line flag](/consul/commands/agent#_datacenter).
 
-- `data_dir` Equivalent to the [`-data-dir` command-line flag](/consul/docsreference-cli/agent#_data_dir).
+- `data_dir` Equivalent to the [`-data-dir` command-line flag](/consul/docs/architecture/backend).
 
 - `disable_anonymous_signature` Disables providing an anonymous
   signature for de-duplication with the update check. Refer to  [`disable_update_check`](#disable_update_check).
@@ -478,9 +478,9 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
 - `enable_debug` (boolean, default is `false`): When set to `true`, enables Consul to report additional debugging information, including runtime profiling (`pprof`) data. This setting is only required for clusters without ACL [enabled](#acl_enabled). If you change this setting, you must restart the agent for the change to take effect.
 
-- `enable_script_checks` Equivalent to the [`-enable-script-checks` command-line flag](/consul/docsreference-cli/agent#_enable_script_checks).
+- `enable_script_checks` Equivalent to the [`-enable-script-checks` command-line flag](/consul/commands/agent#_enable_script_checks).
 
-  ACLs must be enabled for agents and the `enable_script_checks` option must be set to `true` to enable script checks in Consul 0.9.0 and later. See [Registering and Querying Node Information](/consul/docs/secure-consul/acl/rules#registering-and-querying-node-information) for related information.
+  ACLs must be enabled for agents and the `enable_script_checks` option must be set to `true` to enable script checks in Consul 0.9.0 and later. See [Registering and Querying Node Information](/consul/docs/secure/acl/rules#registering-and-querying-node-information) for related information.
 
   <Warning title="Security Warning">
   
@@ -489,10 +489,10 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
   </Warning>
 
-- `enable_local_script_checks` Equivalent to the [`-enable-local-script-checks` command-line flag](/consul/docsreference-cli/agent#_enable_local_script_checks).
+- `enable_local_script_checks` Equivalent to the [`-enable-local-script-checks` command-line flag](/consul/commands/agent#_enable_local_script_checks).
 
 - `disable_keyring_file` - Equivalent to the
-  [`-disable-keyring-file` command-line flag](/consul/docsreference-cli/agent#_disable_keyring_file).
+  [`-disable-keyring-file` command-line flag](/consul/commands/agent#_disable_keyring_file).
 
 - `disable_coordinates` - Disables sending of [network coordinates](/consul/docs/architecture/coordinates).
   When network coordinates are disabled the `near` query param will not work to sort the nodes,
@@ -569,9 +569,9 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
   - `kv_max_value_size` - **(Advanced)** Configures the maximum number of bytes for a kv request body to the [`/v1/kv`](/consul/api-docs/kv) endpoint. This limit defaults to [raft's](https://github.com/hashicorp/raft) suggested max size (512KB). **Note that tuning these improperly can cause Consul to fail in unexpected ways**, it may potentially affect leadership stability and prevent timely heartbeat signals by increasing RPC IO duration. This option affects the txn endpoint too, but Consul 1.7.2 introduced `txn_max_req_len` which is the preferred way to set the limit for the txn endpoint. If both limits are set, the higher one takes precedence.
   - `txn_max_req_len` - **(Advanced)** Configures the maximum number of bytes for a transaction request body to the [`/v1/txn`](/consul/api-docs/txn) endpoint. This limit defaults to [raft's](https://github.com/hashicorp/raft) suggested max size (512KB). **Note that tuning these improperly can cause Consul to fail in unexpected ways**, it may potentially affect leadership stability and prevent timely heartbeat signals by increasing RPC IO duration.
 
-- `default_query_time` Equivalent to the [`-default-query-time` command-line flag](/consul/docsreference-cli/agent#_default_query_time).
+- `default_query_time` Equivalent to the [`-default-query-time` command-line flag](/consul/commands/agent#_default_query_time).
 
-- `max_query_time` Equivalent to the [`-max-query-time` command-line flag](/consul/docsreference-cli/agent#_max_query_time).
+- `max_query_time` Equivalent to the [`-max-query-time` command-line flag](/consul/commands/agent#_max_query_time).
 
 - `peering` This object allows setting options for cluster peering.
 
@@ -592,7 +592,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
   <Warning>
   
   The `partition` option cannot be used either the
-  [`segment`](#segment-2) option or [`-segment`](/consul/docsreference-cli/agent#_segment) flag.
+  [`segment`](#segment-2) option or [`-segment`](/consul/commands/agent#_segment) flag.
 
   </Warning>
 
@@ -622,7 +622,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
   - `grpc_keepalive_timeout` - A duration that determines how long a Consul server waits for a reply to a keep-alive message. If the server does not receive a reply before the end of the duration, Consul flags the gRPC connection as unhealthy and forcibly removes it. Defaults to `20s`.
 
-- `pid_file` Equivalent to the [`-pid-file` command line flag](/consul/docsreference-cli/agent#_pid_file).
+- `pid_file` Equivalent to the [`-pid-file` command line flag](/consul/commands/agent#_pid_file).
 
 - `ports` This is a nested object that allows setting the bind ports for the following keys:
 
@@ -643,9 +643,9 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
     tools to work automatically. `grpc_tls` is always guaranteed to be encrypted. Both `grpc` and `grpc_tls`
     can be configured at the same time, but they may not utilize the same port number. This field was added in Consul 1.14.
   - `serf_lan` ((#serf_lan_port)) - The Serf LAN port. Default 8301. TCP
-    and UDP. Equivalent to the [`-serf-lan-port` command line flag](/consul/docsreference-cli/agent#_serf_lan_port).
+    and UDP. Equivalent to the [`-serf-lan-port` command line flag](/consul/commands/agent#_serf_lan_port).
   - `serf_wan` ((#serf_wan_port)) - The Serf WAN port. Default 8302.
-    Equivalent to the [`-serf-wan-port` command line flag](/consul/docsreference-cli/agent#_serf_wan_port). Set
+    Equivalent to the [`-serf-wan-port` command line flag](/consul/commands/agent#_serf_wan_port). Set
     to -1 to disable. **Note**: this will disable WAN federation which is not recommended.
     Various catalog and WAN related endpoints will return errors or empty results.
     TCP and UDP.
@@ -673,7 +673,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
   enforcement of ACLs.
 
 - `primary_gateways` Equivalent to the [`-primary-gateway`
-  command-line flag](/consul/docsreference-cli/agent#_primary_gateway). Takes a list of addresses to use as the
+  command-line flag](/consul/commands/agent#_primary_gateway). Takes a list of addresses to use as the
   mesh gateways for the primary datacenter when authoritative replicated catalog
   data is not present. Discovery happens every [`primary_gateways_interval`](#primary_gateways_interval)
   until at least one primary mesh gateway is discovered. This was added in Consul
@@ -684,7 +684,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
   30s. This was added in Consul 1.8.0.
 
 - `protocol` ((#protocol)) Equivalent to the [`-protocol` command-line
-  flag](/consul/docsreference-cli/agent#_protocol).
+  flag](/consul/commands/agent#_protocol).
 
 - `reap` This controls Consul's automatic reaping of child processes,
   which is useful if Consul is running as PID 1 in a Docker container. If this isn't
@@ -730,7 +730,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
     - `license` - The license object allows users to control automatic reporting of license utilization metrics to HashiCorp.
       - `enabled`: (Defaults to `true`) Enables automatic license utilization reporting.
 
-- `segment` <EnterpriseAlert inline /> - Equivalent to the [`-segment` command-line flag](/consul/docsreference-cli/agent#_segment).
+- `segment` <EnterpriseAlert inline /> - Equivalent to the [`-segment` command-line flag](/consul/commands/agent#_segment).
 
   <Warning>
   
@@ -750,14 +750,14 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
   - `port` ((#segment_port)) - The port to use for the segment's gossip
     layer (required).
   - `advertise` ((#segment_advertise)) - The advertise address to use for
-    the segment's gossip layer. Defaults to the [`-advertise`](/consul/docsreference-cli/agent#_advertise) value
+    the segment's gossip layer. Defaults to the [`-advertise`](/consul/commands/agent#_advertise) value
     if not provided.
   - `rpc_listener` ((#segment_rpc_listener)) - If true, a separate RPC
-    listener will be started on this segment's [`-bind`](/consul/docsreference-cli/agent#_bind) address on the rpc
-    port. Only valid if the segment's bind address differs from the [`-bind`](/consul/docsreference-cli/agent#_bind)
+    listener will be started on this segment's [`-bind`](/consul/commands/agent#_bind) address on the rpc
+    port. Only valid if the segment's bind address differs from the [`-bind`](/consul/commands/agent#_bind)
     address. Defaults to false.
 
-- `server` Equivalent to the [`-server` command-line flag](/consul/docsreference-cli/agent#_server).
+- `server` Equivalent to the [`-server` command-line flag](/consul/commands/agent#_server).
 
 - `server_rejoin_age_max` - controls the allowed maximum age of a stale server attempting to rejoin a cluster.
   If the server has not ran during this period, it will refuse to start up again until an operator intervenes by manually deleting the `server_metadata.json`
@@ -767,7 +767,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
 - `non_voting_server` - **This field is deprecated in Consul 1.9.1. Refer to  the [`read_replica`](#read_replica) field instead.**
 
-- `read_replica` - Equivalent to the [`-read-replica` command-line flag](/consul/docsreference-cli/agent#_read_replica).
+- `read_replica` - Equivalent to the [`-read-replica` command-line flag](/consul/commands/agent#_read_replica).
 
 - `session_ttl_min` The minimum allowed session TTL. This ensures sessions are not created with TTLs
   shorter than the specified limit. It is recommended to keep this limit at or above
@@ -785,14 +785,14 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
   a client will gracefully leave).
 
 - `translate_wan_addrs` If set to true, Consul
-  will prefer a node's configured [WAN address](/consul/docsreference-cli/agent#_advertise-wan)
+  will prefer a node's configured [WAN address](/consul/commands/agent#_advertise-wan)
   when servicing DNS and HTTP requests for a node in a remote datacenter. This allows
   the node to be reached within its own datacenter using its local address, and reached
   from other datacenters using its WAN address, which is useful in hybrid setups
   with mixed networks. This is disabled by default.
 
   Starting in Consul 0.7 and later, node addresses in responses to HTTP requests will also prefer a
-  node's configured [WAN address](/consul/docsreference-cli/agent#_advertise-wan) when querying for a node in a remote
+  node's configured [WAN address](/consul/commands/agent#_advertise-wan) when querying for a node in a remote
   datacenter. An [`X-Consul-Translate-Addresses`](/consul/api-docs/api-structure#translated-addresses) header
   will be present on all responses when translation is enabled to help clients know that the addresses
   may be translated. The `TaggedAddresses` field in responses also have a `lan` address for clients that
@@ -831,7 +831,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
 - `watches` - Watches is a list of watch specifications which
   allow an external process to be automatically invoked when a particular data view
-  is updated. Refer to  the [watch documentation](/consul/docs/dynamic-app/watches) for more detail.
+  is updated. Refer to  the [watch documentation](/consul/docs/automate/watch) for more detail.
   Watches can be modified when the configuration is reloaded.
 
 ## ACL Parameters
@@ -892,7 +892,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
     secondary Consul datacenters will perform replication of only ACL policies and
     roles. Setting this configuration will will enable ACL token replication and
     allow for the creation of both [local tokens](/consul/api-docs/acl/tokens#local) and
-    [auth methods](/consul/docs/secure-consul/acl/auth-methods) in connected secondary datacenters.
+    [auth methods](/consul/docs/secure/acl/auth-methods) in connected secondary datacenters.
 
     <Warning>
     
@@ -932,7 +932,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
     - `default` ((#acl_tokens_default)) - When provided, this agent will
       use this token by default when making requests to the Consul servers
-      instead of the [anonymous token](/consul/docs/secure-consul/acl/tokens#anonymous-token).
+      instead of the [anonymous token](/consul/docs/secure/acl/tokens#anonymous-token).
       Consul HTTP API requests can provide an alternate token in their authorization header
       to override the `default` or anonymous token on a per-request basis,
       as described in [HTTP API Authentication](/consul/api-docs/api-structure#authentication).
@@ -980,7 +980,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
     - `dns` ((#acl_tokens_dns)) - Specifies the token that agents use to request information needed to respond to DNS queries.
       If the `dns` token is not set, the `default` token is used instead.
       Because the `default` token allows unauthenticated HTTP API access to list nodes and services, we
-      strongly recommend using the `dns` token. Create DNS tokens using the [templated policy](/consul/docs/secure-consul/acl/token/dns-token#create_a_dns_token)
+      strongly recommend using the `dns` token. Create DNS tokens using the [templated policy](/consul/docs/secure/acl/token/dns-token#create_a_dns_token)
       option to ensure that the token has the permissions needed to respond to all DNS queries.
 
     - `replication` ((#acl_tokens_replication)) - Specifies the token that the agent uses to
@@ -1073,7 +1073,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 - `acl_replication_token` ((#acl_replication_token_legacy)) - **Deprecated
   in Consul 1.4.0. Refer to  the [`acl.tokens.replication`](#acl_tokens_replication) field
   instead.** Only used for servers outside the [`primary_datacenter`](#primary_datacenter)
-  running Consul 0.7 or later. When provided, this will enable [ACL replication](/consul/docs/secure-consul/acl/enable-federated-datacenters)
+  running Consul 0.7 or later. When provided, this will enable [ACL replication](/consul/docs/secure/acl/enable-federated-datacenters)
   using this ACL replication using this token to retrieve and replicate the ACLs
   to the non-authoritative local datacenter. In Consul 0.9.1 and later you can enable
   ACL replication using [`acl.enable_token_replication`](#acl_enable_token_replication) and then
@@ -1112,13 +1112,13 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
 ## Advertise Address Parameters
 
-- `advertise_addr` Equivalent to the [`-advertise` command-line flag](/consul/docsreference-cli/agent#_advertise).
+- `advertise_addr` Equivalent to the [`-advertise` command-line flag](/consul/commands/agent#_advertise).
 
 - `advertise_addr_ipv4` This was added together with [`advertise_addr_ipv6`](#advertise_addr_ipv6) to support dual stack IPv4/IPv6 environments. Using this, both IPv4 and IPv6 addresses can be specified and requested during eg service discovery.
 
 - `advertise_addr_ipv6` This was added together with [`advertise_addr_ipv4`](#advertise_addr_ipv4) to support dual stack IPv4/IPv6 environments. Using this, both IPv4 and IPv6 addresses can be specified and requested during eg service discovery.
 
-- `advertise_addr_wan` Equivalent to the [`-advertise-wan` command-line flag](/consul/docsreference-cli/agent#_advertise-wan).
+- `advertise_addr_wan` Equivalent to the [`-advertise-wan` command-line flag](/consul/commands/agent#_advertise-wan).
 
 - `advertise_addr_wan_ipv4` This was added together with [`advertise_addr_wan_ipv6`](#advertise_addr_wan_ipv6) to support dual stack IPv4/IPv6 environments. Using this, both IPv4 and IPv6 addresses can be specified and requested during eg service discovery.
 
@@ -1131,9 +1131,9 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
 ## Bootstrap Parameters
 
-- `bootstrap` Equivalent to the [`-bootstrap` command-line flag](/consul/docsreference-cli/agent#_bootstrap).
+- `bootstrap` Equivalent to the [`-bootstrap` command-line flag](/consul/commands/agent#_bootstrap).
 
-- `bootstrap_expect` Equivalent to the [`-bootstrap-expect` command-line flag](/consul/docsreference-cli/agent#_bootstrap_expect).
+- `bootstrap_expect` Equivalent to the [`-bootstrap-expect` command-line flag](/consul/commands/agent#_bootstrap_expect).
 
 ## Self-managed HCP Parameters
 
@@ -1445,7 +1445,7 @@ subsystem that provides Consul's service mesh capabilities.
     When set to `false`, the default, the behavior is the same as non-Enterprise
     versions and treats the single label as the datacenter.
 
-- `domain` Equivalent to the [`-domain` command-line flag](/consul/docsreference-cli/agent#_domain).
+- `domain` Equivalent to the [`-domain` command-line flag](/consul/commands/agent#_domain).
 
 ## Encryption Parameters
 
@@ -1492,18 +1492,18 @@ subsystem that provides Consul's service mesh capabilities.
     the certificates requested by `auto_encrypt` from the server have these `ip_san`
     set as IP SAN.
 
-- `encrypt` Equivalent to the [`-encrypt` command-line flag](/consul/docsreference-cli/agent#_encrypt).
+- `encrypt` Equivalent to the [`-encrypt` command-line flag](/consul/commands/agent#_encrypt).
 
 - `encrypt_verify_incoming` - This is an optional
   parameter that can be used to disable enforcing encryption for incoming gossip
   in order to upshift from unencrypted to encrypted gossip on a running cluster.
-  Refer to [Enable gossip encryption for existing datacenters](/consul/docs/secure-consul/encryption/gossip/existing)
+  Refer to [Enable gossip encryption for existing datacenters](/consul/docs/secure/encryption/gossip/enable/existing)
   for more information. Defaults to true.
 
 - `encrypt_verify_outgoing` - This is an optional
   parameter that can be used to disable enforcing encryption for outgoing gossip
   in order to upshift from unencrypted to encrypted gossip on a running cluster.
-  Refer to [Enable gossip encryption for existing datacenters](/consul/docs/secure-consul/encryption/gossip/existing)
+  Refer to [Enable gossip encryption for existing datacenters](/consul/docs/secure/encryption/gossip/enable/existing)
   for more information. Defaults to true.
 
 ## Gossip Parameters
@@ -1594,17 +1594,17 @@ subsystem that provides Consul's service mesh capabilities.
 
 ## Join Parameters
 
-- `rejoin_after_leave` Equivalent to the [`-rejoin` command-line flag](/consul/docsreference-cli/agent#_rejoin).
+- `rejoin_after_leave` Equivalent to the [`-rejoin` command-line flag](/consul/commands/agent#_rejoin).
 
-- `retry_join` - Equivalent to the [`-retry-join`](/consul/docsreference-cli/agent#retry-join) command-line flag.
+- `retry_join` - Equivalent to the [`-retry-join`](/consul/commands/agent#retry-join) command-line flag.
 
-- `retry_interval` Equivalent to the [`-retry-interval` command-line flag](/consul/docsreference-cli/agent#_retry_interval).
+- `retry_interval` Equivalent to the [`-retry-interval` command-line flag](/consul/commands/agent#_retry_interval).
 
-- `retry_max` - Equivalent to the [`-retry-max`](/consul/docsreference-cli/agent#_retry_max) command-line flag.
+- `retry_max` - Equivalent to the [`-retry-max`](/consul/commands/agent#_retry_max) command-line flag.
 
-- `retry_join_wan` Equivalent to the [`-retry-join-wan` command-line flag](/consul/docsreference-cli/agent#_retry_join_wan). Takes a list of addresses to attempt joining to WAN every [`retry_interval_wan`](#_retry_interval_wan) until at least one join works.
+- `retry_join_wan` Equivalent to the [`-retry-join-wan` command-line flag](/consul/commands/agent#_retry_join_wan). Takes a list of addresses to attempt joining to WAN every [`retry_interval_wan`](#_retry_interval_wan) until at least one join works.
 
-- `retry_interval_wan` Equivalent to the [`-retry-interval-wan` command-line flag](/consul/docsreference-cli/agent#_retry_interval_wan).
+- `retry_interval_wan` Equivalent to the [`-retry-interval-wan` command-line flag](/consul/commands/agent#_retry_interval_wan).
 
 - `start_join` **Deprecated in Consul 1.15. Use the [`retry_join`](/consul/docs/reference/agent#retry_join) field instead. This field will be removed in a future version of Consul.**
   This field is an alias of `retry_join`.
@@ -1614,19 +1614,19 @@ subsystem that provides Consul's service mesh capabilities.
 
 ## Log Parameters
 
-- `log_file` Equivalent to the [`-log-file` command-line flag](/consul/docsreference-cli/agent#_log_file).
+- `log_file` Equivalent to the [`-log-file` command-line flag](/consul/commands/agent#_log_file).
 
-- `log_rotate_duration` Equivalent to the [`-log-rotate-duration` command-line flag](/consul/docsreference-cli/agent#_log_rotate_duration).
+- `log_rotate_duration` Equivalent to the [`-log-rotate-duration` command-line flag](/consul/commands/agent#_log_rotate_duration).
 
-- `log_rotate_bytes` Equivalent to the [`-log-rotate-bytes` command-line flag](/consul/docsreference-cli/agent#_log_rotate_bytes).
+- `log_rotate_bytes` Equivalent to the [`-log-rotate-bytes` command-line flag](/consul/commands/agent#_log_rotate_bytes).
 
-- `log_rotate_max_files` Equivalent to the [`-log-rotate-max-files` command-line flag](/consul/docsreference-cli/agent#_log_rotate_max_files).
+- `log_rotate_max_files` Equivalent to the [`-log-rotate-max-files` command-line flag](/consul/commands/agent#_log_rotate_max_files).
 
-- `log_level` Equivalent to the [`-log-level` command-line flag](/consul/docsreference-cli/agent#_log_level).
+- `log_level` Equivalent to the [`-log-level` command-line flag](/consul/commands/agent#_log_level).
 
-- `log_json` Equivalent to the [`-log-json` command-line flag](/consul/docsreference-cli/agent#_log_json).
+- `log_json` Equivalent to the [`-log-json` command-line flag](/consul/commands/agent#_log_json).
 
-- `enable_syslog` Equivalent to the [`-syslog` command-line flag](/consul/docsreference-cli/agent#_syslog).
+- `enable_syslog` Equivalent to the [`-syslog` command-line flag](/consul/commands/agent#_syslog).
 
 - `syslog_facility` When [`enable_syslog`](#enable_syslog)
   is provided, this controls to which facility messages are sent. By default, `LOCAL0`
@@ -1634,11 +1634,11 @@ subsystem that provides Consul's service mesh capabilities.
 
 ## Node Parameters
 
-- `node_id` Equivalent to the [`-node-id` command-line flag](/consul/docsreference-cli/agent#_node_id).
+- `node_id` Equivalent to the [`-node-id` command-line flag](/consul/commands/agent#_node_id).
 
-- `node_name` Equivalent to the [`-node` command-line flag](/consul/docsreference-cli/agent#_node).
+- `node_name` Equivalent to the [`-node` command-line flag](/consul/commands/agent#_node).
 
-- `node_meta` Available in Consul 0.7.3 and later, This object allows associating arbitrary metadata key/value pairs with the local node, which can then be used for filtering results from certain catalog endpoints. Refer to  the [`-node-meta` command-line flag](/consul/docsreference-cli/agent#_node_meta) for more information.
+- `node_meta` Available in Consul 0.7.3 and later, This object allows associating arbitrary metadata key/value pairs with the local node, which can then be used for filtering results from certain catalog endpoints. Refer to  the [`-node-meta` command-line flag](/consul/commands/agent#_node_meta) for more information.
 
   <CodeTabs heading="Example node_meta configuration">
 
@@ -1658,7 +1658,7 @@ subsystem that provides Consul's service mesh capabilities.
 
   </CodeTabs>
 
-- `disable_host_node_id` Equivalent to the [`-disable-host-node-id` command-line flag](/consul/docsreference-cli/agent#_disable_host_node_id).
+- `disable_host_node_id` Equivalent to the [`-disable-host-node-id` command-line flag](/consul/commands/agent#_disable_host_node_id).
 
 ## Raft Parameters
 
@@ -1747,7 +1747,7 @@ subsystem that provides Consul's service mesh capabilities.
       configuration for performance testing purposes.
 
 - `raft_protocol` ((#raft_protocol)) Equivalent to the [`-raft-protocol`
-  command-line flag](/consul/docsreference-cli/agent#_raft_protocol).
+  command-line flag](/consul/commands/agent#_raft_protocol).
 
 - `raft_snapshot_threshold` ((#\_raft_snapshot_threshold)) This controls the
   minimum number of raft commit entries between snapshots that are saved to
@@ -1796,14 +1796,14 @@ subsystem that provides Consul's service mesh capabilities.
 
 ## Serf Parameters
 
-- `serf_lan` ((#serf_lan_bind)) Equivalent to the [`-serf-lan-bind` command-line flag](/consul/docsreference-cli/agent#_serf_lan_bind).
+- `serf_lan` ((#serf_lan_bind)) Equivalent to the [`-serf-lan-bind` command-line flag](/consul/commands/agent#_serf_lan_bind).
   This is an IP address, not to be confused with [`ports.serf_lan`](#serf_lan_port).
 
-- `serf_lan_allowed_cidrs` ((#serf_lan_allowed_cidrs)) Equivalent to the [`-serf-lan-allowed-cidrs` command-line flag](/consul/docsreference-cli/agent#_serf_lan_allowed_cidrs).
+- `serf_lan_allowed_cidrs` ((#serf_lan_allowed_cidrs)) Equivalent to the [`-serf-lan-allowed-cidrs` command-line flag](/consul/commands/agent#_serf_lan_allowed_cidrs).
 
-- `serf_wan` ((#serf_wan_bind)) Equivalent to the [`-serf-wan-bind` command-line flag](/consul/docsreference-cli/agent#_serf_wan_bind).
+- `serf_wan` ((#serf_wan_bind)) Equivalent to the [`-serf-wan-bind` command-line flag](/consul/commands/agent#_serf_wan_bind).
 
-- `serf_wan_allowed_cidrs` ((#serf_wan_allowed_cidrs)) Equivalent to the [`-serf-wan-allowed-cidrs` command-line flag](/consul/docsreference-cli/agent#_serf_wan_allowed_cidrs).
+- `serf_wan_allowed_cidrs` ((#serf_wan_allowed_cidrs)) Equivalent to the [`-serf-wan-allowed-cidrs` command-line flag](/consul/commands/agent#_serf_wan_allowed_cidrs).
 
 ## Telemetry Parameters
 
@@ -1963,7 +1963,7 @@ subsystem that provides Consul's service mesh capabilities.
 ## UI Parameters
 
 - `ui` - **This field is deprecated in Consul 1.9.0. Refer to  the [`ui_config.enabled`](#ui_config_enabled) field instead.**
-  Equivalent to the [`-ui`](/consul/docsreference-cli/agent#_ui) command-line flag.
+  Equivalent to the [`-ui`](/consul/commands/agent#_ui) command-line flag.
 
 - `ui_config` - This object allows a number of sub-keys to be set which controls
   the display or features available in the UI. Configuring the UI with this
@@ -1974,16 +1974,16 @@ subsystem that provides Consul's service mesh capabilities.
   - `enabled` ((#ui_config_enabled)) - This enables the service of the web UI
     from this agent. Boolean value, defaults to false. In `-dev` mode this
     defaults to true. Replaces `ui` from before 1.9.0. Equivalent to the
-    [`-ui`](/consul/docsreference-cli/agent#_ui) command-line flag.
+    [`-ui`](/consul/commands/agent#_ui) command-line flag.
 
   - `dir` ((#ui_config_dir)) - This specifies that the web UI should be served
     from an external dir rather than the build in one. This allows for
     customization or development. Replaces `ui_dir` from before 1.9.0.
-    Equivalent to the [`-ui-dir`](/consul/docsreference-cli/agent#_ui_dir) command-line flag.
+    Equivalent to the [`-ui-dir`](/consul/commands/agent#_ui_dir) command-line flag.
 
   - `content_path` ((#ui_config_content_path)) - This specifies the HTTP path
     that the web UI should be served from. Defaults to `/ui/`. Equivalent to the
-    [`-ui-content-path`](/consul/docsreference-cli/agent#_ui_content_path) flag.
+    [`-ui-content-path`](/consul/commands/agent#_ui_content_path) flag.
 
   - `metrics_provider` ((#ui_config_metrics_provider)) - Specifies a named
     metrics provider implementation the UI should use to fetch service metrics.
@@ -2096,7 +2096,7 @@ subsystem that provides Consul's service mesh capabilities.
       - `{{Datacenter}}` - Replaced with the current service's datacenter.
 
 - `ui_dir` - **This field is deprecated in Consul 1.9.0. Refer to  the [`ui_config.dir`](#ui_config_dir) field instead.**
-  Equivalent to the [`-ui-dir`](/consul/docsreference-cli/agent#_ui_dir) command-line
+  Equivalent to the [`-ui-dir`](/consul/commands/agent#_ui_dir) command-line
   flag. This configuration key is not required as of Consul version 0.7.0 and later.
   Specifying this configuration key will enable the web UI. There is no need to specify
   both ui-dir and ui. Specifying both will result in an error.

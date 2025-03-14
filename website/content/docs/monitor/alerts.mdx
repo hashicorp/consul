@@ -20,11 +20,11 @@ Consul server agents store all state information, including service and node IP 
 We recommend monitoring the following parameters for Consul agents health:
 
 - Disk space and file handles
-- [RAM utilization](/consul/docs/agent/telemetry#memory-usage)
+- [RAM utilization](/consul/docs/reference/agent/telemetry#memory-usage)
 - CPU utilization 
 - Network activity and utilization 
 
-We recommend using an [application performance monitoring (APM) system](#monitoring-tools) to track these metrics. For a full list of key metrics, visit the [Key metrics](/consul/docs/agent/telemetry#key-metrics) section of Telemetry documentation.
+We recommend using an [application performance monitoring (APM) system](#monitoring-tools) to track these metrics. For a full list of key metrics, visit the [Key metrics](/consul/docs/reference/agent/telemetry#key-metrics) section of Telemetry documentation.
 
 ## Recommendations for host-level alerts
 
@@ -36,7 +36,7 @@ Once you have established a baseline for your metrics, use them and the followin
 
 ### Memory alert recommendations
 
-Consul uses RAM as the primary storage for data on its leader node, while periodically flushing it to disk. Reference the [Memory usage](/consul/docs/agent/telemetry#memory-usage) section of the Telemetry documentation for more details. The recommended instance type depends on your hosting provider. Refer to the [Hardware sizing for Consul servers](/consul/tutorials/production-deploy/reference-architecture#hardware-sizing-for-consul-servers) for recommended instance types for most cloud providers along with other up-to-date hardware recommendations. 
+Consul uses RAM as the primary storage for data on its leader node, while periodically flushing it to disk. Reference the [Memory usage](/consul/docs/reference/agent/telemetry#memory-usage) section of the Telemetry documentation for more details. The recommended instance type depends on your hosting provider. Refer to the [Hardware sizing for Consul servers](/consul/tutorials/production-deploy/reference-architecture#hardware-sizing-for-consul-servers) for recommended instance types for most cloud providers along with other up-to-date hardware recommendations. 
 
 When determining how much RAM you should allocate, we recommend enough RAM for your server agents to contain between 2 to 4 times the working set size. You can determine the working set size by noting the value of `consul.runtime.alloc_bytes` in the telemetry data. 
 
