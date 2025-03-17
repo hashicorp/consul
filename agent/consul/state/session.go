@@ -5,6 +5,7 @@ package state
 
 import (
 	"fmt"
+	"github.com/hashicorp/consul/api"
 	"reflect"
 	"strings"
 	"time"
@@ -448,5 +449,28 @@ func (s *Store) deleteSessionTxn(tx WriteTxn, idx uint64, sessionID string, entM
 		}
 	}
 
+	// session invalidating the health-checks
+	return s.markSessionCheckCritical(tx, idx, session)
+}
+
+// markSessionCheckCritical The method marks the health-checks associated with the session as critical
+func (s *Store) markSessionCheckCritical(tx WriteTxn, idx uint64, session *structs.Session) error {
+	// Find all checks for the given Node
+	iter, err := tx.Get(tableChecks, indexNode, Query{Value: session.Node, EnterpriseMeta: session.EnterpriseMeta})
+	if err != nil {
+		return fmt.Errorf("failed check lookup: %s", err)
+	}
+
+	for check := iter.Next(); check != nil; check = iter.Next() {
+		if hc := check.(*structs.HealthCheck); hc.Type == "session" && hc.Definition.SessionName == session.Name {
+			updatedCheck := hc.Clone()
+			updatedCheck.Status = api.HealthCritical
+			updatedCheck.Output = fmt.Sprintf("Session '%s' is invalid", session.Name)
+
+			if err := s.ensureCheckTxn(tx, idx, true, updatedCheck); err != nil {
+				return err
+			}
+		}
+	}
 	return nil
 }
