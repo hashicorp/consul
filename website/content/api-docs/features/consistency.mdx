@@ -75,7 +75,7 @@ Each HTTP API endpoint documents its support for the three read consistency mode
 is to convert non-`stale` reads to `stale` reads. If most requests are already
 `stale` reads and additional load reduction is desired, use Consul Enterprise
 [redundancy zones](/consul/docs/manage/redundancy-zone) or
-[read replicas](/consul/docs/manage/read-replica)
+[read replicas](/consul/docs/manage/scale/read-replica)
 to spread `stale` reads across additional, _non-voting_ Consul servers.
 Non-voting servers enhance read scalability without increasing the number
 of voting servers; adding more then 5 voting servers is not recommended because

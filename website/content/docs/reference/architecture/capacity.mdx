@@ -71,7 +71,7 @@ In production, your use case may lead to Consul performing read-heavy workloads,
 
 | Workload type | Instance Recommendations | Workload element examples |  Enterprise Feature Recommendations |
 | ------------- | ------------------------- | ------------------------ | ------------------------ |
-| Read-heavy    | Instances of type `m5.4xlarge (AWS)`, `Standard_D16s_v3 (Azure)`, `n2-standard-16 (GCP)` | Raft RPCs calls, DNS queries, key/value retrieval | [Read replicas](/consul/docs/manage/read-replica) |
+| Read-heavy    | Instances of type `m5.4xlarge (AWS)`, `Standard_D16s_v3 (Azure)`, `n2-standard-16 (GCP)` | Raft RPCs calls, DNS queries, key/value retrieval | [Read replicas](/consul/docs/manage/scale/read-replica) |
 | Write-heavy   | IOPS performance of `10 000+` | Consul agent joins and leaves, services registration and deregistration, key/value writes | [Network segments](/consul/docs/multi-tenant/network-segment) |
 
 For recommendations on troubleshooting issues with read-heavy or write-heavy workloads, refer to [Consul at Scale](/consul/docs/architecture/scale#resource-usage-and-metrics-recommendations).

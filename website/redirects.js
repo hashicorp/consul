@@ -274,7 +274,7 @@ module.exports = [
 
   {
     source: '/consul/docs/agent',
-    destination: '/consul/docs/architecture/fundamentals/agent',
+    destination: '/consul/docs/fundamentals/agent',
     permanent: true,
   },
   {
@@ -2029,7 +2029,7 @@ module.exports = [
   ///////////////////////////////////
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/architecture/fundamentals/agent/',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17|18|19|20).x)/fundamentals/agent/',
     destination: '/consul/docs/:version/agent',
     permanent: true,
   },
