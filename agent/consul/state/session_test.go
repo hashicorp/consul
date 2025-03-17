@@ -961,3 +961,74 @@ func TestStateStore_Session_Invalidate_PreparedQuery_Delete(t *testing.T) {
 		t.Fatalf("bad: %v", q2)
 	}
 }
+
+func TestHealthCheck_SessionDestroy(t *testing.T) {
+	s := testStateStore(t)
+
+	var check *structs.HealthCheck
+	// setup node
+	testRegisterNode(t, s, 1, "foo-node")
+	testRegisterCheckCustom(t, s, 1, "foo", func(chk *structs.HealthCheck) {
+		chk.Node = "foo-node"
+		chk.Type = "session"
+		chk.Status = api.HealthPassing
+		chk.Definition = structs.HealthCheckDefinition{
+			SessionName: "test-session",
+		}
+		check = chk
+	})
+
+	// Ensure the index was not updated if nothing was destroyed.
+	if idx := s.maxIndex("sessions"); idx != 0 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Register a new session
+	sess := &structs.Session{
+		ID:   testUUID(),
+		Node: "foo-node",
+		Name: "test-session",
+	}
+	if err := s.SessionCreate(2, sess); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	_, hc, err := s.ChecksInState(nil, api.HealthAny, structs.DefaultEnterpriseMetaInPartition(""), structs.DefaultPeerKeyword)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	// iterate over checks and find the right one
+	found := false
+	for _, c := range hc {
+		if c.CheckID == check.CheckID && c.Status == api.HealthPassing {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		t.Fatalf("check is expected to be passing")
+	}
+
+	// Destroy the session.
+	if err := s.SessionDestroy(3, sess.ID, nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	_, hc, err = s.ChecksInState(nil, api.HealthAny, structs.DefaultEnterpriseMetaInPartition(""), structs.DefaultPeerKeyword)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	// iterate over checks and find the right one
+	found = false
+	for _, c := range hc {
+		if c.CheckID == check.CheckID && c.Status == api.HealthCritical {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		t.Fatalf("check is expected to be critical")
+	}
+}
