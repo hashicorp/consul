@@ -9,7 +9,7 @@ description: >-
 
 This page describes the process to use Vault's [PKI Secrets Engine](/vault/docs/secrets/pki) to generate and renew dynamic X.509 certificates, using [Consul Template](/consul/docs/automate/consul-template) to rotate your certificates. 
 
-This method enables each agent in the Consul datacenter to have a unique certificate with a relatively short time-to-live (ttl) that is automatically rotated, which allows you to safely and securely scale your datacenter while using mutual TLS (mTLS).
+This method enables each agent in the Consul datacenter to have a unique certificate, with a relatively short time-to-live (TTL), that is automatically rotated, which allows you to safely and securely scale your datacenter while using mutual TLS (mTLS).
 
 ## Prerequisites
 
@@ -27,17 +27,17 @@ The diagram below shows the minimal architecture needed to demonstrate the funct
 
 Before you can initialize the secrets engine, you need to set the `VAULT_ADDR` and `VAULT_TOKEN` environment variables so that you can connect to your local instance of Vault.
 
+The `VAULT_ADDR` environment variable should be set to the target Vault server address you want to connect to.
+
 ```shell-session
 $ export VAULT_ADDR='http://127.0.0.1:8200'
 ```
 
-The `VAULT_ADDR` environment variable should be set to the target Vault server address you want to connect to.
+The `VAULT_TOKEN` environment variable should store your client token (e.g. `root`).
 
 ```shell-session
 $ export VAULT_TOKEN="root"
 ```
-
-The `VAULT_TOKEN` environment variable should store your client token (e.g. `root`).
 
 Enable Vault's PKI secrets engine at the `pki` path.
 
@@ -77,8 +77,7 @@ $ vault write -field=certificate pki/root/generate/internal \
         ttl=87600h > CA_cert.crt
 ```
 
-This generates a new self-signed CA certificate and private key.
-Vault will automatically revoke the generated root at the end of its lease period (TTL); the CA certificate will sign its own Certificate Revocation List (CRL).
+This generates a new self-signed CA certificate and private key. Vault will automatically revoke the generated root at the end of its lease period (TTL); the CA certificate will sign its own Certificate Revocation List (CRL).
 
 <Tip title="Tuning configuration">
 
@@ -207,7 +206,7 @@ $ vault write pki_int/issue/consul-dc1 \
 
 <Note title="Certificate TTL tuning">
 
-The TTL for the certificate is being set to 24 hours in this tutorial, meaning that this certificate will be valid only for 24 hours before expiring. You can try using a shorter TTL on a test environment to ensure certificates are revoked properly after TTL is expired.
+The TTL for the certificate is being set to 24 hours in this guide, meaning that this certificate will be valid only for 24 hours before expiring. You can try using a shorter TTL on a test environment to ensure certificates are revoked properly after TTL is expired.
 
 </Note>
 
@@ -250,12 +249,17 @@ Configure Consul TLS using the following configuration:
 <CodeTabs>
 
 ```hcl
-verify_incoming = true
-verify_outgoing = true
-verify_server_hostname = true
-ca_file = "/opt/consul/agent-certs/ca.crt"
-cert_file = "/opt/consul/agent-certs/agent.crt"
-key_file = "/opt/consul/agent-certs/agent.key"
+tls {
+  defaults {
+    verify_incoming = true
+    verify_outgoing = true
+    verify_server_hostname = true
+    ca_file = "/opt/consul/agent-certs/ca.crt"
+    cert_file = "/opt/consul/agent-certs/agent.crt"
+    key_file = "/opt/consul/agent-certs/agent.key"
+  }
+}
+
 auto_encrypt {
   allow_tls = true
 }
@@ -263,15 +267,19 @@ auto_encrypt {
 
 ```json
 {
-  "verify_incoming": true,
-  "verify_outgoing": true,
-  "verify_server_hostname": true,
-  "ca_file": "/opt/consul/agent-certs/ca.crt",
-  "cert_file": "/opt/consul/agent-certs/agent.crt",
-  "key_file": "/opt/consul/agent-certs/agent.key",
+  "tls": {
+    "defaults": {
+      "verify_incoming": true,
+      "verify_outgoing": true,
+      "verify_server_hostname": true,
+      "ca_file": "/opt/consul/agent-certs/ca.crt",
+      "cert_file": "/opt/consul/agent-certs/agent.crt",
+      "key_file": "/opt/consul/agent-certs/agent.key"
+    }
+  }, 
   "auto_encrypt": {
-    "allow_tls": true
-  }
+      "allow_tls": true
+    }
 }
 ```
 
@@ -286,20 +294,27 @@ To configure TLS encryption for Consul servers, three files are required:
 
 For the first Consul startup, you will use the certificate generated earlier.
 
-Use the following commands to extract the two certificates and private key from
-the `certs.txt` and place them into the right file and location.
+Use the following commands to extract the two certificates and private key from the `certs.txt` and place them into the right file and location.
+
+Create the certificates folder.
 
 ```shell-session
 $ mkdir -p /opt/consul/agent-certs
 ```
 
-```shell-session
-$ grep -Pzo "(?s)(?<=certificate)[^\-]*.*?END CERTIFICATE[^\n]*\n" certs.txt | sed 's/^\s*-/-/g' > /opt/consul/agent-certs/agent.crt
-```
+Extract the root CA certificate.
 
 ```shell-session
 $ grep -Pzo "(?s)(?<=issuing_ca)[^\-]*.*?END CERTIFICATE[^\n]*\n" certs.txt | sed 's/^\s*-/-/g' > /opt/consul/agent-certs/ca.crt
 ```
+
+Extract the agent certificate.
+
+```shell-session
+$ grep -Pzo "(?s)(?<=certificate)[^\-]*.*?END CERTIFICATE[^\n]*\n" certs.txt | sed 's/^\s*-/-/g' > /opt/consul/agent-certs/agent.crt
+```
+
+Extract the agent key.
 
 ```shell-session
 $ grep -Pzo "(?s)(?<=private_key)[^\-]*.*?END RSA PRIVATE KEY[^\n]*\n" certs.txt | sed 's/^\s*-/-/g' > /opt/consul/agent-certs/agent.key
@@ -308,22 +323,28 @@ $ grep -Pzo "(?s)(?<=private_key)[^\-]*.*?END RSA PRIVATE KEY[^\n]*\n" certs.txt
 </Tab>
 <Tab heading="Client">
 
-~> This section describes the automated [client certificate deployment process](/consul/docs/reference/agent/configuration-file#auto_encrypt) available in Consul 1.5.2 and newer.
+<Note>
 
-With auto-encryption, you can configure the Consul servers to automatically
-distribute certificates to the clients. To use this feature, you will need to
-configure clients to automatically get the certificates from the server.
+This section describes the automated [client certificate deployment process](/consul/docs/reference/agent/configuration-file#auto_encrypt) available in Consul 1.5.2 and newer.
+
+</Note>
+
+With auto-encryption, you can configure the Consul servers to automatically distribute certificates to the clients. To use this feature, you will need to configure clients to automatically get the certificates from the server.
 
 Configure Consul client TLS using the following configuration:
 
 <CodeTabs>
 
-
 ```hcl
-verify_incoming = true
-verify_outgoing = true
-verify_server_hostname = true
-ca_file = "/opt/consul/agent-certs/ca.crt"
+tls {
+  defaults {
+    verify_incoming = true
+    verify_outgoing = true
+    verify_server_hostname = true
+    ca_file = "/opt/consul/agent-certs/ca.crt"
+  }
+}
+
 auto_encrypt {
   tls = true
 }
@@ -331,13 +352,17 @@ auto_encrypt {
 
 ```json
 {
-  "verify_incoming": true,
-  "verify_outgoing": true,
-  "verify_server_hostname": true,
-  "ca_file": "/opt/consul/agent-certs/ca.crt",
+  "tls": {
+    "defaults": {
+      "verify_incoming": true,
+      "verify_outgoing": true,
+      "verify_server_hostname": true,
+      "ca_file": "/opt/consul/agent-certs/ca.crt",
+    }
+  }, 
   "auto_encrypt": {
-    "tls": true
-  }
+      "tls": true
+    }
 }
 ```
 
@@ -350,9 +375,13 @@ To configure TLS encryption for Consul clients only one file is required:
 
 Use the following commands to extract the certificate from the `certs.txt` and place them into the right file and location.
 
+Create the certificates folder.
+
 ```shell-session
 $ mkdir -p /opt/consul/agent-certs
 ```
+
+Extract the root CA certificate.
 
 ```shell-session
 $ grep -Pzo "(?s)(?<=certificate)[^\-]*.*?END CERTIFICATE[^\n]*\n" certs.txt | sed 's/^\s*-/-/g' > /opt/consul/agent-certs/agent.crt
@@ -361,20 +390,17 @@ $ grep -Pzo "(?s)(?<=certificate)[^\-]*.*?END CERTIFICATE[^\n]*\n" certs.txt | s
 </Tab>
 </Tabs>
 
-## Configure consul-template
+## Configure Consul Template
 
-When you created the certificate you used as a parameter `ttl="24h"` meaning that this certificates will be valid only for 24 hours before expiring.
+The guide steps used `ttl="24h"` ad a parameter during certificate creation, meaning that this certificates will be valid only for 24 hours before expiring.
 
-Deciding the right trade-off for certificate lifespan is always a compromise between security and agility. A possible third way that does not require you to
-lower your security is to use consul-template to automate certificate renewal for Consul when the TTL is expired.
+Deciding the right trade-off for certificate lifespan is always a compromise between security and agility. A possible third way that does not require you to lower your security is to use Consul Template to automate certificate renewal for Consul when the TTL is expired.
 
 ### Create template files
 
-You can instruct consul-template to generate and retrieve those files from Vault
-using the following templates:
+You can instruct Consul Template to generate and retrieve those files from Vault using the following templates:
 
 <CodeBlockConfig filename="agent.crt.tpl (server only)">
-
 
 ```go
 {{ with secret "pki_int/issue/consul-dc1" "common_name=server.dc1.consul" "ttl=24h" "alt_names=localhost" "ip_sans=127.0.0.1"}}
@@ -384,10 +410,7 @@ using the following templates:
 
 </CodeBlockConfig>
 
-
-The template will use the `pki_int/issue/consul-dc1` endpoint that Vault exposes
-to generate new certificates. It also mentions the common name and alternate
-names for the certificate.
+The template uses the `pki_int/issue/consul-dc1` endpoint that Vault exposes to generate new certificates. It also mentions the common name and alternate names for the certificate.
 
 <CodeBlockConfig filename="agent.key.tpl (server only)">
 
@@ -399,6 +422,7 @@ names for the certificate.
 
 </CodeBlockConfig>
 
+The same endpoint also exposes the CA certificate under the `.Data.issuing_ca` parameter.
 
 <CodeBlockConfig filename="ca.crt.tpl">
 
@@ -411,25 +435,20 @@ names for the certificate.
 </CodeBlockConfig>
 
 
-Once you have created the templates for consul-template,
-you can copy the files into `/opt/consul/templates`.
+Copy the newly created files into `/opt/consul/templates`.
 
 ```shell-session
 $ cp *.tpl /opt/consul/templates/
 ```
 
-### Create consul-template configuration
+### Create Consul Template configuration
 
-For this tutorial, you are going to create a configuration file,
-`consul_template.hcl`, that will instruct consul-template to retrieve the files
-needed for the agent, client and server, to configure TLS encryption.
+Create a configuration file, `consul_template.hcl`, that will instruct Consul Template to retrieve the files needed for the Consul agents, client and server, to configure TLS encryption.
 
 <Tabs>
 <Tab heading="Server">
 
-
 <CodeBlockConfig filename="consul_template.hcl">
-
 
 ```hcl
 # This denotes the start of the configuration section for Vault. All values
@@ -486,18 +505,14 @@ template {
 
 </CodeBlockConfig>
 
-
 The configuration file for the server contains the information to retrieve the
 CA certificate as well as the certificate/key pair for the server agent.
 
 </Tab>
 
-
 <Tab heading="Client">
 
-
 <CodeBlockConfig filename="consul_template.hcl">
-
 
 ```hcl
 # This denotes the start of the configuration section for Vault. All values
@@ -524,35 +539,28 @@ template {
 
 </CodeBlockConfig>
 
-
-The configuration file for the server contains the information to retrieve the
-CA certificate only, the certificates for client agents are automatically
+The configuration file for the client contains the information to retrieve the CA certificate only, the certificates for client agents are automatically
 generated from Consul when using the `auto_encrypt` setting.
 
 </Tab>
 </Tabs>
 
 
-The following parameters are needed in order to allow `consul-template` to
-communicate with Vault:
+To allow Consul Template to communicate with Vault, define the following parameters:
 
-- `address` : the address of your Vault server. In this tutorial, Vault runs on the same node as Consul so you can use `http://localhost:8200`.
+- `address` : the address of your Vault server. If Vault runs on the same node as Consul, you can use `http://localhost:8200`.
 
-- `token` : a valid Vault ACL token with appropriate permissions. You will use Vault root token for this tutorial.
+- `token` : a valid Vault ACL token with appropriate permissions. You can use Vault root token for this example.
 
 <Warning title="Production check">
 
- Earlier in the lab you used a root token to log in to Vault.
-You will use that token in the next steps to generate the TLS certs. This is not
-recommended for production use; the recommended security approach is to create a
-new token based on a specific policy with limited privileges.
+The use of Vault root token is not recommended for production use; the recommended security approach is to create a new token based on a specific policy with limited privileges.
 
 </Warning>
 
-### Start consul-template
+### Start Consul Template
 
-After configuration is completed, you can start `consul-template`.
-You must provide the file with the `-config` parameter.
+Start Consul Template using the `-config` parameter to provide the configuration file.
 
 ```shell-session
 $ consul-template -config "consul_template.hcl"
@@ -564,12 +572,9 @@ Configuration reload triggered
 
 The certificate you created manually for the Consul server had a TTL of 24 hours.
 
-This means that after the certificate expires Vault will renew it and
-consul-template will update the files on your agent it reload Consul
-configuration automatically to make it pick up the new files.
+This means that after the certificate expires Vault will renew it and Consul Template will update the files on your agent it reload Consul configuration automatically to make it pick up the new files.
 
-You can verify the rotation by checking that consul-template keeps listing,
-every 24 hours, a timestamp and the log line:
+You can verify the rotation by checking that Consul Template keeps listing, every 24 hours, a timestamp and the log line:
 
 ```plaintext hideClipboard
 Configuration reload triggered

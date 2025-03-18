@@ -8,7 +8,7 @@ description: >-
 # Configure Consul Template
 
 You configure Consul Template via a configuration file written in the [HashiCorp Configuration Language](https://github.com/hashicorp/hcl). The configuration is also JSON compatible.
-The full list of all options for Consul Template configuration is available in the [configuration reference](/consul/docs/reference/consul-template/configuration).
+The full list of options for Consul Template configuration is available in the [configuration reference](/consul/docs/reference/consul-template/configuration).
 
 With the configuration file available you run Consul template with the `-config` flag pointing at the configuration file:
 
@@ -28,7 +28,7 @@ For additional security, tokens may also be read from the environment using the 
 
 ## Example
 
-The example HCL configuration file below connects Consul Template to a Consul agent and renders a template with a value from [Consul KV][consul-kv]. The output is written to a file on disk.
+The example HCL configuration file below connects Consul Template to a Consul agent and renders a template with a value from [Consul KV][/consul/docs/automate/kv]. The output is written to a file on disk.
 
 ```hcl
 consul {
