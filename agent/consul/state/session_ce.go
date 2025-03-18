@@ -151,9 +151,9 @@ func validateSessionChecksTxn(tx ReadTxn, session *structs.Session) error {
 		}
 
 		// Verify that the check is not in critical state
-		status := check.(*structs.HealthCheck).Status
-		if status == api.HealthCritical {
-			return fmt.Errorf("Check '%s' is in %s state", checkID, status)
+		healthCheck := check.(*structs.HealthCheck)
+		if healthCheck.Status == api.HealthCritical && healthCheck.Type != "session" {
+			return fmt.Errorf("Check '%s' is in %s state", checkID, healthCheck.Status)
 		}
 	}
 	return nil
