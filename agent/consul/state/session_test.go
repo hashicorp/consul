@@ -962,6 +962,7 @@ func TestStateStore_Session_Invalidate_PreparedQuery_Delete(t *testing.T) {
 	}
 }
 
+// the goal of this test is to verify if the system is blocking the session registration when a check is in critical state.
 func TestHealthCheck_SessionRegistrationFail(t *testing.T) {
 	s := testStateStore(t)
 
@@ -1041,6 +1042,7 @@ func TestHealthCheck_SessionRegistrationAllow(t *testing.T) {
 	}
 }
 
+// test the session health check when session status is changed
 func TestHealthCheck_Session(t *testing.T) {
 	s := testStateStore(t)
 
