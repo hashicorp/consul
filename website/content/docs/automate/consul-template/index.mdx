@@ -13,13 +13,13 @@ For more information about the KV store and using it to automatically configure 
 
 ## Introduction
 
-The Consul template tool is not part of the Consul binary. It has a [dedicated GitHub repo](https://github.com/hashicorp/consul-template) and you must [install `consul-template`](/consul/docs/automate/consul-template/install) before running it on the command line.
+The Consul template tool is not part of the Consul binary. It has a [dedicated GitHub repo](https://github.com/hashicorp/consul-template) and you must [install Consul Template](/consul/docs/automate/consul-template/install) before running it on the command line.
 
 Consul templates are based on Go templates and shares many of the same attributes. When initiated, Consul Template reads one or more template files and queries Consul for data to render the full configuration.
 
-In a typical scenario, you run `consul-template` as a daemon that fetches the initial values and then continues to watch for updates. The template re-renders whenever there are relevant changes in the datacenter. The template can also run arbitrary commands after the update process completes. For example, it can send the HUP signal to the load balancer service after a configuration change has been made.
+In a typical scenario, you run Consul Template as a daemon that fetches the initial values and then continues to watch for updates. The template re-renders whenever there are relevant changes in the datacenter. The template can also run arbitrary commands after the update process completes. For example, it can send the HUP signal to the load balancer service after a configuration change has been made.
 
-The Consul template tool is flexible, and it can fit into many different environments and workflows. Depending on the use case, you may have a single `consul-template` instance on a handful of hosts, or you may need to run several instances on every host. Each `consul-template` process can manage multiple unrelated files and removes duplicated information as needed when files share data dependencies.
+The Consul template tool is flexible, and it can fit into many different environments and workflows. Depending on the use case, you may have a single Consul Template instance on a handful of hosts, or you may need to run several instances on every host. Each Consul Template process can manage multiple unrelated files and removes duplicated information as needed when files share data dependencies.
 
 Use Consul Template in the following situations:
 
@@ -45,7 +45,7 @@ A typical workflow to add Consul Template to your datacenter consists of the fol
 
 ## Use case: Consul KV
 
-In this first use case example, you will render a template that pulls the HashiCorp address from Consul KV. To do this, you will create a simple template that contains the HashiCorp address, run `consul-template`, add a value to Consul KV for HashiCorp's address, and finally view the rendered file.
+In this first use case example, you will render a template that pulls the HashiCorp address from Consul KV. To do this, you will create a simple template that contains the HashiCorp address, run the `consul-template` command, add a value to Consul KV for HashiCorp's address, and finally view the rendered file.
 
 <Tip>
 
@@ -79,7 +79,7 @@ $ consul kv put hashicorp/street_address "101 2nd St"
 Success! Data written to: hashicorp/street_address
 ```
 
-Verify the data was written by viewing the `hashicorp_address.txt` file which will be located in the same directory where `consul-template` is running.
+Verify the data was written by viewing the `hashicorp_address.txt` file which will be located in the same directory where Consul Template is running.
 
 ```shell-session
 $ cat hashicorp_address.txt

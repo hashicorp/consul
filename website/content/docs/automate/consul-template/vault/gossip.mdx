@@ -2,12 +2,12 @@
 layout: docs
 page_title: Generate and manage gossip encryption for Consul with Vault and Consul Template
 description: >-
-  Use Vault's secure secrets management and consul-template to create and manage gossip key rotation for your Consul datacenter.
+  Use Vault's secure secrets management and Consul Template to create and manage gossip key rotation for your Consul datacenter.
 ---
 
 # Generate and manage gossip encryption for Consul with Vault and Consul Template
 
-This page describes the process to use HashiCorp Vault and `consul-template` to automate the process to create and manage gossip encryption keys for your Consul datacenter.
+This page describes the process to use HashiCorp Vault and Consul Template to automate the process to create and manage gossip encryption keys for your Consul datacenter.
 
 ## Overview
 
@@ -22,7 +22,7 @@ In this guide, you will integrate Consul with HashiCorp's Vault and Consul Templ
 1. Initialize a key value store in Vault.
 1. Store and retrieve the encryption key from Vault.
 1. Configure Consul Template to retrieve the key and then use a script to rotate it.
-1. Start consul-template.
+1. Start Consul Template.
 
 -> The guide provides an example custom script to automate the encryption key rotation. You can use the script as a starting point to create your own rotation automation.
 
@@ -32,7 +32,7 @@ In this guide, you will integrate Consul with HashiCorp's Vault and Consul Templ
 
 - **Vault:** this guide assumes you have a running Vault cluster in your network. You can use a [local Vault dev server](/vault/tutorials/get-started/setup#set-up-the-lab) or an existing Vault deployment.
 
-- **consul-template:** to interact with your Consul agent you will need to [install the `consul-template` binary](/consul/docs/automate/consul-template/install) on a node. To rotate gossip keys you need the binary to be installed on one node only; changes will be automatically propagated across the Consul datacenter.
+- **Consul Template:** to interact with your Consul agent you will need to [install the `consul-template` binary](/consul/docs/automate/consul-template/install) on a node. To rotate gossip keys you need the binary to be installed on one node only; changes will be automatically propagated across the Consul datacenter.
 
 The diagram below shows the minimal architecture needed to demonstrate the functionality.
 
@@ -156,9 +156,9 @@ Create a file named `gossip.key.tpl` under `/opt/consul/templates` with the foll
 
 The template will interact with Vault using the `kv-v2/data/consul/config/encryption` path and will only retrieve the `key` value for the secret at that path.
 
-### Create the consul-template configuration
+### Create the Consul Template configuration
 
-Write a configuration file for consul-template that uses the template you created. The configuration will execute the template and render a file locally on your machine.
+Write a configuration file for Consul Template that uses the template you created. The configuration will execute the template and render a file locally on your machine.
 
 Create a file named `consul_template.hcl` under `/opt/consul/templates` with the following content.
 
@@ -244,9 +244,9 @@ done
 
 </CodeBlockConfig>
 
-### Start consul-template
+### Start Consul Template
 
-Start consul-template using the configuration file `consul_template.hcl`.
+Start Consul Template using the `-config` parameter to provide the configuration file.
 
 ```shell-session
 $ consul-template -config "consul_template.hcl"

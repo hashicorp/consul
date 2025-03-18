@@ -2,7 +2,7 @@
 layout: docs
 page_title: Generate mTLS Certificates for Consul with Vault and Consul Template
 description: >-
-  Use Vault and consul-template to create and configure Vault-managed mTLS certificates for Consul's API and RPC traffic.
+  Use Vault and Consul Template to create and configure Vault-managed mTLS certificates for Consul's API and RPC traffic.
 ---
 
 # Generate mTLS Certificates for Consul with Vault and Consul Template
@@ -17,7 +17,7 @@ This method enables each agent in the Consul datacenter to have a unique certifi
 
 - **Vault:** this guide assumes you have a running Vault cluster in your network. You can use a [local Vault dev server](/vault/tutorials/get-started/setup#set-up-the-lab) or an existing Vault deployment.
 
-- **consul-template:** to interact with your Consul agent you will need to [install the `consul-template` binary](/consul/docs/automate/consul-template/install) on a node. To rotate gossip keys you need the binary to be installed on one node only; changes will be automatically propagated across the Consul datacenter.
+- **Consul Template:** to interact with your Consul agent you will need to [install the `consul-template` binary](/consul/docs/automate/consul-template/install) on a node. To rotate gossip keys you need the binary to be installed on one node only; changes will be automatically propagated across the Consul datacenter.
 
 The diagram below shows the minimal architecture needed to demonstrate the functionality.
 
