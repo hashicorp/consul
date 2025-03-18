@@ -962,7 +962,48 @@ func TestStateStore_Session_Invalidate_PreparedQuery_Delete(t *testing.T) {
 	}
 }
 
-func TestHealthCheck_SessionDestroy(t *testing.T) {
+func TestHealthCheck_SessionRegistrationFail(t *testing.T) {
+	s := testStateStore(t)
+
+	var check *structs.HealthCheck
+	// setup node
+	testRegisterNode(t, s, 1, "foo-node")
+	testRegisterCheckCustom(t, s, 1, "foo", func(chk *structs.HealthCheck) {
+		chk.Node = "foo-node"
+		chk.Type = "tll"
+		chk.Status = api.HealthCritical
+		chk.Definition = structs.HealthCheckDefinition{
+			SessionName: "test-session",
+		}
+		check = chk
+	})
+
+	// Ensure the index was not updated if nothing was destroyed.
+	if idx := s.maxIndex("sessions"); idx != 0 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Register a new session
+	sess := &structs.Session{
+		ID:     testUUID(),
+		Node:   "foo-node",
+		Name:   "test-session",
+		Checks: make([]types.CheckID, 0),
+	}
+
+	sess.Checks = append(sess.Checks, check.CheckID)
+	// assert the check is critical initially
+	assertHealthCheckStatus(t, s, sess, check.CheckID, api.HealthCritical)
+
+	if err := s.SessionCreate(2, sess); err == nil {
+		// expecting error: Check 'foo' is in critical state
+		t.Fatalf("expected error, got nil")
+	}
+}
+
+// Allow the session to be created even if the check is critical.
+// This is mainly to discount the health check of type `session`
+func TestHealthCheck_SessionRegistrationAllow(t *testing.T) {
 	s := testStateStore(t)
 
 	var check *structs.HealthCheck
@@ -971,7 +1012,45 @@ func TestHealthCheck_SessionDestroy(t *testing.T) {
 	testRegisterCheckCustom(t, s, 1, "foo", func(chk *structs.HealthCheck) {
 		chk.Node = "foo-node"
 		chk.Type = "session"
-		chk.Status = api.HealthPassing
+		chk.Status = api.HealthCritical
+		chk.Definition = structs.HealthCheckDefinition{
+			SessionName: "test-session",
+		}
+		check = chk
+	})
+
+	// Ensure the index was not updated if nothing was destroyed.
+	if idx := s.maxIndex("sessions"); idx != 0 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Register a new session
+	sess := &structs.Session{
+		ID:     testUUID(),
+		Node:   "foo-node",
+		Name:   "test-session",
+		Checks: make([]types.CheckID, 0),
+	}
+
+	sess.Checks = append(sess.Checks, check.CheckID)
+	// assert the check is critical initially
+	assertHealthCheckStatus(t, s, sess, check.CheckID, api.HealthCritical)
+
+	if err := s.SessionCreate(2, sess); err != nil {
+		t.Fatalf("The system shall allow session to be created ignoring the session check is critical. err: %s", err)
+	}
+}
+
+func TestHealthCheck_Session(t *testing.T) {
+	s := testStateStore(t)
+
+	var check *structs.HealthCheck
+	// setup node
+	testRegisterNode(t, s, 1, "foo-node")
+	testRegisterCheckCustom(t, s, 1, "foo", func(chk *structs.HealthCheck) {
+		chk.Node = "foo-node"
+		chk.Type = "session"
+		chk.Status = api.HealthCritical
 		chk.Definition = structs.HealthCheckDefinition{
 			SessionName: "test-session",
 		}
@@ -989,46 +1068,38 @@ func TestHealthCheck_SessionDestroy(t *testing.T) {
 		Node: "foo-node",
 		Name: "test-session",
 	}
+	// assert the check is critical initially
+	assertHealthCheckStatus(t, s, sess, check.CheckID, api.HealthCritical)
+
 	if err := s.SessionCreate(2, sess); err != nil {
-		t.Fatalf("err: %s", err)
+		t.Fatalf("The system shall allow session to be created ignoring the session check is critical. err: %s", err)
 	}
-
-	_, hc, err := s.ChecksInState(nil, api.HealthAny, structs.DefaultEnterpriseMetaInPartition(""), structs.DefaultPeerKeyword)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	// iterate over checks and find the right one
-	found := false
-	for _, c := range hc {
-		if c.CheckID == check.CheckID && c.Status == api.HealthPassing {
-			found = true
-			break
-		}
-	}
-
-	if !found {
-		t.Fatalf("check is expected to be passing")
-	}
+	// assert the check is critical after session creation
+	assertHealthCheckStatus(t, s, sess, check.CheckID, api.HealthPassing)
 
 	// Destroy the session.
 	if err := s.SessionDestroy(3, sess.ID, nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
+	// assert the check is critical after session destroy
+	assertHealthCheckStatus(t, s, sess, check.CheckID, api.HealthCritical)
+}
 
-	_, hc, err = s.ChecksInState(nil, api.HealthAny, structs.DefaultEnterpriseMetaInPartition(""), structs.DefaultPeerKeyword)
+func assertHealthCheckStatus(t *testing.T, s *Store, session *structs.Session, checkID types.CheckID, expectedStatus string) {
+	_, hc, err := s.NodeChecks(nil, session.Node, structs.DefaultEnterpriseMetaInPartition(""), structs.DefaultPeerKeyword)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	// iterate over checks and find the right one
-	found = false
+	// assert the check is healthy
 	for _, c := range hc {
-		if c.CheckID == check.CheckID && c.Status == api.HealthCritical {
-			found = true
-			break
+		if c.CheckID == checkID {
+			if c.Status != expectedStatus {
+				t.Fatalf("check is expected to be %s but actually it is %s", expectedStatus, c.Status)
+			} else {
+				return
+			}
 		}
 	}
 
-	if !found {
-		t.Fatalf("check is expected to be critical")
-	}
+	t.Fatalf("check %s, is not found", string(checkID))
 }

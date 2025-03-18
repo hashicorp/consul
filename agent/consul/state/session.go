@@ -220,7 +220,7 @@ func (s *Store) SessionCreate(idx uint64, sess *structs.Session) error {
 	// future.
 
 	// Call the session creation
-	if err := sessionCreateTxn(tx, idx, sess); err != nil {
+	if err := s.sessionCreateTxn(tx, idx, sess); err != nil {
 		return err
 	}
 
@@ -230,7 +230,7 @@ func (s *Store) SessionCreate(idx uint64, sess *structs.Session) error {
 // sessionCreateTxn is the inner method used for creating session entries in
 // an open transaction. Any health checks registered with the session will be
 // checked for failing status. Returns any error encountered.
-func sessionCreateTxn(tx WriteTxn, idx uint64, sess *structs.Session) error {
+func (s *Store) sessionCreateTxn(tx WriteTxn, idx uint64, sess *structs.Session) error {
 	// Check that we have a session ID
 	if sess.ID == "" {
 		return ErrMissingSessionID
@@ -271,7 +271,7 @@ func sessionCreateTxn(tx WriteTxn, idx uint64, sess *structs.Session) error {
 		return fmt.Errorf("failed inserting session: %s", err)
 	}
 
-	return nil
+	return s.updateSessionCheck(tx, idx, sess, api.HealthPassing)
 }
 
 // SessionGet is used to retrieve an active session from the state store.
@@ -450,11 +450,11 @@ func (s *Store) deleteSessionTxn(tx WriteTxn, idx uint64, sessionID string, entM
 	}
 
 	// session invalidating the health-checks
-	return s.markSessionCheckCritical(tx, idx, session)
+	return s.updateSessionCheck(tx, idx, session, api.HealthCritical)
 }
 
-// markSessionCheckCritical The method marks the health-checks associated with the session as critical
-func (s *Store) markSessionCheckCritical(tx WriteTxn, idx uint64, session *structs.Session) error {
+// updateSessionCheck The method updates the health-checks associated with the session
+func (s *Store) updateSessionCheck(tx WriteTxn, idx uint64, session *structs.Session, checkState string) error {
 	// Find all checks for the given Node
 	iter, err := tx.Get(tableChecks, indexNode, Query{Value: session.Node, EnterpriseMeta: session.EnterpriseMeta})
 	if err != nil {
@@ -464,8 +464,13 @@ func (s *Store) markSessionCheckCritical(tx WriteTxn, idx uint64, session *struc
 	for check := iter.Next(); check != nil; check = iter.Next() {
 		if hc := check.(*structs.HealthCheck); hc.Type == "session" && hc.Definition.SessionName == session.Name {
 			updatedCheck := hc.Clone()
-			updatedCheck.Status = api.HealthCritical
-			updatedCheck.Output = fmt.Sprintf("Session '%s' is invalid", session.Name)
+			updatedCheck.Status = checkState
+			switch {
+			case checkState == api.HealthPassing:
+				updatedCheck.Output = fmt.Sprintf("Session '%s' in force", session.ID)
+			default:
+				updatedCheck.Output = fmt.Sprintf("Session '%s' is invalid", session.ID)
+			}
 
 			if err := s.ensureCheckTxn(tx, idx, true, updatedCheck); err != nil {
 				return err
