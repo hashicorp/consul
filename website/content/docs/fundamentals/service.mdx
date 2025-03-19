@@ -11,13 +11,9 @@ Consul agents require service definitions in order to register services into the
 
 ## Service definitions
 
-A service definition contains a set of parameters that specify various aspects of the service, including how it is discovered by other services in the network. The service definition may also contain health check configurations. Refer to [Health Check Configuration Reference](/consul/docs/reference/service/health-check) for configuration details about health checks. 
-
-Configure individual services and health checks by specifying parameters in the `service` block of a service definition file. Refer to [Define Services](/consul/docs/register/service/vm/define) for information about defining services. 
+@include 'text/descriptions/service-definition.mdx'
 
 To register a service, provide the service definition to the Consul agent. Refer to [Register Services and Health Checks](/consul/docs/register/service/vm) for information about registering services. 
-
-Consul supports service definitions written in JSON and HCL.
 
 ### ACLs
 

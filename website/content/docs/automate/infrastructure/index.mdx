@@ -1,13 +1,13 @@
 ---
 layout: docs
-page_title: Network Infrastructure Automation
+page_title: Network infrastructure automation
 description: >-
-  Network Infrastructure Automation (NIA) is the concept of dynamically updating infrastructure devices triggered by service changes. Consul-Terraform-Sync is a tool that performs NIA and utilizes Consul as a data source that contains networking information about services and monitors those services. Terraform is used as the underlying automation tool and leverages the Terraform provider ecosystem to drive relevant changes to the network infrastructure.
+  Network infrastructure automation (NIA) is the concept of dynamically updating infrastructure devices triggered by service changes. Consul-Terraform-Sync is a tool that performs NIA and utilizes Consul as a data source that contains networking information about services and monitors those services. Terraform is used as the underlying automation tool and leverages the Terraform provider ecosystem to drive relevant changes to the network infrastructure.
 ---
 
-# Network Infrastructure Automation
+# Network infrastructure automation
 
-Network Infrastructure Automation (NIA) enables dynamic updates to network infrastructure devices triggered by service changes. Consul-Terraform-Sync (CTS) utilizes Consul as a data source that contains networking information about services and monitors those services. Terraform is used as the underlying automation tool and leverages the Terraform provider ecosystem to drive relevant changes to the network infrastructure.
+Network infrastructure automation (NIA) enables dynamic updates to network infrastructure devices triggered by service changes. Consul-Terraform-Sync (CTS) utilizes Consul as a data source that contains networking information about services and monitors those services. Terraform is used as the underlying automation tool and leverages the Terraform provider ecosystem to drive relevant changes to the network infrastructure.
 
 CTS executes one or more automation tasks with the most recent service variable values from the Consul service catalog. Each task consists of a runbook automation written as a CTS compatible Terraform module using resources and data sources for the underlying network infrastructure. The `consul-terraform-sync` daemon runs on the same node as a Consul agent.
 

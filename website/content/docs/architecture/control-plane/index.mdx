@@ -21,11 +21,11 @@ When using Consul’s service mesh capabilities, Consul dynamically configures s
 
 ## Datacenters
 
-The Consul control plane contains one or more _datacenters_. A datacenter is the smallest unit of Consul infrastructure that can perform basic Consul operations. A datacenter contains at least one [Consul server agent](#server-agents), but a real-world deployment contains three or five server agents and several [Consul client agents](#client-agents). You can create multiple datacenters and allow nodes in different datacenters to interact with each other. Refer to [Bootstrap a Datacenter](/consul/docs/deploy/server/vm/bootstrap) for information about how to create a datacenter.
+@include 'text/descriptions/datacenter.mdx'
 
 ### Clusters
 
-A collection of Consul agents that are aware of each other is called a _cluster_. The terms _datacenter_ and _cluster_ are often used interchangeably. In some cases, however, _cluster_ refers only to Consul server agents, such as in [HCP Consul Dedicated](https://cloud.hashicorp.com/products/consul). In other contexts, such as the [_admin partitions_](/consul/docs/multi-tenant/admin-partition) feature included with Consul Enterprise, a cluster may refer to collection of client agents.
+@include 'text/descriptions/cluster.mdx'
 
 ## Agents
 

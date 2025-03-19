@@ -1637,7 +1637,7 @@
     ]
   },
   {
-    "title": "Secure network north/south",
+    "title": "Secure north/south",
     "routes": [
       {
         "title": "Overview",
@@ -1765,7 +1765,7 @@
     ]
   },
   {
-    "title": "Link network east/west",
+    "title": "Expand east/west",
     "routes": [
       {
         "title": "Overview",
