@@ -58,7 +58,7 @@ A few quick start guides are available on the Consul website:
 
 ## Documentation
 
-Full, comprehensive documentation is available on the Consul website: https://consul.io/docs
+Full, comprehensive documentation is available on the Consul website: https://developer.hashicorp.com/consul/docs
 
 ## Contributing
 
