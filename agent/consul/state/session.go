@@ -453,7 +453,7 @@ func (s *Store) deleteSessionTxn(tx WriteTxn, idx uint64, sessionID string, entM
 	return s.updateSessionCheck(tx, idx, session, api.HealthCritical)
 }
 
-// updateSessionCheck The method updates the health-checks associated with the session.
+// updateSessionCheck The method updates the health-checks associated with the session
 func (s *Store) updateSessionCheck(tx WriteTxn, idx uint64, session *structs.Session, checkState string) error {
 	// Find all checks for the given Node
 	iter, err := tx.Get(tableChecks, indexNode, Query{Value: session.Node, EnterpriseMeta: session.EnterpriseMeta})
