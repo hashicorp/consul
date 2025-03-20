@@ -542,6 +542,7 @@ func TestTxnEndpoint_UpdateCheck(t *testing.T) {
 				"Status": "critical",
 				"Notes": "Http based health check",
 				"Output": "",
+				"Type": "http",
 				"ServiceID": "",
 				"ServiceName": "",
 				"Definition": {
@@ -564,6 +565,7 @@ func TestTxnEndpoint_UpdateCheck(t *testing.T) {
 				"Status": "passing",
 				"Notes": "Http based health check",
 				"Output": "success",
+				"Type": "http",
 				"ServiceID": "",
 				"ServiceName": "",
 				"Definition": {
@@ -586,6 +588,7 @@ func TestTxnEndpoint_UpdateCheck(t *testing.T) {
 				"Status": "passing",
 				"Notes": "Http based health check",
 				"Output": "success",
+				"Type": "http",
 				"ServiceID": "",
 				"ServiceName": "",
 				"ExposedPort": 5678,
@@ -624,6 +627,7 @@ func TestTxnEndpoint_UpdateCheck(t *testing.T) {
 					Name:    "Node http check",
 					Status:  api.HealthCritical,
 					Notes:   "Http based health check",
+					Type:    "http",
 					Definition: structs.HealthCheckDefinition{
 						Interval:                       6 * time.Second,
 						Timeout:                        6 * time.Second,
@@ -646,6 +650,7 @@ func TestTxnEndpoint_UpdateCheck(t *testing.T) {
 					Status:  api.HealthPassing,
 					Notes:   "Http based health check",
 					Output:  "success",
+					Type:    "http",
 					Definition: structs.HealthCheckDefinition{
 						Interval:                       10 * time.Second,
 						Timeout:                        10 * time.Second,
@@ -668,6 +673,7 @@ func TestTxnEndpoint_UpdateCheck(t *testing.T) {
 					Status:      api.HealthPassing,
 					Notes:       "Http based health check",
 					Output:      "success",
+					Type:        "http",
 					ExposedPort: 5678,
 					Definition: structs.HealthCheckDefinition{
 						Interval:                       15 * time.Second,
@@ -717,6 +723,23 @@ func TestTxnEndpoint_NodeService(t *testing.T) {
 			"Verb": "set",
 			"Node": "%s",
 			"Service": {
+				"Service": "test2",
+				"Address": "192.168.0.10",
+				"Port" : 8080,
+				"TaggedAddresses": {
+					"lan": {
+						"Address": "192.168.0.10",
+						"Port": 8080
+					}	
+				}
+			}
+		}
+	},
+	{
+		"Service": {
+			"Verb": "set",
+			"Node": "%s",
+			"Service": {
 				"Service": "test-sidecar-proxy",
 				"Port": 20000,
 				"Kind": "connect-proxy",
@@ -736,7 +759,7 @@ func TestTxnEndpoint_NodeService(t *testing.T) {
 		}
 	}
 ]
-`, a.config.NodeName, a.config.NodeName)))
+`, a.config.NodeName, a.config.NodeName, a.config.NodeName)))
 	req, _ := http.NewRequest("PUT", "/v1/txn", buf)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.Txn(resp, req)
@@ -747,7 +770,7 @@ func TestTxnEndpoint_NodeService(t *testing.T) {
 	if !ok {
 		t.Fatalf("bad type: %T", obj)
 	}
-	require.Equal(t, 2, len(txnResp.Results))
+	require.Equal(t, 3, len(txnResp.Results))
 
 	index := txnResp.Results[0].Service.ModifyIndex
 	expected := structs.TxnResponse{
@@ -757,6 +780,29 @@ func TestTxnEndpoint_NodeService(t *testing.T) {
 					Service: "test",
 					ID:      "test",
 					Port:    4444,
+					Weights: &structs.Weights{
+						Passing: 1,
+						Warning: 1,
+					},
+					RaftIndex: structs.RaftIndex{
+						CreateIndex: index,
+						ModifyIndex: index,
+					},
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+				},
+			},
+			&structs.TxnResult{
+				Service: &structs.NodeService{
+					Service: "test2",
+					ID:      "test2",
+					Address: "192.168.0.10",
+					Port:    8080,
+					TaggedAddresses: map[string]structs.ServiceAddress{
+						"lan": {
+							Address: "192.168.0.10",
+							Port:    8080,
+						},
+					},
 					Weights: &structs.Weights{
 						Passing: 1,
 						Warning: 1,

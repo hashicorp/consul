@@ -15,7 +15,6 @@ This topic provides an overview of Consul Dataplane, a lightweight process for m
 - Dataplanes on Kubernetes requires Consul K8s v1.0.0 and newer.
 - Dataplanes on AWS Elastic Container Services (ECS) requires Consul ECS v0.7.0 and newer.
 
-
 ## What is Consul Dataplane?
 
 When deployed to virtual machines or bare metal environments, the Consul control plane requires _server agents_ and _client agents_. Server agents maintain the service catalog and service mesh, including its security and consistency, while client agents manage communications between service instances, their sidecar proxies, and the servers. While this model is optimal for applications deployed on virtual machines or bare metal servers, orchestrators such as Kubernetes and ECS have native components that support health checking and service location functions typically provided by the client agent.
@@ -58,7 +57,6 @@ To get started with Consul Dataplane, use the following reference resources:
 - For Envoy, Consul, and Consul Dataplane version compatibility, refer to the [Envoy compatibility matrix](/consul/docs/connect/proxies/envoy).
 - For Consul on ECS workloads, refer to [Consul on AWS Elastic Container Service (ECS) Overview](/consul/docs/ecs).
 
-
 ### Installation
 
 <Tabs>
@@ -93,6 +91,32 @@ Refer to the following documentation for Consul on ECS workloads:
 
 </Tabs>
 
+### Namespace ACL permissions
+
+If ACLs are enabled, exported services between partitions that use dataplanes may experience errors when you define namespace partitions with the `*` wildcard. Consul dataplanes use a token with the `builtin/service` policy attached, but this policy does not include access to all namespaces.
+
+Add the following policies to the service token attached to Consul dataplanes to grant Consul access to exported services across all namespaces:
+
+```hcl
+partition "default" {
+  namespace "default" {
+    query_prefix "" {
+      policy = "read"
+    }
+  }
+}
+
+partition_prefix "" {
+  namespace_prefix "" {
+    node_prefix "" {
+      policy = "read"
+    }
+    service_prefix "" {
+      policy = "read"
+    }
+   }
+}
+```
 
 ### Upgrading
 
@@ -136,3 +160,4 @@ Consul Dataplane on ECS support the following features:
 
 - Consul Dataplane is not supported on Windows.
 - Consul Dataplane requires the `NET_BIND_SERVICE` capability. Refer to [Set capabilities for a Container](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-capabilities-for-a-container) in the Kubernetes Documentation for more information.
+- When ACLs are enabled, dataplanes use the [service token](/consul/docs/security/acl/tokens/create/create-a-service-token) and the `builtin/service` policy for their default permissions.
