@@ -17,7 +17,7 @@ To set the log level for Consul Template, use the `-log-level` flag:
 $ consul-template -log-level info ...
 ```
 
-Or set it via the `CONSUL_TEMPLATE_LOG_LEVEL` environment variable.
+You can also use the `CONSUL_TEMPLATE_LOG_LEVEL` environment variable to set the log level.
 
 ```shell-session
 $ export CONSUL_TEMPLATE_LOG_LEVEL=info && consul-template ...
@@ -69,8 +69,7 @@ The command outputs the log in the standard output.
 
 ## Log to file
 
-Consul Template can log to file as well.
-Particularly useful in use cases where it's not trivial to capture *stdout* and/or *stderr* for example when Consul Template is deployed as a long running service.
+Consul Template can log to file as well. Logging to file is particularly useful in use cases where it is not trivial to capture *stdout* and/or *stderr*. For example, we recommend logging to file when Consul Template is deployed as a long running service.
 
 These are the relevant CLI flags:
 

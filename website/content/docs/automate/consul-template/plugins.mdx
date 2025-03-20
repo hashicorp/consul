@@ -23,7 +23,7 @@ $ NAME [INPUT...]
 
 - `INPUT` - input from the template. There will be one INPUT for every argument passed to the `plugin` function. If the arguments contain whitespace, that whitespace   will be passed as if the argument were quoted by the shell.
 
-## Important Notes
+## Important notes
 
 - Plugins execute user-provided scripts and pass in potentially sensitive data from Consul or Vault. Nothing is validated or protected by Consul Template, so all necessary precautions and considerations should be made by template authors
 
@@ -33,11 +33,11 @@ $ NAME [INPUT...]
 
 - Ensure the empty input case is handled correctly (see [Multi-phase execution](https://github.com/hashicorp/consul-template/blob/main/README.md#multi-phase-execution))
 
-- Data piped into the plugin is appended after any parameters given explicitly (e.g. `{{ "sample-data" | plugin "my-plugin" "some-parameter"}}` will call `my-plugin some-parameter sample-data`)
+- Data piped into the plugin is appended after any parameters given explicitly. For example, {{ "sample-data" | plugin "my-plugin" "some-parameter"}}` will call `my-plugin some-parameter sample-data`.
 
 ## Examples
 
-Here is a sample plugin in a few different languages that removes any JSON keys that start with an underscore and returns the JSON string:
+The following example plugin removes any JSON keys that start with an underscore and returns the JSON string:
 
 <Tabs>
 <Tab heading="golang">

@@ -23,12 +23,12 @@ The Consul template tool is flexible, and it can fit into many different environ
 
 Use Consul Template in the following situations:
 
-1. _Update configuration files_. The Consul template tool can be used to update service configuration files. A common use case is managing load balancer configuration files that need to be updated regularly in a dynamic infrastructure.
+1. **Update configuration files**. The Consul Template tool can be used to update service configuration files. A common use case is managing load balancer configuration files that need to be updated regularly in a dynamic infrastructure.
 
-1. _Update configuration secrets_. You can configure Consul Template to use Vault secret engines to generate secrets for your application's configuration, such as encryption keys, TLS certificates, passwords, and render them into files or environment variables where they can be consumed by your application.
+1. **Update configuration secrets**. You can configure Consul Template to use Vault secret engines to generate secrets for your application's configuration, including encryption keys, TLS certificates, passwords. Consul Template renders these secrets into files or environment variables for secure consumption by your application.
 
-1. _Discover data about the Consul datacenter and service_. It is possible to collect information about the services in your Consul datacenter. For example, you could
-   collect a list of all services running on the datacenter or you could discover all service addresses for the Redis service. Note, this use case has limited scope for production.
+1. **Discover data about the Consul datacenter and service**. It is possible to collect information about the services in your Consul datacenter. For example, you could
+   collect a list of all services running on the datacenter or you could discover all service addresses for the Redis service. Be aware that this use case has limited scope for production.
 
 ## Workflow
 
@@ -45,13 +45,9 @@ A typical workflow to add Consul Template to your datacenter consists of the fol
 
 ## Use case: Consul KV
 
-In this first use case example, you will render a template that pulls the HashiCorp address from Consul KV. To do this, you will create a simple template that contains the HashiCorp address, run the `consul-template` command, add a value to Consul KV for HashiCorp's address, and finally view the rendered file.
+In this example, you render a template that pulls the HashiCorp address from Consul KV. To do this, you create a template that contains the HashiCorp address, run the `consul-template` command, add a value to Consul KV for HashiCorp's address, and finally view the rendered file.
 
-<Tip>
 
-If you don't have a Consul instance you can start a dev instance using `consul agent -dev`. Read more at [Starting the Consul agent](/consul/docs/fundamentals/install/dev).
-
-</Tip>
 
 First, create a template file `find_address.tpl` to query Consul's KV store.
 
@@ -69,7 +65,7 @@ Next, run `consul-template` specifying both the template to use and the file to 
 $ consul-template -template "find_address.tpl:hashicorp_address.txt"
 ```
 
-The `consul-template` process will continue to run until you kill it with `CTRL+c`. For now, leave it running.
+The `consul-template` process will continue to run until you kill it with `CTRL+C`. For now, leave it running.
 
 Finally, open a new terminal so you can write data to the KV store in Consul using the command line interface.
 
@@ -79,7 +75,7 @@ $ consul kv put hashicorp/street_address "101 2nd St"
 Success! Data written to: hashicorp/street_address
 ```
 
-Verify the data was written by viewing the `hashicorp_address.txt` file which will be located in the same directory where Consul Template is running.
+Verify the data was written by viewing the `hashicorp_address.txt` file. This file is located in the same directory where Consul Template is running.
 
 ```shell-session
 $ cat hashicorp_address.txt
@@ -87,9 +83,9 @@ $ cat hashicorp_address.txt
 101 2nd St
 ```
 
-If you update the key `hashicorp/street_address`, you can see the changes to the file immediately. 
+If you update the key `hashicorp/street_address`, you can observe the changes to the file immediately. 
 
-Try change the content of the key in Consul.
+Change the content of the key in Consul to observe the process.
 
 ```shell-session
 $ consul kv put hashicorp/street_address "22b Baker ST"
@@ -109,9 +105,9 @@ You can now kill the `consul-template` process with `CTRL+c`.
 
 ## Use case: discover all services
 
-In this use case example, you will discover all the services running in the Consul datacenter. To follow along, use the same Consul agent from the previous example.
+In this example, you use Consul Template to discover all the services running in the Consul datacenter.
 
-First, you will need to create a new template `all-services.tpl` to query all services.
+First, create a new template `all-services.tpl` to query all services.
 
 <CodeBlockConfig filename="all-services.tpl">
 
@@ -127,13 +123,13 @@ First, you will need to create a new template `all-services.tpl` to query all se
 
 </CodeBlockConfig>
 
-Next, run Consul template specifying the template you just created and the `-once` flag. The `-once` flag will tell the process to run once and then quit.
+Next, run Consul Template and specify the template you just created and the `-once` flag. The `-once` flag tells the process to run once and then quit.
 
 ```shell-session
 $ consul-template -template="all-services.tpl:all-services.txt" -once
 ```
 
-If you complete this on your local development agent, the answer will only contain the default `consul` service when viewing `all-services.txt`.
+If you complete this command with a [local development agent](/consul/docs/fundamentals/install/dev, the answer contains only the default `consul` service when viewing `all-services.txt`.
 
 ```plaintext hideClipboard
 # consul
@@ -159,19 +155,19 @@ For example:
 104.131.59.59
 ```
 
-## Real life scenarios
+## Production scenarios
 
-The two examples above provide you with a basic idea on how to use Consul Template to render filed dynamically using data in the Consul KV store or in the Consul Catalog.
+The previous examples demonstrate how to use Consul Template to render files dynamically with data in the Consul KV store or in the Consul catalog.
 
-Extending this simple process you can realize complex configurations.
+You can extend this process to realize complex configurations.
 
-You can use Consul Template to [automate an NGINX reverse proxy configuration](/consul/tutorials/network-automation/consul-template-load-balancing) using Consul Catalog as a source for the upstream IPs.
+For example. you can use Consul Template to [automate an NGINX reverse proxy configuration](/consul/tutorials/network-automation/consul-template-load-balancing). This process uses the Consul catalog as a source for the upstream IPs.
 
-You can even use Consul Template to automate Consul operations using Vault as secret management. For example you can:
+You can also use Consul Template to automate Consul operations using Vault as secret management. For example, you can:
 
-* [Generate and rotate gossip encryption keys for Consul](/consul/docs/automate/consul-template/vault/gossip)
-* [Generate and rotate mTLS certificates for Consul](/consul/docs/automate/consul-template/vault/mtls)  
+- [Generate and rotate gossip encryption keys for Consul](/consul/docs/automate/consul-template/vault/gossip)
+- [Generate and rotate mTLS certificates for Consul](/consul/docs/automate/consul-template/vault/mtls)  
 
-To find additional examples, refer to the examples folder in [GitHub](https://github.com/hashicorp/consul-template/tree/master/examples).
+For additional Consul Template examples, refer to [the examples folder in the `consul-template` GitHub repository](https://github.com/hashicorp/consul-template/tree/master/examples).
 
-To explore the available functions to use in your templates refer to the [Consul Template Go language](/consul/docs/reference/consul-template/go) reference.
+To explore the available functions to use in your templates refer to the [Consul Template Go language reference](/consul/docs/reference/consul-template/go).
