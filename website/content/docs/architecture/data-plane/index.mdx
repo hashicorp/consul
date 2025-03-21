@@ -9,28 +9,30 @@ description: >-
 
 This topic describes Consul's architecture and operations in an application's data plane. Consul can deploy gateways and sidecar proxies to help you secure, observe, and manage application traffic.
 
-For information about the lightweight workload agents Consul uses for container-based applications on Kubernetes and AWS ECS, refer to [Consul data plane](/consul/docs/architecture/control-plane/dataplane).
+For information about the lightweight workload agents Consul uses for container-based applications on Kubernetes and AWS ECS, refer to [Consul dataplanes](/consul/docs/architecture/control-plane/dataplane).
 
 ## Introduction
 
-Consul provides control plane features that help you manage your application's data plane, but it does not run directly in the data plane.
+Consul provides control plane features that help you manage your application's data plane, but the Consul process does not run directly in the data plane.
 
 When using Consul for service discovery, no additional components or configurations are required for the data plane.
 
-When using Consul's service mesh features, you can use Consul to create gateways and proxies for service-to-service traffic and to secure user interactions with services.
+When using Consul's service mesh features, you can use Consul to create gateways and proxies to manage and observe service-to-service traffic, and to secure user interactions with services.
 
 ## Gateways
 
 Gateways secure application traffic between services. There are four kinds of gateways:
 
-- API gateway
-- Ingress gateway
-- Terminating gateways
-- Mesh gateways
+- API gateways secure traffic coming into the service network.
+- Ingress gateways secure incoming traffic.
+- Terminating gateways secure traffic between services and external upstreams.
+- Mesh gateways secure traffic between services or groups of services in the service mesh.
+
+For more information about each type of gateway, refer to [gateways](/consul/docs/architecture/data-plane/gateway).
 
 ## Sidecar proxies
 
-Consul can depoy sidecar proxies so that you can oberve and monitor application traffic.
+Consul can depoy sidecar proxies so that you can oberve and monitor application traffic. Consul includes native support for Envoy proxies, but you can configure it to use other proxies if you prefer.
 
 ## Next steps
 

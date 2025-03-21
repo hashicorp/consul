@@ -41,7 +41,7 @@ To create a token for the snapshot agent, you must define a policy, register the
 
 ### Define a policy
 
-You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/secure-consul/acl/rules) for details about all of the rules you can use in your policies.
+You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/secure/acl/rules) for details about all of the rules you can use in your policies.
 
 The following example policy is defined in a file. The policy grants the appropriate permissions for a snapshot agent running on a node named `server-1234` to register into the catalog as the `consul-snapshot` service. It uses the key `consul-snapshot/lock` for a leader election lock.
 
@@ -129,7 +129,7 @@ $ curl --request PUT http://127.0.0.1:8500/v1/acl/policy \
 
 ### Link the policy to a token
 
-After registering the policies into Consul, you can create and link tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an [auth method](/consul/docs/secure-consul/acl/auth-methods).
+After registering the policies into Consul, you can create and link tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an [auth method](/consul/docs/secure/acl/auth-methods).
 
 You can specify an admin partition and namespace when creating tokens in Consul Enterprise. Tokens are only valid in the specified scopes. The snapshot agent token must be created in the `default` namespace in the `default` partition.
 

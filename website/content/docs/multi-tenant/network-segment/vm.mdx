@@ -79,7 +79,7 @@ This topic describes how to create Consul network segments so that services can 
 
 ## Configure clients to join segments
 
-Client agents can only be members of one segment at a time. You can direct clients to join a segment by specifying the address and name of the segment with the [`-join`](/consul/docsreference-cli/agent#_join) and [`-segment`](/consul/docsreference-cli/agent#_segment) command line flags when starting the agent.
+Client agents can only be members of one segment at a time. You can direct clients to join a segment by specifying the address and name of the segment with the [`-join`](/consul/commands/agent#_join) and [`-segment`](/consul/commands/agent#_segment) command line flags when starting the agent.
 
 ```shell-session
 $ consul agent -config-file client.hcl -join 10.20.10.11:8303 -segment alpha

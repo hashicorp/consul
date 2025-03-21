@@ -1,21 +1,28 @@
 ---
 layout: docs
-page_title: Raft architecture
+page_title: Persistent backend architecture
 description: >-
-  Consul ensures a consistent state using the Raft protocol. A quorum, or a majority of server agents with one leader, agree to state changes before committing to the state log. Learn about the Raft architecture in Consul and its requirements.
+  Consul persists the Raft index, which logs cluster activities, with the Write-ahead log (WAL) LogStore backend. Consul saves the Raft index in the server's data directory.
 ---
 
-# Raft architecture
+# Persistent data backend architecture
 
-Raft is a consensus algorithm that is based on
-[Paxos](https://en.wikipedia.org/wiki/Paxos_%28computer_science%29). Compared
-to Paxos, Raft is designed to have fewer states and a simpler, more
-understandable algorithm.
+This page introduces the architecture of the backend that Consul server agents use to store Raft index data.
 
 ## Raft index
 
-How the Raft index works
+Consul uses the Raft protocol to manage [server consensus](/consul/docs/concept/consensus), which in turn enables Consul's [reliability and fault tolerance](/consul/docs/concept/reliability) as well as the ability to return [consistent service and health information](/consul/docs/concept/consistency).
 
-## Backend
+The Raft index provides a record of the cluster's state. It tracks interactions between Consul servers as they conduct elections, registers service instances into [the Consul catalog](/consul/docs/concept/catalog), and updates the catalog with the results of service node health checks.
 
-BoltDB / WAL backend
+You can also use Consul's [snapshot agent](consul/commands/snapshot/agent) to save a copy of the entire Raft index. This snapshot lets you restore a datacenter from a backup in the event of an outage or catastrophic failure. You can save snapshot to a cloud storage bucket to ensure data persistence.
+
+## Data directory
+
+Consul writes the Raft index to the data directory specified in the agent configuration with the `data_dir` parameter or `-data_dir` CLI flag. The data directory is a requirement for all agents, and should be durable across reboots.
+
+## Write-ahead log (WAL) LogStore backend
+
+Consul logs the Raft index with the write-ahead log (WAL) LogStore backend. The WAL backend implements a traditional log with rotating, append-only log files, and it retains logs without affecting a cluster's write performance at scale.
+
+Previous versions of Consul used BoltDB as the default LogStore backend. Refer to the [WAL LogStore backend overview](/consul/docs/deploy/server/wal) for more information. To use BoltDB instead of WAL, refer to [Revert storage backend to BoltDB from WAL](/consul/docs/deploy/server/wal/revert/bolt-db).

@@ -33,15 +33,15 @@ After defining your Terraform configuration, use `terraform apply` to deploy Con
 
 You must meet the following requirements and prerequisites to enable security features in Consul service mesh:
 
-- Enable [TLS encryption](/consul/docs/secure-consul/encryption#rpc-encryption-with-tls) on your Consul servers so that they can communicate securely with Consul containers over gRPC.
-- Enable [access control lists (ACLs)](/consul/docs/secure-consul/acl) on your Consul servers. ALCs provide authentication and authorization for access to Consul servers on the mesh.
+- Enable [TLS encryption](/consul/docs/secure/encryption#rpc-encryption-with-tls) on your Consul servers so that they can communicate securely with Consul containers over gRPC.
+- Enable [access control lists (ACLs)](/consul/docs/secure/acl) on your Consul servers. ALCs provide authentication and authorization for access to Consul servers on the mesh.
 - You should be familiar with specifying sensitive data on ECS. Refer to [Passing sensitive data to a container](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/specifying-sensitive-data.html) in the AWS documentation for additional information.
 
 Additionally, Consul requires a unique IAM role for each ECS task family. Task IAM roles cannot be shared by different task families because the task family is unique to each Consul service.    
 
 You should be familiar with configuring Consul's secure features, including how to create ACL tokens and policies. Refer to the following resources for additional information:
 
-- [Create a service token](/consul/docs/secure-consul/acl/token/service-token)
+- [Create a service token](/consul/docs/secure/acl/token/service-token)
 
 ## Create the task definition
 
@@ -214,8 +214,8 @@ Verify that you have completed the prerequisites described in [Secure configurat
     - `node:write`
     - `service:write`
     
-    The policy allows Consul to generate a token linked to the policy. Refer to [Create a service token](/consul/docs/secure-consul/acl/token/service-token) for instructions.
-1. Create a token and link it to the ACL controller policy. Refer to the [ACL tokens documentation](/consul/docs/secure-consul/acl/tokens) for instructions.
+    The policy allows Consul to generate a token linked to the policy. Refer to [Create a service token](/consul/docs/secure/acl/token/service-token) for instructions.
+1. Create a token and link it to the ACL controller policy. Refer to the [ACL tokens documentation](/consul/docs/secure/acl/tokens) for instructions.
 
 ### Configure an AWS secrets manager secret
 
@@ -475,4 +475,4 @@ module "my_mesh_gateway" {
 
 </CodeBlockConfig>
 
-When federating Consul datacenters over the WAN with ACLs enabled, enable [ACL Token replication](/consul/docs/secure-consul/acl/federation) on all server and client agents in all datacenters.
+When federating Consul datacenters over the WAN with ACLs enabled, enable [ACL Token replication](/consul/docs/secure/acl/federation) on all server and client agents in all datacenters.

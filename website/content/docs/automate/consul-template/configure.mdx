@@ -1,0 +1,54 @@
+---
+layout: docs
+page_title: Configure Consul Template
+description: >-
+  Consul Template is a tool available as a distinct binary that enables dynamic application configuration and secrets rotation for Consul deployments based on Go templates.
+---
+
+# Configure Consul Template
+
+You can configure Consul Template with a configuration file written in the [HashiCorp Configuration Language](https://github.com/hashicorp/hcl). The configuration is also JSON compatible.
+For a full list of configuration options, refer to the [Consul Template configuration reference](/consul/docs/reference/consul-template/configuration).
+
+To start using Consul Template, run the Consul Template CLI with the `-config` flag pointing at the configuration file:
+
+```shell-session
+$ consul-template -config "/my/config.hcl"
+```
+
+Specify this argument multiple times to load multiple configuration files. The right-most configuration takes the highest precedence. If you provide the path to a directory instead of a file, all of the files in the given directory are merged in [lexical order](http://golang.org/pkg/path/filepath/#Walk), recursively. Be aware that symbolic links are not followed.
+
+The full list of available commands and options is available in the [Consul Template CLI reference](/consul/docs/reference/consul-template/cli).
+
+~> **Note** Commands specified on the CLI take precedence over a config file.
+
+Not all available fields for the configuration file are required. For example, if you are not retrieving secrets from Vault, you do not need to specify a Vault configuration section. Similarly, if you are not logging to syslog, you do not need to specify a syslog configuration.
+
+For additional security, tokens may also be read from the environment using the `CONSUL_TOKEN` or `VAULT_TOKEN` environment variables. We recommend that you do not include plain-text tokens in a configuration file.
+
+## Example
+
+The following example configures Consul Template for a Consul agent and renders a template with a value from [the Consul KV store](/consul/docs/automate/kv). It writes the output to a file on disk.
+
+```hcl
+consul {
+  address = "127.0.0.1:8500"
+
+  auth {
+    enabled = true
+    username = "test"
+    password = "test"
+  }
+}
+
+log_level = "warn"
+
+template {
+  contents = "{{key \"hello\"}}"
+  destination = "out.txt"
+  exec {
+    command = "cat out.txt"
+  }
+}
+```
+

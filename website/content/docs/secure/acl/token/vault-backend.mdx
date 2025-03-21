@@ -31,7 +31,7 @@ To create a token for Vault’s Consul storage backend, you must define a policy
 
 ### Define a policy
 
-You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/secure-consul/acl/rules) for details about all of the rules you can use in your policies.
+You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/secure/acl/rules) for details about all of the rules you can use in your policies.
 
 The following example policy is defined in a file. The policy grants the appropriate permissions to enable Vault to register as a service named `vault` and provides access to the `vault/` path in Consul's KV store.
 
@@ -122,7 +122,7 @@ $ curl --request PUT http://127.0.0.1:8500/v1/acl/policy \
 
 ### Link the policy to a token
 
-After registering the policy into Consul, you can create and link tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an [auth method](/consul/docs/secure-consul/acl/auth-methods).
+After registering the policy into Consul, you can create and link tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an [auth method](/consul/docs/secure/acl/auth-methods).
 
 <Tabs>
 

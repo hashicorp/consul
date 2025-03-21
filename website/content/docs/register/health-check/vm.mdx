@@ -134,8 +134,8 @@ Script checks timeout after 30 seconds by default, but you can configure a custo
 To enable script checks, you must first enable the agent to send external requests, then configure the health check settings in the service definition:
 
 1. Add one of the following configurations to your agent configuration file to enable a script check:
-   - [`enable_local_script_checks`](/consul/docsreference-cli/agent#enable_local_script_checks): Enable script checks defined in local configuration files. Script checks registered using the HTTP API are not allowed.
-   - [`enable_script_checks`](/consul/docsreference-cli/agent#enable_script_checks): Enable script checks no matter how they are registered.
+   - [`enable_local_script_checks`](/consul/commands/agent#enable_local_script_checks): Enable script checks defined in local configuration files. Script checks registered using the HTTP API are not allowed.
+   - [`enable_script_checks`](/consul/commands/agent#enable_script_checks): Enable script checks no matter how they are registered.
 
    !> **Security warning:** Enabling non-local script checks in some configurations may introduce a known remote execution vulnerability targeted by malware. We strongly recommend `enable_local_script_checks` instead.
 
@@ -419,9 +419,9 @@ To enable Docker checks, you must first enable the agent to send external reques
 
 1. Add one of the following configurations to your agent configuration file to enable a Docker check:
 
-   - [`enable_local_script_checks`](/consul/docsreference-cli/agent#enable_local_script_checks): Enable script checks defined in local config files. Script checks registered using the HTTP API are not allowed.
+   - [`enable_local_script_checks`](/consul/commands/agent#enable_local_script_checks): Enable script checks defined in local config files. Script checks registered using the HTTP API are not allowed.
   
-   - [`enable_script_checks`](/consul/docsreference-cli/agent#enable_script_checks): Enable script checks no matter how they are registered.
+   - [`enable_script_checks`](/consul/commands/agent#enable_script_checks): Enable script checks no matter how they are registered.
 
    !> **Security warning**: Enabling non-local script checks in some configurations may introduce a known remote execution vulnerability targeted by malware. We strongly recommend `enable_local_script_checks` instead.
 1. Configure the following fields in the `check` block in your service definition file:

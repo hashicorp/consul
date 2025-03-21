@@ -13,7 +13,7 @@ This topic describes access control list (ACL) tokens, which are the core method
 
 Tokens are artifacts in the ACL system used to authenticate users, services, and Consul agents. When ACLs are enabled, entities requesting access to a resource must include a token that has been linked with a policy, service identity, or node identity that grants permission to the resource. The ACL system checks the token and grants or denies access to resource based on the associated permissions.
 
-Refer to the [ACL workflow overview](/consul/docs/secure-consul/acl#workflow-overview) for information about tokens' role in the ACL system.
+Refer to the [ACL workflow overview](/consul/docs/secure/acl#workflow-overview) for information about tokens' role in the ACL system.
 
 ## Create tokens
 
@@ -36,7 +36,7 @@ $ curl --request PUT --data @payload.json http://127.0.0.1:8500/v1/acl/token
 </Tab>
 </Tabs>
 
-Refer to the [ACL API](/consul/api-docs/acl/tokenscl) and [ACL CLI](/consul/commands/acl/token/create) documentation for more details on how to create and link tokens. Tokens can also be created dynamically from trusted external system using an [auth method](/consul/docs/secure-consul/acl/auth-methods).
+Refer to the [ACL API](/consul/api-docs/acl/tokenscl) and [ACL CLI](/consul/commands/acl/token/create) documentation for more details on how to create and link tokens. Tokens can also be created dynamically from trusted external system using an [auth method](/consul/docs/secure/acl/auth-methods).
 
 ## Pass tokens
 
@@ -164,7 +164,7 @@ Policies:
    00000000-0000-0000-0000-000000000001 - global-management
 ```
 
-Apply tokens to [the agent](/consul/docs/secure-consul/acl/bootstrap#add-token-to-agents) or to [the services](/consul/docs/secure-consul/acl/bootstrap#add-token-to-service-definition) as needed.
+Apply tokens to [the agent](/consul/docs/secure/acl/bootstrap#add-token-to-agents) or to [the services](/consul/docs/secure/acl/bootstrap#add-token-to-service-definition) as needed.
 
 Finally, delete the old token from Consul. Alternatively, you can delete ACL tokens using the [`acl` endpoint on the HTTP API](/consul/api-docs/acl/tokens#delete-a-token).
 
@@ -218,7 +218,7 @@ key_prefix "_rexec" {
 
 ## Built-in tokens
 
-Consul includes a built-in anonymous token and initial management token. Both tokens are injected during when you [bootstrap](/consul/docs/secure-consul/acl/bootstrap) the cluster.
+Consul includes a built-in anonymous token and initial management token. Both tokens are injected during when you [bootstrap](/consul/docs/secure/acl/bootstrap) the cluster.
 
 ### Anonymous token
 
@@ -235,10 +235,10 @@ You may update the anonymous token's description and policies, however you canno
 
 There are two ways for you to create an initial management token.
 
-1. Bootstrap the ACL system with `consul acl bootstrap`. Consul automatically generates a token for you. Refer to [Bootstrap ACLs](/consul/docs/secure-consul/acl/bootstrap) for more details.
+1. Bootstrap the ACL system with `consul acl bootstrap`. Consul automatically generates a token for you. Refer to [Bootstrap ACLs](/consul/docs/secure/acl/bootstrap) for more details.
 1. Define an initial management token in the Consul agent configuration ([`acl.token.initial_management`](/consul/docs/reference/agent#acl_tokens_initial_management)). This method lets ACL administrators to bootstrap the ACL system with a known value.
 
-Consul links the management token to the built-in [global management](/consul/docs/secure-consul/acl/policy#global-management) policy. This token has unrestricted privileges to resources and APIs.
+Consul links the management token to the built-in [global management](/consul/docs/secure/acl/policy#global-management) policy. This token has unrestricted privileges to resources and APIs.
 
 ### ACL agent recovery token
 

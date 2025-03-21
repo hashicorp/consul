@@ -7,7 +7,7 @@ description: >-
 
 # ACL rule configuration reference
 
-This topic provides reference information for the types of access control list (ACL) rules you can create and how they affect access to datacenter resources. For details on how to create rules and group them into policies, refer to [Policies](/consul/docs/secure-consul/acl/policies).
+This topic provides reference information for the types of access control list (ACL) rules you can create and how they affect access to datacenter resources. For details on how to create rules and group them into policies, refer to [Policies](/consul/docs/secure/acl/policies).
 
 ## Overview
 
@@ -37,7 +37,7 @@ The following resources are not covered by ACL policies:
 - The datacenter listing operation of the [Catalog API](/consul/api-docs/catalog#list-datacenters) similarly exposes the names of known Consul datacenters, and does not allow modification of any state.
 - The [service mesh CA roots endpoint](/consul/api-docs/connect/ca#list-ca-root-certificates) exposes just the public TLS certificate which other systems can use to verify the TLS connection with Consul.
 
--> **Consul Enterprise Namespace** - In addition to directly-linked policies, roles, and service identities, Consul Enterprise enables ACL policies and roles to be defined in the [Namespaces definition](/consul/docs/segment/namespace#namespace-definition) (Consul Enterprise 1.7.0+).
+-> **Consul Enterprise Namespace** - In addition to directly-linked policies, roles, and service identities, Consul Enterprise enables ACL policies and roles to be defined in the [Namespaces definition](/consul/docs/multi-tenant/namespace#namespace-definition) (Consul Enterprise 1.7.0+).
 
 The following topics provide additional details about the available resources.
 
@@ -866,7 +866,7 @@ to use for registration events:
    API](/consul/api-docs) for operations that require them. Note that all tokens
    passed to an agent are persisted on local disk to allow recovery from
    restarts. Refer to [`-data-dir` flag
-   documentation](/consul/docsreference-cli/agent#_data_dir) for information about securing
+   documentation](/consul/docs/architecture/backend) for information about securing
    access.
 
 In addition to ACLs, in Consul 0.9.0 and later, the agent must be configured with

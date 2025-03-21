@@ -58,7 +58,7 @@ Use these links to navigate to a particular top-level stanza.
     the prefix will be `<helm release name>-consul`.
 
   - `domain` ((#v-global-domain)) (`string: consul`) - The domain Consul will answer DNS queries for
-    (Refer to [`-domain`](/consul/docs/agent/config/cli-flags#_domain)) and the domain services synced from
+    (Refer to [`-domain`](/consul/commands/agent#_domain)) and the domain services synced from
     Consul into Kubernetes will have, e.g. `service-name.service.consul`.
 
   - `peering` ((#v-global-peering)) - Configures the Cluster Peering feature. Requires Consul v1.14+ and Consul-K8s v1.0.0+.
@@ -264,7 +264,7 @@ Use these links to navigate to a particular top-level stanza.
             inject webhooks.
 
   - `gossipEncryption` ((#v-global-gossipencryption)) - Configures Consul's gossip encryption key.
-    (Refer to [`-encrypt`](/consul/docs/agent/config/cli-flags#_encrypt)).
+    (Refer to [`-encrypt`](/consul/commands/agent#_encrypt)).
     By default, gossip encryption is not enabled. The gossip encryption key may be set automatically or manually.
     The recommended method is to automatically generate the key.
     To automatically generate and set a gossip encryption key, set autoGenerate to true.
@@ -297,7 +297,7 @@ Use these links to navigate to a particular top-level stanza.
 
   - `recursors` ((#v-global-recursors)) (`array<string>: []`) - A list of addresses of upstream DNS servers that are used to recursively resolve DNS queries.
     These values are given as `-recursor` flags to Consul servers and clients.
-    Refer to [`-recursor`](/consul/docs/agent/config/cli-flags#_recursor) for more details.
+    Refer to [`-recursor`](/consul/commands/agent#_recursor) for more details.
     If this is an empty array (the default), then Consul DNS will only resolve queries for the Consul top level domain (by default `.consul`).
 
   - `tls` ((#v-global-tls)) - Enables [TLS](/consul/tutorials/security/tls-encryption-secure)
@@ -1274,7 +1274,7 @@ Use these links to navigate to a particular top-level stanza.
   - `image` ((#v-client-image)) (`string: null`) - The name of the Docker image (including any tag) for the containers
     running Consul client agents.
 
-  - `join` ((#v-client-join)) (`array<string>: null`) - A list of valid [`-retry-join` values](/consul/docs/agent/config/cli-flags#_retry_join).
+  - `join` ((#v-client-join)) (`array<string>: null`) - A list of valid [`-retry-join` values](/consul/commands/agent#_retry_join).
     If this is `null` (default), then the clients will attempt to automatically
     join the server cluster running within Kubernetes.
     This means that with `server.enabled` set to true, clients will automatically
@@ -1295,7 +1295,7 @@ Use these links to navigate to a particular top-level stanza.
     required for Connect.
 
   - `nodeMeta` ((#v-client-nodemeta)) - nodeMeta specifies an arbitrary metadata key/value pair to associate with the node
-    (refer to [`-node-meta`](/consul/docs/agent/config/cli-flags#_node_meta))
+    (refer to [`-node-meta`](/consul/commands/agent#_node_meta))
 
     - `pod-name` ((#v-client-nodemeta-pod-name)) (`string: ${HOSTNAME}`)
 

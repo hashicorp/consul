@@ -37,7 +37,7 @@ The web UI is not enabled by default. Agents that are run without the `-dev` fla
 
 To enable the web UI, you can: 
 
-- Modify the agent start-up command to include the [`-ui` flag](/consul/docs/reference-cli/agent#ui-options).
+- Modify the agent start-up command to include the [`-ui` flag](/consul/docs/reference/cli/agent#ui-options).
 - Modify the agent configuration file to include the [`ui_config.enabled = true`](/consul/docs/reference/agent#ui_config_enabled) attribute.
 
 <Tabs>
@@ -93,7 +93,7 @@ Click the name of a node for more information about service health checks, insta
 
 You can filter nodes by health status or search for nodes with the search bar.
 
-## Key-value store
+## Key/value store
 
 Click **Key/Value** option in the left navigation bar.
 
@@ -139,10 +139,10 @@ acl {
 
 </CodeBlockConfig>
 
-With ACLs enabled and proper permissions set, you can click on the ACL-related pages under the **Access Controls** heading in the left navigation bar and view the **Tokens**, **Policies**, **Roles**, and **Auth Methods** pages. Refer to the the [ACL Tokens](/consul/docs/secure/acl/token), [ACL Policies](/consul/docs/secure/acl/policy), [Roles](/consul/docs/secure/acl/role), and [Auth Methods](/consul/docs/secure/acl/auth-method) documentation pages for more information.
+With ACLs enabled and proper permissions set, you can click on the ACL-related pages under the **Access Controls** heading in the left navigation bar and view the **Tokens**, **Policies**, **Roles**, and **Auth Methods** pages. Refer to the [ACL Tokens](/consul/docs/secure/acl/token), [ACL Policies](/consul/docs/secure/acl/policy), [ACL Roles](/consul/docs/secure/acl/role), and [Auth Methods](/consul/docs/secure/acl/auth-method) documentation for more information.
 
 ## Adjust UI settings
 
-Click on the **Settings** option from the top navigation bar.
+Click the **Settings** option from the top navigation bar.
 
 You can select whether or not to enable **Blocking Queries**. This allows the UI to update in real time without manually having to refresh the page. This setting is enabled by default but you may want to disable it on large datacenters for better performance.

@@ -9,11 +9,11 @@ description: >-
 
 This topic provides an overview of Consul’s built-in service-to-service troubleshooting capabilities. When communication between an upstream service and a downstream service in a service mesh fails, you can run the `consul troubleshoot` command to initiate a series of automated validation tests.
 
-For more information, refer to the [`consul troubleshoot` CLI documentation](/consul/commands/troubleshoot) or the [`consul-k8s troubleshoot` CLI reference](/consul/docs/reference-cli/consul-k8s#troubleshoot).
+For more information, refer to the [`consul troubleshoot` CLI documentation](/consul/commands/troubleshoot) or the [`consul-k8s troubleshoot` CLI reference](/consul/docs/reference/cli/consul-k8s#troubleshoot).
 
 ## Introduction
 
-When communication between upstream and downstream services in a service mesh fails, you can diagnose the cause manually with one or more of Consul’s built-in features, including [health check queries](/consul/docs/register/health-check/vm), [the UI topology view](/consul/docs/observe/mesh/vm), and [agent telemetry metrics](/consul/docs/agent/telemetry#metrics-reference).
+When communication between upstream and downstream services in a service mesh fails, you can diagnose the cause manually with one or more of Consul’s built-in features, including [health check queries](/consul/docs/register/health-check/vm), [the UI topology view](/consul/docs/observe/mesh/vm), and [agent telemetry metrics](/consul/docs/reference/agent/telemetry).
 
 The `consul troubleshoot` command performs several checks in sequence that enable you to discover issues that impede service-to-service communication. The process systematically queries the [Envoy administration interface API](https://www.envoyproxy.io/docs/envoy/latest/operations/admin) and the Consul API to determine the cause of the communication failure.
 

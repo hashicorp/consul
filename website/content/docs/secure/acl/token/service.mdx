@@ -15,7 +15,7 @@ Services must present a token linked to policies that grant the appropriate set 
 
 ### Templated policies versus custom policies
 
-You can create tokens linked to custom policies or to templated policies. [Templated policies](/consul/docs/secure-consul/acl#templated-policies) are constructs in Consul that enable you to quickly grant permissions for common use cases, rather than creating similar policies.
+You can create tokens linked to custom policies or to templated policies. [Templated policies](/consul/docs/secure/acl#templated-policies) are constructs in Consul that enable you to quickly grant permissions for common use cases, rather than creating similar policies.
 
 We recommend using the `builtin/service` templated policy to grant permissions for service discovery and service mesh use cases rather than creating a custom policy. This is because the `builtin/service` templated policy automatically grant the service and its sidecar proxy `service:write`, `service:read`, and `node:read`.
 
@@ -35,9 +35,9 @@ The service token must be linked to policies that grant the following permission
 
 ## Templated policies in Consul CE
 
-Refer to [Templated policies](/consul/docs/secure-consul/acl#templated-policies) for information about creating templated policies that you can link to tokens.
+Refer to [Templated policies](/consul/docs/secure/acl#templated-policies) for information about creating templated policies that you can link to tokens.
 
-You can manually create tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an [auth method](/consul/docs/secure-consul/acl/auth-methods).
+You can manually create tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an [auth method](/consul/docs/secure/acl/auth-methods).
 
 <Tabs>
 
@@ -83,9 +83,9 @@ $ curl --request PUT http://127.0.0.1:8500/v1/acl/token \
 
 ## Templated policies in Consul Enterprise <EnterpriseAlert inline />
 
-Refer to [Templated policies](/consul/docs/secure-consul/acl#templated-policies) for information about the use of templated policies in tokens and roles.
+Refer to [Templated policies](/consul/docs/secure/acl#templated-policies) for information about the use of templated policies in tokens and roles.
 
-You can manually create tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an [auth method](/consul/docs/secure-consul/acl/auth-methods).
+You can manually create tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an [auth method](/consul/docs/secure/acl/auth-methods).
 
 <Tabs>
 
@@ -137,7 +137,7 @@ When you are unable to link tokens to a templated policy, you can define policie
 
 ### Define a policy
 
-You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/secure-consul/acl/rules) for details about all of the rules you can use in your policies.
+You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/secure/acl/rules) for details about all of the rules you can use in your policies.
 
 The following example policy is defined in a file. The policy grants the `svc1` service `write` permissions so that it can register into the catalog. For service mesh, the policy grants the `svc1-sidecar-proxy` service `write` permissions so that the sidecar proxy can register into the catalog. It grants service and node `read` permissions to discover and route to other services.
 
@@ -227,7 +227,7 @@ Refer to [ACL Policy HTTP API](/consul/api-docs/acl/policies) for additional inf
 
 ### Link the policy to a token
 
-After registering the policies into Consul, you can create and link tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an [auth method](/consul/docs/secure-consul/acl/auth-methods).
+After registering the policies into Consul, you can create and link tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an [auth method](/consul/docs/secure/acl/auth-methods).
 
 <Tabs>
 
@@ -273,7 +273,7 @@ When you are unable to link tokens to a templated policy, you can define policie
 
 ### Define a policy
 
-You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/secure-consul/acl/rules) for details about all of the rules you can use in your policies.
+You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/secure/acl/rules) for details about all of the rules you can use in your policies.
 
 You can specify an admin partition and namespace when creating policies in Consul Enterprise. The policy is only valid in the specified scopes.
 
@@ -379,7 +379,7 @@ Refer to [ACL Policy HTTP API](/consul/api-docs/acl/policies) for additional inf
 
 ### Link the policy to a token
 
-After registering the policies into Consul, you can create and link tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an [auth method](/consul/docs/secure-consul/acl/auth-methods).
+After registering the policies into Consul, you can create and link tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an [auth method](/consul/docs/secure/acl/auth-methods).
 
 <Tabs>
 

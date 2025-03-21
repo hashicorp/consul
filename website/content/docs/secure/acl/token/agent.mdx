@@ -17,7 +17,7 @@ Specify the [`agent`](/consul/docs/reference/agent#acl_tokens_agent) token to th
 
 ### Node identities versus custom policies
 
-You can create tokens linked to custom policies or to node identities. [Node identities](/consul/docs/secure-consul/acl#node-identities) are constructs in Consul that enable you to quickly grant permissions for a group of agents, rather than create similar policies for each agent.
+You can create tokens linked to custom policies or to node identities. [Node identities](/consul/docs/secure/acl#node-identities) are constructs in Consul that enable you to quickly grant permissions for a group of agents, rather than create similar policies for each agent.
 
 We recommend using a node identity to grant permissions to the agent rather than creating a custom policy. This is because node identities automatically grant the node `node:write` and `service:read` permission.
 
@@ -36,9 +36,9 @@ The agent token must be linked to policies that grant the following permissions:
 
 ## Node identity in Consul CE
 
-Refer to [Node identities](/consul/docs/secure-consul/acl#node-identities) for information about node identities that you can link to tokens.
+Refer to [Node identities](/consul/docs/secure/acl#node-identities) for information about node identities that you can link to tokens.
 
-You can manually create tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an [auth method](/consul/docs/secure-consul/acl/auth-methods).
+You can manually create tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an [auth method](/consul/docs/secure/acl/auth-methods).
 
 <Tabs>
 <Tab heading="CLI" group="CLI">
@@ -80,9 +80,9 @@ $ curl --request PUT http://127.0.0.1:8500/v1/acl/token \
 
 ## Node identity in Consul Enterprise
 
-Refer to [Node identities](/consul/docs/secure-consul/acl#node-identities) for information about node identities that you can link to tokens.
+Refer to [Node identities](/consul/docs/secure/acl#node-identities) for information about node identities that you can link to tokens.
 
-You can manually create tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an [auth method](/consul/docs/secure-consul/acl/auth-methods).
+You can manually create tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an [auth method](/consul/docs/secure/acl/auth-methods).
 
 <Tabs>
 
@@ -130,7 +130,7 @@ When you are unable to link tokens to a node identity, you can define policies, 
 
 ### Define a policy
 
-You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/secure-consul/acl/rules) for details about all of the rules you can use in your policies.
+You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/secure/acl/rules) for details about all of the rules you can use in your policies.
 
 The following example policy is defined in a file. The policy grants `write` permission for node `node1` so that the Consul agent can register into the catalog. It grants `read` permissions to discover services in the catalog.
 
@@ -204,7 +204,7 @@ Refer to [ACL Policy HTTP API](/consul/api-docs/acl/policies) for additional inf
 
 ### Link the policy to a token
 
-After registering the policies into Consul, you can create and link tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an [auth method](/consul/docs/secure-consul/acl/auth-methods).
+After registering the policies into Consul, you can create and link tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an [auth method](/consul/docs/secure/acl/auth-methods).
 
 <Tabs>
 
@@ -252,7 +252,7 @@ When you are unable to link tokens to a node identity, you can define policies, 
 
 ### Define a policy
 
-You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/secure-consul/acl/rules) for details about all of the rules you can use in your policies.
+You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/secure/acl/rules) for details about all of the rules you can use in your policies.
 
 The following example policy is defined in a file. The policy grants the `write` permission for node `node1` in partition `ptn1` so that the Consul agent can register into the catalog. It grants `read` permissions to discover services in any namespace in the `ptn1` partition.
 
@@ -339,7 +339,7 @@ Refer to [ACL Policy HTTP API](/consul/api-docs/acl/policies) for additional inf
 
 ### Link the policy to a token
 
-After registering the policy into Consul, you can create and link tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an [auth method](/consul/docs/secure-consul/acl/auth-methods).
+After registering the policy into Consul, you can create and link tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an [auth method](/consul/docs/secure/acl/auth-methods).
 
 <Tabs>
 
