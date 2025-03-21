@@ -2145,6 +2145,30 @@
             "path": "automate/consul-template"
           },
           {
+            "title": "Install Consul Template",
+            "path": "automate/consul-template/install"
+          },
+          {
+            "title": "Configure Consul Template",
+            "path": "automate/consul-template/configure"
+          },
+          {
+            "title": "Render templates",
+            "path": "automate/consul-template/render"
+          },
+          {
+            "title": "Change modes",
+            "path": "automate/consul-template/mode"
+          },
+          {
+            "title": "View logs",
+            "path": "automate/consul-template/log"
+          },
+          {
+            "title": "Use custom plugins",
+            "path": "automate/consul-template/plugins"
+          },
+          {
             "title": "Vault integrations",
             "routes": [
               {
@@ -2936,6 +2960,23 @@
           {
             "title": "Terminating gateways",
             "path": "reference/config-entry/terminating-gateway"
+          }
+        ]
+      },
+      {
+        "title": "Consul Template",
+        "routes": [
+          {
+            "title": "CLI",
+            "path": "reference/consul-template/cli"
+          },
+          {
+            "title": "Configuration file",
+            "path": "reference/consul-template/configuration"
+          },
+          {
+            "title": "Go syntax",
+            "path": "reference/consul-template/go"
           }
         ]
       },
