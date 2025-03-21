@@ -1,6 +1,6 @@
 # Consul Documentation | Information Architecture and Content Strategy
 
-This sub-directory contains the written content that appears in [the Consul documentation on developer.hashicorp.com](https://developer.hashicorp.com/consul). This README describes the structure and design principles for this documentation set.
+The `website/content` directory in the `hashicorp/consul` repository contains [the Consul documentation on developer.hashicorp.com](https://developer.hashicorp.com/consul). This `README` describes the directory structure and design principles for this documentation set.
 
 ## Content overview
 
@@ -20,11 +20,19 @@ After you merge a PR into a numbered release branch, changes to these folders ap
 - Changes to `commands` appear at [https://developer.hashicorp.com/consul/commands](https://developer.hashicorp.com/consul/commands).
 - Changes to `docs` appear at [https://developer.hashicorp.com/consul/docs](https://developer.hashicorp.com/consul/docs).
 
-URLs follow the directory structure for each folder and omit the the `.mdx` file extension. Pages named `index.mdx` adopt their directory's name. For example, the file `docs/reference/agent/index.mdx` appears at the URL [https://developer.hashicorp.com/consul/docs/reference/agent](https://developer.hashicorp.com/consul/docs/reference/agent).
+URLs follow the directory structure for each file and omit the the `.mdx` file extension. Pages named `index.mdx` adopt their directory's name. For example, the file `docs/reference/agent/index.mdx` appears at the URL [https://developer.hashicorp.com/consul/docs/reference/agent](https://developer.hashicorp.com/consul/docs/reference/agent).
 
 The `partials` folder contains content that you can reuse across pages in any of the three folders. Refer to [Guide to Partials](#guide-to-partials) for more information.
 
 Tutorials that appear at [https://developer.hashicorp.com/consul/tutorials](https://developer.hashicorp.com/consul/tutorials) are located in a different repository. This content exists in the [hashicorp/tutorials GitHub repo](https://github.com/hashicorp/tutorials), which is internal to the HashiCorp organization.
+
+### Other directories of note
+
+The `website/data` directory contains `.json` files that populate the navigation sidebar on [developer.hashicorp.com](https://developer.hashicorp.com).
+
+The `website/public/img` directory contains the images used in the documentation.
+
+Instructions on editing these files, including instructions on running local builds of the documentation, are in the `README` for the `website` directory, one level above this one.
 
 ## North Star principles
 
@@ -32,13 +40,13 @@ The design of the content in the `docs/` directory, including structure, file pa
 
 1. **Users are humans**. Design for humans first. For example, file paths become URLs; create human-readable descriptions of the content and avoid unnecessary repetition.
 1. **Less is always more**. Prefer single words for folder and file names; add a hyphen and a second word to disambiguate from existing content.
-1. **Document what currently exists**. Do not create speculative folders and files to "reserve space" for future updates and releases. Do not describe Consul as it will exist in the future; describe it as it exists right now.
+1. **Document what currently exists**. Do not create speculative folders and files to "reserve space" for future updates and releases. Do not describe Consul as it will exist in the future; describe it as it exists right now, in the latest release.
 1. **Beauty works better**. When creating new files and directories, strive for consistency with the existing structure. For example, use parallel structures across directories and flatten directories that run too deep. Tip: If it doesn't look right, it's probably not right.
 1. **Prefer partials over `ctrl+v`**. Spread content out, but document unique information in one place. When you need to repeat content across multiple pages, use partials to maintain content.
 
-These principles exist to help you navigate ambiguity when making changes to the underlying content. If you add new content and you're not quite sure where to place it or how to name it, use these "north stars" to help you make an informed decision about where to go next.
+These principles exist to help you navigate ambiguity when making changes to the underlying content. If you add new content and you're not quite sure where to place it or how to name it, use these "north stars" to help you make an informed decision about what to do.
 
-Over time, Consul may change in ways that require significant changes to this information architecture. Use these north star principles to help you make informed incremental changes over time.
+Over time, Consul may change in ways that require significant edits to this information architecture. The IA was designed with this possibility in mind. Use these north star principles to help you make informed (and preferably incremental) changes over time.
 
 ## Taxonomy
 
@@ -48,7 +56,7 @@ There are three main categories in the Consul docs information architecture. Thi
 - Usage
 - Reference
 
-These categories align with [Diataxis](https://diataxis.fr/).
+These categories intentionally align with [Diataxis](https://diataxis.fr/).
 
 ### Intro
 
@@ -65,10 +73,10 @@ The following table lists each term and a definition to help you decide where to
 | Term         | Directory      | What it includes                                                                                                                                                 |
 | :----------- | :------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Architecture | `architecture` | The product's components and their “maps” in cloud networking contexts.                                                                                          |
-| Concept      | `concept`      | Describes the complex behavior of technical systems in a non-literal manner. For example, computers do not literally “gossip” when they use the gossip protocol. |
+| Concepts     | `concept`      | Describes the complex behavior of technical systems in a non-literal manner. For example, computers do not literally “gossip” when they use the gossip protocol. |
 | Enterprise   | `enterprise`   | Consul Enterprise license offerings and how to implement them.                                                                                                   |
 | Fundamentals | `fundamentals` | The knowledge, connection and authorization methods, interactions, configurations, and operations most users require to use the product.                         |
-| Use case     | `use-case`     | The highest level goals practitioners have; a product function that “solves” enterprise concerns and usually competes with other products.                       |
+| Use cases    | `use-case`     | The highest level goals practitioners have; a product function that “solves” enterprise concerns and usually competes with other products.                       |
 
 ### Usage
 
@@ -96,7 +104,7 @@ The **Usage** category includes the following folders in `website/content/docs/`
 These folders are organized into two groups that are _not literal_ to the directory structure, but are reflected in the navigation bar.
 
 - **Operations**. User actions, workflows, and goals related to installing and operating Consul as a long-running daemon on multiple nodes in a network.
-- **Service networking**. User actions, workflows, and goals related to implementing networking solutions for application workloads.
+- **Service networking**. User actions, workflows, and goals related to networking solutions for application workloads.
 
 Each folder is named after a corresponding _phase_, which have a set order in the group.
 
@@ -116,7 +124,7 @@ Operations consists of the following phases, intentionally ordered to reflect th
 
 #### Service networking
 
-Service Networking consists of the following phases, intentionally ordered to reflect a recommended “order of operations.” Although these phases do not need to be complated in order, they provide an overall path for increased complexity in Consul’s service networking capabilities as you develop your network.
+Service Networking consists of the following phases, intentionally ordered to reflect a recommended “order of operations.” Although these phases do not need to be completed in order, their order reflects a general path for increasing complexity in Consul’s service networking capabilities as you develop your network.
 
 | Phase                      | Directory        | Description                                                                                                                              |
 | :------------------------- | :--------------- | :--------------------------------------------------------------------------------------------------------------------------------------- |
@@ -136,25 +144,23 @@ The **Reference** category includes the following folders in `website/content/do
 
 - `error-messages`
 - `reference`
-- `reference-cli`
 - `troubleshoot`
 
 The following table lists each term and a definition to help you decide where to place new content.
 
-| Term           | Directory         | What it includes                                                                                                             |
-| :------------- | :---------------- | :--------------------------------------------------------------------------------------------------------------------------- |
-| Error Messages | `error-messsages` | Error messages and their causes, organized by runtime and Consul release binary.                                             |
-| Reference      | `reference`       | All reference information for configuring Consul, its components, and the infrastructure it runs on.                         |
-| CLI reference  | `reference-cli`   | Reference information for CLIs in associated binaries such as `consul-k8s`, `consul-dataplane`, and `consul-terraform-sync`. |
-| Troubleshoot   | `troubleshoot`    | Instructions and guidance about how to figure out what's wrong with a Consul deployment.                                     |
+| Term           | Directory         | What it includes                                                                                     |
+| :------------- | :---------------- | :--------------------------------------------------------------------------------------------------- |
+| Error Messages | `error-messsages` | Error messages and their causes, organized by runtime and Consul release binary.                     |
+| Reference      | `reference`       | All reference information for configuring Consul, its components, and the infrastructure it runs on. |
+| Troubleshoot   | `troubleshoot`    | Instructions and guidance about how to figure out what's wrong with a Consul deployment.             |
 
 ## Path syntax
 
-A major component of this information architecture is the file path structure. This structure "tags" documentation with keywords that describe the page's content in order to optimize the documentation for Google SEO while also helping human users build a "mental model" of Consul.
+A major advantage of this information architecture is the filepath structure. This structure "tags" documentation with keywords that describe the page's content to optimize the documentation for Google SEO while also helping human users build a "mental model" of Consul.
 
-Our syntax creates human-readable names for file paths using a controlled vocabulary and intentional permutations. In general, the syntax follows a repeating pattern of "Verb - Noun - Adjective" to describe the content and user goal.
+Our syntax creates human-readable names for file paths using a controlled vocabulary and intentional permutations. In general, the syntax follows a repeating pattern of `Verb / Noun / Adjective` to describe increasingly specific content and user goals.
 
-For Consul operations, file paths tend to have the following order:
+For **Consul operations**, filepaths have the following order:
 
 <CodeBlockConfig hideClipboard>
 
@@ -170,7 +176,7 @@ Examples:
 - `deploy/server/k8s/platform/openshift` contains instructions on deploying a Consul server agent when running OpenShift.
 - `upgrade/k8s/compatibility` contains information about compatible software versions to help you upgrade the version of Consul running on Kubernetes.
 
-For service networking, file paths tend to have the following order:
+For **service networking**, filepaths tend to have the following order:
 
 <CodeBlockConfig hideClipboard>
 
@@ -202,6 +208,132 @@ Consul's product-specific vocabulary is sub-divided into the following categorie
 
 The following tables list the controlled vocabulary associated with each category.
 
+### Components vocabulary
+
+Consul's components vocabulary collects terms that describe Consul's built-in components, enterprise offerings, and other offerings that impact the operations of Consul agent clusters.
+
+- `acl`
+- `admin-partition`
+- `audit-log`
+- `automated-backup`
+- `automated-upgrade`
+- `auth-method`
+- `cloud-auto-join`
+- `cts`
+- `dns`
+- `fips`
+- `jwt-auth`
+- `license`
+- `lts`
+- `namespace`
+- `network-area`
+- `network-segment`
+- `oidc-auth`
+- `rate-limit`
+- `read-replica`
+- `redundancy-zone`
+- `sentinel`
+- `snapshot`
+- `sso`
+
+### Features vocabulary
+
+Consul's features vocabulary collects terms that describe Consul product offerings related to service networking for application workloads.
+
+- `certificate`
+- `cluster-peering`
+- `consul-template`
+- `dns`
+- `discovery-chain`
+- `distributed-tracing`
+- `esm`
+- `failover`
+- `health-check`
+- `intention`
+- `ingress-gateway`
+- `kv`
+- `load-balancing`
+- `log`
+- `mesh-gateway`
+- `prepared-query`
+- `progressive-rollouts`
+- `service`
+- `session`
+- `static-lookup`
+- `telemetry`
+- `transparent-proxy`
+- `virtual-service`
+- `wan-federation`
+- `watch`
+
+### Runtimes vocabulary
+
+Consul's runtime vocabulary collects the underlying runtimes where Consul supports operations. This group includes provider-speicifc runtimes, such as EKS and AKS.
+
+- `vm`
+- `k8s`
+- `nomad`
+- `docker`
+- `hcp`
+
+#### Provider-specific runtimes
+
+- `ecs`
+- `eks`
+- `aks`
+- `gks`
+- `openshift`
+- `argo`
+
+### Actions vocabulary
+
+Consul's actions vocabulary collects the actions user take to operate Consul and enact service networking states.
+
+- `configure`
+- `render`
+- `deploy`
+- `manual`
+- `troubleshoot`
+- `enable`
+- `configuration`
+- `install`
+- `module`
+- `backup-restore`
+- `forward`
+- `initialize`
+- `monitor`
+- `source`
+- `peer`
+- `route`
+- `reroute`
+- `listener`
+- `requirements`
+- `tech-specs`
+- `encrypt`
+- `migrate`
+- `bootstrap`
+- `rotate`
+- `store`
+- `run`
+
+### Providers vocabulary
+
+Consul's providers vocabulary collects the cloud providers and server locations that Consul runs on.
+
+- `aws`
+- `azure`
+- `gcp`
+- `external`
+- `custom`
+
+### Interfaces vocabulary
+
+Consul's interfaces vocabulary includes the methods for interacting with Consul agents.
+
+- `cli`
+- `api`
+- `ui`
+
 ### Architecture vocabulary
 
 Consul's architecture vocabulary is structured according to where components run:
@@ -232,7 +364,7 @@ Consul's concept vocabulary collects terms that describe how internal systems op
 
 ### Configuration entry vocabulary
 
-Consul's configuration entry vocabulary collects terms that describe
+Consul's configuration entry vocabulary collects the names of the configuration entries and custom resource definitions (CRDs) that you must define to control service mesh state.
 
 - `api-gateway`
 - `control-plane-request-limit`
@@ -255,7 +387,7 @@ Consul's configuration entry vocabulary collects terms that describe
 
 ### Envoy extension vocabulary
 
-Consul's envoy extension vocabulary collects terms that describe
+Consul's envoy extension vocabulary collects names of supported extensions that run on Envoy proxies.
 
 - `apigee`
 - `ext`
@@ -264,96 +396,34 @@ Consul's envoy extension vocabulary collects terms that describe
 - `otel`
 - `wasm`
 
-### Enterprise vocabulary
-
-Consul's enterprise vocabulary collects terms that describe
-
-- `audit-log`
-- `automated-backup`
-- `automated-upgrade`
-- `cts`
-- `fips`
-- `jwt-auth`
-- `license`
-- `lts`
-- `network-area`
-- `network-segment`
-- `oidc-auth`
-- `rate-limit`
-- `read-replica`
-- `redundancy-zone`
-
-### Features vocabulary
-
-Consul's features vocabulary collects terms that describe
-
-- `acl`
-- `certificate-authority`
-- `cluster-peering`
-- `consul-template`
-- `discovery-chain`
-- `distributed-tracing`
-- `health-check`
-- `intention`
-- `kv`
-- `load-balancing`
-- `log`
-- `mesh-gateway`
-- `namespace`
-- `prepared-query`
-- `session`
-- `snapshot`
-- `static-lookup`
-- `telemetry`
-- `transparent-proxy`
-- `wan-federation`
-- `watch`
-
-### Fundamentals vocabulary
-
-Consul's fundamentals vocabulary collects terms that describe
-
-- `install`
-- `interface`
-- `api`
-- `cli`
-- `env-var`
-- `ui`
-- `editions`
-- `identity`
-
 ### Use case vocabulary
 
 Consul's use case vocabulary collects terms that describe
 
 - `service-discovery`
 - `service-mesh`
-- `hybrid`
-- `multi-tenant`
-- `automation`
-- `configuration-as-code`
+- `api-gateway`
+- `config-management`
 - `dns`
-
-### Cross-product vocabulary
-
-Cross-product vocabulary
-
-### Content creation vocabulary
-
-Content creation vocabulary
 
 ## Guide to Partials
 
-Partials have file paths that begin with adescription of the type of content. Then it mirrors existing docs structures.
+Partials have file paths that begin by describing the type of content. Then, the filepath mirrors existing structures in the main docs folder.
 
+<CodeBlockConfig hideClipboard>
+
+```plaintext
 Format -> Content block type -> Phase -> Feature -> Runtime
 Examples -> Component -> Action -> Filetype
+```
+
+</CodeBlockConfig>
 
 Reasons to use partials:
 
-- Repeating the same information such as steps or requirements across runtimes and providers
-- Reference tables, especially ones that contain version numbers that are updated for each Consul release
-- Configuration examples that can be reused in both reference and usage contexts
+- You need to repeate the same information, such as steps or requirements, across runtimes or cloud providers
+- You need to reference tables, especially ones that contain version numbers that are updated for each Consul release
+- You need to include a configuration example that can be reused in both reference and usage contexts
 
 ## How to build out content over time
 
