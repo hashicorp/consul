@@ -2,7 +2,7 @@
 
 The `website/content` directory in the `hashicorp/consul` repository contains [the Consul documentation on developer.hashicorp.com](https://developer.hashicorp.com/consul). This `README` describes the directory structure and design principles for this documentation set.
 
-## Content overview
+## Content directory overview
 
 The `website/content` directory in the `hashicorp/consul` repo contains the following sub-directories:
 
@@ -193,24 +193,13 @@ Examples:
 - `register/service/k8s/external` contains information about registering services running on external nodes to Consul on Kubernetes by configuring them to join the Consul datacenter.
 - `register/external/k8s` contains information about registering services running on external nodes to Consul on Kubernetes with Consul External Services Manager (ESM).
 
-## Controlled vocabulary
+## Controlled vocabularies
 
-Consul's product-specific vocabulary is sub-divided into the following categories:
-
-- `architecture`: The product's components and their “maps” in cloud networking contexts.
-- `concepts`: Describes the complex behavior of technical systems in a non-literal manner.
-- `config-entry`: The configuration entries used to configure application behavior in the service mesh.
-- `envoy-extensions`: The third-party Envoy plugins that Consul supports.
-- `enterprise`: Features and operations available with a Consul Enterprise license.
-- `features`: Core components that facilitate the operation of Consul's unique offerings.
-- `fundamentals`: The knowledge, connection and authorization methods, interactions, configurations, and operations most users require to use the product.
-- `use-cases`: The highest level goals practitioners have; a product function that “solves” enterprise concerns and usually competes with other products.
-
-The following tables list the controlled vocabulary associated with each category.
+This section lists the standard names for files and directories, divded into sub-groups based on the descriptions in this `README`.
 
 ### Components vocabulary
 
-Consul's components vocabulary collects terms that describe Consul's built-in components, enterprise offerings, and other offerings that impact the operations of Consul agent clusters.
+Consul's _components_ vocabulary collects terms that describe Consul's built-in components, enterprise offerings, and other offerings that impact the operations of Consul agent clusters.
 
 - `acl`
 - `admin-partition`
@@ -238,7 +227,7 @@ Consul's components vocabulary collects terms that describe Consul's built-in co
 
 ### Features vocabulary
 
-Consul's features vocabulary collects terms that describe Consul product offerings related to service networking for application workloads.
+Consul's _features_ vocabulary collects terms that describe Consul product offerings related to service networking for application workloads.
 
 - `certificate`
 - `cluster-peering`
@@ -268,7 +257,7 @@ Consul's features vocabulary collects terms that describe Consul product offerin
 
 ### Runtimes vocabulary
 
-Consul's runtime vocabulary collects the underlying runtimes where Consul supports operations. This group includes provider-speicifc runtimes, such as EKS and AKS.
+Consul's _runtimes_ vocabulary collects the underlying runtimes where Consul supports operations. This group includes provider-speicifc runtimes, such as EKS and AKS.
 
 - `vm`
 - `k8s`
@@ -280,6 +269,7 @@ Consul's runtime vocabulary collects the underlying runtimes where Consul suppor
 
 - `ecs`
 - `eks`
+- `lambda`
 - `aks`
 - `gks`
 - `openshift`
@@ -287,38 +277,38 @@ Consul's runtime vocabulary collects the underlying runtimes where Consul suppor
 
 ### Actions vocabulary
 
-Consul's actions vocabulary collects the actions user take to operate Consul and enact service networking states.
+Consul's _actions_ vocabulary collects the actions user take to operate Consul and enact service networking states.
 
-- `configure`
-- `render`
-- `deploy`
-- `manual`
-- `troubleshoot`
-- `enable`
-- `configuration`
-- `install`
-- `module`
 - `backup-restore`
+- `bootstrap`
+- `configuration`
+- `configure`
+- `deploy`
+- `enable`
+- `encrypt`
 - `forward`
 - `initialize`
-- `monitor`
-- `source`
-- `peer`
-- `route`
-- `reroute`
+- `install`
 - `listener`
-- `requirements`
-- `tech-specs`
-- `encrypt`
+- `manual`
 - `migrate`
-- `bootstrap`
+- `module`
+- `monitor`
+- `peer`
+- `render`
+- `requirements`
+- `reroute`
 - `rotate`
-- `store`
+- `route`
 - `run`
+- `source`
+- `store`
+- `tech-specs`
+- `troubleshoot`
 
 ### Providers vocabulary
 
-Consul's providers vocabulary collects the cloud providers and server locations that Consul runs on.
+Consul's _providers_ vocabulary collects the cloud providers and server locations that Consul runs on.
 
 - `aws`
 - `azure`
@@ -336,7 +326,7 @@ Consul's interfaces vocabulary includes the methods for interacting with Consul 
 
 ### Architecture vocabulary
 
-Consul's architecture vocabulary is structured according to where components run:
+Consul's _architecture_ vocabulary is structured according to where components run:
 
 - `control-plane`: The _control plane_ is the network infrastructure that maintains a central registry to track services and their respective IP addresses. Both server and client agents operate as part of the control plane. Consul dataplanes, despite the name, are also part of the Consul control plane.
 - `data-plane`: Use two words, _data plane_, to refer to the application layer and components involved in service-to-service communication.
@@ -354,7 +344,7 @@ The **Reference** category also includes an `architecture` sub-directory. This "
 
 ### Concepts vocabulary
 
-Consul's concept vocabulary collects terms that describe how internal systems operate through human actions.
+Consul's _concepts_ vocabulary collects terms that describe how internal systems operate through human actions.
 
 - `catalog`: Covers Consul's running record of the services it registered, including addresses and health check results.
 - `consensus`: Covers the server agent elections governed by the Raft protocol.
@@ -364,7 +354,7 @@ Consul's concept vocabulary collects terms that describe how internal systems op
 
 ### Configuration entry vocabulary
 
-Consul's configuration entry vocabulary collects the names of the configuration entries and custom resource definitions (CRDs) that you must define to control service mesh state.
+Consul's _configuration entry_ vocabulary collects the names of the configuration entries and custom resource definitions (CRDs) that you must define to control service mesh state.
 
 - `api-gateway`
 - `control-plane-request-limit`
@@ -387,7 +377,7 @@ Consul's configuration entry vocabulary collects the names of the configuration 
 
 ### Envoy extension vocabulary
 
-Consul's envoy extension vocabulary collects names of supported extensions that run on Envoy proxies.
+Consul's _Envoy extension_ vocabulary collects names of supported extensions that run on Envoy proxies.
 
 - `apigee`
 - `ext`
@@ -398,7 +388,7 @@ Consul's envoy extension vocabulary collects names of supported extensions that 
 
 ### Use case vocabulary
 
-Consul's use case vocabulary collects terms that describe
+Consul's _use case_ vocabulary collects terms that describe
 
 - `service-discovery`
 - `service-mesh`
