@@ -406,14 +406,18 @@ Consul's use case vocabulary collects terms that describe
 - `config-management`
 - `dns`
 
-## Guide to Partials
+## Content strategy
 
-Partials have file paths that begin by describing the type of content. Then, the filepath mirrors existing structures in the main docs folder.
+This section describes the process for building out new content in the Consul documentation over time.
+
+### Guide to Partials
+
+Partials have file paths that begin by describing the type of content. Then, the filepath mirrors existing structures in the main docs folder. There are two syntaxes used for the partial filepaths:
 
 <CodeBlockConfig hideClipboard>
 
 ```plaintext
-Format -> Content block type -> Phase -> Feature -> Runtime
+Format -> Type -> Phase -> Feature -> Runtime
 Examples -> Component -> Action -> Filetype
 ```
 
@@ -421,11 +425,11 @@ Examples -> Component -> Action -> Filetype
 
 Reasons to use partials:
 
-- You need to repeate the same information, such as steps or requirements, across runtimes or cloud providers
+- You need to repeat the same information, such as steps or requirements, across runtimes or cloud providers
 - You need to reference tables, especially ones that contain version numbers that are updated for each Consul release
 - You need to include a configuration example that can be reused in both reference and usage contexts
 
-## How to build out content over time
+### Document new Consul features
 
 1. Create a file `name.mdx` that serves as an overview combining explanation, usage, and reference information.
 2. When you need more pages, move the file to a folder with `name` and change the filename to `index.mdx`.
@@ -438,7 +442,18 @@ For example, "DNS views" was introduced for Kubernetes in Consul v1.20. We creat
 ├── forwarding.mdx
 └── views
     ├── enable
-        ├── ecs.mdx
-        └── k8s.mdx
+    |   ├── ecs.mdx
+    |   └── k8s.mdx
     └── index.mdx
 ```
+
+### Maintaining and deprecating content
+
+Documentation is considered "maintained" when the usage instructions work on the oldest supported LTS release.
+
+When components and features are no longer maintained, they may be "deprecated." To deprecate content:
+
+1. Add a deprecation callout to the page. List the date or version when the deprecation occured.
+1. On deprecation date, delete the content from the repository. Versioned docs preserves the information in older versions. If necessary, keep a single page in the documentation for announcement links and refirects.
+1. Add redirects for deprecated content.
+1. Move partials and images into a "legacy" folder if they are no longer used in the documentation.
