@@ -126,17 +126,17 @@ Operations consists of the following phases, intentionally ordered to reflect th
 
 Service Networking consists of the following phases, intentionally ordered to reflect a recommended “order of operations.” Although these phases do not need to be completed in order, their order reflects a general path for increasing complexity in Consul’s service networking capabilities as you develop your network.
 
-| Phase                      | Directory        | Description                                                                                                                              |
-| :------------------------- | :--------------- | :--------------------------------------------------------------------------------------------------------------------------------------- |
-| Register services          | `register`       | How to define services and health checks and then register them with Consul.                                                             |
-| Discover services          | `discover`       | How to use Consul's service discovery features, including Consul DNS, service lookups, load balancing.                                   |
-| Connect service mesh       | `connect`        | How to set up and use sidecar proxies in a Consul service mesh.                                                                          |
-| Secure network north/south | `north-south`    | How to configure, deploy, and use the Consul API gateway to secure network ingress.                                                      |
-| Link network east/west     | `east-west`      | How to connect Consul datacenters across regions, runtimes, and providers with WAN federation and cluster peering.                       |
-| Secure mesh traffic        | `secure-mesh`    | How to secure service-to-service communication with service intentions and TLS certificates.                                             |
-| Manage service traffic     | `manage-traffic` | How to route traffic between services in a service mesh, including service failover and progressive rollouts.                            |
-| Observe service mesh       | `observe`        | How to observe service mesh telemetry and application performance, including Grafana.                                                    |
-| Automate applications      | `automate`       | How to automate Consul and applications to update dynamically, including the KV store, Consul-Terraform-Sync (CTS), and Consul template. |
+| Phase                  | Directory        | Description                                                                                                                              |
+| :--------------------- | :--------------- | :--------------------------------------------------------------------------------------------------------------------------------------- |
+| Register services      | `register`       | How to define services and health checks and then register them with Consul.                                                             |
+| Discover services      | `discover`       | How to use Consul's service discovery features, including Consul DNS, service lookups, load balancing.                                   |
+| Connect service mesh   | `connect`        | How to set up and use sidecar proxies in a Consul service mesh.                                                                          |
+| Secure north/south     | `north-south`    | How to configure, deploy, and use the Consul API gateway to secure network ingress.                                                      |
+| Expand east/west       | `east-west`      | How to connect Consul datacenters across regions, runtimes, and providers with WAN federation and cluster peering.                       |
+| Secure mesh traffic    | `secure-mesh`    | How to secure service-to-service communication with service intentions and TLS certificates.                                             |
+| Manage service traffic | `manage-traffic` | How to route traffic between services in a service mesh, including service failover and progressive rollouts.                            |
+| Observe service mesh   | `observe`        | How to observe service mesh telemetry and application performance, including Grafana.                                                    |
+| Automate applications  | `automate`       | How to automate Consul and applications to update dynamically, including the KV store, Consul-Terraform-Sync (CTS), and Consul template. |
 
 ### Reference
 
@@ -160,12 +160,12 @@ A major advantage of this information architecture is the filepath structure. Th
 
 Our syntax creates human-readable names for file paths using a controlled vocabulary and intentional permutations. In general, the syntax follows a repeating pattern of `Verb / Noun / Adjective` to describe increasingly specific content and user goals.
 
-For **Consul operations**, filepaths have the following order:
+For **Consul operations**, filepaths assume the following syntax:
 
 <CodeBlockConfig hideClipboard>
 
 ```plaintext
-Phase -> Component -> Runtime -> Action -> Provider
+Phase / Component / Runtime / Action / Provider
 ```
 
 </CodeBlockConfig>
@@ -181,7 +181,7 @@ For **service networking**, filepaths tend to have the following order:
 <CodeBlockConfig hideClipboard>
 
 ```plaintext
-Phase -> Feature -> Action -> Runtime -> Interface
+Phase / Feature / Action / Runtime / Interface
 ```
 
 </CodeBlockConfig>
@@ -229,7 +229,6 @@ Consul's _components_ vocabulary collects terms that describe Consul's built-in 
 
 Consul's _features_ vocabulary collects terms that describe Consul product offerings related to service networking for application workloads.
 
-- `certificate`
 - `cluster-peering`
 - `consul-template`
 - `dns`
@@ -244,6 +243,7 @@ Consul's _features_ vocabulary collects terms that describe Consul product offer
 - `load-balancing`
 - `log`
 - `mesh-gateway`
+- `mtls`
 - `prepared-query`
 - `progressive-rollouts`
 - `service`
@@ -350,7 +350,7 @@ Consul's _concepts_ vocabulary collects terms that describe how internal systems
 - `consensus`: Covers the server agent elections governed by the Raft protocol.
 - `consistency`: Covers Consul's anti-entropy features, consistency modes, and Jepsen testing.
 - `gossip`: Covers Serf communication between Consul agents in a datacenter.
-- `reliability`: Cover fault tolerance, quorum size, and server redundancy.
+- `reliability`: Covers fault tolerance, quorum size, and server redundancy.
 
 ### Configuration entry vocabulary
 
@@ -400,15 +400,29 @@ Consul's _use case_ vocabulary collects terms that describe
 
 This section describes the process for building out new content in the Consul documentation over time.
 
-### Guide to Partials
+### Where to place content
+
+The following questions can help you place documentation for newly developed Consul features.
+
+1. What kind of content is it? Explanation, reference, or usage instructions?
+
+- If _explanation_, decide whether it's an architectural component, a concept, or a fundamental.
+- If _reference_, locate the existing directory in the `reference` folder.
+- If _usage instruction_, decide whether it impact Consul operations or service networking for application workloads.
+
+1. Who is the user of this feature? Examples: Platform operator, application developer, security engineer.
+1. What is the user's "job-to-be-done"?
+1. What runtimes and cloud providers support this feature?
+
+### Guide to partials
 
 Partials have file paths that begin by describing the type of content. Then, the filepath mirrors existing structures in the main docs folder. There are two syntaxes used for the partial filepaths:
 
 <CodeBlockConfig hideClipboard>
 
 ```plaintext
-Format -> Type -> Phase -> Feature -> Runtime
-Examples -> Component -> Action -> Filetype
+Format / Type / Phase / Feature / Runtime
+Examples / Component / Action / Filetype
 ```
 
 </CodeBlockConfig>
@@ -419,13 +433,13 @@ Reasons to use partials:
 - You need to reference tables, especially ones that contain version numbers that are updated for each Consul release
 - You need to include a configuration example that can be reused in both reference and usage contexts
 
-### Document new Consul features
+### How to document new Consul features
 
 1. Create a file `name.mdx` that serves as an overview combining explanation, usage, and reference information.
 2. When you need more pages, move the file to a folder with `name` and change the filename to `index.mdx`.
 3. Create redirects as required.
 
-For example, "DNS views" was introduced for Kubernetes in Consul v1.20. We created a file, `manage/dns/views.mdx`, then expanded it to `manage/dns/views/index.mdx` and `manage/dns/views/enable` when the content required separate pages. The first file is _always_ reachable at the URL `manage/dns/views`, despite the directory and filename change. The `k8s` label is not used because Kubernetes is the only runtime it supports. Hypothetically, if ECS support for DNS views became available, the directory structure for `content/docs/manage/dns` would become:
+For example, "DNS views" was introduced for Kubernetes in Consul v1.20. We created a file, `manage/dns/views.mdx`, then expanded it to `manage/dns/views/index.mdx` and `manage/dns/views/enable` when the content was substantial enough to warrant separate pages. The first file is _always_ reachable at the URL `manage/dns/views`, despite the directory and filename change. The `k8s` label is not used because Kubernetes is the only runtime it supports. Hypothetically, if ECS support for DNS views became available, the directory structure for `content/docs/manage/dns` would become:
 
 ```
 .
@@ -439,11 +453,13 @@ For example, "DNS views" was introduced for Kubernetes in Consul v1.20. We creat
 
 ### Maintaining and deprecating content
 
-Documentation is considered "maintained" when the usage instructions work on the oldest supported LTS release.
+Documentation is considered "maintained" when the usage instructions work when running the oldest supported LTS release.
 
-When components and features are no longer maintained, they may be "deprecated." To deprecate content:
+When components and features are no longer maintained, they may be "deprecated" by R&D. To deprecate content:
 
 1. Add a deprecation callout to the page. List the date or version when the deprecation occured.
-1. On deprecation date, delete the content from the repository. Versioned docs preserves the information in older versions. If necessary, keep a single page in the documentation for announcement links and refirects.
+1. On deprecation date, delete the content from the repository. Versioned docs preserves the information in older versions. If necessary, keep a single page in the documentation for announcement links and rdirects.
 1. Add redirects for deprecated content.
 1. Move partials and images into a "legacy" folder if they are no longer used in the documentation.
+
+If it is possible to migrate existing data from a deprecated component to a replcement, document the migration steps.
