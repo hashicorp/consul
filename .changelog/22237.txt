@@ -1,0 +1,3 @@
+```release-note:security
+Upgrade Go to 1.23.7 and bump X-Repositories to latest.
+```
