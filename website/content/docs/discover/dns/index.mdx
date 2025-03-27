@@ -39,8 +39,8 @@ Node lookups and service lookups are the fundamental types of static queries. De
 
 Consul relies on a specific format for queries to resolve names. Note that all queries are case-sensitive.
 
-Refer to [Perform static DNS lookups](/consul/docs/discover/dns/static-lookup) for details about how to perform node and service lookups.
+Refer to [Perform static DNS lookups](/consul/docs/discover/service/static) for details about how to perform node and service lookups.
 
 ## Prepared queries
 
-Prepared queries are configurations that enable you to register complex DNS queries. They provide lookup features that extend Consul's service discovery capabilities, such as filtering by multiple tags and automatically querying remote datacenters for services if no healthy nodes are available in the local datacenter. You can also create prepared query templates that match names using a prefix match, allowing a single template to apply to potentially many services. Refer to [Perform dynamic DNS queries](/consul/docs/discover/dns/dynamic-lookup) for additional information.
+Prepared queries are configurations that enable you to register complex DNS queries. They provide lookup features that extend Consul's service discovery capabilities, such as filtering by multiple tags and automatically querying remote datacenters for services if no healthy nodes are available in the local datacenter. You can also create prepared query templates that match names using a prefix match, allowing a single template to apply to potentially many services. Refer to [Perform dynamic DNS queries](/consul/docs/discover/service/dynamic) for additional information.

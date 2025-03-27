@@ -7,7 +7,7 @@ description: >-
 
 # Perform dynamic service lookups with prepared queries
 
-This topic describes how to dynamically query the Consul catalog using prepared queries. Prepared queries are configurations that let you register a complex service query and execute it on demand. For information about how to perform standard node and service lookups, refer to [Perform static DNS queries](/consul/docs/discover/dns/static).
+This topic describes how to dynamically query the Consul catalog using prepared queries. Prepared queries are configurations that let you register a complex service query and execute it on demand. For information about how to perform standard node and service lookups, refer to [Perform static DNS queries](/consul/docs/discover/service/static).
 
 ## Introduction
 
@@ -21,9 +21,9 @@ Consul 0.6.4 or later is required to create prepared query templates.
 
 If ACLs are enabled, the querying service must present a token linked to permissions that enable read access for query, service, and node resources. Refer to the following documentation for information about creating policies to enable read access to the necessary resources:
 
-- [Prepared query rules](/consul/docs/secure/acl/rules#prepared-query-rules)
-- [Service rules](/consul/docs/secure/acl/rules#service-rules)
-- [Node rules](/consul/docs/secure/acl/rules#node-rules)
+- [Prepared query rules](/consul/docs/secure/acl/rule#prepared-query-rules)
+- [Service rules](/consul/docs/secure/acl/rule#service-rules)
+- [Node rules](/consul/docs/secure/acl/rule#node-rules)
 
 ## Create prepared queries
 
@@ -91,7 +91,7 @@ Use the following format to execute a prepared query using the standard lookup f
 <query name or id>.query[.<datacenter>].<domain>
 ```
 
-Refer [Standard lookup](/consul/docs/discover/dns/static-lookups#standard-lookups) for additional information about the standard lookup format in Consul.
+Refer [Standard lookup](/consul/docs/discover/service/statics#standard-lookups) for additional information about the standard lookup format in Consul.
 
 ### RFC 2782 SRV lookup
 
@@ -101,7 +101,7 @@ Use the following format to execute a prepared query using the RFC 2782 lookup f
 _<query name or id>._tcp.query[.<datacenter>].<domain>
 ```
 
-For additional information about following the RFC 2782 SRV lookup format in Consul, refer to [RFC 2782 Lookup](/consul/docs/discover/dns/static-lookup#rfc-2782-lookup). For general information about the RFC 2782 specification, refer to [A DNS RR for specifying the location of services \(DNS SRV\)](https://tools.ietf.org/html/rfc2782).
+For additional information about following the RFC 2782 SRV lookup format in Consul, refer to [RFC 2782 Lookup](/consul/docs/discover/service/static#rfc-2782-lookup). For general information about the RFC 2782 specification, refer to [A DNS RR for specifying the location of services \(DNS SRV\)](https://tools.ietf.org/html/rfc2782).
 
 ### Lookup options
 

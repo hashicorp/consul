@@ -26,7 +26,7 @@ This will no longer work since each server must be able to find a valid license 
 All customers on Consul Enterprise 1.8/1.9 must first upgrade their client and server agents to the latest patch release.
 During the upgrade the license file must also be configured on client agents in an environment variable or file path, otherwise the Consul agents will fail to retrieve the license with a valid agent token.
 The upgrade process varies if ACLs are enabled or disabled in the cluster.
-Refer to the instructions on [upgrading to 1.10.x](/consul/docs/upgrade/instructions/1-10-x) for details.
+Refer to the instructions on [upgrading to 1.10.x](/consul/docs/upgrade/instructions/upgrade-to-1-10-x) for details.
 
 ## Q: Is there a tutorial available for the license configuration steps?
 
@@ -155,10 +155,10 @@ Please see the [upgrade requirements](/consul/docs/enterprise/license/faq#q-what
 
 1. In order to use Consul Enterprise 1.10.0 or greater on Kubernetes you must use version 0.32.0 or greater of the Helm chart.
 1. You should already have a Consul Enterprise license set as a Kubernetes secret. If you do not, refer to [how to obtain a copy of your license](/consul/docs/enterprise/license/faq#q-i-m-an-existing-enterprise-customer-but-don-t-have-my-license-how-can-i-get-it).
-Once you have the license then create a Kubernetes secret containing the license as described in [Kubernetes - Consul Enterprise](/consul/docs/deploy/server/k8s/multi/enterprise).
+Once you have the license then create a Kubernetes secret containing the license as described in [Kubernetes - Consul Enterprise](/consul/docs/deploy/server/k8s/enterprise).
 1. Follow the [Kubernetes Upgrade Docs](/consul/docs/upgrade/k8s) to upgrade. No changes to your `values.yaml` file are needed to enable enterprise autoloading since this support is built in to consul-helm 0.32.0 and greater.
 
-!> **Warning:** If you are upgrading the Helm chart but **not** upgrading the Consul version, you must set `server.enterpriseLicense.enableLicenseAutoload: false`. See [Kubernetes - Consul Enterprise](/consul/docs/deploy/server/k8s/multi/enterprise) for more details.
+!> **Warning:** If you are upgrading the Helm chart but **not** upgrading the Consul version, you must set `server.enterpriseLicense.enableLicenseAutoload: false`. See [Kubernetes - Consul Enterprise](/consul/docs/deploy/server/k8s/enterprise) for more details.
 
 ## Q: What is the migration path for customers who want to migrate from their existing perpetually-licensed binaries to the license on disk flow?
 

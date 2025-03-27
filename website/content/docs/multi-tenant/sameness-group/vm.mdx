@@ -41,11 +41,11 @@ Mesh gateways are required for cluster peering connections and recommended to se
 
 #### Establish cluster peering relationships between remote partitions
 
-You must establish connections with cluster peers before you can create a sameness group that includes them. A cluster peering connection exists between two admin partitions in different datacenters, and each connection between two partitions must be established separately with each peer. Refer to [establish cluster peering connections](/consul/docs/east-west/cluster-peering/establish-connection/vm) for step-by-step instructions.
+You must establish connections with cluster peers before you can create a sameness group that includes them. A cluster peering connection exists between two admin partitions in different datacenters, and each connection between two partitions must be established separately with each peer. Refer to [establish cluster peering connections](/consul/docs/east-west/cluster-peering/establish/vm) for step-by-step instructions.
 
 You can establish and manage cluster peering relationships between all of your self-managed clusters using [HCP Consul Central](/hcp/docs/consul/concepts/consul-central). For more information, refer to [cluster peering global view](/hcp/docs/consul/monitor/consul-central/global-views#cluster-peering) in the HCP documentation.
 
-To establish cluster peering connections and define a group as part of the same workflow, follow instructions up to [Export services between clusters](/consul/docs/east-west/cluster-peering/establish-connection/vm#export-services-between-clusters). You can use the same exported services and service intention configuration entries to establish the cluster peering connection and create the sameness group.
+To establish cluster peering connections and define a group as part of the same workflow, follow instructions up to [Export services between clusters](/consul/docs/east-west/cluster-peering/establish/vm#export-services-between-clusters). You can use the same exported services and service intention configuration entries to establish the cluster peering connection and create the sameness group.
 
 ## Create a sameness group
 

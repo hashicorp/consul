@@ -33,7 +33,7 @@ with Consul API gateway configurations.
 
 1. Create a [file system certificate](/consul/docs/reference/config-entry/file-system-certificate) or [inline certificate](/consul/docs/reference/config-entry/inline-certificate) and specify the following fields:
    - `Kind`: Specifies the type of configuration entry. This must be set to `file-system-certificate` or `inline-certificate`.
-   - `Name`: Specify the name in the [API gateway listener configuration](/consul/docs/connect/gateways/api-gateway/configuration/api-gateway#listeners) to bind the certificate to that listener.  
+   - `Name`: Specify the name in the [API gateway listener configuration](/consul/docs/reference/config-entry/api-gateway#listeners) to bind the certificate to that listener.  
    - `Certificate`: Specifies the filepath to the certificate on the local system or the inline public certificate as plain text.
    - `PrivateKey`: Specifies the filepath to private key on the local system or the inline private key to  as plain text.
 1. Configure any additional fields necessary for your use case, such as the namespace or admin partition. Refer to the [file system certificate configuration reference](/consul/docs/reference/config-entry/file-system-certificate) or [inline certificate configuration reference](/consul/docs/reference/config-entry/inline-certificate) for more information.

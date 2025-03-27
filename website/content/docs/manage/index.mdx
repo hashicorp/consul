@@ -37,7 +37,7 @@ Consul datacenters can support thousands of nodes as members. When operating Con
 
 Consul Enterprise supports the following features to improve the resiliency of your Consul datacenter and its operations.
 
-- [Automated backups](/consul/docs/manage/automated-backup). Run an automated Consul snapshot agent to regularly backup your datacenter to a cloud storage bucket.
+- [Automated backups](/consul/docs/manage/scale/automated-backup). Run an automated Consul snapshot agent to regularly backup your datacenter to a cloud storage bucket.
 - [Read replicas](/consul/docs/manage/scale/read-replica). Deploy additional Consul server agents to improve catalog response time at scale.
 - [Redundancy zones](/consul/docs/manage/scale/redundancy-zone). Deploy Consul servers across availability zones in a single cloud region in case a single physical data center fails.
 
@@ -47,4 +47,4 @@ You can configure rate limits on RPC and gRPC traffic for Consul agents to mitig
 
 ## Disaster recovery
 
-If a datacenter goes down, you can use snapshots to restore a Consul cluster's operations and registered services. For more information, refer to [disaster recovery](/consul/docs/disaster-recovery).
+If a datacenter goes down, you can use snapshots to restore a Consul cluster's operations and registered services. For more information, refer to [disaster recovery](/consul/docs/manage/disaster-recovery).

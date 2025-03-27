@@ -7,7 +7,7 @@ description: >-
 
 # ACL rule configuration reference
 
-This topic provides reference information for the types of access control list (ACL) rules you can create and how they affect access to datacenter resources. For details on how to create rules and group them into policies, refer to [Policies](/consul/docs/secure/acl/policies).
+This topic provides reference information for the types of access control list (ACL) rules you can create and how they affect access to datacenter resources. For details on how to create rules and group them into policies, refer to [Policies](/consul/docs/secure/acl/policy).
 
 ## Overview
 
@@ -19,7 +19,6 @@ The following table provides an overview of the resources you can use to create 
 | `partition`<br/>`partition_prefix` | <EnterpriseAlert inline /> Controls access to one or more admin partitions. <br/>Refer to  [Admin Partition Rules](#admin-partition-rules) for details.                                                                                                                                                                                                    | Yes    |
 | `agent`<br/>`agent_prefix`         | Controls access to the utility operations in the [Agent API](/consul/api-docs/agent), such as `join` and `leave`. <br/>Refer to  [Agent Rules](#agent-rules) for details.                                                                                                                                                                                              | Yes    |
 | `event`<br/>`event_prefix`         | Controls access to event operations in the [Event API](/consul/api-docs/event), such as firing and listing events. <br/>Refer to  [Event Rules](#event-rules) for details.                                                                                                                                                                                             | Yes    |
-| `identity`<br/>`identity_prefix`   | Controls access to workload identity operations in the [Catalog v2 group](/consul/docs/architecture/catalog/v2).
 | `key`<br/>`key_prefix` &nbsp;      | Controls access to key/value store operations in the [KV API](/consul/api-docs/kv). <br/>Can also use the `list` access level when setting the policy disposition. <br/>Has additional value options in Consul Enterprise for integrating with [Sentinel](https://docs.hashicorp.com/sentinel/consul). <br/>Refer to  [Key/Value Rules](#key-value-rules) for details. | Yes    |
 | `keyring` &nbsp; &nbsp; &nbsp;     | Controls access to keyring operations in the [Keyring API](/consul/api-docs/operator/keyring). <br/>Refer to  [Keyring Rules](#keyring-rules) for details.                                                                                                                                                                                                                      | No     |
 | `mesh` &nbsp; &nbsp; &nbsp;        | Provides operator-level permissions for resources in the admin partition, such as ingress gateways or mesh proxy defaults. Refer to  [Mesh Rules](#mesh-rules) for details.                                                                                                                                                                                | No     |
@@ -250,7 +249,6 @@ give agents a token with access to this event prefix, in addition to configuring
 
 ## Identity Rules
 
-The `identity` and `identity_prefix` resources control workload-identity-level registration and read access to the [Catalog v2 API group](/consul/docs/architecture/catalog/v2).
 Specify the resource label in identity rules to set the scope of the rule.
 The resource label in the following example is empty. As a result, the rules allow read-only access to any workload identity name with the empty prefix.
 The rules also allow read-write access to the `app` identity and deny all access to the `admin` identity:

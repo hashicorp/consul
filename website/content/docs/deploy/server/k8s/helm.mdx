@@ -9,13 +9,13 @@ description: >-
 
 This topic describes how to install Consul on Kubernetes using the official Consul Helm chart. We recommend using this method if you are installing Consul on Kubernetes for multi-cluster deployments that involve cross-partition or cross datacenter communication.
 
-For instruction on how to install Consul on Kubernetes using the Consul K8s CLI, refer to [Install Consul on Kubernetes with the Consul K8s CLI](http://localhost:3000/consul/docs/deploy/server/k8s/consul-k8s-cli).
+For instruction on how to install Consul on Kubernetes using the Consul K8s CLI, refer to [Install Consul on Kubernetes with the Consul K8s CLI](http://localhost:3000/consul/docs/deploy/server/k8s/consul-k8s).
 
 ## Introduction
 
 We recommend using the Consul Helm chart to install Consul on Kubernetes for multi-cluster installations that involve cross-partition or cross datacenter communication. The Helm chart installs and configures all necessary components to run Consul. 
 
-Consul can run directly on Kubernetes so that you can leverage Consul functionality if your workloads are fully deployed to Kubernetes. For heterogeneous workloads, Consul agents can join a server running inside or outside of Kubernetes. Refer to the [Consul on Kubernetes architecture](/consul/docs/architecture/kubernetes) to learn more about its general architecture.
+Consul can run directly on Kubernetes so that you can leverage Consul functionality if your workloads are fully deployed to Kubernetes. For heterogeneous workloads, Consul agents can join a server running inside or outside of Kubernetes. Refer to the [Consul on Kubernetes architecture](/consul/docs/architecture/control-plane/k8s) to learn more about its general architecture.
 
 The Helm chart exposes several useful configurations and automatically sets up complex resources, but it does not automatically operate Consul. You must still become familiar with how to monitor, backup, and upgrade the Consul cluster.
 

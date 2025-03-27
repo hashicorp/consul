@@ -53,7 +53,7 @@ Consul KV can also be extended with the use of watches. [Watches](/consul/docs/a
 
 ### Consul Sessions
 
-Consul sessions can be used to build distributed locks with Consul KV. Sessions act as a binding layer between nodes, health checks, and key/value data. The KV API supports an `acquire` and `release` operation. The `acquire` operation acts like a Check-And-Set operation. On success, there is a key update and an increment to the `LockIndex` and the session value is updated to reflect the session holding the lock. Review the session documentation for more information on the [integration](/consul/docs/automate/sessionsk-v-integration).
+Consul sessions can be used to build distributed locks with Consul KV. Sessions act as a binding layer between nodes, health checks, and key/value data. The KV API supports an `acquire` and `release` operation. The `acquire` operation acts like a Check-And-Set operation. On success, there is a key update and an increment to the `LockIndex` and the session value is updated to reflect the session holding the lock. Review the session documentation for more information on the [integration](/consul/docs/automate/sessions#k-v-integration).
 
 Review the following tutorials to learn how to use Consul sessions for [application leader election](/consul/tutorials/developer-configuration/application-leader-elections) and to [build distributed semaphores](/consul/tutorials/developer-configuration/distributed-semaphore).
 

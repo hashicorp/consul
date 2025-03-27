@@ -8,7 +8,7 @@ description: |-
 
 JSON Web Tokens (JWT) are a method for identity-based access to services for both humans and machines. The [JWT provider configuration entry](/consul/docs/reference/config-entry/jwt-provider) enables you to define JWTs as part of a JSON Web Key Set (JWKS), which contains the information necessary for Consul to validate access and configure behavior for requests that include JWTs.
 
-By specifying a JSON Web Key Set (JWKS) in the configuration entry and referencing the key set in a service intention, Consul can enforce service intentions based on the presence of a JWT. This security configuration is not related to the [JSON Web Token Auth Method](/consul/docs/secure/acl/auth-methods/jwt), which associates JWTs with the Consul ACLs instead of service intentions.
+By specifying a JSON Web Key Set (JWKS) in the configuration entry and referencing the key set in a service intention, Consul can enforce service intentions based on the presence of a JWT. This security configuration is not related to the [JSON Web Token Auth Method](/consul/docs/secure/acl/auth-method/jwt), which associates JWTs with the Consul ACLs instead of service intentions.
 
 ## Workflow
 

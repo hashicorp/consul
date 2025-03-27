@@ -15,7 +15,7 @@ Using defense in depth is crucial for Consul security, and deployment requiremen
 
 - **mTLS** - Mutual authentication of both the TLS server and client x509 certificates prevents internal abuse from unauthorized access to network components within the cluster.
 
-- **ACLs** - Enable role-based access controls for authenticated connections by granting capabilities for an individual human, or machine operator identity via an ACL token to authorize actions within a cluster. Optionally, custom [authentication methods](/consul/docs/secure/acl/auth-methods) can be used to enable trusted external parties to authorize ACL token creation.
+- **ACLs** - Enable role-based access controls for authenticated connections by granting capabilities for an individual human, or machine operator identity via an ACL token to authorize actions within a cluster. Optionally, custom [authentication methods](/consul/docs/secure/acl/auth-method) can be used to enable trusted external parties to authorize ACL token creation.
 
 - **Namespaces** <EnterpriseAlert inline /> - Read and write operations can be scoped to a logical namespace to restrict access to Consul components within a multi-tenant environment.
 

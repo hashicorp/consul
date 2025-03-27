@@ -58,12 +58,12 @@ Apply the following configuration items if your network runs on Kubernetes:
 | [`GatewayClass`](/consul/docs/reference/k8s/api-gateway/gatewayclass) | Defines a class of gateway resources used as a template for creating gateways. The default gateway class is `consul` and is suitable for most API gateway implementations.  | [Deploy listeners on Kubernetes](/consul/docs/north-south/api-gateway/k8s/listener) |
 | [`GatewayClassConfig`](/consul/docs/reference/k8s/api-gateway/gatewayclassconfig) | Describes additional gateway-related configuration parameters for the `GatewayClass` resource. | [Deploy listeners on Kubernetes](/consul/docs/north-south/api-gateway/k8s/listener) |
 | [`Routes`](/consul/docs/reference/k8s/api-gateway/routes) | Specifies paths from the gateway listener to backend services. | <nobr>[Define routes on Kubernetes](/consul/docs/north-south/api-gateway/k8s/route)</nobr><p>[Reroute traffic in Kubernetes](/consul/docs/north-south/api-gateway/k8s/reroute)</p><p>[Route traffic to peered services in Kubernetes](/consul/docs/north-south/api-gateway/k8s/peer)</p> |
-| [`MeshServices`](/consul/docs/connect/gateways/api-gateway/configuration/meshservices) | Enables routes to reference services in Consul. | [Route traffic to peered services in Kubernetes](/consul/docs/north-south/api-gateway/k8s/peer) |
+| [`MeshServices`](/consul/docs/north-south/api-gateway/k8s/peer) | Enables routes to reference services in Consul. | [Route traffic to peered services in Kubernetes](/consul/docs/north-south/api-gateway/k8s/peer) |
 | [`ServiceIntentions`](/consul/docs/reference/config-entry/service-intentions) | Specifies traffic communication rules between services in the mesh. Intentions also enforce rules for service-to-service traffic routed through a Consul API gateway. | General configuration for securing a service mesh |
 
 ## Technical specifications
 
-Refer to [Technical specifications for API gateways on Kubernetes](/consul/docs/north-south/api-gateway/tech-specs) for additional details and considerations about using API gateways in Kubernetes-orchestrated networks.
+Refer to [Technical specifications for API gateways on Kubernetes](/consul/docs/north-south/api-gateway/k8s/tech-specs) for additional details and considerations about using API gateways in Kubernetes-orchestrated networks.
 
 ## Guidance
 
@@ -75,20 +75,19 @@ Refer to the following resources for help setting up and using API gateways:
 
 ### Usage documentation
 
-- [Deploy API gateway listeners to VMs](/consul/docs/north-south/api-gateway/deploy-listener/vm)
-- [Deploy API gateway listeners to Kubernetes](/consul/docs/north-south/api-gateway/deploy-listener/k8s)
-- [Deploy API gateway routes to VMs](/consul/docs/north-south/api-gateway/define-route/vm)
-- [Deploy API gateway routes to Kubernetes](/consul/docs/north-south/api-gateway/define-route/k8s)
-- [Reroute HTTP requests in Kubernetes](/consul/docs/north-south/api-gateway/define-route/k8s-reroute-traffic)
-- [Route traffic to peered services in Kubernetes](/consul/docs/north-south/api-gateway/define-route/k8s-route-peered)
-- [Encrypt API gateway traffic on VMs](/consul/docs/north-south/api-gateway/secure-traffic/vm-encrypt)
-- [Use JWTs to verify requests to API gateways on VMs](/consul/docs/north-south/api-gateway/secure-traffic/vm-jwt)
-- [Use JWTs to verify requests to API gateways on Kubernetes](/consul/docs/north-south/api-gateway/secure-traffic/k8s-jwt)
+- [Deploy API gateway listeners to VMs](/consul/docs/north-south/api-gateway/vm/listener)
+- [Deploy API gateway listeners to Kubernetes](/consul/docs/north-south/api-gateway/k8s/listener)
+- [Deploy API gateway routes to VMs](/consul/docs/north-south/api-gateway/vm/route)
+- [Deploy API gateway routes to Kubernetes](/consul/docs/north-south/api-gateway/k8s/route)
+- [Reroute HTTP requests in Kubernetes](/consul/docs/north-south/api-gateway/k8s/route-reroute-traffic)
+- [Route traffic to peered services in Kubernetes](/consul/docs/north-south/api-gateway/k8s/route-route-peered)
+- [Encrypt API gateway traffic on VMs](/consul/docs/north-south/api-gateway/secure-traffic/encrypt)
+- [Use JWTs to verify requests to API gateways on VMs](/consul/docs/north-south/api-gateway/secure-traffic/jwt/vm)
+- [Use JWTs to verify requests to API gateways on Kubernetes](/consul/docs/north-south/api-gateway/secure-traffic/jwt/k8s)
 
 ### Reference
 
-- [API gateway configuration reference for Kubernetes](/consul/docs/reference/k8s/api-gateway/)
 - [API gateway configuration entry reference](/consul/docs/reference/config-entry/api-gateway)
 - [HTTP route configuration entry reference](/consul/docs/reference/config-entry/http-route)
 - [TCP route configuration entry reference](/consul/docs/reference/config-entry/tcp-route)
-- [Error messages](/consul/docs/common-error-messages/api-gateway)
+- [Error messages](/consul/docs/error-messages/api-gateway)

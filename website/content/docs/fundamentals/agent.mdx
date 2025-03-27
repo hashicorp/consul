@@ -141,7 +141,7 @@ $ consul agent -config-file=server.hcl
 
 Configuration precedence is evaluated in the following order:
 
-1. [Command line arguments](/consul/docs/reference/agent/cli-flags)
+1. [Command line arguments](/consul/commands/agent)
 1. [Configuration files](/consul/docs/reference/agent/configuration-file)
 
 The Consul agent loads the configuration from files and directories in lexical order. For example, configuration file `basic_config.json` is processed before `extra_config.json`. Configuration can be in either [HCL](https://github.com/hashicorp/hcl#syntax) or JSON format.

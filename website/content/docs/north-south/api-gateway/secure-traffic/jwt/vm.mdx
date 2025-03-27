@@ -52,11 +52,11 @@ JSONWebKeySet = {
 
 </CodeBlockConfig>
 
-For more information about the fields you can configure in this CRD, refer to [`JWTProvider` configuration reference](/consul/docs/connect/config-entries/jwtprovider).
+For more information about the fields you can configure in this CRD, refer to [`JWTProvider` configuration reference](/consul/docs/reference/config-entry/jwtprovider).
 
 ## Configure default and override settings
 
-Define default and override settings for JWT verification in the [API gateway configuration entry](/consul/docs/connect/gateways/api-gateway/configuration/api-gateway).
+Define default and override settings for JWT verification in the [API gateway configuration entry](/consul/docs/reference/config-entry/api-gateway).
 
 1. Add a `default.JWT` block to the listener that you want to apply JWT verification to. Consul applies these configurations to routes attached to the listener. Refer to the [`Listeners.default.JWT`](/consul/docs/reference/config-entry/api-gateway#listeners-default-jwt) configuration reference for details.
 1. Add an `override.JWT` block to the listener that you want to apply JWT verification policies to. Consul applies these configurations to all routes attached to the listener, regardless of the `default` or route-specific settings. Refer to the [`Listeners.override.JWT`](/consul/docs/reference/config-entry/api-gateway#listeners-override-jwt) configuration reference for details.

@@ -129,7 +129,7 @@ $ curl --request PUT http://127.0.0.1:8500/v1/acl/policy \
 
 ### Link the policy to a token
 
-After registering the policies into Consul, you can create and link tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an [auth method](/consul/docs/secure/acl/auth-methods).
+After registering the policies into Consul, you can create and link tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an [auth method](/consul/docs/secure/acl/auth-method).
 
 You can specify an admin partition and namespace when creating tokens in Consul Enterprise. Tokens are only valid in the specified scopes. The snapshot agent token must be created in the `default` namespace in the `default` partition.
 

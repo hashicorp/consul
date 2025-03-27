@@ -3840,7 +3840,7 @@ module.exports = [
   },
   {
     source: '/consul/tutorials/archive/dns-forwarding',
-    destination: '/consul/docs/discover/dns/forwarding',
+    destination: '/consul/docs/manage/dns/forwarding',
     permanent: true,
   },
   {

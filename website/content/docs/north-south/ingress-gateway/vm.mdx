@@ -6,7 +6,7 @@ description: Learn how to create and manage an ingress gateway on virtual machin
 
 # Create and manage ingress gateways on virtual machines
 
-This topic describes how to add ingress gateways to your Consul service mesh in virtual machine (VM) environments. Refer to [Create and manage ingress gateways on Kubernetes](/consul/docs/north-south/ingress-gateway/create-k8s) for instructions on how to implement ingress gateways in Kubernetes environments.
+This topic describes how to add ingress gateways to your Consul service mesh in virtual machine (VM) environments. Refer to [Create and manage ingress gateways on Kubernetes](/consul/docs/north-south/ingress-gateway/k8s) for instructions on how to implement ingress gateways in Kubernetes environments.
 
 <Note>
 
@@ -32,7 +32,7 @@ After specifying listeners and services in the ingress gateway configuration ent
 
 - Service mesh must be enabled for all agents. Set the [`connect.enabled` parameter](/consul/docs/reference/agent#connect) to `true` to enable service mesh.
 - The gRPC port must be configured for all server agents in the datacenter. Specify the gRPC port in the [`ports.grpc` parameter](/consul/docs/reference/agent#grpc_port). We recommend setting the port to `8502` to simplify configuration when ACLs are enabled. Refer to [ACL requirements](#acl-requirements) for additional information.
-- You must use Envoy for sidecar proxies in your service mesh. Refer to [Configure and deploy sidecar proxies](/consul/docs/connect/proxy/deploy-sidecar) for additional information.
+- You must use Envoy for sidecar proxies in your service mesh. Refer to [Configure and deploy sidecar proxies](/consul/docs/connect/proxy/sidecar) for additional information.
 
 ### ACL requirements
 
@@ -120,7 +120,7 @@ $ consul connect envoy -gateway=ingress -register \
    -service ingress-service \
    -address '{{ GetInterfaceIP "eth0" }}:8888'
 ```
-You cannot register the ingress gateway service and start the proxy at the same time if you configure the gateway to retrieve and serve TLS certificates from their external downstreams. Refer to [Serve custom TLS certificates from an external service](/consul/docs/north-south/ingress-gateway/tls-external-service) for more information.
+You cannot register the ingress gateway service and start the proxy at the same time if you configure the gateway to retrieve and serve TLS certificates from their external downstreams. Refer to [Serve custom TLS certificates from an external service](/consul/docs/north-south/ingress-gateway/external) for more information.
 
 ## Additional Envoy configurations
 

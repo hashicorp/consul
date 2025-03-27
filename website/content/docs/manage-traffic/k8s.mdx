@@ -9,7 +9,7 @@ description: >-
 
 This usage topic describes how to configure the `service-resolver` custom resource definition (CRD) to set up and manage L7 traffic between services that have an existing cluster peering connection in Consul on Kubernetes deployments.
 
-For general guidance for managing L7 traffic with cluster peering, refer to [Manage L7 traffic with cluster peering](/consul/docs/east-west/cluster-peering/usage/peering-traffic-management).
+For general guidance for managing L7 traffic with cluster peering, refer to [Manage L7 traffic with cluster peering](/consul/docs/manage-traffic/cluster-peering/k8s).
 
 ## Service resolvers for redirects and failover
 
@@ -25,7 +25,7 @@ To configure L7 traffic management behavior in deployments with cluster peering 
 
 1. Define the peer cluster as a failover target in the service resolver configuration. 
 
-  The following example updates the [`service-resolver` CRD](/consul/docs/connect/config-entries/) in `cluster-01` so that Consul redirects traffic intended for the `frontend` service to a backup instance in peer `cluster-02` when it detects multiple connection failures.
+  The following example updates the [`service-resolver` CRD](/consul/docs/reference/config-entry/serviceresolver) in `cluster-01` so that Consul redirects traffic intended for the `frontend` service to a backup instance in peer `cluster-02` when it detects multiple connection failures.
 
   ```yaml
   apiVersion: consul.hashicorp.com/v1alpha1

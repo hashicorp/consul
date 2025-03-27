@@ -30,7 +30,7 @@ Consul v1.4.0 or later
 
 ## Configure ACLs in the primary datacenter
 
-In a [federated Consul deployment](/consul/docs/deploy/server/k8s/multi/federation), one of the datacenters is designated the primary datacenter. You should add the `acl` configuration block to the primary datacenter server's configuration file as shown in the following example.
+In a [federated Consul deployment](/consul/docs/eas), one of the datacenters is designated the primary datacenter. You should add the `acl` configuration block to the primary datacenter server's configuration file as shown in the following example.
 
 
 
@@ -89,7 +89,7 @@ Complete this process on all server agents. If you are configuring ACLs for the 
 
 ## Create the replication token
 
-You must configure servers in secondary datacenters to point to the primary datacenter. You need to provide the ACL replication token to the secondary datacenters. Replication tokens are required to replicate ACL tokens and to create [configuration entries](/consul/docs/fundamentals/config-entry) and [auth methods](/consul/docs/secure/acl/auth-methods) in connected secondary datacenters.
+You must configure servers in secondary datacenters to point to the primary datacenter. You need to provide the ACL replication token to the secondary datacenters. Replication tokens are required to replicate ACL tokens and to create [configuration entries](/consul/docs/fundamentals/config-entry) and [auth methods](/consul/docs/secure/acl/auth-method) in connected secondary datacenters.
 
 Replication tokens require the following permissions:
 

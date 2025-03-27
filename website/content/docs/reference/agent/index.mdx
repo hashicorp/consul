@@ -285,7 +285,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
     - `static` This object controls configuring the static authorizer setup in the Consul
       configuration file. Almost all sub-keys are identical to those provided by the [JWT
-      Auth Method](/consul/docs/secure/acl/auth-methods/jwt).
+      Auth Method](/consul/docs/secure/acl/auth-method/jwt).
 
       - `jwt_validation_pub_keys` (Defaults to `[]`) A list of PEM-encoded public keys
         to use to authenticate signatures locally.
@@ -480,7 +480,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
 - `enable_script_checks` Equivalent to the [`-enable-script-checks` command-line flag](/consul/commands/agent#_enable_script_checks).
 
-  ACLs must be enabled for agents and the `enable_script_checks` option must be set to `true` to enable script checks in Consul 0.9.0 and later. See [Registering and Querying Node Information](/consul/docs/secure/acl/rules#registering-and-querying-node-information) for related information.
+  ACLs must be enabled for agents and the `enable_script_checks` option must be set to `true` to enable script checks in Consul 0.9.0 and later. See [Registering and Querying Node Information](/consul/docs/secure/acl/rule#registering-and-querying-node-information) for related information.
 
   <Warning title="Security Warning">
   
@@ -892,7 +892,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
     secondary Consul datacenters will perform replication of only ACL policies and
     roles. Setting this configuration will will enable ACL token replication and
     allow for the creation of both [local tokens](/consul/api-docs/acl/tokens#local) and
-    [auth methods](/consul/docs/secure/acl/auth-methods) in connected secondary datacenters.
+    [auth methods](/consul/docs/secure/acl/auth-method) in connected secondary datacenters.
 
     <Warning>
     
@@ -932,7 +932,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
     - `default` ((#acl_tokens_default)) - When provided, this agent will
       use this token by default when making requests to the Consul servers
-      instead of the [anonymous token](/consul/docs/secure/acl/tokens#anonymous-token).
+      instead of the [anonymous token](/consul/docs/secure/acl/token#anonymous-token).
       Consul HTTP API requests can provide an alternate token in their authorization header
       to override the `default` or anonymous token on a per-request basis,
       as described in [HTTP API Authentication](/consul/api-docs/api-structure#authentication).
@@ -980,7 +980,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
     - `dns` ((#acl_tokens_dns)) - Specifies the token that agents use to request information needed to respond to DNS queries.
       If the `dns` token is not set, the `default` token is used instead.
       Because the `default` token allows unauthenticated HTTP API access to list nodes and services, we
-      strongly recommend using the `dns` token. Create DNS tokens using the [templated policy](/consul/docs/secure/acl/token/dns-token#create_a_dns_token)
+      strongly recommend using the `dns` token. Create DNS tokens using the [templated policy](/consul/docs/secure/acl/token/dns#create_a_dns_token)
       option to ensure that the token has the permissions needed to respond to all DNS queries.
 
     - `replication` ((#acl_tokens_replication)) - Specifies the token that the agent uses to
@@ -1073,7 +1073,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 - `acl_replication_token` ((#acl_replication_token_legacy)) - **Deprecated
   in Consul 1.4.0. Refer to  the [`acl.tokens.replication`](#acl_tokens_replication) field
   instead.** Only used for servers outside the [`primary_datacenter`](#primary_datacenter)
-  running Consul 0.7 or later. When provided, this will enable [ACL replication](/consul/docs/secure/acl/enable-federated-datacenters)
+  running Consul 0.7 or later. When provided, this will enable [ACL replication](/consul/docs/secure/acl/token/replication)
   using this ACL replication using this token to retrieve and replicate the ACLs
   to the non-authoritative local datacenter. In Consul 0.9.1 and later you can enable
   ACL replication using [`acl.enable_token_replication`](#acl_enable_token_replication) and then

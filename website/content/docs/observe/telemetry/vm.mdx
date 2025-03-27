@@ -35,7 +35,7 @@ Providers](#custom-metrics-providers).
 ## Kubernetes
 
 If running Consul in Kubernetes, the Helm chart can automatically configure Consul's UI to display topology
-visualizations. See our [Kubernetes observability docs](/consul/docs/observe/mesh/k8s) for more information.
+visualizations. See our [Kubernetes observability docs](/consul/docs/observe/telemetry/k8s) for more information.
 
 ## Configuring the UI To Display Metrics
 
@@ -111,7 +111,7 @@ ui:
 
 </CodeTabs>
 
--> **Note**: For more information on configuring the observability UI on Kubernetes, use this [reference](/consul/docs/observe/mesh/k8s).
+-> **Note**: For more information on configuring the observability UI on Kubernetes, use this [reference](/consul/docs/observe/telemetry/k8s).
 
 ## Configuring Dashboard URLs
 
@@ -296,7 +296,7 @@ namespace_prefix "" {
 
 It's typical for most authenticated users to have this level of access in Consul
 as it's required for viewing the catalog or discovering services. If you use a
-[Single Sign-On integration](/consul/docs/secure/acl/auth-methods/oidc) (Consul
+[Single Sign-On integration](/consul/docs/secure/acl/auth-method/oidc) (Consul
 Enterprise) users of the UI can be automatically issued an ACL token with the
 privileges above to be allowed access to the metrics through the proxy.
 

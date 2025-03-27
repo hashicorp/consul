@@ -283,7 +283,7 @@ service {
 | `datacenter` |  Optional | string | Name of a datacenter to query for the task. | Datacenter of the agent that CTS queries. |
 | `namespace`  | Optional | string |<EnterpriseAlert inline /> <br/> Namespace of the services to query for the task. | In order of precedence: <br/> 1. Inferred from the CTS ACL token <br/> 2. The `default` namespace. |
 | `filter` |  Optional | string | Expression used to additionally filter the services to monitor. <br/><br/> Refer to the [services filtering documentation](/consul/api-docs/health#filtering-2) and section about [how to write filter expressions](/consul/api-docs/features/filtering#creating-expressions) for additional information. | none |
-| `cts_user_defined_meta` | Optional | map[string] | User-defined metadata that is appended to the [service input variable](/consul/docs/reference/cts/terraform-module#services-module-input) for compatible Terraform modules. <br/><br/> Some modules do not use the configured metadata. Refer to the module configured for the task for information about metadata usage and expected keys and format. <br/><br/> If multiple tasks depend on the same service but require different metadata, you can declare different sets of metadata for the same service. Define multiple service blocks for the service with unique IDs (and identical names) for those blocks. The metadata can then be separated per task based on the service IDs. | none|
+| `cts_user_defined_meta` | Optional | map[string] | User-defined metadata that is appended to the [service input variable](/consul/docs/automate/infrastructure/module#services-module-input) for compatible Terraform modules. <br/><br/> Some modules do not use the configured metadata. Refer to the module configured for the task for information about metadata usage and expected keys and format. <br/><br/> If multiple tasks depend on the same service but require different metadata, you can declare different sets of metadata for the same service. Define multiple service blocks for the service with unique IDs (and identical names) for those blocks. The metadata can then be separated per task based on the service IDs. | none|
 
 ## Task
 
@@ -376,7 +376,7 @@ When a `condition "services"` block is configured for a task, then the following
 
 CTS places these restrictions because the monitored services information for a task can only be set through one configuration option. Any services module input that the task needs should be configured solely through the `condition` block.
 
-Refer to [Task Execution: Services Condition](/consul/docs/reference/cts/task#services-condition) for more details on how tasks are triggered with a services condition.
+Refer to [Task Execution: Services Condition](/consul/docs/reference/cts/api/tasks#services-condition) for more details on how tasks are triggered with a services condition.
 
 ```hcl
 task {
@@ -423,16 +423,16 @@ task {
 | `datacenter` |  Optional | string | Name of a datacenter to query for the task. | Datacenter of the agent that CTS queries. |
 | `namespace`  | Optional | string | <EnterpriseAlert inline /> <br/> Namespace of the services to query for the task. | In order of precedence: <br/> 1. Inferred from the CTS ACL token <br/> 2. The `default` namespace. |
 | `filter` |  Optional | string | Expression used to additionally filter the services to monitor. <br/><br/> Refer to the [services filtering documentation](/consul/api-docs/health#filtering-2) and section about [how to write filter expressions](/consul/api-docs/features/filtering#creating-expressions) for additional information. | none |
-| `cts_user_defined_meta` | Optional | map[string] | User-defined metadata that is appended to the [service input variable](/consul/docs/reference/cts/terraform-module#services-module-input) for compatible Terraform modules. <br/><br/> Some modules do not use the configured metadata. Refer to the module configured for the task for information about metadata usage and expected keys and format. | none|
+| `cts_user_defined_meta` | Optional | map[string] | User-defined metadata that is appended to the [service input variable](/consul/docs/automate/infrastructure/module#services-module-input) for compatible Terraform modules. <br/><br/> Some modules do not use the configured metadata. Refer to the module configured for the task for information about metadata usage and expected keys and format. | none|
 | `source_includes_var` | Optional | boolean | **Deprecated in CTS 0.5.0 and will be removed in 0.8.0. Refer to  the `use_as_module_input` field instead.** | true |
-| `use_as_module_input` | Optional | boolean | Whether or not the values of the condition object should also be used as input for the [`services` variable](/consul/docs/reference/cts/terraform-module#services-variable) for the Terraform module<br/><br/> Please refer to the selected module's documentation for guidance on how to configure this field. If configured inconsistently with the module, CTS will error and exit. | true |
+| `use_as_module_input` | Optional | boolean | Whether or not the values of the condition object should also be used as input for the [`services` variable](/consul/docs/automate/infrastructure/module#services-variable) for the Terraform module<br/><br/> Please refer to the selected module's documentation for guidance on how to configure this field. If configured inconsistently with the module, CTS will error and exit. | true |
 
 
 #### Catalog-services condition
 
 A catalog-services condition block configures a task to only execute on service registration and deregistration, more specifically on first service instance registration and last service instance deregistration respectively. The catalog-services condition has additional configuration options to specify the services that can trigger the task on registration and deregistration.
 
-Refer to [Task Execution: Catalog Services Condition](/consul/docs/reference/cts/task#catalog-services-condition) for more information on how tasks are triggered with a catalog-services condition.
+Refer to [Task Execution: Catalog Services Condition](/consul/docs/reference/cts/api/tasks#catalog-services-condition) for more information on how tasks are triggered with a catalog-services condition.
 
 ```hcl
 task {
@@ -460,7 +460,7 @@ task {
 | `namespace`  | Optional | string | <EnterpriseAlert inline /> <br/> Namespace of the services to query for the task. | In order of precedence: <br/> 1. Inferred from the CTS ACL token <br/> 2. The `default` namespace. |
 | `node_meta`  | Optional | map[string] | Node metadata key/value pairs to use to filter services. Only services registered at a node with the specified key/value pairs are used by the task.  | none |
 | `source_includes_var` | Optional | boolean | **Deprecated in CTS 0.5.0 and will be removed in 0.8.0. Refer to  the `use_as_module_input` field instead.** | true |
-| `use_as_module_input` | Optional | boolean | Whether or not the values of the condition object should also be used as input for the [`catalog_services` variable](/consul/docs/reference/cts/terraform-module#catalog-services-variable) for the Terraform module<br/><br/> Please refer to the selected module's documentation for guidance on how to configure this field. If configured inconsistently with the module, CTS will error and exit. | true |
+| `use_as_module_input` | Optional | boolean | Whether or not the values of the condition object should also be used as input for the [`catalog_services` variable](/consul/docs/automate/infrastructure/module#catalog-services-variable) for the Terraform module<br/><br/> Please refer to the selected module's documentation for guidance on how to configure this field. If configured inconsistently with the module, CTS will error and exit. | true |
 
 #### Consul KV condition
 
@@ -468,7 +468,7 @@ A `condition "consul-kv"` block configures a task to only execute on changes to 
 
 When a `condition "consul-kv"` block is configured for a task, the task cannot be configured with a `module_input "consul-kv"` or `source_input "consul-kv"` (deprecated) block. The monitored consul-kv information for a task can only be set through one configuration option. Any consul-kv module input that the task needs should be configured solely through the `condition` block.
 
-Refer to [Task Execution: Consul KV Condition](/consul/docs/reference/cts/task#consul-kv-condition) for more information on how tasks are triggered with a consul-kv condition.
+Refer to [Task Execution: Consul KV Condition](/consul/docs/reference/cts/api/tasks#consul-kv-condition) for more information on how tasks are triggered with a consul-kv condition.
 
 ```hcl
 task {
@@ -494,7 +494,7 @@ task {
 | `datacenter` |  Optional | string | Name of a datacenter to query for the task. | Datacenter of the agent that CTS queries. |
 | `namespace`  | Optional | string | <EnterpriseAlert inline /> <br/> Namespace of the services to query for the task. | In order of precedence: <br/> 1. Inferred from the CTS ACL token <br/> 2. The `default` namespace. |
 | `source_includes_var` | Optional | boolean | **Deprecated in CTS 0.5.0 and will be removed in 0.8.0. Refer to  the `use_as_module_input` field instead.** | true |
-| `use_as_module_input` | Optional | boolean | Whether or not the values of the condition object should also be used as input for the [`consul_kv` variable](/consul/docs/reference/cts/terraform-module#consul-kv-variable) for the Terraform module<br/><br/> Please refer to the selected module's documentation for guidance on how to configure this field. If configured inconsistently with the module, CTS will error and exit. | true |
+| `use_as_module_input` | Optional | boolean | Whether or not the values of the condition object should also be used as input for the [`consul_kv` variable](/consul/docs/automate/infrastructure/module#consul-kv-variable) for the Terraform module<br/><br/> Please refer to the selected module's documentation for guidance on how to configure this field. If configured inconsistently with the module, CTS will error and exit. | true |
 
 
 #### Schedule condition
@@ -503,9 +503,9 @@ A scheduled task has a schedule condition block, which defines the schedule for 
 
 Schedule tasks also rely on additional task configuration, separate from the condition block to determine the module input information to provide to the task module. Refer to  [`module_input`](#module_input) block configuration for details on how to configure module input.
 
-Refer to [Task Execution: Schedule Condition](/consul/docs/reference/cts/task#schedule-condition) for more information on how tasks are triggered with schedule conditions.
+Refer to [Task Execution: Schedule Condition](/consul/docs/reference/cts/api/tasks#schedule-condition) for more information on how tasks are triggered with schedule conditions.
 
-Refer to [Terraform Module: Module Input](/consul/docs/reference/cts/terraform-module#module-input) for more information on module input options for a scheduled task.
+Refer to [Terraform Module: Module Input](/consul/docs/automate/infrastructure/module#module-input) for more information on module input options for a scheduled task.
 
 ```hcl
 task {
@@ -561,7 +561,7 @@ The following sections describe the module input types that CTS supports.
 
 #### Services module input ((#services-source-input))
 
-This `services` module input object defines services registered to Consul whose metadata will be used as [services module input to the Terraform Module](/consul/docs/reference/cts/terraform-module/#services-module-input). The following parameters are supported:
+This `services` module input object defines services registered to Consul whose metadata will be used as [services module input to the Terraform Module](/consul/docs/automate/infrastructure/module/#services-module-input). The following parameters are supported:
 
 | Parameter | Required | Type | Description | Default |
 | --------- | -------- | ---- | ----------- | ------- |
@@ -570,7 +570,7 @@ This `services` module input object defines services registered to Consul whose 
 | `datacenter` |  Optional | string | Name of a datacenter to query for the task. | Datacenter of the agent that CTS queries. |
 | `namespace` | Optional | string |<EnterpriseAlert inline /> <br/> String value indicating the namespace of the services to query for the task. | In order of precedence: <br/> 1. Inferred from the CTS ACL token <br/> 2. The `default` namespace. |
 | `filter` |  Optional | string | Expression used to additionally filter the services to monitor. <br/><br/> Refer to the [services filtering documentation](/consul/api-docs/health#filtering-2) and section about [how to write filter expressions](/consul/api-docs/features/filtering#creating-expressions) for additional information. | none |
-| `cts_user_defined_meta` | Optional | map[string] | User-defined metadata that is appended to the [service input variable](/consul/docs/reference/cts/terraform-module#services-module-input) for compatible Terraform modules. <br/><br/> Some modules do not use the configured metadata. Refer to the module configured for the task for information about metadata usage and expected keys and format. | none|
+| `cts_user_defined_meta` | Optional | map[string] | User-defined metadata that is appended to the [service input variable](/consul/docs/automate/infrastructure/module#services-module-input) for compatible Terraform modules. <br/><br/> Some modules do not use the configured metadata. Refer to the module configured for the task for information about metadata usage and expected keys and format. | none|
 
 In the following example, the scheduled task queries all Consul services with `web` as the suffix. The metadata of matching services are provided to the Terraform module.
 
@@ -598,7 +598,7 @@ task {
 
 #### Consul KV module input ((#consul-kv-source-input))
 
-A Consul KV module input block defines changes to Consul KV that will be monitored. These changes will then be provided as [Consul KV module input to the Terraform Module](/consul/docs/reference/cts/terraform-module/#consul-kv-module-input). The module input can be configured for a single Consul KV entry or for any Consul KV entries that are prefixed with a given path. The following parameters are supported:
+A Consul KV module input block defines changes to Consul KV that will be monitored. These changes will then be provided as [Consul KV module input to the Terraform Module](/consul/docs/automate/infrastructure/module/#consul-kv-module-input). The module input can be configured for a single Consul KV entry or for any Consul KV entries that are prefixed with a given path. The following parameters are supported:
 
 | Parameter | Required | Type | Description | Default |
 | --------- | -------- | ---- | ----------- | ------- |

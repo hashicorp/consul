@@ -23,7 +23,7 @@ The following workflow describes how to deploy ingress gateways to service meshe
 1. Define listeners and the services they expose to external clients. When ACLs are enabled, you must also define service intentions to allow traffic to the destination services.
 1. Register the ingress gateway service with Consul and start the ingress gateway proxy service.
 
-You can also configure ingress gateways to retrieve and serve custom TLS certificates from external systems. This functionality is designed to help you integrate with custom TLS management software. Refer to [Serve custom TLS certificates from an external service](/consul/docs/north-south/ingress-gateway/tls-external-service) for additional information.
+You can also configure ingress gateways to retrieve and serve custom TLS certificates from external systems. This functionality is designed to help you integrate with custom TLS management software. Refer to [Serve custom TLS certificates from an external service](/consul/docs/north-south/ingress-gateway/external) for additional information.
 
 The following diagram describes how external traffic reaches services inside the mesh through an ingress gateway:
 
@@ -35,13 +35,13 @@ Refer to the following resources to help you enable secure access to service mes
 
 ### Usage
 
-- [Create ingress gateways on VMs](/consul/docs/north-south/ingress-gateway/create-vm)
-- [Create ingress gateways on K8s](/consul/docs/north-south/ingress-gateway/create-k8s)
-- [Serve TLS certificates from external services](/consul/docs/north-south/ingress-gateway/tls-external-service)
+- [Create ingress gateways on VMs](/consul/docs/north-south/ingress-gateway/vm)
+- [Create ingress gateways on K8s](/consul/docs/north-south/ingress-gateway/k8s)
+- [Serve TLS certificates from external services](/consul/docs/north-south/ingress-gateway/external)
 
 ### Reference
 
 - [Ingress gateway configuration](/consul/docs/reference/config-entry/ingress-gateway)
-- [Helm chart configuration](/consul/docs/reference/reference/k8s/helm)
+- [Helm chart configuration](/consul/docs/reference/k8s/helm)
 - [Service intentions configuration](/consul/docs/reference/config-entry/service-intentions)
 

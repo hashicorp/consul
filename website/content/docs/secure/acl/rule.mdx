@@ -217,7 +217,6 @@ give agents a token with access to this event prefix, in addition to configuring
 
 ## Identity Rules
 
-The `identity` and `identity_prefix` resources control workload-identity-level registration and read access to the [Catalog v2 API group](/consul/docs/architecture/catalog/v2).
 Specify the resource label in identity rules to set the scope of the rule.
 The resource label in the following example is empty. As a result, the rules allow read-only access to any workload identity name with the empty prefix.
 The rules also allow read-write access to the `app` identity and deny all access to the `admin` identity:
