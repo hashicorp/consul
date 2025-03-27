@@ -100,7 +100,7 @@ spec:
 </CodeBlockConfig>
 </CodeTabs>
 
-Refer to the [external authorization extension configuration reference](/consul/docs/reference/proxy/envoy-extensions/configuration/ext-authz) for details on how to configure the extension. 
+Refer to the [external authorization extension configuration reference](/consul/docs/reference/proxy/extensions/ext-authz) for details on how to configure the extension. 
 
 Refer to the [proxy defaults configuration entry reference](/consul/docs/reference/config-entry/proxy-defaults) and [service defaults configuration entry reference](/consul/docs/reference/config-entry/service-defaults) for details on how to define the configuration entries. 
 
@@ -115,9 +115,9 @@ The following Envoy configurations are not supported:
 | Configuration | Workaround |
 | --- | --- |
 | `deny_at_disable` | Disable filter by removing it from the service's configuration in the configuration entry. |
-| `failure_mode_allow` | Set the `EnvoyExtension.Required` field to `true` in the [service defaults configuration entry](/consul/docs/reference/config-entry/service-default#envoyextensions) or [proxy defaults configuration entry](/consul/docs/reference/config-entry/proxy-defaults#envoyextensions). |
-| `filter_enabled` | Set the `EnvoyExtension.Required` field to `true` in the [service defaults configuration entry](/consul/docs/reference/config-entry/service-default#envoyextensions) or [proxy defaults configuration entry](/consul/docs/reference/config-entry/proxy-defaults#envoyextensions). |
-| `filter_enabled_metadata` | Set the `EnvoyExtension.Required` field to `true` in the [service defaults configuration entry](/consul/docs/reference/config-entry/service-default#envoyextensions) or [proxy defaults configuration entry](/consul/docs/reference/config-entry/proxy-defaults#envoyextensions). |
+| `failure_mode_allow` | Set the `EnvoyExtension.Required` field to `true` in the [service defaults configuration entry](/consul/docs/reference/config-entry/service-defaults#envoyextensions) or [proxy defaults configuration entry](/consul/docs/reference/config-entry/proxy-defaults#envoyextensions). |
+| `filter_enabled` | Set the `EnvoyExtension.Required` field to `true` in the [service defaults configuration entry](/consul/docs/reference/config-entry/service-defaults#envoyextensions) or [proxy defaults configuration entry](/consul/docs/reference/config-entry/proxy-defaults#envoyextensions). |
+| `filter_enabled_metadata` | Set the `EnvoyExtension.Required` field to `true` in the [service defaults configuration entry](/consul/docs/reference/config-entry/service-defaults#envoyextensions) or [proxy defaults configuration entry](/consul/docs/reference/config-entry/proxy-defaults#envoyextensions). |
 | `transport_api_version` | Consul only supports v3 of the transport API. As a result, there is no workaround for implementing the behavior of this field. |
 
 ## Apply the configuration entry

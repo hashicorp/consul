@@ -84,7 +84,7 @@ information.
 - `-dev` ((#\_dev)) - Enable development server mode. This is useful for
   quickly starting a Consul agent with all persistence options turned off, enabling
   an in-memory server which can be used for rapid prototyping or developing against
-  the API. In this mode, [service mesh is enabled](/consul/docs/connect/configuration-entries) and
+  the API. In this mode, [service mesh is enabled](/consul/docs/fundamentals/config-entry) and
   will by default create a new root CA certificate on startup. This mode is **not**
   intended for production use as it does not write any data to disk. The gRPC port
   is also defaulted to `8502` in this mode.
@@ -94,7 +94,7 @@ information.
   only the given `-encrypt` key will be available on startup. This defaults to false.
 
 - `-enable-script-checks` ((#\_enable_script_checks)) This controls whether
-  [health checks that execute scripts](/consul/docs/register/service/vm/health-checks) are enabled on this
+  [health checks that execute scripts](/consul/docs/register/health-check/vm) are enabled on this
   agent, and defaults to `false` so operators must opt-in to allowing these. This
   was added in Consul 0.9.0.
 

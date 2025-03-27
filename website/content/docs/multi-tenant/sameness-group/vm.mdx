@@ -18,7 +18,7 @@ To create and use sameness groups in your network, complete the following steps:
 
 - **Create sameness group configuration entries for each member of the group**. For each partition that you want to include in the sameness group, you must write and apply a sameness group configuration entry that defines the group’s members from that partition’s perspective. Refer to the [sameness group configuration entry reference](/consul/docs/reference/config-entry/sameness-group) for details on configuration hierarchy, default values, and specifications.
 - **Export services to members of the sameness group**. You must write and apply an exported services configuration entry that makes the partition’s services available to other members of the group. Refer to [exported services configuration entry reference](/consul/docs/reference/config-entry/exported-services) for additional specification information.
-- **Create service intentions to authorize other members of the sameness group**. For each partition that you want to include in the sameness group, you must write and apply service intentions configuration entries to authorize traffic to your services from all members of the group. Refer to the [service intentions configuration entry reference](/consul/docs/reference/config-entry/service-intention) for additional specification information.
+- **Create service intentions to authorize other members of the sameness group**. For each partition that you want to include in the sameness group, you must write and apply service intentions configuration entries to authorize traffic to your services from all members of the group. Refer to the [service intentions configuration entry reference](/consul/docs/reference/config-entry/service-intentions) for additional specification information.
 
 ## Requirements
 
@@ -213,7 +213,7 @@ Be aware that this scenario requires you to write the `sameness-group` configura
 
 Exporting the service to other members of the sameness group makes the services visible to remote partitions, but you must also create service intentions so that local services are authorized to send and receive traffic from a member of the sameness group.
 
-For each partition that is member of the group, write and apply a [service intentions configuration entry](/consul/docs/reference/config-entry/service-intention) that defines intentions for the services that are part of the group. In the `Sources` block of the configuration entry, include the service name, its namespace, the sameness group, and grant `allow` permissions.
+For each partition that is member of the group, write and apply a [service intentions configuration entry](/consul/docs/reference/config-entry/service-intentions) that defines intentions for the services that are part of the group. In the `Sources` block of the configuration entry, include the service name, its namespace, the sameness group, and grant `allow` permissions.
 
 Because you are using the sameness group in the `Sources` block rather than listing out each partition and cluster peer, you do not have to make further edits to the service intentions configuration entries when members are added to or removed from the group.
 
@@ -281,7 +281,7 @@ Sources   = [
 
 </CodeTabs>
 
-Refer to [create and manage intentions](/consul/docs/secure-mesh/intentions/create) for more information about how to create and apply service intentions in Consul.
+Refer to [create and manage intentions](/consul/docs/secure-mesh/intention/create) for more information about how to create and apply service intentions in Consul.
 
 After you create each service intentions configuration entry, apply it to the Consul server with the following CLI command:
 

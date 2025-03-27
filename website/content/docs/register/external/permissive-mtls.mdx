@@ -124,7 +124,7 @@ You can change this setting back to `false` at any time, even if there are servi
 
 Depending on the services you are onboarding, you may not need to enable permissive mTLS mode. If the service does not accept incoming traffic or accepts traffic from downstream services that are already part of the service mesh, then permissive mTLS mode is not required to continue. 
 
-To enable permissive mTLS mode for the service, set [`MutualTLSMode=permissive`](/consul/docs/reference/config-entry/service-default#mutualtlsmode) in the service defaults configuration entry for the service. The following example shows how to configure this setting for a service named `example-service`.
+To enable permissive mTLS mode for the service, set [`MutualTLSMode=permissive`](/consul/docs/reference/config-entry/service-defaults#mutualtlsmode) in the service defaults configuration entry for the service. The following example shows how to configure this setting for a service named `example-service`.
 
 <CodeTabs heading="Enable permissive mTLS for applicable services">
 
@@ -166,7 +166,7 @@ We recommend creating intentions that restrict services to accepting only necess
 
 When transparent proxy enabled and the `MutualTLSMode` parameter is set to `permissive`, incoming traffic from a downstream service to another upstream service is not secured by mTLS unless that upstream relationship is known to Consul. You must either define an intention so that Consul can infer the upstream relationship from the intention, or you must include an explicit upstream as part of the service definition for the downstream.
 
-Refer to [Service intentions](/consul/docs/secure-mesh/intentions) for additional information about how intentions work and how to create them.
+Refer to [Service intentions](/consul/docs/secure-mesh/intention) for additional information about how intentions work and how to create them.
 
 ## Add the service to the mesh
 

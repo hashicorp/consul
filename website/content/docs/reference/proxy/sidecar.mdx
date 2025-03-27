@@ -31,7 +31,7 @@ proxy.
 - `kind` - Defaults to `connect-proxy`. This value cannot be overridden.
 - `check`, `checks` - By default we add a TCP check on the local address and
   port for the proxy, and a [service alias
-  check](/consul/docs/register/service/vm/health-checks#alias-checks) for the parent service. If either
+  check](/consul/docs/register/health-check/vm#alias-checks) for the parent service. If either
   `check` or `checks` fields are set, only the provided checks are registered.
 - `proxy.destination_service_name` - Defaults to the parent service name.
 - `proxy.destination_service_id` - Defaults to the parent service ID.

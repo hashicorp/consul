@@ -16,7 +16,7 @@ Your network must meet the following environment and software requirements to us
 * Transparent proxy is available for Kubernetes environments.
 * Consul 1.10.0+
 * Consul Helm chart 0.32.0+. If you want to use the Consul CNI plugin to redirect traffic, Helm chart 0.48.0+ is required. Refer to [Enable the Consul CNI plugin](#enable-the-consul-cni-plugin) for additional information.
-* You must create [service intentions](/consul/docs/secure-mesh/intentions) that explicitly allow communication between intended services so that Consul can infer upstream connections and use sidecar proxies to route messages appropriately.  
+* You must create [service intentions](/consul/docs/secure-mesh/intention) that explicitly allow communication between intended services so that Consul can infer upstream connections and use sidecar proxies to route messages appropriately.  
 * The `ip_tables` kernel module must be running on all worker nodes within a Kubernetes cluster. If you are using the `modprobe` Linux utility, for example, issue the following command:
 
   `$ modprobe ip_tables`
@@ -199,7 +199,7 @@ The following example configures the service to dial an upstream service called 
 consul.hashicorp.com/connect-service-upstreams: "my-service:1234:dc2"
 ```
 
-If your Consul cluster is deployed to a [single datacenter spanning multiple Kubernetes clusters](/consul/docs/deploy/server/k8s/multi/multiple-clusters),
+If your Consul cluster is deployed to a [single datacenter spanning multiple Kubernetes clusters](/consul/docs/deploy/server/k8s/multi-cluster),
 then you must configure services in one Kubernetes cluster to explicitly dial a service in another Kubernetes cluster using the
 [consul.hashicorp.com/connect-service-upstreams](/consul/docs/reference/k8s/annotation-label#consul-hashicorp-com-connect-service-upstreams) annotation.
 The following example configures the service to dial an upstream service called `my-service` in another Kubernetes cluster on port `1234`:
@@ -218,7 +218,7 @@ The Kubernetes Service name must match the Consul service name to use KubeDNS. T
 Kubernetes annotation to the service pods. The annotation overrides the Consul service name.
 
 Consul configures redirection for each Pod bound to the Kubernetes Service using  `iptables` rules. The rules redirect all inbound and outbound traffic through an inbound and outbound listener on the sidecar proxy. Consul configures the proxy to route traffic to the appropriate upstream services based on [service
-intentions](/consul/docs/reference/config-entry/service-intention), which address the upstream services using KubeDNS.
+intentions](/consul/docs/reference/config-entry/service-intentions), which address the upstream services using KubeDNS.
 
 In the following example, the Kubernetes service selects `sample-app` application Pods so that they can be reached within the mesh.
 
@@ -240,12 +240,12 @@ spec:
 
 </CodeBlockConfig>
 
-Additional services can query the [KubeDNS](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/) at `sample-app.default.svc.cluster.local` to reach `sample-app`. If ACLs are enabled and configured with default `deny` policies, the configuration also requires a [`ServiceIntention`](/consul/docs/reference/config-entry/service-intention) to allow it to talk to `sample-app`.
+Additional services can query the [KubeDNS](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/) at `sample-app.default.svc.cluster.local` to reach `sample-app`. If ACLs are enabled and configured with default `deny` policies, the configuration also requires a [`ServiceIntention`](/consul/docs/reference/config-entry/service-intentions) to allow it to talk to `sample-app`.
 
 You can query the KubeDNS for a service that belongs to a sameness group at `sample-app.virtual.group-name.sg.consul`. This syntax is required when failover is desired and `spec.defaultForFailover` is set to `false` in the sameness group CRD. Refer to [sameness group configuration entry reference](/consul/docs/reference/config-entry/sameness-group) for more information.
 
 ### Headless services
-For services that are not addressed using a virtual cluster IP, you must configure the upstream service using the [DialedDirectly](/consul/docs/reference/config-entry/service-default#dialeddirectly) option. Then, use DNS to discover individual instance addresses and dial them through the transparent proxy. When this mode is enabled on the upstream, services present service mesh certificates for mTLS and intentions are enforced at the destination.
+For services that are not addressed using a virtual cluster IP, you must configure the upstream service using the [DialedDirectly](/consul/docs/reference/config-entry/service-defaults#dialeddirectly) option. Then, use DNS to discover individual instance addresses and dial them through the transparent proxy. When this mode is enabled on the upstream, services present service mesh certificates for mTLS and intentions are enforced at the destination.
 
 Note that when dialing individual instances, Consul ignores the HTTP routing rules configured with configuration entries. The transparent proxy acts as a TCP proxy to the original destination IP address.
 

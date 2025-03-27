@@ -208,7 +208,7 @@ Virtual addresses are not required to be routable IPs within the network. They a
 If the following conditions are met, connections to virtual addresses are load balanced across available instances of a service, provided the following conditions are satisfied:
 
 1. [Transparent proxy](/consul/docs/connect/transparent-proxy) is enabled for the downstream and upstream services.
-1. The upstream service is not configured for individual instances to be [dialed directly](/consul/docs/reference/config-entry/service-default#dialeddirectly).
+1. The upstream service is not configured for individual instances to be [dialed directly](/consul/docs/reference/config-entry/service-defaults#dialeddirectly).
 
 In the following example, the downstream services in the mesh can connect to the `redis` service at `203.0.113.50` on port `80`:
 
@@ -339,7 +339,7 @@ String value that identifies the service as a proxy and determines its role in t
 
 You can specify the following values:
 
-- `connect-proxy`: Defines the configuration for a service mesh proxy. Refer to [Deploy service mesh proxies](/consul/docs/deploy/service-mesh/deploy-proxy) for details about registering a service as a service mesh proxy.
+- `connect-proxy`: Defines the configuration for a service mesh proxy. Refer to [Deploy service mesh proxies](/consul/docs/connect/proxy/mesh) for details about registering a service as a service mesh proxy.
 - `ingress-gateway`: Defines the configuration for an [ingress gateway](/consul/docs/reference/config-entry/ingress-gateway)
 - `mesh-gateway`: Defines the configuration for a [mesh gateway](/consul/docs/east-west/mesh-gateway/)
 - `terminating-gateway`: Defines the configuration for a [terminating gateway](/consul/docs/north-south/terminating-gateway)

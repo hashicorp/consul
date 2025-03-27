@@ -116,14 +116,14 @@ service {
 
 ### Health checks
 
-You can add a `check` or `checks` block to your service configuration to define one or more health checks that monitor the health of your services. Refer to [Define Health Checks](/consul/docs/register/service/vm/health-checks) for additional information.
+You can add a `check` or `checks` block to your service configuration to define one or more health checks that monitor the health of your services. Refer to [Define Health Checks](/consul/docs/register/health-check/vm) for additional information.
 
 ### Register a service
 
 You can register your service using the [`consul services` command](/consul/commands/services) or by calling the [`/agent/services` API endpoint](/consul/api-docs/agent/service). Refer to [Register Services and Health Checks](/consul/docs/register/service/vm) for details.
 
 ## Define service defaults
-If Consul service mesh is enabled in your network, you can define default values for services in your mesh by creating and applying a `service-defaults` configuration entry containing. Refer to [Service Mesh Configuration Overview](/consul/docs/connect/configuration-entries) for additional information.
+If Consul service mesh is enabled in your network, you can define default values for services in your mesh by creating and applying a `service-defaults` configuration entry containing. Refer to [Service Mesh Configuration Overview](/consul/docs/fundamentals/config-entry) for additional information.
 
 Create a file for the configuration entry and specify the required fields. If you are authoring `service-defaults` in HCL or JSON, the `Kind` and `Name` fields are required. On Kubernetes, the `apiVersion`, `kind`, and `metadata.name` fields are required. Refer to [Service Defaults Reference](/consul/docs/reference/config-entry/service-defaults) for details about the configuration options.
 

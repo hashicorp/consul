@@ -41,7 +41,7 @@ Additionally, Consul requires a unique IAM role for each ECS task family. Task I
 
 You should be familiar with configuring Consul's secure features, including how to create ACL tokens and policies. Refer to the following resources for additional information:
 
-- [Create a service token](/consul/docs/secure/acl/token/service-token)
+- [Create a service token](/consul/docs/secure/acl/token/service)
 
 ## Create the task definition
 
@@ -201,7 +201,7 @@ Refer to the [gateway task configuration examples](#gateway-task-configuration-e
 
 ## Configure the ECS controller 
 
-Deploy the ECS controller container to its own ECS task in the cluster. Refer to [ECS controller container](/consul/docs/ecs/reference/architecture#ecs-controller) for details about the container. 
+Deploy the ECS controller container to its own ECS task in the cluster. Refer to [ECS controller container](/consul/docs/reference/architecture/ecs#ecs-controller) for details about the container. 
 
 Verify that you have completed the prerequisites described in [Secure configuration requirements](#secure-configuration-requirements) and complete the following steps to configure the controller container.
 
@@ -214,7 +214,7 @@ Verify that you have completed the prerequisites described in [Secure configurat
     - `node:write`
     - `service:write`
     
-    The policy allows Consul to generate a token linked to the policy. Refer to [Create a service token](/consul/docs/secure/acl/token/service-token) for instructions.
+    The policy allows Consul to generate a token linked to the policy. Refer to [Create a service token](/consul/docs/secure/acl/token/service) for instructions.
 1. Create a token and link it to the ACL controller policy. Refer to the [ACL tokens documentation](/consul/docs/secure/acl/tokens) for instructions.
 
 ### Configure an AWS secrets manager secret

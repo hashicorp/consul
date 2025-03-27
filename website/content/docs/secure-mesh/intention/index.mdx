@@ -23,11 +23,11 @@ This implementation allows broad all-or-nothing access control between pairs of 
 
 ### L7 traffic intentions
 
-If the destination service uses an HTTP-based protocol, then intentions can enforce access based on application-aware request attributes, in addition to identity-based enforcement, to control traffic between services. Refer to [Service intentions configuration reference](/consul/docs/reference/config-entry/service-intention#permissions) for additional information.
+If the destination service uses an HTTP-based protocol, then intentions can enforce access based on application-aware request attributes, in addition to identity-based enforcement, to control traffic between services. Refer to [Service intentions configuration reference](/consul/docs/reference/config-entry/service-intentions#permissions) for additional information.
 
 ## Workflow
 
-You can manually create intentions from the Consul UI, API, or CLI. You can also enable Consul to dynamically create them by defining traffic routes in service intention configuration entries. Refer to [Create and manage intentions](/consul/docs/secure-mesh/intentions/create) for details. 
+You can manually create intentions from the Consul UI, API, or CLI. You can also enable Consul to dynamically create them by defining traffic routes in service intention configuration entries. Refer to [Create and manage intentions](/consul/docs/secure-mesh/intention/create) for details. 
 
 ### Enforcement
 
@@ -53,7 +53,7 @@ Services should periodically call the [intention match API](/consul/api-docs/con
 
 ## Precedence and match order
 
-Consul processes criteria defined in the service intention configuration entry to match incoming requests. When Consul finds a match, it applies the corresponding action specified in the configuration entry. The match criteria may include specific HTTP headers, request methods, or other attributes. Additionally, you can use regular expressions to programmatically match attributes. Refer to [Service intention configuration entry reference](/consul/docs/reference/config-entry/service-intention) for details.  
+Consul processes criteria defined in the service intention configuration entry to match incoming requests. When Consul finds a match, it applies the corresponding action specified in the configuration entry. The match criteria may include specific HTTP headers, request methods, or other attributes. Additionally, you can use regular expressions to programmatically match attributes. Refer to [Service intention configuration entry reference](/consul/docs/reference/config-entry/service-intentions) for details.  
 
 Consul orders the matches based the following factors:
 
@@ -75,7 +75,7 @@ The following table shows match precedence in descending order:
 | 1          | `*`              | `*`         | `*`                   | `*`              |
 
 Consul prints the precedence value to the service intentions configuration entry after it processes the matching criteria. The value is read-only. Refer to 
-[`Precedence`](/consul/docs/reference/config-entry/service-intention#precedence) for additional information. 
+[`Precedence`](/consul/docs/reference/config-entry/service-intentions#precedence) for additional information. 
 
 Namespaces are an Enterprise feature. In Consul CE, the only allowable value for either namespace field is `"default"`. Other rows in the table are not applicable.
 

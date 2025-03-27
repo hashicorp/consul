@@ -20,7 +20,7 @@ When Vault is configured as the controller and connect inject Webhook Certificat
   - Controller and connect inject each locally update its own `mutatingwebhookconfiguration` so that Kubernetes can relay events.
   - Vault manages certificate rotation and rotates certificates to each webhook.
 
-To use Vault as the controller and connect inject Webhook Certificate Provider, we will need to modify the steps outlined in the [Data Integration](/consul/docs/deploy/server/k8s/multi/vault/data-integration) section:
+To use Vault as the controller and connect inject Webhook Certificate Provider, we will need to modify the steps outlined in the [Data Integration](/consul/docs/deploy/server/k8s/vault/data) section:
 
 These following steps will be repeated for each datacenter:
   1. Create a Vault policy that authorizes the desired level of access to the secret.
@@ -31,10 +31,10 @@ These following steps will be repeated for each datacenter:
 ## Prerequisites
 
 Complete the following prerequisites prior to implementing the integration described in this topic:
-1. Verify that you have completed the steps described in [Systems Integration](/consul/docs/deploy/server/k8s/multi/vault/system-integration) section of [Vault as a Secrets Backend](/consul/docs/deploy/server/k8s/multi/vault).
-1. You should be familiar with the [Data Integration Overview](/consul/docs/deploy/server/k8s/multi/vault/data-integration) section of [Vault as a Secrets Backend](/consul/docs/deploy/server/k8s/multi/vault).
-1. Configure [Vault as the Server TLS Certificate Provider on Kubernetes](/consul/docs/deploy/server/k8s/multi/vault/data-integration/server-tls)
-1. Configure [Vault as the Service Mesh Certificate Provider on Kubernetes](/consul/docs/deploy/server/k8s/multi/vault/data-integration/service-mesh-certificate)
+1. Verify that you have completed the steps described in [Systems Integration](/consul/docs/deploy/server/k8s/vault/backend) section of [Vault as a Secrets Backend](/consul/docs/deploy/server/k8s/multi/vault).
+1. You should be familiar with the [Data Integration Overview](/consul/docs/deploy/server/k8s/vault/data) section of [Vault as a Secrets Backend](/consul/docs/deploy/server/k8s/multi/vault).
+1. Configure [Vault as the Server TLS Certificate Provider on Kubernetes](/consul/docs/deploy/server/k8s/vault/data/tls-certificate)
+1. Configure [Vault as the Service Mesh Certificate Provider on Kubernetes](/consul/docs/deploy/server/k8s/vault/data/mesh-ca)
 
 ## Bootstrapping the PKI Engines
 Issue the following commands to enable and configure the PKI Secrets Engine to serve TLS certificates for the controller and connect inject webhooks:

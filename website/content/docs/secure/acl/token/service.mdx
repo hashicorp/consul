@@ -27,7 +27,7 @@ Core ACL functionality is available in all versions of Consul.
 
 The service token must be linked to policies that grant the following permissions:
 
-* `service:write`: Enables the service to update the catalog. If service mesh is enabled, the service's sidecar proxy can also update the catalog. Note that this permission implicitly grants `intention:read` permission to sidecar proxies so that they can read and enforce intentions. Refer to [Intention Management Permissions](/consul/docs/secure-mesh/intentions#intention-management-permissions) for details.
+* `service:write`: Enables the service to update the catalog. If service mesh is enabled, the service's sidecar proxy can also update the catalog. Note that this permission implicitly grants `intention:read` permission to sidecar proxies so that they can read and enforce intentions. Refer to [Intention Management Permissions](/consul/docs/secure-mesh/intention#intention-management-permissions) for details.
 * `service:read`: Enables the service to learn about other services in the network. If service mesh is enabled, the service's sidecar proxy can also learn about other services in the network.
 * `node:read`: Enables the sidecar proxy to discover and route traffic to other services in the catalog if service mesh is enabled.
 

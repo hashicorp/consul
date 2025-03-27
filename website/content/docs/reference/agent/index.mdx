@@ -957,7 +957,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
       [`acl.tokens.agent_recovery`](#acl_tokens_agent_recovery).**
 
     - `config_file_service_registration` ((#acl_tokens_config_file_service_registration)) - Specifies the ACL
-      token the agent uses to register services and checks from [service](/consul/docs/register/service/vm/define) and [check](/consul/docs/register/service/vm/health-checks) definitions
+      token the agent uses to register services and checks from [service](/consul/docs/register/service/vm/define) and [check](/consul/docs/register/health-check/vm) definitions
       specified in configuration files or fragments passed to the agent using the `-hcl`
       flag.
 
@@ -2028,7 +2028,7 @@ subsystem that provides Consul's service mesh capabilities.
     **this might make it possible for a malicious user on the network to query
     for arbitrary metrics about any server or workload in your infrastructure,
     or overload the metrics infrastructure with queries**. Refer to  [Metrics Proxy
-    Security](/consul/docs/observe/mesh/vm#metrics-proxy-security)
+    Security](/consul/docs/observe/telemetry/vm#metrics-proxy-security)
     for more details.
 
     </Note>
@@ -2049,10 +2049,10 @@ subsystem that provides Consul's service mesh capabilities.
       `base_url`. It defaults to `["/api/v1/query_range", "/api/v1/query"]`
       which are the endpoints required for the built-in Prometheus provider. If
       a [custom
-      provider](/consul/docs/observe/mesh/vm#custom-metrics-providers)
+      provider](/consul/docs/observe/telemetry/vm#custom-metrics-providers)
       is used that requires the metrics proxy, the correct allowlist must be
       specified to enable proxying to necessary endpoints. Refer to  [Path
-      Allowlist](/consul/docs/observe/mesh/vm#path-allowlist)
+      Allowlist](/consul/docs/observe/telemetry/vm#path-allowlist)
       for more information.
 
     - `add_headers` ((#ui_config_metrics_proxy_add_headers)) - This is an
@@ -2078,14 +2078,14 @@ subsystem that provides Consul's service mesh capabilities.
     available are listed for each template.
 
     For more information and examples refer to  [UI
-    Visualization](/consul/docs/observe/mesh/vm#configuring-dashboard-urls)
+    Visualization](/consul/docs/observe/telemetry/vm#configuring-dashboard-urls)
 
     The following named templates are defined:
 
     - `service` ((#ui_config_dashboard_url_templates_service)) - This is the URL
       to use when linking to the dashboard for a specific service. It is shown
       as part of the [Topology
-      Visualization](/consul/docs/observe/mesh/vm).
+      Visualization](/consul/docs/observe/telemetry/vm).
 
       The placeholders available are:
 

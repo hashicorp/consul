@@ -19,7 +19,7 @@ If you have not used Consul KV, complete this [Getting Started tutorial](/consul
 
 ## Accessing the KV store
 
-The KV store can be accessed by the [consul kv CLI subcommands](/consul/commands/kv), [HTTP API](/consul/api-docs/kv), and Consul UI. To restrict access, enable and configure [ACLs](/consul/docs/secure/acl). Once the ACL system has been bootstrapped, users and services, will need a valid token with KV [privileges](/consul/docs/secure/acl/rules#key-value-rules) to access the data store, this includes even reads. We recommend creating a token with limited privileges, for example, you could create a token with write privileges on one key for developers to update the value related to their application.
+The KV store can be accessed by the [consul kv CLI subcommands](/consul/commands/kv), [HTTP API](/consul/api-docs/kv), and Consul UI. To restrict access, enable and configure [ACLs](/consul/docs/secure/acl). Once the ACL system has been bootstrapped, users and services, will need a valid token with KV [privileges](/consul/docs/secure/acl/rule#key-value-rules) to access the data store, this includes even reads. We recommend creating a token with limited privileges, for example, you could create a token with write privileges on one key for developers to update the value related to their application.
 
 The datastore itself is located on the Consul servers in the [data directory](/consul/docs/architecture/backend). To ensure data is not lost in the event of a complete outage, use the [`consul snapshot`](/consul/commands/snapshot/restore) feature to backup the data.
 
@@ -53,7 +53,7 @@ Consul KV can also be extended with the use of watches. [Watches](/consul/docs/a
 
 ### Consul Sessions
 
-Consul sessions can be used to build distributed locks with Consul KV. Sessions act as a binding layer between nodes, health checks, and key/value data. The KV API supports an `acquire` and `release` operation. The `acquire` operation acts like a Check-And-Set operation. On success, there is a key update and an increment to the `LockIndex` and the session value is updated to reflect the session holding the lock. Review the session documentation for more information on the [integration](/consul/docs/dynamic-app/sessions#k-v-integration).
+Consul sessions can be used to build distributed locks with Consul KV. Sessions act as a binding layer between nodes, health checks, and key/value data. The KV API supports an `acquire` and `release` operation. The `acquire` operation acts like a Check-And-Set operation. On success, there is a key update and an increment to the `LockIndex` and the session value is updated to reflect the session holding the lock. Review the session documentation for more information on the [integration](/consul/docs/automate/sessionsk-v-integration).
 
 Review the following tutorials to learn how to use Consul sessions for [application leader election](/consul/tutorials/developer-configuration/application-leader-elections) and to [build distributed semaphores](/consul/tutorials/developer-configuration/distributed-semaphore).
 

@@ -26,7 +26,7 @@ Cluster peering leverages several components of Consul's architecture to enforce
 - A _peering token_ contains an embedded secret that securely establishes communication when shared symmetrically between datacenters. Sharing this token enables each datacenter's server agents to recognize requests from authorized peers, similar to how the [gossip encryption key secures agent LAN gossip](/consul/docs/secure/encryption#gossip-encryption).
 - A _mesh gateway_ encrypts outgoing traffic, decrypts incoming traffic, and directs traffic to healthy services. Consul's service mesh features must be enabled in order to use mesh gateways. Mesh gateways support the specific admin partitions they are deployed on. Refer to [Mesh gateways](/consul/docs/east-west/mesh-gateway) for more information.
 - An _exported service_ communicates with downstreams deployed in other admin partitions. They are explicitly defined in an [`exported-services` configuration entry](/consul/docs/reference/config-entry/exported-services).
-- A _service intention_ secures [service-to-service communication in a service mesh](/consul/docs/secure-mesh/intentions). Intentions enable identity-based access between services by exchanging TLS certificates, which the service's sidecar proxy verifies upon each request.
+- A _service intention_ secures [service-to-service communication in a service mesh](/consul/docs/secure-mesh/intention). Intentions enable identity-based access between services by exchanging TLS certificates, which the service's sidecar proxy verifies upon each request.
 
 ### Compared with WAN federation
 

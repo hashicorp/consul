@@ -11,7 +11,7 @@ Integrating Vault with Consul on Kubernetes includes a one-time setup on Vault a
 
 Complete the following steps once:
   - Enabling Vault KV Secrets Engine - Version 2 to store arbitrary secrets
-  - Enabling Vault PKI Engine if you are choosing to store and manage either [Consul Server TLS credentials](/consul/docs/deploy/server/k8s/multi/vault/data-integration/server-tls) or [Service Mesh and Consul client TLS credentials](/consul/docs/deploy/server/k8s/multi/vault/data-integration/service-mesh-certificate)
+  - Enabling Vault PKI Engine if you are choosing to store and manage either [Consul Server TLS credentials](/consul/docs/deploy/server/k8s/vault/data/tls-certificate) or [Service Mesh and Consul client TLS credentials](/consul/docs/deploy/server/k8s/vault/data/tls-certificate)
   
 Repeat the following steps for each datacenter in the cluster:
   - Installing the Vault Injector within the Consul datacenter installation
@@ -38,7 +38,7 @@ $ vault secrets enable -path=consul kv-v2
 
 ## Vault PKI Engine
 
-The Vault PKI Engine must be enabled in order to leverage Vault for issuing Consul Server TLS certificates. More details for configuring the PKI Engine is found in [Bootstrapping the PKI Engine](/consul/docs/deploy/server/k8s/multi/vault/data-integration/server-tls#bootstrapping-the-pki-engine) under the Server TLS section.
+The Vault PKI Engine must be enabled in order to leverage Vault for issuing Consul Server TLS certificates. More details for configuring the PKI Engine is found in [Bootstrapping the PKI Engine](/consul/docs/deploy/server/k8s/vault/data/tls-certificate#bootstrapping-the-pki-engine) under the Server TLS section.
 
 ```shell-session
 $ vault secrets enable pki
@@ -197,7 +197,7 @@ global:
 
 ## Next Steps
 
-As a next step, please proceed to Vault integration with Consul on Kubernetes' [Data Integration](/consul/docs/deploy/server/k8s/multi/vault/data-integration).
+As a next step, please proceed to Vault integration with Consul on Kubernetes' [Data Integration](/consul/docs/deploy/server/k8s/vault/data).
 
 ## Troubleshooting
 

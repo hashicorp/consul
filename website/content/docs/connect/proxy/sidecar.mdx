@@ -7,7 +7,7 @@ description: >-
 
 # Deploy sidecar services
 
-This topic describes how to create, register, and start sidecar proxy services in Consul. Refer to [Service mesh proxies overview](/consul/docs/connect/proxy) for additional information about how proxies enable Consul's functions and operations. For information about deploying service mesh proxies, refer to [Deploy service mesh proxies](/consul/docs/deploy/service-mesh/deploy-proxy).
+This topic describes how to create, register, and start sidecar proxy services in Consul. Refer to [Service mesh proxies overview](/consul/docs/connect/proxy) for additional information about how proxies enable Consul's functions and operations. For information about deploying service mesh proxies, refer to [Deploy service mesh proxies](/consul/docs/connect/proxy/mesh).
 
 ## Overview
 
@@ -23,7 +23,7 @@ You can attach a sidecar proxy to a service you want to deploy to your mesh:
 
 ## Requirements
 
-If ACLs are enabled and you want to configure global Envoy settings in the [proxy defaults configuration entry](/consul/docs/reference/config-entry/proxy-defaults), you must present a token with `operator:write` permissions. Refer to [Create a service token](/consul/docs/secure/acl/token/service-token) for additional information.
+If ACLs are enabled and you want to configure global Envoy settings in the [proxy defaults configuration entry](/consul/docs/reference/config-entry/proxy-defaults), you must present a token with `operator:write` permissions. Refer to [Create a service token](/consul/docs/secure/acl/token/service) for additional information.
 
 ## Configure global Envoy passthrough settings
 
@@ -211,8 +211,7 @@ proxy.
   and [`sidecar_max_port`](/consul/docs/reference/agent#sidecar_max_port).
 - `kind` - Defaults to `connect-proxy`. This value cannot be overridden.
 - `check`, `checks` - By default we add a TCP check on the local address and
-  port for the proxy, and a [service alias
-  check](/consul/docs/register/service/vm/health-checks#alias-checks) for the parent service. If either
+  port for the proxy, and a [service alias check](/consul/docs/register/health-check/vm#alias-checks) for the parent service. If either
   `check` or `checks` fields are set, only the provided checks are registered.
 - `proxy.destination_service_name` - Defaults to the parent service name.
 - `proxy.destination_service_id` - Defaults to the parent service ID.

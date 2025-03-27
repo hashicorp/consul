@@ -20,7 +20,7 @@ The process to configure your network to enforce service intentions based on JSO
 
 ### Wildcards and intention defaults
 
-Because intentions without tokens are authorized when they arrive at the destination proxy, a [common pattern for the service-intentions configuration entry](/consul/docs/reference/config-entry/service-intention#l4-intentions-for-all-destinations) sets the entry’s `Name` field as a wildcard, `*`. This pattern enables you to apply incoming requests from specific services to every service in the datacenter.
+Because intentions without tokens are authorized when they arrive at the destination proxy, a [common pattern for the service-intentions configuration entry](/consul/docs/reference/config-entry/service-intentions#l4-intentions-for-all-destinations) sets the entry’s `Name` field as a wildcard, `*`. This pattern enables you to apply incoming requests from specific services to every service in the datacenter.
 
 When configuring your deployment to enforce service intentions with JSON Web Tokens, it is possible for multiple tokens with different permissions to apply to a single service’s incoming request based on attributes such as HTTP path or the request method. Because the `service-intentions` configuration entry applies the intention that most closely matches the request, using the `Name` wildcard with specific JWT authorization configurations can lead to unintended results.
 
@@ -96,7 +96,7 @@ JWT = {
 }
 ```
 
-You can include additional configuration information to require the token to match specific claims. You can also configure the `JWT` field to apply only to requests that come from certain HTTP paths. Refer to [JWT validations with intentions](/consul/docs/reference/config-entry/service-intention#jwt-validations-with-intentions) for an example configuration.
+You can include additional configuration information to require the token to match specific claims. You can also configure the `JWT` field to apply only to requests that come from certain HTTP paths. Refer to [JWT validations with intentions](/consul/docs/reference/config-entry/service-intentions#jwt-validations-with-intentions) for an example configuration.
 
 After you update the service intention, write the configuration to Consul so that it takes effect:
 
