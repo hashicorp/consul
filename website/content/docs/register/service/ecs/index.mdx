@@ -378,7 +378,7 @@ Refer to the [Terraform documentation](/terraform/docs) for more information and
 After deploying the Consul service mesh infrastructure, you must still define routes between service instances as well as configure the bind address for your applications so that they only receive traffic through the mesh. Refer to the following topics:
 
 - [Configure routes between ECS tasks](/consul/docs/connect/ecs)
-- [Configure the ECS task bind address](/consul/docs/register/service/ecs/configure-task-bind-address)
+- [Configure the ECS task bind address](/consul/docs/register/service/ecs/task-bind-address)
 
 ## Gateway task configuration examples
 
@@ -475,4 +475,4 @@ module "my_mesh_gateway" {
 
 </CodeBlockConfig>
 
-When federating Consul datacenters over the WAN with ACLs enabled, enable [ACL Token replication](/consul/docs/secure/acl/federation) on all server and client agents in all datacenters.
+When federating Consul datacenters over the WAN with ACLs enabled, enable [ACL Token replication](/consul/docs/secure/acl/token/replication) on all server and client agents in all datacenters.

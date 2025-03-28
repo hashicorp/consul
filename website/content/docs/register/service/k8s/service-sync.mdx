@@ -85,7 +85,7 @@ for both in-cluster and out-of-cluster authentication. If `kubectl` works,
 then the sync program should work.
 
 If ACLs are configured on the Consul cluster, you need to provide a Consul
-[ACL token](/consul/docs/secure/acl/token). Review the [ACL rules](/consul/docs/secure/acl/rules)
+[ACL token](/consul/docs/secure/acl/token). Review the [ACL rules](/consul/docs/secure/acl/rule)
 when creating this token so that it only allows the necessary privileges. The catalog
 sync process accepts this token by using the [`CONSUL_HTTP_TOKEN`](/consul/commands#consul_http_token)
 environment variable. This token should be set as a

@@ -25,7 +25,7 @@ To configure L7 traffic management behavior in deployments with cluster peering 
 
 1. Define the peer cluster as a failover target in the service resolver configuration. 
 
-  The following example updates the [`service-resolver` CRD](/consul/docs/reference/config-entry/serviceresolver) in `cluster-01` so that Consul redirects traffic intended for the `frontend` service to a backup instance in peer `cluster-02` when it detects multiple connection failures.
+  The following example updates the [`service-resolver` CRD](/consul/docs/reference/config-entry/service-resolver) in `cluster-01` so that Consul redirects traffic intended for the `frontend` service to a backup instance in peer `cluster-02` when it detects multiple connection failures.
 
   ```yaml
   apiVersion: consul.hashicorp.com/v1alpha1

@@ -189,7 +189,7 @@ Refer to the [service mesh observability overview](/consul/docs/observe/tech-spe
 
 If your service is still receiving non-mTLS traffic, complete the following steps to determine the source of the non-mTLS traffic:
 
-1. Verify the list of downstream services. Optionally, you can enable [Envoy access logging](/consul/docs/observe/access-logs) to determine source IP addresses for incoming traffic, and cross-reference those IP addresses with services in your network.
+1. Verify the list of downstream services. Optionally, you can enable [Envoy access logging](/consul/docs/observe/access-log) to determine source IP addresses for incoming traffic, and cross-reference those IP addresses with services in your network.
 1. Verify that each downstream is onboarded to the service mesh. If a downstream is not onboarded, consider onboarding it next.
 1. Verify that each downstream has an intention that allows it to send traffic to the upstream service.
 

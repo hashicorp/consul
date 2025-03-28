@@ -254,7 +254,7 @@ The policy allows Consul to generate a token linked to the policy. Refer to [Cre
 
 ### ECS task role
 
-1. Create an ECS task role and configure an `iam:GetRole` permission so that it can fetch itself. Refer to [IAM Policies](/consul/docs/secure/acl/auth-method/aws-iam#iam-policies) for instructions.
+1. Create an ECS task role and configure an `iam:GetRole` permission so that it can fetch itself. Refer to [IAM Policies](/consul/docs/secure/acl/auth-method/aws#iam-policies) for instructions.
 1. Add an `consul.hashicorp.com.service-name` tag to the task role that contains the Consul service name for the application in the task.
 1. When using Consul Enterprise, you must also include the `consul.hashicorp.com.namespace` tag to specify the namespace to register the service in.
 
@@ -301,7 +301,7 @@ You must specify the following configuration in the `-config` flag:
 | `EnableIAMEntityDetails` | Must be `true` so that the auth method can retrieve IAM role details, such as the role path and role tags. | Boolean |
 | `IAMEntityTags` | Specifies a list of IAM role tags to make available to binding rules. Must include the service name tag. | List |
 
-Refer to the [auth method configuration parameters documentation](/consul/docs/secure/acl/auth-method/aws-iam#config-parameters) for additional information.
+Refer to the [auth method configuration parameters documentation](/consul/docs/secure/acl/auth-method/aws#config-parameters) for additional information.
 
 ### Create the binding rule 
 
@@ -340,4 +340,4 @@ You can configure Consul servers connected to your ECS workloads to capture a lo
 After deploying the Consul service mesh infrastructure, you must still define routes between service instances as well as configure the bind address for your applications so that they only receive traffic through the mesh. Refer to the following topics:
 
 - [Configure routes between ECS tasks](/consul/docs/connect/ecs)
-- [Configure the ECS task bind address](/consul/docs/register/service/ecs/configure-task-bind-address)
+- [Configure the ECS task bind address](/consul/docs/register/service/ecs/task-bind-address)

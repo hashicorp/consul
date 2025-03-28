@@ -75,7 +75,7 @@ parameters are required to properly configure an auth method of type
 ## RBAC
 
 The Kubernetes service account corresponding to the configured
-[`ServiceAccountJWT`](/consul/docs/secure/acl/auth-method/kubernetes#serviceaccountjwt)
+[`ServiceAccountJWT`](/consul/docs/secure/acl/auth-method/k8s#serviceaccountjwt)
 needs to have access to two Kubernetes APIs:
 
 - [**TokenReview**](https://kubernetes.io/docs/reference/kubernetes-api/authentication-resources/token-review-v1/)
@@ -139,7 +139,7 @@ roleRef:
 ## Kubernetes authentication details
 
 Initially the
-[`ServiceAccountJWT`](/consul/docs/secure/acl/auth-method/kubernetes#serviceaccountjwt)
+[`ServiceAccountJWT`](/consul/docs/secure/acl/auth-method/k8s#serviceaccountjwt)
 given to the Consul leader uses the TokenReview API to validate the provided
 JWT. The trusted attributes of `serviceaccount.namespace`,
 `serviceaccount.name`, and `serviceaccount.uid` are populated directly from the

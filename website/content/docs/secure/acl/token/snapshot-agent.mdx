@@ -41,7 +41,7 @@ To create a token for the snapshot agent, you must define a policy, register the
 
 ### Define a policy
 
-You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/secure/acl/rules) for details about all of the rules you can use in your policies.
+You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/secure/acl/rule) for details about all of the rules you can use in your policies.
 
 The following example policy is defined in a file. The policy grants the appropriate permissions for a snapshot agent running on a node named `server-1234` to register into the catalog as the `consul-snapshot` service. It uses the key `consul-snapshot/lock` for a leader election lock.
 

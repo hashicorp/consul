@@ -172,7 +172,7 @@ To enable script checks, you must first enable the agent to send external reques
    ```
    </CodeTabs>
 
-Refer to [Health Checks Configuration Reference](/consul/docs/reference/service/health-checks) for information about all health check configurations.
+Refer to [Health Checks Configuration Reference](/consul/docs/reference/service/health-check) for information about all health check configurations.
 
 ### Script check exit codes
 
@@ -190,7 +190,7 @@ _HTTP_ checks send an HTTP request to the specified URL and report the service h
 
 ### HTTP check configuration
 
-Add an `http` field to the `check` block in your service definition file and specify the HTTP address, including port number, for the check to call. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/reference/service/health-checks) for information about all health check configurations.
+Add an `http` field to the `check` block in your service definition file and specify the HTTP address, including port number, for the check to call. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/reference/service/health-check) for information about all health check configurations.
 
 In the following example, an HTTP check named `HTTP API on port 5000` sends a `POST` request to the `health` endpoint every 10 seconds:
 
@@ -252,7 +252,7 @@ TCP checks establish connections to the specified IPs or hosts. If the check suc
 
 ### TCP check configuration
 
-Add a `tcp` field to the `check` block in your service definition file and specify the address, including port number, for the check to call. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/reference/service/health-checks) for information about all health check configurations.
+Add a `tcp` field to the `check` block in your service definition file and specify the address, including port number, for the check to call. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/reference/service/health-check) for information about all health check configurations.
 
 In the following example, a TCP check named `SSH TCP on port 22` attempts to connect to `localhost:22` every 10 seconds:
 
@@ -293,7 +293,7 @@ UDP checks direct the Consul agent to send UDP datagrams to the specified IP or 
 
 ### UDP check configuration
 
-Add a `udp` field to the `check` block in your service definition file and specify the address, including port number, for sending datagrams. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/reference/service/health-checks) for information about all health check configurations. 
+Add a `udp` field to the `check` block in your service definition file and specify the address, including port number, for sending datagrams. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/reference/service/health-check) for information about all health check configurations. 
 
 In the following example, a UDP check named `DNS UDP on port 53` sends datagrams to `localhost:53` every 10 seconds: 
 
@@ -331,7 +331,7 @@ OSService checks if an OS service is running on the host. OSService checks suppo
 
 ### OSService check configurations
 
-Add an `os_service` field to the `check` block in your service definition file and specify the name of the service to check. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/reference/service/health-checks) for information about all health check configurations. 
+Add an `os_service` field to the `check` block in your service definition file and specify the name of the service to check. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/reference/service/health-check) for information about all health check configurations. 
 
 In the following example, an OSService check named `svcname-001 Windows Service Health` verifies that the `myco-svctype-svcname-001` service is running every 10 seconds:
 
@@ -376,7 +376,7 @@ You can manually mark a service as unhealthy using the [`consul maint` CLI comma
 
 ### TTL check configuration
 
-Add a `ttl` field to the `check` block in your service definition file and specify how long to wait for an update from the external process. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/reference/service/health-checks) for information about all health check configurations. 
+Add a `ttl` field to the `check` block in your service definition file and specify how long to wait for an update from the external process. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/reference/service/health-check) for information about all health check configurations. 
 
 In the following example, a TTL check named `Web App Status` logs the application as `critical` if a status update is not received every 30 seconds:
 
@@ -465,7 +465,7 @@ check = {
 gRPC checks send a request to the specified endpoint. These checks are intended for applications that support the standard [gRPC health checking protocol](https://github.com/grpc/grpc/blob/master/doc/health-checking.md). 
 
 ### gRPC check configuration
-Add a `grpc` field to the `check` block in your service definition file and specify the endpoint, including port number, for sending requests. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/reference/service/health-checks) for information about all health check configurations. 
+Add a `grpc` field to the `check` block in your service definition file and specify the endpoint, including port number, for sending requests. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/reference/service/health-check) for information about all health check configurations. 
 
 In the following example, a gRPC check named `Service health status` probes the entire application by sending requests to `127.0.0.1:12345` every 10 seconds:
 
@@ -534,7 +534,7 @@ By default, gRPC checks timeout after 10 seconds, but you can specify a custom d
 H2ping checks test an endpoint that uses HTTP2 by connecting to the endpoint and sending a ping frame. If the endpoint sends a response within the specified interval, the check status is set to `success`.
 
 ### H2ping check configuration
-Add an `h2ping` field to the `check` block in your service definition file and specify the HTTP2 endpoint, including port number, for the check to ping. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/reference/service/health-checks) for information about all health check configurations.
+Add an `h2ping` field to the `check` block in your service definition file and specify the HTTP2 endpoint, including port number, for the check to ping. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/reference/service/health-check) for information about all health check configurations.
 
 In the following example, an H2ping check named `h2ping` pings the endpoint at `localhost:22222` every 10 seconds:
 
@@ -579,7 +579,7 @@ For aliased services on the same agent, the check monitors the local state witho
 For the blocking query, the alias check presents the ACL token set on the actual service or the token configured in the check definition. If neither are available, the alias check falls back to the default ACL token set for the agent. Refer to [`acl.tokens.default`](/consul/docs/reference/agent#acl_tokens_default) for additional information about the default ACL token.
 
 ### Alias checks configuration
-Add an `alias_service` field to the `check` block in your service definition file and specify the name of the service or node to alias. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/reference/service/health-checks) for information about all health check configurations.
+Add an `alias_service` field to the `check` block in your service definition file and specify the name of the service or node to alias. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/reference/service/health-check) for information about all health check configurations.
 
 In the following example, an alias check with the ID `web-alias` reports the health state of the `web` service:
 

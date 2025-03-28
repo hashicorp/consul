@@ -3835,7 +3835,7 @@ module.exports = [
   },
   {
     source: '/consul/tutorials/archive/tls-encryption-secure',
-    destination: '/consul/docs/secure/encryption/mtls',
+    destination: '/consul/docs/secure/encryption/tls/mtls',
     permanent: true,
   },
   {
