@@ -790,7 +790,7 @@ func TestAPI_ClientTxnWrite(t *testing.T) {
 				Address: "1.1.1.1",
 				Port:    23456,
 				TaggedAddresses: map[string]ServiceAddress{
-					"wlan": ServiceAddress{
+					"wlan": {
 						Address: "1.1.1.1",
 						Port:    23456,
 					},
