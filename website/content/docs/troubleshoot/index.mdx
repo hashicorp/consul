@@ -267,6 +267,26 @@ external shell command to verify service health.
 - [Documentation on Consul health
   checks](/consul/docs/register/health-check/vm)
 
+## Kubernetes and OpenShift deployments
+
+In Kubernetes and OpenShift deployments, you can inspect the running Consul workloads and interact with the cluster with the `kubectl` command.
+
+Use `kubectl get pods` to verify the status of your Consul deployment. By default, the Consul service is deployed within a Kubernetes namespace called `consul`.
+
+```shell-session
+$ kubectl get pods --namespace consul
+NAME                                           READY   STATUS    RESTARTS   AGE
+consul-cni-45fgb                               1/1     Running   0          3m
+consul-connect-injector-574799b944-n6jf6       1/1     Running   0          3m
+consul-connect-injector-574799b944-xvksv       1/1     Running   0          3m
+consul-server-0                                1/1     Running   0          3m
+consul-webhook-cert-manager-74467cdd8d-88m6j   1/1     Running   0          3m
+```
+
+Inspect the status of the Consul server pods called `consul-server-<X>` and whether they are running successfully. You can use typical Consul troubleshooting commands like `consul members` through `kubectl` in the following format `kubectl exec <POD-NAME> -c <CONTAINER-NAME> -- <CONSUL-COMMAND>`. For example, to show the the Consul cluster members, run `kubectl exec consul-server-0 -c consul -- consul members`.
+
+If any of the pods are in a status other than `Running`, you can further inspect their state by running `kubectl describe pods <PODNAME>`. Refer to the [Debug Kubernetes Pods](https://kubernetes.io/docs/tasks/debug/debug-application/debug-pods/) article for further troubleshooting of the deployment's pods.
+
 ## External tools
 
 Consul was designed to work within an established ecosystem of networking
