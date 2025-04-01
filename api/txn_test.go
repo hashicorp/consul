@@ -34,9 +34,27 @@ func TestAPI_ClientTxn(t *testing.T) {
 		ID:      nodeID,
 		Node:    "foo",
 		Address: "2.2.2.2",
+		TaggedAddresses: map[string]string{
+			"wlan": "2.2.2.2",
+		},
+		NodeMeta: map[string]string{
+			"n1": "v1",
+		},
 		Service: &AgentService{
 			ID:      "foo1",
 			Service: "foo",
+			Address: "2.2.2.2",
+			Port:    12345,
+			TaggedAddresses: map[string]ServiceAddress{
+				"wlan": {
+					Address: "2.2.2.2",
+					Port:    12345,
+				},
+			},
+			Tags: []string{"tag1", "tag2"},
+			Meta: map[string]string{
+				"s1": "v1",
+			},
 		},
 		Checks: HealthChecks{
 			{
@@ -207,22 +225,44 @@ func TestAPI_ClientTxn(t *testing.T) {
 		},
 		&TxnResult{
 			Node: &Node{
-				ID:          nodeID,
-				Node:        "foo",
-				Partition:   defaultPartition,
-				Address:     "2.2.2.2",
+				ID:        nodeID,
+				Node:      "foo",
+				Partition: defaultPartition,
+				Address:   "2.2.2.2",
+				TaggedAddresses: map[string]string{
+					"wlan": "2.2.2.2",
+				},
+				Meta: map[string]string{
+					"n1": "v1",
+				},
 				Datacenter:  "dc1",
 				CreateIndex: ret.Results[2].Node.CreateIndex,
 				ModifyIndex: ret.Results[2].Node.CreateIndex,
 			},
 		},
 		&TxnResult{
-			Service: &CatalogService{
-				ID:          "foo1",
+			Service: &AgentService{
+				ID:      "foo1",
+				Service: "foo",
+				Port:    12345,
+				Address: "2.2.2.2",
+				TaggedAddresses: map[string]ServiceAddress{
+					"wlan": {
+						Address: "2.2.2.2",
+						Port:    12345,
+					},
+				},
+				Tags: []string{"tag1", "tag2"},
+				Meta: map[string]string{
+					"s1": "v1",
+				},
 				CreateIndex: ret.Results[3].Service.CreateIndex,
 				ModifyIndex: ret.Results[3].Service.CreateIndex,
 				Partition:   defaultPartition,
 				Namespace:   defaultNamespace,
+				Weights:     AgentWeights{Passing: 1, Warning: 1},
+				Proxy:       &AgentServiceConnectProxyConfig{},
+				Connect:     &AgentServiceConnect{},
 			},
 		},
 		&TxnResult{
@@ -391,4 +431,405 @@ func TestAPI_ClientTxn(t *testing.T) {
 	if meta.LastIndex == 0 {
 		t.Fatalf("unexpected value: %#v", meta)
 	}
+}
+
+func TestAPI_ClientTxnWrite(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	s.WaitForSerfCheck(t)
+
+	ops := []*TxnOp{
+		{
+			KV: &KVTxnOp{
+				Verb: KVSet,
+				Key:  "k1",
+			},
+		},
+		{
+			Node: &NodeTxnOp{
+				Verb: NodeSet,
+				Node: Node{
+					Node:    "n1",
+					Address: "1.1.1.1",
+					TaggedAddresses: map[string]string{
+						"wlan": "1.1.1.1",
+					},
+					Meta: map[string]string{
+						"n1": "v1",
+					},
+				},
+			},
+		},
+		{
+			Service: &ServiceTxnOp{
+				Verb: ServiceSet,
+				Node: "n1",
+				Service: AgentService{
+					ID:      "s1",
+					Service: "s1",
+					Port:    12345,
+					Address: "1.1.1.1",
+					TaggedAddresses: map[string]ServiceAddress{
+						"wlan": {
+							Address: "1.1.1.1",
+							Port:    12345,
+						},
+					},
+					Tags: []string{"tag1", "tag2"},
+					Meta: map[string]string{
+						"s1": "v1",
+					},
+				},
+			},
+		},
+		{
+			Check: &CheckTxnOp{
+				Verb: CheckSet,
+				Check: HealthCheck{
+					Node:        "n1",
+					CheckID:     "c1",
+					ServiceID:   "s1",
+					ServiceName: "s1",
+					ServiceTags: []string{"tag1", "tag2"},
+					Type:        "tcp",
+					Status:      "passing",
+					Definition: HealthCheckDefinition{
+						TCP:                            "1.1.1.1",
+						Interval:                       ReadableDuration(40 * time.Second),
+						Timeout:                        ReadableDuration(80 * time.Second),
+						DeregisterCriticalServiceAfter: ReadableDuration(160 * time.Second),
+					},
+				},
+			},
+		},
+	}
+
+	ok, firstRet, _, err := c.Txn().Txn(ops, &QueryOptions{})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	} else if !ok {
+		t.Fatalf("transaction failure")
+	}
+
+	if firstRet == nil || len(firstRet.Errors) != 0 || len(firstRet.Results) != 4 {
+		t.Fatalf("bad: %v", firstRet)
+	}
+	expected := TxnResults{
+		&TxnResult{
+			KV: &KVPair{
+				Key:         "k1",
+				CreateIndex: firstRet.Results[0].KV.CreateIndex,
+				ModifyIndex: firstRet.Results[0].KV.ModifyIndex,
+				Namespace:   firstRet.Results[0].KV.Namespace,
+				Partition:   defaultPartition,
+			},
+		},
+		&TxnResult{
+			Node: &Node{
+				Node:      "n1",
+				Partition: defaultPartition,
+				Address:   "1.1.1.1",
+				TaggedAddresses: map[string]string{
+					"wlan": "1.1.1.1",
+				},
+				Meta: map[string]string{
+					"n1": "v1",
+				},
+				Datacenter:  "dc1",
+				CreateIndex: firstRet.Results[1].Node.CreateIndex,
+				ModifyIndex: firstRet.Results[1].Node.ModifyIndex,
+			},
+		},
+		&TxnResult{
+			Service: &AgentService{
+				ID:      "s1",
+				Service: "s1",
+				Port:    12345,
+				Address: "1.1.1.1",
+				TaggedAddresses: map[string]ServiceAddress{
+					"wlan": {
+						Address: "1.1.1.1",
+						Port:    12345,
+					},
+				},
+				Tags: []string{"tag1", "tag2"},
+				Meta: map[string]string{
+					"s1": "v1",
+				},
+				CreateIndex: firstRet.Results[2].Service.CreateIndex,
+				ModifyIndex: firstRet.Results[2].Service.ModifyIndex,
+				Partition:   defaultPartition,
+				Namespace:   defaultNamespace,
+				Weights:     AgentWeights{Passing: 1, Warning: 1},
+				Proxy:       &AgentServiceConnectProxyConfig{},
+				Connect:     &AgentServiceConnect{},
+			},
+		},
+		&TxnResult{
+			Check: &HealthCheck{
+				Node:        "n1",
+				CheckID:     "c1",
+				ServiceID:   "s1",
+				ServiceName: "s1",
+				ServiceTags: []string{"tag1", "tag2"},
+				Status:      "passing",
+				Definition: HealthCheckDefinition{
+					TCP:                                    "1.1.1.1",
+					Interval:                               ReadableDuration(40 * time.Second),
+					IntervalDuration:                       40 * time.Second,
+					Timeout:                                ReadableDuration(80 * time.Second),
+					TimeoutDuration:                        80 * time.Second,
+					DeregisterCriticalServiceAfter:         ReadableDuration(160 * time.Second),
+					DeregisterCriticalServiceAfterDuration: 160 * time.Second,
+				},
+				Type:        "tcp",
+				Partition:   defaultPartition,
+				Namespace:   defaultNamespace,
+				CreateIndex: firstRet.Results[3].Check.CreateIndex,
+				ModifyIndex: firstRet.Results[3].Check.ModifyIndex,
+			},
+		},
+	}
+	require.Equal(t, expected, firstRet.Results)
+
+	ops = []*TxnOp{
+		{
+			KV: &KVTxnOp{
+				Verb: KVSet,
+				Key:  "k2",
+			},
+		},
+		{
+			KV: &KVTxnOp{
+				Verb: KVDelete,
+				Key:  "k1",
+			},
+		},
+		{
+			Service: &ServiceTxnOp{
+				Verb: ServiceSet,
+				Node: "n1",
+				Service: AgentService{
+					ID:      "s2",
+					Service: "s2",
+					Port:    23456,
+					Address: "1.1.1.1",
+					TaggedAddresses: map[string]ServiceAddress{
+						"wlan": {
+							Address: "1.1.1.1",
+							Port:    23456,
+						},
+					},
+					Tags: []string{"tag3"},
+					Meta: map[string]string{
+						"s2": "v2",
+					},
+				},
+			},
+		},
+		{
+			Check: &CheckTxnOp{
+				Verb: CheckSet,
+				Check: HealthCheck{
+					Node:        "n1",
+					CheckID:     "c2",
+					ServiceID:   "s2",
+					ServiceName: "s2",
+					ServiceTags: []string{"tag3"},
+					Type:        "http",
+					Status:      "critical",
+					Definition: HealthCheckDefinition{
+						HTTP:                           "1.1.1.1",
+						Interval:                       ReadableDuration(40 * time.Second),
+						Timeout:                        ReadableDuration(80 * time.Second),
+						DeregisterCriticalServiceAfter: ReadableDuration(160 * time.Second),
+					},
+				},
+			},
+		},
+		{
+			Service: &ServiceTxnOp{
+				Verb: ServiceDelete,
+				Node: "n1",
+				Service: AgentService{
+					ID:      "s1",
+					Service: "s1",
+				},
+			},
+		},
+		{
+			Check: &CheckTxnOp{
+				Verb: CheckDelete,
+				Check: HealthCheck{
+					Node:        "n1",
+					CheckID:     "c1",
+					ServiceID:   "s1",
+					ServiceName: "s1",
+				},
+			},
+		},
+	}
+
+	ok, secondRet, _, err := c.Txn().Txn(ops, &QueryOptions{})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	} else if !ok {
+		t.Fatalf("transaction failure")
+	}
+
+	if secondRet == nil || len(secondRet.Errors) != 0 || len(secondRet.Results) != 3 {
+		t.Fatalf("bad: %v", secondRet)
+	}
+
+	expected = TxnResults{
+		&TxnResult{
+			KV: &KVPair{
+				Key:         "k2",
+				CreateIndex: secondRet.Results[0].KV.CreateIndex,
+				ModifyIndex: secondRet.Results[0].KV.ModifyIndex,
+				Namespace:   secondRet.Results[0].KV.Namespace,
+				Partition:   defaultPartition,
+			},
+		},
+		&TxnResult{
+			Service: &AgentService{
+				ID:      "s2",
+				Service: "s2",
+				Port:    23456,
+				Address: "1.1.1.1",
+				TaggedAddresses: map[string]ServiceAddress{
+					"wlan": {
+						Address: "1.1.1.1",
+						Port:    23456,
+					},
+				},
+				Tags: []string{"tag3"},
+				Meta: map[string]string{
+					"s2": "v2",
+				},
+				CreateIndex: secondRet.Results[1].Service.CreateIndex,
+				ModifyIndex: secondRet.Results[1].Service.ModifyIndex,
+				Partition:   defaultPartition,
+				Namespace:   defaultNamespace,
+				Weights:     AgentWeights{Passing: 1, Warning: 1},
+				Proxy:       &AgentServiceConnectProxyConfig{},
+				Connect:     &AgentServiceConnect{},
+			},
+		},
+		&TxnResult{
+			Check: &HealthCheck{
+				Node:        "n1",
+				CheckID:     "c2",
+				ServiceID:   "s2",
+				ServiceName: "s2",
+				ServiceTags: []string{"tag3"},
+				Status:      "critical",
+				Definition: HealthCheckDefinition{
+					HTTP:                                   "1.1.1.1",
+					Interval:                               ReadableDuration(40 * time.Second),
+					IntervalDuration:                       40 * time.Second,
+					Timeout:                                ReadableDuration(80 * time.Second),
+					TimeoutDuration:                        80 * time.Second,
+					DeregisterCriticalServiceAfter:         ReadableDuration(160 * time.Second),
+					DeregisterCriticalServiceAfterDuration: 160 * time.Second,
+				},
+				Type:        "http",
+				Partition:   defaultPartition,
+				Namespace:   defaultNamespace,
+				CreateIndex: secondRet.Results[2].Check.CreateIndex,
+				ModifyIndex: secondRet.Results[2].Check.ModifyIndex,
+			},
+		},
+	}
+	require.Equal(t, expected, secondRet.Results)
+
+	kvPairs, _, err := c.KV().List("", nil)
+	require.NoError(t, err)
+
+	expectedKvPairs := KVPairs{
+		{
+			Key:         "k2",
+			CreateIndex: secondRet.Results[0].KV.CreateIndex,
+			ModifyIndex: secondRet.Results[0].KV.ModifyIndex,
+		},
+	}
+	require.Equal(t, expectedKvPairs, kvPairs)
+
+	services, _, err := c.Catalog().Services(nil)
+	require.NoError(t, err)
+
+	expectedServices := map[string][]string{
+		"consul": {},
+		"s2":     {"tag3"},
+	}
+	require.Equal(t, expectedServices, services)
+
+	entries, _, err := c.Health().Service("s2", "", false, nil)
+	require.NoError(t, err)
+
+	expectedEntries := []*ServiceEntry{
+		{
+			Node: &Node{
+				Node:    "n1",
+				Address: "1.1.1.1",
+				TaggedAddresses: map[string]string{
+					"wlan": "1.1.1.1",
+				},
+				Meta: map[string]string{
+					"n1": "v1",
+				},
+				Datacenter:  "dc1",
+				CreateIndex: firstRet.Results[1].Node.CreateIndex,
+				ModifyIndex: firstRet.Results[1].Node.ModifyIndex,
+			},
+			Service: &AgentService{
+				ID:      "s2",
+				Service: "s2",
+				Address: "1.1.1.1",
+				Port:    23456,
+				TaggedAddresses: map[string]ServiceAddress{
+					"wlan": {
+						Address: "1.1.1.1",
+						Port:    23456,
+					},
+				},
+				Tags: []string{"tag3"},
+				Meta: map[string]string{
+					"s2": "v2",
+				},
+				Weights:     AgentWeights{Passing: 1, Warning: 1},
+				CreateIndex: secondRet.Results[1].Service.CreateIndex,
+				ModifyIndex: secondRet.Results[1].Service.ModifyIndex,
+				Proxy:       &AgentServiceConnectProxyConfig{},
+				Connect:     &AgentServiceConnect{},
+			},
+			Checks: HealthChecks{
+				{
+					Node:        "n1",
+					CheckID:     "c2",
+					ServiceID:   "s2",
+					ServiceName: "s2",
+					ServiceTags: []string{"tag3"},
+					Status:      "critical",
+					Definition: HealthCheckDefinition{
+						HTTP:                                   "1.1.1.1",
+						Interval:                               ReadableDuration(40 * time.Second),
+						IntervalDuration:                       40 * time.Second,
+						Timeout:                                ReadableDuration(80 * time.Second),
+						TimeoutDuration:                        80 * time.Second,
+						DeregisterCriticalServiceAfter:         ReadableDuration(160 * time.Second),
+						DeregisterCriticalServiceAfterDuration: 160 * time.Second,
+					},
+					Type:        "http",
+					Partition:   defaultPartition,
+					Namespace:   defaultNamespace,
+					CreateIndex: secondRet.Results[2].Check.CreateIndex,
+					ModifyIndex: secondRet.Results[2].Check.ModifyIndex,
+				},
+			},
+		},
+	}
+	require.Equal(t, expectedEntries, entries)
 }
