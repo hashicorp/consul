@@ -312,7 +312,7 @@
                     "path": "deploy/server/k8s/platform/gke"
                   },
                   {
-                    "title": "Red Hat OpenShift",
+                    "title": "OpenShift (Red Hat)",
                     "path": "deploy/server/k8s/platform/openshift"
                   },
                   {
