@@ -208,7 +208,7 @@ is responsible for synchronizing and reissuing secrets at runtime.
 As a result of these additional sidecar containers the typical location for logging is expanded in the Consul components.
 
 As a general rule the best way to troubleshoot startup issues for your Consul installation when using the Vault integration
-is to establish if the `vault-agent-init` container has completed or not via `kubectl logs -f <your-consul-component> -c vault-agent-int`
+is to establish if the `vault-agent-init` container has completed or not via `kubectl logs -f <your-consul-component> -c vault-agent-init`
 and checking to see if the secrets have completed rendering.
 * If the secrets are not properly rendered the underlying problem will be logged in `vault-agent-init` init-container
   and generally is related to the Vault Kube Auth Role not having the correct policies for the specific secret
