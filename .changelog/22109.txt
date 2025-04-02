@@ -1,0 +1,3 @@
+```release-note:bug
+aws-auth: Fix bug where calls to AWS IAM and STS services error out due to URL with multiple trailing slashes.
+```

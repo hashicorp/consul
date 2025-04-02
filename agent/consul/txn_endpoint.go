@@ -268,7 +268,7 @@ func (t *Txn) Read(args *structs.TxnReadRequest, reply *structs.TxnReadResponse)
 // nodeVerbValidate checks for a known operation type. For certain operations,
 // it also indicated if further "preApply" checks are required.
 func nodeVerbValidate(op api.NodeOp) (bool, error) {
-	// enumcover: api.NodeOp
+	// enumcover:api.NodeOp
 	switch op {
 	// Skip the pre-apply checks if this is a GET.
 	case api.NodeGet:
@@ -283,7 +283,7 @@ func nodeVerbValidate(op api.NodeOp) (bool, error) {
 // serviceVerbValidate checks for a known operation type. For certain operations,
 // it also indicated if further "preApply" checks are required.
 func serviceVerbValidate(op api.ServiceOp) (bool, error) {
-	// enumcover: api.ServiceOp
+	// enumcover:api.ServiceOp
 	switch op {
 	// Skip the pre-apply checks if this is a GET.
 	case api.ServiceGet:
@@ -298,7 +298,7 @@ func serviceVerbValidate(op api.ServiceOp) (bool, error) {
 // checkVerbValidate checks for a known operation type. For certain operations,
 // it also indicated if further "preApply" checks are required.
 func checkVerbValidate(op api.CheckOp) (bool, error) {
-	// enumcover: api.CheckOp
+	// enumcover:api.CheckOp
 	switch op {
 	// Skip the pre-apply checks if this is a GET.
 	case api.CheckGet:
@@ -312,7 +312,7 @@ func checkVerbValidate(op api.CheckOp) (bool, error) {
 
 // intentionVerbValidate checks for a known operation type.
 func intentionVerbValidate(op structs.IntentionOp) error {
-	// enumcover: structs.IntentionOp
+	// enumcover:structs.IntentionOp
 	switch op {
 	case structs.IntentionOpCreate, structs.IntentionOpDelete, structs.IntentionOpUpdate, structs.IntentionOpDeleteAll, structs.IntentionOpUpsert:
 		return nil
@@ -323,7 +323,7 @@ func intentionVerbValidate(op structs.IntentionOp) error {
 
 // sessionVerbValidate checks for a known operation type.
 func sessionVerbValidate(op api.SessionOp) error {
-	// enumcover: api.SessionOp
+	// enumcover:api.SessionOp
 	switch op {
 	case api.SessionDelete:
 		return nil
