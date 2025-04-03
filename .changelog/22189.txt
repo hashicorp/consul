@@ -1,0 +1,4 @@
+```release-note:bug
+api: Correctly use peer query param on catalog service API
+```
+
