@@ -34,7 +34,7 @@ The DNS token must be linked to policies that grant the following permissions:
 Run the `consul acl token create` CLI command and specify the `builtin/dns` templated policy to create a DNS token.
 
 ```shell-session
-$ consul acl token create -name "dns-token" -templated-policy "builtin/dns"
+$ consul acl token create -description "dns-token" -templated-policy "builtin/dns"
 ```
 
 ## Apply the token
@@ -58,8 +58,8 @@ acl = {
 
 ### Apply the token with a command
 
-Set the `dns` token using the [`set-agent-token`](/consul/commands/acl/set-agent-token) command. The following command configures a running Consul agent token with the specified token.
+Set the `dns` token using the [`acl set-agent-token`](/consul/commands/acl/set-agent-token) command. The following command configures a running Consul agent token with the specified token.
 
 ```shell-session
-$ consul set-agent-token dns <acl-token-secret-id>
+$ consul acl set-agent-token dns <acl-token-secret-id>
 ```
