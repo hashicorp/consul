@@ -1,6 +1,15 @@
-## 1.20.5 (March 20, 2025)
+## 1.20.5 (March 11, 2025)
 
-* Enhancement: Added support for Consul Session to update the state of a Health Check, allowing for more dynamic and responsive health monitoring within the Consul ecosystem. This feature enables sessions to directly influence health check statuses, improving the overall reliability and accuracy of service health assessments.
+SECURITY:
+
+* Update `golang.org/x/crypto` to v0.35.0 to address [GO-2025-3487](https://pkg.go.dev/vuln/GO-2025-3487).
+Update `golang.org/x/oauth2` to v0.27.0 to address [GO-2025-3488](https://pkg.go.dev/vuln/GO-2025-3488).
+Update `github.com/go-jose/go-jose/v3` to v3.0.4 to address [GO-2025-3485](https://pkg.go.dev/vuln/GO-2025-3485). [[GH-22207](https://github.com/hashicorp/consul/issues/22207)]
+* Upgrade Go to 1.23.6. [[GH-22204](https://github.com/hashicorp/consul/issues/22204)]
+
+BUG FIXES:
+
+* logging: Fixed compilation error for OS NetBSD. [[GH-22184](https://github.com/hashicorp/consul/issues/22184)]
 
 ## 1.20.4 (February 20, 2025)
 
