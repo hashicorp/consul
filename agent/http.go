@@ -22,8 +22,8 @@ import (
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/NYTimes/gziphandler"
-	"github.com/armon/go-metrics"
-	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/go-metrics"
+	"github.com/hashicorp/go-metrics/prometheus"
 	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
