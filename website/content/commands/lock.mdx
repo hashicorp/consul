@@ -84,6 +84,23 @@ Windows has no POSIX compatible notion for `SIGTERM`.
 
 @include 'http_api_options_server.mdx'
 
+## Node Health Checks and TTL Behavior
+
+When you run `consul lock`, Consul automatically creates an **ephemeral session** that attaches one or more node checks by default (for example, the `serfHealth` check). Because these checks keep the node considered “healthy” from Consul’s perspective, the session is effectively **auto-renewed** as long as the agent passes these health checks. Even if the session has a TTL (for example, `"TTL": "15s"`), that TTL never reaches zero as long as the node remains healthy to the cluster.
+
+This design ensures the lock is not lost as long as the local Consul agent is up and healthy. However, it can also mean that the session persists indefinitely if:
+
+1. **The node remains healthy** (including in partial network partitions, where at least one Consul server still sees the node as online).  
+2. **No explicit session destroy** or forced release occurs.
+
+**Note:** If you want the TTL to be strictly enforced and **not** auto-renewed by node checks, you must create or manage your own session separately. In that scenario:
+
+- **Manually create** a session (via the HTTP API) that either excludes node checks or uses custom service checks.  
+- **Acquire** the lock on that custom session using the raw KV API (`?acquire=<sessionID>`).  
+- **Manage** renewals and releases yourself (if needed).
+
+By removing node checks, the TTL-based session will genuinely expire after the specified time if you do not renew it, causing Consul to release the lock automatically.
+
 ## SHELL
 
 Consul lock launches its children in a shell. By default, Consul will use the shell
