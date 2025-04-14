@@ -65,12 +65,12 @@
         ]
       },
       {
-        "title": "Network coordinates",
-        "path": "architecture/coordinates"
-      },
-      {
         "title": "Data directory",
         "path": "architecture/backend"
+      },
+      {
+        "title": "Network coordinates",
+        "path": "architecture/coordinates"
       },
       {
         "title": "Security architecture",
@@ -1470,10 +1470,6 @@
         "title": "Load balancing",
         "routes": [
           {
-            "title": "Envoy",
-            "path": "discover/load-balancer/envoy"
-          },
-          {
             "title": "HA Proxy",
             "path": "discover/load-balancer/ha"
           },
@@ -1484,6 +1480,10 @@
           {
             "title": "F5 BIG-IP AS3",
             "path": "discover/load-balancer/f5"
+          },
+          {
+            "title": "Envoy",
+            "path": "discover/load-balancer/envoy"
           }
         ]
       },
@@ -2336,7 +2336,7 @@
       },
       {
         "title": "Register services",
-        "href": "register/vm"
+        "href": "register/service/vm"
       },
       {
         "title": "Discover services",
@@ -2385,7 +2385,7 @@
       },
       {
         "title": "Register services",
-        "href": "register/k8s"
+        "href": "register/service/k8s/service-sync"
       },
       {
         "title": "Discover services",
@@ -2459,11 +2459,7 @@
       },
       {
         "title": "Register services",
-        "href": "register/ecs"
-      },
-      {
-        "title": "Discover services",
-        "href": "discover/ecs"
+        "href": "register/service/ecs"
       },
       {
         "title": "Connect services",
@@ -2480,7 +2476,7 @@
       },
       {
         "title": "Register services",
-        "href": "register/lambda"
+        "href": "register/service/lambda"
       },
       {
         "title": "Connect services",
@@ -2497,7 +2493,7 @@
       },
       {
         "title": "Register services",
-        "href": "register/nomad"
+        "href": "register/service/nomad"
       },
       {
         "title": "Connect services",

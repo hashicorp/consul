@@ -1,10 +1,10 @@
-# Consul Documentation | Information Architecture and Content Strategy
+# Information architecture and content strategy for Consul documentation
 
 The `website/content` directory in the `hashicorp/consul` repository contains [the Consul documentation on developer.hashicorp.com](https://developer.hashicorp.com/consul). This `README` describes the directory structure and design principles for this documentation set.
 
 ## Content directory overview
 
-The `website/content` directory in the `hashicorp/consul` repo contains the following sub-directories:
+The `website/content` directory in the `hashicorp/consul` GitHub repo contains the following sub-directories:
 
 ```
 .
@@ -22,7 +22,7 @@ After you merge a PR into a numbered release branch, changes to these folders ap
 
 URLs follow the directory structure for each file and omit the the `.mdx` file extension. Pages named `index.mdx` adopt their directory's name. For example, the file `docs/reference/agent/index.mdx` appears at the URL [https://developer.hashicorp.com/consul/docs/reference/agent](https://developer.hashicorp.com/consul/docs/reference/agent).
 
-The `partials` folder contains content that you can reuse across pages in any of the three folders. Refer to [Guide to Partials](#guide-to-partials) for more information.
+The `partials` folder includes content that you can reuse across pages in any of the three folders. Refer to [Guide to Partials](#guide-to-partials) for more information.
 
 Tutorials that appear at [https://developer.hashicorp.com/consul/tutorials](https://developer.hashicorp.com/consul/tutorials) are located in a different repository. This content exists in the [hashicorp/tutorials GitHub repo](https://github.com/hashicorp/tutorials), which is internal to the HashiCorp organization.
 
@@ -46,7 +46,47 @@ The design of the content in the `docs/` directory, including structure, file pa
 
 These principles exist to help you navigate ambiguity when making changes to the underlying content. If you add new content and you're not quite sure where to place it or how to name it, use these "north stars" to help you make an informed decision about what to do.
 
-Over time, Consul may change in ways that require significant edits to this information architecture. The IA was designed with this possibility in mind. Use these north star principles to help you make informed (and preferably incremental) changes over time.
+Over time, Consul may change in ways that require significant edits to this information architecture. The IA and content strategy were designed with this possibility in mind. Use these north star principles to help you make informed (and preferably incremental) changes over time.
+
+## Content strategy
+
+Consul's content strategy centers on three main considerations:
+
+- **User persona** considers the roles of Consul users in DevOps workflows, which may be either broad or narrowly defined.
+- **Jobs-to-be-done** includes the practical outcomes users want to achieve when using Consul to address a latent concern.
+- **Content type** asks what kind of content exists on the page, and follows the principles of Diataxis.
+
+You should keep all three of the considerations in mind when creating new content or updating existing content in the documentation and tutorials. Ask yourself the following questions to help you determine your content needs:
+
+- Who will use this documentation?
+- What concerns will that person have?
+- What goals are they trying to accomplish?
+- What kind of content would help the user achieve their goal?
+
+For more information about recommended workflow patterns, refer to [How to document new Consul features](#how-to-document-new-consul-features) and [Maintaining and deprecating content](#maintaining-and-deprecating-content).
+
+### User personas, concerns, and jobs-to-be-done
+
+Consul is a flexible service networking tool, with applications across DevOps workflows. The following table lists Consul's user personas, examples of their major concerns, and typical jobs that this user wants to complete using Consul's features.
+
+| User persona          | Major concerns                                                                                                                                                                                                       | Jobs-to-be-done                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| :-------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Application developer | &#8226; Application is discoverable across on-prem and cloud environments.<br />&#8226; Applications can reliably find and connect to dependent upstream services.                                                   | &#8226; I want to use Consul to register the locations of my applications across infrastructure environments so that they can be discovered by downstream applications.<br />&#8226; I want to define intelligent failover policies for my applications so that my services are highly available and fault tolerant.<br />&#8226; I want to use Consul's service catalog find and connect to healthy upstream services across multiple clouds and runtime environments.                                                                                                                        |
+| Platform engineer     | &#8226; Architect global service registry that makes services avilable regardless of infrastructure. <br />&#8226; Reliability and availability of the service registry so that I can meet service level objectives. | &#8226; I want to implement monitoring and alerting for Consul in order to quickly identify and resolve cluster instability, or service connectivity issues.<br />&#8226; I want to automate recovery procedures and ensure resilience in order to meet SLO and SLA objectives.<br />&#8226; I want to interconnect Consul clusters to enable unified service discovery across cloud and on-premises environments.<br />&#8226;I want to provide guidance and guardrails for enabling application developers to register services into Consul, and ensure their services are highly available. |
+| Security engineer     | &#8226; Ensure that critical infrastructure and services adhere to corporate security policies.                                                                                                                      | &#8226; I want to ensure that communication between critical infrastructure services is encrypted in transit, and access to systems is appropriately controlled and audited.<br />&#8226; I want to integrate Consul authentication with existing corporate identity and access management (IAM) systems.<br />&#8226; I want to ensure that users have least privileged, but sufficient access to Consul for managing and discovering services.                                                                                                                                               |
+
+### Content type
+
+- Explanation
+- Usage
+- Reference
+- Tutorials
+
+We break "explanation" into several distinct types:
+
+- Overiew pages
+- Index pages
+- Concept pages
 
 ## Taxonomy
 
@@ -195,14 +235,17 @@ Examples:
 
 ## Controlled vocabularies
 
-This section lists the standard names for files and directories, divded into sub-groups based on the descriptions in this `README`.
+This section lists the standard names for files and directories, divided into sub-groups based on the syntax guide in this `README`.
 
 ### Components vocabulary
 
 Consul's _components_ vocabulary collects terms that describe Consul's built-in components, enterprise offerings, and other offerings that impact the operations of Consul agent clusters.
 
-- `acl`
-- `admin-partition`
+| Component                 | Label             | Usage notes                                                                                                  |
+| :------------------------ | :---------------- | :----------------------------------------------------------------------------------------------------------- |
+| Access Control List (ACL) | `acl`             | ACLs, not "ACL's" or "ACLS"                                                                                  |
+| Admin partition           | `admin-partition` | In usage docs, "partition" is also acceptable. Use `ap` only for examples in the CLI and API reference docs. |
+
 - `audit-log`
 - `automated-backup`
 - `automated-upgrade`
@@ -396,25 +439,7 @@ Consul's _use case_ vocabulary collects terms that describe
 - `config-management`
 - `dns`
 
-## Content strategy
-
-This section describes the process for building out new content in the Consul documentation over time.
-
-### Where to place content
-
-The following questions can help you place documentation for newly developed Consul features.
-
-1. What kind of content is it? Explanation, reference, or usage instructions?
-
-- If _explanation_, decide whether it's an architectural component, a concept, or a fundamental.
-- If _reference_, locate the existing directory in the `reference` folder.
-- If _usage instruction_, decide whether it impact Consul operations or service networking for application workloads.
-
-1. Who is the user of this feature? Examples: Platform operator, application developer, security engineer.
-1. What is the user's "job-to-be-done"?
-1. What runtimes and cloud providers support this feature?
-
-### Guide to partials
+## Guide to partials
 
 Partials have file paths that begin by describing the type of content. Then, the filepath mirrors existing structures in the main docs folder. There are two syntaxes used for the partial filepaths:
 
@@ -433,7 +458,7 @@ Reasons to use partials:
 - You need to reference tables, especially ones that contain version numbers that are updated for each Consul release
 - You need to include a configuration example that can be reused in both reference and usage contexts
 
-### How to document new Consul features
+## How to document new Consul features
 
 1. Create a file `name.mdx` that serves as an overview combining explanation, usage, and reference information.
 2. When you need more pages, move the file to a folder with `name` and change the filename to `index.mdx`.
@@ -451,7 +476,7 @@ For example, "DNS views" was introduced for Kubernetes in Consul v1.20. We creat
     └── index.mdx
 ```
 
-### Maintaining and deprecating content
+## Maintaining and deprecating content
 
 Documentation is considered "maintained" when the usage instructions work when running the oldest supported LTS release.
 
