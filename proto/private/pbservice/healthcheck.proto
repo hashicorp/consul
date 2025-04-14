@@ -89,7 +89,6 @@ message HealthCheckDefinition {
   string AliasService = 16;
   // mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
   google.protobuf.Duration TTL = 17;
-  string SessionName = 26;
 }
 
 // CheckType is used to create either the CheckMonitor or the CheckTTL.
@@ -160,9 +159,4 @@ message CheckType {
 
   // mog: func-to=int func-from=int32
   int32 OutputMaxSize = 25;
-
-  // The session name of the session, which is associated with the common parent node of the session and this check.
-  // This association helps in managing the session and its related state of the checks.
-  // e.g. if the session is deleted/invalidated the state of this check shall be marked critical.
-  string SessionName = 35;
 }

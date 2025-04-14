@@ -76,9 +76,6 @@ type HealthCheckDefinition struct {
 	TimeoutDuration                        time.Duration `json:"-"`
 	DeregisterCriticalServiceAfterDuration time.Duration `json:"-"`
 
-	// when parent Type is `session`, and if this session is destroyed, the check will be marked as critical
-	SessionName string `json:",omitempty"`
-
 	// DEPRECATED in Consul 1.4.1. Use the above time.Duration fields instead.
 	Interval                       ReadableDuration
 	Timeout                        ReadableDuration
