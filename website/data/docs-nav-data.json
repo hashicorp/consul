@@ -1831,8 +1831,8 @@
             "path": "east-west/wan-federation"
           },
           {
-            "title": "Create and manage federation connections",
-            "path": "east-west/wan-federation/create"
+            "title": "Federate Consul datacenters on VMs",
+            "path": "east-west/wan-federation/vms"
           },
           {
             "title": "Federate Kubernetes clusters",
