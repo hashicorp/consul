@@ -396,8 +396,15 @@ These options cannot be used when using `backup_destinations` in a config file.
 - `-azure-blob-container-name` - Container to use. Required for Azure blob storage, and setting this
   disables local storage.
 
-* `-azure-blob-environment` - Environment to use. Defaults to AZUREPUBLICCLOUD. Other valid environments
+- `-azure-blob-environment` - Environment to use. Defaults to AZUREPUBLICCLOUD. Other valid environments
   are AZURECHINACLOUD, AZUREGERMANCLOUD and AZUREUSGOVERNMENTCLOUD. Introduced in Consul 1.7.3.
+
+~> The following options were introduced in v1.20.1+ent.
+
+- `-azure-blob-service-principal-id` - The ID of the service principal that owns the blob object.
+- `-azure-blob-service-principal-secret` - The secret of the service principal that owns the blob object.
+
+- `-azure-blob-tenant-id` - The ID of the tenant that owns the Azure blob.
 
 #### Google Cloud Storage options
 
