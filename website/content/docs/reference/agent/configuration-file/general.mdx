@@ -13,7 +13,7 @@ The page provides reference information for general parameters in a Consul agent
 
 - `addresses` - This is a nested object that allows setting
   bind addresses. In Consul 1.0 and later these can be set to a space-separated list
-  of addresses to bind to, or a [go-sockaddr] template that can potentially resolve to multiple addresses.
+  of addresses to bind to, or a go-sockaddr template that can potentially resolve to multiple addresses.
 
   `http`, `https` and `grpc` all support binding to a Unix domain socket. A
   socket can be specified in the form `unix:///path/to/socket`. A new domain
@@ -158,132 +158,7 @@ The page provides reference information for general parameters in a Consul agent
     The node_meta tag to use for version info when performing upgrade migrations.
     If this is not set, the Consul version will be used.
 
-  - `intro_token` (Defaults to `""`) This specifies the JWT to use for the initial
-    `auto_config` RPC to the Consul servers. This can be overridden with the
-    `CONSUL_INTRO_TOKEN` environment variable
 
-  - `intro_token_file` (Defaults to `""`) This specifies a file containing the JWT
-    to use for the initial `auto_config` RPC to the Consul servers. This token
-    from this file is only loaded if the `intro_token` configuration is unset as
-    well as the `CONSUL_INTRO_TOKEN` environment variable
-
-  - `server_addresses` (Defaults to `[]`) This specifies the addresses of servers in
-    the local datacenter to use for the initial RPC. These addresses support
-    [Cloud Auto-Joining](/consul/commands/agent#cloud-auto-joining) and can optionally include a port to
-    use when making the outbound connection. If no port is provided, the `server_port`
-    will be used.
-
-  - `dns_sans` (Defaults to `[]`) This is a list of extra DNS SANs to request in the
-    client agent's TLS certificate. The `localhost` DNS SAN is always requested.
-
-  - `ip_sans` (Defaults to `[]`) This is a list of extra IP SANs to request in the
-    client agent's TLS certificate. The `::1` and `127.0.0.1` IP SANs are always requested.
-
-  - `authorization` This object controls how a Consul server will authorize `auto_config`
-    requests and in particular how to verify the JWT intro token.
-
-    - `enabled` (Defaults to `false`) This option enables `auto_config` authorization
-      capabilities on the server.
-
-    - `static` This object controls configuring the static authorizer setup in the Consul
-      configuration file. Almost all sub-keys are identical to those provided by the [JWT
-      Auth Method](/consul/docs/secure/acl/auth-method/jwt).
-
-      - `jwt_validation_pub_keys` (Defaults to `[]`) A list of PEM-encoded public keys
-        to use to authenticate signatures locally.
-
-        Exactly one of `jwks_url` `jwt_validation_pub_keys`, or `oidc_discovery_url` is required.
-
-      - `oidc_discovery_url` (Defaults to `""`) The OIDC Discovery URL, without any
-        .well-known component (base path).
-
-        Exactly one of `jwks_url` `jwt_validation_pub_keys`, or `oidc_discovery_url` is required.
-
-      - `oidc_discovery_ca_cert` (Defaults to `""`) PEM encoded CA cert for use by the TLS
-        client used to talk with the OIDC Discovery URL. NOTE: Every line must end
-        with a newline (`\n`). If not set, system certificates are used.
-
-      - `jwks_url` (Defaults to `""`) The JWKS URL to use to authenticate signatures.
-
-        Exactly one of `jwks_url` `jwt_validation_pub_keys`, or `oidc_discovery_url` is required.
-
-      - `jwks_ca_cert` (Defaults to `""`) PEM encoded CA cert for use by the TLS client
-        used to talk with the JWKS URL. NOTE: Every line must end with a newline
-        (`\n`). If not set, system certificates are used.
-
-      - `claim_mappings` (Defaults to `(map[string]string)` Mappings of claims (key) that
-        will be copied to a metadata field (value). Use this if the claim you are capturing
-        is singular (such as an attribute).
-
-        When mapped, the values can be any of a number, string, or boolean and will
-        all be stringified when returned.
-
-      - `list_claim_mappings` (Defaults to `(map[string]string)`) Mappings of claims (key)
-        will be copied to a metadata field (value). Use this if the claim you are capturing
-        is list-like (such as groups).
-
-        When mapped, the values in each list can be any of a number, string, or
-        boolean and will all be stringified when returned.
-
-      - `jwt_supported_algs` (Defaults to `["RS256"]`) JWTSupportedAlgs is a list of
-        supported signing algorithms.
-
-      - `bound_audiences` (Defaults to `[]`) List of `aud` claims that are valid for
-        login; any match is sufficient.
-
-      - `bound_issuer` (Defaults to `""`) The value against which to match the `iss`
-        claim in a JWT.
-
-      - `expiration_leeway` (Defaults to `"0s"`) Duration of leeway when
-        validating expiration of a token to account for clock skew. Defaults to 150s
-        (2.5 minutes) if set to 0s and can be disabled if set to -1ns.
-
-      - `not_before_leeway` (Defaults to `"0s"`) Duration of leeway when
-        validating not before values of a token to account for clock skew. Defaults
-        to 150s (2.5 minutes) if set to 0s and can be disabled if set to -1.
-
-      - `clock_skew_leeway` (Defaults to `"0s"`) Duration of leeway when
-        validating all claims to account for clock skew. Defaults to 60s (1 minute)
-        if set to 0s and can be disabled if set to -1ns.
-
-      - `claim_assertions` (Defaults to `[]`) List of assertions about the mapped
-        claims required to authorize the incoming RPC request. The syntax uses
-        [github.com/hashicorp/go-bexpr](https://github.com/hashicorp/go-bexpr) which is shared with the
-        [API filtering feature](/consul/api-docs/features/filtering). For example, the following
-        configurations when combined will ensure that the JWT `sub` matches the node
-        name requested by the client.
-
-        <CodeTabs heading="Ensure that the JWT sub matches the node name requested by the client">
-
-        ```hcl
-        claim_mappings {
-          sub = "node_name"
-        }
-        claim_assertions = [
-          "value.node_name == \"${node}\""
-        ]
-        ```
-
-        ```json
-        {
-          "claim_mappings": {
-            "sub": "node_name"
-          },
-          "claim_assertions": ["value.node_name == \"${node}\""]
-        }
-        ```
-
-        </CodeTabs>
-
-        The assertions are lightly templated using [HIL syntax](https://github.com/hashicorp/hil)
-        to interpolate some values from the RPC request. The list of variables that can be interpolated
-        are:
-
-        - `node` - The node name the client agent is requesting.
-
-        - `segment` <EnterpriseAlert inline /> - The network segment name the client is requesting.
-
-        - `partition` <EnterpriseAlert inline /> - The admin partition name the client is requesting.
 
 - `auto_reload_config` Equivalent to the [`-auto-reload-config` command-line flag](/consul/commands/agent#_auto_reload_config).
 
@@ -308,7 +183,7 @@ The page provides reference information for general parameters in a Consul agent
 
   </CodeTabs>
 
-- `cache` configuration for client agents. When an `?index` query parameter is specified but '?cached' is not appended in a [streaming backend call](/consul/api-docs/features/blocking#streaming-backend), Consul bypasses these configuration values. The configurable values are the following:
+- `cache` configuration for client agents. The configurable values are the following:
 
   - `entry_fetch_max_burst` The size of the token bucket used to recharge the rate-limit per
     cache entry. The default value is 2 and means that when cache has not been updated
@@ -346,19 +221,15 @@ The page provides reference information for general parameters in a Consul agent
     the Consul server gains leadership. This option is only applicable to server
     nodes. Each bootstrap entry will be created only if it does not exist. When reloading,
     any new entries that have been added to the configuration will be processed.
-    See the [configuration entry docs](/consul/docs/fundamentals/config-entry) for more
+    Refer to the [configuration entry docs](/consul/docs/fundamentals/config-entry) for more
     details about the contents of each entry.
 
 - `datacenter` Equivalent to the [`-datacenter` command-line flag](/consul/commands/agent#_datacenter).
 
-- `data_dir` Equivalent to the [`-data-dir` command-line flag](/consul/commands/agent#_data_dir).
-
-- `default_intention_policy` Controls how service-to-service traffic is authorized
-  in the absence of specific intentions.
-  Can be set to `allow`, `deny`, or left empty to default to [`acl.default_policy`](#acl_default_policy).
+- `data_dir` Equivalent to the [`-data-dir` command-line flag](/consul/docs/architecture/backend).
 
 - `disable_anonymous_signature` Disables providing an anonymous
-  signature for de-duplication with the update check. See [`disable_update_check`](#disable_update_check).
+  signature for de-duplication with the update check. Refer to  [`disable_update_check`](#disable_update_check).
 
 - `disable_http_unprintable_char_filter` Defaults to false. Consul 1.0.3 fixed a potential security vulnerability where malicious users could craft KV keys with unprintable chars that would confuse operators using the CLI or UI into taking wrong actions. Users who had data written in older versions of Consul that did not have this restriction will be unable to delete those values by default in 1.0.3 or later. This setting enables those users to **temporarily** disable the filter such that delete operations can work on those keys again to get back to a healthy state. It is strongly recommended that this filter is not disabled permanently as it exposes the original security vulnerability.
 
@@ -386,10 +257,14 @@ The page provides reference information for general parameters in a Consul agent
 
 - `enable_script_checks` Equivalent to the [`-enable-script-checks` command-line flag](/consul/commands/agent#_enable_script_checks).
 
-  ACLs must be enabled for agents and the `enable_script_checks` option must be set to `true` to enable script checks in Consul 0.9.0 and later. See [Registering and Querying Node Information](/consul/docs/security/acl/acl-rules#registering-and-querying-node-information) for related information.
+  ACLs must be enabled for agents and the `enable_script_checks` option must be set to `true` to enable script checks in Consul 0.9.0 and later. See [Registering and Querying Node Information](/consul/docs/secure/acl/rule#registering-and-querying-node-information) for related information.
 
-  ~> **Security Warning:** Enabling script checks in some configurations may introduce a known remote execution vulnerability targeted by malware. We strongly recommend `enable_local_script_checks` instead. Refer to the following article for additional guidance: [_Protecting Consul from RCE Risk in Specific Configurations_](https://www.hashicorp.com/blog/protecting-consul-from-rce-risk-in-specific-configurations)
+  <Warning title="Security Warning">
+
+  Enabling script checks in some configurations may introduce a known remote execution vulnerability targeted by malware. We strongly recommend `enable_local_script_checks` instead. Refer to the following article for additional guidance: [_Protecting Consul from RCE Risk in Specific Configurations_](https://www.hashicorp.com/blog/protecting-consul-from-rce-risk-in-specific-configurations)
   for more details.
+
+  </Warning>
 
 - `enable_local_script_checks` Equivalent to the [`-enable-local-script-checks` command-line flag](/consul/commands/agent#_enable_local_script_checks).
 
@@ -414,7 +289,7 @@ The page provides reference information for general parameters in a Consul agent
     only works with API endpoints, not `/ui` or `/debug`, those must be disabled
     with their respective configuration options. Any CLI commands that use disabled
     endpoints will no longer function as well. For more general access control, Consul's
-    [ACL system](/consul/tutorials/security/access-control-setup-production)
+    [ACLs system](/consul/docs/secure/acl)
     should be used, but this option is useful for removing access to HTTP API endpoints
     completely, or on specific agents. This is available in Consul 0.9.0 and later.
 
@@ -450,7 +325,7 @@ The page provides reference information for general parameters in a Consul agent
 
 - `leave_on_terminate` If enabled, when the agent receives a TERM signal, it will send a `Leave` message to the rest of the cluster and gracefully leave. The default behavior for this feature varies based on whether or not the agent is running as a client or a server (prior to Consul 0.7 the default value was unconditionally set to `false`). On agents in client-mode, this defaults to `true` and for agents in server-mode, this defaults to `false`.
 
-- `license_path` <EnterpriseAlert inline /> This specifies the path to a file that contains the Consul Enterprise license. Alternatively the license may also be specified in either the `CONSUL_LICENSE` or `CONSUL_LICENSE_PATH` environment variables. See the [licensing documentation](/consul/docs/enterprise/license) for more information about Consul Enterprise license management. Added in versions 1.10.0, 1.9.7 and 1.8.13. Prior to version 1.10.0 the value may be set for all agents to facilitate forwards compatibility with 1.10 but will only actually be used by client agents.
+- `license_path` <EnterpriseAlert inline /> This specifies the path to a file that contains the Consul Enterprise license. Alternatively the license may also be specified in either the `CONSUL_LICENSE` or `CONSUL_LICENSE_PATH` environment variables. Refer to  the [licensing documentation](/consul/docs/enterprise/license) for more information about Consul Enterprise license management. Added in versions 1.10.0, 1.9.7 and 1.8.13. Prior to version 1.10.0 the value may be set for all agents to facilitate forwards compatibility with 1.10 but will only actually be used by client agents.
 
 - `limits`: This block specifies various types of limits that the Consul server agent enforces.
 
@@ -467,7 +342,7 @@ The page provides reference information for general parameters in a Consul agent
   - `rpc_client_timeout` - Configures the limit for how long a client is allowed to read from an RPC connection. This is used to set an upper bound for calls to eventually terminate so that RPC connections are not held indefinitely. Blocking queries can override this timeout. Default is `60s`.
   - `rpc_max_conns_per_client` - Configures a limit of how many concurrent TCP connections a single source IP address is allowed to open to a single server. It affects both clients connections and other server connections. In general Consul clients multiplex many RPC calls over a single TCP connection so this can typically be kept low. It needs to be more than one though since servers open at least one additional connection for raft RPC, possibly more for WAN federation when using network areas, and snapshot requests from clients run over a separate TCP conn. A reasonably low limit significantly reduces the ability of an unauthenticated attacker to consume unbounded resources by holding open many connections. You may need to increase this if WAN federated servers connect via proxies or NAT gateways or similar causing many legitimate connections from a single source IP. Default value is `100` which is designed to be extremely conservative to limit issues with certain deployment patterns. Most deployments can probably reduce this safely. 100 connections on modern server hardware should not cause a significant impact on resource usage from an unauthenticated attacker though.
   - `rpc_rate` - Configures the RPC rate limiter on Consul _clients_ by setting the maximum request rate that this agent is allowed to make for RPC requests to Consul servers, in requests per second. Defaults to infinite, which disables rate limiting.
-  - `rpc_max_burst` - The size of the token bucket used to recharge the RPC rate limiter on Consul _clients_. Defaults to 1000 tokens, and each token is good for a single RPC call to a Consul server. See https://en.wikipedia.org/wiki/Token_bucket for more details about how token bucket rate limiters operate.
+  - `rpc_max_burst` - The size of the token bucket used to recharge the RPC rate limiter on Consul _clients_. Defaults to 1000 tokens, and each token is good for a single RPC call to a Consul server. Refer to  https://en.wikipedia.org/wiki/Token_bucket for more details about how token bucket rate limiters operate.
   - `kv_max_value_size` - **(Advanced)** Configures the maximum number of bytes for a kv request body to the [`/v1/kv`](/consul/api-docs/kv) endpoint. This limit defaults to [raft's](https://github.com/hashicorp/raft) suggested max size (512KB). **Note that tuning these improperly can cause Consul to fail in unexpected ways**, it may potentially affect leadership stability and prevent timely heartbeat signals by increasing RPC IO duration. This option affects the txn endpoint too, but Consul 1.7.2 introduced `txn_max_req_len` which is the preferred way to set the limit for the txn endpoint. If both limits are set, the higher one takes precedence.
   - `txn_max_req_len` - **(Advanced)** Configures the maximum number of bytes for a transaction request body to the [`/v1/txn`](/consul/api-docs/txn) endpoint. This limit defaults to [raft's](https://github.com/hashicorp/raft) suggested max size (512KB). **Note that tuning these improperly can cause Consul to fail in unexpected ways**, it may potentially affect leadership stability and prevent timely heartbeat signals by increasing RPC IO duration.
 
@@ -491,23 +366,27 @@ The page provides reference information for general parameters in a Consul agent
   details. By default, this is an empty string, which is the `default` admin
   partition. This cannot be set on a server agent.
 
-  ~> **Warning:** The `partition` option cannot be used either the
+  <Warning>
+
+  The `partition` option cannot be used either the
   [`segment`](#segment-2) option or [`-segment`](/consul/commands/agent#_segment) flag.
 
-- `performance` Available in Consul 0.7 and later, this is a nested object that allows tuning the performance of different subsystems in Consul. See the [Server Performance](/consul/docs/reference/architecture/server) documentation for more details. The following parameters are available:
+  </Warning>
+
+- `performance` Available in Consul 0.7 and later, this is a nested object that allows tuning the performance of different subsystems in Consul. Refer to  the [Server Performance](/consul/docs/deploy/server/vm/requirements) documentation for more details. The following parameters are available:
 
   - `leave_drain_time` - A duration that a server will dwell during a graceful leave in order to allow requests to be retried against other Consul servers. Under normal circumstances, this can prevent clients from experiencing "no leader" errors when performing a rolling update of the Consul servers. This was added in Consul 1.0. Must be a duration value such as 10s. Defaults to 5s.
 
   - `raft_multiplier` - An integer multiplier used by Consul servers to scale key Raft timing parameters. Omitting this value or setting it to 0 uses default timing described below. Lower values are used to tighten timing and increase sensitivity while higher values relax timings and reduce sensitivity. Tuning this affects the time it takes Consul to detect leader failures and to perform leader elections, at the expense of requiring more network and CPU resources for better performance.
 
     By default, Consul will use a lower-performance timing that's suitable
-    for [minimal Consul servers](/consul/docs/install/performance#minimum), currently equivalent
+    for [minimal Consul servers](/consul/docs/deploy/server/vm/requirements#minimum), currently equivalent
     to setting this to a value of 5 (this default may be changed in future versions of Consul,
     depending if the target minimum server profile changes). Setting this to a value of 1 will
     configure Raft to its highest-performance mode, equivalent to the default timing of Consul
-    prior to 0.7, and is recommended for [production Consul servers](/consul/docs/install/performance#production).
+    prior to 0.7, and is recommended for [production Consul servers](/consul/docs/deploy/server/vm/requirements#production).
 
-    See the note on [last contact](/consul/docs/install/performance#production-server-requirements) timing for more
+    Refer to  the note on [last contact](/consul/docs/deploy/server/vm/requirements#production-server-requirements) timing for more
     details on tuning this parameter. The maximum allowed value is 10.
 
   - `rpc_hold_timeout` - A duration that a client
@@ -550,16 +429,16 @@ The page provides reference information for general parameters in a Consul agent
   - `server` ((#server_rpc_port)) - Server RPC address. Default 8300. TCP
     only.
   - `sidecar_min_port` ((#sidecar_min_port)) - Inclusive minimum port number
-    to use for automatically assigned [sidecar service registrations](/consul/docs/connect/proxy/sidecar).
+    to use for automatically assigned [sidecar service registrations](/consul/docs/reference/proxy/sidecar).
     Default 21000. Set to `0` to disable automatic port assignment.
   - `sidecar_max_port` ((#sidecar_max_port)) - Inclusive maximum port number
-    to use for automatically assigned [sidecar service registrations](/consul/docs/connect/proxy/sidecar).
+    to use for automatically assigned [sidecar service registrations](/consul/docs/reference/proxy/sidecar).
     Default 21255. Set to `0` to disable automatic port assignment.
   - `expose_min_port` ((#expose_min_port)) - Inclusive minimum port number
-    to use for automatically assigned [exposed check listeners](/consul/docs/connect/proxies/proxy-config-reference#expose-paths-configuration-reference).
+    to use for automatically assigned [exposed check listeners](/consul/docs/reference/proxy/connect-proxy#expose-paths-configuration-reference).
     Default 21500. Set to `0` to disable automatic port assignment.
   - `expose_max_port` ((#expose_max_port)) - Inclusive maximum port number
-    to use for automatically assigned [exposed check listeners](/consul/docs/connect/proxies/proxy-config-reference#expose-paths-configuration-reference).
+    to use for automatically assigned [exposed check listeners](/consul/docs/reference/proxy/connect-proxy#expose-paths-configuration-reference).
     Default 21755. Set to `0` to disable automatic port assignment.
 
 - `primary_datacenter` - This designates the datacenter
@@ -590,7 +469,7 @@ The page provides reference information for general parameters in a Consul agent
   is running as PID 1. If this is set to true or false, then it controls reaping
   regardless of Consul's PID (forces reaping on or off, respectively). This option
   was removed in Consul 0.7.1. For later versions of Consul, you will need to reap
-  processes using a wrapper, please see the [Consul Docker image entry point script](https://github.com/hashicorp/docker-consul/blob/master/0.X/docker-entrypoint.sh)
+  processes using a wrapper, please refer to  the [Consul Docker image entry point script](https://github.com/hashicorp/docker-consul/blob/master/0.X/docker-entrypoint.sh)
   for an example. If you are using Docker 1.13.0 or later, you can use the new `--init`
   option of the `docker run` command and docker will enable an init process with
   PID 1 that reaps child processes for the container. More info on [Docker docs](https://docs.docker.com/engine/reference/commandline/run/#options).
@@ -630,7 +509,11 @@ The page provides reference information for general parameters in a Consul agent
 
 - `segment` <EnterpriseAlert inline /> - Equivalent to the [`-segment` command-line flag](/consul/commands/agent#_segment).
 
-  ~> **Warning:** The `segment` option cannot be used with the [`partition`](#partition-1) option.
+  <Warning>
+
+  The `segment` option cannot be used with the [`partition`](#partition-1) option.
+
+  </Warning>
 
 - `segments` <EnterpriseAlert inline /> - (Server agents only) This is a list of nested objects
   that specifies user-defined network segments, not including the `<default>` segment, which is
@@ -657,9 +540,9 @@ The page provides reference information for general parameters in a Consul agent
   If the server has not ran during this period, it will refuse to start up again until an operator intervenes by manually deleting the `server_metadata.json`
   file located in the data dir.
   This is to protect clusters from instability caused by decommissioned servers accidentally being started again.
-  Note: the default value is 168h (equal to 7d) and the minimum value is 6h.
+  The default value is 168h (equal to 7d) and the minimum value is 6h.
 
-- `non_voting_server` - **This field is deprecated in Consul 1.9.1. See the [`read_replica`](#read_replica) field instead.**
+- `non_voting_server` - **This field is deprecated in Consul 1.9.1. Refer to  the [`read_replica`](#read_replica) field instead.**
 
 - `read_replica` - Equivalent to the [`-read-replica` command-line flag](/consul/commands/agent#_read_replica).
 
@@ -725,5 +608,6 @@ The page provides reference information for general parameters in a Consul agent
 
 - `watches` - Watches is a list of watch specifications which
   allow an external process to be automatically invoked when a particular data view
-  is updated. See the [watch documentation](/consul/docs/automate/watch) for more detail.
+  is updated. Refer to  the [watch documentation](/consul/docs/automate/watch) for more detail.
   Watches can be modified when the configuration is reloaded.
+

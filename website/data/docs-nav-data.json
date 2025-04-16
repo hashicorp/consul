@@ -2735,10 +2735,6 @@
         "title": "Agent",
         "routes": [
           {
-            "title": "Configuration overview",
-            "path": "reference/agent"
-          },
-          {
             "title": "Configuration files",
             "routes": [
               {
@@ -2753,9 +2749,14 @@
                 "title": "ACL parameters",
                 "path": "reference/agent/configuration-file/acl"
               },
+
               {
                 "title": "Advertise address parameters",
                 "path": "reference/agent/configuration-file/address"
+              },
+              {
+                "title": "Auto config parameters",
+                "path": "reference/agent/configuration-file/auto-config"
               },
               {
                 "title": "Bootstrap parameters",
