@@ -956,7 +956,7 @@ Specifies default configurations for exposing HTTP paths through Envoy. Exposing
 
 ### `Expose.Checks`
 
-Exposes all HTTP and gRPC checks registered with the agent if set to `true`. Envoy exposes listeners for the checks and only accepts connections originating from localhost or Consul's [`advertise_addr`](/consul/docs/reference/agent/configuration-file#advertise_addr). The ports for the listeners are dynamically allocated from the agent's [`expose_min_port`](/consul/docs/reference/agent/configuration-file#expose_min_port) and [`expose_max_port`](/consul/docs/reference/agent/configuration-file#expose_max_port) configurations.
+Exposes all HTTP and gRPC checks registered with the agent if set to `true`. Envoy exposes listeners for the checks and only accepts connections originating from localhost or Consul's [`advertise_addr`](/consul/docs/reference/agent/configuration-file/address#advertise_addr). The ports for the listeners are dynamically allocated from the agent's [`expose_min_port`](/consul/docs/reference/agent/configuration-file/general#expose_min_port) and [`expose_max_port`](/consul/docs/reference/agent/configuration-file/general#expose_max_port) configurations.
 
 We recommend enabling the `Checks` configuration when a Consul client cannot reach registered services over localhost, such as when Consul agents run in their own pods in Kubernetes.
 
@@ -1447,9 +1447,7 @@ Specifies default configurations for exposing HTTP paths through Envoy. Exposing
 
 ### `spec.expose.checks`
 
-Exposes all HTTP and gRPC checks registered with the agent if set to `true`. Envoy exposes listeners for the checks and only accepts connections originating from localhost or Consul's [`advertise_addr`](/consul/docs/reference/agent/configuration-file#advertise_addr). The ports for the listeners are dynamically allocated from the agent's [`expose_min_port`](/consul/docs/reference/agent/configuration-file#expose_min_port) and [`expose_max_port`](/consul/docs/reference/agent/configuration-file#expose_max_port) configurations.
-
-We recommend enabling the `Checks` configuration when a Consul client cannot reach registered services over localhost, such as when Consul agents run in their own pods in Kubernetes.
+@include 'reference/config-entry/spec-expose-checks.mdx'
 
 #### Values
 

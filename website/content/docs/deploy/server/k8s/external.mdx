@@ -37,7 +37,7 @@ externalServers:
 
 With the introduction of [Consul Dataplane](/consul/docs/connect/dataplane#what-is-consul-dataplane), Consul installation on Kubernetes is simplified by removing the Consul Client agents.
 This requires the Helm installation and rest of the consul-k8s components installed on Kubernetes to talk to Consul Servers directly on various ports.
-Before starting the installation, ensure that the Consul Servers are configured to have the gRPC port enabled `8502/tcp` using the [`ports.grpc = 8502`](/consul/docs/reference/agent/configuration-file#grpc) configuration option.
+Before starting the installation, ensure that the Consul Servers are configured to have the gRPC port enabled `8502/tcp` using the [`ports.grpc = 8502`](/consul/docs/reference/agent/configuration-file/general#grpc) configuration option.
 
 
 ## Configuring TLS
@@ -114,8 +114,8 @@ to create policies, tokens, and an auth method. If you are [enabling Consul serv
 so that the Consul servers can validate a Kubernetes service account token when using the [Kubernetes auth method](/consul/docs/secure/acl/auth-method/k8s)
 with `consul login`.
 
--> **Note:** If `externalServers.k8sAuthMethodHost` is set and you are also using WAN federation 
-(`global.federation.enabled` is set to `true`), ensure that `global.federation.k8sAuthMethodHost` is set to the same 
+-> **Note:** If `externalServers.k8sAuthMethodHost` is set and you are also using WAN federation
+(`global.federation.enabled` is set to `true`), ensure that `global.federation.k8sAuthMethodHost` is set to the same
 value as `externalServers.k8sAuthMethodHost`.
 
 <CodeBlockConfig filename="values.yaml">

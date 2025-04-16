@@ -32,7 +32,7 @@ external service monitoring, and is not intended for production use.
 
 For this tutorial, you will deploy a Consul agent running locally in `-dev` mode
 with the Consul `-ui` enabled. You'll use the
-[`-enable-script-checks`](/consul/docs/reference/agent/configuration-file#_enable_script_checks)
+[`-enable-script-checks`](/consul/docs/reference/agent/configuration-file/general#enable_script_checks)
 flag to allow simple ping-based health checks, and will specify a node name of
 `web` rather than the default of `hostname` to make the examples clearer.
 
@@ -45,13 +45,13 @@ $ consul agent -dev -enable-script-checks -node=web -ui
 Throughout the tutorial, you will use `curl` to interact with Consul's [HTTP API](/consul/api-docs/)
 as well as Consul's Web UI, available at http://localhost:8500/ui.
 
-~> **Security Warning**: Because [`-enable-script-checks`](/consul/docs/reference/agent/configuration-file#_enable_script_checks)
+~> **Security Warning**: Because [`-enable-script-checks`](/consul/docs/reference/agent/configuration-file/general#enable_script_checks)
 allows script checks to be registered via HTTP API, it may introduce a
 [remote execution vulnerability](https://www.hashicorp.com/blog/protecting-consul-from-rce-risk-in-specific-configurations)
 known to be targeted by malware. For production environments, we strongly recommend using
-[`-enable-local-script-checks`](/consul/docs/reference/agent/configuration-file#_enable_local_script_checks)
+[`-enable-local-script-checks`](/consul/docs/reference/agent//configuration-file/general#enable_local_script_checks)
 instead, which removes that vulnerability by allowing script checks to only be
-defined in the Consul agent's [local configuration files](/consul/docs/reference/agent/configuration-file#_config_dir),
+defined in the Consul agent's [local configuration files](/consul/docs/reference/agent/configuration-file/),
 not via HTTP API.
 
 ## Register an internal service with a health check

@@ -30,7 +30,7 @@ After deploying the gateway, attach [HTTP](/consul/docs/reference/config-entry/h
 The following requirements must be satisfied to use API gateways on VMs:
 
 - Consul 1.15 or later
-- A Consul cluster with service mesh enabled. Refer to [`connect`](/consul/docs/reference/agent/configuration-file#connect)
+- A Consul cluster with service mesh enabled. Refer to [`connect`](//consul/docs/reference/agent/configuration-file/service-mesh#connect)
 - Network connectivity between the machine deploying the API Gateway and a
   Consul cluster agent or server
 
@@ -52,15 +52,15 @@ Create an API gateway configuration entry that defines listeners and TLS certifi
 in the mesh.
 
 1. Specify the following fields:
-	- `Kind`: Specifies the type of configuration entry to implement. This must be `api-gateway`. 
+	- `Kind`: Specifies the type of configuration entry to implement. This must be `api-gateway`.
   	- `Name`:  Specify a name for the gateway configuration. The name is metadata that you can use to reference the configuration entry when performing Consul operations.
 	- `Listeners`: Specify a list of listener configurations. Each listener is map containing the following fields:
     	- `Port`: Specifies the port that the listener receives traffic on.
 		- `Name`: Specifies a unique name for the listener.
 		- `Protocol`: You can set either `tcp` or `http`
-		- `TLS`: Defines TLS encryption configurations for the listener. 
+		- `TLS`: Defines TLS encryption configurations for the listener.
 
-	Refer to the [API gateway configuration entry reference](/consul/docs/reference/config-entry/api-gateway) for details on how to define fields in the `Listeners` block. 
+	Refer to the [API gateway configuration entry reference](/consul/docs/reference/config-entry/api-gateway) for details on how to define fields in the `Listeners` block.
 1. Configure any additional fields necessary for your use case, such as the namespace or admin partition. Refer to the [API gateway configuration entry reference](/consul/docs/reference/config-entry/api-gateway) for additional information.
 1. Save the configuration.
 

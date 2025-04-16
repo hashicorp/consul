@@ -222,7 +222,7 @@ The table below shows this endpoint's support for
 | `YES` <sup>1</sup>   | `all`             | `background refresh` | `node:read,service:read` |
 
 <p>
- <sup>1</sup>some query parameters will use the <a href="/consul/api-docs/features/blocking#streaming-backend">streaming backend</a> for blocking queries. 
+ <sup>1</sup>some query parameters will use the <a href="/consul/api-docs/features/blocking#streaming-backend">streaming backend</a> for blocking queries.
 </p>
 
 ### Path Parameters
@@ -238,7 +238,7 @@ The table below shows this endpoint's support for
   ascending order based on the estimated round trip time from that node. Passing
   `?near=_agent` uses the agent's node for the sort.
   ~> **Note:** Using `near` will ignore
-  [`use_streaming_backend`](/consul/docs/reference/agent/configuration-file#use_streaming_backend) and always
+  [`use_streaming_backend`](/consul/docs/reference/agent/configuration-file/general#use_streaming_backend) and always
   use blocking queries, because the data required to sort the results is not available
   to the streaming backend.
 
@@ -265,16 +265,16 @@ The table below shows this endpoint's support for
 
 - `merge-central-config` - Include this flag in a request for `connect-proxy` kind or `*-gateway` kind
   services to return a fully resolved service definition that includes merged values from the
-  [proxy-defaults/global](/consul/docs/reference/config-entry/proxy-defaults) and 
+  [proxy-defaults/global](/consul/docs/reference/config-entry/proxy-defaults) and
   [service-defaults/:service](/consul/docs/reference/config-entry/service-defaults) config entries.
-  Returning a fully resolved service definition is useful when a service was registered using the 
+  Returning a fully resolved service definition is useful when a service was registered using the
   [/catalog/register](/consul/api-docs/catalog#register_entity) endpoint, which does not automatically merge config entries.
 
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the service.
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
 - `sg` `(string: "")` <EnterpriseAlert inline /> - Specifies the sameness group the service is a member of to
-  facilitate requests to identical services in other peers or partitions. 
+  facilitate requests to identical services in other peers or partitions.
 
 ### Sample Request
 

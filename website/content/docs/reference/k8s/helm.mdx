@@ -1184,8 +1184,8 @@ Use these links to navigate to a particular top-level stanza.
 
     - `requestLimits` ((#v-server-limits-requestlimits)) - This object specifies configurations that limit the rate of RPC and gRPC
       requests on the Consul server. Limiting the rate of gRPC and RPC requests
-      also limits HTTP requests to the Consul server.
-      /consul/docs/reference/agent/configuration-file#request_limits
+      also limits HTTP requests to the Consul server. Refer to [Consul agent
+      configuration `request_limits`](/consul/docs/reference/agent/configuration-file/general#request_limits)
 
       - `mode` ((#v-server-limits-requestlimits-mode)) (`string: disabled`) - Setting for disabling or enabling rate limiting.  If not disabled, it
         enforces the action that will occur when RequestLimitsReadRate
@@ -1605,16 +1605,16 @@ Use these links to navigate to a particular top-level stanza.
       will inherit from `global.metrics.enabled` value.
 
     - `provider` ((#v-ui-metrics-provider)) (`string: prometheus`) - Provider for metrics. Refer to
-      [`metrics_provider`](/consul/docs/reference/agent/configuration-file#ui_config_metrics_provider)
+      [`metrics_provider`](/consul/docs/reference/agent/configuration-file/ui#ui_config_metrics_provider)
       This value is only used if `ui.enabled` is set to true.
 
     - `baseURL` ((#v-ui-metrics-baseurl)) (`string: http://prometheus-server`) - baseURL is the URL of the prometheus server, usually the service URL.
       This value is only used if `ui.enabled` is set to true.
 
-  - `dashboardURLTemplates` ((#v-ui-dashboardurltemplates)) - Corresponds to [`dashboard_url_templates`](/consul/docs/reference/agent/configuration-file#ui_config_dashboard_url_templates)
+  - `dashboardURLTemplates` ((#v-ui-dashboardurltemplates)) - Corresponds to [`dashboard_url_templates`](/consul/docs/reference/agent/configuration-file/ui#ui_config_dashboard_url_templates)
     configuration.
 
-    - `service` ((#v-ui-dashboardurltemplates-service)) (`string: ""`) - Sets [`dashboardURLTemplates.service`](/consul/docs/reference/agent/configuration-file#ui_config_dashboard_url_templates_service).
+    - `service` ((#v-ui-dashboardurltemplates-service)) (`string: ""`) - Sets [`dashboardURLTemplates.service`](/consul/docs/reference/agent/configuration-file/ui#ui_config_dashboard_url_templates_service).
 
 ### syncCatalog ((#h-synccatalog))
 

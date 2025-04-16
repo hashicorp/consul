@@ -38,7 +38,7 @@ When a node leaves a cluster, it communicates its intent and the cluster marks t
 
 When a server agent leaves, replication to the exiting server stops.
 
-To prevent an accumulation of "dead" nodes in either `failed` or `left` states, Consul automatically removes dead nodes from the catalog. This process is called _reaping_. 
+To prevent an accumulation of "dead" nodes in either `failed` or `left` states, Consul automatically removes dead nodes from the catalog. This process is called _reaping_.
 
 Reaping occurs on a configurable interval of 72 hours. We do no recommend changing the reap interval due to its consequences during outage situations. For failed nodes, reaping desregisters all of the node's services.
 
@@ -123,7 +123,7 @@ When running under `systemd` on Linux, Consul sends `READY=1` to the `$NOTIFY_SO
 
 You can stop an agent in two ways: gracefully or forcefully. Server and client agents behave differently depending on the leave that is performed. There are two potential states a process can be in after a system signal is sent: _left_ and _failed_.
 
-To gracefully halt an agent, send the process an _interrupt signal_ such as `Ctrl-C` from a terminal, or running `kill -INT consul_pid` . 
+To gracefully halt an agent, send the process an _interrupt signal_ such as `Ctrl-C` from a terminal, or running `kill -INT consul_pid` .
 
 When a client exits gracefully, the agent first notifies the cluster it intends to leave the cluster. This way, other cluster members notify the cluster that the node has _left_.
 
@@ -169,37 +169,38 @@ The following settings are commonly used in the agent configuration file to conf
 
 Some agent configuration options are reloadable at runtime.
 
-You can run the [`consul reload` command](/consul/commands/reload) to manually reload supported options from configuration files in the configuration directory. To configure the agent to automatically reload configuration files updated on disk, set the [`auto_reload_config` configuration option](/consul/docs/reference/agent/configuration-file#auto_reload_config) parameter to `true`.
+You can run the [`consul reload` command](/consul/commands/reload) to manually reload supported options from configuration files in the configuration directory. To configure the agent to automatically reload configuration files updated on disk, set the [`auto_reload_config` configuration option](/consul/docs/reference/agent/configuration-file/general#auto_reload_config) parameter to `true`.
 
 The following agent configuration options are reloadable at runtime:
 
 - ACL tokens
 - Bootstrapped configuration entries
 - Health check definitions
-- [Discard Check Output](/consul/docs/reference/agent/configuration-file#discard_check_output)
+- [Discard Check Output](/consul/docs/reference/agent/configuration-file/general#discard_check_output)
 - HTTP client address
 - Log level
-- [Metric Prefix Filter](/consul/docs/reference/agent/configuration-file#telemetry-prefix_filter)
-- [Node Metadata](/consul/docs/reference/agent/configuration-file#node_meta)
+- [Metric Prefix Filter](/consul/docs/reference/agent/configuration-file/telemetry#telemetry-prefix_filter)
+- [Node Metadata](/consul/docs/reference/agent/configuration-file/node#node_meta)
 - Some Raft options:
-  - [`raft_snapshot_threshold`](/consul/docs/reference/agent/configuration-file#_raft_snapshot_threshold)
-  - [`raft_snapshot_interval`](/consul/docs/reference/agent/configuration-file#_raft_snapshot_interval)
-  - [`raft_trailing_logs`](/consul/docs/reference/agent/configuration-file#_raft_trailing_logs)
-- [RPC rate limits](/consul/docs/reference/agent/configuration-file#limits)
-- [Reporting](/consul/docs/reference/agent/configuration-file#reporting)
-- [HTTP maximum connections per client](/consul/docs/reference/agent/configuration-file#http_max_conns_per_client)
+  - [`raft_snapshot_threshold`](/consul/docs/reference/agent/configuration-file/raft#raft_snapshot_threshold)
+  - [`raft_snapshot_interval`](/consul/docs/reference/agent/configuration-file/raft#raft_snapshot_interval)
+  - [`raft_trailing_logs`](/consul/docs/reference/agent/configuration-file/raft#raft_trailing_logs)
+- [RPC rate limits](/consul/docs/reference/agent/configuration-file/general#limits)
+- [Reporting](/consul/docs/reference/agent/configuration-file/general#reporting)
+- [HTTP maximum connections per client](/consul/docs/reference/agent/configuration-file/general#http_max_conns_per_client)
 - Service definitions
 - TLS configuration. Be aware that this is currently limited to reload a configuration that is already TLS enabled. You cannot enable or disable TLS only with reloading. To avoid a potential security issue, the following TLS configuration parameters do not automatically reload when [-auto-reload-config](/consul/commands/agent#_auto_reload_config) is enabled:
-  - [encrypt_verify_incoming](/consul/docs/reference/agent/configuration-file#encrypt_verify_incoming)
-  - [verify_incoming](/consul/docs/reference/agent/configuration-file#verify_incoming)
-  - [verify_incoming_rpc](/consul/docs/reference/agent/configuration-file#verify_incoming_rpc)
-  - [verify_incoming_https](/consul/docs/reference/agent/configuration-file#verify_incoming_https)
-  - [verify_outgoing](/consul/docs/reference/agent/configuration-file#verify_outgoing)
-  - [verify_server_hostname](/consul/docs/reference/agent/configuration-file#verify_server_hostname)
-  - [ca_file](/consul/docs/reference/agent/configuration-file#ca_file)
-  - [ca_path](/consul/docs/reference/agent/configuration-file#ca_path)
+  - [encrypt_verify_incoming](/consul/docs/reference/agent/configuration-file/tls#encrypt_verify_incoming)
+  - [verify_incoming](/consul/docs/reference/agent/configuration-file/tls#verify_incoming)
+  - [verify_incoming_rpc](/consul/docs/reference/agent/configuration-file/tls#verify_incoming_rpc)
+  - [verify_incoming_https](/consul/docs/reference/agent/configuration-file/tls#verify_incoming_https)
+  - [verify_outgoing](/consul/docs/reference/agent/configuration-file/tls#verify_outgoing)
+  - [verify_server_hostname](/consul/docs/reference/agent/configuration-file/tls#verify_server_hostname)
+  - [ca_file](/consul/docs/reference/agent/configuration-file/tls#ca_file)
+  - [ca_path](/consul/docs/reference/agent/configuration-file/tls#ca_path)
 - [License](/consul/docs/enterprise/license)
 
 ## Next steps
 
-Next, learn about the [fundamentals of services in Consul](/consul/docs/fundamentals/service)/
+Next, learn about the [fundamentals of services in
+Consul](/consul/docs/fundamentals/service)/

@@ -17,10 +17,10 @@ to:
 - Define the upstreams for each of your services.
 
 If you are using Envoy as your sidecar proxy, you will need to [enable
-gRPC](/consul/docs/reference/agent/configuration-file#grpc_port) on your client agents. To define the
+gRPC](/consul/docs/reference/agent/configuration-file/general#grpc_port) on your client agents. To define the
 metrics destination and service protocol you may want to enable [configuration
-entries](/consul/docs/reference/agent/configuration-file#config_entries) and [centralized service
-configuration](/consul/docs/reference/agent/configuration-file#enable_central_service_config).
+entries](/consul/docs/reference/agent/configuration-file/general#config_entries) and [centralized service
+configuration](/consul/docs/reference/agent/configuration-file/general#enable_central_service_config).
 
 ### Kubernetes
 If you are using Kubernetes, the Helm chart can simplify much of the configuration needed to enable observability. See
@@ -44,9 +44,9 @@ Find other possible metrics syncs in the [Envoy documentation](/consul/docs/conn
 ### Service protocol
 
 You can specify the [`protocol`](/consul/docs/reference/config-entry/service-defaults#protocol)
-for all service instances in the `service-defaults` configuration entry. You can also override the default protocol when defining and registering proxies in a service definition file. Refer to [Expose Paths Configuration Reference](/consul/docs/connect/proxies/proxy-config-reference#expose-paths-configuration-reference) for additional information. 
+for all service instances in the `service-defaults` configuration entry. You can also override the default protocol when defining and registering proxies in a service definition file. Refer to [Expose Paths Configuration Reference](/consul/docs/connect/proxies/proxy-config-reference#expose-paths-configuration-reference) for additional information.
 
-By default, proxies only provide L4 metrics. 
+By default, proxies only provide L4 metrics.
 Defining the protocol allows proxies to handle requests at the L7
 protocol and emit L7 metrics. It also allows proxies to make per-request
 load balancing and routing decisions.

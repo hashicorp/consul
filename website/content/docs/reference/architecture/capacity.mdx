@@ -7,14 +7,14 @@ description: >-
 
 # Consul capacity planning
 
-This page describes our capacity planning recommendations when deploying and maintaining a Consul cluster in production. When your organization designs a production environment, you should consider your available resources and their impact on network capacity. 
+This page describes our capacity planning recommendations when deploying and maintaining a Consul cluster in production. When your organization designs a production environment, you should consider your available resources and their impact on network capacity.
 
 ## Introduction
 
 It is important to select the correct size for your server instances. Consul server environments have a standard set of minimum requirements. However, these requirements may vary depending on what you are using Consul for.
 
 Insufficient resource allocations may cause network issues or degraded performance in general. When a slowdown in performance results in a Consul leader node that is unable to respond to requests in sufficient time, the Consul cluster triggers a new leader election. Consul pauses all network requests and Raft updates until the election ends.
- 
+
 ## Hardware requirements
 
 The minimum hardware requirements for Consul servers in production clusters as recommended by the [reference architecture](/consul/tutorials/production-deploy/reference-architecture#hardware-sizing-for-consul-servers) are:
@@ -93,7 +93,7 @@ In production environments, create baselines for your Consul cluster's metrics. 
 
 These metrics indicate how long it takes to complete write operations in various parts of the Consul cluster.
 
-- [`consul.kvs.apply`](/consul/docs/agent/monitor/telemetry#transaction-timing) measures the time it takes to complete an update to the KV store.	
+- [`consul.kvs.apply`](/consul/docs/agent/monitor/telemetry#transaction-timing) measures the time it takes to complete an update to the KV store.
 - [`consul.txn.apply`](/consul/docs/agent/monitor/telemetry#transaction-timing) measures the time spent applying a transaction operation.
 - [`consul.raft.apply`](/consul/docs/agent/monitor/telemetry#transaction-timing) counts the number of Raft transactions applied during the measurement interval. This metric is only reported on the leader.
 - [`consul.raft.commitTime`](/consul/docs/agent/monitor/telemetry#transaction-timing) measures the time it takes to commit a new entry to the Raft log on disk on the leader.
@@ -111,8 +111,8 @@ These performance indicators can help you diagnose if the current instance sizin
 Leadership changes are not a cause for concern but frequent changes may be a symptom of a deeper problem. Frequent elections or leadership changes may indicate network issues between the Consul servers, or the Consul servers are unable to keep up with the load.
 
 - [`consul.raft.leader.lastContact`](/consul/docs/agent/monitor/telemetry#leadership-changes) measures the time since the leader was last able to contact the follower nodes when checking its leader lease.
-- [`consul.raft.state.candidate`](/consul/docs/agent/monitor/telemetry#leadership-changes) increments whenever a Consul server starts an election.	
-- [`consul.raft.state.leader`](/consul/docs/agent/monitor/telemetry#leadership-changes) increments whenever a Consul server becomes a leader.	
+- [`consul.raft.state.candidate`](/consul/docs/agent/monitor/telemetry#leadership-changes) increments whenever a Consul server starts an election.
+- [`consul.raft.state.leader`](/consul/docs/agent/monitor/telemetry#leadership-changes) increments whenever a Consul server becomes a leader.
 - [`consul.server.isLeader`](/consul/docs/agent/monitor/telemetry#leadership-changes) tracks whether a server is a leader.
 
 ### Network metrics
@@ -121,11 +121,11 @@ Network activity and RPC count measurements indicate the current load created fr
 
 - [`consul.client.rpc`](/consul/docs/agent/monitor/telemetry#network-activity-rpc-count) increments whenever a Consul agent in client mode makes an RPC request to a Consul server.
 - [`consul.client.rpc.exceeded`](/consul/docs/agent/monitor/telemetry#network-activity-rpc-count) increments whenever a Consul agent in client mode makes an RPC request to a Consul server gets rate limited by that agent's limits configuration.
-- [`consul.client.rpc.failed`](/consul/docs/agent/monitor/telemetry#network-activity-rpc-count) increments whenever a Consul agent in client mode makes an RPC request to a Consul server and fails.	
+- [`consul.client.rpc.failed`](/consul/docs/agent/monitor/telemetry#network-activity-rpc-count) increments whenever a Consul agent in client mode makes an RPC request to a Consul server and fails.
 
 ## Network constraints and alternate approaches
 
-If it is impossible for you to allocate the required resources, you can make changes to Consul's performance so that it operates with lower speed or resilience. These changes ensure that your cluster remains within its resource capacity. 
+If it is impossible for you to allocate the required resources, you can make changes to Consul's performance so that it operates with lower speed or resilience. These changes ensure that your cluster remains within its resource capacity.
 
 - Soft limits prevent your cluster from degrading due to overload.
 - Raft tuning lets you compensate for unfavorable environments.
@@ -134,7 +134,7 @@ If it is impossible for you to allocate the required resources, you can make cha
 
 The recommended maximum size for a single datacenter is 5,000 Consul client agents. This recommendation is based on a standard, non-tuned environment and considers a blast radius's risk management factor. The maximum number of agents may be lower, depending on how you use Consul.
 
-If you require more than 5,000 client agents, you should break up the single Consul datacenter into multiple smaller datacenters. 
+If you require more than 5,000 client agents, you should break up the single Consul datacenter into multiple smaller datacenters.
 
 - When the nodes are spread across separate physical locations such as different regions, you can model multiple datacenter structures based on physical locations.
 - Use [network segments](/consul/docs/multi-tenant/network-segment) in a single available zone or region to lower overall resource usage in a single datacenter.
@@ -166,7 +166,7 @@ resources:
 ### Raft tuning
 
 Consul uses the [Raft consensus algorithm](/consul/docs/concept/consensus) to provide consistency.
-You may need to adjust Raft to suit your specific environment. Adjust the [`raft_multiplier` configuration](/consul/docs/reference/agent/configuration-file#raft_multiplier) to define the trade-off between leader stability and time to recover from a leader failure.
+You may need to adjust Raft to suit your specific environment. Adjust the [`raft_multiplier` configuration](/consul/docs/reference/agent/configuration-file/general#raft_multiplier) to define the trade-off between leader stability and time to recover from a leader failure.
 
 - A lower multiplier minimizes failure detection and election time, but it may trigger frequently in high latency situations.
 - A higher multiplier reduces the chances that failures cause leadership churn, but your cluster takes longer to detect real failures and restore availability.
@@ -179,10 +179,14 @@ The value of `raft_multiplier` has a default value of 5. It is a scaling factor 
 | ElectionTimeout | 5000ms | 5 x 1000ms |
 | LeaderLeaseTimeout | 2500ms | 5 x 500ms |
 
-You can use the telemetry from [`consul.raft.leader.lastContact`](/consul/docs/reference/agent/telemetry#leadership-changes) to observe Raft timing performance. 
+You can use the telemetry from [`consul.raft.leader.lastContact`](/consul/docs/reference/agent/telemetry#leadership-changes) to observe Raft timing performance.
 
 Wide networks with more latency perform better with larger values of `raft_multiplier`, but cluster failure detection will take longer. If your network operates with low latency, we recommend that you do not set the Raft multiplier higher than 5. Instead, you should either replace the servers with more powerful ones or minimize the network latency between nodes.
 
 We recommend you start from a baseline and perform [chaos engineering testing](/consul/tutorials/resiliency/introduction-chaos-engineering?in=consul%2Fresiliency) with different values for the Raft multiplier to find the acceptable time for problem detection and recovery for the cluster. Then scale the cluster and its dedicated resources with the number of workloads handled. This approach gives you the best balance between pure resource growth and pure Raft tuning strategies because it lets you use Raft tuning as a backup plan if you cannot scale your resources.
 
-The types of workloads the Consul cluster handles also play an important role in Raft tuning. For example, if your Consul clusters are mostly static and do not handle many events, you should increase your Raft multiplier instead of scaling your resources because the risk of an important event happening while the cluster is converging or re-electing a leader is lower.
+The types of workloads the Consul cluster handles also play an important role in
+Raft tuning. For example, if your Consul clusters are mostly static and do not
+handle many events, you should increase your Raft multiplier instead of scaling
+your resources because the risk of an important event happening while the
+cluster is converging or re-electing a leader is lower.

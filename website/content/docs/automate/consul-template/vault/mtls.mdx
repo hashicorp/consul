@@ -7,7 +7,7 @@ description: >-
 
 # Generate mTLS Certificates for Consul with Vault and Consul Template
 
-This page describes the process to use Vault's [PKI Secrets Engine](/vault/docs/secrets/pki) to generate and renew dynamic X.509 certificates, using [Consul Template](/consul/docs/automate/consul-template) to rotate your certificates. 
+This page describes the process to use Vault's [PKI Secrets Engine](/vault/docs/secrets/pki) to generate and renew dynamic X.509 certificates, using [Consul Template](/consul/docs/automate/consul-template) to rotate your certificates.
 
 This method enables each agent in the Consul datacenter to have a unique certificate, with a relatively short time-to-live (TTL), that is automatically rotated, which allows you to safely and securely scale your datacenter while using mutual TLS (mTLS).
 
@@ -182,12 +182,12 @@ Success! Data written to: pki_int/roles/consul-dc1
 For this guide, you are using the following options for the role:
 
 - `allowed_domains`: Specifies the domains of the role. The command uses `dc1.consul` as the domain, which is the default configuration you are going to use for Consul.
-- `allow_subdomains`: Specifies if clients can request certificates with CNs that are subdomains of the CNs allowed by the other role options 
-  
+- `allow_subdomains`: Specifies if clients can request certificates with CNs that are subdomains of the CNs allowed by the other role options
+
   <Note>
-  
+
   This includes wildcard subdomains.
-  
+
   </Note>
 
 - `generate_lease`: Specifies if certificates issued/signed against this role will have Vault leases attached to them. Certificates can be added to the CRL by Vault revoke `<lease_id>` when certificates are associated with leases.
@@ -276,7 +276,7 @@ auto_encrypt {
       "cert_file": "/opt/consul/agent-certs/agent.crt",
       "key_file": "/opt/consul/agent-certs/agent.key"
     }
-  }, 
+  },
   "auto_encrypt": {
       "allow_tls": true
     }
@@ -325,7 +325,7 @@ $ grep -Pzo "(?s)(?<=private_key)[^\-]*.*?END RSA PRIVATE KEY[^\n]*\n" certs.txt
 
 <Note>
 
-This section describes the automated [client certificate deployment process](/consul/docs/reference/agent/configuration-file#auto_encrypt) available in Consul 1.5.2 and newer.
+This section describes the automated [client certificate deployment process](/consul/docs/reference/agent/configuration-file/encryption#auto_encrypt) available in Consul 1.5.2 and newer.
 
 </Note>
 
@@ -359,7 +359,7 @@ auto_encrypt {
       "verify_server_hostname": true,
       "ca_file": "/opt/consul/agent-certs/ca.crt",
     }
-  }, 
+  },
   "auto_encrypt": {
       "tls": true
     }

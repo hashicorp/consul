@@ -102,7 +102,7 @@ By default, the `consul` command targets the local instance. To target a specifi
 $ CONSUL_HTTP_ADDR=http://127.0.0.1:8500
 ```
 
-When the [ACL system is enabled](/consul/docs/reference/agent/configuration-file#acl) the Consul CLI requires an [ACL token](/consul/docs/security/acl#tokens) with permissions to perform the operations. You can provide the ACL token directly on the command line using the `-token` command line flag, from a file using the `-token-file` command line flag, or from either the `CONSUL_HTTP_TOKEN` or `CONSUL_HTTP_TOKEN_FILE` environment variable.
+When the [ACL system is enabled](/consul/docs/reference/agent/configuration-file/acl) the Consul CLI requires an [ACL token](/consul/docs/security/acl#tokens) with permissions to perform the operations. You can provide the ACL token directly on the command line using the `-token` command line flag, from a file using the `-token-file` command line flag, or from either the `CONSUL_HTTP_TOKEN` or `CONSUL_HTTP_TOKEN_FILE` environment variable.
 
 ```shell-session
 $ CONSUL_HTTP_TOKEN=aba7cbe5-879b-999a-07cc-2efd9ac0ffe

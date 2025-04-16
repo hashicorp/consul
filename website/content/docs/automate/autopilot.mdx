@@ -12,14 +12,14 @@ servers. It includes cleanup of dead servers, monitoring the state of the Raft
 cluster, and stable server introduction.
 
 To use autopilot features (with the exception of dead server cleanup), the
-[`raft_protocol`](/consul/docs/reference/agent/configuration-file#_raft_protocol)
+[`raft_protocol`](/consul/docs/reference/agent/configuration-file/raft#raft_protocol)
 setting in the Consul agent configuration must be set to 3 or higher on all
 servers. In Consul `0.8` this setting defaults to 2; in Consul `1.0` it will
 default to 3. For more information, check the [Version Upgrade
 section](/consul/docs/upgrade/version-specific) on Raft protocol
 versions in Consul `1.0`.
 
-In this tutorial you will learn how Consul tracks the stability of servers, how 
+In this tutorial you will learn how Consul tracks the stability of servers, how
 to tune those conditions, and get some details on the other autopilot's features.
 
 - Server Stabilization
@@ -27,13 +27,13 @@ to tune those conditions, and get some details on the other autopilot's features
 - Redundancy zones (only available in Consul Enterprise)
 - Automated upgrades (only available in Consul Enterprise)
 
-Note, in this tutorial we are using examples from a Consul `1.7` datacenter, we 
+Note, in this tutorial we are using examples from a Consul `1.7` datacenter, we
 are starting with Autopilot enabled by default.
 
 ## Default configuration
 
 The configuration of Autopilot is loaded by the leader from the agent's
-[autopilot settings](/consul/docs/reference/agent/configuration-file#autopilot)
+[autopilot settings](/consul/docs/reference/agent/configuration-file/general#autopilot)
 when initially bootstrapping the datacenter. Since autopilot and its features
 are already enabled, you only need to update the configuration to disable them.
 
@@ -92,12 +92,12 @@ $ curl http://127.0.0.1:8500/v1/operator/autopilot/configuration
 
 ### Autopilot and Consul snapshots
 
-Changes to the autopilot configuration are persisted in the Raft database 
-maintained by the Consul servers. This means that autopilot configuration will 
-be included in the Consul snapshot data. Any snapshot taken prior to autopilot 
-configuration changes will contain the old configuration, and should be 
-considered unsafe to restore since they will remove the change and cause 
-unpredictable behaviors for the automations that might rely on the new 
+Changes to the autopilot configuration are persisted in the Raft database
+maintained by the Consul servers. This means that autopilot configuration will
+be included in the Consul snapshot data. Any snapshot taken prior to autopilot
+configuration changes will contain the old configuration, and should be
+considered unsafe to restore since they will remove the change and cause
+unpredictable behaviors for the automations that might rely on the new
 configuration.
 
 We recommend that you take a snapshot after any changes to the autopilot
@@ -262,16 +262,16 @@ to further strengthen and automate Consul operations.
 
 ### Redundancy zones
 
-Consul’s redundancy zones provide high availability in the case of server 
+Consul’s redundancy zones provide high availability in the case of server
 failure through the Enterprise feature of autopilot. Autopilot allows you to add
-read replicas to your datacenter that will be promoted to the "voting" status in 
+read replicas to your datacenter that will be promoted to the "voting" status in
 case of voting server failure.
 
 You can use this tutorial to implement isolated failure domains such as AWS
 Availability Zones (AZ) to obtain redundancy within an AZ without having to
 sustain the overhead of a large quorum.
 
-Check [provide fault tolerance with redundancy zones](/consul/tutorials/operate-consul/redundancy-zones) 
+Check [provide fault tolerance with redundancy zones](/consul/tutorials/operate-consul/redundancy-zones)
 to learn more on the functionality.
 
 ### Automated upgrades
@@ -282,17 +282,17 @@ autopilot. Autopilot allows you to add new servers directly to the datacenter
 and waits until you have enough servers running the new version to perform a
 leadership change and demote the old servers as "non-voters".
 
-Check [automate upgrades with Consul Enterprise](/consul/tutorials/datacenter-operations/upgrade-automation) 
+Check [automate upgrades with Consul Enterprise](/consul/tutorials/datacenter-operations/upgrade-automation)
 to learn more on the functionality.
 
 ## Next steps
 
-In this tutorial you got an overview of the autopilot features and got examples 
+In this tutorial you got an overview of the autopilot features and got examples
 on how and when tune the default values.
 
 To learn more about the Autopilot settings you did not configure in this tutorial,
-[last_contact_threshold](/consul/docs/reference/agent/configuration-file#last_contact_threshold)
+[last_contact_threshold](/consul/docs/reference/agent/configuration-file/general#last_contact_threshold)
 and
-[max_trailing_logs](/consul/docs/reference/agent/configuration-file#max_trailing_logs),
+[max_trailing_logs](/consul/docs/reference/agent/configuration-file/general#max_trailing_logs),
 either read the agent configuration documentation or use the help flag with the
 operator autopilot `consul operator autopilot set-config -h`.
