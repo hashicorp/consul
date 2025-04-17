@@ -1,0 +1,5 @@
+```release-note:security
+Update `golang.org/x/net` to v0.38.0 to address [GHSA-vvgc-356p-c3xw](https://github.com/advisories/GHSA-vvgc-356p-c3xw) and [GO-2025-3595](https://pkg.go.dev/vuln/GO-2025-3595).
+Update `github.com/golang-jwt/jwt/v4` to v4.5.2 to address [GO-2025-3553](https://pkg.go.dev/vuln/GO-2025-3553) and [GHSA-mh63-6h87-95cp](https://github.com/advisories/GHSA-mh63-6h87-95cp).
+Update `Go` to v1.23.8 to address [GO-2025-3563](https://pkg.go.dev/vuln/GO-2025-3563).
+```
