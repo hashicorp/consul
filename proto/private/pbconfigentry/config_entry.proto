@@ -1235,7 +1235,6 @@ message RemoteJWKS {
   bool FetchAsynchronously = 4;
   JWKSRetryPolicy RetryPolicy = 5;
   JWKSCluster JWKSCluster = 6;
-  bool UseSNI = 7;
 }
 
 // mog annotation:

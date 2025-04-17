@@ -4,6 +4,7 @@
 package consul
 
 import (
+	"github.com/hashicorp/consul/internal/hcp"
 	"github.com/hashicorp/consul/internal/multicluster"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
@@ -21,6 +22,7 @@ func NewTypeRegistry() resource.Registry {
 
 	demo.RegisterTypes(registry)
 	multicluster.RegisterTypes(registry)
+	hcp.RegisterTypes(registry)
 
 	return registry
 }

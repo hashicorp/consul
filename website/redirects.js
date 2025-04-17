@@ -218,7 +218,8 @@ module.exports = [
     permanent: true,
   },
   {
-    source: '/consul/docs/:version(v1\.(?:8|9|10|11|12|13|14|15|16|17)\.x)/architecture/catalog/:slug*',
+    source:
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/architecture/catalog/:slug*',
     destination: '/consul/docs/:version/architecture/catalog/v1/:slug',
     permanent: true,
   },
@@ -228,7 +229,8 @@ module.exports = [
     permanent: true,
   },
   {
-    source: '/consul/docs/:version(v1\.(?:8|9|10|11|12|13|14|15|16|17)\.x)/nia/network-drivers/hcp-terraform',
+    source:
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/nia/network-drivers/hcp-terraform',
     destination: '/consul/docs/:version/nia/network-drivers/terraform-cloud',
     permanent: true,
   },
@@ -253,7 +255,8 @@ module.exports = [
     permanent: true,
   },
   {
-    source: '/consul/docs/:version(v1\.(?:11|12|13|14|15|16|17|18)\.x)/k8s/dns/enable',
+    source:
+      '/consul/docs/:version(v1.(?:11|12|13|14|15|16|17|18).x)/k8s/dns/enable',
     destination: '/consul/docs/:version/k8s/dns',
     permanent: true,
   },

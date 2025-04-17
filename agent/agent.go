@@ -1434,9 +1434,6 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	cfg.GRPCTLSPort = runtimeCfg.GRPCTLSPort
 
 	cfg.Segment = runtimeCfg.SegmentName
-
-	cfg.RaftConfig.PreVoteDisabled = runtimeCfg.RaftPreVoteDisabled
-
 	if len(runtimeCfg.Segments) > 0 {
 		segments, err := segmentConfig(runtimeCfg)
 		if err != nil {

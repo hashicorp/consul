@@ -230,44 +230,29 @@ func TestMakeJWTProviderCluster(t *testing.T) {
 			},
 			expectedError: "cannot create JWKS cluster for non remote JWKS. Provider Name: okta",
 		},
-		"https-provider-with-hostname-no-port-with-sni": {
-			provider: makeTestProviderWithJWKS("https://example-okta.com/.well-known/jwks.json", true),
-		},
 		"https-provider-with-hostname-no-port": {
-			provider: makeTestProviderWithJWKS("https://example-okta.com/.well-known/jwks.json", false),
+			provider: makeTestProviderWithJWKS("https://example-okta.com/.well-known/jwks.json"),
 		},
 		"http-provider-with-hostname-no-port": {
-			provider: makeTestProviderWithJWKS("http://example-okta.com/.well-known/jwks.json", true),
-		},
-		"http-provider-with-hostname-no-port-with-sni": {
-			provider: makeTestProviderWithJWKS("http://example-okta.com/.well-known/jwks.json", true),
+			provider: makeTestProviderWithJWKS("http://example-okta.com/.well-known/jwks.json"),
 		},
 		"https-provider-with-hostname-and-port": {
-			provider: makeTestProviderWithJWKS("https://example-okta.com:90/.well-known/jwks.json", false),
+			provider: makeTestProviderWithJWKS("https://example-okta.com:90/.well-known/jwks.json"),
 		},
 		"http-provider-with-hostname-and-port": {
-			provider: makeTestProviderWithJWKS("http://example-okta.com:90/.well-known/jwks.json", false),
-		},
-		"http-provider-with-hostname-and-port-with-sni": {
-			provider: makeTestProviderWithJWKS("http://example-okta.com:90/.well-known/jwks.json", true),
-		},
-		"https-provider-with-ip-no-port-with-sni": {
-			provider: makeTestProviderWithJWKS("https://127.0.0.1", true),
+			provider: makeTestProviderWithJWKS("http://example-okta.com:90/.well-known/jwks.json"),
 		},
 		"https-provider-with-ip-no-port": {
-			provider: makeTestProviderWithJWKS("https://127.0.0.1", false),
+			provider: makeTestProviderWithJWKS("https://127.0.0.1"),
 		},
 		"http-provider-with-ip-no-port": {
-			provider: makeTestProviderWithJWKS("http://127.0.0.1", false),
-		},
-		"https-provider-with-ip-and-port-with-sni": {
-			provider: makeTestProviderWithJWKS("https://127.0.0.1:9091", true),
+			provider: makeTestProviderWithJWKS("http://127.0.0.1"),
 		},
 		"https-provider-with-ip-and-port": {
-			provider: makeTestProviderWithJWKS("https://127.0.0.1:9091", false),
+			provider: makeTestProviderWithJWKS("https://127.0.0.1:9091"),
 		},
 		"http-provider-with-ip-and-port": {
-			provider: makeTestProviderWithJWKS("http://127.0.0.1:9091", true),
+			provider: makeTestProviderWithJWKS("http://127.0.0.1:9091"),
 		},
 	}
 
@@ -287,7 +272,7 @@ func TestMakeJWTProviderCluster(t *testing.T) {
 	}
 }
 
-func makeTestProviderWithJWKS(uri string, useSNI bool) *structs.JWTProviderConfigEntry {
+func makeTestProviderWithJWKS(uri string) *structs.JWTProviderConfigEntry {
 	return &structs.JWTProviderConfigEntry{
 		Kind:   "jwt-provider",
 		Name:   "okta",
@@ -297,7 +282,6 @@ func makeTestProviderWithJWKS(uri string, useSNI bool) *structs.JWTProviderConfi
 				RequestTimeoutMs:    1000,
 				FetchAsynchronously: true,
 				URI:                 uri,
-				UseSNI:              useSNI,
 				JWKSCluster: &structs.JWKSCluster{
 					DiscoveryType:  structs.DiscoveryTypeStatic,
 					ConnectTimeout: time.Duration(5) * time.Second,

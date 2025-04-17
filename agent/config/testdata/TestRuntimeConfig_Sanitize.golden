@@ -71,7 +71,6 @@
     "AutopilotDisableUpgradeMigration": false,
     "AutopilotLastContactThreshold": "0s",
     "AutopilotMaxTrailingLogs": 0,
-
     "AutopilotMinQuorum": 0,
     "AutopilotRedundancyZoneTag": "",
     "AutopilotServerStabilizationTime": "0s",
@@ -300,7 +299,6 @@
     "RaftSnapshotInterval": "0s",
     "RaftSnapshotThreshold": 0,
     "RaftTrailingLogs": 0,
-    "RaftPreVoteDisabled": false,
     "ReadReplica": false,
     "ReconnectTimeoutLAN": "0s",
     "ReconnectTimeoutWAN": "0s",

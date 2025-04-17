@@ -1,18 +1,10 @@
 * @hashicorp/consul-selfmanage-maintainers
 
+# Techical Writer Review
 
-# engineering and web presence get notified of, and can approve changes to web tooling, but not content.
-
-/website/           @hashicorp/web-presence @hashicorp/consul-selfmanage-maintainers
-/website/data/
-/website/public/
-/website/content/
-
-# education and engineering get notified of, and can approve changes to web content.
-
-/website/data/          @hashicorp/consul-docs @hashicorp/consul-selfmanage-maintainers
-/website/public/        @hashicorp/consul-docs @hashicorp/consul-selfmanage-maintainers
-/website/content/       @hashicorp/consul-docs @hashicorp/consul-selfmanage-maintainers
+/website/content/docs/ @hashicorp/consul-docs
+/website/content/commands/ @hashicorp/consul-docs
+/website/content/api-docs/ @hashicorp/consul-docs
 
 
 # release configuration

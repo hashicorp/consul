@@ -71,6 +71,3 @@ terraform.rc
 /go.work
 /go.work.sum
 .docker
-
-# Avoid accidental commits of consul-k8s submodule used by some dev environments
-consul-k8s/
