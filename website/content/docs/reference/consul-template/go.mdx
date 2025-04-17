@@ -493,7 +493,7 @@ Query [Consul][consul] for all nodes in the catalog.
 ```golang
 {{ nodes "?<QUERY>@<DATACENTER>~<NEAR>" }}
 ```
-The `<QUERY>` attribute is optional; if omitted, the `default` Consul namespace, `default` partition will be queried. `<QUERY>` can be used to set the Consul [namespace](https://developer.hashicorp.com/consul/api-docs/health#ns-2) or partition. `<QUERY>` accepts a url query-parameter format, e.g.:
+The `<QUERY>` attribute is optional; if omitted, the `default` Consul namespace, `default` partition will be queried. `<QUERY>` can be used to set the Consul [namespace](/consul/api-docs/health#ns-2) or partition. `<QUERY>` accepts a url query-parameter format, e.g.:
 
 ```golang
 {{ range nodes "?ns=namespace&partition=partition" }}
@@ -614,7 +614,7 @@ To access a versioned secret value (for the K/V version 2 backend):
 When omitting the `?version` parameter, the latest version of the secret will be
 fetched. Note the nested `.Data.data` syntax when referencing the secret value.
 For more information about using the K/V v2 backend, see the
-[Vault Documentation](https://www.vaultproject.io/docs/secrets/kv/kv-v2.html).
+[Vault Documentation](/vault/docs/secrets/kv/kv-v2).
 
 When using Vault versions 0.10.0/0.10.1, the secret path will have to be prefixed
 with "data", i.e. `secret/data/passwords` for the example above. This is not
@@ -1587,7 +1587,7 @@ combined with a JSON filter for customization:
 {{ tree "foo" | explode | toJSON | plugin "my-plugin" }}
 ```
 
-Please see the [Plugins](plugins.md) section for more information about plugins.
+Refer to the [`consul-template` repository's plugins guide](https://github.com/hashicorp/consul-template/blob/main/docs/plugins.md) for more information about plugins.
 
 ### `regexMatch`
 
@@ -2004,7 +2004,8 @@ This can also be used with a pipe function.
 
 Nomad service registrations can be queried using the `nomadServices` and `nomadService` functions.
 Nomad variables can be queried using the `nomadVarList` and `nomadVar` functions.
-Typically these will be used from within a Nomad [template](https://www.nomadproject.io/docs/job-specification/template#nomad-services) configuration.
+Use these from within a Nomad
+template configuration. Refer to Nomad's [job specification template documentation](/nomad/docs/job-specification/template#nomad-services) for details.
 
 ### `nomadServices`
 
@@ -2329,9 +2330,8 @@ If you would prefer to use format strings with a compacted inline printing style
 * `%#+v`: adds types and pointer addresses
 
 
-[connect]: https://www.consul.io/docs/connect/ "Connect"
-[consul]: https://www.consul.io "Consul by HashiCorp"
-[text-template]: https://golang.org/pkg/text/template/ "Go's text/template package"
-[vault]: https://www.vaultproject.io "Vault by HashiCorp"
-[nomad]: https://www.nomadproject.io "Nomad by HashiCorp"
-
+[connect]: /consul/docs/connect/
+[consul]: /consul/docs
+[text-template]: https://golang.org/pkg/text/template/
+[vault]: /vault/docs
+[nomad]: /nomad/docs
