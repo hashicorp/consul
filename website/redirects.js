@@ -3922,7 +3922,7 @@ module.exports = [
   },
   {
     source: '/consul/tutorials/archive/autopilot-datacenter-operations',
-    destination: '/consul/docs/automate/autopilot',
+    destination: '/consul/docs/manage/scale/autopilot',
     permanent: true,
   },
   {
