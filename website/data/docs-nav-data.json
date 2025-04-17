@@ -904,6 +904,15 @@
             "path": "manage/scale/automated-backup"
           },
           {
+            "title": "Autopilot",
+            "badge": {
+              "text": "ENTERPRISE",
+              "type": "outlined",
+              "color": "neutral"
+            },
+            "path": "manage/scale/autopilot"
+          },
+          {
             "title": "Redundancy zones",
             "badge": {
               "text": "ENTERPRISE",
@@ -2132,10 +2141,6 @@
       {
         "title": "Application leader elections",
         "path": "automate/application-leader-election"
-      },
-      {
-        "title": "Autopilot",
-        "path": "automate/autopilot"
       },
       {
         "title": "Consul template",
