@@ -204,6 +204,55 @@ The following table lists each term and a definition to help you decide where to
 | Reference      | `reference`       | All reference information for configuring Consul, its components, and the infrastructure it runs on. |
 | Troubleshoot   | `troubleshoot`    | Instructions and guidance about how to figure out what's wrong with a Consul deployment.             |
 
+### User persona indexed to Consul taxonomy
+
+The following tables validate the relationship between the information architecture and the content strategy by indexing them to one another. Potential applications for these tables include curricular learning paths and targeted content expansion.
+
+### User persona indexed to intro topic
+
+This table indexes each intro directory and its contents with the typical concerns of the user persona based on their jobs-to-be-done and critical user journeys:
+
+| Intro topic  | Platform engineer | Security engineer | Application developer |
+| :----------- | :---------------: | :---------------: | :-------------------: |
+| Architecture |      &#9989;      |      &#9989;      |       &#10060;        |
+| Concepts     |      &#9989;      |      &#9989;      |        &#9989;        |
+| Enterprise   |      &#9989;      |     &#10060;      |       &#10060;        |
+| Fundamentals |      &#9989;      |      &#9989;      |        &#9989;        |
+| Use cases    |      &#9989;      |      &#9989;      |        &#9989;        |
+
+### User persona indexed to usage phase
+
+This table indexes each usage directory and its contents with the typical concerns of the user persona based on their jobs-to-be-done and critical user journeys:
+
+| Usage phase            | Platform engineer | Security engineer | Application developer |
+| :--------------------- | :---------------: | :---------------: | :-------------------: |
+| Deploy Consul          |      &#9989;      |      &#9989;      |       &#10060;        |
+| Secure Consul          |      &#9989;      |      &#9989;      |       &#10060;        |
+| Manage multi-tenancy   |      &#9989;      |      &#9989;      |       &#10060;        |
+| Manage Consul          |      &#9989;      |     &#10060;      |       &#10060;        |
+| Monitor Consul         |      &#9989;      |      &#9989;      |       &#10060;        |
+| Upgrade Consul         |      &#9989;      |     &#10060;      |       &#10060;        |
+| Release Notes          |      &#9989;      |     &#10060;      |       &#10060;        |
+| Register services      |      &#9989;      |     &#10060;      |        &#9989;        |
+| Discover services      |      &#9989;      |     &#10060;      |        &#9989;        |
+| Connect service mesh   |      &#9989;      |     &#10060;      |       &#10060;        |
+| Secure north/south     |      &#9989;      |      &#9989;      |       &#10060;        |
+| Expand east/west       |      &#9989;      |      &#9989;      |       &#10060;        |
+| Secure mesh traffic    |      &#9989;      |      &#9989;      |       &#10060;        |
+| Manage service traffic |      &#9989;      |     &#10060;      |       &#10060;        |
+| Observe service mesh   |      &#9989;      |     &#10060;      |       &#10060;        |
+| Register services      |      &#9989;      |     &#10060;      |        &#9989;        |
+
+### User persona indexed to reference subject
+
+This table indexes each reference and its contents with the typical concerns of the user persona based on their jobs-to-be-done and critical user journeys:
+
+| Reference subject        | Platform engineer | Security engineer | Application developer |
+| :----------------------- | :---------------: | :---------------: | :-------------------: |
+| Error messages           |      &#9989;      |     &#10060;      |       &#10060;        |
+| Reference specifications |      &#9989;      |      &#9989;      |        &#9989;        |
+| Troubleshoot             |      &#9989;      |     &#10060;      |        &#9989;        |
+
 ## Path syntax
 
 A major advantage of this information architecture is the filepath structure. This structure "tags" documentation with keywords that describe the page's content to optimize the documentation for Google SEO while also helping human users build a "mental model" of Consul.
