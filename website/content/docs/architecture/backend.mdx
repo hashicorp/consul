@@ -11,9 +11,9 @@ This page introduces the architecture of the backend that Consul server agents u
 
 ## Raft index
 
-Consul uses the Raft protocol to manage [server consensus](/consul/docs/concept/consensus), which in turn enables Consul's [reliability and fault tolerance](/consul/docs/concept/reliability) as well as the ability to return [consistent service and health information](/consul/docs/concept/consistency).
+Consul uses the Raft protocol to manage [server consensus](/consul/docs/concept/consensus), to maintain a [reliable, fault-tolerant](/consul/docs/concept/reliability) state across all servers. This consensus mechanism ensures [consistent service discovery and health monitoring](/consul/docs/concept/consistency), even when individual servers fail or become temporarily disconnected from the cluster.
 
-The Raft index provides a record of the cluster's state. It tracks interactions between Consul servers as they conduct elections, registers service instances into [the Consul catalog](/consul/docs/concept/catalog), and updates the catalog with the results of service node health checks.
+The Raft index provides a record of the cluster's state. It tracks interactions between Consul servers as they conduct elections, register service instances into [the Consul catalog](/consul/docs/concept/catalog), and update the catalog with the results of service node health checks.
 
 You can also use Consul's [snapshot agent](consul/commands/snapshot/agent) to save a copy of the entire Raft index. This snapshot lets you restore a datacenter from a backup in the event of an outage or catastrophic failure. You can save snapshot to a cloud storage bucket to ensure data persistence.
 
