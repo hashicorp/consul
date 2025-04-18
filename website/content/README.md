@@ -104,7 +104,7 @@ These categories intentionally align with [Diataxis](https://diataxis.fr/).
 
 The following diagram summarizes the taxonomy of the Consul documentation:
 
-![Diagram of Consul information architecture's taxonomy](./public/img/taxonomy.png)
+![Diagram of Consul information architecture's taxonomy](../public/img/taxonomy.png)
 
 In this image, the blue boxes represent literal directories. The salmon and purple boxes around them are figurative categories that are not literally represented in the file structure.
 
