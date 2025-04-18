@@ -1398,12 +1398,17 @@
         "title": "External services",
         "routes": [
           {
-            "title": "External service monitoring (ESM)",
-            "path": "register/external/esm"
-          },
-          {
-            "title": "Register external services in Kubernetes",
-            "path": "register/external/k8s"
+            "title": "External Services Monitor (ESM)",
+            "routes": [
+              {
+                "title": "Register services with ESM",
+                "path": "register/external/esm"
+              },
+              {
+                "title": "Register external services in Kubernetes",
+                "path": "register/external/esm/k8s"
+              }
+            ]
           },
           {
             "title": "Terminating gateways",
@@ -1419,7 +1424,7 @@
             ]
           },
           {
-            "title": "Onboarding services in transparent proxy mode",
+            "title": "Onboard services in transparent proxy mode",
             "path": "register/external/permissive-mtls"
           }
         ]
@@ -2551,11 +2556,11 @@
       },
       {
         "title": "Authorize with Apigee",
-        "path": "envoy-extension/apigee-external-authz"
+        "path": "envoy-extension/apigee"
       },
       {
         "title": "Authorize with external services",
-        "path": "envoy-extension/external-authz"
+        "path": "envoy-extension/ext"
       },
       {
         "title": "Run Lua scripts",

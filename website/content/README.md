@@ -75,18 +75,22 @@ Consul is a flexible service networking tool, with applications across DevOps wo
 | Platform engineer     | &#8226; Architect global service registry that makes services avilable regardless of infrastructure. <br />&#8226; Reliability and availability of the service registry so that I can meet service level objectives. | &#8226; I want to implement monitoring and alerting for Consul in order to quickly identify and resolve cluster instability, or service connectivity issues.<br />&#8226; I want to automate recovery procedures and ensure resilience in order to meet SLO and SLA objectives.<br />&#8226; I want to interconnect Consul clusters to enable unified service discovery across cloud and on-premises environments.<br />&#8226;I want to provide guidance and guardrails for enabling application developers to register services into Consul, and ensure their services are highly available. |
 | Security engineer     | &#8226; Ensure that critical infrastructure and services adhere to corporate security policies.                                                                                                                      | &#8226; I want to ensure that communication between critical infrastructure services is encrypted in transit, and access to systems is appropriately controlled and audited.<br />&#8226; I want to integrate Consul authentication with existing corporate identity and access management (IAM) systems.<br />&#8226; I want to ensure that users have least privileged, but sufficient access to Consul for managing and discovering services.                                                                                                                                               |
 
-### Content type
+### Content types
+
+The content we create and host on developer.hashicorp.com follows the principles of the [Diátaxis method for structured documentation](https://diataxis.fr/), which use the following basic content types:
 
 - Explanation
 - Usage
 - Reference
 - Tutorials
 
-We break "explanation" into several distinct types:
+Because tutorials are hosted in a separate repository, this README focuses on the first three content types.
 
-- Overiew pages
-- Index pages
-- Concept pages
+Within the "Explanation" category, we use three different types of pages, each of which has a distinct purpose.
+
+- Overiew pages provide an introduction to a subject and serve as a central information point.
+- Index pages provide lists of links to supporting documentation on a subject.
+- Concept pages provide discursive explanations of Consul's underlying systems and their operations.
 
 ## Taxonomy
 
@@ -97,6 +101,12 @@ There are three main categories in the Consul docs information architecture. Thi
 - Reference
 
 These categories intentionally align with [Diataxis](https://diataxis.fr/).
+
+The following diagram summarizes the taxonomy of the Consul documentation:
+
+![Diagram of Consul information architecture's taxonomy](/img/taxonomy.png)
+
+In this image, the blue boxes represent literal directories. The salmon and purple boxes around them are figurative categories that are not literally represented in the file structure.
 
 ### Intro
 
@@ -230,8 +240,8 @@ Examples:
 
 - `discover/load-balancer/nginx` contains instructions for using NGINX as a load balancer based on Consul service discovery results.
 - `east-west/cluster-peering/establish/k8s` contains instructions for creating new connections between Consul clusters running on Kubernetes in different regions or cloud providers.
-- `register/service/k8s/external` contains information about registering services running on external nodes to Consul on Kubernetes by configuring them to join the Consul datacenter.
-- `register/external/k8s` contains information about registering services running on external nodes to Consul on Kubernetes with Consul External Services Manager (ESM).
+- `register/service/k8s/external` contains information about how to register services running on external nodes to Consul on Kubernetes by configuring them to join the Consul datacenter.
+- `register/external/esm/k8s` contains information about registering services running on external nodes to Consul on Kubernetes using the External Services Manager (ESM).
 
 ## Controlled vocabularies
 
@@ -241,131 +251,140 @@ This section lists the standard names for files and directories, divided into su
 
 Consul's _components_ vocabulary collects terms that describe Consul's built-in components, enterprise offerings, and other offerings that impact the operations of Consul agent clusters.
 
-| Component                 | Label             | Usage notes                                                                                                  |
-| :------------------------ | :---------------- | :----------------------------------------------------------------------------------------------------------- |
-| Access Control List (ACL) | `acl`             | ACLs, not "ACL's" or "ACLS"                                                                                  |
-| Admin partition           | `admin-partition` | In usage docs, "partition" is also acceptable. Use `ap` only for examples in the CLI and API reference docs. |
-
-- `audit-log`
-- `automated-backup`
-- `automated-upgrade`
-- `auth-method`
-- `cloud-auto-join`
-- `cts`
-- `dns`
-- `fips`
-- `jwt-auth`
-- `license`
-- `lts`
-- `namespace`
-- `network-area`
-- `network-segment`
-- `oidc-auth`
-- `rate-limit`
-- `read-replica`
-- `redundancy-zone`
-- `sentinel`
-- `snapshot`
-- `sso`
+| Component                    | Label               |
+| :--------------------------- | :------------------ |
+| Access Control List (ACL)    | `acl`               |
+| Admin partition              | `admin-partition`   |
+| Audit logs                   | `audit-log`         |
+| Automated backups            | `automated-backup`  |
+| Automated upgrades           | `automated-upgrade` |
+| Auth methods                 | `auth-method`       |
+| Cloud auto-join              | `cloud-auto-join`   |
+| Consul-Terraform-Sync        | `cts`               |
+| DNS                          | `dns`               |
+| FIPS                         | `fips`              |
+| JSON Web Token Authorization | `jwt-auth`          |
+| Consul Enterprise License    | `license`           |
+| Long term support (LTS)      | `lts`               |
+| Namespaces                   | `namespace`         |
+| Network areas                | `network-area`      |
+| Network segments             | `network-segment`   |
+| OIDC Authorization           | `oidc-auth`         |
+| Agent rate limits            | `rate-limit`        |
+| Read repilicas               | `read-replica`      |
+| Redundancy zones             | `redundancy-zone`   |
+| Sentinel policies            | `sentinel`          |
+| Agent snapshots              | `snapshot`          |
+| Single sign on (SSO)         | `sso`               |
 
 ### Features vocabulary
 
 Consul's _features_ vocabulary collects terms that describe Consul product offerings related to service networking for application workloads.
 
-- `cluster-peering`
-- `consul-template`
-- `dns`
-- `discovery-chain`
-- `distributed-tracing`
-- `esm`
-- `failover`
-- `health-check`
-- `intention`
-- `ingress-gateway`
-- `kv`
-- `load-balancing`
-- `log`
-- `mesh-gateway`
-- `mtls`
-- `prepared-query`
-- `progressive-rollouts`
-- `service`
-- `session`
-- `static-lookup`
-- `telemetry`
-- `transparent-proxy`
-- `virtual-service`
-- `wan-federation`
-- `watch`
+| Feature                                           | Label                  |
+| :------------------------------------------------ | :--------------------- |
+| Cluster peering                                   | `cluster-peering`      |
+| Consul template                                   | `consul-template`      |
+| Consul DNS                                        | `dns`                  |
+| Discovery chain                                   | `discovery-chain`      |
+| Distributed tracing                               | `distributed-tracing`  |
+| External services manager (ESM)                   | `esm`                  |
+| Failover                                          | `failover`             |
+| Health checks                                     | `health-check`         |
+| Service intentions                                | `intention`            |
+| Ingress gateway (deprecated)                      | `ingress-gateway`      |
+| Key/value store                                   | `kv`                   |
+| Load balancing                                    | `load-balancer`        |
+| Logs                                              | `log`                  |
+| Mesh gateways                                     | `mesh-gateway`         |
+| Mutual Transport Layer Security (mTLS) encryption | `mtls`                 |
+| Prepared queries (dynamic service lookup)         | `dynamic`              |
+| Progressive application rollouts                  | `progressive-rollouts` |
+| Services                                          | `service`              |
+| Sessions                                          | `session`              |
+| Static DNS queries (static service lookup)        | `static`               |
+| Service mesh telemetry                            | `telemetry`            |
+| Transparent proxy                                 | `transparent-proxy`    |
+| Virtual services                                  | `virtual-service`      |
+| Wide area network (WAN) federation                | `wan-federation`       |
+| Watches                                           | `watch`                |
 
 ### Runtimes vocabulary
 
 Consul's _runtimes_ vocabulary collects the underlying runtimes where Consul supports operations. This group includes provider-speicifc runtimes, such as EKS and AKS.
 
-- `vm`
-- `k8s`
-- `nomad`
-- `docker`
-- `hcp`
+| Runtimes                 | Label    |
+| :----------------------- | :------- |
+| Virtual machines (VMs)   | `vm`     |
+| Kubernetes               | `k8s`    |
+| Nomad                    | `nomad`  |
+| Docker                   | `docker` |
+| HashiCorp Cloud Platform | `hcp`    |
 
 #### Provider-specific runtimes
 
-- `ecs`
-- `eks`
-- `lambda`
-- `aks`
-- `gks`
-- `openshift`
-- `argo`
+| Provider-specific runtimes           | Label       |
+| :----------------------------------- | :---------- |
+| AWS Elastic Container Service (ECS)  | `ecs`       |
+| AWS Elastic Kubernetes Service (EKS) | `eks`       |
+| AWS Lambda (serverless)              | `lambda`    |
+| Azure Kubernetes Service (AKS)       | `aks`       |
+| Google Kubernetes Service (GKS)      | `gks`       |
+| OpenShift                            | `openshift` |
+| Argo                                 | `argo`      |
 
 ### Actions vocabulary
 
 Consul's _actions_ vocabulary collects the actions user take to operate Consul and enact service networking states.
 
-- `backup-restore`
-- `bootstrap`
-- `configuration`
-- `configure`
-- `deploy`
-- `enable`
-- `encrypt`
-- `forward`
-- `initialize`
-- `install`
-- `listener`
-- `manual`
-- `migrate`
-- `module`
-- `monitor`
-- `peer`
-- `render`
-- `requirements`
-- `reroute`
-- `rotate`
-- `route`
-- `run`
-- `source`
-- `store`
-- `tech-specs`
-- `troubleshoot`
+| Action                     | Label            |
+| :------------------------- | :--------------- |
+| Backup and restore         | `backup-restore` |
+| Bootstrap                  | `bootstrap`      |
+| Configure                  | `configure`      |
+| Deploy                     | `deploy`         |
+| Enable                     | `enable`         |
+| Encrypt                    | `encrypt`        |
+| Forward                    | `forwarding`     |
+| Initialize a system        | `initialize`     |
+| Install a software package | `install`        |
+| Deploy a listener          | `listener`       |
+| Manually take an action    | `manual`         |
+| Migrate                    | `migrate`        |
+| Create a module            | `module`         |
+| Monitor                    | `monitor`        |
+| Peer                       | `peer`           |
+| Render                     | `render`         |
+| Requirements               | `requirements`   |
+| Reroute traffic            | `reroute`        |
+| Rotate a certificate       | `rotate`         |
+| Route traffic              | `route`          |
+| Run                        | `run`            |
+| Source                     | `source`         |
+| Store                      | `store`          |
+| Technical specifications   | `tech-specs`     |
 
 ### Providers vocabulary
 
 Consul's _providers_ vocabulary collects the cloud providers and server locations that Consul runs on.
 
-- `aws`
-- `azure`
-- `gcp`
-- `external`
-- `custom`
+| Provider                    | Label      |
+| :-------------------------- | :--------- |
+| Amazon Web Services (AWS)   | `aws`      |
+| Microsoft Azure             | `azure`    |
+| Google Cloud Platform (GCP) | `gcp`      |
+| External cloud provider     | `external` |
+| Custom cloud provider       | `custom`   |
 
 ### Interfaces vocabulary
 
 Consul's interfaces vocabulary includes the methods for interacting with Consul agents.
 
-- `cli`
-- `api`
-- `ui`
+| Interface                                    | Label |
+| :------------------------------------------- | :---- |
+| Command Line Interface (CLI)                 | `cli` |
+| HTTP Application Programming Interface (API) | `api` |
+| Browser-based user interface                 | `ui`  |
 
 ### Architecture vocabulary
 
@@ -389,55 +408,64 @@ The **Reference** category also includes an `architecture` sub-directory. This "
 
 Consul's _concepts_ vocabulary collects terms that describe how internal systems operate through human actions.
 
-- `catalog`: Covers Consul's running record of the services it registered, including addresses and health check results.
-- `consensus`: Covers the server agent elections governed by the Raft protocol.
-- `consistency`: Covers Consul's anti-entropy features, consistency modes, and Jepsen testing.
-- `gossip`: Covers Serf communication between Consul agents in a datacenter.
-- `reliability`: Covers fault tolerance, quorum size, and server redundancy.
+| Concept                           | Label         | Description                                                                                              |
+| :-------------------------------- | :------------ | :------------------------------------------------------------------------------------------------------- |
+| Consul catalog (service registry) | `catalog`     | Covers Consul's running record of the services registered, including addresses and health check results. |
+| Consensus protocol (Raft)         | `consensus`   | Covers the server agent elections governed by the Raft protocol.                                         |
+| Cluster consistency               | `consistency` | Covers Consul's anti-entropy features, consistency modes, and Jepsen testing.                            |
+| Gossip communication (Serf)       | `gossip`      | Covers Serf communication between Consul agents in a datacenter.                                         |
+| Datacenter reliability            | `reliability` | Covers fault tolerance, quorum size, and server redundancy.                                              |
 
 ### Configuration entry vocabulary
 
 Consul's _configuration entry_ vocabulary collects the names of the configuration entries and custom resource definitions (CRDs) that you must define to control service mesh state.
 
-- `api-gateway`
-- `control-plane-request-limit`
-- `exported-services`
-- `file-system-certificate`
-- `http-route`
-- `ingress-gateway`
-- `inline-certificate`
-- `jwt-provider`
-- `mesh`
-- `proxy-defaults`
-- `sameness-group`
-- `service-defaults`
-- `service-intentions`
-- `service-resolver`
-- `service-router`
-- `service-splitter`
-- `tcp-route`
-- `terminating-gateways`
+| Name                        | Label                         | Configuration entry |   CRD    |
+| :-------------------------- | :---------------------------- | :-----------------: | :------: |
+| API gateway                 | `api-gateway`                 |       &#9989;       | &#10060; |
+| Control plane request limit | `control-plane-request-limit` |       &#9989;       | &#9989;  |
+| Exported services           | `exported-services`           |       &#9989;       | &#9989;  |
+| File system certificates    | `file-system-certificate`     |       &#9989;       | &#10060; |
+| HTTP route                  | `http-route`                  |       &#9989;       | &#10060; |
+| Ingress gateway             | `ingress-gateway`             |       &#9989;       | &#9989;  |
+| Inline certificate          | `inline-certificate`          |       &#9989;       | &#10060; |
+| JWT provider                | `jwt-provider`                |       &#9989;       | &#9989;  |
+| Mesh                        | `mesh`                        |       &#9989;       | &#9989;  |
+| Proxy defaults              | `proxy-defaults`              |       &#9989;       | &#9989;  |
+| Registration                | `registration`                |      &#10060;       | &#9989;  |
+| Sameness group              | `sameness-group`              |       &#9989;       | &#9989;  |
+| Service defaults            | `service-defaults`            |       &#9989;       | &#9989;  |
+| Service intentions          | `service-intentions`          |       &#9989;       | &#9989;  |
+| Service resolver            | `service-resolver`            |       &#9989;       | &#9989;  |
+| Service router              | `service-router`              |       &#9989;       | &#9989;  |
+| Service splitter            | `service-splitter`            |       &#9989;       | &#9989;  |
+| TCP route                   | `tcp-route`                   |       &#9989;       | &#10060; |
+| Terminating gateway         | `terminating-gateway`         |       &#9989;       | &#9989;  |
 
 ### Envoy extension vocabulary
 
 Consul's _Envoy extension_ vocabulary collects names of supported extensions that run on Envoy proxies.
 
-- `apigee`
-- `ext`
-- `lambda`
-- `lua`
-- `otel`
-- `wasm`
+| Envoy extension                 | Label    |
+| :------------------------------ | :------- |
+| Apigee authorization            | `apigee` |
+| External service authorization  | `ext`    |
+| AWS Lambda functions            | `lambda` |
+| Lua scripts                     | `lua`    |
+| OpenTelemetry collector service | `otel`   |
+| WebAssembly (WASM) plugins      | `wasm`   |
 
 ### Use case vocabulary
 
 Consul's _use case_ vocabulary collects terms that describe
 
-- `service-discovery`
-- `service-mesh`
-- `api-gateway`
-- `config-management`
-- `dns`
+| Use case                          | Label               |
+| :-------------------------------- | :------------------ |
+| Service discovery                 | `service-discovery` |
+| Service mesh                      | `service-mesh`      |
+| API Gatway security               | `api-gateway`       |
+| Configuration management tooling  | `config-management` |
+| Domain Name Service (DNS) tooling | `dns`               |
 
 ## Guide to partials
 
@@ -452,11 +480,20 @@ Examples / Component / Action / Filetype
 
 </CodeBlockConfig>
 
+Examples:
+
+- `text/descriptions/agent` contains a reusable description of the Consul agent that includes a link to additional information
+- `text/guidance/discover` contains all links to documentation and tutorials for the "Discover services" phase of usage
+- `tables/compatibility/k8s/lts` and `tables/compatibility/k8s/version` contain version compability tables that must iterate with each Consul release
+- `examples/agent/server/encrypted` contains an example of a server agent configuration file in a datacenter with encrypted TLS communication
+- `examples/agent/client/register-service` contains an example of a client agent configuration file that also registers a service to the node
+
 Reasons to use partials:
 
 - You need to repeat the same information, such as steps or requirements, across runtimes or cloud providers
 - You need to reference tables, especially ones that contain version numbers that are updated for each Consul release
 - You need to include a configuration example that can be reused in both reference and usage contexts
+- You need to add an entry to the glossary of terms
 
 ## How to document new Consul features
 
@@ -483,8 +520,8 @@ Documentation is considered "maintained" when the usage instructions work when r
 When components and features are no longer maintained, they may be "deprecated" by R&D. To deprecate content:
 
 1. Add a deprecation callout to the page. List the date or version when the deprecation occured.
-1. On deprecation date, delete the content from the repository. Versioned docs preserves the information in older versions. If necessary, keep a single page in the documentation for announcement links and rdirects.
+1. On deprecation date, delete the content from the repository. Versioned docs preserves the information in older versions. If necessary, keep a single page in the documentation for announcement links and redirects.
 1. Add redirects for deprecated content.
 1. Move partials and images into a "legacy" folder if they are no longer used in the documentation.
 
-If it is possible to migrate existing data from a deprecated component to a replcement, document the migration steps.
+If it is possible to migrate existing data from a deprecated component to a replacement, document the migration steps.
