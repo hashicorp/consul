@@ -408,13 +408,13 @@ The **Reference** category also includes an `architecture` sub-directory. This "
 
 Consul's _concepts_ vocabulary collects terms that describe how internal systems operate through human actions.
 
-| Concept                           | Label         | Description                                                                                              |
-| :-------------------------------- | :------------ | :------------------------------------------------------------------------------------------------------- |
-| Consul catalog (service registry) | `catalog`     | Covers Consul's running record of the services registered, including addresses and health check results. |
-| Consensus protocol (Raft)         | `consensus`   | Covers the server agent elections governed by the Raft protocol.                                         |
-| Cluster consistency               | `consistency` | Covers Consul's anti-entropy features, consistency modes, and Jepsen testing.                            |
-| Gossip communication (Serf)       | `gossip`      | Covers Serf communication between Consul agents in a datacenter.                                         |
-| Datacenter reliability            | `reliability` | Covers fault tolerance, quorum size, and server redundancy.                                              |
+| Concept                     | Label         | Description                                                                                       |
+| :-------------------------- | :------------ | :------------------------------------------------------------------------------------------------ |
+| Consul catalog              | `catalog`     | Covers Consul's running service registry, which includes node addresses and health check results. |
+| Consensus protocol (Raft)   | `consensus`   | Covers the server agent elections governed by the Raft protocol.                                  |
+| Cluster consistency         | `consistency` | Covers Consul's anti-entropy features, consistency modes, and Jepsen testing.                     |
+| Gossip communication (Serf) | `gossip`      | Covers Serf communication between Consul agents in a datacenter.                                  |
+| Datacenter reliability      | `reliability` | Covers fault tolerance, quorum size, and server redundancy.                                       |
 
 ### Configuration entry vocabulary
 

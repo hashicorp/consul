@@ -165,6 +165,12 @@ The following settings are commonly used in the agent configuration file to conf
 | `addresses`  | Block of nested objects that define addresses bound to the agent for internal cluster communication.                                                                                                                                                                       | `"http": "0.0.0.0"` Refer to the agent configuration [default address values](/consul/docs/reference/agent/configuration-file/address) |
 | `ports`      | Block of nested objects that define ports bound to agent addresses. <br/>[More information](/consul/commands/agent#advertise-address-options).                                                                                               | Refer to the agent configuration [default port values](/consul/docs/reference/agent/configuration-file/general#ports).
 
+## The `consul.d` configuration directory
+
+Agent configurations can become difficult to maintain when they are contained in a single file. We recommend separating different blocks of the agent configuration into several files located in the `/etc/consul.d` directory. When you add a new configuration or update an existing one, Consul automatically appends the agent's configuration after the agent reboots. If the update is to a supported reloadable configuration, such as ACL tokens, Consul can register the change and propagate it to the rest of the cluster without restarting.
+
+To start using the configuration directory, create a blank file named `consul.hcl` in the `/etc/consul.d` directory. You can add configurations that would exist on every node, such as `datacenter` and `data_dir`, or you can leave the file blank and follow your preferred configuration structure. 
+
 ## Reloadable configurations
 
 Some agent configuration options are reloadable at runtime.
