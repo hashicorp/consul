@@ -1,8 +1,6 @@
 module github.com/hashicorp/consul/test-integ
 
-go 1.23.0
-
-toolchain go1.23.7
+go 1.23.8
 
 require (
 	github.com/google/go-cmp v0.6.0
@@ -16,7 +14,7 @@ require (
 	github.com/mitchellh/copystructure v1.2.0
 	github.com/rboyer/blankspace v0.2.1
 	github.com/stretchr/testify v1.8.4
-	golang.org/x/net v0.37.0
+	golang.org/x/net v0.38.0
 	google.golang.org/grpc v1.58.3
 )
 
