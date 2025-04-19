@@ -1,13 +1,13 @@
 ---
 layout: docs
 page_title: Define and configure services
-description: ->
-    This topic provides introduces the configuration items that enable you to register services with Consul so that they can connect to other services and nodes registered with Consul. 
+description: >-
+  This topic introduces the configuration items that enable you to register services with Consul so that they can connect to other services and nodes registered with Consul. 
 ---
 
 # Define and configure services
 
-Consul agents require service definitions in order to register services into the Consul catalog. You can also configure service defaults
+Consul agents require service definitions in order to register services into the Consul catalog. You can also configure service defaults to define common settings for multiple services.
 
 ## Service definitions
 
@@ -17,7 +17,13 @@ To register a service, provide the service definition to the Consul agent. Refer
 
 ### ACLs
 
-Services registered in Consul clusters where both Consul Namespaces and the ACL system are enabled can be registered to specific namespaces that are associated with ACL tokens scoped to the namespace. Services registered with a service definition will not inherit the namespace associated with the ACL token specified in the token field. The namespace and the token parameters must be included in the service definition for the service to be registered to the namespace that the ACL token is scoped to.
+When both Consul namespaces and ACL system are enabled, you can register services to specific namespaces. However, it is important to note that:
+
+1. Services registered with a service definition will not inherit the namespace associated with the ACL token specified in the token field.
+
+1. You must explicitly include both the namespace parameter in the service definition and an ACL token that has permissions for that namespace.
+
+This ensures precise control over service placement within namespaces and maintains proper access control.
 
 ## Example service definition
 
