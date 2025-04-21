@@ -2,6 +2,20 @@
 
 The `website/content` directory in the `hashicorp/consul` repository contains [the Consul documentation on developer.hashicorp.com](https://developer.hashicorp.com/consul). This `README` describes the directory structure and design principles for this documentation set.
 
+`README` table of contents:
+
+- [Content directory overview](#content-directory-overview)
+- [North star principles for content design](#north-star-principles)
+- [Consul content strategy](#content-strategy), including user persona and jobs-to-be-done
+- [Consul taxonomy](#taxonomy)
+- [Path syntax](#path-syntax), for directory name and nesting guidelines
+- [Controlled vocabularies](#controlled-vocabularies) for Consul terms and labeling standards
+- [Guide to partials](#guide-to-partials)
+- [How to document new Consul features](#how-to-document-new-consul-features)
+- [Maintaining and deprecating content](#maintaining-and-deprecating-content)
+
+To update the contents of this document, create a PR against the `main` branch of the `hashicorp/consul` GitHub repository. Apply the label `type/docs` to the PR to request review from an approver in the `consul-docs` group.
+
 ## Content directory overview
 
 The `website/content` directory in the `hashicorp/consul` GitHub repo contains the following sub-directories:
@@ -65,11 +79,11 @@ You should keep all three of the considerations in mind when creating new conten
 
 For more information about recommended workflow patterns, refer to [How to document new Consul features](#how-to-document-new-consul-features) and [Maintaining and deprecating content](#maintaining-and-deprecating-content).
 
-### User personas, concerns, and jobs-to-be-done
+### User personas, jobs-to-be-done, and critical user journeys
 
 Consul is a flexible service networking tool, with applications across DevOps workflows. The following table lists Consul's user personas, examples of their major concerns, and typical jobs that this user wants to complete using Consul's features.
 
-| User persona          | Major concerns                                                                                                                                                                                                       | Jobs-to-be-done                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| User persona          | Jobs-to-be-done                                                                                                                                                                                                      | Critical user journeys                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | :-------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Application developer | &#8226; Application is discoverable across on-prem and cloud environments.<br />&#8226; Applications can reliably find and connect to dependent upstream services.                                                   | &#8226; I want to use Consul to register the locations of my applications across infrastructure environments so that they can be discovered by downstream applications.<br />&#8226; I want to define intelligent failover policies for my applications so that my services are highly available and fault tolerant.<br />&#8226; I want to use Consul's service catalog find and connect to healthy upstream services across multiple clouds and runtime environments.                                                                                                                        |
 | Platform engineer     | &#8226; Architect global service registry that makes services avilable regardless of infrastructure. <br />&#8226; Reliability and availability of the service registry so that I can meet service level objectives. | &#8226; I want to implement monitoring and alerting for Consul in order to quickly identify and resolve cluster instability, or service connectivity issues.<br />&#8226; I want to automate recovery procedures and ensure resilience in order to meet SLO and SLA objectives.<br />&#8226; I want to interconnect Consul clusters to enable unified service discovery across cloud and on-premises environments.<br />&#8226;I want to provide guidance and guardrails for enabling application developers to register services into Consul, and ensure their services are highly available. |
@@ -241,7 +255,7 @@ This table indexes each usage directory and its contents with the typical concer
 | Secure mesh traffic    |      &#9989;      |      &#9989;      |       &#10060;        |
 | Manage service traffic |      &#9989;      |     &#10060;      |       &#10060;        |
 | Observe service mesh   |      &#9989;      |     &#10060;      |       &#10060;        |
-| Register services      |      &#9989;      |     &#10060;      |        &#9989;        |
+| Automate applications  |      &#9989;      |     &#10060;      |        &#9989;        |
 
 ### User persona indexed to reference subject
 
