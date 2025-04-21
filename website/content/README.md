@@ -102,9 +102,9 @@ Because tutorials are hosted in a separate repository, this README focuses on th
 
 Within the "Explanation" category, we use three different types of pages, each of which has a distinct purpose.
 
-- Overiew pages provide an introduction to a subject and serve as a central information point.
-- Index pages provide lists of links to supporting documentation on a subject.
-- Concept pages provide discursive explanations of Consul's underlying systems and their operations.
+- **Index** pages provide lists of links to supporting documentation on a subject. [Example: Deploy Consul](https://developer.hashicorp.com/consul/docs/deploy)
+- **Overview** pages provide an introduction to a subject and serve as a central information point. [Example: Expand service network east/west](https://developer.hashicorp.com/consul/docs/east-west)
+- **Concept** pages provide discursive explanations of Consul's underlying systems and their operations. [Example: Consul catalog](https://developer.hashicorp.com/consul/docs/concept/catalog)
 
 ## Taxonomy
 
@@ -310,7 +310,19 @@ Examples:
 
 ## Controlled vocabularies
 
-This section lists the standard names for files and directories, divided into sub-groups based on the syntax guide in this `README`.
+This section lists the standard names for files and directories, divided into sub-groups based on the syntax guide in this `README`. The following list provides links to specific vocabulary groups:
+
+- [Architecture vocabulary](#architecture-vocabulary)
+- [Concepts vocabulary](#concepts-vocabulary)
+- [Use case vocabulary](#use-case-vocabulary)
+- [Components vocabulary](#components-vocabulary)
+- [Features vocabulary](#features-vocabulary)
+- [Runtimes vocabularly](#runtimes-vocabulary)
+- [Actions vocabulary](#actions-vocabulary)
+- [Providers vocabulary](#providers-vocabulary)
+- [Interfaces vocabulary](#interfaces-vocabulary)
+- [Configuration entry vocabulary](#configuration-entry-vocabulary)
+- [Envoy extension vocabulary](#envoy-extension-vocabulary)
 
 ### Architecture vocabulary
 
@@ -419,7 +431,7 @@ Consul's _features_ vocabulary collects terms that describe Consul product offer
 
 ### Runtimes vocabulary
 
-Consul's _runtimes_ vocabulary collects the underlying runtimes where Consul supports operations. This group includes provider-speicifc runtimes, such as EKS and AKS.
+Consul's _runtimes_ vocabulary collects the underlying runtimes where Consul supports operations.
 
 | Runtimes                 | Label    |
 | :----------------------- | :------- |
@@ -430,6 +442,8 @@ Consul's _runtimes_ vocabulary collects the underlying runtimes where Consul sup
 | HashiCorp Cloud Platform | `hcp`    |
 
 #### Provider-specific runtimes
+
+This sub-group includes provider-specific runtimes, such as EKS and AKS.
 
 | Provider-specific runtimes           | Label       |
 | :----------------------------------- | :---------- |
@@ -486,13 +500,13 @@ Consul's _providers_ vocabulary collects the cloud providers and server location
 
 ### Interfaces vocabulary
 
-Consul's interfaces vocabulary includes the methods for interacting with Consul agents.
+Consul's _interfaces_ vocabulary includes the methods for interacting with Consul agents.
 
 | Interface                                    | Label |
 | :------------------------------------------- | :---- |
 | Command Line Interface (CLI)                 | `cli` |
 | HTTP Application Programming Interface (API) | `api` |
-| Browser-based user interface                 | `ui`  |
+| Browser-based user interface (UI)            | `ui`  |
 
 ### Configuration entry vocabulary
 
