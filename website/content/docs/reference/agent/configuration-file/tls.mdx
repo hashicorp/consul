@@ -216,9 +216,9 @@ The following options were deprecated in Consul 1.12, please use the
 
 - `verify_server_hostname` See: [`tls.internal_rpc.verify_server_hostname`](#tls_internal_rpc_verify_server_hostname).
 
-### Example Configuration File, with TLS
+## Example
 
-~> **Security Note:** all three verify options should be set as `true` to enable
+**Security Note:** All three verify options should be set as `true` to enable
 secure mTLS communication, enabling both encryption and authentication. Failing
 to set [`verify_incoming`](#tls_defaults_verify_incoming) or
 [`verify_outgoing`](#tls_defaults_verify_outgoing) either in the
@@ -227,7 +227,7 @@ interface-specific stanza (e.g. `tls.internal_rpc`, `tls.https`) or in
 a [`ca_file`](#tls_defaults_ca_file), [`cert_file`](#tls_defaults_cert_file),
 and [`key_file`](#tls_defaults_key_file).
 
-See, especially, the use of the `ports` setting highlighted below.
+Review, especially, the use of the `ports` setting highlighted below.
 
 <CodeTabs heading="Example configuration with TLS">
 

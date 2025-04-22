@@ -128,37 +128,45 @@ Only one option may be specified.
       - `claim_assertions` (Defaults to `[]`) List of assertions about the mapped
         claims required to authorize the incoming RPC request. The syntax uses
         [github.com/hashicorp/go-bexpr](https://github.com/hashicorp/go-bexpr) which is shared with the
-        [API filtering feature](/consul/api-docs/features/filtering). For example, the following
-        configurations when combined will ensure that the JWT `sub` matches the node
-        name requested by the client.
-
-        <CodeTabs heading="Ensure that the JWT sub matches the node name requested by the client">
-
-        ```hcl
-        claim_mappings {
-          sub = "node_name"
-        }
-        claim_assertions = [
-          "value.node_name == \"${node}\""
-        ]
-        ```
-
-        ```json
-        {
-          "claim_mappings": {
-            "sub": "node_name"
-          },
-          "claim_assertions": ["value.node_name == \"${node}\""]
-        }
-        ```
-
-        </CodeTabs>
-
+        [API filtering feature](/consul/api-docs/features/filtering).
         The assertions are lightly templated using [HIL syntax](https://github.com/hashicorp/hil)
         to interpolate some values from the RPC request. The list of variables that can be interpolated
         are:
 
         - `node` - The node name the client agent is requesting.
         - `segment` <EnterpriseAlert inline /> - The network segment name the client is requesting.
-        - `partition` <EnterpriseAlert inline /> - The admin partition name the client is requesting.
+        - `partition` <EnterpriseAlert inline /> - The admin partition name the
+          client is requesting.
+
+        Refer to the [claim assertions example](#claim-assertions) for more information.
+
+## Example
+
+### Claim assertions
+
+When combines, the following configurations ensure that the JWT `sub`
+matches the node name requested by the client.
+
+<CodeTabs>
+
+```hcl
+claim_mappings {
+  sub = "node_name"
+}
+claim_assertions = [
+  "value.node_name == \"${node}\""
+]
+```
+
+```json
+{
+  "claim_mappings": {
+    "sub": "node_name"
+  },
+  "claim_assertions": ["value.node_name == \"${node}\""]
+}
+```
+
+</CodeTabs>
+
 

@@ -164,27 +164,9 @@ The page provides reference information for ACL parameters in a Consul agent con
       datacenter bootstrapping process.
 
     - `managed_service_provider` ((#acl_tokens_managed_service_provider)) <EnterpriseAlert inline /> - An
-      array of ACL tokens used by Consul managed service providers for cluster operations.
-
-      <CodeTabs heading="Example managed_service_provider configuration">
-
-      ```hcl
-      managed_service_provider {
-        accessor_id = "ed22003b-0832-4e48-ac65-31de64e5c2ff"
-        secret_id = "cb6be010-bba8-4f30-a9ed-d347128dde17"
-      }
-      ```
-
-      ```json
-      "managed_service_provider": [
-        {
-          "accessor_id": "ed22003b-0832-4e48-ac65-31de64e5c2ff",
-          "secret_id": "cb6be010-bba8-4f30-a9ed-d347128dde17"
-        }
-      ]
-      ```
-
-      </CodeTabs>
+      array of ACL tokens used by Consul managed service providers for cluster
+      operations. Refer to the [managed service provider
+      example](#managed-service-provider) for more information.
 
 - `acl_datacenter` - **This field is deprecated in Consul 1.4.0. See the [`primary_datacenter`](/consul/docs/reference/agent/configuration-file/general#primary_datacenter) field instead.**
 
@@ -272,3 +254,29 @@ The page provides reference information for ACL parameters in a Consul agent con
   policies and roles already present in the secondary datacenter will be lost. For
   production environments, consider configuring ACL replication in your initial
   datacenter bootstrapping process.
+
+
+## Examples
+
+### Managed service provider
+
+<EnterpriseAlert product="consul" inline /><br/><br/>
+
+<CodeTabs>
+
+```hcl
+managed_service_provider {
+  accessor_id = "ed22003b-0832-4e48-ac65-31de64e5c2ff"
+  secret_id = "cb6be010-bba8-4f30-a9ed-d347128dde17"
+}
+```
+
+```json
+"managed_service_provider": [
+  {
+    "accessor_id": "ed22003b-0832-4e48-ac65-31de64e5c2ff",
+    "secret_id": "cb6be010-bba8-4f30-a9ed-d347128dde17"
+  }
+]
+```
+</CodeTabs>

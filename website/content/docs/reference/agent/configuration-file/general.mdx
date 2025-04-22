@@ -41,46 +41,11 @@ The page provides reference information for general parameters in a Consul agent
 
 - `alt_domain` Equivalent to the [`-alt-domain` command-line flag](/consul/commands/agent#_alt_domain)
 
-- `audit` <EnterpriseAlert inline /> - Added in Consul 1.8, the audit object allow users to enable auditing
-  and configure a sink and filters for their audit logs. For more information, review the [audit log tutorial](/consul/tutorials/datacenter-operations/audit-logging).
-
-  <CodeTabs heading="Example audit configuration">
-
-  ```hcl
-  audit {
-    enabled = true
-    sink "My sink" {
-      type   = "file"
-      format = "json"
-      path   = "data/audit/audit.json"
-      delivery_guarantee = "best-effort"
-      rotate_duration = "24h"
-      rotate_max_files = 15
-      rotate_bytes = 25165824
-    }
-  }
-  ```
-
-  ```json
-  {
-    "audit": {
-      "enabled": true,
-      "sink": {
-        "My sink": {
-          "type": "file",
-          "format": "json",
-          "path": "data/audit/audit.json",
-          "delivery_guarantee": "best-effort",
-          "rotate_duration": "24h",
-          "rotate_max_files": 15,
-          "rotate_bytes": 25165824
-        }
-      }
-    }
-  }
-  ```
-
-  </CodeTabs>
+- `audit` <EnterpriseAlert inline /> - The audit object allow users to enable
+  auditing and configure a sink and filters for their audit logs. For more
+  information, review the [audit configuration example](#audit-configuration)
+  and the [audit log
+  tutorial](/consul/tutorials/datacenter-operations/audit-logging).
 
   The following sub-keys are available:
 
@@ -167,21 +132,7 @@ The page provides reference information for general parameters in a Consul agent
   This parameter can be set to a go-sockaddr template that resolves to a single
   address. Special characters such as backslashes `\` or double quotes `"`
   within a double quoted string value must be escaped with a backslash `\`.
-  Some example templates:
-
-  <CodeTabs>
-
-  ```hcl
-  bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr \"address\" }}"
-  ```
-
-  ```json
-  {
-    "bind_addr": "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr \"address\" }}"
-  }
-  ```
-
-  </CodeTabs>
+  Refer to the [bind address example](#bind-address) to review HCL and JSON templates.
 
 - `cache` configuration for client agents. The configurable values are the following:
 
@@ -293,29 +244,9 @@ The page provides reference information for general parameters in a Consul agent
     should be used, but this option is useful for removing access to HTTP API endpoints
     completely, or on specific agents. This is available in Consul 0.9.0 and later.
 
-  - `response_headers` This object allows adding headers to the HTTP API and UI responses. For example, the following config can be used to enable [CORS](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing) on the HTTP API endpoints:
-
-    <CodeTabs heading="Enable CORS on the HTTP API endpoints">
-
-    ```hcl
-    http_config {
-      response_headers {
-        Access-Control-Allow-Origin = "*"
-      }
-    }
-    ```
-
-    ```json
-    {
-      "http_config": {
-        "response_headers": {
-          "Access-Control-Allow-Origin": "*"
-        }
-      }
-    }
-    ```
-
-    </CodeTabs>
+  - `response_headers` This object allows adding headers to the HTTP API and UI
+    responses. Refer to the [CORS example](#cors) for how to enable CORS on HTTP
+    API endpoints.
 
   - `allow_write_http_from` This object is a list of networks in CIDR notation (eg "127.0.0.0/8") that are allowed to call the agent write endpoints. It defaults to an empty list, which means all networks are allowed. This is used to make the agent read-only, except for select ip ranges. - To block write calls from anywhere, use `[ "255.255.255.255/32" ]`. - To only allow write calls from localhost, use `[ "127.0.0.0/8" ]` - To only allow specific IPs, use `[ "10.0.0.1/32", "10.0.0.2/32" ]`
 
@@ -610,4 +541,93 @@ The page provides reference information for general parameters in a Consul agent
   allow an external process to be automatically invoked when a particular data view
   is updated. Refer to  the [watch documentation](/consul/docs/automate/watch) for more detail.
   Watches can be modified when the configuration is reloaded.
+
+
+## Examples
+
+### Audit configuration
+
+<EnterpriseAlert product="consul" inline /><br/><br/>
+
+<CodeTabs>
+
+```hcl
+audit {
+  enabled = true
+  sink "My sink" {
+    type   = "file"
+    format = "json"
+    path   = "data/audit/audit.json"
+    delivery_guarantee = "best-effort"
+    rotate_duration = "24h"
+    rotate_max_files = 15
+    rotate_bytes = 25165824
+  }
+}
+```
+
+```json
+{
+  "audit": {
+    "enabled": true,
+    "sink": {
+      "My sink": {
+        "type": "file",
+        "format": "json",
+        "path": "data/audit/audit.json",
+        "delivery_guarantee": "best-effort",
+        "rotate_duration": "24h",
+        "rotate_max_files": 15,
+        "rotate_bytes": 25165824
+      }
+    }
+  }
+}
+```
+
+</CodeTabs>
+
+### Bind address
+
+Example templates:
+
+<CodeTabs>
+
+```hcl
+bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr \"address\" }}"
+```
+
+```json
+{
+  "bind_addr": "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr \"address\" }}"
+}
+```
+
+</CodeTabs>
+
+### CORS
+
+Use the following config to enable [CORS](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing) on the HTTP API endpoints.
+
+    <CodeTabs heading="Enable CORS on the HTTP API endpoints">
+
+    ```hcl
+    http_config {
+      response_headers {
+        Access-Control-Allow-Origin = "*"
+      }
+    }
+    ```
+
+    ```json
+    {
+      "http_config": {
+        "response_headers": {
+          "Access-Control-Allow-Origin": "*"
+        }
+      }
+    }
+    ```
+
+    </CodeTabs>
 
