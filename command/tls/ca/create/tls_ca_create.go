@@ -82,7 +82,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	if err := file.WriteAtomicWithPerms(certFileName, []byte(ca), 0755, 0666); err != nil {
+	if err := file.WriteAtomicWithPerms(certFileName, []byte(ca), 0755, 0600); err != nil {
 		c.UI.Error(err.Error())
 		return 1
 	}
