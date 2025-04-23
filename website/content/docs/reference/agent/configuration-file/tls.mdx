@@ -216,20 +216,23 @@ The following options were deprecated in Consul 1.12, please use the
 
 - `verify_server_hostname` See: [`tls.internal_rpc.verify_server_hostname`](#tls_internal_rpc_verify_server_hostname).
 
-## Example
+## Examples
 
-**Security Note:** All three verify options should be set as `true` to enable
+### Secure mTLS configuration
+
+All three verify options should be set as `true` to enable
 secure mTLS communication, enabling both encryption and authentication. Failing
 to set [`verify_incoming`](#tls_defaults_verify_incoming) or
 [`verify_outgoing`](#tls_defaults_verify_outgoing) either in the
 interface-specific stanza (e.g. `tls.internal_rpc`, `tls.https`) or in
-`tls.defaults` will result in TLS not being enabled at all, even when specifying
+`tls.defaults` results in TLS not being enabled at all, even when specifying
 a [`ca_file`](#tls_defaults_ca_file), [`cert_file`](#tls_defaults_cert_file),
 and [`key_file`](#tls_defaults_key_file).
 
-Review, especially, the use of the `ports` setting highlighted below.
+Review, especially, the use of the `ports` setting in the highlighted code
+lines.
 
-<CodeTabs heading="Example configuration with TLS">
+<CodeTabs>
 
 <CodeBlockConfig lineNumbers highlight="10-12">
 
@@ -293,6 +296,6 @@ tls {
 
 </CodeTabs>
 
-Consul will not enable TLS for the HTTP or gRPC API unless the `https` port has
+Consul does not enable TLS for the HTTP or gRPC API unless the `https` port has
 been assigned a port number `> 0`. We recommend using `8501` for `https` as this
-default will automatically work with some tooling.
+default automatically works with some tooling.
