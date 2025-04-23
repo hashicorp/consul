@@ -32,7 +32,7 @@ is not limited to:
 
 With [Consul Enterprise](/consul/commands/snapshot/agent), 
 the `snapshot agent` command runs periodically and writes to local or remote 
-storage (such as Amazon S3).
+storage, including Amazon S3, Azure Blob Storage, and Google Cloud Storage.
 
 By default, all snapshots are taken using `consistent` mode where requests are 
 forwarded to the leader which verifies that it is still in power before taking 
@@ -140,10 +140,3 @@ Restored snapshot
 
 Like the `save` subcommand, restore has many configuration options. In 
 production, you would again want to use ACLs and certificates for security.
-
-## Next steps
-
-In this tutorial, you learned about the `snapshot save` and `snapshot restore` 
-commands. If you are testing the backup and restore process, you can add an 
-extra dummy value to Consul KV. Another indicator that the backup was saved 
-correctly is the size of the backup artifact.
