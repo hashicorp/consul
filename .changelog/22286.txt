@@ -1,0 +1,3 @@
+```release-note:security
+cmd/tls: set explicit file permissions for generated certs
+```
