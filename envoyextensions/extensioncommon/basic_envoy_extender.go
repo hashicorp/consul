@@ -122,7 +122,7 @@ func (b *BasicEnvoyExtender) Extend(resources *xdscommon.IndexedResources, confi
 
 	switch config.Kind {
 	// Currently we only support extensions for terminating gateways and connect proxies.
-	case api.ServiceKindTerminatingGateway, api.ServiceKindConnectProxy:
+	case api.ServiceKindTerminatingGateway, api.ServiceKindConnectProxy, api.ServiceKindAPIGateway:
 	default:
 		return resources, nil
 	}

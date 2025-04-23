@@ -6,6 +6,7 @@ package lua
 import (
 	"errors"
 	"fmt"
+
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
@@ -57,7 +58,7 @@ func (l *lua) validate() error {
 	if l.Script == "" {
 		resultErr = multierror.Append(resultErr, fmt.Errorf("missing Script value"))
 	}
-	if l.ProxyType != string(api.ServiceKindConnectProxy) {
+	if l.ProxyType != string(api.ServiceKindConnectProxy) && l.ProxyType != string(api.ServiceKindAPIGateway) {
 		resultErr = multierror.Append(resultErr, fmt.Errorf("unexpected ProxyType %q", l.ProxyType))
 	}
 	if l.Listener != "inbound" && l.Listener != "outbound" {
@@ -68,7 +69,8 @@ func (l *lua) validate() error {
 
 // CanApply determines if the extension can apply to the given extension configuration.
 func (l *lua) CanApply(config *extensioncommon.RuntimeConfig) bool {
-	return string(config.Kind) == l.ProxyType
+	return string(config.Kind) == l.ProxyType ||
+		(l.ProxyType == string(api.ServiceKindAPIGateway) && config.Kind == api.ServiceKindAPIGateway)
 }
 
 func (l *lua) matchesListenerDirection(p extensioncommon.FilterPayload) bool {
@@ -84,9 +86,6 @@ func (l *lua) PatchFilter(p extensioncommon.FilterPayload) (*envoy_listener_v3.F
 		return filter, false, nil
 	}
 
-	if filter.Name != "envoy.filters.network.http_connection_manager" {
-		return filter, false, nil
-	}
 	if typedConfig := filter.GetTypedConfig(); typedConfig == nil {
 		return filter, false, errors.New("error getting typed config for http filter")
 	}
@@ -95,6 +94,19 @@ func (l *lua) PatchFilter(p extensioncommon.FilterPayload) (*envoy_listener_v3.F
 	if config == nil {
 		return filter, false, errors.New("error unmarshalling filter")
 	}
+
+	// Check if router filter exists
+	hasRouterFilter := false
+	for _, httpFilter := range config.HttpFilters {
+		if httpFilter.Name == "envoy.filters.http.router" {
+			hasRouterFilter = true
+			break
+		}
+	}
+	if !hasRouterFilter {
+		return filter, false, nil
+	}
+
 	luaHttpFilter, err := extensioncommon.MakeEnvoyHTTPFilter(
 		"envoy.filters.http.lua",
 		&envoy_lua_v3.Lua{
