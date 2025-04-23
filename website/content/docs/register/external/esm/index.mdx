@@ -105,6 +105,6 @@ For a full list of service configuration parameters refer to [Services configura
 
 ## Register a service
 
-Use the [`consul services register` command](/consul/commands/services/register) or send a `PUT` request to the [`/v1/catalog/register` HTTP API endpoint](consul/api-docs/catalog) to register the external service.
+Use the [`consul services register` command](/consul/commands/services/register) or send a `PUT` request to the [`/v1/catalog/register` HTTP API endpoint](/consul/api-docs/catalog) to register the external service.
 
 You can register an external service to Consul before the ESM is running. However, external services will appear in the catalog with a `critical` status until ESM is running and able to perform a health check.

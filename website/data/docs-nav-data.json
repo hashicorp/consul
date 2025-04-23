@@ -1116,6 +1116,10 @@
         "title": "Consul",
         "routes": [
           {
+            "title": "v1.21.x",
+            "path": "release-notes/consul/v1_21_x"
+          },
+          {
             "title": "v1.20.x",
             "path": "release-notes/consul/v1_20_x"
           },
@@ -2512,6 +2516,15 @@
     ]
   },
   {
+    "title": "RedHat OpenShift",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "openshift"
+      }
+    ]
+  },
+  {
     "divider": true
   },
   {
@@ -2576,7 +2589,7 @@
       },
       {
         "title": "Send access logs to OpenTelemetry",
-        "path": "envoy-extension/otel-access-logging"
+        "path": "envoy-extension/otel"
       },
       {
         "title": "Run WebAssembly plug-ins",
