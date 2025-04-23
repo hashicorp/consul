@@ -2,6 +2,20 @@
 
 The `website/content` directory in the `hashicorp/consul` repository contains [the Consul documentation on developer.hashicorp.com](https://developer.hashicorp.com/consul). This `README` describes the directory structure and design principles for this documentation set.
 
+`README` table of contents:
+
+- [Content directory overview](#content-directory-overview)
+- [North star principles for content design](#north-star-principles)
+- [Consul content strategy](#content-strategy), including user persona and jobs-to-be-done
+- [Consul taxonomy](#taxonomy)
+- [Path syntax](#path-syntax) for directory name and nesting guidelines
+- [Controlled vocabularies](#controlled-vocabularies) for Consul terms and labeling standards
+- [Guide to partials](#guide-to-partials)
+- [How to document new Consul features](#how-to-document-new-consul-features)
+- [Maintaining and deprecating content](#maintaining-and-deprecating-content)
+
+To update the contents of this document, create a PR against the `main` branch of the `hashicorp/consul` GitHub repository. Apply the label `type/docs` to the PR to request review from an approver in the `consul-docs` group.
+
 ## Content directory overview
 
 The `website/content` directory in the `hashicorp/consul` GitHub repo contains the following sub-directories:
@@ -20,7 +34,7 @@ After you merge a PR into a numbered release branch, changes to these folders ap
 - Changes to `commands` appear at [https://developer.hashicorp.com/consul/commands](https://developer.hashicorp.com/consul/commands).
 - Changes to `docs` appear at [https://developer.hashicorp.com/consul/docs](https://developer.hashicorp.com/consul/docs).
 
-URLs follow the directory structure for each file and omit the the `.mdx` file extension. Pages named `index.mdx` adopt their directory's name. For example, the file `docs/reference/agent/index.mdx` appears at the URL [https://developer.hashicorp.com/consul/docs/reference/agent](https://developer.hashicorp.com/consul/docs/reference/agent).
+URLs follow the directory structure for each file and omit the the `.mdx` file extension. Pages named `index.mdx` adopt their directory's name. For example, the file `docs/reference/agent/configuration-file/index.mdx` appears at the URL [https://developer.hashicorp.com/consul/docs/reference/agent/configuration-file](https://developer.hashicorp.com/consul/docs/reference/agent/configuration-file).
 
 The `partials` folder includes content that you can reuse across pages in any of the three folders. Refer to [Guide to Partials](#guide-to-partials) for more information.
 
@@ -65,11 +79,11 @@ You should keep all three of the considerations in mind when creating new conten
 
 For more information about recommended workflow patterns, refer to [How to document new Consul features](#how-to-document-new-consul-features) and [Maintaining and deprecating content](#maintaining-and-deprecating-content).
 
-### User personas, concerns, and jobs-to-be-done
+### User personas, jobs-to-be-done, and critical user journeys
 
 Consul is a flexible service networking tool, with applications across DevOps workflows. The following table lists Consul's user personas, examples of their major concerns, and typical jobs that this user wants to complete using Consul's features.
 
-| User persona          | Major concerns                                                                                                                                                                                                       | Jobs-to-be-done                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| User persona          | Jobs-to-be-done                                                                                                                                                                                                      | Critical user journeys                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | :-------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Application developer | &#8226; Application is discoverable across on-prem and cloud environments.<br />&#8226; Applications can reliably find and connect to dependent upstream services.                                                   | &#8226; I want to use Consul to register the locations of my applications across infrastructure environments so that they can be discovered by downstream applications.<br />&#8226; I want to define intelligent failover policies for my applications so that my services are highly available and fault tolerant.<br />&#8226; I want to use Consul's service catalog find and connect to healthy upstream services across multiple clouds and runtime environments.                                                                                                                        |
 | Platform engineer     | &#8226; Architect global service registry that makes services avilable regardless of infrastructure. <br />&#8226; Reliability and availability of the service registry so that I can meet service level objectives. | &#8226; I want to implement monitoring and alerting for Consul in order to quickly identify and resolve cluster instability, or service connectivity issues.<br />&#8226; I want to automate recovery procedures and ensure resilience in order to meet SLO and SLA objectives.<br />&#8226; I want to interconnect Consul clusters to enable unified service discovery across cloud and on-premises environments.<br />&#8226;I want to provide guidance and guardrails for enabling application developers to register services into Consul, and ensure their services are highly available. |
@@ -88,9 +102,9 @@ Because tutorials are hosted in a separate repository, this README focuses on th
 
 Within the "Explanation" category, we use three different types of pages, each of which has a distinct purpose.
 
-- Overiew pages provide an introduction to a subject and serve as a central information point.
-- Index pages provide lists of links to supporting documentation on a subject.
-- Concept pages provide discursive explanations of Consul's underlying systems and their operations.
+- **Index** pages provide lists of links to supporting documentation on a subject. [Example: Deploy Consul](https://developer.hashicorp.com/consul/docs/deploy)
+- **Overview** pages provide an introduction to a subject and serve as a central information point. [Example: Expand service network east/west](https://developer.hashicorp.com/consul/docs/east-west)
+- **Concept** pages provide discursive explanations of Consul's underlying systems and their operations. [Example: Consul catalog](https://developer.hashicorp.com/consul/docs/concept/catalog)
 
 ## Taxonomy
 
@@ -127,6 +141,20 @@ The following table lists each term and a definition to help you decide where to
 | Enterprise   | `enterprise`   | Consul Enterprise license offerings and how to implement them.                                                                                                   |
 | Fundamentals | `fundamentals` | The knowledge, connection and authorization methods, interactions, configurations, and operations most users require to use the product.                         |
 | Use cases    | `use-case`     | The highest level goals practitioners have; a product function that “solves” enterprise concerns and usually competes with other products.                       |
+
+#### User persona indexed to intro topic
+
+This table indexes each intro directory and its contents with the typical concerns of the user persona based on their jobs-to-be-done and critical user journeys:
+
+| Intro topic  | Platform engineer | Security engineer | Application developer |
+| :----------- | :---------------: | :---------------: | :-------------------: |
+| Architecture |      &#9989;      |      &#9989;      |       &#10060;        |
+| Concepts     |      &#9989;      |      &#9989;      |        &#9989;        |
+| Enterprise   |      &#9989;      |     &#10060;      |       &#10060;        |
+| Fundamentals |      &#9989;      |      &#9989;      |        &#9989;        |
+| Use cases    |      &#9989;      |      &#9989;      |        &#9989;        |
+
+The purpose of this table is to validate the relationship between the information architecture and the content strategy by indexing them to one another. Potential applications for this table include curricular learning paths and targeted content expansion.
 
 ### Usage
 
@@ -188,6 +216,31 @@ Service Networking consists of the following phases, intentionally ordered to re
 | Observe service mesh   | `observe`        | How to observe service mesh telemetry and application performance, including Grafana.                                                    |
 | Automate applications  | `automate`       | How to automate Consul and applications to update dynamically, including the KV store, Consul-Terraform-Sync (CTS), and Consul template. |
 
+#### User persona indexed to usage phase
+
+This table indexes each usage directory and its contents with the typical concerns of the user persona based on their jobs-to-be-done and critical user journeys:
+
+| Usage phase            | Platform engineer | Security engineer | Application developer |
+| :--------------------- | :---------------: | :---------------: | :-------------------: |
+| Deploy Consul          |      &#9989;      |      &#9989;      |       &#10060;        |
+| Secure Consul          |      &#9989;      |      &#9989;      |       &#10060;        |
+| Manage multi-tenancy   |      &#9989;      |      &#9989;      |       &#10060;        |
+| Manage Consul          |      &#9989;      |     &#10060;      |       &#10060;        |
+| Monitor Consul         |      &#9989;      |      &#9989;      |       &#10060;        |
+| Upgrade Consul         |      &#9989;      |     &#10060;      |       &#10060;        |
+| Release Notes          |      &#9989;      |     &#10060;      |       &#10060;        |
+| Register services      |      &#9989;      |     &#10060;      |        &#9989;        |
+| Discover services      |      &#9989;      |     &#10060;      |        &#9989;        |
+| Connect service mesh   |      &#9989;      |     &#10060;      |       &#10060;        |
+| Secure north/south     |      &#9989;      |      &#9989;      |       &#10060;        |
+| Expand east/west       |      &#9989;      |      &#9989;      |       &#10060;        |
+| Secure mesh traffic    |      &#9989;      |      &#9989;      |       &#10060;        |
+| Manage service traffic |      &#9989;      |     &#10060;      |       &#10060;        |
+| Observe service mesh   |      &#9989;      |     &#10060;      |       &#10060;        |
+| Automate applications  |      &#9989;      |     &#10060;      |        &#9989;        |
+
+The purpose of this table is to validate the relationship between the information architecture and the content strategy by indexing them to one another. Potential applications for this table include curricular learning paths and targeted content expansion.
+
 ### Reference
 
 The **Reference** category includes the following folders in `website/content/docs/`:
@@ -203,6 +256,18 @@ The following table lists each term and a definition to help you decide where to
 | Error Messages | `error-messsages` | Error messages and their causes, organized by runtime and Consul release binary.                     |
 | Reference      | `reference`       | All reference information for configuring Consul, its components, and the infrastructure it runs on. |
 | Troubleshoot   | `troubleshoot`    | Instructions and guidance about how to figure out what's wrong with a Consul deployment.             |
+
+### User persona indexed to reference subject
+
+This table indexes each reference and its contents with the typical concerns of the user persona based on their jobs-to-be-done and critical user journeys.
+
+| Reference subject        | Platform engineer | Security engineer | Application developer |
+| :----------------------- | :---------------: | :---------------: | :-------------------: |
+| Error messages           |      &#9989;      |     &#10060;      |       &#10060;        |
+| Reference specifications |      &#9989;      |      &#9989;      |        &#9989;        |
+| Troubleshoot             |      &#9989;      |     &#10060;      |        &#9989;        |
+
+The purpose of this table is to validate the relationship between the information architecture and the content strategy by indexing them to one another. Potential applications for this table include curricular learning paths and targeted content expansion.
 
 ## Path syntax
 
@@ -245,7 +310,61 @@ Examples:
 
 ## Controlled vocabularies
 
-This section lists the standard names for files and directories, divided into sub-groups based on the syntax guide in this `README`.
+This section lists the standard names for files and directories, divided into sub-groups based on the syntax guide in this `README`. The following list provides links to specific vocabulary groups:
+
+- [Architecture vocabulary](#architecture-vocabulary)
+- [Concepts vocabulary](#concepts-vocabulary)
+- [Use case vocabulary](#use-case-vocabulary)
+- [Components vocabulary](#components-vocabulary)
+- [Features vocabulary](#features-vocabulary)
+- [Runtimes vocabularly](#runtimes-vocabulary)
+- [Actions vocabulary](#actions-vocabulary)
+- [Providers vocabulary](#providers-vocabulary)
+- [Interfaces vocabulary](#interfaces-vocabulary)
+- [Configuration entry vocabulary](#configuration-entry-vocabulary)
+- [Envoy extension vocabulary](#envoy-extension-vocabulary)
+
+### Architecture vocabulary
+
+Consul's _architecture_ vocabulary is structured according to where components run:
+
+- `control-plane`: The _control plane_ is the network infrastructure that maintains a central registry to track services and their respective IP addresses. Both server and client agents operate as part of the control plane. Consul dataplanes, despite the name, are also part of the Consul control plane.
+- `data-plane`: Use two words, _data plane_, to refer to the application layer and components involved in service-to-service communication.
+
+Common architecture terms and where they run:
+
+| Control plane  | Data plane |
+| :------------- | :--------- |
+| `agent`        | `gateway`  |
+| `server agent` | `mesh`     |
+| `client agent` | `proxy`    |
+| `dataplane`    | `service`  |
+
+The **Reference** category also includes an `architecture` sub-directory. This "Reference architecture" includes information such as port requirements, server requirements, and AWS ECS architecture.
+
+### Concepts vocabulary
+
+Consul's _concepts_ vocabulary collects terms that describe how internal systems operate through human actions.
+
+| Concept                     | Label         | Description                                                                                       |
+| :-------------------------- | :------------ | :------------------------------------------------------------------------------------------------ |
+| Consul catalog              | `catalog`     | Covers Consul's running service registry, which includes node addresses and health check results. |
+| Consensus protocol (Raft)   | `consensus`   | Covers the server agent elections governed by the Raft protocol.                                  |
+| Cluster consistency         | `consistency` | Covers Consul's anti-entropy features, consistency modes, and Jepsen testing.                     |
+| Gossip communication (Serf) | `gossip`      | Covers Serf communication between Consul agents in a datacenter.                                  |
+| Datacenter reliability      | `reliability` | Covers fault tolerance, quorum size, and server redundancy.                                       |
+
+### Use case vocabulary
+
+Consul's _use case_ vocabulary collects terms that describe the highest-level goals users have that would lead them to choose Consul as their networking solution.
+
+| Use case                          | Label               |
+| :-------------------------------- | :------------------ |
+| Service discovery                 | `service-discovery` |
+| Service mesh                      | `service-mesh`      |
+| API gateway security              | `api-gateway`       |
+| Configuration management tooling  | `config-management` |
+| Domain Name Service (DNS) tooling | `dns`               |
 
 ### Components vocabulary
 
@@ -306,12 +425,13 @@ Consul's _features_ vocabulary collects terms that describe Consul product offer
 | Service mesh telemetry                            | `telemetry`            |
 | Transparent proxy                                 | `transparent-proxy`    |
 | Virtual services                                  | `virtual-service`      |
+| Consul DNS views                                  | `views`                |
 | Wide area network (WAN) federation                | `wan-federation`       |
 | Watches                                           | `watch`                |
 
 ### Runtimes vocabulary
 
-Consul's _runtimes_ vocabulary collects the underlying runtimes where Consul supports operations. This group includes provider-speicifc runtimes, such as EKS and AKS.
+Consul's _runtimes_ vocabulary collects the underlying runtimes where Consul supports operations.
 
 | Runtimes                 | Label    |
 | :----------------------- | :------- |
@@ -322,6 +442,8 @@ Consul's _runtimes_ vocabulary collects the underlying runtimes where Consul sup
 | HashiCorp Cloud Platform | `hcp`    |
 
 #### Provider-specific runtimes
+
+This sub-group includes provider-specific runtimes, such as EKS and AKS.
 
 | Provider-specific runtimes           | Label       |
 | :----------------------------------- | :---------- |
@@ -378,43 +500,13 @@ Consul's _providers_ vocabulary collects the cloud providers and server location
 
 ### Interfaces vocabulary
 
-Consul's interfaces vocabulary includes the methods for interacting with Consul agents.
+Consul's _interfaces_ vocabulary includes the methods for interacting with Consul agents.
 
 | Interface                                    | Label |
 | :------------------------------------------- | :---- |
 | Command Line Interface (CLI)                 | `cli` |
 | HTTP Application Programming Interface (API) | `api` |
-| Browser-based user interface                 | `ui`  |
-
-### Architecture vocabulary
-
-Consul's _architecture_ vocabulary is structured according to where components run:
-
-- `control-plane`: The _control plane_ is the network infrastructure that maintains a central registry to track services and their respective IP addresses. Both server and client agents operate as part of the control plane. Consul dataplanes, despite the name, are also part of the Consul control plane.
-- `data-plane`: Use two words, _data plane_, to refer to the application layer and components involved in service-to-service communication.
-
-Common architecture terms and where they run:
-
-| Control plane  | Data plane |
-| :------------- | :--------- |
-| `agent`        | `gateway`  |
-| `server agent` | `mesh`     |
-| `client agent` | `proxy`    |
-| `dataplane`    | `service`  |
-
-The **Reference** category also includes an `architecture` sub-directory. This "Reference architecture" includes information such as port requirements, server requirements, and AWS ECS architecture.
-
-### Concepts vocabulary
-
-Consul's _concepts_ vocabulary collects terms that describe how internal systems operate through human actions.
-
-| Concept                           | Label         | Description                                                                                              |
-| :-------------------------------- | :------------ | :------------------------------------------------------------------------------------------------------- |
-| Consul catalog (service registry) | `catalog`     | Covers Consul's running record of the services registered, including addresses and health check results. |
-| Consensus protocol (Raft)         | `consensus`   | Covers the server agent elections governed by the Raft protocol.                                         |
-| Cluster consistency               | `consistency` | Covers Consul's anti-entropy features, consistency modes, and Jepsen testing.                            |
-| Gossip communication (Serf)       | `gossip`      | Covers Serf communication between Consul agents in a datacenter.                                         |
-| Datacenter reliability            | `reliability` | Covers fault tolerance, quorum size, and server redundancy.                                              |
+| Browser-based user interface (UI)            | `ui`  |
 
 ### Configuration entry vocabulary
 
@@ -454,18 +546,6 @@ Consul's _Envoy extension_ vocabulary collects names of supported extensions tha
 | Lua scripts                     | `lua`    |
 | OpenTelemetry collector service | `otel`   |
 | WebAssembly (WASM) plugins      | `wasm`   |
-
-### Use case vocabulary
-
-Consul's _use case_ vocabulary collects terms that describe
-
-| Use case                          | Label               |
-| :-------------------------------- | :------------------ |
-| Service discovery                 | `service-discovery` |
-| Service mesh                      | `service-mesh`      |
-| API Gatway security               | `api-gateway`       |
-| Configuration management tooling  | `config-management` |
-| Domain Name Service (DNS) tooling | `dns`               |
 
 ## Guide to partials
 

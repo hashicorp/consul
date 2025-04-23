@@ -20,9 +20,9 @@ Refer to [Initialize Rate Limit Settings](/consul/docs/agent/limits/init-rate-li
 
 Configure the following settings in your Consul server configuration to limit the RPC and gRPC traffic rates.
 
-- Set the rate limiter [`mode`](/consul/docs/reference/agent/configuration-file#mode-1)
-- Set the [`read_rate`](/consul/docs/reference/agent/configuration-file#read_rate)
-- Set the [`write_rate`](/consul/docs/reference/agent/configuration-file#write_rate)
+- Set the rate limiter [`mode`](/consul/docs/reference/agent/configuration-file/general#mode-1)
+- Set the [`read_rate`](/consul/docs/reference/agent/configuration-file/general#read_rate)
+- Set the [`write_rate`](/consul/docs/reference/agent/configuration-file/general#write_rate)
 
 In the following example, the Consul server is configured to prevent more than `500` read and `200` write RPC calls:
 
@@ -59,4 +59,4 @@ You should continue to monitor request traffic to ensure that request rates rema
 
 ## Disable request rate limits
 
-Set the [`limits.request_limits.mode`](/consul/docs/reference/agent/configuration-file#mode-1) to `disabled` to allow services to exceed the specified read and write requests limits, even limits specified in the [control plane request limits configuration entry](/consul/docs/reference/config-entry/control-plane-request-limit). Note that any other mode specified in the agent configuration only applies to global traffic rate limits.
+Set the [`limits.request_limits.mode`](/consul/docs/reference/agent/configuration-file/general#mode-1) to `disabled` to allow services to exceed the specified read and write requests limits, even limits specified in the [control plane request limits configuration entry](/consul/docs/reference/config-entry/control-plane-request-limit). Note that any other mode specified in the agent configuration only applies to global traffic rate limits.

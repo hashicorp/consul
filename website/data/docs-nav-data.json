@@ -1845,8 +1845,8 @@
             "path": "east-west/wan-federation"
           },
           {
-            "title": "Create and manage federation connections",
-            "path": "east-west/wan-federation/create"
+            "title": "Federate Consul datacenters on VMs",
+            "path": "east-west/wan-federation/vms"
           },
           {
             "title": "Federate Kubernetes clusters",
@@ -2745,10 +2745,6 @@
         "title": "Agent",
         "routes": [
           {
-            "title": "Configuration overview",
-            "path": "reference/agent"
-          },
-          {
             "title": "Configuration files",
             "routes": [
               {
@@ -2763,9 +2759,14 @@
                 "title": "ACL parameters",
                 "path": "reference/agent/configuration-file/acl"
               },
+
               {
                 "title": "Advertise address parameters",
                 "path": "reference/agent/configuration-file/address"
+              },
+              {
+                "title": "Auto config parameters",
+                "path": "reference/agent/configuration-file/auto-config"
               },
               {
                 "title": "Bootstrap parameters",

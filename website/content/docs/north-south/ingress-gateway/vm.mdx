@@ -17,13 +17,13 @@ in this version, but we will remove them in a future release of Consul. Use [Con
 
 ## Overview
 
-Ingress gateways enable services outside the service mesh to send traffic to services in the mesh. Refer to [Ingress gateways overview](/consul/docs/north-south/ingress-gateway/) for additional information about ingress gateways. 
+Ingress gateways enable services outside the service mesh to send traffic to services in the mesh. Refer to [Ingress gateways overview](/consul/docs/north-south/ingress-gateway/) for additional information about ingress gateways.
 
 Complete the following steps to set up an ingress gateway:
 
 1. Define listeners and the services they expose in an ingress gateway configuration entry.
 1. Register the ingress gateway configuration entry to Consul.
-1. Create a service definition for the ingress gateway proxy service and deploy it to the mesh. 
+1. Create a service definition for the ingress gateway proxy service and deploy it to the mesh.
 1. Start the ingress gateway. This step deploys the Envoy proxy that functions as the ingress gateway.
 
 After specifying listeners and services in the ingress gateway configuration entry, you can register the gateway service and start Envoy with a single CLI command instead of completing these steps separately. Refer [Register an ingress service on Envoy startup](#register-an-ingress-service-on-envoy-startup).
@@ -31,7 +31,7 @@ After specifying listeners and services in the ingress gateway configuration ent
 ## Requirements
 
 - Service mesh must be enabled for all agents. Set the [`connect.enabled` parameter](/consul/docs/reference/agent#connect) to `true` to enable service mesh.
-- The gRPC port must be configured for all server agents in the datacenter. Specify the gRPC port in the [`ports.grpc` parameter](/consul/docs/reference/agent#grpc_port). We recommend setting the port to `8502` to simplify configuration when ACLs are enabled. Refer to [ACL requirements](#acl-requirements) for additional information.
+- The gRPC port must be configured for all server agents in the datacenter. Specify the gRPC port in the [`ports.grpc` parameter](/consul/docs/reference/agent/configuration-file/general#grpc_port). We recommend setting the port to `8502` to simplify configuration when ACLs are enabled. Refer to [ACL requirements](#acl-requirements) for additional information.
 - You must use Envoy for sidecar proxies in your service mesh. Refer to [Configure and deploy sidecar proxies](/consul/docs/connect/proxy/sidecar) for additional information.
 
 ### ACL requirements
@@ -61,7 +61,7 @@ Refer to [Ingress gateway configuration entry reference](/consul/docs/reference/
 
 ##  Register the ingress gateway
 
-You can either use the [`consul config` command](/consul/commands/config) or call the [`/config` API endpoint](/consul/api-docs/config) to register the gateway configuration entry. 
+You can either use the [`consul config` command](/consul/commands/config) or call the [`/config` API endpoint](/consul/api-docs/config) to register the gateway configuration entry.
 The following example command registers an ingress gateway configuration entry named `public-ingress.hcl` that is stored on the local system:
 
 ```shell-session
@@ -124,4 +124,8 @@ You cannot register the ingress gateway service and start the proxy at the same 
 
 ## Additional Envoy configurations
 
-Ingress gateways support additional Envoy gateway options and escape-hatch overrides. Specify gateway options in the ingress gateway service definition to use them. To use escape-hatch overrides, you must add them to your global proxy defaults configuration entry. Refer to the [Envoy configuration reference](/consul/docs/reference/proxy/envoy) for additional information.
+Ingress gateways support additional Envoy gateway options and escape-hatch
+overrides. Specify gateway options in the ingress gateway service definition to
+use them. To use escape-hatch overrides, you must add them to your global proxy
+defaults configuration entry. Refer to the [Envoy configuration
+reference](/consul/docs/reference/proxy/envoy) for additional information.

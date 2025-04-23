@@ -12,14 +12,14 @@ This page describes the process to set up Telegraf to monitor Consul datacenter 
 ## Overview
 
 Consul makes a range of metrics in various formats available so operators can
-measure the health and stability of a datacenter, and diagnose or predict 
+measure the health and stability of a datacenter, and diagnose or predict
 potential issues.
 
 There are number of monitoring tools and options available, but for the purposes
 of this tutorial you are going to use the [telegraf_plugin][] in conjunction with
 the StatsD protocol supported by Consul.
 
-You can read the full list of metrics available with Consul in the 
+You can read the full list of metrics available with Consul in the
 [telemetry documentation](/consul/docs/reference/agent/telemetry).
 
 In this tutorial you will:
@@ -58,7 +58,7 @@ The `telegraf.conf` file starts with global options:
 
 </CodeBlockConfig>
 
-You set the default collection interval to 10 seconds and ask Telegraf to 
+You set the default collection interval to 10 seconds and ask Telegraf to
 include a `host` tag in each metric.
 
 As mentioned above, Telegraf also allows you to set additional tags on the
@@ -77,7 +77,7 @@ role and datacenter. You can then use these tags in Grafana to filter queries
 
 </CodeBlockConfig>
 
-Next, set up a StatsD listener on UDP port 8125, with instructions to calculate 
+Next, set up a StatsD listener on UDP port 8125, with instructions to calculate
 percentile metrics and to parse DogStatsD-compatible tags, when they're sent:
 
 <CodeBlockConfig filename="telegraf.conf">
@@ -103,7 +103,7 @@ The full reference to all the available StatsD-related options in Telegraf is
 [here][telegraf-statsd-input].
 
 Now, you can configure inputs for things like CPU, memory, network I/O, and disk
-I/O. Most of them don't require any configuration, but make sure the `interfaces` 
+I/O. Most of them don't require any configuration, but make sure the `interfaces`
 list in `inputs.net` matches the interface names you get from `ifconfig`.
 
 <CodeBlockConfig filename="telegraf.conf">
@@ -206,10 +206,10 @@ telemetry {
 You only need to specify two options. The `dogstatsd_addr`
 specifies the hostname and port of the StatsD daemon.
 
-Note that the configuration specifies DogStatsD format instead of plain StatsD, 
-which tells Consul to send [tags][tagging] with each metric. Tags can be used by 
-Grafana to filter data on your dashboards (for example, displaying only the data 
-for which `role=consul-server`). Telegraf is compatible with the DogStatsD 
+Note that the configuration specifies DogStatsD format instead of plain StatsD,
+which tells Consul to send [tags][tagging] with each metric. Tags can be used by
+Grafana to filter data on your dashboards (for example, displaying only the data
+for which `role=consul-server`). Telegraf is compatible with the DogStatsD
 format and allows you to add your own tags too.
 
 The second option tells Consul not to insert the hostname in the names of the
@@ -332,10 +332,10 @@ unavailable, as the kernel spends all its time waiting for I/O to complete.
 
 ## Next steps
 
-In this tutorial, you learned how to set up Telegraf with Consul to collect 
-metrics, and considered your options for visualizing, aggregating, and alerting 
-on those metrics. To learn about other factors (in addition to monitoring) that 
-you should consider when running Consul in production, check the 
+In this tutorial, you learned how to set up Telegraf with Consul to collect
+metrics, and considered your options for visualizing, aggregating, and alerting
+on those metrics. To learn about other factors (in addition to monitoring) that
+you should consider when running Consul in production, check the
 [Production Checklist][prod-checklist].
 
 [non_negative_difference]: https://docs.influxdata.com/influxdb/v1.5/query_language/functions/#non-negative-difference
@@ -347,7 +347,7 @@ you should consider when running Consul in production, check the
 [telegraf-procstat-input]: https://github.com/influxdata/telegraf/tree/release-1.6/plugins/inputs/procstat
 [telegraf-input-plugins]: https://docs.influxdata.com/telegraf/v1.6/plugins/inputs/
 [tagging]: https://docs.datadoghq.com/getting_started/tagging/
-[consul-telemetry-config]: /consul/docs/reference/agent/configuration-file#telemetry
+[consul-telemetry-config]: /consul/docs/reference/agent/configuration-file/telemetry
 [consul-telemetry-ref]: /consul/docs/reference/agent/telemetry
 [telegraf-input-plugins]: https://docs.influxdata.com/telegraf/v1.6/plugins/inputs/
 [grafana]: https://www.influxdata.com/partners/grafana/

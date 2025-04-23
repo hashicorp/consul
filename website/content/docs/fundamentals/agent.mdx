@@ -38,7 +38,7 @@ When a node gracefully exits a cluster, it sends a departure notification, and t
 
 When a server agent leaves, replication to the exiting server stops.
 
-To prevent an accumulation of "dead" nodes in either `failed` or `left` states, Consul automatically removes dead nodes from the catalog. This process is called _reaping_. 
+To prevent an accumulation of "dead" nodes in either `failed` or `left` states, Consul automatically removes dead nodes from the catalog. This process is called _reaping_.
 
 Reaping occurs on a configurable interval of 72 hours. We do not recommend changing the reap interval due to its consequences during outage situations. For failed nodes, reaping desregisters all of the node's services.
 
@@ -168,41 +168,48 @@ The following settings are commonly used in the agent configuration file to conf
 | `addresses`  | Block of nested objects that define addresses bound to the agent for internal cluster communication.                                                                                                                                                                       | `"http": "0.0.0.0"` Refer to the agent configuration [default address values](/consul/docs/reference/agent/configuration-file/address) |
 | `ports`      | Block of nested objects that define ports bound to agent addresses. <br/>[More information](/consul/commands/agent#advertise-address-options).                                                                                               | Refer to the agent configuration [default port values](/consul/docs/reference/agent/configuration-file/general#ports).
 
+## The `consul.d` configuration directory
+
+Agent configurations can become difficult to maintain when they are contained in a single file. We recommend separating different blocks of the agent configuration into several files located in the `/etc/consul.d` directory. When you add a new configuration or update an existing one, Consul automatically appends the agent's configuration after the agent reboots. If the update is to a supported reloadable configuration, such as ACL tokens, Consul can register the change and propagate it to the rest of the cluster without restarting.
+
+To start using the configuration directory, create a blank file named `consul.hcl` in the `/etc/consul.d` directory. You can add configurations that would exist on every node, such as `datacenter` and `data_dir`, or you can leave the file blank and follow your preferred configuration structure. 
+
 ## Reloadable configurations
 
 Some agent configuration options are reloadable at runtime.
 
-You can run the [`consul reload` command](/consul/commands/reload) to manually reload supported options from configuration files in the configuration directory. To configure the agent to automatically reload configuration files updated on disk, set the [`auto_reload_config` configuration option](/consul/docs/reference/agent/configuration-file#auto_reload_config) parameter to `true`.
+You can run the [`consul reload` command](/consul/commands/reload) to manually reload supported options from configuration files in the configuration directory. To configure the agent to automatically reload configuration files updated on disk, set the [`auto_reload_config` configuration option](/consul/docs/reference/agent/configuration-file/general#auto_reload_config) parameter to `true`.
 
 The following agent configuration options are reloadable at runtime:
 
 - ACL tokens
 - Bootstrapped configuration entries
 - Health check definitions
-- [Discard Check Output](/consul/docs/reference/agent/configuration-file#discard_check_output)
+- [Discard Check Output](/consul/docs/reference/agent/configuration-file/general#discard_check_output)
 - HTTP client address
 - Log level
-- [Metric Prefix Filter](/consul/docs/reference/agent/configuration-file#telemetry-prefix_filter)
-- [Node Metadata](/consul/docs/reference/agent/configuration-file#node_meta)
+- [Metric Prefix Filter](/consul/docs/reference/agent/configuration-file/telemetry#telemetry-prefix_filter)
+- [Node Metadata](/consul/docs/reference/agent/configuration-file/node#node_meta)
 - Some Raft options:
-  - [`raft_snapshot_threshold`](/consul/docs/reference/agent/configuration-file#_raft_snapshot_threshold)
-  - [`raft_snapshot_interval`](/consul/docs/reference/agent/configuration-file#_raft_snapshot_interval)
-  - [`raft_trailing_logs`](/consul/docs/reference/agent/configuration-file#_raft_trailing_logs)
-- [RPC rate limits](/consul/docs/reference/agent/configuration-file#limits)
-- [Reporting](/consul/docs/reference/agent/configuration-file#reporting)
-- [HTTP maximum connections per client](/consul/docs/reference/agent/configuration-file#http_max_conns_per_client)
+  - [`raft_snapshot_threshold`](/consul/docs/reference/agent/configuration-file/raft#raft_snapshot_threshold)
+  - [`raft_snapshot_interval`](/consul/docs/reference/agent/configuration-file/raft#raft_snapshot_interval)
+  - [`raft_trailing_logs`](/consul/docs/reference/agent/configuration-file/raft#raft_trailing_logs)
+- [RPC rate limits](/consul/docs/reference/agent/configuration-file/general#limits)
+- [Reporting](/consul/docs/reference/agent/configuration-file/general#reporting)
+- [HTTP maximum connections per client](/consul/docs/reference/agent/configuration-file/general#http_max_conns_per_client)
 - Service definitions
-- TLS configuration. This is currently limited to reload a configuration that is already TLS enabled. You cannot enable or disable TLS only with reloading. To avoid a potential security issue, the following TLS configuration parameters do not automatically reload when [-auto-reload-config](/consul/commands/agent#_auto_reload_config) is enabled:
-  - [encrypt_verify_incoming](/consul/docs/reference/agent/configuration-file#encrypt_verify_incoming)
-  - [verify_incoming](/consul/docs/reference/agent/configuration-file#verify_incoming)
-  - [verify_incoming_rpc](/consul/docs/reference/agent/configuration-file#verify_incoming_rpc)
-  - [verify_incoming_https](/consul/docs/reference/agent/configuration-file#verify_incoming_https)
-  - [verify_outgoing](/consul/docs/reference/agent/configuration-file#verify_outgoing)
-  - [verify_server_hostname](/consul/docs/reference/agent/configuration-file#verify_server_hostname)
-  - [ca_file](/consul/docs/reference/agent/configuration-file#ca_file)
-  - [ca_path](/consul/docs/reference/agent/configuration-file#ca_path)
+- TLS configuration. Be aware that this is currently limited to reload a configuration that is already TLS enabled. You cannot enable or disable TLS only with reloading. To avoid a potential security issue, the following TLS configuration parameters do not automatically reload when [-auto-reload-config](/consul/commands/agent#_auto_reload_config) is enabled:
+  - [encrypt_verify_incoming](/consul/docs/reference/agent/configuration-file/tls#encrypt_verify_incoming)
+  - [verify_incoming](/consul/docs/reference/agent/configuration-file/tls#verify_incoming)
+  - [verify_incoming_rpc](/consul/docs/reference/agent/configuration-file/tls#verify_incoming_rpc)
+  - [verify_incoming_https](/consul/docs/reference/agent/configuration-file/tls#verify_incoming_https)
+  - [verify_outgoing](/consul/docs/reference/agent/configuration-file/tls#verify_outgoing)
+  - [verify_server_hostname](/consul/docs/reference/agent/configuration-file/tls#verify_server_hostname)
+  - [ca_file](/consul/docs/reference/agent/configuration-file/tls#ca_file)
+  - [ca_path](/consul/docs/reference/agent/configuration-file/tls#ca_path)
 - [License](/consul/docs/enterprise/license)
 
 ## Next steps
 
-Next, learn about the [fundamentals of services in Consul](/consul/docs/fundamentals/service)/
+Next, learn about the [fundamentals of services in
+Consul](/consul/docs/fundamentals/service)/

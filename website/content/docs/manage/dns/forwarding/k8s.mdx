@@ -133,21 +133,20 @@ in full cluster rebuilds.
 
 -> **Note:** If using a different zone than `.consul`, change the key accordingly.
 
-## OpenShift DNS Operator
+## OpenShift clusters
 
 -> **Note:** OpenShift CLI `oc` is utilized below complete the following steps. You can find more details on how to install OpenShift CLI from [Getting started with OpenShift CLI](https://docs.openshift.com/container-platform/latest/cli_reference/openshift_cli/getting-started-cli.html).
 
-You can use DNS forwarding to override the default forwarding configuration in the `/etc/resolv.conf` file by specifying
-the `consul-dns` service for the `consul` subdomain (zone).
+You can use DNS forwarding to override the default forwarding configuration in the `/etc/resolv.conf` file by specifying the `consul-dns` service for the `consul` subdomain (zone).
 
-Find `consul-dns` service clusterIP:
+First, find out the `consul-dns` service clusterIP:
 
 ```shell-session
 $ oc get svc consul-dns --namespace consul --output jsonpath='{.spec.clusterIP}'
 172.30.186.254
 ```
 
-Edit the `default` DNS Operator:
+Take note of that IP address, and then edit the `default` DNS Operator:
 
 ```shell-session
 $ oc edit edit dns.operator/default
@@ -167,15 +166,12 @@ spec:
       - 172.30.186.254 # Set to clusterIP of consul-dns service
 ```
 
-Save the configuration changes and verify the `dns-default` configmap has been updated:
+Save the configuration changes. Next, verify the `dns-default` configmap has been updated with a `consul` forwarding zone:
 
 ```shell-session
 $ oc get configmap/dns-default -n openshift-dns -o yaml
-```
 
-Example output with updated `consul` forwarding zone:
 
-```yaml
 ...
 data:
   Corefile: |

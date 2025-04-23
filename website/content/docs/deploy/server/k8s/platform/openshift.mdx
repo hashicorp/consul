@@ -21,10 +21,10 @@ To deploy Consul on Openshift, you will need:
 
 - Access to a Kubernetes cluster deployed with OpenShift
 - A Red Hat account
-- [Red Hat OpenShift Local 2.47.0](https://console.redhat.com/openshift/create/local)
-- [consul v1.18.6+](/consul/install/)
-- [Helm v3.6+](https://helm.sh/docs/helm/helm_install/)
-- [consul-k8s v1.6.1+](/consul/docs/reference/cli/consul-k8s#install-the-cli)
+- [Red Hat OpenShift Local 2.49.0](https://console.redhat.com/openshift/create/local)
+- [consul v1.20.5+](/consul/install/)
+- [Helm v3.17.2+](https://helm.sh/docs/helm/helm_install/)
+- [consul-k8s v1.6.3+](/consul/docs/reference/cli/consul-k8s#install-the-cli)
 
 ## Deploy OpenShift
 
@@ -89,9 +89,7 @@ You can copy it from the Pull Secret section of https://console.redhat.com/opens
 ? Please enter the pull secret 
 ```
 
-Next, paste the image pull secret into the terminal and press enter.
-
-Example output:
+Next, paste the image pull secret into the terminal, press enter, and wait for the process to complete.
 
 <CodeBlockConfig hideClipboard>
 
@@ -122,10 +120,7 @@ Use the 'oc' command line interface:
 
 </CodeBlockConfig>
 
-Notice that the output instructs you to configure your `oc-env`, and also includes
-a login command and secret password. The secret is specific to your installation.
-Make note of this command. You need it to login to OpenShift Local (CRC) on your development
-host later.
+Notice that the output instructs you to configure your `oc-env`, and also includes a login command and secret password. The secret is specific to your installation. Make note of this command. You need it to login to OpenShift Local (CRC) on your development host later.
 
 ### Configure OpenShift Local (CRC) environment
 
@@ -211,9 +206,7 @@ Create a file named `values.yaml`, and modify it for your deployment. Remember t
 global:
   name: consul
   datacenter: dc1
-  image: registry.connect.redhat.com/hashicorp/consul:1.20.3-ubi
-  imageK8S: registry.connect.redhat.com/hashicorp/consul-k8s-control-plane:1.6.1-ubi
-  imageConsulDataplane: registry.connect.redhat.com/hashicorp/consul-dataplane:1.6.1-ubi
+  image: registry.connect.redhat.com/hashicorp/consul:1.20.5-ubi
   imagePullSecrets:
     - name: <Insert image pull secret name for RedHat Registry Service Account>
   openshift:
@@ -250,7 +243,7 @@ Search your local repo for the Consul Helm chart.
 ```shell-session
 $ helm search repo hashicorp/consul
 NAME            	CHART VERSION	APP VERSION	DESCRIPTION
-hashicorp/consul	1.6.1        	1.20.2     	Official HashiCorp Consul Chart
+hashicorp/consul	1.6.3        	1.20.5     	Official HashiCorp Consul Chart
 ```
 
 If the correct version is not displayed in the output, try
@@ -268,7 +261,7 @@ Update Complete. ⎈Happy Helming!⎈
 Instead of pulling images directly from the RedHat Registry, Consul and Consul on Kubernetes images could also be pre-loaded onto the internal OpenShift registry using the `oc import` command. Read more about [importing images into the internal OpenShift Registry in the RedHat OpenShift cookbook](https://cookbook.openshift.org/image-registry-and-image-streams/how-do-i-import-an-image-from-an-external-image.html).
 
 ```shell-session
-$ oc import-image hashicorp/consul:1.20.3-ubi --from=registry.connect.redhat.com/hashicorp/consul:1.20.3-ubi --confirm
+$ oc import-image hashicorp/consul:1.20.5-ubi --from=registry.connect.redhat.com/hashicorp/consul:1.20.5-ubi --confirm
 imagestream.image.openshift.io/consul imported
 
 <output omitted for brevity>
@@ -302,11 +295,11 @@ installation should:
 - Use the `hashicorp/consul` chart you downloaded in the last step
 - Set your Consul installation name to `consul`
 - Create Consul resources in the `consul` namespace
-- Use `consul-helm` chart version `1.6.1`
+- Use `consul-helm` chart version `1.6.3`
 
 
 ```shell-session
-$ helm install consul hashicorp/consul --values values.yaml --create-namespace --namespace consul --version "1.6.1" --wait
+$ helm install consul hashicorp/consul --values values.yaml --create-namespace --namespace consul --version "1.6.3" --wait
 ```
 
 The output will be similar to the following.
@@ -353,6 +346,9 @@ When Consul is installed successfully, expect the following output:
  --> creating 1 resource(s)
  --> creating 46 resource(s)
  --> beginning wait for 46 resources with timeout of 10m0s
+
+...
+
  ✓ Consul installed in namespace "consul".
 ```
 
@@ -408,8 +404,8 @@ Consul datacenter members.
 ```shell-session
 $ consul members
 Node                Address            Status  Type    Build   Protocol  DC   Partition  Segment
-consul-server-0     10.217.0.106:8301  alive   server  1.20.3  2         dc1  default    <all>
-crc-dzk9v-master-0  10.217.0.104:8301  alive   client  1.20.3  2         dc1  default    <default>
+consul-server-0     10.217.0.106:8301  alive   server  1.20.5  2         dc1  default    <all>
+crc-dzk9v-master-0  10.217.0.104:8301  alive   client  1.20.5  2         dc1  default    <default>
 ```
 
 You can use the same URL to make HTTP API requests with your custom code.

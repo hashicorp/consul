@@ -135,13 +135,13 @@ You need to increase the limit for the Consul user and maybe the system-wide lim
 
 Our RPC protocol requires support for a TCP half-close in order to signal the other side that they are done reading the stream, since we don't know the size in advance. This saves us from having to buffer just to calculate the size.
 
-If a host does not properly implement half-close, you may see an error message `[ERR] consul: Failed to close snapshot: write tcp <source>-><destination>: write: broken pipe` when saving snapshots. This should not affect saving and restoring snapshots. 
+If a host does not properly implement half-close, you may see an error message `[ERR] consul: Failed to close snapshot: write tcp <source>-><destination>: write: broken pipe` when saving snapshots. This should not affect saving and restoring snapshots.
 
 This has been a [known issue](https://github.com/docker/libnetwork/issues/1204) in Docker, but may manifest in other environments as well.
 
 ## ACL not found
 
-If Consul returns the following error, this indicates that you have ACL enabled in your cluster but you aren't passing a valid token. 
+If Consul returns the following error, this indicates that you have ACL enabled in your cluster but you aren't passing a valid token.
 
 <CodeBlockConfig hideClipboard>
 
@@ -224,9 +224,9 @@ Enterprise binaries are followed by a `+ent` suffix on the [download site][relea
 
 You may receive a `RESOURCE_EXHAUSTED` error from the Consul server if the maximum number of read or write requests per second have been reached. Refer to [Set a global limit on traffic rates](/consul/docs/manage/rate-limit/global) for additional information. You can retry another server unless the number of retries is exhausted. If the number of retries is exhausted, you should implement an exponential backoff.
 
-The `RESOURCE_EXHAUSTED` RPC response is translated into a `429 Too Many Requests` error code on the HTTP interface. 
+The `RESOURCE_EXHAUSTED` RPC response is translated into a `429 Too Many Requests` error code on the HTTP interface.
 
-The server may respond as `UNAVAILABLE` if it is the leader node and the global write request rate limit is reached. The solution is to apply an exponential backoff until the leader has capacity to serve those requests. 
+The server may respond as `UNAVAILABLE` if it is the leader node and the global write request rate limit is reached. The solution is to apply an exponential backoff until the leader has capacity to serve those requests.
 
 The `UNAVAILABLE` RPC response is translated into a `503 Service Unavailable` error code on the  RPC requests sent through HTTP interface.
 
@@ -234,18 +234,18 @@ The `UNAVAILABLE` RPC response is translated into a `503 Service Unavailable` er
 
  Consul outputs the warning `Static Runtime config has changed and need a manual config reload to be applied` when any of the following configurations are changed while [-auto-reload-config](/consul/commands/agent#_auto_reload_config) is enabled.
 
-  - [encrypt_verify_incoming](/consul/docs/reference/agent/configuration-file#encrypt_verify_incoming)
-  - [verify_incoming](/consul/docs/reference/agent/configuration-file#verify_incoming)
-  - [verify_incoming_rpc](/consul/docs/reference/agent/configuration-file#verify_incoming_rpc)
-  - [verify_incoming_https](/consul/docs/reference/agent/configuration-file#verify_incoming_https)
-  - [verify_outgoing](/consul/docs/reference/agent/configuration-file#verify_outgoing)
-  - [verify_server_hostname](/consul/docs/reference/agent/configuration-file#verify_server_hostname)
-  - [ca_file](/consul/docs/reference/agent/configuration-file#ca_file)
-  - [ca_path](/consul/docs/reference/agent/configuration-file#ca_path)
+  - [encrypt_verify_incoming](/consul/docs/reference/agent/configuration-file/encryption#encrypt_verify_incoming)
+  - [verify_incoming](/consul/docs/reference/agent/configuration-file/tls#verify_incoming)
+  - [verify_incoming_rpc](/consul/docs/reference/agent/configuration-file/tls#verify_incoming_rpc)
+  - [verify_incoming_https](/consul/docs/reference/agent/configuration-file/tls#verify_incoming_https)
+  - [verify_outgoing](/consul/docs/reference/agent/configuration-file/tls#verify_outgoing)
+  - [verify_server_hostname](/consul/docs/reference/agent/configuration-file/tls#verify_server_hostname)
+  - [ca_file](/consul/docs/reference/agent/configuration-file/tls#ca_file)
+  - [ca_path](/consul/docs/reference/agent/configuration-file/tls#ca_path)
 
 To resolve this error, you must manually issue the `consul reload` command or send a `SIGHUP` to the Consul process to reload the new values.
 
-[node_name]: /consul/docs/reference/agent/configuration-file#node_name
+[node_name]: /consul/docs/reference/agent/configuration-file/node#node_name
 [retry_join]: /consul/commands/agent#retry-join
 [license]: /consul/commands/license
 [releases]: https://releases.hashicorp.com/consul/

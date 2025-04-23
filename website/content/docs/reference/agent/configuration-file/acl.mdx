@@ -39,7 +39,7 @@ The page provides reference information for ACL parameters in a Consul agent con
 
   - `down_policy` ((#acl_down_policy)) - Either "allow", "deny", "extend-cache"
     or "async-cache"; "extend-cache" is the default. In the case that a policy or
-    token cannot be read from the [`primary_datacenter`](#primary_datacenter) or
+    token cannot be read from the [`primary_datacenter`](/consul/docs/reference/agent/configuration-file/general#primary_datacenter) or
     leader node, the down policy is applied. In "allow" mode, all actions are permitted,
     "deny" restricts all operations, and "extend-cache" allows any cached objects
     to be used, ignoring the expiry time of the cached entry. If the request uses an
@@ -84,7 +84,7 @@ The page provides reference information for ACL parameters in a Consul agent con
     - `initial_management` ((#acl_tokens_initial_management)) - This is available in
       Consul 1.11 and later. In prior versions, use [`acl.tokens.master`](#acl_tokens_master).
 
-      Only used for servers in the [`primary_datacenter`](#primary_datacenter).
+      Only used for servers in the [`primary_datacenter`](/consul/docs/reference/agent/configuration-file/general#primary_datacenter).
       This token will be created with management-level permissions if it does not exist.
       It allows operators to bootstrap the ACL system with a token Secret ID that is
       well-known.
@@ -156,7 +156,7 @@ The page provides reference information for ACL parameters in a Consul agent con
 
     - `replication` ((#acl_tokens_replication)) - Specifies the token that the agent uses to
       authorize secondary datacenters with the primary datacenter for replication
-      operations. This token is required for servers outside the [`primary_datacenter`](#primary_datacenter) when ACLs are enabled. This token may be provided later using the [agent token API](/consul/api-docs/agent#update-acl-tokens) on each server. This token must have at least "read" permissions on ACL data but if ACL token replication is enabled then it must have "write" permissions. This also enables service mesh data replication, for which the token will require both operator "write" and intention "read" permissions for replicating CA and Intention data.
+      operations. This token is required for servers outside the [`primary_datacenter`](/consul/docs/reference/agent/configuration-file/general#primary_datacenter) when ACLs are enabled. This token may be provided later using the [agent token API](/consul/api-docs/agent#update-acl-tokens) on each server. This token must have at least "read" permissions on ACL data but if ACL token replication is enabled then it must have "write" permissions. This also enables service mesh data replication, for which the token will require both operator "write" and intention "read" permissions for replicating CA and Intention data.
 
       ~> **Warning:** When enabling ACL token replication on the secondary datacenter,
       policies and roles already present in the secondary datacenter will be lost. For
@@ -164,29 +164,11 @@ The page provides reference information for ACL parameters in a Consul agent con
       datacenter bootstrapping process.
 
     - `managed_service_provider` ((#acl_tokens_managed_service_provider)) <EnterpriseAlert inline /> - An
-      array of ACL tokens used by Consul managed service providers for cluster operations.
+      array of ACL tokens used by Consul managed service providers for cluster
+      operations. Refer to the [managed service provider
+      example](#managed-service-provider) for more information.
 
-      <CodeTabs heading="Example managed_service_provider configuration">
-
-      ```hcl
-      managed_service_provider {
-        accessor_id = "ed22003b-0832-4e48-ac65-31de64e5c2ff"
-        secret_id = "cb6be010-bba8-4f30-a9ed-d347128dde17"
-      }
-      ```
-
-      ```json
-      "managed_service_provider": [
-        {
-          "accessor_id": "ed22003b-0832-4e48-ac65-31de64e5c2ff",
-          "secret_id": "cb6be010-bba8-4f30-a9ed-d347128dde17"
-        }
-      ]
-      ```
-
-      </CodeTabs>
-
-- `acl_datacenter` - **This field is deprecated in Consul 1.4.0. See the [`primary_datacenter`](#primary_datacenter) field instead.**
+- `acl_datacenter` - **This field is deprecated in Consul 1.4.0. See the [`primary_datacenter`](/consul/docs/reference/agent/configuration-file/general#primary_datacenter) field instead.**
 
   This designates the datacenter which is authoritative for ACL information. It must be provided to enable ACLs. All servers and datacenters must agree on the ACL datacenter. Setting it on the servers is all you need for cluster-level enforcement, but for the APIs to forward properly from the clients,
   it must be set on them too. In Consul 0.8 and later, this also enables agent-level enforcement
@@ -202,7 +184,7 @@ The page provides reference information for ACL parameters in a Consul agent con
 - `acl_down_policy` ((#acl_down_policy_legacy)) - **Deprecated in Consul
   1.4.0. See the [`acl.down_policy`](#acl_down_policy) field instead.** Either "allow",
   "deny", "extend-cache" or "async-cache"; "extend-cache" is the default. In the
-  case that the policy for a token cannot be read from the [`primary_datacenter`](#primary_datacenter)
+  case that the policy for a token cannot be read from the [`primary_datacenter`](/consul/docs/reference/agent/configuration-file/general#primary_datacenter)
   or leader node, the down policy is applied. In "allow" mode, all actions are permitted,
   "deny" restricts all operations, and "extend-cache" allows any cached ACLs to be
   used, ignoring their TTL values. If a non-cached ACL is used, "extend-cache" acts
@@ -239,17 +221,17 @@ The page provides reference information for ACL parameters in a Consul agent con
 
 - `acl_replication_token` ((#acl_replication_token_legacy)) - **Deprecated
   in Consul 1.4.0. See the [`acl.tokens.replication`](#acl_tokens_replication) field
-  instead.** Only used for servers outside the [`primary_datacenter`](#primary_datacenter)
+  instead.** Only used for servers outside the [`primary_datacenter`](/consul/docs/reference/agent/configuration-file/general#primary_datacenter)
   running Consul 0.7 or later. When provided, this will enable [ACL replication](/consul/tutorials/security-operations/access-control-replication-multiple-datacenters)
   using this ACL replication using this token to retrieve and replicate the ACLs
   to the non-authoritative local datacenter. In Consul 0.9.1 and later you can enable
   ACL replication using [`acl.enable_token_replication`](#acl_enable_token_replication) and then
-  set the token later using the [agent token API](/consul/api-docs/agent#update-acl-tokens)
+  set the token later using the [agent token API](#update-acl-tokens)
   on each server. If the `acl_replication_token` is set in the config, it will automatically
   set [`acl.enable_token_replication`](#acl_enable_token_replication) to true for backward compatibility.
 
   If there's a partition or other outage affecting the authoritative datacenter, and the
-  [`acl_down_policy`](/consul/docs/reference/agent/configuration-file#acl_down_policy) is set to "extend-cache", tokens not
+  [`acl_down_policy`](#acl_down_policy) is set to "extend-cache", tokens not
   in the cache can be resolved during the outage using the replicated set of ACLs.
 
 - `acl_token` ((#acl_token_legacy)) - **Deprecated in Consul 1.4.0. See
@@ -265,10 +247,36 @@ The page provides reference information for ACL parameters in a Consul agent con
 - `enable_acl_replication` **Deprecated in Consul 1.11. Use the [`acl.enable_token_replication`](#acl_enable_token_replication) field instead.**
   When set on a Consul server, enables ACL replication without having to set
   the replication token via [`acl_replication_token`](#acl_replication_token). Instead, enable ACL replication
-  and then introduce the token using the [agent token API](/consul/api-docs/agent#update-acl-tokens) on each server.
+  and then introduce the token using the [agent token API](#update-acl-tokens) on each server.
   See [`acl_replication_token`](#acl_replication_token) for more details.
 
   ~> **Warning:** When enabling ACL token replication on the secondary datacenter,
   policies and roles already present in the secondary datacenter will be lost. For
   production environments, consider configuring ACL replication in your initial
   datacenter bootstrapping process.
+
+
+## Examples
+
+### Managed service provider
+
+<EnterpriseAlert product="consul" inline /><br/><br/>
+
+<CodeTabs>
+
+```hcl
+managed_service_provider {
+  accessor_id = "ed22003b-0832-4e48-ac65-31de64e5c2ff"
+  secret_id = "cb6be010-bba8-4f30-a9ed-d347128dde17"
+}
+```
+
+```json
+"managed_service_provider": [
+  {
+    "accessor_id": "ed22003b-0832-4e48-ac65-31de64e5c2ff",
+    "secret_id": "cb6be010-bba8-4f30-a9ed-d347128dde17"
+  }
+]
+```
+</CodeTabs>

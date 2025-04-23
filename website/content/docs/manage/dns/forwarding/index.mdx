@@ -42,7 +42,7 @@ This approach can be useful in scenarios where the Consul agent's node is alloca
 ![Consul DNS forwarding - All requests are routed to Consul](/img/consul-dns-forwarding.png#light-theme-only)
 ![Consul DNS forwarding - All requests are routed to Consul](/img/consul-dns-forwarding-dark.png#dark-theme-only)
 
-This behavior is not enabled by default. Consul standard configuration only resolves DNS records inside the `.consul` zone. To enable DNS forwarding, you need to set the [recursors](/consul/docs/reference/agent/configuration-file#recursors) option in your Consul configuration.
+This behavior is not enabled by default. Consul standard configuration only resolves DNS records inside the `.consul` zone. To enable DNS forwarding, you need to set the [recursors](/consul/docs/reference/agent/configuration-file/general#recursors) option in your Consul configuration.
 
 In this scenario, if a Consul DNS reply includes a `CNAME` record pointing outside the `.consul` top level domain, then the DNS reply only includes `CNAME` records by default.
 
@@ -53,7 +53,7 @@ When `recursors` is set and the upstream resolver is functioning correctly, Cons
 To use DNS forwarding in Consul deployments, complete the following steps:
 
 1. Configure the local DNS service to enable DNS forwarding to Consul. Follow the instructions for one of the following services:
-  
+
     - [systemd-resolved](/consul/docs/services/discovery/dns-forwarding/enable#systemd-resolved)
     - [BIND](/consul/docs/services/discovery/dns-forwarding/enable#bind)
     - [Dnsmasq](/consul/docs/services/discovery/dns-forwarding/enable#dnsmasq)
@@ -65,56 +65,56 @@ To use DNS forwarding in Consul deployments, complete the following steps:
 
     ```shell-session
     $ dig consul.service.consul A
-    
+
     ; <<>> DiG 9.16.48-Debian <<>> consul.service.consul A
     ;; global options: +cmd
     ;; Got answer:
     ;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 51736
     ;; flags: qr rd ra; QUERY: 1, ANSWER: 3, AUTHORITY: 0, ADDITIONAL: 1
-    
+
     ;; OPT PSEUDOSECTION:
     ; EDNS: version: 0, flags:; udp: 65494
     ;; QUESTION SECTION:
     ;consul.service.consul.		IN	A
-    
+
     ;; ANSWER SECTION:
     consul.service.consul.	0	IN	A	10.0.4.140
     consul.service.consul.	0	IN	A	10.0.4.121
     consul.service.consul.	0	IN	A	10.0.4.9
-    
+
     ;; Query time: 4 msec
     ;; SERVER: 127.0.0.53#53(127.0.0.53)
     ;; WHEN: Wed Jun 26 20:47:05 UTC 2024
     ;; MSG SIZE  rcvd: 98
-    
+
     ```
 
 1. Optionally, verify reverse DNS.
 
     ```shell-session
     $ dig 140.4.0.10.in-addr.arpa. PTR
-    
+
     ; <<>> DiG 9.16.48-Debian <<>> 140.4.0.10.in-addr.arpa. PTR
     ;; global options: +cmd
     ;; Got answer:
     ;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 35085
     ;; flags: qr rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
-    
+
     ;; OPT PSEUDOSECTION:
     ; EDNS: version: 0, flags:; udp: 65494
     ;; QUESTION SECTION:
     ;140.4.0.10.in-addr.arpa.	IN	PTR
-    
+
     ;; ANSWER SECTION:
     140.4.0.10.in-addr.arpa. 0	IN	PTR	consul-server-0.node.dc1.consul.
-    
+
     ;; Query time: 0 msec
     ;; SERVER: 127.0.0.53#53(127.0.0.53)
     ;; WHEN: Wed Jun 26 20:47:57 UTC 2024
     ;; MSG SIZE  rcvd: 97
-    
+
     ```
-    
+
     You can use the `short` option for `dig` to only get the node name instead of the full output.
 
     ```shell-session

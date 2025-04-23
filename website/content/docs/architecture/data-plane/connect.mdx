@@ -22,7 +22,7 @@ During the connection attempt, the client service first verifies the destination
 Once the secure connection is in place, the destination service proceeds with authorization based on its configured application protocol:
 
 - TCP (L4) services must authorize _incoming connections_ against the configured set of [service intentions](/consul/docs/secure-mesh/intention).
-- HTTP (L7) services must authorize _incoming requests_ against those same intentions. 
+- HTTP (L7) services must authorize _incoming requests_ against those same intentions.
 
 If the intention check is successful, the connection (for TCP) or the specific request (for HTTP) is permitted. Otherwise, it is rejected.
 

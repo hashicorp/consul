@@ -366,7 +366,7 @@ and also for the upstream listeners used by the service.
 
 One example is how users can define a service's protocol in the `Protocol` field of [`service-defaults` configuration
 entry](/consul/docs/reference/config-entry/service-defaults). Agents with
-[`enable_central_service_config`](/consul/docs/reference/agent/configuration-file#enable_central_service_config)
+[`enable_central_service_config`](/consul/docs/reference/agent/configuration-file/general#enable_central_service_config)
 set to true will automatically discover the protocol when configuring a proxy
 for a service. The proxy will discover the main protocol of the service it
 represents and use this to configure its main public listener. It will also

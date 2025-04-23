@@ -38,7 +38,7 @@ metadata:
 
 You should use the [Consul CLI](/consul/commands/config) or [Consul HTTP API](/consul/api-docs/config) to manage configuration entries outside of Kubernetes.
 
-As a convenience for initial cluster bootstrapping, you can also specify configuration entries in the Consul [server agent configuration files](/consul/docs/reference/agent/configuration-file#config_entries_bootstrap). When a server gains leadership, it will attempt to initialize the configuration entries. If a configuration entry does not already exist outside of the servers configuration, the server will create it. If a configuration entry does exist, that matches both `kind` and `name`, then the server does nothing.
+As a convenience for initial cluster bootstrapping, you can also specify configuration entries in the Consul [server agent configuration files](/consul/docs/reference/agent/configuration-file/general#config_entries_bootstrap). When a server gains leadership, it will attempt to initialize the configuration entries. If a configuration entry does not already exist outside of the servers configuration, the server will create it. If a configuration entry does exist, that matches both `kind` and `name`, then the server does nothing.
 
 ## Cluster management configuration entries
 

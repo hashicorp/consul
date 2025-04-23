@@ -2,20 +2,29 @@
 layout: docs
 page_title: Consul agents configuration file reference
 description: >-
-  Use agent configuration files to assign attributes to agents and configure multiple agents at once. Learn about agent configuration file parameters and formatting with this reference page and sample code.
+  This section contains reference information for individual agent configuration files. Configure multiple agents at once. Assign attributes to agents. Learn about agent configuration file parameters and formatting. Review example configuration.
 ---
 
 # Consul agents configuration file reference
 
-This topic describes the parameters for configuring Consul agents. 
+This topic describes the parameters for configuring Consul agents.
 
-For information about how to start Consul agents, refer to [Consul agnet fundamentals](/consul/docs/fundamentals/agent).
+Refer to the [Configure a Consul agent](/consul/docs/fundamentals/agent) guide for information on the following:
+
+- Configuration files location
+- Common configuration settings
+- Reloadable configurations
+- Starting and stopping a Consul agent
 
 ## Overview
 
-You can create one or more files to configure the Consul agent on startup. We recommend grouping similar configurations into separate files, such as ACL parameters, to make it easier to manage configuration changes. Using external files may be easier than configuring agents on the command-line when Consul is being configured using a configuration management system.
+Create one or more files to configure the Consul agent on startup. We recommend
+grouping similar configurations, such as ACL parameters, into separate files to
+better manage configuration changes.
 
-The configuration files are formatted as HCL or JSON. HCL configurations are designed to be human readable. JSON-formatted configurations consist of a single JSON object with multiple configuration keys specified within it.
+Write configuration files in HCL or JSON. Both humans and computers can read and
+edit JSON configuration files. JSON configuration consists of a single JSON
+object with multiple configuration keys specified within it.
 
 <CodeTabs heading="Example Configuration File">
 
@@ -78,7 +87,7 @@ Examples:
 
 Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDuration) for additional information.
 
-## Example configurations
+## Examples
 
 The following configuration examples demonstrate scenarios for server and client agent configuration files.
 

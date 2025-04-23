@@ -30,14 +30,14 @@ environment running on `1.7.11` to Consul `1.9.2`.
 <Note>
 
  As a general best practice, when upgrading, you should always
-consider upgrading to the lastest available version to take advantage of all
+consider upgrading to the latest available version to take advantage of all
 new features and fixes.
 
 </Note>
 
-To complete this tutorial, you will need two wide area network (WAN) joined 
-Consul datacenters with access control list (ACL) replication enabled. If you 
-are starting from scratch, follow these tutorials to set up your datacenters, 
+To complete this tutorial, you will need two wide area network (WAN) joined
+Consul datacenters with access control list (ACL) replication enabled. If you
+are starting from scratch, follow these tutorials to set up your datacenters,
 or use them to check that you have the proper configuration in place:
 
 - [Deployment Guide](/consul/tutorials/production-deploy/deployment-guide)
@@ -46,11 +46,11 @@ or use them to check that you have the proper configuration in place:
 
 You will also need to enable ACL replication, which you can do by following the steps in the
 [ACL Replication for Multiple
-Datacenters](/consul/tutorials/security-operations/access-control-replication-multiple-datacenters) 
+Datacenters](/consul/tutorials/security-operations/access-control-replication-multiple-datacenters)
 tutorial.
 
-Lastly, if you are using Consul service mesh, you should set [`enable_central_service_config = true`](/consul/docs/reference/agent/configuration-file#enable_central_service_config)
-on your Consul clients which will allow you to centrally configure the sidecar 
+Lastly, if you are using Consul service mesh, you should set [`enable_central_service_config = true`](/consul/docs/reference/agent/configuration-file/general#enable_central_service_config)
+on your Consul clients which will allow you to centrally configure the sidecar
 and mesh gateway proxies.
 
 ## Prepare for upgrade
@@ -58,15 +58,15 @@ and mesh gateway proxies.
 ### Check version compatibility
 
 Operating a Consul datacenter that is multiple major versions behind the current
-major version can increase the risk incurred during upgrades. We encourage our 
-users to remain no more than two major versions behind (i.e., if `1.9.x` is the 
+major version can increase the risk incurred during upgrades. We encourage our
+users to remain no more than two major versions behind (i.e., if `1.9.x` is the
 current release, do not use versions older than `1.7.x`).
 
-If you are running a Consul version older that `1.7.x` please check our 
+If you are running a Consul version older that `1.7.x` please check our
 documentation for:
 
 - [Upgrade Instructions](/consul/docs/upgrade/instructions)
-- [Upgrading Specific Versions](/consul/docs/upgrade/version-specific) 
+- [Upgrading Specific Versions](/consul/docs/upgrade/version-specific)
 
 ### Take a snapshot
 
@@ -75,12 +75,12 @@ loss in Consul state. Still, as a general best practice, it is recommended to ta
 a snapshot of your environment every time you perform a potentially disruptive
 operation such as an upgrade.
 
-You can follow the [Backup Consul Data and State](/consul/tutorials/production-deploy/backup-and-restore) 
+You can follow the [Backup Consul Data and State](/consul/tutorials/production-deploy/backup-and-restore)
 tutorial to learn how to perform a snapshot on an existing Consul datacenter.
 
 ### Increase log verbosity on agents
 
-Temporarily modify your Consul server configuration so that their [log_level](/consul/docs/reference/agent/configuration-file#_log_level) 
+Temporarily modify your Consul server configuration so that their [log_level](/consul/docs/reference/agent/configuration-file/log#log_level)
 is set to `debug`. Use the following command on your servers
 to reload the configuration.
 
@@ -90,7 +90,7 @@ $ consul reload
 Configuration reload triggered
 ```
 
-This change will give you more information to work with in the event something 
+This change will give you more information to work with in the event something
 goes wrong.
 
 ## Install new Consul version on agents
@@ -100,7 +100,7 @@ to install the last version of Consul on your agents.
 
 ## Server rolling upgrade
 
-In order to minimize unavailability the suggested approach it to perform the 
+In order to minimize unavailability the suggested approach it to perform the
 upgrade process one server at a time, starting with the followers and upgrading
 the Raft leader last.
 
@@ -121,8 +121,8 @@ upgrading `server-2` and `server-3` first and then upgrade `server-1` last.
 
 <Note>
 
- The upgrade on the servers will be completed only after you 
-complete the upgrade steps on **ALL** servers. The tutorial will show example 
+ The upgrade on the servers will be completed only after you
+complete the upgrade steps on **ALL** servers. The tutorial will show example
 outputs to give you guidance on what should be the expected output in
 your instance.
 
@@ -167,7 +167,7 @@ Revision 6530cf370
 Protocol 2 spoken by default, understands 2 to 3 (agent will automatically use protocol >2 when speaking to compatible agents)
 ```
 
-You can now start Consul again making sure you are now using the new binary 
+You can now start Consul again making sure you are now using the new binary
 version.
 
 If the version isn't the new version, redo the steps in [Install Consul](/consul/tutorials/get-started-vms/virtual-machine-gs-deploy).
@@ -183,13 +183,13 @@ server-2  172.19.0.4:8301  alive   server  1.9.2   2         primary  <all>
 server-3  172.19.0.5:8301  alive   server  1.7.11  2         primary  <all>
 ```
 
-As you can confirm, now all the three servers are marked as `alive` and now 
+As you can confirm, now all the three servers are marked as `alive` and now
 `server-2` shows `1.9.2` as its version.
 
 ### Update ACL token for agent
 
 In case your ACL configuration did not include `enable_token_persistence = true`
-and you did not set the server tokens in the configuration files, you will need 
+and you did not set the server tokens in the configuration files, you will need
 to set the `agent` and `default` token for the agent again before it could join
 the datacenter.
 See [Add the token to the agent](/consul/tutorials/security/access-control-setup-production#add-the-token-to-the-agent) for more information.
@@ -216,15 +216,15 @@ perform the same steps on every client agent to upgrade Consul.
 
 ### Service downtime considerations
 
-When upgrading the client agents, after you issue `consul leave` on the agent, 
+When upgrading the client agents, after you issue `consul leave` on the agent,
 the service provided by the agent will be marked as unhealthy and will not be
 discoverable until the Consul client agent is restarted.
 
-To avoid downtime for your services you should consider, as a general best 
-practice, to run multiple instance of the same service each with its own Consul 
-client agent. 
+To avoid downtime for your services you should consider, as a general best
+practice, to run multiple instance of the same service each with its own Consul
+client agent.
 
-In this way you can upgrade the two Consul agents in two separate moments 
+In this way you can upgrade the two Consul agents in two separate moments
 and Consul will automatically redirect traffic to the other service instances
 during the Consul agent upgrade.
 
@@ -238,21 +238,21 @@ You can check out the Envoy version supported by your new Consul version on the
 [Envoy Integration](/consul/docs/connect/proxies/envoy#supported-versions)
 documentation page.
 
--> If you are running Consul 1.8.4 or later you can also use the 
+-> If you are running Consul 1.8.4 or later you can also use the
 [`/v1/agent/self`](/consul/api-docs/agent#read-configuration)
 API endpoint to check the compatible Envoy version for your running agent.
 
-In this scenario we are upgradring from Consul `1.7.11` which supports Envoy up 
+In this scenario we are upgradring from Consul `1.7.11` which supports Envoy up
 to version `1.13.6` to Consul `1.9.2` that supports Envoy from version `1.13.6`.
 
 This means that, the two version share a compatible Envoy version and that if
-you are running Envoy `1.13.6` on your agents you might not need to upgrade 
+you are running Envoy `1.13.6` on your agents you might not need to upgrade
 Envoy right away.
 
 Still we recommend to upgrade Envoy to the latest supported version to leverage
 the Consul compatibility with the new Envoy functionalities and improvements.
 
-Refer to [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/start/install) 
+Refer to [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/start/install)
 to learn how to install Envoy on your system.
 
 ## Update Secondary Datacenter
@@ -262,7 +262,7 @@ steps to perform the upgrade on the second datacenter.
 
 ## Verify federation
 
-After the upgrade process is complete you can confirm federation is still 
+After the upgrade process is complete you can confirm federation is still
 working using the `consul members` command.
 
 ```shell-session

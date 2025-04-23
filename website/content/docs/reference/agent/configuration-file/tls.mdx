@@ -104,7 +104,7 @@ specially crafted certificate signed by the CA can be used to gain full access t
       interface. When set to true for the HTTPS interface, this parameter applies to [watches](/consul/docs/automate/watch), which operate by making HTTPS requests to the local agent.
 
   - `grpc` ((#tls_grpc)) Provides settings for the gRPC/xDS interface. To enable
-    the gRPC interface you must define a port via [`ports.grpc_tls`](#grpc_tls_port).
+    the gRPC interface you must define a port via [`ports.grpc_tls`](/consul/docs/reference/agent/configuration-file/general#grpc_tls_port).
 
     - `ca_file` ((#tls_grpc_ca_file)) Overrides [`tls.defaults.ca_file`](#tls_defaults_ca_file).
 
@@ -123,7 +123,7 @@ specially crafted certificate signed by the CA can be used to gain full access t
     - `use_auto_cert` - (Defaults to `false`) Enables or disables TLS on gRPC servers. Set to `true` to allow [`auto_encrypt`](/consul/docs/reference/agent/configuration-file/encryption#auto_encrypt) TLS settings to apply to gRPC listeners. We recommend disabling TLS on gRPC servers if you are using `auto_encrypt` for other TLS purposes, such as enabling HTTPS.
 
   - `https` ((#tls_https)) Provides settings for the HTTPS interface. To enable
-    the HTTPS interface you must define a port via [`ports.https`](#https_port).
+    the HTTPS interface you must define a port via [`ports.https`](/consul/docs/reference/agent/configuration-file/general#https_port).
 
     - `ca_file` ((#tls_https_ca_file)) Overrides [`tls.defaults.ca_file`](#tls_defaults_ca_file).
 
@@ -142,7 +142,7 @@ specially crafted certificate signed by the CA can be used to gain full access t
     - `verify_outgoing` - ((#tls_https_verify_outgoing)) Overrides [`tls.defaults.verify_outgoing`](#tls_defaults_verify_outgoing).
 
   - `internal_rpc` ((#tls_internal_rpc)) Provides settings for the internal
-    "server" RPC interface configured by [`ports.server`](#server_rpc_port).
+    "server" RPC interface configured by [`ports.server`](/consul/docs/reference/agent/configuration-file/general#server_rpc_port).
 
     - `ca_file` ((#tls_internal_rpc_ca_file)) Overrides [`tls.defaults.ca_file`](#tls_defaults_ca_file).
 
@@ -170,7 +170,7 @@ specially crafted certificate signed by the CA can be used to gain full access t
       only way to enforce that no client can communicate with a server unencrypted
       is to also enable `verify_incoming` which requires client certificates too.
 
-    - `verify_server_hostname` Overrides [tls.defaults.verify_server_hostname](#tls_defaults_verify_server_hostname). When
+    - `verify_server_hostname` Overrides [tls.defaults.verify_server_hostname](#tls_internal_rpc_verify_server_hostname). When
       set to true, Consul verifies the TLS certificate presented by the servers
       match the hostname `server.<datacenter>.<domain>`. By default this is false,
       and Consul does not verify the hostname of the certificate, only that it
@@ -180,14 +180,14 @@ specially crafted certificate signed by the CA can be used to gain full access t
       compromised client from gaining full read and write access to all cluster
       data *including all ACL tokens and service mesh CA root keys*.
 
-- `server_name` When provided, this overrides the [`node_name`](#_node)
+- `server_name` When provided, this overrides the [`node_name`](/consul/docs/reference/agent/configuration-file/node#node_name)
   for the TLS certificate. It can be used to ensure that the certificate name matches
   the hostname we declare.
 
 ### Deprecated Options ((#tls_deprecated_options))
 
 The following options were deprecated in Consul 1.12, please use the
-[`tls`](#tls-1) stanza instead.
+`tls` stanza instead.
 
 - `ca_file` See: [`tls.defaults.ca_file`](#tls_defaults_ca_file).
 
@@ -216,20 +216,23 @@ The following options were deprecated in Consul 1.12, please use the
 
 - `verify_server_hostname` See: [`tls.internal_rpc.verify_server_hostname`](#tls_internal_rpc_verify_server_hostname).
 
-### Example Configuration File, with TLS
+## Examples
 
-~> **Security Note:** all three verify options should be set as `true` to enable
+### Secure mTLS configuration
+
+All three verify options should be set as `true` to enable
 secure mTLS communication, enabling both encryption and authentication. Failing
 to set [`verify_incoming`](#tls_defaults_verify_incoming) or
 [`verify_outgoing`](#tls_defaults_verify_outgoing) either in the
 interface-specific stanza (e.g. `tls.internal_rpc`, `tls.https`) or in
-`tls.defaults` will result in TLS not being enabled at all, even when specifying
+`tls.defaults` results in TLS not being enabled at all, even when specifying
 a [`ca_file`](#tls_defaults_ca_file), [`cert_file`](#tls_defaults_cert_file),
 and [`key_file`](#tls_defaults_key_file).
 
-See, especially, the use of the `ports` setting highlighted below.
+Review, especially, the use of the `ports` setting in the highlighted code
+lines.
 
-<CodeTabs heading="Example configuration with TLS">
+<CodeTabs>
 
 <CodeBlockConfig lineNumbers highlight="10-12">
 
@@ -293,6 +296,6 @@ tls {
 
 </CodeTabs>
 
-Consul will not enable TLS for the HTTP or gRPC API unless the `https` port has
+Consul does not enable TLS for the HTTP or gRPC API unless the `https` port has
 been assigned a port number `> 0`. We recommend using `8501` for `https` as this
-default will automatically work with some tooling.
+default automatically works with some tooling.
