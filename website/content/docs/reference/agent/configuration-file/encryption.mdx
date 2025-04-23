@@ -7,29 +7,9 @@ description: >-
 
 # Encryption parameters for Consul agent configuration files
 
-The page provides reference information for DNS parameters in a Consul agent configuration file.
+The page provides reference information for encryption parameters in a Consul agent configuration file.
 
-## Encryption Parameters
-
-- `auto_config` This object allows setting options for the `auto_config` feature.
-
-  The following sub-keys are available:
-
-  - `enabled` (Defaults to `false`) This option enables `auto_config` on a client
-    agent. When starting up but before joining the cluster, the client agent will
-    make an RPC to the configured server addresses to request configuration settings,
-    such as its `agent` ACL token, TLS certificates, Gossip encryption key as well
-    as other configuration settings. These configurations get merged in as defaults
-    with any user-supplied configuration on the client agent able to override them.
-    The initial RPC uses a JWT specified with either `intro_token`,
-    `intro_token_file` or the `CONSUL_INTRO_TOKEN` environment variable to authorize
-    the request. How the JWT token is verified is controlled by the `auto_config.authorizer`
-    object available for use on Consul servers. Enabling this option also enables
-    service mesh because it is vital for `auto_config`, more specifically the service mesh CA
-    and certificates infrastructure.
-
-    ~> **Warning:** Enabling `auto_config` conflicts with the [`auto_encrypt.tls`](#tls) feature.
-    Only one option may be specified.
+## Encryption parameters
 
 - `auto_encrypt` This object allows setting options for the `auto_encrypt` feature.
 
@@ -59,7 +39,7 @@ The page provides reference information for DNS parameters in a Consul agent con
     only with a CA, or finally without a CA and without ACL enabled. In any case,
     the communication to the `auto_encrypt` endpoint is always TLS encrypted.
 
-    ~> **Warning:** Enabling `auto_encrypt.tls` conflicts with the [`auto_config`](#auto_config) feature.
+    ~> **Warning:** Enabling `auto_encrypt.tls` conflicts with the [`auto_config`](/consul/docs/reference/agent/configuration-file/auto-config) feature.
     Only one option may be specified.
 
   - `dns_san` (Defaults to `[]`) When this option is being

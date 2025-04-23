@@ -34,6 +34,6 @@ When Consul registers a service instance using the v1 catalog API, it records th
 | Agent Check | The health checks defined for a service instance managed by a Consul client agent. | Computed by Consul |
 | Health Checks | The health checks defined for the service. Refer to [define health checks](/consul/docs/register/health-check/vm) for more information. | Defined by user |
 | Partition | The name of the admin partition the service is registered in. Refer to [admin partitions](/consul/docs/multi-tenant/admin-partition) for more information. | Defined by user |
-| Locality | Region and availability zone of the service. Refer to [`locality`](/consul/docs/reference/agent/configuration-file#locality) for more information. | Defined by user |
+| Locality | Region and availability zone of the service. Refer to [`locality`](/consul/docs/reference/agent/configuration-file/service-mesh#locality) for more information. | Defined by user |
 
 Depending on the configuration entries or custom resource definitions you apply to your Consul installation, additional information such as [proxy default behavior](/consul/docs/reference/config-entry/proxy-defaults) is automatically recorded to the catalog for services. You can return this information using the [`/catalog` HTTP API endpoint](/consul/api-docs/catalog).

@@ -189,14 +189,14 @@ To figure out if a Consul server’s disk performance issues are the result of B
 - Use the [`consul.raft.leader.dispatchLog` metric](/consul/docs/reference/agent/telemetry#server-health) to get information about how long it takes to write a batch of logs to disk.
 - In Consul v1.13 and higher, you can use [Raft thread saturation metrics](/consul/docs/reference/agent/telemetry#raft-thread-saturation) to figure out if Raft is experiencing back pressure and is unable to accept new work due disk limitations.
 
-In Consul v1.11 and higher, you can prevent BoltDB from writing the freelist to disk by setting [`raftboltdb.NoFreelistSync`](/consul/docs/reference/agent/configuration-file/raft#NoFreeListSync) to `true`. This setting causes BoltDB to retain the freelist in memory instead. However, be aware that when BoltDB restarts, it needs to scan the database file to manually create the freelist. Small delays in startup may occur. On a fast disk, we measured these delays at the order of tens of seconds for a raft.db file that was 5GiB in size with only 250MiB of used pages.
+In Consul v1.11 and higher, you can prevent BoltDB from writing the freelist to disk by setting [`raftboltdb.NoFreelistSync`](/consul/docs/reference/agent/configuration-file/raft#nofreelistsync) to `true`. This setting causes BoltDB to retain the freelist in memory instead. However, be aware that when BoltDB restarts, it needs to scan the database file to manually create the freelist. Small delays in startup may occur. On a fast disk, we measured these delays at the order of tens of seconds for a raft.db file that was 5GiB in size with only 250MiB of used pages.
 
-In general, set [`raftboltdb.NoFreelistSync`](/consul/docs/reference/agent/configuration-file/raft#NoFreeListSync) to `true` to produce the following effects:
+In general, set [`raftboltdb.NoFreelistSync`](/consul/docs/reference/agent/configuration-file/raft#nofreelistsync) to `true` to produce the following effects:
 
 - Reduce the amount of data written to disk
 - Increase the amount of time it takes to load the raft.db file on startup
 
-We recommend operators optimize networks according to their individual concerns. For example, if your server runs into disk performance issues but Consul servers do not restart often, setting [`raftboltdb.NoFreelistSync`](/consul/docs/reference/agent/configuration-file/raft#NoFreeListSync) to `true` may solve your problems. However, the same action causes issues for deployments with large database files and frequent server restarts.
+We recommend operators optimize networks according to their individual concerns. For example, if your server runs into disk performance issues but Consul servers do not restart often, setting [`raftboltdb.NoFreelistSync`](/consul/docs/reference/agent/configuration-file/raft#nofreelistsync) to `true` may solve your problems. However, the same action causes issues for deployments with large database files and frequent server restarts.
 
 #### Raft snapshots
 

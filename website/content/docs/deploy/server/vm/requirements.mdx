@@ -2,7 +2,7 @@
 layout: docs
 page_title: Consul server requirements on VMs
 description: >-
-  Consul servers require sufficient compute resources to communicate and process data quickly. Learn about Consul's minimum server requirements and recommendations for different workloads. 
+  Consul servers require sufficient compute resources to communicate and process data quickly. Learn about Consul's minimum server requirements and recommendations for different workloads.
 ---
 
 # Consul server requirements on VMs
@@ -119,7 +119,7 @@ Here are some general recommendations:
   [stale consistency mode](/consul/api-docs/features/consistency#stale) available to allow reads to scale
   across all the servers and not just be forwarded to the leader.
 
-- In Consul 0.9.3 and later, a new [`limits`](/consul/docs/reference/agent#limits) configuration is
+- In Consul 0.9.3 and later, a new [`limits`](/consul/docs/reference/agent/configuration-file/general#limits) configuration is
   available on Consul clients to limit the RPC request rate they are allowed to make against the
   Consul servers. After hitting the limit, requests will start to return rate limit errors until
   time has passed and more requests are allowed. Configuring this across the cluster can help with
@@ -166,7 +166,7 @@ It should be noted that `stale` is not appropriate for coordination where strong
 
 Consul's agents use network sockets for communicating with the other nodes (gossip) and with the server agent. In addition, file descriptors are also opened for watch handlers, health checks, and log files. For a **write heavy** cluster, the `ulimit` size must be increased from the default value (`1024`) to prevent the leader from running out of file descriptors.
 
-To prevent any CPU spikes from a misconfigured client, RPC requests to the server should be [rate limited](/consul/docs/reference/agent#limits)
+To prevent any CPU spikes from a misconfigured client, RPC requests to the server should be [rate limited](/consul/docs/reference/agent/configuration-file/general#limits)
 
 ~> **NOTE** Rate limiting is configured on the client agent only.
 

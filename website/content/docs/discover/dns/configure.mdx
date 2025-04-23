@@ -18,7 +18,7 @@ This topic describes the default behavior of the Consul DNS functionality and ho
 By default, the Consul DNS listens for queries at `127.0.0.1:8600` and uses the `consul` domain. Specify the following parameters in the agent configuration to determine DNS behavior when querying services:
 
 - [`client_addr`](/consul/docs/reference/agent#client_addr)
-- [`ports.dns`](/consul/docs/reference/agent#dns_port): By default, Consul does not use port `53`, which is typically reserved for the default port for DNS resolvers, because it requires an escalated privilege to bind to. 
+- [`ports.dns`](/consul/docs/reference/agent/configuration-file/general#dns_port): By default, Consul does not use port `53`, which is typically reserved for the default port for DNS resolvers, because it requires an escalated privilege to bind to.
 - [`recursors`](/consul/docs/reference/agent#recursors)
 - [`domain`](/consul/docs/reference/agent#domain)
 - [`alt_domain`](/consul/docs/reference/agent#alt_domain)
@@ -74,4 +74,7 @@ Responses to pointer record (PTR) queries, such as `<ip>.in-addr.arpa.`, always 
 
 ### Caching
 
-By default, DNS results served by Consul are not cached. Refer to the [DNS Caching tutorial](/consul/tutorials/networking/dns-caching) for instructions on how to enable caching.
+By default, DNS results served by Consul are not cached. Refer to the [DNS
+Caching tutorial](/consul/tutorials/networking/dns-caching) for instructions on
+how to enable caching.
+

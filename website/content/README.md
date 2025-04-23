@@ -34,7 +34,7 @@ After you merge a PR into a numbered release branch, changes to these folders ap
 - Changes to `commands` appear at [https://developer.hashicorp.com/consul/commands](https://developer.hashicorp.com/consul/commands).
 - Changes to `docs` appear at [https://developer.hashicorp.com/consul/docs](https://developer.hashicorp.com/consul/docs).
 
-URLs follow the directory structure for each file and omit the the `.mdx` file extension. Pages named `index.mdx` adopt their directory's name. For example, the file `docs/reference/agent/index.mdx` appears at the URL [https://developer.hashicorp.com/consul/docs/reference/agent](https://developer.hashicorp.com/consul/docs/reference/agent).
+URLs follow the directory structure for each file and omit the the `.mdx` file extension. Pages named `index.mdx` adopt their directory's name. For example, the file `docs/reference/agent/configuration-file/index.mdx` appears at the URL [https://developer.hashicorp.com/consul/docs/reference/agent/configuration-file](https://developer.hashicorp.com/consul/docs/reference/agent/configuration-file).
 
 The `partials` folder includes content that you can reuse across pages in any of the three folders. Refer to [Guide to Partials](#guide-to-partials) for more information.
 

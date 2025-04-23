@@ -6,13 +6,13 @@ description: Learn how to define and attach HTTP and TCP routes to Consul API ga
 
 # Define API gateway routes on virtual machines
 
-This topic describes how to configure HTTP and TCP routes and attach them to Consul API gateway listeners. Routes are rule-based configurations that allow external clients to send requests to services in the mesh. 
+This topic describes how to configure HTTP and TCP routes and attach them to Consul API gateway listeners. Routes are rule-based configurations that allow external clients to send requests to services in the mesh.
 
 ## Overview
 
 The following steps describe the general workflow for defining and deploying routes:
 
-1. Define routes in an HTTP or TCP configuration entry. The configuration entry includes rules for routing requests, target services in the mesh for the traffic, and the name of the gateway to attach to.  
+1. Define routes in an HTTP or TCP configuration entry. The configuration entry includes rules for routing requests, target services in the mesh for the traffic, and the name of the gateway to attach to.
 1. Deploy the configuration entry to create the routes and attach them to the gateway.
 
 Routes and the gateways they are attached to are eventually-consistent objects. They provide feedback about their current state through a series of status conditions. As a result, you must manually check the route status to determine if the route is bound to the gateway successfully.
@@ -22,7 +22,7 @@ Routes and the gateways they are attached to are eventually-consistent objects. 
 The following requirements must be satisfied to use API gateways on VMs:
 
 - Consul 1.15 or later
-- A Consul cluster with service mesh enabled. Refer to [`connect`](/consul/docs/reference/agent/configuration-file#connect)
+- A Consul cluster with service mesh enabled. Refer to [`connect`](//consul/docs/reference/agent/configuration-file/service-mesh#connect)
 - Network connectivity between the machine deploying the API Gateway and a Consul cluster agent or server
 
 ### ACL requirements
@@ -44,7 +44,7 @@ Define route configurations and bind them to listeners configured on the gateway
 1. Create a route configuration entry file and specify the following settings:
    - `Kind`: Set to `http` or `tcp`.
    - `Name`:  Specify a name for the route. The name is metadata that you can use to reference the configuration when performing Consul operations.
-   - `Parents`: Specifies a list of API gateways that the route binds to. 
+   - `Parents`: Specifies a list of API gateways that the route binds to.
    - `Rules`: If you are configuring HTTP routes, define a list of routing rules for constructing a routing table that maps listeners to services. Each member of the list is a map that may containing the following fields:
       - `Filters`
       - `Matches`

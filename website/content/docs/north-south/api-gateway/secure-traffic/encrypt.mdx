@@ -6,14 +6,14 @@ description: Learn how to define inline certificate config entries and deploy th
 
 # Encrypt API gateway traffic on virtual machines
 
-This topic describes how to make TLS certificates available to API gateways so that requests between the user and the gateway endpoint are encrypted. 
+This topic describes how to make TLS certificates available to API gateways so that requests between the user and the gateway endpoint are encrypted.
 
 ## Requirements
 
 - Consul v1.15 or later is required to use the Consul API gateway on VMs
   - Consul v1.19 or later is required to use the [file system certificate configuration entry](/consul/docs/reference/config-entry/file-system-certificate)
 - You must have a certificate and key from your CA
-- A Consul cluster with service mesh enabled. Refer to [`connect`](/consul/docs/reference/agent/configuration-file#connect)
+- A Consul cluster with service mesh enabled. Refer to [`connect`](//consul/docs/reference/agent/configuration-file/service-mesh#connect)
 - Network connectivity between the machine deploying the API gateway and a
   Consul cluster agent or server
 
@@ -33,7 +33,7 @@ with Consul API gateway configurations.
 
 1. Create a [file system certificate](/consul/docs/reference/config-entry/file-system-certificate) or [inline certificate](/consul/docs/reference/config-entry/inline-certificate) and specify the following fields:
    - `Kind`: Specifies the type of configuration entry. This must be set to `file-system-certificate` or `inline-certificate`.
-   - `Name`: Specify the name in the [API gateway listener configuration](/consul/docs/reference/config-entry/api-gateway#listeners) to bind the certificate to that listener.  
+   - `Name`: Specify the name in the [API gateway listener configuration](/consul/docs/reference/config-entry/api-gateway#listeners) to bind the certificate to that listener.
    - `Certificate`: Specifies the filepath to the certificate on the local system or the inline public certificate as plain text.
    - `PrivateKey`: Specifies the filepath to private key on the local system or the inline private key to  as plain text.
 1. Configure any additional fields necessary for your use case, such as the namespace or admin partition. Refer to the [file system certificate configuration reference](/consul/docs/reference/config-entry/file-system-certificate) or [inline certificate configuration reference](/consul/docs/reference/config-entry/inline-certificate) for more information.

@@ -23,10 +23,10 @@ The client service verifies the destination service certificate against the [pub
 the connection is encrypted and authorized.
 
 The destination service verifies the client certificate against the [public CA bundle](/consul/api-docs/connect/ca#list-ca-root-certificates). After verifying the
-certificate, the next step depends upon the configured application protocol of the destination service. 
+certificate, the next step depends upon the configured application protocol of the destination service.
 
 - TCP (L4) services must authorize _incoming connections_ against the configured set of [service intentions](/consul/docs/secure-mesh/intention).
-- HTTP (L7) services must authorize _incoming requests_ against those same intentions. 
+- HTTP (L7) services must authorize _incoming requests_ against those same intentions.
 
 If the intention check responds successfully, the connection/request is established. Otherwise it is rejected.
 
@@ -67,8 +67,8 @@ You can make connections with gateways to enable communication across network to
 
 ### Service intention replication
 
-Service intention replication happens automatically in deployments when the [`primary_datacenter`](/consul/docs/reference/agent/configuration-file#primary_datacenter) configuration to specify a datacenter that is authoritative for intentions. In production setups with ACLs enabled, the
-[replication token](/consul/docs/reference/agent/configuration-file#acl_tokens_replication) must also be set in the secondary datacenter server's configuration.
+Service intention replication happens automatically in deployments when the [`primary_datacenter`](/consul/docs/reference/agent/configuration-file/general#primary_datacenter) configuration to specify a datacenter that is authoritative for intentions. In production setups with ACLs enabled, the
+[replication token](/consul/docs/reference/agent/configuration-file/acl#acl_tokens_replication) must also be set in the secondary datacenter server's configuration.
 
 ### Certificate authority federation
 
@@ -77,4 +77,10 @@ from the configured CA provider which defaults to the built-in one.
 
 Secondary datacenters fetch the root CA public key and trust-domain ID from the primary and generate their own key and Certificate Signing Request (CSR) for an intermediate CA certificate. This CSR is signed by the root in the primary datacenter and the certificate is returned. The secondary datacenter can now use this intermediate to sign new Consul service mesh certificates in the secondary datacenter without WAN communication. CA keys are never replicated between datacenters.
 
-The secondary datacenter maintains watches on the root CA certificate in the primary. If the CA root changes for any reason such as rotation or migration to a new CA, the secondary automatically generates new keys and has them signed by the primary datacenter's new root before initiating an automatic rotation of all issued certificates in use throughout the secondary datacenter. This makes CA root key rotation fully automatic and with zero downtime across multiple datacenters.
+The secondary datacenter maintains watches on the root CA certificate in the
+primary. If the CA root changes for any reason such as rotation or migration to
+a new CA, the secondary automatically generates new keys and has them signed by
+the primary datacenter's new root before initiating an automatic rotation of all
+issued certificates in use throughout the secondary datacenter. This makes CA
+root key rotation fully automatic and with zero downtime across multiple
+datacenters.

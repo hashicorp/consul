@@ -13,7 +13,7 @@ This mTLS encryption is distinct from Consul service mesh mTLS encryption. To le
 
 ## Benefits of TLS encryption
 
-Consul supports TLS certificates that verify the authenticity of servers and clients to secure `RCP`, `gRPC`, and `HTTP` traffic. 
+Consul supports TLS certificates that verify the authenticity of servers and clients to secure `RCP`, `gRPC`, and `HTTP` traffic.
 
 Implementing TLS encryption in Consul datacenters improves your deployment's security in the following ways:
 
@@ -29,9 +29,9 @@ Mutual TLS (mTLS) requires that all clients and servers have key pairs that are 
 
 The following parameters in agent configuration files define the agent verification behavior:
 
-- [`tls.defaults.verify_incoming`](/consul/docs/reference/agent/configuration-file#tls_defaults_verify_incoming)
-- [`tls.defaults.verify_outgoing`](/consul/docs/reference/agent/configuration-file#tls_defaults_verify_outgoing) 
-- [`tls.defaults.verify_server_hostname`](/consul/docs/reference/agent/configuration-file#tls_default_verify_server_hostname)
+- [`tls.defaults.verify_incoming`](/consul/docs/reference/agent/configuration-file/tls#tls_defaults_verify_incoming)
+- [`tls.defaults.verify_outgoing`](/consul/docs/reference/agent/configuration-file/tls#tls_defaults_verify_outgoing)
+- [`tls.defaults.verify_server_hostname`](/consul/docs/reference/agent/configuration-file/tls#tls_default_verify_server_hostname)
 
 ## Workflow
 
@@ -66,7 +66,7 @@ The CA key, `consul-agent-ca-key.pem`, signs certificates for Consul nodes. You 
 
 ## Create server certificates
 
-To authenticate Consul servers, servers are provided with a special certificate that lists `server.<domain>.<datacenter>` in the `Common Name` and `Subject Alternative Name` fields. When you enable [`tls.defaults.verify_server_hostname`](/consul/docs/reference/agent/configuration-file#tls_default_verify_server_hostname), only agents that provide this certificate are allowed to boot as a server.
+To authenticate Consul servers, servers are provided with a special certificate that lists `server.<domain>.<datacenter>` in the `Common Name` and `Subject Alternative Name` fields. When you enable [`tls.defaults.verify_server_hostname`](/consul/docs/reference/agent/configuration-file/tls#tls_default_verify_server_hostname), only agents that provide this certificate are allowed to boot as a server.
 
 Without `tls.defaults.verify_server_hostname = true`, an attacker who compromises a Consul client agent can restart the agent as a server to get access to all the data in your datacenter. You must keep the server key private to protect your Consul data.
 
@@ -88,7 +88,7 @@ Repeat this process on the same node where you created the CA until the number o
 ### Federated Consul datacenter
 
 A federated Consul environment requires the server certificate to include the names of all Consul datacenters that are within the federated environment.
-  
+
 Use the `-additional-dnsname` flag to provide an additional DNS names for Subject Alternative Names. `localhost` is always included. You can provide this flag multiple times in a single command.
 
 The following example creates a certificate for a federated environment containing two Consul datacenters named `dc1` and `dc2`.
@@ -121,7 +121,7 @@ There are two methods for configuring Consul server agents depending on the way 
 
 We recommend using the auto-encryption method with the built-in CA because Consul can then automatically rotate certificates without requiring operator intervention.
 
-Use the operator method if you need to use a third-party CA or need more fine-grained control over certificate management. 
+Use the operator method if you need to use a third-party CA or need more fine-grained control over certificate management.
 
 <Tabs>
 <Tab heading="Auto-encryption method" group="auto">
@@ -516,7 +516,7 @@ tls {
 Your agents are now configured with mTLS for encrypted communication. With the auto encryption method, your
 client certificates are managed by the server. With the operator method, you distributed all the certificates manually, but have a more flexible configuration.
 
-Documentation for the commands used in this topic is available at [Consul agent configuration - TLS configuration reference](/consul/docs/reference/agent/configuration-file#tls-configuration-reference) and the [`consul tls` CLI command reference](/consul/commands/tls). 
+Documentation for the commands used in this topic is available at [TLS configuration parameters for Consul agent configuration files](/consul/docs/reference/agent/configuration-file/tls) and the [`consul tls` CLI command reference](/consul/commands/tls).
 
 To learn how to automate TLS certificate generation and rotation, refer to the [Generate mTLS Certificates for Consul with Vault](/consul/docs/automate/consul-template/vault/mtls) tutorial.
 

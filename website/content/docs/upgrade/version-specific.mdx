@@ -293,7 +293,7 @@ Set your configuration by calling [set-config](/consul/commands/connect/ca#set-c
 
 #### Changes to gRPC TLS configuration
 
-**Make configuration changes** if using [`ports.grpc`](/consul/docs/reference/agent/configuration-file#grpc_port) in conjunction with any of the following settings that enables encryption:
+**Make configuration changes** if using [`ports.grpc`](/consul/docs/reference/agent/configuration-file/general#grpc_port) in conjunction with any of the following settings that enables encryption:
 1. [`tls.grpc`](/consul/docs/reference/agent/configuration-file#tls_grpc)
 1. [`tls.defaults`](/consul/docs/reference/agent/configuration-file#tls_defaults)
 1. [`auto_encrypt`](/consul/docs/reference/agent/configuration-file#auto_encrypt)
@@ -302,8 +302,8 @@ Set your configuration by calling [set-config](/consul/commands/connect/ca#set-c
 Prior to Consul 1.14, it was possible to encrypt communication between Consul and Envoy over `ports.grpc` using these settings.
 
 Consul 1.14 introduces [`ports.grpc_tls`](/consul/docs/reference/agent/configuration-file#grpc_tls_port), a new configuration
-for encrypting communication over gRPC. The existing [`ports.grpc`](/consul/docs/reference/agent/configuration-file#grpc_port) configuration **no longer supports encryption**. As of version 1.14,
-[`ports.grpc_tls`](/consul/docs/reference/agent/configuration-file#grpc_tls_port) is the only port that serves encrypted gRPC traffic.
+for encrypting communication over gRPC. The existing [`ports.grpc`](/consul/docs/reference/agent/configuration-file/general#grpc_port) configuration **no longer supports encryption**. As of version 1.14,
+[`ports.grpc_tls`](/consul/docs/reference/agent/configuration-file/general#grpc_tls_port) is the only port that serves encrypted gRPC traffic.
 The default value for the gRPC TLS port is 8503 for Consul servers. To disable the gRPC TLS port, use value -1.
 
 If you already use gRPC encryption, change the following fields to ensure compatibility:
@@ -753,7 +753,7 @@ to Consul 1.9.0.
 
 ### Changes to Configuration Defaults
 
-The [`enable_central_service_config`](/consul/docs/reference/agent/configuration-file#enable_central_service_config)
+The [`enable_central_service_config`](/consul/docs/reference/agent/configuration-file/general#enable_central_service_config)
 configuration now defaults to `true`.
 
 ### Changes to Intentions
