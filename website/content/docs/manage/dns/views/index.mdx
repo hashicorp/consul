@@ -32,6 +32,13 @@ The process to enable Consul DNS views for service discovery in Kubernetes deplo
 
 For more information about the underlying concepts described in this workflow, refer to [DNS forwarding overview](/consul/docs/manage/dns/forwarding).
 
+### OpenShift clusters
+
+The process to enable Consul DNS views for service discovery in OpenShift deployments is similar to the process on Kubernetes clusters. Complete the following steps:
+
+1. Look up the IP address for the Consul DNS proxy in the OpenShift cluster.
+1. Update the default DNS Operator configuration in the OpenShift cluster so that it forwards requests for the `.consul` domain to the K8s cluster IP address of the Consul DNS service.
+1. Optionally, [test the DNS resolver](/consul/docs/manage/dns/forwarding/k8s#verifying-dns-works) to make sure it was configured correctly.
 ## Benefits
 
 Consul on Kubernetes currently uses [Consul dataplanes](/consul/docs/architecture/control-plane/dataplane) by default. These lightweight processes provide Consul access to the sidecar proxies in the service mesh, but leave Kubernetes in charge of most other service discovery and service mesh operations.

@@ -18,20 +18,20 @@ This feature requires Consul Enterprise. Refer to the [feature compatibility mat
 
 The following list outlines field hierarchy, language-specific data types, and requirements in a control plane request limit configuration entry. Click on a property name to view additional details, including default values.
 
-- [`kind`](#kind): string | required | must be set to `control-plane-request-limit`
-- [`mode`](#mode): string | required | default is `permissive`
-- [`name`](#name): string | required
-- [`read_rate`](#read-rate): number | `100`
-- [`write_rate`](#write-rate): number | `100`
-- [`kv`](#kv): map | no default
-   - [`read_rate`](#kv-read-rate): number | `100`
-   - [`write_rate`](#kv-write-rate): number | `100`
-- [`acl`](#acl): map | no default
-   - [`read_rate`](#acl-read-rate): number | `100`
-   - [`write_rate`](#acl-write-rate): number | `100`
-- [`catalog`](#catalog): map
-   - [`read_rate`](#catalog-read-rate): number | default is `100`
-   - [`write_rate`](#catalog-write-rate): number | default is `100`
+- [`Kind`](#kind): string | required | must be set to `control-plane-request-limit`
+- [`Mode`](#mode): string | required | default is `permissive`
+- [`Name`](#name): string | required
+- [`ReadRate`](#read-rate): number | `100`
+- [`WriteRate`](#write-rate): number | `100`
+- [`KV`](#kv): map | no default
+   - [`ReadRate`](#kv-read-rate): number | `100`
+   - [`WriteRate`](#kv-write-rate): number | `100`
+- [`ACL`](#acl): map | no default
+   - [`ReadRate`](#acl-read-rate): number | `100`
+   - [`WriteRate`](#acl-write-rate): number | `100`
+- [`Catalog`](#catalog): map
+   - [`ReadRate`](#catalog-read-rate): number | default is `100`
+   - [`WriteRate`](#catalog-write-rate): number | default is `100`
 
 ## Complete configuration
 

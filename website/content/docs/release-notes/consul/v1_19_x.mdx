@@ -11,7 +11,7 @@ We are pleased to announce the following Consul updates.
 
 ## Release highlights
 
-- **External Services CRD**: You can now configure and register external services, including their health checks, alongside existing Kubernetes application manifests with the new [`Registration` Custom Resource Definition (CRD)](/consul/docs/reference/config-entry/registration). This CRD changes the workflow to register a service running on an external node with the Consul catalog. A terminating gateway is still required to enable downstream services in the service mesh to communicate with external services. Refer to [Register external services on Kubernetes overview](/consul/docs/register/external/k8s) for more information.
+- **External Services CRD**: You can now configure and register external services, including their health checks, alongside existing Kubernetes application manifests with the new [`Registration` Custom Resource Definition (CRD)](/consul/docs/reference/config-entry/registration). This CRD changes the workflow to register a service running on an external node with the Consul catalog. A terminating gateway is still required to enable downstream services in the service mesh to communicate with external services. Refer to [Register external services on Kubernetes overview](/consul/docs/register/external/esm/k8s) for more information.
 
 - **Transparent Proxy on Nomad**: Consul’s CNI plugin enables the use of transparent proxy for seamlessly redirecting traffic through the Envoy proxy without requiring application changes, or elevated network privileges for the workload. As a result, you can onboard applications without additional configuration between a service and its upstreams.
 
