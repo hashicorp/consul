@@ -7,19 +7,19 @@ description: ->
 
 # Consul Terraform provider
 
-Terraform users can add Consul to their deployments with [our official Consul provider](https://registry.terraform.io/providers/hashicorp/consul/latest/docs). You can use the Consul Provider to automatically configure infrastructure on deployment so that it joins existing Consul datacenters automatically.
+Terraform users can manage Consul with [the official Consul provider](https://registry.terraform.io/providers/hashicorp/consul/latest/docs). You can use the Terraform Consul provider to configure your Consul cluster's ACLs, configuration entries, intentions, and more.
 
 ## Overview
 
-The majority of the workflows described in this documentation use the HTTP API, CLI, and web UI to demonstrate underlying processes for educational purposes. Consul supports several methods for automated operations, from configuring virtual machines with shell scripts that run when an instance is deployed to updating application deployments dynamically with the KV store and API blocking queires.
+The majority of the workflows described in this documentation use the HTTP API, CLI, and web UI. Consul supports several methods for automated operations, from configuring virtual machines with shell scripts that run when an instance is deployed to updating application deployments dynamically with the KV store and API blocking queires.
 
-[The Consul provider on the Terraform registry](https://registry.terraform.io/providers/hashicorp/consul/latest/docs) gives you the ability to manage your Consul configuration-as-code alongside the infrastructure-as-code it runs on.
+[The Terraform Consul provider](https://registry.terraform.io/providers/hashicorp/consul/latest/docs) lets you configure and manage your Consul cluster alongside the infrastructure-as-code it runs on.
 
-Consul Enterprise users also have the option to [install Consul-Terraform-Sync (CTS)](/consul/docs/automate/infrastructure/install) for additional network infrastructure automations between Consul and Teraform. For example, you can use CTS so that failed health checks in the Consul catalog trigger infrastructure redeployments in Terraform. For more information, refer to [Network infrastructure automation](/consul/docs/automate/infrastructure) and the [CTS version compatibility reference](/consul/docs/reference/cts/compatibility).
+Consul Enterprise users can [install Consul-Terraform-Sync (CTS)](/consul/docs/automate/infrastructure/install) for additional network infrastructure automations between Consul and Terraform. For example, you can use CTS so that failed health checks in the Consul catalog trigger infrastructure redeployments in Terraform. For more information, refer to [Network infrastructure automation](/consul/docs/automate/infrastructure) and the [CTS version compatibility reference](/consul/docs/reference/cts/compatibility).
 
 ## Example usage
 
-In the following example, Terraform uses the Consul provider to configure datacenter `dc` from the HTTP API address `172.18.0.3:8500`. The configuration grants access to a key in Consul's key/value store. Terraform references the key with the name `ami`, but the actual key in the store in `service/app/launch_ami`. It has a default value of `ami-1234`. Terraform is configured to fetch the value from the Consul KV store and use that value as the machine image when it deploys the VM. 
+In the following example, Terraform uses the Consul provider to configure datacenter `dc` from the HTTP API address `172.18.0.3:8500`. The configuration retrieves the value of `ami` in Consul's KV store. Terraform uses this value as the machine image when it deploys the VM. 
 
 ```hcl
 # Configure the Consul provider

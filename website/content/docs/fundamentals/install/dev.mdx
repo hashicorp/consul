@@ -17,17 +17,10 @@ This page describes the process to run Consul in development mode. When you run 
 
 ## Start the agent
 
-Use the `-dev` flag to start the Consul agent in development mode.
+Use the `-dev` flag to start the Consul agent in development mode. The terminal should output the server agent's logs, which resemble the following example.
 
 ```shell-session
 $ consul agent -dev
-```
-
-The terminal should output the server agent's logs, which resemble the following example:
-
-<CodeBlockConfig hideClipboard>
-
-```plaintext
 ==> Starting Consul agent...
                Version: '1.20.1'
             Build Date: '2024-10-29 19:04:05 +0000 UTC'
@@ -49,8 +42,6 @@ The terminal should output the server agent's logs, which resemble the following
 ==> Log data will now stream in as it occurs:
 ```
 
-</CodeBlockConfig>
-
 Leave the Consul agent running and open up a new tab in your terminal. When you run commands in this new tab, Consul generates additional output in the original terminal session.
 
 ## Discover datacenter members
@@ -67,17 +58,10 @@ The output displays your agent, its IP address, its health state, its role in th
 
 ### Use Consul HTTP API
 
-When Consul runs in development mode, you can also query the datacenter using the [Consul HTTP API](/consul/api-docs/).
+When Consul runs in development mode, you can also query the datacenter using the [Consul HTTP API](/consul/api-docs/). The HTTP API returns a payload that resembles the following example.
 
 ```shell-session
 $ curl localhost:8500/v1/catalog/nodes
-```
-
-The HTTP API returns a payload that resembles the following example:
-
-<CodeBlockConfig hideClipboard>
-
-```json
 [
     {
         "ID": "77a5005f-403d-9396-c8a4-08c7f8755030",
@@ -100,8 +84,6 @@ The HTTP API returns a payload that resembles the following example:
 ]      
 ```
 
-</CodeBlockConfig>
-
 ### Use Consul DNS
 
 You can use [Consul DNS](/consul/docs/discover/dns) to discover nodes in the datacenter. Address nodes using the following syntax: 
@@ -114,17 +96,10 @@ You can use [Consul DNS](/consul/docs/discover/dns) to discover nodes in the dat
 
 </CodeBlockConfig>
 
-By default, Consul uses port `8600` for DNS requests. Address your command to the DNS port with the `-p` flag.
+By default, Consul uses port `8600` for DNS requests. Address your command to the DNS port with the `-p` flag. The output for this command resembles the following example.
 
 ```shell-session
 $ dig @127.0.0.1 -p 8600 boruszak-LFH0JH12XD.node.consul
-```
-
-The output for this command resembles the following example:
-
-<CodeBlockConfig hideClipboard>
-
-```plaintext 
 ; <<>> DiG 9.10.6 <<>> @127.0.0.1 -p 8600 boruszak-LFH0JH12XD.node.consul
 ; (1 server found)
 ;; global options: +cmd
@@ -150,8 +125,6 @@ boruszak-LFH0JH12XD.node.consul. 0 IN	TXT	"consul-version=1.20.1"
 ;; WHEN: Thu Dec 19 13:27:56 PST 2024
 ;; MSG SIZE  rcvd: 146
 ```
-
-</CodeBlockConfig>
 
 ## Stop the agent
 

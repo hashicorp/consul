@@ -36,9 +36,9 @@ metadata:
 
 </CodeBlockConfig>
 
-Configuration entries outside of Kubernetes should be managed with the [Consul CLI](/consul/commands/config) or [Consul HTTP API](/consul/api-docs/config).
+You should use the [Consul CLI](/consul/commands/config) or [Consul HTTP API](/consul/api-docs/config) to manage configuration entries outside of Kubernetes.
 
-As a convenience for initial cluster bootstrapping, you can also specify configuration entries in the Consul [server agent configuration files](/consul/docs/reference/agent/configuration-file/general#config_entries_bootstrap). When a server gains leadership, it will attempt to initialize the configuration entries. If a configuration entry does not already exist outside of the servers configuration, then it will create it. If a configuration entry does exist, that matches both `kind` and `name`, then the server does nothing.
+As a convenience for initial cluster bootstrapping, you can also specify configuration entries in the Consul [server agent configuration files](/consul/docs/reference/agent/configuration-file/general#config_entries_bootstrap). When a server gains leadership, it will attempt to initialize the configuration entries. If a configuration entry does not already exist outside of the servers configuration, the server will create it. If a configuration entry does exist, that matches both `kind` and `name`, then the server does nothing.
 
 ## Cluster management configuration entries
 
@@ -76,7 +76,7 @@ Cluster management configuration entries all have a Consul CRD counterpart with 
 
 The `Registration` CRD is unique to Kubernetes. You can use it to register a service running on a external node and configure health checks for Consul to run.
 
-Because the Consul API gateway is deployed and managed differently in a Kubernetes cluster, the API gateway configuration entries are not available as CRDs. Instead the following CRDs exist to define Consul API Gateway behavoir on Kubernetes:
+Because the Consul API gateway is deployed and managed differently in a Kubernetes cluster, the API gateway configuration entries are not available as CRDs. Instead the following CRDs exist to define Consul API Gateway behavior on Kubernetes:
 
 - [`Gateway` CRD](/consul/docs/reference/k8s/api-gateway/gateway)
 - [`GatewayClass` CRD](/consul/docs/reference/k8s/api-gateway/gatewayclass)
@@ -88,16 +88,13 @@ Because the Consul API gateway is deployed and managed differently in a Kubernet
 - [`RouteRetryFilter` CRD](/consul/docs/reference/k8s/api-gateway/routeretryfilter)
 - [`RouteTimeoutFilter` CRD](/consul/docs/reference/k8s/api-gateway/routetimeoutfilter)
 
-For more information about these CRDs and how to use them to configure the [Consul API gateway overview](/consul/docs/north-south/api-gateway).
+For more information about these CRDs and how to use them to configure the API Gateway, refer to the [Consul API gateway overview](/consul/docs/north-south/api-gateway).
 
 ## Create or update a configuration entry
 
-You can use the [`consul config write`](/consul/commands/config/write) command to
-create and update configuration entries. This command will load either a JSON or
-HCL file holding the configuration entry definition and then will push this
-configuration to Consul.
+You can use the [`consul config write`](/consul/commands/config/write) command to create and update configuration entries. This command will load the configuration entry (JSON or HCL) definition and then apply it to Consul.
 
-Example HCL Configuration File:
+The following example shows an HCL configuration file to configure the proxy defaults for the global namespace:
 
 <CodeBlockConfig filename="global-proxy-defaults.hcl">
 
@@ -105,29 +102,25 @@ Example HCL Configuration File:
 Kind = "proxy-defaults"
 Name = "global"
 Config {
-   local_connect_timeout_ms = 1000
-   handshake_timeout_ms = 10000
+  local_connect_timeout_ms = 1000
+  handshake_timeout_ms = 10000
 }
 ```
 
 </CodeBlockConfig>
 
-Then to apply this configuration, run:
+Apply this configuration.
 
 ```shell-session
 $ consul config write global-proxy-defaults.hcl
 ```
 
-If you need to make changes to a configuration entry, edit that file and
-then rerun the command. This command will not output anything unless there is an
-error. The `write` command also supports a
-`-cas` option to enable performing a compare-and-swap operation to prevent
-overwriting other unknown modifications.
+If you need to make changes to a configuration entry, edit the file and then rerun the command. This command will not output anything unless there is an error. The `write` command also supports a `-cas` option to enable performing a compare-and-swap operation to prevent overwriting other unknown modifications.
 
 If you use the HTTP API, include the entry as a payload and send a `PUT` request to the Consul servers.
 
 ```shell-session
-curl \
+$ curl \
     --request PUT \
     --data @payload \
     http://127.0.0.1:8500/v1/config

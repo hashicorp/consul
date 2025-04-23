@@ -22,7 +22,7 @@ The following diagram shows the CTS workflow as it monitors the Consul service c
 
 ## Watcher and views
 
-CTS uses Consul’s [blocking queries](/consul/api-docs/features/blocking) functionality to monitor Consul for updates. If an endpoint does not support blocking queries, CTS uses polling to watch for changes. These mechanisms are referred to in CTS as *watchers*. 
+CTS uses Consul's [blocking queries](/consul/api-docs/features/blocking) functionality to monitor Consul for updates. If an endpoint does not support blocking queries, CTS uses polling to watch for changes. These mechanisms are referred to in CTS as *watchers*. 
 
 The watcher maintains a separate thread for each value monitored and runs any tasks that depend on the watched value whenever it is updated. These threads are referred to as _views_.  For example, a thread may run a task to update a proxy when the watcher detects that an instance has become unhealthy .
 

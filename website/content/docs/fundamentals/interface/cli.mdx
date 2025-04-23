@@ -89,24 +89,23 @@ Command Options
 
 ## Environment variables
 
-Consul's CLI reads environment variables to define behavior defaults. Although CLI flags take precedence when used, environment variables can simplify interaction and configuration workflows.
+Consul's CLI supports environment variables to set default behaviors. While command-line flags always take precedence, using environment variables can streamline your workflows by reducing the need to repeatedly specify common settings.
 
-The Consul documentation and tutorials usually assume the following environment variables are already configured or include commands to configure them for you.
+The following environment variables sets the HTTP address of your Consul cluster and the token used to authenticate with Consul. The documentation and tutorials assume that you have already configured these variables.
 
-- The HTTP address of the local Consul agent for interactions, set to `CONSUL_HTTP_ADDR`
-- An ACL token with sufficient permissions for the operation, set to `CONSUL_HTTP_TOKEN` or `CONSUL_HTTP_TOKEN_FILE`
+- `CONSUL_HTTP_ADDR`: Specifies the HTTP address of your Consul cluster.
 
-By default, the `consul` command targets the local instance. To target a specific cluster, provide the address of a Consul server in the `-http-addr` command line flag or from the `CONSUL_HTTP_ADDR` environment variable.
+  ```shell-session
+  $ export CONSUL_HTTP_ADDR=http://127.0.0.1:8500
+  ```
 
-```shell-session
-$ CONSUL_HTTP_ADDR=http://127.0.0.1:8500
-```
+- `CONSUL_HTTP_TOKEN` or `CONSUL_HTTP_TOKEN_FILE`: Specifies the ACL token used to authenticate with Consul.
 
-When the [ACL system is enabled](/consul/docs/reference/agent/configuration-file/acl) the Consul CLI requires an [ACL token](/consul/docs/security/acl#tokens) with permissions to perform the operations. You can provide the ACL token directly on the command line using the `-token` command line flag, from a file using the `-token-file` command line flag, or from either the `CONSUL_HTTP_TOKEN` or `CONSUL_HTTP_TOKEN_FILE` environment variable.
+  When the [ACL system is enabled](/consul/docs/reference/agent/configuration-file/acl), the Consul CLI requires an [ACL token](/consul/docs/security/acl#tokens) with permissions to perform the operations. You can provide the ACL token directly on the command line using the `-token` command line flag, from a file using the `-token-file` command line flag, or from either the `CONSUL_HTTP_TOKEN` or `CONSUL_HTTP_TOKEN_FILE` environment variable.
 
-```shell-session
-$ CONSUL_HTTP_TOKEN=aba7cbe5-879b-999a-07cc-2efd9ac0ffe
-```
+  ```shell-session
+  $ export CONSUL_HTTP_TOKEN=aba7cbe5-879b-999a-07cc-2efd9ac0ffe
+  ```
 
 Additional connection requirements depend on how your Consul cluster is configured. Refer to the [Consul CLI documentation](/consul/commands) for more information, including [a list of supported environment variables](/consul/commands#environment-variables).
 
