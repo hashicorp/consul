@@ -7,11 +7,11 @@ description: >-
 
 # Federate multiple datacenters with network areas
 
-This topic covers the advanced form of federating Consul datacenters using the network areas capability of Consul Enterprise. For the basic form of federation available in the open source version of Consul, check the [basic federation documentation](/consul/docs/east-west/wan-federation/vms).
+This topic covers how to federate Consul datacenters using the Consul Enterprise network areas feature. Refer to the [WAN federation](/consul/docs/east-west/wan-federation/vms) documentation to learn how to federate Consul community edition datacenters.
 
 <Note title="Enterprise Only">
 
- The network area functionality demonstrated here requires [Consul Enterprise](https://www.hashicorp.com/products/consul/pricing/). If you've purchased or wish to try out Consul Enterprise, refer to [how to access Consul Enterprise](/consul/docs/enterprise#access-consul-enterprise).
+The network area feature documented here requires [Consul Enterprise](https://www.hashicorp.com/products/consul/pricing/). If you have purchased or wish to try out Consul Enterprise, refer to [how to access Consul Enterprise](/consul/docs/enterprise#access-consul-enterprise).
 
 </Note>
 
@@ -29,19 +29,21 @@ Currently, Consul will only route RPC requests to datacenters it is immediately 
 
 ### Network areas federation vs. WAN federation
 
-Consul's WAN gossip federation support relies on all Consul servers in all datacenters having full connectivity via server RPC (`8300/tcp`) and Serf WAN (`8302/tcp` and `8302/udp`). Securing this setup requires TLS in combination with managing a gossip keyring. With massive Consul deployments, it becomes tricky to support full connectivity between all Consul servers, and to manage the keyring.
+Consul's WAN federation relies on all Consul servers in all datacenters having full connectivity via server RPC (`8300/tcp`) and Serf WAN (`8302/tcp` and `8302/udp`). Securing this setup requires TLS and managing a gossip keyring. With massive Consul deployments, it becomes tricky to support full connectivity between all Consul servers and manage the keyring.
 
-Traffic between network areas is routed via server RPC (`8300/tcp`) so it can be secured with just TLS. Also network areas do not require full connectivity across all servers in all the datacenter, but only between the servers in the two datacenter that are being federated. 
+Network areas let you specify relationship between Consul datacenters. You can create network areas on each datacenter and then join them together, so a given Consul datacenter can participate in many areas, even when some of the peer areas cannot contact each other. This allows for more flexible relationships between Consul datacenters, such as hub/spoke or more general tree structures.
 
-Network areas are the suggested approach when your architecture layout does not permit connectivity between all Consul servers across all datacenters, or when the data in one datacenter only needs to be accessible from one or few other datacenters. 
+Consul rotes traffic between network areas via server RPC (`8300/tcp`) so it can be secured with just TLS. Also, network areas do not require full connectivity across all servers in all the datacenter, but only between the servers in the two datacenter that are being federated. 
 
-To help migrating across the two federation solutions, networks areas can be used alongside the Consul's WAN gossip federation model and the WAN gossip pool. A peer datacenter can be connected via the WAN gossip pool and a network area at the same time, and RPC requests will be forwarded as long as servers are available in either.
+We recommend network areas when your architecture layout does not permit connectivity between all Consul servers across all datacenters, or when the data in one datacenter only needs to be accessible from one or few other datacenters. 
+
+You can use networks areas alongside Consul's WAN federation and the WAN gossip pool. This lets you migrate seamlessly between the two federation solutions. You can connect a peer datacenter via the WAN gossip pool and a network area at the same time. Consul will forward the RPC requests as long as servers are available in either federation solution.
 
 Due to the relaxed connectivity constraints, some of the Consul functionalities might not have full compatibility with network areas. If you want to setup [ACL replication](/consul/docs/security/acl/acl-federated-datacenters) or to enable Consul service mesh with CA replication, we recommend you to use WAN gossip federation to leverage all Consul's latest functionalities.
 
 ### Network requirements
 
-There are a few networking requirements that must be satisfied for WAN federation to work. 
+There are a few networking requirements that must be satisfied for network areas to work. 
 
 - All server nodes in the two areas being federated must be able to talk to each other via their server RPC ports (`8300/tcp`).
 - If service discovery is to be used across datacenters, the network must be able to route traffic between IP addresses across regions as well. 
@@ -51,9 +53,9 @@ Usually, this means that all datacenters must be connected using a VPN or other 
 
 ## Configure advanced federation
 
-To get started, follow the [Deployment Guide](/consul/tutorials/production-deploy/deployment-guide) to start each datacenter. After bootstrapping, you should have two datacenters now which will be referred to as `dc1` and `dc2`. Note that datacenter names are opaque to Consul; they are simply labels that help human operators reason about the Consul datacenters.
+To get started, follow the [Deployment Guide](/consul/tutorials/production-deploy/deployment-guide) to start each datacenter. After bootstrapping, you should have two datacenters (`dc1` and `dc2`). Note that datacenter names are opaque to Consul. They are labels that help human operators reason about the Consul datacenters.
 
-A compatible pair of areas must be created, one in each datacenter.
+Create a network area in each datacenter.
 
 <Tabs>
 <Tab heading="CLI" group="cli">
@@ -158,7 +160,7 @@ Area                                  Node                 Address          Stat
 
 </CodeBlockConfig>
 
-Until servers are not joined in a network area the command output will show only local servers.
+The command will only show local servers until the servers join in a network area.
 
 </Tab>
 <Tab heading="API" group="api">
@@ -173,7 +175,7 @@ $ curl -s http://127.0.0.1:8500/v1/operator/area/1c8cd5e6-562c-e0de-e369-a13c620
 
 </CodeBlockConfig>
 
-That, until servers are not joined in a network area, will show only local servers.
+The query will only show local servers until the servers join in a network area.
 
 <CodeBlockConfig hideClipboard>
 
@@ -202,7 +204,7 @@ That, until servers are not joined in a network area, will show only local serve
 
 ## Join servers
 
-To complete the federation, join with at least one Consul server in the other datacenter. Consul will automatically make sure that all servers within the datacenter where the area was created are joined to the area using the LAN information.
+Consul will automatically make sure that all servers within the datacenter where the area was created are joined to the area using the LAN information. You need to join with at least one Consul server in the other datacenter to complete the area:
 
 <Tabs>
 <Tab heading="CLI" group="cli">
@@ -287,7 +289,7 @@ $ curl -s http://127.0.0.1:8500/v1/operator/area/1c8cd5e6-562c-e0de-e369-a13c620
 
 </CodeBlockConfig>
 
-This time the command will output all the servers present in the network area.
+The command will output all the servers present in the network area.
 
 <CodeBlockConfig hideClipboard>
 
@@ -335,7 +337,7 @@ Once the two datacenters are federated, the UI shows a dropdown that lists the k
 
 ## Route RPCs
 
-With network area enabled, you can route RPC commands in both directions. Here's a sample command to set a KV entry in `dc2` from `dc1`.
+With network area enabled, you can route RPC commands in both directions. The following command will set a KV entry in `dc2` from `dc1`.
 
 <Tabs>
 <Tab heading="CLI" group="cli">
@@ -351,7 +353,7 @@ Success! Data written to: hello_from_dc1
 
 </CodeBlockConfig>
 
-Similarly you can use the parameter to retrieve data from the other datacenter.
+Similarly, you can use the parameter to retrieve data from the other datacenter.
 
 <CodeBlockConfig heading="server.dc1">
 
@@ -378,9 +380,7 @@ $ curl --silent \
 
 </CodeBlockConfig>
 
-The command will output `true` on success
-
-Similarly you can use the parameter to retrieve data from the other datacenter.
+The command will output `true` on success. Similarly, you can use the parameter to retrieve data from the other datacenter.
 
 <CodeBlockConfig heading="server.dc1">
 
@@ -448,7 +448,7 @@ consul.service.dc2.consul. 0	IN	A	172.18.0.3
 
 ## Delete network areas
 
-Consul does not provide a command to leave a previously joined network area. To remove the federation between two datacenters the suggested approach is to remove the network area from both.
+Consul does not provide a command to leave a previously joined network area. To remove the federation between two datacenters, we recommend removing the network area from both datacenters.
 
 <Tabs>
 <Tab heading="CLI" group="cli">
@@ -464,7 +464,7 @@ Deleted area "5bcb95db-5ae8-5265-3dfa-b2cb3452b093"!
 
 </CodeBlockConfig>
 
-Once the command is executed from one of the datacenters, the federation is already removed and the servers are shown as `left` from the other datacenters.
+Once you delete the network area from one of the datacenters, Consul removes the federation and the servers are shown as `left` from the other datacenters.
 
 <CodeBlockConfig heading="server.dc1">
 
@@ -492,7 +492,7 @@ $ curl --silent \
 
 </CodeBlockConfig>
 
-Once the command is execute from one of the datacenters, the federation is already removed.
+Once you delete the network area from one of the datacenters, Consul removes the federation and the servers are shown as `left` from the other datacenters.
 
 <CodeBlockConfig heading="server.dc1">
 
@@ -542,4 +542,6 @@ The server is now shown as `left` from the other datacenters.
 
 ## Data replication
 
-In general, data is not replicated between different Consul datacenters. When a request is made for a resource in another datacenter, the local Consul servers forward an RPC request to the remote Consul servers for that resource and return the results. If the remote datacenter is not available, then those resources will also not be available, but that won't otherwise affect the local datacenter. There are some special situations where a limited subset of data can be replicated, such as with Consul's built-in ACL replication capability, or external tools like [consul-replicate](https://github.com/hashicorp/consul-replicate/).
+In general, Consul does not replicate data between different Consul datacenters. When a request is made for a resource in another datacenter, the local Consul servers forward an RPC request to the remote Consul servers for that resource and return the results. If the remote datacenter is not available, those resources will also not be available. However, this will not affect the local datacenter. 
+
+There are some special situations where a limited subset of data can be replicated, such as with Consul's built-in ACL replication capability, or external tools like [`consul-replicate`](https://github.com/hashicorp/consul-replicate/).
