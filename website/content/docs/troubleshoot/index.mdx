@@ -267,6 +267,55 @@ external shell command to verify service health.
 - [Documentation on Consul health
   checks](/consul/docs/register/health-check/vm)
 
+## Kubernetes and OpenShift deployments
+
+In Kubernetes and OpenShift deployments, you can inspect the running Consul workloads and interact with the cluster with the `kubectl` command.
+
+Use `kubectl get pods` to verify the status of your Consul deployment. By default, the Consul service is deployed within a Kubernetes namespace called `consul`.
+
+```shell-session
+$ kubectl get pods --namespace consul
+NAME                                           READY   STATUS    RESTARTS   AGE
+consul-cni-45fgb                               1/1     Running   0          3m
+consul-connect-injector-574799b944-n6jf6       1/1     Running   0          3m
+consul-connect-injector-574799b944-xvksv       1/1     Running   0          3m
+consul-server-0                                1/1     Running   0          3m
+consul-webhook-cert-manager-74467cdd8d-88m6j   1/1     Running   0          3m
+```
+
+Inspect the status of the Consul server pods called `consul-server-<X>` and whether they are running successfully. You can use typical Consul troubleshooting commands like `consul members` through `kubectl` in the following format: 
+
+<CodeBlockConfig hideClipboard>
+
+```shell-session
+kubectl exec <POD-NAME> -c <CONTAINER-NAME> -- <CONSUL-COMMAND> 
+```
+
+</CodeBlockConfig>
+
+For example, to return the current members of the cluster, run:
+
+```shell-session 
+kubectl exec consul-server-0 -c consul -- consul members
+```
+
+If any of the pods are in a status other than `Running`, you can further inspect their state by running `kubectl describe pods <PODNAME>`. For more information about troubleshooting of the deployment's pods, refer to [Debug Kubernetes Pods in the Kubernetes documentation](https://kubernetes.io/docs/tasks/debug/debug-application/debug-pods/).
+
+### OpenShift
+
+When deploying Consul on OpenShift clusters, you may encounter errors with the images you pull. Instead of pulling images directly from the RedHat Registry, use the `oc import-image` command to pre-load Consul and Consul on Kubernetes images from an external image registry.
+
+If there is already an old version imported with `oc import-image` present, the local image is updated. For example, to locally cache the Consul image version `1.21.0-ubi`, run the following command:
+
+```shell-session
+$ oc import-image hashicorp/consul:1.21.0-ubi --from=registry.connect.redhat.com/hashicorp/consul:1.21.0-ubi --confirm
+imagestream.image.openshift.io/consul imported
+```
+
+The list of possible images to cache locally includes `consul`, `consul-k8s-control-plane` and `consul-dataplane`. 
+
+If the image registry has invalid HTTPS certificate, or is hosted over HTTP, use the `--insecure=true` flag when you import images. Similarly, if the image registry is overloaded and you need to extend the request timeout, use the `--request-timeout` flag and a unit of time. For example, to raise the timeout to five minutes, use `--request-timeout=5m`.
+
 ## External tools
 
 Consul was designed to work within an established ecosystem of networking
