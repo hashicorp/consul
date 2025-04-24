@@ -68,11 +68,6 @@ EnvoyExtensions = [
 ]
 '
 
-
-# Register services
-register_services primary static-server "{ \"service\": { \"name\": \"static-server\", \"port\": 8080 } }"
-register_services primary api-gateway "{ \"service\": { \"name\": \"api-gateway\", \"kind\": \"api-gateway\", \"port\": 8080 } }"
-
 # Generate bootstrap configs
 gen_envoy_bootstrap api-gateway primary api-gateway-sidecar-proxy api-gateway-bootstrap.json
 gen_envoy_bootstrap static-server primary static-server-sidecar-proxy static-server-bootstrap.json
