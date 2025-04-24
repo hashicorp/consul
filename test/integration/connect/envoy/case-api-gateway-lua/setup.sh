@@ -69,5 +69,5 @@ EnvoyExtensions = [
 '
 
 # Generate bootstrap configs
-gen_envoy_bootstrap api-gateway primary api-gateway-sidecar-proxy api-gateway-bootstrap.json
-gen_envoy_bootstrap static-server primary static-server-sidecar-proxy static-server-bootstrap.json
+gen_envoy_bootstrap api-gateway 20000 primary true
+gen_envoy_bootstrap s1 19000
