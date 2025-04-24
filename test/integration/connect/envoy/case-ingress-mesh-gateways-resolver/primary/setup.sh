@@ -68,4 +68,4 @@ register_services primary
 
 gen_envoy_bootstrap mesh-gateway 19002 primary true
 gen_envoy_bootstrap ingress-gateway 20000 primary true
-retry_default docker_consul primary curl -s "http://localhost:8500/v1/catalog/service/consul?dc=secondary" >/dev/null
+retry_long docker_consul primary curl -s "http://localhost:8500/v1/catalog/service/consul?dc=secondary" >/dev/null
