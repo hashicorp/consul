@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package extensionruntime
 
 import (
@@ -29,7 +32,7 @@ func TestGetRuntimeConfigurations_APIGateway(t *testing.T) {
 				},
 			},
 			expectedConfig: map[api.CompoundServiceName][]extensioncommon.RuntimeConfig{
-				api.CompoundServiceName{
+				{
 					Name:      "api-gateway",
 					Namespace: "default",
 				}: {},
@@ -57,7 +60,7 @@ func TestGetRuntimeConfigurations_APIGateway(t *testing.T) {
 				},
 			},
 			expectedConfig: map[api.CompoundServiceName][]extensioncommon.RuntimeConfig{
-				api.CompoundServiceName{
+				{
 					Name:      "api-gateway",
 					Namespace: "default",
 				}: {
