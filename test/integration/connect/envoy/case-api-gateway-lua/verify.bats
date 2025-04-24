@@ -31,7 +31,7 @@ load helpers
 }
 
 @test "api-gateway should have lua filter configured" {
-  FILTERS=$(get_envoy_listener_filters localhost:19000)
+  FILTERS=$(get_envoy_http_filters localhost:19000)
   echo "[DEBUG] filters: $FILTERS" >&3
 
   echo "$FILTERS" | grep "envoy.filters.http.lua"

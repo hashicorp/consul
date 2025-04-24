@@ -50,6 +50,14 @@ kind = "http-route"
 name = "api-gateway-route-one"
 rules = [
   {
+  Matches = [
+      {
+        Path = {
+          Match = "prefix"
+          Value = "/api"
+        }
+      }
+    ]
     services = [
       {
         name = "s1"
@@ -93,7 +101,7 @@ EnvoyExtensions = [
         function envoy_on_response(response_handle)
           if response_handle:headers():get(":status") == "404" then
               response_handle:headers():replace(":status", "200")
-              local json = '{"message":"Modified by Lua script","status":"success"}'
+              local json = '{"message":"Response modified by Lua script","status":"success"}'
               response_handle:body():setBytes(json)
 
               response_handle:headers():remove("x-envoy-upstream-service-time")
@@ -140,9 +148,3 @@ register_services primary
 gen_envoy_bootstrap api-gateway 20000 primary true
 gen_envoy_bootstrap s1 19000
 gen_envoy_bootstrap s2 19001
-
-# Debug: Check if Envoy is running
-echo "Checking if Envoy is running..."
-docker ps | grep envoy
-echo "Checking if port 20000 is listening..."
-docker exec $(docker ps -q --filter name=envoy) netstat -tulpn | grep 20000 || true 
