@@ -28,13 +28,18 @@ Protocol = "http"
 
 # Create API Gateway
 upsert_config_entry primary '
-Kind = "api-gateway"
-Name = "api-gateway"
-Listeners = [
+kind = "api-gateway"
+name = "api-gateway"
+listeners = [
   {
-    Name = "listener-1"
-    Port = 9999
-    Protocol = "http"
+    name = "listener-one"
+    port = 9999
+    protocol = "http"
+  },
+  {
+    name = "listener-two"
+    port = 9998
+    protocol = "http"
   }
 ]
 '
