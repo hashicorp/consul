@@ -18,6 +18,8 @@ load helpers
 
 @test "api-gateway should return 200 with custom message for non-existent path" {
   run retry_default curl -s -d "hello" "localhost:8080/nonexistent"
+  echo "[DEBUG] response: $output" >&3
+
   [ "$status" == "0" ]
   echo "$output" | grep "Response modified by Lua script"
 }
@@ -30,6 +32,8 @@ load helpers
 
 @test "api-gateway should have lua filter configured" {
   FILTERS=$(get_envoy_listener_filters localhost:19000)
+  echo "[DEBUG] filters: $FILTERS" >&3
+
   echo "$FILTERS" | grep "envoy.filters.http.lua"
 }
 
