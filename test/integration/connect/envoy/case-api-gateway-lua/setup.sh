@@ -5,27 +5,25 @@
 set -euo pipefail
 
 # Create proxy defaults
-cat > proxy-defaults.hcl <<EOF
+upsert_config_entry primary '
 Kind = "proxy-defaults"
 Name = "global"
 Config {
   protocol = "http"
 }
-EOF
+'
 
-consul config write proxy-defaults.hcl
 
 # Create service defaults for static-server
-cat > service-defaults.hcl <<EOF
+upsert_config_entry primary '
 Kind = "service-defaults"
 Name = "static-server"
 Protocol = "http"
-EOF
+'
 
-consul config write service-defaults.hcl
 
 # Create API Gateway
-cat > api-gateway.hcl <<EOF
+upsert_config_entry primary '
 Kind = "api-gateway"
 Name = "api-gateway"
 Listeners = [
@@ -35,12 +33,11 @@ Listeners = [
     Protocol = "http"
   }
 ]
-EOF
+'
 
-consul config write api-gateway.hcl
 
 # Create HTTP route
-cat > http-route.hcl <<EOF
+upsert_config_entry primary '
 Kind = "http-route"
 Name = "http-route"
 Rules = [
@@ -52,12 +49,11 @@ Rules = [
     ]
   }
 ]
-EOF
+'
 
-consul config write http-route.hcl
 
 # Create service defaults for API Gateway with LUA extension
-cat > api-gateway-service-defaults.hcl <<EOF
+upsert_config_entry primary '
 Kind = "service-defaults"
 Name = "api-gateway"
 EnvoyExtensions = [
@@ -68,19 +64,13 @@ EnvoyExtensions = [
     }
   }
 ]
-EOF
+'
 
-consul config write api-gateway-service-defaults.hcl
 
 # Register services
-consul services register static-server.hcl
-consul services register api-gateway.hcl
+register_service primary static-server "{ \"service\": { \"name\": \"static-server\", \"port\": 8080 } }"
+register_service primary api-gateway "{ \"service\": { \"name\": \"api-gateway\", \"kind\": \"api-gateway\", \"port\": 8080 } }"
 
 # Generate bootstrap configs
-consul connect envoy -bootstrap \
-  -proxy-id api-gateway-sidecar-proxy \
-  > api-gateway-bootstrap.json
-
-consul connect envoy -bootstrap \
-  -proxy-id static-server-sidecar-proxy \
-  > static-server-bootstrap.json 
+gen_envoy_bootstrap api-gateway primary api-gateway-sidecar-proxy api-gateway-bootstrap.json
+gen_envoy_bootstrap static-server primary static-server-sidecar-proxy static-server-bootstrap.json

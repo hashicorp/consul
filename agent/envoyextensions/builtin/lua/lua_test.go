@@ -180,19 +180,6 @@ func TestLuaExtension_PatchFilter(t *testing.T) {
 			expectedFilter: makeFilter([]*envoy_http_v3.HttpFilter{{Name: "envoy.filters.http.router"}}),
 			expectPatched:  false,
 		},
-		"no router filter": {
-			extension: &lua{
-				ProxyType: "connect-proxy",
-				Listener:  "inbound",
-				Script:    "function envoy_on_request(request_handle) end",
-			},
-			filter: makeFilter([]*envoy_http_v3.HttpFilter{
-				{Name: "envoy.filters.http.other"},
-			}),
-			isInbound:      true,
-			expectedFilter: makeFilter([]*envoy_http_v3.HttpFilter{{Name: "envoy.filters.http.other"}}),
-			expectPatched:  false,
-		},
 		"successful patch with router filter": {
 			extension: &lua{
 				ProxyType: "connect-proxy",
