@@ -61,7 +61,7 @@ EnvoyExtensions = [
     Name = "builtin/lua"
     Arguments = {
       ProxyType = "api-gateway"
-      Listener = "outbound"q
+      Listener = "outbound"
       Script = "function envoy_on_response(response_handle) response_handle:headers():add('x-test', 'test') end"
     }
   }
