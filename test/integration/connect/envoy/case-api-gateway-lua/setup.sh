@@ -41,24 +41,25 @@ Listeners = [
 
 # Create HTTP route
 upsert_config_entry primary '
-Kind = "http-route"
-Name = "http-route"
-Rules = [
+kind = "http-route"
+name = "api-gateway-route-one"
+rules = [
   {
-    Matches = [
+    services = [
       {
-        Path = {
-          Match = "prefix"
-          Value = "/"
-        }
+        name = "s1"
+      },
+      {
+        name = "s2"
+        weight = 2
       }
     ]
-    Services = [
-      {
-        Name = "s1"
-        Weight = 100
-      }
-    ]
+  }
+]
+parents = [
+  {
+    name = "api-gateway"
+    sectionName = "listener-one"
   }
 ]
 '
@@ -73,7 +74,7 @@ EnvoyExtensions = [
     Name = "builtin/lua"
     Arguments = {
       ProxyType = "api-gateway"
-      Listener = "outbound"
+      Listener = "inbound"
       Script = "function envoy_on_request(request_handle) request_handle:headers():add(\"x-lua-added\", \"test-value\") end"
     }
   }

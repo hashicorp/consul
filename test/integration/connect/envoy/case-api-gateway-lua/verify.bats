@@ -12,7 +12,7 @@ load helpers
 }
 
 @test "api gateway should have healthy endpoints for s1" {
-  assert_config_entry_status Bound True Bound primary http-route http-route
+  assert_config_entry_status Bound True Bound primary http-route api-gateway-route-one
   assert_upstream_has_endpoints_in_status 127.0.0.1:20000 s1 HEALTHY 1
 }
 
@@ -20,4 +20,4 @@ load helpers
   run retry_long sh -c "curl -s -D - localhost:9999/ | grep x-lua-added"
   [ "$status" -eq 0 ]
   [[ "$output" == "x-lua-added: test-value" ]]
-} 
+}
