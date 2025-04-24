@@ -2,6 +2,9 @@
 # SPDX-License-Identifier: BUSL-1.1
 
 services {
-  name = "api-gateway"
-  kind = "api-gateway"
-}
+  name = "s1"
+  port = 8080
+  connect {
+    sidecar_service {}
+  }
+} 

@@ -13,10 +13,16 @@ Config {
 }
 '
 
-# Create service defaults for static-server
+# Create service defaults for s1 and s2
 upsert_config_entry primary '
 Kind = "service-defaults"
-Name = "static-server"
+Name = "s1"
+Protocol = "http"
+'
+
+upsert_config_entry primary '
+Kind = "service-defaults"
+Name = "s2"
 Protocol = "http"
 '
 
@@ -49,7 +55,7 @@ Rules = [
     ]
     Services = [
       {
-        Name = "static-server"
+        Name = "s1"
         Weight = 100
       }
     ]
@@ -74,9 +80,39 @@ EnvoyExtensions = [
 ]
 '
 
+# Create service intentions
+upsert_config_entry primary '
+Kind = "service-intentions"
+Name = "s1"
+Sources = [
+  {
+    Name = "api-gateway"
+    Action = "allow"
+  }
+]
+'
+
+upsert_config_entry primary '
+Kind = "service-intentions"
+Name = "s2"
+Sources = [
+  {
+    Name = "api-gateway"
+    Action = "allow"
+  }
+]
+'
+
 # Register services
 register_services primary
 
 # Generate bootstrap configs
 gen_envoy_bootstrap api-gateway 20000 primary true
-gen_envoy_bootstrap static-server 19000 
+gen_envoy_bootstrap s1 19000
+gen_envoy_bootstrap s2 19001
+
+# Debug: Check if Envoy is running
+echo "Checking if Envoy is running..."
+docker ps | grep envoy
+echo "Checking if port 20000 is listening..."
+docker exec $(docker ps -q --filter name=envoy) netstat -tulpn | grep 20000 || true 
