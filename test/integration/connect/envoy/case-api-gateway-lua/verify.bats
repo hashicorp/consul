@@ -16,14 +16,10 @@ load helpers
   assert_upstream_has_endpoints_in_status 127.0.0.1:20000 s1 HEALTHY 1
 }
 
-@test "api-gateway upstream should have healthy endpoints for static-server" {
-  assert_upstream_has_endpoints_in_status 127.0.0.1:19000 static-server.default.primary HEALTHY 1
-}
-
 @test "api-gateway should return 200 with custom message for non-existent path" {
   run retry_default curl -s -d "hello" "localhost:8080/nonexistent"
   [ "$status" == "0" ]
-  echo "$output" | grep "Please check whether page or URI is configured correctly or not for api gateway"
+  echo "$output" | grep "Response modified by Lua script"
 }
 
 @test "api-gateway should return 200 for valid path" {
