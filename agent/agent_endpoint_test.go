@@ -433,6 +433,60 @@ func TestAgent_Services_ACLFilter(t *testing.T) {
 		require.Len(t, val, 2)
 		require.Empty(t, resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
 	})
+
+	// ensure ACL filtering occurs before bexpr filtering.
+	const bexprMatchingUserTokenPermissions = "Service matches `web.*`"
+	const bexprNotMatchingUserTokenPermissions = "Service matches `api.*`"
+
+	tokenWithWebRead := testCreateToken(t, a, `
+			service "web" {
+				policy = "read"
+			}
+		`)
+
+	t.Run("request with filter that matches token permissions returns 1 result and ResultsFilteredByACLs equal to true", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/v1/agent/services?filter="+url.QueryEscape(bexprMatchingUserTokenPermissions), nil)
+		req.Header.Add("X-Consul-Token", tokenWithWebRead)
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		dec := json.NewDecoder(resp.Body)
+		var val map[string]*api.AgentService
+		err := dec.Decode(&val)
+		if err != nil {
+			t.Fatalf("Err: %v", err)
+		}
+		require.Len(t, val, 1)
+		require.NotEmpty(t, resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
+	})
+
+	t.Run("request with filter that does not match token permissions returns 0 results and ResultsFilteredByACLs equal to true", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/v1/agent/services?filter="+url.QueryEscape(bexprNotMatchingUserTokenPermissions), nil)
+		req.Header.Add("X-Consul-Token", tokenWithWebRead)
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		dec := json.NewDecoder(resp.Body)
+		var val map[string]*api.AgentService
+		err := dec.Decode(&val)
+		if err != nil {
+			t.Fatalf("Err: %v", err)
+		}
+		require.Len(t, val, 0)
+		require.NotEmpty(t, resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
+	})
+
+	t.Run("request with filter that would normally match but without any token returns zero results and ResultsFilteredByACLs equal to false", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/v1/agent/services?filter="+url.QueryEscape(bexprNotMatchingUserTokenPermissions), nil)
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		dec := json.NewDecoder(resp.Body)
+		var val map[string]*api.AgentService
+		err := dec.Decode(&val)
+		if err != nil {
+			t.Fatalf("Err: %v", err)
+		}
+		require.Len(t, val, 0)
+		require.Empty(t, resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
+	})
 }
 
 func TestAgent_Service(t *testing.T) {
@@ -1432,6 +1486,57 @@ func TestAgent_Checks_ACLFilter(t *testing.T) {
 		require.Len(t, val, 2)
 		require.Empty(t, resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
 	})
+
+	// ensure ACL filtering occurs before bexpr filtering.
+	const bexprMatchingUserTokenPermissions = "ServiceName matches `web.*`"
+	const bexprNotMatchingUserTokenPermissions = "ServiceName matches `api.*`"
+
+	tokenWithWebRead := testCreateToken(t, a, `
+			service "web" {
+				policy = "read"
+			}
+		`)
+
+	t.Run("request with filter that matches token permissions returns 1 result and ResultsFilteredByACLs equal to true", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/v1/agent/checks?filter="+url.QueryEscape(bexprMatchingUserTokenPermissions), nil)
+		req.Header.Add("X-Consul-Token", tokenWithWebRead)
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		dec := json.NewDecoder(resp.Body)
+		val := make(map[types.CheckID]*structs.HealthCheck)
+		if err := dec.Decode(&val); err != nil {
+			t.Fatalf("Err: %v", err)
+		}
+		require.Len(t, val, 1)
+		require.NotEmpty(t, resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
+	})
+
+	t.Run("request with filter that does not match token permissions returns 0 results and ResultsFilteredByACLs equal to true", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/v1/agent/checks?filter="+url.QueryEscape(bexprNotMatchingUserTokenPermissions), nil)
+		req.Header.Add("X-Consul-Token", tokenWithWebRead)
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		dec := json.NewDecoder(resp.Body)
+		val := make(map[types.CheckID]*structs.HealthCheck)
+		if err := dec.Decode(&val); err != nil {
+			t.Fatalf("Err: %v", err)
+		}
+		require.Len(t, val, 0)
+		require.NotEmpty(t, resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
+	})
+
+	t.Run("request with filter that would normally match but without any token returns zero results and ResultsFilteredByACLs equal to false", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/v1/agent/checks?filter="+url.QueryEscape(bexprNotMatchingUserTokenPermissions), nil)
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		dec := json.NewDecoder(resp.Body)
+		val := make(map[types.CheckID]*structs.HealthCheck)
+		if err := dec.Decode(&val); err != nil {
+			t.Fatalf("Err: %v", err)
+		}
+		require.Len(t, val, 0)
+		require.Empty(t, resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
+	})
 }
 
 func TestAgent_Self(t *testing.T) {
@@ -2108,6 +2213,57 @@ func TestAgent_Members_ACLFilter(t *testing.T) {
 			t.Fatalf("Err: %v", err)
 		}
 		require.Len(t, val, 2)
+		require.Empty(t, resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
+	})
+
+	// ensure ACL filtering occurs before bexpr filtering.
+	bexprMatchingUserTokenPermissions := fmt.Sprintf("Name matches `%s.*`", b.Config.NodeName)
+	bexprNotMatchingUserTokenPermissions := fmt.Sprintf("Name matches `%s.*`", a.Config.NodeName)
+
+	tokenWithReadOnMemberB := testCreateToken(t, a, fmt.Sprintf(`
+			node "%s" {
+				policy = "read"
+			}
+		`, b.Config.NodeName))
+
+	t.Run("request with filter that matches token permissions returns 1 result and ResultsFilteredByACLs equal to true", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/v1/agent/members?filter="+url.QueryEscape(bexprMatchingUserTokenPermissions), nil)
+		req.Header.Add("X-Consul-Token", tokenWithReadOnMemberB)
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		dec := json.NewDecoder(resp.Body)
+		val := make([]serf.Member, 0)
+		if err := dec.Decode(&val); err != nil {
+			t.Fatalf("Err: %v", err)
+		}
+		require.Len(t, val, 1)
+		require.NotEmpty(t, resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
+	})
+
+	t.Run("request with filter that does not match token permissions returns 0 results and ResultsFilteredByACLs equal to true", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/v1/agent/members?filter="+url.QueryEscape(bexprNotMatchingUserTokenPermissions), nil)
+		req.Header.Add("X-Consul-Token", tokenWithReadOnMemberB)
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		dec := json.NewDecoder(resp.Body)
+		val := make([]serf.Member, 0)
+		if err := dec.Decode(&val); err != nil {
+			t.Fatalf("Err: %v", err)
+		}
+		require.Len(t, val, 0)
+		require.NotEmpty(t, resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
+	})
+
+	t.Run("request with filter that would normally match but without any token returns zero results and ResultsFilteredByACLs equal to false", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/v1/agent/members?filter="+url.QueryEscape(bexprNotMatchingUserTokenPermissions), nil)
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		dec := json.NewDecoder(resp.Body)
+		val := make([]serf.Member, 0)
+		if err := dec.Decode(&val); err != nil {
+			t.Fatalf("Err: %v", err)
+		}
+		require.Len(t, val, 0)
 		require.Empty(t, resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
 	})
 }

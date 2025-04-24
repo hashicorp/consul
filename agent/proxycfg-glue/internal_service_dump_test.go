@@ -56,6 +56,10 @@ func TestServerInternalServiceDump(t *testing.T) {
 				Kind:    structs.ServiceKindTypical,
 			},
 			{
+				Service: "web-deny",
+				Kind:    structs.ServiceKindTypical,
+			},
+			{
 				Service: "db",
 				Kind:    structs.ServiceKindTypical,
 			},
@@ -67,14 +71,14 @@ func TestServerInternalServiceDump(t *testing.T) {
 			}))
 		}
 
-		authz := newStaticResolver(
-			policyAuthorizer(t, `
+		policyAuth := policyAuthorizer(t, `
 				service "mgw" { policy = "read" }
 				service "web" { policy = "read" }
+				service "web-deny" { policy = "deny" }
 				service "db"  { policy = "read" }
 				node_prefix "node-" { policy = "read" }
-			`),
-		)
+			`)
+		authz := newStaticResolver(policyAuth)
 
 		dataSource := ServerInternalServiceDump(ServerDataSourceDeps{
 			GetStore:    func() Store { return store },
@@ -120,6 +124,42 @@ func TestServerInternalServiceDump(t *testing.T) {
 
 			result := getEventResult[*structs.IndexedCheckServiceNodes](t, eventCh)
 			require.Empty(t, result.Nodes)
+		})
+
+		const (
+			bexprMatchingUserTokenPermissions   = "Service.Service matches `web.*`"
+			bexpNotMatchingUserTokenPermissions = "Service.Service matches `mgw.*`"
+		)
+
+		authz.SwapAuthorizer(policyAuthorizer(t, `
+				service "mgw" { policy = "deny" }
+				service "web" { policy = "read" }
+				service "web-deny" { policy = "deny" }
+				service "db"  { policy = "read" }
+				node_prefix "node-" { policy = "read" }
+			`))
+
+		t.Run("request with filter that matches token permissions returns 1 result and ResultsFilteredByACLs equal to true", func(t *testing.T) {
+			eventCh := make(chan proxycfg.UpdateEvent)
+			require.NoError(t, dataSource.Notify(ctx, &structs.ServiceDumpRequest{
+				QueryOptions: structs.QueryOptions{Filter: bexprMatchingUserTokenPermissions},
+			}, "", eventCh))
+
+			result := getEventResult[*structs.IndexedCheckServiceNodes](t, eventCh)
+			require.Len(t, result.Nodes, 1)
+			require.Equal(t, "web", result.Nodes[0].Service.Service)
+			require.True(t, result.ResultsFilteredByACLs)
+		})
+
+		t.Run("request with filter that does not match token permissions returns 0 results and ResultsFilteredByACLs equal to true", func(t *testing.T) {
+			eventCh := make(chan proxycfg.UpdateEvent)
+			require.NoError(t, dataSource.Notify(ctx, &structs.ServiceDumpRequest{
+				QueryOptions: structs.QueryOptions{Filter: bexpNotMatchingUserTokenPermissions},
+			}, "", eventCh))
+
+			result := getEventResult[*structs.IndexedCheckServiceNodes](t, eventCh)
+			require.Len(t, result.Nodes, 0)
+			require.True(t, result.ResultsFilteredByACLs)
 		})
 	})
 }

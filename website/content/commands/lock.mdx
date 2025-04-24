@@ -101,6 +101,23 @@ To strictly enforce the TTL and prevent auto-renewed by node checks, you must cr
 
 When you remove node checks, the TTL-based session expires after the specified time if you do not renew it. Consul releases the lock automatically when the session expires.
 
+## Node health checks and TTL behavior
+
+When you run `consul lock`, Consul automatically creates an _ephemeral session_ that attaches one or more node checks, such as the `serfHealth` check, by default. These checks keep the node “healthy” from Consul’s perspective. This session automatically renews as long as the agent passes these health checks. For sessions with a a TTL configured, that TTL never reaches zero as long as the node remains healthy.
+
+This design ensures the lock is not lost as long as the local Consul agent is up and healthy. However, emphemeral sessions run indefinitely when:
+
+- **The node remains healthy**, including in partial networks where at least one Consul server still reads the node as online.  
+- **No explicit session destroy** or forced release occurs.
+
+To strictly enforce the TTL and prevent auto-renewed by node checks, you must create or manage your own session separately. In that scenario:
+
+1. **Manually create a session** with the HTTP API that either excludes node checks or uses custom service checks.  
+1. **Acquire the lock** on that custom session using the raw KV API (`?acquire=<sessionID>`).  
+1. **Manage renewals** and releases yourself as needed.
+
+When you remove node checks, the TTL-based session expires after the specified time if you do not renew it. Consul releases the lock automatically when the session expires.
+
 ## SHELL
 
 Consul lock launches its children in a shell. By default, Consul will use the shell

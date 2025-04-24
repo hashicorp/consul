@@ -1912,6 +1912,7 @@ type HealthCheckDefinition struct {
 	GRPCUseTLS                     bool                `json:",omitempty"`
 	AliasNode                      string              `json:",omitempty"`
 	AliasService                   string              `json:",omitempty"`
+	SessionName                    string              `json:",omitempty"`
 	TTL                            time.Duration       `json:",omitempty"`
 }
 

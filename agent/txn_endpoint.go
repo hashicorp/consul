@@ -231,6 +231,16 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 					},
 				},
 			}
+			if len(in.Service.Service.TaggedAddresses) > 0 {
+				taggedAddresses := make(map[string]structs.ServiceAddress)
+				for name, addr := range in.Service.Service.TaggedAddresses {
+					taggedAddresses[name] = structs.ServiceAddress{
+						Address: addr.Address,
+						Port:    addr.Port,
+					}
+				}
+				out.Service.Service.TaggedAddresses = taggedAddresses
+			}
 
 			if svc.Proxy != nil {
 				out.Service.Service.Proxy = structs.ConnectProxyConfig{}
@@ -300,6 +310,7 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 						Status:      check.Status,
 						Notes:       check.Notes,
 						Output:      check.Output,
+						Type:        check.Type,
 						ServiceID:   check.ServiceID,
 						ServiceName: check.ServiceName,
 						ServiceTags: check.ServiceTags,

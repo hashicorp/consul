@@ -380,49 +380,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 		//
 		// Clean up data
 		//
-
-		peeredChainTargets := make(map[UpstreamID]struct{})
-		for _, discoChain := range snap.ConnectProxy.DiscoveryChain {
-			for _, target := range discoChain.Targets {
-				if target.Peer == "" {
-					continue
-				}
-				uid := NewUpstreamIDFromTargetID(target.ID)
-				peeredChainTargets[uid] = struct{}{}
-			}
-		}
-
-		validPeerNames := make(map[string]struct{})
-
-		// Iterate through all known endpoints and remove references to upstream IDs that weren't in the update
-		snap.ConnectProxy.PeerUpstreamEndpoints.ForEachKey(func(uid UpstreamID) bool {
-			// Peered upstream is explicitly defined in upstream config
-			if _, ok := snap.ConnectProxy.UpstreamConfig[uid]; ok {
-				validPeerNames[uid.Peer] = struct{}{}
-				return true
-			}
-			// Peered upstream came from dynamic source of imported services
-			if _, ok := seenUpstreams[uid]; ok {
-				validPeerNames[uid.Peer] = struct{}{}
-				return true
-			}
-			// Peered upstream came from a discovery chain target
-			if _, ok := peeredChainTargets[uid]; ok {
-				validPeerNames[uid.Peer] = struct{}{}
-				return true
-			}
-			snap.ConnectProxy.PeerUpstreamEndpoints.CancelWatch(uid)
-			return true
-		})
-
-		// Iterate through all known trust bundles and remove references to any unseen peer names
-		snap.ConnectProxy.UpstreamPeerTrustBundles.ForEachKey(func(peerName PeerName) bool {
-			if _, ok := validPeerNames[peerName]; !ok {
-				snap.ConnectProxy.UpstreamPeerTrustBundles.CancelWatch(peerName)
-			}
-			return true
-		})
-
+		reconcilePeeringWatches(snap.ConnectProxy.DiscoveryChain, snap.ConnectProxy.UpstreamConfig, snap.ConnectProxy.PeeredUpstreams, snap.ConnectProxy.PeerUpstreamEndpoints, snap.ConnectProxy.UpstreamPeerTrustBundles)
 	case u.CorrelationID == intentionUpstreamsID:
 		resp, ok := u.Result.(*structs.IndexedServiceList)
 		if !ok {
@@ -490,18 +448,13 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 				continue
 			}
 			if _, ok := seenUpstreams[uid]; !ok {
-				for targetID, cancelFn := range targets {
+				for _, cancelFn := range targets {
 					cancelFn()
-
-					targetUID := NewUpstreamIDFromTargetID(targetID)
-					if targetUID.Peer != "" {
-						snap.ConnectProxy.PeerUpstreamEndpoints.CancelWatch(targetUID)
-						snap.ConnectProxy.UpstreamPeerTrustBundles.CancelWatch(targetUID.Peer)
-					}
 				}
 				delete(snap.ConnectProxy.WatchedUpstreams, uid)
 			}
 		}
+		reconcilePeeringWatches(snap.ConnectProxy.DiscoveryChain, snap.ConnectProxy.UpstreamConfig, snap.ConnectProxy.PeeredUpstreams, snap.ConnectProxy.PeerUpstreamEndpoints, snap.ConnectProxy.UpstreamPeerTrustBundles)
 		for uid := range snap.ConnectProxy.WatchedUpstreamEndpoints {
 			if upstream, ok := snap.ConnectProxy.UpstreamConfig[uid]; ok && !upstream.CentrallyConfigured {
 				continue

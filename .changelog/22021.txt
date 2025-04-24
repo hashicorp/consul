@@ -1,0 +1,3 @@
+```release-note:security
+Update `golang.org/x/net` to v0.33.0 to address [GO-2024-3333](https://pkg.go.dev/vuln/GO-2024-3333).
+```

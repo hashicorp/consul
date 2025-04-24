@@ -91,6 +91,33 @@ Refer to the following documentation for Consul on ECS workloads:
 
 </Tabs>
 
+### Namespace ACL permissions
+
+If ACLs are enabled, exported services between partitions that use dataplanes may experience errors when you define namespace partitions with the `*` wildcard. Consul dataplanes use a token with the `builtin/service` policy attached, but this policy does not include access to all namespaces.
+
+Add the following policies to the service token attached to Consul dataplanes to grant Consul access to exported services across all namespaces:
+
+```hcl
+partition "default" {
+  namespace "default" {
+    query_prefix "" {
+      policy = "read"
+    }
+  }
+}
+
+partition_prefix "" {
+  namespace_prefix "" {
+    node_prefix "" {
+      policy = "read"
+    }
+    service_prefix "" {
+      policy = "read"
+    }
+   }
+}
+```
+
 ## Upgrade dataplane version
 
 <Tabs>
@@ -131,5 +158,6 @@ Consul dataplanes on ECS support the following features:
 
 ## Technical constraints and limitations
 
-- Consul dataplane is not supported on Windows.
-- Consul dataplane requires the `NET_BIND_SERVICE` capability. Refer to [Set capabilities for a Container](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-capabilities-for-a-container) in the Kubernetes Documentation for more information.
+- Consul Dataplane is not supported on Windows.
+- Consul Dataplane requires the `NET_BIND_SERVICE` capability. Refer to [Set capabilities for a Container](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-capabilities-for-a-container) in the Kubernetes Documentation for more information.
+- When ACLs are enabled, dataplanes use the [service token](/consul/docs/security/acl/tokens/create/create-a-service-token) and the `builtin/service` policy for their default permissions.

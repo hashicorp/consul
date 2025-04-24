@@ -1,0 +1,3 @@
+```release-note:improvement
+ui: Adds a copyable token accessor/secret on the settings page when signed in
+```
