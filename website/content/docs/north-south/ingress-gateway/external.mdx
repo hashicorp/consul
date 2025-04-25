@@ -23,8 +23,8 @@ The following process describes the general procedure for configuring ingress ga
 
 - The external service must implement Envoy's [gRPC secret discovery service (SDS) API](https://www.envoyproxy.io/docs/envoy/latest/configuration/security/secret).
 - You should have some familiarity with Envoy configuration and the SDS protocol.
-- The [`connect.enabled` parameter](/consul/docs/reference/agent#connect) must be set to `true` for all server agents in the Consul datacenter.
-- The [`ports.grpc` parameter](/consul/docs/reference/agent#connect) must be configured for all server agents in the Consul datacenter.
+- The [`connect.enabled` parameter](/consul/docs/reference/agent/configuration-file/service-mesh#connect) must be set to `true` for all server agents in the Consul datacenter.
+- The [`ports.grpc` parameter](/consul/docs/reference/agent/configuration-file/service-mesh#connect) must be configured for all server agents in the Consul datacenter.
 
 ### ACL requirements
 
@@ -242,7 +242,7 @@ Listeners = [
 
 ##  Register the ingress gateway configuration entry
 
-You can register the configuration entry using the [`consul config` command](/consul/commands/config) or by calling the [`/config` API endpoint](/consul/api-docs/config). 
+You can register the configuration entry using the [`consul config` command](/consul/commands/config) or by calling the [`/config` API endpoint](/consul/api-docs/config).
 
 The following example registers an ingress gateway configuration entry named `public-ingress-cfg.hcl` that is stored on the local system:
 

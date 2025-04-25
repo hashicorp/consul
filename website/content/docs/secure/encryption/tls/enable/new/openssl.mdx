@@ -2,7 +2,7 @@
 layout: docs
 page_title: Enable TLS encryption with OpenSSL
 description: >-
-   Learn how to create and distribute TLS certificates to server and client agents using OpenSSL as your certificate authority (CA). 
+   Learn how to create and distribute TLS certificates to server and client agents using OpenSSL as your certificate authority (CA).
 ---
 
 # Enable TLS encryption with OpenSSL
@@ -31,9 +31,9 @@ You can create these certificates on any machine with `openssl`. The examples in
 
 ### Create server certificate signing requests
 
-To authenticate Consul servers, servers are provided with a special certificate that contains `server.dc1.consul` in the `Common Name`. If you enable [`verify_server_hostname`](/consul/docs/reference/agent#verify_server_hostname), only agents that provide this certificate are allowed to boot as a server. Without `verify_server_hostname = true`, an attacker could compromise a Consul client agent and restart the agent as a server in order to get access to all the data in your datacenter. These server certificates are special and only servers should provision them.
+To authenticate Consul servers, servers are provided with a special certificate that contains `server.dc1.consul` in the `Common Name`. If you enable [`verify_server_hostname`](/consul/docs/reference/agent/configuration-file/tls#verify_server_hostname), only agents that provide this certificate are allowed to boot as a server. Without `verify_server_hostname = true`, an attacker could compromise a Consul client agent and restart the agent as a server in order to get access to all the data in your datacenter. These server certificates are special and only servers should provision them.
 
-Create a certificate signing request with the private key. The following command generates a CSR that has Common Name `server.dc1.consul`. Configure the CSR to use the [name of your datacenter](/consul/docs/reference/agent#_datacenter) and your [domain](/consul/docs/reference/agent#_domain).
+Create a certificate signing request with the private key. The following command generates a CSR that has Common Name `server.dc1.consul`. Configure the CSR to use the [name of your datacenter](/consul/docs/reference/agent/configuration=file/general#datacenter) and your [domain](/consul/docs/reference/agent/configuration-file/dns#domain).
 
 ```shell-session
 $ openssl req -new -newkey rsa:2048 -nodes -keyout server1.dc1.consul.key -out server1.dc1.consul.csr -subj '/CN=server.dc1.consul'
@@ -145,15 +145,15 @@ For Consul to use the certificate you created, copy them to the agents you want 
 
 Every Consul agent needs 3 files to complete the configuration:
 
-1. CA public certificate: defined by [`ca_file`](/consul/docs/reference/agent#ca_file) parameter is used to verify the identity of the other nodes. For these instructions, the CA public certificate is named `consul-agent-ca.pem`.
-1. Consul agent public certificate: defined by [`cert_file`](/consul/docs/reference/agent#cert_file) parameter.
-1. Consul agent private key: defined by [`key_file`](/consul/docs/reference/agent#key_file) parameter.
+1. CA public certificate: defined by [`ca_file`](/consul/docs/reference/agent/configuration-file/tls#ca_file) parameter is used to verify the identity of the other nodes. For these instructions, the CA public certificate is named `consul-agent-ca.pem`.
+1. Consul agent public certificate: defined by [`cert_file`](/consul/docs/reference/agent/configuration-file/tls#cert_file) parameter.
+1. Consul agent private key: defined by [`key_file`](/consul/docs/reference/agent/configuration-file/tls#key_file) parameter.
 
 Consul looks for these certificate files in the start directory. If you stored the files there, you can add them to the agent configuration file by their name only. When the certificate files are not located in the start directory, you must specify the path in the agent configuration file.
 
 ### Configure servers
 
-You can add the suggested parameter as a separate file in the [`-config-dir`](/consul/docs/reference/agent#_config_dir) directory from where Consul loads the configuration. This approach helps you keep configurations separate, but you can also include the options in a single configuration file.
+You can add the suggested parameter as a separate file in the [`-config-dir`](/consul/docs/fundamentals/agent#start-the-consul-agent) directory from where Consul loads the configuration. This approach helps you keep configurations separate, but you can also include the options in a single configuration file.
 
 The following example of an agent TLS configuration for Consul servers shows the distributed certificate files.
 
@@ -189,7 +189,7 @@ ports {
 
 </CodeTabs>
 
-Consul can use TLS to verify the authenticity of the servers with [`verify_outgoing`](/consul/docs/reference/agent#verify_outgoing) and [`verify_server_hostname`](/consul/docs/reference/agent#verify_server_hostname). It can also optionally verify client certificates when using [`verify_incoming`](/consul/docs/reference/agent#verify_incoming).
+Consul can use TLS to verify the authenticity of the servers with [`verify_outgoing`](/consul/docs/reference/agent/configuration-file/tls#verify_outgoing) and [`verify_server_hostname`](/consul/docs/reference/agent/configuration-file/tls#verify_server_hostname). It can also optionally verify client certificates when using [`verify_incoming`](/consul/docs/reference/agent/configuration-file/tls#verify_incoming).
 
 The example configuration also disables the HTTP port to ensure that there is only encrypted communication. With HTTPS enabled, all CLI, API, and UI communication needs to verify their identity with a certificate. This affects built-in tooling like `consul members` and the UI.
 
@@ -396,9 +396,9 @@ writing new private key to 'cli.client.dc1.consul.key'
 
 ### Select an interface to bind to
 
-Depending on your setup, you might need to change to which interface you are binding. By default, the UI binds to `127.0.0.1`. 
+Depending on your setup, you might need to change to which interface you are binding. By default, the UI binds to `127.0.0.1`.
 
-Use [`addresses.https`](/consul/docs/reference/agent#https) or [`client_addr`](/consul/docs/reference/agent#client_addr) to update the interface. Be mindful when updating these values because it also impacts the DNS server.
+Use [`addresses.https`](/consul/docs/reference/agent/configuration-file/general#https) or [`client_addr`](/consul/docs/reference/agent/configuration-file/general#client_addr) to update the interface. Be mindful when updating these values because it also impacts the DNS server.
 
 We recommend binding to `0.0.0.0`.
 
@@ -428,7 +428,7 @@ disable_remote_exec = true
 </CodeTabs>
 
 
-Since your Consul agent is now available to the network, verify that [`enable_script_checks`](/consul/docs/reference/agent#_enable_script_checks) is `false` and [`disable_remote_exec`](/consul/docs/reference/agent#disable_remote_exec) is `true`.
+Since your Consul agent is now available to the network, verify that [`enable_script_checks`](/consul/docs/reference/agent/configuration-file/general#enable_script_checks) is `false` and [`disable_remote_exec`](/consul/docs/reference/agent/configuration-file/general#disable_remote_exec) is `true`.
 
 ## Access the Consul UI
 
@@ -449,7 +449,7 @@ HTTP/2 200
 ## ...
 ```
 
-### Enable `verify_incoming_rpc` and disable `verify_incoming` 
+### Enable `verify_incoming_rpc` and disable `verify_incoming`
 When `verify_incoming` is enabled, Consul requires that all incoming connections make use of TLS and that the client provides a certificate signed by a CA from the `ca_file` or `ca_path`. This restriction applies to both server RPC and to the HTTPS API.
 
 Because the browser does not present a certificate signed by your CA, you cannot access the UI. If you `curl` your HTTPS UI, it returns an error.

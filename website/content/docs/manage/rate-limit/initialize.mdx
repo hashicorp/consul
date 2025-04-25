@@ -10,20 +10,20 @@ Because each network has different needs and application, you need to find out w
 
 1. In the agent configuration file, specify a global rate limit with arbitrary values based on the following conditions:
 
-    - Environment where Consul servers are running 
+    - Environment where Consul servers are running
     - Number of servers and the projected load
     - Existing metrics expressing requests per second
 
-1. Set the [`limits.request_limits.mode`](/consul/docs/reference/agent#mode-1) parameter in the agent configuration to `permissive`. In the following example, the configuration allows up to 1000 reads and 500 writes per second for each Consul agent:
+1. Set the [`limits.request_limits.mode`](/consul/docs/reference/agent/configuration-file/general#mode) parameter in the agent configuration to `permissive`. In the following example, the configuration allows up to 1000 reads and 500 writes per second for each Consul agent:
 
     ```hcl
-    request_limits { 
+    request_limits {
 	    mode = "permissive"
 	    read_rate = 1000.0
 	    write_rate = 500.0
     }
-    ``` 
-1. Observe the logs and metrics for your application's typical cycle, such as a 24 hour period. Refer to [Monitor traffic rate limit data](/consul/docs/manage/rate-limit/monitor) for additional information. Call the [`/agent/metrics`](/consul/api-docs/agent#view-metrics) HTTP API endpoint and check the data for the following metrics:  
+    ```
+1. Observe the logs and metrics for your application's typical cycle, such as a 24 hour period. Refer to [Monitor traffic rate limit data](/consul/docs/manage/rate-limit/monitor) for additional information. Call the [`/agent/metrics`](/consul/api-docs/agent#view-metrics) HTTP API endpoint and check the data for the following metrics:
 
     - `rpc.rate_limit.exceeded` with value `global/read` for label `limit_type`
     - `rpc.rate_limit.exceeded` with value `global/write` for label `limit_type`

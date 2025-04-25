@@ -87,7 +87,7 @@ license {
 You can use the `auto_retrieval` block to configure the automatic license retrieval in CTS. When enabled, CTS attempts to retrieve a new license from its configured Consul Enterprise backend once a day. If CTS cannot retrieve a license and the current license is reaching its expiration date, CTS attempts to retrieve a license with increased frequency, as defined by the [License Expiration Date Handling](/consul/docs/nia/enterprise/license#license-expiration-handling).
 
 <Note>
-  
+
 Enabling `auto_retrieval` is recommended when using HCP Consul, as HCP Consul licenses expire more frequently than Consul Enterprise licenses. Without auto-retrieval enabled, you have to restart CTS every time you load a new license.
 
 </Note>
@@ -100,9 +100,9 @@ Enabling `auto_retrieval` is recommended when using HCP Consul, as HCP Consul li
 
 The `consul` block configures the CTS connection with a Consul agent so that CTS can perform queries for task execution. It also configures the automatic registration of CTS as a service with Consul.
 
-<Note> 
-  
-Use HTTP/2 to improve Consul-Terraform-Sync performance when communicating with the local Consul process. [TLS/HTTPS](/consul/docs/reference/agent) must be configured for the local Consul with the [cert_file](/consul/docs/reference/agent#cert_file) and [key_file](/consul/docs/reference/agent#key_file) parameters set. For the Consul-Terraform-Sync configuration, set `tls.enabled = true` and set the `address` parameter to the HTTPS URL, e.g., `address = example.consul.com:8501`. If using self-signed certificates for Consul, you will also need to set `tls.verify = false` or add the certificate to `ca_cert` or `ca_path`.
+<Note>
+
+Use HTTP/2 to improve Consul-Terraform-Sync performance when communicating with the local Consul process. [TLS/HTTPS](/consul/docs/reference/agent) must be configured for the local Consul with the [cert_file](/consul/docs/reference/agent/configuration-file/tls#cert_file) and [key_file](/consul/docs/reference/agent/configuration-file/tls#key_file) parameters set. For the Consul-Terraform-Sync configuration, set `tls.enabled = true` and set the `address` parameter to the HTTPS URL, e.g., `address = example.consul.com:8501`. If using self-signed certificates for Consul, you will also need to set `tls.verify = false` or add the certificate to `ca_cert` or `ca_path`.
 
 </Note>
 
@@ -161,7 +161,7 @@ Configures HTTP basic authentication for communicating with Consul.
 
 ### TLS
 
-Configure TLS to use a secure client connection with Consul. Using HTTP/2 can solve issues related to hitting Consul's maximum connection limits, as well as improve efficiency when processing many blocking queries. This option is required for Consul-Terraform-Sync when connecting to a [Consul agent with TLS verification enabled for HTTPS connections](/consul/docs/reference/agent#verify_incoming).
+Configure TLS to use a secure client connection with Consul. Using HTTP/2 can solve issues related to hitting Consul's maximum connection limits, as well as improve efficiency when processing many blocking queries. This option is required for Consul-Terraform-Sync when connecting to a [Consul agent with TLS verification enabled for HTTPS connections](/consul/docs/reference/agent/configuration-file/tls#verify_incoming).
 
 If Consul is using a self-signed certificate that you have not added to the global CA chain, you can set this certificate with `ca_cert` or `ca_path`. Alternatively, you can disable SSL verification by setting `verify` to false. However, disabling verification is a potential security vulnerability.
 
@@ -179,7 +179,7 @@ If Consul is using a self-signed certificate that you have not added to the glob
 
 Configures the low-level network connection details to Consul.
 
-To achieve the shortest latency between a Consul service update to a task execution, configure `max_idle_conns_per_host` equal to or greater than the number of services in automation across all tasks. This value should be lower than the configured [`http_max_conns_per_client`](/consul/docs/reference/agent#http_max_conns_per_client) for the Consul agent.
+To achieve the shortest latency between a Consul service update to a task execution, configure `max_idle_conns_per_host` equal to or greater than the number of services in automation across all tasks. This value should be lower than the configured [`http_max_conns_per_client`](/consul/docs/reference/agent/configuration-file/general#http_max_conns_per_client) for the Consul agent.
 
 If `max_idle_conns_per_host` and the number of services in automation is greater than the Consul agent limit, CTS may error due to connection limits (status code 429). You may increase the agent limit with caution. _Requests to the Consul agent made by Terraform subprocesses or any other process on the same host as CTS will contribute to the Consul agent connection limit._
 
@@ -258,7 +258,7 @@ The `instance` parameter is an object that contains configurations unique to the
 ## Service
 
 <Note>
-  
+
 Deprecated in CTS 0.5.0 and will be removed in a future major release. `service` blocks are used to define the `task` block's `services` fields, which were also deprecated and replaced with [Services Condition](/consul/docs/automate/infrastructure/configure#services-condition) and [Services Module Input](/consul/docs/automate/infrastructure/configure#services-module-input). `service` block configuration can be replaced by configuring the equivalent fields of the corresponding Services Condition and Services Module Input. Refer to [0.5.0 release notes](/consul/docs/release-notes/consul-terraform-sync/v0_5_x#deprecate-service-block) for examples.
 
 </Note>
@@ -530,7 +530,7 @@ task {
 ### Task Module Input ((#task-source-input))
 
 <Note>
-  
+
 `module_input` was renamed from `source_input` in CTS 0.5.0. Documentation for the `module_input` block also applies to the `source_input` block.
 
 </Note>
@@ -782,7 +782,7 @@ task {
 ```
 
 <Note>
-  
+
 Provider arguments configured in CTS configuration files are written in plain text to the generated [`terraform.tfvars`](/consul/docs/nia/network-drivers#terraform-tfvars) file for each Terraform workspace that references the provider. To exclude arguments or dynamic values from rendering to local files in plain text, use [`task_env` in addition to using dynamic configuration](#securely-configure-terraform-providers).
 
 </Note>
@@ -820,7 +820,7 @@ terraform_provider "foo" {
 ```
 
 <Warning title="Security warning">
-  
+
 CTS does not prevent sensitive values from being written to Terraform state files. We recommend securing state files in addition to securely configuring Terraform providers. Options for securing state files can be set within [`driver.backend`](#backend) based on the backend used. For example, Consul KV is the default backend and can be secured with ACLs for KV path. For other backends, we recommend enabling encryption, if applicable.
 
 </Warning>
@@ -882,7 +882,7 @@ terraform_provider "example" {
 - `unwrap_token` - (bool) Unwraps the provided Vault token as a wrapped token.
 
 <Note>
-  
+
   Vault credentials are not accessible by tasks and the associated Terraform configurations, including automated Terraform modules. If the task requires Vault, you will need to separately configure the Vault provider and explicitly include it in the `task.providers` list.
 
 </Note>

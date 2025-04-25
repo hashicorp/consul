@@ -16,7 +16,7 @@ reads work from a fully in-memory data store that is optimized for concurrent ac
 
 ## Minimum Server Requirements ((#minimum))
 
-In Consul 0.7, the default server [performance parameters](/consul/docs/reference/agent#performance)
+In Consul 0.7, the default server [performance parameters](/consul/docs/reference/agent/configuration-file/general#performance)
 were tuned to allow Consul to run reliably (but relatively slowly) on a server cluster of three
 [AWS t2.micro](https://aws.amazon.com/ec2/instance-types/) instances. These thresholds
 were determined empirically using a leader instance that was under sufficient read, write,
@@ -41,7 +41,7 @@ The default performance configuration is equivalent to this:
 ## Production Server Requirements ((#production))
 
 When running Consul 0.7 and later in production, it is recommended to configure the server
-[performance parameters](/consul/docs/reference/agent#performance) back to Consul's original
+[performance parameters](/consul/docs/reference/agent/configuration-file/general#performance) back to Consul's original
 high-performance settings. This will let Consul servers detect a failed leader and complete
 leader elections much more quickly than the default configuration which extends key Raft
 timeouts by a factor of 5, so it can be quite slow during these events.
@@ -101,14 +101,14 @@ Here are some general recommendations:
   issues between the servers or insufficient CPU resources. Users in cloud environments
   often bump their servers up to the next instance class with improved networking
   and CPU until leader elections stabilize, and in Consul 0.7 or later the [performance
-  parameters](/consul/docs/reference/agent#performance) configuration now gives you tools
+  parameters](/consul/docs/reference/agent/configuration-file/general#performance) configuration now gives you tools
   to trade off performance instead of upsizing servers. You can use the [`consul.raft.leader.lastContact`
   telemetry](/consul/docs/reference/agent/telemetry#leadership-changes) to observe how the Raft timing is
   performing and guide the decision to de-tune Raft performance or add more powerful
   servers.
 
 - For DNS-heavy workloads, configuring all Consul agents in a cluster with the
-  [`allow_stale`](/consul/docs/reference/agent#allow_stale) configuration option will allow reads to
+  [`allow_stale`](/consul/docs/reference/agent/configuration-file/dns#allow_stale) configuration option will allow reads to
   scale across all Consul servers, not just the leader. Consul 0.7 and later enables stale reads
   for DNS by default. See [Stale Reads](/consul/tutorials/networking/dns-caching#stale-reads) in the
   [DNS Caching](/consul/tutorials/networking/dns-caching) guide for more details. It's also good to set
@@ -158,7 +158,7 @@ Since writes must be synced to disk (persistent storage) on a quorum of servers 
 
 For a **read-heavy** workload, configure all Consul server agents with the `allow_stale` DNS option, or query the API with the `stale` [consistency mode](/consul/api-docs/features/consistency). By default, all queries made to the server are RPC forwarded to and serviced by the leader. By enabling stale reads, any server will respond to any query, thereby reducing overhead on the leader. Typically, the stale response is `100ms` or less from consistent mode but it drastically improves performance and reduces latency under high load.
 
-If the leader server is out of memory or the disk is full, the server eventually stops responding, loses its election and cannot move past its last commit time. However, by configuring `max_stale` and setting it to a large value, Consul will continue to respond to queries during such outage scenarios. ([max_stale documentation](/consul/docs/reference/agent#max_stale)).
+If the leader server is out of memory or the disk is full, the server eventually stops responding, loses its election and cannot move past its last commit time. However, by configuring `max_stale` and setting it to a large value, Consul will continue to respond to queries during such outage scenarios. ([max_stale documentation](/consul/docs/reference/agent/configuration-file/dns#max_stale)).
 
 It should be noted that `stale` is not appropriate for coordination where strong consistency is important (i.e. locking or application leader election). For critical cases, the optional `consistent` API query mode is required for true linearizability; the trade off is that this turns a read into a full quorum write so requires more resources and takes longer.
 
@@ -189,8 +189,8 @@ Smearing requests over 30s is sufficient to bring RPC load to a reasonable level
 in all but the very largest clusters, but the extra CPU load from cryptographic
 operations could impact the server's normal work. To limit that, Consul since
 1.4.1 exposes two ways to limit the impact Certificate signing has on the leader
-[`csr_max_per_second`](/consul/docs/reference/agent#ca_csr_max_per_second) and
-[`csr_max_concurrent`](/consul/docs/reference/agent#ca_csr_max_concurrent).
+[`csr_max_per_second`](/consul/docs/reference/agent/configuration-file/service-mesh#ca_csr_max_per_second) and
+[`csr_max_concurrent`](/consul/docs/reference/agent/configuration-file/service-mesh#ca_csr_max_concurrent).
 
 By default we set a limit of 50 per second which is reasonable on modest
 hardware but may be too low and impact rotation times if more than 1500 service

@@ -69,4 +69,4 @@ $ kubectl apply control-plane-request-limit.yaml
 
 ## Disable request rate limits
 
-Set the [limits.request_limits.mode](/consul/docs/reference/agent#mode-1) in the agent configuration to `disabled` to allow services to exceed the specified read and write requests limits. The `disabled` mode applies to all request rate limits, even limits specified in the [control plane request limits configuration entry](/consul/docs/reference/config-entry/control-plane-request-limit).  Note that any other mode specified in the agent configuration only applies to global traffic rate limits.
+Set the [limits.request_limits.mode](/consul/docs/reference/agent/configuration-file/general#mode) in the agent configuration to `disabled` to allow services to exceed the specified read and write requests limits. The `disabled` mode applies to all request rate limits, even limits specified in the [control plane request limits configuration entry](/consul/docs/reference/config-entry/control-plane-request-limit).  Note that any other mode specified in the agent configuration only applies to global traffic rate limits.

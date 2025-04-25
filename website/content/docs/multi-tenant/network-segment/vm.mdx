@@ -14,7 +14,7 @@ This topic describes how to create Consul network segments so that services can 
 
 ## Define segments in the server configuration
 
-1. Add the `segments` block to your server configuration. Refer to the [`segments`](/consul/docs/reference/agent#segments) documentation for details about how to define the configuration.
+1. Add the `segments` block to your server configuration. Refer to the [`segments`](/consul/docs/reference/agent/configuration-file/general#segments) documentation for details about how to define the configuration.
 
   In the following example, an `alpha` segment is configured to listen for traffic on port `8303` and a `beta` segment is configured to listen to traffic on port `8304`:
 
@@ -85,7 +85,7 @@ Client agents can only be members of one segment at a time. You can direct clien
 $ consul agent -config-file client.hcl -join 10.20.10.11:8303 -segment alpha
 ```
 
-Alternatively, you can add the [`retry_join`](/consul/docs/reference/agent#retry_join) and [`segment`](/consul/docs/reference/agent#segment-1) parameters to your client agent configuration file:
+Alternatively, you can add the [`retry_join`](/consul/docs/reference/agent/configuration-file/join#retry_join) and [`segment`](/consul/docs/reference/agent/configuration-file/general#segment-1) parameters to your client agent configuration file:
 
 ```hcl
 node_name  = "consul-client"

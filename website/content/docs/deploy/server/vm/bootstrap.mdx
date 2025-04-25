@@ -40,7 +40,7 @@ You can also create an agent configuration file to use when deploying multiple C
 
 <CodeBlockConfig filename="bootstrap.hcl">
 
-```hcl 
+```hcl
 datacenter = "dc1"
 data_dir = "/tmp/consul"
 log_level = "INFO"
@@ -64,7 +64,7 @@ Consul prints a warning message to the console when the number of servers in a c
 
 ## Join the servers
 
-After you start the servers, you must join them in a cluster to initiate the Raft election. To join servers automatically, specify network addresses or [cloud auto join](/consul/docs/deploy/server/cloud-auto-join) tags for supported cloud environments using either the [-retry-join CLI flag](/consul/commands/agent#_retry_join) or the [`retry_join` configuration option](/consul/docs/reference/agent#retry_join).
+After you start the servers, you must join them in a cluster to initiate the Raft election. To join servers automatically, specify network addresses or [cloud auto join](/consul/docs/deploy/server/cloud-auto-join) tags for supported cloud environments using either the [-retry-join CLI flag](/consul/commands/agent#_retry_join) or the [`retry_join` configuration option](/consul/docs/reference/agent/consul/docs/reference/agent/configuration-file/join#retry_join).
 
 The following examples demonstrate address options and their formatting for the `-retry-join` CLI flag.
 
@@ -129,7 +129,7 @@ After you bootstrap a datacenter, you can make additional changes to the datacen
 
 We recommend removing `bootstrap_expect` from agent configurations and reloading the agents after the initial bootstrap process is complete. This action prevents server agents that fail from unintentionally bootstrapping again after they restart. Instead, they will rejoin a datacenter's cluster automatically.
 
-You can also enable Consul's browser-based user interface, deploy client agents, and register services in the Consul catalog for service discovery and service mesh use cases. Refer to the following topics for more information:  
+You can also enable Consul's browser-based user interface, deploy client agents, and register services in the Consul catalog for service discovery and service mesh use cases. Refer to the following topics for more information:
 
 - [Consul UI visualization](/consul/docs/fundamentals/interface/ui)
 - [Configure client agents](/consul/docs/deploy/workload/client/vm)
