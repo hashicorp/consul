@@ -12,19 +12,16 @@ Config {
   protocol = "http"
 }
 '
-
-# Create service defaults for s1 and s2
-upsert_config_entry primary '
-Kind = "service-defaults"
-Name = "s1"
-Protocol = "http"
-'
-
 # Create API Gateway
 upsert_config_entry primary '
 kind = "api-gateway"
 name = "api-gateway"
 listeners = [
+  {
+    name     = "http-listener"
+    port     = 8080
+    protocol = "http"
+  },
   {
     name = "listener-one"
     port = 9999
@@ -105,7 +102,7 @@ EnvoyExtensions = [
 
 upsert_config_entry primary '
 Kind = "service-defaults"
-Name = "1"
+Name = "s1"
 Protocol = "http"
 EnvoyExtensions = [
   {
@@ -146,7 +143,7 @@ EnvoyExtensions = [
 # Create service intentions
 upsert_config_entry primary '
 Kind = "service-intentions"
-Name = "s1"
+Name = "*"
 Sources = [
   {
     Name = "api-gateway"
