@@ -18,11 +18,6 @@ kind = "api-gateway"
 name = "api-gateway"
 listeners = [
   {
-    name     = "http-listener"
-    port     = 8080
-    protocol = "http"
-  },
-  {
     name = "listener-one"
     port = 9999
     protocol = "http"
