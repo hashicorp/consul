@@ -21,7 +21,7 @@ load helpers
   echo "[DEBUG] response: $output" >&3
 
   [ "$status" == "0" ]
-  echo "$output" | grep "Response modified by Lua script"
+  echo "$output" | grep "body modified by Lua script"
 }
 
 @test "api-gateway should return 200 for valid path" {

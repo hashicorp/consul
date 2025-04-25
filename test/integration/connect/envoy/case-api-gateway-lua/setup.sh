@@ -83,7 +83,7 @@ EnvoyExtensions = [
         function envoy_on_response(response_handle)
           if response_handle:headers():get(":status") == "404" then
               response_handle:headers():replace(":status", "200")
-              local json = '{"message":"Response modified by Lua script","status":"success"}'
+              local json = '{"message":"body modified by Lua script","status":"success"}'
               response_handle:body():setBytes(json)
 
               response_handle:headers():remove("x-envoy-upstream-service-time")
@@ -123,7 +123,7 @@ EnvoyExtensions = [
         function envoy_on_response(response_handle)
           if response_handle:headers():get(":status") == "404" then
               response_handle:headers():replace(":status", "200")
-              local json = '{"message":"Response modified by Lua script","status":"success"}'
+              local json = '{"message":"body modified by Lua script","status":"success"}'
               response_handle:body():setBytes(json)
 
               response_handle:headers():remove("x-envoy-upstream-service-time")
