@@ -20,12 +20,6 @@ Name = "s1"
 Protocol = "http"
 '
 
-upsert_config_entry primary '
-Kind = "service-defaults"
-Name = "s2"
-Protocol = "http"
-'
-
 # Create API Gateway
 upsert_config_entry primary '
 kind = "api-gateway"
@@ -34,11 +28,6 @@ listeners = [
   {
     name = "listener-one"
     port = 9999
-    protocol = "http"
-  },
-  {
-    name = "listener-two"
-    port = 9998
     protocol = "http"
   }
 ]
@@ -50,29 +39,25 @@ kind = "http-route"
 name = "api-gateway-route-one"
 rules = [
   {
-  Matches = [
+    matches = [
       {
-        Path = {
-          Match = "prefix"
-          Value = "/api"
+        path = {
+          match = "prefix"
+          value = "/echo"
         }
       }
     ]
     services = [
       {
         name = "s1"
-      },
-      {
-        name = "s2"
-        weight = 2
       }
     ]
   }
 ]
 parents = [
   {
+    kind = "api-gateway"
     name = "api-gateway"
-    sectionName = "listener-one"
   }
 ]
 '
@@ -118,21 +103,50 @@ EnvoyExtensions = [
 ]
 '
 
-# Create service intentions
 upsert_config_entry primary '
-Kind = "service-intentions"
-Name = "s1"
-Sources = [
+Kind = "service-defaults"
+Name = "1"
+Protocol = "http"
+EnvoyExtensions = [
   {
-    Name = "api-gateway"
-    Action = "allow"
+    Name = "builtin/lua"
+    Arguments = {
+      ProxyType = "connect-proxy"
+      Listener = "inbound"
+      Script = "function envoy_on_request(request_handle) request_handle:headers():add(\"x-lua-added\", \"test-value\") end"
+    }
+  },
+  {
+    name     = "builtin/lua"
+    required = true
+    arguments = {
+      proxyType = "connect-proxy"
+      listener  = "outbound"
+      script    = <<EOT
+        function envoy_on_response(response_handle)
+          if response_handle:headers():get(":status") == "404" then
+              response_handle:headers():replace(":status", "200")
+              local json = '{"message":"Response modified by Lua script","status":"success"}'
+              response_handle:body():setBytes(json)
+
+              response_handle:headers():remove("x-envoy-upstream-service-time")
+              response_handle:headers():remove("x-powered-by")
+              response_handle:headers():replace("cache-control", "no-store")
+              response_handle:headers():remove("content-length")
+              response_handle:headers():replace("content-encoding", "identity")
+              response_handle:headers():replace("content-type", "application/json")
+          end
+        end
+      EOT
+    }
   }
 ]
 '
 
+# Create service intentions
 upsert_config_entry primary '
 Kind = "service-intentions"
-Name = "s2"
+Name = "s1"
 Sources = [
   {
     Name = "api-gateway"
@@ -147,4 +161,3 @@ register_services primary
 # Generate bootstrap configs
 gen_envoy_bootstrap api-gateway 20000 primary true
 gen_envoy_bootstrap s1 19000
-gen_envoy_bootstrap s2 19001

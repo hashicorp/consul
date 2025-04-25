@@ -31,12 +31,17 @@ load helpers
 }
 
 @test "api-gateway should have lua filter configured" {
+  FILTERS=$(get_envoy_http_filters localhost:20000)
+  echo "[DEBUG] filters: $FILTERS" >&3
+
+  echo "$FILTERS" | grep "envoy.filters.http.lua"
+}
+@test "s1 should have lua filter configured" {
   FILTERS=$(get_envoy_http_filters localhost:19000)
   echo "[DEBUG] filters: $FILTERS" >&3
 
   echo "$FILTERS" | grep "envoy.filters.http.lua"
 }
-
 @test "api gateway should add Lua header when connecting to s1" {
   run retry_long sh -c "curl -s -D - localhost:9999/ | grep x-lua-added"
   [ "$status" -eq 0 ]
