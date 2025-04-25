@@ -60,7 +60,7 @@ parents = [
 '
 
 # Create service defaults for API Gateway with LUA extension
-upsert_config_entry primary '
+upsert_config_entry primary "$(cat <<'EOF'
 Kind = "service-defaults"
 Name = "api-gateway"
 Protocol = "http"
@@ -98,9 +98,10 @@ EnvoyExtensions = [
     }
   }
 ]
-'
+EOF
+)"
 
-upsert_config_entry primary '
+upsert_config_entry primary "$(cat <<'EOF'
 Kind = "service-defaults"
 Name = "s1"
 Protocol = "http"
@@ -138,7 +139,8 @@ EnvoyExtensions = [
     }
   }
 ]
-'
+EOF
+)"
 
 # Create service intentions
 upsert_config_entry primary '
