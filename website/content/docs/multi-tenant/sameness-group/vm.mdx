@@ -6,7 +6,7 @@ description: |-
 
 # Create sameness groups
 
-This topic describes how to create a sameness group, which designates a set of admin partitions as functionally identical in your network. Adding an admin partition to a sameness group enables Consul to recognize services registered to remote partitions with cluster peering connections as instances of the same service when they share a name and namespace.
+This page describes how to create a sameness group, which designates a set of admin partitions as functionally identical in your network. Adding an admin partition to a sameness group enables Consul to recognize services registered to remote partitions with cluster peering connections as instances of the same service when they share a name and namespace.
 
 For information about configuring a failover strategy using sameness groups, refer to [Failover with sameness groups](/consul/docs/manage-traffic/failover/sameness-group).
 
@@ -23,17 +23,17 @@ To create and use sameness groups in your network, complete the following steps:
 ## Requirements
 
 - All datacenters where you want to create sameness groups must run Consul v1.16 or later. Refer to [upgrade instructions](/consul/docs/upgrade/instructions) for more information about how to upgrade your deployment.
-- A [Consul Enterprise license](/consul/docs/enterprise/license) is required.
+- A [Consul Enterprise license](/consul/docs/enterprise/license).
 
 ### Before you begin
 
-Before creating a sameness group, take the following actions to prepare your network:
+Before creating a sameness group, take the following actions to prepare your network.
 
 #### Check namespace and service naming conventions
 
 Sameness groups are defined at the partition level. Consul assumes all partitions in the group have identical configurations, including identical service names and identical namespaces. This behavior occurs even when partitions in the group contain functionally different services that share a common name and namespace. For example, if distinct services named `api` were registered to different members of a sameness group, it could lead to errors because requests may be sent to the incorrect service.
 
-To prevent errors, check the names of the services deployed to your network and the namespaces they are deployed in. Pay particular attention to the default namespace to confirm that services have unique names. If different services share a name, you should either change one of the service’s names or deploy one of the services to a different namespace.
+To prevent errors, check the names of the services deployed to your network and the namespaces they are deployed in. Pay particular attention to the default namespace to confirm that services have unique names. If different services share a name, you should either change one of the service's names or deploy one of the services to a different namespace.
 
 #### Deploy mesh gateways for each partition
 
@@ -49,13 +49,13 @@ To establish cluster peering connections and define a group as part of the same 
 
 ## Create a sameness group
 
-To create a sameness group, you must write and apply a set of three configuration entries for each partition that is a member of the group:
+To create a sameness group, you must write and apply a set of three configuration entries for each partition that is a member of the group.
 
-- Sameness group configuration entries: Defines the sameness group from each partition’s perspective.
+- Sameness group configuration entries: Defines the sameness group from each partition's perspective.
 - Exported services configuration entries: Makes services available to other partitions in the group.
 - Service intentions configuration entries: Authorizes traffic between services across partitions.
 
-### Define the sameness group from each partition’s perspective
+### Define the sameness group from each partition's perspective
 
 To define a sameness group for a partition, create a [sameness group configuration entry](/consul/docs/reference/config-entry/sameness-group) that describes the partitions and cluster peers that are part of the group. Typically, the order follows this pattern:
 
@@ -65,16 +65,16 @@ To define a sameness group for a partition, create a [sameness group configurati
 
 If you want all services to failover to other instances in the sameness group by default, set `DefaultForFailover=true` and list the group members in the order you want to use in a failover scenario. Refer to [failover with sameness groups](/consul/docs/manage-traffic/failover/sameness-group) for more information.
 
-Be aware that the sameness group configuration entries are different for each partition. The following example demonstrates how to format three different configuration entries for three partitions that are part of the sameness group `product-group` when Partition 1 and Partition 2 are in DC1, and the third partition is Partition 1 in DC2:
+Be aware that the sameness group configuration entries are different for each partition. The following example demonstrates how to format three different configuration entries for three partitions that are part of the sameness group `product-group` when Partition 1 and Partition 2 are in DC1, and the third partition is Partition 1 in DC2.
 
 <CodeTabs tabs={[ "dc1-partition-1", "dc1-partition-2", "dc2-partition-1" ]}>
 
 <CodeBlockConfig filename="product-group.hcl" hideClipboard lineNumbers highlight="3,6-8">
 
 ```hcl
-Kind                     = "sameness-group"  
+Kind                     = "sameness-group"
 Name                   = "product-group"
-Partition                = "partition-1" 
+Partition                = "partition-1"
 Members                = [
       {Partition = "partition-1"},
       {Partition = "partition-2"},
@@ -87,9 +87,9 @@ Members                = [
 <CodeBlockConfig filename="product-group.hcl" hideClipboard lineNumbers highlight="3,6-8">
 
 ```hcl
-Kind                     = "sameness-group"  
+Kind                     = "sameness-group"
 Name                   = "product-group"
-Partition                = "partition-2" 
+Partition                = "partition-2"
 Members                = [
       {Partition = "partition-2"},
       {Partition = "partition-1"},
@@ -102,9 +102,9 @@ Members                = [
 <CodeBlockConfig filename="product-group.hcl" hideClipboard lineNumbers highlight="3,6-8">
 
 ```hcl
-Kind                     = "sameness-group"  
+Kind                     = "sameness-group"
 Name                   = "product-group"
-Partition                = "partition-1" 
+Partition                = "partition-1"
 Members                = [
       {Partition = "partition-1"},
       {Peer = "dc1-partition-1"},
@@ -116,7 +116,8 @@ Members                = [
 
 </CodeTabs>
 
-After you create the configuration entry, apply it to the Consul server with the following CLI command:
+After you create the configuration entry, apply it to the Consul server with the
+`consul config write` command.
 
 ```shell-session
 $ consul config write product-group.hcl
@@ -137,9 +138,9 @@ The following example demonstrates how to format three different `exported-servi
 <CodeBlockConfig hideClipboard lineNumbers highlight="3,8-9">
 
 ```hcl
-Kind                     = "exported-services"  
+Kind                     = "exported-services"
 Name                   = "product-sg-export"
-Partition                = "partition-1" 
+Partition                = "partition-1"
 Services = [
   {
     Name = "api"
@@ -156,9 +157,9 @@ Services = [
 <CodeBlockConfig hideClipboard lineNumbers highlight="3,8-9">
 
 ```hcl
-Kind                     = "exported-services"  
+Kind                     = "exported-services"
 Name                   = "product-sg-export"
-Partition                = "partition-2" 
+Partition                = "partition-2"
 Services = [
   {
     Name = "api"
@@ -175,9 +176,9 @@ Services = [
 <CodeBlockConfig hideClipboard lineNumbers highlight="3,8-9">
 
 ```hcl
-Kind                     = "exported-services"  
+Kind                     = "exported-services"
 Name                   = "product-sg-export"
-Partition                = "partition-1" 
+Partition                = "partition-1"
 Services = [
   {
     Name = "api"
@@ -195,7 +196,8 @@ Services = [
 
 For more information about exporting services, including examples of configuration entries that export multiple services at the same time, refer to the [exported services configuration entry reference](/consul/docs/reference/config-entry/exported-services).
 
-After you create each exported services configuration entry, apply it to the Consul server with the following CLI command:
+After you create the configuration entry, apply it to the Consul server with the
+`consul config write` command.
 
 ```shell-session
 $ consul config write product-sg-export.hcl
@@ -283,7 +285,8 @@ Sources   = [
 
 Refer to [create and manage intentions](/consul/docs/secure-mesh/intention/create) for more information about how to create and apply service intentions in Consul.
 
-After you create each service intentions configuration entry, apply it to the Consul server with the following CLI command:
+After you create the configuration entry, apply it to the Consul server with the
+`consul config write` command.
 
 ```shell-session
 $ consul config write api-intentions.hcl
@@ -299,7 +302,7 @@ Configure the `Sources` block with the `SamenessGroup` field instead of the `Pee
 
 ## Next steps
 
-When `DefaultForFailover=true` in a sameness group configuration entry, additional upstream configuration is not required. 
+When `DefaultForFailover=true` in a sameness group configuration entry, additional upstream configuration is not required.
 
 After creating a sameness group, you can use them with static Consul DNS lookups and dynamic DNS lookups (prepared queries) for service discovery use cases. You can also set up failover between services in a sameness group. Refer to the following topics for more details:
 
