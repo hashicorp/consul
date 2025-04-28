@@ -17,7 +17,7 @@ load helpers
 }
 
 @test "api-gateway should return 200 with custom message for non-existent path" {
-  run retry_default curl -s -d "hello" "localhost:8080/nonexistent"
+  run retry_default curl -s -d "hello" "localhost:8080/nonexistent.html"
   echo "[DEBUG] response: $output" >&3
 
   [ "$status" == "0" ]
