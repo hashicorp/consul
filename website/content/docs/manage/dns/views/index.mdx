@@ -2,12 +2,12 @@
 layout: docs
 page_title: Consul DNS views for Kubernetes
 description: ->
-    Kubernetes clusters can use the Consul DNS proxy to return service discovery results from the Consul catalog. Learn about how to configure your k8s cluster so that applications can resolve Consul DNS addresses without gossip communication.
+    Kubernetes clusters can use the Consul DNS proxy to return service discovery results from the Consul catalog. Learn about how to configure your Kubernetes cluster so that applications can resolve Consul DNS addresses without gossip communication.
 ---
 
 # Consul DNS views for Kubernetes
 
-This topic describes how to schedule a dedicated Consul DNS proxy in a Kubernetes Pod so that applications in Kubernetes can resolve Consul DNS addresses. You can use the Consul DNS proxy to enable service discovery across admin partitions in Kubernetes deployments without needing to deploy Consul client agents.
+This page describes how to schedule a dedicated Consul DNS proxy in a Kubernetes Pod so that applications in Kubernetes can resolve Consul DNS addresses. You can use the Consul DNS proxy to enable service discovery across admin partitions in Kubernetes deployments without needing to deploy Consul client agents.
 
 ## Introduction
 
@@ -39,9 +39,10 @@ The process to enable Consul DNS views for service discovery in OpenShift deploy
 1. Look up the IP address for the Consul DNS proxy in the OpenShift cluster.
 1. Update the default DNS Operator configuration in the OpenShift cluster so that it forwards requests for the `.consul` domain to the K8s cluster IP address of the Consul DNS service.
 1. Optionally, [test the DNS resolver](/consul/docs/manage/dns/forwarding/k8s#verifying-dns-works) to make sure it was configured correctly.
+
 ## Benefits
 
-Consul on Kubernetes currently uses [Consul dataplanes](/consul/docs/architecture/control-plane/dataplane) by default. These lightweight processes provide Consul access to the sidecar proxies in the service mesh, but leave Kubernetes in charge of most other service discovery and service mesh operations.
+Consul on Kubernetes currently uses [Consul dataplanes](/consul/docs/architecture/control-plane/dataplane) by default. These lightweight processes provide Consul access to the sidecar proxies in the service mesh but leave Kubernetes in charge of most other service discovery and service mesh operations.
 
 - **Use Kubernetes DNS and Consul DNS in a single deployment**. The Consul DNS proxy enables any application in a Pod to resolve an address through Consul DNS without disrupting the underlying Kubernetes DNS functionality.
 - **Consul service discovery using fewer resources**. When you use the Consul DNS proxy for service discovery, you do not need to schedule Consul client agents or dataplanes as sidecars. One Kubernetes Service that uses the same resources as a single Consul dataplane provides Pods access to the Consul service catalog.
@@ -49,7 +50,9 @@ Consul on Kubernetes currently uses [Consul dataplanes](/consul/docs/architectur
 
 ## Constraints and limitations
 
-If you experience issues using the Consul DNS proxy for Kubernetes, refer to the following list of technical constraints and limitations.
+If you experience issues using the Consul DNS proxy for Kubernetes, refer to the following list of technical constraints and limitations:
 
 -  You must use Kubernetes as your runtime to use the Consul DNS proxy. You cannot schedule the Consul DNS proxy in other container-based environments.
--  To perform DNS lookups on other admin partitions, you must [export services between partitions](/consul/docs/reference/config-entry/exported-services) before you can query them.
+-  To perform DNS lookups on other admin partitions, you must [export services
+   between partitions](/consul/docs/reference/config-entry/exported-services)
+   before you can query them.
