@@ -341,7 +341,7 @@ performance {
     rpc_hold_timeout = "15707s"
     grpc_keepalive_interval = "33s"
     grpc_keepalive_timeout = "22s"
-    disable_xds_load_balancing=true
+    disable_xds_load_balancing = true
 }
 pid_file = "43xN80Km"
 ports {

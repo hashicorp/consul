@@ -742,7 +742,7 @@ type RuntimeConfig struct {
 	// DisableXDSLoadBalancing controls whether xDS load balancing between servers
 	// is disabled. When enabled (default), xDS clients will be load balanced across
 	// available servers and Consul will make sure that the load is distributed across all the servers with an error margin of 0.1.
-	// When disabled, Consul will not restrict on the number of xDS connections on a server. It is  expected to have an external load balancer infront of the consul servers and distribute the load accordingly.
+	// When disabled, Consul will not restrict on the number of xDS connections on a server. It is  expected to have an external load balancer in front of the consul servers and distribute the load accordingly.
 	DisableXDSLoadBalancing bool
 
 	// HTTPAddrs contains the list of TCP addresses and UNIX sockets the HTTP

@@ -155,15 +155,15 @@ func (c *Controller) updateMaxSessions(numServers, numProxies uint32) {
 	if numServers == 0 || numProxies == 0 {
 		return
 	}
-	maxSessions := uint32(0)
-	if !c.cfg.DisableXDSLoadBalancing {
+	maxSessions := uint32(0)            // setting 0 to the maxSessions so that per server will be set to unlimited
+	if !c.cfg.DisableXDSLoadBalancing { // By default, XDS Load balancing is enabled. So, it will set maxSessions based on the number of servers and proxies with error margin.
 		maxSessions = uint32(math.Ceil((float64(numProxies) / float64(numServers)) * (1 + errorMargin)))
 	}
 	if maxSessions == c.prevMaxSessions {
 		return
 	}
 
-	c.cfg.Logger.Info(
+	c.cfg.Logger.Debug(
 		"updating max sessions",
 		"error_margin", errorMargin,
 		"max_sessions", maxSessions,
