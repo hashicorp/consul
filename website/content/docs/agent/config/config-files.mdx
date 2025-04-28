@@ -614,6 +614,8 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
   - `grpc_keepalive_timeout` - A duration that determines how long a Consul server waits for a reply to a keep-alive message. If the server does not receive a reply before the end of the duration, Consul flags the gRPC connection as unhealthy and forcibly removes it. Defaults to `20s`.
 
+  - 'enable_xds_load_balancing' - Load balancing of xDS Sessions on the server. false to disable consul internal load balancing so that there is no limit on the number of sessions per server.
+
 - `pid_file` Equivalent to the [`-pid-file` command line flag](/consul/docs/agent/config/cli-flags#_pid_file).
 
 - `ports` This is a nested object that allows setting the bind ports for the following keys:
