@@ -1,23 +1,26 @@
 ---
-page_title: Create sameness groups
+page_title: Create sameness groups on Kubernetes
 description: |-
   Learn how to create sameness groups between partitions and cluster peers on Kubernetes so that Consul can identify instances of the same service across partitions and datacenters.
 ---
 
 # Create sameness groups on Kubernetes
 
-This topic describes how to create a sameness group, which designates a set of admin partitions as functionally identical in a Consul deployment running Kubernetes. Adding an admin partition to a sameness group enables Consul to recognize services registered to remote partitions with cluster peering connections as instances of the same service when they share a name and Consul namespace.
+This page describes how to create a sameness group, which designates a set of admin partitions as functionally identical in a Consul deployment running Kubernetes. Adding an admin partition to a sameness group enables Consul to recognize services registered to remote partitions with cluster peering connections as instances of the same service when they share a name and Consul namespace.
 
 For information about configuring a failover strategy using sameness groups, refer to [Failover with sameness groups](/consul/docs/manage-traffic/failover/sameness-group).
 
-## Overview
+## Workflow
 
-Sameness groups are a user-defined set of partitions with identical configurations, includingcustom resource definitions (CRDs) for service and proxy defaults. Partitions on separate clusters should have an established cluster peering connection in order to recognize each other.
+Sameness groups are a user-defined set of partitions with identical
+configurations, including custom resource definitions (CRDs) for service and
+proxy defaults. Partitions on separate clusters should have an established
+cluster peering connection in order to recognize each other.
 
 To create and use sameness groups in your network, complete the following steps:
 
-- **Create sameness group custom resource definitions (CRDs) for each member of the group**. For each partition that you want to include in the sameness group, you must write and apply a sameness group CRD that defines the group’s members from that partition’s perspective. Refer to the [sameness group configuration entry reference](/consul/docs/reference/config-entry/sameness-group) for details on configuration hierarchy, default values, and specifications.
-- **Export services to members of the sameness group**. You must write and apply an exported services CRD that makes the partition’s services available to other members of the group. Refer to [exported services configuration entry reference](/consul/docs/reference/config-entry/exported-services) for additional specification information.
+- **Create sameness group custom resource definitions (CRDs) for each member of the group**. For each partition that you want to include in the sameness group, you must write and apply a sameness group CRD that defines the group's members from that partition's perspective. Refer to the [sameness group configuration entry reference](/consul/docs/reference/config-entry/sameness-group) for details on configuration hierarchy, default values, and specifications.
+- **Export services to members of the sameness group**. You must write and apply an exported services CRD that makes the partition's services available to other members of the group. Refer to [exported services configuration entry reference](/consul/docs/reference/config-entry/exported-services) for additional specification information.
 - **Create service intentions for each member of the sameness group**. For each partition that you want to include in the sameness group, you must write and apply service intentions CRDs to authorize traffic to your services from all members of the group. Refer to the [service intentions configuration entry reference](/consul/docs/reference/config-entry/service-intentions) for additional specification information.
 
 ## Requirements
@@ -27,7 +30,8 @@ To create and use sameness groups in your network, complete the following steps:
 
 ### Before you begin
 
-Before creating a sameness group, take the following actions to prepare your network:
+Before creating a sameness group, take the following actions to prepare your
+network.
 
 #### Check Consul namespaces and service naming conventions
 
@@ -53,7 +57,7 @@ To create a sameness group, you must write and apply a set of three CRDs for eac
 - Exported services CRDs: Make services available to other partitions in the group.
 - Service intentions CRDs: Authorize traffic between services across partitions.
 
-### Define the sameness group from each partition’s perspective
+### Define the sameness group from each partition's perspective
 
 To define a sameness group for a partition, create a [sameness group CRD](/consul/docs/reference/config-entry/sameness-group) that describes the partitions and cluster peers that are part of the group. Typically, this order follows this pattern:
 
@@ -63,7 +67,7 @@ To define a sameness group for a partition, create a [sameness group CRD](/consu
 
 If you want all services to failover to other instances in the sameness group by default, set `spec.defaultForFailover=true` and list the group members in the order you want to use in a failover scenario. Refer to [failover with sameness groups](/consul/docs/manage-traffic/failover/sameness-group) for more information.
 
-Be aware that the sameness group CRDs are different for each partition. The following example demonstrates how to format three different CRDs for three partitions that are part of the sameness group `product-group` when Partition 1 and Partition 2 are in DC1, and the third partition is Partition 1 in DC2:
+Be aware that the sameness group CRDs are different for each partition. The following example demonstrates how to format three different CRDs for three partitions that are part of the sameness group `product-group` when Partition 1 and Partition 2 are in DC1, and the third partition is Partition 1 in DC2.
 
 <CodeTabs tabs={[ "dc1-partition-1", "dc1-partition-2", "dc2-partition-1" ]}>
 
@@ -71,12 +75,12 @@ Be aware that the sameness group CRDs are different for each partition. The foll
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
-kind: SamenessGroup 
+kind: SamenessGroup
 metadata:
   name: product-group
 spec:
   defaultForFailover: true
-  members:                                   
+  members:
     - partition: partition-1
     - partition: partition-2
     - peer: dc2-partition-1
@@ -88,15 +92,15 @@ spec:
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
-kind: SamenessGroup 
+kind: SamenessGroup
 metadata:
   name: product-group
 spec:
   defaultForFailover: true
-  members:                                   
+  members:
     - partition: partition-2
     - partition: partition-1
-    - peer: dc2-partition-1  
+    - peer: dc2-partition-1
 ```
 
 </CodeBlockConfig>
@@ -105,12 +109,12 @@ spec:
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
-kind: SamenessGroup 
+kind: SamenessGroup
 metadata:
   name: product-group
 spec:
   defaultForFailover: true
-  members:                                   
+  members:
     - partition: partition-1
     - peer: dc1-partition-1
     - peer: dc1-partition-2
@@ -120,7 +124,8 @@ spec:
 
 </CodeTabs>
 
-After you create the CRD, apply it to the Consul server with the following `kubectl` CLI command:
+After you create the CRD, apply it to the Consul server with the `kubectl apply`
+command.
 
 ```shell-session
 $ kubectl apply -f product-group.yaml
@@ -134,7 +139,7 @@ To make services available to other members of the sameness group, you must writ
 
 Because you are configuring the consumer to reference the sameness group instead of listing out each partition and cluster peer, you do not need to edit this configuration again when you add a partition or peer to the group.
 
-The following example demonstrates how to format three different `ExportedServices` CRDs to make a service named `api` deployed to the `store` namespace of each partition available to all other group members:
+The following example demonstrates how to format three different `ExportedServices` CRDs to make a service named `api` deployed to the `store` namespace of each partition available to all other group members.
 
 <CodeTabs tabs={[ "dc1-partition-1", "dc1-partition-2", "dc2-partition-1" ]}>
 
@@ -193,7 +198,8 @@ spec:
 
 For more information about exporting services, including examples of CRDs that export multiple services at the same time, refer to the [exported services configuration entry reference](/consul/docs/reference/config-entry/exported-services).
 
-After you create each exported services configuration entry, apply it to the Consul server with the following CLI command:
+After you create the CRD, apply it to the Consul server with the `kubectl apply`
+command.
 
 ```shell-session
 $ kubectl apply -f product-group-export.yaml
@@ -273,7 +279,8 @@ spec:
 
 Refer to [create and manage intentions](/consul/docs/secure-mesh/intention/create) for more information about how to create and apply service intentions in Consul.
 
-After you create each service intentions configuration entry, apply it to the Consul server with the following CLI command:
+After you create the CRD, apply it to the Consul server with the `kubectl apply`
+command.
 
 ```shell-session
 $ kubectl apply -f api-intentions.yaml
