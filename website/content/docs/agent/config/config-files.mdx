@@ -614,7 +614,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
   - `grpc_keepalive_timeout` - A duration that determines how long a Consul server waits for a reply to a keep-alive message. If the server does not receive a reply before the end of the duration, Consul flags the gRPC connection as unhealthy and forcibly removes it. Defaults to `20s`.
 
-  - 'enable_xds_load_balancing' - Load balancing of xDS Sessions on the server. false to disable consul internal load balancing so that there is no limit on the number of sessions per server.
+  - `enable_xds_load_balancing` - Load balancing of xDS Sessions on the server. If true, the total number of xds sessions are divided among the available servers. If the number of sessions reaches a threshold, it rejects the connection; hence the XDS client can retry on different server. If false, the server will accept all xDS sessions received on it. This is useful for cases where there is load balancer in front of consul servers, and it is distributing the load across the servers.
 
 - `pid_file` Equivalent to the [`-pid-file` command line flag](/consul/docs/agent/config/cli-flags#_pid_file).
 
