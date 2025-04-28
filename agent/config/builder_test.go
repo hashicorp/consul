@@ -731,3 +731,78 @@ func TestBuilder_CloudConfigWithEnvironmentVars(t *testing.T) {
 		})
 	}
 }
+
+/*
+func TestLoad_DisableXDSLoadBalancing(t *testing.T) {
+	type testCase struct {
+		name     string
+		config   string
+		format   string
+		expected bool
+	}
+
+	fn := func(t *testing.T, tc testCase) {
+		opts := LoadOpts{
+			DefaultConfig: FileSource{
+				Name:   "test",
+				Format: tc.format,
+				Data:   tc.config,
+			},
+		}
+		patchLoadOptsShims(&opts)
+		result, err := Load(opts)
+		require.NoError(t, err)
+		require.Empty(t, result.Warnings)
+		require.Equal(t, tc.expected, result.RuntimeConfig.DisableXDSLoadBalancing)
+	}
+
+	var testCases = []testCase{
+		{
+			name: "HCL - enabled",
+			config: `
+				performance {
+					disable_xds_load_balancing = true
+				}
+			`,
+			format:   "hcl",
+			expected: true,
+		},
+		{
+			name: "HCL - disabled",
+			config: `
+				performance {
+					disable_xds_load_balancing = false
+				}
+			`,
+			format:   "hcl",
+			expected: false,
+		},
+		{
+			name: "JSON - enabled",
+			config: `{
+				"performance": {
+					"disable_xds_load_balancing": true
+				}
+			}`,
+			format:   "json",
+			expected: true,
+		},
+		{
+			name: "JSON - disabled",
+			config: `{
+				"performance": {
+					"disable_xds_load_balancing": false
+				}
+			}`,
+			format:   "json",
+			expected: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			fn(t, tc)
+		})
+	}
+}
+*/

@@ -1033,6 +1033,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		KVMaxValueSize:             uint64Val(c.Limits.KVMaxValueSize),
 		LeaveDrainTime:             b.durationVal("performance.leave_drain_time", c.Performance.LeaveDrainTime),
 		LeaveOnTerm:                leaveOnTerm,
+		DisableXDSLoadBalancing:    boolVal(c.Performance.DisableXDSLoadBalancing),
 		StaticRuntimeConfig: StaticRuntimeConfig{
 			EncryptVerifyIncoming: boolVal(c.EncryptVerifyIncoming),
 			EncryptVerifyOutgoing: boolVal(c.EncryptVerifyOutgoing),

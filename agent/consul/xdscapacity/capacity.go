@@ -55,9 +55,10 @@ type Controller struct {
 
 // Config contains the dependencies for Controller.
 type Config struct {
-	Logger         hclog.Logger
-	GetStore       func() Store
-	SessionLimiter SessionLimiter
+	Logger                  hclog.Logger
+	GetStore                func() Store
+	SessionLimiter          SessionLimiter
+	DisableXDSLoadBalancing bool
 }
 
 // SessionLimiter is used to enforce the session limit to achieve the ideal
@@ -154,14 +155,17 @@ func (c *Controller) updateMaxSessions(numServers, numProxies uint32) {
 	if numServers == 0 || numProxies == 0 {
 		return
 	}
-
-	maxSessions := uint32(math.Ceil((float64(numProxies) / float64(numServers)) * (1 + errorMargin)))
+	maxSessions := uint32(0)
+	if !c.cfg.DisableXDSLoadBalancing {
+		maxSessions = uint32(math.Ceil((float64(numProxies) / float64(numServers)) * (1 + errorMargin)))
+	}
 	if maxSessions == c.prevMaxSessions {
 		return
 	}
 
-	c.cfg.Logger.Debug(
+	c.cfg.Logger.Info(
 		"updating max sessions",
+		"error_margin", errorMargin,
 		"max_sessions", maxSessions,
 		"num_servers", numServers,
 		"num_proxies", numProxies,

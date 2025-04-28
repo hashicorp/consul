@@ -522,5 +522,6 @@
     "VersionMetadata": "",
     "VersionPrerelease": "",
     "Watches": [],
-    "XDSUpdateRateLimit": 0
+    "XDSUpdateRateLimit": 0,
+    "DisableXDSLoadBalancing":false
 }

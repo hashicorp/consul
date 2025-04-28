@@ -120,6 +120,7 @@ func DefaultSource() Source {
 			rpc_hold_timeout = "7s"
 			grpc_keepalive_interval = "30s"
 			grpc_keepalive_timeout = "20s"
+			disable_xds_load_balancing = false
 		}
 		ports = {
 			dns = 8600

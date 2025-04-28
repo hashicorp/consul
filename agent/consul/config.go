@@ -462,7 +462,8 @@ type Config struct {
 
 	// ServerRejoinAgeMax is used to specify the duration of time a server
 	// is allowed to be down/offline before a startup operation is refused.
-	ServerRejoinAgeMax time.Duration
+	ServerRejoinAgeMax      time.Duration
+	DisableXDSLoadBalancing bool
 }
 
 func (c *Config) InPrimaryDatacenter() bool {

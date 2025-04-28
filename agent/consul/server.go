@@ -857,9 +857,10 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	go s.trackLeaderChanges()
 
 	s.xdsCapacityController = xdscapacity.NewController(xdscapacity.Config{
-		Logger:         s.logger.Named(logging.XDSCapacityController),
-		GetStore:       func() xdscapacity.Store { return s.fsm.State() },
-		SessionLimiter: flat.XDSStreamLimiter,
+		Logger:                  s.logger.Named(logging.XDSCapacityController),
+		GetStore:                func() xdscapacity.Store { return s.fsm.State() },
+		SessionLimiter:          flat.XDSStreamLimiter,
+		DisableXDSLoadBalancing: s.config.DisableXDSLoadBalancing,
 	})
 	go s.xdsCapacityController.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
