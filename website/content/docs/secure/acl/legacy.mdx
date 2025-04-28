@@ -7,11 +7,13 @@ description: >-
 
 # Migrate Access Control List (ACL) tokens
 
-This page describes how to migrate your legacy ACL tokens if you have a Consul cluster that uses a version older than 1.4.0. Specifically, you will learn to:
+This page describes how to migrate your legacy ACL tokens if you have a Consul
+cluster that uses a version older than 1.4.0. You learn how to perform the
+following tasks:
 
-- manually migrate an agent token and get familiar with the CLI commands for ACL
-- automate the token migration for tokens and policies that don't require tuning
-- identify opportunities for improvement in your ACL configuration thanks to the new ACL system improvements.
+- Manually migrate an agent token and get familiar with the CLI commands for ACL
+- Automate the token migration for tokens and policies that don't require tuning
+- Identify opportunities for improvement in your ACL configuration thanks to the new ACL system improvements.
 
 There are three different ways to migrate tokens: single token, simple policy mapping, and combine policy updates. Single token updates are a manual process for sensitive tokens. You can use simple policy mapping and combine policy updates to automate updating multiple tokens.
 
@@ -104,7 +106,7 @@ service_prefix "" {
 Notice the new policy has a `service_prefix` rule and not the original `service`. Since the legacy ACL syntax had an implicit prefix match, the `_prefix` was applied to all rules without needing to be specified. Now that `_prefix` is no longer implicit, you will need to add it to ensure any clients relying on prefix matching behavior will still work. You can use the Consul CLI to update the policy, without needing to edit the policy file.
 
 <Tip>
-  
+
 It might be beneficial for security to translate prefix matches into exact matches. However, this requires the operator knowing that clients using the token really don't rely on the prefix matching semantics of the old ACL system.
 
 </Tip>
@@ -320,4 +322,6 @@ These instructions assumes that all clients that need to create ACL tokens (for 
 
 Specifically if you are using Vault's Consul secrets engine, you need to be running Vault 1.0.0 or higher and you must update all roles defined in Vault to specify a list of policy names rather than an inline policy (which causes Vault to use the legacy API).
 
-If you have systems still creating "legacy" tokens with the old APIs, the following migration steps will still work, however you need to keep re-running them until nothing is creating legacy tokens to ensure all tokens are migrated.
+If you have systems still creating "legacy" tokens with the old APIs, the
+following migration steps will still work, however you need to keep re-running
+them until nothing is creating legacy tokens to ensure all tokens are migrated.
