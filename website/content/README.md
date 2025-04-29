@@ -192,7 +192,7 @@ Operations consists of the following phases, intentionally ordered to reflect th
 
 | Phase                | Directory       | Description                                                                                                                                               |
 | :------------------- | :-------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Deploy Consul        | `deploy`        | The processes to install and start Consul server agents, client agents and dataplanes.                                                                    |
+| Deploy Consul        | `deploy`        | The processes to install and start Consul server agents, client agents, and dataplanes.                                                                   |
 | Secure Consul        | `secure`        | The processes to set up and maintain secure communications with Consul agents, including ACLs, TLS, and gossip.                                           |
 | Manage multi-tenancy | `multi-tenant`  | The processes to use one Consul datacenter for multiple tenants, including admin partitions, namespaces, network segments, and sameness groups.           |
 | Manage Consul        | `manage`        | The processes to manage and customize Consul's behavior, including DNS forwarding on nodes, server disaster recovery, rate limiting, and scaling options. |

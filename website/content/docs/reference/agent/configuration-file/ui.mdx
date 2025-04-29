@@ -11,12 +11,8 @@ This page provides reference information for UI parameters in a Consul agent con
 
 ## UI parameters
 
-- `ui` - **This field is deprecated in Consul 1.9.0. See the [`ui_config.enabled`](#ui_config_enabled) field instead.**
-  Equivalent to the [`-ui`](/consul/commands/agent#_ui) command-line flag.
-
 - `ui_config` - This object allows a number of sub-keys to be set which controls
-  the display or features available in the UI. Configuring the UI with this
-  stanza was added in Consul 1.9.0.
+  the display or features available in the UI. 
 
   The following sub-keys are available:
 
@@ -135,9 +131,3 @@ This page provides reference information for UI parameters in a Consul agent con
       - `{{Service.Partition}}` - Replaced with the current service's admin
         partition or empty if admin partitions are not enabled.
       - `{{Datacenter}}` - Replaced with the current service's datacenter.
-
-- `ui_dir` - **This field is deprecated in Consul 1.9.0. See the [`ui_config.dir`](#ui_config_dir) field instead.**
-  Equivalent to the [`-ui-dir`](/consul/commands/agent#_ui_dir) command-line
-  flag. This configuration key is not required as of Consul version 0.7.0 and later.
-  Specifying this configuration key will enable the web UI. There is no need to specify
-  both ui-dir and ui. Specifying both will result in an error.

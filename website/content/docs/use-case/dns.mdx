@@ -1,11 +1,20 @@
 ---
 layout: docs
-page_title: Consul Compared to Other DNS Tools 
+page_title: Consul DNS use cases
 description: >-
   Service discovery is one of Consul's foundational capabilities. Consul is platform agnostic, which allows it to discover services across multiple runtimes and cloud providers including VMs, bare-metal, Kubernetes, Nomad, EKS, AKS, ECS, and Lambda.
 ---
 
-# Consul Compared to Other DNS Tools
+# Consul DNS use cases
+
+@include 'text/descriptions/consul-dns.mdx'
+
+Consul DNS dolves the following primary use cases:
+
+- **Multi-cloud service discovery at scale**: Consul DNS provides a single domain name addresses that works across multi-cloud and hybrid cloud environments where Consul runs. You can scale application workloads using ephemeral services that are always addressable through Consul.
+- **Fine-grain DNS options**: You can address a service running in a specific datacenter, admin partition, or namespace. You can also use custom tags to route service requests to specific versions, which can help you with canary and blue-green deployments.
+
+## Consul compared to other DNS tools
 
 **Examples**: NS1, AWS Route53, AzureDNS, Cloudflare DNS
 

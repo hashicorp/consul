@@ -1087,7 +1087,11 @@
         ]
       },
       {
-        "title": "ECS",
+        "title": "RedHat OpenShift",
+        "path": "upgrade/openshift"
+      },
+      {
+        "title": "AWS ECS",
         "routes": [
           {
             "title": "Overview",
@@ -1172,6 +1176,10 @@
       {
         "title": "Consul K8s",
         "routes": [
+          {
+            "title": "v1.7.x",
+            "path": "release-notes/consul-k8s/v1_7_x"
+          },
           {
             "title": "v1.6.x",
             "path": "release-notes/consul-k8s/v1_6_x"
@@ -2365,7 +2373,7 @@
         "href": "north-south/vm"
       },
       {
-        "title": "Extend east/west",
+        "title": "Expand east/west",
         "href": "east-west/vm"
       },
       {
@@ -2414,7 +2422,7 @@
         "href": "north-south/k8s"
       },
       {
-        "title": "Extend east/west",
+        "title": "Expand east/west",
         "href": "east-west/k8s"
       },
       {

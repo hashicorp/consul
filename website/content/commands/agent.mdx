@@ -278,7 +278,7 @@ information.
   The load order is alphabetical, and the same merge routine is used as with
   the [`config-file`](#_config_file) option above. This option can be specified multiple
   times to load multiple directories. Sub-directories of the config directory are
-  not loaded. For more information on the format of the configuration files, see
+  not loaded. For more information on the format of the configuration files, refer to
   the [Configuration Files](/consul/docs/reference/agent) section.
 
 - `-config-format` ((#\_config_format)) - The format of the configuration
@@ -487,7 +487,7 @@ information.
   - Metadata values must be between 0 and 512 (inclusive) characters in length.
   - Metadata values for keys beginning with `rfc1035-` are encoded verbatim in DNS TXT requests, otherwise
     the metadata kv-pair is encoded according [RFC1464](https://www.ietf.org/rfc/rfc1464.txt).
-
+ 
 - `-disable-host-node-id` ((#\_disable_host_node_id)) - Setting this to
   true will prevent Consul from using information from the host to generate a deterministic
   node ID, and will instead generate a random node ID which will be persisted in

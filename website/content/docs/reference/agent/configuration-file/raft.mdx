@@ -11,18 +11,6 @@ The page provides reference information for Raft parameters in a Consul agent co
 
 ## Raft parameters
 
-- `raft_boltdb` ((#raft_boltdb)) **These fields are deprecated in Consul v1.15.0.
-  Use [`raft_logstore`](#raft_logstore) instead.** This is a nested
-  object that allows configuring options for Raft's BoltDB-based log store.
-
-  - `NoFreelistSync` **This field is deprecated in Consul v1.15.0. Use the
-    [`raft_logstore.boltdb.no_freelist_sync`](#raft_logstore_boltdb_no_freelist_sync) field
-    instead.** Setting this to `true` disables syncing the BoltDB freelist
-    to disk within the raft.db file. Not syncing the freelist to disk
-    reduces disk IO required for write operations at the expense of potentially
-    increasing start up time due to needing to scan the db to discover where the
-    free space resides within the file.
-
 - `raft_logstore` ((#raft_logstore)) This is a nested object that allows
   configuring options for Raft's LogStore component which is used to persist
   logs and crucial Raft state on disk during writes. This was added in Consul
@@ -142,3 +130,15 @@ The page provides reference information for Raft parameters in a Consul agent co
   Since Consul 1.10.0 this can be reloaded using `consul reload` or sending the
   server a `SIGHUP` to allow recovery without downtime when followers can't keep
   up.
+
+- `raft_boltdb` ((#raft_boltdb)) **This field was deprecated in Consul v1.15.0.
+  Use [`raft_logstore`](#raft_logstore) instead. This is a nested
+  object that allows configuring options for Raft's BoltDB-based log store.
+
+  - `NoFreelistSync` **This field was deprecated in Consul v1.15.0. Use the
+    [`raft_logstore.boltdb.no_freelist_sync`](#raft_logstore_boltdb_no_freelist_sync) field
+    instead. Setting this to `true` disables syncing the BoltDB freelist
+    to disk within the raft.db file. Not syncing the freelist to disk
+    reduces disk IO required for write operations at the expense of potentially
+    increasing start up time due to needing to scan the db to discover where the
+    free space resides within the file.
