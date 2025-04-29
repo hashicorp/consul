@@ -464,11 +464,11 @@ type Config struct {
 	// is allowed to be down/offline before a startup operation is refused.
 	ServerRejoinAgeMax time.Duration
 
-	// EnableXDSLoadBalancing controls xDS load balancing between the servers.
-	// When enabled (default), xDS clients will be load balanced across available servers equally with an error margin of 0.1.
+	// EnableXDSLoadBalancing controls xDS load balancing between the servers. Enabled by default.
+	// When enabled, Consul balances loads from xDS clients across available servers equally with an error margin of 0.1.
 	//
-	// When disabled, Consul will not restrict on the number of xDS connections on a server.
-	// It is expected to have an external load balancer in front of the consul servers and distribute the load accordingly.
+	// When disabled, Consul does not restrict on the number of xDS connections on a server.
+	// In this scenario, you should deploy an external load balancer in front of the consul servers and distribute the load accordingly.
 	EnableXDSLoadBalancing bool
 }
 
