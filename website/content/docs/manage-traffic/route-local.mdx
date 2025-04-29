@@ -31,19 +31,19 @@ For networks deployed to virtual machines, complete the following steps to route
 
 If you deployed Consul to a Kubernetes or ECS environment using `consul-k8s` or `consul-ecs`, service instance locality information is inherited from the host machine. As a result, you do not need to specify the regions and zones on containerized platforms unless you are implementing a custom deployment.
 
-On Kubernetes, Consul automatically populates geographic information about service instances using the `topology.kubernetes.io/region` and `topology.kubernetes.io/zone` labels from the Kubernetes nodes. On AWS ECS, Consul uses the `AWS_REGION` environment variable and `AvailabilityZone` attribute of the ECS task meta. 
+On Kubernetes, Consul automatically populates geographic information about service instances using the `topology.kubernetes.io/region` and `topology.kubernetes.io/zone` labels from the Kubernetes nodes. On AWS ECS, Consul uses the `AWS_REGION` environment variable and `AvailabilityZone` attribute of the ECS task meta.
 
 ### Requirements
 
-You should only enable locality-aware routing when each set of external upstream instances within the same zone and region have enough capacity to handle requests from downstream service instances in their respective zones. Locality-aware routing is an advanced feature that may adversely impact service capacity if used incorrectly. When enabled, Consul routes all traffic to the nearest set of service instances and only fails over when no healthy instances are available in the nearest set. 
+You should only enable locality-aware routing when each set of external upstream instances within the same zone and region have enough capacity to handle requests from downstream service instances in their respective zones. Locality-aware routing is an advanced feature that may adversely impact service capacity if used incorrectly. When enabled, Consul routes all traffic to the nearest set of service instances and only fails over when no healthy instances are available in the nearest set.
 
 ## Specify the locality of your Consul agents
 
 The `locality` configuration on a Consul client applies to all services registered to the client.
 
-1. Configure the `locality` block in your Consul client agent configuration files. The `locality` block is a map containing the `region` and `zone` parameters. 
+1. Configure the `locality` block in your Consul client agent configuration files. The `locality` block is a map containing the `region` and `zone` parameters.
 
-   The parameters should match the values for regions and zones defined in your network. Refer to [`locality`](/consul/docs/reference/agent#locality) in the agent configuration reference for additional information.
+   The parameters should match the values for regions and zones defined in your network. Refer to [`locality`](/consul/docs/reference/agent/configuration-file/service-mesh#locality) in the agent configuration reference for additional information.
 
 1. Start or restart the agent to apply the configuration. Refer to [Starting a Consul agent](/consul/docs/agent#starting-the-consul-agent) for instructions.
 
@@ -58,7 +58,7 @@ locality = {
 
 ## Specify the localities of your service instances (optional)
 
-This step is optional in most scenarios. Refer to [Workflow](#workflow) for additional information. 
+This step is optional in most scenarios. Refer to [Workflow](#workflow) for additional information.
 
 1. Configure the `locality` block in your service definition for both downstream (client) and upstream services. The `locality` block is a map containing the `region` and `zone` parameters. When you start a proxy for the service, Consul passes the locality to the proxy so that it can route traffic accordingly.
 
@@ -69,7 +69,7 @@ Register or re-register the service to apply the configuration. Refer to [Regist
 
 In the following example, the `web` service is available in the `us-west-1` region and `us-west-1a` zone on AWS:
 
-```hcl 
+```hcl
 service {
   id  = "web"
   locality = {
@@ -171,7 +171,7 @@ Apply the configuration by either running the [`consul config write` CLI command
    <Tabs>
    <Tab heading="HCL" group="hcl">
    <CodeBlockConfig filename="api-resolver.hcl">
-   
+
    ```hcl
    Kind     = "service-resolver"
    Name     = "api"
@@ -181,10 +181,10 @@ Apply the configuration by either running the [`consul config write` CLI command
    ```
    </CodeBlockConfig>
    </Tab>
-   
+
    <Tab heading="JSON" group="json">
    <CodeBlockConfig filename="api-resolver.json">
-   
+
    ```json
    {
      "kind": "service-resolver",
@@ -198,7 +198,7 @@ Apply the configuration by either running the [`consul config write` CLI command
    </Tab>
    <Tab heading="Kubernetes" group="kubernetes">
    <CodeBlockConfig filename="api-resolver.yaml">
-   
+
    ```yaml
    apiversion: consul.hashicorp.com/v1alpha1
    kind: ServiceResolver
@@ -208,7 +208,7 @@ Apply the configuration by either running the [`consul config write` CLI command
      prioritizeByLocality:
        mode: failover
    ```
-   
+
    </CodeBlockConfig>
    </Tab>
    </Tabs>
@@ -217,32 +217,32 @@ Apply the configuration by either running the [`consul config write` CLI command
 
    <Tabs>
    <Tab heading="Consul CLI" group="cli">
-   
+
      ```shell-session
      $ consul config write api-resolver.hcl
      ```
-   
+
    </Tab>
-   
+
    <Tab heading="Kubernetes" group="k8s">
-   
+
      ```shell-session
      $ kubectl apply -f api-resolver.yaml
      ```
-   
+
    </Tab>
    <Tab heading="HTTP API" group="api">
-   
+
      ```shell-session
      $ curl --request PUT --data @api-resolver.hcl http://127.0.0.1:8500/v1/config
      ```
-   
+
    </Tab>
    </Tabs>
 
 ### Configure locality on Kubernetes test clusters explicitly
 
-You can explicitly configure locality for each Kubernetes node so that you can test locality-aware routing with a local Kubernetes cluster or in an environment where `topology.kubernetes.io` labels are not set. 
+You can explicitly configure locality for each Kubernetes node so that you can test locality-aware routing with a local Kubernetes cluster or in an environment where `topology.kubernetes.io` labels are not set.
 
 Run the `kubectl label node` command and specify the locality as arguments. The following example specifies the `us-east-1` region and `us-east-1a` zone for the node:
 

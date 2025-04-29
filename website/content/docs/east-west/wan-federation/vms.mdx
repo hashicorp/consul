@@ -19,16 +19,16 @@ One of the key features of Consul is its support for multiple datacenters. The a
 
 ## Network requirements
 
-There are a few networking requirements that must be satisfied for WAN federation to work. 
+There are a few networking requirements that must be satisfied for WAN federation to work.
 
-- All server nodes must be able to talk to each other. Otherwise, the gossip protocol and RPC forwarding will not work. 
-- If you need to use service discovery across datacenters, the network must be able to route traffic between IP addresses across regions. 
+- All server nodes must be able to talk to each other. Otherwise, the gossip protocol and RPC forwarding will not work.
+- If you need to use service discovery across datacenters, the network must be able to route traffic between IP addresses across regions.
 
-Usually, this means that all datacenters must be connected using a VPN or other tunneling mechanism. Consul does not handle VPN or NAT traversal for you. For RPC forwarding to work, the bind address must be accessible from remote nodes. 
+Usually, this means that all datacenters must be connected using a VPN or other tunneling mechanism. Consul does not handle VPN or NAT traversal for you. For RPC forwarding to work, the bind address must be accessible from remote nodes.
 
 ## Setup two datacenters
 
-To get started, follow the [Deployment guide](/consul/tutorials/production-deploy/deployment-guide) to start each datacenter. If ACLs are enabled or you are using Consul Enterprise, you must set the [`primary_datacenter`](/consul/docs/reference/agent#primary_datacenter) in the server's configuration in both datacenters.
+To get started, follow the [Deployment guide](/consul/tutorials/production-deploy/deployment-guide) to start each datacenter. If ACLs are enabled or you are using Consul Enterprise, you must set the [`primary_datacenter`](/consul/docs/reference/agent/configuration-file/general#primary_datacenter) in the server's configuration in both datacenters.
 
 After bootstrapping, you should have two datacenters, `dc1` and `dc2`. Note that datacenter names are opaque to Consul. They are labels that help human operators reason about the Consul datacenters.
 
@@ -57,7 +57,7 @@ consul-server-1.dc2  172.18.0.7:8302  alive   server  1.20.2  2         dc2  def
 
 The command provides a list of all known members in the WAN gossip pool. In this case, the servers are not yet connected so each datacenter is only aware of local servers.
 
-<Tip> 
+<Tip>
 
 The `consul members -wan` command only contains server nodes. Client nodes send requests to the local datacenter server, so they do not participate in WAN gossip. Local servers forward client requests to a server in the target datacenter as necessary.
 
@@ -132,7 +132,7 @@ During the joining procedure, Consul records the following lines on each server 
 
 ## Join the servers at startup
 
-In a production environment, we recommend you setup WAN federation in Consul's configuration files. This way, Consul applies the configuration immediately at startup and it is persisted across reboots. Consul provides the [`retry_join_wan`](/consul/docs/reference/agent#retry_join_wan) parameter to configure the addresses of the other servers to WAN join at startup.
+In a production environment, we recommend you setup WAN federation in Consul's configuration files. This way, Consul applies the configuration immediately at startup and it is persisted across reboots. Consul provides the [`retry_join_wan`](/consul/docs/reference/agent/configuration-file/join#retry_join_wan) parameter to configure the addresses of the other servers to WAN join at startup.
 
 <CodeTabs>
 
@@ -241,11 +241,11 @@ Configuring `serf_wan`, `advertise_addr_wan` and `translate_wan_addrs` can lead 
 
 The most likely cause of these errors is that `bind_addr` is set to a private address preventing the RPC server from accepting connections across the WAN. Setting `bind_addr` to a public address (or one that can be routed across the WAN) will resolve this issue. Be aware that exposing the RPC server on a public port should only be done **after** firewall rules have been established.
 
-The [`translate_wan_addrs`](/consul/docs/reference/agent#translate_wan_addrs) configuration provides a basic address rewriting capability.
+The [`translate_wan_addrs`](/consul/docs/reference/agent/configuration-file/general#translate_wan_addrs) configuration provides a basic address rewriting capability.
 
 ## Data replication
 
-In general, data is not replicated between different Consul datacenters. When a request is made for a resource in another datacenter, the local Consul servers forward an RPC request to the remote Consul servers for that resource and return the results. If the remote datacenter is not available, then those resources will also not be available. However, this will not otherwise affect the local datacenter. 
+In general, data is not replicated between different Consul datacenters. When a request is made for a resource in another datacenter, the local Consul servers forward an RPC request to the remote Consul servers for that resource and return the results. If the remote datacenter is not available, then those resources will also not be available. However, this will not otherwise affect the local datacenter.
 
 There are some special situations where a limited subset of data can be replicated, such as with Consul's built-in ACL replication capability, or external tools like [consul-replicate](https://github.com/hashicorp/consul-replicate/).
 

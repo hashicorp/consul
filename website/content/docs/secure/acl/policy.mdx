@@ -154,7 +154,7 @@ Use the `policy` keyword and one of the following access levels to set a policy 
 - `write`: Allows the resource to be read and modified.
 - `deny`: Denies read and write access to the resource.
 
-The special `list` access level provides access to all keys with the specified resource label in the [Consul KV](/consul/commands/kv/). The `list` access level can only be used with the `key_prefix` resource. The [`acl.enable_key_list_policy`](/consul/docs/reference/agent#acl_enable_key_list_policy) setting must be set to `true`.
+The special `list` access level provides access to all keys with the specified resource label in the [Consul KV](/consul/commands/kv/). The `list` access level can only be used with the `key_prefix` resource. The [`acl.enable_key_list_policy`](/consul/docs/reference/agent/configuration-file/acl#acl_enable_key_list_policy) setting must be set to `true`.
 
 ### Matching and prefix values
 
@@ -242,7 +242,7 @@ Exact matching rules will only apply to the exact resource specified. The order 
 
 ### Rule scope
 
-A token's effective rule set includes the rules from all linked policies, including from roles and service identities. You can define policy rules in either an `allowlist` or `denylist` mode, depending on the configuration of the [`acl_default_policy`](/consul/docs/reference/agent#acl_default_policy).
+A token's effective rule set includes the rules from all linked policies, including from roles and service identities. You can define policy rules in either an `allowlist` or `denylist` mode, depending on the configuration of the [`acl_default_policy`](/consul/docs/reference/agent/configuration-file/acl#acl_default_policy).
 
 If you have configured the default policy to deny access to all resources (recommended), you can specify `allowlist` in policy rules to explicitly allow access to resources. Conversely, if you have configured the default policy to allow access to all resources, you can specify `denylist` in policy rules to explicitly deny access to resources.
 

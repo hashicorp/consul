@@ -126,7 +126,7 @@ connect {
 }
 ```
 
-The [`retry_join_wan`](/consul/docs/reference/agent#retry_join_wan) addresses are
+The [`retry_join_wan`](/consul/docs/reference/agent/configuration-file/join#retry_join_wan) addresses are
 only used for the [traditional federation process](/consul/docs/east-west/wan-federation#traditional-wan-federation).
 They must be omitted when federating Consul servers via gateways.
 
@@ -194,7 +194,7 @@ If the primary gateways are upgraded, and their previous instances are decommiss
 before the updates are propagated, then the primary datacenter will become unreachable.
 
 To safely upgrade primary gateways, we recommend that you apply one of the following policies:
-- Avoid decommissioning primary gateway IP addresses. This is because the [primary_gateways](/consul/docs/reference/agent#primary_gateways) addresses configured on the secondary servers act as a fallback mechanism for re-establishing connectivity to the primary.
+- Avoid decommissioning primary gateway IP addresses. This is because the [primary_gateways](/consul/docs/reference/agent/configuration-file/general#primary_gateways) addresses configured on the secondary servers act as a fallback mechanism for re-establishing connectivity to the primary.
 
 - Verify that addresses of the new mesh gateways in the primary were propagated
 to the secondary datacenters before decommissioning the old mesh gateways in the primary.

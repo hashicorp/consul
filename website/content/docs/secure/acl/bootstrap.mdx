@@ -24,7 +24,7 @@ For best results, we recommend bootstrapping your ACL system after deploying you
 
 ## Enable ACLs on the agents
 
-Add [parameters for the ACL system](/consul/docs/reference/agent#acl) to the agent's configuration file and then restart the Consul service. You must apply the same parameters to every server and client in your Consul datacenter for Consul to correctly enable the ACL configuration. You should update the configuration files on all of your servers first, and then initiate a rolling restart.
+Add [parameters for the ACL system](/consul/docs/reference/agent/configuration-file/acl) to the agent's configuration file and then restart the Consul service. You must apply the same parameters to every server and client in your Consul datacenter for Consul to correctly enable the ACL configuration. You should update the configuration files on all of your servers first, and then initiate a rolling restart.
 
 The following example enables Consul's ACLs and sets the default policy to `deny`. This setting means that only explicitly named resources are allowed to access Consul. The configuration also enables token persistence, which persists the token to disk and reloads it when an agent restarts.
 
@@ -40,16 +40,16 @@ acl = {
 
 </CodeBlockConfig>
 
-The following table describes common agent configuration fields where ACLs are applicable and whether the configurations apply to servers, clients, or both. Refer to the [Agent reference docs](/consul/docs/reference/agent#acl) for a full list of configurable fields.
+The following table describes common agent configuration fields where ACLs are applicable and whether the configurations apply to servers, clients, or both. Refer to the [Agent reference docs](/consul/docs/reference/agent/configuration-file/acl) for a full list of configurable fields.
 
 | Configuration option | Servers    | Clients    | Description |
 | -------------------- | ---------- | ---------- | ----------- |
-| [`acl.enabled`](/consul/docs/reference/agent#acl_enabled) | `required` | `required` | Controls whether ACLs are enabled |
-| [`acl.default_policy`](/consul/docs/reference/agent#acl_default_policy) | `optional` | `N/A` | Determines `allowlist` or `denylist` mode |
-| [`acl.down_policy`](/consul/docs/reference/agent#acl_down_policy) | `optional` | `optional` | Determines what to do when the remote token or policy resolution fails |
-| [`acl.role_ttl`](/consul/docs/reference/agent#acl_role_ttl) | `optional` | `optional` | Determines time-to-live for cached ACL roles |
-| [`acl.policy_ttl`](/consul/docs/reference/agent#acl_policy_ttl) | `optional` | `optional` | Determines time-to-live for cached ACL policies |
-| [`acl.token_ttl`](/consul/docs/reference/agent#acl_token_ttl) | `optional` | `optional` | Determines time-to-live for cached ACL tokens |
+| [`acl.enabled`](/consul/docs/reference/agent/configuration-file/acl#acl_enabled) | `required` | `required` | Controls whether ACLs are enabled |
+| [`acl.default_policy`](/consul/docs/reference/agent/configuration-file/acl#acl_default_policy) | `optional` | `N/A` | Determines `allowlist` or `denylist` mode |
+| [`acl.down_policy`](/consul/docs/reference/agent/configuration-file/acl#acl_down_policy) | `optional` | `optional` | Determines what to do when the remote token or policy resolution fails |
+| [`acl.role_ttl`](/consul/docs/reference/agent/configuration-file/acl#acl_role_ttl) | `optional` | `optional` | Determines time-to-live for cached ACL roles |
+| [`acl.policy_ttl`](/consul/docs/reference/agent/configuration-file/acl#acl_policy_ttl) | `optional` | `optional` | Determines time-to-live for cached ACL policies |
+| [`acl.token_ttl`](/consul/docs/reference/agent/configuration-file/acl#acl_token_ttl) | `optional` | `optional` | Determines time-to-live for cached ACL tokens |
 
 If you want to reduce Consul client restarts, you can enable the ACLs on them when [you apply the token to agents](#apply-individual-tokens-to-agents).
 
@@ -101,18 +101,18 @@ Repeat this process for each agent. It is the ACL administrator's responsibility
 
 Apply the agent token to your Consul servers and ensure they are working correctly before applying the agent token to your Consul clients.
 
-You can add the token to the Consul agent with any of the following methods: 
+You can add the token to the Consul agent with any of the following methods:
 
 - Add the token to the agent configuration file
 - Use the Consul CLI
-- Use the Consul HTTP API 
+- Use the Consul HTTP API
 
 We recommend using the agent configuration file. That way if your agent restarts, it reloads the token from the agent configuration file.
 
 <Tabs>
 <Tab heading="Configuration file">
 
-To set the token in the [agent configuration file](/consul/docs/reference/agent#acl_tokens_agent), add the following snippet to your existing Consul configuration or create a new file in the Consul configuration directory.
+To set the token in the [agent configuration file](/consul/docs/reference/agent/configuration-file/acl#acl_tokens_agent), add the following snippet to your existing Consul configuration or create a new file in the Consul configuration directory.
 
 ```hcl
 acl {
@@ -183,7 +183,7 @@ $ curl \
 </Tab>
 </Tabs>
 
-You must to complete this process for every agent. 
+You must to complete this process for every agent.
 
 Once complete, every agent should have a token that has read and write permissions to Consul, but only for node-related actions. Actions for individual services are not yet allowed.
 
@@ -193,7 +193,7 @@ If bootstrapping ACLs on an existing datacenter, remember to update the default 
 
 </Tip>
 
-You must always add agent tokens to server agents using this process. However, Consul can automatically apply the agent tokens required by client agents with its auto-config feature. Auto-config involves issuing and validating secure JWTs using an OIDC identity provider (IdP). 
+You must always add agent tokens to server agents using this process. However, Consul can automatically apply the agent tokens required by client agents with its auto-config feature. Auto-config involves issuing and validating secure JWTs using an OIDC identity provider (IdP).
 
 ## Apply individual tokens to agents Add tokens to services
 
@@ -339,7 +339,7 @@ service {
 </Tab>
 </Tabs>
 
-Refer to [Register services and health checks](/consul/docs/register) for instructions on registering services. If the service is already registered, re-register it with the token. 
+Refer to [Register services and health checks](/consul/docs/register) for instructions on registering services. If the service is already registered, re-register it with the token.
 
 ## Next steps
 

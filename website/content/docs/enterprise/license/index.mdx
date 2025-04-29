@@ -30,7 +30,7 @@ Virtual agents are nodes that Consul service mesh services run on. HashiCorp use
 ### Applying a License
 
 For Consul Enterprise 1.10.0 or greater, a license must be available at the time the agent starts.
-For server agents this means that they must either have the [`license_path`](/consul/docs/reference/agent#license_path)
+For server agents this means that they must either have the [`license_path`](/consul/docs/reference/agent/configuration-file/general#license_path)
 configuration set or have a license configured in the servers environment with the `CONSUL_LICENSE` or
 `CONSUL_LICENSE_PATH` environment variables. Both the configuration item and the `CONSUL_LICENSE_PATH`
 environment variable point to a file containing the license whereas the `CONSUL_LICENSE` environment
@@ -61,8 +61,8 @@ When a client agent starts without a license in its configuration or environment
 license from the servers via RPCs. That RPC always requires a valid non-anonymous ACL token to authorize the
 request but the token doesn't need any particular permissions. As the license is required before the client
 actually joins the cluster, where to make those RPC requests to is inferred from the
-[`retry_join`](/consul/docs/reference/agent#retry_join) configuration. If `retry_join` is unset or no
-[`agent` token](/consul/docs/reference/agent#acl_tokens_agent) is set then the client agent will immediately shut itself down.
+[`retry_join`](/consul/docs/reference/agent/configuration-file/join#retry_join) configuration. If `retry_join` is unset or no
+[`agent` token](/consul/docs/reference/agent/configuration-file/acl#acl_tokens_agent) is set then the client agent will immediately shut itself down.
 
 If all preliminary checks pass the client agent will attempt to reach out to any server on its RPC port to
 request the license. These requests will be retried for up to 5 minutes and if it is unable to retrieve a
