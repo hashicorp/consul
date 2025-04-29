@@ -1,3 +1,6 @@
+## 1.21.0 (March 17, 2025)
+* Enhancement: Added support for Consul Session to update the state of a Health Check, allowing for more dynamic and responsive health monitoring within the Consul ecosystem. This feature enables sessions to directly influence health check statuses, improving the overall reliability and accuracy of service health assessments.
+
 ## 1.20.3 (February 13, 2025)
 
 SECURITY:

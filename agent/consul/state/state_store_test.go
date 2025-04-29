@@ -308,6 +308,29 @@ func testRegisterCheckWithPartition(t *testing.T, s *Store, idx uint64,
 	}
 }
 
+func testRegisterCheckCustom(t *testing.T, s *Store, idx uint64, checkID types.CheckID, update func(chk *structs.HealthCheck)) {
+	chk := &structs.HealthCheck{
+		CheckID:        checkID,
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(""),
+	}
+
+	update(chk)
+
+	if err := s.EnsureCheck(idx, chk); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+	c, err := tx.First(tableChecks, indexID, NodeCheckQuery{Node: chk.Node, CheckID: string(checkID), EnterpriseMeta: chk.EnterpriseMeta})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if result, ok := c.(*structs.HealthCheck); !ok || result.CheckID != checkID {
+		t.Fatalf("bad check: %#v", result)
+	}
+}
+
 func testRegisterSidecarProxy(t *testing.T, s *Store, idx uint64, nodeID string, targetServiceID string) {
 	testRegisterSidecarProxyOpts(t, s, idx, nodeID, targetServiceID)
 }

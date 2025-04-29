@@ -160,6 +160,7 @@ func HealthCheckDefinitionToStructs(s *HealthCheckDefinition, t *structs.HealthC
 	t.GRPCUseTLS = s.GRPCUseTLS
 	t.AliasNode = s.AliasNode
 	t.AliasService = s.AliasService
+	t.SessionName = s.SessionName
 	t.TTL = structs.DurationFromProto(s.TTL)
 }
 func HealthCheckDefinitionFromStructs(t *structs.HealthCheckDefinition, s *HealthCheckDefinition) {
@@ -190,5 +191,6 @@ func HealthCheckDefinitionFromStructs(t *structs.HealthCheckDefinition, s *Healt
 	s.GRPCUseTLS = t.GRPCUseTLS
 	s.AliasNode = t.AliasNode
 	s.AliasService = t.AliasService
+	s.SessionName = t.SessionName
 	s.TTL = structs.DurationToProto(t.TTL)
 }
