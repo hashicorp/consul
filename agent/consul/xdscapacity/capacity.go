@@ -154,13 +154,13 @@ func calcRateLimit(numProxies uint32) rate.Limit {
 // updateMaxSessions calculates and updates the maximum number of sessions
 // allowed per server based on the number of healthy servers and proxies.
 //
-// When xDS load balancing is enabled, the maximum sessions are calculated as:
+// When xDS load balancing is enabled, the maximum number of sessions is calculated with the following formula:
 // (<number of proxies> / <number of servers>) * (1 + error margin).
-// This ensures a roughly even distribution of xDS streams across servers.
+// This formula ensures a roughly even distribution of xDS streams across servers.
 //
 // If xDS load balancing is disabled, the maxSessions is set to 0,
 // which translates to unlimited sessions per server.
-// This is expected to be set when there is an external load balancer in front of the servers.
+// Set maxSessions to 0 when there is an external load balancer in front of the servers.
 func (c *Controller) updateMaxSessions(numServers, numProxies uint32) {
 	if numServers == 0 || numProxies == 0 {
 		return
