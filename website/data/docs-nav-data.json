@@ -1077,6 +1077,10 @@
             "path": "upgrade/k8s/consul-k8s"
           },
           {
+            "title": "RedHat OpenShift",
+            "path": "upgrade/k8s/openshift"
+          },
+          {
             "title": "Upgrade cluster to use CRDs",
             "path": "upgrade/k8s/crds"
           },
@@ -1087,7 +1091,7 @@
         ]
       },
       {
-        "title": "ECS",
+        "title": "AWS ECS",
         "routes": [
           {
             "title": "Overview",
@@ -2365,7 +2369,7 @@
         "href": "north-south/vm"
       },
       {
-        "title": "Extend east/west",
+        "title": "Expand east/west",
         "href": "east-west/vm"
       },
       {
@@ -2414,7 +2418,7 @@
         "href": "north-south/k8s"
       },
       {
-        "title": "Extend east/west",
+        "title": "Expand east/west",
         "href": "east-west/k8s"
       },
       {

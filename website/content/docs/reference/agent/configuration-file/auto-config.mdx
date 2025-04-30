@@ -90,7 +90,7 @@ Only one option may be specified.
         used to talk with the JWKS URL. NOTE: Every line must end with a newline
         (`\n`). If not set, system certificates are used.
 
-      - `claim_mappings` (Defaults to `(map[string]string)` Mappings of claims (key) that
+      - `claim_mappings` (Defaults to `(map[string]string)`) Mappings of claims (key) that
         will be copied to a metadata field (value). Use this if the claim you are capturing
         is singular (such as an attribute).
 
@@ -142,6 +142,8 @@ Only one option may be specified.
 
 ## Examples
 
+The following examples demonstrate common configurations for a Consul agent's auto config settings.
+
 ### Claim assertions
 
 When combines, the following configurations ensure that the JWT `sub`
@@ -168,5 +170,3 @@ claim_assertions = [
 ```
 
 </CodeTabs>
-
-

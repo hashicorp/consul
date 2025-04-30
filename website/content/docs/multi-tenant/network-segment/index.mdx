@@ -7,18 +7,18 @@ description: >-
 
 # Network segments overview
 
-Network segmentation is the practice of dividing a network into multiple segments or subnets that act as independent networks. This topic provides an overview of concepts related to operating Consul in a segmented network.  
+Network segmentation is the practice of dividing a network into multiple segments or subnets that act as independent networks. This topic provides an overview of concepts related to operating Consul in a segmented network.
 
 <EnterpriseAlert>
 
-This feature requires Consul Enterprise version 0.9.3 or later. 
+This feature requires Consul Enterprise version 0.9.3 or later.
 Refer to the [enterprise feature matrix](/consul/docs/enterprise#consul-enterprise-feature-availability) for additional information.
 
 </EnterpriseAlert>
 
 ## Segmented networks
 
-Consul requires full connectivity between all agents in a datacenter within a LAN gossip pool. In some environments, however, business policies enforced through network rules or firewalls prevent full connectivity between all agents. These environments are called _segmented networks_. Network segments are isolated LAN gossip pools that only require full connectivity between agent members on the same segment. 
+Consul requires full connectivity between all agents in a datacenter within a LAN gossip pool. In some environments, however, business policies enforced through network rules or firewalls prevent full connectivity between all agents. These environments are called _segmented networks_. Network segments are isolated LAN gossip pools that only require full connectivity between agent members on the same segment.
 
 To use Consul in a segmented network, you must define the segments in your server agent configuration and direct client agents to join one of the segments. The Consul network segment configuration should match the LAN gossip pool boundaries. The following diagram shows how a network may be segmented:
 
@@ -26,15 +26,15 @@ To use Consul in a segmented network, you must define the segments in your serve
 
 ## Default network segment
 
-By default, all Consul agents are part of a shared Serf LAN gossip pool, referred to as the `<default>` network segment. Because all agents are within the same segment, full mesh connectivity within the datacenter is required. The following diagram shows the `<default>` network segment: 
+By default, all Consul agents are part of a shared Serf LAN gossip pool, referred to as the `<default>` network segment. Because all agents are within the same segment, full mesh connectivity within the datacenter is required. The following diagram shows the `<default>` network segment:
 
 ![Consul datacenter default agent connectivity: one network segment](/img/network-segments/consul-network-segments-single.png)
 
 ## Segment membership
 
-Server agents are members of all segments. The datacenter includes the `<default>` segment, as well as additional segments defined in the `segments` server agent configuration option. Refer to the [`segments`](/consul/docs/reference/agent#segments) documentation for additional information. 
+Server agents are members of all segments. The datacenter includes the `<default>` segment, as well as additional segments defined in the `segments` server agent configuration option. Refer to the [`segments`](/consul/docs/reference/agent/configuration-file/general#segments) documentation for additional information.
 
-Each client agent can only be a member of one segment at a time. Client agents are members of the `<default>` segment unless they are configured to join a different segment. 
+Each client agent can only be a member of one segment at a time. Client agents are members of the `<default>` segment unless they are configured to join a different segment.
 For a client agent to join the Consul datacenter, it must connect to another agent (client or server) within its configured segment.
 
 Read the [Network Segments documentation](/consul/docs/multi-tenant/network-segment) to learn more about network segments.

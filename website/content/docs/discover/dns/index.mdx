@@ -11,11 +11,7 @@ This topic provides overview information about how to look up Consul nodes and s
 
 ## Consul DNS
 
-Consul DNS is the primary interface for querying records when Consul service mesh is disabled and your network runs in a non-Kubernetes environment. Consul DNS lets you look up services and nodes registered with Consul without making HTTP API requests to Consul.
-
-We recommend using the DNS for service discovery in virtual machine (VM) environments because it removes the need to modify native applications so that they can consume the Consul service discovery APIs.
-
-The DNS has several default configurations, but you can customize how the server processes lookups. Refer to [Configure Consul DNS behavior](/consul/docs/discover/dns/configure) for additional information.
+@include 'text/descriptions/consul-dns.mdx'
 
 ### DNS versus native app integration
 

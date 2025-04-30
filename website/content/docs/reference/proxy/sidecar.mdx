@@ -7,7 +7,7 @@ description: >-
 
 # Sidecar proxy configuration reference
 
-The `sidecar_service` block is a service definition that can contain most regular service definition fields. Refer to [Limitations](#limitations) for information about unsupported service definition fields for sidecar proxies. 
+The `sidecar_service` block is a service definition that can contain most regular service definition fields. Refer to [Limitations](#limitations) for information about unsupported service definition fields for sidecar proxies.
 
 Consul treats sidecar proxy service definitions as a root-level service definition. All fields are optional in nested definitions, which default to opinionated settings that are intended to reduce burden of setting up a sidecar proxy.
 
@@ -26,8 +26,8 @@ proxy.
 - `tags` - Defaults to the tags of the parent service.
 - `meta` - Defaults to the service metadata of the parent service.
 - `port` - Defaults to being auto-assigned from a configurable
-  range specified by [`sidecar_min_port`](/consul/docs/reference/agent#sidecar_min_port)
-  and [`sidecar_max_port`](/consul/docs/reference/agent#sidecar_max_port).
+  range specified by [`sidecar_min_port`](/consul/docs/reference/agent/configuration-file/general#sidecar_min_port)
+  and [`sidecar_max_port`](/consul/docs/reference/agent/configuration-file/general#sidecar_max_port).
 - `kind` - Defaults to `connect-proxy`. This value cannot be overridden.
 - `check`, `checks` - By default we add a TCP check on the local address and
   port for the proxy, and a [service alias
@@ -43,7 +43,7 @@ proxy.
 In the following example, the `sidecar_service` macro sets baselines configurations for the proxy, but the [proxy
 upstreams](/consul/docs/reference/proxy/connect-proxy#upstream-configuration-reference)
 and [built-in proxy
-configuration](/consul/docs/reference/proxy/built-in) fields contain custom values:  
+configuration](/consul/docs/reference/proxy/built-in) fields contain custom values:
 
 ```json
 {

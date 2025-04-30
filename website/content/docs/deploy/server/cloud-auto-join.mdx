@@ -63,7 +63,7 @@ A Consul client agent wishing to join the "alpha" segment would need to be confi
 <Tabs>
 <Tab heading="Agent configuration">
 
-The following example configuration overrides the default Serf LAN port using the [`ports.serf_lan`](/consul/docs/reference/agent#serf_lan_port) configuration option.
+The following example configuration overrides the default Serf LAN port using the [`ports.serf_lan`](/consul/docs/reference/agent/configuration-file/general#serf_lan_port) configuration option.
 
 <CodeBlockConfig filename="client-config.hcl">
 
@@ -207,7 +207,7 @@ that contains the virtual NICs for the Virtual Machines.
 When using Virtual Machine Scale Sets the only role action needed is `Microsoft.Compute/virtualMachineScaleSets/*/read`.
 
 <Note>
-  
+
 If the Consul datacenter is hosted on Azure, Consul can use Managed Service Identities (MSI) to access Azure instead of an environment variable, shared client id and secret. MSI must be enabled on the VMs or Virtual Machine Scale Sets hosting Consul. It is the preferred configuration since MSI prevents your Azure credentials from being stored in Consul configuration. This feature is supported in Consul 1.7 and above. When using MSI, the `tag_key`, `tag_value` and `subscription_id` need to be supplied for Virtual machines. Be aware that the amount of time that Azure takes for the VMs to detect the MSI permissions can be between a minute to an hour.
 
 </Note>

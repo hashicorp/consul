@@ -1,8 +1,8 @@
 ---
 layout: docs
 page_title: Enable TLS encryption with built-in CA
-description: >- 
-  Learn how to create and distribute TLS certificates to server and client agents using Consul's built-in certificate authority (CA). 
+description: >-
+  Learn how to create and distribute TLS certificates to server and client agents using Consul's built-in certificate authority (CA).
 ---
 
 # Enable TLS encryption with built-in certificate authority
@@ -88,10 +88,10 @@ $ consul tls cert create -server -dc dc1 -additional-dnsname="*.dc2.consul"
 
 Refer to the [`consul tls cert`](/consul/commands/tls/cert) CLI documentation to learn more about TLS certificate creation options.
 
-To authenticate Consul servers, you must provide servers with a certificate that contains `server.dc1.consul` in the `Common Name` and in the `Subject Alternative Name`. If you enable [`verify_server_hostname`](/consul/docs/reference/agent#verify_server_hostname), only agents that provide such certificate are allowed to boot as a server. Without `verify_server_hostname = true`, an attacker could compromise a Consul client agent and restart the agent as a server in order to get access to all the data in your datacenter. These server certificates are special, and only servers should have them provisioned.
+To authenticate Consul servers, you must provide servers with a certificate that contains `server.dc1.consul` in the `Common Name` and in the `Subject Alternative Name`. If you enable [`verify_server_hostname`](/consul/docs/reference/agent/configuration-file/tls#verify_server_hostname), only agents that provide such certificate are allowed to boot as a server. Without `verify_server_hostname = true`, an attacker could compromise a Consul client agent and restart the agent as a server in order to get access to all the data in your datacenter. These server certificates are special, and only servers should have them provisioned.
 
 <Note>
-  
+
   Server keys, like the CA key, must be kept private. They effectively allow access to all Consul data.
 
 </Note>
@@ -110,9 +110,9 @@ Repeat this process until all servers have these three files.
 
 ## Distribute client certificate
 
-There are two methods for distributing client certificates: 
+There are two methods for distributing client certificates:
 
-1. **Auto-encryption method.** We recommend the [auto-encryption method](/consul/docs/reference/agent#auto_encrypt) to alleviate the client certificate generation and distribution step for operators. This method uses the Connect CA to generate client certificates, which are automatically distributed to all Consul clients.
+1. **Auto-encryption method.** We recommend the [auto-encryption method](/consul/docs/reference/agent/configuration-file/encryption#auto_encrypt) to alleviate the client certificate generation and distribution step for operators. This method uses the Connect CA to generate client certificates, which are automatically distributed to all Consul clients.
 
 1. **Operator method.** Use this method if you need to use a third-party CA or need more fine-grained control over certificate management.
 
@@ -155,7 +155,7 @@ auto_encrypt {
 
 </CodeTabs>
 
-In addition to the `verify` settings, you need to enable `allow_tls`. The `verify` settings ensure that all communication between servers and clients is verified. When [`auto_encrypt`](/consul/docs/reference/agent#allow_tls) is enabled, `verify_outgoing` is enabled by default.
+In addition to the `verify` settings, you need to enable `allow_tls`. The `verify` settings ensure that all communication between servers and clients is verified. When [`auto_encrypt`](/consul/docs/reference/agent/configuration-file/encryption#allow_tls) is enabled, `verify_outgoing` is enabled by default.
 
 </Tab>
 <Tab heading="Operator method" group="operator">
@@ -186,7 +186,7 @@ key_file = "dc1-server-consul-0-key.pem"
 
 </CodeTabs>
 
-Consul uses TLS to verify the authenticity of the servers with [`verify_outgoing`](/consul/docs/reference/agent#verify_outgoing) and [`verify_server_hostname`](/consul/docs/reference/agent#verify_server_hostname). You can also use TLS to also optionally verify client certificates when using [`verify_incoming`](/consul/docs/reference/agent#verify_incoming).
+Consul uses TLS to verify the authenticity of the servers with [`verify_outgoing`](/consul/docs/reference/agent/configuration-file/tls#verify_outgoing) and [`verify_server_hostname`](/consul/docs/reference/agent/configuration-file/tls#verify_server_hostname). You can also use TLS to also optionally verify client certificates when using [`verify_incoming`](/consul/docs/reference/agent/configuration-file/tls#verify_incoming).
 
 </Tab>
 </Tabs>

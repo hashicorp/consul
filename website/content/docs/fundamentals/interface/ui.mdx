@@ -11,7 +11,7 @@ This page provides an overview of the Consul web UI, which is one of the ways to
 
 ## Introduction
 
-The web UI allows you to interact with Consul via a graphical user interface and view information about your Consul datacenter, including:
+The web UI allows you to interact with Consul using a browser-based graphical user interface. You can view information about your Consul datacenter, including:
 
 - [Registered server and client nodes](#nodes)
 - [Registered services and sidecar proxies](#services)
@@ -35,10 +35,10 @@ When you run `consul agent -dev` to start Consul in development mode, the web UI
 
 The web UI is not enabled by default. Agents that are run without the `-dev` flag must explicitly enable the web UI.
 
-To enable the web UI, you can: 
+To enable the web UI, you can:
 
 - Modify the agent start-up command to include the [`-ui` flag](/consul/commands/agent#ui-options).
-- Modify the agent configuration file to include the [`ui_config.enabled = true`](/consul/docs/reference/agent#ui_config_enabled) attribute.
+- Modify the agent configuration file to include the [`ui_config.enabled = true`](/consul/docs/reference/agent/configuration-file/ui#ui_config_enabled) attribute.
 
 <Tabs>
 

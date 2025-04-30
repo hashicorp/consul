@@ -17,7 +17,7 @@ Refer to the [ACL workflow overview](/consul/docs/secure/acl#workflow-overview) 
 
 ## Create tokens
 
-The ACLs administrator can use the HTTP API or CLI to create and link tokens to entities that enable permissions to resources. 
+The ACLs administrator can use the HTTP API or CLI to create and link tokens to entities that enable permissions to resources.
 
 <Tabs>
 <Tab heading="CLI">
@@ -116,7 +116,7 @@ Refer to [service definition reference](/consul/docs/reference/service) for more
 
 ### Configure agents with ACLs
 
-You can configure Consul agents to hold several ACL tokens ([`acl.tokens`](#special-purpose-tokens)) to accommodate several use cases, such as bootstrapping the ACL system or accessing Consul under specific conditions. 
+You can configure Consul agents to hold several ACL tokens ([`acl.tokens`](#special-purpose-tokens)) to accommodate several use cases, such as bootstrapping the ACL system or accessing Consul under specific conditions.
 
 In the following example, the agent is configured to use a default token:
 
@@ -142,7 +142,7 @@ acls {
 
 </CodeTabs>
 
-Refer to the [agent configuration reference](/consul/docs/reference/agent#acl) for more information.
+Refer to the [agent configuration reference](/consul/docs/reference/agent/configuration-file/acl) for more information.
 
 # Rotate token
 
@@ -178,11 +178,11 @@ The following table describes a subset of special purpose tokens. Refer to [`acl
 
 | Token                         | Servers    | Clients    | Description |
 | ----------------------------- | ---------- | ---------- | ----------- |
-| [`acl.tokens.agent`](/consul/docs/reference/agent#acl_tokens_agent) | `optional` | `optional` | Used for internal agent operations. Refer to [ACL agent token](#acl-agent-token) for details. |
-| [`acl.tokens.agent_recovery`](/consul/docs/reference/agent#acl_tokens_agent_recovery) | `optional` | `optional` | Enables access to the [`agent/` HTTP API endpoint](/consul/api-docs/agent) when remote bearer token resolution fails. <br/>Used for setting up the cluster and performing initial join operations. <br/>Refer to [ACL agent recovery token](#acl-agent-recovery-token) for details. |
-| [`acl.tokens.default`](/consul/docs/reference/agent#acl_tokens_default) | `optional` | `optional` | Specifies a default token to use for client requests if no token is supplied. This token is commonly configured with read-only access to services to enable DNS service discovery on agents. |
-| [`acl.tokens.initial_management`](/consul/docs/reference/agent#acl_tokens_initial_management) | `optional` | `n/a` | Used to bootstrap the ACL system. Refer to [Initial management token](#initial-management-token). |
-| [`acl.tokens.replication`](/consul/docs/reference/agent#acl_tokens_replication) | `optional` | `n/a` | Authorizes secondary datacenters to replicate data from the primary datacenter. |
+| [`acl.tokens.agent`](/consul/docs/reference/agent/configuration-file/acl#acl_tokens_agent) | `optional` | `optional` | Used for internal agent operations. Refer to [ACL agent token](#acl-agent-token) for details. |
+| [`acl.tokens.agent_recovery`](/consul/docs/reference/agent/configuration-file/acl#acl_tokens_agent_recovery) | `optional` | `optional` | Enables access to the [`agent/` HTTP API endpoint](/consul/api-docs/agent) when remote bearer token resolution fails. <br/>Used for setting up the cluster and performing initial join operations. <br/>Refer to [ACL agent recovery token](#acl-agent-recovery-token) for details. |
+| [`acl.tokens.default`](/consul/docs/reference/agent/configuration-file/acl#acl_tokens_default) | `optional` | `optional` | Specifies a default token to use for client requests if no token is supplied. This token is commonly configured with read-only access to services to enable DNS service discovery on agents. |
+| [`acl.tokens.initial_management`](/consul/docs/reference/agent/configuration-file/acl#acl_tokens_initial_management) | `optional` | `n/a` | Used to bootstrap the ACL system. Refer to [Initial management token](#initial-management-token). |
+| [`acl.tokens.replication`](/consul/docs/reference/agent/configuration-file/acl#acl_tokens_replication) | `optional` | `n/a` | Authorizes secondary datacenters to replicate data from the primary datacenter. |
 
 You can use the [`/v1/agent/token` endpoint](/consul/api-docs/agent#update-acl-tokens) to create or update all reserved tokens except the `initial_management` token.
 
@@ -192,13 +192,13 @@ Snapshots are artifacts created with the [snapshot API](/consul/api-docs/snapsho
 
 ### ACL agent token
 
-The ACL agent token ([`acl.tokens.agent`](/consul/docs/reference/agent#acl_tokens_agent)) is a special token that Consul uses for internal agent operations. Consul does not use this token directly for any user-initiated operations like the default ACL token ([`acl.tokens.default`](/consul/docs/reference/agent#acl_tokens_default). However, if you do not define the ACL agent token, Consul will use the default ACL token for internal agent operations. Consul uses the ACL agent token for the following agent operations:
+The ACL agent token ([`acl.tokens.agent`](/consul/docs/reference/agent/configuration-file/acl#acl_tokens_agent)) is a special token that Consul uses for internal agent operations. Consul does not use this token directly for any user-initiated operations like the default ACL token ([`acl.tokens.default`](/consul/docs/reference/agent/configuration-file/acl#acl_tokens_default). However, if you do not define the ACL agent token, Consul will use the default ACL token for internal agent operations. Consul uses the ACL agent token for the following agent operations:
 
 1. Updating the agent's node entry using the [Catalog API](/consul/api-docs/catalog). This includes updating its node metadata, tagged addresses, and network coordinates.
 2. Performing [anti-entropy](/consul/docs/concept/consistency) syncing, in particular reading the node metadata and services registered with the catalog.
 3. Reading and writing the special `_rexec` section of the KV store when executing [`consul exec`](/consul/commands/exec) commands.
 
-The following example is the minimum policy required to perform the internal agent operations for a node called `mynode`. The `service_prefix` policy needs read access to any services that can be registered on the agent. If [remote execution is disabled](/consul/docs/reference/agent#disable_remote_exec) (default behavior), you can omit the `key_prefix` policy.
+The following example is the minimum policy required to perform the internal agent operations for a node called `mynode`. The `service_prefix` policy needs read access to any services that can be registered on the agent. If [remote execution is disabled](/consul/docs/reference/agent/configuration-file/general#disable_remote_exec) (default behavior), you can omit the `key_prefix` policy.
 
 <CodeBlockConfig heading="Example agent policy permitting internal operations">
 
@@ -236,13 +236,13 @@ You may update the anonymous token's description and policies, however you canno
 There are two ways for you to create an initial management token.
 
 1. Bootstrap the ACL system with `consul acl bootstrap`. Consul automatically generates a token for you. Refer to [Bootstrap ACLs](/consul/docs/secure/acl/bootstrap) for more details.
-1. Define an initial management token in the Consul agent configuration ([`acl.token.initial_management`](/consul/docs/reference/agent#acl_tokens_initial_management)). This method lets ACL administrators to bootstrap the ACL system with a known value.
+1. Define an initial management token in the Consul agent configuration ([`acl.token.initial_management`](/consul/docs/reference/agent/configuration-file/acl#acl_tokens_initial_management)). This method lets ACL administrators to bootstrap the ACL system with a known value.
 
 Consul links the management token to the built-in [global management](/consul/docs/secure/acl/policy#global-management) policy. This token has unrestricted privileges to resources and APIs.
 
 ### ACL agent recovery token
 
-You can use the ACL agent recovery token ([`acl.tokens.agent_recovery`](/consul/docs/reference/agent#acl_tokens_agent_recovery)) when your Consul servers are unavailable. The policy linked to the token is managed locally on the agent and does not require a token to be defined on the Consul servers. Once set, it implicitly has the following policy associated with it.
+You can use the ACL agent recovery token ([`acl.tokens.agent_recovery`](/consul/docs/reference/agent/configuration-file/acl#acl_tokens_agent_recovery)) when your Consul servers are unavailable. The policy linked to the token is managed locally on the agent and does not require a token to be defined on the Consul servers. Once set, it implicitly has the following policy associated with it.
 
 ```hcl hideClipboard
 agent "<node name of agent>" {

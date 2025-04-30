@@ -11,8 +11,10 @@ The page provides reference information for DNS parameters in a Consul agent con
 
 ## DNS and Domain Parameters
 
-- `dns_config` This object allows a number of sub-keys
-  to be set which can tune how DNS queries are serviced. Refer to [DNS caching](/consul/docs/discover/dns/scale) for more information.
+- `alt_domain` ((#\_alt_domain)) - This parameter allows Consul to respond to DNS queries in an alternate domain, in addition to the primary domain. If unset,
+  no alternate domain is used. Equivalent to the [`-alt-domain` command-line flag](/consul/commands/agent#_alt_domain).
+
+- `dns_config` This object allows a number of sub-keys to be set which can tune how DNS queries are serviced. Refer to [DNS caching](/consul/docs/discover/dns/scale) for more information.
 
   The following sub-keys are available:
 
@@ -45,7 +47,7 @@ The page provides reference information for DNS parameters in a Consul agent con
     By default, all services are served with a 0 TTL value. DNS caching for service
     lookups can be enabled by setting this value.
 
-  - `enable_truncate` - If set to true, a UDP DNS
+  - `enable_truncate` ((#enable_truncate)) - If set to true, a UDP DNS
     query that would return more than 3 records, or more than would fit into a valid
     UDP response, will set the truncated flag, indicating to clients that they should
     re-query using TCP to get the full set of records.
@@ -132,6 +134,15 @@ The page provides reference information for DNS parameters in a Consul agent con
     When set to `false`, the default, the behavior is the same as non-Enterprise
     versions and treats the single label as the datacenter.
 
-- `domain` Equivalent to the [`-domain` command-line
-  flag](/consul/commands/agent#_domain).
+- `domain` ((#\_domain)) - By default, Consul responds to DNS queries in
+  the `consul.` domain. This flag can be used to change that domain. All queries
+  in this domain are assumed to be handled by Consul and will not be recursively
+  resolved.
 
+- `recursors` ((#\_recursors)) - Provides addresses of upstream DNS
+servers that are used to recursively resolve queries if they are not inside the
+service domain for Consul. For example, a node can use Consul directly as a DNS
+server, and if the record is outside of the "consul." domain, the query will be
+resolved upstream. As of Consul 1.0.1 recursors can be provided as IP addresses
+or as go-sockaddr templates. IP addresses are resolved in order, and duplicates
+are ignored.

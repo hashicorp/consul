@@ -74,22 +74,10 @@ For modern, cloud-based applications, service discovery is the preferred method 
 
 You can implement service discovery systems across any type of infrastructure, whether it is on-premise or in the cloud. Service discovery is a native feature of many container orchestrators such as Kubernetes or Nomad. There are also platform-agnostic service discovery methods available for non-container workloads such as VMs and serverless technologies. Implementing a resilient service discovery system involves creating a set of servers that maintain and facilitate service registry operations. You can achieve this by installing a service discovery system or using a managed service discovery service.
 
-## What is Consul?
+## Consul compared to other service discovery tools
 
-Consul is a service networking solution that lets you automate network configurations, discover services, and enable secure connectivity across any cloud or runtime. With these features, Consul helps you solve the complex networking and security challenges of operating microservices and cloud infrastructure (multi-cloud and hybrid cloud). You can use these features independently or together to achieve [zero trust](https://www.hashicorp.com/solutions/zero-trust-security) security.
+**Examples**: Etcd, Apache Zookeeper, Eureka
 
 Consul's service discovery capabilities help you discover, track, and monitor the health of services within a network. Consul acts as a single source of truth that allows your services to query and communicate with each other.
 
-You can use Consul with virtual machines (VMs), containers, serverless technologies, or with container orchestration platforms, such as [Nomad](https://www.nomadproject.io/) and Kubernetes. Consul is platform agnostic which makes it a great fit for all environments, including legacy platforms.
-
-Consul is available as a [self-managed](/consul/downloads) project or as a fully managed service mesh solution ([HCP Consul Dedicated](https://portal.cloud.hashicorp.com/sign-in?utm_source=consul_docs)). HCP Consul Dedicated enables users to discover and securely connect services without the added operational burden of maintaining a service mesh on their own.
-
-## Next steps
-
-Get started with service discovery today by leveraging Consul on HCP, Consul on Kubernetes, or Consul on VMs. Prepare your organization for the future of multi-cloud and embrace a [zero-trust](https://www.hashicorp.com/solutions/zero-trust-security) architecture.
-
-Feel free to get started with Consul by exploring one of these Consul tutorials:
-
-- [Get Started with Consul on VMs](/consul/tutorials/get-started-vms)
-- [Get Started with Consul on HCP](/consul/tutorials/get-started-hcp)
-- [Get Started with Consul on Kubernetes](/consul/tutorials/get-started-kubernetes)
+You can use Consul with virtual machines (VMs), containers, serverless technologies, or with container orchestration platforms, such as [Nomad](/nomad/docs) and Kubernetes. Consul is platform agnostic which makes it a great fit for all environments, including legacy platforms.

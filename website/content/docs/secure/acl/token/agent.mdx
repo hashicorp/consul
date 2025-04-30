@@ -13,7 +13,7 @@ This topic describes how to create a token that you can use to register an agent
 
 Consul agents must present a token linked to policies that grant the appropriate set of permissions in order to register into the catalog and to discover services and nodes in the catalog.
 
-Specify the [`agent`](/consul/docs/reference/agent#acl_tokens_agent) token to the Consul agent so that it can present the token when it registers into the catalog.
+Specify the [`agent`](/consul/docs/reference/agent/configuration-file/acl#acl_tokens_agent) token to the Consul agent so that it can present the token when it registers into the catalog.
 
 ### Node identities versus custom policies
 
@@ -384,7 +384,7 @@ Configure the Consul agent to present the token by either specifying the token i
 
 ### Apply the token in a file
 
-Specify the token in the [`acl.token.agent`](/consul/docs/reference/agent#acl_tokens_agent) field of the agent configuration file so that the agent can present it and register into the catalog on startup.
+Specify the token in the [`acl.token.agent`](/consul/docs/reference/agent/configuration-file/acl#acl_tokens_agent) field of the agent configuration file so that the agent can present it and register into the catalog on startup.
 
 ```hcl
 acl = {

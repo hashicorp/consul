@@ -21,7 +21,7 @@ All versions of Consul support DNS lookup features.
 
 If ACLs are enabled, you must present a token linked with the necessary policies. We recommend using a separate token in production deployments for querying the DNS. By default, Consul agents resolve DNS requests using the preconfigured tokens in order of precedence:
 
-1. The agent's [`default` token](/consul/docs/reference/agent#acl_tokens_default)
+1. The agent's [`default` token](/consul/docs/reference/agent/configuration-file/acl#acl_tokens_default)
 1. The built-in [`anonymous` token](/consul/docs/secure/acl/token#built-in-tokens).
 
 The following table describes the available DNS lookups and required policies when ACLs are enabled:

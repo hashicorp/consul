@@ -29,9 +29,9 @@ Metrics tutorial](/consul/tutorials/day-2-operations/monitor-datacenter-health?u
 
 By default, all metric names of gauge type are prefixed with the hostname of the consul agent, e.g.,
 `consul.hostname.server.isLeader`. To disable prefixing the hostname, set
-`telemetry.disable_hostname=true` in the [agent configuration](/consul/docs/reference/agent#telemetry).
+`telemetry.disable_hostname=true` in the [agent configuration](/consul/docs/reference/agent/configuration-file/telemetry).
 
-Additionally, if the [`telemetry` configuration options](/consul/docs/reference/agent#telemetry)
+Additionally, if the [`telemetry` configuration options](/consul/docs/reference/agent/configuration-file/telemetry)
 are provided, the telemetry information will be streamed to a
 [statsite](http://github.com/armon/statsite) or [statsd](http://github.com/etsy/statsd) server where
 it can be aggregated and flushed to Graphite or any other metrics store.
@@ -218,7 +218,7 @@ Under these conditions, a follower after a restart may be unable to catch up on
 replication and become a voter again since it takes longer to restore from disk
 or the leader than the leader takes to write a new snapshot and truncate its
 logs. Servers retain
-[`raft_trailing_logs`](/consul/docs/reference/agent#raft_trailing_logs) (default
+[`raft_trailing_logs`](/consul/docs/reference/agent/configuration-file/raft#raft_trailing_logs) (default
 `10240`) log entries even if their snapshot was more recent. On a leader
 processing 500 commits/second, that is only about 20 seconds worth of logs.
 Assuming the leader is able to write out a snapshot and truncate the logs in
@@ -243,7 +243,7 @@ repeatedly as well as reduce the fault tolerance and serving capacity of the
 cluster.
 
 Since Consul 1.5.3
-[`raft_trailing_logs`](/consul/docs/reference/agent#raft_trailing_logs) has been
+[`raft_trailing_logs`](/consul/docs/reference/agent/configuration-file/raft#raft_trailing_logs) has been
 configurable. Increasing it allows the leader to retain more logs and give
 followers more time to restore and catch up. The tradeoff is potentially
 slower appends which eventually might affect write throughput and latency
@@ -254,7 +254,7 @@ mean loosing cluster availability and needing to recover the cluster from a loss
 of quorum.
 
 Since Consul 1.10.0
-[`raft_trailing_logs`](/consul/docs/reference/agent#raft_trailing_logs) is now
+[`raft_trailing_logs`](/consul/docs/reference/agent/configuration-file/raft#raft_trailing_logs) is now
 reloadable with `consul reload` or `SIGHUP` allowing operators to increase this
 without the leader restarting or loosing leadership allowing the cluster to be
 recovered gracefully.
@@ -319,7 +319,7 @@ This metric should be monitored to ensure that the license doesn't expire to pre
 
 | Metric Name                       | Description                                                      | Unit  | Type  |
 | :-------------------------------- | :--------------------------------------------------------------- | :---- | :---- |
-| `consul.raft.boltdb.freelistBytes` | Represents the number of bytes necessary to encode the freelist metadata. When [`raft_logstore.boltdb.no_freelist_sync`](/consul/docs/reference/agent#raft_logstore_boltdb_no_freelist_sync) is set to `false` these metadata bytes must also be written to disk for each committed log. | bytes | gauge   |
+| `consul.raft.boltdb.freelistBytes` | Represents the number of bytes necessary to encode the freelist metadata. When [`raft_logstore.boltdb.no_freelist_sync`](/consul/docs/reference/agent/configuration-file/raft#raft_logstore_boltdb_no_freelist_sync) is set to `false` these metadata bytes must also be written to disk for each committed log. | bytes | gauge   |
 | `consul.raft.boltdb.logsPerBatch`  | Measures the number of logs being written per batch to the db. | logs | sample |
 | `consul.raft.boltdb.storeLogs`     | Measures the amount of time spent writing logs to the db. | ms | timer |
 | `consul.raft.boltdb.writeCapacity` | Theoretical write capacity in terms of the number of logs that can be written per second. Each sample outputs what the capacity would be if future batched log write operations were similar to this one. This similarity encompasses 4 things: batch size, byte size, disk performance and boltdb performance. While none of these will be static and its highly likely individual samples of this metric will vary, aggregating this metric over a larger time window should provide a decent picture into how this BoltDB store can perform | logs/second  | sample |
@@ -362,7 +362,7 @@ indicator of an actual issue, this metric can be used to diagnose why the `consu
 is high.
 
 If Bolt DB log storage performance becomes an issue and is caused by free list management then setting
-[`raft_logstore.boltdb.no_freelist_sync`](/consul/docs/reference/agent#raft_logstore_boltdb_no_freelist_sync) to `true` in the server's configuration
+[`raft_logstore.boltdb.no_freelist_sync`](/consul/docs/reference/agent/configuration-file/raft#raft_logstore_boltdb_no_freelist_sync) to `true` in the server's configuration
 may help to reduce disk IO and log storage operation times. Disabling free list syncing will however increase
 the startup time for a server as it must scan the raft.db file for free space instead of loading the already
 populated free list structure.
