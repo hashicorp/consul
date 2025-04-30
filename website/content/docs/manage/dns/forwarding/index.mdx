@@ -7,21 +7,24 @@ description: ->
 
 # DNS forwarding
 
-This topic describes the process to configure different DNS servers to enable DNS forwarding to Consul servers.
+This page describes the process to configure different DNS servers to enable DNS forwarding to Consul servers.
 
-You can apply these operations on every node where a Consul agent is running.
+You may apply these operations on every node where a Consul agent is running.
 
 ## Introduction
 
 You deployed a Consul datacenter and want to use Consul DNS interface for name resolution.
 
-When configured with default values, Consul exposes the DNS interface on port `8600`. By default, DNS is served from port `53`. On most operating systems, this requires elevated privileges. It is also common, for most operating systems, to have a local DNS server already running on port `53`.
+When configured with default values, Consul exposes the DNS interface on port
+8600. By default, Consul serves DNS from port 53. On most operating systems,
+this requires elevated privileges. It is also common, for most operating
+systems, to have a local DNS server already running on port 53.
 
-Instead of running Consul with an administrative or root account, you can forward appropriate queries to Consul, running on an unprivileged port, from another DNS server or using port redirect.
+Instead of running Consul with an administrative or root account, you may forward appropriate queries to Consul, running on an unprivileged port, from another DNS server or using port redirect.
 
 There are two configurations for a node's DNS forwarding behavior:
 
- - **Conditional DNS forwarding**: the local DNS servers are configured to forward to Consul only queries relative to the `.consul` zone. All other queries are still served via the default DNS server in the node.
+ - **Conditional DNS forwarding**: The local DNS servers are configured to forward to Consul only queries relative to the `.consul` zone. All other queries are still served via the default DNS server in the node.
  - **Full DNS forwarding**: Consul serves all DNS queries and forwards to a remote DNS server the ones outside `.consul` domain.
 
 ### Conditional DNS forwarding
@@ -115,7 +118,7 @@ To use DNS forwarding in Consul deployments, complete the following steps:
 
     ```
 
-    You can use the `short` option for `dig` to only get the node name instead of the full output.
+    Use the `short` option for `dig` to only get the node name instead of the full output.
 
     ```shell-session
     $ dig +short -x 10.0.4.140

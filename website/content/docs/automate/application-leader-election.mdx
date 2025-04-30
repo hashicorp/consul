@@ -7,9 +7,10 @@ description: >-
 
 # Application leader election
 
-This topic describes the process for building client-side leader elections for service instances using Consul's [session mechanism for building distributed locks](/consul/docs/automate/session) and the [Consul key/value store](/consul/docs/automate/kv), which is Consul's key/value datastore. 
+This topic describes the process for building client-side leader elections for service instances using Consul's [session mechanism for building distributed locks](/consul/docs/automate/session) and the [Consul key/value store](/consul/docs/automate/kv), which is Consul's key/value datastore.
 
-This topic is not related to Consul's leader election. For more information about the Raft leader election used internally by Consul, refer to
+This topic is not related to Consul's leader election. For more information
+about the Raft leader election used internally by Consul, refer to the
 [consensus protocol](/consul/docs/concept/consensus) documentation.
 
 ## Background
@@ -32,7 +33,7 @@ service/<service name>/leader
   - `session:write` permissions over the service session name
   - `key:write` permissions over the key
   - The `curl` command
-  
+
 Expose the token using the `CONSUL_HTTP_TOKEN` environment variable.
 
 ## Client-side leader election procedure
@@ -54,7 +55,7 @@ The workflow for building a client-side leader election process has the followin
 
 ## Create a new session
 
-Create a configuration for the session. 
+Create a configuration for the session.
 The minimum viable configuration requires that you specify the session name.  The following example demonstrates this configuration.
 
 <CodeBlockConfig hideClipboard>
@@ -203,7 +204,7 @@ Error! Did not acquire lock
 
 This example used the node's `hostname` as the key data. This data can be used by the other services to create configuration files.
 
-Be aware that this locking system has no enforcement mechanism that requires clients to acquire a lock before they perform an operation. Any client can read, write, and delete a key without owning the corresponding lock. 
+Be aware that this locking system has no enforcement mechanism that requires clients to acquire a lock before they perform an operation. Any client can read, write, and delete a key without owning the corresponding lock.
 
 ## Watch the KV key for locks
 

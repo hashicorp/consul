@@ -20,7 +20,7 @@ HashiCorp-managed servers deployed using [HCP Consul](/hcp/docs/consul) have dis
 
 ## Consul servers
 
-The following table lists port names, their function, their network protocols, their default port numbers, whether they are enabled or disabled by default, port assignments for HashiCorp-managed server clusters, and the direction of traffic from the Consul server's perspective.
+This table lists port names, their function, their network protocols, their default port numbers, whether they are enabled or disabled by default, port assignments for HashiCorp-managed server clusters, and the direction of traffic from the Consul server's perspective.
 
 | Port name                 | Use                                        | Protocol    | Default port | Default status | HCP-managed port | Direction             |
 | :------------------------ | :----------------------------------------- | :---------- | :----------- | :------------- | :--------------- | :-------------------- |
@@ -47,7 +47,7 @@ The server's DNS port does not need to be open when DNS queries are sent to Cons
 
 If you configure recursors in Consul to upstream DNS servers, then you need outbound access to those servers on port `53`.
 
-To resolve Consul DNS requests when using HashiCorp-managed servers on HCP Consul, we recommend running Consul clients and resolving DNS against the clients. If your use case cannot accomodate this recommendation, open a support ticket.
+To resolve Consul DNS requests when using HashiCorp-managed servers on HCP Consul, we recommend running Consul clients and resolving DNS against the clients. If your use case cannot accommodate this recommendation, open a support ticket.
 
 ### HTTP
 

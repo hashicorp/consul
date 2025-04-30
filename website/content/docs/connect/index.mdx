@@ -2,16 +2,22 @@
 layout: docs
 page_title: Connect workloads to Consul service mesh
 description: >-
-  Consul’s service mesh makes application and microservice networking secure and observable with identity-based authentication, mutual TLS (mTLS) encryption, and explicit service-to-service authorization enforced by sidecar proxies. Learn how to enable and configure Consul's service mesh and proxies.
+  Consul's service mesh makes application and microservice networking secure and observable with identity-based authentication, mutual TLS (mTLS) encryption, and explicit service-to-service authorization enforced by sidecar proxies. Learn how to enable and configure Consul's service mesh and proxies.
 ---
 
 # Connect workloads to Consul service mesh
 
-This topic provides an overview of Consul's service mesh features and their configuration. Service mesh is enabled by default on Consul server agents.
+This page provides an overview of Consul's service mesh features and their configuration. Service mesh is enabled by default on Consul server agents.
 
 ## Introduction
 
-In addition to the service discovery operations available to the Consul instance that runs on the same node as your workload, you can use Consul to deploy Envoy sidecar proxies to control traffic between each service and the rest of the network. Consul includes a built-in certificate authority that can enforce mTLS encryption between sidecar proxies, and you can use [Consul configuration entries](/consul/docs/fundamentals/config-entry) to further secure and monitor service-to-service communication.
+In addition to the service discovery operations available to the Consul instance
+that runs on the same node as your workload, you can use Consul to deploy Envoy
+sidecar proxies to control traffic between each service and the rest of the
+network. Consul includes a built-in certificate authority that can enforce mTLS
+encryption between sidecar proxies. Use [Consul configuration
+entries](/consul/docs/fundamentals/config-entry) to further secure and monitor
+service-to-service communication.
 
 ## Service mesh configuration
 
@@ -21,7 +27,7 @@ To learn how to turn the service mesh off or back on again, refer to [enable ser
 
 ## Envoy proxies
 
-Consul includes built-in support for Envoy proxies to manage service mesh operations. You can configure behavior for individual proxies, or configure default behavior for proxies according to service identity. For more information about proxies and their specialized operations in the service mesh, refer to [Service mesh proxy overview](/consul/docs/connect/proxy).
+Consul includes built-in support for Envoy proxies to manage service mesh operations. Configure behavior for individual proxies, or configure default behavior for proxies according to service identity. For more information about proxies and their specialized operations in the service mesh, refer to [Service mesh proxy overview](/consul/docs/connect/proxy).
 
 ## Guidance
 

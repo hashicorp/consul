@@ -2,29 +2,46 @@
 layout: docs
 page_title: Custom Resource Definitions (CRDs) for Consul on Kubernetes
 description: >-
-  Configuration entries define service mesh behaviors in order to secure and manage traffic. Learn about Consul’s different config entry kinds and get links to configuration reference pages.
+  Configuration entries define service mesh behaviors in order to secure and manage traffic. Learn about Consul's different config entry kinds and get links to configuration reference pages.
 ---
 
 # Custom Resource Definitions (CRDs) for Consul on Kubernetes
 
-This topic describes how to manage Consul [configuration entries](/consul/docs/fundamentals/config-entry)
-with Kubernetes Custom Resources. Configuration entries provide cluster-wide defaults for the service mesh.
+This topic describes how to manage Consul [configuration
+entries](/consul/docs/fundamentals/config-entry) with Kubernetes Custom
+Resources. Configuration entries provide cluster-wide defaults for the service
+mesh.
 
-## Supported Configuration Entries
+## Supported configuration entries
 
-You can specify the following values in the `kind` field. Click on a configuration entry to view its documentation:
+You may specify the following values in the `kind` field:
+
+- [`Mesh`](/consul/docs/reference/config-entry/mesh)
+- [`ExportedServices`](/consul/docs/reference/config-entry/exported-services)
+- [`PeeringAcceptor`](/consul/docs/east-west/cluster-peering/tech-specs/k8s#crd-specifications)
+- [`PeeringDialer`](/consul/docs/east-west/cluster-peering/tech-specs/k8s#crd-specifications)
+- [`ProxyDefaults`](/consul/docs/reference/config-entry/proxy-defaults)
+- [`Registration`](/consul/docs/reference/config-entry/registration)
+- [`SamenessGroup`](/consul/docs/reference/config-entry/sameness-group)
+- [`ServiceDefaults`](/consul/docs/reference/config-entry/service-defaults)
+- [`ServiceSplitter`](/consul/docs/reference/config-entry/service-splitter)
+- [`ServiceRouter`](/consul/docs/reference/config-entry/service-router)
+- [`ServiceResolver`](/consul/docs/reference/config-entry/service-resolver)
+- [`ServiceIntentions`](/consul/docs/reference/config-entry/service-intentions)
+- [`IngressGateway`](/consul/docs/reference/config-entry/ingress-gateway)
+- [`TerminatingGateway`](/consul/docs/reference/config-entry/terminating-gateway)
 
 ## Installation
 
-Verify that the minimum version of the helm chart (`0.28.0`) is installed:
+Verify that you have installed the minimum version of the Helm chart (`0.28.0`).
 
 ```shell-session
-$ helm search repo hashicorp/consul
+$ Helm search repo hashicorp/consul
 NAME            	CHART VERSION	APP VERSION	DESCRIPTION
 hashicorp/consul	0.28.0       	1.9.1      	Official HashiCorp Consul Chart
 ```
 
-Update your helm repository cache if necessary:
+Update your Helm repository cache if necessary.
 
 ```shell-session
 $ helm repo update
@@ -33,23 +50,20 @@ Hang tight while we grab the latest from your chart repositories...
 Update Complete. ⎈Happy Helming!⎈
 ```
 
-Refer to [Install with Helm Chart](/consul/docs/deploy/server/k8s/helm) for further installation
-instructions.
+Refer to [Install with Helm Chart](/consul/docs/deploy/server/k8s/helm) for
+further installation instructions.
 
-**Note**: Configuration entries require `connectInject` to be enabled, which is a default behavior in the official Helm Chart. If you disabled this setting, you must re-enable it to use CRDs.
-
-## Upgrading An Existing Cluster to CRDs
-
-If you have an existing Consul cluster running on Kubernetes you may need to perform
-extra steps to migrate to CRDs. Refer to [Upgrade An Existing Cluster to CRDs](/consul/docs/k8s/crds/upgrade-to-crds) for full instructions.
+**Note**: Configuration entries require `connectInject` to be enabled, which is
+a default behavior in the official Helm Chart. If you disabled this setting, you
+must re-enable it to use CRDs.
 
 ## Usage
 
-Once installed, you can use `kubectl` to create and manage Consul's configuration entries.
+Once installed, use `kubectl` to create and manage Consul's configuration entries.
 
 ### Create
 
-You can create configuration entries with `kubectl apply`.
+Create configuration entries with `kubectl apply`.
 
 ```shell-session
 $ cat <<EOF | kubectl apply --filename -
@@ -68,7 +82,7 @@ Refer to [Configuration Entries](/consul/docs/fundamentals/config-entry) for det
 
 ### Get
 
-You can use `kubectl get [kind] [name]` to get the status of the configuration entry:
+Use `kubectl get [kind] [name]` to get the status of the configuration entry.
 
 ```shell-session
 $ kubectl get servicedefaults foo
@@ -81,7 +95,7 @@ in Consul.
 
 ### Describe
 
-You can use `kubectl describe [kind] [name]` to investigate the status of the
+Use `kubectl describe [kind] [name]` to investigate the status of the
 configuration entry. If `SYNCED` is false, the status contains the reason
 why.
 
@@ -96,7 +110,7 @@ Status:
 
 ### Edit
 
-You can use `kubectl edit [kind] [name]` to edit the configuration entry:
+Use `kubectl edit [kind] [name]` to edit the configuration entry.
 
 ```shell-session
 $ kubectl edit servicedefaults foo
@@ -104,7 +118,7 @@ $ kubectl edit servicedefaults foo
 servicedefaults.consul.hashicorp.com/foo edited
 ```
 
-You can then use `kubectl get` to ensure the change was synced to Consul:
+You can then use `kubectl get` to ensure the change was synced to Consul.
 
 ```shell-session
 $ kubectl get servicedefaults foo
@@ -114,36 +128,36 @@ foo   True
 
 ### Delete
 
-You can use `kubectl delete [kind] [name]` to delete the configuration entry:
+Use `kubectl delete [kind] [name]` to delete the configuration entry.
 
 ```shell-session
 $ kubectl delete servicedefaults foo
 servicedefaults.consul.hashicorp.com "foo" deleted
 ```
 
-You can then use `kubectl get` to ensure the configuration entry was deleted:
+Use `kubectl get` to ensure the configuration entry was deleted.
 
 ```shell-session
 $ kubectl get servicedefaults foo
 Error from server (NotFound): servicedefaults.consul.hashicorp.com "foo" not found
 ```
 
-#### Delete Hanging
+#### Delete hanging
 
-If running `kubectl delete` hangs without exiting, there may be
-a dependent configuration entry registered with Consul that prevents the target configuration entry from being
-deleted. For example, if you set the protocol of your service to `http` in `ServiceDefaults` and then
-create a `ServiceSplitter`, you will not be able to delete `ServiceDefaults`.
-
-This is because by deleting the `ServiceDefaults` config, you are setting the
-protocol back to the default which is `tcp`. Because `ServiceSplitter` requires
-that the service has an `http` protocol, Consul will not allow the `ServiceDefaults`
-to be deleted since that would put Consul into a broken state.
+If running `kubectl delete` hangs without exiting, there may be a dependent
+configuration entry registered with Consul that prevents the target
+configuration entry from being deleted. For example, if you set the protocol of
+your service to `http` in `ServiceDefaults` and then create a `ServiceSplitter`,
+you are not be able to delete `ServiceDefaults`. This is because by deleting the
+`ServiceDefaults` config, you are setting the protocol back to the default,
+which is `tcp`. Because `ServiceSplitter` requires that the service has an
+`http` protocol, Consul does not allow you to delete the `ServiceDefaults` since
+that would put Consul into a broken state.
 
 In order to delete the `ServiceDefaults` config, you would need to first delete
 the `ServiceSplitter`.
 
-## Kubernetes Namespaces
+## Kubernetes namespaces
 
 ### Consul CE ((#consul_oss))
 
@@ -176,7 +190,7 @@ spec: ...
 
 ~> **Note:** If you create two custom resources with identical `kind` and `name` values in different Kubernetes namespaces, the last one you create is not able to sync.
 
-#### ServiceIntentions Special Case
+#### ServiceIntentions special case
 
 `ServiceIntentions` are different from the other custom resources because the
 name of the resource doesn't matter. For other resources, the name of the resource
@@ -231,7 +245,7 @@ spec:
 
 </CodeBlockConfig>
 
-~> **Note:** If two `ServiceIntentions` resources set the same `spec.destination.name`, the
+If two `ServiceIntentions` resources set the same `spec.destination.name`, the
 last one created is not synced.
 
 ### Consul Enterprise <EnterpriseAlert inline />

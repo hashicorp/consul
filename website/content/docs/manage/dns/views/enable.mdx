@@ -7,7 +7,7 @@ description: ->
 
 # Enable Consul DNS proxy for Kubernetes
 
-This page describes the process to deploy a Consul DNS proxy in a Kubernetes Pod so that Services can resolve Consul DNS requests. For more information, refer to [Consul DNS views for Kubernetes](/consul/docs/manage/dns/views).
+This page describes the process to deploy a Consul DNS proxy in a Kubernetes pod so that services can resolve Consul DNS requests. For more information, refer to [Consul DNS views for Kubernetes](/consul/docs/manage/dns/views).
 
 ## Prerequisites
 
@@ -30,7 +30,9 @@ dns:
 
 ### ACLs
 
-We recommend you create a dedicated [ACL token with DNS permissions](/consul/docs/secure/acl/token/dns) for the Consul DNS proxy. The Consul DNS proxy requires these ACL permissions.
+We recommend that you create a dedicated [ACL token with DNS
+permissions](/consul/docs/secure/acl/token/dns) for the Consul DNS proxy. The
+Consul DNS proxy requires these ACL permissions.
 
 ```hcl
 node_prefix "" {
@@ -42,7 +44,9 @@ service_prefix "" {
 }
 ```
 
-You can manage ACL tokens with Consul on Kubernetes, or you can configure the DNS proxy to access a token stored in Kubernetes secret. To use a Kubernetes secret, add the following configuration to your Helm chart.
+Manage ACL tokens with Consul on Kubernetes, or configure the DNS proxy to
+access a token stored in Kubernetes secret. To use a Kubernetes secret, add the
+following configuration to your Helm chart.
 
 ```yaml
 dns:
@@ -54,11 +58,11 @@ dns:
 
 ## Retrieve Consul DNS proxy's address
 
-To look up the IP address for the Consul DNS proxy in the Kubernetes Pod, run the following command.
+To look up the IP address for the Consul DNS proxy in the Kubernetes pod, run the following command.
 
 ```shell-session
-$ kubectl get services –-all-namespaces --selector="app=consul,component=dns-proxy" --output jsonpath='{.spec.clusterIP}'  
-10.96.148.46  
+$ kubectl get services –-all-namespaces --selector="app=consul,component=dns-proxy" --output jsonpath='{.spec.clusterIP}'
+10.96.148.46
 ```
 
 Use this address when you update the ConfigMap resource.
@@ -70,21 +74,21 @@ Create or update a [ConfigMap object in the Kubernetes cluster](https://kubernet
 The following example of a `coredns-custom` ConfigMap configures Kubernetes to forward Consul DNS requests in the cluster to the Consul DNS Proxy running on `10.96.148.46`. This resource modifies the CoreDNS without modifications to the original `Corefile`.
 
 ```yaml
-kind: ConfigMap  
-metadata:  
-  name: coredns-custom  
-  namespace: kube-system  
-data:  
-  consul.server: |  
-    consul:53 {  
-      errors  
-      cache 30  
+kind: ConfigMap
+metadata:
+  name: coredns-custom
+  namespace: kube-system
+data:
+  consul.server: |
+    consul:53 {
+      errors
+      cache 30
       forward . 10.96.148.46
-      reload  
-    }  
+      reload
+    }
 ```
 
-After updating the DNS configuration, perform a rolling restart of the CoreDNS.
+After updating the DNS configuration, perform a rolling restart of the CoreDNS service.
 
 ```shell-session
 kubectl -n kube-system rollout restart deployment coredns
