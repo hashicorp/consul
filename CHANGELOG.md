@@ -3,8 +3,8 @@
 SECURITY:
 
 * Update `golang.org/x/crypto` to v0.35.0 to address [GO-2025-3487](https://pkg.go.dev/vuln/GO-2025-3487).
-*  Update `golang.org/x/oauth2` to v0.27.0 to address [GO-2025-3488](https://pkg.go.dev/vuln/GO-2025-3488).
-*  Update `github.com/go-jose/go-jose/v3` to v3.0.4 to address [GO-2025-3485](https://pkg.go.dev/vuln/GO-2025-3485). [[GH-22207](https://github.com/hashicorp/consul/issues/22207)]
+* Update `golang.org/x/oauth2` to v0.27.0 to address [GO-2025-3488](https://pkg.go.dev/vuln/GO-2025-3488).
+* Update `github.com/go-jose/go-jose/v3` to v3.0.4 to address [GO-2025-3485](https://pkg.go.dev/vuln/GO-2025-3485). [[GH-22207](https://github.com/hashicorp/consul/issues/22207)]
 * Upgrade Go to 1.23.6. [[GH-22204](https://github.com/hashicorp/consul/issues/22204)]
 
 BUG FIXES:

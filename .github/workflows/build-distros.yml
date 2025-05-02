@@ -189,7 +189,7 @@ jobs:
     - build-arm
     - build-s390x
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
-    if: always() && needs.conditional-skip.outputs.skip-ci != 'true'
+    if: needs.conditional-skip.outputs.skip-ci != 'true'
     steps:
       - name: evaluate upstream job results
         run: |
