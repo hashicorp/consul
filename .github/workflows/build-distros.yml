@@ -22,9 +22,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  conditional-skip:
+    uses: ./.github/workflows/reusable-conditional-skip.yml
+
   setup:
-    name: Setup
+    needs: [ conditional-skip ]
     runs-on: ubuntu-latest
+    name: Setup
+    if: needs.conditional-skip.outputs.skip-ci != 'true'
     outputs:
       compute-small: ${{ steps.setup-outputs.outputs.compute-small }}
       compute-medium: ${{ steps.setup-outputs.outputs.compute-medium }}
@@ -165,6 +170,7 @@ jobs:
   # sure it does not get skipped.
   build-distros-success:
     needs:
+    - conditional-skip
     - setup
     - check-go-mod
     - build-386
@@ -172,7 +178,7 @@ jobs:
     - build-arm
     - build-s390x
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
-    if: ${{ always() }}
+    if: needs.conditional-skip.outputs.skip-ci != 'true'
     steps:
       - name: evaluate upstream job results
         run: |
