@@ -1,3 +1,13 @@
+## 1.18.11 (April 25, 2025)
+
+SECURITY:
+
+* Update `golang.org/x/net` to v0.38.0 to address [GHSA-vvgc-356p-c3xw](https://github.com/advisories/GHSA-vvgc-356p-c3xw) and [GO-2025-3595](https://pkg.go.dev/vuln/GO-2025-3595).
+* Update `github.com/golang-jwt/jwt/v4` to v4.5.2 to address [GO-2025-3553](https://pkg.go.dev/vuln/GO-2025-3553) and [GHSA-mh63-6h87-95cp](https://github.com/advisories/GHSA-mh63-6h87-95cp).
+* Update `Go` to v1.23.8 to address [GO-2025-3563](https://pkg.go.dev/vuln/GO-2025-3563).
+* Update `github.com/golang-jwt/jwt/v5` to v5.2.2 to address [GO-2025-3553](https://pkg.go.dev/vuln/GO-2025-3553) and [GHSA-mh63-6h87-95cp](https://github.com/advisories/GHSA-mh63-6h87-95cp).
+* Update `golang.org/x/crypto` to v0.36.0 to address [GO-2025-3487](https://pkg.go.dev/vuln/GO-2025-3487). [[GH-10517](https://github.com/hashicorp/consul/issues/10517)]
+
 ## 1.18.10 Enterprise (March 11, 2025)
 
 SECURITY:
