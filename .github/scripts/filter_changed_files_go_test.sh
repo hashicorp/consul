@@ -16,7 +16,7 @@ set -euo pipefail
 files_to_check=$(git diff --name-only "$(git merge-base origin/$SKIP_CHECK_BRANCH HEAD~)"...HEAD)
 
 # Define the directories to check
-skipped_directories=("docs/" "ui/" "website/" "grafana/")
+skipped_directories=("docs/" "ui/" "website/" "grafana/ .github/")
 
 # Loop through the changed files and find directories/files outside the skipped ones
 for file_to_check in "${files_to_check[@]}"; do
