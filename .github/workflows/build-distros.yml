@@ -16,13 +16,29 @@ permissions:
 env:
   GOTAGS: ${{ endsWith(github.repository, '-enterprise') && 'consulent' || '' }}
   GOPRIVATE: github.com/hashicorp # Required for enterprise deps
+  SKIP_CHECK_BRANCH: ${{ github.head_ref || github.ref_name }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
 
 jobs:
+  conditional-skip:
+    runs-on: ubuntu-latest
+    name: Get files changed and conditionally skip CI
+    outputs:
+      skip-ci: ${{ steps.read-files.outputs.skip-ci }}
+    steps:
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+        with:
+          fetch-depth: 0
+      - name: Get changed files
+        id: read-files
+        run: ./.github/scripts/filter_changed_files_go_test.sh
   setup:
+    needs:
+      - conditional-skip
+    if: needs.conditional-skip.outputs.skip-ci != 'true'
     name: Setup
     runs-on: ubuntu-latest
     outputs:
@@ -165,6 +181,7 @@ jobs:
   # sure it does not get skipped.
   build-distros-success:
     needs:
+    - conditional-skip
     - setup
     - check-go-mod
     - build-386
@@ -172,7 +189,7 @@ jobs:
     - build-arm
     - build-s390x
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
-    if: ${{ always() }}
+    if: needs.conditional-skip.outputs.skip-ci != 'true'
     steps:
       - name: evaluate upstream job results
         run: |
