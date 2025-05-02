@@ -7041,10 +7041,11 @@ func TestLoad_FullConfig(t *testing.T) {
 		UnixSocketMode:  "E8sAwOv4",
 		Watches: []map[string]interface{}{
 			{
-				"type":       "key",
-				"datacenter": "GyE6jpeW",
-				"key":        "j9lF1Tve",
-				"handler":    "90N7S4LN",
+				"type":           "key",
+				"datacenter":     "GyE6jpeW",
+				"key":            "j9lF1Tve",
+				"handler":        "90N7S4LN",
+				"alldatacenters": true,
 			},
 			{
 				"type":       "keyprefix",

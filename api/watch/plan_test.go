@@ -4,18 +4,34 @@
 package watch
 
 import (
+	"reflect"
 	"testing"
 	"time"
 )
 
 func init() {
 	watchFuncFactory["noop"] = noopWatch
+	watchFuncFactory["noopdcs"] = noopWatchAllDatacenters
 }
 
 func noopWatch(params map[string]interface{}) (WatcherFunc, error) {
 	fn := func(p *Plan) (BlockingParamVal, interface{}, error) {
 		idx := WaitIndexVal(0)
 		if i, ok := p.lastParamVal.(WaitIndexVal); ok {
+			idx = i
+		}
+		return idx + 1, uint64(idx + 1), nil
+	}
+	return fn, nil
+}
+
+func noopWatchAllDatacenters(params map[string]interface{}) (WatcherFunc, error) {
+	fn := func(p *Plan) (BlockingParamVal, interface{}, error) {
+		var idx WaitIndexVal
+		if p.Datacenter == "" {
+			idx = WaitIndexVal(0)
+		}
+		if i, ok := p.mapLastParamVal[p.Datacenter].(WaitIndexVal); ok {
 			idx = i
 		}
 		return idx + 1, uint64(idx + 1), nil
@@ -43,6 +59,54 @@ func TestRun_Stop(t *testing.T) {
 			t.Fatalf("Bad: %d %d", expect, idx)
 		}
 		if val != expect {
+			t.Fatalf("Bad: %d %d", expect, val)
+		}
+		if expect == 1 {
+			close(doneCh)
+		}
+		expect++
+	}
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- plan.Run("127.0.0.1:8500")
+	}()
+
+	select {
+	case <-doneCh:
+		plan.Stop()
+
+	case <-time.After(1 * time.Second):
+		t.Fatalf("handler never ran")
+	}
+
+	select {
+	case err := <-errCh:
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+	case <-time.After(1 * time.Second):
+		t.Fatalf("watcher didn't exit")
+	}
+
+	if expect == 1 {
+		t.Fatalf("Bad: %d", expect)
+	}
+}
+
+func TestRun_Stop_AllDatacenters(t *testing.T) {
+	t.Parallel()
+	plan := mustParse(t, `{"type":"noopdcs","alldatacenters":true}`)
+
+	var expect uint64 = 1
+	var expectVal = []uint64{1}
+	doneCh := make(chan struct{})
+	plan.Handler = func(idx uint64, val interface{}) {
+		if idx != expect {
+			t.Fatalf("Bad: %d %d", expect, idx)
+		}
+		if !(reflect.TypeOf(val).Kind() == reflect.Slice && val.([]interface{})[0] == expectVal[0]) {
 			t.Fatalf("Bad: %d %d", expect, val)
 		}
 		if expect == 1 {

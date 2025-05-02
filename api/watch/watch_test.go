@@ -29,12 +29,15 @@ func TestParseBasic(t *testing.T) {
 
 func TestParse_exempt(t *testing.T) {
 	t.Parallel()
-	params := makeParams(t, `{"type":"key", "key":"foo", "handler": "foobar"}`)
+	params := makeParams(t, `{"type":"key", "key":"foo", "handler": "foobar","alldatacenters":true}`)
 	p, err := ParseExempt(params, []string{"handler"})
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if p.Type != "key" {
+		t.Fatalf("Bad: %#v", p)
+	}
+	if !p.AllDatacenters {
 		t.Fatalf("Bad: %#v", p)
 	}
 	ex := p.Exempt["handler"]

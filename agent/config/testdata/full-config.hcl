@@ -802,6 +802,7 @@ watches = [{
     datacenter = "GyE6jpeW"
     key = "j9lF1Tve"
     handler = "90N7S4LN"
+    alldatacenters = true
 }, {
     type = "keyprefix"
     datacenter = "fYrl3F5d"
