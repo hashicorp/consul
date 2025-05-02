@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -27,6 +28,9 @@ import (
 
 const (
 	VaultCALeafCertRole = "leaf-cert"
+
+	VaultCAEnvAddr  = "CONSUL_CA_VAULT_ADDR"
+	VaultCAEnvToken = "CONSUL_CA_VAULT_TOKEN"
 
 	VaultAuthMethodTypeAliCloud     = "alicloud"
 	VaultAuthMethodTypeAppRole      = "approle"
@@ -104,9 +108,7 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 		return err
 	}
 
-	clientConf := &vaultapi.Config{
-		Address: config.Address,
-	}
+	clientConf := &vaultapi.Config{}
 	err = clientConf.ConfigureTLS(vaultTLSConfig(config))
 	if err != nil {
 		return err
@@ -115,6 +117,8 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 	if err != nil {
 		return err
 	}
+
+	client.SetAddress(config.Address)
 
 	// We don't want to set the namespace if it's empty to prevent potential
 	// unknown behavior (what does Vault do with an empty namespace). The Vault
@@ -132,6 +136,7 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 		}
 		config.Token = loginResp.Auth.ClientToken
 	}
+
 	client.SetToken(config.Token)
 
 	v.config = config
@@ -964,8 +969,22 @@ func ParseVaultCAConfig(raw map[string]interface{}, isPrimary bool) (*structs.Va
 		return nil, fmt.Errorf("error decoding config: %s", err)
 	}
 
-	if config.Token == "" && config.AuthMethod == nil {
+	envAddr := os.Getenv(VaultCAEnvAddr)
+	if config.Address == "" && envAddr == "" {
+		return nil, fmt.Errorf("must provide a Vault address")
+	}
+
+	if envAddr != "" {
+		config.Address = envAddr
+	}
+
+	envToken := os.Getenv(VaultCAEnvToken)
+	if config.Token == "" && envToken == "" && config.AuthMethod == nil {
 		return nil, fmt.Errorf("must provide a Vault token or configure a Vault auth method")
+	}
+
+	if envToken != "" {
+		config.Token = envToken
 	}
 
 	if config.Token != "" && config.AuthMethod != nil {
