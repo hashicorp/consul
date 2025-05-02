@@ -1341,13 +1341,11 @@ subsystem that provides Consul's service mesh capabilities.
     UDP response, will set the truncated flag, indicating to clients that they should
     re-query using TCP to get the full set of records.
 
-  - `only_passing` - If set to true, any nodes whose
-    health checks are warning or critical will be excluded from DNS results. If false,
-    the default, only nodes whose health checks are failing as critical will be excluded.
-    For service lookups, the health checks of the node itself, as well as the service-specific
-    checks are considered. For example, if a node has a health check that is critical
-    then all services on that node will be excluded because they are also considered
-    critical.
+  - `only_passing` - Specifies a boolean value that determines if DNS queries should only return nodes or services with `passing` health check statuses. 
+  
+  If `true`, the query only returns nodes or services with `passing` health statuses. If `false`, the query returns nodes or services with `passing` and `warning` health check statuses. Nodes or services in a `critical` health state are omitted from DNS query results. 
+  
+  Default is `false`.
 
   - `recursor_strategy` - If set to `sequential`, Consul will query recursors in the
     order listed in the [`recursors`](#recursors) option. If set to `random`,
