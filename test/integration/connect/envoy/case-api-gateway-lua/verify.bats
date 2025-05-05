@@ -26,9 +26,9 @@ load helpers
 }
 
 @test "api-gateway should add envoy headers" {
-  run retry_default curl -sk "localhost:8080/echo -o /dev/null"
-  [ "$status" == "0" ]
+  run retry_default curl -s -f -d "hello" "localhost:8080/echo"
   echo "[DEBUG] response: $output" >&3
+  [ "$status" == "0" ]
   onrequest=$(echo "$output" | grep -i 'x-lua-added-onrequest')
   onresponse=$(echo "$output" | grep -i 'x-lua-added-onresponse')
 
