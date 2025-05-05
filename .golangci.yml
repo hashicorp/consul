@@ -68,6 +68,9 @@ issues:
     - linters: [unparam]
       path: "(_ce.go|_ce_test.go|_ent.go|_ent_test.go)"
 
+    - linters: [ staticcheck ]
+      text: 'SA1019:'
+
 linters-settings:
   govet:
     enable-all: true
