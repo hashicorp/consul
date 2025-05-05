@@ -1,0 +1,1171 @@
+---
+layout: docs
+page_title: Use Vault for secrets management with Consul on Kubernetes
+description: >-
+  Secure Consul on Kubernetes using gossip encryption, TLS certificates, and service mesh certificates using Vault as secrets management.
+---
+
+# Use Vault for secrets management with Consul on Kubernetes
+
+A secure Consul datacenter requires you to distribute a number of secrets to your
+Consul agents before you can perform any operations. This includes a gossip encryption
+key, TLS certificates for the servers, and ACL tokens for all configuration. You will
+also need a valid license if you use Consul Enterprise.
+
+If you are deploying Consul on Kubernetes, you have different options to provide
+these secrets to your Consul agents, including:
+- store secrets in plain text in your configuration files. This is the most straightforward
+method, however, you may expose your secrets if someone compromises your Consul agents.
+- leverage Kubernetes secrets. This reduces some risk, but may lead to secrets or
+credentials sprawl as you adopt new platforms and scale your workloads.
+- use a secrets management system, like HashiCorp's Vault, to centrally manage and protect
+sensitive data (for example: tokens, passwords, certificates, encryption keys, and more).
+
+Vault is HashiCorp's secrets and encryption management system that helps
+you securely manage secrets and protect sensitive data (for example, tokens,
+passwords, certificates, encryption keys, and more)
+
+You can use HashiCorp Vault to authenticate your applications with a Kubernetes
+Service Account token. The `kubernetes` authentication method automatically
+injects a Vault token into a Kubernetes pod. This lets you use Vault to store
+all the other secrets, including the ones required by Consul.
+
+In this tutorial, you will use Vault with Kubernetes to store and manage secrets
+required for a Consul datacenter. Then, you will use these secrets to deploy
+and configure the Consul datacenter on Kubernetes
+
+Specifically you will:
+
+- Configure Vault secrets engines to store and generate Consul secrets.
+- Configure Kubernetes authentication engine for Vault. This lets you authenticate using a Kubernetes service account.
+- Configure the Consul helm chart to retrieve the secrets from Vault during deploy.
+- Deploy Consul on Kubernetes and verify the deployment completes correctly.
+
+The following architecture diagram depicts the desired outcome.
+
+![Architectural diagram for Vault as Consul secrets manager](/img/consul/kubernetes-diagram-vault-as-secrets-manager.png)
+
+## Prerequisites
+
+You can configure the scenario to deploy either Consul OSS or Consul Enterprise.
+Select your learning path by clicking one of the following tabs.
+
+<Tabs>
+
+<Tab heading="Consul OSS" group="oss">
+
+
+</Tab>
+
+<Tab heading="Consul Enterprise" group="enterprise">
+
+- A Consul Enterprise license. Save the license in a file named `consul.hclic`
+file in your working folder. If you do not have a license, request a trial license on the
+[Consul Enterprise trial registration page](https://www.hashicorp.com/products/consul/trial).
+
+</Tab>
+
+</Tabs>
+
+- [`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/) to interact with your Kubernetes cluster.
+- [Vault (CLI)](/vault/tutorials/getting-started/getting-started-install) to interact with your
+Vault cluster
+- [jq](https://stedolan.github.io/jq/) to manipulate json output
+
+- An [AWS account](https://portal.aws.amazon.com/billing/signup) with AWS
+Credentials [configured for use with Terraform](https://registry.terraform.io/providers/hashicorp/aws/latest/docs#authentication).
+
+- An [HCP account](https://portal.cloud.hashicorp.com/sign-in?utm_source=learn)
+  configured for [use with Terraform](https://registry.terraform.io/providers/hashicorp/hcp/latest/docs/guides/auth)
+
+- The [Terraform 1.0.6+ CLI](/terraform/tutorials/aws-get-started/install-cli) installed locally.
+
+- [git](https://git-scm.com/downloads) to clone the code repository locally
+
+- [helm v3.2.1+](https://helm.sh/docs/using_helm/) to deploy Consul and Vault agent injector.
+
+<Note>
+
+ Some of the infrastructure in this tutorial may not qualify for the
+AWS [free tier](https://aws.amazon.com/free/). Destroy the infrastructure at
+the end of the guide to avoid unnecessary charges. We are not responsible for
+any charges that you incur.
+
+</Note>
+
+## Deploy Kubernetes and Vault
+
+The scenario requires a Kubernetes cluster deployed, either locally or on a
+Cloud provider, and a Vault cluster deployed, either on the Kubernetes cluster
+or on the HashiCorp Cloud Platform (HCP).
+
+The tutorial provides example code and steps for a scenario using HCP Vault Dedicated and
+an Amazon Elastic Kubernetes Service (EKS) Cluster.
+
+### Deploy HCP Vault Dedicated cluster and EKS cluster
+
+To begin, clone the repository. This repository contains all the Terraform
+configuration required to complete this tutorial.
+
+<CodeTabs tabs={[ "HTTPS", "SSH"]}>
+
+```shell-session
+$ git clone https://github.com/hashicorp/learn-consul-kubernetes.git
+```
+
+```shell-session
+$ git clone git@github.com:hashicorp/learn-consul-kubernetes.git
+```
+
+</CodeTabs>
+
+Navigate into the repository folder.
+
+  ```shell-session
+  $ cd learn-consul-kubernetes
+  ```
+
+Fetch the tags from the git remote server, and checkout the tag for this tutorial.
+
+```shell-session
+$ git fetch --all --tags && git checkout tags/v0.0.23
+```
+
+Navigate into the project folder for this tutorial.
+
+  ```shell-session
+  $ cd hcp-vault-eks
+  ```
+
+The Terraform configuration deploys an Vault Dedicated Cluster, an  Amazon Elastic Kubernetes
+Service (EKS) Cluster, and the underlying networking components for HCP and AWS
+to communicate with each other.
+
+Initialize the Terraform project.
+
+  ```shell-session
+  $ terraform init
+
+  Terraform has been successfully initialized!
+
+  You may now begin working with Terraform. Try running "terraform plan" to see
+  any changes that are required for your infrastructure. All Terraform commands
+  should now work.
+
+  If you ever set or change modules or backend configuration for Terraform,
+  rerun this command to reinitialize your working directory. If you forget, other
+  commands will detect it and remind you to do so if necessary.
+  ```
+
+  Apply the configuration to deploy the resources. Respond `yes` to the prompt to confirm.
+
+```shell-session
+$ terraform apply
+##...
+
+Plan: 76 to add, 0 to change, 0 to destroy.
+
+Changes to Outputs:
+  + eks_data                 = (sensitive value)
+  + oidc_provider_arn        = (known after apply)
+  + service_account_role_arn = (known after apply)
+  + vault_auth_data          = (sensitive value)
+
+Do you want to perform these actions?
+  Terraform will perform the actions described above.
+  Only 'yes' will be accepted to approve.
+
+  Enter a value:
+```
+
+The deployment can take up to 20 minutes to complete. When Terraform completes
+successfully, it will display something similar to the following outputs:
+
+<CodeBlockConfig hideClipboard>
+
+```plaintext
+##...
+
+Apply complete! Resources: 76 added, 0 changed, 0 destroyed.
+
+Outputs:
+
+eks_data = <sensitive>
+oidc_provider_arn = "arn:aws:iam::************:oidc-provider/oidc.eks.us-east-1.amazonaws.com/id/************************"
+service_account_role_arn = "arn:aws:iam::************:role/tutorialclustertest"
+vault_auth_data = <sensitive>
+```
+
+</CodeBlockConfig>
+
+The Terraform configuration configures your local `kubectl` so you can interact
+with the deployed Amazon EKS cluster.
+
+```shell-session
+$ kubectl get pods --all-namespaces
+NAMESPACE     NAME                       READY   STATUS    RESTARTS   AGE
+kube-system   aws-node-4zhlh             1/1     Running   0          19m
+kube-system   aws-node-8zt67             1/1     Running   0          18m
+kube-system   aws-node-h77xb             1/1     Running   0          19m
+kube-system   coredns-66cb55d4f4-hrzdg   1/1     Running   0          26m
+kube-system   coredns-66cb55d4f4-n7nqw   1/1     Running   0          26m
+kube-system   kube-proxy-2jlxt           1/1     Running   0          20m
+kube-system   kube-proxy-57lg2           1/1     Running   0          20m
+kube-system   kube-proxy-7w449           1/1     Running   0          20m
+```
+
+### Setup your environment to interact with Vault
+
+Once the Vault Dedicated instance is deployed, use the `vault` CLI to interact
+with it.
+
+Use the output from the `terraform apply` command to retrieve the info for your
+Vault Dedicated cluster.
+
+First, configure Vault Dedicated token for your environment.
+
+  ```shell-session
+  $ export VAULT_TOKEN=`terraform output -json vault_auth_data | jq --raw-output .vault_token`
+  ```
+
+Next, configure the Vault endpoint for your environment, using the public
+address of the Vault Dedicated instance.
+
+  ```shell-session
+  $ export VAULT_ADDR=`terraform output -json vault_auth_data | \
+      jq --raw-output .cluster_host | \
+      sed 's/private/public/'`
+  ```
+
+<Warning title="Security note">
+
+ Using an HCP Vault Dedicated cluster with a public endpoint is not
+recommended for use in production. Read more in the
+[HCP Vault Dedicated Security Overview](/hcp/docs/vault/security-overview).
+
+</Warning>
+
+Your Vault Dedicated instance is also exposed on a private address accessible from your AWS
+resources, in this case an EKS cluster, over the HVN peering connection. You
+will use this address to configure the Kubernetes integration with Vault.
+
+  ```shell-session
+  $ export VAULT_PRIVATE_ADDR=`terraform output -json vault_auth_data | \
+      jq --raw-output .cluster_host`
+  ```
+
+Finally, since Vault Dedicated uses namespaces, set the `VAULT_NAMESPACE`
+environment variable to `admin`.
+
+  ```shell-session
+  $ export VAULT_NAMESPACE=admin
+  ```
+
+### Install Vault agent injector on Amazon EKS
+
+Create a `vault-values.yaml` file that sets the external servers to Vault Dedicated.
+This will deploy a Vault agent injector into the EKS cluster.
+
+```shell-session
+$ cat > vault-values.yaml << EOF
+injector:
+  enabled: true
+  externalVaultAddr: "${VAULT_PRIVATE_ADDR}"
+EOF
+```
+
+To get more info on the available helm values configuration options, check
+[Helm Chart Configuration](/vault/docs/platform/k8s/helm/configuration)
+page.
+
+Validate that the values file is populated correctly. You should find the Vault Dedicated private address in the file.
+
+```shell-session
+$ cat vault-values.yaml
+injector:
+   enabled: true
+   externalVaultAddr: "https://vault-cluster.private.vault.00000000-0000-0000-0000-000000000000.aws.hashicorp.cloud:8200"
+```
+
+You will use the [official `vault-helm` chart](https://github.com/hashicorp/vault-helm)
+to install the Vault agents to your EKS cluster.
+
+Add the HashiCorp's Helm chart repository.
+
+```shell-session
+$ helm repo add hashicorp https://helm.releases.hashicorp.com && helm repo update
+"hashicorp" has been added to your repositories
+Hang tight while we grab the latest from your chart repositories...
+...Successfully got an update from the "hashicorp" chart repository
+Update Complete. ⎈ Happy Helming!⎈
+```
+
+Install the HashiCorp Vault Helm chart.
+
+```shell-session
+$ helm install vault -f ./vault-values.yaml hashicorp/vault --version "0.20.0"
+NAME: vault
+LAST DEPLOYED: Wed Mar 30 14:27:06 2022
+NAMESPACE: default
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+NOTES:
+Thank you for installing HashiCorp Vault!
+
+Now that you have deployed Vault, you should look over the docs on using
+Vault with Kubernetes available here:
+
+https://www.vaultproject.io/docs/
+
+Your release is named vault. To learn more about the release, try:
+
+  $ helm status vault
+  $ helm get manifest vault
+```
+
+Once the installation is complete, verify the Vault agent injector pod
+   deploys by issuing `kubectl get pods`.
+
+```shell-session
+$ kubectl get pods
+NAME                                    READY   STATUS    RESTARTS   AGE
+vault-agent-injector-6c6bbb9785-p7x4n   1/1     Running   0          8s
+```
+
+At this point, Vault is ready to use and for you to configure it as the secret manager for Consul.
+
+## Configure Vault as Consul secret manager
+
+You will need to generate tokens for the different nodes and servers to securely
+configure Consul. In order to generate these tokens, you will need a key for
+gossip encryption, a Consul Enterprise license, TLS certificates for the Consul
+servers and ACL policies
+
+Since you are using Vault as secrets management for your Consul datacenter, all
+the secrets will be stored inside Vault.
+
+Vault provides a `kv` secrets engine that can be used to store arbitrary secrets.
+You will use this engine to store the encryption key and the enterprise license.
+
+First, enable key/value v2 secrets engine (`kv-v2`).
+
+```shell-session
+$ vault secrets enable -path=consul kv-v2
+Success! Enabled the kv-v2 secrets engine at: consul/
+```
+
+<Tabs>
+
+<Tab heading="Consul OSS" group="oss">
+
+</Tab>
+
+<Tab heading="Consul Enterprise" group="enterprise">
+
+### Store enterprise license in Vault
+
+If you want to deploy Consul Enterprise, store the license for Consul enterprise.
+
+Place your Consul Enterprise license into the folder, from wherever you
+currently store it, and name it `consul.hclic`.
+
+```shell-session
+$ cp /path/to/your/current/consul-ent/license consul.hclic
+```
+
+Store the license in Vault.
+
+```shell-session
+$ vault kv put consul/secret/enterpriselicense key="$(cat ./consul.hclic)"
+Key                Value
+---                -----
+created_time       2022-03-22T16:25:14.073090874Z
+custom_metadata    <nil>
+deletion_time      n/a
+destroyed          false
+version            1
+```
+
+</Tab>
+
+</Tabs>
+
+### Store Consul gossip key in Vault
+
+Once the secret engine is enabled, store the encryption key in Vault.
+
+```shell-session
+$ vault kv put consul/secret/gossip gossip="$(consul keygen)"
+Key              Value
+---              -----
+created_time     2022-03-16T18:18:52.389731147Z
+deletion_time    n/a
+destroyed        false
+version          1
+```
+
+### Setup PKI secrets engine for TLS and service mesh CA
+
+Vault provides a `pki` secrets engine that you can use to generate TLS certificates.
+You will use this engine to configure CAs for TLS encryption for servers and
+service mesh leaf certificates for services.
+
+Enable Vault's PKI secrets engine at the `pki` path.
+
+```shell-session
+$ vault secrets enable pki
+Success! Enabled the pki secrets engine at: pki/
+```
+
+You can tune the PKI secrets engine to issue certificates with a maximum time-to-live (TTL).
+In this tutorial, you will set a TTL of 10 years (87600 hours).
+
+```shell-session
+$ vault secrets tune -max-lease-ttl=87600h pki
+Success! Tuned the secrets engine at: pki/
+```
+
+Generate the root certificate for Consul CA. This command saves the certificate
+in a file named `consul_ca.crt`. You will use it to configure environment
+variables for Consul CLI when you need to interact with your Consul datacenter.
+
+```shell-session
+$ vault write -field=certificate pki/root/generate/internal \
+    common_name="dc1.consul" \
+    ttl=87600h | tee consul_ca.crt
+```
+
+<Note>
+
+ This command sets `common_name` to `dc1.consul`, which
+matches the Consul datacenter and domain configuration. If you are
+deploying Consul with different datacenter and domain values, use the
+`common_name="<datacenter.domain>"` schema to generate the certificate.
+
+</Note>
+
+The command should return an output similar to the following.
+
+<CodeBlockConfig hideClipboard>
+
+```plaintext
+-----BEGIN CERTIFICATE-----
+MIIDMjCCAhqgAwIBAgIUGnHzuETSKLBqYz7CnW9iDdFbGVAwDQYJKoZIhvcNAQEL
+BQAwFTETMBEGA1UEAxMKZGMxLmNvbnN1bDAeFw0yMjAzMTcxMDQwNTlaFw0zMjAz
+MTQxMDQxMjlaMBUxEzARBgNVBAMTCmRjMS5jb25zdWwwggEiMA0GCSqGSIb3DQEB
+AQUAA4IBDwAwggEKAoIBAQDPUSYAR+iHHSQlc0qUmWvix3GZIrc+yMg9RZPbaSCH
+ttBd0p71weYXbMjNg8Ob0CY6umEdycXtCGOZBCkBBGPRisMrVoF9RIrWBII9XGbR
+36bggYaOTtw9FYfVqVCcO1ZilcnRUpBFrtVCDVd3TZXvEPWv7j0cQ0FwqbSur3Db
+VCNYPuCKt/lwill+6wlTo8yFOMRaxkBDKDGFnDKIV2gHw34xZ5vrqt2Vdeif5HSI3X3r
++zr6YAdWuwiJP+S4aTXohRinFLqHw1NMjrzbzqb8mRkuchyDfnjZBur5gxj1Z9Xs
+o7fpfmWzFIleOjYHREmHtcjMcu8tti2LuGjJUAVnVg5hAgMBAAGjejB4MA4GA1Ud
+DwEB/wQEAwIBBjAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBR8hhn7L3Lze5LN
+aYAWszT/oo4C6TAfBgNVHSMEGDAWgBR8hhn7L3Lze5LNaYAWszT/oo4C6TAVBgNV
+HREEDjAMggpkYzEuY29uc3VsMA0GCSqGSIb3DQEBCwUAA4IBAQAddNVes5f4vmO0
+zh03ShJPxH929IXFLs09uwEU3lnCQuiEhEY86x01kvSGqVnSxyBH+Xtn5va2bPCd
+PQsr+9dj6J2eCV1gee6YNtKIEly4NHmYU+3ReexoGLl79guKUvOh1PG1MfHLQQun
++Y74z3s5YW89rdniWK/KdORPr63p+XQvbiuhZLfveY8BLk55mVlojKMs9HV5YOPh
+znOLQNTJku04vdltNGQ4yRMDswPM2lTtUVdIgzI6S7j3DDK+gawDHLFa90zq87qY
+Qux7KBBlN1VEaRQas4FrvqeRR3FtqFTzn3p+QLpOHXw3te1/6fl5oe4Cch8ZROVB
+5U3wt2Em
+-----END CERTIFICATE-----
+```
+
+</CodeBlockConfig>
+
+Next, create a role that defines the configuration for the certificates.
+
+```shell-session
+$ vault write pki/roles/consul-server \
+    allowed_domains="dc1.consul,consul-server,consul-server.consul,consul-server.consul.svc" \
+    allow_subdomains=true \
+    allow_bare_domains=true \
+    allow_localhost=true \
+    generate_lease=true \
+    max_ttl="720h"
+```
+
+The command should return an output similar to the following.
+
+<CodeBlockConfig hideClipboard>
+
+```plaintext
+Success! Data written to: pki/roles/consul-server
+```
+
+</CodeBlockConfig>
+
+<Note>
+
+ This command sets `common_name` to `dc1.consul`, which
+matches the Consul datacenter and domain configuration. If you are
+deploying Consul with different datacenter and domain values, use values that reflect the
+allowed domains for the `consul-server` pki role.
+
+</Note>
+
+Finally, enable Vault's PKI secrets engine at the `connect-root` path to be used
+as root CA for Consul service mesh.
+
+```shell-session
+$ vault secrets enable -path connect-root pki
+Success! Enabled the pki secrets engine at: connect-root/
+```
+
+## Configure Kubernetes authentication
+
+Vault provides a [Kubernetes authentication](/vault/docs/auth/kubernetes)
+method that enables clients to authenticate with a Kubernetes Service Account Token.
+
+Using the Kubernetes authentication, Vault identifies your Consul agents using
+their service account and gives them access to the secrets they need to join your Consul datacenter.
+
+Enable the Kubernetes authentication method.
+
+```shell-session
+$ vault auth enable kubernetes
+Success! Enabled kubernetes auth method at: kubernetes/
+```
+
+Vault accepts service tokens from any client from within the Kubernetes cluster.
+During authentication, Vault verifies that the service account token is valid by
+querying a configured Kubernetes endpoint. In order to do that, configure the
+Kubernetes auth method with the JSON web token (JWT) for the service account, the
+Kubernetes CA certificate, and the Kubernetes host URL.
+
+The chart configures a Kubernetes service account named `vault` that you will use
+to enable Vault communication with Kubernetes. Retrieve the JSON Web Token (JWT) for
+the `vault` service account and set it to the `token_reviewer_jwt` environment
+variable.
+
+```shell-session
+$ export token_reviewer_jwt=$(kubectl get secret \
+  $(kubectl get serviceaccount vault -o jsonpath='{.secrets[0].name}') \
+  -o jsonpath='{ .data.token }' | base64 --decode)
+```
+
+Retrieve the Kubernetes certificate authority for the service account and set it to
+the `kubernetes_ca_cert` environment variable.
+
+```shell-session
+$ export kubernetes_ca_cert=$(kubectl get secret \
+  $(kubectl get serviceaccount vault -o jsonpath='{.secrets[0].name}') \
+  -o jsonpath='{ .data.ca\.crt }' | base64 --decode)
+```
+
+Retrieve the Kubernetes cluster endpoint and set it to the `kubernetes_host_url`
+environment variable.
+
+```shell-session
+$ export kubernetes_host_url=$(kubectl config view --raw --minify --flatten \
+  -o jsonpath='{.clusters[].cluster.server}')
+```
+
+Configure the Vault Kubernetes auth method to use the service account token.
+
+```shell-session
+$ vault write auth/kubernetes/config \
+  token_reviewer_jwt="${token_reviewer_jwt}" \
+  kubernetes_host="${kubernetes_host_url}" \
+  kubernetes_ca_cert="${kubernetes_ca_cert}"
+```
+
+The command should return an output similar to the following.
+
+<CodeBlockConfig hideClipboard>
+
+```plaintext
+Success! Data written to: auth/kubernetes/config
+```
+
+</CodeBlockConfig>
+
+Verify the configuration for the Kubernetes auth method changed in Vault.
+
+```shell-session
+$ vault read auth/kubernetes/config
+Key                       Value
+---                       -----
+disable_iss_validation    true
+disable_local_ca_jwt      false
+issuer                    n/a
+kubernetes_ca_cert        -----BEGIN CERTIFICATE-----
+##...
+-----END CERTIFICATE-----
+kubernetes_host           https://66606BBB5881313742471313182BBB90999.gr7.us-east-1.eks.amazonaws.com
+pem_keys                  []
+```
+
+## Generate Vault policies
+
+Next, you must define the different Vault policies that will let the Consul agents
+generate or retrieve the different secrets.
+
+You will create Vault policies to grant access to:
+1. The gossip encryption key.
+1. Consul server policy.
+1. Consul CA access policy.
+1. Consul service mesh CA policy.
+1. Optionally, if you are using Consul Enterprise, Consul enterprise license.
+
+#### Gossip encryption key
+
+Earlier in the tutorial, you stored the gossip encryption in the Vault `kv`
+secret engine. Define a policy that grants access to the path where you stored
+the gossip encryption.
+
+```shell-session
+$ vault policy write gossip-policy - <<EOF
+path "consul/data/secret/gossip" {
+  capabilities = ["read"]
+}
+EOF
+```
+
+The command should return an output similar to the following.
+
+<CodeBlockConfig hideClipboard>
+
+```plaintext
+Success! Uploaded policy: gossip-policy
+```
+
+</CodeBlockConfig>
+
+<Tabs>
+
+<Tab heading="Consul OSS" group="oss">
+
+</Tab>
+
+<Tab heading="Consul Enterprise" group="enterprise">
+
+#### Consul enterprise license
+
+When using Consul Enterprise, you must distribute the license to your Consul nodes.
+Earlier in this tutorial, you stored the Consul license in the Vault `kv` secrets
+engine. Define a policy that grants access to the path where you stored the license.
+
+```shell-session
+$ vault policy write enterpriselicense-policy - <<EOF
+path "consul/data/secret/enterpriselicense" {
+  capabilities = ["read"]
+}
+EOF
+```
+
+The command should return an output similar to the following.
+
+<CodeBlockConfig hideClipboard>
+
+```plaintext
+Success! Uploaded policy: enterpriselicense-policy
+```
+
+</CodeBlockConfig>
+
+</Tab>
+
+</Tabs>
+
+#### Consul server policy
+
+Consul servers need to generate TLS certificates (`pki/issue/consul-server`) and
+retrieve the CA certificate (`pki/cert/ca`).
+
+```shell-session
+$ vault policy write consul-server - <<EOF
+path "kv/data/consul-server"
+{
+  capabilities = ["read"]
+}
+path "pki/issue/consul-server"
+{
+  capabilities = ["read","update"]
+}
+path "pki/cert/ca"
+{
+  capabilities = ["read"]
+}
+EOF
+```
+
+The command should return an output similar to the following.
+
+<CodeBlockConfig hideClipboard>
+
+```plaintext
+Success! Uploaded policy: consul-server
+```
+
+</CodeBlockConfig>
+
+#### Consul CA access policy
+
+The policy `ca-policy` grants access to the Consul root CA so that Consul agents
+and services can verify the certificates used in the service mesh are authentic.
+
+```shell-session
+$ vault policy write ca-policy - <<EOF
+path "pki/cert/ca" {
+  capabilities = ["read"]
+}
+EOF
+```
+
+The command should return an output similar to the following.
+
+<CodeBlockConfig hideClipboard>
+
+```plaintext
+Success! Uploaded policy: ca-policy
+```
+
+</CodeBlockConfig>
+
+#### Consul service mesh CA policy
+
+The following Vault policy allows Consul to create and manage the root
+and intermediate PKI secrets engines for generating service mesh certificates.
+If you would prefer to control PKI secrets engine creation and configuration
+from Vault rather than delegating full control to Consul,
+refer to the [Vault CA provider documentation](/consul/docs/connect/ca/vault#vault-managed-pki-paths).
+
+The following Vault policy applies to Consul 1.12 and later.
+For use with earlier Consul versions, refer to the
+[Vault CA provider documentation](/consul/docs/connect/ca/vault#vault-acl-policies)
+and select your version from the version dropdown.
+
+In this example, the `RootPKIPath` is `connect-root` and the `IntermediatePKIPath`
+is `connect-intermediate-dc1`. Update these values to reflect your environment.
+
+```shell-session
+$ vault policy write connect - <<EOF
+path "/sys/mounts/connect-root" {
+  capabilities = [ "create", "read", "update", "delete", "list" ]
+}
+
+path "/sys/mounts/connect-intermediate-dc1" {
+  capabilities = [ "create", "read", "update", "delete", "list" ]
+}
+
+path "/sys/mounts/connect-intermediate-dc1/tune" {
+  capabilities = [ "update" ]
+}
+
+path "/connect-root/*" {
+  capabilities = [ "create", "read", "update", "delete", "list" ]
+}
+
+path "/connect-intermediate-dc1/*" {
+  capabilities = [ "create", "read", "update", "delete", "list" ]
+}
+
+path "auth/token/renew-self" {
+  capabilities = [ "update" ]
+}
+
+path "auth/token/lookup-self" {
+  capabilities = [ "read" ]
+}
+EOF
+```
+
+The command should return an output similar to the following.
+
+<CodeBlockConfig hideClipboard>
+
+```plaintext
+Success! Uploaded policy: connect
+```
+
+</CodeBlockConfig>
+
+## Configure Kubernetes authentication roles in Vault
+
+You have configured the Kubernetes authentication method and defined the different
+policies to grant access to the resources. You can now define the
+associations between Kubernetes service accounts and Vault policies.
+
+You will create Vault roles to associate the necessary policies to:
+1. Consul server agents.
+1. Consul client agents.
+1. Consul CA certificate access.
+
+### Consul server role
+
+Create a Kubernetes authentication role in Vault named `consul-server` that
+connects the Kubernetes service account (`consul-server`) and namespace (`consul`)
+with the Vault policies: `gossip-policy`,`consul-server` and `connect`.
+The tokens returned after authentication are valid for 24 hours.
+
+<Tabs>
+
+<Tab heading="Consul OSS" group="oss">
+
+```shell-session
+$ vault write auth/kubernetes/role/consul-server \
+    bound_service_account_names=consul-server \
+    bound_service_account_namespaces=consul \
+    policies="gossip-policy,consul-server,connect" \
+    ttl=24h
+```
+
+The command should return an output similar to the following.
+
+<CodeBlockConfig hideClipboard>
+
+```plaintext
+Success! Data written to: auth/kubernetes/role/consul-server
+```
+
+</CodeBlockConfig>
+
+</Tab>
+
+<Tab heading="Consul Enterprise" group="enterprise">
+
+When using Consul Enterprise, you must also associate the role with the `enterpriselicense-policy`.
+
+```shell-session
+$ vault write auth/kubernetes/role/consul-server \
+    bound_service_account_names=consul-server \
+    bound_service_account_namespaces=consul \
+    policies="gossip-policy,consul-server,connect,enterpriselicense-policy" \
+    ttl=24h
+```
+
+The command should return an output similar to the following.
+
+<CodeBlockConfig hideClipboard>
+
+```plaintext
+Success! Data written to: auth/kubernetes/role/consul-server
+```
+
+</CodeBlockConfig>
+
+</Tab>
+
+</Tabs>
+
+### Consul client role
+
+Create a Kubernetes authentication role in Vault named `consul-client` that
+connects the Kubernetes service account (`consul-client`) and namespace (`consul`)
+with the Vault policies: `gossip-policy` and `ca-policy`.
+The tokens returned after authentication are valid for 24 hours.
+
+<Tabs>
+
+<Tab heading="Consul OSS" group="oss">
+
+```shell-session
+$ vault write auth/kubernetes/role/consul-client \
+    bound_service_account_names=consul-client \
+    bound_service_account_namespaces=consul \
+    policies="gossip-policy,ca-policy" \
+    ttl=24h
+```
+
+The command should return an output similar to the following.
+
+<CodeBlockConfig hideClipboard>
+
+```plaintext
+Success! Data written to: auth/kubernetes/role/consul-client
+```
+
+</CodeBlockConfig>
+
+</Tab>
+
+<Tab heading="Consul Enterprise" group="enterprise">
+
+When using Consul Enterprise, you must also associate the role with the `enterpriselicense-policy`.
+
+```shell-session
+$ vault write auth/kubernetes/role/consul-client \
+    bound_service_account_names=consul-client \
+    bound_service_account_namespaces=consul \
+    policies="gossip-policy,ca-policy,enterpriselicense-policy" \
+    ttl=24h
+```
+
+The command should return an output similar to the following.
+
+<CodeBlockConfig hideClipboard>
+
+```plaintext
+Success! Data written to: auth/kubernetes/role/consul-client
+```
+
+</CodeBlockConfig>
+
+</Tab>
+
+</Tabs>
+
+#### Define access to Consul CA root certificate
+
+Create a Kubernetes authentication role in Vault named `consul-ca` that connects
+all Kubernetes service account in namespace (`consul`) with the Vault policy `ca-policy`.
+The tokens returned after authentication are valid for 1 hour.
+
+```shell-session
+$ vault write auth/kubernetes/role/consul-ca \
+    bound_service_account_names="*" \
+    bound_service_account_namespaces=consul \
+    policies=ca-policy \
+    ttl=1h
+```
+
+The command should return an output similar to the following.
+
+<CodeBlockConfig hideClipboard>
+
+```plaintext
+Success! Data written to: auth/kubernetes/role/consul-ca
+```
+
+</CodeBlockConfig>
+
+With the creation of the roles you completed the Vault configuration necessary.
+The following diagram provides a summary of the configuration you created.
+
+![Permissions for Vault as Consul secrets manager](/img/consul/kubernetes-diagram-permissions-vault-as-secrets-manager.png)
+
+## Deploy Consul datacenter
+
+Now that you have completed configuring Vault, you are ready to deploy Consul
+datacenter on the Kubernetes cluster.
+
+<Tabs>
+
+<Tab heading="Consul OSS" group="oss">
+
+The repository contains a configuration file for your Helm chart, named `consul-values.yaml`.
+
+Open the file and modify the configuration to use your `$VAULT_PRIVATE_ADDR`.
+
+```shell-session
+$ vim consul-values.yaml
+```
+
+<Note>
+
+ Content should resemble the example below. This example is not
+guaranteed to be up to date. **Always** refer to the values file provided in
+the repository.
+
+</Note>
+
+<CodeBlockConfig filename="consul-values.yaml" highlight="12" hideClipboard>
+
+```yaml
+global:
+  datacenter: "dc1"
+  name: consul
+  domain: consul
+  secretsBackend:
+    vault:
+      enabled: true
+      consulServerRole: consul-server
+      consulClientRole: consul-client
+      consulCARole: consul-ca
+      connectCA:
+        address: $VAULT_PRIVATE_ADDR
+        rootPKIPath: connect-root/
+        intermediatePKIPath: connect-intermediate-dc1/
+        additionalConfig: "{\"connect\": [{ \"ca_config\": [{ \"namespace\": \"admin\"}]}]}"
+      agentAnnotations: |
+        "vault.hashicorp.com/namespace": "admin"
+##...
+```
+
+</CodeBlockConfig>
+
+To get more info on the available Helm values configuration options, check out the
+[Helm Chart Configuration](/consul/docs/reference/k8s/helm) page.
+
+Once the configuration is complete, install Consul on your EKS cluster.
+
+```shell-session
+$ helm install --namespace consul --create-namespace \
+               --wait \
+               --values ./consul-values.yaml  \
+               consul hashicorp/consul --version "0.44.0"
+```
+
+</Tab>
+
+<Tab heading="Consul Enterprise" group="enterprise">
+
+The repository contains a configuration file for your Helm chart, named `consul-ent-values.yaml`.
+
+Open the file and modify the configuration to use your `$VAULT_PRIVATE_ADDR`.
+
+```shell-session
+$ vim consul-values.yaml
+```
+
+<Note>
+
+ Content should resemble the example below. This example is not
+guaranteed to be up to date. **Always** refer to the values file provided in
+the repository.
+
+</Note>
+
+<CodeBlockConfig filename="consul-ent-values.yaml" highlight="13" hideClipboard>
+
+```yaml
+global:
+  datacenter: "dc1"
+  name: consul
+  domain: consul
+  image: hashicorp/consul-enterprise:1.12-ent
+  secretsBackend:
+    vault:
+      enabled: true
+      consulServerRole: consul-server
+      consulClientRole: consul-client
+      consulCARole: consul-ca
+      connectCA:
+        address: $VAULT_PRIVATE_ADDR
+        rootPKIPath: connect-root/
+        intermediatePKIPath: connect-intermediate-dc1/
+        additionalConfig: "{\"connect\": [{ \"ca_config\": [{ \"namespace\": \"admin\"}]}]}"
+      agentAnnotations: |
+        "vault.hashicorp.com/namespace": "admin"
+  enterpriseLicense:
+    secretName: 'consul/data/secret/enterpriselicense'
+    secretKey: 'key'
+##...
+```
+
+</CodeBlockConfig>
+
+To get more info on the available Helm values configuration options, check out the
+[Helm Chart Configuration](/consul/docs/reference/k8s/helm) page.
+
+Once the configuration is complete, install Consul on your EKS cluster.
+
+```shell-session
+$ helm install --namespace consul --create-namespace \
+               --wait \
+               --values ./consul-ent-values.yaml  \
+               consul hashicorp/consul --version "0.44.0"
+```
+
+</Tab>
+
+</Tabs>
+
+The deployment can take up to 10 minutes to complete. When finished, you will get something similar to the following:
+
+<CodeBlockConfig hideClipboard>
+
+```plaintext
+## ...
+NOTES:
+Thank you for installing HashiCorp Consul!
+
+Your release is named consul.
+
+To learn more about the release, run:
+
+  $ helm status consul
+  $ helm get all consul
+
+Consul on Kubernetes Documentation:
+https://developer.hashicorp.com/docs/platform/k8s
+
+Consul on Kubernetes CLI Reference:
+https://developer.hashicorp.com/docs/k8s/k8s-cli
+```
+
+</CodeBlockConfig>
+
+## Verify configuration
+
+ Once the installation is complete, verify all the Consul pods are running using `kubectl`.
+
+```shell-session
+$ kubectl get pods --namespace consul
+NAME                                           READY   STATUS    RESTARTS   AGE
+consul-client-5zpkg                            2/2     Running   0          3m46s
+consul-client-q7ch8                            2/2     Running   0          3m46s
+consul-client-qtts7                            2/2     Running   0          3m46s
+consul-connect-injector-746cd866b-zc5l2        2/2     Running   0          3m46s
+consul-controller-5b5d5b8f8-qmgnc              2/2     Running   0          3m46s
+consul-ingress-gateway-74b88fb69f-dr9x2        3/3     Running   0          3m46s
+consul-ingress-gateway-74b88fb69f-kv59b        3/3     Running   0          3m46s
+consul-server-0                                2/2     Running   0          3m45s
+consul-sync-catalog-bd69d7565-8tfcz            2/2     Running   0          3m46s
+consul-terminating-gateway-55cc569ddf-5wvnd    3/3     Running   0          3m45s
+consul-terminating-gateway-55cc569ddf-lp9kl    3/3     Running   0          3m45s
+consul-webhook-cert-manager-5bb49457bf-7n82w   1/1     Running   0          3m46s
+prometheus-server-5cbddcc44b-67z8n             2/2     Running   0          2m12s
+```
+
+The configuration enables Consul UI as a service in your EKS cluster.
+
+Retrieve the address from Kubernetes services.
+
+```shell-session
+$ kubectl get services --namespace consul --field-selector metadata.name=consul-ui
+NAME        TYPE           CLUSTER-IP     EXTERNAL-IP                                                               PORT(S)         AGE
+consul-ui   LoadBalancer   10.100.72.81   abe45f34b066541f68a625ac1d3e0cfe-1763109037.us-east-1.elb.amazonaws.com   443:32597/TCP   23h
+```
+
+Access the Consul UI using the `consul-ui` external address on port `443`.
+
+![Consul UI on services tab](/img/consul/kubernetes-consul_ui-services.png)
+
+## Clean up environment
+
+Now that you are finished with the tutorial, clean up your environment.
+Respond `yes` to the prompt to confirm
+
+```shell-session
+$ terraform destroy
+Plan: 0 to add, 0 to change, 76 to destroy.
+
+Changes to Outputs:
+  - eks_data                 = (sensitive value)
+  - oidc_provider_arn        = "arn:aws:iam::561656980159:oidc-provider/oidc.eks.us-east-1.amazonaws.com/id/D9338D6BDF23CFD3E878411B2BA34870" -> null
+  - service_account_role_arn = "arn:aws:iam::561656980159:role/tutorialclustertest" -> null
+  - vault_auth_data          = (sensitive value)
+
+Do you really want to destroy all resources?
+  Terraform will destroy all your managed infrastructure, as shown above.
+  There is no undo. Only 'yes' will be accepted to confirm.
+
+  Enter a value: yes
+```
+
+## Next steps
+
+Using Vault as a centralized secret management, you can simplify your Consul
+deployments and avoid secret sprawl across multiple Kubernetes instances. Vault
+helps you scale your deployments without having to trade off between security
+and manageability.
+
+In this tutorial you learned how to use Vault as secret manager for your Consul
+datacenter installed in Kubernetes.
+
+Specifically you:
+
+- Configured Vault secrets engines to store or generate Consul secrets.
+- Configured Kubernetes auth engine for Vault to allow authentication using a k8s
+service account.
+- Configured Consul helm chart to retrieve the secrets from Vault during deploy.
+- Deployed Consul on Kubernetes and verify that secrets are being generated or
+retrieved from Vault.
+
+You can read more on Consul Helm chart configuration value, to tune your Consul
+installation at [Helm Chart Configuration](/consul/docs/reference/k8s/helm).
+
+To learn more on Vault Kubernetes authentication check [Vault Agent with Kubernetes](/vault/tutorials/kubernetes/agent-kubernetes) and [HCP Vault Dedicated with Amazon Elastic Kubernetes Service](/vault/tutorials/cloud-ops/vault-eks).

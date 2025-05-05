@@ -1,0 +1,417 @@
+---
+layout: docs
+page_title: Deploy Consul servers on OpenShift
+description: >-
+  Deploy Consul on OpenShift with the official Helm chart and deploy services into Consul's service mesh.
+---
+
+# Deploy Consul servers on OpenShift
+
+This page describes the process to deploy a Consul datacenter to an Openshift Kubernetes cluster.
+
+## Overview
+
+[Red Hat OpenShift](https://www.openshift.com/learn/what-is-openshift) is a distribution of the Kubernetes platform that provides a number of usability and security enhancements. The process to deploy Consul on Openshift clusters resembles the process on Kubernetes.
+
+These instructions begin with the process to deploy a new OpenShift cluster. If you already have an OpenShift cluster running, go to [Deploy Consul](#deploy-consul) to begin Helm chart configurations.
+
+## Requirements
+
+To deploy Consul on Openshift, you will need:
+
+- Access to a Kubernetes cluster deployed with OpenShift
+- A Red Hat account
+- [Red Hat OpenShift Local 2.49.0](https://console.redhat.com/openshift/create/local)
+- [consul v1.20.5+](/consul/install/)
+- [Helm v3.17.2+](https://helm.sh/docs/helm/helm_install/)
+- [consul-k8s v1.6.3+](/consul/docs/reference/cli/consul-k8s#install-the-cli)
+
+## Deploy OpenShift
+
+You can deploy OpenShift on multiple platforms, and there are several installation options available for installing OpenShift on either production and development environments. This guide requires a running OpenShift cluster to deploy Consul on Kubernetes. If an OpenShift cluster is already provisioned in a production or development environment to be used for deploying Consul on Kubernetes, skip ahead to [Deploy Consul](#deploy-consul).
+
+These instructions use OpenShift Local to provide a pre-configured development OpenShift environment on your local machine. OpenShift Local is bundled as a Red Hat Enterprise Linux virtual machine that supports native hypervisors for Linux, macOS, and Windows 10. OpenShift Local is the quickest way to get started building OpenShift clusters. It is designed to run on a local computer to simplify setup and emulate the cloud development environment locally with all the tools needed to develop container-based apps. While we use OpenShift Local, the Consul Helm deployment process works on any OpenShift cluster and is production ready.
+
+
+### OpenShift Local Setup
+
+After installing OpenShift Local, issue the following command to setup your environment.
+
+```shell-session
+$ crc setup
+INFO Using bundle path /Users/hashicorp/.crc/cache/crc_vfkit_4.17.14_arm64.crcbundle
+INFO Checking if running macOS version >= 13.x
+INFO Checking if running as non-root
+INFO Checking if crc-admin-helper executable is cached
+INFO Checking if running on a supported CPU architecture
+INFO Checking if crc executable symlink exists
+INFO Checking minimum RAM requirements
+INFO Check if Podman binary exists in: /Users/hashicorp/.crc/bin/oc
+INFO Checking if running emulated on Apple silicon
+INFO Checking if vfkit is installed
+INFO Checking if CRC bundle is extracted in '$HOME/.crc'
+INFO Checking if /Users/hashicorp/.crc/cache/crc_vfkit_4.17.14_arm64.crcbundle exists
+INFO Getting bundle for the CRC executable
+INFO Downloading bundle: /Users/hashicorp/.crc/cache/crc_vfkit_4.17.14_arm64.crcbundle...
+4.86 GiB / 4.86 GiB [---------------------------------------] 100.00% 1.81 MiB/s
+INFO Uncompressing /Users/hashicorp/.crc/cache/crc_vfkit_4.17.14_arm64.crcbundle
+crc.img:  31.00 GiB / 31.00 GiB [-------------------------------------------------------------] 100.00%
+oc:  125.37 MiB / 125.37 MiB [----------------------------------------------------------------] 100.00%
+INFO Checking if old launchd config for tray and/or daemon exists
+INFO Checking if crc daemon plist file is present and loaded
+INFO Adding crc daemon plist file and loading it
+INFO Checking SSH port availability
+Your system is correctly setup for using CRC. Use 'crc start' to start the instance
+```
+
+### OpenShift Local start
+
+After the setup is complete, you can start the CRC service that runs OpenShift Local with the following command. The command performs a few system checks to ensure your system meets the minimum requirements and then asks you to provide an image pull secret. [Open your Red Hat account](https://console.redhat.com/openshift/create/local) so that you can easily copy your image pull secret when prompted.
+
+```shell-session
+$ crc start
+INFO Using bundle path /Users/hashicorp/.crc/cache/crc_vfkit_4.17.14_arm64.crcbundle
+INFO Checking if running macOS version >= 13.x
+INFO Checking if running as non-root
+INFO Checking if crc-admin-helper executable is cached
+INFO Checking if running on a supported CPU architecture
+INFO Checking if crc executable symlink exists
+INFO Checking minimum RAM requirements
+INFO Check if Podman binary exists in: /Users/hashicorp/.crc/bin/oc
+INFO Checking if running emulated on Apple silicon
+INFO Checking if vfkit is installed
+INFO Checking if old launchd config for tray and/or daemon exists
+INFO Checking if crc daemon plist file is present and loaded
+INFO Checking SSH port availability
+INFO Loading bundle: crc_vfkit_4.17.14_arm64...
+CRC requires a pull secret to download content from Red Hat.
+You can copy it from the Pull Secret section of https://console.redhat.com/openshift/create/local.
+? Please enter the pull secret 
+```
+
+Next, paste the image pull secret into the terminal, press enter, and wait for the process to complete.
+
+<CodeBlockConfig hideClipboard>
+
+```plain-text
+INFO Creating CRC VM for OpenShift 4.17.14...
+INFO Generating new SSH key pair...
+INFO Generating new password for the kubeadmin user
+
+##...
+
+Started the OpenShift cluster.
+
+The server is accessible via web console at:
+  https://console-openshift-console.apps-crc.testing
+
+Log in as administrator:
+  Username: kubeadmin
+  Password: <redacted> 
+
+Log in as user:
+  Username: developer
+  Password: developer
+
+Use the 'oc' command line interface:
+  $ eval $(crc oc-env)
+  $ oc login -u developer https://api.crc.testing:6443
+```
+
+</CodeBlockConfig>
+
+Notice that the output instructs you to configure your `oc-env`, and also includes a login command and secret password. The secret is specific to your installation. Make note of this command. You need it to login to OpenShift Local (CRC) on your development host later.
+
+### Configure OpenShift Local (CRC) environment
+
+Next, configure the environment as instructed by CRC using the following command.
+
+```shell-session
+$ eval $(crc oc-env)
+```
+
+### Login to the OpenShift cluster
+
+Next, use the login command you made note of before to authenticate with the OpenShift cluster.
+
+-> **Note** You will have to replace the secret password below with the value output
+by OpenShift Local CRC.
+
+```shell-session
+$ oc login -u kubeadmin -p <redacted> https://api.crc.testing:6443
+Login successful.
+
+You don't have any projects. You can try to create a new project, by running
+
+    oc new-project <projectname>
+```
+
+### Verify configuration
+
+Validate that your OpenShift Local CRC setup was successful with the following command.
+
+```shell-session
+$ kubectl cluster-info
+Kubernetes control plane is running at https://api.crc.testing:6443
+
+To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
+```
+
+### Create a new project
+
+First, create an OpenShift project to install Consul on Kubernetes. Creating an OpenShift project creates a Kubernetes namespace to deploy Kubernetes resources.
+
+```shell-session
+$ oc new-project consul
+Now using project "consul" on server "https://api.crc.testing:6443".
+
+You can add applications to this project with the 'new-app' command. For example, try:
+
+    oc new-app rails-postgresql-example
+
+to build a new example application in Ruby. Or use kubectl to deploy a simple Kubernetes application:
+
+    kubectl create deployment hello-node --image=registry.k8s.io/e2e-test-images/agnhost:2.43 -- /agnhost serve-hostname
+```
+
+### Create an image pull secret for a RedHat Registry service account
+
+You must create an image pull secret before authenticating to the RedHat Registry and pulling images from the container registry. First, create a registry service account on the [RedHat Customer Portal](https://access.redhat.com/terms-based-registry/). Then download and apply the OpenShift secret that is associated with the registry service account. In the following example, the name of the downloaded file was `15490118-openshift-secret.yml`, but your filename will differ.
+
+```shell-session 
+$ kubectl create -f 15490118-openshift-secret.yml --namespace=consul
+secret/15490118-openshift-secret-secret created
+```
+
+You receive a confirmation for the creation of a Kubernetes secret, alongside its name. Make a note of this name now. You will use it in the Helm chart values file, specifically in the `imagePullSecrets` stanza. In the following example case, the name is `15490118-openshift-secret-secret`.
+
+## Deploy Consul
+
+The process to deploy Consul servers on Openshift clusters consists of the following steps:
+
+1. Configure Helm values.
+1. Confirm Helm chart version.
+1. Import images from RedHat Catalog.
+1. Install Consul with Helm or the `consul-k8s` CLI.
+
+## Configure Helm values
+
+To customize your deployment, you can pass a YAML configuration file to be used during the deployment. Any values specified in the values file will override the Helm chart's default settings. The following example file sets the `global.openshift.enabled` entry to true, which is required to operate Consul on OpenShift. 
+
+Create a file named `values.yaml`, and modify it for your deployment. Remember to modify `imagePullSecrets` with to the name generated in the previous step.
+
+<CodeBlockConfig filename="values.yaml">
+
+```yaml
+global:
+  name: consul
+  datacenter: dc1
+  image: registry.connect.redhat.com/hashicorp/consul:1.20.5-ubi
+  imagePullSecrets:
+    - name: <Insert image pull secret name for RedHat Registry Service Account>
+  openshift:
+    enabled: true
+    
+server:
+  replicas: 1
+  bootstrapExpect: 1
+  disruptionBudget:
+    enabled: true
+    maxUnavailable: 0
+    
+ui:
+  enabled: true 
+    
+connectInject:
+  enabled: true
+  default: true
+  cni:
+    enabled: true
+    logLevel: info
+    multus: true
+    cniBinDir: /var/lib/cni/bin
+    cniNetDir: /etc/kubernetes/cni/net.d
+
+```
+
+</CodeBlockConfig>
+
+## Verify chart version
+
+Search your local repo for the Consul Helm chart.
+
+```shell-session
+$ helm search repo hashicorp/consul
+NAME            	CHART VERSION	APP VERSION	DESCRIPTION
+hashicorp/consul	1.6.3        	1.20.5     	Official HashiCorp Consul Chart
+```
+
+If the correct version is not displayed in the output, try
+updating your helm repo.
+
+```shell-session
+$ helm repo update
+Hang tight while we grab the latest from your chart repositories...
+...Successfully got an update from the "hashicorp" chart repository
+Update Complete. ⎈Happy Helming!⎈
+```
+
+## Import images from RedHat Catalog
+
+Instead of pulling images directly from the RedHat Registry, Consul and Consul on Kubernetes images could also be pre-loaded onto the internal OpenShift registry using the `oc import` command. Read more about [importing images into the internal OpenShift Registry in the RedHat OpenShift cookbook](https://cookbook.openshift.org/image-registry-and-image-streams/how-do-i-import-an-image-from-an-external-image.html).
+
+```shell-session
+$ oc import-image hashicorp/consul:1.20.5-ubi --from=registry.connect.redhat.com/hashicorp/consul:1.20.5-ubi --confirm
+imagestream.image.openshift.io/consul imported
+
+<output omitted for brevity>
+```
+
+```shell-session
+$ oc import-image hashicorp/consul-k8s-control-plane:1.6.1-ubi --from=registry.connect.redhat.com/hashicorp/consul-k8s-control-plane:1.6.1-ubi --confirm
+imagestream.image.openshift.io/consul-k8s-control-plane imported
+
+<output omitted for brevity>
+```
+
+```shell-session
+$ oc import-image hashicorp/consul-dataplane:1.6.1-ubi --from=registry.connect.redhat.com/hashicorp/consul-dataplane:1.6.1-ubi --confirm
+imagestream.image.openshift.io/consul-dataplane imported
+
+<output omitted for brevity>
+```
+
+## Install Consul in your cluster
+
+You can now deploy a complete Consul datacenter in your Kubernetes cluster using the official Consul Helm chart or the Consul K8S CLI.
+
+<Tabs>
+<Tab heading="Helm">
+
+Now, issue the `helm install` command. The following command specifies that the
+installation should:
+
+- Use the custom values file you created earlier
+- Use the `hashicorp/consul` chart you downloaded in the last step
+- Set your Consul installation name to `consul`
+- Create Consul resources in the `consul` namespace
+- Use `consul-helm` chart version `1.6.3`
+
+
+```shell-session
+$ helm install consul hashicorp/consul --values values.yaml --create-namespace --namespace consul --version "1.6.3" --wait
+```
+
+The output will be similar to the following.
+
+```shell-session
+NAME: consul
+LAST DEPLOYED: Wed Sep 28 11:00:16 2022
+NAMESPACE: consul
+STATUS: deployed
+REVISION: 1
+NOTES:
+Thank you for installing HashiCorp Consul!
+
+Your release is named consul.
+
+To learn more about the release, run:
+
+  $ helm status consul
+  $ helm get all consul
+
+Consul on Kubernetes Documentation:
+https://developer.hashicorp.com/docs/platform/k8s
+
+Consul on Kubernetes CLI Reference:
+https://developer.hashicorp.com/docs/reference/k8s/consul-k8s-cli
+```
+
+</Tab>
+<Tab heading="Consul K8S CLI (Linux and Mac)">
+
+Consul K8s CLI is a tool for quickly installing and interacting with Consul on Kubernetes. Ensure that you are installing the correct version of the CLI for your Consul on Kubernetes deployment, as the CLI and the control plane are version dependent.
+
+To get started with the Consul K8s CLI, follow the instructions [to install the CLI to your local system](/consul/docs/k8s/installation/install-cli#install-the-cli). Refer to the [Consul K8S CLI documentation](/consul/docs/reference/cli/consul-k8s) to learn more about additional settings.
+
+```shell-session
+$ consul-k8s install -config-file=values.yaml
+```
+
+When Consul is installed successfully, expect the following output:
+
+```shell-session
+==> Installing Consul
+ ✓ Downloaded charts
+ --> creating 1 resource(s)
+ --> creating 46 resource(s)
+ --> beginning wait for 46 resources with timeout of 10m0s
+
+...
+
+ ✓ Consul installed in namespace "consul".
+```
+
+</Tab>
+</Tabs>
+
+## Verify installation
+
+Use `kubectl get pods` to verify your installation.
+
+```shell-session
+$ watch kubectl get pods --namespace consul
+NAME                                           READY   STATUS    RESTARTS   AGE
+consul-cni-45fgb                               1/1     Running   0          3m
+consul-connect-injector-574799b944-n6jf6       1/1     Running   0          3m
+consul-connect-injector-574799b944-xvksv       1/1     Running   0          3m
+consul-server-0                                1/1     Running   0          3m
+consul-webhook-cert-manager-74467cdd8d-88m6j   1/1     Running   0          3m
+```
+
+Once all pods have a status of `Running`, enter `CTRL-C` to stop the watch.
+
+## Access the Consul UI
+
+After you deploy Consul, you can access the Consul UI to verify that the Consul installation was successful, and that the environment is healthy.
+
+### Expose the UI service to the host
+
+Since the application is running on your local development host, you can expose
+the Consul UI to the development host using `kubectl port-forward`. The UI and the
+HTTP API Server run on the `consul-server-0` pod. Issue the following command to
+expose the server endpoint at port `8500` to your local development host.
+
+```shell-session
+$ kubectl port-forward consul-server-0 --namespace consul 8500:8500
+Forwarding from 127.0.0.1:8500 -> 8500
+Forwarding from [::1]:8500 -> 8500
+```
+
+Open [`http://localhost:8500`](http://localhost:8500) in a new browser tab.
+
+## Access Consul with the CLI and HTTP API
+
+To access Consul with the CLI, set the `CONSUL_HTTP_ADDR` following environment variable on the development host so that the Consul CLI knows which Consul server to interact with.
+
+```shell-session
+$ export CONSUL_HTTP_ADDR=http://127.0.0.1:8500
+```
+
+You should be able to issue the `consul members` command to view all available
+Consul datacenter members.
+
+```shell-session
+$ consul members
+Node                Address            Status  Type    Build   Protocol  DC   Partition  Segment
+consul-server-0     10.217.0.106:8301  alive   server  1.20.5  2         dc1  default    <all>
+crc-dzk9v-master-0  10.217.0.104:8301  alive   client  1.20.5  2         dc1  default    <default>
+```
+
+You can use the same URL to make HTTP API requests with your custom code.
+
+## Next steps
+
+The Consul server you created is not ready for production. The chart was installed with an insecure configuration of Consul that you still need to secure. Refer to [Secure Consul](/consul/docs/secure/) to learn how you can secure Consul servers for use in production environments.
+
+For more information on the Consul Helm chart configuration options, review the [Consul Helm chart reference documentation](/consul/docs/reference/k8s/helm).

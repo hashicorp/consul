@@ -1,0 +1,137 @@
+---
+layout: docs
+page_title: Send access logs to OpenTelemetry collector service
+description: Learn how to use the `otel-access-logging` Envoy extension to send access logs to OpenTelemetry collector service.
+---
+
+# Send access logs to OpenTelemetry collector service
+
+This topic describes how to use the OpenTelemetry Access Logging Envoy extension to send access logs to OpenTelemetry collector service.
+
+## Workflow
+
+Complete the following steps to use the OpenTelemetry access logging extension:
+
+1. Configure an `EnvoyExtensions` block in a service defaults or proxy defaults configuration entry.
+1. Apply the configuration entry.
+
+## Add the `EnvoyExtensions`
+
+Add Envoy extension configurations to a proxy defaults or service defaults configuration entry. Place the extension configuration in an `EnvoyExtensions` block in the configuration entry.
+
+- When you configure Envoy extensions on proxy defaults, they apply to every service.
+- When you configure Envoy extensions on service defaults, they apply to a specific service.
+
+Consul applies Envoy extensions configured in proxy defaults before it applies extensions in service defaults. As a result, the Envoy extension configuration in service defaults may override configurations in proxy defaults.
+
+The following example shows a service defaults configuration entry for the `api` service that directs the Envoy proxy to make gRPC OpenTelemetry access logging requests to the `otel-collector` service:
+
+<CodeTabs tabs={[ "HCL", "JSON", "YAML" ]}>
+<CodeBlockConfig filename="api-otel-collector-service-defaults.hcl">
+
+```hcl
+Kind = "service-defaults"
+Name = "api"
+EnvoyExtensions = [
+  {
+    Name = "builtin/otel-access-logging"
+    Arguments = {
+      ProxyType = "connect-proxy"
+      Config = {
+        GrpcService = {
+          Target = {
+            Service = {
+              Name = "otel-collector"
+            }
+          }
+        }
+      }
+    }
+  }
+]
+```
+</CodeBlockConfig>
+<CodeBlockConfig filename="api-otel-collector-service-defaults.json">
+
+```json
+{
+  "Kind": "service-defaults",
+  "Name": "api",
+  "EnvoyExtensions": [{
+    "Name": "builtin/otel-access-logging",
+    "Arguments": {
+      "ProxyType": "connect-proxy",
+      "Config": {
+        "GrpcService": {
+          "Target": {
+            "Service": {
+              "Name": "otel-collector"
+            }
+          }
+        }
+      }
+    }
+  }]
+}
+```
+
+</CodeBlockConfig>
+<CodeBlockConfig filename="api-otel-collector-service-defaults.yaml">
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceDefaults
+metadata:
+  name: api
+  namespace: default
+spec:
+  envoyExtensions:
+  - name: builtin/otel-access-logging
+    arguments:
+      proxyType: connect-proxy
+      config:
+        grpcService:
+          target:
+            service:
+              name: otel-collector
+              namespace: otel-collector
+```
+
+</CodeBlockConfig>
+</CodeTabs>
+
+Refer to the [OpenTelemetry Access Logging extension configuration reference](/consul/docs/reference/proxy/extensions/otel) for details on how to configure the extension.
+
+Refer to the [proxy defaults configuration entry reference](/consul/docs/reference/config-entry/proxy-defaults) and [service defaults configuration entry reference](/consul/docs/reference/config-entry/service-defaults) for details on how to define the configuration entries.
+
+<Warning>
+  Adding Envoy extensions default proxy configurations may have unintended consequences. We recommend configuring `EnvoyExtensions` in service defaults configuration entries in most cases.
+</Warning>
+
+### Unsupported Envoy configuration fields
+
+The following Envoy configurations are not supported:
+
+| Configuration           | Workaround                                                                                                                     |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `transport_api_version` | Consul only supports v3 of the transport API. As a result, there is no workaround for implementing the behavior of this field. |
+
+## Apply the configuration entry
+
+If your network is deployed to virtual machines, use the `consul config write` command and specify the proxy defaults or service defaults configuration entry to apply the configuration. For Kubernetes-orchestrated networks, use the `kubectl apply` command. The following example applies the extension in a proxy defaults configuration entry.
+
+<CodeTabs tabs={[ "HCL", "JSON", "YAML" ]}>
+
+```shell-session
+$ consul config write api-otel-collector-service-defaults.hcl
+```
+
+```shell-session
+$ consul config write api-otel-collector-service-defaults.json
+```
+
+```shell-session
+$ kubectl apply -f api-otel-collector-service-defaults.yaml
+```
+
+</CodeTabs>

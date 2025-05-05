@@ -1,0 +1,202 @@
+---
+layout: docs
+page_title: Define and configure services
+description: >-
+  This topic introduces the configuration items that enable you to register services with Consul so that they can connect to other services and nodes registered with Consul. 
+---
+
+# Define and configure services
+
+Consul agents require service definitions in order to register services into the Consul catalog. You can also configure service defaults to define common settings for multiple services.
+
+## Service definitions
+
+@include 'text/descriptions/service-definition.mdx'
+
+To register a service, provide the service definition to the Consul agent. Refer to [Register Services and Health Checks](/consul/docs/register/service/vm) for information about registering services. 
+
+### ACLs
+
+When both Consul namespaces and ACL system are enabled, you can register services to specific namespaces. However, it is important to note that:
+
+1. Services registered with a service definition will not inherit the namespace associated with the ACL token specified in the token field.
+
+1. You must explicitly include both the namespace parameter in the service definition and an ACL token that has permissions for that namespace.
+
+This ensures precise control over service placement within namespaces and maintains proper access control.
+
+## Example service definition
+
+The following example includes all possible parameters, but only the top-level `service` parameter and its `name` parameter are required by default.
+
+<Tabs>
+
+<Tab heading="HCL" group="hcl">
+
+```hcl
+service {
+  name = "redis"
+  id   = "redis"
+  port = 80
+  tags = ["primary"]
+ 
+  meta = {
+    custom_meta_key = "custom_meta_value"
+  }
+ 
+  tagged_addresses = {
+    lan = {
+      address = "192.168.0.55"
+      port    = 8000
+    }
+ 
+    wan = {
+      address = "198.18.0.23"
+      port    = 80
+    }
+  }
+ 
+  port                = 8000
+  socket_path         = "/tmp/redis.sock"
+  enable_tag_override = false
+ 
+  checks = [
+    {
+      args     = ["/usr/local/bin/check_redis.py"]
+      interval = "10s"
+    }
+  ]
+ 
+  kind              = "connect-proxy"
+  proxy_destination = "redis"
+ 
+  proxy = {
+    destination_service_name  = "redis"
+    destination_service_id    = "redis1"
+    local_service_address     = "127.0.0.1"
+    local_service_port        = 9090
+    local_service_socket_path = "/tmp/redis.sock"
+    mode                      = "transparent"
+ 
+    transparent_proxy {
+      outbound_listener_port = 22500
+    }
+ 
+    mesh_gateway = {
+      mode = "local"
+    }
+ 
+    expose = {
+      checks = true
+ 
+      paths = [
+        {
+          path            = "/healthz"
+          local_path_port = 8080
+          listener_port   = 21500
+          protocol        = "http2"
+        }
+      ]
+    }
+  }
+ 
+  connect = {
+    native = false
+  }
+ 
+  weights = {
+    passing = 5
+    warning = 1
+  }
+ 
+  token     = "233b604b-b92e-48c8-a253-5f11514e4b50"
+  namespace = "foo"
+}
+```
+
+</Tab>
+
+<Tab heading="JSON" group="json">
+
+```json
+{
+  "service": {
+    "id": "redis",
+    "name": "redis",
+    "tags": ["primary"],
+    "address": "",
+    "meta": {
+      "meta": "for my service"
+    },
+    "tagged_addresses": {
+      "lan": {
+        "address": "192.168.0.55",
+        "port": 8000
+      },
+      "wan": {
+        "address": "198.18.0.23",
+        "port": 80
+      }
+    },
+    "port": 8000,
+    "socket_path": "/tmp/redis.sock",
+    "enable_tag_override": false,
+    "checks": [
+      {
+        "args": ["/usr/local/bin/check_redis.py"],
+        "interval": "10s"
+      }
+    ],
+    "kind": "connect-proxy",
+    "proxy_destination": "redis", // Deprecated
+    "proxy": {
+      "destination_service_name": "redis",
+      "destination_service_id": "redis1",
+      "local_service_address": "127.0.0.1",
+      "local_service_port": 9090,
+      "local_service_socket_path": "/tmp/redis.sock",
+      "mode": "transparent",
+      "transparent_proxy": {
+        "outbound_listener_port": 22500
+      },
+      "config": {},
+      "upstreams": [],
+      "mesh_gateway": {
+        "mode": "local"
+      },
+      "expose": {
+        "checks": true,
+        "paths": [
+          {
+            "path": "/healthz",
+            "local_path_port": 8080,
+            "listener_port": 21500,
+            "protocol": "http2"
+          }
+       ]
+      }
+    },
+    "connect": {
+      "native": false,
+      "sidecar_service": {},
+      "proxy": {  // Deprecated
+        "command": [],
+        "config": {}
+      }
+    },
+    "weights": {
+      "passing": 5,
+      "warning": 1
+    },
+    "token": "233b604b-b92e-48c8-a253-5f11514e4b50",
+    "namespace": "foo"
+  }
+}
+```
+
+</Tab>
+</Tabs>
+
+## Next steps
+
+Learn about [Consul configuration entries](/consul/docs/fundamentals/config-entry). You can use configuration entries to manage service traffic and configure global defaultsa for services and their sidecar proxies.

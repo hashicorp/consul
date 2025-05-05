@@ -1,0 +1,197 @@
+---
+layout: docs
+page_title: Resolve Consul DNS requests in Kubernetes
+description: >-
+  Use a k8s ConfigMap to configure KubeDNS or CoreDNS so that you can use Consul's `<service-name>.service.consul` syntax for queries and other DNS requests. In Kubernetes, this process uses either stub-domain or proxy configuration.
+---
+
+# Resolve Consul DNS requests in Kubernetes
+
+This topic describes how to resolve Consul DNS requests in Kubernetes. Before you do so, you need to configure KubeDNS or CoreDNS to interface with Consul.
+
+## Introduction
+
+[Consul DNS](/consul/docs/discover/dns) is the primary interface for querying records. You can configure Consul DNS in Kubernetes using:
+
+1. A [stub-domain configuration](https://kubernetes.io/docs/tasks/administer-cluster/dns-custom-nameservers/#configure-stub-domain-and-upstream-dns-servers) if using KubeDNS
+1. A [proxy configuration](https://coredns.io/plugins/forward/) if using CoreDNS
+
+Once configured, DNS requests in the form `<consul-service-name>.service.consul` will resolve for services in Consul. This will work from all Kubernetes namespaces.
+  
+If you want resolve requests using `<consul-service-name>` (without the `.service.consul`), then you need to enable [service sync](/consul/docs/register/service/k8s/service-sync#consul-to-kubernetes).
+
+## Retrieve Consul DNS cluster IP
+
+To configure KubeDNS or CoreDNS, you need the `ClusterIP` of the Consul DNS service created by the [Helm chart](/consul/docs/reference/k8s/helm).
+
+The default name of the Consul DNS service will be `consul-dns`. Use that name to get the `ClusterIP`. For this installation, the `ClusterIP` is `10.35.240.78`.
+
+```shell-session
+$ kubectl get svc consul-dns --output jsonpath='{.spec.clusterIP}'
+10.35.240.78%
+```
+  
+If you've installed Consul using a different Helm release name than `consul`, then the DNS service name will be `<release-name>-consul-dns`. 
+
+Once you have the `ClusterIP`, you can go to the KubeDNS or CoreDNS section that matches your Kubernetes setup.
+
+## Configure KubeDNS
+
+If using KubeDNS, you need to create a `ConfigMap` that tells KubeDNS to use Consul DNS to resolve all domains ending with `.consul`.
+
+First, export the Consul DNS IP as an environment variable. This is the IP address you retrieved in the previous step.
+
+```bash
+$ export CONSUL_DNS_IP=10.35.240.78
+```
+
+Then, define the `ConfigMap`. If using a different zone than `.consul`, change the stub domain to that zone.
+
+<CodeBlockConfig filename="consul-kubedns-config-map.yaml">
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    addonmanager.kubernetes.io/mode: EnsureExists
+  name: kube-dns
+  namespace: kube-system
+data:
+  stubDomains: |
+    { "consul": ["$CONSUL_DNS_IP"] }
+```
+
+</CodeBlockConfig>
+
+Create the `ConfigMap`.
+
+```shell-session
+$ kubectl apply --filename consul-kubedns-config-map.yaml
+```
+
+Verify that the `ConfigMap` was created successfully.
+
+```shell-session
+$ kubectl get configmap kube-dns --namespace kube-system --output yaml
+apiVersion: v1
+data:
+  stubDomains: |
+    {"consul": ["10.35.240.78"]}
+kind: ConfigMap
+## ...
+```
+
+The `stubDomain` can only point to a static IP. If the cluster IP of Consul DNS changes, then you must update the `ConfigMap` to match the new service IP. The cluster IP of Consul DNS may change if the service is deleted and recreated, such as in full cluster rebuilds.
+
+Now, skip ahead to the [Verify DNS](#verify-dns) section.
+
+## Configure CoreDNS
+
+If using CoreDNS, you need to update your existing `coredns` ConfigMap in the `kube-system` namespace to include a `forward` definition for `consul` that points to the cluster IP of the Consul DNS service.
+
+Edit the `coreDNS` `ConfigMap`.
+
+```shell-session
+$ kubectl edit configmap coredns --namespace kube-system
+```
+
+You need to edit the following items:
+
+- Add the `consul` block below the default `.:53` block.
+- Replace `<consul-dns-service-cluster-ip>` with the DNS Service's IP address you retrieved previously.
+- If using a different zone than `.consul`, change the key accordingly.
+
+<CodeBlockConfig highlight="13-17">
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    addonmanager.kubernetes.io/mode: EnsureExists
+  name: coredns
+  namespace: kube-system
+data:
+  Corefile: |
+    .:53 {
+      ## Existing CoreDNS definition...
+    }
+    consul {
+      errors
+      cache 30
+      forward . <consul-dns-service-cluster-ip>
+    }
+```
+
+</CodeBlockConfig>
+
+The Consul proxy can only point to a static IP. If the cluster IP of Consul DNS changes, then you must update the `ConfigMap` to match the new service IP. The cluster IP of Consul DNS may change if the service is deleted and recreated, such as in full cluster rebuilds.
+
+## Verify DNS
+
+To verify DNS works, run the following example job to query DNS. Save the following job to the file `job.yaml`.
+
+<CodeBlockConfig filename="job.yaml">
+
+```yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: dns
+spec:
+  template:
+    spec:
+      containers:
+        - name: dns
+          image: anubhavmishra/tiny-tools
+          command: ['dig', 'consul.service.consul']
+      restartPolicy: Never
+  backoffLimit: 4
+```
+
+</CodeBlockConfig>
+
+Deploy the example job to your cluster.
+
+```shell-session
+$ kubectl apply --filename job.yaml
+```
+
+Then, retrieve the pod name of the job.
+
+```shell-session
+$ kubectl get pods --show-all | grep dns
+dns-lkgzl         0/1       Completed   0          6m
+```
+
+Finally, retrieve the logs for the pod. The logs should show a successful DNS query, something similar to the following. If the logs show any errors, then DNS is not configured properly.
+
+```shell-session
+$ kubectl logs dns-lkgzl
+; <<>> DiG 9.11.2-P1 <<>> consul.service.consul
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 4489
+;; flags: qr aa rd ra; QUERY: 1, ANSWER: 3, AUTHORITY: 0, ADDITIONAL: 4
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 4096
+;; QUESTION SECTION:
+;consul.service.consul.		IN	A
+
+;; ANSWER SECTION:
+consul.service.consul.	0	IN	A	10.36.2.23
+consul.service.consul.	0	IN	A	10.36.4.12
+consul.service.consul.	0	IN	A	10.36.0.11
+
+;; ADDITIONAL SECTION:
+consul.service.consul.	0	IN	TXT	"consul-network-segment="
+consul.service.consul.	0	IN	TXT	"consul-network-segment="
+consul.service.consul.	0	IN	TXT	"consul-network-segment="
+
+;; Query time: 5 msec
+;; SERVER: 10.39.240.10#53(10.39.240.10)
+;; WHEN: Wed Sep 12 02:12:30 UTC 2018
+;; MSG SIZE  rcvd: 206
+```

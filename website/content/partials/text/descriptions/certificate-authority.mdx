@@ -1,0 +1,5 @@
+Consul servers include a built-in certificate authority (CA) provider to centrally manage mTLS certificates and perform signing operations. When using the CA, sidecar proxies confirm that an incoming request includes a signed mTLS certificate before it forwards the request to a service.
+
+To use the built-in CA, you must bootstrap it by generating a private key and root certificate that you can distribute to agents. You can also configure Consul agents to use other certificate authorities, such as [HashiCorp Vault](/consul/docs/secure-mesh/certificate/vault).
+
+For more information, refer to [certificate authority overview](/consul/docs/secure-mesh/certificate).

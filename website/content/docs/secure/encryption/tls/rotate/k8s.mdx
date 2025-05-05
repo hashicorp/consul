@@ -1,0 +1,28 @@
+---
+layout: docs
+page_title: Rotate TLS Certificates for Consul on Kubernetes
+description: >-
+  In Consul Helm version 0.29.0 and later, new server agent TLS certificates are issued every time the Helm version is upgraded. Learn how to manually trigger certificate rotation if they do not rotate automatically.
+---
+
+# Rotate TLS Certificates for Consul on Kubernetes
+
+As of Consul Helm version `0.29.0`, if TLS is enabled, new TLS certificates for the Consul Server
+are issued every time the Helm chart is upgraded. These certificates are signed by the same CA and will
+continue to work as expected in the existing cluster.
+
+Consul servers read the certificates from Kubernetes secrets during start-up and keep them in memory. In order to ensure the
+servers use the newer certificate, the server pods need to be [restarted explicitly](/consul/docs/k8s/upgrade#upgrading-consul-servers) in
+a situation where `helm upgrade` does not restart the server pods.
+
+To explicitly perform server certificate rotation, follow these steps:
+
+1. Perform a `helm upgrade`:
+
+   ```shell-session
+   $ helm upgrade consul hashicorp/consul --values /path/to/my/values.yaml
+   ```
+
+   This should run the `tls-init` job that will generate new Server certificates.
+
+1. Restart the Server pods following the steps [here](/consul/docs/upgrade/k8s#upgrade-consul-servers).

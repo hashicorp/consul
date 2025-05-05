@@ -1,0 +1,144 @@
+---
+layout: docs
+page_title: Raft parameters for Consul agent configuration files
+description: >-
+  Use agent configuration files to assign attributes to agents and configure multiple agents at once. Learn about agent configuration file parameters and formatting with this reference page and sample code.
+---
+
+# Raft parameters for Consul agent configuration files
+
+The page provides reference information for Raft parameters in a Consul agent configuration file.
+
+## Raft parameters
+
+- `raft_logstore` ((#raft_logstore)) This is a nested object that allows
+  configuring options for Raft's LogStore component which is used to persist
+  logs and crucial Raft state on disk during writes. This was added in Consul
+  v1.15.0.
+
+  - `backend` ((#raft_logstore_backend)) Specifies which storage
+    engine to use to persist logs. Valid options are `boltdb` or `wal`. Default
+    is `boltdb`. The `wal` option specifies an experimental backend that
+    should be used with caution. Refer to
+    [Experimental WAL LogStore backend](/consul/docs/deploy/server/wal)
+    for more information.
+
+  - `disable_log_cache` ((#raft_logstore_disable_log_cache)) Disables the in-memory cache for recent logs. We recommend using it for performance testing purposes, as no significant improvement has been measured when the cache is disabled. While the in-memory log cache theoretically prevents disk reads for recent logs, recent logs are also stored in the OS page cache, which does not slow either the `boltdb` or `wal` backend's ability to read them.
+
+  - `verification` ((#raft_logstore_verification)) This is a nested object that
+    allows configuring the online verification of the LogStore. Verification
+    provides additional assurances that LogStore backends are correctly storing
+    data. It imposes low overhead on servers and is safe to run in
+    production. It is most useful when evaluating a new backend
+    implementation.
+
+    Verification must be enabled on the leader to have any effect and can be
+    used with any backend. When enabled, the leader periodically writes a
+    special "checkpoint" log message that includes the checksums of all log entries
+    written to Raft since the last checkpoint. Followers that have verification
+    enabled run a background task for each checkpoint that reads all logs
+    directly from the LogStore and then recomputes the checksum. A report is output
+    as an INFO level log for each checkpoint.
+
+    Checksum failure should never happen and indicate unrecoverable corruption
+    on that server. The only correct response is to stop the server, remove its
+    data directory, and restart so it can be caught back up with a correct
+    server again. Please report verification failures including details about
+    your hardware and workload via GitHub issues. Refer to
+    [Experimental WAL LogStore backend](/consul/docs/deploy/server/wal)
+    for more information.
+
+    - `enabled` ((#raft_logstore_verification_enabled)) - Set to `true` to
+    allow this Consul server to write and verify log verification checkpoints
+    when elected leader.
+
+    - `interval` ((#raft_logstore_verification_interval)) - Specifies the time
+      interval between checkpoints. There is no default value. You must
+      configure the `interval` and set [`enabled`](#raft_logstore_verification_enabled)
+      to `true` to correctly enable intervals. We recommend using an interval
+      between `30s` and `5m`. The performance overhead is insignificant when the
+      interval is set to `5m` or less.
+
+  - `boltdb` ((#raft_logstore_boltdb)) - Object that configures options for
+    Raft's `boltdb` backend. It has no effect if the `backend` is not `boltdb`.
+
+    - `no_freelist_sync` ((#raft_logstore_boltdb_no_freelist_sync)) - Set to
+    `true` to disable storing BoltDB's freelist to disk within the
+    `raft.db` file. Disabling freelist syncs reduces the disk IO required
+    for write operations, but could potentially increase start up time
+    because Consul must scan the database to find free space
+    within the file.
+
+  - `wal` ((#raft_logstore_wal)) - Object that configures the `wal` backend.
+    Refer to [Experimental WAL LogStore backend](/consul/docs/deploy/server/wal)
+    for more information.
+
+    - `segment_size_mb` ((#raft_logstore_wal_segment_size_mb)) - Integer value
+      that represents the target size in MB for each segment file before
+      rolling to a new segment. The default value is `64` and is suitable for
+      most deployments. While a smaller value may use less disk space because you
+      can reclaim space by deleting old segments sooner, the smaller segment that results
+      may affect performance because safely rotating to a new file more
+      frequently can impact tail latencies. Larger values are unlikely
+      to improve performance significantly. We recommend using this
+      configuration for performance testing purposes.
+
+- `raft_protocol` ((#raft_protocol)) Equivalent to the [`-raft-protocol`
+  command-line flag](/consul/commands/agent#_raft_protocol).
+
+- `raft_snapshot_threshold` ((#\_raft_snapshot_threshold)) This controls the
+  minimum number of raft commit entries between snapshots that are saved to
+  disk. This is a low-level parameter that should rarely need to be changed.
+  Very busy clusters experiencing excessive disk IO may increase this value to
+  reduce disk IO, and minimize the chances of all servers taking snapshots at
+  the same time. Increasing this trades off disk IO for disk space since the log
+  will grow much larger and the space in the raft.db file can't be reclaimed
+  till the next snapshot. Servers may take longer to recover from crashes or
+  failover if this is increased significantly as more logs will need to be
+  replayed. In Consul 1.1.0 and later this defaults to 16384, and in prior
+  versions it was set to 8192.
+
+  Since Consul 1.10.0 this can be reloaded using `consul reload` or sending the
+  server a `SIGHUP` to allow tuning snapshot activity without a rolling restart
+  in emergencies.
+
+- `raft_snapshot_interval` ((#\_raft_snapshot_interval)) This controls how often
+  servers check if they need to save a snapshot to disk. This is a low-level
+  parameter that should rarely need to be changed. Very busy clusters
+  experiencing excessive disk IO may increase this value to reduce disk IO, and
+  minimize the chances of all servers taking snapshots at the same time.
+  Increasing this trades off disk IO for disk space since the log will grow much
+  larger and the space in the raft.db file can't be reclaimed till the next
+  snapshot. Servers may take longer to recover from crashes or failover if this
+  is increased significantly as more logs will need to be replayed. In Consul
+  1.1.0 and later this defaults to `30s`, and in prior versions it was set to
+  `5s`.
+
+  Since Consul 1.10.0 this can be reloaded using `consul reload` or sending the
+  server a `SIGHUP` to allow tuning snapshot activity without a rolling restart
+  in emergencies.
+
+- `raft_trailing_logs` - This controls how many log entries are left in the log
+  store on disk after a snapshot is made. This should only be adjusted when
+  followers cannot catch up to the leader due to a very large snapshot size
+  and high write throughput causing log truncation before an snapshot can be
+  fully installed on a follower. If you need to use this to recover a cluster,
+  consider reducing write throughput or the amount of data stored on Consul as
+  it is likely under a load it is not designed to handle. The default value is
+  10000 which is suitable for all normal workloads. Added in Consul 1.5.3.
+
+  Since Consul 1.10.0 this can be reloaded using `consul reload` or sending the
+  server a `SIGHUP` to allow recovery without downtime when followers can't keep
+  up.
+
+- `raft_boltdb` ((#raft_boltdb)) **This field was deprecated in Consul v1.15.0.
+  Use [`raft_logstore`](#raft_logstore) instead. This is a nested
+  object that allows configuring options for Raft's BoltDB-based log store.
+
+  - `NoFreelistSync` **This field was deprecated in Consul v1.15.0. Use the
+    [`raft_logstore.boltdb.no_freelist_sync`](#raft_logstore_boltdb_no_freelist_sync) field
+    instead. Setting this to `true` disables syncing the BoltDB freelist
+    to disk within the raft.db file. Not syncing the freelist to disk
+    reduces disk IO required for write operations at the expense of potentially
+    increasing start up time due to needing to scan the db to discover where the
+    free space resides within the file.

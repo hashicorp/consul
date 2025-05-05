@@ -47,7 +47,7 @@ The corresponding CLI command is [`consul acl policy create`](/consul/commands/a
 - `Description` `(string: "")` - Free form human readable description of the policy.
 
 - `Rules` `(string: "")` - Specifies rules for the ACL policy. The format of the
-  `Rules` property is detailed in the [ACL Rules documentation](/consul/docs/security/acl/acl-rules).
+  `Rules` property is detailed in the [ACL Rules documentation](/consul/docs/reference/acl/rule).
 
 - `Datacenters` `(array<string>)` - Specifies the datacenters the policy is valid within.
   When no datacenters are provided the policy is valid in all datacenters including
@@ -57,7 +57,7 @@ The corresponding CLI command is [`consul acl policy create`](/consul/commands/a
   This field takes precedence over the `ns` query parameter,
   one of several [other methods to specify the namespace](#methods-to-specify-namespace).
 
-@include 'http-api-body-options-partition.mdx'
+@include 'legacy/http-api-body-options-partition.mdx'
 
 ### Sample Payload
 
@@ -172,7 +172,7 @@ The corresponding CLI command is [`consul acl policy read -name=<string>`](/cons
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the policy you lookup.
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
-@include 'http-api-query-parms-partition.mdx'
+@include 'legacy/http-api-query-parms-partition.mdx'
 
 ### Sample Request
 
@@ -236,7 +236,7 @@ The corresponding CLI command is [`consul acl policy update`](/consul/commands/a
 - `Description` `(string: "")` - Free form human readable description of this policy.
 
 - `Rules` `(string: "")` - Specifies rules for this ACL policy. The format of the
-  `Rules` property is detailed in the [ACL Rules documentation](/consul/docs/security/acl/acl-rules).
+  `Rules` property is detailed in the [ACL Rules documentation](/consul/docs/reference/acl/rule).
 
 - `Datacenters` `(array<string>)` - Specifies the datacenters this policy is valid within.
   When no datacenters are provided the policy is valid in all datacenters including
@@ -246,7 +246,7 @@ The corresponding CLI command is [`consul acl policy update`](/consul/commands/a
   This field takes precedence over the `ns` query parameter,
   one of several [other methods to specify the namespace](#methods-to-specify-namespace).
 
-@include 'http-api-body-options-partition.mdx'
+@include 'legacy/http-api-body-options-partition.mdx'
 
 ### Sample Payload
 
@@ -313,7 +313,7 @@ The corresponding CLI command is [`consul acl policy delete`](/consul/commands/a
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the policy you delete.
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
-@include 'http-api-query-parms-partition.mdx'
+@include 'legacy/http-api-query-parms-partition.mdx'
 
 ### Sample Request
 
@@ -354,7 +354,7 @@ The corresponding CLI command is [`consul acl policy list`](/consul/commands/acl
   The namespace may be specified as '\*' to return results for all namespaces.
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
-@include 'http-api-query-parms-partition.mdx'
+@include 'legacy/http-api-query-parms-partition.mdx'
 
 ### Sample Request
 

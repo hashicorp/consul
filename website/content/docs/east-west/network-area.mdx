@@ -1,0 +1,547 @@
+---
+layout: docs
+page_title: Federate multiple datacenters with network areas
+description: >-
+  Use network areas for advanced datacenter federation. Network areas specify a relationship between a pair of Consul datacenters.
+---
+
+# Federate multiple datacenters with network areas
+
+This topic covers how to federate Consul datacenters using the Consul Enterprise network areas feature. Refer to the [WAN federation](/consul/docs/east-west/wan-federation/vms) documentation to learn how to federate Consul community edition datacenters.
+
+<Note title="Enterprise Only">
+
+The network area feature documented here requires [Consul Enterprise](https://www.hashicorp.com/products/consul/pricing/). If you have purchased or wish to try out Consul Enterprise, refer to [how to access Consul Enterprise](/consul/docs/enterprise#access-consul-enterprise).
+
+</Note>
+
+## Network areas introduction
+
+One of the key features of Consul is its support for multiple datacenters. The architecture of Consul is designed to promote a low coupling of datacenters so that connectivity issues or failure of any datacenter does not impact the availability of Consul in other datacenters. This means each datacenter runs independently, each having a dedicated group of servers and a private LAN gossip pool.
+
+Network areas specify a relationship between a pair of Consul datacenters. Operators create reciprocal areas on each side of the relationship and then join them together, so a given Consul datacenter can participate in many areas, even when some of the peer areas cannot contact each other. This allows for more flexible relationships between Consul datacenters, such as hub/spoke or more general tree structures.
+
+<Tip>
+
+Currently, Consul will only route RPC requests to datacenters it is immediately adjacent to via an area, but future versions of Consul may add routing support.
+
+</Tip>
+
+### Network areas federation vs. WAN federation
+
+Consul's WAN federation relies on all Consul servers in all datacenters having full connectivity via server RPC (`8300/tcp`) and Serf WAN (`8302/tcp` and `8302/udp`). Securing this setup requires TLS and managing a gossip keyring. With massive Consul deployments, it becomes tricky to support full connectivity between all Consul servers and manage the keyring.
+
+Network areas let you specify relationship between Consul datacenters. You can create network areas on each datacenter and then join them together, so a given Consul datacenter can participate in many areas, even when some of the peer areas cannot contact each other. This allows for more flexible relationships between Consul datacenters, such as hub/spoke or more general tree structures.
+
+Consul rotes traffic between network areas via server RPC (`8300/tcp`) so it can be secured with just TLS. Also, network areas do not require full connectivity across all servers in all the datacenter, but only between the servers in the two datacenter that are being federated. 
+
+We recommend network areas when your architecture layout does not permit connectivity between all Consul servers across all datacenters, or when the data in one datacenter only needs to be accessible from one or few other datacenters. 
+
+You can use networks areas alongside Consul's WAN federation and the WAN gossip pool. This lets you migrate seamlessly between the two federation solutions. You can connect a peer datacenter via the WAN gossip pool and a network area at the same time. Consul will forward the RPC requests as long as servers are available in either federation solution.
+
+Due to the relaxed connectivity constraints, some of the Consul functionalities might not have full compatibility with network areas. If you want to setup [ACL replication](/consul/docs/security/acl/acl-federated-datacenters) or to enable Consul service mesh with CA replication, we recommend you to use WAN gossip federation to leverage all Consul's latest functionalities.
+
+### Network requirements
+
+There are a few networking requirements that must be satisfied for network areas to work. 
+
+- All server nodes in the two areas being federated must be able to talk to each other via their server RPC ports (`8300/tcp`).
+- If service discovery is to be used across datacenters, the network must be able to route traffic between IP addresses across regions as well. 
+
+Usually, this means that all datacenters must be connected using a VPN or other tunneling mechanism. Consul does not handle VPN or NAT traversal for you. For RPC forwarding to work, the bind address must be accessible from remote nodes.
+
+
+## Configure advanced federation
+
+To get started, follow the [Deployment Guide](/consul/tutorials/production-deploy/deployment-guide) to start each datacenter. After bootstrapping, you should have two datacenters (`dc1` and `dc2`). Note that datacenter names are opaque to Consul. They are labels that help human operators reason about the Consul datacenters.
+
+Create a network area in each datacenter.
+
+<Tabs>
+<Tab heading="CLI" group="cli">
+
+Use the [`consul operator area create`](/consul/commands/operator/area#create) command to create the network areas.
+
+Create a network area from the `dc1` datacenter, listing `dc2` as the peer datacenter. 
+
+<CodeBlockConfig heading="server.dc1">
+
+```shell-session
+$ consul operator area create -peer-datacenter=dc2
+Created area "1c8cd5e6-562c-e0de-e369-a13c6205ffe8" with peer datacenter "dc2"!
+```
+
+</CodeBlockConfig>
+
+Create a network area from the `dc2` datacenter, listing `dc1` as the peer datacenter.
+
+<CodeBlockConfig heading="server.dc2">
+
+```shell-session
+$ consul operator area create -peer-datacenter=dc1
+Created area "5bcb95db-5ae8-5265-3dfa-b2cb3452b093" with peer datacenter "dc1"!
+```
+
+</CodeBlockConfig>
+
+</Tab>
+<Tab heading="API" group="api">
+
+Use the [`/operator/area`](/consul/api-docs/operator/area#create-network-area) endpoint to create the network areas.
+
+Create the network area on a server in datacenter `dc1`, using `dc2` as the peer datacenter.
+
+<CodeBlockConfig heading="server.dc1">
+
+```shell-session
+$ curl -i -s --request POST \
+  -H "Content-Type: application/json" \
+  --data '{ "PeerDatacenter": "dc2" }' \
+  http://localhost:8500/v1/operator/area
+```
+
+</CodeBlockConfig>
+
+That will output the ID of the created area.
+
+<CodeBlockConfig hideClipboard>
+
+```json
+{
+  "ID":"1c8cd5e6-562c-e0de-e369-a13c6205ffe8"
+}
+```
+
+</CodeBlockConfig>
+
+Create the network area on a server in datacenter `dc2`, using `dc1` as the peer datacenter.
+
+<CodeBlockConfig heading="server.dc2">
+
+```shell-session
+$ curl -i -s --request POST \
+  -H "Content-Type: application/json" \
+  --data '{ "PeerDatacenter": "dc1" }' \
+  http://localhost:8500/v1/operator/area
+```
+
+</CodeBlockConfig>
+
+That will output the ID of the created area.
+
+<CodeBlockConfig hideClipboard>
+
+```json
+{
+  "ID":"5bcb95db-5ae8-5265-3dfa-b2cb3452b093"
+}
+```
+
+</CodeBlockConfig>
+
+</Tab>
+
+</Tabs>
+
+You can now query for the area members.
+
+<Tabs>
+<Tab heading="CLI" group="cli">
+
+Use the [`consul operator area members`](/consul/commands/operator/area#members) command to show Consul server nodes present in network areas.
+
+<CodeBlockConfig heading="server.dc1">
+
+```shell-session
+$ consul operator area members
+Area                                  Node                 Address          Status  Build       Protocol  DC   RTT
+1c8cd5e6-562c-e0de-e369-a13c6205ffe8  consul-server-0.dc1  172.18.0.5:8300  alive   1.20.5+ent  2         dc1  0s
+```
+
+</CodeBlockConfig>
+
+The command will only show local servers until the servers join in a network area.
+
+</Tab>
+<Tab heading="API" group="api">
+
+Use the [`/operator/area/:uuid/members`](/consul/api-docs/operator/area#list-network-area-members) to list the network area members.
+
+<CodeBlockConfig heading="server.dc1">
+
+```shell-session
+$ curl -s http://127.0.0.1:8500/v1/operator/area/1c8cd5e6-562c-e0de-e369-a13c6205ffe8/members
+```
+
+</CodeBlockConfig>
+
+The query will only show local servers until the servers join in a network area.
+
+<CodeBlockConfig hideClipboard>
+
+```json
+[
+  {
+    "ID": "6e4910c1-0259-f737-1ae9-8807b2816d0b",
+    "Name": "consul-server-0.dc1",
+    "Addr": "172.18.0.5",
+    "Port": 8300,
+    "Datacenter": "dc1",
+    "Role": "server",
+    "Build": "1.20.5+ent",
+    "Protocol": 2,
+    "Status": "alive",
+    "RTT": 0
+  }
+]
+```
+
+</CodeBlockConfig>
+
+</Tab>
+
+</Tabs>
+
+## Join servers
+
+Consul will automatically make sure that all servers within the datacenter where the area was created are joined to the area using the LAN information. You need to join with at least one Consul server in the other datacenter to complete the area:
+
+<Tabs>
+<Tab heading="CLI" group="cli">
+
+Use the [`consul operator area join`](/consul/commands/operator/area#join) command to join the Consul server in `dc2` into the network area.
+
+<CodeBlockConfig heading="server.dc1">
+
+```shell-session
+$ consul operator area join -peer-datacenter=dc2 172.18.0.3
+Address      Joined  Error
+172.18.0.3  true    (none)
+```
+
+</CodeBlockConfig>
+
+</Tab>
+<Tab heading="API" group="api">
+
+Use the [`/operator/area/:uuid/join`](/consul/api-docs/operator/area#join-network-area) endpoint to join an existing network area.
+
+<CodeBlockConfig heading="server.dc1">
+
+```shell-session
+$ curl -s \
+  -H "Content-Type: application/json" \
+  --request PUT \
+  --data '[ "172.18.0.3" ]' \
+  http://127.0.0.1:8500/v1/operator/area/1c8cd5e6-562c-e0de-e369-a13c6205ffe8/join
+
+```
+
+</CodeBlockConfig>
+
+That will output a list of the servers federated with the join.
+
+<CodeBlockConfig hideClipboard>
+
+```json
+[
+  {
+    "Address": "172.18.0.3",
+    "Joined": true,
+    "Error": ""
+  }
+]
+```
+
+</CodeBlockConfig>
+
+</Tab>
+</Tabs>
+
+After the join, the remote Consul servers are now listed as part of the area's members.
+
+<Tabs>
+<Tab heading="CLI" group="cli">
+
+Use the [`consul operator area members`](/consul/commands/operator/area#members) command to show Consul server nodes present in network areas.
+
+<CodeBlockConfig heading="server.dc1">
+
+```shell-session
+$ consul operator area members
+Area                                  Node                 Address          Status  Build       Protocol  DC   RTT
+1c8cd5e6-562c-e0de-e369-a13c6205ffe8  consul-server-0.dc1  172.18.0.5:8300  alive   1.20.5+ent  2         dc1  0s
+1c8cd5e6-562c-e0de-e369-a13c6205ffe8  consul-server-1.dc2  172.18.0.3:8300  alive   1.20.5+ent  2         dc2  2.964369ms
+```
+
+</CodeBlockConfig>
+
+</Tab>
+<Tab heading="API" group="api">
+
+Use the [`/operator/area/:uuid/members`](/consul/api-docs/operator/area#list-network-area-members) to list the network area members.
+
+<CodeBlockConfig heading="server.dc1">
+
+```shell-session
+$ curl -s http://127.0.0.1:8500/v1/operator/area/1c8cd5e6-562c-e0de-e369-a13c6205ffe8/members
+```
+
+</CodeBlockConfig>
+
+The command will output all the servers present in the network area.
+
+<CodeBlockConfig hideClipboard>
+
+```json
+[
+  {
+    "ID": "6e4910c1-0259-f737-1ae9-8807b2816d0b",
+    "Name": "consul-server-0.dc1",
+    "Addr": "172.18.0.5",
+    "Port": 8300,
+    "Datacenter": "dc1",
+    "Role": "server",
+    "Build": "1.20.5+ent",
+    "Protocol": 2,
+    "Status": "alive",
+    "RTT": 0
+  },
+  {
+    "ID": "55e61b05-7648-d0d7-e868-6e56e878e371",
+    "Name": "consul-server-1.dc2",
+    "Addr": "172.18.0.3",
+    "Port": 8300,
+    "Datacenter": "dc2",
+    "Role": "server",
+    "Build": "1.20.5+ent",
+    "Protocol": 2,
+    "Status": "alive",
+    "RTT": 2595381
+  }
+]
+```
+
+</CodeBlockConfig>
+
+</Tab>
+<Tab heading="UI" group="ui">
+
+Once the two datacenters are federated, the UI shows a dropdown that lists the known datacenters.
+
+![Consul UI showing service page with WAN dropdown](/img/east-west/network-area/consul-ui-services-multi_dc_selector-dark.png#dark-theme-only)
+![Consul UI showing service page with WAN dropdown](/img/east-west/network-area/consul-ui-services-multi_dc_selector.png#light-theme-only)
+
+</Tab>
+</Tabs>
+
+## Route RPCs
+
+With network area enabled, you can route RPC commands in both directions. The following command will set a KV entry in `dc2` from `dc1`.
+
+<Tabs>
+<Tab heading="CLI" group="cli">
+
+Use the `-datacenter` option to specify the datacenter to use for the command.
+
+<CodeBlockConfig heading="server.dc1">
+
+```shell-session
+$ consul kv put -datacenter=dc2 hello_from_dc1 world
+Success! Data written to: hello_from_dc1
+```
+
+</CodeBlockConfig>
+
+Similarly, you can use the parameter to retrieve data from the other datacenter.
+
+<CodeBlockConfig heading="server.dc1">
+
+```shell-session
+$ consul kv get -datacenter=dc2 hello_from_dc1
+world
+```
+
+</CodeBlockConfig>
+
+</Tab>
+<Tab heading="API" group="api">
+
+Use the `dc` query parameter to specify the datacenter to use for the API call.
+
+<CodeBlockConfig heading="server.dc1">
+
+```shell-session
+$ curl --silent \
+    --request PUT \
+    --data 'world' \
+    http://127.0.0.1:8500/v1/kv/hello_from_dc1?dc=dc2
+```
+
+</CodeBlockConfig>
+
+The command will output `true` on success. Similarly, you can use the parameter to retrieve data from the other datacenter.
+
+<CodeBlockConfig heading="server.dc1">
+
+```shell-session
+$ curl --silent http://127.0.0.1:8500/v1/kv/hello_from_dc1?dc=dc2
+```
+
+</CodeBlockConfig>
+
+Notice the response returns the base64 encoded value.
+
+<CodeBlockConfig hideClipboard highlight="6">
+
+```json
+[
+  {
+    "LockIndex": 0,
+    "Key": "hello_from_dc1",
+    "Flags": 0,
+    "Value": "d29ybGQ=",
+    "Partition": "default",
+    "Namespace": "default",
+    "CreateIndex": 3817,
+    "ModifyIndex": 3817
+  }
+]
+```
+
+</CodeBlockConfig>
+
+</Tab>
+</Tabs>
+
+## DNS lookups
+
+The DNS interface supports federation as well.
+
+<CodeBlockConfig heading="server.dc1">
+
+```shell-session
+$ dig @127.0.0.1 -p 8600 consul.service.dc2.consul
+
+; <<>> DiG 9.18.28-1~deb12u2-Debian <<>> @127.0.0.1 -p 8600 consul.service.dc2.consul
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 14610
+;; flags: qr aa rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+;; QUESTION SECTION:
+;consul.service.dc2.consul.	IN	A
+
+;; ANSWER SECTION:
+consul.service.dc2.consul. 0	IN	A	172.18.0.3
+
+;; Query time: 17 msec
+;; SERVER: 127.0.0.1#8600(127.0.0.1) (UDP)
+;; WHEN: Thu Apr 17 08:30:40 UTC 2025
+;; MSG SIZE  rcvd: 70
+```
+
+</CodeBlockConfig>
+
+## Delete network areas
+
+Consul does not provide a command to leave a previously joined network area. To remove the federation between two datacenters, we recommend removing the network area from both datacenters.
+
+<Tabs>
+<Tab heading="CLI" group="cli">
+
+Use the [`consul operator area delete`](/consul/commands/operator/area#delete) command to delete network areas.
+
+<CodeBlockConfig heading="server.dc2">
+
+```shell-session
+$ consul operator area delete -id=5bcb95db-5ae8-5265-3dfa-b2cb3452b093
+Deleted area "5bcb95db-5ae8-5265-3dfa-b2cb3452b093"!
+```
+
+</CodeBlockConfig>
+
+Once you delete the network area from one of the datacenters, Consul removes the federation and the servers are shown as `left` from the other datacenters.
+
+<CodeBlockConfig heading="server.dc1">
+
+```shell-session
+$ consul operator area members
+Area                                  Node                 Address          Status  Build       Protocol  DC   RTT
+1c8cd5e6-562c-e0de-e369-a13c6205ffe8  consul-server-0.dc1  172.18.0.5:8300  alive   1.20.5+ent  2         dc1  0s
+1c8cd5e6-562c-e0de-e369-a13c6205ffe8  consul-server-1.dc2  172.18.0.3:8300  left    1.20.5+ent  2         dc2  2.962233ms
+```
+
+</CodeBlockConfig>
+
+</Tab>
+<Tab heading="API" group="api">
+
+Use the [`/operator/area/:uuid`](/consul/api-docs/operator/area#delete-network-area) endpoint to remove the network area.
+
+<CodeBlockConfig heading="server.dc2">
+
+```shell-session
+$ curl --silent \
+  --request DELETE \
+  http://127.0.0.1:8500/v1/operator/area/5bcb95db-5ae8-5265-3dfa-b2cb3452b093
+```
+
+</CodeBlockConfig>
+
+Once you delete the network area from one of the datacenters, Consul removes the federation and the servers are shown as `left` from the other datacenters.
+
+<CodeBlockConfig heading="server.dc1">
+
+```shell-session
+$ curl -s http://127.0.0.1:8500/v1/operator/area/1c8cd5e6-562c-e0de-e369-a13c6205ffe8/members
+```
+
+</CodeBlockConfig>
+
+The server is now shown as `left` from the other datacenters.
+
+<CodeBlockConfig hideClipboard highlight="11">
+
+```json
+[
+  {
+    "ID": "55e61b05-7648-d0d7-e868-6e56e878e371",
+    "Name": "consul-server-1.dc2",
+    "Addr": "172.18.0.3",
+    "Port": 8300,
+    "Datacenter": "dc2",
+    "Role": "server",
+    "Build": "1.20.5+ent",
+    "Protocol": 2,
+    "Status": "left",
+    "RTT": 2962233
+  },
+  {
+    "ID": "6e4910c1-0259-f737-1ae9-8807b2816d0b",
+    "Name": "consul-server-0.dc1",
+    "Addr": "172.18.0.5",
+    "Port": 8300,
+    "Datacenter": "dc1",
+    "Role": "server",
+    "Build": "1.20.5+ent",
+    "Protocol": 2,
+    "Status": "alive",
+    "RTT": 0
+  }
+]
+```
+
+</CodeBlockConfig>
+
+</Tab>
+</Tabs>
+
+## Data replication
+
+In general, Consul does not replicate data between different Consul datacenters. When a request is made for a resource in another datacenter, the local Consul servers forward an RPC request to the remote Consul servers for that resource and return the results. If the remote datacenter is not available, those resources will also not be available. However, this will not affect the local datacenter. 
+
+There are some special situations where a limited subset of data can be replicated, such as with Consul's built-in ACL replication capability, or external tools like [`consul-replicate`](https://github.com/hashicorp/consul-replicate/).

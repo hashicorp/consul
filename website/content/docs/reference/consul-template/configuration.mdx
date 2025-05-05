@@ -1,0 +1,458 @@
+---
+layout: docs
+page_title: Configuration Options
+description: >-
+  This section covers the various options available to configure Consul Template, data sources, templates, and different run time modes. 
+---
+
+# Configuration Options
+
+This section covers the various options available to configure Consul Template, data sources, templates, and different run time modes. For simplicity, the
+configuration options are written in context of an HCL configuration file, however they can be written in JSON or most options can be set via CLI flags.
+
+## General parameters
+
+These options are top level values to configure Consul Template. They are not required and will fallback to default values when omitted.
+
+- `block_query_wait` (Defaults to `60s`) This is amount of time in seconds to do a blocking query for. Many endpoints in Consul support a feature known as "blocking queries". A blocking query is used to wait for a potential change using long polling.
+
+- `err_on_failed_lookup` This will cause consul-template to exit with an error if it fails to successfully fetch a value for a field. Note that the retry logic defined for the services don't apply to this type of error.
+
+- `kill_signal` (Defaults to `SIGINT`) This is the signal to listen for to trigger a graceful stop. Setting this value to the empty string will cause Consul Template to not listen for any graceful stop signals. Equivalent to the [`-kill-signal` command line flag](/consul/docs/reference/consul-template/cli#kill-signal).
+
+- `log_file` This object defines the configuration for logging to file.
+
+  - `log_rotate_bytes` Control the number of bytes that should be written to a log before it needs to be rotated. Unless specified, there is no limit to the number of bytes that can be written to a log file.
+
+  - `log_rotate_duration` (Defaults to `24h`) Specify the maximum duration a log should be written to before it needs to be rotated.
+
+  - `log_rotate_max_files` (Defaults to `0`) Control the maximum number of older log file archives to keep. Defaults to `0` (no files are ever deleted). Set to `-1` to discard old log files when a new one is created.
+
+  - `path` If a path is specified, the feature is enabled Please refer to the documentation for the [`-log-file` CLI flag](/consul/docs/automate/consul-template/log#log-file) for more information about its behavior.
+
+  **Example**
+
+  ```hcl
+  log_file {
+    path = "/var/log/something.log"
+    log_rotate_bytes = 1024000
+    log_rotate_duration = "3h"
+    log_rotate_max_files = 10
+  }
+  ```
+
+- `log_level` (Defaults to `WARN`) This is the log level. Valid options include (in order of verbosity): `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERR`. Equivalent to the [`-log-level` command line flag](/consul/docs/reference/consul-template/cli#log-level).
+
+- `max_stale` (Defaults to `2s`) This is the maximum interval to allow "stale" data. By default, only the Consul leader will respond to queries; any requests to a follower will forward the request to the leader. In large clusters with many requests, this is not as scalable, so this option allows any follower to respond to a query, so long as the last-replicated data is within these bounds. Higher values result in less cluster load, but are more likely to have outdated data. Equivalent to the [`-max-stale` command line flag](/consul/docs/reference/consul-template/cli#max-stale).
+
+- `pid_file` This is the path to store a PID file which will contain the process ID of the Consul Template process. This is useful if you plan to send custom signals to the process. Equivalent to the [`-pid-file` command line flag](/consul/docs/reference/consul-template/cli#pid-file).
+
+- `reload_signal` (Defaults to `SIGHUP`)  This is the signal to listen for to trigger a reload event. Setting this value to the empty string will cause Consul Template to not listen for any reload signals. Equivalent to the [`-reload-signal` command line flag](/consul/docs/reference/consul-template/cli#reload-signal).
+
+- `syslog` This object defines the configuration for connecting to a syslog server for logging.
+
+  - `enabled` Enable syslog logging. Specifying any other option also enables syslog logging. Equivalent to the [`-syslog` command line flag](/consul/docs/reference/consul-template/cli#syslog).
+
+  - `facility` (Defaults to `LOCAL0`) The name of the syslog facility to log to. Equivalent to the [`-syslog-facility` command line flag](/consul/docs/reference/consul-template/cli#syslog-facility).
+
+- `template_error_fatal` This controls whether an error within a template will cause Consul Template to immediately exit. This value can be overridden within each template configuration.
+
+- `wait` This object defines the quiescence timers; it defines the minimum and maximum amount of time to wait for the cluster to reach a consistent state before rendering a template. This is useful to enable in systems that have a lot of flapping, because it will reduce the the number of times a template is rendered.
+
+  - `min` Minimum quiescence time.
+
+  - `max` Maximum quiescence time.
+
+  **Example**
+
+  ```hcl
+  wait {
+    min = "5s"
+    max = "10s"
+  }
+  ```
+
+## Consul parameters
+
+Enable Consul Template to connect with Consul by declaring the `consul` block. This configures a Consul client to query values from Consul features, like [Consul Catalog][consul-catalog] and [Consul KV][consul-kv].
+
+- `consul` This object allows a number of sub-keys to be set which controls the Consul connection.
+
+  - `address` (Defaults to `127.0.0.1:8500`) Address of the Consul agent. By default, this is `127.0.0.1:8500`, which is the default bind and port for a local Consul agent. It is not recommended that you communicate directly with a Consul server, and instead communicate with the local Consul agent. There are many reasons for this, most importantly the Consul agent is able to multiplex connections to the Consul server and reduce the number of open HTTP connections. Additionally, it provides a "well-known" IP address for which clients can connect. Equivalent to the [`-consul-addr` command line flag](/consul/docs/reference/consul-template/cli#consul-addr).
+
+  - `auth` This block specifies the basic authentication information to pass with the request. For more information on authentication, please refer to the [Consul documentation](/consul/docs/secure/acl/auth-method). Equivalent to the [`-consul-auth` command line flag](/consul/docs/reference/consul-template/cli#consul-auth).
+
+    - `enabled` Enable authentication.
+    - `username` Set username for authentication.
+    - `password` Set password for authentication.
+
+    **Example**
+
+    ```hcl
+    consul {
+      ## ...
+      auth {
+        enabled  = true
+        username = "test"
+        password = "test"
+      }
+      ## ...
+    }
+    ```
+
+  - `namespace` <EnterpriseAlert inline /> Consul Enterprise namespace to use for reading/writing. This can also be set via the `CONSUL_NAMESPACE` environment variable.
+
+    ~> **BETA:** this is to be considered a beta feature as it has had limited testing.
+
+  - `retry` This object controls the retry behavior when an error is returned from Consul. Consul Template is highly fault tolerant, meaning it does not exit in the face of failure. Instead, it uses exponential back-off and retry functions to wait for the cluster to become available, as is customary in distributed systems.
+
+    - `attempts` (Defaults to `12`) Number of attempts to make before giving up. Each attempt adds the exponential backoff sleep time. Setting this to zero will implement an unlimited number of retries. Equivalent to the [`-consul-retry-attempts` command line flag](/consul/docs/reference/consul-template/cli#consul-retry-attempts).
+
+    - `backoff` (Defaults to `250ms`) Base amount of time to sleep between retry attempts. Each retry sleeps for an exponent of 2 longer than this base. For 5 retries, the sleep times would be: 250ms, 500ms, 1s, 2s, then 4s. Equivalent to the [`-consul-retry-backoff` command line flag](/consul/docs/reference/consul-template/cli#consul-retry-backoff).
+
+    - `enabled` (Defaults to `true`) Enable retries. Retries are enabled by default, so this parameter is redundant. Equivalent to the [`-consul-retry` command line flag](/consul/docs/reference/consul-template/cli#consul-retry).
+
+    - `max_backoff` (Defaults to `1m`) Maximum amount of time to sleep between retry attempts. When `max_backoff` is set to `0`, there is no upper limit to the exponential sleep between retry attempts. If `max_backoff` is set to 10s and `backoff` is set to 1s, sleep times would be: 1s, 2s, 4s, 8s, 10s, 10s, ... Equivalent to the [`-consul-retry-max-backoff` command line flag](/consul/docs/reference/consul-template/cli#consul-retry-max-backoff).
+
+    **Example**
+
+    ```hcl
+    consul {
+      ## ...
+      retry {
+        enabled = true
+        attempts = 12
+        backoff = "250ms"
+        max_backoff = "1m"
+      }
+      ## ...
+    }
+    ```
+
+  - `ssl` This object configures the SSL options for connecting to the Consul server.
+
+    - `ca_cert` Path to the certificate authority to use as a CA. This is useful for self-signed certificates or for organizations using their own internal certificate authority. Equivalent to the [`-consul-ssl-ca-cert` command line flag](/consul/docs/reference/consul-template/cli#consul-ssl-ca-cert).
+
+    - `ca_path` Path to a directory of PEM-encoded CA cert files. If both `ca_cert` and `ca_path` are specified, `ca_cert` is preferred. Equivalent to the [`-consul-ssl-ca-path` command line flag](/consul/docs/reference/consul-template/cli#consul-ssl-ca-path).
+
+    - `cert` Path to the certificate to use to authenticate. If just a certificate is provided, it is assumed to contain both the certificate and the key to convert to an X509 certificate. If both the certificate and key are specified, Consul Template will automatically combine them into an X509 certificate for you. Equivalent to the [`-consul-ssl-cert` command line flag](/consul/docs/reference/consul-template/cli#consul-ssl-cert).
+
+    - `key` Path to the certificate key to use to authenticate. Equivalent to the [`-consul-ssl-key` command line flag](/consul/docs/reference/consul-template/cli#consul-ssl-key).
+
+    - `server_name` This sets the SNI server name to use for validation. Equivalent to the [`-consul-ssl-server-name` command line flag](/consul/docs/reference/consul-template/cli#consul-ssl-server-name).
+
+    - `verify` (Defaults to `true`) Enable SSL peer verification. The default value is `true`, which will check the global CA chain to make sure the given certificates are valid. If you are using a self-signed certificate that you have not added to the CA chain, you may want to disable SSL verification. However, please understand this is a potential security vulnerability. Equivalent to the [`-consul-ssl-verify` command line flag](/consul/docs/reference/consul-template/cli#consul-ssl-verify).
+
+    **Example**
+
+    ```hcl
+    consul {
+      ## ...
+      ssl {
+        enabled = true
+        verify = false
+        cert = "/path/to/client/cert"
+        key  = "/path/to/client/key"
+        ca_cert = "/path/to/ca"
+        ca_path = "path/to/certs/"
+        server_name = "my-server.com"
+      }
+      ## ...
+    }
+    ```
+
+  - `token` ACL token to use when connecting to Consul. If you did not enable ACLs on your Consul cluster, you do not need to set this option. This option is also available via the environment variable `CONSUL_TOKEN` or `CONSUL_HTTP_TOKEN`. It is highly recommended that you do not put your token in plain-text in a configuration file. Equivalent to the [`-consul-token` command line flag](/consul/docs/reference/consul-template/cli#consul-token).
+
+  - `token_file` Alternatively, you can specify a path to a file containing the token with this option. This option is also available via the environment variable `CONSUL_TOKEN_FILE` or `CONSUL_HTTP_TOKEN_FILE`. Equivalent to the [`-consul-token-file` command line flag](/consul/docs/reference/consul-template/cli#consul-token-file).
+
+  - `transport` This object configures TCP connection options.
+
+    - `dial_keep_alive` (Defaults to `30s`) Duration between two keep-alive transmissions in idle condition. Equivalent to the [`-consul-transport-dial-keep-alive` command line flag](/consul/docs/reference/consul-template/cli#consul-transport-dial-keep-alive).
+
+    - `dial_timeout` (Defaults to `30s`) TCP timeout between retries. If consul is down and retries are enabled Consul Template will retry after `dial_timeout`. Equivalent to the [`-consul-transport-dial-timeout` command line flag](/consul/docs/reference/consul-template/cli#consul-transport-dial-timeout).
+
+    - `disable_keep_alives` Disable keep alive connections. Equivalent to the [`-consul-transport-disable-keep-alives` command line flag](/consul/docs/reference/consul-template/cli#consul-transport-disable-keep-alives).
+
+    - `max_idle_conns_per_host` (Defaults to `100`) Amount of maximum idle connections. Equivalent to the [`-consul-transport-max-idle-conns-per-host` command line flag](/consul/docs/reference/consul-template/cli#consul-transport-max-idle-conns-per-host).
+
+    - `tls_handshake_timeout` (Defaults to `10s`) Timeout for TLS handshakes with Consul. Equivalent to the [`-consul-transport-tls-handshake-timeout` command line flag](/consul/docs/reference/consul-template/cli#consul-transport-tls-handshake-timeout).
+
+    **Example**
+
+    ```hcl
+    consul {
+      ## ...
+      transport {
+        dial_keep_alive = "10s"
+        dial_timeout = "10s"
+        disable_keep_alives = true
+        max_idle_conns_per_host = 100
+        tls_handshake_timeout = "30s"
+      }
+      ## ...
+    }
+    ```
+
+## Vault parameters
+
+Enable Consul Template to connect with [Vault][vault] by declaring the `vault`
+block. This configures a Vault client to query secrets from Vault to render
+secret data into templates.
+
+- `vault` This object allows a number of sub-keys to be set which controls the Vault connection.
+
+  - `address` Address of the Vault server. The protocol (http(s)) portion of the address is required. Equivalent to the [`-vault-addr` command line flag](/consul/docs/reference/consul-template/cli#vault-addr).
+
+  - `client_user_agent` Optional configuration item that sets the User-Agent header to use on all requests to Vault.
+
+  - `default_lease_duration` (Defaults to `5m`) The default lease duration Consul Template will use on a Vault secret that does not have a lease duration. This is used to calculate the sleep duration for rechecking a Vault secret value. This field is optional and will default to 5 minutes if not set. Equivalent to the [`-vault-default-lease-duration` command line flag](/consul/docs/reference/consul-template/cli#vault-default-lease-duration).
+
+  - `lease_renewal_threshold` (Defaults to `0.90`) The fraction of the lease duration of a non-renewable secret Consul Template will wait for. This is used to calculate the sleep duration for rechecking a Vault secret value. This field is optional and will default to 90% of the lease time.
+
+  - `namespace` <EnterpriseAlert product="vault" inline /> Vault Enterprise namespace to use for reading/writing secrets. This value can also be specified via the environment variable `VAULT_NAMESPACE`.
+
+  - `renew_token` (Defaults to `true`) Tells Consul Template to automatically renew the Vault token given. Vault requires tokens be renewed at some regular interval or they will be revoked. Consul Template will automatically renew the token at half the lease duration of the token. The default value is true, but this option can be disabled if you want to renew the Vault token using an out-of-band process. Equivalent to the [`-vault-renew-token` command line flag](/consul/docs/reference/consul-template/cli#vault-renew-token).
+
+    ~> **Note:** Secrets specified in a template (using `{{secret}}` for example) are always renewed, even if this option is set to false. This option only applies to the top-level Vault token itself.
+
+  - `retry` This section details the retry options for connecting to Vault. Please see the [`retry` options in the Consul section](#retry) for more information (they are the same).
+
+  - `ssl` This section details the SSL options for connecting to the Vault server. Please see the [`SSL` options in the Consul section](#ssl) for more information (they are the same).
+
+  - `token` Token to use when communicating with the Vault server. Like other tools that integrate with Vault, Consul Template makes the assumption that you provide it with a Vault token; it does not have the incorporated logic to generate tokens via Vault's auth methods. This value can also be specified via the environment variable `VAULT_TOKEN`. It is highly recommended that you do not put your token in plain-text in a configuration file. When using a token from Vault Agent, the `vault_agent_token_file` setting should be used instead, as that will take precedence over this field. Equivalent to the [`-vault-token` command line flag](/consul/docs/reference/consul-template/cli#vault-token).
+
+  - `unwrap_token` (Defaults to `true`) Tells Consul Template that the provided token is actually a wrapped token that should be unwrapped using Vault's cubbyhole response wrapping before being used. Please see Vault's [cubbyhole response wrapping](/vault/docs/concepts/response-wrapping) documentation for more information. Equivalent to the [`-vault-unwrap-token` command line flag](/consul/docs/reference/consul-template/cli#vault-unwrap-token).
+
+  - `vault_agent_token_file` Load the Vault token from the contents of a file. Equivalent to the [`-vault-agent-token-file` command line flag](/consul/docs/reference/consul-template/cli#vault-agent-token-file).
+  If this field is specified:
+    - by default Consul Template will not try to renew the Vault token. If you want it to renew you will need to specify `renew_token = true` as below.
+    - Consul Template will periodically stat the file and update the token if it has changed.
+
+## Nomad parameters
+
+Enable Consul Template to connect with [Nomad][nomad] by declaring the `nomad`
+block. This configures a Nomad client to query Nomad for native service discovery
+or secrets to render data into templates.
+
+- `nomad` This object allows a number of sub-keys to be set which controls the Nomad connection.
+
+  - `address` Address of the Nomad agent. The protocol (http(s)) portion of the address is required. This value can also be specified via the environment variable `NOMAD_ADDR`.
+
+  - `auth_password` The HTTP Basic Auth password to use when authenticating with the Nomad API.
+
+  - `auth_username` The HTTP Basic Auth username to use when authenticating with the Nomad API.
+
+  - `namespace` Nomad namespace to use for queries. This value can also be specified via the environment variable `NOMAD_NAMESPACE`.
+
+  - `retry` This section details the retry options for connecting to Nomad. Please see the [`retry` options in the Consul section](#retry) for more information (they are the same).
+
+  - `ssl` This section details the SSL options for connecting to the Nomad agent. Please see the [`SSL` options in the Consul section](#ssl) for more information (they are the same).
+
+  - `token` Token to use when communicating with the Nomad agent. Like other tools that integrate with Nomad, Consul Template makes the assumption that you provide it with a Nomad token; it does not have the incorporated logic to generate tokens via Nomad's auth methods. This value can also be specified via the environment variable `NOMAD_TOKEN`. It is highly recommended that you do not put your token in plain-text in a configuration file.
+
+  - `transport` This block configures TCP connection options between Consul Template and Nomad. Please see the [transport options in the Consul section](#transport) for more information (they are the same).
+
+## Template parameters
+
+A `template` block defines the configuration for a template. Unlike other blocks, this block may be specified multiple times to configure multiple templates. It is also possible to configure templates via the CLI directly.
+
+- `template` This object defines the configuration for a single template to be managed by Consul Template.
+
+  - `backup` This option backs up the previously rendered template at the destination path before writing a new one. It keeps exactly one backup. This option is useful for preventing accidental changes to the data without having a rollback strategy.
+
+  - `contents` Embed the contents of a template in the configuration file rather then supplying the `source` path to the template file. This is useful for short templates. This option is mutually exclusive with the `source` option.
+
+    **Example**
+
+    ```hcl
+    contents = "{{ keyOrDefault \"service/redis/maxconns@east-aws\" \"5\" }}"
+    ```
+
+  - `create_dest_dirs` (Defaults to `true`) This options tells Consul Template to create the parent directories of the destination path if they do not exist. The default value is true.
+
+  - `destination` The destination path on disk where the source template will render. If the parent directories do not exist, Consul Template will attempt to create them, unless `create_dest_dirs` is `false`.
+
+  - `error_fatal` This controls whether an error within the template will cause Consul Template to immediately exit.
+
+  - `error_on_missing_key` (Defaults to `false`) Exit with an error when accessing a struct or map field/key that does not exist. The default behavior will print `<no value>` when accessing a field that does not exist. It is highly recommended you set this to `true` when retrieving secrets from Vault.
+
+  - `exec` This object defines the optional command to be run when the template is rendered. See the [Exec section below](#exec-mode).
+
+    - `command` The command to run when the template is rendered. The command will only run if the resulting template changes. The command must return within the `timeout` time, and it must have a successful exit code.
+
+    - `timeout` (Defaults to `30s`) The timeout for the command to complete.
+
+    **Example**
+
+    ```hcl
+    template {
+      ##...
+      exec {
+        command = ["restart", "service", "foo"]
+        timeout = "30s"
+      }
+      ##...
+    }
+    ```
+
+  For backwards compatibility the template block also supports a bare `command` and `command_timeout` setting.
+
+  - `command` The command to run when the template is rendered. The command will only run if the resulting template changes. The command must return within the `command_timeout` time, and it must have a successful exit code.
+
+  - `command_timeout` (Defaults to `30s`) The timeout for the command to complete.
+
+    **Example**
+
+    ```hcl
+    template {
+      ##...
+      command = ["restart", "service", "foo"]
+      command_timeout = "60s"
+      ##...
+    }
+    ```
+
+  - `function_denylist` These are functions that are not permitted in the template. If a template includes one of these functions, it will exit with an error.
+
+  - `group` The group ownerships of the rendered file. It can be specified in the form of group name or GID. If left unspecified, Consul Template will preserve the ownerships of the existing file. If no file exists, the ownerships will default to the user running Consul Template. This option is not supported on Windows.
+
+  - `left_delimiter` (Defaults to `{{`) The left delimiter to use in the template. The default is `{{`, but for some templates, it may be easier to use a different delimiter that does not conflict with the output file itself.
+
+  - `perms` (Defaults to `0644`) This is the permission to render the file. If this option is left unspecified, Consul Template will attempt to match the permissions of the file that already exists at the destination path. If no file exists at that path, the permissions are `0644`.
+
+  - `right_delimiter` (Defaults to `}}`) The right delimiter to use in the template. The default is `}}`, but for some templates, it may be easier to use a different delimiter that does not conflict with the output file itself.
+
+  - `sandbox_path` If a sandbox path is provided, any path provided to the `file` function is checked that it falls within the sandbox path. Relative paths that try to traverse outside the sandbox path will exit with an error.
+
+  - `source` The source file on disk to use as the input template. This is often called the "Consul Template template". This option is required if not using the `contents` option.
+
+  - `user` The user ownerships of the rendered file. It can be specified in the form of username or UID. If left unspecified, Consul Template will preserve the ownerships of the existing file. If no file exists, the ownerships will default to the user running Consul Template. This option is not supported on Windows.
+
+  - `wait` This object allows to define the minimum and maximum time to wait before rendering a new template to disk and triggering a command. The wait value for a  template takes precedence over any globally-configured wait.
+
+    - `min` The minimum time to wait before rendering a new template to disk and triggering a command. This is a numeric time with a unit suffix (ie `5s`). There is no default value.
+
+    - `max` The minimum time to wait before rendering a new template to disk and triggering a command. This is a numeric time with a unit suffix (ie `5s`). There is no default value. If the optional maximum value is omitted, it is assumed to be *4x* the required minimum value.
+
+    **Example**
+
+    ```hcl
+    template {
+      ##...
+      wait {
+        min = "2s"
+        max = "10s"
+      }
+      ##...
+    }
+    ```
+
+## Modes parameters
+
+Configure Consul Template to run in various modes with the following options.
+Visit [documentation on modes](/consul/docs/automate/consul-template/mode) for more context on each mode.
+
+### Once Mode
+
+When running in Once Mode, Consul template will execute each template exactly once and exit.
+
+In Once Mode, Consul Template will wait for all dependencies to be rendered. If a template specifies a dependency (a request) that does not exist in Consul, once mode will wait until Consul returns data for that dependency.
+
+- `once` Configure Consul Template to execute each template exactly once and exits. Equivalent to the [`-once` command line flag](/consul/docs/reference/consul-template/cli#once).
+
+### De-Duplication Mode
+
+Refer to the [de-duplication mode documentation](/consul/docs/automate/consul-template/mode#de-duplication-mode) for more information on how de-duplication mode operates and the caveats of this mode.
+
+- `deduplicate` This block defines the configuration for running Consul Template in de-duplication mode.
+
+  - `enabled` Enable de-duplication mode. Specifying any other options also enables de-duplication mode.
+
+  - `prefix` (Defaults to `consul-template/dedup/`) The prefix to the path in Consul's KV store where de-duplication templates will be pre-rendered and stored.
+
+  **Example**
+
+  ```hcl
+  deduplicate {
+    enabled = true
+    prefix = "consul-template/dedup/"
+  }
+  ```
+
+### Exec Mode
+
+Refer to the [exec mode documentation](/consul/docs/automate/consul-template/mode#exec-mode) for more information on how exec mode operates and the caveats of this mode.
+
+- `exec` This block defines the configuration for running Consul Template in exec mode.
+
+  - `command` This is the command to exec as a child process. There can be only one command per Consul Template process. Please see the [Commands section](/consul/docs/automate/consul-template/mode#commands) in the execution modes documentation for more information.
+
+  - `env` This object defines the environment that the child process will inherit from Consul Template.
+
+    - `allowlist` Specify a list of environment variables to exclusively include in the list of environment variables exposed to the child process. If specified, only environment variables matching the given patterns are exposed to the child process. These strings are matched using Go's glob function, so wildcards are permitted.
+
+    - `custom` Specify additional custom environment variables to inject into the child's runtime environment. If a custom environment variable shares its name with a system environment variable, the custom environment variable takes precedence. Even if `pristine`, `allowlist`, or `denylist` is specified, all values in this option are given to the child process.
+
+    - `denylist` Specify a list of environment variables to exclusively prohibit in the list of environment variables exposed to the child process. If specified, any environment variables matching the given patterns will not be exposed to the child process, even if they are in the allowlist. The values in this option take precedence over the values in the allowlist. These strings are matched using Go's glob function, so wildcards are permitted.
+
+    - `pristine` (Defaults to `false`) Specify if the child process should not inherit the parent process' environment. By default, the child will have full access to the environment variables of the parent. Setting this to true will send only the values specified in `env.custom` to the child process.
+
+    **Example**
+
+    ```hcl
+    exec {
+      ## ...
+      env {
+        pristine = false
+        custom = ["PATH=$PATH:/etc/myapp/bin"]
+        allowlist = ["CONSUL_*"]
+        denylist = ["VAULT_*"]
+      }
+      ## ...
+    }
+    ```
+
+  - `kill_signal` (Defaults to `SIGINT`) Define the signal sent to the child process when Consul Template is gracefully shutting down. The application should begin a graceful cleanup. If the application does not terminate before the `kill_timeout`, it will be terminated (effectively `kill -9`).
+
+  - `kill_timeout` (Defaults to `30s`) Define the amount of time to wait for the child process to gracefully terminate when Consul Template exits. After this specified time, the child process will be force-killed (effectively `kill -9`).
+
+  - `reload_signal` (Defaults to `nil`) Define the signal to send to the child process when a change occurs in a watched template. The signal will only be sent after the process is started, and the process will only be started after all dependent templates have been rendered at least once. The default value is `nil`, which tells Consul Template to stop the child process and spawn a new one instead of sending it a signal. This is useful for legacy applications or applications that cannot properly reload their configuration without a full reload.
+
+  - `splay` (Defaults to `0`) A random splay to wait before reloading or killing the child process. The default value is `0` (no wait), but large clusters should consider setting a `splay` value to prevent all child processes from reloading at the same time when data changes occur. When this value is set to non-zero, Consul Template will wait a random period of time up to the splay value before reloading or killing the child process. This can be used to prevent the thundering herd problem on applications that do not gracefully reload.
+
+  - `timeout` (Defaults to `0`) The maximum amount of time to wait for a command to complete. By default, this is `0`, which means "wait forever".
+
+## Example
+
+The example HCL configuration file below connects Consul Template to a Consul
+agent and renders a template with a value from [Consul KV][consul-kv]. The
+output is written to a file on disk.
+
+```hcl
+consul {
+  address = "127.0.0.1:8500"
+
+  auth {
+    enabled = true
+    username = "test"
+    password = "test"
+  }
+}
+
+log_level = "warn"
+
+template {
+  contents = "{{key \"hello\"}}"
+  destination = "out.txt"
+  exec {
+    command = "cat out.txt"
+  }
+}
+```
+
+[hcl]: https://github.com/hashicorp/hcl "HashiCorp Configuration Language (hcl)"
+[consul]: https://www.consul.io "Consul by HashiCorp"
+[consul-catalog]: /consul/docs/architecture/catalog "Consul Catalog"
+[consul-kv]: /consul/docs/dynamic-app-config/kv "Consul KV"
+[nomad]: https://www.nomadproject.io/ "Nomad by HashiCorp"
+[vault]: https://www.vaultproject.io/ "Vault by HashiCorp"

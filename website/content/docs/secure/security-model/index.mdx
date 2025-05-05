@@ -1,0 +1,18 @@
+---
+layout: docs
+page_title: Security Models - Overview
+description: >-
+  Security models are the set of requirements and recommendations for securely operating a Consul deployment. Learn about security models and how they differ between environments.
+---
+
+# Security models overview
+
+Requirements and recommendations for operating a secure Consul deployment may vary drastically depending on your intended workloads, operating system, and environment. Consul is not secure by default, but can be configured to satisfy the security requirements for a wide-range of use cases from local developer environments without any configuration to container orchestrators in-production with ACL authorization, and mTLS authentication.
+
+### Core
+
+The core Consul product provides several options for enabling encryption, authentication, and authorization controls for a cluster. Refer to [Consul Core security model](/consul/docs/secure/security-model/core) to learn more about the various personas, recommendations, requirements, and threats.
+
+### Consul-Terraform-Sync (CTS)
+
+[Consul-Terraform-Sync](/consul/docs/automate/infrastructure) (CTS) enables dynamic updates to network infrastructure devices triggered by service changes. Both the core Consul product's configuration and the configuration for the `consul-terraform-sync` daemon used by CTS can affect the security of your deployment. Refer to [CTS security model](/consul/docs/secure/security-model/cts) to learn more about the various personas, recommendations, requirements, and threats.

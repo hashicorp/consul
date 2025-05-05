@@ -6,7 +6,7 @@ description: The /agent/check endpoints interact with checks on the local agent 
 
 # Check - Agent HTTP API
 
-Refer to [Define Health Checks](/consul/docs/services/usage/checks) for information about Consul health check capabilities.
+Refer to [Define Health Checks](/consul/docs/register/health-check/vm) for information about Consul health check capabilities.
 The `/agent/check` endpoints interact with health checks
 managed by the local agent in Consul.
 These should not be confused with checks in the catalog.
@@ -20,10 +20,10 @@ using the HTTP API.
 It is important to note that the checks known by the agent may be different from
 those reported by the catalog. This is usually due to changes being made while
 there is no leader elected. The agent performs active
-[anti-entropy](/consul/docs/architecture/anti-entropy), so in most situations
+[anti-entropy](/consul/docs/concept/consistency), so in most situations
 everything will be in sync within a few seconds.
 
-@include 'http_api_results_filtered_by_acls.mdx'
+@include 'legacy/http_api_results_filtered_by_acls.mdx'
 
 | Method | Path            | Produces           |
 | ------ | --------------- | ------------------ |

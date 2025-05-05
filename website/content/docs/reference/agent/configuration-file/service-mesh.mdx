@@ -1,0 +1,187 @@
+---
+layout: docs
+page_title: Service mesh parameters for Consul agent configuration files
+description: >-
+  Use agent configuration files to assign attributes to agents and configure multiple agents at once. Learn about agent configuration file parameters and formatting with this reference page and sample code.
+---
+
+# Service mesh parameters for Consul agent configuration files
+
+The page provides reference information for service mesh parameters in a Consul agent configuration file.
+
+## Service Mesh Parameters ((#connect-parameters))
+
+The noun _connect_ is used throughout this documentation to refer to the connect
+subsystem that provides Consul's service mesh capabilities.
+
+- `connect` This object allows setting options for the Connect feature.
+
+  The following sub-keys are available:
+
+  - `enabled` ((#connect_enabled)) (Defaults to `true`) Controls whether Connect features are
+    enabled on this agent. Should be enabled on all servers in the cluster
+    in order for service mesh to function properly.
+    Will be set to `true` automatically if `auto_config.enabled` or `auto_encrypt.allow_tls` is `true`.
+
+  - `enable_mesh_gateway_wan_federation` ((#connect_enable_mesh_gateway_wan_federation)) (Defaults to `false`) Controls whether cross-datacenter federation traffic between servers is funneled
+    through mesh gateways. This was added in Consul 1.8.0.
+
+  - `ca_provider` ((#connect_ca_provider)) Controls which CA provider to
+    use for the service mesh's CA. Currently only the `aws-pca`, `consul`, and `vault` providers are supported.
+    This is only used when initially bootstrapping the cluster. For an existing cluster,
+    use the [Update CA Configuration Endpoint](/consul/api-docs/connect/ca#update-ca-configuration).
+
+  - `ca_config` ((#connect_ca_config)) An object which allows setting different
+    config options based on the CA provider chosen. This is only used when initially
+    bootstrapping the cluster. For an existing cluster, use the [Update CA Configuration
+    Endpoint](/consul/api-docs/connect/ca#update-ca-configuration).
+
+    The following providers are supported:
+
+    #### AWS ACM Private CA Provider (`ca_provider = "aws-pca"`)
+
+    - `existing_arn` ((#aws_ca_existing_arn)) The Amazon Resource Name (ARN) of
+      an existing private CA in your ACM account. If specified, Consul will
+      attempt to use the existing CA to issue certificates.
+
+    #### Consul CA Provider (`ca_provider = "consul"`)
+
+    - `private_key` ((#consul_ca_private_key)) The PEM contents of the
+      private key to use for the CA.
+
+    - `root_cert` ((#consul_ca_root_cert)) The PEM contents of the root
+      certificate to use for the CA.
+
+    #### Vault CA Provider (`ca_provider = "vault"`)
+
+    - `address` ((#vault_ca_address)) The address of the Vault server to
+      connect to.
+
+    - `token` ((#vault_ca_token)) The Vault token to use. In Consul 1.8.5 and later, if
+      the token has the [renewable](/vault/api-docs/auth/token#renewable)
+      flag set, Consul will attempt to renew its lease periodically after half the
+      duration has expired.
+
+    - `root_pki_path` ((#vault_ca_root_pki)) The path to use for the root
+      CA pki backend in Vault. This can be an existing backend with a CA already
+      configured, or a blank/unmounted backend in which case Consul will automatically
+      mount/generate the CA. The Vault token given above must have `sudo` access
+      to this backend, as well as permission to mount the backend at this path if
+      it is not already mounted.
+
+    - `intermediate_pki_path` ((#vault_ca_intermediate_pki))
+      The path to use for the temporary intermediate CA pki backend in Vault. **Consul
+      will overwrite any data at this path in order to generate a temporary intermediate
+      CA**. The Vault token given above must have `write` access to this backend,
+      as well as permission to mount the backend at this path if it is not already
+      mounted.
+
+    - `auth_method` ((#vault_ca_auth_method))
+      Vault auth method to use for logging in to Vault.
+      Please see [Vault Auth Methods](/vault/docs/auth) for more information
+      on how to configure individual auth methods. If auth method is provided, Consul will obtain a
+      new token from Vault when the token can no longer be renewed.
+
+       - `type` The type of Vault auth method.
+
+       - `mount_path` The mount path of the auth method.
+      If not provided the auth method type will be used as the mount path.
+
+       - `params` The parameters to configure the auth method.
+      Please see [Vault Auth Methods](/vault/docs/auth) for information on how
+      to configure the auth method you wish to use. If using the Kubernetes auth method, Consul will
+      read the service account token from the default mount path `/var/run/secrets/kubernetes.io/serviceaccount/token`
+      if the `jwt` parameter is not provided.
+
+    #### Common CA Config Options
+
+    There are also a number of common configuration options supported by all providers:
+
+    - `csr_max_concurrent` ((#ca_csr_max_concurrent)) Sets a limit on the number
+      of Certificate Signing Requests that can be processed concurrently. Defaults
+      to 0 (disabled). This is useful when you want to limit the number of CPU cores
+      available to the server for certificate signing operations. For example, on an
+      8 core server, setting this to 1 will ensure that no more than one CPU core
+      will be consumed when generating or rotating certificates. Setting this is
+      recommended **instead** of `csr_max_per_second` when you want to limit the
+      number of cores consumed since it is simpler to reason about limiting CSR
+      resources this way without artificially slowing down rotations. Added in 1.4.1.
+
+    - `csr_max_per_second` ((#ca_csr_max_per_second)) Sets a rate limit
+      on the maximum number of Certificate Signing Requests (CSRs) the servers will
+      accept. This is used to prevent CA rotation from causing unbounded CPU usage
+      on servers. It defaults to 50 which is conservative – a 2017 Macbook can process
+      about 100 per second using only ~40% of one CPU core – but sufficient for deployments
+      up to ~1500 service instances before the time it takes to rotate is impacted.
+      For larger deployments we recommend increasing this based on the expected number
+      of server instances and server resources, or use `csr_max_concurrent` instead
+      if servers have more than one CPU core. Setting this to zero disables rate limiting.
+      Added in 1.4.1.
+
+    - `leaf_cert_ttl` ((#ca_leaf_cert_ttl)) Specifies the upper bound on the expiry
+      of a leaf certificate issued for a service. In most cases a new leaf
+      certificate will be requested by a proxy before this limit is reached. This
+      is also the effective limit on how long a server outage can last (with no leader)
+      before network connections will start being rejected. Defaults to `72h`.
+
+      You can specify a range from one hour (minimum) up to one year (maximum) using
+      the following units: `h`, `m`, `s`, `ms`, `us` (or `µs`), `ns`, or a combination
+      of those units, e.g. `1h5m`.
+
+      This value is also used when rotating out old root certificates from
+      the cluster. When a root certificate has been inactive (rotated out)
+      for more than twice the _current_ `leaf_cert_ttl`, it will be removed
+      from the trusted list.
+
+    - `intermediate_cert_ttl` ((#ca_intermediate_cert_ttl)) Specifies the expiry for the
+      intermediate certificates. Defaults to `8760h` (1 year). Must be at least 3 times `leaf_cert_ttl`.
+
+    - `root_cert_ttl` ((#ca_root_cert_ttl)) Specifies the expiry for a root certificate.
+      Defaults to 10 years as `87600h`. This value, if provided, needs to be higher than the
+      intermediate certificate TTL.
+
+      This setting applies to all Consul CA providers.
+
+      For the Vault provider, this value is only used if the backend is not initialized at first.
+
+      This value is also applied on the `ca set-config` command.
+
+    - `private_key_type` ((#ca_private_key_type)) The type of key to generate
+      for this CA. This is only used when the provider is generating a new key. If
+      `private_key` is set for the Consul provider, or existing root or intermediate
+      PKI paths given for Vault then this will be ignored. Currently supported options
+      are `ec` or `rsa`. Default is `ec`.
+
+      It is required that all servers in a datacenter have
+      the same config for the CA. It is recommended that servers in
+      different datacenters use the same key type and size,
+      although the built-in CA and Vault provider will both allow mixed CA
+      key types.
+
+      Some CA providers (currently Vault) will not allow cross-signing a
+      new CA certificate with a different key type. This means that if you
+      migrate from an RSA-keyed Vault CA to an EC-keyed CA from any
+      provider, you may have to proceed without cross-signing which risks
+      temporary connection issues for workloads during the new certificate
+      rollout. We highly recommend testing this outside of production to
+      understand the impact and suggest sticking to same key type where
+      possible.
+
+      Note that this only affects _CA_ keys generated by the provider.
+      Leaf certificate keys are always EC 256 regardless of the CA
+      configuration.
+
+    - `private_key_bits` ((#ca_private_key_bits)) The length of key to
+      generate for this CA. This is only used when the provider is generating a new
+      key. If `private_key` is set for the Consul provider, or existing root or intermediate
+      PKI paths given for Vault then this will be ignored.
+
+      Currently supported values are:
+
+      - `private_key_type = ec` (default): `224, 256, 384, 521`
+        corresponding to the NIST P-\* curves of the same name.
+      - `private_key_type = rsa`: `2048, 4096`
+
+- `locality` <EnterpriseAlert inline/>: Specifies a map of configurations that set the region and zone of the Consul agent. When specified on server agents, `locality` applies to all partitions on the server. When specified on clients, `locality` applies to all services registered to the client. Configure this field to enable Consul to route traffic to the nearest physical service instance. This field is intended for use primarily with VM and Nomad workloads. Refer to [Route traffic to local upstreams](/consul/docs/manage-traffic/route-local) for additional information.
+  - `region`:  String value that specifies the region where the Consul agent is running. Consul assigns this value to services registered to that agent. When service proxy regions match, Consul is able to prioritize routes between service instances in the same region over instances in other regions. You must specify values that are consistent with how regions are defined in your network, for example `us-west-1` for networks in AWS.
+  - `zone`: String value that specifies the availability zone where the Consul agent is running. Consul assigns this value to services registered to that agent. When service proxy regions match, Consul is able to prioritize routes between service instances in the same region and zone over instances in other regions and zones. When healthy service instances are available in multiple zones within the most-local region, Consul prioritizes instances that also match the downstream proxy's `zone`. You must specify values that are consistent with how zones are defined in your network, for example `us-west-1a` for networks in AWS.

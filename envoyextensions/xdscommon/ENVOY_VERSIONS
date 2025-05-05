@@ -6,7 +6,7 @@
 # Every prior "minor" version for a given "major" (x.y) version is implicitly supported unless excluded by
 # `xdscommon.UnsupportedEnvoyVersions`. For example, 1.28.3 implies support for 1.28.0, 1.28.1, and 1.28.2.
 #
-# See https://www.consul.io/docs/connect/proxies/envoy#supported-versions for more information on Consul's Envoy
+# See https://developer.hashicorp.com/docs/connect/proxies/envoy#supported-versions for more information on Consul's Envoy
 # version support.
 1.33.0
 1.32.3
