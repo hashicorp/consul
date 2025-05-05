@@ -29,8 +29,18 @@ load helpers
   run retry_default curl -s -f -d "hello" "localhost:8080/echo"
   echo "[DEBUG] response: $output" >&3
   [ "$status" == "0" ]
-  onrequest=$(echo "$output" | grep -i 'x-lua-added-onrequest')
-  onresponse=$(echo "$output" | grep -i 'x-lua-added-onresponse')
+  # Extract headers (before the first blank line) and body (after the blank line)
+  headers=$(echo "$output" | sed -n '/^HTTP/,/^$/p' | head -n -1)
+  body=$(echo "$output" | sed -n '/^$/,$p' | tail -n +2)
+
+  echo "[DEBUG] headers: $headers" >&3
+  echo "[DEBUG] body: $body" >&3
+
+  # Check if the headers contains the header on added by the Lua script in the request
+  onrequest=$(echo "$body" | grep -i 'x-lua-added-onrequest')
+
+  # Check if the body contains the header on added by the Lua script in the response
+  onresponse=$(echo "$headers" | grep -i 'x-lua-added-onresponse')
 
   [[ -z "$onrequest" ]] && echo "x-lua-added-onrequest not found" >&3 && return 1
   [[ -z "$onresponse" ]] && echo "x-lua-added-onresponse not found" >&3 && return 1

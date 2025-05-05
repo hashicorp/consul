@@ -64,7 +64,7 @@ EnvoyExtensions = [
     Name = "builtin/lua"
     Arguments = {
       ProxyType = "api-gateway"
-      Listener = "inbound"
+      Listener = "outbound"
       Script = "function envoy_on_request(request_handle) request_handle:headers():add(\"x-lua-added-onrequest\", \"header-added-on-request\") end"
     }
   },
