@@ -1,0 +1,71 @@
+---
+layout: docs
+page_title: Deploy Consul servers overview
+description: >-
+  Learn about the process to deploy Consul servers and find guidance for runtime-specific resources for deploying servers on virtual machines, Kubernetes, and AWS ECS.
+---
+
+# Deploy Consul servers overview
+
+This topic provides an overview of the processes involved in deploying a Consul server agent and joining it to your control plane. The specific steps vary depending on your runtime or cloud provider.
+
+For information about how to deploy Consul client agents or dataplanes, refer to [Configure Consul workloads for your dataplane](/consul/docs/deploy/workload).
+
+## Introduction
+
+Consul server agents are the backbone of a Consul deployment.
+
+The basic process to deploy the first server agent in a cluster consists of the following steps:
+
+1. Create a Consul server configuration with bootstrap mode enabled.
+1. Start the Consul server.
+1. Configure access to the Consul server with the CLI or HTTP API.
+
+The process to deploy additional server agents in a cluster consists of the following steps:
+
+1. Update the `retry_join` stanza of the server agent configuration with the address of the bootstrapped server agent.
+1. Start the Consul server agents using the updated configuration.
+1. Verify cluster members with the `consul members` command.
+1. Remove the servers from bootstrap mode.
+
+After you deploy it, you must secure a Consul cluster to prepare it for production environments. Refer to [Secure Consul](/consul/docs/secure) for more information about Consul's security model.
+
+### Automatic agent discovery
+
+You can configure the `retry_join` stanza so that when a Consul agent starts, it automatically joins a cluster. This ability is called _cloud auto-join_. Configuration requirements vary by cloud provider. For more information, refer to [automatically join clusters to a cloud provider](/deploy/server/cloud-auto-join).
+
+## Guidance
+
+Runtime-specific instructions are available to help you deploy Consul server agents.
+
+### Virtual machines (VMs)
+
+For an overview of the process to deploy a server, refer to the [Deploy Consul on VMs overview](/consul/docs/deploy/server/vm).
+
+The following guides are also available:
+
+- [Consul server requirements on VMs](/consul/docs/deploy/server/vm/requirements)
+- [Bootstrap a Consul cluster](/consul/docs/deploy/server/vm/bootstrap)
+
+### Kubernetes
+
+For an overview of our documentation related to deploying Consul servers running on Kubernetes clusters, refer to the [Deploy a Consul server on Kubernetes](/consul/docs/deploy/server/k8s).
+
+Platform-specific guidance is also available:
+
+- [Deploy Consul on AKS](/consul/docs/deploy/server/k8s/platform/aks)
+- [Deploy Consul on EKS](/consul/docs/deploy/server/k8s/platform/eks)
+- [Deploy Consul on GKE](/consul/docs/deploy/server/k8s/platform/gke)
+- [Deploy Consul on kind](/consul/docs/deploy/server/k8s/platform/kind)
+- [Deploy Consul on Minikube](/consul/docs/deploy/server/k8s/platform/minikube)
+- [Deploy Consul on OpenShift](/consul/docs/deploy/server/k8s/platform/openshift)
+- [Deploy Consul on self-hosted Kubernetes](/consul/docs/deploy/server/k8s/platform/self-hosted)
+
+### AWS ECS
+
+- [Deploy Consul to ECS using the Terraform module](/consul/docs/deploy/server/ecs)
+- [Deploy Consul to ECS manually](/consul/docs/deploy/server/ecs/manual)
+
+### HCP Consul Dedicated
+
+To learn about how to deploy HCP Consul Dedicated servers, refer to [Deploy servers on HCP Consul](/consul/docs/deploy/server/hcp). You can access the UI workflow to deploy Dedicated clusters from [the HCP portal](https://portal.cloud.hashicorp.com).

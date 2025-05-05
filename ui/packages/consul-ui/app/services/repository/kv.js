@@ -66,7 +66,7 @@ export default class KvService extends RepositoryService {
   }
 
   // this one only gives you keys
-  // https://www.consul.io/api/kv.html
+  // https://developer.hashicorp.com/api/kv.html
   @dataSource('/:partition/:ns/:dc/kvs/:id')
   async findAllBySlug(params, configuration = {}) {
     params.separator = '/';

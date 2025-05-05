@@ -1,0 +1,361 @@
+---
+layout: docs
+page_title: Secure Consul
+description: >-
+  This topic provides an overview of securing Consul. You can control access Consul with access control lists (ACLs), encrypt its network traffic with gossip encryption/TLS, or learn more about its security model.
+---
+
+# Secure Consul
+
+This page describes tools and processes to secure Consul operations.
+
+This guide provides a high-level overview of each security consideration and
+links to additional resources. With Consul, there are several important
+considerations to consider when planning for security. You need to manage three
+distinct types of secrets within a Consul deployment; TLS certificates, ACL
+tokens, and gossip encryption keys.
+
+## TLS certificates
+
+  - Certificate Authority (Root & Intermediate)
+
+    - Consul contains two different types of built-in Certificate Authorities:
+      - Consul Agent CA (also referred to as “built-in” CA) - this is optional
+      for both Consul server agents and Consul client agents. If used, this will
+      provide RPC encryption on server agents and client agents. The CA and
+      certificates are created with the CLI as shown below.
+
+        ```shell-session
+        $ consul tls ca create &&
+        consul tls cert create -server && \
+        consul tls cert create -client
+        ```
+      - [Consul service mesh CA](/consul/docs/secure-mesh/certificate/built-in) - this
+      is used for mTLS authentication within a service mesh and the auto-encrypt
+      feature for Consul client agents. Auto-encrypt cannot be used for Consul
+      server agent certificates.
+
+    - You can use [your own CA](/consul/tutorials/security-operations/tls-encryption-openssl-secure) to sign and issue both server and client
+    certificates, however, you must include the following subject alternative
+    names to the server certificates (without these you will get bad certificate
+    errors and the Consul agent will not start):
+      - DNS: server.dc1.consul
+      - DNS: localhost
+      - IP address: 127.0.0.1
+
+    <Note>
+
+    HashiCorp Vault can be used as a Certificate Authority for
+        Consul and can handle both generation and renewal of dynamic X.509 certificates.
+
+    </Note>
+
+  - Server Certificates
+      - Can use built-in Consul Agent CA
+      - Can use 3rd party CA
+  - Client Certificates
+      - Can use built-in Consul Agent CA
+      - Can use 3rd party CA
+      - Can use [auto_encrypt](/consul/tutorials/security/tls-encryption-secure) (Connect CA) or [auto_config](/consul/tutorials/security-operations/docker-compose-auto-config) options to automatically distribute client certificates
+
+Review the [TLS certificates tutorial](/consul/tutorials/security/tls-encryption-secure)
+for step-by-step setup guidance.
+
+#### Certificate summary
+
+| Feature      | Consul Agent CA  | Consul service mesh CA  | 3rd party CA  |
+| --- | --- | --- | --- |
+| Certificate generation & rotation  | Manual  | Automatic  | Manual / Automatic  |
+| Certificate storage location  | Raft state store  | Agent memory  | Raft state store  |
+| Default Expiration for CA certificates  | 5 years  | 10 years  | Varies  |
+| Default Expiration for client/server certificates  | 1 year  | 3 days  | Varies  |
+
+### TLS best practices
+
+The following is a list of recommended practices for TLS encryption.
+
+- Ensure that certificates have an expiration period that aligns with your
+company’s guidelines.
+
+- Enable either [`auto_encrypt`](/consul/tutorials/security/tls-encryption-secure) or
+  [`auto_config`](/consul/tutorials/security-operations/docker-compose-auto-config) to automatically distribute
+  client certificates.
+
+- For automatic key rotation and certificate renewals, the use of a secrets management solution such
+  as HashiCorp Vault is strongly recommended. The [Generate mTLS Certificates for Consul with Vault
+  tutorials](/consul/tutorials/vault-secure/vault-pki-consul-secure-tls) has step-by-step guidance.
+
+- Avoid the use of wildcard certificates to reduce possible attack surface.
+Instead, leverage named certificates with the use of subject alternative name (SAN).
+
+- Verify the server hostname setting `verify_server_hostname` is set to ensure
+that the client only accepts the certificate files from a server that presents a
+certificate matching “server.[dc].consul”.
+
+- Secure API/UI/CLI with HTTPS.
+    - If there is a requirement to expose the API/CLI/UI outside of the Consul cluster, the use of HTTPS is strongly encouraged.
+
+    <Note>
+
+      Firewall/Security group rules will need to be adjusted to provide access to these services.
+
+    </Note>
+
+    - In order to leverage HTTPS with the API/UI/CLI, a separate certificate should be generated. Review the [Secure Consul Agent Communication with Encryption and Certificates](/consul/tutorials/security-operations/tls-encryption-openssl-secure) tutorial to learn how to create and distribute these certificates.
+    - Once HTTPS has been enabled, HTTP should be disabled by leveraging the ports stanza in the server and client configuration.
+
+    <CodeTabs heading="Port configuration">
+
+    ```hcl
+    ports = {
+       https = 8501
+       http = -1
+    }
+    ```
+
+    ```json
+    "ports": {
+       "https": 8501
+       "http" : -1
+    }
+    ```
+
+    </CodeTabs>
+
+    - Unless you have configured environment variables or include specific parameters in consul commands, the CLI and API will be inaccessible after enabling HTTPS. The following environment variables and CLI commands can be used to configure the appropriate values.
+
+    <Tabs>
+    <Tab heading="Environment Variables">
+
+    ```shell-session
+    $ export CONSUL_HTTP_ADDR=https://server.dc1.consul:8501
+    $ export CONSUL_CACERT=consul-agent-ca.pem
+    $ export CONSUL_CLIENT_CERT=cli.client.dc1.consul.crt
+    $ export CONSUL_CLIENT_KEY=cli.client.dc1.consul.key
+    ```
+    </Tab>
+    <Tab heading="CLI">
+
+    ```shell-session
+    $ consul members \
+    -http-addr="https://server.dc1.consul:8501" \
+    -ca-file="consul-agent-ca.pem" \
+    -client-cert="cli.client.dc1.consul.crt" \ -client-key="cli.client.dc1.consul.key"
+    ```
+    </Tab>
+    </Tabs>
+
+## Consul ACL tokens
+
+Tokens are tied to policies that grant permission to various API actions. It's
+important to consider that ACL tokens do not expire. They must be removed by
+other processes.
+
+You can use the Consul CLI to create ACL policies.
+
+```shell-session
+$ consul acl policy create -name <policy_name> -rules @policy.hcl
+```
+
+You can use the Consul CLI to create ACL tokens.
+```shell-session
+$ consul acl token create -description "description" -policy-name <policy_name>
+```
+
+Review the [ACL production tutorial](/consul/tutorials/security/access-control-setup-production) for step-by-step guidance.
+
+<Note>
+
+ HashiCorp Vault has a dynamic secrets engine for Consul with the
+ability to apply TTL to tokens (Vault automatically deletes the tokens from
+Consul). Refer to the
+[Administer Consul ACLs with Vault](/consul/tutorials/vault-secure/vault-consul-secrets)
+tutorial for more information.
+
+</Note>
+
+### Intitial management token
+
+Consul ACLs are not enabled until they have been “bootstrapped”. The bootstrap
+process enables ACLs in the Consul cluster and provides an initial output that
+contains the bootstrap token in it. The command `consul acl bootstrap`
+will generate an ACL token, the bootstrap token, that  is tied to the
+_Global Management_ policy, granting full privileges to the Consul datacenter,
+and that can be used initially to configure the ACL system.
+
+```shell-session
+$ consul acl bootstrap
+```
+
+```json hideClipboard
+{
+    "CreateIndex": 18,
+    "ModifyIndex": 18,
+    "AccessorID": "2268e5dc-17fc-02d5-7af9-da8584f16cfe",
+    "SecretID": "af410085-8bf6-80d6-08ad-2bfaa6526256",
+    "Description": "Bootstrap Token (Global Management)",
+    "Policies": [
+        {
+            "ID": "00000000-0000-0000-0000-000000000001",
+            "Name": "global-management"
+        }
+    ],
+    "Local": false,
+    "CreateTime": "---",
+    "Hash": "X2AgaFhnQGRhSSF/h0m6qpX1wj/HJWbyXcxkEM/5GrY="
+}
+```
+
+### ACL node identity
+
+An ACL node identity is an ACL policy template for expressing a link to a policy
+suitable for use as an Consul agent token. They are usable on both tokens and
+roles and are composed of the following elements:
+
+- **Node Name** - The name of the node to grant access to.
+- **Datacenter** - The datacenter that the node resides within.
+
+They allow you to generate specific node tokens without the need to manually
+generate the respective policies.
+
+You can use the Consul CLI to create ACL node tokens.
+```shell-session
+$ consul acl token create -description "description" -node-identity=<nodename:datacenter>
+```
+
+~> **Consul Enterprise Namespacing** - Node Identities can only be applied to
+tokens and roles in the default namespace. The synthetic policy rules allow for
+`service:read` permissions on all services in all namespaces.
+
+### ACL service identity
+
+This is similar to the Consul node token specified above, but would be specific
+to each service that is managed by Consul (e.g. web, database, etc.)
+
+An ACL service identity is an ACL policy template for expressing a link to a
+policy suitable for use in Consul service mesh. They are usable on both
+tokens and roles and are composed of the following elements:
+
+- **Service Name** - The name of the service.
+- **Datacenters** - A list of datacenters the effective policy is valid within. (Optional)
+
+You can use the Consul CLI to create ACL node tokens.
+```shell-session
+$ consul acl token create -description "description" -service-identity=<servicename:datacenter>
+```
+
+### ACL token best practices
+
+The following is a list of recommended practices for ACLs.
+
+- The default policy should be set to `“deny”` on a new Consul cluster. On an
+existing Consul cluster, it should be set to `“allow”`, until ACL tokens have
+been distributed to all nodes.
+
+- ACLs should be created for either every server role type or every agent node
+through the use of rules & policies. Each customer will need to evaluate the
+most appropriate approach based on their security requirements.
+
+  - For example, using an exact match resource rule is the most secure. It
+  grants the least privileges necessary to accomplish the task. Generally,
+  creating policies and tokens with the least privileges will result in more
+  policy definitions. Alternatively, for a simplified process, the prefix
+  resources rules can apply to zero-to-many objects (eg web servers, database
+  servers, etc.) The trade-off of a less complicated token creation process is
+  the potential for wider blast radius on the token or possible workload
+  compromise. For additional details, refer to the [Understand Access Control Privileges](/consul/tutorials/security/access-control-manage-policies) tutorial.
+
+- Use of ACL tokens associated with the _Global Management_ policy, granting
+unrestricted permission to the datacenter resources, should be restricted to the
+initial bootstrap configuration. Once the initial config is complete and
+additional ACL tokens have been created, including a new emergency
+_Global Management_ token, the original bootstrap token should be deleted.
+Additionally, this new _Global Management_ token should be rotated on a regular
+basis in alignment with a customer’s security requirements.
+
+- [Leverage Vault to manage ACLs within the environment](/consul/tutorials/vault-secure/vault-consul-secrets).
+- If more granular access controls are required, Consul Enterprise supports the
+use of [Sentinel](https://docs.hashicorp.com/sentinel) for more fine-grained and
+logic-based policies. Sentinel policies extend the ACL system in Consul beyond
+static "read", "write", and "deny" policies to support full conditional logic
+and integration with external systems.
+
+## Gossip encryption key
+
+Gossip is **unencrypted** by default and should be encrypted on both new and
+existing Consul clusters. When gossip encryption is enabled, a line similar to
+the following should appear in the startup logs.
+
+```shell-session hideClipboard
+Encrypt: Gossip:true, TLS-Outgoing: false, TLS-Incoming: false, Auto-Encrypt-TLS: false
+```
+
+For additional information on how to generate gossip encryption keys for both
+new and existing Consul clusters, review the [Secure Gossip Communication with Encryption](/consul/tutorials/security/gossip-encryption-secure) tutorial.
+
+### Gossip encryption best practices
+
+We recommend that you regularly rotate the gossip encryption key to improve the
+overall security of Consul.
+
+- [Rotate Gossip Encryption Keys in Consul](/consul/tutorials/datacenter-operations/gossip-encryption-rotate)
+
+A tutorial is also available to help you automate the rotation of gossip keys
+through the usage of Vault.
+
+- [Leverage Vault to automatically rotate encryption keys](/consul/tutorials/vault-secure/vault-kv-consul-secure-gossip)
+
+## Additional security best practices
+
+Enabling script checks via the `-enable-script-checks` configuration setting may
+introduce a remote execution vulnerability that is known to be targeted by
+malware. We strongly recommend `-enable-local-script-checks` instead. See
+[this blog post](https://www.hashicorp.com/blog/protecting-consul-from-rce-risk-in-specific-configurations)
+for more details.
+
+Configure client agents to bind to localhost for the HTTP, HTTPS, DNS, and gRPC APIs. This ensures
+these APIs are not exposed outside the node where the client agent is running. Consul client agents
+bind to localhost by default if the [`addresses`](/consul/docs/reference/agent/configuration-file/general#addresses)
+and [`client_addr`](/consul/docs/reference/agent/configuration-file/general#client_addr) config options are not
+specified.
+
+Verify that the version of Consul deployed within the environment does not have
+any active CVEs that are relevant by visiting the following page:
+[Hashicorp Discuss: Consul Security](https://discuss.hashicorp.com/tag/security-consul)
+
+Leverage Consul [intentions](/consul/docs/secure-mesh/intention)
+within a service mesh for defining rules which allow service-to-service
+communication.
+
+## Access summary
+
+Each of the secret types listed above provides security for a specific part of
+the system. The table below details the security features and the relevant
+components of the system that is being secured.
+
+| Use Case                     | Gossip encryption | TLS encryption | ACLs   |
+| ---------------------------- | :---------------: | :------------: | :----: |
+| Gossip Communication         |   ✅              |   🚫           |   🚫   |
+| RPC/Consensus Communication  |   🚫              |   ✅           |   🚫   |
+| API/CLI/UI Operations        |   🚫              |   ✅           |   ✅   |
+| Catalog Access               |   🚫              |   🚫           |   ✅   |
+| Discover Services            |   🚫              |   🚫           |   ✅   |
+| Add nodes                    |   🚫              |   🚫           |   ✅   |
+
+## Additional references
+
+* [Consul Security](/consul/docs/secure)
+* [Consul Agent Configuration & TLS Encryption](/consul/tutorials/security/tls-encryption-secure)
+* [Consul ACLs](/consul/tutorials/security/access-control-setup-production)
+* [Consul Intentions](/consul/docs/secure-mesh/intention)
+* [Secure Agent Communication with Existing Certificate Authority](/consul/tutorials/security-operations/tls-encryption-openssl-secure)
+* [Consul Service Mesh Security](/consul/docs/secure-mesh/best-practice)
+* [Consul Service Mesh CA](/consul/docs/secure-mesh/certificate/built-in)
+* [Day 1: Consul Security](/consul/tutorials/security)
+* [Consul Datacenter Security Operations](/consul/tutorials/security-operations)
+* [Automate Consul Agent Security with Auto Config](/consul/tutorials/security-operations/docker-compose-auto-config)
+* [Enforce a Zero-trust Network with Consul Service Mesh](/consul/tutorials/kubernetes-features/service-mesh-zero-trust-network)
+* [Administer Consul Access Control Tokens with Vault](/consul/tutorials/vault-secure/vault-consul-secrets)
+* [Automatically Rotate Gossip Encryption Keys Secured in Vault](/consul/tutorials/vault-secure/vault-kv-consul-secure-gossip)
+* [Generate mTLS Certificates for Consul with Vault](/consul/tutorials/vault-secure/vault-pki-consul-secure-tls)
+* [HashiCorp Sentinel](https://docs.hashicorp.com/sentinel)

@@ -1,0 +1,163 @@
+---
+layout: docs
+page_title: Consul dataplane
+description: >-
+   Consul Dataplane removes the need to run a client agent for service discovery and service mesh by leveraging orchestrator functions. Learn about Consul Dataplane, how it can lower latency for Consul on Kubernetes and AWS ECS, and how it enables Consul support for AWS Fargate and GKE Autopilot.
+---
+
+# Consul dataplane
+
+This topic provides an overview of Consul dataplane, a lightweight process for managing Envoy proxies. Consul dataplanes remove the need to run client agents on every node in a cluster for service discovery and service mesh. Instead, Consul deploys sidecar proxies that provide lower latency, support additional runtimes, and integrate with cloud infrastructure providers.
+
+## Supported environments
+
+- Dataplanes can connect to Consul servers v1.14.0 and newer.
+- Dataplanes on Kubernetes requires Consul K8s v1.0.0 and newer.
+- Dataplanes on AWS Elastic Container Services (ECS) requires Consul ECS v0.7.0 and newer.
+
+## What is Consul dataplane?
+
+When deployed to virtual machines or bare metal environments, the Consul control plane requires _server agents_ and _client agents_. Server agents maintain the service catalog and service mesh, including its security and consistency, while client agents manage communications between service instances, their sidecar proxies, and the servers. While this model is optimal for applications deployed on virtual machines or bare metal servers, orchestrators such as Kubernetes and ECS have native components that support health checking and service location functions typically provided by the client agent.
+
+Consul dataplane manages Envoy proxies and leaves responsibility for other functions to the orchestrator. As a result, it removes the need to run client agents on every node. In addition, services no longer need to be reregistered to a local client agent after restarting a service instance, as a client agent’s lack of access to persistent data storage in container-orchestrated deployments is no longer an issue.
+
+The following diagram shows how Consul dataplanes facilitate service mesh in a Kubernetes-orchestrated environment.
+
+![Diagram of Consul Dataplanes in Kubernetes deployment](/img/k8s-dataplanes-architecture.png)
+
+### Impact on performance
+
+ConsuldDataplanes replace node-level client agents and function as sidecars attached to each service instance. Dataplanes handle communication between Consul servers and Envoy proxies, using fewer resources than client agents. Consul servers need to consume additional resources in order to generate xDS resources for Envoy proxies.
+
+As a result, small deployments require fewer overall resources. For especially large deployments or deployments that expect to experience high levels of churn, consider the following impacts to your network's performance:
+
+1. In our internal tests, which used 5000 proxies and services flapping every 2 seconds, additional CPU utilization remained under 10% on the control plane.
+1. As you deploy more services, the resource usage for dataplanes grows on a linear scale.
+1. Envoy reconfigurations are rate limited to prevent excessive configuration changes from generating significant load on the servers.
+1. To avoid generating significant load on an individual server, proxy configuration is load balanced proactively.
+1. The frequency of the orchestrator's liveness and readiness probes determine how quickly Consul's control plane can become aware of failures. There is no impact on service mesh applications, however, as Envoy proxies have a passive ability to detect endpoint failure and steer traffic to healthy instances.
+
+## Benefits
+
+**Fewer networking requirements**: Without client agents, Consul does not require bidirectional network connectivity across multiple protocols to enable gossip communication. Instead, it requires a single gRPC connection to the Consul servers, which significantly simplifies requirements for the operator.
+
+**Simplified set up**: Because there are no client agents to engage in gossip, you do not have to generate and distribute a gossip encryption key to agents during the initial bootstrapping process. Securing agent communication also becomes simpler, with fewer tokens to track, distribute, and rotate.
+
+**Additional environment and runtime support**: Consul on Kubernetes versions _prior_ to v1.0 (Consul v1.14) require the use of hostPorts and DaemonSets for client agents, which limits Consul’s ability to be deployed in environments where those features are not supported.
+As of Consul on Kubernetes version 1.0 (Consul 1.14), `hostPorts` are no longer required and Consul now supports AWS Fargate and GKE Autopilot.
+
+**Easier upgrades**: With Consul dataplane, updating Consul to a new version no longer requires upgrading client agents. Consul Dataplane also has better compatibility across Consul server versions, so the process to upgrade Consul servers becomes easier.
+
+## Get started
+
+To get started with Consul dataplane, use the following reference resources:
+
+- For `consul-dataplane` commands and usage examples, including required flags for startup, refer to the [`consul-dataplane` CLI reference](/consul/docs/reference/dataplane/cli).
+- For Helm chart information, refer to the [Helm Chart reference](/consul/docs/reference/k8s/helm).
+- For Envoy, Consul, and Consul Dataplane version compatibility, refer to the [Envoy compatibility matrix](/consul/docs/reference/proxy/envoy).
+- For Consul on ECS workloads, refer to [Consul on AWS Elastic Container Service (ECS) Overview](/consul/docs/ecs).
+
+## Installation
+
+<Tabs>
+
+<Tab heading="Kubernetes" group="k8s">
+
+To install Consul dataplane, set `VERSION` to `1.0.0` or higher and then follow the instructions to install a specific version of Consul [with the Helm Chart](/consul/docs/k8s/installation/install#install-consul) or [with the Consul-k8s CLI](/consul/docs/k8s/installation/install-cli#install-a-previous-version).
+
+### Helm
+
+```shell-session
+$ export VERSION=1.0.0
+$ helm install consul hashicorp/consul --set global.name=consul --version ${VERSION} --create-namespace --namespace consul
+```
+
+### Consul-k8s CLI
+
+```shell-session
+$ export VERSION=1.0.0 && \
+    curl --location "https://releases.hashicorp.com/consul-k8s/${VERSION}/consul-k8s_${VERSION}_darwin_amd64.zip" --output consul-k8s-cli.zip
+```
+</Tab>
+
+<Tab heading="ECS" group="ecs">
+
+Refer to the following documentation for Consul on ECS workloads:
+
+- [Deploy Consul with the Terraform module](/consul/docs/register/service/ecs/)
+- [Deploy Consul manually](/consul/docs/register/service/ecs/manual)
+
+</Tab>
+
+</Tabs>
+
+### Namespace ACL permissions
+
+If ACLs are enabled, exported services between partitions that use dataplanes may experience errors when you define namespace partitions with the `*` wildcard. Consul dataplanes use a token with the `builtin/service` policy attached, but this policy does not include access to all namespaces.
+
+Add the following policies to the service token attached to Consul dataplanes to grant Consul access to exported services across all namespaces:
+
+```hcl
+partition "default" {
+  namespace "default" {
+    query_prefix "" {
+      policy = "read"
+    }
+  }
+}
+
+partition_prefix "" {
+  namespace_prefix "" {
+    node_prefix "" {
+      policy = "read"
+    }
+    service_prefix "" {
+      policy = "read"
+    }
+   }
+}
+```
+
+## Upgrade dataplane version
+
+<Tabs>
+
+<Tab heading="Kubernetes" group="k8s">
+
+Before you upgrade Consul to a version that uses Consul dataplane, you must edit your Helm chart so that client agents are removed from your deployments. Refer to [upgrading to Consul Dataplane](/consul/docs/k8s/upgrade#upgrading-to-consul-dataplanes) for more information.
+
+</Tab>
+
+<Tab heading="ECS" group="ecs">
+
+Refer to [Upgrade to dataplane architecture](/consul/docs/upgrade/ecs/dataplane) for instructions.
+
+</Tab>
+
+</Tabs>
+
+## Feature support
+
+Consul dataplanes on Kubernetes supports the following features:
+
+- Single and multi-cluster installations, including those with WAN federation, cluster peering, and admin partitions are supported.
+- Ingress, terminating, and mesh gateways are supported.
+- Running Consul service mesh in AWS Fargate and GKE Autopilot is supported.
+- xDS load balancing is supported.
+- Servers running in Kubernetes and servers external to Kubernetes are both supported.
+- HCP Consul Dedicated is supported.
+- Consul API Gateway
+
+Consul dataplanes on ECS support the following features:
+
+- Single and multi-cluster installations, including those with WAN federation, cluster peering, and admin partitions
+- Mesh gateways
+- Running Consul service mesh in AWS Fargate and EC2
+- xDS load balancing
+- Self-managed Enterprise and HCP Consul Dedicated servers
+
+## Technical constraints and limitations
+
+- Consul Dataplane is not supported on Windows.
+- Consul Dataplane requires the `NET_BIND_SERVICE` capability. Refer to [Set capabilities for a Container](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-capabilities-for-a-container) in the Kubernetes Documentation for more information.
+- When ACLs are enabled, dataplanes use the [service token](/consul/docs/security/acl/tokens/create/create-a-service-token) and the `builtin/service` policy for their default permissions.

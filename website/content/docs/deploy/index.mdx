@@ -1,0 +1,65 @@
+---
+layout: docs
+page_title: Deploy Consul
+description: >-
+  Learn about the editions of Consul you can deploy as Consul server agents, client agents, and dataplanes. You can find additional guidance for the deployment process in our tutorials.
+---
+
+# Deploy Consul
+
+This topic provides an overview of the configurations and processes to deploy a Consul agent in your network. 
+
+A node must run Consul to connect to a Consul datacenter. It can run either as a server agent, or as a client agent or Consul dataplane that supports an application workload.
+
+## Consul editions
+
+You can configure agents to run a specific edition of Consul.
+
+| Edition              | How to enable                                         |
+| :------------------- | :---------------------------------------------------- |
+| Community edition    | Enabled by default.                                   |
+| Enterprise           | Configure `license` block in the agent configuration. |
+| [FIPS 140-2 compliant](/consul/docs/deploy/server/fips) | Specify an alternate source binary or image.          |
+
+To find the package for a specific release, refer to [releases.hashicorp.com](https://releases.hashicorp.com). To learn more about the differences in Consul editions and their available features, refer to [Consul edition fundamentals](/consul/docs/fundamentals/editions).
+
+## Documentation
+
+The following resources are available to help you deploy Consul on nodes in your network.
+
+To deploy a Consul server, refer to the instructions for your runtime:
+
+- [Deploy Consul servers on VMs](/consul/docs/deploy/server/vm)
+- [Deploy Consul servers on Kubernetes](/consul/docs/deploy/server/k8s)
+- [Deploy Consul servers on AWS Elastic Container Service (ECS)](/consul/docs/deploy/server/ecs)
+- [Deploy Consul servers on Docker](/consul/docs/deploy/server/docker)
+
+By default, the servers you deploy use the WAL backend for the Raft index. To learn more, refer to [WAL LogStore backend overview](/consul/docs/deploy/server/wal).
+
+To deploy a Consul process alongside you application workloads, follow the instructions to deploy a client agent or Consul dataplanes:
+
+- Deploy Consul client agents:
+  - [Deploy client agents on VMs](/consul/docs/deploy/workload/client/vm)
+  - [Deploy client agents on Kubernetes](/consul/docs/deploy/workload/client/k8s)
+  - [Deploy client agents on Docker](/consul/docs/deploy/workload/client/docker)
+- Deploy Consul dataplanes:
+  - [Deploy dataplanes on Kubernetes](/consul/docs/deploy/workload/dataplane/k8s)
+  - [Deploy dataplanes on AWS ECS](/consul/docs/deploy/workload/dataplane/ecs)
+
+You can also [configure cloud auto-join](/consul/docs/deploy/server/cloud-auto-join) so that nodes automatically join the Consul cluster when they start.
+
+## Tutorials
+
+The following tutorials provide additional instruction in the process to deploy Consul agents.
+
+### Virtual Machines
+
+- [Getting Started: Deploy Consul on VMs](/consul/tutorials/get-started-vms/virtual-machine-gs-deploy)
+- [Consul reference architecture](/consul/tutorials/production-vms/reference-architecture)
+- [Production: Deployment Guide](/consul/tutorials/production-vms/deployment-guide)
+
+### Kubernetes
+
+- [Getting Started: Deploy Consul on Kubernetes](/consul/tutorials/get-started-kubernetes/kubernetes-gs-deploy)
+- [Consul on Kubernetes reference architecture](/consul/tutorials/production-kubernetes/kubernetes-reference-architecture)
+- [Production: Consul and Kubernetes deployment guide](/consul/tutorials/production-kubernetes/kubernetes-deployment-guide)

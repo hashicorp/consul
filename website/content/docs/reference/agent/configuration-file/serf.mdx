@@ -1,0 +1,25 @@
+---
+layout: docs
+page_title: Serf parameters for Consul agent configuration files
+description: >-
+  Use agent configuration files to assign attributes to agents and configure multiple agents at once. Learn about agent configuration file parameters and formatting with this reference page and sample code.
+---
+
+# Serf parameters for Consul agent configuration files
+
+The page provides reference information for Serf parameters in a Consul agent configuration file.
+
+## Serf parameters
+
+- `serf_lan` ((#serf_lan_bind)) - The address to bind to for Serf LAN gossip communications. The value is an IP address that should be reachable
+  by all other LAN nodes in the cluster. By default, the value follows the same rules
+  as [`bind`](/consul/docs/reference/agent/configuration-file/general#_bind), and if this is not specified, the value of `bind` is used. You can dynamically define this parameter with a [go-sockaddr] template that is resolved at runtime. Equivalent to the [`-serf-lan-bind` command-line flag](/consul/commands/agent#_serf_lan_bind).
+  Do not mistake this parameter for [`ports.serf_lan`](/consul/docs/reference/agent/configuration-file/general#serf_lan_port).
+
+- `serf_lan_allowed_cidrs` ((#serf_lan_allowed_cidrs)) - Allowed CIDRs to accept incoming connections for LAN Serf from several networks. This parameter supports multiple values.
+  Specify networks with CIDR notation, such as `192.168.1.0/24`. Equivalent to the [`-serf-lan-allowed-cidrs` command-line flag](/consul/commands/agent#_serf_lan_allowed_cidrs).
+
+- `serf_wan` ((#serf_wan_bind)) - The address thatto bind to for Serf WAN gossip communications. By default, the value follows the same rules
+  as [`bind`](/consul/docs/reference/agent/configuration-file/general#_bind), and if this is not specified, he value of `bind` is used.You can dynamically define this parameter with a [go-sockaddr] template that is resolved at runtime. Equivalent to the [`-serf-wan-bind` command-line flag](/consul/commands/agent#_serf_wan_bind).
+
+- `serf_wan_allowed_cidrs` ((#serf_wan_allowed_cidrs)) - Allowed CIDRs allow to accept incoming connections for WAN Serf from several networks. This parameter supports multiple values. Specify networks with CIDR notation, such as `192.168.1.0/24`. Equivalent to the [`-serf-wan-allowed-cidrs` command-lin flag](/consul/commands/agent#_serf_wan_allowed_cidrs).

@@ -1,0 +1,53 @@
+---
+layout: docs
+page_title: Link service network east/west on Kubernetes
+description: >-
+  This topic provides an overview of linking segments of your service mesh in an east/west direction on Kubernetes. You can extend your service mesh across regions and cloud providers with cluster peering or WAN federation.
+---
+
+# Link service network east/west on Kubernetes
+
+This topic provides an overview of the strategies and processes for linking defined segments of your service mesh to extend east/west operations across cloud regions and platforms when running Consul on Kubernetes. Linking network segments into an extended service mesh enables advanced strategies for deploying and monitoring service operations in your network.
+
+## Introduction
+
+Consul supports two general strategies for extending east/west service mesh traffic across your network:
+
+- Cluster peering
+- Wide Area Network (WAN) federation
+
+Consul community edition supports basic cluster peering and federation scenarios. Implementing advanced scenarios such as federated network areas and cluster peering between multiple admin partitions in datacenters require Consul Enterprise. Refer to [Consul Enterprise](/consul/docs/enterprise) for more information.
+
+## Cluster peering
+
+@include 'text/descriptions/cluster-peering.mdx'
+
+Refer to the following pages for guidance about using cluster peering with Consul on Kubernetes:
+
+- [Establish cluster peering connections on Kubernetes](/consul/docs/east-west/cluster-peering/establish/k8s)
+- [Manage cluster peering connections on Kubernetes](/consul/docs/east-west/cluster-peering/manage/k8s)
+
+## WAN federation
+
+@include 'text/descriptions/wan-federation.mdx'
+
+Refer to the following pages for guidance about using WAN federation with Consul on Kubernetes:
+
+- [WAN federation between multiple Kubernetes clusters](/consul/docs/east-west/wan-federation/k8s)
+- [WAN federation between virtual machines and Kubernetes clusters](/consul/docs/east-west/wan-federation/k8s-vm)
+
+## Secure communication with mesh gateways
+
+@include 'text/descriptions/mesh-gateway.mdx'
+
+## Reference documentation
+
+For reference material related to the processes for extending your service mesh by linking segments of your network, refer to the following pages:
+
+- [Proxy defaults configuration reference](/consul/docs/reference/config-entry/proxy-defaults)
+- [Helm chart reference](/consul/docs/reference/k8s/helm)
+- [Upstream annotations reference](/consul/docs/reference/k8s/annotation-label)
+
+## Constraints, limitations, and troubleshooting
+
+@include 'text/limitations/east-west.mdx'

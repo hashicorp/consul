@@ -1,0 +1,48 @@
+---
+layout: docs
+page_title: Consul AWS CLI reference
+description: >-
+   The Consul AWS tool syncs services between AWS Cloud Map and a Consul datacenter and enables service discovery across both AWS Cloud Map and Consul.
+---
+
+# Consul on AWS CLI reference
+
+The [Consul AWS CLI](https://github.com/hashicorp/consul-aws), `consul-aws`, lets you services between AWS Cloud Map and a Consul datacenter.
+
+Refer to the [Sync Consul service catalog with AWS Cloud Map page](/consul/docs/register/service/aws) for installation instructions and example usages.
+
+## Usage
+
+Usage: `consul-aws [options]`
+
+```shell-session
+$ consul-aws
+Usage: consul-aws [--version] [--help] <command> [<args>]
+
+Available commands are:
+    sync-catalog    Sync AWS services and Consul services.
+    version         Prints the version
+```
+
+## Commands
+
+- `sync-catalog`: Syncs AWS services and Consul services.
+- `version`: Prints the version.
+
+### `sync-catalog`
+
+The `sync-catalog` command syncs the services between AWS Cloud Map and Consul. It accepts several flags specific to the tool as well as the general flags for connecting to the cluster including `-http-addr`, `-token`, and `-ca-file`.
+
+|Flag|Description|Default|
+|---|---|---|
+|`-aws-dns-ttl=<int>`|DNS TTL for services created in AWS CloudMap in seconds.|`60`|
+|`-aws-namespace-id=<string>`|The AWS namespace to sync with Consul services.||
+|`-aws-poll-interval=<string>`|The interval between fetching from AWS CloudMap. Accepts a sequence of decimal numbers, each with optional fraction and a unit suffix, such as "300ms", "10s", "1.5m".|`30s`|
+|`-aws-service-prefix=<string>`|A prefix to prepend to all services written to AWS from Consul. If this is not set then services will have no prefix.||
+|`-consul-service-prefix=<string>`|A prefix to prepend to all services written to Consul from AWS. If this is not set then services will have no prefix.||
+|`-to-aws`|If true, Consul services will be synced to AWS.|`false`|
+|`-to-consul`|If true, AWS services will be synced to Consul.|`false`|
+
+### `version`
+
+The `version` commands prints out the version of the `consul-aws` tool.

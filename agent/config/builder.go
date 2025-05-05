@@ -1411,7 +1411,7 @@ func (b *builder) validate(rt RuntimeConfig) error {
 			}
 			return fmt.Errorf("CRITICAL: Deprecated data folder found at %q!\n"+
 				"Consul will refuse to boot with this directory present.\n"+
-				"See https://www.consul.io/docs/upgrade-specific.html for more information.", mdbPath)
+				"See https://developer.hashicorp.com/docs/upgrade-specific.html for more information.", mdbPath)
 		}
 
 		// Raft LogStore validation
@@ -1511,11 +1511,11 @@ func (b *builder) validate(rt RuntimeConfig) error {
 	//
 
 	if rt.ServerMode && !rt.DevMode && !rt.Bootstrap && rt.BootstrapExpect == 2 {
-		b.warn(`bootstrap_expect = 2: A cluster with 2 servers will provide no failure tolerance. See https://www.consul.io/docs/internals/consensus.html#deployment-table`)
+		b.warn(`bootstrap_expect = 2: A cluster with 2 servers will provide no failure tolerance. See https://developer.hashicorp.com/docs/internals/consensus.html#deployment-table`)
 	}
 
 	if rt.ServerMode && !rt.Bootstrap && rt.BootstrapExpect > 2 && rt.BootstrapExpect%2 == 0 {
-		b.warn(`bootstrap_expect is even number: A cluster with an even number of servers does not achieve optimum fault tolerance. See https://www.consul.io/docs/internals/consensus.html#deployment-table`)
+		b.warn(`bootstrap_expect is even number: A cluster with an even number of servers does not achieve optimum fault tolerance. See https://developer.hashicorp.com/docs/internals/consensus.html#deployment-table`)
 	}
 
 	if rt.ServerMode && rt.Bootstrap && rt.BootstrapExpect == 0 {

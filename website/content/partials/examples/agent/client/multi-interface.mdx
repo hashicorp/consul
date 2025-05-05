@@ -1,0 +1,52 @@
+### Client node with multiple interfaces or IP addresses
+
+The following example shows how to configure Consul to listen on multiple interfaces or IP addresses using a [go-sockaddr template].
+
+The `bind_addr` is used for internal RPC and Serf communication ([read the Agent Configuration for more information](/consul/docs/reference/agent/configuration-file/general#bind_addr)).
+
+The `client_addr` configuration specifies IP addresses used for HTTP, HTTPS, DNS
+and gRPC servers. Refer to read the Agent Configuration for more
+information](/consul/docs/reference/agent/configuration-file/general#client_addr)).
+
+<CodeTabs>
+
+```hcl
+node_name = "consul-client"
+server    = false
+bootstrap = true
+ui_config {
+  enabled = true
+}
+datacenter = "dc1"
+data_dir   = "consul/data"
+log_level  = "INFO"
+
+# used for internal RPC and Serf
+bind_addr = "0.0.0.0"
+
+# Used for HTTP, HTTPS, DNS, and gRPC addresses.
+# loopback is not included in GetPrivateInterfaces because it is not routable.
+client_addr = "{{ GetPrivateInterfaces | exclude \"type\" \"ipv6\" | join \"address\" \" \" }} {{ GetAllInterfaces | include \"flags\" \"loopback\" | join \"address\" \" \" }}"
+
+# advertises gossip and RPC interface to other nodes
+advertise_addr = "{{ GetInterfaceIP \"en0\" }}"
+```
+
+```json
+{
+  "node_name": "consul-client",
+  "server": false,
+  "bootstrap": true,
+  "ui_config": {
+    "enabled": true
+  },
+  "datacenter": "dc1",
+  "data_dir": "consul/data",
+  "log_level": "INFO",
+  "bind_addr": "{{ GetPrivateIP }}",
+  "client_addr": "{{ GetPrivateInterfaces | exclude \"type\" \"ipv6\" | join \"address\" \" \" }} {{ GetAllInterfaces | include \"flags\" \"loopback\" | join \"address\" \" \" }}",
+  "advertise_addr": "{{ GetInterfaceIP \"en0\"}}"
+}
+```
+
+</CodeTabs>

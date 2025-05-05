@@ -1,0 +1,180 @@
+---
+layout: docs
+page_title: Run Consul in development mode
+description: >-
+  Learn how to run Consul in dev mode with the `-dev` flag to test basic configurations and features.
+---
+
+# Run Consul in development mode
+
+<Warning>
+
+ Development mode is for demonstration and testing scenarios. Never run Consul in `-dev` mode in production.
+
+</Warning>
+
+This page describes the process to run Consul in development mode. When you run Consul in development mode, Consul starts a single server agent with a configured datacenter so that you can test Consul features and operations.
+
+## Start the agent
+
+Use the `-dev` flag to start the Consul agent in development mode. The terminal should output the server agent's logs, which resemble the following example.
+
+```shell-session
+$ consul agent -dev
+==> Starting Consul agent...
+               Version: '1.20.1'
+            Build Date: '2024-10-29 19:04:05 +0000 UTC'
+               Node ID: '77a5005f-403d-9396-c8a4-08c7f8755030'
+             Node name: 'boruszak-LFH0JH12XD'
+            Datacenter: 'dc1' (Segment: '<all>')
+                Server: true (Bootstrap: false)
+           Client Addr: [127.0.0.1] (HTTP: 8500, HTTPS: -1, gRPC: 8502, gRPC-TLS: 8503, DNS: 8600)
+          Cluster Addr: 127.0.0.1 (LAN: 8301, WAN: 8302)
+     Gossip Encryption: false
+      Auto-Encrypt-TLS: false
+           ACL Enabled: false
+     Reporting Enabled: false
+    ACL Default Policy: allow
+             HTTPS TLS: Verify Incoming: false, Verify Outgoing: false, Min Version: TLSv1_2
+              gRPC TLS: Verify Incoming: false, Min Version: TLSv1_2
+      Internal RPC TLS: Verify Incoming: false, Verify Outgoing: false (Verify Hostname: false), Min Version: TLSv1_2
+
+==> Log data will now stream in as it occurs:
+```
+
+Leave the Consul agent running and open up a new tab in your terminal. When you run commands in this new tab, Consul generates additional output in the original terminal session.
+
+## Discover datacenter members
+
+Run the [`consul members`](/consul/commands/members) command in the new terminal window. The output lists the nodes where Consul agents in the datacenter currently run.
+
+```shell-session
+$ consul members
+Node                 Address         Status  Type    Build   Protocol  DC   Partition  Segment
+boruszak-LFH0JH12XD  127.0.0.1:8301  alive   server  1.20.1  2         dc1  default    <all>
+```
+
+The output displays your agent, its IP address, its health state, its role in the datacenter, and some version information. You can discover additional metadata by providing the `-detailed` flag.
+
+### Use Consul HTTP API
+
+When Consul runs in development mode, you can also query the datacenter using the [Consul HTTP API](/consul/api-docs/). The HTTP API returns a payload that resembles the following example.
+
+```shell-session
+$ curl localhost:8500/v1/catalog/nodes
+[
+    {
+        "ID": "77a5005f-403d-9396-c8a4-08c7f8755030",
+        "Node": "boruszak-LFH0JH12XD",
+        "Address": "127.0.0.1",
+        "Datacenter": "dc1",
+        "TaggedAddresses": {
+            "lan": "127.0.0.1",
+            "lan_ipv4": "127.0.0.1",
+            "wan": "127.0.0.1",
+            "wan_ipv4": "127.0.0.1"
+        },
+        "Meta": {
+            "consul-network-segment": "",
+            "consul-version": "1.20.1"
+        },
+        "CreateIndex": 13,
+        "ModifyIndex": 16
+    }
+]      
+```
+
+### Use Consul DNS
+
+You can use [Consul DNS](/consul/docs/discover/dns) to discover nodes in the datacenter. Address nodes using the following syntax: 
+
+<CodeBlockConfig hideClipboard>
+
+```plaintext 
+<node-name>.node.consul
+```
+
+</CodeBlockConfig>
+
+By default, Consul uses port `8600` for DNS requests. Address your command to the DNS port with the `-p` flag. The output for this command resembles the following example.
+
+```shell-session
+$ dig @127.0.0.1 -p 8600 boruszak-LFH0JH12XD.node.consul
+; <<>> DiG 9.10.6 <<>> @127.0.0.1 -p 8600 boruszak-LFH0JH12XD.node.consul
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 6578
+;; flags: qr aa rd; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 3
+;; WARNING: recursion requested but not available
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 4096
+;; QUESTION SECTION:
+;boruszak-LFH0JH12XD.node.consul. IN	A
+
+;; ANSWER SECTION:
+boruszak-LFH0JH12XD.node.consul. 0 IN	A	127.0.0.1
+
+;; ADDITIONAL SECTION:
+boruszak-LFH0JH12XD.node.consul. 0 IN	TXT	"consul-network-segment="
+boruszak-LFH0JH12XD.node.consul. 0 IN	TXT	"consul-version=1.20.1"
+
+;; Query time: 3 msec
+;; SERVER: 127.0.0.1#8600(127.0.0.1)
+;; WHEN: Thu Dec 19 13:27:56 PST 2024
+;; MSG SIZE  rcvd: 146
+```
+
+## Stop the agent
+
+To stop the Consul agent, use the `consul leave` command. This command gracefully stops the agent, which causes it to leave the Consul datacenter and then shut down.
+
+```shell-session
+$ consul leave
+Graceful leave complete
+```
+
+If you switch back to the window with Consul's streaming log output, the logs indicate that the Consul agent left the datacenter.
+
+<CodeBlockConfig hideClipboard>
+
+```log
+2024-12-19T13:29:40.067-0800 [INFO]  agent.server: server starting leave
+2024-12-19T13:29:40.067-0800 [INFO]  agent.server.serf.wan: serf: EventMemberLeave: boruszak-LFH0JH12XD.dc1 127.0.0.1
+2024-12-19T13:29:40.067-0800 [INFO]  agent.server: Handled event for server in area: event=member-leave server=boruszak-LFH0JH12XD.dc1 area=wan
+2024-12-19T13:29:40.067-0800 [INFO]  agent.router.manager: shutting down
+2024-12-19T13:29:43.068-0800 [INFO]  agent.server.serf.lan: serf: EventMemberLeave: boruszak-LFH0JH12XD 127.0.0.1
+2024-12-19T13:29:43.068-0800 [INFO]  agent.server: Removing LAN server: server="boruszak-LFH0JH12XD (Addr: tcp/127.0.0.1:8300) (DC: dc1)"
+2024-12-19T13:29:43.068-0800 [DEBUG] agent.grpc.balancer: switching server: target=consul://dc1.77a5005f-403d-9396-c8a4-08c7f8755030/server.dc1 from=dc1-127.0.0.1:8300 to=<none>
+2024-12-19T13:29:43.068-0800 [WARN]  agent.server: deregistering self should be done by follower: name=boruszak-LFH0JH12XD partition=default
+2024-12-19T13:29:43.068-0800 [INFO]  agent.router.manager: shutting down
+2024-12-19T13:29:46.069-0800 [INFO]  agent.server: Waiting to drain RPC traffic: drain_time=5s
+2024-12-19T13:29:51.069-0800 [INFO]  agent: Requesting shutdown
+2024-12-19T13:29:51.070-0800 [INFO]  agent.server: shutting down server
+2024-12-19T13:29:51.071-0800 [DEBUG] agent.server.autopilot: state update routine is now stopped
+2024-12-19T13:29:51.073-0800 [DEBUG] agent.server.autopilot: autopilot is now stopped
+2024-12-19T13:29:51.071-0800 [INFO]  agent: consul server down
+2024-12-19T13:29:51.073-0800 [INFO]  agent: shutdown complete
+2024-12-19T13:29:51.073-0800 [DEBUG] agent.http: Request finished: method=PUT url=/v1/agent/leave from=127.0.0.1:63006 latency=11.00529825s
+2024-12-19T13:29:51.073-0800 [DEBUG] agent: warning: content-type header not explicitly set.: request-path=/v1/agent/leave
+2024-12-19T13:29:51.073-0800 [DEBUG] agent.server.cert-manager: context canceled
+2024-12-19T13:29:51.070-0800 [WARN]  agent.server.controller-runtime: error received from watch: controller=artists managed_type=demo.v2.Artist error="rpc error: code = Canceled desc = context canceled"
+2024-12-19T13:29:51.073-0800 [DEBUG] agent.server.controller-runtime: controller stopping: controller=artists managed_type=demo.v2.Artist
+2024-12-19T13:29:51.073-0800 [INFO]  agent.dns: Stopping server: protocol=DNS address=127.0.0.1:8600 network=tcp
+2024-12-19T13:29:51.073-0800 [INFO]  agent.dns: Stopping server: protocol=DNS address=127.0.0.1:8600 network=udp
+2024-12-19T13:29:51.073-0800 [INFO]  agent: Stopping server: address=127.0.0.1:8500 network=tcp protocol=http
+2024-12-19T13:29:51.073-0800 [INFO]  agent: Waiting for endpoints to shut down
+2024-12-19T13:29:51.073-0800 [INFO]  agent: Endpoints down
+2024-12-19T13:29:51.073-0800 [INFO]  agent: Exit code: code=0
+```
+
+</CodeBlockConfig>
+
+## Next steps
+
+You can run Consul in development mode to help you learn about other Consul fundamentals. The following documentation uses development mode to demonstrate Consul's user interfaces:
+
+- [Consul HTTP API interface](/consul/docs/fundamentals/interface/api)
+- [Consul CLI interface](/consul/docs/fundamentals/interface/cli)
+- [Consul UI interface](/consul/docs/fundamentals/interface/ui)

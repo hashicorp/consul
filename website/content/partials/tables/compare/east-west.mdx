@@ -1,0 +1,12 @@
+|                                                    | WAN Federation | Cluster Peering |
+| :------------------------------------------------- | :------------: | :-------------: |
+| Connects clusters across datacenters               |    &#9989;     |    &#9989;      |
+| Shares support queries and service endpoints       |    &#9989;     |    &#9989;      |
+| Connects clusters owned by different operators     |    &#10060;    |    &#9989;      |
+| Functions without declaring primary datacenter     |    &#10060;    |    &#9989;      |
+| Can use sameness groups for identical services     |    &#10060;    |    &#9989;      |
+| Replicates exported services for service discovery |    &#10060;    |    &#9989;      |
+| Gossip protocol: Requires LAN gossip only          |    &#10060;    |    &#9989;      |
+| Forwards service requests for service discovery    |    &#9989;     |    &#10060;     |
+| Shares key/value stores                            |    &#9989;     |    &#10060;     |
+| Can replicate ACL tokens, policies, and roles      |    &#9989;     |    &#10060;     |
