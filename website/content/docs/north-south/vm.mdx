@@ -1,0 +1,51 @@
+---
+page_title: Service mesh ingress on virtual machines
+description: API gateways and ingress gateways are types of service mesh proxies that you can use to securely allow systems outside the Consul service mesh to access services in the mesh. Learn how API and ingress gateways can help you enable access to services registered by Consul when running Consul on virtual machines (VMs).
+layout: docs
+---
+
+# Secure north/south access on virtual machines
+
+This topic provides an overview of how Consul securely allows systems outside the service mesh to access services inside the mesh when running the Consul binary on virtual machines (VM). Network traffic that connects services inside the mesh to external clients or services is referred to as _north-south traffic_.
+
+For information about enabling intra-mesh, or _east-west traffic_, refer to [Expand network east/west overview](/consul/docs/east-west).
+
+## Introduction
+
+You can define points of ingress to the service mesh using either API gateways or ingress gateways. These gateways allow external network clients to access applications and services running in a Consul datacenter.
+
+API gateways forward requests from clients to specific destinations based on path or request protocol. Ingress gateways are Consul's legacy capability for ingress and have been deprecated in favor of API gateways.
+
+## API gateways
+
+@include 'text/descriptions/api-gateway.mdx'
+
+## Ingress gateways
+
+@include 'text/descriptions/ingress-gateway.mdx'
+
+## Terminating gateways
+
+@include 'text/descriptions/terminating-gateway.mdx'
+
+## Guidance
+
+Refer to the following resources for help setting up and using API gateways:
+
+### Tutorials
+
+- [Control access into the service mesh with Consul API gateway](/consul/tutorials/developer-mesh/kubernetes-api-gateway)
+
+### Usage documentation
+
+- [Deploy API gateway listeners to VMs](/consul/docs/north-south/api-gateway/vm/listener)
+- [Deploy API gateway routes to VMs](/consul/docs/north-south/api-gateway/vm/route)
+- [Encrypt API gateway traffic on VMs](/consul/docs/north-south/api-gateway/secure-traffic/encrypt)
+- [Use JWTs to verify requests to API gateways on VMs](/consul/docs/north-south/api-gateway/secure-traffic/jwt/vm)
+
+### Reference
+
+- [API gateway configuration entry reference](/consul/docs/reference/config-entry/api-gateway)
+- [HTTP route configuration entry reference](/consul/docs/reference/config-entry/http-route)
+- [TCP route configuration entry reference](/consul/docs/reference/config-entry/tcp-route)
+- [Error messages](/consul/docs/error-messages/api-gateway)

@@ -1,0 +1,8 @@
+Consul agents use the following security features and protocols to secure communication in a Consul datacenter.
+
+| Security feature                                             | Enabled by default | Description                                                                                  |
+| :----------------------------------------------------------- | :----------------: | :------------------------------------------------------------------------------------------- |
+| [Access control lists (ACLs)](/consul/docs/secure/acl)       | &#10060;           | Secures communication between Consul agents and controls access to the API, CLI, and UI.     |
+| [Agent TLS encryption](/consul/docs/secure/encryption)       | &#10060;           | Verifies Consul server and client agents with TLS certificates using built-in CA.            |
+| [Gossip encryption](/consul/docs/secure/encryption)          | &#9989;            | Encrypts communication between agents that manage cluster membership and broadcast messages. |
+| [SSO/Auth method integration](/consul/docs/secure/sso/auth0) | &#10060;           | Leverages existing OIDC and RBAC controls for users to connect to the Consul CLI and UI.     |

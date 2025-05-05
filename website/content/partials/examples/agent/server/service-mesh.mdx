@@ -1,0 +1,47 @@
+### Server node in a service mesh
+
+The following example configuration is for a server agent named "`consul-server`". The server is [bootstrapped](/consul/commands/agent#_bootstrap) and the Consul GUI is enabled.
+The reason this server agent is configured for a service mesh is that the `connect` configuration is enabled. The connect subsystem provides Consul's service mesh capabilities, including service-to-service connection authorization and encryption using mutual Transport Layer Security (TLS). Applications can use sidecar proxies in a service mesh configuration to establish TLS connections for inbound and outbound connections without being aware of Consul service mesh at all. Refer to [Consul Service Mesh](/consul/docs/connect) for details.
+
+<CodeTabs>
+
+```hcl
+node_name = "consul-server"
+server    = true
+bootstrap = true
+ui_config {
+  enabled = true
+}
+datacenter = "dc1"
+data_dir   = "consul/data"
+log_level  = "INFO"
+addresses {
+  http = "0.0.0.0"
+}
+connect {
+  enabled = true
+}
+```
+
+
+```json
+{
+  "node_name": "consul-server",
+  "server": true,
+  "bootstrap": true,
+  "ui_config": {
+    "enabled": true
+  },
+  "datacenter": "dc1",
+  "data_dir": "consul/data",
+  "log_level": "INFO",
+  "addresses": {
+    "http": "0.0.0.0"
+  },
+  "connect": {
+    "enabled": true
+  }
+}
+```
+
+</CodeTabs>

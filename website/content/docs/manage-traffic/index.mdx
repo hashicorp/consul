@@ -1,0 +1,82 @@
+---
+layout: docs
+page_title: Manage application traffic
+description: >-
+  Consul can route, split, and resolve Layer 7 traffic in a service mesh to support workflows like canary testing and blue/green deployments. Learn about the three configuration entry kinds that define L7 traffic management behavior in Consul.
+---
+
+# Manage application traffic
+
+This topic provides overview information about the application layer traffic management capabilities available in Consul service mesh. These capabilities are also referred to as *Layer 7* or *L7 traffic management*.
+
+## Introduction
+
+Consul service mesh allows you to divide application layer traffic between different subsets of service instances. You can leverage L7 traffic management capabilities to perform complex processes, such as configuring backup services for failover scenarios, canary and A-B testing, blue-green deployments, and soft multi-tenancy in which production, QA, and staging environments share compute resources. L7 traffic management with Consul service mesh allows you to designate groups of service instances in the Consul catalog smaller than all instances of single service and configure when that subset should receive traffic.
+
+You cannot manage L7 traffic with the [built-in proxy](/consul/docs/reference/proxy/built-in),
+[native proxies](/consul/docs/automate/native), or some [Envoy proxy escape hatches](/consul/docs/reference/proxy/envoy#escape-hatch-overrides).
+
+## Discovery chain
+
+Consul uses a series of stages to discover service mesh proxy upstreams. Each stage represents different ways of managing L7 traffic. They are referred to as the _discovery chain_: 
+
+- routing 
+- splitting 
+- resolution 
+
+For information about integrating service mesh proxy upstream discovery using the discovery chain, refer to [Discovery Chain for Service Mesh Traffic Management](/consul/docs/manage-traffic/discovery-chain).
+
+The Consul UI shows discovery chain stages in the **Routing** tab of the **Services** page:
+
+![screenshot of L7 traffic visualization in the UI](/img/l7-routing/full.png)
+
+You can define how Consul manages each stage of the discovery chain in a Consul _configuration entry_. [Configuration entries](/consul/docs/fundamentals/config-entry) modify the default behavior of the Consul service mesh.   
+
+When managing L7 traffic with cluster peering, there are additional configuration requirements to resolve peers in the discovery chain. Refer to [Cluster peering L7 traffic management](/consul/docs/manage-traffic/cluster-peering/vm) for more information.
+
+### Routing
+
+The first stage of the discovery chain is the service router. Routers intercept traffic according to a set of L7 attributes, such as path prefixes and HTTP headers, and route the traffic to a different service or service subset.
+
+Apply a [service router configuration entry](/consul/docs/reference/config-entry/service-router) to implement a router. Service router configuration entries can only reference service splitter or service resolver configuration entries.
+
+![screenshot of service router in the UI](/img/l7-routing/Router.png)
+
+### Splitting
+
+The second stage of the discovery chain is the service splitter. Service splitters split incoming requests and route them to different services or service subsets. Splitters enable staged canary rollouts, versioned releases, and similar use cases.
+
+Apply a [service splitter configuration entry](/consul/docs/reference/config-entry/service-splitter) to implement a splitter. Service splitters configuration entries can only reference other service splitters or service resolver configuration entries.
+
+![screenshot of service splitter in the UI](/img/l7-routing/Splitter.png)
+
+If multiple service splitters are chained, Consul flattens the splits so that they behave as a single service spitter. In the following equation, `splitter[B]` references `splitter[A]`:
+
+```text
+splitter[A]:           A_v1=50%, A_v2=50%
+splitter[B]:           A=50%,    B=50%
+---------------------
+splitter[effective_B]: A_v1=25%, A_v2=25%, B=50%
+```
+
+### Resolution
+
+The third stage of the discovery chain is the service resolver. Service resolvers specify which instances of a service satisfy discovery requests for the provided service name. Service resolvers enable several use cases, including: 
+
+- Designate failovers when service instances become unhealthy or unreachable. 
+- Configure service subsets based on DNS values.
+- Route traffic to the latest version of a service.
+- Route traffic to specific Consul datacenters.
+- Create virtual services that route traffic to instances of the actual service in specific Consul datacenters.
+
+Apply a [service resolver configuration entry](/consul/docs/reference/config-entry/service-resolver) to implement a resolver. Service resolver configuration entries can only reference other service resolvers.
+
+![screenshot of service resolver in the UI](/img/l7-routing/Resolver.png)
+
+If no resolver is configured for a service, Consul sends all traffic to healthy instances of the service that have the same name in the current datacenter or specified namespace and ends the discovery chain. 
+
+Service resolver configuration entries can also process network layer, also called level 4 (L4), traffic. As a result, you can implement service resolvers for services that communicate over `tcp` and other non-HTTP protocols.
+
+## Locality-aware routing
+
+By default, Consul balances traffic to all healthy upstream instances in the cluster, even if the instances are in different network regions and zones. You can configure Consul to route requests to upstreams in the same region and zone, which reduces latency and transfer costs. Refer to [Route traffic to local upstreams](/consul/docs/manage-traffic/route-local) for additional information.

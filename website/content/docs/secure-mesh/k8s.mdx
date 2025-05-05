@@ -1,0 +1,43 @@
+---
+layout: docs
+page_title: Secure service mesh on Kubernetes overview
+description: >-
+  This topic provides an overview of Consul's features for securing service mesh communication when running Consul on Kubernetes (k8s). Consul enforces zero-trust security using a built-in mTLS certificate authority (CA) and service intentions.
+---
+
+# Secure service mesh overview
+
+This topic provides an overview for securing service-to-service communication within a service mesh when running Consul on Kubernetes. You can configure an mTLS certificate authority and intentions based on service identity to secure intra-mesh communication.
+
+For information about gossip encryption and securing your Consul deployment with the Access Control List (ACL) system, refer to [Secure Consul](/consul/secure) in the Consul Operations section.
+
+## Introduction
+
+With Consul, a fully configured service mesh is one that enforces _zero-trust security_ by securing service-to-service communication in the following ways:
+
+- Sidecar proxies encrypt and decrypt a service's traffic using an mTLS certificate signed by Consul
+- Sidecar proxies deny incoming requests by default
+- Sidecar proxies authorize incoming requests according to explicitly defined service intentions
+
+## Certificate authority
+
+@include 'text/descriptions/certificate-authority.mdx'
+
+## Service intentions
+
+@include 'text/descriptions/service-intention.mdx'
+
+## Tutorials
+
+To learn more about the workflows described in this topic, refer to the [Securely connect your services with Consul service mesh on Kubernetes tutorial](/consul/tutorials/get-started-kubernetes/kubernetes-gs-service-mesh).
+
+## Reference documentation
+
+For reference material related to Consul's service mesh security options on Kubernetes, refer to the following pages:
+
+- [Helm chart reference](/consul/docs/reference/k8s/helm)
+- [`ServiceIntentions` custom resource definition (CRD) reference](/consul/docs/reference/config-entry/service-intentions)
+
+### Constraints, limitations, and troubleshooting
+
+@include 'text/limitations/secure-mesh.mdx'

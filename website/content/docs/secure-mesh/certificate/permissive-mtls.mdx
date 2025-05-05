@@ -1,0 +1,44 @@
+---
+layout: docs
+page_title: Enable permissive mTLS mode
+description: >-
+  Learn how to enable permissive mutual transport layer security (permissive mTLS) so that you can safely add services to your service mesh when transparent proxy is enabled in Kubernetes deployments.
+---
+
+# Enable permissive mTLS mode
+
+Depending on the services you are onboarding, you may not need to enable permissive mTLS mode. If the service does not accept incoming traffic or accepts traffic from downstream services that are already part of the service mesh, then permissive mTLS mode is not required to continue. 
+
+To enable permissive mTLS mode for the service, set [`MutualTLSMode=permissive`](/consul/docs/reference/config-entry/service-defaults#mutualtlsmode) in the service defaults configuration entry for the service. The following example shows how to configure this setting for a service named `example-service`.
+
+<CodeTabs heading="Enable permissive mTLS for applicable services">
+
+```hcl
+Kind      = "service-defaults"
+Name      = "example-service"
+
+MutualTLSMode = "permissive"
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceDefaults
+metadata:
+  name: example-service
+spec:
+  mutualTLSMode: "permissive"
+```
+
+```json
+{
+    "Kind": "service-defaults",
+    "Name": "example-service",
+    "MutualTLSMode": "permissive"
+}
+```
+
+</CodeTabs>
+
+Refer to the [service defaults configuration reference](/consul/docs/reference/config-entry/service-defaults) for information about all settings.
+
+You can change this setting back to `strict` at any time to ensure mTLS is required for incoming traffic to this service.

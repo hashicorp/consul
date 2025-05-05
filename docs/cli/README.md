@@ -10,7 +10,7 @@ The [cli reference] in Consul user documentation has a full reference to all ava
 commands.
 
 [HTTP API]: ../http-api
-[cli reference]: https://www.consul.io/commands
+[cli reference]: https://developer.hashicorp.com/commands
 
 ## Code
 

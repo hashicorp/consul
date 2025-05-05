@@ -1,0 +1,74 @@
+---
+layout: docs
+page_title: Consul service mesh
+description: >-
+  Consul's service mesh enforces secure service communication using mutual TLS (mTLS) encryption and explicit authorization. Learn how service mesh certificate authorities, intentions, and agents work together to provide Consul's service mesh capabilities.
+---
+
+# Consul service mesh
+
+This topic describes how the core features of Consul's service mesh work.
+
+This document uses _connect_ to refer to the subsystem that provides Consul's service mesh capabilities. We use this word because you define the service mesh capabilities in the `connect` stanza of Consul and Nomad agent configurations.
+
+## Mutual transport layer security (mTLS)
+
+The core of Consul service mesh is based on [mutual TLS](https://en.wikipedia.org/wiki/Mutual_authentication).
+
+Consul service mesh secures service-to-service communication using TLS certificates for identity. These certificates comply with the [SPIFFE X.509 standard](https://github.com/spiffe/spiffe/blob/master/standards/X509-SVID.md), ensuring interoperability with other SPIFFE-compliant systems. Consul includes a built-in certificate authority (CA) for generating and distributing these certificates, and also integrates with [Vault](/consul/docs/secure-mesh/certificate/vault). Consul's PKI system is designed to be extendable to support any system by adding CA providers.
+
+During the connection attempt, the client service first verifies the destination service's certificate using the [public CA bundle](/consul/api-docs/connect/ca#list-ca-root-certificates). The client also presents its own certificate to authenticate its identity to the destination service. The destination service, in turn, verifies the client's certificate against the same public CA bundle. If this mutual certificate validation is successful, an encrypted and authenticated TLS connection is established.
+
+Once the secure connection is in place, the destination service proceeds with authorization based on its configured application protocol:
+
+- TCP (L4) services must authorize _incoming connections_ against the configured set of [service intentions](/consul/docs/secure-mesh/intention).
+- HTTP (L7) services must authorize _incoming requests_ against those same intentions.
+
+If the intention check is successful, the connection (for TCP) or the specific request (for HTTP) is permitted. Otherwise, it is rejected.
+
+All APIs required for Consul service mesh typically respond in microseconds and impose minimal overhead to existing services. To ensure this, Consul service mesh-related API calls
+are all made to the local Consul agent over a loopback interface, and all [agent `/connect` endpoints](/consul/api-docs/agent/connect) implement local caching, background
+updating, and support blocking queries. Most API calls operate on purely local in-memory data.
+
+## Agent caching and performance
+
+To enable fast responses on endpoints such as the [agent connect API](/consul/api-docs/agent/connect), the Consul agent locally caches most Consul service mesh-related
+data and sets up background [blocking queries](/consul/api-docs/features/blocking) against the server to update the cache in the background. This setup allows most API calls to use in-memory data and respond quickly.
+
+All data cached locally by the agent is populated on demand. Therefore, if Consul service mesh is not used at all, the cache does not store any data. On first request, the following data is loaded from the server and cached:
+
+- public CA root certificates
+- leaf certificates
+- service intentions
+- service discovery results for upstreams
+
+For leaf certificates and service intentions, the agent only caches data related to the service requested, not the full set of data.
+
+The cache is partitioned by ACL token and datacenters. This partition minimizes the complexity of the cache and prevents an ACL token from accessing data it should not have access to. This partition results in higher memory usage for cached data since it is duplicated per ACL token.
+
+With Consul service mesh enabled, you are likely to observe increased memory usage by the local Consul agent. Memory usage scales with the number of service intentions associated with the registered services on the agent. The other data, including leaf certificates and public CA certificates, is a relatively fixed size per service. In most cases, the overhead per service should be relatively small and measure in single-digit kilobytes at most.
+
+The cache does not evict entries due to memory pressure. If memory capacity is reached, the process will attempt to swap. If swap is disabled, the Consul agent may begin failing and eventually crash. Each cache entry has a default time-to-live (TTL) of 3 days and is automatically removed if not accessed during that period.
+
+## Connections across datacenters
+
+A [sidecar proxy's upstream configuration](/consul/docs/connect/proxies/proxy-config-reference#upstream-configuration-reference) may specify an alternative datacenter or a prepared query that can address services in multiple datacenters.
+
+[Service intentions](/consul/docs/secure-mesh/intention) verify connections between services by source and destination name seamlessly across datacenters.
+
+You can make connections with gateways to enable communication across network topologies, which enables connections between services in each datacenter without externally routable IPs at the service level.
+
+### Service intention replication
+
+You can specify a datacenter that is authoritative for intentions by setting the [`primary_datacenter`](/consul/docs/reference/agent/configuration-file#primary_datacenter) configuration. When you do this, Consul automatically replicates intentions from the primary datacenter to the secondary datacenters.
+
+In production setups with ACLs enabled, you must also set the [replication token](/consul/docs/reference/agent/configuration-file#acl_tokens_replication) in the secondary datacenter server's configuration.
+
+### Certificate authority federation
+
+The primary datacenter also acts as the root certificate authority (CA) for Consul service mesh. The primary datacenter generates a trust-domain UUID and obtains a root certificate
+from the configured CA provider which defaults to the built-in one.
+
+Secondary datacenters retrieve the root CA public key and trust-domain ID from the primary datacenter. They then create their own private key and generate a certificate signing request (CSR) to obtain an intermediate CA certificate. The primary datacenter's root CA signs this CSR and returns the signed intermediate certificate. With this intermediate certificate in place, the secondary datacenter can independently issue new certificates for its Consul service mesh without requiring WAN communication to the primary. For security, private CA keys remain isolated within their respective datacenters and are never shared between them.
+
+Secondary datacenters continuously monitor the root CA certificate in the primary datacenter. When the primary's root CA changes, whether due to planned rotation or CA migration, the secondary datacenter automatically generates new keys, gets them signed by the primary's updated root CA, and then systematically rotates all issued certificates within the secondary datacenter. This makes CA root key rotation fully automatic with zero downtime across multiple datacenters.

@@ -1,0 +1,259 @@
+---
+layout: docs
+page_title: Resolve Consul DNS requests in Kubernetes
+description: >-
+  Use a k8s ConfigMap to configure KubeDNS or CoreDNS so that you can use Consul's `<service-name>.service.consul` syntax for queries and other DNS requests. In Kubernetes, this process uses either stub-domain or proxy configuration.
+---
+
+# Resolve Consul DNS requests in Kubernetes
+
+This topic describes how to configure Consul DNS in
+Kubernetes using a
+[stub-domain configuration](https://kubernetes.io/docs/tasks/administer-cluster/dns-custom-nameservers/#configure-stub-domain-and-upstream-dns-servers)
+if using KubeDNS or a [proxy configuration](https://coredns.io/plugins/forward/) if using CoreDNS.
+
+Once configured, DNS requests in the form `<consul-service-name>.service.consul` will
+resolve for services in Consul. This works from all Kubernetes namespaces.
+
+-> **Note:** If you want requests to just `<consul-service-name>` (without the `.service.consul`) to resolve, then you'll need
+to turn on [Consul to Kubernetes Service Sync](/consul/docs/k8s/service-sync#consul-to-kubernetes).
+
+## Consul DNS Cluster IP
+
+To configure KubeDNS or CoreDNS you'll first need the `ClusterIP` of the Consul
+DNS service created by the [Helm chart](/consul/docs/reference/k8s/helm).
+
+The default name of the Consul DNS service will be `consul-dns`. Use
+that name to get the `ClusterIP`:
+
+```shell-session
+$ kubectl get svc consul-dns --output jsonpath='{.spec.clusterIP}'
+10.35.240.78%
+```
+
+For this installation the `ClusterIP` is `10.35.240.78`.
+
+-> **Note:** If you've installed Consul using a different helm release name than `consul`
+then the DNS service name will be `<release-name>-consul-dns`.
+
+## KubeDNS
+
+If using KubeDNS, you need to create a `ConfigMap` that tells KubeDNS
+to use the Consul DNS service to resolve all domains ending with `.consul`:
+
+Export the Consul DNS IP as an environment variable:
+
+```bash
+export CONSUL_DNS_IP=10.35.240.78
+```
+
+And create the `ConfigMap`:
+
+```shell-session
+$ cat <<EOF | kubectl apply --filename -
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    addonmanager.kubernetes.io/mode: EnsureExists
+  name: kube-dns
+  namespace: kube-system
+data:
+  stubDomains: |
+    {"consul": ["$CONSUL_DNS_IP"]}
+EOF
+Warning: kubectl apply should be used on resource created by either kubectl create --save-config or kubectl apply
+configmap/kube-dns configured
+```
+
+Ensure that the `ConfigMap` was created successfully:
+
+```shell-session
+$ kubectl get configmap kube-dns --namespace kube-system --output yaml
+apiVersion: v1
+data:
+  stubDomains: |
+    {"consul": ["10.35.240.78"]}
+kind: ConfigMap
+...
+```
+
+-> **Note:** The `stubDomain` can only point to a static IP. If the cluster IP
+of the Consul DNS service changes, then it must be updated in the config map to
+match the new service IP for this to continue
+working. This can happen if the service is deleted and recreated, such as
+in full cluster rebuilds.
+
+-> **Note:** If using a different zone than `.consul`, change the stub domain to
+that zone.
+
+Now skip ahead to the [Verifying DNS Works](#verifying-dns-works) section.
+
+## CoreDNS Configuration
+
+If using CoreDNS instead of KubeDNS in your Kubernetes cluster, you will
+need to update your existing `coredns` ConfigMap in the `kube-system` namespace to
+include a `forward` definition for `consul` that points to the cluster IP of the
+Consul DNS service.
+
+Edit the `ConfigMap`:
+
+```shell-session
+$ kubectl edit configmap coredns --namespace kube-system
+```
+
+And add the `consul` block below the default `.:53` block and replace
+`<consul-dns-service-cluster-ip>` with the DNS Service's IP address you
+found previously.
+
+```diff
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    addonmanager.kubernetes.io/mode: EnsureExists
+  name: coredns
+  namespace: kube-system
+data:
+  Corefile: |
+    .:53 {
+        <Existing CoreDNS definition>
+    }
++   consul {
++     errors
++     cache 30
++     forward . <consul-dns-service-cluster-ip>
++   }
+```
+
+-> **Note:** The consul proxy can only point to a static IP. If the cluster IP
+of the `consul-dns` service changes, then it must be updated to the new IP to continue
+working. This can happen if the service is deleted and recreated, such as
+in full cluster rebuilds.
+
+-> **Note:** If using a different zone than `.consul`, change the key accordingly.
+
+## OpenShift clusters
+
+-> **Note:** OpenShift CLI `oc` is utilized below complete the following steps. You can find more details on how to install OpenShift CLI from [Getting started with OpenShift CLI](https://docs.openshift.com/container-platform/latest/cli_reference/openshift_cli/getting-started-cli.html).
+
+You can use DNS forwarding to override the default forwarding configuration in the `/etc/resolv.conf` file by specifying the `consul-dns` service for the `consul` subdomain (zone).
+
+First, find out the `consul-dns` service clusterIP:
+
+```shell-session
+$ oc get svc consul-dns --namespace consul --output jsonpath='{.spec.clusterIP}'
+172.30.186.254
+```
+
+Take note of that IP address, and then edit the `default` DNS Operator:
+
+```shell-session
+$ oc edit edit dns.operator/default
+```
+
+Append the following `servers` section entry to the `spec` section of the DNS Operator configuration:
+
+```yaml
+spec:
+  servers:
+  - name: consul-server
+    zones:
+    - consul
+    forwardPlugin:
+      policy: Random
+      upstreams:
+      - 172.30.186.254 # Set to clusterIP of consul-dns service
+```
+
+Save the configuration changes. Next, verify the `dns-default` configmap has been updated with a `consul` forwarding zone:
+
+```shell-session
+$ oc get configmap/dns-default -n openshift-dns -o yaml
+
+
+...
+data:
+  Corefile: |
+    # consul-server
+    consul:5353 {
+        prometheus 127.0.0.1:9153
+        forward . 172.30.186.254 {
+            policy random
+        }
+        errors
+        log . {
+            class error
+        }
+        bufsize 1232
+        cache 900 {
+            denial 9984 30
+        }
+    }
+...
+```
+
+## Verifying DNS Works
+
+To verify DNS works, run a simple job to query DNS. Save the following
+job to the file `job.yaml` and run it:
+
+<CodeBlockConfig filename="job.yaml">
+
+```yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: dns
+spec:
+  template:
+    spec:
+      containers:
+        - name: dns
+          image: anubhavmishra/tiny-tools
+          command: ['dig', 'consul.service.consul']
+      restartPolicy: Never
+  backoffLimit: 4
+```
+
+</CodeBlockConfig>
+
+```shell-session
+$ kubectl apply --filename job.yaml
+```
+
+Then query the pod name for the job and check the logs. You should see
+output similar to the following showing a successful DNS query. If you see
+any errors, then DNS is not configured properly.
+
+```shell-session
+$ kubectl get pods --show-all | grep dns
+dns-lkgzl         0/1       Completed   0          6m
+
+$ kubectl logs dns-lkgzl
+; <<>> DiG 9.11.2-P1 <<>> consul.service.consul
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 4489
+;; flags: qr aa rd ra; QUERY: 1, ANSWER: 3, AUTHORITY: 0, ADDITIONAL: 4
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 4096
+;; QUESTION SECTION:
+;consul.service.consul.		IN	A
+
+;; ANSWER SECTION:
+consul.service.consul.	0	IN	A	10.36.2.23
+consul.service.consul.	0	IN	A	10.36.4.12
+consul.service.consul.	0	IN	A	10.36.0.11
+
+;; ADDITIONAL SECTION:
+consul.service.consul.	0	IN	TXT	"consul-network-segment="
+consul.service.consul.	0	IN	TXT	"consul-network-segment="
+consul.service.consul.	0	IN	TXT	"consul-network-segment="
+
+;; Query time: 5 msec
+;; SERVER: 10.39.240.10#53(10.39.240.10)
+;; WHEN: Wed Sep 12 02:12:30 UTC 2018
+;; MSG SIZE  rcvd: 206
+```

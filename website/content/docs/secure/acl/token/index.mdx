@@ -1,0 +1,254 @@
+---
+layout: docs
+page_title: ACL Tokens
+description: >-
+  Tokens are used to authenticate users, services, and agents and authorize their access to resources in Consul. Learn about token attributes, special-purpose and built-in tokens, and how to pass a token's SecretID in the CLI and API.
+---
+
+# ACL Tokens
+
+This topic describes access control list (ACL) tokens, which are the core method of authentication in Consul.
+
+## Introduction
+
+Tokens are artifacts in the ACL system used to authenticate users, services, and Consul agents. When ACLs are enabled, entities requesting access to a resource must include a token that has been linked with a policy, service identity, or node identity that grants permission to the resource. The ACL system checks the token and grants or denies access to resource based on the associated permissions.
+
+Refer to the [ACL workflow overview](/consul/docs/secure/acl#workflow-overview) for information about tokens' role in the ACL system.
+
+## Create tokens
+
+The ACLs administrator can use the HTTP API or CLI to create and link tokens to entities that enable permissions to resources.
+
+<Tabs>
+<Tab heading="CLI">
+
+```shell-session
+$ consul acl token create -description "Read nodes and services" -policy-name node-services-read
+```
+
+</Tab>
+<Tab heading="API">
+
+```shell-session
+$ curl --request PUT --data @payload.json http://127.0.0.1:8500/v1/acl/token
+```
+
+</Tab>
+</Tabs>
+
+Refer to the [ACL API](/consul/api-docs/acl/tokenscl) and [ACL CLI](/consul/commands/acl/token/create) documentation for more details on how to create and link tokens. Tokens can also be created dynamically from trusted external system using an [auth method](/consul/docs/secure/acl/auth-method).
+
+## Pass tokens
+
+Users performing Consul operations or deploying their services into the network need to include an ACL token with the necessary policies to perform the action. ACL token is the value of the token's `SecretID` attribute. This token is an opaque string that identifies the requester so that the ACL system can determine whether it should grant or deny access to the requested resource.
+
+Refer to [ACL token reference](/consul/docs/reference/acl/token) for a full list of token attributes.
+
+### Perform Consul operations
+
+When ACLs are enabled, you must pass an ACLs token with your request to interact with Consul.
+
+<Tabs>
+<Tab heading="CLI">
+
+There are two ways to pass an ACL token when using the Consul CLI.
+
+1. Specify the ACL token with the [`-token`](/consul/commands#authentication) command line flag. The following example passes an ACL token so the user can create an intention:
+
+  ```shell-session
+  $ consul intention create -file one.hcl -token "<token>"
+  ```
+
+1. Set the ACL token as an environment variable named `CONSUL_HTTP_TOKEN`. This will let you omit the `-token` flag when performing operations with the CLI.
+
+  ```shell-session
+  $ export CONSUL_HTTP_TOKEN="<token>"
+  ```
+
+</Tab>
+<Tab heading="API">
+
+Specify the token in the HTTP `X-Consul-Token` header field to make an API request. Refer to the [HTTP API documentation](/consul/api-docs/api-structure#authentication) for details.
+
+The following example shows the header for a `GET` request to the `agent/members` endpoint.
+
+```shell-session
+$ curl --header "X-Consul-Token: <token>" "http://127.0.0.1:8500/v1/agent/members"
+```
+
+</Tab>
+</Tabs>
+
+### Configure services with ACLs
+
+Specify the value of the `SecretID` attribute with the `token` parameter when configuring your services. The following example service configuration includes a sample ACL token to the `redis` service. This ACL token must have read and write rules to interact with Consul catalog.
+
+<CodeTabs>
+<CodeBlockConfig highlight="5">
+
+```hcl
+service = {
+  id = "redis"
+  name = "redis"
+  namespace = "foo"
+  token = "<SecretID>"
+}
+```
+
+</CodeBlockConfig>
+<CodeBlockConfig highlight="5">
+
+```json
+{
+  "service": {
+    "id": "redis",
+    "name": "redis",
+    "namespace": "foo",
+    "token": "<SecretID>"
+  }
+}
+```
+
+</CodeBlockConfig>
+</CodeTabs>
+
+Refer to [service definition reference](/consul/docs/reference/service) for more information.
+
+### Configure agents with ACLs
+
+You can configure Consul agents to hold several ACL tokens ([`acl.tokens`](#special-purpose-tokens)) to accommodate several use cases, such as bootstrapping the ACL system or accessing Consul under specific conditions.
+
+In the following example, the agent is configured to use a default token:
+
+<CodeTabs>
+
+```hcl
+acls {
+  tokens = {
+    default = "00000000-0000-0000-0000-000000000000"
+  }
+}
+```
+
+```json
+{
+  "acls": {
+    "tokens": {
+      "default": "00000000-0000-0000-0000-000000000000"
+    }
+  }
+}
+```
+
+</CodeTabs>
+
+Refer to the [agent configuration reference](/consul/docs/reference/agent/configuration-file/acl) for more information.
+
+# Rotate token
+
+We recommend rotating tokens on a regular basis to ensure the security of your deployment.
+
+To rotate a token, you must create a new token, update any configuration that references the old token with the new token, and then delete the old token. You can rotate tokens used to register services and agents, query DNS, and access Consul data.
+
+To keep the same privileges as the previous token, use the clone command with the existing token's `AccessorID`.
+
+```shell-session
+$ consul acl token clone -description "Clone of <token_you_are_cloning>" -id <accessor_id_you_are_cloning>
+Token cloned successfully.
+AccessorID:   dcfa52ed-9288-b3ff-056d-255ef69d2d88
+SecretID:     0005d17e-5bb2-7e8b-7bfa-15f2eee9ad14
+Description:  Clone of Super User
+Local:        false
+Create Time:  2018-10-22 16:26:02.909096 -0400 EDT
+Policies:
+   00000000-0000-0000-0000-000000000001 - global-management
+```
+
+Apply tokens to [the agent](/consul/docs/secure/acl/bootstrap#add-token-to-agents) or to [the services](/consul/docs/secure/acl/bootstrap#add-token-to-service-definition) as needed.
+
+Finally, delete the old token from Consul. Alternatively, you can delete ACL tokens using the [`acl` endpoint on the HTTP API](/consul/api-docs/acl/tokens#delete-a-token).
+
+```shell-session
+$ consul acl token delete -id 6a1253d2-1785-24fd-91c2-f8e78c745511
+```
+
+## Special-purpose tokens
+
+The following table describes a subset of special purpose tokens. Refer to [`acl.tokens`](#special-purpose-tokens)) for a full set of special purpose tokens you can configure.
+
+| Token                         | Servers    | Clients    | Description |
+| ----------------------------- | ---------- | ---------- | ----------- |
+| [`acl.tokens.agent`](/consul/docs/reference/agent/configuration-file/acl#acl_tokens_agent) | `optional` | `optional` | Used for internal agent operations. Refer to [ACL agent token](#acl-agent-token) for details. |
+| [`acl.tokens.agent_recovery`](/consul/docs/reference/agent/configuration-file/acl#acl_tokens_agent_recovery) | `optional` | `optional` | Enables access to the [`agent/` HTTP API endpoint](/consul/api-docs/agent) when remote bearer token resolution fails. <br/>Used for setting up the cluster and performing initial join operations. <br/>Refer to [ACL agent recovery token](#acl-agent-recovery-token) for details. |
+| [`acl.tokens.default`](/consul/docs/reference/agent/configuration-file/acl#acl_tokens_default) | `optional` | `optional` | Specifies a default token to use for client requests if no token is supplied. This token is commonly configured with read-only access to services to enable DNS service discovery on agents. |
+| [`acl.tokens.initial_management`](/consul/docs/reference/agent/configuration-file/acl#acl_tokens_initial_management) | `optional` | `n/a` | Used to bootstrap the ACL system. Refer to [Initial management token](#initial-management-token). |
+| [`acl.tokens.replication`](/consul/docs/reference/agent/configuration-file/acl#acl_tokens_replication) | `optional` | `n/a` | Authorizes secondary datacenters to replicate data from the primary datacenter. |
+
+You can use the [`/v1/agent/token` endpoint](/consul/api-docs/agent#update-acl-tokens) to create or update all reserved tokens except the `initial_management` token.
+
+### Snapshot tokens
+
+Snapshots are artifacts created with the [snapshot API](/consul/api-docs/snapshot) for backup and recovery purposes. Snapshots contain ACL tokens and interacting with them requires a token with `acl:write` privileges.
+
+### ACL agent token
+
+The ACL agent token ([`acl.tokens.agent`](/consul/docs/reference/agent/configuration-file/acl#acl_tokens_agent)) is a special token that Consul uses for internal agent operations. Consul does not use this token directly for any user-initiated operations like the default ACL token ([`acl.tokens.default`](/consul/docs/reference/agent/configuration-file/acl#acl_tokens_default). However, if you do not define the ACL agent token, Consul will use the default ACL token for internal agent operations. Consul uses the ACL agent token for the following agent operations:
+
+1. Updating the agent's node entry using the [Catalog API](/consul/api-docs/catalog). This includes updating its node metadata, tagged addresses, and network coordinates.
+2. Performing [anti-entropy](/consul/docs/concept/consistency) syncing, in particular reading the node metadata and services registered with the catalog.
+3. Reading and writing the special `_rexec` section of the KV store when executing [`consul exec`](/consul/commands/exec) commands.
+
+The following example is the minimum policy required to perform the internal agent operations for a node called `mynode`. The `service_prefix` policy needs read access to any services that can be registered on the agent. If [remote execution is disabled](/consul/docs/reference/agent/configuration-file/general#disable_remote_exec) (default behavior), you can omit the `key_prefix` policy.
+
+<CodeBlockConfig heading="Example agent policy permitting internal operations">
+
+```hcl
+node "mynode" {
+  policy = "write"
+}
+service_prefix "" {
+  policy = "read"
+}
+key_prefix "_rexec" {
+  policy = "write"
+}
+```
+
+</CodeBlockConfig>
+
+## Built-in tokens
+
+Consul includes a built-in anonymous token and initial management token. Both tokens are injected during when you [bootstrap](/consul/docs/secure/acl/bootstrap) the cluster.
+
+### Anonymous token
+
+The anonymous token is used when a request is made to Consul without specifying a bearer token. This token has the following attributes. Refer to the [Token](/consul/docs/reference/acl/token) reference docs for more information about each attribute.
+
+| Attribute    | Value                                  |
+| ------------ | -------------------------------------  |
+| `AccessorID` | `00000000-0000-0000-0000-000000000002` |
+| `SecretID`   | `anonymous`                            |
+
+You may update the anonymous token's description and policies, however you cannot delete the token.
+
+### Initial management token
+
+There are two ways for you to create an initial management token.
+
+1. Bootstrap the ACL system with `consul acl bootstrap`. Consul automatically generates a token for you. Refer to [Bootstrap ACLs](/consul/docs/secure/acl/bootstrap) for more details.
+1. Define an initial management token in the Consul agent configuration ([`acl.token.initial_management`](/consul/docs/reference/agent/configuration-file/acl#acl_tokens_initial_management)). This method lets ACL administrators to bootstrap the ACL system with a known value.
+
+Consul links the management token to the built-in [global management](/consul/docs/secure/acl/policy#global-management) policy. This token has unrestricted privileges to resources and APIs.
+
+### ACL agent recovery token
+
+You can use the ACL agent recovery token ([`acl.tokens.agent_recovery`](/consul/docs/reference/agent/configuration-file/acl#acl_tokens_agent_recovery)) when your Consul servers are unavailable. The policy linked to the token is managed locally on the agent and does not require a token to be defined on the Consul servers. Once set, it implicitly has the following policy associated with it.
+
+```hcl hideClipboard
+agent "<node name of agent>" {
+  policy = "write"
+}
+node_prefix "" {
+  policy = "read"
+}
+```

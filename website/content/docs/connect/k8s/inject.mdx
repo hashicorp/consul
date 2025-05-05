@@ -1,0 +1,200 @@
+---
+layout: docs
+page_title: Connect Kubernetes services with Consul
+description: >-
+  Consul documentation provides reference material for all features and options available in Consul.
+---
+
+# Custom Consul injection behavior
+
+This page describes the process to enable the Consul injector so that you can use Consul's service mesh features on Kubernetes, and then configure custom injection behavior such as defaults for Consul and Kubernetes namespaces.
+
+## Enable connect injector
+
+The service mesh sidecar proxy is injected via a
+[mutating admission webhook](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#admission-webhooks)
+call the connect injector provided by the
+[consul-k8s project](https://github.com/hashicorp/consul-k8s).
+This enables the automatic pod mutation shown in the usage section above.
+Installation of the mutating admission webhook is automated using the
+[Helm chart](/consul/docs/deploy/server/k8s/helm).
+
+To install the connect injector, enable the connect injection feature using
+[Helm values](/consul/docs/reference/k8s/helm#configuration-values) and
+upgrade the installation using `helm upgrade` for existing installs or
+`helm install` for a fresh install.
+
+```yaml
+connectInject:
+  enabled: true
+```
+
+This will configure the injector to inject when the
+[injection annotation](#consul-hashicorp-com-connect-inject)
+is set to `true`. Other values in the Helm chart can be used to limit the namespaces
+the injector runs in, enable injection by default, and more.
+
+## Verify the injection
+
+To verify the installation, run the
+["Accepting Inbound Connections"](/consul/docs/k8s/connect#accepting-inbound-connections)
+example from the "Usage" section above. After running this example, run
+`kubectl get pod static-server --output yaml`. In the raw YAML output, you should
+see connect injected containers and an annotation
+`consul.hashicorp.com/connect-inject-status` set to `injected`. This
+confirms that injection is working properly.
+
+If you do not see this, then use `kubectl logs` against the injector pod
+and note any errors.
+
+## Controlling Injection with Annotations
+
+By default, the injector will inject only when the
+[injection annotation](#consul-hashicorp-com-connect-inject)
+on the pod (not the deployment) is set to `true`:
+
+```yaml
+annotations:
+  'consul.hashicorp.com/connect-inject': 'true'
+```
+
+### Injection Defaults
+
+If you wish for the injector to always inject, you can set the default to `true`
+in the Helm chart:
+
+```yaml
+connectInject:
+  enabled: true
+  default: true
+```
+
+You can then exclude specific pods via annotation:
+
+```yaml
+annotations:
+  'consul.hashicorp.com/connect-inject': 'false'
+```
+
+## Controlling Injection for Namespace
+
+You can control which Kubernetes namespaces are allowed to be injected via
+the `k8sAllowNamespaces` and `k8sDenyNamespaces` keys:
+
+```yaml
+connectInject:
+  enabled: true
+  k8sAllowNamespaces: ['*']
+  k8sDenyNamespaces: []
+```
+
+In the default configuration (shown above), services from all namespaces are allowed
+to be injected. Whether or not they're injected depends on the value of `connectInject.default`
+and the `consul.hashicorp.com/connect-inject` annotation.
+
+If you wish to only enable injection in specific namespaces, you can list only those
+namespaces in the `k8sAllowNamespaces` key. In the configuration below
+only the `my-ns-1` and `my-ns-2` namespaces will be enabled for injection.
+All other namespaces will be ignored, even if the connect inject [annotation](#consul-hashicorp-com-connect-inject)
+is set.
+
+```yaml
+connectInject:
+  enabled: true
+  k8sAllowNamespaces: ['my-ns-1', 'my-ns-2']
+  k8sDenyNamespaces: []
+```
+
+If you wish to enable injection in every namespace _except_ specific namespaces, you can
+use `*` in the allow list to allow all namespaces and then specify the namespaces to exclude in the deny list:
+
+```yaml
+connectInject:
+  enabled: true
+  k8sAllowNamespaces: ['*']
+  k8sDenyNamespaces: ['no-inject-ns-1', 'no-inject-ns-2']
+```
+
+-> **NOTE:** The deny list takes precedence over the allow list. If a namespace
+is listed in both lists, it will **not** be synced.
+
+~> **NOTE:** The `kube-system` and `kube-public` namespaces will never be injected.
+
+### Consul Enterprise Namespaces
+
+Consul Enterprise 1.7+ supports Consul namespaces. When Kubernetes pods are registered
+into Consul, you can control which Consul namespace they are registered into.
+
+There are three options available:
+
+1.  **Single Destination Namespace** – Register all Kubernetes pods, regardless of namespace,
+    into the same Consul namespace.
+
+    This can be configured with:
+
+    ```yaml
+    global:
+      enableConsulNamespaces: true
+
+    connectInject:
+      enabled: true
+      consulNamespaces:
+        consulDestinationNamespace: 'my-consul-ns'
+    ```
+
+    -> **NOTE:** If the destination namespace does not exist we will create it.
+
+1.  **Mirror Namespaces** - Register each Kubernetes pod into a Consul namespace with the same name as its Kubernetes namespace.
+    For example, pod `foo` in Kubernetes namespace `ns-1` will be synced to the Consul namespace `ns-1`.
+    If a mirrored namespace does not exist in Consul, it will be created.
+
+    This can be configured with:
+
+    ```yaml
+    global:
+      enableConsulNamespaces: true
+
+    connectInject:
+      enabled: true
+      consulNamespaces:
+        mirroringK8S: true
+    ```
+
+1.  **Mirror Namespaces With Prefix** - Register each Kubernetes pod into a Consul namespace with the same name as its Kubernetes
+    namespace **with a prefix**.
+    For example, given a prefix `k8s-`, pod `foo` in Kubernetes namespace `ns-1` will be synced to the Consul namespace `k8s-ns-1`.
+
+    This can be configured with:
+
+    ```yaml
+    global:
+      enableConsulNamespaces: true
+
+    connectInject:
+      enabled: true
+      consulNamespaces:
+        mirroringK8S: true
+        mirroringK8SPrefix: 'k8s-'
+    ```
+
+### Consul Enterprise Namespace Upstreams
+
+When [transparent proxy](/consul/docs/connect/transparent-proxy) is enabled and ACLs are disabled,
+the upstreams will be configured automatically across Consul namespaces.
+When ACLs are enabled, you must configure it by specifying an [intention](/consul/docs/secure-mesh/intention),
+allowing services across Consul namespaces to talk to each other.
+
+If you wish to specify an upstream explicitly via the `consul.hashicorp.com/connect-service-upstreams` annotation,
+use the format `[service-name].[namespace]:[port]:[optional datacenter]`:
+
+```yaml
+annotations:
+  'consul.hashicorp.com/connect-inject': 'true'
+  'consul.hashicorp.com/connect-service-upstreams': '[service-name].[namespace]:[port]:[optional datacenter]'
+```
+
+See [consul.hashicorp.com/connect-service-upstreams](/consul/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) for more details.
+
+-> **Note:** When you specify upstreams via an upstreams annotation, you will need to use
+`localhost:<port>` with the port from the upstreams annotation instead of KubeDNS to connect to your upstream
+application.

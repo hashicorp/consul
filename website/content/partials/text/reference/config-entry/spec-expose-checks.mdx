@@ -1,0 +1,3 @@
+Exposes all HTTP and gRPC checks registered with the agent when set to `true`. Envoy exposes listeners for the checks and only accepts connections originating from localhost or the [Consul agent's `advertise_addr`](/consul/docs/reference/agent/configuration-file/address#advertise_addr). The ports for the listeners are dynamically allocated from the [agent's `expose_min_port`](/consul/docs/reference/agent/configuration-file/general#expose_min_port) and [`expose_max_port`](/consul/docs/reference/agent/configuration-file/general#expose_max_port) configurations.
+
+We recommend enabling the `Checks` configuration when a Consul client cannot reach registered services over localhost, such as when Consul agents run in their own pods in Kubernetes.

@@ -1,0 +1,133 @@
+---
+layout: docs
+page_title: UI parameters for Consul agent configuration files
+description: >-
+  Use agent configuration files to assign attributes to agents and configure multiple agents at once. Learn about agent configuration file parameters and formatting with this reference page and sample code.
+---
+
+# UI parameters for Consul agent configuration files
+
+This page provides reference information for UI parameters in a Consul agent configuration file.
+
+## UI parameters
+
+- `ui_config` - This object allows a number of sub-keys to be set which controls
+  the display or features available in the UI. 
+
+  The following sub-keys are available:
+
+  - `enabled` ((#ui_config_enabled)) - This enables the service of the web UI
+    from this agent. Boolean value, defaults to false. In `-dev` mode this
+    defaults to true. Replaces `ui` from before 1.9.0. Equivalent to the
+    [`-ui`](/consul/commands/agent#_ui) command-line flag.
+
+  - `dir` ((#ui_config_dir)) - This specifies that the web UI should be served
+    from an external dir rather than the build in one. This allows for
+    customization or development. Replaces `ui_dir` from before 1.9.0.
+    Equivalent to the [`-ui-dir`](/consul/commands/agent#_ui_dir) command-line flag.
+
+  - `content_path` ((#ui_config_content_path)) - This specifies the HTTP path
+    that the web UI should be served from. Defaults to `/ui/`. Equivalent to the
+    [`-ui-content-path`](/consul/commands/agent#_ui_content_path) flag.
+
+  - `metrics_provider` ((#ui_config_metrics_provider)) - Specifies a named
+    metrics provider implementation the UI should use to fetch service metrics.
+    By default metrics are disabled. Consul 1.9.0 includes a built-in provider
+    named `prometheus` that can be enabled explicitly here. It also requires the
+    `metrics_proxy` to be configured below and direct queries to a Prometheus
+    instance that has Envoy metrics for all services in the datacenter.
+
+  - `metrics_provider_files` ((#ui_config_metrics_provider_files)) - An optional array
+    of absolute paths to javascript files on the Agent's disk which will be
+    served as part of the UI. These files should contain metrics provider
+    implementations and registration enabling UI metric queries to be customized
+    or implemented for an alternative time-series backend.
+
+    ~> **Security Note:** These javascript files are included in the UI with no
+    further validation or sand-boxing. By configuring them here the operator is
+    fully trusting anyone able to write to them as well as the original authors
+    not to include malicious code in the UI being served.
+
+  - `metrics_provider_options_json` ((#ui_config_metrics_provider_options_json)) -
+    This is an optional raw JSON object as a string which is passed to the
+    provider implementation's `init` method at startup to allow arbitrary
+    configuration to be passed through.
+
+  - `metrics_proxy` ((#ui_config_metrics_proxy)) - This object configures an
+    internal agent API endpoint that will proxy GET requests to a metrics
+    backend to allow querying metrics data in the UI. This simplifies deployment
+    where the metrics backend is not exposed externally to UI users' browsers.
+    It may also be used to augment requests with API credentials to allow
+    serving graphs to UI users without them needing individual access tokens for
+    the metrics backend.
+
+    ~> **Security Note:** Exposing your metrics backend via Consul in this way
+    should be carefully considered in production. As Consul doesn't understand
+    the requests, it can't limit access to only specific resources. For example
+    **this might make it possible for a malicious user on the network to query
+    for arbitrary metrics about any server or workload in your infrastructure,
+    or overload the metrics infrastructure with queries**. See [Metrics Proxy
+    Security](/consul/docs/connect/observability/ui-visualization#metrics-proxy-security)
+    for more details.
+
+    The following sub-keys are available:
+
+    - `base_url` ((#ui_config_metrics_provider_base_url)) - This is required to
+      enable the proxy. It should be set to the base URL that the Consul agent
+      should proxy requests for metrics too. For example a value of
+      `http://prometheus-server` would target a Prometheus instance with local
+      DNS name "prometheus-server" on port 80. This may include a path prefix
+      which will then not be necessary in provider requests to the backend and
+      the proxy will prevent any access to paths without that prefix on the
+      backend.
+
+    - `path_allowlist` ((#ui_config_metrics_provider_path_allowlist)) - This
+      specifies the paths that may be proxies to when appended to the
+      `base_url`. It defaults to `["/api/v1/query_range", "/api/v1/query"]`
+      which are the endpoints required for the built-in Prometheus provider. If
+      a [custom
+      provider](/consul/docs/connect/observability/ui-visualization#custom-metrics-providers)
+      is used that requires the metrics proxy, the correct allowlist must be
+      specified to enable proxying to necessary endpoints. See [Path
+      Allowlist](/consul/docs/connect/observability/ui-visualization#path-allowlist)
+      for more information.
+
+    - `add_headers` ((#ui_config_metrics_proxy_add_headers)) - This is an
+      optional list if headers to add to requests that are proxied to the
+      metrics backend. It may be used to inject Authorization tokens within the
+      agent without exposing those to UI users.
+
+      Each item in the list is an object with the following keys:
+
+      - `name` ((#ui_config_metrics_proxy_add_headers_name)) - Specifies the
+        HTTP header name to inject into proxied requests.
+
+      - `value` ((#ui_config_metrics_proxy_add_headers_value)) - Specifies the
+        value in inject into proxied requests.
+
+  - `dashboard_url_templates` ((#ui_config_dashboard_url_templates)) - This map
+    specifies URL templates that may be used to render links to external
+    dashboards in various contexts in the UI. It is a map with the name of the
+    template as a key. The value is a string URL with optional placeholders.
+
+    Each template may contain placeholders which will be substituted for the
+    correct values in content when rendered in the UI. The placeholders
+    available are listed for each template.
+
+    For more information and examples see [UI
+    Visualization](/consul/docs/connect/observability/ui-visualization#configuring-dashboard-urls)
+
+    The following named templates are defined:
+
+    - `service` ((#ui_config_dashboard_url_templates_service)) - This is the URL
+      to use when linking to the dashboard for a specific service. It is shown
+      as part of the [Topology
+      Visualization](/consul/docs/observe/telemetry/vm).
+
+      The placeholders available are:
+
+      - `{{Service.Name}}` - Replaced with the current service's name.
+      - `{{Service.Namespace}}` - Replaced with the current service's namespace or empty if namespaces are not enabled.
+      - `{{Service.Partition}}` - Replaced with the current service's admin
+        partition or empty if admin partitions are not enabled.
+      - `{{Datacenter}}` - Replaced with the current service's datacenter.

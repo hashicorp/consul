@@ -1,0 +1,47 @@
+---
+layout: docs
+page_title: Ingress gateway overview
+description: >-
+    Ingress gateways enable you to connect external services to services in your mesh. Ingress gateways are a type of proxy that listens for requests from external network locations and route authorized traffic to destinations in the service mesh.
+---
+
+# Ingress gateway overview
+
+This topic provides an overview of ingress gateways in Consul. An ingress gateway is a type of proxy that enables network connectivity from external services to services inside the mesh. They listen for external requests and route authorized traffic to instances in the service mesh. Refer to [Access services overview](/north-south/) for additional information about connecting external clients to services in the mesh.
+
+<Note>
+
+Ingress gateways are deprecated. Use [Consul API gateways](/north-south/api-gateway) to secure service mesh ingress instead.
+
+</Note>
+
+## Workflow
+
+The following workflow describes how to deploy ingress gateways to service meshes on virtual machines (VM) and Kubernetes (K8s):
+
+1. For networks operating on K8s, enable ingress gateways in the Helm chart configuration when installing Consul.
+1. Define listeners and the services they expose to external clients. When ACLs are enabled, you must also define service intentions to allow traffic to the destination services.
+1. Register the ingress gateway service with Consul and start the ingress gateway proxy service.
+
+You can also configure ingress gateways to retrieve and serve custom TLS certificates from external systems. This functionality is designed to help you integrate with custom TLS management software. Refer to [Serve custom TLS certificates from an external service](/consul/docs/north-south/ingress-gateway/external) for additional information.
+
+The following diagram describes how external traffic reaches services inside the mesh through an ingress gateway:
+
+![How external traffic reaches services inside the mesh through an ingress gateway](/img/ingress-gateways.png)
+
+## Guidance
+
+Refer to the following resources to help you enable secure access to service mesh resources from external clients.
+
+### Usage
+
+- [Create ingress gateways on VMs](/consul/docs/north-south/ingress-gateway/vm)
+- [Create ingress gateways on K8s](/consul/docs/north-south/ingress-gateway/k8s)
+- [Serve TLS certificates from external services](/consul/docs/north-south/ingress-gateway/external)
+
+### Reference
+
+- [Ingress gateway configuration](/consul/docs/reference/config-entry/ingress-gateway)
+- [Helm chart configuration](/consul/docs/reference/k8s/helm)
+- [Service intentions configuration](/consul/docs/reference/config-entry/service-intentions)
+
