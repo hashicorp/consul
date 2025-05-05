@@ -18,14 +18,10 @@ load helpers
 
 @test "api-gateway should have lua filter configured" {
   FILTERS=$(get_envoy_http_filters localhost:20000)
-  echo "[DEBUG] filters: $FILTERS" >&3
-
   echo "$FILTERS" | grep "envoy.filters.http.lua"
 }
 @test "s1 should have lua filter configured" {
   FILTERS=$(get_envoy_http_filters localhost:19000)
-  echo "[DEBUG] filters: $FILTERS" >&3
-
   echo "$FILTERS" | grep "envoy.filters.http.lua"
 }
 
@@ -37,5 +33,5 @@ load helpers
   onresponse=$(echo "$output" | grep -i 'x-lua-added-onresponse')
 
   [[ -z "$onrequest" ]] && echo "x-lua-added-onrequest not found" >&3 && return 1
-    [[ -z "$onresponse" ]] && echo "x-lua-added-onresponse not found" >&3 && return 1
+  [[ -z "$onresponse" ]] && echo "x-lua-added-onresponse not found" >&3 && return 1
 }
