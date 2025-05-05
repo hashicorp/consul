@@ -1,3 +1,19 @@
+## 1.20.6 (April 25, 2025)
+
+SECURITY:
+
+* Update `golang.org/x/net` to v0.38.0 to address [GHSA-vvgc-356p-c3xw](https://github.com/advisories/GHSA-vvgc-356p-c3xw) and [GO-2025-3595](https://pkg.go.dev/vuln/GO-2025-3595).
+Update `github.com/golang-jwt/jwt/v4` to v4.5.2 to address [GO-2025-3553](https://pkg.go.dev/vuln/GO-2025-3553) and [GHSA-mh63-6h87-95cp](https://github.com/advisories/GHSA-mh63-6h87-95cp).
+Update `Go` to v1.23.8 to address [GO-2025-3563](https://pkg.go.dev/vuln/GO-2025-3563). [[GH-22268](https://github.com/hashicorp/consul/issues/22268)]
+
+IMPROVEMENTS:
+
+* Added support for Consul Session to update the state of a Health Check, allowing for more dynamic and responsive health monitoring within the Consul ecosystem. This feature enables sessions to directly influence health check statuses, improving the overall reliability and accuracy of service health assessments. [[GH-22227](https://github.com/hashicorp/consul/issues/22227)]
+
+BUG FIXES:
+
+* agent: Add the missing Service TaggedAddresses and Check Type fields to Txn API. [[GH-22220](https://github.com/hashicorp/consul/issues/22220)]
+
 ## 1.20.5 (March 11, 2025)
 
 SECURITY:
