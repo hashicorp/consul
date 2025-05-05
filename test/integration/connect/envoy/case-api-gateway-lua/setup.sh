@@ -146,17 +146,6 @@ Sources = [
   {
     Name = "api-gateway"
     Action = "allow"
-    Permissions=[
-      {
-        Action = "allow"
-        Http {
-          Path {
-            Match = "prefix"
-            Value = "/echo"
-          }
-        }
-      }
-    ]
   }
 ]
 '
