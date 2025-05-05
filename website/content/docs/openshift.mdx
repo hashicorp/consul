@@ -1,0 +1,31 @@
+---
+layout: docs
+page_title: Consul on RedHat OpenShift
+description: >-
+  Consul has native OpenShift support, allowing you to deploy Consul sidecars to an OpenShift cluster facilitating a service mesh. Learn how to install Consul on OpenShift with Helm or the Consul K8s CLI and get started with tutorials.
+---
+
+# Consul on RedHat OpenShift
+
+Consul supports the OpenShift runtime. You can deploy Consul to an OpenShift cluster with [the Consul Helm chart](/consul/docs/k8s/installation/install#helm-chart-installation) or the [Consul K8s CLI](/consul/docs/k8s/installation/install-cli#consul-k8s-cli-installation).
+
+For help configuring and running OpenShift, refer to the external [RedHat OpenShift Documentation](https://docs.redhat.com/en).
+
+## Benefits
+
+Consul provides the following capabilities to networks with OpenShift clusters:
+
+- **Hybrid and multi-cloud service discovery**: Consul can automatically sync OpenShift services with its own service registry. Consul makes the OpenShift services discoverable to the rest of the cluster in its network, which you can expand across hardware and runtimes. At the same time, Consul makes the rest of its services discoverable to OpenShift, with options to limit access according to security requirements. 
+- **Dedicated CLI tool**: The [`consul-k8s` CLI](/consul/docs/reference/cli/consul-k8s) is a dedicated tool for managing Consul deployments on Kubernetes runtimes, including OpenShift clusters. It can help you deploy clusters, update their configurations, interact with sidecar proxies in your service mesh.
+
+## Guidance
+
+The following documentation for Consul and RedHat OpenShift is available:
+
+- [Install Consul on OpenShift](/consul/docs/deploy/server/k8s/platform/openshift) describes the process to deploy Consul in an OpenShift environment using the Helm chart.
+- [DNS forwarding on OpenShift](/consul/docs/manage/dns/forwarding/k8s#openshift-clusters) describes the process to enable the `consul` sub-domain in your cluster's DNS operations.
+- [Consul DNS views on OpenShift](/consul/docs/manage/dns/views#openshift-clusters) describes the process to deploy a lightweight Consul process in your cluster to return Consul DNS results without bypassing your existing DNS configuration.
+- [Troubleshoot Consul on OpenShift](/consul/docs/troubleshoot#kubernetes-and-openshift-deployments) includes steps to resolve issues that may occur.
+- [Upgrade Consul on OpenShift](/consul/docs/upgrade/k8s/openshift)
+
+For more information about Helm configurations for Consul on OpenShift, refer to the [Helm Chart reference documentation](/consul/docs/reference/k8s/helm).

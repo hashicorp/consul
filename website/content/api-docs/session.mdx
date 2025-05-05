@@ -77,7 +77,7 @@ The table below shows this endpoint's support for
   86400s). If provided, the session is invalidated if it is not renewed before
   the TTL expires. The lowest practical TTL should be used to keep the number of
   managed sessions low. When locks are forcibly expired, such as when following
-  the [leader election pattern](/consul/docs/dynamic-app-config/sessions/application-leader-election) in an application,
+  the [leader election pattern](/consul/docs/automate/application-leader-election) in an application,
   sessions may not be reaped for up to double this TTL, so long TTL
   values (> 1 hour) should be avoided. Valid time units include "s", "m" and "h".
 
@@ -230,7 +230,7 @@ If the session does not exist, an empty JSON list `[]` is returned.
 
 This endpoint returns the active sessions for a given node.
 
-@include 'http_api_results_filtered_by_acls.mdx'
+@include 'legacy/http_api_results_filtered_by_acls.mdx'
 
 | Method | Path                  | Produces           |
 | :----- | :-------------------- | ------------------ |
@@ -293,7 +293,7 @@ $ curl \
 
 This endpoint returns the list of active sessions.
 
-@include 'http_api_results_filtered_by_acls.mdx'
+@include 'legacy/http_api_results_filtered_by_acls.mdx'
 
 | Method | Path            | Produces           |
 | :----- | :-------------- | ------------------ |

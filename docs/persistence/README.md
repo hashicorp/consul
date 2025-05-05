@@ -11,8 +11,8 @@ introduction to the Consul deployment architecture and the [Consensus Protocol] 
 the cluster persistence subsystem.
 
 [RPC]: ../rpc
-[Consul Architecture Guide]: https://www.consul.io/docs/architecture
-[Consensus Protocol]: https://www.consul.io/docs/architecture/consensus
+[Consul Architecture Guide]: https://developer.hashicorp.com/docs/architecture
+[Consensus Protocol]: https://developer.hashicorp.com/docs/architecture/consensus
 
 
 ![Overview](./overview.svg)
@@ -97,14 +97,14 @@ facing operations.
 
 [CLI]: ../cli
 [HTTP API]: ../http-api
-[commands/snapshot]: https://www.consul.io/commands/snapshot
+[commands/snapshot]: https://developer.hashicorp.com/commands/snapshot
 [consul/snapshot]: https://github.com/hashicorp/consul/tree/main/snapshot
 
 Finally, there is also a [snapshot agent] (enterprise only) that uses the snapshot API
 endpoints to periodically capture a snapshot, and optionally send it somewhere for
 storage. 
 
-[snapshot agent]: https://www.consul.io/commands/snapshot/agent
+[snapshot agent]: https://developer.hashicorp.com/commands/snapshot/agent
 
 ## Raft Autopilot
 

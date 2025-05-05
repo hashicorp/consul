@@ -1,0 +1,45 @@
+---
+layout: docs
+page_title: Advertise address parameters for Consul agent configuration files
+description: >-
+  Use agent configuration files to assign attributes to agents and configure multiple agents at once. Learn about agent configuration file parameters and formatting with this reference page and sample code.
+---
+
+# Advertise address parameters for Consul agent configuration files
+
+The page provides reference information for address advertisement parameters in a Consul agent configuration file.
+
+## Advertise Address Parameters
+
+- `advertise_addr` ((#\_advertise)) - The advertise address is used to change
+  the address advertised to other nodes in the cluster. By default, the bind
+  address is advertised. However, in some cases, there may be a routable address
+  that cannot be bound. This parameter enables gossiping a different address to support
+  this. If this address is not routable, the node will be in a constant flapping
+  state as other nodes will treat the non-routability as a failure. In Consul v1.1.0 and later this can be dynamically defined with a [go-sockaddr]
+  template that is resolved at runtime. Equivalent to the [`-advertise` command-line flag](/consul/commands/agent#_advertise).
+
+- `advertise_addr_ipv4` - This was added together with [`advertise_addr_ipv6`](#advertise_addr_ipv6) to support dual stack IPv4/IPv6 environments. Using this, both IPv4 and IPv6 addresses can be specified and requested during eg service discovery.
+
+- `advertise_addr_ipv6` - This was added together with [`advertise_addr_ipv4`](#advertise_addr_ipv4) to support dual stack IPv4/IPv6 environments. Using this, both IPv4 and IPv6 addresses can be specified and requested during eg service discovery.
+
+- `advertise_addr_wan` ((#\_advertise-wan)) - The advertise WAN address is used
+  to change the address that we advertise to server nodes joining through the WAN.
+  This can also be set on client agents when used in combination with the [`translate_wan_addrs`](/consul/docs/reference/agent#translate_wan_addrs) configuration option. By default, the [`advertise_addr`](#_advertise) address
+  is advertised. However, in some cases all members of all datacenters cannot be
+  on the same physical or virtual network, especially on hybrid setups mixing cloud
+  and private datacenters. This flag enables server nodes gossiping through the public
+  network for the WAN while using private VLANs for gossiping to each other and their
+  client agents, and it allows client agents to be reached at this address when being
+  accessed from a remote datacenter if the remote datacenter is configured with [`translate_wan_addrs`](/consul/docs/reference/agent#translate_wan_addrs). In Consul 1.1.0 and later this can be dynamically defined with a [go-sockaddr]
+  template that is resolved at runtime. Equivalent to the [`-advertise-wan` command-line flag](/consul/commands/agent#_advertise-wan).
+
+- `advertise_addr_wan_ipv4` This was added together with [`advertise_addr_wan_ipv6`](#advertise_addr_wan_ipv6) to support dual stack IPv4/IPv6 environments. Using this, both IPv4 and IPv6 addresses can be specified and requested during eg service discovery.
+
+- `advertise_addr_wan_ipv6` This was added together with [`advertise_addr_wan_ipv4`](#advertise_addr_wan_ipv4) to support dual stack IPv4/IPv6 environments. Using this, both IPv4 and IPv6 addresses can be specified and requested during eg service discovery.
+
+- `advertise_reconnect_timeout` This is a per-agent setting of the [`reconnect_timeout`](/consul/docs/reference/agent/configuration-file/general#reconnect_timeout) parameter.
+  This agent will advertise to all other nodes in the cluster that after this timeout, the node may be completely
+  removed from the cluster. This may only be set on client agents and if unset then other nodes will use the main
+  `reconnect_timeout` setting when determining when this node may be removed
+  from the cluster.

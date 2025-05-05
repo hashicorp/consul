@@ -1,0 +1,4 @@
+If you experience errors when configuring Consul's observability features, refer to the following list of technical constraints.
+
+- Consul's observability features are not enabled by default on Community and Enterprise deployments. A HashiCorp-managed observability service is available through [HCP Consul Central](/hcp/docs/consul/concepts/central).
+- Consul deploys Envoy proxies by default. Tracing spans that are incompatible with Envoy proxies do not function with Consul.

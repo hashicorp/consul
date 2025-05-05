@@ -1,0 +1,234 @@
+---
+layout: docs
+page_title: Install Consul Template
+description: >-
+  Consul Template is a tool available as a distinct binary that enables dynamic application configuration and secrets rotation for Consul deployments based on Go templates.
+---
+
+# Install Consul Template
+
+Consul Template is available as a pre-compiled binary or as a package for several operating systems. You can also build Consul Template from source.
+
+## Precompiled Binaries
+
+<Tabs>
+<Tab heading="Linux" group="linux">
+
+<Tabs>
+<Tab heading="Ubuntu/Debian" group="ubuntu">
+
+Install the required packages.
+
+```shell-session
+$ sudo apt-get update && \
+  sudo apt-get install wget gpg coreutils
+```
+
+Add the HashiCorp [GPG key][gpg-key].
+
+```shell-session
+$ wget -O- https://apt.releases.hashicorp.com/gpg | \
+  sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+```
+
+Add the official HashiCorp Linux repository.
+
+```shell-session
+$ echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" \
+| sudo tee /etc/apt/sources.list.d/hashicorp.list
+```
+
+Update and install.
+
+```shell-session
+$ sudo apt-get update && sudo apt-get install consul-template
+```
+
+</Tab>
+<Tab heading="RHEL/CentOS" group="rhel">
+
+Install `yum-config-manager` to manage your repositories.
+
+```shell-session
+$ sudo yum install -y yum-utils
+```
+
+Use `yum-config-manager` to add the official HashiCorp Linux repository.
+
+```shell-session
+$ sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo
+```
+
+Install.
+
+```shell-session
+$ sudo yum -y install consul-template
+```
+
+</Tab>
+<Tab heading="Fedora" group="fedora">
+
+Install `dnf config-manager` to manage your repositories.
+
+```shell-session
+$ sudo dnf install -y dnf-plugins-core
+```
+
+Use `dnf config-manager` to add the official HashiCorp Linux repository.
+
+```shell-session
+$ sudo dnf config-manager addrepo --from-repofile=https://rpm.releases.hashicorp.com/fedora/hashicorp.repo
+```
+
+Install.
+
+```shell-session
+$ sudo dnf -y install consul-template
+```
+
+</Tab>
+<Tab heading="Amazon Linux" group="amazonlinux">
+
+Install `yum-config-manager` to manage your repositories.
+
+```shell-session
+$ sudo yum install -y yum-utils
+```
+
+Use `yum-config-manager` to add the official HashiCorp Linux repository.
+
+```shell-session
+$ sudo yum-config-manager \
+  --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
+```
+
+Install.
+
+```shell-session
+$ sudo yum -y install consul-template
+```
+
+</Tab>
+<Tab heading="Manual" group="linux-manual">
+
+Download a [precompiled binary](https://releases.hashicorp.com/consul-template/), verify the binary using the available `SHA-256` sums, and unzip the package to a location on your machine. Make sure that the location of the `consul-template` binary is available on your `PATH` before continuing with the other guides.
+
+</Tab>
+</Tabs>
+
+</Tab>
+
+<Tab heading="Mac" group="mac">
+
+<Tabs>
+<Tab heading="Homebrew" group="mac-homebrew">
+
+[Homebrew](https://brew.sh) is a free and open source package management system
+for Mac OS X. Install the official [Consul Template
+formula](https://github.com/hashicorp/homebrew-tap) from the terminal.
+
+First, install the HashiCorp tap, a repository of all of the HashiCorp Homebrew
+packages.
+
+```shell-session
+$ brew tap hashicorp/tap
+```
+
+Now, install Consul Template with `hashicorp/tap/consul-template`.
+
+```shell-session
+$ brew install hashicorp/tap/consul-template
+```
+
+-> This command installs a signed binary and is automatically updated with
+every new official release.
+
+To update to the latest, run
+
+```shell-session
+$ brew upgrade hashicorp/tap/consul-template
+```
+</Tab>
+<Tab heading="Manual" group="mac-manual">
+
+Download a [precompiled binary](https://releases.hashicorp.com/consul-template/), verify the binary using the available `SHA-256` sums, and unzip the package to a location on your machine. Make sure that the location of the `consul-template` binary is available on your `PATH` before continuing with the other guides.
+
+</Tab>
+</Tabs>
+
+</Tab>
+
+<Tab heading="Windows" group="windows">
+
+<Tabs>
+<Tab heading="Chocolatey" group="windows-chocolatey">
+
+[Chocolatey](https://chocolatey.org/) is a free and open-source package
+management system for Windows. Install the [Consul Template
+package](https://chocolatey.org/packages/consul-template) from the command-line.
+
+```shell-session
+$ choco install consul-template
+```
+
+-> Chocolatey and the Consul Template package are **NOT** directly maintained
+by HashiCorp. The latest version of Consul Template is always available by manual
+installation.
+
+</Tab>
+<Tab heading="Manual" group="windows-manual">
+
+Download a [precompiled binary](https://releases.hashicorp.com/consul-template/), verify the binary using the available `SHA-256` sums, and unzip the package to a location on your machine. Make sure that the location of the `consul-template` binary is available on your `PATH` before continuing with the other guides.
+
+</Tab>
+</Tabs>
+
+</Tab>
+
+</Tabs>
+
+## Compile from the source
+
+Clone the repository from GitHub [`hashicorp/consul-terraform-sync`](https://github.com/hashicorp/consul-terraform-sync) to build and install Consul Template binary in your path `$GOPATH/bin`. Building from source requires `git` and [Golang](https://go.dev/).
+
+```shell-session
+$ git clone https://github.com/hashicorp/consul-template.git
+```
+
+Enter the repository directory.
+
+```shell-session
+$ cd consul-template
+```
+
+Select the release you want to compile.
+
+```shell-session
+$ git checkout tags/<vX.Y.Z>
+```
+
+Build Consul Template for your system. The binary will be placed in `./bin`.
+
+```shell-session
+$ make dev
+```
+
+Once installed, verify the installation works by prompting the `-version` or `-help` option.
+
+```shell-session
+$ consul-template -version
+```
+
+## Run Consul Template as a Docker container
+
+Install and run Consul Template as a [Docker container](https://hub.docker.com/r/hashicorp/consul-template).
+
+```shell-session
+$ docker pull hashicorp/consul-template
+```
+
+Once installed, verify the installation works by prompting the `-version` or `-help` option.
+
+```shell-session
+$ docker run --rm hashicorp/consul-template -version
+```

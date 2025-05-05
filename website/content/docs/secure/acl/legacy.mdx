@@ -1,0 +1,327 @@
+---
+layout: docs
+page_title: Migrate Access Control List (ACL) tokens
+description: >-
+  Consul 1.4.0 introduced a new ACL system. Learn how to migrate your legacy ACL tokens if you have a Consul cluster that uses a version older than 1.4.
+---
+
+# Migrate Access Control List (ACL) tokens
+
+This page describes how to migrate your legacy ACL tokens if you have a Consul
+cluster that uses a version older than 1.4.0. You learn how to perform the
+following tasks:
+
+- Manually migrate an agent token and get familiar with the CLI commands for ACL
+- Automate the token migration for tokens and policies that don't require tuning
+- Identify opportunities for improvement in your ACL configuration thanks to the new ACL system improvements.
+
+There are three different ways to migrate tokens: single token, simple policy mapping, and combine policy updates. Single token updates are a manual process for sensitive tokens. You can use simple policy mapping and combine policy updates to automate updating multiple tokens.
+
+## Requirements
+
+Before starting the token migration process, all Consul agents, servers, and clients must be running at least version 1.4.0. Additionally, you must ensure the datacenter is in a healthy state including a functioning leader. Once the leader has determined that all servers in the datacenter are capable of using the new ACL system, the leader will transition itself. Then, the other servers will transition themselves to the new system, followed by the client agents. You can use `consul info` to investigate the datacenter health.
+
+This process assumes that the 1.4.0 upgrade is complete, including all legacy ACLs having their accessor IDs populated. Accessor IDs are new to the 1.4 ACL system. This process can take up to several minutes after the servers upgrade. Ensure your tokens have an `AccessorID` before starting the migration. If the following command shows any blank `AccessorIDs`, wait until Consul has finished the upgrade.
+
+```shell-session
+$ consul acl token list
+AccessorID:       00000000-0000-0000-0000-000000000002
+Description:      Anonymous Token
+Local:            false
+Create Time:      0001-01-01 00:00:00 +0000 UTC
+Legacy:           false
+
+AccessorID:       dd40ea2f-ff15-e7cb-8249-5d5e95b7ee75
+Description:      foo-service-token_1
+Local:            false
+Create Time:      0001-01-01 00:00:00 +0000 UTC
+Legacy:           true
+
+AccessorID:       905755a7-0872-746a-8aee-e9bff2936c11
+Description:      Agent Token
+Local:            false
+Create Time:      0001-01-01 00:00:00 +0000 UTC
+Legacy:           true
+
+AccessorID:       5c72a103-d94e-a379-797c-2b418adec88b
+Description:      Master Token
+Local:            false
+Create Time:      0001-01-01 00:00:00 +0000 UTC
+Legacy:           false
+Policies:
+   00000000-0000-0000-0000-000000000001 - global-management
+## ...
+```
+
+From the output, you can notice that two tokens already exist in the new system, the master token and the anonymous token. All the other tokens present in the list are supported as "legacy" as you can verify by the `Legacy: true` setting.
+
+You need to configure `CONSUL_HTTP_TOKEN` with a token that has management privileges.
+
+```shell-session
+$ export CONSUL_HTTP_TOKEN=<your_token_here>
+```
+
+## Single token upgrade
+
+While legacy tokens will continue to work until Consul v1.6.x, we recommend migrating existing tokens as soon as possible. Migrating also enables using the new policy management improvements, stricter policy syntax rules, and other features of the new system without re-issuing all the secrets in use.
+
+You can upgrade a legacy token in three steps:
+
+1. Identify the token that needs to be upgraded
+1. Create a new policy or policies that grant the required access
+1. Update the existing token to use those policies
+
+### Identify token
+
+Pick a legacy token from the output of `consul acl token list` command. You can identify legacy tokens by the `Legacy: true` setting in the output.
+
+```shell-session
+$ consul acl token list
+## ...
+AccessorID:       905755a7-0872-746a-8aee-e9bff2936c11
+Description:      Agent Token
+Local:            false
+Create Time:      0001-01-01 00:00:00 +0000 UTC
+Legacy:           true
+## ...
+```
+
+The instructions on this page will use the legacy "Agent Token" token as an example.
+
+### Create a new policy
+
+For the selected token, use the `acl translate-rules` command to check the proposed rules for the policy you want to migrate.
+
+```shell-session
+$ consul acl translate-rules -token-accessor "905755a7-0872-746a-8aee-e9bff2936c11"
+node_prefix "" {
+  policy = "write"
+}
+
+service_prefix "" {
+  policy = "read"
+}
+```
+
+Notice the new policy has a `service_prefix` rule and not the original `service`. Since the legacy ACL syntax had an implicit prefix match, the `_prefix` was applied to all rules without needing to be specified. Now that `_prefix` is no longer implicit, you will need to add it to ensure any clients relying on prefix matching behavior will still work. You can use the Consul CLI to update the policy, without needing to edit the policy file.
+
+<Tip>
+
+It might be beneficial for security to translate prefix matches into exact matches. However, this requires the operator knowing that clients using the token really don't rely on the prefix matching semantics of the old ACL system.
+
+</Tip>
+
+Once you have verified the set of rules for the new policy, generate the new policy.
+
+```shell-session
+$ consul acl policy create -name "migrated-Agent-policy" -from-token 905755a7-0872-746a-8aee-e9bff2936c11 -description "Migrated from legacy ACL agent token";
+ID:           dcd37998-a564-b26a-dd8a-89414926d015
+Name:         migrated-Agent-policy
+Description:  Migrated from legacy ACL agent token
+Datacenters:
+Rules:
+node_prefix "" {
+  policy = "write"
+}
+service_prefix "" {
+  policy = "read"
+}
+```
+
+Note, the use of the `-from-token` option to specify the rules for the new policy will be based on the rules embedded in the legacy token.
+
+Verify the new policy is in place.
+
+```shell-session
+$ consul acl policy list
+migrated-Agent-policy:
+   ID:           dcd37998-a564-b26a-dd8a-89414926d015
+   Description:  Migrated from legacy ACL agent token
+   Datacenters:
+## ...
+```
+
+### Update the token
+
+Finally, update the token to use the new policy.
+
+```shell-session
+$ consul acl token update -id 905755a7-0872-746a-8aee-e9bff2936c11 -policy-name "migrated-Agent-policy" -upgrade-legacy
+Token updated successfully.
+AccessorID:       905755a7-0872-746a-8aee-e9bff2936c11
+SecretID:         dbb88e67-817d-7eb7-f03b-af570462ae6f
+Description:      Agent Token
+Local:            false
+Create Time:      0001-01-01 00:00:00 +0000 UTC
+Policies:
+   dcd37998-a564-b26a-dd8a-89414926d015 - migrated-Agent-policy
+```
+
+For the upgrade to succeed, you need to use the `-upgrade-legacy` option to ensure that legacy rules are removed and the new policies added.
+
+If not specified, the migration will result in an error:
+
+```shell-session
+$ consul acl token update -id 905755a7-0872-746a-8aee-e9bff2936c11 -policy-name "migrated-Agent-policy"
+Failed to update token 905755a7-0872-746a-8aee-e9bff2936c11: Unexpected response code: 500 (Rules cannot be specified for this token)
+```
+
+After updating, the token is no longer considered "legacy" and will have all the properties of a new token, however it keeps its `SecretID` (the secret part of the token used in API calls) so clients already using that token will continue to work. These instructions assume that the policies you attach continue to grant the necessary access for existing clients. However, you need to verify this.
+
+You can also perform the upgrade using the [PUT `/v1/acl/token/:AccessorID`](/consul/api-docs/acl/tokens#update-a-token) endpoint. Specifically, ensure that the `Rules` field is omitted or empty. Empty `Rules` indicates that this is now treated as a new token.
+
+## Simple policy mapping
+
+If you have multiple tokens, migrating them manually might not be a viable option.
+
+One fast alternative to manual migration is to write an automation script to create a different policy with the same rules set, per legacy token, and then upgrade them. This approach is easy to automate, but may result in a lot of policies with exactly the same rules and with non-human-readable names which will make managing policies more difficult.
+
+### Identify existing legacy tokens
+
+Retrieve the `AccessorID` of every legacy token from the API. For example, using `curl` and `jq` in bash.
+
+```shell-session
+$ LEGACY_IDS=$(curl -sH "X-Consul-Token: $CONSUL_HTTP_TOKEN" \
+   'localhost:8500/v1/acl/tokens' | jq -r '.[] | select (.Legacy) | .AccessorID')
+```
+
+List the legacy token's `AccessorID`.
+
+```shell-session
+$ echo "$LEGACY_IDS"
+7dff8907-eace-b403-1966-51ba92189ac7
+3d288b1c-ff11-47fa-e010-42d15a117534
+dd40ea2f-ff15-e7cb-8249-5d5e95b7ee75
+```
+
+### Create policies from legacy tokens
+
+To create a policy for each token you can use a loop to iterate the `AccessorID` list and migrate the policy.
+
+```shell-session
+$ for id in $LEGACY_IDS; do \
+  consul acl policy create -name "migrated-$id" -from-token $id \
+    -description "Migrated from legacy ACL token"; \
+done
+```
+
+This will return something similar to the following.
+
+```plaintext hideClipboard
+ID:           95acbf71-9795-174d-d8fb-fef338c780ca
+Name:         migrated-7dff8907-eace-b403-1966-51ba92189ac7
+Description:  Migrated from legacy ACL token
+Datacenters:
+Rules:
+service_prefix "bar" {
+  policy = "write"
+}
+ID:           31189810-9503-eae7-9c09-01eb7c1346af
+Name:         migrated-3d288b1c-ff11-47fa-e010-42d15a117534
+Description:  Migrated from legacy ACL token
+Datacenters:
+Rules:
+service_prefix "bar" {
+  policy = "write"
+}
+ID:           06435a7b-59c2-585f-ae8e-b49a576b9c71
+Name:         migrated-dd40ea2f-ff15-e7cb-8249-5d5e95b7ee75
+Description:  Migrated from legacy ACL token
+Datacenters:
+Rules:
+service_prefix "foo" {
+  policy = "write"
+}
+## ...
+```
+
+Each policy now has an equivalent set of rules to the original token. This means that the newly created policy grants the same effective permissions as the legacy token rules did.
+
+### Update tokens
+
+With the policies you previously created, you can automatically upgrade all legacy tokens.
+
+```shell-session
+$ for id in $LEGACY_IDS; do \
+  consul acl token update -id $id -policy-name "migrated-$id" -upgrade-legacy; \
+done
+```
+
+This will return something similar to the following.
+
+```plaintext hideClipboard
+Token updated successfully.
+AccessorID:       7dff8907-eace-b403-1966-51ba92189ac7
+SecretID:         1532ab31-f7aa-41f7-4989-5da3d537456a
+Description:      bar-service-token_1
+Local:            false
+Create Time:      0001-01-01 00:00:00 +0000 UTC
+Policies:
+   95acbf71-9795-174d-d8fb-fef338c780ca - migrated-7dff8907-eace-b403-1966-51ba92189ac7
+Token updated successfully.
+AccessorID:       3d288b1c-ff11-47fa-e010-42d15a117534
+SecretID:         87a185c6-f42a-be80-e72e-d5489d68ddc4
+Description:      bar-service-token_2
+Local:            false
+Create Time:      0001-01-01 00:00:00 +0000 UTC
+Policies:
+   31189810-9503-eae7-9c09-01eb7c1346af - migrated-3d288b1c-ff11-47fa-e010-42d15a117534
+Token updated successfully.
+AccessorID:       dd40ea2f-ff15-e7cb-8249-5d5e95b7ee75
+SecretID:         c6aedb37-9600-a3b4-1ce1-d70aee04abc1
+Description:      foo-service-token_1
+Local:            false
+Create Time:      0001-01-01 00:00:00 +0000 UTC
+Policies:
+   06435a7b-59c2-585f-ae8e-b49a576b9c71 - migrated-dd40ea2f-ff15-e7cb-8249-5d5e95b7ee75
+...
+```
+
+The update is now complete, all legacy tokens are now new tokens with identical secrets and enforcement rules.
+
+## Combine policies
+
+We recommend an automatic batch upgrade for legacy tokens when policies are relatively simple and specific for each token. With the combined policies method, you will use the same policy for multiple tokens.
+
+If policies are complex or you have overlapping rules across multiple tokens, we recommend using the migration process to re-engineer the ACL rules in your Consul deployment. This lets you to end up with a minimal set of policies and to take advantage of the flexibility of the new system.
+
+There are a variety of options for how to do this, however you will need to consider the trade-offs. Mainly, increased operator involvement will result in better clarity and re-usability of the resulting policies.
+
+In the following examples, you have two tokens associated to identical policies.
+
+```shell-session
+$ for id in $LEGACY_IDS; do \
+   echo "Policy for $id:";  \
+   consul acl translate-rules -token-accessor "$id"; \
+done
+```
+
+This will return something similar to the following.
+
+```plaintext hideClipboard
+## ...
+Policy for 7dff8907-eace-b403-1966-51ba92189ac7:
+service_prefix "bar" {
+  policy = "write"
+}
+Policy for 3d288b1c-ff11-47fa-e010-42d15a117534:
+service_prefix "bar" {
+  policy = "write"
+}
+Policy for dd40ea2f-ff15-e7cb-8249-5d5e95b7ee75:
+service_prefix "foo" {
+  policy = "write"
+}
+```
+
+In these cases, you can generate only one policy and then upgrade both the legacy tokens to use the same policy.
+
+## Enforce the use of new ACLs
+
+These instructions assumes that all clients that need to create ACL tokens (for example, Vault's Consul secrets engine) have been updated to use the [new ACL APIs](/consul/api-docs/acl/tokens).
+
+Specifically if you are using Vault's Consul secrets engine, you need to be running Vault 1.0.0 or higher and you must update all roles defined in Vault to specify a list of policy names rather than an inline policy (which causes Vault to use the legacy API).
+
+If you have systems still creating "legacy" tokens with the old APIs, the
+following migration steps will still work, however you need to keep re-running
+them until nothing is creating legacy tokens to ensure all tokens are migrated.

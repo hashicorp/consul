@@ -1,0 +1,131 @@
+---
+layout: docs
+page_title: Register services on Nomad
+description: >-
+  Consul can automatically register Nomad services and make them available for service discovery. Learn how to configure the service block of a Nomad jobspec so that Consul registers a service and its health checks.
+---
+
+# Register services on Nomad
+
+This page describes the requirements for Consul to automatically register a service defined in a Nomad job specification.  
+
+For more information about the configurations described on this page, refer to the [`service` block specification reference in the Nomad documentation](/nomad/docs/job-specification/service).
+
+## Overview
+
+Nomad is a flexible workload scheduler with built-in support for Consul service discovery and service mesh operations. Application workloads are defined in a [Nomad job specification](/nomad/docs/concepts/job), or _jobspec_, which Nomad uses to orchestrate running jobs across clients. You can define a service for a group of tasks or for each individual task.
+
+You do not need to create a service definition to register a Nomad service in Consul. Instead, you can define a service for Consul, including health checks and metadata such as tags, in the `service` block of a Nomad jobspec. When you run the job on a Nomad client and a Consul client is also installed and running, Consul will automatically register the service. These services appear in the Consul UI with a badge that indicates they were registered by Nomad.
+
+## Service configuration
+
+The following example demonstrates the minimal configuration for defining a Consul service in a Nomad jobspec.
+
+```hcl
+job "job-name" {
+  group "group-name" {
+    service {
+      name     = "my-svc"
+      provider = "consul"
+    }
+
+    task "task-name" {
+      # ...
+    }
+  }
+}
+```
+
+### Compared to service definition
+
+The following examples demonstrate identical service configurations. One is formatted as a Consul service definition, the other is formatted as a `service` Block in a Nomad jobspec.
+
+<Tabs>
+
+<Tab heading="Consul service definition">
+
+```hcl
+service {
+  name = "db"
+  port = "db"
+  tags = ["leader", "mysql"]
+ 
+  weights {
+    passing = 5
+    warning = 1
+  }
+ 
+  checks = [
+    {
+      type     = "tcp"
+      port     = "db"
+      interval = "10s"
+      timeout  = "2s"
+    },
+    {
+      type     = "http"
+      name     = "app_health"
+      path     = "/health"
+      interval = "20s"
+      timeout  = "5s"
+
+      check_restart {
+        limit = 3
+        grace = "90s"
+        ignore_warnings = false
+      }
+  }
+  ]
+}
+```
+
+</Tab>
+
+<Tab heading="Nomad jobspec">
+
+```hcl
+service {
+  tags = ["leader", "mysql"]
+
+  port = "db"
+
+  provider = "consul"
+
+  weights {
+    passing = 5
+    warning = 1
+  }
+
+  check {
+    type     = "tcp"
+    port     = "db"
+    interval = "10s"
+    timeout  = "2s"
+  }
+
+  check {
+    type     = "http"
+    name     = "app_health"
+    path     = "/health"
+    interval = "20s"
+    timeout  = "5s"
+
+    check_restart {
+      limit = 3
+      grace = "90s"
+      ignore_warnings = false
+    }
+  }
+}
+```
+
+</Tab>
+</Tabs>
+
+## Next steps
+
+After Consul registers a service in its catalog, the rest of Consul's service discovery features become available for that service. Refer to [discover services](/consul/docs/discover) for more information about how to use Consul for service discovery.
+
+To use Consul's service mesh features with Nomad jobs, you must also configure the service's sidecar proxy in [the `connect` block of a Nomad jobspec](/nomad/docs/job-specification/connect). For more information, refer to [Connect workloads to Consul service mesh](/consul/docs/connect).
+
+To learn more about how Nomad integrations and how Consul and Nomad work better together, complete the [Migrate a monolith to microservices tutorial](/nomad/tutorials/migrate-monolith/monolith-migration-overview).

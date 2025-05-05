@@ -1,0 +1,98 @@
+---
+layout: docs
+page_title: Consul-Terraform-Sync CLI
+description: >-
+  How to use the Consul-Terraform-Sync CLI
+---
+
+# Consul-Terraform-Sync Command (CLI)
+
+Consul-Terraform-Sync (CTS) is controlled via an easy to use command-line interface (CLI). CTS is only a single command-line application: `consul-terraform-sync`. CTS can be run as a daemon and execute CLI commands. When CTS is run as a daemon, it acts as a server to the CLI commands. Users can use the commands to interact and modify the daemon as it is running. The complete list of commands is in the navigation to the left. Both the daemon and commands return a non-zero exit status on error.
+
+## Daemon
+
+<Note> 
+  
+Running CTS as a daemon without using a command is deprecated in CTS 0.6.0 and will be removed at a much later date in a major release. For information on the preferred way to run CTS as a daemon review the [`start` command docs](/consul/docs/reference/cli/cts/start)
+
+</Note>
+
+When CTS runs as a daemon, there is no default configuration to start CTS. You must set a configuration flag -config-file or -config-dir. For example:
+
+```shell-session
+$ consul-terraform-sync start -config-file=config.hcl
+```
+
+To review a list of available flags, use the `-help` or `-h` flag.
+
+## Commands
+
+In addition to running the daemon, CTS has a set of commands that act as a client to the daemon server. The commands provide a user-friendly experience interacting with the daemon. The commands use the CTS APIs but does not correspond one-to-one with it. Please review the individual commands in the left navigation for more details.
+
+To get help for a command, run: `consul-terraform-sync <command> -h`
+
+### CLI structure
+
+CTS commands follow the below structure
+
+```shell-session
+$ consul-terraform-sync <command> [options] [args]
+```
+
+- `options`: Flags to specify additional settings. There are general options that can be used across all commands and command-specific options.
+- `args`: Required arguments specific to a commands
+
+Example:
+
+```shell-session
+$ consul-terraform-sync task disable -http-addr=http://localhost:2000 task_a
+```
+
+### Autocompletion
+
+The `consul-terraform-sync` command features opt-in autocompletion for flags, subcommands, and
+arguments (where supported).
+
+To enable autocompletion, run:
+
+```shell-session
+$ consul-terraform-sync -autocomplete-install
+```
+
+After you install autocomplete, you must restart your shell for the change to take effect.
+
+When you start typing a CTS command, press the `<tab>` key to show a
+list of available completions. To show available flag completes, type `-<tab>`.
+
+Autocompletion will query the running CTS server to return helpful argument suggestions. For example, for the `task disable` command, autocompletion will return the names of all enabled tasks that can be disabled.
+
+When autocompletion makes the query to the running CTS server, it will also use any `CTS_*` environment variables (for example `CTS_ADDRESS`) set on the CTS server.
+
+#### Example: Use autocomplete to discover how to disable a task
+
+Assume a tab is typed at the end of each prompt line:
+
+```shell-session hideClipboard
+$ consul-terraform-sync
+start  task
+
+$ consul-terraform-sync task
+create   delete   disable   enable
+
+$ consul task disable
+task_name_a   task_name_b   task_name_c
+```
+
+### General Options
+
+Below are options that can be used across all commands:
+
+| Option                                                                                                                                                                                        | Required | Type    | Description                                                                                                                                                                                                                                                                                                                                                                                | Default                 |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------- |
+| `-port`                                                                                                                                                                                       | Optional | integer | **Deprecated in Consul-Terraform-Sync 0.5.0 and will be removed in a later version.** Use `-http-addr` option instead to specify the address and port of the Consul-Terraform-Sync API.<br/><br/>Port from which the CTS daemon serves its API.<br/>The value is prepended with `http://localhost:`, but you can specify a different scheme or address with the `-http-addr` if necessary. | `8558`                  |
+| `-http-addr`                                                                                                                                                                                  | Optional | string  | Address and port of the CTS API. You can specify an IP or DNS address.<br/><br/> Alternatively, you can specify a value using the `CTS_ADDRESS` environment variable.                                                                                                                                                                                                                      | `http://localhost:8558` |
+| `-ssl-verify`                                                                                                                                                                                 | Optional | boolean | Enables verification for TLS/SSL connections to the API if set to true. This does not affect insecure HTTP connections.<br/><br/>Alternatively, you can specify the value using the `CTS_SSL_VERIFY` environment variable.                                                                                                                                                                 | `true`                  |
+| `-ca-cert`                                                                                                                                                                                    | Optional | string  | Path to a PEM-encoded certificate authority file that is used to verify TLS/SSL connections. Takes precedence over `-ca-path` if both are provided.<br/><br/>Alternatively, you can specify the value using the `CTS_CACERT` environment variable.                                                                                                                                         | none                    |
+| `-ca-path`                                                                                                                                                                                    | Optional | string  | Path to a directory containing a PEM-encoded certificate authority file that is used to verify TLS/SSL connections.<br/><br/>Alternatively, you can specify the value using the `CTS_CAPATH` environment variable.                                                                                                                                                                         | none                    |
+| `-client-cert` &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | Optional | string  | Path to a PEM-encoded client certificate that the CTS API requires when [`verify_incoming`](/consul/docs/automate/infrastructure/configure#verify_incoming) is set to `true` on the API.<br/><br/>Alternatively, you can specify the value using the `CTS_CLIENT_CERT` environment variable.                                                                                                                      | none                    |
+| `-client-key`                                                                                                                                                                                 | Optional | string  | Path to a PEM-encoded client key for the certificate configured with the `-client-cert` option. This is required if `-client-cert` is set and if [`verify_incoming`](/consul/docs/automate/infrastructure/configure#verify_incoming) is set to `true` on the CTS API.<br/><br/>Alternatively, you can specify the value using the `CTS_CLIENT_KEY` environment variable.                                          | none                    |

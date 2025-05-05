@@ -1,0 +1,72 @@
+---
+layout: docs
+page_title: Identity
+description: >-
+  This topic introduces identity in Consul. Consul uses identity to associate agents, configurations, and services on different nodes that may have different names but are otherwise identical.
+---
+
+# Identity
+
+In a datacenter, Consul uses _identity_ to associate agents, configurations, and services on different nodes that may have different names but are otherwise identical. It is important to understand how Consul determines identity and how it uses identity for cluster operations and service networking.
+
+## Overview
+
+In Consul, there are three main categories of configuration files:
+
+1. Agent configuration files
+1. Service definition files
+1. Configuration entry files
+
+When you create any configuration in Consul, whether it is an agent configuration file, a service definition, or a configuration entry, you explicitly define the object's identity for Consul.
+
+We recommend names that are simple, descriptive, and unique. Use hyphens (`-`) or `snakeCase` for your naming conventions. Do not use spaces, underscores, or periods, and these characters may interfere with Consul DNS.
+
+By default, Consul records identity for each datacenter. Strategies to [extend your service network east/west](/consul/docs/east-west), such as WAN federation and cluster peering, allow you to use service identity across Consul datacenters. Consul Enterprise also includes [multi-tenancy management features](/consul/docs/multi-tenant) such as admin partitions and namespaces to help you manage service and configuration identity within a single datacenter.
+
+## Agent identity
+
+For agents, the `datacenter` parameter specifies the identity of the cluster. By default, Consul assigns the name `dc1` when one is not specified. Agents will only join clusters whose datacenter name matches its own. This ensures agents don't accidentally join the wrong cluster.
+
+You can also specify a custom domain for an agent. By default, the domain for all Consul agents is `consul`. We recommend using the default domain unless you are a platform engineer with advanced networking requirements.
+
+Optionally, you can also set a custom `node_name` for an agent that appears in the Consul catalog.
+
+## Service identity
+
+Consul can connect services across system runtimes and cloud providers because of _service identity_. When you register a service, you can specify the following identity information about the service for Consul:
+
+| Identity field | Default value   | What it means                                                                                  |
+| :------------- | :-------------- | :--------------------------------------------------------------------------------------------- |
+| `name`         | None (Required) | Specifices the service name in the Consul catalog to register the local instance under.        |
+| `id`           | Value of `name` | Specifies a service when multiple services run on a single node.                               |
+| `namespace`    | `default`       | Specifies the Consul namespace to register the service in.                                     |
+| `partition`    | `default`       | Specifies the Consul admin partition to register the service in.                               |
+| `tags`         | None            | Specifies custom metadata values for service version upgrades and deployment upgrade rollouts. |
+
+In networks that use Consul for service discovery, Consul uses service identity to route traffic to a healthy instance in response to Consul DNS queries.
+
+In networks that also use Consul service mesh, Consul uses service identity for the following functions:
+
+- Explicit upstream definitions for service sidecar proxies.
+- Service intentions for secure service-to-service communication.
+- Traffic management with service resolvers, splitters, and routers.
+
+## Configuration identity
+
+When you operate Consul, you manage network behavior with a series of configuration entries that define the desired state of the network. When you register a configuration, you define the `Kind` of configuration entry and its `Name`.
+
+Consul merges configuration entries that have the same kind and name in the `consul.d` directory. When you reload the Consul agent, it automatically combines these related entries into a single unified configuration. This allows you to organize your configuration across multiple files while maintaining logical grouping.
+
+When you use the Consul CLI to add configuration entries to your datacenter, you reference the configuration entry name when you run the `consul config` command.
+
+### Peer identity
+
+When you use Consul's cluster peering features to connect datacenters, you must provide an identity for the peer on each end of the peering connection. To keep configurations human-readable, we recommend that you use the datacenter and partition names. For example, the default admin partition in the default datacenter is defined as `dc1-default` on each peer.
+
+## Next steps
+
+The next three pages in this sequence of Consul fundamentals go into more depth about each of the topics introduced on this page:
+
+- [Consul agent basics](/consul/docs/fundamentals/agent)
+- [Service and health check basics](/consul/docs/fundamentals/service)
+- [Configuration entry basics](/consul/docs/fundamentals/config-entry)

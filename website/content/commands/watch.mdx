@@ -19,7 +19,7 @@ a process with the latest values of the view. If no process is specified,
 the current values are dumped to STDOUT which can be a useful way to inspect
 data in Consul.
 
-There is more [documentation on watches here](/consul/docs/dynamic-app-config/watches).
+There is more [documentation on watches here](/consul/docs/automate/watch).
 
 ## Usage
 
@@ -28,7 +28,7 @@ Usage: `consul watch [options] [child...]`
 The only required option is `-type` which specifies the particular
 data view. Depending on the type, various options may be required
 or optionally provided. There is more documentation on watch
-[specifications here](/consul/docs/dynamic-app-config/watches).
+[specifications here](/consul/docs/automate/watch).
 
 #### Command Options
 
@@ -60,6 +60,6 @@ or optionally provided. There is more documentation on watch
 
 #### API Options
 
-@include 'http_api_options_client.mdx'
+@include 'legacy/http_api_options_client.mdx'
 
-@include 'http_api_options_server.mdx'
+@include 'legacy/http_api_options_server.mdx'

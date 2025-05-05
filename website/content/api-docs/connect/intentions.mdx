@@ -9,11 +9,11 @@ description: |-
 # Intentions - Connect HTTP API
 
 The `/connect/intentions` endpoint provide tools for managing
-[intentions](/consul/docs/connect/intentions).
+[intentions](/consul/docs/secure-mesh/intention).
 
 -> **1.9.0 and later:** Reading and writing intentions has been
 migrated to the
-[`service-intentions`](/consul/docs/connect/config-entries/service-intentions)
+[`service-intentions`](/consul/docs/reference/config-entry/service-intentions)
 config entry kind.
 
 ## Upsert Intention by Name ((#upsert-intention-by-name))
@@ -60,7 +60,7 @@ The corresponding CLI command is [`consul intention create -replace`](/consul/co
   as shown in the [source and destination naming conventions](/consul/commands/intention#source-and-destination-naming).
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
-@include 'http-api-query-parms-partition.mdx'
+@include 'legacy/http-api-query-parms-partition.mdx'
 
 ### JSON Request Body Schema
 
@@ -76,7 +76,7 @@ The corresponding CLI command is [`consul intention create -replace`](/consul/co
   the `Permissions` field.
 
 - `Permissions` `(array<IntentionPermission>)` - The list of all [additional L7
-  attributes](/consul/docs/connect/config-entries/service-intentions#intentionpermission)
+  attributes](/consul/docs/reference/config-entry/service-intentions#intentionpermission)
   that extend the intention match criteria.
 
   Permission precedence is applied top to bottom. For any given request the
@@ -84,7 +84,7 @@ The corresponding CLI command is [`consul intention create -replace`](/consul/co
   evaluation. As with L4 intentions, traffic that fails to match any of the
   provided permissions in this intention will be subject to the default
   intention behavior is defined by the default [ACL
-  policy](/consul/docs/agent/config/config-files#acl_default_policy).
+  policy](/consul/docs/reference/agent/configuration-file/acl#acl_default_policy).
 
   This should be omitted for an L4 intention as it is mutually exclusive with
   the `Action` field.
@@ -120,7 +120,7 @@ true
 
 -> **Deprecated** - This endpoint is deprecated in Consul 1.9.0 in favor of
 [upserting by name](#upsert-intention-by-name) or editing the
-[`service-intentions`](/consul/docs/connect/config-entries/service-intentions) config
+[`service-intentions`](/consul/docs/reference/config-entry/service-intentions) config
 entry for the destination.
 
 This endpoint creates a new intention and returns its ID if it was created
@@ -153,7 +153,7 @@ The corresponding CLI command is [`consul intention create`](/consul/commands/in
   as shown in the [source and destination naming conventions](/consul/commands/intention#source-and-destination-naming).
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
-@include 'http-api-query-parms-partition.mdx'
+@include 'legacy/http-api-query-parms-partition.mdx'
 
 ### JSON Request Body Schema
 
@@ -215,7 +215,7 @@ $ curl \
 
 -> **Deprecated** - This endpoint is deprecated in Consul 1.9.0 in favor of
 [upserting by name](#upsert-intention-by-name) or editing the
-[`service-intentions`](/consul/docs/connect/config-entries/service-intentions) config
+[`service-intentions`](/consul/docs/reference/config-entry/service-intentions) config
 entry for the destination.
 
 This endpoint updates an intention with the given values.
@@ -294,7 +294,7 @@ The corresponding CLI command is [`consul intention get`](/consul/commands/inten
   as shown in the [source and destination naming conventions](/consul/commands/intention#source-and-destination-naming).
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
-@include 'http-api-query-parms-partition.mdx'
+@include 'legacy/http-api-query-parms-partition.mdx'
 
 ### Sample Request
 
@@ -325,7 +325,7 @@ $ curl \
 
 -> **Deprecated** - This endpoint is deprecated in Consul 1.9.0 in favor of
 [reading by name](#read-specific-intention-by-name) or by viewing the
-[`service-intentions`](/consul/docs/connect/config-entries/service-intentions)
+[`service-intentions`](/consul/docs/reference/config-entry/service-intentions)
 config entry for the destination.
 
 This endpoint reads a specific intention.
@@ -382,7 +382,7 @@ $ curl \
 
 This endpoint lists all intentions.
 
-@include 'http_api_results_filtered_by_acls.mdx'
+@include 'legacy/http_api_results_filtered_by_acls.mdx'
 
 | Method | Path                  | Produces           |
 | ------ | --------------------- | ------------------ |
@@ -410,7 +410,7 @@ The corresponding CLI command is [`consul intention list`](/consul/commands/inte
   The `*` wildcard may be used to list intentions from all namespaces.
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
-@include 'http-api-query-parms-partition.mdx'
+@include 'legacy/http-api-query-parms-partition.mdx'
 
 ### Sample Request
 
@@ -493,7 +493,7 @@ The corresponding CLI command is [`consul intention delete`](/consul/commands/in
   as shown in the [source and destination naming conventions](/consul/commands/intention#source-and-destination-naming).
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
-@include 'http-api-query-parms-partition.mdx'
+@include 'legacy/http-api-query-parms-partition.mdx'
 
 ### Sample Request
 
@@ -507,7 +507,7 @@ $ curl \
 
 -> **Deprecated** - This endpoint is deprecated in Consul 1.9.0 in favor of
 [deleting by name](#delete-intention-by-name) or editing the
-[`service-intentions`](/consul/docs/connect/config-entries/service-intentions) config
+[`service-intentions`](/consul/docs/reference/config-entry/service-intentions) config
 entry for the destination.
 
 This endpoint deletes a specific intention.
@@ -638,7 +638,7 @@ The corresponding CLI command is [`consul intention match`](/consul/commands/int
   as shown in the [source and destination naming conventions](/consul/commands/intention#source-and-destination-naming).
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
-@include 'http-api-query-parms-partition.mdx'
+@include 'legacy/http-api-query-parms-partition.mdx'
 
 ### Sample Request
 

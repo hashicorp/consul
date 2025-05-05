@@ -90,7 +90,7 @@ type RuntimeConfig struct {
 	// ACLEnableKeyListPolicy is used to opt-in to the "list" policy added to
 	// KV ACLs in Consul 1.0.
 	//
-	// See https://www.consul.io/docs/guides/acl.html#list-policy-for-keys for
+	// See https://developer.hashicorp.com/docs/guides/acl.html#list-policy-for-keys for
 	// more details.
 	//
 	// hcl: acl.enable_key_list_policy = (true|false)
@@ -892,7 +892,7 @@ type RuntimeConfig struct {
 
 	// PrimaryGateways is a list of addresses and/or go-discover expressions to
 	// discovery the mesh gateways in the primary datacenter. See
-	// https://www.consul.io/docs/agent/config/cli-flags#cloud-auto-joining for
+	// https://developer.hashicorp.com/docs/agent/config/cli-flags#cloud-auto-joining for
 	// details.
 	//
 	// hcl: primary_gateways = []string
@@ -1094,7 +1094,7 @@ type RuntimeConfig struct {
 
 	// RetryJoinLAN is a list of addresses and/or go-discover expressions to
 	// join with retry enabled. See
-	// https://www.consul.io/docs/agent/config/cli-flags#cloud-auto-joining for
+	// https://developer.hashicorp.com/docs/agent/config/cli-flags#cloud-auto-joining for
 	// details.
 	//
 	// hcl: retry_join = []string
@@ -1119,7 +1119,7 @@ type RuntimeConfig struct {
 
 	// RetryJoinWAN is a list of addresses and/or go-discover expressions to
 	// join -wan with retry enabled. See
-	// https://www.consul.io/docs/agent/config/cli-flags#cloud-auto-joining for
+	// https://developer.hashicorp.com/docs/agent/config/cli-flags#cloud-auto-joining for
 	// details.
 	//
 	// hcl: retry_join_wan = []string
@@ -1502,7 +1502,7 @@ type RuntimeConfig struct {
 	// handler to act appropriately. These are managed entirely in the
 	// agent layer using the standard APIs.
 	//
-	// See https://www.consul.io/docs/agent/watches.html for details.
+	// See https://developer.hashicorp.com/docs/agent/watches.html for details.
 	//
 	// hcl: watches = [
 	//   { type=string ... },

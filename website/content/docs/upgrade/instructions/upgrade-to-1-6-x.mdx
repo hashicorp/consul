@@ -1,0 +1,233 @@
+---
+layout: docs
+page_title: Upgrade Consul to v1.6.x
+description: >-
+  Specific versions of Consul may have additional information about the upgrade
+  process beyond the standard flow.
+---
+
+# Upgrade Consul to v1.6.x
+
+The page describes the process to update a Consul deployment to v1.6.x and maintain replication data.
+
+## Introduction
+
+This guide explains how to best upgrade a multi-datacenter Consul deployment that is using
+a version of Consul >= 1.2.4 and < 1.6.10 while maintaining replication. If you are on a version
+older than 1.2.4, please review our [Upgrading to 1.2.4](/consul/docs/upgrade/instructions/upgrade-to-1-2-x)
+guide. Due to changes to the ACL system, an ACL token migration will need to be performed
+as part of this upgrade. The 1.6.x series is the last series that had support for legacy
+ACL tokens, so this migration _must_ happen before upgrading past the 1.6.x release series.
+Here is some documentation that may prove useful for reference during this upgrade process:
+
+- [Upgrading Legacy ACL tokens](/consul/tutorials/security-operations/access-control-token-migration) - You can find
+  information about upgrading legacy ACL tokens and differences between modes here.
+- [Configuration](/consul/docs/fundamentals/agent) - You can find more details
+  around legacy ACL and new ACL configuration options here. Legacy ACL config options
+  will be listed as deprecates as of 1.4.0.
+
+In this guide, we will be using an example with two datacenters (DCs) and will be
+referring to them as DC1 and DC2. DC1 will be the primary datacenter.
+
+## Requirements
+
+- All Consul servers should be on a version of Consul >= 1.2.4 and < 1.6.10.
+
+## Assumptions
+
+This guide makes the following assumptions:
+
+- You have at least two datacenters configured and have ACL replication enabled. If you are
+  not using multiple datacenters, you can follow along and simply skip the instructions related
+  to replication.
+- You have not already performed the ACL token migration. If you have, please skip all related
+  steps.
+
+## Considerations
+
+There are quite a number of changes between releases. Notable changes
+are called out in our [Specific Version Details](/consul/docs/upgrading/upgrade-specific#consul-1-6-3)
+page. You can find more granular details in the full [changelog](https://github.com/hashicorp/consul/blob/main/CHANGELOG.md#124-november-27-2018).
+Looking through these changes prior to upgrading is highly recommended.
+
+Two very notable items are:
+
+- 1.6.2 introduced more strict JSON decoding. Invalid JSON that was previously ignored might result in errors now (e.g., `Connect: null` in service definitions). See [[GH#6680](https://github.com/hashicorp/consul/pull/6680)].
+- 1.6.3 introduced the [http_max_conns_per_client](/consul/docs/reference/agent/configuration-file#http_max_conns_per_client) limit. This defaults to 200. Prior to this, connections per client were unbounded. [[GH#7159](https://github.com/hashicorp/consul/issues/7159)]
+
+## Procedure
+
+**1.** Check the replication status of the primary datacenter (DC1) by issuing the following curl command from a
+consul server in that DC:
+
+```shell-session
+$ curl --silent --header "X-Consul-Token: $MASTER_TOKEN" localhost:8500/v1/acl/replication?pretty
+```
+
+You should receive output similar to this:
+
+```json
+{
+  "Enabled": false,
+  "Running": false,
+  "SourceDatacenter": "",
+  "ReplicatedIndex": 0,
+  "LastSuccess": "0001-01-01T00:00:00Z",
+  "LastError": "0001-01-01T00:00:00Z"
+}
+```
+
+-> The primary datacenter (indicated by `acl_datacenter`) will always show as having replication
+disabled, so this is normal even if replication is happening.
+
+**2.** Check replication status in DC2 by issuing the following curl command from a
+consul server in that DC:
+
+```shell-session
+$ curl --silent --header "X-Consul-Token: $MASTER_TOKEN" localhost:8500/v1/acl/replication?pretty
+```
+
+You should receive output similar to this:
+
+```json
+{
+  "Enabled": true,
+  "Running": true,
+  "SourceDatacenter": "dc1",
+  "ReplicatedIndex": 9,
+  "LastSuccess": "2020-09-10T21:16:15Z",
+  "LastError": "0001-01-01T00:00:00Z"
+}
+```
+
+**3.** Upgrade DC2 agents to version 1.6.10 by following our [General Upgrade Process](/consul/docs/upgrade/instructions/general). _**Leave all DC1 agents at 1.2.4.**_ You should start observing log messages like this after that:
+
+```log
+2020/09/08 15:51:29 [DEBUG] acl: Cannot upgrade to new ACLs, servers in acl datacenter have not upgraded - found servers: true, mode: 3
+2020/09/08 15:51:32 [ERR] consul: RPC failed to server 192.168.5.2:8300 in DC "dc1": rpc error making call: rpc: can't find service ConfigEntry.ListAll
+```
+
+!> **Warning:** _It is important to upgrade your primary datacenter **last**_ (the one
+specified in `acl_datacenter`). If you upgrade the primary datacenter first, it will
+break replication between your other datacenters. If you upgrade your other datacenters
+first, they will be in legacy mode and replication from your primary datacenter will
+continue working.
+
+**4.** Check that replication is still working in DC2.
+
+From a Consul server in DC2:
+
+```shell-session
+$ curl --silent --header "X-Consul-Token: $MASTER_TOKEN" localhost:8500/v1/acl/replication?pretty
+$ curl --silent --header "X-Consul-Token: $MASTER_TOKEN" localhost:8500/v1/acl/list?pretty
+```
+
+Take note of the `ReplicatedIndex` value.
+
+Create a new file containing the payload for creating a new token named `test-ui-token.json`
+with the following contents:
+
+<CodeBlockConfig filename="test-ui-token.json">
+
+```json
+{
+  "Name": "UI Token",
+  "Type": "client",
+  "Rules": "key \"\" { policy = \"write\" } node \"\" { policy = \"read\" } service \"\" { policy = \"read\" }"
+}
+```
+
+</CodeBlockConfig>
+
+From a Consul server in DC1, create a new token using that file:
+
+```shell-session
+$ curl --request PUT --header "X-Consul-Token: $MASTER_TOKEN" --data @test-ui-token.json localhost:8500/v1/acl/create
+```
+
+From a Consul server in DC2:
+
+```shell-session
+$ curl --silent --header "X-Consul-Token: $MASTER_TOKEN" "localhost:8500/v1/acl/replication?pretty"
+$ curl --silent --header "X-Consul-Token: $MASTER_TOKEN" "localhost:8500/v1/acl/list?pretty"
+```
+
+`ReplicatedIndex` should have incremented and you should find the new token listed. If you try using CLI ACL commands you will receive this error:
+
+```log
+Failed to retrieve the token list: Unexpected response code: 500 (The ACL system is currently in legacy mode.)
+```
+
+This is because Consul in legacy mode. ACL CLI commands will not work and you have to hit the old ACL HTTP endpoints (which is why `curl` is being used above rather than the `consul` CLI client).
+
+**5.** Upgrade DC1 agents to version 1.6.10 by following our [General Upgrade Process](/consul/docs/upgrade/instructions/general).
+
+Once this is complete, you should observe a log entry like this from your server agents:
+
+```log
+2020/09/10 22:11:49 [DEBUG] acl: transitioning out of legacy ACL mode
+```
+
+**6.** Confirm that replication is still working in DC2 by issuing the following curl command from a
+consul server in that DC:
+
+```shell-session
+$ curl --silent --header "X-Consul-Token: $MASTER_TOKEN" "localhost:8500/v1/acl/replication?pretty"
+```
+
+You should receive output similar to this:
+
+```json
+{
+  "Enabled": true,
+  "Running": true,
+  "SourceDatacenter": "dc1",
+  "ReplicationType": "tokens",
+  "ReplicatedIndex": 259,
+  "ReplicatedRoleIndex": 1,
+  "ReplicatedTokenIndex": 260,
+  "LastSuccess": "2020-09-10T22:11:51Z",
+  "LastError": "2020-09-10T22:11:43Z"
+}
+```
+
+**6.** Migrate your legacy ACL tokens to the new ACL system.
+
+~> This step _must_ be completed before upgrading to a version higher than 1.6.x.
+
+## Post-Upgrade Configuration Changes
+
+When moving from a pre-1.4.0 version of Consul, you will find that several of the ACL-related
+configuration options were renamed. Backwards compatibility is maintained in the 1.6.x release
+series, so you are old config options will continue working after upgrading, but you will want to
+update those now to avoid issues when moving to newer versions.
+
+These are the changes you will need to make:
+
+- `acl_datacenter` is now named `primary_datacenter` (review our [docs](/consul/docs/reference/agent/configuration-file#primary_datacenter) for more info)
+- `acl_default_policy`, `acl_down_policy`, `acl_ttl`, `acl_*_token` and `enable_acl_replication` options are now specified like this (review our [docs](/consul/docs/reference/agent/configuration-file#acl) for more info):
+  ```hcl
+  acl {
+    enabled                  = true/false
+    default_policy           = "..."
+    down_policy              = "..."
+    policy_ttl               = "..."
+    role_ttl                 = "..."
+    enable_token_replication = true/false
+    enable_token_persistence = true/false
+    tokens {
+      master       = "..."
+      agent        = "..."
+      agent_master = "..."
+      replication  = "..."
+      default      = "..."
+    }
+  }
+  ```
+
+You can make sure your config changes are valid by copying your existing configuration files,
+making the changes, and then verifying them by using `consul validate $CONFIG_FILE1_PATH $CONFIG_FILE2_PATH ...`.
+
+Once your config is passing the validation check, replace your old config files with the new ones
+and slowly roll your cluster again one server at a time – leaving the leader agent for last in each
+datacenter.

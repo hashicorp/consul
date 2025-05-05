@@ -1,0 +1,304 @@
+---
+layout: docs
+page_title: Manage gossip encryption
+description: >-
+  Consul supports encrypting all of its network traffic. Learn how to secure gossip communication between all agents by creating and rotating a symmetric key.
+---
+
+# Manage gossip encryption
+
+This topic describes the steps to enable gossip encryption on a Consul datacenter and rotate the gossip encryption key to maintain secure communication between agents.
+
+## Workflows
+
+We recommend enabling gossip encryption to all new deployed Consul datacenters. You can also update the agents in an existing datacenter to use gossip encryption.
+
+The workflow to enable gossip encryption changes depending on whether your datacenter has client agents running.
+
+To [enable gossip encryption on a new datacenter](#enable-gossip-encryption-on-a-new-datacenter):
+
+1. Use `consul keygen` to generate a new gossip encryption key.
+1. Create a configuration file that sets the `encrypt` parameter to the newly generated key.
+1. Distribute the configuration file to all agent nodes that are part of the datacenter. Then start the Consul agent on all the nodes.
+
+To [enable gossip encryption on an existing datacenter](#enable-gossip-encryption-on-an-existing-datacenter):
+
+1. Use `consul keygen` to generate a new gossip encryption key.
+1. Create a configuration file that sets the `encrypt` parameter to the newly generated key and sets `encrypt_verify_incoming` and `encrypt_verify_outgoing` to `false`.
+1. Distribute the configuration file to all agent nodes that are part of the datacenter. Then perform a rolling restart of all Consul agents.
+1. Update the `encrypt_verify_outgoing` setting to `true` and perform a rolling restart of all Consul agents.
+1. Update the `encrypt_verify_incoming` setting to `true` and perform a rolling restart of all Consul agents.
+
+If you have multiple datacenters joined in WAN federation, be sure to use _the same encryption key_ in all datacenters.
+
+## Enable gossip encryption on a new datacenter
+
+We recommend enabling gossip encryption on all new Consul datacenters.
+
+### Generate a gossip encryption key
+
+First, generate an encryption key on a Consul server. The Consul CLI includes a `consul keygen` command to generate a key.
+
+```shell-session
+$ consul keygen
+YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA=
+```
+
+You can generate a new gossip key using any method that can create 32 random bytes encoded in base64. For example, you can use `openssl` or `dd` to create a key on Linux with one of the following commands:
+
+- `openssl rand -base64 32`
+- `dd if=/dev/urandom bs=32 count=1 status=none | base64`
+
+### Add the key to the agent configuration
+
+Create a configuration that sets `encrypt` parameter to the newly generated key. You can edit the existing agent configuration, or you can add a file to the configuration directory. For more information, refer to [configuring Consul agents](/consul/docs/agent#configuring-consul-agents).
+
+<CodeTabs>
+
+```hcl
+encrypt = "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA="
+```
+
+```json
+{
+  "encrypt": "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA="
+}
+```
+
+</CodeTabs>
+
+### Add the key to all agent configurations
+
+Distribute the gossip key to all the agent nodes that need to be pert of the datacenter. Then start the Consul agent on all the nodes.
+
+When gossip encryption is properly configured, `Gossip Encryption: true` appears in the Consul logs at startup.
+
+<CodeBlockConfig filename="consul.log" hideClipboard highlight="10">
+
+```log
+==> Starting Consul agent...
+   Version: '1.19.0'
+Build Date: '2024-06-12 13:59:10 +0000 UTC'
+   Node ID: 'e74b1ade-e932-1707-cdf1-6579b8b2536c'
+ Node name: 'consul-server-0'
+Datacenter: 'dc1' (Segment: '<all>')
+Server: true (Bootstrap: false)
+   Client Addr: [127.0.0.1] (HTTP: 8500, HTTPS: 8443, gRPC: -1, gRPC-TLS: 8503, DNS: 53)
+  Cluster Addr: 172.19.0.7 (LAN: 8301, WAN: 8302)
+ Gossip Encryption: true
+  Auto-Encrypt-TLS: true
+   ACL Enabled: true
+ Reporting Enabled: false
+ACL Default Policy: deny
+ HTTPS TLS: Verify Incoming: false, Verify Outgoing: true, Min Version: TLSv1_2
+  gRPC TLS: Verify Incoming: false, Min Version: TLSv1_2
+  Internal RPC TLS: Verify Incoming: true, Verify Outgoing: true (Verify Hostname: true), Min Version: TLSv1_2
+## ...
+```
+
+</CodeBlockConfig>
+
+## Enable gossip encryption on an existing datacenter
+
+You can also enable gossip encryption on existing Consul datacenters.
+
+### Generate a gossip encryption key
+
+First, generate an encryption key on a Consul server. The Consul CLI includes a `consul keygen` command to generate a key.
+
+```shell-session
+$ consul keygen
+YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA=
+```
+
+### Add the key to the agent configuration
+
+Create a configuration that sets the `encrypt` parameter to the newly generated key and sets the `encrypt_verify_incoming` and `encrypt_verify_outgoing` parameters to `false`.  You can edit the existing agent configuration, or you can add a file to the configuration directory. For more information, refer to [configuring Consul agents](/consul/docs/agent#configuring-consul-agents).
+
+<CodeTabs>
+
+<CodeBlockConfig filename="/etc/consul.d/encryption.hcl">
+
+```hcl
+encrypt = "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA="
+encrypt_verify_incoming = false
+encrypt_verify_outgoing = false
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig filename="/etc/consul.d/encryption.json">
+
+```json
+{
+"encrypt": "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA=",
+"encrypt_verify_incoming" : false,
+"encrypt_verify_outgoing" : false
+}
+```
+
+</CodeBlockConfig>
+
+</CodeTabs>
+
+### Add the configuration to all agents
+
+Distribute the configuration to all the agent nodes that need to be part of the datacenter, and then initiate a rolling update that restarts each agent.
+
+You must restart all of the agents. The `consul reload` and `kill -HUP <process_id>` commands are not sufficient when changing the gossip configuration.
+
+### Update outgoing encryption
+
+The agents can decrypt gossip communication with the `encrypt` parameter set, but they are not able to send encrypted traffic.
+
+Update the `encrypt_verify_outgoing` setting to `true` and then perform another rolling update of all Consul agents. Complete the process on all the nodes before you begin [updates to incoming encryption](#update-the-incoming-encryption).
+
+<CodeTabs>
+
+<CodeBlockConfig filename="/etc/consul.d/encryption.hcl">
+
+```hcl
+encrypt = "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA="
+encrypt_verify_incoming = false
+encrypt_verify_outgoing = true
+ ```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig filename="/etc/consul.d/encryption.json">
+
+```json
+{
+"encrypt": "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA=",
+"encrypt_verify_incoming": false,
+"encrypt_verify_outgoing": true
+}
+```
+
+</CodeBlockConfig>
+
+</CodeTabs>
+
+### Update incoming encryption
+
+The agents can send encrypted gossip but still allow unencrypted incoming traffic. Update the `encrypt_verify_incoming` setting to `true` and then perform a final rolling update on all the agents.
+
+<CodeTabs>
+
+<CodeBlockConfig filename="/etc/consul.d/encryption.hcl">
+
+```hcl
+encrypt = "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA="
+encrypt_verify_incoming = true
+encrypt_verify_outgoing = true
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig filename="/etc/consul.d/encryption.json">
+
+```json
+{
+"encrypt": "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA=",
+"encrypt_verify_incoming": true,
+"encrypt_verify_outgoing": true
+}
+```
+
+</CodeBlockConfig>
+
+</CodeTabs>
+
+## Rotate the gossip encryption key
+
+It is important to periodically rotate the gossip encryption key your Consul datacenter uses.
+
+The process of rotating the gossip encryption key is centralized so that you can perform it on a single datacenter node.
+
+The process to rotate a gossip encryption key consists of the following steps:
+
+1. Generate a new encryption key using the `consul keygen` command.
+1. Install the new encryption key using the `consul keyring -install` command.
+1. Verify the new key is installed in your Consul datacenter with the `consul keyring -list` command.
+1. Instruct Consul to use the new key with the `consul keyring -use` command.
+1. Remove the old key using the `consul keyring -remove` command.
+
+### Generate a new encryption key
+
+Generate a new key using `consul keygen`:
+
+```shell-session
+$ consul keygen
+FfRV9j6NXU9LlCI4zLZjjpZdj4Nrqsdm7R8YgzSHzHw=
+```
+
+### Add new key to the keyring
+
+Add your newly generated key to the keyring.
+
+```shell-session
+$ consul keyring -install FfRV9j6NXU9LlCI4zLZjjpZdj4Nrqsdm7R8YgzSHzHw=
+==> Installing new gossip encryption key...
+```
+
+### Verify that the new key is installed
+
+After you add the key to one of the Consul agents, Consul propagates it across the entire datacenter. You do not need to repeat the command on other agents.
+
+To ensure that the key has been propagated to all agents, list the installed encryption keys and verify that the number of agents that recognize the key is equal to the total number of agents in the datacenter.
+
+```shell-session
+$ consul keyring -list
+==> Gathering installed encryption keys...
+
+WAN:
+  FfRV9j6NXU9LlCI4zLZjjpZdj4Nrqsdm7R8YgzSHzHw= [1/1]
+  YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA= [1/1]
+
+dc1 (LAN):
+  YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA= [7/7]
+  FfRV9j6NXU9LlCI4zLZjjpZdj4Nrqsdm7R8YgzSHzHw= [7/7]
+```
+
+Confirm that the two keys are installed in the datacenter and recognized by all agents, including server agents. The server agents are listed in the `WAN` section. Do not proceed to the next step unless all agents have the new key.
+
+### Promote the new key to primary
+
+After all agents recognize the key, it is possible to promote it to be the new primary encryption key.
+
+```shell-session
+$ consul keyring -use FfRV9j6NXU9LlCI4zLZjjpZdj4Nrqsdm7R8YgzSHzHw=
+==> Changing primary gossip encryption key...
+```
+
+### Remove the old key from the keyring
+
+Unused keys in the keyring are a potential security risk to your Consul cluster. We recommended that you remove the former primary key from the keyring after a new key is installed.
+
+```shell-session
+$ consul keyring -remove YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA=
+==> Removing gossip encryption key...
+```
+
+Verify that the keyring contains only one key.
+
+```shell-session
+$ consul keyring -list
+==> Gathering installed encryption keys...
+
+WAN:
+  FfRV9j6NXU9LlCI4zLZjjpZdj4Nrqsdm7R8YgzSHzHw= [1/1]
+
+dc1 (LAN):
+  FfRV9j6NXU9LlCI4zLZjjpZdj4Nrqsdm7R8YgzSHzHw= [7/7]
+```
+
+## Next steps
+
+Documentation for the commands used in this topic is available at [Encryption parameters for Consul agent configuration files](/consul/docs/reference/agent/configuration-file/encryption). You can find more information over the gossip protocol used by Consul at [Gossip Protocol](/consul/docs/concept/gossip).
+
+After you enable gossip encryption, you can continue to process to secure your Consul datacenter by enabling mutual TLS encryption. For more information, refer to [Mutual TLS (mTLS) Encryption](/consul/docs/secure/encryption/tls/mtls).
+
+To learn how to automate gossip key rotation using HashiCorp Vault and
+consul-template, refer to the [Automatically Rotate Gossip Encryption Keys
+Secured in Vault tutorial](/consul/docs/automate/consul-template/vault/gossip).

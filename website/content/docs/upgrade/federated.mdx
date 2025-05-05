@@ -1,0 +1,325 @@
+---
+layout: docs
+page_title: Upgrade WAN-federated Consul datacenters
+description: >-
+  Upgrade your federated Consul datacenters without downtime and ensuring federation and ACL replication is mantained.
+---
+
+# Upgrade WAN-federated Consul datacenters
+
+This topic describes the process to upgrade multiple Consul datacenters that are deployed with WAN federation.
+
+## Overview
+
+One of the fundamental operations to be performed in any production environment is to
+upgrade to a new version without experiencing downtime and to
+minimize any risk factors that could lead to future outages.
+
+In this tutorial, you will learn how to perform the upgrade of a multi-datacenter
+federated Consul environment.
+
+To perform the upgrade we recommend you perform a rolling upgrade/restart of the Consul agents on all the servers nodes in the primary datacenter, followed by a similar rolling upgrade/restart of all the client agents. After the upgrade of the primary datacenter is completed successfully, you will perform the same process on the secondary datacenter. This approach ensures you maintain availability for the datacenters and federation during the whole process.
+
+## Prerequisites
+
+### Consul versions
+
+In this tutorial we will show the use case of upgrading a federated Consul
+environment running on `1.7.11` to Consul `1.9.2`.
+
+<Note>
+
+ As a general best practice, when upgrading, you should always
+consider upgrading to the latest available version to take advantage of all
+new features and fixes.
+
+</Note>
+
+To complete this tutorial, you will need two wide area network (WAN) joined
+Consul datacenters with access control list (ACL) replication enabled. If you
+are starting from scratch, follow these tutorials to set up your datacenters,
+or use them to check that you have the proper configuration in place:
+
+- [Deployment Guide](/consul/tutorials/production-deploy/deployment-guide)
+- [Securing Consul with ACLs](/consul/tutorials/security/access-control-setup-production)
+- [Basic Federation with WAN Gossip](/consul/tutorials/networking/federation-gossip-wan)
+
+You will also need to enable ACL replication, which you can do by following the steps in the
+[ACL Replication for Multiple
+Datacenters](/consul/tutorials/security-operations/access-control-replication-multiple-datacenters)
+tutorial.
+
+Lastly, if you are using Consul service mesh, you should set [`enable_central_service_config = true`](/consul/docs/reference/agent/configuration-file/general#enable_central_service_config)
+on your Consul clients which will allow you to centrally configure the sidecar
+and mesh gateway proxies.
+
+## Prepare for upgrade
+
+### Check version compatibility
+
+Operating a Consul datacenter that is multiple major versions behind the current
+major version can increase the risk incurred during upgrades. We encourage our
+users to remain no more than two major versions behind (i.e., if `1.9.x` is the
+current release, do not use versions older than `1.7.x`).
+
+If you are running a Consul version older that `1.7.x` please check our
+documentation for:
+
+- [Upgrade Instructions](/consul/docs/upgrade/instructions)
+- [Upgrading Specific Versions](/consul/docs/upgrade/version-specific)
+
+### Take a snapshot
+
+The procedure in the tutorial should not cause any data
+loss in Consul state. Still, as a general best practice, it is recommended to take
+a snapshot of your environment every time you perform a potentially disruptive
+operation such as an upgrade.
+
+You can follow the [Backup Consul Data and State](/consul/tutorials/production-deploy/backup-and-restore)
+tutorial to learn how to perform a snapshot on an existing Consul datacenter.
+
+### Increase log verbosity on agents
+
+Temporarily modify your Consul server configuration so that their [log_level](/consul/docs/reference/agent/configuration-file/log#log_level)
+is set to `debug`. Use the following command on your servers
+to reload the configuration.
+
+```shell-session
+$ consul reload
+
+Configuration reload triggered
+```
+
+This change will give you more information to work with in the event something
+goes wrong.
+
+## Install new Consul version on agents
+
+Follow instructions listed in [Install Consul](/consul/tutorials/get-started-vms/virtual-machine-gs-deploy)
+to install the last version of Consul on your agents.
+
+## Server rolling upgrade
+
+In order to minimize unavailability the suggested approach it to perform the
+upgrade process one server at a time, starting with the followers and upgrading
+the Raft leader last.
+
+To identify the Raft leader in your datacenter, use the `consul operator`
+command.
+
+```shell-session
+$ consul operator raft list-peers
+
+Node      ID                                    Address          State     Voter  RaftProtocol
+server-1  9fa70624-f6b5-5a1f-8777-600fce95de01  172.19.0.3:8300  leader    true   3
+server-2  1f90f8a4-b25f-200e-375f-dc5c4225355c  172.19.0.4:8300  follower  true   3
+server-3  6034d960-5736-f3c1-f6dd-0338d86fd6ef  172.19.0.5:8300  follower  true   3
+```
+
+In the example output above the leader is `server-1` so you can proceed with
+upgrading `server-2` and `server-3` first and then upgrade `server-1` last.
+
+<Note>
+
+ The upgrade on the servers will be completed only after you
+complete the upgrade steps on **ALL** servers. The tutorial will show example
+outputs to give you guidance on what should be the expected output in
+your instance.
+
+</Note>
+
+### Leave datacenter
+
+Login to the server agent and issue the `consul leave` command.
+
+```shell-session
+$ consul leave
+
+Graceful leave complete
+```
+
+Wait until the command returns.
+
+After the server leaves the datacenter you should observe the following output
+in your datacenter.
+
+```shell-session
+$ consul members
+
+Node      Address          Status  Type    Build   Protocol  DC       Segment
+server-1  172.19.0.3:8301  alive   server  1.7.11  2         primary  <all>
+server-2  172.19.0.4:8301  left    server  1.7.11  2         primary  <all>
+server-3  172.19.0.5:8301  alive   server  1.7.11  2         primary  <all>
+```
+
+Confirm from the output the server is now shown as `left` in the
+command output.
+
+### Start new version
+
+Before starting Consul, check the version for the binary in your path with:
+
+```shell-session
+$ consul version
+
+Consul v1.9.2
+Revision 6530cf370
+Protocol 2 spoken by default, understands 2 to 3 (agent will automatically use protocol >2 when speaking to compatible agents)
+```
+
+You can now start Consul again making sure you are now using the new binary
+version.
+
+If the version isn't the new version, redo the steps in [Install Consul](/consul/tutorials/get-started-vms/virtual-machine-gs-deploy).
+
+After starting Consul again you can confirm it joined the datacenter again.
+
+```shell-session
+$ consul members
+
+Node      Address          Status  Type    Build   Protocol  DC       Segment
+server-1  172.19.0.3:8301  alive   server  1.7.11  2         primary  <all>
+server-2  172.19.0.4:8301  alive   server  1.9.2   2         primary  <all>
+server-3  172.19.0.5:8301  alive   server  1.7.11  2         primary  <all>
+```
+
+As you can confirm, now all the three servers are marked as `alive` and now
+`server-2` shows `1.9.2` as its version.
+
+### Update ACL token for agent
+
+In case your ACL configuration did not include `enable_token_persistence = true`
+and you did not set the server tokens in the configuration files, you will need
+to set the `agent` and `default` token for the agent again before it could join
+the datacenter.
+See [Add the token to the agent](/consul/tutorials/security/access-control-setup-production#add-the-token-to-the-agent) for more information.
+
+### Leader restart
+
+It is important to perform the upgrade one server at a time to ensure there are enough live servers to maintain quorum. Once the servers with the new version join the raft cluster, it is possible a new leader election will be triggered without the leading server leaving the datacenter or being restarted. If the process is followed, Consul will gracefully react to the leave and restart of the server agents and will remain available during the whole upgrade process.
+
+<Note>
+
+ In this scenario each datacenter runs a total of 3 servers, meaning that you can maintain quorum as long as 2 servers are still part of the Raft cluster.
+
+</Note>
+
+## Client rolling upgrade
+
+After the servers are correctly restarted and re-joined the datacenter you can
+perform the same steps on every client agent to upgrade Consul.
+
+1. Install Consul's new version on the client
+1. Stop the client agent using `consul leave`
+1. Start Consul using the new binary
+1. Verify the client is correcly shown in `consul members`
+
+### Service downtime considerations
+
+When upgrading the client agents, after you issue `consul leave` on the agent,
+the service provided by the agent will be marked as unhealthy and will not be
+discoverable until the Consul client agent is restarted.
+
+To avoid downtime for your services you should consider, as a general best
+practice, to run multiple instance of the same service each with its own Consul
+client agent.
+
+In this way you can upgrade the two Consul agents in two separate moments
+and Consul will automatically redirect traffic to the other service instances
+during the Consul agent upgrade.
+
+### Envoy version compatibility
+
+If you are using the Consul service mesh functionality, when upgrading Consul on
+the client nodes you will also have to make sure the Envoy version you have on
+the node is compatible with the new version of Consul.
+
+You can check out the Envoy version supported by your new Consul version on the
+[Envoy Integration](/consul/docs/connect/proxies/envoy#supported-versions)
+documentation page.
+
+-> If you are running Consul 1.8.4 or later you can also use the
+[`/v1/agent/self`](/consul/api-docs/agent#read-configuration)
+API endpoint to check the compatible Envoy version for your running agent.
+
+In this scenario we are upgradring from Consul `1.7.11` which supports Envoy up
+to version `1.13.6` to Consul `1.9.2` that supports Envoy from version `1.13.6`.
+
+This means that, the two version share a compatible Envoy version and that if
+you are running Envoy `1.13.6` on your agents you might not need to upgrade
+Envoy right away.
+
+Still we recommend to upgrade Envoy to the latest supported version to leverage
+the Consul compatibility with the new Envoy functionalities and improvements.
+
+Refer to [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/start/install)
+to learn how to install Envoy on your system.
+
+## Update Secondary Datacenter
+
+Once the upgrade is completed on the primary datacenter, you can follow the same
+steps to perform the upgrade on the second datacenter.
+
+## Verify federation
+
+After the upgrade process is complete you can confirm federation is still
+working using the `consul members` command.
+
+```shell-session
+$ consul members -wan
+
+Node                Address          Status  Type    Build  Protocol  DC         Segment
+server-1.secondary  172.19.0.7:8302  alive   server  1.9.2  2         secondary  <all>
+server-2.secondary  172.19.0.8:8302  alive   server  1.9.2  2         secondary  <all>
+server-3.secondary  172.19.0.9:8302  alive   server  1.9.2  2         secondary  <all>
+server-1.primary    172.19.0.3:8302  alive   server  1.9.2  2         primary    <all>
+server-2.primary    172.19.0.4:8302  alive   server  1.9.2  2         primary    <all>
+server-3.primary    172.19.0.5:8302  alive   server  1.9.2  2         primary    <all>
+```
+
+Also you can check replication is still active in the secondary datacenter using
+the `/v1/acl/replication` REST endpoint on any Consul agent on the secondary datacenter.  The command in the example uses one of the secondary datacenter servers.
+
+```shell-session
+curl -s -H "X-Consul-Token: $CONSUL_HTTP_TOKEN" https://server-1.secondary/v1/acl/replication?pretty
+```
+
+```json
+{
+    "Enabled": true,
+    "Running": true,
+    "SourceDatacenter": "primary",
+    "ReplicationType": "tokens",
+    "ReplicatedIndex": 834,
+    "ReplicatedRoleIndex": 1,
+    "ReplicatedTokenIndex": 837,
+    "LastSuccess": "2021-01-15T17:16:28Z",
+    "LastError": "0001-01-01T00:00:00Z"
+}
+```
+
+<Note>
+
+ The primary datacenter (indicated by `primary_datacenter` in the
+secondary server configuration) will always show as having replication disabled,
+so this is normal even if replication is happening.
+
+</Note>
+
+## Next steps
+
+In this tutorial you learned how to perform an upgrade for your federated Consul
+environment.
+
+Specifically, you:
+- Prepared for the upgrade by checking version compatibility and performing a snapshot
+- Installed the new Consul binary on all nodes
+- Performed a rolling upgrade of the servers on the primary datacenter
+- Performed an upgrade of the clients on the primary datacenter
+- Followed the same process to upgrade the secondary datacenter
+- Verified that connection and federation were still working after the upgrade
+
+The process described in this tutorial can be safely applied to your production datacenter without the risk of downtime. We still recommend you to test any possible disruptive operation such as an upgrade, on a test environment that replicates the existing production environment.
+
+Enterprise users can leverage [Automate Upgrades](/consul/tutorials/datacenter-operations/upgrade-automation)
+feature of Consul's autopilot.

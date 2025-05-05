@@ -1,0 +1,123 @@
+---
+layout: docs
+page_title: Long Term Support (LTS)
+description: >-
+  Consul Enterprise offers a Long Term Support (LTS) release program. Learn about benefits and terms, including which versions receive extended support, for how long, and fix eligibility.
+---
+
+# Long Term Support (LTS)
+
+<EnterpriseAlert>
+  This program requires Consul Enterprise.
+</EnterpriseAlert>
+
+Consul Enterprise offers annual Long Term Support (LTS) releases starting with version v1.15. LTS releases maintain longer fix eligibility and support larger upgrade jumps.
+
+This page describes the LTS program, its benefits for Enterprise users, and the support the program includes.
+
+## Overview
+
+Many Enterprise organizations want to minimize their operational risk by operating a maintained Consul version that is eligible for critical fixes and does not require frequent upgrades.
+
+Annual Consul Enterprise LTS releases enable organizations to receive critical fixes without upgrading their major version more than once per year.
+
+The following table lists the lifecycle for each existing LTS release, including expected end of maintenance (EOM).
+
+| LTS release | Release date   | EOM date (or estimated date)       |
+| ----------- | -------------- | ---------------------------------- |
+| v1.21 Ent   | April 28, 2025 | April 30, 2027 (v1.23 Ent release) |
+| v1.18 Ent   | Feb 27, 2024   | Feb 28, 2026 (v1.24 Ent release)   |
+| v1.15 Ent   | Feb 23, 2023   | April 28, 2025 (v1.21 Ent release) |
+
+## Release lifecycle
+
+Consul Enterprise LTS releases are maintained for longer than other Consul releases,
+as described in the following sections.
+
+### Standard Term Support lifecycle
+
+All major releases of Consul Enterprise receive _Standard Term Support_ (STS)
+for approximately one year, per HashiCorp's
+[Support Period Policy](https://support.hashicorp.com/hc/en-us/articles/360021185113-Support-Period-and-End-of-Life-EOL-Policy).
+
+With STS, each major release branch is maintained until it is
+three (3) releases from the latest major release.
+For example, Consul v1.14.x is maintained until the release of Consul v1.17.0.
+
+### Long Term Support lifecycle
+
+Starting with Consul Enterprise v1.15, the first major release of the calendar year
+receives _Long Term Support_ (LTS) for approximately 2 years.
+The first major release of the calendar year typically occurs in late February.
+
+![Consul Enterprise Long Term Support lifecycle diagram](/img/long-term-support/consul-enterprise-long-term-support-lifecycle.png#light-theme-only)
+![Consul Enterprise Long Term Support lifecycle diagram](/img/long-term-support/consul-enterprise-long-term-support-lifecycle-dark.png#dark-theme-only)
+
+An LTS release is maintained until it is six (6) releases from the latest major release.
+For example, Consul Enterprise v1.15.x is maintained until the release of Consul Enterprise v1.21.0.
+
+During the LTS window, [eligible LTS fixes](#fix-eligibility) are provided through
+a new minor release on the affected LTS release branch.
+
+## Annual upgrade to next LTS release
+
+We recommend upgrading your Consul LTS version once per year to the next LTS version
+in order to receive the full benefit of LTS. This upgrade pattern ensures the
+organization is always operating a maintained release with minimal upgrades.
+
+Only Consul Enterprise LTS versions support direct upgrades to the next 3 major versions,
+enabling direct upgrades from one LTS release to the subsequent LTS release.
+For example, Consul Enterprise v1.15.x supports upgrading directly to Consul Enterprise v1.18.x.
+
+Because Consul has 3 major version releases per year,
+LTS enables you to catch up on a year's worth of Consul releases in a single upgrade.
+
+STS releases of Consul support direct upgrades to the next 2 major versions,
+as described in the [standard upgrade instructions](/consul/docs/upgrade/instructions).
+Without LTS, catching up on a year's worth of releases requires two upgrades.
+For example, upgrading from Consul Enterprise v1.14.x to Consul Enterprise v1.17.x
+requires an intermediate upgrade to v1.15.x or v1.16.x.
+
+## Fix eligibility
+
+Eligibility for an LTS fix is subject to the following criteria:
+- A non-security bug must be a Severity 1 (Urgent) or Severity 2 (High) issue
+  as defined in [HashiCorp Support's Severity Definitions](https://support.hashicorp.com/hc/en-us/articles/115011286028).
+- A security bug (CVE) is considered eligible in accordance with
+  HashiCorp's standard practices for security bugs on supported products.
+  Refer to the standard
+  [Support Period Policy](https://support.hashicorp.com/hc/en-us/articles/360021185113-Support-Period-and-End-of-Life-EOL-Policy)
+  for more information.
+- The bug must be present in built artifacts intended for use in production
+  created from one of the following HashiCorp repositories:
+  - hashicorp/consul-enterprise
+  - hashicorp/consul-k8s
+  - hashicorp/consul-dataplane
+- The bug must be applicable for at least one of the following
+  computer architecture and operating system combinations:
+  - linux_386
+  - linux_amd64
+  - linux_arm
+  - linux_arm64
+  - windows_386
+  - windows_amd64
+
+Eligibility for a fix does not guarantee that a fix will be issued.
+For example, some fixes may not be technically possible on a given release branch,
+or they may present an undue burden or risk relative to the benefit of the fix.
+
+HashiCorp may, in its sole discretion, include fixes in a minor release
+on an LTS release branch that do not meet the eligibility criteria above.
+
+## Version compatibility with dependencies
+
+Consul integrates with Envoy and Kubernetes releases that are maintained for less time
+than Consul Enterprise LTS.
+
+HashiCorp will make a reasonable effort to keep each Consul Enterprise LTS release branch
+compatible with a maintained release branch of Envoy and Kubernetes until the LTS release branch
+approaches its end of maintenance.
+
+For more details on LTS version compatibility with dependencies, refer to the following topics:
+- [Kubernetes version compatibility with Consul](/consul/docs/upgrade/k8s/compatibility)
+- [Envoy and Consul dataplane version compatibility with Consul](/consul/docs/reference/proxy/envoy)

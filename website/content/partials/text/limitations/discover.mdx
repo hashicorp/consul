@@ -1,0 +1,6 @@
+If you experience errors when using Consul's service discovery features, refer to the following list of technical constraints.
+
+- Consul's DNS and service discovery features are enabled by default. When Consul service mesh is enabled, you can use an existing DNS such as CoreDNS by configuring Consul's transparent proxy. Refer to [transparent proxy](/consul/docs/connect/proxy/transparent-proxy) for more information.
+- When Consul's service mesh is enabled, you can use configuration entries that have additional impacts on Consul's service discovery behavior:
+  - You can customize Consul's load balancing policy using a [service resolver configuration entry](/consul/docs/reference/config-entry/service-resolver#loadbalancer).
+  - You can adjust the request rate for services using a [service defaults configuration entry](/consul/docs/reference/config-entry/service-defaults).

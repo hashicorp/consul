@@ -1,0 +1,132 @@
+---
+layout: docs
+page_title: Sync Consul service catalog with AWS Cloud Map
+description: >-
+     Use Consul-AWS to sync services in an AWS Cloud Map namespace to a Consul datacenter or vice versa.
+---
+
+# Sync Consul service catalog with AWS Cloud Map
+
+This page describes how to sync the Consul service catalog and AWS Cloud Map so that service changes made in one propagate to the other. For more information about AWS Cloud Map, refer to the [external AWS documentation](https://aws.amazon.com/cloud-map/).
+
+## Introduction
+
+AWS Cloud Map is an AWS cloud resource discovery service. It allows you to add custom names for resources and it maintains the location of these resources as they change. Your application services can then query AWS Cloud Map to get the location of the resource.
+
+The [`consul-aws` tool](https://github.com/hashicorp/consul-aws) enables one or two-way directional syncing between the Consul service catalog and AWS Cloud Map to ensure that both catalogs have the most up-to-date locations for each service.
+
+## Requirements
+
+- [`curl v7.64.1`](https://curl.se/download.html) or higher
+- [`jq v1.6`](https://stedolan.github.io/jq/download/) or higher
+
+## Download `consul-aws`
+
+Download the latest `consul-aws` binary from the HashiCorp releases directory. Change the `$ARCH` and
+`$OS` variables if they do not match or resolve in your environment.
+
+```shell-session
+$ ARCH=amd64 && \
+OS=$(uname | tr '[:upper:'] '[:lower:]') && \
+DL_URL=$(curl -s https://api.releases.hashicorp.com/v1/releases/consul-aws/latest | jq -r --arg arch $ARCH --arg os $OS '.builds[] | select(.arch==$arch and .os==$os) | .url') && \
+FILENAME=$(echo $DL_URL | awk -F'/' '{print $NF}') && \
+curl -L -o $FILENAME $DL_URL 2&>/dev/null && \
+tar -xvf $FILENAME
+```
+
+Update your `$PATH` variable to include the current working directory and the `consul-aws` binary.
+
+```shell-session
+$ export $PATH=$PATH:$(pwd)
+```
+
+## Set up authentication
+
+`consul-aws` requires access to Consul and AWS for one or two-way directional syncing.
+
+### Authenticate to a Consul cluster
+
+To connect to a Consul cluster, `consul-aws` accepts either the `-token` CLI flag or the `CONSUL_HTTP_TOKEN` environment variable.
+
+When using the ACL functionality of Consul, we recommend using ACL tokens for the `-token` or
+`CONSUL_HTTP_TOKEN` values. Read more about ACL tokens in the [Consul token documentation](/consul/docs/secure/acl/token).
+
+### Authenticate to AWS
+
+To connect to AWS, `consul-aws` uses the default AWS credential provider chain to discover AWS credentials. The provider chain searches for AWS credentials in this order:
+
+1. Environment variables.
+2. A shared credentials file.
+3. An AWS IAM role, when an application is hosted on an Amazon EC2 instance.
+
+## Sync one-way from Consul to AWS Cloud Map
+
+The `-to-aws` flag instructs the `consul-aws` tool to begin syncing services from Consul to an AWS Cloud Map namespace.
+
+When passing the 
+`-aws-service-prefix` flag, imported services from Consul share a common identifier. One strategy when syncing from multiple
+Consul clusters, such as an HCP Consul Dedicated cluster, is to use the Consul cluster's name in the prefix and provide it with the `-consul-service-prefix` flag.
+
+In this example, a service in Consul with the name `web` identifies as `my_hcp_consul_cluster_web` in AWS Cloud Map. The `-aws-namespace-id` flag is required.
+
+```shell-session
+$ consul-aws \
+     -aws-namespace-id ns-hjrgt3bapp7phzff \
+     -to-aws \
+     -consul-service-prefix my_hcp_consul_cluster_
+```
+
+Consul sets the following properties for services it syncs from Consul to AWS Cloud Map.
+
+|Property|Value|
+|---|---|
+|Description|Imported from Consul|
+|Record types|A and SRV|
+|DNS routing policy|Multivalue answer routing|
+
+## Sync one-way from AWS Cloud Map to Consul
+
+The `-to-consul` flag instructs the `consul-aws` tool to begin syncing services from an AWS Cloud Map namespace to Consul.
+
+One strategy for prefixing services when using HCP Consul Dedicated or hosting services across multiple cloud providers is to add `aws` in the prefix. The `aws-service-prefix` flag allows you to customize the prefix.
+
+In this example, a service in AWS Cloud Map with the name `redis` identifies as `my_aws_cloudmap_namespace_redis` in Consul. The `-aws-namespace-id` flag is required.
+
+```shell-session
+$ consul-aws \
+     -aws-namespace-id ns-hjrgt3bapp7phzff \
+     -to-consul\
+     -aws-service-prefix my_aws_cloudmap_namespace_
+```
+
+Consul sets the following properties for services it syncs from AWS Cloud Map to Consul.
+
+|Property|Value|
+|---|---|
+|Tag|aws|
+|Meta-Data|includes `aws` as the source set, the `aws-id`, the `aws-namespace` and custom attributes the instance uses in AWS Cloud Map|
+|Node|the node name is `consul-aws`|
+
+## Sync two-way between Consul and AWS Cloud Map
+
+To enable a two-way or bidirectional sync between Consul and an AWS Cloud Map namespace, add both the `-to-consul` and `-to-aws` flags.
+
+The `-aws-namespace-id` flag is required. but the `-aws-service-prefix` and `-consul-service-prefix` flags are optional.
+
+```shell-session
+$ consul-aws \
+     -aws-namespace-id ns-hjrgt3bapp7phzff \
+     -to-consul \
+     -aws-service-prefix my_aws_cloudmap_namespace_ \
+     -to-aws \
+     -consul-service-prefix my_hcp_consul_cluster_
+```
+
+## Next steps
+
+After setting up a sync between Consul and AWS Cloud Map, you can further manage your services with the following resources.
+
+- [`consul-aws` CLI reference](/consul/docs/reference/cli/consul-aws)
+- [Connect services with service mesh](/consul/docs/connect)
+- [Manage application traffic](/consul/docs/manage-traffic)
+- [Observe service mesh traffic](/consul/docs/observe)

@@ -1,0 +1,55 @@
+---
+page_title: Service mesh ingress on Kubernetes
+description: API gateways and ingress gateways are types of service mesh proxies that you can use to securely allow systems outside the Consul service mesh to access services in the mesh. Learn how API and ingress gateways can help you enable access to services registered by Consul on Kubernetes.
+layout: docs
+---
+
+# Secure north/south access on Kubernetes
+
+This topic provides an overview of how Consul securely allows systems outside the service mesh to access services inside the mesh on Kubernetes. Network traffic that connects services inside the mesh to external clients or services is referred to as _north-south traffic_.
+
+For information about enabling intra-mesh, or _east-west traffic_ , refer to [Expand network east/west overview](/consul/docs/east-west).
+
+## Introduction
+
+You can define points of ingress to the service mesh using either API gateways or ingress gateways. These gateways allow external network clients to access applications and services running in a Consul datacenter.
+
+API gateways forward requests from clients to specific destinations based on path or request protocol. Ingress gateways are Consul's legacy capability for ingress and have been deprecated in favor of API gateways.
+
+## API gateways
+
+@include 'text/descriptions/api-gateway.mdx'
+
+## Ingress gateways
+
+@include 'text/descriptions/ingress-gateway.mdx'
+
+## Terminating gateways
+
+@include 'text/descriptions/terminating-gateway.mdx'
+
+## Guidance
+
+Refer to the following resources for help setting up and using API gateways:
+
+### Tutorials
+
+- [Control access into the service mesh with Consul API gateway](/consul/tutorials/developer-mesh/kubernetes-api-gateway)
+
+### Usage documentation
+
+- [Deploy API gateway listeners to Kubernetes](/consul/docs/north-south/api-gateway/k8s/listener)
+- [Deploy API gateway routes to Kubernetes](/consul/docs/north-south/api-gateway/k8s/route)
+- [Reroute HTTP requests in Kubernetes](/consul/docs/north-south/api-gateway/k8s/reroute)
+- [Route traffic to peered services in Kubernetes](/consul/docs/north-south/api-gateway/k8s/peer)
+- [Use JWTs to verify requests to API gateways on Kubernetes](/consul/docs/north-south/api-gateway/secure-traffic/jwt/k8s)
+
+### Reference
+
+- [`Gateway`](/consul/docs/reference/k8s/api-gateway/gateway)
+- [`GatewayClass`](/consul/docs/reference/k8s/api-gateway/gatewayclass)
+- [`GatewayClassConfig`](/consul/docs/reference/k8s/api-gateway/gatewayclassconfig) 
+- [`Routes`](/consul/docs/reference/k8s/api-gateway/routes)
+- [`MeshServices`](/consul/docs/reference/k8s/api-gateway/meshservice)
+- [`ServiceIntentions`](/consul/docs/reference/config-entry/service-intentions) 
+- [Error messages](/consul/docs/error-messages/api-gateway)
