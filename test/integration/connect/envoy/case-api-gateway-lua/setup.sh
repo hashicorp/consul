@@ -61,11 +61,16 @@ Name = "api-gateway"
 Protocol = "http"
 EnvoyExtensions = [
   {
-    Name = "builtin/lua"
-    Arguments = {
-      ProxyType = "api-gateway"
-      Listener = "outbound"
-      Script = "function envoy_on_request(request_handle) request_handle:headers():add(\"x-lua-added-onrequest\", \"header-added-on-request\") end"
+    name  = "builtin/lua"
+    required = true
+    arguments = {
+      proxyType = "api-gateway"
+      listener = "outbound"
+      script = <<EOT
+        function envoy_on_request(request_handle)
+          request_handle:headers():add("x-lua-added-onrequest", "header-added-on-request")
+        end
+      EOT
     }
   },
   {
@@ -76,12 +81,13 @@ EnvoyExtensions = [
       listener  = "outbound"
       script    = <<EOT
         function envoy_on_response(response_handle)
+          response_handle:headers():add("x-lua-added-onresponse", "header-added-on-response")
           if response_handle:headers():get(":status") == "404" then
               response_handle:headers():replace(":status", "200")
               local json = '{"message":"body modified by Lua script","status":"success"}'
               response_handle:body():setBytes(json)
 
-              response_handle:headers():add("x-lua-added-onresponse", "header-added-on-response")
+
               response_handle:headers():remove("x-envoy-upstream-service-time")
               response_handle:headers():remove("x-powered-by")
               response_handle:headers():replace("cache-control", "no-store")

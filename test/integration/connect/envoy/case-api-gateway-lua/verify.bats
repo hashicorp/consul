@@ -26,7 +26,7 @@ load helpers
 }
 
 @test "api-gateway should add envoy headers" {
-  run retry_default curl -s -f -d "hello" "localhost:8080/echo"
+  run retry_default curl -i "hello" "localhost:8080/echo"
   echo "[DEBUG] response: $output" >&3
   [ "$status" == "0" ]
   # Extract headers (before the first blank line) and body (after the blank line)
