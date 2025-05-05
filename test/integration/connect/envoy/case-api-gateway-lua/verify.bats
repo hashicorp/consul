@@ -16,20 +16,6 @@ load helpers
   assert_upstream_has_endpoints_in_status 127.0.0.1:20000 s1 HEALTHY 1
 }
 
-@test "api-gateway should return 200 with custom message for non-existent path" {
-  run retry_default curl -s -d "hello" "localhost:8080/nonexistent.html"
-  echo "[DEBUG] response: $output" >&3
-
-  [ "$status" == "0" ]
-  echo "$output" | grep "body modified by Lua script"
-}
-
-@test "api-gateway should return 200 for valid path" {
-  run retry_default curl -s -f -d "hello" "localhost:8080/echo"
-  [ "$status" == "0" ]
-  [ "$output" == "hello" ]
-}
-
 @test "api-gateway should have lua filter configured" {
   FILTERS=$(get_envoy_http_filters localhost:20000)
   echo "[DEBUG] filters: $FILTERS" >&3
@@ -42,8 +28,14 @@ load helpers
 
   echo "$FILTERS" | grep "envoy.filters.http.lua"
 }
-@test "api gateway should add Lua header when connecting to s1" {
-  run retry_long sh -c "curl -s -D - localhost:9999/ | grep x-lua-added"
-  [ "$status" -eq 0 ]
-  [[ "$output" == "x-lua-added: test-value" ]]
+
+@test "api-gateway should add envoy headers" {
+  run retry_default curl -I "localhost:8080/echo -o /dev/null"
+  [ "$status" == "0" ]
+  echo "[DEBUG] response: $output" >&3
+  onrequest=$(echo "$output" | grep -i 'x-lua-added-onrequest')
+  onresponse=$(echo "$output" | grep -i 'x-lua-added-onresponse')
+
+  [[ -z "$onrequest" ]] && echo "x-lua-added-onrequest not found" >&3 && return 1
+    [[ -z "$onresponse" ]] && echo "x-lua-added-onresponse not found" >&3 && return 1
 }

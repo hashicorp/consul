@@ -65,7 +65,7 @@ EnvoyExtensions = [
     Arguments = {
       ProxyType = "api-gateway"
       Listener = "inbound"
-      Script = "function envoy_on_request(request_handle) request_handle:headers():add(\"x-lua-added\", \"test-value\") end"
+      Script = "function envoy_on_request(request_handle) request_handle:headers():add(\"x-lua-added-onrequest\", \"header-added-on-request\") end"
     }
   },
   {
@@ -81,6 +81,7 @@ EnvoyExtensions = [
               local json = '{"message":"body modified by Lua script","status":"success"}'
               response_handle:body():setBytes(json)
 
+              response_handle:headers():add("x-lua-added-onresponse", "header-added-on-response")
               response_handle:headers():remove("x-envoy-upstream-service-time")
               response_handle:headers():remove("x-powered-by")
               response_handle:headers():replace("cache-control", "no-store")
