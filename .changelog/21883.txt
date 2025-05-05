@@ -1,3 +1,0 @@
-```release-note:feature
-v2: remove HCP Link integration
-```

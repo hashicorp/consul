@@ -10,9 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"golang.org/x/time/rate"
-
 	"github.com/hashicorp/go-uuid"
+	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/consul"
@@ -739,13 +738,6 @@ type RuntimeConfig struct {
 	// time, the connection will be closed by the server.
 	GRPCKeepaliveTimeout time.Duration
 
-	// EnableXDSLoadBalancing controls xDS load balancing between the servers. Enabled by default.
-	// When enabled, Consul balances loads from xDS clients across available servers equally with an error margin of 0.1.
-	//
-	// When disabled, Consul does not restrict on the number of xDS connections on a server.
-	// In this scenario, you should deploy an external load balancer in front of the consul servers and distribute the load accordingly.
-	EnableXDSLoadBalancing bool
-
 	// HTTPAddrs contains the list of TCP addresses and UNIX sockets the HTTP
 	// server will bind to. If the HTTP endpoint is disabled (ports.http <= 0)
 	// the list is empty.
@@ -1011,9 +1003,6 @@ type RuntimeConfig struct {
 	//
 	// hcl: raft_trailing_logs = int
 	RaftTrailingLogs int
-
-	// hcl: raft_prevote_disabled = bool
-	RaftPreVoteDisabled bool
 
 	RaftLogStoreConfig consul.RaftLogStoreConfig
 

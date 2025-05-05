@@ -8,9 +8,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/mitchellh/mapstructure"
-
 	"github.com/hashicorp/hcl"
+	"github.com/mitchellh/mapstructure"
 
 	"github.com/hashicorp/consul/lib/decode"
 )
@@ -215,7 +214,6 @@ type Config struct {
 	RaftSnapshotThreshold            *int                `mapstructure:"raft_snapshot_threshold" json:"raft_snapshot_threshold,omitempty"`
 	RaftSnapshotInterval             *string             `mapstructure:"raft_snapshot_interval" json:"raft_snapshot_interval,omitempty"`
 	RaftTrailingLogs                 *int                `mapstructure:"raft_trailing_logs" json:"raft_trailing_logs,omitempty"`
-	RaftPreVoteDisabled              *bool               `mapstructure:"raft_prevote_disabled" json:"raft_prevote_disabled,omitempty"`
 	ReconnectTimeoutLAN              *string             `mapstructure:"reconnect_timeout" json:"reconnect_timeout,omitempty"`
 	ReconnectTimeoutWAN              *string             `mapstructure:"reconnect_timeout_wan" json:"reconnect_timeout_wan,omitempty"`
 	RejoinAfterLeave                 *bool               `mapstructure:"rejoin_after_leave" json:"rejoin_after_leave,omitempty"`
@@ -677,12 +675,11 @@ type HTTPConfig struct {
 }
 
 type Performance struct {
-	LeaveDrainTime         *string `mapstructure:"leave_drain_time"`
-	RaftMultiplier         *int    `mapstructure:"raft_multiplier"` // todo(fs): validate as uint
-	RPCHoldTimeout         *string `mapstructure:"rpc_hold_timeout"`
-	GRPCKeepaliveInterval  *string `mapstructure:"grpc_keepalive_interval"`
-	GRPCKeepaliveTimeout   *string `mapstructure:"grpc_keepalive_timeout"`
-	EnableXDSLoadBalancing *bool   `mapstructure:"enable_xds_load_balancing"`
+	LeaveDrainTime        *string `mapstructure:"leave_drain_time"`
+	RaftMultiplier        *int    `mapstructure:"raft_multiplier"` // todo(fs): validate as uint
+	RPCHoldTimeout        *string `mapstructure:"rpc_hold_timeout"`
+	GRPCKeepaliveInterval *string `mapstructure:"grpc_keepalive_interval"`
+	GRPCKeepaliveTimeout  *string `mapstructure:"grpc_keepalive_timeout"`
 }
 
 type Telemetry struct {

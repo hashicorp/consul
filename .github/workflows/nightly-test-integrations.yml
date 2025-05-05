@@ -217,7 +217,7 @@ jobs:
       # matrix.consul-version (i.e. whenever the highest common Envoy version across active
       # Consul versions changes). The minor Envoy version does not necessarily need to be
       # kept current for the purpose of these tests, but the major (1.N) version should be.
-      ENVOY_VERSION: 1.28.7
+      ENVOY_VERSION: 1.27.6
     steps:
       - name: Checkout code
         uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4

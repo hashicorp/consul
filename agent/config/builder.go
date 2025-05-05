@@ -1033,7 +1033,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		KVMaxValueSize:             uint64Val(c.Limits.KVMaxValueSize),
 		LeaveDrainTime:             b.durationVal("performance.leave_drain_time", c.Performance.LeaveDrainTime),
 		LeaveOnTerm:                leaveOnTerm,
-		EnableXDSLoadBalancing:     boolVal(c.Performance.EnableXDSLoadBalancing),
 		StaticRuntimeConfig: StaticRuntimeConfig{
 			EncryptVerifyIncoming: boolVal(c.EncryptVerifyIncoming),
 			EncryptVerifyOutgoing: boolVal(c.EncryptVerifyOutgoing),
@@ -1074,7 +1073,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		RaftSnapshotThreshold:             intVal(c.RaftSnapshotThreshold),
 		RaftSnapshotInterval:              b.durationVal("raft_snapshot_interval", c.RaftSnapshotInterval),
 		RaftTrailingLogs:                  intVal(c.RaftTrailingLogs),
-		RaftPreVoteDisabled:               boolVal(c.RaftPreVoteDisabled),
 		RaftLogStoreConfig:                b.raftLogStoreConfigVal(&c.RaftLogStore),
 		ReconnectTimeoutLAN:               b.durationVal("reconnect_timeout", c.ReconnectTimeoutLAN),
 		ReconnectTimeoutWAN:               b.durationVal("reconnect_timeout_wan", c.ReconnectTimeoutWAN),

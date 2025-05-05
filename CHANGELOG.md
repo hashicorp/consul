@@ -1,5 +1,41 @@
-## 1.21.0 (March 17, 2025)
-* Enhancement: Added support for Consul Session to update the state of a Health Check, allowing for more dynamic and responsive health monitoring within the Consul ecosystem. This feature enables sessions to directly influence health check statuses, improving the overall reliability and accuracy of service health assessments.
+## 1.20.6 (April 25, 2025)
+
+SECURITY:
+
+* Update `golang.org/x/net` to v0.38.0 to address [GHSA-vvgc-356p-c3xw](https://github.com/advisories/GHSA-vvgc-356p-c3xw) and [GO-2025-3595](https://pkg.go.dev/vuln/GO-2025-3595).
+Update `github.com/golang-jwt/jwt/v4` to v4.5.2 to address [GO-2025-3553](https://pkg.go.dev/vuln/GO-2025-3553) and [GHSA-mh63-6h87-95cp](https://github.com/advisories/GHSA-mh63-6h87-95cp).
+Update `Go` to v1.23.8 to address [GO-2025-3563](https://pkg.go.dev/vuln/GO-2025-3563). [[GH-22268](https://github.com/hashicorp/consul/issues/22268)]
+
+IMPROVEMENTS:
+
+* Added support for Consul Session to update the state of a Health Check, allowing for more dynamic and responsive health monitoring within the Consul ecosystem. This feature enables sessions to directly influence health check statuses, improving the overall reliability and accuracy of service health assessments. [[GH-22227](https://github.com/hashicorp/consul/issues/22227)]
+
+BUG FIXES:
+
+* agent: Add the missing Service TaggedAddresses and Check Type fields to Txn API. [[GH-22220](https://github.com/hashicorp/consul/issues/22220)]
+
+## 1.20.5 (March 11, 2025)
+
+SECURITY:
+
+* Update `golang.org/x/crypto` to v0.35.0 to address [GO-2025-3487](https://pkg.go.dev/vuln/GO-2025-3487).
+Update `golang.org/x/oauth2` to v0.27.0 to address [GO-2025-3488](https://pkg.go.dev/vuln/GO-2025-3488).
+Update `github.com/go-jose/go-jose/v3` to v3.0.4 to address [GO-2025-3485](https://pkg.go.dev/vuln/GO-2025-3485). [[GH-22207](https://github.com/hashicorp/consul/issues/22207)]
+* Upgrade Go to 1.23.6. [[GH-22204](https://github.com/hashicorp/consul/issues/22204)]
+
+BUG FIXES:
+
+* logging: Fixed compilation error for OS NetBSD. [[GH-22184](https://github.com/hashicorp/consul/issues/22184)]
+
+## 1.20.4 (February 20, 2025)
+
+IMPROVEMENTS:
+
+* dependency: upgrade consul/api to use Go 1.31.2 [[GH-22174](https://github.com/hashicorp/consul/issues/22174)]
+
+BUG FIXES:
+
+* api: Fixed api submodule checksum mismatch issue by retracted 1.31.1 version [[GH-22172](https://github.com/hashicorp/consul/pull/22172)] [[GH-22172](https://github.com/hashicorp/consul/issues/22172)]
 
 ## 1.20.3 (February 13, 2025)
 
@@ -22,73 +58,6 @@ BUG FIXES:
 * api-gateway: Fixed TLS configuration to properly enforce listener TLS versions and cipher suites [[GH-21984](https://github.com/hashicorp/consul/issues/21984)]
 * aws-auth: Fix bug where calls to AWS IAM and STS services error out due to URL with multiple trailing slashes. [[GH-22109](https://github.com/hashicorp/consul/issues/22109)]
 
-## 1.19.5 Enterprise (February 13, 2025)
-
-SECURITY:
-
-* Upgrade Go to use v1.22.11 and bump Go X-Repositories to latest. This addresses CVE
-  [CVE-2024-45341](https://nvd.nist.gov/vuln/detail/CVE-2024-45341) and
-  [CVE-2024-45336](https://nvd.nist.gov/vuln/detail/CVE-2024-45336) [[GH-22084](https://github.com/hashicorp/consul/issues/22084)]
-* Upgrade Go to use v1.22.12 and bump Go X-Repositories to latest. This addresses CVE
-  [CVE-2025-22866](https://nvd.nist.gov/vuln/detail/CVE-2025-22866) [[GH-22132](https://github.com/hashicorp/consul/issues/22132)]
-
-IMPROVEMENTS:
-
-* metadata: memoize the parsed build versions [[GH-22113](https://github.com/hashicorp/consul/issues/22113)]
-
-BUG FIXES:
-
-* Fixed logging error while building for OpenBSD OS [[GH-22120](https://github.com/hashicorp/consul/pull/22120)] [[GH-22120](https://github.com/hashicorp/consul/issues/22120)]
-* api-gateway: Fixed TLS configuration to properly enforce listener TLS versions and cipher suites [[GH-21984](https://github.com/hashicorp/consul/issues/21984)]
-* aws-auth: Fix bug where calls to AWS IAM and STS services error out due to URL with multiple trailing slashes. [[GH-22109](https://github.com/hashicorp/consul/issues/22109)]
-
-## 1.18.8 Enterprise (February 13, 2025)
-
-Enterprise LTS: Consul Enterprise 1.18 is a Long-Term Support (LTS) release.
-
-SECURITY:
-
-* Upgrade Go to use v1.22.11 and bump Go X-Repositories to latest. This addresses CVE
-  [CVE-2024-45341](https://nvd.nist.gov/vuln/detail/CVE-2024-45341) and
-  [CVE-2024-45336](https://nvd.nist.gov/vuln/detail/CVE-2024-45336) [[GH-22084](https://github.com/hashicorp/consul/issues/22084)]
-* Upgrade Go to use v1.22.12 and bump Go X-Repositories to latest. This addresses CVE
-  [CVE-2025-22866](https://nvd.nist.gov/vuln/detail/CVE-2025-22866) [[GH-22132](https://github.com/hashicorp/consul/issues/22132)]
-
-IMPROVEMENTS:
-
-* metadata: memoize the parsed build versions [[GH-22113](https://github.com/hashicorp/consul/issues/22113)]
-
-BUG FIXES:
-
-* Fixed logging error while building for OpenBSD OS [[GH-22120](https://github.com/hashicorp/consul/pull/22120)] [[GH-22120](https://github.com/hashicorp/consul/issues/22120)]
-
-## 1.15.18 Enterprise (February 07, 2025)
-
-Enterprise LTS: Consul Enterprise 1.15 is a Long-Term Support (LTS) release.
-
-BUG FIXES:
-
-* aws-auth: Fix bug where calls to AWS IAM and STS services error out due to URL with multiple trailing slashes. [[GH-22109](https://github.com/hashicorp/consul/issues/22109)]
-
-## 1.15.17 Enterprise (February 05, 2025)
-
-Enterprise LTS: Consul Enterprise 1.15 is a Long-Term Support (LTS) release.
-
-SECURITY:
-
-* Upgrade Go to use v1.22.11 and bump Go X-Repositories to latest. This addresses CVE
-  [CVE-2024-45341](https://nvd.nist.gov/vuln/detail/CVE-2024-45341) and
-  [CVE-2024-45336](https://nvd.nist.gov/vuln/detail/CVE-2024-45336) [[GH-22084](https://github.com/hashicorp/consul/issues/22084)]
-
-## 1.18.7 Enterprise (January 31, 2025)
-
-Enterprise LTS: Consul Enterprise 1.18 is a Long-Term Support (LTS) release.
-
-BUG FIXES:
-
-* api-gateway: Fixed TLS configuration to properly enforce listener TLS versions and cipher suites [[GH-21984](https://github.com/hashicorp/consul/issues/21984)]
-* aws-auth: Fix bug where calls to AWS IAM and STS services error out due to URL with multiple trailing slashes. [[GH-22109](https://github.com/hashicorp/consul/issues/22109)]
-
 ## 1.20.2 (December 26, 2024)
 SECURITY:
 * Removed ability to use bexpr to filter results without ACL read on endpoint [[GH-21950](https://github.com/hashicorp/consul/issues/21950)]
@@ -103,79 +72,6 @@ SECURITY:
   BUG FIXES:
 * proxycfg: fix a bug where peered upstreams watches are canceled even when another target needs it. [[GH-21871](https://github.com/hashicorp/consul/issues/21871)]
 * state: ensure that identical manual virtual IP updates result in not bumping the modify indexes [[GH-21909](https://github.com/hashicorp/consul/issues/21909)]
-
-## 1.19.4 Enterprise (January 10, 2025)
-BREAKING CHANGES:
-
-* mesh: **(Enterprise Only)** Enable Envoy `HttpConnectionManager.normalize_path` by default on inbound traffic to mesh proxies. This resolves [CVE-2024-10005](https://nvd.nist.gov/vuln/detail/CVE-2024-10005).
-
-SECURITY:
-
-* Removed ability to use bexpr to filter results without ACL read on endpoint [[GH-21950](https://github.com/hashicorp/consul/issues/21950)]
-* Resolved issue where hcl would allow duplicates of the same key in acl policy configuration. [[GH-21908](https://github.com/hashicorp/consul/issues/21908)]
-* Update `github.com/golang-jwt/jwt/v4` to v4.5.1 to address [GHSA-29wx-vh33-7x7r](https://github.com/golang-jwt/jwt/security/advisories/GHSA-29wx-vh33-7x7r). [[GH-21951](https://github.com/hashicorp/consul/issues/21951)]
-* Update `golang.org/x/crypto` to v0.31.0 to address [GO-2024-3321](https://pkg.go.dev/vuln/GO-2024-3321). [[GH-22001](https://github.com/hashicorp/consul/issues/22001)]
-* Update `golang.org/x/net` to v0.33.0 to address [GO-2024-3333](https://pkg.go.dev/vuln/GO-2024-3333). [[GH-22021](https://github.com/hashicorp/consul/issues/22021)]
-* Update `registry.access.redhat.com/ubi9-minimal` image to 9.5 to address [CVE-2024-3596](https://nvd.nist.gov/vuln/detail/CVE-2024-3596),[CVE-2024-2511](https://nvd.nist.gov/vuln/detail/CVE-2024-2511),[CVE-2024-26458](https://nvd.nist.gov/vuln/detail/CVE-2024-26458). [[GH-22011](https://github.com/hashicorp/consul/issues/22011)]
-* api: Enforces strict content-type header validation to protect against XSS vulnerability. [[GH-21930](https://github.com/hashicorp/consul/issues/21930)]
-* mesh: **(Enterprise Only)** Add `contains` and `ignoreCase` to L7 Intentions HTTP header matching criteria to support configuration resilient to variable casing and multiple values. This resolves [CVE-2024-10006](https://nvd.nist.gov/vuln/detail/CVE-2024-10006).
-* mesh: **(Enterprise Only)** Add `http.incoming.requestNormalization` to Mesh configuration entry to support inbound service traffic request normalization. This resolves [CVE-2024-10005](https://nvd.nist.gov/vuln/detail/CVE-2024-10005) and [CVE-2024-10006](https://nvd.nist.gov/vuln/detail/CVE-2024-10006).
-
-IMPROVEMENTS:
-
-* Upgrade api submodule to 1.29.6 [[GH-22058](https://github.com/hashicorp/consul/issues/22058)]
-* snapshot agent: **(Enterprise only)**  Implement Service Principal Auth for snapshot agent on azure.
-* xds: configures Envoy to load balance over all instances of an external service configured with hostnames when "envoy_dns_discovery_type" is set to "STRICT_DNS" [[GH-21655](https://github.com/hashicorp/consul/issues/21655)]
-
-BUG FIXES:
-
-* proxycfg: fix a bug where peered upstreams watches are canceled even when another target needs it. [[GH-21871](https://github.com/hashicorp/consul/issues/21871)]
-* state: ensure that identical manual virtual IP updates result in not bumping the modify indexes [[GH-21909](https://github.com/hashicorp/consul/issues/21909)]
-
-## 1.18.6 Enterprise (January 13, 2025)
-
-Enterprise LTS: Consul Enterprise 1.18 is a Long-Term Support (LTS) release.
-
-SECURITY:
-
-* Removed ability to use bexpr to filter results without ACL read on endpoint [[GH-21950](https://github.com/hashicorp/consul/issues/21950)]
-* Resolved issue where hcl would allow duplicates of the same key in acl policy configuration. [[GH-21908](https://github.com/hashicorp/consul/issues/21908)]
-* Update `github.com/golang-jwt/jwt/v4` to v4.5.1 to address [GHSA-29wx-vh33-7x7r](https://github.com/golang-jwt/jwt/security/advisories/GHSA-29wx-vh33-7x7r). [[GH-21951](https://github.com/hashicorp/consul/issues/21951)]
-* Update `golang.org/x/crypto` to v0.31.0 to address [GO-2024-3321](https://pkg.go.dev/vuln/GO-2024-3321). [[GH-22001](https://github.com/hashicorp/consul/issues/22001)]
-* Update `golang.org/x/net` to v0.33.0 to address [GO-2024-3333](https://pkg.go.dev/vuln/GO-2024-3333). [[GH-22021](https://github.com/hashicorp/consul/issues/22021)]
-* Update `registry.access.redhat.com/ubi9-minimal` image to 9.5 to address [CVE-2024-3596](https://nvd.nist.gov/vuln/detail/CVE-2024-3596),[CVE-2024-2511](https://nvd.nist.gov/vuln/detail/CVE-2024-2511),[CVE-2024-26458](https://nvd.nist.gov/vuln/detail/CVE-2024-26458). [[GH-22011](https://github.com/hashicorp/consul/issues/22011)]
-* api: Enforces strict content-type header validation to protect against XSS vulnerability. [[GH-21930](https://github.com/hashicorp/consul/issues/21930)]
-
-IMPROVEMENTS:
-
-* Upgrade api submodule to 1.28.5 [[GH-22056](https://github.com/hashicorp/consul/issues/22056)]
-* snapshot agent: **(Enterprise only)**  Implement Service Principal Auth for snapshot agent on azure.
-
-BUG FIXES:
-
-* proxycfg: fix a bug where peered upstreams watches are canceled even when another target needs it. [[GH-21871](https://github.com/hashicorp/consul/issues/21871)]
-* state: ensure that identical manual virtual IP updates result in not bumping the modify indexes [[GH-21909](https://github.com/hashicorp/consul/issues/21909)]
-
-## 1.15.16 Enterprise (January 13, 2025)
-
-Enterprise LTS: Consul Enterprise 1.15 is a Long-Term Support (LTS) release.
-
-SECURITY:
-
-* Removed ability to use bexpr to filter results without ACL read on endpoint [[GH-21950](https://github.com/hashicorp/consul/issues/21950)]
-* Resolved issue where hcl would allow duplicates of the same key in acl policy configuration. [[GH-21908](https://github.com/hashicorp/consul/issues/21908)]
-* Update `github.com/golang-jwt/jwt/v4` to v4.5.1 to address [GHSA-29wx-vh33-7x7r](https://github.com/golang-jwt/jwt/security/advisories/GHSA-29wx-vh33-7x7r). [[GH-21951](https://github.com/hashicorp/consul/issues/21951)]
-* Update `registry.access.redhat.com/ubi9-minimal` image to 9.5 to address [CVE-2024-3596](https://nvd.nist.gov/vuln/detail/CVE-2024-3596),[CVE-2024-2511](https://nvd.nist.gov/vuln/detail/CVE-2024-2511),[CVE-2024-26458](https://nvd.nist.gov/vuln/detail/CVE-2024-26458). [[GH-22011](https://github.com/hashicorp/consul/issues/22011)]
-* api: Enforces strict content-type header validation to protect against XSS vulnerability. [[GH-21930](https://github.com/hashicorp/consul/issues/21930)]
-
-IMPROVEMENTS:
-
-* Upgrade api submodule to 1.21.4 [[GH-22055](https://github.com/hashicorp/consul/issues/22055)]
-* snapshot agent: **(Enterprise only)**  Implement Service Principal Auth for snapshot agent on azure.
-
-BUG FIXES:
-
-* proxycfg: fix a bug where peered upstreams watches are canceled even when another target needs it. [[GH-21871](https://github.com/hashicorp/consul/issues/21871)]
 
 ## 1.20.1 (October 29, 2024)
 BREAKING CHANGES:
@@ -231,11 +127,11 @@ SECURITY:
 * Explicitly set 'Content-Type' header to mitigate XSS vulnerability. [[GH-21704](https://github.com/hashicorp/consul/issues/21704)]
 * Implement HTML sanitization for user-generated content to prevent XSS attacks in the UI. [[GH-21711](https://github.com/hashicorp/consul/issues/21711)]
 * UI: Remove codemirror linting due to package dependency [[GH-21726](https://github.com/hashicorp/consul/issues/21726)]
-* Upgrade Go to use 1.22.7. This addresses CVE
-  [CVE-2024-34155](https://nvd.nist.gov/vuln/detail/CVE-2024-34155) [[GH-21705](https://github.com/hashicorp/consul/issues/21705)]
+* Upgrade Go to use 1.22.7. This addresses CVE 
+[CVE-2024-34155](https://nvd.nist.gov/vuln/detail/CVE-2024-34155) [[GH-21705](https://github.com/hashicorp/consul/issues/21705)]
 * Upgrade to support aws/aws-sdk-go `v1.55.5 or higher`. This resolves CVEs
-  [CVE-2020-8911](https://nvd.nist.gov/vuln/detail/cve-2020-8911) and
-  [CVE-2020-8912](https://nvd.nist.gov/vuln/detail/cve-2020-8912). [[GH-21684](https://github.com/hashicorp/consul/issues/21684)]
+[CVE-2020-8911](https://nvd.nist.gov/vuln/detail/cve-2020-8911) and 
+[CVE-2020-8912](https://nvd.nist.gov/vuln/detail/cve-2020-8912). [[GH-21684](https://github.com/hashicorp/consul/issues/21684)]
 * ui: Pin a newer resolution of Braces [[GH-21710](https://github.com/hashicorp/consul/issues/21710)]
 * ui: Pin a newer resolution of Codemirror [[GH-21715](https://github.com/hashicorp/consul/issues/21715)]
 * ui: Pin a newer resolution of Markdown-it [[GH-21717](https://github.com/hashicorp/consul/issues/21717)]
@@ -254,38 +150,6 @@ BUG FIXES:
 
 * jwt-provider: change dns lookup family from the default of AUTO which would prefer ipv6 to ALL if LOGICAL_DNS is used or PREFER_IPV4 if STRICT_DNS is used to gracefully handle transitions to ipv6. [[GH-21703](https://github.com/hashicorp/consul/issues/21703)]
 
-## 1.19.3 Enterprise (October 29, 2024)
-BREAKING CHANGES:
-
-* mesh: **(Enterprise Only)** Enable Envoy `HttpConnectionManager.normalize_path` by default on inbound traffic to mesh proxies. This resolves [CVE-2024-10005](https://nvd.nist.gov/vuln/detail/CVE-2024-10005).
-
-SECURITY:
-
-* Explicitly set 'Content-Type' header to mitigate XSS vulnerability. [[GH-21704](https://github.com/hashicorp/consul/issues/21704)]
-* Implement HTML sanitization for user-generated content to prevent XSS attacks in the UI. [[GH-21711](https://github.com/hashicorp/consul/issues/21711)]
-* UI: Remove codemirror linting due to package dependency [[GH-21726](https://github.com/hashicorp/consul/issues/21726)]
-* Upgrade Go to use 1.22.7. This addresses CVE 
-[CVE-2024-34155](https://nvd.nist.gov/vuln/detail/CVE-2024-34155) [[GH-21705](https://github.com/hashicorp/consul/issues/21705)]
-* Upgrade to support aws/aws-sdk-go `v1.55.5 or higher`. This resolves CVEs
-[CVE-2020-8911](https://nvd.nist.gov/vuln/detail/cve-2020-8911) and 
-[CVE-2020-8912](https://nvd.nist.gov/vuln/detail/cve-2020-8912). [[GH-21684](https://github.com/hashicorp/consul/issues/21684)]
-* mesh: **(Enterprise Only)** Add `contains` and `ignoreCase` to L7 Intentions HTTP header matching criteria to support configuration resilient to variable casing and multiple values. This resolves [CVE-2024-10006](https://nvd.nist.gov/vuln/detail/CVE-2024-10006).
-* mesh: **(Enterprise Only)** Add `http.incoming.requestNormalization` to Mesh configuration entry to support inbound service traffic request normalization. This resolves [CVE-2024-10005](https://nvd.nist.gov/vuln/detail/CVE-2024-10005) and [CVE-2024-10006](https://nvd.nist.gov/vuln/detail/CVE-2024-10006).
-* ui: Pin a newer resolution of Braces [[GH-21710](https://github.com/hashicorp/consul/issues/21710)]
-* ui: Pin a newer resolution of Codemirror [[GH-21715](https://github.com/hashicorp/consul/issues/21715)]
-* ui: Pin a newer resolution of Markdown-it [[GH-21717](https://github.com/hashicorp/consul/issues/21717)]
-* ui: Pin a newer resolution of ansi-html [[GH-21735](https://github.com/hashicorp/consul/issues/21735)]
-
-IMPROVEMENTS:
-
-* security: upgrade ubi base image to 9.4 [[GH-21750](https://github.com/hashicorp/consul/issues/21750)]
-* api: remove dependency on proto-public, protobuf, and grpc [[GH-21780](https://github.com/hashicorp/consul/issues/21780)]
-* xds: configures Envoy to load balance over all instances of an external service configured with hostnames when "envoy_dns_discovery_type" is set to "STRICT_DNS" [[GH-21655](https://github.com/hashicorp/consul/issues/21655)]
-
-BUG FIXES:
-
-* jwt-provider: change dns lookup family from the default of AUTO which would prefer ipv6 to ALL if LOGICAL_DNS is used or PREFER_IPV4 if STRICT_DNS is used to gracefully handle transitions to ipv6. [[GH-21703](https://github.com/hashicorp/consul/issues/21703)]
-
 ## 1.19.2 (August 26, 2024)
 
 SECURITY:
@@ -299,39 +163,6 @@ IMPROVEMENTS:
 BUG FIXES:
 
 * api-gateway: **(Enterprise only)** ensure clusters are properly created for JWT providers with a remote URI for the JWKS endpoint [[GH-21604](https://github.com/hashicorp/consul/issues/21604)]
-
-## 1.18.5 Enterprise (October 29, 2024)
-
-Enterprise LTS: Consul Enterprise 1.18 is a Long-Term Support (LTS) release.
-BREAKING CHANGES:
-
-* mesh: **(Enterprise Only)** Enable Envoy `HttpConnectionManager.normalize_path` by default on inbound traffic to mesh proxies. This resolves [CVE-2024-10005](https://nvd.nist.gov/vuln/detail/CVE-2024-10005).
-
-SECURITY:
-
-* Explicitly set 'Content-Type' header to mitigate XSS vulnerability. [[GH-21704](https://github.com/hashicorp/consul/issues/21704)]
-* Implement HTML sanitization for user-generated content to prevent XSS attacks in the UI. [[GH-21711](https://github.com/hashicorp/consul/issues/21711)]
-* Upgrade Go to use 1.22.7. This addresses CVE 
-[CVE-2024-34155](https://nvd.nist.gov/vuln/detail/CVE-2024-34155) [[GH-21705](https://github.com/hashicorp/consul/issues/21705)]
-* Upgrade to support aws/aws-sdk-go `v1.55.5 or higher`. This resolves CVEs
-[CVE-2020-8911](https://nvd.nist.gov/vuln/detail/cve-2020-8911) and 
-[CVE-2020-8912](https://nvd.nist.gov/vuln/detail/cve-2020-8912). [[GH-21684](https://github.com/hashicorp/consul/issues/21684)]
-* mesh: **(Enterprise Only)** Add `contains` and `ignoreCase` to L7 Intentions HTTP header matching criteria to support configuration resilient to variable casing and multiple values. This resolves [CVE-2024-10006](https://nvd.nist.gov/vuln/detail/CVE-2024-10006).
-* mesh: **(Enterprise Only)** Add `http.incoming.requestNormalization` to Mesh configuration entry to support inbound service traffic request normalization. This resolves [CVE-2024-10005](https://nvd.nist.gov/vuln/detail/CVE-2024-10005) and [CVE-2024-10006](https://nvd.nist.gov/vuln/detail/CVE-2024-10006).
-* ui: Pin a newer resolution of Braces [[GH-21710](https://github.com/hashicorp/consul/issues/21710)]
-* ui: Pin a newer resolution of Codemirror [[GH-21715](https://github.com/hashicorp/consul/issues/21715)]
-* ui: Pin a newer resolution of Markdown-it [[GH-21717](https://github.com/hashicorp/consul/issues/21717)]
-* ui: Pin a newer resolution of ansi-html [[GH-21735](https://github.com/hashicorp/consul/issues/21735)]
-
-IMPROVEMENTS:
-
-* security: upgrade ubi base image to 9.4 [[GH-21750](https://github.com/hashicorp/consul/issues/21750)]
-* api: remove dependency on proto-public, protobuf, and grpc [[GH-21780](https://github.com/hashicorp/consul/issues/21780)]
-* xds: configures Envoy to load balance over all instances of an external service configured with hostnames when "envoy_dns_discovery_type" is set to "STRICT_DNS" [[GH-21655](https://github.com/hashicorp/consul/issues/21655)]
-
-BUG FIXES:
-
-* jwt-provider: change dns lookup family from the default of AUTO which would prefer ipv6 to ALL if LOGICAL_DNS is used or PREFER_IPV4 if STRICT_DNS is used to gracefully handle transitions to ipv6. [[GH-21703](https://github.com/hashicorp/consul/issues/21703)]
 
 ## 1.18.4 Enterprise (August 26, 2024)
 
@@ -352,35 +183,6 @@ SECURITY:
 IMPROVEMENTS:
 
 * Use Envoy's default for a route's validate_clusters option, which is false. This fixes a case where non-existent clusters could cause a route to no longer route to any of its backends, including existing ones. [[GH-21587](https://github.com/hashicorp/consul/issues/21587)]
-
-## 1.15.15 Enterprise (October 29, 2024)
-
-Enterprise LTS: Consul Enterprise 1.15 is a Long-Term Support (LTS) release.
-BREAKING CHANGES:
-
-* mesh: **(Enterprise Only)** Enable Envoy `HttpConnectionManager.normalize_path` by default on inbound traffic to mesh proxies. This resolves [CVE-2024-10005](https://nvd.nist.gov/vuln/detail/CVE-2024-10005).
-
-SECURITY:
-
-* Explicitly set 'Content-Type' header to mitigate XSS vulnerability. [[GH-21704](https://github.com/hashicorp/consul/issues/21704)]
-* Implement HTML sanitization for user-generated content to prevent XSS attacks in the UI. [[GH-21711](https://github.com/hashicorp/consul/issues/21711)]
-* UI: Remove codemirror linting due to package dependency [[GH-21726](https://github.com/hashicorp/consul/issues/21726)]
-* Upgrade Go to use 1.22.7. This addresses CVE 
-[CVE-2024-34155](https://nvd.nist.gov/vuln/detail/CVE-2024-34155) [[GH-21705](https://github.com/hashicorp/consul/issues/21705)]
-* Upgrade to support aws/aws-sdk-go `v1.55.5 or higher`. This resolves CVEs
-[CVE-2020-8911](https://nvd.nist.gov/vuln/detail/cve-2020-8911) and 
-[CVE-2020-8912](https://nvd.nist.gov/vuln/detail/cve-2020-8912). [[GH-21684](https://github.com/hashicorp/consul/issues/21684)]
-* mesh: **(Enterprise Only)** Add `contains` and `ignoreCase` to L7 Intentions HTTP header matching criteria to support configuration resilient to variable casing and multiple values. This resolves [CVE-2024-10006](https://nvd.nist.gov/vuln/detail/CVE-2024-10006).
-* mesh: **(Enterprise Only)** Add `http.incoming.requestNormalization` to Mesh configuration entry to support inbound service traffic request normalization. This resolves [CVE-2024-10005](https://nvd.nist.gov/vuln/detail/CVE-2024-10005) and [CVE-2024-10006](https://nvd.nist.gov/vuln/detail/CVE-2024-10006).
-* ui: Pin a newer resolution of Braces [[GH-21710](https://github.com/hashicorp/consul/issues/21710)]
-* ui: Pin a newer resolution of Codemirror [[GH-21715](https://github.com/hashicorp/consul/issues/21715)]
-* ui: Pin a newer resolution of Markdown-it [[GH-21717](https://github.com/hashicorp/consul/issues/21717)]
-* ui: Pin a newer resolution of ansi-html [[GH-21735](https://github.com/hashicorp/consul/issues/21735)]
-
-IMPROVEMENTS:
-
-* security: upgrade ubi base image to 9.4 [[GH-21750](https://github.com/hashicorp/consul/issues/21750)]
-* xds: configures Envoy to load balance over all instances of an external service configured with hostnames when "envoy_dns_discovery_type" is set to "STRICT_DNS" [[GH-21655](https://github.com/hashicorp/consul/issues/21655)]
 
 ## 1.15.14 Enterprise (August 26, 2024)
 

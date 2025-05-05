@@ -3899,15 +3899,12 @@ func TestInternal_AssignManualServiceVIPs(t *testing.T) {
 		}
 
 		var resp structs.AssignServiceManualVIPsResponse
-		idx1 := s1.raft.CommitIndex()
 		err := msgpackrpc.CallWithCodec(codec, "Internal.AssignManualServiceVIPs", tc.req, &resp)
-		idx2 := s1.raft.CommitIndex()
 		if tc.expectErr != "" {
 			testutil.RequireErrorContains(t, err, tc.expectErr)
 		} else {
 			if again {
 				require.Equal(t, tc.expectAgain, resp)
-				require.Equal(t, idx1, idx2, "no raft operations occurred")
 			} else {
 				require.Equal(t, tc.expect, resp)
 			}

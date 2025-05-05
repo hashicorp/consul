@@ -1434,9 +1434,6 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	cfg.GRPCTLSPort = runtimeCfg.GRPCTLSPort
 
 	cfg.Segment = runtimeCfg.SegmentName
-
-	cfg.RaftConfig.PreVoteDisabled = runtimeCfg.RaftPreVoteDisabled
-
 	if len(runtimeCfg.Segments) > 0 {
 		segments, err := segmentConfig(runtimeCfg)
 		if err != nil {
@@ -1601,7 +1598,7 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	cfg.Reporting.License.Enabled = runtimeCfg.Reporting.License.Enabled
 
 	cfg.ServerRejoinAgeMax = runtimeCfg.ServerRejoinAgeMax
-	cfg.EnableXDSLoadBalancing = runtimeCfg.EnableXDSLoadBalancing
+
 	enterpriseConsulConfig(cfg, runtimeCfg)
 
 	return cfg, nil

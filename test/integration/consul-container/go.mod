@@ -59,7 +59,7 @@ require (
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/uuid v1.4.0 // indirect
 	github.com/hashicorp/consul-server-connection-manager v0.1.4 // indirect
-	github.com/hashicorp/consul/proto-public v0.6.2 // indirect
+	github.com/hashicorp/consul/proto-public v0.6.3 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-hclog v1.6.3 // indirect
 	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect

@@ -120,7 +120,6 @@ func DefaultSource() Source {
 			rpc_hold_timeout = "7s"
 			grpc_keepalive_interval = "30s"
 			grpc_keepalive_timeout = "20s"
-			enable_xds_load_balancing = true
 		}
 		ports = {
 			dns = 8600
@@ -147,7 +146,6 @@ func DefaultSource() Source {
 		raft_snapshot_threshold = ` + strconv.Itoa(int(cfg.RaftConfig.SnapshotThreshold)) + `
 		raft_snapshot_interval =  "` + cfg.RaftConfig.SnapshotInterval.String() + `"
 		raft_trailing_logs = ` + strconv.Itoa(int(cfg.RaftConfig.TrailingLogs)) + `
-		raft_prevote_disabled =  false
 		raft_logstore {
 			wal {
 				segment_size_mb = 64

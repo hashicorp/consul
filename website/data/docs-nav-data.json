@@ -1727,8 +1727,8 @@
             ]
           },
           {
-          "title": "Enable on dataplanes",
-          "path": "k8s/dns/enable"
+            "title": "Enable on dataplanes",
+            "path": "k8s/dns/enable"
           }
         ]
       },

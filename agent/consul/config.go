@@ -463,13 +463,6 @@ type Config struct {
 	// ServerRejoinAgeMax is used to specify the duration of time a server
 	// is allowed to be down/offline before a startup operation is refused.
 	ServerRejoinAgeMax time.Duration
-
-	// EnableXDSLoadBalancing controls xDS load balancing between the servers. Enabled by default.
-	// When enabled, Consul balances loads from xDS clients across available servers equally with an error margin of 0.1.
-	//
-	// When disabled, Consul does not restrict on the number of xDS connections on a server.
-	// In this scenario, you should deploy an external load balancer in front of the consul servers and distribute the load accordingly.
-	EnableXDSLoadBalancing bool
 }
 
 func (c *Config) InPrimaryDatacenter() bool {
