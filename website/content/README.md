@@ -2,7 +2,7 @@
 
 The `website/content` directory in the `hashicorp/consul` repository contains [the Consul documentation on developer.hashicorp.com](https://developer.hashicorp.com/consul). This `README` describes the directory structure and design principles for this documentation set.
 
-`README` table of contents:
+`README` table of contents: 
 
 - [Content directory overview](#content-directory-overview)
 - [North star principles for content design](#north-star-principles)
