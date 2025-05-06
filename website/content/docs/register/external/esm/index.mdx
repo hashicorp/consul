@@ -1,0 +1,110 @@
+---
+layout: docs
+page_title: Consul External Service Monitor (ESM)
+description: >-
+  Register and health check services with Consul, even when they are running on nodes without a co-located Consul agent.
+---
+
+# Consul External Service Monitor (ESM)
+
+This page describes the process to register external services and perform health chcecks using the Consul External Service Monitor (ESM). Consul ESM enables the registration and discovery of external services such as third-party SaaS services and services running in other environments where it is not possible to run the Consul agent directly.
+
+To learn more about the Consul ESM and observe its full suite of capabilities, complete the [Register and monitor external services with ESM tutorial](/consul/tutorials/connect-services/service-registration-external-services). For more information about the tool, refer to the [Consul ESM project on GitHub](https://github.com/hashicorp/consul-esm).
+
+## Introduction
+
+[Consul ESM](https://github.com/hashicorp/consul-esm) is a daemon that runs alongside Consul in order to health check external nodes and update their status in the catalog. It allows externally registered services and checks to access the same features as if they were registered locally on Consul agents. You can run multiple instances of ESM for availability. ESM will perform a leader election by holding a lock in Consul. The leader will then continually watch Consul for updates to the catalog and perform health checks defined on any
+external nodes it discovers.
+
+You should install Consul ESM on a separate VM or container. Consul ESM queries each external service for its current health and location information, and then sends updates the Consul server. As of Consul v1.21, you do not need to install a Consul agent on the same node as Consul ESM, eliminating the need for gossip communication between Consul ESM and the servers.
+
+## Install Consul ESM
+
+Consul ESM is provided as a single binary. To install, download the [latest Consul ESM release](https://releases.hashicorp.com/consul-esm) for your system and make it available in your PATH.
+
+Open a new terminal and start Consul ESM with `consul-esm`.
+
+```shell-session
+$ consul-esm
+
+2025-04-23T14:16:02.835-0700 [INFO]  consul-esm: Connecting to Consul: address=127.0.0.1:8500
+Consul ESM running!
+            Datacenter: (default)
+             Partition: ""
+               Service: "consul-esm"
+           Service Tag: ""
+            Service ID: "consul-esm:53b0c771-5a5b-eb75-90e9-2ece0f161b74"
+Node Reconnect Timeout: "72h0m0s"
+   Disable coordinates: false
+        Statsd address: ""
+         Metrix prefix: ""
+
+Log data will now stream in as it occurs:
+
+2025-04-23T14:16:02.908-0700 [INFO]  consul-esm: Trying to obtain leadership...
+2025-04-23T14:16:02.911-0700 [INFO]  consul-esm: Obtained leadership
+2025-04-23T14:16:02.914-0700 [INFO]  consul-esm: Updating external node list: items=0
+2025-04-23T14:16:03.933-0700 [INFO]  consul-esm: Rebalanced external nodes across ESM instances: nodes=0 instances=1
+2025-04-23T14:16:03.935-0700 [INFO]  consul-esm: Fetched nodes from catalog: count=0
+```
+
+If your internet provider does not allow UDP pings you may have to set `ping_type = "socket"` in a config file and launch `consul-esm` with that config file. If you are using macOS you will need to run with `sudo`:
+
+```shell-session
+$ sudo consul-esm -config-file=./consul-esm.hcl
+```
+
+## Define a service for Consul ESM
+
+To register a service using Consul ESM, you must define the service and health check. The following example demonstrates a service definition for an external database service:
+
+```json
+{
+  "Datacenter": "$CONSUL_DATACENTER",
+  "Node": "hashicups-db-0-ext",
+  "ID": "`cat /proc/sys/kernel/random/uuid`",
+  "Address": "${IP_HASHICUPS_DB_0}",
+  "NodeMeta": {
+    "external-node": "true",
+    "external-probe": "true"
+  },
+  "Service": {
+    "ID": "hashicups-db-0",
+    "Service": "hashicups-db",
+    "Tags": [
+      "external",
+      "inst_0"
+    ],
+    "Address": "${IP_HASHICUPS_DB_0}",
+    "Port": 5432
+  },
+  "Checks": [{
+    "CheckID": "hashicups-db-0-check",
+    "Name": "hashicups-db check",
+    "Status": "critical",
+    "ServiceID": "hashicups-db-0",
+    "Definition": {
+      "TCP": "${IP_HASHICUPS_DB_0}:5432",
+      "Interval": "5s",
+      "Timeout": "1s",
+      "DeregisterCriticalServiceAfter": "60m"
+     }
+  }]
+}
+```
+
+Observe the following requirements for Consul ESM in this configuration:
+
+- Because you are defining a node that does not have a local Consul agent, you must include the `Datacenter` value so that Consul knows where to register the node and service.
+- The node is identified using the `Node`, `ID`, and `Address` parameters.
+- The `NodeMeta` parameter is necessary for `consul-esm` to identify the external nodes that will require periodic health checks.
+    - For Consul ESM to detect external nodes and health checks, set `"external-node": "true"` in the node metadata before you register it.
+    - The `external-probe` field determines if Consul ESM performs regular pings to the node to update its health status.
+
+For a full list of service configuration parameters refer to [Services configuration reference](/consul/docs/services/configuration/services-configuration-reference) and [Health check configuration reference](/consul/docs/services/configuration/checks-configuration-reference).
+
+## Register a service
+
+Use the [`consul services register` command](/consul/commands/services/register) or send a `PUT` request to the [`/v1/catalog/register` HTTP API endpoint](/consul/api-docs/catalog) to register the external service.
+
+You can register an external service to Consul before the ESM is running. However, external services will appear in the catalog with a `critical` status until ESM is running and able to perform a health check.

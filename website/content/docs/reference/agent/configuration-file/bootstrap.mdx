@@ -1,0 +1,71 @@
+---
+layout: docs
+page_title: Bootstrap parameters for Consul agent configuration files
+description: >-
+  Use agent configuration files to assign attributes to agents and configure multiple agents at once. Learn about agent configuration file parameters and formatting with this reference page and sample code.
+---
+
+# Bootstrap configuration parameters for Consul agent configuration files
+
+This page provides reference information for bootstrapping parameters in a Consul agent configuration file.
+
+## Bootstrap parameters
+
+- `autopilot` This object allows a number of sub-keys to be set which can configure operator-friendly settings for
+  Consul servers. When these keys are provided as configuration, they will only be
+  respected on bootstrapping. If they are not provided, the defaults will be used.
+  In order to change the value of these options after bootstrapping, you will need
+  to use the [Consul Operator Autopilot](/consul/commands/operator/autopilot)
+  command. For more information about Autopilot, review the [Autopilot tutorial](/consul/tutorials/datacenter-operations/autopilot-datacenter-operations).
+
+  The following sub-keys are available:
+
+  - `cleanup_dead_servers` - This controls the
+    automatic removal of dead server nodes periodically and whenever a new server
+    is added to the cluster. Defaults to `true`.
+
+  - `last_contact_threshold` - Controls the
+    maximum amount of time a server can go without contact from the leader before
+    being considered unhealthy. Must be a duration value such as `10s`. Defaults
+    to `200ms`.
+
+  - `max_trailing_logs` - Controls the maximum number
+    of log entries that a server can trail the leader by before being considered
+    unhealthy. Defaults to 250.
+
+  - `min_quorum` - Sets the minimum number of servers necessary
+    in a cluster. Autopilot will stop pruning dead servers when this minimum is reached. There is no default.
+
+  - `server_stabilization_time` - Controls
+    the minimum amount of time a server must be stable in the 'healthy' state before
+    being added to the cluster. Only takes effect if all servers are running Raft
+    protocol version 3 or higher. Must be a duration value such as `30s`. Defaults
+    to `10s`.
+
+  - `redundancy_zone_tag` <EnterpriseAlert inline /> -
+    This controls the [`node_meta`](/consul/docs/reference/agent/configuration-file/node#node_meta) key to use when Autopilot is separating
+    servers into zones for redundancy. Only one server in each zone can be a voting
+    member at one time. If left blank (the default), this feature will be disabled.
+
+  - `disable_upgrade_migration` <EnterpriseAlert inline /> -
+    If set to `true`, this setting will disable Autopilot's upgrade migration strategy
+    in Consul Enterprise of waiting until enough newer-versioned servers have been
+    added to the cluster before promoting any of them to voters. Defaults to `false`.
+
+  - `upgrade_version_tag` <EnterpriseAlert inline /> -
+    The node_meta tag to use for version info when performing upgrade migrations.
+    If this is not set, the Consul version will be used.
+
+- `bootstrap` ((#\_bootstrap)) - This parameter controls if a server
+  is in "bootstrap" mode. It is important that no more than one server **per** datacenter
+  be running in this mode. Technically, a server in bootstrap mode is allowed to
+  self-elect as the Raft leader. It is important that only a single node is in this
+  mode; otherwise, consistency cannot be guaranteed as multiple nodes are able to
+  self-elect. It is not recommended to use this flag after a cluster has been bootstrapped.
+
+- `bootstrap_expect` ((#\_bootstrap_expect)) - This parameter provides the number
+  of expected servers in the datacenter. Either this value should not be provided
+  or the value must agree with other servers in the cluster. When provided, Consul
+  waits until the specified number of servers are available and then bootstraps the
+  cluster. This allows an initial leader to be elected automatically. This parameter requires
+  the agent to be configured for [`server` modes](/consul/docs/reference/agent/configuration-file/general#_server).

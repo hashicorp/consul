@@ -1,0 +1,1404 @@
+---
+layout: docs
+page_title: This topic provides an overview for Consul auto-config on Docker.
+description: >-
+   Learn how to configure Consul's auto-config settings on Docker containers so that Consul can automate distribution for ACL tokens, TLS certificates, and gossip encryption keys.
+---
+
+# Consul auto-config on Docker
+
+This topic provides an overview for Consul auto-config on Docker.
+
+## Overview
+
+Consul `auto_config` is a highly scalable method used to distribute secure
+properties such as [Access Control List (ACL) tokens](/consul/docs/secure/acl), [TLS certificates](/consul/docs/security/security-models/core#secure-configuration), [gossip encryption keys](/consul/docs/security/encryption#gossip-encryption),
+and other configuration settings to all Consul agents in a datacenter. This can
+provide a great boost in usability for securing agents against eavesdropping,
+tampering, and spoofing without having to manually distribute or rotate secrets
+across the datacenter. Additionally, `auto_config` reduces the technical
+overhead associated with securing Consul agents.
+
+In this tutorial, you will:
+
+- Create a secure local Consul datacenter using Docker Compose
+- Use the created environment to inspect the server and client `auto_config` settings
+- Generate a JSON web token (JWT) with either [Vault](/vault/) or [secint](https://github.com/banks/secint)
+- Securely join a client to the Consul datacenter with the `auto_config` method
+
+JSON web tokens (JWTs) are an open, industry standard method for representing
+claims securely between two parties. With the `auto_config` method, Consul
+clients use JWTs to securely retrieve gossip encryption keys, TLS certificates,
+and/or other security setting changes from Consul servers. Since tokens are
+credentials, great care must be taken to prevent security issues. In general,
+you should not keep tokens longer than required. To learn more about JSON web
+tokens, check the [JWT documentation page](https://jwt.io/introduction).
+
+While this tutorial uses elements that are not suitable for production
+environments including example certificates, example gossip encryption keys,
+and global ACL token usage, it will teach you the core concepts for
+deploying and interacting with a secure Consul datacenter using `auto_config`.
+Refer to the [Consul Reference Architecture](/consul/tutorials/production-deploy/reference-architecture)
+for Consul best practices and the [Docker Documentation](https://docs.docker.com/)
+for Docker best practices.
+
+## Prerequisites
+
+This tutorial builds on the concepts learned in the
+[Consul getting started collection](/consul/tutorials/get-started-vms) and the
+[Deploy a secure local datacenter with Docker Compose tutorial](/consul/tutorials/docker/docker-compose-datacenter).
+
+### Docker
+
+You will need a local install of Docker running on your machine for this
+tutorial. You can find the instructions for installing Docker on your specific
+operating system [here](https://docs.docker.com/install/). Docker Engine 20.10.7
+was used in this tutorial.
+
+### Docker Compose
+
+Docker Compose is a tool for defining and running multi-container Docker
+applications. With Compose, you use a YAML file to configure your application’s
+services. Visit the [Docker Compose install guide](https://docs.docker.com/compose/install/)
+for operating system specific installation instructions. Docker Compose format
+3.7 was used in this tutorial.
+
+## Choose your learning path
+
+You can utilize the `auto_config` workflow with HashiCorp
+[Vault](/vault/) or a third-party production-grade secrets
+management platform. In this tutorial we will demonstrate the Vault workflow,
+and a generic workflow with a proof-of-concept tool, [secint](https://github.com/banks/secint).
+
+<Tabs>
+
+<Tab heading="Vault">
+
+## Clone GitHub repository
+
+Clone the GitHub repository containing the configuration files and resources.
+
+<CodeTabs tabs={[ "HTTPS", "SSH" ]}>
+
+```shell-session
+$ git clone https://github.com/hashicorp/learn-consul-docker.git
+```
+
+```shell-session
+$ git clone git@github.com:hashicorp/learn-consul-docker.git
+```
+
+</CodeTabs>
+
+Change into the directory with the newly cloned repository. This directory
+contains the complete configuration files.
+
+```shell-session
+$ cd learn-consul-docker/datacenter-deploy-auto-config/vault
+```
+
+Check out the `v0.3` tag of the repository.
+
+```shell-session
+$ git checkout v0.3
+```
+
+## Inspect configuration files
+
+You will use the following resources to deploy five containers; three Consul
+servers, a Vault server, and a single Consul client.
+
+### Docker Compose YAML
+
+The following Docker Compose configuration file instructs Docker to create one
+Vault server and four Consul containers using the respective configuration
+files. These files will configure various container settings and bootstrap the
+Consul datacenter with three secure Consul servers. Three servers in a
+datacenter is the recommended minimum for achieving a balance between
+availability and performance. These servers together run the Raft-driven
+consistent state store for updating catalog, session, prepared query, ACLs, and
+KV state.
+
+Inside your working directory, inspect the file named `docker-compose.yml`.
+
+<CodeBlockConfig hideClipboard filename="datacenter-deploy-auto-config/vault/docker-compose.yml">
+
+```yml
+version: '3.7'
+
+services:
+
+  consul-server1:
+    image: hashicorp/consul:1.11.2
+    container_name: consul-server1
+    hostname: consul-server1
+    depends_on:
+      - vault-server
+    restart: always
+    volumes:
+     - ./consul/server1.json:/consul/config/server1.json
+     - ./certs/:/consul/config/certs/:ro
+    networks:
+      - hashicorp
+    ports:
+      - "8500:8500"
+      - "8600:8600/tcp"
+      - "8600:8600/udp"
+    command: "agent -bootstrap-expect=3"
+
+  consul-server2:
+    image: hashicorp/consul:1.11.2
+    container_name: consul-server2
+    hostname: consul-server2
+    depends_on:
+      - vault-server
+    restart: always
+    volumes:
+     - ./consul/server2.json:/consul/config/server2.json
+     - ./certs/:/consul/config/certs/:ro
+    networks:
+      - hashicorp
+    command: "agent -bootstrap-expect=3"
+
+  consul-server3:
+    image: hashicorp/consul:1.11.2
+    container_name: consul-server3
+    hostname: consul-server3
+    depends_on:
+      - vault-server
+    restart: always
+    volumes:
+     - ./consul/server3.json:/consul/config/server3.json
+     - ./certs/:/consul/config/certs/:ro
+    networks:
+      - hashicorp
+    command: "agent -bootstrap-expect=3"
+
+  consul-client:
+    image: hashicorp/consul:1.11.2
+    container_name: consul-client
+    hostname: consul-client
+    restart: always
+    volumes:
+     - ./consul/client.json:/consul/config/client.json
+     - ./certs/:/consul/config/certs/:ro
+     - ./tokens/:/consul/config/tokens/
+    networks:
+      - hashicorp
+    command: "agent"
+
+  vault-server:
+    image: hashicorp/vault:1.8.1
+    container_name: vault-server
+    hostname: vault-server
+    restart: always
+    ports:
+      - "8200:8200"
+    environment:
+      VAULT_ADDR: "http://vault-server:8200"
+      VAULT_API_ADDR: "http://vault-server:8200"
+      VAULT_DEV_ROOT_TOKEN_ID: "vault-plaintext-root-token"
+      CONSUL_HTTP_ADDR: "consul-server1:8500"
+      CONSUL_HTTP_TOKEN: "e95b599e-166e-7d80-08ad-aee76e7ddf19"
+    cap_add:
+      - IPC_LOCK
+    volumes:
+     - ./vault/policy.json:/vault/policies/policy.json
+    networks:
+      - hashicorp
+
+networks:
+  hashicorp:
+    driver: bridge
+```
+
+</CodeBlockConfig>
+
+For more information on the Consul Docker image, check Consul's
+[Docker Hub page](https://hub.docker.com/_/consul).
+
+### Consul server configuration
+
+On a Consul server agent with the `authorization` subkey set to `enabled`, the
+server will begin to process client `auto_config` requests.
+
+Inside your working directory, inspect the three `server#.json` files.
+
+<CodeTabs tabs={[ "Consul Server 1", "Consul Server 2", "Consul Server 3" ]}>
+
+<CodeBlockConfig hideClipboard filename="datacenter-deploy-auto-config/vault/consul/server1.json">
+
+```json
+{
+    "node_name": "consul-server1",
+    "server": true,
+    "ui_config": {
+        "enabled" : true
+    },
+    "data_dir": "/consul/data",
+    "addresses": {
+        "http" : "0.0.0.0"
+    },
+    "retry_join":[
+        "consul-server2",
+        "consul-server3"
+    ],
+	"acl": {
+		"enabled": true,
+		"default_policy": "deny",
+		"enable_token_persistence": true,
+		"tokens": {
+			"initial_management": "e95b599e-166e-7d80-08ad-aee76e7ddf19",
+			"agent": "e95b599e-166e-7d80-08ad-aee76e7ddf19"
+		}
+	},
+	"connect": { "enabled": true },
+	"auto_config": {
+		"authorization": {
+			"enabled": true,
+			"static": {
+				"oidc_discovery_url": "http://vault-server:8200/v1/identity/oidc",
+				"bound_issuer": "http://vault-server:8200/v1/identity/oidc",
+				"bound_audiences": ["consul-cluster-dc1"],
+				"claim_mappings": {
+					"/consul/hostname": "node_name"
+				},
+				"claim_assertions": [
+					"value.node_name == \"${node}\""
+				]
+			}
+		}
+	},
+    "encrypt": "aPuGh+5UDskRAbkLaXRzFoSOcSM+5vAK+NEYOWHJH7w=",
+    "verify_incoming": true,
+    "verify_outgoing": true,
+    "verify_server_hostname": true,
+    "ca_file": "/consul/config/certs/consul-agent-ca.pem",
+    "cert_file": "/consul/config/certs/dc1-server-consul-0.pem",
+    "key_file": "/consul/config/certs/dc1-server-consul-0-key.pem"
+}
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig hideClipboard filename="datacenter-deploy-auto-config/vault/consul/server2.json">
+
+```json
+{
+    "node_name": "consul-server2",
+    "server": true,
+    "ui_config": {
+        "enabled" : true
+    },
+    "data_dir": "/consul/data",
+    "addresses": {
+        "http" : "0.0.0.0"
+    },
+    "retry_join":[
+        "consul-server1",
+        "consul-server3"
+    ],
+	"acl": {
+		"enabled": true,
+		"default_policy": "deny",
+		"enable_token_persistence": true,
+		"tokens": {
+			"initial_management": "e95b599e-166e-7d80-08ad-aee76e7ddf19",
+			"agent": "e95b599e-166e-7d80-08ad-aee76e7ddf19"
+		}
+	},
+	"connect": { "enabled": true },
+	"auto_config": {
+		"authorization": {
+			"enabled": true,
+			"static": {
+				"oidc_discovery_url": "http://vault-server:8200/v1/identity/oidc",
+				"bound_issuer": "http://vault-server:8200/v1/identity/oidc",
+				"bound_audiences": ["consul-cluster-dc1"],
+				"claim_mappings": {
+					"/consul/hostname": "node_name"
+				},
+				"claim_assertions": [
+					"value.node_name == \"${node}\""
+				]
+			}
+		}
+	},
+    "encrypt": "aPuGh+5UDskRAbkLaXRzFoSOcSM+5vAK+NEYOWHJH7w=",
+    "verify_incoming": true,
+    "verify_outgoing": true,
+    "verify_server_hostname": true,
+    "ca_file": "/consul/config/certs/consul-agent-ca.pem",
+    "cert_file": "/consul/config/certs/dc1-server-consul-0.pem",
+    "key_file": "/consul/config/certs/dc1-server-consul-0-key.pem"
+}
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig hideClipboard filename="datacenter-deploy-auto-config/vault/consul/server3.json">
+
+```json
+{
+    "node_name": "consul-server3",
+    "server": true,
+    "ui_config": {
+        "enabled" : true
+    },
+    "data_dir": "/consul/data",
+    "addresses": {
+        "http" : "0.0.0.0"
+    },
+    "retry_join":[
+        "consul-server1",
+        "consul-server2"
+    ],
+	"acl": {
+		"enabled": true,
+		"default_policy": "deny",
+		"enable_token_persistence": true,
+		"tokens": {
+			"initial_management": "e95b599e-166e-7d80-08ad-aee76e7ddf19",
+			"agent": "e95b599e-166e-7d80-08ad-aee76e7ddf19"
+		}
+	},
+	"connect": { "enabled": true },
+	"auto_config": {
+		"authorization": {
+			"enabled": true,
+			"static": {
+				"oidc_discovery_url": "http://vault-server:8200/v1/identity/oidc",
+				"bound_issuer": "http://vault-server:8200/v1/identity/oidc",
+				"bound_audiences": ["consul-cluster-dc1"],
+				"claim_mappings": {
+					"/consul/hostname": "node_name"
+				},
+				"claim_assertions": [
+					"value.node_name == \"${node}\""
+				]
+			}
+		}
+	},
+    "encrypt": "aPuGh+5UDskRAbkLaXRzFoSOcSM+5vAK+NEYOWHJH7w=",
+    "verify_incoming": true,
+    "verify_outgoing": true,
+    "verify_server_hostname": true,
+    "ca_file": "/consul/config/certs/consul-agent-ca.pem",
+    "cert_file": "/consul/config/certs/dc1-server-consul-0.pem",
+    "key_file": "/consul/config/certs/dc1-server-consul-0-key.pem"
+}
+```
+
+</CodeBlockConfig>
+
+</CodeTabs>
+
+Each Consul server configuration file uses the following `auto_config` options:
+
+- `authorization` - Setting the sub key `enabled` to `true` enables the
+authorization service on this agent. This allows the server agent to process
+`auto_config` RPC requests from clients.
+
+- `static` - This object contains all static authorizer configuration settings.
+
+- - `oidc_discovery_url` - The URL used to validate JSON web tokens (JWTs). In
+this example, Vault's OIDC URL endpoint `http://vault-server:8200/v1/identity/oidc`
+is used.
+
+- - `bound_issuer` - The value for matching the `iss` value in a JSON web token
+(JWT). The issuer `iss` claim in a JWT is meant to refer to the resource that
+issued the JWT. In this example, the Vault server assigns its OIDC URL
+endpoint `http://vault-server:8200/v1/identity/oidc` as the issuer for generated
+JWTs.
+
+- - `bound_audiences` - The value for matching the `aud` field of the JSON web
+token (JWT). The audience `aud` claim in a JWT is meant to refer to the
+authorization servers that should accept the token. In this example, Vault
+assigns the generated JWT tokens with an `aud` value of `consul-cluster-dc1`.
+
+- - `claim_assertions` - List of assertions about the mapped claims required to
+authorize the incoming RPC request. In this example,
+`"value.node_name == \"${node}\""` sets the value of the `node_name` variable to
+the hostname of the consul client making a request to the `auto_config`
+authorization servers.
+
+- - `claim_mappings` - Mappings of claims (key) that will be copied to a
+metadata field (value). In this example, `"/consul/hostname": "node_name"`
+checks the value of the `node_name` variable against the metadata value of
+`/consul/hostname`.
+
+Check the Consul [configuration documentation](/consul/docs/reference/agent/configuration-file/auto-config) to learn more.
+
+### Consul client configuration
+
+On a Consul client agent with `auto_config` enabled, the client agent will use
+the value of a JSON web token (JWT) within `intro_token_file` to communicate
+with the configured `server_addresses` to request secure configuration settings.
+These settings are then merged into any existing configuration on the client
+agent.
+
+Inside your working directory, inspect the `client.json` file.
+
+<CodeBlockConfig hideClipboard filename="datacenter-deploy-auto-config/vault/consul/client.json">
+
+```json
+{
+    "node_name": "consul-client",
+    "data_dir": "/consul/data",
+    "ports": {"https":8501},
+    "auto_config":{
+        "enabled": true,
+        "intro_token_file": "/consul/config/tokens/jwt",
+        "server_addresses":[
+            "consul-server1",
+            "consul-server2",
+            "consul-server3"
+        ]
+    },
+    "verify_incoming": false,
+    "verify_outgoing": true,
+    "verify_server_hostname": true,
+    "ca_file": "/consul/config/certs/consul-agent-ca.pem"
+}
+```
+</CodeBlockConfig>
+
+Each Consul client configuration file uses the following `auto_config` options:
+
+- `enabled` - Setting this key to `true` enables the `auto_config` client
+service on the agent. Enabling this option also turns on
+[Consul service mesh](/consul/docs/reference/agent/configuration-file/service-mesh#connect)
+because it is required for `auto_config` to issue certificates to client agents
+using the Consul service mesh CA.
+
+- `intro_token_file` - This specifies the file that contains the JSON web token
+(JWT) to use for the initial `auto_config` RPC to the Consul servers.
+
+- `server_addresses` - This specifies the addresses of servers in the local
+datacenter to use for the initial RPC. These addresses support
+[Cloud Auto-Joining](/consul/commands/agent#cloud-auto-joining)
+and can optionally include a port to use when making the outbound connection. If
+not port is provided the [server RPC port](/consul/docs/reference/agent/configuration-file/general#server_rpc_port) will be used.
+
+Check the Consul [configuration](/consul/docs/reference/agent/configuration-file)
+documentation to learn more.
+
+## Create the Consul datacenter
+
+From within your working directory, run the following Docker Compose command to
+create your secure local Consul datacenter.
+
+```shell-session
+$ docker-compose up --detach
+
+Creating network "vault_hashicorp" with driver "bridge"
+Creating consul-client ... done
+Creating vault-server  ... done
+Creating consul-server3 ... done
+Creating consul-server1 ... done
+Creating consul-server2 ... done
+```
+
+<Note>
+
+ Your first run will take the longest as Docker will first pull the
+respective images from the Docker Hub repository. Additional runs will not
+require to download the image again and should only take a few seconds to
+complete.
+
+</Note>
+
+## View the Consul UI
+
+Navigate to [`http://localhost:8500`](http://localhost:8500) on your browser to access the Consul UI. Login with the pre-configured ACL token `e95b599e-166e-7d80-08ad-aee76e7ddf19`.
+
+Click on the "Nodes" option in the top navigation bar to go to the nodes page.
+Notice that the three `consul-server#` nodes are present in the datacenter,
+however, the `consul-client` node is not present since it cannot join the secure
+datacenter.
+
+![Image of Nodes page in Consul UI.](/img/consul/consul-ui_three_server_nodes.png 'There is a navigation menu on the left side of the page with multiple options. The Nodes tab is selected. In the main area of the screen, three Consul servers are shown as healthy nodes. One of the Consul servers is marked as a leader node.')
+
+## Retrieve Consul client logs
+
+Check the container logs for `consul-client` to see details about why the client
+could not join the Consul datacenter.
+
+```shell-session
+$ docker container logs consul-client
+```
+
+```log hideClipboard
+[INFO]  agent.auto_config: retrieving initial agent auto configuration remotely
+[ERROR] agent.auto_config: intro_token_file did not contain any token
+```
+
+This type of behavior occurs when a client's JSON web token (JWT) cannot be
+validated by the authorization server. In this example the token file is empty.
+
+<Note>
+
+ Feel free to explore the
+[jwt.io documentation](https://jwt.io/introduction) for more information on the
+properties of a JSON web token (JWT).
+
+</Note>
+
+## Configure Vault to generate JWTs
+
+Vault's built-in [Identity Secrets Engine](/vault/docs/secrets/identity)
+can be used to generate the JSON Web Tokens (JWTs) required to validate Consul
+client `auto_join` requests.
+
+Open an interactive shell to the Vault server container.
+
+```shell-session
+$ docker exec -it vault-server /bin/sh
+
+/ #
+```
+
+Login to Vault with the pre-configured Vault's root token, `vault-plaintext-root-token`.
+
+```shell-session
+$ vault login
+
+Token (will be hidden):
+```
+
+Named keys are used by a role to sign JSON web tokens (JWTs). The value for
+`allowed_client_ids` here will become the value of `aud` when a JWT is generated.
+The audience `aud` claim in a JWT is meant to refer to the authorization servers
+that should accept the token, in this case, `consul-cluster-dc1`.
+
+Create a named key.
+
+```shell-session
+$ vault write identity/oidc/key/oidc-key-1 allowed_client_ids="consul-cluster-dc1"
+
+Success! Data written to: identity/oidc/key/oidc-key-1
+```
+
+JSON web tokens (JWTs) are generated against a role and signed against a named
+key. The `template='{"consul": {"hostname": "consul-client" } }'` will create
+additional JWT metadata that will be used by the Consul authorization servers to
+validate the request.
+
+Create a role.
+
+```shell-session
+$ vault write identity/oidc/role/oidc-role-1 ttl=12h key="oidc-key-1" client_id="consul-cluster-dc1" template='{"consul": {"hostname": "consul-client" } }'
+
+Success! Data written to: identity/oidc/role/oidc-role-1
+```
+
+Policies provide a declarative way to grant or forbid access to certain paths
+and operations in Vault. In this example, a policy file will be used that only
+grants a user permission to read the token at the path `identity/oidc/token/oidc-role-1`.
+
+<CodeBlockConfig hideClipboard filename="datacenter-deploy-auto-config/vault/vault/policies/policy.json">
+
+```json
+{
+    "path": {
+      "identity/oidc/token/oidc-role-1": {
+        "policy": "read"
+      }
+    }
+}
+```
+</CodeBlockConfig>
+
+Create a policy using the included `policy.json` file.
+
+```shell-session
+$ vault policy write oidc-policy /vault/policies/policy.json
+
+Success! Uploaded policy: oidc-policy
+```
+
+<Note>
+
+ Feel free to explore
+[Vault's identity token documentation](/vault/docs/secrets/identity#identity-tokens) to learn more about identity token attributes,
+roles, and keys.
+
+</Note>
+
+## Generate a JWT with Vault
+
+An authorized Vault user/application can request a token that encapsulates
+identity information for their associated entity. These tokens are signed JSON
+web tokens (JWTs) following the [OIDC ID token structure](https://auth0.com/docs/protocols/openid-connect-protocol). In this example, a user entity will be created to
+manually generate a JWT.
+
+Enable Vault's username/password secrets engine.
+
+```shell-session
+$ vault auth enable userpass
+
+Success! Enabled userpass auth method at: userpass/
+```
+
+Create a user `example` with the `oidc-policy` attached.
+
+```shell-session
+$ vault write auth/userpass/users/example password=password policies=oidc-policy
+
+Success! Data written to: auth/userpass/users/example
+```
+
+Login as the user `example` with the password `password`.
+
+```shell-session
+$ vault login -method=userpass username=example
+
+Password (will be hidden):
+```
+
+After login you should receive an output similar to the following:
+
+```plaintext hideClipboard
+Success! You are now authenticated. The token information displayed below
+is already stored in the token helper. You do NOT need to run "vault login"
+again. Future Vault requests will automatically use this token.
+
+Key                    Value
+---                    -----
+token                  s.8mqE8WBErCFUfEnZxyiTwkny
+token_accessor         x0FS1wkewLLD5D2B4FUvnBRA
+token_duration         768h
+token_renewable        true
+token_policies         ["default" "oidc-policy"]
+identity_policies      []
+policies               ["default" "oidc-policy"]
+token_meta_username    example
+```
+
+Generate a signed JSON web token (JWT). Note that each time this operation is
+performed, a new JWT will be generated.
+
+```shell-session
+$ vault read identity/oidc/token/oidc-role-1
+
+Key          Value
+---          -----
+client_id    consul-cluster-dc1
+token        eyJhbGciOiJSUzI1NiIsImtpZCI6IjI4YjA2NDlmLTdlNjktMWFhMC03ZmYyLWI4ZDU5NGJhZmE5MCJ9.eyJhdWQiOiJjb25zdWwtY2x1c3Rlci1kYzEiLCJjb25zdWwiOnsiaG9zdG5hbWUiOiJjb25zdWwtY2xpZW50In0sImV4cCI6MTYyOTc5MDYwNSwiaWF0IjoxNjI5NzQ3NDA1LCJpc3MiOiJodHRwOi8vdmF1bHQtc2VydmVyOjgyMDAvdjEvaWRlbnRpdHkvb2lkYyIsIm5hbWVzcGFjZSI6InJvb3QiLCJzdWIiOiI4NWE5ZWMxYi1iMTcyLWU1YWEtZmU3Ni0xMzFkOWFjZmVjZTgifQ.eFDQ_TReNvKeMS4si92oiPOBcRbv0bGuVKq4Qns0ObnNrwFWVvDB9HLkCP7VzRuO9l9a3Jzl-Uk__Y_fF_JgWk7s2iZTg9RbBZD0TYz5-ziHU13wd7Onx9OjXjmw-5ah96dDFh3nqkuXJpV9upmVfXA7Zb5goYyfULa7gWeSNPjyjYNx2oirsFwH_xm9No9lttEA33XOGyAGi9UNBlvKdw6uXJfhnWTG2NxEt9y7JO_wNxjXKOUxhVhbb6ZxRZT_enbib1g_b-BVrNvTqB5UfSKyz6h3musoqDsAcLOEeAkl6dfWv3IezhqY2vNm5mQ3lH83AK6dZdwvVcG0DmdIpQ
+ttl          12h
+```
+
+Copy the value of `token` to your clipboard.
+
+Exit the docker terminal to return to your system shell.
+
+```shell-session
+$ exit
+```
+
+<Note>
+
+ Feel free to explore the contents of your JSON web token (JWT)
+using the decoder at [jwt.io](https://jwt.io/).
+
+</Note>
+
+## Configure your client with the JWT
+
+Copy the `token` value to the ``/vault/tokens/jwt`` file in your working
+directory, then save the changes.
+
+<CodeBlockConfig hideClipboard filename="datacenter-deploy-auto-config/vault/tokens/jwt">
+
+```plaintext
+eyJhbGciOiJSUzI1NiIsImtpZCI6IjI4YjA2NDlmLTdlNjktMWFhMC03ZmYyLWI4ZDU5NGJhZmE5MCJ9.eyJhdWQiOiJjb25zdWwtY2x1c3Rlci1kYzEiLCJjb25zdWwiOnsiaG9zdG5hbWUiOiJjb25zdWwtY2xpZW50In0sImV4cCI6MTYyOTc5MDYwNSwiaWF0IjoxNjI5NzQ3NDA1LCJpc3MiOiJodHRwOi8vdmF1bHQtc2VydmVyOjgyMDAvdjEvaWRlbnRpdHkvb2lkYyIsIm5hbWVzcGFjZSI6InJvb3QiLCJzdWIiOiI4NWE5ZWMxYi1iMTcyLWU1YWEtZmU3Ni0xMzFkOWFjZmVjZTgifQ.eFDQ_TReNvKeMS4si92oiPOBcRbv0bGuVKq4Qns0ObnNrwFWVvDB9HLkCP7VzRuO9l9a3Jzl-Uk__Y_fF_JgWk7s2iZTg9RbBZD0TYz5-ziHU13wd7Onx9OjXjmw-5ah96dDFh3nqkuXJpV9upmVfXA7Zb5goYyfULa7gWeSNPjyjYNx2oirsFwH_xm9No9lttEA33XOGyAGi9UNBlvKdw6uXJfhnWTG2NxEt9y7JO_wNxjXKOUxhVhbb6ZxRZT_enbib1g_b-BVrNvTqB5UfSKyz6h3musoqDsAcLOEeAkl6dfWv3IezhqY2vNm5mQ3lH83AK6dZdwvVcG0DmdIpQ
+```
+</CodeBlockConfig>
+
+Delete and recreate the `consul-client` container so it will perform the
+`auto_config` request with the newly updated JSON web token (JWT).
+
+```shell-session
+$ docker rm consul-client --force && docker-compose up --detach consul-client
+
+consul-client
+Creating consul-client ... done
+```
+
+## Validate success
+
+Navigate to [`http://localhost:8500`](http://localhost:8500) on your browser to
+access the Consul UI. If not already logged in, login with the pre-configured
+ACL token `e95b599e-166e-7d80-08ad-aee76e7ddf19`.
+
+Click on the "Nodes" option in the top navigation bar to go to the nodes page.
+Notice that the `consul-client` node is now present amongst the three
+`consul-server#` nodes. This indicates that `consul-client` has successfully
+joined the Consul datacenter using the `auto_config` method.
+
+![Image of Nodes page in Consul UI.](/img/consul/consul-ui_four_nodes.png 'There is a navigation bar at the top of the page with multiple options. The Nodes tab is selected. In the main area of the screen, four Consul servers are shown as healthy nodes. One of the Consul servers is marked as a leader node.')
+
+All future gossip encryption key, TLS certificate, and/or security setting
+changes will automatically be distributed to `consul-client` since it used
+`auto_config` to join the Consul datacenter.
+
+## Clean up your environment
+
+To clean up your environment, execute the following command.
+
+```shell-session
+$ docker-compose down --rmi all
+
+Stopping consul-server1 ... done
+Stopping consul-client  ... done
+Stopping consul-server3 ... done
+Stopping consul-server2 ... done
+Stopping vault-server   ... done
+Removing consul-server1 ... done
+Removing consul-client  ... done
+Removing consul-server3 ... done
+Removing consul-server2 ... done
+Removing vault-server   ... done
+Removing network docker-compose-datacenter_consul
+Removing image consul:10.0.1
+```
+
+</Tab>
+<Tab heading="secint">
+
+## Clone GitHub repository
+
+Clone the GitHub repository containing the configuration files and resources.
+
+<CodeTabs tabs={[ "HTTPS", "SSH" ]}>
+
+```shell-session
+$ git clone https://github.com/hashicorp/learn-consul-docker.git
+```
+
+```shell-session
+$ git clone git@github.com:hashicorp/learn-consul-docker.git
+```
+
+</CodeTabs>
+
+Change into the directory with the newly cloned repository. This directory contains the complete configuration files.
+
+```shell-session
+$ cd learn-consul-docker/datacenter-deploy-auto-config/secint
+```
+
+Check out the `v0.3` tag of the repository.
+
+```shell-session
+$ git checkout v0.3
+```
+
+## Inspect configuration files
+
+You will use the following resources to deploy four containers; three Consul
+servers and a single Consul client.
+
+### Docker Compose YAML
+
+The following Docker Compose configuration file instructs Docker to create four
+Consul containers using the respective configuration files, configure
+networking, and bootstrap the Consul datacenter with three secure Consul
+servers. Three servers in a datacenter is the recommended minimum for achieving
+a balance between availability and performance. These servers together run the
+Raft-driven consistent state store for updating catalog, session, prepared
+query, ACLs, and KV state.
+
+Inside your working directory, inspect the file named `docker-compose.yml`.
+
+<CodeBlockConfig hideClipboard filename="datacenter-deploy-auto-config/secint/docker-compose.yml">
+
+```yml
+version: '3.7'
+
+services:
+
+  consul-server1:
+    image: hashicorp/consul:1.11.2
+    container_name: consul-server1
+    hostname: consul-server1
+    restart: always
+    volumes:
+     - ./consul/server1.json:/consul/config/server1.json
+     - ./certs/:/consul/config/certs/:ro
+    networks:
+      - hashicorp
+    ports:
+      - "8500:8500"
+      - "8600:8600/tcp"
+      - "8600:8600/udp"
+    command: "agent -bootstrap-expect=3"
+
+  consul-server2:
+    image: hashicorp/consul:1.11.2
+    container_name: consul-server2
+    hostname: consul-server2
+    restart: always
+    volumes:
+     - ./consul/server2.json:/consul/config/server2.json
+     - ./certs/:/consul/config/certs/:ro
+    networks:
+      - hashicorp
+    command: "agent -bootstrap-expect=3"
+
+  consul-server3:
+    image: hashicorp/consul:1.11.2
+    container_name: consul-server3
+    hostname: consul-server3
+    restart: always
+    volumes:
+     - ./consul/server3.json:/consul/config/server3.json
+     - ./certs/:/consul/config/certs/:ro
+    networks:
+      - hashicorp
+    command: "agent -bootstrap-expect=3"
+
+  consul-client:
+    build: .
+    container_name: consul-client
+    hostname: consul-client
+    restart: always
+    volumes:
+     - ./consul/client.json:/consul/config/client.json
+     - ./certs/:/consul/config/certs/:ro
+     - ./tokens/:/consul/config/tokens/
+    networks:
+      - hashicorp
+    command: "agent"
+
+networks:
+  hashicorp:
+    driver: bridge
+```
+</CodeBlockConfig>
+
+For more information on the Consul Docker image, check Consul's
+[Docker Hub page](https://hub.docker.com/_/consul).
+
+### Consul Server configuration
+
+On a Consul server agent with the `authorization` subkey set to `enabled`, the
+server will begin to process client `auto_config` requests.
+
+Inside your working directory, inspect the three `server#.json` files.
+
+<CodeTabs tabs={[ "Consul Server 1", "Consul Server 2", "Consul Server 3" ]}>
+
+<CodeBlockConfig hideClipboard filename="datacenter-deploy-auto-config/secint/consul/server1.json">
+
+```json
+{
+    "node_name": "consul-server1",
+    "server": true,
+    "ui_config": {
+        "enabled" : true
+    },
+    "data_dir": "/consul/data",
+    "addresses": {
+        "http" : "0.0.0.0"
+    },
+    "retry_join":[
+        "consul-server2",
+        "consul-server3"
+    ],
+	"acl": {
+		"enabled": true,
+		"default_policy": "deny",
+		"enable_token_persistence": true,
+		"tokens": {
+			"initial_management": "e95b599e-166e-7d80-08ad-aee76e7ddf19",
+			"agent": "e95b599e-166e-7d80-08ad-aee76e7ddf19"
+		}
+	},
+	"connect": { "enabled": true },
+	"auto_config": {
+		"authorization": {
+			"enabled": true,
+			"static": {
+				"jwt_validation_pub_keys": ["-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEFlUd7FoWSPtRl5maa58XDDjiFplNBxtai41Hq8rnyfQxirYQoLKHKakuZAGpn3PwYewEbYrB+b1f7/P6DzWBRg==\n-----END PUBLIC KEY-----\n"],
+				"bound_issuer": "secint",
+				"bound_audiences": ["consul-cluster-dc1"],
+				"claim_mappings": {
+					"sub": "node_name"
+				},
+				"claim_assertions": [
+					"value.node_name == \"${node}\""
+				]
+			}
+		}
+	},
+    "encrypt": "aPuGh+5UDskRAbkLaXRzFoSOcSM+5vAK+NEYOWHJH7w=",
+    "verify_incoming": true,
+    "verify_outgoing": true,
+    "verify_server_hostname": true,
+    "ca_file": "/consul/config/certs/consul-agent-ca.pem",
+    "cert_file": "/consul/config/certs/dc1-server-consul-0.pem",
+    "key_file": "/consul/config/certs/dc1-server-consul-0-key.pem"
+}
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig hideClipboard filename="datacenter-deploy-auto-config/secint/consul/server2.json">
+
+```json
+{
+    "node_name": "consul-server2",
+    "server": true,
+    "ui_config": {
+        "enabled" : true
+    },
+    "data_dir": "/consul/data",
+    "addresses": {
+        "http" : "0.0.0.0"
+    },
+    "retry_join":[
+        "consul-server1",
+        "consul-server3"
+    ],
+	"acl": {
+		"enabled": true,
+		"default_policy": "deny",
+		"enable_token_persistence": true,
+		"tokens": {
+			"initial_management": "e95b599e-166e-7d80-08ad-aee76e7ddf19",
+			"agent": "e95b599e-166e-7d80-08ad-aee76e7ddf19"
+		}
+	},
+	"connect": { "enabled": true },
+	"auto_config": {
+		"authorization": {
+			"enabled": true,
+			"static": {
+				"jwt_validation_pub_keys": ["-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEFlUd7FoWSPtRl5maa58XDDjiFplNBxtai41Hq8rnyfQxirYQoLKHKakuZAGpn3PwYewEbYrB+b1f7/P6DzWBRg==\n-----END PUBLIC KEY-----\n"],
+				"bound_issuer": "secint",
+				"bound_audiences": ["consul-cluster-dc1"],
+				"claim_mappings": {
+					"sub": "node_name"
+				},
+				"claim_assertions": [
+					"value.node_name == \"${node}\""
+				]
+			}
+		}
+	},
+    "encrypt": "aPuGh+5UDskRAbkLaXRzFoSOcSM+5vAK+NEYOWHJH7w=",
+    "verify_incoming": true,
+    "verify_outgoing": true,
+    "verify_server_hostname": true,
+    "ca_file": "/consul/config/certs/consul-agent-ca.pem",
+    "cert_file": "/consul/config/certs/dc1-server-consul-0.pem",
+    "key_file": "/consul/config/certs/dc1-server-consul-0-key.pem"
+}
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig hideClipboard filename="datacenter-deploy-auto-config/secint/consul/server3.json">
+
+```json
+{
+    "node_name": "consul-server3",
+    "server": true,
+    "ui_config": {
+        "enabled" : true
+    },
+    "data_dir": "/consul/data",
+    "addresses": {
+        "http" : "0.0.0.0"
+    },
+    "retry_join":[
+        "consul-server1",
+        "consul-server2"
+    ],
+	"acl": {
+		"enabled": true,
+		"default_policy": "deny",
+		"enable_token_persistence": true,
+		"tokens": {
+			"initial_management": "e95b599e-166e-7d80-08ad-aee76e7ddf19",
+			"agent": "e95b599e-166e-7d80-08ad-aee76e7ddf19"
+		}
+	},
+	"connect": { "enabled": true },
+	"auto_config": {
+		"authorization": {
+			"enabled": true,
+			"static": {
+				"jwt_validation_pub_keys": ["-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEFlUd7FoWSPtRl5maa58XDDjiFplNBxtai41Hq8rnyfQxirYQoLKHKakuZAGpn3PwYewEbYrB+b1f7/P6DzWBRg==\n-----END PUBLIC KEY-----\n"],
+				"bound_issuer": "secint",
+				"bound_audiences": ["consul-cluster-dc1"],
+				"claim_mappings": {
+					"sub": "node_name"
+				},
+				"claim_assertions": [
+					"value.node_name == \"${node}\""
+				]
+			}
+		}
+	},
+    "encrypt": "aPuGh+5UDskRAbkLaXRzFoSOcSM+5vAK+NEYOWHJH7w=",
+    "verify_incoming": true,
+    "verify_outgoing": true,
+    "verify_server_hostname": true,
+    "ca_file": "/consul/config/certs/consul-agent-ca.pem",
+    "cert_file": "/consul/config/certs/dc1-server-consul-0.pem",
+    "key_file": "/consul/config/certs/dc1-server-consul-0-key.pem"
+}
+```
+
+</CodeBlockConfig>
+
+</CodeTabs>
+
+Each Consul server configuration file uses the following `auto_config` options:
+
+- `authorization` - Setting the sub key `enabled` to `true` enables the
+authorization service on this agent. This allows the server agent to process
+`auto_config` RPC requests from clients.
+
+- `static` - This object contains all static authorizer configuration settings.
+
+- - `jwt_validation_pub_keys` - A list of PEM-encoded public keys used to
+validate JSON web tokens (JWTs). In this example, this will contain the contents
+of the public key you generate with secint.
+
+- - `bound_issuer` - The value for matching the `iss` value in a JSON web token
+(JWT). The issuer `iss` claim in a JWT is meant to refer to the resource that
+issued the JWT. In this example, secint assigns a custom value `secint` as the
+issuer for generated JWTs.
+
+- - `bound_audiences` - The value for matching the `aud` field of the JSON web
+token (JWT). The audience `aud` claim in a JWT is meant to refer to the
+authorization servers that should accept the token. In this example, Vault
+assigns the generated JWT tokens with an `aud` value of `consul-cluster-dc1`.
+
+- - `claim_assertions` - List of assertions about the mapped claims required to
+authorize the incoming RPC request. In this example, `"value.node_name == \"${node}\""`
+sets the value of the `node_name` variable to the hostname of the consul client
+making a request to the `auto_config` authorization servers.
+
+- - `claim_mappings` - Mappings of claims (key) that will be copied to a
+metadata field (value). In this example, `"sub": "node_name"` checks the value
+of the `node_name` variable against the metadata value of the `sub` attribute.
+
+Check the Consul [configuration documentation](/consul/docs/reference/agent/configuration-file/auto-config) to learn more.
+
+### Consul client configuration
+
+On a Consul client agent with `auto_config` enabled, the client agent will use a
+JWT `intro_token` to make an RPC to the configured `server_addresses` to request
+secure configuration settings. These settings are then merged into any existing
+configuration on the client agent.
+
+Inside your working directory, inspect the `client.json` file.
+
+<CodeBlockConfig hideClipboard filename="datacenter-deploy-auto-config/secint/consul/client.json">
+
+```json
+{
+    "node_name": "consul-client",
+    "data_dir": "/consul/data",
+	  "ports": {"https":8501},
+    "auto_config":{
+        "enabled": true,
+        "intro_token_file": "/consul/config/tokens/jwt",
+        "server_addresses":[
+            "consul-server1",
+            "consul-server2",
+            "consul-server3"
+        ]
+    },
+    "verify_incoming": false,
+    "verify_outgoing": true,
+    "verify_server_hostname": true,
+    "ca_file": "/consul/config/certs/consul-agent-ca.pem"
+}
+```
+</CodeBlockConfig>
+
+Each Consul client configuration file uses the following `auto_config` options:
+
+- `enabled` - Setting this key to `true` enables the `auto_config` client
+service on the agent. Enabling this option also turns on
+[Consul service mesh](/consul/docs/reference/agent/configuration-file/service-mesh#connect)
+because it is required for `auto_config` to issue certificates to client agents
+using the Consul service mesh CA.
+
+- `intro_token_file` - This specifies the file that contains the JSON web token
+(JWT) to use for the initial `auto_config` RPC to the Consul servers.
+
+- `server_addresses` - This specifies the addresses of servers in the local
+datacenter to use for the initial RPC. These addresses support
+[Cloud Auto-Joining](/consul/docs/reference/agent/configuration-file/auto-config#cloud-auto-joining)
+and can optionally include a port to use when making the outbound connection. If
+not port is provided the [server RPC port](/consul/docs/reference/agent/configuration-file/general#server_rpc_port) will be used.
+
+Check the Consul [configuration](/consul/docs/reference/agent/configuration-file)
+documentation to learn more.
+
+## Create the Consul datacenter
+
+From within your working directory, run the following Docker Compose command to
+create your secure local Consul datacenter.
+
+```shell-session
+$ docker-compose up --detach
+
+Creating network "secint_hashicorp" with driver "bridge"
+Creating consul-server1 ... done
+Creating consul-server2 ... done
+Creating consul-client  ... done
+Creating consul-server3 ... done
+```
+
+<Note>
+
+ Your first run will take the longest as Docker will first pull the
+Consul image from the Docker Hub repository. It will also build the
+`consul-client` container from scratch with the necessary `secint` and Consul
+prerequisites. Additional runs will not require to download or build the images
+again and should only take a few seconds to complete.
+
+</Note>
+
+## View the Consul UI
+
+Navigate to [`http://localhost:8500`](http://localhost:8500) on your browser to
+access the Consul UI. Login with the pre-configured ACL token
+`e95b599e-166e-7d80-08ad-aee76e7ddf19`.
+
+Click on the "Nodes" option in the top navigation bar to go to the nodes page.
+Notice that the three `consul-server#` nodes are present in the datacenter,
+however, the `consul-client` node is not present since it cannot join the secure
+datacenter.
+
+![Image of Nodes page in Consul UI.](/img/consul/consul-ui_three_server_nodes.png 'There is a navigation menu on the left side of the page with multiple options. The Nodes tab is selected. In the main area of the screen, three Consul servers are shown as healthy nodes. One of the Consul servers is marked as a leader node.')
+
+## Retrieve Consul client logs
+
+Check the container logs for `consul-client` to see details about why the client
+could not join the Consul datacenter.
+
+```shell-session
+$ docker container logs consul-client
+```
+
+```log hideClipboard
+[ERROR] agent.auto_config: No server successfully responded to the auto-config request
+[ERROR] agent.auto_config: intro_token_file did not contain any token
+```
+
+This type of behavior occurs when a client's JSON web token (JWT) cannot be
+validated by the authorization server. In this example the token file is empty.
+
+<Note>
+
+ Feel free to explore the [jwt.io documentation](https://jwt.io/introduction)
+for more information on the properties of a JSON web token (JWT).
+
+</Note>
+
+## Explore secint
+
+Secint (secure introduction token) is a simple tool used to generate short-lived,
+single-use provisioning JSON web tokens (JWTs) for infrastructure components to
+solve the "first secret" problem. In this scenario, `secint` has been
+pre-installed on the `consul-client` container.
+
+Open an interactive shell to the Vault server container.
+
+```shell-session
+$ docker exec -it consul-client /bin/sh
+
+/tools/secint #
+```
+
+By default, you will be in the ``/tools/secint/`` directory.
+
+Verify secint has been successfully built.
+
+```shell-session
+$ ./secint --version
+
+0.0.1
+```
+
+## Generate and configure the certificate key pair
+
+A certificate key pair is used to generate the JSON Web Tokens (JWTs) required
+to validate Consul client `auto_join` requests.
+
+Secint (secure introduction token) is a simple tool that can be used to generate
+the certificate key pair necessary for creating JWTs.
+
+Use `secint init` to generate a unique certificate key pair.
+
+```shell-session
+$ ./secint init
+```
+
+Inspect the contents of the newly-created `secint-pub-key.pem` certificate.
+
+<CodeBlockConfig hideClipboard filename="secint-pub-key.pem">
+
+```plaintext
+-----BEGIN PUBLIC KEY-----
+MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEFlUd7FoWSPtRl5maa58XDDjiFplN
+Bxtai41Hq8rnyfQxirYQoLKHKakuZAGpn3PwYewEbYrB+b1f7/P6DzWBRg==
+-----END PUBLIC KEY-----
+```
+
+</CodeBlockConfig>
+
+Since the `jwt_validation_pub_keys` attribute requires single-line certificates,
+it is necessary to add line escapes `\n` to the various sections of
+`secint-pub-key.pem`. Notice the three instances of line escapes `\n` in the
+original `server#.json`.
+
+<CodeBlockConfig hideClipboard filename="datacenter-deploy-auto-config/secint/consul/server1.json">
+
+```plaintext
+...
+	"jwt_validation_pub_keys": ["-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEFlUd7FoWSPtRl5maa58XDDjiFplNBxtai41Hq8rnyfQxirYQoLKHKakuZAGpn3PwYewEbYrB+b1f7/P6DzWBRg==\n-----END PUBLIC KEY-----\n"],
+  ...
+```
+
+</CodeBlockConfig>
+
+Replicate this format for your `secint-pub-key.pem` certificate value, then
+paste it in the `jwt_validation_pub_keys` section of each `server#.json` file.
+Save each `server#.json` file when complete.
+
+The Consul server cluster will use this certificate to validate all incoming
+client `auto_config` requests.
+
+## Generate and configure the JWT
+
+Secint can also be used to generate the JSON Web Tokens (JWTs) required to
+validate Consul client `auto_join` requests.
+
+Use `secint mint` with the following attributes to generate a unique JWT.
+
+```shell-session
+$ ./secint mint -issuer secint -ttl 12h -node consul-client -priv-key secint-priv-key.pem -audience consul-cluster-dc1
+
+eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOlsiY29uc3VsLWNsdXN0ZXItZGMxIl0sImV4cCI6MTYyOTg3NDIwNywiaXNzIjoic2VjaW50IiwianRpIjoiZmM5OTE2OWYtNmRjOC1lNzQ0LWUyNzUtMGMyODZjMTAyMWI5IiwibmJmIjoxNjI5ODMwOTQ3LCJzdWIiOiJjb25zdWwtY2xpZW50In0.GqlUANGapiZep6-WnCPOXkd3HLuvaYzHHD7fybf1G2abz_HMBPvcHCbwi7wpQsiTmvtiD-Zw1G3JMynUZLNVXQ
+```
+
+Copy the generated token in a safe place and return to your main machine by
+exiting the remote shell.
+
+```shell-session
+$ exit
+```
+
+In your working directory, open the ``datacenter-deploy-auto-config/secinit/tokens/jwt``
+file, replace the contents with the token you generated in the previous step,
+then save the file.
+
+<CodeBlockConfig hideClipboard filename="datacenter-deploy-auto-config/secint/tokens/jwt">
+
+```plaintext
+eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOlsiY29uc3VsLWNsdXN0ZXItZGMxIl0sImV4cCI6MTYyOTg3NDIwNywiaXNzIjoic2VjaW50IiwianRpIjoiZmM5OTE2OWYtNmRjOC1lNzQ0LWUyNzUtMGMyODZjMTAyMWI5IiwibmJmIjoxNjI5ODMwOTQ3LCJzdWIiOiJjb25zdWwtY2xpZW50In0.GqlUANGapiZep6-WnCPOXkd3HLuvaYzHHD7fybf1G2abz_HMBPvcHCbwi7wpQsiTmvtiD-Zw1G3JMynUZLNVXQ
+```
+
+</CodeBlockConfig>
+
+Delete and recreate your docker environment to apply all new configuration settings.
+
+```shell-session
+$ docker-compose down && docker-compose up --detach
+
+Stopping consul-client  ... done
+Stopping consul-server1 ... done
+Stopping consul-server3 ... done
+Stopping consul-server2 ... done
+Removing consul-client  ... done
+Removing consul-server1 ... done
+Removing consul-server3 ... done
+Removing consul-server2 ... done
+Removing network secint_hashicorp
+Creating network "secint_hashicorp" with driver "bridge"
+Creating consul-server2 ... done
+Creating consul-client  ... done
+Creating consul-server3 ... done
+Creating consul-server1 ... done
+```
+
+## Verify successful secure datacenter join
+
+Navigate to [`http://localhost:8500`](http://localhost:8500) on your browser to
+access the Consul UI. If not already logged in, log in with the pre-configured
+ACL token `e95b599e-166e-7d80-08ad-aee76e7ddf19`.
+
+Click on the "Nodes" option in the top navigation bar to go to the nodes page.
+Notice that the `consul-client` node is now present since it has successfully
+received all secure properties from the server cluster with `auto_config`. As a
+result, it will be shown here after successfully joining the secure datacenter.
+
+![Image of Nodes page in Consul UI.](/img/consul/consul-ui_four_nodes.png 'There is a navigation menu on the left side of the page with multiple options. The Nodes tab is selected. In the main area of the screen, four Consul servers are shown as healthy nodes. One of the Consul servers is marked as a leader node.')
+
+All future gossip encryption key, TLS certificate, and/or security setting
+changes will automatically be distributed to `consul-client` since it used
+`auto_config` to join the Consul datacenter.
+
+## Clean up your environment
+
+To clean up your environment, execute the following command.
+
+```shell-session
+$ docker-compose down --rmi all
+
+Stopping consul-server1 ... done
+Stopping consul-client  ... done
+Stopping consul-server3 ... done
+Stopping consul-server2 ... done
+Removing consul-server1 ... done
+Removing consul-client  ... done
+Removing consul-server3 ... done
+Removing consul-server2 ... done
+Removing network secint_hashicorp
+Removing image hashicorp/consul:1.11.2
+```
+
+</Tab>
+</Tabs>
+
+
+## Next steps
+
+In this tutorial, you learned to deploy and configure a secure local
+containerized Consul datacenter using Docker Compose. You learned how to use
+`auto_config` to send secure properties throughout your datacenter. You learned
+the value `auto_config` adds by automatically distributing all future gossip
+encryption key, TLS certificate, and/or other security setting changes across
+the datacenter. Finally, you learned how to clean up your environment.
+
+You can continue learning how to deploy a Consul datacenter in production by
+completing the [Deployment guide](/consul/tutorials/production-deploy/deployment-guide). The
+collection includes securing the datacenter with Access Control Lists,
+encryption, DNS configuration, and datacenter federation.
+
+You can also extend your Consul skills by exploring the following tutorials:
+
+- [ACL bootstrapping guide](/consul/tutorials/day-0/access-control-setup)
+- [ACL production guide](/consul/tutorials/security/access-control-setup-production)
+- [Running Consul on Docker](/consul/tutorials/day-0/docker-container-agents)
+- [Running Consul on Kubernetes](/consul/tutorials/get-started-kubernetes)
+- [Service Discovery](/consul/tutorials/developer-discovery)
+- [Service Mesh](/consul/tutorials/developer-mesh)
+
+For additional reference documentation on the official Docker images for Consul
+and Vault, refer to the following websites:
+
+- [Consul @ Docker Hub](https://hub.docker.com/_/consul)
+- [Vault @ Docker Hub](https://hub.docker.com/_/vault)
+- [hashicorp/docker-consul GitHub Repository](https://github.com/hashicorp/docker-consul)
+- [hashicorp/docker-vault GitHub
+  Repository](https://github.com/hashicorp/docker-vault)

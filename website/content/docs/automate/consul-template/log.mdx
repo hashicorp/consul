@@ -1,0 +1,83 @@
+---
+layout: docs
+page_title: Consul Template logs
+description: >-
+  Consul Template is a tool available as a distinct binary that enables dynamic application configuration and secrets rotation for Consul deployments based on Go templates.
+---
+
+# Consul Template logs
+
+This page describes the logging process for Consul Template.
+
+## Set log level
+
+To set the log level for Consul Template, use the `-log-level` flag:
+
+```shell-session
+$ consul-template -log-level info ...
+```
+
+You can also use the `CONSUL_TEMPLATE_LOG_LEVEL` environment variable to set the log level.
+
+```shell-session
+$ export CONSUL_TEMPLATE_LOG_LEVEL=info && consul-template ...
+```
+
+The command outputs the log in the standard output.
+
+<CodeBlockConfig hideClipboard>
+
+```log
+# ...
+[INFO] (cli) received redis from Watcher
+[INFO] (cli) invoking Runner
+# ...
+```
+
+</CodeBlockConfig>
+
+When debugging, you can also specify the level as debug:
+
+```shell-session
+$ consul-template -log-level debug ...
+```
+
+The command outputs the log in the standard output.
+
+<CodeBlockConfig hideClipboard>
+
+```log
+# ...
+[DEBUG] (cli) creating Runner
+[DEBUG] (cli) creating Consul API client
+[DEBUG] (cli) creating Watcher
+[DEBUG] (cli) looping for data
+[DEBUG] (watcher) starting watch
+[DEBUG] (watcher) all pollers have started, waiting for finish
+[DEBUG] (redis) starting poll
+[DEBUG] (service redis) querying Consul with &{...}
+[DEBUG] (service redis) Consul returned 2 services
+[DEBUG] (redis) writing data to channel
+[DEBUG] (redis) starting poll
+[INFO] (cli) received redis from Watcher
+[INFO] (cli) invoking Runner
+[DEBUG] (service redis) querying Consul with &{...}
+# ...
+```
+
+</CodeBlockConfig>
+
+## Log to file
+
+Consul Template can log to file as well. Logging to file is particularly useful in use cases where it is not trivial to capture *stdout* and/or *stderr*. For example, we recommend logging to file when Consul Template is deployed as a long running service.
+
+These are the relevant CLI flags:
+
+- `-log-file` - writes all the Consul Template log messages to a file. This value is used as a prefix for the log file name. The current timestamp
+  is appended to the file name. If the value ends in a path separator, `consul-template-` will be appended to the value. If the file name is missing an extension, `.log` is appended. For example, setting `log-file` to `/var/log/` would result in a log file path of `/var/log/consul-template-{timestamp}.log`. `log-file` can be combined with `-log-rotate-bytes` and `-log-rotate-duration` for a fine-grained log rotation experience.
+
+- `-log-rotate-bytes` - to specify the number of bytes that should be written to a log before it needs to be rotated. Unless specified, there is no limit to the number of bytes that can be written to a log file.
+
+- `-log-rotate-duration` - to specify the maximum duration a log should be written to before it needs to be rotated. Must be a duration value such as `30s`. Defaults to `24h`.
+
+- `-log-rotate-max-files` - to specify the maximum number of older log file archives to keep. Defaults to 0 (no files are ever deleted). Set to `-1` to discard old log files when a new one is created.

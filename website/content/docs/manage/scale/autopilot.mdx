@@ -1,0 +1,298 @@
+---
+layout: docs
+page_title: Consul autopilot
+description: >-
+  Use Autopilot features to monitor the Raft cluster, introduce stable servers, and clean up dead servers.
+---
+
+# Consul autopilot
+
+This page describes Consul autopilot, which supports automatic, operator-friendly management of Consul
+servers. It includes cleanup of dead servers, monitoring the state of the Raft
+cluster, and stable server introduction.
+
+To use autopilot features (with the exception of dead server cleanup), the
+[`raft_protocol`](/consul/docs/reference/agent/configuration-file/raft#raft_protocol)
+setting in the Consul agent configuration must be set to 3 or higher on all
+servers. In Consul `0.8` this setting defaults to 2; in Consul `1.0` it will
+default to 3. For more information, check the [Version Upgrade
+section](/consul/docs/upgrade/version-specific) on Raft protocol
+versions in Consul `1.0`.
+
+In this tutorial you will learn how Consul tracks the stability of servers, how
+to tune those conditions, and get some details on the other autopilot's features.
+
+- Server Stabilization
+- Dead server cleanup
+- Redundancy zones (only available in Consul Enterprise)
+- Automated upgrades (only available in Consul Enterprise)
+
+Note, in this tutorial we are using examples from a Consul `1.7` datacenter, we
+are starting with Autopilot enabled by default.
+
+## Default configuration
+
+The configuration of Autopilot is loaded by the leader from the agent's
+[autopilot settings](/consul/docs/reference/agent/configuration-file/general#autopilot)
+when initially bootstrapping the datacenter. Since autopilot and its features
+are already enabled, you only need to update the configuration to disable them.
+
+All Consul servers should have Autopilot and its features either enabled or
+disabled to ensure consistency across servers in case of a failure.
+Additionally, Autopilot must be enabled to use any of the features, but the
+features themselves can be configured independently. Meaning you can enable or
+disable any of the features separately, at any time.
+
+You can check the default values using the `consul operator` CLI command or
+using the [`/v1/operator/autopilot`
+endpoint](/consul/api-docs/operator/autopilot)
+
+<Tabs>
+<Tab heading="CLI command">
+
+```shell-session
+$ consul operator autopilot get-config
+```
+
+```plaintext hideClipboard
+CleanupDeadServers = true
+LastContactThreshold = 200ms
+MaxTrailingLogs = 250
+MinQuorum = 0
+ServerStabilizationTime = 10s
+RedundancyZoneTag = ""
+DisableUpgradeMigration = false
+UpgradeVersionTag = ""
+```
+
+</Tab>
+<Tab heading="API call using cURL">
+
+```shell-session
+$ curl http://127.0.0.1:8500/v1/operator/autopilot/configuration
+```
+
+```json
+{
+  "CleanupDeadServers": true,
+  "LastContactThreshold": "200ms",
+  "MaxTrailingLogs": 250,
+  "MinQuorum": 0,
+  "ServerStabilizationTime": "10s",
+  "RedundancyZoneTag": "",
+  "DisableUpgradeMigration": false,
+  "UpgradeVersionTag": "",
+  "CreateIndex": 5,
+  "ModifyIndex": 5
+}
+```
+
+</Tab>
+</Tabs>
+
+### Autopilot and Consul snapshots
+
+Changes to the autopilot configuration are persisted in the Raft database
+maintained by the Consul servers. This means that autopilot configuration will
+be included in the Consul snapshot data. Any snapshot taken prior to autopilot
+configuration changes will contain the old configuration, and should be
+considered unsafe to restore since they will remove the change and cause
+unpredictable behaviors for the automations that might rely on the new
+configuration.
+
+We recommend that you take a snapshot after any changes to the autopilot
+configuration, and consider that as the last safe point in time to roll-back in
+case a restore is needed.
+
+## Server health checking
+
+An internal health check runs on the leader to track the stability of servers.
+
+A server is considered healthy if all of the following conditions are true.
+
+- It has a SerfHealth status of 'Alive'.
+- The time since its last contact with the current leader is below
+  `LastContactThreshold` (that by default is `200ms`).
+- Its latest Raft term matches the leader's term.
+- The number of Raft log entries it trails the leader by does not exceed
+  `MaxTrailingLogs` (that by default is `250`).
+
+The status of these health checks can be viewed through the
+`/v1/operator/autopilot/health` HTTP endpoint, with a top level `Healthy` field
+indicating the overall status of the datacenter:
+
+```shell-session
+$ curl localhost:8500/v1/operator/autopilot/health | jq .
+```
+
+```json
+{
+  "Healthy": true,
+  "FailureTolerance": 1,
+  "Servers": [
+    {
+      # ...
+      "Name": "server-dc1-1",
+      "Address": "10.20.10.11:8300",
+      "SerfStatus": "alive",
+      "Version": "1.7.2",
+      "Leader": false,
+			# ...
+      "Healthy": true,
+      "Voter": true,
+      # ...
+    },
+    {
+      # ...
+      "Name": "server-2",
+      "Address": "10.20.10.12:8300",
+      "SerfStatus": "alive",
+      "Version": "1.7.2",
+      "Leader": false,
+      # ...
+      "Healthy": true,
+      "Voter": true,
+      # ...
+    },
+    {
+      # ...
+      "Name": "server-3",
+      "Address": "10.20.10.13:8300",
+      "SerfStatus": "alive",
+      "Version": "1.7.2",
+      "Leader": false,
+      # ...
+      "Healthy": true,
+      "Voter": false,
+      # ...
+    }
+  ]
+}
+```
+
+## Server stabilization time
+
+When a new server is added to the datacenter, there is a waiting period where it
+must be healthy and stable for a certain amount of time before being promoted to
+a full, voting member. This is defined by the `ServerStabilizationTime`
+autopilot's parameter and by default is 10 seconds.
+
+In case your configuration require a different amount of time for the node to
+get ready, for example in case you have some extra VM checks at startup that
+might affect node resource availability, you can tune the parameter and assign
+it a different duration.
+
+```shell-session
+$ consul operator autopilot set-config -server-stabilization-time=15s
+```
+
+```plaintext hideClipboard
+Configuration updated!
+```
+
+Use the `get-config` command to check the configuration.
+
+```shell-session
+$ consul operator autopilot get-config
+```
+
+```plaintext hideClipboard
+CleanupDeadServers = true
+LastContactThreshold = 200ms
+MaxTrailingLogs = 250
+MinQuorum = 0
+ServerStabilizationTime = 15s
+RedundancyZoneTag = ""
+DisableUpgradeMigration = false
+UpgradeVersionTag = ""
+```
+
+## Dead server cleanup
+
+If autopilot is disabled, it will take 72 hours for dead servers to be
+automatically reaped or an operator must write a script to `consul force-leave`.
+If another server failure occurred it could jeopardize the quorum, even if the
+failed Consul server had been automatically replaced. Autopilot helps prevent
+these kinds of outages by quickly removing failed servers as soon as a
+replacement Consul server comes online. When servers are removed by the cleanup
+process they will enter the "left" state.
+
+With Autopilot's dead server cleanup enabled, dead servers will periodically be
+cleaned up and removed from the Raft peer set to prevent them from interfering
+with the quorum size and leader elections. The cleanup process will also be
+automatically triggered whenever a new server is successfully added to the
+datacenter.
+
+We suggest leaving the feature enabled to avoid introducing manual steps in
+the Consul management to make sure the faulty nodes are not remaining in the
+Raft pool for too long without the need for manual pruning. In test scenarios or
+in environments where you want to delegate the faulty node pruning to an
+external tool or system you can disable the dead server cleanup feature using
+the `consul operator` command.
+
+```shell-session
+$ consul operator autopilot set-config -cleanup-dead-servers=false
+```
+
+```plaintext hideClipboard
+Configuration updated!
+```
+
+Use the `get-config` command to check the configuration.
+
+```shell-session
+$ consul operator autopilot get-config
+```
+
+```plaintext hideClipboard
+CleanupDeadServers = false
+LastContactThreshold = 200ms
+MaxTrailingLogs = 250
+MinQuorum = 0
+ServerStabilizationTime = 10s
+RedundancyZoneTag = ""
+DisableUpgradeMigration = false
+UpgradeVersionTag = ""
+```
+
+## Enterprise features
+
+Consul Enterprise customer can take advantage of two more features of autopilot
+to further strengthen and automate Consul operations.
+
+### Redundancy zones
+
+Consul’s redundancy zones provide high availability in the case of server
+failure through the Enterprise feature of autopilot. Autopilot allows you to add
+read replicas to your datacenter that will be promoted to the "voting" status in
+case of voting server failure.
+
+You can use this tutorial to implement isolated failure domains such as AWS
+Availability Zones (AZ) to obtain redundancy within an AZ without having to
+sustain the overhead of a large quorum.
+
+Check [provide fault tolerance with redundancy zones](/consul/tutorials/operate-consul/redundancy-zones)
+to learn more on the functionality.
+
+### Automated upgrades
+
+Consul’s automatic upgrades provide a simplified way to upgrade existing Consul
+datacenter. This functionally is provided through the Enterprise feature of
+autopilot. Autopilot allows you to add new servers directly to the datacenter
+and waits until you have enough servers running the new version to perform a
+leadership change and demote the old servers as "non-voters".
+
+Check [automate upgrades with Consul Enterprise](/consul/tutorials/datacenter-operations/upgrade-automation)
+to learn more on the functionality.
+
+## Next steps
+
+In this tutorial you got an overview of the autopilot features and got examples
+on how and when tune the default values.
+
+To learn more about the Autopilot settings you did not configure in this tutorial,
+[last_contact_threshold](/consul/docs/reference/agent/configuration-file/general#last_contact_threshold)
+and
+[max_trailing_logs](/consul/docs/reference/agent/configuration-file/general#max_trailing_logs),
+either read the agent configuration documentation or use the help flag with the
+operator autopilot `consul operator autopilot set-config -h`.

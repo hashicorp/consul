@@ -9,7 +9,7 @@ description: >-
 
 ## Release highlights
 
-- **Consul Dataplane:** Consul on ECS 0.7.x adopts the [Dataplane architecture](/consul/docs/connect/dataplane) to simplify connecting your ECS workloads to Consul. Refer to the documentation to learn more about the updated [ECS components](/consul/docs/ecs/architecture) and how to [deploy Consul to ECS using the Terraform module](/consul/docs/ecs/deploy/terraform).
+- **Consul Dataplane:** Consul on ECS 0.7.x adopts the [Dataplane architecture](/consul/docs/architecture/control-plane/dataplane) to simplify connecting your ECS workloads to Consul. Refer to the documentation to learn more about the updated [ECS components](/consul/docs/reference/architecture/ecs) and how to [deploy Consul to ECS using the Terraform module](/consul/docs/register/service/ecs/).
 
 - **New `control-plane` command:** The new, unified `control-plane` command combines the capabilities for the deprecated `mesh-init` and `health-sync` commands. The `control-plane` command starts a long running process with the following responsibilities:
   - Automatically (re)discover and (re)connect to Consul servers using connection manager.
@@ -26,7 +26,7 @@ description: >-
   - Register the ECS cluster as a synthetic node in the central catalog on the Consul servers. The synthetic node is used to register services running in the ECS cluster.
   - Ensure leftover tokens and services are removed for ECS tasks that have stopped.
 
-- **Locality aware routing (Enterprise):** Consul on ECS 0.7.x supports [locality-aware routing](/consul/docs/connect/manage-traffic/route-to-local-upstreams). In your ECS task meta JSON, set the `AWS_REGION` container environment variable and `AvailabilityZone` attributes to set the locality parameters in Consul service and proxy registrations. Consul uses these parameters to perform locality aware routing in Consul Enterprise installations.
+- **Locality aware routing (Enterprise):** Consul on ECS 0.7.x supports [locality-aware routing](/consul/docs/manage-traffic/route-local). In your ECS task meta JSON, set the `AWS_REGION` container environment variable and `AvailabilityZone` attributes to set the locality parameters in Consul service and proxy registrations. Consul uses these parameters to perform locality aware routing in Consul Enterprise installations.
 
 ## Breaking changes
 
@@ -37,7 +37,7 @@ description: >-
   - Services are registered directly with the central catalog on the Consul servers. Services in the same ECS cluster are registered to the same Consul node name.
 - Replaced the `mesh-init` and `health-sync` commands with a unified `control-plane`.
 - Replaced the `acl-controller` command with `controller`.
-- Add the `go-discover` binary to the Consul ECS image to better support [cloud auto-join](/consul/docs/install/cloud-auto-join).
+- Add the `go-discover` binary to the Consul ECS image to better support [cloud auto-join](/consul/docs/deploy/server/cloud-auto-join).
 - Changes to `ECS_CONFIG_JSON` schema.
   - Remove the `consulHTTPAddr` and `consulCACertFile` fields.
   - Add the `consulLogin.datacenter` field.

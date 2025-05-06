@@ -14,7 +14,7 @@ Command: `consul connect expose`
 The connect expose subcommand is used to expose a mesh-enabled service
 through an Ingress gateway by modifying the gateway's configuration and adding
 an intention to allow traffic from the gateway to the service. See the
-[Ingress gateway documentation](/consul/docs/connect/gateways/ingress-gateway) for more information
+[Ingress gateway documentation](/consul/docs/north-south/ingress-gateway) for more information
 about Ingress gateways.
 
 ```text
@@ -46,9 +46,9 @@ Usage: consul connect expose [options]
 
 #### API Options
 
-@include 'http_api_options_client.mdx'
+@include 'legacy/http_api_options_client.mdx'
 
-@include 'http_api_options_server.mdx'
+@include 'legacy/http_api_options_server.mdx'
 
 ## Examples
 

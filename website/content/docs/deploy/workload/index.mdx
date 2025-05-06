@@ -1,0 +1,53 @@
+---
+layout: docs
+page_title: Deploy Consul client agents and dataplanes for application workloads
+description: >-
+    Learn how to enable and configure Consul workloads for your applications. Client agents and dataplanes enable Consul's core features in VM, Kubernetes, Docker, and AWS ECS deployments.
+---
+
+# Deploy Consul client agents and dataplanes for application workloads
+
+This topic provides an overview of the process to configure and deploy Consul alongside your workloads so that server agents can communicate with the nodes where your services run.
+
+## Introduction
+
+In addition to the server agents you deploy in your datacenter, you must run Consul workloads alongside services in your application's data plane. These workloads provide your application's services with the following Consul functions:
+
+- Register services to the Consul catalog.
+- Update service status in the catalog in response to health checks..
+- Resolve services with Consul DNS.
+
+When you run a Consul _client agent_ on a node, your application can also take advantage of the following Consul functions:
+
+- Deploy and manage sidecar proxies.
+- Secure service-to-service communication.
+- Monitor services.
+- Manage service traffic.
+
+When you run a Consul _dataplane_, a lightweight process communicates with the Envoy proxies already running alongside your application workloads. Dataplanes let you use Consul's security, monitoring, and traffic management features when you already have sidecar proxies and health checks configured in Kubernetes or ECS. For more information, refer to [Consul Dataplane](/consul/docs/architecture/control-plane/dataplane).
+
+## Guidance
+
+The following resources are available to help you deploy Consul alongside your application workloads.
+
+### Deploy Consul client agents
+
+The process to deploy a Consul client agent depends on your runtime:
+
+- [Deploy a Consul client agent on virtual machines](/consul/docs/deploy/workload/client/vm)
+- [Deploy a Consul client agent on Kubernetes](/consul/docs/deploy/workload/client/k8s)
+- [Deploy a Consul client agent on Docker](/consul/docs/deploy/workload/client/docker)
+
+### Deploy Consul dataplanes
+
+The process to deploy a Consul dataplane depends on your runtime:
+
+- [Deploy Consul dataplanes on Kubernetes](/consul/docs/deploy/workload/dataplane/k8s)
+- [Deploy Consul dataplanes on AWS ECS](/consul/docs/deploy/workload/dataplane/ecs)
+
+### HCP Consul Dedicated 
+
+When you use HCP Consul Dedicated clusters, you must deploy Consul alongside your workloads. Refer to the following pages in the [HCP Consul Dedicated documentation](/hcp/docs/consul):
+
+- [Deploy Consul clients](/hcp/docs/consul/dedicated/clients)
+- [Deploy Consul dataplanes](/hcp/docs/consul/dedicated/dataplanes)

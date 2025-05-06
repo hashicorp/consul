@@ -1,0 +1,50 @@
+---
+layout: docs
+page_title: Manage Consul
+description: >-
+  You can control several cluster-wide operations for all Consul agents. Learn about Consul operations and how to configure their underlying infrastructure, including DNS forwarding and operations at scale.
+---
+
+# Manage Consul
+
+This topic provides an overview of the processes involved in managing a group of server agents running in a Consul cluster. [Consul Enterprise](/consul/docs/enterprise) provides additional features to make deployments more resilient and help you manage cluster operations.
+
+## Introduction
+
+After you start the Consul servers, you can control several cluster-wide operations for all agents.
+
+Additional operations can improve a cluster's resiliency, help you prepare for recovery in case of a disaster, or fine tune agents when operating at scale.
+
+## DNS forwarding
+
+Consul exposes its DNS interface on port `8600`. Consul DNS runs alongside a system's default DNS server, commonly exposed on port `53`. To use Consul DNS in your network, you must configure the local service to forward DNS requests to Consul.
+
+Refer to the following topics for more information.
+
+- [DNS forwarding overview](/consul/docs/manage/dns/forwarding)
+- [Enable DNS forwarding on VMs](/consul/docs/manage/dns/forwarding/enable)
+- [Enable DNS forwarding on Kubernetes](/consul/docs/manage/dns/forwarding/k8s)
+
+### DNS views
+
+Kubernetes users also have the option to run a lightweight Consul DNS proxy so that services can resolve Consul DNS addresses with client agents or dataplanes. For more information, refer to [Consul DNS views](/consul/docs/manage/dns/views).
+
+## Consul at scale
+
+Consul datacenters can support thousands of nodes as members. When operating Consul at this scale, there are additional considerations for you to take into account as you architect your network. For more information, refer to [Recommendations for operating Consul at scale](/consul/docs/manage/scale).
+
+### Enterprise features
+
+Consul Enterprise supports the following features to improve the resiliency of your Consul datacenter and its operations.
+
+- [Automated backups](/consul/docs/manage/scale/automated-backup). Run an automated Consul snapshot agent to regularly backup your datacenter to a cloud storage bucket.
+- [Read replicas](/consul/docs/manage/scale/read-replica). Deploy additional Consul server agents to improve catalog response time at scale.
+- [Redundancy zones](/consul/docs/manage/scale/redundancy-zone). Deploy Consul servers across availability zones in a single cloud region in case a single physical data center fails.
+
+## Agent rate limits
+
+You can configure rate limits on RPC and gRPC traffic for Consul agents to mitigate the risks to Consul servers when client agents or services send excessive read or write requests to Consul resources. For more information, refer to [Agent trafic rate limiting](/consul/docs/manage/rate-limit).
+
+## Disaster recovery
+
+If a datacenter goes down, you can use snapshots to restore a Consul cluster's operations and registered services. For more information, refer to [disaster recovery](/consul/docs/manage/disaster-recovery).

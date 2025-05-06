@@ -1,0 +1,120 @@
+---
+layout: docs
+page_title: Consul server configuration JSON schema reference
+description: Learn about the fields available in the JSON scheme for configuring ECS task connections to Consul servers.
+---
+
+# Consul server configuration JSON schema reference
+
+This topic provides reference information about the JSON schema used to build the `config.tf` file. Refer to [Configure Consul server settings](/consul/docs/register/service/ecs#configure-consul-server-settings) for information about how Consul on ECS uses the JSON schema. 
+
+## Configuration model
+
+The following list describes the attributes, data types, and default values, if any, in the `config.tf` file. Click on a value to learn more about the attribute.
+
+- [`consulServers`](#consulservers): map 
+	- [`hosts`](#consulservers-hosts): string
+   	- [`skipServerWatch`](#consulservers-hosts): boolean | `false`
+	- [`defaults`](#consulservers-defaults): map 
+		- [`caCertFile`](#consulservers-defaults): string 
+		- [`tlsServerName`](#consulservers-defaults): string 
+		- [`tls`](#consulservers-defaults): boolean | `false`
+	- [`grpc`](#consulservers-grpc): map 
+		- [`port`](#consulservers-grpc): number 
+		- [`caCertFile`](#consulservers-grpc): string 
+		- [`tlsServerName`](#consulservers-grpc): string 
+		- [`tls`](#consulservers-grpc): boolean | `false`
+	- [`http`](#consulservers-http): map 
+		- [`https`](#consulservers-http): boolean | `false`
+		- [`port`](#consulservers-http): number
+		- [`caCertFile`](#consulservers-http): string
+		- [`tlsServerName`](#consulservers-http): string
+		- [`tls`](#consulservers-http): boolean | `false`
+
+## Specification
+
+This section provides details about the attribes in the `config.tf` file.
+
+### `consulServers`
+
+Parent-level attribute containing all of the server configurations. All other configuraitons in the file are children of the `consulServers` attribute. 
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+
+### `consulServers.hosts`
+
+Map that contains the `skipServerWatch` configuration for Consul server hosts.  
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `consulServers.hosts.skipServerWatch`
+
+Boolean that disables watches on the Consul server. Set to `true` if the Consul server is already behind a load balancer.  
+
+#### Values
+
+- Default: `false`
+- Data type: Boolean
+
+### `consulServers.defaults`
+
+Map of default server configurations. Defaults apply to gRPC and HTTP traffic.  
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+The following table describes the attributes available in the `defaults` configuration:
+
+| Attribute | Description | Data type | Default |
+| ---			| ---			  | --- 		  | ---		|
+| `caCertFile` | Specifies the path to the certificate .pem file. | String | None |
+| `tlsServerName` | Specifies the name of the TLS server. | String | None |
+| `tls` | Enables TLS on the server. | Boolean | `false` |
+
+
+### `consulServers.grpc`
+
+Map of server configuration for gRPC traffic that override attributes defined in `consulServers.defaults`. 
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+The following table describes the attributes available in the `grpc` configuration:
+
+| Attribute | Description | Data type | Default |
+| ---			| ---			  | --- 		  | ---		|
+| `port` | Specifies the port number for gRPC communication. | Number | None |
+| `caCertFile` | Specifies the path to the certificate .pem file. | String | None |
+| `tlsServerName` | Specifies the name of the TLS server. | String | None |
+| `tls` | Enables TLS for gRPC traffic on the server. | Boolean | `false` |
+
+### `consulServers.http`
+
+Map of server configuration for HTTP traffic that override attributes defined in `consulServers.defaults`. 
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+The following table describes the attributes available in the `grpc` configuration:
+
+| Attribute | Description | Data type | Default |
+| ---			| ---			  | --- 		  | ---		|
+| `https` | Enables HTTPS. | Boolean | `false` |
+| `port` | Specifies the port number for HTTPS communication. | Number | None |
+| `caCertFile` | Specifies the path to the certificate .pem file. | String | None |
+| `tlsServerName` | Specifies the name of the TLS server. | String | None |
+| `tls` | Enables TLS for HTTPS traffic on the server. | Boolean | `false` |
+

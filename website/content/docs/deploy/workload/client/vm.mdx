@@ -1,0 +1,37 @@
+---
+layout: docs
+page_title: Configure client agents on virtual machines
+description: >-
+    Learn how to enable and configure Consul client agents.
+---
+
+# Configure client agents on virtual machines
+
+This page describes the process to configure a Consul client agent on virtual machines (VMs). An automated process for production environments is demonstrated in the [Consul getting started on Virtual Machines tutorials](/consul/tutorials/get-started-vms/virtual-machine-gs-service-discovery).
+
+## Overview
+
+The Consul client agent is a long-running process that you must deploy on the nodes as your application workloads run on. They use [encrypted gossip communication](/consul/docs/concept/gossip) to communicate with Consul server agents so that Consul DNS requests return healthy results when you query the Consul catalog.
+
+The process to deploy the client agent consists of the following steps:
+
+1. Verify that the correct version of the Consul binary is installed.
+1. Update the client agent configuration.
+1. Add the client agent configuration to the node.
+1. Ensure the Consul data directory has the correct permissions.
+1. Start the Consul server process.
+
+You also have the option to configure the `retry_join` stanza so that when a Consul agent starts, it automatically joins a cluster. This ability is called _cloud auto-join_. Configuration requirements vary by cloud provider. For more information, refer to [automatically join clusters to a cloud provider](/deploy/server/cloud-auto-join).
+
+## Client agent configuration
+
+Update the configuration with the following information required to join the cluster:
+
+- Datacenter Name
+- Consul server address
+
+Depending on the cluster's existing security, you may need to update the client configuration with these additional parameters:
+
+- CA certificate
+- TLS server name
+- Valid ACL token

@@ -1,0 +1,486 @@
+---
+layout: docs
+page_title: Kubernetes service mesh workload scenarios
+description: >-
+  An injection annotation allows Consul to automatically deploy sidecar proxies on Kubernetes pods, enabling Consul's service mesh for containers running on k8s. Learn how to configure sidecars, enable services with multiple ports (multiport or multi-port Services), change default injection settings.
+---
+
+# Kubernetes service mesh workload scenarios
+
+This page provides example workflows for registering workloads on Kubernetes into Consul's service mesh in different scenarios, including multiport deployments. Each scenario provides an example Kubernetes manifest to demonstrate how to use Consul's service mesh with a specific Kubernetes workload type.
+
+-> **Note:** A Kubernetes Service is required in order to register services on the Consul service mesh. Consul monitors the lifecycle of the Kubernetes Service and its service instances using the service object. In addition, the Kubernetes service is used to register and de-register the service from Consul's catalog.
+
+## Kubernetes Pods running as a deployment
+
+The following example shows a Kubernetes configuration that specifically enables service mesh connections for the `static-server` service. Consul starts and registers a sidecar proxy that listens on port 20000 by default and proxies valid inbound connections to port 8080.
+
+<CodeBlockConfig filename="static-server.yaml">
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  # This name will be the service name in Consul.
+  name: static-server
+spec:
+  selector:
+    app: static-server
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: static-server
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: static-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: static-server
+  template:
+    metadata:
+      name: static-server
+      labels:
+        app: static-server
+      annotations:
+        'consul.hashicorp.com/connect-inject': 'true'
+    spec:
+      containers:
+        - name: static-server
+          image: hashicorp/http-echo:latest
+          args:
+            - -text="hello world"
+            - -listen=:8080
+          ports:
+            - containerPort: 8080
+              name: http
+      # If ACLs are enabled, the serviceAccountName must match the Consul service name.
+      serviceAccountName: static-server
+```
+
+</CodeBlockConfig>
+
+To establish a connection to the upstream Pod using service mesh, a client must dial the upstream workload using a mesh proxy. The client mesh proxy will use Consul service discovery to find all available upstream proxies and their public ports.
+
+## Connecting to mesh-enabled Services
+
+The example Deployment specification below configures a Deployment that is capable
+of establishing connections to our previous example "static-server" service. The
+connection to this static text service happens over an authorized and encrypted
+connection via service mesh.
+
+<CodeBlockConfig filename="static-client.yaml">
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  # This name will be the service name in Consul.
+  name: static-client
+spec:
+  selector:
+    app: static-client
+  ports:
+    - port: 80
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: static-client
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: static-client
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: static-client
+  template:
+    metadata:
+      name: static-client
+      labels:
+        app: static-client
+      annotations:
+        'consul.hashicorp.com/connect-inject': 'true'
+    spec:
+      containers:
+        - name: static-client
+          image: curlimages/curl:latest
+          # Just spin & wait forever, we'll use `kubectl exec` to demo
+          command: ['/bin/sh', '-c', '--']
+          args: ['while true; do sleep 30; done;']
+      # If ACLs are enabled, the serviceAccountName must match the Consul service name.
+      serviceAccountName: static-client
+```
+
+</CodeBlockConfig>
+
+By default when ACLs are enabled or when ACLs default policy is `allow`,
+Consul will automatically configure proxies with all upstreams from the same datacenter.
+When ACLs are enabled with default `deny` policy,
+you must supply an [intention](/consul/docs/secure-mesh/intention) to tell Consul which upstream you need to talk to.
+
+When upstreams are specified explicitly with the
+[`consul.hashicorp.com/connect-service-upstreams` annotation](/consul/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams),
+the injector will also set environment variables `<NAME>_CONNECT_SERVICE_HOST`
+and `<NAME>_CONNECT_SERVICE_PORT` in every container in the Pod for every defined
+upstream. This is analogous to the standard Kubernetes service environment variables, but
+point instead to the correct local proxy port to establish connections via
+service mesh.
+
+You cannot reference auto-generated environment variables when the upstream annotation contains a dot. This is because Consul also renders the environment variables to include a dot. For example, Consul renders the variables generated for `static-server.svc:8080` as `STATIC-SERVER.SVC_CONNECT_SERVICE_HOST` and `STATIC_SERVER.SVC_CONNECT_SERVICE_PORT`, which makes the variables unusable.
+You can verify access to the static text server using `kubectl exec`.
+Because transparent proxy is enabled by default,
+use Kubernetes DNS to connect to your desired upstream.
+
+```shell-session
+$ kubectl exec deploy/static-client -- curl --silent http://static-server/
+"hello world"
+```
+
+You can control access to the server using [intentions](/consul/docs/secure-mesh/intention).
+If you use the Consul UI or [CLI](/consul/commands/intention/create) to
+deny communication between
+"static-client" and "static-server", connections are immediately rejected
+without updating either of the running pods. You can then remove this
+intention to allow connections again.
+
+```shell-session
+$ kubectl exec deploy/static-client -- curl --silent http://static-server/
+command terminated with exit code 52
+```
+
+## Kubernetes Jobs
+
+Kubernetes Jobs run pods that only make outbound requests to services on the mesh and successfully terminate when they are complete. In order to register a Kubernetes Job with the mesh, you must provide an integer value for the `consul.hashicorp.com/sidecar-proxy-lifecycle-shutdown-grace-period-seconds` annotation. Then, issue a request to the `http://127.0.0.1:20600/graceful_shutdown` API endpoint so that Kubernetes gracefully shuts down the `consul-dataplane` sidecar after the job is complete.
+
+Below is an example Kubernetes manifest that deploys a job correctly.
+
+<CodeBlockConfig filename="test-job.yaml">
+
+```yaml
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: test-job
+  namespace: default
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: test-job
+  namespace: default
+spec:
+  selector:
+    app: test-job
+  ports:
+    - port: 80
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+   name: test-job
+   namespace: default
+   labels:
+     app: test-job
+spec:
+  template:
+    metadata:
+      annotations:
+        'consul.hashicorp.com/connect-inject': 'true'
+        'consul.hashicorp.com/sidecar-proxy-lifecycle-shutdown-grace-period-seconds': '5'
+      labels:
+        app: test-job
+    spec:
+      containers:
+      - name: test-job
+        image: alpine/curl:3.14
+        ports:
+        - containerPort: 80
+        command:
+          - /bin/sh
+          - -c
+          - |
+            echo "Started test job"
+            sleep 10
+            echo "Killing proxy"
+            curl --max-time 2 -s -f -X POST http://127.0.0.1:20600/graceful_shutdown
+            sleep 10
+            echo "Ended test job"
+      serviceAccountName: test-job
+      restartPolicy: Never
+```
+
+</CodeBlockConfig>
+
+Upon completing the job you should be able to verify that all containers are shut down within the pod.
+
+```shell-session
+$ kubectl get pods
+NAME             READY   STATUS      RESTARTS   AGE
+test-job-49st7   0/2     Completed   0          3m55s
+```
+
+```shell-session
+$ kubectl get job
+NAME       COMPLETIONS   DURATION   AGE
+test-job   1/1           30s        4m31s
+```
+
+In addition, based on the logs emitted by the pod you can verify that the proxy was shut down before the Job completed.
+
+```shell-session
+$ kubectl logs test-job-49st7 -c test-job
+Started test job
+Killing proxy
+Ended test job
+```
+
+## Kubernetes Pods with multiple ports
+
+To configure a pod with multiple ports to be a part of the service mesh and receive and send service mesh traffic, you
+will need to add configuration so that a Consul service can be registered per port. This is because services in Consul
+currently support a single port per service instance.
+
+In the following example, suppose we have a pod which exposes 2 ports, `8080` and `9090`, both of which will need to
+receive service mesh traffic.
+
+First, decide on the names for the two Consul services that will correspond to those ports. In this example, the user
+chooses the names `web` for `8080` and `web-admin` for `9090`.
+
+Create two service accounts for `web` and `web-admin`:
+
+<CodeBlockConfig filename="multiport-web-sa.yaml">
+
+```yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: web
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: web-admin
+```
+
+</CodeBlockConfig>
+
+
+Create two Service objects for `web` and `web-admin`:
+
+<CodeBlockConfig filename="multiport-web-svc.yaml">
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+spec:
+  selector:
+    app: web
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-admin
+spec:
+  selector:
+    app: web
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 9090
+```
+
+</CodeBlockConfig>
+
+`web` will target `containerPort` `8080` and select pods labeled `app: web`. `web-admin` will target `containerPort`
+`9090` and will also select the same pods.
+
+~> Kubernetes 1.24+ only
+In Kubernetes 1.24+ you need to [create a Kubernetes secret](https://kubernetes.io/docs/concepts/configuration/secret/#service-account-token-secrets) for each additional Consul service associated with the pod in order to expose the Kubernetes ServiceAccount token to the Consul dataplane container running under the pod serviceAccount.  The Kubernetes secret name must match the ServiceAccount name:
+
+<CodeBlockConfig filename="multiport-web-secret.yaml">
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: web
+  annotations:
+    kubernetes.io/service-account.name: web
+type: kubernetes.io/service-account-token
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: web-admin
+  annotations:
+    kubernetes.io/service-account.name: web-admin
+type: kubernetes.io/service-account-token
+```
+
+</CodeBlockConfig>
+
+Create a Deployment with any chosen name, and use the following annotations:
+```yaml
+annotations:
+  'consul.hashicorp.com/connect-inject': 'true'
+  'consul.hashicorp.com/transparent-proxy': 'false'
+  'consul.hashicorp.com/connect-service': 'web,web-admin'
+  'consul.hashicorp.com/connect-service-port': '8080,9090'
+```
+Note that the order the ports are listed in the same order as the service names, i.e. the first service name `web`
+corresponds to the first port, `8080`, and the second service name `web-admin` corresponds to the second port, `9090`.
+
+The service account on the pod spec for the deployment should be set to the first service name `web`:
+```yaml
+serviceAccountName: web
+```
+
+The following deployment example demonstrates the required annotations for the manifest. In addition, the previous YAML manifests can also be combined into a single manifest for easier deployment.
+
+<CodeBlockConfig filename="multiport-web.yaml">
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      name: web
+      labels:
+        app: web
+      annotations:
+        'consul.hashicorp.com/connect-inject': 'true'
+        'consul.hashicorp.com/transparent-proxy': 'false'
+        'consul.hashicorp.com/connect-service': 'web,web-admin'
+        'consul.hashicorp.com/connect-service-port': '8080,9090'
+    spec:
+      containers:
+        - name: web
+          image: hashicorp/http-echo:latest
+          args:
+            - -text="hello world"
+            - -listen=:8080
+          ports:
+            - containerPort: 8080
+              name: http
+        - name: web-admin
+          image: hashicorp/http-echo:latest
+          args:
+            - -text="hello world from 9090"
+            - -listen=:9090
+          ports:
+            - containerPort: 9090
+              name: http
+      serviceAccountName: web
+```
+
+</CodeBlockConfig>
+
+After deploying the `web` application, you can test service mesh connections by deploying the `static-client`
+application with the configuration in the [previous section](#connecting-to-mesh-enabled-services) and add the
+`consul.hashicorp.com/connect-service-upstreams: 'web:1234,web-admin:2234'` annotation to the pod template on `static-client`:
+
+<CodeBlockConfig filename="multiport-static-client.yaml" lineNumbers highlight="33">
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  # This name will be the service name in Consul.
+  name: static-client
+spec:
+  selector:
+    app: static-client
+  ports:
+    - port: 80
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: static-client
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: static-client
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: static-client
+  template:
+    metadata:
+      name: static-client
+      labels:
+        app: static-client
+      annotations:
+        'consul.hashicorp.com/connect-inject': 'true'
+        'consul.hashicorp.com/connect-service-upstreams': 'web:1234,web-admin:2234'
+    spec:
+      containers:
+        - name: static-client
+          image: curlimages/curl:latest
+          # Just spin & wait forever, we'll use `kubectl exec` to demo
+          command: ['/bin/sh', '-c', '--']
+          args: ['while true; do sleep 30; done;']
+      # If ACLs are enabled, the serviceAccountName must match the Consul service name.
+      serviceAccountName: static-client
+```
+
+</CodeBlockConfig>
+
+If you exec on to a static-client pod, using a command like:
+```shell-session
+$ kubectl exec -it static-client-5bd667fbd6-kk6xs -- /bin/sh
+```
+you can then run:
+```shell-session
+$ curl localhost:1234
+```
+to see the output `hello world` and run:
+```shell-session
+$ curl localhost:2234
+```
+to see the output `hello world from 9090`.
+
+The way this works is that a Consul service instance is being registered per port on the Pod, so there are 2 Consul
+services in this case. An additional Envoy sidecar proxy and `connect-init` init container are also deployed per port in
+the Pod. So the upstream configuration can use the individual service names to reach each port as seen in the example.
+
+### Caveats for Multi-port Pods
+
+- Transparent proxy is not supported for multi-port Pods.
+- Metrics and metrics merging is not supported for multi-port Pods.
+- Upstreams will only be set on the first service's Envoy sidecar proxy for the pod.
+  - This means that ServiceIntentions from a multi-port pod to elsewhere, will need to use the first service's name,
+    `web` in the example above to accept connections from either `web` or `web-admin`. ServiceIntentions from elsewhere
+    to a multi-port pod can use the individual service names within the multi-port Pod.
+- Health checking is done on a per-Pod basis, so if any Kubernetes health checks (like readiness, liveness, etc) are
+  failing for any container on the Pod, the entire Pod is marked unhealthy, and any Consul service referencing that Pod
+  will also be marked as unhealthy. So, if `web` has a failing health check, `web-admin` would also be marked as
+  unhealthy for service mesh traffic.

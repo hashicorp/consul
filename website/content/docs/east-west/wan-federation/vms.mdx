@@ -1,0 +1,262 @@
+---
+layout: docs
+page_title: Federate Consul datacenters on VMs
+description: >-
+  Federating Consul datacenters enables agents to engage in WAN communication across runtimes and cloud providers. Learn about multi-cluster federation and its network requirements for Consul on virtual machines.
+---
+
+# Federate Consul datacenters on VMs
+
+This topic covers how to federate Consul datacenters using a single WAN gossip pool.
+
+Consul Enterprise version 0.8.0 added support for an advanced multiple datacenter capability. Refer to the [Federate multiple datacenters with network areas](/consul/docs/east-west/network-area) documentation for more details.
+
+### WAN gossip pool
+
+One of the key features of Consul is its support for multiple datacenters. The architecture of Consul is designed to promote a low coupling of datacenters so that connectivity issues or failure of any datacenter does not impact the availability of Consul in other datacenters. This means each datacenter runs independently, each having a dedicated group of servers and a private LAN gossip pool.
+
+![Traditional WAN Federation](/img/traditional-wan-federation.png 'Traditional WAN Federation')
+
+## Network requirements
+
+There are a few networking requirements that must be satisfied for WAN federation to work.
+
+- All server nodes must be able to talk to each other. Otherwise, the gossip protocol and RPC forwarding will not work.
+- If you need to use service discovery across datacenters, the network must be able to route traffic between IP addresses across regions.
+
+Usually, this means that all datacenters must be connected using a VPN or other tunneling mechanism. Consul does not handle VPN or NAT traversal for you. For RPC forwarding to work, the bind address must be accessible from remote nodes.
+
+## Setup two datacenters
+
+To get started, follow the [Deployment guide](/consul/tutorials/production-deploy/deployment-guide) to start each datacenter. If ACLs are enabled or you are using Consul Enterprise, you must set the [`primary_datacenter`](/consul/docs/reference/agent/configuration-file/general#primary_datacenter) in the server's configuration in both datacenters.
+
+After bootstrapping, you should have two datacenters, `dc1` and `dc2`. Note that datacenter names are opaque to Consul. They are labels that help human operators reason about the Consul datacenters.
+
+To query the known WAN nodes, use the `members` command with the `-wan` parameter on either datacenter.
+
+<Tabs>
+<Tab heading="Datacenter 1" group="dc1">
+
+```shell-session
+$ consul members -wan
+Node                 Address          Status  Type    Build   Protocol  DC   Partition  Segment
+consul-server-0.dc1  172.18.0.5:8302  alive   server  1.20.2  2         dc1  default    <all>
+```
+
+</Tab>
+<Tab heading="Datacenter 2" group="dc2">
+
+```shell-session
+$ consul members -wan
+Node                 Address          Status  Type    Build   Protocol  DC   Partition  Segment
+consul-server-1.dc2  172.18.0.7:8302  alive   server  1.20.2  2         dc2  default    <all>
+```
+
+</Tab>
+</Tabs>
+
+The command provides a list of all known members in the WAN gossip pool. In this case, the servers are not yet connected so each datacenter is only aware of local servers.
+
+<Tip>
+
+The `consul members -wan` command only contains server nodes. Client nodes send requests to the local datacenter server, so they do not participate in WAN gossip. Local servers forward client requests to a server in the target datacenter as necessary.
+
+</Tip>
+
+## Join the servers manually
+
+To federate two datacenters, use the `join` command.
+
+```shell-session
+$ consul join -wan <server 1> <server 2> ...
+```
+
+The `join` command is used with the `-wan` flag to indicate you are attempting to join a server in the WAN gossip pool. As with LAN gossip, you only need to join a single existing member. Consul will use the gossip protocol to exchange information about all known members.
+
+### Example
+
+The example uses two server nodes, `consul-server-0` in `dc1` and `consul-server-1` in `dc2`. Run the following command on the first server to connect `dc1` to `dc2`.
+
+```shell-session
+$ consul join -wan consul-server-1
+Successfully joined cluster by contacting 1 nodes.
+```
+
+During the joining procedure, Consul records the following lines on each server logs.
+
+<Tabs>
+<Tab heading="Datacenter 1" group="dc1">
+
+<CodeBlockConfig hideClipboard>
+
+```log
+##...
+[INFO]  agent: (WAN) joining: wan_addresses=["consul-server-1"]
+[DEBUG] agent.server.memberlist.wan: memberlist: Initiating push/pull sync with:  172.18.0.7:8302
+[INFO]  agent.server.serf.wan: serf: EventMemberJoin: consul-server-1.dc2 172.18.0.7
+[INFO]  agent: (WAN) joined: number_of_nodes=1
+[DEBUG] agent.http: Request finished: method=PUT url=/v1/agent/join/consul-server-1?wan=1 from=127.0.0.1:59484 latency=1.282667ms
+[DEBUG] agent: warning: request content-type is not supported: request-path=/v1/agent/join/consul-server-1?wan=1
+[DEBUG] agent: warning: response content-type header not explicitly set.: request-path=/v1/agent/join/consul-server-1?wan=1
+[INFO]  agent.server: Handled event for server in area: event=member-join server=consul-server-1.dc2 area=wan
+[DEBUG] agent.server.serf.wan: serf: messageJoinType: consul-server-0.dc1
+[DEBUG] agent.server.memberlist.wan: memberlist: Stream connection from=172.18.0.7:44500
+[DEBUG] agent.server.serf.wan: serf: messageJoinType: consul-server-0.dc1
+[DEBUG] agent.server.serf.wan: serf: messageJoinType: consul-server-0.dc1
+[DEBUG] agent.server.serf.wan: serf: messageJoinType: consul-server-0.dc1
+[DEBUG] agent.server.memberlist.wan: memberlist: Initiating push/pull sync with: consul-server-1.dc2 172.18.0.7:8302
+##...
+```
+
+</CodeBlockConfig>
+
+</Tab>
+<Tab heading="Datacenter 2" group="dc2">
+
+<CodeBlockConfig hideClipboard>
+
+```log
+##...
+[INFO]  agent.server.serf.wan: serf: EventMemberJoin: consul-server-0.dc1 172.18.0.5
+[INFO]  agent.server: Handled event for server in area: event=member-join server=consul-server-0.dc1 area=wan
+[DEBUG] agent.server.serf.wan: serf: messageJoinType: consul-server-0.dc1
+[DEBUG] agent.server.memberlist.wan: memberlist: Initiating push/pull sync with: consul-server-0.dc1 172.18.0.5:8302
+[DEBUG] agent.server.serf.wan: serf: messageJoinType: consul-server-0.dc1
+##...
+```
+
+</CodeBlockConfig>
+
+</Tab>
+</Tabs>
+
+## Join the servers at startup
+
+In a production environment, we recommend you setup WAN federation in Consul's configuration files. This way, Consul applies the configuration immediately at startup and it is persisted across reboots. Consul provides the [`retry_join_wan`](/consul/docs/reference/agent/configuration-file/join#retry_join_wan) parameter to configure the addresses of the other servers to WAN join at startup.
+
+<CodeTabs>
+
+```hcl
+retry_join_wan = ["dc2-server-1", "dc2-server-2"]
+```
+
+```json
+{
+  "retry_join_wan": ["dc2-server-1", "dc2-server-2"]
+}
+```
+
+</CodeTabs>
+
+## Verify datacenter configuration
+
+Once the join is complete, Consul will show servers from both datacenters in the WAN gossip pool.
+
+<Tabs>
+<Tab heading="CLI" group="cli">
+
+Use the `members` command to verify that all server nodes gossiping over WAN.
+
+```shell-session
+$ consul members -wan
+Node                 Address          Status  Type    Build   Protocol  DC   Partition  Segment
+consul-server-0.dc1  172.18.0.5:8302  alive   server  1.20.2  2         dc1  default    <all>
+consul-server-1.dc2  172.18.0.7:8302  alive   server  1.20.2  2         dc2  default    <all>
+```
+
+</Tab>
+<Tab heading="API" group="api">
+
+Use the [HTTP Catalog API](/consul/api-docs/catalog#list-datacenters) to get a list of all known datacenters.
+
+```shell-session
+$ curl http://localhost:8500/v1/catalog/datacenters
+```
+
+In this example, the two datacenters known to Consul are `dc1` and `dc2`.
+
+<CodeBlockConfig hideClipboard>
+
+```json
+[
+  "dc2",
+  "dc1"
+]
+```
+
+</CodeBlockConfig>
+
+You can use the `dc` selector to retrieve information for servers in other datacenters.
+
+```shell-session
+$ curl http://localhost:8500/v1/catalog/nodes?dc=dc2
+```
+
+This will return all the known nodes in the `dc2` datacenter.
+
+<CodeBlockConfig hideClipboard highlight="6">
+
+```json
+[
+  {
+    "ID": "a3727eaa-da9d-8dda-07ff-97b7b451415d",
+    "Node": "consul-server-1",
+    "Address": "172.18.0.7",
+    "Datacenter": "dc2",
+    "TaggedAddresses": {
+      "lan": "172.18.0.7",
+      "lan_ipv4": "172.18.0.7",
+      "wan": "172.18.0.7",
+      "wan_ipv4": "172.18.0.7"
+    },
+    "Meta": {
+      "consul-network-segment": "",
+      "consul-version": "1.20.2"
+    },
+    "CreateIndex": 13,
+    "ModifyIndex": 15
+  }
+]
+```
+
+</CodeBlockConfig>
+
+</Tab>
+<Tab heading="UI" group="ui">
+
+Federated datacenters show a dropdown on the UI that allows to select the datacenter for which to show services and nodes.
+
+![Consul UI showing service page with WAN dropdown](/img/east-west/wan-federation/consul-ui-services-multi_dc_selector-dark.png#dark-theme-only)
+![Consul UI showing service page with WAN dropdown](/img/east-west/wan-federation/consul-ui-services-multi_dc_selector.png#light-theme-only)
+
+</Tab>
+</Tabs>
+
+## Troubleshooting WAN federation
+
+Configuring `serf_wan`, `advertise_addr_wan` and `translate_wan_addrs` can lead to a situation where `consul members -wan` lists remote nodes but RPC operations fail with one of the following errors:
+
+- `No path to datacenter`
+- `rpc error getting client: failed to get conn: dial tcp <LOCAL_ADDR>:0-><REMOTE_ADDR>:<REMOTE_RPC_PORT>: i/o timeout`
+
+The most likely cause of these errors is that `bind_addr` is set to a private address preventing the RPC server from accepting connections across the WAN. Setting `bind_addr` to a public address (or one that can be routed across the WAN) will resolve this issue. Be aware that exposing the RPC server on a public port should only be done **after** firewall rules have been established.
+
+The [`translate_wan_addrs`](/consul/docs/reference/agent/configuration-file/general#translate_wan_addrs) configuration provides a basic address rewriting capability.
+
+## Data replication
+
+In general, data is not replicated between different Consul datacenters. When a request is made for a resource in another datacenter, the local Consul servers forward an RPC request to the remote Consul servers for that resource and return the results. If the remote datacenter is not available, then those resources will also not be available. However, this will not otherwise affect the local datacenter.
+
+There are some special situations where a limited subset of data can be replicated, such as with Consul's built-in ACL replication capability, or external tools like [consul-replicate](https://github.com/hashicorp/consul-replicate/).
+
+## Next steps
+
+This topic provides you with the commands required to setup WAN gossip across two VMs datacenters to create basic federation.
+
+If you want to secure your Consul datacenter with ACLs, refer to [Enable ACLs in WAN-federated datacenters](/consul/docs/secure/acl/token/federation).
+
+To learn how to setup federation across two Kubernetes cluster, refer to [WAN Federation Between Multiple Kubernetes Clusters Through Mesh Gateways](/consul/docs/east-west/wan-federation/k8s).
+
+Consul lets you federate datacenters running on different platforms. Refer to [WAN Federation Between VMs and Kubernetes through mesh gateways](/consul/docs/east-west/wan-federation/k8s-vm) to learn how to federate your Kubernetes cluster with a VM-based Consul datacenter.
+
+

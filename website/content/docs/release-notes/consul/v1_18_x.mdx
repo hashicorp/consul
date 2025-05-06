@@ -11,7 +11,7 @@ We are pleased to announce the following Consul updates.
 
 ## Release highlights
 
-- **Consul v2 Catalog API and Traffic Permission API updates:** Additional improvements were made to the v2 catalog API, which enables support for [multi-port services on Kubernetes](/consul/docs/k8s/multiport). End user facing changes include the ability to use a service's ports in xRoute configurations as opposed to the workload port for reference in the parentRef stanza of the xRoute configuration. In addition, the Traffic Permissions API was changed to only allow `ACTION_DENY` for Consul Enterprise as it will enable future governance related workflows.
+- **Consul v2 Catalog API and Traffic Permission API updates:** Additional improvements were made to the v2 catalog API, which enables support for [multi-port services on Kubernetes](/consul/docs/v1.17.x/k8s/multiport). End user facing changes include the ability to use a service's ports in xRoute configurations as opposed to the workload port for reference in the parentRef stanza of the xRoute configuration. In addition, the Traffic Permissions API was changed to only allow `ACTION_DENY` for Consul Enterprise as it will enable future governance related workflows.
 
   The v2 Catalog API is currently available for Consul on Kubernetes deployments only. Refer to [Consul v2 architecture](/consul/docs/architecture/v2) for more information.
 
@@ -21,29 +21,29 @@ We are pleased to announce the following Consul updates.
 
   An LTS release is planned for every 3 releases, and it is maintained until it is 6 releases from the latest major release. For example, Consul Enterprise v1.15.x, v1.18x, and v1.21.x are the next three planned releases. The LTS period for Consul Enterprise v1.15.x ends when Consul Enterprise v1.21.0 releases.
 
-  For more information, refer to [Consul Enterprise Long Term Support](/consul/docs/enterprise/long-term-support).
+  For more information, refer to [Consul Enterprise Long Term Support](/consul/docs/upgrade/lts).
 
 - **Fault injection (Enterprise):** For Enterprise users, Consul’s service mesh now supports managing traffic with fault injection behavior that is defined in an upstream service’s service defaults configuration entry or CRD. Supported fault injection behavior includes delaying, aborting, and rate limiting traffic between services. You can use fault injection to test your network’s resilience under different conditions.
 
-  For more information, refer to [fault injection](/consul/docs/connect/manage-traffic/fault-injection).
+  For more information, refer to [fault injection](/consul/docs/troubleshoot/fault-injection).
 
 - **Consul admin partition support for Nomad:** Nomad now supports configurations for a Consul datacenter’s admin partition when scheduling applications. Admin partitions are a Consul Enterprise feature that enable multi-tenancy for Consul servers so that several teams in your organization can use a single secure Consul datacenter. Admin partitions also enable cluster peering as a strategy for extending your service mesh east-west across regions in a single cloud provider or across multiple cloud providers.
 
-  Refer to [admin partitions](/consul/docs/enterprise/admin-partitions) for more information.
+  Refer to [admin partitions](/consul/docs/multi-tenant/admin-partition) for more information.
 
 - **Transparent proxy for EC2 on ECS:**  Consul now supports transparent proxy mode for deployments running on EC2 instances in AWS Elastic Container Service (ECS). When service mesh proxies are in transparent proxy mode, Consul service mesh uses IPtables to direct all inbound and outbound traffic to the sidecar. Consul also uses information configured in service intentions to infer routes, which eliminates the need to explicitly configure upstreams.
 
   Consul’s transparent proxy allows applications to communicate through Consul’s service mesh without modifying their underlying configurations to use Consul DNS. The transparent proxy also hardens application security by preventing direct inbound connections that bypass the mesh.
 
-  Refer to [transparent proxy overview](/consul/docs/k8s/connect/transparent-proxy) and [Consul on ECS overview](/consul/docs/ecs) for more information.
+  Refer to [transparent proxy overview](/consul/docs/connect/proxy/transparent-proxy) and [Consul on ECS overview](/consul/docs/ecs) for more information.
 
-- **Downgrade from Consul Enterprise to Consul Community Edition**: Consul now provides the ability for enterprise users to migrate their deployments to Community edition and disable enterprise features for business continuity. Refer to [Downgrade from Consul Enterprise to the community edition](/consul/docs/enterprise/ent-to-ce-downgrades) for more information.
+- **Downgrade from Consul Enterprise to Consul Community Edition**: Consul now provides the ability for enterprise users to migrate their deployments to Community edition and disable enterprise features for business continuity. Refer to [Downgrade from Consul Enterprise to the community edition](/consul/docs/enterprise/downgrade) for more information.
 
 - **Consul Snapshot Agent support for multiple destinations (Enterprise):** Consul Enterprise users can now specify [multiple local and remote destinations](/consul/commands/snapshot/agent) for Consul snapshot backups.
 
 ## Upgrading
 
-For more detailed information, please refer to the [upgrade details page](/consul/docs/upgrading/upgrade-specific) and the changelogs.
+For more detailed information, please refer to the [upgrade details page](/consul/docs/upgrade/version-specific) and the changelogs.
 
 ## Known issues
 

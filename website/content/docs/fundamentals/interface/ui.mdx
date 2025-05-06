@@ -1,0 +1,148 @@
+---
+layout: docs
+page_title: Explore the Consul web UI
+description: >-
+  Consul includes a built-in web user interface that you can use to observe services and manage datacenter operations.
+---
+
+# Explore the Consul web UI
+
+This page provides an overview of the Consul web UI, which is one of the ways to interface with a Consul cluster alongside the [Consul CLI](/consul/commands) and [HTTP API](/consul/api-docs).
+
+## Introduction
+
+The web UI allows you to interact with Consul using a browser-based graphical user interface. You can view information about your Consul datacenter, including:
+
+- [Registered server and client nodes](#nodes)
+- [Registered services and sidecar proxies](#services)
+- Registered API, terminating, ingress, and mesh gateways
+
+Additionally, you can view and update the following components through the Consul UI:
+
+- [Key-value store](#key-value-store)
+- [Access Control List (ACL) tokens](#acl-tokens)
+- [Service mesh intentions](#intentions)
+
+### UI task table
+
+@include 'tables/permissions/ui.mdx'
+
+## Navigate to the UI
+
+When you run `consul agent -dev` to start Consul in development mode, the web UI is enabled automatically. While the agent is running, open [`http://localhost:8500/ui`](http://localhost:8500/ui) in your web browser to view the Consul UI.
+
+### Enable the UI for non-development agents
+
+The web UI is not enabled by default. Agents that are run without the `-dev` flag must explicitly enable the web UI.
+
+To enable the web UI, you can:
+
+- Modify the agent start-up command to include the [`-ui` flag](/consul/commands/agent#ui-options).
+- Modify the agent configuration file to include the [`ui_config.enabled = true`](/consul/docs/reference/agent/configuration-file/ui#ui_config_enabled) attribute.
+
+<Tabs>
+
+<Tab heading="Modify the agent start-up command" group="command">
+
+```shell-session
+$ consul agent -ui [...]
+```
+
+</Tab>
+
+<Tab heading="Modify the agent configuration file" group="agent-config-file">
+
+<CodeBlockConfig filename="agent-config.hcl" highlight="6-8">
+
+```hcl
+datacenter = "dc1"
+data_dir   = "/opt/consul"
+
+server     = true
+
+ui_config {
+  enabled = true
+}
+
+# ...
+```
+
+</CodeBlockConfig>
+
+</Tab>
+
+</Tabs>
+
+Using the server address of your Consul server node, open the address in your web browser on port `8500` at the `/ui` path. For example, if the server address is `212.44.23.212`, then open `http://212.44.23.212:8500/ui` in your web browser.
+
+## Services
+
+The initial Consul UI landing page is the **Services** page, which gives you a list of all registered services and gateways in your datacenter, as well as their health, tags, type, and source. You can also access the **Services** page from the left navigation bar.
+
+You can filter services by health status and service type, or search for services with the search bar.
+
+Click the name of a service to see more information about it, including instance count, the health of individual instances, and the Consul agent registered with the service.
+
+## Nodes
+
+Click **Nodes** option in the left navigation bar.
+
+This page shows an information about each node in the datacenter including the health status, the network address, and the number of registered services on the node. A badge beside the node shows the host of the current cluster leader.
+
+Click the name of a node for more information about service health checks, instances, round trip time, lock sessions, and metadata that is registered with the node.
+
+You can filter nodes by health status or search for nodes with the search bar.
+
+## Key/value store
+
+Click **Key/Value** option in the left navigation bar.
+
+This page has a structure that resembles a file directory. It nests objects according to their key prefix.
+
+You can use prefixes to organize objects by application, business function, or a combination of the two.
+
+## Intentions
+
+Service intentions are identity-based security mechanisms in Consul that control communication between services.
+
+Click **Intentions** option in the left navigation bar.
+
+You can create new service intentions by specifying the source and destination services, writing a description, and configuring the intention to allow or deny traffic between the two services. You can also set the intention to be **Application Aware**, which allows you to more granularly allow or deny communication between services based on Layer 7 criteria such as path, header, or method.
+
+## Access control lists (ACLs)
+
+Consul uses [access control lists](/consul/docs/secure/acl) (ACLs) to secure access to the web UI, API, CLI, service communications, and agent communications.
+
+ACLs are not enabled for local development agents so there will be a red dot beside the **Access Controls** heading in the left navigation bar if Consul is running as a local development agent.
+
+You enable ACLs in the agent configuration file with `enabled` attribute in the `acl` block. Refer to the [Bootstrap ACL system page](/consul/docs/secure/acl/bootstrap) for more information on configuring ACLs.
+
+<CodeBlockConfig filename="agent-config.hcl" highlight="10-12">
+
+```hcl
+datacenter = "dc1"
+data_dir   = "/opt/consul"
+
+server     = true
+
+ui_config {
+  enabled = true
+}
+
+acl {
+  enabled = true
+}
+
+# ...
+
+```
+
+</CodeBlockConfig>
+
+With ACLs enabled and proper permissions set, you can click on the ACL-related pages under the **Access Controls** heading in the left navigation bar and view the **Tokens**, **Policies**, **Roles**, and **Auth Methods** pages. Refer to the [ACL Tokens](/consul/docs/secure/acl/token), [ACL Policies](/consul/docs/secure/acl/policy), [ACL Roles](/consul/docs/secure/acl/role), and [Auth Methods](/consul/docs/secure/acl/auth-method) documentation for more information.
+
+## Adjust UI settings
+
+Click the **Settings** option from the top navigation bar.
+
+You can select whether or not to enable **Blocking Queries**. This allows the UI to update in real time without manually having to refresh the page. This setting is enabled by default but you may want to disable it on large datacenters for better performance.
