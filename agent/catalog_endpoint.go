@@ -354,8 +354,6 @@ func (s *HTTPHandlers) catalogServiceNodes(resp http.ResponseWriter, req *http.R
 		return nil, nil
 	}
 
-	s.parsePeerName(req, &args)
-
 	// Check for a tag
 	params := req.URL.Query()
 	if _, ok := params["tag"]; ok {
