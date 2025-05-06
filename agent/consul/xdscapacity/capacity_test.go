@@ -68,10 +68,9 @@ func TestController(t *testing.T) {
 	})
 
 	adj := NewController(Config{
-		Logger:                 testutil.Logger(t),
-		GetStore:               func() Store { return store },
-		SessionLimiter:         limiter,
-		EnableXDSLoadBalancing: true,
+		Logger:         testutil.Logger(t),
+		GetStore:       func() Store { return store },
+		SessionLimiter: limiter,
 	})
 
 	ctx, cancel := context.WithCancel(context.Background())
