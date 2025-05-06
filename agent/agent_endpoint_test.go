@@ -210,7 +210,7 @@ func TestAgent_Services_ExternalConnectProxy(t *testing.T) {
 	assert.Equal(t, srv1.Proxy.ToAPI(), actual.Proxy)
 }
 
-// Thie tests that a sidecar-registered service is returned as expected.
+// The tests that a sidecar-registered service is returned as expected.
 func TestAgent_Services_Sidecar(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -257,7 +257,7 @@ func TestAgent_Services_Sidecar(t *testing.T) {
 	// Sanity check that LocalRegisteredAsSidecar is not in the output (assuming
 	// JSON encoding). Right now this is not the case because the services
 	// endpoint happens to use the api struct which doesn't include that field,
-	// but this test serves as a regression test incase we change the endpoint to
+	// but this test serves as a regression test in case we change the endpoint to
 	// return the internal struct later and accidentally expose some "internal"
 	// state.
 	assert.NotContains(t, resp.Body.String(), "LocallyRegisteredAsSidecar")
@@ -647,7 +647,7 @@ func TestAgent_Service(t *testing.T) {
 		{
 			// This test exercises a case that caused a busy loop to eat CPU for the
 			// entire duration of the blocking query. If a service gets re-registered
-			// wth same proxy config then the old proxy config chan is closed causing
+			// with same proxy config then the old proxy config chan is closed causing
 			// blocked watchset.Watch to return false indicating a change. But since
 			// the hash is the same when the blocking fn is re-called we should just
 			// keep blocking on the next iteration. The bug hit was that the WatchSet
@@ -682,7 +682,7 @@ func TestAgent_Service(t *testing.T) {
 			// When we reload config, the agent pauses Anti-entropy, then clears all
 			// services (which causes their watch chans to be closed) before loading
 			// state from config/snapshot again). If we do that naively then we don't
-			// just get a spurios wakeup on the watch if the service didn't change,
+			// just get a spurious wakeup on the watch if the service didn't change,
 			// but we get it wakeup and then race with the reload and probably see no
 			// services and return a 404 error which is gross. This test exercises
 			// that - even though the registrations were from API not config, they are
@@ -2955,7 +2955,7 @@ func TestAgent_RegisterCheck_Passing(t *testing.T) {
 	resp := httptest.NewRecorder()
 	a.srv.h.ServeHTTP(resp, req)
 	if http.StatusOK != resp.Code {
-		t.Fatalf("expcted 200 but got %v", resp.Code)
+		t.Fatalf("expected 200 but got %v", resp.Code)
 	}
 
 	// Ensure we have a check mapping
@@ -8333,7 +8333,7 @@ func TestAgent_Version(t *testing.T) {
 	assert.NotNil(t, obj.HumanVersion)
 }
 
-// Thie tests that a proxy with an ExposeConfig is returned as expected.
+// The tests that a proxy with an ExposeConfig is returned as expected.
 func TestAgent_Services_ExposeConfig(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")

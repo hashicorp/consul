@@ -1401,7 +1401,7 @@ func TestParseConsistencyAndMaxStale(t *testing.T) {
 	ensureConsistency(t, a, "/v1/catalog/nodes?max_stale=3s", 3*time.Second, false)
 	ensureConsistency(t, a, "/v1/catalog/nodes?stale&max_stale=3s", 3*time.Second, false)
 
-	// stale by defaul on discovery
+	// stale by default on discovery
 	a.config.DiscoveryMaxStale = 7 * time.Second
 	ensureConsistency(t, a, "/v1/catalog/nodes", a.config.DiscoveryMaxStale, false)
 	// Not in KV

@@ -1609,7 +1609,7 @@ func TestHealthServiceNodes_CheckType(t *testing.T) {
 
 	for _, check := range nodes[0].Checks {
 		if check.Name == "consul check" && check.Type != "grpc" {
-			t.Fatalf("exptected grpc check type, got %s", check.Type)
+			t.Fatalf("expected grpc check type, got %s", check.Type)
 		}
 	}
 }

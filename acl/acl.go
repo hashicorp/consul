@@ -22,7 +22,7 @@ type Config struct {
 	// WildcardName is the string that represents a request to authorize a wildcard permission
 	WildcardName string
 
-	//by default errors, but in certain instances we want to make sure to maintain backwards compatabilty
+	//by default errors, but in certain instances we want to make sure to maintain backwards compatibility
 	WarnOnDuplicateKey bool
 
 	// embedded enterprise configuration
