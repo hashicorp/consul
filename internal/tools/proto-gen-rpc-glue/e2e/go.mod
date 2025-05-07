@@ -1,6 +1,6 @@
 module github.com/hashicorp/consul/internal/tools/proto-gen-rpc-glue/e2e
 
-go 1.13
+go 1.23.8
 
 replace github.com/hashicorp/consul => ./consul
 

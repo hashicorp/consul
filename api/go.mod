@@ -1,6 +1,6 @@
 module github.com/hashicorp/consul/api
 
-go 1.19
+go 1.23.8
 
 replace github.com/hashicorp/consul/sdk => ../sdk
 

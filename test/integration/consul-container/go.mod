@@ -1,6 +1,6 @@
 module github.com/hashicorp/consul/test/integration/consul-container
 
-go 1.20
+go 1.23.8
 
 require (
 	github.com/avast/retry-go v3.0.0+incompatible

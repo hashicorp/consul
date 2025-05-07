@@ -1,6 +1,6 @@
 module github.com/hashicorp/consul/proto-public
 
-go 1.19
+go 1.23.8
 
 require (
 	github.com/stretchr/testify v1.5.1
