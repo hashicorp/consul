@@ -3,18 +3,18 @@
 
 # engineering and web presence get notified of, and can approve changes to web tooling, but not content.
 
-/website/           @hashicorp/web-presence @hashicorp/consul-selfmanage-maintainers
+/website/           @hashicorp/consul-selfmanage-maintainers @hashicorp/web-presence
 /website/data/
 /website/public/
 /website/content/
 
 # education and engineering get notified of, and can approve changes to web content.
 
-/website/data/          @hashicorp/consul-docs @hashicorp/consul-selfmanage-maintainers
-/website/public/        @hashicorp/consul-docs @hashicorp/consul-selfmanage-maintainers
-/website/content/       @hashicorp/consul-docs @hashicorp/consul-selfmanage-maintainers
+/website/data/          @hashicorp/consul-selfmanage-maintainers @hashicorp/consul-docs
+/website/public/        @hashicorp/consul-selfmanage-maintainers @hashicorp/consul-docs
+/website/content/       @hashicorp/consul-selfmanage-maintainers @hashicorp/consul-docs
 
 
 # release configuration
-/.release/                              @hashicorp/team-selfmanaged-releng @hashicorp/consul-selfmanage-maintainers
-/.github/workflows/build.yml            @hashicorp/team-selfmanaged-releng @hashicorp/consul-selfmanage-maintainers
+/.release/                              @hashicorp/consul-selfmanage-maintainers @hashicorp/team-selfmanaged-releng
+/.github/workflows/build.yml            @hashicorp/consul-selfmanage-maintainers @hashicorp/team-selfmanaged-releng
