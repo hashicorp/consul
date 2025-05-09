@@ -128,7 +128,29 @@ func GetRuntimeConfigurations(cfgSnap *proxycfg.ConfigSnapshot) map[api.Compound
 				EnvoyID:           envoyID.EnvoyID(),
 				OutgoingProxyKind: api.ServiceKindTerminatingGateway,
 			}
+		}
+	case structs.ServiceKindAPIGateway:
+		kind = api.ServiceKindAPIGateway
+		// For API Gateway, we need to handle the gateway itself
+		localSvc := api.CompoundServiceName{
+			Name:      cfgSnap.Service,
+			Namespace: cfgSnap.ProxyID.NamespaceOrDefault(),
+			Partition: cfgSnap.ProxyID.PartitionOrEmpty(),
+		}
 
+		// Handle extensions for the API Gateway itself
+		extensionConfigurationsMap[localSvc] = []extensioncommon.RuntimeConfig{}
+		cfgSnapExts := convertEnvoyExtensions(cfgSnap.Proxy.EnvoyExtensions)
+		for _, ext := range cfgSnapExts {
+			extCfg := extensioncommon.RuntimeConfig{
+				EnvoyExtension:        ext,
+				ServiceName:           localSvc,
+				IsSourcedFromUpstream: false,
+				Upstreams:             upstreamMap,
+				Kind:                  kind,
+				Protocol:              proxyConfigProtocol(cfgSnap.Proxy.Config),
+			}
+			extensionConfigurationsMap[localSvc] = append(extensionConfigurationsMap[localSvc], extCfg)
 		}
 	}
 
