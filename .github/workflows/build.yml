@@ -117,12 +117,6 @@ jobs:
           cache: 'yarn'
           cache-dependency-path: 'ui/yarn.lock'
 
-      - name: Force older go-discover version
-        run: |
-          go clean -modcache
-          go get github.com/hashicorp/go-discover@v0.0.0-20230724184603-e89ebd1b2f65
-          go mod tidy
-
       - name: Build UI
         run: |
           CONSUL_VERSION=${{ needs.set-product-version.outputs.product-version }}

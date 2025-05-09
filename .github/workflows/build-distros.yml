@@ -66,6 +66,13 @@ jobs:
     - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
       with:
         go-version: ${{ needs.get-go-version.outputs.go-version }}
+
+    - name: Initialize Go modules
+      run: |
+        go clean -modcache
+        go mod download
+        go mod tidy
+
     - name: Build
       run: |
         for os in $XC_OS; do
@@ -91,6 +98,13 @@ jobs:
     - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
       with:
         go-version: ${{ needs.get-go-version.outputs.go-version }}
+
+    - name: Initialize Go modules
+      run: |
+        go clean -modcache
+        go mod download
+        go mod tidy
+
     - name: Build
       run: |
         for os in $XC_OS; do
@@ -118,6 +132,12 @@ jobs:
     - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
       with:
         go-version: ${{ needs.get-go-version.outputs.go-version }}
+    - name: Initialize Go modules
+      run: |
+        go clean -modcache
+        go mod download
+        go mod tidy
+
     - run: |
         sudo apt-get update --allow-releaseinfo-change-suite --allow-releaseinfo-change-version && sudo apt-get install -y gcc-arm-linux-gnueabi gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu
 
