@@ -9,7 +9,7 @@ description: >-
 
 The Lua Envoy extension enables the [HTTP Lua filter](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/lua_filter) in your Consul Envoy proxies, letting you run Lua scripts when requests and responses pass through Consul-generated Envoy resources.
 
-Envoy filters support setting and getting dynamic metadata, allowing a filter to share state information with subsequent filters. To set dynamic metadata, configure the HTTP Lua filter. Users can call `streamInfo:dynamicMetadata()` from Lua scripts to get the request's dynamic metadata. 
+Envoy filters support setting and getting dynamic metadata, allowing a filter to share state information with subsequent filters. To set dynamic metadata, configure the HTTP Lua filter. Users can call `streamInfo:dynamicMetadata()` from Lua scripts to get the request's dynamic metadata.
 
 ## Configuration specifications
 
@@ -18,14 +18,14 @@ To use the Lua Envoy extension, configure the following arguments in the `EnvoyE
 | Arguments      | Type     | Default  | Description                                                                      |
 | -------------- | -------- | -------- | -------------------------------------------------------------------------------- |
 | `ListenerType` | `string` | Required | Specifies if the extension is applied to the `inbound` or `outbound` listener.   |
-| `ProxyType`    | `string` | <nobr>`connect-proxy`</nobr> | Determines the proxy type the extension applies to. The only supported value is `connect-proxy`. |
+| `ProxyType`    | `string` | Required | Determines the proxy type the extension applies to. Supported values are `connect-proxy` and `api-gateway`. |
 | `Script`       | `string` | Required | The Lua script that is configured to run by the HTTP Lua filter.                 |
 
 ## Workflow
 
 Complete the following steps to use the Lua Envoy extension:
 
-1. Configure EnvoyExtensions through `service-defaults` or `proxy-defaults`. 
+1. Configure EnvoyExtensions through `service-defaults` or `proxy-defaults`.
 1. Apply the configuration entry.
 
 ### Configure `EnvoyExtensions`
@@ -117,7 +117,7 @@ end
 
 For a full list of parameters for `EnvoyExtensions`, refer to the [`service-defaults`](/consul/docs/reference/config-entry/service-defaults#envoyextensions) and [`proxy-defaults`](/consul/docs/reference/config-entry/proxy-defaults#envoyextensions) configuration entries reference documentation.
 
-<Warning> 
+<Warning>
   Applying `EnvoyExtensions` to `ProxyDefaults` may produce unintended consequences. We recommend enabling `EnvoyExtensions` with `ServiceDefaults` in most cases.
 </Warning>
 
@@ -156,7 +156,7 @@ Name = "myservice"
 EnvoyExtensions = [
   {
     Name = "builtin/lua"
-    
+
     Arguments = {
       ProxyType = "connect-proxy"
       Listener  = "inbound"
@@ -213,5 +213,33 @@ end
   }
 ]
 ```
+  The following example configuration configures the Lua Envoy extension to insert the HTTP Lua filter for all Consul API Gateways named `my-api-gateway` to modify the response body when the status of the http request from upstream is 404.
+
+  <CodeBlockConfig filename="lua-envoy-extension.hcl">
+
+    ```hcl
+    Kind = "service-defaults"
+    Name = "my-api-gateway"
+    EnvoyExtensions = [
+    {
+      Name = "builtin/lua",
+      Arguments = {
+        ProxyType = "api-gateway"
+        Listener  = "outbound"
+        Script    = <<EOF
+          function envoy_on_response(response_handle)
+            if response_handle:headers():get(":status") == "404" then
+              local json = '{"message":"Modified by Lua script","status":"success"}'
+              response_handle:body():setBytes(json)
+              response_handle:headers():remove("content-length")
+              response_handle:headers():replace("content-encoding", "identity")
+              response_handle:headers():replace("content-type", "application/json")
+            end
+          end
+        EOF
+      }
+    }
+    ]
+    ```
 
 </CodeBlockConfig>
