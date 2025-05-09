@@ -8,6 +8,7 @@ replace (
 	github.com/hashicorp/consul/proto-public => ./proto-public
 	github.com/hashicorp/consul/sdk => ./sdk
 	github.com/hashicorp/consul/troubleshoot => ./troubleshoot
+	github.com/hashicorp/go-discover => github.com/hashicorp/go-discover v0.0.0-20230724184603-e89ebd1b2f65
 )
 
 exclude (
