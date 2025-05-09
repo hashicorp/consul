@@ -9,9 +9,9 @@ description: >-
 
 ## Release Highlights
 
-- **Cluster Peering (Beta)**: This version adds a new model to federate Consul clusters for both service mesh and traditional service discovery. Cluster peering allows for service interconnectivity with looser coupling than the existing WAN federation. For more information, refer to the [cluster peering](/consul/docs/connect/cluster-peering) documentation.
+- **Cluster Peering (Beta)**: This version adds a new model to federate Consul clusters for both service mesh and traditional service discovery. Cluster peering allows for service interconnectivity with looser coupling than the existing WAN federation. For more information, refer to the [cluster peering](/consul/docs/east-west/cluster-peering) documentation.
 
-- **Transparent proxying through terminating gateways**: This version adds egress traffic control to destinations outside of Consul's catalog, such as APIs on the public internet. Transparent proxies can dial [destinations defined in service-defaults](/consul/docs/connect/config-entries/service-defaults#destination) and have the traffic routed through terminating gateways. For more information, refer to the [terminating gateway](/consul/docs/connect/gateways/terminating-gateway#terminating-gateway-configuration) documentation.
+- **Transparent proxying through terminating gateways**: This version adds egress traffic control to destinations outside of Consul's catalog, such as APIs on the public internet. Transparent proxies can dial [destinations defined in service-defaults](/consul/docs/reference/config-entry/service-defaults#destination) and have the traffic routed through terminating gateways. For more information, refer to the [terminating gateway](/consul/docs/connect/gateways/terminating-gateway#terminating-gateway-configuration) documentation.
 
 - **Enables TLS on the Envoy Prometheus endpoint**: The Envoy prometheus endpoint can be enabled when `envoy_prometheus_bind_addr` is set and then secured over TLS using new CLI flags for the `consul connect envoy` command. These commands are: `-prometheus-ca-file`, `-prometheus-ca-path`, `-prometheus-cert-file` and `-prometheus-key-file`. The CA, cert, and key can be provided to Envoy by a Kubernetes mounted volume so that Envoy can watch the files and dynamically reload the certs when the volume is updated.
 
@@ -19,9 +19,9 @@ description: >-
 
 ## What's Changed
 
-- Removes support for Envoy 1.19.x and adds support for Envoy 1.23. Refer to the [Envoy Compatibility matrix](/consul/docs/connect/proxies/envoy) for more details.
+- Removes support for Envoy 1.19.x and adds support for Envoy 1.23. Refer to the [Envoy Compatibility matrix](/consul/docs/reference/proxy/envoy) for more details.
 
-- The [`disable_compat_19`](/consul/docs/agent/config/config-files#telemetry-disable_compat_1.9) telemetry configuration option is now removed. In Consul versions 1.10.x through 1.11.x, the config defaulted to `false`. In version 1.12.x it defaulted to `true`. Before upgrading you should remove this flag from your config if the flag is being used.
+- The [`disable_compat_19`](/consul/docs/reference/agent/configuration-file#telemetry-disable_compat_1.9) telemetry configuration option is now removed. In Consul versions 1.10.x through 1.11.x, the config defaulted to `false`. In version 1.12.x it defaulted to `true`. Before upgrading you should remove this flag from your config if the flag is being used.
 
 ## Upgrading
 

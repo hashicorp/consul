@@ -1,0 +1,5 @@
+The Consul agent is a long running daemon that operates on a node. It is a core unit of Consul operations. Agents are highly configurable, which enables you to deploy Consul to any infrastructure.
+
+Agents can run in either _server mode_ or _client mode_. Server nodes make up the control plane's server cluster, and they are responsible for maintaining the cluster's state. Client nodes are lightweight processes that make up the majority of the cluster. They interface with the server nodes for most operations and maintain little state of their own. Clients run on every node where services are running.
+
+For more information, refer to [Consul agent fundamentals](/consul/docs/fundamentals/agent).

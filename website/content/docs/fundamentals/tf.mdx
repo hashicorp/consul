@@ -1,0 +1,56 @@
+---
+layout: docs
+page_title: Consul Terraform provider
+description: ->
+    This topic introduces the Consul Terraform provider.
+---
+
+# Consul Terraform provider
+
+Terraform users can manage Consul with [the official Consul provider](https://registry.terraform.io/providers/hashicorp/consul/latest/docs). You can use the Terraform Consul provider to configure your Consul cluster's ACLs, configuration entries, intentions, and more.
+
+## Overview
+
+The majority of the workflows described in this documentation use the HTTP API, CLI, and web UI. Consul supports several methods for automated operations, from configuring virtual machines with shell scripts that run when an instance is deployed to updating application deployments dynamically with the KV store and API blocking queires.
+
+[The Terraform Consul provider](https://registry.terraform.io/providers/hashicorp/consul/latest/docs) lets you configure and manage your Consul cluster alongside the infrastructure-as-code it runs on.
+
+Consul Enterprise users can [install Consul-Terraform-Sync (CTS)](/consul/docs/automate/infrastructure/install) for additional network infrastructure automations between Consul and Terraform. For example, you can use CTS so that failed health checks in the Consul catalog trigger infrastructure redeployments in Terraform. For more information, refer to [Network infrastructure automation](/consul/docs/automate/infrastructure) and the [CTS version compatibility reference](/consul/docs/reference/cts/compatibility).
+
+## Example usage
+
+In the following example, Terraform uses the Consul provider to configure datacenter `dc` from the HTTP API address `172.18.0.3:8500`. The configuration retrieves the value of `ami` in Consul's KV store. Terraform uses this value as the machine image when it deploys the VM. 
+
+```hcl
+# Configure the Consul provider
+provider "consul" {
+  address    = "172.18.0.3:8500"
+  datacenter = "dc1"
+}
+
+# Access a key in Consul
+data "consul_keys" "app" {
+  key {
+    name    = "ami"
+    path    = "service/app/launch_ami"
+    default = "ami-1234"
+  }
+}
+
+# Use our variable from Consul
+resource "aws_instance" "app" {
+  ami = data.consul_keys.app.var.ami
+}
+```
+
+This Terraform configuration gives you the ability to define immutable infrastructure in your code and then manage dynamic updates with the Consul KV store.
+
+## Next steps
+
+You are at the end of the Consul fundamentals documentation sequence.
+
+To keep learning about Consul's operations and service networking features, continue with the [Get started on VMs tutorial collection](/consul/tutorials/get-started-vms). These tutorials include a code repository with working examples of the Consul Terraform provider on AWS and Azure. You also have the option to complete the tutorials with [an interactive hosted lab environment](/consul/tutorials/get-started-vms/virtual-machine-gs-deploy?variants=consul-workflow%3Alab) instead.
+
+If you use Kubernetes as your preferred runtime, you may prefer to proceed directly to the [Get started on Kubernetes tutorial collection](/consul/tutorials/get-started-kubernetes). These tutorials use a local Kubernetes cluster.
+
+Advanced users may wish to continue with the [Migrate a monolith tutorial in the Nomad documentation](/nomad/tutorials/migrate-monolith/monolith-migration-overview). This tutorial demonstrates several Consul features and use-cases for application developers and platform engineers.

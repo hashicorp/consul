@@ -1968,7 +1968,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 		expectedWarnings: []string{
-			`bootstrap_expect = 2: A cluster with 2 servers will provide no failure tolerance. See https://www.consul.io/docs/internals/consensus.html#deployment-table`,
+			`bootstrap_expect = 2: A cluster with 2 servers will provide no failure tolerance. See https://developer.hashicorp.com/docs/internals/consensus.html#deployment-table`,
 			`bootstrap_expect > 0: expecting 2 servers`,
 		},
 	})
@@ -1991,7 +1991,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 		expectedWarnings: []string{
-			`bootstrap_expect is even number: A cluster with an even number of servers does not achieve optimum fault tolerance. See https://www.consul.io/docs/internals/consensus.html#deployment-table`,
+			`bootstrap_expect is even number: A cluster with an even number of servers does not achieve optimum fault tolerance. See https://developer.hashicorp.com/docs/internals/consensus.html#deployment-table`,
 			`bootstrap_expect > 0: expecting 4 servers`,
 		},
 	})
@@ -2123,6 +2123,16 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		json:        []string{`{ "performance": { "raft_multiplier": 20 } }`},
 		hcl:         []string{`performance = { raft_multiplier = 20 }`},
 		expectedErr: `performance.raft_multiplier cannot be 20. Must be between 1 and 10`,
+	})
+	run(t, testCase{
+		desc: "disable XDS Load balancing",
+		args: []string{`-data-dir=` + dataDir},
+		json: []string{`{ "performance": { "enable_xds_load_balancing": false} }`},
+		hcl:  []string{`performance = { enable_xds_load_balancing=false }`},
+		expected: func(rt *RuntimeConfig) {
+			rt.EnableXDSLoadBalancing = false
+			rt.DataDir = dataDir
+		},
 	})
 	run(t, testCase{
 		desc: "node_name invalid",
@@ -7055,6 +7065,7 @@ func TestLoad_FullConfig(t *testing.T) {
 			WAL:    consul.WALConfig{SegmentSize: 15 * 1024 * 1024},
 		},
 		AutoReloadConfigCoalesceInterval: 1 * time.Second,
+		EnableXDSLoadBalancing:           false,
 	}
 	entFullRuntimeConfig(expected)
 
@@ -7371,8 +7382,9 @@ func TestRuntimeConfig_Sanitize(t *testing.T) {
 				},
 			},
 		},
-		Locality:           &Locality{Region: strPtr("us-west-1"), Zone: strPtr("us-west-1a")},
-		ServerRejoinAgeMax: 24 * 7 * time.Hour,
+		Locality:               &Locality{Region: strPtr("us-west-1"), Zone: strPtr("us-west-1a")},
+		ServerRejoinAgeMax:     24 * 7 * time.Hour,
+		EnableXDSLoadBalancing: true,
 	}
 
 	b, err := json.MarshalIndent(rt.Sanitized(), "", "    ")

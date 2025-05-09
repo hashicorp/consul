@@ -86,7 +86,7 @@ forwards the operation to the leader via a gRPC [forwarding service] listening
 on the multiplexed RPC port ([`ports.server`]).
 
 [forwarding service]: ../../../proto/private/pbstorage/raft.proto
-[`ports.server`]: https://developer.hashicorp.com/consul/docs/agent/config/config-files#server_rpc_port
+[`ports.server`]: https://developer.hashicorp.com/consul/docs/reference/agent/configuration-files/general#server_rpc_port
 
 #### Step 5
 

@@ -1,0 +1,701 @@
+---
+layout: docs
+page_title: Terminating gateway configuration entry reference
+description: >-
+  The terminating gateway configuration entry kind defines behavior to secure outgoing communication between the service mesh and non-mesh services. Use the reference guide to learn about `terminating-gateway` config entry parameters and connecting from your service mesh to external or non-mesh services registered with Consul.
+---
+
+# Terminating gateway configuration entry reference
+
+The `terminating-gateway` config entry kind (`TerminatingGateway` on Kubernetes) allows you to configure terminating gateways
+to proxy traffic from services in the Consul service mesh to services registered with Consul that do not have a
+[service mesh sidecar proxy](/consul/docs/connect/proxy). The configuration is associated with the name of a gateway service
+and will apply to all instances of the gateway with that name.
+
+~> [Configuration entries](/consul/docs/fundamentals/config-entry) are global in scope. A configuration entry for a gateway name applies
+across all federated Consul datacenters. If terminating gateways in different Consul datacenters need to route to different
+sets of services within their datacenter then the terminating gateways **must** be registered with different names.
+
+See [Terminating Gateway](/consul/docs/north-south/terminating-gateway) for more information.
+
+## TLS Origination
+
+By specifying a path to a [CA file](/consul/docs/reference/config-entry/terminating-gateway#cafile) connections
+from the terminating gateway will be encrypted using one-way TLS authentication. If a path to a
+[client certificate](/consul/docs/reference/config-entry/terminating-gateway#certfile)
+and [private key](/consul/docs/reference/config-entry/terminating-gateway#keyfile) are also specified connections
+from the terminating gateway will be encrypted using mutual TLS authentication.
+
+~> Setting the `SNI` field is strongly recommended when enabling TLS to a service. If this field is not set,
+Consul will not attempt to verify the Subject Alternative Name fields in the service's certificate.
+
+If none of these are provided, Consul will **only** encrypt connections to the gateway and not
+from the gateway to the destination service.
+
+## Wildcard service specification
+
+Terminating gateways can optionally target all services within a Consul namespace by specifying a wildcard "\*"
+as the service name. Configuration options set on the wildcard act as defaults that can be overridden
+by options set on a specific service name.
+
+Note that if the wildcard specifier is used, and some services in that namespace have a service mesh sidecar proxy,
+traffic from the mesh to those services will be evenly load-balanced between the gateway and their sidecars.
+
+## Sample Config Entries
+
+### Access an external service
+
+<Tabs>
+<Tab heading="Consul CE">
+
+Link gateway named "us-west-gateway" with the billing service.
+
+Connections to the external service will be unencrypted.
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind = "terminating-gateway"
+Name = "us-west-gateway"
+
+Services = [
+  {
+    Name = "billing"
+  }
+]
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: TerminatingGateway
+metadata:
+  name: us-west-gateway
+spec:
+  services:
+    - name: billing
+```
+
+```json
+{
+  "Kind": "terminating-gateway",
+  "Name": "us-west-gateway",
+  "Services": [
+    {
+      "Name": "billing"
+    }
+  ]
+}
+```
+
+</CodeTabs>
+
+</Tab>
+<Tab heading="Consul Enterprise">
+
+Link gateway named "us-west-gateway" in the default namespace with the billing service in the finance namespace.
+
+Connections to the external service will be unencrypted.
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind = "terminating-gateway"
+Name = "us-west-gateway"
+Namespace = "default"
+
+Services = [
+  {
+    Namespace = "finance"
+    Name      = "billing"
+  }
+]
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: TerminatingGateway
+metadata:
+  name: us-west-gateway
+spec:
+  services:
+    - name: billing
+      namespace: finance
+```
+
+```json
+{
+  "Kind": "terminating-gateway",
+  "Name": "us-west-gateway",
+  "Namespace": "default",
+  "Services": [
+    {
+      "Namespace": "finance",
+      "Name": "billing"
+    }
+  ]
+}
+```
+
+</CodeTabs>
+
+</Tab>
+</Tabs>
+
+### Access an external service over TLS
+
+<Tabs>
+<Tab heading="Consul CE">
+
+Link gateway named "us-west-gateway" with the billing service, and specify a CA
+file to be used for one-way TLS authentication.
+
+-> **Note**: When not using destinations in transparent proxy mode, you must specify the `CAFile` parameter
+and point to a valid CA bundle in order to properly initiate a TLS
+connection to the destination service. For more information about configuring a gateway for destinations, refer to [Register an External Service as a Destination](/consul/docs/k8s/connect/terminating-gateways#register-an-external-service-as-a-destination).
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind = "terminating-gateway"
+Name = "us-west-gateway"
+
+Services = [
+  {
+    Name   = "billing"
+    CAFile = "/etc/certs/ca-chain.cert.pem"
+    SNI    = "billing.service.com"
+  }
+]
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: TerminatingGateway
+metadata:
+  name: us-west-gateway
+spec:
+  services:
+    - name: billing
+      caFile: /etc/certs/ca-chain.cert.pem
+      sni: billing.service.com
+```
+
+```json
+{
+  "Kind": "terminating-gateway",
+  "Name": "us-west-gateway",
+  "Services": [
+    {
+      "Name": "billing",
+      "CAFile": "/etc/certs/ca-chain.cert.pem",
+      "SNI": "billing.service.com"
+    }
+  ]
+}
+```
+
+</CodeTabs>
+
+</Tab>
+<Tab heading="Consul Enterprise">
+
+Link gateway named "us-west-gateway" in the default namespace with the billing service in the finance namespace,
+and specify a CA file to be used for one-way TLS authentication.
+
+-> **Note**: The `CAFile` parameter must be specified _and_ point to a valid CA
+bundle in order to properly initiate a TLS connection to the destination service.
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind = "terminating-gateway"
+Name = "us-west-gateway"
+Namespace = "default"
+
+Services = [
+  {
+    Namespace = "finance"
+    Name      = "billing"
+    CAFile    = "/etc/certs/ca-chain.cert.pem"
+    SNI       = "billing.service.com"
+  }
+]
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: TerminatingGateway
+metadata:
+  name: us-west-gateway
+spec:
+  services:
+    - name: billing
+      namespace: finance
+      caFile: /etc/certs/ca-chain.cert.pem
+      sni: billing.service.com
+```
+
+```json
+{
+  "Kind": "terminating-gateway",
+  "Name": "us-west-gateway",
+  "Namespace": "default",
+  "Services": [
+    {
+      "Namespace": "finance",
+      "Name": "billing",
+      "CAFile": "/etc/certs/ca-chain.cert.pem",
+      "SNI": "billing.service.com"
+    }
+  ]
+}
+```
+
+</CodeTabs>
+
+</Tab>
+</Tabs>
+
+### Access an external service over mutual TLS
+
+<Tabs>
+<Tab heading="Consul CE">
+
+Link gateway named "us-west-gateway" with the billing service, and specify a CA
+file, key file, and cert file to be used for mutual TLS authentication.
+
+-> **Note**: The `CAFile` parameter must be specified _and_ point to a valid CA
+bundle in order to properly initiate a TLS connection to the destination service.
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind = "terminating-gateway"
+Name = "us-west-gateway"
+
+Services = [
+  {
+    Name     = "billing"
+    CAFile   = "/etc/certs/ca-chain.cert.pem"
+    KeyFile  = "/etc/certs/gateway.key.pem"
+    CertFile = "/etc/certs/gateway.cert.pem"
+    SNI      = "billing.service.com"
+  }
+]
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: TerminatingGateway
+metadata:
+  name: us-west-gateway
+spec:
+  services:
+    - name: billing
+      caFile: /etc/certs/ca-chain.cert.pem
+      keyFile: /etc/certs/gateway.key.pem
+      certFile: /etc/certs/gateway.cert.pem
+      sni: billing.service.com
+```
+
+```json
+{
+  "Kind": "terminating-gateway",
+  "Name": "us-west-gateway",
+  "Services": [
+    {
+      "Name": "billing",
+      "CAFile": "/etc/certs/ca-chain.cert.pem",
+      "KeyFile": "/etc/certs/gateway.key.pem",
+      "CertFile": "/etc/certs/gateway.cert.pem",
+      "SNI": "billing.service.com"
+    }
+  ]
+}
+```
+
+</CodeTabs>
+
+</Tab>
+<Tab heading="Consul Enterprise">
+
+Link gateway named "us-west-gateway" in the default namespace with the billing service in the finance namespace.
+Also specify a CA file, key file, and cert file to be used for mutual TLS authentication.
+
+-> **Note**: The `CAFile` parameter must be specified _and_ point to a valid CA
+bundle in order to properly initiate a TLS connection to the destination service.
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind = "terminating-gateway"
+Name = "us-west-gateway"
+Namespace = "default"
+
+Services = [
+  {
+    Namespace = "finance"
+    Name      = "billing"
+    CAFile    = "/etc/certs/ca-chain.cert.pem"
+    KeyFile   = "/etc/certs/gateway.key.pem"
+    CertFile  = "/etc/certs/gateway.cert.pem"
+    SNI       = "billing.service.com"
+  }
+]
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: TerminatingGateway
+metadata:
+  name: us-west-gateway
+spec:
+  services:
+    - name: billing
+      namespace: finance
+      caFile: /etc/certs/ca-chain.cert.pem
+      keyFile: /etc/certs/gateway.key.pem
+      certFile: /etc/certs/gateway.cert.pem
+      sni: billing.service.com
+```
+
+```json
+{
+  "Kind": "terminating-gateway",
+  "Name": "us-west-gateway",
+  "Namespace": "default",
+  "Services": [
+    {
+      "Namespace": "finance",
+      "Name": "billing",
+      "CAFile": "/etc/certs/ca-chain.cert.pem",
+      "KeyFile": "/etc/certs/gateway.key.pem",
+      "CertFile": "/etc/certs/gateway.cert.pem",
+      "SNI": "billing.service.com"
+    }
+  ]
+}
+```
+
+</CodeTabs>
+
+</Tab>
+</Tabs>
+
+### Override connection parameters for a specific service
+
+<Tabs>
+<Tab heading="Consul CE">
+
+Link gateway named "us-west-gateway" with all services in the datacenter, and configure default certificates for mutual TLS.
+
+Override the SNI and CA file used for connections to the billing service.
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+<CodeBlockConfig highlight="11-15">
+
+```hcl
+Kind = "terminating-gateway"
+Name = "us-west-gateway"
+
+Services = [
+  {
+    Name      = "*"
+    CAFile    = "/etc/common-certs/ca-chain.cert.pem"
+    KeyFile   = "/etc/common-certs/gateway.key.pem"
+    CertFile  = "/etc/common-certs/gateway.cert.pem"
+  },
+  {
+    Name      = "billing"
+    CAFile    = "/etc/billing-ca/ca-chain.cert.pem"
+    SNI       =  "billing.service.com"
+  }
+]
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig highlight="11-13">
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: TerminatingGateway
+metadata:
+  name: us-west-gateway
+spec:
+  services:
+    - name: '*'
+      caFile: /etc/common-certs/ca-chain.cert.pem
+      keyFile: /etc/common-certs/gateway.key.pem
+      certFile: /etc/common-certs/gateway.cert.pem
+    - name: billing
+      caFile: /etc/billing-ca/ca-chain.cert.pem
+      sni: billing.service.com
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig highlight="11-15">
+
+```json
+{
+  "Kind": "terminating-gateway",
+  "Name": "us-west-gateway",
+  "Services": [
+    {
+      "Name": "*",
+      "CAFile": "/etc/common-certs/ca-chain.cert.pem",
+      "KeyFile": "/etc/common-certs/gateway.key.pem",
+      "CertFile": "/etc/common-certs/gateway.cert.pem"
+    },
+    {
+      "Name": "billing",
+      "CAFile": "/etc/billing-ca/ca-chain.cert.pem",
+      "SNI": "billing.service.com"
+    }
+  ]
+}
+```
+
+</CodeBlockConfig>
+
+</CodeTabs>
+
+</Tab>
+<Tab heading="Consul Enterprise">
+
+Link gateway named "us-west-gateway" in the default namespace with all services in the finance namespace,
+and configure default certificates for mutual TLS.
+
+Override the SNI and CA file used for connections to the billing service:
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+<CodeBlockConfig highlight="13-18">
+
+```hcl
+Kind = "terminating-gateway"
+Name = "us-west-gateway"
+Namespace = "default"
+
+Services = [
+  {
+    Namespace = "finance"
+    Name      = "*"
+    CAFile    = "/etc/common-certs/ca-chain.cert.pem"
+    KeyFile   = "/etc/common-certs/gateway.key.pem"
+    CertFile  = "/etc/common-certs/gateway.cert.pem"
+  },
+  {
+    Namespace = "finance"
+    Name      = "billing"
+    CAFile    = "/etc/billing-ca/ca-chain.cert.pem"
+    SNI       =  "billing.service.com"
+  }
+]
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig highlight="12-15">
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: TerminatingGateway
+metadata:
+  name: us-west-gateway
+spec:
+  services:
+    - name: '*'
+      namespace: finance
+      caFile: /etc/common-certs/ca-chain.cert.pem
+      keyFile: /etc/common-certs/gateway.key.pem
+      certFile: /etc/common-certs/gateway.cert.pem
+    - name: billing
+      namespace: finance
+      caFile: /etc/billing-ca/ca-chain.cert.pem
+      sni: billing.service.com
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig highlight="13-18">
+
+```json
+{
+  "Kind": "terminating-gateway",
+  "Name": "us-west-gateway",
+  "Namespace": "default",
+  "Services": [
+    {
+      "Namespace": "finance",
+      "Name": "*",
+      "CAFile": "/etc/common-certs/ca-chain.cert.pem",
+      "KeyFile": "/etc/common-certs/gateway.key.pem",
+      "CertFile": "/etc/common-certs/gateway.cert.pem"
+    },
+    {
+      "Namespace": "finance",
+      "Name": "billing",
+      "CAFile": "/etc/billing-ca/ca-chain.cert.pem",
+      "SNI": "billing.service.com"
+    }
+  ]
+}
+```
+
+</CodeBlockConfig>
+
+</CodeTabs>
+
+</Tab>
+</Tabs>
+
+## Available Fields
+
+<ConfigEntryReference
+  keys={[
+    {
+      name: 'apiVersion',
+      description: 'Must be set to `consul.hashicorp.com/v1alpha1`',
+      hcl: false,
+    },
+    {
+      name: 'Kind',
+      description: {
+        hcl: 'Must be set to `terminating-gateway`',
+        yaml: 'Must be set to `TerminatingGateway`',
+      },
+    },
+    {
+      name: 'Name',
+      description: 'Set to the name of the gateway being configured.',
+      type: 'string: <required>',
+      yaml: false,
+    },
+    {
+      name: 'Namespace',
+      type: `string: "default"`,
+      enterprise: true,
+      description:
+        'Specifies the namespace to which the configuration entry will apply. This must match the namespace in which the gateway is registered.' +
+        ' If omitted, the namespace will be inherited from [the request](/consul/api-docs/config#ns)' +
+        ' or will default to the `default` namespace.',
+      yaml: false,
+    },
+    {
+      name: 'Partition',
+      type: `string: "default"`,
+      enterprise: true,
+      description:
+        'Specifies the admin partition to which the configuration entry will apply. This must match the partition in which the gateway is registered.' +
+        ' If omitted, the partition will be inherited from [the request](/consul/api-docs/config)' +
+        ' or will default to the `default` partition.',
+      yaml: false,
+    },
+    {
+      name: 'Meta',
+      type: 'map<string|string>: nil',
+      description:
+        'Specifies arbitrary KV metadata pairs. Added in Consul 1.8.4.',
+      yaml: false,
+    },
+    {
+      name: 'metadata',
+      children: [
+        {
+          name: 'name',
+          description: 'Set to the name of the gateway being configured.',
+        },
+        {
+          name: 'namespace',
+          description:
+            'If running Consul Community Edition, the namespace is ignored (see [Kubernetes Namespaces in Consul CE](/consul/docs/k8s/crds#consul-ce)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for more details.',
+        },
+      ],
+      hcl: false,
+    },
+    {
+      name: 'Services',
+      type: 'array<LinkedService>: <optional>',
+      description: `A list of services or destinations to link
+                      with the gateway. The gateway will proxy traffic to these services. These linked services
+                      must be registered with Consul for the gateway to discover their addresses. They must also
+                      be registered in the same Consul datacenter as the terminating gateway.
+                      Destinations are an exception to this requirement, and only need to be defined as a service-defaults configuration entry in the same datacenter.
+                      If Consul ACLs are enabled, the Terminating Gateway's ACL token must grant <code>service:write</code> for all linked services.`,
+      children: [
+        {
+          name: 'Name',
+          type: 'string: ""',
+          description:
+            'The name of the service to link with the gateway. If the wildcard specifier, `*`, is provided, then ALL services within the namespace will be linked with the gateway.',
+        },
+        {
+          name: 'Namespace',
+          enterprise: true,
+          type: 'string: ""',
+          description:
+            'The namespace of the service. If omitted, the namespace will be inherited from the config entry.',
+        },
+        {
+          name: 'CAFile',
+          type: 'string: ""',
+          description: `A file path to a PEM-encoded certificate authority.
+                            The file must be present on the proxy's filesystem.
+                            The certificate authority is used to verify the authenticity of the service linked with the gateway.
+                            It can be provided along with a CertFile and KeyFile for mutual TLS authentication, or on its own
+                            for one-way TLS authentication. If none is provided the gateway <b>will not</b> encrypt the traffic to the destination.`,
+        },
+        {
+          name: 'CertFile',
+          type: 'string: ""',
+          description: {
+            hcl: `A file path to a PEM-encoded certificate.
+                            The file must be present on the proxy's filesystem.
+                            The certificate is provided servers to verify the gateway's authenticity. It must be provided if a \`KeyFile\` was specified.`,
+            yaml: `A file path to a PEM-encoded certificate.
+                            The file must be present on the proxy's filesystem.
+                            The certificate is provided servers to verify the gateway's authenticity. It must be provided if a \`keyFile\` was specified.`,
+          },
+        },
+        {
+          name: 'KeyFile',
+          type: 'string: ""',
+          description: {
+            hcl: `A file path to a PEM-encoded private key.
+                      The file must be present on the proxy's filesystem.
+                      The key is used with the certificate to verify the gateway's authenticity. It must be provided along if a \`CertFile\` was specified.`,
+            yaml: `A file path to a PEM-encoded private key.
+                      The file must be present on the proxy's filesystem.
+                      The key is used with the certificate to verify the gateway's authenticity. It must be provided along if a \`certFile\` was specified.`,
+          },
+        },
+        {
+          name: 'SNI',
+          type: 'string: ""',
+          description:
+          `An optional hostname or domain name to specify during the TLS handshake. This option will also configure [strict SAN matching](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/transport_sockets/tls/v3/common.proto#envoy-v3-api-field-extensions-transport-sockets-tls-v3-certificatevalidationcontext-match-typed-subject-alt-names), which requires
+            the external services to have certificates with SANs, not having which will result in \`CERTIFICATE_VERIFY_FAILED\` error.`,
+        },
+        {
+          name: 'DisableAutoHostRewrite',
+          type: 'bool: ""',
+          description:
+            'When set to true, Terminating Gateway will not modify the incoming requests host header for this service.',
+        },
+      ],
+    },
+  ]}
+/>
+
+## ACLs
+
+Configuration entries may be protected by [ACLs](/consul/docs/secure/acl).
+
+Reading a `terminating-gateway` config entry requires `service:read` on the `Name`
+field of the config entry.
+
+Creating, updating, or deleting a `terminating-gateway` config entry requires
+`operator:write`.

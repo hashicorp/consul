@@ -1,0 +1,5 @@
+Ingress gateways listen for external requests and route authorized traffic to instances in the service mesh. They provide one-way traffic from external sources to services in the mesh. If you want to enable traffic from services in the mesh to external destinations, then you must also configure a [terminating gateway](/consul/docs/register/external/terminating-gateway), which is a separate component that requires additional configuration and maintenance.
+
+Ingress gateways are deprecated. Use [Consul API gateways](/north-south/api-gateway) to secure service mesh ingress instead.
+
+Refer to [Ingress gateway overview](/consul/docs/north-south/ingress-gateway) for additional information about deploying ingress gateways to your Consul service mesh.

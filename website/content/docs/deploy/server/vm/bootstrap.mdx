@@ -1,0 +1,140 @@
+---
+layout: docs
+page_title: Bootstrap a Consul datacenter (VM)
+description: >-
+  Bootstrapping a datacenter is the initial deployment process in Consul that starts server agents and joins them together. Learn how to deploy and join Consul servers running on a virtual machine.
+---
+
+# Bootstrap a Consul datacenter
+
+This page describes the process to bootstrap a Consul datacenter running on a virtual machine (VM).
+
+## Background
+
+In Consul, a datacenter is an organizational unit that governs the assignment of resources such as servers, proxies, and gateways. Objects in a datacenter share security resources, including tokens and mTLS certificates, which are managed by a Consul server cluster. This server cluster is a group of one to five Consul servers deployed within a single cloud region.
+
+When a cluster is first created, it must initiate the consensus protocol and elect a leader before it can service requests. _Bootstrapping a datacenter_ refers to the process of configuring and joining the initial server nodes in a cluster. After you bootstrap a datacenter, you can use [cloud auto-join](/consul/docs/deploy/server/cloud-auto-join) to automatically connect to Consul agents in the control plane and data plane as you deploy them.
+
+## Prerequisites
+
+Bootstrapping a Consul datacenter requires at least one node with a local [Consul binary installation](/consul/install). For testing and development scenarios, you can use your local node to deploy a datacenter that runs as a single Consul server.
+
+## Bootstrap a datacenter
+
+You can bootstrap a datacenter by passing configurations through flags on the `consul agent` command. You can also define multiple servers using a single agent configuration file, and then start each agent using that file. When the Consul servers detect the expected number of servers, they hold an election and communicate according to the Raft protocol.
+
+Complete the following steps to bootstrap a cluster:
+
+1. Initiate the cluster and specify the number of server agents to start.
+1. Join the servers either automatically or manually.
+
+Use the [`-bootstrap-expect`](/consul/commands/agent#_bootstrap_expect) flag on the command line or configure `bootstrap_expect` in the agent configuration. This option declares the expected number of servers and automatically bootstraps them when the specified number of servers are available. To prevent inconsistencies and deployments where multiple servers consider themselves leader, you should either specify the same value for each server's `bootstrap_expect` parameter or specify no value at all on all the servers. When `-bootstrap-expect` is omitted, Consul defaults to `1` for the number of expected servers.
+
+The following command bootstraps a datacenter consisting of three Consul servers:
+
+```shell-session
+$ consul agent -data-dir /tmp/consul -server -bootstrap-expect 3
+```
+
+You can also create an agent configuration file to use when deploying multiple Consul servers. The following example demonstrates a basic agent configuration for bootstrapping a datacenter with three servers.
+
+<CodeBlockConfig filename="bootstrap.hcl">
+
+```hcl
+datacenter = "dc1"
+data_dir = "/tmp/consul"
+log_level = "INFO"
+server = true
+bootstrap_expect = 3
+```
+
+</CodeBlockConfig>
+
+To apply the agent configuration to each server, run the `consul agent` command on each VM.
+
+```shell-session
+$ consul agent -config-file=bootstrap.hcl
+```
+
+Consul prints a warning message to the console when the number of servers in a cluster is less than the expected bootstrap number.
+
+<CodeBlockConfig hideClipboard>
+
+```log
+[WARN] raft: EnableSingleNode disabled, and no known peers. Aborting election.
+```
+
+</CodeBlockConfig>
+
+## Join the servers
+
+After you start the servers, you must join them in a cluster to initiate the Raft election. To join servers automatically, specify network addresses or [cloud auto join](/consul/docs/deploy/server/cloud-auto-join) tags for supported cloud environments using either the [-retry-join CLI flag](/consul/commands/agent#_retry_join) or the [`retry_join` configuration option](/consul/docs/reference/agent/consul/docs/reference/agent/configuration-file/join#retry_join).
+
+The following examples demonstrate address options and their formatting for the `-retry-join` CLI flag.
+
+<CodeBlockConfig heading="Using a DNS entry">
+
+```shell-session
+$ consul agent -retry-join "consul.domain.internal"
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig heading="Using IPv4">
+
+```shell-session
+$ consul agent -retry-join "10.0.4.67"
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig heading="Using a non-default Serf LAN port">
+
+```shell-session
+$ consul agent -retry-join "192.0.2.10:8304"
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig heading="Using IPv6">
+
+```shell-session
+$ consul agent -retry-join "[::1]:8301"
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig heading="Using multiple addresses">
+
+```shell-session
+$ consul agent -retry-join "consul.domain.internal" -retry-join "10.0.4.67"
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig heading="Using cloud auto-join">
+
+```shell-session
+$ consul agent -retry-join "provider=aws tag_key=..."
+```
+
+</CodeBlockConfig>
+
+## Verify the Raft status
+
+To verify that the bootstrap process completed successfully, use the [`consul info`](/consul/commands/info) command to check the cluster's current Raft status. In particular, verify the following:
+
+- The `raft.num_peers` should be one less than the number of expected bootstrap servers, minus one
+- The `raft.last_log_index` should be a non-zero number
+
+## Next steps
+
+After you bootstrap a datacenter, you can make additional changes to the datacenter by modifying the agent configuration and then running the [`consul reload` command](/consul/commands/reload).
+
+We recommend removing `bootstrap_expect` from agent configurations and reloading the agents after the initial bootstrap process is complete. This action prevents server agents that fail from unintentionally bootstrapping again after they restart. Instead, they will rejoin a datacenter's cluster automatically.
+
+You can also enable Consul's browser-based user interface, deploy client agents, and register services in the Consul catalog for service discovery and service mesh use cases. Refer to the following topics for more information:
+
+- [Consul UI visualization](/consul/docs/fundamentals/interface/ui)
+- [Configure client agents](/consul/docs/deploy/workload/client/vm)
+- [Register service](/register/service/vm)

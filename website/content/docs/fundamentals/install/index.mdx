@@ -1,0 +1,125 @@
+---
+layout: docs
+page_title: How to install Consul
+description: >-
+  Install Consul to get started with service discovery and service mesh. Follow the installation instructions to download the precompiled binary, or use Go to compile from source.
+---
+
+# How to install Consul
+
+This page describes the process to install Consul on bare-metal machines, virtual machines (VMs), and Kubernetes clusters. 
+
+To find the most recently available releases for each supported runtime and CPU architecture, refer to [install Consul](/consul/install). This page also includes instructions for installing Consul using package managers such as `apt`, `yum`, and `brew`.
+
+## Overview
+
+There are three ways to install Consul:
+
+1. [Install from a precompiled binary](#precompiled-binaries)
+1. [Compile from the source](#compile-from-the-source)
+1. [Install on Kubernetes with Helm](#install-on-kubernetes)
+
+We recommend using a precompiled binary. We also distribute a PGP signature with the SHA256 sums that you can use to verify the binary. For guidance, refer to [verify HashiCorp binary downloads](/well-architected-framework/operational-excellence/verify-hashicorp-binary).
+
+## Precompiled binaries
+
+To install the precompiled binary, [download the appropriate package for your system](/consul/install). To find other versions, including Enterprise versions with support for FIPS 1420 compliance, refer to [the complete list of Consul releases on releases.hashicorp.com](https://releases.hashicorp.com/consul/). Consul is currently packaged as a `.zip` file.
+
+After your download completes, unzip it into any directory. The `consul` binary or `.exe` file inside is the only file required to run Consul.
+
+Copy the binary to anywhere on your system. If you intend to access it from the command-line, make sure to place it somewhere on your `PATH`.
+
+## Compile from the source
+
+To compile Consul from its source, you need [Go](https://golang.org) installed and a copy of [`git`](https://www.git-scm.com/) in your `PATH`.
+
+1. Clone the Consul repository from GitHub:
+
+   ```shell-session
+   $ git clone https://github.com/hashicorp/consul.git
+   ```
+
+   Then, navigate to the `consul` directory:
+
+   ```shell-session
+   $ cd consul
+   ```
+
+1. Build Consul for your target system. Once complete, Go will place the binary in `./bin`.
+
+   <Tabs>
+   <Tab heading="Compile for your current system">
+
+   ```shell-session
+   $ make dev
+   ```
+
+   </Tab>
+   <Tab heading="Cross-compile for another system">
+
+   Specify your target system by setting the following environment variables
+   before building:
+
+   | Environment variable | Description |
+   | :------------------- | :---------- |
+   | `GOOS`               | Target operating system. Valid values include: `linux`, `darwin`, `windows`, `solaris`, `freebsd`. |
+   | `GOARCH`             | Target architecture. Valid values include: `386`, `amd64`, `arm`, `arm64`. |
+
+   ```shell-session
+   $ GOOS=linux GOARCH=amd64 make dev
+   ```
+
+   </Tab>
+   </Tabs>
+
+## Verify installation
+
+To verify your installation, print the version of the `consul` binary.
+
+```shell-session
+$ consul version
+Consul v1.20.1
+Revision 920cc7c6
+Build Date 2024-10-29T19:04:05Z
+Protocol 2 spoken by default, understands 2 to 3 (agent will automatically use protocol >2 when speaking to compatible agents)
+```
+
+If you are executing from the command line, make sure Consul is on your `PATH` or you may get an error about Consul not being found.
+
+## Install on Kubernetes
+
+On Kubernetes deployments, you can pull the latest release using the HashiCorp Helm repo.
+
+1. Add the HashiCorp Helm repository:
+
+   ```shell-session
+   $ helm repo add hashicorp https://helm.releases.hashicorp.com
+    "hashicorp" has been added to your repositories
+   ```
+
+1. Verify that you have access to the Consul chart:
+
+   ```shell-session
+   $ helm search repo hashicorp/consul
+   NAME            	CHART VERSION	APP VERSION	DESCRIPTION                    
+   hashicorp/consul	1.5.0        	1.19.0     	Official HashiCorp Consul Chart
+   ```
+
+1. Before you install Consul on Kubernetes with Helm, ensure that the `consul` Kubernetes namespace does not exist. We recommend installing Consul on a dedicated namespace.
+
+   ```shell-session
+   $ kubectl get namespace
+   NAME              STATUS   AGE
+   default           Active   18h
+   kube-node-lease   Active   18h
+   kube-public       Active   18h
+   kube-system       Active   18h
+   ```
+
+1. Run the following command to install the latest version of Consul on Kubernetes with its default configuration.
+
+   ```shell-session
+   $ helm install consul hashicorp/consul --set global.name=consul --create-namespace --namespace consul
+   ```
+
+For more information, including instructions on how to install on other runtimes such as OpenShift, refer to [Install on Kubernetes with Helm](/consul/docs/deploy/server/k8s/helm).

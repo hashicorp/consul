@@ -23,7 +23,7 @@ ARG VERSION
 
 LABEL org.opencontainers.image.authors="Consul Team <consul@hashicorp.com>" \
       org.opencontainers.image.url="https://www.consul.io/" \
-      org.opencontainers.image.documentation="https://www.consul.io/docs" \
+      org.opencontainers.image.documentation="https://developer.hashicorp.com/docs" \
       org.opencontainers.image.source="https://github.com/hashicorp/consul" \
       org.opencontainers.image.version=${VERSION} \
       org.opencontainers.image.vendor="HashiCorp" \
@@ -137,7 +137,7 @@ ARG TARGETOS TARGETARCH
 
 LABEL org.opencontainers.image.authors="Consul Team <consul@hashicorp.com>" \
       org.opencontainers.image.url="https://www.consul.io/" \
-      org.opencontainers.image.documentation="https://www.consul.io/docs" \
+      org.opencontainers.image.documentation="https://developer.hashicorp.com/docs" \
       org.opencontainers.image.source="https://github.com/hashicorp/consul" \
       org.opencontainers.image.version=${PRODUCT_VERSION} \
       org.opencontainers.image.vendor="HashiCorp" \
@@ -234,7 +234,7 @@ ARG TARGETOS TARGETARCH
 
 LABEL org.opencontainers.image.authors="Consul Team <consul@hashicorp.com>" \
       org.opencontainers.image.url="https://www.consul.io/" \
-      org.opencontainers.image.documentation="https://www.consul.io/docs" \
+      org.opencontainers.image.documentation="https://developer.hashicorp.com/consul/docs" \
       org.opencontainers.image.source="https://github.com/hashicorp/consul" \
       org.opencontainers.image.version=${PRODUCT_VERSION} \
       org.opencontainers.image.vendor="HashiCorp" \

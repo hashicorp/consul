@@ -1,6 +1,6 @@
 [Unit]
 Description="HashiCorp Consul - A service mesh solution"
-Documentation=https://www.consul.io/
+Documentation=https://developer.hashicorp.com/
 Requires=network-online.target
 After=network-online.target
 ConditionFileNotEmpty=/etc/consul.d/consul.hcl

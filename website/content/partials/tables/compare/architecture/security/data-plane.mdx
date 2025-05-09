@@ -1,0 +1,8 @@
+The workload agents Consul runs in an application's data plane provide additional security features that are not enabled by default. These features are enforced by Envoy proxies deployed in the service mesh as gateways and sidecar proxies.
+
+| Security feature                                                   | Description                                                                             |
+| :----------------------------------------------------------------- | :-------------------------------------------------------------------------------------- |
+| [Consul API gateway](/consul/docs/north-south/api-gateway)         | Secures user and application ingress for a service network.                             |
+| [mTLS certificate authority](/consul/docs/secure-mesh/certificate) | Verifies incoming and outgoing service traffic with TLS certificates using built-in CA. |
+| [Service intentions](/consul/docs/secure-mesh/intention)           | Limits service-to-service communication to explicitly definied routes between services. |
+| [JWT token support](/consul/docs/secure-mesh/intention/jwt)        | Requires an additional verification check for sidecar proxies using JSON Web Tokens.    |

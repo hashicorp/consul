@@ -1,0 +1,8 @@
+If you experience errors when using Consul's cluster peering features, refer to the following list of technical constraints.
+
+- Peer names can only contain lowercase characters.
+- Services with node, instance, and check definitions totaling more than 8MB cannot be exported to a peer.
+- Two admin partitions in the same datacenter cannot be peered. Use the [`exported-services` configuration entry](/consul/docs/reference/config-entry/exported-services#exporting-services-to-peered-clusters) instead.
+- To manage intentions that specify services in peered clusters, use [configuration entries](/consul/docs/reference/config-entry/service-intentions). The `consul intention` CLI command is not supported.
+- The Consul UI does not support exporting services between clusters or creating service intentions. Use either the API or the CLI to complete these required steps when establishing new cluster peering connections.
+- Accessing key/value stores across peers is not supported.

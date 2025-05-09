@@ -1,0 +1,192 @@
+---
+layout: docs
+page_title: General upgrade process
+description: >-
+  Specific versions of Consul may have additional information about the upgrade
+  process beyond the standard flow.
+---
+
+# General upgrade process
+
+This pages describes the overall process and best practices that you should follow when
+upgrading Consul. Some versions also have steps that are specific to that
+version, so make sure you also review the [upgrade instructions](/consul/docs/upgrade/instructions)
+for the version you are on.
+
+## Download the New Version
+
+First, download the binary for the new version you want.
+
+<Tabs>
+<Tab heading="Binary">
+
+All current and past versions of the CE and Enterprise releases are
+available here:
+
+- https://releases.hashicorp.com/consul
+
+</Tab>
+<Tab heading="Docker">
+
+Docker containers are available at these locations:
+
+- **CE:** https://hub.docker.com/_/consul
+- **Enterprise:** https://hub.docker.com/r/hashicorp/consul-enterprise
+
+</Tab>
+<Tab heading="Kubernetes">
+
+If you are using Kubernetes, then please review our documentation for
+[Upgrading Consul on Kubernetes](/consul/docs/upgrade/k8s).
+
+</Tab>
+</Tabs>
+
+## Prepare for the Upgrade
+
+1. Take a snapshot to ensure you have a safe fallback option in case something goes wrong.
+
+  ```shell-session
+  $ consul snapshot save backup.snap
+  ```
+
+  You can inspect the snapshot to ensure your cluster's Raft index was successfully captured.
+
+  ```shell-session
+  $ consul snapshot inspect backup.snap
+  ```
+
+  Example output:
+
+  ```shell-session hideClipboard
+  ID           2-1182-1542056499724
+  Size         4115
+  Index        1182
+  Term         2
+  Version      1
+  ```
+
+  Store this snapshot somewhere safe. For more information on snapshots, refer to the following:
+
+  - [`consul snapshot` CLI command](/consul/commands/snapshot)
+  - [Backup Consul Data and State tutorial](/consul/tutorials/production-deploy/backup-and-restore)
+
+2. Temporarily modify your Consul configuration to set the agent's [`log_level`](/consul/commands/agent#_log_level) is set to `debug`. Then issue the following command on your servers to
+reload the configuration:
+
+```shell-session
+$ consul reload
+```
+
+When you change the cluster's log level, Consul gives you more information to work with in the event that something goes wrong.
+
+### Enterprise upgrades
+
+<Note>
+To experience a smoother upgrade process on Consul Enterprise, we recommend that you disable the upgrade migration feature.
+</Note>
+
+Consul Enterprise supports [automated upgrades](/consul/docs/upgrade/automated), but the autopilot feature may cause a node running an updated Consul version to elect a new leader before the version is updated on the existing cluster leader.
+
+If your datacenter runs Consul Enterprise, update your server agent configuration file to disable autopilot's upgrade migration or run the following CLI command:
+
+```shell-session
+$ consul operator autopilot set-config -disable-upgrade-migration=true
+```
+
+## Perform the Upgrade
+
+1. Issue the following command to discover which server is currently the leader:
+
+  ```shell-session
+  $ consul operator raft list-peers
+  ```
+
+  You should receive output similar to this (exact formatting and content may differ based on version):
+
+  ```shell-session hideClipboard
+  Node       ID                                    Address         State     Voter  RaftProtocol
+  dc1-node1  ae15858f-7f5f-4dcb-b7d5-710fdcdd2745  10.11.0.2:8300  leader    true   3
+  dc1-node2  20e6be1b-f1cb-4aab-929f-f7d2d43d9a96  10.11.0.3:8300  follower  true   3
+  dc1-node3  658c343b-8769-431f-a71a-236f9dbb17b3  10.11.0.4:8300  follower  true   3
+  ```
+
+  Take note of which agent is the leader.
+
+2. Copy the new `consul` binary onto your servers and replace the existing binary with the new one.
+
+3. Use a service management system such as systemd or upstart to restart the Consul service on each server. You must restart follower server agents first, leaving the leader agent for last. If you are not using a service management system, you must restart the agent manually.
+
+  To validate that the agent has rejoined the cluster and is in sync with the leader after you restart it, issue the following command to the agent:
+
+  ```shell-session
+  $ consul info
+  ```
+
+  Check whether the `commit_index` and `last_log_index` fields have the same value. If done properly,
+  this should avoid an unexpected leadership election due to loss of quorum.
+
+4. Double-check that all servers joined the cluster as expected and run the correct version. Issue the following command:
+
+  ```shell-session
+  $ consul members
+  ```
+
+  You should receive output that lists the servers as `alive` and running the same updated Consul version.
+
+  ```shell-session hideClipboard
+  Node       Address         Status  Type    Build  Protocol  DC
+  dc1-node1  10.11.0.2:8301  alive   server  1.8.3  2         dc1
+  dc1-node2  10.11.0.3:8301  alive   server  1.8.3  2         dc1
+  dc1-node3  10.11.0.4:8301  alive   server  1.8.3  2         dc1
+  ```
+
+  Also double-check the Raft state to make sure there is a leader and sufficient voters:
+
+  ```shell-session
+  $ consul operator raft list-peers
+  ```
+
+  You should receive output that lists one server as the `leader` and the rest as `follower`:
+
+  ```shell-session hideClipboard
+  Node       ID                                    Address         State     Voter  RaftProtocol
+  dc1-node1  ae15858f-7f5f-4dcb-b7d5-710fdcdd2745  10.11.0.2:8300  leader    true   3
+  dc1-node2  20e6be1b-f1cb-4aab-929f-f7d2d43d9a96  10.11.0.3:8300  follower  true   3
+  dc1-node3  658c343b-8769-431f-a71a-236f9dbb17b3  10.11.0.4:8300  follower  true   3
+  ```
+
+5. Set your `log_level` back to its original value and issue the following command
+on your servers to reload the configuration:
+
+  ```shell-session
+  $ consul reload
+  ```
+
+## Troubleshooting
+
+Most problems with upgrading occur due to either failing to upgrade the leader agent last,
+or failing to wait for a follower agent to fully rejoin a cluster before moving
+on to another server. This can cause a loss of quorum and occasionally can result in
+all of your servers attempting to kick off leadership elections endlessly without ever
+reaching a quorum and electing a leader. Consul Enterprise users should [disable upgrade migration](#enterprise-upgrades) to prevent autopilot from prematurely electing a new cluster leader.
+
+Most of these problems can be solved by following the steps outlined in our
+[Disaster recovery for Consul clusters](/consul/tutorials/datacenter-operations/recovery-outage) document.
+If you are still having trouble after trying the recovery steps outlined there,
+then the following options for further assistance are available:
+
+- CE users without paid support plans can request help in our [Community Forum](https://discuss.hashicorp.com/c/consul/29)
+- Enterprise and CE users with paid support plans can contact [HashiCorp Support](https://support.hashicorp.com/)
+
+When contacting Hashicorp Support, please include the following information in your ticket:
+
+- Consul version you were upgrading FROM and TO.
+- [Debug level logs](/consul/commands/agent#_log_level) from all servers in the cluster
+  that you are having trouble with. These should include logs from prior to the upgrade attempt
+  up through the current time. If your logs were not set at debug level prior to the
+  upgrade, please include those logs as well. Also, update your config to use debug logs,
+  and include logs from after that was done.
+- Your Consul config files (please redact any secrets).
+- Output from `consul members -detailed` and `consul operator raft list-peers` from each
+  server in your cluster.

@@ -1,0 +1,40 @@
+---
+layout: docs
+page_title: Rotate TLS Certificates for Consul on Virtual machines (VMs)
+description: >-
+  Learn how to manually rotate Consul TLS certificates for server and client agents.
+---
+
+# Rotate TLS Certificates for Consul on Virtual machines (VMs)
+
+To maintain the security offered by TLS encryption, we recommend that you rotate TLS certificates often.
+
+TLS certificates are part of [Consul's reloadable configuration](/consul/docs/agent/config#reloadable-configuration), so you do not need to restart the Consul agents when you renew certificates. As a result, there is no risk of downtime.
+
+## Rotate certificates for Consul server agents
+
+To rotate certificates for Consul server agents complete the following steps:
+1. [Generate new certificates for all server agents](/consul/docs/security/encryption/mtls#create-server-certificates) to replace the old ones.
+1. Distribute the new certificates to the server nodes.
+1. Reload Consul configuration on each server with the `consul reload` command.
+
+## Rotate certificates for Consul client agents
+
+To rotate certificates for Consul client agents complete the following steps:
+
+<Tabs>
+<Tab heading="Auto-encryption method" group="auto">
+
+When using the auto-encryption method, Consul automatically rotates the client certificates without operator intervention.
+
+</Tab>
+
+<Tab heading="Operator method" group="manual">
+
+1. [Generate new certificates for all client agents](/consul/docs/security/encryption/mtls#configure-client-agents) to replace the old ones.
+1. Distribute the new certificates to the client nodes. 
+1. Reload Consul configuration on all clients with `consul reload` command.
+
+</Tab>
+
+</Tabs>

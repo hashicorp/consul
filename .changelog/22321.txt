@@ -1,0 +1,3 @@
+```release-note:feature
+xds: Extend LUA Script support for API Gateway
+```

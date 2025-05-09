@@ -1,0 +1,31 @@
+---
+layout: docs
+page_title: Persistent backend architecture
+description: >-
+  Consul persists the Raft index, which logs cluster activities, with the Write-ahead log (WAL) LogStore backend. Consul saves the Raft index in the server's data directory.
+---
+
+# Persistent data backend architecture
+
+This page introduces the architecture of the backend that Consul server agents use to store Raft index data.
+
+## Raft index
+
+Consul uses the Raft protocol to manage [server consensus](/consul/docs/concept/consensus), to maintain a [reliable, fault-tolerant](/consul/docs/concept/reliability) state across all servers. This consensus mechanism ensures [consistent service discovery and health monitoring](/consul/docs/concept/consistency), even when individual servers fail or become temporarily disconnected from the cluster.
+
+The Raft index provides a record of the cluster's state. It tracks interactions between Consul servers as they conduct elections, register service instances into [the Consul catalog](/consul/docs/concept/catalog), and update the catalog with the results of service node health checks.
+
+You can also use Consul's [snapshot agent](/consul/commands/snapshot/agent) to save a copy of the entire Raft index. This snapshot lets you restore a datacenter from a backup in the event of an outage or catastrophic failure. You can save snapshot to a cloud storage bucket to ensure data persistence.
+
+## Data directory
+
+Consul writes the Raft index to the data directory specified in the agent configuration with the `data_dir` parameter or `-data_dir` CLI flag. The data directory is a requirement for all agents, and should be durable across reboots.
+
+## Write-ahead log (WAL) LogStore backend
+
+Consul logs the Raft index with the write-ahead log (WAL) LogStore backend. The WAL backend implements a traditional log with rotating, append-only log files, and it retains logs without affecting a cluster's write performance at scale.
+
+Previous versions of Consul used BoltDB as the default LogStore backend. Refer
+to the [WAL LogStore backend overview](/consul/docs/deploy/server/wal) for more
+information. To use BoltDB instead of WAL, refer to [Revert storage backend to
+BoltDB from WAL](/consul/docs/deploy/server/wal/revert-boltdb).

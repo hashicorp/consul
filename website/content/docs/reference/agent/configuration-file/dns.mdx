@@ -1,0 +1,148 @@
+---
+layout: docs
+page_title: DNS parameters for Consul agent configuration files
+description: >-
+  Use agent configuration files to assign attributes to agents and configure multiple agents at once. Learn about agent configuration file parameters and formatting with this reference page and sample code.
+---
+
+# DNS parameters for Consul agent configuration files
+
+The page provides reference information for DNS parameters in a Consul agent configuration file.
+
+## DNS and Domain Parameters
+
+- `alt_domain` ((#\_alt_domain)) - This parameter allows Consul to respond to DNS queries in an alternate domain, in addition to the primary domain. If unset,
+  no alternate domain is used. Equivalent to the [`-alt-domain` command-line flag](/consul/commands/agent#_alt_domain).
+
+- `dns_config` This object allows a number of sub-keys to be set which can tune how DNS queries are serviced. Refer to [DNS caching](/consul/docs/discover/dns/scale) for more information.
+
+  The following sub-keys are available:
+
+  - `allow_stale` - Enables a stale query for DNS information.
+    This allows any Consul server, rather than only the leader, to service the request.
+    The advantage of this is you get linear read scalability with Consul servers.
+    In versions of Consul prior to 0.7, this defaulted to false, meaning all requests
+    are serviced by the leader, providing stronger consistency but less throughput
+    and higher latency. In Consul 0.7 and later, this defaults to true for better
+    utilization of available servers.
+
+  - `max_stale` - When [`allow_stale`](#allow_stale) is
+    specified, this is used to limit how stale results are allowed to be. If a Consul
+    server is behind the leader by more than `max_stale`, the query will be re-evaluated
+    on the leader to get more up-to-date results. Prior to Consul 0.7.1 this defaulted
+    to 5 seconds; in Consul 0.7.1 and later this defaults to 10 years ("87600h")
+    which effectively allows DNS queries to be answered by any server, no matter
+    how stale. In practice, servers are usually only milliseconds behind the leader,
+    so this lets Consul continue serving requests in long outage scenarios where
+    no leader can be elected.
+
+  - `node_ttl` - By default, this is "0s", so all node lookups
+    are served with a 0 TTL value. DNS caching for node lookups can be enabled by
+    setting this value. This should be specified with the "s" suffix for second or
+    "m" for minute.
+
+  - `service_ttl` - This is a sub-object which allows
+    for setting a TTL on service lookups with a per-service policy. The "\*" wildcard
+    service can be used when there is no specific policy available for a service.
+    By default, all services are served with a 0 TTL value. DNS caching for service
+    lookups can be enabled by setting this value.
+
+  - `enable_truncate` ((#enable_truncate)) - If set to true, a UDP DNS
+    query that would return more than 3 records, or more than would fit into a valid
+    UDP response, will set the truncated flag, indicating to clients that they should
+    re-query using TCP to get the full set of records.
+
+  - `only_passing` - If set to true, any nodes whose
+    health checks are warning or critical will be excluded from DNS results. If false,
+    the default, only nodes whose health checks are failing as critical will be excluded.
+    For service lookups, the health checks of the node itself, as well as the service-specific
+    checks are considered. For example, if a node has a health check that is critical
+    then all services on that node will be excluded because they are also considered
+    critical.
+
+  - `recursor_strategy` - If set to `sequential`, Consul will query recursors in the
+    order listed in the [`recursors`](/consul/docs/reference/agent/configuration-file/general#recursors) option. If set to `random`,
+    Consul will query an upstream DNS resolvers in a random order. Defaults to
+    `sequential`.
+
+  - `recursor_timeout` - Timeout used by Consul when
+    recursively querying an upstream DNS server. See [`recursors`](/consul/docs/reference/agent/configuration-file/general#recursors) for more details. Default is 2s. This is available in Consul 0.7 and later.
+
+  - `disable_compression` - If set to true, DNS
+    responses will not be compressed. Compression was added and enabled by default
+    in Consul 0.7.
+
+  - `udp_answer_limit` - Limit the number of resource
+    records contained in the answer section of a UDP-based DNS response. This parameter
+    applies only to UDP DNS queries that are less than 512 bytes. This setting is
+    deprecated and replaced in Consul 1.0.7 by [`a_record_limit`](#a_record_limit).
+
+  - `a_record_limit` - Limit the number of resource
+    records contained in the answer section of a A, AAAA or ANY DNS response (both
+    TCP and UDP). When answering a question, Consul will use the complete list of
+    matching hosts, shuffle the list randomly, and then limit the number of answers
+    to `a_record_limit` (default: no limit). This limit does not apply to SRV records.
+
+    In environments where [RFC 3484 Section 6](https://tools.ietf.org/html/rfc3484#section-6) Rule 9
+    is implemented and enforced (i.e. DNS answers are always sorted and
+    therefore never random), clients may need to set this value to `1` to
+    preserve the expected randomized distribution behavior (note:
+    [RFC 3484](https://tools.ietf.org/html/rfc3484) has been obsoleted by
+    [RFC 6724](https://tools.ietf.org/html/rfc6724) and as a result it should
+    be increasingly uncommon to need to change this value with modern
+    resolvers).
+
+  - `enable_additional_node_meta_txt` - When set to true, Consul
+    will add TXT records for Node metadata into the Additional section of the DNS responses for several query types such as SRV queries. When set to false those records are not emitted. This does not impact the behavior of those same TXT records when they would be added to the Answer section of the response like when querying with type TXT or ANY. This defaults to true.
+
+  - `soa` Allow to tune the setting set up in SOA. Non specified
+    values fallback to their default values, all values are integers and expressed
+    as seconds.
+
+    The following settings are available:
+
+    - `expire` ((#soa_expire)) - Configure SOA Expire duration in seconds,
+      default value is 86400, ie: 24 hours.
+
+    - `min_ttl` ((#soa_min_ttl)) - Configure SOA DNS minimum TTL. As explained
+      in [RFC-2308](https://tools.ietf.org/html/rfc2308) this also controls negative
+      cache TTL in most implementations. Default value is 0, ie: no minimum delay
+      or negative TTL.
+
+    - `refresh` ((#soa_refresh)) - Configure SOA Refresh duration in seconds,
+      default value is `3600`, ie: 1 hour.
+
+    - `retry` ((#soa_retry)) - Configures the Retry duration expressed
+      in seconds, default value is 600, ie: 10 minutes.
+
+  - `use_cache` ((#dns_use_cache)) - When set to true, DNS resolution will
+    use the agent cache described in [agent caching](/consul/api-docs/features/caching).
+    This setting affects all service and prepared queries DNS requests. Implies [`allow_stale`](#allow_stale)
+
+  - `cache_max_age` ((#dns_cache_max_age)) - When [use_cache](#dns_use_cache)
+    is enabled, the agent will attempt to re-fetch the result from the servers if
+    the cached value is older than this duration. See: [agent caching](/consul/api-docs/features/caching).
+
+    **Note** that unlike the `max-age` HTTP header, a value of 0 for this field is
+    equivalent to "no max age". To get a fresh value from the cache use a very small value
+    of `1ns` instead of 0.
+
+  - `prefer_namespace` ((#dns_prefer_namespace)) <EnterpriseAlert inline /> **Deprecated in Consul 1.11.
+    Use the [canonical DNS format for enterprise service lookups](/consul/docs/services/discovery/dns-static-lookups#service-lookups-for-consul-enterprise) instead.** -
+    When set to `true`, in a DNS query for a service, a single label between the domain
+    and the `service` label is treated as a namespace name instead of a datacenter.
+    When set to `false`, the default, the behavior is the same as non-Enterprise
+    versions and treats the single label as the datacenter.
+
+- `domain` ((#\_domain)) - By default, Consul responds to DNS queries in
+  the `consul.` domain. This flag can be used to change that domain. All queries
+  in this domain are assumed to be handled by Consul and will not be recursively
+  resolved.
+
+- `recursors` ((#\_recursors)) - Provides addresses of upstream DNS
+servers that are used to recursively resolve queries if they are not inside the
+service domain for Consul. For example, a node can use Consul directly as a DNS
+server, and if the record is outside of the "consul." domain, the query will be
+resolved upstream. As of Consul 1.0.1 recursors can be provided as IP addresses
+or as go-sockaddr templates. IP addresses are resolved in order, and duplicates
+are ignored.

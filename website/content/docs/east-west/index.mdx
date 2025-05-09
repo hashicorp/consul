@@ -1,0 +1,45 @@
+---
+layout: docs
+page_title: Link service network east/west
+description: >-
+  This topic provides an overview of linking segments of your service mesh in an east/west direction. You can extend your service mesh across regions, runtimes, and cloud providers with cluster peering or WAN federation.
+---
+
+# Expand service network east/west
+
+This topic provides an overview of the strategies and processes for linking defined segments of your service mesh to extend east/west operations across cloud regions, runtimes, and platforms. Linking network segments into an extended service mesh enables advanced strategies for deploying and monitoring service operations in your network.
+
+For more information about how to divide your network, including the difference between deployment strategies enabled by methods such as WAN federation and cluster peering, refer to [manage multi-tenancy](/consul/docs/multi-tenant).
+
+## Introduction
+
+Consul supports two general strategies for extending east/west service mesh traffic across your network:
+
+- Cluster peering
+- Wide Area Network (WAN) federation
+
+Consul community edition supports basic cluster peering and federation scenarios. Implementing advanced scenarios such as federated network areas and cluster peering between multiple admin partitions in datacenters require Consul Enterprise. Refer to [Consul Enterprise](/consul/docs/enterprise) for more information.
+
+## Cluster peering
+
+@include 'text/descriptions/cluster-peering.mdx'
+
+## WAN federation
+
+@include 'text/descriptions/wan-federation.mdx'
+
+## Federated network areas
+
+@include 'text/descriptions/network-area.mdx'
+
+## Secure communication with mesh gateways
+
+@include 'text/descriptions/mesh-gateway.mdx'
+
+## Guidance
+
+@include 'text/guidance/east-west.mdx'
+
+## Constraints, limitations, and troubleshooting
+
+@include 'text/limitations/east-west.mdx'

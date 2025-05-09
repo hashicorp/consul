@@ -1,0 +1,86 @@
+---
+layout: docs
+page_title: Enable service mesh
+description: >-
+    Learn how to enable and configure Consul's service mesh capabilities in agent configurations.
+---
+
+# Enable service mesh
+
+This page describes the process to enable Consul's service mesh features.
+
+For more information about configurable options in the service mesh and the process to full bootstrap Consul's service mesh, refer to [Connect services](/consul/docs/connect).
+
+## Enable mesh in server agent configuration
+
+Consul's service mesh features are not enabled by default when running Consul on virtual machines. To enable the service mesh, you must change the configuration of your Consul servers. You do not need to change client agent configurations in order to use the service mesh.
+
+To enable Consul's service mesh, set `connect.enabled` to `true` in a new or existing [agent configuration file](/consul/docs/reference/agent).
+
+Service mesh is enabled by default on Kubernetes deployments.
+
+<CodeTabs>
+
+<CodeBlockConfig heading="HCL">
+
+```hcl
+connect {
+  enabled = true
+}
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig heading="JSON">
+
+```json
+{
+  "connect": {
+    "enabled": true
+  }
+}
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig heading="YAML">
+
+```yaml
+server:
+  connect:
+    enabled: true
+```
+
+</CodeBlockConfig>
+
+</CodeTabs>
+
+## Apply configuration to Consul
+
+After you update your cluster's configuration, the Consul agent must restart before the service mesh is enabled.
+
+On VM deployments, restart each server in the cluster one at a time in order to maintain the cluster's availability.
+
+On Kubernetes deployments, you can run the following command to apply the configuration to your deployment: 
+
+```shell-session
+$ kubectl apply -f values.yaml
+```
+
+If you use the Consul on Kubernetes CLI, you can run the following command instead:
+
+```shell-session
+$ consul-k8s upgrade -config-file values.yaml
+```
+
+For information about the `consul-k8s` CLI and how to install it, refer to [Install Consul on Kubernetes from Consul K8s CLI](/consul/docs/reference/cli/consul-k8s)
+
+## Next steps
+
+After you enable Consul's service mesh, enable the built-in certificate authority to ensure secure service-to-service communication and configure defaults settings for the Envoy proxies in the service mesh. You can also enable Consul's Access Control List (ACL) system to provide additional security.
+
+Refer to the following topics for more information:
+
+- [Bootstrap Consul's built-in CA](/consul/docs/secure-mesh/certificate/bootstrap)
+- [Configure proxy defaults](/consul/docs/connect/proxy)
+- [Enable Consul's ACL system](/consul/docs/secure/acl)

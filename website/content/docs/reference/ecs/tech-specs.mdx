@@ -1,0 +1,58 @@
+---
+layout: docs
+page_title: Technical specifications for Consul on AWS Elastic Container Service (ECS)
+description: >-
+  Consul has requirements to install and run on Amazon Web Services ECS. Learn about Consul's requirements for Fargate and EC2, including network mode and subnet information, as well as server, routing, and ACL controller considerations.
+---
+
+# Technical specifications for Consul on ECS
+
+This topic describes the supported runtimes and environments for using Consul service mesh for your ECS workloads.
+
+For requirements associated with using the Terraform `mesh-task` module to deploy Consul service mesh, refer [Deploy Consul with the Terraform module](/consul/docs/register/service/ecs/). For requirements associated with manually deploying Consul service mesh to your ECS cluster, refer [Deploy Consul manually](/consul/docs/register/service/ecs/manual). 
+
+## Supported environments, runtimes, and capabilities
+
+Consul on ECS supports the following environments, runtimes, and capabilities:
+
+- **Launch Types:** Fargate and EC2
+- **Network Modes:** `awsvpc`
+- **Subnets:** Private and public subnets. Tasks must have network access to Amazon ECR or other public container registries to pull images.
+- **Consul servers:** You can use your own Consul servers running on virtual machines or [use HCP Consul Dedicated to host the servers for you](/hcp/docs/consul/dedicated).
+- **ECS controller:** The ECS controller assists with reconciling state back to Consul and facilitates Consul security features.
+- **Admin partitions:** <EnterpriseAlert inline/> Enable ACLs and configure the ECS controller to use admin partitions. You must deploy one controller for each admin partition. 
+- **Namespaces:** <EnterpriseAlert inline/> Enable ACLs and configure the ECS controller to use namespaces. 
+- **Dataplane containers:** To manage proxies using Consul dataplane, you must use the Terraform `mesh-task` module to install Consul service mesh.
+- **Transparent proxy:** Consul on ECS 0.8.x supports transparent proxy for ECS on EC2 tasks. Transparent proxy in ECS requires the host to have `NET_ADMIN` capabilities, which ECS Fargate does not currently support. You can enable transparent proxy with the `enable_transparent_proxy` parameter in the `mesh-task` Terraform module or through `ecs_config_json`. The `enable_transparent_proxy` parameter has precedence over `ecs_config_json`.
+
+  Refer to the [`terraform-aws-consul-ecs`](https://github.com/hashicorp/terraform-aws-consul-ecs/tree/main/examples/dev-server-ec2-transparent-proxy) for an example.
+- **API Gateway:** Consul on ECS 0.8.x supports API gateway. Refer to the [`terraform-aws-consul-ecs`](https://github.com/hashicorp/terraform-aws-consul-ecs/tree/main/examples/api-gateway) for an example.
+
+  Refer to the [Consul ECS GitHub repository](https://github.com/hashicorp/terraform-aws-consul-ecs/tree/main/examples/dev-server-ec2-transparent-proxy) for examples of how to use transparent proxy with Consul on ECS.
+
+## Resource usage
+
+We used the following procedure to measure resource usage:
+
+- Executed performance tests while deploying clusters of various sizes. We
+  ensured that deployment conditions stressed Consul on ESC components.
+- After each performance test session, we recorded resource usage for each
+  component to determine worst-case scenario resource usage in a production
+  environment.
+- We used Fargate's minimum allowed CPU (256 shares) and memory settings (512
+  MB) on ECS during performance testing to demonstrate that Consul on ECS along
+  with application containers can run on the smallest ECS tasks.
+
+The following table describes the maximum resource usage we observed for each container under these testing conditions:
+
+| Container      | CPU | Memory |
+| -------------- | --- | ------ |
+| ECS controller | 5%  | 43 MB  |
+| Control plane  | 6%  | 35 MB  |
+| Dataplane      | 10% | 87 MB  |
+
+The containers added by Consul on ECS consume resources well below the minimum CPU and
+memory limits for an ECS task. Use the `memory` and `cpu` settings for the task definition
+if additional resources are necessary for your application task.
+
+Refer to [Architecture](/consul/docs/reference/architecture/ecs) for details about each component.

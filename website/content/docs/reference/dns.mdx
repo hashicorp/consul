@@ -1,0 +1,33 @@
+---
+layout: docs
+page_title: Consul DNS reference
+description: Find information about Consul’s Domain Name System (DNS). Consul DNS uses a custom syntax to make your services discoverable by Consul regardless of where you deploy them.
+---
+
+# Consul DNS reference
+
+This page provides reference information for using Consul’s Domain Name System (DNS). You can use the Consul DNS to format network addresses, lookup information about specific service instances, and configure failover strategies.
+
+If you run Consul on Kubernetes, you can use KubeDNS instead of Consul DNS. Refer to [onboard services in transparent proxy mode](/register/external/permissive-mtls) for more information.
+
+## Consul DNS syntax
+
+The following table lists elements of a Consul DNS address, how to format the element, and their default values. Elements are listed sequentially according to their order in a properly configured DNS address. Unless explicitly modified, all Consul DNS requests address the `.consul` domain by default.
+
+| Network element              | Consul DNS syntax           | Default value                       | Requires Enterprise License |
+| :--------------------------- | :-------------------------- | :---------------------------------- | :-------------------------: |
+| Service Record (SRV)         | `_<service>._<protocol>`    | None                                | &#10060;                    |
+| Custom tag                   | `<tag>.`                    | None                                | &#10060;                    |
+| Service                      | `<service>.service`         | None                                | &#10060;                    |
+| Service mesh enabled service | `<service>.connect`         | None                                | &#9989;                     |
+| Virtual service              | `<service>.virtual`         | None                                | &#9989;                     |
+| Ingress-enabled service      | `<service>.ingress`         | None                                | &#9989;                     |
+| Node                         | `<node>.node`               | Node where the DNS query runs       | &#10060;                    |
+| Namespace                    | `<namespace>.ns`            | `default`                           | &#9989;                     |
+| Admin partition              | `<partition>.ap`            | `default`                           | &#9989;                     |
+| Prepared query               | `<query>.query`             | None                                | &#10060;                    |
+| SRV prepared query           | `<query>._<protocol>.query` | None                                | &#10060;                    |
+| Datacenter                   | `<datacenter>.dc`           | Datacenter where the DNS query runs | &#10060;                    |
+| Cluster Peer                 | `<cluster-peer>.peer`       | None                                | &#10060;                    |
+| Sameness group               | `<sameness-group>.sg`       | None                                | &#9989;                     |
+| Domain                       | `.<consul>`                 | `consul`                            | &#10060;                    |

@@ -1,0 +1,66 @@
+---
+layout: docs
+page_title: Link service network east/west on virtual machines (VMs)
+description: >-
+  This topic provides an overview of linking segments of your service mesh in an east/west direction on virtual machines (VMs). You can extend your service mesh across regions, runtimes, and cloud providers with cluster peering or WAN federation.
+---
+
+# Link service network east/west on virtual machines (VMs)
+
+This topic provides an overview of the strategies and processes for linking defined segments of your service mesh to extend east/west operations across cloud regions, runtimes, and platforms when running the Consul binary on VMs. Linking network segments into an extended service mesh enables advanced strategies for deploying and monitoring service operations in your network.
+
+## Introduction
+
+Consul supports two general strategies for extending east/west service mesh traffic across your network:
+
+- Cluster peering
+- Wide Area Network (WAN) federation
+
+Consul community edition supports basic cluster peering and federation scenarios. Implementing advanced scenarios such as federated network areas and cluster peering between multiple admin partitions in datacenters require Consul Enterprise. Refer to [Consul Enterprise](/consul/docs/enterprise) for more information.
+
+## Cluster peering
+
+@include 'text/descriptions/cluster-peering.mdx'
+
+Refer to the following pages for guidance about using cluster peering with Consul on VMs:
+
+- [Establish cluster peering connections on VMs](/consul/docs/east-west/cluster-peering/establish/vm)
+- [Manage cluster peering connections on VMs](/consul/docs/east-west/cluster-peering/manage/vm)
+
+## WAN federation
+
+@include 'text/descriptions/wan-federation.mdx'
+
+Refer to the following pages for guidance about using WAN federation with Consul on VMs:
+
+- [WAN federation between VMs](/consul/docs/east-west/wan-federation/create)
+- [WAN federation between virtual machines and Kubernetes clusters](/consul/docs/east-west/wan-federation/k8s-vm)
+
+## Federated network areas
+
+@include 'text/descriptions/network-area.mdx'
+
+## Secure communication with mesh gateways
+
+@include 'text/descriptions/mesh-gateway.mdx'
+
+Refer to the following pages for guidance about using mesh gateways with Consul:
+
+- [WAN federation with mesh gateways](/consul/docs/east-west/mesh-gateway/federation)
+- [Cluster peering with mesh gateways](/consul/docs/east-west/mesh-gateway/cluster-peer)
+
+## Reference documentation
+
+For reference material related to the processes for extending your service mesh by linking segments of your network, refer to the following pages:
+
+- [CLI reference: `consul join` command](/consul/commands/join)
+- [CLI reference: `consul operator area` command](/consul/commands/operator/area)
+- [CLI reference: `peering` command](/consul/commands/peering)
+- [HTTP API reference: `/operator/area` endpoint](/consul/api-docs/operator/area)
+- [HTTP API reference: `/peering` endpoint](/consul/api-docs/peering)
+- [Mesh gateway configuration reference](/consul/docs/reference/proxy/connect-proxy)
+- [Proxy defaults configuration reference](/consul/docs/reference/config-entry/proxy-defaults)
+
+## Constraints, limitations, and troubleshooting
+
+@include 'text/limitations/east-west.mdx'

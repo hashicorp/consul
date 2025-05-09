@@ -1,0 +1,257 @@
+---
+layout: docs
+page_title: Consul error messages
+description: >-
+  Troubleshoot issues based on the error message. Common errors result from failed actions, timeouts, multiple entries, bad and expired certificates, invalid characters, syntax parsing, malformed responses, and exceeded deadlines.
+---
+
+# Consul error messages
+
+This topic provides information about potential error messages associated with Consul. If you receive an error message that does not appear in this section, refer to the following resources:
+
+- [Consul on Kubernetes error messages](/consul/docs/error-messages/k8s)
+- [API Gateway error messages](/consul/docs/error-messages/api-gateway)
+- [Consul-Terraform-Sync error messages](/consul/docs/error-messages/cts)
+- [Consul Discuss forum](https://discuss.hashicorp.com/)
+
+## Configuration file errors
+
+The following errors are related to misconfigured files.
+
+### Multiple network interfaces
+
+<CodeBlockConfig hideClipboard>
+
+```log
+Multiple private IPv4 addresses found. Please configure one with 'bind' and/or 'advertise'.
+```
+
+</CodeBlockConfig>
+
+Your server has multiple active network interfaces. Consul needs to know which interface to use for local LAN communications. Add the [`bind`][bind] option to your configuration.
+
+<Tip>
+
+If your server does not have a static IP address, you can use a [go-sockaddr template][go-sockaddr] as the argument to the `bind` option. For example: `"bind_addr": "{{GetInterfaceIP \"eth0\"}}"`.
+
+</Tip>
+
+### Configuration syntax errors
+
+If Consul returns the following errors, there is a syntax error in your configuration file.
+
+```shell-session
+$ consul agent -server -config-file server.json
+==> Error parsing server.json: invalid character '`' looking for beginning of value
+
+## Other examples
+==> Error parsing config.hcl: At 1:12: illegal char
+==> Error parsing config.hcl: At 1:32: key 'foo' expected start of object ('{') or assignment ('=')
+==> Error parsing server.json: invalid character '`' looking for beginning of value
+```
+
+If the error message doesn't identify the exact location in the file where the problem is, try using [jq] to find it. For example:
+
+```shell-session
+$ jq . server.json
+parse error: Invalid numeric literal at line 3, column 29
+```
+
+## Invalid host name
+
+If Consul returns the following errors, you have specified an invalid host name.
+
+<CodeBlockConfig hideClipboard>
+
+```log
+Node name "consul_client.internal" will not be discoverable via DNS due to invalid characters.
+```
+
+</CodeBlockConfig>
+
+Add the [`node name`][node_name] option to your agent configuration and provide a valid DNS name.
+
+## I/O timeouts
+
+If Consul returns the following errors, Consul is experience I/O timeouts.
+
+<CodeBlockConfig hideClipboard>
+
+```log
+Failed to join 10.0.0.99: dial tcp 10.0.0.99:8301: i/o timeout
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig hideClipboard>
+
+```log
+Failed to sync remote state: No cluster leader
+```
+
+</CodeBlockConfig>
+
+If the Consul client and server are on the same LAN, then most likely, a firewall is blocking connections to the Consul server.
+
+If they are not on the same LAN, check the [`retry_join`][retry_join] settings in the Consul client configuration. The client should be configured to join a cluster inside its local network.
+
+## Deadline exceeded
+
+If Consul returns the following errors, there may be a general performance problem on the Consul server.
+
+<CodeBlockConfig hideClipboard>
+
+```log
+Error getting server health from "XXX": context deadline exceeded
+```
+
+</CodeBlockConfig>
+
+Make sure you are monitoring Consul telemetry and system metrics according to our [monitoring guide][monitoring]. Increase the CPU or memory allocation to the server if needed. Check the performance of the network between Consul nodes.
+
+## Too many open files
+
+If Consul returns the following errors on a busy cluster, the operating system may not provide enough file descriptors to the Consul process.
+
+<CodeBlockConfig hideClipboard>
+
+```log
+Error accepting TCP connection: accept tcp [::]:8301: too many open files in system
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig hideClipboard>
+
+```log
+Get http://localhost:8500/: dial tcp 127.0.0.1:31643: socket: too many open files
+```
+
+</CodeBlockConfig>
+
+You need to increase the limit for the Consul user and maybe the system-wide limit. Refer to [this guide][files] for instructions to do so on Linux. Alternatively, if you are starting Consul from `systemd`, you could add `LimitNOFILE=65536` to the unit file for Consul. Refer to the [sample systemd file][systemd].
+
+## Snapshot close error
+
+Our RPC protocol requires support for a TCP half-close in order to signal the other side that they are done reading the stream, since we don't know the size in advance. This saves us from having to buffer just to calculate the size.
+
+If a host does not properly implement half-close, you may see an error message `[ERR] consul: Failed to close snapshot: write tcp <source>-><destination>: write: broken pipe` when saving snapshots. This should not affect saving and restoring snapshots.
+
+This has been a [known issue](https://github.com/docker/libnetwork/issues/1204) in Docker, but may manifest in other environments as well.
+
+## ACL not found
+
+If Consul returns the following error, this indicates that you have ACL enabled in your cluster but you aren't passing a valid token.
+
+<CodeBlockConfig hideClipboard>
+
+```log
+RPC error making call: rpc error making call: ACL not found
+```
+
+</CodeBlockConfig>
+
+Make sure that when creating your tokens that they have the correct permissions set. In addition, you would want to make sure that an agent token is provided on each call.
+
+## TLS and certificates
+
+The follow errors are related to TLS and certificate issues.
+
+### Incorrect certificate or certificate name
+
+If Consul returns the following error, if you have provided Consul with invalid certificates.
+
+<CodeBlockConfig hideClipboard>
+
+```log
+Remote error: tls: bad certificate
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig hideClipboard>
+
+```log
+X509: certificate signed by unknown authority
+```
+
+</CodeBlockConfig>
+
+Make sure that your Consul clients and servers are using the correct certificates, and that they've been signed by the same CA. Refer to the [Enable TLS encryption with built-in certificate authority][certificates] for step-by-step instructions.
+
+If you generate your own certificates, make sure the server certificates include the special name `server.dc1.consul` in the Subject Alternative Name (SAN) field. (If you change the values of `datacenter` or `domain` in your configuration, update the SAN accordingly.)
+
+### HTTP instead of HTTPS
+
+If Consul returns the following error, you are attempting to connect to a Consul agent with HTTP on a port that has been configured for HTTPS.
+
+<CodeBlockConfig hideClipboard>
+
+```log
+Error querying agent: malformed HTTP response
+```
+
+</CodeBlockConfig>
+<CodeBlockConfig hideClipboard>
+
+```log
+Net/http: HTTP/1.x transport connection broken: malformed HTTP response "\x15\x03\x01\x00\x02\x02"
+```
+
+</CodeBlockConfig>
+
+If you are using the Consul CLI, make sure you are specifying `https` in the `-http-addr` flag or the `CONSUL_HTTP_ADDR` environment variable.
+
+If you are interacting with the API, change the URI scheme to `https`.
+
+## License warnings
+
+If Consul returns the following error, you have installed Consul Enterprise and your license is about to expire.
+
+<CodeBlockConfig hideClipboard>
+
+```log
+License: expiration time: YYYY-MM-DD HH:MM:SS -0500 EST, time left: 29m0s
+```
+
+</CodeBlockConfig>
+
+If you are an Enterprise customer, [provide a license key][license] to Consul before it shuts down. Otherwise, install the Consul Community edition binary instead.
+
+Enterprise binaries are followed by a `+ent` suffix on the [download site][releases].
+
+## Rate limit reached on the server
+
+You may receive a `RESOURCE_EXHAUSTED` error from the Consul server if the maximum number of read or write requests per second have been reached. Refer to [Set a global limit on traffic rates](/consul/docs/manage/rate-limit/global) for additional information. You can retry another server unless the number of retries is exhausted. If the number of retries is exhausted, you should implement an exponential backoff.
+
+The `RESOURCE_EXHAUSTED` RPC response is translated into a `429 Too Many Requests` error code on the HTTP interface.
+
+The server may respond as `UNAVAILABLE` if it is the leader node and the global write request rate limit is reached. The solution is to apply an exponential backoff until the leader has capacity to serve those requests.
+
+The `UNAVAILABLE` RPC response is translated into a `503 Service Unavailable` error code on the  RPC requests sent through HTTP interface.
+
+## Runtime config
+
+ Consul outputs the warning `Static Runtime config has changed and need a manual config reload to be applied` when any of the following configurations are changed while [-auto-reload-config](/consul/commands/agent#_auto_reload_config) is enabled.
+
+  - [encrypt_verify_incoming](/consul/docs/reference/agent/configuration-file/encryption#encrypt_verify_incoming)
+  - [verify_incoming](/consul/docs/reference/agent/configuration-file/tls#verify_incoming)
+  - [verify_incoming_rpc](/consul/docs/reference/agent/configuration-file/tls#verify_incoming_rpc)
+  - [verify_incoming_https](/consul/docs/reference/agent/configuration-file/tls#verify_incoming_https)
+  - [verify_outgoing](/consul/docs/reference/agent/configuration-file/tls#verify_outgoing)
+  - [verify_server_hostname](/consul/docs/reference/agent/configuration-file/tls#verify_server_hostname)
+  - [ca_file](/consul/docs/reference/agent/configuration-file/tls#ca_file)
+  - [ca_path](/consul/docs/reference/agent/configuration-file/tls#ca_path)
+
+To resolve this error, you must manually issue the `consul reload` command or send a `SIGHUP` to the Consul process to reload the new values.
+
+[node_name]: /consul/docs/reference/agent/configuration-file/node#node_name
+[retry_join]: /consul/commands/agent#retry-join
+[license]: /consul/commands/license
+[releases]: https://releases.hashicorp.com/consul/
+[files]: https://easyengine.io/tutorials/linux/increase-open-files-limit
+[certificates]: /consul/docs/secure/encryption/tls/enable/new/builtin
+[systemd]: /consul/tutorials/production-deploy/deployment-guide#configure-systemd
+[monitoring]: /consul/tutorials/day-2-operations/monitor-datacenter-health
+[bind]: /consul/commands/agent#_bind
+[jq]: https://stedolan.github.io/jq/

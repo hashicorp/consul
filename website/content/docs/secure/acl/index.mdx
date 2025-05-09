@@ -1,0 +1,93 @@
+---
+layout: docs
+page_title: Access control list (ACL) overview
+description: >-
+  Consul's ACL system secures communication and controls access to the API, CLI, and UI. Learn about ACL components and how they interact to authenticate requests and authorize access for your network.
+---
+
+# Access control list (ACL) overview
+
+This topic describes core concepts associated with the optional access control list (ACL) system shipped with Consul. ACLs authenticate requests and authorize access to resources. They also control access to the Consul UI, API, and CLI, as well as secure service-to-service and agent-to-agent communication.
+
+Refer to the [ACL API reference](/consul/api-docs/acl) and [ACL CLI reference](/consul/commands/acl) for more usage information.
+
+## Workflow overview
+
+There are two workflows for administrating and using ACLs, depending on whether you are the _ACL administrator_ or the _ACL consumer_.
+
+The ACL administrator configures and manages the ACL system. This role includes creating all of the artifacts required for ACLs, such as rules and policies, generating the ACL tokens, and distributing the tokens. The ACL consumers are users and services that use the token to authenticate to Consul.
+
+The ACL administrator needs to complete the following steps to manage the ACLs system:
+
+1. Create a [policy](#policies) by specifying one or more authentication rules.
+1. Create a [token](#tokens) and link it one or more policies. The following diagram illustrates the relationship between rules, policies, and tokens:
+
+  ![ACL system component relationships](/img/acl-token-policy-rule-relationship.png)
+
+  For complex requirements, you can link additional artifacts to tokens, such as [templated policies](#templated-policies), [service identities](#service-identities), [node identities](#node-identities), and [roles](#roles).
+
+1. Distribute tokens to end users so they can incorporate the tokens into their services.
+
+ACL consumers must present the token when making requests through the CLI or API, when logging into the UI. Consul evaluates the token to determine if the request has permission to interact with the requested resource.
+
+Refer to the [Troubleshoot](#troubleshooting) page if you do not observe the expected behavior.
+
+## Tokens
+
+ACL tokens are the core method of authentication in Consul. The ACL token contains a value in its `SecretID` field that identifies users and services when making the request. If ACLs are enabled in Consul, you must include the ACL token to authenticate any requests you make. The ACL administrator can also use the token's `AccessorID` for audit logging purposes.
+
+Refer to the following topics for details about tokens:
+
+- [Tokens](/consul/docs/secure/acl/token)
+- [ACL token command line](/consul/commands/acl/token)
+- [ACL tokens API](/consul/api-docs/acl/tokens)
+
+## Policies
+
+An ACL policy is a set of rules that grant or deny access to resources in the network. The ACL administrator creates policies and links them to tokens. You can assign multiple policies to an ACL token. You also can configure policies to grant tokens different scopes.
+
+Refer to the following topics for details about policies:
+
+- [Policies](/consul/docs/secure/acl/policy)
+- [ACL policy command line](/consul/commands/acl/policy)
+- [ACL policy API](/consul/api-docs/acl/policies)
+
+## Roles
+
+An ACL role is a collection of policies that your ACL administrator can link to a token. Roles let you decouple individual policies from the tokens. When you link tokens to roles, you can update the policies attached to the role without needing to redistribute new tokens to users. Roles can simplify the ACL authentication workflow because you do not need to create unique policies and tokens for each requester.
+
+Refer to the [Roles](/consul/docs/secure/acl/role) page for more information.
+
+## Templated policies
+
+Templated policies are configuration blocks that you can add to token and role configurations. Consul uses them to generate a policy. Consul links the generated policy to the role or token, which provides the required access to a particular resource.
+
+You can use them during the authorization process to automatically generate a policy for common use cases, rather than creating multiple identical policies.
+
+Refer to the following topics for details about templated policies:
+
+- [API documentation for templated policies](/consul/api-docs/acl/templated-policies)
+- [API documentation for roles](/consul/api-docs/acl/roles#sample-payload)
+- [API documentation for tokens](/consul/api-docs/acl/tokens#sample-payload)
+
+## Service identities
+
+Service identities are configuration blocks that you can add to role configurations or specify when linking tokens to policies. You can use them during the authorization process to automatically generate a policy for specific services. The generated policy is linked to the role or token, allowing the services to be discovered and to discover other healthy service instances.
+
+Service identities let you quickly construct policies for services, rather than creating identical policies for each service.
+
+Refer to the following topics for details about service identities:
+
+- [Service Identities](/consul/docs/reference/acl/rule#service-identities)
+- [API documentation for roles](/consul/api-docs/acl/roles#sample-payload)
+
+## Node identities
+
+Node identities are configuration blocks that you can add to role configurations or specify when linking tokens to policies. You can use them during the authorization process to automatically generate a policy for specific nodes. When you configure the agent, you can specify the token linked to the policy with [`acl_tokens_agent`](/consul/docs/reference/agent/configuration-file/acl#acl_tokens_agent).
+
+Node identities let you quickly construct policies for multiple nodes, rather than creating identical polices for each individual node.
+
+Refer to the following topics for details about node identities:
+
+- [Node Identities](/consul/docs/reference/acl/rule#node-identities)
+- [API documentation for roles](/consul/api-docs/acl/roles#sample-payload)

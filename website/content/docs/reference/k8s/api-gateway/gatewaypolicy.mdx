@@ -1,0 +1,259 @@
+---
+layout: docs
+page_title: GatewayPolicy resource configuration reference
+description: Learn about the configuration options for the GatewayPolicy configuration resource. GatewayPolicy resources define API gateway polcies for Consul service mesh on Kubernetes.
+---
+
+# GatewayPolicy resource configuration reference
+
+This topic provides reference information for the API gateway policy resource. These resources define policies for listeners on API gateways deployed to Kubernetes-orchestrated networks.
+
+## Configuration model
+
+The following list outlines field hierarchy, data types, and requirements in a gateway policy resource. Click on a property name to view additional details, including default values.
+
+- [`apiVersion`](#apiversion): string | required | must be set to `consul.hashicorp.com/v1alpha1`
+- [`kind`](#kind): string | required | must be set to `GatewayPolicy`
+- [`metadata`](#metadata): map | required
+   - [`name`](#metadata-name): string | required 
+   - [`namespace`](#metadata-namespace): string  | `default`
+- [`spec`](#spec): map | required
+   - [`targetRef`](#spec-targetref): map | required
+      - [`namespace`](#spec-targetref): string | `default` 
+      - [`name`](#spec-targetref): string | required 
+      - [`kind`](#spec-targetref): string | required | must be set to `Gateway`
+      - [`group`](#spec-targetref): string | required 
+      - [`sectionName`](#spec-targetref): string 
+   - [`override`](#spec-override): map | required 
+      - [`jwt`](#spec-override-jwt): map | required 
+         - [`providers`](#spec-override-providers): list | required 
+            - [`name`](#spec-override-providers): string | required 
+            - [`verifyClaims`](#spec-override-providers): map | required 
+               - [`path`](#spec-override-providers): list of strings | required 
+               - [`value`](#spec-override-providers): string | required 
+   - [`default`](#spec-default): map | required 
+      - [`jwt`](#spec-default-jwt): map | required 
+         - [`providers`](#spec-default-providers): list | required 
+            - [`name`](#spec-default-providers): string | required 
+            - [`verifyClaims`](#spec-default-providers): map | required 
+               - [`path`](#spec-default-providers): list of strings | required 
+               - [`value`](#spec-default-providers): string | required 
+
+## Complete configuration
+
+When every field is defined, a gateway policy has the following form: 
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: GatewayPolicy
+metadata:
+   name: <name for the policy>
+   namespace: <Consul namespace the policy applies to>
+spec:
+  targetRef:
+    name: gateway
+    kind: Gateway
+    group: gateway.networking.kuberenetes.io
+    sectionName: <name of a specific listener the policy applies>
+  override:
+    jwt:
+      providers:
+      - name: "<name of the provider all listeners verify against>"
+        verifyClaims:
+        - path:
+          - "aud"
+          value: "api.apps.organization.com"
+  default:
+    jwt:
+      providers:
+      - name: "<name of the JWT provider to verify against>"
+        verifyClaims:
+        - path:
+          - "roles"
+          - "perm"
+          value: "user"
+```
+
+## Specification
+
+This section provides details about the fields you can configure in the gateway policy resource.
+
+### `apiVersion`
+
+Specifies the version of the Consul API for integrating with Kubernetes. The value must be `consul.hashicorp.com/v1alpha1`.
+
+#### Values
+
+- Default: None
+- This field is required.
+- String value that must be set to `consul.hashicorp.com/v1alpha1`.
+
+### `kind`
+
+Specifies the type of configuration entry to implement. Must be set to `GatewayPolicy`.
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: String value that must be set to `GatewayPolicy`.
+
+### `metadata`
+
+Map that contains an arbitrary name for the resource and the namespace it applies to.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `metadata.name`
+
+Specifies a name for the resource. The name is metadata that you can use to reference the resource when performing Consul operations, such as applying the resource to a specific cluster. 
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: String
+
+### `metadata.namespace` 
+
+Specifies the namespace that the configuration applies to. Refer to [namespaces](/consul/docs/multi-tenant/namespace) for more information.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec`
+
+Map that contains the details about the gateway policy. The `apiVersion`, `kind`, and `metadata` fields are siblings of the `spec` field. All other configurations are children.
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: Map
+
+### `targetRef`
+
+Map that contains references to the gateway that the policy applies to. 
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: Map
+
+The following table describes the members of the `targetRef` map:
+
+| Parameter | Description | Data type | Default |
+| ---       | ---         | ---       | ---     |
+| `namespace` | Specifies the namespace that the target reference is a member of. | String | `default` |
+| `name` | Specifies the name of the API gateway that the policy attaches to. | String | None |
+| `kind` | Specifies the type of resource that the policy attaches to. Must be set to `Gateway`. | String | None |
+| `group` | Specifies the resource group. Must be set to `gateway.networking.kuberenetes.io`. | String | None |
+| `sectionName` | Specifies a part of the gateway that the policy applies to. | String | None |
+
+### `spec.override`
+
+Map that contains configurations to apply to the listener when the policy is attached to the gateway. The override settings have precedence over the [`spec.default` configurations](#spec-default).
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `spec.override.jwt`
+
+Map that contains JWT verification configurations to apply to listeners when the policy is attached to the gateway. The override settings have precedence over the [`default` configurations](#listeners-default) as well as any route-specific JWT configurations defined in [`RouteAuthFilter` configurations](/consul/docs/reference/k8s/api-gateway/routeauthfilter).
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `spec.override.jwt.providers`
+
+Specifies a list of JWT provider configurations to apply to listeners when the policy is attached to the gateway listener. A provider configuration contains the name of the provider and claims. The override settings have precedence over defaults as well as any listener specific configuration. Refer to [Use JWTs to verify requests to API gateways on Kubernetes](/consul/docs/north-south/api-gateway/secure-traffic/jwt/k8s) for additional information.
+
+#### Values
+
+- Default: None
+- Data type: List of maps
+
+The following table describes the parameters you can specify in a member of the `Providers` list:
+
+| Parameter | Description | Data type | Default |
+| ---       | ---         | ---       | ---     |
+| `name` | Specifies the name of the provider. | String | None |
+| `verifyClaims` | Specifies a list of paths and a value that define the claim. Consul verifies requests that match the claims declared in the listener JWT configuration and allow the request through the gateway. The `VerifyClaims` map specifies the following settings: <ul><li>`path`: Specifies a list of one or more registered or custom claims.</li><li>`value`: Specifies the expected value of the claim.</li></ul>  | Map | None |
+
+### `spec.default`
+
+Map that contains default configurations to apply to listeners when the policy is attached to the gateway. All routes attached to the gateway listener inherit the default configurations. You can specify override configurations that have precedence over default configurations. Refer to [`spec.override`](#spec-override) for details.  
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `spec.default.jwt`
+
+Specifies default JWT configurations to apply to listeners when the policy is attached to the gateway. Specify configurations that have precedence over the defaults in either the [`spec.override.JWT` block](#spec-override-jwt) or in an [`RouteAuthFilter`](/consul/docs/reference/k8s/api-gateway/routeauthfilter) attached to an  HTTP route. Refer to [Use JWTs to verify requests to API gateways](/consul/docs/north-south/api-gateway/secure-traffic/jwt/k8s) for order of precedence and other details about using JWT verification in API gateways.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `spec.default.jwt.providers`
+
+Specifies default JWT provider configurations to apply to the listener when the policy is attached to the gateway. A provider configuration contains the name of the provider and claims. Specify configurations that have precedence over the defaults in either the [`spec.override.JWT.providers` block](#spec-override-jwt) or in an [`RouteAuthFilter`](/consul/docs/reference/k8s/api-gateway/routeauthfilter) attached to an  HTTP route configuration. Refer to [Use JWTs to verify requests to API gateways](/consul/docs/north-south/api-gateway/secure-traffic/jwt/k8s) for order of precedence and other details about using JWT verification in API gateways.
+
+#### Values
+
+- Default: None
+- Data type: List of maps
+
+The following table describes the parameters you can specify in a member of the `Providers` list:
+
+| Parameter | Description | Data type | Default |
+| ---       | ---         | ---       | ---     |
+| `name` | Specifies the name of the provider. | String | None |
+| `verifyClaims` | Specifies a list of paths and a value that define the claim. Consul verifies requests that match the claims declared in the listener JWT configuration and allow the request through the gateway. The `VerifyClaims` map specifies the following settings: <ul><li>`path`: Specifies a list of one or more registered or custom claims.</li><li>`value`: Specifies the expected value of the claim.</li></ul>  | Map | None |
+
+## Example configuration
+
+In the following example, all requests through the gateway must have the `api.apps.organization.com` audience claim. Additionally, requests through the gateway must have a `user` role by default. 
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: GatewayPolicy
+metadata:
+  name: my-policy
+spec:
+  targetRef:
+    name: gateway
+    kind: Gateway
+    group: gateway.networking.kuberenetes.io
+    sectionName: to-server
+  override:
+    jwt:
+      providers:
+      - name: "okta"
+        verifyClaims:
+        - path:
+          - "aud"
+          value: "api.apps.organization.com"
+  default:
+    jwt:
+      providers:
+      - name: "okta"
+        verifyClaims:
+        - path:
+          - "roles"
+          - "perm"
+          value: "user"
+```

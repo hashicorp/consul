@@ -12,7 +12,7 @@ Command: `consul config delete`
 Corresponding HTTP API Endpoint: [\[DELETE\] /v1/config/:kind/:name](/consul/api-docs/config#delete-configuration)
 
 The `config delete` command deletes the configuration entry specified by the
-kind and name. See the [configuration entries docs](/consul/docs/agent/config-entries)
+kind and name. See the [configuration entries docs](/consul/docs/fundamentals/config-entry)
 for more details about configuration entries.
 
 The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
@@ -59,13 +59,13 @@ config entry. This is used in combination with the -cas flag.
 
 #### Enterprise Options
 
-@include 'http_api_namespace_options.mdx'
+@include 'legacy/http_api_namespace_options.mdx'
 
-@include 'cli-http-api-partition-options.mdx'
+@include 'legacy/cli-http-api-partition-options.mdx'
 
 #### API Options
 
-@include 'http_api_options_client.mdx'
+@include 'legacy/http_api_options_client.mdx'
 
 ## Examples
 

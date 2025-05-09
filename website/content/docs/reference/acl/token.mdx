@@ -1,0 +1,29 @@
+---
+layout: docs
+page_title: Access Control List (ACL) token configuration reference
+description: >-
+  Consul documentation provides reference material for all features and options available in Consul.
+---
+
+# ACL token configuration reference
+
+This topic provides reference information for the types of access control list (ACL) rules you can create and how they affect access to datacenter resources. For details on how to create rules and group them into policies, refer to [Policies](/consul/docs/secure/acl/policy).
+
+## Token attributes
+
+The following table is a partial list of attributes that a token may contain.
+Refer to the [API](/consul/api-docs/acl/tokens) or [command line](/consul/commands/acl/token) documentation for all attributes that can be assigned or generated for a token:
+
+| Attribute           | Description                                                                                                                                                                                                                                                | Type      | Default        |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | -------------- |
+| `AccessorID`        | Used for [audit logging](/consul/docs/monitor/log/audit). The accessor ID is also returned in API responses to identify the token without revealing the secret ID.                                                                                  | String    | auto-generated |
+| `SecretID`          | Used to request access to resources, data, and APIs.                                                                                                                                                                                                       | String    | auto-generated |
+| `Partition`         | <EnterpriseAlert inline/> Specifies the name of the admin partition in which the token is valid. Refer to  [Admin Partitions](/consul/docs/multi-tenant/admin-partition) for additional information.                                                              | String    | `default`      |
+| `Namespace`         | <EnterpriseAlert inline/> Specifies the name of the Consul namespace in which the token is valid. Refer to  [Namespaces](/consul/docs/multi-tenant/namespace) for additional information.                                                                         | String    | `default`      |
+| `Description`       | Human-readable description for documenting the purpose of the token.                                                                                                                                                                                       | String    | none           |
+| `Local`             | Indicates whether the token should be replicated globally or local to the datacenter. <br/> Set to `false` to replicate globally across all reachable datacenters. <br/>Setting to `true` configures the token to functional in the local datacenter only. | Boolean   | `false`        |
+| `TemplatedPolicies` | Specifies a list of templated policies to apply to the token. Refer to [Templated Policies](/consul/docs/reference/acl/rule#templated-policies) in the "Roles" topic for additional information.                                                            | Array     | none          |
+| `ServiceIdentities` | Specifies a list of service identities to apply to the token. Refer to [Service Identities](/consul/docs/reference/acl/rule#service-identities) in the "Roles" topic for additional information.                                                            | Array     | none           |
+| `NodeIdentities`    | Specifies a list of node identities to apply to the token. Refer to [Node Identities](/consul/docs/reference/acl/rule#node-identities) in the "Roles" topic for additional information.                                                                     | Array     | none           |
+| `Policies`          | List of policies linked to the token, including the policy ID and name.                                                                                                                                                                                    | String    | none           |
+| `Roles`             | List of roles linked to the token, including the role ID and name.                                                                                                                                                                                         | String    | none           |

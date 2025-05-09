@@ -1,0 +1,109 @@
+---
+layout: docs
+page_title: Consul Template CLI reference
+description: >-
+  Consul Template is a tool available as a distinct binary that enables dynamic application configuration and secrets rotation for Consul deployments based on Go templates.
+---
+
+# Consul Template CLI reference
+
+This topic describes the available command-line options for the Consul Template binary.
+
+## General 
+
+These options are top level values to configure Consul Template.
+
+- `-help` - Prints the full reference for the `consul-template` command.
+
+- `-config=<path>` - Sets the path to a configuration file or folder on disk. This can be specified multiple times to load multiple files or folders. If multiple values are given, they are merged left-to-right, and CLI arguments take the top-most precedence. 
+- `-default-left-delimiter` - The default left delimiter for templating.
+- `-default-right-delimiter` - The default right delimiter for templating.
+- `-dry` - Print generated templates to stdout instead of rendering.
+- `-kill-signal=<signal>` - Signal to listen to gracefully terminate the process.
+- `-log-level=<level>` - Set the logging level. Allowed values are `debug`, `info`, `warn`, and `err`.
+- `-parse-only` - Do not process templates. Parse them for structure.
+- `-pid-file=<path>` - Path on disk to write the PID of the process.
+- `-reload-signal=<signal>` - Signal to listen to reload configuration.
+- `-syslog` - Send the output to syslog instead of standard error and standard out. The syslog facility defaults to `LOCAL0` and can be changed using a configuration file.
+- `-syslog-facility=<facility>` - Set the facility where syslog should log - if this attribute is supplied, the `-syslog` flag must also be supplied.
+- `-syslog-name=<name>` - Set the name of the application which will appear in syslog, if this attribute is supplied, the `-syslog` flag must also be supplied.
+- `-template=<template>` - Adds a new template to watch on disk in the format `in:out(:command)`.
+- `-template-error-fatal=<bool>` - Control whether template errors cause consul-template to immediately exit. This overrides the per-template setting.
+- `-v`, `-version` - Print the version of this daemon.
+
+## Run modes
+
+These options configure Consul Template run mode. Refer to [run mode documentation](/consul/docs/automate/consul-template/mode) for more information on the different run modes available in Consul Template.
+
+### Once Mode
+
+When running in Once Mode, Consul template will execute each template exactly once and exit.
+
+- `-once` - Do not run the process as a daemon. This disables wait/quiescence timers.
+
+### Exec Mode
+
+- `-exec=<command>` - Enable exec mode to run as a supervisor-like process - the given command will receive all signals provided to the parent process and will receive a signal when templates change.
+- `-exec-kill-signal=<signal>` - Signal to send when gracefully killing the process.
+- `-exec-kill-timeout=<duration>` - Amount of time to wait before force-killing the child.
+- `-exec-reload-signal=<signal>` - Signal to send when a reload takes place.
+- `-exec-splay=<duration>` - Amount of time to wait before sending signals.
+- `-exec-env-pristine` - Child process should not inherit the parent process's environment.
+- `-exec-env-custom` - Additional custom environment variables to inject into the child's runtime. Even if pristine, allowlist, or denylist is specified, all values in this option are given to the child process. Can be specified multiple times.
+- `-exec-env-allowlist` - List of environment variables to exclusively include in the list of environment variables exposed to the child process. Only those environment  variables matching the given patterns are exposed to the child process. Wildcards are permitted. Can be specified multiple times.
+- `-exec-env-denylist` - List of environment variables to exclusively prohibit in the list of environment variables exposed to the child process. The values in this  option take precedence over the values in the allowlist. Wildcards are permitted. Can be specified multiple times.
+
+### De-Duplication Mode
+
+- `-dedup` - Enable de-duplication mode - reduces load on Consul when many instances of Consul Template are rendering a common template.
+
+## Consul
+
+- `-consul-addr=<address>` - Sets the address of the Consul instance.
+- `-consul-auth=<username[:password]>` - Set the basic authentication username and password for communicating with Consul.
+- `-consul-retry` - Use retry logic when communication with Consul fails.
+- `-consul-retry-attempts=<int>` - The number of attempts to use when retrying failed communications.
+- `-consul-retry-backoff=<duration>` - The base amount to use for the backoff duration. This number will be increased exponentially for each retry attempt.
+- `-consul-retry-max-backoff=<duration>` - The maximum limit of the retry backoff duration. Default is one minute. `0` means infinite. The backoff will increase exponentially until given value.
+- `-consul-ssl` - Use SSL when connecting to Consul.
+- `-consul-ssl-ca-cert=<string>` - Validate server certificate against this CA certificate file list.
+- `-consul-ssl-ca-path=<string>` - Sets the path to the CA to use for TLS verification.
+- `-consul-ssl-cert=<string>` - SSL client certificate to send to server.
+- `-consul-ssl-key=<string>` - SSL/TLS private key for use in client authentication key exchange.
+- `-consul-ssl-server-name=<string>` - Sets the name of the server to use when validating TLS.
+- `-consul-ssl-verify` - Verify certificates when connecting via SSL.
+- `-consul-token=<token>` - Sets the Consul API token.
+- `-consul-token-file=<path>` - Sets the path to a file containing the Consul API token.
+- `-consul-transport-dial-keep-alive=<duration>` - Sets the amount of time to use for keep-alives.
+- `-consul-transport-dial-timeout=<duration>` - Sets the amount of time to wait to establish a connection.
+- `-consul-transport-disable-keep-alives` - Disables keep-alives (this will impact performance).
+- `-consul-transport-max-idle-conns-per-host=<int>` - Sets the maximum number of idle connections to permit per host.
+- `-consul-transport-tls-handshake-timeout=<duration>` - Sets the handshake timeout.
+- `-max-stale=<duration>` - Set the maximum staleness and allow stale queries to Consul which will distribute work among all servers instead of just the leader.
+- `-retry=<duration>` - The amount of time to wait if Consul returns an error when communicating with the API.
+
+## Vault
+- `-vault-addr=<address>` - Sets the address of the Vault server.
+- `-vault-renew-token` - Periodically renew the provided Vault API token - this defaults to "true" and will renew the token at half of the lease duration.
+- `-vault-retry` - Use retry logic when communication with Vault fails.
+- `-vault-retry-attempts=<int>` - The number of attempts to use when retrying failed communications.
+- `-vault-retry-backoff=<duration>` - The base amount to use for the backoff duration. This number will be increased exponentially for each retry attempt.
+- `-vault-retry-max-backoff=<duration>` - The maximum limit of the retry backoff duration. Default is one minute. `0` means infinite. The backoff will increase exponentially until given value.
+- `-vault-ssl` - Specifies whether communications with Vault should be done via SSL.
+- `-vault-ssl-ca-cert=<string>` - Sets the path to the CA certificate to use for TLS verification.
+- `-vault-ssl-ca-path=<string>` - Sets the path to the CA to use for TLS verification.
+- `-vault-ssl-cert=<string>` - Sets the path to the certificate to use for TLS verification.
+- `-vault-ssl-key=<string>` - Sets the path to the key to use for TLS verification.
+- `-vault-ssl-server-name=<string>` - Sets the name of the server to use when validating TLS.
+- `-vault-ssl-verify` - Enable SSL verification for communications with Vault.
+- `-vault-token=<token>` - Sets the Vault API token.
+- `-vault-agent-token-file=<token-file>` - File to read Vault API token from.
+- `-vault-transport-dial-keep-alive=<duration>` - Sets the amount of time to use for keep-alives.
+- `-vault-transport-dial-timeout=<duration>` - Sets the amount of time to wait to establish a connection.
+- `-vault-transport-disable-keep-alives` - Disables keep-alives (this will impact performance).
+- `-vault-transport-max-idle-conns-per-host=<int>` - Sets the maximum number of idle connections to permit per host.
+- `-vault-transport-max-conns-per-host=<int>` - Sets the maximum number of total connections to permit per host.
+- `-vault-transport-tls-handshake-timeout=<duration>` - Sets the handshake timeout.
+- `-vault-unwrap-token` - Unwrap the provided Vault API token (see [Vault documentation](/vault/api-docs/system/wrapping-unwrap) for more information on this feature).
+- `-vault-default-lease-duration=<duration>` - Configures the default lease duration when not explicitly set by Vault.
+- `-wait=<duration>` Sets the 'min(:max)' amount of time to wait before writing a template (and triggering a command).

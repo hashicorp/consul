@@ -12,7 +12,7 @@ Command: `consul keyring`
 Corresponding HTTP API Endpoints: [\[VARIES\] /v1/operator/keyring](/consul/api-docs/operator/keyring)
 
 The `keyring` command is used to examine and modify the encryption keys used in
-Consul's [Gossip Pools](/consul/docs/architecture/gossip). It is capable of
+Consul's [Gossip Pools](/consul/docs/concept/gossip). It is capable of
 distributing new encryption keys to the cluster, retiring old encryption keys,
 and changing the keys used by the cluster to encrypt messages.
 
@@ -76,7 +76,7 @@ Only one actionable argument may be specified per run, including `-list`,
 
 #### API Options
 
-@include 'http_api_options_client.mdx'
+@include 'legacy/http_api_options_client.mdx'
 
 ## Output
 

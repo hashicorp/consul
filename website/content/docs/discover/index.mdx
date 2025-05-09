@@ -1,0 +1,38 @@
+---
+layout: docs
+page_title: Discover services overview
+description: >-
+  This topic provides an overview of the service discovery features and operations enabled by Consul DNS, including application load balancing, static lookups, and prepared queries.
+---
+
+# Discover services overview
+
+This topic provides an overview of Consul service discovery operations. After you register services with Consul, you can address them using Consul DNS to perform application load balancing and static service lookups. You can also create prepared queries for dynamic service lookups and service failover.
+
+If you run Consul on Kubernetes or AWS ECS and prefer to use your runtime's built-in service discovery alongside Consul's service mesh features, refer to [onboard services in transparent proxy mode](/consul/docs/connect/proxy/transparent-proxy).
+
+## Introduction
+
+When a service registers with Consul, the catalog records the address of each service's node. Consul then updates an instance's catalog entry with the results of each health check it performs. Consul agents replicate catalog information between each other using the [Raft consensus protocol](/consul/docs/concept/consensus), enabling high availability service networking through any Consul agent.
+
+Consul's service discovery operations use [Consul DNS addresses](/consul/docs/discover/dns) to route traffic to healthy service instances and return information about service nodes registered to Consul.
+
+## Application load balancing
+
+@include 'text/descriptions/load-balancer.mdx'
+
+## Static lookups
+
+@include 'text/descriptions/static-query.mdx'
+
+## Prepared queries
+
+@include 'text/descriptions/prepared-query.mdx'
+
+## Guidance
+
+@include 'text/guidance/discover.mdx'
+
+## Constraints, limitations, and troubleshooting
+
+@include 'text/limitations/discover.mdx'

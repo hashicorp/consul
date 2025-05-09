@@ -1,0 +1,360 @@
+---
+layout: docs
+page_title: Route traffic to local upstreams
+description: Learn how to enable locality-aware routing in Consul so that proxies can send traffic to upstreams in the same region and zone as the downstream service. Routing traffic based on locality can reduce latency and cost.
+---
+
+# Route traffic to local upstreams
+
+This topic describes how to enable locality-aware routing so that Consul can prioritize sending traffic to upstream services that are in the same region and zone as the downstream service.
+
+<EnterpriseAlert> This feature is available in Consul Enterprise. </EnterpriseAlert>
+
+## Introduction
+
+By default, Consul balances traffic to all healthy upstream instances in the cluster, even if the instances are in different network zones. You can specify the cloud service provider (CSP) locality for Consul server agents and services registered to the service mesh, which enables several benefits:
+
+- Consul prioritizes the nearest upstream instances when routing traffic through the mesh.
+- When upstream service instances becomes unhealthy, Consul prioritizes failing over to instances that are in the same region as the downstream service. Refer to [Failover](/consul/docs/manage-traffic/failover) for additional information about failover strategies in Consul.
+
+When properly implemented, routing traffic to local upstreams can reduce latency and transfer costs associated with sending requests to other regions.
+
+### Workflow
+
+For networks deployed to virtual machines, complete the following steps to route traffic to local upstream services:
+
+1. Specify the region and zone for your Consul client agents. This allows services to inherit the region and zone configured for the Consul agent that the services are registered with.
+1. Specify the localities of your service instances. This step is optional and is only necessary when defining a custom network topology or when your deployed environment requires explicitly set localities for certain service's instances.
+1. Configure service mesh proxies to route traffic locally within the partition.
+
+#### Container orchestration platforms
+
+If you deployed Consul to a Kubernetes or ECS environment using `consul-k8s` or `consul-ecs`, service instance locality information is inherited from the host machine. As a result, you do not need to specify the regions and zones on containerized platforms unless you are implementing a custom deployment.
+
+On Kubernetes, Consul automatically populates geographic information about service instances using the `topology.kubernetes.io/region` and `topology.kubernetes.io/zone` labels from the Kubernetes nodes. On AWS ECS, Consul uses the `AWS_REGION` environment variable and `AvailabilityZone` attribute of the ECS task meta.
+
+### Requirements
+
+You should only enable locality-aware routing when each set of external upstream instances within the same zone and region have enough capacity to handle requests from downstream service instances in their respective zones. Locality-aware routing is an advanced feature that may adversely impact service capacity if used incorrectly. When enabled, Consul routes all traffic to the nearest set of service instances and only fails over when no healthy instances are available in the nearest set.
+
+## Specify the locality of your Consul agents
+
+The `locality` configuration on a Consul client applies to all services registered to the client.
+
+1. Configure the `locality` block in your Consul client agent configuration files. The `locality` block is a map containing the `region` and `zone` parameters.
+
+   The parameters should match the values for regions and zones defined in your network. Refer to [`locality`](/consul/docs/reference/agent/configuration-file/service-mesh#locality) in the agent configuration reference for additional information.
+
+1. Start or restart the agent to apply the configuration. Refer to [Starting a Consul agent](/consul/docs/agent#starting-the-consul-agent) for instructions.
+
+In the following example, the agent is running in the `us-west-1` region and `us-west-1a` zone on AWS:
+
+```hcl
+locality = {
+  region = "us-west-1"
+  zone = "us-west-1a"
+}
+```
+
+## Specify the localities of your service instances (optional)
+
+This step is optional in most scenarios. Refer to [Workflow](#workflow) for additional information.
+
+1. Configure the `locality` block in your service definition for both downstream (client) and upstream services. The `locality` block is a map containing the `region` and `zone` parameters. When you start a proxy for the service, Consul passes the locality to the proxy so that it can route traffic accordingly.
+
+   The parameters should match the values for regions and zones defined in your network. Refer to [`locality`](/consul/docs/reference/service#locality) in the services configuration reference for additional information.
+
+1. Verify that your service is also configured with a proxy. Refer to [Define service mesh proxy](/consul/docs/reference/proxy/sidecar#define-service-mesh-proxy) for additional information.
+Register or re-register the service to apply the configuration. Refer to [Register services and health checks](/consul/docs/register/service/vm) for instructions.
+
+In the following example, the `web` service is available in the `us-west-1` region and `us-west-1a` zone on AWS:
+
+```hcl
+service {
+  id  = "web"
+  locality = {
+    region = "us-west-1"
+    zone = "us-west-1a"
+  }
+  connect = { sidecar_service = {} }
+}
+```
+
+If registering services manually via the `/agent/service/register` API endpoint, you can specify the `locality` configuration in the payload. Refer to [Register Service](/consul/api-docs/agent/service#register-service) in the API documentation for additional information.
+
+## Enable service mesh proxies to route traffic locally
+
+You can configure the default routing behavior for all proxies in the mesh as well as configure the routing behavior for specific services.
+
+### Configure default routing behavior
+
+Configure the `PrioritizeByLocality` block in the proxy defaults configuration entry and specify the `failover` mode. This configuration enables proxies in the mesh to use the region and zone defined in the service configuration to route traffic. Refer to [`PrioritizeByLocality`](/consul/docs/reference/config-entry/proxy-defaults#prioritizebylocality) in the proxy defaults reference for details about the configuration.
+
+<Tabs>
+<Tab heading="HCL" group="hcl">
+<CodeBlockConfig filename="proxy-defaults.hcl">
+
+```hcl
+Kind     = "proxy-defaults"
+Name     = "global"
+PrioritizeByLocality = {
+    Mode = "failover"
+}
+```
+</CodeBlockConfig>
+</Tab>
+
+<Tab heading="JSON" group="json">
+<CodeBlockConfig filename="proxy-defaults.json">
+
+```json
+{
+  "kind": "proxy-defaults",
+  "name": "global",
+  "prioritizeByLocality": {
+    "mode": "failover"
+  }
+}
+```
+</CodeBlockConfig>
+</Tab>
+<Tab heading="Kubernetes" group="kubernetes">
+<CodeBlockConfig filename="proxy-defaults.yaml">
+
+```yaml
+apiversion: consul.hashicorp.com/v1alpha1
+kind: ProxyDefaults
+metadata:
+  name: global
+spec:
+  prioritizeByLocality:
+    mode: failover
+```
+
+</CodeBlockConfig>
+</Tab>
+</Tabs>
+
+Apply the configuration by either running the [`consul config write` CLI command](/consul/commands/config/write), applying the Kubernetes CRD, or calling the [`/config` HTTP API endpoint](/consul/api-docs/config).
+
+<Tabs>
+<Tab heading="Consul CLI" group="cli">
+
+  ```shell-session
+  $ consul config write proxy-defaults.hcl
+  ```
+
+</Tab>
+
+<Tab heading="Kubernetes" group="k8s">
+
+  ```shell-session
+  $ kubectl apply -f proxy-defaults.yaml
+  ```
+
+</Tab>
+<Tab heading="HTTP API" group="api">
+
+  ```shell-session
+  $ curl --request PUT --data @proxy-defaults.hcl http://127.0.0.1:8500/v1/config
+  ```
+
+</Tab>
+</Tabs>
+
+### Configure routing behavior for individual service
+
+1. Create a service resolver configuration entry and specify the following fields:
+   - `Name`: The name of the target upstream service for which downstream clients should use locality-aware routing.
+   - `PrioritizeByLocality`: This block enables proxies in the mesh to use the region and zone defined in the service configuration to route traffic. Set the `mode` inside the block to `failover`. Refer to [`PrioritizeByLocality`](/consul/docs/reference/config-entry/service-resolver#prioritizebylocality) in the service resolver reference for details about the configuration.
+
+   <Tabs>
+   <Tab heading="HCL" group="hcl">
+   <CodeBlockConfig filename="api-resolver.hcl">
+
+   ```hcl
+   Kind     = "service-resolver"
+   Name     = "api"
+   PrioritizeByLocality = {
+       Mode = "failover"
+   }
+   ```
+   </CodeBlockConfig>
+   </Tab>
+
+   <Tab heading="JSON" group="json">
+   <CodeBlockConfig filename="api-resolver.json">
+
+   ```json
+   {
+     "kind": "service-resolver",
+     "name": "api",
+     "prioritizeByLocality": {
+       "mode": "failover"
+     }
+   }
+   ```
+   </CodeBlockConfig>
+   </Tab>
+   <Tab heading="Kubernetes" group="kubernetes">
+   <CodeBlockConfig filename="api-resolver.yaml">
+
+   ```yaml
+   apiversion: consul.hashicorp.com/v1alpha1
+   kind: ServiceResolver
+   metadata:
+     name: api
+   spec:
+     prioritizeByLocality:
+       mode: failover
+   ```
+
+   </CodeBlockConfig>
+   </Tab>
+   </Tabs>
+
+1. Apply the configuration by either running the [`consul config write` CLI command](/consul/commands/config/write), applying the Kubernetes CRD, or calling the [`/config` HTTP API endpoint](/consul/api-docs/config).
+
+   <Tabs>
+   <Tab heading="Consul CLI" group="cli">
+
+     ```shell-session
+     $ consul config write api-resolver.hcl
+     ```
+
+   </Tab>
+
+   <Tab heading="Kubernetes" group="k8s">
+
+     ```shell-session
+     $ kubectl apply -f api-resolver.yaml
+     ```
+
+   </Tab>
+   <Tab heading="HTTP API" group="api">
+
+     ```shell-session
+     $ curl --request PUT --data @api-resolver.hcl http://127.0.0.1:8500/v1/config
+     ```
+
+   </Tab>
+   </Tabs>
+
+### Configure locality on Kubernetes test clusters explicitly
+
+You can explicitly configure locality for each Kubernetes node so that you can test locality-aware routing with a local Kubernetes cluster or in an environment where `topology.kubernetes.io` labels are not set.
+
+Run the `kubectl label node` command and specify the locality as arguments. The following example specifies the `us-east-1` region and `us-east-1a` zone for the node:
+
+```shell-session
+kubectl label node $K8S_NODE topology.kubernetes.io/region="us-east-1" topology.kubernetes.io/zone="us-east-1a"
+```
+
+After setting these values, subsequent service and proxy registrations in your cluster inherit the values from their local Kubernetes node.
+
+## Verify routes
+
+The routes from each downstream service instance to the nearest set of healthy upstream instances are the most immediately observable routing changes.
+
+Consul configures Envoy's built-in [`overprovisioning_factor`](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/endpoint/v3/endpoint.proto#config-endpoint-v3-clusterloadassignment) and [outlier detection](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/cluster/v3/outlier_detection.proto#config-cluster-v3-outlierdetection) settings to enforce failover behavior. However, Envoy does not provide granular metrics specific to failover or endpoint traffic within a cluster. As a result, using external observability tools that expose network traffic within your environment is the best method for observing route changes.
+
+To verify that locality-aware routing and failover configurations, you can inspect Envoy's xDS configuration dump for a downstream proxy. Refer to the [consul-k8s CLI docs](/consul/docs/reference/cli/consul-k8s#proxy-read) for details on how to obtain the xDS configuration dump on Kubernetes. For other workloads, use the Envoy [admin interface](https://www.envoyproxy.io/docs/envoy/latest/operations/admin) and ensure that you [include EDS](https://www.envoyproxy.io/docs/envoy/latest/operations/admin#get--config_dump?include_eds).
+
+Inspect the [priority](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/load_balancing/priority#arch-overview-load-balancing-priority-levels) on each set of endpoints under the upstream `ClusterLoadAssignment` in the `EndpointsConfigDump`. Alternatively, the same priorities should be visibile within the output of the [`/clusters?format=json`](https://www.envoyproxy.io/docs/envoy/latest/operations/admin#get--clusters?format=json) admin endpoint.
+
+```json
+{
+  "@type": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
+  "cluster_name": "web.default.dc1.internal.161d7b5a-bb5f-379c-7d5a-1fc7504f95da.consul",
+  "endpoints": [
+    {
+      "lb_endpoints": [
+        {
+          "endpoint": {
+            "address": {
+              "socket_address": {
+                "address": "10.42.2.6",
+                "port_value": 20000
+              }
+            },
+            "health_check_config": {}
+          },
+          ...
+        },
+        ...
+      ],
+      "locality": {}
+    },
+    {
+      "lb_endpoints": [
+        {
+          "endpoint": {
+            "address": {
+              "socket_address": {
+                "address": "10.42.3.6",
+                "port_value": 20000
+              }
+            },
+            "health_check_config": {}
+          },
+          ...
+        },
+        ...
+      ],
+      "locality": {},
+      "priority": 1
+    },
+    {
+      "lb_endpoints": [
+        {
+          "endpoint": {
+            "address": {
+              "socket_address": {
+                "address": "10.42.0.6",
+                "port_value": 20000
+              }
+            },
+            "health_check_config": {}
+          },
+          ...
+        },
+        ...
+      ],
+      "locality": {},
+      "priority": 2
+    }
+  ],
+  ...
+}
+```
+
+### Force an observable failover
+
+To force a failover for testing purposes, scale the upstream service instances in the downstream's local zone or region, if no local zone instances are available, to `0`.
+
+Note the following behaviors:
+
+  - Consul prioritizes failovers in ascending order starting with `0`. The highest priority, `0`, is not explicitly visible in xDS output. This is because `0` is the default value for that field.
+  - After Envoy failover configuration is in place, the specific timing of failover is determined by the downstream Envoy proxy, not Consul. Consul health status may not directly correspond to Envoy's failover behavior, which is also dependent on outlier detection.
+
+Refer to [Troubleshooting](#troubleshooting) if you do not observe the expected behavior.
+
+## Adjust load balancing and failover behavior
+
+You can adjust the global or per-service load balancing and failover behaviors by applying the property override Envoy extension. The property override extension allows you to set and remove individual properties on the Envoy resources Consul generates. Refer to [Configure Envoy proxy properties](/consul/docs/reference/proxy/extensions/property-override) for additional information.
+
+1. Add the `EnvoyExtensions` configuration block to the service defaults or proxy defaults configuration entry.
+1. Configure the following settings  in the `EnvoyExtensions` configuration:
+    - [`overprovisioning_factor`](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/endpoint/v3/endpoint.proto#config-endpoint-v3-clusterloadassignment)
+    - [outlier detection](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/cluster/v3/outlier_detection.proto#config-cluster-v3-outlierdetection) configuration.
+1. Apply the configuration. Refer to [Apply the configuration entry](/consul/docs/reference/proxy/extensions/property-override#apply-the-configuration-entry) for details.
+
+By default, Consul sets `overprovisioning_factor` to `100000`, which enforces total failover, and `max_ejection_percent` to `100`. Refer to the Envoy documentation about these fields before attempting to modify them.
+
+## Troubleshooting
+
+If you do not see the expected priorities, verify that locality is configured in the Consul agent and that `PrioritizeByLocality` is enabled in your proxy defaults or service resolver configuration entry. When `PrioritizeByLocality` is enabled but the local proxy lacks locality configuration, Consul emits a warning log to indicate that the policy could not be applied:
+
+```
+`no local service locality provided, skipping locality failover policy`
+```

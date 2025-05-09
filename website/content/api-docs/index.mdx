@@ -37,7 +37,7 @@ The following API endpoints give you control over access to services in your net
 Use the following API endpoints enable network observability.
 
 - [`/status`](/consul/api-docs/status): Debug your Consul datacenter by returning low-level Raft information about Consul server peers.
-- [`/agent/metrics`](/consul/api-docs/agent#view-metrics): Retrieve metrics for the most recent intervals that have finished. For more information about metrics, refer to [Telemetry](/consul/docs/agent/telemetry).
+- [`/agent/metrics`](/consul/api-docs/agent#view-metrics): Retrieve metrics for the most recent intervals that have finished. For more information about metrics, refer to [Telemetry](/consul/docs/monitor/telemetry/agent).
 
 
 ## Manage Consul
@@ -56,4 +56,4 @@ The following API endpoints enable you to dynamically configure your services.
 
 - [`/event`](/consul/api-docs/event): Start a custom event that you can use to build scripts and automations.
 - [`/kv`](/consul/api-docs/kv): Add, remove, and update metadata stored in the Consul KV store.
-- [`/session`](/consul/api-docs/session): Create and manage [sessions](/consul/docs/dynamic-app-config/sessions) in Consul. You can use sessions to build distributed and granular locks to ensure nodes are properly writing to the Consul KV store.
+- [`/session`](/consul/api-docs/session): Create and manage [sessions](/consul/docs/automate/session) in Consul. You can use sessions to build distributed and granular locks to ensure nodes are properly writing to the Consul KV store.

@@ -1,0 +1,416 @@
+---
+layout: docs
+page_title: Load Balancing with NGINX and Consul Template
+description: >-
+  Use Consul template to update NGINX load balancer configurations based on changes in Consul service discovery.
+---
+
+# Load Balancing with NGINX and Consul Template
+
+This tutorial describes how to use Consul and Consul template to automatically
+update an NGINX configuration file with the latest list of backend servers using
+Consul's service discovery.
+
+While following this tutorial you will:
+
+- Register an example service with Consul
+- Configure Consul template
+- Create an NGINX load balancer configuration template
+- Run Consul template
+- Scale your servers
+- Test Consul's health checks
+
+Once you have completed this tutorial you will end up with an architecture like the
+one diagramed below. NGINX will get a list of healthy servers from Consul
+service discovery via Consul template and will balance internet traffic to those
+servers according to its own configuration.
+
+![NGINX and Consul template architecture](/img/consul-nginx-template-arch.png 'Consul template gets healthy services from Consul service discovery and uses them to populate NGINX configuration')
+
+## Prerequisites
+
+To complete this tutorial you will need:
+
+- A Consul cluster. We recommend three Consul server nodes
+
+- A minimum of two application servers registered to Consul service discovery
+  with a Consul client agent running on the node (We assume a standard web
+  server listening on HTTP port 80 in the following examples)
+
+- A node running NGINX
+
+- A Consul client agent on the NGINX node
+
+- [Consul-template](https://github.com/hashicorp/consul-template#installation)
+  on the NGINX node to keep the NGINX configuration file updated
+
+<Tip>
+
+ The content of this tutorial also applies to Consul clusters hosted on HashiCorp Cloud (HCP).
+
+</Tip>
+
+## Register your web servers to Consul
+
+If you haven't already registered your web servers in Consul Service Registry
+create a service definition for your web service in Consul's configuration
+directory `/etc/consul.d/`.
+
+Create a service registration file for the `web` service with the following content.
+
+<CodeTabs>
+
+<CodeBlockConfig filename="web-service.hcl">
+
+```hcl
+service {
+  name = "web"
+  port = 80
+  check {
+    args = ["curl", "localhost"]
+    interval = "3s"
+  }
+}
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig filename="web-service.json">
+
+```json
+{
+  "service": {
+    "Name": "web",
+    "Port": 80,
+    "check": {
+      "args": ["curl", "localhost"],
+      "interval": "3s"
+    }
+  }
+}
+```
+
+</CodeBlockConfig>
+
+</CodeTabs>
+
+-> Since this service definition contains a basic "curl" health check for a web
+server, `enable_local_script_checks` must be set to `true` in the configuration
+of the Consul agent where the web server is running.
+
+Reload the local Consul agent to read the new service definition.
+
+```shell-session
+$ consul reload
+```
+
+After registering the service it will appear in Consul's Service Registry.
+
+![Healthy web service](/img/consul-nginx-template-web.png 'The Consul UI displaying a healthy web service')
+
+After repeating the registration step for all your web server instances, all
+instances will appear in the instances view of the "web" service.
+
+## Configure Consul template
+
+A Consul template configuration file will specify which input template to use,
+which output file to generate, and which command will reload Consul template's
+target application (NGINX in this tutorial) with its new configuration.
+
+Create a configuration file called `consul-template-config.hcl` with the
+following content.
+
+<CodeBlockConfig filename="consul-template-config.hcl">
+
+```hcl
+consul {
+  address = "localhost:8500"
+
+  retry {
+    enabled  = true
+    attempts = 12
+    backoff  = "250ms"
+  }
+}
+template {
+  source      = "/etc/nginx/conf.d/load-balancer.conf.ctmpl"
+  destination = "/etc/nginx/conf.d/load-balancer.conf"
+  perms       = 0600
+  command     = "service nginx reload"
+}
+```
+
+</CodeBlockConfig>
+
+The `consul` stanza tells consul-template, where to find the Consul API, which
+is located on localhost, as we are running a Consul client agent on the same
+node as our NGINX instance.
+
+The `template` stanza tells Consul template:
+
+- Where the `source` (input) template file will be located, in this case
+  `/etc/nginx/conf.d/load-balancer.conf.ctmpl`
+
+- Where the destination (output) file should be located, in this case
+  `/etc/nginx/conf.d/load-balancer.conf`. (This is a default path that NGINX uses
+  to read its configuration. You will either use it or `/usr/local/nginx/conf/`
+  depending on your NGINX distribution.)
+
+- Which `permissions` the destination file needs
+
+- Which command to run after rendering the destination file. In this case,
+  `service nginx reload` will trigger NGINX to reload its configuration
+
+For all available configuration options for Consul template, please see the
+[GitHub repo](https://github.com/hashicorp/consul-template).
+
+## Create an input template
+
+Now you will create the basic NGINX Load Balancer configuration template which
+Consul template will use to render the final `load-balancer.conf` for your NGINX
+load balancer instance.
+
+Create a template file called `load-balancer.conf.ctmpl` in the location you
+specified as a `source` (in this example, `/etc/nginx/conf.d/`) with the
+following content:
+
+<CodeBlockConfig filename="/etc/nginx/conf.d/load-balancer.conf.ctmpl">
+
+```go
+upstream backend {
+{{- range service "web" }}
+  server {{ .Address }}:{{ .Port }};
+{{- end }}
+}
+
+server {
+   listen 80;
+
+   location / {
+      proxy_pass http://backend;
+   }
+}
+```
+
+</CodeBlockConfig>
+
+Instead of explicitly putting your backend server IP addresses directly in the
+load balancer configuration file, you will use Consul template's templating
+language to specify some variables in this file, which will automatically fetch
+the final values from Consul's Service Registry and render the final load
+balancer configuration file.
+
+Specifically, the below snippet from the above template file tells Consul
+template to query Consul's Service Registry for all healthy nodes of the "web"
+service in the current data center, and put the IP addresses and service ports
+of those endpoints in the generated output configuration file.
+
+```go
+{{- range service "web" }}
+  server {{ .Address }}:{{ .Port }};
+{{- end }}
+```
+
+For all available options on how to build template files for use with
+Consul template, please see the [GitHub
+repo](https://github.com/hashicorp/consul-template).
+
+### Clean up NGINX default sites config
+
+To make sure your NGINX instance will act as a load balancer and not as a web
+server delete the following file if it exists.
+
+```nginx
+/etc/nginx/sites-enabled/default
+```
+
+Then reload the NGINX service.
+
+```shell-session
+$ service nginx reload
+```
+
+Now your NGINX load balancer should not have any configuration and you should
+not see a web page when browsing to your NGINX IP address.
+
+## Run Consul template
+
+Start Consul template with the earlier generated configuration file.
+
+```shell-session
+$ consul-template -config=consul-template-config.hcl
+```
+
+This will start Consul template running in the foreground until you stop the
+process. It will automatically connect to Consul's API, render the NGINX
+configuration for you and reload the NGINX service.
+
+Your NGINX load balancer should now serve traffic and perform simple round-robin
+load balancing amongst all of your registered and healthy "web" server
+instances.
+
+The resulting load balancer configuration located at
+`/etc/nginx/conf.d/load-balancer.conf` should look like this:
+
+<CodeBlockConfig filename="/etc/nginx/conf.d/load-balancer.conf" hideClipboard>
+
+```nginx
+upstream backend {
+  server 192.168.43.101:80;
+  server 192.168.43.102:80;
+}
+
+server {
+   listen 80;
+
+   location / {
+      proxy_pass http://backend;
+   }
+}
+```
+
+</CodeBlockConfig>
+
+Notice that Consul template filled the variables from the template file with
+actual IP addresses and ports of your "web" servers.
+
+## Verify your implementation
+
+Now that everything is set up and running, test out your implementation by
+watching what happens when you scale or stop your services. In both cases,
+Consul template should keep NGINX's configuration up to date.
+
+### Scale your backend services
+
+Consul template uses a long-lived HTTP query (blocking query) against Consul's
+API and will get an immediate notification about updates to the requested
+service "web".
+
+As soon as you scale your "web" and the new instances register themselves to the
+Consul Service Registry, Consul template will see the change in your service and
+trigger a new generation of the configuration file.
+
+After scaling your backend server from two to three instances, the resulting
+load balancer configuration for your NGINX instance located at
+`/etc/nginx/conf.d/load-balancer.conf` should look like this:
+
+<CodeBlockConfig filename="/etc/nginx/conf.d/load-balancer.conf" highlight="4" hideClipboard>
+
+```nginx
+upstream backend {
+  server 192.168.43.101:80;
+  server 192.168.43.102:80;
+  server 192.168.43.103:80;
+}
+
+server {
+   listen 80;
+
+   location / {
+      proxy_pass http://backend;
+   }
+}
+```
+
+</CodeBlockConfig>
+
+### Cause an error in a web service instance
+
+Not only will Consul template update your backend configuration automatically
+depending on available service endpoints, but it will also only use healthy
+endpoints when rendering the final configuration.
+
+You configured Consul to perform a basic curl-based health check in your service
+definition, so Consul will notice if a "web" server instance is in an unhealthy
+state.
+
+To simulate an error and see how Consul health checks are working, stop one
+instance of the web process.
+
+```shell-session
+$ service nginx stop
+```
+
+You will see the state of this service instance as "Unhealthy" in the Consul UI
+because no service on this node is responding to requests on HTTP port 80.
+
+![Unhealthy web service](/img/consul-nginx-template-web-unhealthy.png 'The Consul UI displaying an unhealthy web service')
+
+Because of its blocking query against Consul's API, Consul template will be
+notified immediately that a change in the health of one of the service endpoints
+occurred and will re-render a new Load Balancer configuration file excluding the
+unhealthy service instance:
+
+<CodeBlockConfig filename="/etc/nginx/conf.d/load-balancer.conf" highlight="2-3" hideClipboard>
+
+```nginx
+upstream backend {
+  server 192.168.43.101:80;
+  server 192.168.43.103:80;
+}
+
+server {
+   listen 80;
+
+   location / {
+      proxy_pass http://backend;
+   }
+}
+```
+
+</CodeBlockConfig>
+
+Your NGINX instance will now only balance traffic between the remaining healthy
+service endpoints.
+
+As soon as you restart your stopped "web" server instance and Consul health
+check marks the service endpoint as "Healthy" again, the process automatically
+starts over and the instance will be included in the load balancer backend
+configuration to serve traffic:
+
+<CodeBlockConfig filename="/etc/nginx/conf.d/load-balancer.conf" highlight="3" hideClipboard>
+
+```nginx
+upstream backend {
+  server 192.168.43.101:80;
+  server 192.168.43.102:80;
+  server 192.168.43.103:80;
+}
+
+server {
+   listen 80;
+
+   location / {
+      proxy_pass http://backend;
+   }
+}
+```
+
+</CodeBlockConfig>
+
+-> Consul health checks can be much more sophisticated. They can check CPU or
+RAM utilization or other service metrics, which you are not able to monitor from
+a central Load Balancing instance. You can learn more about Consul's Health
+Check feature [here](/consul/tutorials/developer-discovery/service-registration-health-checks).
+
+## Next steps
+
+In this tutorial you discovered how Consul template can generate the configuration
+for your NGINX load balancer based on available and healthy service endpoints
+registered in Consul's Service Registry. You learned how to scale up and down
+services without manually reconfiguring your NGINX load balancer every time a
+new service endpoint was started or deleted.
+
+You learned how Consul template uses blocking queries against Consul's HTTP API
+to get immediate notifications about service changes and re-renders the required
+configuration files automatically for you.
+
+This tutorial described how to use consul template to configure NGINX, but a
+similar process would apply for other load balancers as well. To use another
+load balancer you will need to replace the NGINX input template, output file,
+and reload command, as well as any NGINX CLI commands.
+
+Learn more about Consul [service registration and
+discovery](/consul/tutorials/get-started-vms/virtual-machine-gs-service-discovery) and
+[Consul
+template](/consul/tutorials/developer-configuration/consul-template).

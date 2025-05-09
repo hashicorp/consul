@@ -1,0 +1,190 @@
+---
+layout: docs
+page_title: Consul on Docker
+description: >-
+   Learn about Consul's support when running on Docker containers
+---
+
+# Consul on Docker
+
+
+### Access containers
+
+You can access a containerized Consul datacenter in several different ways.
+
+#### Docker exec
+
+You can execute Consul commands directly inside of your Consul containers using `docker exec`.
+
+```shell-session
+$ docker exec <container_id> consul members
+```
+
+```plaintext hideClipboard
+Node      Address          Status  Type    Build   Protocol  DC   Partition  Segment
+server-1  172.17.0.2:8301  alive   server  1.14.3  2         dc1  default    <all>
+client-1  172.17.0.3:8301  alive   client  1.14.3  2         dc1  default    <default>
+```
+
+#### Docker exec attach
+
+You can also issue commands inside of your container by opening an interactive shell and using the Consul binary included in the container.
+
+```shell-session
+$ docker exec -it <container_id> /bin/sh
+```
+
+```plaintext
+/ # consul members
+Node      Address          Status  Type    Build   Protocol  DC   Partition  Segment
+server-1  172.17.0.2:8301  alive   server  1.14.3  2         dc1  default    <all>
+client-1  172.17.0.3:8301  alive   client  1.14.3  2         dc1  default    <default>
+```
+
+#### Local Consul binary
+
+If you have a local Consul binary in your PATH you can also export the `CONSUL_HTTP_ADDR`
+environment variable to point to the HTTP address of a remote Consul server.
+
+```shell-session
+$ export CONSUL_HTTP_ADDR=<consul_server_ip>:8500
+```
+
+This will allow you to bypass `docker exec <container_id> consul <command>` and use `consul <command>` directly.
+
+```shell-session
+$ consul members
+Node      Address          Status  Type    Build   Protocol  DC   Partition  Segment
+server-1  172.17.0.2:8301  alive   server  1.14.3  2         dc1  default    <all>
+client-1  172.17.0.3:8301  alive   client  1.14.3  2         dc1  default    <default>
+```
+
+In this tutorial, you are binding your containerized Consul server's client address
+to `0.0.0.0` which allows you to communicate with your Consul datacenter using a local
+Consul installation.
+
+```shell-session
+$ which consul
+/usr/local/bin/consul
+```
+
+By default, the client address is bound to localhost.
+
+```shell-session
+$ consul members
+```
+
+```plaintext hideClipboard
+Node      Address          Status  Type    Build   Protocol  DC   Partition  Segment
+server-1  172.17.0.2:8301  alive   server  1.14.3  2         dc1  default    <all>
+client-1  172.17.0.3:8301  alive   client  1.14.3  2         dc1  default    <default>
+```
+
+### Stop, start, and restart containers
+
+The official Consul container supports stopping, starting, and restarting. To stop a container, run `docker stop`.
+
+```shell-session
+$ docker stop <container_id>
+```
+
+To start a container, run `docker start`.
+
+```shell-session
+$ docker start <container_id>
+```
+
+To do an in-memory reload, send a SIGHUP to the container.
+
+```shell-session
+$ docker kill --signal=HUP <container_id>
+```
+
+### Remove servers from the datacenter
+
+As long as there are enough servers in the datacenter to maintain [quorum](/consul/docs/architecture/consensus#deployment-table), Consul's [autopilot](/consul/tutorials/datacenter-operations/autopilot-datacenter-operations) feature will handle removing servers whose containers were stopped. Autopilot's default settings are already configured correctly. If you override them, make sure that the following [settings](/consul/docs/reference/agent/configuration-file/general#autopilot) are appropriate.
+
+- `cleanup_dead_servers` must be set to true to make sure that a stopped container is removed from the datacenter.
+- `last_contact_threshold` should be reasonably small, so that dead servers are removed quickly.
+- `server_stabilization_time` should be sufficiently large (on the order of several seconds) so that unstable servers are not added to the datacenter until they stabilize.
+
+If the container running the currently-elected Consul server leader is stopped, a leader election will be triggered.
+
+When a previously stopped server container is restarted using `docker start <container_id>`, and it is configured to obtain a new IP, autopilot will add it back to the set of Raft peers with the same _node-id_ and the new IP address, after which it can participate as a server again.
+
+### Backing-up data
+
+You can back-up your Consul datacenter using the [consul snapshot](/consul/commands/snapshot) command.
+
+```shell-session
+$ docker exec <container_id> consul snapshot save backup.snap
+```
+
+This will leave the `backup.snap` snapshot file inside of your container. If you are not saving your snapshot to a [persistent volume](https://docs.docker.com/storage/volumes/) then you will need to use `docker cp` to move your snapshot to a location outside of your container.
+
+```shell-session
+$ docker cp <container_id>:backup.snap ./
+```
+
+Users running the Consul Enterprise Docker containers can run the [consul snapshot agent](/consul/commands/snapshot/agent) to save backups automatically. Consul Enterprise's snapshot agent also allows you to save snapshots to Amazon S3 and Azure Blob Storage.
+
+### Environment variables
+
+The Consul Docker image supports configuration via environment variables passed in from the Docker command line.
+
+#### Consul agent
+
+`CONSUL_LOCAL_CONFIG`, `CONSUL_CLIENT_INTERFACE` and `CONSUL_BIND_INTERFACE` are passed to the container with the `-e` flag.
+
+`CONSUL_LOCAL_CONFIG` supports passing a JSON string of keys and values. To define the `datacenter`, `server`, and turn on debugging with `enable_debug`, use the following snippet when launching the Consul agent.
+
+```shell-session
+$ docker run \
+  -d \
+  -e CONSUL_LOCAL_CONFIG='{
+  "datacenter":"us_west",
+  "server":true,
+  "enable_debug":true
+  }' \
+  consul agent -server -bootstrap-expect=3
+```
+
+`CONSUL_CLIENT_INTERFACE` is a string value representing the name of the interface on which Consul exposes DNS, gRPC, and HTTP APIs.
+
+`CONSUL_BIND_INTERFACE` is a string value representing the interface Consul uses for internal Consul cluster communication.
+
+At runtime, these environment variables are passed as values for the `-bind` and `-client` arguments for the `consul` binary.
+
+~> A common implementation pattern includes using the same interface for the client and bind arguments. This isn't required; you have the option of configuring different interfaces for each value. An example is shown below.
+
+```shell-session
+$ docker run \
+  -d \
+  -e CONSUL_CLIENT_INTERFACE=en0 \
+  -e CONSUL_BIND_INTERFACE=en1 \
+  consul agent -server -bootstrap-expect-3
+```
+
+Setting the `CONSUL_ALLOW_PRIVILEGED_PORTS` to `true` runs [`setcap`](https://man7.org/linux/man-pages/man8/setcap.8.html) on the Consul binary, allowing it to bind to [privileged ports](https://www.w3.org/Daemon/User/Installation/PrivilegedPorts.html).
+
+In this example `consul agent` runs a DNS server on port 53, a privileged port, and sets the upstream DNS server to `8.8.8.8` via the `-recursor` argument.
+
+```shell-session
+$ docker run -d --net=host -e 'CONSUL_ALLOW_PRIVILEGED_PORTS=true' consul agent -dns-port=53 -recursor=8.8.8.8
+```
+
+~> Not all Docker storage backends support this feature (notably AUFS). Read this [aufs issue on github for docker-vault](https://github.com/hashicorp/docker-vault/issues/19) for more information.
+
+
+## Next steps
+
+In this tutorial, you learned to deploy a containerized Consul datacenter. You also learned how to deploy a containerized service and how to configure your Consul client to register that service with your Consul datacenter.
+
+You can continue learning how to deploy a secure Consul datacenter by completing the [deploy a secure local Consul datacenter using Docker Compose](/consul/tutorials/docker/docker-compose-datacenter) tutorial.
+
+For additional reference documentation on the official Docker image for Consul, refer to the following websites:
+
+- [Docker Documentation](https://docs.docker.com/)
+- [Consul @ Docker Hub](https://hub.docker.com/_/consul)
+- [hashicorp/docker-consul GitHub
+  Repository](https://github.com/hashicorp/docker-consul)

@@ -1,0 +1,61 @@
+---
+layout: docs
+page_title: Node parameters for Consul agent configuration files
+description: >-
+  Use agent configuration files to assign attributes to agents and configure multiple agents at once. Learn about agent configuration file parameters and formatting with this reference page and sample code.
+---
+
+# Node parameters for Consul agent configuration files
+
+The page provides reference information for node parameters in a Consul agent configuration file.
+
+## Node Parameters 
+
+- `node_id` ((#\_node_id)) - Specifies  a unique identifier for this node across all time, even if the name of the node
+  or address changes. This must be in the form of a hex string, 36 characters long,
+  such as `adf4238a-882b-9ddc-4a9d-5b6758e4159e`. If this isn't supplied, which is
+  the most common case, then the agent will generate an identifier at startup and
+  persist it in the data directory so that it will remain the same
+  across agent restarts. Information from the host will be used to generate a deterministic
+  node ID if possible, unless [`disable-host-node-id`](#_disable_host_node_id) is
+  set to true.
+
+- `node_name`((#\_node)) - The name of this node in the cluster. This name must
+  be unique within the cluster. By default, it assumes the hostname of the machine.
+  The node name cannot contain whitespace or quotation marks. To query the node from DNS, the name must only contain alphanumeric characters and hyphens (`-`). Equivalent to the [`-node` command-line flag](/consul/commands/agent#_node).
+
+- `node_meta` This object allows
+  associating arbitrary metadata key/value pairs with the local node, which can
+  then be used for filtering results from certain catalog endpoints. Refer to the
+  [`-node-meta` command-line flag](/consul/commands/agent#_node_meta) for more
+  information.
+
+- `disable_host_node_id` ((#\_disable_host_node_id)) - Set this parameter to `true` to prevent Consul from using information from the host to generate a deterministic
+  node ID. Instead, Consul generates a random node ID that it persists in the data directory. This parameter is useful when running multiple Consul agents on the same
+  host for testing. The default value is `false`, so you must opt-in for host-based IDs. Host-based IDs are generated using [gopsutil](https://github.com/shirou/gopsutil/), which
+  is shared with [HashiCorp Nomad](/nomad/docs), so if you opt-in to host-based IDs, then Consul and Nomad will use information on the host to automatically assign the same ID in both systems. Equivalent to the [`-disable-host-node-id` command-line flag](/consul/commands/agent#_disable_host_node_id).
+
+## Examples
+
+### Node meta
+
+This example illustrates `node_meta` configuration.
+
+<CodeTabs>
+
+```hcl
+node_meta {
+  instance_type = "t2.medium"
+}
+```
+
+```json
+{
+  "node_meta": {
+    "instance_type": "t2.medium"
+  }
+}
+```
+
+</CodeTabs>
+

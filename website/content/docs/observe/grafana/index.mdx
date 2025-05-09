@@ -1,0 +1,91 @@
+---
+layout: docs
+page_title: Service Mesh Observability - Dashboards
+description: >-
+  This documentation provides an overview of several dashboards designed for monitoring and managing services within a Consul-managed Envoy service mesh. Learn how to enable access logs and configure key performance and operational metrics to ensure the reliability and performance of services in the service mesh.
+---
+
+# Dashboards for service mesh observability
+
+This topic describes the configuration and usage of dashboards for monitoring and managing services within a Consul-managed Envoy service mesh. These dashboards provide critical insights into the health, performance, and resource utilization of services. The dashboards described here are essential tools for ensuring the stability, efficiency, and reliability of your service mesh environment. 
+
+This page provides reference information about the Grafana dashboard configurations included in the [`grafana` directory in the `hashicorp/consul` GitHub repository](https://github.com/hashicorp/consul/tree/main/grafana).
+
+## Dashboards overview
+
+The repository includes the following dashboards:
+
+  - **Consul service-to-service dashboard**: Provides a detailed view of service-to-service communications, monitoring key metrics like access logs, HTTP requests, error counts, response code distributions, and request success rates. The dashboard includes customizable filters for focusing on specific services and namespaces.
+
+  - **Consul service dashboard**: Tracks key metrics for Envoy proxies at the cluster and service levels, ensuring the performance and reliability of individual services within the mesh.
+
+  - **Consul dataplane dashboard**: Offers a comprehensive overview of service health and performance, including request success rates, resource utilization (CPU and memory), active connections, and cluster health. It helps operators maintain service reliability and optimize resource usage.
+
+  - **Consul k8s dashboard**: Focuses on monitoring the health and resource usage of the Consul control plane within a Kubernetes environment, ensuring the stability of the control plane.
+
+  - **Consul server dashboard**: Provides detailed monitoring of Consul servers, tracking key metrics like server health, CPU and memory usage, disk I/O, and network performance. This dashboard is critical for ensuring the stability and performance of Consul servers within the service mesh.
+
+## Enabling prometheus
+
+Add the following configurations to your Consul Helm chart to enable the prometheus tools.
+
+<CodeBlockConfig>
+
+```yaml
+global:
+  metrics:
+    enabled: true
+    provider: "prometheus"
+    enableAgentMetrics: true
+    agentMetricsRetentionTime: "10m"
+
+prometheus:
+  enabled: true
+
+ui:
+  enabled: true
+  metrics:
+    enabled: true
+    provider: "prometheus"
+    baseURL: http://prometheus-server.consul
+```
+
+</CodeBlockConfig>
+
+## Enable access logs
+
+Access logs configurations are defined globally in the [`proxy-defaults`](/consul/docs/reference/config-entry/proxy-defaults#accesslogs) configuration entry.
+
+The following example is a minimal configuration for enabling access logs:
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind      = "proxy-defaults"
+Name      = "global"
+AccessLogs {
+  Enabled = true
+}
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ProxyDefaults
+metadata:
+  name: global
+spec:
+  accessLogs:
+    enabled: true
+```
+
+```json
+{
+  "Kind": "proxy-defaults",
+  "Name": "global",
+  "AccessLogs": {
+    "Enabled": true
+  }
+}
+```
+
+</CodeTabs>

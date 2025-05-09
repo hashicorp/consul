@@ -6,16 +6,18 @@ package lua
 import (
 	"errors"
 	"fmt"
+
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_lua_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/lua/v3"
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	envoy_resource_v3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
 	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/mapstructure"
+
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
 )
 
 var _ extensioncommon.BasicExtension = (*lua)(nil)
@@ -57,7 +59,7 @@ func (l *lua) validate() error {
 	if l.Script == "" {
 		resultErr = multierror.Append(resultErr, fmt.Errorf("missing Script value"))
 	}
-	if l.ProxyType != string(api.ServiceKindConnectProxy) {
+	if l.ProxyType != string(api.ServiceKindConnectProxy) && l.ProxyType != string(api.ServiceKindAPIGateway) {
 		resultErr = multierror.Append(resultErr, fmt.Errorf("unexpected ProxyType %q", l.ProxyType))
 	}
 	if l.Listener != "inbound" && l.Listener != "outbound" {

@@ -34,7 +34,7 @@ The table below shows this endpoint's support for
   and configuration entries such as `service-intentions`. This field must be a
   valid DNS hostname label.
 
-@include 'http-api-body-options-partition.mdx'
+@include 'legacy/http-api-body-options-partition.mdx'
 
 - `ServerExternalAddresses` `([]string: <optional>)` - The addresses for the cluster that generates the peering token. Addresses take the form `{host or IP}:port`.
 You can specify one or more load balancers or external IPs that route external traffic to this cluster's Consul servers.
@@ -99,7 +99,7 @@ The table below shows this endpoint's support for
   and configuration entries such as `service-intentions`. This field must be a
   valid DNS hostname label.
 
-@include 'http-api-body-options-partition.mdx'
+@include 'legacy/http-api-body-options-partition.mdx'
 
 - `PeeringToken` `(string: <required>)` - The peering token fetched from the
   peer cluster.
@@ -159,7 +159,7 @@ The table below shows this endpoint's support for
 
 ### Query Parameters
 
-@include 'http-api-query-parms-partition.mdx'
+@include 'legacy/http-api-query-parms-partition.mdx'
 
 ### Sample Request
 
@@ -231,7 +231,7 @@ The table below shows this endpoint's support for
 
 ### Query Parameters
 
-@include 'http-api-query-parms-partition.mdx'
+@include 'legacy/http-api-query-parms-partition.mdx'
 
 ### Sample Request
 
@@ -263,7 +263,7 @@ $ curl --request DELETE \
 
 This endpoint lists all the peerings.
 
-@include 'http_api_results_filtered_by_acls.mdx'
+@include 'legacy/http_api_results_filtered_by_acls.mdx'
 
 | Method | Path          | Produces           |
 | ------ | ------------- | ------------------ |
@@ -281,7 +281,7 @@ The table below shows this endpoint's support for
 
 ### Query Parameters
 
-@include 'http-api-query-parms-partition.mdx'
+@include 'legacy/http-api-query-parms-partition.mdx'
 
 ### Sample Request
 

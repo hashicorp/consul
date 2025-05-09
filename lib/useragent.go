@@ -12,7 +12,7 @@ import (
 
 var (
 	// projectURL is the project URL.
-	projectURL = "https://www.consul.io/"
+	projectURL = "https://developer.hashicorp.com/"
 
 	// rt is the runtime - variable for tests.
 	rt = runtime.Version()

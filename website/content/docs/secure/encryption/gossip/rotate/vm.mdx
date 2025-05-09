@@ -1,0 +1,105 @@
+---
+layout: docs
+page_title: Rotate gossip encryption keys
+description: >-
+  Consul agents use encryption keys to secure their gossip communication, and you must rotate the keys periodically to maintain network security. Learn how to use `keygen` and `keyring` commands to rotate keys for agents on k8s clusters.
+---
+
+# Rotate gossip encryption keys
+
+This page describes the process to rotate gossip encryption keys on virtual
+machines.
+
+## Overview
+
+It is important to periodically rotate the gossip encryption key your Consul datacenter uses.
+
+The process of rotating the gossip encryption key is centralized so that you can perform it on a single datacenter node.
+
+The process to rotate a gossip encryption key consists of the following steps:
+
+1. Generate a new encryption key using the `consul keygen` command.
+1. Install the new encryption key using the `consul keyring -install` command.
+1. Verify the new key is installed in your Consul datacenter with the `consul keyring -list` command.
+1. Instruct Consul to use the new key with the `consul keyring -use` command.
+1. Remove the old key using the `consul keyring -remove` command.
+
+## Generate a new encryption key
+
+Generate a new key using `consul keygen`.
+
+```shell-session
+$ consul keygen
+FfRV9j6NXU9LlCI4zLZjjpZdj4Nrqsdm7R8YgzSHzHw=
+```
+
+## Add new key to the keyring
+
+Add your newly generated key to the keyring.
+
+```shell-session
+$ consul keyring -install FfRV9j6NXU9LlCI4zLZjjpZdj4Nrqsdm7R8YgzSHzHw=
+==> Installing new gossip encryption key...
+```
+
+## Verify that the new key is installed
+
+After you add the key to one of the Consul agents, Consul propagates it across the entire datacenter. You do not need to repeat the command on other agents.
+
+To ensure that the key has been propagated to all agents, list the installed encryption keys and verify that the number of agents that recognize the key is equal to the total number of agents in the datacenter.
+
+```shell-session
+$ consul keyring -list
+==> Gathering installed encryption keys...
+
+WAN:
+  FfRV9j6NXU9LlCI4zLZjjpZdj4Nrqsdm7R8YgzSHzHw= [1/1]
+  YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA= [1/1]
+
+dc1 (LAN):
+  YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA= [7/7]
+  FfRV9j6NXU9LlCI4zLZjjpZdj4Nrqsdm7R8YgzSHzHw= [7/7]
+```
+
+Confirm that the two keys are installed in the datacenter and recognized by all agents, including server agents. The server agents are listed in the `WAN` section. Do not proceed to the next step unless all agents have the new key.
+
+## Promote the new key to primary
+
+After all agents recognize the key, it is possible to promote it to be the new primary encryption key.
+
+```shell-session
+$ consul keyring -use FfRV9j6NXU9LlCI4zLZjjpZdj4Nrqsdm7R8YgzSHzHw=
+==> Changing primary gossip encryption key...
+```
+
+## Remove the old key from the keyring
+
+Unused keys in the keyring are a potential security risk to your Consul cluster. We recommended that you remove the former primary key from the keyring after a new key is installed.
+
+```shell-session
+$ consul keyring -remove YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA=
+==> Removing gossip encryption key...
+```
+
+Verify that the keyring contains only one key.
+
+```shell-session
+$ consul keyring -list
+==> Gathering installed encryption keys...
+
+WAN:
+  FfRV9j6NXU9LlCI4zLZjjpZdj4Nrqsdm7R8YgzSHzHw= [1/1]
+
+dc1 (LAN):
+  FfRV9j6NXU9LlCI4zLZjjpZdj4Nrqsdm7R8YgzSHzHw= [7/7]
+```
+
+## Next steps
+
+For documentation for the commands used in this topic, refer to [Encryption parameters for Consul agent configuration files](/consul/docs/reference/agent/configuration-file/encryption). You can find more information for the gossip protocol used by Consul at [Gossip Protocol](/consul/docs/concept/gossip).
+
+After you enable gossip encryption, you can continue to process to secure your Consul datacenter by enabling mutual TLS encryption. For more information, refer to [Mutual TLS (mTLS) Encryption](/consul/docs/secure/encryption/tls/mtls).
+
+To learn how to automate gossip key rotation using HashiCorp Vault and
+consul-template, refer to the [Automatically Rotate Gossip Encryption Keys
+Secured in Vault tutorial](/consul/docs/automate/consul-template/vault/gossip).

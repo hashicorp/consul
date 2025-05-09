@@ -1,0 +1,350 @@
+---
+layout: docs
+page_title: Monitor Consul with AppDynamics CNS
+description: >-
+  Use HashiCorp's Consul Monitoring Extension for AppDynamics CNS to collect Consul telemetry data and node information.
+---
+
+# Monitor Consul with AppDynamics CNS
+
+This page describes the process to monitor Consul telemetry data with the Consul monitoring extension for AppDynamics CNS.
+
+## Overview
+
+Consul produces a range of metrics in various formats, which enables operators 
+to measure the health and stability of a datacenter, and diagnose or predict 
+potential issues.
+
+This tutorial will show you how to use the 
+[HashiCorp Consul Monitoring Extension](https://github.com/hashicorp/consul-appd-extension)
+for AppDynamics CNS to collect Consul telemetry data and node information.
+
+The integration enables you to collect information about 
+[HashiCorp Cloud Platform (HCP) Consul](/consul/tutorials/get-started-hcp/hcp-gs-deploy) 
+environments through Consul client agents.  AppDynamics CNS is also 
+[HCP Consul Verified](/hcp/docs/consul).
+You will install [AppDynamics Machine Agent](https://docs.appdynamics.com/display/PRO45/Infrastructure+Visibility) 
+on the Consul agents and use [statsite](https://github.com/statsite/statsite) as 
+a metrics aggregator to collect node telemetry metrics.
+
+The extension provides you with two example dashboards that will be imported 
+into your AppDynamics controller.
+
+## Prerequisites and configuration
+
+In order to complete this tutorial the following prerequisites need to be satisfied:
+
+- A running Consul or [HCP Consul](/consul/tutorials/get-started-hcp/hcp-gs-deploy) datacenter to monitor with AppDynamics.
+- An AppDynamics SaaS or On-Prem controller version 4.5 or greater.
+- The Consul agents that are being monitored will also need to meet AppDynamics
+  Machine Agent [requirements and supported environments](https://docs.appdynamics.com/display/PRO45/Standalone+Machine+Agent+Requirements+and+Supported+Environments).
+
+## Setup monitoring
+
+You will perform the integration in four steps:
+
+- Install AppDynamics Machine Agent including the JRE on the Consul nodes.
+- Install HashiCorp Consul Monitoring Extension for AppDynamics CNS.
+- Build and install statsite (which is a metrics aggregator like statsd) to collect node metrics.
+- Configure Consul to send telemetry data to the AppDynamics agent.
+
+### Install AppDynamics Machine Agent bundle
+
+To integrate your Consul datacenter with AppDynamics you will install and 
+configure the AppDynamics Machine Agent on all the nodes you want to monitor and 
+configure Consul to send telemetry data to it.
+
+1. Download the AppDynamics [Machine Agent Bundle](https://download.appdynamics.com/download/#version=&apm=machine&os=&platform_admin_os=&appdynamics_cluster_os=&events=&eum=&page=1).
+
+2. As `root` or super user, unzip and setup the service file.
+
+   ```shell-session
+   $ sudo su
+   ```
+
+   ```shell-session
+   $ mkdir -p /opt/appdynamics/machine-agent
+   ```
+
+   ```shell-session
+   $ unzip ./machineagent-bundle-64bit-linux-4.5.15.2316.zip -d /opt/appdynamics/machine-agent
+   ```
+
+   ```shell-session
+   $ cp /opt/appdynamics/machine-agent/etc/systemd/system/appdynamics-machine-agent.service /etc/systemd/system/appdynamics-machine-agent.service
+   ```
+
+   ```shell-session
+   $ systemctl daemon-reload
+   ```
+
+   -> An official installation guide is available on the [AppDynamics documentation website](https://docs.appdynamics.com/display/PRO45/Linux+Install+Using+ZIP+with+Bundled+JRE)
+
+3. Configure the AppDynamics Machine Agent to communicate with the controller
+   when running in standalone mode.
+
+   ```shell-session
+   $ cd /opt/appdynamics/machine-agent/conf
+   ```
+
+   ```shell-session
+   $ vi controller-info.xml
+   ```
+
+   Note, this requires editing the controller file `controller-info.xml`. You 
+   will need to obtain your AppDynamics Controller access information and
+   configure it in `controller-info.xml` file before you begin the steps below.
+   Refer to [configure the Standalone Machine Agent](https://docs.appdynamics.com/display/PRO45/Configure+the+Standalone+Machine+Agent) for the configuration reference.
+
+4. It is highly recommended to increase the value of `maxMetrics` so that data
+   doesn't get truncated. Add Java options in AppDynamics agent service
+   definition to increase the value of `maxMetrics`.
+
+   ```shell-session
+   $ sed -i 's/#Environment="JAVA_OPTS=-D<sys-property1>=<value1> -D<sys-property2>=<value2>"/Environment="JAVA_OPTS=-Dappdynamics.agent.maxMetrics=10000"/g' /etc/systemd/system/appdynamics-machine-agent.service
+   ```
+
+### Configure AppDynamics machine agent for Consul telemetry
+
+Now that the agent is configured you can install the monitoring extension for
+AppDynamics CNS.
+
+Clone the [consul-appd-extension repo](https://github.com/hashicorp/consul-appd-extension) and copy the contents of folder
+`statsite` into `/opt/appdynamics/machine-agent/monitors/StatSite`:
+
+```git
+$ git clone https://github.com/hashicorp/consul-appd-extension.git
+Cloning into 'consul-appd-extension'...
+...
+```
+
+```shell-session
+$ ls -1 ./consul-appd-extension/statsite/
+monitor.xml
+output.py
+statsite.conf
+statsite.sh
+```
+
+```shell-session
+$ mkdir -p /opt/appdynamics/machine-agent/monitors/StatSite
+```
+
+```shell-session
+$ cp ./consul-appd-extension/statsite/* /opt/appdynamics/machine-agent/monitors/StatSite
+```
+
+### Compile and install statsite
+
+The extension uses statsite to import statsd Consul metrics into AppDynamics. To 
+achieve this, it will need a statsite executable embedded in the agent folder. 
+This following sections demonstrate how to build statsite for your nodes.
+
+~> Due to the amount of dependencies necessary to successfully build statsite it 
+is recommended to perform the build activity on a machine different from the
+Consul agents to avoid dependency issues or installing un-necessary software on 
+the nodes. Once the build is completed you can distribute the binary to the
+Consul nodes to perform the integration.
+
+#### Install dependencies
+
+This tutorial provides you with commands to perform the build for different Linux
+flavors but you should refer to the official 
+[statsite installation guide](https://github.com/statsite/statsite/blob/master/INSTALL.md) 
+to find the best set of steps for your OS.
+
+<Tabs>
+<Tab heading="Debian based OS">
+
+```shell-session
+$ apt-get update
+```
+
+```shell-session
+$ apt-get -y install build-essential libtool autoconf automake scons python-setuptools lsof git texlive check
+```
+
+</Tab>
+<Tab heading="Red Hat based OS">
+
+```shell-session
+$ yum update
+```
+
+```shell-session
+$ yum groupinstall -y 'Development Tools'
+```
+
+```shell-session
+$ yum install -y install libtool autoconf automake scons python-setuptools lsof git texlive check
+```
+
+</Tab>
+</Tabs>
+
+#### Compile
+
+```shell-session
+$ cd ~ && wget https://github.com/statsite/statsite/archive/v0.8.0.zip
+```
+
+```shell-session
+$ unzip v0.8.0.zip && cd statsite-0.8.0
+```
+
+```shell-session
+$ ./bootstrap.sh
+```
+
+```shell-session
+$ ./configure
+```
+
+```shell-session
+$ make
+```
+
+#### Install
+
+The installation will require you to copy the `statsite` executable into
+`/opt/appdynamics/machine-agent/monitors/StatSite` for every node you want to
+monitor.
+
+```shell-session
+$ cp ./src/statsite /opt/appdynamics/machine-agent/monitors/StatSite
+```
+
+### Configure Consul to send metrics to statsite
+
+The last step in the integration is to configure your Consul agents to send 
+their telemetry data to AppDynamics CNS via statsite.
+
+<Tabs>
+<Tab heading="HCL">
+
+<CodeBlockConfig filename="consul-statsite.hcl">
+
+```hcl
+telemetry {
+  dogstatsd_addr = "localhost:8125"
+}
+```
+
+</CodeBlockConfig>
+
+You can apply it to Consul by copying the file into your Consul configuration
+folder and then by performing a rolling restart of all the nodes that will use
+the integration.
+
+```shell-session
+$ cp ./consul-statsite.hcl /etc/consul.d/
+```
+
+</Tab>
+<Tab heading="JSON">
+
+The extension repository provides you with a configuration file already set to
+use the statsite instance you embedded in AppDynamics machine agent bundle.
+
+<CodeBlockConfig filename="consul-statsite.json">
+
+```json
+{
+  "telemetry": {
+    "statsite_address": "localhost:8125"
+  }
+}
+```
+
+</CodeBlockConfig>
+
+You can apply it to Consul by copying the file into your Consul configuration
+folder and then by performing a rolling restart of all the nodes that will use
+the integration.
+
+```shell-session
+$ cp ./consul-appd-extension/consul-statsite.json /etc/consul.d/
+```
+
+</Tab>
+</Tabs>
+
+## Display telemetry Metrics
+
+For a complete list of Consul metrics supported by these integrations, as well 
+as details on what each metric means, consult the Consul
+[telemetry documentation](/consul/docs/reference/agent/telemetry).
+
+<Note>
+
+ The AppDynamics Integration with HCP Consul collects a subset of 
+Consul's default metrics that do not pertain to [server health](/consul/docs/reference/agent/telemetry#server-health).
+
+</Note>
+
+### Finding metrics
+
+All metrics reported by the extension will be available in the Metric Browser
+at `Controller > Applications > Application > Metric Browser`.
+
+- `Application Infrastructure Performance > Consul > Custom Metrics > statsd > consul`
+  lists the available Consul metrics:
+
+![AppDynamics CNS Custom Metrics Consul](/img/consul/cloud-integrations/appdynamics-ui-available-metrics-consul.png)
+
+- `Application Infrastructure Performance > Consul > Custom Metrics > statsd > envoy`
+  lists metrics available for the Connect service mesh.
+
+![AppDynamics CNS Custom Metrics Service Mesh ](/img/consul/cloud-integrations/appdynamics-ui-available-metrics-service-mesh.png)
+
+### Custom dashboard
+
+The extension repository provides two custom dashboards to get you started on 
+monitoring Consul. They are located in the `dashboards` folder.
+
+```shell-session
+$ ls -1 ./dashboards
+```
+
+```plaintext hideClipboard
+consul_dashboard.json
+consul_servicemesh_dashboard.json
+```
+
+To import the dashboards:
+
+1. Log into your AppDynamics controller. Select the `Dashboards & Reports tab > Dashboards > Import`.
+1. Upload the `.json` dashboard file.
+
+Once uploaded the dashboards will be available in the `Dashboard & Reports tab`.
+
+![AppDynamics CNS Custom Dashboard Consul Metrics](/img/consul/cloud-integrations/appdynamics-ui-dashboard-consul.png)
+
+![AppDynamics CNS Custom Dashboard Service Mesh Metrics](/img/consul/cloud-integrations/appdynamics-ui-dashboard-service-mesh.png)
+
+<Note>
+
+ You will need to change the value for the key `applicationName` 
+within the templates to match your application name.
+
+</Note>
+
+### Custom health rules
+
+AppDynamics CNS provides the ability to customize health rules, the policy
+statements that define triggers. Health rules for Consul are created
+against the applications that are using its service discovery and service mesh
+so that the metrics for the application as well as Consul can be seen against
+particular applications in AppDynamics.
+
+![AppDynamics CNS custom health rules screen](/img/consul/cloud-integrations/appdynamics-ui-health-rules.png)
+
+## Next steps
+
+In this tutorial you learned how to integrate AppDynamics machine agent with
+Consul and HCP Consul to collect metrics and import custom dashboards into 
+AppDynamics CNS to have a monitoring starting point and consider your options 
+for visualizing, aggregating, and alerting on those metrics.
+
+For more information on how to personalize your dashboards you can refer to
+AppDynamics documentation for [creating custom dashboards](https://docs.appdynamics.com/display/PRO45/Custom+Dashboards).

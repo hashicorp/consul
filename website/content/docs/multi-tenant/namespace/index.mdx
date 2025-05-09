@@ -1,0 +1,25 @@
+---
+page_title: Namespaces overview
+description: |-
+  Namespaces reduce operational challenges in large deployments. Learn how to define a namespace so that multiple users or teams can access and use the same datacenter without impacting each other.
+---
+
+# Namespaces overview
+
+<EnterpriseAlert>
+
+This feature requires
+HashiCorp Cloud Platform (HCP) or self-managed Consul Enterprise.
+Refer to the [enterprise feature matrix](/consul/docs/enterprise#consul-enterprise-feature-availability) for additional information.
+
+</EnterpriseAlert>
+
+With Consul Enterprise 1.7.0+, data for different users or teams
+can be isolated from each other with the use of namespaces. Namespaces help reduce operational challenges
+by removing restrictions around uniqueness of resource names across distinct teams, and enable operators
+to provide self-service through delegation of administrative privileges.
+
+For more information on how to use namespaces with Consul Enterprise please review the following tutorials:
+
+- [Register and Discover Services within Namespaces](/consul/tutorials/namespaces/namespaces-share-datacenter-access?utm_source=docs) - Register multiple services within different namespaces in Consul.
+- [Setup Secure Namespaces](/consul/tutorials/namespaces/namespaces-secure-shared-access?utm_source=docs) - Secure resources within a namespace and delegate namespace ACL rights via ACL tokens.

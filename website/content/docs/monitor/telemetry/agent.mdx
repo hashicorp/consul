@@ -1,0 +1,371 @@
+---
+layout: docs
+page_title: Agents - Enable Telemetry Metrics
+description: >-
+  Configure agent telemetry to collect operations metrics you can use to debug and observe Consul behavior and performance. Learn about configuration options, the metrics you can collect, and why they're important.
+---
+
+# Agent Telemetry
+
+The Consul agent collects various runtime metrics about the performance of
+different libraries and subsystems. These metrics are aggregated on a ten
+second (10s) interval and are retained for one minute. An _interval_ is the period of time between instances of data being collected and aggregated.
+
+When telemetry is being streamed to an external metrics store, the interval is defined to be that store's flush interval.
+
+|External Store|Interval (seconds)|
+|:--------|:--------|
+|[dogstatsd](https://docs.datadoghq.com/developers/dogstatsd/?tab=hostagent#how-it-works)|10s|
+|[Prometheus](https://vector.dev/docs/reference/configuration/sinks/prometheus_exporter/#flush_period_secs)| 60s|
+|[statsd](https://github.com/statsd/statsd/blob/master/docs/metric_types.md#timing)|10s|
+
+To view this data, you must send a signal to the Consul process: on Unix,
+this is `USR1` while on Windows it is `BREAK`. Once Consul receives the signal,
+it will dump the current telemetry information to the agent's `stderr`.
+
+This telemetry information can be used for debugging or otherwise
+getting a better view of what Consul is doing. Review the [Monitoring and
+Metrics tutorial](/consul/tutorials/day-2-operations/monitor-datacenter-health?utm_source=docs) to learn how collect and interpret Consul data.
+
+By default, all metric names of gauge type are prefixed with the hostname of the consul agent, e.g.,
+`consul.hostname.server.isLeader`. To disable prefixing the hostname, set
+`telemetry.disable_hostname=true` in the [agent configuration](/consul/docs/reference/agent/configuration-file/telemetry).
+
+Additionally, if the [`telemetry` configuration options](/consul/docs/reference/agent/configuration-file/telemetry)
+are provided, the telemetry information will be streamed to a
+[statsite](http://github.com/armon/statsite) or [statsd](http://github.com/etsy/statsd) server where
+it can be aggregated and flushed to Graphite or any other metrics store.
+For a configuration example for Telegraf, review the [Monitoring with Telegraf tutorial](/consul/tutorials/day-2-operations/monitor-health-telegraf?utm_source=docs).
+
+This
+information can also be viewed with the [metrics endpoint](/consul/api-docs/agent#view-metrics) in JSON
+format or using [Prometheus](https://prometheus.io/) format.
+
+<CodeBlockConfig heading="Sample output of telemetry dump">
+
+```log
+[2014-01-29 10:56:50 -0800 PST][G] 'consul-agent.runtime.num_goroutines': 19.000
+[2014-01-29 10:56:50 -0800 PST][G] 'consul-agent.runtime.alloc_bytes': 755960.000
+[2014-01-29 10:56:50 -0800 PST][G] 'consul-agent.runtime.malloc_count': 7550.000
+[2014-01-29 10:56:50 -0800 PST][G] 'consul-agent.runtime.free_count': 4387.000
+[2014-01-29 10:56:50 -0800 PST][G] 'consul-agent.runtime.heap_objects': 3163.000
+[2014-01-29 10:56:50 -0800 PST][G] 'consul-agent.runtime.total_gc_pause_ns': 1151002.000
+[2014-01-29 10:56:50 -0800 PST][G] 'consul-agent.runtime.total_gc_runs': 4.000
+[2014-01-29 10:56:50 -0800 PST][C] 'consul-agent.agent.ipc.accept': Count: 5 Sum: 5.000
+[2014-01-29 10:56:50 -0800 PST][C] 'consul-agent.agent.ipc.command': Count: 10 Sum: 10.000
+[2014-01-29 10:56:50 -0800 PST][C] 'consul-agent.serf.events': Count: 5 Sum: 5.000
+[2014-01-29 10:56:50 -0800 PST][C] 'consul-agent.serf.events.foo': Count: 4 Sum: 4.000
+[2014-01-29 10:56:50 -0800 PST][C] 'consul-agent.serf.events.baz': Count: 1 Sum: 1.000
+[2014-01-29 10:56:50 -0800 PST][S] 'consul-agent.memberlist.gossip': Count: 50 Min: 0.007 Mean: 0.020 Max: 0.041 Stddev: 0.007 Sum: 0.989
+[2014-01-29 10:56:50 -0800 PST][S] 'consul-agent.serf.queue.Intent': Count: 10 Sum: 0.000
+[2014-01-29 10:56:50 -0800 PST][S] 'consul-agent.serf.queue.Event': Count: 10 Min: 0.000 Mean: 2.500 Max: 5.000 Stddev: 2.121 Sum: 25.000
+```
+
+</CodeBlockConfig>
+
+# Key Metrics
+
+These are some metrics emitted that can help you understand the health of your cluster at a glance. A [Grafana dashboard](https://grafana.com/grafana/dashboards/13396) is also available, which is maintained by the Consul team and displays these metrics for easy visualization. For a full list of metrics emitted by Consul, see [Metrics Reference](#metrics-reference)
+
+### Transaction timing
+
+| Metric Name              | Description                                                                          | Unit                         | Type    |
+| :----------------------- | :----------------------------------------------------------------------------------- | :--------------------------- | :------ |
+| `consul.kvs.apply`       | Measures the time it takes to complete an update to the KV store.               | ms                           | timer   |
+| `consul.txn.apply`       | Measures the time spent applying a transaction operation.                       | ms                           | timer   |
+| `consul.raft.apply`      | Counts the number of Raft transactions applied during the interval. This metric is only reported on the leader. | raft transactions / interval | counter |
+| `consul.raft.commitTime` | Measures the time it takes to commit a new entry to the Raft log on the leader. | ms                           | timer   |
+
+**Why they're important:** Taken together, these metrics indicate how long it takes to complete write operations in various parts of the Consul cluster. Generally these should all be fairly consistent and no more than a few milliseconds. Sudden changes in any of the timing values could be due to unexpected load on the Consul servers, or due to problems on the servers themselves.
+
+**What to look for:** Deviations (in any of these metrics) of more than 50% from baseline over the previous hour.
+
+### Leadership changes
+
+| Metric Name                      | Description                                                                                                    | Unit      | Type    |
+| :------------------------------- | :------------------------------------------------------------------------------------------------------------- | :-------- | :------ |
+| `consul.raft.leader.lastContact` | Measures the time since the leader was last able to contact the follower nodes when checking its leader lease. | ms        | timer   |
+| `consul.raft.state.candidate`    | Increments whenever a Consul server starts an election.                                                   | elections | counter |
+| `consul.raft.state.leader`       | Increments whenever a Consul server becomes a leader.                                                     | leaders   | counter |
+| `consul.server.isLeader`         | Track if a server is a leader(1) or not(0).                                                               | 1 or 0    | gauge   |
+
+**Why they're important:** Normally, your Consul cluster should have a stable leader. If there are frequent elections or leadership changes, it would likely indicate network issues between the Consul servers, or that the Consul servers themselves are unable to keep up with the load.
+
+**What to look for:** For a healthy cluster, you're looking for a `lastContact` lower than 200ms, `leader` > 0 and `candidate` == 0. Deviations from this might indicate flapping leadership.
+
+### Certificate Authority Expiration
+
+| Metric Name                            | Description                                                             | Unit    | Type  |
+| :------------------------- | :---------------------------------------------------------------------------------- | :------ | :---- |
+| `consul.mesh.active-root-ca.expiry`    | The number of seconds until the root CA expires, updated every hour.       | seconds | gauge |
+| `consul.mesh.active-signing-ca.expiry` | The number of seconds until the signing CA expires, updated every hour.    | seconds | gauge |
+| `consul.agent.tls.cert.expiry` | The number of seconds until the server agent's TLS certificate expires, updated every hour. | seconds | gauge |
+
+** Why they're important:** Consul Mesh requires a CA to sign all certificates
+used to connect the mesh and the mesh network ceases to work if they expire and
+become invalid. The Root is particularly important to monitor as Consul does
+not automatically rotate it. The TLS certificate metric monitors the certificate
+that the server's agent uses to connect with the other agents in the cluster.
+
+** What to look for:** The Root CA should be monitored for an approaching
+expiration, to indicate it is time for you to rotate the "root" CA either
+manually or with external automation. Consul should rotate the signing (intermediate) certificate
+automatically, but we recommend monitoring the rotation.  When the certificate does not rotate, check the server agent logs for
+messages related to the CA system. The agent TLS certificate's rotation handling
+varies based on the configuration.
+
+### Autopilot
+
+| Metric Name                | Description                                                                                                                                                                  | Unit         | Type  |
+| :------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----------- | :---- |
+| `consul.autopilot.healthy` | Tracks the overall health of the local server cluster. If all servers are considered healthy by Autopilot, this will be set to 1. If any are unhealthy, this will be 0. | health state | gauge |
+
+**Why it's important:** Autopilot can expose the overall health of your cluster with a simple boolean.
+
+**What to look for:** Alert if `healthy` is 0. Some other indicators of an unhealthy cluster would be:
+- `consul.raft.commitTime` - This can help reflect the speed of state store
+changes being performed by the agent. If this number is rising, the server may
+be experiencing an issue due to degraded resources on the host.
+- [Leadership change metrics](#leadership-changes) - Check for deviation from
+the recommended values. This can indicate failed leadership elections or
+flapping nodes.
+
+### Memory usage
+
+| Metric Name                  | Description                                                        | Unit  | Type  |
+| :--------------------------- | :----------------------------------------------------------------- | :---- | :---- |
+| `consul.runtime.alloc_bytes` | Measures the number of bytes allocated by the Consul process. | bytes | gauge |
+| `consul.runtime.sys_bytes`   | Measures the total number of bytes of memory obtained from the OS.  | bytes | gauge |
+
+**Why they're important:** Consul keeps all of its data in memory. If Consul consumes all available memory, it will crash.
+
+**What to look for:** If `consul.runtime.sys_bytes` exceeds 90% of total available system memory.
+
+**NOTE:** This metric is calculated using Go's runtime package
+[MemStats](https://golang.org/pkg/runtime/#MemStats). This will have a
+different output than using information gathered from `top`. For more
+information, see [GH-4734](https://github.com/hashicorp/consul/issues/4734).
+
+### Garbage collection
+
+| Metric Name                        | Description                                                                                           | Unit | Type  |
+| :--------------------------------- | :---------------------------------------------------------------------------------------------------- | :--- | :---- |
+| `consul.runtime.total_gc_pause_ns` | Number of nanoseconds consumed by stop-the-world garbage collection (GC) pauses since Consul started. | ns   | gauge |
+
+**Why it's important:** GC pause is a "stop-the-world" event, meaning that all runtime threads are blocked until GC completes. Normally these pauses last only a few nanoseconds. But if memory usage is high, the Go runtime may GC so frequently that it starts to slow down Consul.
+
+**What to look for:** Warning if `total_gc_pause_ns` exceeds 2 seconds/minute, critical if it exceeds 5 seconds/minute.
+
+**NOTE:** `total_gc_pause_ns` is a cumulative counter, so in order to calculate rates (such as GC/minute),
+you will need to apply a function such as InfluxDB's [`non_negative_difference()`](https://docs.influxdata.com/influxdb/v1.5/query_language/functions/#non-negative-difference).
+
+### Network activity - RPC Count
+
+| Metric Name                  | Description                                                                                                                                                                       | Unit     | Type    |
+| :--------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------- | :------ |
+| `consul.client.rpc`          | Increments whenever a Consul agent makes an RPC request to a Consul server                                                                                         | requests | counter |
+| `consul.client.rpc.exceeded` | Increments whenever a Consul agent makes an RPC request to a Consul server gets rate limited by that agent's [`limits`](/consul/docs/reference/agent/configuration-file/general#limits) configuration. | requests | counter |
+| `consul.client.rpc.failed`   | Increments whenever a Consul agent makes an RPC request to a Consul server and fails.                                                                              | requests | counter |
+
+**Why they're important:** These measurements indicate the current load created from a Consul agent, including when the load becomes high enough to be rate limited. A high RPC count, especially from `consul.client.rpcexceeded` meaning that the requests are being rate-limited, could imply a misconfigured Consul agent.
+
+**What to look for:**
+Sudden large changes to the `consul.client.rpc` metrics (greater than 50% deviation from baseline).
+`consul.client.rpc.exceeded` or `consul.client.rpc.failed` count > 0, as it implies that an agent is being rate-limited or fails to make an RPC request to a Consul server
+
+### Raft Thread Saturation
+
+| Metric Name                          | Description                                                                                                              | Unit       | Type   |
+| :----------------------------------- | :----------------------------------------------------------------------------------------------------------------------- | :--------- | :----- |
+| `consul.raft.thread.main.saturation` | An approximate measurement of the proportion of time the main Raft goroutine is busy and unavailable to accept new work. | percentage | sample |
+| `consul.raft.thread.fsm.saturation`  | An approximate measurement of the proportion of time the Raft FSM goroutine is busy and unavailable to accept new work.  | percentage | sample |
+
+**Why they're important:** These measurements are a useful proxy for how much
+capacity a Consul server has to accept additional write load. High saturation
+of the Raft goroutines can lead to elevated latency in the rest of the system
+and cause cluster instability.
+
+**What to look for:** Generally, a server's steady-state saturation should be
+less than 50%.
+
+**NOTE:** These metrics are approximate and under extremely heavy load won't
+give a perfect fine-grained view of how much headroom a server has available.
+Instead, treat them as an early warning sign.
+
+** Requirements: **
+* Consul 1.13.0+
+
+### Raft Replication Capacity Issues
+
+| Metric Name                  | Description                                                                                                                                                                       | Unit     | Type    |
+| :--------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------- | :------ |
+| `consul.raft.fsm.lastRestoreDuration`               | Measures the time taken to restore the FSM from a snapshot on an agent restart or from the leader calling installSnapshot. This is a gauge that holds it's value since most servers only restore during restarts which are typically infrequent.                                                                                                                                                                                                                                                                                                                                                                                                              | ms                                | gauge   |
+| `consul.raft.leader.oldestLogAge`                   | The number of milliseconds since the _oldest_ log in the leader's log store was written. This can be important for replication health where write rate is high and the snapshot is large as followers may be unable to recover from a restart if restoring takes longer than the minimum value for the current leader. Compare this with `consul.raft.fsm.lastRestoreDuration` and `consul.raft.rpc.installSnapshot` to monitor. In normal usage this gauge value will grow linearly over time until a snapshot completes on the leader and the log is truncated.                                                                                             | ms                                | gauge   |
+| `consul.raft.rpc.installSnapshot`                   | Measures the time taken to process the installSnapshot RPC call. This metric should only be seen on agents which are currently in the follower state.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | ms                                | timer   |
+
+**Why they're important:** These metrics allow operators to monitor the health
+and capacity of raft replication on servers. **When Consul is handling large
+amounts of data and high write throughput** it is possible for the cluster to
+get into the following state:
+ * Write throughput is high (say 500 commits per second or more) and constant
+ * The leader is writing out a large snapshot every minute or so
+ * The snapshot is large enough that it takes considerable time to restore from
+   disk on a restart or from the leader if a follower gets behind
+ * Disk IO available allows the leader to write a snapshot faster than it can be
+   restored from disk on a follower
+
+Under these conditions, a follower after a restart may be unable to catch up on
+replication and become a voter again since it takes longer to restore from disk
+or the leader than the leader takes to write a new snapshot and truncate its
+logs. Servers retain
+[`raft_trailing_logs`](/consul/docs/reference/agent/configuration-file/raft#raft_trailing_logs) (default
+`10240`) log entries even if their snapshot was more recent. On a leader
+processing 500 commits/second, that is only about 20 seconds worth of logs.
+Assuming the leader is able to write out a snapshot and truncate the logs in
+less than 20 seconds, there will only be 20 seconds worth of "recent" logs
+available on the leader right after the leader has taken a snapshot and never
+more than about 80 seconds worth assuming it is taking a snapshot and truncating
+logs every 60 seconds.
+
+In this state, followers must be able to restore a snapshot into memory and
+resume replication in under 80 seconds otherwise they will never be able to
+rejoin the cluster until write rates reduce. If they take more than 20 seconds
+then there will be a chance that they are unlucky with timing when they restart
+and have to download a snapshot again from the servers one or more times. If
+they take 50 seconds or more then they will likely fail to catch up more often
+than they succeed and will remain non-voters for some time until they happen to
+complete the restore just before the leader truncates its logs.
+
+In the worst case, the follower will be left continually downloading snapshots
+from the leader which are always too old to use by the time they are restored.
+This can put additional strain on the leader transferring large snapshots
+repeatedly as well as reduce the fault tolerance and serving capacity of the
+cluster.
+
+Since Consul 1.5.3
+[`raft_trailing_logs`](/consul/docs/reference/agent/configuration-file/raft#raft_trailing_logs) has been
+configurable. Increasing it allows the leader to retain more logs and give
+followers more time to restore and catch up. The tradeoff is potentially
+slower appends which eventually might affect write throughput and latency
+negatively so setting it arbitrarily high is not recommended. Before Consul
+1.10.0 it required a rolling restart to change this configuration on the leader
+though and since no followers could restart without loosing health this could
+mean loosing cluster availability and needing to recover the cluster from a loss
+of quorum.
+
+Since Consul 1.10.0
+[`raft_trailing_logs`](/consul/docs/reference/agent/configuration-file/raft#raft_trailing_logs) is now
+reloadable with `consul reload` or `SIGHUP` allowing operators to increase this
+without the leader restarting or loosing leadership allowing the cluster to be
+recovered gracefully.
+
+Monitoring these metrics can help avoid or diagnose this state.
+
+**What to look for:**
+
+`consul.raft.leader.oldestLogAge` should look like a saw-tooth wave increasing
+linearly with time until the leader takes a snapshot and then jumping down as
+the oldest logs are truncated. The lowest point on that line should remain
+comfortably higher (i.e. 2x or more) than the time it takes to restore a
+snapshot.
+
+There are two ways a snapshot can be restored on a follower: from disk on
+startup or from the leader during an `installSnapshot` RPC. The leader only
+sends an `installSnapshot` RPC if the follower is new and has no state, or if
+it's state is too old for it to catch up with the leaders logs.
+
+`consul.raft.fsm.lastRestoreDuration` shows the time it took to restore from
+either source the last time it happened. Most of the time this is when the
+server was started. It's a gauge that will always show the last restore duration
+(in Consul 1.10.0 and later) however long ago that was.
+
+`consul.raft.rpc.installSnapshot` is the timing information from the leader's
+perspective when it installs a new snapshot on a follower. It includes the time
+spent transferring the data as well as the follower restoring it. Since these
+events are typically infrequent, you may need to graph the last value observed,
+for example using `max_over_time` with a large range in Prometheus. While the
+restore part will also be reflected in `lastRestoreDuration`, it can be useful
+to observe this too since the logs need to be able to cover this entire
+operation including the snapshot delivery to ensure followers can always catch
+up safely.
+
+Graphing `consul.raft.leader.oldestLogAge` on the same axes as the other two
+metrics here can help see at a glance if restore times are creeping dangerously
+close to the limit of what the leader is retaining at the current write rate.
+
+Note that if servers don't restart often, then the snapshot could have grown
+significantly since the last restore happened so last restore times might not
+reflect what would happen if an agent restarts now.
+
+### License Expiration <EnterpriseAlert inline />
+
+| Metric Name                       | Description                                                      | Unit  | Type  |
+| :-------------------------------- | :--------------------------------------------------------------- | :---- | :---- |
+| `consul.system.licenseExpiration` | Number of hours until the Consul Enterprise license will expire. | hours | gauge |
+
+**Why they're important:**
+
+This measurement indicates how many hours are left before the Consul Enterprise license expires. When the license expires some
+Consul Enterprise features will cease to work. An example of this is that after expiration, it is no longer possible to create
+or modify resources in non-default namespaces or to manage namespace definitions themselves even though reads of namespaced
+resources will still work.
+
+**What to look for:**
+
+This metric should be monitored to ensure that the license doesn't expire to prevent degradation of functionality.
+
+
+### Bolt DB Performance
+
+| Metric Name                       | Description                                                      | Unit  | Type  |
+| :-------------------------------- | :--------------------------------------------------------------- | :---- | :---- |
+| `consul.raft.boltdb.freelistBytes` | Represents the number of bytes necessary to encode the freelist metadata. When [`raft_logstore.boltdb.no_freelist_sync`](/consul/docs/reference/agent/configuration-file/raft#raft_logstore_boltdb_no_freelist_sync) is set to `false` these metadata bytes must also be written to disk for each committed log. | bytes | gauge   |
+| `consul.raft.boltdb.logsPerBatch`  | Measures the number of logs being written per batch to the db. | logs | sample |
+| `consul.raft.boltdb.storeLogs`     | Measures the amount of time spent writing logs to the db. | ms | timer |
+| `consul.raft.boltdb.writeCapacity` | Theoretical write capacity in terms of the number of logs that can be written per second. Each sample outputs what the capacity would be if future batched log write operations were similar to this one. This similarity encompasses 4 things: batch size, byte size, disk performance and boltdb performance. While none of these will be static and its highly likely individual samples of this metric will vary, aggregating this metric over a larger time window should provide a decent picture into how this BoltDB store can perform | logs/second  | sample |
+
+
+** Requirements: **
+* Consul 1.11.0+
+
+**Why they're important:**
+
+The `consul.raft.boltdb.storeLogs` metric is a direct indicator of disk write performance of a Consul server. If there are issues with the disk or
+performance degradations related to Bolt DB, these metrics will show the issue and potentially the cause as well.
+
+**What to look for:**
+
+The primary thing to look for are increases in the `consul.raft.boltdb.storeLogs` times. Its value will directly govern an
+upper limit to the throughput of write operations within Consul.
+
+In Consul each write operation will turn into a single Raft log to be committed. Raft will process these
+logs and store them within Bolt DB in batches. Each call to store logs within Bolt DB is measured to record how long
+it took as well as how many logs were contained in the batch. Writing logs in this fashion is serialized so that
+a subsequent log storage operation can only be started after the previous one completed. The maximum number
+of log storage operations that can be performed each second is represented with the `consul.raft.boltdb.writeCapacity`
+metric. When log storage operations are becoming slower you may not see an immediate decrease in write capacity
+due to increased batch sizes of the each operation. However, the max batch size allowed is 64 logs. Therefore if
+the `logsPerBatch` metric is near 64 and the `storeLogs` metric is seeing increased time to write each batch to disk,
+then it is likely that increased write latencies and other errors may occur.
+
+There can be a number of potential issues that can cause this. Often times it could be performance of the underlying
+disks that is the issue. Other times it may be caused by Bolt DB behavior. Bolt DB keeps track of free space within
+the `raft.db` file. When needing to allocate data it will use existing free space first before further expanding the
+file. By default, Bolt DB will write a data structure containing metadata about free pages within the DB to disk for
+every log storage operation. Therefore if the free space within the database grows excessively large, such as after
+a large spike in writes beyond the normal steady state and a subsequent slow down in the write rate, then Bolt DB
+could end up writing a large amount of extra data to disk for each log storage operation. This has the potential
+to drastically increase disk write throughput, potentially beyond what the underlying disks can keep up with. To
+detect this situation you can look at the `consul.raft.boltdb.freelistBytes` metric. This metric is a count of
+the extra bytes that are being written for each log storage operation beyond the log data itself. While not a clear
+indicator of an actual issue, this metric can be used to diagnose why the `consul.raft.boltdb.storeLogs` metric
+is high.
+
+If Bolt DB log storage performance becomes an issue and is caused by free list management then setting
+[`raft_logstore.boltdb.no_freelist_sync`](/consul/docs/reference/agent/configuration-file/raft#raft_logstore_boltdb_no_freelist_sync) to `true` in the server's configuration
+may help to reduce disk IO and log storage operation times. Disabling free list syncing will however increase
+the startup time for a server as it must scan the raft.db file for free space instead of loading the already
+populated free list structure.
+
+Consul includes an experiment backend configuration that you can use instead of BoldDB. Refer to [Experimental WAL LogStore backend](/consul/docs/deploy/server/wal/) for more information.
+

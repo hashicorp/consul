@@ -1,0 +1,166 @@
+---
+layout: docs
+page_title: Explore the Consul CLI
+description: >-
+  Consul includes a built-in command line interface.
+---
+
+# Explore the Consul CLI
+
+This page introduces the Consul CLI and describes the steps to set up and use the CLI to interact with Consul deployments.
+
+For more information, refer to the [Consul CLI reference documentation](/consul/commands).
+
+## Introduction
+
+The Consul CLI is a wrapper for the HTTP API that allows you to interact with Consul from a terminal session.
+
+To view a list of the available commands at any time, run `consul` with no arguments:
+
+```shell-session
+$ consul
+Usage: consul [--version] [--help] <command> [<args>]
+
+Available commands are:
+    acl            Interact with Consul's ACLs
+    agent          Runs a Consul agent
+    catalog        Interact with the catalog
+    connect        Interact with service mesh functionality
+    debug          Records a debugging archive for operators
+    event          Fire a new event
+    exec           Executes a command on Consul nodes
+    force-leave    Forces a member of the cluster to enter the "left" state
+    info           Provides debugging information for operators.
+    intention      Interact with service mesh intentions
+    join           Tell Consul agent to join cluster
+    keygen         Generates a new encryption key
+    keyring        Manages gossip layer encryption keys
+    kv             Interact with the key-value store
+    leave          Gracefully leaves the Consul cluster and shuts down
+    lock           Execute a command holding a lock
+    login          Login to Consul using an auth method
+    logout         Destroy a Consul token created with login
+    maint          Controls node or service maintenance mode
+    members        Lists the members of a Consul cluster
+    monitor        Stream logs from a Consul agent
+    operator       Provides cluster-level tools for Consul operators
+    peering        Create and manage peering connections between Consul clusters
+    reload         Triggers the agent to reload configuration files
+    rtt            Estimates network round trip time between nodes
+    services       Interact with services
+    snapshot       Saves, restores and inspects snapshots of Consul server state
+    tls            Builtin helpers for creating CAs and certificates
+    troubleshoot   Provides tools to troubleshoot Consul's service mesh configuration
+    validate       Validate config files/directories
+    version        Prints the Consul version
+    watch          Watch for changes in Consul
+```
+
+To get help for any specific command, pass the `-h` flag to the relevant
+subcommand. For example, the following command returns information about the `join` subcommand:
+
+```shell-session
+$ consul join --help
+Usage: consul join [options] address ...
+
+  Tells a running Consul agent (with "consul agent") to join the cluster
+  by specifying at least one existing member.
+
+HTTP API Options
+
+  -http-addr=<address>
+     The `address` and port of the Consul HTTP agent. The value can be
+     an IP address or DNS address, but it must also include the port.
+     This can also be specified via the CONSUL_HTTP_ADDR environment
+     variable. The default value is http://127.0.0.1:8500. The scheme
+     can also be set to HTTPS by setting the environment variable
+     CONSUL_HTTP_SSL=true.
+
+  -token=<value>
+     ACL token to use in the request. This can also be specified via the
+     CONSUL_HTTP_TOKEN environment variable. If unspecified, the query
+     will default to the token of the Consul agent at the HTTP address.
+
+Command Options
+
+  -wan
+     Joins a server to another server in the WAN pool.
+```
+
+## Environment variables
+
+Consul's CLI supports environment variables to set default behaviors. While command-line flags always take precedence, using environment variables can streamline your workflows by reducing the need to repeatedly specify common settings.
+
+The following environment variables sets the HTTP address of your Consul cluster and the token used to authenticate with Consul. The documentation and tutorials assume that you have already configured these variables.
+
+- `CONSUL_HTTP_ADDR`: Specifies the HTTP address of your Consul cluster.
+
+  ```shell-session
+  $ export CONSUL_HTTP_ADDR=http://127.0.0.1:8500
+  ```
+
+- `CONSUL_HTTP_TOKEN` or `CONSUL_HTTP_TOKEN_FILE`: Specifies the ACL token used to authenticate with Consul.
+
+  When the [ACL system is enabled](/consul/docs/reference/agent/configuration-file/acl), the Consul CLI requires an [ACL token](/consul/docs/security/acl#tokens) with permissions to perform the operations. You can provide the ACL token directly on the command line using the `-token` command line flag, from a file using the `-token-file` command line flag, or from either the `CONSUL_HTTP_TOKEN` or `CONSUL_HTTP_TOKEN_FILE` environment variable.
+
+  ```shell-session
+  $ export CONSUL_HTTP_TOKEN=aba7cbe5-879b-999a-07cc-2efd9ac0ffe
+  ```
+
+Additional connection requirements depend on how your Consul cluster is configured. Refer to the [Consul CLI documentation](/consul/commands) for more information, including [a list of supported environment variables](/consul/commands#environment-variables).
+
+## Basic commands
+
+The following commands demonstrate commonly used Consul CLI commands.
+
+The `consul members` command returns a information about the Consul instances that participated in the cluster's gossip pool, including their state. You can use this command to check on the current state of a cluster.
+
+```shell-session
+$ consul members
+Node                 Address         Status  Type    Build   Protocol  DC   Partition  Segment
+boruszak-LFH0JH12XD  127.0.0.1:8301  alive   server  1.20.2  2         dc1  default    <all>
+```
+
+Use the `consul version` command to confirm your installation's version number and the build date. Running agents with incompatible versions in the same datacenter can impact operations.
+
+```shell-session
+$ consul version
+Consul v1.20.2
+Revision 33e5727a
+Build Date 2025-01-03T14:38:40Z
+Protocol 2 spoken by default, understands 2 to 3 (agent will automatically use protocol >2 when speaking to compatible agents)
+```
+
+The `consul reload` command reloads the configuration files in the agent's configuration directory. Use this command to apply configuration updates to your Consul cluster without restarting the agent or node.
+
+```shell-session
+$ consul reload
+Configuration reload triggered
+```
+
+The `consul catalog services` command returns a list of services registered to the Consul catalog.
+
+```shell-session
+$ consul catalog services
+consul
+```
+
+You can interact with the Consul key/value store with the `consul kv` command. Specify an operation, followed by the key, and then the value.
+
+```shell-session
+$consul kv put redis/config/connections 5
+Success! Data written to: redis/config/connections
+```
+
+Use `consul leave` to make the Consul agent leave the datacenter gracefully. After it leaves the cluster, the agent shuts down.
+
+```shell-session
+$ consul leave
+Graceful leave complete
+```
+
+## Next steps
+
+To learn more about the Consul CLI and its commands, refer to the [Consul CLI documentation](/consul/commands).
+
+To continue learning Consul fundamentals, proceed to [Explore the Consul web UI](/consul/docs/fundamentals/interface/ui).

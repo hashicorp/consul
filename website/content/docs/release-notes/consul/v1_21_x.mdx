@@ -1,0 +1,42 @@
+---
+layout: docs
+page_title: 1.21.x
+description: >-
+  Consul release notes for version 1.21.x
+---
+
+# Consul 1.21.0
+
+We are pleased to announce the following Consul updates.
+
+## Release highlights
+
+- **Long term support (LTS) release**: For Enterprise users, Consul v1.21 is an LTS release. These versions of Consul receive support for two years after their release, allowing for less frequent system upgrades and continued support through patches and fixes. For more information about this program, refer to [Long term support](/consul/docs/upgrade/lts).
+
+- **Simplified deployment architecture for Consul ESM**: Consul External Service Monitor (ESM) no longer requires a Consul agent running on the same node. Instead, the ESM service uses a single outbound TCP connection to communicate directly with the Consul servers. Consul ESM no longer participates in gossip communication with the cluster as a result, which lowers its deployment and maintenance requirements at scale  and makes it possible to run Consul in a wider variety of networks. For more information, refer to [Consul External Service Monitor (ESM)](/consul/docs/register/external/esm).
+
+- **Snapshot agent support for Google Cloud (GCP)**: On Enterprise deployments, Consul on Kubernetes supports a snapshot agent deployed as a sidecar can store snapshots locally or send snapshots to S3-compatible storage targets, including Amazon S3 and Azure Blob Storage. The latest release adds support for Google Cloud Storage. For more information about using the snapshot agent, refer to [Backup and restore a Consul datacenter](/consul/docs/manage/disaster-recovery/backup-restore).
+
+- **OpenShift 4.16 support**: Consul v1.21 includes improvements to support RedHat OpenShift clusters running [OpenShift Container Platform version 4.16](https://docs.redhat.com/en/documentation/openshift_container_platform/4.16). To get started with Consul on OpenShift clusters, refer to [Consul on RedHat OpenShift](/consul/docs/openshift).
+
+- **Support for Kubernetes Pod Securities Admissions**: Consul now supports Kubernetes Pod Securities Admissions, which were introduced in Kubernetes v1.21 as a replacement for PodSecurityPolicies. PodSecurityPolicies allowed operators to define minimum security requirements for Kubernetes pods. Consul's support includes the ability to manage and configure Kubernetes clusters with Pod Security Admissions on each namespace for improved security and flexibility.
+
+- **Documentation improvements**: Consul v1.21 includes significant updates to the structure and content of the documentation. Highlights include a dedicated sequence on "Consul fundamentals" for new learners, the re-organization of usage documentation into _Consul operations_ and _service networking_, and a conceptual realignment around the principles of _north/south_ and _east/west_ networking operations. For a detailed explanation of the documentation's new design, refer to the [Consul information architecture and content strategy README on GitHub](https://github.com/hashicorp/consul/tree/main/website/content). Previous versions will retain the documentation that accompanied their release. To find documentation for an earlier release, use the dropdown on developer.hashicorp.com to select a specific version.
+
+## Upgrading
+
+For more detailed information, please refer to the [upgrade details page](/consul/docs/upgrade/version-specific) and the changelogs.
+
+## Known issues
+
+There are no known issues at this time. These release notes are updated as issues are discovered.
+
+[Report issues on Github](https://github.com/hashicorp/consul/issues).
+
+## Changelogs
+
+The changelogs for this major release version and any maintenance versions are listed below.
+
+<Note> These links take you to the changelogs on the GitHub website. </Note>
+
+- [1.21.0](https://github.com/hashicorp/consul/releases/tag/v1.21.0)

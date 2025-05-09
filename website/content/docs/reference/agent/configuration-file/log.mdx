@@ -1,0 +1,132 @@
+---
+layout: docs
+page_title: Log parameters for Consul agent configuration files
+description: >-
+  Use agent configuration files to assign attributes to agents and configure multiple agents at once. Learn about agent configuration file parameters and formatting with this reference page and sample code.
+---
+
+# Log parameters for Consul agent configuration files
+
+The page provides reference information for log parameters in a Consul agent configuration file.
+
+## Log parameters
+
+- `audit` <EnterpriseAlert inline /> - The audit object allow users to enable
+  auditing and configure a sink and filters for their audit logs. For more
+  information, review the [audit configuration example](#audit-configuration)
+  and the [audit log
+  tutorial](/consul/tutorials/datacenter-operations/audit-logging).
+
+  The following sub-keys are available:
+
+  - `enabled` - Controls whether Consul logs out each time a user
+    performs an operation. ACLs must be enabled to use this feature. Defaults to `false`.
+
+  - `sink` - This object provides configuration for the destination to which
+    Consul will log auditing events. Sink is an object containing keys to sink objects, where the key is the name of the sink.
+
+    - `type` - Type specifies what kind of sink this is.
+      The following keys are valid:
+      - `file` - Currently only file sinks are available, they take the following keys.
+    - `format` - Format specifies what format the events will
+      be emitted with.
+      The following keys are valid:
+      - `json` - Currently only json events are offered.
+    - `path` - The directory and filename to write audit events to.
+    - `delivery_guarantee` - Specifies
+      the rules governing how audit events are written.
+      The following keys are valid:
+      - `best-effort` - Consul only supports `best-effort` event delivery.
+    - `mode` - The permissions to set on the audit log files.
+    - `rotate_duration` - Specifies the
+      interval by which the system rotates to a new log file. At least one of `rotate_duration` or `rotate_bytes`
+      must be configured to enable audit logging.
+    - `rotate_max_files` - Defines the
+      limit that Consul should follow before it deletes old log files.
+    - `rotate_bytes` - Specifies how large an
+      individual log file can grow before Consul rotates to a new file. At least one of `rotate_bytes` or
+      `rotate_duration` must be configured to enable audit logging.
+
+- `log_file` ((#\_log_file)) - Writes all the Consul agent log messages
+  to a file at the path indicated by this flag. The filename defaults to `consul.log`.
+  When the log file rotates, this value is used as a prefix for the path to the log and the current timestamp is
+  appended to the file name. If the value ends in a path separator, `consul-`
+  will be appended to the value. If the file name is missing an extension, `.log`
+  is appended. For example, setting `log-file` to `/var/log/` would result in a log
+  file path of `/var/log/consul.log`. `log-file` can be combined with
+  [`-log-rotate-bytes`](#_log_rotate_bytes) and [`-log-rotate-duration`](#_log_rotate_duration)
+  for a fine-grained log rotation experience. After rotation, the path and filename take the following form:
+  `/var/log/consul-{timestamp}.log`
+
+- `log_rotate_duration` ((#\_log_rotate_duration)) - Specifies the maximum
+  duration a log should be written to before it needs to be rotated. Must be a duration
+  value such as 30s. Defaults to 24h.
+
+- `log_rotate_bytes` ((#\_log_rotate_bytes)) - Specifies the number of
+  bytes that should be written to a log before it needs to be rotated. Unless specified,
+  there is no limit to the number of bytes that can be written to a log file.
+
+- `log_rotate_max_files` ((#\_log_rotate_max_files)) - Specifies the maximum
+  number of older log file archives to keep. Defaults to 0 (no files are ever deleted).
+  Set to -1 to discard old log files when a new one is created.
+
+- `log_level` ((#\_log_level)) - The level of logging to show after the
+  Consul agent has started. This defaults to "info". The available log levels are
+  "trace", "debug", "info", "warn", and "error". You can always connect to an agent
+  via [`consul monitor`](/consul/commands/monitor) and use any log level. Also,
+  the log level can be changed during a config reload.
+
+- `log_json`((#\_log_json)) - Enables the agent to output logs
+  in a JSON format. By default this is `false`.
+
+- `enable_syslog` ((#\_syslog)) - Enables logging to syslog. This is
+  only supported on Linux and macOS. It will result in an error if provided on Windows. Equivalent to the [`-syslog` command-line flag](/consul/commands/agent#_syslog).
+
+- `syslog_facility` When [`enable_syslog`](#enable_syslog)
+  is provided, this controls to which facility messages are sent. By default, `LOCAL0` will be used.
+
+## Examples
+
+The following examples demonstrate common logging configuration patterns for Consul agents.
+
+### Audit log configuration
+
+<EnterpriseAlert product="consul" inline /><br/><br/>
+
+<CodeTabs>
+
+```hcl
+audit {
+  enabled = true
+  sink "My sink" {
+    type   = "file"
+    format = "json"
+    path   = "data/audit/audit.json"
+    delivery_guarantee = "best-effort"
+    rotate_duration = "24h"
+    rotate_max_files = 15
+    rotate_bytes = 25165824
+  }
+}
+```
+
+```json
+{
+  "audit": {
+    "enabled": true,
+    "sink": {
+      "My sink": {
+        "type": "file",
+        "format": "json",
+        "path": "data/audit/audit.json",
+        "delivery_guarantee": "best-effort",
+        "rotate_duration": "24h",
+        "rotate_max_files": 15,
+        "rotate_bytes": 25165824
+      }
+    }
+  }
+}
+```
+
+</CodeTabs>

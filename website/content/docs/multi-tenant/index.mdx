@@ -1,0 +1,44 @@
+---
+layout: docs
+page_title: Administrate multi-tenant Consul datacenters
+description: >-
+  This page provides an overview of Consul's multi-tenancy features, including admin partitions, namespaces, network segmwents, and sameness groups.
+---
+
+# Administrate multi-tenant Consul datacenters
+
+This page provides an overview of Consul's multi-tenancy features. A single Consul datacenter can support multiple teams and organizations by restricting resources, service traffic, and user access to a combination of admin partitions, namespaces, networking segments, and sameness groups.
+
+Consul Community Edition supports the `default` partition and `default` namespace, but does not support multi-tenancy. For more information, refer to [Consul Enterprise](/consul/docs/enterprise).
+
+## Introduction
+
+In large enterprise organizations, configuring, deploying, securing, and managing separate Consul datacenters for each team or project can be an impractical and resource-intensive solution. Consul Enterprise users can implement multi-tenant configurations of Consul server clusters so that teams can share a set of Consul servers. This arrangement can lower deployment costs while maintaining network security and preventing conflicts in resource names.
+
+The two main elements in Consul's multi-tenancy support are _admin partitions_ and _namespaces_. Consul namespaces are distinct from Kubernetes namespaces, but you can configure Consul to mirror existing Kubernetes namespaces. Consul also supports multi-tenancy configurations for networks that are segmented according to firewalls, and enables operators to manage a set of admin partitions and namespaces using sameness groups.
+
+## Admin partitions
+
+@include 'text/descriptions/admin-partition.mdx'
+
+## Namespaces
+
+@include 'text/descriptions/namespace.mdx'
+
+## Network segments
+
+@include 'text/descriptions/network-segment.mdx'
+
+## Sameness groups
+
+@include 'text/descriptions/sameness-group.mdx'
+
+## Guidance
+
+The following resources are available to help you learn about Consul multi-tenancy and its usage.
+
+@include 'text/guidance/multi-tenant.mdx'
+
+## Constraints, limitations, and troubleshooting
+
+@include 'text/limitations/multi-tenant.mdx'

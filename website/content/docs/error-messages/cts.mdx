@@ -1,0 +1,157 @@
+---
+layout: docs
+page_title: Consul-Terraform-Sync error messages
+description: >-
+  Look up Consul-Terraform-Sync error message to learn how to resolve potential issues using CTS.
+---
+
+# Consul-Terraform-Sync error messages
+
+This topic provides information about potential error messages associated with Consul-Terraform-Sync (CTS). If you receive an error message that does not appear in this section, refer to the following resources:
+
+- [Consul error messages](/consul/docs/error-messages/consul)
+- [Consul on Kubernetes error messages](/consul/docs/error-messages/k8s)
+- [API Gateway error messages](/consul/docs/error-messages/api-gateway)
+- [Consul Discuss forum](https://discuss.hashicorp.com/)
+
+## Missing local module
+
+If you configured the CTS cluster to run in [high availability mode](/consul/docs/automate/infrastructure/high-availability) and the local module is missing, then the following message appears in the log:
+
+```log hideClipboard
+[ERROR] ha.compat: error="compatibility check failure: stat ./example-module: no such file or directory"
+```
+
+The resolution is to add the missing local module on the incompatible CTS instance. Refer to the [`module` documentation](/consul/docs/automate/infrastructure/configure#module) in the CTS configuration reference for additional information. 
+
+## Redirect requests to leader __ at address
+
+```json hideClipboard
+{
+  "error": {
+    "message": "redirect requests to leader 'cts-01' at cts-01.example.com:8558"
+  }
+}
+```
+
+**Conditions**:
+
+- CTS can determine the leader.
+- `high_availability.instance.address` is configured for the leader.
+- The CTS instance you sent the request to is not the leader.
+
+**Resolution**:
+
+Redirect the request to the leader instance, for example:
+
+```shell-session
+$ curl --request GET cts-01.example.com:8558/v1/tasks
+```
+
+
+## Redirect requests to leader __
+
+```json
+{
+  "error": {
+    "message": "redirect requests to leader 'cts-01'"
+  }
+}
+```
+
+**Conditions**:
+
+- CTS can determine the leader.
+- The CTS instance you sent the request to is not the leader.
+- `high_availability.instance.address` is not configured.
+
+**Resolution**:
+
+Identify the leader instance address and redirect the request to the leader. You can identify the leader by calling the [`status/cluster` API endpoint](/consul/docs/reference/cts/api/status#cluster-status) or by checking the logs for the following entry:
+
+<CodeBlockConfig hideClipboard>
+
+```log
+[INFO] ha: acquired leadership lock: id=<ID-OF-CTS-INSTANCE>. 
+```
+
+</CodeBlockConfig>
+
+We recommend deploying a cluster that has three instances. 
+
+## Redirect requests to leader
+
+<CodeBlockConfig hideClipboard>
+
+```json
+{
+  "error": {
+    "message": "redirect requests to leader"
+  }
+}
+```
+
+</CodeBlockConfig>
+
+**Conditions**:
+
+- The CTS instance you sent the request to is not the leader. 
+- The CTS is unable to determine the leader. 
+- Note that these conditions are rare.
+
+**Resolution**:
+
+Identify and send the request to the leader CTS instance. You can identify the leader by calling the [`status/cluster` API endpoint](/consul/docs/reference/cts/api/status#cluster-status) or by checking the logs for the following entry:
+
+<CodeBlockConfig hideClipboard>
+
+```log
+[INFO] ha: acquired leadership lock: id=<ID-OF-CTS-INSTANCE>
+```
+
+</CodeBlockConfig>
+
+## This endpoint is only available with high availability configured
+
+<CodeBlockConfig hideClipboard>
+
+```json
+{
+  "error": {
+    "message": "this endpoint is only available with high availability configured"
+  }
+}
+```
+
+</CodeBlockConfig>
+
+**Conditions**:
+
+- You called the [`status/cluster` API endpoint](/consul/docs/reference/cts/api/status#cluster-status) without configuring CTS for [high availability](/consul/docs/automate/infrastructure/high-availability).
+
+**Resolution**:
+
+Configure CTS to run in [high availability mode](/consul/docs/automate/infrastructure/high-availability).
+
+## Unsupported status parameter value
+
+<CodeBlockConfig hideClipboard>
+
+```json
+{
+  "error": {
+    "message": "example error message: unsupported status parameter value"
+  }
+}
+```
+
+</CodeBlockConfig>
+
+**Conditions**: 
+
+- You sent a request to the `status` API endpoint.
+- The request included an unsupported parameter value.
+
+**Resolution**:
+
+Send a new request and verify that all of the parameter values are correct.

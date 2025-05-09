@@ -1,0 +1,395 @@
+---
+layout: docs
+page_title: Troubleshoot Consul datacenters with the hcdiag tool
+description: >-
+  Troubleshoot your Consul datacenter with the HashiCorp Diagnostics (hcdiag) tool. Generate operational data for your Consul server and use it for debug and performance monitoring.
+---
+
+# Troubleshoot Consul datacenters with the hcdiag tool
+
+This pages describes the process to use the HashiCorp Diagnostics tool, `hcdiag`, to troubleshoot Consul operations.
+
+## Overview
+
+HashiCorp Diagnostics — [hcdiag](https://github.com/hashicorp/hcdiag/) — is a troubleshooting data-gathering tool that you can use to collect and archive important data from Consul, Nomad, Vault, and TFE server environments. The information gathered by `hcdiag` is well-suited for sharing with teams during incident response and troubleshooting.
+
+In this tutorial, you will:
+
+- Run a Consul server in "dev" mode, inside an Ubuntu Docker container
+- Install hcdiag from the official Hashicorp Ubuntu package repository
+- Execute basic `hcdiag` commands against this Consul service
+- Explore the contents of files created by the hcdiag tool
+- Learn about additional hcdiag features and how to use a custom configuration file with `hcdiag`
+
+## Prerequisites
+
+You will need a local install of Docker running on your machine for this tutorial. You can find the instructions for installing Docker [here](https://docs.docker.com/install/).
+
+## Set up the environment
+
+Run an `ubuntu` Docker container in detached mode with the `-d` flag. The `--rm` flag instructs Docker to delete the container once it has been stopped and the `-t` flag allocates a pseudo-tty which keeps the container running until it is stopped manually.
+
+```shell-session
+$ docker run -d --rm -t --name consul ubuntu:22.04
+```
+
+Open an interactive shell session in the container with the `-it` flags.
+
+```shell-session
+$ docker exec -it consul /bin/bash
+```
+
+<Tip>
+
+ Your terminal prompt will now appear differently to show that you are in a shell in the Ubuntu container - for example, it may look something like `root@a931b3c8ca00:/#`. The rest of the commands in the tutorial are to be run in this Ubuntu container shell.
+
+</Tip>
+
+Update `apt-get` and install the necessary dependencies.
+
+```shell-session
+$ apt-get update && apt-get install -y wget gpg
+```
+
+Create a working directory and change into it.
+
+```shell-session
+$ mkdir /tmp/consul-hcdiag && cd /tmp/consul-hcdiag
+```
+
+### Install and start Consul
+
+Add the HashiCorp repository.
+
+```shell-session
+$ wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor > /usr/share/keyrings/hashicorp-archive-keyring.gpg && echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com jammy main" | tee /etc/apt/sources.list.d/hashicorp.list
+```
+
+Install the `consul` package.
+
+```shell-session
+$ apt-get update && apt-get install -y consul
+```
+
+Start Consul as a background process, with all of its output redirected to a `consul.log` file in your current directory.
+```shell-session
+$ consul agent -dev >> consul.log 2>&1 &
+```
+
+### Access the Consul client
+
+Set the required environment variable that points `hcdiag` to your Consul service — in this case, since the dev-mode Consul agent is running, it is `http://127.0.0.1:8500`.
+
+```shell-session
+$ export CONSUL_HTTP_ADDR=http://127.0.0.1:8500
+```
+
+Run the `consul members` command to confirm Consul is running.
+
+```shell-session
+$ consul members
+Node          Address         Status  Type    Build   Protocol  DC   Partition  Segment
+c6c722a039fa  127.0.0.1:8301  alive   server  1.13.1  2         dc1  default    <all>
+```
+
+## Install and run the `hcdiag` tool
+
+Install the latest `hcdiag` release from the HashiCorp repository.
+
+```shell-session
+$ apt-get install -y hcdiag
+```
+
+This is a minimal environment, so ensure you set the `SHELL` environment variable.
+
+```shell-session
+$ export SHELL=/bin/sh
+```
+
+Run `hcdiag` with the `consul` flag. This will gather your available environment and Consul product information.
+
+```shell-session
+$ hcdiag -consul
+2022-08-26T18:48:30.272Z [INFO]  hcdiag: Ensuring destination directory exists: directory=.
+2022-08-26T18:48:30.273Z [INFO]  hcdiag: Checking product availability
+2022-08-26T18:48:30.424Z [DEBUG] agent.http: Request finished: method=GET url=/v1/agent/self from=127.0.0.1:57292 latency=3.334206ms
+2022-08-26T18:48:30.432Z [DEBUG] agent.http: Request finished: method=GET url=/v1/agent/self from=127.0.0.1:57294 latency=756.452µs
+2022-08-26T18:48:30.434Z [INFO]  hcdiag: Gathering diagnostics
+2022-08-26T18:48:30.434Z [INFO]  hcdiag.product: Running operations for: product=host
+2022-08-26T18:48:30.434Z [INFO]  hcdiag.product: running operation: product=host runner="uname -v"
+2022-08-26T18:48:30.434Z [INFO]  hcdiag.product: Running operations for: product=consul
+2022-08-26T18:48:30.434Z [INFO]  hcdiag.product: running operation: product=consul runner="consul version"
+2022-08-26T18:48:30.436Z [INFO]  hcdiag.product: running operation: product=host runner=disks
+2022-08-26T18:48:30.437Z [INFO]  hcdiag.product: running operation: product=host runner=info
+2022-08-26T18:48:30.439Z [INFO]  hcdiag.product: running operation: product=host runner=memory
+2022-08-26T18:48:30.439Z [INFO]  hcdiag.product: running operation: product=host runner=process
+2022-08-26T18:48:30.439Z [INFO]  hcdiag.product: running operation: product=host runner=network
+2022-08-26T18:48:30.440Z [INFO]  hcdiag.product: running operation: product=host runner=/etc/hosts
+2022-08-26T18:48:30.442Z [INFO]  hcdiag.product: running operation: product=host runner=iptables
+2022-08-26T18:48:30.443Z [WARN]  hcdiag.product: result: runner=iptables status=fail result="map[iptables -L -n -v:]" error="exec error, command=iptables -L -n -v, format=string, error=exec: "iptables": executable file not found in $PATH"
+2022-08-26T18:48:30.443Z [INFO]  hcdiag.product: running operation: product=host runner="/proc/ files"
+2022-08-26T18:48:30.454Z [INFO]  hcdiag.product: running operation: product=host runner=/etc/fstab
+2022-08-26T18:48:30.457Z [INFO]  hcdiag: Product done: product=host statuses="map[fail:1 success:9]"
+2022-08-26T18:48:30.513Z [INFO]  hcdiag.product: running operation: product=consul runner="consul debug -output=/tmp/consul-hcdiag/hcdiag-2022-08-26T184830Z3905111513/ConsulDebug -duration=10s -interval=5s"
+2022-08-26T18:48:30.589Z [DEBUG] agent.http: Request finished: method=GET url=/v1/agent/self from=127.0.0.1:57296 latency=756.369µs
+2022-08-26T18:48:30.593Z [DEBUG] agent.http: Request finished: method=GET url=/v1/agent/host from=127.0.0.1:57296 latency=2.57301ms
+2022-08-26T18:48:30.597Z [DEBUG] agent.http: Request finished: method=GET url=/v1/agent/self from=127.0.0.1:57296 latency=705.57µs
+2022-08-26T18:48:30.598Z [DEBUG] agent.http: Request finished: method=GET url=/v1/agent/members?wan=1 from=127.0.0.1:57296 latency=43.877µs
+2022-08-26T18:48:42.600Z [DEBUG] agent.http: Request finished: method=GET url=/v1/agent/metrics/stream from=127.0.0.1:57296 latency=12.0006132s
+2022-08-26T18:48:42.619Z [INFO]  hcdiag.product: running operation: product=consul runner="GET /v1/agent/self"
+2022-08-26T18:48:42.620Z [DEBUG] agent.http: Request finished: method=GET url=/v1/agent/monitor?loglevel=DEBUG from=127.0.0.1:57306 latency=12.018503143s
+2022-08-26T18:48:42.621Z [DEBUG] agent.http: Request finished: method=GET url=/v1/agent/self from=127.0.0.1:57294 latency=956.549µs
+2022-08-26T18:48:42.623Z [INFO]  hcdiag.product: running operation: product=consul runner="GET /v1/agent/metrics"
+2022-08-26T18:48:42.623Z [DEBUG] agent.http: Request finished: method=GET url=/v1/agent/metrics from=127.0.0.1:57294 latency=415.444µs
+2022-08-26T18:48:42.625Z [INFO]  hcdiag.product: running operation: product=consul runner="GET /v1/catalog/datacenters"
+2022-08-26T18:48:42.625Z [DEBUG] agent.http: Request finished: method=GET url=/v1/catalog/datacenters from=127.0.0.1:57294 latency=118.765µs
+2022-08-26T18:48:42.625Z [INFO]  hcdiag.product: running operation: product=consul runner="GET /v1/catalog/services"
+2022-08-26T18:48:42.626Z [DEBUG] agent.http: Request finished: method=GET url=/v1/catalog/services from=127.0.0.1:57294 latency=88.196µs
+2022-08-26T18:48:42.626Z [INFO]  hcdiag.product: running operation: product=consul runner="GET /v1/namespace"
+2022-08-26T18:48:42.627Z [INFO]  hcdiag.product: running operation: product=consul runner="GET /v1/status/leader"
+2022-08-26T18:48:42.627Z [DEBUG] agent.http: Request finished: method=GET url=/v1/status/leader from=127.0.0.1:57294 latency=77.818µs
+2022-08-26T18:48:42.628Z [INFO]  hcdiag.product: running operation: product=consul runner="GET /v1/status/peers"
+2022-08-26T18:48:42.628Z [DEBUG] agent.http: Request finished: method=GET url=/v1/status/peers from=127.0.0.1:57294 latency=36.511µs
+2022-08-26T18:48:42.628Z [INFO]  hcdiag.product: running operation: product=consul runner="log/docker consul"
+2022-08-26T18:48:42.630Z [INFO]  hcdiag.product: result: runner="log/docker consul" status=skip
+  result=
+  | /bin/sh: 1: docker: not found
+   error="docker not found, container=consul, error=exec error, command=docker version, error=exit status 127"
+2022-08-26T18:48:42.630Z [INFO]  hcdiag.product: running operation: product=consul runner=journald
+2022-08-26T18:48:42.631Z [INFO]  hcdiag.product: result: runner=journald status=skip
+  result=
+  | /bin/sh: 1: journalctl: not found
+   error="journald not found on this system, service=consul, error=exec error, command=journalctl --version, error=exit status 127"
+2022-08-26T18:48:42.631Z [INFO]  hcdiag: Product done: product=consul statuses="map[skip:2 success:9]"
+2022-08-26T18:48:42.631Z [INFO]  hcdiag: Recording manifest
+2022-08-26T18:48:42.634Z [INFO]  hcdiag: Created Results.json file: dest=/tmp/consul-hcdiag/hcdiag-2022-08-26T184830Z3905111513/Results.json
+2022-08-26T18:48:42.636Z [INFO]  hcdiag: Created Manifest.json file: dest=/tmp/consul-hcdiag/hcdiag-2022-08-26T184830Z3905111513/Manifest.json
+2022-08-26T18:48:42.642Z [INFO]  hcdiag: Compressed and archived output file: dest=hcdiag-2022-08-26T184830Z.tar.gz
+2022-08-26T18:48:42.642Z [INFO]  hcdiag: Writing summary of products and ops to standard output
+product  success  fail  unknown  total
+consul   9        0     2        11
+host     9        1     0        10
+```
+
+<Tip>
+
+ This is an extremely minimal environment which doesn't provide some of the system services that `hcdiag` uses to gather information — seeing a few errors, like in the output above, is normal.
+
+</Tip>
+
+You can also invoke `hcdiag` without options to gather all available environment and product information. To learn about all executable options, run `hcdiag -h`.
+
+### Examine the results
+
+List the directory for `.tar.gzip` archive files to discover the file that `hcdiag` created.
+
+```shell-session
+$ ls -l *.gz
+-rw-r--r-- 1 root root 28025 Aug 18 12:24 hcdiag-2022-08-18T122356Z.tar.gz
+```
+
+<Tip>
+
+ The extracted directory uses a timestamp as part of the filename. This means any references to it used in this tutorial will be different than what you will see on your local machine.
+
+</Tip>
+
+Unpack the archive to further examine its contents.
+
+```shell-session
+$ tar zxvf hcdiag-2022-08-18T122356Z.tar.gz
+hcdiag-2022-08-18T122356Z/ConsulDebug/agent.json
+hcdiag-2022-08-18T122356Z/ConsulDebug/consul.log
+hcdiag-2022-08-18T122356Z/ConsulDebug/host.json
+hcdiag-2022-08-18T122356Z/ConsulDebug/index.json
+hcdiag-2022-08-18T122356Z/ConsulDebug/members.json
+hcdiag-2022-08-18T122356Z/ConsulDebug/metrics.json
+hcdiag-2022-08-18T122356Z/ConsulDebug.tar.gz
+hcdiag-2022-08-18T122356Z/Manifest.json
+hcdiag-2022-08-18T122356Z/Results.json
+hcdiag-2022-08-18T122356Z/docker-consul.log
+hcdiag-2022-08-18T122356Z/journald-consul.log
+```
+
+The archive extracts several files and directories:
+
+- `Manifest.json` contains information describing the hcdiag run, including configuration options used, run duration, and a count of any errors encountered.
+- `Results.json` contains information about the environment and the output from an invocation of `consul debug`.
+- `ConsulDebug/` is a directory that contains the output from invoking `consul debug`.
+
+Inspect the bundle to ensure it contains only information that is appropriate to share based on your use-case or situation. If you need to obscure secrets or sensitive information that might be contained in an `hcdiag` bundle, please refer to the `hcdiag` redactions documentation.
+
+<Tip title="Consul Enterprise users">
+
+ If you are a Consul Enterprise user, please share the output from `hcdiag` with HashiCorp Customer Support to reduce the amount of information gathering required for a support request.
+
+</Tip>
+
+The tool only works locally and does not export or share the diagnostic bundle with anyone. You must use other tools to transfer it to a secure location so you can share it with specific support staff who need to view it.
+
+## Configuration file
+
+You can configure `hcdiag`'s behavior with a HashiCorp Configuration Language (HCL) formatted file. Using this file, you can configure behavior by adding your own custom runners, redacting sensitive content using regular expressions, excluding commands, and more.
+
+
+<Tip>
+
+ This minimal environment doesn't ship with most common command-line text editors, so you will want to install one with `apt-get install nano` or `apt-get install vim`.
+
+</Tip>
+
+Create a file named `diag.hcl` with the following contents. This file does two things:
+
+1. It adds an agent-level (global) redaction which instructs `hcdiag` to redact all sensitive content in the format `PASSWORD=sensitive`. This is a contrived example; please refer to the official [`hcdiag` Documentation](https://github.com/hashicorp/hcdiag) for more detailed information about how redactions work and how to use them.
+
+1. It instructs `hcdiag` to exclude the `consul debug` command.
+
+<CodeBlockConfig filename="diag.hcl">
+
+```hcl
+agent {
+  redact "regex" {
+    match = "PASSWORD=\\S*"
+    replace = "<PASSWORD REDACTED>"
+  }
+}
+product "consul" {
+  excludes = ["GET /v1/agent/metrics"]
+}
+```
+
+</CodeBlockConfig>
+
+Run the `hcdiag` command with the `diag.hcl` configuration file. It will return a similar output to the following.
+
+```shell-session
+$ hcdiag -consul -config diag.hcl
+2022-08-26T18:53:24.997Z [INFO]  hcdiag: Ensuring destination directory exists: directory=.
+2022-08-26T18:53:24.997Z [INFO]  hcdiag: Checking product availability
+2022-08-26T18:53:25.149Z [DEBUG] agent.http: Request finished: method=GET url=/v1/agent/self from=127.0.0.1:57310 latency=866.114µs
+2022-08-26T18:53:25.155Z [DEBUG] agent.http: Request finished: method=GET url=/v1/agent/self from=127.0.0.1:57312 latency=616.956µs
+2022-08-26T18:53:25.157Z [INFO]  hcdiag: Gathering diagnostics
+2022-08-26T18:53:25.157Z [INFO]  hcdiag.product: Running operations for: product=host
+2022-08-26T18:53:25.157Z [INFO]  hcdiag.product: running operation: product=host runner="uname -v"
+2022-08-26T18:53:25.157Z [INFO]  hcdiag.product: Running operations for: product=consul
+2022-08-26T18:53:25.157Z [INFO]  hcdiag.product: running operation: product=consul runner="consul version"
+2022-08-26T18:53:25.159Z [INFO]  hcdiag.product: running operation: product=host runner=disks
+2022-08-26T18:53:25.159Z [INFO]  hcdiag.product: running operation: product=host runner=info
+2022-08-26T18:53:25.160Z [INFO]  hcdiag.product: running operation: product=host runner=memory
+2022-08-26T18:53:25.160Z [INFO]  hcdiag.product: running operation: product=host runner=process
+2022-08-26T18:53:25.161Z [INFO]  hcdiag.product: running operation: product=host runner=network
+2022-08-26T18:53:25.161Z [INFO]  hcdiag.product: running operation: product=host runner=/etc/hosts
+2022-08-26T18:53:25.163Z [INFO]  hcdiag.product: running operation: product=host runner=iptables
+2022-08-26T18:53:25.164Z [WARN]  hcdiag.product: result: runner=iptables status=fail result="map[iptables -L -n -v:]" error="exec error, command=iptables -L -n -v, format=string, error=exec: "iptables": executable file not found in $PATH"
+2022-08-26T18:53:25.164Z [INFO]  hcdiag.product: running operation: product=host runner="/proc/ files"
+2022-08-26T18:53:25.175Z [INFO]  hcdiag.product: running operation: product=host runner=/etc/fstab
+2022-08-26T18:53:25.178Z [INFO]  hcdiag: Product done: product=host statuses="map[fail:1 success:9]"
+2022-08-26T18:53:25.238Z [INFO]  hcdiag.product: running operation: product=consul runner="consul debug -output=/tmp/consul-hcdiag/hcdiag-2022-08-26T185324Z4292389516/ConsulDebug -duration=10s -interval=5s"
+2022-08-26T18:53:25.321Z [DEBUG] agent.http: Request finished: method=GET url=/v1/agent/self from=127.0.0.1:57314 latency=761.333µs
+2022-08-26T18:53:25.323Z [DEBUG] agent.http: Request finished: method=GET url=/v1/agent/host from=127.0.0.1:57314 latency=1.034301ms
+2022-08-26T18:53:25.326Z [DEBUG] agent.http: Request finished: method=GET url=/v1/agent/self from=127.0.0.1:57314 latency=791.722µs
+2022-08-26T18:53:25.329Z [DEBUG] agent.http: Request finished: method=GET url=/v1/agent/members?wan=1 from=127.0.0.1:57314 latency=37.086µs
+2022-08-26T18:53:36.737Z [DEBUG] agent: Skipping remote check since it is managed automatically: check=serfHealth
+2022-08-26T18:53:36.737Z [DEBUG] agent: Node info in sync
+2022-08-26T18:53:37.331Z [DEBUG] agent.http: Request finished: method=GET url=/v1/agent/metrics/stream from=127.0.0.1:57314 latency=12.000899626s
+2022-08-26T18:53:37.356Z [DEBUG] agent.http: Request finished: method=GET url=/v1/agent/monitor?loglevel=DEBUG from=127.0.0.1:57320 latency=12.023058522s
+2022-08-26T18:53:37.356Z [INFO]  hcdiag.product: running operation: product=consul runner="GET /v1/agent/self"
+2022-08-26T18:53:37.357Z [DEBUG] agent.http: Request finished: method=GET url=/v1/agent/self from=127.0.0.1:57312 latency=965.341µs
+2022-08-26T18:53:37.360Z [INFO]  hcdiag.product: running operation: product=consul runner="GET /v1/catalog/datacenters"
+2022-08-26T18:53:37.360Z [DEBUG] agent.http: Request finished: method=GET url=/v1/catalog/datacenters from=127.0.0.1:57312 latency=258.37µs
+2022-08-26T18:53:37.361Z [INFO]  hcdiag.product: running operation: product=consul runner="GET /v1/catalog/services"
+2022-08-26T18:53:37.361Z [DEBUG] agent.http: Request finished: method=GET url=/v1/catalog/services from=127.0.0.1:57312 latency=109.885µs
+2022-08-26T18:53:37.362Z [INFO]  hcdiag.product: running operation: product=consul runner="GET /v1/namespace"
+2022-08-26T18:53:37.362Z [INFO]  hcdiag.product: running operation: product=consul runner="GET /v1/status/leader"
+2022-08-26T18:53:37.363Z [DEBUG] agent.http: Request finished: method=GET url=/v1/status/leader from=127.0.0.1:57312 latency=177.814µs
+2022-08-26T18:53:37.363Z [INFO]  hcdiag.product: running operation: product=consul runner="GET /v1/status/peers"
+2022-08-26T18:53:37.364Z [DEBUG] agent.http: Request finished: method=GET url=/v1/status/peers from=127.0.0.1:57312 latency=109.065µs
+2022-08-26T18:53:37.364Z [INFO]  hcdiag.product: running operation: product=consul runner="log/docker consul"
+2022-08-26T18:53:37.366Z [INFO]  hcdiag.product: result: runner="log/docker consul" status=skip
+  result=
+  | /bin/sh: 1: docker: not found
+   error="docker not found, container=consul, error=exec error, command=docker version, error=exit status 127"
+2022-08-26T18:53:37.366Z [INFO]  hcdiag.product: running operation: product=consul runner=journald
+2022-08-26T18:53:37.368Z [INFO]  hcdiag.product: result: runner=journald status=skip
+  result=
+  | /bin/sh: 1: journalctl: not found
+   error="journald not found on this system, service=consul, error=exec error, command=journalctl --version, error=exit status 127"
+2022-08-26T18:53:37.368Z [INFO]  hcdiag: Product done: product=consul statuses="map[skip:2 success:8]"
+2022-08-26T18:53:37.368Z [INFO]  hcdiag: Recording manifest
+2022-08-26T18:53:37.373Z [INFO]  hcdiag: Created Results.json file: dest=/tmp/consul-hcdiag/hcdiag-2022-08-26T185324Z4292389516/Results.json
+2022-08-26T18:53:37.374Z [INFO]  hcdiag: Created Manifest.json file: dest=/tmp/consul-hcdiag/hcdiag-2022-08-26T185324Z4292389516/Manifest.json
+2022-08-26T18:53:37.381Z [INFO]  hcdiag: Compressed and archived output file: dest=hcdiag-2022-08-26T185324Z.tar.gz
+2022-08-26T18:53:37.381Z [INFO]  hcdiag: Writing summary of products and ops to standard output
+product  success  fail  unknown  total
+consul   8        0     2        10
+host     9        1     0        10
+```
+
+Unlike the previous `hcdiag` run, this output does not contain Consul agent metrics information.
+
+```
+2022-08-18T12:15:30.644Z [INFO]  hcdiag.product: running operation: product=consul runner="GET /v1/agent/metrics"
+```
+
+Additionally, any runner output that might capture and expose passwords in the redacted format would show `<PASSWORD REDACTED>` in place of this sensitive content.
+
+## Cleanup
+
+Exit the Ubuntu container to return to your terminal prompt.
+
+```shell-session
+$ exit
+```
+
+Stop the Docker container. Docker will automatically delete the container due to the `-rm` flag passed to the `docker run` command used in the beginning of the tutorial.
+
+```shell-session
+$ docker stop consul
+```
+
+## Production usage tips
+
+By default, the hcdiag tool includes files for up to 72 hours back from the current time. You can specify the desired time range using the `-include-since` flag.
+
+If you are concerned about impacting performance of your Consul servers, you can specify that the runners to not run concurrently, and instead be invoked serially with the `-serial` flag.
+
+Deploying hcdiag in production involves a workflow similar to the following:
+
+1. Place the `hcdiag` binary on the Consul system in scope - this could be a Consul server or a Consul client. 
+
+1. When running with a configuration file and the `-config` flag, ensure that the specified configuration file is readable by the user that executes `hcdiag`.
+
+1. Ensure that the current directory (or the destination directory you have chosen with the `dest` flag) is writable by the user that executes `hcdiag`.
+
+1. Ensure connectivity to the HashiCorp products that `hcdiag` needs to connect to during the run. Export any required environment variables for establishing connection or passing authentication tokens as necessary.
+
+1. Decide on a duration for information gathering, noting that the default is to gather for up to 72 hours back in server log output. Adjust your needs as necessary with the `-include-since` flag. For example, to include only 24 hours of log output, invoke as:
+
+   ```shell-session
+$ hcdiag -consul -include-since 24h
+   ```
+
+1. Limit what is gathered with the `-includes` flag. For example, `-includes /var/log/consul-*,/var/log/nomad-*` instructs `hcdiag` to only gather logs matching the specified Consul and Nomad filename patterns.
+
+1. Use redactions to prevent sensitive information like keys or passwords from reaching hcdiag's output or the generated bundle files.
+
+1. Use the `-dryrun` flag to observe what hcdiag will do without anything actually being done for testing configuration and options.
+
+
+## Summary
+
+In this tutorial, you retrieved a Git repository, created a local Consul datacenter with Docker Compose, and used the local environment to explore the `hcdiag` tool in the context of gathering information from a running Consul environment.
+
+You also learned about the available configuration flags, the configuration file, and production specific tips for using `hcdiag`.
+
+## Next Steps
+
+For additional information about the tool, check out the [`hcdiag` GitHub repository](https://github.com/hashicorp/hcdiag).
+
+There are also `hcdiag` guides for other HashiCorp tools including [Vault](/vault/tutorials/monitoring/hcdiag-with-vault), [Terraform](/terraform/tutorials/enterprise/hcdiag-with-tfe), and [Nomad](/nomad/tutorials/manage-clusters/hcdiag-with-nomad).
+
+## Help and Reference
+
+Feel free to explore the following resources for additional help with troubleshooting your Consul environment.
+
+- [Troubleshooting Consul](/consul/tutorials/datacenter-operations/troubleshooting)

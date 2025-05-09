@@ -1,0 +1,114 @@
+---
+layout: docs
+page_title: Consul on Kubernetes error messages
+description: >-
+  Troubleshoot issues based on the error message. Common errors result from failed actions, timeouts, multiple entries, bad and expired certificates, invalid characters, syntax parsing, malformed responses, and exceeded deadlines.
+---
+
+# Consul on Kubernetes error messages
+
+This topic provides information about potential error messages associated with Consul on Kubernetes. If you receive an error message that does not appear in this section, refer to the following resources:
+
+- [Consul error messages](/consul/docs/error-messages/consul)
+- [API Gateway error messages](/consul/docs/error-messages/api-gateway)
+- [Consul-Terraform-Sync error messages](/consul/docs/error-messages/cts)
+- [Consul Discuss forum](https://discuss.hashicorp.com/)
+
+## Unable to connect to the Consul client on the same host
+
+If the pods are unable to connect to a Consul client running on the same host, first check if the Consul clients are up and running with `kubectl get pods`.
+
+```shell-session
+$ kubectl get pods --selector="component=client"
+NAME           READY   STATUS    RESTARTS   AGE
+consul-kzws6   1/1     Running   0          58s
+```
+
+If you are still unable to connect and see `i/o timeout` or `connection refused` errors when connecting to the Consul client on the Kubernetes worker, this could be because the container networking interface (CNI) does not [support](https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/network-plugins/#support-hostport) the use of `hostPort`.
+
+The IP `10.0.0.10` in the following example error messages refers to the IP of the host where the Consul client pods are running.
+
+<CodeBlockConfig hideClipboard>
+
+```log
+Put http://10.0.0.10:8500/v1/catalog/register: dial tcp 10.0.0.10:8500: connect: connection refused
+Put http://10.0.0.10:8500/v1/agent/service/register: dial tcp 10.0.0.10:8500: connect: connection refused
+Get http://10.0.0.10:8500/v1/status/leader: dial tcp 10.0.0.10:8500: i/o timeout
+```
+
+</CodeBlockConfig>
+
+To work around this issue, enable [`hostNetwork`](/consul/docs/reference/k8s/helm#v-client-hostnetwork) in your Helm values. Using the host network will enable the pod to use the host's network namespace without the need for CNI to support port mappings between containers and the host.
+
+```yaml
+client:
+  hostNetwork: true
+  dnsPolicy: ClusterFirstWithHostNet
+```
+
+<Note>
+  
+Using host network has security implications because it gives the Consul client unnecessary access to all network traffic on the host. We recommend raising an issue with the CNI you're using to add support for `hostPort` and switching back to `hostPort` eventually.
+
+</Note>
+
+## ACL auth method login failed
+
+If you see the following error in the init container logs of service mesh pods, check that the pod has a service account name that matches its Kubernetes Service.
+
+<CodeBlockConfig hideClipboard>
+
+```log
+consul-server-connection-manager: ACL auth method login failed: error="rpc error: code = PermissionDenied desc = Permission denied"
+```
+
+</CodeBlockConfig>
+
+For example, this deployment will fail because the `serviceAccountName` is `does-not-match` instead of `static-server`.
+
+<CodeBlockConfig hideClipboard>
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  # This name will be the service name in Consul.
+  name: static-server
+spec:
+  selector:
+    app: static-server
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: static-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: static-server
+  template:
+    metadata:
+      name: static-server
+      labels:
+        app: static-server
+      annotations:
+        'consul.hashicorp.com/connect-inject': 'true'
+    spec:
+      containers:
+        - name: static-server
+          image: hashicorp/http-echo:latest
+          args:
+            - -text="hello world"
+            - -listen=:8080
+          ports:
+            - containerPort: 8080
+              name: http
+      serviceAccountName: does-not-match
+```
+
+</CodeBlockConfig>

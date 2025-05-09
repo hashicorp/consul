@@ -1,0 +1,1046 @@
+---
+layout: docs
+page_title: Exported services configuration entry reference
+description: >-
+  An exported services configuration entry defines the availability of a cluster's services to cluster peers and local admin partitions. Learn about `exported-services` config entry parameters and exporting services to other datacenters.
+---
+
+# Exported services configuration entry reference
+
+This topic describes the `exported-services` configuration entry type. The `exported-services` configuration entry enables Consul to export service instances to other clusters from a single file and connect services across clusters. For additional information, refer to [Cluster Peering](/consul/docs/east-west/cluster-peering) and [Admin Partitions](/consul/docs/multi-tenant/admin-partition).
+
+## Introduction
+
+To configure Consul to export services contained in a Consul Enterprise admin partition or Consul CE datacenter to one or more additional clusters, create a new configuration entry and declare `exported-services` in the `kind` field. This configuration entry enables you to route traffic between services in different clusters.
+
+You can configure the settings defined in the `exported-services` configuration entry to apply to all namespaces in a Consul Enterprise admin partition.
+
+## Requirements
+
+- **Enterprise Only**: A corresponding partition that the configuration entry can export from. For example, the `exported-services` configuration entry for a partition named `frontend` requires an existing `frontend` partition.
+
+## Usage
+
+1. Verify that your datacenter meets the conditions specified in the [Requirements](#requirements).
+1. Specify the `exported-services` configuration in the agent configuration file (refer to  [`config_entries`](/consul/docs/reference/agent/configuration-file/general#config_entries)) as described in [Configuration](#configuration).
+1. Apply the configuration using one of the following methods:
+   - Kubernetes CRD: Refer to the [Custom Resource Definitions](/consul/docs/fundamentals/config-entry) documentation for details.
+   - Issue the `consul config write` command: Refer to the [Consul Config Write](/consul/commands/config/write) documentation for details.
+
+## Configuration
+
+Configure the following parameters to define a `exported-services` configuration entry:
+
+<Tabs>
+<Tab heading="Consul CE">
+<CodeTabs heading="Exported services configuration syntax" tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind = "exported-services"
+Name = "default"
+Services = [
+  {
+    Name = "<name of service to export>"
+    Consumers = [
+      {
+        Peer = "<name of the peered cluster that dials the exported service>"
+      }
+    ]
+  }
+]
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ExportedServices
+metadata:
+  name: default
+spec:
+  services:
+    - name: <name of service to export>
+      consumers:
+        - peer: <name of the peered cluster that dials the exported service>
+```
+
+```json
+{
+  "Kind": "exported-services",
+  "Name": "default",
+  "Services": [
+    {
+      "Name": "<name of service to export>",
+      "Consumers": [
+        {
+          "Peer": "<name of the peered cluster that dials the exported service>"
+        }
+      ]
+    }
+  ]
+}
+```
+
+</CodeTabs>
+</Tab>
+
+<Tab heading="Consul Enterprise (Peers)">
+<CodeTabs heading="Exported services configuration syntax" tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind = "exported-services"
+Partition = "<partition containing services to export>"
+Name = "<partition containing services to export>"
+Services = [
+  {
+    Name = "<name of service to export>"
+    Namespace = "<namespace in the partition containing the service to export>"
+    Consumers = [
+      {
+        Peer = "<name of the peered cluster that dials the exported service>"
+      }
+    ]
+  }
+]
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ExportedServices
+metadata:
+  name: <partition containing services to export>
+spec:
+  services:
+    - name: <name of service to export>
+      namespace: <namespace in the partition containing the service to export>
+      consumers:
+        - peer: <name of the peered cluster that dials the exported service>
+```
+
+```json
+{
+  "Kind": "exported-services",
+  "Partition": "<partition containing services to export>",
+  "Name": "<partition containing services to export>",
+  "Services": [
+    {
+      "Name": "<name of service to export>",
+      "Namespace": "<namespace in the partition containing the service to export>",
+      "Consumers": [
+        {
+          "Peer": "<name of the peered cluster that dials the exported service>"
+        }
+      ]
+    }
+  ]
+}
+```
+
+</CodeTabs>
+</Tab>
+
+<Tab heading="Consul Enterprise (Partitions)">
+<CodeTabs heading="Exported services configuration syntax" tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind = "exported-services"
+Partition = "<partition containing services to export>"
+Name = "<partition containing services to export>"
+Services = [
+  {
+    Name = "<name of service to export>"
+    Namespace = "<namespace in the partition containing the service to export>"
+    Consumers = [
+      {
+        Partition = "<name of the partition that dials the exported service>"
+      }
+    ]
+  }
+]
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ExportedServices
+metadata:
+  name: <partition containing services to export>
+spec:
+  services:
+    - name: <name of service to export>
+      namespace: <namespace in the partition containing the service to export>
+      consumers:
+        - partition: <name of the partition that dials the exported service>
+```
+
+```json
+{
+  "Kind": "exported-services",
+  "Partition": "<partition containing services to export>",
+  "Name": "<partition containing services to export>",
+  "Services": [
+    {
+      "Name": "<name of service to export>",
+      "Namespace": "<namespace in the partition containing the service to export>",
+      "Consumers": [
+        {
+          "Partition": "<name of partition that dials the exported service>"
+        }
+      ]
+    }
+  ]
+}
+```
+
+</CodeTabs>
+</Tab>
+
+
+<Tab heading="Consul Enterprise (Sameness Group)">
+<CodeTabs heading="Exported services configuration syntax" tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind = "exported-services"
+Partition = "<partition containing services to export>"
+Name = "<partition containing services to export>"
+Services = [
+  {
+    Name = "<name of service to export>"
+    Namespace = "<namespace in the partition containing the service to export>"
+    Consumers = [
+      {
+        SamenessGroup = "<name of the sameness group that dials the exported service>"
+      }
+    ]
+  }
+]
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ExportedServices
+metadata:
+  name: <partition containing services to export>
+spec:
+  services:
+    - name: <name of service to export>
+      namespace: <namespace in the partition containing the service to export>
+      consumers:
+        - samenessGroup: <name of the sameness group that dials the exported service>
+```
+
+```json
+{
+  "Kind": "exported-services",
+  "Partition": "<partition containing services to export>",
+  "Name": "<partition containing services to export>",
+  "Services": [
+    {
+      "Name": "<name of service to export>",
+      "Namespace": "<namespace in the partition containing the service to export>",
+      "Consumers": [
+        {
+          "SamenessGroup": "<name of the sameness group that dials the exported service>"
+        }
+      ]
+    }
+  ]
+}
+```
+
+</CodeTabs>
+</Tab>
+</Tabs>
+
+### Configuration Parameters
+
+The following table describes the parameters associated with the `exported-services` configuration entry.
+
+| Parameter   | Description                                                                                                                                   | Required | Default |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------- |
+| `Kind`      | String value that enables the configuration entry. The value should always be `exported-services` (HCL and JSON) or `ExportedServices` (YAML)                                    | Required | None    |
+| `Partition` | <EnterpriseAlert inline /> String value that specifies the name of the partition that contains the services you want to export.                                              | Required | None    |
+| `Name`      | String value that specifies the name of the partition that contains the services you want to export. Must be `default` in Consul CE.                                          | Required | None    |
+| `Services`  | List of objects that specify which services to export. For details, refer to [`Services`](#services).                                                                            | Required | None    |
+| `Meta`      | Object that defines a map of the max 64 key/value pairs.                                                                                                                         | Optional | None    |
+
+### Services
+
+The `Services` parameter contains a list of one or more parameters that specify which services to export, which namespaces the services reside, and the destination cluster for the exported services. Each item in the `Services` list must contain the following parameters:
+
+- `Name`: Specifies the name of the service to export. You can use an asterisk wildcard (`*`) to include all services in the namespace.
+- `Namespace`: <EnterpriseAlert inline /> Specifies the namespace containing the services to export. You can use an asterisk wildcard (`*`) to include all namespaces in the partition.
+- `Consumers`: Specifies one or more objects that identify a destination cluster for the exported services.
+
+### Consumers
+
+The `Consumers` parameter contains a list of one or more parameters that specify the destination cluster for
+an exported service. Each item in the `Consumers` list must contain exactly one of the following parameters:
+
+- `Peer`: Specifies the name of the peered cluster to export the service to.
+A asterisk wildcard (`*`) cannot be specified as the `Peer`. Added in Consul 1.13.0.
+- `Partition`: <EnterpriseAlert inline /> Specifies an admin partition in the datacenter to export the service to.
+A asterisk wildcard (`*`) cannot be specified as the `Partition`.
+- `SamenessGroup`: <EnterpriseAlert inline /> Specifies as sameness group to export the service to.
+A asterisk wildcard (`*`) cannot be specified as the `SamenessGroup`.
+
+
+## Examples
+
+
+### Exporting services to peered clusters
+
+
+<Tabs>
+<Tab heading="Consul CE">
+
+The following example configures Consul to export the `payments` and `refunds` services to the peered `web-shop` cluster.
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind = "exported-services"
+Name = "default"
+
+Services = [
+  {
+    Name      = "payments"
+    Consumers = [
+        {
+            Peer  = "web-shop"
+        },
+    ]
+  },
+  {
+    Name      = "refunds"
+    Consumers = [
+        {
+            Peer = "web-shop"
+        }
+    ]
+  }
+]
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ExportedServices
+metadata:
+  name: default
+spec:
+  services:
+    - name: payments
+      consumers:
+        - peer: web-shop
+    - name: refunds
+      consumers:
+        - peer: web-shop
+```
+
+```json
+{
+  "Kind": "exported-services",
+  "Name": "default",
+  "Services": [
+    {
+      "Name": "payments",
+      "Consumers": [
+        {
+          "Peer": "web-shop"
+        }
+      ]
+    },
+    {
+      "Name": "refunds",
+      "Consumers": [
+        {
+          "Peer": "web-shop"
+        }
+      ]
+    }
+  ]
+}
+```
+
+</CodeTabs>
+</Tab>
+
+<Tab heading="Consul Enterprise (Peers)">
+
+The following example configures Consul to export the `payments` and `refunds` services from the `billing` namespace of the `finance` admin partition to the `web-shop` peer.
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind = "exported-services"
+Partition = "finance"
+Name = "finance"
+
+Services = [
+  {
+    Name      = "payments"
+    Namespace = "billing"
+    Consumers = [
+        {
+            Peer  = "web-shop"
+        },
+    ]
+  },
+  {
+    Name      = "refunds"
+    Namespace = "billing"
+    Consumers = [
+        {
+            Peer = "web-shop"
+        }
+    ]
+  }
+]
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ExportedServices
+metadata:
+  name: finance
+spec:
+  services:
+    - name: payments
+      namespace: billing
+      consumers:
+        - peer: web-shop
+    - name: refunds
+      namespace: billing
+      consumers:
+        - peer: web-shop
+```
+
+```json
+{
+  "Kind": "exported-services",
+  "Partition": "finance",
+  "Name": "finance",
+  "Services": [
+    {
+      "Name": "payments",
+      "Namespace": "billing",
+      "Consumers": [
+        {
+          "Peer": "web-shop"
+        }
+      ]
+    },
+    {
+      "Name": "refunds",
+      "Namespace": "billing",
+      "Consumers": [
+        {
+          "Peer": "web-shop"
+        }
+      ]
+    }
+  ]
+}
+```
+
+</CodeTabs>
+</Tab>
+
+<Tab heading="Consul Enterprise (Partitions)">
+
+The following example configures Consul to export the `payments` and `refunds` services from the `billing` namespace of the `finance` admin partition to the `web-shop` partition.
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind = "exported-services"
+Partition = "finance"
+Name = "finance"
+
+Services = [
+  {
+    Name      = "payments"
+    Namespace = "billing"
+    Consumers = [
+        {
+            Partition  = "web-shop"
+        }
+    ]
+  },
+  {
+    Name      = "refunds"
+    Namespace = "billing"
+    Consumers = [
+        {
+            Partition = "web-shop"
+        }
+    ]
+  }
+]
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ExportedServices
+metadata:
+  name: finance
+spec:
+  services:
+    - name: payments
+      namespace: billing
+      consumers:
+        - partition: web-shop
+    - name: refunds
+      namespace: billing
+      consumers:
+        - partition: web-shop
+```
+
+```json
+{
+  "Kind": "exported-services",
+  "Partition": "finance",
+  "Name": "finance",
+  "Services": [
+    {
+      "Name": "payments",
+      "Namespace": "billing",
+      "Consumers": [
+        {
+          "Partition": "web-shop"
+        }
+      ]
+    },
+    {
+      "Name": "refunds",
+      "Namespace": "billing",
+      "Consumers": [
+        {
+          "Partition": "web-shop"
+        }
+      ]
+    }
+  ]
+}
+```
+
+</CodeTabs>
+</Tab>
+</Tabs>
+
+### Exporting a service to a sameness group
+
+The following example configures Consul to export a service named `api` to a defined group of partitions that belong to a separately defined [sameness group](/consul/docs/reference/config-entry/sameness-group) named `monitoring`.
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind = "exported-services"
+Name = "default"
+
+Services = [
+  {
+    Name      = "api"
+    Consumers = [
+        {
+            SamenessGroup  = "monitoring"
+        }
+    ]
+  }
+]
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ExportedServices
+metadata:
+  name: default
+spec:
+  services:
+    - name: api
+      consumers:
+        - samenessGroup: monitoring
+```
+
+```json
+{
+  "Kind": "exported-services",
+  "Name": "default",
+  "Services": [
+    {
+      "Name": "api",
+      "Consumers": [
+        {
+          "SamenessGroup": "monitoring"
+        }
+      ]
+    }
+  ]
+}
+```
+
+</CodeTabs>
+
+### Exporting all services
+
+<Tabs>
+<Tab heading="Consul CE">
+
+The following example configures Consul to export all services in the datacenter to the peered `monitoring` and `platform` clusters.
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind = "exported-services"
+Name = "default"
+
+Services = [
+  {
+    Name      = "*"
+    Consumers = [
+        {
+            Peer  = "monitoring"
+        },
+        {
+            Peer  = "platform"
+        }
+    ]
+  }
+]
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ExportedServices
+metadata:
+  name: default
+spec:
+  services:
+    - name: *
+      consumers:
+        - peer: monitoring
+        - peer: platform
+```
+
+```json
+{
+  "Kind": "exported-services",
+  "Name": "default",
+  "Services": [
+    {
+      "Name": "*",
+      "Namespace": "*",
+      "Consumers": [
+        {
+          "Peer": "monitoring"
+        },
+        {
+          "Peer": "platform"
+        }
+      ]
+    }
+  ]
+}
+```
+
+</CodeTabs>
+</Tab>
+
+<Tab heading="Consul Enterprise (Peers)">
+
+The following example configures Consul to export all services in all namespaces of the `finance` partition to the peered `monitoring` and `platform` clusters.
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind = "exported-services"
+Partition = "finance"
+Name = "finance"
+
+Services = [
+  {
+    Name      = "*"
+    Namespace = "*"
+    Consumers = [
+        {
+            Peer = "monitoring"
+        },
+        {
+            Peer = "platform"
+        }
+    ]
+  }
+]
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ExportedServices
+metadata:
+  name: finance
+spec:
+  services:
+    - name: *
+      namespace: *
+      consumers:
+        - peer: monitoring
+        - peer: platform
+```
+
+```json
+{
+  "Kind": "exported-services",
+  "Partition": "finance",
+  "Name": "finance",
+  "Services": [
+    {
+      "Name": "*",
+      "Namespace": "*",
+      "Consumers": [
+        {
+          "Peer": "monitoring"
+        },
+        {
+          "Peer": "platform"
+        }
+      ]
+    }
+  ]
+}
+```
+
+</CodeTabs>
+</Tab>
+
+<Tab heading="Consul Enterprise (Partitions)">
+
+The following example configures Consul to export all services in all namespaces of the `finance` partition to the `monitoring` and `platform` partitions.
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind = "exported-services"
+Partition = "finance"
+Name = "finance"
+
+Services = [
+  {
+    Name      = "*"
+    Namespace = "*"
+    Consumers = [
+        {
+            Partition = "monitoring"
+        },
+        {
+            Partition = "platform"
+        }
+    ]
+  }
+]
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ExportedServices
+metadata:
+  name: finance
+spec:
+  services:
+    - name: *
+      namespace: *
+      consumers:
+        - partition: monitoring
+        - partition: platform
+```
+
+```json
+{
+  "Kind": "exported-services",
+  "Partition": "finance",
+  "Name": "finance",
+  "Services": [
+    {
+      "Name": "*",
+      "Namespace": "*",
+      "Consumers": [
+        {
+          "Partition": "monitoring"
+        },
+        {
+          "Partition": "platform"
+        }
+      ]
+    }
+  ]S
+}
+```
+
+</CodeTabs>
+</Tab>
+</Tabs>
+
+If you experience errors using the wildcard to export services on Consul on Kubernetes, make sure the [service token](/consul/docs/security/acl/tokens/create/create-a-service-token) is attached to a policy that grants read access to all namespaces:
+
+```hcl
+partition "default" {
+  namespace "default" {
+    query_prefix "" {
+      policy = "read"
+    }
+  }
+}
+
+partition_prefix "" {
+  namespace_prefix "" {
+    node_prefix "" {
+      policy = "read"
+    }
+    service_prefix "" {
+      policy = "read"
+    }
+   }
+}
+```
+
+## Reading Services
+
+When an exported service has been imported to another cluster, you can use the `health` REST API endpoint to query the service on the consumer cluster.
+
+<Tabs>
+<Tab heading="Consul CE">
+
+The following example queries the `finance` peer for the imported `payments` service:
+
+```shell-session
+$ curl 'localhost:8500/v1/health/service/payments?peer=finance'
+```
+An ACL token with either of the following permissions is required in the cluster where the query is made:
+- `service:write` permissions for any service.
+- `service:read` and `node:read` for all services and nodes, respectively.
+
+If the call in the previous example is made from a service named `web`, then the request requires either:
+- A token with `service:write` permissions to `web`.
+- A token with `service:read` and `node:read` to all names in the datacenter.
+
+<CodeTabs heading="Example ACL rules for reading imported services in Consul CE">
+
+```hcl
+service "web" {
+    policy = "write"
+}
+
+# OR
+
+service_prefix "" {
+    policy = "read"
+}
+node_prefix "" {
+    policy = "read"
+}
+```
+
+```json
+{
+  "service": {
+    "web": {
+      "policy": "write"
+    }
+  }
+}
+
+## OR
+
+{
+  "service_prefix": {
+    "": {
+      "policy": "read"
+    }
+  },
+  "node_prefix": {
+    "": {
+      "policy": "read"
+    }
+  }
+}
+```
+
+</CodeTabs>
+
+</Tab>
+
+<Tab heading="Consul Enterprise (Partitions)">
+
+The following example queries the `finance` partition for the imported `payments` service:
+
+```shell-session
+$ curl 'localhost:8500/v1/health/service/payments?partition=finance'
+```
+
+An ACL token with either of the following permissions is required in the cluster where the query is made:
+- `service:write` permissions for any service in the partition where the query is made.
+- `service:read` and `node:read` for all services and nodes, respectively, in any namespace and the exact partition where the query is made.
+
+If the call in the previous example is made from a service named `web` in a partition named `frontend`, then the request requires either:
+- A token with `service:write` permissions to `web` in the `frontend` partition.
+- A token with `service:read` and `node:read` to all names in the `frontend` partition, for any namespace.
+
+<CodeTabs heading="Example ACL rules for reading imported services from a partition in Consul Enterprise">
+
+```hcl
+partition "frontend" {
+	namespace "dev" { # This could be any namespace
+		service "web" {
+			policy = "write"
+		}
+	}
+}
+
+# OR
+
+partition "frontend" {
+	namespace "dev" { # This could be any namespace
+		service_prefix "" {
+			policy = "read"
+		}
+		node_prefix "" {
+			policy = "read"
+		}
+	}
+}
+```
+
+```json
+{
+  "partition": {
+    "frontend": {
+      "namespace": {
+        ## The following could be any namespace
+        "dev": {
+          "service": {
+            "web": {
+              "policy": "write"
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+
+## OR
+
+{
+  "partition": {
+    "frontend": {
+      "namespace": {
+        ## The following could be any namespace
+        "dev": {
+          "service_prefix": {
+            "": {
+              "policy": "read"
+            }
+          },
+          "node_prefix": {
+            "": {
+              "policy": "read"
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+</CodeTabs>
+
+</Tab>
+
+<Tab heading="Consul Enterprise (Peers)">
+
+The following example queries the `finance` peer for the imported `payments` service:
+
+```shell-session
+$ curl 'localhost:8500/v1/health/service/payments?peer=finance'
+```
+
+An ACL token with either of the following permissions is required in the cluster where the query is made:
+- `service:write` permissions for any service in the partition where the query is made.
+- `service:read` and `node:read` for all services and nodes, respectively, in any namespace and the exact partition where the query is made.
+
+If the call in the previous example is made from a service named `web` in a partition named `frontend`, then the request requires either:
+- A token with `service:write` permissions to `web` in the `frontend` partition.
+- A token with `service:read` and `node:read` to all names in the `frontend` partition, for any namespace.
+
+<CodeTabs heading="Example ACL rules for reading imported services from a peer in Consul Enterprise">
+
+```hcl
+partition "frontend" {
+	namespace "dev" { # This could be any namespace
+		service "web" {
+			policy = "write"
+		}
+	}
+}
+
+# OR
+
+partition "frontend" {
+	namespace "dev" { # This could be any namespace
+		service_prefix "" {
+			policy = "read"
+		}
+		node_prefix "" {
+			policy = "read"
+		}
+	}
+}
+```
+
+```json
+{
+  "partition": {
+    "frontend": {
+      "namespace": {
+        ## The following could be any namespace
+        "dev": {
+          "service": {
+            "web": {
+              "policy": "write"
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+## OR
+
+{
+  "partition": {
+    "frontend": {
+      "namespace": {
+        ## The following could be any namespace
+        "dev": {
+          "service_prefix": {
+            "": {
+              "policy": "read"
+            }
+          },
+          "node_prefix": {
+            "": {
+              "policy": "read"
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+</CodeTabs>
+
+</Tab>
+</Tabs>
+
+For additional information, refer to [Health HTTP Endpoint](/consul/api-docs/health).

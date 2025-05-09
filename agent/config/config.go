@@ -677,11 +677,12 @@ type HTTPConfig struct {
 }
 
 type Performance struct {
-	LeaveDrainTime        *string `mapstructure:"leave_drain_time"`
-	RaftMultiplier        *int    `mapstructure:"raft_multiplier"` // todo(fs): validate as uint
-	RPCHoldTimeout        *string `mapstructure:"rpc_hold_timeout"`
-	GRPCKeepaliveInterval *string `mapstructure:"grpc_keepalive_interval"`
-	GRPCKeepaliveTimeout  *string `mapstructure:"grpc_keepalive_timeout"`
+	LeaveDrainTime         *string `mapstructure:"leave_drain_time"`
+	RaftMultiplier         *int    `mapstructure:"raft_multiplier"` // todo(fs): validate as uint
+	RPCHoldTimeout         *string `mapstructure:"rpc_hold_timeout"`
+	GRPCKeepaliveInterval  *string `mapstructure:"grpc_keepalive_interval"`
+	GRPCKeepaliveTimeout   *string `mapstructure:"grpc_keepalive_timeout"`
+	EnableXDSLoadBalancing *bool   `mapstructure:"enable_xds_load_balancing"`
 }
 
 type Telemetry struct {

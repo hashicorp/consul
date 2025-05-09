@@ -1,0 +1,192 @@
+---
+layout: docs
+page_title: Lambda Envoy Extension
+description: >-
+  Learn how the `lambda` Envoy extension enables Consul to join AWS Lambda functions to its service mesh.
+---
+
+# Invoke Lambda functions in Envoy proxy
+
+The Lambda Envoy extension configures outbound traffic on upstream dependencies allowing mesh services to properly invoke AWS Lambda functions. Lambda functions appear in the catalog as any other Consul service.
+
+You can only enable the Lambda extension through `service-defaults`. This is because the Consul uses the `service-defaults` configuration entry name as the catalog name for the Lambda functions.
+
+## Configuration specifications
+
+The Lambda Envoy extension has the following arguments:
+
+| Arguments        | Type      | Default  | Description                                                                      |
+| ---------------- | ----------| -------- | -------------------------------------------------------------------------------- |
+| `ARN`            | `string`  | Required | Specifies the [AWS ARN](https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html) for the service's Lambda. |
+| `InvocationMode` | `boolean` | `false`  | Determines if Consul configures the Lambda to be invoked using the `synchronous` or `asynchronous` [invocation mode](https://docs.aws.amazon.com/lambda/latest/operatorguide/invocation-modes.html). |
+| `PayloadPassthrough` | `string` | `synchronous` | Determines if the body Envoy receives is converted to JSON or directly passed to Lambda. |
+
+Unlike [manual lambda registration](/consul/docs/register/service/lambda/manual#supported-meta-fields), the Envoy extension infers the region from the ARN.
+
+## Workflow
+
+Complete the following steps to use the Lambda Envoy extension:
+
+1. Configure EnvoyExtensions through `service-defaults`. 
+1. Apply the configuration entry.
+
+### Configure `EnvoyExtensions`
+
+To use the Lambda Envoy extension, you must configure and apply a `service-defaults` configuration entry. Consul uses service default's name as the Consul service name for the Lambda function. Downstream services also use the name to invoke the Lambda.
+
+The following example configures the Lambda Envoy extension to create a service named `lambda-1234` in the mesh that can invoke the associated Lambda function.
+
+<CodeTabs tabs={[ "HCL", "JSON", "YAML" ]}>
+<CodeBlockConfig filename="lambda-envoy-extension.hcl">
+
+```hcl
+Kind = "service-defaults"
+Name = "lambda-1234"
+Protocol  = "http"
+EnvoyExtensions {
+  Name = "builtin/aws/lambda"
+  Arguments = {
+    ARN = "arn:aws:lambda:us-west-2:111111111111:function:lambda-1234"
+  }
+}
+```
+
+</CodeBlockConfig>
+<CodeBlockConfig filename="lambda-envoy-extension.json">
+
+```json
+{
+  "kind": "service-defaults",
+  "name": "lambda-1234",
+  "protocol": "http",
+  "envoy_extensions": [{
+    "name": "builtin/aws/lambda",
+    "arguments": {
+      "arn": "arn:aws:lambda:us-west-2:111111111111:function:lambda-1234"
+    }
+  }]
+}
+```
+
+</CodeBlockConfig>
+<CodeBlockConfig filename="lambda-envoy-extension.yaml">
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceDefaults
+metadata:
+  name: lambda-1234
+spec:
+  protocol: http
+  envoyExtensions:
+    - name = "builtin/aws/lambda"
+      arguments:
+        arn: arn:aws:lambda:us-west-2:111111111111:function:lambda-1234
+```
+
+</CodeBlockConfig>
+</CodeTabs>
+
+For a full list of parameters for `EnvoyExtensions`, refer to the [`service-defaults`](/consul/docs/reference/config-entry/service-defaults#envoyextensions). 
+
+<Note> You can only enable the Lambda extension through `service-defaults`. </Note>
+
+Refer to [Configuration specification](#configuration-specification) section to find a full list of arguments for the Lambda Envoy extension.
+
+### Apply the configuration entry
+
+Apply the `service-defaults` configuration entry.
+
+<CodeTabs tabs={[ "HCL", "JSON", "YAML" ]}>
+
+```shell-session
+$ consul config write lambda-envoy-extension.hcl
+```
+
+```shell-session
+$ consul config write lambda-envoy-extension.json
+```
+
+```shell-session
+$ kubectl apply lambda-envoy-extension.yaml
+```
+
+</CodeTabs>
+
+## Examples
+
+The following example configuration adds a single Lambda function running in two regions into the mesh. You can use the `lambda-1234` service name to invoke it, as if it was any other service in the mesh.
+
+<CodeTabs tabs={[ "HCL", "JSON", "YAML" ]}>
+<CodeBlockConfig filename="lambda-envoy-extension.hcl">
+
+```hcl
+Kind = "service-defaults"
+Name = "lambda-1234"
+Protocol  = "http"
+EnvoyExtensions {
+  Name = "builtin/aws/lambda"
+  
+  Arguments = {
+    payloadPassthrough: false
+    arn: arn:aws:lambda:us-west-2:111111111111:function:lambda-1234
+  }
+}
+EnvoyExtensions {
+  Name = "builtin/aws/lambda"
+
+  Arguments = {
+    payloadPassthrough: false
+    arn: arn:aws:lambda:us-east-1:111111111111:function:lambda-1234
+ }
+}
+```
+
+</CodeBlockConfig>
+<CodeBlockConfig filename="lambda-envoy-extension.json">
+
+```hcl
+{
+  "kind": "service-defaults",
+  "name": "lambda-1234",
+  "protocol": "http",
+  "envoy_extensions": [{
+    "name": "builtin/aws/lambda",
+    "arguments": {
+      "payload_passthrough": false,
+      "arn": "arn:aws:lambda:us-west-2:111111111111:function:lambda-1234"
+    }
+  },
+  {
+    "name": "builtin/aws/lambda",
+    "arguments": {
+      "payload_passthrough": false,
+      "arn": "arn:aws:lambda:us-east-1:111111111111:function:lambda-1234"
+    }
+  }]
+}
+```
+
+</CodeBlockConfig>
+<CodeBlockConfig filename="lambda-envoy-extension.yaml">
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceDefaults
+metadata:
+  name: lambda-1234
+spec:
+  protocol: http
+  envoyExtensions:
+    - name = "builtin/aws/lambda"
+      arguments:
+        payloadPassthrough: false
+        arn: arn:aws:lambda:us-west-2:111111111111:function:lambda-1234
+    - name = "builtin/aws/lambda"
+      arguments:
+        payloadPassthrough: false
+        arn: arn:aws:lambda:us-east-1:111111111111:function:lambda-1234
+```
+
+</CodeBlockConfig>
+</CodeTabs>

@@ -1,0 +1,38 @@
+---
+layout: docs
+page_title: Join parameters for Consul agent configuration files
+description: >-
+  Use agent configuration files to assign attributes to agents and configure multiple agents at once. Learn about agent configuration file parameters and formatting with this reference page and sample code.
+---
+
+# Join parameters for Consul agent configuration files
+
+The page provides reference information for join parameters in a Consul agent configuration file.
+
+## Join Parameters
+
+- `rejoin_after_leave` ((#\_rejoin)) - When provided, Consul ignores a previous
+  leave and attempts to rejoin the cluster when starting. By default, Consul treats
+  leave as a permanent intent and does not attempt to join the cluster again automatically when
+  it starts. This parameter allows the previous state to be used to rejoin the cluster. Equivalent to the [`-rejoin` command-line flag](/consul/commands/agent#_rejoin).
+
+- `retry_join` ((#\_retry_join)) - Address of another agent to join on start up. Joining is
+  retried until success. Once the agent joins successfully as a member, it will not attempt to join
+  again. After joining, the agent solely maintains its membership through gossip. By default, the Consul agent does not join any
+  nodes when it starts up. The value can contain IPv4, IPv6, or DNS addresses. Literal IPv6
+  addresses must be enclosed in square brackets. If multiple values are given, they are tried and
+  retried in the order listed until the first succeeds. Equivalent to the [`-retry-join`](/consul/commands/agent#retry-join) command-line flag.
+
+- `retry_interval` ((#\_retry_interval)) - Time to wait between join attempts.
+  Defaults to `30s`.Equivalent to the [`-retry-interval` command-line flag](/consul/commands/agent#_retry_interval).
+
+- `retry_max` ((#\_retry_max)) - The maximum number of join attempts when using
+  [`retry-join`](#_retry_join) before exiting with return code 1. By default, this parameter is set
+  to `0`, which is interpreted as infinite retries. Equivalent to the [`-retry-max`](/consul/commands/agent#_retry_max) command-line flag.
+
+- `retry_join_wan` ((#\_retry_join_wan)) - Address of another WAN agent to join on start up.
+  WAN joining is retried until success. This can be specified as a list of addresses to specify multiple WAN
+  agents to join. If multiple values are given, they are tried and retried in the order listed
+  until the first succeeds. By default, the agent does not WAN join any nodes when it starts up. Equivalent to the [`-retry-join-wan` command-line flag](/consul/commands/agent#_retry_join_wan).
+
+- `retry_interval_wan`  Time to wait between [`retry-join-wan`](#_retry_join_wan) attempts. Defaults to `30s`. Equivalent to the [`-retry-interval-wan` command-line flag](/consul/commands/agent#_retry_interval_wan).

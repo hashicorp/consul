@@ -1,0 +1,38 @@
+---
+layout: docs
+page_title: Deploy Consul server on Kubernetes
+description: >-
+  To deploy a Consul server on Kubernetes, use either Helm or the `consul-k8s` CLI to schedule the server. Learn about additional steps for deploying a Consul server to different Kubernetes platforms.
+---
+
+# Deploy a Consul server on Kubernetes
+
+This topic provides an overview for deploying a Consul server when running Consul on Kubernetes
+
+## Basic deployments
+
+To schedule a Consul server on a Kubernetes cluster, you can use either Helm or the Consul on Kubernetes CLI. Depending on your Kubernetes platform and cloud provider, there may be additional steps.
+
+To get started, refer to the following topics:
+
+- [Deploy Consul Community edition with Helm](/consul/docs/deploy/server/k8s/helm)
+- [Deploy Consul Enterprise with Helm](/consul/docs/deploy/server/k8s/enterprise)
+- [Deploy Consul with the `consul-k8s` CLI](/consul/docs/deploy/server/k8s/consul-k8s)
+
+Refer to the following platform deployment guides more specific information:
+
+- [Azure Kubernetes Service (AKS)](/consul/docs/deploy/server/k8s/platform/aks)
+- [AWS Elastic Kubernetes Service (EKS)](/consul/docs/deploy/server/k8s/platform/eks)
+- [Google Kubernetes Engine (GKE)](/consul/docs/deploy/server/k8s/platform/gke)
+- [Kind](/consul/docs/deploy/server/k8s/platform/kind)
+- [Minikube](/consul/docs/deploy/server/k8s/platform/minikube)
+- [Openshift](/consul/docs/deploy/server/k8s/platform/openshift)
+- [Self-hosted](/consul/docs/deploy/server/k8s/platform/self-hosted)
+
+## Advanced deployments
+
+You can configure Consul to run on Kubernetes clusters that are deployed in dispersed networks. Refer to the following topics for more information:
+
+- [Deploy a single Consul datacenter across multiple Kubernetes clusters](/consul/docs/deploy/server/k8s/multi-cluster)
+- [Deploy Consul servers outside of Kubernetes](/consul/docs/deploy/server/k8s/external)
+- [Deploy Consul with Vault as Secrets backend](/consul/docs/deploy/server/k8s/vault)

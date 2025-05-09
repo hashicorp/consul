@@ -1,0 +1,96 @@
+---
+layout: docs
+page_title: Gossip parameters for Consul agent configuration files
+description: >-
+  Use agent configuration files to assign attributes to agents and configure multiple agents at once. Learn about agent configuration file parameters and formatting with this reference page and sample code.
+---
+
+# Gossip parameters for Consul agent configuration files
+
+The page provides reference information for gossip parameters in a Consul agent configuration file.
+
+## Gossip parameters
+
+- `gossip_lan` - **(Advanced)** This object contains a
+  number of sub-keys which can be set to tune the LAN gossip communications. These
+  are only provided for users running especially large clusters that need fine tuning
+  and are prepared to spend significant effort correctly tuning them for their environment
+  and workload. **Tuning these improperly can cause Consul to fail in unexpected
+  ways**. The default values are appropriate in almost all deployments.
+
+  - `gossip_nodes` - The number of random nodes to send
+    gossip messages to per gossip_interval. Increasing this number causes the gossip
+    messages to propagate across the cluster more quickly at the expense of increased
+    bandwidth. The default is 3.
+
+  - `gossip_interval` - The interval between sending
+    messages that need to be gossiped that haven't been able to piggyback on probing
+    messages. If this is set to zero, non-piggyback gossip is disabled. By lowering
+    this value (more frequent) gossip messages are propagated across the cluster
+    more quickly at the expense of increased bandwidth. The default is 200ms.
+
+  - `probe_interval` - The interval between random
+    node probes. Setting this lower (more frequent) will cause the cluster to detect
+    failed nodes more quickly at the expense of increased bandwidth usage. The default
+    is 1s.
+
+  - `probe_timeout` - The timeout to wait for an ack
+    from a probed node before assuming it is unhealthy. This should be at least the
+    99-percentile of RTT (round-trip time) on your network. The default is 500ms
+    and is a conservative value suitable for almost all realistic deployments.
+
+  - `retransmit_mult` - The multiplier for the number
+    of retransmissions that are attempted for messages broadcasted over gossip. The
+    number of retransmits is scaled using this multiplier and the cluster size. The
+    higher the multiplier, the more likely a failed broadcast is to converge at the
+    expense of increased bandwidth. The default is 4.
+
+  - `suspicion_mult` - The multiplier for determining
+    the time an inaccessible node is considered suspect before declaring it dead.
+    The timeout is scaled with the cluster size and the probe_interval. This allows
+    the timeout to scale properly with expected propagation delay with a larger cluster
+    size. The higher the multiplier, the longer an inaccessible node is considered
+    part of the cluster before declaring it dead, giving that suspect node more time
+    to refute if it is indeed still alive. The default is 4.
+
+- `gossip_wan` - **(Advanced)** This object contains a
+  number of sub-keys which can be set to tune the WAN gossip communications. These
+  are only provided for users running especially large clusters that need fine tuning
+  and are prepared to spend significant effort correctly tuning them for their environment
+  and workload. **Tuning these improperly can cause Consul to fail in unexpected
+  ways**. The default values are appropriate in almost all deployments.
+
+  - `gossip_nodes` - The number of random nodes to send
+    gossip messages to per gossip_interval. Increasing this number causes the gossip
+    messages to propagate across the cluster more quickly at the expense of increased
+    bandwidth. The default is 4.
+
+  - `gossip_interval` - The interval between sending
+    messages that need to be gossiped that haven't been able to piggyback on probing
+    messages. If this is set to zero, non-piggyback gossip is disabled. By lowering
+    this value (more frequent) gossip messages are propagated across the cluster
+    more quickly at the expense of increased bandwidth. The default is 500ms.
+
+  - `probe_interval` - The interval between random
+    node probes. Setting this lower (more frequent) will cause the cluster to detect
+    failed nodes more quickly at the expense of increased bandwidth usage. The default
+    is 5s.
+
+  - `probe_timeout` - The timeout to wait for an ack
+    from a probed node before assuming it is unhealthy. This should be at least the
+    99-percentile of RTT (round-trip time) on your network. The default is 3s
+    and is a conservative value suitable for almost all realistic deployments.
+
+  - `retransmit_mult` - The multiplier for the number
+    of retransmissions that are attempted for messages broadcasted over gossip. The
+    number of retransmits is scaled using this multiplier and the cluster size. The
+    higher the multiplier, the more likely a failed broadcast is to converge at the
+    expense of increased bandwidth. The default is 4.
+
+  - `suspicion_mult` - The multiplier for determining
+    the time an inaccessible node is considered suspect before declaring it dead.
+    The timeout is scaled with the cluster size and the probe_interval. This allows
+    the timeout to scale properly with expected propagation delay with a larger cluster
+    size. The higher the multiplier, the longer an inaccessible node is considered
+    part of the cluster before declaring it dead, giving that suspect node more time
+    to refute if it is indeed still alive. The default is 6.

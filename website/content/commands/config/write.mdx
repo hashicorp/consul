@@ -12,7 +12,7 @@ Command: `consul config write`
 Corresponding HTTP API Endpoint: [\[PUT\] /v1/config](/consul/api-docs/config#apply-configuration)
 
 The `config write` command creates or updates a centralized config entry.
-See the [configuration entries docs](/consul/docs/agent/config-entries) for more
+See the [configuration entries docs](/consul/docs/fundamentals/config-entry) for more
 details about configuration entries.
 
 The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
@@ -53,13 +53,13 @@ Usage: `consul config write [options] FILE`
 
 #### Enterprise Options
 
-@include 'cli-http-api-partition-options.mdx'
+@include 'legacy/cli-http-api-partition-options.mdx'
 
-@include 'http_api_namespace_options.mdx'
+@include 'legacy/http_api_namespace_options.mdx'
 
 #### API Options
 
-@include 'http_api_options_client.mdx'
+@include 'legacy/http_api_options_client.mdx'
 
 ## Examples
 
@@ -74,7 +74,7 @@ From stdin:
 ### Config Entry examples
 
 All config entries must have a `Kind` when registered. See
-[Service Mesh - Config Entries](/consul/docs/connect/config-entries) for the list of
+[Service Mesh - Config Entries](/consul/docs/fundamentals/config-entry) for the list of
 supported config entries.
 
 #### Service defaults
@@ -91,7 +91,7 @@ service use the `http` protocol.
 }
 ```
 
-For more information, refer to the [service defaults configuration reference](/consul/docs/connect/config-entries/service-defaults).
+For more information, refer to the [service defaults configuration reference](/consul/docs/reference/config-entry/service-defaults).
 
 #### Proxy defaults
 
@@ -110,4 +110,4 @@ Envoy proxies.
 }
 ```
 
-For more information, refer to the [proxy defaults configuration reference](/consul/docs/connect/config-entries/proxy-defaults).
+For more information, refer to the [proxy defaults configuration reference](/consul/docs/reference/config-entry/proxy-defaults).

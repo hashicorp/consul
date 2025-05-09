@@ -1,0 +1,63 @@
+---
+layout: docs
+page_title: Consul on virtual machines (VMs)
+description: >-
+  Consul supports application workloads on bare-metal and virtual machine deployments. Find documentation and guidance specific to Consul operations and service networking on VMs.
+---
+
+# Consul on virtual machines (VMs)
+
+This topic describes the processes to operate Consul and use it for service networking on virtual machines.
+
+## Overview
+
+Consul supports service networking for application workloads on multiple runtimes and cloud providers, including bare-metal servers and virtual machines. Although workflows to use Consul are similar across runtimes, some processes have distinct system requirements or a specific sequence of actions you must follow when Consul runs on virtual machines.
+
+### Consul operations on virtual machines
+
+The following topics describe unique user actions, workflows, and goals related to installing Consul and operating it as a long-running daemon on multiple nodes in a network.
+
+- [Deploy Consul on VMs](/deploy/vm)
+- [Upgrade Consul on VMs](/upgrade/vm)
+
+### Service networking on virtual machines
+
+The following topics describe unique user actions, workflows, and goals related to Consul's service discovery and service mesh operations.
+
+- [Register services on VMs](/register/vm)
+- [Discover services on VMs](/discover/vm)
+- [Connect service mesh workloads on VMs](/connect/vm)
+- [Secure north/south network access on VMs](/north-south/vm)
+- [Link networks east/west across regions, providers, and runtimes](/east-west/vm)
+- [Secure service mesh traffic on VMs](/secure-mesh/vm)
+- [Manage service traffic on VMs](/manage-traffic/vm)
+- [Observe service mesh telemetry on VMs](/observe/vm)
+
+## Guidance
+
+To learn more about the system architecture and requirements when operating Consul on VMs, refer to the following topics.
+
+- [Control plane architecture](/consul/architecture/control-plane) describes the underlying infrastructure and communication protocols Consul uses.
+- Architectural requirements reference documentation includes:
+  - [Server resource requirements](/consul/docs/reference/architecture/server)
+  - [Required ports](/consul/docs/reference/architecture/ports)
+  - [Capacity planning and hardware requirements](/consul/docs/reference/architecture/capacity)
+- [VM production patterns](/consul/tutorials/production-vms) contains four guides to help you prepare a Consul deployment for production environments.
+  - [Consul reference architecture](/consul/tutorials/production-vms/reference-architecture).
+  - [Consul security considerations](/consul/tutorials/production-vms/security)
+  - [Deployment guide](/consul/tutorials/production-vms/deployment-guide)
+  - [Production readiness checklist](/consul/tutorials/production-vms/production-checklist)
+
+### Tutorials
+
+The following tutorials provide additional guidance to help you learn how to use Consul on VMs.
+
+- [Get Started on VMs](/consul/tutorials/get-started-vms) is a collection of five tutorials that demonstrate common operations and workflows. These tutorials include a sample code repository so that you can follow along on AWS, Azure, GCP, or using a hosted terminal session.
+  - [Deploy Consul on VMs](/consul/tutorials/get-started-vms/virtual-machine-gs-deploy)
+  - [Register your services to Consul](/consul/tutorials/get-started-vms/virtual-machine-gs-service-discovery)
+  - [Securely connect your services with Consul service mesh](/consul/tutorials/get-started-vms/virtual-machine-gs-service-mesh)
+  - [Access services in your service mesh](/consul/tutorials/get-started-vms/virtual-machine-gs-service-mesh-access)
+  - [Observe Consul service mesh traffic](/consul/tutorials/get-started-vms/virtual-machine-gs-monitoring)
+- [Manage permissions with access control lists (ACLs) on VMs](/consul/tutorials/secure-services/access-control-manage-permissions)
+- [Register and monitor external services with Consul External Service Manager (ESM)](/consul/tutorials/connect-services/service-registration-external-services)
+- [Set up secure namespaces](/consul/tutorials/implement-multi-tenancy/namespaces-secure-shared-access)

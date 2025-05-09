@@ -1,0 +1,4 @@
+If you experience errors when implementing multi-tenancy on Consul deployments, refer to the following list of technical constraints.
+
+- WAN-federated Consul deployments support the `default` admin partition only.
+- Samneness groups must be configured on each partition that is a member of the group.

@@ -1,0 +1,38 @@
+---
+layout: docs
+page_title: Observe your service mesh
+description: >-
+  This topic provides an overview of Consul's service mesh observability features, including L7 telemetry visualizations, access logs, and distributed tracing.
+---
+
+# Observe your service mesh
+
+This topic provides an overview of Consul's observability features. Consul can be configured with Prometheus to provide visualizations about agent operations and service traffic between proxies in your service mesh.
+
+## Introduction
+
+Consul supports observability functions that enable you to understand the state of your service mesh while it is running. By monitoring agent, client, dataplane, gateway, mesh proxy, and sidecar proxy requests and their L7 traffic, you can diagnose network issues and effectively mitigate communication failures in your service mesh. Consul can be configured to expose three kinds of telemetry features to help you observe your service mesh:
+
+- Access logs
+- Distributed traces
+- Service mesh telemetry metrics
+
+## Access logs
+
+@include 'text/descriptions/access-log.mdx'
+
+## Distributed tracing
+
+@include 'text/descriptions/distributed-tracing.mdx'
+
+## Service mesh telemetry metrics
+
+@include 'text/descriptions/telemetry.mdx'
+
+## Guidance
+
+@include 'text/guidance/observe.mdx'
+
+### Constraints, limitations, and troubleshooting
+
+@include 'text/limitations/observe.mdx'

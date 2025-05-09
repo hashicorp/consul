@@ -1,0 +1,44 @@
+---
+layout: docs
+page_title: Discover services on virtual machines (VMs)
+description: >-
+  This page provides an overview of the service discovery features and operations enabled on virtual machines by Consul DNS, including application load balancing, static lookups, and prepared queries.
+---
+
+# Discover services on virtual machines (VMs)
+
+This page provides an overview of Consul service discovery operations on virtual machines. After you register services with Consul, you can address them using Consul DNS to perform application load balancing and static service lookups. You can also create prepared queries for dynamic service lookups and service failover.
+
+## Introduction
+
+When a service registers with Consul, the catalog records the address of each service's node. Consul then updates an instance's catalog entry with the results of each health check it performs. Consul agents replicate catalog information between each other using the [Raft consensus protocol](/consul/docs/concept/consensus), enabling high availability service networking through any Consul agent.
+
+Consul's service discovery operations use [Consul DNS addresses](/consul/docs/discover/dns) to route traffic to healthy service instances and return information about service nodes registered to Consul.
+
+## Application load balancing
+
+@include 'text/descriptions/load-balancer.mdx'
+
+## Static lookups
+
+@include 'text/descriptions/static-query.mdx'
+
+## Prepared queries
+
+@include 'text/descriptions/prepared-query.mdx'
+
+## Tutorials
+
+To get started with Consul's service discovery features on VMs, refer to the following tutorials:
+
+- [Register your services to Consul](/consul/tutorials/get-started-vms/virtual-machine-gs-service-discovery)
+
+## Reference documentation
+
+For reference material related to Consul's service discovery functions, refer to the following pages:
+
+- [Consul DNS reference](/consul/docs/reference/dns)
+
+## Constraints, limitations, and troubleshooting
+
+@include 'text/limitations/discover.mdx'

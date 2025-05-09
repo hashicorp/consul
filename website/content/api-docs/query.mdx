@@ -11,7 +11,7 @@ The `/query` endpoints create, update, destroy, and execute prepared queries.
 Prepared queries allow you to register a complex service query and then execute
 it later by specifying the query ID or name. Consul returns a set of healthy nodes that provide a given
 service. Refer to
-[Enable Dynamic DNS Queries](/consul/docs/services/discovery/dns-dynamic-lookups) for additional information.
+[Enable Dynamic DNS Queries](/consul/docs/discover/service/dynamic) for additional information.
 
 Check the [Geo Failover tutorial](/consul/tutorials/developer-discovery/automate-geo-failover) for details and
 examples for using prepared queries to implement geo failover for services.
@@ -215,7 +215,7 @@ The table below shows this endpoint's support for
       service instances in the local datacenter.
       This option cannot be used with `NearestN` or `Datacenters`.
 
-      - `Peer` `(string: "")` - Specifies a [cluster peer](/consul/docs/connect/cluster-peering) to use for
+      - `Peer` `(string: "")` - Specifies a [cluster peer](/consul/docs/east-west/cluster-peering) to use for
         failover.
 
       - `Datacenter` `(string: "")` - Specifies a WAN federated datacenter to forward the
@@ -325,7 +325,7 @@ $ curl \
 
 This endpoint returns a list of all prepared queries.
 
-@include 'http_api_results_filtered_by_acls.mdx'
+@include 'legacy/http_api_results_filtered_by_acls.mdx'
 
 | Method | Path     | Produces           |
 | ------ | -------- | ------------------ |

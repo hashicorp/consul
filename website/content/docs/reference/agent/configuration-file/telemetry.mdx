@@ -1,0 +1,197 @@
+---
+layout: docs
+page_title: Telemetry parameters for Consul agent configuration files
+description: >-
+  Use agent configuration files to assign attributes to agents and configure multiple agents at once. Learn about agent configuration file parameters and formatting with this reference page and sample code.
+---
+
+# Telemetry parameters for Consul agent configuration files
+
+The page provides reference information for telemetry parameters in a Consul agent configuration file.
+
+## Telemetry parameters
+
+- `telemetry` This is a nested object that configures where
+  Consul sends its runtime telemetry, and contains the following keys:
+
+  - `circonus_api_token` ((#telemetry-circonus_api_token)) A valid API
+    Token used to create/manage check. If provided, metric management is
+    enabled.
+
+  - `circonus_api_app` ((#telemetry-circonus_api_app)) A valid app name
+    associated with the API token. By default, this is set to "consul".
+
+  - `circonus_api_url` ((#telemetry-circonus_api_url))
+    The base URL to use for contacting the Circonus API. By default, this is set
+    to "https://api.circonus.com/v2".
+
+  - `circonus_submission_interval` ((#telemetry-circonus_submission_interval)) The interval at which metrics are submitted to Circonus. By default, this is set to "10s" (ten seconds).
+
+  - `circonus_submission_url` ((#telemetry-circonus_submission_url))
+    The `check.config.submission_url` field, of a Check API object, from a previously
+    created HTTPTrap check.
+
+  - `circonus_check_id` ((#telemetry-circonus_check_id))
+    The Check ID (not **check bundle**) from a previously created HTTPTrap check.
+    The numeric portion of the `check._cid` field in the Check API object.
+
+  - `circonus_check_force_metric_activation` ((#telemetry-circonus_check_force_metric_activation)) Force activation of metrics which already exist and are not currently active.
+    If check management is enabled, the default behavior is to add new metrics as
+    they are encountered. If the metric already exists in the check, it will **not**
+    be activated. This setting overrides that behavior. By default, this is set to
+    false.
+
+  - `circonus_check_instance_id` ((#telemetry-circonus_check_instance_id)) Uniquely identifies the metrics coming from this **instance**. It can be used to
+    maintain metric continuity with transient or ephemeral instances as they move
+    around within an infrastructure. By default, this is set to hostname:application
+    name (e.g. "host123:consul").
+
+  - `circonus_check_search_tag` ((#telemetry-circonus_check_search_tag)) A special tag which, when coupled with the instance id, helps to narrow down
+    the search results when neither a Submission URL or Check ID is provided. By
+    default, this is set to service:application name (e.g. "service:consul").
+
+  - `circonus_check_display_name` ((#telemetry-circonus_check_display_name)) Specifies a name to give a check when it is created. This name is displayed in
+    the Circonus UI Checks list. Available in Consul 0.7.2 and later.
+
+  - `circonus_check_tags` ((#telemetry-circonus_check_tags))
+    Comma separated list of additional tags to add to a check when it is created.
+    Available in Consul 0.7.2 and later.
+
+  - `circonus_broker_id` ((#telemetry-circonus_broker_id))
+    The ID of a specific Circonus Broker to use when creating a new check. The numeric
+    portion of `broker._cid` field in a Broker API object. If metric management is
+    enabled and neither a Submission URL nor Check ID is provided, an attempt will
+    be made to search for an existing check using Instance ID and Search Tag. If
+    one is not found, a new HTTPTrap check will be created. By default, this is not
+    used and a random Enterprise Broker is selected, or the default Circonus Public
+    Broker.
+
+  - `circonus_broker_select_tag` ((#telemetry-circonus_broker_select_tag)) A special tag which will be used to select a Circonus Broker when a Broker ID
+    is not provided. The best use of this is to as a hint for which broker should
+    be used based on **where** this particular instance is running (e.g. a specific
+    geo location or datacenter, dc:sfo). By default, this is left blank and not used.
+
+  - `disable_hostname` ((#telemetry-disable_hostname))
+    Set to `true` to stop prepending the machine's hostname to gauge-type metrics. Default is `false`.
+
+  - `disable_per_tenancy_usage_metrics` ((#telemetry-disable_per_tenancy_usage_metrics))
+    Set to `true` to exclude tenancy labels from usage metrics. This significantly decreases CPU utilization in clusters with many admin partitions or namespaces.
+
+  - `dogstatsd_addr` ((#telemetry-dogstatsd_addr)) This provides the address
+    of a DogStatsD instance in the format `host:port`. DogStatsD is a protocol-compatible
+    flavor of statsd, with the added ability to decorate metrics with tags and event
+    information. If provided, Consul will send various telemetry information to that
+    instance for aggregation. This can be used to capture runtime information.
+
+  - `dogstatsd_tags` ((#telemetry-dogstatsd_tags)) This provides a list
+    of global tags that will be added to all telemetry packets sent to DogStatsD.
+    It is a list of strings, where each string looks like "my_tag_name:my_tag_value".
+
+  - `enable_host_metrics` ((#telemetry-enable_host_metrics))
+    This enables reporting of host metrics about system resources, defaults to false.
+
+  - `filter_default` ((#telemetry-filter_default))
+    This controls whether to allow metrics that have not been specified by the filter.
+    Defaults to `true`, which will allow all metrics when no filters are provided.
+    When set to `false` with no filters, no metrics will be sent.
+
+  - `metrics_prefix` ((#telemetry-metrics_prefix))
+    The prefix used while writing all telemetry data. By default, this is set to
+    "consul". This was added in Consul 1.0. For previous versions of Consul, use
+    the config option `statsite_prefix` in this same structure. This was renamed
+    in Consul 1.0 since this prefix applied to all telemetry providers, not just
+    statsite.
+
+  - `prefix_filter` ((#telemetry-prefix_filter))
+    This is a list of filter rules to apply for allowing or blocking metrics by
+    prefix in the following formats:
+
+    - `"+<metric-prefix>"`
+    - `"-<metric-prefix>"`
+
+    A leading "**+**" enables any metrics with the given prefix, and a leading
+    "**-**" blocks them. If there is overlap between two rules, the more
+    specific rule takes precedence. Blocking takes priority if the same prefix
+    is listed multiple times.
+
+    Refer to the [prefix filter example](#prefix-filter) for more information.
+
+  - `prometheus_retention_time` ((#telemetry-prometheus_retention_time)) If the
+    value is greater than `0s` (the default), this enables
+    [Prometheus](https://prometheus.io/) export of metrics. You may express the
+    duration with the duration semantics. This aggregates all counters for
+    the duration specified, which might have an impact on Consul's memory usage.
+
+    A good value for `prometheus_retention_time` is at least 2 times the
+    interval of scrape of Prometheus, but you might also put a very high
+    retention time such as a few days (for instance 744h to enable retention to
+    31 days).
+
+    Fetch the metrics for Prometheus with the
+    [`/v1/agent/metrics?format=prometheus`](/consul/api-docs/agent#view-metrics)
+    endpoint. The format is compatible natively with Prometheus. When running in
+    this mode, we recommend that you also enable the option
+    [`disable_hostname`](#telemetry-disable_hostname) to avoid having prefixed
+    metrics with hostname.
+
+    Consul does not use the default Prometheus path, so you must configure
+    Prometheus to scrape metrics as in the following example.
+
+    ```yaml
+    metrics_path: '/v1/agent/metrics'
+    params:
+      format: ['prometheus']
+    ```
+
+    Note that using `?format=prometheus` in the metrics path does not work.
+    Since `?` is escaped, you must specify the format as a parameter. Refer to
+    the [Prometheus configuration
+    documentation](https://prometheus.io/docs/prometheus/latest/configuration/configuration/)
+    for details.
+
+  - `statsd_address` ((#telemetry-statsd_address)) This provides the address
+    of a statsd instance in the format `host:port`. If provided, Consul will send
+    various telemetry information to that instance for aggregation. This can be used
+    to capture runtime information. This sends UDP packets only and can be used with
+    statsd or statsite.
+
+  - `statsite_address` ((#telemetry-statsite_address)) This provides the
+    address of a statsite instance in the format `host:port`. If provided, Consul
+    will stream various telemetry information to that instance for aggregation. This
+    can be used to capture runtime information. This streams via TCP and can only
+    be used with statsite.
+
+## Examples
+
+The following examples demonstrate common agent telemetry configuration patterns.
+
+### Prefix filter
+
+This example allows `consul.raft.apply` and `consul.http.GET` but blocks `consul.http`.
+
+<CodeTabs>
+
+```hcl
+telemetry {
+  prefix_filter = ["+consul.raft.apply", "-consul.http", "+consul.http.GET"]
+}
+```
+
+```json
+{
+  "telemetry": {
+    "prefix_filter": [
+      "+consul.raft.apply",
+      "-consul.http",
+      "+consul.http.GET"
+    ]
+  }
+}
+```
+
+</CodeTabs>
+
+
+
+
+

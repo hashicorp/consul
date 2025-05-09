@@ -1,0 +1,226 @@
+---
+layout: docs
+page_title: Use JWTs to verify requests to API gateways on Kubernetes
+description: Learn how to use JSON web tokens (JWT) to verify requests from external clients to listeners on an API gateway on Kubernetes-orchestrated networks.
+---
+
+# Use JWTs to verify requests to API gateways on Kubernetes
+
+This topic describes how to use JSON web tokens (JWT) to verify requests to API gateways deployed to Kubernetes-orchestrated containers. If your API gateway is deployed to virtual machines, refer to [Use JWTs to verify requests to API gateways on VMs](/consul/docs/north-south/api-gateway/secure-traffic/jwt/vm).
+
+<EnterpriseAlert> This feature is available in Consul Enterprise. </EnterpriseAlert>
+
+## Overview
+
+You can configure API gateways to use JWTs to verify incoming requests so that you can stop unverified traffic at the gateway. You can configure JWT verification at different levels:
+
+- Listener defaults: Define basic defaults in a GatewayPolicy resource to apply them to all routes attached to a listener.
+- HTTP route-specific settings: You can define JWT authentication settings for specific HTTP routes. Route-specific JWT settings override default listener configurations.
+- Listener overrides: Define override settings in a GatewayPolicy resource that take precedence over default and route-specific configurations. Use override settings to set enforceable policies for listeners.
+
+
+Complete the following steps to use JWTs to verify requests:
+
+1. Define a JWTProvider that specifies the JWT provider and claims used to verify requests to the gateway.
+1. Define a GatewayPolicy that specifies default and override settings for API gateway listeners and attach it to the gateway.
+1. Define a RouteAuthFilter that specifies route-specific JWT verification settings.
+1. Reference the RouteAuthFilter from the HTTPRoute.
+1. Apply the configurations.
+
+
+## Requirements
+
+- Consul v1.17+
+- Consul on Kubernetes CLI or Helm chart v1.3.0+
+- JWT details, such as claims and provider
+
+
+## Define a JWTProvider
+
+Create a `JWTProvider` CRD that defines the JWT provider to verify claims against.
+
+In the following example, the JWTProvider CRD contains a local JWKS. In production environments, use a production-grade JWKs endpoint instead.
+
+<CodeBlockConfig filename="jwt-provider.yaml">
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: JWTProvider
+metadata:
+  name: local
+spec:
+  issuer: local
+  jsonWebKeySet:
+    local:
+      jwks: "<JWKS-Key>"
+```
+
+</CodeBlockConfig>
+
+For more information about the fields you can configure in this CRD, refer to [`JWTProvider` configuration reference](/consul/docs/reference/config-entry/jwt-provider).
+
+## Define a GatewayPolicy
+
+Create a `GatewayPolicy` CRD that defines default and override settings for JWT verification.
+
+- `kind`: Must be set to `GatewayPolicy`
+- `metadata.name`: Specifies a name for the policy.
+- `spec.targetRef.name`: Specifies the name of the API gateway to attach the policy to.
+- `spec.targetRef.kind`: Specifies the kind of resource to attach to the policy to. Must be set to `Gateway`.
+- `spec.targetRef.group`: Specifies the resource group. Unless you have created a custom group, this should be set to `gateway.networking.k8s.io/v1beta1`.
+- `spec.targetRef.sectionName`: Specifies a part of the gateway that the policy applies to.
+- `spec.targetRef.override.jwt.providers`: Specifies a list of providers and claims used to verify requests to the gateway. The override settings take precedence over the default and route-specific JWT verification settings.
+- `spec.targetRef.default.jwt.providers`: Specifies a list of default providers and claims used to verify requests to the gateway.
+
+The following examples configure a Gateway and the GatewayPolicy being attached to it so that every request coming through the listener must meet these conditions:
+
+- The request must be signed by the `local` provider
+- The request must have a claim of `role` with a value of `user` unless the HTTPRoute attached to the listener overrides it
+
+<Tabs>
+<Tab heading="Gateway">
+
+<CodeBlockConfig filename="gateway.yaml">
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: Gateway
+metadata:
+  name: api-gateway
+spec:
+  gatewayClassName: consul
+  listeners:
+    - protocol: HTTP
+      port: 30002
+      name: listener-one
+```
+
+</CodeBlockConfig>
+
+</Tab>
+
+<Tab heading="GatewayPolicy">
+
+<CodeBlockConfig filename="gateway-policy.yaml">
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: GatewayPolicy
+metadata:
+  name: gw-policy
+spec:
+  targetRef:
+    name: api-gateway
+    sectionName: listener-one
+    group: gateway.networking.k8s.io/v1beta1
+    kind: Gateway
+  override:
+    jwt:
+      providers:
+      - name: "local"
+  default:
+    jwt:
+      providers:
+      - name: "local"
+        verifyClaims:
+        - path:
+            - role
+          value: user
+```
+
+</CodeBlockConfig>
+
+</Tab>
+</Tabs>
+
+For more information about the fields you can configure, refer to [`GatewayPolicy` configuration reference](/consul/docs/reference/k8s/api-gateway/gatewaypolicy).
+
+## Define a RouteAuthFilter
+
+Create an `RouteAuthFilter` CRD that defines overrides for the default JWT verification configured in the GatewayPolicy.
+
+- `kind`: Must be set to `RouteAuthFilter`
+- `metadata.name`: Specifies a name for the filter.
+- `metadata.namespace`: Specifies the Consul namespace the filter applies to.
+- `spec.jwt.providers`: Specifies a list of providers and claims used to verify requests to the gateway. The override settings take precedence over the default and route-specific JWT verification settings.
+
+In the following example, the RouteAuthFilter overrides default settings set in the GatewayPolicy so that every request coming through the listener must meet these conditions:
+
+- The request must be signed by the `local` provider
+- The request must have a `role` claim
+- The value of the claim must be `admin`
+
+<CodeBlockConfig filename="route-auth-filter.yaml">
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: RouteAuthFilter
+metadata:
+  name: auth-filter
+spec:
+  jwt:
+    providers:
+    - name: local
+      verifyClaims:
+      - path:
+          - role
+        value: admin
+```
+
+</CodeBlockConfig>
+
+For more information about the fields you can configure, refer to [`RouteAuthFilter` configuration reference](/consul/docs/reference/k8s/api-gateway/routeauthfilter).
+
+## Attach the auth filter to your HTTP routes
+
+In the `filters` field of your HTTPRoute configuration, define the filter behavior that results from JWT verification.
+
+- `type: extensionRef`: Declare list of extension references.
+- `extensionRef.group`: Specifies the resource group. Unless you have created a custom group, this should be set to `gateway.networking.k8s.io/v1beta1`.
+- `extensionRef.kind`: Specifies the type of extension reference to attach to the route. Must be `RouteAuthFilter`
+- `extensionRef.name`: Specifies the name of the auth filter.
+
+The following example configures an HTTPRoute so that every request to `api-gateway-fqdn:3002/admin` must meet these conditions:
+
+- The request be signed by the `local` provider.
+- The request must have a `role` claim.
+- The value of the claim must be `admin`.
+
+Every other request must be signed by the `local` provider and have a claim of `role` with a value of `user`, as defined in the GatewayPolicy.
+
+<CodeBlockConfig filename="http-route.yaml">
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: HTTPRoute
+metadata:
+  name: http-route
+spec:
+  parentRefs:
+    - name: api-gateway
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /admin
+      filters:
+        - type: ExtensionRef
+          extensionRef:
+            group: consul.hashicorp.com
+            kind: RouteAuthFilter
+            name: auth-filter
+      backendRefs:
+        - kind: Service
+          name: admin
+          port: 8080
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - kind: Service
+          name: user-service
+          port: 8081
+```
+
+</CodeBlockConfig>

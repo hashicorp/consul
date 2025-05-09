@@ -1,0 +1,398 @@
+---
+layout: docs
+page_title: Sameness group configuration entry reference
+description: >-
+  Sameness groups enable Consul to associate service instances with the same name deployed to the same namespace as identical services. Learn how to configure a `sameness-group` configuration entry to enable failover between partitions and cluster peers in non-federated networks.
+---
+
+# Sameness group configuration entry reference
+
+This page provides reference information for sameness group configuration entries. Sameness groups associate identical admin partitions to facilitate traffic between identical services. When partitions are part of the same Consul datacenter, you can create a sameness group by listing them in the `Members[].Partition` field. When partitions are located on remote clusters, you must establish cluster peering connections between remote partitions in order to add them to a sameness group in the `Members[].Peer` field.
+
+To learn more about creating a sameness group, refer to [Create sameness groups](/consul/docs/multi-tenant/sameness-group/vm) or [Create sameness groups on Kubernetes](/consul/docs/multi-tenant/sameness-group/k8s).
+
+## Configuration model
+
+The following list outlines field hierarchy, language-specific data types, and requirements in the sameness group configuration entry. Click on a property name to view additional details, including default values.
+
+<Tabs>
+
+<Tab heading="HCL and JSON" group="hcl">
+
+- [`Kind`](#kind): string | required | must be set to `sameness-group`
+- [`Name`](#name): string | required
+- [`Partition`](#partition): string | `default`
+- [`DefaultForFailover`](#defaultforfailover): boolean | `false`
+- [`IncludeLocal`](#includelocal): boolean | `false`
+- [`Members`](#members): list of maps | required
+  - [`Partition`](#members-partition): string
+  - [`Peer`](#members-peer): string
+
+</Tab>
+
+<Tab heading="YAML" group="yaml">
+
+- [`apiVersion`](#apiversion): string | required | must be set to `consul.hashicorp.com/v1alpha1`
+- [`kind`](#kind): string | required | must be set to `SamenessGroup`
+- [`metadata`](#metadata): map | required
+  - [`name`](#metadata-name): string | required
+- [`spec`](#spec): map | required
+  - [`defaultForFailover`](#spec-defaultforfailover): boolean | `false`
+  - [`includeLocal`](#spec-includelocal): boolean | `false`
+  - [`members`](#spec-members): list of maps | required
+    - [`partition`](#spec-members-partition): string
+    - [`peer`](#spec-members-peer): string
+
+</Tab>
+</Tabs>
+
+## Complete configuration
+
+When every field is defined, a sameness group configuration entry has the following form:
+
+<Tabs>
+
+<Tab heading="HCL" group="hcl">
+
+```hcl
+Kind               = "sameness-group"             # required
+Name               = "<group-name>"               # required
+Partition          = "<partition-configuration-applies-to>"
+DefaultForFailover = false
+IncludeLocal       = true
+Members = [                                       # required
+  { Partition = "<partition-with-services-in-group>" },
+  { Peer = "<cluster-peer-with-services-in-group>" }
+]
+```
+
+</Tab>
+
+<Tab heading="JSON" group="json">
+
+```json
+{
+    "Kind": "sameness-group",                           // required
+    "Name": "<group-name>",                             // required
+    "Partition": "<partition-configuration-applies-to>",
+    "DefaultForFailover": false,
+    "IncludeLocal": true,
+    "Members": [                                        // required
+        {
+            "Partition": "<partition-with-services-in-group>"
+        },
+        {
+            "Peer": "<cluster-peer-with-services-in-group>"
+        }
+    ]
+}
+```
+
+</Tab>
+
+<Tab heading="YAML" group="yaml">
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1         # required
+kind: SamenessGroup                               # required
+metadata:
+  name: <groupName>
+spec:
+  defaultForFailover: false
+  includeLocal: true
+  members:                                        # required
+    - partition: <partitionWithServicesInGroup>
+    - peer: <clusterPeerWithServicesInGroup>
+```
+
+</Tab>
+</Tabs>
+
+## Specifications
+
+This section provides details about the fields you can configure in the sameness group configuration entry.
+
+<Tabs>
+
+<Tab heading="HCL" group="hcl">
+
+### `Kind`
+
+Specifies the type of configuration entry to implement. Must be set to `sameness-group`.
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: String value that must be set to `sameness-group`.
+
+### `Name`
+
+Specifies a name for the configuration entry that is used to identify the sameness group. To ensure consistency, use descriptive names and make sure that the same name is used when creating configuration entries to add each member to the sameness group.
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: String
+
+### `Partition`
+
+Specifies the local admin partition that the sameness group applies to. Refer to [admin partitions](/consul/docs/multi-tenant/admin-partition) for more information.
+
+#### Values
+
+- Default: `default`
+- Data type: String
+
+### `DefaultForFailover`
+
+Determines whether the sameness group should be used to establish connections to services with the same name during failover scenarios.
+
+When this field is set to `true`, upstream requests automatically fail over to services in the sameness group according to the order of the members in the `Members` list. It impacts all services on the partition.
+
+When this field is set to `false`, you can use a sameness group for failover by configuring the `Failover` block of a [service resolver configuration entry](/consul/docs/reference/config-entry/service-resolver).
+
+When you [query Consul DNS](/consul/docs/discover/service/static) using sameness groups, `DefaultForFailover` must be set to `true`.  Otherwise, Consul DNS returns an error.
+
+#### Values
+
+- Default: `false`
+- Data type: Boolean
+
+### `IncludeLocal`
+
+Determines whether the local partition should be considered the first member of the sameness group. When this field is set to `true`, DNS queries, upstream requests, and failover traffic returns a health instance from the local partition unless one does not exist.
+
+If you enable this parameter, you do not need to list the local partition as the first member in the group.
+
+#### Values
+
+- Default: `false`
+- Data type: Boolean
+
+### `Members`
+
+Specifies the partitions and cluster peers that are members of the sameness group from the perspective of the local partition.
+
+The local partition should be the first member listed unless `IncludeLocal=true`. The order of the members determines their precedence during failover scenarios. If a member is listed but Consul cannot connect to it, failover proceeds with the next healthy member in the list. For an example demonstrating how to configure this parameter, refer to [Failover between sameness groups](#failover-between-members-of-a-sameness-group).
+
+Each partition can belong to a single sameness group. You cannot associate a partition or cluster peer with multiple sameness groups.
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: List that can contain maps of the following parameters:
+  - [`Partition`](#members-partition)
+  - [`Peer`](#members-peer)
+
+### `Members[].Partition`
+
+Specifies a partition in the local datacenter that is a member of the sameness group. Local partitions do not require cluster peering connections before they are added to a sameness group.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `Members[].Peer`
+
+Specifies the name of a cluster peer that is a member of the sameness group.
+
+Cluster peering connections must be established before adding a remote partition to the list of members. Refer to [establish cluster peering connections](/consul/docs/east-west/cluster-peering/establish/vm) for more information.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+</Tab>
+
+<Tab heading="YAML" group="yaml">
+
+### `apiVersion`
+
+Specifies the version of the Consul API for integrating with Kubernetes. The value must be `consul.hashicorp.com/v1alpha1`.
+
+#### Values
+
+- Default: None
+- This field is required.
+- String value that must be set to `consul.hashicorp.com/v1alpha1`.
+
+### `kind`
+
+Specifies the type of configuration entry to implement. Must be set to `SamenessGroup`.
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: String value that must be set to `SamenessGroup`.
+
+### `metadata`
+
+Map that contains an arbitrary name for the configuration entry and the namespace it applies to.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `metadata.name`
+
+Specifies a name for the configuration entry that is used to identify the sameness group. To ensure consistency, use descriptive names and make sure that the same name is used when creating configuration entries to add each member to the sameness group.
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: String
+
+### `spec`
+
+Map that contains the details about the `SamenessGroup` configuration entry. The `apiVersion`, `kind`, and `metadata` fields are siblings of the spec field. All other configurations are children.
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: Map
+
+### `spec.defaultForFailover`
+
+Determines whether the sameness group should be used to establish connections to services with the same name during failover scenarios. When this field is set to `true`, upstream requests automatically failover to services in the sameness group according to the order of the members in the `spec.members` list. This setting affects all services on the partition.
+
+When this field is set to `false`, you can use a sameness group for failover by configuring the `spec.failover` block of a [service resolver CRD](/consul/docs/reference/config-entry/service-resolver).
+
+#### Values
+
+- Default: `false`
+- Data type: Boolean
+
+### `spec.includeLocal`
+
+Determines whether the local partition should be considered the first member of the sameness group. When this field is set to `true`, DNS queries, upstream requests, and failover traffic target return a healthy instance from the local partition unless a healthy instance does not exist.
+
+If you enable this parameter, you do not need to list the local partition as the first member in the group.
+
+#### Values
+
+- Default: `false`
+- Data type: Boolean
+
+### `spec.members`
+
+Specifies the local partitions and cluster peers that are members of the sameness group from the perspective of the local partition.
+
+The local partition should be the first member listed unless `spec.includeLocal: true`. The order of the members determines their precedence during failover scenarios. If a member is listed but Consul cannot connect to it, failover proceeds with the next healthy member in the list. For an example demonstrating how to configure this parameter, refer to [Failover between sameness groups](#failover-between-sameness-groups).
+
+Each partition can belong to a single sameness group. You cannot associate a partition or cluster peer with multiple sameness groups.
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: List that can contain maps of the following parameters:
+
+  - [`partition`](#spec-members-partition)
+  - [`peer`](#spec-members-peer)
+
+### `spec.members[].partition`
+
+Specifies a partition in the local datacenter that is a member of the sameness group. Local partitions do not require cluster peering connections before they are added to a sameness group.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.members[].peer`
+
+Specifies the name of a cluster peer that is a member of the sameness group.
+
+Cluster peering connections must be established before adding a peer to the list of members. Refer to [establish cluster peering connections](/consul/docs/east-west/cluster-peering/establish/vm) for more information.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+</Tab>
+</Tabs>
+
+## Examples
+
+The following examples demonstrate common sameness group configuration patterns for specific use cases.
+
+### Failover between members of a sameness group
+
+In the following example, the configuration entry defines a sameness group named `products-api` that applies to the `store-east` partition in the local datacenter. The sameness group is configured so that when a service instance in `store-east` fails, Consul attempts to establish a failover connection in the following order:
+
+- Services with the same name in the `store-east` partition
+- Services with the same name in the `inventory-east` partition in the same datacenter
+- Services with the same name in the `store-west` partition of datacenter `dc2`, which has an established cluster peering connection.
+- Services with the same name in the `inventory-west` partition of `dc2`, which has an established cluster peering connection.
+
+<Tabs>
+
+<Tab heading="HCL" group="hcl">
+
+```hcl
+Kind                     = "sameness-group"
+Name                     = "products-api"
+Partition                = "store-east"
+Members = [
+    { Partition = "store-east" },
+    { Partition = "inventory-east" },
+    { Peer      = "dc2-store-west" },
+    { Peer      = "dc2-inventory-west" }
+]
+```
+
+</Tab>
+
+<Tab heading="JSON" group="json">
+
+```json
+{
+    "Kind": "sameness-group",
+    "Name": "products-api",
+    "Partition": "store-east",
+    "Members": [
+        {
+            "Partition": "store-east"
+        },
+        {
+            "Partition": "inventory-east"
+        },
+        {
+            "Peer": "dc2-store-west"
+        },
+        {
+            "Peer": "dc2-inventory-west"
+        }
+    ]
+}
+```
+
+</Tab>
+
+<Tab heading="YAML" group="yaml">
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: SamenessGroup
+metadata:
+  name: products-api
+spec:
+  members:
+    - partition: store-east
+    - partition: inventory-east
+    - peer: dc2-store-west
+    - peer: dc2-inventory-west
+```
+
+</Tab>
+</Tabs>

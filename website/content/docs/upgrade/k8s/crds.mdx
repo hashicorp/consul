@@ -1,0 +1,342 @@
+---
+layout: docs
+page_title: Upgrade Existing Clusters to Use Custom Resource Definitions
+description: >-
+  Kubernetes clusters configured with a Consul Helm chart version older than 0.30.0 require updates in order to use CRDs. Learn about upgrading to a supported Helm version and how to migrate a Consul config entry to a k8s CRD.
+---
+
+# Upgrade Existing Clusters to Use Custom Resource Definitions
+
+Upgrading to consul-helm versions >= `0.30.0` will require some changes if
+you utilize the following:
+
+- [`connectInject.centralConfig.enabled`](#central-config-enabled)
+- [`connectInject.centralConfig.defaultProtocol`](#default-protocol)
+- [`connectInject.centralConfig.proxyDefaults`](#proxy-defaults)
+- [`meshGateway.globalMode`](#mesh-gateway-mode)
+- [connect annotation `consul.hashicorp.com/connect-service-protocol`](#connect-service-protocol-annotation)
+
+## Central Config Enabled
+
+If you were previously setting `centralConfig.enabled` to `false`:
+
+```yaml
+connectInject:
+  centralConfig:
+    enabled: false
+```
+
+Then instead you must use `server.extraConfig` and `client.extraConfig`:
+
+```yaml
+client:
+  extraConfig: |
+    {"enable_central_service_config": false}
+server:
+  extraConfig: |
+    {"enable_central_service_config": false}
+```
+
+If you were previously setting it to `true`, it now defaults to `true` so no
+changes are required, but you can remove it from your config if you desire.
+
+## Default Protocol
+
+If you were previously setting:
+
+```yaml
+connectInject:
+  centralConfig:
+    defaultProtocol: 'http' # or any value
+```
+
+Now you must use [custom resources](/consul/docs/fundamentals/config-entry) to manage the protocol for
+new and existing services:
+
+1. To upgrade, first ensure you're running Consul >= 1.9.0. See [Consul Version Upgrade](/consul/docs/upgrade/k8s#consul-version-upgrade)
+   for more information on how to upgrade Consul versions.
+
+   This version is required to support custom resources.
+
+1. Next, modify your Helm values:
+   1. Remove the `defaultProtocol` config. This won't affect existing services.
+1. Now you can upgrade your Helm chart to the latest version with the new Helm values.
+1. From now on, any new service will require a [`ServiceDefaults`](/consul/docs/reference/config-entry/service-defaults)
+   resource to set its protocol:
+
+   ```yaml
+   apiVersion: consul.hashicorp.com/v1alpha1
+   kind: ServiceDefaults
+   metadata:
+     name: my-service-name
+   spec:
+     protocol: 'http'
+   ```
+
+1. Existing services will maintain their previously set protocol. If you wish to
+   change that protocol, you must migrate that service's `service-defaults` config
+   entry to a `ServiceDefaults` resource. See [Migrating Config Entries](#migrating-config-entries).
+
+-> **Note:** This setting was removed because it didn't support changing the protocol after a service was first run and because it didn't work in secondary datacenters.
+
+## Proxy Defaults
+
+If you were previously setting:
+
+```yaml
+connectInject:
+  centralConfig:
+    proxyDefaults: |
+      {
+        "key": "value" // or any values
+      }
+```
+
+You will need to perform the following steps to upgrade:
+
+1. You must remove the setting from your Helm values. This won't have any
+   effect on your existing cluster because this config is only read when
+   the cluster is **first created**.
+1. You can then upgrade the Helm chart.
+1. If you later wish to _change_ any of the proxy defaults settings, you will need
+   to follow the [Migrating Config Entries](#migrating-config-entries)
+   instructions for your `proxy-defaults` config entry.
+
+   This will require Consul >= 1.9.0.
+
+-> **Note:** This setting was removed because it couldn't be changed after initial
+installation.
+
+## Mesh Gateway Mode
+
+If you were previously setting:
+
+```yaml
+meshGateway:
+  globalMode: 'local' # or any value
+```
+
+You will need to perform the following steps to upgrade:
+
+1. You must remove the setting from your Helm values. This won't have any
+   effect on your existing cluster because this config is only read when
+   the cluster is **first created**.
+1. You can then upgrade the Helm chart.
+1. If you later wish to _change_ the mode or any other setting in [`proxy-defaults`](/consul/docs/reference/config-entry/proxy-defaults), you will need
+   to follow the [Migrating Config Entries](#migrating-config-entries)
+   instructions to migrate your `proxy-defaults` config entry to a `ProxyDefaults` resource.
+
+   This will require Consul >= 1.9.0.
+
+-> **Note:** This setting was removed because it couldn't be changed after initial
+installation.
+
+## connect-service-protocol Annotation
+
+If any of your mesh services had the `consul.hashicorp.com/connect-service-protocol`
+annotation set, e.g.
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+...
+spec:
+  template:
+    metadata:
+      annotations:
+        "consul.hashicorp.com/connect-inject": "true"
+        "consul.hashicorp.com/connect-service-protocol": "http"
+  ...
+```
+
+You will need to perform the following steps to upgrade:
+
+1. Ensure you're running Consul >= 1.9.0. See [Consul Version Upgrade](/consul/docs/upgrade/k8s#consul-version-upgrade)
+   for more information on how to upgrade Consul versions.
+
+   This version is required to support custom resources.
+
+1. Next, remove this annotation from existing deployments. This will have no
+   effect on the deployments because the annotation was only used when the
+   service was first created.
+1. Now you can upgrade your Helm chart to the latest version.
+1. From now on, any new service will require a [`ServiceDefaults`](/consul/docs/reference/config-entry/service-defaults)
+   resource to set its protocol:
+
+   ```yaml
+   apiVersion: consul.hashicorp.com/v1alpha1
+   kind: ServiceDefaults
+   metadata:
+     name: my-service-name
+   spec:
+     protocol: 'http'
+   ```
+
+1. Existing services will maintain their previously set protocol. If you wish to
+   change that protocol, you must migrate that service's `service-defaults` config
+   entry to a `ServiceDefaults` resource. See [Migrating Config Entries](#migrating-config-entries).
+
+-> **Note:** The annotation was removed because it didn't support changing the protocol
+and it wasn't supported in secondary datacenters.
+
+## Migrating Config Entries
+
+A config entry that already exists in Consul must be migrated into a Kubernetes custom resource in order to
+manage it from Kubernetes:
+
+1. Determine the `kind` and `name` of the config entry. For example, the protocol
+   would be set by a config entry with `kind: service-defaults` and `name` equal
+   to the name of the service.
+
+   In another example, a `proxy-defaults` config has `kind: proxy-defaults` and
+   `name: global`.
+
+1. Once you've determined the `kind` and `name`, query Consul to get its contents:
+
+   ```shell-session
+   $ consul config read -kind <kind> -name <name>
+   ```
+
+   This will require `kubectl exec`'ing into a Consul server or client pod. If
+   you're using ACLs, you will also need an ACL token passed via the `-token` flag.
+
+   For example:
+
+   ```shell-session
+   $ kubectl exec consul-server-0 -- consul config read -name foo -kind service-defaults
+   {
+       "Kind": "service-defaults",
+       "Name": "foo",
+       "Protocol": "http",
+       "MeshGateway": {},
+       "Expose": {},
+       "CreateIndex": 60,
+       "ModifyIndex": 60
+   }
+   ```
+
+1. Now we're ready to construct a Kubernetes resource for the config entry.
+
+   It will look something like:
+
+   ```yaml
+   apiVersion: consul.hashicorp.com/v1alpha1
+   kind: ServiceDefaults
+   metadata:
+     name: foo
+     annotations:
+       'consul.hashicorp.com/migrate-entry': 'true'
+   spec:
+     protocol: 'http'
+   ```
+
+   1. The `apiVersion` will always be `consul.hashicorp.com/v1alpha1`.
+   1. The `kind` will be the CamelCase version of the Consul kind, e.g.
+      `proxy-defaults` becomes `ProxyDefaults`.
+   1. `metadata.name` will be the `name` of the config entry.
+   1. `metadata.annotations` will contain the `"consul.hashicorp.com/migrate-entry": "true"`
+      annotation.
+   1. The namespace should be whatever namespace the service is deployed in.
+      For `ProxyDefaults`, we recommend the namespace that Consul is deployed in.
+   1. The contents of `spec` will be a transformation from JSON keys to YAML
+      keys.
+
+      The following keys can be ignored: `CreateIndex`, `ModifyIndex`
+      and any key that has an empty object, e.g. `"Expose": {}`.
+
+      For example:
+
+      ```json
+      {
+        "Kind": "service-defaults",
+        "Name": "foo",
+        "Protocol": "http",
+        "MeshGateway": {},
+        "Expose": {},
+        "CreateIndex": 60,
+        "ModifyIndex": 60
+      }
+      ```
+
+      Becomes:
+
+      ```yaml
+      apiVersion: consul.hashicorp.com/v1alpha1
+      kind: ServiceDefaults
+      metadata:
+        name: foo
+        annotations:
+          'consul.hashicorp.com/migrate-entry': 'true'
+      spec:
+        protocol: 'http'
+      ```
+
+      And
+
+      ```json
+      {
+        "Kind": "proxy-defaults",
+        "Name": "global",
+        "MeshGateway": {
+          "Mode": "local"
+        },
+        "Config": {
+          "local_connect_timeout_ms": 1000,
+          "handshake_timeout_ms": 10000
+        },
+        "CreateIndex": 60,
+        "ModifyIndex": 60
+      }
+      ```
+
+      Becomes:
+
+      ```yaml
+      apiVersion: consul.hashicorp.com/v1alpha1
+      kind: ProxyDefaults
+      metadata:
+        name: global
+        annotations:
+          'consul.hashicorp.com/migrate-entry': 'true'
+      spec:
+        meshGateway:
+          mode: local
+        config:
+          # Note that anything under config for ProxyDefaults will use the exact
+          # same keys.
+          local_connect_timeout_ms: 1000
+          handshake_timeout_ms: 10000
+      ```
+
+1. Run `kubectl apply` to apply the Kubernetes resource.
+1. Next, check that it synced successfully:
+
+   ```shell-session
+   $ kubectl get servicedefaults foo
+   NAME              SYNCED   AGE
+   foo               True     1s
+   ```
+
+1. If its `SYNCED` status is `True` then the migration for this config entry
+   was successful.
+1. If its `SYNCED` status is `False`, use `kubectl describe` to view
+   the reason syncing failed:
+
+   ```shell-session
+   $ kubectl describe servicedefaults foo
+   ...
+   Status:
+     Conditions:
+       Last Transition Time:  2021-01-12T21:03:29Z
+       Message:               migration failed: Kubernetes resource does not match existing Consul config entry: consul={...}, kube={...}
+       Reason:                MigrationFailedError
+       Status:                False
+       Type:                  Synced
+   ```
+
+   The most likely reason is that the contents of the Kubernetes resource
+   don't match the Consul resource. Make changes to the Kubernetes resource
+   to match the Consul resource (ignoring the `CreateIndex`, `ModifyIndex` and `Meta` keys).
+
+1. Once the `SYNCED` status is true, you can make changes to the resource and they
+   will get synced to Consul.

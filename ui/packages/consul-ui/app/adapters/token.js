@@ -67,7 +67,7 @@ export default class TokenAdapter extends Adapter {
 
     // If a token has Rules, use the old API
     if (typeof data['Rules'] !== 'undefined') {
-      // https://www.consul.io/api/acl/legacy.html#update-acl-token
+      // https://developer.hashicorp.com/api/acl/legacy.html#update-acl-token
       // as we are using the old API we don't need to specify a nspace
       return request`
         PUT /v1/acl/update?${this.formatDatacenter(data.Datacenter)}

@@ -1,0 +1,52 @@
+---
+layout: docs
+page_title: Render templates
+description: >-
+  Consul Template is a tool available as a distinct binary that enables dynamic application configuration and secrets rotation for Consul deployments based on Go templates.
+---
+
+# Render templates
+
+This page describes to process to render templates, including common integrations on the command line.
+
+Render the template `/tmp/template.ctmpl` to `/tmp/result` on disk:
+
+```shell-session
+$ consul-template \
+    -template "/tmp/template.ctmpl:/tmp/result"
+```
+
+Render multiple templates in the same process. The optional third argument to the template is a command that will execute each time the template changes.
+
+```shell-session
+$ consul-template \
+    -template "/tmp/nginx.ctmpl:/var/nginx/nginx.conf:nginx -s reload" \
+    -template "/tmp/redis.ctmpl:/var/redis/redis.conf:service redis restart" \
+    -template "/tmp/haproxy.ctmpl:/var/haproxy/haproxy.conf"
+```
+
+Render a template using a custom Consul and Vault address:
+
+```shell-session
+$ consul-template \
+    -consul-addr "10.4.4.6:8500" \
+    -vault-addr "https://10.5.32.5:8200" \
+    -template "/tmp/template.ctmpl:/tmp/result"
+```
+
+Render all templates and then spawn and monitor a child process as a supervisor:
+
+```shell-session
+$ consul-template \
+  -template "/tmp/in.ctmpl:/tmp/result" \
+  -exec "/sbin/my-server"
+```
+
+For more information on supervising, refer to the [Consul Template Exec Mode documentation](/consul/docs/automate/consul-template/mode#exec-mode).
+
+Instruct Consul Template to use a configuration file with the `-config` flag:
+
+```shell
+$ consul-template -config "/my/config.hcl"
+```
+

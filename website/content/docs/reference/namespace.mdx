@@ -1,0 +1,99 @@
+---
+page_title: Namespaces definition reference
+description: |-
+  Namespaces reduce operational challenges in large deployments. Learn how to define a namespace so that multiple users or teams can access and use the same datacenter without impacting each other.
+---
+
+# Namespace definition reference
+
+Namespaces are managed exclusively through the [HTTP API](/consul/api-docs/namespaces) and the [Consul CLI](/consul/commands/namespace).
+The HTTP API accepts only JSON formatted definitions while the CLI will parse either JSON or HCL.
+
+## Fields
+
+- `Name` `(string: <required>)` - The namespaces name must be a valid DNS hostname label.
+
+- `Description` `(string: "")` - This field is intended to be a human readable description of the
+  namespace's purpose. It is not used internally.
+
+- `ACLs` `(object: <optional>)` - This fields is a nested JSON/HCL object to contain the namespaces
+  ACL configuration.
+
+  - `PolicyDefaults` `(array<ACLLink>)` - A list of default policies to be applied to all tokens
+    created in this namespace. The ACLLink object can contain an `ID` and/or `Name` field. When the
+    policies ID is omitted Consul will resolve the name to an ID before writing the namespace
+    definition internally. Note that all policies linked in a namespace definition must be defined
+    within the `default` namespace, and the ACL token used to create or edit the
+    namespace must have [`acl:write` access](/consul/docs/security/acl/acl-rules#acl-resource-rules) to the linked policy.
+
+  - `RoleDefaults` `(array<ACLLink>)` - A list of default roles to be applied to all tokens
+    created in this namespace. The ACLLink object can contain an `ID` and/or `Name` field. When the
+    roles' ID is omitted Consul will resolve the name to an ID before writing the namespace
+    definition internally. Note that all roles linked in a namespace definition must be defined
+    within the `default` namespace, and the ACL token used to create or edit the
+    namespace must have [`acl:write` access](/consul/docs/security/acl/acl-rules#acl-resource-rules) to the linked role.
+
+- `Meta` `(map<string|string>: <optional>)` - Specifies arbitrary KV metadata to associate with
+  this namespace.
+
+## Examples
+
+An example namespace definition takes the following form:
+
+<CodeTabs>
+
+```json
+{
+  "Name": "team-1",
+  "Description": "Namespace for Team 1",
+  "ACLs": {
+    "PolicyDefaults": [
+      {
+        "ID": "77117cf6-d976-79b0-d63b-5a36ac69c8f1"
+      },
+      {
+        "Name": "node-read"
+      }
+    ],
+    "RoleDefaults": [
+      {
+        "ID": "69748856-ae69-d620-3ec4-07844b3c6be7"
+      },
+      {
+        "Name": "ns-team-2-read"
+      }
+    ]
+  },
+  "Meta": {
+    "foo": "bar"
+  }
+}
+```
+
+```hcl
+Name = "team-1"
+Description = "Namespace for Team 1"
+ACLs {
+  PolicyDefaults = [
+    {
+      ID = "77117cf6-d976-79b0-d63b-5a36ac69c8f1"
+    },
+    {
+      Name = "node-read"
+    }
+  ]
+  RoleDefaults = [
+    {
+      "ID": "69748856-ae69-d620-3ec4-07844b3c6be7"
+    },
+    {
+      "Name": "ns-team-2-read"
+    }
+  ]
+}
+Meta {
+  foo = "bar"
+}
+```
+
+</CodeTabs>

@@ -1,0 +1,43 @@
+---
+layout: docs
+page_title: Connect Kubernetes services with Consul
+description: >-
+  Consul documentation provides reference material for all features and options available in Consul.
+---
+
+# Connect Kubernetes service mesh with Consul
+
+This page describes the process to deploy sidecar proxies on Kubernetes so that your services can connect to Consul's service mesh.
+
+## Introduction
+
+Consul service mesh is enabled by default when you install Consul on Kubernetes using the Consul Helm chart. Consul also automatically injects sidecars into the pods in your clusters that run Envoy. These sidecar proxies, called Consul dataplanes, are enabled when `connectInject.default` is set to `false` in the Helm chart.
+
+## Workflows
+
+To get started with the Consul service mesh on Kubernetes, [enable and configure the connect injector](/consul/docs/connect/k8s/inject).
+
+If `connectInject.default` is set to `false` or you want to explicitly enable service mesh sidecar proxy injection for a specific deployment, add the `consul.hashicorp.com/connect-inject` annotation to the pod specification template and set it to `true` when connecting services to the mesh.
+
+Additional configuration examples are available to help you configure your workloads:
+
+- [Kubernetes Pods running as a deployment](/consul/docs/connect/k8s/workload#kubernetes-pods-running-as-a-deployment)
+- [Connecting to mesh-enabled Services](/consul/docs/connect/k8s/workload#connecting-to-mesh-enabled-services)
+- [Kubernetes Jobs](/consul/docs/connect/k8s/workload#kubernetes-jobs)
+- [Kubernetes Pods with multiple ports](/consul/docs/connect/k8s/workload#kubernetes-pods-with-multiple-ports)
+
+## Service names
+
+When the service is onboarded, the name registered in Consul is set to the name of the Kubernetes Service associated with the Pod. You can use the [`consul.hashicorp.com/connect-service` annotation](/consul/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service) to specify a custom name for the service, but if ACLs are enabled then the name of the service registered in Consul must match the Pod's `ServiceAccount` name.
+
+## Transparent proxy mode
+
+By default, the Consul service mesh runs in transparent proxy mode. This mode forces inbound and outbound traffic through the sidecar proxy even though the service binds to all interfaces. Transparent proxy infers the location of upstream services using Consul service intentions, and also allows you to use Kubernetes DNS as you normally would for your workloads.
+
+When transparent proxy mode is enabled, all service-to-service traffic is required to use mTLS. When onboarding new services to service mesh, your network may have mixed mTLS and non-mTLS traffic, which can result in broken service-to-service communication. You can temporarily enable permissive mTLS mode during the onboarding process so that existing mesh services can accept traffic from services that are not yet fully onboarded. Permissive mTLS enables sidecar proxies to access both mTLS and non-mTLS traffic. Refer to [Onboard mesh services in transparent proxy mode](/consul/docs/register/service/k8s/transparent-proxy) for additional information.
+
+## Next steps
+
+After you start the sidecar proxies, the rest of Consul's service mesh features are available. You can now use Consul to [manage traffic between services](/consul/docs/manage-traffic/k8s) and [observe service mesh telemetry](/consul/docs/observe/telemetry/k8s).
+
+Your current service mesh is not ready for production environments. To secure north/south access from external sources into the service mesh, [Deploy the Consul API gateway](/consul/docs/north-south/api-gateway). Then, you must secure service-to-service communication with mTLS certificates and service intentions. Refer to [secure the service mesh](/consul/docs/secure-mesh/k8s) for more information.

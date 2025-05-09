@@ -1,0 +1,53 @@
+---
+layout: docs
+page_title: Discover services with Consul on Kubernetes
+description: >-
+  This page provides an overview of the service discovery features and operations Consul supports when running on Kubernetes.
+---
+
+# Discover services with Consul on Kubernetes
+
+This page provides an overview of Consul service discovery operations when running on Kubernetes.
+
+Use KubeDNS to perform service discovery operations by default. If you use Consul's service mesh features and prefer to use KubeDNS, refer to [onboard services in transparent proxy mode](/consul/docs/connect/proxy/transparent-proxy).
+
+## Introduction
+
+Kubernetes deployments support Consul's service discovery features. When running Consul on Kubernetes, you can adopt either of the following service discovery strategies:
+
+- [Configure Kubernetes to use Consul DNS](/consul/docs/discover/dns/k8s)
+- Use KubeDNS to resolve DNS addresses and manage service discovery in your employment
+
+You can also use the `kubectl exec` command to connect directly to a Consul container and interact with Consul's service discovery features.
+
+If you use KubeDNS with Consul's service mesh enabled, you must also configure [transparent proxy mode](/consul/docs/connect/proxy/transparent-proxy) to enable permissive mTLS between services.
+
+## Application load balancing
+
+@include 'text/descriptions/load-balancer.mdx'
+
+## Static lookups
+
+@include 'text/descriptions/static-query.mdx'
+
+## Prepared queries
+
+@include 'text/descriptions/prepared-query.mdx'
+
+## Runtime specific usage documentation
+
+For runtime-specific guidance, refer to the following pages:
+
+- [Resolve Consul DNS requests in Kubernetes](/consul/docs/manage/dns/forwarding/k8s)
+- [Consul DNS views for Kubernetes](/consul/docs/manage/dns/views)
+
+## Reference documentation
+
+For reference material related to Consul's service discovery functions on Kubernetes, refer to the following pages:
+
+- [Consul DNS reference](/consul/docs/reference/dns)
+- [Consul on Kubernetes annotations and labels reference](/consul/docs/reference/k8s/annotation-label)
+
+## Constraints, limitations, and troubleshooting
+
+@include 'text/limitations/discover.mdx'

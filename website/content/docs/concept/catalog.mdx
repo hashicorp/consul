@@ -1,0 +1,39 @@
+---
+layout: docs
+page_title: Consul catalog
+description: Learn about version 1 of the Consul catalog, including what Consul servers record when they register a service.
+---
+
+# Consul catalog
+
+This topic provides conceptual information about the Consul catalog API. The catalog tracks registered services and their locations for both service discovery and service mesh use cases.
+
+For more information about the information returned when querying the catalog, including filtering options when querying the catalog for a list of nodes, services, or gateways, refer to the [`/catalog` endpoint reference in the HTTP API documentation](/consul/api-docs/catalog).
+
+## Introduction
+
+Consul tracks information about registered services through its catalog API. This API records user-defined information about the external services, such as their partitions and required health checks. It also records information that Consul assigns for its own operations, such as an ID for each service instance and the [Raft indices](/consul/docs/concept/consensus) when the instance is registered and modified.
+
+### v2 Catalog
+
+Consul introduced an experimental v2 Catalog API in v1.17.0. This API supported multi-port Service configurations on Kubernetes, and it was made available for testing and development purposes. The v2 catalog and its support for multiport Kubernetes Services were deprecated in the v1.19.0 release.
+
+## Catalog structure
+
+When Consul registers a service instance using the v1 catalog API, it records the following information about each instance:
+
+| v1 Catalog field | Description | Source |
+| :--------------- | :---------- | :----- |
+| ID | A unique identifier for a service instance. | Defined by user in [service definition](/consul/docs/reference/service#id). |
+| Node | The connection point where the service is available.  | On VMs, defined by user. <br /><br /> On Kubernetes, computed by Consul according to [Kubernetes Nodes](https://kubernetes.io/docs/concepts/architecture/nodes/). |
+| Address  | The registered address of the service instance. | Defined by user in [service definition](/consul/docs/reference/service#address). |
+| Tagged Addresses | User-defined labels for addresses. | Defined by user in [service definition](/consul/docs/reference/service#tagged_addresses). |
+| NodeMeta | User-defined metadata about the node. | Defined by user |
+| Datacenter | The name of the datacenter the service is registered in. | Defined by user |
+| Service | The name of the service Consul registers the service instance under. | Defined by user |
+| Agent Check | The health checks defined for a service instance managed by a Consul client agent. | Computed by Consul |
+| Health Checks | The health checks defined for the service. Refer to [define health checks](/consul/docs/register/health-check/vm) for more information. | Defined by user |
+| Partition | The name of the admin partition the service is registered in. Refer to [admin partitions](/consul/docs/multi-tenant/admin-partition) for more information. | Defined by user |
+| Locality | Region and availability zone of the service. Refer to [`locality`](/consul/docs/reference/agent/configuration-file/service-mesh#locality) for more information. | Defined by user |
+
+Depending on the configuration entries or custom resource definitions you apply to your Consul installation, additional information such as [proxy default behavior](/consul/docs/reference/config-entry/proxy-defaults) is automatically recorded to the catalog for services. You can return this information using the [`/catalog` HTTP API endpoint](/consul/api-docs/catalog).

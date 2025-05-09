@@ -1,0 +1,235 @@
+---
+layout: docs
+page_title: Consul Template modes
+description: >-
+  Consul Template is a tool available as a distinct binary that enables dynamic application configuration and secrets rotation for Consul deployments based on Go templates.
+---
+
+# Consul Template modes
+
+Consul Template can run in different modes that change its runtime behavior and process lifecycle.
+
+- [Once Mode](#once-mode)
+- [De-Duplication Mode](#de-duplication-mode)
+- [Exec Mode](#exec-mode)
+
+## Once Mode
+
+When running in Once Mode, Consul template will execute each template exactly once and exit.
+
+In Once Mode, Consul Template waits for all dependencies to be rendered. If
+a template specifies a dependency that does not exist in Consul,
+once mode waits until Consul returns data for that dependency. Be aware
+that "returned data" and "empty data" are not mutually exclusive.
+
+To run in Once mode, include the `-once` flag or enable it in the [configuration file](/consul/docs/reference/consul-template/configuration).
+
+When you run the query `{{ service "foo" }}` to return all healthy services named "foo", you
+are asking Consul to return all the healthy services named "foo." If there are
+no services with that name, the response is the empty array. This response is identical to the
+response if there are no _healthy_ services named "foo."
+
+Consul Template processes input templates multiple times because the first result could impact later dependencies:
+
+```go
+{{ range services }}
+{{ range service .Name }}
+{{ end }}
+{{ end }}
+```
+
+In this example, we have to process the output of `services` before we can
+lookup each `service`, since the inner loops cannot be evaluated until the outer
+loop returns a response. Consul Template waits until it gets a response from
+Consul for all dependencies before rendering a template. It does not wait until
+that response is non-empty though.
+
+<Note>
+
+Once mode implicitly disables any wait or quiescence timers specified in configuration files or passed on the command line.
+
+</Note>
+
+## De-Duplication Mode
+
+Consul Template works by parsing templates to determine what data is needed and then watching Consul for any changes to that data. This process allows Consul Template to efficiently re-render templates when a change occurs. However, if there are many instances of Consul Template rendering a common template, you may encounter a linear duplication of work as each instance is querying the same data.
+
+To make this pattern more efficient, Consul Template supports work de-duplication across instances. You can enable this feature with the `-dedup` flag or in the top-level [`deduplicate` configuration block](/consul/docs/reference/consul-template/configuration#de-duplication-mode). Once enabled, Consul Template uses leader election on a per-template basis so that only a single node performs the queries. Results are shared among other instances rendering the same template by passing compressed data through the Consul K/V store.
+
+Be aware that no Vault data is stored in the compressed template. Because ACLs around Vault are typically more closely controlled than those ACLs around Consul's KV, Consul Template still requests the secret from Vault on each iteration.
+
+When running in de-duplication mode, it is important that local template functions resolve correctly. 
+
+For example, you may have a local template function that relies on the `env` helper like this:
+
+```hcl
+{{ key (env "KEY") }}
+```
+
+It is crucial that the environment variable `KEY` in this example is consistent
+across all machines engaged in de-duplicating this template. If the values are
+different, Consul Template will be unable to resolve the template, and the template
+does not render successfully.
+
+## Exec Mode
+
+As of version `0.16.0`, Consul Template has the ability to maintain an arbitrary
+child process, similar to [envconsul](https://github.com/hashicorp/envconsul).
+
+This mode is most beneficial when running Consul Template in a container or on a
+scheduler like Nomad or Kubernetes. When
+activated, Consul Template will spawn and manage the lifecycle of the child
+process.
+
+Configuration options for running Consul Template in exec mode can be found in
+the [configuration documentation](/consul/docs/reference/consul-template/configuration#exec-mode).
+
+This mode is best explained through an example. Consider a simple application that
+reads a configuration file from disk and spawns a server from that configuration.
+
+```shell-session
+$ consul-template \
+    -template "/tmp/config.ctmpl:/tmp/server.conf" \
+    -exec "/bin/my-server -config /tmp/server.conf"
+```
+
+When Consul Template starts, it will pull the required dependencies and populate
+the `/tmp/server.conf`, which the `my-server` binary consumes. After that
+template is rendered completely the first time, Consul Template spawns and
+manages a child process. When any of the list templates change, Consul Template
+will send a configurable reload signal to the child process. Additionally,
+Consul Template will proxy any signals it receives to the child process. This
+enables a scheduler to control the lifecycle of the process and also eases the
+friction of running inside a container.
+
+The same rules that apply to the commands apply here,
+that is if you want to use a complex, shell-like command you need to be running
+on a system with `sh` on your PATH. These commands are run using `sh -c` with
+the shell handling all shell parsing. Otherwise you want the command to be a
+a single command or a, list formatted, command with arguments.
+
+<Note>
+
+On supporting systems (*nix, with `sh`) the
+[`setpgid`](https://man7.org/linux/man-pages/man2/setpgid.2.html) flag is set
+on the execution which ensures all signals are sent to all processes.
+
+</Note>
+
+There are some additional caveats with Exec Mode, which should be considered
+carefully before use:
+
+- If the child process dies, the Consul Template process will also die. Consul
+  Template **does not supervise the process.**. Supervision is generally the
+  responsibility of the scheduler or init system.
+
+- The child process must remain in the foreground. This is a requirement for
+  Consul Template to manage the process and send signals.
+
+- The exec command will only start after _all_ templates have been rendered at
+  least once. One may have multiple templates for a single Consul Template
+  process, all of which must be rendered before the process starts. Consider
+  something like an nginx or apache configuration where both the process
+  configuration file and individual site configuration must be written in order
+  for the service to successfully start.
+
+- After the child process is started, any change to any dependent template
+  causes the reload signal to be sent to the child process. If no reload signal
+  is provided, Consul Template will kill the process and spawn a new instance.
+  The reload signal can be specified and customized using the CLI or configuration
+  file.
+
+- When Consul Template is stopped gracefully, it will send the configurable kill
+  signal to the child process. The default value is SIGTERM, but it can be
+  customized in the CLI or configuration file.
+
+- Consul Template will forward all signals it receives to the child process
+  **except** its defined `reload_signal` and `kill_signal`. If you disable these
+  signals, Consul Template will forward them to the child process.
+
+- It is not possible to have more than one exec command, although each template
+  can still have its own reload command.
+
+- Individual template reload commands still fire independently of the exec
+  command.
+
+## Commands
+
+You can render templates with commands to execute on the host.
+
+### Environment
+
+The current process environment is used when executing commands with the following additional environment variables:
+
+- `CONSUL_HTTP_ADDR`
+- `CONSUL_HTTP_TOKEN`
+- `CONSUL_HTTP_TOKEN_FILE`
+- `CONSUL_HTTP_AUTH`
+- `CONSUL_HTTP_SSL`
+- `CONSUL_HTTP_SSL_VERIFY`
+- `NOMAD_ADDR`
+- `NOMAD_NAMESPACE`
+- `NOMAD_TOKEN`
+
+These environment variables are exported with their current values when the command executes. Other Consul tooling reads these environment variables, providing smooth integration with other Consul tools like `consul maint` or `consul lock`. Additionally, exposing these environment variables gives power users the ability to further customize their command script.
+
+### Multiple Commands
+
+The command configured for running on template rendering must take one of two forms.
+
+The first is as a list of the command and arguments split at spaces. The command can use an absolute path or be found on the execution environment's PATH and must be the first item in the list. This form allows for single or multi-word commands that can be executed directly with a system call.
+
+**Examples**
+
+```hcl
+command = ["echo", "hello"]
+## ...
+command = ["/opt/foo-package/bin/run-foo"]
+## ...
+command = ["foo"]
+```
+
+~> **Note** If you provide a single command without the list denoting square brackets (`[]`), it is converted into a list with a single argument. For example `command = "foo"` gets converted into `command = ["foo"]`
+
+The second form is as a single quoted command using system shell features. This form **requires** a shell named `sh` be on the executable search path (eg. PATH on \*nix). This is the standard on all \*nix systems and should work out of the box on those systems. This won't work on, for example, Docker images with only the executable and without a minimal system like Alpine. Using this form you can join multiple commands with logical operators, `&&` and `||`, use pipelines with `|`, conditionals, etc. Note that the shell `sh` is normally `/bin/sh` on \*nix systems and is either a POSIX shell or a shell running in POSIX compatible mode, so it is best to stick to POSIX shell syntax in this command. 
+
+**Examples**
+
+```hcl
+command = "/opt/foo && /opt/bar"
+##...
+command = "if /opt/foo ; then /opt/bar ; fi"
+```
+
+Using this method you can run as many shell commands as you need with whatever logic you need. Though it is suggested that if it gets too long you might want to wrap it in a shell script, deploy and run that.
+
+### Shell Commands and Exec Mode
+
+Using the system shell based command has one additional caveat when used for the Exec mode process (the managed, executed process to which it will propagate signals). That is to get signals to work correctly means not only does anything the shell runs need to handle signals, but the shell itself needs to handle them. This needs to be managed by you as shells will exit upon receiving most signals.
+
+A common example configures the `SIGHUP` signal to trigger a reload of the underlying process and to be ignored by the shell process. There are two options:
+
+- Use `trap` to ignore the signal.
+
+- Use `exec` to replace the shell with another process.
+
+To use `trap` to ignore the signal, you call `trap` to catch the signal in the shell with no action. 
+For example if you have an underlying nginx process and you want to run it with a shell command and have the shell ignore the HUP signals, you can use the following command:
+
+```hcl
+command = "trap '' HUP; /usr/sbin/nginx -c /etc/nginx/nginx.conf"
+```
+
+The `trap '' HUP;` bit is enough to get the shell to ignore the HUP signal. If you left off the `trap` command nginx would reload but the shell command would exit but leave the nginx still running, not unmanaged.
+
+Alternatively using `exec` will replace the shell's process with a sub-process, keeping the same PID and process grouping (allowing the sub-process to be managed). This is simpler, but a bit less flexible than `trap`, and looks like the following:
+
+```hcl
+command = "exec /usr/sbin/nginx -c /etc/nginx/nginx.conf"
+```
+
+Where the nginx process would replace the enclosing shell process to be managed by consul-template, receiving the Signals directly. Basically `exec` eliminates the shell from the equation.
+
+Refer to your shell's documentation on `trap` and `exec` for more specific details.
+
+

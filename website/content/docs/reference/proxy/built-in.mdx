@@ -1,0 +1,92 @@
+---
+layout: docs
+page_title: Built-in proxy configuration reference
+description: >-
+  Consul includes a built-in L4 proxy with limited capabilities to use for development and testing only. Use the built-in proxy config key reference to learn about the options you can configure.
+---
+
+# Built-in proxy configuration reference
+
+<Note>
+
+The built-in proxy is not supported for production deployments. It does not
+support many of Consul's service mesh features, and is not under active development.
+The [Envoy proxy](/consul/docs/reference/proxy/envoy) should be used for production deployments.
+
+</Note>
+
+Consul comes with a built-in L4 proxy for testing and development with Consul
+service mesh.
+
+## Proxy Config Key Reference
+
+Below is a complete example of all the configuration options available
+for the built-in proxy.
+
+```json
+{
+  "service": {
+    "name": "example-service",
+    "connect": {
+      "proxy": {
+        "config": {
+          "bind_address": "0.0.0.0",
+          "bind_port": 20000,
+          "local_service_address": "127.0.0.1:1234",
+          "local_connect_timeout_ms": 1000,
+          "handshake_timeout_ms": 10000,
+          "upstreams": []
+        },
+        "upstreams": [
+          {
+            "destination_name": "example-upstream",
+            "config": {
+              "connect_timeout_ms": 1000
+            }
+          }
+        ]
+      }
+    }
+  }
+}
+```
+
+All fields are optional with a reasonable default.
+
+- `bind_address` - The address the proxy will bind its
+  _public_ mTLS listener to. It defaults to the same address the agent binds to.
+
+- `bind_port` - The port the proxy will bind its _public_
+  mTLS listener to. If not provided, the agent will assign a random port from its
+  configured proxy port range specified by [`sidecar_min_port`](/consul/docs/reference/agent/configuration-file/general#sidecar_min_port)
+  and [`sidecar_max_port`](/consul/docs/reference/agent/configuration-file/general#sidecar_max_port).
+
+- `local_service_address`- The `[address]:port`
+  that the proxy should use to connect to the local application instance. By default
+  it assumes `127.0.0.1` as the address and takes the port from the service definition's
+  `port` field. Note that allowing the application to listen on any non-loopback
+  address may expose it externally and bypass the service mesh's access enforcement. It may
+  be useful though to allow non-standard loopback addresses or where an alternative
+  known-private IP is available for example when using internal networking between
+  containers.
+
+- `local_connect_timeout_ms` - The number
+  of milliseconds the proxy will wait to establish a connection to the _local application_
+  before giving up. Defaults to `1000` or 1 second.
+
+- `handshake_timeout_ms` - The number of milliseconds
+  the proxy will wait for _incoming_ mTLS connections to complete the TLS handshake.
+  Defaults to `10000` or 10 seconds.
+
+- `upstreams`- **Deprecated** Upstreams are now specified
+  in the `connect.proxy` definition. Upstreams specified in the opaque config map
+  here will continue to work for compatibility but it's strongly recommended that
+  you move to using the higher level [upstream configuration](/consul/docs/reference/proxy/connect-proxy#upstream-configuration-reference).
+
+## Proxy Upstream Config Key Reference
+
+All fields are optional with a reasonable default.
+
+- `connect_timeout_ms` - The number of milliseconds
+  the proxy will wait to establish a TLS connection to the discovered upstream instance
+  before giving up. Defaults to `10000` or 10 seconds.

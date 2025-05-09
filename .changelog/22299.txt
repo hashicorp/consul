@@ -1,0 +1,3 @@
+```release-note:feature
+xds: provided a configurable to value to diable XDS session load balancing so that cases where there is a load balancer in front of the consul servers can disable the internal load balancing
+```

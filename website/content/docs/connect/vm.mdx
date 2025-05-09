@@ -1,0 +1,42 @@
+---
+layout: docs
+page_title: Connect services with Consul on virtual machines (VMs)
+description: >-
+  Learn how to deploy sidecar proxies on VMs so that your services can connect to Consul's service mesh.
+---
+
+# Connect services with Consul on virtual machines (VMs)
+
+This page describes the process to deploy sidecar proxies on VMs so that your services can connect to Consul's service mesh.
+
+## Workflow
+
+For each service you want to connect to the service mesh, complete the following steps:
+
+1. Configure global proxy settings.
+
+   Configure global passthrough settings for all proxies deployed to your service mesh in the [proxy defaults configuration entry](/consul/docs/reference/config-entry/proxy-defaults).
+1. Deploy your service mesh proxy.
+
+   [Configure proxy behavior in a service definition](/consul/docs/reference/service) to register the proxy with Consul.
+1. Start the proxy service.
+
+   Proxies appear in the list of services registered to Consul. You must start them before they can route traffic in your service mesh.
+1. Restart services to listen on `localhost` so that they no longer accept traffic from any source but the Envoy proxy.
+
+For additional guidance, refer to the [Securely connect your services with Consul service mesh tutorial](/consul/tutorials/get-started-vms/virtual-machine-gs-service-mesh). This tutorial includes scripts that automate configuration steps in order to demonstrate the practical workflows involved to start each proxy for each service.
+
+## Next steps
+
+After you start the sidecar proxies, Consul makes available the rest of its service mesh features. You can now use Consul to [manage traffic between services](/consul/docs/manage-traffic) and [observe service mesh telemetry](/consul/docs/observe/telemetry/vm).
+
+Your current service mesh is not ready for production environments. Follow these
+steps to secure
+north/south access from external sources into the service mesh:
+
+1. Deploy the Consul API gateway. Refer to the [API gateways overview
+   documentation](/consul/docs/north-south/api-gateway) for configuration
+   information and links to VM-specific deployment guides.
+1. Secure service-to-service communication with mTLS certificates and service
+   intentions. Refer to the [secure Consul overview](/consul/docs/secure) for
+   more information.

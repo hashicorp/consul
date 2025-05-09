@@ -1,0 +1,76 @@
+---
+page_title: Route traffic to peered services
+description: Learn how to configure Consul API gateway to route traffic to services connected to the mesh through a peering connection.
+---
+
+# Route traffic to peered services
+
+This topic describes how to configure Consul API Gateway to route traffic to services connected to the mesh through a cluster peering connection.
+
+## Requirements
+
+- Consul v1.14 or later
+- Verify that the [requirements](/consul/docs/north-south/api-gateway/k8s/tech-specs) have been met.
+- Verify that the Consul API Gateway CRDs and controller have been installed and applied. Refer to [Installation](/consul/docs/north-south/api-gateway/k8s/enable) for details.
+- A peering connection must already be established between Consul clusters. Refer to [Cluster Peering on Kubernetes](/consul/docs/east-west/cluster-peering/tech-specs/k8s) for instructions.
+- The Consul service that you want to route traffic to must be exported to the cluster containing your `Gateway`. Refer to [Cluster Peering on Kubernetes](/consul/docs/east-west/cluster-peering/tech-specs/k8s) for instructions.
+- A `ServiceResolver` for the Consul service you want to route traffic to must be created in the cluster that contains your `Gateway`. Refer to [Service Resolver Configuration Entry](/consul/docs/reference/config-entry/service-resolver) for instructions.
+
+## Configuration
+
+Specify the following fields in your `MeshService` configuration to use this feature. Refer to the [MeshService configuration reference](/consul/docs/reference/k8s/api-gateway/meshservice) for details about the parameters.
+
+- [`name`](/consul/docs/connect/gateways/api-gateway/configuration/meshservice#name)
+- [`peer`](/consul/docs/connect/gateways/api-gateway/configuration/meshservice#peer)
+
+## Example
+
+In the following example, routes that use `example-mesh-service` as a backend are configured to send requests to the `echo` service exported by the peered Consul cluster `cluster-02`.
+
+<CodeBlockConfig filename="serviceresolver.yaml">
+
+```yaml hideClipboard
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceResolver
+metadata:
+  name: echo
+spec:
+  redirect:
+    peer: cluster-02
+    service: echo
+```
+</CodeBlockConfig>
+
+<CodeBlockConfig filename="meshservice.yaml">
+
+```yaml hideClipboard
+apiVersion: api-gateway.consul.hashicorp.com/v1alpha1
+kind: MeshService
+metadata:
+  name: example-mesh-service
+spec:
+  name: echo
+  peer: cluster-02
+```
+</CodeBlockConfig>
+
+After applying the `meshservice.yaml` configuration, an `HTTPRoute` may then reference `example-mesh-service` as its `backendRef`.
+
+<CodeBlockConfig filename="route.yaml">
+
+```yaml hideClipboard
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: HTTPRoute
+metadata:
+  name: example-route
+spec:
+  ...
+  rules:
+    - backendRefs:
+        - group: consul.hashicorp.com
+          kind: MeshService
+          name: example-mesh-service
+          port: 3000
+      ...
+```
+</CodeBlockConfig>

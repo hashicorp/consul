@@ -1,0 +1,5 @@
+We recommend you follow these best practices to ensure that your Consul deployments and the service mesh applications they support remain secure.
+
+- Secure Consul datacenters with ACLs, TLS encryption, and gossip encryption. Every unique datacenter you deploy requires bootstrapping each system.
+- Secure your service mesh with mTLS encryption and service intentions.
+- Configure service intentions to use a `default: deny` policy so that services require explicit permissions to communicate.

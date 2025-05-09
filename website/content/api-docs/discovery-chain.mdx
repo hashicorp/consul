@@ -9,17 +9,17 @@ description: The /discovery-chain endpoints are for interacting with the discove
 -> **1.6.0+:** The discovery chain API is available in Consul versions 1.6.0 and newer.
 
 ~> This is a low-level API primarily targeted at developers building external
-[service mesh proxy integrations](/consul/docs/connect/proxies/integrate). Future
+[service mesh proxy integrations](/consul/docs/connect/proxy/custom). Future
 high-level proxy integration APIs may obviate the need for this API over time.
 
 The `/discovery-chain` endpoint returns the compiled [discovery
-chain](/consul/docs/connect/manage-traffic/discovery-chain) for a service.
+chain](/consul/docs/manage-traffic/discovery-chain) for a service.
 
 This will fetch all related [configuration
-entries](/consul/docs/agent/config-entries) and render them into a form suitable
-for use by a [service mesh proxy](/consul/docs/connect/proxies) implementation. This
+entries](/consul/docs/fundamentals/config-entry) and render them into a form suitable
+for use by a [service mesh proxy](/consul/docs/connect/proxy) implementation. This
 is a key component of [L7 Traffic
-Management](/consul/docs/connect/manage-traffic).
+Management](/consul/docs/manage-traffic).
 
 ## Read Compiled Discovery Chain
 
@@ -66,14 +66,14 @@ The table below shows this endpoint's support for
 ### JSON Request Body Schema
 
 - `OverrideConnectTimeout` `(duration: 0s)` - Overrides the final [connect
-  timeout](/consul/docs/connect/config-entries/service-resolver#connecttimeout) for
+  timeout](/consul/docs/reference/config-entry/service-resolver#connecttimeout) for
   any service resolved in the compiled chain.
 
   This value comes from the `connect_timeout_ms` key in the opaque `config` field of the [upstream
   configuration](/consul/docs/connect/proxies/proxy-config-reference#upstream-configuration-reference).
 
 - `OverrideProtocol` `(string: "")` - Overrides the final
-  [protocol](/consul/docs/connect/config-entries/service-defaults#protocol) used in
+  [protocol](/consul/docs/reference/config-entry/service-defaults#protocol) used in
   the compiled discovery chain.
 
   If the chain ordinarily would be TCP and an L7 protocol is passed here the

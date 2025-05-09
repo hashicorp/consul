@@ -88,10 +88,10 @@ $ curl \
 This endpoint returns the most recent events (up to 256) known by the agent. As a
 consequence of how the [event command](/consul/commands/event) works, each
 agent may have a different view of the events. Events are broadcast using the
-[gossip protocol](/consul/docs/architecture/gossip), so they have no global ordering
+[gossip protocol](/consul/docs/concept/gossip), so they have no global ordering
 nor do they make a promise of delivery.
 
-@include 'http_api_results_filtered_by_acls.mdx'
+@include 'legacy/http_api_results_filtered_by_acls.mdx'
 
 | Method | Path          | Produces           |
 | ------ | ------------- | ------------------ |
@@ -146,7 +146,7 @@ $ curl \
 The semantics of this endpoint's blocking queries are slightly different. Most
 blocking queries provide a monotonic index and block until a newer index is
 available. This can be supported as a consequence of the total ordering of the
-[consensus protocol](/consul/docs/architecture/consensus). With gossip, there is no
+[consensus protocol](/consul/docs/concept/consensus). With gossip, there is no
 ordering, and instead `X-Consul-Index` maps to the newest event that matches the
 query.
 

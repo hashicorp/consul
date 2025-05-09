@@ -1,0 +1,215 @@
+---
+layout: docs
+page_title: OpenID Connect (OIDC) Auth Method
+description: >-
+  Use the OIDC auth method type to authenticate to Consul through a web browser with an OpenID Connect provider. Learn how to configure the auth method parameters using this reference page and example configuration.
+---
+
+# OpenID Connect (OIDC) Auth Method
+
+<EnterpriseAlert>
+
+This feature requires version 1.8.0+ of
+self-managed Consul Enterprise.
+Refer to the [enterprise feature matrix](/consul/docs/enterprise#consul-enterprise-feature-availability) for additional information.
+
+</EnterpriseAlert>
+
+The `oidc` auth method can be used to authenticate with Consul using
+[OIDC](https://en.wikipedia.org/wiki/OpenID_Connect). This method allows
+authentication via a configured OIDC provider using the user's web browser.
+This method may be initiated from the Consul UI or the command line.
+
+This page assumes general knowledge of [OIDC
+concepts](https://developer.okta.com/blog/2017/07/25/oidc-primer-part-1) and
+the concepts described in the main [auth method
+documentation](/consul/docs/secure/acl/auth-method).
+
+Both the [`jwt`](/consul/docs/secure/acl/auth-method/jwt) and the
+[`oidc`](/consul/docs/secure/acl/auth-method/oidc) auth method types allow additional
+processing of the claims data in the JWT.
+
+@include 'legacy/jwt_or_oidc.mdx'
+
+## Config Parameters
+
+The following auth method [`Config`](/consul/api-docs/acl/auth-methods#config)
+parameters are required to properly configure an auth method of type
+`oidc`:
+
+- `OIDCDiscoveryURL` `(string: <required>)` - The OIDC Discovery URL, without any
+  .well-known component (base path).
+
+- `OIDCDiscoveryCACert` `(string: "")` - PEM encoded CA cert for use by the TLS
+  client used to talk with the OIDC Discovery URL. NOTE: Every line must end
+  with a newline (`\n`). If not set, system certificates are used.
+
+- `OIDCClientID` `(string: <required>)` - The OAuth Client ID configured with
+  your OIDC provider.
+
+- `OIDCClientSecret` `(string: <required>)` - The OAuth Client Secret configured with
+  your OIDC provider.
+
+- `AllowedRedirectURIs` `(array<string>)` - A list of allowed
+  values for `redirect_uri`. Must be non-empty.
+
+- `ClaimMappings` `(map[string]string)` - Mappings of claims (key) that
+  [will be copied to a metadata field](#trusted-identity-attributes-via-claim-mappings)
+  (value). Use this if the claim you are capturing is singular (such as an attribute).
+
+  When mapped, the values can be any of a number, string, or boolean and will
+  all be stringified when returned.
+
+- `ListClaimMappings` `(map[string]string)` - Mappings of claims (key)
+  [will be copied to a metadata field](#trusted-identity-attributes-via-claim-mappings)
+  (value). Use this if the claim you are capturing is list-like (such as groups).
+
+  When mapped, the values in each list can be any of a number, string, or
+  boolean and will all be stringified when returned.
+
+- `OIDCScopes` `(array<string>)` - A list of OIDC scopes.
+
+- `OIDCACRValues` `(array<string>)` - A list of Authentication Context Class Reference values to use for the authentication request. See [OIDC reference](https://openid.net/specs/openid-connect-core-1_0.html#rfc.section.3.1.2.1) for more info on this parameter.  Added in v1.11.0.
+
+- `JWTSupportedAlgs` `(array<string>)` - JWTSupportedAlgs is a list of
+  supported signing algorithms. Defaults to `RS256`. ([Available
+  algorithms](https://github.com/hashicorp/consul/blob/main/internal/go-sso/oidcauth/jwt.go))
+
+- `BoundAudiences` `(array<string>)` - List of `aud` claims that are valid for
+  login; any match is sufficient.
+
+- `VerboseOIDCLogging` `(bool: false)` - Log received OIDC tokens and claims when
+  debug-level logging is active. Not recommended in production since sensitive
+  information may be present in OIDC responses.
+
+### Sample Config
+
+```json
+{
+    "Name": "example-oidc-auth",
+    "Type": "oidc",
+    "Description": "Example OIDC auth method",
+    "Config": {
+        "AllowedRedirectURIs": [
+            "http://localhost:8550/oidc/callback",
+            "http://localhost:8500/ui/oidc/callback"
+        ],
+        "BoundAudiences": [
+            "V1RPi2MYptMV1RPi2MYptMV1RPi2MYpt"
+        ],
+        "ClaimMappings": {
+            "http://example.com/first_name": "first_name",
+            "http://example.com/last_name": "last_name"
+        },
+        "ListClaimMappings": {
+            "http://consul.com/groups": "groups"
+        },
+        "OIDCClientID": "V1RPi2MYptMV1RPi2MYptMV1RPi2MYpt",
+        "OIDCClientSecret": "...(omitted)...",
+        "OIDCDiscoveryURL": "https://my-corp-app-name.auth0.com/"
+    }
+}
+```
+
+## JWT Verification
+
+JWT signatures will be verified against public keys from the issuer via OIDC
+discovery. Keys will be fetched from the OIDC Discovery URL during
+authentication and OIDC validation criteria (e.g. `iss`, `aud`, etc.) will be
+applied.
+
+## OIDC Authentication
+
+Consul includes two built-in OIDC login flows: the Consul UI, and the CLI using
+[`consul login`](/consul/commands/login).
+
+### Redirect URIs
+
+An important part of OIDC auth method configuration is properly setting
+redirect URIs. This must be done both in Consul and with the OIDC provider, and
+these configurations must align. The redirect URIs are specified for an auth
+method with the [`AllowedRedirectURIs`](#allowedredirecturis) parameter. There
+are different redirect URIs to configure the Consul UI and CLI flows, so one or
+both will need to be set up depending on the installation.
+
+#### Consul UI
+
+Logging in via the Consul UI requires a redirect URI of the form:
+`http://localhost:8500/ui/oidc/callback` or
+`https://{host:port}/ui/oidc/callback`
+
+The "host:port" must be correct for the Consul agent serving the Consul UI.
+
+#### CLI
+
+If you plan to support authentication via `consul login -type=oidc -method=<name>`, a localhost redirect URI must be set (usually this is
+`http://localhost:8550/oidc/callback`). Logins via the CLI may specify a
+different host and/or listening port if needed, and a URI with this host/port
+must match one of the configured redirected URIs. These same "localhost" URIs
+must be added to the provider as well.
+
+### OIDC Login
+
+#### Consul UI
+
+1. Click the "Log in" link at the top right of the menu bar.
+2. Click one of the "Continue with..." buttons for your OIDC auth method of choice.
+3. Complete the authentication with the configured provider.
+
+#### CLI
+
+```shell-session
+$ consul login -method=oidc -type=oidc -token-sink-file=consul.token
+
+Complete the login via your OIDC provider. Launching browser to:
+
+    https://myco.auth0.com/authorize?redirect_uri=http%3A%2F%2Flocalhost%3A8550%2Foidc%2Fcallback&client_id=r3qXc2bix9eF...
+```
+
+The browser will open to the generated URL to complete the provider's login.
+The URL may be entered manually if the browser cannot be automatically opened.
+
+The callback listener may be customized with the following optional parameters.
+These are typically not required to be set:
+
+The callback listener defaults to listen on `localhost:8550`. If you want to
+customize that use the optional flag
+[`-oidc-callback-listen-addr=<host:port>`](/consul/commands/login#oidc-callback-listen-addr).
+
+## OIDC Configuration Troubleshooting
+
+The amount of configuration required for OIDC is relatively small, but it can
+be tricky to debug why things aren't working. Some tips for setting up OIDC:
+
+- Monitor the log output for the Consul servers. Important information about
+  OIDC validation failures will be emitted.
+
+- Ensure Redirect URIs are correct in Consul and on the provider. They need to
+  match exactly. Check: http/https, 127.0.0.1/localhost, port numbers, whether
+  trailing slashes are present.
+
+- [`BoundAudiences`](#boundaudiences) is optional and typically
+  not required. OIDC providers will use the `client_id` as the audience and
+  OIDC validation expects this.
+
+- Check your provider for what scopes are required in order to receive all of
+  the information you need. The scopes "profile" and "groups" often need to be
+  requested, and can be added by setting
+  `[OIDCScopes](#oidcscopes)="profile,groups"` on the auth method.
+
+- If you're seeing claim-related errors in logs, review the provider's docs
+  very carefully to see how they're naming and structuring their claims.
+  Depending on the provider, you may be able to construct a simple `curl`
+  [implicit grant](https://developer.okta.com/blog/2018/05/24/what-is-the-oauth2-implicit-grant-type)
+  request to obtain a JWT that you can inspect. An example of how to decode the
+  JWT (in this case located in the `access_token` field of a JSON response):
+
+      jq --raw-output '.access_token / "." | .[1] | @base64d' jwt.json
+
+- The [`VerboseOIDCLogging`](#verboseoidclogging) option is available which
+  will log the received OIDC token if debug level logging is enabled. This can
+  be helpful when debugging provider setup and verifying that the received
+  claims are what you expect. Since claims data is logged verbatim and may
+  contain sensitive information, this option should not be used in production.
+
+@include 'legacy/jwt_claim_mapping_details.mdx'

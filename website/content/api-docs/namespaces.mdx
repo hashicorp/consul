@@ -67,7 +67,7 @@ The corresponding CLI command is [`consul namespace create`](/consul/commands/na
 - `Meta` `(map<string|string>: <optional>)` - Specifies arbitrary KV metadata
   to associate with the namespace.
 
-@include 'http-api-body-options-partition.mdx'
+@include 'legacy/http-api-body-options-partition.mdx'
 
 ### Sample Payload
 
@@ -173,7 +173,7 @@ The corresponding CLI command is [`consul namespace read`](/consul/commands/name
 
 ### Query Parameters
 
-@include 'http-api-query-parms-partition.mdx'
+@include 'legacy/http-api-query-parms-partition.mdx'
 
 ### Sample Request
 
@@ -278,7 +278,7 @@ The corresponding CLI command is [`consul namespace update`](/consul/commands/na
 - `Meta` `(map<string|string>: <optional>)` - Specifies arbitrary KV metadata
   to associate with the namespace.
 
-@include 'http-api-body-options-partition.mdx'
+@include 'legacy/http-api-body-options-partition.mdx'
 
 ### Sample Payload
 
@@ -385,7 +385,7 @@ The corresponding CLI command is [`consul namespace delete`](/consul/commands/na
 
 ### Query Parameters
 
-@include 'http-api-query-parms-partition.mdx'
+@include 'legacy/http-api-query-parms-partition.mdx'
 
 ### Sample Request
 
@@ -437,7 +437,7 @@ $ curl --request DELETE \
 This endpoint lists all the Namespaces. The output will be filtered based on the
 privileges of the ACL token used for the request.
 
-@include 'http_api_results_filtered_by_acls.mdx'
+@include 'legacy/http_api_results_filtered_by_acls.mdx'
 
 | Method | Path          | Produces           |
 | ------ | ------------- | ------------------ |
@@ -460,7 +460,7 @@ The corresponding CLI command is [`consul namespace list`](/consul/commands/name
 
 ### Query Parameters
 
-@include 'http-api-query-parms-partition.mdx'
+@include 'legacy/http-api-query-parms-partition.mdx'
 
 ### Sample Request
 
