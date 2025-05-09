@@ -46,7 +46,7 @@ require (
 	github.com/hashicorp/go-checkpoint v0.5.0
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-connlimit v0.3.0
-	github.com/hashicorp/go-discover v0.0.0-20230724184603-e89ebd1b2f65
+	github.com/hashicorp/go-discover v0.0.1
 	github.com/hashicorp/go-hclog v1.5.0
 	github.com/hashicorp/go-immutable-radix v1.3.1
 	github.com/hashicorp/go-memdb v1.3.4
