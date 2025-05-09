@@ -750,6 +750,8 @@ func TestAPI_ClientTxnWrite(t *testing.T) {
 			Key:         "k2",
 			CreateIndex: secondRet.Results[0].KV.CreateIndex,
 			ModifyIndex: secondRet.Results[0].KV.ModifyIndex,
+			Namespace:   "",
+			Partition:   "",
 		},
 	}
 	require.Equal(t, expectedKvPairs, kvPairs)
@@ -780,6 +782,7 @@ func TestAPI_ClientTxnWrite(t *testing.T) {
 				Datacenter:  "dc1",
 				CreateIndex: firstRet.Results[1].Node.CreateIndex,
 				ModifyIndex: firstRet.Results[1].Node.ModifyIndex,
+				Partition:   "",
 			},
 			Service: &AgentService{
 				ID:      "s2",
@@ -801,6 +804,8 @@ func TestAPI_ClientTxnWrite(t *testing.T) {
 				ModifyIndex: secondRet.Results[1].Service.ModifyIndex,
 				Proxy:       &AgentServiceConnectProxyConfig{},
 				Connect:     &AgentServiceConnect{},
+				Partition:   "",
+				Namespace:   "",
 			},
 			Checks: HealthChecks{
 				{
@@ -820,13 +825,14 @@ func TestAPI_ClientTxnWrite(t *testing.T) {
 						DeregisterCriticalServiceAfterDuration: 160 * time.Second,
 					},
 					Type:        "http",
-					Partition:   defaultPartition,
-					Namespace:   defaultNamespace,
+					Partition:   "",
+					Namespace:   "",
 					CreateIndex: secondRet.Results[2].Check.CreateIndex,
 					ModifyIndex: secondRet.Results[2].Check.ModifyIndex,
 				},
 			},
 		},
 	}
+
 	require.Equal(t, expectedEntries, entries)
 }
