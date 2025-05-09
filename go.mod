@@ -8,6 +8,7 @@ replace (
 	github.com/hashicorp/consul/proto-public => ./proto-public
 	github.com/hashicorp/consul/sdk => ./sdk
 	github.com/hashicorp/consul/troubleshoot => ./troubleshoot
+	github.com/hashicorp/go-discover => github.com/hashicorp/go-discover v0.0.0-20230724184603-e89ebd1b2f65
 )
 
 exclude (
@@ -46,7 +47,6 @@ require (
 	github.com/hashicorp/go-checkpoint v0.5.0
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-connlimit v0.3.0
-	github.com/hashicorp/go-discover v0.0.0-20230724184603-e89ebd1b2f65
 	github.com/hashicorp/go-hclog v1.5.0
 	github.com/hashicorp/go-immutable-radix v1.3.1
 	github.com/hashicorp/go-memdb v1.3.4
@@ -117,6 +117,8 @@ require (
 	k8s.io/apimachinery v0.26.1
 	k8s.io/client-go v0.26.1
 )
+
+require github.com/hashicorp/go-discover v0.0.0-00010101000000-000000000000
 
 require (
 	cloud.google.com/go/compute v1.19.1 // indirect
