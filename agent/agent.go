@@ -1598,7 +1598,7 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	cfg.Reporting.License.Enabled = runtimeCfg.Reporting.License.Enabled
 
 	cfg.ServerRejoinAgeMax = runtimeCfg.ServerRejoinAgeMax
-
+	cfg.EnableXDSLoadBalancing = runtimeCfg.EnableXDSLoadBalancing
 	enterpriseConsulConfig(cfg, runtimeCfg)
 
 	return cfg, nil
