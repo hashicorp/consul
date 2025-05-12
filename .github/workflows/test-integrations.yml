@@ -609,7 +609,7 @@ jobs:
     - generate-envoy-job-matrices
     - envoy-integration-test
 #    - compatibility-integration-test
-    -gs integration-test-with-deployer
+    - integration-test-with-deployer
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     if: always() && needs.conditional-skip.outputs.skip-ci != 'true'
     steps:
