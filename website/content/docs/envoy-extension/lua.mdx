@@ -213,33 +213,36 @@ end
   }
 ]
 ```
-  The following example configuration configures the Lua Envoy extension to insert the HTTP Lua filter for all Consul API Gateways named `my-api-gateway` to modify the response body when the status of the http request from upstream is 404.
 
-  <CodeBlockConfig filename="lua-envoy-extension.hcl">
+</CodeBlockConfig>
 
-    ```hcl
-    Kind = "service-defaults"
-    Name = "my-api-gateway"
-    EnvoyExtensions = [
-    {
-      Name = "builtin/lua",
-      Arguments = {
-        ProxyType = "api-gateway"
-        Listener  = "outbound"
-        Script    = <<EOF
-          function envoy_on_response(response_handle)
-            if response_handle:headers():get(":status") == "404" then
-              local json = '{"message":"Modified by Lua script","status":"success"}'
-              response_handle:body():setBytes(json)
-              response_handle:headers():remove("content-length")
-              response_handle:headers():replace("content-encoding", "identity")
-              response_handle:headers():replace("content-type", "application/json")
-            end
+The following example configuration configures the Lua Envoy extension to insert the HTTP Lua filter for all Consul API Gateways named `my-api-gateway` to modify the response body when the status of the http request from upstream is 404.
+
+<CodeBlockConfig filename="lua-envoy-extension.hcl">
+
+```hcl
+  Kind = "service-defaults"
+  Name = "my-api-gateway"
+  EnvoyExtensions = [
+  {
+    Name = "builtin/lua",
+    Arguments = {
+      ProxyType = "api-gateway"
+      Listener  = "outbound"
+      Script    = <<EOF
+        function envoy_on_response(response_handle)
+          if response_handle:headers():get(":status") == "404" then
+            local json = '{"message":"Modified by Lua script","status":"success"}'
+            response_handle:body():setBytes(json)
+            response_handle:headers():remove("content-length")
+            response_handle:headers():replace("content-encoding", "identity")
+            response_handle:headers():replace("content-type", "application/json")
           end
-        EOF
-      }
+        end
+      EOF
     }
-    ]
-    ```
+  }
+  ]
+```
 
 </CodeBlockConfig>
