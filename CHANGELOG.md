@@ -1,3 +1,19 @@
+## 1.21.0 Enterprise (May 06, 2025)
+
+FEATURES:
+
+* config: add UseSNI flag in remote JSONWebKeySet
+  agent: send TLS SNI in remote JSONWebKeySet [[GH-22177](https://github.com/hashicorp/consul/issues/22177)]
+* v2: remove HCP Link integration [[GH-21883](https://github.com/hashicorp/consul/issues/21883)]
+
+IMPROVEMENTS:
+
+* raft: add a configuration `raft_prevote_disabled` to allow disabling raft prevote [[GH-21758](https://github.com/hashicorp/consul/issues/21758)]
+* raft: update raft library to 1.7.0 which include pre-vote extension [[GH-21758](https://github.com/hashicorp/consul/issues/21758)]
+* SubMatView: Log level change from ERROR to INFO for subject materialized view as subscription creation is retryable on ACL change. [[GH-22141](https://github.com/hashicorp/consul/issues/22141)]
+* ui: Adds a copyable token accessor/secret on the settings page when signed in [[GH-22105](https://github.com/hashicorp/consul/issues/22105)]
+* xDS: Log level change from ERROR to INFO for xDS delta discovery request. Stream can be cancelled on server shutdown and other scenarios. It is retryable and error is a superfluous log. [[GH-22141](https://github.com/hashicorp/consul/issues/22141)]
+
 ## 1.21.0 (May 06, 2025)
 
 FEATURES:
