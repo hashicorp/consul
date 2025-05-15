@@ -82,12 +82,14 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	if err := file.WriteAtomicWithPerms(certFileName, []byte(ca), 0755, 0666); err != nil {
+	// public CA cert file
+	if err := file.WriteAtomicWithPerms(certFileName, []byte(ca), 0755, 0644); err != nil {
 		c.UI.Error(err.Error())
 		return 1
 	}
 	c.UI.Output("==> Saved " + certFileName)
 
+	// CA private key
 	if err := file.WriteAtomicWithPerms(pkFileName, []byte(pk), 0755, 0600); err != nil {
 		c.UI.Error(err.Error())
 		return 1
