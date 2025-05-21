@@ -1,3 +1,13 @@
+## 1.21.1 (May 21, 2025)
+
+FEATURES:
+
+* xds: Extend LUA Script support for API Gateway [[GH-22321](https://github.com/hashicorp/consul/issues/22321)]
+
+IMPROVEMENTS:
+
+* http: Add peer query param on catalog service API [[GH-22189](https://github.com/hashicorp/consul/issues/22189)]
+
 ## 1.21.0 (May 06, 2025)
 
 FEATURES:
