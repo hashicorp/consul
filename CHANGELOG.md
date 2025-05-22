@@ -3,7 +3,7 @@
 FEATURES:
 
 * xds: Extend LUA Script support for API Gateway [[GH-22321](https://github.com/hashicorp/consul/issues/22321)]
-* xds: provided a configurable to value to diable XDS session load balancing so that cases where there is a load balancer in front of the consul servers can disable the internal load balancing
+* xds: Added a configurable option to disable XDS session load balancing, intended for scenarios where an external load balancer is used in front of Consul servers, making internal load balancing unnecessary.
 
 IMPROVEMENTS:
 
