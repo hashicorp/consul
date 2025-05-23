@@ -21,6 +21,15 @@ func New(ui cli.Ui) *cmd {
 	return c
 }
 
+const (
+	// DirectoryPerms represents read+write+execute for owner, read+execute for group and others (0755)
+	DirectoryPerms = 0755
+	// PublicFilePerms represents read+write for owner, read-only for group and others (0644)
+	PublicFilePerms = 0644
+	// PrivateFilePerms represents read+write for owner only (0600)
+	PrivateFilePerms = 0600
+)
+
 type cmd struct {
 	UI                    cli.Ui
 	flags                 *flag.FlagSet
@@ -83,14 +92,14 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	// public CA cert file
-	if err := file.WriteAtomicWithPerms(certFileName, []byte(ca), 0755, 0644); err != nil {
+	if err := file.WriteAtomicWithPerms(certFileName, []byte(ca), DirectoryPerms, PublicFilePerms); err != nil {
 		c.UI.Error(err.Error())
 		return 1
 	}
 	c.UI.Output("==> Saved " + certFileName)
 
 	// CA private key
-	if err := file.WriteAtomicWithPerms(pkFileName, []byte(pk), 0755, 0600); err != nil {
+	if err := file.WriteAtomicWithPerms(pkFileName, []byte(pk), DirectoryPerms, PrivateFilePerms); err != nil {
 		c.UI.Error(err.Error())
 		return 1
 	}
