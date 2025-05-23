@@ -452,35 +452,38 @@ jobs:
           cat /etc/hosts && echo "-----------"
           sudo sed -i 's/::1 *localhost ip6-localhost ip6-loopback/::1 ip6-localhost ip6-loopback/g' /etc/hosts
           cat /etc/hosts
-      - name: Compatibility Integration Tests
-        run: |
-            mkdir -p "/tmp/test-results"
-            cd ./test/integration/consul-container
-            docker run --rm ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local consul version
-            go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --raw-command \
-              --format=github-actions \
-              --rerun-fails \
-              -- \
-              go test \
-              -p=6 \
-              -parallel=4 \
-              -tags "${{ env.GOTAGS }}" \
-              -timeout=30m \
-              -json \
-              `go list -tags "${{ env.GOTAGS }}" ./... | grep -v upgrade | grep -v peering_commontopo` \
-              --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
-              --target-version local \
-              --latest-image docker.mirror.hashicorp.services/${{ env.CONSUL_LATEST_IMAGE_NAME }} \
-              --latest-version latest
-            ls -lrt
-        env:
-          # this is needed because of incompatibility between RYUK container and GHA
-          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
-          GOTESTSUM_FORMAT: standard-verbose
-          COMPOSE_INTERACTIVE_NO_CLI: 1
-          # tput complains if this isn't set to something.
-          TERM: ansi
+      
+      # TODO: Disabling the "Compatibility Integration Tests" test temporarily, need to enable again once dependent pipeline issues are fixed.
+      # Please run this test locally and post results in PR description.
+      # - name: Compatibility Integration Tests
+      #   run: |
+      #       mkdir -p "/tmp/test-results"
+      #       cd ./test/integration/consul-container
+      #       docker run --rm ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local consul version
+      #       go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+      #         --raw-command \
+      #         --format=github-actions \
+      #         --rerun-fails \
+      #         -- \
+      #         go test \
+      #         -p=6 \
+      #         -parallel=4 \
+      #         -tags "${{ env.GOTAGS }}" \
+      #         -timeout=30m \
+      #         -json \
+      #         `go list -tags "${{ env.GOTAGS }}" ./... | grep -v upgrade | grep -v peering_commontopo` \
+      #         --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
+      #         --target-version local \
+      #         --latest-image docker.mirror.hashicorp.services/${{ env.CONSUL_LATEST_IMAGE_NAME }} \
+      #         --latest-version latest
+      #       ls -lrt
+      #   env:
+      #     # this is needed because of incompatibility between RYUK container and GHA
+      #     GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+      #     GOTESTSUM_FORMAT: standard-verbose
+      #     COMPOSE_INTERACTIVE_NO_CLI: 1
+      #     # tput complains if this isn't set to something.
+      #     TERM: ansi
 
       # NOTE: ENT specific step as we store secrets in Vault.
       - name: Authenticate to Vault
