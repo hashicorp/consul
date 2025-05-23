@@ -781,7 +781,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 			if err != nil {
 				return "", err
 			}
-			return fmt.Sprintf("%s:%d", addr, s.WanJoinPort), nil
+			return net.JoinHostPort(addr, strconv.Itoa(s.WanJoinPort)), nil
 		}
 		go s.Flood(addrFn, s.serfWAN)
 	}
