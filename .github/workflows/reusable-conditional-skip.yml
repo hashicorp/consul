@@ -52,6 +52,7 @@ jobs:
             grafana/**
             .changelog/**
             .github/CODEOWNERS
+            .release/security-scan.hcl
       - name: Print changed files
         env:
           SKIPPABLE_CHANGED_FILES: ${{ steps.changed-files.outputs.all_changed_files }}
