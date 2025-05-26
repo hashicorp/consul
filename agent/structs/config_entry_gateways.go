@@ -6,8 +6,10 @@ package structs
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/miekg/dns"
@@ -691,7 +693,8 @@ func (g *GatewayService) Addresses(defaultHosts []string) []string {
 	// ensuring we trim any trailing DNS . characters from the domain name as we
 	// go
 	for _, h := range hosts {
-		addresses = append(addresses, fmt.Sprintf("%s:%d", strings.TrimRight(h, "."), g.Port))
+		host := strings.TrimRight(h, ".")
+		addresses = append(addresses, net.JoinHostPort(host, strconv.Itoa(g.Port)))
 	}
 	return addresses
 }

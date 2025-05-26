@@ -762,7 +762,7 @@ func (c *cmd) generateConfig() ([]byte, error) {
 	}
 
 	if c.envoyReadyBindAddress != "" && c.envoyReadyBindPort != 0 {
-		bsCfg.ReadyBindAddr = fmt.Sprintf("%s:%d", c.envoyReadyBindAddress, c.envoyReadyBindPort)
+		bsCfg.ReadyBindAddr = net.JoinHostPort(c.envoyReadyBindAddress, strconv.Itoa(c.envoyReadyBindPort))
 	}
 
 	if !c.disableCentralConfig {
