@@ -1,3 +1,31 @@
+## 1.21.1 (May 21, 2025)
+
+FEATURES:
+
+* xds: Extend LUA Script support for API Gateway [[GH-22321](https://github.com/hashicorp/consul/issues/22321)]
+* xds: Added a configurable option to disable XDS session load balancing, intended for scenarios where an external load balancer is used in front of Consul servers, making internal load balancing unnecessary.
+
+IMPROVEMENTS:
+
+* http: Add peer query param on catalog service API [[GH-22189](https://github.com/hashicorp/consul/issues/22189)]
+
+## 1.20.7 Enterprise (May 21, 2025)
+
+FEATURES:
+
+* xds: Added a configurable option to disable XDS session load balancing, intended for scenarios where an external load balancer is used in front of Consul servers, making internal load balancing unnecessary.
+* xds: Extend LUA Script support for API Gateway
+
+IMPROVEMENTS:
+
+* http: Add peer query param on catalog service API [[GH-22189](https://github.com/hashicorp/consul/issues/22189)]
+
+## 1.19.9 Enterprise (May 21, 2025)
+
+IMPROVEMENTS:
+
+* http: Add peer query param on catalog service API [[GH-22189](https://github.com/hashicorp/consul/issues/22189)]
+
 ## 1.21.0 (March 17, 2025)
 * Enhancement: Added support for Consul Session to update the state of a Health Check, allowing for more dynamic and responsive health monitoring within the Consul ecosystem. This feature enables sessions to directly influence health check statuses, improving the overall reliability and accuracy of service health assessments.
 
