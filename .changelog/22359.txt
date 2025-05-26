@@ -1,0 +1,3 @@
+```release-note: improvement
+connect: Updated host:port formatting to use net.JoinHostPort for correct handling of IPv6 and safer address construction.
+```
