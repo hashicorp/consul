@@ -148,7 +148,7 @@ const grpcServiceConfig = `
 					"INTERNAL",
 					"UNAVAILABLE"
 				]
-			}	
+			}
 		}
 	]
 }`
