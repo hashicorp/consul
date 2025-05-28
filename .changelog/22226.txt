@@ -1,0 +1,3 @@
+```release-note:bug
+wan-federation: Fixed an issue where advertised IPv6 addresses were causing WAN federation to fail.
+```
