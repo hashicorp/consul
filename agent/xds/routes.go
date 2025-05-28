@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -615,7 +616,7 @@ func generateUpstreamIngressDomains(listenerKey proxycfg.IngressListenerKey, u s
 			continue
 		}
 
-		domainWithPort := fmt.Sprintf("%s:%d", h, listenerKey.Port)
+		domainWithPort := net.JoinHostPort(h, strconv.Itoa(listenerKey.Port))
 
 		// Do not add a duplicate domain if a hostname with port is already in the
 		// set
