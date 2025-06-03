@@ -1,0 +1,3 @@
+```release-note:security
+connect: Added non default namespace and partition checks to ConnectCA CSR requests.
+```
