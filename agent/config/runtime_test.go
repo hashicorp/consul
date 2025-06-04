@@ -2125,6 +2125,16 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expectedErr: `performance.raft_multiplier cannot be 20. Must be between 1 and 10`,
 	})
 	run(t, testCase{
+		desc: "disable XDS Load balancing",
+		args: []string{`-data-dir=` + dataDir},
+		json: []string{`{ "performance": { "enable_xds_load_balancing": false} }`},
+		hcl:  []string{`performance = { enable_xds_load_balancing=false }`},
+		expected: func(rt *RuntimeConfig) {
+			rt.EnableXDSLoadBalancing = false
+			rt.DataDir = dataDir
+		},
+	})
+	run(t, testCase{
 		desc: "node_name invalid",
 		args: []string{
 			`-data-dir=` + dataDir,
@@ -7054,6 +7064,7 @@ func TestLoad_FullConfig(t *testing.T) {
 			WAL:    consul.WALConfig{SegmentSize: 15 * 1024 * 1024},
 		},
 		AutoReloadConfigCoalesceInterval: 1 * time.Second,
+		EnableXDSLoadBalancing:           false,
 	}
 	entFullRuntimeConfig(expected)
 
@@ -7370,8 +7381,9 @@ func TestRuntimeConfig_Sanitize(t *testing.T) {
 				},
 			},
 		},
-		Locality:           &Locality{Region: strPtr("us-west-1"), Zone: strPtr("us-west-1a")},
-		ServerRejoinAgeMax: 24 * 7 * time.Hour,
+		Locality:               &Locality{Region: strPtr("us-west-1"), Zone: strPtr("us-west-1a")},
+		ServerRejoinAgeMax:     24 * 7 * time.Hour,
+		EnableXDSLoadBalancing: true,
 	}
 
 	b, err := json.MarshalIndent(rt.Sanitized(), "", "    ")

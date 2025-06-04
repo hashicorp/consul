@@ -1,8 +1,6 @@
 module github.com/hashicorp/consul/test-integ
 
-go 1.23.0
-
-toolchain go1.23.7
+go 1.23.8
 
 require (
 	github.com/google/go-cmp v0.6.0
@@ -15,9 +13,9 @@ require (
 	github.com/itchyny/gojq v0.12.13
 	github.com/mitchellh/copystructure v1.2.0
 	github.com/rboyer/blankspace v0.2.1
-	github.com/stretchr/testify v1.8.4
-	golang.org/x/net v0.37.0
-	google.golang.org/grpc v1.58.3
+	github.com/stretchr/testify v1.9.0
+	golang.org/x/net v0.38.0
+	google.golang.org/grpc v1.65.0
 )
 
 require (
@@ -35,7 +33,7 @@ require (
 	github.com/avast/retry-go v3.0.0+incompatible // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.2.1 // indirect
-	github.com/cespare/xxhash/v2 v2.2.0 // indirect
+	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/containerd/containerd v1.7.3 // indirect
 	github.com/cpuguy83/dockercfg v0.3.1 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
@@ -50,7 +48,7 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/btree v1.0.1 // indirect
-	github.com/google/uuid v1.4.0 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/consul v1.16.1 // indirect
 	github.com/hashicorp/consul-server-connection-manager v0.1.4 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
@@ -106,8 +104,8 @@ require (
 	golang.org/x/sys v0.31.0 // indirect
 	golang.org/x/text v0.23.0 // indirect
 	golang.org/x/tools v0.31.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20230803162519-f966b187b2e5 // indirect
-	google.golang.org/protobuf v1.33.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240823204242-4ba0660f739c // indirect
+	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
