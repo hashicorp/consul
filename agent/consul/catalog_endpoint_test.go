@@ -312,6 +312,30 @@ func createTokenWithPolicyName(t *testing.T, cc rpc.ClientCodec, policyName stri
 	return createTokenWithPolicyNameFull(t, cc, policyName, policyRules, token).SecretID
 }
 
+func TestCatalog_Register_RejectsMissingServiceName(t *testing.T) {
+	t.Parallel()
+
+	_, s1 := testServer(t)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	args := structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "node1",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			ID:      "",
+			Service: "", // Missing required field
+			Port:    8080,
+		},
+	}
+
+	var out struct{}
+	err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "Must provide service name (Service.Service)")
+}
 func TestCatalog_Register_ForwardLeader(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
