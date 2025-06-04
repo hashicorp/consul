@@ -200,6 +200,10 @@ func servicePreApply(service *structs.NodeService, authz resolver.Result, authzC
 	if err := service.Validate(); err != nil {
 		return err
 	}
+	// Check if service name and service ID are empty.
+	if service.ID == "" && service.Service == "" {
+		return fmt.Errorf("Must provide service name (Service.Service)")
+	}
 
 	// If no service id, but service name, use default
 	if service.ID == "" && service.Service != "" {
