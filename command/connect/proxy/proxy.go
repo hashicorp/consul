@@ -323,9 +323,7 @@ func (c *cmd) configWatcher(client *api.Client) (proxyImpl.ConfigWatcher, error)
 
 		addr := config.LocalBindSocketPath
 		if addr == "" {
-			addr = fmt.Sprintf(
-				"%s:%d",
-				config.LocalBindAddress, config.LocalBindPort)
+			addr = net.JoinHostPort(config.LocalBindAddress, strconv.Itoa(config.LocalBindPort))
 		}
 
 		c.UI.Info(fmt.Sprintf(
