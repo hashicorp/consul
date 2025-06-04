@@ -5,6 +5,8 @@ package proxy
 
 import (
 	"fmt"
+	"net"
+	"strconv"
 	"time"
 
 	"github.com/mitchellh/mapstructure"
@@ -122,9 +124,7 @@ func (uc *UpstreamConfig) applyDefaults() {
 func (uc *UpstreamConfig) String() string {
 	addr := uc.LocalBindSocketPath
 	if addr == "" {
-		addr = fmt.Sprintf(
-			"%s:%d",
-			uc.LocalBindAddress, uc.LocalBindPort)
+		addr = net.JoinHostPort(uc.LocalBindAddress, strconv.Itoa(uc.LocalBindPort))
 	}
 	return fmt.Sprintf("%s->%s:%s/%s/%s", addr,
 		uc.DestinationType, uc.DestinationPartition, uc.DestinationNamespace, uc.DestinationName)
