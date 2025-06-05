@@ -761,7 +761,7 @@ func TestBuilder_DatacenterDNSCompatibleWarning(t *testing.T) {
 		require.NoError(t, err)
 
 		warningFound := false
-		expectedWarningSubstr := "will not be PKI X.509 SAN compatible due to invalid characters"
+		expectedWarningSubstr := "will not be PKI X.509 compatible due to invalid characters"
 		for _, warning := range result.Warnings {
 			if strings.Contains(warning, expectedWarningSubstr) {
 				warningFound = true
@@ -785,7 +785,7 @@ func TestBuilder_DatacenterDNSCompatibleWarning(t *testing.T) {
 		},
 		{
 			name:          "invalid excess characters",
-			datacenter:    "asdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfadd1",
+			datacenter:    "asdfaasdfasdfasdfsdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfadd1",
 			expectError:   false,
 			expectWarning: true,
 		},
