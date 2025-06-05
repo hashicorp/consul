@@ -1,0 +1,3 @@
+```release-note:bug
+http: return a clear error when both Service.Service and Service.ID are missing during catalog registration
+```
