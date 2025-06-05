@@ -1190,9 +1190,6 @@ func advertiseAddrFunc(opts LoadOpts, advertiseAddr *net.IPAddr) (string, func()
 	}
 }
 
-// reDNSCompatible ensures that the name is capable to be part of a DNS name.
-var reDNSCompatible = regexp.MustCompile(`^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$`)
-
 // reBasicName validates that a field contains only lower case alphanumerics,
 // underscore and dash and is non-empty.
 var reBasicName = regexp.MustCompile("^[a-z0-9_-]+$")
@@ -1216,6 +1213,8 @@ func (b *builder) validate(rt RuntimeConfig) error {
 	// validContentPath defines a regexp for a valid content path name.
 	validContentPath := regexp.MustCompile(`^[A-Za-z0-9/_-]+$`)
 	hasVersion := regexp.MustCompile(`^/v\d+/$`)
+	// reDNSCompatible ensures that the name is capable to be part of a DNS name.
+	reDNSCompatible := regexp.MustCompile(`^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$`)
 	// ----------------------------------------------------------------
 	// check required params we cannot recover from first
 	//
