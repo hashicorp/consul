@@ -37,7 +37,7 @@ jobs:
           fetch-depth: 0
       - name: Check for skippable file changes
         id: changed-files
-        uses: tj-actions/changed-files@e9772d140489982e0e3704fea5ee93d536f1e275 # v45.0.1
+        uses: tj-actions/changed-files@2f7c5bfce28377bc069a65ba478de0a74aa0ca32 # v46.0.1
         with:
           # This is a multi-line YAML string with one match pattern per line.
           # Do not use quotes around values, as it's not supported.
