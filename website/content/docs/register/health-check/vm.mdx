@@ -366,7 +366,7 @@ check = {
 Time-to-live (TTL) checks wait for an external process to report the service's state to a Consul [`/agent/check` HTTP endpoint](/consul/api-docs/agent/check). If the check does not receive an update before the specified `ttl` duration, the check logs the service as `critical`. For example, if a healthy application is configured to periodically send a `PUT` request a status update to the HTTP endpoint, then the health check logs a `critical` state if the application is unable to send the update before the TTL expires. The check uses the following endpoints to update health information:
 
 - [pass](/consul/api-docs/agent/check#ttl-check-pass)
-- [warn] (/consul/api-docs/agent/check#ttl-check-warn)
+- [warn](/consul/api-docs/agent/check#ttl-check-warn)
 - [fail](/consul/api-docs/agent/check#ttl-check-fail)
 - [update](/consul/api-docs/agent/check#ttl-check-update)
 
