@@ -1,0 +1,3 @@
+```release-note:improvement
+config: Warn about invalid characters in `datacenter` resulting in non-generation of X.509 certificates when using external CA for agent TLS communication.
+```

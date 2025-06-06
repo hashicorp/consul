@@ -731,3 +731,117 @@ func TestBuilder_CloudConfigWithEnvironmentVars(t *testing.T) {
 		})
 	}
 }
+
+func TestBuilder_DatacenterDNSCompatibleWarning(t *testing.T) {
+	type testCase struct {
+		name          string
+		datacenter    string
+		expectError   bool
+		expectWarning bool
+	}
+
+	fn := func(t *testing.T, tc testCase) {
+		opts := LoadOpts{
+			FlagValues: FlagValuesTarget{
+				Config: Config{
+					Datacenter: pString(tc.datacenter),
+					DataDir:    pString("dir"),
+				},
+			},
+		}
+		patchLoadOptsShims(&opts)
+		result, err := Load(opts)
+
+		if tc.expectError {
+			require.Error(t, err)
+			require.Contains(t, err.Error(), "datacenter can only contain lowercase alphanumeric, - or _ characters")
+			return
+		}
+
+		require.NoError(t, err)
+
+		warningFound := false
+		expectedWarningSubstr := "will not be PKI X.509 compatible due to invalid characters"
+		for _, warning := range result.Warnings {
+			if strings.Contains(warning, expectedWarningSubstr) {
+				warningFound = true
+				break
+			}
+		}
+
+		if tc.expectWarning {
+			require.True(t, warningFound, "Expected warning about datacenter DNS compatibility but got none")
+		} else {
+			require.False(t, warningFound, "Got unexpected warning about datacenter DNS compatibility")
+		}
+	}
+
+	var testCases = []testCase{
+		{
+			name:          "valid lowercase datacenter",
+			datacenter:    "deecee1",
+			expectError:   false,
+			expectWarning: false,
+		},
+		{
+			name:          "invalid excess characters",
+			datacenter:    "asdfaasdfasdfasdfsdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfadd1",
+			expectError:   false,
+			expectWarning: true,
+		},
+		{
+			name:          "valid lowercase datacenter",
+			datacenter:    "deecee1",
+			expectError:   false,
+			expectWarning: false,
+		},
+		{
+			name:          "valid with dash",
+			datacenter:    "dc-west-1",
+			expectError:   false,
+			expectWarning: false,
+		},
+		{
+			name:          "valid uppercase letters",
+			datacenter:    "DEECEE1",
+			expectError:   false, // Will not fail because config is lowercased before validation
+			expectWarning: false, // Won't get to warning check
+		},
+		{
+			name:          "invalid underscore",
+			datacenter:    "dc_1",
+			expectError:   false, // Passes basic validation since underscore is allowed
+			expectWarning: true,  // But fails DNS compatibility check
+		},
+		{
+			name:          "invalid starts with dash",
+			datacenter:    "-dc1",
+			expectError:   false, // Basic validation allows leading dash
+			expectWarning: true,  // But DNS compatibility doesn't
+		},
+		{
+			name:          "invalid ends with dash",
+			datacenter:    "dc1-",
+			expectError:   false, // Basic validation allows trailing dash
+			expectWarning: true,  // But DNS compatibility doesn't
+		},
+		{
+			name:          "invalid special characters",
+			datacenter:    "dc@1",
+			expectError:   true,  // Will fail basic validation
+			expectWarning: false, // Won't get to warning check
+		},
+		{
+			name:          "invalid space",
+			datacenter:    "dc 1",
+			expectError:   true,  // Will fail basic validation
+			expectWarning: false, // Won't get to warning check
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			fn(t, tc)
+		})
+	}
+}

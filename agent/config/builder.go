@@ -1213,6 +1213,8 @@ func (b *builder) validate(rt RuntimeConfig) error {
 	// validContentPath defines a regexp for a valid content path name.
 	validContentPath := regexp.MustCompile(`^[A-Za-z0-9/_-]+$`)
 	hasVersion := regexp.MustCompile(`^/v\d+/$`)
+	// reDNSCompatible ensures that the name is capable to be part of a DNS name.
+	reDNSCompatible := regexp.MustCompile(`^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$`)
 	// ----------------------------------------------------------------
 	// check required params we cannot recover from first
 	//
@@ -1223,6 +1225,9 @@ func (b *builder) validate(rt RuntimeConfig) error {
 
 	if err := validateBasicName("datacenter", rt.Datacenter, false); err != nil {
 		return err
+	}
+	if !reDNSCompatible.MatchString(rt.Datacenter) {
+		b.warn("Datacenter : %q will not be PKI X.509 compatible due to invalid characters. Valid characters include lowercase alphanumeric characters with dashes in between.", rt.Datacenter)
 	}
 	if rt.DataDir == "" && !rt.DevMode {
 		return fmt.Errorf("data_dir cannot be empty")
