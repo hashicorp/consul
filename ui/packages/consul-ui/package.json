@@ -58,7 +58,7 @@
     ]
   },
   "devDependencies": {
-    "@babel/core": "^7.2.2",
+    "@babel/core": "^7.26.10",
     "@babel/helper-call-delegate": "^7.10.1",
     "@babel/plugin-proposal-class-properties": "^7.10.1",
     "@babel/plugin-proposal-object-rest-spread": "^7.5.5",
@@ -216,5 +216,8 @@
   "dependencies": {
     "doctoc": "^2.0.0",
     "ember-element-helper": "0.6.1"
+  },
+  "resolutions": {
+    "@babel/core": "^7.26.10"
   }
 }
