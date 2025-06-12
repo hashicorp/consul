@@ -103,6 +103,11 @@ The page provides reference information for general parameters in a Consul agent
   support for multiple datacenters, but it relies on proper configuration. Nodes
   in the same datacenter should be on a single LAN.
 
+~> **Warning:** This `datacenter` string must conform to [RFC 1035 DNS label requirements](https://datatracker.ietf.org/doc/html/rfc1035#section-2.3.1),
+    consisting solely of letters, digits, and hyphens, with a maximum
+    length of 63 characters, and no hyphens at the beginning or end of the label.
+    Non-compliant names create Consul DNS entries incompatible with PKI X.509 certificate generation.
+
 - `data_dir` ((#\_data_dir)) - This parameter provides a data directory for
   the agent to store state. This is required for all agents. The directory should
   be durable across reboots. This is especially critical for agents that are running
@@ -123,7 +128,7 @@ The page provides reference information for general parameters in a Consul agent
   will not be persisted to a file. Any installed keys will be lost on shutdown, and
   only the given encryption key will be available on startup. Defaults to `false`. Equivalent to the
   [`-disable-keyring-file` command-line flag](/consul/commands/agent#_disable_keyring_file).
-  
+
 - `disable_remote_exec` ((#disable_remote_exec)) - Disables support for remote execution. When set to true, the agent will ignore
   any incoming remote exec requests. In versions of Consul prior to 0.8, this defaulted
   to false. In Consul 0.8 the default was changed to true, to make remote exec opt-in
