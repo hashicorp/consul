@@ -82,6 +82,8 @@ Consul servers can be deployed on a few different runtimes:
 - **Kubernetes (Self-managed)**. To get started with Consul on Kubernetes, refer to the [Deploy Consul on Kubernetes tutorial](/consul/tutorials/get-started-kubernetes/kubernetes-gs-deploy).
 - **Other container environments, including Docker, Rancher, and Mesos (Self-managed)**.
 
+@include 'alerts/hcp-dedicated-eol.mdx'
+
 When operating Consul at scale, self-managed VM or bare metal server deployments offer the most flexibility. Some Consul Enterprise features that can enhance fault tolerance and read scalability, such as [redundancy zones](/consul/docs/manage/scale/redundancy-zone) and [read replicas](/consul/docs/manage/scale/read-replica), are not available to server agents on Kubernetes runtimes. To learn more, refer to [Consul Enterprise feature availability by runtime](/consul/docs/enterprise#feature-availability-by-runtime).
 
 ### Number of Consul servers
