@@ -88,7 +88,7 @@ Select **Default App** and open the **Settings** tab.
 In the Application configuration, you can set the callback URLs that the user 
 will be redirected to after the authentication process is completed.
 
-![Auth0 UI configure application to set callback URLs](/img/consul/sso/auth0-configure-callback-urls.png)
+![Auth0 UI configure application to set callback URLs](/img/sso/auth0-configure-callback-urls.png)
 
 In the **Allowed Callback URLs** field, enter the following:
 
@@ -120,7 +120,7 @@ http://localhost:8500/ui/oidc/callback
 
 In the Auth0 dashboard for your app, on the sidebar, select **Users & Roles > Users** and click on _Create User_
 
-![Auth0 UI create user form](/img/consul/sso/auth0-create-user.png)
+![Auth0 UI create user form](/img/sso/auth0-create-user.png)
 
 Create at least one demo user with username/password authentication.
 
@@ -141,7 +141,7 @@ Edit the user's record and assign some `user_metadata` and `app_metadata` such a
 }
 ```
 
-![Auth0 UI configure user metadata](/img/consul/sso/auth0-configure-user-metadata.png)
+![Auth0 UI configure user metadata](/img/sso/auth0-configure-user-metadata.png)
 
 ## Configure claims in the ID tokens using Auth0 rules
 
@@ -161,7 +161,7 @@ function (user, context, callback) {
 }
 ```
 
-![Auth0 UI configure callback rule](/img/consul/sso/auth0-configure-callback-rule.png)
+![Auth0 UI configure callback rule](/img/sso/auth0-configure-callback-rule.png)
 
 -> In this tutorial, we used `http://consul.internal` to namespace the claims that are not part of the [JWT RFC](https://tools.ietf.org/html/rfc7519). The namespace is arbitrary but must be unique. Auth0 enforces the presence of a unique namespace by discarding claims that are unnamespaced and not in the RFC.
 
@@ -225,7 +225,7 @@ In the [Auth0 dashboard](https://manage.auth0.com/#/), select **Applications**.
 
 Select **Default App**, and open the **Settings** tab.
 
-![Auth0 UI get application parameters](/img/consul/sso/auth0-get-application-params.png)
+![Auth0 UI get application parameters](/img/sso/auth0-get-application-params.png)
 
 You will use the values from **Domain**, **Client ID**, and **Client Secret** to create a configuration file for the OIDC auth method for Consul.
 
@@ -398,7 +398,7 @@ The command will redirect you to a browser page from which you can use the user 
 
 When prompted, accept and authorize the Consul access to your Default App.
 
-![Consul UI post login page showing Signed in via OIDC](/img/consul/sso/consul-ui-oidc-signed-in.png)
+![Consul UI post login page showing Signed in via OIDC](/img/sso/consul-ui-oidc-signed-in.png)
 
 Your token secretID will be written to the `dev.token` sink file as a UUID.
 
@@ -431,9 +431,9 @@ Service Identities:
 
 Navigate to your Consul UI and click on the _Log in_ button.
 
-![Consul UI login page sso Auth0](/img/consul/sso/consul-ui-oidc-login-form.png)
+![Consul UI login page sso Auth0](/img/sso/consul-ui-oidc-login-form.png)
 
-![Consul UI popup Auth0 login](/img/consul/sso/consul-ui-popup-auth0-login.png)
+![Consul UI popup Auth0 login](/img/sso/consul-ui-popup-auth0-login.png)
 
 </Tab>
 </Tabs>
@@ -441,7 +441,7 @@ Navigate to your Consul UI and click on the _Log in_ button.
 
 Once login is successful, you can navigate to the Consul UI.
 
-![Consul UI post login services page](/img/consul/sso/consul-ui-services-signed-in.png)
+![Consul UI post login services page](/img/sso/consul-ui-services-signed-in.png)
 
 ## Next steps
 

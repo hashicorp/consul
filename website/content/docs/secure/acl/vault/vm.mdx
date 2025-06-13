@@ -33,7 +33,7 @@ Before using this workflow, you must bootstrap the Consul ACL system and configu
 
 The diagram below shows the minimal architecture needed to demonstrate the functionality.
 
-![Architectural diagram showing a Consul server and a Vault server with an operator issuing a command to start an automation](/img/consul/vault-consul/consul-vault-acl.png)
+![Architectural diagram showing a Consul server and a Vault server with an operator issuing a command to start an automation](/img/vault-consul/consul-vault-acl.png)
 
 <InteractiveLabCallout />
 
@@ -311,7 +311,7 @@ The tokens created using the integration with Vault's Consul secrets engine are 
 
 You can verify the lease duration and expiration time on Vault UI:
 
-![Vault UI Consul tokens](/img/consul/vault-consul/vault-ui-consul-token-lease.png)
+![Vault UI Consul tokens](/img/vault-consul/vault-ui-consul-token-lease.png)
 
 At this moment this value is not configurable, the recommended approach for operators is to rotate the tokens by creating a new token using:
 
