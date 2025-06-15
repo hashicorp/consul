@@ -1,0 +1,11 @@
+```release-note:security
+Upgrade UBI base image version to address CVE
+[CVE-2025-4802](https://access.redhat.com/security/cve/cve-2025-4802)
+[CVE-2024-40896](https://access.redhat.com/security/cve/cve-2024-40896)
+[CVE-2024-12243](https://nvd.nist.gov/vuln/detail/CVE-2024-12243)
+[CVE-2025-24528](https://access.redhat.com/security/cve/cve-2025-24528)
+[CVE-2025-3277](https://access.redhat.com/security/cve/cve-2025-3277)
+[CVE-2024-12133](https://access.redhat.com/security/cve/cve-2024-12133)
+[CVE-2024-57970](https://access.redhat.com/security/cve/cve-2024-57970)
+[CVE-2025-31115](https://access.redhat.com/security/cve/cve-2025-31115)
+```
