@@ -88,6 +88,9 @@ binary {
 		suppress {
 			vulnerabilities = [
 				"GO-2022-0635", // github.com/aws/aws-sdk-go@v1.55.5
+				"GO-2025-3751", // https://osv.dev/vulnerability/GO-2025-3751
+				"GO-2025-3750", // https://osv.dev/vulnerability/GO-2025-3750
+				"GO-2025-3749", // https://osv.dev/vulnerability/GO-2025-3749
 			]
 			paths = [
 				"internal/tools/proto-gen-rpc-glue/e2e/consul/*",
