@@ -23,6 +23,9 @@
     "linkcheck": "linkcheck https://consul.io",
     "content-check": "hc-content --config base-docs"
   },
+  "overrides": {
+    "nanoid": "3.3.8"
+  },
   "engines": {
     "npm": ">=9.6.7"
   }
