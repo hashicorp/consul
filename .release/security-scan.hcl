@@ -49,7 +49,11 @@ container {
 				"CVE-2022-49043", # libxml2@0:2.9.13-6.el9_5.2
 				"CVE-2025-46394",
 				"CVE-2024-58251",
-				"CVE-2025-47268"
+				"CVE-2025-47268",
+				"CVE-2025-31115", # xz-libs@0:5.2.5-8.el9_0,
+				"CVE-2024-40896", # libxml2@0:2.9.13-9.el9_6
+				"CVE-2025-3277", # sqlite-libs@0:3.34.1-7.el9_3
+				"CVE-2024-57970" # libarchive@0:3.5.3-4.el9
 			]
 			paths = [
 				"internal/tools/proto-gen-rpc-glue/e2e/consul/*",
