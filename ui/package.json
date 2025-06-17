@@ -29,6 +29,7 @@
     "ansi-html": "0.0.8",
     "json5": "^2.2.3",
     "**/express/path-to-regexp": "0.1.12",
+    "**/nise/path-to-regexp": "1.9.0",
     "body-parser": "1.20.3",
     "elliptic": "6.6.1",
     "nanoid": "3.3.8",
