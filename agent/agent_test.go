@@ -581,7 +581,7 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					CheckID:        "check1",
 					Name:           "name1",
 					Interval:       "",
-					Timeout:        "", // these are empty bcause a TTL was provided
+					Timeout:        "", // these are empty because a TTL was provided
 					Status:         "critical",
 					Notes:          "note1",
 					ServiceID:      "svcid2",
@@ -608,7 +608,7 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					CheckID:        "service:svcid2:3",
 					Name:           "check-noid",
 					Interval:       "",
-					Timeout:        "", // these are empty becuase a TTL was provided
+					Timeout:        "", // these are empty because a TTL was provided
 					Status:         "critical",
 					ServiceID:      "svcid2",
 					ServiceName:    "svcname2",
@@ -1355,7 +1355,7 @@ func testAgent_RemoveService(t *testing.T, extraHCL string) {
 			t.Fatalf("err: %v", err)
 		}
 
-		// add another service that wont be affected
+		// add another service that won't be affected
 		srv = &structs.NodeService{
 			ID:      "mysql",
 			Service: "mysql",
