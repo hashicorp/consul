@@ -2,7 +2,7 @@
 
 SECURITY:
 
-* Upgrade UBI base image version to address CVE
+* security: Upgrade UBI base image version to address CVE
 [CVE-2025-4802](https://access.redhat.com/security/cve/cve-2025-4802)
 [CVE-2024-40896](https://access.redhat.com/security/cve/cve-2024-40896)
 [CVE-2024-12243](https://nvd.nist.gov/vuln/detail/CVE-2024-12243)
@@ -22,7 +22,6 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
-* connect: Use net.JoinHostPort for host:port formatting for IPv6 compatibility. [[GH-10597](https://github.com/hashicorp/consul/issues/10597)]
 * http: return a clear error when both Service.Service and Service.ID are missing during catalog registration [[GH-22381](https://github.com/hashicorp/consul/issues/22381)]
 * license: (Enterprise only) Fixed issue where usage metrics are not written to the snapshot to export the license data. [[GH-10668](https://github.com/hashicorp/consul/issues/10668)]
 * wan-federation: Fixed an issue where advertised IPv6 addresses were causing WAN federation to fail. [[GH-22226](https://github.com/hashicorp/consul/issues/22226)]
