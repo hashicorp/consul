@@ -1,3 +1,32 @@
+## 1.21.2 (June 17, 2025)
+
+SECURITY:
+
+* Upgrade UBI base image version to address CVE
+[CVE-2025-4802](https://access.redhat.com/security/cve/cve-2025-4802)
+[CVE-2024-40896](https://access.redhat.com/security/cve/cve-2024-40896)
+[CVE-2024-12243](https://nvd.nist.gov/vuln/detail/CVE-2024-12243)
+[CVE-2025-24528](https://access.redhat.com/security/cve/cve-2025-24528)
+[CVE-2025-3277](https://access.redhat.com/security/cve/cve-2025-3277)
+[CVE-2024-12133](https://access.redhat.com/security/cve/cve-2024-12133)
+[CVE-2024-57970](https://access.redhat.com/security/cve/cve-2024-57970)
+[CVE-2025-31115](https://access.redhat.com/security/cve/cve-2025-31115) [[GH-22409](https://github.com/hashicorp/consul/issues/22409)]
+* cli: update tls ca and cert create to reduce excessive file perms for generated public files [[GH-22286](https://github.com/hashicorp/consul/issues/22286)]
+* connect: Added non default namespace and partition checks to ConnectCA CSR requests. [[GH-22376](https://github.com/hashicorp/consul/issues/22376)]
+* security: Upgrade Go to 1.23.10. [[GH-22412](https://github.com/hashicorp/consul/issues/22412)]
+
+IMPROVEMENTS:
+
+* config: Warn about invalid characters in `datacenter` resulting in non-generation of X.509 certificates when using external CA for agent TLS communication. [[GH-22382](https://github.com/hashicorp/consul/issues/22382)]
+* connect: Use net.JoinHostPort for host:port formatting to handle IPv6. [[GH-22359](https://github.com/hashicorp/consul/issues/22359)]
+
+BUG FIXES:
+
+* connect: Use net.JoinHostPort for host:port formatting for IPv6 compatibility. [[GH-10597](https://github.com/hashicorp/consul/issues/10597)]
+* http: return a clear error when both Service.Service and Service.ID are missing during catalog registration [[GH-22381](https://github.com/hashicorp/consul/issues/22381)]
+* license: (Enterprise only) Fixed issue where usage metrics are not written to the snapshot to export the license data. [[GH-10668](https://github.com/hashicorp/consul/issues/10668)]
+* wan-federation: Fixed an issue where advertised IPv6 addresses were causing WAN federation to fail. [[GH-22226](https://github.com/hashicorp/consul/issues/22226)]
+
 ## 1.21.1 (May 21, 2025)
 
 FEATURES:
