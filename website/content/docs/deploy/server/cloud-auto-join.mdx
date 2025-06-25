@@ -165,16 +165,16 @@ If the region is omitted from the configuration, Consul obtains it from the loca
 
 ## Microsoft Azure
 
-This returns the first private IP address of all servers in the given region which have the given `tag_key` and `tag_value` applied to their virtual NIC in the tenant and subscription, or in the given `resource_group` of a `vm_scale_set` for Virtual Machine Scale Sets.
+This returns the first private IP address of all servers in the given region which have the given `tag_name` and `tag_value` applied to their virtual NIC in the tenant and subscription, or in the given `resource_group` of a `vm_scale_set` for Virtual Machine Scale Sets.
 
 ```shell-session
-$ consul agent -retry-join "provider=azure tag_key=... tag_value=... tenant_id=... client_id=... subscription_id=... secret_access_key=..."
+$ consul agent -retry-join "provider=azure tag_name=... tag_value=... tenant_id=... client_id=... subscription_id=... secret_access_key=..."
 ```
 
 ```json
 {
   "retry_join": [
-    "provider=azure tag_key=... tag_value=... tenant_id=... client_id=... subscription_id=... secret_access_key=..."
+    "provider=azure tag_name=... tag_value=... tenant_id=... client_id=... subscription_id=... secret_access_key=..."
   ]
 }
 ```
@@ -193,7 +193,7 @@ Variables can also be provided by environmental variables:
 
 Use these configuration parameters when using tags:
 
-- `tag_key` - the name of the tag to auto-join on.
+- `tag_name` - the name of the tag to auto-join on.
 - `tag_value` - the value of the tag to auto-join on.
 
 Use these configuration parameters (instead of `tag_name` and `tag_value`) when using Virtual Machine Scale Sets (Consul 1.0.3 and later):
@@ -208,7 +208,7 @@ When using Virtual Machine Scale Sets the only role action needed is `Microsoft.
 
 <Note>
 
-If the Consul datacenter is hosted on Azure, Consul can use Managed Service Identities (MSI) to access Azure instead of an environment variable, shared client id and secret. MSI must be enabled on the VMs or Virtual Machine Scale Sets hosting Consul. It is the preferred configuration since MSI prevents your Azure credentials from being stored in Consul configuration. This feature is supported in Consul 1.7 and above. When using MSI, the `tag_key`, `tag_value` and `subscription_id` need to be supplied for Virtual machines. Be aware that the amount of time that Azure takes for the VMs to detect the MSI permissions can be between a minute to an hour.
+If the Consul datacenter is hosted on Azure, Consul can use Managed Service Identities (MSI) to access Azure instead of an environment variable, shared client id and secret. MSI must be enabled on the VMs or Virtual Machine Scale Sets hosting Consul. It is the preferred configuration since MSI prevents your Azure credentials from being stored in Consul configuration. This feature is supported in Consul 1.7 and above. When using MSI, the `tag_name`, `tag_value` and `subscription_id` need to be supplied for Virtual machines. Be aware that the amount of time that Azure takes for the VMs to detect the MSI permissions can be between a minute to an hour.
 
 </Note>
 
