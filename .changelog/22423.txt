@@ -1,0 +1,3 @@
+```release-note:bug
+ui: display IPv6 addresses with proper bracketed formatting
+```
