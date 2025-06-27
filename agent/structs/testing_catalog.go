@@ -168,7 +168,7 @@ func TestNodeServiceExpose(t testing.T) *NodeService {
 
 // TestNodeServiceMeshGateway returns a *NodeService representing a valid Mesh Gateway
 func TestNodeServiceMeshGateway(t testing.T) *NodeService {
-	return TestNodeServiceMeshGatewayWithAddrs(t,
+	return TestNodeServiceMeshGatewayWithAddrs(
 		"10.1.2.3",
 		8443,
 		ServiceAddress{Address: "10.1.2.3", Port: 8443},
@@ -192,7 +192,8 @@ func TestNodeServiceTerminatingGateway(t testing.T, address string) *NodeService
 	}
 }
 
-func TestNodeServiceMeshGatewayWithAddrs(t testing.T, address string, port int, lanAddr, wanAddr ServiceAddress) *NodeService {
+// TestNodeServiceMeshGatewayWithAddrs returns a *NodeService representing a valid Mesh Gateway with custom addresses.
+func TestNodeServiceMeshGatewayWithAddrs(address string, port int, lanAddr, wanAddr ServiceAddress) *NodeService {
 	return &NodeService{
 		Kind:    ServiceKindMeshGateway,
 		Service: "mesh-gateway",
