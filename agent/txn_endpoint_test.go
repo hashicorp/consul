@@ -75,7 +75,7 @@ func TestTxnEndpoint_Bad_Size_Item(t *testing.T) {
 					t.Fatalf("expected 413 but got %d", httpErr.StatusCode)
 				}
 			} else {
-				t.Fatalf("excected HTTP error but got %v", err)
+				t.Fatalf("expected HTTP error but got %v", err)
 			}
 		}
 	}
