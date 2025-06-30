@@ -118,6 +118,7 @@ spec:
 If your Consul server pods are stuck in the `Pending` state, check if the PersistentVolumeClaims (PVCs) are bound to PersistentVolumes (PVs). If they are not bound, you will see an error similar to the following:
 
 <CodeBlockConfig highlight="7,14">
+
 ```shell-session
 $ kubectl describe pods --namespace consul consul-server-0 
 Name:             consul-server-0
@@ -134,11 +135,12 @@ Events:
   ----     ------            ----                 ----               -------
   Warning  FailedScheduling  3m29s (x3 over 13m)  default-scheduler  0/3 nodes are available: pod has unbound immediate PersistentVolumeClaims. preemption: 0/3 nodes are available: 3 Preemption is not helpful for scheduling.
 ```
+
 </CodeBlockConfig>
 
-There are two ways to resolve this issue. The fastest and simplest option is to use an up-to-date version of the Helm chart or `consul-k8s` tool to deploy Consul, which will automatically create the required PVs for you.
+There are two ways to resolve this issue. The fastest and simplest option is to use an up-to-date version of the Helm chart or `consul-k8s` tool to deploy Consul. The `consul-k8s` tool  automatically creates the required PVs for you.
 
-If you cannot use a newer version of the Helm chart or `consul-k8s` tool, you can manually create the _StorageClass_ object that governs the creation of PVs, and then specify this in the Consul Helm chart. For example, you can use the following YAML to create a _StorageClass_ called `ebs-sc` for AWS EBS volumes that provides for this specific use case:
+If you cannot use a newer version of the Helm chart or `consul-k8s` tool, you can manually create the `StorageClass` object that governs the creation of PVs, and then specify it in the Consul Helm chart. For example, you can use the following YAML to create a `StorageClass` called `ebs-sc` for AWS EBS volumes:
 
 ```yaml
 apiVersion: storage.k8s.io/v1
