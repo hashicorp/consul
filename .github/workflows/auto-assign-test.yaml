@@ -1,0 +1,101 @@
+name: Assign PR on 'auto-assign' Label
+
+on:
+  pull_request:
+    types: [labeled] # Trigger only when a label is added to a PR
+
+permissions:
+  contents: read # To checkout code and read CODEOWNERS
+  pull-requests: write # To assign the PR
+
+jobs:
+  auto-assign-pr:
+    # Only run this job if the added label is 'auto-assign'
+    if: github.event.label.name == 'auto-assign'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code (to access CODEOWNERS)
+        uses: actions/checkout@v4
+
+      - name: Choose a random code owner (user or team member)
+        id: pick_owner # Assign an ID to this step to reference its outputs
+        env:
+          # IMPORTANT: This token needs 'read:org' scope to list team members.
+          # The default GITHUB_TOKEN typically does NOT have this.
+          # You will likely need a Personal Access Token (PAT) stored as a secret.
+          GH_TOKEN: ${{ secrets.ORG_READ_PAT }} # <--- REPLACE with your PAT secret name
+        run: |
+          CODEOWNERS_FILE=".github/CODEOWNERS"
+
+          if [ ! -f "$CODEOWNERS_FILE" ]; then
+            echo "::warning file=$CODEOWNERS_FILE::CODEOWNERS file not found. Cannot assign PR."
+            echo "owner=" >> $GITHUB_OUTPUT # Set owner to empty
+            exit 0
+          fi
+
+          # Extract all unique @usernames or @org/teams from CODEOWNERS
+          VALID_ASSIGNEES=$(cat "$CODEOWNERS_FILE" | \
+            grep -v '^#' | \
+            grep -v '^\s*$' | \
+            grep -oE '@[a-zA-Z0-9_-]+(/[a-zA-Z0-9_-]+)?' | \
+            sort -u | \
+            grep -v 'dependabot\[bot\]' | \ # Exclude dependabot itself from being assigned
+            tr '\n' ' ')
+
+          # Convert to bash array
+          IFS=' ' read -r -a ASSIGNEES_ARRAY <<< "$VALID_ASSIGNEES"
+
+          # Pick a random assignee
+          if [ ${#ASSIGNEES_ARRAY[@]} -eq 0 ]; then
+            echo "No valid human/team owners found in .github/CODEOWNERS. Skipping assignment."
+            echo "owner=" >> $GITHUB_OUTPUT # Ensure output is empty if no owners
+            exit 0
+          fi
+
+          SELECTED_ASSIGNEE=${ASSIGNEES_ARRAY[$RANDOM % ${#ASSIGNEES_ARRAY[@]}]}
+          echo "Initial selection: $SELECTED_ASSIGNEE"
+
+          ASSIGN_TO_USER=""
+
+          # Check if the selected assignee is a team (contains '/')
+          if [[ "$SELECTED_ASSIGNEE" == *"/"* ]]; then
+            # It's a team (e.g., @org/team)
+            ORG_SLUG=$(echo "$SELECTED_ASSIGNEE" | cut -d'/' -f1 | sed 's/@//')
+            TEAM_SLUG=$(echo "$SELECTED_ASSIGNEE" | cut -d'/' -f2)
+
+            echo "Selected assignee is a team: $ORG_SLUG/$TEAM_SLUG. Fetching team members..."
+
+            # Use GitHub CLI to fetch team members
+            # Requires GH_TOKEN with read:org scope (from secrets.ORG_READ_PAT)
+            TEAM_MEMBERS_JSON=$(gh api "/orgs/$ORG_SLUG/teams/$TEAM_SLUG/members")
+            
+            # Extract login names (usernames) from JSON
+            TEAM_MEMBER_LOGINS=$(echo "$TEAM_MEMBERS_JSON" | jq -r '.[].login' | tr '\n' ' ')
+
+            IFS=' ' read -r -a MEMBER_ARRAY <<< "$TEAM_MEMBER_LOGINS"
+
+            if [ ${#MEMBER_ARRAY[@]} -gt 0 ]; then
+              # Pick one random member from the team
+              ASSIGN_TO_USER=${MEMBER_ARRAY[$RANDOM % ${#MEMBER_ARRAY[@]}]}
+              echo "Picked random team member: $ASSIGN_TO_USER"
+            else
+              echo "No members found for team $ORG_SLUG/$TEAM_SLUG. Skipping assignment."
+              ASSIGN_TO_USER=""
+            fi
+          else
+            # It's an individual user
+            ASSIGN_TO_USER=$(echo "$SELECTED_ASSIGNEE" | sed 's/@//') # Remove leading @
+            echo "Selected assignee is an individual user: $ASSIGN_TO_USER"
+          fi
+
+          echo "owner=$ASSIGN_TO_USER" >> $GITHUB_OUTPUT
+
+      - name: Assign PR to random code owner
+        # Only attempt to assign if an owner was successfully determined
+        if: steps.pick_owner.outputs.owner != ''
+        uses: peter-evans/assign-issue@v3
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          assignees: ${{ steps.pick_owner.outputs.owner }}
+          token: ${{ secrets.GITHUB_TOKEN }} # Use default token for assignment (has pull-requests:write)
