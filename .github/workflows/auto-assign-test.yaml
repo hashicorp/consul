@@ -91,11 +91,16 @@ jobs:
 
           echo "owner=$ASSIGN_TO_USER" >> $GITHUB_OUTPUT
 
-      - name: Assign PR to random code owner
+      - name: Assign PR to random code owner using gh CLI
         # Only attempt to assign if an owner was successfully determined
         if: steps.pick_owner.outputs.owner != ''
-        uses: peter-evans/assign-issue@v3
-        with:
-          issue-number: ${{ github.event.pull_request.number }}
-          assignees: ${{ steps.pick_owner.outputs.owner }}
-          token: ${{ secrets.GITHUB_TOKEN }} # Use default token for assignment (has pull-requests:write)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Use default GITHUB_TOKEN for PR assignment
+        run: |
+          ASSIGN_TO="${{ steps.pick_owner.outputs.owner }}"
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+
+          echo "Attempting to assign PR #${PR_NUMBER} to $ASSIGN_TO"
+          # gh pr edit expects username or org/team-slug
+          gh pr edit "$PR_NUMBER" --add-assignee "$ASSIGN_TO"
+          echo "Assignment command executed."
