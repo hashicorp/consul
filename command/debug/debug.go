@@ -571,10 +571,8 @@ func (c *cmd) captureMetrics(ctx context.Context) error {
 	return nil
 }
 
-func (c *cmd) captureRaft (ctx context.Context) (error) {
-
+func (c *cmd) captureRaft (ctx context.Context) error {
 	reply, err := c.client.Operator().RaftGetConfiguration(nil)
-
 	if err != nil {
 		return fmt.Errorf("Failed to retrieve raft configuration: %v", err)
 	}
