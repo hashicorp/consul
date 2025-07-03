@@ -211,6 +211,11 @@ module.exports = function (defaults, $ = process.env) {
       sassOptions: {
         implementation: require('sass'),
         sourceMapEmbed: sourcemaps,
+        precision: 4,
+        includePaths: [
+          './../../node_modules/@hashicorp/design-system-tokens/dist/products/css',
+          './../../node_modules/@hashicorp/design-system-components/dist/styles',
+        ],
       },
     }
   );
