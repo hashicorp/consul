@@ -228,3 +228,114 @@ func testFile(t *testing.T, suffix string) *os.File {
 
 	return f
 }
+
+func TestValidateServiceAddress(t *testing.T) {
+	tests := []struct {
+		name    string
+		addr    string
+		wantErr bool
+	}{
+		{
+			name:    "empty address",
+			addr:    "",
+			wantErr: false,
+		},
+		{
+			name:    "valid IPv4",
+			addr:    "192.168.1.1",
+			wantErr: false,
+		},
+		{
+			name:    "valid IPv4 with port",
+			addr:    "192.168.1.1:8080",
+			wantErr: false,
+		},
+		{
+			name:    "valid IPv6",
+			addr:    "::1",
+			wantErr: false,
+		},
+		{
+			name:    "valid IPv6 with brackets and port",
+			addr:    "[::1]:8080",
+			wantErr: false,
+		},
+		{
+			name:    "IPv4 ANY address",
+			addr:    "0.0.0.0",
+			wantErr: false, // Allow ANY addresses
+		},
+		{
+			name:    "IPv6 ANY address",
+			addr:    "::",
+			wantErr: false, // Allow ANY addresses
+		},
+		{
+			name:    "IPv6 ANY address with brackets",
+			addr:    "[::]",
+			wantErr: false, // Allow ANY addresses
+		},
+		{
+			name:    "malformed IPv6 - too many colons",
+			addr:    ":::8500",
+			wantErr: true,
+		},
+		{
+			name:    "malformed IPv4 - too many octets",
+			addr:    "192.168.1.1.1",
+			wantErr: true, // This should be caught as malformed IP
+		},
+		{
+			name:    "malformed IP with consecutive dots",
+			addr:    "192.168..1",
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateServiceAddress(tt.addr)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("validateServiceAddress(%q) error = %v, wantErr %v", tt.addr, err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestLooksLikeIP(t *testing.T) {
+	tests := []struct {
+		name string
+		addr string
+		want bool
+	}{
+		{
+			name: "malformed with consecutive colons",
+			addr: ":::8500",
+			want: true,
+		},
+		{
+			name: "malformed with consecutive dots",
+			addr: "192.168..1",
+			want: true,
+		},
+		{
+			name: "valid IPv4",
+			addr: "192.168.1.1",
+			want: false,
+		},
+		{
+			name: "too many colons",
+			addr: ":::::::::",
+			want: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := looksLikeIP(tt.addr)
+			if got != tt.want {
+				t.Errorf("looksLikeIP(%q) = %v, want %v", tt.addr, got, tt.want)
+			}
+		})
+	}
+}
