@@ -78,7 +78,7 @@ func (c *cmd) Run(args []string) int {
 	// Validate service address if provided
 	if c.flagAddress != "" {
 		if err := validateServiceAddressWithPortCheck(c.flagAddress, "when using CLI flags. Use -port flag instead", false); err != nil {
-			c.UI.Error(fmt.Sprintf("Invalid service address: %v", err))
+			c.UI.Error(fmt.Sprintf("Invalid Service address: %v", err))
 			return 1
 		}
 	}
@@ -89,12 +89,12 @@ func (c *cmd) Run(args []string) int {
 		for k, v := range c.flagTaggedAddresses {
 			addr, err := api.ParseServiceAddr(v)
 			if err != nil {
-				c.UI.Error(fmt.Sprintf("Invalid tagged address: %v", err))
+				c.UI.Error(fmt.Sprintf("Invalid Tagged address: %v", err))
 				return 1
 			}
 			// Validate the address part of the tagged address
 			if err := validateServiceAddressWithPortCheck(addr.Address, fmt.Sprintf("for tagged address '%s'", k), true); err != nil {
-				c.UI.Error(fmt.Sprintf("Invalid tagged address: %v", err))
+				c.UI.Error(fmt.Sprintf("Invalid Tagged address: %v", err))
 				return 1
 			}
 			taggedAddrs[k] = addr
@@ -134,14 +134,14 @@ func (c *cmd) Run(args []string) int {
 		for _, svc := range svcs {
 			if svc.Address != "" {
 				if err := validateServiceAddressWithPortCheck(svc.Address, fmt.Sprintf("for service '%s'. Use port field instead", svc.Name), false); err != nil {
-					c.UI.Error(fmt.Sprintf("Invalid service address: %v", err))
+					c.UI.Error(fmt.Sprintf("Invalid Service address: %v", err))
 					return 1
 				}
 			}
 			// Validate tagged addresses
 			for tag, addr := range svc.TaggedAddresses {
 				if err := validateServiceAddressWithPortCheck(addr.Address, fmt.Sprintf("for tagged address '%s' in service '%s'", tag, svc.Name), true); err != nil {
-					c.UI.Error(fmt.Sprintf("Invalid tagged address: %v", err))
+					c.UI.Error(fmt.Sprintf("Invalid Tagged address: %v", err))
 					return 1
 				}
 			}
