@@ -334,7 +334,7 @@ func TestServerLeaf(t testing.T, dc string, root *structs.CARoot) (string, strin
 
 // TestCSR returns a CSR to sign the given service along with the PEM-encoded
 // private key for this certificate.
-func TestCSR(t testing.T, uri CertURI) (string, string) {
+func TestCSR(t Fatalfer, uri CertURI) (string, string) {
 	template := &x509.CertificateRequest{
 		URIs:               []*url.URL{uri.URI()},
 		SignatureAlgorithm: x509.ECDSAWithSHA256,
@@ -387,13 +387,20 @@ func testKeyID(t testing.T, raw interface{}) []byte {
 // which will be the same for multiple CAs/Leafs. Also note that our UUID
 // generator also reads from crypto rand and is called far more often during
 // tests than this will be.
-func testPrivateKey(t testing.T, keyType string, keyBits int) (crypto.Signer, string) {
+func testPrivateKey(t Fatalfer, keyType string, keyBits int) (crypto.Signer, string) {
 	pk, pkPEM, err := GeneratePrivateKeyWithConfig(keyType, keyBits)
 	if err != nil {
 		t.Fatalf("error generating private key: %s", err)
 	}
 
 	return pk, pkPEM
+}
+
+// Fatalfer is a subset of testing.T that only has the Fatalf method. This is
+// used to avoid import cycles in the connect package, since we use this in
+// places that need to call Fatalf but don't need the full testing.T interface.
+type Fatalfer interface {
+	Fatalf(format string, args ...any)
 }
 
 // testSerialNumber generates a serial number suitable for a certificate. For
