@@ -24,9 +24,9 @@ type ServiceAddressValue struct {
 
 func (s *ServiceAddressValue) String() string {
 	if s == nil || (s.value.Port == 0 && s.value.Address == "") {
-		return fmt.Sprintf(":%d", defaultGatewayPort)
+		return net.JoinHostPort("", strconv.Itoa(defaultGatewayPort))
 	}
-	return fmt.Sprintf("%v:%d", s.value.Address, s.value.Port)
+	return net.JoinHostPort(s.value.Address, strconv.Itoa(s.value.Port))
 }
 
 func (s *ServiceAddressValue) Value() api.ServiceAddress {
@@ -85,7 +85,8 @@ type ServiceAddressMapValue struct {
 func (s *ServiceAddressMapValue) String() string {
 	buf := new(strings.Builder)
 	for k, v := range s.value {
-		buf.WriteString(fmt.Sprintf("%v=%v:%d,", k, v.Address, v.Port))
+		addr := net.JoinHostPort(v.Address, strconv.Itoa(v.Port))
+		buf.WriteString(fmt.Sprintf("%v=%v,", k, addr))
 	}
 	return buf.String()
 }

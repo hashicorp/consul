@@ -1439,6 +1439,10 @@ func (c *CAManager) AuthorizeAndSignCertificate(csr *x509.CertificateRequest, au
 	}
 	c.logger.Trace("authorizing and signing cert", "spiffeID", spiffeID)
 
+	if err := c.validateSupportedIdentityScopesInCertificate(spiffeID); err != nil {
+		return nil, err
+	}
+
 	// Perform authorization.
 	var authzContext acl.AuthorizerContext
 	allow := authz.ToAllowAuthorizer()

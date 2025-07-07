@@ -184,6 +184,38 @@ DNSStubListener=false
 
 </CodeBlockConfig>
 
+### Configuring systemd-resolved for Docker
+
+By default, Docker replaces host files that use `localhost` addresses with its own DNS settings. This behavior may cause issues with `systemd-resolved` and Docker containers.
+
+To prevent Docker from replacing the host DNS settings, configure a stub resolver address in `systemd-resolved` and set the `dns` option in the `/etc/docker/daemon.json` file to the corresponding address.
+
+<CodeBlockConfig filename="/etc/systemd/resolved.conf.d/consul.conf">
+
+```plaintext
+[Resolve]
+DNS=127.0.0.1:8600
+DNSSEC=false
+Domains=~consul
+DNSStubListener=yes
+DNSStubListenerExtra=172.17.0.1
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig filename="/etc/docker/daemon.json">
+
+```json
+{
+  "dns": ["172.17.0.1"]
+
+}
+```
+
+</CodeBlockConfig>
+
+After you make these changes, restart the `systemd-resolved` and `docker` services.
+
 ## Dnsmasq
 
 Use [dnsmasq](http://www.thekelleys.org.uk/dnsmasq/doc.html) if you have a small network and need a lightweight DNS solution.

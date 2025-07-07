@@ -61,7 +61,7 @@ jobs:
         if: ( github.event.action == 'opened' && steps.is-team-member.outputs.MESSAGE == 'false' )
         uses: tomhjp/gh-action-jira-create@3ed1789cad3521292e591a7cfa703215ec1348bf # v0.2.1
         with:
-          project: NET
+          project: CSL
           issuetype: "${{ steps.set-ticket-type.outputs.TYPE }}"
           summary: "${{ github.event.repository.name }} [${{ steps.set-ticket-type.outputs.TYPE }} #${{ github.event.pull_request.number }}]: ${{ github.event.pull_request.title }}"
           description: "${{ github.event.issue.body || github.event.pull_request.body }}\n\n_Created in GitHub by ${{ github.actor }}._"

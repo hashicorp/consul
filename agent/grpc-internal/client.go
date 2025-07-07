@@ -101,7 +101,28 @@ const grpcServiceConfig = `
 				{
 					"service": "subscribe.StateChangeSubscription",
 					"method": "Subscribe"
-				},
+				}
+			],
+			"retryPolicy": {
+				"MaxAttempts": 5,
+				"BackoffMultiplier": 2,
+				"InitialBackoff": "1s",
+				"MaxBackoff": "5s",
+				"RetryableStatusCodes": [
+					"CANCELLED",
+					"UNKNOWN",
+					"DEADLINE_EXCEEDED",
+					"RESOURCE_EXHAUSTED",
+					"FAILED_PRECONDITION",
+					"ABORTED",
+					"OUT_OF_RANGE",
+					"INTERNAL",
+					"UNAVAILABLE"
+				]
+			}
+		},
+		{
+			"name": [
 				{
 					"service": "partition.PartitionService",
 					"method": "List"
@@ -112,8 +133,8 @@ const grpcServiceConfig = `
 				}
 			],
 			"retryPolicy": {
-				"MaxAttempts": 5,
-				"BackoffMultiplier": 2,
+				"MaxAttempts": 3,
+				"BackoffMultiplier": 1.1,
 				"InitialBackoff": "1s",
 				"MaxBackoff": "5s",
 				"RetryableStatusCodes": [

@@ -89,7 +89,7 @@ The observability suite provides insight into the metrics, logs, and traces that
 throughout the Consul service mesh. This diagram illustrates the components of the
 observability suite and Consul service mesh that you will create in this tutorial.
 
-![Image of architecture diagram for this environment.](/img/consul/docker/observability_architecture_diagram.png 'There are two main logical environments in this architecture diagram: a Consul service mesh with each of its components in the left diagram, and the observability platform with each of its components in the right diagram. Both of these logical environments are encapsulated in a Docker Compose environment.')
+![Image of architecture diagram for this environment.](/img/docker/observability_architecture_diagram.png 'There are two main logical environments in this architecture diagram: a Consul service mesh with each of its components in the left diagram, and the observability platform with each of its components in the right diagram. Both of these logical environments are encapsulated in a Docker Compose environment.')
 
 ## Create environment
 
@@ -129,7 +129,7 @@ Perform the following steps of each section to explore the elements involved in 
 
 Navigate to [http://localhost:8500/](http://localhost:8500/) on your browser to access the Consul UI. Consul will navigate to the services tab by default. 
 
-![Image of Nodes page in Consul UI.](/img/consul/docker/observability_consul_services.png 'There is a navigation bar at the top of the page with multiple options. The Nodes tab is selected. In the main area of the screen, three Consul servers and one Consul client are shown as healthy nodes. One of the Consul servers is marked as a leader node.')
+![Image of Nodes page in Consul UI.](/img/docker/observability_consul_services.png 'There is a navigation bar at the top of the page with multiple options. The Nodes tab is selected. In the main area of the screen, three Consul servers and one Consul client are shown as healthy nodes. One of the Consul servers is marked as a leader node.')
 
 Notice the services monitored by Consul. Each of the applications (ingress, web, and api) includes a sidecar proxy that makes up the service mesh.
 
@@ -143,7 +143,7 @@ Notice the services monitored by Consul. Each of the applications (ingress, web,
 
 Navigate to [http://localhost:9090/ui/](http://localhost:9090/ui/) and refresh the page to generate traffic.
 
-![Image of sample application UI.](/img/consul/docker/observability_example_service.png 'There are three squares, each representing an application, connected by lines. The Ingress service is at the top, with web below it, and API at the bottom.')
+![Image of sample application UI.](/img/docker/observability_example_service.png 'There are three squares, each representing an application, connected by lines. The Ingress service is at the top, with web below it, and API at the bottom.')
 
 The example application shows the architecture of your complete application stack. Each refresh of this page will generate extra logs, metrics, and traces that your observability suite will ingest.
 
@@ -151,7 +151,7 @@ The example application shows the architecture of your complete application stac
 
 Navigate to [http://localhost:9092/targets](http://localhost:9092/targets).
 
-![Image of targets page in Prometheus UI.](/img/consul/docker/observability_prometheus_targets.png 'There are four target endpoints: consul-server, node, services, and tempo. The status shows "up" for each of these targets.')
+![Image of targets page in Prometheus UI.](/img/docker/observability_prometheus_targets.png 'There are four target endpoints: consul-server, node, services, and tempo. The status shows "up" for each of these targets.')
 
 Notice that Prometheus is pre-configured to scrape metric-related data from four endpoints: Consul, Node-Exporter, Tempo, and itself.
 
@@ -159,7 +159,7 @@ Notice that Prometheus is pre-configured to scrape metric-related data from four
 
 Navigate to [http://localhost:3000/datasources](http://localhost:3000/datasources).
 
-![Image of data sources page in Grafana UI.](/img/consul/docker/observability_grafana_datasources.png 'Three datasources are present in the list: Loki, Prometheus, and Tempo.')
+![Image of data sources page in Grafana UI.](/img/docker/observability_grafana_datasources.png 'Three datasources are present in the list: Loki, Prometheus, and Tempo.')
 
 Grafana is pre-configured with Prometheus, Loki, and Tempo as data sources. These sources enable Grafana to visualize metrics, logs, and traces.
 
@@ -171,7 +171,7 @@ Execute a search with these parameters: `{container_name="web"} |= "trace_id"`
      
 Open one of the log lines, locate the `TraceID` field, then click the nearby `Tempo` link to jump directly from logs to traces. 
 
-![Image of linked logs and traces in Grafana UI.](/img/consul/docker/observability_grafana_logs_traces.png 'There are two panes within the window: a left and right pane. In the left pane, the Loki logs are shown, with one of its entries selected. On the right pane, a Tempo traces graph is shown. The Tempo traces graph shows communication details between the three services, ingress, web, and api.')
+![Image of linked logs and traces in Grafana UI.](/img/docker/observability_grafana_logs_traces.png 'There are two panes within the window: a left and right pane. In the left pane, the Loki logs are shown, with one of its entries selected. On the right pane, a Tempo traces graph is shown. The Tempo traces graph shows communication details between the three services, ingress, web, and api.')
 
 Using this functionality, notice how logs and traces provide insight into service mesh performance.
 
@@ -183,7 +183,7 @@ Navigate to [http://localhost:3000/dashboards](http://localhost:3000/dashboards)
 
 Explore the metrics-related dashboards: Consul Server Monitoring and Node Exporter.
 
-![Image of Consul Server Monitoring metrics dashboard in Grafana UI.](/img/consul/docker/observability_grafana_consul_metrics.png 'A dashboard is shown with four panes present. Each of the panes shows details around various metrics generated by Consul including Raft commit time, catalog operation time, and autopilot health.')
+![Image of Consul Server Monitoring metrics dashboard in Grafana UI.](/img/docker/observability_grafana_consul_metrics.png 'A dashboard is shown with four panes present. Each of the panes shows details around various metrics generated by Consul including Raft commit time, catalog operation time, and autopilot health.')
 
 The Consul Server Monitoring dashboard presents important application-level metrics for Consul while the Node Exporter dashboard presents system-level metrics. Each of these dimensions provides important insight into the health and performance of your service mesh.
 
