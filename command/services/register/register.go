@@ -230,9 +230,6 @@ func validateServiceAddress(addr string) error {
 
 // This function validates a service address and optionally checks for port presence
 func validateServiceAddressWithPortCheck(addr, context string, allowPort bool) error {
-	if addr == "" {
-		return nil
-	}
 
 	// Validate the basic address format
 	if err := validateServiceAddress(addr); err != nil {
