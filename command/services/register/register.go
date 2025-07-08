@@ -6,6 +6,8 @@ package register
 import (
 	"flag"
 	"fmt"
+	"net"
+	"strings"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
@@ -73,13 +75,26 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
+	// Validate service address if provided
+	if c.flagAddress != "" {
+		if err := validateServiceAddressWithPortCheck(c.flagAddress, false); err != nil {
+			c.UI.Error(fmt.Sprintf("Invalid Service address when using CLI flags. Use -port flag instead: %v", err))
+			return 1
+		}
+	}
+
 	var taggedAddrs map[string]api.ServiceAddress
 	if len(c.flagTaggedAddresses) > 0 {
 		taggedAddrs = make(map[string]api.ServiceAddress)
 		for k, v := range c.flagTaggedAddresses {
 			addr, err := api.ParseServiceAddr(v)
 			if err != nil {
-				c.UI.Error(fmt.Sprintf("Invalid Tagged Address: %v", err))
+				c.UI.Error(fmt.Sprintf("Invalid Tagged address: %v", err))
+				return 1
+			}
+			// Validate the address part of the tagged address
+			if err := validateServiceAddressWithPortCheck(addr.Address, true); err != nil {
+				c.UI.Error(fmt.Sprintf("Invalid Tagged address for tagged address '%s': %v", k, err))
 				return 1
 			}
 			taggedAddrs[k] = addr
@@ -114,6 +129,22 @@ func (c *cmd) Run(args []string) int {
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error: %s", err))
 			return 1
+		}
+		// Validate addresses in services loaded from files
+		for _, svc := range svcs {
+			if svc.Address != "" {
+				if err := validateServiceAddressWithPortCheck(svc.Address, false); err != nil {
+					c.UI.Error(fmt.Sprintf("Invalid Service address for service '%s'. Use port field instead: %v", svc.Name, err))
+					return 1
+				}
+			}
+			// Validate tagged addresses
+			for tag, addr := range svc.TaggedAddresses {
+				if err := validateServiceAddressWithPortCheck(addr.Address, true); err != nil {
+					c.UI.Error(fmt.Sprintf("Invalid Tagged address for tagged address '%s' in service '%s': %v", tag, svc.Name, err))
+					return 1
+				}
+			}
 		}
 	}
 
@@ -162,3 +193,99 @@ Usage: consul services register [options] [FILE...]
   Additional flags and more advanced use cases are detailed below.
 `
 )
+
+// This function validates that a service address is properly formatted
+// and catches common malformed IP patterns
+func validateServiceAddress(addr string) error {
+	if addr == "" {
+		return nil // Empty addresses are allowed
+	}
+
+	// Parse the address to separate host and port if present
+	host, _, err := net.SplitHostPort(addr)
+	if err != nil {
+		// If SplitHostPort fails, treat the whole string as host
+		host = addr
+	}
+
+	// Check if it's a valid IP address
+	if ip := net.ParseIP(host); ip != nil {
+		// Valid IP - allow all valid IPs including ANY addresses
+		return nil
+	}
+
+	// If not an IP, it might be a hostname or malformed IP
+	// Check for common malformed IP patterns
+	if looksLikeIP(host) {
+		return fmt.Errorf("malformed IP address: %s", host)
+	}
+
+	// If not an IP, assume it's a hostname - validate it's not empty
+	if strings.TrimSpace(host) == "" {
+		return fmt.Errorf("address cannot be empty")
+	}
+
+	return nil
+}
+
+// This function validates a service address and optionally checks for port presence
+func validateServiceAddressWithPortCheck(addr string, allowPort bool) error {
+
+	// Validate the basic address format
+	if err := validateServiceAddress(addr); err != nil {
+		return err
+	}
+
+	// Check for port presence if not allowed
+	if !allowPort {
+		if _, port, err := net.SplitHostPort(addr); err == nil && port != "" {
+			return fmt.Errorf("address should not contain port")
+		}
+	}
+
+	return nil
+}
+
+// This function returns true if the string appears to be an IP address
+// but fails to parse correctly (indicating it's malformed)
+func looksLikeIP(addr string) bool {
+	// Check for obviously malformed IP patterns
+	if strings.Contains(addr, "..") || strings.Contains(addr, ":::") {
+		return true
+	}
+
+	// Check for multiple :: sequences (IPv6 can have at most one ::)
+	if strings.Count(addr, "::") > 1 {
+		return true
+	}
+
+	// Check for too many colons (IPv6 can have at most 7)
+	if strings.Count(addr, ":") > 7 {
+		return true
+	}
+
+	// Check for IPv4-like patterns with too many dots
+	if strings.Count(addr, ".") > 3 {
+		// Check if most segments are numeric, which may indicate a malformed IP
+		parts := strings.Split(addr, ".")
+		numericParts := 0
+		for _, part := range parts {
+			if part != "" {
+				isNumeric := true
+				for _, r := range part {
+					if r < '0' || r > '9' {
+						isNumeric = false
+						break
+					}
+				}
+				if isNumeric {
+					numericParts++
+				}
+			}
+		}
+		// If most parts are numeric, it's likely a malformed IP
+		return numericParts > 2
+	}
+
+	return false
+}
