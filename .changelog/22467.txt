@@ -1,0 +1,3 @@
+```release-note:bug
+cli: validate IP address in service registration to prevent invalid IPs in service and tagged addresses.
+```
