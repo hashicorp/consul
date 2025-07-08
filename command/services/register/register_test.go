@@ -295,6 +295,16 @@ func TestValidateServiceAddress(t *testing.T) {
 			addr:    "2001:0db8:85a3:0000:0000:8a2e:0370:7334",
 			wantErr: false,
 		},
+		{
+			name:    "invalid  IPv6 address with port",
+			addr:    "2001:0db8:85a3:0000:0000:8a2e:0370:7334:8080",
+			wantErr: true,
+		},
+		{
+			name:    "valid IPv6 address with port",
+			addr:    "[2001:0db8:85a3:0000:0000:8a2e:0370:7334]:8080",
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {
