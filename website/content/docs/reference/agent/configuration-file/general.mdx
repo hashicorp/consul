@@ -169,9 +169,6 @@ The page provides reference information for general parameters in a Consul agent
   API registrations will still not be allowed. Equivalent to the [`-enable-local-script-checks` command-line flag](/consul/commands/agent#_enable_local_script_checks).
 
 
-
-- `enable_xds_load_balancing` - Controls load balancing of xDS sessions across servers. When enabled, xDS sessions are evenly distributed across available Consul servers. If a server reaches its session limit, new connections are rejected, allowing clients to retry with another server. When disabled, servers accept all xDS sessions without enforcing a limit, which is recommended when an external load balancer is used to distribute connections.
-
 - `http_config` This object allows setting options for the HTTP API and UI.
 
   The following sub-keys are available:
