@@ -77,8 +77,8 @@ func (c *cmd) Run(args []string) int {
 
 	// Validate service address if provided
 	if c.flagAddress != "" {
-		if err := validateServiceAddressWithPortCheck(c.flagAddress, "when using CLI flags. Use -port flag instead", false); err != nil {
-			c.UI.Error(fmt.Sprintf("Invalid Service address: %v", err))
+		if err := validateServiceAddressWithPortCheck(c.flagAddress, false); err != nil {
+			c.UI.Error(fmt.Sprintf("Invalid Service address when using CLI flags. Use -port flag instead: %v", err))
 			return 1
 		}
 	}
@@ -93,8 +93,8 @@ func (c *cmd) Run(args []string) int {
 				return 1
 			}
 			// Validate the address part of the tagged address
-			if err := validateServiceAddressWithPortCheck(addr.Address, fmt.Sprintf("for tagged address '%s'", k), true); err != nil {
-				c.UI.Error(fmt.Sprintf("Invalid Tagged address: %v", err))
+			if err := validateServiceAddressWithPortCheck(addr.Address, true); err != nil {
+				c.UI.Error(fmt.Sprintf("Invalid Tagged address for tagged address '%s': %v", k, err))
 				return 1
 			}
 			taggedAddrs[k] = addr
@@ -133,15 +133,15 @@ func (c *cmd) Run(args []string) int {
 		// Validate addresses in services loaded from files
 		for _, svc := range svcs {
 			if svc.Address != "" {
-				if err := validateServiceAddressWithPortCheck(svc.Address, fmt.Sprintf("for service '%s'. Use port field instead", svc.Name), false); err != nil {
-					c.UI.Error(fmt.Sprintf("Invalid Service address: %v", err))
+				if err := validateServiceAddressWithPortCheck(svc.Address, false); err != nil {
+					c.UI.Error(fmt.Sprintf("Invalid Service address for service '%s'. Use port field instead: %v", svc.Name, err))
 					return 1
 				}
 			}
 			// Validate tagged addresses
 			for tag, addr := range svc.TaggedAddresses {
-				if err := validateServiceAddressWithPortCheck(addr.Address, fmt.Sprintf("for tagged address '%s' in service '%s'", tag, svc.Name), true); err != nil {
-					c.UI.Error(fmt.Sprintf("Invalid Tagged address: %v", err))
+				if err := validateServiceAddressWithPortCheck(addr.Address, true); err != nil {
+					c.UI.Error(fmt.Sprintf("Invalid Tagged address for tagged address '%s' in service '%s': %v", tag, svc.Name, err))
 					return 1
 				}
 			}
@@ -229,7 +229,7 @@ func validateServiceAddress(addr string) error {
 }
 
 // This function validates a service address and optionally checks for port presence
-func validateServiceAddressWithPortCheck(addr, context string, allowPort bool) error {
+func validateServiceAddressWithPortCheck(addr string, allowPort bool) error {
 
 	// Validate the basic address format
 	if err := validateServiceAddress(addr); err != nil {
@@ -239,7 +239,7 @@ func validateServiceAddressWithPortCheck(addr, context string, allowPort bool) e
 	// Check for port presence if not allowed
 	if !allowPort {
 		if _, port, err := net.SplitHostPort(addr); err == nil && port != "" {
-			return fmt.Errorf("address should not contain port %s", context)
+			return fmt.Errorf("address should not contain port")
 		}
 	}
 
