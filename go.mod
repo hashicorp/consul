@@ -27,7 +27,7 @@ require (
 	github.com/docker/go-connections v0.4.0
 	github.com/envoyproxy/go-control-plane v0.12.0
 	github.com/envoyproxy/go-control-plane/xdsmatcher v0.0.0-20230524161521-aaaacbfbe53e
-	github.com/fatih/color v1.16.0
+	github.com/fatih/color v1.18.0
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/fullstorydev/grpchan v1.1.1
 	github.com/go-jose/go-jose/v3 v3.0.4
@@ -68,7 +68,7 @@ require (
 	github.com/hashicorp/hcdiag v0.5.1
 	github.com/hashicorp/hcl v1.0.1-vault-7
 	github.com/hashicorp/hcl/v2 v2.14.1
-	github.com/hashicorp/hcp-scada-provider v0.2.4
+	github.com/hashicorp/hcp-scada-provider v0.2.6
 	github.com/hashicorp/hcp-sdk-go v0.80.0
 	github.com/hashicorp/hil v0.0.0-20200423225030-a18a1cd20038
 	github.com/hashicorp/memberlist v0.5.0
@@ -87,7 +87,7 @@ require (
 	github.com/miekg/dns v1.1.50
 	github.com/mitchellh/cli v1.1.4
 	github.com/mitchellh/copystructure v1.2.0
-	github.com/mitchellh/go-testing-interface v1.14.0
+	github.com/mitchellh/go-testing-interface v1.14.1
 	github.com/mitchellh/hashstructure v0.0.0-20170609045927-2bca23e0e452
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/mitchellh/mapstructure v1.5.0
@@ -116,7 +116,7 @@ require (
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394
 	golang.org/x/net v0.38.0
 	golang.org/x/oauth2 v0.28.0
-	golang.org/x/sync v0.12.0
+	golang.org/x/sync v0.15.0
 	golang.org/x/sys v0.31.0
 	golang.org/x/time v0.11.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240823204242-4ba0660f739c
