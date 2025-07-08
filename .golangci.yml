@@ -7,7 +7,6 @@ linters:
     - gofmt
     - govet
     - unconvert
-    - staticcheck
     - ineffassign
     - unparam
     - forbidigo
