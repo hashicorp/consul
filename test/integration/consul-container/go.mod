@@ -2,7 +2,7 @@ module github.com/hashicorp/consul/test/integration/consul-container
 
 go 1.23
 
-toolchain go1.24.4
+toolchain go1.23.10
 
 require (
 	fortio.org/fortio v1.54.0
