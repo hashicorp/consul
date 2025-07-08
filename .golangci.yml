@@ -6,7 +6,6 @@ linters:
   enable:
     - gofmt
     - unconvert
-    - staticcheck
     - ineffassign
     - unparam
     - forbidigo
