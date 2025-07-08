@@ -1,6 +1,8 @@
 module github.com/hashicorp/consul/go-sso
 
-go 1.20
+go 1.23
+
+toolchain go1.23.10
 
 require (
 	github.com/coreos/go-oidc/v3 v3.9.0

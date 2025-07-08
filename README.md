@@ -9,8 +9,7 @@
 
 Consul is a distributed, highly available, and data center aware solution to connect and configure applications across dynamic, distributed infrastructure.
 
-* Website: https://www.consul.io
-* Tutorials: [HashiCorp Learn](https://learn.hashicorp.com/consul)
+* Documentation and Tutorials: [https://developer.hashicorp.com/consul]
 * Forum: [Discuss](https://discuss.hashicorp.com/c/consul)
 
 Consul provides several key features:
