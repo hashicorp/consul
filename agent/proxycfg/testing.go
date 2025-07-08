@@ -395,7 +395,7 @@ func TestGatewayNodesDC1(t testing.T) structs.CheckServiceNodes {
 				Address:    "10.10.1.1",
 				Datacenter: "dc1",
 			},
-			Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+			Service: structs.TestNodeServiceMeshGatewayWithAddrs(
 				"10.10.1.1", 8443,
 				structs.ServiceAddress{Address: "10.10.1.1", Port: 8443},
 				structs.ServiceAddress{Address: "198.118.1.1", Port: 443}),
@@ -407,7 +407,7 @@ func TestGatewayNodesDC1(t testing.T) structs.CheckServiceNodes {
 				Address:    "10.10.1.2",
 				Datacenter: "dc1",
 			},
-			Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+			Service: structs.TestNodeServiceMeshGatewayWithAddrs(
 				"10.10.1.2", 8443,
 				structs.ServiceAddress{Address: "10.0.1.2", Port: 8443},
 				structs.ServiceAddress{Address: "198.118.1.2", Port: 443}),
@@ -424,7 +424,7 @@ func TestGatewayNodesDC2(t testing.T) structs.CheckServiceNodes {
 				Address:    "10.0.1.1",
 				Datacenter: "dc2",
 			},
-			Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+			Service: structs.TestNodeServiceMeshGatewayWithAddrs(
 				"10.0.1.1", 8443,
 				structs.ServiceAddress{Address: "10.0.1.1", Port: 8443},
 				structs.ServiceAddress{Address: "198.18.1.1", Port: 443}),
@@ -436,7 +436,7 @@ func TestGatewayNodesDC2(t testing.T) structs.CheckServiceNodes {
 				Address:    "10.0.1.2",
 				Datacenter: "dc2",
 			},
-			Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+			Service: structs.TestNodeServiceMeshGatewayWithAddrs(
 				"10.0.1.2", 8443,
 				structs.ServiceAddress{Address: "10.0.1.2", Port: 8443},
 				structs.ServiceAddress{Address: "198.18.1.2", Port: 443}),
@@ -453,7 +453,7 @@ func TestGatewayNodesDC3(t testing.T) structs.CheckServiceNodes {
 				Address:    "10.30.1.1",
 				Datacenter: "dc3",
 			},
-			Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+			Service: structs.TestNodeServiceMeshGatewayWithAddrs(
 				"10.30.1.1", 8443,
 				structs.ServiceAddress{Address: "10.0.1.1", Port: 8443},
 				structs.ServiceAddress{Address: "198.38.1.1", Port: 443}),
@@ -465,7 +465,7 @@ func TestGatewayNodesDC3(t testing.T) structs.CheckServiceNodes {
 				Address:    "10.30.1.2",
 				Datacenter: "dc3",
 			},
-			Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+			Service: structs.TestNodeServiceMeshGatewayWithAddrs(
 				"10.30.1.2", 8443,
 				structs.ServiceAddress{Address: "10.30.1.2", Port: 8443},
 				structs.ServiceAddress{Address: "198.38.1.2", Port: 443}),
@@ -482,7 +482,7 @@ func TestGatewayNodesDC4Hostname(t testing.T) structs.CheckServiceNodes {
 				Address:    "10.30.1.1",
 				Datacenter: "dc4",
 			},
-			Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+			Service: structs.TestNodeServiceMeshGatewayWithAddrs(
 				"10.30.1.1", 8443,
 				structs.ServiceAddress{Address: "10.0.1.1", Port: 8443},
 				structs.ServiceAddress{Address: "123.us-west-2.elb.notaws.com", Port: 443}),
@@ -494,7 +494,7 @@ func TestGatewayNodesDC4Hostname(t testing.T) structs.CheckServiceNodes {
 				Address:    "10.30.1.2",
 				Datacenter: "dc4",
 			},
-			Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+			Service: structs.TestNodeServiceMeshGatewayWithAddrs(
 				"10.30.1.2", 8443,
 				structs.ServiceAddress{Address: "10.30.1.2", Port: 8443},
 				structs.ServiceAddress{Address: "456.us-west-2.elb.notaws.com", Port: 443}),
@@ -506,7 +506,7 @@ func TestGatewayNodesDC4Hostname(t testing.T) structs.CheckServiceNodes {
 				Address:    "10.30.1.3",
 				Datacenter: "dc4",
 			},
-			Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+			Service: structs.TestNodeServiceMeshGatewayWithAddrs(
 				"10.30.1.3", 8443,
 				structs.ServiceAddress{Address: "10.30.1.3", Port: 8443},
 				structs.ServiceAddress{Address: "198.38.1.1", Port: 443}),
@@ -523,7 +523,7 @@ func TestGatewayNodesDC5Hostname(t testing.T) structs.CheckServiceNodes {
 				Address:    "10.30.1.1",
 				Datacenter: "dc5",
 			},
-			Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+			Service: structs.TestNodeServiceMeshGatewayWithAddrs(
 				"10.30.1.1", 8443,
 				structs.ServiceAddress{Address: "10.0.1.1", Port: 8443},
 				structs.ServiceAddress{Address: "123.us-west-2.elb.notaws.com", Port: 443}),
@@ -535,7 +535,7 @@ func TestGatewayNodesDC5Hostname(t testing.T) structs.CheckServiceNodes {
 				Address:    "10.30.1.2",
 				Datacenter: "dc5",
 			},
-			Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+			Service: structs.TestNodeServiceMeshGatewayWithAddrs(
 				"10.30.1.2", 8443,
 				structs.ServiceAddress{Address: "10.30.1.2", Port: 8443},
 				structs.ServiceAddress{Address: "456.us-west-2.elb.notaws.com", Port: 443}),
@@ -547,7 +547,7 @@ func TestGatewayNodesDC5Hostname(t testing.T) structs.CheckServiceNodes {
 				Address:    "10.30.1.3",
 				Datacenter: "dc5",
 			},
-			Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+			Service: structs.TestNodeServiceMeshGatewayWithAddrs(
 				"10.30.1.3", 8443,
 				structs.ServiceAddress{Address: "10.30.1.3", Port: 8443},
 				structs.ServiceAddress{Address: "198.38.1.1", Port: 443}),
@@ -564,7 +564,7 @@ func TestGatewayNodesDC6Hostname(t testing.T) structs.CheckServiceNodes {
 				Address:    "10.30.1.1",
 				Datacenter: "dc6",
 			},
-			Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+			Service: structs.TestNodeServiceMeshGatewayWithAddrs(
 				"10.30.1.1", 8443,
 				structs.ServiceAddress{Address: "10.0.1.1", Port: 8443},
 				structs.ServiceAddress{Address: "123.us-east-1.elb.notaws.com", Port: 443}),

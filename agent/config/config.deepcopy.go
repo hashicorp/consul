@@ -728,6 +728,10 @@ func (o *RuntimeConfig) DeepCopy() *RuntimeConfig {
 			cp.Cloud.TLSConfig.CurvePreferences = make([]tls.CurveID, len(o.Cloud.TLSConfig.CurvePreferences))
 			copy(cp.Cloud.TLSConfig.CurvePreferences, o.Cloud.TLSConfig.CurvePreferences)
 		}
+		if o.Cloud.TLSConfig.EncryptedClientHelloConfigList != nil {
+			cp.Cloud.TLSConfig.EncryptedClientHelloConfigList = make([]byte, len(o.Cloud.TLSConfig.EncryptedClientHelloConfigList))
+			copy(cp.Cloud.TLSConfig.EncryptedClientHelloConfigList, o.Cloud.TLSConfig.EncryptedClientHelloConfigList)
+		}
 	}
 	if o.DNSServiceTTL != nil {
 		cp.DNSServiceTTL = make(map[string]time.Duration, len(o.DNSServiceTTL))
