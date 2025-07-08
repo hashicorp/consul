@@ -5,8 +5,8 @@ linters:
   disable-all: true
   enable:
     - gofmt
-    - govet
     - unconvert
+    - staticcheck
     - ineffassign
     - unparam
     - forbidigo
