@@ -40,7 +40,7 @@ ARG DATAPLANE_IMAGE
 ARG CONSUL_IMAGE
 FROM ${CONSUL_IMAGE} AS consul
 FROM ${DATAPLANE_IMAGE} AS distroless
-FROM debian:bullseye-slim
+FROM debian:bookworm-slim
 
 # undo the distroless aspect
 COPY --from=distroless /usr/local/bin/discover /usr/local/bin/
