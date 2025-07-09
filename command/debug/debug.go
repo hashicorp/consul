@@ -571,7 +571,7 @@ func (c *cmd) captureMetrics(ctx context.Context) error {
 	return nil
 }
 
-func (c *cmd) captureRaft (ctx context.Context) error {
+func (c *cmd) captureRaft(ctx context.Context) error {
 	reply, err := c.client.Operator().RaftGetConfiguration(nil)
 	if err != nil {
 		return fmt.Errorf("Failed to retrieve raft configuration: %v", err)
@@ -628,13 +628,13 @@ func (c *cmd) captureRaft (ctx context.Context) error {
 		return fmt.Errorf("failed to create listpeers file: %w", err)
 	}
 	defer fh.Close()
-	
+
 	b := strings.NewReader(listpeers)
 	_, err = b.WriteTo(fh)
 	if err != nil && !errors.Is(err, context.DeadlineExceeded) {
 		return fmt.Errorf("failed to copy listpeers to file: %w", err)
 	}
-	return nil	
+	return nil
 }
 
 // allowedTarget returns true if the target is a recognized name of a capture
