@@ -242,7 +242,7 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	// Capture Raft configuration
-	err = c.captureRaft(ctx)
+	err = c.captureRaft()
 	if err != nil {
 		c.UI.Warn(fmt.Sprintf("Raft list peers capture failed: %v", err))
 	}
@@ -571,7 +571,7 @@ func (c *cmd) captureMetrics(ctx context.Context) error {
 	return nil
 }
 
-func (c *cmd) captureRaft(ctx context.Context) error {
+func (c *cmd) captureRaft() error {
 	reply, err := c.client.Operator().RaftGetConfiguration(nil)
 	if err != nil {
 		return fmt.Errorf("Failed to retrieve raft configuration: %v", err)
