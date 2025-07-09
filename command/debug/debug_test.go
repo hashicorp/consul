@@ -225,7 +225,7 @@ func TestDebugCommand_Archive(t *testing.T) {
 		}
 
 		// should only contain this one capture target
-		if h.Name != "debug/agent.json" && h.Name != "debug/index.json" {
+		if h.Name != "debug/agent.json" && h.Name != "debug/index.json" && h.Name != "debug/listpeers.json" {
 			t.Fatalf("archive contents do not match: %s", h.Name)
 		}
 	}
