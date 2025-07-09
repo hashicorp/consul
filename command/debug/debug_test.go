@@ -79,6 +79,7 @@ func TestDebugCommand(t *testing.T) {
 			fs.WithFile("host.json", "", fs.MatchFileContent(validJSON)),
 			fs.WithFile("members.json", "", fs.MatchFileContent(validJSON)),
 			fs.WithFile("metrics.json", "", fs.MatchAnyFileContent),
+			fs.WithFile("listpeers.json", "", fs.MatchAnyFileContent),			
 			fs.WithFile("consul.log", "", fs.MatchFileContent(validLogFile)),
 			fs.WithFile("profile.prof", "", fs.MatchFileContent(validProfileData)),
 			fs.WithFile("trace.out", "", fs.MatchAnyFileContent),
