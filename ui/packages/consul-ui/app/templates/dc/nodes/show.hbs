@@ -123,7 +123,7 @@ as |item tomography|}}
             }}/>
           </BlockSlot>
           <BlockSlot @name="actions">
-            <ConsulCopyButton @value={{item.Address}} @name="Address">{{item.Address}}</ConsulCopyButton>
+            <ConsulCopyButton @value={{format-ipaddr item.Address}} @name="Address">{{format-ipaddr item.Address}}</ConsulCopyButton>
           </BlockSlot>
           <BlockSlot @name="content">
             <Outlet
