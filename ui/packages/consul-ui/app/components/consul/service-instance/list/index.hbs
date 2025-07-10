@@ -102,17 +102,9 @@ as |proxy|}}
       </dt>
       <dd>
         {{#if (not-eq item.Service.Address '')}}
-          {{#if (string-includes item.Service.Address ":")}}
-            [{{item.Service.Address}}]:{{item.Service.Port}}
-          {{else}}
-            {{item.Service.Address}}:{{item.Service.Port}}
-          {{/if}}
+          {{format-ipaddr item.Service.Address}}:{{item.Service.Port}}
         {{else}}
-          {{#if (string-includes item.Node.Address ":")}}
-            [{{item.Node.Address}}]:{{item.Service.Port}}
-          {{else}}
-            {{item.Node.Address}}:{{item.Service.Port}}
-          {{/if}}
+          {{format-ipaddr item.Node.Address}}:{{item.Service.Port}}
         {{/if}}
       </dd>
     </dl>
