@@ -162,7 +162,7 @@
           </BlockSlot>
           <BlockSlot @name='actions'>
             {{#let (or item.Service.Address item.Node.Address) as |address|}}
-              <ConsulCopyButton @value={{address}} @name='Address'>{{address}}</ConsulCopyButton>
+              <ConsulCopyButton @value={{format-ipaddr address}} @name='Address'>{{format-ipaddr address}}</ConsulCopyButton>
             {{/let}}
           </BlockSlot>
           <BlockSlot @name='content'>
