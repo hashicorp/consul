@@ -2253,8 +2253,8 @@ func TestDecodeTxnConvertOps(t *testing.T) {
 // Helper funcs:
 // =========================================
 
-// checkTypeDurationTest is a helper func to test durations in CheckTYpe or CheckDefiniton
-// (to reduce repetetive typing).
+// checkTypeDurationTest is a helper func to test durations in CheckType or CheckDefinition
+// (to reduce repetitive typing).
 func checkTypeDurationTest(check interface{}, want time.Duration, prefix string) error {
 	// check for pointers first
 	switch v := check.(type) {
@@ -2302,8 +2302,8 @@ func checkTypeDurationTest(check interface{}, want time.Duration, prefix string)
 	return nil
 }
 
-// checkTypeDurationTest is a helper func to test the Header map in a CheckType or CheckDefiniton
-// (to reduce repetetive typing).
+// checkTypeDurationTest is a helper func to test the Header map in a CheckType or CheckDefinition
+// (to reduce repetitive typing).
 func checkTypeHeaderTest(check interface{}, want map[string][]string) error {
 
 	var header map[string][]string
