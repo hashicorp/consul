@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 export function processIpAddress(ip) {
   // Simple IPv4 validation
   const ipv4Pattern =
