@@ -66,6 +66,8 @@ You can create a values file and specify parameters to overwrite the default Hel
 $ consul-k8s install -f values.yaml
 ``` 
 
+@include 'text/limitations/k8s-namespace.mdx'
+
 ### Install Consul on OpenShift clusters
 
 [Red Hat OpenShift](https://www.redhat.com/en/technologies/cloud-computing/openshift) is a security-conscious, opinionated wrapper for Kubernetes. To install Consul on OpenShift-managed Kubernetes, set `global.openshift.enabled=true` in your [custom installation](#custom-installation) values file:

@@ -99,6 +99,8 @@ Now, install Consul Enterprise on your Kubernetes cluster using the updated Helm
 $ helm install --wait hashicorp hashicorp/consul --values values.yaml
 ```
 
+@include 'text/limitations/k8s-namespace.mdx'
+
 ## Verify installation
 
 Once the cluster is up, you can verify the nodes are running Consul Enterprise by using the `consul license get` command.
