@@ -28,6 +28,7 @@ import (
 	"github.com/hashicorp/consul/command/flags"
 
 	"github.com/hashicorp/hcdiag/command"
+	"github.com/ryanuber/columnize"
 )
 
 const (
@@ -238,6 +239,12 @@ func (c *cmd) Run(args []string) int {
 	if err := writeJSONFile(filepath.Join(c.output, "index.json"), index); err != nil {
 		c.UI.Error(fmt.Sprintf("Error creating index document: %v", err))
 		return 1
+	}
+
+	// Capture Raft configuration
+	err = c.captureRaft()
+	if err != nil {
+		c.UI.Warn(fmt.Sprintf("Raft list peers capture failed: %v", err))
 	}
 
 	// Archive the data if configured to
@@ -560,6 +567,72 @@ func (c *cmd) captureMetrics(ctx context.Context) error {
 	_, err = b.WriteTo(fh)
 	if err != nil && !errors.Is(err, context.DeadlineExceeded) {
 		return fmt.Errorf("failed to copy metrics to file: %w", err)
+	}
+	return nil
+}
+
+func (c *cmd) captureRaft() error {
+	reply, err := c.client.Operator().RaftGetConfiguration(nil)
+	if err != nil {
+		return fmt.Errorf("Failed to retrieve raft configuration: %v", err)
+	}
+
+	leaderLastCommitIndex := uint64(0)
+	serverIdLastIndexMap := make(map[string]uint64)
+
+	for _, raftServer := range reply.Servers {
+		serverIdLastIndexMap[raftServer.ID] = raftServer.LastIndex
+	}
+
+	for _, s := range reply.Servers {
+		if s.Leader {
+			lastIndex, ok := serverIdLastIndexMap[s.ID]
+			if ok {
+				leaderLastCommitIndex = lastIndex
+			}
+		}
+	}
+
+	// Format it as a nice table.
+	result := []string{"Node\x1fID\x1fAddress\x1fState\x1fVoter\x1fRaftProtocol\x1fCommit Index\x1fTrails Leader By"}
+	for _, s := range reply.Servers {
+		raftProtocol := s.ProtocolVersion
+
+		if raftProtocol == "" {
+			raftProtocol = "<=1"
+		}
+		state := "follower"
+		if s.Leader {
+			state = "leader"
+		}
+
+		trailsLeaderByText := "-"
+		serverLastIndex, ok := serverIdLastIndexMap[s.ID]
+		if ok {
+			trailsLeaderBy := leaderLastCommitIndex - serverLastIndex
+			trailsLeaderByText = fmt.Sprintf("%d commits", trailsLeaderBy)
+			if s.Leader {
+				trailsLeaderByText = "-"
+			} else if trailsLeaderBy == 1 {
+				trailsLeaderByText = fmt.Sprintf("%d commit", trailsLeaderBy)
+			}
+		}
+		result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%v\x1f%s\x1f%v\x1f%s",
+			s.Node, s.ID, s.Address, state, s.Voter, raftProtocol, serverLastIndex, trailsLeaderByText))
+	}
+
+	listpeers, err := columnize.Format(result, &columnize.Config{Delim: string([]byte{0x1f})}), nil
+
+	fh, err := os.Create(filepath.Join(c.output, "listpeers.json"))
+	if err != nil {
+		return fmt.Errorf("failed to create listpeers file: %w", err)
+	}
+	defer fh.Close()
+
+	b := strings.NewReader(listpeers)
+	_, err = b.WriteTo(fh)
+	if err != nil && !errors.Is(err, context.DeadlineExceeded) {
+		return fmt.Errorf("failed to copy listpeers to file: %w", err)
 	}
 	return nil
 }
