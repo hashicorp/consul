@@ -36,7 +36,7 @@ type TxnOps []*TxnOp
 type TxnResult struct {
 	KV      *KVPair
 	Node    *Node
-	Service *AgentService
+	Service *CatalogService
 	Check   *HealthCheck
 }
 

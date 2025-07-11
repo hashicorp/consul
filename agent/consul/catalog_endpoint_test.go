@@ -334,7 +334,7 @@ func TestCatalog_Register_RejectsMissingServiceName(t *testing.T) {
 	var out struct{}
 	err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out)
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "service name (Service.Service) is required; both Service ID (Service.ID) and Service Name cannot be empty")
+	require.Contains(t, err.Error(), "Must provide service name (Service.Service)")
 }
 func TestCatalog_Register_ForwardLeader(t *testing.T) {
 	if testing.Short() {
