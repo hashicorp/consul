@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - release/*
+      - vikram/*
 
 jobs:
   go_mod_tidy_and_commit:
