@@ -1,0 +1,56 @@
+name: Go Mod Tidy for Dependabot PRs
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+      - release/*
+
+jobs:
+  go_mod_tidy_and_commit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Needed to commit changes
+      pull-requests: write # Needed for some actions to interact with PRs (e.g., commenting)
+
+    # Only run for Dependabot or vikramarjuna
+    if: github.actor == 'dependabot[bot]' || github.actor == 'vikramarjuna'
+
+    steps:
+      - name: Checkout Dependabot PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }} # Use the default token provided by GitHub Actions
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22' # Use your project's Go version (e.g., '1.20', '1.x')
+          cache: true
+
+      - name: Run make go-mod-tidy
+        id: make_go_mod_tidy
+        # Execute your make command
+        run: make go-mod-tidy
+        
+        # We don't need to check `git diff --exit-code` here directly.
+        # The `git status` check in the next step will handle detecting changes.
+
+      - name: Commit all modified Go module files (if any)
+        # Check for any uncommitted changes that `make go-mod-tidy` might have created.
+        # This will include any go.mod or go.sum files across all subdirectories.
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Check if there are any changes (staged or unstaged)
+          if git status --porcelain | grep -E '^(M|A|D| R|C)'; then
+            echo "Changes detected after 'make go-mod-tidy'. Committing..."
+            git add -A # Adds all modified, added, deleted files recursively
+            git commit -m "chore: go mod tidy changes from Dependabot update"
+            git push
+          else
+            echo "No changes detected after 'make go-mod-tidy'."
+          fi
