@@ -79,6 +79,7 @@ func TestDebugCommand(t *testing.T) {
 			fs.WithFile("host.json", "", fs.MatchFileContent(validJSON)),
 			fs.WithFile("members.json", "", fs.MatchFileContent(validJSON)),
 			fs.WithFile("metrics.json", "", fs.MatchAnyFileContent),
+			fs.WithFile("listpeers.json", "", fs.MatchAnyFileContent),
 			fs.WithFile("consul.log", "", fs.MatchFileContent(validLogFile)),
 			fs.WithFile("profile.prof", "", fs.MatchFileContent(validProfileData)),
 			fs.WithFile("trace.out", "", fs.MatchAnyFileContent),
@@ -224,7 +225,7 @@ func TestDebugCommand_Archive(t *testing.T) {
 		}
 
 		// should only contain this one capture target
-		if h.Name != "debug/agent.json" && h.Name != "debug/index.json" {
+		if h.Name != "debug/agent.json" && h.Name != "debug/index.json" && h.Name != "debug/listpeers.json" {
 			t.Fatalf("archive contents do not match: %s", h.Name)
 		}
 	}
