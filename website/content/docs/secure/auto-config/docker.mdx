@@ -11,15 +11,22 @@ This topic provides an overview for Consul auto-config on Docker.
 
 ## Introduction
 
-Consul `auto_config` is a highly scalable method used to distribute secure properties such as [Access Control List (ACL) tokens](/consul/docs/secure/acl), [TLS certificates](/consul/docs/security/security-models/core#secure-configuration), [gossip encryption keys](/consul/docs/security/encryption#gossip-encryption), and other configuration settings to all Consul agents in a datacenter. The method workflow consists of two steps: first to generate a JSON web token (JWT), and then to securely join a Consul client using that token. The Consul client then uses the JWTs to securely retrieve the aforementioned gossip encryption keys, TLS certificates, and/or other security setting changes from Consul servers
+Consul `auto_config` is a highly scalable method for automatically distributing secure properties from Consul servers to client agents, including [Access Control List (ACL) tokens](/consul/docs/secure/acl), [TLS certificates](/consul/docs/security/security-models/core#secure-configuration), and [gossip encryption keys](/consul/docs/security/encryption#gossip-encryption).
+
+The workflow to enable this method consists of two steps: 
+
+1. Generate a JSON web token (JWT).
+1. Use the token to join a Consul client. 
+
+The Consul clients then uses the JWTs to securely retrieve security setting changes from Consul servers.
 
 ## Workflow
 
-You can utilize the `auto_config` workflow with either HashiCorp [Vault](/vault/) or a third-party production-grade secrets management platform. The following examples showcase using both Vault, and a proof-of-concept tool [secint](https://github.com/banks/secint).
+Consul's `auto_config` supports integrations with production-grade secrets management platforms like [HashiCorp Vault](/vault/), and other third-party platforms. The following examples demonstrate the processes for Vault and [third party tool secint](https://github.com/banks/secint).
 
 ### Consul server configuration
 
-Consul servers need the `authorization` subkey set to `enabled`, so they process client `auto_config` requests.
+First, add the `auto_config` stanza to your Consul server agent's configuration.
 
 <Tabs>
 
@@ -88,7 +95,7 @@ checks the value of the `node_name` variable against the metadata value of
 
 </Tab>
 
-<Tab heading="Secint (generic)">
+<Tab heading="Secint (third party)">
 
 <CodeBlockConfig hideClipboard filename="consul_server.json">
 
@@ -153,11 +160,11 @@ of the `node_name` variable against the metadata value of the `sub` attribute.
 </Tabs>
 
 
-Check the Consul [configuration documentation](/consul/docs/reference/agent/configuration-file/auto-config) to learn more.
+For more information about the options you can specify, refer to the [Consul agent auto_config parameter reference documentation](/consul/docs/reference/agent/configuration-file/auto-config).
 
 ### Consul client configuration
 
-On a Consul client agent with `auto_config` enabled, the client agent will use the value of a JSON web token (JWT) within `intro_token_file` to communicate with the configured `server_addresses` to request secure configuration settings. These settings are then merged into any existing configuration on the client agent.
+On a Consul client agent with `auto_config` enabled, the client agent uses the value of a JSON web token (JWT) from `intro_token_file` when communicating with the configured `server_addresses` to request secure configuration settings. Consul then merges these settings into existing configurations on the client agent.
 
 <CodeBlockConfig hideClipboard filename="consul_client.json">
 
@@ -204,9 +211,9 @@ documentation to learn more.
 
 <Tab heading="Vault">
 
-Vault uses its built-in [Identity Secrets Engine](/vault/docs/secrets/identity) to generate the JSON Web Tokens (JWTs) required to validate Consul client `auto_join` requests.
+Vault uses its built-in [Identity Secrets Engine](/vault/docs/secrets/identity) to generate the JSON Web Tokens (JWTs) required to validate Consul client `auto_config` requests.
 
-Named keys are used by a role to sign JSON web tokens (JWTs). The value for `allowed_client_ids` here will become the value of `aud` when a JWT is generated. The audience `aud` claim in a JWT is meant to refer to the authorization servers that should accept the token, in this case, `consul-cluster-dc1`.
+Named keys are used by a role to sign JSON web tokens (JWTs). The value for `allowed_client_ids` in this example becomes the value of `aud` when a JWT is generated. The audience `aud` claim in the JWT, `consul-cluster-dc1`, refers to the authorization servers that should accept the token.
 
 Create a named key.
 
@@ -216,7 +223,7 @@ $ vault write identity/oidc/key/oidc-key-1 allowed_client_ids="consul-cluster-dc
 Success! Data written to: identity/oidc/key/oidc-key-1
 ```
 
-JSON web tokens (JWTs) are generated against a role and signed against a named key. The `template='{"consul": {"hostname": "consul-client" } }'` will create additional JWT metadata that will be used by the Consul authorization servers to validate the request.
+JSON web tokens (JWTs) are generated against a role and signed against a named key. 
 
 Create a role.
 
@@ -226,7 +233,9 @@ $ vault write identity/oidc/role/oidc-role-1 ttl=12h key="oidc-key-1" client_id=
 Success! Data written to: identity/oidc/role/oidc-role-1
 ```
 
-Policies provide a declarative way to grant or forbid access to certain paths and operations in Vault. In this example, a policy file will be used that only grants a user permission to read the token at the path `identity/oidc/token/oidc-role-1`.
+The template `template='{"consul": {"hostname": "consul-client" } }'` creates additional JWT metadata for the Consul authorization servers to validate the request.
+
+Policies are a declarative method to grant or forbid access to certain paths and operations in Vault. In this example, the policy file grants a single permission to read the token at the path `identity/oidc/token/oidc-role-1`.
 
 <CodeBlockConfig hideClipboard filename="policy.json">
 
@@ -241,7 +250,7 @@ Policies provide a declarative way to grant or forbid access to certain paths an
 ```
 </CodeBlockConfig>
 
-Create a policy using the included `policy.json` file.
+Create the policy.
 
 ```shell-session
 $ vault policy write oidc-policy policy.json
@@ -249,7 +258,7 @@ $ vault policy write oidc-policy policy.json
 Success! Uploaded policy: oidc-policy
 ```
 
-Generate a signed JSON web token (JWT). Note that each time this operation is performed, a new JWT will be generated.
+Generate a signed JSON web token (JWT).
 
 ```shell-session
 $ vault read identity/oidc/token/oidc-role-1
@@ -267,7 +276,7 @@ Copy the value of `token` to your clipboard.
 
 <Tab heading="Secint (generic)">
 
-A certificate key pair is used to generate the JSON Web Tokens (JWTs) required to validate Consul client `auto_join` requests. Secint (secure introduction token) is a simple tool that can be used to generate the certificate key pair necessary for creating JWTs.
+The JSON Web Tokens (JWTs) required to validate a Consul client's `auto_config` requests are generated from a certificate key pair. In this example, `secint` generates the certificate key pair for the JWTs.
 
 Use `secint init` to generate a unique certificate key pair.
 
@@ -288,7 +297,7 @@ Bxtai41Hq8rnyfQxirYQoLKHKakuZAGpn3PwYewEbYrB+b1f7/P6DzWBRg==
 
 </CodeBlockConfig>
 
-Since the `jwt_validation_pub_keys` attribute requires single-line certificates, it is necessary to add line escapes `\n` to the various sections of `secint-pub-key.pem`. Notice the three instances of line escapes `\n` in the original `server.json`.
+Because the `jwt_validation_pub_keys` attribute requires single-line certificates, you must add line escapes `\n` to sections of `secint-pub-key.pem`. In the following example, notice the three instances of line escapes `\n` in the configuration.
 
 <CodeBlockConfig hideClipboard filename="jwt_validation_pub_keys.json">
 
@@ -302,7 +311,7 @@ Since the `jwt_validation_pub_keys` attribute requires single-line certificates,
 
 Save each `jwt_validation_pub_keys.json` file when complete. The Consul server cluster will use this certificate to validate all incoming client `auto_config` requests.
 
-Next, we will use the Secint tool to generate the JSON Web Tokens (JWTs) required to validate Consul client `auto_join` requests.
+Next, generate the JSON Web Tokens (JWTs) for the Consul client `auto_join` requests.
 
 Use `secint mint` with the following attributes to generate a unique JWT.
 
@@ -318,7 +327,7 @@ Copy the value of `token` to your clipboard.
 
 </Tabs>
 
-#### Configure your client with the JWT
+### Configure Consul client agent with the JWT
 
 Paste the `token` value in your clipboard to the ``/consul/config/tokens/jwt`` file, then save the changes.
 
@@ -329,9 +338,9 @@ eyJhbGciOiJSUzI1NiIsImtpZCI6IjI4YjA2NDlmLTdlNjktMWFhMC03ZmYyLWI4ZDU5NGJhZmE5MCJ9
 ```
 </CodeBlockConfig>
 
-Next, restart the Consul client so it will perform the `auto_config` request with the newly updated JSON web token (JWT).
+Restart the Consul client agent.
 
-All future gossip encryption key, TLS certificate, and/or security setting changes will automatically be distributed to the Consul client since it used `auto_config` to join the Consul datacenter.
+Now, future gossip encryption keys, TLS certificates, and other security setting changes will be distributed to the Consul client agent automatically.
 
 
 ## Next steps
