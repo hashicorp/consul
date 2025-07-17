@@ -16,7 +16,7 @@ Consul `auto_config` is a highly scalable method for automatically distributing 
 The workflow to enable this method consists of two steps: 
 
 1. Generate a JSON web token (JWT).
-1. Use the token to join a Consul client. 
+1. Use the token on a Consul client to join a Consul cluster.
 
 The Consul clients then uses the JWTs to securely retrieve security setting changes from Consul servers.
 
@@ -106,7 +106,7 @@ checks the value of the `node_name` variable against the metadata value of
 		"authorization": {
 			"enabled": true,
 			"static": {
-				"jwt_validation_pub_keys": ["-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEFlUd7FoWSPtRl5maa58XDDjiFplNBxtai41Hq8rnyfQxirYQoLKHKakuZAGpn3PwYewEbYrB+b1f7/P6DzWBRg==\n-----END PUBLIC KEY-----\n"],
+				"jwt_validation_pub_keys": [], # To be filled with the contents of secint-pub-key.pem later
 				"bound_issuer": "secint",
 				"bound_audiences": ["consul-cluster-dc1"],
 				"claim_mappings": {
@@ -297,19 +297,29 @@ Bxtai41Hq8rnyfQxirYQoLKHKakuZAGpn3PwYewEbYrB+b1f7/P6DzWBRg==
 
 </CodeBlockConfig>
 
-Because the `jwt_validation_pub_keys` attribute requires single-line certificates, you must add line escapes `\n` to sections of `secint-pub-key.pem`. In the following example, notice the three instances of line escapes `\n` in the configuration.
+Because the `jwt_validation_pub_keys` attribute in Consul configuration requires single-line certificates, you must add line escapes `\n` to sections of `secint-pub-key.pem` when pasting it into the configuration. In the following example, notice the three instances of line escapes `\n` in the configuration.
 
-<CodeBlockConfig hideClipboard filename="jwt_validation_pub_keys.json">
+<CodeBlockConfig hideClipboard filename="consul_server.json">
 
-```plaintext
-...
-	"jwt_validation_pub_keys": ["-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEFlUd7FoWSPtRl5maa58XDDjiFplNBxtai41Hq8rnyfQxirYQoLKHKakuZAGpn3PwYewEbYrB+b1f7/P6DzWBRg==\n-----END PUBLIC KEY-----\n"],
-  ...
+```json
+{
+  ##...
+	"auto_config": {
+		"authorization": {
+			##...
+			"static": {
+				"jwt_validation_pub_keys": ["-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEFlUd7FoWSPtRl5maa58XDDjiFplNBxtai41Hq8rnyfQxirYQoLKHKakuZAGpn3PwYewEbYrB+b1f7/P6DzWBRg==\n-----END PUBLIC KEY-----\n"],
+				##...
+			}
+		}
+	},
+  ##...
+}
 ```
 
 </CodeBlockConfig>
 
-Save each `jwt_validation_pub_keys.json` file when complete. The Consul server cluster will use this certificate to validate all incoming client `auto_config` requests.
+The `jwt_validation_pub_keys` attribute contains the contents of the public key you generated with secint. This public key is used to validate JSON web tokens (JWTs) sent by Consul clients to validate all incoming client `auto_config` requests.
 
 Next, generate the JSON Web Tokens (JWTs) for the Consul client `auto_join` requests.
 
@@ -321,7 +331,7 @@ $ ./secint mint -issuer secint -ttl 12h -node consul-client -priv-key secint-pri
 eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOlsiY29uc3VsLWNsdXN0ZXItZGMxIl0sImV4cCI6MTYyOTg3NDIwNywiaXNzIjoic2VjaW50IiwianRpIjoiZmM5OTE2OWYtNmRjOC1lNzQ0LWUyNzUtMGMyODZjMTAyMWI5IiwibmJmIjoxNjI5ODMwOTQ3LCJzdWIiOiJjb25zdWwtY2xpZW50In0.GqlUANGapiZep6-WnCPOXkd3HLuvaYzHHD7fybf1G2abz_HMBPvcHCbwi7wpQsiTmvtiD-Zw1G3JMynUZLNVXQ
 ```
 
-Copy the value of `token` to your clipboard.
+Copy the token content from this output to your clipboard.
 
 </Tab>
 
@@ -329,7 +339,7 @@ Copy the value of `token` to your clipboard.
 
 ### Configure Consul client agent with the JWT
 
-Paste the `token` value in your clipboard to the ``/consul/config/tokens/jwt`` file, then save the changes.
+Paste the token value from your clipboard into the `/consul/config/tokens/jwt` file in the Consul client container, then save the changes.
 
 <CodeBlockConfig hideClipboard filename="/consul/config/tokens/jwt">
 
