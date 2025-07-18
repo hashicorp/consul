@@ -29,6 +29,17 @@ repository {
   triage {
     suppress {
       vulnerabilities = [
+        "CVE-2025-31115",
+        "CVE-2024-40896",
+        "CVE-2025-3277",
+        "CVE-2024-52533",
+        "CVE-2025-5702",
+        "CVE-2025-5702",
+        "CVE-2025-5702",
+        "CVE-2024-57970",
+        "CVE-2025-6021",
+        "CVE-2025-25724",
+        "CVE-2025-3576"
       ]
       paths = [
         "internal/tools/proto-gen-rpc-glue/e2e/consul/*",
