@@ -1,3 +1,14 @@
+## 1.21.3 (July 18, 2025)
+
+IMPROVEMENTS:
+
+* ui: Improved display and handling of IPv6 addresses for better readability and usability in the Consul web interface. [[GH-22468](https://github.com/hashicorp/consul/issues/22468)]
+
+BUG FIXES:
+
+* cli: validate IP address in service registration to prevent invalid IPs in service and tagged addresses. [[GH-22467](https://github.com/hashicorp/consul/issues/22467)]
+* ui: display IPv6 addresses with proper bracketed formatting [[GH-22423](https://github.com/hashicorp/consul/issues/22423)]
+
 ## 1.21.2 (June 17, 2025)
 
 SECURITY:
