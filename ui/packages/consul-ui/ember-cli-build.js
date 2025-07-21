@@ -160,30 +160,6 @@ module.exports = function (defaults, $ = process.env) {
       'ember-cli-babel': {
         includePolyfill: true,
       },
-      postcssOptions: {
-        compile: {
-          extension: 'scss',
-          plugins: [
-            {
-              module: require('@csstools/postcss-sass'),
-              options: {
-                includePaths: [
-                  '../../node_modules/@hashicorp/design-system-tokens/dist/products/css',
-                ],
-              },
-            },
-            {
-              module: require('tailwindcss'),
-              options: {
-                config: './tailwind.config.js',
-              },
-            },
-            {
-              module: require('autoprefixer'),
-            },
-          ],
-        },
-      },
       'ember-cli-string-helpers': {
         only: [
           'capitalize',
