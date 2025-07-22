@@ -9,46 +9,12 @@ description: >-
 
 This topic provides an overview for deploying a Consul server when running Consul on Docker containers.
 
-## Prerequisites
+## Deploy and run a Consul server
 
-### Docker
-
-You will need a local install of Docker running on your machine for this tutorial. You can find the instructions for installing Docker on your specific operating system [here](https://docs.docker.com/install/).
-
-### Consul (Optional)
-
-If you would like to interact with your containerized Consul agents using a local install of Consul, follow the instructions [here](/consul/docs/fundamentals/install) and install the binary somewhere on your PATH.
-
-## Get the Docker image
-
-First, pull the latest image. You will use Consul's official Docker image in this tutorial.
+You deploy a containerized Consul server by running the `consul agent -server` command as a Docker container and instruct it to form a cluster of one member - itself. Do not use detached mode, so you can reference the client logs during later steps.
 
 ```shell-session
-$ docker pull consul
-```
-
-Check the image was downloaded by listing Docker images that match `consul`.
-
-```shell-session
-$ docker images -f 'reference=consul'
-```
-
-```plaintext hideClipboard
-REPOSITORY     TAG      IMAGE ID        CREATED             SIZE
-consul       latest    8b6c5f52aa82   18 hours ago   149MB
-```
-
-## Configure and run a Consul server
-
-Next, you will use Docker command-line flags to start the agent as a server, configure networking, and bootstrap the datacenter when one server is up.
-
-```shell-session
-$ docker run \
-    -d \
-    -p 8500:8500 \
-    -p 8600:8600/udp \
-    --name=badger \
-    consul agent -server -ui -node=server-1 -bootstrap-expect=1 -client=0.0.0.0
+$ docker run --name=consul-server -d -p 8500:8500 -p 8600:8600/udp hashicorp/consul consul agent -server -ui -node=server-1 -bootstrap-expect=1 -client=0.0.0.0 -data-dir=/consul/data
 ```
 
 Since you started the container in detached mode, `-d`, the process will run in the background. You also set port mapping to your local machine as well as binding the client interface of our agent to 0.0.0.0. This allows you to work directly with the Consul datacenter from your local machine and to access Consul's UI and DNS over localhost. Finally, you are using Docker's default bridge network.
@@ -57,17 +23,14 @@ Note, the Consul Docker image sets up the Consul configuration directory at `/co
 
 ~> The configuration directory is **not** exposed as a volume and will not persist data. Consul uses it only during startup and does not store any state there.
 
-To avoid mounting volumes or copying files to the container, you can also save [configuration JSON](/consul/docs/reference/agent/configuration-file) to that directory via the environment variable `CONSUL_LOCAL_CONFIG`, which will be covered later in the tutorial.
+To avoid mounting volumes or copying files to the container, you can also submit a Consul configuration in JSON format via the environment variable `CONSUL_LOCAL_CONFIG`. For more information, see the [Consul on Docker documentation](/consul/docs/docker#consul-agent).
 
 ### Discover the server IP address
 
-You can find the IP address of the Consul server by executing the `consul members` command inside of the `badger` container.
+You can find the IP address of the Consul server by executing the `consul members` command inside of the `consul-server` container.
 
 ```shell-session
-$  docker exec badger consul members
-```
-
-```plaintext hideClipboard
+$  docker exec consul-server consul members
 Node      Address          Status  Type    Build   Protocol  DC   Partition  Segment
-server-1  172.17.0.2:8301  alive   server  1.13.3  2         dc1  default    <all>
+server-1  172.17.0.2:8301  alive   server  1.21.2  2         dc1  default    <all>
 ```
