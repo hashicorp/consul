@@ -2,16 +2,16 @@
 layout: docs
 page_title: Register services running on Docker containers
 description: >-
-   Learn how to deploy a Consul server agent on a Docker container.
+   Learn how to register a service running in a Docker container on Consul.
 ---
 
 # Register services running on Docker containers
 
-This topic provides an overview for deploying a Consul server when running Consul on Docker containers.
+This topic provides an overview for registering services running on Docker containers in Consul.
 
 ## Register a service
 
-Start a service in a third container and register it with the Consul client. The basic service increments a number every time it is accessed and returns that number.
+Start a service in a container and register it with the Consul client. We will use `counting-service` as an example - a basic service that increments a number every time it is accessed and returns that number.
 
 Pull the container.
 
@@ -26,28 +26,38 @@ by visiting [http://localhost:9001](http://localhost:9001).
 $ docker run \
    -p 9001:9001 \
    -d \
-   --name=weasel \
+   --name=counting-service \
    hashicorp/counting-service:0.0.2
 ```
 
-Next, you will register the counting service with the Consul client by adding a service definition file called `counting.json` in the directory `consul/config`.
+Next, you will register the counting service with the Consul client.
+
+<CodeBlockConfig filename="/consul/config/counting.json">
+```json 
+{
+   "service": {
+      "name": "counting",
+      "tags": ["go"],
+      "port": 9001
+   }
+}
+```
+</CodeBlockConfig>
+
+Create the `/consul/config/counting.json` file in your Consul service container. In this case, the Consul service container is named `consul-client`.
 
 ```shell-session
-$ docker exec fox /bin/sh -c "echo '{\"service\": {\"name\": \"counting\", \"tags\": [\"go\"], \"port\": 9001}}' >> /consul/config/counting.json"
+$ docker exec consul-client /bin/sh -c "echo '{\"service\": {\"name\": \"counting\", \"tags\": [\"go\"], \"port\": 9001}}' >> /consul/config/counting.json"
 ```
 
-Since the Consul client does not automatically detect changes in the
-configuration directory, you will need to issue a reload command for the same container.
+Since the Consul client does not automatically detect changes in the configuration directory, you will need to issue a reload command for the same container.
 
 ```shell-session
-$ docker exec fox consul reload
-```
-
-```plaintext hideClipboard
+$ docker exec consul-client consul reload
 Configuration reload triggered
 ```
 
-If you go back to the terminal window where you started the client, there should be log entries confirming that the Consul client received the hangup signal, reloaded its configuration, and synced the counting service.
+In the logs of the `consul-client` container, there should be entries confirming that the Consul client received the hangup signal, reloaded its configuration, and synced the counting service.
 
 ```log hideClipboard
 2022-12-15T19:02:24.945Z [INFO]  agent: Synced service: service=counting
