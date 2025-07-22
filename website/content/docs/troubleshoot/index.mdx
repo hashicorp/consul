@@ -284,14 +284,6 @@ round-trip min/avg/max/stddev = 3.663/4.590/5.980/0.876 ms
 
 ## Next steps
 
-You should now be able to use the Consul tools to help troubleshoot.
+For further information related to troubleshooting, check the [Frequently Asked Questions](/consul/docs/troubleshoot/faq) article.
 
-- Use `consul members` to list the members of the Consul datacenter
-- Use `consul operator raft list-peers` to view the status of the Consul datacenter
-- Use `consul monitor` to view log messages from the Consul agent
-- Use `consul validate` to validate configuration files
-- Use `consul debug` to gather detailed information about the Consul agent
-- Use the health check HTTP API endpoint `/v1/agent/services` to view the status of services in the Consul catalog
-
-Finally, you should be able to use external tools like `dig` and `curl` to help
-troubleshoot Consul issues.
+To learn how to troubleshoot service mesh issues, refer to the [Debug service mesh article](/consul/docs/troubleshoot/mesh). If you are experiencing connectivity issues within the service mesh services, check the [Troubleshoot service-to-service communication](/consul/docs/troubleshoot/service-communication) article. Finally, if you are operating Consul at scale, review [our best practices](/consul/docs/manage/scale) to help you fine-tune operations for your networking needs.
