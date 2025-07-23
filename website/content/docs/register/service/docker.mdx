@@ -33,6 +33,7 @@ $ docker run \
 Next, you will register the counting service with the Consul client.
 
 <CodeBlockConfig filename="/consul/config/counting.json">
+
 ```json 
 {
    "service": {
@@ -42,6 +43,7 @@ Next, you will register the counting service with the Consul client.
    }
 }
 ```
+
 </CodeBlockConfig>
 
 Create the `/consul/config/counting.json` file in your Consul service container. In this case, the Consul service container is named `consul-client`.
