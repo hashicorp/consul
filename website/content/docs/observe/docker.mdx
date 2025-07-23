@@ -9,248 +9,280 @@ description: >-
 
 This page describes the configuration process for service mesh observability features when Consul runs on Docker containers.
 
-## Overview
+## Introduction
 
-In this tutorial, you will create a local Consul service mesh and observability
-stack using Docker Compose. You will then explore your Consul service mesh with 
-the observability suite.
+True service mesh observability consist of three core elements: metrics, logs and traces. To explore each of these elements in Consul service mesh, you use Prometheus to collect metrics, Loki to collect logs, and Tempo to collect traces. Finally, you visualize all the information collected with Grafana.
 
-The complexity of a service mesh environment requires advanced mechanisms to 
-determine where services are running, the traffic patterns of the data flowing, 
-and the health of the connections between them. Having this information makes 
-it easier to not only understand failures occurring in your
-deployments, but also gives you the granularity needed to identify more subtle 
-failures within your network such as performance degradation, packet loss, 
-memory pressure, etc.
+<Note>
 
-True service mesh observability consist of three core elements: metrics, logs
-and traces. To explore each of these elements, you will create an observability
-suite comprised of Prometheus (metrics), Loki (logs), Tempo (traces), and Grafana 
-(visualization). Your Consul service mesh will host an example microservice 
-application that will exhibit the ingress, API, and web layers. As you access
-the application; metrics, logs, and traces will be sent to your observability
-stack for you to explore.
+ The examples in this article are not properly secured for a production environment. If you are implementing this functionality in a production system, we encourage you to further follow the [Consul Reference Architecture](/consul/tutorials/production-deploy/reference-architecture) for Consul best practices and the [Docker Documentation](https://docs.docker.com/) for Docker best practices.
 
-This tutorial uses elements that are not suitable for production
-environments including an unsecured Consul datacenter, relaxed security policies,
-and container configurations only suited for development. The tutorial will teach you
-the core concepts for understanding and exploring observability in a Consul service mesh.
-Refer to the [Consul Reference Architecture](/consul/tutorials/production-deploy/reference-architecture)
-for Consul best practices and the [Docker Documentation](https://docs.docker.com/)
-for Docker best practices.
+</Note>
 
 ## Prerequisites
 
-### Linux or MacOS
-
-Elements of this tutorial require a Linux or MacOS environment for deployment. See the [Docker plugin page](https://docs.docker.com/engine/extend/) for more information about OS requirements.
-
-### Docker
-
-You will need a local install of Docker running on your machine for this tutorial. You can find the instructions for installing Docker on your specific operating system [here](https://docs.docker.com/install/). Docker Engine 19.03.0 was tested in this tutorial.
-
-### Docker Compose
-
-Docker Compose is a tool for defining and running multi-container Docker applications. With Compose, you use a YAML file to configure your application’s services. Visit the [Docker Compose install guide](https://docs.docker.com/compose/install/) for operating system specific installation instructions. Docker Compose format 3.7 was used in this tutorial.
-
-### Loki logging drivers
-
-Install the Loki logging drivers for Docker. See the [Loki Docker driver plugin page](https://grafana.com/docs/loki/latest/clients/docker-driver/) for more information.
+For Docker containers to emit Loki logs, you need to install the Loki logging drivers for Docker. See the [Loki Docker driver plugin page](https://grafana.com/docs/loki/latest/clients/docker-driver/) for more information.
 
 ```shell-session
 $ docker plugin install grafana/loki-docker-driver:latest --alias loki --grant-all-permissions
 ```
 
-### GitHub repository
+## Collect metrics with Prometheus
 
-Clone the GitHub repository containing the configuration files and resources.
+Configure the Consul target endpoint in Prometheus. The `prometheus.yaml` file contains the configuration for Prometheus to scrape metrics from the Consul server. The `targets` field should point to the Consul server service running in your Docker environment, and the `metrics_path` should be set to `/v1/agent/metrics`.
 
-<CodeTabs tabs={[ "HTTPS", "SSH" ]}>
+<CodeBlockConfig filename="prometheus.yaml">
 
-```shell-session
-$ git clone https://github.com/hashicorp/learn-consul-docker.git
+```yaml
+global:
+  scrape_interval: 30s
+  scrape_timeout: 10s
+
+scrape_configs:
+  - job_name: 'consul-server'
+    metrics_path: '/v1/agent/metrics'
+    params:
+      format: ['prometheus']
+    static_configs:
+      - targets: ['consul-server:8500']
 ```
 
-```shell-session
-$ git clone git@github.com:hashicorp/learn-consul-docker.git
+</CodeBlockConfig>
+
+## Collect logs with Loki
+
+Loki is an advanced log aggregation system developed by Grafana Labs. The `docker-compose-loki.yaml` file contains the configuration for the Loki service to run as a Docker container.
+
+<CodeBlockConfig filename="docker-compose-loki.yaml">
+
+```yaml
+  loki:
+    image: grafana/loki:2.1.0
+    container_name: loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      vpcbr:
+        ipv4_address: 10.5.0.11
+    ports:
+      - "3100:3100" # loki needs to be exposed so it receives logs
+    environment:
+      - JAEGER_AGENT_HOST=tempo
+      - JAEGER_ENDPOINT=http://tempo:14268/api/traces # send traces to Tempo
+      - JAEGER_SAMPLER_TYPE=const
+      - JAEGER_SAMPLER_PARAM=1
+    logging:
+      driver: loki
+      options:
+        loki-url: 'http://localhost:3100/api/prom/push'
 ```
 
-</CodeTabs>
+</CodeBlockConfig>
 
-Change into the directory with the newly cloned repository. This directory contains the complete configuration files.
+Using this configuration, Loki will collect logs from all containers in the Docker environment. The logs are sent to Loki using the Loki logging driver. Furthermore, the Loki traces are also sent to Tempo for distributed tracing.
 
-```shell-session
-$ cd learn-consul-docker/datacenter-deploy-observability
+## Collect traces with Tempo
+
+Tempo is a distributed tracing system developed by Grafana Labs. The `docker-compose-tempo.yaml` file contains the configuration for the Tempo service to run as a Docker container.
+
+<CodeBlockConfig filename="docker-compose-tempo.yaml">
+
+```yaml
+  tempo:
+    image: grafana/tempo:1f1c40b3
+    container_name: tempo
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./tempo/tempo.yaml:/etc/tempo.yaml
+    networks:
+      vpcbr:
+        ipv4_address: 10.5.0.9
+    ports:
+      - "14268:14268" # jaeger ingest
+      - "3100"  # tempo
+      - "9411:9411" #zipkin
+    logging:
+      driver: loki
+      options:
+        loki-url: 'http://localhost:3100/api/prom/push'
 ```
 
-## Environment overview
+</CodeBlockConfig>
 
-The observability suite provides insight into the metrics, logs, and traces that occur 
-throughout the Consul service mesh. This diagram illustrates the components of the
-observability suite and Consul service mesh that you will create in this tutorial.
+This Docker Compose configuration sets up Tempo to collect traces from the Docker environment. The traces are sent to Tempo using the Loki logging driver, which allows for seamless integration with Grafana. This Docker Compose configuration also refers to a `tempo/tempo.yaml` file that contains the Tempo configuration.
 
-![Image of architecture diagram for this environment.](/img/docker/observability_architecture_diagram.png 'There are two main logical environments in this architecture diagram: a Consul service mesh with each of its components in the left diagram, and the observability platform with each of its components in the right diagram. Both of these logical environments are encapsulated in a Docker Compose environment.')
+<CodeBlockConfig filename="tempo/tempo.yaml">
 
-## Create environment
+```yaml
+auth_enabled: false
 
-From within your working directory, run the following Docker Compose command to
-create your local service mesh environment and observability suite.
+server:
+  http_listen_port: 3100
 
-```shell-session
-$ docker-compose up --detach
+distributor:
+  receivers:                           # this configuration will listen on all ports and protocols that tempo is capable of.
+    jaeger:                            # the receives all come from the OpenTelemetry collector.  more configuration information can
+      protocols:                       # be found there: https://github.com/open-telemetry/opentelemetry-collector/tree/main/receiver
+        thrift_http:                   #
+        grpc:                          # for a production deployment you should only enable the receivers you need!
+        thrift_binary:
+        thrift_compact:
+    zipkin:
+    otlp:
+      protocols:
+        http:
+        grpc:
+    opencensus:
 
-Creating network "datacenter-deploy-observability_vpcbr" with driver "bridge"
-Creating node-exporter ... done
-Creating tempo         ... done
-Creating grafana       ... done
-Creating consul-server ... done
-Creating prometheus    ... done
-Creating loki          ... done
-Creating ingress       ... done
-Creating web           ... done
-Creating api           ... done
-Creating api_proxy     ... done
-Creating ingress_proxy ... done
-Creating web_proxy     ... done
+ingester:
+  trace_idle_period: 10s               # the length of time after a trace has not received spans to consider it complete and flush it
+  max_block_bytes: 1_000_000           # cut the head block when it hits this size or ...
+  max_block_duration: 5m               #   this much time passes
+
+compactor:
+  compaction:
+    compaction_window: 1h              # blocks in this time window will be compacted together
+    max_block_bytes: 100_000_000        # maximum size of compacted blocks
+    block_retention: 1h
+    compacted_block_retention: 10m
+
+storage:
+  trace:
+    backend: local                     # backend configuration to use
+    block:
+      bloom_filter_false_positive: .05 # bloom filter false positive rate.  lower values create larger filters but fewer false positives
+      index_downsample_bytes: 1000     # number of bytes per index record
+      encoding: zstd                   # block encoding/compression.  options: none, gzip, lz4-64k, lz4-256k, lz4-1M, lz4, snappy, zstd
+    wal:
+      path: /tmp/tempo/wal             # where to store the the wal locally
+      encoding: none                   # wal encoding/compression.  options: none, gzip, lz4-64k, lz4-256k, lz4-1M, lz4, snappy, zstd
+    local:
+      path: /tmp/tempo/blocks
+    pool:
+      max_workers: 100                 # the worker pool mainly drives querying, but is also used for polling the blocklist
+      queue_depth: 10000
 ```
 
-<Note>
+</CodeBlockConfig>
 
- Your first run will take the longest as Docker will pull the respective images from the Docker Hub repository.
-Extra runs will not need you to download the image again and should only take a few seconds to complete.
+## Configure Grafana
 
-</Note>
+Grafana can be configured to collect and visualise metrics, logs, and traces from Prometheus, Loki, and Tempo as data sources.
 
-## Perform testing procedures 
+### Grafana data source: Prometheus
 
-Perform the following steps of each section to explore the elements involved in the service mesh and observability suite.
+The `datasource-prometheus.yaml` file contains the configuration for Grafana to connect to Prometheus. The `url` field should point to the Prometheus service running in your Docker environment.
 
-### Explore the Consul UI
+<CodeBlockConfig filename="datasource-prometheus.yaml">
 
-Navigate to [http://localhost:8500/](http://localhost:8500/) on your browser to access the Consul UI. Consul will navigate to the services tab by default. 
+```yaml
+datasources:
+- name: Prometheus
+  type: prometheus
+  access: proxy
+  orgId: 1
+  url: http://prometheus:9090
+  basicAuth: false
+  isDefault: false
+  version: 1
+  editable: false
+```
 
-![Image of Nodes page in Consul UI.](/img/docker/observability_consul_services.png 'There is a navigation bar at the top of the page with multiple options. The Nodes tab is selected. In the main area of the screen, three Consul servers and one Consul client are shown as healthy nodes. One of the Consul servers is marked as a leader node.')
+</CodeBlockConfig>
 
-Notice the services monitored by Consul. Each of the applications (ingress, web, and api) includes a sidecar proxy that makes up the service mesh.
+### Grafana data source: Loki
 
-<Note>
+The `datasource-loki.yaml` file contains the configuration for Grafana to connect to Loki. The `url` field should point to the Loki service running in your Docker environment.
 
- If your Consul UI details do not match the image above, restart your container stack environment.
+<CodeBlockConfig filename="datasource-loki.yaml">
 
-</Note>
+```yaml
+datasources:
+- name: Loki
+  type: loki
+  access: proxy
+  orgId: 1
+  url: http://loki:3100
+  basicAuth: false
+  isDefault: true
+  version: 1
+  editable: false
+  apiVersion: 1
+  jsonData:
+    derivedFields:
+      - datasourceUid: tempo
+        matcherRegex: (?:traceID|trace_id)=(\w+)
+        name: TraceID
+        url: $${__value.raw}
+```
 
-### Explore the sample application
+</CodeBlockConfig>
 
-Navigate to [http://localhost:9090/ui/](http://localhost:9090/ui/) and refresh the page to generate traffic.
+### Grafana data source: Tempo
 
-![Image of sample application UI.](/img/docker/observability_example_service.png 'There are three squares, each representing an application, connected by lines. The Ingress service is at the top, with web below it, and API at the bottom.')
+The `datasource-tempo.yaml` file contains the configuration for Grafana to connect to Tempo. The `url` field should point to the Tempo service running in your Docker environment.
 
-The example application shows the architecture of your complete application stack. Each refresh of this page will generate extra logs, metrics, and traces that your observability suite will ingest.
+<CodeBlockConfig filename="datasource-tempo.yaml">
 
-### Explore Prometheus targets
+```yaml
+datasources:
+- name: Tempo
+  type: tempo
+  access: proxy
+  orgId: 1
+  url: http://tempo:3100
+  basicAuth: false
+  isDefault: false
+  version: 1
+  editable: false
+  apiVersion: 1
+  uid: tempo
+```
 
-Navigate to [http://localhost:9092/targets](http://localhost:9092/targets).
+</CodeBlockConfig>
 
-![Image of targets page in Prometheus UI.](/img/docker/observability_prometheus_targets.png 'There are four target endpoints: consul-server, node, services, and tempo. The status shows "up" for each of these targets.')
+### Grafana dashboards
 
-Notice that Prometheus is pre-configured to scrape metric-related data from four endpoints: Consul, Node-Exporter, Tempo, and itself.
+In order to visualize the data collected by Prometheus, Loki, and Tempo, you can import pre-built dashboards into Grafana. The configuration is applied to Grafana in the following way, and refers to a directory called `dashboards`.
 
-### Explore Grafana data sources
+<CodeBlockConfig filename="grafana-dashboards.yaml">
 
-Navigate to [http://localhost:3000/datasources](http://localhost:3000/datasources).
+```yaml
+apiVersion: 1
 
-![Image of data sources page in Grafana UI.](/img/docker/observability_grafana_datasources.png 'Three datasources are present in the list: Loki, Prometheus, and Tempo.')
+providers:
+- name: 'dashboards'
+  orgId: 1
+  folder: 'dashboards'
+  folderUid: ''
+  type: file
+  disableDeletion: true
+  editable: true
+  updateIntervalSeconds: 3600
+  allowUiUpdates: false
+  options:
+    path: /var/lib/grafana/dashboards
+```
 
-Grafana is pre-configured with Prometheus, Loki, and Tempo as data sources. These sources enable Grafana to visualize metrics, logs, and traces.
+</CodeBlockConfig>
 
-### Explore Logs and Traces
+For the contents of the `dashboards` directory, you can use the content located in the [Grafana Dashboards repository](https://github.com/hashicorp-education/learn-consul-docker/tree/main/datacenter-deploy-observability/grafana/dashboards
 
-Navigate to [http://localhost:3000/explore](http://localhost:3000/explore).
+## Use Grafana to explore your service mesh
 
-Execute a search with these parameters: `{container_name="web"} |= "trace_id"`
-     
-Open one of the log lines, locate the `TraceID` field, then click the nearby `Tempo` link to jump directly from logs to traces. 
+Now that you have configured the Grafana data sources, you can visualize the data collected.
+
+### Explore traces in Grafana
+
+You can explore the traces collected by Tempo in Grafana. Navigate to Grafana's _Explore_ section and execute a search for traces. For example, to view traces from a container named `web`, execute a Grafana search for `{container_name="web"} |= "trace_id"`. Then open one of the log lines, locate the `TraceID` field, then click the nearby `Tempo` link to jump directly from logs to traces. 
 
 ![Image of linked logs and traces in Grafana UI.](/img/docker/observability_grafana_logs_traces.png 'There are two panes within the window: a left and right pane. In the left pane, the Loki logs are shown, with one of its entries selected. On the right pane, a Tempo traces graph is shown. The Tempo traces graph shows communication details between the three services, ingress, web, and api.')
 
-Using this functionality, notice how logs and traces provide insight into service mesh performance.
+Traces provide insight into service mesh performance. To learn more about how application communication traverses through the service mesh, see the [distributed tracing article](https://www.hashicorp.com/blog/enabling-distributed-tracing-with-hashicorp-consul).
 
-To learn more about how application communication traverses through the service mesh, see the [distributed tracing article](https://www.hashicorp.com/blog/enabling-distributed-tracing-with-hashicorp-consul).
+### Explore metrics in Grafana
 
-### Explore Metrics
-
-Navigate to [http://localhost:3000/dashboards](http://localhost:3000/dashboards).
-
-Explore the metrics-related dashboards: Consul Server Monitoring and Node Exporter.
+You can explore the metrics collected by Prometheus in Grafana. Navigate to the _Dashboards_ section and select the _Consul Server Monitoring_ dashboard that you imported earlier. This dashboard provides a comprehensive view of the Consul server metrics, including Raft commit time, catalog operation time, and autopilot health.
 
 ![Image of Consul Server Monitoring metrics dashboard in Grafana UI.](/img/docker/observability_grafana_consul_metrics.png 'A dashboard is shown with four panes present. Each of the panes shows details around various metrics generated by Consul including Raft commit time, catalog operation time, and autopilot health.')
 
-The Consul Server Monitoring dashboard presents important application-level metrics for Consul while the Node Exporter dashboard presents system-level metrics. Each of these dimensions provides important insight into the health and performance of your service mesh.
-
-To learn more about the various runtime metrics reported by Consul, see the [Consul telemetry docs](/consul/docs/reference/agent/telemetry).
-
-## Clean up your environment
-
-To clean up your environment, execute the following command.
-
-```shell-session
-$ docker-compose down --rmi all
-
-Stopping ingress_proxy ... done
-Stopping api_proxy     ... done
-Stopping web_proxy     ... done
-Stopping web           ... done
-Stopping api           ... done
-Stopping ingress       ... done
-Stopping grafana       ... done
-Stopping node-exporter ... done
-Stopping prometheus    ... done
-Stopping consul-server ... done
-Stopping tempo         ... done
-Stopping loki          ... done
-Removing ingress_proxy ... done
-Removing api_proxy     ... done
-Removing web_proxy     ... done
-Removing web           ... done
-Removing api           ... done
-Removing ingress       ... done
-Removing grafana       ... done
-Removing node-exporter ... done
-Removing prometheus    ... done
-Removing consul-server ... done
-Removing tempo         ... done
-Removing loki          ... done
-Removing network datacenter-deploy-observability_vpcbr
-Removing image hashicorp/consul:1.8.10
-Removing image nicholasjackson/fake-service:v0.21.0
-Removing image nicholasjackson/consul-envoy:v1.6.1-v0.10.0
-Removing image prom/node-exporter:v1.1.2
-Removing image prom/prometheus:v2.26.0
-Removing image grafana/tempo:1f1c40b3
-Removing image grafana/grafana:7.5.3
-Removing image grafana/loki:2.1.0
-```
-
-## Next steps
-
-In this tutorial, you learned how to deploy and configure a local Consul service mesh and observability
-stack using Docker Compose. You also learned how to explore your Consul service mesh with the 
-open source observability suite. Finally, you learned how to clean up your Docker environment.
-
-You can continue learning the concepts of a secure Consul datacenter by completing the [deploy a secure Consul datacenter with Docker Compose tutorial](/consul/tutorials/docker/docker-compose-datacenter). This will teach you the concepts of Access Control Lists (ACLs), gossip encryption, and transport encryption. 
-
-You can also extend your Consul skills by exploring the following tutorials:
-
-- [Running Consul on Docker](/consul/tutorials/day-0/docker-container-agents)
-- [Running Consul on Kubernetes](/consul/tutorials/get-started-kubernetes)
-- [Service Discovery](/consul/tutorials/developer-discovery)
-- [Service Mesh](/consul/tutorials/developer-mesh)
-
-For additional reference documentation on the technologies and Docker images used in this guide, refer to the following websites:
-
-- [hashicorp/docker-consul GitHub Repository](https://github.com/hashicorp/docker-consul)
-- [grafana/grafana GitHub Repository](https://github.com/grafana/grafana)
-- [grafana/loki GitHub Repository](https://github.com/grafana/loki)
-- [grafana/tempo GitHub Repository](https://github.com/grafana/tempo)
-- [prometheus/prometheus GitHub Repository](https://github.com/prometheus/prometheus)
-- [prometheus/node-exporter GitHub Repository](https://github.com/prometheus/node_exporter)
+This dashboard presents important application-level metrics for Consul and provides important insight into the health and performance of your service mesh. To learn more about the various runtime metrics reported by Consul, see the [Consul telemetry docs](/consul/docs/reference/agent/telemetry).
