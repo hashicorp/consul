@@ -5,6 +5,33 @@
 
 export default function (scenario, find, fillIn, triggerKeyEvent, currentPage) {
   const dont = `( don't| shouldn't| can't)?`;
+
+  const fillInCodeEditor = function (page, name, value) {
+    const valueElement = document.querySelector(`[aria-label="${name}"]`);
+    const codeEditorElement = document.querySelector('.cm-editor');
+    const codeBlockElement = document.querySelector('.hds-code-block');
+
+    /**
+     * if codeEditorElement is parent of valueElement, then we are dealing with a CodeMirror editor
+     *
+     * if codeBlockElement is parent of valueElement, then we are dealing with a HDS CodeBlock, which is readOnly
+     *
+     */
+    if (codeEditorElement && codeEditorElement.contains(valueElement)) {
+      const valueBlock = document.createElement('div');
+      valueBlock.innerHTML = value;
+      valueElement.appendChild(valueBlock);
+    } else {
+      if (codeBlockElement && codeBlockElement.contains(valueElement)) {
+        throw new Error(`The ${name} editor is set to readonly`);
+      }
+
+      return page;
+    }
+
+    return page;
+  };
+
   const fillInElement = async function (page, name, value) {
     const cm = document.querySelector(`textarea[name="${name}"] + .CodeMirror`);
     if (cm) {
@@ -82,6 +109,9 @@ export default function (scenario, find, fillIn, triggerKeyEvent, currentPage) {
         return res;
       }
     )
+    .then(['I fill in code editor "$name" with "$value"'], function (name, value) {
+      return fillInCodeEditor(currentPage(), name, value);
+    })
     .then(['I type "$text" into "$selector"'], function (text, selector) {
       return fillIn(selector, text);
     })
