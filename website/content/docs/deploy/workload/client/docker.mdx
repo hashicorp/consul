@@ -11,7 +11,9 @@ This topic provides an overview for deploying a Consul client when running Consu
 
 ## Deploy and run a Consul client
 
-You deploy a containerized Consul client by running the `consul agent` command as a Docker container and instructing it to join the Consul cluster by giving it one of the Consul servers' hostname or IP address. Do not use detached mode, so you can reference the client logs during later steps.
+After you [deploy one or more server agents](/consul/docs/deploy/server/docker), you can deploy a containerized   Consul client agent that joins the datacenter.  Do not use detached mode, so you can reference the client logs later.
+
+The following command deploys a Docker container and instructs it to join the Consul cluster by including a Consul server's hostname or IP address in the `retry-join` parameter.
 
 ```shell-session
 $ docker run --name=consul-client hashicorp/consul consul agent -node=client-1 -data-dir=/consul/data -retry-join=172.17.0.2
@@ -50,7 +52,7 @@ $ docker run --name=consul-client hashicorp/consul consul agent -node=client-1 -
 2022-12-15T18:59:46.454Z [INFO]  agent: Synced node info
 ```
 
-In a new terminal, check that the client has joined by executing the `consul members` command in the Consul client container.
+In a new terminal session, run the `consul members` command in the Consul client container to confirm the agent joined the datacenter.
 
 ```shell-session
 $  docker exec consul-client consul members

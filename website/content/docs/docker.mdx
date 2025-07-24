@@ -36,13 +36,13 @@ client-1  172.17.0.3:8301  alive   client  1.14.3  2         dc1  default    <de
 
 #### Local Consul binary
 
-If you have a local Consul binary in your PATH you can also export the `CONSUL_HTTP_ADDR` environment variable to point to the HTTP address of a the Consul server container.
+If you have a local Consul binary in your PATH, you can export the `CONSUL_HTTP_ADDR` environment variable to point to the HTTP address of a Consul server container.
 
 ```shell-session
 $ export CONSUL_HTTP_ADDR=<consul_server_container_ip>:8500
 ```
 
-This way you bypass invoking the Consul binary on the container and you run the Consul binary on your local machine instead. It ends up communicating with the Consul server running in the container.
+This approach runs the Consul binary on your local machine instead of the container, but still communicates with the Consul server running in the container.
 
 ```shell-session
 $ consul members
@@ -61,13 +61,15 @@ $ docker kill --signal=HUP <container_id>
 
 ## Consul Autopilot
 
-As long as there are enough servers in the datacenter to maintain [quorum](/consul/docs/architecture/consensus#deployment-table), Consul's [autopilot](/consul/tutorials/datacenter-operations/autopilot-datacenter-operations) feature will handle removing servers whose containers were stopped. Autopilot's default settings are configurable if you need to fine-tune them. For more information, check the [Autopilot configuration reference](/consul/docs/reference/agent/configuration-file/general#autopilot).
+As long as there are enough servers in the datacenter to maintain consensus, Consul's [autopilot feature](/consul/docs/manage/scale/autopilot) removes servers whose containers were stopped. 
+
+Autopilot's settings are configurable, and we recommend the following configurations when running Consul on Docker. For more information, check the [Autopilot configuration reference](/consul/docs/reference/agent/configuration-file/general#autopilot).
 
 - `cleanup_dead_servers` should be set to true to make sure that a stopped container is removed from the datacenter.
 - `last_contact_threshold` should be reasonably small, so that dead servers are removed quickly.
 - `server_stabilization_time` should be sufficiently large (on the order of several seconds) so that unstable servers are not added to the datacenter until they stabilize.
 
-## Backing-up data
+## Backup data with snapshots
 
 You can back-up your Consul datacenter using the [consul snapshot](/consul/commands/snapshot) command.
 
@@ -81,24 +83,24 @@ This will leave the `backup.snap` snapshot file inside of your container. If you
 $ docker cp <container_id>:backup.snap ./
 ```
 
-To save backups automatically, refer to the Consul Enterprise feature [snapshot agent](/consul/commands/snapshot/agent). Consul Enterprise's snapshot agent also can save snapshots to Amazon S3 and Azure Blob Storage.
+To save backups automatically, use the Consul Enterprise [snapshot agent](/consul/commands/snapshot/agent). Consul Enterprise's snapshot agent also can save snapshots to Amazon S3 and Azure Blob Storage.
 
 ## Environment variables
 
-The Consul Docker image supports passing configuration via multiple environment variables with the `-e` flag.
+The Consul Docker image supports passing multiple environment variables with the `-e` flag.
 
-`CONSUL_CLIENT_INTERFACE` specifies the name of the interface on which Consul exposes DNS, gRPC, and HTTP APIs.
-`CONSUL_CLIENT_ADDRESS` specifies the address Consul binds to for client traffic, such as DNS, gRPC, and HTTP APIs.
+- `CONSUL_CLIENT_INTERFACE` specifies the name of the interface on which Consul exposes DNS, gRPC, and HTTP APIs.
+- `CONSUL_CLIENT_ADDRESS` specifies the address Consul binds to for client traffic, such as DNS, gRPC, and HTTP APIs.
 
-`CONSUL_BIND_INTERFACE` specifies the interface Consul uses for internal Consul cluster communication.
-`CONSUL_BIND_ADDRESS` specifies the address Consul binds to for internal Consul cluster communication.
+- `CONSUL_BIND_INTERFACE` specifies the interface Consul uses for internal Consul cluster communication.
+- `CONSUL_BIND_ADDRESS` specifies the address Consul binds to for internal Consul cluster communication.
 
-`CONSUL_DATA_DIR` specifies the directory where Consul stores its data. This is useful for persisting data across container restarts. The default value is `/consul/data`.
+- `CONSUL_DATA_DIR` specifies the directory where Consul stores data to persist across container restarts. The default value is `/consul/data`.
 
-`CONSUL_ALLOW_PRIVILEGED_PORTS` is a binary value and when set to `true` itruns [`setcap`](https://man7.org/linux/man-pages/man8/setcap.8.html) on the Consul binary, allowing it to bind to [privileged ports](https://www.w3.org/Daemon/User/Installation/PrivilegedPorts.html).
+- `CONSUL_ALLOW_PRIVILEGED_PORTS` is a boolean value. When set to `true`, [`setcap`](https://man7.org/linux/man-pages/man8/setcap.8.html) runs on the Consul binary to allow binding to [privileged ports](https://www.w3.org/Daemon/User/Installation/PrivilegedPorts.html).
 
-`CONSUL_CONFIG_DIR` allows you to specify a container directory for additional configuration files that the Consul agent will load. The default location is the `/consul/config` directory.
-`CONSUL_LOCAL_CONFIG` allows you to pass a JSON string of configuration options to the Consul agent.
+- `CONSUL_CONFIG_DIR` allows you to specify a container directory for additional configuration files that the Consul agent loads. The default location is the `/consul/config` directory.
+- `CONSUL_LOCAL_CONFIG` passes a JSON string of configuration options to the Consul agent.
 
 The following is an example how to define a multi-line configuration using `CONSUL_LOCAL_CONFIG`.
 

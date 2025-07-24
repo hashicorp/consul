@@ -11,7 +11,9 @@ This topic provides an overview for deploying a Consul server when running Consu
 
 ## Deploy and run a Consul server
 
-You deploy a containerized Consul server by running the `consul agent -server` command as a Docker container and instruct it to form a cluster of one member - itself. Do not use detached mode, so you can reference the client logs during later steps.
+You can start a Consul server container and configure the Consul agent from the command line. 
+
+The following example starts the Docker container and includes a `consul agent -server` sub-command to configure the Consul server agent and enable the UI.
 
 ```shell-session
 $ docker run --name=consul-server -d -p 8500:8500 -p 8600:8600/udp hashicorp/consul consul agent -server -ui -node=server-1 -bootstrap-expect=1 -client=0.0.0.0 -data-dir=/consul/data
@@ -23,11 +25,11 @@ Note, the Consul Docker image sets up the Consul configuration directory at `/co
 
 ~> The configuration directory is **not** exposed as a volume and will not persist data. Consul uses it only during startup and does not store any state there.
 
-To avoid mounting volumes or copying files to the container, you can also submit a Consul configuration in JSON format via the environment variable `CONSUL_LOCAL_CONFIG`. For more information, see the [Consul on Docker documentation](/consul/docs/docker#consul-agent).
+ You can also submit a Consul configuration in JSON format with the environment variable `CONSUL_LOCAL_CONFIG`. This approach does not require mounting volumes or copying files to the container. For more information, refer to the [Consul on Docker documentation](/consul/docs/docker#consul-agent).
 
 ### Discover the server IP address
 
-You can find the IP address of the Consul server by executing the `consul members` command inside of the `consul-server` container.
+To find the IP address of the Consul server, execute the `consul members` command inside of the `consul-server` container.
 
 ```shell-session
 $  docker exec consul-server consul members

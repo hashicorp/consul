@@ -11,7 +11,7 @@ This topic provides an overview for registering services running on Docker conta
 
 ## Register a service
 
-Start a service in a container and register it with the Consul client. We will use `counting-service` as an example - a basic service that increments a number every time it is accessed and returns that number.
+Start a service in a container and register it with the Consul client. The following examples refer to a `counting-service` that increments a number every time it is accessed and then returns that number.
 
 Pull the container.
 
@@ -30,7 +30,7 @@ $ docker run \
    hashicorp/counting-service:0.0.2
 ```
 
-Next, you will register the counting service with the Consul client.
+Next, create a service definition to register the counting service with the Consul client.
 
 <CodeBlockConfig filename="/consul/config/counting.json">
 
@@ -52,14 +52,14 @@ Create the `/consul/config/counting.json` file in your Consul service container.
 $ docker exec consul-client /bin/sh -c "echo '{\"service\": {\"name\": \"counting\", \"tags\": [\"go\"], \"port\": 9001}}' >> /consul/config/counting.json"
 ```
 
-Since the Consul client does not automatically detect changes in the configuration directory, you will need to issue a reload command for the same container.
+Because the Consul client does not automatically detect changes in the configuration directory, you must issue a reload command to the same container. Consul cannot register the service until you trigger a configuration reload.
 
 ```shell-session
 $ docker exec consul-client consul reload
 Configuration reload triggered
 ```
 
-In the logs of the `consul-client` container, there should be entries confirming that the Consul client received the hangup signal, reloaded its configuration, and synced the counting service.
+In the logs of the `consul-client` container, you can find entries that confirm that the Consul client received the hangup signal, reloaded its configuration, and synced the counting service.
 
 ```log hideClipboard
 2022-12-15T19:02:24.945Z [INFO]  agent: Synced service: service=counting
