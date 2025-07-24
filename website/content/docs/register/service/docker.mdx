@@ -19,8 +19,7 @@ Pull the container.
 $ docker pull hashicorp/counting-service:0.0.2
 ```
 
-Run the container with port forwarding so that you can access it from your web browser
-by visiting [http://localhost:9001](http://localhost:9001).
+Run the container with port forwarding so that you can access it from your web browser by visiting [http://localhost:9001](http://localhost:9001).
 
 ```shell-session
 $ docker run \
@@ -46,7 +45,7 @@ Next, create a service definition to register the counting service with the Cons
 
 </CodeBlockConfig>
 
-Create the `/consul/config/counting.json` file in your Consul service container. In this case, the Consul service container is named `consul-client`.
+Create the `/consul/config/counting.json` file in a container where a Consul service runs. In the following example, this container is the `consul-client` container.
 
 ```shell-session
 $ docker exec consul-client /bin/sh -c "echo '{\"service\": {\"name\": \"counting\", \"tags\": [\"go\"], \"port\": 9001}}' >> /consul/config/counting.json"
