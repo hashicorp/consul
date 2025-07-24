@@ -3,10 +3,9 @@
 package local
 
 import (
+	"context"
 	proxycfg "github.com/hashicorp/consul/agent/proxycfg"
 	mock "github.com/stretchr/testify/mock"
-	"context"
-
 
 	structs "github.com/hashicorp/consul/agent/structs"
 )

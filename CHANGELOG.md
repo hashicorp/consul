@@ -1,3 +1,15 @@
+## 1.21.3 (July 18, 2025)
+
+IMPROVEMENTS:
+
+* ui: Improved display and handling of IPv6 addresses for better readability and usability in the Consul web interface. [[GH-22468](https://github.com/hashicorp/consul/issues/22468)]
+
+BUG FIXES:
+
+* cli: validate IP address in service registration to prevent invalid IPs in service and tagged addresses. [[GH-22467](https://github.com/hashicorp/consul/issues/22467)]
+* ui: display IPv6 addresses with proper bracketed formatting [[GH-22423](https://github.com/hashicorp/consul/issues/22423)]
+
+
 ## 1.21.2 (June 17, 2025)
 
 SECURITY:
@@ -37,22 +49,51 @@ IMPROVEMENTS:
 
 * http: Add peer query param on catalog service API [[GH-22189](https://github.com/hashicorp/consul/issues/22189)]
 
-## 1.20.7 Enterprise (May 21, 2025)
+## 1.21.0 (May 06, 2025)
 
 FEATURES:
 
-* xds: Added a configurable option to disable XDS session load balancing, intended for scenarios where an external load balancer is used in front of Consul servers, making internal load balancing unnecessary.
-* xds: Extend LUA Script support for API Gateway
+* config: add UseSNI flag in remote JSONWebKeySet
+agent: send TLS SNI in remote JSONWebKeySet [[GH-22177](https://github.com/hashicorp/consul/issues/22177)]
+* v2: remove HCP Link integration [[GH-21883](https://github.com/hashicorp/consul/issues/21883)]
 
 IMPROVEMENTS:
 
-* http: Add peer query param on catalog service API [[GH-22189](https://github.com/hashicorp/consul/issues/22189)]
+* raft: add a configuration `raft_prevote_disabled` to allow disabling raft prevote [[GH-21758](https://github.com/hashicorp/consul/issues/21758)]
+* raft: update raft library to 1.7.0 which include pre-vote extension [[GH-21758](https://github.com/hashicorp/consul/issues/21758)]
+* SubMatView: Log level change from ERROR to INFO for subject materialized view as subscription creation is retryable on ACL change. [[GH-22141](https://github.com/hashicorp/consul/issues/22141)]
+* ui: Adds a copyable token accessor/secret on the settings page when signed in [[GH-22105](https://github.com/hashicorp/consul/issues/22105)]
+* xDS: Log level change from ERROR to INFO for xDS delta discovery request. Stream can be cancelled on server shutdown and other scenarios. It is retryable and error is a superfluous log. [[GH-22141](https://github.com/hashicorp/consul/issues/22141)]
 
-## 1.19.9 Enterprise (May 21, 2025)
+## 1.21.0-rc2 (April 17, 2025)
+* Enhancement: Added support for Consul Session to update the state of a Health Check, allowing for more dynamic and responsive health monitoring within the Consul ecosystem. This feature enables sessions to directly influence health check statuses, improving the overall reliability and accuracy of service health assessments.
+
+## 1.21.0-rc1 (March 06, 2025)
+
+SECURITY:
+
+* Update `golang.org/x/crypto` to v0.35.0 to address [GO-2025-3487](https://pkg.go.dev/vuln/GO-2025-3487).
+* Update `golang.org/x/oauth2` to v0.27.0 to address [GO-2025-3488](https://pkg.go.dev/vuln/GO-2025-3488).
+* Update `github.com/go-jose/go-jose/v3` to v3.0.4 to address [GO-2025-3485](https://pkg.go.dev/vuln/GO-2025-3485). [[GH-22207](https://github.com/hashicorp/consul/issues/22207)]
+* Upgrade Go to 1.23.6. [[GH-22204](https://github.com/hashicorp/consul/issues/22204)]
+
+FEATURES:
+
+* config: add UseSNI flag in remote JSONWebKeySet
+* agent: send TLS SNI in remote JSONWebKeySet [[GH-22177](https://github.com/hashicorp/consul/issues/22177)]
+* v2: remove HCP Link integration [[GH-21883](https://github.com/hashicorp/consul/issues/21883)]
 
 IMPROVEMENTS:
 
-* http: Add peer query param on catalog service API [[GH-22189](https://github.com/hashicorp/consul/issues/22189)]
+* raft: add a configuration `raft_prevote_disabled` to allow disabling raft prevote [[GH-21758](https://github.com/hashicorp/consul/issues/21758)]
+* raft: update raft library to 1.7.0 which include pre-vote extension [[GH-21758](https://github.com/hashicorp/consul/issues/21758)]
+* SubMatView: Log level change from ERROR to INFO for subject materialized view as subscription creation is retryable on ACL change. [[GH-22141](https://github.com/hashicorp/consul/issues/22141)]
+* ui: Adds a copyable token accessor/secret on the settings page when signed in [[GH-22105](https://github.com/hashicorp/consul/issues/22105)]
+* xDS: Log level change from ERROR to INFO for xDS delta discovery request. Stream can be cancelled on server shutdown and other scenarios. It is retryable and error is a superfluous log. [[GH-22141](https://github.com/hashicorp/consul/issues/22141)]
+
+BUG FIXES:
+
+* logging: Fixed compilation error for OS NetBSD. [[GH-22184](https://github.com/hashicorp/consul/issues/22184)]
 
 ## 1.21.0 (March 17, 2025)
 * Enhancement: Added support for Consul Session to update the state of a Health Check, allowing for more dynamic and responsive health monitoring within the Consul ecosystem. This feature enables sessions to directly influence health check statuses, improving the overall reliability and accuracy of service health assessments.
