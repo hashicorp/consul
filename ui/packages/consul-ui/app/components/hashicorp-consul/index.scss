@@ -4,6 +4,9 @@
  */
 
 %hashicorp-consul {
+  .hds-side-nav {
+    height: auto;
+  }
   .consul-side-nav {
     li.consul-disabled-nav {
       width: 100%;

@@ -62,17 +62,13 @@
     "@babel/helper-call-delegate": "^7.10.1",
     "@babel/plugin-proposal-class-properties": "^7.10.1",
     "@babel/plugin-proposal-object-rest-spread": "^7.5.5",
-    "@csstools/postcss-sass": "^5.0.1",
     "@docfy/ember": "^0.4.1",
     "@ember/optional-features": "^2.0.0",
     "@ember/render-modifiers": "^1.0.2",
     "@ember/test-helpers": "^2.6.0",
     "@glimmer/component": "^1.0.4",
     "@glimmer/tracking": "^1.0.4",
-    "@hashicorp/design-system-components": "^3.0.2",
-    "@hashicorp/design-system-tokens": "^1.9.0",
     "@hashicorp/ember-cli-api-double": "^4.0.0",
-    "@hashicorp/ember-flight-icons": "^4.0.1",
     "@html-next/vertical-collection": "^4.0.0",
     "@lit/reactive-element": "^1.2.1",
     "@xstate/fsm": "^1.4.0",
@@ -104,6 +100,7 @@
     "d3-shape": "^2.0.0",
     "dayjs": "^1.9.3",
     "deepmerge": "^4.2.2",
+    "doctoc": "^2.0.0",
     "ember-array-fns": "^1.4.0",
     "ember-assign-helper": "^0.3.0",
     "ember-auto-import": "^2.4.2",
@@ -119,7 +116,7 @@
     "ember-cli-htmlbars": "^5.7.2",
     "ember-cli-inject-live-reload": "^2.1.0",
     "ember-cli-page-object": "^1.17.11",
-    "ember-cli-postcss": "^8.1.0",
+    "ember-cli-sass": "^11.0.1",
     "ember-cli-sri": "^2.1.1",
     "ember-cli-string-helpers": "^6.1.0",
     "ember-cli-template-lint": "^2.0.1",
@@ -184,8 +181,7 @@
     "refractor": "^3.5.0",
     "remark-autolink-headings": "^6.0.1",
     "remark-hbs": "^0.4.0",
-    "sass": "^1.28.0",
-    "tailwindcss": "^3.1.8",
+    "sass": "^1.89.2",
     "tape": "^5.0.1",
     "text-encoding": "^0.7.0",
     "tippy.js": "^6.2.7",
@@ -196,7 +192,7 @@
     "webpack": "^5.74.0"
   },
   "engines": {
-    "node": "18"
+    "node": "20"
   },
   "ember": {
     "edition": "octane"
@@ -214,7 +210,8 @@
     "node": "18"
   },
   "dependencies": {
-    "doctoc": "^2.0.0",
+    "@hashicorp/design-system-components": "^4.20.2",
+    "@hashicorp/ember-flight-icons": "4.0.0",
     "ember-element-helper": "0.6.1"
   }
 }
