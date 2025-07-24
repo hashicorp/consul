@@ -36,3 +36,69 @@ $  docker exec consul-server consul members
 Node      Address          Status  Type    Build   Protocol  DC   Partition  Segment
 server-1  172.17.0.2:8301  alive   server  1.21.2  2         dc1  default    <all>
 ```
+
+## Multi-node Consul cluster
+
+You can start a Consul cluster with multiple server containers that mimick more closely a production environment. The following example uses a Docker compose file to start three Consul server containers.
+
+<CodeBlockConfig filename="consul-cluster.yml">
+
+```yaml
+version: '3.7'
+services:
+  consul-server1:
+    image: hashicorp/consul:1.21.3
+    container_name: consul-server1
+    restart: always
+    networks:
+      - consul
+    ports:
+      - "8500:8500"
+      - "8600:8600/tcp"
+      - "8600:8600/udp"
+    command: "agent -server -ui -data-dir='/consul/data' -node=consul-server1 -retry-join=consul-server2 -bootstrap-expect=3"
+  consul-server2:
+    image: hashicorp/consul:1.21.3
+    container_name: consul-server2
+    restart: always
+    networks:
+      - consul
+    command: "agent -server -ui -data-dir='/consul/data' -node=consul-server2 -retry-join=consul-server1 -bootstrap-expect=3"
+  consul-server3:
+    image: hashicorp/consul:1.21.3
+    container_name: consul-server3
+    restart: always
+    networks:
+      - consul
+    command: "agent -server -ui -data-dir='/consul/data' -node=consul-server3 -retry-join=consul-server1 -bootstrap-expect=3"
+networks:
+  consul:
+    driver: bridge
+```
+
+</CodeBlockConfig>
+
+You can start the cluster with the following command:
+
+```shell-session
+$ docker-compose -f consul-cluster.yml up -d
+[+] Running 4/4
+ ✔ Network docker_consul     Created                                0.0s
+ ✔ Container consul-server3  Started                                0.2s
+ ✔ Container consul-server1  Started                                0.2s
+ ✔ Container consul-server2  Started                                0.2s
+```
+
+This command starts the three Consul server containers in detached mode. Each server is configured to expect three servers in the cluster, which is specified by the `-bootstrap-expect=3` flag.
+
+You can verify the status of the cluster by executing the `consul members` command inside any of the server containers:
+
+```shell-session
+$ docker exec consul-server1 consul members
+Node            Address          Status  Type    Build   Protocol  DC   Partition  Segment
+consul-server1  172.19.0.2:8301  alive   server  1.21.3  2         dc1  default    <all>
+consul-server2  172.19.0.4:8301  alive   server  1.21.3  2         dc1  default    <all>
+consul-server3  172.19.0.3:8301  alive   server  1.21.3  2         dc1  default    <all>
+```
+
+You can also access the Consul UI by navigating to [http://localhost:8500](http://localhost:8500) in your web browser, because in the Docker compose file the port `8500` on you local machine is forwarded to the `consul-server1` container.
