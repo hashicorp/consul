@@ -11,17 +11,17 @@ This page describes the configuration process for service mesh observability fea
 
 ## Introduction
 
-True service mesh observability consist of three core elements: metrics, logs and traces. To explore each of these elements in Consul service mesh, you use Prometheus to collect metrics, Loki to collect logs, and Tempo to collect traces. Finally, you visualize all the information collected with Grafana.
+Service mesh observability consists of three core elements: metrics, logs, and traces. To observe these elements in Consul's service mesh, use Prometheus to collect metrics, Loki to collect logs, and Tempo to collect traces. Then you can visualize this data with Grafana.
 
 <Note>
 
- The examples in this article are not properly secured for a production environment. If you are implementing this functionality in a production system, we encourage you to further follow the [Consul Reference Architecture](/consul/tutorials/production-deploy/reference-architecture) for Consul best practices and the [Docker Documentation](https://docs.docker.com/) for Docker best practices.
+ The examples in this article are not properly secured for a production environment. If you are implementing this functionality in a production system, we encourage you to review the [Consul Reference Architecture](/consul/tutorials/production-deploy/reference-architecture) for Consul best practices and the [Docker Documentation](https://docs.docker.com/) for Docker best practices.
 
 </Note>
 
 ## Prerequisites
 
-For Docker containers to emit Loki logs, you need to install the Loki logging drivers for Docker. See the [Loki Docker driver plugin page](https://grafana.com/docs/loki/latest/clients/docker-driver/) for more information.
+For Docker containers to emit Loki logs, you need to install the Loki logging drivers for Docker. Refer to the [Loki Docker driver plugin page](https://grafana.com/docs/loki/latest/clients/docker-driver/) for more information.
 
 ```shell-session
 $ docker plugin install grafana/loki-docker-driver:latest --alias loki --grant-all-permissions
@@ -29,7 +29,7 @@ $ docker plugin install grafana/loki-docker-driver:latest --alias loki --grant-a
 
 ## Collect metrics with Prometheus
 
-Configure the Consul target endpoint in Prometheus. The `prometheus.yaml` file contains the configuration for Prometheus to scrape metrics from the Consul server. The `targets` field should point to the Consul server service running in your Docker environment, and the `metrics_path` should be set to `/v1/agent/metrics`.
+Configure the Consul target endpoint in Prometheus. The `prometheus.yaml` file contains the configuration for Prometheus to scrape metrics from the Consul server. The `targets` field should point to the Consul server service running in your Docker environment, and the `metrics_path` should be set to Consul's agent metrics enndpoint, `/v1/agent/metrics`.
 
 <CodeBlockConfig filename="prometheus.yaml">
 
@@ -78,7 +78,7 @@ Loki is an advanced log aggregation system developed by Grafana Labs. The `docke
 
 </CodeBlockConfig>
 
-Using this configuration, Loki will collect logs from all containers in the Docker environment. The logs are sent to Loki using the Loki logging driver. Furthermore, the Loki traces are also sent to Tempo for distributed tracing.
+This configuration allows Loki to collect logs from all containers in the Docker environment. The logs are sent to Loki using the Loki logging driver. The Loki traces are also sent to Tempo for distributed tracing.
 
 ## Collect traces with Tempo
 
@@ -166,7 +166,7 @@ storage:
 
 ## Configure Grafana
 
-Grafana can be configured to collect and visualise metrics, logs, and traces from Prometheus, Loki, and Tempo as data sources.
+You can configure Grafana can to collect and visualize metrics, logs, and traces and use Prometheus, Loki, and Tempo as data sources.
 
 ### Grafana data source: Prometheus
 
@@ -191,7 +191,7 @@ datasources:
 
 ### Grafana data source: Loki
 
-The `datasource-loki.yaml` file contains the configuration for Grafana to connect to Loki. The `url` field should point to the Loki service running in your Docker environment.
+The `datasource-loki.yaml` file contains the configuration for Grafana to connect to Loki. The `datasources.url` field must point to the Loki service running in your Docker environment.
 
 <CodeBlockConfig filename="datasource-loki.yaml">
 
@@ -273,16 +273,16 @@ Now that you have configured the Grafana data sources, you can visualize the dat
 
 ### Explore traces in Grafana
 
-You can explore the traces collected by Tempo in Grafana. Navigate to Grafana's _Explore_ section and execute a search for traces. For example, to view traces from a container named `web`, execute a Grafana search for `{container_name="web"} |= "trace_id"`. Then open one of the log lines, locate the `TraceID` field, then click the nearby `Tempo` link to jump directly from logs to traces. 
+You can explore the traces collected by Tempo in Grafana. Navigate to Grafana's **Explor** section and execute a search for traces. For example, to view traces from a container named `web`, execute a Grafana search for `{container_name="web"} |= "trace_id"`. Then open one of the log lines, locate the `TraceID` field, then click the nearby `Tempo` link to jump directly from logs to traces. 
 
 ![Image of linked logs and traces in Grafana UI.](/img/docker/observability_grafana_logs_traces.png 'There are two panes within the window: a left and right pane. In the left pane, the Loki logs are shown, with one of its entries selected. On the right pane, a Tempo traces graph is shown. The Tempo traces graph shows communication details between the three services, ingress, web, and api.')
 
-Traces provide insight into service mesh performance. To learn more about how application communication traverses through the service mesh, see the [distributed tracing article](https://www.hashicorp.com/blog/enabling-distributed-tracing-with-hashicorp-consul).
+Traces provide insight into service mesh performance. To learn more about how application communication traverses through the service mesh, refer to [our blog on distributed tracing](https://www.hashicorp.com/blog/enabling-distributed-tracing-with-hashicorp-consul), as well as the [distributed tracing documentation](/consul/docs/observe/distributed-tracing).
 
 ### Explore metrics in Grafana
 
-You can explore the metrics collected by Prometheus in Grafana. Navigate to the _Dashboards_ section and select the _Consul Server Monitoring_ dashboard that you imported earlier. This dashboard provides a comprehensive view of the Consul server metrics, including Raft commit time, catalog operation time, and autopilot health.
+You can explore the metrics collected by Prometheus in Grafana. Navigate to the **Dashboards** section and select the **Consul Server Monitoring** dashboard. This dashboard provides a comprehensive view of the Consul server metrics, including Raft commit time, catalog operation time, and autopilot health.
 
 ![Image of Consul Server Monitoring metrics dashboard in Grafana UI.](/img/docker/observability_grafana_consul_metrics.png 'A dashboard is shown with four panes present. Each of the panes shows details around various metrics generated by Consul including Raft commit time, catalog operation time, and autopilot health.')
 
-This dashboard presents important application-level metrics for Consul and provides important insight into the health and performance of your service mesh. To learn more about the various runtime metrics reported by Consul, see the [Consul telemetry docs](/consul/docs/reference/agent/telemetry).
+This dashboard presents important application-level metrics for Consul and provides important insight into the health and performance of your service mesh. To learn more about the various runtime metrics reported by Consul, refer to the [Consul telemetry docs](/consul/docs/reference/agent/telemetry).
