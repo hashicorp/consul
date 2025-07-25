@@ -1529,6 +1529,10 @@
       {
         "title": "Kubernetes",
         "path": "discover/k8s"
+      },
+      {
+        "title": "Docker",
+        "path": "discover/docker"
       }
     ]
   },

@@ -1,0 +1,43 @@
+---
+layout: docs
+page_title: Discover services with Consul on Docker
+description: >-
+  This page provides an overview of the service discovery features and operations Consul supports when running on Docker.
+---
+
+# Discover services with Consul on Docker
+
+This page provides an overview of Consul service discovery operations when running on Docker.
+
+When running Consul on Docker, you can use the Consul DNS interface to perform service discovery operations.
+
+## Introduction
+
+When a service registers with Consul, the catalog records the address of the container running the service. Consul then updates the service's catalog entry with the results of each health check it performs. Consul agents replicate catalog information between each other using the [Raft consensus protocol](/consul/docs/concept/consensus), enabling high availability service networking through any Consul agent.
+
+Consul's service discovery operations use [Consul DNS addresses](/consul/docs/discover/dns) to route traffic to healthy service instances and return information about service nodes registered to Consul.
+
+You can also use the `docker exec` command to connect directly to a Consul container and interact with Consul's service discovery features.
+
+## Application load balancing
+
+@include 'text/descriptions/load-balancer.mdx'
+
+## Static lookups
+
+@include 'text/descriptions/static-query.mdx'
+
+## Prepared queries
+
+@include 'text/descriptions/prepared-query.mdx'
+
+## Reference documentation
+
+For reference material related to Consul's service discovery functions on Docker, refer to the following pages:
+
+- [Discover services on Docker containers](/consul/docs/discover/dns/docker)
+- [Consul DNS reference](/consul/docs/reference/dns)
+
+## Constraints, limitations, and troubleshooting
+
+@include 'text/limitations/discover.mdx'
