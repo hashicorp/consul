@@ -273,7 +273,7 @@ Now that you have configured the Grafana data sources, you can visualize the dat
 
 ### Explore traces in Grafana
 
-You can explore the traces collected by Tempo in Grafana. Navigate to Grafana's **Explor** section and execute a search for traces. For example, to view traces from a container named `web`, execute a Grafana search for `{container_name="web"} |= "trace_id"`. Then open one of the log lines, locate the `TraceID` field, then click the nearby `Tempo` link to jump directly from logs to traces. 
+You can explore the traces collected by Tempo in Grafana. Navigate to Grafana's **Explore** section and execute a search for traces. For example, to view traces from a container named `web`, execute a Grafana search for `{container_name="web"} |= "trace_id"`. Then open one of the log lines, locate the `TraceID` field, then click the nearby `Tempo` link to jump directly from logs to traces. 
 
 ![Image of linked logs and traces in Grafana UI.](/img/docker/observability_grafana_logs_traces.png 'There are two panes within the window: a left and right pane. In the left pane, the Loki logs are shown, with one of its entries selected. On the right pane, a Tempo traces graph is shown. The Tempo traces graph shows communication details between the three services, ingress, web, and api.')
 
