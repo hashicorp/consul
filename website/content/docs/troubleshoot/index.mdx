@@ -80,7 +80,7 @@ $ consul monitor
 
 The `consul validate` command can be run on a single Consul configuration file or, more commonly, on an entire directory of configuration files. Basic syntax and logical correctness will be analyzed and reported upon.
 
-This command will catch misspellings of Consul configuration keys, or the absence or misconfiguration of crucial attributes.
+This command catches misspellings of Consul configuration keys, as well as the absence or misconfiguration of crucial attributes.
 
 ```shell-session
 $ consul validate /etc/consul.d/counting.json
@@ -92,7 +92,7 @@ $ consul validate /etc/consul.d/counting.json
 
 ### Generate debug file
 
-The `consul debug` command can be run on a node without any other arguments. It will log metrics, logs, profiling data, and other data to the current directory for two minutes.
+The `consul debug` command can be run on a node without any other arguments. It captures metrics, logs, profiling data, and other data to the current directory for two minutes.
 
 All content is written in plain text to a compressed archive, so do not transmit the emitted data over unencrypted channels.
 
@@ -126,7 +126,7 @@ $ tree consul-debug-1548721978
 
 ### Latest health check status
 
-When enabled, health checks are a crucial part of the operation of the Consul datacenter. Unhealthy services will not be published for discovery via standard DNS, or some HTTP API calls.
+When enabled, health checks are a crucial part Consul's catalog operations. Consul does not return unhealthy services for discovery through standard DNS, as well as some HTTP API calls.
 
 You can monitor the health of nodes and services from the Consul Web UI, or by querying the HTTP API. The `/v1/agent/services` endpoint returns a list of all services registered in the catalog.
 
@@ -134,7 +134,7 @@ You can monitor the health of nodes and services from the Consul Web UI, or by q
 $ curl "http://localhost:8500/v1/agent/services"
 ```
 
-Provide filters on the query string, such as a name and health check status. For example, to query all instances of service `counting` with a healthy passing status, query the following endpoint `/v1/health/service/counting?passing`.
+Provide filters on the query string, such as a name and health check status. For example, to query all instances of service `counting` with a healthy passing status, query the endpoint `/v1/health/service/counting?passing`.
 
 ```shell-session
 $ curl 'http://localhost:8500/v1/health/service/counting?passing'
@@ -201,7 +201,9 @@ $ oc import-image hashicorp/consul:1.21.0-ubi --from=registry.connect.redhat.com
 imagestream.image.openshift.io/consul imported
 ```
 
-If the image registry has invalid HTTPS certificate, or is hosted over HTTP, use the `--insecure=true` flag when you import images. Similarly, if the image registry is overloaded and you need to extend the request timeout, use the `--request-timeout` flag and a unit of time - for example, `--request-timeout=5m` for five minutes.
+If the image registry has an invalid HTTPS certificate or is hosted over HTTP, include the `--insecure=true` flag when you import images. 
+
+Similarly, if the image registry is overloaded and you need to extend the request timeout, use the `--request-timeout` flag and a unit of time. For example, `--request-timeout=5m` extends the timeout length to five minutes.
 
 ## External troubleshooting tools
 
