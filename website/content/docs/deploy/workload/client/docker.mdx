@@ -11,7 +11,7 @@ This topic provides an overview for deploying a Consul client when running Consu
 
 ## Deploy and run a Consul client
 
-After you [deploy one or more server agents](/consul/docs/deploy/server/docker), you can deploy a containerized   Consul client agent that joins the datacenter.  Do not use detached mode, so you can reference the client logs later.
+After you [deploy one or more server agents](/consul/docs/deploy/server/docker), you can deploy a containerized Consul client agent that joins the datacenter. Do not use detached mode. That way you can reference the client logs later.
 
 The following command deploys a Docker container and instructs it to join the Consul cluster by including a Consul server's hostname or IP address in the `retry-join` parameter.
 
