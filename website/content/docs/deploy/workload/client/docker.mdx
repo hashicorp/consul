@@ -16,16 +16,16 @@ After you [deploy one or more server agents](/consul/docs/deploy/server/docker),
 The following command deploys a Docker container and instructs it to join the Consul cluster by including a Consul server's hostname or IP address in the `retry-join` parameter.
 
 ```shell-session
-$ docker run --name=consul-client hashicorp/consul consul agent -node=client-1 -data-dir=/consul/data -retry-join=172.17.0.2
+$ docker run --name=consul-client hashicorp/consul consul agent -node=consul-client -data-dir=/consul/data -retry-join=consul-server
 ==> Starting Consul agent...
                Version: '1.21.2'
             Build Date: '2025-06-18 08:16:39 +0000 UTC'
                Node ID: '63a0c0ae-4762-2fa5-4b70-1cf526a1395b'
-             Node name: 'client-1'
+             Node name: 'consul-client'
             Datacenter: 'dc1' (Segment: '')
                 Server: false (Bootstrap: false)
            Client Addr: [127.0.0.1] (HTTP: 8500, HTTPS: -1, gRPC: -1, gRPC-TLS: -1, DNS: 8600)
-          Cluster Addr: 172.17.0.2 (LAN: 8301, WAN: 8302)
+          Cluster Addr: consul-server (LAN: 8301, WAN: 8302)
      Gossip Encryption: false
       Auto-Encrypt-TLS: false
            ACL Enabled: false
@@ -36,7 +36,7 @@ $ docker run --name=consul-client hashicorp/consul consul agent -node=client-1 -
 
 ==> Log data will now stream in as it occurs:
 
-2025-07-22T23:16:33.667Z [INFO]  agent.client.serf.lan: serf: EventMemberJoin: client-1 172.17.0.2
+2025-07-22T23:16:33.667Z [INFO]  agent.client.serf.lan: serf: EventMemberJoin: consul-client consul-server
 2025-07-22T23:16:33.667Z [INFO]  agent.router: Initializing LAN area manager
 2025-07-22T23:16:33.667Z [INFO]  agent: Started DNS server: address=127.0.0.1:8600 network=udp
 2025-07-22T23:16:33.667Z [INFO]  agent: Started DNS server: address=127.0.0.1:8600 network=tcp
@@ -44,7 +44,7 @@ $ docker run --name=consul-client hashicorp/consul consul agent -node=client-1 -
 2025-07-22T23:16:33.668Z [INFO]  agent: started state syncer
 2025-07-22T23:16:33.668Z [INFO]  agent: Retry join is supported for the following discovery methods: cluster=LAN discovery_methods="aliyun aws azure digitalocean gce hcp k8s linode mdns os packet scaleway softlayer tencentcloud triton vsphere"
 2025-07-22T23:16:33.668Z [INFO]  agent: Joining cluster...: cluster=LAN
-2025-07-22T23:16:33.668Z [INFO]  agent: (LAN) joining: lan_addresses=["172.17.0.2"]
+2025-07-22T23:16:33.668Z [INFO]  agent: (LAN) joining: lan_addresses=["consul-server"]
 2025-07-22T23:16:33.668Z [INFO]  agent: Consul agent running!
 
 ##...
@@ -65,3 +65,64 @@ consul-client  172.17.0.3:8301  alive   client  1.21.2  2         dc1  default  
 ```
 
 The output confirms that the client joined the cluster, and is ready to accept service definitions.
+
+## Multi-agent Consul deployment
+
+You can start a multi-agent Consul deployment with multiple client containers. The following example uses a Docker compose file to start three Consul client containers that try to connect to a Consul server `consul-server1`. For more information about starting a Consul server cluster, see [Deploy Consul server agents on Docker](/docs/deploy/server/docker).
+
+<CodeBlockConfig filename="consul-clients.yml">
+
+```yaml
+version: '3.7'
+services:
+  consul-client1:
+    image: hashicorp/consul:1.21.3
+    container_name: consul-client1
+    restart: always
+    networks:
+      - consul
+    command: "agent -node=consul-client1 -client=0.0.0.0 -data-dir='/consul/data' -retry-join=consul-server1"
+  consul-client2:
+    image: hashicorp/consul:1.21.3
+    container_name: consul-client2
+    restart: always
+    networks:
+      - consul
+    command: "agent -node=consul-client2 -client=0.0.0.0 -data-dir='/consul/data' -retry-join=consul-server1"
+  consul-client3:
+    image: hashicorp/consul:1.21.3
+    container_name: consul-client3
+    restart: always
+    networks:
+      - consul
+    command: "agent -node=consul-client3 -client=0.0.0.0 -data-dir='/consul/data' -retry-join=consul-server1"
+networks:
+  consul:
+    driver: bridge
+```
+
+</CodeBlockConfig>
+
+You can start the cluster with the following command:
+
+```shell-session
+$ docker-compose -f consul-clients.yml up -d
+[+] Running 4/4
+ ✔ Network docker_consul     Created                                0.0s
+ ✔ Container consul-client3  Started                                0.2s
+ ✔ Container consul-client1  Started                                0.2s
+ ✔ Container consul-client2  Started                                0.2s
+```
+
+This command starts the three Consul client containers in detached mode. Each client is configured to join the cluster by retrying to connect to `consul-server1`.
+
+You can verify the status of the cluster by executing the `consul members` command inside any of the client containers:
+
+```shell-session
+$ docker exec consul-client1 consul members
+Node            Address          Status  Type    Build   Protocol  DC   Partition  Segment
+consul-server1  172.19.0.2:8301  alive   server  1.21.3  2         dc1  default    <all>
+consul-client1  172.19.0.3:8301  alive   client  1.21.3  2         dc1  default    <default>
+consul-client2  172.19.0.4:8301  alive   client  1.21.3  2         dc1  default    <default>
+consul-client3  172.19.0.5:8301  alive   client  1.21.3  2         dc1  default    <default>
+```
