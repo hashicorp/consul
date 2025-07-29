@@ -37,7 +37,7 @@ jobs:
 
     - uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
       with:
-        node-version: '18'
+        node-version: '20'
 
     - name: Install Yarn
       run: corepack enable
@@ -57,7 +57,7 @@ jobs:
 
     - uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
       with:
-        node-version: '18'
+        node-version: '20'
 
     - name: Install Yarn
       run: corepack enable
@@ -87,7 +87,7 @@ jobs:
 
       - uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
         with:
-          node-version: '18'
+          node-version: '20'
 
       - name: Install Yarn
         run: corepack enable
@@ -127,7 +127,7 @@ jobs:
 
     - uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
       with:
-        node-version: '18'
+        node-version: '20'
 
     - name: Install Yarn
       run: corepack enable
