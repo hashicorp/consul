@@ -5340,7 +5340,7 @@ codemirror-lang-hcl@^0.0.0-beta.2:
     "@lezer/highlight" "^1.0.0"
     "@lezer/lr" "^1.0.0"
 
-codemirror@5.58.2, codemirror@~5.15.0:
+codemirror@5.58.2:
   version "5.58.2"
   resolved "https://registry.npmjs.org/codemirror/-/codemirror-5.58.2.tgz#ed54a1796de1498688bea1cdd4e9eeb187565d1b"
   integrity sha512-K/hOh24cCwRutd1Mk3uLtjWzNISOkm4fvXiMO7LucCrqbh6aJDdtqUziim3MZUI6wOY0rvY1SlL1Ork01uMy6w==
@@ -6421,7 +6421,7 @@ ember-cli-babel-plugin-helpers@^1.0.0, ember-cli-babel-plugin-helpers@^1.1.0, em
   resolved "https://registry.npmjs.org/ember-cli-babel-plugin-helpers/-/ember-cli-babel-plugin-helpers-1.1.1.tgz#5016b80cdef37036c4282eef2d863e1d73576879"
   integrity sha512-sKvOiPNHr5F/60NLd7SFzMpYPte/nnGkq/tMIfXejfKHIhaiIkYFqX8Z9UFTKWLLn+V7NOaby6niNPZUdvKCRw==
 
-ember-cli-babel@^6.0.0, ember-cli-babel@^6.0.0-beta.4, ember-cli-babel@^6.6.0, ember-cli-babel@^6.8.1, ember-cli-babel@^6.8.2:
+ember-cli-babel@^6.0.0-beta.4, ember-cli-babel@^6.6.0, ember-cli-babel@^6.8.1, ember-cli-babel@^6.8.2:
   version "6.18.0"
   resolved "https://registry.npmjs.org/ember-cli-babel/-/ember-cli-babel-6.18.0.tgz#3f6435fd275172edeff2b634ee7b29ce74318957"
   integrity sha512-7ceC8joNYxY2wES16iIBlbPSxwKDBhYwC8drU3ZEvuPDMwVv1KzxCNu1fvxyFEBWhwaRNTUxSCsEVoTd9nosGA==
@@ -10046,15 +10046,6 @@ istextorbinary@^2.5.1:
     binaryextensions "^2.1.2"
     editions "^2.2.0"
     textextensions "^2.5.0"
-
-ivy-codemirror@^2.1.0:
-  version "2.1.0"
-  resolved "https://registry.npmjs.org/ivy-codemirror/-/ivy-codemirror-2.1.0.tgz#c06f1606c375610bf62b007a21a9e63f5854175e"
-  integrity sha512-+Ha6Yf39fiK3dfQD5vlanrQ8GMIf/KVRbxzEzG+AsvAgUNSO8VECCfIRzdHQZcBfi9jNCaT+9q6VQd7mSqNalQ==
-  dependencies:
-    codemirror "~5.15.0"
-    ember-cli-babel "^6.0.0"
-    ember-cli-node-assets "^0.2.2"
 
 jest-worker@^27.4.5:
   version "27.5.1"
