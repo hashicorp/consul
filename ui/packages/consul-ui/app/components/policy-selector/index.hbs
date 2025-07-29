@@ -124,21 +124,6 @@
         {{/if}}
         <label class='type-text'>
           {{#if (eq item.template 'service-identity')}}
-            {{!-- <CodeEditor
-              @syntax="hcl"
-              @readonly={{true}}
-            >
-              <:label>
-                Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a>
-              </:label>
-              <:content>
-                <Consul::ServiceIdentity::Template
-                  @nspace={{nspace}}
-                  @partition={{partition}}
-                  @name={{item.Name}}
-                />
-              </:content>
-            </CodeEditor> --}}
             <Hds::CodeBlock
               @language='hcl'
               @value={{service-identity-template
@@ -159,19 +144,6 @@
                 >(HCL Format)</a>
               </CB.Title></Hds::CodeBlock>
           {{else if (eq item.template 'node-identity')}}
-            {{!-- <CodeEditor @syntax='hcl' @readonly={{true}}>
-              <:label>
-                Rules
-                <a
-                  href='{{env "CONSUL_DOCS_URL"}}/guides/acl.html#rule-specification'
-                  rel='help noopener noreferrer'
-                  target='_blank'
-                >(HCL Format)</a>
-              </:label>
-              <:content>
-                <Consul::NodeIdentity::Template @name={{item.Name}} @partition={{partition}} />
-              </:content>
-            </CodeEditor> --}}
             <Hds::CodeBlock
               @language='hcl'
               @value={{node-identity-template
@@ -191,16 +163,6 @@
                 >(HCL Format)</a>
               </CB.Title></Hds::CodeBlock>
           {{else}}
-            {{!-- <CodeEditor @syntax='hcl' @readonly={{true}} @value={{or loadedItem.Rules item.Rules}}>
-              <:label>
-                Rules
-                <a
-                  href='{{env "CONSUL_DOCS_URL"}}/guides/acl.html#rule-specification'
-                  rel='help noopener noreferrer'
-                  target='_blank'
-                >(HCL Format)</a>
-              </:label>
-            </CodeEditor> --}}
             <Hds::CodeBlock @language='hcl' @value={{or loadedItem.Rules item.Rules ''}} as |CB|>
               <CB.Title @tag='h3'>
                 Rules
