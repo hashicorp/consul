@@ -8,12 +8,12 @@ Feature: dc / kvs / create
     ---
     Then the url should be /datacenter/kv/create
     And the title should be "New Key / Value - Consul"
+    And pause for 200
     Then I fill in with yaml
     ---
       additional: key-value
+      value: value
     ---
-    And pause for 200
-    Then I fill in code editor "value" with "value"
     And I submit
     Then the url should be /datacenter/kv
     Then a PUT request was made to "/v1/kv/key-value?dc=datacenter&ns=@namespace"
