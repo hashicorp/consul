@@ -3,26 +3,32 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
+const isClassParentOfElement = function (_class, element) {
+  if (!element || !element.parentElement) {
+    return false;
+  }
+  if (element.parentElement.classList.contains(_class)) {
+    return true;
+  }
+
+  return isClassParentOfElement(_class, element.parentElement);
+};
+
 export default function (scenario, find, fillIn, triggerKeyEvent, currentPage) {
   const dont = `( don't| shouldn't| can't)?`;
 
   const fillInCodeEditor = function (page, name, value) {
     const valueElement = document.querySelector(`[aria-label="${name}"]`);
-    const codeEditorElement = document.querySelector('.cm-editor');
-    const codeBlockElement = document.querySelector('.hds-code-block');
 
-    /**
-     * if codeEditorElement is parent of valueElement, then we are dealing with a CodeMirror editor
-     *
-     * if codeBlockElement is parent of valueElement, then we are dealing with a HDS CodeBlock, which is readOnly
-     *
-     */
-    if (codeEditorElement && codeEditorElement.contains(valueElement)) {
+    const isCodeEditorElement = isClassParentOfElement('cm-editor', valueElement);
+    const isCodeBlockElement = isClassParentOfElement('hds-code-block', valueElement);
+    if (isCodeEditorElement) {
       const valueBlock = document.createElement('div');
       valueBlock.innerHTML = value;
+      valueElement.innerHTML = '';
       valueElement.appendChild(valueBlock);
     } else {
-      if (codeBlockElement && codeBlockElement.contains(valueElement)) {
+      if (isCodeBlockElement) {
         throw new Error(`The ${name} editor is set to readonly`);
       }
 
@@ -34,6 +40,10 @@ export default function (scenario, find, fillIn, triggerKeyEvent, currentPage) {
 
   const fillInElement = async function (page, name, value) {
     const cm = document.querySelector(`textarea[name="${name}"] + .CodeMirror`);
+    const codeEditor = document.querySelector(`[aria-label="${name}"]`);
+    if (isClassParentOfElement('cm-editor', codeEditor)) {
+      return fillInCodeEditor(page, name, value);
+    }
     if (cm) {
       if (!cm.CodeMirror.options.readOnly) {
         cm.CodeMirror.setValue(value);
