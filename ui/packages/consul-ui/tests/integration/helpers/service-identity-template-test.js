@@ -12,17 +12,17 @@ module('Integration | Helper | service-identity-template', function (hooks) {
 
     assert.dom('pre').hasText(
       `service "api" {
-  policy = "write"
-}
-service "api-sidecar-proxy" {
-  policy = "write"
-}
-service_prefix "" {
-  policy = "read"
-}
-node_prefix "" {
-  policy = "read"
-}`
+        policy = "write"
+      }
+      service "api-sidecar-proxy" {
+        policy = "write"
+      }
+      service_prefix "" {
+        policy = "read"
+      }
+      node_prefix "" {
+        policy = "read"
+      }`
     );
   });
 
