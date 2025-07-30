@@ -264,17 +264,3 @@ The datacenter operator, using a `global-management` token, can also create poli
 
 To learn how to register services within a namespace, refer to [Register services into a namespace](/consul/docs/register/service/namespace?utm_source=docs).
 
-### Namespace inheritance with tokens
-
-A token's namespace can be inherited during CLI and API requests related to services,
-intentions, Consul KV, checks, and ACLs. This means that if you register a
-service with a token in the app-team namespace, the service will be registered in that namespace without having to specify it explicitly. In the tutorial you did not use namespace inheritance from the token, since you explicitly used the namespace flag.
-
-<Note>
-
- Services registered with service definition configuration files must
-have both the ACL token and namespace name defined in the [service definition
-configuration file](/consul/docs/fundamentals/config-entry),
-as these files are parsed prior to resolving the token.
-
-</Note>
