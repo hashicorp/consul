@@ -32,9 +32,12 @@ export default ChildSelectorComponent.extend({
     this._super(...arguments);
     set(this, 'isScoped', false);
   },
-  refreshCodeEditor: function (e, target) {
-    const selector = '.code-editor';
-    this.dom.component(selector, target).didAppear();
+  refreshCodeEditor: function () {
+    // Could be better, but this is a hack to clear the code editor
+    const codeEditor = document.querySelector('[aria-label="policy[Rules]"]');
+    if (codeEditor) {
+      codeEditor.innerHTML = '';
+    }
   },
   error: function (e) {
     const item = this.item;
@@ -71,7 +74,7 @@ export default ChildSelectorComponent.extend({
   },
   actions: {
     open: function (e) {
-      this.refreshCodeEditor(e, e.target.parentElement);
+      this.refreshCodeEditor();
     },
   },
 });

@@ -13,8 +13,10 @@ export default function (scenario, assert, find, currentPage) {
     }
     return Object.keys(data).reduce(function (prev, item, i, arr) {
       const name = `${obj.prefix || property}[${item}]`;
-      const $el = document.querySelector(`[name="${name}"]`);
-      const actual = $el.value;
+      const $el =
+        document.querySelector(`[name="${name}"]`) ||
+        document.querySelector(`[aria-label="${name}"]`);
+      const actual = $el.value || $el.textContent;
       const expected = data[item];
       assert.strictEqual(actual, expected, `Expected settings to be ${expected} was ${actual}`);
     }, obj);
