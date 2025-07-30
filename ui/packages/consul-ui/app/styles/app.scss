@@ -5,9 +5,6 @@
 
 @charset 'utf-8';
 
-/* tailwind before all the customizations */
-@import 'tailwind';
-
 /* css for hds */
 @import '@hashicorp/design-system-components';
 
@@ -30,3 +27,24 @@
 /* debug only, this is empty during a production build */
 /* but uses the contents of ./debug.scss during dev */
 @import '_debug';
+
+// Should be removed when we remove FlightIcons
+.w-4 {
+  width: 1rem;
+}
+
+.h-4 {
+  height: 1rem;
+}
+
+svg {
+  vertical-align: middle;
+}
+
+.mt-2 {
+    margin-top: .5rem;
+}
+
+.mb-3 {
+    margin-bottom: .75rem;
+}

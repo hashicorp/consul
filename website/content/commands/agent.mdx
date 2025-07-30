@@ -81,6 +81,11 @@ information.
   support for multiple datacenters, but it relies on proper configuration. Nodes
   in the same datacenter should be on a single LAN.
 
+~> **Warning:** This `datacenter` string must conform to [RFC 1035 DNS label requirements](https://datatracker.ietf.org/doc/html/rfc1035#section-2.3.1),
+    consisting solely of letters, digits, and hyphens, with a maximum
+    length of 63 characters, and no hyphens at the beginning or end of the label.
+    Non-compliant names create Consul DNS entries incompatible with PKI X.509 certificate generation.
+
 - `-dev` ((#\_dev)) - Enable development server mode. This is useful for
   quickly starting a Consul agent with all persistence options turned off, enabling
   an in-memory server which can be used for rapid prototyping or developing against
@@ -487,7 +492,7 @@ information.
   - Metadata values must be between 0 and 512 (inclusive) characters in length.
   - Metadata values for keys beginning with `rfc1035-` are encoded verbatim in DNS TXT requests, otherwise
     the metadata kv-pair is encoded according [RFC1464](https://www.ietf.org/rfc/rfc1464.txt).
- 
+
 - `-disable-host-node-id` ((#\_disable_host_node_id)) - Setting this to
   true will prevent Consul from using information from the host to generate a deterministic
   node ID, and will instead generate a random node ID which will be persisted in

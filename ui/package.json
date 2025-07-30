@@ -26,9 +26,21 @@
     "braces": "^3.0.0",
     "markdown-it": "^12.3.2",
     "codemirror": "5.58.2",
-    "ansi-html": "0.0.8"
+    "ansi-html": "0.0.8",
+    "json5": "^2.2.3",
+    "**/express/path-to-regexp": "0.1.12",
+    "**/nise/path-to-regexp": "1.9.0",
+    "body-parser": "1.20.3",
+    "elliptic": "6.6.1",
+    "nanoid": "3.3.8",
+    "prismjs": "1.30.0",
+    "@babel/runtime": "8.0.0-alpha.17",
+    "@babel/helpers": "7.26.10",
+    "micromatch": "4.0.8",
+    "webpack": "5.94.0",
+    "rollup": "2.79.2"
   },
   "engines": {
-    "node": "18"
+    "node": "20"
   }
 }
