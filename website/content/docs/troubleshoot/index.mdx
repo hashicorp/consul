@@ -7,82 +7,30 @@ description: >-
 
 # Troubleshoot Consul datacenter operations
 
-Troubleshooting is a fundamental skill for any devops practitioner and Consul includes several tools to help you view log messages, validate
-configuration files, examine the service catalog, and do other debugging.
+Troubleshooting is a fundamental skill for any devops practitioner and Consul includes several tools to help you view log messages, validate configuration files, examine the service catalog, and do other debugging.
 
-## Troubleshooting steps
 
-Before you start, consider following a pre-determined troubleshooting workflow,
-which can keep distractions from interfering with finding and fixing the
-problem. You or your team might already use a workflow such as [Observe, Orient,
-Decide, Act](https://en.wikipedia.org/wiki/OODA_loop) or [Rubber duck
-debugging](https://en.wikipedia.org/wiki/Rubber_duck_debugging). We like to use
-the following process:
+Before you start, consider following a pre-determined troubleshooting workflow, which can keep distractions from interfering with finding and fixing the problem. You or your team might already use a workflow such as [Observe, Orient, Decide, Act](https://en.wikipedia.org/wiki/OODA_loop) or [Rubber duck debugging](https://en.wikipedia.org/wiki/Rubber_duck_debugging).
 
-1. Gather data
-1. Verify what works
-1. Solve one problem at a time
-1. Form a hypothesis and test it
-1. (Repeat)
+## Workflow
 
-Consul and other tools generate log files, status messages, process lists, data
-feeds, and other useful information, which you can use when gathering data.
-We'll go over many of those tools in this tutorial.
+We recommend the following approach to troubleshooting Consul:
 
-Verifying what works is important because Consul sits at the center of other
-highly complex systems. Making sure that core systems, networking, and services
-are working as expected can help you narrow down the problem space, and prevent
-you from spending time troubleshooting the wrong issues. If you are uncertain
-about how a component works or if it is working at all, list that uncertainty in
-your notes or take the time to verify that it is operating normally. In this
-tutorial, we'll discuss some tools that can help you check on outside systems, but
-you should always consult their documentation as well.
+1. **Gather data**. Review Consul's log files, status messages, process lists, data feeds, and agent metrics to help you understand what went wrong.
+1. **Verify what works**. Consul sits at the center of other highly complex systems. To narrow down the issue, confirm that systems, networking, and services are working as expected.
+1. **Solve one problem at a time**. Consul is highly configurable. Try to solve one problem at a time, verify successful operations, and then proceed to the next issue. Consider building a smaller system dedicated to testing specific configuration options or features that seem to be operating incorrectly.
 
-Because Consul is highly configurable, you'll find it easier if you solve one
-problem at a time, verify successful operation, and then proceed to the next
-issue. If necessary, build a smaller system where you can test the specific
-configuration options or features that seem to be operating incorrectly. Once
-you have verified proper syntax, correct network operation, and fully
-functioning microservices, then you can integrate those changes back into the
-main system.
+Repeat these steps to isolate each piece of the problem. 
 
-Hypothesis-based testing can help you focus on the one problem you've chosen.
-Write down a hypothesis (theory) about what might be causing your problem and
-how it might be fixed. Then observe the data and take action to confirm your
-theory is correct (and if it fixes the problem).
+For especially large or complex deployments, we recommend hypothesis-based testing to help you troubleshoot. Write down your theory about what is causing the problem and how you can test it. Then, observe the data and take action to confirm your theory is correct and find out if it fixes the underlying problem. Follow a consistent process and track your actions to reduce the likelihood that your troubleshooting efforts complicate the situation.
 
-You may need to repeat some or all of this process to isolate each piece of the
-problem. By following a consistent process (no matter what it is), you can
-reduce the likelihood that your process will complicate the situation.
+## Where to start
 
-## Consul-specific tools
+We recommend gathering the following information when you begin troubleshooting your Consul cluster.
 
-Now that you have a troubleshooting process, let's examine the tools and data
-available to you while operating Consul. These Consul-specific tools will help
-you gather data and verify what is already working.
+### Cluster members
 
-<Note>
-
- Each of the Consul commands mentioned below can be run on a node with
-access to the `consul` agent. Use SSH or other container-specific commands to
-connect to a compute node in your datacenter.
-
-</Note>
-
-### Review your Consul architecture
-
-When communicating to other members of your team or to support staff, it's
-helpful to review some details about your Consul architecture, such as:
-
-- How are you querying Consul? (DNS, HTTP)
-- Is the Consul web UI available for viewing?
-- What system are you using for launching microservices? (`systemd`,
-  `kubernetes`, `upstart`, Nomad, etc.)
-
-### Members
-
-The `consul members` command will list the other servers and agents that are
-part of the Consul datacenter connected to the current agent.
+The `consul members` command will list the other servers and agents that are part of the Consul datacenter connected to the current agent.
 
 ```shell-session
 $ consul members
@@ -91,15 +39,11 @@ Node    Address         Status  Type    Build  Protocol  DC   Segment
 laptop  127.0.0.1:8301  alive   server  1.4.0  2         dc1  <all>
 ```
 
-- [Consul members
-  documentation](/consul/commands/members)
+- [Consul members documentation](/consul/commands/members)
 
-### List peers
+### Raft peers
 
-If you need details other than those provided by `members`, try the subcommands
-of `consul operator raft`. These work with Consul at a lower level but can
-provide detail about the moment-to-moment status of the datacenter. This will list
-leader state, voting status, and raft protocol version.
+If you need details other than those provided by `members`, try the subcommands of `consul operator raft`. These work with Consul at a lower level but can provide detail about the moment-to-moment status of the datacenter. This will list leader state, voting status, and raft protocol version.
 
 ```shell-session
 $ consul operator raft list-peers
@@ -108,13 +52,11 @@ Node    ID           Address         State   Voter  RaftProtocol
 laptop  abc-def-g12  127.0.0.1:8300  leader  true   3
 ```
 
-- [Consul operator
-  raft documentation](/consul/commands/operator/raft)
+- [Consul operator raft documentation](/consul/commands/operator/raft)
 
-### Monitor
+### Agent log output
 
-The `consul monitor` command displays log output from the Consul agent. Other
-arguments can increase the amount of information given, such as `-log-level debug` or `-log-level trace` for large amounts of log data.
+The `consul monitor` command displays log output from the Consul agent. Other arguments can increase the amount of information given, such as `-log-level debug` or `-log-level trace` for large amounts of log data.
 
 ```shell-session
 $ consul monitor
@@ -132,17 +74,13 @@ $ consul monitor
 2019/01/25 17:48:33 [INFO] agent: Started gRPC server on 127.0.0.1:8502 (tcp)
 ```
 
-- [Consul monitor
-  documentation](/consul/commands/monitor)
+- [Consul monitor documentation](/consul/commands/monitor)
 
-### Validate
+### Validate configuration
 
-The `consul validate` command can be run on a single Consul configuration file
-or, more commonly, on an entire directory of configuration files. Basic syntax
-and logical correctness will be analyzed and reported upon.
+The `consul validate` command can be run on a single Consul configuration file or, more commonly, on an entire directory of configuration files. Basic syntax and logical correctness will be analyzed and reported upon.
 
-This command will catch misspellings of Consul configuration keys, or the
-absence or misconfiguration of crucial attributes.
+This command catches misspellings of Consul configuration keys, as well as the absence or misconfiguration of crucial attributes.
 
 ```shell-session
 $ consul validate /etc/consul.d/counting.json
@@ -150,27 +88,13 @@ $ consul validate /etc/consul.d/counting.json
 * invalid config key serrrvice
 ```
 
-<Tip>
+- [Documentation for Consul validate](/consul/commands/validate)
 
- Run `validate` on an entire directory of Consul configuration files so
-that the complete configuration can be analyzed.
+### Generate debug file
 
-</Tip>
+The `consul debug` command can be run on a node without any other arguments. It captures metrics, logs, profiling data, and other data to the current directory for two minutes.
 
-- [Documentation for Consul
-  validate](/consul/commands/validate)
-
-### Debug
-
-The `consul debug` command can be run on a node without any other arguments. It
-will log metrics, logs, profiling data, and other data to the current directory
-for two minutes.
-
-All content is written in plain text to a compressed archive, so do not
-transmit the emitted data over unencrypted channels.
-
-However, you might find this data useful or can provide it to support staff in
-order to help you debug your Consul datacenter.
+All content is written in plain text to a compressed archive, so do not transmit the emitted data over unencrypted channels.
 
 ```shell-session
 $ consul debug
@@ -198,32 +122,19 @@ $ tree consul-debug-1548721978
 
 ![tree consul-debug output](/img/consul-tree-debug-output.png)
 
-- [Documentation on Consul
-  debug](/consul/commands/debug)
+- [Documentation on Consul debug](/consul/commands/debug)
 
-### Health Checks
+### Latest health check status
 
-When enabled, health checks are a crucial part of the operation of the Consul
-datacenter. Unhealthy services will not be published for discovery via standard
-DNS, or some HTTP API calls.
+When enabled, health checks are a crucial part Consul's catalog operations. Consul does not return unhealthy services for discovery through standard DNS, as well as some HTTP API calls.
 
-The easiest way to view initial health status is by visiting the [Consul Web
-UI](http://localhost:8500/ui) at `http://localhost:8500/ui`.
-
-Click through to a specific service such as the `counting` service. The status
-of the service on each node will be displayed. Click through to inspect the output
-of the health check.
-
-Alternately, use the HTTP API to view the entire catalog or a specific service.
-The `/v1/agent/services` endpoint will return a list of all services registered
-in the catalog.
+You can monitor the health of nodes and services from the Consul Web UI, or by querying the HTTP API. The `/v1/agent/services` endpoint returns a list of all services registered in the catalog.
 
 ```shell-session
-$ curl "http://127.0.0.1:8500/v1/agent/services"
+$ curl "http://localhost:8500/v1/agent/services"
 ```
 
-Filters can be provided on the query string, such as this command which looks
-for `counting` services that are `passing` (healthy):
+Provide filters on the query string, such as a name and health check status. For example, to query all instances of service `counting` with a healthy passing status, query the endpoint `/v1/health/service/counting?passing`.
 
 ```shell-session
 $ curl 'http://localhost:8500/v1/health/service/counting?passing'
@@ -253,23 +164,11 @@ $ curl 'http://localhost:8500/v1/health/service/counting?passing'
 ]
 ```
 
-Another important aspect of health checks is not only the presence of a healthy
-service, but the _continued_ presence of that healthy service. If a service is
-oscillating between healthy and unhealthy, we call that _flapping_. It may be
-due to problems inherent to the service itself (an internal crash), and the
-service itself should be investigated (or the process launcher that runs the
-process, such as `systemd`).
+- [Documentation on Consul health checks](/consul/docs/register/health-check/vm)
 
-Also consider the type of health check being run. Consider using built-in
-health checks such as TCP or HTTP rather than a script check which runs an
-external shell command to verify service health.
+## Kubernetes deployments
 
-- [Documentation on Consul health
-  checks](/consul/docs/register/health-check/vm)
-
-## Kubernetes and OpenShift deployments
-
-In Kubernetes and OpenShift deployments, you can inspect the running Consul workloads and interact with the cluster with the `kubectl` command.
+In Kubernetes deployments, you can inspect the running Consul workloads and interact with the cluster with the `kubectl` command.
 
 Use `kubectl get pods` to verify the status of your Consul deployment. By default, the Consul service is deployed within a Kubernetes namespace called `consul`.
 
@@ -285,23 +184,13 @@ consul-webhook-cert-manager-74467cdd8d-88m6j   1/1     Running   0          3m
 
 Inspect the status of the Consul server pods called `consul-server-<X>` and whether they are running successfully. You can use typical Consul troubleshooting commands like `consul members` through `kubectl` in the following format: 
 
-<CodeBlockConfig hideClipboard>
-
-```shell-session
-kubectl exec <POD-NAME> -c <CONTAINER-NAME> -- <CONSUL-COMMAND> 
-```
-
-</CodeBlockConfig>
-
-For example, to return the current members of the cluster, run:
-
 ```shell-session 
 kubectl exec consul-server-0 -c consul -- consul members
 ```
 
 If any of the pods are in a status other than `Running`, you can further inspect their state by running `kubectl describe pods <PODNAME>`. For more information about troubleshooting of the deployment's pods, refer to [Debug Kubernetes Pods in the Kubernetes documentation](https://kubernetes.io/docs/tasks/debug/debug-application/debug-pods/).
 
-### OpenShift
+### OpenShift deployments
 
 When deploying Consul on OpenShift clusters, you may encounter errors with the images you pull. Instead of pulling images directly from the RedHat Registry, use the `oc import-image` command to pre-load Consul and Consul on Kubernetes images from an external image registry.
 
@@ -312,56 +201,35 @@ $ oc import-image hashicorp/consul:1.21.0-ubi --from=registry.connect.redhat.com
 imagestream.image.openshift.io/consul imported
 ```
 
-The list of possible images to cache locally includes `consul`, `consul-k8s-control-plane` and `consul-dataplane`. 
+If the image registry has an invalid HTTPS certificate or is hosted over HTTP, include the `--insecure=true` flag when you import images. 
 
-If the image registry has invalid HTTPS certificate, or is hosted over HTTP, use the `--insecure=true` flag when you import images. Similarly, if the image registry is overloaded and you need to extend the request timeout, use the `--request-timeout` flag and a unit of time. For example, to raise the timeout to five minutes, use `--request-timeout=5m`.
+Similarly, if the image registry is overloaded and you need to extend the request timeout, use the `--request-timeout` flag and a unit of time. For example, `--request-timeout=5m` extends the timeout length to five minutes.
 
-## External tools
+## External troubleshooting tools
 
-Consul was designed to work within an established ecosystem of networking
-protocols which means that you can use existing tools to gather data, verify
-what is working, and debug the network, applications, and security context
-surrounding Consul.
+Consul was designed to work within an established ecosystem of networking protocols which means that you can use existing tools to gather data, verify what is working, and debug the network, applications, and security context surrounding Consul.
 
 ### ps
 
-Consul service discovery relies on existing process launching tools such as
-`systemd` or `upstart` or `init.d`. If you choose to use one of these tools,
-you should refer to their documentation to learn how to write configuration
-files, start/stop/restart scripts, and monitor the output of processes launched
-by these tools.
-
-A common tool on Unix systems is `ps`. Run it to verify that your service
-processes are running as expected.
+A common tool on Unix systems is `ps`. Run it to verify that your Consul processes are running as expected.
 
 ```shell-session
-$ ps | grep counting
-
-79846 ttys001    0:00.07 ./counting-service
+$ ps | grep consul
+79846 ttys001    0:00.07 /usr/local/bin/consul agent -server -config-file=/etc/consul.conf -data-dir=/tmp/consul -config-dir=/etc/consul.d
 ```
 
-Or, consider `pstree` which can be installed separately with your operating
-system's package manager. It displays a hierarchy of running child processes
-and parent processes.
+Or, consider `pstree` which can be installed separately with your operating system's package manager. It displays a hierarchy of running child processes and parent processes.
 
 ```shell-session
 $ pstree
 
  | | \-+= 74259 geoffrey -zsh
- | |   \--= 79846 geoffrey ./counting-service
+ | |   \--= 79846 geoffrey /usr/local/bin/consul agent -server -config-file=/etc/consul.conf -data-dir=/tmp/consul -config-dir=/etc/consul.d
 ```
 
 ### dig
 
-Given that Consul speaks the DNS protocol, standard DNS tools can be used with
-it. However, Consul operates by default on port `8600` instead of the DNS
-default of `53`.
-
-The `dig` tool is a command line application that interacts with DNS records of
-all kinds. To retrieve details about a DNS record in Consul, pass the `-p 8600` flag
-and the IP address of the Consul server with `@127.0.0.1`.
-
-In this example, we find the IP address of the `counting` service.
+The `dig` tool is a command line application that interacts with DNS servers. To retrieve details about a DNS record in Consul, pass the `-p` flag with the port number of the Consul DNS server (default is `8600`) as well as the address of the Consul DNS server, preceded by the `@` symbol. The following example queries directly the Consul DNS server running on the current host about the `counting` service.
 
 ```shell-session
 $ dig @127.0.0.1 -p 8600 counting.service.consul
@@ -370,17 +238,9 @@ $ dig @127.0.0.1 -p 8600 counting.service.consul
 ANSWER SECTION: counting.service.consul. 0	IN	A	192.168.0.35
 ```
 
-<Tip>
+A DNS query to Consul always returns the IP address of a healthy service, not all registered services. Use the HTTP API if you want to retrieve a list of all healthy services, or all registered services regardless of health.
 
- A DNS query to Consul will only return the IP address of a healthy
-service, not all registered services. Use the HTTP API if you want to retrieve a
-list of all healthy services, or all registered services regardless of health.
-
-</Tip>
-
-Consul also provides additional information with the `SRV` (service) argument.
-Add `SRV` to the `dig` command to retrieve the port number that the `counting`
-service operates on (shown as port `9003` below).
+Consul also provides additional information with the `SRV` (service) argument. Add `SRV` to the `dig` command to retrieve the port number that the `counting` service operates on (shown as port `9003` below).
 
 ```shell-session
 $ dig @127.0.0.1 -p 8600 counting.service.consul SRV
@@ -392,67 +252,41 @@ Machine.local.node.dc1.consul.
 192.168.0.35
 ```
 
-If you have configured [DNS
-forwarding](/consul/tutorials/networking/dns-forwarding) to integrate
-system DNS with Consul, you can omit the IP address and port number. However,
-when debugging it is often useful to be specific so that you can verify that direct
-communication to the Consul agent is working as expected.
-
 ### curl
 
-As simple as it may seem, the `curl` command is extremely useful for debugging
-any web service or discovering details about content and HTTP headers.
+As simple as it may seem, the `curl` command is extremely useful for debugging any web service or discovering details about content and HTTP headers. `curl` can be used to verify connectivity to a service in the service mesh.
 
-Use `curl` on your configured health endpoint to verify connectivity to a
-service. You can provide the IP address or `localhost`. You can also provide a
-port number and any other path information or query string data (you can even
-post form data).
-
-If you have configured [DNS
-forwarding](/consul/tutorials/networking/dns-forwarding), you may be able
-to use Consul-specific domain names to communicate to the service (such as
-`http://counting.service.consul`).
-
-```shell-session
-$ curl http://localhost:9003/health
-
-Hello, you've hit /health
-```
+If you have configured [DNS forwarding](/consul/docs/manage/dns/forwarding), you may be able to use Consul-specific domain names to communicate to the service. For example, `curl http://counting.service.consul/`.
 
 <Note>
 
- If a service uses Consul service mesh prior to version 1.10, you may need to
-communicate to a service from a node in the datacenter using `localhost` and the
-local port as configured with Consul service mesh.
+ If a service uses Consul service mesh prior to version 1.10, you may need to communicate to a service from a node in the datacenter using `localhost` and the local port as configured with Consul service mesh.
 
 </Note>
 
 ### ping
 
-The `ping` command is a simple tool that verifies network connectivity to a
-host (if it responds to `ping`). Use an IP address to verify that one node can
-communicate to another node.
+The `ping` command tests network connectivity to a host if the specific host is allowed to respond to `ping` requests.
 
-`ping` is also useful for viewing the latency between nodes, and the reliability
-of packet transfer between them.
+`ping` is also useful for viewing the latency between nodes, and the reliability of packet transfer between them.
 
 ```shell-session
-$ ping 10.0.1.14
-
-PING 10.0.1.14 (10.0.1.14): 56 data bytes 64 bytes from 10.0.1.14: icmp_seq=0
-ttl=64 time=0.065 ms 64 bytes from 10.0.1.14: icmp_seq=1 ttl=64 time=0.068 ms
-64 bytes from 10.0.1.14: icmp_seq=2 ttl=64 time=0.060 ms ^C --- 10.0.1.14 ping
-statistics --- 3 packets transmitted, 3 packets received, 0.0% packet loss
-round-trip min/avg/max/stddev = 0.060/0.064/0.068/0.003 ms
+$ ping 192.168.1.1
+PING 192.168.1.1 (192.168.1.1): 56 data bytes
+64 bytes from 192.168.1.1: icmp_seq=0 ttl=64 time=4.648 ms
+64 bytes from 192.168.1.1: icmp_seq=1 ttl=64 time=5.980 ms
+64 bytes from 192.168.1.1: icmp_seq=2 ttl=64 time=4.068 ms
+64 bytes from 192.168.1.1: icmp_seq=3 ttl=64 time=3.663 ms
+^C
+--- 192.168.1.1 ping statistics ---
+4 packets transmitted, 4 packets received, 0.0% packet loss
+round-trip min/avg/max/stddev = 3.663/4.590/5.980/0.876 ms
 ```
 
 ## Next steps
 
-You should now be able to use the Consul tools to help troubleshoot.
+- For further information related to troubleshooting, check the [Frequently Asked Questions](/consul/docs/troubleshoot/faq).
 
-- View log messages with `consul monitor`
-- Validate configuration files with `consul validate`
-- Examine the service catalog with the HTTP API endpoint `/v1/agent/services`
-
-Finally, you should be able to use external tools like `dig` and `curl` to help
-troubleshoot Consul issues.
+- To learn how to troubleshoot service mesh issues, refer to [Debug service mesh](/consul/docs/troubleshoot/mesh). 
+- If you are experiencing connectivity issues within the service mesh services, refer to [Troubleshoot service-to-service communication](/consul/docs/troubleshoot/service-communication). 
+- If you are operating Consul at scale, review [our best practices and recommendations](/consul/docs/manage/scale) to help you fine-tune Consul operations across your network.
