@@ -1,3 +1,3 @@
-```release-note: enhancement
+```release-note:improvement
 ui: Replaced internal code editor with HDS (HashiCorp Design System) code editor and code block components for improved accessibility and maintainability across the Consul UI.
 ```
