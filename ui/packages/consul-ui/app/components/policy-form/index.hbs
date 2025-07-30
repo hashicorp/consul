@@ -5,150 +5,201 @@
 
 {{yield}}
 <fieldset
-  class="policy-form"
-  disabled={{if (not (can "write policy" item=item)) "disabled"}}
+  class='policy-form'
+  disabled={{if (not (can 'write policy' item=item)) 'disabled'}}
   ...attributes
 >
-  {{#yield-slot name='template'}}
-  {{else}}
+  {{#yield-slot name='template'}}{{else}}
     <header>
       Policy{{if allowIdentity ' or identity?' ''}}
     </header>
-  {{#if allowIdentity}}
-    <p>
-      Identities are default policies with configurable names. They save you some time and effort you're using Consul for Connect features.
-    </p>
-    {{! this should use radio-group }}
-    <div role="radiogroup" class={{if item.error.Type ' has-error'}}>
+    {{#if allowIdentity}}
+      <p>
+        Identities are default policies with configurable names. They save you some time and effort
+        you're using Consul for Connect features.
+      </p>
+      {{! this should use radio-group }}
+      <div role='radiogroup' class={{if item.error.Type ' has-error'}}>
         {{#each templates as |template|}}
-            <label data-test-radiobutton={{concat 'template_' template.template}}>
-              <span>{{template.name}}</span>
-              <input type="radio" name={{concat name '[template]'}} value={{template.template}} checked={{eq item.template template.template}} onchange={{action (optional (changeset-set item 'template')) value='target.value'}}/>
-            </label>
+          <label data-test-radiobutton={{concat 'template_' template.template}}>
+            <span>{{template.name}}</span>
+            <input
+              type='radio'
+              name={{concat name '[template]'}}
+              value={{template.template}}
+              checked={{eq item.template template.template}}
+              onchange={{action (optional (changeset-set item 'template')) value='target.value'}}
+            />
+          </label>
         {{/each}}
-    </div>
-  {{else}}
-    <input type="hidden" name={{concat name '[template]'}} value="" />
-  {{/if}}
+      </div>
+    {{else}}
+      <input type='hidden' name={{concat name '[template]'}} value='' />
+    {{/if}}
   {{/yield-slot}}
-    <label class="type-text{{if (and item.error.Name (not item.isPristine)) ' has-error'}}">
-        <span>Name</span>
-        <input type="text" value={{item.Name}} name="{{name}}[Name]" autofocus="autofocus" oninput={{action 'change'}} />
-        <em>
-          Maximum 128 characters. May only include letters (uppercase and/or lowercase) and/or numbers. Must be unique.
-        </em>
-        {{#if (and item.error.Name (not item.isPristine))}}
-          <strong>{{item.error.Name.validation}}</strong>
-        {{/if}}
-    </label>
-    <label for="" class="type-text" data-test-rules>
-{{#if (eq item.template 'service-identity')}}
-        <CodeEditor
-          @readonly={{true}}
-          @name={{concat name "[Rules]"}}
-          @syntax="hcl"
-          @oninput={{action "change" (concat name "[Rules]")}}
-        >
-          <:label>
-            Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a>
-          </:label>
-          <:content><Consul::ServiceIdentity::Template
-              @nspace={{nspace}}
-              @partition={{partition}}
-              @name={{item.Name}}
-            /></:content>
-        </CodeEditor>
-{{else if (eq item.template 'node-identity')}}
-        <CodeEditor
-          @readonly={{true}}
-          @name={{concat name "[Rules]"}}
-          @syntax="hcl"
-          @oninput={{action "change" (concat name "[Rules]")}}
-        >
-          <:label>
-            Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a>
-          </:label>
-          <:content><Consul::NodeIdentity::Template
-              @name={{item.Name}}
-              @partition={{partition}}
-            /></:content>
-        </CodeEditor>
-{{else}}
-        <CodeEditor
-          @syntax="hcl"
-          @class={{if item.error.Rules "error"}}
-          @name={{concat name "[Rules]"}}
-          @value={{item.Rules}}
-          @onkeyup={{action "change" (concat name "[Rules]")}}
-        >
-          <:label>
-            Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a>
-          </:label>
-        </CodeEditor>
-        {{#if item.error.Rules}}
-          <strong>{{item.error.Rules.validation}}</strong>
-        {{/if}}
-{{/if}}
-    </label>
-{{#if (eq item.template 'node-identity')}}
+  <label class='type-text{{if (and item.error.Name (not item.isPristine)) " has-error"}}'>
+    <span>Name</span>
+    <input
+      type='text'
+      value={{item.Name}}
+      name='{{name}}[Name]'
+      autofocus='autofocus'
+      oninput={{action 'change'}}
+    />
+    <em>
+      Maximum 128 characters. May only include letters (uppercase and/or lowercase) and/or numbers.
+      Must be unique.
+    </em>
+    {{#if (and item.error.Name (not item.isPristine))}}
+      <strong>{{item.error.Name.validation}}</strong>
+    {{/if}}
+  </label>
+  <label for='' class='type-text' data-test-rules>
+    {{#if (eq item.template 'service-identity')}}
+      <Hds::CodeBlock
+        @language='hcl'
+        @ariaLabel={{concat name '[Rules]'}}
+        @value={{service-identity-template
+          item.Name
+          nspace=nspace
+          partition=partition
+          canUsePartitions=(can 'use partitions')
+          canUseNspaces=(can 'use nspaces')
+        }}
+        as |CB|
+      >
+        <CB.Title @tag='h3'>
+          Rules
+          <a
+            href='{{env "CONSUL_DOCS_URL"}}/guides/acl.html#rule-specification'
+            rel='help noopener noreferrer'
+            target='_blank'
+          >(HCL Format)</a>
+        </CB.Title>
+      </Hds::CodeBlock>
+    {{else if (eq item.template 'node-identity')}}
+      <Hds::CodeBlock
+        @language='hcl'
+        @ariaLabel={{concat name '[Rules]'}}
+        @value={{node-identity-template
+          item.Name
+          partition=partition
+          canUsePartitions=(can 'use partitions')
+          canUseNspaces=(can 'use nspaces')
+        }}
+        as |CB|
+      >
+        <CB.Title @tag='h3'>
+          Rules
+          <a
+            href='{{env "CONSUL_DOCS_URL"}}/guides/acl.html#rule-specification'
+            rel='help noopener noreferrer'
+            target='_blank'
+          >(HCL Format)</a>
+        </CB.Title>
+      </Hds::CodeBlock>
+    {{else}}
+      <Hds::CodeEditor
+        @value={{item.Rules}}
+        @ariaLabel={{concat name '[Rules]'}}
+        @syntax='hcl'
+        @onInput={{action 'change' (concat name '[Rules]')}}
+        as |CE|
+      >
+        <CE.Title @tag='h3'>
+          Rules
+          <a
+            href='{{env "CONSUL_DOCS_URL"}}/guides/acl.html#rule-specification'
+            rel='help noopener noreferrer'
+            target='_blank'
+          >(HCL Format)</a>
+        </CE.Title>
+      </Hds::CodeEditor>
+      {{#if item.error.Rules}}
+        <strong>{{item.error.Rules.validation}}</strong>
+      {{/if}}
+    {{/if}}
+  </label>
+  {{#if (eq item.template 'node-identity')}}
 
     <DataSource
       @src={{uri '/*/*/*/datacenters'}}
-      @onchange={{action (mut datacenters) value="data"}}
+      @onchange={{action (mut datacenters) value='data'}}
     />
-    <label class="type-select" data-test-datacenter>
+    <label class='type-select' data-test-datacenter>
       <span>Datacenter</span>
       <PowerSelect
-          @options={{map-by 'Name' datacenters}}
-          @searchField="Name"
-          @selected={{or item.Datacenter dc}}
-          @searchPlaceholder="Type a datacenter name"
-          @onChange={{action "change" "Datacenter"}} as |Name|>
-            {{Name}}
+        @options={{map-by 'Name' datacenters}}
+        @searchField='Name'
+        @selected={{or item.Datacenter dc}}
+        @searchPlaceholder='Type a datacenter name'
+        @onChange={{action 'change' 'Datacenter'}}
+        as |Name|
+      >
+        {{Name}}
       </PowerSelect>
     </label>
-{{else}}
-{{! only show Valid Datacenters for the default partition }}
-{{#if (eq (or partition 'default') 'default')}}
-    <div class="type-toggle">
-      <span>Valid datacenters</span>
-      <label>
-        <input type="checkbox" name="{{name}}[isScoped]" checked={{if (not isScoped) 'checked' }} onchange={{action 'change'}} />
-        <span>All</span>
-      </label>
-    </div>
-{{/if}}
-  {{#if isScoped }}
-    <DataSource
-      @src={{uri '/*/*/*/datacenters'}}
-      @onchange={{action (mut datacenters) value="data"}}
-    />
-
-    <div class="checkbox-group" role="group">
-      {{#each datacenters as |dc| }}
-        <label class="type-checkbox">
-          <input type="checkbox" name="{{name}}[Datacenters]" value={{dc.Name}} checked={{if (includes dc.Name item.Datacenters) 'checked' }} onchange={{action 'change'}} />
-          <span>{{dc.Name}}</span>
+  {{else}}
+    {{! only show Valid Datacenters for the default partition }}
+    {{#if (eq (or partition 'default') 'default')}}
+      <div class='type-toggle'>
+        <span>Valid datacenters</span>
+        <label>
+          <input
+            type='checkbox'
+            name='{{name}}[isScoped]'
+            checked={{if (not isScoped) 'checked'}}
+            onchange={{action 'change'}}
+          />
+          <span>All</span>
         </label>
-      {{/each}}
-      {{#each item.Datacenters as |dc| }}
-{{#if (not (find-by 'Name' dc datacenters))}}
-        <label class="type-checkbox">
-          <input type="checkbox" name="{{name}}[Datacenters]" value={{dc}} checked="checked" onchange={{action 'change'}} />
-          <span>{{dc}}</span>
-        </label>
-{{/if}}
-      {{/each}}
-    </div>
+      </div>
+    {{/if}}
+    {{#if isScoped}}
+      <DataSource
+        @src={{uri '/*/*/*/datacenters'}}
+        @onchange={{action (mut datacenters) value='data'}}
+      />
 
+      <div class='checkbox-group' role='group'>
+        {{#each datacenters as |dc|}}
+          <label class='type-checkbox'>
+            <input
+              type='checkbox'
+              name='{{name}}[Datacenters]'
+              value={{dc.Name}}
+              checked={{if (includes dc.Name item.Datacenters) 'checked'}}
+              onchange={{action 'change'}}
+            />
+            <span>{{dc.Name}}</span>
+          </label>
+        {{/each}}
+        {{#each item.Datacenters as |dc|}}
+          {{#if (not (find-by 'Name' dc datacenters))}}
+            <label class='type-checkbox'>
+              <input
+                type='checkbox'
+                name='{{name}}[Datacenters]'
+                value={{dc}}
+                checked='checked'
+                onchange={{action 'change'}}
+              />
+              <span>{{dc}}</span>
+            </label>
+          {{/if}}
+        {{/each}}
+      </div>
 
+    {{/if}}
   {{/if}}
-{{/if}}
-{{#if (eq item.template '') }}
-  <label class="type-text">
-    <span>Description (Optional)</span>
-    <textarea name="{{name}}[Description]" value={{item.Description}} oninput={{action 'change'}}></textarea>
-  </label>
-{{/if}}
+  {{#if (eq item.template '')}}
+    <label class='type-text'>
+      <span>Description (Optional)</span>
+      <textarea
+        name='{{name}}[Description]'
+        value={{item.Description}}
+        oninput={{action 'change'}}
+      ></textarea>
+    </label>
+  {{/if}}
 </fieldset>
-
