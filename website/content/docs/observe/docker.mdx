@@ -11,13 +11,9 @@ This page describes the configuration process for service mesh observability fea
 
 ## Introduction
 
-Service mesh observability consists of three core elements: metrics, logs, and traces. To observe these elements in Consul's service mesh, use Prometheus to collect metrics, Loki to collect logs, and Tempo to collect traces. Then you can visualize this data with Grafana.
+Service mesh observability consists of three core elements: _metrics_, _logs_, and _traces_. To observe these elements in Consul's service mesh, use Prometheus to collect metrics, Loki to collect logs, and Tempo to collect traces. Then you can visualize this data with Grafana.
 
-<Note>
-
- The examples in this article are not properly secured for a production environment. If you are implementing this functionality in a production system, we encourage you to review the [Consul Reference Architecture](/consul/tutorials/production-deploy/reference-architecture) for Consul best practices and the [Docker Documentation](https://docs.docker.com/) for Docker best practices.
-
-</Note>
+The examples on this page are not properly secured for a production environment. If you are implementing this functionality in a production system, we encourage you to review the [Consul Reference Architecture](/consul/tutorials/production-deploy/reference-architecture) for Consul best practices and the [Docker Documentation](https://docs.docker.com/) for Docker best practices.
 
 ## Prerequisites
 
@@ -265,7 +261,9 @@ providers:
 
 </CodeBlockConfig>
 
-For the contents of the `dashboards` directory, refer to [Dashboards for service mesh observability](/consul/docs/observe/grafana), which documents the dashboard configurations in [the `hashicorp/consul` GitHub Repository](https://github.com/hashicorp/consul/tree/main/grafana). You can also refer to the Docker-specific content in the [Grafana Dashboards repository](https://github.com/hashicorp-education/learn-consul-docker/tree/main/datacenter-deploy-observability/grafana/dashboards).
+For the contents of the `dashboards` directory, refer to [Dashboards for service mesh observability](/consul/docs/observe/grafana), which documents the dashboard configurations in [the `hashicorp/consul` GitHub Repository](https://github.com/hashicorp/consul/tree/main/grafana).
+
+You can also refer to the Docker-specific content in the [Grafana Dashboards repository](https://github.com/hashicorp-education/learn-consul-docker/tree/main/datacenter-deploy-observability/grafana/dashboards).
 
 ## Use Grafana to explore your service mesh
 
