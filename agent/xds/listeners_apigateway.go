@@ -118,16 +118,16 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 				l.FilterChains, err = s.makeInlineOverrideFilterChains(
 					cfgSnap,
 					cfgSnap.APIGateway.TLSConfig,
-					listenerKey.Protocol,
-					listenerFilterOpts{
-						useRDS:          useRDS,
-						fetchTimeoutRDS: cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
-						protocol:        listenerKey.Protocol,
-						routeName:       listenerKey.RouteName(),
-						cluster:         clusterName,
-						statPrefix:      "ingress_upstream_",
-						accessLogs:      &cfgSnap.Proxy.AccessLogs,
-						logger:          s.Logger,
+					listenerKey.Protocol, listenerFilterOpts{
+						useRDS:              useRDS,
+						fetchTimeoutRDS:     cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
+						protocol:            listenerKey.Protocol,
+						routeName:           listenerKey.RouteName(),
+						cluster:             clusterName,
+						statPrefix:          "ingress_upstream_",
+						accessLogs:          &cfgSnap.Proxy.AccessLogs,
+						logger:              s.Logger,
+						maxRequestHeadersKb: nil, // API Gateway uses Envoy defaults
 					},
 					certs,
 				)
@@ -209,19 +209,19 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 					return nil, err
 				}
 			}
-
 			filterOpts := listenerFilterOpts{
-				useRDS:           true,
-				fetchTimeoutRDS:  cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
-				protocol:         listenerKey.Protocol,
-				filterName:       listenerKey.RouteName(),
-				routeName:        listenerKey.RouteName(),
-				cluster:          "",
-				statPrefix:       "ingress_upstream_",
-				routePath:        "",
-				httpAuthzFilters: authFilters,
-				accessLogs:       &cfgSnap.Proxy.AccessLogs,
-				logger:           s.Logger,
+				useRDS:              true,
+				fetchTimeoutRDS:     cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
+				protocol:            listenerKey.Protocol,
+				filterName:          listenerKey.RouteName(),
+				routeName:           listenerKey.RouteName(),
+				cluster:             "",
+				statPrefix:          "ingress_upstream_",
+				routePath:           "",
+				httpAuthzFilters:    authFilters,
+				accessLogs:          &cfgSnap.Proxy.AccessLogs,
+				logger:              s.Logger,
+				maxRequestHeadersKb: nil, // API Gateway uses Envoy defaults
 			}
 
 			// Generate any filter chains needed for services with custom TLS certs
