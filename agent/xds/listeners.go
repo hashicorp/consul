@@ -198,6 +198,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 				upstream:   upstreamCfg,
 			}
 			upstreamListener := makeListener(opts)
+			// [xdscommon.ListenerType].FilterChains.filter.ConfigType.TypedConfig
 			s.injectConnectionBalanceConfig(cfg.BalanceOutboundConnections, upstreamListener)
 			upstreamListener.FilterChains = []*envoy_listener_v3.FilterChain{
 				filterChain,
