@@ -124,14 +124,15 @@ Amazon S3. The enterprise command `snapshot agent` automates this process.
 
 ## Restore from backup
 
-Running the `restore` process should be straightforward. However, there are a 
-couple of actions you can take to ensure the process goes smoothly. First, make 
-sure the Consul datacenter you are restoring is stable and has a leader. You can 
-verify this using `consul operator raft list-peers` and checking server logs and 
-telemetry for signs of leader elections or network issues.
+Running the `restore` process should be straightforward. However, there are a couple of actions you can take to ensure the process goes smoothly. First, make sure the Consul datacenter you are restoring is stable and has a leader. You can verify this using `consul operator raft list-peers` and checking server logs and telemetry for signs of leader elections or network issues.
 
-You will only need to run the process once, on the leader. The Raft consensus 
-protocol ensures that all servers restore the same state.
+<Note>
+
+When restoring a snapshot on a new datacenter make sure node names are unique and different from those of the datacenter you saved the snapshot from. Otherwise you might incur in restore issues. Read more at [Snapshot restore error](/consul/docs/error-messages/consul#snapshot-restore-error).
+
+</Note>
+
+You will only need to run the process once, on the leader. The Raft consensus protocol ensures that all servers restore the same state.
 
 ```shell-session
 $ consul snapshot restore backup.snap
@@ -140,3 +141,4 @@ Restored snapshot
 
 Like the `save` subcommand, restore has many configuration options. In 
 production, you would again want to use ACLs and certificates for security.
+
