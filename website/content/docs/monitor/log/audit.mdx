@@ -7,30 +7,26 @@ description: >-
 
 # Audit Logging
 
-<EnterpriseAlert>
-
-This feature requires HashiCorp Cloud Platform (HCP) or self-managed Consul Enterprise. Refer to the [enterprise feature matrix](/consul/docs/enterprise#consul-enterprise-feature-availability) for additional information.
-
-</EnterpriseAlert>
+@include 'alerts/enterprise-alert.mdx'
 
 With Consul Enterprise v1.8.0+, audit logging can be used to capture a clear and actionable log of authenticated events (both attempted and committed) that Consul processes via its HTTP API. These events are then compiled into a JSON format for easy export and contain a timestamp, the operation performed, and the user who initiated the action.
 
 Audit logging enables security and compliance teams within an organization to get greater insight into Consul access and usage patterns.
 
-Complete the [Capture Consul Events with Audit Logging](/consul/tutorials/datacenter-operations/audit-logging) tutorial to learn more about Consul's audit logging functionality,
+For detailed configuration information on configuring the Consul Enterprise's audit logging, review the Consul [Audit Log](/consul/docs/reference/agent/configuration-file/log#audit) documentation.
 
-For detailed configuration information on configuring the Consul Enterprise's audit logging, review the Consul [Audit Log](/consul/docs/reference/agent/configuration-file/general#audit) documentation.
+## Configure audit logging
 
-## Example Configuration
+Audit logging must be explicitly enabled on every agent in order to accurately capture all operations performed through the HTTP API. To enable logging, add the [`audit`](http://localhost:3000/consul/docs/reference/agent/configuration-file/log#audit) stanza to the agent's configuration.
 
-Audit logging must be enabled on every agent in order to accurately capture all operations performed through the HTTP API. To enable logging, add the [`audit`](/consul/docs/reference/agent/configuration-file/general#audit) stanza to the agent's configuration.
-
--> **Note**: Consul only logs operations which are initiated via the HTTP API. The audit log does not record operations that take place over the internal RPC communication channel used for agent communication.
+<Note>
+Consul only logs operations which are initiated via the HTTP API. The audit log does not record operations that take place over the internal RPC communication channel used for agent communication.
+</Note>
 
 <Tabs>
 <Tab heading="Log to file">
 
-The following example configures a destination called "My Sink". Since rotation is enabled, audit events will be stored at files named: `/tmp/audit-<TIMESTAMP>.json`. The log file will be rotated either every 24 hours, or when the log file size is greater than 25165824 bytes (24 megabytes).
+The following example configures a destination called `My Sink`. Audit logging requires rotation parameters to be set in order to be enabled so, in this example, we configured the log file to be rotated either every 24 hours, or when the log file size is greater than 25165824 bytes (24 megabytes). Since rotation is enabled, audit events will be stored at files named: `/tmp/audit-<TIMESTAMP>.json`.
 
 <CodeTabs>
 
@@ -88,7 +84,7 @@ server:
 
 <Tab heading="Log to standard out">
 
-The following example configures a destination called "My Sink" which emits audit logs to standard out.
+The following example configures a destination called `My Sink` which emits audit logs to standard out.
 
 <CodeTabs>
 
@@ -137,35 +133,44 @@ server:
 </Tab>
 </Tabs>
 
-## Example Audit Log
+<Note>
 
-In this example a client has issued an HTTP GET request to look up the `ssh` service in the `/v1/catalog/service/` endpoint.
+Audit logging configuration parameters are not part of Consul's [reloadable configurations](/consul/docs/fundamentals/agent#reloadable-configurations) so a full restart of the agents is required to apply the configuration.
+
+</Note>
+
+## Review audit log content
+
+In this example you will review logging for two different requests, both of them use the [`/v1/catalog/service/`](/consul/api-docs/catalog#list-nodes-for-service) endpoint to retrieve information about the `ssh` service in the Consul catalog. The difference between the two requests is that one is not authenticated and the other uses a valid ACL token.
+
+<Tabs>
+<Tab heading="Anonymous request">
 
 Details from the HTTP request are recorded in the audit log. The `stage` field is set to `OperationStart` which indicates the agent has begun processing the request.
 
-The value of the `payload.auth.accessor_id` field is the accessor ID of the [ACL token](/consul/docs/secure/acl#tokens) which issued the request.
+he value of the `payload.auth.accessor_id` field is the accessor ID of the ACL token which issued the request. In this case `00000000-0000-0000-0000-000000000002`, representing the anonymous token.
 
-<CodeBlockConfig highlight="10">
+<CodeBlockConfig hideClipboard highlight="10,21">
 
 ```json
 {
-  "created_at": "2020-12-08T12:30:29.196365-05:00",
+  "created_at": "2025-07-31T14:32:38.559349128Z",
   "event_type": "audit",
   "payload": {
-    "id": "e4a20aec-d250-72c4-2aea-454fe8ae8051",
+    "id": "674891c9-a5a0-e0ba-c738-00cab3c42f16",
     "version": "1",
     "type": "HTTPEvent",
-    "timestamp": "2020-12-08T12:30:29.196206-05:00",
+    "timestamp": "2025-07-31T14:32:38.558390378Z",
     "auth": {
-      "accessor_id": "08f05787-3609-8001-65b4-922e5d52e84c",
-      "description": "Bootstrap Token (Global Management)",
-      "create_time": "2020-12-01T11:01:51.652566-05:00"
+      "accessor_id": "00000000-0000-0000-0000-000000000002",
+      "description": "Anonymous Token",
+      "create_time": "2025-07-30T09:14:52.866798047Z"
     },
     "request": {
       "operation": "GET",
       "endpoint": "/v1/catalog/service/ssh",
-      "remote_addr": "127.0.0.1:64015",
-      "user_agent": "curl/7.54.0",
+      "remote_addr": "127.0.0.1:45110",
+      "user_agent": "curl/7.88.1",
       "host": "127.0.0.1:8500"
     },
     "stage": "OperationStart"
@@ -177,27 +182,27 @@ The value of the `payload.auth.accessor_id` field is the accessor ID of the [ACL
 
 After the request is processed, a corresponding log entry is written for the HTTP response. The `stage` field is set to `OperationComplete` which indicates the agent has completed processing the request.
 
-<CodeBlockConfig highlight="24">
+<CodeBlockConfig hideClipboard highlight="24">
 
 ```json
 {
-  "created_at": "2020-12-08T12:30:29.202935-05:00",
+  "created_at": "2025-07-31T14:32:38.562146462Z",
   "event_type": "audit",
   "payload": {
-    "id": "1f85053f-badb-4567-d239-abc0ecee1570",
+    "id": "c7d9614e-b110-729a-4c0b-6123f5c341a1",
     "version": "1",
     "type": "HTTPEvent",
-    "timestamp": "2020-12-08T12:30:29.202863-05:00",
+    "timestamp": "2025-07-31T14:32:38.561802712Z",
     "auth": {
-      "accessor_id": "08f05787-3609-8001-65b4-922e5d52e84c",
-      "description": "Bootstrap Token (Global Management)",
-      "create_time": "2020-12-01T11:01:51.652566-05:00"
+      "accessor_id": "00000000-0000-0000-0000-000000000002",
+      "description": "Anonymous Token",
+      "create_time": "2025-07-30T09:14:52.866798047Z"
     },
     "request": {
       "operation": "GET",
       "endpoint": "/v1/catalog/service/ssh",
-      "remote_addr": "127.0.0.1:64015",
-      "user_agent": "curl/7.54.0",
+      "remote_addr": "127.0.0.1:45110",
+      "user_agent": "curl/7.88.1",
       "host": "127.0.0.1:8500"
     },
     "response": {
@@ -209,3 +214,79 @@ After the request is processed, a corresponding log entry is written for the HTT
 ```
 
 </CodeBlockConfig>
+
+</Tab>
+<Tab heading="Authenticated request">
+
+Details from the HTTP request are recorded in the audit log. The `stage` field is set to `OperationStart` which indicates the agent has begun processing the request.
+
+he value of the `payload.auth.accessor_id` field is the accessor ID of the ACL token which issued the request.
+
+<CodeBlockConfig hideClipboard highlight="10,21">
+
+```json
+{
+  "created_at": "2025-07-31T14:55:23.751575302Z",
+  "event_type": "audit",
+  "payload": {
+    "id": "bcaa81eb-0687-9d62-f288-bf82215fa5c6",
+    "version": "1",
+    "type": "HTTPEvent",
+    "timestamp": "2025-07-31T14:55:23.746568552Z",
+    "auth": {
+      "accessor_id": "540c5184-3bc7-852a-641c-cac2b46f2885",
+      "description": "Bootstrap Token (Global Management)",
+      "create_time": "2025-07-30T09:14:55.301395548Z"
+    },
+    "request": {
+      "operation": "GET",
+      "endpoint": "/v1/catalog/service/ssh",
+      "remote_addr": "127.0.0.1:54166",
+      "user_agent": "curl/7.88.1",
+      "host": "127.0.0.1:8500"
+    },
+    "stage": "OperationStart"
+  }
+}
+```
+
+</CodeBlockConfig>
+
+After the request is processed, a corresponding log entry is written for the HTTP response. The `stage` field is set to `OperationComplete` which indicates the agent has completed processing the request.
+
+<CodeBlockConfig hideClipboard highlight="24">
+
+```json
+{
+  "created_at": "2025-07-31T14:55:23.754546469Z",
+  "event_type": "audit",
+  "payload": {
+    "id": "16193bc9-71cf-1d4b-a772-faba8b9dea00",
+    "version": "1",
+    "type": "HTTPEvent",
+    "timestamp": "2025-07-31T14:55:23.75438301Z",
+    "auth": {
+      "accessor_id": "540c5184-3bc7-852a-641c-cac2b46f2885",
+      "description": "Bootstrap Token (Global Management)",
+      "create_time": "2025-07-30T09:14:55.301395548Z"
+    },
+    "request": {
+      "operation": "GET",
+      "endpoint": "/v1/catalog/service/ssh",
+      "remote_addr": "127.0.0.1:54166",
+      "user_agent": "curl/7.88.1",
+      "host": "127.0.0.1:8500"
+    },
+    "response": {
+      "status": "200"
+    },
+    "stage": "OperationComplete"
+  }
+}
+```
+
+</CodeBlockConfig>
+
+</Tab>
+</Tabs>
+
