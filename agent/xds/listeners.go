@@ -197,6 +197,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 				upstream:   upstreamCfg,
 			}
 			upstreamListener := makeListener(opts)
+			// [xdscommon.ListenerType].FilterChains.filter.ConfigType.TypedConfig
 			s.injectConnectionBalanceConfig(cfg.BalanceOutboundConnections, upstreamListener)
 			upstreamListener.FilterChains = []*envoy_listener_v3.FilterChain{
 				filterChain,
@@ -210,16 +211,17 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		// The rest of this loop is used exclusively for transparent proxies.
 		// Below we create a filter chain per upstream, rather than a listener per upstream
 		// as we do for explicit upstreams above.
-
+		// [xdscommon.ListenerType].FilterChains.filter.ConfigType.TypedConfig
 		filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
-			accessLogs:      &cfgSnap.Proxy.AccessLogs,
-			routeName:       uid.EnvoyID(),
-			clusterName:     clusterName,
-			filterName:      filterName,
-			protocol:        cfg.Protocol,
-			useRDS:          useRDS,
-			fetchTimeoutRDS: cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
-			tracing:         tracing,
+			accessLogs:          &cfgSnap.Proxy.AccessLogs,
+			routeName:           uid.EnvoyID(),
+			clusterName:         clusterName,
+			filterName:          filterName,
+			protocol:            cfg.Protocol,
+			useRDS:              useRDS,
+			fetchTimeoutRDS:     cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
+			tracing:             tracing,
+			maxRequestHeadersKb: proxyCfg.MaxRequestHeadersKB,
 		})
 		if err != nil {
 			return nil, err
@@ -296,13 +298,14 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			const name = "~http" // name used for the shared route name
 			routeName := clusterNameForDestination(cfgSnap, name, fmt.Sprintf("%d", svcConfig.Destination.Port), svcConfig.NamespaceOrDefault(), svcConfig.PartitionOrDefault())
 			filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
-				accessLogs:      &cfgSnap.Proxy.AccessLogs,
-				routeName:       routeName,
-				filterName:      routeName,
-				protocol:        svcConfig.Protocol,
-				useRDS:          true,
-				fetchTimeoutRDS: cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
-				tracing:         tracing,
+				accessLogs:          &cfgSnap.Proxy.AccessLogs,
+				routeName:           routeName,
+				filterName:          routeName,
+				protocol:            svcConfig.Protocol,
+				useRDS:              true,
+				fetchTimeoutRDS:     cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
+				tracing:             tracing,
+				maxRequestHeadersKb: proxyCfg.MaxRequestHeadersKB,
 			})
 			if err != nil {
 				return err
@@ -315,12 +318,13 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 				clusterName := clusterNameForDestination(cfgSnap, uid.Name, address, uid.NamespaceOrDefault(), uid.PartitionOrDefault())
 
 				filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
-					accessLogs:  &cfgSnap.Proxy.AccessLogs,
-					routeName:   uid.EnvoyID(),
-					clusterName: clusterName,
-					filterName:  clusterName,
-					protocol:    svcConfig.Protocol,
-					tracing:     tracing,
+					accessLogs:          &cfgSnap.Proxy.AccessLogs,
+					routeName:           uid.EnvoyID(),
+					clusterName:         clusterName,
+					filterName:          clusterName,
+					protocol:            svcConfig.Protocol,
+					tracing:             tracing,
+					maxRequestHeadersKb: proxyCfg.MaxRequestHeadersKB,
 				})
 				if err != nil {
 					return err
@@ -400,10 +404,11 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 					upstreamCfg.DestinationName,
 					upstreamCfg.DestinationNamespace,
 					upstreamCfg.DestinationPeer),
-				routeName:  uid.EnvoyID(),
-				protocol:   cfg.Protocol,
-				useRDS:     false,
-				statPrefix: "upstream_peered.",
+				routeName:           uid.EnvoyID(),
+				protocol:            cfg.Protocol,
+				useRDS:              false,
+				statPrefix:          "upstream_peered.",
+				maxRequestHeadersKb: proxyCfg.MaxRequestHeadersKB,
 			})
 			if err != nil {
 				return nil, err
@@ -440,10 +445,11 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 				uid.Name,
 				uid.NamespaceOrDefault(),
 				uid.Peer),
-			protocol:   cfg.Protocol,
-			useRDS:     false,
-			statPrefix: "upstream_peered.",
-			tracing:    tracing,
+			protocol:            cfg.Protocol,
+			useRDS:              false,
+			statPrefix:          "upstream_peered.",
+			tracing:             tracing,
+			maxRequestHeadersKb: proxyCfg.MaxRequestHeadersKB,
 		})
 		if err != nil {
 			return nil, err
@@ -500,10 +506,11 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 				filterName := fmt.Sprintf("%s.%s.%s.%s", uid.Name, uid.NamespaceOrDefault(), uid.PartitionOrDefault(), cfgSnap.Datacenter)
 
 				filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
-					accessLogs:  &cfgSnap.Proxy.AccessLogs,
-					clusterName: "passthrough~" + sni,
-					filterName:  filterName,
-					protocol:    "tcp",
+					accessLogs:          &cfgSnap.Proxy.AccessLogs,
+					clusterName:         "passthrough~" + sni,
+					filterName:          filterName,
+					protocol:            "tcp",
+					maxRequestHeadersKb: proxyCfg.MaxRequestHeadersKB,
 				})
 				if err != nil {
 					return nil, err
@@ -550,12 +557,12 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		// Add a catch-all filter chain that acts as a TCP proxy to destinations outside the mesh
 		if meshConf := cfgSnap.MeshConfig(); meshConf == nil ||
 			!meshConf.TransparentProxy.MeshDestinationsOnly {
-
 			filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
-				accessLogs:  &cfgSnap.Proxy.AccessLogs,
-				clusterName: naming.OriginalDestinationClusterName,
-				filterName:  naming.OriginalDestinationClusterName,
-				protocol:    "tcp",
+				accessLogs:          &cfgSnap.Proxy.AccessLogs,
+				clusterName:         naming.OriginalDestinationClusterName,
+				filterName:          naming.OriginalDestinationClusterName,
+				protocol:            "tcp",
+				maxRequestHeadersKb: proxyCfg.MaxRequestHeadersKB,
 			})
 			if err != nil {
 				return nil, err
@@ -607,12 +614,13 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 
 		filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
 			// TODO (SNI partition) add partition for upstream SNI
-			accessLogs:  &cfgSnap.Proxy.AccessLogs,
-			clusterName: connect.UpstreamSNI(u, "", cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain),
-			filterName:  uid.EnvoyID(),
-			routeName:   uid.EnvoyID(),
-			protocol:    cfg.Protocol,
-			tracing:     tracing,
+			accessLogs:          &cfgSnap.Proxy.AccessLogs,
+			clusterName:         connect.UpstreamSNI(u, "", cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain),
+			filterName:          uid.EnvoyID(),
+			routeName:           uid.EnvoyID(),
+			protocol:            cfg.Protocol,
+			tracing:             tracing,
+			maxRequestHeadersKb: proxyCfg.MaxRequestHeadersKB,
 		})
 		if err != nil {
 			return nil, err
@@ -1347,15 +1355,16 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 	}
 
 	filterOpts := listenerFilterOpts{
-		protocol:         cfg.Protocol,
-		filterName:       name,
-		routeName:        name,
-		cluster:          xdscommon.LocalAppClusterName,
-		requestTimeoutMs: cfg.LocalRequestTimeoutMs,
-		idleTimeoutMs:    cfg.LocalIdleTimeoutMs,
-		tracing:          tracing,
-		accessLogs:       &cfgSnap.Proxy.AccessLogs,
-		logger:           s.Logger,
+		protocol:            cfg.Protocol,
+		filterName:          name,
+		routeName:           name,
+		cluster:             xdscommon.LocalAppClusterName,
+		requestTimeoutMs:    cfg.LocalRequestTimeoutMs,
+		idleTimeoutMs:       cfg.LocalIdleTimeoutMs,
+		tracing:             tracing,
+		accessLogs:          &cfgSnap.Proxy.AccessLogs,
+		logger:              s.Logger,
+		maxRequestHeadersKb: cfg.MaxRequestHeadersKB,
 	}
 	if useHTTPFilter {
 		jwtFilter, err := makeJWTAuthFilter(cfgSnap.JWTProviders, cfgSnap.ConnectProxy.Intentions)
@@ -1558,16 +1567,17 @@ func (s *ResourceGenerator) makeExposedCheckListener(cfgSnap *proxycfg.ConfigSna
 	filterName := fmt.Sprintf("exposed_path_filter_%s_%d", strippedPath, path.ListenerPort)
 
 	filterOpts := listenerFilterOpts{
-		useRDS:           false,
-		protocol:         path.Protocol,
-		filterName:       filterName,
-		routeName:        filterName,
-		cluster:          cluster,
-		statPrefix:       "",
-		routePath:        path.Path,
-		httpAuthzFilters: nil,
-		accessLogs:       &cfgSnap.Proxy.AccessLogs,
-		logger:           s.Logger,
+		useRDS:              false,
+		protocol:            path.Protocol,
+		filterName:          filterName,
+		routeName:           filterName,
+		cluster:             cluster,
+		statPrefix:          "",
+		routePath:           path.Path,
+		httpAuthzFilters:    nil,
+		accessLogs:          &cfgSnap.Proxy.AccessLogs,
+		logger:              s.Logger,
+		maxRequestHeadersKb: cfg.MaxRequestHeadersKB,
 		// in the exposed check listener we don't set the tracing configuration
 	}
 	f, err := makeListenerFilter(filterOpts)
@@ -1852,15 +1862,16 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.
 	// tcp proxy. For L7 this is a very hands-off HTTP proxy just to inject an
 	// HTTP filter to do intention checks here instead.
 	opts := listenerFilterOpts{
-		protocol:   tgtwyOpts.protocol,
-		filterName: fmt.Sprintf("%s.%s.%s.%s", tgtwyOpts.service.Name, tgtwyOpts.service.NamespaceOrDefault(), tgtwyOpts.service.PartitionOrDefault(), cfgSnap.Datacenter),
-		routeName:  tgtwyOpts.cluster, // Set cluster name for route config since each will have its own
-		cluster:    tgtwyOpts.cluster,
-		statPrefix: "upstream.",
-		routePath:  "",
-		tracing:    tracing,
-		accessLogs: &cfgSnap.Proxy.AccessLogs,
-		logger:     s.Logger,
+		protocol:            tgtwyOpts.protocol,
+		filterName:          fmt.Sprintf("%s.%s.%s.%s", tgtwyOpts.service.Name, tgtwyOpts.service.NamespaceOrDefault(), tgtwyOpts.service.PartitionOrDefault(), cfgSnap.Datacenter),
+		routeName:           tgtwyOpts.cluster, // Set cluster name for route config since each will have its own
+		cluster:             tgtwyOpts.cluster,
+		statPrefix:          "upstream.",
+		routePath:           "",
+		tracing:             tracing,
+		accessLogs:          &cfgSnap.Proxy.AccessLogs,
+		logger:              s.Logger,
+		maxRequestHeadersKb: proxyCfg.MaxRequestHeadersKB,
 	}
 
 	if useHTTPFilter {
@@ -2226,6 +2237,7 @@ type filterChainOpts struct {
 	forwardClientDetails bool
 	forwardClientPolicy  envoy_http_v3.HttpConnectionManager_ForwardClientCertDetails
 	tracing              *envoy_http_v3.HttpConnectionManager_Tracing
+	maxRequestHeadersKb  *uint32
 }
 
 func (s *ResourceGenerator) makeUpstreamFilterChain(opts filterChainOpts) (*envoy_listener_v3.FilterChain, error) {
@@ -2245,6 +2257,7 @@ func (s *ResourceGenerator) makeUpstreamFilterChain(opts filterChainOpts) (*envo
 		tracing:              opts.tracing,
 		accessLogs:           opts.accessLogs,
 		logger:               s.Logger,
+		maxRequestHeadersKb:  opts.maxRequestHeadersKb,
 	})
 	if err != nil {
 		return nil, err
@@ -2401,6 +2414,7 @@ type listenerFilterOpts struct {
 	headersWithUnderscoresAction envoy_core_v3.HttpProtocolOptions_HeadersWithUnderscoresAction
 	useRDS                       bool
 	fetchTimeoutRDS              *durationpb.Duration
+	maxRequestHeadersKb          *uint32
 }
 
 func makeListenerFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) {
@@ -2528,6 +2542,13 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) 
 		}
 		cfg.CommonHttpProtocolOptions.HeadersWithUnderscoresAction = opts.headersWithUnderscoresAction
 	}
+
+	// Set max request headers size if configured
+	if opts.maxRequestHeadersKb != nil {
+		// && *opts.maxRequestHeadersKb == 96
+		cfg.MaxRequestHeadersKb = &wrapperspb.UInt32Value{Value: *opts.maxRequestHeadersKb}
+	}
+	// TODO::: Remove cfg.MaxRequestHeadersKb = &wrapperspb.UInt32Value{Value: 96}
 
 	if opts.useRDS {
 		if opts.cluster != "" {
