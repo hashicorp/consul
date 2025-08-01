@@ -204,6 +204,19 @@ func testIdentityForToken(token string) (bool, structs.ACLIdentity, error) {
 				},
 			},
 		}, nil
+	case "authenticated":
+		return true, &structs.ACLToken{
+			AccessorID: "some-id",
+			SecretID:   "some-id",
+			Policies: []structs.ACLTokenPolicyLink{
+				{
+					ID: "node-wr",
+				},
+				{
+					ID: "acl-wr",
+				},
+			},
+		}, nil
 	default:
 		return true, nil, acl.ErrNotFound
 	}
