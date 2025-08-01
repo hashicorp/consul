@@ -1051,7 +1051,7 @@ func (s *Server) SetQueryMeta(m blockingquery.ResponseMeta, token string) {
 		m.SetLastContact(time.Since(s.raft.LastContact()))
 		m.SetKnownLeader(s.raft.Leader() != "")
 	}
-	s.maskResultsFilteredByACLs(token, m)
+	maskResultsFilteredByACLs(token, m, s)
 
 	// Always set a non-zero QueryMeta.Index. Generally we expect the
 	// QueryMeta.Index to be set to structs.RaftIndex.ModifyIndex. If the query
@@ -1146,14 +1146,15 @@ func (s *Server) RPCQueryTimeout(queryTimeout time.Duration) time.Duration {
 //     will only check whether it is blank or anonymous). It's a safe assumption because
 //     ResultsFilteredByACLs is only set to try when applying the already-resolved
 //     token's policies.
-func (s *Server) maskResultsFilteredByACLs(token string, m blockingQueryResponseMeta) {
+func maskResultsFilteredByACLs(token string, m blockingQueryResponseMeta, s *Server) {
 	if token != "" {
 		identity, err := s.ACLResolver.resolveIdentityFromToken(token)
 		if err != nil {
 			s.rpcLogger().Error("Failed to resolve identity from token", "err", err)
 			m.SetResultsFilteredByACLs(false)
+			return
 		}
-		if identity.ID() == AnonymousAccessorID || identity.SecretToken() == AnonymousSecretID {
+		if identity.ID() == AnonymousAccessorID && identity.SecretToken() == AnonymousSecretID {
 			m.SetResultsFilteredByACLs(false)
 		}
 	} else {
