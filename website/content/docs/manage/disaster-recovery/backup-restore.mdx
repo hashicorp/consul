@@ -126,13 +126,9 @@ Amazon S3. The enterprise command `snapshot agent` automates this process.
 
 Running the `restore` process should be straightforward. However, there are a couple of actions you can take to ensure the process goes smoothly. First, make sure the Consul datacenter you are restoring is stable and has a leader. You can verify this using `consul operator raft list-peers` and checking server logs and telemetry for signs of leader elections or network issues.
 
-<Note>
+When you restore a datacenter from a snapshot on new infrastructure, make sure node names are unique. Otherwise, you might encounter restore issues. For more information, refer to [Snapshot restore error](/consul/docs/error-messages/consul#snapshot-restore-error).
 
-When restoring a snapshot on a new datacenter make sure node names are unique and different from those of the datacenter you saved the snapshot from. Otherwise you might incur in restore issues. Read more at [Snapshot restore error](/consul/docs/error-messages/consul#snapshot-restore-error).
-
-</Note>
-
-You will only need to run the process once, on the leader. The Raft consensus protocol ensures that all servers restore the same state.
+You only need to run the snapshot restore process once, on the leader. The Raft consensus protocol ensures that all servers restore the same state.
 
 ```shell-session
 $ consul snapshot restore backup.snap

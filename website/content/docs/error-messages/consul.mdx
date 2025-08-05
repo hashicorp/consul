@@ -131,13 +131,13 @@ Get http://localhost:8500/: dial tcp 127.0.0.1:31643: socket: too many open file
 
 You need to increase the limit for the Consul user and maybe the system-wide limit. Refer to [this guide][files] for instructions to do so on Linux. Alternatively, if you are starting Consul from `systemd`, you could add `LimitNOFILE=65536` to the unit file for Consul. Refer to the [sample systemd file][systemd].
 
-## Backup - Restore errors
+## Backup and restore errors
 
 ### Snapshot close error
 
 Our RPC protocol requires support for a TCP half-close in order to signal the other side that they are done reading the stream, since we don't know the size in advance. This saves us from having to buffer just to calculate the size.
 
-If a host does not properly implement half-close, you may see an error message when saving snapshots.
+If a host does not properly implement half-close, you may receive an error message when saving snapshots.
 
 <CodeBlockConfig hideClipboard>
 
@@ -147,13 +147,13 @@ If a host does not properly implement half-close, you may see an error message w
 
 </CodeBlockConfig>
 
-This should not affect saving and restoring snapshots.
+This error should not affect saving and restoring snapshots.
 
 This has been a [known issue](https://github.com/docker/libnetwork/issues/1204) in Docker, but may manifest in other environments as well.
 
 ### Snapshot restore error
 
-When restoring a snapshot on a new Consul datacenter, if Consul throws the following errors there is a conflict between the `node_name` used in the new datacenter and the `node_id` value for those nodes. 
+When restoring a Consul datacenter with a snapshot on new infrastructure, Consul throws the following errors when there is a conflict between the `node_name` used in the new datacenter and the `node_id` value for those nodes. 
 
 <CodeBlockConfig hideClipboard>
 
@@ -163,13 +163,13 @@ When restoring a snapshot on a new Consul datacenter, if Consul throws the follo
 
 </CodeBlockConfig>
 
-Specifically this means that in the new datacenter, there is at least one node with the same `node_name` of a node in the snapshotted datacenter but with a different `node_id`. This represents a consistency issue for the restore commands that throws the above errors.
+This error means that in the new datacenter there is at least one node with the same `node_name` as a node in the snapshot's datacenter, but with a different `node_id`. This represents a consistency issue.
 
 Possible workarounds:
 
-1. Always use unique node names for your Consul datacenters so that there is no risk of conflicts (e.g., `consul-server-<random_chars>`). You can configure node names for your Consul agent nodes using the [`node_name`](/consul/docs/reference/agent/configuration-file/node#_node) configuration parameter.
+1. Always use unique node names for your Consul datacenters so that there is no risk of conflicts. You can configure node names for your Consul agent nodes using the [`node_name`](/consul/docs/reference/agent/configuration-file/node#_node) configuration parameter.
 
-1. Save the UUID from the previous node’s data directory. Re-use that same UUID when bringing up the agent on the new node. You can configure node IDs for your Consul agent nodes using the [`node_id`](/consul/docs/reference/agent/configuration-file/node#_node_id) configuration parameter.
+1. Save the UUID from the previous node’s data directory. Then re-use that same UUID when you first start the agent on the new node. You can configure node IDs for your Consul agent nodes with the [`node_id` configuration parameter](/consul/docs/reference/agent/configuration-file/node#_node_id).
 
 ## ACL not found
 
