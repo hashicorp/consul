@@ -11,17 +11,12 @@ This page describes how to to register a service into a particular Consul namesp
 
 @include 'alerts/enterprise-alert.mdx'
 
-<Tip>
-
-Consul Community Edition supports some of the functions listed in this page with its `default` partition and `default` namespace.
-
-</Tip>
 
 ## Introduction
 
 Namespaces allow multiple teams within an organization to share one or more Consul datacenters by separating the services, [Consul KV data](/consul/docs/automate/kv), and other Consul data of each team. This allows operators to more easily provide Consul as a service and enables them to [delegate ACL management](/consul/docs/multi-tenant/namespace/vm/delegate-token-management).
 
-As of version `1.7`, Consul registers each service in the `default` namespace unless the configuration for the service specifies another namespace. If you do not specify a namespace during service registration, Consul registers the service into the `default` namespace.
+All Consul clusters have access to a `default` namespace, but using multiple namespaces requires a Consul Enterprise license. Consul registers services into the namespace declared in the service definition. If you do not specify a namespace, Consul registers the service into the `default` namespace.
 
 ## Register a service into a namespace
 
@@ -75,7 +70,7 @@ $ consul services register \
 
 A token's namespace can be inherited during CLI and API requests related to services, intentions, Consul KV, checks, and ACLs. This means that if you register a service with a token in the `db-team` namespace, the service will be registered in that namespace without having to specify it explicitly.
 
-You can create a namespace token following instructions in [Delegate ACL token management with namespaces](/consul/docs/multi-tenant/namespace/vm/delegate-token-management#create-a-developer-token).
+To create a namespace token, follow instructions in [Delegate ACL token management with namespaces](/consul/docs/multi-tenant/namespace/vm/delegate-token-management#create-a-developer-token).
 
 First set the token for the CLI.
 
@@ -92,9 +87,9 @@ Registered service: db-service
 
 <Note>
 
-Services registered with service definition configuration files must
-have both the ACL token and namespace name defined in the [service definition configuration file](/consul/docs/reference/service),
-as these files are parsed prior to resolving the token.
+If you registered a service with a service definition file, you must
+include both the ACL token and the namespace name in your request, as 
+service definitions are parsed prior to resolving the token.
 
 </Note>
 

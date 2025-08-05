@@ -25,9 +25,7 @@ To create namespace ACL tokens you need a token with [` acl = "write"`](/consul/
 
 ## Review existing namespaces
 
-In this document we'll assume the existence of two different teams, an *app-team* responsible for the deployment of the production application, and a *db-team* responsible for the maintenance of the production DBMS.
-
-Because of this, the datacenter contains two different namespaces: `app-team` and `db-team`.
+First, review the namespaces available in the Consul datacenter. If you follow the example instructions to [configure Consul namespaces on VMs](/consul/docs/multi-tenant/namespace/vm/configure), the datacenter contains two different namespaces: `app-team` and `db-team`.
 
 ```shell-session
 $ consul namespace list
@@ -43,12 +41,10 @@ db-team:
 
 ## Default namespace policy privileges
 
-Consul provides a built-in policy, named `namespace-management` to simplify management token creation for namespace operators. 
+Consul provides a built-in ACL policy to simplify management token creation for namespace operators. The `namespace-management` policy grants unrestricted privileges for a
+namespace. Most importantly, this policy grants permission to create ACL tokens, which enables the holders to grant themselves any additional permissions they require for operations within their namespace. 
 
-The `namespace-management` policy grants unrestricted privileges for a
-namespace. Most importantly, the policy grants privileges to create tokens, which enables the holders to grant themselves any additional privileges needed for any operation within their namespace. 
-
-The namespace-policy includes the following rules.
+The `namespace-management` policy includes the following rules.
 
 ```hcl
 policy = "write"
@@ -76,7 +72,7 @@ service_prefix "" {
 
 ## Create namespace management tokens
 
-Create a management token for namespace `app-team` using the [consul acl token create](/consul/commands/acl/token/create) command.
+Create a management token for namespace `app-team` with the [`consul acl token create` command](/consul/commands/acl/token/create).
 
 ```shell-session
 $ consul acl token create \
@@ -85,7 +81,7 @@ $ consul acl token create \
       -policy-name "namespace-management"
 ```
 
-If the command is successful, Consul will return the token information.
+If the command is successful, Consul returns the token information.
 
 <CodeBlockConfig hideClipboard>
 
@@ -112,7 +108,7 @@ $ consul acl token create \
       -policy-name "namespace-management"
 ```
 
-If the command is successful, Consul will return the token information.
+If the command is successful, Consul returns the token information.
 
 <CodeBlockConfig hideClipboard>
 
@@ -130,11 +126,10 @@ Policies:
 
 </CodeBlockConfig>
 
-Both token should be generated successfully before continuing.
 
 ## View namespace management tokens
 
-Review the created tokens with the [`consul acl token list`](/consul/commands/acl/token/list) command. To view tokens within a namespace, you will need to use the `-namespace` command-line flag.
+Review the tokens you created with the [`consul acl token list` command](/consul/commands/acl/token/list). Include the `-namespace` flag to view tokens within a specific namespace.
 
 ```shell-session
 $ consul acl token list -namespace db-team
@@ -149,32 +144,24 @@ Policies:
    388803f1-8cda-027a-0691-b02d14843b8b - namespace-management
 ```
 
-The output will return all tokens in the namespace. In this tutorial example, there is only one. If no `-namespace` flag is provided the command will return the tokens in the global namespace, if you have the correct privileges.
 
-## Create a developer token
+## Create additional tokens for a namespace
 
-With the namespace management token, and operator can create tokens that restrict privileges for end-users, only providing the minimum necessary privileges for their role. In this example, you will give the developers on the `db-team` namespace the ability to register their own services and allow or deny communication between services in their team’s namespace with intentions. 
-
-<Note>
-
-Depending on your company’s security model you may want to delegate
-intentions management to a different set of users than service registration.
-
-</Note>
+You can create additional tokens that restrict privileges for users in a namespace so that you provide only the minimum necessary privileges for their role. The following example demonstrates how to create an ACL token for developers in the database team's namespace. This token limits their actions in the namespace to registering their own services and creating service intentions.
 
 ### Use the namespace operator token
 
-To ensure the `db-team` namespace operator token has the correct privileges set it as the environment variable.
+Set the namespace operator's token as the `CONSUL_HTTP_TOKEN` environment variable to ensure that you update the correct namespace.
 
 ```shell-session
 $ export CONSUL_HTTP_TOKEN=<db-team operator token here>
 ```
 
-If any of the following commands fail with a permission error, than the token was not created correctly.
+If any of the following commands fail with a permission error, then the token was not created correctly. Confirm the the value of the ACL token you set matches the intended namespace.
 
 ### Create the policy
 
-Create a HCL file named `db-developer-policy.hcl` with the following content.
+Create a policy for the database team's developers.
 
 <CodeBlockConfig filename="db-developer-policy.hcl">
 
@@ -189,7 +176,7 @@ service_prefix "" {
 
 This policy allows writing services and intentions for those services.
 
-Using the Consul CLI, create the policy using the policy file.
+Use the Consul CLI to create the policy with the rules in the policy file.
 
 ```shell-session
 $ consul acl policy create \
@@ -199,7 +186,7 @@ $ consul acl policy create \
   -rules @db-developer-policy.hcl
 ```
 
-If the command is successful, the output will be the policy details.
+If the command is successful, Consul outputs the policy details.
 
 <CodeBlockConfig hideClipboard>
 
@@ -221,7 +208,7 @@ service_prefix "" {
 
 ### Create the token
 
-Using the developer policy defined previously, create a token for the
+Use the developer policy to  create a token for the
 developer in the `db-team` namespace.
 
 ```shell-session
@@ -231,7 +218,7 @@ $ consul acl token create \
   -policy-name developer-policy
 ```
 
-The output will provide token information, including the namespace
+Consul outputs the token information, including the namespace
 where the token is located.
 
 <CodeBlockConfig hideClipboard>
@@ -251,16 +238,4 @@ Policies:
 </CodeBlockConfig>
 
 You can now distribute the token to the `db-team` developers to enable them to register and manage access to their service autonomously.
-
-## Next steps
-
-In this document, you learned how to secure the resources within a namespace. You created management tokens for two namespaces and then a developer token for the `db-team`.
-
-<Note>
-
-The datacenter operator, using a `global-management` token, can also create policies that are shared by all namespaces. Shared policies are universal and should be created in the `default` namespace.
-
-</Note>
-
-To learn how to register services within a namespace, refer to [Register services into a namespace](/consul/docs/register/service/namespace?utm_source=docs).
 

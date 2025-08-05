@@ -49,6 +49,7 @@ description = "Namespace for db-team managing the production database"
 </CodeBlockConfig>
 
 </Tab>
+
 <Tab heading="JSON">
 
 Create the namespace definition file for the *app-team*.
@@ -80,13 +81,11 @@ Create the namespace definition file for the *db-team*.
 </Tab>
 </Tabs>
 
-The examples use basic namespace definitions, with only the name
-and description. To get a full list of available configuration parameters refer to the 
-[namespace definition reference](/consul/docs/reference/namespace).
+These examples use basic namespace definitions with only the name and description. For a full list of the configurable namespace parameters, refer to [Namespace definition reference](/consul/docs/reference/namespace).
 
-## Create namespaces
+## Register namespaces
 
-Create the namespaces using the [`consul namespace`](/consul/commands/namespace) CLI command, passing the created definitions as parameter.
+Use the [`consul namespace` CLI command](/consul/commands/namespace) to register the namespace with the Consul datacenter.
 
 <Tabs>
 <Tab heading="HCL">
@@ -137,9 +136,9 @@ Partition:   default
 </Tab>
 </Tabs>
 
-## Review created namespaces
+## Review namespaces in a Consul datacenter
 
-Use the [`consul namespace list`](/consul/commands/namespace/list) CLI command to review the namespaces.
+Use the [`consul namespace list` CLI command](/consul/commands/namespace/list) to review the namespaces registered with the Consul datacenter.
 
 ```shell-session
 $ consul namespace list
@@ -153,7 +152,7 @@ db-team:
    Partition:   default
 ```
 
-To get more information about one specific namespace you can use the [`consul namespace read <namespace>`](/consul/commands/namespace/list) CLI command.
+To return information about a specific namespace, use the [`consul namespace read` CLI command](/consul/commands/namespace/read).
 
 ```shell-session
 $ consul namespace read app-team
@@ -165,14 +164,12 @@ Partition:   default
 
 ## Delete namespaces
 
-After you create a namespace, you can update or delete it using the Consul [CLI](/consul/commands/namespace).
-
-
+After you create a namespace, you can update or delete it using the Consul CLI. Refer to [`consul namespace update`](/consul/commands/namespace/update) or [`consul namespace delete`](consul/commands/namespace/delete) for more information.
 
 ## Next steps
 
-In this document, you learned how to create and interact with Consul Enterprise namespaces.
+After you register a namespace with Consul, you can further secure the namespace or begin registering services into specific namespaces for service discovery.
 
-To learn how to to secure the resources within a namespace refer to [Delegate ACL token management with namespaces](/consul/docs/multi-tenant/namespace/vm/delegate-token-management).
+To learn how to to secure the resources within a namespace, refer to [Delegate ACL token management with namespaces](/consul/docs/multi-tenant/namespace/vm/delegate-token-management).
 
-To learn how to register services within a namespace refer to [Register services into a namespace](/consul/docs/register/service/namespace?utm_source=docs).
+To learn how to register services within a namespace, refer to [Register services into a namespace](/consul/docs/register/service/namespace).
