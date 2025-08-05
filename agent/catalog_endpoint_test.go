@@ -52,7 +52,7 @@ func TestCatalogRegister_PeeringRegistration(t *testing.T) {
 	})
 
 	t.Run("cannot hcl set the peer registrations config", func(t *testing.T) {
-		// this will have no effect, as the value is overriden in non user source
+		// this will have no effect, as the value is overridden in non user source
 		a := NewTestAgent(t, "peering = { test_allow_peer_registrations = true }")
 		defer a.Shutdown()
 
