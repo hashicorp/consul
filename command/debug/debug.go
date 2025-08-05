@@ -303,34 +303,39 @@ func (c *cmd) prepare() (version string, err error) {
 		return "", fmt.Errorf("agent response did not contain EnableDebug key")
 	}
 
-	if !enableDebug {
-		// Check if ACLs are enabled - if so, try to validate we have operator:read permission
-		aclEnabled, ok := self["DebugConfig"]["ACLsEnabled"].(bool)
-		if ok && aclEnabled {
-			// Test if we have operator:read permission by trying to access a pprof endpoint
-			// The /debug/pprof/heap endpoint requires operator:read when ACLs are enabled
-			_, err := c.client.Debug().Heap()
-			if err == nil {
-				// We have permission, allow pprof capture
-				c.UI.Info("[INFO] ACLs enabled and token has operator:read permissions, pprof capture allowed")
-			} else {
-				// No permission or other error, remove pprof from capture
-				cs := c.capture
-				for i := 0; i < len(cs); i++ {
-					if cs[i] == "pprof" {
-						c.capture = append(cs[:i], cs[i+1:]...)
-						i--
-						c.UI.Warn("[WARN] Unable to capture pprof. Either set enable_debug to true on target agent or provide an ACL token with operator:read permissions.")
-					}
-				}
-			}
-		} else {
-			// ACLs are disabled, remove pprof from capture since debug is disabled
-			cs := c.capture
-			for i := 0; i < len(cs); i++ {
-				if cs[i] == "pprof" {
-					c.capture = append(cs[:i], cs[i+1:]...)
-					i--
+	// Check if ACLs are enabled - if so, try to validate we have operator:read permission
+	aclEnabled, ok := self["DebugConfig"]["ACLsEnabled"].(bool)
+	if !ok {
+		return "", fmt.Errorf("agent response did not contain EnableDebug key")
+	}
+
+	// Determine if we should allow pprof capture
+	// Allow pprof if:
+	// 1. enableDebug is true (regardless of ACL state), OR
+	// 2. ACLs are enabled AND we have operator:read permission
+	allowPprof := enableDebug
+
+	if !enableDebug && aclEnabled {
+		// Test if we have operator:read permission by trying to access a pprof endpoint
+		// The /debug/pprof/heap endpoint requires operator:read when ACLs are enabled
+		_, err := c.client.Debug().Heap()
+		if err == nil {
+			// We have permission, allow pprof capture
+			c.UI.Info("[INFO] ACLs enabled and token has operator:read permissions, pprof capture allowed")
+			allowPprof = true
+		}
+	}
+
+	if !allowPprof {
+		// Remove pprof from capture
+		cs := c.capture
+		for i := 0; i < len(cs); i++ {
+			if cs[i] == "pprof" {
+				c.capture = append(cs[:i], cs[i+1:]...)
+				i--
+				if aclEnabled {
+					c.UI.Warn("[WARN] Unable to capture pprof. Either set enable_debug to true on target agent or provide an ACL token with operator:read permissions.")
+				} else {
 					c.UI.Warn("[WARN] Unable to capture pprof. Set enable_debug to true on target agent to enable profiling.")
 				}
 			}
