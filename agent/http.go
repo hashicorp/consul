@@ -225,7 +225,10 @@ func (s *HTTPHandlers) handler() http.Handler {
 		wrapper := func(resp http.ResponseWriter, req *http.Request) {
 
 			// If enableDebug register wrapped pprof handlers
-			if !s.agent.enableDebug.Load() && s.checkACLDisabled() {
+			enableDebug := s.agent.enableDebug.Load()
+			aclEnabled := !s.checkACLDisabled()
+			allowPprof := enableDebug || aclEnabled
+			if !allowPprof {
 				resp.WriteHeader(http.StatusNotFound)
 				resp.Header().Set(contentTypeHeader, plainContentType)
 				return

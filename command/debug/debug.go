@@ -313,18 +313,7 @@ func (c *cmd) prepare() (version string, err error) {
 	// Allow pprof if:
 	// 1. enableDebug is true (regardless of ACL state), OR
 	// 2. ACLs are enabled AND we have operator:read permission
-	allowPprof := enableDebug
-
-	if !enableDebug && aclEnabled {
-		// Test if we have operator:read permission by trying to access a pprof endpoint
-		// The /debug/pprof/heap endpoint requires operator:read when ACLs are enabled
-		_, err := c.client.Debug().Heap()
-		if err == nil {
-			// We have permission, allow pprof capture
-			c.UI.Info("[INFO] ACLs enabled and token has operator:read permissions, pprof capture allowed")
-			allowPprof = true
-		}
-	}
+	allowPprof := enableDebug || aclEnabled
 
 	if !allowPprof {
 		// Remove pprof from capture
