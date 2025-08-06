@@ -567,6 +567,10 @@
             "path": "secure/acl/bootstrap"
           },
           {
+            "title": "Reset ACL system",
+            "path": "secure/acl/reset"
+          },
+          {
             "title": "Enforce ACL policies with Sentinel",
             "badge": {
               "text": "ENTERPRISE",
