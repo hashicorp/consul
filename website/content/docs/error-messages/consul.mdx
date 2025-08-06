@@ -165,7 +165,7 @@ When restoring a Consul datacenter with a snapshot on new infrastructure, Consul
 
 This error means that in the new datacenter there is at least one node with the same `node_name` as a node in the snapshot's datacenter, but with a different `node_id`. This represents a consistency issue.
 
-Possible workarounds:
+There are two possible workarounds:
 
 1. Save the UUID from the previous node’s data directory. Then re-use that same UUID when you first start the agent on the new node. You can configure node IDs for your Consul agent nodes with the [`node_id` configuration parameter](/consul/docs/reference/agent/configuration-file/node#_node_id).
 
