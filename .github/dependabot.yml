@@ -3,6 +3,8 @@
 
 version: 2
 updates:
+# --- Updates for main branch ---
+# Go modules (main)
 - package-ecosystem: gomod
   open-pull-requests-limit: 10
   directory: "/"
@@ -10,9 +12,12 @@ updates:
     - "go"
     - "dependencies"
     - "pr/no-changelog"
+    - "pr/no-backport"
   schedule:
     interval: daily
-- package-ecosystem: npm 
+  target-branch: main
+# npm (main)
+- package-ecosystem: npm
   open-pull-requests-limit: 5
   directory: "/website"
   labels:
@@ -20,8 +25,11 @@ updates:
     - "dependencies"
     - "type/docs-cherrypick"
     - "pr/no-changelog"
+    - "pr/no-backport"
   schedule:
     interval: daily
+  target-branch: main
+# GitHub Actions (main)
 - package-ecosystem: github-actions
   open-pull-requests-limit: 5
   directory: /
@@ -29,5 +37,46 @@ updates:
     - "github_actions"
     - "dependencies"
     - "pr/no-changelog"
+    - "pr/no-backport"
   schedule:
     interval: daily
+  target-branch: main
+
+# --- Updates for release/1.21.x branch ---
+# Go modules (release/1.21.x)
+- package-ecosystem: gomod
+  open-pull-requests-limit: 10
+  directory: "/"
+  labels:
+    - "go"
+    - "dependencies"
+    - "pr/no-changelog"
+    - "pr/no-backport"
+  schedule:
+    interval: daily
+  target-branch: release/1.21.x
+# npm (release/1.21.x)
+- package-ecosystem: npm
+  open-pull-requests-limit: 5
+  directory: "/website"
+  labels:
+    - "javascript"
+    - "dependencies"
+    - "type/docs-cherrypick"
+    - "pr/no-changelog"
+    - "pr/no-backport"
+  schedule:
+    interval: daily
+  target-branch: release/1.21.x
+# GitHub Actions (release/1.21.x)
+- package-ecosystem: github-actions
+  open-pull-requests-limit: 5
+  directory: /
+  labels:
+    - "github_actions"
+    - "dependencies"
+    - "pr/no-changelog"
+    - "pr/no-backport"
+  schedule:
+    interval: daily
+  target-branch: release/1.21.x
