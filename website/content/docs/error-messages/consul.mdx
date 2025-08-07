@@ -107,7 +107,7 @@ Error getting server health from "XXX": context deadline exceeded
 
 </CodeBlockConfig>
 
-Make sure you are monitoring Consul telemetry and system metrics according to our [monitoring guide][monitoring]. Increase the CPU or memory allocation to the server if needed. Check the performance of the network between Consul nodes.
+Make sure you are monitoring Consul telemetry and system metrics according to our [telemetry documentation][monitoring]. Increase the CPU or memory allocation to the server if needed. Check the performance of the network between Consul nodes.
 
 ## Too many open files
 
@@ -131,13 +131,45 @@ Get http://localhost:8500/: dial tcp 127.0.0.1:31643: socket: too many open file
 
 You need to increase the limit for the Consul user and maybe the system-wide limit. Refer to [this guide][files] for instructions to do so on Linux. Alternatively, if you are starting Consul from `systemd`, you could add `LimitNOFILE=65536` to the unit file for Consul. Refer to the [sample systemd file][systemd].
 
-## Snapshot close error
+## Backup and restore errors
+
+### Snapshot close error
 
 Our RPC protocol requires support for a TCP half-close in order to signal the other side that they are done reading the stream, since we don't know the size in advance. This saves us from having to buffer just to calculate the size.
 
-If a host does not properly implement half-close, you may see an error message `[ERR] consul: Failed to close snapshot: write tcp <source>-><destination>: write: broken pipe` when saving snapshots. This should not affect saving and restoring snapshots.
+If a host does not properly implement half-close, you may receive an error message when saving snapshots.
+
+<CodeBlockConfig hideClipboard>
+
+```log
+[ERR] consul: Failed to close snapshot: write tcp <source>-><destination>: write: broken pipe
+```
+
+</CodeBlockConfig>
+
+This error should not affect saving and restoring snapshots.
 
 This has been a [known issue](https://github.com/docker/libnetwork/issues/1204) in Docker, but may manifest in other environments as well.
+
+### Snapshot restore error
+
+When restoring a Consul datacenter with a snapshot on new infrastructure, Consul throws the following errors when there is a conflict between the `node_name` used in the new datacenter and the `node_id` value for those nodes. 
+
+<CodeBlockConfig hideClipboard>
+
+```log
+[WARN] agent.fsm: EnsureRegistration failed: error="failed inserting node: Error while renaming Node ID: "<NEW_UUID>": Node name <NAME> is reserved by node <OLD_UUID> with name <NAME> (<IP>)"
+```
+
+</CodeBlockConfig>
+
+This error means that in the new datacenter there is at least one node with the same `node_name` as a node in the snapshot's datacenter, but with a different `node_id`. This represents a consistency issue.
+
+There are two possible workarounds:
+
+1. Save the UUID from the previous node’s data directory. Then re-use that same UUID when you first start the agent on the new node. You can configure node IDs for your Consul agent nodes with the [`node_id` configuration parameter](/consul/docs/reference/agent/configuration-file/node#_node_id).
+
+1. Always use unique node names for your Consul datacenters so that there is no risk of conflicts. You can configure node names for your Consul agent nodes using the [`node_name`](/consul/docs/reference/agent/configuration-file/node#_node) configuration parameter.
 
 ## ACL not found
 
@@ -251,7 +283,8 @@ To resolve this error, you must manually issue the `consul reload` command or se
 [releases]: https://releases.hashicorp.com/consul/
 [files]: https://easyengine.io/tutorials/linux/increase-open-files-limit
 [certificates]: /consul/docs/secure/encryption/tls/enable/new/builtin
-[systemd]: /consul/tutorials/production-deploy/deployment-guide#configure-systemd
-[monitoring]: /consul/tutorials/day-2-operations/monitor-datacenter-health
+[systemd]: /consul/tutorials/production-vms/deployment-guide#configure-systemd
+[monitoring]: /consul/docs/monitor/telemetry/agent
 [bind]: /consul/commands/agent#_bind
 [jq]: https://stedolan.github.io/jq/
+[go-sockaddr]: https://pkg.go.dev/github.com/hashicorp/go-sockaddr
