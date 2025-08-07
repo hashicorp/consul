@@ -223,34 +223,9 @@ func (s *HTTPHandlers) handler() http.Handler {
 	handlePProf := func(pattern string, handler http.HandlerFunc) {
 
 		wrapper := func(resp http.ResponseWriter, req *http.Request) {
-			logger := s.agent.logger.Named(logging.HTTP)
-
-			// Log incoming pprof request details
-			logger.Info("pprof request received",
-				"method", req.Method,
-				"path", req.URL.Path,
-				"pattern", pattern,
-				"remote_addr", req.RemoteAddr,
-				"user_agent", req.Header.Get("User-Agent"))
 
 			// If enableDebug register wrapped pprof handlers
-			enableDebug := s.agent.enableDebug.Load()
-			aclEnabled := !s.checkACLDisabled()
-			allowPprof := enableDebug || aclEnabled
-
-			// Log authorization decision data
-			logger.Debug("pprof authorization check",
-				"enable_debug", enableDebug,
-				"acl_enabled", aclEnabled,
-				"allow_pprof", allowPprof,
-				"logic", fmt.Sprintf("enableDebug(%t) || aclEnabled(%t) = %t", enableDebug, aclEnabled, allowPprof))
-
-			if !allowPprof {
-				logger.Warn("pprof access denied - insufficient permissions",
-					"reason", "enable_debug is false and ACLs are disabled",
-					"enable_debug", enableDebug,
-					"acl_enabled", aclEnabled,
-					"response_status", http.StatusNotFound)
+			if !s.agent.enableDebug.Load() && s.checkACLDisabled() {
 				resp.WriteHeader(http.StatusNotFound)
 				resp.Header().Set(contentTypeHeader, plainContentType)
 				return
@@ -259,63 +234,25 @@ func (s *HTTPHandlers) handler() http.Handler {
 			var token string
 			s.parseToken(req, &token)
 
-			// Log token information (redacted)
-			hasToken := token != ""
-			tokenLength := len(token)
-			if hasToken && tokenLength > 8 {
-				// Show first 4 and last 4 characters for debugging while keeping it secure
-				tokenPreview := token[:4] + "..." + token[tokenLength-4:]
-				logger.Debug("pprof token parsed",
-					"has_token", hasToken,
-					"token_length", tokenLength,
-					"token_preview", tokenPreview)
-			} else {
-				logger.Debug("pprof token parsed",
-					"has_token", hasToken,
-					"token_length", tokenLength)
-			}
-
 			authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
 			if err != nil {
-				logger.Warn("pprof access denied - token resolution failed",
-					"error", err.Error(),
-					"has_token", hasToken,
-					"response_status", http.StatusForbidden)
 				resp.Header().Set(contentTypeHeader, plainContentType)
 				resp.WriteHeader(http.StatusForbidden)
 				return
 			}
-
-			logger.Debug("pprof token resolved successfully",
-				"has_token", hasToken)
 
 			// If the token provided does not have the necessary permissions,
 			// write a forbidden response
 			// TODO(partitions): should this be possible in a partition?
 			// TODO(acl-error-enhancements): We should return error details somehow here.
-			operatorReadPermission := authz.OperatorRead(nil)
-			if operatorReadPermission != acl.Allow {
-				logger.Warn("pprof access denied - insufficient operator permissions",
-					"permission_result", operatorReadPermission.String(),
-					"required_permission", "operator:read",
-					"has_token", hasToken,
-					"response_status", http.StatusForbidden)
+			if authz.OperatorRead(nil) != acl.Allow {
 				resp.Header().Set(contentTypeHeader, plainContentType)
 				resp.WriteHeader(http.StatusForbidden)
 				return
 			}
 
-			logger.Info("pprof access granted - calling handler",
-				"operator_read_permission", operatorReadPermission.String(),
-				"handler_pattern", pattern)
-
 			// Call the pprof handler
 			handler(resp, req)
-
-			logger.Debug("pprof handler completed",
-				"pattern", pattern,
-				"method", req.Method,
-				"path", req.URL.Path)
 		}
 
 		handleFuncMetrics(pattern, http.HandlerFunc(wrapper))

@@ -309,10 +309,6 @@ func (c *cmd) prepare() (version string, err error) {
 		return "", fmt.Errorf("agent response did not contain EnableDebug key")
 	}
 
-	// Determine if we should allow pprof capture
-	// Allow pprof if:
-	// 1. enableDebug is true (regardless of ACL state), OR
-	// 2. ACLs are enabled AND we have operator:read permission
 	allowPprof := enableDebug || aclEnabled
 
 	if !allowPprof {
