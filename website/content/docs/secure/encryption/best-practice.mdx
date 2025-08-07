@@ -1,0 +1,89 @@
+---
+layout: docs
+page_title: Best practices for traffic encryption
+description: >-
+  Review security considerations and best practices for the configuration of the gossip encryption and mTLS encryption in Consul.
+---
+
+# Best practices for traffic encryption
+
+This document provides a list of best practices for the configuration of the gossip encryption and mTLS encryption in Consul.
+
+## Gossip encryption best practices
+
+The following is a list of recommended practices for gossip encryption.
+
+- Regularly rotate the gossip encryption key to improve the overall security of Consul. More resources on gossip encryption key rotation are available at [Rotate gossip encryption keys on VMs](/consul/docs/secure/encryption/gossip/rotate/vm) and [Rotate Gossip Encryption Keys for Consul on Kubernetes](/consul/docs/secure/encryption/gossip/rotate/k8s).
+
+- When possible, automate the rotation of gossip keys using Vault and Consul Template as shown in [Generate and manage gossip encryption for Consul with Vault and Consul Template](/consul/docs/automate/consul-template/vault/gossip).
+
+
+## mTLS encryption best practices
+
+The following is a list of recommended practices for mTLS encryption.
+
+- Ensure that certificates have an expiration period that aligns with your
+company’s guidelines.
+
+- Enable either [`auto_encrypt`](/consul/docs/reference/agent/configuration-file/encryption#auto_encrypt) or [`auto_config`](/consul/docs/reference/agent/configuration-file/auto-config) to automatically distribute client certificates.
+
+- For automatic key rotation and certificate renewals, the use of a secrets management solution such as HashiCorp Vault is strongly recommended. Refer to [Generate mTLS Certificates for Consul with Vault and Consul Template](/consul/docs/automate/consul-template/vault/mtls) for more information.
+
+- Avoid the use of wildcard certificates to reduce possible attack surface. Instead, leverage named certificates with the use of subject alternative name (SAN).
+
+- Verify the server hostname setting [`verify_server_hostname`](/consul/docs/reference/agent/configuration-file/tls#tls_internal_rpc_verify_server_hostname) is set to ensure that the client only accepts the certificate files from a server that presents a certificate matching `server.<dc>.<domain>`.
+
+- Secure API, UI, and CLI with HTTPS.
+    - If there is a requirement to expose the API/CLI/UI outside of the Consul cluster, the use of HTTPS is strongly encouraged.
+
+    <Note>
+
+      Firewall/Security group rules will need to be adjusted to provide access to these services.
+
+    </Note>
+
+    - In order to leverage mTLS with the API, UI and CLI, a separate client certificate should be generated and used for requests.
+
+    - Once HTTPS has been enabled, HTTP should be disabled by leveraging the ports stanza in the server and client configuration.
+
+    <CodeTabs heading="Port configuration">
+
+    ```hcl
+    ports = {
+       https = 8501
+       http = -1
+    }
+    ```
+
+    ```json
+    "ports": {
+       "https": 8501
+       "http" : -1
+    }
+    ```
+
+    </CodeTabs>
+
+    - Unless you have configured environment variables or include specific parameters in consul commands, the CLI and API will be inaccessible after enabling HTTPS. The following environment variables and CLI commands can be used to configure the appropriate values.
+
+    <Tabs>
+    <Tab heading="Environment Variables">
+
+    ```shell-session
+    $ export CONSUL_HTTP_ADDR=https://server.dc1.consul:8501
+    $ export CONSUL_CACERT=consul-agent-ca.pem
+    $ export CONSUL_CLIENT_CERT=cli.client.dc1.consul.crt
+    $ export CONSUL_CLIENT_KEY=cli.client.dc1.consul.key
+    ```
+    </Tab>
+    <Tab heading="CLI">
+
+    ```shell-session
+    $ consul members \
+    -http-addr="https://server.dc1.consul:8501" \
+    -ca-file="consul-agent-ca.pem" \
+    -client-cert="cli.client.dc1.consul.crt" \ 
+    -client-key="cli.client.dc1.consul.key"
+    ```
+    </Tab>
+    </Tabs>

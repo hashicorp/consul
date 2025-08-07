@@ -469,6 +469,10 @@
             "path": "secure/acl"
           },
           {
+            "title": "Best practices",
+            "path": "secure/acl/best-practice"
+          },
+          {
             "title": "Tokens",
             "routes": [
               {
@@ -600,6 +604,10 @@
           {
             "title": "Overview",
             "path": "secure/encryption"
+          },
+          {
+            "title": "Best practices",
+            "path": "secure/encryption/best-practice"
           },
           {
             "title": "Encrypt gossip traffic",
