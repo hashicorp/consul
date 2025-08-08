@@ -1,0 +1,24 @@
+---
+layout: docs
+page_title: Best practices for Access Control List (ACL)
+description: >-
+  Review security considerations and best practices for the configuration of the Access Control List (ACL) system in Consul.
+---
+
+# Best practices for Access Control List (ACL)
+
+Access Control List (ACL) system is not enabled by default on Consul. During the configuration there are a number of recommended practices you should follow.
+
+- The default policy should be set to `“deny”` on a new Consul cluster. On an existing Consul cluster, it should be set to `“allow”`, until ACL tokens have been distributed to all nodes.
+
+- ACLs should be created for either every server role type or every agent node through the use of rules and policies. Each customer will need to evaluate the most appropriate approach based on their security requirements.
+
+  - For example, using an exact match resource rule is the most secure. It
+  grants the least privileges necessary to accomplish the task. Generally,
+  creating policies and tokens with the least privileges will result in more policy definitions. Alternatively, for a simplified process, the prefix resources rules can apply to zero-to-many objects (eg web servers, database servers, etc.) The trade-off of a less complicated token creation process is the potential for wider blast radius on the token or possible workload compromise. For additional details, refer to the [Understand Access Control Privileges](/consul/tutorials/security/access-control-manage-policies) tutorial.
+
+- Use of ACL tokens associated with the _Global Management_ policy, granting unrestricted permission to the datacenter resources, should be restricted to the initial bootstrap configuration. Once the initial config is complete and additional ACL tokens have been created, including a new emergency _Global Management_ token, the original bootstrap token should be deleted. Additionally, this new _Global Management_ token should be rotated on a regular basis in alignment your security requirements.
+
+- [Leverage Vault to manage ACLs within the environment](/consul/tutorials/vault-secure/vault-consul-secrets).
+
+- If more granular access controls are required, Consul Enterprise supports the use of [Sentinel](/sentinel) for more fine-grained and logic-based policies. Sentinel policies extend the ACL system in Consul beyond static `read`, `write`, and `deny` policies to support full conditional logic and integration with external systems.
