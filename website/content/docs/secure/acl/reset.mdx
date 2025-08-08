@@ -1,0 +1,148 @@
+---
+layout: docs
+page_title: Reset Access Control List (ACL) system
+description: >-
+  Reset the Access Control List (ACL) system to regain access of your Consul datacenter.
+---
+
+# Reset Access Control List (ACL) system
+
+This page describes the process to reset Consul's ACL system. You should not reset the ACL system unless you lose access to a datacenter's global management token.
+
+## Introduction
+
+After you bootstrap the Access Control List (ACL) system, Consul's API endpoints and CLI commands require a valid ACL token. The bootstrap process creates a token with the `global-management` policy. To maintain control over your Consul datacenter, you need to be able to access to a token with the same policy.
+
+If you lose access to a valid `global-management` token, you must reset the ACL system to regain access to your Consul datacenter.
+
+The process to reset the ACL system can be non-disruptive. You create a new `global-management` token, but leave all previous tokens in place. Agent and service configurations will not be affected.
+
+## Find Consul cluster leader
+
+ACL reset must be performed on the Consul cluster's current leader, so you need to identify the correct server before proceeding with the reset.
+
+Use the [`/status/leader` API endpoint](/consul/api-docs/status#get-raft-leader) to retrieve the Consul cluster leader's IP address.
+
+```shell-session
+$ curl 127.0.0.1:8500/v1/status/leader
+"172.20.0.7:8300"
+```
+
+In this example, the leader is at at IP `172.20.0.7`. The following commands need to be run on that server.
+
+## Find reset index number
+
+Next, you need to obtain the index number of the previous ACL bootstrap. Consul outputs this index when it receives an invalid bootstrap command.
+
+<Tabs>
+<Tab heading="CLI" group="cli">
+
+Run the [`consul acl bootstrap` CLI command](/consul/commands/acl/bootstrap).
+
+```shell-session
+$ consul acl bootstrap
+Failed ACL bootstrapping: Unexpected response code: 403 (Permission denied: ACL bootstrap no longer allowed (reset index: 27))
+```
+
+</Tab>
+<Tab heading="API" group="api">
+
+Send a request to the [`/acl/bootstrap` API endpoint](/consul/api-docs/acl#bootstrap-acls).
+
+```shell-session
+$ curl --request PUT http://127.0.0.1:8500/v1/acl/bootstrap
+Permission denied: ACL bootstrap no longer allowed (reset index: 27)
+```
+
+</Tab>
+</Tabs>
+
+In this example, ACL bootstrap event is at index `27`.
+
+## Reset ACL system
+
+To reset the ACL system, create a file that contains the reset index number, in this case `27`. Save the file in the [Consul agent's data directory](/consul/docs/reference/agent/configuration-file/general#_data_dir). 
+
+```shell-session
+$ echo 27 >> /opt/consul/data.d/acl-bootstrap-reset
+```
+
+Finally, re-bootstrap the ACL system to obtain a new management token.
+
+<Tabs>
+<Tab heading="CLI" group="cli">
+
+Use the [`consul acl bootstrap` CLI command](/consul/commands/acl/bootstrap) to bootstrap the ACL system.
+
+```shell-session
+$ consul acl bootstrap
+```
+
+Consul outputs the new token details.
+
+<CodeBlockConfig hideClipboard highlight="2">
+
+```plaintext
+AccessorID:       b6e503df-c02c-8008-ebfc-ae758831121b
+SecretID:         bdd9521f-1722-fcbe-efe6-721fa888af87
+Description:      Bootstrap Token (Global Management)
+Local:            false
+Create Time:      2025-08-06 12:10:19.331206299 +0000 UTC
+Policies:
+   00000000-0000-0000-0000-000000000001 - global-management
+```
+
+</CodeBlockConfig>
+
+</Tab>
+<Tab heading="API" group="api">
+
+Use the [`/acl/bootstrap` API endpoint](/consul/api-docs/acl#bootstrap-acls) to bootstrap the ACL system.
+
+```shell-session
+$ curl --request PUT http://127.0.0.1:8500/v1/acl/bootstrap
+```
+
+Consul responds with the new token details.
+
+<CodeBlockConfig hideClipboard highlight="4">
+
+```json
+{
+  "ID": "19196b8b-d981-cf19-a87d-9d0199dbb295",
+  "AccessorID": "c3529fce-6502-980a-11d9-12f627134f35",
+  "SecretID": "19196b8b-d981-cf19-a87d-9d0199dbb295",
+  "Description": "Bootstrap Token (Global Management)",
+  "Policies": [
+    {
+      "ID": "00000000-0000-0000-0000-000000000001",
+      "Name": "global-management"
+    }
+  ],
+  "Local": false,
+  "CreateTime": "2025-08-06T12:27:03.78634743Z",
+  "Hash": "X2AgaFhnQGRhSSF/h0m6qpX1wj/HJWbyXcxkEM/5GrY=",
+  "CreateIndex": 1203,
+  "ModifyIndex": 1203
+}
+```
+
+</CodeBlockConfig>
+
+
+</Tab>
+</Tabs>
+
+A record of the ACL reset appears in the server's logs:
+
+<CodeBlockConfig hideClipboard>
+
+```log
+[DEBUG] agent.server.acl: parsed bootstrap reset index path: path=/opt/consul/acl-bootstrap-reset reset_index=27
+[INFO]  agent.server.acl: ACL bootstrap completed
+[DEBUG] agent.http: Request finished: method=PUT url=/v1/acl/bootstrap from=127.0.0.1:44884 latency=2.962417ms
+```
+
+</CodeBlockConfig>
+
+You can now use the newly created token to login to your Consul datacenter.
