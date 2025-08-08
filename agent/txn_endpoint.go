@@ -323,6 +323,8 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 							Header:                         check.Definition.Header,
 							Method:                         check.Definition.Method,
 							Body:                           check.Definition.Body,
+							H2PING:                         check.Definition.H2PING,
+							H2PingUseTLS:                   check.Definition.H2PingUseTLS,
 							TCP:                            check.Definition.TCP,
 							TCPUseTLS:                      check.Definition.TCPUseTLS,
 							GRPC:                           check.Definition.GRPC,
