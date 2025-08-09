@@ -8,13 +8,14 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	agentdns "github.com/hashicorp/consul/agent/dns"
 	"math"
 	"net"
 	"regexp"
 	"strings"
 	"sync/atomic"
 	"time"
+
+	agentdns "github.com/hashicorp/consul/agent/dns"
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-radix"
@@ -49,8 +50,8 @@ const (
 
 	// If a consumer sets a buffer size greater than this amount we will default it down
 	// to this amount to ensure that consul does respond. Previously if consumer had a larger buffer
-	// size than 65535 - 60 bytes (maximim 60 bytes for IP header. UDP header will be offset in the
-	// trimUDP call) consul would fail to respond and the consumer timesout
+	// size than 65535 - 60 bytes (maximum 60 bytes for IP header. UDP header will be offset in the
+	// trimUDP call) consul would fail to respond and the consumer timeout
 	// the request.
 	maxUDPDatagramSize = math.MaxUint16 - 68
 )
