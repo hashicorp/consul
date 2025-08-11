@@ -1,0 +1,3 @@
+```release-note:bug
+cli: capture pprof when ACL is enabled and a token with operator:read is used, even if enable_debug config is not explicitly set.
+```

@@ -297,18 +297,32 @@ func (c *cmd) prepare() (version string, err error) {
 		copy(c.capture, defaultTargets)
 	}
 
-	// If EnableDebug is not true, skip collecting pprof
+	// If EnableDebug is not true, check if ACLs are enabled and we have operator:read permission
 	enableDebug, ok := self["DebugConfig"]["EnableDebug"].(bool)
 	if !ok {
 		return "", fmt.Errorf("agent response did not contain EnableDebug key")
 	}
-	if !enableDebug {
+
+	// Check if ACLs are enabled - if so, try to validate we have operator:read permission
+	aclEnabled, ok := self["DebugConfig"]["ACLsEnabled"].(bool)
+	if !ok {
+		return "", fmt.Errorf("agent response did not contain EnableDebug key")
+	}
+
+	allowPprof := enableDebug || aclEnabled
+
+	if !allowPprof {
+		// Remove pprof from capture
 		cs := c.capture
 		for i := 0; i < len(cs); i++ {
 			if cs[i] == "pprof" {
 				c.capture = append(cs[:i], cs[i+1:]...)
 				i--
-				c.UI.Warn("[WARN] Unable to capture pprof. Set enable_debug to true on target agent to enable profiling.")
+				if aclEnabled {
+					c.UI.Warn("[WARN] Unable to capture pprof. Either set enable_debug to true on target agent or provide an ACL token with operator:read permissions.")
+				} else {
+					c.UI.Warn("[WARN] Unable to capture pprof. Set enable_debug to true on target agent to enable profiling.")
+				}
 			}
 		}
 	}
