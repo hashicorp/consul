@@ -112,7 +112,7 @@ func (s *ac4ProxyDefaultsSuite) setup(t *testing.T, ct *commonTopo) {
 			Partition: ConfigEntryPartition(serverSID.Partition),
 			Sources: []*api.SourceIntention{
 				{
-					Name:   client.ID.Name,
+					Name:   client.Workload.ID.Name,
 					Peer:   cluPeerName,
 					Action: api.IntentionActionAllow,
 				},
