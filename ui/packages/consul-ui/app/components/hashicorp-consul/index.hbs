@@ -73,7 +73,7 @@
   </:notifications>
 
   <:side-nav>
-    <Hds::SideNav @hasA11yRefocus={{false}} @isResponsive={{false}} class='consul-side-nav' data-test-navigation>
+    <Hds::SideNav @hasA11yRefocus={{false}} @isResponsive={{false}} class='consul-side-nav' role="navigation" data-test-navigation>
       <:header>
         <Hds::SideNav::Header>
           <:logo>
@@ -211,7 +211,7 @@
         </Hds::SideNav::List>
       </:body>
       <:footer>
-        <footer role='contentinfo' data-test-footer>
+        <div data-test-footer>
           <Hds::Text::Display
             class='hds-side-nav-hide-when-minimized'
             @size='100'
@@ -220,7 +220,7 @@
             {{t "components.hashicorp-consul.side-nav.footer" version=this.consulVersion}}
           </Hds::Text::Display>
           {{{concat '<!-- ' (env 'CONSUL_GIT_SHA') '-->'}}}
-        </footer>
+        </div>
       </:footer>
     </Hds::SideNav>
   </:side-nav>
