@@ -140,12 +140,12 @@ func (s *ac1BasicSuite) setup(t *testing.T, ct *commonTopo) {
 			Partition: ConfigEntryPartition(httpServerSID.Partition),
 			Sources: []*api.SourceIntention{
 				{
-					Name:   tcpClient.ID.Name,
+					Name:   tcpClient.Workload.ID.Name,
 					Peer:   cluPeerName,
 					Action: api.IntentionActionAllow,
 				},
 				{
-					Name:   httpClient.ID.Name,
+					Name:   httpClient.Workload.ID.Name,
 					Peer:   cluPeerName,
 					Action: api.IntentionActionAllow,
 				},
@@ -171,12 +171,12 @@ func (s *ac1BasicSuite) setup(t *testing.T, ct *commonTopo) {
 			Partition: ConfigEntryPartition(tcpServerSID.Partition),
 			Sources: []*api.SourceIntention{
 				{
-					Name:   tcpClient.ID.Name,
+					Name:   tcpClient.Workload.ID.Name,
 					Peer:   cluPeerName,
 					Action: api.IntentionActionAllow,
 				},
 				{
-					Name:   httpClient.ID.Name,
+					Name:   httpClient.Workload.ID.Name,
 					Peer:   cluPeerName,
 					Action: api.IntentionActionAllow,
 				},
@@ -187,9 +187,9 @@ func (s *ac1BasicSuite) setup(t *testing.T, ct *commonTopo) {
 	httpServerNode := ct.AddServiceNode(peerClu, httpServer)
 	tcpServerNode := ct.AddServiceNode(peerClu, tcpServer)
 
-	s.sidClientHTTP = httpClient.ID
+	s.sidClientHTTP = httpClient.Workload.ID
 	s.nodeClientHTTP = httpClientNode.ID()
-	s.sidClientTCP = tcpClient.ID
+	s.sidClientTCP = tcpClient.Workload.ID
 	s.nodeClientTCP = tcpClientNode.ID()
 	s.upstreamHTTP = upstreamHTTP
 	s.upstreamTCP = upstreamTCP
