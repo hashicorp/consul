@@ -29,7 +29,7 @@
   /*%frame-gray-000*/
   background-color: var(--token-color-surface-primary);
 }
-%modal-window > footer,
+%modal-window > .modal-dialog-footer,
 %modal-window > header {
   @extend %frame-gray-800;
 }
@@ -38,7 +38,7 @@
 }
 
 .modal-dialog-body,
-%modal-window > footer,
+%modal-window > .modal-dialog-footer,
 %modal-window > header {
   border-color: var(--token-color-palette-neutral-300);
 }
@@ -47,7 +47,7 @@
   border-left-width: 1px;
   border-right-width: 1px;
 }
-%modal-window > footer,
+%modal-window > .modal-dialog-footer,
 %modal-window > header {
   border-width: 1px;
 }
