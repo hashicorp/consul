@@ -946,6 +946,11 @@ type APIGatewayListener struct {
 	Override *APIGatewayPolicy `json:",omitempty"`
 	// Default is the policy that is the default for the listener and route, routes can override this behavior
 	Default *APIGatewayPolicy `json:",omitempty"`
+
+	// TODO::: Valid Comments
+	// TODO::: CSL-11115 Check
+	MaxRequestHeadersKB *uint32 `json:",omitempty"`
+	// mapstructure:"MaxRequestHeadersKB"
 }
 
 // APIGatewayPolicy holds the policy that configures the gateway listener, this is used in the `Override` and `Default` fields of a listener

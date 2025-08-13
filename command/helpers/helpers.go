@@ -125,6 +125,9 @@ func newDecodeConfigEntry(raw map[string]interface{}) (api.ConfigEntry, error) {
 		return nil, err
 	}
 
+	// TODO::: CSL-11115 remove
+	fmt.Println("entry:::::", entry)
+
 	for _, k := range md.Unused {
 		switch {
 		case strings.ToLower(k) == "kind":
