@@ -10,9 +10,9 @@
   ...attributes
 >
   {{#yield-slot name='template'}}{{else}}
-    <header>
+    <h3>
       Policy{{if allowIdentity ' or identity?' ''}}
-    </header>
+    </h3>
     {{#if allowIdentity}}
       <p>
         Identities are default policies with configurable names. They save you some time and effort
