@@ -2544,7 +2544,14 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) 
 
 	// Set max request headers size if configured
 	if opts.maxRequestHeadersKb != nil {
+		// DEBUG: Log when we're setting the value
+		// TODO::: CSL-11115 Remove
+		fmt.Println("Setting max_request_headers_kb in HTTP connection manager", "value", *opts.maxRequestHeadersKb)
 		cfg.MaxRequestHeadersKb = &wrapperspb.UInt32Value{Value: *opts.maxRequestHeadersKb}
+	} else {
+		// DEBUG: Log when the value is nil
+		// TODO::: CSL-11115 Remove
+		fmt.Println("maxRequestHeadersKb is nil, not setting max_request_headers_kb")
 	}
 
 	if opts.useRDS {

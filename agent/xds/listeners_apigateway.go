@@ -127,6 +127,8 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 						statPrefix:      "ingress_upstream_",
 						accessLogs:      &cfgSnap.Proxy.AccessLogs,
 						logger:          s.Logger,
+						// TODO::: CSL-11115 change
+						maxRequestHeadersKb: listenerCfg.MaxRequestHeadersKB,
 					},
 					certs,
 				)
@@ -208,18 +210,38 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 					return nil, err
 				}
 			}
+			/*
+				listenerFilterOpts{
+							useRDS:              useRDS,
+							fetchTimeoutRDS:     cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
+							protocol:            listenerKey.Protocol,
+							routeName:           listenerKey.RouteName(),
+							cluster:             clusterName,
+							statPrefix:          "ingress_upstream_",
+							accessLogs:          &cfgSnap.Proxy.AccessLogs,
+							logger:              s.Logger,
+							maxRequestHeadersKb: maxRequestHeadersKb,
+			*/
 			filterOpts := listenerFilterOpts{
-				useRDS:           true,
-				fetchTimeoutRDS:  cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
-				protocol:         listenerKey.Protocol,
-				filterName:       listenerKey.RouteName(),
-				routeName:        listenerKey.RouteName(),
-				cluster:          "",
-				statPrefix:       "ingress_upstream_",
-				routePath:        "",
-				httpAuthzFilters: authFilters,
-				accessLogs:       &cfgSnap.Proxy.AccessLogs,
-				logger:           s.Logger,
+				useRDS:              true,
+				fetchTimeoutRDS:     cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
+				protocol:            listenerKey.Protocol,
+				filterName:          listenerKey.RouteName(),
+				routeName:           listenerKey.RouteName(),
+				cluster:             "",
+				statPrefix:          "ingress_upstream_",
+				routePath:           "",
+				httpAuthzFilters:    authFilters,
+				accessLogs:          &cfgSnap.Proxy.AccessLogs,
+				logger:              s.Logger,
+				maxRequestHeadersKb: listenerCfg.MaxRequestHeadersKB,
+			}
+
+			// DEBUG: Log the MaxRequestHeadersKB value
+			if listenerCfg.MaxRequestHeadersKB != nil {
+				s.Logger.Info("API Gateway MaxRequestHeadersKB found", "value", *listenerCfg.MaxRequestHeadersKB, "listener", listenerCfg.Name)
+			} else {
+				s.Logger.Info("API Gateway MaxRequestHeadersKB is nil", "listener", listenerCfg.Name)
 			}
 
 			// Generate any filter chains needed for services with custom TLS certs
