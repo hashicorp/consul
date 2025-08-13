@@ -386,7 +386,6 @@ func (c *cmd) captureStatic() error {
 func (c *cmd) troubleshootPorts() error {
 	default_ports := []string{"8600", "8500", "8501", "8502", "8503", "8301", "8302", "8300"}
 	report := troubleshootRun(default_ports, "localhost")
-	// report := ports.TroubleshootDefaultPorts("localhost")
 	output := map[string]interface{}{
 		"Ports open":   report[0],
 		"Ports closed": report[1],
