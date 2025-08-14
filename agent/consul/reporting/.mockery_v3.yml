@@ -1,0 +1,10 @@
+all: true
+dir: reportingmock
+structname: '{{.InterfaceName}}'
+pkgname: reportingmock
+recursive: false
+template: testify
+template-data:
+  unroll-variadic: true
+packages:
+  github.com/hashicorp/consul/agent/consul/reporting: {}
