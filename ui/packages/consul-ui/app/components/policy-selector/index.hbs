@@ -135,12 +135,13 @@
               }}
               as |CB|
             >
-              <CB.Title @tag='h3'>
+              <CB.Title @tag='span'>
                 Rules
                 <a
                   href='{{env "CONSUL_DOCS_URL"}}/guides/acl.html#rule-specification'
                   rel='help noopener noreferrer'
                   target='_blank'
+                  style="color: inherit;"
                 >(HCL Format)</a>
               </CB.Title></Hds::CodeBlock>
           {{else if (eq item.template 'node-identity')}}
@@ -154,22 +155,24 @@
               }}
               as |CB|
             >
-              <CB.Title @tag='h3'>
+              <CB.Title @tag='span'>
                 Rules
                 <a
                   href='{{env "CONSUL_DOCS_URL"}}/guides/acl.html#rule-specification'
                   rel='help noopener noreferrer'
                   target='_blank'
+                  style="color: inherit;"
                 >(HCL Format)</a>
               </CB.Title></Hds::CodeBlock>
           {{else}}
             <Hds::CodeBlock @language='hcl' @value={{or loadedItem.Rules item.Rules ''}} as |CB|>
-              <CB.Title @tag='h3'>
+              <CB.Title @tag='span'>
                 Rules
                 <a
                   href='{{env "CONSUL_DOCS_URL"}}/guides/acl.html#rule-specification'
                   rel='help noopener noreferrer'
                   target='_blank'
+                  style="color: inherit;"
                 >(HCL Format)</a>
               </CB.Title>
             </Hds::CodeBlock>

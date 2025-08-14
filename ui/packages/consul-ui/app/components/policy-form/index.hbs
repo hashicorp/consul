@@ -10,9 +10,9 @@
   ...attributes
 >
   {{#yield-slot name='template'}}{{else}}
-    <header>
+    <h3>
       Policy{{if allowIdentity ' or identity?' ''}}
-    </header>
+    </h3>
     {{#if allowIdentity}}
       <p>
         Identities are default policies with configurable names. They save you some time and effort
@@ -68,12 +68,13 @@
         }}
         as |CB|
       >
-        <CB.Title @tag='h3'>
+        <CB.Title @tag='span'>
           Rules
           <a
             href='{{env "CONSUL_DOCS_URL"}}/guides/acl.html#rule-specification'
             rel='help noopener noreferrer'
             target='_blank'
+            style="color: inherit;"
           >(HCL Format)</a>
         </CB.Title>
       </Hds::CodeBlock>
@@ -89,12 +90,13 @@
         }}
         as |CB|
       >
-        <CB.Title @tag='h3'>
+        <CB.Title @tag='span'>
           Rules
           <a
             href='{{env "CONSUL_DOCS_URL"}}/guides/acl.html#rule-specification'
             rel='help noopener noreferrer'
             target='_blank'
+            style="color: inherit;"
           >(HCL Format)</a>
         </CB.Title>
       </Hds::CodeBlock>
@@ -106,12 +108,13 @@
         @onInput={{action 'change' (concat name '[Rules]')}}
         as |CE|
       >
-        <CE.Title @tag='h3'>
+        <CE.Title @tag='span'>
           Rules
           <a
             href='{{env "CONSUL_DOCS_URL"}}/guides/acl.html#rule-specification'
             rel='help noopener noreferrer'
             target='_blank'
+            style="color: inherit;"
           >(HCL Format)</a>
         </CE.Title>
       </Hds::CodeEditor>
