@@ -18,7 +18,6 @@ issues:
   # Disable the default exclude list so that all excludes are explicitly
   # defined in this file.
   exclude-use-default: false
-  exclude-dirs-use-default: false
 
   exclude-rules:
     # Temp Ignore SA9004: only the first constant in this group has an explicit type
