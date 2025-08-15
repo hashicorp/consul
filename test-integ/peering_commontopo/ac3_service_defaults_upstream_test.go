@@ -14,7 +14,7 @@ import (
 	"github.com/itchyny/gojq"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/go-cleanhttp"
+	cleanhttp "github.com/hashicorp/go-cleanhttp"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -132,7 +132,7 @@ func (s *ac3SvcDefaultsSuite) setup(t *testing.T, ct *commonTopo) {
 			Partition: ConfigEntryPartition(serverSID.Partition),
 			Sources: []*api.SourceIntention{
 				{
-					Name:   client.ID.Name,
+					Name:   client.Workload.ID.Name,
 					Peer:   cluPeerName,
 					Action: api.IntentionActionAllow,
 				},
@@ -142,7 +142,7 @@ func (s *ac3SvcDefaultsSuite) setup(t *testing.T, ct *commonTopo) {
 
 	serverNode := ct.AddServiceNode(peerClu, server)
 
-	s.sidClient = client.ID
+	s.sidClient = client.Workload.ID
 	s.nodeClient = clientNode.ID()
 	s.upstream = upstream
 
