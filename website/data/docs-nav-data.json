@@ -1529,6 +1529,10 @@
       {
         "title": "Kubernetes",
         "path": "discover/k8s"
+      },
+      {
+        "title": "Docker",
+        "path": "discover/docker"
       }
     ]
   },
@@ -2443,20 +2447,24 @@
         "path": "docker"
       },
       {
-        "title": "Deploy Consul",
+        "title": "Deploy Consul servers",
         "href": "deploy/server/docker"
+      },
+      {
+        "title": "Deploy Consul clients",
+        "href": "deploy/workload/client/docker"
       },
       {
         "title": "Secure Consul",
         "href": "secure/auto-config/docker"
       },
       {
-        "title": "Register services",
-        "href": "register/docker"
-      },
-      {
         "title": "Discover services",
         "href": "discover/dns/docker"
+      },
+      {
+        "title": "Observe services",
+        "href": "observe/docker"
       }
     ]
   },
