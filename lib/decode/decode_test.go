@@ -352,7 +352,7 @@ item {
 	target := &nested{}
 	err := decodeHCLToMapStructure(source, target)
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "'Item' expected a map, got 'slice'")
+	require.Contains(t, err.Error(), "'Item' expected a map or struct, got \"slice\"")
 }
 
 func TestHookWeakDecodeFromSlice_UnpacksNestedBlocks(t *testing.T) {
