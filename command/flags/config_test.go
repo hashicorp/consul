@@ -42,7 +42,7 @@ func TestConfigUtil_Values(t *testing.T) {
 		{
 			`{ "bool": "nope" }`,
 			"",
-			"got 'string'",
+			"got \"string\"",
 		},
 		{
 			`{ "duration": "nope" }`,
@@ -52,7 +52,7 @@ func TestConfigUtil_Values(t *testing.T) {
 		{
 			`{ "string": 123 }`,
 			"",
-			"got 'float64'",
+			"got \"float64\"",
 		},
 		{
 			`{ "uint": -1 }`,
