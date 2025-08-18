@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/miekg/dns"
 	"github.com/mitchellh/hashstructure"
-	"github.com/mitchellh/mapstructure"
 
 	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
 	"github.com/hashicorp/go-multierror"

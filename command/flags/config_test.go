@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mitchellh/mapstructure"
+	"github.com/go-viper/mapstructure/v2"
 )
 
 func TestConfigUtil_Values(t *testing.T) {
