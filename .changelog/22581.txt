@@ -1,0 +1,3 @@
+```release-note:security
+Migrate transitive dependency from archived `mitchellh/mapstructure` to `go-viper/mapstructure` to v2 to address [CVE-2025-52893](https://www.cve.org/CVERecord?id=CVE-2025-52893).
+```
