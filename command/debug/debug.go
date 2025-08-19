@@ -120,6 +120,11 @@ type hostPort struct {
 	port string
 }
 
+type PortResults struct {
+	PortsOpen   []string `json:"PortsOpen"`
+	PortsClosed []string `json:"PortsClosed"`
+}
+
 // timeDateformat is a modified version of time.RFC3339 which replaces colons with
 // hyphens. This is to make it more convenient to untar these files, because
 // tar assumes colons indicate the file is on a remote host, unless --force-local
@@ -386,9 +391,9 @@ func (c *cmd) captureStatic() error {
 func (c *cmd) troubleshootPorts() error {
 	default_ports := []string{"8600", "8500", "8501", "8502", "8503", "8301", "8302", "8300"}
 	report := troubleshootRun(default_ports, "localhost")
-	output := map[string]interface{}{
-		"Ports open":   report[0],
-		"Ports closed": report[1],
+	output := PortResults{
+		PortsOpen:   report[0],
+		PortsClosed: report[1],
 	}
 
 	if err := writeJSONFile(filepath.Join(c.output, targetPorts+".json"), output); err != nil {
