@@ -67,6 +67,36 @@ func TestValidatePeeringToken(t *testing.T) {
 			},
 		},
 		{
+			name: "invalid ipv6 without port",
+			token: &structs.PeeringToken{
+				CA:              []string{validCA},
+				ServerAddresses: []string{ipv6AddressWithoutPort},
+			},
+			wantErr: &errPeeringInvalidServerAddress{
+				ipv6AddressWithoutPort,
+			},
+		},
+		{
+			name: "invalid ipv6 without port - manual",
+			token: &structs.PeeringToken{
+				CA:                    []string{validCA},
+				ManualServerAddresses: []string{ipv6AddressWithoutPort},
+			},
+			wantErr: &errPeeringInvalidServerAddress{
+				ipv6AddressWithoutPort,
+			},
+		},
+		{
+			name: "invalid ipv6 missing brackets - manual",
+			token: &structs.PeeringToken{
+				CA:                    []string{validCA},
+				ManualServerAddresses: []string{invalidIPv6Address},
+			},
+			wantErr: &errPeeringInvalidServerAddress{
+				invalidIPv6Address,
+			},
+		},
+		{
 			name: "invalid server name",
 			token: &structs.PeeringToken{
 				CA:              []string{validCA},
@@ -99,6 +129,24 @@ func TestValidatePeeringToken(t *testing.T) {
 				ServerAddresses: []string{validHostnameAddress},
 				ServerName:      validServerName,
 				PeerID:          validPeerID,
+			},
+		},
+		{
+			name: "valid token with ipv6 address - manual",
+			token: &structs.PeeringToken{
+				CA:                    []string{validCA},
+				ManualServerAddresses: []string{validIPv6Address},
+				ServerName:            validServerName,
+				PeerID:                validPeerID,
+			},
+		},
+		{
+			name: "valid mixed ipv4 and ipv6 addresses - manual",
+			token: &structs.PeeringToken{
+				CA:                    []string{validCA},
+				ManualServerAddresses: []string{validAddress, validIPv6Address},
+				ServerName:            validServerName,
+				PeerID:                validPeerID,
 			},
 		},
 	}

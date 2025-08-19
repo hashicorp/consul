@@ -556,6 +556,131 @@ func TestDebugCommand_DebugDisabled(t *testing.T) {
 	require.Contains(t, errOutput, "Unable to capture pprof")
 }
 
+// TestDebugCommand_PprofScenarios tests the four specific pprof capture scenarios
+// based on enable_debug and ACL settings
+func TestDebugCommand_PprofScenarios(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	testCases := []struct {
+		name             string
+		enableDebug      bool
+		aclEnabled       bool
+		expectPprofFiles bool
+		expectWarning    bool
+		warningContains  string
+	}{
+		{
+			name:             "enable_debug=true, acl=disabled - pprof captured",
+			enableDebug:      true,
+			aclEnabled:       false,
+			expectPprofFiles: true,
+			expectWarning:    false,
+		},
+		{
+			name:             "enable_debug=true, acl=enabled - pprof captured",
+			enableDebug:      true,
+			aclEnabled:       true,
+			expectPprofFiles: true,
+			expectWarning:    false,
+		},
+		{
+			name:             "enable_debug=false, acl=enabled - pprof captured",
+			enableDebug:      false,
+			aclEnabled:       true,
+			expectPprofFiles: true,
+			expectWarning:    false,
+		},
+		{
+			name:             "enable_debug=false, acl=disabled - pprof NOT captured",
+			enableDebug:      false,
+			aclEnabled:       false,
+			expectPprofFiles: false,
+			expectWarning:    true,
+			warningContains:  "Unable to capture pprof",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Note: Not using t.Parallel() because concurrent pprof generation
+			// can cause conflicts and test failures
+
+			testDir := testutil.TempDir(t, "debug")
+
+			// Configure agent based on test case
+			config := fmt.Sprintf(`
+				enable_debug = %t
+				acl = {
+					enabled = %t
+					default_policy = "allow"
+				}
+			`, tc.enableDebug, tc.aclEnabled)
+
+			a := agent.NewTestAgent(t, config)
+			defer a.Shutdown()
+			testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+			ui := cli.NewMockUi()
+			cmd := New(ui)
+			cmd.validateTiming = false
+
+			outputPath := fmt.Sprintf("%s/debug", testDir)
+			args := []string{
+				"-http-addr=" + a.HTTPAddr(),
+				"-output=" + outputPath,
+				"-archive=false",
+				"-duration=1s",
+				"-interval=1s",
+			}
+
+			code := cmd.Run(args)
+			require.Equal(t, 0, code, "debug command should succeed")
+
+			// Check if pprof files were created
+			// Check files in root directory (profile.prof, trace.out)
+			rootProfiles := []string{"profile.prof", "trace.out"}
+			for _, profile := range rootProfiles {
+				profilePath := filepath.Join(outputPath, profile)
+				_, err := os.Stat(profilePath)
+
+				if tc.expectPprofFiles {
+					require.NoError(t, err,
+						"Expected pprof file %s to be created for scenario: %s", profile, tc.name)
+				} else {
+					require.True(t, os.IsNotExist(err),
+						"Expected pprof file %s NOT to be created for scenario: %s", profile, tc.name)
+				}
+			}
+
+			// Check files in timestamped subdirectories (heap.prof, goroutine.prof)
+			subdirProfiles := []string{"heap.prof", "goroutine.prof"}
+			for _, profile := range subdirProfiles {
+				profileFiles, _ := filepath.Glob(filepath.Join(outputPath, "*", profile))
+
+				if tc.expectPprofFiles {
+					require.True(t, len(profileFiles) > 0,
+						"Expected pprof file %s to be created in subdirectories for scenario: %s", profile, tc.name)
+				} else {
+					require.True(t, len(profileFiles) == 0,
+						"Expected pprof file %s NOT to be created in subdirectories for scenario: %s", profile, tc.name)
+				}
+			}
+
+			// Check warning messages
+			errOutput := ui.ErrorWriter.String()
+			if tc.expectWarning {
+				require.Contains(t, errOutput, tc.warningContains,
+					"Expected warning message for scenario: %s", tc.name)
+			} else {
+				require.NotContains(t, errOutput, "Unable to capture pprof",
+					"Did not expect pprof warning for scenario: %s", tc.name)
+			}
+		})
+	}
+}
+
 func startMockTCPServer(t *testing.T, portsList []string) (cleanup func()) {
 	t.Helper()
 	var listeners []net.Listener
