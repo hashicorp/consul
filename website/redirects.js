@@ -118,7 +118,7 @@ module.exports = [
     "permanent": true,
   },
   {
-    "source": "/consul/docs/ecs/task-re"source"-usage",
+    "source": "/consul/docs/ecs/task-resource-usage",
     "destination": "/consul/docs/ecs/tech-specs",
     "permanent": true,
   },
@@ -139,8 +139,7 @@ module.exports = [
   },
   {
     "source": "/consul/docs/connect/gateways/api-gateway/usage",
-    "destination":
-      "/consul/docs/connect/gateways/api-gateway/deploy/listeners-vms",
+    "destination": "/consul/docs/connect/gateways/api-gateway/deploy/listeners-vms",
     "permanent": true,
   },
   {
@@ -155,14 +154,12 @@ module.exports = [
   },
   {
     "source": "/consul/docs/api-gateway/usage/reroute-http-requests",
-    "destination":
-      "/consul/docs/connect/gateways/api-gateway/define-routes/reroute-http-requests",
+    "destination": "/consul/docs/connect/gateways/api-gateway/define-routes/reroute-http-requests",
     "permanent": true,
   },
   {
     "source": "/consul/docs/api-gateway/usage/route-to-peered-services",
-    "destination":
-      "/consul/docs/connect/gateways/api-gateway/define-routes/route-to-peered-services",
+    "destination": "/consul/docs/connect/gateways/api-gateway/define-routes/route-to-peered-services",
     "permanent": true,
   },
   {
@@ -172,8 +169,7 @@ module.exports = [
   },
   {
     "source": "/consul/docs/api-gateway/usage/usage",
-    "destination":
-      "/consul/docs/connect/gateways/api-gateway/deploy/listeners-k8s",
+    "destination": "/consul/docs/connect/gateways/api-gateway/deploy/listeners-k8s",
     "permanent": true,
   },
   {
@@ -188,8 +184,7 @@ module.exports = [
   },
   {
     "source": "/consul/docs/api-gateway/configuration/:slug",
-    "destination":
-      "/consul/docs/connect/gateways/api-gateway/configuration/:slug",
+    "destination": "/consul/docs/connect/gateways/api-gateway/configuration/:slug",
     "permanent": true,
   },
   {
@@ -218,8 +213,7 @@ module.exports = [
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/architecture/catalog/:slug*",
+    "source": "/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/architecture/catalog/:slug*",
     "destination": "/consul/docs/:version/architecture/catalog/v1/:slug",
     "permanent": true,
   },
@@ -229,8 +223,7 @@ module.exports = [
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/nia/network-drivers/hcp-terraform",
+    "source": "/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/nia/network-drivers/hcp-terraform",
     "destination": "/consul/docs/:version/nia/network-drivers/terraform-cloud",
     "permanent": true,
   },
@@ -245,7 +238,7 @@ module.exports = [
     "permanent": true,
   },
   {
-    "source": "/consul/commands/re"source"/:slug",
+    "source": "/consul/commands/resource/:slug",
     "destination": "/consul/docs/architecture/catalog#v2-catalog",
     "permanent": true,
   },
@@ -255,8 +248,7 @@ module.exports = [
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/:version(v1.(?:11|12|13|14|15|16|17|18).x)/k8s/dns/enable",
+    "source": "/consul/docs/:version(v1.(?:11|12|13|14|15|16|17|18).x)/k8s/dns/enable",
     "destination": "/consul/docs/:version/k8s/dns",
     "permanent": true,
   },
@@ -309,7 +301,7 @@ module.exports = [
   },
   {
     "source": "/consul/docs/agent/limits/usage/limit-request-rates-from-ips",
-    "destination": "/consul/docs/manage/rate-limit/"source"",
+    "destination": "/consul/docs/manage/rate-limit/source",
     "permanent": true,
   },
   {
@@ -417,7 +409,6 @@ module.exports = [
     "destination": "/consul/docs/use-case/service-mesh",
     "permanent": true,
   },
-
   {
     "source": "/consul/docs/connect/ca",
     "destination": "/consul/docs/secure-mesh/certificate",
@@ -454,8 +445,7 @@ module.exports = [
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/connect/cluster-peering/usage/establish-cluster-peering",
+    "source": "/consul/docs/connect/cluster-peering/usage/establish-cluster-peering",
     "destination": "/consul/docs/east-west/cluster-peering/establish/vm",
     "permanent": true,
   },
@@ -465,8 +455,7 @@ module.exports = [
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/connect/cluster-peering/usage/peering-traffic-management",
+    "source": "/consul/docs/connect/cluster-peering/usage/peering-traffic-management",
     "destination": "/consul/docs/manage-traffic/cluster-peering/vm",
     "permanent": true,
   },
@@ -482,8 +471,7 @@ module.exports = [
   },
   {
     "source": "/consul/docs/connect/config-entries/control-plane-request-limit",
-    "destination":
-      "/consul/docs/reference/config-entry/control-plane-request-limit",
+    "destination": "/consul/docs/reference/config-entry/control-plane-request-limit",
     "permanent": true,
   },
   {
@@ -571,7 +559,6 @@ module.exports = [
     "destination": "/consul/docs/reference/config-entry/terminating-gateway",
     "permanent": true,
   },
-
   {
     "source": "/consul/docs/connect/connect-internals",
     "destination": "/consul/docs/architecture/data-plane/connect",
@@ -628,38 +615,32 @@ module.exports = [
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/connect/gateways/api-gateway/configuration/gatewayclass",
+    "source": "/consul/docs/connect/gateways/api-gateway/configuration/gatewayclass",
     "destination": "/consul/docs/reference/k8s/api-gateway/gatewayclass",
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/connect/gateways/api-gateway/configuration/gatewayclassconfig",
+    "source": "/consul/docs/connect/gateways/api-gateway/configuration/gatewayclassconfig",
     "destination": "/consul/docs/reference/k8s/api-gateway/gatewayclassconfig",
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/connect/gateways/api-gateway/configuration/gatewaypolicy",
+    "source": "/consul/docs/connect/gateways/api-gateway/configuration/gatewaypolicy",
     "destination": "/consul/docs/reference/k8s/api-gateway/gatewaypolicy",
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/connect/gateways/api-gateway/configuration/meshservice",
+    "source": "/consul/docs/connect/gateways/api-gateway/configuration/meshservice",
     "destination": "/consul/docs/reference/k8s/api-gateway/meshservice",
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/connect/gateways/api-gateway/configuration/routeauthfilter",
+    "source": "/consul/docs/connect/gateways/api-gateway/configuration/routeauthfilter",
     "destination": "/consul/docs/reference/k8s/api-gateway/routeauthfilter",
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/connect/gateways/api-gateway/configuration/routeretryfilter",
+    "source": "/consul/docs/connect/gateways/api-gateway/configuration/routeretryfilter",
     "destination": "/consul/docs/reference/k8s/api-gateway/routeretryfilter",
     "permanent": true,
   },
@@ -669,32 +650,27 @@ module.exports = [
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/connect/gateways/api-gateway/configuration/routetimeoutfilter",
+    "source": "/consul/docs/connect/gateways/api-gateway/configuration/routetimeoutfilter",
     "destination": "/consul/docs/reference/k8s/api-gateway/routetimeoutfilter",
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/connect/gateways/api-gateway/define-routes/reroute-http-requests",
+    "source": "/consul/docs/connect/gateways/api-gateway/define-routes/reroute-http-requests",
     "destination": "/consul/docs/north-south/api-gateway/k8s/reroute",
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/connect/gateways/api-gateway/define-routes/route-to-peered-services",
+    "source": "/consul/docs/connect/gateways/api-gateway/define-routes/route-to-peered-services",
     "destination": "/consul/docs/north-south/api-gateway/k8s/peer",
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/connect/gateways/api-gateway/define-routes/routes-k8s",
+    "source": "/consul/docs/connect/gateways/api-gateway/define-routes/routes-k8s",
     "destination": "/consul/docs/north-south/api-gateway/k8s/route",
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/connect/gateways/api-gateway/define-routes/routes-vms",
+    "source": "/consul/docs/connect/gateways/api-gateway/define-routes/routes-vms",
     "destination": "/consul/docs/north-south/api-gateway/vm/route",
     "permanent": true,
   },
@@ -725,14 +701,12 @@ module.exports = [
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-k8s",
+    "source": "/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-k8s",
     "destination": "/consul/docs/north-south/api-gateway/secure-traffic/jwt/k8s",
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-vms",
+    "source": "/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-vms",
     "destination": "/consul/docs/north-south/api-gateway/secure-traffic/jwt/vm",
     "permanent": true,
   },
@@ -768,26 +742,22 @@ module.exports = [
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/connect/gateways/mesh-gateway/peering-via-mesh-gateways",
+    "source": "/consul/docs/connect/gateways/mesh-gateway/peering-via-mesh-gateways",
     "destination": "/consul/docs/east-west/mesh-gateway/cluster-peer",
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-partitions",
+    "source": "/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-partitions",
     "destination": "/consul/docs/east-west/mesh-gateway/admin-partition",
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters",
+    "source": "/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters",
     "destination": "/consul/docs/east-west/mesh-gateway/federation",
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways",
+    "source": "/consul/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways",
     "destination": "/consul/docs/east-west/mesh-gateway/enable",
     "permanent": true,
   },
@@ -878,32 +848,27 @@ module.exports = [
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/connect/observability/grafanadashboards/consuldataplanedashboard",
+    "source": "/consul/docs/connect/observability/grafanadashboards/consuldataplanedashboard",
     "destination": "/consul/docs/observe/grafana/dataplane",
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/connect/observability/grafanadashboards/consulk8sdashboard",
+    "source": "/consul/docs/connect/observability/grafanadashboards/consulk8sdashboard",
     "destination": "/consul/docs/observe/grafana/consul-k8s",
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/connect/observability/grafanadashboards/consulserverdashboard",
+    "source": "/consul/docs/connect/observability/grafanadashboards/consulserverdashboard",
     "destination": "/consul/docs/observe/grafana/server",
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/connect/observability/grafanadashboards/service-to-servicedashboard",
+    "source": "/consul/docs/connect/observability/grafanadashboards/service-to-servicedashboard",
     "destination": "/consul/docs/observe/grafana/service-to-service",
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/connect/observability/grafanadashboards/servicedashboard",
+    "source": "/consul/docs/connect/observability/grafanadashboards/servicedashboard",
     "destination": "/consul/docs/observe/grafana/service",
     "permanent": true,
   },
@@ -948,20 +913,17 @@ module.exports = [
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/connect/proxies/envoy-extensions/configuration/ext-authz",
+    "source": "/consul/docs/connect/proxies/envoy-extensions/configuration/ext-authz",
     "destination": "/consul/docs/reference/proxy/extensions/ext-authz",
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/connect/proxies/envoy-extensions/configuration/otel-access-logging",
+    "source": "/consul/docs/connect/proxies/envoy-extensions/configuration/otel-access-logging",
     "destination": "/consul/docs/reference/proxy/extensions/otel",
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/connect/proxies/envoy-extensions/configuration/property-override",
+    "source": "/consul/docs/connect/proxies/envoy-extensions/configuration/property-override",
     "destination": "/consul/docs/reference/proxy/extensions/property-override",
     "permanent": true,
   },
@@ -971,8 +933,7 @@ module.exports = [
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/connect/proxies/envoy-extensions/usage/apigee-ext-authz",
+    "source": "/consul/docs/connect/proxies/envoy-extensions/usage/apigee-ext-authz",
     "destination": "/consul/docs/envoy-extension/apigee",
     "permanent": true,
   },
@@ -992,14 +953,12 @@ module.exports = [
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/connect/proxies/envoy-extensions/usage/otel-access-logging",
+    "source": "/consul/docs/connect/proxies/envoy-extensions/usage/otel-access-logging",
     "destination": "/consul/docs/envoy-extension/otel-access-logging",
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/connect/proxies/envoy-extensions/usage/property-override",
+    "source": "/consul/docs/connect/proxies/envoy-extensions/usage/property-override",
     "destination": "/consul/docs/envoy-extension/property-override",
     "permanent": true,
   },
@@ -1074,7 +1033,6 @@ module.exports = [
     "destination": "/consul/docs/automate/watch",
     "permanent": true,
   },
-
   {
     "source": "/consul/docs/ecs/architecture",
     "destination": "/consul/docs/reference/architecture/ecs",
@@ -1135,7 +1093,6 @@ module.exports = [
     "destination": "/consul/docs/upgrade/ecs/dataplane",
     "permanent": true,
   },
-
   {
     "source": "/consul/docs/enterprise/admin-partitions",
     "destination": "/consul/docs/multi-tenant/admin-partition",
@@ -1193,8 +1150,7 @@ module.exports = [
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/enterprise/network-segments/network-segments-overview",
+    "source": "/consul/docs/enterprise/network-segments/network-segments-overview",
     "destination": "/consul/docs/multi-tenant/network-segment",
     "permanent": true,
   },
@@ -1278,7 +1234,6 @@ module.exports = [
     "destination": "/consul/docs/secure/acl",
     "permanent": true,
   },
-
   {
     "source": "/consul/docs/k8s/annotations-and-labels",
     "destination": "/consul/docs/reference/k8s/annotation-label",
@@ -1305,8 +1260,7 @@ module.exports = [
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/k8s/connect/cluster-peering/usage/create-sameness-groups",
+    "source": "/consul/docs/k8s/connect/cluster-peering/usage/create-sameness-groups",
     "destination": "/consul/docs/multi-tenant/sameness-group/k8s",
     "permanent": true,
   },
@@ -1366,8 +1320,7 @@ module.exports = [
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/k8s/connect/transparent-proxy/enable-transparent-proxy",
+    "source": "/consul/docs/k8s/connect/transparent-proxy/enable-transparent-proxy",
     "destination": "/consul/docs/connect/proxy/transparent-proxy/k8s",
     "permanent": true,
   },
@@ -1382,14 +1335,12 @@ module.exports = [
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/k8s/deployment-configurations/argo-rollouts-configuration",
+    "source": "/consul/docs/k8s/deployment-configurations/argo-rollouts-configuration",
     "destination": "/consul/docs/manage-traffic/progressive-rollouts/argo",
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/k8s/deployment-configurations/clients-outside-kubernetes",
+    "source": "/consul/docs/k8s/deployment-configurations/clients-outside-kubernetes",
     "destination": "/consul/docs/register/service/k8s/external",
     "permanent": true,
   },
@@ -1414,20 +1365,17 @@ module.exports = [
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/k8s/deployment-configurations/multi-cluster/kubernetes",
+    "source": "/consul/docs/k8s/deployment-configurations/multi-cluster/kubernetes",
     "destination": "/consul/docs/east-west/wan-federation/k8s",
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/k8s/deployment-configurations/multi-cluster/vms-and-kubernetes",
+    "source": "/consul/docs/k8s/deployment-configurations/multi-cluster/vms-and-kubernetes",
     "destination": "/consul/docs/east-west/wan-federation/k8s-vm",
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/k8s/deployment-configurations/servers-outside-kubernetes",
+    "source": "/consul/docs/k8s/deployment-configurations/servers-outside-kubernetes",
     "destination": "/consul/docs/deploy/server/k8s/external",
     "permanent": true,
   },
@@ -1447,8 +1395,7 @@ module.exports = [
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/k8s/deployment-configurations/vault/data-integration/bootstrap-token",
+    "source": "/consul/docs/k8s/deployment-configurations/vault/data-integration/bootstrap-token",
     "destination": "/consul/docs/deploy/server/k8s/vault/data/bootstrap-token",
     "permanent": true,
   },
@@ -1459,45 +1406,37 @@ module.exports = [
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/k8s/deployment-configurations/vault/data-integration/gossip",
+    "source": "/consul/docs/k8s/deployment-configurations/vault/data-integration/gossip",
     "destination": "/consul/docs/deploy/server/k8s/vault/data/gossip-key",
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/k8s/deployment-configurations/vault/data-integration/partition-token",
+    "source": "/consul/docs/k8s/deployment-configurations/vault/data-integration/partition-token",
     "destination": "/consul/docs/deploy/server/k8s/vault/data/partition-token",
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/k8s/deployment-configurations/vault/data-integration/replication-token",
+    "source": "/consul/docs/k8s/deployment-configurations/vault/data-integration/replication-token",
     "destination": "/consul/docs/deploy/server/k8s/vault/data/replication-token",
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/k8s/deployment-configurations/vault/data-integration/server-tls",
+    "source": "/consul/docs/k8s/deployment-configurations/vault/data-integration/server-tls",
     "destination": "/consul/docs/deploy/server/k8s/vault/data/tls-certificate",
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/k8s/deployment-configurations/vault/data-integration/snapshot-agent-config",
+    "source": "/consul/docs/k8s/deployment-configurations/vault/data-integration/snapshot-agent-config",
     "destination": "/consul/docs/deploy/server/k8s/vault/data/snapshot-agent",
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/k8s/deployment-configurations/vault/data-integration/webhook-certs",
-    "destination":
-      "/consul/docs/deploy/server/k8s/vault/data/webhook-certificate",
+    "source": "/consul/docs/k8s/deployment-configurations/vault/data-integration/webhook-certs",
+    "destination": "/consul/docs/deploy/server/k8s/vault/data/webhook-certificate",
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/k8s/deployment-configurations/vault/systems-integration",
+    "source": "/consul/docs/k8s/deployment-configurations/vault/systems-integration",
     "destination": "/consul/docs/deploy/server/k8s/vault/backend",
     "permanent": true,
   },
@@ -1703,14 +1642,12 @@ module.exports = [
   },
   {
     "source": "/consul/docs/nia/network-drivers/hcp-terraform",
-    "destination":
-      "/consul/docs/automate/infrastructure/network-driver/hcp-terraform",
+    "destination": "/consul/docs/automate/infrastructure/network-driver/hcp-terraform",
     "permanent": true,
   },
   {
     "source": "/consul/docs/nia/network-drivers/terraform",
-    "destination":
-      "/consul/docs/automate/infrastructure/network-driver/terraform",
+    "destination": "/consul/docs/automate/infrastructure/network-driver/terraform",
     "permanent": true,
   },
   {
@@ -1815,14 +1752,12 @@ module.exports = [
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/security/acl/tokens/create/create-a-mesh-gateway-token",
+    "source": "/consul/docs/security/acl/tokens/create/create-a-mesh-gateway-token",
     "destination": "/consul/docs/secure/acl/token/mesh-gateway",
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/security/acl/tokens/create/create-a-replication-token",
+    "source": "/consul/docs/security/acl/tokens/create/create-a-replication-token",
     "destination": "/consul/docs/secure/acl/token/replication",
     "permanent": true,
   },
@@ -1832,20 +1767,17 @@ module.exports = [
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/security/acl/tokens/create/create-a-snapshot-agent-token",
+    "source": "/consul/docs/security/acl/tokens/create/create-a-snapshot-agent-token",
     "destination": "/consul/docs/secure/acl/token/snapshot-agent",
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/security/acl/tokens/create/create-a-terminating-gateway-token",
+    "source": "/consul/docs/security/acl/tokens/create/create-a-terminating-gateway-token",
     "destination": "/consul/docs/secure/acl/token/terminating-gateway",
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/security/acl/tokens/create/create-a-token-for-vault-consul-storage",
+    "source": "/consul/docs/security/acl/tokens/create/create-a-token-for-vault-consul-storage",
     "destination": "/consul/docs/secure/acl/token/vault-backend",
     "permanent": true,
   },
@@ -1860,8 +1792,7 @@ module.exports = [
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/security/acl/tokens/create/create-an-ingress-gateway-token",
+    "source": "/consul/docs/security/acl/tokens/create/create-an-ingress-gateway-token",
     "destination": "/consul/docs/secure/acl/token/ingress-gateway",
     "permanent": true,
   },
@@ -1896,20 +1827,17 @@ module.exports = [
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/services/configuration/checks-configuration-reference",
+    "source": "/consul/docs/services/configuration/checks-configuration-reference",
     "destination": "/consul/docs/reference/service/health-check",
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/services/configuration/services-configuration-overview",
+    "source": "/consul/docs/services/configuration/services-configuration-overview",
     "destination": "/consul/docs/fundamentals/service",
     "permanent": true,
   },
   {
-    "source":
-      "/consul/docs/services/configuration/services-configuration-reference",
+    "source": "/consul/docs/services/configuration/services-configuration-reference",
     "destination": "/consul/docs/reference/service",
     "permanent": true,
   },
@@ -2033,11 +1961,6 @@ module.exports = [
     "permanent": true
   },
   {
-    "source": "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/fundamentals/agent/",
-    "destination": "/consul/docs/:version/agent/config",
-    "permanent": true
-  },
-  {
     "source": "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/fundamentals/config-entry/",
     "destination": "/consul/docs/:version/agent/config-entries",
     "permanent": true
@@ -2063,7 +1986,7 @@ module.exports = [
     "permanent": true
   },
   {
-    "source": "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/manage/rate-limit/"source"/",
+    "source": "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/manage/rate-limit/source/",
     "destination": "/consul/docs/:version/agent/limits/usage/limit-request-rates-from-ips",
     "permanent": true
   },
