@@ -827,6 +827,8 @@ message APIGatewayListener {
   APIGatewayTLSConfiguration TLS = 5;
   APIGatewayPolicy Override = 6;
   APIGatewayPolicy Default = 7;
+
+  optional uint32 MaxRequestHeadersKB = 8;
 }
 
 // mog annotation:
