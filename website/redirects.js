@@ -1961,6 +1961,11 @@ module.exports = [
     permanent: true
   },
   {
+    source: '/consul/docs/v1.20.x/fundamentals/agent',
+    destination: '/consul/docs/v1.20.x/agent',
+    permanent: true
+  },
+  {
     source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/fundamentals/config-entry",
     destination: "/consul/docs/:version/agent/config-entries",
     permanent: true
