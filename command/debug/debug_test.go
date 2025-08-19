@@ -727,7 +727,7 @@ func TestDebugCommand_TroubleshootPorts(t *testing.T) {
 			portsClosed: []string{},
 		},
 		{
-			name:        "Ports 8500, 8501, 8501, 8503 Open",
+			name:        "Ports 8500, 8501, 8502, 8503 Open",
 			portsOpen:   []string{"8500", "8501", "8502", "8503"},
 			portsClosed: []string{"8600", "8301", "8302", "8300"},
 		},
