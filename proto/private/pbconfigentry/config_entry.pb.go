@@ -5241,6 +5241,13 @@ func (x *APIGatewayListener) GetDefault() *APIGatewayPolicy {
 	return nil
 }
 
+func (x *APIGatewayListener) GetMaxRequestHeadersKB() uint32 {
+	if x != nil && x.MaxRequestHeadersKB != nil {
+		return *x.MaxRequestHeadersKB
+	}
+	return 0
+}
+
 // mog annotation:
 //
 // target=github.com/hashicorp/consul/agent/structs.APIGatewayTLSConfiguration
@@ -9490,6 +9497,7 @@ func file_private_pbconfigentry_config_entry_proto_init() {
 		(*ConfigEntry_ExportedServices)(nil),
 		(*ConfigEntry_FileSystemCertificate)(nil),
 	}
+	file_private_pbconfigentry_config_entry_proto_msgTypes[57].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
