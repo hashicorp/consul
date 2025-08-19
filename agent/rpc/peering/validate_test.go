@@ -70,30 +70,30 @@ func TestValidatePeeringToken(t *testing.T) {
 			name: "invalid ipv6 without port",
 			token: &structs.PeeringToken{
 				CA:              []string{validCA},
-				ServerAddresses: []string{"2001:db8::1"},
+				ServerAddresses: []string{ipv6AddressWithoutPort},
 			},
 			wantErr: &errPeeringInvalidServerAddress{
-				"2001:db8::1",
+				ipv6AddressWithoutPort,
 			},
 		},
 		{
 			name: "invalid ipv6 without port - manual",
 			token: &structs.PeeringToken{
 				CA:                    []string{validCA},
-				ManualServerAddresses: []string{"2001:db8::1"},
+				ManualServerAddresses: []string{ipv6AddressWithoutPort},
 			},
 			wantErr: &errPeeringInvalidServerAddress{
-				"2001:db8::1",
+				ipv6AddressWithoutPort,
 			},
 		},
 		{
 			name: "invalid ipv6 missing brackets - manual",
 			token: &structs.PeeringToken{
 				CA:                    []string{validCA},
-				ManualServerAddresses: []string{"2001:db8::1:80"},
+				ManualServerAddresses: []string{invalidIPv6Address},
 			},
 			wantErr: &errPeeringInvalidServerAddress{
-				"2001:db8::1:80",
+				invalidIPv6Address,
 			},
 		},
 		{
