@@ -9,6 +9,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -7485,7 +7486,7 @@ func TestAgentConnectCALeafCert_Vault_doesNotChurnLeafCertsAtIdle(t *testing.T) 
 			resp := httptest.NewRecorder()
 			a.srv.h.ServeHTTP(resp, req)
 			if resp.Code != http.StatusOK {
-				ch <- fmt.Errorf(resp.Body.String())
+				ch <- errors.New(resp.Body.String())
 				return
 			}
 
@@ -7621,7 +7622,7 @@ func TestAgentConnectCALeafCert_secondaryDC_good(t *testing.T) {
 			resp := httptest.NewRecorder()
 			a2.srv.h.ServeHTTP(resp, req)
 			if resp.Code != http.StatusOK {
-				ch <- fmt.Errorf(resp.Body.String())
+				ch <- errors.New(resp.Body.String())
 				return
 			}
 

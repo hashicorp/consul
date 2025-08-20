@@ -39,15 +39,15 @@ func (s *ConfigSnapshot) Authorize(authz acl.Authorizer) error {
 	case structs.ServiceKindConnectProxy:
 		s.ProxyID.FillAuthzContext(&authzContext)
 		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(s.Proxy.DestinationServiceName, &authzContext); err != nil {
-			return status.Errorf(codes.PermissionDenied, err.Error())
+			return status.Error(codes.PermissionDenied, err.Error())
 		}
 	case structs.ServiceKindMeshGateway, structs.ServiceKindTerminatingGateway, structs.ServiceKindIngressGateway, structs.ServiceKindAPIGateway:
 		s.ProxyID.FillAuthzContext(&authzContext)
 		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(s.Service, &authzContext); err != nil {
-			return status.Errorf(codes.PermissionDenied, err.Error())
+			return status.Error(codes.PermissionDenied, err.Error())
 		}
 	default:
-		return status.Errorf(codes.Internal, "Invalid service kind")
+		return status.Error(codes.Internal, "Invalid service kind")
 	}
 
 	// Authed OK!
