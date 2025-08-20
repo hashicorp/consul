@@ -18,6 +18,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -110,9 +111,6 @@ type debugIndex struct {
 	Duration string
 
 	Targets []string
-}
-
-type troubleShootTcp struct {
 }
 
 type hostPort struct {
@@ -403,12 +401,7 @@ func (c *cmd) captureStatic() error {
 }
 
 func (c *cmd) troubleshootPorts() error {
-	default_ports := []string{"8600", "8500", "8501", "8502", "8503", "8301", "8302", "8300"}
-	report := troubleshootRun(default_ports, "localhost")
-	output := PortResults{
-		PortsOpen:   report[0],
-		PortsClosed: report[1],
-	}
+	output := troubleshootRun(default_ports, "localhost")
 
 	if err := writeJSONFile(filepath.Join(c.output, targetPorts+".json"), output); err != nil {
 		return err
@@ -417,42 +410,45 @@ func (c *cmd) troubleshootPorts() error {
 	return nil
 }
 
-func troubleshootRun(ports []string, host string) [][]string {
-	resultsChannel := make(chan string)
-	defer close(resultsChannel)
+func troubleshootRun(ports []string, host string) PortResults {
+	openChannel := make(chan string, len(ports))
+	closeChannel := make(chan string, len(ports))
 
-	var counter = 0
+	var wg sync.WaitGroup
+	wg.Add(len(ports))
 
 	for _, port := range ports {
-		counter += 1
-		tcpTroubleShoot := troubleShootTcp{}
 		port := port
 		go func() {
-			err := tcpTroubleShoot.dialPort(&hostPort{host: host, port: port})
-			var res string
+			defer wg.Done()
+			err := dialPort(&hostPort{host: host, port: port})
 			if err != nil {
-				res = fmt.Sprintf("%s close", port)
+				closeChannel <- port
 			} else {
 				// If no error occurs, the connection was successful, and the port is open.
-				res = fmt.Sprintf("%s open", port)
+				openChannel <- port
 			}
-			resultsChannel <- res
 		}()
 	}
 
-	resultsArr := make([][]string, 2)
-	for itr := 0; itr < counter; itr++ {
-		res := strings.Split(<-resultsChannel, " ")
-		if res[1] == "open" {
-			resultsArr[0] = append(resultsArr[0], res[0])
-		} else {
-			resultsArr[1] = append(resultsArr[1], res[0])
-		}
+	go func() {
+		wg.Wait()
+		close(openChannel)
+		close(closeChannel)
+	}()
+
+	var portResults PortResults
+	for port := range openChannel {
+		portResults.PortsOpen = append(portResults.PortsOpen, port)
 	}
-	return resultsArr
+
+	for port := range closeChannel {
+		portResults.PortsClosed = append(portResults.PortsClosed, port)
+	}
+	return portResults
 }
 
-func (tcp *troubleShootTcp) dialPort(hostPort *hostPort) error {
+func dialPort(hostPort *hostPort) error {
 	address := net.JoinHostPort(hostPort.host, hostPort.port)
 
 	// Attempt to establish a TCP connection with a timeout.
@@ -890,6 +886,8 @@ const (
 	// targetCluster is the now deprecated name for targetMembers
 	targetCluster = "cluster"
 )
+
+var default_ports = []string{"8600", "8500", "8501", "8502", "8503", "8301", "8302", "8300"}
 
 // defaultTargets specifies the list of targets that will be captured by default
 var defaultTargets = []string{
