@@ -166,7 +166,7 @@ function lint_install {
         'golangci-lint' \
         'github.com/golangci/golangci-lint' \
         "${golangci_lint_version}" \
-        'github.com/golangci/golangci-lint/cmd/golangci-lint'
+        'github.com/golangci/golangci-lint/v2/cmd/golangci-lint'
 
     install_versioned_tool \
         'gci' \
