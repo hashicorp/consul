@@ -271,7 +271,7 @@ func (b *HCLBuilder) addBlock(block string, fn func()) {
 }
 
 func (b *HCLBuilder) addSlice(name string, vals []string) {
-	b.format(name + " = [")
+	b.format("%s", name+" = [")
 	for _, v := range vals {
 		b.format("%q,", v)
 	}
