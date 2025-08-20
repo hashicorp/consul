@@ -41,7 +41,7 @@ func (_m *ServerDiscoveryServiceClient) EXPECT() *ServerDiscoveryServiceClient_E
 }
 
 // WatchServers provides a mock function for the type ServerDiscoveryServiceClient
-func (_mock *ServerDiscoveryServiceClient) WatchServers(ctx context.Context, in *pbserverdiscovery.WatchServersRequest, opts ...grpc.CallOption) (pbserverdiscovery.ServerDiscoveryService_WatchServersClient, error) {
+func (_mock *ServerDiscoveryServiceClient) WatchServers(ctx context.Context, in *pbserverdiscovery.WatchServersRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[pbserverdiscovery.WatchServersResponse], error) {
 	// grpc.CallOption
 	_va := make([]interface{}, len(opts))
 	for _i := range opts {
@@ -56,16 +56,16 @@ func (_mock *ServerDiscoveryServiceClient) WatchServers(ctx context.Context, in 
 		panic("no return value specified for WatchServers")
 	}
 
-	var r0 pbserverdiscovery.ServerDiscoveryService_WatchServersClient
+	var r0 grpc.ServerStreamingClient[pbserverdiscovery.WatchServersResponse]
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *pbserverdiscovery.WatchServersRequest, ...grpc.CallOption) (pbserverdiscovery.ServerDiscoveryService_WatchServersClient, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *pbserverdiscovery.WatchServersRequest, ...grpc.CallOption) (grpc.ServerStreamingClient[pbserverdiscovery.WatchServersResponse], error)); ok {
 		return returnFunc(ctx, in, opts...)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *pbserverdiscovery.WatchServersRequest, ...grpc.CallOption) pbserverdiscovery.ServerDiscoveryService_WatchServersClient); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *pbserverdiscovery.WatchServersRequest, ...grpc.CallOption) grpc.ServerStreamingClient[pbserverdiscovery.WatchServersResponse]); ok {
 		r0 = returnFunc(ctx, in, opts...)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(pbserverdiscovery.ServerDiscoveryService_WatchServersClient)
+			r0 = ret.Get(0).(grpc.ServerStreamingClient[pbserverdiscovery.WatchServersResponse])
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, *pbserverdiscovery.WatchServersRequest, ...grpc.CallOption) error); ok {
@@ -117,12 +117,12 @@ func (_c *ServerDiscoveryServiceClient_WatchServers_Call) Run(run func(ctx conte
 	return _c
 }
 
-func (_c *ServerDiscoveryServiceClient_WatchServers_Call) Return(serverDiscoveryService_WatchServersClient pbserverdiscovery.ServerDiscoveryService_WatchServersClient, err error) *ServerDiscoveryServiceClient_WatchServers_Call {
-	_c.Call.Return(serverDiscoveryService_WatchServersClient, err)
+func (_c *ServerDiscoveryServiceClient_WatchServers_Call) Return(serverStreamingClient grpc.ServerStreamingClient[pbserverdiscovery.WatchServersResponse], err error) *ServerDiscoveryServiceClient_WatchServers_Call {
+	_c.Call.Return(serverStreamingClient, err)
 	return _c
 }
 
-func (_c *ServerDiscoveryServiceClient_WatchServers_Call) RunAndReturn(run func(ctx context.Context, in *pbserverdiscovery.WatchServersRequest, opts ...grpc.CallOption) (pbserverdiscovery.ServerDiscoveryService_WatchServersClient, error)) *ServerDiscoveryServiceClient_WatchServers_Call {
+func (_c *ServerDiscoveryServiceClient_WatchServers_Call) RunAndReturn(run func(ctx context.Context, in *pbserverdiscovery.WatchServersRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[pbserverdiscovery.WatchServersResponse], error)) *ServerDiscoveryServiceClient_WatchServers_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -530,16 +530,16 @@ func (_m *ServerDiscoveryServiceServer) EXPECT() *ServerDiscoveryServiceServer_E
 }
 
 // WatchServers provides a mock function for the type ServerDiscoveryServiceServer
-func (_mock *ServerDiscoveryServiceServer) WatchServers(watchServersRequest *pbserverdiscovery.WatchServersRequest, serverDiscoveryService_WatchServersServer pbserverdiscovery.ServerDiscoveryService_WatchServersServer) error {
-	ret := _mock.Called(watchServersRequest, serverDiscoveryService_WatchServersServer)
+func (_mock *ServerDiscoveryServiceServer) WatchServers(watchServersRequest *pbserverdiscovery.WatchServersRequest, serverStreamingServer grpc.ServerStreamingServer[pbserverdiscovery.WatchServersResponse]) error {
+	ret := _mock.Called(watchServersRequest, serverStreamingServer)
 
 	if len(ret) == 0 {
 		panic("no return value specified for WatchServers")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(*pbserverdiscovery.WatchServersRequest, pbserverdiscovery.ServerDiscoveryService_WatchServersServer) error); ok {
-		r0 = returnFunc(watchServersRequest, serverDiscoveryService_WatchServersServer)
+	if returnFunc, ok := ret.Get(0).(func(*pbserverdiscovery.WatchServersRequest, grpc.ServerStreamingServer[pbserverdiscovery.WatchServersResponse]) error); ok {
+		r0 = returnFunc(watchServersRequest, serverStreamingServer)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -553,20 +553,20 @@ type ServerDiscoveryServiceServer_WatchServers_Call struct {
 
 // WatchServers is a helper method to define mock.On call
 //   - watchServersRequest *pbserverdiscovery.WatchServersRequest
-//   - serverDiscoveryService_WatchServersServer pbserverdiscovery.ServerDiscoveryService_WatchServersServer
-func (_e *ServerDiscoveryServiceServer_Expecter) WatchServers(watchServersRequest interface{}, serverDiscoveryService_WatchServersServer interface{}) *ServerDiscoveryServiceServer_WatchServers_Call {
-	return &ServerDiscoveryServiceServer_WatchServers_Call{Call: _e.mock.On("WatchServers", watchServersRequest, serverDiscoveryService_WatchServersServer)}
+//   - serverStreamingServer grpc.ServerStreamingServer[pbserverdiscovery.WatchServersResponse]
+func (_e *ServerDiscoveryServiceServer_Expecter) WatchServers(watchServersRequest interface{}, serverStreamingServer interface{}) *ServerDiscoveryServiceServer_WatchServers_Call {
+	return &ServerDiscoveryServiceServer_WatchServers_Call{Call: _e.mock.On("WatchServers", watchServersRequest, serverStreamingServer)}
 }
 
-func (_c *ServerDiscoveryServiceServer_WatchServers_Call) Run(run func(watchServersRequest *pbserverdiscovery.WatchServersRequest, serverDiscoveryService_WatchServersServer pbserverdiscovery.ServerDiscoveryService_WatchServersServer)) *ServerDiscoveryServiceServer_WatchServers_Call {
+func (_c *ServerDiscoveryServiceServer_WatchServers_Call) Run(run func(watchServersRequest *pbserverdiscovery.WatchServersRequest, serverStreamingServer grpc.ServerStreamingServer[pbserverdiscovery.WatchServersResponse])) *ServerDiscoveryServiceServer_WatchServers_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 *pbserverdiscovery.WatchServersRequest
 		if args[0] != nil {
 			arg0 = args[0].(*pbserverdiscovery.WatchServersRequest)
 		}
-		var arg1 pbserverdiscovery.ServerDiscoveryService_WatchServersServer
+		var arg1 grpc.ServerStreamingServer[pbserverdiscovery.WatchServersResponse]
 		if args[1] != nil {
-			arg1 = args[1].(pbserverdiscovery.ServerDiscoveryService_WatchServersServer)
+			arg1 = args[1].(grpc.ServerStreamingServer[pbserverdiscovery.WatchServersResponse])
 		}
 		run(
 			arg0,
@@ -581,7 +581,7 @@ func (_c *ServerDiscoveryServiceServer_WatchServers_Call) Return(err error) *Ser
 	return _c
 }
 
-func (_c *ServerDiscoveryServiceServer_WatchServers_Call) RunAndReturn(run func(watchServersRequest *pbserverdiscovery.WatchServersRequest, serverDiscoveryService_WatchServersServer pbserverdiscovery.ServerDiscoveryService_WatchServersServer) error) *ServerDiscoveryServiceServer_WatchServers_Call {
+func (_c *ServerDiscoveryServiceServer_WatchServers_Call) RunAndReturn(run func(watchServersRequest *pbserverdiscovery.WatchServersRequest, serverStreamingServer grpc.ServerStreamingServer[pbserverdiscovery.WatchServersResponse]) error) *ServerDiscoveryServiceServer_WatchServers_Call {
 	_c.Call.Return(run)
 	return _c
 }
