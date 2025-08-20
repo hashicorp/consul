@@ -17,7 +17,7 @@ require (
 	github.com/hashicorp/hcl/v2 v2.16.2
 	github.com/mitchellh/copystructure v1.2.0
 	github.com/rboyer/safeio v0.2.2
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.10.0
 	golang.org/x/crypto v0.41.0
 	golang.org/x/exp v0.0.0-20250808145144-a408d31f581a
 	google.golang.org/grpc v1.75.0
