@@ -118,11 +118,6 @@ type debugIndex struct {
 	Targets []string
 }
 
-type hostPort struct {
-	host string
-	port string
-}
-
 type PortStatus struct {
 	Open   []string `json:"Open"`
 	Closed []string `json:"Closed"`
