@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -53,6 +54,10 @@ const (
 	// debugMinDuration is the minimum a user can configure the duration
 	// to ensure that all information can be collected in time
 	debugMinDuration = 10 * time.Second
+
+	// validatePortsTimeout is the timeout while checking connectivity to default ports
+	// This is same as the timeout used in troubleshoot ports command
+	validatePortsTimeout = 5 * time.Second
 
 	// debugArchiveExtension is the extension for archive files
 	debugArchiveExtension = ".tar.gz"
@@ -118,9 +123,9 @@ type hostPort struct {
 	port string
 }
 
-type PortResults struct {
-	PortsOpen   []string `json:"PortsOpen"`
-	PortsClosed []string `json:"PortsClosed"`
+type PortStatus struct {
+	Open   []string `json:"Open"`
+	Closed []string `json:"Closed"`
 }
 
 // timeDateformat is a modified version of time.RFC3339 which replaces colons with
@@ -410,49 +415,46 @@ func (c *cmd) troubleshootPorts() error {
 	return nil
 }
 
-func troubleshootRun(ports []string, host string) PortResults {
-	openChannel := make(chan string, len(ports))
-	closeChannel := make(chan string, len(ports))
+func troubleshootRun(ports []string, host string) PortStatus {
+	openPorts := make(chan string, len(ports))
+	closePorts := make(chan string, len(ports))
 
+	var portResults PortStatus
 	var wg sync.WaitGroup
 	wg.Add(len(ports))
 
 	for _, port := range ports {
-		port := port
-		go func() {
+		go func(port string) {
 			defer wg.Done()
-			err := dialPort(&hostPort{host: host, port: port})
+			address, _ := url.Parse(net.JoinHostPort(host, port))
+
+			err := dialPort(*address)
 			if err != nil {
-				closeChannel <- port
+				closePorts <- port
 			} else {
 				// If no error occurs, the connection was successful, and the port is open.
-				openChannel <- port
+				openPorts <- port
 			}
-		}()
+		}(port)
 	}
 
-	go func() {
-		wg.Wait()
-		close(openChannel)
-		close(closeChannel)
-	}()
+	wg.Wait()
+	close(openPorts)
+	close(closePorts)
 
-	var portResults PortResults
-	for port := range openChannel {
-		portResults.PortsOpen = append(portResults.PortsOpen, port)
+	for port := range openPorts {
+		portResults.Open = append(portResults.Open, port)
 	}
 
-	for port := range closeChannel {
-		portResults.PortsClosed = append(portResults.PortsClosed, port)
+	for port := range closePorts {
+		portResults.Closed = append(portResults.Closed, port)
 	}
 	return portResults
 }
 
-func dialPort(hostPort *hostPort) error {
-	address := net.JoinHostPort(hostPort.host, hostPort.port)
-
+func dialPort(address url.URL) error {
 	// Attempt to establish a TCP connection with a timeout.
-	conn, err := net.DialTimeout("tcp", address, 5*time.Second)
+	conn, err := net.DialTimeout("tcp", address.String(), validatePortsTimeout)
 	if err != nil {
 		return err
 	}

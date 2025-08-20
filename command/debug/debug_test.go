@@ -711,6 +711,8 @@ func TestDebugCommand_TroubleshootPorts(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	emptyStrArr := []string{}
+
 	testCases := []struct {
 		name        string
 		portsOpen   []string
@@ -718,13 +720,13 @@ func TestDebugCommand_TroubleshootPorts(t *testing.T) {
 	}{
 		{
 			name:        "All ports closed",
-			portsOpen:   []string{},
+			portsOpen:   emptyStrArr,
 			portsClosed: []string{"8600", "8500", "8501", "8502", "8503", "8301", "8302", "8300"},
 		},
 		{
 			name:        "All ports opened",
 			portsOpen:   []string{"8600", "8500", "8501", "8502", "8503", "8301", "8302", "8300"},
-			portsClosed: []string{},
+			portsClosed: emptyStrArr,
 		},
 		{
 			name:        "Ports 8500, 8501, 8502, 8503 Open",
@@ -764,9 +766,9 @@ func TestDebugCommand_TroubleshootPorts(t *testing.T) {
 			require.Equal(t, 0, code)
 			require.Equal(t, "", ui.ErrorWriter.String())
 
-			expected := PortResults{
-				PortsOpen:   tc.portsOpen,
-				PortsClosed: tc.portsClosed,
+			expected := PortStatus{
+				Open:   tc.portsOpen,
+				Closed: tc.portsClosed,
 			}
 
 			fileBytes, err := os.ReadFile(outputPath + "/ports.json")
@@ -775,13 +777,13 @@ func TestDebugCommand_TroubleshootPorts(t *testing.T) {
 			}
 
 			// Parse JSON into struct
-			var actual PortResults
+			var actual PortStatus
 			if err := json.Unmarshal(fileBytes, &actual); err != nil {
 				t.Fatalf("Failed to unmarshal JSON from file: %v", err)
 			}
 
-			testifyassert.ElementsMatch(t, expected.PortsOpen, actual.PortsOpen, "Mismatch in open ports")
-			testifyassert.ElementsMatch(t, expected.PortsClosed, actual.PortsClosed, "Mismatch in closed ports")
+			testifyassert.ElementsMatch(t, expected.Open, actual.Open, "Mismatch in open ports")
+			testifyassert.ElementsMatch(t, expected.Closed, actual.Closed, "Mismatch in closed ports")
 		})
 	}
 }
