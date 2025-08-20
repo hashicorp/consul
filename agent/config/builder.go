@@ -492,6 +492,9 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	// server can be reached.
 
 	bindAddrs := b.expandAddrs("bind_addr", c.BindAddr)
+	if b.err != nil {
+		return RuntimeConfig{}, b.err
+	}
 	if len(bindAddrs) == 0 {
 		return RuntimeConfig{}, fmt.Errorf("bind_addr cannot be empty")
 	}
