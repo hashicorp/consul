@@ -53,7 +53,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP(t *testing.T) {
 	sid := structs.NewServiceID("web-sidecar-proxy", nil)
 
 	// Register the proxy to create state needed to Watch() on
-	mgr.RegisterProxy(t, sid)
+	mgr.RegisterProxy(sid)
 
 	var snap *proxycfg.ConfigSnapshot
 
@@ -186,8 +186,8 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP(t *testing.T) {
 	})
 
 	deleteAllButOneEndpoint := func(snap *proxycfg.ConfigSnapshot, uid proxycfg.UpstreamID, targetID string) {
-		snap.ConnectProxy.ConfigSnapshotUpstreams.WatchedUpstreamEndpoints[uid][targetID] =
-			snap.ConnectProxy.ConfigSnapshotUpstreams.WatchedUpstreamEndpoints[uid][targetID][0:1]
+		snap.ConnectProxy.WatchedUpstreamEndpoints[uid][targetID] =
+			snap.ConnectProxy.WatchedUpstreamEndpoints[uid][targetID][0:1]
 	}
 
 	testutil.RunStep(t, "avoid sending config for unsubscribed resource", func(t *testing.T) {
@@ -267,7 +267,7 @@ func TestServer_DeltaAggregatedResources_v3_NackLoop(t *testing.T) {
 	sid := structs.NewServiceID("web-sidecar-proxy", nil)
 
 	// Register the proxy to create state needed to Watch() on
-	mgr.RegisterProxy(t, sid)
+	mgr.RegisterProxy(sid)
 
 	var snap *proxycfg.ConfigSnapshot
 
@@ -399,7 +399,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_HTTP2(t *testing.T) {
 	sid := structs.NewServiceID("web-sidecar-proxy", nil)
 
 	// Register the proxy to create state needed to Watch() on
-	mgr.RegisterProxy(t, sid)
+	mgr.RegisterProxy(sid)
 
 	// Send initial cluster discover (empty payload)
 	envoy.SendDeltaReq(t, xdscommon.ClusterType, nil)
@@ -567,7 +567,7 @@ func TestServer_DeltaAggregatedResources_v3_SlowEndpointPopulation(t *testing.T)
 	sid := structs.NewServiceID("web-sidecar-proxy", nil)
 
 	// Register the proxy to create state needed to Watch() on
-	mgr.RegisterProxy(t, sid)
+	mgr.RegisterProxy(sid)
 
 	var snap *proxycfg.ConfigSnapshot
 	testutil.RunStep(t, "get into initial state", func(t *testing.T) {
@@ -696,7 +696,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP_clusterChangesImpa
 	sid := structs.NewServiceID("web-sidecar-proxy", nil)
 
 	// Register the proxy to create state needed to Watch() on
-	mgr.RegisterProxy(t, sid)
+	mgr.RegisterProxy(sid)
 
 	var snap *proxycfg.ConfigSnapshot
 	testutil.RunStep(t, "get into initial state", func(t *testing.T) {
@@ -842,7 +842,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP_clusterChangeBefor
 	sid := structs.NewServiceID("web-sidecar-proxy", nil)
 
 	// Register the proxy to create state needed to Watch() on
-	mgr.RegisterProxy(t, sid)
+	mgr.RegisterProxy(sid)
 
 	var snap *proxycfg.ConfigSnapshot
 	testutil.RunStep(t, "initial setup", func(t *testing.T) {
@@ -974,7 +974,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_HTTP2_RDS_listenerChan
 	sid := structs.NewServiceID("web-sidecar-proxy", nil)
 
 	// Register the proxy to create state needed to Watch() on
-	mgr.RegisterProxy(t, sid)
+	mgr.RegisterProxy(sid)
 
 	var snap *proxycfg.ConfigSnapshot
 
@@ -1252,7 +1252,7 @@ func TestServer_DeltaAggregatedResources_v3_ACLEnforcement(t *testing.T) {
 
 			sid := structs.NewServiceID("web-sidecar-proxy", nil)
 			// Register the proxy to create state needed to Watch() on
-			mgr.RegisterProxy(t, sid)
+			mgr.RegisterProxy(sid)
 
 			// Deliver a new snapshot
 			snap := tt.cfgSnap
@@ -1364,7 +1364,7 @@ func TestServer_DeltaAggregatedResources_v3_ACLTokenDeleted_StreamTerminatedDuri
 
 	sid := structs.NewServiceID("web-sidecar-proxy", nil)
 	// Register the proxy to create state needed to Watch() on
-	mgr.RegisterProxy(t, sid)
+	mgr.RegisterProxy(sid)
 
 	// Send initial cluster discover (OK)
 	envoy.SendDeltaReq(t, xdscommon.ClusterType, nil)
@@ -1462,7 +1462,7 @@ func TestServer_DeltaAggregatedResources_v3_ACLTokenDeleted_StreamTerminatedInBa
 
 	sid := structs.NewServiceID("web-sidecar-proxy", nil)
 	// Register the proxy to create state needed to Watch() on
-	mgr.RegisterProxy(t, sid)
+	mgr.RegisterProxy(sid)
 
 	// Send initial cluster discover (OK)
 	envoy.SendDeltaReq(t, xdscommon.ClusterType, nil)
@@ -1534,7 +1534,7 @@ func TestServer_DeltaAggregatedResources_v3_IngressEmptyResponse(t *testing.T) {
 	sid := structs.NewServiceID("ingress-gateway", nil)
 
 	// Register the proxy to create state needed to Watch() on
-	mgr.RegisterProxy(t, sid)
+	mgr.RegisterProxy(sid)
 
 	// Send initial cluster discover
 	envoy.SendDeltaReq(t, xdscommon.ClusterType, nil)
@@ -1588,7 +1588,7 @@ func TestServer_DeltaAggregatedResources_v3_CapacityReached(t *testing.T) {
 
 	sid := structs.NewServiceID("web-sidecar-proxy", nil)
 
-	mgr.RegisterProxy(t, sid)
+	mgr.RegisterProxy(sid)
 	mgr.DrainStreams(sid)
 
 	snap := newTestSnapshot(t, nil, "", nil)
@@ -1616,7 +1616,7 @@ func TestServer_DeltaAggregatedResources_v3_CfgSrcTerminated(t *testing.T) {
 
 	sid := structs.NewServiceID("web-sidecar-proxy", nil)
 
-	mgr.RegisterProxy(t, sid)
+	mgr.RegisterProxy(sid)
 
 	snap := newTestSnapshot(t, nil, "", nil)
 	envoy.SendDeltaReq(t, xdscommon.ClusterType, &envoy_discovery_v3.DeltaDiscoveryRequest{
@@ -1649,7 +1649,7 @@ func TestServer_DeltaAggregatedResources_v3_StreamDrained(t *testing.T) {
 
 	sid := structs.NewServiceID("web-sidecar-proxy", nil)
 
-	mgr.RegisterProxy(t, sid)
+	mgr.RegisterProxy(sid)
 
 	testutil.RunStep(t, "successful request/response", func(t *testing.T) {
 		snap := newTestSnapshot(t, nil, "", nil)

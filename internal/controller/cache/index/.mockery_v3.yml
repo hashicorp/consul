@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: BUSL-1.1
+
 dir: indexmock
 exclude-interface-regex: ^(Txn|IndexOption)$
 include-interface-regex: .*

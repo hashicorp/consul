@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: BUSL-1.1
+
 version: "2"
 run:
   concurrency: 4
@@ -84,6 +87,18 @@ linters:
       - linters:
           - staticcheck
         text: 'SA1019:'
+      - linters:
+          - staticcheck
+        text: 'ST1005: error strings should not end with punctuation or newlines'
+      - linters:
+            - staticcheck
+        text: 'ST1012: error var injectedError should have name of the form errFo'
+      - linters:
+          - staticcheck
+        text: 'ST1005: error strings should not be capitalized'
+      - linters:
+          - staticcheck
+        text: 'ST1012: error var'
     paths:
       - third_party$
       - builtin$

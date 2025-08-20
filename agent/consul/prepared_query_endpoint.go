@@ -390,7 +390,7 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 
 		// If they supplied a token with the query, use that, otherwise use the
 		// token passed in with the request.
-		token := args.QueryOptions.Token
+		token := args.Token
 		if query.Token != "" {
 			token = query.Token
 		}
@@ -518,7 +518,7 @@ func (p *PreparedQuery) ExecuteRemote(args *structs.PreparedQueryExecuteRemoteRe
 
 	// If they supplied a token with the query, use that, otherwise use the
 	// token passed in with the request.
-	token := args.QueryOptions.Token
+	token := args.Token
 	if args.Query.Token != "" {
 		token = args.Query.Token
 	}
@@ -770,7 +770,7 @@ func queryFailover(q queryServer, query structs.PreparedQuery,
 	index := make(map[string]struct{})
 	if query.Service.Failover.NearestN > 0 {
 		for i, dc := range nearest {
-			if !(i < query.Service.Failover.NearestN) {
+			if i >= query.Service.Failover.NearestN {
 				break
 			}
 

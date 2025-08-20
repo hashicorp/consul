@@ -281,7 +281,7 @@ func (a *Asserter) fortioFetch2Upstream(
 ) (body []byte, res *http.Response) {
 	t.Helper()
 
-	err, res := getFortioFetch2UpstreamResponse(t, client, addr, us, path, nil)
+	res, err := getFortioFetch2UpstreamResponse(t, client, addr, us, path, nil)
 	require.NoError(t, err)
 	defer res.Body.Close()
 
@@ -296,7 +296,7 @@ func (a *Asserter) fortioFetch2Upstream(
 	return body, res
 }
 
-func getFortioFetch2UpstreamResponse(t testutil.TestingTB, client *http.Client, addr string, us *topology.Upstream, path string, headers map[string]string) (error, *http.Response) {
+func getFortioFetch2UpstreamResponse(t testutil.TestingTB, client *http.Client, addr string, us *topology.Upstream, path string, headers map[string]string) (*http.Response, error) {
 	actualURL := fmt.Sprintf("http://localhost:%d/%s", us.LocalPort, path)
 
 	url := fmt.Sprintf("http://%s/fortio/fetch2?url=%s", addr,
@@ -311,7 +311,8 @@ func getFortioFetch2UpstreamResponse(t testutil.TestingTB, client *http.Client, 
 	}
 	res, err := client.Do(req)
 	require.NoError(t, err)
-	return err, res
+
+	return res, err
 }
 
 // uses the /fortio/fetch2 endpoint to do a header echo check against an
@@ -386,7 +387,7 @@ func (a *Asserter) FortioFetch2ServiceStatusCodes(t *testing.T, fortioWrk *topol
 	)
 
 	retry.RunWith(&retry.Timer{Timeout: 60 * time.Second, Wait: time.Millisecond * 500}, t, func(r *retry.R) {
-		_, res := getFortioFetch2UpstreamResponse(r, client, addr, us, path, headers)
+		res, _ := getFortioFetch2UpstreamResponse(r, client, addr, us, path, headers)
 		defer res.Body.Close()
 		require.Contains(r, statuses, res.StatusCode)
 	})
@@ -459,7 +460,6 @@ func (a *Asserter) AutopilotHealth(t *testing.T, cluster *topology.Cluster, lead
 		r.Log("out", out, "health", out.Healthy)
 		require.Equal(r, expectedHealthy, out.Healthy)
 	})
-	return
 }
 
 type AuditEntry struct {

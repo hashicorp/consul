@@ -5,7 +5,6 @@ package version
 
 import (
 	"flag"
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -60,7 +59,7 @@ func TestFormat(t *testing.T) {
 			actual, err := formatter.Format(&info)
 			require.NoError(t, err)
 
-			gName := fmt.Sprintf("%s", fmtName)
+			gName := fmtName
 
 			expected := golden(t, gName, actual)
 			require.Equal(t, expected, actual)

@@ -144,13 +144,10 @@ func (s *Server) validateWriteStatusRequest(req *pbresource.WriteStatusRequest) 
 				switch {
 				case condition.Resource.Type == nil:
 					field = fmt.Sprintf("status.conditions[%d].resource.type", i)
-					break
 				case condition.Resource.Tenancy == nil:
 					field = fmt.Sprintf("status.conditions[%d].resource.tenancy", i)
-					break
 				case condition.Resource.Name == "":
 					field = fmt.Sprintf("status.conditions[%d].resource.name", i)
-					break
 				}
 			}
 		}

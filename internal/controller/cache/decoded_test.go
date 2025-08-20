@@ -63,10 +63,10 @@ func (suite *decodedSuite) TestGetDecoded_DecodeError() {
 }
 
 func (suite *decodedSuite) TestGetDecoded_CacheError() {
-	suite.rc.EXPECT().Get(pbdemo.ArtistType, "id", suite.artistGood.Id).Return(nil, injectedError)
+	suite.rc.EXPECT().Get(pbdemo.ArtistType, "id", suite.artistGood.Id).Return(nil, errInjected)
 
 	dec, err := cache.GetDecoded[*pbdemo.Artist](suite.rc, pbdemo.ArtistType, "id", suite.artistGood.Id)
-	require.ErrorIs(suite.T(), err, injectedError)
+	require.ErrorIs(suite.T(), err, errInjected)
 	require.Nil(suite.T(), dec)
 }
 
@@ -101,10 +101,10 @@ func (suite *decodedSuite) TestListDecoded_DecodeError() {
 }
 
 func (suite *decodedSuite) TestListDecoded_CacheError() {
-	suite.rc.EXPECT().List(pbdemo.ArtistType, "id", suite.artistGood.Id).Return(nil, injectedError)
+	suite.rc.EXPECT().List(pbdemo.ArtistType, "id", suite.artistGood.Id).Return(nil, errInjected)
 
 	dec, err := cache.ListDecoded[*pbdemo.Artist](suite.rc, pbdemo.ArtistType, "id", suite.artistGood.Id)
-	require.ErrorIs(suite.T(), err, injectedError)
+	require.ErrorIs(suite.T(), err, errInjected)
 	require.Nil(suite.T(), dec)
 }
 
@@ -168,10 +168,10 @@ func (suite *decodedSuite) TestListIteratorDecoded_DecodeError() {
 }
 
 func (suite *decodedSuite) TestListIteratorDecoded_CacheError() {
-	suite.rc.EXPECT().ListIterator(pbdemo.ArtistType, "id", suite.artistGood.Id).Return(nil, injectedError)
+	suite.rc.EXPECT().ListIterator(pbdemo.ArtistType, "id", suite.artistGood.Id).Return(nil, errInjected)
 
 	iter, err := cache.ListIteratorDecoded[*pbdemo.Artist](suite.rc, pbdemo.ArtistType, "id", suite.artistGood.Id)
-	require.ErrorIs(suite.T(), err, injectedError)
+	require.ErrorIs(suite.T(), err, errInjected)
 	require.Nil(suite.T(), iter)
 }
 
@@ -206,10 +206,10 @@ func (suite *decodedSuite) TestParentsDecoded_DecodeError() {
 }
 
 func (suite *decodedSuite) TestParentsDecoded_CacheError() {
-	suite.rc.EXPECT().Parents(pbdemo.ArtistType, "id", suite.artistGood.Id).Return(nil, injectedError)
+	suite.rc.EXPECT().Parents(pbdemo.ArtistType, "id", suite.artistGood.Id).Return(nil, errInjected)
 
 	dec, err := cache.ParentsDecoded[*pbdemo.Artist](suite.rc, pbdemo.ArtistType, "id", suite.artistGood.Id)
-	require.ErrorIs(suite.T(), err, injectedError)
+	require.ErrorIs(suite.T(), err, errInjected)
 	require.Nil(suite.T(), dec)
 }
 
@@ -273,10 +273,10 @@ func (suite *decodedSuite) TestParentsIteratorDecoded_DecodeError() {
 }
 
 func (suite *decodedSuite) TestParentsIteratorDecoded_CacheError() {
-	suite.rc.EXPECT().ParentsIterator(pbdemo.ArtistType, "id", suite.artistGood.Id).Return(nil, injectedError)
+	suite.rc.EXPECT().ParentsIterator(pbdemo.ArtistType, "id", suite.artistGood.Id).Return(nil, errInjected)
 
 	iter, err := cache.ParentsIteratorDecoded[*pbdemo.Artist](suite.rc, pbdemo.ArtistType, "id", suite.artistGood.Id)
-	require.ErrorIs(suite.T(), err, injectedError)
+	require.ErrorIs(suite.T(), err, errInjected)
 	require.Nil(suite.T(), iter)
 }
 
@@ -340,10 +340,10 @@ func (suite *decodedSuite) TestQueryDecoded_DecodeError() {
 }
 
 func (suite *decodedSuite) TestQueryDecoded_CacheError() {
-	suite.rc.EXPECT().Query("query", "blah").Return(nil, injectedError)
+	suite.rc.EXPECT().Query("query", "blah").Return(nil, errInjected)
 
 	dec, err := cache.QueryDecoded[*pbdemo.Artist](suite.rc, "query", "blah")
-	require.ErrorIs(suite.T(), err, injectedError)
+	require.ErrorIs(suite.T(), err, errInjected)
 	require.Nil(suite.T(), dec)
 }
 

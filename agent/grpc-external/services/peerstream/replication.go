@@ -10,7 +10,6 @@ import (
 
 	"google.golang.org/genproto/googleapis/rpc/code"
 	"google.golang.org/protobuf/proto"
-	newproto "google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/acl"
@@ -127,7 +126,7 @@ func makeServerAddrsResponse(
 // the protobuf.Any type, the asserted T type, and any errors
 // during marshalling or type assertion.
 // `in` MUST be of type T or it returns an error.
-func marshalToProtoAny[T newproto.Message](in any) (*anypb.Any, T, error) {
+func marshalToProtoAny[T proto.Message](in any) (*anypb.Any, T, error) {
 	typ, ok := in.(T)
 	if !ok {
 		var outType T

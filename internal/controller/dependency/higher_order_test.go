@@ -38,7 +38,7 @@ var (
 		Kind:         "alt-fake",
 	}
 
-	injectedErr = errors.New("injected")
+	errInjected = errors.New("injected")
 )
 
 func TestWrapAndReplaceType(t *testing.T) {
@@ -74,12 +74,12 @@ func TestWrapAndReplaceType(t *testing.T) {
 		mm := controllermock.NewDependencyMapper(t)
 		mm.EXPECT().
 			Execute(mock.Anything, rt, res).
-			Return(nil, injectedErr).
+			Return(nil, errInjected).
 			Once()
 		mapper := WrapAndReplaceType(altFakeResourceType, mm.Execute)
 		reqs, err := mapper(context.Background(), rt, res)
 		require.Nil(t, reqs)
-		require.ErrorIs(t, err, injectedErr)
+		require.ErrorIs(t, err, errInjected)
 	})
 }
 
@@ -130,7 +130,7 @@ func TestMultiMapper(t *testing.T) {
 
 		mockMapper.EXPECT().
 			Execute(mock.Anything, rt, res).
-			Return(nil, injectedErr).
+			Return(nil, errInjected).
 			Once()
 
 		mm := MultiMapper(
@@ -139,6 +139,6 @@ func TestMultiMapper(t *testing.T) {
 		)
 		reqs, err := mm(context.Background(), rt, res)
 		require.Nil(t, reqs)
-		require.ErrorIs(t, err, injectedErr)
+		require.ErrorIs(t, err, errInjected)
 	})
 }

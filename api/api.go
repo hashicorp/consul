@@ -646,9 +646,7 @@ func (c *Client) Headers() http.Header {
 
 	ret := make(http.Header)
 	for k, v := range c.headers {
-		for _, val := range v {
-			ret[k] = append(ret[k], val)
-		}
+		ret[k] = append(ret[k], v...)
 	}
 
 	return ret
@@ -1313,7 +1311,7 @@ func generateUnexpectedResponseCodeError(resp *http.Response) error {
 	io.Copy(&buf, resp.Body)
 	closeResponseBody(resp)
 
-	trimmed := strings.TrimSpace(string(buf.Bytes()))
+	trimmed := strings.TrimSpace(buf.String())
 	return StatusError{Code: resp.StatusCode, Body: trimmed}
 }
 

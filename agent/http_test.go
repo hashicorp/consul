@@ -1792,7 +1792,7 @@ func TestHTTPServer_HandshakeTimeout(t *testing.T) {
 	})
 	defer a.Shutdown()
 
-	addr, err := firstAddr(a.Agent.apiServers, "https")
+	addr, err := firstAddr(a.apiServers, "https")
 	require.NoError(t, err)
 	// Connect to it with a plain TCP client that doesn't attempt to send HTTP or
 	// complete a TLS handshake.
@@ -1860,7 +1860,7 @@ func TestRPC_HTTPSMaxConnsPerClient(t *testing.T) {
 			})
 			defer a.Shutdown()
 
-			addr, err := firstAddr(a.Agent.apiServers, strings.ToLower(tc.name))
+			addr, err := firstAddr(a.apiServers, strings.ToLower(tc.name))
 			require.NoError(t, err)
 
 			assertConn := func(conn net.Conn, wantOpen bool) {

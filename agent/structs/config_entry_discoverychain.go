@@ -131,10 +131,10 @@ func (e *ServiceRouterConfigEntry) Normalize() error {
 		}
 
 		if route.Destination != nil && route.Destination.Namespace == "" {
-			route.Destination.Namespace = e.EnterpriseMeta.NamespaceOrEmpty()
+			route.Destination.Namespace = e.NamespaceOrEmpty()
 		}
 		if route.Destination != nil && route.Destination.Partition == "" {
-			route.Destination.Partition = e.EnterpriseMeta.PartitionOrEmpty()
+			route.Destination.Partition = e.PartitionOrEmpty()
 		}
 	}
 
@@ -337,7 +337,7 @@ func (e *ServiceRouterConfigEntry) ListRelatedServices() []ServiceID {
 		out = append(out, svc)
 	}
 	sort.Slice(out, func(i, j int) bool {
-		return out[i].EnterpriseMeta.LessThan(&out[j].EnterpriseMeta) ||
+		return out[i].LessThan(&out[j].EnterpriseMeta) ||
 			out[i].ID < out[j].ID
 	})
 	return out
@@ -600,7 +600,7 @@ func (e *ServiceSplitterConfigEntry) Normalize() error {
 	if len(e.Splits) > 0 {
 		for i, split := range e.Splits {
 			if split.Namespace == "" {
-				split.Namespace = e.EnterpriseMeta.NamespaceOrDefault()
+				split.Namespace = e.NamespaceOrDefault()
 			}
 			e.Splits[i].Weight = NormalizeServiceSplitWeight(split.Weight)
 		}
@@ -720,7 +720,7 @@ func (e *ServiceSplitterConfigEntry) ListRelatedServices() []ServiceID {
 		out = append(out, svc)
 	}
 	sort.Slice(out, func(i, j int) bool {
-		return out[i].EnterpriseMeta.LessThan(&out[j].EnterpriseMeta) ||
+		return out[i].LessThan(&out[j].EnterpriseMeta) ||
 			out[i].ID < out[j].ID
 	})
 	return out
@@ -1364,7 +1364,7 @@ func (e *ServiceResolverConfigEntry) ListRelatedServices() []ServiceID {
 		out = append(out, svc)
 	}
 	sort.Slice(out, func(i, j int) bool {
-		return out[i].EnterpriseMeta.LessThan(&out[j].EnterpriseMeta) ||
+		return out[i].LessThan(&out[j].EnterpriseMeta) ||
 			out[i].ID < out[j].ID
 	})
 	return out
@@ -1764,7 +1764,7 @@ func (r *DiscoveryChainRequest) CacheInfo() cache.RequestInfo {
 		OverrideMeshGateway:    r.OverrideMeshGateway,
 		OverrideProtocol:       r.OverrideProtocol,
 		OverrideConnectTimeout: r.OverrideConnectTimeout,
-		Filter:                 r.QueryOptions.Filter,
+		Filter:                 r.Filter,
 	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces

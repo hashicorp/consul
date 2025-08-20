@@ -16,8 +16,8 @@ import (
 )
 
 var (
-	injectedError = errors.New("injected")
-	indexName     = "some-index"
+	errInjected = errors.New("injected")
+	indexName   = "some-index"
 )
 
 type cloningReadOnlyCacheSuite struct {
@@ -84,10 +84,10 @@ func (suite *cloningReadOnlyCacheSuite) TestGet_Ok() {
 func (suite *cloningReadOnlyCacheSuite) TestGet_Error() {
 	suite.mcache.EXPECT().
 		Get(suite.rtype, indexName, "error").
-		Return(nil, injectedError)
+		Return(nil, errInjected)
 
 	actual, err := suite.ccache.Get(suite.rtype, indexName, "error")
-	require.ErrorIs(suite.T(), err, injectedError)
+	require.ErrorIs(suite.T(), err, errInjected)
 	require.Nil(suite.T(), actual)
 }
 
@@ -109,10 +109,10 @@ func (suite *cloningReadOnlyCacheSuite) TestList_Ok() {
 func (suite *cloningReadOnlyCacheSuite) TestList_Error() {
 	suite.mcache.EXPECT().
 		List(suite.rtype, indexName, "error").
-		Return(nil, injectedError)
+		Return(nil, errInjected)
 
 	actual, err := suite.ccache.List(suite.rtype, indexName, "error")
-	require.ErrorIs(suite.T(), err, injectedError)
+	require.ErrorIs(suite.T(), err, errInjected)
 	require.Nil(suite.T(), actual)
 }
 
@@ -134,10 +134,10 @@ func (suite *cloningReadOnlyCacheSuite) TestParents_Ok() {
 func (suite *cloningReadOnlyCacheSuite) TestParents_Error() {
 	suite.mcache.EXPECT().
 		Parents(suite.rtype, indexName, "error").
-		Return(nil, injectedError)
+		Return(nil, errInjected)
 
 	actual, err := suite.ccache.Parents(suite.rtype, indexName, "error")
-	require.ErrorIs(suite.T(), err, injectedError)
+	require.ErrorIs(suite.T(), err, errInjected)
 	require.Nil(suite.T(), actual)
 }
 
@@ -158,10 +158,10 @@ func (suite *cloningReadOnlyCacheSuite) TestListIterator_Ok() {
 func (suite *cloningReadOnlyCacheSuite) TestListIterator_Error() {
 	suite.mcache.EXPECT().
 		ListIterator(suite.rtype, indexName, "error").
-		Return(nil, injectedError)
+		Return(nil, errInjected)
 
 	actual, err := suite.ccache.ListIterator(suite.rtype, indexName, "error")
-	require.ErrorIs(suite.T(), err, injectedError)
+	require.ErrorIs(suite.T(), err, errInjected)
 	require.Nil(suite.T(), actual)
 }
 
@@ -182,10 +182,10 @@ func (suite *cloningReadOnlyCacheSuite) TestParentsIterator_Ok() {
 func (suite *cloningReadOnlyCacheSuite) TestParentsIterator_Error() {
 	suite.mcache.EXPECT().
 		ParentsIterator(suite.rtype, indexName, "error").
-		Return(nil, injectedError)
+		Return(nil, errInjected)
 
 	actual, err := suite.ccache.ParentsIterator(suite.rtype, indexName, "error")
-	require.ErrorIs(suite.T(), err, injectedError)
+	require.ErrorIs(suite.T(), err, errInjected)
 	require.Nil(suite.T(), actual)
 }
 
@@ -206,9 +206,9 @@ func (suite *cloningReadOnlyCacheSuite) TestQuery_Ok() {
 func (suite *cloningReadOnlyCacheSuite) TestQuery_Error() {
 	suite.mcache.EXPECT().
 		Query(indexName, "error").
-		Return(nil, injectedError)
+		Return(nil, errInjected)
 
 	actual, err := suite.ccache.Query(indexName, "error")
-	require.ErrorIs(suite.T(), err, injectedError)
+	require.ErrorIs(suite.T(), err, errInjected)
 	require.Nil(suite.T(), actual)
 }

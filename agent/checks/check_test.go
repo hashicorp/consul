@@ -474,7 +474,7 @@ func TestCheckHTTP_DisableRedirects(t *testing.T) {
 	}))
 	defer server1.Close()
 
-	server2 := httptest.NewServer(http.RedirectHandler(server1.URL, 301))
+	server2 := httptest.NewServer(http.RedirectHandler(server1.URL, http.StatusMovedPermanently))
 	defer server2.Close()
 
 	notif := mock.NewNotify()
@@ -1128,11 +1128,8 @@ func TestStatusHandlerMaintainWarningStatusWhenCheckIsFlapping(t *testing.T) {
 
 func TestCheckTCPCritical(t *testing.T) {
 	t.Parallel()
-	var (
-		tcpServer net.Listener
-	)
 
-	tcpServer = mockTCPServer(`tcp`)
+	tcpServer := mockTCPServer(`tcp`)
 	expectTCPStatus(t, `127.0.0.1:0`, api.HealthCritical)
 	tcpServer.Close()
 }
@@ -1201,13 +1198,11 @@ func mockUDPServer(ctx context.Context, network string, port int) {
 		}
 	}()
 
-	select {
-	case <-ctx.Done():
-		fmt.Println("cancelled")
-		close(chClose)
-	}
+	<-ctx.Done()
+	fmt.Println("cancelled")
+	close(chClose)
+
 	wg.Wait()
-	return
 }
 
 func expectUDPStatus(t *testing.T, udp string, status string) {
@@ -1317,7 +1312,7 @@ func TestCheckH2PING(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { return })
+			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
 			server := httptest.NewUnstartedServer(handler)
 			server.EnableHTTP2 = true
 			server.Config.ReadTimeout = tt.connTimeout
@@ -1370,7 +1365,7 @@ func TestCheckH2PING(t *testing.T) {
 }
 
 func TestCheckH2PING_TLS_BadVerify(t *testing.T) {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { return })
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
 	server := httptest.NewUnstartedServer(handler)
 	server.EnableHTTP2 = true
 	server.StartTLS()
@@ -1472,7 +1467,7 @@ func TestCheckH2CPING(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { return })
+			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
 			h2chandler := h2c.NewHandler(handler, &http2.Server{})
 			server := httptest.NewUnstartedServer(h2chandler)
 			server.Config.ReadTimeout = tt.connTimeout

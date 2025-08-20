@@ -511,7 +511,7 @@ func createReadServiceAccountFound(namespace, name, uid, overrideAnnotation stri
 		},
 	}
 	if overrideAnnotation != "" {
-		sa.ObjectMeta.Annotations = map[string]string{
+		sa.Annotations = map[string]string{
 			"consul.hashicorp.com/service-name": overrideAnnotation,
 		}
 	}

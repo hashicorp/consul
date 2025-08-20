@@ -43,7 +43,7 @@ func TestManager_changingRoots(t *testing.T) {
 	}
 
 	// First fetch should return immediately
-	getCh := testAsyncGet(t, m, req)
+	getCh := testAsyncGet(m, req)
 	var idx uint64
 	select {
 	case <-time.After(100 * time.Millisecond):
@@ -59,7 +59,7 @@ func TestManager_changingRoots(t *testing.T) {
 
 	// Second fetch should block with set index
 	req.MinQueryIndex = idx
-	getCh = testAsyncGet(t, m, req)
+	getCh = testAsyncGet(m, req)
 	select {
 	case result := <-getCh:
 		t.Fatalf("should not return: %#v", result)
@@ -80,7 +80,7 @@ func TestManager_changingRoots(t *testing.T) {
 	}
 
 	// Third fetch should block
-	getCh = testAsyncGet(t, m, req)
+	getCh = testAsyncGet(m, req)
 	select {
 	case result := <-getCh:
 		t.Fatalf("should not return: %#v", result)
@@ -119,7 +119,7 @@ func TestManager_changingRootsJitterBetweenCalls(t *testing.T) {
 	}
 
 	// First fetch should return immediately
-	getCh := testAsyncGet(t, m, req)
+	getCh := testAsyncGet(m, req)
 	var (
 		idx    uint64
 		issued *structs.IssuedCert
@@ -160,7 +160,7 @@ func TestManager_changingRootsJitterBetweenCalls(t *testing.T) {
 	rootsDelivered := false
 	for rootsDelivered {
 		start := time.Now()
-		getCh = testAsyncGet(t, m, req)
+		getCh = testAsyncGet(m, req)
 		select {
 		case result := <-getCh:
 			require.NoError(t, result.Err)
@@ -236,7 +236,7 @@ func TestManager_changingRootsBetweenBlockingCalls(t *testing.T) {
 	}
 
 	// First fetch should return immediately
-	getCh := testAsyncGet(t, m, req)
+	getCh := testAsyncGet(m, req)
 	var (
 		idx    uint64
 		issued *structs.IssuedCert
@@ -255,7 +255,7 @@ func TestManager_changingRootsBetweenBlockingCalls(t *testing.T) {
 
 	// Next fetch should block for the full timeout
 	start := time.Now()
-	getCh = testAsyncGet(t, m, req)
+	getCh = testAsyncGet(m, req)
 	select {
 	case <-time.After(100 * time.Millisecond):
 		t.Fatal("shouldn't block for too long waiting for fetch")
@@ -274,7 +274,7 @@ func TestManager_changingRootsBetweenBlockingCalls(t *testing.T) {
 
 	// We should get the new cert immediately on next fetch (since test override
 	// root change jitter to be 1 nanosecond so no delay expected).
-	getCh = testAsyncGet(t, m, req)
+	getCh = testAsyncGet(m, req)
 	select {
 	case <-time.After(100 * time.Millisecond):
 		t.Fatal("shouldn't block too long waiting for fetch")
@@ -324,7 +324,7 @@ func TestManager_CSRRateLimiting(t *testing.T) {
 
 	// First fetch should return rate limit error directly - client is expected to
 	// backoff itself.
-	getCh := testAsyncGet(t, m, req)
+	getCh := testAsyncGet(m, req)
 	select {
 	case <-time.After(200 * time.Millisecond):
 		t.Fatal("shouldn't block longer than one jitter window for success")
@@ -334,7 +334,7 @@ func TestManager_CSRRateLimiting(t *testing.T) {
 	}
 
 	// Second call should return correct cert immediately.
-	getCh = testAsyncGet(t, m, req)
+	getCh = testAsyncGet(m, req)
 	var (
 		idx    uint64
 		issued *structs.IssuedCert
@@ -361,7 +361,7 @@ func TestManager_CSRRateLimiting(t *testing.T) {
 	// After root rotation jitter has been waited out, a new CSR will
 	// be attempted but will fail and return the previous cached result with no
 	// error since we will try again soon.
-	getCh = testAsyncGet(t, m, req)
+	getCh = testAsyncGet(m, req)
 	select {
 	case <-time.After(200 * time.Millisecond):
 		t.Fatal("shouldn't block too long waiting for fetch")
@@ -382,7 +382,7 @@ func TestManager_CSRRateLimiting(t *testing.T) {
 	// Root rotation state is now only captured in the opts.LastResult.State so a
 	// subsequent call should also wait for 100ms and then attempt to generate a
 	// new cert since we failed last time.
-	getCh = testAsyncGet(t, m, req)
+	getCh = testAsyncGet(m, req)
 	select {
 	case <-time.After(200 * time.Millisecond):
 		t.Fatal("shouldn't block too long waiting for fetch")
@@ -402,7 +402,7 @@ func TestManager_CSRRateLimiting(t *testing.T) {
 	// across both the blocking request that observed the rotation and the
 	// subsequent one. The next request should wait out the rest of the backoff
 	// and then actually fetch a new cert at last!
-	getCh = testAsyncGet(t, m, req)
+	getCh = testAsyncGet(m, req)
 	select {
 	case <-time.After(200 * time.Millisecond):
 		t.Fatal("shouldn't block too long waiting for fetch")
@@ -455,7 +455,7 @@ func TestManager_watchRootsDedupingMultipleCallers(t *testing.T) {
 		}
 
 		// First fetch should return immediately
-		getCh := testAsyncGet(t, m, req)
+		getCh := testAsyncGet(m, req)
 		var idx uint64
 		select {
 		case <-time.After(100 * time.Millisecond):
@@ -468,7 +468,7 @@ func TestManager_watchRootsDedupingMultipleCallers(t *testing.T) {
 
 		// Second fetch should block with set index
 		req.MinQueryIndex = idx
-		getCh = testAsyncGet(t, m, req)
+		getCh = testAsyncGet(m, req)
 		select {
 		case result := <-getCh:
 			setupDoneCh <- fmt.Errorf("should not return: %#v", result)
@@ -591,7 +591,7 @@ func TestManager_expiringLeaf(t *testing.T) {
 	}
 
 	// First fetch should return immediately
-	getCh := testAsyncGet(t, m, req)
+	getCh := testAsyncGet(m, req)
 	var (
 		idx    uint64
 		issued *structs.IssuedCert
@@ -609,7 +609,7 @@ func TestManager_expiringLeaf(t *testing.T) {
 
 	// Second fetch should return immediately despite there being
 	// no updated CA roots, because we issued an expired cert.
-	getCh = testAsyncGet(t, m, req)
+	getCh = testAsyncGet(m, req)
 	select {
 	case <-time.After(100 * time.Millisecond):
 		t.Fatal("shouldn't block waiting for fetch")
@@ -624,7 +624,7 @@ func TestManager_expiringLeaf(t *testing.T) {
 	// Third fetch should block since the cert is not expiring and
 	// we also didn't update CA certs.
 	req.MinQueryIndex = idx
-	getCh = testAsyncGet(t, m, req)
+	getCh = testAsyncGet(m, req)
 	select {
 	case result := <-getCh:
 		t.Fatalf("should not return: %#v", result)
@@ -1027,7 +1027,7 @@ type testGetResult struct {
 // testAsyncGet returns a channel that returns the result of the testGet call.
 //
 // This is useful for testing timing and concurrency with testGet calls.
-func testAsyncGet(t *testing.T, m *Manager, req *ConnectCALeafRequest) <-chan testGetResult {
+func testAsyncGet(m *Manager, req *ConnectCALeafRequest) <-chan testGetResult {
 	ch := make(chan testGetResult)
 	go func() {
 		index, cert, err := m.testGet(req)

@@ -120,7 +120,7 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(logError(t, conn.Close))
 
-	chEvents := make(chan eventOrError, 0)
+	chEvents := make(chan eventOrError)
 	var snapshotEvents []*pbsubscribe.Event
 
 	testutil.RunStep(t, "setup a client and subscribe to a topic", func(t *testing.T) {
@@ -535,7 +535,7 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(logError(t, connLocal.Close))
 
-	chEvents := make(chan eventOrError, 0)
+	chEvents := make(chan eventOrError)
 	var snapshotEvents []*pbsubscribe.Event
 
 	testutil.RunStep(t, "setup a client and subscribe to a topic", func(t *testing.T) {
@@ -801,7 +801,7 @@ node "node1" {
 	t.Cleanup(logError(t, conn.Close))
 	streamClient := pbsubscribe.NewStateChangeSubscriptionClient(conn)
 
-	chEvents := make(chan eventOrError, 0)
+	chEvents := make(chan eventOrError)
 
 	testutil.RunStep(t, "setup a client, subscribe to a topic, and receive a snapshot", func(t *testing.T) {
 		streamHandle, err := streamClient.Subscribe(ctx, &pbsubscribe.SubscribeRequest{
@@ -888,7 +888,7 @@ node "node1" {
 		})
 		require.NoError(t, err)
 
-		chEvents := make(chan eventOrError, 0)
+		chEvents := make(chan eventOrError)
 		go recvEvents(chEvents, streamHandle)
 
 		require.True(t, getEvent(t, chEvents).GetEndOfSnapshot())
@@ -953,7 +953,7 @@ node "node1" {
 	require.NoError(t, err)
 	t.Cleanup(logError(t, conn.Close))
 
-	chEvents := make(chan eventOrError, 0)
+	chEvents := make(chan eventOrError)
 
 	testutil.RunStep(t, "setup a client and subscribe to a topic", func(t *testing.T) {
 		streamClient := pbsubscribe.NewStateChangeSubscriptionClient(conn)
@@ -993,7 +993,7 @@ node "node1" {
 	})
 
 	// Re-subscribe because the previous test step terminated the stream.
-	chEvents = make(chan eventOrError, 0)
+	chEvents = make(chan eventOrError)
 	streamClient := pbsubscribe.NewStateChangeSubscriptionClient(conn)
 	streamHandle, err := streamClient.Subscribe(ctx, &pbsubscribe.SubscribeRequest{
 		Topic: pbsubscribe.Topic_ServiceHealth,
