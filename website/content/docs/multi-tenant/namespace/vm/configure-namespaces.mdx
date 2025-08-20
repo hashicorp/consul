@@ -9,11 +9,17 @@ description: |-
 
 @include 'alerts/enterprise-alert.mdx'
 
-Namespaces are the right solution to achieve complete data isolation between teams. In a fully isolated configuration, each team will have its own namespace. Each namespace will have an operator, referred to as *namespace operator*, responsible for managing data and access within their namespace. The namespace operator will only have access to view and update data and access in their namespace.
+This page describes the process to create and register Consul namespaces on VMs.
 
-Namespaces are managed at datacenter level, this means that, to configure and manage namespaces you will need an ACL token who has permission over the entire datacenter. 
+## Introduction
 
-To create namespaces you need a token with [`operator = "write"`](/consul/docs/secure/acl/rule#operator-rules) policy. 
+Namespaces allow a set of Consul servers to support multiple teams simultaneously by isolating data and operations between teams. 
+
+In a fully isolated configuration, each team has its own namespace. Each namespace has a designated _namespace operator_ who is responsible for managing data and access within their namespace. The namespace operator's access to view and update data is limited to their own namespace.
+
+Namespaces exist at the datacenter level. As a result, you need an ACL token with permission over the entire Consul datacenter to configure and manage namespaces. 
+
+The minimum requirement to create namespaces is an ACL token with the [`operator = "write"` policy](/consul/docs/secure/acl/rule#operator-rules). 
 
 ## Create namespace definitions
 

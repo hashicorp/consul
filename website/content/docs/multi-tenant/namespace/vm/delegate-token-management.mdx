@@ -9,19 +9,21 @@ description: |-
 
 @include 'alerts/enterprise-alert.mdx'
 
-One of the key benefits of namespaces is the ability to delegate responsibilities of token management to more operators. This allows you to provide unrestricted access to portions of the datacenter, ideally to one or a few operators per namespace.
+This page describes the process to create multiple namespace operator tokens, each with operator permission for a specific namespace.
 
-The namespace operators are then responsible for managing access to services, Consul KV, and other resources within their namespaces. Additionally, the namespace operator should further delegate service-access privileges to developers or end-users. This is consistent with the current ACL management workflow. Before namespaces, only one or a few operators managed tokens for an entire datacenter.
+## Introduction
 
-Namespace operators will only be aware of data within their namespaces, unless they are intentionally given access otherwise. Without global privileges, they will not be able to locate other namespaces.
+One of the key benefits of namespaces is the ability to delegate responsibilities of token management to more operators. This strategy helps provide unrestricted access to portions of the datacenter to the people whose workflows are impacted directly.
 
-<Note>
+The namespace operators become responsible for managing access to services, Consul KV, and other resources within their namespaces. The namespace operator can further delegate service-access privileges to developers or end users. 
 
-Consul nodes are not namespaced, so namespace operators will be able to locate all the agents in the datacenter.
+Before namespaces, only one or a few operators managed tokens for an entire datacenter.
 
-</Note>
+Namespace operators are limited to viewing data within their namespaces, unless they are intentionally given access. Without global privileges, they cannot view data in other namespaces.
 
-To create namespace ACL tokens you need a token with [` acl = "write"`](/consul/docs/secure/acl/rule#acl-resource-rules) policy. We suggest using a token associated with the [`global-management`](/consul/docs/secure/acl/policy#global-management) policy.
+However, Consul nodes exist across namespaces, so namespace operators can locate all the agents in the datacenter.
+
+To create namespace ACL tokens, you need a token with [` acl = "write"` policy](/consul/docs/secure/acl/rule#acl-resource-rules). We suggest using a token associated with the [`global-management` policy](/consul/docs/secure/acl/policy#global-management).
 
 ## Review existing namespaces
 

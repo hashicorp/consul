@@ -9,11 +9,16 @@ description: |-
 
 @include 'alerts/enterprise-alert.mdx'
 
-Since Consul Enterprise 1.7.0+, data for different users or teams
-can be isolated from each other with the use of namespaces. Namespaces help reduce operational challenges by removing restrictions around  uniqueness of resource names across distinct teams, and enable operators
+This page provides an overview of Consul namespaces. 
+
+## Overview
+
+You can use Consul namespaces to isolate data for different users or teams with Consul Enterprise. Namespaces help reduce operational challenges around different teams using resources with identical names, and enable operators
 to provide self-service through delegation of administrative privileges.
 
-For more information on how to use namespaces with Consul Enterprise please review the following documentation:
+## Guidance
+
+For more information on how to use namespaces with Consul Enterprise, refer to the following resources.
 
 - [Setup Consul namespaces on VMs](/consul/docs/multi-tenant/namespace/vm?utm_source=docs) - Secure resources within a namespace and delegate namespace ACL rights via ACL tokens.
 - [Using Consul and Kubernetes namespaces](/consul/docs/multi-tenant/namespace/k8s) - Secure Consul resources within namespaces and interact with Kubernetes namespaces.
