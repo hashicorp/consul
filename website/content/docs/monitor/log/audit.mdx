@@ -80,7 +80,6 @@ server:
 ```
 </CodeTabs>
 
-</Tab>
 
 ## Log to standard out
 
@@ -130,14 +129,12 @@ server:
 
 </CodeTabs>
 
-</Tab>
-</Tabs>
 
 Audit logging configuration parameters are not part of Consul's [reloadable configurations](/consul/docs/fundamentals/agent#reloadable-configurations). You must fully restart the Consul agents to apply the configuration.
 
 ## Review audit log content
 
-In this example you will review logging for two different requests, both of them use the [`/v1/catalog/service/`](/consul/api-docs/catalog#list-nodes-for-service) endpoint to retrieve information about the `ssh` service in the Consul catalog. The difference between the two requests is that one is not authenticated and the other uses a valid ACL token.
+In this example you will review logging for two different requests. Both of them use the [`/v1/catalog/service/`](/consul/api-docs/catalog#list-nodes-for-service) endpoint to retrieve information about the `ssh` service in the Consul catalog. The difference between the two requests is that one is not authenticated and the other uses a valid ACL token.
 
 ### Anonymous request
 
@@ -246,7 +243,7 @@ The value of the `payload.auth.accessor_id` field is the accessor ID of the ACL 
 
 </CodeBlockConfig>
 
-After the request is processed, a corresponding log entry is written for the HTTP response. The `stage` field is set to `OperationComplete` which indicates the agent has completed processing the request.
+After Consul processes the request, it writes a corresponding log entry for the HTTP response. In the following example, the `stage` field is set to `OperationComplete`, which indicates the agent has completed processing the request. Directly above, the status indicates the HTTP request was completed with `200` response.
 
 <CodeBlockConfig hideClipboard highlight="22,24">
 
