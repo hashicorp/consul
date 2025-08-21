@@ -498,3 +498,32 @@ func TestHandler_ServeHTTP_TransformIsEvaluatedOnEachRequest(t *testing.T) {
 		require.JSONEq(t, expected, extractUIConfig(t, rec.Body.String()))
 	})
 }
+
+func TestServeTransformedJS(t *testing.T) {
+	// Prepare a temp dir and JS file with a template variable
+	uiDir := testutil.TempDir(t, "consul-uiserver-js")
+	defer os.RemoveAll(uiDir)
+
+	jsFile := "assets/chunk-test.js"
+	jsPath := filepath.Join(uiDir, jsFile)
+	jsContent := `var root = "{{.ContentPath}}"; var untouched = "{{.ACLsEnabled}}";`
+	require.NoError(t, os.MkdirAll(filepath.Dir(jsPath), 0755))
+	require.NoError(t, os.WriteFile(jsPath, []byte(jsContent), 0644))
+
+	cfg := basicUIEnabledConfig()
+	cfg.UIConfig.Dir = uiDir
+	cfg.UIConfig.ContentPath = "/ui/"
+	h := NewHandler(cfg, testutil.Logger(t), nil)
+
+	req := httptest.NewRequest("GET", "/"+jsFile, nil)
+	rec := httptest.NewRecorder()
+
+	h.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	require.Equal(t, "application/javascript", rec.Header().Get("Content-Type"))
+	// The ContentPath template variable should be replaced
+	require.Contains(t, rec.Body.String(), "var root = \"/ui/\";")
+	// Other template variables should remain untouched
+	require.Contains(t, rec.Body.String(), "var untouched = \"{{.ACLsEnabled}}\";")
+}
