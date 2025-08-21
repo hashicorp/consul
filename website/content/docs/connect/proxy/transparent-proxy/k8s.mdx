@@ -102,7 +102,7 @@ spec:
 
 Transparent proxy mode assumes that services have only one port. If you want multi-port services to be reachable from the service mesh, you must use explicit upstreams as well. 
 
-In the following example, the `source-service` has one port, and it is part of the service mesh. Its annotations include two upstream targets towards the multi-port `target-service` on ports `15000` and `20000`. Without explicitly declaring the ports as service upstreams, the multi-port service `target-service` unreachable from within the service mesh. For more information regarding the `connect-service-upstreams` annotation, refer to [Dial services across Kubernetes cluster](#dial-services-across-kubernetes-cluster).
+In the following example, the `source-service` has one port, and it is part of the service mesh. Its annotations include two upstream targets towards the multi-port `target-service` on ports `15000` and `20000`. Without explicitly declaring the ports as service upstreams, the multi-port service `target-service` is unreachable from within the service mesh. For more information regarding the `connect-service-upstreams` annotation, refer to [Dial services across Kubernetes cluster](#dial-services-across-kubernetes-cluster).
 
 ```yaml
 apiVersion: apps/v1
