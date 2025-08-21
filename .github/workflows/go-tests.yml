@@ -103,6 +103,11 @@ jobs:
      - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
        with:
          go-version: ${{ needs.get-go-version.outputs.go-version }}
+     # Install deep-copy tool using go 1.23 because it has a breaking dependency with 1.25.
+     # Remove this when deep-copy moves to go 1.25.
+     - run: go install golang.org/dl/go1.23.12@latest
+     - run: go1.23.12 download
+     - run: go1.23.12 install github.com/globusdigital/deep-copy@dc4a8d91ed65656858cd53e6e83bbf7b83d5b7cb
      - run: make --always-make codegen
      - run: |
          if ! git diff --exit-code; then
