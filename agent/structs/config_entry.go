@@ -183,6 +183,9 @@ type ServiceConfigEntry struct {
 	Hash               uint64            `json:",omitempty" hash:"ignore"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex          `hash:"ignore"`
+	// TODO::: Valid Comments
+	// TODO::: CSL-11115 Check
+	MaxRequestHeadersKB *uint32 `json:",omitempty"`
 }
 
 func (e *ServiceConfigEntry) SetHash(h uint64) {

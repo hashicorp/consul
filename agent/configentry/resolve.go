@@ -141,6 +141,12 @@ func ComputeResolvedServiceConfig(
 		if serviceConf.LocalRequestTimeoutMs > 0 {
 			proxyConf["local_request_timeout_ms"] = serviceConf.LocalRequestTimeoutMs
 		}
+
+		// TODO::: CSL-11115 Changes : Add comments
+		if serviceConf.MaxRequestHeadersKB != nil {
+			proxyConf["max_request_headers_kb"] = *serviceConf.MaxRequestHeadersKB
+		}
+
 		// Add the proxy conf to the response if any fields were populated
 		if len(proxyConf) > 0 {
 			thisReply.ProxyConfig = proxyConf
