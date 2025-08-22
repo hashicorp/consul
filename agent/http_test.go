@@ -639,7 +639,7 @@ func TestHTTPAPIResponseHeaders(t *testing.T) {
 	`)
 	defer a.Shutdown()
 
-	requireHasHeadersSet(t, a, "/v1/agent/self", "application/json")
+	requireHasHeadersSet(t, a, "/v1/agent/self", "application/json; charset=utf-8")
 
 	// Check the Index page that just renders a simple message with UI disabled
 	// also gets the right headers.
@@ -785,7 +785,7 @@ func TestErrorContentTypeHeaderSet(t *testing.T) {
 	`)
 	defer a.Shutdown()
 
-	requireHasHeadersSet(t, a, "/fake-path-doesn't-exist", "application/json")
+	requireHasHeadersSet(t, a, "/fake-path-doesn't-exist", "application/json; charset=utf-8")
 }
 
 func TestAcceptEncodingGzip(t *testing.T) {
