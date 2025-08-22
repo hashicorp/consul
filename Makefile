@@ -579,7 +579,7 @@ proto-gen: proto-tools ## Regenerates all Go files from protobuf definitions
 .PHONY: proto-mocks
 proto-mocks: ## Proto mocks
 	@rm -rf grpcmocks/*
-	@mockery --config .grpcmocks.yml
+	@mockery --config .grpcmocks.yaml
 
 .PHONY: proto-format
 proto-format: proto-tools ## Proto format
