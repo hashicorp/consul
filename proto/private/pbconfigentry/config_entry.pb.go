@@ -4083,6 +4083,13 @@ func (x *ServiceDefaults) GetHash() uint64 {
 	return 0
 }
 
+func (x *ServiceDefaults) GetMaxRequestHeadersKB() uint32 {
+	if x != nil && x.MaxRequestHeadersKB != nil {
+		return *x.MaxRequestHeadersKB
+	}
+	return 0
+}
+
 // mog annotation:
 //
 // target=github.com/hashicorp/consul/agent/structs.TransparentProxyConfig
@@ -9490,6 +9497,7 @@ func file_private_pbconfigentry_config_entry_proto_init() {
 		(*ConfigEntry_ExportedServices)(nil),
 		(*ConfigEntry_FileSystemCertificate)(nil),
 	}
+	file_private_pbconfigentry_config_entry_proto_msgTypes[41].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

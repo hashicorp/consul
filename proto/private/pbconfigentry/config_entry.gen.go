@@ -2127,6 +2127,7 @@ func ServiceDefaultsToStructs(s *ServiceDefaults, t *structs.ServiceConfigEntry)
 	t.EnvoyExtensions = EnvoyExtensionsToStructs(s.EnvoyExtensions)
 	t.Meta = s.Meta
 	t.Hash = s.Hash
+	t.MaxRequestHeadersKB = s.MaxRequestHeadersKB
 }
 func ServiceDefaultsFromStructs(t *structs.ServiceConfigEntry, s *ServiceDefaults) {
 	if s == nil {
@@ -2173,6 +2174,7 @@ func ServiceDefaultsFromStructs(t *structs.ServiceConfigEntry, s *ServiceDefault
 	s.EnvoyExtensions = EnvoyExtensionsFromStructs(t.EnvoyExtensions)
 	s.Meta = t.Meta
 	s.Hash = t.Hash
+	s.MaxRequestHeadersKB = t.MaxRequestHeadersKB
 }
 func ServiceIntentionsToStructs(s *ServiceIntentions, t *structs.ServiceIntentionsConfigEntry) {
 	if s == nil {
