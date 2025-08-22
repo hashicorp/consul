@@ -14,10 +14,10 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -58,6 +58,9 @@ const (
 	// validatePortsTimeout is the timeout while checking connectivity to default ports
 	// This is same as the timeout used in troubleshoot ports command
 	validatePortsTimeout = 5 * time.Second
+
+	// debugDefaultHost is the host on which connectivity to default ports are validated
+	debugDefaultHost = "localhost"
 
 	// debugArchiveExtension is the extension for archive files
 	debugArchiveExtension = ".tar.gz"
@@ -401,7 +404,7 @@ func (c *cmd) captureStatic() error {
 }
 
 func (c *cmd) troubleshootPorts() error {
-	output, err := troubleshootRun(default_ports, "localhost")
+	output, err := troubleshootRun(default_ports, debugDefaultHost)
 	if err != nil {
 		return err
 	}
@@ -417,33 +420,22 @@ func troubleshootRun(ports []string, host string) (PortStatus, error) {
 	numPorts := len(ports)
 	openPorts := make(chan string, numPorts)
 	closePorts := make(chan string, numPorts)
-	errCh := make(chan error, 1)
 
 	var portResults PortStatus
 	var wg sync.WaitGroup
 	wg.Add(numPorts)
 
 	for _, port := range ports {
+		err := isValidPort(port)
+		if err != nil {
+			return portResults, err
+		}
 		go func(port string) {
 			defer wg.Done()
 
-			address, err := url.Parse(net.JoinHostPort(host, port))
-			if err != nil {
-				select {
-				case errCh <- fmt.Errorf("failed to parse address for port %s: %w", port, err):
-				default:
-				}
-				return
-			}
-			if address == nil {
-				select {
-				case errCh <- fmt.Errorf("parsed address is nil for port %s", port):
-				default:
-				}
-				return
-			}
+			address := fmt.Sprintf("%s:%s", host, port)
 
-			err = dialPort(*address)
+			err := dialPort(address)
 			if err != nil {
 				closePorts <- port
 			} else {
@@ -456,11 +448,6 @@ func troubleshootRun(ports []string, host string) (PortStatus, error) {
 	wg.Wait()
 	close(openPorts)
 	close(closePorts)
-	close(errCh)
-
-	if err := <-errCh; err != nil {
-		return portResults, err
-	}
 
 	for port := range openPorts {
 		portResults.Open = append(portResults.Open, port)
@@ -472,13 +459,24 @@ func troubleshootRun(ports []string, host string) (PortStatus, error) {
 	return portResults, nil
 }
 
-func dialPort(address url.URL) error {
+func dialPort(address string) error {
 	// Attempt to establish a TCP connection with a timeout.
-	conn, err := net.DialTimeout("tcp", address.String(), validatePortsTimeout)
+	conn, err := net.DialTimeout("tcp", address, validatePortsTimeout)
 	if err != nil {
 		return err
 	}
 	defer conn.Close()
+	return nil
+}
+
+func isValidPort(port string) error {
+	portInt, err := strconv.Atoi(port)
+	if err != nil {
+		return fmt.Errorf("port %s is not a number", port)
+	}
+	if portInt < 0 || portInt > 65535 || port == "" {
+		return fmt.Errorf("invalid port %s", port)
+	}
 	return nil
 }
 

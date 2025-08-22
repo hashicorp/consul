@@ -721,11 +721,11 @@ func TestDebugCommand_TroubleshootPorts(t *testing.T) {
 		{
 			name:        "All ports closed",
 			portsOpen:   emptyStrArr,
-			portsClosed: []string{"8600", "8500", "8501", "8502", "8503", "8301", "8302", "8300"},
+			portsClosed: default_ports,
 		},
 		{
 			name:        "All ports opened",
-			portsOpen:   []string{"8600", "8500", "8501", "8502", "8503", "8301", "8302", "8300"},
+			portsOpen:   default_ports,
 			portsClosed: emptyStrArr,
 		},
 		{
