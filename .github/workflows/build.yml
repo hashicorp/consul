@@ -193,60 +193,60 @@ jobs:
           name: ${{ env.DEB_PACKAGE }}
           path: out/${{ env.DEB_PACKAGE }}
 
-  build-s390x:
-    needs:
-    - set-product-version
-    - get-go-version
-    if: ${{ endsWith(github.repository, '-enterprise') }}
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - {goos: "linux", goarch: "s390x"}
-      fail-fast: true
-
-    name: Go ${{ needs.get-go-version.outputs.go-version }} ${{ matrix.goos }} ${{ matrix.goarch }} build
-    steps:
-      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
-
-      - name: Setup with node and yarn
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
-        with:
-          node-version: '20'
-          cache: 'yarn'
-          cache-dependency-path: 'ui/yarn.lock'
-
-      - name: Build UI
-        run: |
-          CONSUL_VERSION=${{ needs.set-product-version.outputs.product-version }}
-          CONSUL_DATE=${{ needs.set-product-version.outputs.product-date }}
-          CONSUL_BINARY_TYPE=${CONSUL_BINARY_TYPE}
-          CONSUL_COPYRIGHT_YEAR=$(git show -s --format=%cd --date=format:%Y HEAD)
-          echo "consul_version is ${CONSUL_VERSION}"
-          echo "consul_date is ${CONSUL_DATE}"
-          echo "consul binary type is ${CONSUL_BINARY_TYPE}"
-          echo "consul copyright year is ${CONSUL_COPYRIGHT_YEAR}"
-          cd ui && make && cd ..
-          rm -rf agent/uiserver/dist
-          mv ui/packages/consul-ui/dist agent/uiserver/
-      - name: Go Build
-        env:
-          PRODUCT_VERSION: ${{ needs.set-product-version.outputs.product-version }}
-          PRERELEASE_VERSION: ${{ needs.set-product-version.outputs.pre-version }}
-          CGO_ENABLED: "0"
-          GOLDFLAGS: "${{needs.set-product-version.outputs.shared-ldflags}}"
-        uses: hashicorp/actions-go-build@b9e2cfba3013adccdc112b01cba922d83c78fac5 # v1.1.1
-        with:
-          product_name: ${{ env.PKG_NAME }}
-          product_version: ${{ needs.set-product-version.outputs.product-version }}
-          go_version: ${{ needs.get-go-version.outputs.go-version }}
-          os: ${{ matrix.goos }}
-          arch: ${{ matrix.goarch }}
-          reproducible: nope
-          clean: false
-          instructions: |-
-            cp LICENSE $TARGET_DIR/LICENSE.txt
-            go build -ldflags="$GOLDFLAGS" -o "$BIN_PATH" -trimpath -buildvcs=false
+#  build-s390x:
+#    needs:
+#    - set-product-version
+#    - get-go-version
+#    if: ${{ endsWith(github.repository, '-enterprise') }}
+#    runs-on: ubuntu-latest
+#    strategy:
+#      matrix:
+#        include:
+#          - {goos: "linux", goarch: "s390x"}
+#      fail-fast: true
+#
+#    name: Go ${{ needs.get-go-version.outputs.go-version }} ${{ matrix.goos }} ${{ matrix.goarch }} build
+#    steps:
+#      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+#
+#      - name: Setup with node and yarn
+#        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+#        with:
+#          node-version: '18'
+#          cache: 'yarn'
+#          cache-dependency-path: 'ui/yarn.lock'
+#
+#      - name: Build UI
+#        run: |
+#          CONSUL_VERSION=${{ needs.set-product-version.outputs.product-version }}
+#          CONSUL_DATE=${{ needs.set-product-version.outputs.product-date }}
+#          CONSUL_BINARY_TYPE=${CONSUL_BINARY_TYPE}
+#          CONSUL_COPYRIGHT_YEAR=$(git show -s --format=%cd --date=format:%Y HEAD)
+#          echo "consul_version is ${CONSUL_VERSION}"
+#          echo "consul_date is ${CONSUL_DATE}"
+#          echo "consul binary type is ${CONSUL_BINARY_TYPE}"
+#          echo "consul copyright year is ${CONSUL_COPYRIGHT_YEAR}"
+#          cd ui && make && cd ..
+#          rm -rf agent/uiserver/dist
+#          mv ui/packages/consul-ui/dist agent/uiserver/
+#      - name: Go Build
+#        env:
+#          PRODUCT_VERSION: ${{ needs.set-product-version.outputs.product-version }}
+#          PRERELEASE_VERSION: ${{ needs.set-product-version.outputs.pre-version }}
+#          CGO_ENABLED: "0"
+#          GOLDFLAGS: "${{needs.set-product-version.outputs.shared-ldflags}}"
+#        uses: hashicorp/actions-go-build@b9e2cfba3013adccdc112b01cba922d83c78fac5 # v1.1.1
+#        with:
+#          product_name: ${{ env.PKG_NAME }}
+#          product_version: ${{ needs.set-product-version.outputs.product-version }}
+#          go_version: ${{ needs.get-go-version.outputs.go-version }}
+#          os: ${{ matrix.goos }}
+#          arch: ${{ matrix.goarch }}
+#          reproducible: nope
+#          clean: false
+#          instructions: |-
+#            cp LICENSE $TARGET_DIR/LICENSE.txt
+#            go build -ldflags="$GOLDFLAGS" -o "$BIN_PATH" -trimpath -buildvcs=false
 
   build-docker:
     name: Docker ${{ matrix.arch }} build

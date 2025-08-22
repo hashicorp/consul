@@ -1,3 +1,0 @@
-```release-note:security
-security: perform constant time compare for sensitive values.
-```
