@@ -176,14 +176,15 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		// Generate the upstream listeners for when they are explicitly set with a local bind port or socket path
 		if upstreamCfg != nil && upstreamCfg.HasLocalPortOrSocket() {
 			filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
-				accessLogs:      &cfgSnap.Proxy.AccessLogs,
-				routeName:       uid.EnvoyID(),
-				clusterName:     clusterName,
-				filterName:      filterName,
-				protocol:        cfg.Protocol,
-				useRDS:          useRDS,
-				fetchTimeoutRDS: cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
-				tracing:         tracing,
+				accessLogs:          &cfgSnap.Proxy.AccessLogs,
+				routeName:           uid.EnvoyID(),
+				clusterName:         clusterName,
+				filterName:          filterName,
+				protocol:            cfg.Protocol,
+				useRDS:              useRDS,
+				fetchTimeoutRDS:     cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
+				tracing:             tracing,
+				maxRequestHeadersKb: proxyCfg.MaxRequestHeadersKB,
 			})
 			if err != nil {
 				return nil, err
