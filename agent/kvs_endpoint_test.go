@@ -9,11 +9,11 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/testrpc"
-
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/testrpc"
 )
 
 func TestKVSEndpoint_PUT_GET_DELETE(t *testing.T) {
@@ -573,5 +573,472 @@ func TestKVSEndpoint_DELETE_ConflictingFlags(t *testing.T) {
 	}
 	if !bytes.Contains(resp.Body.Bytes(), []byte("Conflicting")) {
 		t.Fatalf("expected conflicting args error")
+	}
+}
+
+// TestKVSEndpoint_SecurityValidation tests comprehensive security validation
+// for path traversal attacks, file extension abuse, and endpoint forwarding prevention
+func TestKVSEndpoint_SecurityValidation(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+
+	testCases := []struct {
+		name        string
+		key         string
+		method      string
+		body        string
+		expectError bool
+		statusCode  int
+		description string
+	}{
+		// Valid keys (should succeed)
+		{
+			name:        "valid nested key",
+			key:         "app/config/database",
+			method:      "PUT",
+			body:        "value",
+			expectError: false,
+			description: "Valid nested key should work",
+		},
+		{
+			name:        "valid key with numbers and hyphens",
+			key:         "service-v2/cache-123",
+			method:      "PUT",
+			body:        "value",
+			expectError: false,
+			description: "Valid key with hyphens and numbers should work",
+		},
+
+		// Path traversal attacks (should be blocked)
+		{
+			name:        "basic path traversal",
+			key:         "../admin",
+			method:      "PUT",
+			body:        "malicious",
+			expectError: true,
+			statusCode:  400,
+			description: "Basic path traversal should be blocked",
+		},
+		{
+			name:        "deep path traversal",
+			key:         "../../config",
+			method:      "PUT",
+			body:        "malicious",
+			expectError: true,
+			statusCode:  400,
+			description: "Deep path traversal should be blocked",
+		},
+		{
+			name:        "mid-path traversal",
+			key:         "app/../admin",
+			method:      "PUT",
+			body:        "malicious",
+			expectError: true,
+			statusCode:  400,
+			description: "Mid-path traversal should be blocked",
+		},
+		{
+			name:        "windows path traversal",
+			key:         "..\\windows\\system32",
+			method:      "PUT",
+			body:        "malicious",
+			expectError: true,
+			statusCode:  400,
+			description: "Windows-style path traversal should be blocked",
+		},
+
+		// URL encoded path traversal attacks (should be blocked)
+		{
+			name:        "URL encoded full traversal",
+			key:         "%2e%2e%2fadmin",
+			method:      "PUT",
+			body:        "malicious",
+			expectError: true,
+			statusCode:  400,
+			description: "URL encoded path traversal should be blocked",
+		},
+		{
+			name:        "URL encoded partial traversal",
+			key:         "%2e%2e/secret",
+			method:      "PUT",
+			body:        "malicious",
+			expectError: true,
+			statusCode:  400,
+			description: "Partially encoded path traversal should be blocked",
+		},
+		{
+			name:        "mixed encoding traversal",
+			key:         "..%2fconfig",
+			method:      "PUT",
+			body:        "malicious",
+			expectError: true,
+			statusCode:  400,
+			description: "Mixed encoding path traversal should be blocked",
+		},
+		{
+			name:        "double URL encoding",
+			key:         "%252e%252e%252fadmin",
+			method:      "PUT",
+			body:        "malicious",
+			expectError: true,
+			statusCode:  400,
+			description: "Double URL encoded traversal should be blocked",
+		},
+
+		// File extension attacks (should be blocked)
+		{
+			name:        "javascript extension",
+			key:         "config.js",
+			method:      "PUT",
+			body:        "alert('xss')",
+			expectError: true,
+			statusCode:  400,
+			description: "JavaScript file extension should be blocked",
+		},
+		{
+			name:        "CSS extension",
+			key:         "styles.css",
+			method:      "PUT",
+			body:        "body{display:none}",
+			expectError: true,
+			statusCode:  400,
+			description: "CSS file extension should be blocked",
+		},
+		{
+			name:        "HTML extension",
+			key:         "admin.html",
+			method:      "PUT",
+			body:        "<script>alert('xss')</script>",
+			expectError: true,
+			statusCode:  400,
+			description: "HTML file extension should be blocked",
+		},
+		{
+			name:        "PHP extension",
+			key:         "backdoor.php",
+			method:      "PUT",
+			body:        "<?php system($_GET['cmd']); ?>",
+			expectError: true,
+			statusCode:  400,
+			description: "PHP file extension should be blocked",
+		},
+		{
+			name:        "executable extension",
+			key:         "malware.exe",
+			method:      "PUT",
+			body:        "malicious",
+			expectError: true,
+			statusCode:  400,
+			description: "Executable file extension should be blocked",
+		},
+		{
+			name:        "PDF extension",
+			key:         "document.pdf",
+			method:      "PUT",
+			body:        "malicious",
+			expectError: true,
+			statusCode:  400,
+			description: "PDF file extension should be blocked",
+		},
+
+		// Case sensitivity tests (should be blocked)
+		{
+			name:        "uppercase JS extension",
+			key:         "SCRIPT.JS",
+			method:      "PUT",
+			body:        "alert('xss')",
+			expectError: true,
+			statusCode:  400,
+			description: "Uppercase JavaScript extension should be blocked",
+		},
+		{
+			name:        "mixed case CSS extension",
+			key:         "Style.CSS",
+			method:      "PUT",
+			body:        "body{display:none}",
+			expectError: true,
+			statusCode:  400,
+			description: "Mixed case CSS extension should be blocked",
+		},
+
+		// Nested file extension attacks (should be blocked)
+		{
+			name:        "nested JavaScript file",
+			key:         "app/config/main.js",
+			method:      "PUT",
+			body:        "malicious",
+			expectError: true,
+			statusCode:  400,
+			description: "Nested JavaScript file should be blocked",
+		},
+		{
+			name:        "deep nested PHP file",
+			key:         "admin/secret/backdoor.php",
+			method:      "PUT",
+			body:        "malicious",
+			expectError: true,
+			statusCode:  400,
+			description: "Deep nested PHP file should be blocked",
+		},
+
+		// Query parameter cache deception (should be blocked)
+		{
+			name:        "JS with version parameter",
+			key:         "script.js?v=1.0",
+			method:      "PUT",
+			body:        "malicious",
+			expectError: true,
+			statusCode:  400,
+			description: "JavaScript with query parameter should be blocked",
+		},
+		{
+			name:        "CSS with hash parameter",
+			key:         "styles.css?hash=abc123",
+			method:      "PUT",
+			body:        "malicious",
+			expectError: true,
+			statusCode:  400,
+			description: "CSS with query parameter should be blocked",
+		},
+
+		// Leading slash tests (should be blocked)
+		{
+			name:        "leading slash",
+			key:         "/admin",
+			method:      "PUT",
+			body:        "malicious",
+			expectError: true,
+			statusCode:  400,
+			description: "Leading slash should be blocked",
+		},
+
+		// Cross-method testing
+		{
+			name:        "GET file extension attack",
+			key:         "config.js",
+			method:      "GET",
+			body:        "",
+			expectError: true,
+			statusCode:  400,
+			description: "GET request for file extension should be blocked",
+		},
+		{
+			name:        "DELETE file extension attack",
+			key:         "admin.php",
+			method:      "DELETE",
+			body:        "",
+			expectError: true,
+			statusCode:  400,
+			description: "DELETE request for file extension should be blocked",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var req *http.Request
+			if tc.body != "" {
+				req, _ = http.NewRequest(tc.method, "/v1/kv/"+tc.key, bytes.NewBuffer([]byte(tc.body)))
+			} else {
+				req, _ = http.NewRequest(tc.method, "/v1/kv/"+tc.key, nil)
+			}
+			resp := httptest.NewRecorder()
+
+			_, err := a.srv.KVSEndpoint(resp, req)
+
+			if tc.expectError {
+				if err == nil {
+					t.Errorf("Expected error for %s, but got none", tc.description)
+					return
+				}
+
+				httpErr, ok := err.(HTTPError)
+				if !ok {
+					t.Errorf("Expected HTTPError for %s, got %T", tc.description, err)
+					return
+				}
+
+				if httpErr.StatusCode != tc.statusCode {
+					t.Errorf("Expected status %d for %s, got %d", tc.statusCode, tc.description, httpErr.StatusCode)
+					return
+				}
+
+				t.Logf("✓ Correctly blocked: %s (HTTP %d)", tc.description, httpErr.StatusCode)
+			} else {
+				if err != nil {
+					t.Errorf("Expected no error for %s, got: %v", tc.description, err)
+				} else {
+					t.Logf("✓ Correctly allowed: %s", tc.description)
+				}
+			}
+		})
+	}
+}
+
+// TestKVSEndpoint_RawPathTraversalBlocking tests that path traversal in raw URL paths
+// is blocked before normalization occurs, preventing forwarding to unintended endpoints
+func TestKVSEndpoint_RawPathTraversalBlocking(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+
+	testCases := []struct {
+		name           string
+		rawPath        string
+		expectedStatus int
+		description    string
+	}{
+		{
+			name:           "Basic path traversal in URL",
+			rawPath:        "/v1/kv/../admin",
+			expectedStatus: 400,
+			description:    "Should block before normalization prevents forwarding to /admin",
+		},
+		{
+			name:           "Deep path traversal in URL",
+			rawPath:        "/v1/kv/../../config",
+			expectedStatus: 400,
+			description:    "Should block before normalization prevents forwarding to /config",
+		},
+		{
+			name:           "Windows path traversal in URL",
+			rawPath:        "/v1/kv/..\\admin",
+			expectedStatus: 400,
+			description:    "Should block Windows-style traversal in URL path",
+		},
+		{
+			name:           "URL encoded traversal",
+			rawPath:        "/v1/kv/%2e%2e%2fadmin",
+			expectedStatus: 400,
+			description:    "Should block URL encoded path traversal",
+		},
+		{
+			name:           "Partial URL encoding",
+			rawPath:        "/v1/kv/%2e%2e/secret",
+			expectedStatus: 400,
+			description:    "Should block partially encoded traversal",
+		},
+		{
+			name:           "Mixed encoding",
+			rawPath:        "/v1/kv/..%2fconfig",
+			expectedStatus: 400,
+			description:    "Should block mixed encoding traversal",
+		},
+		{
+			name:           "Double URL encoding",
+			rawPath:        "/v1/kv/%252e%252e%252f",
+			expectedStatus: 400,
+			description:    "Should block double URL encoded traversal",
+		},
+		{
+			name:           "Valid KV path",
+			rawPath:        "/v1/kv/app/config",
+			expectedStatus: 200,
+			description:    "Should allow legitimate KV paths",
+		},
+		{
+			name:           "Valid nested path",
+			rawPath:        "/v1/kv/service/database/password",
+			expectedStatus: 200,
+			description:    "Should allow valid nested paths",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Create request with specific raw path
+			req := httptest.NewRequest("PUT", tc.rawPath, strings.NewReader("test-value"))
+			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+			resp := httptest.NewRecorder()
+
+			// Call the KVS endpoint
+			_, err := a.srv.KVSEndpoint(resp, req)
+
+			if tc.expectedStatus == 400 {
+				// Should return HTTP error for blocked requests
+				if err == nil {
+					t.Errorf("Expected HTTP error for path %s, but got none", tc.rawPath)
+					return
+				}
+
+				httpErr, ok := err.(HTTPError)
+				if !ok {
+					t.Errorf("Expected HTTPError for path %s, got %T", tc.rawPath, err)
+					return
+				}
+
+				if httpErr.StatusCode != tc.expectedStatus {
+					t.Errorf("Expected status %d for path %s, got %d", tc.expectedStatus, tc.rawPath, httpErr.StatusCode)
+				}
+
+				// Verify error message mentions traversal
+				if !strings.Contains(httpErr.Reason, "traversal") {
+					t.Errorf("Expected error message to mention 'traversal' for path %s, got: %s", tc.rawPath, httpErr.Reason)
+				}
+
+				t.Logf("✓ Correctly blocked %s: %s", tc.rawPath, httpErr.Reason)
+
+			} else {
+				// Should succeed for valid requests
+				if err != nil {
+					t.Errorf("Expected no error for valid path %s, got: %v", tc.rawPath, err)
+				} else {
+					t.Logf("✓ Correctly allowed %s", tc.rawPath)
+				}
+			}
+		})
+	}
+}
+
+// TestKVSEndpoint_PreventEndpointForwarding specifically tests that path traversal
+// cannot be used to access other Consul API endpoints
+func TestKVSEndpoint_PreventEndpointForwarding(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+
+	// These paths could potentially be used to access other Consul endpoints
+	// if path traversal forwarding is not properly blocked
+	maliciousPaths := []string{
+		"/v1/kv/../agent/members",    // Attempt to access agent members API
+		"/v1/kv/../../health/checks", // Attempt to access health checks API
+		"/v1/kv/../catalog/services", // Attempt to access catalog services API
+		"/v1/kv/../../acl/tokens",    // Attempt to access ACL tokens API
+		"/v1/kv/../status/leader",    // Attempt to access status API
+	}
+
+	for _, path := range maliciousPaths {
+		t.Run("Block_"+path, func(t *testing.T) {
+			req := httptest.NewRequest("GET", path, nil)
+			resp := httptest.NewRecorder()
+
+			_, err := a.srv.KVSEndpoint(resp, req)
+
+			// Should be blocked with 400 error
+			if err == nil {
+				t.Errorf("Expected path traversal to be blocked for %s, but request succeeded", path)
+				return
+			}
+
+			httpErr, ok := err.(HTTPError)
+			if !ok || httpErr.StatusCode != 400 {
+				t.Errorf("Expected HTTP 400 error for %s, got %v", path, err)
+				return
+			}
+
+			t.Logf("✓ Successfully blocked potential endpoint forwarding: %s", path)
+		})
 	}
 }

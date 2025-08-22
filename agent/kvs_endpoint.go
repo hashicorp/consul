@@ -8,12 +8,77 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"strings"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 )
+
+// validateKVKey validates a KV key to prevent path traversal attacks and cache deception
+func validateKVKey(key string) error {
+	if key == "" {
+		return fmt.Errorf("key cannot be empty")
+	}
+
+	// Check for leading slash (consistent with client-side validation)
+	if strings.HasPrefix(key, "/") {
+		return fmt.Errorf("key must not begin with a '/'")
+	}
+
+	// Check for path traversal sequences - both direct and after normalization
+	if strings.Contains(key, "../") || strings.Contains(key, "..\\") {
+		return fmt.Errorf("key contains invalid path traversal sequence")
+	}
+
+	// Check for various encoded path traversal attempts
+	if strings.Contains(key, "%2e%2e%2f") || strings.Contains(key, "%2e%2e/") ||
+		strings.Contains(key, "..%2f") || strings.Contains(key, "%2e%2e%5c") {
+		return fmt.Errorf("key contains encoded path traversal sequence")
+	}
+
+	// Check for suspicious file extensions that could be used for cache deception
+	// These extensions might be cached by CDNs/proxies and could lead to security issues
+	suspiciousExtensions := []string{
+		".js", ".css", ".html", ".htm", ".xml", ".json", ".txt", ".log",
+		".php", ".asp", ".jsp", ".cgi", ".pl", ".py", ".rb", ".sh",
+		".exe", ".dll", ".bat", ".cmd", ".com", ".scr", ".vbs",
+		".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
+		".zip", ".rar", ".tar", ".gz", ".7z", ".bz2",
+		".jpg", ".jpeg", ".png", ".gif", ".svg", ".ico", ".bmp",
+		".mp3", ".mp4", ".avi", ".mov", ".wmv", ".flv", ".swf",
+		".woff", ".woff2", ".ttf", ".eot", ".otf",
+	}
+
+	// Check if key ends with any suspicious extension
+	keyLower := strings.ToLower(key)
+	for _, ext := range suspiciousExtensions {
+		if strings.HasSuffix(keyLower, ext) {
+			return fmt.Errorf("key contains suspicious file extension '%s' that may be cached by proxies", ext)
+		}
+	}
+
+	// Also check for extensions with query parameters or fragments (e.g., "file.js?v=1")
+	if strings.Contains(keyLower, ".js?") || strings.Contains(keyLower, ".css?") ||
+		strings.Contains(keyLower, ".html?") || strings.Contains(keyLower, ".htm?") {
+		return fmt.Errorf("key contains suspicious file extension with parameters that may be cached")
+	}
+
+	// Normalize the path and check if it's different from the original
+	// This catches various path normalization attacks including "app/../admin"
+	normalized := filepath.Clean(key)
+	if normalized != key && (strings.Contains(normalized, "..") || strings.HasPrefix(normalized, "/")) {
+		return fmt.Errorf("key path normalization results in invalid path")
+	}
+
+	// Additional check: ensure normalized path doesn't escape directory structure
+	if strings.HasPrefix(normalized, "..") || strings.Contains(normalized, "/..") {
+		return fmt.Errorf("key contains path traversal sequence after normalization")
+	}
+
+	return nil
+}
 
 func (s *HTTPHandlers) KVSEndpoint(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Set default DC
@@ -22,8 +87,29 @@ func (s *HTTPHandlers) KVSEndpoint(resp http.ResponseWriter, req *http.Request) 
 		return nil, nil
 	}
 
+	// SECURITY: Validate raw URL path BEFORE normalization to prevent path traversal forwarding
+	// This prevents requests like /v1/kv/../admin from being forwarded to /admin endpoint
+	rawPath := req.URL.Path
+	if strings.Contains(rawPath, "../") || strings.Contains(rawPath, "..\\") {
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "URL path contains invalid traversal sequence"}
+	}
+
+	// Check for URL-encoded path traversal in raw path
+	if strings.Contains(rawPath, "%2e%2e%2f") || strings.Contains(rawPath, "%2e%2e/") ||
+		strings.Contains(rawPath, "..%2f") || strings.Contains(rawPath, "%2e%2e%5c") ||
+		strings.Contains(rawPath, "%252e%252e%252f") {
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "URL path contains encoded traversal sequence"}
+	}
+
 	// Pull out the key name, validation left to each sub-handler
 	args.Key = strings.TrimPrefix(req.URL.Path, "/v1/kv/")
+
+	// Validate the key for operations that use it (not for listing keys without a path)
+	if args.Key != "" {
+		if err := validateKVKey(args.Key); err != nil {
+			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: err.Error()}
+		}
+	}
 
 	// Check for a key list
 	keyList := false
@@ -159,6 +245,11 @@ func (s *HTTPHandlers) KVSPut(resp http.ResponseWriter, req *http.Request, args 
 	if args.Key == "" {
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing key name"}
 	}
+
+	// Additional validation for KV key (belt and suspenders approach)
+	if err := validateKVKey(args.Key); err != nil {
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: err.Error()}
+	}
 	if conflictingFlags(resp, req, "cas", "acquire", "release") {
 		return nil, nil
 	}
@@ -240,6 +331,14 @@ func (s *HTTPHandlers) KVSDelete(resp http.ResponseWriter, req *http.Request, ar
 	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
 		return nil, err
 	}
+
+	// Validate the key (additional safety check)
+	if args.Key != "" {
+		if err := validateKVKey(args.Key); err != nil {
+			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: err.Error()}
+		}
+	}
+
 	if conflictingFlags(resp, req, "recurse", "cas") {
 		return nil, nil
 	}
