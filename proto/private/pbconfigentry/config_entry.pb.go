@@ -10,15 +10,16 @@
 package pbconfigentry
 
 import (
+	reflect "reflect"
+	sync "sync"
+	unsafe "unsafe"
+
 	_ "github.com/hashicorp/consul/proto-public/annotations/ratelimit"
 	pbcommon "github.com/hashicorp/consul/proto/private/pbcommon"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	durationpb "google.golang.org/protobuf/types/known/durationpb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
-	reflect "reflect"
-	sync "sync"
-	unsafe "unsafe"
 )
 
 const (
@@ -4079,6 +4080,13 @@ func (x *ServiceDefaults) GetMutualTLSMode() MutualTLSMode {
 func (x *ServiceDefaults) GetHash() uint64 {
 	if x != nil {
 		return x.Hash
+	}
+	return 0
+}
+
+func (x *ServiceDefaults) GetMaxRequestHeadersKB() uint32 {
+	if x != nil && x.MaxRequestHeadersKB != nil {
+		return *x.MaxRequestHeadersKB
 	}
 	return 0
 }
@@ -9500,7 +9508,7 @@ func file_private_pbconfigentry_config_entry_proto_init() {
 		(*ConfigEntry_ExportedServices)(nil),
 		(*ConfigEntry_FileSystemCertificate)(nil),
 	}
-	file_private_pbconfigentry_config_entry_proto_msgTypes[57].OneofWrappers = []any{}
+	file_private_pbconfigentry_config_entry_proto_msgTypes[41].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

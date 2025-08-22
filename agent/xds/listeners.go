@@ -1857,6 +1857,19 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.
 		}
 	}
 
+	// TODO::: CSL-11115 Changes : Add Comments
+	maxRequestHeadersKb := proxyCfg.MaxRequestHeadersKB
+	serviceProxyConfig, found := cfgSnap.TerminatingGateway.ServiceConfigs[tgtwyOpts.service]
+	if found {
+		val, found := serviceProxyConfig.ProxyConfig["max_request_headers_kb"]
+		if found {
+			value, done := val.(uint32)
+			if done {
+				maxRequestHeadersKb = &value
+			}
+		}
+	}
+
 	// Lastly we setup the actual proxying component. For L4 this is a straight
 	// tcp proxy. For L7 this is a very hands-off HTTP proxy just to inject an
 	// HTTP filter to do intention checks here instead.
@@ -1870,7 +1883,7 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.
 		tracing:             tracing,
 		accessLogs:          &cfgSnap.Proxy.AccessLogs,
 		logger:              s.Logger,
-		maxRequestHeadersKb: proxyCfg.MaxRequestHeadersKB,
+		maxRequestHeadersKb: maxRequestHeadersKb,
 	}
 
 	if useHTTPFilter {
