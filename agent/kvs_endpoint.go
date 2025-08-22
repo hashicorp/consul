@@ -17,7 +17,8 @@ import (
 
 // validateKVKey validates a KV key to prevent path traversal attacks and cache deception
 // Allows hierarchical keys with / but restricts dangerous characters for security
-func validateKVKey(key string) error {
+// If allowUnprintable is true, character validation is skipped (respects disable_http_unprintable_char_filter)
+func validateKVKey(key string, allowUnprintable bool) error {
 	if key == "" {
 		return fmt.Errorf("key cannot be empty")
 	}
@@ -30,12 +31,15 @@ func validateKVKey(key string) error {
 	// SECURITY: Allow alphanumeric, safe punctuation, and hierarchical separators
 	// Allowed: a-zA-Z0-9 ,-_./ (includes slash for hierarchical keys)
 	// Blocked: dangerous chars that could enable attacks: ?=&#<>[]{}()@!$%^*+|\\:;"'`~
-	for i, r := range key {
-		isAlphaNumeric := (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9')
-		isSafeSpecial := r == ',' || r == '-' || r == '_' || r == '.' || r == '/'
+	// Skip character validation if allowUnprintable is true (for disable_http_unprintable_char_filter)
+	if !allowUnprintable {
+		for i, r := range key {
+			isAlphaNumeric := (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9')
+			isSafeSpecial := r == ',' || r == '-' || r == '_' || r == '.' || r == '/'
 
-		if !isAlphaNumeric && !isSafeSpecial {
-			return fmt.Errorf("key contains invalid character '%c' at position %d. Only alphanumeric characters and ,-_./ are allowed", r, i)
+			if !isAlphaNumeric && !isSafeSpecial {
+				return fmt.Errorf("key contains invalid character '%c' at position %d. Only alphanumeric characters and ,-_./ are allowed", r, i)
+			}
 		}
 	}
 
@@ -106,7 +110,8 @@ func (s *HTTPHandlers) KVSEndpoint(resp http.ResponseWriter, req *http.Request) 
 
 	// Validate the key for operations that use it (not for listing keys without a path)
 	if args.Key != "" {
-		if err := validateKVKey(args.Key); err != nil {
+		allowUnprintable := s.agent.GetConfig().DisableHTTPUnprintableCharFilter
+		if err := validateKVKey(args.Key, allowUnprintable); err != nil {
 			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: err.Error()}
 		}
 	}
@@ -247,7 +252,8 @@ func (s *HTTPHandlers) KVSPut(resp http.ResponseWriter, req *http.Request, args 
 	}
 
 	// Additional validation for KV key (belt and suspenders approach)
-	if err := validateKVKey(args.Key); err != nil {
+	allowUnprintable := s.agent.GetConfig().DisableHTTPUnprintableCharFilter
+	if err := validateKVKey(args.Key, allowUnprintable); err != nil {
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: err.Error()}
 	}
 	if conflictingFlags(resp, req, "cas", "acquire", "release") {
@@ -334,7 +340,8 @@ func (s *HTTPHandlers) KVSDelete(resp http.ResponseWriter, req *http.Request, ar
 
 	// Validate the key (additional safety check)
 	if args.Key != "" {
-		if err := validateKVKey(args.Key); err != nil {
+		allowUnprintable := s.agent.GetConfig().DisableHTTPUnprintableCharFilter
+		if err := validateKVKey(args.Key, allowUnprintable); err != nil {
 			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: err.Error()}
 		}
 	}
