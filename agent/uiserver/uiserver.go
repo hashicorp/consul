@@ -217,6 +217,8 @@ func (h *Handler) renderIndexFile(cfg *config.RuntimeConfig, fsys fs.FS) (fs.Fil
 	}
 
 	// Create template data from the current config.
+	// Note: All template data is validated and sanitized in uiTemplateDataFromConfig
+	// to prevent XSS attacks, even though current usage only includes server config data.
 	tplData, err := uiTemplateDataFromConfig(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed loading UI config for template: %w", err)
@@ -235,7 +237,24 @@ func (h *Handler) renderIndexFile(cfg *config.RuntimeConfig, fsys fs.FS) (fs.Fil
 			if err != nil {
 				return "", fmt.Errorf("failed jsonEncode: %w", err)
 			}
-			return string(bs), nil
+
+			// Additional security validation: ensure the JSON doesn't contain
+			// potentially dangerous patterns that could lead to XSS
+			jsonStr := string(bs)
+			dangerousPatterns := []string{
+				"</script", "<script", "javascript:", "data:text/html",
+				"\\u003c/script", "\\u003cscript", // JSON-escaped versions
+				"\u003c/script", "\u003cscript", // Unicode-escaped versions
+			}
+			lowerJSON := strings.ToLower(jsonStr)
+
+			for _, pattern := range dangerousPatterns {
+				if strings.Contains(lowerJSON, pattern) {
+					return "", fmt.Errorf("JSON output contains potentially dangerous pattern: %s", pattern)
+				}
+			}
+
+			return jsonStr, nil
 		},
 	}).Parse(string(content))
 	if err != nil {
