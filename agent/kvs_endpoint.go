@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -17,6 +16,7 @@ import (
 )
 
 // validateKVKey validates a KV key to prevent path traversal attacks and cache deception
+// Allows hierarchical keys with / but restricts dangerous characters for security
 func validateKVKey(key string) error {
 	if key == "" {
 		return fmt.Errorf("key cannot be empty")
@@ -27,12 +27,24 @@ func validateKVKey(key string) error {
 		return fmt.Errorf("key must not begin with a '/'")
 	}
 
-	// Check for path traversal sequences - both direct and after normalization
-	if strings.Contains(key, "../") || strings.Contains(key, "..\\") {
-		return fmt.Errorf("key contains invalid path traversal sequence")
+	// SECURITY: Allow alphanumeric, safe punctuation, and hierarchical separators
+	// Allowed: a-zA-Z0-9 ,-_./ (includes slash for hierarchical keys)
+	// Blocked: dangerous chars that could enable attacks: ?=&#<>[]{}()@!$%^*+|\\:;"'`~
+	for i, r := range key {
+		isAlphaNumeric := (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9')
+		isSafeSpecial := r == ',' || r == '-' || r == '_' || r == '.' || r == '/'
+
+		if !isAlphaNumeric && !isSafeSpecial {
+			return fmt.Errorf("key contains invalid character '%c' at position %d. Only alphanumeric characters and ,-_./ are allowed", r, i)
+		}
 	}
 
-	// Check for various encoded path traversal attempts
+	// Additional security checks for path traversal patterns
+	if strings.Contains(key, "../") || strings.Contains(key, "..\\") {
+		return fmt.Errorf("key contains path traversal sequence")
+	}
+
+	// Check for URL-encoded traversal attempts
 	if strings.Contains(key, "%2e%2e%2f") || strings.Contains(key, "%2e%2e/") ||
 		strings.Contains(key, "..%2f") || strings.Contains(key, "%2e%2e%5c") {
 		return fmt.Errorf("key contains encoded path traversal sequence")
@@ -63,18 +75,6 @@ func validateKVKey(key string) error {
 	if strings.Contains(keyLower, ".js?") || strings.Contains(keyLower, ".css?") ||
 		strings.Contains(keyLower, ".html?") || strings.Contains(keyLower, ".htm?") {
 		return fmt.Errorf("key contains suspicious file extension with parameters that may be cached")
-	}
-
-	// Normalize the path and check if it's different from the original
-	// This catches various path normalization attacks including "app/../admin"
-	normalized := filepath.Clean(key)
-	if normalized != key && (strings.Contains(normalized, "..") || strings.HasPrefix(normalized, "/")) {
-		return fmt.Errorf("key path normalization results in invalid path")
-	}
-
-	// Additional check: ensure normalized path doesn't escape directory structure
-	if strings.HasPrefix(normalized, "..") || strings.Contains(normalized, "/..") {
-		return fmt.Errorf("key contains path traversal sequence after normalization")
 	}
 
 	return nil

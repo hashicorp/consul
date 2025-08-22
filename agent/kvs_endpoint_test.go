@@ -606,12 +606,39 @@ func TestKVSEndpoint_SecurityValidation(t *testing.T) {
 			description: "Valid nested key should work",
 		},
 		{
-			name:        "valid key with numbers and hyphens",
-			key:         "service-v2/cache-123",
+			name:        "valid key with allowed characters",
+			key:         "service-v2_cache.123/prod",
 			method:      "PUT",
 			body:        "value",
 			expectError: false,
-			description: "Valid key with hyphens and numbers should work",
+			description: "Valid key with allowed characters ,-_./ should work",
+		},
+		{
+			name:        "valid key with comma",
+			key:         "env,dev,staging",
+			method:      "PUT",
+			body:        "value",
+			expectError: false,
+			description: "Valid key with comma should work",
+		},
+
+		// Invalid character attacks (should be blocked)
+		{
+			name:        "key with question mark",
+			key:         "app/config?test",
+			method:      "PUT",
+			body:        "value",
+			expectError: false, // Query param is parsed separately, key is "app/config" which is valid
+			description: "Key with question mark - query part parsed separately, key is valid",
+		},
+		{
+			name:        "key with equals sign",
+			key:         "app=config",
+			method:      "PUT",
+			body:        "value",
+			expectError: true,
+			statusCode:  400,
+			description: "Key with equals sign should be blocked",
 		},
 
 		// Path traversal attacks (should be blocked)
@@ -690,7 +717,7 @@ func TestKVSEndpoint_SecurityValidation(t *testing.T) {
 			description: "Double URL encoded traversal should be blocked",
 		},
 
-		// File extension attacks (should be blocked)
+		// File extension attacks (should be blocked for security)
 		{
 			name:        "javascript extension",
 			key:         "config.js",
@@ -786,7 +813,7 @@ func TestKVSEndpoint_SecurityValidation(t *testing.T) {
 			description: "Deep nested PHP file should be blocked",
 		},
 
-		// Query parameter cache deception (should be blocked)
+		// Query parameter cache deception (should be blocked due to file extension detection)
 		{
 			name:        "JS with version parameter",
 			key:         "script.js?v=1.0",
@@ -794,7 +821,7 @@ func TestKVSEndpoint_SecurityValidation(t *testing.T) {
 			body:        "malicious",
 			expectError: true,
 			statusCode:  400,
-			description: "JavaScript with query parameter should be blocked",
+			description: "JavaScript with query parameter should be blocked due to file extension",
 		},
 		{
 			name:        "CSS with hash parameter",
@@ -803,7 +830,7 @@ func TestKVSEndpoint_SecurityValidation(t *testing.T) {
 			body:        "malicious",
 			expectError: true,
 			statusCode:  400,
-			description: "CSS with query parameter should be blocked",
+			description: "CSS with query parameter should be blocked due to file extension",
 		},
 
 		// Leading slash tests (should be blocked)
@@ -817,7 +844,7 @@ func TestKVSEndpoint_SecurityValidation(t *testing.T) {
 			description: "Leading slash should be blocked",
 		},
 
-		// Cross-method testing
+		// Cross-method testing (should be blocked due to file extensions)
 		{
 			name:        "GET file extension attack",
 			key:         "config.js",

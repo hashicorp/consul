@@ -1,0 +1,3 @@
+```release-note:security
+agent: Add the KV Validations to block path traversal and file extensions allowing access to unauthorized endpoints.
+```
