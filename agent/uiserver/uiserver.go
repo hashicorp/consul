@@ -258,13 +258,10 @@ func (h *Handler) renderIndexFile(cfg *config.RuntimeConfig, fsys fs.FS) (fs.Fil
 	return file, nil
 }
 
-/*
-*
-Replaces certain keys in the JS file with values from the runtime config.
-This is used to inject the root URL and other dynamic values into the JS file
-so that it can be served correctly in different environments.
-*
-*/
+// serveTransformedJS serves a transformed version of the specified JS file.
+// It replaces certain keys in the JS file with values from the runtime config.
+// This is used to inject the root URL and other dynamic values into the JS file
+// so that it can be served correctly in different environments.
 func (h *Handler) serveTransformedJS(w http.ResponseWriter, jsPath string) {
 	cfg := h.getRuntimeConfig()
 
@@ -272,7 +269,7 @@ func (h *Handler) serveTransformedJS(w http.ResponseWriter, jsPath string) {
 	if cfg.UIConfig.Dir == "" {
 		sub, err := fs.Sub(dist, "dist")
 		if err != nil {
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			http.Error(w, "Failed to open embedded dist", http.StatusInternalServerError)
 			h.logger.Error("Failed to open embedded dist: %s", err)
 			return
 		}
@@ -309,7 +306,13 @@ func (h *Handler) serveTransformedJS(w http.ResponseWriter, jsPath string) {
 			return
 		}
 	}
-	contentPath, _ := tplDataFull["ContentPath"].(string)
+	contentPath, isSuccess := tplDataFull["ContentPath"].(string)
+
+	if !isSuccess {
+		http.Error(w, "ContentPath value not found in template data", http.StatusInternalServerError)
+		h.logger.Error("ContentPath value not found in template data: %s", err)
+		return
+	}
 	js := string(content)
 	js = strings.ReplaceAll(js, "{{.ContentPath}}", contentPath)
 	w.Header().Set("Content-Type", "application/javascript")
