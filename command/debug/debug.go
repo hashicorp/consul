@@ -401,7 +401,10 @@ func (c *cmd) captureStatic() error {
 }
 
 func (c *cmd) troubleshootPorts() error {
-	output := troubleshootRun(default_ports, "localhost")
+	output, err := troubleshootRun(default_ports, "localhost")
+	if err != nil {
+		return err
+	}
 
 	if err := writeJSONFile(filepath.Join(c.output, targetPorts+".json"), output); err != nil {
 		return err
@@ -410,20 +413,37 @@ func (c *cmd) troubleshootPorts() error {
 	return nil
 }
 
-func troubleshootRun(ports []string, host string) PortStatus {
-	openPorts := make(chan string, len(ports))
-	closePorts := make(chan string, len(ports))
+func troubleshootRun(ports []string, host string) (PortStatus, error) {
+	numPorts := len(ports)
+	openPorts := make(chan string, numPorts)
+	closePorts := make(chan string, numPorts)
+	errCh := make(chan error, 1)
 
 	var portResults PortStatus
 	var wg sync.WaitGroup
-	wg.Add(len(ports))
+	wg.Add(numPorts)
 
 	for _, port := range ports {
 		go func(port string) {
 			defer wg.Done()
-			address, _ := url.Parse(net.JoinHostPort(host, port))
 
-			err := dialPort(*address)
+			address, err := url.Parse(net.JoinHostPort(host, port))
+			if err != nil {
+				select {
+				case errCh <- fmt.Errorf("failed to parse address for port %s: %w", port, err):
+				default:
+				}
+				return
+			}
+			if address == nil {
+				select {
+				case errCh <- fmt.Errorf("parsed address is nil for port %s", port):
+				default:
+				}
+				return
+			}
+
+			err = dialPort(*address)
 			if err != nil {
 				closePorts <- port
 			} else {
@@ -436,6 +456,11 @@ func troubleshootRun(ports []string, host string) PortStatus {
 	wg.Wait()
 	close(openPorts)
 	close(closePorts)
+	close(errCh)
+
+	if err := <-errCh; err != nil {
+		return portResults, err
+	}
 
 	for port := range openPorts {
 		portResults.Open = append(portResults.Open, port)
@@ -444,7 +469,7 @@ func troubleshootRun(ports []string, host string) PortStatus {
 	for port := range closePorts {
 		portResults.Closed = append(portResults.Closed, port)
 	}
-	return portResults
+	return portResults, nil
 }
 
 func dialPort(address url.URL) error {
