@@ -1956,13 +1956,8 @@ module.exports = [
   // Versioned docs compatibility  //
   ///////////////////////////////////
   {
-    source: '/consul/docs/:version(v1\\.(?:11|12|13|14|15|16|17|18|19|20)\\.x)/fundamentals/agent',
-    destination: '/consul/docs/:version/agent',
-    permanent: true
-  },
-  {
-    source: '/consul/docs/v1.20.x/fundamentals/agent',
-    destination: '/consul/docs/v1.20.x/agent',
+    source: "/consul/docs/:version(v1\\.(?:11|12|13|14|15|16|17|18|19|20)\\.x)/fundamentals/agent",
+    destination: "/consul/docs/:version/agent",
     permanent: true
   },
   {
