@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net"
 	"strconv"
 	"sync"
 
@@ -224,10 +225,16 @@ func meshGatewayAdresses(state *state.Store, ws memdb.WatchSet, wan bool) ([]str
 
 func parseNodeAddr(node *structs.ServiceNode) string {
 	// Prefer the wan address
+	na := node.Address
 	if v, ok := node.TaggedAddresses[structs.TaggedAddressWAN]; ok {
-		return v
+		na = v
 	}
-	return node.Address
+	parsed := net.ParseIP(na)
+	if parsed != nil && parsed.To16() == nil {
+		// Adding [] to IPv6 address
+		return fmt.Sprintf("[%s]", parsed.String())
+	}
+	return na
 }
 
 func serverAddresses(state *state.Store) ([]string, error) {

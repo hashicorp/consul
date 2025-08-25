@@ -930,7 +930,7 @@ func makeListenerWithDefault(opts makeListenerOpts) *envoy_listener_v3.Listener 
 		opts.logger.Warn("error generating access log xds", err)
 	}
 	return &envoy_listener_v3.Listener{
-		Name:             fmt.Sprintf("%s:%s:%d", opts.name, opts.addr, opts.port),
+		Name:             fmt.Sprintf("%s:%s", opts.name, net.JoinHostPort(opts.addr, strconv.Itoa(opts.port))),
 		AccessLog:        accessLog,
 		Address:          response.MakeAddress(opts.addr, opts.port),
 		TrafficDirection: opts.direction,
