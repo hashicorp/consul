@@ -160,7 +160,10 @@ func (p *Partitions) List(ctx context.Context, q *QueryOptions) ([]*Partition, *
 	}
 
 	qm := &QueryMeta{}
-	parseQueryMeta(resp, qm)
+	err = parseQueryMeta(resp, qm)
+	if err != nil {
+		return nil, nil, err
+	}
 	qm.RequestTime = rtt
 
 	if err := decodeBody(resp, &out); err != nil {

@@ -146,7 +146,10 @@ func (k *KV) getInternal(key string, params map[string]string, q *QueryOptions) 
 	}
 
 	qm := &QueryMeta{}
-	parseQueryMeta(resp, qm)
+	err = parseQueryMeta(resp, qm)
+	if err != nil {
+		return nil, nil, err
+	}
 	qm.RequestTime = rtt
 
 	if resp.StatusCode == 404 {

@@ -57,7 +57,10 @@ func (i *Internal) AssignServiceVirtualIP(
 	}
 
 	qm := &QueryMeta{RequestTime: rtt}
-	parseQueryMeta(resp, qm)
+	err = parseQueryMeta(resp, qm)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	var out AssignServiceManualVIPsResponse
 	if err := decodeBody(resp, &out); err != nil {

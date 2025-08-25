@@ -283,7 +283,10 @@ func (p *Peerings) List(ctx context.Context, q *QueryOptions) ([]*Peering, *Quer
 	}
 
 	qm := &QueryMeta{}
-	parseQueryMeta(resp, qm)
+	err = parseQueryMeta(resp, qm)
+	if err != nil {
+		return nil, nil, err
+	}
 	qm.RequestTime = rtt
 
 	var out []*Peering
