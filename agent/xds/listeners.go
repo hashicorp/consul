@@ -2189,7 +2189,8 @@ func (s *ResourceGenerator) makeMeshGatewayPeerFilterChain(
 
 	filterName := fmt.Sprintf("%s.%s.%s.%s", chain.ServiceName, chain.Namespace, chain.Partition, chain.Datacenter)
 
-	// TODO::: CSL-11115 Changes : Add Comments
+	// The priority order is service defaults and then the proxy config
+	// the value set in the proxy defaults is considered to be a default, that can be updated by the value from the service-default
 	proxyCfg := cfgSnap.GetProxyConfig(s.Logger)
 	maxRequestHeadersKb := proxyCfg.MaxRequestHeadersKB
 
