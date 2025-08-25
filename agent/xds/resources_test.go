@@ -2324,6 +2324,27 @@ func getTerminatingGatewayPeeringGoldenTestCases() []goldenTestCase {
 			name:   "terminating-gateway-default-service-subset",
 			create: proxycfg.TestConfigSnapshotTerminatingGatewayDefaultServiceSubset,
 		},
+		{
+			name: "terminating-gateway-service-max-request-headers",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				// Use the HTTP2 test as base and modify it for our needs
+				snap := proxycfg.TestConfigSnapshotTerminatingGatewayHTTP2(t)
+
+				// Add service-specific max_request_headers_kb configuration for the web service
+				webService := structs.NewServiceName("web", nil)
+				if snap.TerminatingGateway.ServiceConfigs == nil {
+					snap.TerminatingGateway.ServiceConfigs = make(map[structs.ServiceName]*structs.ServiceConfigResponse)
+				}
+				snap.TerminatingGateway.ServiceConfigs[webService] = &structs.ServiceConfigResponse{
+					ProxyConfig: map[string]interface{}{
+						"max_request_headers_kb": uint32(96),
+						"protocol":               "http",
+					},
+				}
+
+				return snap
+			},
+		},
 	}
 }
 

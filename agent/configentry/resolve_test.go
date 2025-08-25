@@ -13,6 +13,11 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
+// uintPointer returns a pointer to a uint32 value
+func uintPointer(u uint32) *uint32 {
+	return &u
+}
+
 func Test_ComputeResolvedServiceConfig(t *testing.T) {
 	type args struct {
 		scReq   *structs.ServiceConfigRequest
@@ -103,6 +108,26 @@ func Test_ComputeResolvedServiceConfig(t *testing.T) {
 					"max_inbound_connections":  20,
 					"local_connect_timeout_ms": 20000,
 					"local_request_timeout_ms": 30000,
+				},
+			},
+		},
+		{
+			name: "proxy with MaxRequestHeadersKB",
+			args: args{
+				scReq: &structs.ServiceConfigRequest{
+					Name: "sid",
+				},
+				entries: &ResolvedServiceConfigSet{
+					ServiceDefaults: map[structs.ServiceID]*structs.ServiceConfigEntry{
+						sid: {
+							MaxRequestHeadersKB: uintPointer(96),
+						},
+					},
+				},
+			},
+			want: &structs.ServiceConfigResponse{
+				ProxyConfig: map[string]interface{}{
+					"max_request_headers_kb": uint32(96),
 				},
 			},
 		},
