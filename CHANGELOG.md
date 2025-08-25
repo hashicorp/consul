@@ -1,3 +1,17 @@
+## 1.21.4 (August 13, 2025)
+
+SECURITY:
+
+* security: Update Go to 1.23.12 to address CVE-2025-47906 [[GH-22547](https://github.com/hashicorp/consul/issues/22547)]
+
+IMPROVEMENTS:
+
+* ui: Replaced internal code editor with HDS (HashiCorp Design System) code editor and code block components for improved accessibility and maintainability across the Consul UI. [[GH-22513](https://github.com/hashicorp/consul/issues/22513)]
+
+BUG FIXES:
+
+* cli: capture pprof when ACL is enabled and a token with operator:read is used, even if enable_debug config is not explicitly set. [[GH-22552](https://github.com/hashicorp/consul/issues/22552)]
+
 ## 1.21.3 (July 18, 2025)
 
 IMPROVEMENTS:
