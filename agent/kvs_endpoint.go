@@ -8,11 +8,50 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+)
+
+// Compiled regex patterns for KV key validation
+// These patterns provide efficient, comprehensive security validation for KV keys
+// and URL paths to prevent various attack vectors including path traversal,
+// file extension abuse, and endpoint forwarding attacks.
+var (
+	// validKVKeyPattern validates allowed characters in KV keys
+	// Allows: alphanumeric (a-zA-Z0-9), comma (,), dash (-), underscore (_), dot (.), forward slash (/)
+	// This pattern enables hierarchical keys while blocking dangerous characters that could enable attacks
+	validKVKeyPattern = regexp.MustCompile(`^[a-zA-Z0-9,\-_./]+$`)
+
+	// pathTraversalPattern detects path traversal sequences in various forms
+	// Matches: ../, ..\, .. at start/end of string
+	// This prevents directory traversal attacks that could access parent directories
+	pathTraversalPattern = regexp.MustCompile(`(\.\.[\\/])|(\.\.\\)|(^\.\.)|(\.\.$)`)
+
+	// encodedTraversalPattern detects URL-encoded path traversal attempts (case-insensitive)
+	// Matches various encodings of "../" including:
+	// - %2e%2e%2f (../), %2e%2e%5c (..\), %2e%2e/ (partial encoding)
+	// - ..%2f, ..%5c (mixed encoding), %252e%252e%252f (double encoding)
+	// This prevents bypassing path traversal detection through URL encoding
+	encodedTraversalPattern = regexp.MustCompile(`(?i)(%2e%2e(%2f|%5c|/))|(\.\.\%2f)|(\.\.\%5c)|(%252e%252e%252f)`)
+
+	// suspiciousExtensionPattern detects file extensions that could be cached or exploited
+	// Matches common web file types, executables, documents, and media files (case-insensitive)
+	// Includes detection of extensions with query parameters (e.g., script.js?v=1)
+	// This prevents cache deception attacks and reduces attack surface
+	suspiciousExtensionPattern = regexp.MustCompile(`(?i)\.(js|css|html?|xml|json|txt|log|php|asp|jsp|cgi|pl|py|rb|sh|exe|dll|bat|cmd|com|scr|vbs|pdf|docx?|xlsx?|pptx?|zip|rar|tar|gz|7z|bz2|jpe?g|png|gif|svg|ico|bmp|mp[34]|avi|mov|wmv|flv|swf|woff2?|ttf|eot|otf)(\?|$)`)
+
+	// leadingSlashPattern detects keys that start with a forward slash
+	// Consistent with client-side validation and Consul conventions
+	leadingSlashPattern = regexp.MustCompile(`^/`)
+
+	// rawPathTraversalPattern detects traversal patterns in raw URL paths for early validation
+	// Combines path traversal and encoded traversal detection for comprehensive URL path validation
+	// This prevents path traversal attacks before URL normalization occurs
+	rawPathTraversalPattern = regexp.MustCompile(`(\.\.[\\/])|(?i)(%2e%2e(%2f|%5c|/))|(\.\.\%2f)|(\.\.\%5c)|(%252e%252e%252f)`)
 )
 
 // validateKVKey validates a KV key to prevent path traversal attacks and cache deception
@@ -24,7 +63,7 @@ func validateKVKey(key string, allowUnprintable bool) error {
 	}
 
 	// Check for leading slash (consistent with client-side validation)
-	if strings.HasPrefix(key, "/") {
+	if leadingSlashPattern.MatchString(key) {
 		return fmt.Errorf("key must not begin with a '/'")
 	}
 
@@ -33,52 +72,24 @@ func validateKVKey(key string, allowUnprintable bool) error {
 	// Blocked: dangerous chars that could enable attacks: ?=&#<>[]{}()@!$%^*+|\\:;"'`~
 	// Skip character validation if allowUnprintable is true (for disable_http_unprintable_char_filter)
 	if !allowUnprintable {
-		for i, r := range key {
-			isAlphaNumeric := (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9')
-			isSafeSpecial := r == ',' || r == '-' || r == '_' || r == '.' || r == '/'
-
-			if !isAlphaNumeric && !isSafeSpecial {
-				return fmt.Errorf("key contains invalid character '%c' at position %d. Only alphanumeric characters and ,-_./ are allowed", r, i)
-			}
+		if !validKVKeyPattern.MatchString(key) {
+			return fmt.Errorf("key contains invalid characters. Only alphanumeric characters and ,-_./ are allowed")
 		}
 	}
 
-	// Additional security checks for path traversal patterns
-	if strings.Contains(key, "../") || strings.Contains(key, "..\\") {
+	// Check for path traversal patterns using regex
+	if pathTraversalPattern.MatchString(key) {
 		return fmt.Errorf("key contains path traversal sequence")
 	}
 
-	// Check for URL-encoded traversal attempts
-	if strings.Contains(key, "%2e%2e%2f") || strings.Contains(key, "%2e%2e/") ||
-		strings.Contains(key, "..%2f") || strings.Contains(key, "%2e%2e%5c") {
+	// Check for URL-encoded traversal attempts using regex
+	if encodedTraversalPattern.MatchString(key) {
 		return fmt.Errorf("key contains encoded path traversal sequence")
 	}
 
-	// Check for suspicious file extensions that could be used for cache deception
-	// These extensions might be cached by CDNs/proxies and could lead to security issues
-	suspiciousExtensions := []string{
-		".js", ".css", ".html", ".htm", ".xml", ".json", ".txt", ".log",
-		".php", ".asp", ".jsp", ".cgi", ".pl", ".py", ".rb", ".sh",
-		".exe", ".dll", ".bat", ".cmd", ".com", ".scr", ".vbs",
-		".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
-		".zip", ".rar", ".tar", ".gz", ".7z", ".bz2",
-		".jpg", ".jpeg", ".png", ".gif", ".svg", ".ico", ".bmp",
-		".mp3", ".mp4", ".avi", ".mov", ".wmv", ".flv", ".swf",
-		".woff", ".woff2", ".ttf", ".eot", ".otf",
-	}
-
-	// Check if key ends with any suspicious extension
-	keyLower := strings.ToLower(key)
-	for _, ext := range suspiciousExtensions {
-		if strings.HasSuffix(keyLower, ext) {
-			return fmt.Errorf("key contains suspicious file extension '%s' that may be cached by proxies", ext)
-		}
-	}
-
-	// Also check for extensions with query parameters or fragments (e.g., "file.js?v=1")
-	if strings.Contains(keyLower, ".js?") || strings.Contains(keyLower, ".css?") ||
-		strings.Contains(keyLower, ".html?") || strings.Contains(keyLower, ".htm?") {
-		return fmt.Errorf("key contains suspicious file extension with parameters that may be cached")
+	// Check for suspicious file extensions using regex
+	if suspiciousExtensionPattern.MatchString(key) {
+		return fmt.Errorf("key contains suspicious file extension that may be cached by proxies or exploited")
 	}
 
 	return nil
@@ -94,15 +105,8 @@ func (s *HTTPHandlers) KVSEndpoint(resp http.ResponseWriter, req *http.Request) 
 	// SECURITY: Validate raw URL path BEFORE normalization to prevent path traversal forwarding
 	// This prevents requests like /v1/kv/../admin from being forwarded to /admin endpoint
 	rawPath := req.URL.Path
-	if strings.Contains(rawPath, "../") || strings.Contains(rawPath, "..\\") {
-		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "URL path contains invalid traversal sequence"}
-	}
-
-	// Check for URL-encoded path traversal in raw path
-	if strings.Contains(rawPath, "%2e%2e%2f") || strings.Contains(rawPath, "%2e%2e/") ||
-		strings.Contains(rawPath, "..%2f") || strings.Contains(rawPath, "%2e%2e%5c") ||
-		strings.Contains(rawPath, "%252e%252e%252f") {
-		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "URL path contains encoded traversal sequence"}
+	if rawPathTraversalPattern.MatchString(rawPath) {
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "URL path contains invalid or encoded traversal sequence"}
 	}
 
 	// Pull out the key name, validation left to each sub-handler
