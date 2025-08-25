@@ -7,11 +7,17 @@ description: >-
 
 # Backup and restore a Consul datacenter
 
-Backups provide a mechanism for a cluster to recover from an outage caused by any combination of network loss, operator error, or a corrupted data directory. We recommend testing the restore functionality at least once before your cluster is live in production.
+This page describes the process to backup and restore a Consul datacenter with snapshots.
 
-We recommend you backup the Consul cluster before upgrading, in case the upgrade does not go according to plan and then downgrading becomes impossible due to changes in the state store format. In such a situation, restoring from a backup is the only option to restore functionality.
+## Introduction
 
-Consul provides the [snapshot](/consul/commands/snapshot) command which can be manually executed using the CLI or the API to save or restore a point-in-time snapshot which includes, but is not limited to:
+Backups help you recover from a Consul datacenter outage caused by any combination of network loss, operator error, or a corrupted data directory. Before your cluster is live in a production environment, we recommend that you test the restore functionality at least once.
+
+We also recommend that you create a backup of a Consul cluster before you upgrade the version of Consul it runs. Then, if the upgrade does not go according to plan, you can downgrade to the last working version by restoring the cluster from the backup. 
+
+In addition, there are some situations where restoring from a backup is the only method to restore a Consul datacenter's previous functionality. As a result, we recommend creating backups on a regular basis to limit the Consul datacenter's potential downtime.
+
+You can run the [`consul snapshot` command](/consul/commands/snapshot) using the CLI or the API to save or restore a point-in-time snapshot. This snapshot includes, but is not limited to:
 
 - Key-Value entries
 - the service catalog
@@ -19,25 +25,28 @@ Consul provides the [snapshot](/consul/commands/snapshot) command which can be m
 - sessions
 - ACLs 
 
-With Consul Enterprise, you can run a [snapshot agent daemon](/consul/commands/snapshot/agent) that periodically takes snapshots and writes to local or remote storage, including Amazon S3, Azure Blob Storage, and Google Cloud Storage.
+With Consul Enterprise, you can run a [snapshot agent daemon](/consul/commands/snapshot/agent) that periodically takes snapshots and saves them to local or remote storage, including Amazon S3, Azure Blob Storage, and Google Cloud Storage. Consul Community Edition supports custom scripts to run the [`consul snapshot save` command or HTTP API request](/consul/api-docs/snapshot) on a regular basis.
 
-By default, all snapshots are taken using `consistent` mode where requests are forwarded to the leader which verifies that it is still in power before taking the snapshot. Snapshots will not be saved if the Consul datacenter is degraded or if no leader is available. To reduce the burden on the leader, it is possible to [run the snapshot](/consul/commands/snapshot/save) on any non-leader server using `stale` consistency mode. We recommend you take `consistent` snapshots for write-heavy production use cases, or when you want to snapshot a cluster state after an immediate specific change. Otherwise, for scheduled backups or other non-critical procedures, we recommend taking snapshots using the `stale` consistency mode, which can spread the load across nodes at the possible expense of losing full consistency guarantees. Not having full consistency guarantees means that a very small number of recent writes may be omitted - writes that are typically limited to data written in the last `100ms` or less.
+### Consistency modes
+
+By default, Consul takes snapshots in [`consistent` mode](/consul/docs/concept/consistency#consistency-modes), where the agents forward requests to the current cluster leader, which then verifies that it is still the leader before it takes a snapshot. As a result, Consul cannot save snapshots if the datacenter lost quorum or if no leader is available. 
+
+To reduce the burden on the leader, it is possible to [run the snapshot command on any server in `stale` consistency mode](/consul/commands/snapshot/save#examples). For scheduled backups or other non-critical procedures, `stale` consistency mode is an appropriate backup solution. Not having full consistency means that a small number of recent writes may be omitted, although these writes are typically limited to data written in the last `100ms` or less.
+
+However, we still recommend you take `consistent` snapshots for write-heavy production use cases, or when you want to snapshot a cluster state immediately after a specific change.
 
 ## Workflow
 
-1. **Backup the Consul Datacenter**: Use the `snapshot save` command to create a backup of the Consul datacenter.
-2. **Verify the Backup**: Inspect the backup file to ensure it was created successfully.
-3. **Restore from Backup**: If needed, use the `snapshot restore` command to restore the Consul datacenter from the backup.
+1. **Backup the Consul datacenter**: Use the `consul snapshot save` command to create a backup of the Consul datacenter.
+1. **Verify the backup**: Inspect the backup file to ensure it was created successfully.
+1. **Restore from snapshot**: Use the `consul snapshot restore` command to restore the Consul datacenter from the backup.
 
-## Where to start
 
-To backup and restore a Consul datacenter, you will use the snapshot functionality. The following sections describe how to backup and restore a Consul datacenter using the `snapshot` command.
 
-### Backup a Consul datacenter
+## Backup a Consul datacenter
 
-The `snapshot save` command for backing up the Consul cluster state has many configuration options. In a production environment, you will want to configure ACL tokens and client certificates for security. The configuration options also allow you to specify the Consul cluster and server to collect the backup data from. Below are several examples.
 
-First, you will run the basic snapshot command on one of the servers using the default configuration, including `consistent` mode.
+Run the basic snapshot command on one of the servers. Because it uses the default settings, this request runs in `consistent` mode.
 
 ```shell-session
 $ consul snapshot save backup.snap
@@ -57,33 +66,23 @@ Term         2
 Version      1
 ```
 
-For more info on each field of the `snapshot inspect` command output, review the related [documentation](/consul/commands/snapshot/inspect).
+For more information about the `snapshot inspect` sub-command and its output, refer to the [`consul snapshot inspect` CLI documentation](/consul/commands/snapshot/inspect).
 
-The Consul cluster data is usually streamed from the leader server via the client you query. To avoid streaming the data directly from the leader server and obtain the local copy of the data in the Raft database, you can do so by specifying stale mode.
 
-```shell-session
-$ consul snapshot save -stale backup.snap
-Saved and verified snapshot to index 2276
-```
 
-For production use, we recommend automatic saving of snapshots via the `snapshot agent` enterprise command, which runs a daemon that periodically takes snapshots and writes them to local or remote cloud storage. This is especially useful for large clusters where manual snapshotting can be cumbersome.
+## Restore a Consul datacenter
 
-For Consul Community Edition, the `snapshot save` command or [API](/consul/api-docs/snapshot) can instead be scripted to run frequently.
+You can restore a datacenter from a Consul snapshot with the `consul snapshot restore` command. To succeed, the target cluster must be stable and have a leader. To verify the current Raft members state, run `consul operator raft list-peers`. If the cluster does not have a leader, check server logs and telemetry for signs of leader election or network issues.
 
-### Restore a Consul datacenter
+When you restore a Consul cluster from a snapshot on new infrastructure, make sure that the node names are unique. Otherwise, you might encounter restore issues due to naming conflicts. For more information, refer to [Snapshot restore error](/consul/docs/error-messages/consul#snapshot-restore-error).
 
-Restoring a Consul snapshot involves running the `snapshot restore` command. To succeed, you need the target cluster being stable and having a leader. If you suspect the opposite, you can verify the Raft members state using `consul operator raft list-peers` and checking server logs and telemetry for signs of leader elections or network issues.
-
-When restoring a Consul cluster from a snapshot on new infrastructure, make sure node names are unique, otherwise you might encounter restore issues. For more information, refer to [Snapshot restore error](/consul/docs/error-messages/consul#snapshot-restore-error).
-
-You only need to run the snapshot restore process once. If the target Consul server is not the cluster leader, the snapshot data contents will be streamed towards the leader. The Raft consensus protocol ensures that all servers restore the same state.
+The snapshot restore process needs to run only one time. If the target Consul server is not the cluster leader, it streams the snapshot data contents to the leader. The Raft consensus protocol ensures that all servers restore the same state.
 
 ```shell-session
 $ consul snapshot restore backup.snap
 Restored snapshot
 ```
 
-Just like the `snapshot save` command, you can specify access tokens and certificates via command parameters or environment variables.
 
 ## Additional guidance
 
