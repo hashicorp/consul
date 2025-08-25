@@ -207,6 +207,73 @@ func TestParseProxyConfig(t *testing.T) {
 				BalanceInboundConnections: "exact_balance",
 			},
 		},
+		{
+			name: "max request headers KB override, int",
+			input: map[string]interface{}{
+				"max_request_headers_kb": 96,
+			},
+			want: ProxyConfig{
+				LocalConnectTimeoutMs: 5000,
+				Protocol:              "tcp",
+				MaxRequestHeadersKB:   uintPointer(96),
+			},
+		},
+		{
+			name: "max request headers KB override, float",
+			input: map[string]interface{}{
+				"max_request_headers_kb": float64(128.0),
+			},
+			want: ProxyConfig{
+				LocalConnectTimeoutMs: 5000,
+				Protocol:              "tcp",
+				MaxRequestHeadersKB:   uintPointer(128),
+			},
+		},
+		{
+			name: "max request headers KB override, string",
+			input: map[string]interface{}{
+				"max_request_headers_kb": "256",
+			},
+			want: ProxyConfig{
+				LocalConnectTimeoutMs: 5000,
+				Protocol:              "tcp",
+				MaxRequestHeadersKB:   uintPointer(256),
+			},
+		},
+		{
+			name: "max request headers KB with zero value",
+			input: map[string]interface{}{
+				"max_request_headers_kb": 0,
+			},
+			want: ProxyConfig{
+				LocalConnectTimeoutMs: 5000,
+				Protocol:              "tcp",
+				MaxRequestHeadersKB:   uintPointer(0),
+			},
+		},
+		{
+			name: "kitchen sink with max request headers",
+			input: map[string]interface{}{
+				"protocol":                    "http",
+				"bind_address":                "127.0.0.2",
+				"bind_port":                   8888,
+				"local_connect_timeout_ms":    1000,
+				"local_request_timeout_ms":    2000,
+				"local_idle_timeout_ms":       3000,
+				"balance_inbound_connections": "exact_balance",
+				"max_request_headers_kb":      96,
+			},
+			want: ProxyConfig{
+				LocalConnectTimeoutMs:     1000,
+				LocalRequestTimeoutMs:     intPointer(2000),
+				LocalIdleTimeoutMs:        intPointer(3000),
+				Protocol:                  "http",
+				BindAddress:               "127.0.0.2",
+				BindPort:                  8888,
+				BalanceInboundConnections: "exact_balance",
+				MaxRequestHeadersKB:       uintPointer(96),
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -310,6 +377,10 @@ func TestParseGatewayConfig(t *testing.T) {
 }
 
 func intPointer(i int) *int {
+	return &i
+}
+
+func uintPointer(i uint32) *uint32 {
 	return &i
 }
 

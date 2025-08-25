@@ -630,6 +630,17 @@ func getConnectProxyDiscoChainTests(enterprise bool) []goldenTestCase {
 				)
 			},
 		},
+		{
+			name: "connect-proxy-with-http-max-request-headers",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				// Create a custom snapshot instead of using ProxyDefaults
+				snap := proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple", enterprise, func(ns *structs.NodeService) {
+					ns.Proxy.Config["protocol"] = "http"
+					ns.Proxy.Config["max_request_headers_kb"] = 96
+				}, nil)
+				return snap
+			},
+		},
 	}
 
 	if enterprise {

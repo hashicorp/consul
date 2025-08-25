@@ -122,6 +122,8 @@ type ProxyConfig struct {
 	// BalanceInboundConnections indicates how the proxy should attempt to distribute
 	// connections across worker threads. Only used by envoy proxies.
 	BalanceInboundConnections string `json:",omitempty" alias:"balance_inbound_connections"`
+
+	MaxRequestHeadersKB *uint32 `json:",omitempty" mapstructure:"max_request_headers_kb"`
 }
 
 // ParseProxyConfig returns the ProxyConfig parsed from the an opaque map. If an

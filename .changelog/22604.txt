@@ -1,0 +1,3 @@
+```release-note:feature
+config: Add new parameter `max_request_headers_kb` to configure maximum header size for requests from downstream to upstream
+```
