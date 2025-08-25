@@ -564,6 +564,161 @@ func Test_makeUpstreamFilterChain_maxRequestHeadersKb(t *testing.T) {
 	}
 }
 
+func Test_makeMeshGatewayPeerFilterChain_maxRequestHeadersKb(t *testing.T) {
+	tests := map[string]struct {
+		proxyConfig        map[string]interface{}
+		serviceProxyConfig map[string]interface{}
+		protocol           string
+		wantPresent        bool
+		wantValue          uint32
+	}{
+		"defaults to proxy config when no service override": {
+			proxyConfig: map[string]interface{}{
+				"max_request_headers_kb": int64(128),
+			},
+			serviceProxyConfig: map[string]interface{}{},
+			protocol:           "http",
+			wantPresent:        true,
+			wantValue:          128,
+		},
+		"service override takes precedence over proxy config": {
+			proxyConfig: map[string]interface{}{
+				"max_request_headers_kb": int64(128),
+			},
+			serviceProxyConfig: map[string]interface{}{
+				"max_request_headers_kb": int64(256),
+			},
+			protocol:    "http",
+			wantPresent: true,
+			wantValue:   256,
+		},
+		"no proxy config and no service override": {
+			proxyConfig:        map[string]interface{}{},
+			serviceProxyConfig: map[string]interface{}{},
+			protocol:           "http",
+			wantPresent:        false,
+		},
+		"service override with nil proxy config": {
+			proxyConfig: nil,
+			serviceProxyConfig: map[string]interface{}{
+				"max_request_headers_kb": int64(64),
+			},
+			protocol:    "http",
+			wantPresent: true,
+			wantValue:   64,
+		},
+		"tcp protocol ignores header settings": {
+			proxyConfig: map[string]interface{}{
+				"max_request_headers_kb": int64(128),
+			},
+			serviceProxyConfig: map[string]interface{}{
+				"max_request_headers_kb": int64(256),
+			},
+			protocol:    "tcp",
+			wantPresent: false,
+		},
+		"grpc protocol uses service override": {
+			proxyConfig: map[string]interface{}{
+				"max_request_headers_kb": int64(128),
+			},
+			serviceProxyConfig: map[string]interface{}{
+				"max_request_headers_kb": int64(512),
+			},
+			protocol:    "grpc",
+			wantPresent: true,
+			wantValue:   512,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			// Create test service name
+			svc := structs.NewServiceName("test-service", structs.DefaultEnterpriseMetaInDefaultPartition())
+
+			// Create mock config snapshot using the test helper
+			snap := proxycfg.TestConfigSnapshotPeeredMeshGateway(t, "default-services-http", func(ns *structs.NodeService) {
+				ns.Proxy.Config = tc.proxyConfig
+			}, nil)
+
+			// Add service group with proxy config if provided
+			if tc.serviceProxyConfig != nil {
+				snap.MeshGateway.ServiceGroups[svc] = structs.CheckServiceNodes{
+					{
+						Service: &structs.NodeService{
+							Proxy: structs.ConnectProxyConfig{
+								Config: tc.serviceProxyConfig,
+							},
+						},
+					},
+				}
+			}
+
+			// Create mock discovery chain with a first node
+			chain := &structs.CompiledDiscoveryChain{
+				ServiceName: svc.Name,
+				Namespace:   svc.NamespaceOrDefault(),
+				Partition:   svc.PartitionOrDefault(),
+				Datacenter:  "dc1",
+				Protocol:    tc.protocol,
+				StartNode:   "test-node",
+				Nodes: map[string]*structs.DiscoveryGraphNode{
+					"test-node": {
+						Type: structs.DiscoveryGraphNodeTypeResolver,
+						Name: "test-service.default.default.dc1",
+						Resolver: &structs.DiscoveryResolver{
+							Target: "test-service.default.default.dc1",
+						},
+					},
+				},
+				Targets: map[string]*structs.DiscoveryTarget{
+					"test-service.default.default.dc1": {
+						ID:         "test-service.default.default.dc1",
+						Service:    svc.Name,
+						Namespace:  svc.NamespaceOrDefault(),
+						Partition:  svc.PartitionOrDefault(),
+						Datacenter: "dc1",
+						SNI:        "test-service.default.default.dc1.internal.test-domain.consul",
+						Name:       "test-service.default.default.dc1.internal.test-domain.consul",
+					},
+				},
+			}
+
+			// Create resource generator
+			s := &ResourceGenerator{
+				Logger: hclog.NewNullLogger(),
+			}
+
+			// Call the function under test
+			filterChain, err := s.makeMeshGatewayPeerFilterChain(snap, svc, []string{"test-peer"}, chain)
+
+			require.NoError(t, err)
+			require.NotNil(t, filterChain)
+			require.Len(t, filterChain.Filters, 1)
+
+			filter := filterChain.Filters[0]
+
+			if tc.protocol == "tcp" {
+				// For TCP, verify we don't have HTTP connection manager
+				require.Contains(t, filter.Name, "tcp_proxy")
+				return
+			}
+
+			// For HTTP-like protocols, check the HTTP connection manager
+			require.Contains(t, filter.Name, "http_connection_manager")
+			var httpConnMgr envoy_http_v3.HttpConnectionManager
+			err = filter.GetTypedConfig().UnmarshalTo(&httpConnMgr)
+			require.NoError(t, err)
+
+			if tc.wantPresent {
+				require.NotNil(t, httpConnMgr.MaxRequestHeadersKb, "expected MaxRequestHeadersKb to be set but it was nil")
+				require.Equal(t, tc.wantValue, httpConnMgr.MaxRequestHeadersKb.GetValue())
+			} else {
+				require.Nil(t, httpConnMgr.MaxRequestHeadersKb, "expected MaxRequestHeadersKb to be nil but it was set")
+			}
+		})
+	}
+}
+
 // Helper function for uint32 pointers
 func uintPointer(i uint32) *uint32 {
 	return &i
