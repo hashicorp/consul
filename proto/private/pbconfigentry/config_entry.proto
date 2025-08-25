@@ -594,7 +594,6 @@ message ServiceDefaults {
   MutualTLSMode MutualTLSMode = 15;
   uint64 Hash = 17;
 
-  // TODO::: CSL-11115 changes
   optional uint32 MaxRequestHeadersKB = 18;
 }
 
