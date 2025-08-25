@@ -1857,7 +1857,8 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.
 		}
 	}
 
-	// TODO::: CSL-11115 Changes : Add Comments
+	// The priority order is service defaults and then the proxy config
+	// the value set in the proxy defaults is considered to be a default, that can be updated by the value from the service-default
 	maxRequestHeadersKb := proxyCfg.MaxRequestHeadersKB
 	serviceProxyConfig, found := cfgSnap.TerminatingGateway.ServiceConfigs[tgtwyOpts.service]
 	if found {

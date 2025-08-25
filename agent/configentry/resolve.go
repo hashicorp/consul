@@ -142,7 +142,7 @@ func ComputeResolvedServiceConfig(
 			proxyConf["local_request_timeout_ms"] = serviceConf.LocalRequestTimeoutMs
 		}
 
-		// TODO::: CSL-11115 Changes : Add comments
+		// Populate the max_request_headers_kb from the service defaults to terminating gateway proxy config
 		if serviceConf.MaxRequestHeadersKB != nil {
 			proxyConf["max_request_headers_kb"] = *serviceConf.MaxRequestHeadersKB
 		}
