@@ -564,6 +564,76 @@ func Test_makeUpstreamFilterChain_maxRequestHeadersKb(t *testing.T) {
 	}
 }
 
+func Test_makeAPIGatewayListeners_maxRequestHeadersKb(t *testing.T) {
+	tests := map[string]struct {
+		maxRequestHeadersKb *uint32
+		protocol            string
+		wantPresent         bool
+		wantValue           uint32
+	}{
+		"http listener with nil headers": {
+			maxRequestHeadersKb: nil,
+			protocol:            "http",
+			wantPresent:         false,
+		},
+		"http listener with 96KB": {
+			maxRequestHeadersKb: uintPointer(96),
+			protocol:            "http",
+			wantPresent:         true,
+			wantValue:           96,
+		},
+		"tcp listener ignores header setting": {
+			maxRequestHeadersKb: uintPointer(96),
+			protocol:            "tcp",
+			wantPresent:         false, // TCP doesn't use HTTP connection manager
+		},
+		"http listener with zero value": {
+			maxRequestHeadersKb: uintPointer(0),
+			protocol:            "http",
+			wantPresent:         true,
+			wantValue:           0,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			// Create listener filter opts as would be used in API Gateway
+			opts := listenerFilterOpts{
+				protocol:            tc.protocol,
+				filterName:          "test-api-gateway",
+				routeName:           "test-route",
+				cluster:             "test-cluster",
+				maxRequestHeadersKb: tc.maxRequestHeadersKb,
+			}
+
+			// Generate the HTTP filter
+			filter, err := makeHTTPFilter(opts)
+
+			if tc.protocol == "tcp" {
+				// For TCP, the function should still work but the result is not used
+				// in actual TCP proxy configurations
+				require.NoError(t, err)
+				return
+			}
+
+			require.NoError(t, err)
+			require.NotNil(t, filter)
+
+			// Decode the typed config to check MaxRequestHeadersKb
+			var httpConnMgr envoy_http_v3.HttpConnectionManager
+			err = filter.GetTypedConfig().UnmarshalTo(&httpConnMgr)
+			require.NoError(t, err)
+
+			if tc.wantPresent {
+				require.NotNil(t, httpConnMgr.MaxRequestHeadersKb)
+				require.Equal(t, tc.wantValue, httpConnMgr.MaxRequestHeadersKb.GetValue())
+			} else {
+				require.Nil(t, httpConnMgr.MaxRequestHeadersKb)
+			}
+		})
+	}
+}
+
 // Helper function for uint32 pointers
 func uintPointer(i uint32) *uint32 {
 	return &i

@@ -2546,7 +2546,6 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) 
 
 	// Set max request headers size if configured
 	if opts.maxRequestHeadersKb != nil {
-		// && *opts.maxRequestHeadersKb == 96
 		cfg.MaxRequestHeadersKb = &wrapperspb.UInt32Value{Value: *opts.maxRequestHeadersKb}
 	}
 

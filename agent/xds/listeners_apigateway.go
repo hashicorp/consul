@@ -127,7 +127,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 						statPrefix:          "ingress_upstream_",
 						accessLogs:          &cfgSnap.Proxy.AccessLogs,
 						logger:              s.Logger,
-						maxRequestHeadersKb: nil, // API Gateway uses Envoy defaults
+						maxRequestHeadersKb: listenerCfg.MaxRequestHeadersKB,
 					},
 					certs,
 				)
@@ -221,7 +221,14 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 				httpAuthzFilters:    authFilters,
 				accessLogs:          &cfgSnap.Proxy.AccessLogs,
 				logger:              s.Logger,
-				maxRequestHeadersKb: nil, // API Gateway uses Envoy defaults
+				maxRequestHeadersKb: listenerCfg.MaxRequestHeadersKB,
+			}
+
+			// DEBUG: Log the MaxRequestHeadersKB value
+			if listenerCfg.MaxRequestHeadersKB != nil {
+				s.Logger.Info("API Gateway MaxRequestHeadersKB found", "value", *listenerCfg.MaxRequestHeadersKB, "listener", listenerCfg.Name)
+			} else {
+				s.Logger.Info("API Gateway MaxRequestHeadersKB is nil", "listener", listenerCfg.Name)
 			}
 
 			// Generate any filter chains needed for services with custom TLS certs
