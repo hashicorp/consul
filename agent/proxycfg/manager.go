@@ -159,8 +159,6 @@ func (m *Manager) Register(id ProxyID, ns *structs.NodeService, source ProxySour
 			)
 		}
 	}()
-	// TODO::: CSL-11115 Remove
-	// check this...
 	return m.register(id, ns, source, token, overwrite)
 }
 
