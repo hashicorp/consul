@@ -2548,7 +2548,6 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) 
 		// && *opts.maxRequestHeadersKb == 96
 		cfg.MaxRequestHeadersKb = &wrapperspb.UInt32Value{Value: *opts.maxRequestHeadersKb}
 	}
-	// TODO::: Remove cfg.MaxRequestHeadersKb = &wrapperspb.UInt32Value{Value: 96}
 
 	if opts.useRDS {
 		if opts.cluster != "" {
