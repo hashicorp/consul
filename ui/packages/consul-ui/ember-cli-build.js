@@ -160,30 +160,6 @@ module.exports = function (defaults, $ = process.env) {
       'ember-cli-babel': {
         includePolyfill: true,
       },
-      postcssOptions: {
-        compile: {
-          extension: 'scss',
-          plugins: [
-            {
-              module: require('@csstools/postcss-sass'),
-              options: {
-                includePaths: [
-                  '../../node_modules/@hashicorp/design-system-tokens/dist/products/css',
-                ],
-              },
-            },
-            {
-              module: require('tailwindcss'),
-              options: {
-                config: './tailwind.config.js',
-              },
-            },
-            {
-              module: require('autoprefixer'),
-            },
-          ],
-        },
-      },
       'ember-cli-string-helpers': {
         only: [
           'capitalize',
@@ -204,13 +180,14 @@ module.exports = function (defaults, $ = process.env) {
         forbidEval: true,
         publicAssetURL: isProd ? '{{.ContentPath}}assets' : undefined,
       },
-      codemirror: {
-        keyMaps: ['sublime'],
-        addonFiles: ['lint/lint.css', 'lint/yaml-lint.js', 'mode/loadmode.js'],
-      },
       sassOptions: {
         implementation: require('sass'),
         sourceMapEmbed: sourcemaps,
+        precision: 4,
+        includePaths: [
+          './../../node_modules/@hashicorp/design-system-tokens/dist/products/css',
+          './../../node_modules/@hashicorp/design-system-components/dist/styles',
+        ],
       },
     }
   );
@@ -264,27 +241,6 @@ module.exports = function (defaults, $ = process.env) {
   // CSS.escape polyfill
   app.import('node_modules/css.escape/css.escape.js', { outputFile: 'assets/css.escape.js' });
 
-  // Possibly dynamically loaded via CodeMirror linting. See components/code-editor.js
-  app.import('node_modules/codemirror/mode/javascript/javascript.js', {
-    outputFile: 'assets/codemirror/mode/javascript/javascript.js',
-  });
-
-  // HCL/Ruby linting support. Possibly dynamically loaded via CodeMirror linting. See components/code-editor.js
-  app.import('node_modules/codemirror/mode/ruby/ruby.js', {
-    outputFile: 'assets/codemirror/mode/ruby/ruby.js',
-  });
-
-  // YAML linting support. Possibly dynamically loaded via CodeMirror linting. See components/code-editor.js
-  app.import('node_modules/js-yaml/dist/js-yaml.js', {
-    outputFile: 'assets/codemirror/mode/yaml/yaml.js',
-  });
-  app.import('node_modules/codemirror/mode/yaml/yaml.js', {
-    outputFile: 'assets/codemirror/mode/yaml/yaml.js',
-  });
-  // XML linting support. Possibly dynamically loaded via CodeMirror linting. See services/code-mirror/linter.js
-  app.import('node_modules/codemirror/mode/xml/xml.js', {
-    outputFile: 'assets/codemirror/mode/xml/xml.js',
-  });
   // metrics-providers
   app.import('vendor/metrics-providers/consul.js', {
     outputFile: 'assets/metrics-providers/consul.js',

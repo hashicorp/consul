@@ -8,6 +8,7 @@ Feature: dc / kvs / create
     ---
     Then the url should be /datacenter/kv/create
     And the title should be "New Key / Value - Consul"
+    And pause for 200
     Then I fill in with yaml
     ---
       additional: key-value

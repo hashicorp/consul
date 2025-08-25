@@ -37,7 +37,7 @@ Optional:
 
 The diagram below shows the minimal architecture needed to demonstrate the functionality.
 
-![Architectural diagram showing two backend services and a client service within a Consul service mesh](/img/consul/consul-lb-envoy-client-service.png)
+![Architectural diagram showing two backend services and a client service within a Consul service mesh](/img/consul-lb-envoy-client-service.png)
 
 <InteractiveLabCallout />
 
@@ -279,7 +279,7 @@ The load balancing policy for the datacenter applies also to the service resolut
 
 Consul reduces the amount of configuration needed for specifying load balancing policies by using a common policy to resolve internal requests from services inside the mesh, and external requests from clients outside the mesh.
 
-![Architectural diagram showing two backend services and a client service accessing the Consul service mesh using an ingress gateway](/img/consul/consul-lb-envoy-ingress-gw.png)
+![Architectural diagram showing two backend services and a client service accessing the Consul service mesh using an ingress gateway](/img/consul-lb-envoy-ingress-gw.png)
 
 You can deploy an ingress gateway using the following configuration:
 

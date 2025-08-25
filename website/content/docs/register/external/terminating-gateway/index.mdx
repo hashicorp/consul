@@ -17,8 +17,8 @@ In this tutorial, you will deploy a Consul terminating gateway that provides sec
 
 HashiCups is a coffee shop demo application. It has a microservices architecture and uses Consul service mesh to securely connect the services. At the beginning of this tutorial, you will use Terraform to deploy the HashiCups microservices, a self-managed Consul cluster on AWS EKS, and a managed AWS RDS instance that contains the HashiCups database. 
 
-![The architecture diagram of the scenario. This shows the Kubernetes environment and the flow of traffic from the client request through the self-managed Consul service mesh and into AWS RDS.](/img/consul/terminating-gateway-architecture-diagram-dark.png#dark-theme-only)
-![The architecture diagram of the scenario. This shows the Kubernetes environment and the flow of traffic from the client request through the self-managed Consul service mesh and into AWS RDS.](/img/consul/terminating-gateway-architecture-diagram-light.png#light-theme-only)
+![The architecture diagram of the scenario. This shows the Kubernetes environment and the flow of traffic from the client request through the self-managed Consul service mesh and into AWS RDS.](/img/terminating-gateway-architecture-diagram-dark.png#dark-theme-only)
+![The architecture diagram of the scenario. This shows the Kubernetes environment and the flow of traffic from the client request through the self-managed Consul service mesh and into AWS RDS.](/img/terminating-gateway-architecture-diagram-light.png#light-theme-only)
 
 In this tutorial, you will:
   
@@ -180,7 +180,7 @@ http://a4cc3e77d86854fe4bbcc9c62b8d381d-221509817.us-west-2.elb.amazonaws.com
 
 Open the Consul API gateway's URL in your browser and explore the HashiCups UI. Notice that HashiCups is in a broken state and unable to retrieve coffees from the backend product database. This behavior is expected since the HashiCups frontend services within the Consul service mesh cannot securely communicate with the external backend product database (on AWS RDS) by default. 
 
-![HashiCups in a dysfunctional state. No coffees are displayed on the screen. A message is displayed in the center of the UI stating "unable to query all coffees". ](/img/consul/hashicups-error-coffees.png)
+![HashiCups in a dysfunctional state. No coffees are displayed on the screen. A message is displayed in the center of the UI stating "unable to query all coffees". ](/img/hashicups-error-coffees.png)
 
 ## Enable Consul terminating gateway
 
@@ -456,7 +456,7 @@ $ echo $CONSUL_APIGW_ADDR
 http://a4cc3e77d86854fe4bbcc9c62b8d381d-221509817.us-west-2.elb.amazonaws.com
 ```
 
-![HashiCups in a state where all services are functional. An array of HashiCorp themed coffees are displayed in the UI.](/img/consul/hashicups-consul.png)
+![HashiCups in a state where all services are functional. An array of HashiCorp themed coffees are displayed in the UI.](/img/hashicups-consul.png)
 
 Notice that the HashiCups UI functions correctly. You have successfully connected the HashiCups frontend to the external HashiCups backend database on AWS RDS using Consul terminating gateway.
 

@@ -1,0 +1,8 @@
+<Note>
+
+If you experience errors when deploying or upgrading Consul in a K8s namespace different than the default `consul`, refer to the following list of technical constraints.
+
+- Consul cannot automatically detect its target K8s namespace, and needs it explicitly listed with `-namespace` in the parameters of _Helm_ or the _consul-k8s_ tool.
+- Consul needs its target K8s namespace added to the `connectInjector.k8sAllowNamspaces` Helm chart value. For more information, refer to this specific setting in the [Consul Helm chart reference](/consul/docs/reference/k8s/helm#v-connectinject-k8sallownamespaces).
+
+</Note>

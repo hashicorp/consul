@@ -40,7 +40,10 @@ export default ChildSelectorComponent.extend({
         case 'role[state]':
           set(this, 'state', target.value);
           if (target.value === 'policy') {
-            this.dom.component('.code-editor', target.nextElementSibling).didAppear();
+            const codeEditor = document.querySelector('[aria-label="role[policy][Rules]"]');
+            if (codeEditor) {
+              codeEditor.innerHTML = '';
+            }
           }
           break;
         default:
