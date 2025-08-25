@@ -137,7 +137,6 @@ func ParseProxyConfig(m map[string]interface{}) (ProxyConfig, error) {
 
 	if cfg.Protocol == "" {
 		cfg.Protocol = "tcp"
-		// TODO::: Remove cfg.Protocol = "http"
 	} else {
 		cfg.Protocol = strings.ToLower(cfg.Protocol)
 	}
