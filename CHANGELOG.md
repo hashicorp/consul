@@ -1,3 +1,28 @@
+## 1.21.4 (August 13, 2025)
+
+SECURITY:
+
+* security: Update Go to 1.23.12 to address CVE-2025-47906 [[GH-22547](https://github.com/hashicorp/consul/issues/22547)]
+
+IMPROVEMENTS:
+
+* ui: Replaced internal code editor with HDS (HashiCorp Design System) code editor and code block components for improved accessibility and maintainability across the Consul UI. [[GH-22513](https://github.com/hashicorp/consul/issues/22513)]
+
+BUG FIXES:
+
+* cli: capture pprof when ACL is enabled and a token with operator:read is used, even if enable_debug config is not explicitly set. [[GH-22552](https://github.com/hashicorp/consul/issues/22552)]
+
+## 1.21.3 (July 18, 2025)
+
+IMPROVEMENTS:
+
+* ui: Improved display and handling of IPv6 addresses for better readability and usability in the Consul web interface. [[GH-22468](https://github.com/hashicorp/consul/issues/22468)]
+
+BUG FIXES:
+
+* cli: validate IP address in service registration to prevent invalid IPs in service and tagged addresses. [[GH-22467](https://github.com/hashicorp/consul/issues/22467)]
+* ui: display IPv6 addresses with proper bracketed formatting [[GH-22423](https://github.com/hashicorp/consul/issues/22423)]
+
 ## 1.21.2 (June 17, 2025)
 
 SECURITY:
