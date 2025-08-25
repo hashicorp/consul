@@ -111,7 +111,7 @@ jobs:
       - name: Setup with node and yarn
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'yarn'
           cache-dependency-path: 'ui/yarn.lock'
 
@@ -134,7 +134,7 @@ jobs:
           PRERELEASE_VERSION: ${{ needs.set-product-version.outputs.pre-version }}
           CGO_ENABLED: "0"
           GOLDFLAGS: "${{needs.set-product-version.outputs.shared-ldflags}}"
-        uses: hashicorp/actions-go-build@make-clean-flag-optional
+        uses: hashicorp/actions-go-build@b9e2cfba3013adccdc112b01cba922d83c78fac5 # v1.1.1
         with:
           product_name: ${{ env.PKG_NAME }}
           product_version: ${{ needs.set-product-version.outputs.product-version }}
@@ -235,7 +235,7 @@ jobs:
 #          PRERELEASE_VERSION: ${{ needs.set-product-version.outputs.pre-version }}
 #          CGO_ENABLED: "0"
 #          GOLDFLAGS: "${{needs.set-product-version.outputs.shared-ldflags}}"
-#        uses: hashicorp/actions-go-build@make-clean-flag-optional
+#        uses: hashicorp/actions-go-build@b9e2cfba3013adccdc112b01cba922d83c78fac5 # v1.1.1
 #        with:
 #          product_name: ${{ env.PKG_NAME }}
 #          product_version: ${{ needs.set-product-version.outputs.product-version }}
