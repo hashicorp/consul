@@ -13,10 +13,13 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -51,6 +54,13 @@ const (
 	// debugMinDuration is the minimum a user can configure the duration
 	// to ensure that all information can be collected in time
 	debugMinDuration = 10 * time.Second
+
+	// validatePortsTimeout is the timeout while checking connectivity to default ports
+	// This is same as the timeout used in troubleshoot ports command
+	validatePortsTimeout = 5 * time.Second
+
+	// debugDefaultHost is the host on which connectivity to default ports are validated
+	debugDefaultHost = "localhost"
 
 	// debugArchiveExtension is the extension for archive files
 	debugArchiveExtension = ".tar.gz"
@@ -109,6 +119,11 @@ type debugIndex struct {
 	Duration string
 
 	Targets []string
+}
+
+type PortStatus struct {
+	Open   []string `json:"Open"`
+	Closed []string `json:"Closed"`
 }
 
 // timeDateformat is a modified version of time.RFC3339 which replaces colons with
@@ -211,6 +226,12 @@ func (c *cmd) Run(args []string) int {
 	err = c.captureStatic()
 	if err != nil {
 		c.UI.Warn(fmt.Sprintf("Static capture failed: %v", err))
+	}
+
+	// Capture ports connectivity report
+	err = c.troubleshootPorts()
+	if err != nil {
+		c.UI.Warn(fmt.Sprintf("Troubleshoot ports failed: %v", err))
 	}
 
 	// Capture dynamic information from the target agent, blocking for duration
@@ -380,6 +401,83 @@ func (c *cmd) captureStatic() error {
 		}
 	}
 	return errs
+}
+
+func (c *cmd) troubleshootPorts() error {
+	output, err := troubleshootRun(default_ports, debugDefaultHost)
+	if err != nil {
+		return err
+	}
+
+	if err := writeJSONFile(filepath.Join(c.output, targetPorts+".json"), output); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func troubleshootRun(ports []string, host string) (PortStatus, error) {
+	numPorts := len(ports)
+	openPorts := make(chan string, numPorts)
+	closePorts := make(chan string, numPorts)
+
+	var portResults PortStatus
+	var wg sync.WaitGroup
+	wg.Add(numPorts)
+
+	for _, port := range ports {
+		err := isValidPort(port)
+		if err != nil {
+			return portResults, err
+		}
+		go func(port string) {
+			defer wg.Done()
+
+			address := fmt.Sprintf("%s:%s", host, port)
+
+			err := dialPort(address)
+			if err != nil {
+				closePorts <- port
+			} else {
+				// If no error occurs, the connection was successful, and the port is open.
+				openPorts <- port
+			}
+		}(port)
+	}
+
+	wg.Wait()
+	close(openPorts)
+	close(closePorts)
+
+	for port := range openPorts {
+		portResults.Open = append(portResults.Open, port)
+	}
+
+	for port := range closePorts {
+		portResults.Closed = append(portResults.Closed, port)
+	}
+	return portResults, nil
+}
+
+func dialPort(address string) error {
+	// Attempt to establish a TCP connection with a timeout.
+	conn, err := net.DialTimeout("tcp", address, validatePortsTimeout)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	return nil
+}
+
+func isValidPort(port string) error {
+	portInt, err := strconv.Atoi(port)
+	if err != nil {
+		return fmt.Errorf("port %s is not a number", port)
+	}
+	if portInt < 0 || portInt > 65535 || port == "" {
+		return fmt.Errorf("invalid port %s", port)
+	}
+	return nil
 }
 
 func writeJSONFile(filename string, content interface{}) error {
@@ -804,9 +902,12 @@ const (
 	targetHost     = "host"
 	targetAgent    = "agent"
 	targetMembers  = "members"
+	targetPorts    = "ports"
 	// targetCluster is the now deprecated name for targetMembers
 	targetCluster = "cluster"
 )
+
+var default_ports = []string{"8600", "8500", "8501", "8502", "8503", "8301", "8302", "8300"}
 
 // defaultTargets specifies the list of targets that will be captured by default
 var defaultTargets = []string{
