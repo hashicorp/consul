@@ -114,6 +114,12 @@ Auto scaling groups (ASGs) are infrastructure associations in cloud providers us
 
 We recommend using the [`bootstrap-expect` command-line flag](/consul/commands/agent#_bootstrap_expect) during cluster creation. However, if you spawn new servers to add to a cluster or upgrade servers, do not configure them to automatically bootstrap. If `bootstrap-expect` is set on these replicas, it is possible for them to create a separate Raft system, which causes a _split brain_ and leads to errors and general cluster instability.
 
+<Warning>
+
+Using auto scaling groups with automatically removed Consul server nodes may cause severe outages in your Consul datacenter. To mitigate the risks associated with automatic scaling of Consul nodes, refer to [Prevent 'No cluster leader' issues](#prevent-no-cluster-leader-issues).
+
+</Warning>
+
 #### NUMA architecture awareness
 
 Some cloud providers offer extremely large instance sizes with Non-Uniform Memory Access (NUMA) architectures. Because the Go runtime is not NUMA aware, Consul is not NUMA aware. Even though you can run Consul on NUMA architecture, it will not take advantage of the multiprocessing capabilities.
@@ -283,3 +289,66 @@ At scale, using Consul as a backend for Vault results in increased memory and CP
 In situations where Consul handles large amounts of data and has high write throughput, we recommend adding monitoring for the [capacity and health of raft replication on servers](/consul/docs/reference/agent/telemetry#raft-replication-capacity-issues). If the server experiences heavy load when the size of its stored data is large enough, a follower may be unable to catch up on replication and become a voter after restarting. This situation occurs when the time it takes for a server to restore from disk takes longer than it takes for the leader to write a new snapshot and truncate its logs. Refer to [Raft snapshots](#raft-snapshots) for more information.
 
 Vault v1.4 and higher provides [integrated storage](/vault/docs/concepts/integrated-storage) as its recommended storage option. If you currently use Consul as a storage backend for Vault, we recommend switching to integrated storage. For a comparison between Vault's integrated storage and Consul as a backend for Vault, refer to [storage backends in the Vault documentation](/vault/docs/configuration/storage#integrated-storage-vs-consul-as-vault-storage). For detailed guidance on migrating the Vault backend from Consul to Vault's integrated storage, refer to the [storage migration tutorial](/vault/docs/configuration/storage#integrated-storage-vs-consul-as-vault-storage). Integrated storage improves resiliency by preventing a Consul outage from also affecting Vault functionality.
+
+
+## Prevent Raft quorum issues
+
+Consul servers rely on the Raft consensus algorithm to [ensure consistency of the cluster's state](/consul/docs/concept/consensus). 
+
+As a result, you must reconfigure the server agents one node at a time, in a rolling fashion. That means after every node is permanently removed or added, you should allow the cluster to return to a healthy state before you continue. Ideally all nodes should be healthy, but a valid quorum is the minimum requirement before you take any other action.
+
+
+Unexpected events or automations can break this rule and lead to different issues, including temporary unavailability, quorum loss that requires manual recovery, or even data loss. Consul outputs the error 'No cluster leader' when this occurs.
+
+Example events and automations that can produce this 'No cluster leader' error include:
+
+- VM failure in your datacenter
+- Node failure in K8s cluster
+- [AWS Auto Scaling Group](https://docs.aws.amazon.com/autoscaling/ec2/userguide/auto-scaling-groups.html) and [Spot Instances](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-spot-instances.html)
+- [Azure VM Scale Sets](https://learn.microsoft.com/en-us/azure/virtual-machine-scale-sets/) and [Spot VMs](https://learn.microsoft.com/en-us/azure/virtual-machines/spot-vms)
+- [GCP Managed Instance Group](https://cloud.google.com/compute/docs/instance-groups#managed_instance_groups), [SpotVms](https://cloud.google.com/compute/docs/instances/spot), and [Preemptible VMs](https://cloud.google.com/compute/docs/instances/preemptible)
+
+In each situation, the sudden removal of Consul server agents may result in the servers moving into `failed` states, which jeopardizes the Raft peer set.
+
+To make your Consul datacenter more resilient against this error, we recommend the following best practices.
+
+### Create regular backups
+
+Having a recent backup of your data is always the best situation to be in, even when no outages occur. Refer to [Backup and restore a Consul datacenter](/consul/docs/manage/disaster-recovery/backup-restore) to learn more. 
+
+<EnterpriseAlert> 
+
+Enterprise customers might also rely on [automated backups](/consul/docs/manage/scale/automated-backup) to establish a recurrent backup plan.
+
+</EnterpriseAlert>
+
+
+### Use Consul Autopilot <EnterpriseAlert inline /> 
+
+We do not recommend automated scaling of Consul server nodes based on load or usage unless it is coupled by some logic that prevents the cluster from losing quorum.
+
+One way to improve your datacenter resiliency and to leverage automatic scaling is to use [read replicas](/consul/docs/manage/scale/read-replica) and [redundancy zones](/consul/docs/manage/scale/redundancy-zone).
+
+These features provide support for read-heavy workload periods without risking the stability of the overall cluster.
+
+### Set `leave_on_terminate`
+
+When Consul server agents have [`leave_on_terminate`](/consul/docs/reference/agent/configuration-file/general#leave_on_terminate) set to `true`, agents that receive a `TERM` signal will send a leave message to the rest of the cluster and gracefully leave.
+
+This setting does not fully shield your cluster from outages because nodes can always fail suddenly, without the opportunity to leave gracefully. However, it makes the automated scaling workflows less impactful.
+
+<Note>
+
+If you set `leave_on_terminate=true`, all server instances must leave the cluster, rejoin it, and download the snapshot from leader before functioning again. That includes nodes restarting the Consul agent process to apply the configuration change. Slower restarts may result.
+
+</Note>
+
+### Set `min_quorum`
+
+In production environments, always set a Consul datacenter's [`min_quorum`](/consul/docs/reference/agent/configuration-file/bootstrap#min_quorum) so that Consul Autopilot stops pruning dead servers when it reaches this minimum.
+
+### Recover from outages
+
+Even with every mitigation setting in place, it is always possible to end up in a quorum loss situation where manual intervention is required.
+
+To learn how to recover a Consul datacenter from an inconsistent state, refer to [manual recovery using peers.json](/consul/tutorials/operate-consul/recovery-outage#manual-recovery-using-peers-json).
