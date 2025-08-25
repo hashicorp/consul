@@ -292,10 +292,9 @@ type APIGatewayListener struct {
 	// Default is the policy that is the default for the listener and route, routes can override this behavior
 	Default *APIGatewayPolicy `json:",omitempty"`
 
-	// TODO::: Valid Comments
-	// TODO::: CSL-11115 change
+	// MaxRequestHeadersKB configures the maximum size in kilobytes for request headers
+	// sent from downstream clients to upstream services. If not set, uses Envoy's default.
 	MaxRequestHeadersKB *uint32 `json:",omitempty"`
-	// MaxRequestHeadersKB *uint32 `json:",omitempty" alias:"max_request_headers_kb" mapstructure:"max_request_headers_kb"`
 }
 
 // APIGatewayTLSConfiguration specifies the configuration of a listener’s
