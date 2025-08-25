@@ -44,7 +44,7 @@ func (s *Server) WriteStatus(ctx context.Context, req *pbresource.WriteStatusReq
 	existing, err := s.Backend.Read(ctx, storage.EventualConsistency, req.Id)
 	switch {
 	case errors.Is(err, storage.ErrNotFound):
-		return nil, status.Errorf(codes.NotFound, err.Error())
+		return nil, status.Error(codes.NotFound, err.Error())
 	case err != nil:
 		return nil, status.Errorf(codes.Internal, "failed read: %v", err)
 	}
@@ -144,13 +144,10 @@ func (s *Server) validateWriteStatusRequest(req *pbresource.WriteStatusRequest) 
 				switch {
 				case condition.Resource.Type == nil:
 					field = fmt.Sprintf("status.conditions[%d].resource.type", i)
-					break
 				case condition.Resource.Tenancy == nil:
 					field = fmt.Sprintf("status.conditions[%d].resource.tenancy", i)
-					break
 				case condition.Resource.Name == "":
 					field = fmt.Sprintf("status.conditions[%d].resource.name", i)
-					break
 				}
 			}
 		}

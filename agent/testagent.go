@@ -278,9 +278,9 @@ func (a *TestAgent) Start(t testutil.TestingTB) error {
 	a.Agent = agent
 
 	// Start the anti-entropy syncer
-	a.Agent.StartSync()
+	a.StartSync()
 
-	a.srv = a.Agent.httpHandlers
+	a.srv = a.httpHandlers
 
 	if err := a.waitForUp(); err != nil {
 		a.Shutdown()
@@ -328,7 +328,7 @@ func (a *TestAgent) waitForUp() error {
 				retErr = fmt.Errorf("Catalog.ListNodes failed: %v", err)
 				continue // fail, try again
 			}
-			if !out.QueryMeta.KnownLeader {
+			if !out.KnownLeader {
 				retErr = fmt.Errorf("No leader")
 				continue // fail, try again
 			}
@@ -359,7 +359,7 @@ func (a *TestAgent) waitForUp() error {
 
 func (a *TestAgent) isACLBootstrapped() (bool, error) {
 	if a.config.ACLInitialManagementToken == "" {
-		logger := a.Agent.logger.Named("test")
+		logger := a.logger.Named("test")
 		logger.Warn("Skipping check for ACL bootstrapping")
 
 		return true, nil // We lie because we can't check.
@@ -409,11 +409,11 @@ func (a *TestAgent) Shutdown() error {
 	}
 
 	// shutdown agent before endpoints
-	defer a.Agent.ShutdownEndpoints()
-	if err := a.Agent.ShutdownAgent(); err != nil {
+	defer a.ShutdownEndpoints()
+	if err := a.ShutdownAgent(); err != nil {
 		return err
 	}
-	<-a.Agent.ShutdownCh()
+	<-a.ShutdownCh()
 	return nil
 }
 
@@ -425,7 +425,7 @@ func (a *TestAgent) DNSAddr() string {
 }
 
 func (a *TestAgent) HTTPAddr() string {
-	addr, err := firstAddr(a.Agent.apiServers, "http")
+	addr, err := firstAddr(a.apiServers, "http")
 	if err != nil {
 		// TODO: t.Fatal instead of panic
 		panic("no http server registered")
@@ -445,7 +445,7 @@ func firstAddr(s *apiServers, protocol string) (net.Addr, error) {
 }
 
 func (a *TestAgent) SegmentAddr(name string) string {
-	if server, ok := a.Agent.delegate.(*consul.Server); ok {
+	if server, ok := a.delegate.(*consul.Server); ok {
 		return server.LANSegmentAddr(name)
 	}
 	return ""
@@ -473,7 +473,7 @@ func (a *TestAgent) DNSDisableCompression(b bool) {
 // TODO: rename to newConsulConfig
 // TODO: remove TestAgent receiver, accept a.Agent.config as an arg
 func (a *TestAgent) consulConfig() *consul.Config {
-	c, err := newConsulConfig(a.Agent.config, a.Agent.logger)
+	c, err := newConsulConfig(a.config, a.logger)
 	if err != nil {
 		panic(err)
 	}

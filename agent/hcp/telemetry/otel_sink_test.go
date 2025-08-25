@@ -484,19 +484,11 @@ func generateSamples(n int, labels map[string]string) map[string]metricdata.Metr
 func performSinkOperation(sink *OTELSink, k string, v metricdata.Metrics, errCh chan error) {
 	key := strings.Split(k, ".")
 	data := v.Data
-	switch data.(type) {
+	switch dataType := data.(type) {
 	case metricdata.Gauge[float64]:
-		gauge, ok := data.(metricdata.Gauge[float64])
-		if !ok {
-			errCh <- fmt.Errorf("unexpected type assertion error for key: %s", key)
-		}
-		sink.SetGauge(key, float32(gauge.DataPoints[0].Value))
+		sink.SetGauge(key, float32(dataType.DataPoints[0].Value))
 	case metricdata.Sum[float64]:
-		sum, ok := data.(metricdata.Sum[float64])
-		if !ok {
-			errCh <- fmt.Errorf("unexpected type assertion error for key: %s", key)
-		}
-		sink.IncrCounter(key, float32(sum.DataPoints[0].Value))
+		sink.IncrCounter(key, float32(dataType.DataPoints[0].Value))
 	case metricdata.Histogram[float64]:
 		hist, ok := data.(metricdata.Histogram[float64])
 		if !ok {

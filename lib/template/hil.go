@@ -14,7 +14,7 @@ import (
 // InterpolateHIL processes the string as if it were HIL and interpolates only
 // the provided string->string map as possible variables.
 func InterpolateHIL(s string, vars map[string]string, lowercase bool) (string, error) {
-	if strings.Index(s, "${") == -1 {
+	if !strings.Contains(s, "${") {
 		// Skip going to the trouble of parsing something that has no HIL.
 		return s, nil
 	}

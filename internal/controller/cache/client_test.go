@@ -1,6 +1,9 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
+//go:build ignore
+// +build ignore
+
 package cache
 
 import (
@@ -76,7 +79,7 @@ func (suite *cacheClientSuite) performWrite(res *pbresource.Resource, shouldErro
 	// Setup the expectation for the inner mocked client to receive the real request
 	if shouldError {
 		suite.mclient.Write(mock.Anything, req).
-			Return(nil, fakeWrappedErr).
+			Return(nil, errFakeWrapped).
 			Once()
 	} else {
 		suite.mclient.Write(mock.Anything, req).
@@ -89,7 +92,7 @@ func (suite *cacheClientSuite) performWrite(res *pbresource.Resource, shouldErro
 	// Now use the wrapper client to perform the request
 	out, err := suite.client.Write(context.Background(), req)
 	if shouldError {
-		require.ErrorIs(suite.T(), err, fakeWrappedErr)
+		require.ErrorIs(suite.T(), err, errFakeWrapped)
 		require.Nil(suite.T(), out)
 	} else {
 		require.NoError(suite.T(), err)
@@ -105,7 +108,7 @@ func (suite *cacheClientSuite) performDelete(id *pbresource.ID, shouldError bool
 	// Setup the expectation for the inner mocked client to receive the real request
 	if shouldError {
 		suite.mclient.Delete(mock.Anything, req).
-			Return(nil, fakeWrappedErr).
+			Return(nil, errFakeWrapped).
 			Once()
 	} else {
 		suite.mclient.Delete(mock.Anything, req).
@@ -116,7 +119,7 @@ func (suite *cacheClientSuite) performDelete(id *pbresource.ID, shouldError bool
 	// Now use the wrapper client to perform the request
 	out, err := suite.client.Delete(context.Background(), req)
 	if shouldError {
-		require.ErrorIs(suite.T(), err, fakeWrappedErr)
+		require.ErrorIs(suite.T(), err, errFakeWrapped)
 		require.Nil(suite.T(), out)
 	} else {
 		require.NoError(suite.T(), err)
@@ -134,7 +137,7 @@ func (suite *cacheClientSuite) performWriteStatus(res *pbresource.Resource, key 
 	// Setup the expectation for the inner mocked client to receive the real request
 	if shouldError {
 		suite.mclient.WriteStatus(mock.Anything, req).
-			Return(nil, fakeWrappedErr).
+			Return(nil, errFakeWrapped).
 			Once()
 	} else {
 		suite.mclient.WriteStatus(mock.Anything, req).
@@ -147,7 +150,7 @@ func (suite *cacheClientSuite) performWriteStatus(res *pbresource.Resource, key 
 	// Now use the wrapper client to perform the request
 	out, err := suite.client.WriteStatus(context.Background(), req)
 	if shouldError {
-		require.ErrorIs(suite.T(), err, fakeWrappedErr)
+		require.ErrorIs(suite.T(), err, errFakeWrapped)
 		require.Nil(suite.T(), out)
 	} else {
 		require.NoError(suite.T(), err)

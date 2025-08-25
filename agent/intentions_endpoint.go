@@ -164,7 +164,7 @@ func (s *HTTPHandlers) IntentionMatch(resp http.ResponseWriter, req *http.Reques
 	var out structs.IndexedIntentionMatches
 	defer setMeta(resp, &out.QueryMeta)
 
-	if s.agent.config.HTTPUseCache && args.QueryOptions.UseCache {
+	if s.agent.config.HTTPUseCache && args.UseCache {
 		raw, m, err := s.agent.cache.Get(req.Context(), cachetype.IntentionMatchName, args)
 		if err != nil {
 			return nil, err
@@ -182,13 +182,13 @@ func (s *HTTPHandlers) IntentionMatch(resp http.ResponseWriter, req *http.Reques
 		if err := s.agent.RPC(req.Context(), "Intention.Match", args, &out); err != nil {
 			return nil, err
 		}
-		if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
+		if args.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
 			args.AllowStale = false
 			args.MaxStaleDuration = 0
 			goto RETRY_ONCE
 		}
 	}
-	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
+	out.ConsistencyLevel = args.ConsistencyLevel()
 
 	// We must have an identical count of matches
 	if len(out.Matches) != len(names) {

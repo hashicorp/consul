@@ -5,6 +5,7 @@ package structs
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"net/http"
@@ -131,10 +132,10 @@ func (e *ServiceRouterConfigEntry) Normalize() error {
 		}
 
 		if route.Destination != nil && route.Destination.Namespace == "" {
-			route.Destination.Namespace = e.EnterpriseMeta.NamespaceOrEmpty()
+			route.Destination.Namespace = e.NamespaceOrEmpty()
 		}
 		if route.Destination != nil && route.Destination.Partition == "" {
-			route.Destination.Partition = e.EnterpriseMeta.PartitionOrEmpty()
+			route.Destination.Partition = e.PartitionOrEmpty()
 		}
 	}
 
@@ -337,7 +338,7 @@ func (e *ServiceRouterConfigEntry) ListRelatedServices() []ServiceID {
 		out = append(out, svc)
 	}
 	sort.Slice(out, func(i, j int) bool {
-		return out[i].EnterpriseMeta.LessThan(&out[j].EnterpriseMeta) ||
+		return out[i].LessThan(&out[j].EnterpriseMeta) ||
 			out[i].ID < out[j].ID
 	})
 	return out
@@ -600,7 +601,7 @@ func (e *ServiceSplitterConfigEntry) Normalize() error {
 	if len(e.Splits) > 0 {
 		for i, split := range e.Splits {
 			if split.Namespace == "" {
-				split.Namespace = e.EnterpriseMeta.NamespaceOrDefault()
+				split.Namespace = e.NamespaceOrDefault()
 			}
 			e.Splits[i].Weight = NormalizeServiceSplitWeight(split.Weight)
 		}
@@ -720,7 +721,7 @@ func (e *ServiceSplitterConfigEntry) ListRelatedServices() []ServiceID {
 		out = append(out, svc)
 	}
 	sort.Slice(out, func(i, j int) bool {
-		return out[i].EnterpriseMeta.LessThan(&out[j].EnterpriseMeta) ||
+		return out[i].LessThan(&out[j].EnterpriseMeta) ||
 			out[i].ID < out[j].ID
 	})
 	return out
@@ -1153,15 +1154,15 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 			errorPrefix := fmt.Sprintf("Bad Failover[%q]: ", subset)
 
 			if err := f.ValidateEnterprise(); err != nil {
-				return fmt.Errorf(errorPrefix + err.Error())
+				return errors.New(errorPrefix + err.Error())
 			}
 
 			if subset != "*" && !isSubset(subset) {
-				return fmt.Errorf(errorPrefix + "not a valid subset subset")
+				return errors.New(errorPrefix + "not a valid subset subset")
 			}
 
 			if f.isEmpty() {
-				return fmt.Errorf(errorPrefix + "one of Service, ServiceSubset, Namespace, Targets, SamenessGroup, or Datacenters is required")
+				return errors.New(errorPrefix + "one of Service, ServiceSubset, Namespace, Targets, SamenessGroup, or Datacenters is required")
 			}
 
 			if err := f.Policy.ValidateEnterprise(); err != nil {
@@ -1207,18 +1208,18 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 				errorPrefix := fmt.Sprintf("Bad Failover[%q].Targets[%d]: ", subset, i)
 
 				if err := target.ValidateEnterprise(); err != nil {
-					return fmt.Errorf(errorPrefix + err.Error())
+					return errors.New(errorPrefix + err.Error())
 				}
 
 				switch {
 				case target.Peer != "" && target.ServiceSubset != "":
-					return fmt.Errorf(errorPrefix + "Peer cannot be set with ServiceSubset")
+					return errors.New(errorPrefix + "Peer cannot be set with ServiceSubset")
 				case target.Peer != "" && target.Partition != "":
-					return fmt.Errorf(errorPrefix + "Partition cannot be set with Peer")
+					return errors.New(errorPrefix + "Partition cannot be set with Peer")
 				case target.Peer != "" && target.Datacenter != "":
-					return fmt.Errorf(errorPrefix + "Peer cannot be set with Datacenter")
+					return errors.New(errorPrefix + "Peer cannot be set with Datacenter")
 				case target.Partition != "" && target.Datacenter != "":
-					return fmt.Errorf(errorPrefix + "Partition cannot be set with Datacenter")
+					return errors.New(errorPrefix + "Partition cannot be set with Datacenter")
 				case target.ServiceSubset != "" && (target.Service == "" || target.Service == e.Name):
 					if !isSubset(target.ServiceSubset) {
 						return fmt.Errorf("%sServiceSubset %q is not a valid subset of %q", errorPrefix, target.ServiceSubset, e.Name)
@@ -1364,7 +1365,7 @@ func (e *ServiceResolverConfigEntry) ListRelatedServices() []ServiceID {
 		out = append(out, svc)
 	}
 	sort.Slice(out, func(i, j int) bool {
-		return out[i].EnterpriseMeta.LessThan(&out[j].EnterpriseMeta) ||
+		return out[i].LessThan(&out[j].EnterpriseMeta) ||
 			out[i].ID < out[j].ID
 	})
 	return out
@@ -1764,7 +1765,7 @@ func (r *DiscoveryChainRequest) CacheInfo() cache.RequestInfo {
 		OverrideMeshGateway:    r.OverrideMeshGateway,
 		OverrideProtocol:       r.OverrideProtocol,
 		OverrideConnectTimeout: r.OverrideConnectTimeout,
-		Filter:                 r.QueryOptions.Filter,
+		Filter:                 r.Filter,
 	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces

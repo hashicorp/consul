@@ -617,7 +617,7 @@ func (l *State) AddAliasCheck(checkID structs.CheckID, srcServiceID structs.Serv
 
 // ServiceExists return true if the given service does exists
 func (l *State) ServiceExists(serviceID structs.ServiceID) bool {
-	serviceID.EnterpriseMeta.Normalize()
+	serviceID.Normalize()
 
 	l.Lock()
 	defer l.Unlock()

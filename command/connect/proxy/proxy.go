@@ -121,7 +121,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 	if len(c.flags.Args()) > 0 {
-		c.UI.Error(fmt.Sprintf("Should have no non-flag arguments."))
+		c.UI.Error("Should have no non-flag arguments.")
 		return 1
 	}
 
@@ -351,7 +351,7 @@ func (c *cmd) configWatcher(client *api.Client) (proxyImpl.ConfigWatcher, error)
 		listener.BindPort = port
 		listener.LocalServiceAddress = c.serviceAddr
 	} else {
-		c.UI.Info(fmt.Sprintf("   Public listener: Disabled"))
+		c.UI.Info("   Public listener: Disabled")
 	}
 
 	return proxyImpl.NewStaticConfigWatcher(&proxyImpl.Config{

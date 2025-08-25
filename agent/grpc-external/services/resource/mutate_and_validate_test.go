@@ -64,7 +64,7 @@ func TestMutateAndValidate_OwnerValidation(t *testing.T) {
 		WithRegisterFns(demo.RegisterTypes).
 		Run(t)
 
-	for desc, tc := range ownerValidationTestCases(t) {
+	for desc, tc := range ownerValidationTestCases() {
 		t.Run(desc, func(t *testing.T) {
 			run(t, client, tc)
 		})
@@ -100,7 +100,7 @@ func TestMutateAndValidate_Success(t *testing.T) {
 		WithRegisterFns(demo.RegisterTypes).
 		Run(t)
 
-	for desc, tc := range mavOrWriteSuccessTestCases(t) {
+	for desc, tc := range mavOrWriteSuccessTestCases() {
 		t.Run(desc, func(t *testing.T) {
 			run(t, client, tc)
 		})
@@ -133,7 +133,7 @@ func TestMutateAndValidate_Mutate(t *testing.T) {
 }
 
 func TestMutateAndValidate_TenancyMarkedForDeletion_Fails(t *testing.T) {
-	for desc, tc := range mavOrWriteTenancyMarkedForDeletionTestCases(t) {
+	for desc, tc := range mavOrWriteTenancyMarkedForDeletionTestCases() {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
 			client := testClient(t, server)

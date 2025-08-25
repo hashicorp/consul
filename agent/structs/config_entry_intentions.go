@@ -415,9 +415,8 @@ func (p *IntentionHTTPPermission) Clone() *IntentionHTTPPermission {
 
 	if len(p.Header) > 0 {
 		p2.Header = make([]IntentionHTTPHeaderPermission, 0, len(p.Header))
-		for _, hdr := range p.Header {
-			p2.Header = append(p2.Header, hdr)
-		}
+
+		p2.Header = append(p2.Header, p.Header...)
 	}
 
 	p2.Methods = stringslice.CloneStringSlice(p.Methods)
@@ -546,10 +545,10 @@ func (e *ServiceIntentionsConfigEntry) normalize(legacyWrite bool) error {
 		if src.Peer != "" || src.SamenessGroup != "" {
 			// If the source is peered or a sameness group, normalize the namespace only,
 			// since they are mutually exclusive with partition.
-			src.EnterpriseMeta.NormalizeNamespace()
+			src.NormalizeNamespace()
 		} else {
-			src.EnterpriseMeta.MergeNoWildcard(&e.EnterpriseMeta)
-			src.EnterpriseMeta.Normalize()
+			src.MergeNoWildcard(&e.EnterpriseMeta)
+			src.Normalize()
 		}
 
 		// Compute the precedence only AFTER normalizing namespaces since the
@@ -653,7 +652,7 @@ func (e *ServiceIntentionsConfigEntry) LegacyValidate() error {
 }
 
 func (e *ServiceIntentionsConfigEntry) HasWildcardDestination() bool {
-	dstNS := e.EnterpriseMeta.NamespaceOrDefault()
+	dstNS := e.NamespaceOrDefault()
 	return dstNS == WildcardSpecifier || e.Name == WildcardSpecifier
 }
 

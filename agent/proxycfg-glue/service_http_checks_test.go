@@ -85,7 +85,7 @@ func TestServerHTTPChecks(t *testing.T) {
 
 func newMockServiceHTTPChecks(t *testing.T) *mockServiceHTTPChecks {
 	mock := &mockServiceHTTPChecks{}
-	mock.Mock.Test(t)
+	mock.Test(t)
 
 	t.Cleanup(func() { mock.AssertExpectations(t) })
 

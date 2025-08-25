@@ -223,11 +223,11 @@ type captureUI struct {
 }
 
 func (c *captureUI) Stdout() io.Writer {
-	return c.MockUi.OutputWriter
+	return c.OutputWriter
 }
 
 func (c *captureUI) Stderr() io.Writer {
-	return c.MockUi.ErrorWriter
+	return c.ErrorWriter
 }
 
 func (c *captureUI) HeaderOutput(s string) {

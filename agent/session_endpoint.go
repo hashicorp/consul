@@ -216,7 +216,5 @@ func fixupEmptySessionChecks(session *structs.Session) {
 	// If the NodeChecks field contains an empty slice, empty out the default check that was provided to Checks
 	if len(session.NodeChecks) == 0 {
 		session.Checks = nil
-		return
 	}
-	return
 }

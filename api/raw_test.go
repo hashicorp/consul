@@ -4,7 +4,6 @@
 package api
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 
@@ -34,7 +33,7 @@ func TestAPI_RawV2ExportedServices(t *testing.T) {
 
 	defer s.Stop()
 
-	endpoint := strings.ToLower(fmt.Sprintf("/api/multicluster/v2/exportedservices/e1"))
+	endpoint := strings.ToLower("/api/multicluster/v2/exportedservices/e1")
 	wResp := &V2WriteResponse{}
 
 	wReq := &V2WriteRequest{

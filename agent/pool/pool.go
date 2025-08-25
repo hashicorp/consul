@@ -456,7 +456,7 @@ func DialRPCViaMeshGateway(
 		return nil, nil, err
 	}
 
-	var conn net.Conn = tlsConn
+	conn := tlsConn
 
 	var hc HalfCloser
 	if tlsConn, ok := conn.(*tls.Conn); ok {

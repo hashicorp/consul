@@ -247,9 +247,7 @@ type IssuedCert struct {
 }
 
 func (i *IssuedCert) Key() string {
-	return fmt.Sprintf("%s",
-		i.SerialNumber,
-	)
+	return i.SerialNumber
 }
 
 // CAOp is the operation for a request related to intentions.
@@ -631,8 +629,6 @@ func ParseDurationFunc() mapstructure.DecodeHookFunc {
 
 func Uint8ToString(bs []uint8) string {
 	b := make([]byte, len(bs))
-	for i, v := range bs {
-		b[i] = v
-	}
+	copy(b, bs)
 	return string(b)
 }

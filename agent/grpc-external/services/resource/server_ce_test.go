@@ -7,10 +7,6 @@ package resource_test
 
 import "github.com/hashicorp/consul/acl"
 
-func fillEntMeta(entMeta *acl.EnterpriseMeta) {
-	return
-}
+func fillEntMeta(entMeta *acl.EnterpriseMeta) {}
 
-func fillAuthorizerContext(authzContext *acl.AuthorizerContext) {
-	return
-}
+func fillAuthorizerContext(authzContext *acl.AuthorizerContext) {}

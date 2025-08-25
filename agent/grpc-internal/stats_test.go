@@ -106,7 +106,7 @@ func TestHandler_EmitsStats(t *testing.T) {
 func logError(t *testing.T, f func() error) func() {
 	return func() {
 		if err := f(); err != nil {
-			t.Logf(err.Error())
+			t.Log(err.Error())
 		}
 	}
 }

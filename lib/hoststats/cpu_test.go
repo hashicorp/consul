@@ -24,7 +24,7 @@ func TestHostStats_CPU(t *testing.T) {
 	// Collect twice so we can calculate percents we need to generate some work
 	// so that the cpu values change
 	hs.collect()
-	for begin := time.Now(); time.Now().Sub(begin) < 100*time.Millisecond; {
+	for begin := time.Now(); time.Since(begin) < 100*time.Millisecond; {
 	}
 	hs.collect()
 	stats := hs.Stats()

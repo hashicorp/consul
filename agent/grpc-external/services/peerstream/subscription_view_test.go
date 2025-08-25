@@ -165,7 +165,7 @@ func (s *store) simulateUpdates(ctx context.Context, events []map[string]stream.
 			event.Index = idx
 			s.pub.Publish([]stream.Event{event})
 
-			s.stateMap.mu.Lock()
+			s.mu.Lock()
 			svcState, ok := s.states[svc]
 			if !ok {
 				svcState = &serviceState{
@@ -174,7 +174,7 @@ func (s *store) simulateUpdates(ctx context.Context, events []map[string]stream.
 				}
 				s.states[svc] = svcState
 			}
-			s.stateMap.mu.Unlock()
+			s.mu.Unlock()
 
 			svcState.mu.Lock()
 			svcState.idx = idx
@@ -227,7 +227,7 @@ type serviceState struct {
 //
 // Snapshot implements stream.SnapshotFunc.
 func (s *snapshotHandler) Snapshot(req stream.SubscribeRequest, buf stream.SnapshotAppender) (index uint64, err error) {
-	s.stateMap.mu.Lock()
+	s.mu.Lock()
 	svcState, ok := s.states[req.Subject.String()]
 	if !ok {
 		svcState = &serviceState{
@@ -236,7 +236,7 @@ func (s *snapshotHandler) Snapshot(req stream.SubscribeRequest, buf stream.Snaps
 		}
 		s.states[req.Subject.String()] = svcState
 	}
-	s.stateMap.mu.Unlock()
+	s.mu.Unlock()
 
 	svcState.mu.Lock()
 	defer svcState.mu.Unlock()

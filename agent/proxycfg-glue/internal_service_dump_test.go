@@ -166,7 +166,7 @@ func TestServerInternalServiceDump(t *testing.T) {
 
 func newMockInternalServiceDump(t *testing.T) *mockInternalServiceDump {
 	mock := &mockInternalServiceDump{}
-	mock.Mock.Test(t)
+	mock.Test(t)
 
 	t.Cleanup(func() { mock.AssertExpectations(t) })
 

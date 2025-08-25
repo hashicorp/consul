@@ -34,19 +34,19 @@ func (r *ACLResolver) resolveEnterpriseDefaultsForIdentity(identity structs.ACLI
 }
 
 // resolveEnterpriseIdentityAndRoles will resolve an enterprise identity to an additional set of roles
-func (_ *ACLResolver) resolveEnterpriseIdentityAndRoles(_ structs.ACLIdentity) (structs.ACLIdentity, structs.ACLRoles, error) {
+func (*ACLResolver) resolveEnterpriseIdentityAndRoles(_ structs.ACLIdentity) (structs.ACLIdentity, structs.ACLRoles, error) {
 	// this function does nothing in CE
 	return nil, nil, nil
 }
 
 // resolveEnterpriseIdentityAndPolicies will resolve an enterprise identity to an additional set of policies
-func (_ *ACLResolver) resolveEnterpriseIdentityAndPolicies(_ structs.ACLIdentity) (structs.ACLIdentity, structs.ACLPolicies, error) {
+func (*ACLResolver) resolveEnterpriseIdentityAndPolicies(_ structs.ACLIdentity) (structs.ACLIdentity, structs.ACLPolicies, error) {
 	// this function does nothing in CE
 	return nil, nil, nil
 }
 
 // resolveLocallyManagedEnterpriseToken will resolve a managed service provider token to an identity and authorizer
-func (_ *ACLResolver) resolveLocallyManagedEnterpriseToken(_ string) (structs.ACLIdentity, acl.Authorizer, bool) {
+func (*ACLResolver) resolveLocallyManagedEnterpriseToken(_ string) (structs.ACLIdentity, acl.Authorizer, bool) {
 	return nil, nil, false
 }
 

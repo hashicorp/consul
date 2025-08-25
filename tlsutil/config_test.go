@@ -1694,11 +1694,6 @@ func certChain(t *testing.T, certs ...string) []*x509.Certificate {
 	return result
 }
 
-func startRPCTLSServer(t *testing.T, c *Configurator) (net.Conn, <-chan error) {
-	client, errc, _ := startTLSServer(c.IncomingRPCConfig())
-	return client, errc
-}
-
 func startALPNRPCTLSServer(t *testing.T, config *Config, alpnProtos []string) (net.Conn, <-chan error) {
 	cfg := makeConfigurator(t, *config).IncomingALPNRPCConfig(alpnProtos)
 	client, errc, _ := startTLSServer(cfg)

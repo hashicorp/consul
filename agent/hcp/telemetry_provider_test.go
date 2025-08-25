@@ -281,7 +281,7 @@ func TestTelemetryConfigProvider_UpdateConfig(t *testing.T) {
 			require.NotNil(t, interval, 1)
 			sv := interval.Counters[tc.metricKey]
 			assert.NotNil(t, sv.AggregateSample)
-			require.Equal(t, sv.AggregateSample.Count, 1)
+			require.Equal(t, sv.Count, 1)
 		})
 	}
 }

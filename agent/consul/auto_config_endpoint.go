@@ -46,7 +46,7 @@ type AutoConfigAuthorizer interface {
 
 type disabledAuthorizer struct{}
 
-func (_ *disabledAuthorizer) Authorize(_ *pbautoconf.AutoConfigRequest) (AutoConfigOptions, error) {
+func (*disabledAuthorizer) Authorize(_ *pbautoconf.AutoConfigRequest) (AutoConfigOptions, error) {
 	return AutoConfigOptions{}, fmt.Errorf("Auto Config is disabled")
 }
 

@@ -88,7 +88,7 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	if len(res) == 0 {
-		c.UI.Info(fmt.Sprintf("There are no peering connections."))
+		c.UI.Info("There are no peering connections.")
 		return 0
 	}
 

@@ -215,10 +215,8 @@ func (n *Network) SetSubnet(subnet string) (bool, error) {
 	var ipPool []string
 
 	addr := p.Addr()
-	for {
-		if !p.Contains(addr) {
-			break
-		}
+	for p.Contains(addr) {
+
 		ipPool = append(ipPool, addr.String())
 		addr = addr.Next()
 	}

@@ -48,7 +48,7 @@ func (c *PreparedQuery) Fetch(_ cache.FetchOptions, req cache.Request) (cache.Fe
 	}
 
 	result.Value = &reply
-	result.Index = reply.QueryMeta.Index
+	result.Index = reply.Index
 
 	return result, nil
 }

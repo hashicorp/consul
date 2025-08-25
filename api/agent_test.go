@@ -1462,7 +1462,7 @@ func TestAPI_AgentMonitor(t *testing.T) {
 		// Wait for the first log message and validate it
 		select {
 		case log := <-logCh:
-			if !(strings.Contains(log, "[INFO]") || strings.Contains(log, "[DEBUG]")) {
+			if !strings.Contains(log, "[INFO]") && !strings.Contains(log, "[DEBUG]") {
 				r.Fatalf("bad: %q", log)
 			}
 		case <-time.After(10 * time.Second):

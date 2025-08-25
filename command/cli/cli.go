@@ -33,11 +33,11 @@ type BasicUI struct {
 }
 
 func (b *BasicUI) Stdout() io.Writer {
-	return b.BasicUi.Writer
+	return b.Writer
 }
 
 func (b *BasicUI) Stderr() io.Writer {
-	return b.BasicUi.ErrorWriter
+	return b.ErrorWriter
 }
 
 func (b *BasicUI) HeaderOutput(s string) {

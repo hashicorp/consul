@@ -160,9 +160,7 @@ func (e *InlineCertificateConfigEntry) Hosts() ([]string, error) {
 
 	hosts := []string{certificate.Subject.CommonName}
 
-	for _, name := range certificate.DNSNames {
-		hosts = append(hosts, name)
-	}
+	hosts = append(hosts, certificate.DNSNames...)
 
 	for _, ip := range certificate.IPAddresses {
 		hosts = append(hosts, ip.String())

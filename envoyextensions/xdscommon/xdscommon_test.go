@@ -102,8 +102,8 @@ func TestCloneIndexedResources(t *testing.T) {
 				}
 
 				require.NotSame(t, tc.input, clone)
-				require.NotSame(t, tc.input.Index, clone.Index)
-				require.NotSame(t, tc.input.ChildIndex, clone.ChildIndex)
+				require.NotSame(t, &tc.input.Index, &clone.Index)
+				require.NotSame(t, &tc.input.ChildIndex, &clone.ChildIndex)
 
 				// Ensure deep clone of protos
 				for typeURL, typeMap := range tc.input.Index {

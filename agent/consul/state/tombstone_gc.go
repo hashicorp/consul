@@ -119,7 +119,7 @@ func (t *TombstoneGC) Hint(index uint64) {
 	// Create a new expiration timer.
 	t.expires[expires] = &expireInterval{
 		maxIndex: index,
-		timer: time.AfterFunc(expires.Sub(time.Now()), func() {
+		timer: time.AfterFunc(time.Until(expires), func() {
 			t.expireTime(expires)
 		}),
 	}

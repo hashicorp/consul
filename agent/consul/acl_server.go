@@ -217,7 +217,7 @@ func (s *Server) aclBinder() *auth.Binder {
 func (s *Server) aclTokenWriter() *auth.TokenWriter {
 	return auth.NewTokenWriter(auth.TokenWriterConfig{
 		RaftApply:           s.raftApply,
-		ACLCache:            s.ACLResolver.cache,
+		ACLCache:            s.cache,
 		Store:               s.fsm.State(),
 		CheckUUID:           s.checkTokenUUID,
 		MaxExpirationTTL:    s.config.ACLTokenMaxExpirationTTL,

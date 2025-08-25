@@ -56,7 +56,7 @@ func TestResourceHandler_InputValidation(t *testing.T) {
 			Scope: resource.ScopeNamespace,
 		},
 		client,
-		func(req *http.Request, token *string) { return },
+		func(req *http.Request, token *string) {},
 		hclog.NewNullLogger(),
 	}
 

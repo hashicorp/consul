@@ -910,7 +910,7 @@ func TestTxn_Read_ACLDeny(t *testing.T) {
 		require.NoError(t, err)
 		require.Empty(t, out.Results)
 		require.Empty(t, out.Errors)
-		require.True(t, out.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, out.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	t.Run("complex operations (return permission denied errors)", func(t *testing.T) {

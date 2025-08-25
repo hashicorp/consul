@@ -136,7 +136,7 @@ func TestServerHealth(t *testing.T) {
 
 func newMockHealth(t *testing.T) *mockHealth {
 	mock := &mockHealth{}
-	mock.Mock.Test(t)
+	mock.Test(t)
 
 	t.Cleanup(func() { mock.AssertExpectations(t) })
 

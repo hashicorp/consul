@@ -47,8 +47,8 @@ func main() {
 	var numCAs = 2
 	var services = []string{"web", "db", "cache"}
 	var outDir string
-	var keyType string = "ec"
-	var keyBits int = 256
+	var keyType = "ec"
+	var keyBits = 256
 
 	flag.StringVar(&outDir, "out-dir", "",
 		"REQUIRED: the dir to write certificates to")

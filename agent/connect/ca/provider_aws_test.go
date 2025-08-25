@@ -46,7 +46,7 @@ func TestAWSBootstrapAndSignPrimary(t *testing.T) {
 				"PrivateKeyBits": tc.KeyBits,
 				"RootCertTTL":    "8761h",
 			}
-			provider := testAWSProvider(t, testProviderConfigPrimary(t, cfg))
+			provider := testAWSProvider(t, testProviderConfigPrimary(cfg))
 			defer provider.Cleanup(true, nil)
 
 			rootPEM, err := provider.GenerateCAChain()
@@ -72,7 +72,7 @@ func TestAWSBootstrapAndSignPrimary(t *testing.T) {
 	}
 
 	t.Run("Test default root ttl for aws ca provider", func(t *testing.T) {
-		provider := testAWSProvider(t, testProviderConfigPrimary(t, nil))
+		provider := testAWSProvider(t, testProviderConfigPrimary(nil))
 		defer provider.Cleanup(true, nil)
 
 		rootPEM, err := provider.GenerateCAChain()
@@ -107,12 +107,12 @@ func TestAWSBootstrapAndSignSecondary(t *testing.T) {
 	// all of these tests run at once.
 	skipIfAWSNotConfigured(t)
 
-	p1 := testAWSProvider(t, testProviderConfigPrimary(t, nil))
+	p1 := testAWSProvider(t, testProviderConfigPrimary(nil))
 	defer p1.Cleanup(true, nil)
 	rootPEM, err := p1.GenerateCAChain()
 	require.NoError(t, err)
 
-	p2 := testAWSProvider(t, testProviderConfigSecondary(t, nil))
+	p2 := testAWSProvider(t, testProviderConfigSecondary(nil))
 	defer p2.Cleanup(true, nil)
 
 	testSignIntermediateCrossDC(t, p1, p2)
@@ -134,13 +134,13 @@ func TestAWSBootstrapAndSignSecondary(t *testing.T) {
 		t.Log("Restarting Providers with State")
 
 		// Create new provider instances
-		cfg1 := testProviderConfigPrimary(t, nil)
+		cfg1 := testProviderConfigPrimary(nil)
 		cfg1.State = p1State
 		p1 = testAWSProvider(t, cfg1)
 		newRootPEM, err := p1.GenerateCAChain()
 		require.NoError(t, err)
 
-		cfg2 := testProviderConfigPrimary(t, nil)
+		cfg2 := testProviderConfigPrimary(nil)
 		cfg2.State = p2State
 		p2 = testAWSProvider(t, cfg2)
 		// Need call ActiveLeafSigningCert like leader would to trigger loading from PCA
@@ -166,14 +166,14 @@ func TestAWSBootstrapAndSignSecondary(t *testing.T) {
 		t.Log("Starting up Providers with ExistingARNs")
 
 		// Create new provider instances with config
-		cfg1 := testProviderConfigPrimary(t, map[string]interface{}{
+		cfg1 := testProviderConfigPrimary(map[string]interface{}{
 			"ExistingARN": p1State[AWSStateCAARNKey],
 		})
 		p1 = testAWSProvider(t, cfg1)
 		newRootPEM, err := p1.GenerateCAChain()
 		require.NoError(t, err)
 
-		cfg2 := testProviderConfigPrimary(t, map[string]interface{}{
+		cfg2 := testProviderConfigPrimary(map[string]interface{}{
 			"ExistingARN": p2State[AWSStateCAARNKey],
 		})
 		cfg1.RawConfig["ExistingARN"] = p2State[AWSStateCAARNKey]
@@ -202,7 +202,7 @@ func TestAWSBootstrapAndSignSecondary(t *testing.T) {
 		newIntPEM := strings.TrimSuffix(intPEM, "\n")
 		newRootPEM := strings.TrimSuffix(rootPEM, "\n")
 
-		cfg2 := testProviderConfigSecondary(t, map[string]interface{}{
+		cfg2 := testProviderConfigSecondary(map[string]interface{}{
 			"ExistingARN": p2State[AWSStateCAARNKey],
 		})
 		p2 = testAWSProvider(t, cfg2)
@@ -232,14 +232,14 @@ func TestAWSBootstrapAndSignSecondaryConsul(t *testing.T) {
 		_, err := p1.GenerateCAChain()
 		require.NoError(t, err)
 
-		p2 := testAWSProvider(t, testProviderConfigSecondary(t, nil))
+		p2 := testAWSProvider(t, testProviderConfigSecondary(nil))
 		defer p2.Cleanup(true, nil)
 
 		testSignIntermediateCrossDC(t, p1, p2)
 	})
 
 	t.Run("pri=aws,sec=consul", func(t *testing.T) {
-		p1 := testAWSProvider(t, testProviderConfigPrimary(t, nil))
+		p1 := testAWSProvider(t, testProviderConfigPrimary(nil))
 		defer p1.Cleanup(true, nil)
 
 		_, err := p1.GenerateCAChain()
@@ -260,7 +260,7 @@ func TestAWSBootstrapAndSignSecondaryConsul(t *testing.T) {
 func TestAWSNoCrossSigning(t *testing.T) {
 	skipIfAWSNotConfigured(t)
 
-	p1 := testAWSProvider(t, testProviderConfigPrimary(t, nil))
+	p1 := testAWSProvider(t, testProviderConfigPrimary(nil))
 	defer p1.Cleanup(true, nil)
 	// Don't bother initializing a PCA as that is slow and unnecessary for this
 	// test
@@ -318,7 +318,7 @@ func TestAWSProvider_Cleanup(t *testing.T) {
 
 	t.Run("provider-change", func(t *testing.T) {
 		// create a provider with the default config which will create the CA
-		p1Conf := testProviderConfigPrimary(t, nil)
+		p1Conf := testProviderConfigPrimary(nil)
 		p1 := testAWSProvider(t, p1Conf)
 		p1.GenerateCAChain()
 
@@ -339,7 +339,7 @@ func TestAWSProvider_Cleanup(t *testing.T) {
 		state, err := p1.State()
 		require.NoError(t, err)
 
-		p2Conf := testProviderConfigPrimary(t, map[string]interface{}{
+		p2Conf := testProviderConfigPrimary(map[string]interface{}{
 			"ExistingARN": state[AWSStateCAARNKey],
 		})
 		p2 := testAWSProvider(t, p2Conf)
@@ -352,7 +352,7 @@ func TestAWSProvider_Cleanup(t *testing.T) {
 
 	t.Run("arn-change", func(t *testing.T) {
 		// create a provider with the default config which will create the CA
-		p1Conf := testProviderConfigPrimary(t, nil)
+		p1Conf := testProviderConfigPrimary(nil)
 		p1 := testAWSProvider(t, p1Conf)
 		p1.GenerateCAChain()
 
@@ -373,13 +373,13 @@ func TestAWSProvider_Cleanup(t *testing.T) {
 		state, err := p1.State()
 		require.NoError(t, err)
 
-		p2Conf := testProviderConfigPrimary(t, map[string]interface{}{
+		p2Conf := testProviderConfigPrimary(map[string]interface{}{
 			"ExistingARN": state[AWSStateCAARNKey],
 		})
 		p2 := testAWSProvider(t, p2Conf)
 
 		// changing the ARN should cause the other CA to be deleted
-		p2ConfAltARN := testProviderConfigPrimary(t, map[string]interface{}{
+		p2ConfAltARN := testProviderConfigPrimary(map[string]interface{}{
 			"ExistingARN": "doesnt-need-to-be-real",
 		})
 		require.NoError(t, p2.Cleanup(false, p2ConfAltARN.RawConfig))
@@ -389,7 +389,7 @@ func TestAWSProvider_Cleanup(t *testing.T) {
 
 	t.Run("arn-not-changed", func(t *testing.T) {
 		// create a provider with the default config which will create the CA
-		p1Conf := testProviderConfigPrimary(t, nil)
+		p1Conf := testProviderConfigPrimary(nil)
 		p1 := testAWSProvider(t, p1Conf)
 		p1.GenerateCAChain()
 
@@ -405,7 +405,7 @@ func TestAWSProvider_Cleanup(t *testing.T) {
 		state, err := p1.State()
 		require.NoError(t, err)
 
-		p2Conf := testProviderConfigPrimary(t, map[string]interface{}{
+		p2Conf := testProviderConfigPrimary(map[string]interface{}{
 			"ExistingARN": state[AWSStateCAARNKey],
 		})
 		p2 := testAWSProvider(t, p2Conf)
@@ -423,7 +423,7 @@ func testAWSProvider(t *testing.T, cfg ProviderConfig) *AWSProvider {
 	return p
 }
 
-func testProviderConfigPrimary(t *testing.T, cfg map[string]interface{}) ProviderConfig {
+func testProviderConfigPrimary(cfg map[string]interface{}) ProviderConfig {
 	rawCfg := make(map[string]interface{})
 	for k, v := range cfg {
 		rawCfg[k] = v
@@ -437,8 +437,8 @@ func testProviderConfigPrimary(t *testing.T, cfg map[string]interface{}) Provide
 	}
 }
 
-func testProviderConfigSecondary(t *testing.T, cfg map[string]interface{}) ProviderConfig {
-	c := testProviderConfigPrimary(t, cfg)
+func testProviderConfigSecondary(cfg map[string]interface{}) ProviderConfig {
+	c := testProviderConfigPrimary(cfg)
 	c.IsPrimary = false
 	c.Datacenter = "dc2"
 	return c

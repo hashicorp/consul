@@ -98,7 +98,7 @@ func (u *UpstreamID) normalize() {
 		u.Type = ""
 	}
 
-	u.EnterpriseMeta.Normalize()
+	u.Normalize()
 }
 
 // String encodes the UpstreamID into a string for use in agent cache keys.

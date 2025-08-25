@@ -214,7 +214,7 @@ func poolName(dc string, wan bool, partition, segment string) string {
 func formatMessages(messages map[string]string) string {
 	b := new(strings.Builder)
 	for from, msg := range messages {
-		b.WriteString(fmt.Sprintf("  ===> %s: %s\n", from, msg))
+		fmt.Fprintf(b, "  ===> %s: %s\n", from, msg)
 	}
 	return b.String()
 }
@@ -222,7 +222,7 @@ func formatMessages(messages map[string]string) string {
 func formatKeys(keys map[string]int, total int) string {
 	b := new(strings.Builder)
 	for key, num := range keys {
-		b.WriteString(fmt.Sprintf("  %s [%d/%d]\n", key, num, total))
+		fmt.Fprintf(b, "  %s [%d/%d]\n", key, num, total)
 	}
 	return b.String()
 }

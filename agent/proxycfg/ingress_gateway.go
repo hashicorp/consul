@@ -83,14 +83,14 @@ func (s *handlerIngressGateway) handleUpdate(ctx context.Context, u UpdateEvent,
 		return fmt.Errorf("error filling agent cache: %v", u.Err)
 	}
 
-	switch {
-	case u.CorrelationID == rootsWatchID:
+	switch u.CorrelationID {
+	case rootsWatchID:
 		roots, ok := u.Result.(*structs.IndexedCARoots)
 		if !ok {
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 		snap.Roots = roots
-	case u.CorrelationID == gatewayConfigWatchID:
+	case gatewayConfigWatchID:
 		resp, ok := u.Result.(*structs.ConfigEntryResponse)
 		if !ok {
 			return fmt.Errorf("invalid type for response: %T", u.Result)
@@ -124,7 +124,7 @@ func (s *handlerIngressGateway) handleUpdate(ctx context.Context, u UpdateEvent,
 			return err
 		}
 
-	case u.CorrelationID == gatewayServicesWatchID:
+	case gatewayServicesWatchID:
 		services, ok := u.Result.(*structs.IndexedGatewayServices)
 		if !ok {
 			return fmt.Errorf("invalid type for response: %T", u.Result)

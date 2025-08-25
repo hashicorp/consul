@@ -16,7 +16,6 @@ import (
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
-	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
@@ -217,7 +216,7 @@ func runReaperTestCaseWithTenancies(testCase func(tenancy *pbresource.Tenancy)) 
 
 func setupResourceService(t *testing.T) pbresource.ResourceServiceClient {
 	return svctest.NewResourceServiceBuilder().
-		WithTenancies(rtest.TestTenancies()...).
+		WithTenancies(resourcetest.TestTenancies()...).
 		WithRegisterFns(demo.RegisterTypes).
 		Run(t)
 }

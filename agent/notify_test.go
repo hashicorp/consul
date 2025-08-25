@@ -10,7 +10,7 @@ import (
 // Used to be defined in NotifyGroup.WaitCh but was only used in tests and prone
 // to leaking memory if anything real did use it because there is no way to
 // clear the chan later.
-func testWaitCh(t *testing.T, grp *NotifyGroup) chan struct{} {
+func testWaitCh(grp *NotifyGroup) chan struct{} {
 	ch := make(chan struct{}, 1)
 	grp.Wait(ch)
 	return ch
@@ -19,8 +19,8 @@ func testWaitCh(t *testing.T, grp *NotifyGroup) chan struct{} {
 func TestNotifyGroup(t *testing.T) {
 	grp := &NotifyGroup{}
 
-	ch1 := testWaitCh(t, grp)
-	ch2 := testWaitCh(t, grp)
+	ch1 := testWaitCh(grp)
+	ch2 := testWaitCh(grp)
 
 	select {
 	case <-ch1:
@@ -47,7 +47,7 @@ func TestNotifyGroup(t *testing.T) {
 	}
 
 	// Should be unregistered
-	ch3 := testWaitCh(t, grp)
+	ch3 := testWaitCh(grp)
 	grp.Notify()
 
 	select {
@@ -70,7 +70,7 @@ func TestNotifyGroup(t *testing.T) {
 func TestNotifyGroup_Clear(t *testing.T) {
 	grp := &NotifyGroup{}
 
-	ch1 := testWaitCh(t, grp)
+	ch1 := testWaitCh(grp)
 	grp.Clear(ch1)
 
 	grp.Notify()

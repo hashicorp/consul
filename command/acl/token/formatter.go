@@ -172,9 +172,9 @@ func (f *prettyFormatter) FormatTokenExpanded(token *api.ACLTokenExpanded) (stri
 		buffer.WriteString("\n\n")
 	}
 
-	if len(token.ACLToken.Policies) > 0 {
+	if len(token.Policies) > 0 {
 		buffer.WriteString("Policies:\n")
-		for _, policyLink := range token.ACLToken.Policies {
+		for _, policyLink := range token.Policies {
 			formatPolicy(policies[policyLink.ID], WHITESPACE_2)
 		}
 	}
@@ -190,9 +190,9 @@ func (f *prettyFormatter) FormatTokenExpanded(token *api.ACLTokenExpanded) (stri
 		policy := identity.SyntheticPolicy(&entMeta)
 		displaySyntheticPolicy(policy, &buffer, indent)
 	}
-	if len(token.ACLToken.ServiceIdentities) > 0 {
+	if len(token.ServiceIdentities) > 0 {
 		buffer.WriteString("Service Identities:\n")
-		for _, svcIdentity := range token.ACLToken.ServiceIdentities {
+		for _, svcIdentity := range token.ServiceIdentities {
 			formatServiceIdentity(svcIdentity, WHITESPACE_2)
 		}
 	}
@@ -203,9 +203,9 @@ func (f *prettyFormatter) FormatTokenExpanded(token *api.ACLTokenExpanded) (stri
 		policy := identity.SyntheticPolicy(&entMeta)
 		displaySyntheticPolicy(policy, &buffer, indent)
 	}
-	if len(token.ACLToken.NodeIdentities) > 0 {
+	if len(token.NodeIdentities) > 0 {
 		buffer.WriteString("Node Identities:\n")
-		for _, nodeIdentity := range token.ACLToken.NodeIdentities {
+		for _, nodeIdentity := range token.NodeIdentities {
 			formatNodeIdentity(nodeIdentity, WHITESPACE_2)
 		}
 	}
@@ -225,15 +225,15 @@ func (f *prettyFormatter) FormatTokenExpanded(token *api.ACLTokenExpanded) (stri
 		if len(templatedPolicy.Datacenters) > 0 {
 			buffer.WriteString(fmt.Sprintf(indent+WHITESPACE_2+"Datacenters: %s\n", strings.Join(templatedPolicy.Datacenters, ", ")))
 		} else {
-			buffer.WriteString(fmt.Sprintf(indent + WHITESPACE_2 + "Datacenters: all\n"))
+			buffer.WriteString(indent + WHITESPACE_2 + "Datacenters: all\n")
 		}
 		policy, _ := tp.SyntheticPolicy(&entMeta)
 		displaySyntheticPolicy(policy, &buffer, indent)
 	}
-	if len(token.ACLToken.TemplatedPolicies) > 0 {
+	if len(token.TemplatedPolicies) > 0 {
 		buffer.WriteString("Templated Policies:\n")
 
-		for _, templatedPolicy := range token.ACLToken.TemplatedPolicies {
+		for _, templatedPolicy := range token.TemplatedPolicies {
 			formatTemplatedPolicy(templatedPolicy, WHITESPACE_2)
 		}
 	}
@@ -264,9 +264,9 @@ func (f *prettyFormatter) FormatTokenExpanded(token *api.ACLTokenExpanded) (stri
 			}
 		}
 	}
-	if len(token.ACLToken.Roles) > 0 {
+	if len(token.Roles) > 0 {
 		buffer.WriteString("Roles:\n")
-		for _, roleLink := range token.ACLToken.Roles {
+		for _, roleLink := range token.Roles {
 			role := roles[roleLink.ID]
 			formatRole(role, WHITESPACE_2)
 		}
@@ -303,7 +303,7 @@ func (f *prettyFormatter) FormatTokenExpanded(token *api.ACLTokenExpanded) (stri
 }
 
 func displaySyntheticPolicy(policy *structs.ACLPolicy, buffer *bytes.Buffer, indent string) {
-	buffer.WriteString(fmt.Sprintf(indent+WHITESPACE_2+"Description: %s\n", policy.Description))
+	fmt.Fprintf(buffer, indent+WHITESPACE_2+"Description: %s\n", policy.Description)
 	buffer.WriteString(indent + WHITESPACE_2 + "Rules:")
 	buffer.WriteString(strings.ReplaceAll(policy.Rules, "\n", "\n"+indent+WHITESPACE_4))
 	buffer.WriteString("\n\n")
