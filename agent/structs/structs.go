@@ -2963,7 +2963,7 @@ var MsgpackHandle = &codec.MsgpackHandle{
 	RawToString: true,
 	BasicHandle: codec.BasicHandle{
 		DecodeOptions: codec.DecodeOptions{
-			MapType: reflect.TypeOf(map[string]interface{}{}),
+			MapType: reflect.TypeFor[map[string]interface{}](),
 		},
 	},
 }
