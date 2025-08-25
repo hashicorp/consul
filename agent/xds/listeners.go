@@ -1859,7 +1859,8 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.
 		}
 	}
 
-	// TODO::: CSL-11115 Changes : Add Comments
+	// The priority order is service defaults and then the proxy config
+	// the value set in the proxy defaults is considered to be a default, that can be updated by the value from the service-default
 	maxRequestHeadersKb := proxyCfg.MaxRequestHeadersKB
 	serviceProxyConfig, found := cfgSnap.TerminatingGateway.ServiceConfigs[tgtwyOpts.service]
 	if found {
@@ -2579,7 +2580,6 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) 
 		// && *opts.maxRequestHeadersKb == 96
 		cfg.MaxRequestHeadersKb = &wrapperspb.UInt32Value{Value: *opts.maxRequestHeadersKb}
 	}
-	// TODO::: Remove cfg.MaxRequestHeadersKb = &wrapperspb.UInt32Value{Value: 96}
 
 	if opts.useRDS {
 		if opts.cluster != "" {
