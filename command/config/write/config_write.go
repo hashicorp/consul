@@ -86,7 +86,8 @@ func (c *cmd) Run(args []string) int {
 		written, _, err = entries.Set(entry, nil)
 	}
 	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error writing config entry %s/%s: %v", entry.GetKind(), entry.GetName(), err))
+		c.UI.Error(fmt.Sprintf("Error writing config entry %s/%s: %v — possible protocol conflict; check upstream configs (routers/gateways) referencing service '%s' with `consul config list` and `consul config read`.",
+			entry.GetKind(), entry.GetName(), err, entry.GetName()))
 		return 1
 	}
 
