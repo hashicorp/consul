@@ -1662,6 +1662,45 @@ func getAPIGatewayGoldenTestCases(t *testing.T) []goldenTestCase {
 					}, nil, nil)
 			},
 		},
+		{
+			name: "api-gateway-with-http-max-request-headers",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotAPIGateway(t, "default", nil, func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+					entry.Listeners = []structs.APIGatewayListener{
+						{
+							Name:                "http-listener",
+							Protocol:            structs.ListenerProtocolHTTP,
+							Port:                8080,
+							MaxRequestHeadersKB: uintPointer(96),
+						},
+					}
+					bound.Listeners = []structs.BoundAPIGatewayListener{
+						{
+							Name: "http-listener",
+							Routes: []structs.ResourceReference{
+								{
+									Name: "http-route",
+									Kind: structs.HTTPRoute,
+								},
+							},
+						},
+					}
+				}, []structs.BoundRoute{
+					&structs.HTTPRouteConfigEntry{
+						Kind: structs.HTTPRoute,
+						Name: "http-route",
+						Parents: []structs.ResourceReference{
+							{Kind: structs.APIGateway, Name: "api-gateway"},
+						},
+						Rules: []structs.HTTPRouteRule{
+							{
+								Services: []structs.HTTPService{{Name: "backend"}},
+							},
+						},
+					},
+				}, nil, nil)
+			},
+		},
 	}
 }
 
