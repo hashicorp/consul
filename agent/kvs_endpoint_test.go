@@ -11,9 +11,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/hashicorp/consul/testrpc"
-
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/testrpc"
 )
 
 func TestKVSEndpoint_PUT_GET_DELETE(t *testing.T) {
@@ -458,7 +457,7 @@ func TestKVSEndpoint_GET_Raw(t *testing.T) {
 	if len(contentTypeHdr) != 1 {
 		t.Fatalf("expected 1 value for Content-Type header, got %d: %+v", len(contentTypeHdr), contentTypeHdr)
 	}
-	if contentTypeHdr[0] != "text/plain" {
+	if contentTypeHdr[0] != "text/plain; charset=utf-8" {
 		t.Fatalf("expected Content-Type header to be \"text/plain\", got %q", contentTypeHdr[0])
 	}
 
