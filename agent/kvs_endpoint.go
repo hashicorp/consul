@@ -8,12 +8,92 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 )
+
+// Compiled regex patterns for KV key validation
+// These patterns provide efficient, comprehensive security validation for KV keys
+// and URL paths to prevent various attack vectors including path traversal,
+// file extension abuse, and endpoint forwarding attacks.
+var (
+	// validKVKeyPattern validates allowed characters in KV keys
+	// Allows: alphanumeric (a-zA-Z0-9), comma (,), dash (-), underscore (_), dot (.), forward slash (/)
+	// This pattern enables hierarchical keys while blocking dangerous characters that could enable attacks
+	validKVKeyPattern = regexp.MustCompile(`^[a-zA-Z0-9,\-_./]+$`)
+
+	// pathTraversalPattern detects path traversal sequences in various forms
+	// Matches: ../, ..\, .. at start/end of string
+	// This prevents directory traversal attacks that could access parent directories
+	pathTraversalPattern = regexp.MustCompile(`(\.\.[\\/])|(\.\.\\)|(^\.\.)|(\.\.$)`)
+
+	// encodedTraversalPattern detects URL-encoded path traversal attempts (case-insensitive)
+	// Matches various encodings of "../" including:
+	// - %2e%2e%2f (../), %2e%2e%5c (..\), %2e%2e/ (partial encoding)
+	// - ..%2f, ..%5c (mixed encoding), %252e%252e%252f (double encoding)
+	// This prevents bypassing path traversal detection through URL encoding
+	encodedTraversalPattern = regexp.MustCompile(`(?i)(%2e%2e(%2f|%5c|/))|(\.\.\%2f)|(\.\.\%5c)|(%252e%252e%252f)`)
+
+	// suspiciousExtensionPattern detects file extensions that could be cached or exploited
+	// Matches common web file types, executables, documents, and media files (case-insensitive)
+	// Includes detection of extensions with query parameters (e.g., script.js?v=1)
+	// This prevents cache deception attacks and reduces attack surface
+	suspiciousExtensionPattern = regexp.MustCompile(`(?i)\.(js|css|html?|xml|json|txt|log|php|asp|jsp|cgi|pl|py|rb|sh|exe|dll|bat|cmd|com|scr|vbs|pdf|docx?|xlsx?|pptx?|zip|rar|tar|gz|7z|bz2|jpe?g|png|gif|svg|ico|bmp|mp[34]|avi|mov|wmv|flv|swf|woff2?|ttf|eot|otf)(\?|$)`)
+
+	// leadingSlashPattern detects keys that start with a forward slash
+	// Consistent with client-side validation and Consul conventions
+	leadingSlashPattern = regexp.MustCompile(`^/`)
+
+	// rawPathTraversalPattern detects traversal patterns in raw URL paths for early validation
+	// Combines path traversal and encoded traversal detection for comprehensive URL path validation
+	// This prevents path traversal attacks before URL normalization occurs
+	rawPathTraversalPattern = regexp.MustCompile(`(\.\.[\\/])|(?i)(%2e%2e(%2f|%5c|/))|(\.\.\%2f)|(\.\.\%5c)|(%252e%252e%252f)`)
+)
+
+// validateKVKey validates a KV key to prevent path traversal attacks and cache deception
+// Allows hierarchical keys with / but restricts dangerous characters for security
+// If allowUnprintable is true, character validation is skipped (respects disable_http_unprintable_char_filter)
+func validateKVKey(key string, allowUnprintable bool) error {
+	if key == "" {
+		return fmt.Errorf("key cannot be empty")
+	}
+
+	// Check for leading slash (consistent with client-side validation)
+	if leadingSlashPattern.MatchString(key) {
+		return fmt.Errorf("key must not begin with a '/'")
+	}
+
+	// SECURITY: Allow alphanumeric, safe punctuation, and hierarchical separators
+	// Allowed: a-zA-Z0-9 ,-_./ (includes slash for hierarchical keys)
+	// Blocked: dangerous chars that could enable attacks: ?=&#<>[]{}()@!$%^*+|\\:;"'`~
+	// Skip character validation if allowUnprintable is true (for disable_http_unprintable_char_filter)
+	if !allowUnprintable {
+		if !validKVKeyPattern.MatchString(key) {
+			return fmt.Errorf("key contains invalid characters. Only alphanumeric characters and ,-_./ are allowed")
+		}
+	}
+
+	// Check for path traversal patterns using regex
+	if pathTraversalPattern.MatchString(key) {
+		return fmt.Errorf("key contains path traversal sequence")
+	}
+
+	// Check for URL-encoded traversal attempts using regex
+	if encodedTraversalPattern.MatchString(key) {
+		return fmt.Errorf("key contains encoded path traversal sequence")
+	}
+
+	// Check for suspicious file extensions using regex
+	if suspiciousExtensionPattern.MatchString(key) {
+		return fmt.Errorf("key contains suspicious file extension that may be cached by proxies or exploited")
+	}
+
+	return nil
+}
 
 func (s *HTTPHandlers) KVSEndpoint(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Set default DC
@@ -22,8 +102,23 @@ func (s *HTTPHandlers) KVSEndpoint(resp http.ResponseWriter, req *http.Request) 
 		return nil, nil
 	}
 
+	// SECURITY: Validate raw URL path BEFORE normalization to prevent path traversal forwarding
+	// This prevents requests like /v1/kv/../admin from being forwarded to /admin endpoint
+	rawPath := req.URL.Path
+	if rawPathTraversalPattern.MatchString(rawPath) {
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "URL path contains invalid or encoded traversal sequence"}
+	}
+
 	// Pull out the key name, validation left to each sub-handler
 	args.Key = strings.TrimPrefix(req.URL.Path, "/v1/kv/")
+
+	// Validate the key for operations that use it (not for listing keys without a path)
+	if args.Key != "" {
+		allowUnprintable := s.agent.GetConfig().DisableHTTPUnprintableCharFilter
+		if err := validateKVKey(args.Key, allowUnprintable); err != nil {
+			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: err.Error()}
+		}
+	}
 
 	// Check for a key list
 	keyList := false
@@ -159,6 +254,12 @@ func (s *HTTPHandlers) KVSPut(resp http.ResponseWriter, req *http.Request, args 
 	if args.Key == "" {
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing key name"}
 	}
+
+	// Additional validation for KV key (belt and suspenders approach)
+	allowUnprintable := s.agent.GetConfig().DisableHTTPUnprintableCharFilter
+	if err := validateKVKey(args.Key, allowUnprintable); err != nil {
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: err.Error()}
+	}
 	if conflictingFlags(resp, req, "cas", "acquire", "release") {
 		return nil, nil
 	}
@@ -240,6 +341,15 @@ func (s *HTTPHandlers) KVSDelete(resp http.ResponseWriter, req *http.Request, ar
 	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
 		return nil, err
 	}
+
+	// Validate the key (additional safety check)
+	if args.Key != "" {
+		allowUnprintable := s.agent.GetConfig().DisableHTTPUnprintableCharFilter
+		if err := validateKVKey(args.Key, allowUnprintable); err != nil {
+			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: err.Error()}
+		}
+	}
+
 	if conflictingFlags(resp, req, "recurse", "cas") {
 		return nil, nil
 	}
