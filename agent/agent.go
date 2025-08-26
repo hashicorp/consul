@@ -544,7 +544,7 @@ func New(bd BaseDeps) (*Agent, error) {
 	// TODO: why do we ignore failure to load persisted tokens?
 	_ = a.tokens.Load(bd.RuntimeConfig.ACLTokens, a.logger)
 	// TODO: pass in a fully populated apiServers into Agent.New
-	
+
 	a.apiServers = NewAPIServers(a.logger)
 
 	for _, f := range []struct {
