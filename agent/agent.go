@@ -534,18 +534,6 @@ func New(bd BaseDeps) (*Agent, error) {
 		},
 	}
 
-	// TODO(rb): remove this once NetRPC is properly available in BaseDeps without an Agent
-	bd.NetRPC.SetNetRPC(&a)
-
-	// We used to do this in the Start method. However it doesn't need to go
-	// there any longer. Originally it did because we passed the agent
-	// delegate to some of the cache registrations. Now we just
-	// pass the agent itself so its safe to move here.
-	a.registerCache()
-
-	// TODO: why do we ignore failure to load persisted tokens?
-	_ = a.tokens.Load(bd.RuntimeConfig.ACLTokens, a.logger)
-
 	// TODO: pass in a fully populated apiServers into Agent.New
 	a.apiServers = NewAPIServers(a.logger)
 
@@ -1164,10 +1152,14 @@ func (a *Agent) listenHTTP() ([]apiServer, error) {
 			a.configReloaders = append(a.configReloaders, srv.ReloadConfig)
 			a.httpHandlers = srv
 			httpServer := &http.Server{
-				Addr:           l.Addr().String(),
-				TLSConfig:      tlscfg,
-				Handler:        srv.handler(),
-				MaxHeaderBytes: a.config.HTTPMaxHeaderBytes,
+				Addr:              l.Addr().String(),
+				TLSConfig:         tlscfg,
+				Handler:           srv.handler(),
+				MaxHeaderBytes:    a.config.HTTPMaxHeaderBytes,
+				ReadHeaderTimeout: 10 * time.Second,
+				ReadTimeout:       10 * time.Second,
+				WriteTimeout:      10 * time.Second,
+				IdleTimeout:       120 * time.Second,
 			}
 
 			if scada.IsCapability(l.Addr()) {
