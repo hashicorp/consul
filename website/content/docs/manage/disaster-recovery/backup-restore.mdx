@@ -15,7 +15,7 @@ Backups help you recover from a Consul datacenter outage caused by any combinati
 
 We also recommend that you create a backup of a Consul cluster before you upgrade the version of Consul it runs. Then, if the upgrade does not go according to plan, you can downgrade to the last working version by restoring the cluster from the backup. 
 
-In addition, there are some situations where restoring from a backup is the only method to restore a Consul datacenter's previous functionality. As a result, we recommend creating backups on a regular basis to limit the Consul datacenter's potential downtime.
+There are some situations where restoring from a backup is the only method to restore a Consul datacenter's previous functionality. We recommend creating backups on a regular basis to limit the Consul datacenter's potential downtime.
 
 You can run the [`consul snapshot` command](/consul/commands/snapshot) using the CLI or the API to save or restore a point-in-time snapshot. This snapshot includes, but is not limited to:
 
@@ -76,7 +76,7 @@ You can restore a datacenter from a Consul snapshot with the `consul snapshot re
 
 When you restore a Consul cluster from a snapshot on new infrastructure, make sure that the node names are unique. Otherwise, you might encounter restore issues due to naming conflicts. For more information, refer to [Snapshot restore error](/consul/docs/error-messages/consul#snapshot-restore-error).
 
-The snapshot restore process needs to run only one time. If the target Consul server is not the cluster leader, it streams the snapshot data contents to the leader. The Raft consensus protocol ensures that all servers restore the same state.
+You do not need to run the snapshot restore process more than once. If the target Consul server is not the cluster leader, it streams the snapshot data contents to the leader. The Raft consensus protocol ensures that all servers restore the same state.
 
 ```shell-session
 $ consul snapshot restore backup.snap
