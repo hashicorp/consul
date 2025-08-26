@@ -534,7 +534,17 @@ func New(bd BaseDeps) (*Agent, error) {
 		},
 	}
 
+	bd.NetRPC.SetNetRPC(&a)
+	// We used to do this in the Start method. However it doesn't need to go
+	// there any longer. Originally it did because we passed the agent
+	// delegate to some of the cache registrations. Now we just
+	// pass the agent itself so its safe to move here.
+	a.registerCache()
+
+	// TODO: why do we ignore failure to load persisted tokens?
+	_ = a.tokens.Load(bd.RuntimeConfig.ACLTokens, a.logger)
 	// TODO: pass in a fully populated apiServers into Agent.New
+	
 	a.apiServers = NewAPIServers(a.logger)
 
 	for _, f := range []struct {
