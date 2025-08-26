@@ -98,6 +98,25 @@ spec:
       serviceAccountName: static-server
 ```
 
+### Transparent proxy and multi-port services
+
+Transparent proxy mode assumes that services have only one port. If you want multi-port services to be reachable from the service mesh, you must use explicit upstreams as well. 
+
+In the following example, the `source-service` has one port, and it is part of the service mesh. Its annotations include two upstream targets towards the multi-port `target-service` on ports `15000` and `20000`. Without explicitly declaring the ports as service upstreams, the multi-port service `target-service` is unreachable from within the service mesh. For more information regarding the `connect-service-upstreams` annotation, refer to [Dial services across Kubernetes cluster](#dial-services-across-kubernetes-cluster).
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: source-service
+spec:
+  template:
+    metadata:
+      annotations:
+        consul.hashicorp.com/connect-inject: "true"
+        consul.hashicorp.com/connect-service-upstreams: "target-service.svc:15000,target-service.svc:20000"
+```
+
 ## Enable the Consul CNI plugin
 
 By default, Consul generates a `connect-inject init` container as part of the Kubernetes Pod startup process. The container configures traffic redirection in the service mesh through the sidecar proxy. To configure redirection, the container requires elevated CAP_NET_ADMIN privileges, which may not be compatible with security policies in your organization.

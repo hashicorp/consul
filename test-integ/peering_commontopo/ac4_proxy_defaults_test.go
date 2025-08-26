@@ -11,7 +11,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/go-cleanhttp"
+	cleanhttp "github.com/hashicorp/go-cleanhttp"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testing/deployer/topology"
@@ -112,7 +112,7 @@ func (s *ac4ProxyDefaultsSuite) setup(t *testing.T, ct *commonTopo) {
 			Partition: ConfigEntryPartition(serverSID.Partition),
 			Sources: []*api.SourceIntention{
 				{
-					Name:   client.ID.Name,
+					Name:   client.Workload.ID.Name,
 					Peer:   cluPeerName,
 					Action: api.IntentionActionAllow,
 				},
@@ -124,7 +124,7 @@ func (s *ac4ProxyDefaultsSuite) setup(t *testing.T, ct *commonTopo) {
 		&api.ProxyConfigEntry{
 			Kind:      api.ProxyDefaults,
 			Name:      api.ProxyConfigGlobal,
-			Partition: ConfigEntryPartition(server.ID.Partition),
+			Partition: ConfigEntryPartition(server.Workload.ID.Partition),
 			Config: map[string]interface{}{
 				"protocol":                 "http",
 				"local_request_timeout_ms": 500,
