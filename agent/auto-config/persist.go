@@ -16,6 +16,8 @@ const (
 	// autoConfigFileName is the name of the file that the agent auto-config settings are
 	// stored in within the data directory
 	autoConfigFileName = "auto-config.json"
+	// PermOwnerReadWrite is the file permission used when writing the auto-config
+	// settings to disk
 	PermOwnerReadWrite = 0600
 )
 
