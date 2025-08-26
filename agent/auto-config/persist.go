@@ -74,7 +74,7 @@ func (ac *AutoConfig) persistAutoConfig(resp *pbautoconf.AutoConfigResponse) err
 
 	path := filepath.Join(ac.config.DataDir, autoConfigFileName)
 
-	err = os.WriteFile(path, serialized, 0660)
+	err = os.WriteFile(path, serialized, 0600)
 	if err != nil {
 		return fmt.Errorf("failed to write auto-config configurations: %w", err)
 	}
