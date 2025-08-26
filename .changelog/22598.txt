@@ -1,3 +1,0 @@
-```release-note:security
-api: add charset in all applicable content-types.
-```

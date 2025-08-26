@@ -119,7 +119,7 @@ func (s *MockHCPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("OK 200: %s %s\n", r.Method, r.URL.Path)
-	w.Header().Set("content-type", "application/json; charset=utf-8")
+	w.Header().Set("content-type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(bs)
 }
@@ -137,7 +137,7 @@ func enforceMethod(w http.ResponseWriter, r *http.Request, methods []string) boo
 }
 
 func mockTokenResponse(w http.ResponseWriter) {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
 	w.Write([]byte(`{"access_token": "token", "token_type": "Bearer"}`))

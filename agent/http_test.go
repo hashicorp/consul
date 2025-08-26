@@ -24,12 +24,11 @@ import (
 	"time"
 
 	"github.com/NYTimes/gziphandler"
+	"github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/http2"
-
-	"github.com/hashicorp/go-cleanhttp"
-	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
@@ -639,7 +638,7 @@ func TestHTTPAPIResponseHeaders(t *testing.T) {
 	`)
 	defer a.Shutdown()
 
-	requireHasHeadersSet(t, a, "/v1/agent/self", "application/json; charset=utf-8")
+	requireHasHeadersSet(t, a, "/v1/agent/self", "application/json")
 
 	// Check the Index page that just renders a simple message with UI disabled
 	// also gets the right headers.
@@ -687,7 +686,7 @@ func TestHTTPAPIValidateContentTypeHeaders(t *testing.T) {
 			method:              http.MethodPost,
 			endpoint:            "/v1/peering/token",
 			requestBody:         bytes.NewBuffer([]byte("test")),
-			expectedContentType: "application/json; charset=utf-8",
+			expectedContentType: "application/json",
 		},
 	}
 
@@ -785,7 +784,7 @@ func TestErrorContentTypeHeaderSet(t *testing.T) {
 	`)
 	defer a.Shutdown()
 
-	requireHasHeadersSet(t, a, "/fake-path-doesn't-exist", "application/json; charset=utf-8")
+	requireHasHeadersSet(t, a, "/fake-path-doesn't-exist", "application/json")
 }
 
 func TestAcceptEncodingGzip(t *testing.T) {

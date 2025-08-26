@@ -7,26 +7,30 @@ description: >-
 
 # Audit Logging
 
-@include 'alerts/enterprise-alert.mdx'
+<EnterpriseAlert>
 
-This page describes the process to enable and configure audit logging on Consul Enterprise clusters. Audit logging enables security and compliance teams within an organization to get greater insight into Consul access and usage patterns.
+This feature requires HashiCorp Cloud Platform (HCP) or self-managed Consul Enterprise. Refer to the [enterprise feature matrix](/consul/docs/enterprise#consul-enterprise-feature-availability) for additional information.
 
-## Introduction
+</EnterpriseAlert>
 
-Audit logs capture a list of authenticated events that Consul processes through its HTTP API. This list includes both attempted and committed operations, and each item includes a timestamp, the operation performed, and the user who initiated the action. Consul compiles these events into JSON format for export.
+With Consul Enterprise v1.8.0+, audit logging can be used to capture a clear and actionable log of authenticated events (both attempted and committed) that Consul processes via its HTTP API. These events are then compiled into a JSON format for easy export and contain a timestamp, the operation performed, and the user who initiated the action.
 
-Consul's audit logs only capture events initiated through the HTTP API. The audit log does not record operations that take place over the internal RPC communication channel used for agent communication.
+Audit logging enables security and compliance teams within an organization to get greater insight into Consul access and usage patterns.
 
-For detailed specifications to configure the Consul Enterprise's audit logging behavior, review the [Agent audit log configuration reference](/consul/docs/reference/agent/configuration-file/log#audit).
+Complete the [Capture Consul Events with Audit Logging](/consul/tutorials/datacenter-operations/audit-logging) tutorial to learn more about Consul's audit logging functionality,
 
-## Configure audit logging
+For detailed configuration information on configuring the Consul Enterprise's audit logging, review the Consul [Audit Log](/consul/docs/reference/agent/configuration-file/general#audit) documentation.
 
-You must enable audit logging on every agent to accurately capture all operations performed through the HTTP API. To enable logging, add the [`audit` configuration block](/consul/docs/reference/agent/configuration-file/log#audit) to the agent's configuration.
+## Example Configuration
 
+Audit logging must be enabled on every agent in order to accurately capture all operations performed through the HTTP API. To enable logging, add the [`audit`](/consul/docs/reference/agent/configuration-file/general#audit) stanza to the agent's configuration.
 
-### Log to file
+-> **Note**: Consul only logs operations which are initiated via the HTTP API. The audit log does not record operations that take place over the internal RPC communication channel used for agent communication.
 
-The following example configures a destination called `My Sink`. Audit logging operates continuously, which requires you to set rotation parameters. This example configures Consul to generate a JSON file at the destination path, and then rotate to a new file either when the log file size is greater than 25165824 bytes (24 megabytes) or when 24 hours pass without a log rotation. Because files rotate, audit events are saved in files named: `/tmp/audit-<TIMESTAMP>.json`.
+<Tabs>
+<Tab heading="Log to file">
+
+The following example configures a destination called "My Sink". Since rotation is enabled, audit events will be stored at files named: `/tmp/audit-<TIMESTAMP>.json`. The log file will be rotated either every 24 hours, or when the log file size is greater than 25165824 bytes (24 megabytes).
 
 <CodeTabs>
 
@@ -80,10 +84,11 @@ server:
 ```
 </CodeTabs>
 
+</Tab>
 
-## Log to standard out
+<Tab heading="Log to standard out">
 
-The following example configures a destination called `My Sink` which emits audit logs to standard out.
+The following example configures a destination called "My Sink" which emits audit logs to standard out.
 
 <CodeTabs>
 
@@ -129,40 +134,38 @@ server:
 
 </CodeTabs>
 
+</Tab>
+</Tabs>
 
-Audit logging configuration parameters are not part of Consul's [reloadable configurations](/consul/docs/fundamentals/agent#reloadable-configurations). You must fully restart the Consul agents to apply the configuration.
+## Example Audit Log
 
-## Review audit log content
+In this example a client has issued an HTTP GET request to look up the `ssh` service in the `/v1/catalog/service/` endpoint.
 
-In this example you will review logging for two different requests. Both of them use the [`/v1/catalog/service/`](/consul/api-docs/catalog#list-nodes-for-service) endpoint to retrieve information about the `ssh` service in the Consul catalog. The difference between the two requests is that one is not authenticated and the other uses a valid ACL token.
+Details from the HTTP request are recorded in the audit log. The `stage` field is set to `OperationStart` which indicates the agent has begun processing the request.
 
-### Anonymous request
+The value of the `payload.auth.accessor_id` field is the accessor ID of the [ACL token](/consul/docs/secure/acl#tokens) which issued the request.
 
-The following example shows an HTTP request recorded in the audit log. At the bottom, the `stage` field is set to `OperationStart`, which indicates the agent began processing the request.
-
-The value of the `payload.auth.accessor_id` field is the accessor ID of the ACL token included with the request. In this case, `00000000-0000-0000-0000-000000000002` is the ID of the anonymous token.
-
-<CodeBlockConfig hideClipboard highlight="10,21">
+<CodeBlockConfig highlight="10">
 
 ```json
 {
-  "created_at": "2025-07-31T14:32:38.559349128Z",
+  "created_at": "2020-12-08T12:30:29.196365-05:00",
   "event_type": "audit",
   "payload": {
-    "id": "674891c9-a5a0-e0ba-c738-00cab3c42f16",
+    "id": "e4a20aec-d250-72c4-2aea-454fe8ae8051",
     "version": "1",
     "type": "HTTPEvent",
-    "timestamp": "2025-07-31T14:32:38.558390378Z",
+    "timestamp": "2020-12-08T12:30:29.196206-05:00",
     "auth": {
-      "accessor_id": "00000000-0000-0000-0000-000000000002",
-      "description": "Anonymous Token",
-      "create_time": "2025-07-30T09:14:52.866798047Z"
+      "accessor_id": "08f05787-3609-8001-65b4-922e5d52e84c",
+      "description": "Bootstrap Token (Global Management)",
+      "create_time": "2020-12-01T11:01:51.652566-05:00"
     },
     "request": {
       "operation": "GET",
       "endpoint": "/v1/catalog/service/ssh",
-      "remote_addr": "127.0.0.1:45110",
-      "user_agent": "curl/7.88.1",
+      "remote_addr": "127.0.0.1:64015",
+      "user_agent": "curl/7.54.0",
       "host": "127.0.0.1:8500"
     },
     "stage": "OperationStart"
@@ -172,29 +175,29 @@ The value of the `payload.auth.accessor_id` field is the accessor ID of the ACL 
 
 </CodeBlockConfig>
 
-After Consul processes the request, it writes a corresponding log entry for the HTTP response. In the following example, the `stage` field is set to `OperationComplete` which indicates the agent has completed processing the request. Directly above, the status indicates the HTTP request was completed with `200` response.
+After the request is processed, a corresponding log entry is written for the HTTP response. The `stage` field is set to `OperationComplete` which indicates the agent has completed processing the request.
 
-<CodeBlockConfig hideClipboard highlight="22,24">
+<CodeBlockConfig highlight="24">
 
 ```json
 {
-  "created_at": "2025-07-31T14:32:38.562146462Z",
+  "created_at": "2020-12-08T12:30:29.202935-05:00",
   "event_type": "audit",
   "payload": {
-    "id": "c7d9614e-b110-729a-4c0b-6123f5c341a1",
+    "id": "1f85053f-badb-4567-d239-abc0ecee1570",
     "version": "1",
     "type": "HTTPEvent",
-    "timestamp": "2025-07-31T14:32:38.561802712Z",
+    "timestamp": "2020-12-08T12:30:29.202863-05:00",
     "auth": {
-      "accessor_id": "00000000-0000-0000-0000-000000000002",
-      "description": "Anonymous Token",
-      "create_time": "2025-07-30T09:14:52.866798047Z"
+      "accessor_id": "08f05787-3609-8001-65b4-922e5d52e84c",
+      "description": "Bootstrap Token (Global Management)",
+      "create_time": "2020-12-01T11:01:51.652566-05:00"
     },
     "request": {
       "operation": "GET",
       "endpoint": "/v1/catalog/service/ssh",
-      "remote_addr": "127.0.0.1:45110",
-      "user_agent": "curl/7.88.1",
+      "remote_addr": "127.0.0.1:64015",
+      "user_agent": "curl/7.54.0",
       "host": "127.0.0.1:8500"
     },
     "response": {
@@ -206,76 +209,3 @@ After Consul processes the request, it writes a corresponding log entry for the 
 ```
 
 </CodeBlockConfig>
-
-### Authenticated request
-
-The following example shows an HTTP request recorded in the audit log. At the bottom, the `stage` field is set to `OperationStart`, which indicates the agent began processing the request.
-
-The value of the `payload.auth.accessor_id` field is the accessor ID of the ACL token included with the request.
-
-<CodeBlockConfig hideClipboard highlight="10,21">
-
-```json
-{
-  "created_at": "2025-07-31T14:55:23.751575302Z",
-  "event_type": "audit",
-  "payload": {
-    "id": "bcaa81eb-0687-9d62-f288-bf82215fa5c6",
-    "version": "1",
-    "type": "HTTPEvent",
-    "timestamp": "2025-07-31T14:55:23.746568552Z",
-    "auth": {
-      "accessor_id": "540c5184-3bc7-852a-641c-cac2b46f2885",
-      "description": "Bootstrap Token (Global Management)",
-      "create_time": "2025-07-30T09:14:55.301395548Z"
-    },
-    "request": {
-      "operation": "GET",
-      "endpoint": "/v1/catalog/service/ssh",
-      "remote_addr": "127.0.0.1:54166",
-      "user_agent": "curl/7.88.1",
-      "host": "127.0.0.1:8500"
-    },
-    "stage": "OperationStart"
-  }
-}
-```
-
-</CodeBlockConfig>
-
-After Consul processes the request, it writes a corresponding log entry for the HTTP response. In the following example, the `stage` field is set to `OperationComplete`, which indicates the agent has completed processing the request. Directly above, the status indicates the HTTP request was completed with `200` response.
-
-<CodeBlockConfig hideClipboard highlight="22,24">
-
-```json
-{
-  "created_at": "2025-07-31T14:55:23.754546469Z",
-  "event_type": "audit",
-  "payload": {
-    "id": "16193bc9-71cf-1d4b-a772-faba8b9dea00",
-    "version": "1",
-    "type": "HTTPEvent",
-    "timestamp": "2025-07-31T14:55:23.75438301Z",
-    "auth": {
-      "accessor_id": "540c5184-3bc7-852a-641c-cac2b46f2885",
-      "description": "Bootstrap Token (Global Management)",
-      "create_time": "2025-07-30T09:14:55.301395548Z"
-    },
-    "request": {
-      "operation": "GET",
-      "endpoint": "/v1/catalog/service/ssh",
-      "remote_addr": "127.0.0.1:54166",
-      "user_agent": "curl/7.88.1",
-      "host": "127.0.0.1:8500"
-    },
-    "response": {
-      "status": "200"
-    },
-    "stage": "OperationComplete"
-  }
-}
-```
-
-</CodeBlockConfig>
-
-

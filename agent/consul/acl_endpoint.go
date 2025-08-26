@@ -5,7 +5,6 @@ package consul
 
 import (
 	"context"
-	"crypto/subtle"
 	"errors"
 	"fmt"
 	"os"
@@ -614,7 +613,7 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 	}
 
 	if token != nil {
-		if subtle.ConstantTimeCompare([]byte(args.Token), []byte(token.SecretID)) == 1 {
+		if args.Token == token.SecretID {
 			return fmt.Errorf("Deletion of the request's authorization token is not permitted")
 		}
 

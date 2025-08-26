@@ -403,7 +403,7 @@ func (s *HTTPHandlers) Txn(resp http.ResponseWriter, req *http.Request) (interfa
 			return nil, err
 		}
 
-		resp.Header().Set("Content-Type", "application/json; charset=utf-8")
+		resp.Header().Set("Content-Type", "application/json")
 		resp.WriteHeader(http.StatusConflict)
 		resp.Write(buf)
 		return nil, nil

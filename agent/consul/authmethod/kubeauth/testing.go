@@ -107,7 +107,7 @@ func (s *TestAPIServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	w.Header().Set("content-type", "application/json; charset=utf-8")
+	w.Header().Set("content-type", "application/json")
 
 	if req.URL.Path == "/apis/authentication.k8s.io/v1/tokenreviews" {
 		s.handleTokenReview(w, req)

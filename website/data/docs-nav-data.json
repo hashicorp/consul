@@ -567,10 +567,6 @@
             "path": "secure/acl/bootstrap"
           },
           {
-            "title": "Reset ACL system",
-            "path": "secure/acl/reset"
-          },
-          {
             "title": "Enforce ACL policies with Sentinel",
             "badge": {
               "text": "ENTERPRISE",
@@ -888,10 +884,6 @@
           {
             "title": "Restore federated datacenters",
             "path": "manage/disaster-recovery/federation"
-          },
-          {
-            "title": "Reset ACL system",
-            "href": "secure/acl/reset"
           }
         ]
       },

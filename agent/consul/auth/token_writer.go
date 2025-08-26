@@ -4,7 +4,6 @@
 package auth
 
 import (
-	"crypto/subtle"
 	"errors"
 	"fmt"
 	"time"
@@ -186,7 +185,7 @@ func (w *TokenWriter) Update(token *structs.ACLToken) (*structs.ACLToken, error)
 
 	if token.SecretID == "" {
 		token.SecretID = match.SecretID
-	} else if subtle.ConstantTimeCompare([]byte(match.SecretID), []byte(token.SecretID)) != 1 {
+	} else if match.SecretID != token.SecretID {
 		return nil, errors.New("Changing a token's SecretID is not permitted")
 	}
 
