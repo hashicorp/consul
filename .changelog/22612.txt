@@ -1,3 +1,3 @@
 ```release-note:security
-aws-auth: Fix a security vulnerability where the attacker could bypass authentication by passing url params as there was no validation on them.
+security: Fix a security vulnerability where the attacker could bypass authentication by passing url params as there was no validation on them.
 ```
