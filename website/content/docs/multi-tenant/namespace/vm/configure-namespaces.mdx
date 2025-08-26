@@ -32,24 +32,24 @@ Namespaces can be defined in configuration files, either in *hcl* or *json* form
 <Tabs>
 <Tab heading="HCL">
 
-Create the namespace definition file for the *app-team*.
+Create the namespace definition file for the `app-team` namespace.
 
 <CodeBlockConfig filename="app-team.hcl">
 
 ```hcl
 name = "app-team",
-description = "Namespace for app-team managing the production application"
+description = "Namespace for the team managing the production application"
 ```
 
 </CodeBlockConfig>
 
-Create the namespace definition file for the *db-team*.
+Create the namespace definition file for the `db-team` namespace.
 
 <CodeBlockConfig filename="db-team.hcl">
 
 ```hcl
 name = "db-team",
-description = "Namespace for db-team managing the production database"
+description = "Namespace for the team managing the production database"
 ```
 
 </CodeBlockConfig>
@@ -65,7 +65,7 @@ Create the namespace definition file for the *app-team*.
 ```json
 {
   "name": "app-team",
-  "description": "Namespace for app-team managing the production application"
+  "description": "Namespace for the team managing the production application"
 }
 ```
 
@@ -78,7 +78,7 @@ Create the namespace definition file for the *db-team*.
 ```json
 {
   "name": "db-team",
-  "description": "Namespace for db-team managing the production database"
+  "description": "Namespace for the team managing the production database"
 }
 ```
 
@@ -102,7 +102,7 @@ Create the `app-team` namespace.
 $ consul namespace write app-team.hcl
 Name: app-team
 Description:
-   Namespace for app-team managing the production application
+   Namespace for the team managing the production application
 Partition:   default
 ```
 
@@ -150,7 +150,7 @@ Use the [`consul namespace list` CLI command](/consul/commands/namespace/list) t
 $ consul namespace list
 app-team:
    Description:
-      Namespace for app-team managing the production application
+      Namespace for the team managing the production application
    Partition:   default
 db-team:
    Description:
@@ -164,7 +164,7 @@ To return information about a specific namespace, use the [`consul namespace rea
 $ consul namespace read app-team
 Name: app-team
 Description:
-   Namespace for app-team managing the production application
+   Namespace for the team managing the production application
 Partition:   default
 ```
 
