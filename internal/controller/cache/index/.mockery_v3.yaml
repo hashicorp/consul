@@ -1,0 +1,14 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: BUSL-1.1
+
+dir: indexmock
+exclude-interface-regex: ^(Txn|IndexOption)$
+include-interface-regex: .*
+structname: '{{.InterfaceName | camelcase }}'
+pkgname: indexmock
+recursive: false
+template: testify
+template-data:
+  unroll-variadic: true
+packages:
+  github.com/hashicorp/consul/internal/controller/cache/index: {}
