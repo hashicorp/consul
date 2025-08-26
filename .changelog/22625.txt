@@ -1,0 +1,3 @@
+```release-note:security
+  agent.go: added timeout operation field in HTTP server intialisation 
+```
