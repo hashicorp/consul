@@ -4,7 +4,7 @@
 dir: indexmock
 exclude-interface-regex: ^(Txn|IndexOption)$
 include-interface-regex: .*
-structname: '{{.InterfaceName | camelcase }}'
+structname: '{{.InterfaceName | camelcase | firstUpper }}'
 pkgname: indexmock
 filename: 'mock_{{.InterfaceName}}.go'
 recursive: false
