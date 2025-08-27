@@ -93,7 +93,7 @@ func TestSubscribeBackend_IntegrationWithServer_TLSEnabled(t *testing.T) {
 		require.NoError(t, err)
 
 		// Start a goroutine to read updates off the pbsubscribe.
-		eventCh := make(chan *pbsubscribe.Event, 0)
+		eventCh := make(chan *pbsubscribe.Event)
 		go receiveSubscribeEvents(t, eventCh, streamHandle)
 
 		var snapshotEvents []*pbsubscribe.Event
@@ -139,7 +139,7 @@ func TestSubscribeBackend_IntegrationWithServer_TLSEnabled(t *testing.T) {
 		require.NoError(t, err)
 
 		// Start a goroutine to read updates off the pbsubscribe.
-		eventCh := make(chan *pbsubscribe.Event, 0)
+		eventCh := make(chan *pbsubscribe.Event)
 		go receiveSubscribeEvents(t, eventCh, streamHandle)
 
 		var snapshotEvents []*pbsubscribe.Event

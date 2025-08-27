@@ -550,7 +550,7 @@ func decodeConfigEntryOperation(buf []byte, req *structs.ConfigEntryRequest) err
 	if err := structs.Decode(buf, newReq); err != nil {
 		return err
 	}
-	shadowConfigEntry := newReq.ConfigEntryRequest.Entry.(ShadowConfigentry)
+	shadowConfigEntry := newReq.Entry.(ShadowConfigentry)
 	if err := shadowConfigEntry.CheckEnt(); err != nil {
 		return err
 	}
@@ -669,10 +669,10 @@ func (s ShadowServiceResolverConfigEntry) CheckEnt() error {
 	if err := s.ShadowBase.CheckEnt(); err != nil {
 		return err
 	}
-	if s.ServiceResolverConfigEntry.Redirect != nil && (IsEnterpriseData(s.ServiceResolverConfigEntry.Redirect.Namespace, s.ServiceResolverConfigEntry.Redirect.Partition) || s.ServiceResolverConfigEntry.Redirect.SamenessGroup != "") {
+	if s.Redirect != nil && (IsEnterpriseData(s.Redirect.Namespace, s.Redirect.Partition) || s.Redirect.SamenessGroup != "") {
 		return errIncompatibleTenantedData
 	}
-	for _, failover := range s.ServiceResolverConfigEntry.Failover {
+	for _, failover := range s.Failover {
 		if IsEnterpriseData(failover.Namespace, "") || failover.SamenessGroup != "" {
 			return errIncompatibleTenantedData
 		}
@@ -753,7 +753,7 @@ func (s ShadowServiceRouterConfigEntry) CheckEnt() error {
 	if err := s.ShadowBase.CheckEnt(); err != nil {
 		return err
 	}
-	for _, route := range s.ServiceRouterConfigEntry.Routes {
+	for _, route := range s.Routes {
 		if IsEnterpriseData(route.Destination.Namespace, route.Destination.Partition) {
 			return errIncompatibleTenantedData
 		}
@@ -774,7 +774,7 @@ func (s ShadowServiceSplitterConfigEntry) CheckEnt() error {
 	if err := s.ShadowBase.CheckEnt(); err != nil {
 		return err
 	}
-	for _, split := range s.ServiceSplitterConfigEntry.Splits {
+	for _, split := range s.Splits {
 		if IsEnterpriseData(split.Namespace, split.Partition) {
 			return errIncompatibleTenantedData
 		}
@@ -869,7 +869,7 @@ type ShadowExportedServicesConfigEntry struct {
 
 func (s ShadowExportedServicesConfigEntry) GetRealConfigEntry() structs.ConfigEntry {
 	services := []structs.ExportedService{}
-	for _, svc := range s.ExportedServicesConfigEntry.Services {
+	for _, svc := range s.Services {
 		if !IsEnterpriseData(svc.Namespace, "") {
 			consumers := []structs.ServiceConsumer{}
 			for _, consumer := range svc.Consumers {
@@ -883,7 +883,7 @@ func (s ShadowExportedServicesConfigEntry) GetRealConfigEntry() structs.ConfigEn
 			services = append(services, svc)
 		}
 	}
-	s.ExportedServicesConfigEntry.Services = services
+	s.Services = services
 	return s.ExportedServicesConfigEntry
 }
 

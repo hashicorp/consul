@@ -26,7 +26,7 @@ var aclDisabled = HTTPError{StatusCode: http.StatusUnauthorized, Reason: "ACL su
 // checkACLDisabled will return a standard response if ACLs are disabled. This
 // returns true if they are disabled and we should not continue.
 func (s *HTTPHandlers) checkACLDisabled() bool {
-	return !(s.agent.config.ACLsEnabled)
+	return !s.agent.config.ACLsEnabled
 }
 
 // ACLBootstrap is used to perform a one-time ACL bootstrap operation on

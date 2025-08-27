@@ -32,7 +32,7 @@ func (r *aclTokenReplicator) FetchRemote(srv *Server, lastRemoteIndex uint64) (i
 	}
 
 	r.remote = remote.Tokens
-	return len(remote.Tokens), remote.QueryMeta.Index, nil
+	return len(remote.Tokens), remote.Index, nil
 }
 
 func (r *aclTokenReplicator) FetchLocal(srv *Server) (int, uint64, error) {
@@ -142,7 +142,7 @@ func (r *aclPolicyReplicator) FetchRemote(srv *Server, lastRemoteIndex uint64) (
 	}
 
 	r.remote = remote.Policies
-	return len(remote.Policies), remote.QueryMeta.Index, nil
+	return len(remote.Policies), remote.Index, nil
 }
 
 func (r *aclPolicyReplicator) FetchLocal(srv *Server) (int, uint64, error) {
@@ -239,7 +239,7 @@ func (r *aclRoleReplicator) FetchRemote(srv *Server, lastRemoteIndex uint64) (in
 	}
 
 	r.remote = remote.Roles
-	return len(remote.Roles), remote.QueryMeta.Index, nil
+	return len(remote.Roles), remote.Index, nil
 }
 
 func (r *aclRoleReplicator) FetchLocal(srv *Server) (int, uint64, error) {

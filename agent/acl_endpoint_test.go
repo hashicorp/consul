@@ -36,6 +36,7 @@ func isHTTPBadRequest(err error) bool {
 	if err, ok := err.(HTTPError); ok {
 		return err.StatusCode == http.StatusBadRequest
 	}
+
 	return false
 }
 

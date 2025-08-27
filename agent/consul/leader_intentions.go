@@ -430,7 +430,7 @@ func (s *Server) replicateLegacyIntentionsOnce(ctx context.Context, lastFetchInd
 		}
 	}
 
-	return remote.QueryMeta.Index, false, nil
+	return remote.Index, false, nil
 }
 
 // diffIntentions computes the difference between the local and remote intentions
@@ -459,7 +459,7 @@ func diffIntentions(local, remote structs.Intentions) (structs.Intentions, struc
 		existingHash, ok := localIdx[intention.ID]
 		if !ok {
 			updates = append(updates, intention)
-		} else if bytes.Compare(existingHash, intention.Hash) != 0 {
+		} else if !bytes.Equal(existingHash, intention.Hash) {
 			updates = append(updates, intention)
 		}
 	}

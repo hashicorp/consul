@@ -59,7 +59,7 @@ func (op *Operator) Usage(args *structs.OperatorUsageRequest, reply *structs.Usa
 				return err
 			}
 
-			reply.QueryMeta.Index, reply.Usage[op.srv.config.Datacenter] = index, serviceUsage
+			reply.Index, reply.Usage[op.srv.config.Datacenter] = index, serviceUsage
 			return nil
 		})
 }
