@@ -8,7 +8,7 @@ structname: '{{.InterfaceName}}'
 pkgname: mock{{.SrcPackageName}}
 recursive: true
 template: testify
-filename: '{{.InterfaceName}}_mock.go'
+filename: 'mock_{{.InterfaceName}}.go'
 template-data:
   unroll-variadic: true
 packages:
