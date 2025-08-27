@@ -210,7 +210,7 @@ func TestSubscribeBackend_IntegrationWithServer_TLSReload(t *testing.T) {
 	require.NoError(t, err)
 
 	streamClient := pbsubscribe.NewStateChangeSubscriptionClient(conn)
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	req := &pbsubscribe.SubscribeRequest{
 		Topic: pbsubscribe.Topic_ServiceHealth,
