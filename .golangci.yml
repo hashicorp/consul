@@ -103,7 +103,6 @@ linters:
       - third_party$
       - builtin$
       - examples$
-      - agent/consul
 formatters:
   enable:
     - gofmt
