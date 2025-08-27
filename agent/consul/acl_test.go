@@ -212,8 +212,15 @@ func testIdentityForToken(token string) (bool, structs.ACLIdentity, error) {
 				{
 					ID: "node-wr",
 				},
+			},
+		}, nil
+	case "anonymous":
+		return true, &structs.ACLToken{
+			AccessorID: "00000000-0000-0000-0000-000000000002",
+			SecretID:   "anonymous",
+			Policies: []structs.ACLTokenPolicyLink{
 				{
-					ID: "acl-wr",
+					ID: "node-wr",
 				},
 			},
 		}, nil
