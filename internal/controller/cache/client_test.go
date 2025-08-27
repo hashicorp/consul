@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	mockpbresource "github.com/hashicorp/consul/grpcmocks/proto-public/pbresource"
-	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	pbdemo "github.com/hashicorp/consul/proto/private/pbdemo/v1"
@@ -28,44 +27,6 @@ type cacheClientSuite struct {
 
 	album1 *pbresource.Resource
 	album2 *pbresource.Resource
-}
-
-func (suite *cacheClientSuite) SetupTest() {
-	suite.cache = New()
-
-	// It would be difficult to use the inmem resource service here due to cyclical dependencies.
-	// Any type registrations from other packages cannot be imported because those packages
-	// will require the controller package which will require this cache package. The easiest
-	// way of getting around this was to not use the real resource service and require type registrations.
-	client := mockpbresource.NewResourceServiceClient(suite.T())
-	suite.mclient = client.EXPECT()
-
-	require.NoError(suite.T(), suite.cache.AddIndex(pbdemo.AlbumType, namePrefixIndexer()))
-	require.NoError(suite.T(), suite.cache.AddIndex(pbdemo.AlbumType, releaseYearIndexer()))
-	require.NoError(suite.T(), suite.cache.AddIndex(pbdemo.AlbumType, tracksIndexer()))
-
-	suite.album1 = resourcetest.Resource(pbdemo.AlbumType, "one").
-		WithTenancy(resource.DefaultNamespacedTenancy()).
-		WithData(suite.T(), &pbdemo.Album{
-			Name:          "one",
-			YearOfRelease: 2023,
-			Tracks:        []string{"foo", "bar", "baz"},
-		}).
-		Build()
-
-	suite.album2 = resourcetest.Resource(pbdemo.AlbumType, "two").
-		WithTenancy(resource.DefaultNamespacedTenancy()).
-		WithData(suite.T(), &pbdemo.Album{
-			Name:          "two",
-			YearOfRelease: 2023,
-			Tracks:        []string{"fangorn", "zoo"},
-		}).
-		Build()
-
-	suite.cache.Insert(suite.album1)
-	suite.cache.Insert(suite.album2)
-
-	suite.client = NewCachedClient(suite.cache, client)
 }
 
 func (suite *cacheClientSuite) performWrite(res *pbresource.Resource, shouldError bool) {

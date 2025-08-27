@@ -10,7 +10,6 @@ import (
 
 	goMetrics "github.com/armon/go-metrics"
 	"go.opentelemetry.io/otel/sdk/metric"
-	"go.opentelemetry.io/otel/sdk/metric/aggregation"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	metricpb "go.opentelemetry.io/proto/otlp/metrics/v1"
 )
@@ -54,18 +53,18 @@ func (e *otelExporter) Temporality(_ metric.InstrumentKind) metricdata.Temporali
 // Aggregation returns the Aggregation to use for an instrument kind.
 // The default implementation provided by the OTEL Metrics SDK library DefaultAggregationSelector panics.
 // This custom version replicates that logic, but removes the panic.
-func (e *otelExporter) Aggregation(kind metric.InstrumentKind) aggregation.Aggregation {
+func (e *otelExporter) Aggregation(kind metric.InstrumentKind) metric.Aggregation {
 	switch kind {
 	case metric.InstrumentKindObservableGauge:
-		return aggregation.LastValue{}
+		return metric.AggregationLastValue{}
 	case metric.InstrumentKindHistogram:
-		return aggregation.ExplicitBucketHistogram{
+		return metric.AggregationExplicitBucketHistogram{
 			Boundaries: []float64{0, 5, 10, 25, 50, 75, 100, 250, 500, 750, 1000, 2500, 5000, 7500, 10000},
 			NoMinMax:   false,
 		}
 	}
 	// for metric.InstrumentKindCounter and others, default to sum.
-	return aggregation.Sum{}
+	return metric.AggregationSum{}
 }
 
 // Export serializes and transmits metric data to a receiver.

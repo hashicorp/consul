@@ -536,7 +536,7 @@ func (_c *ResourceServiceClient_Read_Call) RunAndReturn(run func(ctx context.Con
 }
 
 // WatchList provides a mock function for the type ResourceServiceClient
-func (_mock *ResourceServiceClient) WatchList(ctx context.Context, in *pbresource.WatchListRequest, opts ...grpc.CallOption) (pbresource.ResourceService_WatchListClient, error) {
+func (_mock *ResourceServiceClient) WatchList(ctx context.Context, in *pbresource.WatchListRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[pbresource.WatchEvent], error) {
 	// grpc.CallOption
 	_va := make([]interface{}, len(opts))
 	for _i := range opts {
@@ -551,16 +551,16 @@ func (_mock *ResourceServiceClient) WatchList(ctx context.Context, in *pbresourc
 		panic("no return value specified for WatchList")
 	}
 
-	var r0 pbresource.ResourceService_WatchListClient
+	var r0 grpc.ServerStreamingClient[pbresource.WatchEvent]
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *pbresource.WatchListRequest, ...grpc.CallOption) (pbresource.ResourceService_WatchListClient, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *pbresource.WatchListRequest, ...grpc.CallOption) (grpc.ServerStreamingClient[pbresource.WatchEvent], error)); ok {
 		return returnFunc(ctx, in, opts...)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *pbresource.WatchListRequest, ...grpc.CallOption) pbresource.ResourceService_WatchListClient); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *pbresource.WatchListRequest, ...grpc.CallOption) grpc.ServerStreamingClient[pbresource.WatchEvent]); ok {
 		r0 = returnFunc(ctx, in, opts...)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(pbresource.ResourceService_WatchListClient)
+			r0 = ret.Get(0).(grpc.ServerStreamingClient[pbresource.WatchEvent])
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, *pbresource.WatchListRequest, ...grpc.CallOption) error); ok {
@@ -612,12 +612,12 @@ func (_c *ResourceServiceClient_WatchList_Call) Run(run func(ctx context.Context
 	return _c
 }
 
-func (_c *ResourceServiceClient_WatchList_Call) Return(resourceService_WatchListClient pbresource.ResourceService_WatchListClient, err error) *ResourceServiceClient_WatchList_Call {
-	_c.Call.Return(resourceService_WatchListClient, err)
+func (_c *ResourceServiceClient_WatchList_Call) Return(serverStreamingClient grpc.ServerStreamingClient[pbresource.WatchEvent], err error) *ResourceServiceClient_WatchList_Call {
+	_c.Call.Return(serverStreamingClient, err)
 	return _c
 }
 
-func (_c *ResourceServiceClient_WatchList_Call) RunAndReturn(run func(ctx context.Context, in *pbresource.WatchListRequest, opts ...grpc.CallOption) (pbresource.ResourceService_WatchListClient, error)) *ResourceServiceClient_WatchList_Call {
+func (_c *ResourceServiceClient_WatchList_Call) RunAndReturn(run func(ctx context.Context, in *pbresource.WatchListRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[pbresource.WatchEvent], error)) *ResourceServiceClient_WatchList_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -1539,16 +1539,16 @@ func (_c *ResourceServiceServer_Read_Call) RunAndReturn(run func(context1 contex
 }
 
 // WatchList provides a mock function for the type ResourceServiceServer
-func (_mock *ResourceServiceServer) WatchList(watchListRequest *pbresource.WatchListRequest, resourceService_WatchListServer pbresource.ResourceService_WatchListServer) error {
-	ret := _mock.Called(watchListRequest, resourceService_WatchListServer)
+func (_mock *ResourceServiceServer) WatchList(watchListRequest *pbresource.WatchListRequest, serverStreamingServer grpc.ServerStreamingServer[pbresource.WatchEvent]) error {
+	ret := _mock.Called(watchListRequest, serverStreamingServer)
 
 	if len(ret) == 0 {
 		panic("no return value specified for WatchList")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(*pbresource.WatchListRequest, pbresource.ResourceService_WatchListServer) error); ok {
-		r0 = returnFunc(watchListRequest, resourceService_WatchListServer)
+	if returnFunc, ok := ret.Get(0).(func(*pbresource.WatchListRequest, grpc.ServerStreamingServer[pbresource.WatchEvent]) error); ok {
+		r0 = returnFunc(watchListRequest, serverStreamingServer)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -1562,20 +1562,20 @@ type ResourceServiceServer_WatchList_Call struct {
 
 // WatchList is a helper method to define mock.On call
 //   - watchListRequest *pbresource.WatchListRequest
-//   - resourceService_WatchListServer pbresource.ResourceService_WatchListServer
-func (_e *ResourceServiceServer_Expecter) WatchList(watchListRequest interface{}, resourceService_WatchListServer interface{}) *ResourceServiceServer_WatchList_Call {
-	return &ResourceServiceServer_WatchList_Call{Call: _e.mock.On("WatchList", watchListRequest, resourceService_WatchListServer)}
+//   - serverStreamingServer grpc.ServerStreamingServer[pbresource.WatchEvent]
+func (_e *ResourceServiceServer_Expecter) WatchList(watchListRequest interface{}, serverStreamingServer interface{}) *ResourceServiceServer_WatchList_Call {
+	return &ResourceServiceServer_WatchList_Call{Call: _e.mock.On("WatchList", watchListRequest, serverStreamingServer)}
 }
 
-func (_c *ResourceServiceServer_WatchList_Call) Run(run func(watchListRequest *pbresource.WatchListRequest, resourceService_WatchListServer pbresource.ResourceService_WatchListServer)) *ResourceServiceServer_WatchList_Call {
+func (_c *ResourceServiceServer_WatchList_Call) Run(run func(watchListRequest *pbresource.WatchListRequest, serverStreamingServer grpc.ServerStreamingServer[pbresource.WatchEvent])) *ResourceServiceServer_WatchList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 *pbresource.WatchListRequest
 		if args[0] != nil {
 			arg0 = args[0].(*pbresource.WatchListRequest)
 		}
-		var arg1 pbresource.ResourceService_WatchListServer
+		var arg1 grpc.ServerStreamingServer[pbresource.WatchEvent]
 		if args[1] != nil {
-			arg1 = args[1].(pbresource.ResourceService_WatchListServer)
+			arg1 = args[1].(grpc.ServerStreamingServer[pbresource.WatchEvent])
 		}
 		run(
 			arg0,
@@ -1590,7 +1590,7 @@ func (_c *ResourceServiceServer_WatchList_Call) Return(err error) *ResourceServi
 	return _c
 }
 
-func (_c *ResourceServiceServer_WatchList_Call) RunAndReturn(run func(watchListRequest *pbresource.WatchListRequest, resourceService_WatchListServer pbresource.ResourceService_WatchListServer) error) *ResourceServiceServer_WatchList_Call {
+func (_c *ResourceServiceServer_WatchList_Call) RunAndReturn(run func(watchListRequest *pbresource.WatchListRequest, serverStreamingServer grpc.ServerStreamingServer[pbresource.WatchEvent]) error) *ResourceServiceServer_WatchList_Call {
 	_c.Call.Return(run)
 	return _c
 }

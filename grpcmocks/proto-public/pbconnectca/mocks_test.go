@@ -128,7 +128,7 @@ func (_c *ConnectCAServiceClient_Sign_Call) RunAndReturn(run func(ctx context.Co
 }
 
 // WatchRoots provides a mock function for the type ConnectCAServiceClient
-func (_mock *ConnectCAServiceClient) WatchRoots(ctx context.Context, in *pbconnectca.WatchRootsRequest, opts ...grpc.CallOption) (pbconnectca.ConnectCAService_WatchRootsClient, error) {
+func (_mock *ConnectCAServiceClient) WatchRoots(ctx context.Context, in *pbconnectca.WatchRootsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[pbconnectca.WatchRootsResponse], error) {
 	// grpc.CallOption
 	_va := make([]interface{}, len(opts))
 	for _i := range opts {
@@ -143,16 +143,16 @@ func (_mock *ConnectCAServiceClient) WatchRoots(ctx context.Context, in *pbconne
 		panic("no return value specified for WatchRoots")
 	}
 
-	var r0 pbconnectca.ConnectCAService_WatchRootsClient
+	var r0 grpc.ServerStreamingClient[pbconnectca.WatchRootsResponse]
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *pbconnectca.WatchRootsRequest, ...grpc.CallOption) (pbconnectca.ConnectCAService_WatchRootsClient, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *pbconnectca.WatchRootsRequest, ...grpc.CallOption) (grpc.ServerStreamingClient[pbconnectca.WatchRootsResponse], error)); ok {
 		return returnFunc(ctx, in, opts...)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *pbconnectca.WatchRootsRequest, ...grpc.CallOption) pbconnectca.ConnectCAService_WatchRootsClient); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *pbconnectca.WatchRootsRequest, ...grpc.CallOption) grpc.ServerStreamingClient[pbconnectca.WatchRootsResponse]); ok {
 		r0 = returnFunc(ctx, in, opts...)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(pbconnectca.ConnectCAService_WatchRootsClient)
+			r0 = ret.Get(0).(grpc.ServerStreamingClient[pbconnectca.WatchRootsResponse])
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, *pbconnectca.WatchRootsRequest, ...grpc.CallOption) error); ok {
@@ -204,12 +204,12 @@ func (_c *ConnectCAServiceClient_WatchRoots_Call) Run(run func(ctx context.Conte
 	return _c
 }
 
-func (_c *ConnectCAServiceClient_WatchRoots_Call) Return(connectCAService_WatchRootsClient pbconnectca.ConnectCAService_WatchRootsClient, err error) *ConnectCAServiceClient_WatchRoots_Call {
-	_c.Call.Return(connectCAService_WatchRootsClient, err)
+func (_c *ConnectCAServiceClient_WatchRoots_Call) Return(serverStreamingClient grpc.ServerStreamingClient[pbconnectca.WatchRootsResponse], err error) *ConnectCAServiceClient_WatchRoots_Call {
+	_c.Call.Return(serverStreamingClient, err)
 	return _c
 }
 
-func (_c *ConnectCAServiceClient_WatchRoots_Call) RunAndReturn(run func(ctx context.Context, in *pbconnectca.WatchRootsRequest, opts ...grpc.CallOption) (pbconnectca.ConnectCAService_WatchRootsClient, error)) *ConnectCAServiceClient_WatchRoots_Call {
+func (_c *ConnectCAServiceClient_WatchRoots_Call) RunAndReturn(run func(ctx context.Context, in *pbconnectca.WatchRootsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[pbconnectca.WatchRootsResponse], error)) *ConnectCAServiceClient_WatchRoots_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -685,16 +685,16 @@ func (_c *ConnectCAServiceServer_Sign_Call) RunAndReturn(run func(context1 conte
 }
 
 // WatchRoots provides a mock function for the type ConnectCAServiceServer
-func (_mock *ConnectCAServiceServer) WatchRoots(watchRootsRequest *pbconnectca.WatchRootsRequest, connectCAService_WatchRootsServer pbconnectca.ConnectCAService_WatchRootsServer) error {
-	ret := _mock.Called(watchRootsRequest, connectCAService_WatchRootsServer)
+func (_mock *ConnectCAServiceServer) WatchRoots(watchRootsRequest *pbconnectca.WatchRootsRequest, serverStreamingServer grpc.ServerStreamingServer[pbconnectca.WatchRootsResponse]) error {
+	ret := _mock.Called(watchRootsRequest, serverStreamingServer)
 
 	if len(ret) == 0 {
 		panic("no return value specified for WatchRoots")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(*pbconnectca.WatchRootsRequest, pbconnectca.ConnectCAService_WatchRootsServer) error); ok {
-		r0 = returnFunc(watchRootsRequest, connectCAService_WatchRootsServer)
+	if returnFunc, ok := ret.Get(0).(func(*pbconnectca.WatchRootsRequest, grpc.ServerStreamingServer[pbconnectca.WatchRootsResponse]) error); ok {
+		r0 = returnFunc(watchRootsRequest, serverStreamingServer)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -708,20 +708,20 @@ type ConnectCAServiceServer_WatchRoots_Call struct {
 
 // WatchRoots is a helper method to define mock.On call
 //   - watchRootsRequest *pbconnectca.WatchRootsRequest
-//   - connectCAService_WatchRootsServer pbconnectca.ConnectCAService_WatchRootsServer
-func (_e *ConnectCAServiceServer_Expecter) WatchRoots(watchRootsRequest interface{}, connectCAService_WatchRootsServer interface{}) *ConnectCAServiceServer_WatchRoots_Call {
-	return &ConnectCAServiceServer_WatchRoots_Call{Call: _e.mock.On("WatchRoots", watchRootsRequest, connectCAService_WatchRootsServer)}
+//   - serverStreamingServer grpc.ServerStreamingServer[pbconnectca.WatchRootsResponse]
+func (_e *ConnectCAServiceServer_Expecter) WatchRoots(watchRootsRequest interface{}, serverStreamingServer interface{}) *ConnectCAServiceServer_WatchRoots_Call {
+	return &ConnectCAServiceServer_WatchRoots_Call{Call: _e.mock.On("WatchRoots", watchRootsRequest, serverStreamingServer)}
 }
 
-func (_c *ConnectCAServiceServer_WatchRoots_Call) Run(run func(watchRootsRequest *pbconnectca.WatchRootsRequest, connectCAService_WatchRootsServer pbconnectca.ConnectCAService_WatchRootsServer)) *ConnectCAServiceServer_WatchRoots_Call {
+func (_c *ConnectCAServiceServer_WatchRoots_Call) Run(run func(watchRootsRequest *pbconnectca.WatchRootsRequest, serverStreamingServer grpc.ServerStreamingServer[pbconnectca.WatchRootsResponse])) *ConnectCAServiceServer_WatchRoots_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 *pbconnectca.WatchRootsRequest
 		if args[0] != nil {
 			arg0 = args[0].(*pbconnectca.WatchRootsRequest)
 		}
-		var arg1 pbconnectca.ConnectCAService_WatchRootsServer
+		var arg1 grpc.ServerStreamingServer[pbconnectca.WatchRootsResponse]
 		if args[1] != nil {
-			arg1 = args[1].(pbconnectca.ConnectCAService_WatchRootsServer)
+			arg1 = args[1].(grpc.ServerStreamingServer[pbconnectca.WatchRootsResponse])
 		}
 		run(
 			arg0,
@@ -736,7 +736,7 @@ func (_c *ConnectCAServiceServer_WatchRoots_Call) Return(err error) *ConnectCASe
 	return _c
 }
 
-func (_c *ConnectCAServiceServer_WatchRoots_Call) RunAndReturn(run func(watchRootsRequest *pbconnectca.WatchRootsRequest, connectCAService_WatchRootsServer pbconnectca.ConnectCAService_WatchRootsServer) error) *ConnectCAServiceServer_WatchRoots_Call {
+func (_c *ConnectCAServiceServer_WatchRoots_Call) RunAndReturn(run func(watchRootsRequest *pbconnectca.WatchRootsRequest, serverStreamingServer grpc.ServerStreamingServer[pbconnectca.WatchRootsResponse]) error) *ConnectCAServiceServer_WatchRoots_Call {
 	_c.Call.Return(run)
 	return _c
 }

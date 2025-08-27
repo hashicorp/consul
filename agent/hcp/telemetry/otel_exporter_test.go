@@ -14,7 +14,6 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/sdk/metric"
-	"go.opentelemetry.io/otel/sdk/metric/aggregation"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	"go.opentelemetry.io/otel/sdk/resource"
 	metricpb "go.opentelemetry.io/proto/otlp/metrics/v1"
@@ -50,19 +49,19 @@ func TestAggregation(t *testing.T) {
 	t.Parallel()
 	for name, test := range map[string]struct {
 		kind   metric.InstrumentKind
-		expAgg aggregation.Aggregation
+		expAgg metric.Aggregation
 	}{
 		"gauge": {
 			kind:   metric.InstrumentKindObservableGauge,
-			expAgg: aggregation.LastValue{},
+			expAgg: metric.AggregationLastValue{},
 		},
 		"counter": {
 			kind:   metric.InstrumentKindCounter,
-			expAgg: aggregation.Sum{},
+			expAgg: metric.AggregationSum{},
 		},
 		"histogram": {
 			kind:   metric.InstrumentKindHistogram,
-			expAgg: aggregation.ExplicitBucketHistogram{Boundaries: []float64{0, 5, 10, 25, 50, 75, 100, 250, 500, 750, 1000, 2500, 5000, 7500, 10000}, NoMinMax: false},
+			expAgg: metric.AggregationExplicitBucketHistogram{Boundaries: []float64{0, 5, 10, 25, 50, 75, 100, 250, 500, 750, 1000, 2500, 5000, 7500, 10000}, NoMinMax: false},
 		},
 	} {
 		test := test
