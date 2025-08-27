@@ -5,6 +5,7 @@ all: false
 dir: .
 structname: '{{.InterfaceName}}'
 pkgname: e2e
+filename: 'mock_{{.InterfaceName}}.go'
 recursive: false
 template: testify
 template-data:

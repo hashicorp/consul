@@ -5,6 +5,7 @@ all: true
 dir: indexersmock
 structname: '{{.InterfaceName}}'
 pkgname: indexersmock
+filename: 'mock_{{.InterfaceName}}.go'
 recursive: false
 template: testify
 template-data:

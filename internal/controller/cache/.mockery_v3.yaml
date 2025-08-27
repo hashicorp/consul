@@ -5,6 +5,7 @@ all: true
 dir: '{{.SrcPackageName}}mock'
 structname: '{{.InterfaceName}}'
 pkgname: '{{.SrcPackageName}}mock'
+filename: 'mock_{{.InterfaceName}}.go'
 recursive: false
 template: testify
 template-data:

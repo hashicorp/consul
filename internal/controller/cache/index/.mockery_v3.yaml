@@ -6,6 +6,7 @@ exclude-interface-regex: ^(Txn|IndexOption)$
 include-interface-regex: .*
 structname: '{{.InterfaceName | camelcase }}'
 pkgname: indexmock
+filename: 'mock_{{.InterfaceName}}.go'
 recursive: false
 template: testify
 template-data:
