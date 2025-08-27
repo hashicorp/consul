@@ -156,7 +156,7 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	if c.name == "" {
-		c.UI.Error(fmt.Sprintf("Cannot update an auth method without specifying the -name parameter"))
+		c.UI.Error("Cannot update an auth method without specifying the -name parameter")
 		return 1
 	}
 
@@ -182,7 +182,7 @@ func (c *cmd) Run(args []string) int {
 			c.UI.Error(fmt.Sprintf("Invalid '-kubernetes-ca-cert' value: %v", err))
 			return 1
 		} else if c.k8sCACert == "" {
-			c.UI.Error(fmt.Sprintf("Kubernetes CA Cert is empty"))
+			c.UI.Error("Kubernetes CA Cert is empty")
 			return 1
 		}
 	}
@@ -207,7 +207,7 @@ func (c *cmd) Run(args []string) int {
 
 		if c.config != "" {
 			if c.k8sHost != "" || c.k8sCACert != "" || c.k8sServiceAccountJWT != "" {
-				c.UI.Error(fmt.Sprintf("Cannot use command line arguments with '-config' flag"))
+				c.UI.Error("Cannot use command line arguments with '-config' flag")
 				return 1
 			}
 			data, err := helpers.LoadDataSource(c.config, c.testStdin)
@@ -223,13 +223,13 @@ func (c *cmd) Run(args []string) int {
 
 		if currentAuthMethod.Type == "kubernetes" {
 			if c.k8sHost == "" {
-				c.UI.Error(fmt.Sprintf("Missing required '-kubernetes-host' flag"))
+				c.UI.Error("Missing required '-kubernetes-host' flag")
 				return 1
 			} else if c.k8sCACert == "" {
-				c.UI.Error(fmt.Sprintf("Missing required '-kubernetes-ca-cert' flag"))
+				c.UI.Error("Missing required '-kubernetes-ca-cert' flag")
 				return 1
 			} else if c.k8sServiceAccountJWT == "" {
-				c.UI.Error(fmt.Sprintf("Missing required '-kubernetes-service-account-jwt' flag"))
+				c.UI.Error("Missing required '-kubernetes-service-account-jwt' flag")
 				return 1
 			}
 
@@ -260,7 +260,7 @@ func (c *cmd) Run(args []string) int {
 		}
 		if c.config != "" {
 			if c.k8sHost != "" || c.k8sCACert != "" || c.k8sServiceAccountJWT != "" {
-				c.UI.Error(fmt.Sprintf("Cannot use command line arguments with '-config' flag"))
+				c.UI.Error("Cannot use command line arguments with '-config' flag")
 				return 1
 			}
 			data, err := helpers.LoadDataSource(c.config, c.testStdin)

@@ -13,7 +13,7 @@ service DNSService {
   // Query sends a DNS request over to Consul server and returns a DNS reply message.
   rpc Query(QueryRequest) returns (QueryResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
-      operation_type: OPERATION_TYPE_READ,
+      operation_type: OPERATION_TYPE_READ
       operation_category: OPERATION_CATEGORY_DNS
     };
   }

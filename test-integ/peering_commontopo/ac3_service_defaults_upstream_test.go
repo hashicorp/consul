@@ -132,7 +132,7 @@ func (s *ac3SvcDefaultsSuite) setup(t *testing.T, ct *commonTopo) {
 			Partition: ConfigEntryPartition(serverSID.Partition),
 			Sources: []*api.SourceIntention{
 				{
-					Name:   client.Workload.ID.Name,
+					Name:   client.ID.Name,
 					Peer:   cluPeerName,
 					Action: api.IntentionActionAllow,
 				},
@@ -142,7 +142,7 @@ func (s *ac3SvcDefaultsSuite) setup(t *testing.T, ct *commonTopo) {
 
 	serverNode := ct.AddServiceNode(peerClu, server)
 
-	s.sidClient = client.Workload.ID
+	s.sidClient = client.ID
 	s.nodeClient = clientNode.ID()
 	s.upstream = upstream
 

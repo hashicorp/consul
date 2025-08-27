@@ -594,7 +594,7 @@ func TestInternal_NodeInfo_FilterACL(t *testing.T) {
 		}
 	}
 
-	if !reply.QueryMeta.ResultsFilteredByACLs {
+	if !reply.ResultsFilteredByACLs {
 		t.Fatal("ResultsFilteredByACLs should be true")
 	}
 
@@ -652,7 +652,7 @@ func TestInternal_NodeDump_FilterACL(t *testing.T) {
 		}
 	}
 
-	if !reply.QueryMeta.ResultsFilteredByACLs {
+	if !reply.ResultsFilteredByACLs {
 		t.Fatal("ResultsFilteredByACLs should be true")
 	}
 
@@ -1036,7 +1036,7 @@ func TestInternal_ServiceDump_ACL(t *testing.T) {
 		require.NoError(t, err)
 		require.NotEmpty(t, out.Nodes)
 		require.NotEmpty(t, out.Gateways)
-		require.False(t, out.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+		require.False(t, out.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
 	})
 
 	t.Run("cannot read service node", func(t *testing.T) {
@@ -1058,7 +1058,7 @@ func TestInternal_ServiceDump_ACL(t *testing.T) {
 		err := msgpackrpc.CallWithCodec(codec, "Internal.ServiceDump", &args, &out)
 		require.NoError(t, err)
 		require.Empty(t, out.Nodes)
-		require.True(t, out.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, out.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	t.Run("cannot read service", func(t *testing.T) {
@@ -1080,7 +1080,7 @@ func TestInternal_ServiceDump_ACL(t *testing.T) {
 		err := msgpackrpc.CallWithCodec(codec, "Internal.ServiceDump", &args, &out)
 		require.NoError(t, err)
 		require.Empty(t, out.Nodes)
-		require.True(t, out.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, out.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	t.Run("cannot read gateway node", func(t *testing.T) {
@@ -1102,7 +1102,7 @@ func TestInternal_ServiceDump_ACL(t *testing.T) {
 		err := msgpackrpc.CallWithCodec(codec, "Internal.ServiceDump", &args, &out)
 		require.NoError(t, err)
 		require.Empty(t, out.Gateways)
-		require.True(t, out.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, out.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	t.Run("cannot read gateway", func(t *testing.T) {
@@ -1124,7 +1124,7 @@ func TestInternal_ServiceDump_ACL(t *testing.T) {
 		err := msgpackrpc.CallWithCodec(codec, "Internal.ServiceDump", &args, &out)
 		require.NoError(t, err)
 		require.Empty(t, out.Gateways)
-		require.True(t, out.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, out.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	// need to ensure that ACLs are filtered prior to bexprFiltering
@@ -1572,7 +1572,7 @@ func TestInternal_GatewayServiceDump_Terminating_ACL(t *testing.T) {
 	require.Equal(t, nodes[0].Node.Node, "bar")
 	require.Equal(t, nodes[0].Service.Service, "db")
 	require.Equal(t, nodes[0].Checks[0].Status, api.HealthWarning)
-	require.True(t, out.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+	require.True(t, out.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 }
 
 func TestInternal_GatewayServiceDump_Ingress(t *testing.T) {
@@ -2315,7 +2315,7 @@ func TestInternal_ServiceTopology(t *testing.T) {
 			var out structs.IndexedServiceTopology
 			require.NoError(r, msgpackrpc.CallWithCodec(codec, "Internal.ServiceTopology", &args, &out))
 			require.False(r, out.FilteredByACLs)
-			require.False(r, out.QueryMeta.ResultsFilteredByACLs)
+			require.False(r, out.ResultsFilteredByACLs)
 			require.Equal(r, "http", out.ServiceTopology.MetricsProtocol)
 
 			// foo/api, foo/api-proxy
@@ -2355,7 +2355,7 @@ func TestInternal_ServiceTopology(t *testing.T) {
 			var out structs.IndexedServiceTopology
 			require.NoError(r, msgpackrpc.CallWithCodec(codec, "Internal.ServiceTopology", &args, &out))
 			require.False(r, out.FilteredByACLs)
-			require.False(r, out.QueryMeta.ResultsFilteredByACLs)
+			require.False(r, out.ResultsFilteredByACLs)
 			require.Equal(r, "http", out.ServiceTopology.MetricsProtocol)
 
 			// edge/ingress
@@ -2411,7 +2411,7 @@ func TestInternal_ServiceTopology(t *testing.T) {
 			var out structs.IndexedServiceTopology
 			require.NoError(r, msgpackrpc.CallWithCodec(codec, "Internal.ServiceTopology", &args, &out))
 			require.False(r, out.FilteredByACLs)
-			require.False(r, out.QueryMeta.ResultsFilteredByACLs)
+			require.False(r, out.ResultsFilteredByACLs)
 			require.Equal(r, "http", out.ServiceTopology.MetricsProtocol)
 
 			// foo/api, foo/api-proxy
@@ -2465,7 +2465,7 @@ func TestInternal_ServiceTopology(t *testing.T) {
 			var out structs.IndexedServiceTopology
 			require.NoError(r, msgpackrpc.CallWithCodec(codec, "Internal.ServiceTopology", &args, &out))
 			require.False(r, out.FilteredByACLs)
-			require.False(r, out.QueryMeta.ResultsFilteredByACLs)
+			require.False(r, out.ResultsFilteredByACLs)
 			require.Equal(r, "http", out.ServiceTopology.MetricsProtocol)
 
 			require.Len(r, out.ServiceTopology.Upstreams, 0)
@@ -2522,7 +2522,7 @@ func TestInternal_ServiceTopology_RoutingConfig(t *testing.T) {
 			var out structs.IndexedServiceTopology
 			require.NoError(r, msgpackrpc.CallWithCodec(codec, "Internal.ServiceTopology", &args, &out))
 			require.False(r, out.FilteredByACLs)
-			require.False(r, out.QueryMeta.ResultsFilteredByACLs)
+			require.False(r, out.ResultsFilteredByACLs)
 			require.Equal(r, "http", out.ServiceTopology.MetricsProtocol)
 
 			require.Empty(r, out.ServiceTopology.Downstreams)
@@ -2600,7 +2600,7 @@ service "web" { policy = "read" }
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.ServiceTopology", &args, &out))
 
 		require.True(t, out.FilteredByACLs)
-		require.True(t, out.QueryMeta.ResultsFilteredByACLs)
+		require.True(t, out.ResultsFilteredByACLs)
 		require.Equal(t, "http", out.ServiceTopology.MetricsProtocol)
 
 		// The web-proxy upstream gets filtered out from both bar and baz
@@ -2621,7 +2621,7 @@ service "web" { policy = "read" }
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.ServiceTopology", &args, &out))
 
 		require.True(t, out.FilteredByACLs)
-		require.True(t, out.QueryMeta.ResultsFilteredByACLs)
+		require.True(t, out.ResultsFilteredByACLs)
 		require.Equal(t, "http", out.ServiceTopology.MetricsProtocol)
 
 		// The redis upstream gets filtered out but the api and proxy downstream are returned
@@ -2804,7 +2804,7 @@ func TestInternal_IntentionUpstreams_BlockOnNoChange(t *testing.T) {
 					Datacenter:  "dc1",
 					ServiceName: "web",
 				}
-				args.QueryOptions.MinQueryIndex = minQueryIndex
+				args.MinQueryIndex = minQueryIndex
 
 				var out structs.IndexedServiceList
 				errCh := channelCallRPC(s1, "Internal.IntentionUpstreams", args, &out, func() error {
@@ -3383,7 +3383,7 @@ func TestInternal_ServiceGatewayService_Terminating_ACL(t *testing.T) {
 	require.Equal(t, structs.ServiceKindTerminatingGateway, nodes[0].Service.Kind)
 	require.Equal(t, "terminating-gateway", nodes[0].Service.Service)
 	require.Equal(t, "terminating-gateway", nodes[0].Service.ID)
-	require.True(t, out.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+	require.True(t, out.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 }
 
 func TestInternal_ServiceGatewayService_Terminating_Destination(t *testing.T) {

@@ -130,7 +130,7 @@ func (m *ConfigSource) startSync(
 	proxyID proxycfg.ProxyID,
 ) error {
 	logger := m.Logger.With(
-		"proxy_service_id", proxyID.ServiceID.String(),
+		"proxy_service_id", proxyID.String(),
 		"node", proxyID.NodeName,
 	)
 

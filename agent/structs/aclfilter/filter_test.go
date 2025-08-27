@@ -527,7 +527,7 @@ func TestACL_filterHealthChecks(t *testing.T) {
 		New(authz, logger).Filter(list)
 
 		require.Len(t, list.HealthChecks, 1)
-		require.False(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+		require.False(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
 	})
 
 	t.Run("allowed to read the service, but not the node", func(t *testing.T) {
@@ -549,7 +549,7 @@ func TestACL_filterHealthChecks(t *testing.T) {
 		New(authz, logger).Filter(list)
 
 		require.Empty(t, list.HealthChecks)
-		require.True(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	t.Run("allowed to read the node, but not the service", func(t *testing.T) {
@@ -571,7 +571,7 @@ func TestACL_filterHealthChecks(t *testing.T) {
 		New(authz, logger).Filter(list)
 
 		require.Empty(t, list.HealthChecks)
-		require.True(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	t.Run("denied", func(t *testing.T) {
@@ -580,7 +580,7 @@ func TestACL_filterHealthChecks(t *testing.T) {
 		New(acl.DenyAll(), logger).Filter(list)
 
 		require.Empty(t, list.HealthChecks)
-		require.True(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 }
 
@@ -610,7 +610,7 @@ func TestACL_filterIntentions(t *testing.T) {
 		New(acl.AllowAll(), logger).Filter(list)
 
 		require.Len(t, list.Intentions, 2)
-		require.False(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+		require.False(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
 	})
 
 	t.Run("allowed to read 1", func(t *testing.T) {
@@ -632,7 +632,7 @@ func TestACL_filterIntentions(t *testing.T) {
 		New(authz, logger).Filter(list)
 
 		require.Len(t, list.Intentions, 1)
-		require.True(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	t.Run("denied", func(t *testing.T) {
@@ -641,7 +641,7 @@ func TestACL_filterIntentions(t *testing.T) {
 		New(acl.DenyAll(), logger).Filter(list)
 
 		require.Empty(t, list.Intentions)
-		require.True(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 }
 
@@ -703,7 +703,7 @@ func TestACL_filterServiceNodes(t *testing.T) {
 		New(authz, logger).Filter(list)
 
 		require.Len(t, list.ServiceNodes, 1)
-		require.False(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+		require.False(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
 	})
 
 	t.Run("allowed to read the service, but not the node", func(t *testing.T) {
@@ -722,7 +722,7 @@ func TestACL_filterServiceNodes(t *testing.T) {
 		New(authz, logger).Filter(list)
 
 		require.Empty(t, list.ServiceNodes)
-		require.True(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	t.Run("denied", func(t *testing.T) {
@@ -731,7 +731,7 @@ func TestACL_filterServiceNodes(t *testing.T) {
 		New(acl.DenyAll(), logger).Filter(list)
 
 		require.Empty(t, list.ServiceNodes)
-		require.True(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 }
 
@@ -764,7 +764,7 @@ func TestACL_filterNodeServices(t *testing.T) {
 		New(acl.AllowAll(), logger).Filter(list)
 
 		require.Nil(t, list.NodeServices)
-		require.False(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+		require.False(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
 	})
 
 	t.Run("allowed", func(t *testing.T) {
@@ -786,7 +786,7 @@ func TestACL_filterNodeServices(t *testing.T) {
 		New(authz, logger).Filter(list)
 
 		require.Len(t, list.NodeServices.Services, 1)
-		require.False(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+		require.False(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
 	})
 
 	t.Run("allowed to read the service, but not the node", func(t *testing.T) {
@@ -805,7 +805,7 @@ func TestACL_filterNodeServices(t *testing.T) {
 		New(authz, logger).Filter(list)
 
 		require.Nil(t, list.NodeServices)
-		require.True(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	t.Run("allowed to read the node, but not the service", func(t *testing.T) {
@@ -824,7 +824,7 @@ func TestACL_filterNodeServices(t *testing.T) {
 		New(authz, logger).Filter(list)
 
 		require.Empty(t, list.NodeServices.Services)
-		require.True(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	t.Run("denied", func(t *testing.T) {
@@ -833,7 +833,7 @@ func TestACL_filterNodeServices(t *testing.T) {
 		New(acl.DenyAll(), logger).Filter(list)
 
 		require.Nil(t, list.NodeServices)
-		require.True(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 }
 
@@ -861,7 +861,7 @@ func TestACL_filterNodeServiceList(t *testing.T) {
 		New(acl.AllowAll(), logger).Filter(&list)
 
 		require.Empty(t, list)
-		require.False(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+		require.False(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
 	})
 
 	t.Run("allowed", func(t *testing.T) {
@@ -883,7 +883,7 @@ func TestACL_filterNodeServiceList(t *testing.T) {
 		New(authz, logger).Filter(list)
 
 		require.Len(t, list.NodeServices.Services, 1)
-		require.False(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+		require.False(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
 	})
 
 	t.Run("allowed to read the service, but not the node", func(t *testing.T) {
@@ -902,7 +902,7 @@ func TestACL_filterNodeServiceList(t *testing.T) {
 		New(authz, logger).Filter(list)
 
 		require.Empty(t, list.NodeServices)
-		require.True(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	t.Run("allowed to read the node, but not the service", func(t *testing.T) {
@@ -922,7 +922,7 @@ func TestACL_filterNodeServiceList(t *testing.T) {
 
 		require.NotEmpty(t, list.NodeServices.Node)
 		require.Empty(t, list.NodeServices.Services)
-		require.True(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	t.Run("denied", func(t *testing.T) {
@@ -931,7 +931,7 @@ func TestACL_filterNodeServiceList(t *testing.T) {
 		New(acl.DenyAll(), logger).Filter(list)
 
 		require.Empty(t, list.NodeServices)
-		require.True(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 }
 
@@ -964,7 +964,7 @@ func TestACL_filterGatewayServices(t *testing.T) {
 		New(authz, logger).Filter(list)
 
 		require.Len(t, list.Services, 1)
-		require.False(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+		require.False(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
 	})
 
 	t.Run("denied", func(t *testing.T) {
@@ -973,7 +973,7 @@ func TestACL_filterGatewayServices(t *testing.T) {
 		New(acl.DenyAll(), logger).Filter(list)
 
 		require.Empty(t, list.Services)
-		require.True(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 }
 
@@ -1024,7 +1024,7 @@ func TestACL_filterCheckServiceNodes(t *testing.T) {
 		New(authz, logger).Filter(list)
 
 		require.Len(t, list.Nodes, 1)
-		require.False(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+		require.False(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
 	})
 
 	t.Run("allowed to read the service, but not the node", func(t *testing.T) {
@@ -1043,7 +1043,7 @@ func TestACL_filterCheckServiceNodes(t *testing.T) {
 		New(authz, logger).Filter(list)
 
 		require.Empty(t, list.Nodes)
-		require.True(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	t.Run("allowed to read the node, but not the service", func(t *testing.T) {
@@ -1062,7 +1062,7 @@ func TestACL_filterCheckServiceNodes(t *testing.T) {
 		New(authz, logger).Filter(list)
 
 		require.Empty(t, list.Nodes)
-		require.True(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	t.Run("denied", func(t *testing.T) {
@@ -1071,7 +1071,7 @@ func TestACL_filterCheckServiceNodes(t *testing.T) {
 		New(acl.DenyAll(), logger).Filter(list)
 
 		require.Empty(t, list.Nodes)
-		require.True(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 }
 
@@ -1122,7 +1122,7 @@ func TestACL_filterPreparedQueryExecuteResponse(t *testing.T) {
 		New(authz, logger).Filter(list)
 
 		require.Len(t, list.Nodes, 1)
-		require.False(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+		require.False(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
 	})
 
 	t.Run("allowed to read the service, but not the node", func(t *testing.T) {
@@ -1141,7 +1141,7 @@ func TestACL_filterPreparedQueryExecuteResponse(t *testing.T) {
 		New(authz, logger).Filter(list)
 
 		require.Empty(t, list.Nodes)
-		require.True(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	t.Run("allowed to read the node, but not the service", func(t *testing.T) {
@@ -1160,7 +1160,7 @@ func TestACL_filterPreparedQueryExecuteResponse(t *testing.T) {
 		New(authz, logger).Filter(list)
 
 		require.Empty(t, list.Nodes)
-		require.True(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	t.Run("denied", func(t *testing.T) {
@@ -1169,7 +1169,7 @@ func TestACL_filterPreparedQueryExecuteResponse(t *testing.T) {
 		New(acl.DenyAll(), logger).Filter(list)
 
 		require.Empty(t, list.Nodes)
-		require.True(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 }
 
@@ -1353,7 +1353,7 @@ func TestACL_filterCoordinates(t *testing.T) {
 		New(acl.AllowAll(), logger).Filter(list)
 
 		require.Len(t, list.Coordinates, 2)
-		require.False(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+		require.False(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
 	})
 
 	t.Run("allowed to read one node", func(t *testing.T) {
@@ -1372,7 +1372,7 @@ func TestACL_filterCoordinates(t *testing.T) {
 		New(authz, logger).Filter(list)
 
 		require.Len(t, list.Coordinates, 1)
-		require.True(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	t.Run("denied", func(t *testing.T) {
@@ -1381,7 +1381,7 @@ func TestACL_filterCoordinates(t *testing.T) {
 		New(acl.DenyAll(), logger).Filter(list)
 
 		require.Empty(t, list.Coordinates)
-		require.True(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 }
 
@@ -1405,7 +1405,7 @@ func TestACL_filterSessions(t *testing.T) {
 		New(acl.AllowAll(), logger).Filter(list)
 
 		require.Len(t, list.Sessions, 2)
-		require.False(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+		require.False(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
 	})
 
 	t.Run("just one node's sessions allowed", func(t *testing.T) {
@@ -1424,7 +1424,7 @@ func TestACL_filterSessions(t *testing.T) {
 		New(authz, logger).Filter(list)
 
 		require.Len(t, list.Sessions, 1)
-		require.True(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	t.Run("denied", func(t *testing.T) {
@@ -1433,7 +1433,7 @@ func TestACL_filterSessions(t *testing.T) {
 		New(acl.DenyAll(), logger).Filter(list)
 
 		require.Empty(t, list.Sessions)
-		require.True(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 }
 
@@ -2059,7 +2059,7 @@ func TestACL_filterIndexedServiceDump(t *testing.T) {
 		New(authz, logger).Filter(list)
 
 		require.Len(t, list.Dump, 2)
-		require.False(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+		require.False(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
 	})
 
 	t.Run("not allowed to access node", func(t *testing.T) {
@@ -2082,7 +2082,7 @@ func TestACL_filterIndexedServiceDump(t *testing.T) {
 
 		require.Len(t, list.Dump, 1)
 		require.Equal(t, "bar", list.Dump[0].GatewayService.Service.Name)
-		require.True(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	t.Run("not allowed to access service", func(t *testing.T) {
@@ -2104,7 +2104,7 @@ func TestACL_filterIndexedServiceDump(t *testing.T) {
 		New(authz, logger).Filter(list)
 
 		require.Empty(t, list.Dump)
-		require.True(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	t.Run("not allowed to access gateway", func(t *testing.T) {
@@ -2126,7 +2126,7 @@ func TestACL_filterIndexedServiceDump(t *testing.T) {
 		New(authz, logger).Filter(list)
 
 		require.Empty(t, list.Dump)
-		require.True(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 }
 
@@ -2202,7 +2202,7 @@ func TestACL_filterDatacenterCheckServiceNodes(t *testing.T) {
 
 		require.Len(t, list.DatacenterNodes["dc1"], 2)
 		require.Len(t, list.DatacenterNodes["dc2"], 2)
-		require.False(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+		require.False(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
 	})
 
 	t.Run("allowed to read the service, but not the node", func(t *testing.T) {
@@ -2221,7 +2221,7 @@ func TestACL_filterDatacenterCheckServiceNodes(t *testing.T) {
 		New(authz, logger).Filter(list)
 
 		require.Empty(t, list.DatacenterNodes)
-		require.True(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	t.Run("allowed to read the node, but not the service", func(t *testing.T) {
@@ -2240,7 +2240,7 @@ func TestACL_filterDatacenterCheckServiceNodes(t *testing.T) {
 		New(authz, logger).Filter(list)
 
 		require.Empty(t, list.DatacenterNodes)
-		require.True(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	t.Run("denied", func(t *testing.T) {
@@ -2249,7 +2249,7 @@ func TestACL_filterDatacenterCheckServiceNodes(t *testing.T) {
 		New(acl.DenyAll(), logger).Filter(list)
 
 		require.Empty(t, list.DatacenterNodes)
-		require.True(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 }
 
@@ -2357,7 +2357,7 @@ func TestACL_filterPreparedQueries(t *testing.T) {
 		// Check we get the un-redacted token.
 		require.Equal(t, "root", list.Queries[2].Token)
 
-		require.False(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+		require.False(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
 	})
 
 	t.Run("permissive filtering", func(t *testing.T) {
@@ -2378,7 +2378,7 @@ func TestACL_filterPreparedQueries(t *testing.T) {
 
 		// ResultsFilteredByACLs should not include un-named queries, which are only
 		// readable by a management token.
-		require.False(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+		require.False(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
 	})
 
 	t.Run("limited access", func(t *testing.T) {
@@ -2402,7 +2402,7 @@ func TestACL_filterPreparedQueries(t *testing.T) {
 		// Check the token is redacted.
 		require.Equal(t, RedactedToken, list.Queries[0].Token)
 
-		require.True(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	t.Run("restrictive filtering", func(t *testing.T) {
@@ -2411,7 +2411,7 @@ func TestACL_filterPreparedQueries(t *testing.T) {
 		New(acl.DenyAll(), logger).Filter(list)
 
 		require.Empty(t, list.Queries)
-		require.True(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 }
 
@@ -2432,7 +2432,7 @@ func TestACL_filterServiceList(t *testing.T) {
 		list := makeList()
 		New(acl.AllowAll(), logger).Filter(list)
 
-		require.False(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+		require.False(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
 		require.Len(t, list.Services, 2)
 	})
 
@@ -2441,7 +2441,7 @@ func TestACL_filterServiceList(t *testing.T) {
 		list := makeList()
 		New(acl.DenyAll(), logger).Filter(list)
 
-		require.True(t, list.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, list.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 		require.Empty(t, list.Services)
 	})
 }

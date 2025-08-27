@@ -310,7 +310,7 @@ func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, er
 		prefix := "consul"
 		if t != nil {
 			// Use test name for tmpdir if available
-			prefix = strings.Replace(t.Name(), "/", "_", -1)
+			prefix = strings.ReplaceAll(t.Name(), "/", "_")
 		}
 		tmpdir, err = os.MkdirTemp("", prefix)
 		if err != nil {

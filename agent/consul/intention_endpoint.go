@@ -109,7 +109,7 @@ func (s *Intention) Apply(args *structs.IntentionRequest, reply *string) error {
 
 	// Get the ACL token for the request for the checks below.
 	var entMeta acl.EnterpriseMeta
-	authz, err := s.srv.ACLResolver.ResolveTokenAndDefaultMeta(args.Token, &entMeta, nil)
+	authz, err := s.srv.ResolveTokenAndDefaultMeta(args.Token, &entMeta, nil)
 	if err != nil {
 		return err
 	}
@@ -135,7 +135,7 @@ func (s *Intention) Apply(args *structs.IntentionRequest, reply *string) error {
 			mut, err = s.computeApplyChangesDelete(accessorID, authz, &entMeta, args)
 		} else {
 			legacyWrite = true
-			mut, err = s.computeApplyChangesLegacyDelete(accessorID, authz, &entMeta, args)
+			mut, err = s.computeApplyChangesLegacyDelete(accessorID, authz, args)
 		}
 	case structs.IntentionOpDeleteAll:
 		// This is an internal operation initiated by the leader and is not
@@ -361,7 +361,6 @@ func (s *Intention) computeApplyChangesUpsert(
 func (s *Intention) computeApplyChangesLegacyDelete(
 	accessorID string,
 	authz acl.Authorizer,
-	entMeta *acl.EnterpriseMeta,
 	args *structs.IntentionRequest,
 ) (*structs.IntentionMutation, error) {
 	_, _, ixn, err := s.srv.fsm.State().IntentionGet(nil, args.Intention.ID)

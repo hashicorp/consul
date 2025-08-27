@@ -280,7 +280,7 @@ func TestAutoEncrypt_InitialCerts(t *testing.T) {
 		resp.VerifyServerHostname = true
 	})
 
-	mcfg.Config.Waiter = &retry.Waiter{MinFailures: 2, MaxWait: time.Millisecond}
+	mcfg.Waiter = &retry.Waiter{MinFailures: 2, MaxWait: time.Millisecond}
 
 	ac := AutoConfig{
 		config: &config.RuntimeConfig{
@@ -320,7 +320,7 @@ func TestAutoEncrypt_InitialConfiguration(t *testing.T) {
 		}
 	`)
 	loader.opts.FlagValues.NodeName = &nodeName
-	mcfg.Config.Loader = loader.Load
+	mcfg.Loader = loader.Load
 
 	indexedRoots, cert, extraCerts := mcfg.setupInitialTLS(t, nodeName, datacenter, token)
 
@@ -569,7 +569,7 @@ func TestAutoEncrypt_Fallback(t *testing.T) {
 		&expectedRequest,
 		&structs.SignedResponse{}).Return(nil).Run(populateResponse).Once()
 
-	testAC.mcfg.expectInitialTLS(t, "autoconf", "dc1", testAC.originalToken, secondCA, &secondRoots, thirdCert, testAC.extraCerts)
+	testAC.mcfg.expectInitialTLS("autoconf", "dc1", testAC.originalToken, secondCA, &secondRoots, thirdCert, testAC.extraCerts)
 
 	// after the second RPC we now will use the new certs validity period in the next run loop iteration
 	testAC.mcfg.tlsCfg.On("AutoEncryptCert").Return(&x509.Certificate{

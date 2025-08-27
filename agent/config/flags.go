@@ -107,12 +107,12 @@ func applyDeprecatedFlags(d *FlagValuesTarget) (Config, []string) {
 
 	var warns []string
 	if len(dep.StartJoinAddrsLAN) > 0 {
-		d.Config.RetryJoinLAN = append(d.Config.RetryJoinLAN, dep.StartJoinAddrsLAN...)
+		d.RetryJoinLAN = append(d.RetryJoinLAN, dep.StartJoinAddrsLAN...)
 		warns = append(warns, deprecatedFlagWarning("-join", "-retry-join"))
 	}
 
 	if len(dep.StartJoinAddrsWAN) > 0 {
-		d.Config.RetryJoinWAN = append(d.Config.RetryJoinWAN, dep.StartJoinAddrsWAN...)
+		d.RetryJoinWAN = append(d.RetryJoinWAN, dep.StartJoinAddrsWAN...)
 		warns = append(warns, deprecatedFlagWarning("-join-wan", "-retry-join-wan"))
 	}
 	return d.Config, warns

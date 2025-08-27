@@ -257,7 +257,7 @@ func (t *Txn) Read(args *structs.TxnReadRequest, reply *structs.TxnReadResponse)
 
 	total := len(reply.Results)
 	reply.Results = FilterTxnResults(authz, reply.Results)
-	reply.QueryMeta.ResultsFilteredByACLs = total != len(reply.Results)
+	reply.ResultsFilteredByACLs = total != len(reply.Results)
 
 	// We have to do this ourselves since we are not doing a blocking RPC.
 	t.srv.SetQueryMeta(&reply.QueryMeta, args.Token)

@@ -298,23 +298,23 @@ func TestUpdateConfig(t *testing.T) {
 		{
 			description: "RateLimiter gets updated when GlobalReadConfig changes.",
 			configModFunc: func(cfg *HandlerConfig) {
-				rc := multilimiter.LimiterConfig{Rate: cfg.GlobalLimitConfig.ReadWriteConfig.ReadConfig.Rate, Burst: cfg.GlobalLimitConfig.ReadWriteConfig.ReadConfig.Burst + 1}
-				cfg.GlobalLimitConfig.ReadWriteConfig.ReadConfig = rc
+				rc := multilimiter.LimiterConfig{Rate: cfg.GlobalLimitConfig.ReadConfig.Rate, Burst: cfg.GlobalLimitConfig.ReadConfig.Burst + 1}
+				cfg.GlobalLimitConfig.ReadConfig = rc
 			},
 			assertFunc: func(mockRateLimiter *multilimiter.MockRateLimiter, cfg *HandlerConfig) {
 				mockRateLimiter.AssertNumberOfCalls(t, "UpdateConfig", 1)
-				mockRateLimiter.AssertCalled(t, "UpdateConfig", cfg.GlobalLimitConfig.ReadWriteConfig.ReadConfig, []byte("global.read"))
+				mockRateLimiter.AssertCalled(t, "UpdateConfig", cfg.GlobalLimitConfig.ReadConfig, []byte("global.read"))
 			},
 		},
 		{
 			description: "RateLimiter gets updated when GlobalWriteConfig changes.",
 			configModFunc: func(cfg *HandlerConfig) {
-				wc := multilimiter.LimiterConfig{Rate: cfg.GlobalLimitConfig.ReadWriteConfig.WriteConfig.Rate, Burst: cfg.GlobalLimitConfig.ReadWriteConfig.WriteConfig.Burst + 1}
-				cfg.GlobalLimitConfig.ReadWriteConfig.WriteConfig = wc
+				wc := multilimiter.LimiterConfig{Rate: cfg.GlobalLimitConfig.WriteConfig.Rate, Burst: cfg.GlobalLimitConfig.WriteConfig.Burst + 1}
+				cfg.GlobalLimitConfig.WriteConfig = wc
 			},
 			assertFunc: func(mockRateLimiter *multilimiter.MockRateLimiter, cfg *HandlerConfig) {
 				mockRateLimiter.AssertNumberOfCalls(t, "UpdateConfig", 1)
-				mockRateLimiter.AssertCalled(t, "UpdateConfig", cfg.GlobalLimitConfig.ReadWriteConfig.WriteConfig, []byte("global.write"))
+				mockRateLimiter.AssertCalled(t, "UpdateConfig", cfg.GlobalLimitConfig.WriteConfig, []byte("global.write"))
 			},
 		},
 		{

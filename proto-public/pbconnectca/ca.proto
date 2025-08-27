@@ -14,7 +14,7 @@ service ConnectCAService {
   // stream, and new lists will be sent whenever the roots are rotated.
   rpc WatchRoots(WatchRootsRequest) returns (stream WatchRootsResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
-      operation_type: OPERATION_TYPE_READ,
+      operation_type: OPERATION_TYPE_READ
       operation_category: OPERATION_CATEGORY_CONNECT_CA
     };
   }
@@ -23,7 +23,7 @@ service ConnectCAService {
   // ID in the given CSR's SAN.
   rpc Sign(SignRequest) returns (SignResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
-      operation_type: OPERATION_TYPE_WRITE,
+      operation_type: OPERATION_TYPE_WRITE
       operation_category: OPERATION_CATEGORY_CONNECT_CA
     };
   }

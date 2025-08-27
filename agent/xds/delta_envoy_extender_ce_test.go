@@ -42,10 +42,7 @@ func TestEnvoyExtenderWithSnapshot(t *testing.T) {
 	// Otherwise payload-passthrough=false and invocation-mode=synchronous.
 	// This is used to test all the permutations.
 	makeLambdaServiceDefaults := func(opposite bool) *structs.ServiceConfigEntry {
-		payloadPassthrough := true
-		if opposite {
-			payloadPassthrough = false
-		}
+		payloadPassthrough := !opposite
 
 		invocationMode := "synchronous"
 		if opposite {

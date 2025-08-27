@@ -158,7 +158,7 @@ func (c *cmd) Run(args []string) int {
 	}
 	defer c.destroyData()
 	if c.conf.verbose {
-		c.UI.Info(fmt.Sprintf("Uploaded remote execution spec"))
+		c.UI.Info("Uploaded remote execution spec")
 	}
 
 	// Wait for replication. This is done so that when the event is

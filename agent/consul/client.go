@@ -191,7 +191,7 @@ func (c *Client) Shutdown() error {
 	// Close the connection pool
 	c.connPool.Shutdown()
 
-	c.ACLResolver.Close()
+	c.Close()
 
 	return nil
 }

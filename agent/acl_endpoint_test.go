@@ -34,10 +34,7 @@ import (
 
 func isHTTPBadRequest(err error) bool {
 	if err, ok := err.(HTTPError); ok {
-		if err.StatusCode != 400 {
-			return false
-		}
-		return true
+		return err.StatusCode == http.StatusBadRequest
 	}
 	return false
 }

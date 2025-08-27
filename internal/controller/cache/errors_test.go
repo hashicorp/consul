@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	fakeWrappedErr = fmt.Errorf("fake test error")
+	errFakeWrapped = fmt.Errorf("fake test error")
 )
 
 func TestErrorStrings(t *testing.T) {
@@ -20,14 +20,14 @@ func TestErrorStrings(t *testing.T) {
 		"QueryNotFound": QueryNotFoundError{name: "fake"},
 		"QueryRequired": QueryRequired,
 		"CacheTypeError": CacheTypeError{
-			err: fakeWrappedErr,
+			err: errFakeWrapped,
 			it: unversionedType{
 				Group: "something",
 				Kind:  "else",
 			},
 		},
 		"IndexError": IndexError{
-			err:  fakeWrappedErr,
+			err:  errFakeWrapped,
 			name: "foo",
 		},
 		"DuplicateIndexError": DuplicateIndexError{
@@ -44,16 +44,16 @@ func TestErrorUnwrap(t *testing.T) {
 		"IndexError": {
 			Err: IndexError{
 				name: "blah",
-				err:  fakeWrappedErr,
+				err:  errFakeWrapped,
 			},
-			Expected: fakeWrappedErr,
+			Expected: errFakeWrapped,
 		},
 		"CacheTypeError": {
 			Err: CacheTypeError{
 				it:  unversionedType{Group: "something", Kind: "else"},
-				err: fakeWrappedErr,
+				err: errFakeWrapped,
 			},
-			Expected: fakeWrappedErr,
+			Expected: errFakeWrapped,
 		},
 	})
 }

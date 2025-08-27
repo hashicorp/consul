@@ -2678,13 +2678,13 @@ func TestUIEndpoint_MetricsProxy(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// Reload the agent config with the desired UI config by making a copy and
 			// using internal reload.
-			cfg := *a.Agent.config
+			cfg := *a.config
 
 			// Modify the UIConfig part (this is a copy remember and that struct is
 			// not a pointer)
 			cfg.UIConfig.MetricsProxy = tc.config
 
-			require.NoError(t, a.Agent.reloadConfigInternal(&cfg))
+			require.NoError(t, a.reloadConfigInternal(&cfg))
 
 			// Now fetch the API handler to run requests against
 			a.enableDebug.Store(true)

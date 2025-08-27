@@ -98,7 +98,7 @@ func (c *changeTrackerDB) WriteTxn(idx uint64) *txn {
 		publish:    c.publisher.Publish,
 		prePublish: c.processChanges,
 	}
-	t.Txn.TrackChanges()
+	t.TrackChanges()
 	return t
 }
 
@@ -115,7 +115,7 @@ func (c *changeTrackerDB) WriteTxnRestore() *txn {
 	}
 
 	// We enable change tracking so that usage data is correctly populated.
-	t.Txn.TrackChanges()
+	t.TrackChanges()
 	return t
 }
 
@@ -153,7 +153,7 @@ type txn struct {
 func (tx *txn) Commit() error {
 	changes := Changes{
 		Index:   tx.Index,
-		Changes: tx.Txn.Changes(),
+		Changes: tx.Changes(),
 	}
 
 	if len(changes.Changes) > 0 {

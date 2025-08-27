@@ -387,7 +387,7 @@ func (o *configSnapshotAPIGateway) DeepCopy() *configSnapshotAPIGateway {
 		for k2, v2 := range o.Upstreams {
 			var cp_Upstreams_v2 listenerUpstreamMap
 			if v2 != nil {
-				cp_Upstreams_v2 = make(map[IngressListenerKey]structs.Upstreams, len(v2))
+				cp_Upstreams_v2 = make(map[APIGatewayListenerKey]structs.Upstreams, len(v2))
 				for k3, v3 := range v2 {
 					var cp_Upstreams_v2_v3 structs.Upstreams
 					if v3 != nil {

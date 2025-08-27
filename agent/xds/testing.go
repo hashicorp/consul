@@ -42,7 +42,7 @@ func NewTestADSDeltaStream(t testing.T, ctx context.Context) *TestADSDeltaStream
 		sendCh: make(chan *envoy_discovery_v3.DeltaDiscoveryResponse, 1),
 		recvCh: make(chan *envoy_discovery_v3.DeltaDiscoveryRequest, 1),
 	}
-	s.stubGrpcServerStream.ctx = ctx
+	s.ctx = ctx
 	return s
 }
 

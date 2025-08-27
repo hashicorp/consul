@@ -129,23 +129,23 @@ func testHealthView_IntegrationWithStore_WithEmptySnapshot(t *testing.T, peerNam
 		require.Equal(t, uint64(1), result.Index)
 		require.Equal(t, empty, result.Value)
 
-		req.QueryOptions.MinQueryIndex = result.Index
+		req.MinQueryIndex = result.Index
 	})
 
 	testutil.RunStep(t, "blocks for timeout", func(t *testing.T) {
 		// Subsequent fetch should block for the timeout
 		start := time.Now()
-		req.QueryOptions.MaxQueryTime = 200 * time.Millisecond
+		req.MaxQueryTime = 200 * time.Millisecond
 		result, err := store.Get(ctx, req)
 		require.NoError(t, err)
 		elapsed := time.Since(start)
 		require.True(t, elapsed >= 200*time.Millisecond,
 			"Fetch should have blocked until timeout")
 
-		require.Equal(t, req.QueryOptions.MinQueryIndex, result.Index, "result index should not have changed")
+		require.Equal(t, req.MinQueryIndex, result.Index, "result index should not have changed")
 		require.Equal(t, empty, result.Value, "result value should not have changed")
 
-		req.QueryOptions.MinQueryIndex = result.Index
+		req.MinQueryIndex = result.Index
 	})
 
 	var lastResultValue structs.CheckServiceNodes
@@ -159,7 +159,7 @@ func testHealthView_IntegrationWithStore_WithEmptySnapshot(t *testing.T, peerNam
 			streamClient.QueueEvents(newEventServiceHealthRegister(4, 1, "web", peerName))
 		}()
 
-		req.QueryOptions.MaxQueryTime = time.Second
+		req.MaxQueryTime = time.Second
 		result, err := store.Get(ctx, req)
 		require.NoError(t, err)
 		elapsed := time.Since(start)
@@ -176,7 +176,7 @@ func testHealthView_IntegrationWithStore_WithEmptySnapshot(t *testing.T, peerNam
 		require.Equal(t, peerName, lastResultValue[0].Node.PeerName)
 		require.Equal(t, peerName, lastResultValue[0].Service.PeerName)
 
-		req.QueryOptions.MinQueryIndex = result.Index
+		req.MinQueryIndex = result.Index
 	})
 
 	testutil.RunStep(t, "reconnects and resumes after temporary error", func(t *testing.T) {
@@ -185,25 +185,25 @@ func testHealthView_IntegrationWithStore_WithEmptySnapshot(t *testing.T, peerNam
 		// Next fetch will continue to block until timeout and receive the same
 		// result.
 		start := time.Now()
-		req.QueryOptions.MaxQueryTime = 200 * time.Millisecond
+		req.MaxQueryTime = 200 * time.Millisecond
 		result, err := store.Get(ctx, req)
 		require.NoError(t, err)
 		elapsed := time.Since(start)
 		require.True(t, elapsed >= 200*time.Millisecond,
 			"Fetch should have blocked until timeout")
 
-		require.Equal(t, req.QueryOptions.MinQueryIndex, result.Index,
+		require.Equal(t, req.MinQueryIndex, result.Index,
 			"result index should not have changed")
 		require.Equal(t, lastResultValue, result.Value.(*structs.IndexedCheckServiceNodes).Nodes,
 			"result value should not have changed")
 
-		req.QueryOptions.MinQueryIndex = result.Index
+		req.MinQueryIndex = result.Index
 
 		// But an update should still be noticed due to reconnection
 		streamClient.QueueEvents(newEventServiceHealthRegister(10, 2, "web", peerName))
 
 		start = time.Now()
-		req.QueryOptions.MaxQueryTime = time.Second
+		req.MaxQueryTime = time.Second
 		result, err = store.Get(ctx, req)
 		require.NoError(t, err)
 		elapsed = time.Since(start)
@@ -220,7 +220,7 @@ func testHealthView_IntegrationWithStore_WithEmptySnapshot(t *testing.T, peerNam
 		require.Equal(t, peerName, lastResultValue[1].Node.PeerName)
 		require.Equal(t, peerName, lastResultValue[1].Service.PeerName)
 
-		req.QueryOptions.MinQueryIndex = result.Index
+		req.MinQueryIndex = result.Index
 	})
 
 	testutil.RunStep(t, "returns non-temporary error to watchers", func(t *testing.T) {
@@ -232,7 +232,7 @@ func testHealthView_IntegrationWithStore_WithEmptySnapshot(t *testing.T, peerNam
 
 		// Next fetch should return the error
 		start := time.Now()
-		req.QueryOptions.MaxQueryTime = time.Second
+		req.MaxQueryTime = time.Second
 		result, err := store.Get(ctx, req)
 		require.Error(t, err)
 		elapsed := time.Since(start)
@@ -241,21 +241,21 @@ func testHealthView_IntegrationWithStore_WithEmptySnapshot(t *testing.T, peerNam
 		require.True(t, elapsed < time.Second,
 			"Fetch should have returned before the timeout")
 
-		require.Equal(t, req.QueryOptions.MinQueryIndex, result.Index, "result index should not have changed")
+		require.Equal(t, req.MinQueryIndex, result.Index, "result index should not have changed")
 		require.Equal(t, lastResultValue, result.Value.(*structs.IndexedCheckServiceNodes).Nodes)
 
-		req.QueryOptions.MinQueryIndex = result.Index
+		req.MinQueryIndex = result.Index
 
 		// But an update should still be noticed due to reconnection
-		streamClient.QueueEvents(newEventServiceHealthRegister(req.QueryOptions.MinQueryIndex+5, 3, "web", peerName))
+		streamClient.QueueEvents(newEventServiceHealthRegister(req.MinQueryIndex+5, 3, "web", peerName))
 
-		req.QueryOptions.MaxQueryTime = time.Second
+		req.MaxQueryTime = time.Second
 		result, err = store.Get(ctx, req)
 		require.NoError(t, err)
 		elapsed = time.Since(start)
 		require.True(t, elapsed < time.Second, "Fetch should have returned before the timeout")
 
-		require.Equal(t, req.QueryOptions.MinQueryIndex+5, result.Index, "result index should not have changed")
+		require.Equal(t, req.MinQueryIndex+5, result.Index, "result index should not have changed")
 		lastResultValue = result.Value.(*structs.IndexedCheckServiceNodes).Nodes
 		require.Len(t, lastResultValue, 3,
 			"result value should contain the new registration")
@@ -267,7 +267,7 @@ func testHealthView_IntegrationWithStore_WithEmptySnapshot(t *testing.T, peerNam
 		require.Equal(t, peerName, lastResultValue[2].Node.PeerName)
 		require.Equal(t, peerName, lastResultValue[2].Service.PeerName)
 
-		req.QueryOptions.MinQueryIndex = result.Index
+		req.MinQueryIndex = result.Index
 	})
 }
 
@@ -336,7 +336,7 @@ func testHealthView_IntegrationWithStore_WithFullSnapshot(t *testing.T, peerName
 		expected.Index = 5
 		prototest.AssertDeepEqual(t, expected, result.Value, cmpCheckServiceNodeNames)
 
-		req.QueryOptions.MinQueryIndex = result.Index
+		req.MinQueryIndex = result.Index
 	})
 
 	testutil.RunStep(t, "blocks until deregistration", func(t *testing.T) {
@@ -350,7 +350,7 @@ func testHealthView_IntegrationWithStore_WithFullSnapshot(t *testing.T, peerName
 			client.QueueEvents(newEventServiceHealthDeregister(20, 1, "web", peerName))
 		}()
 
-		req.QueryOptions.MaxQueryTime = time.Second
+		req.MaxQueryTime = time.Second
 		result, err := store.Get(ctx, req)
 		require.NoError(t, err)
 		elapsed := time.Since(start)
@@ -364,7 +364,7 @@ func testHealthView_IntegrationWithStore_WithFullSnapshot(t *testing.T, peerName
 		expected.Index = 20
 		prototest.AssertDeepEqual(t, expected, result.Value, cmpCheckServiceNodeNames)
 
-		req.QueryOptions.MinQueryIndex = result.Index
+		req.MinQueryIndex = result.Index
 	})
 
 	testutil.RunStep(t, "server reload is respected", func(t *testing.T) {
@@ -382,7 +382,7 @@ func testHealthView_IntegrationWithStore_WithFullSnapshot(t *testing.T, peerName
 		// Make another blocking query with THE SAME index. It should immediately
 		// return the new snapshot.
 		start := time.Now()
-		req.QueryOptions.MaxQueryTime = time.Second
+		req.MaxQueryTime = time.Second
 		result, err := store.Get(ctx, req)
 		require.NoError(t, err)
 		elapsed := time.Since(start)
@@ -394,7 +394,7 @@ func testHealthView_IntegrationWithStore_WithFullSnapshot(t *testing.T, peerName
 		expected.Index = 50
 		prototest.AssertDeepEqual(t, expected, result.Value, cmpCheckServiceNodeNames)
 
-		req.QueryOptions.MinQueryIndex = result.Index
+		req.MinQueryIndex = result.Index
 	})
 
 	testutil.RunStep(t, "reconnects and receives new snapshot when server state has changed", func(t *testing.T) {
@@ -408,8 +408,8 @@ func testHealthView_IntegrationWithStore_WithFullSnapshot(t *testing.T, peerName
 			newEndOfSnapshotEvent(50))
 
 		start := time.Now()
-		req.QueryOptions.MinQueryIndex = 49
-		req.QueryOptions.MaxQueryTime = time.Second
+		req.MinQueryIndex = 49
+		req.MaxQueryTime = time.Second
 		result, err := store.Get(ctx, req)
 		require.NoError(t, err)
 		elapsed := time.Since(start)
@@ -425,7 +425,7 @@ func testHealthView_IntegrationWithStore_WithFullSnapshot(t *testing.T, peerName
 
 func newExpectedNodesInPeer(peerName string, nodes ...string) *structs.IndexedCheckServiceNodes {
 	result := &structs.IndexedCheckServiceNodes{}
-	result.QueryMeta.Backend = structs.QueryBackendStreaming
+	result.Backend = structs.QueryBackendStreaming
 	for _, node := range nodes {
 		result.Nodes = append(result.Nodes, structs.CheckServiceNode{
 			Node: &structs.Node{
@@ -495,7 +495,7 @@ func testHealthView_IntegrationWithStore_EventBatches(t *testing.T, peerName str
 		expected := newExpectedNodesInPeer(peerName, "node1", "node2", "node3")
 		expected.Index = 5
 		prototest.AssertDeepEqual(t, expected, result.Value, cmpCheckServiceNodeNames)
-		req.QueryOptions.MinQueryIndex = result.Index
+		req.MinQueryIndex = result.Index
 	})
 
 	testutil.RunStep(t, "batched updates work too", func(t *testing.T) {
@@ -508,7 +508,7 @@ func testHealthView_IntegrationWithStore_EventBatches(t *testing.T, peerName str
 			newEventServiceHealthRegister(20, 4, "web", peerName),
 		)
 		client.QueueEvents(batchEv)
-		req.QueryOptions.MaxQueryTime = time.Second
+		req.MaxQueryTime = time.Second
 		result, err := store.Get(ctx, req)
 		require.NoError(t, err)
 
@@ -517,7 +517,7 @@ func testHealthView_IntegrationWithStore_EventBatches(t *testing.T, peerName str
 		expected.Index = 20
 		prototest.AssertDeepEqual(t, expected, result.Value, cmpCheckServiceNodeNames)
 
-		req.QueryOptions.MinQueryIndex = result.Index
+		req.MinQueryIndex = result.Index
 	})
 }
 
@@ -575,7 +575,7 @@ func testHealthView_IntegrationWithStore_Filtering(t *testing.T, peerName string
 		expected.Index = 5
 		prototest.AssertDeepEqual(t, expected, result.Value, cmpCheckServiceNodeNames)
 
-		req.QueryOptions.MinQueryIndex = result.Index
+		req.MinQueryIndex = result.Index
 	})
 
 	testutil.RunStep(t, "filtered updates work too", func(t *testing.T) {

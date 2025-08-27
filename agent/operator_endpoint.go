@@ -67,7 +67,7 @@ func (s *HTTPHandlers) OperatorRaftTransferLeader(resp http.ResponseWriter, req 
 	if err != nil {
 		return nil, err
 	}
-	if result.Success != true {
+	if !result.Success {
 		return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: fmt.Sprintf("Failed to transfer Leader: %s", err.Error())}
 	}
 	reply := new(api.TransferLeaderResponse)
@@ -396,12 +396,12 @@ RETRY_ONCE:
 			s.nodeMetricsLabels())
 		return nil, err
 	}
-	if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
+	if args.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
 		args.AllowStale = false
 		args.MaxStaleDuration = 0
 		goto RETRY_ONCE
 	}
-	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
+	out.ConsistencyLevel = args.ConsistencyLevel()
 	metrics.IncrCounterWithLabels([]string{"client", "api", "success", "operator_usage"}, 1,
 		s.nodeMetricsLabels())
 	return out, nil

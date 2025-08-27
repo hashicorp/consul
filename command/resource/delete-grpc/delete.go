@@ -61,7 +61,7 @@ func (c *cmd) Run(args []string) int {
 	// collect resource type, name and tenancy
 	if c.flags.Lookup("f").Value.String() != "" {
 		if c.filePath == "" {
-			c.UI.Error(fmt.Sprintf("Please provide an input file with resource definition"))
+			c.UI.Error("Please provide an input file with resource definition")
 			return 1
 		}
 		parsedResource, err := resource.ParseResourceFromFile(c.filePath)

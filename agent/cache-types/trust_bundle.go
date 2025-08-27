@@ -83,14 +83,14 @@ func (t *TrustBundle) Fetch(opts cache.FetchOptions, req cache.Request) (cache.F
 	reqReal = &dup
 
 	// Set the minimum query index to our current index, so we block
-	reqReal.QueryOptions.MinQueryIndex = opts.MinIndex
-	reqReal.QueryOptions.MaxQueryTime = opts.Timeout
+	reqReal.MinQueryIndex = opts.MinIndex
+	reqReal.MaxQueryTime = opts.Timeout
 
 	// Always allow stale - there's no point in hitting leader if the request is
 	// going to be served from cache and end up arbitrarily stale anyway. This
 	// allows cached service-discover to automatically read scale across all
 	// servers too.
-	reqReal.QueryOptions.SetAllowStale(true)
+	reqReal.SetAllowStale(true)
 
 	// Fetch
 	ctx, err := external.ContextWithQueryOptions(context.Background(), reqReal.QueryOptions)

@@ -86,9 +86,9 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	if !((c.server && !c.client && !c.cli) ||
-		(!c.server && c.client && !c.cli) ||
-		(!c.server && !c.client && c.cli)) {
+	if (!c.server || c.client || c.cli) &&
+		(c.server || !c.client || c.cli) &&
+		(c.server || c.client || !c.cli) {
 		c.UI.Error("Please provide either -server, -client, or -cli")
 		return 1
 	}

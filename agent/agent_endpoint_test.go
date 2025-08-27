@@ -9,6 +9,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -40,7 +41,6 @@ import (
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
-	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/lib"
@@ -1728,7 +1728,7 @@ func newDefaultBaseDeps(t *testing.T) BaseDeps {
 func TestHTTPHandlers_AgentMetricsStream_ACLDeny(t *testing.T) {
 	t.Skip("this test panics without a license manager in enterprise")
 	bd := newDefaultBaseDeps(t)
-	bd.Tokens = new(tokenStore.Store)
+	bd.Tokens = new(token.Store)
 	sink := metrics.NewInmemSink(30*time.Millisecond, time.Second)
 	bd.MetricsConfig = &lib.MetricsConfig{
 		Handler: sink,
@@ -1760,7 +1760,7 @@ func TestHTTPHandlers_AgentMetricsStream_ACLDeny(t *testing.T) {
 func TestHTTPHandlers_AgentMetricsStream(t *testing.T) {
 	t.Skip("this test panics without a license manager in enterprise")
 	bd := newDefaultBaseDeps(t)
-	bd.Tokens = new(tokenStore.Store)
+	bd.Tokens = new(token.Store)
 	sink := metrics.NewInmemSink(20*time.Millisecond, time.Second)
 	bd.MetricsConfig = &lib.MetricsConfig{
 		Handler: sink,
@@ -6479,15 +6479,15 @@ func TestAgent_Token(t *testing.T) {
 
 	type tokens struct {
 		user                string
-		userSource          tokenStore.TokenSource
+		userSource          token.TokenSource
 		agent               string
-		agentSource         tokenStore.TokenSource
+		agentSource         token.TokenSource
 		agentRecovery       string
-		agentRecoverySource tokenStore.TokenSource
+		agentRecoverySource token.TokenSource
 		repl                string
-		replSource          tokenStore.TokenSource
+		replSource          token.TokenSource
 		registration        string
-		registrationSource  tokenStore.TokenSource
+		registrationSource  token.TokenSource
 	}
 
 	resetTokens := func(init tokens) {
@@ -6538,7 +6538,7 @@ func TestAgent_Token(t *testing.T) {
 			url:       "acl_token",
 			body:      body("U"),
 			code:      http.StatusOK,
-			raw:       tokens{user: "U", userSource: tokenStore.TokenSourceAPI},
+			raw:       tokens{user: "U", userSource: token.TokenSourceAPI},
 			effective: tokens{user: "U", agent: "U"},
 		},
 		{
@@ -6547,7 +6547,7 @@ func TestAgent_Token(t *testing.T) {
 			url:       "default",
 			body:      body("U"),
 			code:      http.StatusOK,
-			raw:       tokens{user: "U", userSource: tokenStore.TokenSourceAPI},
+			raw:       tokens{user: "U", userSource: token.TokenSourceAPI},
 			effective: tokens{user: "U", agent: "U"},
 		},
 		{
@@ -6557,7 +6557,7 @@ func TestAgent_Token(t *testing.T) {
 			body:      body("A"),
 			code:      http.StatusOK,
 			init:      tokens{user: "U", agent: "U"},
-			raw:       tokens{user: "U", agent: "A", agentSource: tokenStore.TokenSourceAPI},
+			raw:       tokens{user: "U", agent: "A", agentSource: token.TokenSourceAPI},
 			effective: tokens{user: "U", agent: "A"},
 		},
 		{
@@ -6567,7 +6567,7 @@ func TestAgent_Token(t *testing.T) {
 			body:      body("A"),
 			code:      http.StatusOK,
 			init:      tokens{user: "U", agent: "U"},
-			raw:       tokens{user: "U", agent: "A", agentSource: tokenStore.TokenSourceAPI},
+			raw:       tokens{user: "U", agent: "A", agentSource: token.TokenSourceAPI},
 			effective: tokens{user: "U", agent: "A"},
 		},
 		{
@@ -6576,7 +6576,7 @@ func TestAgent_Token(t *testing.T) {
 			url:       "acl_agent_master_token",
 			body:      body("M"),
 			code:      http.StatusOK,
-			raw:       tokens{agentRecovery: "M", agentRecoverySource: tokenStore.TokenSourceAPI},
+			raw:       tokens{agentRecovery: "M", agentRecoverySource: token.TokenSourceAPI},
 			effective: tokens{agentRecovery: "M"},
 		},
 		{
@@ -6585,7 +6585,7 @@ func TestAgent_Token(t *testing.T) {
 			url:       "agent_master",
 			body:      body("M"),
 			code:      http.StatusOK,
-			raw:       tokens{agentRecovery: "M", agentRecoverySource: tokenStore.TokenSourceAPI},
+			raw:       tokens{agentRecovery: "M", agentRecoverySource: token.TokenSourceAPI},
 			effective: tokens{agentRecovery: "M"},
 		},
 		{
@@ -6594,8 +6594,8 @@ func TestAgent_Token(t *testing.T) {
 			url:       "agent_recovery",
 			body:      body("R"),
 			code:      http.StatusOK,
-			raw:       tokens{agentRecovery: "R", agentRecoverySource: tokenStore.TokenSourceAPI},
-			effective: tokens{agentRecovery: "R", agentRecoverySource: tokenStore.TokenSourceAPI},
+			raw:       tokens{agentRecovery: "R", agentRecoverySource: token.TokenSourceAPI},
+			effective: tokens{agentRecovery: "R", agentRecoverySource: token.TokenSourceAPI},
 		},
 		{
 			name:      "set repl legacy",
@@ -6603,7 +6603,7 @@ func TestAgent_Token(t *testing.T) {
 			url:       "acl_replication_token",
 			body:      body("R"),
 			code:      http.StatusOK,
-			raw:       tokens{repl: "R", replSource: tokenStore.TokenSourceAPI},
+			raw:       tokens{repl: "R", replSource: token.TokenSourceAPI},
 			effective: tokens{repl: "R"},
 		},
 		{
@@ -6612,7 +6612,7 @@ func TestAgent_Token(t *testing.T) {
 			url:       "replication",
 			body:      body("R"),
 			code:      http.StatusOK,
-			raw:       tokens{repl: "R", replSource: tokenStore.TokenSourceAPI},
+			raw:       tokens{repl: "R", replSource: token.TokenSourceAPI},
 			effective: tokens{repl: "R"},
 		},
 		{
@@ -6621,7 +6621,7 @@ func TestAgent_Token(t *testing.T) {
 			url:       "config_file_service_registration",
 			body:      body("G"),
 			code:      http.StatusOK,
-			raw:       tokens{registration: "G", registrationSource: tokenStore.TokenSourceAPI},
+			raw:       tokens{registration: "G", registrationSource: token.TokenSourceAPI},
 			effective: tokens{registration: "G"},
 		},
 		{
@@ -6631,7 +6631,7 @@ func TestAgent_Token(t *testing.T) {
 			body:   body(""),
 			code:   http.StatusOK,
 			init:   tokens{user: "U"},
-			raw:    tokens{userSource: tokenStore.TokenSourceAPI},
+			raw:    tokens{userSource: token.TokenSourceAPI},
 		},
 		{
 			name:   "clear default",
@@ -6640,7 +6640,7 @@ func TestAgent_Token(t *testing.T) {
 			body:   body(""),
 			code:   http.StatusOK,
 			init:   tokens{user: "U"},
-			raw:    tokens{userSource: tokenStore.TokenSourceAPI},
+			raw:    tokens{userSource: token.TokenSourceAPI},
 		},
 		{
 			name:   "clear agent legacy",
@@ -6649,7 +6649,7 @@ func TestAgent_Token(t *testing.T) {
 			body:   body(""),
 			code:   http.StatusOK,
 			init:   tokens{agent: "A"},
-			raw:    tokens{agentSource: tokenStore.TokenSourceAPI},
+			raw:    tokens{agentSource: token.TokenSourceAPI},
 		},
 		{
 			name:   "clear agent",
@@ -6658,7 +6658,7 @@ func TestAgent_Token(t *testing.T) {
 			body:   body(""),
 			code:   http.StatusOK,
 			init:   tokens{agent: "A"},
-			raw:    tokens{agentSource: tokenStore.TokenSourceAPI},
+			raw:    tokens{agentSource: token.TokenSourceAPI},
 		},
 		{
 			name:   "clear master legacy",
@@ -6667,7 +6667,7 @@ func TestAgent_Token(t *testing.T) {
 			body:   body(""),
 			code:   http.StatusOK,
 			init:   tokens{agentRecovery: "M"},
-			raw:    tokens{agentRecoverySource: tokenStore.TokenSourceAPI},
+			raw:    tokens{agentRecoverySource: token.TokenSourceAPI},
 		},
 		{
 			name:   "clear master",
@@ -6676,7 +6676,7 @@ func TestAgent_Token(t *testing.T) {
 			body:   body(""),
 			code:   http.StatusOK,
 			init:   tokens{agentRecovery: "M"},
-			raw:    tokens{agentRecoverySource: tokenStore.TokenSourceAPI},
+			raw:    tokens{agentRecoverySource: token.TokenSourceAPI},
 		},
 		{
 			name:   "clear recovery",
@@ -6685,7 +6685,7 @@ func TestAgent_Token(t *testing.T) {
 			body:   body(""),
 			code:   http.StatusOK,
 			init:   tokens{agentRecovery: "R"},
-			raw:    tokens{agentRecoverySource: tokenStore.TokenSourceAPI},
+			raw:    tokens{agentRecoverySource: token.TokenSourceAPI},
 		},
 		{
 			name:   "clear repl legacy",
@@ -6694,7 +6694,7 @@ func TestAgent_Token(t *testing.T) {
 			body:   body(""),
 			code:   http.StatusOK,
 			init:   tokens{repl: "R"},
-			raw:    tokens{replSource: tokenStore.TokenSourceAPI},
+			raw:    tokens{replSource: token.TokenSourceAPI},
 		},
 		{
 			name:   "clear repl",
@@ -6703,7 +6703,7 @@ func TestAgent_Token(t *testing.T) {
 			body:   body(""),
 			code:   http.StatusOK,
 			init:   tokens{repl: "R"},
-			raw:    tokens{replSource: tokenStore.TokenSourceAPI},
+			raw:    tokens{replSource: token.TokenSourceAPI},
 		},
 		{
 			name:   "clear registration",
@@ -6712,7 +6712,7 @@ func TestAgent_Token(t *testing.T) {
 			body:   body(""),
 			code:   http.StatusOK,
 			init:   tokens{registration: "G"},
-			raw:    tokens{registrationSource: tokenStore.TokenSourceAPI},
+			raw:    tokens{registrationSource: token.TokenSourceAPI},
 		},
 	}
 	for _, tt := range tests {
@@ -7486,7 +7486,7 @@ func TestAgentConnectCALeafCert_Vault_doesNotChurnLeafCertsAtIdle(t *testing.T) 
 			resp := httptest.NewRecorder()
 			a.srv.h.ServeHTTP(resp, req)
 			if resp.Code != http.StatusOK {
-				ch <- fmt.Errorf(resp.Body.String())
+				ch <- errors.New(resp.Body.String())
 				return
 			}
 
@@ -7622,7 +7622,7 @@ func TestAgentConnectCALeafCert_secondaryDC_good(t *testing.T) {
 			resp := httptest.NewRecorder()
 			a2.srv.h.ServeHTTP(resp, req)
 			if resp.Code != http.StatusOK {
-				ch <- fmt.Errorf(resp.Body.String())
+				ch <- errors.New(resp.Body.String())
 				return
 			}
 

@@ -21,7 +21,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
-	newproto "google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/acl"
@@ -1852,7 +1851,7 @@ func writeInitialRootsAndCA(t *testing.T, store *state.Store) (string, *structs.
 	return clusterID, rootA
 }
 
-func makeAnyPB(t *testing.T, pb newproto.Message) *anypb.Any {
+func makeAnyPB(t *testing.T, pb proto.Message) *anypb.Any {
 	any, err := anypb.New(pb)
 	require.NoError(t, err)
 	return any

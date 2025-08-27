@@ -46,8 +46,8 @@ func TestTroubleShootCustom_Ports_Not_Reachable(t *testing.T) {
 	results := TroubleShootCustomPorts("127.0.0.1", strings.Join([]string{"8777", "8888"}, ","))
 
 	expectedResults := []string{
-		fmt.Sprintf("TCP: Port 8777 on 127.0.0.1 is closed, unreachable, or the connection timed out.\n"),
-		fmt.Sprintf("TCP: Port 8888 on 127.0.0.1 is closed, unreachable, or the connection timed out.\n"),
+		"TCP: Port 8777 on 127.0.0.1 is closed, unreachable, or the connection timed out.\n",
+		"TCP: Port 8888 on 127.0.0.1 is closed, unreachable, or the connection timed out.\n",
 	}
 	for _, res := range expectedResults {
 		require.Contains(t, results, res)

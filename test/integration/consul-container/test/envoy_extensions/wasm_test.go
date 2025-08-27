@@ -8,7 +8,6 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"testing"
 	"time"
@@ -69,7 +68,7 @@ func TestWASMRemote(t *testing.T) {
 	require.NoError(t, err)
 
 	// check that header DOES NOT exist before wasm applied
-	if value := res.Header.Get(http.CanonicalHeaderKey("x-test")); value != "" {
+	if value := res.Header.Get("x-test"); value != "" {
 		t.Fatal("unexpected test header present before WASM applied")
 	}
 
@@ -190,7 +189,7 @@ func TestWASMRemote(t *testing.T) {
 		res2, err := c2.Get(fmt.Sprintf("http://localhost:%d", port))
 		require.NoError(r, err)
 
-		if value := res2.Header.Get(http.CanonicalHeaderKey("x-test")); value == "" {
+		if value := res2.Header.Get("x-test"); value == "" {
 			r.Fatal("test header missing after WASM applied")
 		}
 	})
@@ -229,7 +228,7 @@ func TestWASMLocal(t *testing.T) {
 	require.NoError(t, err)
 
 	// check that header DOES NOT exist before wasm applied
-	if value := res.Header.Get(http.CanonicalHeaderKey("x-test")); value != "" {
+	if value := res.Header.Get("x-test"); value != "" {
 		t.Fatal("unexpected test header present before WASM applied")
 	}
 
@@ -271,7 +270,7 @@ func TestWASMLocal(t *testing.T) {
 		res2, err := c2.Get(fmt.Sprintf("http://localhost:%d", port))
 		require.NoError(r, err)
 
-		if value := res2.Header.Get(http.CanonicalHeaderKey("x-test")); value == "" {
+		if value := res2.Header.Get("x-test"); value == "" {
 			r.Fatal("test header missing after WASM applied")
 		}
 	})

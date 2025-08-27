@@ -14,7 +14,7 @@ import "private/pbcommon/common.proto";
 service ConfigEntryService {
   rpc GetResolvedExportedServices(GetResolvedExportedServicesRequest) returns (GetResolvedExportedServicesResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
-      operation_type: OPERATION_TYPE_READ,
+      operation_type: OPERATION_TYPE_READ
       operation_category: OPERATION_CATEGORY_CONFIGENTRY
     };
   }

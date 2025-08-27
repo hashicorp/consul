@@ -10,7 +10,7 @@ import (
 
 func Generate(gen *protogen.Plugin) error {
 	for _, file := range gen.Files {
-		if file.Generate != true {
+		if !file.Generate {
 			continue
 		}
 		if len(file.Messages) == 0 {

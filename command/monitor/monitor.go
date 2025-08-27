@@ -82,14 +82,11 @@ func (c *cmd) Run(args []string) int {
 	go func() {
 		defer close(eventDoneCh)
 	OUTER:
-		for {
-			select {
-			case log := <-logCh:
-				if log == "" {
-					break OUTER
-				}
-				c.UI.Info(log)
+		for log := range logCh {
+			if log == "" {
+				break OUTER
 			}
+			c.UI.Info(log)
 		}
 
 		c.lock.Lock()

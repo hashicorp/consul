@@ -1888,11 +1888,11 @@ var cmpPartialOrderEvents = cmp.Options{
 			if payload.overrideKey != "" {
 				name = payload.overrideKey
 			}
-			ns := csn.Service.EnterpriseMeta.NamespaceOrDefault()
+			ns := csn.Service.NamespaceOrDefault()
 			if payload.overrideNamespace != "" {
 				ns = payload.overrideNamespace
 			}
-			ap := csn.Service.EnterpriseMeta.PartitionOrDefault()
+			ap := csn.Service.PartitionOrDefault()
 			if payload.overridePartition != "" {
 				ap = payload.overridePartition
 			}

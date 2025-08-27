@@ -195,5 +195,4 @@ func TestAutoEncryptSign_MismatchedDC(t *testing.T) {
 	err = msgpackrpc.CallWithCodec(codec, "AutoEncrypt.Sign", args, &reply)
 	codec.Close()
 	require.EqualError(t, err, "mismatched datacenter (client_dc='different' server_dc='dc1'); check client has same datacenter set as servers")
-	return
 }

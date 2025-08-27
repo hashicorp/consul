@@ -592,7 +592,7 @@ func TestCheckAlias_localInitialStatus(t *testing.T) {
 
 	notify := newMockAliasNotify()
 	// We fake a local service web to ensure check if passing works
-	notify.Notify.AddServiceID(structs.ServiceID{ID: "web"})
+	notify.AddServiceID(structs.ServiceID{ID: "web"})
 	chkID := structs.NewCheckID(types.CheckID("foo"), nil)
 	rpc := &mockRPC{}
 	chk := &CheckAlias{

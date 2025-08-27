@@ -596,7 +596,7 @@ func TestFederationState_List_ACLDeny(t *testing.T) {
 				}
 				require.Equal(t,
 					tc.gwFilteredByACLs,
-					out.QueryMeta.ResultsFilteredByACLs,
+					out.ResultsFilteredByACLs,
 					"ResultsFilteredByACLs should be %v", tc.gwFilteredByACLs,
 				)
 			})

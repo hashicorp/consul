@@ -5,7 +5,6 @@ package external
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
@@ -111,7 +110,7 @@ func makeDirector(serverConn *grpc.ClientConn, logger hclog.Logger) func(ctx con
 		logger.Debug("forwarding the request to the consul server", "method", fullMethodName)
 		// throw unimplemented error if the method is not meant to be forwarded
 		if !strings.HasPrefix(fullMethodName, FORWARD_SERVICE_NAME_PREFIX) {
-			return outCtx, nil, status.Errorf(codes.Unimplemented, fmt.Sprintf("Unknown method %s", fullMethodName))
+			return outCtx, nil, status.Errorf(codes.Unimplemented, "Unknown method %s", fullMethodName)
 		}
 
 		return outCtx, serverConn, nil

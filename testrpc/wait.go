@@ -38,7 +38,7 @@ func WaitForLeader(t *testing.T, rpc rpcFn, dc string, options ...waitOption) {
 		if err := rpc(context.Background(), "Catalog.ListNodes", args, &out); err != nil {
 			r.Fatalf("Catalog.ListNodes failed: %v", err)
 		}
-		if !out.QueryMeta.KnownLeader {
+		if !out.KnownLeader {
 			r.Fatalf("No leader")
 		}
 		if out.Index < 2 {
@@ -96,7 +96,7 @@ func WaitUntilNoLeader(t *testing.T, rpc rpcFn, dc string, options ...waitOption
 		if err := rpc(context.Background(), "Catalog.ListNodes", args, &out); err == nil {
 			r.Fatalf("It still has a leader: %#v", out)
 		}
-		if out.QueryMeta.KnownLeader {
+		if out.KnownLeader {
 			r.Fatalf("Has still a leader")
 		}
 	})

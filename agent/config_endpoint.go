@@ -27,7 +27,7 @@ func (s *HTTPHandlers) Config(resp http.ResponseWriter, req *http.Request) (inte
 		return s.configGet(resp, req)
 
 	case "DELETE":
-		return s.configDelete(resp, req)
+		return s.configDelete(req)
 
 	default:
 		return nil, MethodNotAllowedError{req.Method, []string{"GET", "DELETE"}}
@@ -85,7 +85,7 @@ func (s *HTTPHandlers) configGet(resp http.ResponseWriter, req *http.Request) (i
 }
 
 // configDelete deletes the given config entry.
-func (s *HTTPHandlers) configDelete(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) configDelete(req *http.Request) (interface{}, error) {
 	var args structs.ConfigEntryRequest
 	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)

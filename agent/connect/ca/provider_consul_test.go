@@ -44,7 +44,7 @@ func newMockDelegate(t *testing.T, conf *structs.CAConfiguration) *consulCAMockD
 	if s == nil {
 		t.Fatalf("missing state store")
 	}
-	if err := s.CASetConfig(conf.RaftIndex.CreateIndex, conf); err != nil {
+	if err := s.CASetConfig(conf.CreateIndex, conf); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 

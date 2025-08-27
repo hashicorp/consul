@@ -133,7 +133,7 @@ func (s *Server) setupSerfConfig(opts setupSerfOptions) (*serf.Config, error) {
 
 	// TODO(ACL-Legacy-Compat): remove in phase 2. These are kept for now to
 	// allow for upgrades.
-	if s.ACLResolver.ACLsEnabled() {
+	if s.ACLsEnabled() {
 		conf.Tags[metadata.TagACLs] = string(structs.ACLModeEnabled)
 	} else {
 		conf.Tags[metadata.TagACLs] = string(structs.ACLModeDisabled)

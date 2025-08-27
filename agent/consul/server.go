@@ -1328,7 +1328,7 @@ func (s *Server) Shutdown() error {
 	}
 
 	if s.ACLResolver != nil {
-		s.ACLResolver.Close()
+		s.Close()
 	}
 
 	if s.fsm != nil {

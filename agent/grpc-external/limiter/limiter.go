@@ -73,10 +73,7 @@ func (l *SessionLimiter) Run(ctx context.Context) {
 	for {
 		select {
 		case <-l.wakeCh:
-			for {
-				if !l.overCapacity() {
-					break
-				}
+			for l.overCapacity() {
 
 				if err := l.drainLimiter.Wait(ctx); err != nil {
 					break

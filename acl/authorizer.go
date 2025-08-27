@@ -205,7 +205,7 @@ type AllowAuthorizer struct {
 
 // ACLReadAllowed checks for permission to list all the ACLs
 func (a AllowAuthorizer) ACLReadAllowed(ctx *AuthorizerContext) error {
-	if a.Authorizer.ACLRead(ctx) != Allow {
+	if a.ACLRead(ctx) != Allow {
 		return PermissionDeniedByACLUnnamed(a, ctx, ResourceACL, AccessRead)
 	}
 	return nil
@@ -213,7 +213,7 @@ func (a AllowAuthorizer) ACLReadAllowed(ctx *AuthorizerContext) error {
 
 // ACLWriteAllowed checks for permission to manipulate ACLs
 func (a AllowAuthorizer) ACLWriteAllowed(ctx *AuthorizerContext) error {
-	if a.Authorizer.ACLWrite(ctx) != Allow {
+	if a.ACLWrite(ctx) != Allow {
 		return PermissionDeniedByACLUnnamed(a, ctx, ResourceACL, AccessWrite)
 	}
 	return nil
@@ -222,7 +222,7 @@ func (a AllowAuthorizer) ACLWriteAllowed(ctx *AuthorizerContext) error {
 // AgentReadAllowed checks for permission to read from agent endpoints for a
 // given node.
 func (a AllowAuthorizer) AgentReadAllowed(name string, ctx *AuthorizerContext) error {
-	if a.Authorizer.AgentRead(name, ctx) != Allow {
+	if a.AgentRead(name, ctx) != Allow {
 		return PermissionDeniedByACL(a, ctx, ResourceAgent, AccessRead, name)
 	}
 	return nil
@@ -231,7 +231,7 @@ func (a AllowAuthorizer) AgentReadAllowed(name string, ctx *AuthorizerContext) e
 // AgentWriteAllowed checks for permission to make changes via agent endpoints
 // for a given node.
 func (a AllowAuthorizer) AgentWriteAllowed(name string, ctx *AuthorizerContext) error {
-	if a.Authorizer.AgentWrite(name, ctx) != Allow {
+	if a.AgentWrite(name, ctx) != Allow {
 		return PermissionDeniedByACL(a, ctx, ResourceAgent, AccessWrite, name)
 	}
 	return nil
@@ -239,7 +239,7 @@ func (a AllowAuthorizer) AgentWriteAllowed(name string, ctx *AuthorizerContext) 
 
 // EventReadAllowed determines if a specific event can be queried.
 func (a AllowAuthorizer) EventReadAllowed(name string, ctx *AuthorizerContext) error {
-	if a.Authorizer.EventRead(name, ctx) != Allow {
+	if a.EventRead(name, ctx) != Allow {
 		return PermissionDeniedByACL(a, ctx, ResourceEvent, AccessRead, name)
 	}
 	return nil
@@ -247,7 +247,7 @@ func (a AllowAuthorizer) EventReadAllowed(name string, ctx *AuthorizerContext) e
 
 // EventWriteAllowed determines if a specific event may be fired.
 func (a AllowAuthorizer) EventWriteAllowed(name string, ctx *AuthorizerContext) error {
-	if a.Authorizer.EventWrite(name, ctx) != Allow {
+	if a.EventWrite(name, ctx) != Allow {
 		return PermissionDeniedByACL(a, ctx, ResourceEvent, AccessWrite, name)
 	}
 	return nil
@@ -255,7 +255,7 @@ func (a AllowAuthorizer) EventWriteAllowed(name string, ctx *AuthorizerContext) 
 
 // IntentionReadAllowed determines if a specific intention can be read.
 func (a AllowAuthorizer) IntentionReadAllowed(name string, ctx *AuthorizerContext) error {
-	if a.Authorizer.IntentionRead(name, ctx) != Allow {
+	if a.IntentionRead(name, ctx) != Allow {
 		return PermissionDeniedByACL(a, ctx, ResourceIntention, AccessRead, name)
 	}
 	return nil
@@ -264,7 +264,7 @@ func (a AllowAuthorizer) IntentionReadAllowed(name string, ctx *AuthorizerContex
 // IntentionWriteAllowed determines if a specific intention can be
 // created, modified, or deleted.
 func (a AllowAuthorizer) IntentionWriteAllowed(name string, ctx *AuthorizerContext) error {
-	if a.Authorizer.IntentionWrite(name, ctx) != Allow {
+	if a.IntentionWrite(name, ctx) != Allow {
 		return PermissionDeniedByACL(a, ctx, ResourceIntention, AccessWrite, name)
 	}
 	return nil
@@ -272,7 +272,7 @@ func (a AllowAuthorizer) IntentionWriteAllowed(name string, ctx *AuthorizerConte
 
 // TrafficPermissionsReadAllowed determines if specific traffic permissions can be read.
 func (a AllowAuthorizer) TrafficPermissionsReadAllowed(name string, ctx *AuthorizerContext) error {
-	if a.Authorizer.TrafficPermissionsRead(name, ctx) != Allow {
+	if a.TrafficPermissionsRead(name, ctx) != Allow {
 		return PermissionDeniedByACL(a, ctx, ResourceIntention, AccessRead, name)
 	}
 	return nil
@@ -281,7 +281,7 @@ func (a AllowAuthorizer) TrafficPermissionsReadAllowed(name string, ctx *Authori
 // TrafficPermissionsWriteAllowed determines if specific traffic permissions can be
 // created, modified, or deleted.
 func (a AllowAuthorizer) TrafficPermissionsWriteAllowed(name string, ctx *AuthorizerContext) error {
-	if a.Authorizer.TrafficPermissionsWrite(name, ctx) != Allow {
+	if a.TrafficPermissionsWrite(name, ctx) != Allow {
 		return PermissionDeniedByACL(a, ctx, ResourceIntention, AccessWrite, name)
 	}
 	return nil
@@ -289,7 +289,7 @@ func (a AllowAuthorizer) TrafficPermissionsWriteAllowed(name string, ctx *Author
 
 // KeyListAllowed checks for permission to list keys under a prefix
 func (a AllowAuthorizer) KeyListAllowed(name string, ctx *AuthorizerContext) error {
-	if a.Authorizer.KeyList(name, ctx) != Allow {
+	if a.KeyList(name, ctx) != Allow {
 		return PermissionDeniedByACL(a, ctx, ResourceKey, AccessList, name)
 	}
 	return nil
@@ -297,7 +297,7 @@ func (a AllowAuthorizer) KeyListAllowed(name string, ctx *AuthorizerContext) err
 
 // KeyReadAllowed checks for permission to read a given key
 func (a AllowAuthorizer) KeyReadAllowed(name string, ctx *AuthorizerContext) error {
-	if a.Authorizer.KeyRead(name, ctx) != Allow {
+	if a.KeyRead(name, ctx) != Allow {
 		return PermissionDeniedByACL(a, ctx, ResourceKey, AccessRead, name)
 	}
 	return nil
@@ -305,7 +305,7 @@ func (a AllowAuthorizer) KeyReadAllowed(name string, ctx *AuthorizerContext) err
 
 // KeyWriteAllowed checks for permission to write a given key
 func (a AllowAuthorizer) KeyWriteAllowed(name string, ctx *AuthorizerContext) error {
-	if a.Authorizer.KeyWrite(name, ctx) != Allow {
+	if a.KeyWrite(name, ctx) != Allow {
 		return PermissionDeniedByACL(a, ctx, ResourceKey, AccessWrite, name)
 	}
 	return nil
@@ -315,7 +315,7 @@ func (a AllowAuthorizer) KeyWriteAllowed(name string, ctx *AuthorizerContext) er
 // entire key prefix. This means there must be no sub-policies
 // that deny a write.
 func (a AllowAuthorizer) KeyWritePrefixAllowed(name string, ctx *AuthorizerContext) error {
-	if a.Authorizer.KeyWritePrefix(name, ctx) != Allow {
+	if a.KeyWritePrefix(name, ctx) != Allow {
 		// TODO(acl-error-enhancements) revisit this message; we may need to do some extra plumbing inside of KeyWritePrefix to
 		// return properly detailed information.
 		return PermissionDeniedByACL(a, ctx, ResourceKey, AccessWrite, name)
@@ -326,7 +326,7 @@ func (a AllowAuthorizer) KeyWritePrefixAllowed(name string, ctx *AuthorizerConte
 // KeyringReadAllowed determines if the encryption keyring used in
 // the gossip layer can be read.
 func (a AllowAuthorizer) KeyringReadAllowed(ctx *AuthorizerContext) error {
-	if a.Authorizer.KeyringRead(ctx) != Allow {
+	if a.KeyringRead(ctx) != Allow {
 		return PermissionDeniedByACLUnnamed(a, ctx, ResourceKeyring, AccessRead)
 	}
 	return nil
@@ -334,7 +334,7 @@ func (a AllowAuthorizer) KeyringReadAllowed(ctx *AuthorizerContext) error {
 
 // KeyringWriteAllowed determines if the keyring can be manipulated
 func (a AllowAuthorizer) KeyringWriteAllowed(ctx *AuthorizerContext) error {
-	if a.Authorizer.KeyringWrite(ctx) != Allow {
+	if a.KeyringWrite(ctx) != Allow {
 		return PermissionDeniedByACLUnnamed(a, ctx, ResourceKeyring, AccessWrite)
 	}
 	return nil
@@ -343,7 +343,7 @@ func (a AllowAuthorizer) KeyringWriteAllowed(ctx *AuthorizerContext) error {
 // MeshReadAllowed determines if the read-only Consul mesh functions
 // can be used.
 func (a AllowAuthorizer) MeshReadAllowed(ctx *AuthorizerContext) error {
-	if a.Authorizer.MeshRead(ctx) != Allow {
+	if a.MeshRead(ctx) != Allow {
 		return PermissionDeniedByACLUnnamed(a, ctx, ResourceMesh, AccessRead)
 	}
 	return nil
@@ -352,7 +352,7 @@ func (a AllowAuthorizer) MeshReadAllowed(ctx *AuthorizerContext) error {
 // MeshWriteAllowed determines if the state-changing Consul mesh
 // functions can be used.
 func (a AllowAuthorizer) MeshWriteAllowed(ctx *AuthorizerContext) error {
-	if a.Authorizer.MeshWrite(ctx) != Allow {
+	if a.MeshWrite(ctx) != Allow {
 		return PermissionDeniedByACLUnnamed(a, ctx, ResourceMesh, AccessWrite)
 	}
 	return nil
@@ -361,7 +361,7 @@ func (a AllowAuthorizer) MeshWriteAllowed(ctx *AuthorizerContext) error {
 // PeeringReadAllowed determines if the read-only Consul peering functions
 // can be used.
 func (a AllowAuthorizer) PeeringReadAllowed(ctx *AuthorizerContext) error {
-	if a.Authorizer.PeeringRead(ctx) != Allow {
+	if a.PeeringRead(ctx) != Allow {
 		return PermissionDeniedByACLUnnamed(a, ctx, ResourcePeering, AccessRead)
 	}
 	return nil
@@ -370,7 +370,7 @@ func (a AllowAuthorizer) PeeringReadAllowed(ctx *AuthorizerContext) error {
 // PeeringWriteAllowed determines if the state-changing Consul peering
 // functions can be used.
 func (a AllowAuthorizer) PeeringWriteAllowed(ctx *AuthorizerContext) error {
-	if a.Authorizer.PeeringWrite(ctx) != Allow {
+	if a.PeeringWrite(ctx) != Allow {
 		return PermissionDeniedByACLUnnamed(a, ctx, ResourcePeering, AccessWrite)
 	}
 	return nil
@@ -378,7 +378,7 @@ func (a AllowAuthorizer) PeeringWriteAllowed(ctx *AuthorizerContext) error {
 
 // NodeReadAllowed checks for permission to read (discover) a given node.
 func (a AllowAuthorizer) NodeReadAllowed(name string, ctx *AuthorizerContext) error {
-	if a.Authorizer.NodeRead(name, ctx) != Allow {
+	if a.NodeRead(name, ctx) != Allow {
 		return PermissionDeniedByACL(a, ctx, ResourceNode, AccessRead, name)
 	}
 	return nil
@@ -386,7 +386,7 @@ func (a AllowAuthorizer) NodeReadAllowed(name string, ctx *AuthorizerContext) er
 
 // NodeReadAllAllowed checks for permission to read (discover) all nodes.
 func (a AllowAuthorizer) NodeReadAllAllowed(ctx *AuthorizerContext) error {
-	if a.Authorizer.NodeReadAll(ctx) != Allow {
+	if a.NodeReadAll(ctx) != Allow {
 		// This is only used to gate certain UI functions right now (e.g metrics)
 		return PermissionDeniedByACL(a, ctx, ResourceNode, AccessRead, "all nodes")
 	}
@@ -396,7 +396,7 @@ func (a AllowAuthorizer) NodeReadAllAllowed(ctx *AuthorizerContext) error {
 // NodeWriteAllowed checks for permission to create or update (register) a
 // given node.
 func (a AllowAuthorizer) NodeWriteAllowed(name string, ctx *AuthorizerContext) error {
-	if a.Authorizer.NodeWrite(name, ctx) != Allow {
+	if a.NodeWrite(name, ctx) != Allow {
 		return PermissionDeniedByACL(a, ctx, ResourceNode, AccessWrite, name)
 	}
 	return nil
@@ -405,7 +405,7 @@ func (a AllowAuthorizer) NodeWriteAllowed(name string, ctx *AuthorizerContext) e
 // OperatorReadAllowed determines if the read-only Consul operator functions
 // can be used.
 func (a AllowAuthorizer) OperatorReadAllowed(ctx *AuthorizerContext) error {
-	if a.Authorizer.OperatorRead(ctx) != Allow {
+	if a.OperatorRead(ctx) != Allow {
 		return PermissionDeniedByACLUnnamed(a, ctx, ResourceOperator, AccessRead)
 	}
 	return nil
@@ -414,7 +414,7 @@ func (a AllowAuthorizer) OperatorReadAllowed(ctx *AuthorizerContext) error {
 // OperatorWriteAllowed determines if the state-changing Consul operator
 // functions can be used.
 func (a AllowAuthorizer) OperatorWriteAllowed(ctx *AuthorizerContext) error {
-	if a.Authorizer.OperatorWrite(ctx) != Allow {
+	if a.OperatorWrite(ctx) != Allow {
 		return PermissionDeniedByACLUnnamed(a, ctx, ResourceOperator, AccessWrite)
 	}
 	return nil
@@ -423,7 +423,7 @@ func (a AllowAuthorizer) OperatorWriteAllowed(ctx *AuthorizerContext) error {
 // PreparedQueryReadAllowed determines if a specific prepared query can be read
 // to show its contents (this is not used for execution).
 func (a AllowAuthorizer) PreparedQueryReadAllowed(name string, ctx *AuthorizerContext) error {
-	if a.Authorizer.PreparedQueryRead(name, ctx) != Allow {
+	if a.PreparedQueryRead(name, ctx) != Allow {
 		return PermissionDeniedByACL(a, ctx, ResourceQuery, AccessRead, name)
 	}
 	return nil
@@ -432,7 +432,7 @@ func (a AllowAuthorizer) PreparedQueryReadAllowed(name string, ctx *AuthorizerCo
 // PreparedQueryWriteAllowed determines if a specific prepared query can be
 // created, modified, or deleted.
 func (a AllowAuthorizer) PreparedQueryWriteAllowed(name string, ctx *AuthorizerContext) error {
-	if a.Authorizer.PreparedQueryWrite(name, ctx) != Allow {
+	if a.PreparedQueryWrite(name, ctx) != Allow {
 		return PermissionDeniedByACL(a, ctx, ResourceQuery, AccessWrite, name)
 	}
 	return nil
@@ -440,7 +440,7 @@ func (a AllowAuthorizer) PreparedQueryWriteAllowed(name string, ctx *AuthorizerC
 
 // ServiceReadAllowed checks for permission to read a given service
 func (a AllowAuthorizer) ServiceReadAllowed(name string, ctx *AuthorizerContext) error {
-	if a.Authorizer.ServiceRead(name, ctx) != Allow {
+	if a.ServiceRead(name, ctx) != Allow {
 		return PermissionDeniedByACL(a, ctx, ResourceService, AccessRead, name)
 	}
 	return nil
@@ -448,7 +448,7 @@ func (a AllowAuthorizer) ServiceReadAllowed(name string, ctx *AuthorizerContext)
 
 // ServiceReadAllAllowed checks for permission to read all services
 func (a AllowAuthorizer) ServiceReadAllAllowed(ctx *AuthorizerContext) error {
-	if a.Authorizer.ServiceReadAll(ctx) != Allow {
+	if a.ServiceReadAll(ctx) != Allow {
 		// This is only used to gate certain UI functions right now (e.g metrics)
 		return PermissionDeniedByACL(a, ctx, ResourceService, AccessRead, "all services") // read
 	}
@@ -457,7 +457,7 @@ func (a AllowAuthorizer) ServiceReadAllAllowed(ctx *AuthorizerContext) error {
 
 // ServiceReadPrefixAllowed checks for permission to read services within the given prefix
 func (a AllowAuthorizer) ServiceReadPrefixAllowed(prefix string, ctx *AuthorizerContext) error {
-	if a.Authorizer.ServiceReadPrefix(prefix, ctx) != Allow {
+	if a.ServiceReadPrefix(prefix, ctx) != Allow {
 		return PermissionDeniedByACL(a, ctx, ResourceService, AccessRead, prefix) // read
 	}
 	return nil
@@ -466,7 +466,7 @@ func (a AllowAuthorizer) ServiceReadPrefixAllowed(prefix string, ctx *Authorizer
 // ServiceWriteAllowed checks for permission to create or update a given
 // service
 func (a AllowAuthorizer) ServiceWriteAllowed(name string, ctx *AuthorizerContext) error {
-	if a.Authorizer.ServiceWrite(name, ctx) != Allow {
+	if a.ServiceWrite(name, ctx) != Allow {
 		return PermissionDeniedByACL(a, ctx, ResourceService, AccessWrite, name)
 	}
 	return nil
@@ -474,7 +474,7 @@ func (a AllowAuthorizer) ServiceWriteAllowed(name string, ctx *AuthorizerContext
 
 // ServiceWriteAnyAllowed checks for write permission on any service
 func (a AllowAuthorizer) ServiceWriteAnyAllowed(ctx *AuthorizerContext) error {
-	if a.Authorizer.ServiceWriteAny(ctx) != Allow {
+	if a.ServiceWriteAny(ctx) != Allow {
 		return PermissionDeniedByACL(a, ctx, ResourceService, AccessWrite, "any service")
 	}
 	return nil
@@ -482,7 +482,7 @@ func (a AllowAuthorizer) ServiceWriteAnyAllowed(ctx *AuthorizerContext) error {
 
 // SessionReadAllowed checks for permission to read sessions for a given node.
 func (a AllowAuthorizer) SessionReadAllowed(name string, ctx *AuthorizerContext) error {
-	if a.Authorizer.SessionRead(name, ctx) != Allow {
+	if a.SessionRead(name, ctx) != Allow {
 		return PermissionDeniedByACL(a, ctx, ResourceSession, AccessRead, name)
 	}
 	return nil
@@ -491,7 +491,7 @@ func (a AllowAuthorizer) SessionReadAllowed(name string, ctx *AuthorizerContext)
 // SessionWriteAllowed checks for permission to create sessions for a given
 // node.
 func (a AllowAuthorizer) SessionWriteAllowed(name string, ctx *AuthorizerContext) error {
-	if a.Authorizer.SessionWrite(name, ctx) != Allow {
+	if a.SessionWrite(name, ctx) != Allow {
 		return PermissionDeniedByACL(a, ctx, ResourceSession, AccessWrite, name)
 	}
 	return nil
@@ -499,7 +499,7 @@ func (a AllowAuthorizer) SessionWriteAllowed(name string, ctx *AuthorizerContext
 
 // SnapshotAllowed checks for permission to take and restore snapshots.
 func (a AllowAuthorizer) SnapshotAllowed(ctx *AuthorizerContext) error {
-	if a.Authorizer.Snapshot(ctx) != Allow {
+	if a.Snapshot(ctx) != Allow {
 		// Implementation of this currently just checks acl write
 		return PermissionDeniedByACLUnnamed(a, ctx, ResourceACL, AccessWrite)
 	}

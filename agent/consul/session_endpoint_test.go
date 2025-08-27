@@ -437,7 +437,7 @@ func TestSession_Get_List_NodeSessions_ACLFilter(t *testing.T) {
 		err := msgpackrpc.CallWithCodec(codec, "Session.Get", req, &sessions)
 		require.NoError(t, err)
 		require.Empty(t, sessions.Sessions)
-		require.True(t, sessions.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, sessions.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 
 		// ACL-restricted results included.
 		req.Token = allowedToken
@@ -445,7 +445,7 @@ func TestSession_Get_List_NodeSessions_ACLFilter(t *testing.T) {
 		err = msgpackrpc.CallWithCodec(codec, "Session.Get", req, &sessions)
 		require.NoError(t, err)
 		require.Len(t, sessions.Sessions, 1)
-		require.False(t, sessions.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+		require.False(t, sessions.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
 
 		// Try to get a session that doesn't exist to make sure that's handled
 		// correctly by the filter (it will get passed a nil slice).
@@ -454,7 +454,7 @@ func TestSession_Get_List_NodeSessions_ACLFilter(t *testing.T) {
 		err = msgpackrpc.CallWithCodec(codec, "Session.Get", req, &sessions)
 		require.NoError(t, err)
 		require.Empty(t, sessions.Sessions)
-		require.False(t, sessions.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+		require.False(t, sessions.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
 	})
 
 	t.Run("List", func(t *testing.T) {
@@ -470,7 +470,7 @@ func TestSession_Get_List_NodeSessions_ACLFilter(t *testing.T) {
 		err := msgpackrpc.CallWithCodec(codec, "Session.List", req, &sessions)
 		require.NoError(t, err)
 		require.Empty(t, sessions.Sessions)
-		require.True(t, sessions.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, sessions.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 
 		// ACL-restricted results included.
 		req.Token = allowedToken
@@ -478,7 +478,7 @@ func TestSession_Get_List_NodeSessions_ACLFilter(t *testing.T) {
 		err = msgpackrpc.CallWithCodec(codec, "Session.List", req, &sessions)
 		require.NoError(t, err)
 		require.Len(t, sessions.Sessions, 1)
-		require.False(t, sessions.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+		require.False(t, sessions.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
 	})
 
 	t.Run("NodeSessions", func(t *testing.T) {
@@ -495,7 +495,7 @@ func TestSession_Get_List_NodeSessions_ACLFilter(t *testing.T) {
 		err := msgpackrpc.CallWithCodec(codec, "Session.NodeSessions", req, &sessions)
 		require.NoError(t, err)
 		require.Empty(t, sessions.Sessions)
-		require.True(t, sessions.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, sessions.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 
 		// ACL-restricted results included.
 		req.Token = allowedToken
@@ -503,7 +503,7 @@ func TestSession_Get_List_NodeSessions_ACLFilter(t *testing.T) {
 		err = msgpackrpc.CallWithCodec(codec, "Session.NodeSessions", req, &sessions)
 		require.NoError(t, err)
 		require.Len(t, sessions.Sessions, 1)
-		require.False(t, sessions.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+		require.False(t, sessions.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
 	})
 }
 

@@ -103,7 +103,7 @@ func TestServerResolvedServiceConfig(t *testing.T) {
 
 func newMockResolvedServiceConfig(t *testing.T) *mockResolvedServiceConfig {
 	mock := &mockResolvedServiceConfig{}
-	mock.Mock.Test(t)
+	mock.Test(t)
 
 	t.Cleanup(func() { mock.AssertExpectations(t) })
 

@@ -196,7 +196,7 @@ func TestDelete_ACLs(t *testing.T) {
 			mockACLResolver := &svc.MockACLResolver{}
 			mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
 				Return(tc.authz, nil)
-			builder.ServiceImpl().Config.ACLResolver = mockACLResolver
+			builder.ServiceImpl().ACLResolver = mockACLResolver
 
 			// Exercise ACL.
 			_, err = client.Delete(testContext(t), &pbresource.DeleteRequest{Id: rsp.Resource.Id})

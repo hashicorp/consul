@@ -2808,8 +2808,8 @@ func makeFrank() *frankensteinStruct {
 }
 
 func makeMonster() *monsterStruct {
-	var d time.Duration = 9 * time.Hour
-	var t time.Time = time.Date(2008, 1, 2, 3, 4, 5, 0, time.UTC)
+	d := 9 * time.Hour
+	t := time.Date(2008, 1, 2, 3, 4, 5, 0, time.UTC)
 
 	return &monsterStruct{
 		Bool:    true,

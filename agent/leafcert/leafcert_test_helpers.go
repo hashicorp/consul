@@ -181,9 +181,9 @@ func (s *TestSigner) SignCert(ctx context.Context, req *structs.CASignRequest) (
 	}
 
 	var serviceID *connect.SpiffeIDService
-	switch spiffeID.(type) {
+	switch spiffeID := spiffeID.(type) {
 	case *connect.SpiffeIDService:
-		serviceID = spiffeID.(*connect.SpiffeIDService)
+		serviceID = spiffeID
 	default:
 		return nil, fmt.Errorf("unexpected spiffeID type %T", spiffeID)
 	}

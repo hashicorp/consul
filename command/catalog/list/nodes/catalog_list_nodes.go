@@ -144,9 +144,7 @@ func (c *cmd) Run(args []string) int {
 // printNodes accepts a list of nodes and prints information in a tabular
 // format about the nodes.
 func printNodes(nodes []*api.Node, detailed bool) (string, error) {
-	var result []string
-
-	result = detailedNodes(nodes, detailed)
+	var result = detailedNodes(nodes, detailed)
 
 	return columnize.Format(result, &columnize.Config{Delim: string([]byte{0x1f})}), nil
 }

@@ -130,7 +130,7 @@ type ownerValidTestCase struct {
 	errorContains string
 }
 
-func ownerValidationTestCases(t *testing.T) map[string]ownerValidTestCase {
+func ownerValidationTestCases() map[string]ownerValidTestCase {
 	return map[string]ownerValidTestCase{
 		"no owner type": {
 			modFn:         func(res *pbresource.Resource) { res.Owner.Type = nil },
@@ -184,7 +184,7 @@ type mavOrWriteSuccessTestCase struct {
 }
 
 // Test case struct shared by MutateAndValidate and Write success test cases
-func mavOrWriteSuccessTestCases(t *testing.T) map[string]mavOrWriteSuccessTestCase {
+func mavOrWriteSuccessTestCases() map[string]mavOrWriteSuccessTestCase {
 	return map[string]mavOrWriteSuccessTestCase{
 		"namespaced resource provides nonempty partition and namespace": {
 			modFn: func(artist, _ *pbresource.Resource) *pbresource.Resource {
@@ -251,42 +251,12 @@ type mavOrWriteTenancyNotFoundTestCase map[string]struct {
 	errContains string
 }
 
-// Test case struct shared by MutateAndValidate and Write test cases where tenancy is not found
-func mavOrWriteTenancyNotFoundTestCases(t *testing.T) mavOrWriteTenancyNotFoundTestCase {
-	return mavOrWriteTenancyNotFoundTestCase{
-		"namespaced resource provides nonexistant partition": {
-			modFn: func(artist, _ *pbresource.Resource) *pbresource.Resource {
-				artist.Id.Tenancy.Partition = "boguspartition"
-				return artist
-			},
-			errCode:     codes.InvalidArgument,
-			errContains: "partition not found",
-		},
-		"namespaced resource provides nonexistant namespace": {
-			modFn: func(artist, _ *pbresource.Resource) *pbresource.Resource {
-				artist.Id.Tenancy.Namespace = "bogusnamespace"
-				return artist
-			},
-			errCode:     codes.InvalidArgument,
-			errContains: "namespace not found",
-		},
-		"partitioned resource provides nonexistant partition": {
-			modFn: func(_, recordLabel *pbresource.Resource) *pbresource.Resource {
-				recordLabel.Id.Tenancy.Partition = "boguspartition"
-				return recordLabel
-			},
-			errCode:     codes.InvalidArgument,
-			errContains: "partition not found",
-		},
-	}
-}
-
 type mavOrWriteTenancyMarkedForDeletionTestCase struct {
 	modFn       func(artist, recordLabel *pbresource.Resource, mockTenancyBridge *svc.MockTenancyBridge) *pbresource.Resource
 	errContains string
 }
 
-func mavOrWriteTenancyMarkedForDeletionTestCases(t *testing.T) map[string]mavOrWriteTenancyMarkedForDeletionTestCase {
+func mavOrWriteTenancyMarkedForDeletionTestCases() map[string]mavOrWriteTenancyMarkedForDeletionTestCase {
 	return map[string]mavOrWriteTenancyMarkedForDeletionTestCase{
 		"namespaced resources partition marked for deletion": {
 			modFn: func(artist, _ *pbresource.Resource, mockTenancyBridge *svc.MockTenancyBridge) *pbresource.Resource {

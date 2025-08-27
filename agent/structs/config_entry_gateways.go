@@ -198,8 +198,8 @@ func (e *IngressGatewayConfigEntry) Normalize() error {
 
 		listener.Protocol = strings.ToLower(listener.Protocol)
 		for i := range listener.Services {
-			listener.Services[i].EnterpriseMeta.Merge(&e.EnterpriseMeta)
-			listener.Services[i].EnterpriseMeta.Normalize()
+			listener.Services[i].Merge(&e.EnterpriseMeta)
+			listener.Services[i].Normalize()
 		}
 
 		// Make sure to set the item back into the array, since we are not using
@@ -441,7 +441,7 @@ func (e *IngressGatewayConfigEntry) ListRelatedServices() []ServiceID {
 		out = append(out, svc)
 	}
 	sort.Slice(out, func(i, j int) bool {
-		return out[i].EnterpriseMeta.LessThan(&out[j].EnterpriseMeta) ||
+		return out[i].LessThan(&out[j].EnterpriseMeta) ||
 			out[i].ID < out[j].ID
 	})
 	return out
@@ -554,8 +554,8 @@ func (e *TerminatingGatewayConfigEntry) Normalize() error {
 	e.EnterpriseMeta.Normalize()
 
 	for i := range e.Services {
-		e.Services[i].EnterpriseMeta.Merge(&e.EnterpriseMeta)
-		e.Services[i].EnterpriseMeta.Normalize()
+		e.Services[i].Merge(&e.EnterpriseMeta)
+		e.Services[i].Normalize()
 	}
 
 	h, err := HashConfigEntry(e)
@@ -598,7 +598,7 @@ func (e *TerminatingGatewayConfigEntry) Validate() error {
 		// If either client cert config file was specified then the CA file, client cert, and key file must be specified
 		// Specifying only a CAFile is allowed for one-way TLS
 		if (svc.CertFile != "" || svc.KeyFile != "") &&
-			!(svc.CAFile != "" && svc.CertFile != "" && svc.KeyFile != "") {
+			(svc.CAFile == "" || svc.CertFile == "" || svc.KeyFile == "") {
 
 			return fmt.Errorf("Service %q must have a CertFile, CAFile, and KeyFile specified for TLS origination", svc.Name)
 		}
@@ -806,8 +806,8 @@ func (e *APIGatewayConfigEntry) Normalize() error {
 			if cert.Kind == "" {
 				cert.Kind = InlineCertificate
 			}
-			cert.EnterpriseMeta.Merge(e.GetEnterpriseMeta())
-			cert.EnterpriseMeta.Normalize()
+			cert.Merge(e.GetEnterpriseMeta())
+			cert.Normalize()
 
 			listener.TLS.Certificates[i] = cert
 		}
@@ -1140,14 +1140,14 @@ func (e *BoundAPIGatewayConfigEntry) GetMeta() map[string]string { return e.Meta
 func (e *BoundAPIGatewayConfigEntry) Normalize() error {
 	for i, listener := range e.Listeners {
 		for j, route := range listener.Routes {
-			route.EnterpriseMeta.Merge(&e.EnterpriseMeta)
-			route.EnterpriseMeta.Normalize()
+			route.Merge(&e.EnterpriseMeta)
+			route.Normalize()
 
 			listener.Routes[j] = route
 		}
 		for j, cert := range listener.Certificates {
-			cert.EnterpriseMeta.Merge(&e.EnterpriseMeta)
-			cert.EnterpriseMeta.Normalize()
+			cert.Merge(&e.EnterpriseMeta)
+			cert.Normalize()
 
 			listener.Certificates[j] = cert
 		}

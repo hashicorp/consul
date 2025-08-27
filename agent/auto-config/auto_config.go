@@ -95,7 +95,7 @@ func New(config Config) (*AutoConfig, error) {
 		}
 	}
 
-	if err := config.EnterpriseConfig.validateAndFinalize(); err != nil {
+	if err := config.validateAndFinalize(); err != nil {
 		return nil, err
 	}
 

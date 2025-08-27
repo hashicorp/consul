@@ -374,7 +374,7 @@ func ensureNoNodeWithSimilarNameTxn(tx ReadTxn, node *structs.Node, allowClashWi
 				}
 			}
 
-			if !(enode.ID == "" && allowClashWithoutID) && nodeHealthy {
+			if (enode.ID != "" || !allowClashWithoutID) && nodeHealthy {
 				return fmt.Errorf("Node name %s is reserved by node %s with name %s (%s)", node.Node, enode.ID, enode.Node, enode.Address)
 			}
 		}
@@ -1706,7 +1706,7 @@ func parseServiceNodes(tx ReadTxn, ws memdb.WatchSet, services structs.ServiceNo
 		s.Address = node.Address
 		s.Datacenter = node.Datacenter
 		s.TaggedAddresses = node.TaggedAddresses
-		s.EnterpriseMeta.Merge(node.GetEnterpriseMeta())
+		s.Merge(node.GetEnterpriseMeta())
 		s.NodeMeta = node.Meta
 
 		results = append(results, s)
@@ -3287,7 +3287,7 @@ func parseCheckServiceNodes(
 		q := NodeServiceQuery{
 			Node:           sn.Node,
 			Service:        "", // node checks have no service
-			EnterpriseMeta: *sn.EnterpriseMeta.WithWildcardNamespace(),
+			EnterpriseMeta: *sn.WithWildcardNamespace(),
 			PeerName:       sn.PeerName,
 		}
 		iter, err := tx.Get(tableChecks, indexNodeService, q)

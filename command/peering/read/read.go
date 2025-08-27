@@ -114,7 +114,7 @@ func formatPeering(peering *api.Peering) string {
 		buffer.WriteString(fmt.Sprintf("DeletedAt:    %s\n", peering.DeletedAt.Format(time.RFC3339)))
 	}
 	buffer.WriteString(fmt.Sprintf("State:        %s\n", peering.State))
-	if peering.Meta != nil && len(peering.Meta) > 0 {
+	if len(peering.Meta) > 0 {
 		buffer.WriteString("Meta:\n")
 		for k, v := range peering.Meta {
 			buffer.WriteString(fmt.Sprintf("    %s=%s\n", k, v))
@@ -125,7 +125,7 @@ func formatPeering(peering *api.Peering) string {
 	buffer.WriteString(fmt.Sprintf("Peer ID:               %s\n", peering.PeerID))
 	buffer.WriteString(fmt.Sprintf("Peer Server Name:      %s\n", peering.PeerServerName))
 	buffer.WriteString(fmt.Sprintf("Peer CA Pems:          %d\n", len(peering.PeerCAPems)))
-	if peering.PeerServerAddresses != nil && len(peering.PeerServerAddresses) > 0 {
+	if len(peering.PeerServerAddresses) > 0 {
 		buffer.WriteString("Peer Server Addresses:\n")
 		for _, v := range peering.PeerServerAddresses {
 			buffer.WriteString(fmt.Sprintf("    %s", v))

@@ -186,7 +186,7 @@ func (s *ServiceIntentionSourceSamenessGroupIndex) FromArgs(args ...interface{})
 	}
 	// Intention queries cannot use a peered service as a source
 	sg := arg.SamenessGroup
-	sn := arg.ServiceName.String()
+	sn := arg.String()
 	// add 2 for null separator after each string
 	buf := newIndexBuilder(len(sg) + len(sn) + 2)
 	buf.String(sg)

@@ -201,7 +201,7 @@ func (s *HTTPHandlers) CatalogDatacenters(resp http.ResponseWriter, req *http.Re
 	parseCacheControl(resp, req, &args.QueryOptions)
 	var out []string
 
-	if args.QueryOptions.UseCache {
+	if args.UseCache {
 		raw, m, err := s.agent.cache.Get(req.Context(), cachetype.CatalogDatacentersName, &args)
 		if err != nil {
 			metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_datacenters"}, 1,
@@ -251,12 +251,12 @@ RETRY_ONCE:
 	if err := s.agent.RPC(req.Context(), "Catalog.ListNodes", &args, &out); err != nil {
 		return nil, err
 	}
-	if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
+	if args.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
 		args.AllowStale = false
 		args.MaxStaleDuration = 0
 		goto RETRY_ONCE
 	}
-	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
+	out.ConsistencyLevel = args.ConsistencyLevel()
 
 	s.agent.TranslateAddresses(args.Datacenter, out.Nodes, dnsutil.TranslateAddressAcceptAny)
 
@@ -285,7 +285,7 @@ func (s *HTTPHandlers) CatalogServices(resp http.ResponseWriter, req *http.Reque
 	var out structs.IndexedServices
 	defer setMeta(resp, &out.QueryMeta)
 
-	if args.QueryOptions.UseCache {
+	if args.UseCache {
 		raw, m, err := s.agent.cache.Get(req.Context(), cachetype.CatalogListServicesName, &args)
 		if err != nil {
 			metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_services"}, 1,
@@ -306,14 +306,14 @@ func (s *HTTPHandlers) CatalogServices(resp http.ResponseWriter, req *http.Reque
 				s.nodeMetricsLabels())
 			return nil, err
 		}
-		if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
+		if args.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
 			args.AllowStale = false
 			args.MaxStaleDuration = 0
 			goto RETRY_ONCE
 		}
 	}
 
-	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
+	out.ConsistencyLevel = args.ConsistencyLevel()
 
 	// Use empty map instead of nil
 	if out.Services == nil {
@@ -377,7 +377,7 @@ func (s *HTTPHandlers) catalogServiceNodes(resp http.ResponseWriter, req *http.R
 	var out structs.IndexedServiceNodes
 	defer setMeta(resp, &out.QueryMeta)
 
-	if args.QueryOptions.UseCache {
+	if args.UseCache {
 		raw, m, err := s.agent.cache.Get(req.Context(), cachetype.CatalogServicesName, &args)
 		if err != nil {
 			metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_service_nodes"}, 1,
@@ -398,14 +398,14 @@ func (s *HTTPHandlers) catalogServiceNodes(resp http.ResponseWriter, req *http.R
 				s.nodeMetricsLabels())
 			return nil, err
 		}
-		if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
+		if args.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
 			args.AllowStale = false
 			args.MaxStaleDuration = 0
 			goto RETRY_ONCE
 		}
 	}
 
-	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
+	out.ConsistencyLevel = args.ConsistencyLevel()
 	s.agent.TranslateAddresses(args.Datacenter, out.ServiceNodes, dnsutil.TranslateAddressAcceptAny)
 
 	// Use empty list instead of nil
@@ -453,12 +453,12 @@ RETRY_ONCE:
 			s.nodeMetricsLabels())
 		return nil, err
 	}
-	if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
+	if args.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
 		args.AllowStale = false
 		args.MaxStaleDuration = 0
 		goto RETRY_ONCE
 	}
-	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
+	out.ConsistencyLevel = args.ConsistencyLevel()
 	if out.NodeServices != nil {
 		s.agent.TranslateAddresses(args.Datacenter, out.NodeServices, dnsutil.TranslateAddressAcceptAny)
 	}
@@ -518,12 +518,12 @@ RETRY_ONCE:
 			s.nodeMetricsLabels())
 		return nil, err
 	}
-	if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
+	if args.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
 		args.AllowStale = false
 		args.MaxStaleDuration = 0
 		goto RETRY_ONCE
 	}
-	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
+	out.ConsistencyLevel = args.ConsistencyLevel()
 	s.agent.TranslateAddresses(args.Datacenter, &out.NodeServices, dnsutil.TranslateAddressAcceptAny)
 
 	// Use empty list instead of nil
@@ -565,12 +565,12 @@ RETRY_ONCE:
 			s.nodeMetricsLabels())
 		return nil, err
 	}
-	if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
+	if args.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
 		args.AllowStale = false
 		args.MaxStaleDuration = 0
 		goto RETRY_ONCE
 	}
-	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
+	out.ConsistencyLevel = args.ConsistencyLevel()
 
 	metrics.IncrCounterWithLabels([]string{"client", "api", "success", "catalog_gateway_services"}, 1,
 		s.nodeMetricsLabels())

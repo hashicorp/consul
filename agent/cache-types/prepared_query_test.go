@@ -29,7 +29,7 @@ func TestPreparedQuery(t *testing.T) {
 			require.True(t, req.AllowStale)
 
 			reply := args.Get(3).(*structs.PreparedQueryExecuteResponse)
-			reply.QueryMeta.Index = 48
+			reply.Index = 48
 			resp = reply
 		})
 
