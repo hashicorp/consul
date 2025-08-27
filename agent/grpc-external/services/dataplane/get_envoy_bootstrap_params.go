@@ -102,8 +102,8 @@ func (s *Server) GetEnvoyBootstrapParams(ctx context.Context, req *pbdataplane.G
 	return &pbdataplane.GetEnvoyBootstrapParamsResponse{
 		Identity:   serviceName,
 		Service:    serviceName,
-		Partition:  svc.EnterpriseMeta.PartitionOrDefault(),
-		Namespace:  svc.EnterpriseMeta.NamespaceOrDefault(),
+		Partition:  svc.PartitionOrDefault(),
+		Namespace:  svc.NamespaceOrDefault(),
 		Config:     bootstrapConfig,
 		Datacenter: s.Datacenter,
 		NodeName:   svc.Node,

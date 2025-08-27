@@ -30,10 +30,10 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
-var injectedError = errors.New("injected error")
+var errInjected = errors.New("injected error")
 
 func errQuery(_ cache.ReadOnlyCache, _ ...any) (cache.ResourceIterator, error) {
-	return nil, injectedError
+	return nil, errInjected
 }
 
 func TestController_API(t *testing.T) {
@@ -102,7 +102,7 @@ func TestController_API(t *testing.T) {
 		// checks on functions we are using a constant error return query to ensure it was
 		// registered properly.
 		iter, err := rt.Cache.Query("some-query", "irrelevant")
-		require.ErrorIs(t, err, injectedError)
+		require.ErrorIs(t, err, errInjected)
 		require.Nil(t, iter)
 	})
 

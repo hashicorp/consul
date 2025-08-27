@@ -31,7 +31,7 @@ func TestMapperWithTransform(t *testing.T) {
 		mockTransform := dependencymock.NewDependencyTransform(t)
 		mockTransform.EXPECT().
 			Execute(mock.Anything, rt, res).
-			Return(nil, injectedErr).
+			Return(nil, errInjected).
 			Once()
 
 		mockMapper := controllermock.NewDependencyMapper(t)
@@ -39,7 +39,7 @@ func TestMapperWithTransform(t *testing.T) {
 		mt := MapperWithTransform(mockMapper.Execute, mockTransform.Execute)
 		reqs, err := mt(context.Background(), rt, res)
 		require.Nil(t, reqs)
-		require.ErrorIs(t, err, injectedErr)
+		require.ErrorIs(t, err, errInjected)
 	})
 
 	t.Run("mapper-err", func(t *testing.T) {
@@ -52,13 +52,13 @@ func TestMapperWithTransform(t *testing.T) {
 		mockMapper := controllermock.NewDependencyMapper(t)
 		mockMapper.EXPECT().
 			Execute(mock.Anything, rt, transformed1).
-			Return(nil, injectedErr).
+			Return(nil, errInjected).
 			Once()
 
 		mt := MapperWithTransform(mockMapper.Execute, mockTransform.Execute)
 		reqs, err := mt(context.Background(), rt, res)
 		require.Nil(t, reqs)
-		require.ErrorIs(t, err, injectedErr)
+		require.ErrorIs(t, err, errInjected)
 	})
 
 	t.Run("ok", func(t *testing.T) {
@@ -120,7 +120,7 @@ func TestTransformChain(t *testing.T) {
 			Once()
 		mockTransform.EXPECT().
 			Execute(mock.Anything, rt, transformed1).
-			Return(nil, injectedErr).
+			Return(nil, errInjected).
 			Once()
 
 		resources, err := TransformChain(mockTransform.Execute, mockTransform.Execute)(
@@ -130,7 +130,7 @@ func TestTransformChain(t *testing.T) {
 		)
 
 		require.Nil(t, resources)
-		require.ErrorIs(t, err, injectedErr)
+		require.ErrorIs(t, err, errInjected)
 	})
 
 	t.Run("ok", func(t *testing.T) {

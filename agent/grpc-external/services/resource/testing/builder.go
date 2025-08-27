@@ -47,9 +47,7 @@ func (b *Builder) ServiceImpl() *svc.Server {
 }
 
 func (b *Builder) WithRegisterFns(registerFns ...func(resource.Registry)) *Builder {
-	for _, registerFn := range registerFns {
-		b.registerFns = append(b.registerFns, registerFn)
-	}
+	b.registerFns = append(b.registerFns, registerFns...)
 	return b
 }
 
@@ -61,9 +59,8 @@ func (b *Builder) WithACLResolver(aclResolver svc.ACLResolver) *Builder {
 // WithTenancies adds additional partitions and namespaces if default/default
 // is not sufficient.
 func (b *Builder) WithTenancies(tenancies ...*pbresource.Tenancy) *Builder {
-	for _, tenancy := range tenancies {
-		b.tenancies = append(b.tenancies, tenancy)
-	}
+	b.tenancies = append(b.tenancies, tenancies...)
+
 	return b
 }
 

@@ -94,13 +94,13 @@ func (f *prettyFormatter) FormatTemplatedPolicy(templatedPolicy api.ACLTemplated
 func noRequiredVariablesOutput(buffer *bytes.Buffer, templateName string) {
 	buffer.WriteString(" None\n")
 	buffer.WriteString("Example usage:\n")
-	buffer.WriteString(fmt.Sprintf("%sconsul acl token create -templated-policy %s\n", WhitespaceIndent, templateName))
+	fmt.Fprintf(buffer, "%sconsul acl token create -templated-policy %s\n", WhitespaceIndent, templateName)
 }
 
 func nameRequiredVariableOutput(buffer *bytes.Buffer, templateName, description, exampleName string) {
-	buffer.WriteString(fmt.Sprintf("\n%sName: String - Required - %s.\n", WhitespaceIndent, description))
+	fmt.Fprintf(buffer, "\n%sName: String - Required - %s.\n", WhitespaceIndent, description)
 	buffer.WriteString("Example usage:\n")
-	buffer.WriteString(fmt.Sprintf("%sconsul acl token create -templated-policy %s -var name:%s\n", WhitespaceIndent, templateName, exampleName))
+	fmt.Fprintf(buffer, "%sconsul acl token create -templated-policy %s -var name:%s\n", WhitespaceIndent, templateName, exampleName)
 }
 
 func (f *prettyFormatter) FormatTemplatedPolicyList(policies map[string]api.ACLTemplatedPolicyResponse) (string, error) {

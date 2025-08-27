@@ -28,7 +28,7 @@ func (g *Generator) generateAgentHCL(node *topology.Node) string {
 	// We first write ExtraConfig since it could be overwritten by specific
 	// configurations below
 	if node.ExtraConfig != "" {
-		b.format(node.ExtraConfig)
+		b.format("%s", node.ExtraConfig)
 	}
 
 	b.add("server", node.IsServer())
@@ -265,13 +265,13 @@ func (b *HCLBuilder) add(k string, v any) {
 }
 
 func (b *HCLBuilder) addBlock(block string, fn func()) {
-	b.format(block + "{")
+	b.format("%s", block+"{")
 	fn()
-	b.format("}")
+	b.format("%s", "}")
 }
 
 func (b *HCLBuilder) addSlice(name string, vals []string) {
-	b.format(name + " = [")
+	b.format("%s", name+" = [")
 	for _, v := range vals {
 		b.format("%q,", v)
 	}

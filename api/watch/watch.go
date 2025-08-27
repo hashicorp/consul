@@ -170,7 +170,7 @@ func ParseExempt(params map[string]interface{}, exempt []string) (*Plan, error) 
 		}
 		config, err := parseHttpHandlerConfig(params["http_handler_config"])
 		if err != nil {
-			return nil, fmt.Errorf(fmt.Sprintf("Failed to parse 'http_handler_config': %v", err))
+			return nil, fmt.Errorf("Failed to parse 'http_handler_config': %v", err)
 		}
 		plan.Exempt["http_handler_config"] = config
 		delete(params, "http_handler_config")
@@ -244,18 +244,18 @@ func assignValueBool(params map[string]interface{}, name string, out *bool) erro
 func assignValueStringSlice(params map[string]interface{}, name string, out *[]string) error {
 	if raw, ok := params[name]; ok {
 		var tmp []string
-		switch raw.(type) {
+		switch raw := raw.(type) {
 		case string:
-			tmp = make([]string, 1, 1)
-			tmp[0] = raw.(string)
+			tmp = make([]string, 1)
+			tmp[0] = raw
 		case []string:
-			l := len(raw.([]string))
-			tmp = make([]string, l, l)
-			copy(tmp, raw.([]string))
+			l := len(raw)
+			tmp = make([]string, l)
+			copy(tmp, raw)
 		case []interface{}:
-			l := len(raw.([]interface{}))
-			tmp = make([]string, l, l)
-			for i, v := range raw.([]interface{}) {
+			l := len(raw)
+			tmp = make([]string, l)
+			for i, v := range raw {
 				if s, ok := v.(string); ok {
 					tmp[i] = s
 				} else {
@@ -287,7 +287,7 @@ func parseHttpHandlerConfig(configParams interface{}) (*HttpHandlerConfig, error
 	if config.TimeoutRaw == "" {
 		config.Timeout = DefaultTimeout
 	} else if timeout, err := time.ParseDuration(config.TimeoutRaw); err != nil {
-		return nil, fmt.Errorf(fmt.Sprintf("Failed to parse timeout: %v", err))
+		return nil, fmt.Errorf("Failed to parse timeout: %v", err)
 	} else {
 		config.Timeout = timeout
 	}

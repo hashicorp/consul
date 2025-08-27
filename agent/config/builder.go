@@ -692,14 +692,13 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	// autoEncrypt and autoConfig implicitly turns on connect which is why
 	// they need to be above other settings that rely on connect.
 	autoEncryptDNSSAN := []string{}
-	for _, d := range c.AutoEncrypt.DNSSAN {
-		autoEncryptDNSSAN = append(autoEncryptDNSSAN, d)
-	}
+	autoEncryptDNSSAN = append(autoEncryptDNSSAN, c.AutoEncrypt.DNSSAN...)
+
 	autoEncryptIPSAN := []net.IP{}
 	for _, i := range c.AutoEncrypt.IPSAN {
 		ip := net.ParseIP(i)
 		if ip == nil {
-			b.warn(fmt.Sprintf("Cannot parse ip %q from AutoEncrypt.IPSAN", i))
+			b.warn("Cannot parse ip %q from AutoEncrypt.IPSAN", i)
 			continue
 		}
 		autoEncryptIPSAN = append(autoEncryptIPSAN, ip)
@@ -1257,7 +1256,7 @@ func (b *builder) validate(rt RuntimeConfig) error {
 	}
 	if rt.UIConfig.MetricsProxy.BaseURL != "" {
 		u, err := url.Parse(rt.UIConfig.MetricsProxy.BaseURL)
-		if err != nil || !(u.Scheme == "http" || u.Scheme == "https") {
+		if err != nil || (u.Scheme != "http" && u.Scheme != "https") {
 			return fmt.Errorf("ui_config.metrics_proxy.base_url must be a valid http"+
 				" or https URL. received: %q",
 				rt.UIConfig.MetricsProxy.BaseURL)
@@ -1273,7 +1272,7 @@ func (b *builder) validate(rt RuntimeConfig) error {
 			return err
 		}
 		u, err := url.Parse(v)
-		if err != nil || !(u.Scheme == "http" || u.Scheme == "https") {
+		if err != nil || (u.Scheme != "http" && u.Scheme != "https") {
 			return fmt.Errorf("ui_config.dashboard_url_templates values must be a"+
 				" valid http or https URL. received: %q",
 				rt.UIConfig.MetricsProxy.BaseURL)
@@ -1557,7 +1556,7 @@ func (b *builder) validate(rt RuntimeConfig) error {
 
 	if err := validateRemoteScriptsChecks(rt); err != nil {
 		// TODO: make this an error in a future version
-		b.warn(err.Error())
+		b.warn("%s", err.Error())
 	}
 
 	err := b.validateEnterpriseConfig(rt)
@@ -1656,7 +1655,7 @@ func (b *builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 		OSService:                      stringVal(v.OSService),
 		DeregisterCriticalServiceAfter: b.durationVal(fmt.Sprintf("check[%s].deregister_critical_service_after", id), v.DeregisterCriticalServiceAfter),
 		OutputMaxSize:                  intValWithDefault(v.OutputMaxSize, checks.DefaultBufSize),
-		EnterpriseMeta:                 v.EnterpriseMeta.ToStructs(),
+		EnterpriseMeta:                 v.ToStructs(),
 	}
 }
 
@@ -1738,7 +1737,7 @@ func (b *builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 		Proxy:             b.serviceProxyVal(v.Proxy),
 		Connect:           b.serviceConnectVal(v.Connect),
 		Locality:          b.serviceLocalityVal(v.Locality),
-		EnterpriseMeta:    v.EnterpriseMeta.ToStructs(),
+		EnterpriseMeta:    v.ToStructs(),
 	}
 }
 
@@ -2428,7 +2427,7 @@ func (b *builder) autoConfigVal(raw AutoConfigRaw, agentPartition string) AutoCo
 	for _, i := range raw.IPSANs {
 		ip := net.ParseIP(i)
 		if ip == nil {
-			b.warn(fmt.Sprintf("Cannot parse ip %q from auto_config.ip_sans", i))
+			b.warn("Cannot parse ip %q from auto_config.ip_sans", i)
 			continue
 		}
 		val.IPSANs = append(val.IPSANs, ip)

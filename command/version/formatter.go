@@ -40,7 +40,7 @@ func newPrettyFormatter() Formatter {
 	return &prettyFormatter{}
 }
 
-func (_ *prettyFormatter) Format(info *VersionInfo) (string, error) {
+func (*prettyFormatter) Format(info *VersionInfo) (string, error) {
 	var buffer bytes.Buffer
 	buffer.WriteString(fmt.Sprintf("Consul v%s\n", info.HumanVersion))
 	if info.Revision != "" {
@@ -70,7 +70,7 @@ func newJSONFormatter() Formatter {
 	return &jsonFormatter{}
 }
 
-func (_ *jsonFormatter) Format(info *VersionInfo) (string, error) {
+func (*jsonFormatter) Format(info *VersionInfo) (string, error) {
 	b, err := json.MarshalIndent(info, "", "   ")
 	if err != nil {
 		return "", fmt.Errorf("Failed to marshal version info: %v", err)

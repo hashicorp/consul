@@ -85,14 +85,14 @@ func MakeValidate(ext extensioncommon.RuntimeConfig) (extensioncommon.BasicExten
 		return nil, fmt.Errorf("expected extension name '%s' but got %q", api.BuiltinValidateExtension, name)
 	}
 
-	envoyID, _ := ext.EnvoyExtension.Arguments["envoyID"]
+	envoyID := ext.EnvoyExtension.Arguments["envoyID"]
 	mainEnvoyID, _ := envoyID.(string)
 	vip := ""
 	snis := map[string]struct{}{}
 	upstream, ok := ext.Upstreams[ext.ServiceName]
 	if ok {
 		vip = upstream.VIP
-		if upstream.SNIs == nil || len(upstream.SNIs) == 0 {
+		if len(upstream.SNIs) == 0 {
 			return nil, fmt.Errorf("no SNIs were set, unable to validate Envoy clusters")
 		}
 		snis = upstream.SNIs
@@ -263,7 +263,7 @@ func (v *Validate) GetMessages(validateEndpoints bool, endpointValidator Endpoin
 	}
 
 	if numRequiredResources == 0 {
-		messages = append(messages, Message{Message: fmt.Sprintf("No clusters found on route or listener")})
+		messages = append(messages, Message{Message: "No clusters found on route or listener"})
 	}
 
 	return messages
@@ -292,7 +292,7 @@ func DoEndpointValidation(r *resource, sni string, clusters *envoy_admin_v3.Clus
 		for _, h := range hostStatuses {
 			health := h.GetHealthStatus()
 			if health != nil {
-				if health.EdsHealthStatus == envoy_core_v3.HealthStatus_HEALTHY && health.FailedOutlierCheck == false {
+				if health.EdsHealthStatus == envoy_core_v3.HealthStatus_HEALTHY && !health.FailedOutlierCheck {
 					healthyEndpoints += 1
 				}
 			}

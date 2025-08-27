@@ -164,9 +164,9 @@ function lint_install {
 
     install_versioned_tool \
         'golangci-lint' \
-        'github.com/golangci/golangci-lint' \
+        'github.com/golangci/golangci-lint/v2' \
         "${golangci_lint_version}" \
-        'github.com/golangci/golangci-lint/cmd/golangci-lint'
+        'github.com/golangci/golangci-lint/v2/cmd/golangci-lint'
 
     install_versioned_tool \
         'gci' \
@@ -188,7 +188,8 @@ function deepcopy_install {
           'deep-copy' \
           'github.com/globusdigital/deep-copy' \
           "${deep_copy_version}" \
-          'github.com/globusdigital/deep-copy'
+          'github.com/globusdigital/deep-copy' \
+          "go"
 }
 
 function copywrite_install {
@@ -270,6 +271,7 @@ function install_versioned_tool {
     local module="$2"
     local version="$3"
     local installbase="$4"
+    local go123="${5:-}"
 
     local should_install=
     local install_reason=
@@ -323,8 +325,15 @@ function install_versioned_tool {
     fi
 
     if [[ -n $should_install ]]; then
-        echo "installing tool (${install_reason}): ${install}"
-        go install "${install}"
+        if [[ -n $go123 ]]; then
+          echo "installing tool (${install_reason}): ${install} with go 1.23"
+          go install golang.org/dl/go1.23.12@latest
+          go1.23.12 download
+          go1.23.12 install "${install}"
+        else
+          echo "installing tool (${install_reason}): ${install}"
+          go install "${install}"
+        fi
     else
         echo "skipping tool: ${install} (installed)"
     fi

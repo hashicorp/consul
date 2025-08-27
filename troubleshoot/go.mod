@@ -1,6 +1,6 @@
 module github.com/hashicorp/consul/troubleshoot
 
-go 1.23.12
+go 1.25.0
 
 replace (
 	github.com/hashicorp/consul/api => ../api
@@ -30,7 +30,7 @@ require (
 	github.com/hashicorp/consul/envoyextensions v0.7.3
 	github.com/hashicorp/consul/sdk v0.16.1
 	github.com/stretchr/testify v1.10.0
-	google.golang.org/protobuf v1.36.4
+	google.golang.org/protobuf v1.36.6
 )
 
 require (

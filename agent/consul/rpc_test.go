@@ -33,7 +33,6 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/rate"
-	rpcRate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/consul/state"
 	agent_grpc "github.com/hashicorp/consul/agent/grpc-internal"
 	"github.com/hashicorp/consul/agent/pool"
@@ -817,7 +816,7 @@ func TestRPC_LocalTokenStrippedOnForward(t *testing.T) {
 	var out bool
 	err = msgpackrpc.CallWithCodec(codec2, "KVS.Apply", &arg, &out)
 	require.NoError(t, err)
-	require.Equal(t, localToken2.SecretID, arg.WriteRequest.Token, "token should not be stripped")
+	require.Equal(t, localToken2.SecretID, arg.Token, "token should not be stripped")
 
 	// Try to use it remotely
 	arg = structs.KVSRequest{
@@ -866,7 +865,7 @@ func TestRPC_LocalTokenStrippedOnForward(t *testing.T) {
 	}
 	err = msgpackrpc.CallWithCodec(codec2, "KVS.Apply", &arg, &out)
 	require.NoError(t, err)
-	require.Equal(t, localToken2.SecretID, arg.WriteRequest.Token, "token should not be stripped")
+	require.Equal(t, localToken2.SecretID, arg.Token, "token should not be stripped")
 }
 
 func TestRPC_LocalTokenStrippedOnForward_GRPC(t *testing.T) {
@@ -1080,7 +1079,7 @@ func TestCanRetry(t *testing.T) {
 	config.RPCHoldTimeout = 7 * time.Second
 	retryableMessages := []error{
 		ErrChunkingResubmit,
-		rpcRate.ErrRetryElsewhere,
+		rate.ErrRetryElsewhere,
 	}
 	run := func(t *testing.T, tc testCase) {
 		timeOutValue := tc.timeout

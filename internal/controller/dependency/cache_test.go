@@ -45,7 +45,7 @@ func (suite *cacheSuite) SetupTest() {
 func (suite *cacheSuite) TestGetMapper_ModErr() {
 	suite.idMod.EXPECT().
 		Execute(mock.Anything, suite.rt, suite.res.Id).
-		Return(nil, injectedErr).
+		Return(nil, errInjected).
 		Once()
 
 	reqs, err := CacheGetMapper(suite.res.Id.Type, "doesnt-matter", suite.idMod.Execute)(
@@ -55,7 +55,7 @@ func (suite *cacheSuite) TestGetMapper_ModErr() {
 	)
 
 	require.Nil(suite.T(), reqs)
-	require.ErrorIs(suite.T(), err, injectedErr)
+	require.ErrorIs(suite.T(), err, errInjected)
 }
 
 func (suite *cacheSuite) TestGetMapper_CacheErr() {
@@ -67,7 +67,7 @@ func (suite *cacheSuite) TestGetMapper_CacheErr() {
 
 	suite.cache.EXPECT().
 		Get(suite.res.Id.Type, "fake-index", id).
-		Return(nil, injectedErr).
+		Return(nil, errInjected).
 		Once()
 
 	reqs, err := CacheGetMapper(suite.res.Id.Type, "fake-index", suite.idMod.Execute)(
@@ -77,7 +77,7 @@ func (suite *cacheSuite) TestGetMapper_CacheErr() {
 	)
 
 	require.Nil(suite.T(), reqs)
-	require.ErrorIs(suite.T(), err, injectedErr)
+	require.ErrorIs(suite.T(), err, errInjected)
 }
 
 func (suite *cacheSuite) TestGetMapper_Ok() {
@@ -109,7 +109,7 @@ func (suite *cacheSuite) TestGetMapper_Ok() {
 func (suite *cacheSuite) TestListMapper_ModErr() {
 	suite.idMod.EXPECT().
 		Execute(mock.Anything, suite.rt, suite.res.Id).
-		Return(nil, injectedErr).
+		Return(nil, errInjected).
 		Once()
 
 	reqs, err := CacheListMapper(suite.res.Id.Type, "doesnt-matter", suite.idMod.Execute)(
@@ -119,7 +119,7 @@ func (suite *cacheSuite) TestListMapper_ModErr() {
 	)
 
 	require.Nil(suite.T(), reqs)
-	require.ErrorIs(suite.T(), err, injectedErr)
+	require.ErrorIs(suite.T(), err, errInjected)
 }
 
 func (suite *cacheSuite) TestListMapper_CacheErr() {
@@ -131,7 +131,7 @@ func (suite *cacheSuite) TestListMapper_CacheErr() {
 
 	suite.cache.EXPECT().
 		ListIterator(suite.res.Id.Type, "fake-index", id).
-		Return(nil, injectedErr).
+		Return(nil, errInjected).
 		Once()
 
 	reqs, err := CacheListMapper(suite.res.Id.Type, "fake-index", suite.idMod.Execute)(
@@ -141,7 +141,7 @@ func (suite *cacheSuite) TestListMapper_CacheErr() {
 	)
 
 	require.Nil(suite.T(), reqs)
-	require.ErrorIs(suite.T(), err, injectedErr)
+	require.ErrorIs(suite.T(), err, errInjected)
 }
 
 func (suite *cacheSuite) TestListMapper_Ok() {
@@ -185,7 +185,7 @@ func (suite *cacheSuite) TestListMapper_Ok() {
 func (suite *cacheSuite) TestParentsMapper_ModErr() {
 	suite.idMod.EXPECT().
 		Execute(mock.Anything, suite.rt, suite.res.Id).
-		Return(nil, injectedErr).
+		Return(nil, errInjected).
 		Once()
 
 	reqs, err := CacheParentsMapper(suite.res.Id.Type, "doesnt-matter", suite.idMod.Execute)(
@@ -195,7 +195,7 @@ func (suite *cacheSuite) TestParentsMapper_ModErr() {
 	)
 
 	require.Nil(suite.T(), reqs)
-	require.ErrorIs(suite.T(), err, injectedErr)
+	require.ErrorIs(suite.T(), err, errInjected)
 }
 
 func (suite *cacheSuite) TestParentsMapper_CacheErr() {
@@ -207,7 +207,7 @@ func (suite *cacheSuite) TestParentsMapper_CacheErr() {
 
 	suite.cache.EXPECT().
 		ParentsIterator(suite.res.Id.Type, "fake-index", id).
-		Return(nil, injectedErr).
+		Return(nil, errInjected).
 		Once()
 
 	reqs, err := CacheParentsMapper(suite.res.Id.Type, "fake-index", suite.idMod.Execute)(
@@ -217,7 +217,7 @@ func (suite *cacheSuite) TestParentsMapper_CacheErr() {
 	)
 
 	require.Nil(suite.T(), reqs)
-	require.ErrorIs(suite.T(), err, injectedErr)
+	require.ErrorIs(suite.T(), err, errInjected)
 }
 
 func (suite *cacheSuite) TestParentsMapper_Ok() {
@@ -261,7 +261,7 @@ func (suite *cacheSuite) TestParentsMapper_Ok() {
 func (suite *cacheSuite) TestListTransform_ModErr() {
 	suite.idMod.EXPECT().
 		Execute(mock.Anything, suite.rt, suite.res.Id).
-		Return(nil, injectedErr).
+		Return(nil, errInjected).
 		Once()
 
 	reqs, err := CacheListTransform(suite.res.Id.Type, "doesnt-matter", suite.idMod.Execute)(
@@ -271,7 +271,7 @@ func (suite *cacheSuite) TestListTransform_ModErr() {
 	)
 
 	require.Nil(suite.T(), reqs)
-	require.ErrorIs(suite.T(), err, injectedErr)
+	require.ErrorIs(suite.T(), err, errInjected)
 }
 
 func (suite *cacheSuite) TestListTransform_CacheErr() {
@@ -283,7 +283,7 @@ func (suite *cacheSuite) TestListTransform_CacheErr() {
 
 	suite.cache.EXPECT().
 		List(suite.res.Id.Type, "fake-index", id).
-		Return(nil, injectedErr).
+		Return(nil, errInjected).
 		Once()
 
 	resources, err := CacheListTransform(suite.res.Id.Type, "fake-index", suite.idMod.Execute)(
@@ -293,7 +293,7 @@ func (suite *cacheSuite) TestListTransform_CacheErr() {
 	)
 
 	require.Nil(suite.T(), resources)
-	require.ErrorIs(suite.T(), err, injectedErr)
+	require.ErrorIs(suite.T(), err, errInjected)
 }
 
 func (suite *cacheSuite) TestListTransform_Ok() {

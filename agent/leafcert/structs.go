@@ -38,7 +38,7 @@ type ConnectCALeafRequest struct {
 }
 
 func (r *ConnectCALeafRequest) Key() string {
-	r.EnterpriseMeta.Normalize()
+	r.Normalize()
 
 	switch {
 	case r.Agent != "":
