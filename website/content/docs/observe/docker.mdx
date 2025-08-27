@@ -11,13 +11,9 @@ This page describes the configuration process for service mesh observability fea
 
 ## Introduction
 
-Service mesh observability consists of three core elements: metrics, logs, and traces. To observe these elements in Consul's service mesh, use Prometheus to collect metrics, Loki to collect logs, and Tempo to collect traces. Then you can visualize this data with Grafana.
+Service mesh observability consists of three core elements: _metrics_, _logs_, and _traces_. To observe these elements in Consul's service mesh, use Prometheus to collect metrics, Loki to collect logs, and Tempo to collect traces. Then you can visualize this data with Grafana.
 
-<Note>
-
- The examples in this article are not properly secured for a production environment. If you are implementing this functionality in a production system, we encourage you to review the [Consul Reference Architecture](/consul/tutorials/production-deploy/reference-architecture) for Consul best practices and the [Docker Documentation](https://docs.docker.com/) for Docker best practices.
-
-</Note>
+The examples on this page are not properly secured for a production environment. If you are implementing this functionality in a production system, we encourage you to review the [Consul Reference Architecture](/consul/tutorials/production-deploy/reference-architecture) for Consul best practices and the [Docker Documentation](https://docs.docker.com/) for Docker best practices.
 
 ## Prerequisites
 
@@ -192,31 +188,85 @@ datasources:
 
 The `datasource-loki.yaml` file contains the configuration for Grafana to connect to Loki. The `datasources.url` field must point to the Loki service running in your Docker environment.
 
-</Note>
+<CodeBlockConfig filename="datasource-loki.yaml">
 
-### Explore the sample application
+```yaml
+datasources:
+- name: Loki
+  type: loki
+  access: proxy
+  orgId: 1
+  url: http://loki:3100
+  basicAuth: false
+  isDefault: true
+  version: 1
+  editable: false
+  apiVersion: 1
+  jsonData:
+    derivedFields:
+      - datasourceUid: tempo
+        matcherRegex: (?:traceID|trace_id)=(\w+)
+        name: TraceID
+        url: $${__value.raw}
+```
 
-Navigate to [http://localhost:9090/ui/](http://localhost:9090/ui/) and refresh the page to generate traffic.
+</CodeBlockConfig>
 
-![Image of sample application UI.](/img/docker/observability_example_service.png 'There are three squares, each representing an application, connected by lines. The Ingress service is at the top, with web below it, and API at the bottom.')
+### Grafana data source: Tempo
 
-The example application shows the architecture of your complete application stack. Each refresh of this page will generate extra logs, metrics, and traces that your observability suite will ingest.
+The `datasource-tempo.yaml` file contains the configuration for Grafana to connect to Tempo. The `url` field should point to the Tempo service running in your Docker environment.
 
-### Explore Prometheus targets
+<CodeBlockConfig filename="datasource-tempo.yaml">
 
-Navigate to [http://localhost:9092/targets](http://localhost:9092/targets).
+```yaml
+datasources:
+- name: Tempo
+  type: tempo
+  access: proxy
+  orgId: 1
+  url: http://tempo:3100
+  basicAuth: false
+  isDefault: false
+  version: 1
+  editable: false
+  apiVersion: 1
+  uid: tempo
+```
 
-![Image of targets page in Prometheus UI.](/img/docker/observability_prometheus_targets.png 'There are four target endpoints: consul-server, node, services, and tempo. The status shows "up" for each of these targets.')
+</CodeBlockConfig>
 
-Notice that Prometheus is pre-configured to scrape metric-related data from four endpoints: Consul, Node-Exporter, Tempo, and itself.
+### Grafana dashboards
 
-### Explore Grafana data sources
+In order to visualize the data collected by Prometheus, Loki, and Tempo, you can import pre-built dashboards into Grafana. The configuration is applied to Grafana in the following way, and refers to a directory called `dashboards`.
 
-Navigate to [http://localhost:3000/datasources](http://localhost:3000/datasources).
+<CodeBlockConfig filename="grafana-dashboards.yaml">
 
-![Image of data sources page in Grafana UI.](/img/docker/observability_grafana_datasources.png 'Three datasources are present in the list: Loki, Prometheus, and Tempo.')
+```yaml
+apiVersion: 1
 
-Grafana is pre-configured with Prometheus, Loki, and Tempo as data sources. These sources enable Grafana to visualize metrics, logs, and traces.
+providers:
+- name: 'dashboards'
+  orgId: 1
+  folder: 'dashboards'
+  folderUid: ''
+  type: file
+  disableDeletion: true
+  editable: true
+  updateIntervalSeconds: 3600
+  allowUiUpdates: false
+  options:
+    path: /var/lib/grafana/dashboards
+```
+
+</CodeBlockConfig>
+
+For the contents of the `dashboards` directory, refer to [Dashboards for service mesh observability](/consul/docs/observe/grafana), which documents the dashboard configurations in [the `hashicorp/consul` GitHub Repository](https://github.com/hashicorp/consul/tree/main/grafana).
+
+You can also refer to the Docker-specific content in the [Grafana Dashboards repository](https://github.com/hashicorp-education/learn-consul-docker/tree/main/datacenter-deploy-observability/grafana/dashboards).
+
+## Use Grafana to explore your service mesh
+
+Now that you have configured the Grafana data sources, you can visualize the data collected.
 
 ### Explore traces in Grafana
 

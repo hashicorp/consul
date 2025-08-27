@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -20,6 +21,7 @@ import (
 
 	"github.com/google/pprof/profile"
 	"github.com/mitchellh/cli"
+	testifyassert "github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/assert/cmp"
@@ -78,6 +80,7 @@ func TestDebugCommand(t *testing.T) {
 			fs.WithFile("agent.json", "", fs.MatchFileContent(validJSON)),
 			fs.WithFile("host.json", "", fs.MatchFileContent(validJSON)),
 			fs.WithFile("members.json", "", fs.MatchFileContent(validJSON)),
+			fs.WithFile("ports.json", "", fs.MatchFileContent(validJSON)),
 			fs.WithFile("metrics.json", "", fs.MatchAnyFileContent),
 			fs.WithFile("listpeers.json", "", fs.MatchAnyFileContent),
 			fs.WithFile("consul.log", "", fs.MatchFileContent(validLogFile)),
@@ -225,7 +228,7 @@ func TestDebugCommand_Archive(t *testing.T) {
 		}
 
 		// should only contain this one capture target
-		if h.Name != "debug/agent.json" && h.Name != "debug/index.json" && h.Name != "debug/listpeers.json" {
+		if h.Name != "debug/agent.json" && h.Name != "debug/index.json" && h.Name != "debug/listpeers.json" && h.Name != "debug/ports.json" {
 			t.Fatalf("archive contents do not match: %s", h.Name)
 		}
 	}
@@ -551,4 +554,236 @@ func TestDebugCommand_DebugDisabled(t *testing.T) {
 
 	errOutput := ui.ErrorWriter.String()
 	require.Contains(t, errOutput, "Unable to capture pprof")
+}
+
+// TestDebugCommand_PprofScenarios tests the four specific pprof capture scenarios
+// based on enable_debug and ACL settings
+func TestDebugCommand_PprofScenarios(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	testCases := []struct {
+		name             string
+		enableDebug      bool
+		aclEnabled       bool
+		expectPprofFiles bool
+		expectWarning    bool
+		warningContains  string
+	}{
+		{
+			name:             "enable_debug=true, acl=disabled - pprof captured",
+			enableDebug:      true,
+			aclEnabled:       false,
+			expectPprofFiles: true,
+			expectWarning:    false,
+		},
+		{
+			name:             "enable_debug=true, acl=enabled - pprof captured",
+			enableDebug:      true,
+			aclEnabled:       true,
+			expectPprofFiles: true,
+			expectWarning:    false,
+		},
+		{
+			name:             "enable_debug=false, acl=enabled - pprof captured",
+			enableDebug:      false,
+			aclEnabled:       true,
+			expectPprofFiles: true,
+			expectWarning:    false,
+		},
+		{
+			name:             "enable_debug=false, acl=disabled - pprof NOT captured",
+			enableDebug:      false,
+			aclEnabled:       false,
+			expectPprofFiles: false,
+			expectWarning:    true,
+			warningContains:  "Unable to capture pprof",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Note: Not using t.Parallel() because concurrent pprof generation
+			// can cause conflicts and test failures
+
+			testDir := testutil.TempDir(t, "debug")
+
+			// Configure agent based on test case
+			config := fmt.Sprintf(`
+				enable_debug = %t
+				acl = {
+					enabled = %t
+					default_policy = "allow"
+				}
+			`, tc.enableDebug, tc.aclEnabled)
+
+			a := agent.NewTestAgent(t, config)
+			defer a.Shutdown()
+			testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+			ui := cli.NewMockUi()
+			cmd := New(ui)
+			cmd.validateTiming = false
+
+			outputPath := fmt.Sprintf("%s/debug", testDir)
+			args := []string{
+				"-http-addr=" + a.HTTPAddr(),
+				"-output=" + outputPath,
+				"-archive=false",
+				"-duration=1s",
+				"-interval=1s",
+			}
+
+			code := cmd.Run(args)
+			require.Equal(t, 0, code, "debug command should succeed")
+
+			// Check if pprof files were created
+			// Check files in root directory (profile.prof, trace.out)
+			rootProfiles := []string{"profile.prof", "trace.out"}
+			for _, profile := range rootProfiles {
+				profilePath := filepath.Join(outputPath, profile)
+				_, err := os.Stat(profilePath)
+
+				if tc.expectPprofFiles {
+					require.NoError(t, err,
+						"Expected pprof file %s to be created for scenario: %s", profile, tc.name)
+				} else {
+					require.True(t, os.IsNotExist(err),
+						"Expected pprof file %s NOT to be created for scenario: %s", profile, tc.name)
+				}
+			}
+
+			// Check files in timestamped subdirectories (heap.prof, goroutine.prof)
+			subdirProfiles := []string{"heap.prof", "goroutine.prof"}
+			for _, profile := range subdirProfiles {
+				profileFiles, _ := filepath.Glob(filepath.Join(outputPath, "*", profile))
+
+				if tc.expectPprofFiles {
+					require.True(t, len(profileFiles) > 0,
+						"Expected pprof file %s to be created in subdirectories for scenario: %s", profile, tc.name)
+				} else {
+					require.True(t, len(profileFiles) == 0,
+						"Expected pprof file %s NOT to be created in subdirectories for scenario: %s", profile, tc.name)
+				}
+			}
+
+			// Check warning messages
+			errOutput := ui.ErrorWriter.String()
+			if tc.expectWarning {
+				require.Contains(t, errOutput, tc.warningContains,
+					"Expected warning message for scenario: %s", tc.name)
+			} else {
+				require.NotContains(t, errOutput, "Unable to capture pprof",
+					"Did not expect pprof warning for scenario: %s", tc.name)
+			}
+		})
+	}
+}
+
+func startMockTCPServer(t *testing.T, portsList []string) (cleanup func()) {
+	t.Helper()
+	var listeners []net.Listener
+
+	for _, port := range portsList {
+		listener, err := net.Listen("tcp", "127.0.0.1:"+port)
+		if err != nil {
+			for _, l := range listeners {
+				l.Close()
+			}
+			t.Fatalf("Failed to start mock TCP server on port %s: %v", port, err)
+		}
+
+		listeners = append(listeners, listener)
+
+	}
+	cleanup = func() {
+		for _, l := range listeners {
+			l.Close()
+		}
+	}
+
+	return cleanup
+}
+
+func TestDebugCommand_TroubleshootPorts(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	emptyStrArr := []string{}
+
+	testCases := []struct {
+		name        string
+		portsOpen   []string
+		portsClosed []string
+	}{
+		{
+			name:        "All ports closed",
+			portsOpen:   emptyStrArr,
+			portsClosed: default_ports,
+		},
+		{
+			name:        "All ports opened",
+			portsOpen:   default_ports,
+			portsClosed: emptyStrArr,
+		},
+		{
+			name:        "Ports 8500, 8501, 8502, 8503 Open",
+			portsOpen:   []string{"8500", "8501", "8502", "8503"},
+			portsClosed: []string{"8600", "8301", "8302", "8300"},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cleanup := startMockTCPServer(t, tc.portsOpen)
+			defer cleanup()
+
+			testDir := t.TempDir()
+
+			a := agent.NewTestAgent(t, `
+			enable_debug = true
+			`)
+
+			defer a.Shutdown()
+			testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+			ui := cli.NewMockUi()
+			cmd := New(ui)
+			cmd.validateTiming = false
+
+			outputPath := fmt.Sprintf("%s/debug", testDir)
+			args := []string{
+				"-http-addr=" + a.HTTPAddr(),
+				"-output=" + outputPath,
+				"-duration=2s",
+				"-interval=1s",
+				"-archive=false",
+			}
+
+			code := cmd.Run(args)
+			require.Equal(t, 0, code)
+			require.Equal(t, "", ui.ErrorWriter.String())
+
+			expected := PortStatus{
+				Open:   tc.portsOpen,
+				Closed: tc.portsClosed,
+			}
+
+			fileBytes, err := os.ReadFile(outputPath + "/ports.json")
+			if err != nil {
+				t.Fatalf("Failed to read output file %q: %v", outputPath, err)
+			}
+
+			// Parse JSON into struct
+			var actual PortStatus
+			if err := json.Unmarshal(fileBytes, &actual); err != nil {
+				t.Fatalf("Failed to unmarshal JSON from file: %v", err)
+			}
+
+			testifyassert.ElementsMatch(t, expected.Open, actual.Open, "Mismatch in open ports")
+			testifyassert.ElementsMatch(t, expected.Closed, actual.Closed, "Mismatch in closed ports")
+		})
+	}
 }

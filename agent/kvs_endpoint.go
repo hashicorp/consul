@@ -94,7 +94,7 @@ func (s *HTTPHandlers) KVSGet(resp http.ResponseWriter, req *http.Request, args 
 	if _, ok := params["raw"]; ok && method == "KVS.Get" {
 		body := out.Entries[0].Value
 		resp.Header().Set("Content-Length", strconv.FormatInt(int64(len(body)), 10))
-		resp.Header().Set("Content-Type", "text/plain")
+		resp.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		resp.Header().Set("X-Content-Type-Options", "nosniff")
 		resp.Header().Set("Content-Security-Policy", "sandbox")
 		resp.Write(body)
