@@ -123,6 +123,8 @@ type ProxyConfig struct {
 	// connections across worker threads. Only used by envoy proxies.
 	BalanceInboundConnections string `json:",omitempty" alias:"balance_inbound_connections"`
 
+	// MaxRequestHeadersKB configures the maximum size in kilobytes for request headers
+	// sent from downstream clients to upstream services. If not set, uses Envoy's default.
 	MaxRequestHeadersKB *uint32 `json:",omitempty" mapstructure:"max_request_headers_kb"`
 }
 

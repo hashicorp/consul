@@ -198,7 +198,6 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 				upstream:   upstreamCfg,
 			}
 			upstreamListener := makeListener(opts)
-			// [xdscommon.ListenerType].FilterChains.filter.ConfigType.TypedConfig
 			s.injectConnectionBalanceConfig(cfg.BalanceOutboundConnections, upstreamListener)
 			upstreamListener.FilterChains = []*envoy_listener_v3.FilterChain{
 				filterChain,
@@ -212,7 +211,6 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		// The rest of this loop is used exclusively for transparent proxies.
 		// Below we create a filter chain per upstream, rather than a listener per upstream
 		// as we do for explicit upstreams above.
-		// [xdscommon.ListenerType].FilterChains.filter.ConfigType.TypedConfig
 		filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
 			accessLogs:          &cfgSnap.Proxy.AccessLogs,
 			routeName:           uid.EnvoyID(),
@@ -2547,7 +2545,6 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) 
 
 	// Set max request headers size if configured
 	if opts.maxRequestHeadersKb != nil {
-		// && *opts.maxRequestHeadersKb == 96
 		cfg.MaxRequestHeadersKb = &wrapperspb.UInt32Value{Value: *opts.maxRequestHeadersKb}
 	}
 
