@@ -465,8 +465,8 @@ func (s *Store) updateSessionCheck(tx WriteTxn, idx uint64, session *structs.Ses
 		if hc := check.(*structs.HealthCheck); hc.Type == "session" && hc.Definition.SessionName == session.Name {
 			updatedCheck := hc.Clone()
 			updatedCheck.Status = checkState
-			switch {
-			case checkState == api.HealthPassing:
+			switch checkState {
+			case api.HealthPassing:
 				updatedCheck.Output = fmt.Sprintf("Session '%s' in force", session.ID)
 			default:
 				updatedCheck.Output = fmt.Sprintf("Session '%s' is invalid", session.ID)
