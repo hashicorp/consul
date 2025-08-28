@@ -39,64 +39,64 @@ func (f *Filter) Filter(subject any) {
 		f.filterCheckServiceNodes(v)
 
 	case *structs.IndexedCheckServiceNodes:
-		v.QueryMeta.ResultsFilteredByACLs = f.filterCheckServiceNodes(&v.Nodes)
+		v.ResultsFilteredByACLs = f.filterCheckServiceNodes(&v.Nodes)
 
 	case *structs.PreparedQueryExecuteResponse:
-		v.QueryMeta.ResultsFilteredByACLs = f.filterCheckServiceNodes(&v.Nodes)
+		v.ResultsFilteredByACLs = f.filterCheckServiceNodes(&v.Nodes)
 
 	case *structs.IndexedServiceTopology:
 		filtered := f.filterServiceTopology(v.ServiceTopology)
 		if filtered {
 			v.FilteredByACLs = true
-			v.QueryMeta.ResultsFilteredByACLs = true
+			v.ResultsFilteredByACLs = true
 		}
 
 	case *structs.DatacenterIndexedCheckServiceNodes:
-		v.QueryMeta.ResultsFilteredByACLs = f.filterDatacenterCheckServiceNodes(&v.DatacenterNodes)
+		v.ResultsFilteredByACLs = f.filterDatacenterCheckServiceNodes(&v.DatacenterNodes)
 
 	case *structs.IndexedCoordinates:
-		v.QueryMeta.ResultsFilteredByACLs = f.filterCoordinates(&v.Coordinates)
+		v.ResultsFilteredByACLs = f.filterCoordinates(&v.Coordinates)
 
 	case *structs.IndexedHealthChecks:
-		v.QueryMeta.ResultsFilteredByACLs = f.filterHealthChecks(&v.HealthChecks)
+		v.ResultsFilteredByACLs = f.filterHealthChecks(&v.HealthChecks)
 
 	case *structs.IndexedIntentions:
-		v.QueryMeta.ResultsFilteredByACLs = f.filterIntentions(&v.Intentions)
+		v.ResultsFilteredByACLs = f.filterIntentions(&v.Intentions)
 
 	case *structs.IntentionQueryMatch:
 		f.filterIntentionMatch(v)
 
 	case *structs.IndexedNodeDump:
 		if f.filterNodeDump(&v.Dump) {
-			v.QueryMeta.ResultsFilteredByACLs = true
+			v.ResultsFilteredByACLs = true
 		}
 		if f.filterNodeDump(&v.ImportedDump) {
-			v.QueryMeta.ResultsFilteredByACLs = true
+			v.ResultsFilteredByACLs = true
 		}
 
 	case *structs.IndexedServiceDump:
-		v.QueryMeta.ResultsFilteredByACLs = f.filterServiceDump(&v.Dump)
+		v.ResultsFilteredByACLs = f.filterServiceDump(&v.Dump)
 
 	case *structs.IndexedNodes:
-		v.QueryMeta.ResultsFilteredByACLs = f.filterNodes(&v.Nodes)
+		v.ResultsFilteredByACLs = f.filterNodes(&v.Nodes)
 
 	case *structs.IndexedNodeServices:
-		v.QueryMeta.ResultsFilteredByACLs = f.filterNodeServices(&v.NodeServices)
+		v.ResultsFilteredByACLs = f.filterNodeServices(&v.NodeServices)
 
 	case *structs.IndexedNodeServiceList:
-		v.QueryMeta.ResultsFilteredByACLs = f.filterNodeServiceList(&v.NodeServices)
+		v.ResultsFilteredByACLs = f.filterNodeServiceList(&v.NodeServices)
 
 	case *structs.IndexedServiceNodes:
-		v.QueryMeta.ResultsFilteredByACLs = f.filterServiceNodes(&v.ServiceNodes)
+		v.ResultsFilteredByACLs = f.filterServiceNodes(&v.ServiceNodes)
 
 	case *structs.IndexedServices:
-		v.QueryMeta.ResultsFilteredByACLs = f.filterServices(v.Services, &v.EnterpriseMeta)
+		v.ResultsFilteredByACLs = f.filterServices(v.Services, &v.EnterpriseMeta)
 
 	case *structs.IndexedSessions:
-		v.QueryMeta.ResultsFilteredByACLs = f.filterSessions(&v.Sessions)
+		v.ResultsFilteredByACLs = f.filterSessions(&v.Sessions)
 
 	case *structs.IndexedPreparedQueries:
-		v.QueryMeta.ResultsFilteredByACLs = f.filterPreparedQueries(&v.Queries)
+		v.ResultsFilteredByACLs = f.filterPreparedQueries(&v.Queries)
 
 	case **structs.PreparedQuery:
 		f.redactPreparedQueryTokens(v)
@@ -131,11 +131,11 @@ func (f *Filter) Filter(subject any) {
 		f.filterAuthMethod(v)
 
 	case *structs.IndexedServiceList:
-		v.QueryMeta.ResultsFilteredByACLs = f.filterServiceList(&v.Services)
+		v.ResultsFilteredByACLs = f.filterServiceList(&v.Services)
 
 	case *structs.IndexedExportedServiceList:
 		for peer, peerServices := range v.Services {
-			v.QueryMeta.ResultsFilteredByACLs = f.filterServiceList(&peerServices)
+			v.ResultsFilteredByACLs = f.filterServiceList(&peerServices)
 			if len(peerServices) == 0 {
 				delete(v.Services, peer)
 			} else {
@@ -144,17 +144,17 @@ func (f *Filter) Filter(subject any) {
 		}
 
 	case *structs.IndexedGatewayServices:
-		v.QueryMeta.ResultsFilteredByACLs = f.filterGatewayServices(&v.Services)
+		v.ResultsFilteredByACLs = f.filterGatewayServices(&v.Services)
 
 	case *structs.IndexedNodesWithGateways:
 		if f.filterCheckServiceNodes(&v.Nodes) {
-			v.QueryMeta.ResultsFilteredByACLs = true
+			v.ResultsFilteredByACLs = true
 		}
 		if f.filterGatewayServices(&v.Gateways) {
-			v.QueryMeta.ResultsFilteredByACLs = true
+			v.ResultsFilteredByACLs = true
 		}
 		if f.filterCheckServiceNodes(&v.ImportedNodes) {
-			v.QueryMeta.ResultsFilteredByACLs = true
+			v.ResultsFilteredByACLs = true
 		}
 
 	default:

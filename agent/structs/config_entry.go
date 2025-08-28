@@ -965,7 +965,7 @@ func (r *ServiceConfigRequest) CacheInfo() cache.RequestInfo {
 		UpstreamServiceNames: r.UpstreamServiceNames,
 		ProxyMode:            r.Mode,
 		MeshGatewayConfig:    r.MeshGateway,
-		Filter:               r.QueryOptions.Filter,
+		Filter:               r.Filter,
 	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces
@@ -1083,8 +1083,8 @@ func (cfg *UpstreamConfig) normalize(named bool, entMeta *acl.EnterpriseMeta) er
 	if named {
 		// If the upstream namespace is omitted it inherits that of the enclosing
 		// config entry.
-		cfg.EnterpriseMeta.MergeNoWildcard(entMeta)
-		cfg.EnterpriseMeta.Normalize()
+		cfg.MergeNoWildcard(entMeta)
+		cfg.Normalize()
 	}
 
 	cfg.Protocol = strings.ToLower(cfg.Protocol)
@@ -1109,17 +1109,17 @@ func (cfg UpstreamConfig) validate(named bool) error {
 		if cfg.Name == WildcardSpecifier {
 			return fmt.Errorf("Wildcard name is not supported")
 		}
-		if cfg.EnterpriseMeta.NamespaceOrDefault() == WildcardSpecifier {
+		if cfg.NamespaceOrDefault() == WildcardSpecifier {
 			return fmt.Errorf("Wildcard namespace is not supported")
 		}
 	} else {
 		if cfg.Name != "" {
 			return fmt.Errorf("Name must be empty")
 		}
-		if cfg.EnterpriseMeta.NamespaceOrEmpty() != "" {
+		if cfg.NamespaceOrEmpty() != "" {
 			return fmt.Errorf("Namespace must be empty")
 		}
-		if cfg.EnterpriseMeta.PartitionOrEmpty() != "" {
+		if cfg.PartitionOrEmpty() != "" {
 			return fmt.Errorf("Partition must be empty")
 		}
 	}

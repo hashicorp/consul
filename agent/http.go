@@ -191,7 +191,7 @@ func (s *HTTPHandlers) handler() http.Handler {
 		// Omit the leading slash.
 		// Distinguish thing like /v1/query from /v1/query/<query_id> by having
 		// an extra underscore.
-		path_label := strings.Replace(pattern[1:], "/", "_", -1)
+		path_label := strings.ReplaceAll(pattern[1:], "/", "_")
 
 		// Register the wrapper.
 		wrapper := func(resp http.ResponseWriter, req *http.Request) {
@@ -426,7 +426,7 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 					logURL += "<hidden>"
 					continue
 				}
-				logURL = strings.Replace(logURL, token, "<hidden>", -1)
+				logURL = strings.ReplaceAll(logURL, token, "<hidden>")
 			}
 			httpLogger.Warn("This request used the token query parameter "+
 				"which is deprecated and will be removed in a future Consul version",
@@ -886,7 +886,7 @@ func setResultsFilteredByACLs(resp http.ResponseWriter, filtered bool) {
 // setHeaders is used to set canonical response header fields
 func setHeaders(resp http.ResponseWriter, headers map[string]string) {
 	for field, value := range headers {
-		resp.Header().Set(http.CanonicalHeaderKey(field), value)
+		resp.Header().Set(field, value)
 	}
 }
 

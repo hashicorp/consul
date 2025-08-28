@@ -50,12 +50,12 @@ RETRY_ONCE:
 	if err := s.agent.RPC(req.Context(), "PreparedQuery.List", &args, &reply); err != nil {
 		return nil, err
 	}
-	if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < reply.LastContact {
+	if args.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < reply.LastContact {
 		args.AllowStale = false
 		args.MaxStaleDuration = 0
 		goto RETRY_ONCE
 	}
-	reply.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
+	reply.ConsistencyLevel = args.ConsistencyLevel()
 
 	// Use empty list instead of nil.
 	if reply.Queries == nil {
@@ -123,12 +123,12 @@ func (s *HTTPHandlers) preparedQueryExecute(id string, resp http.ResponseWriter,
 	var reply structs.PreparedQueryExecuteResponse
 	defer setMeta(resp, &reply.QueryMeta)
 
-	if args.QueryOptions.UseCache {
+	if args.UseCache {
 		raw, m, err := s.agent.cache.Get(req.Context(), cachetype.PreparedQueryName, &args)
 		if err != nil {
 			// Don't return error if StaleIfError is set and we are within it and had
 			// a cached value.
-			if raw != nil && m.Hit && args.QueryOptions.StaleIfError > m.Age {
+			if raw != nil && m.Hit && args.StaleIfError > m.Age {
 				// Fall through to the happy path below
 			} else {
 				return nil, err
@@ -151,13 +151,13 @@ func (s *HTTPHandlers) preparedQueryExecute(id string, resp http.ResponseWriter,
 			}
 			return nil, err
 		}
-		if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < reply.LastContact {
+		if args.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < reply.LastContact {
 			args.AllowStale = false
 			args.MaxStaleDuration = 0
 			goto RETRY_ONCE
 		}
 	}
-	reply.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
+	reply.ConsistencyLevel = args.ConsistencyLevel()
 
 	// Note that we translate using the DC that the results came from, since
 	// a query can fail over to a different DC than where the execute request
@@ -204,12 +204,12 @@ RETRY_ONCE:
 		}
 		return nil, err
 	}
-	if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < reply.LastContact {
+	if args.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < reply.LastContact {
 		args.AllowStale = false
 		args.MaxStaleDuration = 0
 		goto RETRY_ONCE
 	}
-	reply.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
+	reply.ConsistencyLevel = args.ConsistencyLevel()
 	return reply, nil
 }
 
@@ -233,12 +233,12 @@ RETRY_ONCE:
 		}
 		return nil, err
 	}
-	if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < reply.LastContact {
+	if args.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < reply.LastContact {
 		args.AllowStale = false
 		args.MaxStaleDuration = 0
 		goto RETRY_ONCE
 	}
-	reply.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
+	reply.ConsistencyLevel = args.ConsistencyLevel()
 	return reply.Queries, nil
 }
 
