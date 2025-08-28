@@ -243,7 +243,7 @@ RETRY_ONCE:
 }
 
 // preparedQueryUpdate updates a prepared query.
-func (s *HTTPHandlers) preparedQueryUpdate(id string, resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) preparedQueryUpdate(id string, req *http.Request) (interface{}, error) {
 	args := structs.PreparedQueryRequest{
 		Op: structs.PreparedQueryUpdate,
 	}
@@ -270,7 +270,7 @@ func (s *HTTPHandlers) preparedQueryUpdate(id string, resp http.ResponseWriter, 
 }
 
 // preparedQueryDelete deletes prepared query.
-func (s *HTTPHandlers) preparedQueryDelete(id string, resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) preparedQueryDelete(id string, req *http.Request) (interface{}, error) {
 	args := structs.PreparedQueryRequest{
 		Op: structs.PreparedQueryDelete,
 		Query: &structs.PreparedQuery{
@@ -336,10 +336,10 @@ func (s *HTTPHandlers) PreparedQuerySpecific(resp http.ResponseWriter, req *http
 			return s.preparedQueryGet(id, resp, req)
 
 		case "PUT":
-			return s.preparedQueryUpdate(id, resp, req)
+			return s.preparedQueryUpdate(id, req)
 
 		case "DELETE":
-			return s.preparedQueryDelete(id, resp, req)
+			return s.preparedQueryDelete(id, req)
 
 		default:
 			return nil, MethodNotAllowedError{req.Method, []string{"GET", "PUT", "DELETE"}}

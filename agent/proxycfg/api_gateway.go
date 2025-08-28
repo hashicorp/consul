@@ -265,7 +265,6 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 		})
 
 		snap.APIGateway.BoundGatewayConfigLoaded = true
-		break
 	case *structs.APIGatewayConfigEntry:
 		snap.APIGateway.GatewayConfig = gwConf
 
@@ -280,7 +279,6 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 		if err != nil {
 			return err
 		}
-		break
 	default:
 		return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
 	}

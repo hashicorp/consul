@@ -26,8 +26,7 @@ import (
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	dnsutil "github.com/hashicorp/consul/internal/dnsutil"
-	libdns "github.com/hashicorp/consul/internal/dnsutil"
+	"github.com/hashicorp/consul/internal/dnsutil"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
@@ -467,7 +466,7 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 	// only look into the services if we didn't find a node
 	if len(m.Answer) == 0 {
 		// lookup the service address
-		ip := libdns.IPFromARPA(qName)
+		ip := dnsutil.IPFromARPA(qName)
 		var serviceAddress string
 		if ip != nil {
 			serviceAddress = ip.String()
@@ -650,7 +649,7 @@ func (d *DNSServer) getNameserversAndNodeRecord(questionName string, cfg *dnsReq
 	for _, o := range out.Nodes {
 		name, dc := o.Node.Node, o.Node.Datacenter
 
-		if libdns.InvalidNameRe.MatchString(name) {
+		if dnsutil.InvalidNameRe.MatchString(name) {
 			d.logger.Warn("Skipping invalid node for NS records", "node", name)
 			continue
 		}
