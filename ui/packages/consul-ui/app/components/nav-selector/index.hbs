@@ -5,6 +5,7 @@
 
 {{#let @list as |SNL|}}
   <SNL.Item class='consul-side-nav__selector'>
+    {{yield (hash Data=(component 'nav-selector/generic'))}}
     <Hds::Dropdown
       @listPosition='bottom-left'
       @width='15.5rem'
@@ -20,7 +21,6 @@
         disabled={{eq @disabled true}}
       />
       <DD.Header @hasDivider={{true}}>
-        {{yield (hash Data=(component 'nav-selector/generic'))}}
         {{#if @description}}
           <div class='consul-side-nav__selector-description'>
             <Hds::Text::Body @size='100' @color='faint'>{{@description}}</Hds::Text::Body>
