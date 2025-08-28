@@ -272,9 +272,9 @@ func (resource *Resource) List(gvk *GVK, q *client.QueryOptions) (*ListResponse,
 
 func InferTypeFromResourceType(resourceType string) (*pbresource.Type, error) {
 	s := strings.Split(resourceType, ".")
-	switch length := len(s); {
+	switch length := len(s); length {
 	// only kind is provided
-	case length == 1:
+	case 1:
 		kindToGVKMap := BuildKindToGVKMap()
 		kind := strings.ToLower(s[0])
 		switch len(kindToGVKMap[kind]) {
@@ -294,7 +294,7 @@ func InferTypeFromResourceType(resourceType string) (*pbresource.Type, error) {
 		default:
 			return nil, fmt.Errorf("The shorthand name has conflicts %v, please use the full name", kindToGVKMap[s[0]])
 		}
-	case length == 3:
+	case 3:
 		return &pbresource.Type{
 			Group:        s[0],
 			GroupVersion: s[1],

@@ -67,7 +67,7 @@ func (c *cmd) Run(args []string) int {
 	case "dns":
 		_, err = client.Agent().UpdateDNSToken(token, nil)
 	default:
-		c.UI.Error(fmt.Sprintf("Unknown token type"))
+		c.UI.Error("Unknown token type")
 		return 1
 	}
 
