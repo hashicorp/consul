@@ -53,7 +53,7 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	if len(ixns) == 0 {
-		c.UI.Error(fmt.Sprintf("There are no intentions."))
+		c.UI.Error("There are no intentions.")
 		return 2
 	}
 

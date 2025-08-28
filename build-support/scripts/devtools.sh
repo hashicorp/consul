@@ -89,9 +89,9 @@ function proto_tools_install {
 
     install_versioned_tool \
         'mockery' \
-        'github.com/vektra/mockery/v2' \
+        'github.com/vektra/mockery/v3' \
         "${mockery_version}" \
-        'github.com/vektra/mockery/v2'
+        'github.com/vektra/mockery/v3'
 
     install_versioned_tool \
        'buf' \

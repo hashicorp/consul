@@ -89,7 +89,7 @@ func (c *cmd) Run(args []string) int {
 
 	// If the key is empty and we are not doing a recursive or key-based lookup,
 	// this is an error.
-	if key == "" && !(c.recurse || c.keys) {
+	if key == "" && (!c.recurse && !c.keys) {
 		c.UI.Error("Error! Missing KEY argument")
 		return 1
 	}
@@ -124,7 +124,7 @@ func (c *cmd) Run(args []string) int {
 					c.UI.Info("")
 				}
 			} else {
-				c.UI.Info(fmt.Sprintf("%s", pair.Key))
+				c.UI.Info(pair.Key)
 			}
 		}
 		return 0

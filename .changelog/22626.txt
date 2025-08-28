@@ -1,0 +1,3 @@
+```release-note:security
+agent: Fix a security vulnerability where the attacker could read agent’s TLS certificate and private key by using the group ID that the Consul agent runs as.
+```
