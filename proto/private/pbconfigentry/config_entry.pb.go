@@ -3931,8 +3931,9 @@ type ServiceDefaults struct {
 	// mog: func-to=mutualTLSModeToStructs func-from=mutualTLSModeFromStructs
 	MutualTLSMode MutualTLSMode `protobuf:"varint,15,opt,name=MutualTLSMode,proto3,enum=hashicorp.consul.internal.configentry.MutualTLSMode" json:"MutualTLSMode,omitempty"`
 	Hash          uint64        `protobuf:"varint,17,opt,name=Hash,proto3" json:"Hash,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	MaxRequestHeadersKB *uint32 `protobuf:"varint,18,opt,name=MaxRequestHeadersKB,proto3,oneof" json:"MaxRequestHeadersKB,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *ServiceDefaults) Reset() {
@@ -8683,7 +8684,8 @@ const file_private_pbconfigentry_config_entry_proto_rawDesc = "" +
 	"\bContains\x18\b \x01(\tR\bContains\x12\x1e\n" +
 	"\n" +
 	"IgnoreCase\x18\t \x01(\bR\n" +
-	"IgnoreCase\"\xf9\t\n" +
+	"IgnoreCase\"\xc8\n" +
+	"\n" +
 	"\x0fServiceDefaults\x12\x1a\n" +
 	"\bProtocol\x18\x01 \x01(\tR\bProtocol\x12D\n" +
 	"\x04Mode\x18\x02 \x01(\x0e20.hashicorp.consul.internal.configentry.ProxyModeR\x04Mode\x12i\n" +
@@ -8704,10 +8706,12 @@ const file_private_pbconfigentry_config_entry_proto_rawDesc = "" +
 	"\x04Meta\x18\r \x03(\v2@.hashicorp.consul.internal.configentry.ServiceDefaults.MetaEntryR\x04Meta\x12Z\n" +
 	"\x0fEnvoyExtensions\x18\x0e \x03(\v20.hashicorp.consul.internal.common.EnvoyExtensionR\x0fEnvoyExtensions\x12Z\n" +
 	"\rMutualTLSMode\x18\x0f \x01(\x0e24.hashicorp.consul.internal.configentry.MutualTLSModeR\rMutualTLSMode\x12\x12\n" +
-	"\x04Hash\x18\x11 \x01(\x04R\x04Hash\x1a7\n" +
+	"\x04Hash\x18\x11 \x01(\x04R\x04Hash\x125\n" +
+	"\x13MaxRequestHeadersKB\x18\x12 \x01(\rH\x00R\x13MaxRequestHeadersKB\x88\x01\x01\x1a7\n" +
 	"\tMetaEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"t\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\x16\n" +
+	"\x14_MaxRequestHeadersKB\"t\n" +
 	"\x16TransparentProxyConfig\x122\n" +
 	"\x14OutboundListenerPort\x18\x01 \x01(\x05R\x14OutboundListenerPort\x12&\n" +
 	"\x0eDialedDirectly\x18\x02 \x01(\bR\x0eDialedDirectly\"_\n" +
