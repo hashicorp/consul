@@ -54,20 +54,16 @@ type ACLAuthMethodEnterpriseFields struct{}
 
 type ACLAuthMethodEnterpriseMeta struct{}
 
-func (_ *ACLAuthMethodEnterpriseMeta) FillWithEnterpriseMeta(_ *acl.EnterpriseMeta) {
+func (*ACLAuthMethodEnterpriseMeta) FillWithEnterpriseMeta(_ *acl.EnterpriseMeta) {
 	// do nothing
 }
 
-func (_ *ACLAuthMethodEnterpriseMeta) ToEnterpriseMeta() *acl.EnterpriseMeta {
+func (*ACLAuthMethodEnterpriseMeta) ToEnterpriseMeta() *acl.EnterpriseMeta {
 	return DefaultEnterpriseMetaInDefaultPartition()
 }
 
 func aclServiceIdentityRules(svc string, _ *acl.EnterpriseMeta) string {
 	return fmt.Sprintf(aclPolicyTemplateServiceIdentity, svc)
-}
-
-func aclNodeIdentityRules(node string, _ *acl.EnterpriseMeta) string {
-	return fmt.Sprintf(aclPolicyTemplateNodeIdentity, node)
 }
 
 func (p *ACLPolicy) EnterprisePolicyMeta() *acl.EnterprisePolicyMeta {

@@ -178,10 +178,8 @@ func (f *Filter) allowGateway(gs *structs.GatewayService) bool {
 	}
 
 	gs.Service.FillAuthzContext(&authzContext)
-	if !f.allowService(gs.Service.Name, &authzContext) {
-		return false
-	}
-	return true
+
+	return f.allowService(gs.Service.Name, &authzContext)
 }
 
 // allowService is used to determine if a service is accessible for an ACL.
