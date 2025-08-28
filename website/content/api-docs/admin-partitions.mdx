@@ -35,6 +35,8 @@ This endpoint creates a new partition and has the following characteristics:
 
 - `Description` `(string: "")` - Free form partition description.
 
+- `DisableGossip` `(bool: false)` - Disable gossip support for this partition. When set to `true` this will save on CPU and network resources on the servers but client agents will be unable to join the partition.
+
 ### Sample Payload
 
 ```json
