@@ -4216,10 +4216,8 @@ func revertStaticConfig(oldCfg tlsutil.ProtocolConfig, newCfg tlsutil.ProtocolCo
 	newOldcfg := newCfg
 	newOldcfg.CertFile = oldCfg.CertFile
 	newOldcfg.KeyFile = oldCfg.KeyFile
-	if !reflect.DeepEqual(newOldcfg, oldCfg) {
-		return true
-	}
-	return false
+
+	return !reflect.DeepEqual(newOldcfg, oldCfg)
 }
 
 // reloadConfigInternal is mainly needed for some unit tests. Instead of parsing

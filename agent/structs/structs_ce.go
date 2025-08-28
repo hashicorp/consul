@@ -67,19 +67,19 @@ func (n *Node) OverridePartition(_ string) {
 	n.Partition = ""
 }
 
-func (_ *Coordinate) FillAuthzContext(_ *acl.AuthorizerContext) {}
+func (*Coordinate) FillAuthzContext(_ *acl.AuthorizerContext) {}
 
 func (n *NodeInfo) FillAuthzContext(ctx *acl.AuthorizerContext) {
 	ctx.Peer = n.PeerName
 }
 
 // FillAuthzContext stub
-func (_ *DirEntry) FillAuthzContext(_ *acl.AuthorizerContext) {}
+func (*DirEntry) FillAuthzContext(_ *acl.AuthorizerContext) {}
 
 // FillAuthzContext stub
-func (_ *RegisterRequest) FillAuthzContext(_ *acl.AuthorizerContext) {}
+func (*RegisterRequest) FillAuthzContext(_ *acl.AuthorizerContext) {}
 
-func (_ *RegisterRequest) GetEnterpriseMeta() *acl.EnterpriseMeta {
+func (*RegisterRequest) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	return nil
 }
 
@@ -87,10 +87,10 @@ func (_ *RegisterRequest) GetEnterpriseMeta() *acl.EnterpriseMeta {
 func (op *TxnNodeOp) FillAuthzContext(ctx *acl.AuthorizerContext) {}
 
 // CE Stub
-func (_ *TxnServiceOp) FillAuthzContext(_ *acl.AuthorizerContext) {}
+func (*TxnServiceOp) FillAuthzContext(_ *acl.AuthorizerContext) {}
 
 // CE Stub
-func (_ *TxnCheckOp) FillAuthzContext(_ *acl.AuthorizerContext) {}
+func (*TxnCheckOp) FillAuthzContext(_ *acl.AuthorizerContext) {}
 
 func NodeNameString(node string, _ *acl.EnterpriseMeta) string {
 	return node
@@ -136,7 +136,7 @@ func (cid CheckID) String() string {
 	return string(cid.ID)
 }
 
-func (_ *HealthCheck) Validate() error {
+func (*HealthCheck) Validate() error {
 	return nil
 }
 
