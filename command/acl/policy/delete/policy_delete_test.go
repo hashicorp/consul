@@ -4,7 +4,6 @@
 package policydelete
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 

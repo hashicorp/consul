@@ -5,7 +5,6 @@ package policyread
 
 import (
 	"encoding/json"
-	"fmt"
 	"strings"
 	"testing"
 

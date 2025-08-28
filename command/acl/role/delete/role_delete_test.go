@@ -4,7 +4,6 @@
 package roledelete
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 

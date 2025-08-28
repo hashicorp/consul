@@ -4,7 +4,6 @@
 package bindingruledelete
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 

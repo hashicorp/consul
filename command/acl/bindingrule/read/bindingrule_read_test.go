@@ -4,7 +4,6 @@
 package bindingruleread
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 
