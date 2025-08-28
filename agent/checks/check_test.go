@@ -1129,7 +1129,7 @@ func TestStatusHandlerMaintainWarningStatusWhenCheckIsFlapping(t *testing.T) {
 
 func TestCheckTCPCritical(t *testing.T) {
 	t.Parallel()
-	var tcpServer net.Listener = mockTCPServer(`tcp`)
+	var tcpServer = mockTCPServer(`tcp`)
 	expectTCPStatus(t, `127.0.0.1:0`, api.HealthCritical)
 	tcpServer.Close()
 }
@@ -1204,7 +1204,6 @@ func mockUDPServer(ctx context.Context, network string, port int) {
 		close(chClose)
 	}
 	wg.Wait()
-	return
 }
 
 func expectUDPStatus(t *testing.T, udp string, status string) {
@@ -1314,7 +1313,7 @@ func TestCheckH2PING(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { return })
+			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
 			server := httptest.NewUnstartedServer(handler)
 			server.EnableHTTP2 = true
 			server.Config.ReadTimeout = tt.connTimeout

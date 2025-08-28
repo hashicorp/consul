@@ -70,7 +70,7 @@ func (s *MockHCPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	matches := basePathRe.FindStringSubmatch(r.URL.Path)
-	if matches == nil || len(matches) < 5 {
+	if len(matches) < 5 {
 		w.WriteHeader(404)
 		log.Printf("ERROR 404: %s %s\n", r.Method, r.URL.Path)
 		return

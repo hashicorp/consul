@@ -296,7 +296,7 @@ func (e *ServiceConfigEntry) Validate() error {
 	}
 
 	if e.Destination != nil {
-		if e.Destination.Addresses == nil || len(e.Destination.Addresses) == 0 {
+		if len(e.Destination.Addresses) == 0 {
 			validationErr = multierror.Append(validationErr, errors.New("Destination must contain at least one valid address"))
 		}
 
