@@ -371,7 +371,7 @@ func genVerifyServiceSpecificPeeredRequest(expectedService, expectedFilter, expe
 		require.Equal(t, expectedDatacenter, reqReal.Datacenter)
 		require.Equal(t, expectedPeer, reqReal.PeerName)
 		require.Equal(t, expectedService, reqReal.ServiceName)
-		require.Equal(t, expectedFilter, reqReal.QueryOptions.Filter)
+		require.Equal(t, expectedFilter, reqReal.Filter)
 		require.Equal(t, connect, reqReal.Connect)
 	}
 }
@@ -774,8 +774,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				require.Len(t, snap.ConnectProxy.WatchedServiceChecks, 0, "%+v", snap.ConnectProxy.WatchedServiceChecks)
 				require.Len(t, snap.ConnectProxy.PreparedQueryEndpoints, 0, "%+v", snap.ConnectProxy.PreparedQueryEndpoints)
 
-				require.Equal(t, 1, snap.ConnectProxy.ConfigSnapshotUpstreams.PeerUpstreamEndpoints.Len())
-				require.Equal(t, 1, snap.ConnectProxy.ConfigSnapshotUpstreams.UpstreamPeerTrustBundles.Len())
+				require.Equal(t, 1, snap.ConnectProxy.PeerUpstreamEndpoints.Len())
+				require.Equal(t, 1, snap.ConnectProxy.UpstreamPeerTrustBundles.Len())
 
 				require.True(t, snap.ConnectProxy.IntentionsSet)
 				require.Equal(t, ixnMatch, snap.ConnectProxy.Intentions)
@@ -814,8 +814,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				require.Len(t, snap.ConnectProxy.WatchedServiceChecks, 0, "%+v", snap.ConnectProxy.WatchedServiceChecks)
 				require.Len(t, snap.ConnectProxy.PreparedQueryEndpoints, 0, "%+v", snap.ConnectProxy.PreparedQueryEndpoints)
 
-				require.Equal(t, 1, snap.ConnectProxy.ConfigSnapshotUpstreams.PeerUpstreamEndpoints.Len())
-				require.Equal(t, 1, snap.ConnectProxy.ConfigSnapshotUpstreams.UpstreamPeerTrustBundles.Len())
+				require.Equal(t, 1, snap.ConnectProxy.PeerUpstreamEndpoints.Len())
+				require.Equal(t, 1, snap.ConnectProxy.UpstreamPeerTrustBundles.Len())
 
 				require.True(t, snap.ConnectProxy.IntentionsSet)
 				require.Equal(t, ixnMatch, snap.ConnectProxy.Intentions)
@@ -1066,8 +1066,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				require.Len(t, snap.ConnectProxy.WatchedServiceChecks, 0, "%+v", snap.ConnectProxy.WatchedServiceChecks)
 				require.Len(t, snap.ConnectProxy.PreparedQueryEndpoints, 0, "%+v", snap.ConnectProxy.PreparedQueryEndpoints)
 
-				require.Equal(t, 1, snap.ConnectProxy.ConfigSnapshotUpstreams.PeerUpstreamEndpoints.Len())
-				require.Equal(t, 1, snap.ConnectProxy.ConfigSnapshotUpstreams.UpstreamPeerTrustBundles.Len())
+				require.Equal(t, 1, snap.ConnectProxy.PeerUpstreamEndpoints.Len())
+				require.Equal(t, 1, snap.ConnectProxy.UpstreamPeerTrustBundles.Len())
 
 				require.True(t, snap.ConnectProxy.IntentionsSet)
 				require.Equal(t, ixnMatch, snap.ConnectProxy.Intentions)
@@ -1099,8 +1099,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				require.Len(t, snap.ConnectProxy.WatchedServiceChecks, 0, "%+v", snap.ConnectProxy.WatchedServiceChecks)
 				require.Len(t, snap.ConnectProxy.PreparedQueryEndpoints, 0, "%+v", snap.ConnectProxy.PreparedQueryEndpoints)
 
-				require.Equal(t, 1, snap.ConnectProxy.ConfigSnapshotUpstreams.PeerUpstreamEndpoints.Len())
-				require.Equal(t, 1, snap.ConnectProxy.ConfigSnapshotUpstreams.UpstreamPeerTrustBundles.Len())
+				require.Equal(t, 1, snap.ConnectProxy.PeerUpstreamEndpoints.Len())
+				require.Equal(t, 1, snap.ConnectProxy.UpstreamPeerTrustBundles.Len())
 
 				require.True(t, snap.ConnectProxy.IntentionsSet)
 				require.Equal(t, ixnMatch, snap.ConnectProxy.Intentions)

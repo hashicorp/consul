@@ -398,7 +398,7 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 					name:       service.Name,
 					namespace:  service.NamespaceOrDefault(),
 					partition:  service.PartitionOrDefault(),
-					datacenter: h.stateConfig.source.Datacenter,
+					datacenter: h.source.Datacenter,
 				}
 
 				handler := &handlerUpstreams{handlerState: h.handlerState}
@@ -449,7 +449,7 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 				name:       service.Name,
 				namespace:  service.NamespaceOrDefault(),
 				partition:  service.PartitionOrDefault(),
-				datacenter: h.stateConfig.source.Datacenter,
+				datacenter: h.source.Datacenter,
 			}
 
 			handler := &handlerUpstreams{handlerState: h.handlerState}
@@ -491,7 +491,7 @@ func (h *handlerAPIGateway) recompileDiscoveryChains(snap *ConfigSnapshot) error
 
 	for name, listener := range snap.APIGateway.Listeners {
 		boundListener, ok := snap.APIGateway.BoundListeners[name]
-		if !(ok && snap.APIGateway.GatewayConfig.ListenerIsReady(name)) {
+		if !ok || !snap.APIGateway.GatewayConfig.ListenerIsReady(name) {
 			// Skip any listeners that don't have a bound listener. Once the bound listener is created, this will be run again.
 			// skip any listeners that might be in an invalid state
 			continue

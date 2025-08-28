@@ -280,7 +280,7 @@ func TestAutoEncrypt_InitialCerts(t *testing.T) {
 		resp.VerifyServerHostname = true
 	})
 
-	mcfg.Config.Waiter = &retry.Waiter{MinFailures: 2, MaxWait: time.Millisecond}
+	mcfg.Waiter = &retry.Waiter{MinFailures: 2, MaxWait: time.Millisecond}
 
 	ac := AutoConfig{
 		config: &config.RuntimeConfig{
@@ -320,7 +320,7 @@ func TestAutoEncrypt_InitialConfiguration(t *testing.T) {
 		}
 	`)
 	loader.opts.FlagValues.NodeName = &nodeName
-	mcfg.Config.Loader = loader.Load
+	mcfg.Loader = loader.Load
 
 	indexedRoots, cert, extraCerts := mcfg.setupInitialTLS(t, nodeName, datacenter, token)
 
