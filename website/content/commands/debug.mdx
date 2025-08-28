@@ -40,6 +40,13 @@ flag to not retrieve it initially.
 Additionally, we recommend securely transmitting this archive via encryption
 or otherwise.
 
+### Port Connectivity Checks
+
+The consul debug command now includes a built-in port connectivity check that runs on the same host where the command is executed. This check is similar to the one performed by the consul troubleshoot ports command, but it is integrated directly into the debug command's data capture process. This means that when you run consul debug, the resulting archive will contain information about the status of the default Consul ports, making it easier to diagnose network-related issues.
+
+There is no separate -capture flag for this feature. The port connectivity check is a core part of the debug command and is always performed. If you only need to check port connectivity without collecting other debugging information, you should use the consul troubleshoot ports command instead.
+
+
 ## Usage
 
 `Usage: consul debug [options]`
