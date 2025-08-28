@@ -87,7 +87,7 @@ func TestRoleDeleteCommand(t *testing.T) {
 		require.Empty(t, ui.ErrorWriter.String())
 
 		output := ui.OutputWriter.String()
-		require.Contains(t, output, fmt.Sprintf("deleted successfully"))
+		require.Contains(t, output, "deleted successfully")
 		require.Contains(t, output, role.ID)
 
 		role, _, err = client.ACL().RoleRead(
@@ -127,7 +127,7 @@ func TestRoleDeleteCommand(t *testing.T) {
 		require.Empty(t, ui.ErrorWriter.String())
 
 		output := ui.OutputWriter.String()
-		require.Contains(t, output, fmt.Sprintf("deleted successfully"))
+		require.Contains(t, output, "deleted successfully")
 		require.Contains(t, output, role.ID)
 
 		role, _, err = client.ACL().RoleRead(

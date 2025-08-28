@@ -66,7 +66,7 @@ func TestPolicyDeleteCommand(t *testing.T) {
 	assert.Empty(t, ui.ErrorWriter.String())
 
 	output := ui.OutputWriter.String()
-	assert.Contains(t, output, fmt.Sprintf("deleted successfully"))
+	assert.Contains(t, output, "deleted successfully")
 	assert.Contains(t, output, policy.ID)
 
 	_, _, err = client.ACL().PolicyRead(

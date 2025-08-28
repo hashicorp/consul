@@ -123,7 +123,7 @@ func TestRoleReadCommand(t *testing.T) {
 		require.Empty(t, ui.ErrorWriter.String())
 
 		output := ui.OutputWriter.String()
-		require.Contains(t, output, fmt.Sprintf("test-role"))
+		require.Contains(t, output, "test-role")
 		require.Contains(t, output, role.ID)
 	})
 
@@ -156,7 +156,7 @@ func TestRoleReadCommand(t *testing.T) {
 		require.Empty(t, ui.ErrorWriter.String())
 
 		output := ui.OutputWriter.String()
-		require.Contains(t, output, fmt.Sprintf("test-role"))
+		require.Contains(t, output, "test-role")
 		require.Contains(t, output, role.ID)
 	})
 
@@ -189,7 +189,7 @@ func TestRoleReadCommand(t *testing.T) {
 		require.Empty(t, ui.ErrorWriter.String())
 
 		output := ui.OutputWriter.String()
-		require.Contains(t, output, fmt.Sprintf("test-role"))
+		require.Contains(t, output, "test-role")
 		require.Contains(t, output, role.ID)
 	})
 }
@@ -245,7 +245,7 @@ func TestRoleReadCommand_JSON(t *testing.T) {
 		require.Empty(t, ui.ErrorWriter.String())
 
 		output := ui.OutputWriter.String()
-		require.Contains(t, output, fmt.Sprintf("test-role"))
+		require.Contains(t, output, "test-role")
 		require.Contains(t, output, role.ID)
 
 		var jsonOutput json.RawMessage

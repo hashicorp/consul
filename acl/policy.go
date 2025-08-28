@@ -197,7 +197,7 @@ func (pr *PolicyRules) Validate(conf *Config) error {
 		if !isPolicyValid(kp.Policy, true) {
 			return fmt.Errorf("Invalid key policy: %#v", kp)
 		}
-		if err := kp.EnterpriseRule.Validate(kp.Policy, conf); err != nil {
+		if err := kp.Validate(kp.Policy, conf); err != nil {
 			return fmt.Errorf("Invalid key enterprise policy: %#v, got error: %v", kp, err)
 		}
 	}
@@ -205,7 +205,7 @@ func (pr *PolicyRules) Validate(conf *Config) error {
 		if !isPolicyValid(kp.Policy, true) {
 			return fmt.Errorf("Invalid key_prefix policy: %#v", kp)
 		}
-		if err := kp.EnterpriseRule.Validate(kp.Policy, conf); err != nil {
+		if err := kp.Validate(kp.Policy, conf); err != nil {
 			return fmt.Errorf("Invalid key_prefix enterprise policy: %#v, got error: %v", kp, err)
 		}
 	}
@@ -215,7 +215,7 @@ func (pr *PolicyRules) Validate(conf *Config) error {
 		if !isPolicyValid(np.Policy, false) {
 			return fmt.Errorf("Invalid node policy: %#v", np)
 		}
-		if err := np.EnterpriseRule.Validate(np.Policy, conf); err != nil {
+		if err := np.Validate(np.Policy, conf); err != nil {
 			return fmt.Errorf("Invalid node enterprise policy: %#v, got error: %v", np, err)
 		}
 	}
@@ -223,7 +223,7 @@ func (pr *PolicyRules) Validate(conf *Config) error {
 		if !isPolicyValid(np.Policy, false) {
 			return fmt.Errorf("Invalid node_prefix policy: %#v", np)
 		}
-		if err := np.EnterpriseRule.Validate(np.Policy, conf); err != nil {
+		if err := np.Validate(np.Policy, conf); err != nil {
 			return fmt.Errorf("Invalid node_prefix enterprise policy: %#v, got error: %v", np, err)
 		}
 	}
@@ -236,7 +236,7 @@ func (pr *PolicyRules) Validate(conf *Config) error {
 		if sp.Intentions != "" && !isPolicyValid(sp.Intentions, false) {
 			return fmt.Errorf("Invalid service intentions policy: %#v", sp)
 		}
-		if err := sp.EnterpriseRule.Validate(sp.Policy, conf); err != nil {
+		if err := sp.Validate(sp.Policy, conf); err != nil {
 			return fmt.Errorf("Invalid service enterprise policy: %#v, got error: %v", sp, err)
 		}
 	}
@@ -247,7 +247,7 @@ func (pr *PolicyRules) Validate(conf *Config) error {
 		if sp.Intentions != "" && !isPolicyValid(sp.Intentions, false) {
 			return fmt.Errorf("Invalid service_prefix intentions policy: %#v", sp)
 		}
-		if err := sp.EnterpriseRule.Validate(sp.Policy, conf); err != nil {
+		if err := sp.Validate(sp.Policy, conf); err != nil {
 			return fmt.Errorf("Invalid service_prefix enterprise policy: %#v, got error: %v", sp, err)
 		}
 	}

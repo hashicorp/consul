@@ -248,21 +248,13 @@ func (c *cmd) generateConfigFromFlags() (iptables.Config, error) {
 		}
 	}
 
-	for _, port := range c.excludeInboundPorts {
-		cfg.ExcludeInboundPorts = append(cfg.ExcludeInboundPorts, port)
-	}
+	cfg.ExcludeInboundPorts = append(cfg.ExcludeInboundPorts, c.excludeInboundPorts...)
 
-	for _, port := range c.excludeOutboundPorts {
-		cfg.ExcludeOutboundPorts = append(cfg.ExcludeOutboundPorts, port)
-	}
+	cfg.ExcludeOutboundPorts = append(cfg.ExcludeOutboundPorts, c.excludeOutboundPorts...)
 
-	for _, cidr := range c.excludeOutboundCIDRs {
-		cfg.ExcludeOutboundCIDRs = append(cfg.ExcludeOutboundCIDRs, cidr)
-	}
+	cfg.ExcludeOutboundCIDRs = append(cfg.ExcludeOutboundCIDRs, c.excludeOutboundCIDRs...)
 
-	for _, uid := range c.excludeUIDs {
-		cfg.ExcludeUIDs = append(cfg.ExcludeUIDs, uid)
-	}
+	cfg.ExcludeUIDs = append(cfg.ExcludeUIDs, c.excludeUIDs...)
 
 	return cfg, nil
 }

@@ -117,7 +117,7 @@ func TestAuthMethodDeleteCommand(t *testing.T) {
 		require.Empty(t, ui.ErrorWriter.String())
 
 		output := ui.OutputWriter.String()
-		require.Contains(t, output, fmt.Sprintf("deleted successfully"))
+		require.Contains(t, output, "deleted successfully")
 		require.Contains(t, output, name)
 
 		method, _, err := client.ACL().AuthMethodRead(

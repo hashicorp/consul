@@ -67,7 +67,7 @@ func TestPolicyReadCommand(t *testing.T) {
 	assert.Empty(t, ui.ErrorWriter.String())
 
 	output := ui.OutputWriter.String()
-	assert.Contains(t, output, fmt.Sprintf("test-policy"))
+	assert.Contains(t, output, "test-policy")
 	assert.Contains(t, output, policy.ID)
 
 	// Test querying by name field
@@ -83,7 +83,7 @@ func TestPolicyReadCommand(t *testing.T) {
 	assert.Empty(t, ui.ErrorWriter.String())
 
 	output = ui.OutputWriter.String()
-	assert.Contains(t, output, fmt.Sprintf("test-policy"))
+	assert.Contains(t, output, "test-policy")
 	assert.Contains(t, output, policy.ID)
 
 	// Test querying non-existent policy
@@ -141,7 +141,7 @@ func TestPolicyReadCommand_JSON(t *testing.T) {
 	assert.Empty(t, ui.ErrorWriter.String())
 
 	output := ui.OutputWriter.String()
-	assert.Contains(t, output, fmt.Sprintf("test-policy"))
+	assert.Contains(t, output, "test-policy")
 	assert.Contains(t, output, policy.ID)
 
 	var jsonOutput json.RawMessage

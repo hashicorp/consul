@@ -48,7 +48,7 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	if c.policyID == "" && c.policyName == "" {
-		c.UI.Error(fmt.Sprintf("Must specify either the -id or -name parameters"))
+		c.UI.Error("Must specify either the -id or -name parameters")
 		return 1
 	}
 
