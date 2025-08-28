@@ -742,7 +742,9 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u UpdateEvent, sn
 
 			if len(resp.Nodes) > 0 {
 				snap.MeshGateway.ServiceGroups[sn] = resp.Nodes
-			} else delete(snap.MeshGateway.ServiceGroups, sn)
+			} else {
+				delete(snap.MeshGateway.ServiceGroups, sn)
+			}
 		case strings.HasPrefix(u.CorrelationID, "peering-connect-service:"):
 			resp, ok := u.Result.(*structs.IndexedCheckServiceNodes)
 
