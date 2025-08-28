@@ -122,7 +122,7 @@ func (c *cmd) run(args []string, lu **LockUnlock) int {
 
 	// Check the limit
 	if c.limit <= 0 {
-		c.UI.Error(fmt.Sprintf("Lock holder limit must be positive"))
+		c.UI.Error("Lock holder limit must be positive")
 		return 1
 	}
 

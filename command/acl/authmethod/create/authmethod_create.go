@@ -152,11 +152,11 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	if c.authMethodType == "" {
-		c.UI.Error(fmt.Sprintf("Missing required '-type' flag"))
+		c.UI.Error("Missing required '-type' flag")
 		c.UI.Error(c.Help())
 		return 1
 	} else if c.name == "" {
-		c.UI.Error(fmt.Sprintf("Missing required '-name' flag"))
+		c.UI.Error("Missing required '-name' flag")
 		c.UI.Error(c.Help())
 		return 1
 	}
@@ -185,7 +185,7 @@ func (c *cmd) Run(args []string) int {
 
 	if c.config != "" {
 		if c.k8sHost != "" || c.k8sCACert != "" || c.k8sServiceAccountJWT != "" {
-			c.UI.Error(fmt.Sprintf("Cannot use command line arguments with '-config' flags"))
+			c.UI.Error("Cannot use command line arguments with '-config' flags")
 			return 1
 		}
 		data, err := helpers.LoadDataSource(c.config, c.testStdin)
@@ -203,13 +203,13 @@ func (c *cmd) Run(args []string) int {
 
 	if c.authMethodType == "kubernetes" {
 		if c.k8sHost == "" {
-			c.UI.Error(fmt.Sprintf("Missing required '-kubernetes-host' flag"))
+			c.UI.Error("Missing required '-kubernetes-host' flag")
 			return 1
 		} else if c.k8sCACert == "" {
-			c.UI.Error(fmt.Sprintf("Missing required '-kubernetes-ca-cert' flag"))
+			c.UI.Error("Missing required '-kubernetes-ca-cert' flag")
 			return 1
 		} else if c.k8sServiceAccountJWT == "" {
-			c.UI.Error(fmt.Sprintf("Missing required '-kubernetes-service-account-jwt' flag"))
+			c.UI.Error("Missing required '-kubernetes-service-account-jwt' flag")
 			return 1
 		}
 
@@ -218,7 +218,7 @@ func (c *cmd) Run(args []string) int {
 			c.UI.Error(fmt.Sprintf("Invalid '-kubernetes-ca-cert' value: %v", err))
 			return 1
 		} else if c.k8sCACert == "" {
-			c.UI.Error(fmt.Sprintf("Kubernetes CA Cert is empty"))
+			c.UI.Error("Kubernetes CA Cert is empty")
 			return 1
 		}
 

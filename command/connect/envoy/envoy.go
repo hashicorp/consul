@@ -633,7 +633,7 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 	if err != nil {
 		return nil, err
 	}
-	caPEM = strings.Replace(strings.Join(pems, ""), "\n", "\\n", -1)
+	caPEM = strings.ReplaceAll(strings.Join(pems, ""), "\n", "\\n")
 
 	return &BootstrapTplArgs{
 		GRPC:                  xdsAddr,
