@@ -96,7 +96,7 @@ func (c *caDelegateWithState) State() *state.Store {
 }
 
 func (c *caDelegateWithState) ApplyCARequest(req *structs.CARequest) (interface{}, error) {
-	return c.Server.raftApplyMsgpack(structs.ConnectCARequestType, req)
+	return c.raftApplyMsgpack(structs.ConnectCARequestType, req)
 }
 
 func (c *caDelegateWithState) ApplyCALeafRequest() (uint64, error) {
@@ -111,9 +111,9 @@ func (c *caDelegateWithState) ApplyCALeafRequest() (uint64, error) {
 	// metadata.
 	req := structs.CALeafRequest{
 		Op:         structs.CALeafOpIncrementIndex,
-		Datacenter: c.Server.config.Datacenter,
+		Datacenter: c.config.Datacenter,
 	}
-	resp, err := c.Server.raftApplyMsgpack(structs.ConnectCALeafRequestType|structs.IgnoreUnknownTypeFlag, &req)
+	resp, err := c.raftApplyMsgpack(structs.ConnectCALeafRequestType|structs.IgnoreUnknownTypeFlag, &req)
 	if err != nil {
 		return 0, err
 	}
@@ -127,14 +127,14 @@ func (c *caDelegateWithState) ApplyCALeafRequest() (uint64, error) {
 
 func (c *caDelegateWithState) generateCASignRequest(csr string) *structs.CASignRequest {
 	return &structs.CASignRequest{
-		Datacenter:   c.Server.config.PrimaryDatacenter,
+		Datacenter:   c.config.PrimaryDatacenter,
 		CSR:          csr,
-		WriteRequest: structs.WriteRequest{Token: c.Server.tokens.ReplicationToken()},
+		WriteRequest: structs.WriteRequest{Token: c.tokens.ReplicationToken()},
 	}
 }
 
 func (c *caDelegateWithState) ServersSupportMultiDCConnectCA() error {
-	versionOk, primaryFound := ServersInDCMeetMinimumVersion(c.Server, c.Server.config.PrimaryDatacenter, minMultiDCConnectVersion)
+	versionOk, primaryFound := ServersInDCMeetMinimumVersion(c.Server, c.config.PrimaryDatacenter, minMultiDCConnectVersion)
 	if !primaryFound {
 		return fmt.Errorf("primary datacenter is unreachable")
 	}
@@ -746,7 +746,7 @@ func shouldPersistNewRootAndConfig(newActiveRoot *structs.CARoot, oldConfig, new
 	}
 
 	// Do not persist if the new provider and config are the same as the old
-	return !(newConfig.Provider == oldConfig.Provider && reflect.DeepEqual(newConfig.Config, oldConfig.Config))
+	return newConfig.Provider != oldConfig.Provider || !reflect.DeepEqual(newConfig.Config, oldConfig.Config)
 }
 
 func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) {
@@ -1278,7 +1278,7 @@ func (c *CAManager) secondaryCARootWatch(ctx context.Context) error {
 		if err := c.secondaryUpdateRoots(roots); err != nil {
 			return err
 		}
-		args.QueryOptions.MinQueryIndex = nextIndexVal(args.QueryOptions.MinQueryIndex, roots.QueryMeta.Index)
+		args.MinQueryIndex = nextIndexVal(args.MinQueryIndex, roots.Index)
 		return nil
 	}, func(err error) {
 		c.logger.Error("CA root replication failed, will retry",
