@@ -667,7 +667,7 @@ func validateProposedConfigEntryInGraph(
 
 func getExistingJWTProvidersByName(tx ReadTxn, kn configentry.KindName) (map[string]*structs.JWTProviderConfigEntry, error) {
 	meta := acl.NewEnterpriseMetaWithPartition(
-		kn.EnterpriseMeta.PartitionOrDefault(),
+		kn.PartitionOrDefault(),
 		acl.DefaultNamespaceName,
 	)
 
@@ -735,7 +735,7 @@ func getReferencedProviderNames(j *structs.IntentionJWTRequirement, s []*structs
 // run on delete and don't expect this to be called often.
 func validateJWTProviderIsReferenced(tx ReadTxn, kn configentry.KindName, ce structs.ConfigEntry) error {
 	meta := acl.NewEnterpriseMetaWithPartition(
-		kn.EnterpriseMeta.PartitionOrDefault(),
+		kn.PartitionOrDefault(),
 		acl.DefaultNamespaceName,
 	)
 	entry, ok := ce.(*structs.JWTProviderConfigEntry)
@@ -835,7 +835,7 @@ func checkMutualTLSMode(tx ReadTxn, kindName configentry.KindName, newMode, exis
 
 	// The mesh config entry exists in the default namespace in the given partition.
 	metaInDefaultNS := acl.NewEnterpriseMetaWithPartition(
-		kindName.EnterpriseMeta.PartitionOrDefault(),
+		kindName.PartitionOrDefault(),
 		acl.DefaultNamespaceName,
 	)
 	_, mesh, err := configEntryTxn(tx, nil, structs.MeshConfig, structs.MeshConfigMesh, &metaInDefaultNS)
