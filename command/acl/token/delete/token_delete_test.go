@@ -66,7 +66,7 @@ func TestTokenDeleteCommand(t *testing.T) {
 	assert.Empty(t, ui.ErrorWriter.String())
 
 	output := ui.OutputWriter.String()
-	assert.Contains(t, output, fmt.Sprintf("deleted successfully"))
+	assert.Contains(t, output, "deleted successfully")
 	assert.Contains(t, output, token.AccessorID)
 
 	_, _, err = client.ACL().TokenRead(
