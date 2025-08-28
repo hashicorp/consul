@@ -4,7 +4,6 @@
 package tokendelete
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 

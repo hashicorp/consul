@@ -5,7 +5,6 @@ package roleread
 
 import (
 	"encoding/json"
-	"fmt"
 	"strings"
 	"testing"
 

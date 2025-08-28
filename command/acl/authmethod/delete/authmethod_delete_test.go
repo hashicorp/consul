@@ -4,7 +4,6 @@
 package authmethoddelete
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 

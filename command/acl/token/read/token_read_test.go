@@ -5,7 +5,6 @@ package tokenread
 
 import (
 	"encoding/json"
-	"fmt"
 	"strings"
 	"testing"
 
