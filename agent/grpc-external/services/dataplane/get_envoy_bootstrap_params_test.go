@@ -46,7 +46,7 @@ const (
 	testAccessLogs = "{\"name\":\"Consul Listener Filter Log\",\"typedConfig\":{\"@type\":\"type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog\",\"logFormat\":{\"jsonFormat\":{\"custom_field\":\"%START_TIME%\"}}}}"
 )
 
-func testRegisterRequestProxy(t *testing.T) *structs.RegisterRequest {
+func testRegisterRequestProxy() *structs.RegisterRequest {
 	return &structs.RegisterRequest{
 		Datacenter: serverDC,
 		Node:       nodeName,
@@ -79,7 +79,7 @@ func testRegisterIngressGateway(t *testing.T) *structs.RegisterRequest {
 	return registerReq
 }
 
-func testProxyDefaults(t *testing.T, accesslogs bool) structs.ConfigEntry {
+func testProxyDefaults(accesslogs bool) structs.ConfigEntry {
 	pd := &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
 		Name: structs.ProxyConfigGlobal,
@@ -95,7 +95,7 @@ func testProxyDefaults(t *testing.T, accesslogs bool) structs.ConfigEntry {
 	return pd
 }
 
-func testServiceDefaults(t *testing.T) structs.ConfigEntry {
+func testServiceDefaults() structs.ConfigEntry {
 	return &structs.ServiceConfigEntry{
 		Kind:                  structs.ServiceDefaults,
 		Name:                  testServiceName,
@@ -198,11 +198,11 @@ func TestGetEnvoyBootstrapParams_Success(t *testing.T) {
 	testCases := []testCase{
 		{
 			name:        "lookup service sidecar proxy by node name",
-			registerReq: testRegisterRequestProxy(t),
+			registerReq: testRegisterRequestProxy(),
 		},
 		{
 			name:        "lookup service sidecar proxy by node ID",
-			registerReq: testRegisterRequestProxy(t),
+			registerReq: testRegisterRequestProxy(),
 			nodeID:      true,
 		},
 		{
@@ -216,23 +216,23 @@ func TestGetEnvoyBootstrapParams_Success(t *testing.T) {
 		},
 		{
 			name:          "merge proxy defaults for sidecar proxy",
-			registerReq:   testRegisterRequestProxy(t),
-			proxyDefaults: testProxyDefaults(t, false),
+			registerReq:   testRegisterRequestProxy(),
+			proxyDefaults: testProxyDefaults(false),
 		},
 		{
 			name:          "proxy defaults access logs",
-			registerReq:   testRegisterRequestProxy(t),
-			proxyDefaults: testProxyDefaults(t, true),
+			registerReq:   testRegisterRequestProxy(),
+			proxyDefaults: testProxyDefaults(true),
 		},
 		{
 			name:            "merge service defaults for sidecar proxy",
-			registerReq:     testRegisterRequestProxy(t),
-			serviceDefaults: testServiceDefaults(t),
+			registerReq:     testRegisterRequestProxy(),
+			serviceDefaults: testServiceDefaults(),
 		},
 		{
 			name:            "merge proxy defaults and service defaults for sidecar proxy",
-			registerReq:     testRegisterRequestProxy(t),
-			serviceDefaults: testServiceDefaults(t),
+			registerReq:     testRegisterRequestProxy(),
+			serviceDefaults: testServiceDefaults(),
 		},
 	}
 
@@ -262,7 +262,7 @@ func TestGetEnvoyBootstrapParams_Error(t *testing.T) {
 		require.NoError(t, err)
 
 		store := testutils.TestStateStore(t, nil)
-		registerReq := testRegisterRequestProxy(t)
+		registerReq := testRegisterRequestProxy()
 		err = store.EnsureRegistration(1, registerReq)
 		require.NoError(t, err)
 

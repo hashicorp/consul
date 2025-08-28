@@ -1091,7 +1091,7 @@ func TestFallback(t *testing.T) {
 	// auto-config response which is how the Fallback for auto-config works
 	testAC.mcfg.tokens.On("UpdateAgentToken", testAC.originalToken, token.TokenSourceConfig).Return(true).Once()
 
-	testAC.mcfg.expectInitialTLS(t, "autoconf", "dc1", testAC.originalToken, secondCA, secondRoots, thirdCert, testAC.extraCerts)
+	testAC.mcfg.expectInitialTLS("autoconf", "dc1", testAC.originalToken, secondCA, secondRoots, thirdCert, testAC.extraCerts)
 
 	// after the second RPC we now will use the new certs validity period in the next run loop iteration
 	testAC.mcfg.tlsCfg.On("AutoEncryptCert").Return(&x509.Certificate{

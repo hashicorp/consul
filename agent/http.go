@@ -1040,14 +1040,6 @@ func (s *HTTPHandlers) parseConsistency(resp http.ResponseWriter, req *http.Requ
 	return false
 }
 
-// parseConsistencyReadRequest is used to parse the ?consistent query param.
-func parseConsistencyReadRequest(resp http.ResponseWriter, req *http.Request, b *pbcommon.ReadRequest) {
-	query := req.URL.Query()
-	if _, ok := query["consistent"]; ok {
-		b.RequireConsistent = true
-	}
-}
-
 // parseDC is used to parse the datacenter from the query params.
 // ?datacenter has precedence over ?dc.
 func (s *HTTPHandlers) parseDC(req *http.Request, dc *string) {
@@ -1073,7 +1065,6 @@ func (s *HTTPHandlers) parseTokenInternal(req *http.Request, token *string) {
 	}
 
 	*token = ""
-	return
 }
 
 func (s *HTTPHandlers) parseTokenFromHeaders(req *http.Request, token *string) bool {
@@ -1119,9 +1110,7 @@ func (s *HTTPHandlers) parseTokenWithDefault(req *http.Request, token *string) {
 	s.parseTokenInternal(req, token) // parseTokenInternal modifies *token
 	if token != nil && *token == "" {
 		*token = s.agent.tokens.UserToken()
-		return
 	}
-	return
 }
 
 // parseToken is used to parse the ?token query param or the X-Consul-Token header or

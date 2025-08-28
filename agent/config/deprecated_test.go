@@ -4,7 +4,6 @@
 package config
 
 import (
-	"fmt"
 	"sort"
 	"testing"
 	"time"
@@ -69,7 +68,7 @@ raft_boltdb {
 		deprecationWarning("cert_file", "tls.defaults.cert_file"),
 		deprecationWarning("key_file", "tls.defaults.key_file"),
 		deprecationWarning("tls_cipher_suites", "tls.defaults.tls_cipher_suites"),
-		fmt.Sprintf("'tls_min_version' value 'tls11' is deprecated, please specify 'TLSv1_1' instead"),
+		"'tls_min_version' value 'tls11' is deprecated, please specify 'TLSv1_1' instead",
 		deprecationWarning("tls_min_version", "tls.defaults.tls_min_version"),
 		deprecationWarning("verify_incoming", "tls.defaults.verify_incoming"),
 		deprecationWarning("verify_incoming_https", "tls.https.verify_incoming"),

@@ -360,7 +360,7 @@ func newMockedConfig(t *testing.T) *mockedConfig {
 	}
 }
 
-func (m *mockedConfig) expectInitialTLS(t *testing.T, agentName, datacenter, token string, ca *structs.CARoot, indexedRoots *structs.IndexedCARoots, cert *structs.IssuedCert, extraCerts []string) {
+func (m *mockedConfig) expectInitialTLS(agentName, datacenter, token string, ca *structs.CARoot, indexedRoots *structs.IndexedCARoots, cert *structs.IssuedCert, extraCerts []string) {
 	var pems []string
 	for _, root := range indexedRoots.Roots {
 		pems = append(pems, root.RootCert)
@@ -430,6 +430,6 @@ func (m *mockedConfig) setupInitialTLS(t *testing.T, agentName, datacenter, toke
 	ca2 := connect.TestCA(t, nil)
 	extraCerts := []string{ca2.RootCert}
 
-	m.expectInitialTLS(t, agentName, datacenter, token, ca, indexedRoots, cert, extraCerts)
+	m.expectInitialTLS(agentName, datacenter, token, ca, indexedRoots, cert, extraCerts)
 	return indexedRoots, cert, extraCerts
 }

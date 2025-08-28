@@ -1707,7 +1707,7 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 			)
 		}
 
-		var dest *structs.DestinationConfig = &svcConfig.Destination
+		var dest = &svcConfig.Destination
 
 		opts := terminatingGatewayFilterChainOpts{
 			service:          svc,

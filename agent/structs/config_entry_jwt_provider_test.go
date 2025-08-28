@@ -20,7 +20,7 @@ func newTestAuthz(t *testing.T, src string) acl.Authorizer {
 	return authorizer
 }
 
-var tenSeconds time.Duration = 10 * time.Second
+var tenSeconds = 10 * time.Second
 var hundredSeconds time.Duration = 100 * time.Second
 var connectTimeout = time.Duration(5) * time.Second
 

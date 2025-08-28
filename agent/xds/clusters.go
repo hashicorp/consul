@@ -1761,7 +1761,7 @@ func (s *ResourceGenerator) makeGatewayCluster(snap *proxycfg.ConfigSnapshot, op
 		OutlierDetection: &envoy_cluster_v3.OutlierDetection{},
 	}
 
-	useEDS := !(len(opts.hostnameEndpoints) > 0)
+	useEDS := len(opts.hostnameEndpoints) <= 0
 
 	// TCP keepalive settings can be enabled for terminating gateway upstreams or remote mesh gateways.
 	remoteUpstream := opts.isRemote || snap.Kind == structs.ServiceKindTerminatingGateway
