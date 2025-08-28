@@ -47,7 +47,7 @@ func validatePeeringToken(tok *structs.PeeringToken) error {
 	validAddr := func(addr string) error {
 		_, portRaw, err := net.SplitHostPort(addr)
 		if err != nil {
-			return err
+			return &errPeeringInvalidServerAddress{addr}
 		}
 
 		port, err := strconv.Atoi(portRaw)
