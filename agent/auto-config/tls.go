@@ -97,7 +97,7 @@ func (ac *AutoConfig) populateCertificateCache(certs *structs.SignedResponse) er
 	}
 
 	// prepolutate roots cache
-	rootRes := cache.FetchResult{Value: &certs.ConnectCARoots, Index: certs.ConnectCARoots.QueryMeta.Index}
+	rootRes := cache.FetchResult{Value: &certs.ConnectCARoots, Index: certs.ConnectCARoots.Index}
 	rootsReq := ac.caRootsRequest()
 	// getting the roots doesn't require a token so in order to potentially share the cache with another
 	if err := ac.acConfig.Cache.Prepopulate(cachetype.ConnectCARootName, rootRes, ac.config.Datacenter, structs.DefaultPeerKeyword, "", rootsReq.CacheInfo().Key); err != nil {
@@ -110,7 +110,7 @@ func (ac *AutoConfig) populateCertificateCache(certs *structs.SignedResponse) er
 	err = ac.acConfig.LeafCertManager.Prepopulate(
 		context.Background(),
 		leafReq.Key(),
-		certs.IssuedCert.RaftIndex.ModifyIndex,
+		certs.IssuedCert.ModifyIndex,
 		&certs.IssuedCert,
 		connect.EncodeSigningKeyID(cert.AuthorityKeyId),
 	)

@@ -2374,7 +2374,7 @@ func (a *Agent) addServiceLocked(req addServiceLockedRequest) error {
 		}
 	}
 
-	req.Service.EnterpriseMeta.Normalize()
+	req.Service.Normalize()
 
 	if err := a.validateService(req.Service, req.chkTypes); err != nil {
 		return err
@@ -2855,7 +2855,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 func (a *Agent) addCheckLocked(check *structs.HealthCheck, chkType *structs.CheckType, persist bool, token string, source configSource) error {
 	var service *structs.NodeService
 
-	check.EnterpriseMeta.Normalize()
+	check.Normalize()
 
 	if check.ServiceID != "" {
 		cid := check.CompoundServiceID()
@@ -3630,7 +3630,7 @@ func (a *Agent) storePid() error {
 
 	// Write out the PID
 	pid := os.Getpid()
-	_, err = pidFile.WriteString(fmt.Sprintf("%d", pid))
+	_, err = fmt.Fprintf(pidFile, "%d", pid)
 	if err != nil {
 		return fmt.Errorf("Could not write to pid file: %s", err)
 	}
@@ -3674,8 +3674,8 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 	// Register the services from config
 	for _, service := range conf.Services {
 		// Default service partition to the same as agent
-		if service.EnterpriseMeta.PartitionOrEmpty() == "" {
-			service.EnterpriseMeta.OverridePartition(a.AgentEnterpriseMeta().PartitionOrDefault())
+		if service.PartitionOrEmpty() == "" {
+			service.OverridePartition(a.AgentEnterpriseMeta().PartitionOrDefault())
 		}
 
 		ns := service.NodeService()
@@ -3801,7 +3801,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 		} else if !acl.EqualPartitions(a.AgentEnterpriseMeta().PartitionOrDefault(), p.Service.PartitionOrDefault()) {
 			a.logger.Info("Purging service file in wrong partition",
 				"file", file,
-				"partition", p.Service.EnterpriseMeta.PartitionOrDefault(),
+				"partition", p.Service.PartitionOrDefault(),
 			)
 			if err := os.Remove(file); err != nil {
 				a.logger.Error("Failed purging service file",

@@ -167,8 +167,8 @@ func TestGetEnvoyBootstrapParams_Success(t *testing.T) {
 		}
 
 		require.Equal(t, serverDC, resp.Datacenter)
-		require.Equal(t, tc.registerReq.EnterpriseMeta.PartitionOrDefault(), resp.Partition)
-		require.Equal(t, tc.registerReq.EnterpriseMeta.NamespaceOrDefault(), resp.Namespace)
+		require.Equal(t, tc.registerReq.PartitionOrDefault(), resp.Partition)
+		require.Equal(t, tc.registerReq.NamespaceOrDefault(), resp.Namespace)
 		requireConfigField(t, resp, proxyConfigKey, structpb.NewStringValue(proxyConfigValue))
 		require.Equal(t, tc.registerReq.Node, resp.NodeName)
 

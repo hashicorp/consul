@@ -35,19 +35,20 @@ func newMockDirectRPC(t *testing.T) *mockDirectRPC {
 
 func (m *mockDirectRPC) RPC(dc string, node string, addr net.Addr, method string, args interface{}, reply interface{}) error {
 	var retValues mock.Arguments
-	if method == "AutoConfig.InitialConfiguration" {
+	switch method {
+	case "AutoConfig.InitialConfiguration":
 		req := args.(*pbautoconf.AutoConfigRequest)
 		csr := req.CSR
 		req.CSR = ""
 		retValues = m.Called(dc, node, addr, method, args, reply)
 		req.CSR = csr
-	} else if method == "AutoEncrypt.Sign" {
+	case "AutoEncrypt.Sign":
 		req := args.(*structs.CASignRequest)
 		csr := req.CSR
 		req.CSR = ""
 		retValues = m.Called(dc, node, addr, method, args, reply)
 		req.CSR = csr
-	} else {
+	default:
 		retValues = m.Called(dc, node, addr, method, args, reply)
 	}
 
@@ -383,7 +384,7 @@ func (m *mockedConfig) expectInitialTLS(t *testing.T, agentName, datacenter, tok
 		true,
 	).Return(nil).Once()
 
-	rootRes := cache.FetchResult{Value: indexedRoots, Index: indexedRoots.QueryMeta.Index}
+	rootRes := cache.FetchResult{Value: indexedRoots, Index: indexedRoots.Index}
 	rootsReq := structs.DCSpecificRequest{Datacenter: datacenter}
 
 	// we should prepopulate the cache with the CA roots

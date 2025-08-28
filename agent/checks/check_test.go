@@ -475,7 +475,7 @@ func TestCheckHTTP_DisableRedirects(t *testing.T) {
 	}))
 	defer server1.Close()
 
-	server2 := httptest.NewServer(http.RedirectHandler(server1.URL, 301))
+	server2 := httptest.NewServer(http.RedirectHandler(server1.URL, http.StatusMovedPermanently))
 	defer server2.Close()
 
 	notif := mock.NewNotify()
@@ -1129,11 +1129,7 @@ func TestStatusHandlerMaintainWarningStatusWhenCheckIsFlapping(t *testing.T) {
 
 func TestCheckTCPCritical(t *testing.T) {
 	t.Parallel()
-	var (
-		tcpServer net.Listener
-	)
-
-	tcpServer = mockTCPServer(`tcp`)
+	var tcpServer net.Listener = mockTCPServer(`tcp`)
 	expectTCPStatus(t, `127.0.0.1:0`, api.HealthCritical)
 	tcpServer.Close()
 }

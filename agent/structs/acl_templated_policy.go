@@ -238,7 +238,7 @@ func (tp *ACLTemplatedPolicy) SyntheticPolicy(entMeta *acl.EnterpriseMeta) (*ACL
 		Datacenters: tp.Datacenters,
 		Description: fmt.Sprintf("synthetic policy generated from templated policy: %s", tp.TemplateName),
 	}
-	policy.EnterpriseMeta.Merge(entMeta)
+	policy.Merge(entMeta)
 	policy.SetHash(true)
 
 	return policy, nil

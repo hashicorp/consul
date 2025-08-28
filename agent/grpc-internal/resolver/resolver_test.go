@@ -168,8 +168,8 @@ func newServerMeta(name, dc, ip string, wan bool) *metadata.Server {
 
 func newConfig(t *testing.T, dc, agentType string) Config {
 	n := t.Name()
-	s := strings.Replace(n, "/", "", -1)
-	s = strings.Replace(s, "_", "", -1)
+	s := strings.ReplaceAll(n, "/", "")
+	s = strings.ReplaceAll(s, "_", "")
 	return Config{
 		Datacenter: dc,
 		AgentType:  agentType,

@@ -62,7 +62,7 @@ func newTestSnapshot(
 	if dbServiceProtocol != "" {
 		// Simulate ServiceManager injection of protocol
 		snap.Proxy.Upstreams[0].Config["protocol"] = dbServiceProtocol
-		snap.ConnectProxy.ConfigSnapshotUpstreams.UpstreamConfig = proxycfg.UpstreamsToMap(snap.Proxy.Upstreams)
+		snap.ConnectProxy.UpstreamConfig = proxycfg.UpstreamsToMap(snap.Proxy.Upstreams)
 	}
 	return snap
 }
