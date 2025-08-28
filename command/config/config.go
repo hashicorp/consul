@@ -95,7 +95,7 @@ func KindSpecificWriteWarning(reqEntry api.ConfigEntry) string {
 			return WarningProxyDefaultsPermissiveMTLS
 		}
 	case *api.MeshConfigEntry:
-		if req.AllowEnablingPermissiveMutualTLS == true {
+		if req.AllowEnablingPermissiveMutualTLS {
 			return WarningMeshAllowEnablingPermissiveMutualTLS
 		}
 	}

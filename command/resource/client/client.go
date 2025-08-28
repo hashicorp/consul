@@ -569,9 +569,7 @@ func (c *Client) Headers() http.Header {
 
 	ret := make(http.Header)
 	for k, v := range c.headers {
-		for _, val := range v {
-			ret[k] = append(ret[k], val)
-		}
+		ret[k] = append(ret[k], v...)
 	}
 
 	return ret
@@ -883,12 +881,11 @@ func (r *request) toHTTP() (*http.Request, error) {
 	req.Header = r.header
 
 	// Content-Type must always be set when a body is present
-	// See https://github.com/hashicorp/consul/issues/10011
 	if req.Body != nil && req.Header.Get("Content-Type") == "" {
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", "application/json; charset=utf-8")
 	}
 
-	// Setup auth
+	// Check for a token
 	if r.config.HttpAuth != nil {
 		req.SetBasicAuth(r.config.HttpAuth.Username, r.config.HttpAuth.Password)
 	}
@@ -994,6 +991,6 @@ func generateUnexpectedResponseCodeError(resp *http.Response) error {
 	io.Copy(&buf, resp.Body)
 	CloseResponseBody(resp)
 
-	trimmed := strings.TrimSpace(string(buf.Bytes()))
+	trimmed := strings.TrimSpace(buf.String())
 	return StatusError{Code: resp.StatusCode, Body: trimmed}
 }

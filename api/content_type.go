@@ -12,7 +12,7 @@ const (
 	contentTypeHeader = "Content-Type"
 	plainContentType  = "text/plain; charset=utf-8"
 	octetStream       = "application/octet-stream"
-	jsonContentType   = "application/json" // Default content type
+	jsonContentType   = "application/json; charset=utf-8" // Default content type
 )
 
 // ContentTypeRule defines a rule for determining the content type of an HTTP request.
