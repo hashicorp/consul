@@ -129,7 +129,7 @@ func TestBindingRuleDeleteCommand(t *testing.T) {
 		require.Empty(t, ui.ErrorWriter.String())
 
 		output := ui.OutputWriter.String()
-		require.Contains(t, output, fmt.Sprintf("deleted successfully"))
+		require.Contains(t, output, "deleted successfully")
 		require.Contains(t, output, id)
 
 		rule, _, err := client.ACL().BindingRuleRead(
@@ -157,7 +157,7 @@ func TestBindingRuleDeleteCommand(t *testing.T) {
 		require.Empty(t, ui.ErrorWriter.String())
 
 		output := ui.OutputWriter.String()
-		require.Contains(t, output, fmt.Sprintf("deleted successfully"))
+		require.Contains(t, output, "deleted successfully")
 		require.Contains(t, output, id)
 
 		rule, _, err := client.ACL().BindingRuleRead(

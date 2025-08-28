@@ -215,7 +215,7 @@ func (m *mockCAServerDelegate) ApplyCARequest(req *structs.CARequest) (interface
 		return nil, err
 	}
 
-	m.callbackCh <- fmt.Sprintf("raftApply/ConnectCA")
+	m.callbackCh <- "raftApply/ConnectCA"
 
 	result := fsm.ApplyConnectCAOperationFromRequest(m.store, req, idx+1)
 	if err, ok := result.(error); ok && err != nil {

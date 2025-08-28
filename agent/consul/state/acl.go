@@ -500,7 +500,7 @@ func aclTokenSetTxn(tx WriteTxn, idx uint64, token *structs.ACLToken, opts ACLTo
 	}
 
 	if token.AuthMethod != "" && !opts.FromReplication {
-		methodMeta := token.ACLAuthMethodEnterpriseMeta.ToEnterpriseMeta()
+		methodMeta := token.ToEnterpriseMeta()
 		methodMeta.Merge(&token.EnterpriseMeta)
 		method, err := getAuthMethodWithTxn(tx, nil, token.AuthMethod, methodMeta)
 		if err != nil {
@@ -1780,7 +1780,7 @@ func aclAuthMethodInsert(tx WriteTxn, method *structs.ACLAuthMethod) error {
 }
 
 func aclBindingRuleInsert(tx WriteTxn, rule *structs.ACLBindingRule) error {
-	rule.EnterpriseMeta.Normalize()
+	rule.Normalize()
 
 	// insert the role into memdb
 	if err := tx.Insert(tableACLBindingRules, rule); err != nil {

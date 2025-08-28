@@ -2326,7 +2326,7 @@ func TestACLResolver_ResolveToken_UpdatesPurgeTheCache(t *testing.T) {
 	require.NoError(t, err)
 
 	testutil.RunStep(t, "first resolve", func(t *testing.T) {
-		authz, err := srv.ACLResolver.ResolveToken(token)
+		authz, err := srv.ResolveToken(token)
 		require.NoError(t, err)
 		require.NotNil(t, authz)
 		require.Equal(t, acl.Allow, authz.KeyRead("foo", nil))
@@ -2345,7 +2345,7 @@ func TestACLResolver_ResolveToken_UpdatesPurgeTheCache(t *testing.T) {
 		err := msgpackrpc.CallWithCodec(codec, "ACL.PolicySet", &reqPolicy, &structs.ACLPolicy{})
 		require.NoError(t, err)
 
-		authz, err := srv.ACLResolver.ResolveToken(token)
+		authz, err := srv.ResolveToken(token)
 		require.NoError(t, err)
 		require.NotNil(t, authz)
 		require.Equal(t, acl.Deny, authz.KeyRead("foo", nil))
@@ -2361,7 +2361,7 @@ func TestACLResolver_ResolveToken_UpdatesPurgeTheCache(t *testing.T) {
 		err := msgpackrpc.CallWithCodec(codec, "ACL.TokenDelete", &req, &resp)
 		require.NoError(t, err)
 
-		_, err = srv.ACLResolver.ResolveToken(token)
+		_, err = srv.ResolveToken(token)
 		require.True(t, acl.IsErrNotFound(err), "Error %v is not acl.ErrNotFound", err)
 	})
 }

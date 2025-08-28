@@ -48,49 +48,49 @@ type RaftIndex struct {
 // so entries must only ever be added.
 const (
 	RegisterRequestType             MessageType = 0
-	DeregisterRequestType                       = 1
-	KVSRequestType                              = 2
-	SessionRequestType                          = 3
-	DeprecatedACLRequestType                    = 4 // Removed with the legacy ACL system
-	TombstoneRequestType                        = 5
-	CoordinateBatchUpdateType                   = 6
-	PreparedQueryRequestType                    = 7
-	TxnRequestType                              = 8
-	AutopilotRequestType                        = 9
-	AreaRequestType                             = 10
-	ACLBootstrapRequestType                     = 11
-	IntentionRequestType                        = 12
-	ConnectCARequestType                        = 13
-	ConnectCAProviderStateType                  = 14
-	ConnectCAConfigType                         = 15 // FSM snapshots only.
-	IndexRequestType                            = 16 // FSM snapshots only.
-	ACLTokenSetRequestType                      = 17
-	ACLTokenDeleteRequestType                   = 18
-	ACLPolicySetRequestType                     = 19
-	ACLPolicyDeleteRequestType                  = 20
-	ConnectCALeafRequestType                    = 21
-	ConfigEntryRequestType                      = 22
-	ACLRoleSetRequestType                       = 23
-	ACLRoleDeleteRequestType                    = 24
-	ACLBindingRuleSetRequestType                = 25
-	ACLBindingRuleDeleteRequestType             = 26
-	ACLAuthMethodSetRequestType                 = 27
-	ACLAuthMethodDeleteRequestType              = 28
-	ChunkingStateType                           = 29
-	FederationStateRequestType                  = 30
-	SystemMetadataRequestType                   = 31
-	ServiceVirtualIPRequestType                 = 32
-	FreeVirtualIPRequestType                    = 33
-	KindServiceNamesType                        = 34
-	PeeringWriteType                            = 35
-	PeeringDeleteType                           = 36
-	PeeringTerminateByIDType                    = 37
-	PeeringTrustBundleWriteType                 = 38
-	PeeringTrustBundleDeleteType                = 39
-	PeeringSecretsWriteType                     = 40
-	RaftLogVerifierCheckpoint                   = 41 // Only used for log verifier, no-op on FSM.
-	ResourceOperationType                       = 42
-	UpdateVirtualIPRequestType                  = 43
+	DeregisterRequestType           MessageType = 1
+	KVSRequestType                  MessageType = 2
+	SessionRequestType              MessageType = 3
+	DeprecatedACLRequestType        MessageType = 4 // Removed with the legacy ACL system
+	TombstoneRequestType            MessageType = 5
+	CoordinateBatchUpdateType       MessageType = 6
+	PreparedQueryRequestType        MessageType = 7
+	TxnRequestType                  MessageType = 8
+	AutopilotRequestType            MessageType = 9
+	AreaRequestType                 MessageType = 10
+	ACLBootstrapRequestType         MessageType = 11
+	IntentionRequestType            MessageType = 12
+	ConnectCARequestType            MessageType = 13
+	ConnectCAProviderStateType      MessageType = 14
+	ConnectCAConfigType             MessageType = 15 // FSM snapshots only.
+	IndexRequestType                MessageType = 16 // FSM snapshots only.
+	ACLTokenSetRequestType          MessageType = 17
+	ACLTokenDeleteRequestType       MessageType = 18
+	ACLPolicySetRequestType         MessageType = 19
+	ACLPolicyDeleteRequestType      MessageType = 20
+	ConnectCALeafRequestType        MessageType = 21
+	ConfigEntryRequestType          MessageType = 22
+	ACLRoleSetRequestType           MessageType = 23
+	ACLRoleDeleteRequestType        MessageType = 24
+	ACLBindingRuleSetRequestType    MessageType = 25
+	ACLBindingRuleDeleteRequestType MessageType = 26
+	ACLAuthMethodSetRequestType     MessageType = 27
+	ACLAuthMethodDeleteRequestType  MessageType = 28
+	ChunkingStateType               MessageType = 29
+	FederationStateRequestType      MessageType = 30
+	SystemMetadataRequestType       MessageType = 31
+	ServiceVirtualIPRequestType     MessageType = 32
+	FreeVirtualIPRequestType        MessageType = 33
+	KindServiceNamesType            MessageType = 34
+	PeeringWriteType                MessageType = 35
+	PeeringDeleteType               MessageType = 36
+	PeeringTerminateByIDType        MessageType = 37
+	PeeringTrustBundleWriteType     MessageType = 38
+	PeeringTrustBundleDeleteType    MessageType = 39
+	PeeringSecretsWriteType         MessageType = 40
+	RaftLogVerifierCheckpoint       MessageType = 41 // Only used for log verifier, no-op on FSM.
+	ResourceOperationType           MessageType = 42
+	UpdateVirtualIPRequestType      MessageType = 43
 )
 
 const (
@@ -658,7 +658,7 @@ func (r *DCSpecificRequest) CacheInfo() cache.RequestInfo {
 }
 
 func (r *DCSpecificRequest) CacheMinIndex() uint64 {
-	return r.QueryOptions.MinQueryIndex
+	return r.MinQueryIndex
 }
 
 type OperatorUsageRequest struct {
@@ -719,7 +719,7 @@ func (r *ServiceDumpRequest) CacheInfo() cache.RequestInfo {
 }
 
 func (r *ServiceDumpRequest) CacheMinIndex() uint64 {
-	return r.QueryOptions.MinQueryIndex
+	return r.MinQueryIndex
 }
 
 // PartitionSpecificRequest is used to query about a specific partition.
@@ -742,7 +742,7 @@ func (r *PartitionSpecificRequest) CacheInfo() cache.RequestInfo {
 		Timeout:        r.MaxQueryTime,
 		MaxAge:         r.MaxAge,
 		MustRevalidate: r.MustRevalidate,
-		Key:            r.EnterpriseMeta.PartitionOrDefault(),
+		Key:            r.PartitionOrDefault(),
 	}
 }
 
@@ -841,7 +841,7 @@ func (r *ServiceSpecificRequest) CacheInfo() cache.RequestInfo {
 }
 
 func (r *ServiceSpecificRequest) CacheMinIndex() uint64 {
-	return r.QueryOptions.MinQueryIndex
+	return r.MinQueryIndex
 }
 
 // NodeSpecificRequest is used to request the information about a single node
@@ -1751,7 +1751,7 @@ func (s *ServiceNode) IsSameService(other *ServiceNode) bool {
 		s.ServiceEnableTagOverride != other.ServiceEnableTagOverride ||
 		!reflect.DeepEqual(s.ServiceProxy, other.ServiceProxy) ||
 		!reflect.DeepEqual(s.ServiceConnect, other.ServiceConnect) ||
-		!s.EnterpriseMeta.IsSame(&other.EnterpriseMeta) {
+		!s.IsSame(&other.EnterpriseMeta) {
 		return false
 	}
 
@@ -2285,7 +2285,7 @@ func NewCheckID(id types.CheckID, entMeta *acl.EnterpriseMeta) CheckID {
 	}
 
 	cid.EnterpriseMeta = *entMeta
-	cid.EnterpriseMeta.Normalize()
+	cid.Normalize()
 	return cid
 }
 
@@ -2295,7 +2295,7 @@ func NewCheckID(id types.CheckID, entMeta *acl.EnterpriseMeta) CheckID {
 func (cid CheckID) StringHashMD5() string {
 	hasher := md5.New()
 	hasher.Write([]byte(cid.ID))
-	cid.EnterpriseMeta.AddToHash(hasher, true)
+	cid.AddToHash(hasher, true)
 	return fmt.Sprintf("%x", hasher.Sum(nil))
 }
 
@@ -2304,7 +2304,7 @@ func (cid CheckID) StringHashMD5() string {
 func (cid CheckID) StringHashSHA256() string {
 	hasher := sha256.New()
 	hasher.Write([]byte(cid.ID))
-	cid.EnterpriseMeta.AddToHash(hasher, true)
+	cid.AddToHash(hasher, true)
 	return fmt.Sprintf("%x", hasher.Sum(nil))
 }
 
@@ -2321,7 +2321,7 @@ func NewServiceID(id string, entMeta *acl.EnterpriseMeta) ServiceID {
 	}
 
 	sid.EnterpriseMeta = *entMeta
-	sid.EnterpriseMeta.Normalize()
+	sid.Normalize()
 	return sid
 }
 
@@ -2334,7 +2334,7 @@ func (sid ServiceID) Matches(other ServiceID) bool {
 func (sid ServiceID) StringHashSHA256() string {
 	hasher := sha256.New()
 	hasher.Write([]byte(sid.ID))
-	sid.EnterpriseMeta.AddToHash(hasher, true)
+	sid.AddToHash(hasher, true)
 	return fmt.Sprintf("%x", hasher.Sum(nil))
 }
 
@@ -2395,7 +2395,7 @@ func NewServiceName(name string, entMeta *acl.EnterpriseMeta) ServiceName {
 	}
 
 	ret.EnterpriseMeta = *entMeta
-	ret.EnterpriseMeta.Normalize()
+	ret.Normalize()
 	return ret
 }
 
@@ -2753,7 +2753,7 @@ type SessionBehavior string
 
 const (
 	SessionKeysRelease SessionBehavior = "release"
-	SessionKeysDelete                  = "delete"
+	SessionKeysDelete  SessionBehavior = "delete"
 )
 
 const (
@@ -2826,7 +2826,7 @@ type SessionOp string
 
 const (
 	SessionCreate  SessionOp = "create"
-	SessionDestroy           = "destroy"
+	SessionDestroy SessionOp = "destroy"
 )
 
 // SessionRequest is used to operate on sessions
@@ -3023,9 +3023,9 @@ type KeyringOp string
 
 const (
 	KeyringList    KeyringOp = "list"
-	KeyringInstall           = "install"
-	KeyringUse               = "use"
-	KeyringRemove            = "remove"
+	KeyringInstall KeyringOp = "install"
+	KeyringUse     KeyringOp = "use"
+	KeyringRemove  KeyringOp = "remove"
 )
 
 // KeyringRequest encapsulates a request to modify an encryption keyring.

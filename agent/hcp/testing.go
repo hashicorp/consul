@@ -178,5 +178,5 @@ func (s *MockHCPServer) handleDiscover(r *http.Request, cluster resource.Resourc
 func errResponse(w http.ResponseWriter, err error) {
 	log.Printf("ERROR 500: %s\n", err)
 	w.WriteHeader(500)
-	w.Write([]byte(fmt.Sprintf(`{"error": %q}`, err.Error())))
+	fmt.Fprintf(w, `{"error": %q}`, err.Error())
 }

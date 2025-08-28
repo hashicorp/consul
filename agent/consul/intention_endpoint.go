@@ -109,7 +109,7 @@ func (s *Intention) Apply(args *structs.IntentionRequest, reply *string) error {
 
 	// Get the ACL token for the request for the checks below.
 	var entMeta acl.EnterpriseMeta
-	authz, err := s.srv.ACLResolver.ResolveTokenAndDefaultMeta(args.Token, &entMeta, nil)
+	authz, err := s.srv.ResolveTokenAndDefaultMeta(args.Token, &entMeta, nil)
 	if err != nil {
 		return err
 	}

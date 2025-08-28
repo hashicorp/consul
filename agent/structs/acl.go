@@ -534,7 +534,7 @@ func (t *ACLToken) SetHash(force bool) []byte {
 			templatedPolicy.AddToHash(hash)
 		}
 
-		t.EnterpriseMeta.AddToHash(hash, false)
+		t.AddToHash(hash, false)
 
 		// Finalize the hash
 		hashVal := hash.Sum(nil)
@@ -736,7 +736,7 @@ func (p *ACLPolicy) SetHash(force bool) []byte {
 			hash.Write([]byte(dc))
 		}
 
-		p.EnterpriseMeta.AddToHash(hash, false)
+		p.AddToHash(hash, false)
 
 		// Finalize the hash
 		hashVal := hash.Sum(nil)
@@ -992,7 +992,7 @@ func (r *ACLRole) SetHash(force bool) []byte {
 			templatedPolicy.AddToHash(hash)
 		}
 
-		r.EnterpriseMeta.AddToHash(hash, false)
+		r.AddToHash(hash, false)
 
 		// Finalize the hash
 		hashVal := hash.Sum(nil)

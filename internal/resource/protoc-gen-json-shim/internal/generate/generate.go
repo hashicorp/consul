@@ -13,7 +13,7 @@ import (
 
 func Generate(gen *protogen.Plugin) error {
 	for _, file := range gen.Files {
-		if file.Generate != true {
+		if !file.Generate {
 			continue
 		}
 		if len(file.Messages) == 0 {
@@ -62,9 +62,9 @@ func Generate(gen *protogen.Plugin) error {
 
 func FileName(file *protogen.File) string {
 	fname := path.Base(file.Proto.GetName())
-	fname = strings.Replace(fname, ".proto", "", -1)
-	fname = strings.Replace(fname, "-", "_", -1)
-	fname = strings.Replace(fname, ".", "_", -1)
+	fname = strings.ReplaceAll(fname, ".proto", "")
+	fname = strings.ReplaceAll(fname, "-", "_")
+	fname = strings.ReplaceAll(fname, ".", "_")
 	return toCamelInitCase(fname, true)
 }
 

@@ -68,7 +68,7 @@ func TestTokenReadCommand_Pretty(t *testing.T) {
 	assert.Empty(t, ui.ErrorWriter.String())
 
 	output := ui.OutputWriter.String()
-	assert.Contains(t, output, fmt.Sprintf("test"))
+	assert.Contains(t, output, "test")
 	assert.Contains(t, output, token.AccessorID)
 	assert.Contains(t, output, token.SecretID)
 }
@@ -162,7 +162,7 @@ func TestTokenReadCommand_Self(t *testing.T) {
 	assert.Empty(t, ui.ErrorWriter.String())
 
 	output := ui.OutputWriter.String()
-	assert.Contains(t, output, fmt.Sprintf("test"))
+	assert.Contains(t, output, "test")
 	assert.Contains(t, output, token.AccessorID)
 	assert.Contains(t, output, token.SecretID)
 }

@@ -104,7 +104,7 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Error(fmt.Sprintf("Error writing config entry: %s", err))
 		return 1
 	} else if !ok {
-		c.UI.Error(fmt.Sprintf("Config entry was changed during update. Please try again"))
+		c.UI.Error("Config entry was changed during update. Please try again")
 		return 1
 	}
 

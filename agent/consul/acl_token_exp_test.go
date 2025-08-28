@@ -192,7 +192,7 @@ func testACLTokenReap_Primary(t *testing.T, local, global bool) {
 		})
 	})
 
-	time.Sleep(token3.ExpirationTime.Sub(time.Now()) + 10*time.Millisecond)
+	time.Sleep(time.Until(token3.ExpirationTime) + 10*time.Millisecond)
 
 	t.Run("one should be reaped", func(t *testing.T) {
 		n, err := s1.reapExpiredACLTokens(local, global)
@@ -209,7 +209,7 @@ func testACLTokenReap_Primary(t *testing.T, local, global bool) {
 		})
 	})
 
-	time.Sleep(token4.ExpirationTime.Sub(time.Now()) + 10*time.Millisecond)
+	time.Sleep(time.Until(token4.ExpirationTime) + 10*time.Millisecond)
 
 	t.Run("two should be reaped", func(t *testing.T) {
 		n, err := s1.reapExpiredACLTokens(local, global)

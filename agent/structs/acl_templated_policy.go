@@ -201,7 +201,7 @@ func (tp *ACLTemplatedPolicy) ValidateTemplatedPolicy(schema string) error {
 	var merr *multierror.Error
 
 	for _, resultError := range res.Errors() {
-		merr = multierror.Append(merr, fmt.Errorf(resultError.Description()))
+		merr = multierror.Append(merr, errors.New(resultError.Description()))
 	}
 	return merr.ErrorOrNil()
 }
@@ -238,7 +238,7 @@ func (tp *ACLTemplatedPolicy) SyntheticPolicy(entMeta *acl.EnterpriseMeta) (*ACL
 		Datacenters: tp.Datacenters,
 		Description: fmt.Sprintf("synthetic policy generated from templated policy: %s", tp.TemplateName),
 	}
-	policy.EnterpriseMeta.Merge(entMeta)
+	policy.Merge(entMeta)
 	policy.SetHash(true)
 
 	return policy, nil

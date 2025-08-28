@@ -35,8 +35,8 @@ func (c *CatalogServiceList) Fetch(opts cache.FetchOptions, req cache.Request) (
 	reqReal = &dup
 
 	// Set the minimum query index to our current index so we block
-	reqReal.QueryOptions.MinQueryIndex = opts.MinIndex
-	reqReal.QueryOptions.MaxQueryTime = opts.Timeout
+	reqReal.MinQueryIndex = opts.MinIndex
+	reqReal.MaxQueryTime = opts.Timeout
 
 	// Always allow stale - there's no point in hitting leader if the request is
 	// going to be served from cache and end up arbitrarily stale anyway. This
@@ -51,6 +51,6 @@ func (c *CatalogServiceList) Fetch(opts cache.FetchOptions, req cache.Request) (
 	}
 
 	result.Value = &reply
-	result.Index = reply.QueryMeta.Index
+	result.Index = reply.Index
 	return result, nil
 }

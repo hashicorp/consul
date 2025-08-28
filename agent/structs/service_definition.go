@@ -82,7 +82,7 @@ func (s *ServiceDefinition) NodeService() *NodeService {
 		EnterpriseMeta:    s.EnterpriseMeta,
 		Locality:          s.Locality,
 	}
-	ns.EnterpriseMeta.Normalize()
+	ns.Normalize()
 
 	if s.Connect != nil {
 		ns.Connect = *s.Connect
@@ -98,10 +98,10 @@ func (s *ServiceDefinition) NodeService() *NodeService {
 			// If a proxy's namespace and partition are not defined, inherit from the proxied service
 			// Applicable only to Consul Enterprise.
 			if ns.Proxy.Upstreams[i].DestinationNamespace == "" {
-				ns.Proxy.Upstreams[i].DestinationNamespace = ns.EnterpriseMeta.NamespaceOrEmpty()
+				ns.Proxy.Upstreams[i].DestinationNamespace = ns.NamespaceOrEmpty()
 			}
 			if ns.Proxy.Upstreams[i].DestinationPartition == "" {
-				ns.Proxy.Upstreams[i].DestinationPartition = ns.EnterpriseMeta.PartitionOrEmpty()
+				ns.Proxy.Upstreams[i].DestinationPartition = ns.PartitionOrEmpty()
 			}
 		}
 		ns.Proxy.Expose = s.Proxy.Expose

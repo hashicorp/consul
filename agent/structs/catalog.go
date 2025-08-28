@@ -13,9 +13,9 @@ import (
 // to every node in the catalog.
 const (
 	SerfCheckID           types.CheckID = "serfHealth"
-	SerfCheckName                       = "Serf Health Status"
-	SerfCheckAliveOutput                = "Agent alive and reachable"
-	SerfCheckFailedOutput               = "Agent not live or unreachable"
+	SerfCheckName         types.CheckID = "Serf Health Status"
+	SerfCheckAliveOutput  types.CheckID = "Agent alive and reachable"
+	SerfCheckFailedOutput types.CheckID = "Agent not live or unreachable"
 )
 
 const (
