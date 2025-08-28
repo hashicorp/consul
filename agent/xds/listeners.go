@@ -1707,8 +1707,7 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 			)
 		}
 
-		var dest *structs.DestinationConfig
-		dest = &svcConfig.Destination
+		var dest = &svcConfig.Destination
 
 		opts := terminatingGatewayFilterChainOpts{
 			service:          svc,
@@ -2467,7 +2466,7 @@ func makeStatPrefix(prefix, filterName string) string {
 	// Replace colons here because Envoy does that in the metrics for the actual
 	// clusters but doesn't in the stat prefix here while dashboards assume they
 	// will match.
-	return fmt.Sprintf("%s%s", prefix, strings.Replace(filterName, ":", "_", -1))
+	return fmt.Sprintf("%s%s", prefix, strings.ReplaceAll(filterName, ":", "_"))
 }
 
 func makeTracingFromUserConfig(configJSON string) (*envoy_http_v3.HttpConnectionManager_Tracing, error) {

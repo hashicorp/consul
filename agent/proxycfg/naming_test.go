@@ -17,7 +17,7 @@ func TestUpstreamIDFromTargetID(t *testing.T) {
 		expect UpstreamID
 	}
 	run := func(t *testing.T, tc testcase) {
-		tc.expect.EnterpriseMeta.Normalize()
+		tc.expect.Normalize()
 
 		got := NewUpstreamIDFromTargetID(tc.tid)
 		require.Equal(t, tc.expect, got)
@@ -60,7 +60,7 @@ func TestUpstreamIDFromString(t *testing.T) {
 		expect UpstreamID
 	}
 	run := func(t *testing.T, tc testcase) {
-		tc.expect.EnterpriseMeta.Normalize()
+		tc.expect.Normalize()
 
 		got := UpstreamIDFromString(tc.id)
 		require.Equal(t, tc.expect, got)

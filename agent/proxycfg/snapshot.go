@@ -569,7 +569,7 @@ func (c *ConfigSnapshot) GetMeshGatewayEndpoints(key GatewayKey) structs.CheckSe
 	maxModifyIndex := func(vals structs.CheckServiceNodes) uint64 {
 		var max uint64
 		for _, v := range vals {
-			if i := v.Service.RaftIndex.ModifyIndex; i > max {
+			if i := v.Service.ModifyIndex; i > max {
 				max = i
 			}
 		}

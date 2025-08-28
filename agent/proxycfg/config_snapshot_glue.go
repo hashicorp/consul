@@ -37,12 +37,12 @@ func (s *ConfigSnapshot) Authorize(authz acl.Authorizer) error {
 	var authzContext acl.AuthorizerContext
 	switch s.Kind {
 	case structs.ServiceKindConnectProxy:
-		s.ProxyID.EnterpriseMeta.FillAuthzContext(&authzContext)
+		s.ProxyID.FillAuthzContext(&authzContext)
 		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(s.Proxy.DestinationServiceName, &authzContext); err != nil {
 			return status.Errorf(codes.PermissionDenied, err.Error())
 		}
 	case structs.ServiceKindMeshGateway, structs.ServiceKindTerminatingGateway, structs.ServiceKindIngressGateway, structs.ServiceKindAPIGateway:
-		s.ProxyID.EnterpriseMeta.FillAuthzContext(&authzContext)
+		s.ProxyID.FillAuthzContext(&authzContext)
 		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(s.Service, &authzContext); err != nil {
 			return status.Errorf(codes.PermissionDenied, err.Error())
 		}

@@ -26,7 +26,7 @@ func setupMockAPI(t *testing.T) (*mockAPI, *Client) {
 	mapi.ts = httptest.NewServer(&mapi)
 	t.Cleanup(func() {
 		mapi.ts.Close()
-		mapi.Mock.AssertExpectations(t)
+		mapi.AssertExpectations(t)
 	})
 
 	cfg := DefaultConfig()

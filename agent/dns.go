@@ -26,8 +26,7 @@ import (
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	dnsutil "github.com/hashicorp/consul/internal/dnsutil"
-	libdns "github.com/hashicorp/consul/internal/dnsutil"
+	"github.com/hashicorp/consul/internal/dnsutil"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
@@ -261,8 +260,8 @@ func (d *DNSServer) Shutdown() {
 	if d.Server != nil {
 		d.logger.Info("Stopping server",
 			"protocol", "DNS",
-			"address", d.Server.Addr,
-			"network", d.Server.Net,
+			"address", d.Addr,
+			"network", d.Net,
 		)
 		err := d.Server.Shutdown()
 		if err != nil {
@@ -274,7 +273,7 @@ func (d *DNSServer) Shutdown() {
 // GetAddr is a function to return the server address if is not nil.
 func (d *DNSServer) GetAddr() string {
 	if d.Server != nil {
-		return d.Server.Addr
+		return d.Addr
 	}
 	return ""
 }
@@ -349,10 +348,11 @@ func recursorAddr(recursor string) (string, error) {
 START:
 	_, _, err := net.SplitHostPort(recursor)
 	if ae, ok := err.(*net.AddrError); ok {
-		if ae.Err == "missing port in address" {
+		switch ae.Err {
+		case "missing port in address":
 			recursor = ipaddr.FormatAddressPort(recursor, 53)
 			goto START
-		} else if ae.Err == "too many colons in address" {
+		case "too many colons in address":
 			if ip := net.ParseIP(recursor); ip != nil && ip.To4() == nil {
 				recursor = ipaddr.FormatAddressPort(recursor, 53)
 				goto START
@@ -466,7 +466,7 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 	// only look into the services if we didn't find a node
 	if len(m.Answer) == 0 {
 		// lookup the service address
-		ip := libdns.IPFromARPA(qName)
+		ip := dnsutil.IPFromARPA(qName)
 		var serviceAddress string
 		if ip != nil {
 			serviceAddress = ip.String()
@@ -649,7 +649,7 @@ func (d *DNSServer) getNameserversAndNodeRecord(questionName string, cfg *dnsReq
 	for _, o := range out.Nodes {
 		name, dc := o.Node.Node, o.Node.Datacenter
 
-		if libdns.InvalidNameRe.MatchString(name) {
+		if dnsutil.InvalidNameRe.MatchString(name) {
 			d.logger.Warn("Skipping invalid node for NS records", "node", name)
 			continue
 		}
@@ -1209,8 +1209,8 @@ RPC:
 // encodeKVasRFC1464 encodes a key-value pair according to RFC1464
 func encodeKVasRFC1464(key, value string) (txt string) {
 	// For details on these replacements c.f. https://www.ietf.org/rfc/rfc1464.txt
-	key = strings.Replace(key, "`", "``", -1)
-	key = strings.Replace(key, "=", "`=", -1)
+	key = strings.ReplaceAll(key, "`", "``")
+	key = strings.ReplaceAll(key, "=", "`=")
 
 	// Backquote the leading spaces
 	leadingSpacesRE := regexp.MustCompile("^ +")
@@ -1222,7 +1222,7 @@ func encodeKVasRFC1464(key, value string) (txt string) {
 	numTrailingSpaces := len(trailingSpacesRE.FindString(key))
 	key = trailingSpacesRE.ReplaceAllString(key, strings.Repeat("` ", numTrailingSpaces))
 
-	value = strings.Replace(value, "`", "``", -1)
+	value = strings.ReplaceAll(value, "`", "``")
 
 	return key + "=" + value
 }
@@ -1816,11 +1816,12 @@ func makeARecord(qType uint16, ip net.IP, ttl time.Duration) dns.RR {
 func (d *DNSServer) makeRecordFromNode(node *structs.Node, qType uint16, qName string, cfg *dnsRequestConfig, maxRecursionLevel int) []dns.RR {
 	ttl := cfg.NodeTTL
 	addrTranslate := dnsutil.TranslateAddressAcceptDomain
-	if qType == dns.TypeA {
+	switch qType {
+	case dns.TypeA:
 		addrTranslate |= dnsutil.TranslateAddressAcceptIPv4
-	} else if qType == dns.TypeAAAA {
+	case dns.TypeAAAA:
 		addrTranslate |= dnsutil.TranslateAddressAcceptIPv6
-	} else {
+	default:
 		addrTranslate |= dnsutil.TranslateAddressAcceptAny
 	}
 
@@ -1988,11 +1989,12 @@ MORE_REC:
 // Craft dns records from a CheckServiceNode struct
 func (d *DNSServer) makeNodeServiceRecords(lookup serviceLookup, node structs.CheckServiceNode, req *dns.Msg, ttl time.Duration, cfg *dnsRequestConfig, maxRecursionLevel int) ([]dns.RR, []dns.RR) {
 	addrTranslate := dnsutil.TranslateAddressAcceptDomain
-	if req.Question[0].Qtype == dns.TypeA {
+	switch req.Question[0].Qtype {
+	case dns.TypeA:
 		addrTranslate |= dnsutil.TranslateAddressAcceptIPv4
-	} else if req.Question[0].Qtype == dns.TypeAAAA {
+	case dns.TypeAAAA:
 		addrTranslate |= dnsutil.TranslateAddressAcceptIPv6
-	} else {
+	default:
 		addrTranslate |= dnsutil.TranslateAddressAcceptAny
 	}
 

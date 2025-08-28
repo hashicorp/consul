@@ -113,21 +113,21 @@ func (d durationFixer) FixupDurations(raw interface{}) error {
 		return nil
 	}
 	for key, val := range rawMap {
-		switch val.(type) {
+		switch val := val.(type) {
 		case map[string]interface{}:
 			if err := d.FixupDurations(val); err != nil {
 				return err
 			}
 
 		case []interface{}:
-			for _, v := range val.([]interface{}) {
+			for _, v := range val {
 				if err := d.FixupDurations(v); err != nil {
 					return err
 				}
 			}
 
 		case []map[string]interface{}:
-			for _, v := range val.([]map[string]interface{}) {
+			for _, v := range val {
 				if err := d.FixupDurations(v); err != nil {
 					return err
 				}
