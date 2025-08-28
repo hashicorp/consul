@@ -88,6 +88,12 @@ jobs:
             # some tests expect this umask, and arm images have a different default
             umask 0022
 
+            # go1.25 fails to install covdata via toolchain.
+            # https://github.com/golang/go/issues/75031
+            go_version=$(go env GOVERSION)
+            fallback_toolchain="$go_version+auto"
+            go env -w GOTOOLCHAIN=$fallback_toolchain
+
             go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
               --format=github-actions \
               --jsonfile /tmp/jsonfile/go-test.log \
