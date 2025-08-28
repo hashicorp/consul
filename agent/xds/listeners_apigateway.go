@@ -27,6 +27,8 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 
 	readyListeners := getReadyListeners(cfgSnap)
 
+	proxyConfig := cfgSnap.GetProxyConfig(s.Logger)
+
 	for _, readyListener := range readyListeners {
 		listenerCfg := readyListener.listenerCfg
 		listenerKey := readyListener.listenerKey
@@ -113,6 +115,12 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 			}
 
 			if isAPIGatewayWithTLS {
+
+				maxRequestHeadersKb := proxyConfig.MaxRequestHeadersKB
+				if listenerCfg.MaxRequestHeadersKB != nil {
+					maxRequestHeadersKb = listenerCfg.MaxRequestHeadersKB
+				}
+
 				// construct SNI filter chains
 				setAPIGatewayTLSConfig(listenerCfg, cfgSnap)
 				l.FilterChains, err = s.makeInlineOverrideFilterChains(
@@ -127,7 +135,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 						statPrefix:          "ingress_upstream_",
 						accessLogs:          &cfgSnap.Proxy.AccessLogs,
 						logger:              s.Logger,
-						maxRequestHeadersKb: listenerCfg.MaxRequestHeadersKB,
+						maxRequestHeadersKb: maxRequestHeadersKb,
 					},
 					certs,
 				)
@@ -209,18 +217,10 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 					return nil, err
 				}
 			}
-			/*
-				listenerFilterOpts{
-							useRDS:              useRDS,
-							fetchTimeoutRDS:     cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
-							protocol:            listenerKey.Protocol,
-							routeName:           listenerKey.RouteName(),
-							cluster:             clusterName,
-							statPrefix:          "ingress_upstream_",
-							accessLogs:          &cfgSnap.Proxy.AccessLogs,
-							logger:              s.Logger,
-							maxRequestHeadersKb: maxRequestHeadersKb,
-			*/
+			maxRequestHeadersKb := proxyConfig.MaxRequestHeadersKB
+			if listenerCfg.MaxRequestHeadersKB != nil {
+				maxRequestHeadersKb = listenerCfg.MaxRequestHeadersKB
+			}
 			filterOpts := listenerFilterOpts{
 				useRDS:              true,
 				fetchTimeoutRDS:     cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
@@ -233,14 +233,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 				httpAuthzFilters:    authFilters,
 				accessLogs:          &cfgSnap.Proxy.AccessLogs,
 				logger:              s.Logger,
-				maxRequestHeadersKb: listenerCfg.MaxRequestHeadersKB,
-			}
-
-			// DEBUG: Log the MaxRequestHeadersKB value
-			if listenerCfg.MaxRequestHeadersKB != nil {
-				s.Logger.Info("API Gateway MaxRequestHeadersKB found", "value", *listenerCfg.MaxRequestHeadersKB, "listener", listenerCfg.Name)
-			} else {
-				s.Logger.Info("API Gateway MaxRequestHeadersKB is nil", "listener", listenerCfg.Name)
+				maxRequestHeadersKb: maxRequestHeadersKb,
 			}
 
 			// Generate any filter chains needed for services with custom TLS certs
