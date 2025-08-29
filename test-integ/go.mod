@@ -3,7 +3,7 @@ module github.com/hashicorp/consul/test-integ
 go 1.25.0
 
 require (
-	github.com/google/go-cmp v0.6.0
+	github.com/google/go-cmp v0.7.0
 	github.com/hashicorp/consul/api v1.31.2
 	github.com/hashicorp/consul/proto-public v0.6.2
 	github.com/hashicorp/consul/sdk v0.16.1
@@ -13,9 +13,9 @@ require (
 	github.com/itchyny/gojq v0.12.13
 	github.com/mitchellh/copystructure v1.2.0
 	github.com/rboyer/blankspace v0.2.1
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 	golang.org/x/net v0.43.0
-	google.golang.org/grpc v1.65.0
+	google.golang.org/grpc v1.75.0
 )
 
 require (
@@ -88,7 +88,7 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_golang v1.14.0 // indirect
-	github.com/prometheus/client_model v0.5.0 // indirect
+	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.39.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
 	github.com/rboyer/safeio v0.2.3 // indirect
@@ -104,8 +104,8 @@ require (
 	golang.org/x/sys v0.35.0 // indirect
 	golang.org/x/text v0.28.0 // indirect
 	golang.org/x/tools v0.36.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240823204242-4ba0660f739c // indirect
-	google.golang.org/protobuf v1.34.2 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250707201910-8d1bb00bc6a7 // indirect
+	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
