@@ -1,14 +1,14 @@
 module github.com/hashicorp/consul/testing/deployer
 
-go 1.23.12
+go 1.25.0
 
 require (
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/google/go-cmp v0.7.0
 	github.com/hashicorp/consul-server-connection-manager v0.1.4
-	github.com/hashicorp/consul/api v1.29.4
-	github.com/hashicorp/consul/proto-public v0.6.2
-	github.com/hashicorp/consul/sdk v0.16.1
+	github.com/hashicorp/consul/api v1.32.1
+	github.com/hashicorp/consul/proto-public v0.6.4
+	github.com/hashicorp/consul/sdk v0.16.2
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-hclog v1.5.0
 	github.com/hashicorp/go-multierror v1.1.1

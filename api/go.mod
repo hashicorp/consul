@@ -1,6 +1,6 @@
 module github.com/hashicorp/consul/api
 
-go 1.23.12
+go 1.25.0
 
 replace github.com/hashicorp/consul/sdk => ../sdk
 
@@ -14,7 +14,7 @@ retract (
 
 require (
 	github.com/google/go-cmp v0.6.0
-	github.com/hashicorp/consul/sdk v0.16.1
+	github.com/hashicorp/consul/sdk v0.16.2
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-hclog v1.5.0
 	github.com/hashicorp/go-multierror v1.1.1
