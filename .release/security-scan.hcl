@@ -38,9 +38,6 @@ container {
 		suppress {
 			# N.b. `vulnerabilites` is the correct spelling for this tool.
 			vulnerabilites = [
-				"CVE-2023-46218", # curl@8.4.0-r0
-				"CVE-2023-46219", # curl@8.4.0-r0
-				"CVE-2023-5678",  # openssl@3.1.4-r0
 			]
 			paths = [
 				"internal/tools/proto-gen-rpc-glue/e2e/consul/*",
