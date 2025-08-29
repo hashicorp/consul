@@ -1,44 +1,6 @@
 import { modifier } from 'ember-modifier';
 
 export default modifier(function fixSuperSelectAria(element) {
-  // Inject CSS fixes once globally
-  if (!document.getElementById('hds-contrast-fix')) {
-    const style = document.createElement('style');
-    style.id = 'hds-contrast-fix';
-    style.textContent = `
-      /* Fix contrast issues */
-      .type-text em,
-      .hds-form-field__helper-text,
-      .hds-form-super-select__helper-text,
-      .hds-form-field em {
-        color: #495057 !important;
-      }
-      
-      /* Fix dropdown text visibility */
-      .hds-form-super-select__option,
-      .hds-form-super-select__option *,
-      .ember-power-select-option,
-      .ember-power-select-option *,
-      .child-selector [role="option"] {
-        color: #212529 !important;
-        opacity: 1 !important;
-        visibility: visible !important;
-      }
-      
-      /* Fix side nav disabled items */
-      .hds-side-nav__list-item.consul-disabled-nav,
-      .hds-side-nav__list-item.consul-disabled-nav a,
-      .hds-side-nav__list-item.consul-disabled-nav span {
-        color: #9ca3af !important;
-      }
-      
-      .hds-side-nav__wrapper .consul-disabled-nav {
-        color: #d1d5db !important;
-      }
-    `;
-    document.head.appendChild(style);
-  }
-
   function fixAria() {
     // Fix roles and ARIA attributes
     element.querySelectorAll('[role="alert"][aria-selected]').forEach((el) => {
@@ -89,17 +51,6 @@ export default modifier(function fixSuperSelectAria(element) {
     element
       .querySelectorAll('[role="combobox"]:not([aria-label]):not([aria-labelledby]):not([title])')
       .forEach((el) => el.setAttribute('aria-label', 'Select input'));
-
-    // Fix options visibility and accessibility
-    element.querySelectorAll('[role="option"]').forEach((option) => {
-      if (!option.getAttribute('aria-label') && !option.textContent?.trim()) {
-        option.setAttribute('aria-label', 'Select option');
-      }
-      option.style.cssText = 'color: #212529 !important; opacity: 1 !important;';
-      option.querySelectorAll('*').forEach((nested) => {
-        nested.style.cssText = 'color: #212529 !important; opacity: 1 !important;';
-      });
-    });
   }
 
   // Run fixes with delays and watch for changes
