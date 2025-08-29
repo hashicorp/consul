@@ -1,0 +1,3 @@
+```release-note:security
+connect: remove vulnerability suppressions from security scanner configuration
+```
