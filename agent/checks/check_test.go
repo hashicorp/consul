@@ -1198,11 +1198,10 @@ func mockUDPServer(ctx context.Context, network string, port int) {
 		}
 	}()
 
-	select {
-	case <-ctx.Done():
-		fmt.Println("cancelled")
-		close(chClose)
-	}
+	<-ctx.Done()
+	fmt.Println("cancelled")
+	close(chClose)
+
 	wg.Wait()
 }
 
@@ -1366,7 +1365,7 @@ func TestCheckH2PING(t *testing.T) {
 }
 
 func TestCheckH2PING_TLS_BadVerify(t *testing.T) {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { return })
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
 	server := httptest.NewUnstartedServer(handler)
 	server.EnableHTTP2 = true
 	server.StartTLS()
@@ -1468,7 +1467,7 @@ func TestCheckH2CPING(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { return })
+			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
 			h2chandler := h2c.NewHandler(handler, &http2.Server{})
 			server := httptest.NewUnstartedServer(h2chandler)
 			server.Config.ReadTimeout = tt.connTimeout

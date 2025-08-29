@@ -244,18 +244,18 @@ func assignValueBool(params map[string]interface{}, name string, out *bool) erro
 func assignValueStringSlice(params map[string]interface{}, name string, out *[]string) error {
 	if raw, ok := params[name]; ok {
 		var tmp []string
-		switch raw.(type) {
+		switch raw := raw.(type) {
 		case string:
-			tmp = make([]string, 1, 1)
-			tmp[0] = raw.(string)
+			tmp = make([]string, 1)
+			tmp[0] = raw
 		case []string:
-			l := len(raw.([]string))
-			tmp = make([]string, l, l)
-			copy(tmp, raw.([]string))
+			l := len(raw)
+			tmp = make([]string, l)
+			copy(tmp, raw)
 		case []interface{}:
-			l := len(raw.([]interface{}))
-			tmp = make([]string, l, l)
-			for i, v := range raw.([]interface{}) {
+			l := len(raw)
+			tmp = make([]string, l)
+			for i, v := range raw {
 				if s, ok := v.(string); ok {
 					tmp[i] = s
 				} else {

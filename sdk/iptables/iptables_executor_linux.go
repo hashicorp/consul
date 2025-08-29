@@ -41,7 +41,7 @@ func (i *iptablesExecutor) ApplyRules() error {
 		cmd.Stderr = &cmdOutput
 		err := cmd.Run()
 		if err != nil {
-			return fmt.Errorf("failed to run command: %s, err: %v, output: %s", cmd.String(), err, string(cmdOutput.Bytes()))
+			return fmt.Errorf("failed to run command: %s, err: %v, output: %s", cmd.String(), err, cmdOutput.String())
 		}
 	}
 

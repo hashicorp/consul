@@ -112,7 +112,7 @@ func TestAWSBootstrapAndSignSecondary(t *testing.T) {
 	rootPEM, err := p1.GenerateCAChain()
 	require.NoError(t, err)
 
-	p2 := testAWSProvider(t, testProviderConfigSecondary(t, nil))
+	p2 := testAWSProvider(t, testProviderConfigSecondary(nil))
 	defer p2.Cleanup(true, nil)
 
 	testSignIntermediateCrossDC(t, p1, p2)
@@ -202,7 +202,7 @@ func TestAWSBootstrapAndSignSecondary(t *testing.T) {
 		newIntPEM := strings.TrimSuffix(intPEM, "\n")
 		newRootPEM := strings.TrimSuffix(rootPEM, "\n")
 
-		cfg2 := testProviderConfigSecondary(t, map[string]interface{}{
+		cfg2 := testProviderConfigSecondary(map[string]interface{}{
 			"ExistingARN": p2State[AWSStateCAARNKey],
 		})
 		p2 = testAWSProvider(t, cfg2)
@@ -232,7 +232,7 @@ func TestAWSBootstrapAndSignSecondaryConsul(t *testing.T) {
 		_, err := p1.GenerateCAChain()
 		require.NoError(t, err)
 
-		p2 := testAWSProvider(t, testProviderConfigSecondary(t, nil))
+		p2 := testAWSProvider(t, testProviderConfigSecondary(nil))
 		defer p2.Cleanup(true, nil)
 
 		testSignIntermediateCrossDC(t, p1, p2)
@@ -437,7 +437,7 @@ func testProviderConfigPrimary(cfg map[string]interface{}) ProviderConfig {
 	}
 }
 
-func testProviderConfigSecondary(t *testing.T, cfg map[string]interface{}) ProviderConfig {
+func testProviderConfigSecondary(cfg map[string]interface{}) ProviderConfig {
 	c := testProviderConfigPrimary(cfg)
 	c.IsPrimary = false
 	c.Datacenter = "dc2"

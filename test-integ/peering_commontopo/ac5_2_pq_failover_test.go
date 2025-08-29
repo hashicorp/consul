@@ -40,12 +40,12 @@ var ac5_2Context = make(map[nodeKey]ac5_2PQFailoverSuite)
 func TestAC5PreparedQueryFailover(t *testing.T) {
 	ct := newCommonTopo(t, "dc2", true, true)
 	s := &ac5_2PQFailoverSuite{}
-	s.setup(t, ct)
+	s.setup(ct)
 	ct.Launch(t)
 	s.test(t, ct)
 }
 
-func (s *ac5_2PQFailoverSuite) setup(t *testing.T, ct *commonTopo) {
+func (s *ac5_2PQFailoverSuite) setup(ct *commonTopo) {
 	s.setupDC(ct, ct.DC1, ct.DC2)
 	s.setupDC(ct, ct.DC2, ct.DC1)
 	s.setupDC3(ct, ct.DC3, ct.DC1, ct.DC2)

@@ -321,7 +321,7 @@ func TestAPI_CatalogServiceUnmanagedProxy(t *testing.T) {
 
 	catalog := c.Catalog()
 
-	proxyReg := testUnmanagedProxyRegistration(t)
+	proxyReg := testUnmanagedProxyRegistration()
 
 	retry.Run(t, func(r *retry.R) {
 		_, err := catalog.Register(proxyReg, nil)
@@ -530,7 +530,7 @@ func TestAPI_CatalogService_Filter(t *testing.T) {
 
 }
 
-func testUpstreams(t *testing.T) []Upstream {
+func testUpstreams() []Upstream {
 	return []Upstream{
 		{
 			DestinationName: "db",
@@ -547,21 +547,9 @@ func testUpstreams(t *testing.T) []Upstream {
 	}
 }
 
-func testExpectUpstreamsWithDefaults(t *testing.T, upstreams []Upstream) []Upstream {
-	ups := make([]Upstream, len(upstreams))
-	for i := range upstreams {
-		ups[i] = upstreams[i]
-		// Fill in default fields we expect to have back explicitly in a response
-		if ups[i].DestinationType == "" {
-			ups[i].DestinationType = UpstreamDestTypeService
-		}
-	}
-	return ups
-}
-
 // testUnmanagedProxy returns a fully configured external proxy service suitable
 // for checking that all the config fields make it back in a response intact.
-func testUnmanagedProxy(t *testing.T) *AgentService {
+func testUnmanagedProxy() *AgentService {
 	return &AgentService{
 		Kind: ServiceKindConnectProxy,
 		Proxy: &AgentServiceConnectProxyConfig{
@@ -569,7 +557,7 @@ func testUnmanagedProxy(t *testing.T) *AgentService {
 			DestinationServiceID:   "web1",
 			LocalServiceAddress:    "127.0.0.2",
 			LocalServicePort:       8080,
-			Upstreams:              testUpstreams(t),
+			Upstreams:              testUpstreams(),
 			Mode:                   ProxyModeTransparent,
 			TransparentProxy: &TransparentProxyConfig{
 				OutboundListenerPort: 808,
@@ -583,12 +571,12 @@ func testUnmanagedProxy(t *testing.T) *AgentService {
 
 // testUnmanagedProxyRegistration returns a *CatalogRegistration for a fully
 // configured external proxy.
-func testUnmanagedProxyRegistration(t *testing.T) *CatalogRegistration {
+func testUnmanagedProxyRegistration() *CatalogRegistration {
 	return &CatalogRegistration{
 		Datacenter: "dc1",
 		Node:       "foobar",
 		Address:    "192.168.10.10",
-		Service:    testUnmanagedProxy(t),
+		Service:    testUnmanagedProxy(),
 	}
 }
 
@@ -600,7 +588,7 @@ func TestAPI_CatalogConnect(t *testing.T) {
 	catalog := c.Catalog()
 
 	// Register service and proxy instances to test against.
-	proxyReg := testUnmanagedProxyRegistration(t)
+	proxyReg := testUnmanagedProxyRegistration()
 
 	proxy := proxyReg.Service
 
@@ -755,7 +743,7 @@ func TestAPI_CatalogNode(t *testing.T) {
 	name, err := c.Agent().NodeName()
 	require.NoError(t, err)
 
-	proxyReg := testUnmanagedProxyRegistration(t)
+	proxyReg := testUnmanagedProxyRegistration()
 	proxyReg.Node = name
 	proxyReg.SkipNodeUpdate = true
 
@@ -806,7 +794,7 @@ func TestAPI_CatalogNodeServiceList(t *testing.T) {
 	name, err := c.Agent().NodeName()
 	require.NoError(t, err)
 
-	proxyReg := testUnmanagedProxyRegistration(t)
+	proxyReg := testUnmanagedProxyRegistration()
 	proxyReg.Node = name
 	proxyReg.SkipNodeUpdate = true
 

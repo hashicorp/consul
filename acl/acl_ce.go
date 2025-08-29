@@ -32,6 +32,4 @@ type EnterpriseConfig struct {
 	// no fields in CE
 }
 
-func (_ *EnterpriseConfig) Close() {
-	// do nothing
-}
+func (*EnterpriseConfig) Close() {}
