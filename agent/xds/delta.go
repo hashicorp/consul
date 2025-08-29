@@ -231,7 +231,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 				var err error
 				proxyFeatures, err = xdscommon.DetermineSupportedProxyFeatures(req.Node)
 				if err != nil {
-					return status.Errorf(codes.InvalidArgument, err.Error())
+					return status.Error(codes.InvalidArgument, err.Error())
 				}
 			}
 

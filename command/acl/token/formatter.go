@@ -225,7 +225,7 @@ func (f *prettyFormatter) FormatTokenExpanded(token *api.ACLTokenExpanded) (stri
 		if len(templatedPolicy.Datacenters) > 0 {
 			buffer.WriteString(fmt.Sprintf(indent+WHITESPACE_2+"Datacenters: %s\n", strings.Join(templatedPolicy.Datacenters, ", ")))
 		} else {
-			buffer.WriteString(fmt.Sprintf(indent + WHITESPACE_2 + "Datacenters: all\n"))
+			buffer.WriteString(indent + WHITESPACE_2 + "Datacenters: all\n")
 		}
 		policy, _ := tp.SyntheticPolicy(&entMeta)
 		displaySyntheticPolicy(policy, &buffer, indent)

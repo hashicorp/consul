@@ -62,7 +62,7 @@ func newTestSnapshot(
 	if dbServiceProtocol != "" {
 		// Simulate ServiceManager injection of protocol
 		snap.Proxy.Upstreams[0].Config["protocol"] = dbServiceProtocol
-		snap.ConnectProxy.ConfigSnapshotUpstreams.UpstreamConfig = proxycfg.UpstreamsToMap(snap.Proxy.Upstreams)
+		snap.ConnectProxy.UpstreamConfig = proxycfg.UpstreamsToMap(snap.Proxy.Upstreams)
 	}
 	return snap
 }
@@ -77,7 +77,7 @@ type testManager struct {
 	cancels              chan structs.ServiceID
 }
 
-func newTestManager(t *testing.T) *testManager {
+func newTestManager() *testManager {
 	return &testManager{
 		stateChans:           map[structs.ServiceID]chan *proxycfg.ConfigSnapshot{},
 		drainChans:           map[structs.ServiceID]chan struct{}{},
@@ -186,7 +186,7 @@ func newTestServerDeltaScenario(
 	token string,
 	authCheckFrequency time.Duration,
 ) *testServerScenario {
-	mgr := newTestManager(t)
+	mgr := newTestManager()
 	envoy := NewTestEnvoy(t, proxyID, token)
 
 	sink := metrics.NewInmemSink(1*time.Minute, 1*time.Minute)

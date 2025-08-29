@@ -1,7 +1,7 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
-name: stale
+name: stale prs
 on:
   schedule:
     - cron: 0 1 * * *

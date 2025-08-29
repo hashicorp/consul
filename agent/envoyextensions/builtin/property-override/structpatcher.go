@@ -97,7 +97,7 @@ func findTargetMessageAndField(m protoreflect.Message, parsedPath []string, patc
 			// In the future, we could support Any by using the type field to initialize a struct for
 			// the nested message value.
 			return nil, nil, fmt.Errorf("variant-type message fields (google.protobuf.Any) are not supported")
-		case !(fieldDesc.Kind() == protoreflect.MessageKind):
+		case fieldDesc.Kind() != protoreflect.MessageKind:
 			// Non-Any fields that could be used to serialize protos as bytes will get a clear error message
 			// in this scenario. This also catches accidental use of non-complex fields as parent fields.
 			return nil, nil, fmt.Errorf("path contains member of non-message field '%s' (type '%s'); this type does not support child fields", fieldName, fieldDesc.Kind())

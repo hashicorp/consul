@@ -123,7 +123,7 @@ func (r *configEntryRequest) Request(index uint64) *pbsubscribe.SubscribeRequest
 		Topic:      r.topic,
 		Index:      index,
 		Datacenter: r.req.Datacenter,
-		Token:      r.req.QueryOptions.Token,
+		Token:      r.req.Token,
 	}
 
 	if name := r.req.Name; name == "" {

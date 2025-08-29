@@ -126,7 +126,7 @@ func (s *handlerTerminatingGateway) handleUpdate(ctx context.Context, u UpdateEv
 			}
 
 			// Watch the health endpoint to discover endpoints for the service
-			if _, ok := snap.TerminatingGateway.WatchedServices[svc.Service]; !ok && !(svc.ServiceKind == structs.GatewayServiceKindDestination) {
+			if _, ok := snap.TerminatingGateway.WatchedServices[svc.Service]; !ok && (svc.ServiceKind != structs.GatewayServiceKindDestination) {
 
 				ctx, cancel := context.WithCancel(ctx)
 				err := s.dataSources.Health.Notify(ctx, &structs.ServiceSpecificRequest{
@@ -178,8 +178,8 @@ func (s *handlerTerminatingGateway) handleUpdate(ctx context.Context, u UpdateEv
 				err := s.dataSources.TrustBundleList.Notify(ctx, &cachetype.TrustBundleListRequest{
 					Request: &pbpeering.TrustBundleListByServiceRequest{
 						ServiceName: svc.Service.Name,
-						Namespace:   svc.Service.EnterpriseMeta.NamespaceOrDefault(),
-						Partition:   svc.Service.EnterpriseMeta.PartitionOrDefault(),
+						Namespace:   svc.Service.NamespaceOrDefault(),
+						Partition:   svc.Service.PartitionOrDefault(),
 					},
 					QueryOptions: structs.QueryOptions{Token: s.token},
 				}, peerTrustBundleIDPrefix+svc.Service.String(), s.ch)
@@ -241,7 +241,7 @@ func (s *handlerTerminatingGateway) handleUpdate(ctx context.Context, u UpdateEv
 
 			// Watch service resolvers for the service
 			// These are used to create clusters and endpoints for the service subsets
-			if _, ok := snap.TerminatingGateway.WatchedResolvers[svc.Service]; !ok && !(svc.ServiceKind == structs.GatewayServiceKindDestination) {
+			if _, ok := snap.TerminatingGateway.WatchedResolvers[svc.Service]; !ok && (svc.ServiceKind != structs.GatewayServiceKindDestination) {
 
 				ctx, cancel := context.WithCancel(ctx)
 				err := s.dataSources.ConfigEntry.Notify(ctx, &structs.ConfigEntryQuery{

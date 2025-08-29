@@ -25,8 +25,8 @@ func TestFederationStateListMeshGateways(t *testing.T) {
 	rpc.On("RPC", mock.Anything, "FederationState.ListMeshGateways", mock.Anything, mock.Anything).Return(nil).
 		Run(func(args mock.Arguments) {
 			req := args.Get(2).(*structs.DCSpecificRequest)
-			require.Equal(t, uint64(24), req.QueryOptions.MinQueryIndex)
-			require.Equal(t, 1*time.Second, req.QueryOptions.MaxQueryTime)
+			require.Equal(t, uint64(24), req.MinQueryIndex)
+			require.Equal(t, 1*time.Second, req.MaxQueryTime)
 			require.True(t, req.AllowStale)
 
 			reply := args.Get(3).(*structs.DatacenterIndexedCheckServiceNodes)
@@ -78,7 +78,7 @@ func TestFederationStateListMeshGateways(t *testing.T) {
 					},
 				},
 			}
-			reply.QueryMeta.Index = 48
+			reply.Index = 48
 			resp = reply
 		})
 

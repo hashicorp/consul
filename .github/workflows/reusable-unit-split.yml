@@ -49,7 +49,7 @@ on:
         required: true
 env:
   TEST_RESULTS: /tmp/test-results
-  GOTESTSUM_VERSION: "1.11.0"
+  GOTESTSUM_VERSION: "1.12.3"
   GOARCH: ${{inputs.go-arch}}
   TOTAL_RUNNERS: ${{inputs.runner-count}}
   CONSUL_LICENSE: ${{secrets.consul-license}}

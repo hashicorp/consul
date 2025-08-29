@@ -31,7 +31,7 @@ func (s *HTTPHandlers) PeeringEndpoint(resp http.ResponseWriter, req *http.Reque
 	case "GET":
 		return s.peeringRead(resp, req, name)
 	case "DELETE":
-		return s.peeringDelete(resp, req, name)
+		return s.peeringDelete(req, name)
 	default:
 		return nil, MethodNotAllowedError{req.Method, []string{"GET", "DELETE"}}
 	}
@@ -201,7 +201,7 @@ func (s *HTTPHandlers) PeeringEstablish(resp http.ResponseWriter, req *http.Requ
 
 // peeringDelete initiates a deletion for a peering that matches the name and partition.
 // This assumes that the name and partition parameters are valid.
-func (s *HTTPHandlers) peeringDelete(resp http.ResponseWriter, req *http.Request, name string) (interface{}, error) {
+func (s *HTTPHandlers) peeringDelete(req *http.Request, name string) (interface{}, error) {
 	var entMeta acl.EnterpriseMeta
 	if err := s.parseEntMetaPartition(req, &entMeta); err != nil {
 		return nil, err
