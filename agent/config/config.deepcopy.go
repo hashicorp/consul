@@ -360,6 +360,10 @@ func (o *RuntimeConfig) DeepCopy() *RuntimeConfig {
 						cp.Cloud.TLSConfig.Certificates[i5].Leaf.Policies = make([]x509.OID, len(o.Cloud.TLSConfig.Certificates[i5].Leaf.Policies))
 						copy(cp.Cloud.TLSConfig.Certificates[i5].Leaf.Policies, o.Cloud.TLSConfig.Certificates[i5].Leaf.Policies)
 					}
+					if o.Cloud.TLSConfig.Certificates[i5].Leaf.PolicyMappings != nil {
+						cp.Cloud.TLSConfig.Certificates[i5].Leaf.PolicyMappings = make([]x509.PolicyMapping, len(o.Cloud.TLSConfig.Certificates[i5].Leaf.PolicyMappings))
+						copy(cp.Cloud.TLSConfig.Certificates[i5].Leaf.PolicyMappings, o.Cloud.TLSConfig.Certificates[i5].Leaf.PolicyMappings)
+					}
 				}
 			}
 		}
@@ -703,6 +707,10 @@ func (o *RuntimeConfig) DeepCopy() *RuntimeConfig {
 							cp_Cloud_TLSConfig_NameToCertificate_v5.Leaf.Policies = make([]x509.OID, len(v5.Leaf.Policies))
 							copy(cp_Cloud_TLSConfig_NameToCertificate_v5.Leaf.Policies, v5.Leaf.Policies)
 						}
+						if v5.Leaf.PolicyMappings != nil {
+							cp_Cloud_TLSConfig_NameToCertificate_v5.Leaf.PolicyMappings = make([]x509.PolicyMapping, len(v5.Leaf.PolicyMappings))
+							copy(cp_Cloud_TLSConfig_NameToCertificate_v5.Leaf.PolicyMappings, v5.Leaf.PolicyMappings)
+						}
 					}
 				}
 				cp.Cloud.TLSConfig.NameToCertificate[k5] = cp_Cloud_TLSConfig_NameToCertificate_v5
@@ -731,6 +739,20 @@ func (o *RuntimeConfig) DeepCopy() *RuntimeConfig {
 		if o.Cloud.TLSConfig.EncryptedClientHelloConfigList != nil {
 			cp.Cloud.TLSConfig.EncryptedClientHelloConfigList = make([]byte, len(o.Cloud.TLSConfig.EncryptedClientHelloConfigList))
 			copy(cp.Cloud.TLSConfig.EncryptedClientHelloConfigList, o.Cloud.TLSConfig.EncryptedClientHelloConfigList)
+		}
+		if o.Cloud.TLSConfig.EncryptedClientHelloKeys != nil {
+			cp.Cloud.TLSConfig.EncryptedClientHelloKeys = make([]tls.EncryptedClientHelloKey, len(o.Cloud.TLSConfig.EncryptedClientHelloKeys))
+			copy(cp.Cloud.TLSConfig.EncryptedClientHelloKeys, o.Cloud.TLSConfig.EncryptedClientHelloKeys)
+			for i5 := range o.Cloud.TLSConfig.EncryptedClientHelloKeys {
+				if o.Cloud.TLSConfig.EncryptedClientHelloKeys[i5].Config != nil {
+					cp.Cloud.TLSConfig.EncryptedClientHelloKeys[i5].Config = make([]byte, len(o.Cloud.TLSConfig.EncryptedClientHelloKeys[i5].Config))
+					copy(cp.Cloud.TLSConfig.EncryptedClientHelloKeys[i5].Config, o.Cloud.TLSConfig.EncryptedClientHelloKeys[i5].Config)
+				}
+				if o.Cloud.TLSConfig.EncryptedClientHelloKeys[i5].PrivateKey != nil {
+					cp.Cloud.TLSConfig.EncryptedClientHelloKeys[i5].PrivateKey = make([]byte, len(o.Cloud.TLSConfig.EncryptedClientHelloKeys[i5].PrivateKey))
+					copy(cp.Cloud.TLSConfig.EncryptedClientHelloKeys[i5].PrivateKey, o.Cloud.TLSConfig.EncryptedClientHelloKeys[i5].PrivateKey)
+				}
+			}
 		}
 	}
 	if o.DNSServiceTTL != nil {
