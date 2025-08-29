@@ -16,7 +16,7 @@ jobs:
 
       - name: Run lychee link checker
         id: lychee
-        uses: lycheeverse/lychee-action@2b973e86fc7b1f6b36a93795fe2c9c6ae1118621 # v1.10.0
+        uses: lycheeverse/lychee-action@7cd0af4c74a61395d455af97419279d86aafaede # v2.0.2
         with:
           args: ./website/content/docs/ --base https://developer.hashicorp.com/ --exclude-all-private --exclude '\.(svg|gif|jpg|png)' --exclude 'manage\.auth0\.com' --accept 403 --max-concurrency=24 --no-progress --verbose
           # Fail GitHub action when broken links are found?
