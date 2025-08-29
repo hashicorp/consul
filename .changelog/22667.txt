@@ -1,0 +1,3 @@
+```release-note:security
+security: Fix GHSA-65rg-554r-9j5x (CVE-2024-48908) by upgrading lycheeverse/lychee-action.
+```
