@@ -310,7 +310,7 @@ func (h *Handler) serveTransformedJS(w http.ResponseWriter, jsPath string) {
 
 	if !isSuccess {
 		http.Error(w, "ContentPath value not found in template data", http.StatusInternalServerError)
-		h.logger.Error("ContentPath value not found in template data: %s", err)
+		h.logger.Error("ContentPath value not found in template data")
 		return
 	}
 	js := string(content)
