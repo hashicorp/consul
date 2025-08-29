@@ -520,7 +520,7 @@ func TestManager_watchRootsDedupingMultipleCallers(t *testing.T) {
 			t.Fatal("timed out waiting for clients")
 		case err := <-setupDoneCh:
 			if err != nil {
-				t.Fatalf(err.Error())
+				t.Fatal(err.Error())
 			}
 		}
 	}
@@ -544,7 +544,7 @@ func TestManager_watchRootsDedupingMultipleCallers(t *testing.T) {
 			t.Fatalf("timed out waiting for %d of %d clients to renew after root change", n-i, n)
 		case err := <-testDoneCh:
 			if err != nil {
-				t.Fatalf(err.Error())
+				t.Fatal(err.Error())
 			}
 		}
 	}
