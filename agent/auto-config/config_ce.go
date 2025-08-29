@@ -9,6 +9,6 @@ package autoconf
 type EnterpriseConfig struct{}
 
 // finalize is a noop for CE
-func (_ *EnterpriseConfig) validateAndFinalize() error {
+func (*EnterpriseConfig) validateAndFinalize() error {
 	return nil
 }

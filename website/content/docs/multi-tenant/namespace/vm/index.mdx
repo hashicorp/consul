@@ -1,0 +1,25 @@
+---
+layout: docs
+page_title: Setup Consul namespaces on VMs
+description: |-
+  Delegate administrative privileges to namespace operators and remove resource uniqueness restrictions using Consul Enterprise namespace and Access Control Lists (ACLS).
+---
+
+# Setup Consul namespaces on VMs
+
+This section describes the process to setup secure namespaces in Consul when your datacenter runs on VMs.
+
+@include 'alerts/enterprise-alert.mdx'
+
+Namespaces provide separation for teams within a single organization enabling them to share access to one or more Consul datacenters without conflict. This allows teams to deploy services without having to worry about name conflicts and to create more granular access to the datacenter with namespaced ACLs. Additionally, namespaces with ACLs allows you to delegate access control to specific resources within the datacenter including services, Connect service mesh proxies, key/value pairs, and sessions.
+
+<Note>
+
+Namespaces do not have any impact on compute or other node resources. 
+
+</Note>
+
+For more information on how to use namespaces with Consul Enterprise on VMs, review the following documentation:
+
+- [Configure namespaces](/consul/docs/multi-tenant/namespace/vm/configure-namespaces) to separate the datacenter resources for multiple teams.
+- [Delegate token management with namespaces](/consul/docs/multi-tenant/namespace/vm/delegate-token-management) to delegate ACL management to multiple operators.

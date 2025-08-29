@@ -186,8 +186,8 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP(t *testing.T) {
 	})
 
 	deleteAllButOneEndpoint := func(snap *proxycfg.ConfigSnapshot, uid proxycfg.UpstreamID, targetID string) {
-		snap.ConnectProxy.ConfigSnapshotUpstreams.WatchedUpstreamEndpoints[uid][targetID] =
-			snap.ConnectProxy.ConfigSnapshotUpstreams.WatchedUpstreamEndpoints[uid][targetID][0:1]
+		snap.ConnectProxy.WatchedUpstreamEndpoints[uid][targetID] =
+			snap.ConnectProxy.WatchedUpstreamEndpoints[uid][targetID][0:1]
 	}
 
 	testutil.RunStep(t, "avoid sending config for unsubscribed resource", func(t *testing.T) {

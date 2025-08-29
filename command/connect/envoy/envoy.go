@@ -633,7 +633,7 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 	if err != nil {
 		return nil, err
 	}
-	caPEM = strings.Replace(strings.Join(pems, ""), "\n", "\\n", -1)
+	caPEM = strings.ReplaceAll(strings.Join(pems, ""), "\n", "\\n")
 
 	return &BootstrapTplArgs{
 		GRPC:                  xdsAddr,
@@ -962,7 +962,7 @@ func checkDial(g GRPC, dial func(string, string) (net.Conn, error)) error {
 	if g.AgentSocket != "" {
 		conn, err = dial("unix", g.AgentSocket)
 	} else {
-		conn, err = dial("tcp", fmt.Sprintf("%s:%s", g.AgentAddress, g.AgentPort))
+		conn, err = dial("tcp", net.JoinHostPort(g.AgentAddress, g.AgentPort))
 	}
 	if err != nil {
 		return err

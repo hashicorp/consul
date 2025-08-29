@@ -720,7 +720,7 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 
 		apiEntry := entry.(*api.HTTPRouteConfigEntry)
 		t.Log(apiEntry)
-		t.Log(fmt.Sprintf("%#v", apiEntry))
+		t.Logf("%#v", apiEntry)
 
 		// check if bound only to correct gateway
 		return len(apiEntry.Parents) == 1 &&

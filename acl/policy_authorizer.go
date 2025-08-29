@@ -362,7 +362,7 @@ func newPolicyAuthorizerFromRules(rules *PolicyRules, ent *Config) (*policyAutho
 		preparedQueryRules:      radix.New(),
 	}
 
-	p.enterprisePolicyAuthorizer.init(ent)
+	p.init(ent)
 
 	if err := p.loadRules(rules); err != nil {
 		return nil, err
@@ -610,7 +610,7 @@ func (p *policyAuthorizer) KeyWrite(key string, entCtx *AuthorizerContext) Enfor
 	if rule, ok := getPolicy(key, p.keyRules); ok {
 		decision := enforce(rule.access, AccessWrite)
 		if decision == Allow {
-			return defaultIsAllow(p.enterprisePolicyAuthorizer.enforce(&rule.EnterpriseRule, entCtx))
+			return defaultIsAllow(p.enforce(&rule.EnterpriseRule, entCtx))
 		}
 		return decision
 	}

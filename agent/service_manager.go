@@ -333,10 +333,10 @@ func makeConfigRequest(bd BaseDeps, addReq AddServiceRequest) *structs.ServiceCo
 			if us.DestinationType == "" || us.DestinationType == structs.UpstreamDestTypeService {
 				psn := us.DestinationID()
 				if psn.Peer == "" {
-					psn.ServiceName.EnterpriseMeta.Merge(&ns.EnterpriseMeta)
+					psn.ServiceName.Merge(&ns.EnterpriseMeta)
 				} else {
 					// Peer services should not have their namespace overwritten.
-					psn.ServiceName.EnterpriseMeta.OverridePartition(ns.EnterpriseMeta.PartitionOrDefault())
+					psn.ServiceName.OverridePartition(ns.PartitionOrDefault())
 				}
 				upstreams = append(upstreams, psn)
 			}
@@ -352,8 +352,8 @@ func makeConfigRequest(bd BaseDeps, addReq AddServiceRequest) *structs.ServiceCo
 		UpstreamServiceNames: upstreams,
 		EnterpriseMeta:       ns.EnterpriseMeta,
 	}
-	if req.QueryOptions.Token == "" {
-		req.QueryOptions.Token = bd.Tokens.AgentToken()
+	if req.Token == "" {
+		req.Token = bd.Tokens.AgentToken()
 	}
 	return req
 }

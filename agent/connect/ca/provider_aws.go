@@ -703,7 +703,7 @@ func ParseAWSCAConfig(raw map[string]interface{}) (*structs.AWSCAProviderConfig,
 		return nil, fmt.Errorf("error decoding config: %s", err)
 	}
 
-	if err := config.CommonCAProviderConfig.Validate(); err != nil {
+	if err := config.Validate(); err != nil {
 		return nil, err
 	}
 
