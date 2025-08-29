@@ -316,5 +316,7 @@ func (h *Handler) serveTransformedJS(w http.ResponseWriter, jsPath string) {
 	js := string(content)
 	js = strings.ReplaceAll(js, "{{.ContentPath}}", contentPath)
 	w.Header().Set("Content-Type", "application/javascript")
-	w.Write([]byte(js))
+	if _, err := w.Write([]byte(js)); err != nil {
+		h.logger.Error("Failed to write JS response: %s", err)
+	}
 }
