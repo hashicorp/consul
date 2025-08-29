@@ -209,17 +209,18 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 				}
 			}
 			filterOpts := listenerFilterOpts{
-				useRDS:           true,
-				fetchTimeoutRDS:  cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
-				protocol:         listenerKey.Protocol,
-				filterName:       listenerKey.RouteName(),
-				routeName:        listenerKey.RouteName(),
-				cluster:          "",
-				statPrefix:       "ingress_upstream_",
-				routePath:        "",
-				httpAuthzFilters: authFilters,
-				accessLogs:       &cfgSnap.Proxy.AccessLogs,
-				logger:           s.Logger,
+				useRDS:              true,
+				fetchTimeoutRDS:     cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
+				protocol:            listenerKey.Protocol,
+				filterName:          listenerKey.RouteName(),
+				routeName:           listenerKey.RouteName(),
+				cluster:             "",
+				statPrefix:          "ingress_upstream_",
+				routePath:           "",
+				httpAuthzFilters:    authFilters,
+				accessLogs:          &cfgSnap.Proxy.AccessLogs,
+				logger:              s.Logger,
+				maxRequestHeadersKb: nil, // API Gateway uses Envoy defaults
 			}
 
 			// Generate any filter chains needed for services with custom TLS certs
