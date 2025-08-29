@@ -321,7 +321,7 @@ func loadBootstrapConfigJSON(dataDir string) (string, error) {
 
 	jsonBs, err := os.ReadFile(filename)
 	if err != nil {
-		return "", fmt.Errorf(fmt.Sprintf("failed to read local bootstrap config file: %s", err))
+		return "", fmt.Errorf("failed to read local bootstrap config file: %s", err)
 	}
 	return strings.TrimSpace(string(jsonBs)), nil
 }

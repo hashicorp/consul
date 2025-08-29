@@ -5,6 +5,7 @@ package watch
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"sync"
@@ -166,11 +167,11 @@ func ParseExempt(params map[string]interface{}, exempt []string) (*Plan, error) 
 	switch plan.HandlerType {
 	case "http":
 		if _, ok := params["http_handler_config"]; !ok {
-			return nil, fmt.Errorf("Handler type 'http' requires 'http_handler_config' to be set")
+			return nil, errors.New("Handler type 'http' requires 'http_handler_config' to be set")
 		}
 		config, err := parseHttpHandlerConfig(params["http_handler_config"])
 		if err != nil {
-			return nil, fmt.Errorf(fmt.Sprintf("Failed to parse 'http_handler_config': %v", err))
+			return nil, fmt.Errorf("Failed to parse 'http_handler_config': %v", err)
 		}
 		plan.Exempt["http_handler_config"] = config
 		delete(params, "http_handler_config")
@@ -287,7 +288,7 @@ func parseHttpHandlerConfig(configParams interface{}) (*HttpHandlerConfig, error
 	if config.TimeoutRaw == "" {
 		config.Timeout = DefaultTimeout
 	} else if timeout, err := time.ParseDuration(config.TimeoutRaw); err != nil {
-		return nil, fmt.Errorf(fmt.Sprintf("Failed to parse timeout: %v", err))
+		return nil, fmt.Errorf("Failed to parse timeout: %v", err)
 	} else {
 		config.Timeout = timeout
 	}
