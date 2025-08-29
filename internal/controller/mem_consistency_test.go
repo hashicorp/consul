@@ -5,6 +5,7 @@ package controller
 
 import (
 	"context"
+	mockpbresource "github.com/hashicorp/consul/grpcmocks/proto-public/pbresource"
 	"sync"
 	"testing"
 	"time"
@@ -13,7 +14,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 
-	mockpbresource "github.com/hashicorp/consul/grpcmocks/proto-public/pbresource"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/internal/storage"

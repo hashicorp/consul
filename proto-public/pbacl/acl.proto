@@ -12,7 +12,7 @@ service ACLService {
   // configured auth method.
   rpc Login(LoginRequest) returns (LoginResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
-      operation_type: OPERATION_TYPE_WRITE,
+      operation_type: OPERATION_TYPE_WRITE
       operation_category: OPERATION_CATEGORY_ACL
     };
   }
@@ -20,7 +20,7 @@ service ACLService {
   // Logout destroys the given ACL token once the caller is done with it.
   rpc Logout(LogoutRequest) returns (LogoutResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
-      operation_type: OPERATION_TYPE_WRITE,
+      operation_type: OPERATION_TYPE_WRITE
       operation_category: OPERATION_CATEGORY_ACL
     };
   }

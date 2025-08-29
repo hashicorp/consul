@@ -204,6 +204,10 @@ func (si *serverInfo) String() string {
 // ClientConn is closed by the application).
 func (b *balancer) Close() { b.closeFn() }
 
+// ExitIdle instructs the LB policy to reconnect to backends / exit the
+// IDLE state, if appropriate and possible.
+func (b *balancer) ExitIdle() {}
+
 // ResolverError is called by gRPC when the resolver reports an error. It puts
 // the connection into a TRANSIENT_FAILURE state.
 func (b *balancer) ResolverError(err error) {

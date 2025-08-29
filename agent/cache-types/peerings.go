@@ -83,13 +83,13 @@ func (t *Peerings) Fetch(opts cache.FetchOptions, req cache.Request) (cache.Fetc
 	reqReal = &dup
 
 	// Set the minimum query index to our current index, so we block
-	reqReal.QueryOptions.MinQueryIndex = opts.MinIndex
-	reqReal.QueryOptions.MaxQueryTime = opts.Timeout
+	reqReal.MinQueryIndex = opts.MinIndex
+	reqReal.MaxQueryTime = opts.Timeout
 
 	// We allow stale queries here to spread out the RPC load, but peerstream information, including the STATUS,
 	// will not be returned. Right now this is fine for the watch in proxycfg/mesh_gateway.go,
 	// but it could be a problem for a future consumer.
-	reqReal.QueryOptions.SetAllowStale(true)
+	reqReal.SetAllowStale(true)
 
 	ctx, err := external.ContextWithQueryOptions(context.Background(), reqReal.QueryOptions)
 	if err != nil {

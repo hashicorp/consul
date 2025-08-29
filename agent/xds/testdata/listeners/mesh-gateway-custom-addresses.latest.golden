@@ -88,7 +88,7 @@
           }
         }
       ],
-      "name": "bar:2001:db8::ff:9999"
+      "name": "bar:[2001:db8::ff]:9999"
     },
     {
       "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",

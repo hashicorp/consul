@@ -14,6 +14,6 @@ func (s *Server) autopilotPromoter() autopilot.Promoter {
 	return autopilot.DefaultPromoter()
 }
 
-func (_ *Server) autopilotServerExt(_ *metadata.Server) interface{} {
+func (*Server) autopilotServerExt(_ *metadata.Server) interface{} {
 	return nil
 }
