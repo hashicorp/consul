@@ -1,0 +1,181 @@
+---
+layout: docs
+page_title: Configure Consul namespaces on VMs
+description: |-
+  Separate resource access and remove resource uniqueness restrictions using Consul Enterprise namespaces.
+---
+
+# Configure Consul namespaces on VMs
+
+@include 'alerts/enterprise-alert.mdx'
+
+This page describes the process to create and register Consul namespaces on VMs.
+
+## Introduction
+
+Namespaces allow a set of Consul servers to support multiple teams simultaneously by isolating data and operations between teams. 
+
+In a fully isolated configuration, each team has its own namespace. Each namespace has a designated _namespace operator_ who is responsible for managing data and access within their namespace. The namespace operator's access to view and update data is limited to their own namespace.
+
+Namespaces exist at the datacenter level. As a result, you need an ACL token with permission over the entire Consul datacenter to configure and manage namespaces. 
+
+The minimum requirement to create namespaces is an ACL token with the [`operator = "write"` policy](/consul/docs/secure/acl/rule#operator-rules). 
+
+## Create namespace definitions
+
+The first step to leverage namespaces in Consul is to create the namespaces to assign to the different teams that need to coexist in your datacenter.
+
+In this document we'll assume the existence of two different teams, an *app-team* responsible for the deployment of the application, and a *db-team* responsible for the maintenance of the production DBMS.
+
+Namespaces can be defined in configuration files, either in *hcl* or *json* format.
+
+<Tabs>
+<Tab heading="HCL">
+
+Create the namespace definition file for the `app-team` namespace.
+
+<CodeBlockConfig filename="app-team.hcl">
+
+```hcl
+name = "app-team",
+description = "Namespace for the team managing the production application"
+```
+
+</CodeBlockConfig>
+
+Create the namespace definition file for the `db-team` namespace.
+
+<CodeBlockConfig filename="db-team.hcl">
+
+```hcl
+name = "db-team",
+description = "Namespace for the team managing the production database"
+```
+
+</CodeBlockConfig>
+
+</Tab>
+
+<Tab heading="JSON">
+
+Create the namespace definition file for the *app-team*.
+
+<CodeBlockConfig filename="app-team.json">
+
+```json
+{
+  "name": "app-team",
+  "description": "Namespace for the team managing the production application"
+}
+```
+
+</CodeBlockConfig>
+
+Create the namespace definition file for the *db-team*.
+
+<CodeBlockConfig filename="db-team.json">
+
+```json
+{
+  "name": "db-team",
+  "description": "Namespace for the team managing the production database"
+}
+```
+
+</CodeBlockConfig>
+
+</Tab>
+</Tabs>
+
+These examples use basic namespace definitions with only the name and description. For a full list of the configurable namespace parameters, refer to [Namespace definition reference](/consul/docs/reference/namespace).
+
+## Register namespaces
+
+Use the [`consul namespace` CLI command](/consul/commands/namespace) to register the namespace with the Consul datacenter.
+
+<Tabs>
+<Tab heading="HCL">
+
+Create the `app-team` namespace.
+
+```shell-session
+$ consul namespace write app-team.hcl
+Name: app-team
+Description:
+   Namespace for the team managing the production application
+Partition:   default
+```
+
+Create the `db-team` namespace.
+
+```shell-session
+$ consul namespace write db-team.hcl
+Name: db-team
+Description:
+   Namespace for db-team managing the production counting application
+Partition:   default
+```
+
+</Tab>
+<Tab heading="JSON">
+
+Create the `app-team` namespace.
+
+```shell-session
+$ consul namespace write app-team.json
+Name: app-team
+Description:
+   Namespace for app-team managing the production application
+Partition:   default
+```
+
+Create the `db-team` namespace.
+
+```shell-session
+$ consul namespace write db-team.json
+Name: db-team
+Description:
+   Namespace for db-team managing the production counting application
+Partition:   default
+```
+
+</Tab>
+</Tabs>
+
+## Review namespaces in a Consul datacenter
+
+Use the [`consul namespace list` CLI command](/consul/commands/namespace/list) to review the namespaces registered with the Consul datacenter.
+
+```shell-session
+$ consul namespace list
+app-team:
+   Description:
+      Namespace for the team managing the production application
+   Partition:   default
+db-team:
+   Description:
+      Namespace for db-team managing the production database
+   Partition:   default
+```
+
+To return information about a specific namespace, use the [`consul namespace read` CLI command](/consul/commands/namespace/read).
+
+```shell-session
+$ consul namespace read app-team
+Name: app-team
+Description:
+   Namespace for the team managing the production application
+Partition:   default
+```
+
+## Delete namespaces
+
+After you create a namespace, you can update or delete it using the Consul CLI. Refer to [`consul namespace update`](/consul/commands/namespace/update) or [`consul namespace delete`](/consul/commands/namespace/delete) for more information.
+
+## Next steps
+
+After you register a namespace with Consul, you can further secure the namespace or begin registering services into specific namespaces for service discovery.
+
+To learn how to to secure the resources within a namespace, refer to [Delegate ACL token management with namespaces](/consul/docs/multi-tenant/namespace/vm/delegate-token-management).
+
+To learn how to register services within a namespace, refer to [Register services into a namespace](/consul/docs/register/service/namespace).
