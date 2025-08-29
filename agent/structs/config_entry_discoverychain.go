@@ -5,6 +5,7 @@ package structs
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"net/http"
@@ -1153,15 +1154,15 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 			errorPrefix := fmt.Sprintf("Bad Failover[%q]: ", subset)
 
 			if err := f.ValidateEnterprise(); err != nil {
-				return fmt.Errorf(errorPrefix + err.Error())
+				return errors.New(errorPrefix + err.Error())
 			}
 
 			if subset != "*" && !isSubset(subset) {
-				return fmt.Errorf(errorPrefix + "not a valid subset subset")
+				return errors.New(errorPrefix + "not a valid subset subset")
 			}
 
 			if f.isEmpty() {
-				return fmt.Errorf(errorPrefix + "one of Service, ServiceSubset, Namespace, Targets, SamenessGroup, or Datacenters is required")
+				return errors.New(errorPrefix + "one of Service, ServiceSubset, Namespace, Targets, SamenessGroup, or Datacenters is required")
 			}
 
 			if err := f.Policy.ValidateEnterprise(); err != nil {
@@ -1207,18 +1208,18 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 				errorPrefix := fmt.Sprintf("Bad Failover[%q].Targets[%d]: ", subset, i)
 
 				if err := target.ValidateEnterprise(); err != nil {
-					return fmt.Errorf(errorPrefix + err.Error())
+					return errors.New(errorPrefix + err.Error())
 				}
 
 				switch {
 				case target.Peer != "" && target.ServiceSubset != "":
-					return fmt.Errorf(errorPrefix + "Peer cannot be set with ServiceSubset")
+					return errors.New(errorPrefix + "Peer cannot be set with ServiceSubset")
 				case target.Peer != "" && target.Partition != "":
-					return fmt.Errorf(errorPrefix + "Partition cannot be set with Peer")
+					return errors.New(errorPrefix + "Partition cannot be set with Peer")
 				case target.Peer != "" && target.Datacenter != "":
-					return fmt.Errorf(errorPrefix + "Peer cannot be set with Datacenter")
+					return errors.New(errorPrefix + "Peer cannot be set with Datacenter")
 				case target.Partition != "" && target.Datacenter != "":
-					return fmt.Errorf(errorPrefix + "Partition cannot be set with Datacenter")
+					return errors.New(errorPrefix + "Partition cannot be set with Datacenter")
 				case target.ServiceSubset != "" && (target.Service == "" || target.Service == e.Name):
 					if !isSubset(target.ServiceSubset) {
 						return fmt.Errorf("%sServiceSubset %q is not a valid subset of %q", errorPrefix, target.ServiceSubset, e.Name)

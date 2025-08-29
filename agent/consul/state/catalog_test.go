@@ -993,7 +993,7 @@ func TestNodeRenamingNodes(t *testing.T) {
 		Address: "1.1.1.2",
 	}
 	if err := s.EnsureNode(10, in2Modify); err != nil {
-		t.Fatalf("Renaming node2 into node1 should not fail: " + err.Error())
+		t.Fatal("Renaming node2 into node1 should not fail: " + err.Error())
 	}
 
 	// Retrieve the node again
