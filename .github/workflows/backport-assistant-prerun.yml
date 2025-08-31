@@ -14,6 +14,7 @@ jobs:
       - name: Acknowledge successful run
         run: echo "This workflow ran because 'Backport Checker' successfully completed."
   check-pr-condition:
+    needs: run-if-successful
     runs-on: ubuntu-latest
     steps:
       - name: Check for no-backport label
