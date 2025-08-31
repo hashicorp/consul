@@ -1,0 +1,64 @@
+name: Backport Assistant Prerunner
+
+on:
+  workflow_run:
+    workflows: ["Backport Checker"]
+    types: [completed]
+  workflow_dispatch:
+
+jobs:
+  jobs:
+  run-if-successful:
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success'
+    steps:
+      - name: Acknowledge successful run
+        run: echo "This workflow ran because 'Backport Checker' successfully completed."
+  check-pr-condition:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for no-backport label
+        id: check_label
+        run: |
+          HAS_NO_BACKPORT=$(jq -r '.pull_request.labels[].name' "${GITHUB_EVENT_PATH}" | grep -q "no-backport" && echo "true" || echo "false")
+          echo "has_no_backport=$HAS_NO_BACKPORT" >> $GITHUB_OUTPUT
+
+      - name: Fetch repository history
+        if: steps.check_label.outputs.has_no_backport == 'false'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+
+      - name: Check for merge commits
+        id: check_merges
+        if: steps.check_label.outputs.has_no_backport == 'false'
+        run: |
+          MERGE_COMMITS=$(git log --merges --oneline origin/${{ github.event.pull_request.base.ref }}..HEAD)
+          if [ -n "$MERGE_COMMITS" ]; then
+            echo "::error::Merge commits found."
+            echo "merge_commit_found=true" >> $GITHUB_OUTPUT
+            echo "MERGE_COMMIT_IDS<<EOF" >> $GITHUB_OUTPUT
+            echo "$MERGE_COMMITS" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
+          echo "merge_commit_found=${MERGE_COMMITS:+'true'}" >> $GITHUB_OUTPUT
+
+      - name: Add 'do not merge' label and comment
+        if: steps.check_merges.outputs.merge_commit_found == 'true' && steps.check_label.outputs.has_no_backport == 'false'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { owner, repo, issue_number } = context.issue;
+            const labelName = 'do not merge';
+            const commentBody = `
+            🚨 **AUTOMATED CHECK: MERGE COMMITS FOUND** 🚨
+            This pull request contains merge commits. The **\`${labelName}\`** label has been added. Please rebase your branch.
+            **Found Commits:**
+            \`\`\`
+            ${{ steps.check_merges.outputs.MERGE_COMMIT_IDS }}
+            \`\`\`
+            `;
+            await github.rest.issues.addLabels({ owner, repo, issue_number, labels: [labelName] });
+            await github.rest.issues.createComment({ owner, repo, issue_number, body: comment
