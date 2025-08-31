@@ -813,8 +813,12 @@ func (s *HTTPHandlers) UIMetricsProxy(resp http.ResponseWriter, req *http.Reques
 	// Replace prefix in the path
 	subPath := strings.TrimPrefix(req.URL.Path, "/v1/internal/ui/metrics-proxy")
 
-	// Append that to the BaseURL (which might contain a path prefix component)
-	newURL := cfg.BaseURL + subPath
+	// Security fix: Apply path.Clean to "/" + subPath before constructing newURL
+	// The leading "/" prevents ../ from remaining in the cleaned path
+	cleanedSubPath := path.Clean("/" + subPath)
+
+	// Append the cleaned path to BaseURL (which might contain a path prefix component)
+	newURL := cfg.BaseURL + cleanedSubPath
 
 	// Parse it into a new URL
 	u, err := url.Parse(newURL)
@@ -822,10 +826,6 @@ func (s *HTTPHandlers) UIMetricsProxy(resp http.ResponseWriter, req *http.Reques
 		log.Error("couldn't parse target URL", "base_url", cfg.BaseURL, "path", subPath)
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Invalid path."}
 	}
-
-	// Clean the new URL path to prevent path traversal attacks and remove any
-	// double slashes etc.
-	u.Path = path.Clean(u.Path)
 
 	if len(cfg.PathAllowlist) > 0 {
 		// This could be done better with a map, but for the prometheus default
@@ -863,7 +863,16 @@ func (s *HTTPHandlers) UIMetricsProxy(resp http.ResponseWriter, req *http.Reques
 	// hit this handler. Any /../ that are far enough into the path to hit this
 	// handler, can't backtrack far enough to eat into the BaseURL either. But we
 	// leave this in anyway in case something changes in the future.
-	if !strings.HasPrefix(u.String(), cfg.BaseURL) {
+
+	// Security fix: Ensure BaseURL has trailing "/" for proper prefix checking
+	baseURLForPrefix := cfg.BaseURL
+	if !strings.HasSuffix(baseURLForPrefix, "/") {
+		baseURLForPrefix += "/"
+	}
+
+	targetURL := u.String()
+	// Allow exact match of BaseURL (without trailing slash) or proper prefix match
+	if targetURL != cfg.BaseURL && !strings.HasPrefix(targetURL, baseURLForPrefix) {
 		log.Error("target URL escaped from base path",
 			"base_url", cfg.BaseURL,
 			"path", subPath,
