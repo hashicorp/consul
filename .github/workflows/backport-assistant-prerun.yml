@@ -10,32 +10,58 @@ jobs:
   run-if-successful:
     runs-on: ubuntu-latest
     if: github.event.workflow_run.conclusion == 'success'
+    outputs:
+      pull_request_number: ${{ github.event.workflow_run.pull_requests[0].number }}
+      pull_request_ref: ${{ github.event.workflow_run.pull_requests[0].head.ref }}
+      pull_request_repo: ${{ github.event.workflow_run.pull_requests[0].head.repo.full_name }}
     steps:
       - name: Acknowledge successful run
         run: echo "This workflow ran because 'Backport Checker' successfully completed."
-  check-pr-condition:
-    needs: run-if-successful
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check for no-backport label
-        id: check_label
-        run: |
-          HAS_NO_BACKPORT=$(jq -r '.pull_request.labels[].name' "${GITHUB_EVENT_PATH}" | grep -q "no-backport" && echo "true" || echo "false")
-          echo "has_no_backport=$HAS_NO_BACKPORT" >> $GITHUB_OUTPUT
 
+  get-pr-info:
+    runs-on: ubuntu-latest
+    needs: run-if-successful
+    outputs:
+      has_no_backport: ${{ steps.check_label.outputs.has_no_backport }}
+      pr_number: ${{ steps.check_label.outputs.pr_number }}
+    steps:
+      - name: Get PR information and check labels
+        id: check_label
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const prNumber = ${{ needs.run-if-successful.outputs.pull_request_number }};
+            if (!prNumber) {
+              console.log('No PR associated with this workflow run, skipping checks.');
+              return;
+            }
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber
+            });
+            const hasNoBackport = pr.labels.some(label => label.name === 'no-backport');
+            console.log('PR has no-backport label:', hasNoBackport);
+            core.setOutput('has_no_backport', hasNoBackport);
+            core.setOutput('pr_number', prNumber);
+
+  check-pr-condition:
+    runs-on: ubuntu-latest
+    needs: get-pr-info
+    steps:
       - name: Fetch repository history
-        if: steps.check_label.outputs.has_no_backport == 'false'
+        if: needs.get-pr-info.outputs.has_no_backport == 'false'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ${{ github.event.pull_request.head.ref }}
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ needs.get-pr-info.outputs.pull_request_ref }}
+          repository: ${{ needs.get-pr-info.outputs.pull_request_repo }}
 
       - name: Check for merge commits
         id: check_merges
-        if: steps.check_label.outputs.has_no_backport == 'false'
+        if: needs.get-pr-info.outputs.has_no_backport == 'false'
         run: |
-          MERGE_COMMITS=$(git log --merges --oneline origin/${{ github.event.pull_request.base.ref }}..HEAD)
+          MERGE_COMMITS=$(git log --merges --oneline origin/${{ github.event.workflow_run.pull_requests[0].base.ref }}..HEAD)
           if [ -n "$MERGE_COMMITS" ]; then
             echo "::error::Merge commits found."
             echo "merge_commit_found=true" >> $GITHUB_OUTPUT
@@ -46,11 +72,12 @@ jobs:
           echo "merge_commit_found=${MERGE_COMMITS:+'true'}" >> $GITHUB_OUTPUT
 
       - name: Add 'do not merge' label and comment
-        if: steps.check_merges.outputs.merge_commit_found == 'true' && steps.check_label.outputs.has_no_backport == 'false'
+        if: steps.check_merges.outputs.merge_commit_found == 'true' && needs.get-pr-info.outputs.has_no_backport == 'false'
         uses: actions/github-script@v6
         with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const { owner, repo, issue_number } = context.issue;
+            const prNumber = ${{ needs.get-pr-info.outputs.pr_number }};
             const labelName = 'do not merge';
             const commentBody = `
             🚨 **AUTOMATED CHECK: MERGE COMMITS FOUND** 🚨
@@ -60,5 +87,41 @@ jobs:
             ${{ steps.check_merges.outputs.MERGE_COMMIT_IDS }}
             \`\`\`
             `;
-            await github.rest.issues.addLabels({ owner, repo, issue_number, labels: [labelName] });
-            await github.rest.issues.createComment({ owner, repo, issue_number, body: comment
+            await github.rest.issues.addLabels({ owner: context.repo.owner, repo: context.repo.repo, issue_number: prNumber, labels: [labelName] });
+            await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: prNumber, body: commentBody });
+
+      - name: Remove 'do not merge' label and comment
+        if: steps.check_merges.outputs.merge_commit_found != 'true' && needs.get-pr-info.outputs.has_no_backport == 'false'
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNumber = ${{ needs.get-pr-info.outputs.pr_number }};
+            const commentPrefix = '🚨 **AUTOMATED CHECK: MERGE COMMITS FOUND** 🚨';
+            const labelName = 'do not merge';
+            
+            try {
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber
+              });
+              const botComment = comments.find(comment => comment.body.includes(commentPrefix));
+              if (botComment) {
+                await github.rest.issues.deleteComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: botComment.id
+                });
+                console.log('Merge commit comment successfully removed.');
+              }
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                name: labelName
+              });
+              console.log('do not merge label successfully removed.');
+            } catch (error) {
+              console.log('Comment or label not found, skipping.');
+            }
