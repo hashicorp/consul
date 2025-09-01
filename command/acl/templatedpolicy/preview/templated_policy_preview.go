@@ -78,7 +78,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	if !(len(parsedTemplatedPolicies) == 1) {
+	if len(parsedTemplatedPolicies) != 1 {
 		c.UI.Error("Can only preview a single templated policy at a time.")
 		return 1
 	}

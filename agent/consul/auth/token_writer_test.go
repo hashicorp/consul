@@ -437,7 +437,7 @@ func TestTokenWriter_Create_Expiration(t *testing.T) {
 
 		updated, err := writer.Create(token, false)
 		require.NoError(t, err)
-		require.InEpsilon(t, 10*time.Minute, updated.ExpirationTime.Sub(time.Now()), 0.1)
+		require.InEpsilon(t, 10*time.Minute, time.Until(*updated.ExpirationTime), 0.1)
 		require.Zero(t, updated.ExpirationTTL)
 	})
 

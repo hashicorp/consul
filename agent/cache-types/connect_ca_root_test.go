@@ -25,11 +25,11 @@ func TestConnectCARoot(t *testing.T) {
 	rpc.On("RPC", mock.Anything, "ConnectCA.Roots", mock.Anything, mock.Anything).Return(nil).
 		Run(func(args mock.Arguments) {
 			req := args.Get(2).(*structs.DCSpecificRequest)
-			require.Equal(t, uint64(24), req.QueryOptions.MinQueryIndex)
-			require.Equal(t, 1*time.Second, req.QueryOptions.MaxQueryTime)
+			require.Equal(t, uint64(24), req.MinQueryIndex)
+			require.Equal(t, 1*time.Second, req.MaxQueryTime)
 
 			reply := args.Get(3).(*structs.IndexedCARoots)
-			reply.QueryMeta.Index = 48
+			reply.Index = 48
 			resp = reply
 		})
 

@@ -25,8 +25,8 @@ func TestCatalogServices(t *testing.T) {
 	rpc.On("RPC", mock.Anything, "Catalog.ServiceNodes", mock.Anything, mock.Anything).Return(nil).
 		Run(func(args mock.Arguments) {
 			req := args.Get(2).(*structs.ServiceSpecificRequest)
-			require.Equal(t, uint64(24), req.QueryOptions.MinQueryIndex)
-			require.Equal(t, 1*time.Second, req.QueryOptions.MaxQueryTime)
+			require.Equal(t, uint64(24), req.MinQueryIndex)
+			require.Equal(t, 1*time.Second, req.MaxQueryTime)
 			require.Equal(t, "web", req.ServiceName)
 			require.True(t, req.AllowStale)
 
@@ -34,7 +34,7 @@ func TestCatalogServices(t *testing.T) {
 			reply.ServiceNodes = []*structs.ServiceNode{
 				{ServiceTags: req.ServiceTags},
 			}
-			reply.QueryMeta.Index = 48
+			reply.Index = 48
 			resp = reply
 		})
 

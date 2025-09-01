@@ -55,7 +55,7 @@ func (r *serviceListRequest) Request(index uint64) *pbsubscribe.SubscribeRequest
 		Subject:    &pbsubscribe.SubscribeRequest_WildcardSubject{WildcardSubject: true},
 		Index:      index,
 		Datacenter: r.req.Datacenter,
-		Token:      r.req.QueryOptions.Token,
+		Token:      r.req.Token,
 	}
 }
 

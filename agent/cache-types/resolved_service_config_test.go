@@ -25,8 +25,8 @@ func TestResolvedServiceConfig(t *testing.T) {
 	rpc.On("RPC", mock.Anything, "ConfigEntry.ResolveServiceConfig", mock.Anything, mock.Anything).Return(nil).
 		Run(func(args mock.Arguments) {
 			req := args.Get(2).(*structs.ServiceConfigRequest)
-			require.Equal(t, uint64(24), req.QueryOptions.MinQueryIndex)
-			require.Equal(t, 1*time.Second, req.QueryOptions.MaxQueryTime)
+			require.Equal(t, uint64(24), req.MinQueryIndex)
+			require.Equal(t, 1*time.Second, req.MaxQueryTime)
 			require.Equal(t, "foo", req.Name)
 			require.True(t, req.AllowStale)
 
@@ -45,7 +45,7 @@ func TestResolvedServiceConfig(t *testing.T) {
 				},
 			}
 
-			reply.QueryMeta.Index = 48
+			reply.Index = 48
 			resp = reply
 		})
 

@@ -264,7 +264,7 @@ func (c *ConfigEntry) List(args *structs.ConfigEntryQuery, reply *structs.Indexe
 			for _, entry := range entries {
 				if err := entry.CanRead(authz); err != nil {
 					// TODO we may wish to extract more details from this error to aid user comprehension
-					reply.QueryMeta.ResultsFilteredByACLs = true
+					reply.ResultsFilteredByACLs = true
 					continue
 				}
 				filteredEntries = append(filteredEntries, entry)
@@ -354,7 +354,7 @@ func (c *ConfigEntry) ListAll(args *structs.ConfigEntryListAllRequest, reply *st
 			for _, entry := range entries {
 				if err := entry.CanRead(authz); err != nil {
 					// TODO we may wish to extract more details from this error to aid user comprehension
-					reply.QueryMeta.ResultsFilteredByACLs = true
+					reply.ResultsFilteredByACLs = true
 					continue
 				}
 				// Doing this filter outside of memdb isn't terribly

@@ -89,9 +89,9 @@ function proto_tools_install {
 
     install_versioned_tool \
         'mockery' \
-        'github.com/vektra/mockery/v2' \
+        'github.com/vektra/mockery/v3' \
         "${mockery_version}" \
-        'github.com/vektra/mockery/v2'
+        'github.com/vektra/mockery/v3'
 
     install_versioned_tool \
        'buf' \
@@ -164,9 +164,9 @@ function lint_install {
 
     install_versioned_tool \
         'golangci-lint' \
-        'github.com/golangci/golangci-lint' \
+        'github.com/golangci/golangci-lint/v2' \
         "${golangci_lint_version}" \
-        'github.com/golangci/golangci-lint/cmd/golangci-lint'
+        'github.com/golangci/golangci-lint/v2/cmd/golangci-lint'
 
     install_versioned_tool \
         'gci' \
@@ -188,7 +188,8 @@ function deepcopy_install {
           'deep-copy' \
           'github.com/globusdigital/deep-copy' \
           "${deep_copy_version}" \
-          'github.com/globusdigital/deep-copy'
+          'github.com/globusdigital/deep-copy' \
+          'true'
 }
 
 function copywrite_install {
@@ -270,6 +271,7 @@ function install_versioned_tool {
     local module="$2"
     local version="$3"
     local installbase="$4"
+    local usego123="${5:-}"
 
     local should_install=
     local install_reason=
@@ -323,8 +325,18 @@ function install_versioned_tool {
     fi
 
     if [[ -n $should_install ]]; then
-        echo "installing tool (${install_reason}): ${install}"
-        go install "${install}"
+        # deep-copy does not compile with go1.25. https://github.com/globusdigital/deep-copy/issues/45
+        # To work around this we install it with go1.23.
+        # This can be removed when deep-copy supports go1.25.
+        if [[ -n $usego123 ]]; then
+          echo "installing tool (${install_reason}): ${install} with go 1.23"
+          go install golang.org/dl/go1.23.12@latest
+          go1.23.12 download
+          go1.23.12 install "${install}"
+        else
+          echo "installing tool (${install_reason}): ${install}"
+          go install "${install}"
+        fi
     else
         echo "skipping tool: ${install} (installed)"
     fi

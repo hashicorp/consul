@@ -1,0 +1,17 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: BUSL-1.1
+
+all: false
+dir: .
+structname: '{{.InterfaceName}}'
+pkgname: e2e
+filename: 'mock_{{.InterfaceName}}.go'
+recursive: false
+template: testify
+template-data:
+  unroll-variadic: true
+packages:
+  github.com/hashicorp/consul/internal/tools/protoc-gen-grpc-clone/e2e/proto:
+    interfaces:
+      Simple_FlowClient: {}
+      SimpleClient: {}

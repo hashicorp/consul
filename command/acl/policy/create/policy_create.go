@@ -71,7 +71,7 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	if c.name == "" {
-		c.UI.Error(fmt.Sprintf("Missing required '-name' flag"))
+		c.UI.Error("Missing required '-name' flag")
 		c.UI.Error(c.Help())
 		return 1
 	}

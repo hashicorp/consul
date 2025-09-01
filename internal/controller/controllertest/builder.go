@@ -46,9 +46,7 @@ func (b *Builder) WithResourceRegisterFns(registerFns ...func(resource.Registry)
 // WithControllerRegisterFns allows configuring a set of controllers that should be registered
 // with the controller manager and executed during Run.
 func (b *Builder) WithControllerRegisterFns(registerFns ...func(*controller.Manager)) *Builder {
-	for _, registerFn := range registerFns {
-		b.controllerRegisterFns = append(b.controllerRegisterFns, registerFn)
-	}
+	b.controllerRegisterFns = append(b.controllerRegisterFns, registerFns...)
 	return b
 }
 
