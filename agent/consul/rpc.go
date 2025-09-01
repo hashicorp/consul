@@ -94,10 +94,10 @@ const (
 	enqueueLimit = 30 * time.Second
 
 	// AnonymousAccessorID is the accessor ID for anonymous token.
-	AnonymousAccessorID = "00000000-0000-0000-0000-000000000002"
+	anonymousAccessorID = "00000000-0000-0000-0000-000000000002"
 
 	// AnonymousSecretID is the secret ID for anonymous token
-	AnonymousSecretID = "anonymous"
+	anonymousSecretID = "anonymous"
 )
 
 var ErrChunkingResubmit = errors.New("please resubmit call for rechunking")
@@ -1154,7 +1154,7 @@ func maskResultsFilteredByACLs(token string, m blockingQueryResponseMeta, s *Ser
 			m.SetResultsFilteredByACLs(false)
 			return
 		}
-		if identity.ID() == AnonymousAccessorID && identity.SecretToken() == AnonymousSecretID {
+		if identity.ID() == anonymousAccessorID && identity.SecretToken() == anonymousSecretID {
 			m.SetResultsFilteredByACLs(false)
 		}
 	} else {
