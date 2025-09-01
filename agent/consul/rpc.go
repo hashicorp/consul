@@ -1147,17 +1147,19 @@ func (s *Server) RPCQueryTimeout(queryTimeout time.Duration) time.Duration {
 //     ResultsFilteredByACLs is only set to try when applying the already-resolved
 //     token's policies.
 func maskResultsFilteredByACLs(token string, m blockingQueryResponseMeta, s *Server) {
-	if token != "" {
-		identity, err := s.ACLResolver.resolveIdentityFromToken(token)
-		if err != nil {
-			s.rpcLogger().Error("Failed to resolve identity from token", "err", err)
-			m.SetResultsFilteredByACLs(false)
-			return
-		}
-		if identity.ID() == anonymousAccessorID && identity.SecretToken() == anonymousSecretID {
-			m.SetResultsFilteredByACLs(false)
-		}
-	} else {
+	if token == "" {
+		m.SetResultsFilteredByACLs(false)
+		return
+	}
+
+	identity, err := s.ACLResolver.resolveIdentityFromToken(token)
+	if err != nil {
+		s.rpcLogger().Error("Failed to resolve identity from token", "err", err)
+		m.SetResultsFilteredByACLs(false)
+		return
+	}
+
+	if identity.ID() == anonymousAccessorID && identity.SecretToken() == anonymousSecretID {
 		m.SetResultsFilteredByACLs(false)
 	}
 }
