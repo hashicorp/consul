@@ -574,3 +574,40 @@ func TestKVSEndpoint_DELETE_ConflictingFlags(t *testing.T) {
 		t.Fatalf("expected conflicting args error")
 	}
 }
+
+func TestValidateKVKey(t *testing.T) {
+	pattern := `^[a-zA-Z0-9,_./\-?&=]+$`
+	tests := []struct {
+		name    string
+		key     string
+		wantErr bool
+	}{
+		// Valid
+		{"valid simple key", "foo", false},
+		{"valid nested key", "foo/bar/baz", false},
+		{"valid key with dash", "foo-bar", false},
+		{"valid key with underscore", "foo_bar", false},
+		{"valid key with dot", "foo.bar", false},
+		{"valid key with comma", "foo,bar", false},
+		{"valid key with slash", "foo/bar", false},
+		{"valid key with numbers", "foo123", false},
+		{"empty key", "", true},
+		// Invalid
+		{"invalid key with space", "foo bar", true},
+		{"invalid key with star", "foo*bar", true},
+		{"invalid key with percent", "foo%bar", true},
+		{"invalid key with colon", "foo:bar", true},
+		{"invalid key with semicolon", "foo;bar", true},
+		{"malicious key with path traversal", "../../etc/passwd", true},
+		{"malicious key with unicode control", "foo\u202Etxt", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateKVKey(tt.key, pattern)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("validateKVKey(%q) error = %v, wantErr %v", tt.key, err, tt.wantErr)
+			}
+		})
+	}
+}

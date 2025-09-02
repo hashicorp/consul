@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"path"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -23,7 +25,14 @@ func (s *HTTPHandlers) KVSEndpoint(resp http.ResponseWriter, req *http.Request) 
 	}
 
 	// Pull out the key name, validation left to each sub-handler
-	args.Key = strings.TrimPrefix(req.URL.Path, "/v1/kv/")
+	args.Key = path.Clean(strings.TrimPrefix(req.URL.Path, "/v1/kv/"))
+
+	// Allowed key pattern: a-zA-Z0-9 ,-_./
+	// https://developer.hashicorp.com/consul/docs/automate/kv#using-consul-kv
+	kvKeyPattern := `^[a-zA-Z0-9,_./\-?&=]+$`
+	if err := validateKVKey(args.Key, kvKeyPattern); err != nil {
+		return nil, fmt.Errorf("invalid key name, keys should respect the %q format", kvKeyPattern)
+	}
 
 	// Check for a key list
 	keyList := false
@@ -301,4 +310,22 @@ func conflictingFlags(resp http.ResponseWriter, req *http.Request, flags ...stri
 	}
 
 	return false
+}
+
+func validateKVKey(key string, pattern string) error {
+	if len(key) == 0 {
+		return fmt.Errorf("invalid key name, keys should respect the %q format", pattern)
+	}
+
+	matched, err := regexp.MatchString(pattern, key)
+	if err != nil {
+		return fmt.Errorf("failed to validate key: %w", err)
+	}
+	if !matched {
+		return fmt.Errorf("invalid key name, keys should respect the %q format", pattern)
+	}
+	if strings.Contains(key, "..") {
+		return fmt.Errorf("invalid key name, path traversal is not allowed")
+	}
+	return nil
 }
