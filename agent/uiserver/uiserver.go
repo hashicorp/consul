@@ -269,8 +269,7 @@ func (h *Handler) serveTransformedJS(w http.ResponseWriter, jsPath string) {
 	if cfg.UIConfig.Dir == "" {
 		sub, err := fs.Sub(dist, "dist")
 		if err != nil {
-			http.Error(w, "Failed to open embedded dist", http.StatusInternalServerError)
-			h.logger.Error("Failed to open embedded dist: %s", err)
+			h.logger.Error("Failed to open embedded dist: %v", err)
 			return
 		}
 		fsys = sub
@@ -289,7 +288,7 @@ func (h *Handler) serveTransformedJS(w http.ResponseWriter, jsPath string) {
 	content, err := io.ReadAll(f)
 	if err != nil {
 		http.Error(w, "Failed to read JS file", http.StatusInternalServerError)
-		h.logger.Error("Failed to read JS file: %s", err)
+		h.logger.Error("Failed to read JS file: %v", err)
 		return
 	}
 
@@ -317,6 +316,6 @@ func (h *Handler) serveTransformedJS(w http.ResponseWriter, jsPath string) {
 	js = strings.ReplaceAll(js, "{{.ContentPath}}", contentPath)
 	w.Header().Set("Content-Type", "application/javascript")
 	if _, err := w.Write([]byte(js)); err != nil {
-		h.logger.Error("Failed to write JS response: %s", err)
+		h.logger.Error("Failed to write JS response: %v", err)
 	}
 }
