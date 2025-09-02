@@ -96,7 +96,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const prNumber = ${{ needs.get-pr-info.outputs.pr_number }};
-            const labelName = ${{ env.BACKPORT_ERROR_LABEL }};
+            const labelName = '${{ env.BACKPORT_ERROR_LABEL }}';
             const commentBody = `
             🚨 **AUTOMATED CHECK: MERGE COMMITS FOUND** 🚨
             This pull request contains merge commits. The **\`${labelName}\`** label has been added. Please rebase your branch.
@@ -135,7 +135,7 @@ jobs:
           script: |
             const prNumber = ${{ needs.get-pr-info.outputs.pr_number }};
             const commentPrefix = '🚨 **AUTOMATED CHECK: MERGE COMMITS FOUND** 🚨';
-            const labelName = ${{ env.BACKPORT_ERROR_LABEL }};
+            const labelName = '${{ env.BACKPORT_ERROR_LABEL }}';
 
             try {
               // Get PR details to check if it's draft
