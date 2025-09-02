@@ -2286,7 +2286,7 @@ module.exports = [
     permanent: true
   },
   {
-    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/north-south/api-gateway",
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/north-south",
     destination: "/consul/docs/:version/connect/gateways/api-gateway",
     permanent: true
   },
@@ -3625,6 +3625,66 @@ module.exports = [
   {
     source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/upgrade/version-specific",
     destination: "/consul/docs/:version/upgrading/upgrade-specific",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/secure-mesh",
+    destination: "/consul/docs/:version/connect/security",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/architecture/data-plane",
+    destination: "/consul/docs/:version/connect/connect-internals",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/architecture/data-plane/service",
+    destination: "/consul/docs/:version/services/usage/define-services",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/architecture/backend",
+    destination: "/consul/docs/:version/agent/wal-logstore",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/architecture/security",
+    destination: "/consul/docs/:version/security",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/fundamentals/editions",
+    destination: "/consul/docs/:version/enterprise",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/fundamentals/install/dev",
+    destination: "/consul/docs/:version/agent",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/fundamentals/interface/api",
+    destination: "/consul/api-docs",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/fundamentals/interface/cli",
+    destination: "/consul/docs/commands",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/fundamentals/interface/ui",
+    destination: "/consul/docs/:version/connect/observability/ui-visualization",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/fundamentals/identity",
+    destination: "/consul/docs/:version/agent",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/fundamentals/tf",
+    destination: "https://registry.terraform.io/providers/hashicorp/consul/latest/docs",
     permanent: true
   },
   ///////////////////////////////////
