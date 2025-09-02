@@ -48,6 +48,20 @@ var (
 
 	virtualIPMaxOffset = net.IP{15, 255, 255, 254}
 
+	startingVirtualIPv6 = net.IP{
+		0x20, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00,
+	}
+
+	virtualIPv6MaxOffset = net.IP{
+		0x1F, 0xFF, 0xFF, 0xFF,
+		0xFF, 0xFF, 0xFF, 0xFF,
+		0xFF, 0xFF, 0xFF, 0xFF,
+		0xFF, 0xFF, 0xFF, 0xFF,
+	}
+
 	ErrNodeNotFound = errors.New("node not found")
 )
 
@@ -1210,6 +1224,32 @@ func updateVirtualIPMaxIndexes(txn WriteTxn, idx uint64, partition, peerName str
 		}
 	}
 	return nil
+}
+
+// addIPv6Offset adds two IPv6 address byte slices (a and b).
+// Both must be 16 bytes long.
+// Returns the sum modulo 2^128 as a new IPv6 address.
+func addIPv6Offset(a, b net.IP) (net.IP, error) {
+	a16 := a.To16()
+	b16 := b.To16()
+	if a16 == nil || b16 == nil {
+		return nil, errors.New("ip is not valid IPv6")
+	}
+	if len(a16) != 16 || len(b16) != 16 {
+		return nil, errors.New("ip length is not 16 bytes")
+	}
+
+	result := make(net.IP, 16)
+	var carry uint16 = 0
+
+	// Add from least significant byte to most significant byte
+	for i := 15; i >= 0; i-- {
+		sum := uint16(a16[i]) + uint16(b16[i]) + carry
+		result[i] = byte(sum & 0xFF)
+		carry = sum >> 8 // carry 1 if sum > 255
+	}
+	// Carry beyond 128 bits is discarded (mod 2^128 arithmetic)
+	return result, nil
 }
 
 func addIPOffset(a, b net.IP) (net.IP, error) {
