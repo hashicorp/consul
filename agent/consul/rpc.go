@@ -94,10 +94,10 @@ const (
 	enqueueLimit = 30 * time.Second
 
 	// AnonymousAccessorID is the accessor ID for anonymous token.
-	AnonymousAccessorID = "00000000-0000-0000-0000-000000000002"
+	anonymousAccessorID = "00000000-0000-0000-0000-000000000002"
 
 	// AnonymousSecretID is the secret ID for anonymous token
-	AnonymousSecretID = "anonymous"
+	anonymousSecretID = "anonymous"
 )
 
 var ErrChunkingResubmit = errors.New("please resubmit call for rechunking")
@@ -1051,28 +1051,7 @@ func (s *Server) SetQueryMeta(m blockingquery.ResponseMeta, token string) {
 		m.SetLastContact(time.Since(s.raft.LastContact()))
 		m.SetKnownLeader(s.raft.Leader() != "")
 	}
-
-	// Following blanks out the ResultsFilteredByACLs flag if the
-	// request is unauthenticated, to limit information leaking.
-	//
-	// Endpoints that support bexpr filtering could be used in combination with
-	// this flag/header to discover the existence of resources to which the user
-	// does not have access, therefore we only expose it when the user presents
-	// a valid ACL token. This doesn't completely remove the risk (by nature the
-	// purpose of this flag is to let the user know there are resources they can
-	// not access) but it prevents completely unauthenticated users from doing so.
-	if token != "" {
-		identity, err := s.ACLResolver.resolveIdentityFromToken(token)
-		if err != nil {
-			s.rpcLogger().Error("Failed to resolve identity from token", "err", err)
-			m.SetResultsFilteredByACLs(false)
-		}
-		if identity.ID() == AnonymousAccessorID || identity.SecretToken() == AnonymousSecretID {
-			m.SetResultsFilteredByACLs(false)
-		}
-	} else {
-		m.SetResultsFilteredByACLs(false)
-	}
+	maskResultsFilteredByACLs(token, m, s)
 
 	// Always set a non-zero QueryMeta.Index. Generally we expect the
 	// QueryMeta.Index to be set to structs.RaftIndex.ModifyIndex. If the query
@@ -1149,4 +1128,38 @@ func (s *Server) RPCQueryTimeout(queryTimeout time.Duration) time.Duration {
 	// Apply a small amount of jitter to the request.
 	queryTimeout += lib.RandomStagger(queryTimeout / structs.JitterFraction)
 	return queryTimeout
+}
+
+// maskResultsFilteredByACLs blanks out the ResultsFilteredByACLs flag if the
+// request is unauthenticated, to limit information leaking.
+//
+// Endpoints that support bexpr filtering could be used in combination with
+// this flag/header to discover the existence of resources to which the user
+// does not have access, therefore we only expose it when the user presents
+// a valid ACL token. This doesn't completely remove the risk (by nature the
+// purpose of this flag is to let the user know there are resources they can
+// not access) but it prevents completely unauthenticated users from doing so.
+//
+// Notes:
+//
+//   - This method assumes that the given token has already been validated (and
+//     will only check whether it is blank or anonymous). It's a safe assumption because
+//     ResultsFilteredByACLs is only set to try when applying the already-resolved
+//     token's policies.
+func maskResultsFilteredByACLs(token string, m blockingQueryResponseMeta, s *Server) {
+	if token == "" {
+		m.SetResultsFilteredByACLs(false)
+		return
+	}
+
+	identity, err := s.resolveIdentityFromToken(token)
+	if err != nil {
+		s.rpcLogger().Error("Failed to resolve identity from token", "err", err)
+		m.SetResultsFilteredByACLs(false)
+		return
+	}
+
+	if identity.ID() == anonymousAccessorID && identity.SecretToken() == anonymousSecretID {
+		m.SetResultsFilteredByACLs(false)
+	}
 }
