@@ -2,66 +2,24 @@ import { modifier } from 'ember-modifier';
 
 export default modifier(function fixSuperSelectAria(element) {
   function fixAria() {
-    // Fix roles and ARIA attributes
+    // Fix role="alert" → role="option" on select options
     element.querySelectorAll('[role="alert"][aria-selected]').forEach((el) => {
-      if (
-        el.classList.contains('hds-form-super-select__option') ||
-        el.classList.contains('ember-power-select-option')
-      ) {
-        el.setAttribute('role', 'option');
-      } else {
-        el.removeAttribute('aria-selected');
-      }
+      el.setAttribute('role', 'option');
     });
 
-    // Fix combobox missing aria-expanded
-    element.querySelectorAll('[role="combobox"]:not([aria-expanded])').forEach((el) => {
-      // Check if dropdown is open by looking for related elements
-      const controlsId = el.getAttribute('aria-controls');
-      const isExpanded = controlsId && document.getElementById(controlsId) ? 'true' : 'false';
-      el.setAttribute('aria-expanded', isExpanded);
-    });
-
-    // Update aria-expanded when dropdown state changes
-    element.querySelectorAll('[role="combobox"][aria-controls]').forEach((el) => {
-      const controlsId = el.getAttribute('aria-controls');
-      if (controlsId) {
-        const dropdown = document.getElementById(controlsId);
-        const isVisible = dropdown && dropdown.offsetParent !== null;
-        el.setAttribute('aria-expanded', isVisible ? 'true' : 'false');
-      }
-    });
-
-    // Remove invalid aria-controls
+    // Remove invalid aria-controls and add missing aria-expanded
     element.querySelectorAll('[aria-controls]').forEach((el) => {
-      if (!document.getElementById(el.getAttribute('aria-controls'))) {
+      const controlsId = el.getAttribute('aria-controls');
+      const dropdown = document.getElementById(controlsId);
+
+      if (!dropdown) {
         el.removeAttribute('aria-controls');
-        // If we remove aria-controls, also set aria-expanded to false
-        if (el.getAttribute('role') === 'combobox') {
-          el.setAttribute('aria-expanded', 'false');
-        }
+      } else if (el.getAttribute('role') === 'combobox' && !el.hasAttribute('aria-expanded')) {
+        el.setAttribute('aria-expanded', dropdown.offsetParent !== null ? 'true' : 'false');
       }
     });
-
-    // Add missing accessible names
-    element
-      .querySelectorAll('[role="listbox"]:not([aria-label]):not([aria-labelledby]):not([title])')
-      .forEach((el) => el.setAttribute('aria-label', 'Select options'));
-
-    element
-      .querySelectorAll('[role="combobox"]:not([aria-label]):not([aria-labelledby]):not([title])')
-      .forEach((el) => el.setAttribute('aria-label', 'Select input'));
   }
 
-  // Run fixes with delays and watch for changes
-  [0, 100, 500].forEach((delay) => setTimeout(fixAria, delay));
-  const observer = new MutationObserver(() => setTimeout(fixAria, 0));
-  observer.observe(element, {
-    childList: true,
-    subtree: true,
-    attributes: true,
-    attributeFilter: ['role', 'aria-selected', 'aria-controls', 'aria-label', 'aria-expanded'],
-  });
-
-  return () => observer.disconnect();
+  setTimeout(fixAria, 100);
+  new MutationObserver(fixAria).observe(element, { childList: true, subtree: true });
 });

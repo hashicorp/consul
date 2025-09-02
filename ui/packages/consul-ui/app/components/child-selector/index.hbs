@@ -34,19 +34,6 @@
       }}
       @items={{options}}
     as |collection|>
-      {{!-- <PowerSelect
-        @searchEnabled={{true}}
-        @search={{action collection.search}}
-        @options={{sort-by 'Name:asc' options}}
-        @loadingMessage="Loading..."
-        @searchMessage="No possible options"
-        @searchPlaceholder={{placeholder}}
-        @onOpen={{action (mut isOpen) true}}
-        @onClose={{action (mut isOpen) false}}
-        @onChange={{action "change" "items[]" items}}
-      as |item|>
-        <YieldSlot @name="option" @params={{block-params item}}>{{yield}}</YieldSlot>
-      </PowerSelect> --}}
       <Hds::Form::SuperSelect::Single::Field
         @searchEnabled={{true}}
         @onFilter={{action collection.search}}
