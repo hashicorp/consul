@@ -690,7 +690,7 @@ func TestServeTransformedJS_ErrorCases(t *testing.T) {
 		h := NewHandler(cfg, testutil.Logger(t), nil)
 
 		req := httptest.NewRequest("GET", "/"+jsFile, nil)
-		
+
 		// Use a mock response writer that fails on Write
 		rec := &failingResponseWriter{
 			ResponseRecorder: httptest.NewRecorder(),
