@@ -206,7 +206,7 @@
     ]
   },
   "volta": {
-    "node": "18"
+    "node": "20"
   },
   "dependencies": {
     "@hashicorp/design-system-components": "^4.20.2",
