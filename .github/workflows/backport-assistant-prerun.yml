@@ -89,7 +89,7 @@ jobs:
           fi
           echo "merge_commit_found=${MERGE_COMMITS:+'true'}" >> $GITHUB_OUTPUT
 
-      - name: Add 'backport-error' label and comment
+      - name: Add 'backport-error' label and comment and convert this PR to draft
         if: steps.check_merges.outputs.merge_commit_found == 'true' && needs.get-pr-info.outputs.has_no_backport == 'false'
         uses: actions/github-script@v6
         with:
@@ -105,10 +105,29 @@ jobs:
             ${{ steps.check_merges.outputs.MERGE_COMMIT_IDS }}
             \`\`\`
             `;
-            await github.rest.issues.addLabels({ owner: context.repo.owner, repo: context.repo.repo, issue_number: prNumber, labels: [labelName] });
-            await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: prNumber, body: commentBody });
 
-      - name: Remove 'backport-error' label and comment
+            // Convert PR to draft
+            await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+              draft: true
+            });
+
+            await github.rest.issues.addLabels({ 
+              owner: context.repo.owner, 
+              repo: context.repo.repo, 
+              issue_number: prNumber, 
+              labels: [labelName] 
+            });
+            await github.rest.issues.createComment({ 
+              owner: context.repo.owner, 
+              repo: context.repo.repo, 
+              issue_number: prNumber, 
+              body: commentBody 
+            });
+
+      - name: Remove 'backport-error' label and comment and convert PR to ready
         if: steps.check_merges.outputs.merge_commit_found != 'true' && needs.get-pr-info.outputs.has_no_backport == 'false'
         uses: actions/github-script@v6
         with:
@@ -117,8 +136,25 @@ jobs:
             const prNumber = ${{ needs.get-pr-info.outputs.pr_number }};
             const commentPrefix = '🚨 **AUTOMATED CHECK: MERGE COMMITS FOUND** 🚨';
             const labelName = ${{ env.BACKPORT_ERROR_LABEL }};
-            
+
             try {
+              // Get PR details to check if it's draft
+              const { data: pr } = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber
+              });
+
+              // If PR is draft, convert it back to ready
+              if (pr.draft) {
+                await github.rest.pulls.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: prNumber,
+                  draft: false
+                });
+              }
+
               const { data: comments } = await github.rest.issues.listComments({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
