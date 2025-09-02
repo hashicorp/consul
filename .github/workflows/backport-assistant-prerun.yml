@@ -7,6 +7,8 @@ on:
     branches:
       - main
       - release/*
+env:
+  BACKPORT_ERROR_LABEL: backport-error/merge-commit-found
 
 jobs:
   # checks that a backport label is present for a PR
@@ -36,6 +38,8 @@ jobs:
     outputs:
       has_no_backport: ${{ steps.check_label.outputs.has_no_backport }}
       pr_number: ${{ steps.check_label.outputs.pr_number }}
+      pull_request_ref: ${{ steps.check_label.outputs.pull_request_ref }}
+      pull_request_repo: ${{ steps.check_label.outputs.pull_request_repo }}
     steps:
       - name: Get PR information and check labels
         id: check_label
@@ -74,7 +78,7 @@ jobs:
         id: check_merges
         if: needs.get-pr-info.outputs.has_no_backport == 'false'
         run: |
-          MERGE_COMMITS=$(git log --merges --oneline origin/${{ github.event.workflow_run.pull_requests[0].base.ref }}..HEAD)
+          MERGE_COMMITS=$(git log --merges --oneline origin/${{ github.base_ref }}..HEAD)
           if [ -n "$MERGE_COMMITS" ]; then
             echo "::error::Merge commits found."
             echo "merge_commit_found=true" >> $GITHUB_OUTPUT
@@ -84,14 +88,14 @@ jobs:
           fi
           echo "merge_commit_found=${MERGE_COMMITS:+'true'}" >> $GITHUB_OUTPUT
 
-      - name: Add 'do not merge' label and comment
+      - name: Add 'backport-error' label and comment
         if: steps.check_merges.outputs.merge_commit_found == 'true' && needs.get-pr-info.outputs.has_no_backport == 'false'
         uses: actions/github-script@v6
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const prNumber = ${{ needs.get-pr-info.outputs.pr_number }};
-            const labelName = 'do not merge';
+            const labelName = ${{ env.BACKPORT_ERROR_LABEL }};
             const commentBody = `
             🚨 **AUTOMATED CHECK: MERGE COMMITS FOUND** 🚨
             This pull request contains merge commits. The **\`${labelName}\`** label has been added. Please rebase your branch.
@@ -103,7 +107,7 @@ jobs:
             await github.rest.issues.addLabels({ owner: context.repo.owner, repo: context.repo.repo, issue_number: prNumber, labels: [labelName] });
             await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: prNumber, body: commentBody });
 
-      - name: Remove 'do not merge' label and comment
+      - name: Remove 'backport-error' label and comment
         if: steps.check_merges.outputs.merge_commit_found != 'true' && needs.get-pr-info.outputs.has_no_backport == 'false'
         uses: actions/github-script@v6
         with:
@@ -111,7 +115,7 @@ jobs:
           script: |
             const prNumber = ${{ needs.get-pr-info.outputs.pr_number }};
             const commentPrefix = '🚨 **AUTOMATED CHECK: MERGE COMMITS FOUND** 🚨';
-            const labelName = 'do not merge';
+            const labelName = ${{ env.BACKPORT_ERROR_LABEL }};
             
             try {
               const { data: comments } = await github.rest.issues.listComments({
