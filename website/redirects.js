@@ -3687,6 +3687,206 @@ module.exports = [
     destination: "https://registry.terraform.io/providers/hashicorp/consul/latest/docs",
     permanent: true
   },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/deploy",
+    destination: "/consul/docs/:version/install/bootstrapping",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/deploy/server",
+    destination: "/consul/docs/:version/install/bootstrapping",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/deploy/server/vm",
+    destination: "/consul/docs/:version/install/bootstrapping",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/deploy/server/vm/requirements",
+    destination: "/consul/docs/:version/install/performance",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/deploy/server/k8s",
+    destination: "/consul/:version/k8s/installation/install",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/deploy/server/k8s/requirements",
+    destination: "/consul/docs/:version/k8s/compatibility",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/deploy/server/k8s/consul-k8s",
+    destination: "/consul/docs/:version/installation/install-cli",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/deploy/server/k8s/platform/minikube",
+    destination: "/consul/docs/deploy/server/k8s/platform/minikube",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/deploy/server/k8s/platform/kind",
+    destination: "/consul/docs/deploy/server/k8s/platform/kind",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/deploy/server/k8s/platform/aks",
+    destination: "/consul/docs/deploy/server/k8s/platform/aks",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/deploy/server/k8s/platform/eks",
+    destination: "/consul/docs/deploy/server/k8s/platform/eks",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/deploy/server/k8s/platform/gke",
+    destination: "/consul/docs/deploy/server/k8s/platform/gke",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/deploy/server/k8s/platform/openshift",
+    destination: "/consul/docs/deploy/server/k8s/platform/openshift",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/deploy/server/k8s/vault/data/mesh-ca",
+    destination: "/consul/docs/:version/connect/ca/vault",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/deploy/server/k8s/uninstall",
+    destination: "/consul/docs/deploy/server/k8s/uninstall",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/deploy/server/ecs",
+    destination: "/consul/docs/:version/ecs/deploy/terraform",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/deploy/server/ecs/manual",
+    destination: "/consul/docs/:version/ecs/deploy/manual",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/deploy/workload",
+    destination: "/consul/docs/deploy/workload",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/deploy/workload/client/vm",
+    destination: "/consul/docs/deploy/workload/client/vm",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/workload/client/k8s",
+    destination: "/consul/docs/:version/k8s/deployment-configurations/clients-outside-kubernetes",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/deploy/workload/client/docker",
+    destination: "/consul/docs//deploy/workload/client/docker",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/deploy/workload/dataplane/k8s",
+    destination: "/consul/docs/:version/connect/dataplane",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/deploy/workload/dataplane/ecs",
+    destination: "/consul/docs/:version/ecs/upgrade-to-dataplanes",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/secure/acl",
+    destination: "/consul/docs/secure/acl",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/secure/acl/rule",
+    destination: "/consul/docs/:version/security/acl/acl-rules",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/secure/acl/bootstrap",
+    destination: "/consul/docs/secure/acl/bootstrap",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/secure/acl/reset",
+    destination: "/consul/docs/secure/acl/reset",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/secure/acl/legacy",
+    destination: "/consul/docs/secure/acl/legacy",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/secure/acl/vault/vm",
+    destination: "/consul/docs/secure/acl/vault/vm",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/secure/acl/troubleshoot",
+    destination: "/consul/docs/secure/acl/troubleshoot",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/secure/encryption/gossip/enable/existing",
+    destination: "/consul/docs/:version/security/encryption",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/secure/encryption/gossip/rotate/vm",
+    destination: "/consul/docs/secure/encryption/gossip/rotate/vm",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/secure/encryption/tls/mtls",
+    destination: "/consul/docs/secure/encryption/tls/mtls",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/secure/encryption/tls/enable/new/builtin",
+    destination: "/consul/docs/secure/encryption/tls/enable/new/builtin",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/secure/encryption/tls/enable/new/openssl",
+    destination: "/consul/docs/secure/encryption/tls/enable/new/openssl",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/secure/encryption/tls/enable/existing/vm",
+    destination: "/consul/docs/secure/encryption/tls/enable/existing/vm",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/secure/encryption/tls/enable/existing/k8s",
+    destination: "/consul/docs/:version/k8s/operations/tls-on-existing-cluster",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/secure/encryption/tls/rotate/vm",
+    destination: "/consul/docs/secure/encryption/tls/rotate/vm",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/secure/auto-config/docker",
+    destination: "/consul/docs/secure/auto-config/docker",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/secure/sso/auth0",
+    destination: "/consul/docs/secure/sso/auth0",
+    permanent: true
+  },
   ///////////////////////////////////
   // Tutorial --> Docs conversions //
   ///////////////////////////////////
