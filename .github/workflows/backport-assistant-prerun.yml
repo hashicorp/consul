@@ -79,7 +79,7 @@ jobs:
         if: needs.get-pr-info.outputs.has_no_backport == 'false'
         run: |
           BASE_REF="${{ github.event.pull_request.base.ref }}"
-          MERGE_COMMITS=$(git log --merges --oneline origin/${{ BASE_REF }}..HEAD)
+          MERGE_COMMITS=$(git log --merges --oneline origin/$BASE_REF.HEAD)
           if [ -n "$MERGE_COMMITS" ]; then
             echo "::error::Merge commits found."
             echo "merge_commit_found=true" >> $GITHUB_OUTPUT
@@ -108,6 +108,7 @@ jobs:
             await github.rest.issues.addLabels({ owner: context.repo.owner, repo: context.repo.repo, issue_number: prNumber, labels: [labelName] });
             await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: prNumber, body: commentBody });
 
+      - name:
       - name: Remove 'backport-error' label and comment
         if: steps.check_merges.outputs.merge_commit_found != 'true' && needs.get-pr-info.outputs.has_no_backport == 'false'
         uses: actions/github-script@v6
