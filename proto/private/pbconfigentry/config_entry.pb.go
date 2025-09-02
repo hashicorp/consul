@@ -5154,12 +5154,13 @@ type APIGatewayListener struct {
 	// mog: func-to=int func-from=int32
 	Port int32 `protobuf:"varint,3,opt,name=Port,proto3" json:"Port,omitempty"`
 	// mog: func-to=apiGatewayProtocolToStructs func-from=apiGatewayProtocolFromStructs
-	Protocol      APIGatewayListenerProtocol  `protobuf:"varint,4,opt,name=Protocol,proto3,enum=hashicorp.consul.internal.configentry.APIGatewayListenerProtocol" json:"Protocol,omitempty"`
-	TLS           *APIGatewayTLSConfiguration `protobuf:"bytes,5,opt,name=TLS,proto3" json:"TLS,omitempty"`
-	Override      *APIGatewayPolicy           `protobuf:"bytes,6,opt,name=Override,proto3" json:"Override,omitempty"`
-	Default       *APIGatewayPolicy           `protobuf:"bytes,7,opt,name=Default,proto3" json:"Default,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Protocol            APIGatewayListenerProtocol  `protobuf:"varint,4,opt,name=Protocol,proto3,enum=hashicorp.consul.internal.configentry.APIGatewayListenerProtocol" json:"Protocol,omitempty"`
+	TLS                 *APIGatewayTLSConfiguration `protobuf:"bytes,5,opt,name=TLS,proto3" json:"TLS,omitempty"`
+	Override            *APIGatewayPolicy           `protobuf:"bytes,6,opt,name=Override,proto3" json:"Override,omitempty"`
+	Default             *APIGatewayPolicy           `protobuf:"bytes,7,opt,name=Default,proto3" json:"Default,omitempty"`
+	MaxRequestHeadersKB *uint32                     `protobuf:"varint,8,opt,name=MaxRequestHeadersKB,proto3,oneof" json:"MaxRequestHeadersKB,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *APIGatewayListener) Reset() {
@@ -8777,7 +8778,7 @@ const file_private_pbconfigentry_config_entry_proto_rawDesc = "" +
 	"\x06Reason\x18\x03 \x01(\tR\x06Reason\x12\x18\n" +
 	"\aMessage\x18\x04 \x01(\tR\aMessage\x12T\n" +
 	"\bResource\x18\x05 \x01(\v28.hashicorp.consul.internal.configentry.ResourceReferenceR\bResource\x12J\n" +
-	"\x12LastTransitionTime\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\x12LastTransitionTime\"\xb4\x03\n" +
+	"\x12LastTransitionTime\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\x12LastTransitionTime\"\x83\x04\n" +
 	"\x12APIGatewayListener\x12\x12\n" +
 	"\x04Name\x18\x01 \x01(\tR\x04Name\x12\x1a\n" +
 	"\bHostname\x18\x02 \x01(\tR\bHostname\x12\x12\n" +
@@ -8785,7 +8786,9 @@ const file_private_pbconfigentry_config_entry_proto_rawDesc = "" +
 	"\bProtocol\x18\x04 \x01(\x0e2A.hashicorp.consul.internal.configentry.APIGatewayListenerProtocolR\bProtocol\x12S\n" +
 	"\x03TLS\x18\x05 \x01(\v2A.hashicorp.consul.internal.configentry.APIGatewayTLSConfigurationR\x03TLS\x12S\n" +
 	"\bOverride\x18\x06 \x01(\v27.hashicorp.consul.internal.configentry.APIGatewayPolicyR\bOverride\x12Q\n" +
-	"\aDefault\x18\a \x01(\v27.hashicorp.consul.internal.configentry.APIGatewayPolicyR\aDefault\"\xde\x01\n" +
+	"\aDefault\x18\a \x01(\v27.hashicorp.consul.internal.configentry.APIGatewayPolicyR\aDefault\x125\n" +
+	"\x13MaxRequestHeadersKB\x18\b \x01(\rH\x00R\x13MaxRequestHeadersKB\x88\x01\x01B\x16\n" +
+	"\x14_MaxRequestHeadersKB\"\xde\x01\n" +
 	"\x1aAPIGatewayTLSConfiguration\x12\\\n" +
 	"\fCertificates\x18\x01 \x03(\v28.hashicorp.consul.internal.configentry.ResourceReferenceR\fCertificates\x12\x1e\n" +
 	"\n" +
