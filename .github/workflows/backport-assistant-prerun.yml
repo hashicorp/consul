@@ -79,7 +79,7 @@ jobs:
         if: needs.get-pr-info.outputs.has_no_backport == 'false'
         run: |
           BASE_REF="${{ github.event.pull_request.base.ref }}"
-          MERGE_COMMITS=$(git log --merges --oneline origin/$BASE_REF.HEAD)
+          MERGE_COMMITS=$(git log --merges --oneline origin/$BASE_REF..HEAD)
           if [ -n "$MERGE_COMMITS" ]; then
             echo "::error::Merge commits found."
             echo "merge_commit_found=true" >> $GITHUB_OUTPUT
