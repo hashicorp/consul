@@ -2,24 +2,21 @@
 layout: docs
 page_title: Register services into a namespace
 description: >-
-  Learn how to register a service a particular namespace so that you can use Consul DNS to address it securely.
+  Learn how to register a service in a particular namespace and use Consul DNS to resolve it.
 ---
 
 # Register services into a namespace
 
 This page describes how to to register a service into a particular Consul namespace.
 
-Consul Community Edition supports some functions with its `default` partition and `default` namespace. Full multi-tenancy options requires an Enterprise license. For more information, refer to [Consul Enterprise](/consul/docs/enterprise).
+@include 'alerts/enterprise-alert.mdx'
+
 
 ## Introduction
 
-Namespaces allow multiple teams within an organization to share one or more
-Consul datacenters by separating the services, [Consul KV data](/consul/docs/automate/kv), and other Consul
-data of each team. This allows operators to more easily provide
-Consul as a service and enables them to [delegate ACL
-management](/consul/tutorials/namespaces/namespaces-secure-shared-access).
+Namespaces allow multiple teams within an organization to share one or more Consul datacenters by separating the services, [Consul KV data](/consul/docs/automate/kv), and other Consul data of each team. This allows operators to more easily provide Consul as a service and enables them to [delegate ACL management](/consul/docs/multi-tenant/namespace/vm/delegate-token-management).
 
-As of version 1.7, Consul registers each service to the `default` namespace unless the configuration for the service specifies another namespace. If you do not specify a namespace during service registration, Consul registers the service into the `default` namespace.
+All Consul clusters have access to a `default` namespace, but using multiple namespaces requires a Consul Enterprise license. Consul registers services into the namespace declared in the service definition. If you do not specify a namespace, Consul registers the service into the `default` namespace.
 
 ## Register a service into a namespace
 
@@ -27,6 +24,7 @@ You register a service into a namespace by using one of the following methods:
 
 - Add the `namespace` attribute to the service registration file.
 - Add the `-namespace` flag to the API call or CLI command during service registration.
+- Use a namespace token to leverage namespace inheritance.
 
 To migrate an existing service into a new namespace, register the service again and provide the namespace with either method shown.
 
@@ -34,13 +32,13 @@ To migrate an existing service into a new namespace, register the service again 
 
 Include a `namespace` attribute in the service registration file and set the value to a namespace that exists. Refer to the [Service definition reference page](/consul/docs/reference/service) for more information about registering services with the `service` block.
 
-<CodeBlockConfig filename="web-service.hcl" highlight="4">
+<CodeBlockConfig filename="db-service.hcl" highlight="4">
 
 ```hcl
 service {
-  name = "web-service"
-  port = 8080
-  namespace = "app-team-alpha"
+  name = "db-service"
+  port = 5432
+  namespace = "db-team"
 
   # ...
 }
@@ -51,7 +49,8 @@ service {
 Register the service with Consul by providing the service registration file.
 
 ```shell-session
-$ consul services register web-service.hcl
+$ consul services register db-service.hcl
+Registered service: db-service
 ```
 
 ### Use the `-namespace` flag
@@ -62,11 +61,37 @@ Refer to the [CLI reference page for the `services register` command](/consul/co
 
 ```shell-session
 $ consul services register \
-  -name=web-service \
-  -port=8080 \
-  -namespace=app-team-alpha
+  -name=db-service \
+  -port=5432 \
+  -namespace=db-team
 ```
 
+### Use namespace inheritance
+
+When you use a token scoped to a specific namespace to make CLI and API requests related to services, intentions, Consul KV, health checks, and ACLs, your request inherits the namespace information from the token. This means that if you use a token in the `db-team` namespace to register a service with Consul, the service is registered in that namespace without specifying it explicitly.
+
+To create a namespace token, follow instructions in [Delegate ACL token management with namespaces](/consul/docs/multi-tenant/namespace/vm/delegate-token-management#create-a-developer-token).
+
+First set the token for the CLI.
+
+```shell-session
+$ export CONSUL_HTTP_TOKEN=<db-team namespace token here>
+```
+
+Then register the service without including the `-namespace` flag.
+
+```shell-session
+consul services register -name=db-service -port=5432
+Registered service: db-service
+```
+
+<Note>
+
+If you registered a service with a service definition file, you must
+include both the ACL token and the namespace name in your request, as 
+service definitions are parsed prior to resolving the token.
+
+</Note>
 
 ## Specify namespace in a Consul DNS query
 
