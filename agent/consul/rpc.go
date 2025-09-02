@@ -92,6 +92,12 @@ const (
 	// value is ever reached. However, it prevents us from blocking
 	// the requesting goroutine forever.
 	enqueueLimit = 30 * time.Second
+
+	// AnonymousAccessorID is the accessor ID for anonymous token.
+	anonymousAccessorID = "00000000-0000-0000-0000-000000000002"
+
+	// AnonymousSecretID is the secret ID for anonymous token
+	anonymousSecretID = "anonymous"
 )
 
 var ErrChunkingResubmit = errors.New("please resubmit call for rechunking")
@@ -1045,7 +1051,7 @@ func (s *Server) SetQueryMeta(m blockingquery.ResponseMeta, token string) {
 		m.SetLastContact(time.Since(s.raft.LastContact()))
 		m.SetKnownLeader(s.raft.Leader() != "")
 	}
-	maskResultsFilteredByACLs(token, m)
+	maskResultsFilteredByACLs(token, m, s)
 
 	// Always set a non-zero QueryMeta.Index. Generally we expect the
 	// QueryMeta.Index to be set to structs.RaftIndex.ModifyIndex. If the query
@@ -1136,18 +1142,24 @@ func (s *Server) RPCQueryTimeout(queryTimeout time.Duration) time.Duration {
 //
 // Notes:
 //
-//   - The definition of "unauthenticated" here is incomplete, as it doesn't
-//     account for the fact that operators can modify the anonymous token with
-//     custom policies, or set namespace default policies. As these scenarios
-//     are less common and this flag is a best-effort UX improvement, we think
-//     the trade-off for reduced complexity is acceptable.
-//
 //   - This method assumes that the given token has already been validated (and
-//     will only check whether it is blank or not). It's a safe assumption because
+//     will only check whether it is blank or anonymous). It's a safe assumption because
 //     ResultsFilteredByACLs is only set to try when applying the already-resolved
 //     token's policies.
-func maskResultsFilteredByACLs(token string, meta blockingQueryResponseMeta) {
+func maskResultsFilteredByACLs(token string, m blockingQueryResponseMeta, s *Server) {
 	if token == "" {
-		meta.SetResultsFilteredByACLs(false)
+		m.SetResultsFilteredByACLs(false)
+		return
+	}
+
+	identity, err := s.resolveIdentityFromToken(token)
+	if err != nil {
+		s.rpcLogger().Error("Failed to resolve identity from token", "err", err)
+		m.SetResultsFilteredByACLs(false)
+		return
+	}
+
+	if identity.ID() == anonymousAccessorID && identity.SecretToken() == anonymousSecretID {
+		m.SetResultsFilteredByACLs(false)
 	}
 }

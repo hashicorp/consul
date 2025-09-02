@@ -39,7 +39,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/proto/private/pbsubscribe"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -234,9 +233,17 @@ func (m *MockSink) Close() error {
 // other blocking query tests reside in blockingquery_test.go in the blockingquery package.
 func TestServer_blockingQuery(t *testing.T) {
 	t.Parallel()
-	_, s := testServerWithConfig(t)
+	_, s := testServerWithConfig(t, testServerACLConfig)
+	delegate := ACLResolverTestDelegate{
+		enabled:    true,
+		datacenter: "dc1",
+	}
+	delegate.tokenReadFn = delegate.defaultTokenReadFn(errRPC)
+	r := newTestACLResolver(t, &delegate, nil)
+	s.ACLResolver = r
 
 	t.Run("ResultsFilteredByACLs is reset for unauthenticated calls", func(t *testing.T) {
+		// empty token
 		opts := structs.QueryOptions{
 			Token: "",
 		}
@@ -249,24 +256,36 @@ func TestServer_blockingQuery(t *testing.T) {
 		err := s.blockingQuery(&opts, &meta, fn)
 		require.NoError(t, err)
 		require.False(t, meta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be reset for unauthenticated calls")
-	})
 
-	t.Run("ResultsFilteredByACLs is honored for authenticated calls", func(t *testing.T) {
-		token, err := lib.GenerateUUID(nil)
-		require.NoError(t, err)
-
-		opts := structs.QueryOptions{
-			Token: token,
+		// anonymous token
+		anonOpts := structs.QueryOptions{
+			Token: "anonymous", // secret id of anonymous token
 		}
-		var meta structs.QueryMeta
-		fn := func(_ memdb.WatchSet, _ *state.Store) error {
-			meta.ResultsFilteredByACLs = true
+		var anonMeta structs.QueryMeta
+		anonFn := func(_ memdb.WatchSet, _ *state.Store) error {
+			anonMeta.ResultsFilteredByACLs = true
 			return nil
 		}
 
-		err = s.blockingQuery(&opts, &meta, fn)
+		err = s.blockingQuery(&anonOpts, &anonMeta, anonFn)
 		require.NoError(t, err)
-		require.True(t, meta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be honored for authenticated calls")
+		require.False(t, anonMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be reset for unauthenticated calls")
+	})
+
+	t.Run("ResultsFilteredByACLs is honored for authenticated calls", func(t *testing.T) {
+		delegate.localTokens = true
+		authOpts := structs.QueryOptions{
+			Token: "authenticated",
+		}
+		var authMeta structs.QueryMeta
+		authFn := func(_ memdb.WatchSet, _ *state.Store) error {
+			authMeta.ResultsFilteredByACLs = true
+			return nil
+		}
+
+		err := s.blockingQuery(&authOpts, &authMeta, authFn)
+		require.NoError(t, err)
+		require.True(t, authMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be honored for authenticated calls")
 	})
 }
 

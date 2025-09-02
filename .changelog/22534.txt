@@ -1,0 +1,3 @@
+```release-note:security
+agent: Fix a security vulnerability to filter out anonymous tokens along with empty tokens when setting the Results-Filtered-By-ACLs header
+```
