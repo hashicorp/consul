@@ -7,9 +7,12 @@
 name: Backport Assistant Runner
 
 on:
-  workflow_run:
-    workflows: ["Backport Assistant Prerunner"]
-    types: [completed]
+  pull_request:
+    types: [opened, synchronize, labeled]
+    # Runs on PRs to main and all release branches
+    branches:
+      - main
+      - release/*
 jobs:
   backport:
     if: github.event.pull_request.merged

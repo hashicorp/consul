@@ -1,26 +1,38 @@
 name: Backport Assistant Prerunner
 
 on:
-  workflow_run:
-    workflows: ["Backport Checker"]
-    types: [completed]
-  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, labeled]
+    # Runs on PRs to main and all release branches
+    branches:
+      - main
+      - release/*
 
 jobs:
-  run-if-successful:
+  # checks that a backport label is present for a PR
+  backport-check:
+    # If there's a `pr/no-backport` label we ignore this check. Also, we ignore PRs created by the bot assigned to `backport-assistant`
+    if: "! ( contains(github.event.pull_request.labels.*.name, 'pr/no-backport') || github.event.pull_request.user.login == 'hc-github-team-consul-core' )"
     runs-on: ubuntu-latest
-    if: github.event.workflow_run.conclusion == 'success'
     outputs:
-      pull_request_number: ${{ github.event.workflow_run.pull_requests[0].number }}
-      pull_request_ref: ${{ github.event.workflow_run.pull_requests[0].head.ref }}
-      pull_request_repo: ${{ github.event.workflow_run.pull_requests[0].head.repo.full_name }}
+      has_backport_label: ${{ steps.check_backport.outputs.has_backport }}
+
     steps:
-      - name: Acknowledge successful run
-        run: echo "This workflow ran because 'Backport Checker' successfully completed."
+      - name: Check for Backport Label
+        id: check_backport
+        run: |
+          labels="${{join(github.event.pull_request.labels.*.name, ', ') }}"
+          if [[ "$labels" =~ .*"backport/".* ]]; then
+            echo "Found backport label!"
+            exit 0
+          fi
+          # Fail status check when no backport label was found on the PR
+          echo "Did not find a backport label matching the pattern 'backport/*' and the 'pr/no-backport' label was not applied. Reference - https://github.com/hashicorp/consul/pull/16567"
+          exit 1
 
   get-pr-info:
     runs-on: ubuntu-latest
-    needs: run-if-successful
+    needs: backport-check
     outputs:
       has_no_backport: ${{ steps.check_label.outputs.has_no_backport }}
       pr_number: ${{ steps.check_label.outputs.pr_number }}
@@ -30,7 +42,7 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const prNumber = ${{ needs.run-if-successful.outputs.pull_request_number }};
+            const prNumber = context.payload.pull_request.number;
             if (!prNumber) {
               console.log('No PR associated with this workflow run, skipping checks.');
               return;
@@ -44,7 +56,8 @@ jobs:
             console.log('PR has no-backport label:', hasNoBackport);
             core.setOutput('has_no_backport', hasNoBackport);
             core.setOutput('pr_number', prNumber);
-
+            core.setOutput('pull_request_ref', pr.head.ref);
+            core.setOutput('pull_request_repo', `${pr.head.repo.owner.login}/${pr.head.repo.name}`);
   check-pr-condition:
     runs-on: ubuntu-latest
     needs: get-pr-info
