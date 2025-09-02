@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -2632,6 +2633,78 @@ func TestUIEndpoint_MetricsProxy(t *testing.T) {
 				BaseURL: backendURL,
 			},
 			path:         endpointPath + "/../../.passwd",
+			wantCode:     http.StatusMovedPermanently,
+			wantContains: "Moved Permanently",
+		},
+		{
+			name: "path traversal with single dot-dot should be cleaned",
+			config: config.UIMetricsProxy{
+				BaseURL: backendURL,
+			},
+			path:         endpointPath + "/../ok",
+			wantCode:     http.StatusMovedPermanently,
+			wantContains: "Moved Permanently",
+		},
+		{
+			name: "path traversal with multiple dot-dots should be cleaned",
+			config: config.UIMetricsProxy{
+				BaseURL: backendURL,
+			},
+			path:         endpointPath + "/../../ok",
+			wantCode:     http.StatusMovedPermanently,
+			wantContains: "Moved Permanently",
+		},
+		{
+			name: "path traversal with mixed slashes should be cleaned",
+			config: config.UIMetricsProxy{
+				BaseURL: backendURL,
+			},
+			path:         endpointPath + "/./../ok",
+			wantCode:     http.StatusMovedPermanently,
+			wantContains: "Moved Permanently",
+		},
+		{
+			name: "path traversal with encoded dots should be handled",
+			config: config.UIMetricsProxy{
+				BaseURL: backendURL,
+			},
+			path:         endpointPath + "/%2e%2e/ok",
+			wantCode:     http.StatusOK,
+			wantContains: "OK",
+		},
+		{
+			name: "path with double slashes should be cleaned",
+			config: config.UIMetricsProxy{
+				BaseURL: backendURL,
+			},
+			path:         endpointPath + "//ok",
+			wantCode:     http.StatusMovedPermanently,
+			wantContains: "Moved Permanently",
+		},
+		{
+			name: "path with trailing slash should work",
+			config: config.UIMetricsProxy{
+				BaseURL: backendURL,
+			},
+			path:         endpointPath + "/ok/",
+			wantCode:     http.StatusOK,
+			wantContains: "OK",
+		},
+		{
+			name: "baseURL exact match should work",
+			config: config.UIMetricsProxy{
+				BaseURL: strings.TrimSuffix(backendURL, "/"),
+			},
+			path:         endpointPath + "/",
+			wantCode:     http.StatusNotFound,
+			wantContains: "not found on backend",
+		},
+		{
+			name: "clean path prevents directory traversal",
+			config: config.UIMetricsProxy{
+				BaseURL: backendURL,
+			},
+			path:         endpointPath + "/subdir/../../../etc/passwd",
 			wantCode:     http.StatusMovedPermanently,
 			wantContains: "Moved Permanently",
 		},
