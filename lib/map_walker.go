@@ -36,8 +36,8 @@ func MapWalk(input interface{}) (map[string]interface{}, error) {
 	return mapCopy, nil
 }
 
-var typMapIfaceIface = reflect.TypeOf(map[interface{}]interface{}{})
-var typByteSlice = reflect.TypeOf([]byte{})
+var typMapIfaceIface = reflect.TypeFor[map[interface{}]interface{}]()
+var typByteSlice = reflect.TypeFor[[]byte]()
 
 // mapWalker implements interfaces for the reflectwalk package
 // (github.com/mitchellh/reflectwalk) that can be used to automatically
