@@ -269,7 +269,7 @@ func (h *Handler) serveTransformedJS(w http.ResponseWriter, jsPath string) {
 	if cfg.UIConfig.Dir == "" {
 		sub, err := fs.Sub(dist, "dist")
 		if err != nil {
-			h.logger.Error("Failed to open embedded dist: %v", err)
+			h.logger.Error("Failed to open embedded dist: %w", err)
 			return
 		}
 		fsys = sub
@@ -280,7 +280,7 @@ func (h *Handler) serveTransformedJS(w http.ResponseWriter, jsPath string) {
 	f, err := fsys.Open(jsPath)
 	if err != nil {
 		http.Error(w, "JS file not found", http.StatusNotFound)
-		h.logger.Error("JS file not found: %s", err)
+		h.logger.Error("JS file not found: %w", err)
 		return
 	}
 	defer f.Close()
@@ -288,20 +288,20 @@ func (h *Handler) serveTransformedJS(w http.ResponseWriter, jsPath string) {
 	content, err := io.ReadAll(f)
 	if err != nil {
 		http.Error(w, "Failed to read JS file", http.StatusInternalServerError)
-		h.logger.Error("Failed to read JS file: %v", err)
+		h.logger.Error("Failed to read JS file: %w", err)
 		return
 	}
 
 	tplDataFull, err := uiTemplateDataFromConfig(cfg)
 	if err != nil {
 		http.Error(w, "Failed to load template data", http.StatusInternalServerError)
-		h.logger.Error("Failed to load template data: %s", err)
+		h.logger.Error("Failed to load template data: %w", err)
 		return
 	}
 	if h.transform != nil {
 		if err := h.transform(tplDataFull); err != nil {
 			http.Error(w, "Failed to run transform", http.StatusInternalServerError)
-			h.logger.Error("Failed to run transform: %s", err)
+			h.logger.Error("Failed to run transform: %w", err)
 			return
 		}
 	}
@@ -316,6 +316,6 @@ func (h *Handler) serveTransformedJS(w http.ResponseWriter, jsPath string) {
 	js = strings.ReplaceAll(js, "{{.ContentPath}}", contentPath)
 	w.Header().Set("Content-Type", "application/javascript")
 	if _, err := w.Write([]byte(js)); err != nil {
-		h.logger.Error("Failed to write JS response: %v", err)
+		h.logger.Error("Failed to write JS response: %w", err)
 	}
 }
