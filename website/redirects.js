@@ -3968,6 +3968,106 @@ module.exports = [
     permanent: true
   },
   {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/register",
+    destination: "/consul/docs/:version/services/services",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/register/service/k8s/annotations",
+    destination: "/consul/docs/:version/k8s/annotations-and-labels#service-sync",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/register/service/namespace",
+    destination: "/consul/docs/register/service/namespace",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/register/service/docker",
+    destination: "/consul/docs/register/service/docker",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/register/service/aws",
+    destination: "/consul/docs/register/service/aws",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/register/service/ecs/requirements",
+    destination: "/consul/docs/:version/ecs/tech-specs",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/register/service/ecs",
+    destination: "/consul/docs/:version/ecs/deploy/terraform",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/register/service/nomad",
+    destination: "/consul/docs/:version/nomad",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/register/external/esm",
+    destination: "/consul/docs/register/external/esm",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/register/external/esm/k8s",
+    destination: "/consul/docs/register/external/esm/k8s",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/register/external/terminating-gateway",
+    destination: "/consul/docs/register/external/terminating-gateway",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/register/external/permissive-mtls",
+    destination: "/consul/docs/:version/k8s/connect/onboarding-tproxy-mode",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/discover",
+    destination: "/consul/docs/:version/services/discovery/dns-overview",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/discover/dns/k8s",
+    destination: "/consul/docs/:version/k8s/dns/enable",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/discover/dns/docker",
+    destination: "/consul/docs/discover/dns/docker",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/discover/dns/pas",
+    destination: "/consul/docs/discover/dns/pas",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/discover/load-balancer/:slug*",
+    destination: "/consul/docs/discover/load-balancer/:slug*",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/discover/vm",
+    destination: "/consul/docs/discover/vm",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/discover/k8s",
+    destination: "/consul/docs/discover/k8s",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/discover/docker",
+    destination: "/consul/docs/discover/docker",
+    permanent: true
+  },
+  {
     source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/",
     destination: "/consul/docs/:version/",
     permanent: true
