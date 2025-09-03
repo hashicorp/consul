@@ -3887,6 +3887,106 @@ module.exports = [
     destination: "/consul/docs/secure/sso/auth0",
     permanent: true
   },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/multi-tenant",
+    destination: "/consul/docs/multi-tenant",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/multi-tenant/admin-partition/k8s",
+    destination: "/consul/docs/:version/enterprise/admin-partitions",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/multi-tenant/namespace/vm/:slug*",
+    destination: "/consul/docs/:version/enterprise/namespaces",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/multi-tenant/namespace/k8s",
+    destination: "/consul/docs/:version/enterprise/namespaces",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/manage",
+    destination: "/consul/docs/manage",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/k8s/dns/enable",
+    destination: "/consul/docs/:version/k8s/dns",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/manage/disaster-recovery/:slug*",
+    destination: "/consul/docs/manage/disaster-recovery/:slug*",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/manage/scale/autopilot",
+    destination: "/consul/docs/manage/scale/autopilot",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/monitor/telemetry/dataplane",
+    destination: "/consul/docs/:version/connect/dataplane/telemetry",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/monitor/telemetry/telegraf",
+    destination: "/consul/docs/monitor/telemetry/telegraf",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/monitor/telemetry/appdynamics",
+    destination: "/consul/docs/monitor/telemetry/appdynamics",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/monitor/log/agent",
+    destination: "/consul/docs/monitor/log/agent",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/upgrade/federated",
+    destination: "/consul/docs/upgrade/federated",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/upgrade/k8s/openshift",
+    destination: "/consul/docs/upgrade/k8s/openshift",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/upgrade/k8s/crds",
+    destination: "/consul/docs/:version/k8s/crds/upgrade-to-crds",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/release-notes/consul/v1_21_x",
+    destination: "/consul/docs/release-notes/consul/v1_21_x",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/",
+    destination: "/consul/docs/:version/",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/",
+    destination: "/consul/docs/:version/",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/",
+    destination: "/consul/docs/:version/",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/",
+    destination: "/consul/docs/:version/",
+    permanent: true
+  },
   ///////////////////////////////////
   // Tutorial --> Docs conversions //
   ///////////////////////////////////
