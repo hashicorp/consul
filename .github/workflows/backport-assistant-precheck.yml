@@ -150,62 +150,11 @@ jobs:
               });
               console.log('Created new merge commit comment');
             }
-            // Try to convert PR to draft with full debugging
-            try {
-              console.log('=== ATTEMPTING TO CONVERT PR TO DRAFT ===');
-              console.log('PR Number:', prNumber);
-              console.log('Owner:', context.repo.owner);
-              console.log('Repo:', context.repo.repo);
-            
-              // First, get current PR state for comparison
-              const { data: beforePR } = await github.rest.pulls.get({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: prNumber
-              });
-              console.log('BEFORE - PR Draft Status:', beforePR.draft);
-              console.log('BEFORE - PR State:', beforePR.state);
-              console.log('BEFORE - PR Mergeable:', beforePR.mergeable);
-            
-              // Attempt to convert to draft
-              const updateResult = await github.rest.pulls.update({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: prNumber,
-                draft: true
-              });
-            
-              console.log('=== API RESPONSE DETAILS ===');
-              console.log('Status Code:', updateResult.status);
-              console.log('Status Text:', updateResult.statusText || 'N/A');
-              console.log('Headers:', JSON.stringify(updateResult.headers, null, 2));
-              console.log('AFTER - PR Draft Status:', updateResult.data.draft);
-              console.log('AFTER - PR State:', updateResult.data.state);
-              console.log('AFTER - PR Mergeable:', updateResult.data.mergeable);
-              console.log('Full Response Data:', JSON.stringify({
-                id: updateResult.data.id,
-                number: updateResult.data.number,
-                draft: updateResult.data.draft,
-                state: updateResult.data.state,
-                mergeable: updateResult.data.mergeable,
-                mergeable_state: updateResult.data.mergeable_state,
-                title: updateResult.data.title
-              }, null, 2));
-            
-              if (updateResult.data.draft) {
-                console.log('✅ SUCCESS: PR successfully converted to draft');
-              } else {
-                console.log('❌ FAILED: API returned 200 but PR is still not draft');
-                console.log('This indicates a GitHub API limitation or business rule preventing conversion');
-              }
-            
-            } catch (error) {
-              console.log('=== ERROR CONVERTING TO DRAFT ===');
-              console.error('Error Message:', error.message);
-              console.error('Error Status:', error.status);
-              console.error('Error Response:', error.response?.data ? JSON.stringify(error.response.data, null, 2) : 'No response data');
-              console.error('Full Error Object:', JSON.stringify(error, null, 2));
-            }
+                      // Close PR when merge commits are found
+            // Fail the workflow to prevent merging
+            console.log('🚫 WORKFLOW FAILED: Merge commits detected in PR');
+            console.log('This PR cannot be merged until merge commits are removed');
+            process.exit(1);  // This will fail the workflow
 
       - name: Remove 'backport-error' label and comment
         if: steps.check_merges.outputs.merge_commit_found != 'true' && needs.get-pr-info.outputs.has_no_backport == 'false'
