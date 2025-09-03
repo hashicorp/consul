@@ -6,6 +6,7 @@
 <div
   ...attributes
   class="consul-intention-permission-form"
+  {{fix-super-select-aria}}
 >
 <FormGroup
   @name={{name}}
@@ -53,12 +54,16 @@ as |group|>
           <el.Label>
             Path type
           </el.Label>
-          <PowerSelect
+          <Hds::Form::SuperSelect::Single::Field
             @options={{pathTypes}}
             @selected={{pathType}}
-            @onChange={{action 'change' 'HTTP.PathType' changeset}} as |Type|>
-              {{get pathLabels Type}}
-          </PowerSelect>
+            @onChange={{action 'change' 'HTTP.PathType' changeset}}
+            @label="Path type"
+            @listboxAriaLabel="Path type options"
+            id="path-type-select"
+          as |F|>
+            <F.Options>{{get pathLabels F.options}}</F.Options>
+          </Hds::Form::SuperSelect::Single::Field>
         </group.Element>
 
 {{#if shouldShowPathField}}
