@@ -27,6 +27,7 @@ jobs:
         env:
           BACKPORT_LABEL_REGEXP: "backport/(?P<target>\\d+\\.\\d+)"
           BACKPORT_TARGET_TEMPLATE: "release/{{.target}}.x"
+          BACKPORT_MERGE_COMMIT: true
           GITHUB_TOKEN: ${{ secrets.ELEVATED_GITHUB_TOKEN_WORKFLOW }}
           ENABLE_VERSION_MANIFESTS: true
   backport-ent:
