@@ -18,6 +18,13 @@ export default modifier(function fixSuperSelectAria(element) {
         el.setAttribute('aria-expanded', dropdown.offsetParent !== null ? 'true' : 'false');
       }
     });
+
+    // Add accessible names to listboxes
+    element
+      .querySelectorAll('[role="listbox"]:not([aria-label]):not([aria-labelledby])')
+      .forEach((listbox) => {
+        listbox.setAttribute('aria-label', 'Available options');
+      });
   }
 
   setTimeout(fixAria, 100);
