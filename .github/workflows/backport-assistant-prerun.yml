@@ -121,12 +121,35 @@ jobs:
               issue_number: prNumber, 
               labels: [labelName] 
             });
-            await github.rest.issues.createComment({ 
-              owner: context.repo.owner, 
-              repo: context.repo.repo, 
-              issue_number: prNumber, 
-              body: commentBody 
+            // Check if comment already exists and update it, otherwise create new one
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber
             });
+            
+            const commentPrefix = '🚨 **AUTOMATED CHECK: MERGE COMMITS FOUND** 🚨';
+            const existingComment = comments.find(comment => comment.body.includes(commentPrefix));
+            
+            if (existingComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+                body: commentBody
+              });
+              console.log('Updated existing merge commit comment');
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({ 
+                owner: context.repo.owner, 
+                repo: context.repo.repo, 
+                issue_number: prNumber, 
+                body: commentBody 
+              });
+              console.log('Created new merge commit comment');
+            }
 
       - name: Remove 'backport-error' label and comment and convert PR to ready
         if: steps.check_merges.outputs.merge_commit_found != 'true' && needs.get-pr-info.outputs.has_no_backport == 'false'
@@ -145,19 +168,31 @@ jobs:
                 repo: context.repo.repo,
                 pull_number: prNumber
               });
-              const { data: comments } = await github.rest.issues.listComments({
+                          const { data: comments } = await github.rest.issues.listComments({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: prNumber
               });
-              const botComment = comments.find(comment => comment.body.includes(commentPrefix));
-              if (botComment) {
-                await github.rest.issues.deleteComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  comment_id: botComment.id
-                });
-                console.log('Merge commit comment successfully removed.');
+              const commentPrefix = '🚨 **AUTOMATED CHECK: MERGE COMMITS FOUND** 🚨';
+              const botComments = comments.filter(comment => comment.body.includes(commentPrefix));
+            
+              if (botComments.length > 0) {
+                console.log(`Found ${botComments.length} merge commit comment(s) to remove`);
+                for (const botComment of botComments) {
+                  try {
+                    await github.rest.issues.deleteComment({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      comment_id: botComment.id
+                    });
+                    console.log(`Deleted merge commit comment (ID: ${botComment.id})`);
+                  } catch (error) {
+                    console.log(`Could not delete comment ${botComment.id}: ${error.message}`);
+                  }
+                }
+                console.log('All merge commit comments successfully removed.');
+              } else {
+                console.log('No merge commit comments found to remove.');
               }
               await github.rest.issues.removeLabel({
                 owner: context.repo.owner,
