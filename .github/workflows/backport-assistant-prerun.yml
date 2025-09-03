@@ -89,7 +89,7 @@ jobs:
             echo "::INFO::Merge commits not found."
             echo "merge_commit_found=false" >> $GITHUB_OUTPUT
           fi
-      - name: Add 'backport-error' label and comment and convert this PR to draft
+      - name: Add 'backport-error' label and comment
         if: steps.check_merges.outputs.merge_commit_found == 'true' && needs.get-pr-info.outputs.has_no_backport == 'false'
         uses: actions/github-script@v6
         with:
@@ -151,7 +151,7 @@ jobs:
               console.log('Created new merge commit comment');
             }
 
-      - name: Remove 'backport-error' label and comment and convert PR to ready
+      - name: Remove 'backport-error' label and comment
         if: steps.check_merges.outputs.merge_commit_found != 'true' && needs.get-pr-info.outputs.has_no_backport == 'false'
         uses: actions/github-script@v6
         with:
