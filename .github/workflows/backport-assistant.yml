@@ -14,6 +14,7 @@ on:
     branches:
       - main
       - 'release/*.*.x'
+
 jobs:
   backport:
     if: github.event.pull_request.merged
