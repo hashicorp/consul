@@ -1,4 +1,4 @@
-name: Backport Assistant Pre-check
+name: Backport Checker
 
 on:
   pull_request:
