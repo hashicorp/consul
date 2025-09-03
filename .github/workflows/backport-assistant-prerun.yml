@@ -98,15 +98,15 @@ jobs:
           BASE_REF="${{ github.event.pull_request.base.ref }}"
           MERGE_COMMITS=$(git log --merges --oneline origin/$BASE_REF..HEAD)
           if [ -n "$MERGE_COMMITS" ]; then
-            echo "::error::Merge commits found."
+            echo "::ERROR::Merge commits found."
             echo "merge_commit_found=true" >> $GITHUB_OUTPUT
             echo "MERGE_COMMIT_IDS<<EOF" >> $GITHUB_OUTPUT
             echo "$MERGE_COMMITS" >> $GITHUB_OUTPUT
             echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "::INFO::Merge commits not found."
+            echo "merge_commit_found=false" >> $GITHUB_OUTPUT
           fi
-          echo "merge_commit_found=${MERGE_COMMITS:+'true'}"
-          echo "merge_commit_found=${MERGE_COMMITS:+'true'}" >> $GITHUB_OUTPUT
-
       - name: Add 'backport-error' label and comment and convert this PR to draft
         if: steps.check_merges.outputs.merge_commit_found == 'true' && needs.get-pr-info.outputs.has_no_backport == 'false'
         uses: actions/github-script@v6
