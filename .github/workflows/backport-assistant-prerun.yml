@@ -7,10 +7,7 @@ on:
     branches:
       - main
       - release/*
-permissions:
-  contents: read
-  pull-requests: write
-  issues: write
+
 env:
   BACKPORT_ERROR_LABEL: backport-error/merge-commit-found
 
@@ -20,9 +17,6 @@ jobs:
     # If there's a `pr/no-backport` label we ignore this check. Also, we ignore PRs created by the bot assigned to `backport-assistant`
     if: "! ( contains(github.event.pull_request.labels.*.name, 'pr/no-backport') || github.event.pull_request.user.login == 'hc-github-team-consul-core' )"
     runs-on: ubuntu-latest
-    outputs:
-      has_backport_label: ${{ steps.check_backport.outputs.has_backport }}
-
     steps:
       - name: Check for Backport Label
         id: check_backport
@@ -66,27 +60,11 @@ jobs:
             core.setOutput('pr_number', prNumber);
             core.setOutput('pull_request_ref', pr.head.ref);
             core.setOutput('pull_request_repo', `${pr.head.repo.owner.login}/${pr.head.repo.name}`);
-            console.log('DEBUG: All PR labels:', pr.labels.map(label => label.name));
-            console.log('DEBUG: hasNoBackport value:', hasNoBackport);
-            console.log('DEBUG: hasNoBackport type:', typeof hasNoBackport);
 
   check-pr-condition:
     runs-on: ubuntu-latest
     needs: get-pr-info
     steps:
-      - name: Debug - Show all outputs from get-pr-info
-        run: |
-          echo "DEBUG: has_no_backport = '${{ needs.get-pr-info.outputs.has_no_backport }}'"
-          echo "DEBUG: pr_number = '${{ needs.get-pr-info.outputs.pr_number }}'"
-          echo "DEBUG: pull_request_ref = '${{ needs.get-pr-info.outputs.pull_request_ref }}'"
-          echo "DEBUG: pull_request_repo = '${{ needs.get-pr-info.outputs.pull_request_repo }}'"
-          echo "DEBUG: Checking condition: needs.get-pr-info.outputs.has_no_backport == 'false'"
-          echo "DEBUG: Actual comparison: '${{ needs.get-pr-info.outputs.has_no_backport }}' == 'false'"
-          if [ "${{ needs.get-pr-info.outputs.has_no_backport }}" == "false" ]; then
-            echo "DEBUG: Condition evaluates to TRUE - will proceed with steps"
-          else
-            echo "DEBUG: Condition evaluates to FALSE - will skip steps"
-          fi
       - name: Fetch repository history
         if: needs.get-pr-info.outputs.has_no_backport == 'false'
         uses: actions/checkout@v4
@@ -119,60 +97,23 @@ jobs:
           script: |
             const prNumber = ${{ needs.get-pr-info.outputs.pr_number }};
             const labelName = '${{ env.BACKPORT_ERROR_LABEL }}';
-            const commentBody = `
+                        const commentBody = `
             🚨 **AUTOMATED CHECK: MERGE COMMITS FOUND** 🚨
-            This pull request contains merge commits. The **\`${labelName}\`** label has been added. Please rebase your branch.
+            
+            This pull request contains merge commits. The **\`${labelName}\`** label has been added.
+            
             **Found Commits:**
             \`\`\`
             ${{ steps.check_merges.outputs.MERGE_COMMIT_IDS }}
             \`\`\`
+            
+            **To fix this:**
+            1. Rebase your branch: \`git rebase -i main\`
+            2. Remove the merge commits during interactive rebase
+            3. Force push: \`git push --force-with-lease\`
+            
+            **Please mark this PR as draft manually until the merge commits are resolved.**
             `;
-
-                        // Convert PR to draft
-            try {
-              console.log('Attempting to convert PR to draft...');
-            
-              // First, get current PR state
-              const { data: currentPR } = await github.rest.pulls.get({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: prNumber
-              });
-            
-              console.log('Current PR state:');
-              console.log('- Draft:', currentPR.draft);
-              console.log('- State:', currentPR.state);
-              console.log('- Mergeable:', currentPR.mergeable);
-              console.log('- Head repo:', currentPR.head.repo.full_name);
-              console.log('- Base repo:', currentPR.base.repo.full_name);
-              console.log('- Is fork:', currentPR.head.repo.full_name !== currentPR.base.repo.full_name);
-            
-              // Check for reviews
-              const { data: reviews } = await github.rest.pulls.listReviews({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: prNumber
-              });
-              console.log('- Number of reviews:', reviews.length);
-              console.log('- Approved reviews:', reviews.filter(r => r.state === 'APPROVED').length);
-            
-              const updateResult = await github.rest.pulls.update({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: prNumber,
-                draft: true
-              });
-              console.log('PR draft conversion result:', updateResult.status);
-              console.log('PR is now draft:', updateResult.data.draft);
-            
-              if (!updateResult.data.draft) {
-                console.log('⚠️ PR was not converted to draft despite 200 response');
-                console.log('This might be due to GitHub limitations (reviews, fork, etc.)');
-              }
-            } catch (error) {
-              console.error('Failed to convert PR to draft:', error.message);
-              console.error('Error details:', error);
-            }
             
             await github.rest.issues.addLabels({ 
               owner: context.repo.owner, 
@@ -204,17 +145,6 @@ jobs:
                 repo: context.repo.repo,
                 pull_number: prNumber
               });
-
-              // If PR is draft, convert it back to ready
-              if (pr.draft) {
-                await github.rest.pulls.update({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  pull_number: prNumber,
-                  draft: false
-                });
-              }
-
               const { data: comments } = await github.rest.issues.listComments({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
