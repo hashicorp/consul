@@ -56,7 +56,7 @@ jobs:
               repo: context.repo.repo,
               pull_number: prNumber
             });
-            const hasNoBackport = pr.labels.some(label => label.name === 'no-backport');
+            const hasNoBackport = pr.labels.some(label => label.name === 'pr/no-backport');
             console.log('PR has no-backport label:', hasNoBackport);
             core.setOutput('has_no_backport', hasNoBackport);
             core.setOutput('pr_number', prNumber);
