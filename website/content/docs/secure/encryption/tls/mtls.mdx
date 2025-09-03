@@ -511,6 +511,29 @@ tls {
 
 </CodeTabs>
 
+## Compare supported Certificate Authorities (CAs)
+
+Consul supports several Certificate Authorities (CAs) for encrypting agent communication.
+
+The following table lists the certificates you must generate with each CA to secure Consul operations:
+
+| Certificate authority | Server certificate | Client certificate | Envoy certificate |
+| ---------------------- | :----------------: | :----------------: | :---------------: |
+| Consul embedded CA     | &#9989;                 | &#9989;  (manual)        | &#10060;                |
+| Consul service mesh CA | &#10060;                 | &#9989;  (`auto_config` or `auto_encrypt`) | &#9989; |
+| 3rd party CA           | &#9989;                 | &#9989;  (manual)        | &#10060;                |
+| Vault                  | &#9989;                 | &#9989;  (`auto_config` or `auto_encrypt`) | &#9989; |
+
+The table below offers an overview of the different options with default values and storage locations for the different CAs. 
+
+| Feature                                    | Consul agent CA  | Consul service mesh CA | 3rd party CA     |
+| ------------------------------------------ | ---------------- | ---------------------- | ---------------- |
+| Certificate generation                     | Manual           | Automatic              | Varies           |
+| Certificate rotation                       | Manual           | Automatic              | Varies           |
+| Certificate storage location               | Raft state store | Agent memory           | Raft state store |
+| Default expiration for CA certificates     | 5 years          | 10 years               | Varies           |
+| Default expiration for agent certificates  | 1 year           | 3 days                 | Varies           |
+
 ## Next steps
 
 Your agents are now configured with mTLS for encrypted communication. With the auto encryption method, your
