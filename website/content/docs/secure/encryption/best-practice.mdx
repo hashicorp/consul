@@ -1,50 +1,41 @@
 ---
 layout: docs
-page_title: Best practices for traffic encryption
+page_title: Agent encryption best practices
 description: >-
   Review security considerations and best practices for the configuration of the gossip encryption and mTLS encryption in Consul.
 ---
 
-# Best practices for traffic encryption
+# Agent encryption best practices
 
-This document provides a list of best practices for the configuration of the gossip encryption and mTLS encryption in Consul.
+This page lists best practices for configuring gossip encryption and mTLS encryption between Consul agents in a datacenter.
 
 ## Gossip encryption best practices
 
 The following is a list of recommended practices for gossip encryption.
 
-- Regularly rotate the gossip encryption key to improve the overall security of Consul. More resources on gossip encryption key rotation are available at [Rotate gossip encryption keys on VMs](/consul/docs/secure/encryption/gossip/rotate/vm) and [Rotate Gossip Encryption Keys for Consul on Kubernetes](/consul/docs/secure/encryption/gossip/rotate/k8s).
+- Rotate the gossip encryption key on a regular basis to improve Consul's overall security. For runtime-specific instructions, refer to [Rotate gossip encryption keys on VMs](/consul/docs/secure/encryption/gossip/rotate/vm) or [Rotate Gossip Encryption Keys for Consul on Kubernetes](/consul/docs/secure/encryption/gossip/rotate/k8s).
 
-- When possible, automate the rotation of gossip keys using Vault and Consul Template as shown in [Generate and manage gossip encryption for Consul with Vault and Consul Template](/consul/docs/automate/consul-template/vault/gossip).
+- When possible, use Vault and Consul Template to automate gossip key rotation. For more information, refer to [Generate and manage gossip encryption for Consul with Vault and Consul Template](/consul/docs/automate/consul-template/vault/gossip).
 
 
 ## mTLS encryption best practices
 
 The following is a list of recommended practices for mTLS encryption.
 
-- Ensure that certificates have an expiration period that aligns with your
-company’s guidelines.
+- Ensure that certificates have an expiration period. This expiration period should aligns with your company’s guidelines or specific security requirements.
 
-- Enable either [`auto_encrypt`](/consul/docs/reference/agent/configuration-file/encryption#auto_encrypt) or [`auto_config`](/consul/docs/reference/agent/configuration-file/auto-config) to automatically distribute client certificates.
+- Use either of Consul's [`auto_encrypt`](/consul/docs/reference/agent/configuration-file/encryption#auto_encrypt) or [`auto_config`](/consul/docs/reference/agent/configuration-file/auto-config) features to automatically distribute client certificates.
 
-- For automatic key rotation and certificate renewals, the use of a secrets management solution such as HashiCorp Vault is strongly recommended. Refer to [Generate mTLS Certificates for Consul with Vault and Consul Template](/consul/docs/automate/consul-template/vault/mtls) for more information.
+- We recommend using a secrets management solution such as HashiCorp Vault for automatic key rotation and certificate renewals. For more information and additional guidance, refer to [Generate mTLS Certificates for Consul with Vault and Consul Template](/consul/docs/automate/consul-template/vault/mtls).
 
-- Avoid the use of wildcard certificates to reduce possible attack surface. Instead, leverage named certificates with the use of subject alternative name (SAN).
+- Avoid the use of wildcard certificates to reduce your cluster's attack surface. Instead, leverage named certificates with the use of subject alternative names (SAN).
 
-- Verify the server hostname setting [`verify_server_hostname`](/consul/docs/reference/agent/configuration-file/tls#tls_internal_rpc_verify_server_hostname) is set to ensure that the client only accepts the certificate files from a server that presents a certificate matching `server.<dc>.<domain>`.
+- Enable [`verify_server_hostname`](/consul/docs/reference/agent/configuration-file/tls#tls_internal_rpc_verify_server_hostname) on Consul agents to ensure that the client only accepts the certificate files from a server that presents a certificate matching `server.<dc>.<domain>`.
 
-- Secure API, UI, and CLI with HTTPS.
-    - If there is a requirement to expose the API/CLI/UI outside of the Consul cluster, the use of HTTPS is strongly encouraged.
+- Secure the API, CLI, and UI interfaces with HTTPS, especially if you need to expose them outside of the Consul cluster. You may also need to adjust firewall and security group rules to provide access to these services.
+    - To leverage mTLS with the API, CLI, and UI, generate a separate client certificate to use for requests.
 
-    <Note>
-
-      Firewall/Security group rules will need to be adjusted to provide access to these services.
-
-    </Note>
-
-    - In order to leverage mTLS with the API, UI and CLI, a separate client certificate should be generated and used for requests.
-
-    - Once HTTPS has been enabled, HTTP should be disabled by leveraging the ports stanza in the server and client configuration.
+    - After you enable HTTPS, disable HTTP access by configuring the `ports` stanza in the server and client agent configurations. The following example demonstrates this configuration:
 
     <CodeTabs heading="Port configuration">
 
@@ -64,10 +55,10 @@ company’s guidelines.
 
     </CodeTabs>
 
-    - Unless you have configured environment variables or include specific parameters in consul commands, the CLI and API will be inaccessible after enabling HTTPS. The following environment variables and CLI commands can be used to configure the appropriate values.
+    - After you enable HTTPS, use environment variables or include specific flags with Consul CLI commands. Otherwise, the CLI and API will be inaccessible after enabling HTTPS. The following examples demonstrate the appropriate values:
 
     <Tabs>
-    <Tab heading="Environment Variables">
+    <Tab heading="Environment variables">
 
     ```shell-session
     $ export CONSUL_HTTP_ADDR=https://server.dc1.consul:8501
