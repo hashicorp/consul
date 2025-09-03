@@ -993,7 +993,7 @@ func TestNodeRenamingNodes(t *testing.T) {
 		Address: "1.1.1.2",
 	}
 	if err := s.EnsureNode(10, in2Modify); err != nil {
-		t.Fatalf("Renaming node2 into node1 should not fail: " + err.Error())
+		t.Fatal("Renaming node2 into node1 should not fail: " + err.Error())
 	}
 
 	// Retrieve the node again
@@ -2406,12 +2406,12 @@ func TestStateStore_Services(t *testing.T) {
 		Address: "1.1.1.1",
 		Port:    1111,
 	}
-	ns1.EnterpriseMeta.Normalize()
+	ns1.Normalize()
 	if err := s.EnsureService(2, "node1", ns1); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	ns1Dogs := testRegisterService(t, s, 3, "node1", "dogs")
-	ns1Dogs.EnterpriseMeta.Normalize()
+	ns1Dogs.Normalize()
 
 	testRegisterNode(t, s, 4, "node2")
 	ns2 := &structs.NodeService{
@@ -2421,7 +2421,7 @@ func TestStateStore_Services(t *testing.T) {
 		Address: "1.1.1.1",
 		Port:    1111,
 	}
-	ns2.EnterpriseMeta.Normalize()
+	ns2.Normalize()
 	if err := s.EnsureService(5, "node2", ns2); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -2484,7 +2484,7 @@ func TestStateStore_ServicesByNodeMeta(t *testing.T) {
 		Address: "1.1.1.1",
 		Port:    1111,
 	}
-	ns1.EnterpriseMeta.Normalize()
+	ns1.Normalize()
 	if err := s.EnsureService(2, "node0", ns1); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -2495,7 +2495,7 @@ func TestStateStore_ServicesByNodeMeta(t *testing.T) {
 		Address: "1.1.1.1",
 		Port:    1111,
 	}
-	ns2.EnterpriseMeta.Normalize()
+	ns2.Normalize()
 	if err := s.EnsureService(3, "node1", ns2); err != nil {
 		t.Fatalf("err: %s", err)
 	}

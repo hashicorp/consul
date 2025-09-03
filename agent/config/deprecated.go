@@ -90,114 +90,114 @@ func applyDeprecatedConfig(d *decodeTarget) (Config, []string) {
 	// TODO(boxofrad): The DeprecatedConfig struct only holds fields that were once
 	// on the top-level Config struct (not nested fields e.g. ACL.Tokens) maybe we
 	// should rethink this a bit?
-	if d.Config.ACL.Tokens.AgentMaster != nil {
-		if d.Config.ACL.Tokens.AgentRecovery == nil {
-			d.Config.ACL.Tokens.AgentRecovery = d.Config.ACL.Tokens.AgentMaster
+	if d.ACL.Tokens.AgentMaster != nil {
+		if d.ACL.Tokens.AgentRecovery == nil {
+			d.ACL.Tokens.AgentRecovery = d.ACL.Tokens.AgentMaster
 		}
 		warns = append(warns, deprecationWarning("acl.tokens.agent_master", "acl.tokens.agent_recovery"))
 	}
 
 	if dep.ACLAgentMasterToken != nil {
-		if d.Config.ACL.Tokens.AgentRecovery == nil {
-			d.Config.ACL.Tokens.AgentRecovery = dep.ACLAgentMasterToken
+		if d.ACL.Tokens.AgentRecovery == nil {
+			d.ACL.Tokens.AgentRecovery = dep.ACLAgentMasterToken
 		}
 		warns = append(warns, deprecationWarning("acl_agent_master_token", "acl.tokens.agent_recovery"))
 	}
 
 	if dep.ACLAgentToken != nil {
-		if d.Config.ACL.Tokens.Agent == nil {
-			d.Config.ACL.Tokens.Agent = dep.ACLAgentToken
+		if d.ACL.Tokens.Agent == nil {
+			d.ACL.Tokens.Agent = dep.ACLAgentToken
 		}
 		warns = append(warns, deprecationWarning("acl_agent_token", "acl.tokens.agent"))
 	}
 
 	if dep.ACLToken != nil {
-		if d.Config.ACL.Tokens.Default == nil {
-			d.Config.ACL.Tokens.Default = dep.ACLToken
+		if d.ACL.Tokens.Default == nil {
+			d.ACL.Tokens.Default = dep.ACLToken
 		}
 		warns = append(warns, deprecationWarning("acl_token", "acl.tokens.default"))
 	}
 
-	if d.Config.ACL.Tokens.Master != nil {
-		if d.Config.ACL.Tokens.InitialManagement == nil {
-			d.Config.ACL.Tokens.InitialManagement = d.Config.ACL.Tokens.Master
+	if d.ACL.Tokens.Master != nil {
+		if d.ACL.Tokens.InitialManagement == nil {
+			d.ACL.Tokens.InitialManagement = d.ACL.Tokens.Master
 		}
 		warns = append(warns, deprecationWarning("acl.tokens.master", "acl.tokens.initial_management"))
 	}
 
 	if dep.ACLMasterToken != nil {
-		if d.Config.ACL.Tokens.InitialManagement == nil {
-			d.Config.ACL.Tokens.InitialManagement = dep.ACLMasterToken
+		if d.ACL.Tokens.InitialManagement == nil {
+			d.ACL.Tokens.InitialManagement = dep.ACLMasterToken
 		}
 		warns = append(warns, deprecationWarning("acl_master_token", "acl.tokens.initial_management"))
 	}
 
 	if dep.ACLReplicationToken != nil {
-		if d.Config.ACL.Tokens.Replication == nil {
-			d.Config.ACL.Tokens.Replication = dep.ACLReplicationToken
+		if d.ACL.Tokens.Replication == nil {
+			d.ACL.Tokens.Replication = dep.ACLReplicationToken
 		}
-		d.Config.ACL.TokenReplication = pBool(true)
+		d.ACL.TokenReplication = pBool(true)
 		warns = append(warns, deprecationWarning("acl_replication_token", "acl.tokens.replication"))
 	}
 
 	if dep.EnableACLReplication != nil {
-		if d.Config.ACL.TokenReplication == nil {
-			d.Config.ACL.TokenReplication = dep.EnableACLReplication
+		if d.ACL.TokenReplication == nil {
+			d.ACL.TokenReplication = dep.EnableACLReplication
 		}
 		warns = append(warns, deprecationWarning("enable_acl_replication", "acl.enable_token_replication"))
 	}
 
 	if dep.ACLDatacenter != nil {
-		if d.Config.PrimaryDatacenter == nil {
-			d.Config.PrimaryDatacenter = dep.ACLDatacenter
+		if d.PrimaryDatacenter == nil {
+			d.PrimaryDatacenter = dep.ACLDatacenter
 		}
 
 		// when the acl_datacenter config is used it implicitly enables acls
-		d.Config.ACL.Enabled = pBool(true)
+		d.ACL.Enabled = pBool(true)
 		warns = append(warns, deprecationWarning("acl_datacenter", "primary_datacenter"))
 	}
 
 	if dep.ACLDefaultPolicy != nil {
-		if d.Config.ACL.DefaultPolicy == nil {
-			d.Config.ACL.DefaultPolicy = dep.ACLDefaultPolicy
+		if d.ACL.DefaultPolicy == nil {
+			d.ACL.DefaultPolicy = dep.ACLDefaultPolicy
 		}
 		warns = append(warns, deprecationWarning("acl_default_policy", "acl.default_policy"))
 	}
 
 	if dep.ACLDownPolicy != nil {
-		if d.Config.ACL.DownPolicy == nil {
-			d.Config.ACL.DownPolicy = dep.ACLDownPolicy
+		if d.ACL.DownPolicy == nil {
+			d.ACL.DownPolicy = dep.ACLDownPolicy
 		}
 		warns = append(warns, deprecationWarning("acl_down_policy", "acl.down_policy"))
 	}
 
 	if dep.ACLTTL != nil {
-		if d.Config.ACL.TokenTTL == nil {
-			d.Config.ACL.TokenTTL = dep.ACLTTL
+		if d.ACL.TokenTTL == nil {
+			d.ACL.TokenTTL = dep.ACLTTL
 		}
 		warns = append(warns, deprecationWarning("acl_ttl", "acl.token_ttl"))
 	}
 
 	if dep.ACLEnableKeyListPolicy != nil {
-		if d.Config.ACL.EnableKeyListPolicy == nil {
-			d.Config.ACL.EnableKeyListPolicy = dep.ACLEnableKeyListPolicy
+		if d.ACL.EnableKeyListPolicy == nil {
+			d.ACL.EnableKeyListPolicy = dep.ACLEnableKeyListPolicy
 		}
 		warns = append(warns, deprecationWarning("acl_enable_key_list_policy", "acl.enable_key_list_policy"))
 	}
 
 	if len(dep.StartJoinAddrsLAN) > 0 {
-		d.Config.RetryJoinLAN = append(d.Config.RetryJoinLAN, dep.StartJoinAddrsLAN...)
+		d.RetryJoinLAN = append(d.RetryJoinLAN, dep.StartJoinAddrsLAN...)
 		warns = append(warns, deprecationWarning("start_join", "retry_join"))
 	}
 
 	if len(dep.StartJoinAddrsWAN) > 0 {
-		d.Config.RetryJoinWAN = append(d.Config.RetryJoinWAN, dep.StartJoinAddrsWAN...)
+		d.RetryJoinWAN = append(d.RetryJoinWAN, dep.StartJoinAddrsWAN...)
 		warns = append(warns, deprecationWarning("start_join_wan", "retry_join_wan"))
 	}
 
 	if dep.RaftBoltDBConfig != nil {
-		if d.Config.RaftLogStore.BoltDBConfig.NoFreelistSync == nil {
-			d.Config.RaftLogStore.BoltDBConfig.NoFreelistSync = &dep.RaftBoltDBConfig.NoFreelistSync
+		if d.RaftLogStore.BoltDBConfig.NoFreelistSync == nil {
+			d.RaftLogStore.BoltDBConfig.NoFreelistSync = &dep.RaftBoltDBConfig.NoFreelistSync
 		}
 		warns = append(warns, deprecationWarning("raft_boltdb", "raft_logstore.boltdb"))
 	}

@@ -51,7 +51,7 @@ func TestWrite_OwnerValidation(t *testing.T) {
 		WithRegisterFns(demo.RegisterTypes).
 		Run(t)
 
-	testCases := ownerValidationTestCases(t)
+	testCases := ownerValidationTestCases()
 
 	// This is not part of ownerValidationTestCases because it is a special case
 	// that only gets caught deeper into the write path.
@@ -158,7 +158,7 @@ func TestWrite_Mutate(t *testing.T) {
 }
 
 func TestWrite_Create_Success(t *testing.T) {
-	for desc, tc := range mavOrWriteSuccessTestCases(t) {
+	for desc, tc := range mavOrWriteSuccessTestCases() {
 		t.Run(desc, func(t *testing.T) {
 			client := svctest.NewResourceServiceBuilder().
 				WithRegisterFns(demo.RegisterTypes).
@@ -181,7 +181,7 @@ func TestWrite_Create_Success(t *testing.T) {
 }
 
 func TestWrite_Create_With_TenancyMarkedForDeletion_Fails(t *testing.T) {
-	for desc, tc := range mavOrWriteTenancyMarkedForDeletionTestCases(t) {
+	for desc, tc := range mavOrWriteTenancyMarkedForDeletionTestCases() {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
 			client := testClient(t, server)

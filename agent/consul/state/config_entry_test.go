@@ -3527,7 +3527,7 @@ func TestStore_MutualTLSMode_Validation_InitialWrite(t *testing.T) {
 		c := c
 		var name string
 		if c.mesh == nil {
-			name = fmt.Sprintf("when mesh config entry not found")
+			name = "when mesh config entry not found"
 		} else {
 			name = fmt.Sprintf("when AllowEnablingPermissiveMutualTLS=%v", c.mesh.AllowEnablingPermissiveMutualTLS)
 		}

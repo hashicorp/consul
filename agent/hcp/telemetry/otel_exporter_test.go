@@ -217,7 +217,7 @@ func TestExport_CustomMetrics(t *testing.T) {
 			// Verify count for transform failure metric.
 			require.NotNil(t, sv)
 			require.NotNil(t, sv.AggregateSample)
-			require.Equal(t, 1, sv.AggregateSample.Count)
+			require.Equal(t, 1, sv.Count)
 		})
 	}
 }

@@ -373,7 +373,7 @@ func (c *ConnectProxyConfig) MarshalJSON() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	out.Alias.Config = proxyConfig
+	out.Config = proxyConfig
 
 	if !c.TransparentProxy.IsZero() {
 		out.TransparentProxy = &out.Alias.TransparentProxy
@@ -718,9 +718,7 @@ func (e ExposeConfig) Clone() ExposeConfig {
 	e2 := e
 	if len(e.Paths) > 0 {
 		e2.Paths = make([]ExposePath, 0, len(e.Paths))
-		for _, p := range e.Paths {
-			e2.Paths = append(e2.Paths, p)
-		}
+		e2.Paths = append(e2.Paths, e.Paths...)
 	}
 	return e2
 }

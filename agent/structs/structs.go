@@ -658,7 +658,7 @@ func (r *DCSpecificRequest) CacheInfo() cache.RequestInfo {
 }
 
 func (r *DCSpecificRequest) CacheMinIndex() uint64 {
-	return r.QueryOptions.MinQueryIndex
+	return r.MinQueryIndex
 }
 
 type OperatorUsageRequest struct {
@@ -719,7 +719,7 @@ func (r *ServiceDumpRequest) CacheInfo() cache.RequestInfo {
 }
 
 func (r *ServiceDumpRequest) CacheMinIndex() uint64 {
-	return r.QueryOptions.MinQueryIndex
+	return r.MinQueryIndex
 }
 
 // PartitionSpecificRequest is used to query about a specific partition.
@@ -742,7 +742,7 @@ func (r *PartitionSpecificRequest) CacheInfo() cache.RequestInfo {
 		Timeout:        r.MaxQueryTime,
 		MaxAge:         r.MaxAge,
 		MustRevalidate: r.MustRevalidate,
-		Key:            r.EnterpriseMeta.PartitionOrDefault(),
+		Key:            r.PartitionOrDefault(),
 	}
 }
 
@@ -841,7 +841,7 @@ func (r *ServiceSpecificRequest) CacheInfo() cache.RequestInfo {
 }
 
 func (r *ServiceSpecificRequest) CacheMinIndex() uint64 {
-	return r.QueryOptions.MinQueryIndex
+	return r.MinQueryIndex
 }
 
 // NodeSpecificRequest is used to request the information about a single node
@@ -1751,7 +1751,7 @@ func (s *ServiceNode) IsSameService(other *ServiceNode) bool {
 		s.ServiceEnableTagOverride != other.ServiceEnableTagOverride ||
 		!reflect.DeepEqual(s.ServiceProxy, other.ServiceProxy) ||
 		!reflect.DeepEqual(s.ServiceConnect, other.ServiceConnect) ||
-		!s.EnterpriseMeta.IsSame(&other.EnterpriseMeta) {
+		!s.IsSame(&other.EnterpriseMeta) {
 		return false
 	}
 
@@ -2285,7 +2285,7 @@ func NewCheckID(id types.CheckID, entMeta *acl.EnterpriseMeta) CheckID {
 	}
 
 	cid.EnterpriseMeta = *entMeta
-	cid.EnterpriseMeta.Normalize()
+	cid.Normalize()
 	return cid
 }
 
@@ -2295,7 +2295,7 @@ func NewCheckID(id types.CheckID, entMeta *acl.EnterpriseMeta) CheckID {
 func (cid CheckID) StringHashMD5() string {
 	hasher := md5.New()
 	hasher.Write([]byte(cid.ID))
-	cid.EnterpriseMeta.AddToHash(hasher, true)
+	cid.AddToHash(hasher, true)
 	return fmt.Sprintf("%x", hasher.Sum(nil))
 }
 
@@ -2304,7 +2304,7 @@ func (cid CheckID) StringHashMD5() string {
 func (cid CheckID) StringHashSHA256() string {
 	hasher := sha256.New()
 	hasher.Write([]byte(cid.ID))
-	cid.EnterpriseMeta.AddToHash(hasher, true)
+	cid.AddToHash(hasher, true)
 	return fmt.Sprintf("%x", hasher.Sum(nil))
 }
 
@@ -2321,7 +2321,7 @@ func NewServiceID(id string, entMeta *acl.EnterpriseMeta) ServiceID {
 	}
 
 	sid.EnterpriseMeta = *entMeta
-	sid.EnterpriseMeta.Normalize()
+	sid.Normalize()
 	return sid
 }
 
@@ -2334,7 +2334,7 @@ func (sid ServiceID) Matches(other ServiceID) bool {
 func (sid ServiceID) StringHashSHA256() string {
 	hasher := sha256.New()
 	hasher.Write([]byte(sid.ID))
-	sid.EnterpriseMeta.AddToHash(hasher, true)
+	sid.AddToHash(hasher, true)
 	return fmt.Sprintf("%x", hasher.Sum(nil))
 }
 
@@ -2395,7 +2395,7 @@ func NewServiceName(name string, entMeta *acl.EnterpriseMeta) ServiceName {
 	}
 
 	ret.EnterpriseMeta = *entMeta
-	ret.EnterpriseMeta.Normalize()
+	ret.Normalize()
 	return ret
 }
 

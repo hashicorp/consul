@@ -187,13 +187,13 @@ func updateServiceNameUsage(tx WriteTxn, usageDeltas map[string]int, serviceName
 		}
 
 		var serviceState uniqueServiceState
-		switch {
-		case count == 0:
+		switch count {
+		case 0:
 			// If no services exist, we know we deleted the last service
 			// instance.
 			serviceState = Deleted
 			usageDeltas[serviceNamesUsageTable] -= 1
-		case count == delta:
+		case delta:
 			// If the current number of service instances equals the number added,
 			// than we know we created a new service name.
 			serviceState = Created

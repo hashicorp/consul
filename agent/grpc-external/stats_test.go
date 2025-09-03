@@ -102,11 +102,3 @@ func TestServer_EmitsStats(t *testing.T) {
 	}
 	prototest.AssertDeepEqual(t, expectedCounter, sink.IncrCounterCalls, cmpMetricCalls)
 }
-
-func logError(t *testing.T, f func() error) func() {
-	return func() {
-		if err := f(); err != nil {
-			t.Logf(err.Error())
-		}
-	}
-}

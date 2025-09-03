@@ -20,46 +20,46 @@ func TestInsertHTTPFilter(t *testing.T) {
 		errStr          string
 	}{
 		"insert first": {
-			inputFilters:    makeHttpFilters(t, "a", "b", "b", "b", "c"),
+			inputFilters:    makeHttpFilters("a", "b", "b", "b", "c"),
 			insertOptions:   InsertOptions{Location: InsertFirst},
 			filterName:      "test.filter",
-			expectedFilters: makeHttpFilters(t, "test.filter", "a", "b", "b", "b", "c"),
+			expectedFilters: makeHttpFilters("test.filter", "a", "b", "b", "b", "c"),
 		},
 		"insert last": {
-			inputFilters:    makeHttpFilters(t, "a", "b", "b", "b", "c"),
+			inputFilters:    makeHttpFilters("a", "b", "b", "b", "c"),
 			insertOptions:   InsertOptions{Location: InsertLast},
 			filterName:      "test.filter",
-			expectedFilters: makeHttpFilters(t, "a", "b", "b", "b", "c", "test.filter"),
+			expectedFilters: makeHttpFilters("a", "b", "b", "b", "c", "test.filter"),
 		},
 		"insert before first match": {
-			inputFilters:    makeHttpFilters(t, "a", "b", "b", "b", "c"),
+			inputFilters:    makeHttpFilters("a", "b", "b", "b", "c"),
 			insertOptions:   InsertOptions{Location: InsertBeforeFirstMatch, FilterName: "b"},
 			filterName:      "test.filter",
-			expectedFilters: makeHttpFilters(t, "a", "test.filter", "b", "b", "b", "c"),
+			expectedFilters: makeHttpFilters("a", "test.filter", "b", "b", "b", "c"),
 		},
 		"insert after first match": {
-			inputFilters:    makeHttpFilters(t, "a", "b", "b", "b", "c"),
+			inputFilters:    makeHttpFilters("a", "b", "b", "b", "c"),
 			insertOptions:   InsertOptions{Location: InsertAfterFirstMatch, FilterName: "b"},
 			filterName:      "test.filter",
-			expectedFilters: makeHttpFilters(t, "a", "b", "test.filter", "b", "b", "c"),
+			expectedFilters: makeHttpFilters("a", "b", "test.filter", "b", "b", "c"),
 		},
 		"insert before last match": {
-			inputFilters:    makeHttpFilters(t, "a", "b", "b", "b", "c"),
+			inputFilters:    makeHttpFilters("a", "b", "b", "b", "c"),
 			insertOptions:   InsertOptions{Location: InsertBeforeLastMatch, FilterName: "b"},
 			filterName:      "test.filter",
-			expectedFilters: makeHttpFilters(t, "a", "b", "b", "test.filter", "b", "c"),
+			expectedFilters: makeHttpFilters("a", "b", "b", "test.filter", "b", "c"),
 		},
 		"insert after last match": {
-			inputFilters:    makeHttpFilters(t, "a", "b", "b", "b", "c"),
+			inputFilters:    makeHttpFilters("a", "b", "b", "b", "c"),
 			insertOptions:   InsertOptions{Location: InsertAfterLastMatch, FilterName: "b"},
 			filterName:      "test.filter",
-			expectedFilters: makeHttpFilters(t, "a", "b", "b", "b", "test.filter", "c"),
+			expectedFilters: makeHttpFilters("a", "b", "b", "b", "test.filter", "c"),
 		},
 		"insert last after last match": {
-			inputFilters:    makeHttpFilters(t, "a", "b", "b", "b", "c"),
+			inputFilters:    makeHttpFilters("a", "b", "b", "b", "c"),
 			insertOptions:   InsertOptions{Location: InsertAfterLastMatch, FilterName: "c"},
 			filterName:      "test.filter",
-			expectedFilters: makeHttpFilters(t, "a", "b", "b", "b", "c", "test.filter"),
+			expectedFilters: makeHttpFilters("a", "b", "b", "b", "c", "test.filter"),
 		},
 	}
 
@@ -95,40 +95,40 @@ func TestInsertFilter(t *testing.T) {
 		errStr          string
 	}{
 		"insert first": {
-			inputFilters:    makeFilters(t, "a", "b", "b", "b", "c"),
+			inputFilters:    makeFilters("a", "b", "b", "b", "c"),
 			insertOptions:   InsertOptions{Location: InsertFirst},
 			filterName:      "test.filter",
-			expectedFilters: makeFilters(t, "test.filter", "a", "b", "b", "b", "c"),
+			expectedFilters: makeFilters("test.filter", "a", "b", "b", "b", "c"),
 		},
 		"insert last": {
-			inputFilters:    makeFilters(t, "a", "b", "b", "b", "c"),
+			inputFilters:    makeFilters("a", "b", "b", "b", "c"),
 			insertOptions:   InsertOptions{Location: InsertLast},
 			filterName:      "test.filter",
-			expectedFilters: makeFilters(t, "a", "b", "b", "b", "c", "test.filter"),
+			expectedFilters: makeFilters("a", "b", "b", "b", "c", "test.filter"),
 		},
 		"insert before first match": {
-			inputFilters:    makeFilters(t, "a", "b", "b", "b", "c"),
+			inputFilters:    makeFilters("a", "b", "b", "b", "c"),
 			insertOptions:   InsertOptions{Location: InsertBeforeFirstMatch, FilterName: "b"},
 			filterName:      "test.filter",
-			expectedFilters: makeFilters(t, "a", "test.filter", "b", "b", "b", "c"),
+			expectedFilters: makeFilters("a", "test.filter", "b", "b", "b", "c"),
 		},
 		"insert after first match": {
-			inputFilters:    makeFilters(t, "a", "b", "b", "b", "c"),
+			inputFilters:    makeFilters("a", "b", "b", "b", "c"),
 			insertOptions:   InsertOptions{Location: InsertAfterFirstMatch, FilterName: "b"},
 			filterName:      "test.filter",
-			expectedFilters: makeFilters(t, "a", "b", "test.filter", "b", "b", "c"),
+			expectedFilters: makeFilters("a", "b", "test.filter", "b", "b", "c"),
 		},
 		"insert before last match": {
-			inputFilters:    makeFilters(t, "a", "b", "b", "b", "c"),
+			inputFilters:    makeFilters("a", "b", "b", "b", "c"),
 			insertOptions:   InsertOptions{Location: InsertBeforeLastMatch, FilterName: "b"},
 			filterName:      "test.filter",
-			expectedFilters: makeFilters(t, "a", "b", "b", "test.filter", "b", "c"),
+			expectedFilters: makeFilters("a", "b", "b", "test.filter", "b", "c"),
 		},
 		"insert after last match": {
-			inputFilters:    makeFilters(t, "a", "b", "b", "b", "c"),
+			inputFilters:    makeFilters("a", "b", "b", "b", "c"),
 			insertOptions:   InsertOptions{Location: InsertAfterLastMatch, FilterName: "b"},
 			filterName:      "test.filter",
-			expectedFilters: makeFilters(t, "a", "b", "b", "b", "test.filter", "c"),
+			expectedFilters: makeFilters("a", "b", "b", "b", "test.filter", "c"),
 		},
 	}
 
@@ -158,7 +158,7 @@ func makeHttpConMgr(t *testing.T, filters []*envoy_http_v3.HttpFilter) *envoy_li
 	return filter
 }
 
-func makeHttpFilters(t *testing.T, names ...string) []*envoy_http_v3.HttpFilter {
+func makeHttpFilters(names ...string) []*envoy_http_v3.HttpFilter {
 	var filters []*envoy_http_v3.HttpFilter
 	for _, name := range names {
 		filters = append(filters, &envoy_http_v3.HttpFilter{Name: name})
@@ -166,7 +166,7 @@ func makeHttpFilters(t *testing.T, names ...string) []*envoy_http_v3.HttpFilter 
 	return filters
 }
 
-func makeFilters(t *testing.T, names ...string) []*envoy_listener_v3.Filter {
+func makeFilters(names ...string) []*envoy_listener_v3.Filter {
 	var filters []*envoy_listener_v3.Filter
 	for _, name := range names {
 		filters = append(filters, &envoy_listener_v3.Filter{Name: name})
