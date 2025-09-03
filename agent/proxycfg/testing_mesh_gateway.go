@@ -425,7 +425,7 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 				structs.ServiceAddress{Address: "10.0.1.3", Port: 8443},
 				structs.ServiceAddress{Address: "198.18.1.3", Port: 443},
 			)
-			svc.RaftIndex.ModifyIndex = math.MaxUint64
+			svc.ModifyIndex = math.MaxUint64
 
 			dc2Nodes = structs.CheckServiceNodes{
 				{
@@ -442,7 +442,7 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 				structs.ServiceAddress{Address: "10.0.1.3", Port: 8443},
 				structs.ServiceAddress{Address: "198.18.1.3", Port: 443},
 			)
-			svc.RaftIndex.ModifyIndex = 0
+			svc.ModifyIndex = 0
 
 			dc2Nodes = structs.CheckServiceNodes{
 				{

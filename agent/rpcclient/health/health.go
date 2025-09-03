@@ -36,7 +36,7 @@ func (c *Client) ServiceNodes(
 ) (structs.IndexedCheckServiceNodes, cache.ResultMeta, error) {
 	// Note: if MergeCentralConfig is requested, default to using the RPC backend for now
 	// as the streaming backend and materializer does not have support for merging yet.
-	if c.useStreaming(req) && (req.QueryOptions.UseCache || req.QueryOptions.MinQueryIndex > 0) && !req.MergeCentralConfig {
+	if c.useStreaming(req) && (req.UseCache || req.MinQueryIndex > 0) && !req.MergeCentralConfig {
 		c.QueryOptionDefaults(&req.QueryOptions)
 
 		result, err := c.ViewStore.Get(ctx, c.newServiceRequest(req))
@@ -53,7 +53,7 @@ func (c *Client) ServiceNodes(
 	}
 
 	// TODO: DNSServer emitted a metric here, do we still need it?
-	if req.QueryOptions.AllowStale && req.QueryOptions.MaxStaleDuration > 0 && out.QueryMeta.LastContact > req.MaxStaleDuration {
+	if req.AllowStale && req.MaxStaleDuration > 0 && out.LastContact > req.MaxStaleDuration {
 		req.AllowStale = false
 		err := c.NetRPC.RPC(context.Background(), "Health.ServiceNodes", &req, &out)
 		return out, cache.ResultMeta{}, err
@@ -67,7 +67,7 @@ func (c *Client) getServiceNodes(
 	req structs.ServiceSpecificRequest,
 ) (structs.IndexedCheckServiceNodes, cache.ResultMeta, error) {
 	var out structs.IndexedCheckServiceNodes
-	if !req.QueryOptions.UseCache {
+	if !req.UseCache {
 		err := c.NetRPC.RPC(context.Background(), "Health.ServiceNodes", &req, &out)
 		return out, cache.ResultMeta{}, err
 	}

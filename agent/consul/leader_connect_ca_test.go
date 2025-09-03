@@ -179,7 +179,7 @@ func NewMockCAServerDelegate(t *testing.T, config *Config) *mockCAServerDelegate
 		config:      config,
 		store:       state.NewStateStore(nil),
 		primaryRoot: connect.TestCAWithTTL(t, nil, 1*time.Second),
-		callbackCh:  make(chan string, 0),
+		callbackCh:  make(chan string),
 	}
 	delegate.store.CASetConfig(1, testCAConfig())
 
@@ -215,7 +215,7 @@ func (m *mockCAServerDelegate) ApplyCARequest(req *structs.CARequest) (interface
 		return nil, err
 	}
 
-	m.callbackCh <- fmt.Sprintf("raftApply/ConnectCA")
+	m.callbackCh <- "raftApply/ConnectCA"
 
 	result := fsm.ApplyConnectCAOperationFromRequest(m.store, req, idx+1)
 	if err, ok := result.(error); ok && err != nil {

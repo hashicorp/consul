@@ -18,7 +18,7 @@ service ForwardingService {
   // Write handles a forwarded write operation.
   rpc Write(WriteRequest) returns (WriteResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
-      operation_type: OPERATION_TYPE_EXEMPT,
+      operation_type: OPERATION_TYPE_EXEMPT
       operation_category: OPERATION_CATEGORY_RESOURCE
     };
   }
@@ -26,7 +26,7 @@ service ForwardingService {
   // Delete handles a forwarded delete operation.
   rpc Delete(DeleteRequest) returns (google.protobuf.Empty) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
-      operation_type: OPERATION_TYPE_EXEMPT,
+      operation_type: OPERATION_TYPE_EXEMPT
       operation_category: OPERATION_CATEGORY_RESOURCE
     };
   }
@@ -34,7 +34,7 @@ service ForwardingService {
   // Read handles a forwarded read operation.
   rpc Read(ReadRequest) returns (ReadResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
-      operation_type: OPERATION_TYPE_EXEMPT,
+      operation_type: OPERATION_TYPE_EXEMPT
       operation_category: OPERATION_CATEGORY_RESOURCE
     };
   }
@@ -42,7 +42,7 @@ service ForwardingService {
   // List handles a forwarded list operation.
   rpc List(ListRequest) returns (ListResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
-      operation_type: OPERATION_TYPE_EXEMPT,
+      operation_type: OPERATION_TYPE_EXEMPT
       operation_category: OPERATION_CATEGORY_RESOURCE
     };
   }

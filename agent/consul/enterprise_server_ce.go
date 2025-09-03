@@ -47,9 +47,7 @@ func (s *Server) handleEnterpriseNativeTLSConn(alpnProto string, conn net.Conn) 
 	return false
 }
 
-func (s *Server) handleEnterpriseLeave() {
-	return
-}
+func (s *Server) handleEnterpriseLeave() {}
 
 func (s *Server) establishEnterpriseLeadership(_ context.Context) error {
 	return nil

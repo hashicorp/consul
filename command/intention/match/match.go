@@ -54,12 +54,12 @@ func (c *cmd) Run(args []string) int {
 
 	args = c.flags.Args()
 	if len(args) != 1 {
-		c.UI.Error(fmt.Sprintf("Error: command requires exactly one argument: src or dst"))
+		c.UI.Error("Error: command requires exactly one argument: src or dst")
 		return 1
 	}
 
 	if c.flagSource && c.flagDestination {
-		c.UI.Error(fmt.Sprintf("Error: only one of -source or -destination may be specified"))
+		c.UI.Error("Error: only one of -source or -destination may be specified")
 		return 1
 	}
 

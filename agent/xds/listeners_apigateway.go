@@ -118,8 +118,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 				l.FilterChains, err = s.makeInlineOverrideFilterChains(
 					cfgSnap,
 					cfgSnap.APIGateway.TLSConfig,
-					listenerKey.Protocol,
-					listenerFilterOpts{
+					listenerKey.Protocol, listenerFilterOpts{
 						useRDS:          useRDS,
 						fetchTimeoutRDS: cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
 						protocol:        listenerKey.Protocol,
@@ -209,7 +208,6 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 					return nil, err
 				}
 			}
-
 			filterOpts := listenerFilterOpts{
 				useRDS:           true,
 				fetchTimeoutRDS:  cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
