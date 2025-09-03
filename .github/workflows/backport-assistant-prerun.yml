@@ -128,9 +128,34 @@ jobs:
             \`\`\`
             `;
 
-            // Convert PR to draft
+                        // Convert PR to draft
             try {
               console.log('Attempting to convert PR to draft...');
+            
+              // First, get current PR state
+              const { data: currentPR } = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber
+              });
+            
+              console.log('Current PR state:');
+              console.log('- Draft:', currentPR.draft);
+              console.log('- State:', currentPR.state);
+              console.log('- Mergeable:', currentPR.mergeable);
+              console.log('- Head repo:', currentPR.head.repo.full_name);
+              console.log('- Base repo:', currentPR.base.repo.full_name);
+              console.log('- Is fork:', currentPR.head.repo.full_name !== currentPR.base.repo.full_name);
+            
+              // Check for reviews
+              const { data: reviews } = await github.rest.pulls.listReviews({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber
+              });
+              console.log('- Number of reviews:', reviews.length);
+              console.log('- Approved reviews:', reviews.filter(r => r.state === 'APPROVED').length);
+            
               const updateResult = await github.rest.pulls.update({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -139,11 +164,16 @@ jobs:
               });
               console.log('PR draft conversion result:', updateResult.status);
               console.log('PR is now draft:', updateResult.data.draft);
+            
+              if (!updateResult.data.draft) {
+                console.log('⚠️ PR was not converted to draft despite 200 response');
+                console.log('This might be due to GitHub limitations (reviews, fork, etc.)');
+              }
             } catch (error) {
               console.error('Failed to convert PR to draft:', error.message);
               console.error('Error details:', error);
             }
-
+            
             await github.rest.issues.addLabels({ 
               owner: context.repo.owner, 
               repo: context.repo.repo, 
