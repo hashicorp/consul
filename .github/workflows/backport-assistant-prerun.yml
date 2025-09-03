@@ -7,6 +7,10 @@ on:
     branches:
       - main
       - release/*
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
 env:
   BACKPORT_ERROR_LABEL: backport-error/merge-commit-found
 
@@ -125,12 +129,20 @@ jobs:
             `;
 
             // Convert PR to draft
-            await github.rest.pulls.update({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: prNumber,
-              draft: true
-            });
+            try {
+              console.log('Attempting to convert PR to draft...');
+              const updateResult = await github.rest.pulls.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber,
+                draft: true
+              });
+              console.log('PR draft conversion result:', updateResult.status);
+              console.log('PR is now draft:', updateResult.data.draft);
+            } catch (error) {
+              console.error('Failed to convert PR to draft:', error.message);
+              console.error('Error details:', error);
+            }
 
             await github.rest.issues.addLabels({ 
               owner: context.repo.owner, 
