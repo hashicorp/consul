@@ -6,6 +6,7 @@
 <div
   ...attributes
   class="consul-intention-permission-header-form"
+  {{fix-super-select-aria}}
 >
   <FormGroup
     @name={{name}}
@@ -26,12 +27,22 @@
           @type="select"
         as |el|>
           <el.Label>Header type</el.Label>
-          <PowerSelect
+          {{!-- <PowerSelect
             @options={{headerTypes}}
             @selected={{headerType}}
             @onChange={{action 'change' 'HeaderType' changeset}} as |Type|>
               {{get headerLabels Type}}
-          </PowerSelect>
+          </PowerSelect> --}}
+          <Hds::Form::SuperSelect::Single::Field
+            @options={{headerTypes}}
+            @selected={{headerType}}
+            @onChange={{action 'change' 'HeaderType' changeset}}
+            @label="Header type"
+            @listboxAriaLabel="Header type options"
+            id="header-type-select"
+          as |F|>
+            <F.Options>{{get headerLabels F.options}}</F.Options>
+          </Hds::Form::SuperSelect::Single::Field>
         </group.Element>
 
 
