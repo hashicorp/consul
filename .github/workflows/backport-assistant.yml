@@ -7,12 +7,13 @@
 name: Backport Assistant Runner
 
 on:
-  pull_request:
-    types: [opened, synchronize, labeled]
-    # Runs on PRs to main and all release branches
+  pull_request_target:
+    types:
+      - closed
+      - labeled
     branches:
       - main
-      - release/*
+      - 'release/*.*.x'
 jobs:
   backport:
     if: github.event.pull_request.merged
