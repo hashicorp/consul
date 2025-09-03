@@ -183,8 +183,8 @@ module.exports = [
     permanent: true,
   },
   {
-    source: "/consul/docs/api-gateway/configuration/:slug",
-    destination: "/consul/docs/connect/gateways/api-gateway/configuration/:slug",
+    source: "/consul/docs/api-gateway/configuration/:slug*",
+    destination: "/consul/docs/connect/gateways/api-gateway/configuration/:slug*",
     permanent: true,
   },
   {
@@ -198,23 +198,23 @@ module.exports = [
     permanent: true,
   },
   {
-    source: "/consul/docs/connect/l7/:slug",
-    destination: "/consul/docs/connect/manage-traffic/:slug",
+    source: "/consul/docs/connect/l7/:slug*",
+    destination: "/consul/docs/connect/manage-traffic/:slug*",
     permanent: true,
   },
   {
-    source: "/consul/docs/v1.8.x/connect/config-entries/:slug",
-    destination: "/consul/docs/v1.8.x/agent/config-entries/:slug",
+    source: "/consul/docs/v1.8.x/connect/config-entries/:slug*",
+    destination: "/consul/docs/v1.8.x/agent/config-entries/:slug*",
     permanent: true,
   },
   {
-    source: "/consul/docs/architecture/catalog/v1/:slug",
-    destination: "/consul/docs/architecture/catalog/:slug",
+    source: "/consul/docs/architecture/catalog/v1/:slug*",
+    destination: "/consul/docs/architecture/catalog/:slug*",
     permanent: true,
   },
   {
     source: "/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/architecture/catalog/:slug*",
-    destination: "/consul/docs/:version/architecture/catalog/v1/:slug",
+    destination: "/consul/docs/:version/architecture/catalog/v1/:slug*",
     permanent: true,
   },
   {
@@ -228,7 +228,7 @@ module.exports = [
     permanent: true,
   },
   {
-    source: "/consul/docs/k8s/multiport/:slug",
+    source: "/consul/docs/k8s/multiport/:slug*",
     destination: "/consul/docs/architecture/catalog#v2-catalog",
     permanent: true,
   },
@@ -238,7 +238,7 @@ module.exports = [
     permanent: true,
   },
   {
-    source: "/consul/commands/resource/:slug",
+    source: "/consul/commands/resource/:slug*",
     destination: "/consul/docs/architecture/catalog#v2-catalog",
     permanent: true,
   },
@@ -4068,6 +4068,161 @@ module.exports = [
     permanent: true
   },
   {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/connect/enable",
+    destination: "/consul/docs/:version/connect/configuration",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/connect/proxy/transparent-proxy/ecs",
+    destination: "/consul/docs/connect/proxy/transparent-proxy/ecs",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/connect/troubleshoot",
+    destination: "/consul/docs/:version/troubleshoot/troubleshoot-services",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/connect/troubleshoot/debug",
+    destination: "/consul/docs/:version/connect/dev",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/connect/troubleshoot/service-to-service",
+    destination: "/consul/docs/:version/troubleshoot/troubleshoot-services",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/connect/vm",
+    destination: "/consul/docs/connect/vm",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/connect/k8s/inject",
+    destination: "/consul/docs/:version/k8s/connect",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/connect/k8s/crds",
+    destination: "/consul/docs/:version/k8s/crds",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/connect/k8s/workload",
+    destination: "/consul/docs/:version/k8s/connect",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/north-south",
+    destination: "/consul/docs/:version/connect/gateways/api-gateway",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/north-south/vm",
+    destination: "/consul/docs/:version/connect/gateways/api-gateway",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/north-south/k8s",
+    destination: "/consul/docs/:version/connect/gateways/api-gateway",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/east-west",
+    destination: "/consul/docs/:version/connect/gateways/mesh-gateway",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/east-west/wan-federation/vms",
+    destination: "/consul/docs/east-west/wan-federation/vms",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/east-west/vm",
+    destination: "/consul/docs/east-west/vm",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/east-west/k8s",
+    destination: "/consul/docs/:version/east-west/k8s",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/secure-mesh",
+    destination: "/consul/docs/secure-mesh",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/secure-mesh/certificate/bootstrap",
+    destination: "/consul/docs/secure-mesh/certificate/bootstrap",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/secure-mesh/certificate/rotate",
+    destination: "/consul/docs/secure-mesh/certificate/rotate",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/secure-mesh/certificate/existing",
+    destination: "/consul/docs/:version/k8s/operations/tls-on-existing-cluster",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/secure-mesh/certificate/permissive-mtls",
+    destination: "/consul/docs/secure-mesh/certificate/permissive-mtls",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/secure-mesh/vm",
+    destination: "/consul/docs/:version/secure-mesh/vm",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/secure-mesh/k8s",
+    destination: "/consul/docs/secure-mesh/k8s",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/manage-traffic/failover/prepared-query",
+    destination: "/consul/docs/manage-traffic/failover/prepared-query",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/manage-traffic/vm",
+    destination: "/consul/docs/:version/connect/cluster-peering/usage/peering-traffic-management",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/manage-traffic/k8s",
+    destination: "/consul/docs/:version/k8s/connect/cluster-peering/usage/l7-traffic",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/observe",
+    destination: "/consul/docs/:version/connect/observability",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/observe/docker",
+    destination: "/consul/docs/observe/docker",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/automate",
+    destination: "/consul/docs/automate",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/automate/consul-template/:slug*",
+    destination: "/consul/docs/automate/consul-template/:slug*",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/",
+    destination: "/consul/docs/:version/",
+    permanent: true
+  },
+  {
     source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/",
     destination: "/consul/docs/:version/",
     permanent: true
@@ -4082,6 +4237,7 @@ module.exports = [
     destination: "/consul/docs/:version/",
     permanent: true
   },
+
   {
     source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/",
     destination: "/consul/docs/:version/",
