@@ -619,11 +619,7 @@ type ServiceVirtualIP struct {
 func (s ServiceVirtualIP) IPWithOffset() (string, error) {
 	var result net.IP
 	var err error
-	if p := net.ParseIP(s.IP.String()); p != nil && p.To4() == nil {
-		result, err = addIPv6Offset(startingVirtualIP, s.IP)
-	} else {
-		result, err = addIPOffset(startingVirtualIP, s.IP)
-	}
+	result, err = addIPOffset(s.IP)
 	if err != nil {
 		return "", err
 	}

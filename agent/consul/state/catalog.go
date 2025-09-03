@@ -1023,7 +1023,7 @@ func assignServiceVirtualIP(tx WriteTxn, idx uint64, psn structs.PeeredServiceNa
 	// Service already has a virtual IP assigned, nothing to do.
 	if serviceVIP != nil {
 		sVIP := serviceVIP.(ServiceVirtualIP).IP
-		result, err := addIPOffset(startingVirtualIP, sVIP)
+		result, err := addIPOffset(sVIP)
 		if err != nil {
 			return "", err
 		}
@@ -1074,9 +1074,13 @@ func assignServiceVirtualIP(tx WriteTxn, idx uint64, psn structs.PeeredServiceNa
 				break
 			}
 		}
+		maxIPOffset := virtualIPMaxOffset
+		if p := net.ParseIP(newEntry.IP.String()); p == nil || p.To4() == nil {
+			maxIPOffset = virtualIPv6MaxOffset
+		}
 
 		// Out of virtual IPs, fail registration.
-		if newEntry.IP.Equal(virtualIPMaxOffset) {
+		if newEntry.IP.Equal(maxIPOffset) {
 			return "", fmt.Errorf("cannot allocate any more unique service virtual IPs")
 		}
 
@@ -1100,7 +1104,7 @@ func assignServiceVirtualIP(tx WriteTxn, idx uint64, psn structs.PeeredServiceNa
 		return "", err
 	}
 
-	result, err := addIPOffset(startingVirtualIP, assignedVIP.IP)
+	result, err := addIPOffset(assignedVIP.IP)
 	if err != nil {
 		return "", err
 	}
@@ -1251,8 +1255,30 @@ func addIPv6Offset(a, b net.IP) (net.IP, error) {
 	// Carry beyond 128 bits is discarded (mod 2^128 arithmetic)
 	return result, nil
 }
+func addIPOffset(b net.IP) (net.IP, error) {
+	var vip net.IP
+	var err error
+	// lr, err := config.Load(config.LoadOpts{})
+	if err != nil {
+		fmt.Println("---------------------->Error loading config:", err)
+		return nil, err
+	}
+	// br := lr.RuntimeConfig.BindAddr
+	br := net.ParseIP("::")
 
-func addIPOffset(a, b net.IP) (net.IP, error) {
+	fmt.Println("---------------------->Bind address:", br.String())
+
+	if p := net.ParseIP(br.String()); p != nil && p.To4() == nil {
+		fmt.Println("----------------------> IPV6")
+		vip, err = addIPv6Offset(startingVirtualIPv6, b)
+	} else {
+		fmt.Println("----------------------> IPV4")
+		vip, err = addIPv4Offset(startingVirtualIP, b)
+	}
+	return vip, err
+}
+
+func addIPv4Offset(a, b net.IP) (net.IP, error) {
 	a4 := a.To4()
 	b4 := b.To4()
 	if a4 == nil || b4 == nil {
