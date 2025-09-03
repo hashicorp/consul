@@ -19,12 +19,12 @@ export default modifier(function fixSuperSelectAria(element) {
       }
     });
 
-    // Add accessible names to listboxes
-    element
-      .querySelectorAll('[role="listbox"]:not([aria-label]):not([aria-labelledby])')
-      .forEach((listbox) => {
-        listbox.setAttribute('aria-label', 'Available options');
-      });
+    // Add missing aria-label to listboxes
+    element.querySelectorAll('[role="listbox"]').forEach((listbox) => {
+      if (!listbox.hasAttribute('aria-label')) {
+        listbox.setAttribute('aria-label', 'Available Options');
+      }
+    });
   }
 
   setTimeout(fixAria, 100);
