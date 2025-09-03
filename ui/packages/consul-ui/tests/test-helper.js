@@ -15,6 +15,7 @@ import setupSinon from 'ember-sinon-qunit';
 
 import ClientConnections from 'consul-ui/services/client/connections';
 
+QUnit.config.testTimeout = 120000; // 2minutes
 let activeRequests = 0;
 registerWaiter(function () {
   return activeRequests === 0;
