@@ -54,12 +54,6 @@ as |group|>
           <el.Label>
             Path type
           </el.Label>
-          {{!-- <PowerSelect
-            @options={{pathTypes}}
-            @selected={{pathType}}
-            @onChange={{action 'change' 'HTTP.PathType' changeset}} as |Type|>
-              {{get pathLabels Type}}
-          </PowerSelect> --}}
           <Hds::Form::SuperSelect::Single::Field
             @options={{pathTypes}}
             @selected={{pathType}}
@@ -67,7 +61,6 @@ as |group|>
             @label="Path type"
             @listboxAriaLabel="Path type options"
             id="path-type-select"
-            {{!-- {{fix-super-select-aria}} --}}
           as |F|>
             <F.Options>{{get pathLabels F.options}}</F.Options>
           </Hds::Form::SuperSelect::Single::Field>

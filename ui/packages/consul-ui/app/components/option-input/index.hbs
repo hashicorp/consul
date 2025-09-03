@@ -27,16 +27,6 @@
         {{! radiobuttons }}
       {{/if}}
     {{else}}
-      {{!-- <PowerSelect
-        @disabled={{@disabled}}
-        @onChange={{@onchange}}
-        @selected={{@selected}}
-        @searchEnabled={{false}}
-        @options={{@items}} as |item|>
-        {{yield (hash
-          item=item
-        ) to='option'}}
-      </PowerSelect> --}}
       <Hds::Form::SuperSelect::Single::Field
         @options={{@items}}
         @selected={{@selected}}

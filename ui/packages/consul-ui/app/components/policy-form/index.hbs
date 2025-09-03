@@ -132,16 +132,6 @@
     />
     <label class='type-select' data-test-datacenter>
       <span>Datacenter</span>
-      {{!-- <PowerSelect
-        @options={{map-by 'Name' datacenters}}
-        @searchField='Name'
-        @selected={{or item.Datacenter dc}}
-        @searchPlaceholder='Type a datacenter name'
-        @onChange={{action 'change' 'Datacenter'}}
-        as |Name|
-      >
-        {{Name}}
-      </PowerSelect> --}}
       <Hds::Form::SuperSelect::Single::Field
         @options={{map-by 'Name' datacenters}}
         @selected={{or item.Datacenter dc}}
