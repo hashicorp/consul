@@ -13,6 +13,8 @@ module.exports = {
     ? ['Chrome']
     : [],
   browser_start_timeout: 120,
+  browser_disconnect_timeout: 120, // default: 10
+  browser_disconnect_tolerance: 3, // retry before failing
   browser_args: {
     Chrome: {
       ci: [
