@@ -93,8 +93,8 @@ export default function (scenario, assert, lastNthRequest) {
     )
     .then(
       'a $method request was made to "$endpoint" without properties from yaml\n$yaml',
-      async function (method, url, properties) {
-        const requests = await lastNthRequest(null, method);
+      function (method, url, properties) {
+        const requests = lastNthRequest(null, method);
         const request = requests.find(function (item) {
           return method === item.method && url === item.url;
         });
