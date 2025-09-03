@@ -62,10 +62,27 @@ jobs:
             core.setOutput('pr_number', prNumber);
             core.setOutput('pull_request_ref', pr.head.ref);
             core.setOutput('pull_request_repo', `${pr.head.repo.owner.login}/${pr.head.repo.name}`);
+            console.log('DEBUG: All PR labels:', pr.labels.map(label => label.name));
+            console.log('DEBUG: hasNoBackport value:', hasNoBackport);
+            console.log('DEBUG: hasNoBackport type:', typeof hasNoBackport);
+
   check-pr-condition:
     runs-on: ubuntu-latest
     needs: get-pr-info
     steps:
+      - name: Debug - Show all outputs from get-pr-info
+        run: |
+          echo "DEBUG: has_no_backport = '${{ needs.get-pr-info.outputs.has_no_backport }}'"
+          echo "DEBUG: pr_number = '${{ needs.get-pr-info.outputs.pr_number }}'"
+          echo "DEBUG: pull_request_ref = '${{ needs.get-pr-info.outputs.pull_request_ref }}'"
+          echo "DEBUG: pull_request_repo = '${{ needs.get-pr-info.outputs.pull_request_repo }}'"
+          echo "DEBUG: Checking condition: needs.get-pr-info.outputs.has_no_backport == 'false'"
+          echo "DEBUG: Actual comparison: '${{ needs.get-pr-info.outputs.has_no_backport }}' == 'false'"
+          if [ "${{ needs.get-pr-info.outputs.has_no_backport }}" == "false" ]; then
+            echo "DEBUG: Condition evaluates to TRUE - will proceed with steps"
+          else
+            echo "DEBUG: Condition evaluates to FALSE - will skip steps"
+          fi
       - name: Fetch repository history
         if: needs.get-pr-info.outputs.has_no_backport == 'false'
         uses: actions/checkout@v4
@@ -87,6 +104,7 @@ jobs:
             echo "$MERGE_COMMITS" >> $GITHUB_OUTPUT
             echo "EOF" >> $GITHUB_OUTPUT
           fi
+          echo "merge_commit_found=${MERGE_COMMITS:+'true'}"
           echo "merge_commit_found=${MERGE_COMMITS:+'true'}" >> $GITHUB_OUTPUT
 
       - name: Add 'backport-error' label and comment and convert this PR to draft
