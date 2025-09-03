@@ -4218,8 +4218,48 @@ module.exports = [
     permanent: true
   },
   {
-    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/",
-    destination: "/consul/docs/:version/",
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/vm",
+    destination: "/consul/docs/vm",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/docker",
+    destination: "/consul/docs/docker",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/openshift",
+    destination: "/consul/docs/:version/openshift",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/integrate",
+    destination: "/consul/docs/:version/integrate/partnerships",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/integrate/hcdiag",
+    destination: "/consul/docs/integrate/hcdiag",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/integrate/vault/k8s",
+    destination: "/consul/docs/integrate/vault/k8s",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/envoy-extension/apigee",
+    destination: "/consul/docs/:version/connect/proxies/envoy-extensions/usage/apigee-ext-authz",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/envoy-extension/ext",
+    destination: "/consul/docs/:version/connect/proxies/envoy-extensions/usage/ext-authz",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/envoy-extension/otel",
+    destination: "/consul/docs/:version/connect/proxies/envoy-extensions/usage/otel-access-logging",
     permanent: true
   },
   {
@@ -4237,7 +4277,16 @@ module.exports = [
     destination: "/consul/docs/:version/",
     permanent: true
   },
-
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/",
+    destination: "/consul/docs/:version/",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/",
+    destination: "/consul/docs/:version/",
+    permanent: true
+  },
   {
     source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/",
     destination: "/consul/docs/:version/",
