@@ -7,6 +7,7 @@
 <fieldset
   class='policy-form'
   disabled={{if (not (can 'write policy' item=item)) 'disabled'}}
+  {{fix-super-select-aria}}
   ...attributes
 >
   {{#yield-slot name='template'}}{{else}}
@@ -131,16 +132,20 @@
     />
     <label class='type-select' data-test-datacenter>
       <span>Datacenter</span>
-      <PowerSelect
+      <Hds::Form::SuperSelect::Single::Field
         @options={{map-by 'Name' datacenters}}
-        @searchField='Name'
         @selected={{or item.Datacenter dc}}
-        @searchPlaceholder='Type a datacenter name'
+        @searchField="Name"
+        @searchPlaceholder="Type a datacenter name"
         @onChange={{action 'change' 'Datacenter'}}
-        as |Name|
-      >
-        {{Name}}
-      </PowerSelect>
+        @searchEnabled={{true}}
+        @label="Datacenter"
+        @listboxAriaLabel="Available datacenters"
+        @isOptional={{false}}
+        id="datacenter-select"
+      as |F|>
+        <F.Options>{{F.options}}</F.Options>
+      </Hds::Form::SuperSelect::Single::Field>
     </label>
   {{else}}
     {{! only show Valid Datacenters for the default partition }}
