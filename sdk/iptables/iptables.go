@@ -123,15 +123,28 @@ func Setup(cfg Config) error {
 	runCommand("ip6tables", "-S")
 	runCommand("ip6tables", "-L")
 	runCommand("ip6tables", "-t", "nat", "-L")
-	fmt.Println("------------------------------>Setting up ipv6 rules")
-	if err := SetupWithAdditionalRulesIPv6(cfg, nil); err != nil {
-		fmt.Println("Error setting up iptables6666 rules: ", err)
-		return err
+
+	fmt.Println("------------------------------>Setting up ipv4 rules")
+
+	if err := SetupWithAdditionalRules(cfg, nil); err != nil {
+		fmt.Println("Error setting up iptables4 rules: ", err)
 	}
 	cfg.IptablesProvider.ClearAllRules()
-	fmt.Println("------------------------------>Setting up ipv4 rules")
-	return SetupWithAdditionalRules(cfg, nil)
+	fmt.Println("------------------------------>Setting up ipv6 rules")
+	if err := SetupWithAdditionalRulesIPv6(cfg, nil); err != nil {
+		fmt.Println("Error setting up iptables6 rules: ", err)
+	}
+	fmt.Println("------------------------------>Prestart aaaaaaa")
+	// List all tables and chains for IPv4 iptables
+	runCommand("iptables", "-S") // rules
+	runCommand("iptables", "-L") // chains
+	runCommand("iptables", "-t", "nat", "-L")
 
+	// List all tables and chains for IPv6 ip6tables
+	runCommand("ip6tables", "-S")
+	runCommand("ip6tables", "-L")
+	runCommand("ip6tables", "-t", "nat", "-L")
+	return nil
 }
 
 // SetupWithAdditionalRules will set up iptables interception and redirection rules
