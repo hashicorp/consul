@@ -14,7 +14,7 @@ type iptablesExecutor struct {
 
 func (i *iptablesExecutor) AddRule(_ string, _ ...string) {}
 
-func (i *iptablesExecutor) ApplyRules() error {
+func (i *iptablesExecutor) ApplyRules(string) error {
 	return errors.New("applying traffic redirection rules with 'iptables' is not supported on this operating system; only linux OS is supported")
 }
 

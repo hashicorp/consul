@@ -29,8 +29,9 @@ func (i *iptablesExecutor) AddRule(name string, args ...string) {
 	}
 }
 
-func (i *iptablesExecutor) ApplyRules() error {
-	_, err := exec.LookPath("iptables")
+func (i *iptablesExecutor) ApplyRules(command string) error {
+	fmt.Println("------------------------------>ApplyRules ", command)
+	_, err := exec.LookPath(command)
 	if err != nil {
 		return err
 	}
@@ -41,9 +42,10 @@ func (i *iptablesExecutor) ApplyRules() error {
 		cmd.Stderr = &cmdOutput
 		err := cmd.Run()
 		if err != nil {
-			return fmt.Errorf("failed to run command: %s, err: %v, output: %s", cmd.String(), err, cmdOutput.String())
+			return fmt.Errorf("failed to run command: %s, err: %v, output: %s", cmd.String(), err, string(cmdOutput.Bytes()))
 		}
 	}
+	fmt.Println("------------------------------>ApplyRules done", command)
 
 	return nil
 }
