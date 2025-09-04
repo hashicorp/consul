@@ -816,10 +816,17 @@ func (s *HTTPHandlers) UIMetricsProxy(resp http.ResponseWriter, req *http.Reques
 	// This prevents path traversal while preserving URL structure
 	cleanedSubPath := path.Clean(subPath)
 
+	// Clean the base URL for security in logging and comparisons
+	cleanedBaseURL := cfg.BaseURL
+	if parsedBase, err := url.Parse(cfg.BaseURL); err == nil && parsedBase.Path != "" {
+		parsedBase.Path = path.Clean(parsedBase.Path)
+		cleanedBaseURL = parsedBase.String()
+	}
+
 	// Parse the base URL to get its components
 	baseURL, err := url.Parse(cfg.BaseURL)
 	if err != nil {
-		log.Error("couldn't parse base URL", "base_url", cfg.BaseURL)
+		log.Error("couldn't parse base URL", "base_url", cleanedBaseURL)
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Invalid base URL."}
 	}
 
@@ -830,7 +837,7 @@ func (s *HTTPHandlers) UIMetricsProxy(resp http.ResponseWriter, req *http.Reques
 	// Parse it into a new URL
 	u, err := url.Parse(newURL)
 	if err != nil {
-		log.Error("couldn't parse target URL", "base_url", cfg.BaseURL, "path", subPath)
+		log.Error("couldn't parse target URL", "base_url", cleanedBaseURL, "path", subPath)
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Invalid path."}
 	}
 
@@ -847,7 +854,7 @@ func (s *HTTPHandlers) UIMetricsProxy(resp http.ResponseWriter, req *http.Reques
 		}
 		if denied {
 			log.Error("target URL path is not allowed",
-				"base_url", cfg.BaseURL,
+				"base_url", cleanedBaseURL,
 				"path", subPath,
 				"target_url", u.String(),
 				"path_allowlist", cfg.PathAllowlist,
@@ -881,7 +888,7 @@ func (s *HTTPHandlers) UIMetricsProxy(resp http.ResponseWriter, req *http.Reques
 	// Allow exact match of BaseURL (without trailing slash) or proper prefix match
 	if targetURL != cfg.BaseURL && !strings.HasPrefix(targetURL, baseURLForPrefix) {
 		log.Error("target URL escaped from base path",
-			"base_url", cfg.BaseURL,
+			"base_url", cleanedBaseURL,
 			"path", subPath,
 			"target_url", u.String(),
 		)
