@@ -47,7 +47,7 @@ jobs:
     steps:
       - name: Get PR information and check labels
         id: check_label
-        uses: actions/github-script@v6
+        uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410
         with:
           script: |
             const prNumber = context.payload.pull_request.number;
@@ -73,7 +73,7 @@ jobs:
     steps:
       - name: Fetch repository history
         if: needs.get-pr-info.outputs.has_no_backport == 'false'
-        uses: actions/checkout@v4
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
         with:
           fetch-depth: 0
           ref: ${{ needs.get-pr-info.outputs.pull_request_ref }}
@@ -97,7 +97,7 @@ jobs:
           fi
       - name: Add 'backport-error' label and comment
         if: steps.check_merges.outputs.merge_commit_found == 'true' && needs.get-pr-info.outputs.has_no_backport == 'false'
-        uses: actions/github-script@v6
+        uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -164,7 +164,7 @@ jobs:
 
       - name: Remove 'backport-error' label and comment
         if: steps.check_merges.outputs.merge_commit_found != 'true' && needs.get-pr-info.outputs.has_no_backport == 'false'
-        uses: actions/github-script@v6
+        uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
