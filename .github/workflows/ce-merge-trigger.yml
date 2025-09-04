@@ -51,10 +51,9 @@ jobs:
           GIT_ACTOR: ${{ github.actor }}
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_BODY: ${{ github.event.pull_request.body }}
-          PR_REVIEWERS: ${{ toJson(github.event.pull_request.requested_reviewers) }}
-          PR_APPROVED_REVIEWERS: ${{ steps.reviewers.outputs.approved_reviewers }}
+          PR_APPROVERS: ${{ steps.reviewers.outputs.approved_reviewers }}
         run: |
           curl -H "Authorization: token $GH_PAT" \
             -H 'Accept: application/json' \
-            -d "{\"event_type\": \"oss-merge\", \"client_payload\": {\"git-ref\": \"${GIT_REF}\", \"git-sha\": \"${GIT_SHA}\", \"git-actor\": \"${GIT_ACTOR}\", \"title\": \"${PR_TITLE}\", \"description\": \"${PR_BODY}\", \"reviewers\": ${PR_REVIEWERS}, \"approved_reviewers\": ${PR_APPROVED_REVIEWERS} }}" \
+            -d "{\"event_type\": \"oss-merge\", \"client_payload\": {\"git-ref\": \"${GIT_REF}\", \"git-sha\": \"${GIT_SHA}\", \"git-actor\": \"${GIT_ACTOR}\", \"title\": \"${PR_TITLE}\", \"description\": \"${PR_BODY}\", \"pr_approvers\": ${PR_APPROVERS} }}" \
             "https://api.github.com/repos/hashicorp/consul-enterprise/dispatches"
