@@ -300,7 +300,7 @@ func SetupWithAdditionalRulesIPv6(cfg Config, additionalRulesFn AdditionalRulesF
 	// Configure inbound rules.
 	{
 		// Redirects inbound TCP traffic hitting the PROXY_IN_REDIRECT chain to Envoy's inbound listener port.
-		cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", ProxyInboundRedirectChain, "-p", "tcp", "-j", "REDIRECT", "--to-port", strconv.Itoa(cfg.ProxyInboundPort))
+		cfg.IptablesProvider.AddRule("ip6tables", "-t", "nat", "-A", ProxyInboundRedirectChain, "-p", "tcp", "-j", "REDIRECT", "--to-port", strconv.Itoa(cfg.ProxyInboundPort))
 
 		// For inbound traffic jump from PREROUTING chain to PROXY_INBOUND chain.
 		cfg.IptablesProvider.AddRule("ip6tables", "-t", "nat", "-A", "PREROUTING", "-p", "tcp", "-j", ProxyInboundChain)
