@@ -25,13 +25,31 @@ func (s *HTTPHandlers) KVSEndpoint(resp http.ResponseWriter, req *http.Request) 
 	}
 
 	// Pull out the key name, validation left to each sub-handler
-	args.Key = path.Clean(strings.TrimPrefix(req.URL.Path, "/v1/kv/"))
+	rawKey := strings.TrimPrefix(req.URL.Path, "/v1/kv/")
 
-	// Allowed key pattern: a-zA-Z0-9 ,-_./
-	// https://developer.hashicorp.com/consul/docs/automate/kv#using-consul-kv
-	kvKeyPattern := `^[a-zA-Z0-9,_./\-?&=]+$`
-	if err := validateKVKey(args.Key, kvKeyPattern); err != nil {
-		return nil, fmt.Errorf("invalid key name, keys should respect the %q format", kvKeyPattern)
+	// Use path.Clean but preserve trailing slash for directory keys
+	// Special case: if rawKey is empty, don't clean it (path.Clean("") returns ".")
+	var cleanedKey string
+	if rawKey == "" {
+		cleanedKey = ""
+	} else {
+		cleanedKey = path.Clean(rawKey)
+		if strings.HasSuffix(rawKey, "/") && !strings.HasSuffix(cleanedKey, "/") {
+			cleanedKey += "/"
+		}
+	}
+	args.Key = cleanedKey
+
+	// Validate key format unless unprintable character filter is disabled
+	// The DisableHTTPUnprintableCharFilter flag allows access to keys with
+	// unprintable characters for cleanup purposes
+	if !s.agent.config.DisableHTTPUnprintableCharFilter && args.Key != "" {
+		// Allowed key pattern: a-zA-Z0-9 ,-_./
+		// https://developer.hashicorp.com/consul/docs/automate/kv#using-consul-kv
+		kvKeyPattern := `^[a-zA-Z0-9,_./\-?&=]+$`
+		if err := validateKVKey(args.Key, kvKeyPattern); err != nil {
+			return nil, fmt.Errorf("invalid key name, keys should respect the %q format", kvKeyPattern)
+		}
 	}
 
 	// Check for a key list
