@@ -9,10 +9,6 @@ on:
     branches:
       - main
       - release/**
-      - '!release/1.18**'
-      - '!release/1.17**'
-      - '!release/1.16**'
-      - '!release/1.15**'
 
 
 jobs:
@@ -21,15 +17,44 @@ jobs:
     if: ${{ github.event.pull_request.merged && github.repository == 'hashicorp/consul' }}
     runs-on: ubuntu-latest
     steps:
+      - name: Fetch active releases
+        id: active
+        run: |
+          ACTIVE=$(grep -A 2 'ce_active = true' .release/versions.hcl | grep 'version "' | grep -o '[0-9]\+\.[0-9]\+')
+          echo "Active versions: $ACTIVE"
+          BRANCH="${{ github.ref_name }}"
+          IS_ACTIVE=0
+          for v in $ACTIVE; do
+            if [[ "$BRANCH" == "release/$v"* ]]; then IS_ACTIVE=1; fi
+          done
+          if [[ "$BRANCH" == "main" ]]; then IS_ACTIVE=1; fi
+          echo "active=$IS_ACTIVE" >> $GITHUB_OUTPUT
+      - name: Get Approving Reviewers
+        id: reviewers
+        continue-on-error: true
+        env:
+          GH_PAT: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          reviewers=$(curl -s -H "Authorization: token $GH_PAT" \
+            "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER/reviews" | \
+            jq -r '[.[] | select(.state=="APPROVED") | .user.login] | unique | @json')
+          echo "approved_reviewers=$reviewers" >> $GITHUB_OUTPUT
+          echo "Approved reviewers: $reviewers"
       - name: Trigger Merge
+        if: steps.active.outputs.active == '1'
         env:
           GIT_REF: ${{ github.ref_name }}
           GIT_SHA: ${{ github.sha }}
           GH_PAT: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
           GIT_ACTOR: ${{ github.actor }}
-        # TODO(spatel): CE refactor
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_REVIEWERS: ${{ toJson(github.event.pull_request.requested_reviewers) }}
+          PR_APPROVED_REVIEWERS: ${{ steps.reviewers.outputs.approved_reviewers }}
         run: |
           curl -H "Authorization: token $GH_PAT" \
             -H 'Accept: application/json' \
-            -d "{\"event_type\": \"oss-merge\", \"client_payload\": {\"git-ref\": \"${GIT_REF}\", \"git-sha\": \"${GIT_SHA}\", \"git-actor\": \"${GIT_ACTOR}\" }}" \
+            -d "{\"event_type\": \"oss-merge\", \"client_payload\": {\"git-ref\": \"${GIT_REF}\", \"git-sha\": \"${GIT_SHA}\", \"git-actor\": \"${GIT_ACTOR}\", \"title\": \"${PR_TITLE}\", \"description\": \"${PR_BODY}\", \"reviewers\": ${PR_REVIEWERS}, \"approved_reviewers\": ${PR_APPROVED_REVIEWERS} }}" \
             "https://api.github.com/repos/hashicorp/consul-enterprise/dispatches"
