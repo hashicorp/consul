@@ -14,3 +14,16 @@
     @extend %with-l7-500;
   }
 }
+
+.consul-powerselect-fixed {
+  // Default state (not selected, not hovered, not focused)
+  background-color: white !important;
+  color: inherit !important;
+
+  &[aria-selected='true'],
+  &:hover,
+  &:focus {
+    background-color: #2563eb !important;
+    color: #ffffff !important;
+  }
+}
