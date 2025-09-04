@@ -17,13 +17,13 @@
 
 .consul-powerselect-fixed {
   // Default state (not selected, not hovered, not focused)
-  background-color: white !important;
+  background-color: var(--token-color-surface-primary) !important;
   color: inherit !important;
 
   &[aria-selected='true'],
   &:hover,
   &:focus {
-    background-color: #2563eb !important;
-    color: #ffffff !important;
+    background-color: var(--token-color-foreground-action-hover) !important;
+    color: var(--token-color-surface-primary) !important;
   }
 }
