@@ -112,8 +112,6 @@ func runCommand(name string, args ...string) {
 // Setup will set up iptables interception and redirection rules
 // based on the configuration provided in cfg.
 func Setup(cfg Config) error {
-	cfg.IptablesProvider.ClearAllRules()
-		fmt.Println("icfg.IptablesProvider.Rules in beginning ", cfg.IptablesProvider.Rules())
 
 	fmt.Println("------------------------------>Prestart")
 		// List all tables and chains for IPv4 iptables
