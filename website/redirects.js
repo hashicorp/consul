@@ -4263,33 +4263,88 @@ module.exports = [
     permanent: true
   },
   {
-    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/",
-    destination: "/consul/docs/:version/",
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/error-messages/k8s",
+    destination: "/consul/docs/:version/troubleshoot/common-errors#common-errors-on-kubernetes",
     permanent: true
   },
   {
-    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/",
-    destination: "/consul/docs/:version/",
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/troubleshoot",
+    destination: "/consul/docs/troubleshoot",
     permanent: true
   },
   {
-    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/",
-    destination: "/consul/docs/:version/",
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/reference/cli/consul-aws",
+    destination: "/consul/docs/reference/cli/consul-aws",
     permanent: true
   },
   {
-    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/",
-    destination: "/consul/docs/:version/",
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/reference/acl/auth-method/aws-iam",
+    destination: "/consul/docs/:version/security/acl/auth-methods/aws-iam",
     permanent: true
   },
   {
-    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/",
-    destination: "/consul/docs/:version/",
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/reference/acl/auth-method/jwt",
+    destination: "/consul/docs/:version/security/acl/auth-methods/jwt",
     permanent: true
   },
   {
-    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/",
-    destination: "/consul/docs/:version/",
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/reference/acl/auth-method/k8s",
+    destination: "/consul/docs/:version/security/acl/auth-methods/kubernetes",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/reference/acl/auth-method/oidc",
+    destination: "/consul/docs/:version/security/acl/auth-methods/oidc",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/reference/acl/token",
+    destination: "/consul/docs/:version/security/acl/tokens",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/reference/acl/role",
+    destination: "/consul/docs/:version/security/acl/acl-roles",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/reference/acl/policy",
+    destination: "/consul/docs/:version/security/acl/acl-policies",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/reference/agent/configuration-file/:slug*",
+    destination: "/consul/docs/:version/agent/config/config-files",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/reference/agent/telemetry",
+    destination: "/consul/docs/:version/agent/monitor/telemetry",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/docs/reference/consul-template/:slug*",
+    destination: "/consul/docs/docs/reference/consul-template/:slug*",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/reference/cts",
+    destination: "/consul/docs/:version/nia/configuration",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/reference/dns",
+    destination: "/consul/docs/:version/services/discovery/dns-static-lookups",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/reference/namespace",
+    destination: "/consul/docs/:version/enterprise/namespaces",
+    permanent: true
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/reference/proxy/sidecar",
+    destination: "/consul/docs/:version/connect/proxies/deploy-sidecar-services",
     permanent: true
   },
   ///////////////////////////////////
