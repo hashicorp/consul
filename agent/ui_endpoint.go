@@ -813,12 +813,19 @@ func (s *HTTPHandlers) UIMetricsProxy(resp http.ResponseWriter, req *http.Reques
 	// Replace prefix in the path
 	subPath := strings.TrimPrefix(req.URL.Path, "/v1/internal/ui/metrics-proxy")
 
-	// Security fix: Apply path.Clean to "/" + subPath before constructing newURL
-	// The leading "/" prevents ../ from remaining in the cleaned path
-	cleanedSubPath := path.Clean("/" + subPath)
+	// This prevents path traversal while preserving URL structure
+	cleanedSubPath := path.Clean(subPath)
 
-	// Append the cleaned path to BaseURL (which might contain a path prefix component)
-	newURL := cfg.BaseURL + cleanedSubPath
+	// Parse the base URL to get its components
+	baseURL, err := url.Parse(cfg.BaseURL)
+	if err != nil {
+		log.Error("couldn't parse base URL", "base_url", cfg.BaseURL)
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Invalid base URL."}
+	}
+
+	// Join the base path with the cleaned subpath using proper URL path joining
+	baseURL.Path = path.Join(baseURL.Path, cleanedSubPath)
+	newURL := baseURL.String()
 
 	// Parse it into a new URL
 	u, err := url.Parse(newURL)

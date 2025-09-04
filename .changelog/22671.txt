@@ -1,3 +1,3 @@
 ```release-note:security
-security: Fix path cleaning of proxied urls.
+security: Fixed proxied URL path validation to prevent path traversal.
 ```
