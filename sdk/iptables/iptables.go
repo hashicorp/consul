@@ -290,7 +290,7 @@ func SetupWithAdditionalRulesIPv6(cfg Config, additionalRulesFn AdditionalRulesF
 			cfg.IptablesProvider.AddRule("ip6tables", "-t", "nat", "-A", "OUTPUT", "-p", "udp", "--dport", "53", "-j", DNSChain)
 			cfg.IptablesProvider.AddRule("ip6tables", "-t", "nat", "-A", "OUTPUT", "-p", "tcp", "--dport", "53", "-j", DNSChain)
 		} else if cfg.ConsulDNSPort != 0 {
-			consulDNSIP := "::"
+			consulDNSIP := "::1"
 			// if cfg.ConsulDNSIP != "" {
 			// 	consulDNSIP = cfg.ConsulDNSIP
 			// }
