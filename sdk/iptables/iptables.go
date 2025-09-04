@@ -6,6 +6,7 @@ package iptables
 import (
 	"errors"
 	"fmt"
+	"os/exec"
 	"strconv"
 )
 
@@ -99,9 +100,31 @@ type Provider interface {
 	ClearAllRules()
 }
 
+func runCommand(name string, args ...string) {
+	cmd := exec.Command(name, args...)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		fmt.Printf("Error running %s %v: %v\n", name, args, err)
+	}
+	fmt.Printf("==== %s %v ====\n%s\n", name, args, string(output))
+}
+
 // Setup will set up iptables interception and redirection rules
 // based on the configuration provided in cfg.
 func Setup(cfg Config) error {
+	cfg.IptablesProvider.ClearAllRules()
+		fmt.Println("icfg.IptablesProvider.Rules in beginning ", cfg.IptablesProvider.Rules())
+
+	fmt.Println("------------------------------>Prestart")
+		// List all tables and chains for IPv4 iptables
+	runCommand("iptables", "-S")   // rules
+	runCommand("iptables", "-L")   // chains
+	runCommand("iptables", "-t", "nat", "-L")
+
+	// List all tables and chains for IPv6 ip6tables
+	runCommand("ip6tables", "-S")
+	runCommand("ip6tables", "-L")
+	runCommand("ip6tables", "-t", "nat", "-L")
 	fmt.Println("------------------------------>Setting up iptables rules")
 	if err := SetupWithAdditionalRules(cfg, nil); err != nil {
 		fmt.Println("Error setting up iptables rules: ", err)
