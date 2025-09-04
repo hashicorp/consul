@@ -1,0 +1,58 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+<div class="super-select-with-create {{if this.isCreating 'is-creating'}}" ...attributes>
+  <Hds::Form::SuperSelect::Single::Field
+    @searchEnabled={{true}}
+    @onFilter={{action "handleFilter"}}
+    @options={{this.enhancedOptions}}
+    @selected={{@selected}}
+    @placeholder={{@searchPlaceholder}}
+    @onChange={{action "handleChange"}}
+    @onOpen={{action "handleOpen"}}
+    @onClose={{action "handleClose"}}
+    @disabled={{or @disabled this.isCreating}}
+    @label={{@label}}
+    @listboxAriaLabel={{@listboxAriaLabel}}
+    @isOptional={{@isOptional}}
+    @searchField={{@searchField}}
+    @searchPlaceholder={{@searchPlaceholder}}
+    id={{@id}}
+  as |F|>
+    <F.Options>
+      {{#if F.options.__isSuggestion__}}
+        <div class="create-option" role="option">
+          <Hds::Icon @name="plus" @size="16" />
+          {{F.options.text}}
+        </div>
+      {{else}}
+        {{#if (has-block)}}
+          {{yield F.options}}
+        {{else}}
+          {{#if @searchField}}
+            {{get F.options @searchField}}
+          {{else}}
+            {{F.options}}
+          {{/if}}
+        {{/if}}
+      {{/if}}
+    </F.Options>
+
+    {{#if @helperText}}
+      <F.HelperText>{{@helperText}}</F.HelperText>
+    {{/if}}
+
+    {{#if @errorText}}
+      <F.Error>{{@errorText}}</F.Error>
+    {{/if}}
+  </Hds::Form::SuperSelect::Single::Field>
+
+  {{#if this.isCreating}}
+    <div class="creating-indicator">
+      <Hds::Icon @name="loading" @size="16" />
+      Creating...
+    </div>
+  {{/if}}
+</div>

@@ -6,6 +6,7 @@
 <div
   ...attributes
   class="consul-intention-fieldsets"
+  {{fix-super-select-aria}}
 >
   <fieldset disabled={{disabled}}>
     <div role="group">
@@ -29,6 +30,26 @@
                     {{service.Name}}
                   {{/if}}
           </PowerSelectWithCreate>
+          {{!-- <SuperSelectWithCreate
+            @disabled={{not create}}
+            @options={{services}}
+            @searchField="Name"
+            @selected={{SourceName}}
+            @searchPlaceholder="Type service name"
+            @buildSuggestion={{action "createNewLabel" "Use a Consul Service called '{{term}}'"}}
+            @showCreateWhen={{action "isUnique" services}}
+            @onCreate={{action onchange "SourceName"}}
+            @onChange={{action onchange "SourceName"}}
+            @label="Source Service"
+            @listboxAriaLabel="Available source services"
+            @isOptional={{false}}
+          as |service|>
+            {{#if (eq service.Name '*') }}
+              * (All Services)
+            {{else}}
+              {{service.Name}}
+            {{/if}}
+          </SuperSelectWithCreate> --}}
         {{#if create}}
           <em>Search for an existing service, or enter any Service name.</em>
         {{/if}}
