@@ -6,8 +6,9 @@ package dns
 import (
 	"context"
 	"fmt"
-	agentdns "github.com/hashicorp/consul/agent/dns"
 	"net"
+
+	agentdns "github.com/hashicorp/consul/agent/dns"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/miekg/dns"
@@ -86,6 +87,8 @@ func (s *Server) Query(ctx context.Context, req *pbdns.QueryRequest) (*pbdns.Que
 		s.Logger.Error("error unpacking message", "err", err)
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failure decoding dns request: %s", err.Error()))
 	}
+	fmt.Println("-----> DNS Request:", msg.String())
+	fmt.Println("-----> RespWriter :", string(respWriter.ResponseBuffer()))
 
 	s.DNSServeMux.ServeDNS(respWriter, msg)
 

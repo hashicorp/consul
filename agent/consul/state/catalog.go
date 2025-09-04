@@ -12,8 +12,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/hashicorp/go-memdb"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
@@ -22,6 +20,7 @@ import (
 	"github.com/hashicorp/consul/lib/maps"
 	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-memdb"
 )
 
 const (
@@ -1258,12 +1257,7 @@ func addIPv6Offset(a, b net.IP) (net.IP, error) {
 func addIPOffset(b net.IP) (net.IP, error) {
 	var vip net.IP
 	var err error
-	// lr, err := config.Load(config.LoadOpts{})
-	if err != nil {
-		fmt.Println("---------------------->Error loading config:", err)
-		return nil, err
-	}
-	// br := lr.RuntimeConfig.BindAddr
+
 	br := net.ParseIP("::")
 
 	fmt.Println("---------------------->Bind address:", br.String())
@@ -1275,6 +1269,7 @@ func addIPOffset(b net.IP) (net.IP, error) {
 		fmt.Println("----------------------> IPV4")
 		vip, err = addIPv4Offset(startingVirtualIP, b)
 	}
+	fmt.Println("----------------------> VIP:", vip.String(), " err:", err)
 	return vip, err
 }
 
