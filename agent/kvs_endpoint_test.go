@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"path"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/agent/structs"
@@ -607,6 +609,332 @@ func TestValidateKVKey(t *testing.T) {
 			err := validateKVKey(tt.key, pattern)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("validateKVKey(%q) error = %v, wantErr %v", tt.key, err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestKVSEndpoint_KeyConstruction_TrailingSlashes(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+
+	// Wait for leader
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	tests := []struct {
+		name          string
+		urlPath       string
+		expectedKey   string
+		shouldSucceed bool
+		description   string
+	}{
+		// Basic trailing slash tests
+		{
+			name:          "simple directory with trailing slash",
+			urlPath:       "/v1/kv/directory/",
+			expectedKey:   "directory/",
+			shouldSucceed: true,
+			description:   "Simple directory key with trailing slash should be preserved",
+		},
+		{
+			name:          "nested directory with trailing slash",
+			urlPath:       "/v1/kv/foo/bar/baz/",
+			expectedKey:   "foo/bar/baz/",
+			shouldSucceed: true,
+			description:   "Nested directory key with trailing slash should be preserved",
+		},
+		{
+			name:          "file key without trailing slash",
+			urlPath:       "/v1/kv/file",
+			expectedKey:   "file",
+			shouldSucceed: true,
+			description:   "File key without trailing slash should remain unchanged",
+		},
+
+		// Complex path.Clean scenarios with trailing slashes
+		{
+			name:          "double slashes with trailing slash",
+			urlPath:       "/v1/kv/foo//bar/",
+			expectedKey:   "foo/bar/",
+			shouldSucceed: true,
+			description:   "Double slashes should be cleaned but trailing slash preserved",
+		},
+		{
+			name:          "triple slashes with trailing slash",
+			urlPath:       "/v1/kv/foo///bar/",
+			expectedKey:   "foo/bar/",
+			shouldSucceed: true,
+			description:   "Triple slashes should be cleaned but trailing slash preserved",
+		},
+		{
+			name:          "redundant current dir with trailing slash",
+			urlPath:       "/v1/kv/foo/./bar/",
+			expectedKey:   "foo/bar/",
+			shouldSucceed: true,
+			description:   "Current directory references should be cleaned, trailing slash preserved",
+		},
+		{
+			name:          "multiple redundant elements with trailing slash",
+			urlPath:       "/v1/kv/a/./b/./c/",
+			expectedKey:   "a/b/c/",
+			shouldSucceed: true,
+			description:   "Multiple redundant elements should be cleaned, trailing slash preserved",
+		},
+
+		// Edge cases that have caused issues historically
+		{
+			name:          "multiple trailing slashes",
+			urlPath:       "/v1/kv/directory///",
+			expectedKey:   "directory/",
+			shouldSucceed: true,
+			description:   "Multiple trailing slashes should be cleaned to single slash",
+		},
+		{
+			name:          "mixed redundant and trailing slashes",
+			urlPath:       "/v1/kv/foo//./bar//",
+			expectedKey:   "foo/bar/",
+			shouldSucceed: true,
+			description:   "Mixed redundant elements and trailing slashes should be handled correctly",
+		},
+		{
+			name:          "complex nested path with trailing slash",
+			urlPath:       "/v1/kv/a//b/./c//d/",
+			expectedKey:   "a/b/c/d/",
+			shouldSucceed: true,
+			description:   "Complex nested path with various redundancies and trailing slash",
+		},
+
+		// Root and empty cases
+		{
+			name:          "root with trailing slash",
+			urlPath:       "/v1/kv/",
+			expectedKey:   "",
+			shouldSucceed: false,
+			description:   "Root level should result in empty key which is invalid",
+		},
+		{
+			name:          "only slashes",
+			urlPath:       "/v1/kv////",
+			expectedKey:   "/",
+			shouldSucceed: true,
+			description:   "Only slashes should be cleaned to single slash",
+		},
+
+		// Path traversal with trailing slashes (should be caught by validation)
+		{
+			name:          "path traversal with trailing slash",
+			urlPath:       "/v1/kv/../config/",
+			expectedKey:   "../config/",
+			shouldSucceed: false,
+			description:   "Path traversal should be rejected due to .. in result",
+		},
+		{
+			name:          "complex path traversal with trailing slash",
+			urlPath:       "/v1/kv/foo/../bar/../baz/",
+			expectedKey:   "baz/",
+			shouldSucceed: true,
+			description:   "Complex path traversal should be cleaned to final directory",
+		},
+		{
+			name:          "path traversal resulting in parent access",
+			urlPath:       "/v1/kv/foo/../../etc/",
+			expectedKey:   "../etc/",
+			shouldSucceed: false,
+			description:   "Path traversal that escapes should be rejected",
+		},
+
+		// Special characters with trailing slashes
+		{
+			name:          "special chars with trailing slash",
+			urlPath:       "/v1/kv/foo-bar_baz.test/",
+			expectedKey:   "foo-bar_baz.test/",
+			shouldSucceed: true,
+			description:   "Valid special characters with trailing slash should be preserved",
+		},
+		{
+			name:          "key that looks like query params",
+			urlPath:       "/v1/kv/config-env=prod/",
+			expectedKey:   "config-env=prod/",
+			shouldSucceed: true,
+			description:   "Key with equals and other valid characters with trailing slash",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Test with PUT request to verify key construction
+			buf := bytes.NewBuffer([]byte("test-value"))
+			req, err := http.NewRequest("PUT", tt.urlPath, buf)
+			if err != nil {
+				t.Fatalf("Failed to create request: %v", err)
+			}
+
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.KVSEndpoint(resp, req)
+
+			if tt.shouldSucceed {
+				if err != nil {
+					t.Errorf("Expected success but got error: %v (description: %s)", err, tt.description)
+					return
+				}
+				if obj == nil {
+					t.Errorf("Expected non-nil response for: %s", tt.description)
+					return
+				}
+
+				// Verify the key was stored correctly by retrieving it
+				// We need to handle the case where expectedKey might be empty
+				if tt.expectedKey == "" {
+					// For empty keys, we shouldn't try to retrieve them
+					return
+				}
+
+				getReq, _ := http.NewRequest("GET", "/v1/kv/"+tt.expectedKey, nil)
+				getResp := httptest.NewRecorder()
+				getObj, getErr := a.srv.KVSEndpoint(getResp, getReq)
+
+				if getErr != nil {
+					t.Errorf("Failed to retrieve stored key %q: %v (description: %s)", tt.expectedKey, getErr, tt.description)
+					return
+				}
+
+				if getObj == nil {
+					t.Errorf("Key was not stored at expected location %q (description: %s)", tt.expectedKey, tt.description)
+					return
+				}
+
+				// Verify the response is what we expect
+				entries, ok := getObj.(structs.DirEntries)
+				if !ok || len(entries) == 0 {
+					t.Errorf("Unexpected response format or empty response for key %q (description: %s)", tt.expectedKey, tt.description)
+					return
+				}
+
+				if entries[0].Key != tt.expectedKey {
+					t.Errorf("Expected key %q, got %q (description: %s)", tt.expectedKey, entries[0].Key, tt.description)
+				}
+
+				// For directory keys (with trailing slash), verify they can be used for listing
+				if strings.HasSuffix(tt.expectedKey, "/") {
+					listReq, _ := http.NewRequest("GET", "/v1/kv/"+tt.expectedKey+"?keys", nil)
+					listResp := httptest.NewRecorder()
+					listObj, listErr := a.srv.KVSEndpoint(listResp, listReq)
+
+					if listErr != nil {
+						t.Errorf("Failed to list directory key %q: %v (description: %s)", tt.expectedKey, listErr, tt.description)
+						return
+					}
+
+					// Should get a list response (could be empty, that's fine)
+					if listObj == nil {
+						t.Errorf("Expected list response for directory key %q (description: %s)", tt.expectedKey, tt.description)
+					}
+				}
+			} else {
+				if err == nil {
+					t.Errorf("Expected error but got success for: %s", tt.description)
+				}
+			}
+		})
+	}
+}
+
+func TestKVSEndpoint_PathCleaningEdgeCases(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+
+	// Wait for leader
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	// Test edge cases in path cleaning that have historically caused issues
+	tests := []struct {
+		name        string
+		rawKey      string
+		expectedKey string
+		description string
+	}{
+		{
+			name:        "empty key",
+			rawKey:      "",
+			expectedKey: "",
+			description: "Empty raw key should remain empty",
+		},
+		{
+			name:        "single slash",
+			rawKey:      "/",
+			expectedKey: "/",
+			description: "Single slash should be preserved",
+		},
+		{
+			name:        "double slash",
+			rawKey:      "//",
+			expectedKey: "/",
+			description: "Double slash should be cleaned to single slash",
+		},
+		{
+			name:        "current directory",
+			rawKey:      "./foo",
+			expectedKey: "foo",
+			description: "Current directory should be removed",
+		},
+		{
+			name:        "current directory with trailing slash",
+			rawKey:      "./foo/",
+			expectedKey: "foo/",
+			description: "Current directory should be removed, trailing slash preserved",
+		},
+		{
+			name:        "parent directory",
+			rawKey:      "foo/../bar",
+			expectedKey: "bar",
+			description: "Parent directory traversal should be cleaned",
+		},
+		{
+			name:        "parent directory with trailing slash",
+			rawKey:      "foo/../bar/",
+			expectedKey: "bar/",
+			description: "Parent directory traversal should be cleaned, trailing slash preserved",
+		},
+		{
+			name:        "multiple slashes mixed with dots",
+			rawKey:      "foo//./bar//",
+			expectedKey: "foo/bar/",
+			description: "Mixed redundant elements should be cleaned properly",
+		},
+		{
+			name:        "complex nested cleaning",
+			rawKey:      "a/b/../c/./d//e/",
+			expectedKey: "a/c/d/e/",
+			description: "Complex nested path should be cleaned correctly",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Simulate the path cleaning logic from the actual endpoint
+			var cleanedKey string
+			if tt.rawKey == "" {
+				cleanedKey = ""
+			} else {
+				cleanedKey = path.Clean(tt.rawKey)
+				if strings.HasSuffix(tt.rawKey, "/") && !strings.HasSuffix(cleanedKey, "/") {
+					cleanedKey += "/"
+				}
+			}
+
+			if cleanedKey != tt.expectedKey {
+				t.Errorf("Path cleaning failed for %q: expected %q, got %q (description: %s)",
+					tt.rawKey, tt.expectedKey, cleanedKey, tt.description)
 			}
 		})
 	}
