@@ -103,7 +103,7 @@ jobs:
           script: |
             const prNumber = ${{ needs.get-pr-info.outputs.pr_number }};
             const labelName = '${{ env.BACKPORT_ERROR_LABEL }}';
-                        const commentBody = `
+            const commentBody = `
             🚨 **AUTOMATED CHECK: MERGE COMMITS FOUND** 🚨
             
             This pull request contains merge commits. The **\`${labelName}\`** label has been added.
@@ -156,7 +156,7 @@ jobs:
               });
               console.log('Created new merge commit comment');
             }
-                      // Close PR when merge commits are found
+            // Close PR when merge commits are found
             // Fail the workflow to prevent merging
             console.log('🚫 WORKFLOW FAILED: Merge commits detected in PR');
             console.log('This PR cannot be merged until merge commits are removed');
@@ -179,12 +179,11 @@ jobs:
                 repo: context.repo.repo,
                 pull_number: prNumber
               });
-                          const { data: comments } = await github.rest.issues.listComments({
+              const { data: comments } = await github.rest.issues.listComments({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: prNumber
               });
-              const commentPrefix = '🚨 **AUTOMATED CHECK: MERGE COMMITS FOUND** 🚨';
               const botComments = comments.filter(comment => comment.body.includes(commentPrefix));
             
               if (botComments.length > 0) {
