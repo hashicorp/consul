@@ -94,6 +94,9 @@ type Provider interface {
 	// Rules returns the list of rules that have been added (including those not yet
 	// applied).
 	Rules() []string
+
+	// ClearAllRules clears all rules that are added
+	ClearAllRules()
 }
 
 // Setup will set up iptables interception and redirection rules
@@ -104,6 +107,8 @@ func Setup(cfg Config) error {
 		fmt.Println("Error setting up iptables rules: ", err)
 		return err
 	}
+	cfg.IptablesProvider.ClearAllRules()
+	fmt.Println("------------------------------>Setting up ipv6 rules")
 	return SetupWithAdditionalRulesIPv6(cfg, nil)
 
 }
@@ -210,9 +215,10 @@ func SetupWithAdditionalRules(cfg Config, additionalRulesFn AdditionalRulesFn) e
 	if additionalRulesFn != nil {
 		additionalRulesFn(cfg.IptablesProvider)
 	}
-
+	fmt.Println("ipv4 Rules to be applied: ", cfg.IptablesProvider.Rules())
 	return cfg.IptablesProvider.ApplyRules("iptables")
 }
+
 func SetupWithAdditionalRulesIPv6(cfg Config, additionalRulesFn AdditionalRulesFn) error {
 	fmt.Println("------------------------------>Setting up ipv6 rules")
 
@@ -311,6 +317,7 @@ func SetupWithAdditionalRulesIPv6(cfg Config, additionalRulesFn AdditionalRulesF
 	if additionalRulesFn != nil {
 		additionalRulesFn(cfg.IptablesProvider)
 	}
+	fmt.Println("ipv4 Rules to be applied: ", cfg.IptablesProvider.Rules())
 
 	return cfg.IptablesProvider.ApplyRules("ip6tables")
 }

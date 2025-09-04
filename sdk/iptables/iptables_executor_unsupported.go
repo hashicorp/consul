@@ -21,3 +21,7 @@ func (i *iptablesExecutor) ApplyRules(string) error {
 func (i *iptablesExecutor) Rules() []string {
 	return nil
 }
+
+func (i *iptablesExecutor) ClearAllRules() {
+	return
+}
