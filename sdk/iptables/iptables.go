@@ -291,9 +291,10 @@ func SetupWithAdditionalRulesIPv6(cfg Config, additionalRulesFn AdditionalRulesF
 			cfg.IptablesProvider.AddRule("ip6tables", "-t", "nat", "-A", "OUTPUT", "-p", "tcp", "--dport", "53", "-j", DNSChain)
 		} else if cfg.ConsulDNSPort != 0 {
 			consulDNSIP := "::"
-			if cfg.ConsulDNSIP != "" {
-				consulDNSIP = cfg.ConsulDNSIP
-			}
+			// if cfg.ConsulDNSIP != "" {
+			// 	consulDNSIP = cfg.ConsulDNSIP
+			// }
+
 			consulDNSHostPort := fmt.Sprintf("%s:%d", consulDNSIP, cfg.ConsulDNSPort)
 			// Traffic in the DNSChain is directed to the Consul DNS Service IP.
 			cfg.IptablesProvider.AddRule("ip6tables", "-t", "nat", "-A", DNSChain, "-p", "udp", "-d", consulDNSIP, "--dport", "53", "-j", "DNAT", "--to-destination", consulDNSHostPort)
