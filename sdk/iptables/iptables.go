@@ -113,7 +113,7 @@ func runCommand(name string, args ...string) {
 // based on the configuration provided in cfg.
 func Setup(cfg Config) error {
 
-	fmt.Println("------------------------------>Prestart aaaaaaa")
+	fmt.Println("------------------------------>Prestart bbbbbbb")
 	// List all tables and chains for IPv4 iptables
 	runCommand("iptables", "-S") // rules
 	runCommand("iptables", "-L") // chains
@@ -129,12 +129,11 @@ func Setup(cfg Config) error {
 	if err := SetupWithAdditionalRules(cfg, nil); err != nil {
 		fmt.Println("Error setting up iptables4 rules: ", err)
 	}
-	cfg.IptablesProvider.ClearAllRules()
 	fmt.Println("------------------------------>Setting up ipv6 rules")
 	if err := SetupWithAdditionalRulesIPv6(cfg, nil); err != nil {
 		fmt.Println("Error setting up iptables6 rules: ", err)
 	}
-	fmt.Println("------------------------------>Prestart aaaaaaa")
+	fmt.Println("------------------------------>Postset aaaaaaa")
 	// List all tables and chains for IPv4 iptables
 	runCommand("iptables", "-S") // rules
 	runCommand("iptables", "-L") // chains
