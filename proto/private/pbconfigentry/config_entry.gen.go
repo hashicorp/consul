@@ -65,6 +65,7 @@ func APIGatewayListenerToStructs(s *APIGatewayListener, t *structs.APIGatewayLis
 		APIGatewayPolicyToStructs(s.Default, &x)
 		t.Default = &x
 	}
+	t.MaxRequestHeadersKB = s.MaxRequestHeadersKB
 }
 func APIGatewayListenerFromStructs(t *structs.APIGatewayListener, s *APIGatewayListener) {
 	if s == nil {
@@ -89,6 +90,7 @@ func APIGatewayListenerFromStructs(t *structs.APIGatewayListener, s *APIGatewayL
 		APIGatewayPolicyFromStructs(t.Default, &x)
 		s.Default = &x
 	}
+	s.MaxRequestHeadersKB = t.MaxRequestHeadersKB
 }
 func APIGatewayPolicyToStructs(s *APIGatewayPolicy, t *structs.APIGatewayPolicy) {
 	if s == nil {
