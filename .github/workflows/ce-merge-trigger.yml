@@ -91,5 +91,5 @@ jobs:
           curl -v -X POST \
             -H "Authorization: token $GH_PAT" \
             -H "Accept: application/vnd.github+json" \
-            -d "$PAYLOAD" \
+            -d "$payload" \
             "https://api.github.com/repos/hashicorp/consul-enterprise/dispatches"
