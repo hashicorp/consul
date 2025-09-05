@@ -50,7 +50,7 @@ jobs:
         run: |
           reviewers=$(curl -s -H "Authorization: token $GH_PAT" \
             "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER/reviews" | \
-            jq '[.[] | select(.state=="APPROVED") | .user.login] | unique | @json')
+            jq -c '[.[] | select(.state=="APPROVED") | .user.login] | unique')
           echo "approved_reviewers=$reviewers" >> $GITHUB_OUTPUT
           echo "Approved reviewers: $reviewers"
       - name: Trigger Merge
@@ -65,7 +65,7 @@ jobs:
           PR_APPROVERS: ${{ steps.reviewers.outputs.approved_reviewers }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          # Create the JSON payload using a heredoc
+          # Create the JSON payload using jq for safe escaping
           payload=$(jq -n \
             --arg event_type "$EVENT_TYPE" \
             --arg git_ref "$GIT_REF" \
@@ -88,8 +88,8 @@ jobs:
               }
             }'
           )
-          gh api \
-            --method POST \
-            -H "Accept: application/vnd.github.v3+json" \
-            /repos/hashicorp/consul-enterprise/dispatches \
-            --input-file <(echo "$payload")
+          curl -v -X POST \
+            -H "Authorization: token $GH_PAT" \
+            -H "Accept: application/vnd.github+json" \
+            -d "$PAYLOAD" \
+            "https://api.github.com/repos/$REPO/dispatches"
