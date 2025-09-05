@@ -65,7 +65,31 @@ jobs:
           PR_APPROVERS: ${{ steps.reviewers.outputs.approved_reviewers }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          curl -H "Authorization: token $GH_PAT" \
-            -H 'Accept: application/json' \
-            -d "{\"event_type\": \"oss-merge\", \"client_payload\": {\"git-ref\": \"${GIT_REF}\", \"git-sha\": \"${GIT_SHA}\", \"git-actor\": \"${GIT_ACTOR}\", \"title\": \"${PR_TITLE}\", \"description\": \"${PR_BODY}\", \"pr_approvers\": ${PR_APPROVERS}, \"pr_number\": \"${PR_NUMBER}\"}}" \
-            "https://api.github.com/repos/hashicorp/consul-enterprise/dispatches"
+          # Create the JSON payload using a heredoc
+          payload=$(jq -n \
+            --arg event_type "$EVENT_TYPE" \
+            --arg git_ref "$GIT_REF" \
+            --arg git_sha "$GIT_SHA" \
+            --arg git_actor "$GIT_ACTOR" \
+            --arg pr_title "$PR_TITLE" \
+            --arg pr_body "$PR_BODY" \
+            --argjson pr_approvers "$PR_APPROVERS" \
+            --arg pr_number "$PR_NUMBER" \
+            '{
+              event_type: $event_type,
+              client_payload: {
+                "git-ref": $git_ref,
+                "git-sha": $git_sha,
+                "git-actor": $git_actor,
+                "title": $pr_title,
+                "description": $pr_body,
+                "pr_approvers": $pr_approvers,
+                "pr_number": $pr_number
+              }
+            }'
+          )
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github.v3+json" \
+            /repos/hashicorp/consul-enterprise/dispatches \
+            --input-file <(echo "$payload")
