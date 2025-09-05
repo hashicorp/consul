@@ -62,7 +62,7 @@ func (s *HTTPHandlers) DiscoveryChainRead(resp http.ResponseWriter, req *http.Re
 	var out structs.DiscoveryChainResponse
 	defer setMeta(resp, &out.QueryMeta)
 
-	if args.QueryOptions.UseCache {
+	if args.UseCache {
 		raw, m, err := s.agent.cache.Get(req.Context(), cachetype.CompiledDiscoveryChainName, &args)
 		if err != nil {
 			return nil, err
@@ -80,13 +80,13 @@ func (s *HTTPHandlers) DiscoveryChainRead(resp http.ResponseWriter, req *http.Re
 		if err := s.agent.RPC(req.Context(), "DiscoveryChain.Get", &args, &out); err != nil {
 			return nil, err
 		}
-		if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
+		if args.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
 			args.AllowStale = false
 			args.MaxStaleDuration = 0
 			goto RETRY_ONCE
 		}
 	}
-	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
+	out.ConsistencyLevel = args.ConsistencyLevel()
 
 	return discoveryChainReadResponse{Chain: out.Chain}, nil
 }

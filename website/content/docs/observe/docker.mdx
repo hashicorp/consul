@@ -100,6 +100,7 @@ Tempo is a distributed tracing system developed by Grafana Labs. The `docker-com
       driver: loki
       options:
         loki-url: 'http://localhost:3100/api/prom/push'
+```
 
 </CodeBlockConfig>
 
@@ -187,6 +188,8 @@ datasources:
 ### Grafana data source: Loki
 
 The `datasource-loki.yaml` file contains the configuration for Grafana to connect to Loki. The `datasources.url` field must point to the Loki service running in your Docker environment.
+
+### Explore the sample application
 
 <CodeBlockConfig filename="datasource-loki.yaml">
 

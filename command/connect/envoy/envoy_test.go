@@ -142,7 +142,7 @@ func TestGenerateConfig(t *testing.T) {
 	require.NoError(t, err)
 
 	rootPEM := string(b)
-	rootPEM = strings.Replace(rootPEM, "\n", "\\n", -1)
+	rootPEM = strings.ReplaceAll(rootPEM, "\n", "\\n")
 
 	b, err = os.ReadFile("../../../test/ca_path/cert1.crt")
 	require.NoError(t, err)
@@ -151,7 +151,7 @@ func TestGenerateConfig(t *testing.T) {
 	b, err = os.ReadFile("../../../test/ca_path/cert2.crt")
 	require.NoError(t, err)
 	pathPEM += string(b)
-	pathPEM = strings.Replace(pathPEM, "\n", "\\n", -1)
+	pathPEM = strings.ReplaceAll(pathPEM, "\n", "\\n")
 
 	cases := []generateConfigTestCase{
 		{

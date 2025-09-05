@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
-	controller "github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/controller/cache"
 	"github.com/hashicorp/consul/internal/controller/cache/index"
 	"github.com/hashicorp/consul/internal/controller/cache/indexers"
