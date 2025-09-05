@@ -17,6 +17,8 @@ jobs:
     if: ${{ github.event.pull_request.merged && github.repository == 'hashicorp/consul' }}
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
       - name: Fetch active releases
         id: active
         run: |
@@ -43,7 +45,7 @@ jobs:
         run: |
           reviewers=$(curl -s -H "Authorization: token $GH_PAT" \
             "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER/reviews" | \
-            jq -r '[.[] | select(.state=="APPROVED") | .user.login] | unique | @json')
+            jq '[.[] | select(.state=="APPROVED") | .user.login] | unique | @json')
           echo "approved_reviewers=$reviewers" >> $GITHUB_OUTPUT
           echo "Approved reviewers: $reviewers"
       - name: Trigger Merge

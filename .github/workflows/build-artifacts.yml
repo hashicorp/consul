@@ -25,6 +25,12 @@ jobs:
       compute-large: ${{ steps.setup-outputs.outputs.compute-large }}
       compute-xl: ${{ steps.setup-outputs.outputs.compute-xl }}
     steps:
+    - name: Debug: Show working directory and files
+      run: |
+        pwd
+        ls -l
+        ls -l .
+        ls -l ./.release || echo ".release directory not found"
     - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
     - id: setup-outputs
       name: Setup outputs
