@@ -64,6 +64,7 @@ jobs:
           PR_BODY: ${{ github.event.pull_request.body }}
           PR_APPROVERS: ${{ steps.reviewers.outputs.approved_reviewers }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
         run: |
           # Create the JSON payload using jq for safe escaping
           payload=$(jq -n \
