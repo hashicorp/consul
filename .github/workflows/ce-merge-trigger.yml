@@ -92,4 +92,4 @@ jobs:
             -H "Authorization: token $GH_PAT" \
             -H "Accept: application/vnd.github+json" \
             -d "$PAYLOAD" \
-            "https://api.github.com/repos/$REPO/dispatches"
+            "https://api.github.com/repos/hashicorp/consul-enterprise/dispatches"
