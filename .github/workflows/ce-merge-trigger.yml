@@ -20,14 +20,18 @@ jobs:
       - name: Fetch active releases
         id: active
         run: |
-          ACTIVE=$(grep -A 2 'ce_active = true' .release/versions.hcl | grep 'version "' | grep -o '[0-9]\+\.[0-9]\+')
-          echo "Active versions: $ACTIVE"
-          BRANCH="${{ github.ref_name }}"
-          IS_ACTIVE=0
-          for v in $ACTIVE; do
-            if [[ "$BRANCH" == "release/$v"* ]]; then IS_ACTIVE=1; fi
-          done
-          if [[ "$BRANCH" == "main" ]]; then IS_ACTIVE=1; fi
+          IS_ACTIVE=1
+          if [[ -f ./.release/versions.hcl ]]; then
+            ACTIVE=$(awk '/version "[0-9]+\.[0-9]+"/{ver=$2} /ce_active = true/{print ver}' ./.release/versions.hcl | tr -d '"')
+            echo "Active versions: $ACTIVE"
+            IS_ACTIVE=0
+            for v in $ACTIVE; do
+              if [[ "$BRANCH" == "release/$v"* ]]; then IS_ACTIVE=1; fi
+            done
+            if [[ "$BRANCH" == "main" ]]; then IS_ACTIVE=1; fi
+          else
+            echo ".release/versions.hcl not found, defaulting active=1"
+          fi
           echo "active=$IS_ACTIVE" >> $GITHUB_OUTPUT
       - name: Get Approving Reviewers
         id: reviewers
