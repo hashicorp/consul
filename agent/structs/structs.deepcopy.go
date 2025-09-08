@@ -32,6 +32,10 @@ func (o *APIGatewayListener) DeepCopy() *APIGatewayListener {
 			cp.Default.JWT = o.Default.JWT.DeepCopy()
 		}
 	}
+	if o.MaxRequestHeadersKB != nil {
+		cp.MaxRequestHeadersKB = new(uint32)
+		*cp.MaxRequestHeadersKB = *o.MaxRequestHeadersKB
+	}
 	return &cp
 }
 
