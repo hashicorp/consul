@@ -7,7 +7,6 @@ import Component from '@ember/component';
 import { get, set, computed } from '@ember/object';
 import { inject as service } from '@ember/service';
 import { task } from 'ember-concurrency';
-import { defaultMatcher } from 'ember-power-select/utils/group-utils';
 
 export default Component.extend({
   tagName: '',
@@ -33,7 +32,6 @@ export default Component.extend({
   errorText: '',
 
   dom: service(),
-  matcher: defaultMatcher,
 
   // State
   searchTerm: '',
