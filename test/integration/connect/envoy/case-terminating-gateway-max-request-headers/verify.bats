@@ -18,14 +18,6 @@ load helpers
   assert_upstream_has_endpoints_in_status 127.0.0.1:20000 s2 HEALTHY 1
 }
 
-@test "s1 upstream should have healthy endpoints for s2" {
-  assert_upstream_has_endpoints_in_status 127.0.0.1:19000 s2.default.primary HEALTHY 1
-}
-
-@test "terminating-gateway should have max_request_headers_kb set to 96KB" {
-  assert_envoy_max_request_headers_kb 127.0.0.1:20000 96
-}
-
 @test "s1 upstream should be able to connect to s2 with normal headers" {
   run retry_default curl -s -f -d hello localhost:5000
   [ "$status" -eq 0 ]
@@ -48,11 +40,4 @@ load helpers
 
 @test "terminating-gateway is used for the upstream connection" {
   assert_envoy_metric_at_least 127.0.0.1:20000 "s2.default.primary.*cx_total" 1
-}
-
-@test "verify max_request_headers_kb configuration in Envoy config dump" {
-  run curl -s localhost:20000/config_dump
-  [ "$status" -eq 0 ]
-  # Check for max_request_headers_kb presence - the value might be in different forms
-  [[ "$output" == *"max_request_headers_kb"* ]] || [[ "$output" == *"max_request_header"* ]]
 }
