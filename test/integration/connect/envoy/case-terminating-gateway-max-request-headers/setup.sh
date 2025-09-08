@@ -12,6 +12,9 @@ protocol = "http"
 MaxRequestHeadersKB = 96
 '
 
+# Wait for the service-defaults to be available (important for client mode)
+wait_for_config_entry service-defaults s2 primary
+
 # Configure terminating gateway
 upsert_config_entry primary '
 kind = "terminating-gateway"
@@ -22,6 +25,9 @@ services = [
   }
 ]
 '
+
+# Wait for the terminating-gateway config to be available (important for client mode)
+wait_for_config_entry terminating-gateway terminating-gateway primary
 
 register_services primary
 
