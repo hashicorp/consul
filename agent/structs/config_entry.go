@@ -183,6 +183,9 @@ type ServiceConfigEntry struct {
 	Hash               uint64            `json:",omitempty" hash:"ignore"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex          `hash:"ignore"`
+	// MaxRequestHeadersKB configures the maximum size in kilobytes for request headers
+	// sent from downstream clients to upstream services. If not set, uses Envoy's default.
+	MaxRequestHeadersKB *uint32 `json:",omitempty"`
 }
 
 func (e *ServiceConfigEntry) SetHash(h uint64) {
