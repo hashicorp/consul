@@ -936,14 +936,18 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, cfg *dnsRe
 					},
 					AAAA: p,
 				}
-				if qType != dns.TypeAAAA && qType != dns.TypeANY {
-					resp.Extra = append(resp.Extra, aaaaRecord)
-				} else {
+
+				if qType == dns.TypeAAAA || qType == dns.TypeANY {
+					fmt.Println("---------------> an ipv6 answer", out)
 					resp.Answer = append(resp.Answer, aaaaRecord)
+
+				} else {
+					fmt.Println("---------------> an ipv6 Extra", out)
+					resp.Extra = append(resp.Extra, aaaaRecord)
+
 				}
 			} else {
 				fmt.Println("---------------> is an ipv4 ", out)
-
 				aRecord := &dns.A{
 					Hdr: dns.RR_Header{
 						Name:   qName + respDomain,
@@ -953,10 +957,12 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, cfg *dnsRe
 					},
 					A: p,
 				}
-				if qType != dns.TypeA && qType != dns.TypeANY {
-					resp.Extra = append(resp.Answer, aRecord)
-				} else {
+				if qType == dns.TypeA && qType == dns.TypeANY {
 					resp.Answer = append(resp.Answer, aRecord)
+					fmt.Println("---------------> is an ipv4 answer", out)
+				} else {
+					fmt.Println("---------------> is an ipv4 extra", out)
+					resp.Extra = append(resp.Answer, aRecord)
 				}
 			}
 		}
