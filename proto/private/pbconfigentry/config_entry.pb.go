@@ -10,9 +10,9 @@
 package pbconfigentry
 
 import (
-	reflect "reflect"
-	sync "sync"
-	unsafe "unsafe"
+	"reflect"
+	"sync"
+	"unsafe"
 
 	_ "github.com/hashicorp/consul/proto-public/annotations/ratelimit"
 	pbcommon "github.com/hashicorp/consul/proto/private/pbcommon"
@@ -9513,6 +9513,7 @@ func file_private_pbconfigentry_config_entry_proto_init() {
 		(*ConfigEntry_FileSystemCertificate)(nil),
 	}
 	file_private_pbconfigentry_config_entry_proto_msgTypes[41].OneofWrappers = []any{}
+	file_private_pbconfigentry_config_entry_proto_msgTypes[57].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
