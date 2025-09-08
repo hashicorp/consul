@@ -27,6 +27,8 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 
 	readyListeners := getReadyListeners(cfgSnap)
 
+	proxyConfig := cfgSnap.GetProxyConfig(s.Logger)
+
 	for _, readyListener := range readyListeners {
 		listenerCfg := readyListener.listenerCfg
 		listenerKey := readyListener.listenerKey
@@ -113,20 +115,27 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 			}
 
 			if isAPIGatewayWithTLS {
+
+				maxRequestHeadersKb := proxyConfig.MaxRequestHeadersKB
+				if listenerCfg.MaxRequestHeadersKB != nil {
+					maxRequestHeadersKb = listenerCfg.MaxRequestHeadersKB
+				}
+
 				// construct SNI filter chains
 				setAPIGatewayTLSConfig(listenerCfg, cfgSnap)
 				l.FilterChains, err = s.makeInlineOverrideFilterChains(
 					cfgSnap,
 					cfgSnap.APIGateway.TLSConfig,
 					listenerKey.Protocol, listenerFilterOpts{
-						useRDS:          useRDS,
-						fetchTimeoutRDS: cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
-						protocol:        listenerKey.Protocol,
-						routeName:       listenerKey.RouteName(),
-						cluster:         clusterName,
-						statPrefix:      "ingress_upstream_",
-						accessLogs:      &cfgSnap.Proxy.AccessLogs,
-						logger:          s.Logger,
+						useRDS:              useRDS,
+						fetchTimeoutRDS:     cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
+						protocol:            listenerKey.Protocol,
+						routeName:           listenerKey.RouteName(),
+						cluster:             clusterName,
+						statPrefix:          "ingress_upstream_",
+						accessLogs:          &cfgSnap.Proxy.AccessLogs,
+						logger:              s.Logger,
+						maxRequestHeadersKb: maxRequestHeadersKb,
 					},
 					certs,
 				)
@@ -208,18 +217,23 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 					return nil, err
 				}
 			}
+			maxRequestHeadersKb := proxyConfig.MaxRequestHeadersKB
+			if listenerCfg.MaxRequestHeadersKB != nil {
+				maxRequestHeadersKb = listenerCfg.MaxRequestHeadersKB
+			}
 			filterOpts := listenerFilterOpts{
-				useRDS:           true,
-				fetchTimeoutRDS:  cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
-				protocol:         listenerKey.Protocol,
-				filterName:       listenerKey.RouteName(),
-				routeName:        listenerKey.RouteName(),
-				cluster:          "",
-				statPrefix:       "ingress_upstream_",
-				routePath:        "",
-				httpAuthzFilters: authFilters,
-				accessLogs:       &cfgSnap.Proxy.AccessLogs,
-				logger:           s.Logger,
+				useRDS:              true,
+				fetchTimeoutRDS:     cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
+				protocol:            listenerKey.Protocol,
+				filterName:          listenerKey.RouteName(),
+				routeName:           listenerKey.RouteName(),
+				cluster:             "",
+				statPrefix:          "ingress_upstream_",
+				routePath:           "",
+				httpAuthzFilters:    authFilters,
+				accessLogs:          &cfgSnap.Proxy.AccessLogs,
+				logger:              s.Logger,
+				maxRequestHeadersKb: maxRequestHeadersKb,
 			}
 
 			// Generate any filter chains needed for services with custom TLS certs
