@@ -67,7 +67,7 @@ jobs:
         run: |
           # Create the JSON payload using jq for safe escaping
           payload=$(jq -n \
-            --arg event_type "$EVENT_TYPE" \
+            --arg event_type "oss-merge" \
             --arg git_ref "$GIT_REF" \
             --arg git_sha "$GIT_SHA" \
             --arg git_actor "$GIT_ACTOR" \
@@ -91,5 +91,6 @@ jobs:
           curl -v -X POST \
             -H "Authorization: token $GH_PAT" \
             -H "Accept: application/vnd.github+json" \
-            -d "$PAYLOAD" \
+            -H "Content-Type: application/json" \
+            -d "$payload" \
             "https://api.github.com/repos/hashicorp/consul-enterprise/dispatches"
