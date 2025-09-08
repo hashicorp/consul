@@ -14,7 +14,7 @@
         <h2>Source</h2>
         <label data-test-source-element class="type-select{{if item.error.SourceName ' has-error'}}">
           <span>Source Service</span>
-          <PowerSelectWithCreate
+          {{!-- <PowerSelectWithCreate
               @disabled={{not create}}
               @options={{services}}
               @searchField="Name"
@@ -29,14 +29,14 @@
                   {{else}}
                     {{service.Name}}
                   {{/if}}
-          </PowerSelectWithCreate>
-          {{!-- <SuperSelectWithCreate
+          </PowerSelectWithCreate> --}}
+          <SuperSelectWithCreate
             @disabled={{not create}}
             @options={{services}}
             @searchField="Name"
             @selected={{SourceName}}
             @searchPlaceholder="Type service name"
-            @buildSuggestion={{action "createNewLabel" "Use a Consul Service called '{{term}}'"}}
+            @buildSuggestion="Use a Consul Service called '__TERM__'"
             @showCreateWhen={{action "isUnique" services}}
             @onCreate={{action onchange "SourceName"}}
             @onChange={{action onchange "SourceName"}}
@@ -49,7 +49,8 @@
             {{else}}
               {{service.Name}}
             {{/if}}
-          </SuperSelectWithCreate> --}}
+          </SuperSelectWithCreate>
+          
         {{#if create}}
           <em>Search for an existing service, or enter any Service name.</em>
         {{/if}}
@@ -57,7 +58,7 @@
   {{#if (can 'choose nspaces')}}
         <label data-test-source-nspace class="type-select{{if item.error.SourceNS ' has-error'}}">
           <span>Source Namespace</span>
-          <PowerSelectWithCreate
+          {{!-- <PowerSelectWithCreate
               @disabled={{not create}}
               @options={{nspaces}}
               @selected={{SourceNS}}
@@ -71,7 +72,27 @@
                 {{else}}
                   {{nspace.Name}}
                 {{/if}}
-          </PowerSelectWithCreate>
+          </PowerSelectWithCreate> --}}
+          <SuperSelectWithCreate
+            @disabled={{not create}}
+            @options={{nspaces}}
+            @searchField="Name"
+            @selected={{SourceNS}}
+            @searchPlaceholder="Type namespace name"
+            @buildSuggestion="Use a Consul Namespace called '__TERM__'"
+            @showCreateWhen={{action "isUnique" nspaces}}
+            @onCreate={{action onchange "SourceNS"}}
+            @onChange={{action onchange "SourceNS"}}
+            @label="Source Namespace"
+            @listboxAriaLabel="Available source namespaces"
+            @isOptional={{false}}
+          as |nspace|>
+            {{#if (eq nspace.Name '*') }}
+              * (All Namespaces)
+            {{else}}
+              {{nspace.Name}}
+            {{/if}}
+          </SuperSelectWithCreate>
         {{#if create}}
           <em>Search for an existing namespace, or enter any Namespace name.</em>
         {{/if}}
@@ -80,7 +101,7 @@
   {{#if (can 'choose partitions' dc=@dc)}}
         <label data-test-source-partition class="type-select{{if item.error.SourcePartition ' has-error'}}">
           <span>Source Partition</span>
-          <PowerSelectWithCreate
+          {{!-- <PowerSelectWithCreate
               @disabled={{not create}}
               @options={{partitions}}
               @selected={{SourcePartition}}
@@ -90,7 +111,23 @@
               @onCreate={{action onchange "SourcePartition"}}
               @onChange={{action onchange "SourcePartition"}} as |partition|>
                 {{partition.Name}}
-          </PowerSelectWithCreate>
+          </PowerSelectWithCreate> --}}
+          <SuperSelectWithCreate
+            @disabled={{not create}}
+            @options={{partitions}}
+            @searchField="Name"
+            @selected={{SourcePartition}}
+            @searchPlaceholder="Type partition name"
+            @buildSuggestion="Use a Consul Partition called '__TERM__'"
+            @showCreateWhen={{action "isUnique" partitions}}
+            @onCreate={{action onchange "SourcePartition"}}
+            @onChange={{action onchange "SourcePartition"}}
+            @label="Source Partition"
+            @listboxAriaLabel="Available source partitions"
+            @isOptional={{false}}
+          as |partition|>
+            {{partition.Name}}
+          </SuperSelectWithCreate>
         {{#if create}}
           <em>Search for an existing partition, or enter any Partition name.</em>
         {{/if}}
@@ -101,7 +138,7 @@
         <h2>Destination</h2>
         <label data-test-destination-element class="type-select{{if item.error.DestinationName ' has-error'}}">
           <span>Destination Service</span>
-          <PowerSelectWithCreate
+          {{!-- <PowerSelectWithCreate
               @disabled={{not create}}
               @options={{services}}
               @searchField="Name"
@@ -116,7 +153,28 @@
                   {{else}}
                     {{service.Name}}
                   {{/if}}
-          </PowerSelectWithCreate>
+          </PowerSelectWithCreate> --}}
+
+          <SuperSelectWithCreate
+            @disabled={{not create}}
+            @options={{services}}
+            @searchField="Name"
+            @selected={{DestinationName}}
+            @searchPlaceholder="Type service name"
+            @buildSuggestion="Use a Consul Service called '__TERM__'"
+            @showCreateWhen={{action "isUnique" services}}
+            @onCreate={{action onchange "DestinationName"}}
+            @onChange={{action onchange "DestinationName"}}
+            @label="Destination Service"
+            @listboxAriaLabel="Available destination services"
+            @isOptional={{false}}
+          as |service|>
+            {{#if (eq service.Name '*') }}
+              * (All Services)
+            {{else}}
+              {{service.Name}}
+            {{/if}}
+          </SuperSelectWithCreate>
         {{#if create}}
           <em>Search for an existing service, or enter any Service name.</em>
         {{/if}}
@@ -124,7 +182,7 @@
   {{#if (can 'choose nspaces')}}
         <label data-test-destination-nspace class="type-select{{if item.error.DestinationNS ' has-error'}}">
           <span>Destination Namespace</span>
-          <PowerSelectWithCreate
+          {{!-- <PowerSelectWithCreate
               @disabled={{not create}}
               @options={{nspaces}}
               @searchField="Name"
@@ -139,7 +197,27 @@
                   {{else}}
                     {{nspace.Name}}
                   {{/if}}
-          </PowerSelectWithCreate>
+          </PowerSelectWithCreate> --}}
+          <SuperSelectWithCreate
+            @disabled={{not create}}
+            @options={{nspaces}}
+            @searchField="Name"
+            @selected={{DestinationNS}}
+            @searchPlaceholder="Type namespace name"
+            @buildSuggestion="Use a future Consul Namespace called '__TERM__'"
+            @showCreateWhen={{action "isUnique" nspaces}}
+            @onCreate={{action onchange "DestinationNS"}}
+            @onChange={{action onchange "DestinationNS"}}
+            @label="Destination Namespace"
+            @listboxAriaLabel="Available destination namespaces"
+            @isOptional={{false}}
+          as |nspace|>
+            {{#if (eq nspace.Name '*') }}
+              * (All Namespaces)
+            {{else}}
+              {{nspace.Name}}
+            {{/if}}
+          </SuperSelectWithCreate>
         {{#if create}}
           <em>For the destination, you may choose any namespace for which you have access.</em>
         {{/if}}
@@ -148,7 +226,7 @@
   {{#if (can 'choose partitions' dc=@dc)}}
         <label data-test-destination-partition class="type-select{{if item.error.DestinationPartition ' has-error'}}">
           <span>Destination Partition</span>
-          <PowerSelectWithCreate
+          {{!-- <PowerSelectWithCreate
               @disabled={{not create}}
               @options={{partitions}}
               @searchField="Name"
@@ -159,7 +237,23 @@
               @onCreate={{action onchange "DestinationPartition"}}
               @onChange={{action onchange "DestinationPartition"}} as |partition|>
                 {{partition.Name}}
-          </PowerSelectWithCreate>
+          </PowerSelectWithCreate> --}}
+          <SuperSelectWithCreate
+            @disabled={{not create}}
+            @options={{partitions}}
+            @searchField="Name"
+            @selected={{DestinationPartition}}
+            @searchPlaceholder="Type partition name"
+            @buildSuggestion="Use a future Consul Partition called '__TERM__'"
+            @showCreateWhen={{action "isUnique" partitions}}
+            @onCreate={{action onchange "DestinationPartition"}}
+            @onChange={{action onchange "DestinationPartition"}}
+            @label="Destination Partition"
+            @listboxAriaLabel="Available destination partitions"
+            @isOptional={{false}}
+          as |partition|>
+            {{partition.Name}}
+          </SuperSelectWithCreate>
         {{#if create}}
           <em>For the destination, you may choose any partition for which you have access.</em>
         {{/if}}
