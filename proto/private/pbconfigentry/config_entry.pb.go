@@ -3929,9 +3929,9 @@ type ServiceDefaults struct {
 	// mog: func-to=EnvoyExtensionsToStructs func-from=EnvoyExtensionsFromStructs
 	EnvoyExtensions []*pbcommon.EnvoyExtension `protobuf:"bytes,14,rep,name=EnvoyExtensions,proto3" json:"EnvoyExtensions,omitempty"`
 	// mog: func-to=mutualTLSModeToStructs func-from=mutualTLSModeFromStructs
-	MutualTLSMode MutualTLSMode `protobuf:"varint,15,opt,name=MutualTLSMode,proto3,enum=hashicorp.consul.internal.configentry.MutualTLSMode" json:"MutualTLSMode,omitempty"`
-	Hash          uint64        `protobuf:"varint,17,opt,name=Hash,proto3" json:"Hash,omitempty"`
-	MaxRequestHeadersKB *uint32 `protobuf:"varint,18,opt,name=MaxRequestHeadersKB,proto3,oneof" json:"MaxRequestHeadersKB,omitempty"`
+	MutualTLSMode       MutualTLSMode `protobuf:"varint,15,opt,name=MutualTLSMode,proto3,enum=hashicorp.consul.internal.configentry.MutualTLSMode" json:"MutualTLSMode,omitempty"`
+	Hash                uint64        `protobuf:"varint,17,opt,name=Hash,proto3" json:"Hash,omitempty"`
+	MaxRequestHeadersKB *uint32       `protobuf:"varint,18,opt,name=MaxRequestHeadersKB,proto3,oneof" json:"MaxRequestHeadersKB,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
