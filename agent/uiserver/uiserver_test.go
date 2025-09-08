@@ -498,3 +498,240 @@ func TestHandler_ServeHTTP_TransformIsEvaluatedOnEachRequest(t *testing.T) {
 		require.JSONEq(t, expected, extractUIConfig(t, rec.Body.String()))
 	})
 }
+
+func TestServeTransformedJS(t *testing.T) {
+	// Prepare a temp dir and JS file with a template variable
+	uiDir := testutil.TempDir(t, "consul-uiserver-js")
+	defer os.RemoveAll(uiDir)
+
+	jsFile := "assets/chunk-test.js"
+	jsPath := filepath.Join(uiDir, jsFile)
+	jsContent := `var root = "{{.ContentPath}}"; var untouched = "{{.ACLsEnabled}}";`
+	require.NoError(t, os.MkdirAll(filepath.Dir(jsPath), 0755))
+	require.NoError(t, os.WriteFile(jsPath, []byte(jsContent), 0644))
+
+	cfg := basicUIEnabledConfig()
+	cfg.UIConfig.Dir = uiDir
+	cfg.UIConfig.ContentPath = "/ui/"
+	h := NewHandler(cfg, testutil.Logger(t), nil)
+
+	req := httptest.NewRequest("GET", "/"+jsFile, nil)
+	rec := httptest.NewRecorder()
+
+	h.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	require.Equal(t, "application/javascript", rec.Header().Get("Content-Type"))
+	// The ContentPath template variable should be replaced
+	require.Contains(t, rec.Body.String(), "var root = \"/ui/\";")
+	// Other template variables should remain untouched
+	require.Contains(t, rec.Body.String(), "var untouched = \"{{.ACLsEnabled}}\";")
+}
+
+func TestServeTransformedJS_ErrorCases(t *testing.T) {
+	t.Run("JS file not found", func(t *testing.T) {
+		// Prepare a temp dir without the JS file
+		uiDir := testutil.TempDir(t, "consul-uiserver-js-error")
+		defer os.RemoveAll(uiDir)
+
+		cfg := basicUIEnabledConfig()
+		cfg.UIConfig.Dir = uiDir
+		h := NewHandler(cfg, testutil.Logger(t), nil)
+
+		req := httptest.NewRequest("GET", "/assets/chunk-nonexistent.js", nil)
+		rec := httptest.NewRecorder()
+
+		h.ServeHTTP(rec, req)
+
+		require.Equal(t, http.StatusNotFound, rec.Code)
+		require.Contains(t, rec.Body.String(), "JS file not found")
+	})
+
+	t.Run("JS file not found - embedded dist", func(t *testing.T) {
+		cfg := basicUIEnabledConfig()
+		// Use embedded dist (Dir is empty)
+		cfg.UIConfig.Dir = ""
+		h := NewHandler(cfg, testutil.Logger(t), nil)
+
+		req := httptest.NewRequest("GET", "/assets/chunk-nonexistent.js", nil)
+		rec := httptest.NewRecorder()
+
+		h.ServeHTTP(rec, req)
+
+		require.Equal(t, http.StatusNotFound, rec.Code)
+		require.Contains(t, rec.Body.String(), "JS file not found")
+	})
+
+	t.Run("unreadable JS file", func(t *testing.T) {
+		// Create a directory with the same name as the JS file to cause read error
+		uiDir := testutil.TempDir(t, "consul-uiserver-js-error")
+		defer os.RemoveAll(uiDir)
+
+		jsFile := "assets/chunk-test.js"
+		jsPath := filepath.Join(uiDir, jsFile)
+		require.NoError(t, os.MkdirAll(jsPath, 0755)) // Create directory instead of file
+
+		cfg := basicUIEnabledConfig()
+		cfg.UIConfig.Dir = uiDir
+		h := NewHandler(cfg, testutil.Logger(t), nil)
+
+		req := httptest.NewRequest("GET", "/"+jsFile, nil)
+		rec := httptest.NewRecorder()
+
+		h.ServeHTTP(rec, req)
+
+		require.Equal(t, http.StatusInternalServerError, rec.Code)
+		require.Contains(t, rec.Body.String(), "Failed to read JS file")
+	})
+
+	t.Run("transform function error", func(t *testing.T) {
+		// Prepare a temp dir and JS file
+		uiDir := testutil.TempDir(t, "consul-uiserver-js-error")
+		defer os.RemoveAll(uiDir)
+
+		jsFile := "assets/chunk-test.js"
+		jsPath := filepath.Join(uiDir, jsFile)
+		jsContent := `var root = "{{.ContentPath}}";`
+		require.NoError(t, os.MkdirAll(filepath.Dir(jsPath), 0755))
+		require.NoError(t, os.WriteFile(jsPath, []byte(jsContent), 0644))
+
+		cfg := basicUIEnabledConfig()
+		cfg.UIConfig.Dir = uiDir
+
+		// Create a transform function that returns an error
+		transform := func(data map[string]interface{}) error {
+			return &UITransformError{msg: "transform failed"}
+		}
+		h := NewHandler(cfg, testutil.Logger(t), transform)
+
+		req := httptest.NewRequest("GET", "/"+jsFile, nil)
+		rec := httptest.NewRecorder()
+
+		h.ServeHTTP(rec, req)
+
+		require.Equal(t, http.StatusInternalServerError, rec.Code)
+		require.Contains(t, rec.Body.String(), "Failed to run transform")
+	})
+
+	t.Run("ContentPath not found in template data", func(t *testing.T) {
+		// Prepare a temp dir and JS file
+		uiDir := testutil.TempDir(t, "consul-uiserver-js-error")
+		defer os.RemoveAll(uiDir)
+
+		jsFile := "assets/chunk-test.js"
+		jsPath := filepath.Join(uiDir, jsFile)
+		jsContent := `var root = "{{.ContentPath}}";`
+		require.NoError(t, os.MkdirAll(filepath.Dir(jsPath), 0755))
+		require.NoError(t, os.WriteFile(jsPath, []byte(jsContent), 0644))
+
+		cfg := basicUIEnabledConfig()
+		cfg.UIConfig.Dir = uiDir
+
+		// Create a transform function that removes ContentPath
+		transform := func(data map[string]interface{}) error {
+			delete(data, "ContentPath")
+			return nil
+		}
+		h := NewHandler(cfg, testutil.Logger(t), transform)
+
+		req := httptest.NewRequest("GET", "/"+jsFile, nil)
+		rec := httptest.NewRecorder()
+
+		h.ServeHTTP(rec, req)
+
+		require.Equal(t, http.StatusInternalServerError, rec.Code)
+		require.Contains(t, rec.Body.String(), "ContentPath value not found in template data")
+	})
+
+	t.Run("ContentPath wrong type in template data", func(t *testing.T) {
+		// Prepare a temp dir and JS file
+		uiDir := testutil.TempDir(t, "consul-uiserver-js-error")
+		defer os.RemoveAll(uiDir)
+
+		jsFile := "assets/chunk-test.js"
+		jsPath := filepath.Join(uiDir, jsFile)
+		jsContent := `var root = "{{.ContentPath}}";`
+		require.NoError(t, os.MkdirAll(filepath.Dir(jsPath), 0755))
+		require.NoError(t, os.WriteFile(jsPath, []byte(jsContent), 0644))
+
+		cfg := basicUIEnabledConfig()
+		cfg.UIConfig.Dir = uiDir
+
+		// Create a transform function that changes ContentPath to wrong type
+		transform := func(data map[string]interface{}) error {
+			data["ContentPath"] = 123 // Set to non-string type
+			return nil
+		}
+		h := NewHandler(cfg, testutil.Logger(t), transform)
+
+		req := httptest.NewRequest("GET", "/"+jsFile, nil)
+		rec := httptest.NewRecorder()
+
+		h.ServeHTTP(rec, req)
+
+		require.Equal(t, http.StatusInternalServerError, rec.Code)
+		require.Contains(t, rec.Body.String(), "ContentPath value not found in template data")
+	})
+
+	t.Run("response writer error", func(t *testing.T) {
+		// Prepare a temp dir and JS file
+		uiDir := testutil.TempDir(t, "consul-uiserver-js-error")
+		defer os.RemoveAll(uiDir)
+
+		jsFile := "assets/chunk-test.js"
+		jsPath := filepath.Join(uiDir, jsFile)
+		jsContent := `var root = "{{.ContentPath}}";`
+		require.NoError(t, os.MkdirAll(filepath.Dir(jsPath), 0755))
+		require.NoError(t, os.WriteFile(jsPath, []byte(jsContent), 0644))
+
+		cfg := basicUIEnabledConfig()
+		cfg.UIConfig.Dir = uiDir
+		cfg.UIConfig.ContentPath = "/ui/"
+		h := NewHandler(cfg, testutil.Logger(t), nil)
+
+		req := httptest.NewRequest("GET", "/"+jsFile, nil)
+
+		// Use a mock response writer that fails on Write
+		rec := &failingResponseWriter{
+			ResponseRecorder: httptest.NewRecorder(),
+			failOnWrite:      true,
+		}
+
+		h.ServeHTTP(rec, req)
+
+		// The response should still have the correct content-type header set
+		// but the body write will fail and be logged
+		require.Equal(t, "application/javascript", rec.Header().Get("Content-Type"))
+	})
+}
+
+// UITransformError is a helper error type for testing transform failures
+type UITransformError struct {
+	msg string
+}
+
+func (e *UITransformError) Error() string {
+	return e.msg
+}
+
+// failingResponseWriter is a mock response writer that can simulate write failures
+type failingResponseWriter struct {
+	*httptest.ResponseRecorder
+	failOnWrite bool
+}
+
+func (f *failingResponseWriter) Write(data []byte) (int, error) {
+	if f.failOnWrite {
+		return 0, &writeError{msg: "simulated write failure"}
+	}
+	return f.ResponseRecorder.Write(data)
+}
+
+// writeError is a helper error type for simulating write failures
+type writeError struct {
+	msg string
+}
+
+func (e *writeError) Error() string {
+	return e.msg
+}
