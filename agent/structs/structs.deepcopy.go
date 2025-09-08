@@ -975,6 +975,10 @@ func (o *ServiceConfigEntry) DeepCopy() *ServiceConfigEntry {
 			cp.Meta[k2] = v2
 		}
 	}
+	if o.MaxRequestHeadersKB != nil {
+		cp.MaxRequestHeadersKB = new(uint32)
+		*cp.MaxRequestHeadersKB = *o.MaxRequestHeadersKB
+	}
 	return &cp
 }
 
