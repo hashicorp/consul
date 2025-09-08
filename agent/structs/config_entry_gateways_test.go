@@ -1130,6 +1130,8 @@ func TestGatewayService_Addresses(t *testing.T) {
 }
 
 func TestAPIGateway_Listeners(t *testing.T) {
+	defaultMeta := DefaultEnterpriseMetaInDefaultPartition()
+
 	cases := map[string]configEntryTestcase{
 		"no listeners defined": {
 			entry: &APIGatewayConfigEntry{
@@ -1318,6 +1320,87 @@ func TestAPIGateway_Listeners(t *testing.T) {
 				},
 			},
 			validateErr: "certificate reference must have a name",
+		},
+		"valid max request headers kb": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-max-headers",
+				Listeners: []APIGatewayListener{
+					{
+						Name:                "listener",
+						Port:                80,
+						Protocol:            APIGatewayListenerProtocol("http"),
+						MaxRequestHeadersKB: uintPointer(96),
+					},
+				},
+			},
+			expected: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-max-headers",
+				Listeners: []APIGatewayListener{
+					{
+						Name:                "listener",
+						Port:                80,
+						Protocol:            APIGatewayListenerProtocol("http"),
+						MaxRequestHeadersKB: uintPointer(96),
+					},
+				},
+				EnterpriseMeta: *defaultMeta,
+			},
+		},
+		"zero max request headers kb": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-zero-headers",
+				Listeners: []APIGatewayListener{
+					{
+						Name:                "listener",
+						Port:                80,
+						Protocol:            APIGatewayListenerProtocol("http"),
+						MaxRequestHeadersKB: uintPointer(0),
+					},
+				},
+			},
+			expected: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-zero-headers",
+				Listeners: []APIGatewayListener{
+					{
+						Name:                "listener",
+						Port:                80,
+						Protocol:            APIGatewayListenerProtocol("http"),
+						MaxRequestHeadersKB: uintPointer(0),
+					},
+				},
+				EnterpriseMeta: *defaultMeta,
+			},
+		},
+		"max request headers kb with tcp protocol": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-tcp-headers",
+				Listeners: []APIGatewayListener{
+					{
+						Name:                "listener",
+						Port:                80,
+						Protocol:            APIGatewayListenerProtocol("tcp"),
+						MaxRequestHeadersKB: uintPointer(96),
+					},
+				},
+			},
+			expected: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-tcp-headers",
+				Listeners: []APIGatewayListener{
+					{
+						Name:                "listener",
+						Port:                80,
+						Protocol:            APIGatewayListenerProtocol("tcp"),
+						MaxRequestHeadersKB: uintPointer(96),
+					},
+				},
+				EnterpriseMeta: *defaultMeta,
+			},
 		},
 	}
 	testConfigEntryNormalizeAndValidate(t, cases)
