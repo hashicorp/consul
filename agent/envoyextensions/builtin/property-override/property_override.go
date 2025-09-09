@@ -10,9 +10,9 @@ import (
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/hashicorp/consul/lib/decode"
 	"github.com/hashicorp/go-multierror"
-	"github.com/mitchellh/mapstructure"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/api"

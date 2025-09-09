@@ -1077,7 +1077,6 @@ func assignServiceVirtualIP(tx WriteTxn, idx uint64, psn structs.PeeredServiceNa
 		if p := net.ParseIP(newEntry.IP.String()); p == nil || p.To4() == nil {
 			maxIPOffset = virtualIPv6MaxOffset
 		}
-
 		// Out of virtual IPs, fail registration.
 		if newEntry.IP.Equal(maxIPOffset) {
 			return "", fmt.Errorf("cannot allocate any more unique service virtual IPs")
@@ -1229,6 +1228,32 @@ func updateVirtualIPMaxIndexes(txn WriteTxn, idx uint64, partition, peerName str
 	return nil
 }
 
+func addIPOffset(b net.IP) (net.IP, error) {
+	var vip net.IP
+	var err error
+
+	agentConfig, err := getAgentConfig()
+	if err != nil {
+		return nil, err
+	}
+	configMap, ok := agentConfig["Config"]
+	if !ok {
+		return nil, errors.New("agent config 'Config' field is not a map")
+	}
+
+	bindAddr, ok := configMap["BindAddr"].(net.IP)
+	if !ok {
+		return nil, errors.New("BindAddr is not of type net.IP")
+	}
+
+	if p := net.ParseIP(bindAddr.String()); p != nil && p.To4() == nil {
+		vip, err = addIPv6Offset(startingVirtualIPv6, b)
+	} else {
+		vip, err = addIPv4Offset(startingVirtualIP, b)
+	}
+	return vip, err
+}
+
 // addIPv6Offset adds two IPv6 address byte slices (a and b).
 // Both must be 16 bytes long.
 // Returns the sum modulo 2^128 as a new IPv6 address.
@@ -1253,24 +1278,6 @@ func addIPv6Offset(a, b net.IP) (net.IP, error) {
 	}
 	// Carry beyond 128 bits is discarded (mod 2^128 arithmetic)
 	return result, nil
-}
-func addIPOffset(b net.IP) (net.IP, error) {
-	var vip net.IP
-	var err error
-
-	br := net.ParseIP("::")
-
-	fmt.Println("---------------------->Bind address:", br.String())
-
-	if p := net.ParseIP(br.String()); p != nil && p.To4() == nil {
-		fmt.Println("----------------------> IPV6")
-		vip, err = addIPv6Offset(startingVirtualIPv6, b)
-	} else {
-		fmt.Println("----------------------> IPV4")
-		vip, err = addIPv4Offset(startingVirtualIP, b)
-	}
-	fmt.Println("----------------------> VIP:", vip.String(), " err:", err)
-	return vip, err
 }
 
 func addIPv4Offset(a, b net.IP) (net.IP, error) {
@@ -5176,4 +5183,17 @@ func (s *Store) CatalogDump() (*structs.CatalogContents, error) {
 	}
 
 	return contents, nil
+}
+
+// Fetch agent config using Self
+func getAgentConfig() (map[string]map[string]interface{}, error) {
+	client, err := api.NewClient(api.DefaultConfig())
+	if err != nil {
+		return nil, err
+	}
+	self, err := client.Agent().Self()
+	if err != nil {
+		return nil, err
+	}
+	return self, nil
 }

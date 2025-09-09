@@ -3928,10 +3928,11 @@ type ServiceDefaults struct {
 	// mog: func-to=EnvoyExtensionsToStructs func-from=EnvoyExtensionsFromStructs
 	EnvoyExtensions []*pbcommon.EnvoyExtension `protobuf:"bytes,14,rep,name=EnvoyExtensions,proto3" json:"EnvoyExtensions,omitempty"`
 	// mog: func-to=mutualTLSModeToStructs func-from=mutualTLSModeFromStructs
-	MutualTLSMode MutualTLSMode `protobuf:"varint,15,opt,name=MutualTLSMode,proto3,enum=hashicorp.consul.internal.configentry.MutualTLSMode" json:"MutualTLSMode,omitempty"`
-	Hash          uint64        `protobuf:"varint,17,opt,name=Hash,proto3" json:"Hash,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	MutualTLSMode       MutualTLSMode `protobuf:"varint,15,opt,name=MutualTLSMode,proto3,enum=hashicorp.consul.internal.configentry.MutualTLSMode" json:"MutualTLSMode,omitempty"`
+	Hash                uint64        `protobuf:"varint,17,opt,name=Hash,proto3" json:"Hash,omitempty"`
+	MaxRequestHeadersKB *uint32       `protobuf:"varint,18,opt,name=MaxRequestHeadersKB,proto3,oneof" json:"MaxRequestHeadersKB,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *ServiceDefaults) Reset() {
@@ -4079,6 +4080,13 @@ func (x *ServiceDefaults) GetMutualTLSMode() MutualTLSMode {
 func (x *ServiceDefaults) GetHash() uint64 {
 	if x != nil {
 		return x.Hash
+	}
+	return 0
+}
+
+func (x *ServiceDefaults) GetMaxRequestHeadersKB() uint32 {
+	if x != nil && x.MaxRequestHeadersKB != nil {
+		return *x.MaxRequestHeadersKB
 	}
 	return 0
 }
@@ -5154,12 +5162,13 @@ type APIGatewayListener struct {
 	// mog: func-to=int func-from=int32
 	Port int32 `protobuf:"varint,3,opt,name=Port,proto3" json:"Port,omitempty"`
 	// mog: func-to=apiGatewayProtocolToStructs func-from=apiGatewayProtocolFromStructs
-	Protocol      APIGatewayListenerProtocol  `protobuf:"varint,4,opt,name=Protocol,proto3,enum=hashicorp.consul.internal.configentry.APIGatewayListenerProtocol" json:"Protocol,omitempty"`
-	TLS           *APIGatewayTLSConfiguration `protobuf:"bytes,5,opt,name=TLS,proto3" json:"TLS,omitempty"`
-	Override      *APIGatewayPolicy           `protobuf:"bytes,6,opt,name=Override,proto3" json:"Override,omitempty"`
-	Default       *APIGatewayPolicy           `protobuf:"bytes,7,opt,name=Default,proto3" json:"Default,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Protocol            APIGatewayListenerProtocol  `protobuf:"varint,4,opt,name=Protocol,proto3,enum=hashicorp.consul.internal.configentry.APIGatewayListenerProtocol" json:"Protocol,omitempty"`
+	TLS                 *APIGatewayTLSConfiguration `protobuf:"bytes,5,opt,name=TLS,proto3" json:"TLS,omitempty"`
+	Override            *APIGatewayPolicy           `protobuf:"bytes,6,opt,name=Override,proto3" json:"Override,omitempty"`
+	Default             *APIGatewayPolicy           `protobuf:"bytes,7,opt,name=Default,proto3" json:"Default,omitempty"`
+	MaxRequestHeadersKB *uint32                     `protobuf:"varint,8,opt,name=MaxRequestHeadersKB,proto3,oneof" json:"MaxRequestHeadersKB,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *APIGatewayListener) Reset() {
@@ -5239,6 +5248,13 @@ func (x *APIGatewayListener) GetDefault() *APIGatewayPolicy {
 		return x.Default
 	}
 	return nil
+}
+
+func (x *APIGatewayListener) GetMaxRequestHeadersKB() uint32 {
+	if x != nil && x.MaxRequestHeadersKB != nil {
+		return *x.MaxRequestHeadersKB
+	}
+	return 0
 }
 
 // mog annotation:
@@ -8667,7 +8683,8 @@ const file_private_pbconfigentry_config_entry_proto_rawDesc = "" +
 	"\bContains\x18\b \x01(\tR\bContains\x12\x1e\n" +
 	"\n" +
 	"IgnoreCase\x18\t \x01(\bR\n" +
-	"IgnoreCase\"\xf9\t\n" +
+	"IgnoreCase\"\xc8\n" +
+	"\n" +
 	"\x0fServiceDefaults\x12\x1a\n" +
 	"\bProtocol\x18\x01 \x01(\tR\bProtocol\x12D\n" +
 	"\x04Mode\x18\x02 \x01(\x0e20.hashicorp.consul.internal.configentry.ProxyModeR\x04Mode\x12i\n" +
@@ -8688,10 +8705,12 @@ const file_private_pbconfigentry_config_entry_proto_rawDesc = "" +
 	"\x04Meta\x18\r \x03(\v2@.hashicorp.consul.internal.configentry.ServiceDefaults.MetaEntryR\x04Meta\x12Z\n" +
 	"\x0fEnvoyExtensions\x18\x0e \x03(\v20.hashicorp.consul.internal.common.EnvoyExtensionR\x0fEnvoyExtensions\x12Z\n" +
 	"\rMutualTLSMode\x18\x0f \x01(\x0e24.hashicorp.consul.internal.configentry.MutualTLSModeR\rMutualTLSMode\x12\x12\n" +
-	"\x04Hash\x18\x11 \x01(\x04R\x04Hash\x1a7\n" +
+	"\x04Hash\x18\x11 \x01(\x04R\x04Hash\x125\n" +
+	"\x13MaxRequestHeadersKB\x18\x12 \x01(\rH\x00R\x13MaxRequestHeadersKB\x88\x01\x01\x1a7\n" +
 	"\tMetaEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"t\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\x16\n" +
+	"\x14_MaxRequestHeadersKB\"t\n" +
 	"\x16TransparentProxyConfig\x122\n" +
 	"\x14OutboundListenerPort\x18\x01 \x01(\x05R\x14OutboundListenerPort\x12&\n" +
 	"\x0eDialedDirectly\x18\x02 \x01(\bR\x0eDialedDirectly\"_\n" +
@@ -8770,7 +8789,7 @@ const file_private_pbconfigentry_config_entry_proto_rawDesc = "" +
 	"\x06Reason\x18\x03 \x01(\tR\x06Reason\x12\x18\n" +
 	"\aMessage\x18\x04 \x01(\tR\aMessage\x12T\n" +
 	"\bResource\x18\x05 \x01(\v28.hashicorp.consul.internal.configentry.ResourceReferenceR\bResource\x12J\n" +
-	"\x12LastTransitionTime\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\x12LastTransitionTime\"\xb4\x03\n" +
+	"\x12LastTransitionTime\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\x12LastTransitionTime\"\x83\x04\n" +
 	"\x12APIGatewayListener\x12\x12\n" +
 	"\x04Name\x18\x01 \x01(\tR\x04Name\x12\x1a\n" +
 	"\bHostname\x18\x02 \x01(\tR\bHostname\x12\x12\n" +
@@ -8778,7 +8797,9 @@ const file_private_pbconfigentry_config_entry_proto_rawDesc = "" +
 	"\bProtocol\x18\x04 \x01(\x0e2A.hashicorp.consul.internal.configentry.APIGatewayListenerProtocolR\bProtocol\x12S\n" +
 	"\x03TLS\x18\x05 \x01(\v2A.hashicorp.consul.internal.configentry.APIGatewayTLSConfigurationR\x03TLS\x12S\n" +
 	"\bOverride\x18\x06 \x01(\v27.hashicorp.consul.internal.configentry.APIGatewayPolicyR\bOverride\x12Q\n" +
-	"\aDefault\x18\a \x01(\v27.hashicorp.consul.internal.configentry.APIGatewayPolicyR\aDefault\"\xde\x01\n" +
+	"\aDefault\x18\a \x01(\v27.hashicorp.consul.internal.configentry.APIGatewayPolicyR\aDefault\x125\n" +
+	"\x13MaxRequestHeadersKB\x18\b \x01(\rH\x00R\x13MaxRequestHeadersKB\x88\x01\x01B\x16\n" +
+	"\x14_MaxRequestHeadersKB\"\xde\x01\n" +
 	"\x1aAPIGatewayTLSConfiguration\x12\\\n" +
 	"\fCertificates\x18\x01 \x03(\v28.hashicorp.consul.internal.configentry.ResourceReferenceR\fCertificates\x12\x1e\n" +
 	"\n" +
@@ -9490,6 +9511,8 @@ func file_private_pbconfigentry_config_entry_proto_init() {
 		(*ConfigEntry_ExportedServices)(nil),
 		(*ConfigEntry_FileSystemCertificate)(nil),
 	}
+	file_private_pbconfigentry_config_entry_proto_msgTypes[41].OneofWrappers = []any{}
+	file_private_pbconfigentry_config_entry_proto_msgTypes[57].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

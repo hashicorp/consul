@@ -141,6 +141,12 @@ func ComputeResolvedServiceConfig(
 		if serviceConf.LocalRequestTimeoutMs > 0 {
 			proxyConf["local_request_timeout_ms"] = serviceConf.LocalRequestTimeoutMs
 		}
+
+		// Populate the max_request_headers_kb from the service defaults to terminating gateway proxy config
+		if serviceConf.MaxRequestHeadersKB != nil {
+			proxyConf["max_request_headers_kb"] = *serviceConf.MaxRequestHeadersKB
+		}
+
 		// Add the proxy conf to the response if any fields were populated
 		if len(proxyConf) > 0 {
 			thisReply.ProxyConfig = proxyConf

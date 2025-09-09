@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
-	"github.com/mitchellh/mapstructure"
+	"github.com/go-viper/mapstructure/v2"
 
 	"github.com/hashicorp/consul/api"
 	ext_cmn "github.com/hashicorp/consul/envoyextensions/extensioncommon"
