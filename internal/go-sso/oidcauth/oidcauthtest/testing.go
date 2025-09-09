@@ -74,6 +74,7 @@ func Start(t TestingT) *Server {
 		},
 		replySubject: "r3qXcK2bix9eFECzsU3Sbmh0K16fatW6@clients",
 		replyUserinfo: map[string]interface{}{
+			"sub":         "r3qXcK2bix9eFECzsU3Sbmh0K16fatW6@clients",
 			"color":       "red",
 			"temperature": "76",
 			"flavor":      "umami",
@@ -113,6 +114,12 @@ func (s *Server) SetExpectedAuthCode(code string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.expectedAuthCode = code
+}
+
+func (s *Server) SetUserInfo(info map[string]interface{}) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.replyUserinfo = info
 }
 
 // SetExpectedAuthNonce configures the nonce value required for /auth.

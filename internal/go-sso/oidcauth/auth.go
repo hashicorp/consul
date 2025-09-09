@@ -14,9 +14,11 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 
 	"github.com/coreos/go-oidc/v3/oidc"
+	capOidc "github.com/hashicorp/cap/oidc"
 	"github.com/hashicorp/go-hclog"
 	"github.com/patrickmn/go-cache"
 )
@@ -41,8 +43,14 @@ type Authenticator struct {
 
 	// parsedJWTPubKeys is the parsed form of config.JWTValidationPubKeys
 	parsedJWTPubKeys []interface{}
-	provider         *oidc.Provider
-	keySet           oidc.KeySet
+
+	// provider is the coreos/go-oidc provider used for JWT validation
+	provider *oidc.Provider
+
+	// capProvider is the HashiCorp CAP library provider used for OIDC flows
+	// with support for private key JWT client authentication
+	capProvider *capOidc.Provider
+	keySet      oidc.KeySet
 
 	// httpClient should be configured with all relevant root CA certs and be
 	// reused for all OIDC or JWKS operations. This will be nil for the static
@@ -86,13 +94,42 @@ func New(c *Config, logger hclog.Logger) (*Authenticator, error) {
 	}
 	a.backgroundCtx, a.backgroundCtxCancel = context.WithCancel(context.Background())
 
+	var err error
 	if c.Type == TypeOIDC {
 		a.oidcStates = cache.New(oidcStateTimeout, oidcStateCleanupInterval)
 	}
 
-	var err error
 	switch c.authType() {
-	case authOIDCDiscovery, authOIDCFlow:
+	case authOIDCFlow:
+		var supported []capOidc.Alg
+		if len(a.config.JWTSupportedAlgs) == 0 {
+			// Default to RS256 if nothing is specified.
+			supported = []capOidc.Alg{capOidc.RS256}
+		} else {
+			for _, alg := range a.config.JWTSupportedAlgs {
+				supported = append(supported, capOidc.Alg(alg))
+			}
+		}
+		// Use CAP's OIDC provider to leverage its built-in support for
+		providerConfig, err := capOidc.NewConfig(
+			a.config.OIDCDiscoveryURL,
+			a.config.OIDCClientID,
+			capOidc.ClientSecret(a.config.OIDCClientSecret),
+			supported,
+			a.config.AllowedRedirectURIs,
+			capOidc.WithAudiences(a.config.BoundAudiences...),
+			capOidc.WithProviderCA(a.config.OIDCDiscoveryCACert),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error creating provider config: %v", err)
+		}
+
+		provider, error := capOidc.NewProvider(providerConfig)
+		if error != nil {
+			return nil, fmt.Errorf("error creating provider: %v", error)
+		}
+		a.capProvider = provider
+	case authOIDCDiscovery:
 		a.httpClient, err = createHTTPClient(a.config.OIDCDiscoveryCACert)
 		if err != nil {
 			return nil, fmt.Errorf("error parsing OIDCDiscoveryCACert: %v", err)
@@ -129,4 +166,71 @@ func (a *Authenticator) Stop() {
 		a.backgroundCtxCancel()
 		a.backgroundCtxCancel = nil
 	}
+}
+
+// String implements the fmt.Stringer interface for detailed logging of Authenticator
+func (a *Authenticator) String() string {
+	if a == nil {
+		return "Authenticator<nil>"
+	}
+
+	var details strings.Builder
+	details.WriteString("Authenticator{\n")
+
+	// Config information
+	if a.config != nil {
+		details.WriteString(fmt.Sprintf("  config: {\n"))
+		details.WriteString(fmt.Sprintf("    Type: %q\n", a.config.Type))
+		details.WriteString(fmt.Sprintf("    OIDCDiscoveryURL: %q\n", a.config.OIDCDiscoveryURL))
+		details.WriteString(fmt.Sprintf("    OIDCClientID: %q\n", a.config.OIDCClientID))
+		details.WriteString(fmt.Sprintf("    HasClientSecret: %v\n", a.config.OIDCClientSecret != ""))
+		details.WriteString(fmt.Sprintf("    AllowedRedirectURIs: %v\n", a.config.AllowedRedirectURIs))
+		details.WriteString(fmt.Sprintf("    OIDCScopes: %v\n", a.config.OIDCScopes))
+		details.WriteString(fmt.Sprintf("    BoundAudiences: %v\n", a.config.BoundAudiences))
+		details.WriteString(fmt.Sprintf("    JWTValidationPubKeys: %d keys\n", len(a.config.JWTValidationPubKeys)))
+		details.WriteString(fmt.Sprintf("    JWTSupportedAlgs: %v\n", a.config.JWTSupportedAlgs))
+		details.WriteString(fmt.Sprintf("    ClaimMappings: %v\n", a.config.ClaimMappings))
+		details.WriteString(fmt.Sprintf("    ListClaimMappings: %v\n", a.config.ListClaimMappings))
+		details.WriteString(fmt.Sprintf("    OIDCDisablePKCE: %v\n", a.config.OIDCClientUsePKCE))
+		details.WriteString(fmt.Sprintf("    VerboseOIDCLogging: %v\n", a.config.VerboseOIDCLogging))
+
+		// Client Assertion details (if available)
+		if a.config.OIDCClientAssertion != nil {
+			details.WriteString("    OIDCClientAssertion: {\n")
+			details.WriteString(fmt.Sprintf("      HasPrivateKey: %v\n",
+				a.config.OIDCClientAssertion.PrivateKey != nil &&
+					a.config.OIDCClientAssertion.PrivateKey.PemKey != ""))
+			details.WriteString(fmt.Sprintf("      Audience: %v\n", a.config.OIDCClientAssertion.Audience))
+			details.WriteString(fmt.Sprintf("      KeyAlgorithm: %q\n", a.config.OIDCClientAssertion.KeyAlgorithm))
+			details.WriteString("    }\n")
+		} else {
+			details.WriteString("    OIDCClientAssertion: <nil>\n")
+		}
+		details.WriteString("  },\n")
+	} else {
+		details.WriteString("  config: <nil>,\n")
+	}
+
+	// Provider information
+	details.WriteString(fmt.Sprintf("  provider: %v,\n", a.provider != nil))
+	details.WriteString(fmt.Sprintf("  capProvider: %v,\n", a.capProvider != nil))
+	details.WriteString(fmt.Sprintf("  keySet: %v,\n", a.keySet != nil))
+	details.WriteString(fmt.Sprintf("  httpClient: %v,\n", a.httpClient != nil))
+
+	// OIDC state information
+	stateCount := 0
+	if a.oidcStates != nil {
+		stateCount = a.oidcStates.ItemCount()
+	}
+	details.WriteString(fmt.Sprintf("  oidcStates: %d active states,\n", stateCount))
+
+	// Background context
+	details.WriteString(fmt.Sprintf("  backgroundCtx: %v,\n", a.backgroundCtx != nil))
+	details.WriteString(fmt.Sprintf("  backgroundCtxCancel: %v,\n", a.backgroundCtxCancel != nil))
+
+	// JWT info
+	details.WriteString(fmt.Sprintf("  parsedJWTPubKeys: %d keys\n", len(a.parsedJWTPubKeys)))
+	details.WriteString("}")
+
+	return details.String()
 }
