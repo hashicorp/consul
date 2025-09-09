@@ -84,6 +84,7 @@ The following list outlines field hierarchy, language-specific data types, requi
   - [`Addresses`](#destination): list
   - [`Port`](#destination): integer | `0`
 - [`MaxInboundConnections`](#maxinboundconnections): number | `0`
+- [`MaxRequestHeadersKB`](#maxrequestheaderskb): number | `60`
 - [`LocalConnectTimeoutMs`](#localconnecttimeoutms): number | `0`
 - [`LocalRequestTimeoutMs`](#localrequesttimeoutms): number | `0`
 - [`MeshGateway`](#meshgateway): map
@@ -169,6 +170,7 @@ The following list outlines field hierarchy, language-specific data types, requi
     - [`addresses`](#destination): list
     - [`port`](#destination): number | `0`
   - [`maxInboundConnections`](#maxinboundconnections): number | `0`
+  - [`maxRequestHeadersKB`](#maxrequestheaderskb): number | `60`
   - [`localConnectTimeoutMs`](#localconnecttimeoutms): number | `0`
   - [`localRequestTimeoutMs`](#localrequesttimeoutms): number | `0`
   - [`meshGateway`](#meshgateway): map
@@ -284,6 +286,7 @@ Destination = {
   Port = 0
 }
 MaxInboundConnections = 0
+MaxRequestHeadersKB = 96
 LocalConnectTimeoutMs = 5000
 LocalRequestTimeoutMs = "15s"
 MeshGateway = {
@@ -379,6 +382,7 @@ spec:
       <second hostname or IP address>
     port:  0
   maxInboundConnections: 0
+  maxRequestHeadersKB: 96
   meshGateway:
     mode: <default mode for mesh gateway services>
   externalSNI: <name of TLS SNI outside o f the mesh>
@@ -489,6 +493,7 @@ spec:
 		"Port": 0
 	},
 	"MaxInboundConnections": 0,
+	"MaxRequestHeadersKB": 96,
 	"MeshGateway": {
 		"Mode": "<mode for mesh gateway services>"
 	},
@@ -915,6 +920,18 @@ Specifies the maximum number of concurrent inbound connections to each service i
 
 - Default: `0`
 - Data type: Integer
+
+### `MaxRequestHeadersKB`
+
+Specifies the maximum size in kilobytes for request headers sent from downstream clients to upstream services. This setting applies to HTTP-based protocols only (HTTP, HTTP/2, gRPC). When requests exceed this limit, the proxy returns an HTTP 431 (Request Header Fields Too Large) error.
+
+**Note**: This setting only takes effect when the service protocol is configured as `http`, `http2`, or `grpc` in the service-defaults configuration entry.
+
+#### Values
+
+- Default: `60` (Envoy's default value)
+- Data type: Integer
+- Valid values: `96` or unset (which uses the default of `60`)
 
 ### `LocalConnectTimeoutMs`
 
@@ -1397,6 +1414,18 @@ Specifies the maximum number of concurrent inbound connections to each service i
 
 - Default: `0`
 - Data type: Integer
+
+### `spec.maxRequestHeadersKB`
+
+Specifies the maximum size in kilobytes for request headers sent from downstream clients to upstream services. This setting applies to HTTP-based protocols only (HTTP, HTTP/2, gRPC). When requests exceed this limit, the proxy returns an HTTP 431 (Request Header Fields Too Large) error.
+
+**Note**: This setting only takes effect when the service protocol is configured as `http`, `http2`, or `grpc` in the service-defaults configuration entry.
+
+#### Values
+
+- Default: `60` (Envoy's default value)
+- Data type: Integer
+- Valid values: `96` or unset (which uses the default of `60`)
 
 ### `spec.localConnectTimeoutMs`
 
@@ -1903,6 +1932,40 @@ rateLimit:
       ]
     }
   }
+}
+```
+
+</CodeTabs>
+
+### HTTP Request Header Size Limits
+
+The following example configures a service-specific limit of 96 KB for HTTP request headers for the `web` service.
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind = "service-defaults"
+Name = "web"
+Protocol = "http"
+MaxRequestHeadersKB = 96
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceDefaults
+metadata:
+  name: web
+spec:
+  protocol: http
+  maxRequestHeadersKB: 96
+```
+
+```json
+{
+  "Kind": "service-defaults",
+  "Name": "web",
+  "Protocol": "http",
+  "MaxRequestHeadersKB": 96
 }
 ```
 

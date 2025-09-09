@@ -76,6 +76,11 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if strings.HasPrefix(pathTrimmed, "assets/chunk") && strings.HasSuffix(pathTrimmed, ".js") {
+		h.serveTransformedJS(w, pathTrimmed)
+		return
+	}
+
 	srv, err := h.handleIndex()
 	if err != nil {
 		http.Error(w, "UI server is misconfigured.", http.StatusInternalServerError)
@@ -251,4 +256,66 @@ func (h *Handler) renderIndexFile(cfg *config.RuntimeConfig, fsys fs.FS) (fs.Fil
 
 	file := newBufferedFile(&buf, info)
 	return file, nil
+}
+
+// serveTransformedJS serves a transformed version of the specified JS file.
+// It replaces certain keys in the JS file with values from the runtime config.
+// This is used to inject the root URL and other dynamic values into the JS file
+// so that it can be served correctly in different environments.
+func (h *Handler) serveTransformedJS(w http.ResponseWriter, jsPath string) {
+	cfg := h.getRuntimeConfig()
+
+	var fsys fs.FS
+	if cfg.UIConfig.Dir == "" {
+		sub, err := fs.Sub(dist, "dist")
+		if err != nil {
+			h.logger.Error("Failed to open embedded dist: %w", err)
+			return
+		}
+		fsys = sub
+	} else {
+		fsys = os.DirFS(cfg.UIConfig.Dir)
+	}
+
+	f, err := fsys.Open(jsPath)
+	if err != nil {
+		http.Error(w, "JS file not found", http.StatusNotFound)
+		h.logger.Error("JS file not found: %w", err)
+		return
+	}
+	defer f.Close()
+
+	content, err := io.ReadAll(f)
+	if err != nil {
+		http.Error(w, "Failed to read JS file", http.StatusInternalServerError)
+		h.logger.Error("Failed to read JS file: %w", err)
+		return
+	}
+
+	tplDataFull, err := uiTemplateDataFromConfig(cfg)
+	if err != nil {
+		http.Error(w, "Failed to load template data", http.StatusInternalServerError)
+		h.logger.Error("Failed to load template data: %w", err)
+		return
+	}
+	if h.transform != nil {
+		if err := h.transform(tplDataFull); err != nil {
+			http.Error(w, "Failed to run transform", http.StatusInternalServerError)
+			h.logger.Error("Failed to run transform: %w", err)
+			return
+		}
+	}
+	contentPath, isSuccess := tplDataFull["ContentPath"].(string)
+
+	if !isSuccess {
+		http.Error(w, "ContentPath value not found in template data", http.StatusInternalServerError)
+		h.logger.Error("ContentPath value not found in template data")
+		return
+	}
+	js := string(content)
+	js = strings.ReplaceAll(js, "{{.ContentPath}}", contentPath)
+	w.Header().Set("Content-Type", "application/javascript")
+	if _, err := w.Write([]byte(js)); err != nil {
+		h.logger.Error("Failed to write JS response: %w", err)
+	}
 }

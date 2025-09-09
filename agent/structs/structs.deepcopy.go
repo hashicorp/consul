@@ -32,6 +32,10 @@ func (o *APIGatewayListener) DeepCopy() *APIGatewayListener {
 			cp.Default.JWT = o.Default.JWT.DeepCopy()
 		}
 	}
+	if o.MaxRequestHeadersKB != nil {
+		cp.MaxRequestHeadersKB = new(uint32)
+		*cp.MaxRequestHeadersKB = *o.MaxRequestHeadersKB
+	}
 	return &cp
 }
 
@@ -970,6 +974,10 @@ func (o *ServiceConfigEntry) DeepCopy() *ServiceConfigEntry {
 		for k2, v2 := range o.Meta {
 			cp.Meta[k2] = v2
 		}
+	}
+	if o.MaxRequestHeadersKB != nil {
+		cp.MaxRequestHeadersKB = new(uint32)
+		*cp.MaxRequestHeadersKB = *o.MaxRequestHeadersKB
 	}
 	return &cp
 }
