@@ -828,6 +828,38 @@ func getMeshGatewayPeeringGoldenTestCases() []goldenTestCase {
 				return proxycfg.TestConfigSnapshotPeeredMeshGateway(t, "peer-through-mesh-gateway", nil, nil)
 			},
 		},
+		{
+			name: "mesh-gateway-peering-service-max-request-headers",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				// Start with the standard HTTP snapshot
+				snap := proxycfg.TestConfigSnapshotPeeredMeshGateway(t, "default-services-http", func(ns *structs.NodeService) {
+					// Set mesh gateway proxy config for default max_request_headers_kb
+					ns.Proxy.Config = map[string]interface{}{
+						"max_request_headers_kb": int64(128),
+					}
+				}, nil)
+
+				// Modify the "foo" service to have a service-specific max_request_headers_kb override
+				fooSN := structs.NewServiceName("foo", nil)
+				if serviceGroup, exists := snap.MeshGateway.ServiceGroups[fooSN]; exists && len(serviceGroup) > 0 {
+					// Create a new service node with proxy config containing max_request_headers_kb
+					modifiedService := *serviceGroup[0].Service // Copy the service
+					modifiedService.Proxy.Config = map[string]interface{}{
+						"max_request_headers_kb": int64(256), // Service-specific override
+						"protocol":               "http",
+					}
+
+					// Create a new service group with the modified service
+					modifiedNode := serviceGroup[0] // Copy the node
+					modifiedNode.Service = &modifiedService
+
+					// Replace the service group
+					snap.MeshGateway.ServiceGroups[fooSN] = structs.CheckServiceNodes{modifiedNode}
+				}
+
+				return snap
+			},
+		},
 	}
 }
 
@@ -2362,6 +2394,27 @@ func getTerminatingGatewayPeeringGoldenTestCases() []goldenTestCase {
 		{
 			name:   "terminating-gateway-default-service-subset",
 			create: proxycfg.TestConfigSnapshotTerminatingGatewayDefaultServiceSubset,
+		},
+		{
+			name: "terminating-gateway-service-max-request-headers",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				// Use the HTTP2 test as base and modify it for our needs
+				snap := proxycfg.TestConfigSnapshotTerminatingGatewayHTTP2(t)
+
+				// Add service-specific max_request_headers_kb configuration for the web service
+				webService := structs.NewServiceName("web", nil)
+				if snap.TerminatingGateway.ServiceConfigs == nil {
+					snap.TerminatingGateway.ServiceConfigs = make(map[structs.ServiceName]*structs.ServiceConfigResponse)
+				}
+				snap.TerminatingGateway.ServiceConfigs[webService] = &structs.ServiceConfigResponse{
+					ProxyConfig: map[string]interface{}{
+						"max_request_headers_kb": uint32(96),
+						"protocol":               "http",
+					},
+				}
+
+				return snap
+			},
 		},
 	}
 }

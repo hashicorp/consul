@@ -108,18 +108,22 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 
 			listener := makeListener(listenerOpts)
 
+			proxyCfg := cfgSnap.GetProxyConfig(s.Logger)
+			maxRequestHeadersKb := proxyCfg.MaxRequestHeadersKB
+
 			filterOpts := listenerFilterOpts{
-				useRDS:           true,
-				fetchTimeoutRDS:  cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
-				protocol:         listenerKey.Protocol,
-				filterName:       listenerKey.RouteName(),
-				routeName:        listenerKey.RouteName(),
-				cluster:          "",
-				statPrefix:       "ingress_upstream_",
-				routePath:        "",
-				httpAuthzFilters: nil,
-				accessLogs:       &cfgSnap.Proxy.AccessLogs,
-				logger:           s.Logger,
+				useRDS:              true,
+				fetchTimeoutRDS:     cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
+				protocol:            listenerKey.Protocol,
+				filterName:          listenerKey.RouteName(),
+				routeName:           listenerKey.RouteName(),
+				cluster:             "",
+				statPrefix:          "ingress_upstream_",
+				routePath:           "",
+				httpAuthzFilters:    nil,
+				accessLogs:          &cfgSnap.Proxy.AccessLogs,
+				logger:              s.Logger,
+				maxRequestHeadersKb: maxRequestHeadersKb,
 			}
 
 			// Generate any filter chains needed for services with custom TLS certs

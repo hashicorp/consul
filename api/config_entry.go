@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mitchellh/mapstructure"
+	"github.com/go-viper/mapstructure/v2"
 )
 
 const (
@@ -381,6 +381,7 @@ type ServiceConfigEntry struct {
 	Meta                      map[string]string       `json:",omitempty"`
 	CreateIndex               uint64
 	ModifyIndex               uint64
+	MaxRequestHeadersKB       *uint32 `json:",omitempty"`
 }
 
 func (s *ServiceConfigEntry) GetKind() string            { return s.Kind }

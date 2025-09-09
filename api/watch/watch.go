@@ -11,9 +11,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-viper/mapstructure/v2"
 	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-hclog"
-	"github.com/mitchellh/mapstructure"
 )
 
 const DefaultTimeout = 10 * time.Second
