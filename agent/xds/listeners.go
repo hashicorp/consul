@@ -2187,6 +2187,23 @@ func (s *ResourceGenerator) makeMeshGatewayPeerFilterChain(
 
 	filterName := fmt.Sprintf("%s.%s.%s.%s", chain.ServiceName, chain.Namespace, chain.Partition, chain.Datacenter)
 
+	// The priority order is service defaults and then the proxy config
+	// the value set in the proxy defaults is considered to be a default, that can be updated by the value from the service-default
+	proxyCfg := cfgSnap.GetProxyConfig(s.Logger)
+	maxRequestHeadersKb := proxyCfg.MaxRequestHeadersKB
+
+	serviceProxyConfig, found := cfgSnap.MeshGateway.ServiceGroups[svc]
+	if found && len(serviceProxyConfig) > 0 {
+		val, found := serviceProxyConfig[0].Service.Proxy.Config["max_request_headers_kb"]
+		if found {
+			value, ok := val.(int64)
+			if ok {
+				v := uint32(value)
+				maxRequestHeadersKb = &v
+			}
+		}
+	}
+
 	filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
 		accessLogs:           &cfgSnap.Proxy.AccessLogs,
 		routeName:            uid.EnvoyID(),
@@ -2198,6 +2215,7 @@ func (s *ResourceGenerator) makeMeshGatewayPeerFilterChain(
 		statPrefix:           "mesh_gateway_local_peered.",
 		forwardClientDetails: true,
 		forwardClientPolicy:  envoy_http_v3.HttpConnectionManager_SANITIZE_SET,
+		maxRequestHeadersKb:  maxRequestHeadersKb,
 	})
 	if err != nil {
 		return nil, err
