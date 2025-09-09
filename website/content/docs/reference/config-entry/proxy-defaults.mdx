@@ -931,6 +931,7 @@ Name      = "global"
 Config {
   local_connect_timeout_ms = 1000
   handshake_timeout_ms     = 10000
+  max_request_headers_kb   = 96
 }
 ```
 
@@ -947,6 +948,7 @@ spec:
   config:
     local_connect_timeout_ms: 1000
     handshake_timeout_ms: 10000
+    max_request_headers_kb: 96
 ```
 
 </Tab>
@@ -959,7 +961,58 @@ spec:
   "Name": "global",
   "Config": {
     "local_connect_timeout_ms": 1000,
-    "handshake_timeout_ms": 10000
+    "handshake_timeout_ms": 10000,
+    "max_request_headers_kb": 96
+  }
+}
+```
+
+</Tab>
+
+</Tabs>
+
+### HTTP Request Header Size Limits
+
+The following example configures a global limit of 96 KB for HTTP request headers to help protect services from oversized headers. Note that `max_request_headers_kb` only applies when the protocol is set to an HTTP-based protocol (`http`, `http2`, or `grpc`).
+
+<Tabs>
+<Tab heading="HCL" group="hcl">
+
+```hcl
+Kind      = "proxy-defaults"
+Name      = "global"
+Config {
+  protocol               = "http"
+  max_request_headers_kb = 96
+}
+```
+
+</Tab>
+
+<Tab heading="YAML" group="yaml">
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ProxyDefaults
+metadata:
+  name: global
+spec:
+  config:
+    protocol: http
+    max_request_headers_kb: 96
+```
+
+</Tab>
+
+<Tab heading="JSON" group="json">
+
+```json
+{
+  "Kind": "proxy-defaults",
+  "Name": "global",
+  "Config": {
+    "protocol": "http",
+    "max_request_headers_kb": 96
   }
 }
 ```

@@ -590,8 +590,7 @@ func Test_makeAPIGatewayListeners_maxRequestHeadersKb(t *testing.T) {
 		"http listener with zero value": {
 			maxRequestHeadersKb: uintPointer(0),
 			protocol:            "http",
-			wantPresent:         true,
-			wantValue:           0,
+			wantPresent:         false, // Default value would be use for <= 0
 		},
 	}
 
