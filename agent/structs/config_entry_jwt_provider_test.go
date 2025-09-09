@@ -20,8 +20,8 @@ func newTestAuthz(t *testing.T, src string) acl.Authorizer {
 	return authorizer
 }
 
-var tenSeconds time.Duration = 10 * time.Second
-var hundredSeconds time.Duration = 100 * time.Second
+var shortInterval = 10 * time.Second
+var longInterval = 100 * time.Second
 var connectTimeout = time.Duration(5) * time.Second
 
 func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
@@ -215,8 +215,8 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 						URI:                 "https://example.com/.well-known/jwks.json",
 						RetryPolicy: &JWKSRetryPolicy{
 							RetryPolicyBackOff: &RetryPolicyBackOff{
-								BaseInterval: hundredSeconds,
-								MaxInterval:  tenSeconds,
+								BaseInterval: longInterval,
+								MaxInterval:  shortInterval,
 							},
 						},
 					},
@@ -318,8 +318,8 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 						URI:                 "https://example.com/.well-known/jwks.json",
 						RetryPolicy: &JWKSRetryPolicy{
 							RetryPolicyBackOff: &RetryPolicyBackOff{
-								BaseInterval: tenSeconds,
-								MaxInterval:  hundredSeconds,
+								BaseInterval: shortInterval,
+								MaxInterval:  longInterval,
 							},
 						},
 						JWKSCluster: &JWKSCluster{
@@ -359,8 +359,8 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 						URI:                 "https://example.com/.well-known/jwks.json",
 						RetryPolicy: &JWKSRetryPolicy{
 							RetryPolicyBackOff: &RetryPolicyBackOff{
-								BaseInterval: tenSeconds,
-								MaxInterval:  hundredSeconds,
+								BaseInterval: shortInterval,
+								MaxInterval:  longInterval,
 							},
 						},
 						JWKSCluster: &JWKSCluster{

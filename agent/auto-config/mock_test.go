@@ -35,19 +35,20 @@ func newMockDirectRPC(t *testing.T) *mockDirectRPC {
 
 func (m *mockDirectRPC) RPC(dc string, node string, addr net.Addr, method string, args interface{}, reply interface{}) error {
 	var retValues mock.Arguments
-	if method == "AutoConfig.InitialConfiguration" {
+	switch method {
+	case "AutoConfig.InitialConfiguration":
 		req := args.(*pbautoconf.AutoConfigRequest)
 		csr := req.CSR
 		req.CSR = ""
 		retValues = m.Called(dc, node, addr, method, args, reply)
 		req.CSR = csr
-	} else if method == "AutoEncrypt.Sign" {
+	case "AutoEncrypt.Sign":
 		req := args.(*structs.CASignRequest)
 		csr := req.CSR
 		req.CSR = ""
 		retValues = m.Called(dc, node, addr, method, args, reply)
 		req.CSR = csr
-	} else {
+	default:
 		retValues = m.Called(dc, node, addr, method, args, reply)
 	}
 
@@ -359,7 +360,7 @@ func newMockedConfig(t *testing.T) *mockedConfig {
 	}
 }
 
-func (m *mockedConfig) expectInitialTLS(t *testing.T, agentName, datacenter, token string, ca *structs.CARoot, indexedRoots *structs.IndexedCARoots, cert *structs.IssuedCert, extraCerts []string) {
+func (m *mockedConfig) expectInitialTLS(agentName, datacenter, token string, ca *structs.CARoot, indexedRoots *structs.IndexedCARoots, cert *structs.IssuedCert, extraCerts []string) {
 	var pems []string
 	for _, root := range indexedRoots.Roots {
 		pems = append(pems, root.RootCert)
@@ -383,7 +384,7 @@ func (m *mockedConfig) expectInitialTLS(t *testing.T, agentName, datacenter, tok
 		true,
 	).Return(nil).Once()
 
-	rootRes := cache.FetchResult{Value: indexedRoots, Index: indexedRoots.QueryMeta.Index}
+	rootRes := cache.FetchResult{Value: indexedRoots, Index: indexedRoots.Index}
 	rootsReq := structs.DCSpecificRequest{Datacenter: datacenter}
 
 	// we should prepopulate the cache with the CA roots
@@ -429,6 +430,6 @@ func (m *mockedConfig) setupInitialTLS(t *testing.T, agentName, datacenter, toke
 	ca2 := connect.TestCA(t, nil)
 	extraCerts := []string{ca2.RootCert}
 
-	m.expectInitialTLS(t, agentName, datacenter, token, ca, indexedRoots, cert, extraCerts)
+	m.expectInitialTLS(agentName, datacenter, token, ca, indexedRoots, cert, extraCerts)
 	return indexedRoots, cert, extraCerts
 }

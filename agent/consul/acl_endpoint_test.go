@@ -5018,7 +5018,7 @@ func TestACLEndpoint_Login_with_MaxTokenTTL(t *testing.T) {
 		},
 		EnterpriseMeta: *defaultEntMeta,
 	}
-	expect.ACLAuthMethodEnterpriseMeta.FillWithEnterpriseMeta(defaultEntMeta)
+	expect.FillWithEnterpriseMeta(defaultEntMeta)
 	require.Equal(t, got, expect)
 }
 
@@ -5125,7 +5125,7 @@ func TestACLEndpoint_Login_with_TokenLocality(t *testing.T) {
 				},
 				EnterpriseMeta: *defaultEntMeta,
 			}
-			expect.ACLAuthMethodEnterpriseMeta.FillWithEnterpriseMeta(defaultEntMeta)
+			expect.FillWithEnterpriseMeta(defaultEntMeta)
 			require.Equal(t, got, expect)
 
 			// Now turn around and nuke it.

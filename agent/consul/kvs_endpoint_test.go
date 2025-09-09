@@ -291,7 +291,7 @@ func TestKVSEndpoint_List(t *testing.T) {
 			t.Fatalf("bad: %v", d)
 		}
 	}
-	if dirent.QueryMeta.ResultsFilteredByACLs {
+	if dirent.ResultsFilteredByACLs {
 		t.Fatal("ResultsFilteredByACLs should not be true")
 	}
 
@@ -482,7 +482,7 @@ func TestKVSEndpoint_List_ACLDeny(t *testing.T) {
 			}
 		}
 	}
-	if !dirent.QueryMeta.ResultsFilteredByACLs {
+	if !dirent.ResultsFilteredByACLs {
 		t.Fatal("ResultsFilteredByACLs should be true")
 	}
 }
@@ -662,7 +662,7 @@ func TestKVSEndpoint_ListKeys(t *testing.T) {
 	if dirent.Keys[2] != "/test/sub/" {
 		t.Fatalf("Bad: %v", dirent.Keys)
 	}
-	if dirent.QueryMeta.ResultsFilteredByACLs {
+	if dirent.ResultsFilteredByACLs {
 		t.Fatal("ResultsFilteredByACLs should not be true")
 	}
 
@@ -747,7 +747,7 @@ func TestKVSEndpoint_ListKeys_ACLDeny(t *testing.T) {
 	if dirent.Keys[1] != "test" {
 		t.Fatalf("Bad: %v", dirent.Keys)
 	}
-	if !dirent.QueryMeta.ResultsFilteredByACLs {
+	if !dirent.ResultsFilteredByACLs {
 		t.Fatal("ResultsFilteredByACLs should be true")
 	}
 }

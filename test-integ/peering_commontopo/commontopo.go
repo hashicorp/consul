@@ -239,10 +239,10 @@ type serviceExt struct {
 
 func (ct *commonTopo) AddServiceNode(clu *topology.Cluster, svc serviceExt) *topology.Node {
 	clusterName := clu.Name
-	if _, ok := ct.services[clusterName][svc.Workload.ID]; ok {
-		panic(fmt.Sprintf("duplicate service %q in cluster %q", svc.Workload.ID, clusterName))
+	if _, ok := ct.services[clusterName][svc.ID]; ok {
+		panic(fmt.Sprintf("duplicate service %q in cluster %q", svc.ID, clusterName))
 	}
-	ct.services[clusterName][svc.Workload.ID] = struct{}{}
+	ct.services[clusterName][svc.ID] = struct{}{}
 
 	// TODO: inline
 	serviceHostnameString := func(dc string, id topology.ID) string {
@@ -268,14 +268,14 @@ func (ct *commonTopo) AddServiceNode(clu *topology.Cluster, svc serviceExt) *top
 	nodeKind := topology.NodeKindClient
 	// TODO: bug in deployer somewhere; it should guard against a KindDataplane node with
 	// DisableServiceMesh services on it; dataplane is only for service-mesh
-	if !svc.Workload.DisableServiceMesh && clu.Datacenter == ct.agentlessDC {
+	if !svc.DisableServiceMesh && clu.Datacenter == ct.agentlessDC {
 		nodeKind = topology.NodeKindDataplane
 	}
 
 	node := &topology.Node{
 		Kind:      nodeKind,
-		Name:      serviceHostnameString(clu.Datacenter, svc.Workload.ID),
-		Partition: svc.Workload.ID.Partition,
+		Name:      serviceHostnameString(clu.Datacenter, svc.ID),
+		Partition: svc.ID.Partition,
 		Addresses: []*topology.Address{
 			{Network: clu.Datacenter},
 		},
@@ -288,9 +288,9 @@ func (ct *commonTopo) AddServiceNode(clu *topology.Cluster, svc serviceExt) *top
 
 	// Export if necessary
 	if len(svc.Exports) > 0 {
-		ct.ExportService(clu, svc.Workload.ID.Partition, api.ExportedService{
-			Name:      svc.Workload.ID.Name,
-			Namespace: svc.Workload.ID.Namespace,
+		ct.ExportService(clu, svc.ID.Partition, api.ExportedService{
+			Name:      svc.ID.Name,
+			Namespace: svc.ID.Namespace,
 			Consumers: svc.Exports,
 		})
 	}

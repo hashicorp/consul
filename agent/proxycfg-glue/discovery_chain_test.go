@@ -101,7 +101,7 @@ func TestServerCompiledDiscoveryChain(t *testing.T) {
 
 func newMockCompiledDiscoveryChain(t *testing.T) *mockCompiledDiscoveryChain {
 	mock := &mockCompiledDiscoveryChain{}
-	mock.Mock.Test(t)
+	mock.Test(t)
 
 	t.Cleanup(func() { mock.AssertExpectations(t) })
 

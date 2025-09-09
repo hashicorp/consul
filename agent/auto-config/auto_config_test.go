@@ -254,7 +254,7 @@ func TestInitialConfiguration_cancelled(t *testing.T) {
 		}
 		verify_outgoing = true
 	`)
-	mcfg.Config.Loader = loader.Load
+	mcfg.Loader = loader.Load
 
 	expectedRequest := pbautoconf.AutoConfigRequest{
 		Datacenter: "dc1",
@@ -290,7 +290,7 @@ func TestInitialConfiguration_restored(t *testing.T) {
 		verify_outgoing = true
 	`)
 
-	mcfg.Config.Loader = loader.Load
+	mcfg.Loader = loader.Load
 
 	indexedRoots, cert, extraCACerts := mcfg.setupInitialTLS(t, "autoconf", "dc1", "secret")
 
@@ -344,7 +344,7 @@ func TestInitialConfiguration_success(t *testing.T) {
 		}
 		verify_outgoing = true
 	`)
-	mcfg.Config.Loader = loader.Load
+	mcfg.Loader = loader.Load
 
 	indexedRoots, cert, extraCerts := mcfg.setupInitialTLS(t, "autoconf", "dc1", "secret")
 
@@ -423,10 +423,10 @@ func TestInitialConfiguration_retries(t *testing.T) {
 		}
 		verify_outgoing = true
 	`)
-	mcfg.Config.Loader = loader.Load
+	mcfg.Loader = loader.Load
 
 	// reduce the retry wait times to make this test run faster
-	mcfg.Config.Waiter = &retry.Waiter{MinFailures: 2, MaxWait: time.Millisecond}
+	mcfg.Waiter = &retry.Waiter{MinFailures: 2, MaxWait: time.Millisecond}
 
 	indexedRoots, cert, extraCerts := mcfg.setupInitialTLS(t, "autoconf", "dc1", "secret")
 
@@ -535,7 +535,7 @@ func TestGoRoutineManagement(t *testing.T) {
 		}
 		verify_outgoing = true
 	`)
-	mcfg.Config.Loader = loader.Load
+	mcfg.Loader = loader.Load
 
 	// prepopulation is going to grab the token to populate the correct cache key
 	mcfg.tokens.On("AgentToken").Return("secret").Times(0)
@@ -604,7 +604,7 @@ func TestGoRoutineManagement(t *testing.T) {
 	waitForContexts := func() bool {
 		ctxLock.Lock()
 		defer ctxLock.Unlock()
-		return !(rootsCtx == nil || leafCtx == nil)
+		return rootsCtx != nil && leafCtx != nil
 	}
 
 	// wait for the cache notifications to get started
@@ -676,8 +676,8 @@ func startedAutoConfig(t *testing.T, autoEncrypt bool) testAutoConfig {
 			verify_outgoing = true
 		`)
 	}
-	mcfg.Config.Loader = loader.Load
-	mcfg.Config.FallbackLeeway = time.Nanosecond
+	mcfg.Loader = loader.Load
+	mcfg.FallbackLeeway = time.Nanosecond
 
 	originalToken := "a5deaa25-11ca-48bf-a979-4c3a7aa4b9a9"
 
@@ -1091,7 +1091,7 @@ func TestFallback(t *testing.T) {
 	// auto-config response which is how the Fallback for auto-config works
 	testAC.mcfg.tokens.On("UpdateAgentToken", testAC.originalToken, token.TokenSourceConfig).Return(true).Once()
 
-	testAC.mcfg.expectInitialTLS(t, "autoconf", "dc1", testAC.originalToken, secondCA, secondRoots, thirdCert, testAC.extraCerts)
+	testAC.mcfg.expectInitialTLS("autoconf", "dc1", testAC.originalToken, secondCA, secondRoots, thirdCert, testAC.extraCerts)
 
 	// after the second RPC we now will use the new certs validity period in the next run loop iteration
 	testAC.mcfg.tlsCfg.On("AutoEncryptCert").Return(&x509.Certificate{

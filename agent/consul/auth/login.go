@@ -51,7 +51,7 @@ func (l *Login) TokenForVerifiedIdentity(identity *authmethod.Identity, authMeth
 		Policies:          bindings.Policies,
 		EnterpriseMeta:    bindings.EnterpriseMeta,
 	}
-	token.ACLAuthMethodEnterpriseMeta.FillWithEnterpriseMeta(&authMethod.EnterpriseMeta)
+	token.FillWithEnterpriseMeta(&authMethod.EnterpriseMeta)
 
 	updated, err := l.writer.Create(token, true)
 	switch {
