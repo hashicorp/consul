@@ -50,6 +50,17 @@ parameters are required to properly configure an auth method of type
 - `OIDCClientSecret` `(string: <required>)` - The OAuth Client Secret configured with
   your OIDC provider.
 
+- `OIDCClientAssertion` `(OIDCClientAssertion)` - Optionally send a signed JWT ("[private key jwt][]") 
+  as a client assertion to the OIDC provider. This enables private key JWT authentication for OIDC clients. 
+  Only one of `OIDCClientSecret` or `OIDCClientAssertion` can be set; setting both will result in a configuration error. 
+  The JWT for client assertion is currently signed using the RS256 algorithm.
+
+  - `Audience` `(array<string>)` - Who processes the assertion. Defaults to the parent ACLAuthMethodConfig's OIDCDiscoveryURL
+
+  - `PrivateKey` `(OIDCClientAssertionKey)` - External key material to sign the JWT.
+
+      - `PemKey` `(string)` - An RSA private key, in pem format. It is used to sign the JWT.
+
 - `AllowedRedirectURIs` `(array<string>)` - A list of allowed
   values for `redirect_uri`. Must be non-empty.
 
