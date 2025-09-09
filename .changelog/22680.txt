@@ -1,0 +1,3 @@
+```release-note:feature
+config: Handle a new parameter `max_request_headers_kb` to configure maximum header size for requests from downstream to upstream in Terminating Gateway service-defaults and proxy-defaults
+```

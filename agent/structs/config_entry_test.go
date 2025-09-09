@@ -3287,6 +3287,30 @@ func TestServiceConfigEntry(t *testing.T) {
 			},
 			validateErr: `invalid value for protocol: blah`,
 		},
+		"validate: valid MaxRequestHeadersKB in service-defaults": {
+			entry: &ServiceConfigEntry{
+				Kind:                ServiceDefaults,
+				Name:                "web",
+				Protocol:            "http",
+				MaxRequestHeadersKB: uintPointer(96),
+			},
+		},
+		"validate: zero MaxRequestHeadersKB in service-defaults": {
+			entry: &ServiceConfigEntry{
+				Kind:                ServiceDefaults,
+				Name:                "web",
+				Protocol:            "http",
+				MaxRequestHeadersKB: uintPointer(0),
+			},
+		},
+		"validate: MaxRequestHeadersKB with TCP protocol": {
+			entry: &ServiceConfigEntry{
+				Kind:                ServiceDefaults,
+				Name:                "web",
+				Protocol:            "tcp",
+				MaxRequestHeadersKB: uintPointer(96),
+			},
+		},
 	}
 	testConfigEntryNormalizeAndValidate(t, cases)
 }
