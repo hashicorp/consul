@@ -24,8 +24,8 @@ func NewMaterializerRequest(srvReq structs.ServiceSpecificRequest) func(index ui
 			Subject: &pbsubscribe.SubscribeRequest_NamedSubject{
 				NamedSubject: &pbsubscribe.NamedSubject{
 					Key:       srvReq.ServiceName,
-					Namespace: srvReq.EnterpriseMeta.NamespaceOrEmpty(),
-					Partition: srvReq.EnterpriseMeta.PartitionOrEmpty(),
+					Namespace: srvReq.NamespaceOrEmpty(),
+					Partition: srvReq.PartitionOrEmpty(),
 					PeerName:  srvReq.PeerName,
 				},
 			},

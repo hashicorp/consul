@@ -420,12 +420,12 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 			// Create a duplicate entry in FedStateGateways, with a high ModifyIndex, to
 			// verify that fresh data in the federation state is preferred over stale data
 			// in GatewayGroups.
-			svc := structs.TestNodeServiceMeshGatewayWithAddrs(t,
+			svc := structs.TestNodeServiceMeshGatewayWithAddrs(
 				"10.0.1.3", 8443,
 				structs.ServiceAddress{Address: "10.0.1.3", Port: 8443},
 				structs.ServiceAddress{Address: "198.18.1.3", Port: 443},
 			)
-			svc.RaftIndex.ModifyIndex = math.MaxUint64
+			svc.ModifyIndex = math.MaxUint64
 
 			dc2Nodes = structs.CheckServiceNodes{
 				{
@@ -437,12 +437,12 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 			// Create a duplicate entry in FedStateGateways, with a low ModifyIndex, to
 			// verify that stale data in the federation state is ignored in favor of the
 			// fresher data in GatewayGroups.
-			svc := structs.TestNodeServiceMeshGatewayWithAddrs(t,
+			svc := structs.TestNodeServiceMeshGatewayWithAddrs(
 				"10.0.1.3", 8443,
 				structs.ServiceAddress{Address: "10.0.1.3", Port: 8443},
 				structs.ServiceAddress{Address: "198.18.1.3", Port: 443},
 			)
-			svc.RaftIndex.ModifyIndex = 0
+			svc.ModifyIndex = 0
 
 			dc2Nodes = structs.CheckServiceNodes{
 				{

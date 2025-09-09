@@ -347,7 +347,7 @@ func roundTripList(t *testing.T, authz acl.Authorizer) (*pbresource.Resource, *p
 	mockACLResolver := &svc.MockACLResolver{}
 	mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
 		Return(authz, nil)
-	builder.ServiceImpl().Config.ACLResolver = mockACLResolver
+	builder.ServiceImpl().ACLResolver = mockACLResolver
 
 	rsp2, err := client.List(
 		ctx,

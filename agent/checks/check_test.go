@@ -20,10 +20,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
+
+	"github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/consul/agent/mock"
 	"github.com/hashicorp/consul/agent/structs"
@@ -474,7 +475,7 @@ func TestCheckHTTP_DisableRedirects(t *testing.T) {
 	}))
 	defer server1.Close()
 
-	server2 := httptest.NewServer(http.RedirectHandler(server1.URL, 301))
+	server2 := httptest.NewServer(http.RedirectHandler(server1.URL, http.StatusMovedPermanently))
 	defer server2.Close()
 
 	notif := mock.NewNotify()
@@ -689,7 +690,7 @@ func TestCheckHTTPBody(t *testing.T) {
 	}{
 		{desc: "get body", method: "GET", body: "hello world"},
 		{desc: "post body", method: "POST", body: "hello world"},
-		{desc: "post json body", header: http.Header{"Content-Type": []string{"application/json"}}, method: "POST", body: "{\"foo\":\"bar\"}"},
+		{desc: "post json body", header: http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}, method: "POST", body: "{\"foo\":\"bar\"}"},
 	}
 
 	for _, tt := range tests {
@@ -1128,11 +1129,7 @@ func TestStatusHandlerMaintainWarningStatusWhenCheckIsFlapping(t *testing.T) {
 
 func TestCheckTCPCritical(t *testing.T) {
 	t.Parallel()
-	var (
-		tcpServer net.Listener
-	)
-
-	tcpServer = mockTCPServer(`tcp`)
+	var tcpServer = mockTCPServer(`tcp`)
 	expectTCPStatus(t, `127.0.0.1:0`, api.HealthCritical)
 	tcpServer.Close()
 }
@@ -1201,13 +1198,11 @@ func mockUDPServer(ctx context.Context, network string, port int) {
 		}
 	}()
 
-	select {
-	case <-ctx.Done():
-		fmt.Println("cancelled")
-		close(chClose)
-	}
+	<-ctx.Done()
+	fmt.Println("cancelled")
+	close(chClose)
+
 	wg.Wait()
-	return
 }
 
 func expectUDPStatus(t *testing.T, udp string, status string) {
@@ -1317,7 +1312,7 @@ func TestCheckH2PING(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { return })
+			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
 			server := httptest.NewUnstartedServer(handler)
 			server.EnableHTTP2 = true
 			server.Config.ReadTimeout = tt.connTimeout
@@ -1370,7 +1365,7 @@ func TestCheckH2PING(t *testing.T) {
 }
 
 func TestCheckH2PING_TLS_BadVerify(t *testing.T) {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { return })
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
 	server := httptest.NewUnstartedServer(handler)
 	server.EnableHTTP2 = true
 	server.StartTLS()
@@ -1472,7 +1467,7 @@ func TestCheckH2CPING(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { return })
+			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
 			h2chandler := h2c.NewHandler(handler, &http2.Server{})
 			server := httptest.NewUnstartedServer(h2chandler)
 			server.Config.ReadTimeout = tt.connTimeout
@@ -1561,7 +1556,7 @@ func TestCheck_Docker(t *testing.T) {
 			handlers: map[string]http.HandlerFunc{
 				"POST /containers/123/exec": func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(201)
-					w.Header().Set("Content-Type", "application/json")
+					w.Header().Set("Content-Type", "application/json; charset=utf-8")
 					fmt.Fprint(w, `this is not json`)
 				},
 			},
@@ -1573,7 +1568,7 @@ func TestCheck_Docker(t *testing.T) {
 			handlers: map[string]http.HandlerFunc{
 				"POST /containers/123/exec": func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(201)
-					w.Header().Set("Content-Type", "application/json")
+					w.Header().Set("Content-Type", "application/json; charset=utf-8")
 					fmt.Fprint(w, `{"Id":"456"}`)
 				},
 				"POST /exec/456/start": func(w http.ResponseWriter, r *http.Request) {
@@ -1588,7 +1583,7 @@ func TestCheck_Docker(t *testing.T) {
 			handlers: map[string]http.HandlerFunc{
 				"POST /containers/123/exec": func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(201)
-					w.Header().Set("Content-Type", "application/json")
+					w.Header().Set("Content-Type", "application/json; charset=utf-8")
 					fmt.Fprint(w, `{"Id":"456"}`)
 				},
 				"POST /exec/456/start": func(w http.ResponseWriter, r *http.Request) {
@@ -1603,7 +1598,7 @@ func TestCheck_Docker(t *testing.T) {
 			handlers: map[string]http.HandlerFunc{
 				"POST /containers/123/exec": func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(201)
-					w.Header().Set("Content-Type", "application/json")
+					w.Header().Set("Content-Type", "application/json; charset=utf-8")
 					fmt.Fprint(w, `{"Id":"456"}`)
 				},
 				"POST /exec/456/start": func(w http.ResponseWriter, r *http.Request) {
@@ -1619,7 +1614,7 @@ func TestCheck_Docker(t *testing.T) {
 			handlers: map[string]http.HandlerFunc{
 				"POST /containers/123/exec": func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(201)
-					w.Header().Set("Content-Type", "application/json")
+					w.Header().Set("Content-Type", "application/json; charset=utf-8")
 					fmt.Fprint(w, `{"Id":"456"}`)
 				},
 				"POST /exec/456/start": func(w http.ResponseWriter, r *http.Request) {
@@ -1638,7 +1633,7 @@ func TestCheck_Docker(t *testing.T) {
 			handlers: map[string]http.HandlerFunc{
 				"POST /containers/123/exec": func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(201)
-					w.Header().Set("Content-Type", "application/json")
+					w.Header().Set("Content-Type", "application/json; charset=utf-8")
 					fmt.Fprint(w, `{"Id":"456"}`)
 				},
 				"POST /exec/456/start": func(w http.ResponseWriter, r *http.Request) {
@@ -1658,7 +1653,7 @@ func TestCheck_Docker(t *testing.T) {
 			handlers: map[string]http.HandlerFunc{
 				"POST /containers/123/exec": func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(201)
-					w.Header().Set("Content-Type", "application/json")
+					w.Header().Set("Content-Type", "application/json; charset=utf-8")
 					fmt.Fprint(w, `{"Id":"456"}`)
 				},
 				"POST /exec/456/start": func(w http.ResponseWriter, r *http.Request) {
@@ -1667,7 +1662,7 @@ func TestCheck_Docker(t *testing.T) {
 				},
 				"GET /exec/456/json": func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(200)
-					w.Header().Set("Content-Type", "application/json")
+					w.Header().Set("Content-Type", "application/json; charset=utf-8")
 					fmt.Fprint(w, `this is not json`)
 				},
 			},
@@ -1679,7 +1674,7 @@ func TestCheck_Docker(t *testing.T) {
 			handlers: map[string]http.HandlerFunc{
 				"POST /containers/123/exec": func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(201)
-					w.Header().Set("Content-Type", "application/json")
+					w.Header().Set("Content-Type", "application/json; charset=utf-8")
 					fmt.Fprint(w, `{"Id":"456"}`)
 				},
 				"POST /exec/456/start": func(w http.ResponseWriter, r *http.Request) {
@@ -1688,7 +1683,7 @@ func TestCheck_Docker(t *testing.T) {
 				},
 				"GET /exec/456/json": func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(200)
-					w.Header().Set("Content-Type", "application/json")
+					w.Header().Set("Content-Type", "application/json; charset=utf-8")
 					fmt.Fprint(w, `{"ExitCode":0}`)
 				},
 			},
@@ -1700,7 +1695,7 @@ func TestCheck_Docker(t *testing.T) {
 			handlers: map[string]http.HandlerFunc{
 				"POST /containers/123/exec": func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(201)
-					w.Header().Set("Content-Type", "application/json")
+					w.Header().Set("Content-Type", "application/json; charset=utf-8")
 					fmt.Fprint(w, `{"Id":"456"}`)
 				},
 				"POST /exec/456/start": func(w http.ResponseWriter, r *http.Request) {
@@ -1709,7 +1704,7 @@ func TestCheck_Docker(t *testing.T) {
 				},
 				"GET /exec/456/json": func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(200)
-					w.Header().Set("Content-Type", "application/json")
+					w.Header().Set("Content-Type", "application/json; charset=utf-8")
 					fmt.Fprint(w, `{"ExitCode":0}`)
 				},
 			},
@@ -1721,7 +1716,7 @@ func TestCheck_Docker(t *testing.T) {
 			handlers: map[string]http.HandlerFunc{
 				"POST /containers/123/exec": func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(201)
-					w.Header().Set("Content-Type", "application/json")
+					w.Header().Set("Content-Type", "application/json; charset=utf-8")
 					fmt.Fprint(w, `{"Id":"456"}`)
 				},
 				"POST /exec/456/start": func(w http.ResponseWriter, r *http.Request) {
@@ -1730,7 +1725,7 @@ func TestCheck_Docker(t *testing.T) {
 				},
 				"GET /exec/456/json": func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(200)
-					w.Header().Set("Content-Type", "application/json")
+					w.Header().Set("Content-Type", "application/json; charset=utf-8")
 					fmt.Fprint(w, `{"ExitCode":1}`)
 				},
 			},
@@ -1742,7 +1737,7 @@ func TestCheck_Docker(t *testing.T) {
 			handlers: map[string]http.HandlerFunc{
 				"POST /containers/123/exec": func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(201)
-					w.Header().Set("Content-Type", "application/json")
+					w.Header().Set("Content-Type", "application/json; charset=utf-8")
 					fmt.Fprint(w, `{"Id":"456"}`)
 				},
 				"POST /exec/456/start": func(w http.ResponseWriter, r *http.Request) {
@@ -1751,7 +1746,7 @@ func TestCheck_Docker(t *testing.T) {
 				},
 				"GET /exec/456/json": func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(200)
-					w.Header().Set("Content-Type", "application/json")
+					w.Header().Set("Content-Type", "application/json; charset=utf-8")
 					fmt.Fprint(w, `{"ExitCode":2}`)
 				},
 			},

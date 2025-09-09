@@ -25,7 +25,7 @@ func TestConfigEntryView(t *testing.T) {
 		resp, ok := result.(*structs.ConfigEntryResponse)
 		require.Truef(t, ok, "expected ConfigEntryResponse, got: %T", result)
 		require.Nil(t, resp.Entry)
-		require.Equal(t, index, resp.QueryMeta.Index)
+		require.Equal(t, index, resp.Index)
 	})
 
 	testutil.RunStep(t, "upsert event", func(t *testing.T) {
@@ -110,7 +110,7 @@ func TestConfigEntryListView(t *testing.T) {
 		resp, ok := result.(*structs.IndexedConfigEntries)
 		require.Truef(t, ok, "expected IndexedConfigEntries, got: %T", result)
 		require.Empty(t, resp.Entries)
-		require.Equal(t, index, resp.QueryMeta.Index)
+		require.Equal(t, index, resp.Index)
 	})
 
 	testutil.RunStep(t, "upsert events", func(t *testing.T) {

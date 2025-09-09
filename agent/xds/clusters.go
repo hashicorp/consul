@@ -864,7 +864,7 @@ func (s *ResourceGenerator) makeDestinationClusters(cfgSnap *proxycfg.ConfigSnap
 	clusters := make([]proto.Message, 0, len(cfgSnap.TerminatingGateway.DestinationServices))
 
 	for _, svcName := range cfgSnap.TerminatingGateway.ValidDestinations() {
-		svcConfig, _ := serviceConfigs[svcName]
+		svcConfig := serviceConfigs[svcName]
 		dest := svcConfig.Destination
 
 		for _, address := range dest.Addresses {
@@ -1761,10 +1761,7 @@ func (s *ResourceGenerator) makeGatewayCluster(snap *proxycfg.ConfigSnapshot, op
 		OutlierDetection: &envoy_cluster_v3.OutlierDetection{},
 	}
 
-	useEDS := true
-	if len(opts.hostnameEndpoints) > 0 {
-		useEDS = false
-	}
+	useEDS := len(opts.hostnameEndpoints) <= 0
 
 	// TCP keepalive settings can be enabled for terminating gateway upstreams or remote mesh gateways.
 	remoteUpstream := opts.isRemote || snap.Kind == structs.ServiceKindTerminatingGateway

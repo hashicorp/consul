@@ -198,7 +198,7 @@ func EncodeSigningKeyID(keyID []byte) string { return HexString(keyID) }
 // HexString returns a standard colon-separated hex value for the input
 // byte slice. This should be used with cert serial numbers and so on.
 func HexString(input []byte) string {
-	return strings.Replace(fmt.Sprintf("% x", input), " ", ":", -1)
+	return strings.ReplaceAll(fmt.Sprintf("% x", input), " ", ":")
 }
 
 // IsHexString returns true if the input is the output of HexString(). Meant

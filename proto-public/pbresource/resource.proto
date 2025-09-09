@@ -233,7 +233,7 @@ service ResourceService {
   // the resource.
   rpc Read(ReadRequest) returns (ReadResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
-      operation_type: OPERATION_TYPE_READ,
+      operation_type: OPERATION_TYPE_READ
       operation_category: OPERATION_CATEGORY_RESOURCE
     };
   }
@@ -258,7 +258,7 @@ service ResourceService {
   // use WriteStatus instead.
   rpc Write(WriteRequest) returns (WriteResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
-      operation_type: OPERATION_TYPE_WRITE,
+      operation_type: OPERATION_TYPE_WRITE
       operation_category: OPERATION_CATEGORY_RESOURCE
     };
   }
@@ -279,7 +279,7 @@ service ResourceService {
   // a FailedPrecondition error code will be returned.
   rpc WriteStatus(WriteStatusRequest) returns (WriteStatusResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
-      operation_type: OPERATION_TYPE_WRITE,
+      operation_type: OPERATION_TYPE_WRITE
       operation_category: OPERATION_CATEGORY_RESOURCE
     };
   }
@@ -291,7 +291,7 @@ service ResourceService {
   // Results are eventually consistent (see ResourceService docs for more info).
   rpc List(ListRequest) returns (ListResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
-      operation_type: OPERATION_TYPE_READ,
+      operation_type: OPERATION_TYPE_READ
       operation_category: OPERATION_CATEGORY_RESOURCE
     };
   }
@@ -301,7 +301,7 @@ service ResourceService {
   // Results are eventually consistent (see ResourceService docs for more info).
   rpc ListByOwner(ListByOwnerRequest) returns (ListByOwnerResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
-      operation_type: OPERATION_TYPE_READ,
+      operation_type: OPERATION_TYPE_READ
       operation_category: OPERATION_CATEGORY_RESOURCE
     };
   }
@@ -321,7 +321,7 @@ service ResourceService {
   // code will be returned.
   rpc Delete(DeleteRequest) returns (DeleteResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
-      operation_type: OPERATION_TYPE_WRITE,
+      operation_type: OPERATION_TYPE_WRITE
       operation_category: OPERATION_CATEGORY_RESOURCE
     };
   }
@@ -340,7 +340,7 @@ service ResourceService {
   // buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
   rpc WatchList(WatchListRequest) returns (stream WatchEvent) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
-      operation_type: OPERATION_TYPE_READ,
+      operation_type: OPERATION_TYPE_READ
       operation_category: OPERATION_CATEGORY_RESOURCE
     };
   }
@@ -353,7 +353,7 @@ service ResourceService {
   // the hooks.
   rpc MutateAndValidate(MutateAndValidateRequest) returns (MutateAndValidateResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
-      operation_type: OPERATION_TYPE_READ,
+      operation_type: OPERATION_TYPE_READ
       operation_category: OPERATION_CATEGORY_RESOURCE
     };
   }

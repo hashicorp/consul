@@ -47,7 +47,7 @@ func (c *Client) GetConfigEntry(
 	ctx context.Context,
 	req *structs.ConfigEntryQuery,
 ) (structs.ConfigEntryResponse, cache.ResultMeta, error) {
-	if c.UseStreamingBackend && (req.QueryOptions.UseCache || req.QueryOptions.MinQueryIndex > 0) {
+	if c.UseStreamingBackend && (req.UseCache || req.MinQueryIndex > 0) {
 		c.QueryOptionDefaults(&req.QueryOptions)
 		cfgReq, err := c.newConfigEntryRequest(req)
 		if err != nil {
@@ -66,7 +66,7 @@ func (c *Client) GetConfigEntry(
 		return out, md, err
 	}
 
-	if req.QueryOptions.AllowStale && req.QueryOptions.MaxStaleDuration > 0 && out.LastContact > req.MaxStaleDuration {
+	if req.AllowStale && req.MaxStaleDuration > 0 && out.LastContact > req.MaxStaleDuration {
 		req.AllowStale = false
 		err := c.NetRPC.RPC(ctx, "ConfigEntry.Get", &req, &out)
 		return out, cache.ResultMeta{}, err
@@ -80,7 +80,7 @@ func (c *Client) getConfigEntryRPC(
 	req *structs.ConfigEntryQuery,
 ) (structs.ConfigEntryResponse, cache.ResultMeta, error) {
 	var out structs.ConfigEntryResponse
-	if !req.QueryOptions.UseCache {
+	if !req.UseCache {
 		err := c.NetRPC.RPC(context.Background(), "ConfigEntry.Get", req, &out)
 		return out, cache.ResultMeta{}, err
 	}
@@ -140,7 +140,7 @@ func (r *configEntryRequest) Request(index uint64) *pbsubscribe.SubscribeRequest
 		Topic:      r.Topic,
 		Index:      index,
 		Datacenter: r.req.Datacenter,
-		Token:      r.req.QueryOptions.Token,
+		Token:      r.req.Token,
 	}
 
 	if name := r.req.Name; name == "" {

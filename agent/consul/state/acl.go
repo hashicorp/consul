@@ -500,7 +500,7 @@ func aclTokenSetTxn(tx WriteTxn, idx uint64, token *structs.ACLToken, opts ACLTo
 	}
 
 	if token.AuthMethod != "" && !opts.FromReplication {
-		methodMeta := token.ACLAuthMethodEnterpriseMeta.ToEnterpriseMeta()
+		methodMeta := token.ToEnterpriseMeta()
 		methodMeta.Merge(&token.EnterpriseMeta)
 		method, err := getAuthMethodWithTxn(tx, nil, token.AuthMethod, methodMeta)
 		if err != nil {
@@ -930,7 +930,7 @@ func aclPolicySetTxn(tx WriteTxn, idx uint64, policy *structs.ACLPolicy) error {
 				return fmt.Errorf("Changing the Rules for the builtin %s policy is not permitted", builtinPolicy.Name)
 			}
 
-			if policy.Datacenters != nil && len(policy.Datacenters) != 0 {
+			if len(policy.Datacenters) != 0 {
 				return fmt.Errorf("Changing the Datacenters of the builtin %s policy is not permitted", builtinPolicy.Name)
 			}
 		}
@@ -1780,7 +1780,7 @@ func aclAuthMethodInsert(tx WriteTxn, method *structs.ACLAuthMethod) error {
 }
 
 func aclBindingRuleInsert(tx WriteTxn, rule *structs.ACLBindingRule) error {
-	rule.EnterpriseMeta.Normalize()
+	rule.Normalize()
 
 	// insert the role into memdb
 	if err := tx.Insert(tableACLBindingRules, rule); err != nil {

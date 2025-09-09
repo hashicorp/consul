@@ -72,7 +72,7 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	if c.ruleID == "" {
-		c.UI.Error(fmt.Sprintf("Must specify the -id parameter."))
+		c.UI.Error("Must specify the -id parameter.")
 		return 1
 	}
 

@@ -20,7 +20,6 @@ import (
 	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
-	testretry "github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/tlsutil"
 )
@@ -273,7 +272,7 @@ func TestHTTPHandlers_AgentMetrics_LeaderShipMetrics(t *testing.T) {
 		defer s3.Shutdown()
 
 		// agent hasn't become a leader
-		retry.RunWith(retry.ThirtySeconds(), t, func(r *testretry.R) {
+		retry.RunWith(retry.ThirtySeconds(), t, func(r *retry.R) {
 			respRec := httptest.NewRecorder()
 			recordPromMetrics(r, s1, respRec)
 			found := strings.Contains(respRec.Body.String(), metricsPrefix1+"_server_isLeader 0")
@@ -290,7 +289,7 @@ func TestHTTPHandlers_AgentMetrics_LeaderShipMetrics(t *testing.T) {
 		testrpc.WaitForLeader(t, s3.RPC, "dc1")
 
 		// Verify agent's isLeader metrics is 1
-		retry.RunWith(retry.ThirtySeconds(), t, func(r *testretry.R) {
+		retry.RunWith(retry.ThirtySeconds(), t, func(r *retry.R) {
 			respRec1 := httptest.NewRecorder()
 			recordPromMetrics(r, s1, respRec1)
 			found1 := strings.Contains(respRec1.Body.String(), metricsPrefix1+"_server_isLeader 1")
@@ -518,7 +517,7 @@ func TestHTTPHandlers_AgentMetrics_WAL_Prometheus(t *testing.T) {
 		defer a.Shutdown()
 		testrpc.WaitForLeader(t, a.RPC, "dc1")
 
-		testretry.Run(t, func(r *testretry.R) {
+		retry.Run(t, func(r *retry.R) {
 			respRec := httptest.NewRecorder()
 			recordPromMetrics(r, a, respRec)
 
@@ -624,7 +623,7 @@ func TestHTTPHandlers_AgentMetrics_LogVerifier_Prometheus(t *testing.T) {
 		defer a.Shutdown()
 		testrpc.WaitForLeader(t, a.RPC, "dc1")
 
-		testretry.Run(t, func(r *testretry.R) {
+		retry.Run(t, func(r *retry.R) {
 			respRec := httptest.NewRecorder()
 			recordPromMetrics(r, a, respRec)
 

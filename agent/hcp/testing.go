@@ -70,7 +70,7 @@ func (s *MockHCPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	matches := basePathRe.FindStringSubmatch(r.URL.Path)
-	if matches == nil || len(matches) < 5 {
+	if len(matches) < 5 {
 		w.WriteHeader(404)
 		log.Printf("ERROR 404: %s %s\n", r.Method, r.URL.Path)
 		return
@@ -119,7 +119,7 @@ func (s *MockHCPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("OK 200: %s %s\n", r.Method, r.URL.Path)
-	w.Header().Set("content-type", "application/json")
+	w.Header().Set("content-type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	w.Write(bs)
 }
@@ -137,7 +137,7 @@ func enforceMethod(w http.ResponseWriter, r *http.Request, methods []string) boo
 }
 
 func mockTokenResponse(w http.ResponseWriter) {
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 
 	w.Write([]byte(`{"access_token": "token", "token_type": "Bearer"}`))
@@ -178,5 +178,5 @@ func (s *MockHCPServer) handleDiscover(r *http.Request, cluster resource.Resourc
 func errResponse(w http.ResponseWriter, err error) {
 	log.Printf("ERROR 500: %s\n", err)
 	w.WriteHeader(500)
-	w.Write([]byte(fmt.Sprintf(`{"error": %q}`, err.Error())))
+	fmt.Fprintf(w, `{"error": %q}`, err.Error())
 }

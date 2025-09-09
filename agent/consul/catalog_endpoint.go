@@ -200,6 +200,10 @@ func servicePreApply(service *structs.NodeService, authz resolver.Result, authzC
 	if err := service.Validate(); err != nil {
 		return err
 	}
+	// Check if service name and service ID are empty.
+	if service.ID == "" && service.Service == "" {
+		return fmt.Errorf("service name (Service.Service) is required; both Service ID (Service.ID) and Service Name cannot be empty")
+	}
 
 	// If no service id, but service name, use default
 	if service.ID == "" && service.Service != "" {
@@ -528,7 +532,7 @@ func (c *Catalog) ListNodes(args *structs.DCSpecificRequest, reply *structs.Inde
 				return err
 			}
 			if isUnmodified(args.QueryOptions, reply.Index) {
-				reply.QueryMeta.NotModified = true
+				reply.NotModified = true
 				reply.Nodes = nil
 				return nil
 			}
@@ -608,7 +612,7 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 			}
 			if isUnmodified(args.QueryOptions, reply.Index) {
 				reply.Services = nil
-				reply.QueryMeta.NotModified = true
+				reply.NotModified = true
 				return nil
 			}
 

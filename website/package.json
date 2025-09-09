@@ -9,7 +9,7 @@
     "dart-linkcheck": "^2.0.15",
     "husky": "^9.0.7",
     "next": "^12.3.1",
-    "prettier": "^3.2.4"
+    "prettier": "^3.6.2"
   },
   "main": "index.js",
   "scripts": {
@@ -22,6 +22,9 @@
     "start": "./scripts/website-start.sh",
     "linkcheck": "linkcheck https://consul.io",
     "content-check": "hc-content --config base-docs"
+  },
+  "overrides": {
+    "nanoid": "3.3.8"
   },
   "engines": {
     "npm": ">=9.6.7"

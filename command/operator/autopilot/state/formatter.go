@@ -50,7 +50,7 @@ type prettyFormatter struct {
 
 func outputStringSlice(buffer *bytes.Buffer, indent string, values []string) {
 	for _, val := range values {
-		buffer.WriteString(fmt.Sprintf("%s%s\n", indent, val))
+		fmt.Fprintf(buffer, "%s%s\n", indent, val)
 	}
 }
 
@@ -96,7 +96,7 @@ func formatServer(srv *api.AutopilotServer) string {
 		buffer.WriteString(fmt.Sprintf("      Read Replica:    %t\n", srv.ReadReplica))
 	}
 	if len(srv.Meta) > 0 {
-		buffer.WriteString(fmt.Sprintf("      Meta\n"))
+		buffer.WriteString("      Meta\n")
 		var outputs []mapOutput
 		for k, v := range srv.Meta {
 			outputs = append(outputs, mapOutput{key: k, value: fmt.Sprintf("         %q: %q\n", k, v)})

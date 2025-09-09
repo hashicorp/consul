@@ -932,7 +932,7 @@ service "foobar" {
 	require.True(t, acl.IsErrPermissionDenied(err))
 
 	// Now add the token and try again.
-	ixn.WriteRequest.Token = token
+	ixn.Token = token
 	require.Nil(t, msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
 
 	// Read
@@ -1314,7 +1314,7 @@ service "foobar" {
 		Intention:  structs.TestIntention(t),
 	}
 	ixn.Intention.DestinationName = "foobar"
-	ixn.WriteRequest.Token = token
+	ixn.Token = token
 
 	// Create
 	var reply string
@@ -1323,12 +1323,12 @@ service "foobar" {
 	// Try to do a delete with no token; this should get rejected.
 	ixn.Op = structs.IntentionOpDelete
 	ixn.Intention.ID = reply
-	ixn.WriteRequest.Token = ""
+	ixn.Token = ""
 	err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply)
 	require.True(t, acl.IsErrPermissionDenied(err))
 
 	// Try again with the original token. This should go through.
-	ixn.WriteRequest.Token = token
+	ixn.Token = token
 	require.Nil(t, msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
 
 	// Verify it is gone
@@ -1379,7 +1379,7 @@ service "foobar" {
 		Intention:  structs.TestIntention(t),
 	}
 	ixn.Intention.DestinationName = "foobar"
-	ixn.WriteRequest.Token = token
+	ixn.Token = token
 
 	// Create
 	var reply string
@@ -1388,12 +1388,12 @@ service "foobar" {
 	// Try to do an update without a token; this should get rejected.
 	ixn.Op = structs.IntentionOpUpdate
 	ixn.Intention.ID = reply
-	ixn.WriteRequest.Token = ""
+	ixn.Token = ""
 	err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply)
 	require.True(t, acl.IsErrPermissionDenied(err))
 
 	// Try again with the original token; this should go through.
-	ixn.WriteRequest.Token = token
+	ixn.Token = token
 	require.Nil(t, msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
 }
 
@@ -1425,7 +1425,7 @@ func TestIntentionApply_aclManagement(t *testing.T) {
 		Intention:  structs.TestIntention(t),
 	}
 	ixn.Intention.DestinationName = "foobar"
-	ixn.WriteRequest.Token = "root"
+	ixn.Token = "root"
 
 	// Create
 	var reply string
@@ -1476,7 +1476,7 @@ service "foobar" {
 		Intention:  structs.TestIntention(t),
 	}
 	ixn.Intention.DestinationName = "bar"
-	ixn.WriteRequest.Token = "root"
+	ixn.Token = "root"
 
 	// Create
 	var reply string
@@ -1486,7 +1486,7 @@ service "foobar" {
 	ixn.Op = structs.IntentionOpUpdate
 	ixn.Intention.ID = reply
 	ixn.Intention.DestinationName = "foo"
-	ixn.WriteRequest.Token = token
+	ixn.Token = token
 	err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply)
 	require.True(t, acl.IsErrPermissionDenied(err))
 }
@@ -1527,7 +1527,7 @@ func TestIntentionGet_acl(t *testing.T) {
 		Intention:  structs.TestIntention(t),
 	}
 	ixn.Intention.DestinationName = "foobar"
-	ixn.WriteRequest.Token = "root"
+	ixn.Token = "root"
 
 	// Create
 	var reply string
@@ -1654,7 +1654,7 @@ func TestIntentionList_acl(t *testing.T) {
 		ixn.Intention.SourceNS = "default"
 		ixn.Intention.DestinationNS = "default"
 		ixn.Intention.DestinationName = name
-		ixn.WriteRequest.Token = TestDefaultInitialManagementToken
+		ixn.Token = TestDefaultInitialManagementToken
 
 		// Create
 		var reply string
@@ -1669,7 +1669,7 @@ func TestIntentionList_acl(t *testing.T) {
 		var resp structs.IndexedIntentions
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp))
 		require.Len(t, resp.Intentions, 0)
-		require.False(t, resp.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+		require.False(t, resp.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
 	})
 
 	// Test with management token
@@ -1681,7 +1681,7 @@ func TestIntentionList_acl(t *testing.T) {
 		var resp structs.IndexedIntentions
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp))
 		require.Len(t, resp.Intentions, 3)
-		require.False(t, resp.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+		require.False(t, resp.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
 	})
 
 	// Test with user token
@@ -1693,7 +1693,7 @@ func TestIntentionList_acl(t *testing.T) {
 		var resp structs.IndexedIntentions
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp))
 		require.Len(t, resp.Intentions, 1)
-		require.True(t, resp.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, resp.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	// maskResultsFilteredByACLs() in rpc.go sets ResultsFilteredByACLs to false if the token is an empty string
@@ -1709,7 +1709,7 @@ func TestIntentionList_acl(t *testing.T) {
 		var resp structs.IndexedIntentions
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp))
 		require.Len(t, resp.Intentions, 0)
-		require.False(t, resp.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+		require.False(t, resp.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
 	})
 
 	// has access to everything
@@ -1725,7 +1725,7 @@ func TestIntentionList_acl(t *testing.T) {
 		var resp structs.IndexedIntentions
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp))
 		require.Len(t, resp.Intentions, 1)
-		require.False(t, resp.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+		require.False(t, resp.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
 	})
 
 	// ResultsFilteredByACLs should reflect user does not have access to read all intentions but has access to some.
@@ -1741,7 +1741,7 @@ func TestIntentionList_acl(t *testing.T) {
 		var resp structs.IndexedIntentions
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp))
 		require.Len(t, resp.Intentions, 1)
-		require.True(t, resp.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, resp.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	// ResultsFilteredByACLs need to act as though no filter was applied.
@@ -1757,7 +1757,7 @@ func TestIntentionList_acl(t *testing.T) {
 		var resp structs.IndexedIntentions
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp))
 		require.Len(t, resp.Intentions, 0)
-		require.True(t, resp.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, resp.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	// ResultsFilteredByACLs should reflect user does not have access to read any intentions
@@ -1773,7 +1773,7 @@ func TestIntentionList_acl(t *testing.T) {
 		var resp structs.IndexedIntentions
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp))
 		require.Len(t, resp.Intentions, 0)
-		require.True(t, resp.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.False(t, resp.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
 	})
 }
 
@@ -1878,7 +1878,7 @@ func TestIntentionMatch_BlockOnNoChange(t *testing.T) {
 						},
 					},
 				}
-				args.QueryOptions.MinQueryIndex = minQueryIndex
+				args.MinQueryIndex = minQueryIndex
 
 				var out structs.IndexedIntentionMatches
 				errCh := channelCallRPC(s1, "Intention.Match", args, &out, func() error {
@@ -1972,7 +1972,7 @@ func TestIntentionMatch_acl(t *testing.T) {
 				Intention:  structs.TestIntention(t),
 			}
 			ixn.Intention.DestinationName = v
-			ixn.WriteRequest.Token = TestDefaultInitialManagementToken
+			ixn.Token = TestDefaultInitialManagementToken
 
 			// Create
 			var reply string

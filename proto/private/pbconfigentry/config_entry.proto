@@ -14,7 +14,7 @@ import "private/pbcommon/common.proto";
 service ConfigEntryService {
   rpc GetResolvedExportedServices(GetResolvedExportedServicesRequest) returns (GetResolvedExportedServicesResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
-      operation_type: OPERATION_TYPE_READ,
+      operation_type: OPERATION_TYPE_READ
       operation_category: OPERATION_CATEGORY_CONFIGENTRY
     };
   }
@@ -593,6 +593,8 @@ message ServiceDefaults {
   // mog: func-to=mutualTLSModeToStructs func-from=mutualTLSModeFromStructs
   MutualTLSMode MutualTLSMode = 15;
   uint64 Hash = 17;
+
+  optional uint32 MaxRequestHeadersKB = 18;
 }
 
 enum ProxyMode {
@@ -827,6 +829,8 @@ message APIGatewayListener {
   APIGatewayTLSConfiguration TLS = 5;
   APIGatewayPolicy Override = 6;
   APIGatewayPolicy Default = 7;
+
+  optional uint32 MaxRequestHeadersKB = 8;
 }
 
 // mog annotation:

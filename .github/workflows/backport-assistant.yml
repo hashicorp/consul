@@ -19,7 +19,7 @@ jobs:
   backport:
     if: github.event.pull_request.merged
     runs-on: ubuntu-latest
-    container: hashicorpdev/backport-assistant:0.4.4
+    container: hashicorpdev/backport-assistant:v0.5.8
     steps:
       - name: Run Backport Assistant for release branches
         run: |
@@ -27,6 +27,7 @@ jobs:
         env:
           BACKPORT_LABEL_REGEXP: "backport/(?P<target>\\d+\\.\\d+)"
           BACKPORT_TARGET_TEMPLATE: "release/{{.target}}.x"
+          BACKPORT_MERGE_COMMIT: true
           GITHUB_TOKEN: ${{ secrets.ELEVATED_GITHUB_TOKEN_WORKFLOW }}
           ENABLE_VERSION_MANIFESTS: true
   backport-ent:

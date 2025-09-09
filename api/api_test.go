@@ -719,8 +719,7 @@ func TestAPI_ClientTLSOptions(t *testing.T) {
 		_, err = client.Agent().Self()
 		// Check for one of the possible cert error messages
 		// See https://cs.opensource.google/go/go/+/62a994837a57a7d0c58bb364b580a389488446c9
-		if err == nil || !(strings.Contains(err.Error(), "tls: bad certificate") ||
-			strings.Contains(err.Error(), "tls: certificate required")) {
+		if err == nil || (!strings.Contains(err.Error(), "tls: bad certificate") && !strings.Contains(err.Error(), "tls: certificate required")) {
 			t.Fatalf("expected tls certificate error, but got '%v'", err)
 		}
 	})
@@ -935,11 +934,11 @@ func TestAPI_Headers(t *testing.T) {
 
 	_, _, err = kv.Get("test-headers", nil)
 	require.NoError(t, err)
-	require.Equal(t, "application/json", request.Header.Get("Content-Type"))
+	require.Equal(t, "application/json; charset=utf-8", request.Header.Get("Content-Type"))
 
 	_, err = kv.Delete("test-headers", nil)
 	require.NoError(t, err)
-	require.Equal(t, "application/json", request.Header.Get("Content-Type"))
+	require.Equal(t, "application/json; charset=utf-8", request.Header.Get("Content-Type"))
 
 	err = c.Snapshot().Restore(nil, strings.NewReader("foo"))
 	require.Error(t, err)

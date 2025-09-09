@@ -9,7 +9,7 @@ description: >-
 
 This topic describes how to install Consul on Kubernetes using the official Consul Helm chart. We recommend using this method if you are installing Consul on Kubernetes for multi-cluster deployments that involve cross-partition or cross datacenter communication.
 
-For instruction on how to install Consul on Kubernetes using the Consul K8s CLI, refer to [Install Consul on Kubernetes with the Consul K8s CLI](http://localhost:3000/consul/docs/deploy/server/k8s/consul-k8s).
+For instruction on how to install Consul on Kubernetes using the Consul K8s CLI, refer to [Install Consul on Kubernetes with the Consul K8s CLI](/consul/docs/deploy/server/k8s/consul-k8s).
 
 ## Introduction
 
@@ -60,6 +60,8 @@ Using the Helm Chart requires Helm version 3.6+. Visit the [Helm website](https:
     kube-public       Active   18h
     kube-system       Active   18h
     ```
+
+@include 'alerts/k8s-namespace.mdx'
 
 1. Install Consul on Kubernetes using Helm. The Helm chart does everything to set up your deployment: after installation, agents automatically form clusters, elect leaders, and run the necessary agents.
    

@@ -10,6 +10,7 @@ import (
 
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
+	"github.com/hashicorp/go-hclog"
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -438,4 +439,357 @@ func Test_setNormalizationOptions(t *testing.T) {
 			assert.Equal(t, tc.want, tc.opts)
 		})
 	}
+}
+
+func Test_makeHTTPFilter_maxRequestHeadersKb(t *testing.T) {
+	tests := map[string]struct {
+		maxRequestHeadersKb *uint32
+		wantPresent         bool
+		wantValue           uint32
+	}{
+		"nil - not set": {
+			maxRequestHeadersKb: nil,
+			wantPresent:         false,
+		},
+		"96KB": {
+			maxRequestHeadersKb: uintPointer(96),
+			wantPresent:         true,
+			wantValue:           96,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			opts := listenerFilterOpts{
+				protocol:            "http",
+				filterName:          "test",
+				routeName:           "test",
+				cluster:             "test",
+				maxRequestHeadersKb: tc.maxRequestHeadersKb,
+			}
+
+			filter, err := makeHTTPFilter(opts)
+			require.NoError(t, err)
+			require.NotNil(t, filter)
+
+			// Decode the typed config to check MaxRequestHeadersKb
+			var httpConnMgr envoy_http_v3.HttpConnectionManager
+			err = filter.GetTypedConfig().UnmarshalTo(&httpConnMgr)
+			require.NoError(t, err)
+
+			if tc.wantPresent {
+				require.NotNil(t, httpConnMgr.MaxRequestHeadersKb)
+				require.Equal(t, tc.wantValue, httpConnMgr.MaxRequestHeadersKb.GetValue())
+			} else {
+				require.Nil(t, httpConnMgr.MaxRequestHeadersKb)
+			}
+		})
+	}
+}
+
+func Test_makeUpstreamFilterChain_maxRequestHeadersKb(t *testing.T) {
+	tests := map[string]struct {
+		maxRequestHeadersKb *uint32
+		protocol            string
+		wantPresent         bool
+		wantValue           uint32
+	}{
+		"tcp protocol ignores header settings": {
+			maxRequestHeadersKb: uintPointer(96),
+			protocol:            "tcp",
+			wantPresent:         false,
+		},
+		"http with nil header settings": {
+			maxRequestHeadersKb: nil,
+			protocol:            "http",
+			wantPresent:         false,
+		},
+		"http with 96KB header limit": {
+			maxRequestHeadersKb: uintPointer(96),
+			protocol:            "http",
+			wantPresent:         true,
+			wantValue:           96,
+		},
+		"grpc with 128KB header limit": {
+			maxRequestHeadersKb: uintPointer(128),
+			protocol:            "grpc",
+			wantPresent:         true,
+			wantValue:           128,
+		},
+		"http2 with 256KB header limit": {
+			maxRequestHeadersKb: uintPointer(256),
+			protocol:            "http2",
+			wantPresent:         true,
+			wantValue:           256,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			s := &ResourceGenerator{
+				Logger: hclog.NewNullLogger(),
+			}
+
+			opts := filterChainOpts{
+				protocol:            tc.protocol,
+				filterName:          "test",
+				clusterName:         "test-cluster",
+				maxRequestHeadersKb: tc.maxRequestHeadersKb,
+			}
+
+			filterChain, err := s.makeUpstreamFilterChain(opts)
+			require.NoError(t, err)
+			require.NotNil(t, filterChain)
+			require.Len(t, filterChain.Filters, 1)
+
+			filter := filterChain.Filters[0]
+
+			if tc.protocol == "tcp" {
+				// TCP proxy doesn't use HTTP connection manager
+				return
+			}
+
+			// For HTTP-like protocols, check the HTTP connection manager
+			var httpConnMgr envoy_http_v3.HttpConnectionManager
+			err = filter.GetTypedConfig().UnmarshalTo(&httpConnMgr)
+			require.NoError(t, err)
+
+			if tc.wantPresent {
+				require.NotNil(t, httpConnMgr.MaxRequestHeadersKb)
+				require.Equal(t, tc.wantValue, httpConnMgr.MaxRequestHeadersKb.GetValue())
+			} else {
+				require.Nil(t, httpConnMgr.MaxRequestHeadersKb)
+			}
+		})
+	}
+}
+
+func Test_makeAPIGatewayListeners_maxRequestHeadersKb(t *testing.T) {
+	tests := map[string]struct {
+		maxRequestHeadersKb *uint32
+		protocol            string
+		wantPresent         bool
+		wantValue           uint32
+	}{
+		"http listener with nil headers": {
+			maxRequestHeadersKb: nil,
+			protocol:            "http",
+			wantPresent:         false,
+		},
+		"http listener with 96KB": {
+			maxRequestHeadersKb: uintPointer(96),
+			protocol:            "http",
+			wantPresent:         true,
+			wantValue:           96,
+		},
+		"tcp listener ignores header setting": {
+			maxRequestHeadersKb: uintPointer(96),
+			protocol:            "tcp",
+			wantPresent:         false, // TCP doesn't use HTTP connection manager
+		},
+		"http listener with zero value": {
+			maxRequestHeadersKb: uintPointer(0),
+			protocol:            "http",
+			wantPresent:         true,
+			wantValue:           0,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			// Create listener filter opts as would be used in API Gateway
+			opts := listenerFilterOpts{
+				protocol:            tc.protocol,
+				filterName:          "test-api-gateway",
+				routeName:           "test-route",
+				cluster:             "test-cluster",
+				maxRequestHeadersKb: tc.maxRequestHeadersKb,
+			}
+
+			// Generate the HTTP filter
+			filter, err := makeHTTPFilter(opts)
+
+			if tc.protocol == "tcp" {
+				// For TCP, the function should still work but the result is not used
+				// in actual TCP proxy configurations
+				require.NoError(t, err)
+				return
+			}
+
+			require.NoError(t, err)
+			require.NotNil(t, filter)
+
+			// Decode the typed config to check MaxRequestHeadersKb
+			var httpConnMgr envoy_http_v3.HttpConnectionManager
+			err = filter.GetTypedConfig().UnmarshalTo(&httpConnMgr)
+			require.NoError(t, err)
+
+			if tc.wantPresent {
+				require.NotNil(t, httpConnMgr.MaxRequestHeadersKb)
+				require.Equal(t, tc.wantValue, httpConnMgr.MaxRequestHeadersKb.GetValue())
+			} else {
+				require.Nil(t, httpConnMgr.MaxRequestHeadersKb)
+			}
+		})
+	}
+}
+
+func Test_makeMeshGatewayPeerFilterChain_maxRequestHeadersKb(t *testing.T) {
+	tests := map[string]struct {
+		proxyConfig        map[string]interface{}
+		serviceProxyConfig map[string]interface{}
+		protocol           string
+		wantPresent        bool
+		wantValue          uint32
+	}{
+		"defaults to proxy config when no service override": {
+			proxyConfig: map[string]interface{}{
+				"max_request_headers_kb": int64(128),
+			},
+			serviceProxyConfig: map[string]interface{}{},
+			protocol:           "http",
+			wantPresent:        true,
+			wantValue:          128,
+		},
+		"service override takes precedence over proxy config": {
+			proxyConfig: map[string]interface{}{
+				"max_request_headers_kb": int64(128),
+			},
+			serviceProxyConfig: map[string]interface{}{
+				"max_request_headers_kb": int64(256),
+			},
+			protocol:    "http",
+			wantPresent: true,
+			wantValue:   256,
+		},
+		"no proxy config and no service override": {
+			proxyConfig:        map[string]interface{}{},
+			serviceProxyConfig: map[string]interface{}{},
+			protocol:           "http",
+			wantPresent:        false,
+		},
+		"service override with nil proxy config": {
+			proxyConfig: nil,
+			serviceProxyConfig: map[string]interface{}{
+				"max_request_headers_kb": int64(64),
+			},
+			protocol:    "http",
+			wantPresent: true,
+			wantValue:   64,
+		},
+		"tcp protocol ignores header settings": {
+			proxyConfig: map[string]interface{}{
+				"max_request_headers_kb": int64(128),
+			},
+			serviceProxyConfig: map[string]interface{}{
+				"max_request_headers_kb": int64(256),
+			},
+			protocol:    "tcp",
+			wantPresent: false,
+		},
+		"grpc protocol uses service override": {
+			proxyConfig: map[string]interface{}{
+				"max_request_headers_kb": int64(128),
+			},
+			serviceProxyConfig: map[string]interface{}{
+				"max_request_headers_kb": int64(512),
+			},
+			protocol:    "grpc",
+			wantPresent: true,
+			wantValue:   512,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			// Create test service name
+			svc := structs.NewServiceName("test-service", structs.DefaultEnterpriseMetaInDefaultPartition())
+
+			// Create mock config snapshot using the test helper
+			snap := proxycfg.TestConfigSnapshotPeeredMeshGateway(t, "default-services-http", func(ns *structs.NodeService) {
+				ns.Proxy.Config = tc.proxyConfig
+			}, nil)
+
+			// Add service group with proxy config if provided
+			if tc.serviceProxyConfig != nil {
+				snap.MeshGateway.ServiceGroups[svc] = structs.CheckServiceNodes{
+					{
+						Service: &structs.NodeService{
+							Proxy: structs.ConnectProxyConfig{
+								Config: tc.serviceProxyConfig,
+							},
+						},
+					},
+				}
+			}
+
+			// Create mock discovery chain with a first node
+			chain := &structs.CompiledDiscoveryChain{
+				ServiceName: svc.Name,
+				Namespace:   svc.NamespaceOrDefault(),
+				Partition:   svc.PartitionOrDefault(),
+				Datacenter:  "dc1",
+				Protocol:    tc.protocol,
+				StartNode:   "test-node",
+				Nodes: map[string]*structs.DiscoveryGraphNode{
+					"test-node": {
+						Type: structs.DiscoveryGraphNodeTypeResolver,
+						Name: "test-service.default.default.dc1",
+						Resolver: &structs.DiscoveryResolver{
+							Target: "test-service.default.default.dc1",
+						},
+					},
+				},
+				Targets: map[string]*structs.DiscoveryTarget{
+					"test-service.default.default.dc1": {
+						ID:         "test-service.default.default.dc1",
+						Service:    svc.Name,
+						Namespace:  svc.NamespaceOrDefault(),
+						Partition:  svc.PartitionOrDefault(),
+						Datacenter: "dc1",
+						SNI:        "test-service.default.default.dc1.internal.test-domain.consul",
+						Name:       "test-service.default.default.dc1.internal.test-domain.consul",
+					},
+				},
+			}
+
+			// Create resource generator
+			s := &ResourceGenerator{
+				Logger: hclog.NewNullLogger(),
+			}
+
+			// Call the function under test
+			filterChain, err := s.makeMeshGatewayPeerFilterChain(snap, svc, []string{"test-peer"}, chain)
+
+			require.NoError(t, err)
+			require.NotNil(t, filterChain)
+			require.Len(t, filterChain.Filters, 1)
+
+			filter := filterChain.Filters[0]
+
+			if tc.protocol == "tcp" {
+				// For TCP, verify we don't have HTTP connection manager
+				require.Contains(t, filter.Name, "tcp_proxy")
+				return
+			}
+
+			// For HTTP-like protocols, check the HTTP connection manager
+			require.Contains(t, filter.Name, "http_connection_manager")
+			var httpConnMgr envoy_http_v3.HttpConnectionManager
+			err = filter.GetTypedConfig().UnmarshalTo(&httpConnMgr)
+			require.NoError(t, err)
+
+			if tc.wantPresent {
+				require.NotNil(t, httpConnMgr.MaxRequestHeadersKb, "expected MaxRequestHeadersKb to be set but it was nil")
+				require.Equal(t, tc.wantValue, httpConnMgr.MaxRequestHeadersKb.GetValue())
+			} else {
+				require.Nil(t, httpConnMgr.MaxRequestHeadersKb, "expected MaxRequestHeadersKb to be nil but it was set")
+			}
+		})
+	}
+}
+
+// Helper function for uint32 pointers
+func uintPointer(i uint32) *uint32 {
+	return &i
 }

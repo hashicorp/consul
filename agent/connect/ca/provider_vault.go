@@ -14,9 +14,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/hashicorp/go-hclog"
 	vaultapi "github.com/hashicorp/vault/api"
-	"github.com/mitchellh/mapstructure"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
@@ -390,7 +390,8 @@ func (v *VaultProvider) setupIntermediatePKIPath() error {
 
 	_, err := v.getCA(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath)
 	if err != nil {
-		if err == ErrBackendNotMounted {
+		switch err {
+		case ErrBackendNotMounted:
 			err := v.mountNamespaced(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath, &vaultapi.MountInput{
 				Type:        "pki",
 				Description: "intermediate CA backend for Consul Connect",
@@ -403,11 +404,11 @@ func (v *VaultProvider) setupIntermediatePKIPath() error {
 			// if the VaultProvider is ever reconfigured.
 			v.isConsulMountedIntermediate = true
 
-		} else if err == ErrBackendNotInitialized {
+		case ErrBackendNotInitialized:
 			// If this is the first time calling setupIntermediatePKIPath, the backend
 			// will not have been initialized. Since the mount is ready we can suppress
 			// this error.
-		} else {
+		default:
 			return fmt.Errorf("unexpected error while fetching intermediate CA: %w", err)
 		}
 	} else {
@@ -986,7 +987,7 @@ func ParseVaultCAConfig(raw map[string]interface{}, isPrimary bool) (*structs.Va
 		config.IntermediatePKIPath += "/"
 	}
 
-	if err := config.CommonCAProviderConfig.Validate(); err != nil {
+	if err := config.Validate(); err != nil {
 		return nil, err
 	}
 

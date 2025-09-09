@@ -107,7 +107,7 @@ func (s *TestAPIServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	w.Header().Set("content-type", "application/json")
+	w.Header().Set("content-type", "application/json; charset=utf-8")
 
 	if req.URL.Path == "/apis/authentication.k8s.io/v1/tokenreviews" {
 		s.handleTokenReview(w, req)
@@ -511,7 +511,7 @@ func createReadServiceAccountFound(namespace, name, uid, overrideAnnotation stri
 		},
 	}
 	if overrideAnnotation != "" {
-		sa.ObjectMeta.Annotations = map[string]string{
+		sa.Annotations = map[string]string{
 			"consul.hashicorp.com/service-name": overrideAnnotation,
 		}
 	}

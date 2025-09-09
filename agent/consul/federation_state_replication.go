@@ -64,7 +64,7 @@ func (r *FederationStateReplicator) fetchRemote(lastRemoteIndex uint64) (int, in
 
 	states := []*structs.FederationState(response.States)
 
-	return len(response.States), states, response.QueryMeta.Index, nil
+	return len(response.States), states, response.Index, nil
 }
 
 // FetchLocal implements IndexReplicatorDelegate.

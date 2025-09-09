@@ -567,6 +567,10 @@
             "path": "secure/acl/bootstrap"
           },
           {
+            "title": "Reset ACL system",
+            "path": "secure/acl/reset"
+          },
+          {
             "title": "Enforce ACL policies with Sentinel",
             "badge": {
               "text": "ENTERPRISE",
@@ -761,11 +765,24 @@
             "path": "multi-tenant/namespace"
           },
           {
-            "title": "Configure namespaces on VMs",
-            "path": "multi-tenant/namespace/vm"
+            "title": "Configure namespaces (VM)",
+            "routes": [
+              {
+                "title": "Overview",
+                "path": "multi-tenant/namespace/vm"
+              },
+              {
+                "title": "Configure namespaces",
+                "path": "multi-tenant/namespace/vm/configure-namespaces"
+              },
+              {
+                "title": "Delegate ACL token management",
+                "path": "multi-tenant/namespace/vm/delegate-token-management"
+              }
+            ]
           },
           {
-            "title": "Configure namespaces on Kubernetes",
+            "title": "Configure namespaces (K8s)",
             "path": "multi-tenant/namespace/k8s"
           }
         ]
@@ -884,6 +901,10 @@
           {
             "title": "Restore federated datacenters",
             "path": "manage/disaster-recovery/federation"
+          },
+          {
+            "title": "Reset ACL system",
+            "href": "secure/acl/reset"
           }
         ]
       },
@@ -1529,6 +1550,10 @@
       {
         "title": "Kubernetes",
         "path": "discover/k8s"
+      },
+      {
+        "title": "Docker",
+        "path": "discover/docker"
       }
     ]
   },
@@ -2443,20 +2468,24 @@
         "path": "docker"
       },
       {
-        "title": "Deploy Consul",
+        "title": "Deploy Consul servers",
         "href": "deploy/server/docker"
+      },
+      {
+        "title": "Deploy Consul clients",
+        "href": "deploy/workload/client/docker"
       },
       {
         "title": "Secure Consul",
         "href": "secure/auto-config/docker"
       },
       {
-        "title": "Register services",
-        "href": "register/docker"
-      },
-      {
         "title": "Discover services",
         "href": "discover/dns/docker"
+      },
+      {
+        "title": "Observe services",
+        "href": "observe/docker"
       }
     ]
   },

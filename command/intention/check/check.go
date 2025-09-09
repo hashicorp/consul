@@ -45,7 +45,7 @@ func (c *cmd) Run(args []string) int {
 
 	args = c.flags.Args()
 	if len(args) != 2 {
-		c.UI.Error(fmt.Sprintf("Error: command requires exactly two arguments: src and dst"))
+		c.UI.Error("Error: command requires exactly two arguments: src and dst")
 		return 2
 	}
 

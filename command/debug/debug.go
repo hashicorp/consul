@@ -13,10 +13,13 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -28,6 +31,7 @@ import (
 	"github.com/hashicorp/consul/command/flags"
 
 	"github.com/hashicorp/hcdiag/command"
+	"github.com/ryanuber/columnize"
 )
 
 const (
@@ -50,6 +54,13 @@ const (
 	// debugMinDuration is the minimum a user can configure the duration
 	// to ensure that all information can be collected in time
 	debugMinDuration = 10 * time.Second
+
+	// validatePortsTimeout is the timeout while checking connectivity to default ports
+	// This is same as the timeout used in troubleshoot ports command
+	validatePortsTimeout = 5 * time.Second
+
+	// debugDefaultHost is the host on which connectivity to default ports are validated
+	debugDefaultHost = "localhost"
 
 	// debugArchiveExtension is the extension for archive files
 	debugArchiveExtension = ".tar.gz"
@@ -108,6 +119,11 @@ type debugIndex struct {
 	Duration string
 
 	Targets []string
+}
+
+type PortStatus struct {
+	Open   []string `json:"Open"`
+	Closed []string `json:"Closed"`
 }
 
 // timeDateformat is a modified version of time.RFC3339 which replaces colons with
@@ -212,6 +228,12 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Warn(fmt.Sprintf("Static capture failed: %v", err))
 	}
 
+	// Capture ports connectivity report
+	err = c.troubleshootPorts()
+	if err != nil {
+		c.UI.Warn(fmt.Sprintf("Troubleshoot ports failed: %v", err))
+	}
+
 	// Capture dynamic information from the target agent, blocking for duration
 	if c.captureTarget(targetMetrics) || c.captureTarget(targetLogs) || c.captureTarget(targetProfiles) {
 		g := new(errgroup.Group)
@@ -238,6 +260,12 @@ func (c *cmd) Run(args []string) int {
 	if err := writeJSONFile(filepath.Join(c.output, "index.json"), index); err != nil {
 		c.UI.Error(fmt.Sprintf("Error creating index document: %v", err))
 		return 1
+	}
+
+	// Capture Raft configuration
+	err = c.captureRaft()
+	if err != nil {
+		c.UI.Warn(fmt.Sprintf("Raft list peers capture failed: %v", err))
 	}
 
 	// Archive the data if configured to
@@ -290,18 +318,32 @@ func (c *cmd) prepare() (version string, err error) {
 		copy(c.capture, defaultTargets)
 	}
 
-	// If EnableDebug is not true, skip collecting pprof
+	// If EnableDebug is not true, check if ACLs are enabled and we have operator:read permission
 	enableDebug, ok := self["DebugConfig"]["EnableDebug"].(bool)
 	if !ok {
 		return "", fmt.Errorf("agent response did not contain EnableDebug key")
 	}
-	if !enableDebug {
+
+	// Check if ACLs are enabled - if so, try to validate we have operator:read permission
+	aclEnabled, ok := self["DebugConfig"]["ACLsEnabled"].(bool)
+	if !ok {
+		return "", fmt.Errorf("agent response did not contain EnableDebug key")
+	}
+
+	allowPprof := enableDebug || aclEnabled
+
+	if !allowPprof {
+		// Remove pprof from capture
 		cs := c.capture
 		for i := 0; i < len(cs); i++ {
 			if cs[i] == "pprof" {
 				c.capture = append(cs[:i], cs[i+1:]...)
 				i--
-				c.UI.Warn("[WARN] Unable to capture pprof. Set enable_debug to true on target agent to enable profiling.")
+				if aclEnabled {
+					c.UI.Warn("[WARN] Unable to capture pprof. Either set enable_debug to true on target agent or provide an ACL token with operator:read permissions.")
+				} else {
+					c.UI.Warn("[WARN] Unable to capture pprof. Set enable_debug to true on target agent to enable profiling.")
+				}
 			}
 		}
 	}
@@ -359,6 +401,83 @@ func (c *cmd) captureStatic() error {
 		}
 	}
 	return errs
+}
+
+func (c *cmd) troubleshootPorts() error {
+	output, err := troubleshootRun(default_ports, debugDefaultHost)
+	if err != nil {
+		return err
+	}
+
+	if err := writeJSONFile(filepath.Join(c.output, targetPorts+".json"), output); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func troubleshootRun(ports []string, host string) (PortStatus, error) {
+	numPorts := len(ports)
+	openPorts := make(chan string, numPorts)
+	closePorts := make(chan string, numPorts)
+
+	var portResults PortStatus
+	var wg sync.WaitGroup
+	wg.Add(numPorts)
+
+	for _, port := range ports {
+		err := isValidPort(port)
+		if err != nil {
+			return portResults, err
+		}
+		go func(port string) {
+			defer wg.Done()
+
+			address := fmt.Sprintf("%s:%s", host, port)
+
+			err := dialPort(address)
+			if err != nil {
+				closePorts <- port
+			} else {
+				// If no error occurs, the connection was successful, and the port is open.
+				openPorts <- port
+			}
+		}(port)
+	}
+
+	wg.Wait()
+	close(openPorts)
+	close(closePorts)
+
+	for port := range openPorts {
+		portResults.Open = append(portResults.Open, port)
+	}
+
+	for port := range closePorts {
+		portResults.Closed = append(portResults.Closed, port)
+	}
+	return portResults, nil
+}
+
+func dialPort(address string) error {
+	// Attempt to establish a TCP connection with a timeout.
+	conn, err := net.DialTimeout("tcp", address, validatePortsTimeout)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	return nil
+}
+
+func isValidPort(port string) error {
+	portInt, err := strconv.Atoi(port)
+	if err != nil {
+		return fmt.Errorf("port %s is not a number", port)
+	}
+	if portInt < 0 || portInt > 65535 || port == "" {
+		return fmt.Errorf("invalid port %s", port)
+	}
+	return nil
 }
 
 func writeJSONFile(filename string, content interface{}) error {
@@ -564,6 +683,72 @@ func (c *cmd) captureMetrics(ctx context.Context) error {
 	return nil
 }
 
+func (c *cmd) captureRaft() error {
+	reply, err := c.client.Operator().RaftGetConfiguration(nil)
+	if err != nil {
+		return fmt.Errorf("Failed to retrieve raft configuration: %v", err)
+	}
+
+	leaderLastCommitIndex := uint64(0)
+	serverIdLastIndexMap := make(map[string]uint64)
+
+	for _, raftServer := range reply.Servers {
+		serverIdLastIndexMap[raftServer.ID] = raftServer.LastIndex
+	}
+
+	for _, s := range reply.Servers {
+		if s.Leader {
+			lastIndex, ok := serverIdLastIndexMap[s.ID]
+			if ok {
+				leaderLastCommitIndex = lastIndex
+			}
+		}
+	}
+
+	// Format it as a nice table.
+	result := []string{"Node\x1fID\x1fAddress\x1fState\x1fVoter\x1fRaftProtocol\x1fCommit Index\x1fTrails Leader By"}
+	for _, s := range reply.Servers {
+		raftProtocol := s.ProtocolVersion
+
+		if raftProtocol == "" {
+			raftProtocol = "<=1"
+		}
+		state := "follower"
+		if s.Leader {
+			state = "leader"
+		}
+
+		trailsLeaderByText := "-"
+		serverLastIndex, ok := serverIdLastIndexMap[s.ID]
+		if ok {
+			trailsLeaderBy := leaderLastCommitIndex - serverLastIndex
+			trailsLeaderByText = fmt.Sprintf("%d commits", trailsLeaderBy)
+			if s.Leader {
+				trailsLeaderByText = "-"
+			} else if trailsLeaderBy == 1 {
+				trailsLeaderByText = fmt.Sprintf("%d commit", trailsLeaderBy)
+			}
+		}
+		result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%v\x1f%s\x1f%v\x1f%s",
+			s.Node, s.ID, s.Address, state, s.Voter, raftProtocol, serverLastIndex, trailsLeaderByText))
+	}
+
+	listpeers, err := columnize.Format(result, &columnize.Config{Delim: string([]byte{0x1f})}), nil
+
+	fh, err := os.Create(filepath.Join(c.output, "listpeers.json"))
+	if err != nil {
+		return fmt.Errorf("failed to create listpeers file: %w", err)
+	}
+	defer fh.Close()
+
+	b := strings.NewReader(listpeers)
+	_, err = b.WriteTo(fh)
+	if err != nil && !errors.Is(err, context.DeadlineExceeded) {
+		return fmt.Errorf("failed to copy listpeers to file: %w", err)
+	}
+	return nil
+}
+
 // allowedTarget returns true if the target is a recognized name of a capture
 // target.
 func allowedTarget(target string) bool {
@@ -717,9 +902,12 @@ const (
 	targetHost     = "host"
 	targetAgent    = "agent"
 	targetMembers  = "members"
+	targetPorts    = "ports"
 	// targetCluster is the now deprecated name for targetMembers
 	targetCluster = "cluster"
 )
+
+var default_ports = []string{"8600", "8500", "8501", "8502", "8503", "8301", "8302", "8300"}
 
 // defaultTargets specifies the list of targets that will be captured by default
 var defaultTargets = []string{

@@ -398,7 +398,7 @@ func TestOTELSink_Race(t *testing.T) {
 		wg.Add(1)
 		go func(k string, v metricdata.Metrics) {
 			defer wg.Done()
-			performSinkOperation(sink, k, v, errCh)
+			performSinkOperation(sink, k, v)
 		}(k, v)
 	}
 	wg.Wait()
@@ -481,28 +481,16 @@ func generateSamples(n int, labels map[string]string) map[string]metricdata.Metr
 }
 
 // performSinkOperation emits a measurement using the OTELSink and calls wg.Done() when completed.
-func performSinkOperation(sink *OTELSink, k string, v metricdata.Metrics, errCh chan error) {
+func performSinkOperation(sink *OTELSink, k string, v metricdata.Metrics) {
 	key := strings.Split(k, ".")
 	data := v.Data
-	switch data.(type) {
+	switch data := data.(type) {
 	case metricdata.Gauge[float64]:
-		gauge, ok := data.(metricdata.Gauge[float64])
-		if !ok {
-			errCh <- fmt.Errorf("unexpected type assertion error for key: %s", key)
-		}
-		sink.SetGauge(key, float32(gauge.DataPoints[0].Value))
+		sink.SetGauge(key, float32(data.DataPoints[0].Value))
 	case metricdata.Sum[float64]:
-		sum, ok := data.(metricdata.Sum[float64])
-		if !ok {
-			errCh <- fmt.Errorf("unexpected type assertion error for key: %s", key)
-		}
-		sink.IncrCounter(key, float32(sum.DataPoints[0].Value))
+		sink.IncrCounter(key, float32(data.DataPoints[0].Value))
 	case metricdata.Histogram[float64]:
-		hist, ok := data.(metricdata.Histogram[float64])
-		if !ok {
-			errCh <- fmt.Errorf("unexpected type assertion error for key: %s", key)
-		}
-		sink.AddSample(key, float32(hist.DataPoints[0].Sum))
+		sink.AddSample(key, float32(data.DataPoints[0].Sum))
 	}
 }
 

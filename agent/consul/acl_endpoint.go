@@ -5,6 +5,7 @@ package consul
 
 import (
 	"context"
+	"crypto/subtle"
 	"errors"
 	"fmt"
 	"os"
@@ -325,7 +326,7 @@ func (a *ACL) TokenRead(args *structs.ACLTokenGetRequest, reply *structs.ACLToke
 				return fmt.Errorf("token has expired: %w", acl.ErrNotFound)
 			} else if token == nil {
 				// token does not exist
-				if ns := args.EnterpriseMeta.NamespaceOrEmpty(); ns != "" {
+				if ns := args.NamespaceOrEmpty(); ns != "" {
 					return fmt.Errorf("token not found in namespace %s: %w", ns, acl.ErrNotFound)
 				}
 				return fmt.Errorf("token does not exist: %w", acl.ErrNotFound)
@@ -485,7 +486,7 @@ func (a *ACL) TokenClone(args *structs.ACLTokenSetRequest, reply *structs.ACLTok
 	if err != nil {
 		return err
 	} else if token == nil {
-		if ns := args.ACLToken.EnterpriseMeta.NamespaceOrEmpty(); ns != "" {
+		if ns := args.ACLToken.NamespaceOrEmpty(); ns != "" {
 			return fmt.Errorf("token not found in namespace %s: %w", ns, acl.ErrNotFound)
 		}
 		return fmt.Errorf("token does not exist: %w", acl.ErrNotFound)
@@ -613,7 +614,7 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 	}
 
 	if token != nil {
-		if args.Token == token.SecretID {
+		if subtle.ConstantTimeCompare([]byte(args.Token), []byte(token.SecretID)) == 1 {
 			return fmt.Errorf("Deletion of the request's authorization token is not permitted")
 		}
 
@@ -630,7 +631,7 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 		return a.srv.forwardDC("ACL.TokenDelete", a.srv.config.PrimaryDatacenter, args, reply)
 	} else {
 		// in Primary Datacenter but the token does not exist - return early indicating it wasn't found.
-		if ns := args.EnterpriseMeta.NamespaceOrEmpty(); ns != "" {
+		if ns := args.NamespaceOrEmpty(); ns != "" {
 			return fmt.Errorf("token not found in namespace %s: %w", ns, acl.ErrNotFound)
 		}
 		return fmt.Errorf("token does not exist: %w", acl.ErrNotFound)
@@ -646,7 +647,7 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 	}
 
 	// Purge the identity from the cache to prevent using the previous definition of the identity
-	a.srv.ACLResolver.cache.RemoveIdentityWithSecretToken(token.SecretID)
+	a.srv.cache.RemoveIdentityWithSecretToken(token.SecretID)
 
 	if reply != nil {
 		*reply = token.AccessorID
@@ -684,15 +685,15 @@ func (a *ACL) TokenList(args *structs.ACLTokenListRequest, reply *structs.ACLTok
 		return err
 	}
 	// merge the token default meta into the requests meta
-	args.EnterpriseMeta.Merge(&requestMeta)
-	args.EnterpriseMeta.FillAuthzContext(&authzContext)
+	args.Merge(&requestMeta)
+	args.FillAuthzContext(&authzContext)
 	if err := authz.ToAllowAuthorizer().ACLReadAllowed(&authzContext); err != nil {
 		return err
 	}
 
 	var methodMeta *acl.EnterpriseMeta
 	if args.AuthMethod != "" {
-		methodMeta = args.ACLAuthMethodEnterpriseMeta.ToEnterpriseMeta()
+		methodMeta = args.ToEnterpriseMeta()
 		// attempt to merge in the overall meta, wildcards will not be merged
 		methodMeta.MergeNoWildcard(&args.EnterpriseMeta)
 		// in the event that the meta above didn't merge due to being a wildcard
@@ -981,7 +982,7 @@ func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPol
 	}
 
 	// Remove from the cache to prevent stale cache usage
-	a.srv.ACLResolver.cache.RemovePolicy(policy.ID)
+	a.srv.cache.RemovePolicy(policy.ID)
 
 	if _, policy, err := a.srv.fsm.State().ACLPolicyGetByID(nil, policy.ID, &policy.EnterpriseMeta); err == nil && policy != nil {
 		*reply = *policy
@@ -1024,7 +1025,7 @@ func (a *ACL) PolicyDelete(args *structs.ACLPolicyDeleteRequest, reply *string) 
 	}
 
 	if policy == nil {
-		if ns := args.EnterpriseMeta.NamespaceOrEmpty(); ns != "" {
+		if ns := args.NamespaceOrEmpty(); ns != "" {
 			return fmt.Errorf("policy not found in namespace %s: %w", ns, acl.ErrNotFound)
 		}
 		return fmt.Errorf("policy does not exist: %w", acl.ErrNotFound)
@@ -1043,7 +1044,7 @@ func (a *ACL) PolicyDelete(args *structs.ACLPolicyDeleteRequest, reply *string) 
 		return fmt.Errorf("Failed to apply policy delete request: %v", err)
 	}
 
-	a.srv.ACLResolver.cache.RemovePolicy(policy.ID)
+	a.srv.cache.RemovePolicy(policy.ID)
 
 	*reply = policy.Name
 
@@ -1104,12 +1105,12 @@ func (a *ACL) PolicyResolve(args *structs.ACLPolicyBatchGetRequest, reply *struc
 	}
 
 	// get full list of policies for this token
-	identity, policies, err := a.srv.ACLResolver.resolveTokenToIdentityAndPolicies(args.Token)
+	identity, policies, err := a.srv.resolveTokenToIdentityAndPolicies(args.Token)
 	if err != nil {
 		return err
 	}
 
-	entIdentity, entPolicies, err := a.srv.ACLResolver.resolveEnterpriseIdentityAndPolicies(identity)
+	entIdentity, entPolicies, err := a.srv.resolveEnterpriseIdentityAndPolicies(identity)
 	if err != nil {
 		return err
 	}
@@ -1419,7 +1420,7 @@ func (a *ACL) RoleSet(args *structs.ACLRoleSetRequest, reply *structs.ACLRole) e
 	}
 
 	// Remove from the cache to prevent stale cache usage
-	a.srv.ACLResolver.cache.RemoveRole(role.ID)
+	a.srv.cache.RemoveRole(role.ID)
 
 	if _, role, err := a.srv.fsm.State().ACLRoleGetByID(nil, role.ID, &role.EnterpriseMeta); err == nil && role != nil {
 		*reply = *role
@@ -1462,7 +1463,7 @@ func (a *ACL) RoleDelete(args *structs.ACLRoleDeleteRequest, reply *string) erro
 	}
 
 	if role == nil {
-		if ns := args.EnterpriseMeta.NamespaceOrEmpty(); ns != "" {
+		if ns := args.NamespaceOrEmpty(); ns != "" {
 			return fmt.Errorf("role not found in namespace %s: %w", ns, acl.ErrNotFound)
 		}
 		return fmt.Errorf("role does not exist: %w", acl.ErrNotFound)
@@ -1477,7 +1478,7 @@ func (a *ACL) RoleDelete(args *structs.ACLRoleDeleteRequest, reply *string) erro
 		return fmt.Errorf("Failed to apply role delete request: %v", err)
 	}
 
-	a.srv.ACLResolver.cache.RemoveRole(role.ID)
+	a.srv.cache.RemoveRole(role.ID)
 
 	*reply = role.Name
 
@@ -1532,12 +1533,12 @@ func (a *ACL) RoleResolve(args *structs.ACLRoleBatchGetRequest, reply *structs.A
 	}
 
 	// get full list of roles for this token
-	identity, roles, err := a.srv.ACLResolver.resolveTokenToIdentityAndRoles(args.Token)
+	identity, roles, err := a.srv.resolveTokenToIdentityAndRoles(args.Token)
 	if err != nil {
 		return err
 	}
 
-	entIdentity, entRoles, err := a.srv.ACLResolver.resolveEnterpriseIdentityAndRoles(identity)
+	entIdentity, entRoles, err := a.srv.resolveEnterpriseIdentityAndRoles(identity)
 	if err != nil {
 		return err
 	}
@@ -1777,7 +1778,7 @@ func (a *ACL) BindingRuleDelete(args *structs.ACLBindingRuleDeleteRequest, reply
 	}
 
 	if rule == nil {
-		if ns := args.EnterpriseMeta.NamespaceOrEmpty(); ns != "" {
+		if ns := args.NamespaceOrEmpty(); ns != "" {
 			return fmt.Errorf("binding rule not found in namespace %s: %w", ns, acl.ErrNotFound)
 		}
 		return fmt.Errorf("binding rule does not exist: %w", acl.ErrNotFound)
@@ -2025,7 +2026,7 @@ func (a *ACL) AuthMethodDelete(args *structs.ACLAuthMethodDeleteRequest, reply *
 	}
 
 	if method == nil {
-		if ns := args.EnterpriseMeta.NamespaceOrEmpty(); ns != "" {
+		if ns := args.NamespaceOrEmpty(); ns != "" {
 			return fmt.Errorf("auth method not found in namespace %s: %w", ns, acl.ErrNotFound)
 		}
 		return fmt.Errorf("auth method does not exist: %w", acl.ErrNotFound)
