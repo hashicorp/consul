@@ -22,7 +22,6 @@
             @searchPlaceholder="Type service name"
             @buildSuggestion="Use a Consul Service called '__TERM__'"
             @showCreateWhen={{action "isUnique" services}}
-            @onCreate={{action onchange "SourceName"}}
             @onChange={{action onchange "SourceName"}}
             @label="Source Service"
             @listboxAriaLabel="Available source services"
@@ -50,7 +49,6 @@
             @searchPlaceholder="Type namespace name"
             @buildSuggestion="Use a Consul Namespace called '__TERM__'"
             @showCreateWhen={{action "isUnique" nspaces}}
-            @onCreate={{action onchange "SourceNS"}}
             @onChange={{action onchange "SourceNS"}}
             @label="Source Namespace"
             @listboxAriaLabel="Available source namespaces"
@@ -78,7 +76,6 @@
             @searchPlaceholder="Type partition name"
             @buildSuggestion="Use a Consul Partition called '__TERM__'"
             @showCreateWhen={{action "isUnique" partitions}}
-            @onCreate={{action onchange "SourcePartition"}}
             @onChange={{action onchange "SourcePartition"}}
             @label="Source Partition"
             @listboxAriaLabel="Available source partitions"
@@ -105,7 +102,6 @@
             @searchPlaceholder="Type service name"
             @buildSuggestion="Use a Consul Service called '__TERM__'"
             @showCreateWhen={{action "isUnique" services}}
-            @onCreate={{action onchange "DestinationName"}}
             @onChange={{action onchange "DestinationName"}}
             @label="Destination Service"
             @listboxAriaLabel="Available destination services"
@@ -132,7 +128,6 @@
             @searchPlaceholder="Type namespace name"
             @buildSuggestion="Use a future Consul Namespace called '__TERM__'"
             @showCreateWhen={{action "isUnique" nspaces}}
-            @onCreate={{action onchange "DestinationNS"}}
             @onChange={{action onchange "DestinationNS"}}
             @label="Destination Namespace"
             @listboxAriaLabel="Available destination namespaces"
@@ -160,7 +155,6 @@
             @searchPlaceholder="Type partition name"
             @buildSuggestion="Use a future Consul Partition called '__TERM__'"
             @showCreateWhen={{action "isUnique" partitions}}
-            @onCreate={{action onchange "DestinationPartition"}}
             @onChange={{action onchange "DestinationPartition"}}
             @label="Destination Partition"
             @listboxAriaLabel="Available destination partitions"

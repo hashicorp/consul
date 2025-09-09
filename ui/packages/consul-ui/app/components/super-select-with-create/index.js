@@ -14,7 +14,6 @@ export default Component.extend({
   // Props
   options: null,
   selected: null,
-  onCreate() {},
   onChange() {},
   onFilter() {},
   onOpen() {},
@@ -125,9 +124,10 @@ export default Component.extend({
     set(this, 'isCreating', true);
     try {
       const newOption = { [this.searchField]: value };
-      yield this.onCreate(newOption);
+      // Add to options array first (optimistic update)
       (get(this, 'options') || []).pushObject(newOption);
-      if (this.onChange !== this.onCreate) this.onChange(newOption);
+      // Call onChange handler for both creation and selection
+      yield this.onChange(newOption);
       return newOption;
     } finally {
       set(this, 'isCreating', false);
