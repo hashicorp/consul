@@ -26,6 +26,7 @@ The following list outlines field hierarchy, language-specific data types, and r
   - [`Port`](#listeners-port): number | no default
   - [`Hostname`](#listeners-hostname): string | `"*"`
   - [`Protocol`](#listeners-protocol): string | `"tcp"`
+  - [`MaxRequestHeadersKB`](#listeners-maxrequestheaderskb): number | `60`
   - [`TLS`](#listeners-tls): map | none
     - [`MinVersion`](#listeners-tls-minversion): string | no default
     - [`MaxVersion`](#listeners-tls-maxversion): string | no default
@@ -73,6 +74,7 @@ Listeners = [
     Port = <external service port>
     Name = "<unique name for this listener>"
     Protocol = "<protocol used by external service>"
+    MaxRequestHeadersKB = <maximum header size in kilobytes>
     TLS = {
       MaxVersion = "<version of TLS>"
       MinVersion = "<version of TLS>"
@@ -290,6 +292,18 @@ Specifies the protocol associated with the listener.
 - Default: none
 - This field is required.
 - The data type is one of the following string values: `"tcp"` or `"http"`.
+
+### `Listeners[].MaxRequestHeadersKB`
+
+Specifies the maximum size in kilobytes for request headers sent from downstream clients to upstream services. This setting applies to HTTP-based protocols only (HTTP, HTTP/2, gRPC). When requests exceed this limit, the gateway returns an HTTP 431 (Request Header Fields Too Large) error. If not specified, uses Envoy's default limit(60KB).
+
+**Note**: This setting only takes effect when the listener protocol is set to `http`, `http2`, or `grpc` protocols. It has no effect on TCP listeners.
+
+#### Values
+
+- Default: `60` (Envoy's default value)
+- Data type: Integer
+- Valid values: `96` or unset (which uses the default of `60`)
 
 ### `Listeners[].TLS`
 
