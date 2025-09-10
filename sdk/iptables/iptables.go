@@ -103,6 +103,9 @@ type Provider interface {
 
 func runCommand(name string, args ...string) {
 	cmd := exec.Command(name, args...)
+	cmd.Stdout = os.Stderr
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Printf("Error running %s %v: %v\n", name, args, err)
