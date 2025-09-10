@@ -14,6 +14,9 @@ export default modifier(function fixSuperSelectAria(element) {
 
       if (!dropdown) {
         el.removeAttribute('aria-controls');
+        if (el.getAttribute('role') === 'combobox') {
+          el.setAttribute('aria-expanded', 'false');
+        }
       } else if (el.getAttribute('role') === 'combobox' && !el.hasAttribute('aria-expanded')) {
         el.setAttribute('aria-expanded', dropdown.offsetParent !== null ? 'true' : 'false');
       }
