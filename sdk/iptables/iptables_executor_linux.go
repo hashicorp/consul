@@ -8,7 +8,6 @@ package iptables
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"os/exec"
 )
 
