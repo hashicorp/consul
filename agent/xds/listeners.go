@@ -33,6 +33,7 @@ import (
 	"github.com/hashicorp/consul/agent/xds/config"
 	"github.com/hashicorp/consul/agent/xds/naming"
 	"github.com/hashicorp/consul/agent/xds/platform"
+	"github.com/hashicorp/consul/api"
 
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -74,6 +75,19 @@ func (s *ResourceGenerator) listenersFromSnapshot(cfgSnap *proxycfg.ConfigSnapsh
 	}
 }
 
+// Fetch agent config using Self
+func getAgentConfig() (map[string]map[string]interface{}, error) {
+	client, err := api.NewClient(api.DefaultConfig())
+	if err != nil {
+		return nil, err
+	}
+	self, err := client.Agent().Self()
+	if err != nil {
+		return nil, err
+	}
+	return self, nil
+}
+
 // listenersFromSnapshotConnectProxy returns the "listeners" for a connect proxy service
 func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	resources := make([]proto.Message, 1)
@@ -100,11 +114,29 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		if err != nil {
 			return nil, err
 		}
+		agentConfig, err := getAgentConfig()
+		if err != nil {
+			return nil, err
+		}
+		configMap, ok := agentConfig["Config"]
+		if !ok {
+			return nil, errors.New("agent config 'Config' field is not a map")
+		}
+
+		bindAddr, ok := configMap["BindAddr"].(string)
+		if !ok {
+			return nil, errors.New("BindAddr is not of type net.IP")
+		}
+
+		addr := "127.0.0.1"
+		if p := net.ParseIP(bindAddr); p != nil && p.To4() == nil {
+			addr = "::1"
+		}
 
 		opts := makeListenerOpts{
 			name:       xdscommon.OutboundListenerName,
 			accessLogs: cfgSnap.Proxy.AccessLogs,
-			addr:       "::",
+			addr:       addr,
 			port:       port,
 			direction:  envoy_core_v3.TrafficDirection_OUTBOUND,
 			logger:     s.Logger,

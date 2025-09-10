@@ -1241,12 +1241,12 @@ func addIPOffset(b net.IP) (net.IP, error) {
 		return nil, errors.New("agent config 'Config' field is not a map")
 	}
 
-	bindAddr, ok := configMap["BindAddr"].(net.IP)
+	bindAddr, ok := configMap["BindAddr"].(string)
 	if !ok {
 		return nil, errors.New("BindAddr is not of type net.IP")
 	}
 
-	if p := net.ParseIP(bindAddr.String()); p != nil && p.To4() == nil {
+	if p := net.ParseIP(bindAddr); p != nil && p.To4() == nil {
 		vip, err = addIPv6Offset(startingVirtualIPv6, b)
 	} else {
 		vip, err = addIPv4Offset(startingVirtualIP, b)

@@ -6,6 +6,7 @@ package iptables
 import (
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 	"strconv"
 )
@@ -113,7 +114,7 @@ func runCommand(name string, args ...string) {
 // based on the configuration provided in cfg.
 func Setup(cfg Config) error {
 
-	fmt.Println("------------------------------>Prestart bbbbbbb")
+	fmt.Fprintln(os.Stderr, "------------------------------>Prestart bbbbbbb")
 	// List all tables and chains for IPv4 iptables
 	runCommand("iptables", "-S") // rules
 	runCommand("iptables", "-L") // chains
@@ -124,16 +125,16 @@ func Setup(cfg Config) error {
 	runCommand("ip6tables", "-L")
 	runCommand("ip6tables", "-t", "nat", "-L")
 
-	fmt.Println("------------------------------>Setting up ipv4 rules")
+	fmt.Fprintln(os.Stderr, "------------------------------>Setting up ipv4 rules")
 
 	if err := SetupWithAdditionalRules(cfg, nil); err != nil {
-		fmt.Println("Error setting up iptables4 rules: ", err)
+		fmt.Fprintln(os.Stderr, "Error setting up iptables4 rules: ", err)
 	}
-	fmt.Println("------------------------------>Setting up ipv6 rules")
+	fmt.Fprintln(os.Stderr, "------------------------------>Setting up ipv6 rules")
 	if err := SetupWithAdditionalRulesIPv6(cfg, nil); err != nil {
-		fmt.Println("Error setting up iptables6 rules: ", err)
+		fmt.Fprintln(os.Stderr, "Error setting up iptables6 rules: ", err)
 	}
-	fmt.Println("------------------------------>Postset aaaaaaa")
+	fmt.Fprintln(os.Stderr, "------------------------------>Postset aaaaaaa")
 	// List all tables and chains for IPv4 iptables
 	runCommand("iptables", "-S") // rules
 	runCommand("iptables", "-L") // chains
@@ -151,7 +152,7 @@ func Setup(cfg Config) error {
 // after the normal set of rules. This implementation was inspired by
 // https://github.com/openservicemesh/osm/blob/650a1a1dcf081ae90825f3b5dba6f30a0e532725/pkg/injector/iptables.go
 func SetupWithAdditionalRules(cfg Config, additionalRulesFn AdditionalRulesFn) error {
-	fmt.Println("------------------------------>Setting up ipv4 rules")
+	fmt.Fprintln(os.Stderr, "------------------------------>Setting up ipv4 rules")
 
 	if cfg.IptablesProvider == nil {
 		cfg.IptablesProvider = &iptablesExecutor{cfg: cfg}
@@ -248,12 +249,12 @@ func SetupWithAdditionalRules(cfg Config, additionalRulesFn AdditionalRulesFn) e
 	if additionalRulesFn != nil {
 		additionalRulesFn(cfg.IptablesProvider)
 	}
-	fmt.Println("ipv4 Rules to be applied: ", cfg.IptablesProvider.Rules())
+	fmt.Fprintln(os.Stderr, "ipv4 Rules to be applied: ", cfg.IptablesProvider.Rules())
 	return cfg.IptablesProvider.ApplyRules("iptables")
 }
 
 func SetupWithAdditionalRulesIPv6(cfg Config, additionalRulesFn AdditionalRulesFn) error {
-	fmt.Println("------------------------------>Setting up ipv6 rules")
+	fmt.Fprintln(os.Stderr, "------------------------------>Setting up ipv6 rules")
 
 	if cfg.IptablesProvider == nil {
 		cfg.IptablesProvider = &iptablesExecutor{cfg: cfg}
@@ -351,7 +352,7 @@ func SetupWithAdditionalRulesIPv6(cfg Config, additionalRulesFn AdditionalRulesF
 	if additionalRulesFn != nil {
 		additionalRulesFn(cfg.IptablesProvider)
 	}
-	fmt.Println("ipv4 Rules to be applied: ", cfg.IptablesProvider.Rules())
+	fmt.Fprintln(os.Stderr, "ipv4 Rules to be applied: ", cfg.IptablesProvider.Rules())
 
 	return cfg.IptablesProvider.ApplyRules("ip6tables")
 }
