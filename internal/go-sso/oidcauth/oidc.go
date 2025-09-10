@@ -60,7 +60,6 @@ func (a *Authenticator) GetAuthCodeURL(ctx context.Context, redirectURI string, 
 		return "", fmt.Errorf("Error while generating AuthURL %q", err)
 	}
 
-	a.logger.Info("Url ", authURL, " Autenticator ", a)
 	return authURL, nil
 }
 
@@ -170,8 +169,6 @@ func (a *Authenticator) ClaimsFromAuthCode(ctx context.Context, stateParam, code
 	if a.config.VerboseOIDCLogging && a.logger != nil {
 		a.logger.Debug("OIDC provider response", "extracted_claims", c)
 	}
-
-	a.logger.Info("Claims ", c, " payload ", state.payload, " Autenticator ", a)
 
 	return c, state.payload, nil
 }
@@ -329,8 +326,6 @@ func (a *Authenticator) oidcRequest(nonce, redirect string, stateID string) (*oi
 	if err != nil {
 		return nil, fmt.Errorf("failed to create OIDC request: %w", err)
 	}
-
-	a.logger.Debug("Created OIDC request", "nonce", nonce)
 
 	return req, nil
 }
