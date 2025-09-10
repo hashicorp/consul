@@ -14,7 +14,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strings"
 	"sync"
 
 	"github.com/coreos/go-oidc/v3/oidc"
@@ -166,71 +165,4 @@ func (a *Authenticator) Stop() {
 		a.backgroundCtxCancel()
 		a.backgroundCtxCancel = nil
 	}
-}
-
-// String implements the fmt.Stringer interface for detailed logging of Authenticator
-func (a *Authenticator) String() string {
-	if a == nil {
-		return "Authenticator<nil>"
-	}
-
-	var details strings.Builder
-	details.WriteString("Authenticator{\n")
-
-	// Config information
-	if a.config != nil {
-		details.WriteString(fmt.Sprintf("  config: {\n"))
-		details.WriteString(fmt.Sprintf("    Type: %q\n", a.config.Type))
-		details.WriteString(fmt.Sprintf("    OIDCDiscoveryURL: %q\n", a.config.OIDCDiscoveryURL))
-		details.WriteString(fmt.Sprintf("    OIDCClientID: %q\n", a.config.OIDCClientID))
-		details.WriteString(fmt.Sprintf("    HasClientSecret: %v\n", a.config.OIDCClientSecret != ""))
-		details.WriteString(fmt.Sprintf("    AllowedRedirectURIs: %v\n", a.config.AllowedRedirectURIs))
-		details.WriteString(fmt.Sprintf("    OIDCScopes: %v\n", a.config.OIDCScopes))
-		details.WriteString(fmt.Sprintf("    BoundAudiences: %v\n", a.config.BoundAudiences))
-		details.WriteString(fmt.Sprintf("    JWTValidationPubKeys: %d keys\n", len(a.config.JWTValidationPubKeys)))
-		details.WriteString(fmt.Sprintf("    JWTSupportedAlgs: %v\n", a.config.JWTSupportedAlgs))
-		details.WriteString(fmt.Sprintf("    ClaimMappings: %v\n", a.config.ClaimMappings))
-		details.WriteString(fmt.Sprintf("    ListClaimMappings: %v\n", a.config.ListClaimMappings))
-		details.WriteString(fmt.Sprintf("    OIDCDisablePKCE: %v\n", a.config.OIDCClientUsePKCE))
-		details.WriteString(fmt.Sprintf("    VerboseOIDCLogging: %v\n", a.config.VerboseOIDCLogging))
-
-		// Client Assertion details (if available)
-		if a.config.OIDCClientAssertion != nil {
-			details.WriteString("    OIDCClientAssertion: {\n")
-			details.WriteString(fmt.Sprintf("      HasPrivateKey: %v\n",
-				a.config.OIDCClientAssertion.PrivateKey != nil &&
-					a.config.OIDCClientAssertion.PrivateKey.PemKey != ""))
-			details.WriteString(fmt.Sprintf("      Audience: %v\n", a.config.OIDCClientAssertion.Audience))
-			details.WriteString(fmt.Sprintf("      KeyAlgorithm: %q\n", a.config.OIDCClientAssertion.KeyAlgorithm))
-			details.WriteString("    }\n")
-		} else {
-			details.WriteString("    OIDCClientAssertion: <nil>\n")
-		}
-		details.WriteString("  },\n")
-	} else {
-		details.WriteString("  config: <nil>,\n")
-	}
-
-	// Provider information
-	details.WriteString(fmt.Sprintf("  provider: %v,\n", a.provider != nil))
-	details.WriteString(fmt.Sprintf("  capProvider: %v,\n", a.capProvider != nil))
-	details.WriteString(fmt.Sprintf("  keySet: %v,\n", a.keySet != nil))
-	details.WriteString(fmt.Sprintf("  httpClient: %v,\n", a.httpClient != nil))
-
-	// OIDC state information
-	stateCount := 0
-	if a.oidcStates != nil {
-		stateCount = a.oidcStates.ItemCount()
-	}
-	details.WriteString(fmt.Sprintf("  oidcStates: %d active states,\n", stateCount))
-
-	// Background context
-	details.WriteString(fmt.Sprintf("  backgroundCtx: %v,\n", a.backgroundCtx != nil))
-	details.WriteString(fmt.Sprintf("  backgroundCtxCancel: %v,\n", a.backgroundCtxCancel != nil))
-
-	// JWT info
-	details.WriteString(fmt.Sprintf("  parsedJWTPubKeys: %d keys\n", len(a.parsedJWTPubKeys)))
-	details.WriteString("}")
-
-	return details.String()
 }
