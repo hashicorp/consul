@@ -144,7 +144,7 @@ func TestOIDC_AuthURL(t *testing.T) {
 
 		oa.config.OIDCClientUsePKCE = new(bool) // PKCE enabled
 		*oa.config.OIDCClientUsePKCE = true
-		authURL2, err := oa.GetAuthCodeURL(
+		authURL2, _ := oa.GetAuthCodeURL(
 			context.Background(),
 			"https://example.com",
 			map[string]string{"foo": "bar"},
