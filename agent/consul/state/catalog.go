@@ -1229,32 +1229,56 @@ func updateVirtualIPMaxIndexes(txn WriteTxn, idx uint64, partition, peerName str
 	return nil
 }
 
-func addIPOffset(b net.IP) (net.IP, error) {
-	var vip net.IP
-	var err error
+func addIPOffset(ip net.IP) (net.IP, error) {
+	bindAddr, err := getAgentBindAddr()
+	if err != nil {
+		return nil, err
+	}
 
+	var vip net.IP
+	switch {
+	case bindAddr.To4() == nil: // IPv6
+		vip, err = addIPv6Offset(startingVirtualIPv6, ip)
+	case bindAddr.To16() == nil: // IPv4
+		vip, err = addIPv4Offset(startingVirtualIP, ip)
+	default:
+		err = fmt.Errorf("invalid bind address: %v", bindAddr)
+	}
+
+	return vip, err
+}
+
+func getAgentBindAddr() (net.IP, error) {
 	agentConfig, err := getAgentConfig()
 	if err != nil {
 		return nil, err
 	}
+
 	configMap, ok := agentConfig["Config"]
 	if !ok {
 		return nil, errors.New("agent config 'Config' field is not a map")
 	}
 
-	bindAddr, ok := configMap["BindAddr"].(net.IP)
+	bindAddr, ok := configMap["BindAddr"]
+	if !ok {
+		return nil, errors.New("BindAddr is not set in agent config")
+	}
+
+	ip, ok := bindAddr.(net.IP)
 	if !ok {
 		return nil, errors.New("BindAddr is not of type net.IP")
 	}
 
-	br := net.ParseIP(string(bindAddr))
+	return ip, nil
+}
 
-	if p := net.ParseIP(br.String()); p != nil && p.To4() == nil {
-		vip, err = addIPv6Offset(startingVirtualIPv6, b)
-	} else {
-		vip, err = addIPv4Offset(startingVirtualIP, b)
+func isDualStack() (bool, error) {
+	bindIP, err := getAgentBindAddr()
+	if err != nil {
+		return false, err
 	}
-	return vip, err
+
+	return bindIP.To4() == nil, nil
 }
 
 // addIPv6Offset adds two IPv6 address byte slices (a and b).
