@@ -31,7 +31,7 @@ func (i *iptablesExecutor) AddRule(name string, args ...string) {
 }
 
 func (i *iptablesExecutor) ApplyRules(command string) error {
-	fmt.Fprintln(os.Stderr, "------------------------------>ApplyRules  iptables", command)
+	// fmt.Fprintln(os.Stderr, "------------------------------>ApplyRules  iptables", command)
 	_, err := exec.LookPath(command)
 	if err != nil {
 		return err
@@ -44,11 +44,11 @@ func (i *iptablesExecutor) ApplyRules(command string) error {
 		err := cmd.Run()
 		if err != nil {
 			err := fmt.Errorf("failed to run command: %s, err: %v, output: %s", cmd.String(), err, string(cmdOutput.Bytes()))
-			fmt.Fprintln(os.Stderr, "------------------------------>ApplyRules error", err)
+			// fmt.Fprintln(os.Stderr, "------------------------------>ApplyRules error", err)
 			return err
 		}
 	}
-	fmt.Fprintln(os.Stderr, "------------------------------>ApplyRules done", command)
+	// fmt.Fprintln(os.Stderr, "------------------------------>ApplyRules done", command)
 
 	return nil
 }
