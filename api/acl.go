@@ -10,8 +10,6 @@ import (
 	"net/url"
 	"time"
 
-
-	"github.com/hashicorp/consul/internal/go-sso/oidcauth"
 	"github.com/go-viper/mapstructure/v2"
 )
 
@@ -485,14 +483,14 @@ type OIDCAuthMethodConfig struct {
 	OIDCDiscoveryURL    string            `json:",omitempty"`
 	OIDCDiscoveryCACert string            `json:",omitempty"`
 	// just for type=oidc
-	OIDCClientID        string                        `json:",omitempty"`
-	OIDCClientSecret    string                        `json:",omitempty"`
-	OIDCClientAssertion *oidcauth.OIDCClientAssertion `json:",omitempty"`
-	OIDCClientUsePKCE   *bool                         `json:",omitempty"`
-	OIDCScopes          []string                      `json:",omitempty"`
-	OIDCACRValues       []string                      `json:",omitempty"`
-	AllowedRedirectURIs []string                      `json:",omitempty"`
-	VerboseOIDCLogging  bool                          `json:",omitempty"`
+	OIDCClientID        string               `json:",omitempty"`
+	OIDCClientSecret    string               `json:",omitempty"`
+	OIDCClientAssertion *OIDCClientAssertion `json:",omitempty"`
+	OIDCClientUsePKCE   *bool                `json:",omitempty"`
+	OIDCScopes          []string             `json:",omitempty"`
+	OIDCACRValues       []string             `json:",omitempty"`
+	AllowedRedirectURIs []string             `json:",omitempty"`
+	VerboseOIDCLogging  bool                 `json:",omitempty"`
 	// just for type=jwt
 	JWKSURL              string        `json:",omitempty"`
 	JWKSCACert           string        `json:",omitempty"`
@@ -532,6 +530,16 @@ func (c *OIDCAuthMethodConfig) RenderToConfig() map[string]interface{} {
 		"NotBeforeLeeway":      c.NotBeforeLeeway,
 		"ClockSkewLeeway":      c.ClockSkewLeeway,
 	}
+}
+
+type OIDCClientAssertion struct {
+	Audience     []string
+	PrivateKey   *OIDCClientAssertionKey
+	KeyAlgorithm string
+}
+
+type OIDCClientAssertionKey struct {
+	PemKey string
 }
 
 type ACLLoginParams struct {
