@@ -1731,6 +1731,7 @@ func (b *builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 		TaggedAddresses:   b.svcTaggedAddresses(v.TaggedAddresses),
 		Meta:              meta,
 		Port:              intVal(v.Port),
+		Ports:             b.portsVal(v.Ports),
 		SocketPath:        stringVal(v.SocketPath),
 		Token:             stringVal(v.Token),
 		EnableTagOverride: boolVal(v.EnableTagOverride),
@@ -1751,6 +1752,19 @@ func (b *builder) serviceLocalityVal(l *Locality) *structs.Locality {
 		Region: stringVal(l.Region),
 		Zone:   stringVal(l.Zone),
 	}
+}
+
+func (b *builder) portsVal(ports ServicePorts) structs.ServicePorts {
+	var servicePorts structs.ServicePorts
+	for _, port := range ports {
+		servicePorts = append(servicePorts, structs.ServicePort{
+			Name:    stringVal(port.Name),
+			Port:    intVal(port.Port),
+			Default: boolVal(port.Default),
+		})
+	}
+
+	return servicePorts
 }
 
 func (b *builder) serviceKindVal(v *string) structs.ServiceKind {
