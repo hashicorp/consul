@@ -305,6 +305,17 @@ func buildAgentService(s *structs.NodeService, dc string) api.AgentService {
 		}
 	}
 
+	servicePorts := make(api.ServicePorts, 0, len(s.Ports))
+	if len(s.Ports) > 0 {
+		for _, p := range s.Ports {
+			servicePorts = append(servicePorts, api.ServicePort{
+				Name:    p.Name,
+				Port:    p.Port,
+				Default: p.Default,
+			})
+		}
+	}
+
 	as := api.AgentService{
 		Kind:              api.ServiceKind(s.Kind),
 		ID:                s.ID,
@@ -312,6 +323,7 @@ func buildAgentService(s *structs.NodeService, dc string) api.AgentService {
 		Tags:              s.Tags,
 		Meta:              s.Meta,
 		Port:              s.Port,
+		Ports:             servicePorts,
 		Address:           s.Address,
 		SocketPath:        s.SocketPath,
 		TaggedAddresses:   taggedAddrs,
@@ -1193,6 +1205,14 @@ func (s *HTTPHandlers) AgentRegisterService(resp http.ResponseWriter, req *http.
 
 	// Get the node service.
 	ns := args.NodeService()
+
+	if len(ns.Ports) < 0 && ns.Port != 0 {
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Cannot specify both Port and Ports"}
+	}
+
+	if err := ns.Ports.Validate(); err != nil {
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: err.Error()}
+	}
 
 	// We currently do not persist locality inherited from the node service
 	// (it is inherited at runtime). See agent/proxycfg-sources/local/sync.go.
