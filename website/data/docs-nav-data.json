@@ -1624,10 +1624,6 @@
                 "path": "connect/proxy/transparent-proxy"
               },
               {
-                "title": "Enable transparent proxy",
-                "path": "connect/proxy/transparent-proxy/enable"
-              },
-              {
                 "title": "Kubernetes",
                 "path": "connect/proxy/transparent-proxy/k8s"
               },
