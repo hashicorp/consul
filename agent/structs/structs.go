@@ -1082,6 +1082,7 @@ type ServiceNode struct {
 	ServiceWeights           Weights
 	ServiceMeta              map[string]string
 	ServicePort              int
+	ServicePorts             ServicePorts
 	ServiceSocketPath        string
 	ServiceEnableTagOverride bool
 	ServiceProxy             ConnectProxyConfig
@@ -1140,6 +1141,7 @@ func (s *ServiceNode) PartialClone() *ServiceNode {
 		ServiceSocketPath:        s.ServiceSocketPath,
 		ServiceTaggedAddresses:   svcTaggedAddrs,
 		ServicePort:              s.ServicePort,
+		ServicePorts:             s.ServicePorts,
 		ServiceMeta:              nsmeta,
 		ServiceWeights:           s.ServiceWeights,
 		ServiceEnableTagOverride: s.ServiceEnableTagOverride,
@@ -1165,6 +1167,7 @@ func (s *ServiceNode) ToNodeService() *NodeService {
 		Address:           s.ServiceAddress,
 		TaggedAddresses:   s.ServiceTaggedAddresses,
 		Port:              s.ServicePort,
+		Ports:             s.ServicePorts,
 		SocketPath:        s.ServiceSocketPath,
 		Meta:              s.ServiceMeta,
 		Weights:           &s.ServiceWeights,
@@ -1297,6 +1300,77 @@ type ServiceAddress struct {
 	Port    int
 }
 
+type ServicePort struct {
+	Name    string
+	Port    int
+	Default bool
+}
+
+type ServicePorts []ServicePort
+
+func (sp ServicePorts) Validate() error {
+	if len(sp) == 0 {
+		return nil
+	}
+
+	seenName := make(map[string]struct{}, len(sp))
+	seenPort := make(map[int]struct{}, len(sp))
+	seenDefault := false
+	for _, p := range sp {
+		if strings.TrimSpace(p.Name) == "" {
+			return fmt.Errorf("Ports.Name cannot be empty")
+		}
+
+		if p.Port == 0 {
+			return fmt.Errorf("Ports.Port must be non-zero")
+		}
+
+		_, ok := seenName[p.Name]
+		if ok {
+			return fmt.Errorf("Ports.Name %q has to be unique", p.Name)
+		}
+
+		seenName[p.Name] = struct{}{}
+
+		_, ok = seenPort[p.Port]
+		if ok {
+			return fmt.Errorf("Ports.Port %d has to be unique", p.Port)
+		}
+		seenPort[p.Port] = struct{}{}
+
+		if p.Default {
+			seenDefault = true
+		}
+	}
+
+	if !seenDefault {
+		return fmt.Errorf("One of the Ports must be marked as Default")
+	}
+
+	return nil
+}
+
+// Two service ports are the same if they have the same combination of name and port
+func (sp ServicePorts) IsSame(other ServicePorts) bool {
+	if len(sp) != len(other) {
+		return false
+	}
+
+	seen := make(map[string]int, len(sp))
+	for _, p := range sp {
+		seen[p.Name] = p.Port
+	}
+
+	for _, p := range other {
+		port, ok := seen[p.Name]
+		if !ok || port != p.Port {
+			return false
+		}
+	}
+
+	return true
+}
+
 func (a ServiceAddress) ToAPIServiceAddress() api.ServiceAddress {
 	return api.ServiceAddress{Address: a.Address, Port: a.Port}
 }
@@ -1316,8 +1390,9 @@ type NodeService struct {
 	Address           string
 	TaggedAddresses   map[string]ServiceAddress `json:",omitempty"`
 	Meta              map[string]string
-	Port              int    `json:",omitempty"`
-	SocketPath        string `json:",omitempty"` // TODO This might be integrated into Address somehow, but not sure about the ergonomics. Only one of (address,port) or socketpath can be defined.
+	Port              int          `json:",omitempty"`
+	Ports             ServicePorts `json:",omitempty"`
+	SocketPath        string       `json:",omitempty"` // TODO This might be integrated into Address somehow, but not sure about the ergonomics. Only one of (address,port) or socketpath can be defined.
 	Weights           *Weights
 	EnableTagOverride bool
 	Locality          *Locality `json:",omitempty" bexpr:"-"`
@@ -1382,6 +1457,20 @@ func (ns *NodeService) FillAuthzContext(ctx *acl.AuthorizerContext) {
 	ctx.Peer = ns.PeerName
 
 	ns.EnterpriseMeta.FillAuthzContext(ctx)
+}
+
+func (ns *NodeService) DefaultPort() int {
+	if len(ns.Ports) == 0 {
+		return ns.Port
+	}
+
+	for _, p := range ns.Ports {
+		if p.Default {
+			return p.Port
+		}
+	}
+
+	return 0
 }
 
 func (ns *NodeService) BestAddress(wan bool) (string, int) {
@@ -1526,6 +1615,14 @@ func (s *NodeService) ValidateForAgent() error {
 	var result error
 
 	// TODO(partitions): remember to double check that this doesn't cross partition boundaries
+
+	if len(s.Ports) > 0 && s.Port != 0 {
+		result = multierror.Append(result, fmt.Errorf("Cannot set both Port and Ports"))
+	}
+
+	if err := s.Ports.Validate(); err != nil {
+		result = multierror.Append(result, err)
+	}
 
 	// ConnectProxy validation
 	if s.Kind == ServiceKindConnectProxy {
@@ -1707,6 +1804,7 @@ func (s *NodeService) IsSame(other *NodeService) bool {
 		!reflect.DeepEqual(s.Tags, other.Tags) ||
 		s.Address != other.Address ||
 		s.Port != other.Port ||
+		!s.Ports.IsSame(other.Ports) ||
 		s.SocketPath != other.SocketPath ||
 		!reflect.DeepEqual(s.TaggedAddresses, other.TaggedAddresses) ||
 		!reflect.DeepEqual(s.Weights, other.Weights) ||
@@ -1746,6 +1844,7 @@ func (s *ServiceNode) IsSameService(other *ServiceNode) bool {
 		s.ServiceAddress != other.ServiceAddress ||
 		!reflect.DeepEqual(s.ServiceTaggedAddresses, other.ServiceTaggedAddresses) ||
 		s.ServicePort != other.ServicePort ||
+		!s.ServicePorts.IsSame(other.ServicePorts) ||
 		!reflect.DeepEqual(s.ServiceMeta, other.ServiceMeta) ||
 		!reflect.DeepEqual(s.ServiceWeights, other.ServiceWeights) ||
 		s.ServiceEnableTagOverride != other.ServiceEnableTagOverride ||
@@ -1781,6 +1880,7 @@ func (s *NodeService) ToServiceNode(node string) *ServiceNode {
 		ServiceAddress:           s.Address,
 		ServiceTaggedAddresses:   s.TaggedAddresses,
 		ServicePort:              s.Port,
+		ServicePorts:             s.Ports,
 		ServiceSocketPath:        s.SocketPath,
 		ServiceMeta:              s.Meta,
 		ServiceWeights:           theWeights,

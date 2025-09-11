@@ -82,6 +82,14 @@ type AgentWeights struct {
 	Warning int
 }
 
+type ServicePort struct {
+	Name    string
+	Port    int
+	Default bool
+}
+
+type ServicePorts []ServicePort
+
 // AgentService represents a service known to the agent
 type AgentService struct {
 	Kind              ServiceKind `json:",omitempty"`
@@ -90,6 +98,7 @@ type AgentService struct {
 	Tags              []string
 	Meta              map[string]string
 	Port              int
+	Ports             ServicePorts
 	Address           string
 	SocketPath        string                    `json:",omitempty"`
 	TaggedAddresses   map[string]ServiceAddress `json:",omitempty"`
@@ -285,6 +294,7 @@ type AgentServiceRegistration struct {
 	Name              string                    `json:",omitempty"`
 	Tags              []string                  `json:",omitempty"`
 	Port              int                       `json:",omitempty"`
+	Ports             ServicePorts              `json:",omitempty"`
 	Address           string                    `json:",omitempty"`
 	SocketPath        string                    `json:",omitempty"`
 	TaggedAddresses   map[string]ServiceAddress `json:",omitempty"`
