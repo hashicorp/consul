@@ -6,6 +6,8 @@ package state
 import (
 	"errors"
 	"fmt"
+	"github.com/hashicorp/consul/agent/netutil"
+	"github.com/hashicorp/consul/api"
 	"net"
 	"reflect"
 	"slices"
@@ -17,7 +19,6 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/maps"
 	"github.com/hashicorp/consul/lib/stringslice"
@@ -1230,7 +1231,7 @@ func updateVirtualIPMaxIndexes(txn WriteTxn, idx uint64, partition, peerName str
 }
 
 func addIPOffset(ip net.IP) (net.IP, error) {
-	bindAddr, err := getAgentBindAddr()
+	bindAddr, err := netutil.GetAgentBindAddr()
 	if err != nil {
 		return nil, err
 	}
@@ -1249,7 +1250,7 @@ func addIPOffset(ip net.IP) (net.IP, error) {
 }
 
 func getAgentBindAddr() (net.IP, error) {
-	agentConfig, err := getAgentConfig()
+	agentConfig, err := netutil.GetAgentConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -1270,15 +1271,6 @@ func getAgentBindAddr() (net.IP, error) {
 	}
 
 	return ip, nil
-}
-
-func isDualStack() (bool, error) {
-	bindIP, err := getAgentBindAddr()
-	if err != nil {
-		return false, err
-	}
-
-	return bindIP.To4() == nil, nil
 }
 
 // addIPv6Offset adds two IPv6 address byte slices (a and b).
@@ -5210,17 +5202,4 @@ func (s *Store) CatalogDump() (*structs.CatalogContents, error) {
 	}
 
 	return contents, nil
-}
-
-// Fetch agent config using Self
-func getAgentConfig() (map[string]map[string]interface{}, error) {
-	client, err := api.NewClient(api.DefaultConfig())
-	if err != nil {
-		return nil, err
-	}
-	self, err := client.Agent().Self()
-	if err != nil {
-		return nil, err
-	}
-	return self, nil
 }
