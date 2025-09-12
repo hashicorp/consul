@@ -14,15 +14,18 @@ on:
       - main
       - release/*
 
+env:
+  BACKPORT_ERROR_LABEL: error/backport-error/merge-commit-found
+
 jobs:
   # checks that a backport label is present for a PR
   backport-check:
     # If there's a `pr/no-backport` label we ignore this check. Also, we ignore PRs created by the bot assigned to `backport-assistant`
     if: "! ( contains(github.event.pull_request.labels.*.name, 'pr/no-backport') || github.event.pull_request.user.login == 'hc-github-team-consul-core' )"
     runs-on: ubuntu-latest
-
     steps:
       - name: Check for Backport Label
+        id: check_backport
         run: |
           labels="${{join(github.event.pull_request.labels.*.name, ', ') }}"
           if [[ "$labels" =~ .*"backport/".* ]]; then
@@ -33,3 +36,181 @@ jobs:
           echo "Did not find a backport label matching the pattern 'backport/*' and the 'pr/no-backport' label was not applied. Reference - https://github.com/hashicorp/consul/pull/16567"
           exit 1
 
+  get-pr-info:
+    runs-on: ubuntu-latest
+    needs: backport-check
+    outputs:
+      has_no_backport: ${{ steps.check_label.outputs.has_no_backport }}
+      pr_number: ${{ steps.check_label.outputs.pr_number }}
+      pull_request_ref: ${{ steps.check_label.outputs.pull_request_ref }}
+      pull_request_repo: ${{ steps.check_label.outputs.pull_request_repo }}
+    steps:
+      - name: Get PR information and check labels
+        id: check_label
+        uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410
+        with:
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            if (!prNumber) {
+              console.log('No PR associated with this workflow run, skipping checks.');
+              return;
+            }
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber
+            });
+            const hasNoBackport = pr.labels.some(label => label.name === 'pr/no-backport');
+            console.log('PR has no-backport label:', hasNoBackport);
+            core.setOutput('has_no_backport', hasNoBackport);
+            core.setOutput('pr_number', prNumber);
+            core.setOutput('pull_request_ref', pr.head.ref);
+            core.setOutput('pull_request_repo', `${pr.head.repo.owner.login}/${pr.head.repo.name}`);
+
+  check-pr-condition:
+    runs-on: ubuntu-latest
+    needs: get-pr-info
+    steps:
+      - name: Fetch repository history
+        if: needs.get-pr-info.outputs.has_no_backport == 'false'
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+        with:
+          fetch-depth: 0
+          ref: ${{ needs.get-pr-info.outputs.pull_request_ref }}
+          repository: ${{ needs.get-pr-info.outputs.pull_request_repo }}
+
+      - name: Check for merge commits
+        id: check_merges
+        if: needs.get-pr-info.outputs.has_no_backport == 'false'
+        run: |
+          BASE_REF="${{ github.event.pull_request.base.ref }}"
+          MERGE_COMMITS=$(git log --merges --oneline origin/$BASE_REF..HEAD)
+          if [ -n "$MERGE_COMMITS" ]; then
+            echo "::ERROR::Merge commits found."
+            echo "merge_commit_found=true" >> $GITHUB_OUTPUT
+            echo "MERGE_COMMIT_IDS<<EOF" >> $GITHUB_OUTPUT
+            echo "$MERGE_COMMITS" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "::INFO::Merge commits not found."
+            echo "merge_commit_found=false" >> $GITHUB_OUTPUT
+          fi
+      - name: Add 'backport-error' label and comment
+        if: steps.check_merges.outputs.merge_commit_found == 'true' && needs.get-pr-info.outputs.has_no_backport == 'false'
+        uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNumber = ${{ needs.get-pr-info.outputs.pr_number }};
+            const labelName = '${{ env.BACKPORT_ERROR_LABEL }}';
+            const commentBody = `
+            🚨 **AUTOMATED CHECK: MERGE COMMITS FOUND** 🚨
+            
+            This pull request contains merge commits. The **\`${labelName}\`** label has been added.
+            
+            **Found Commits:**
+            \`\`\`
+            ${{ steps.check_merges.outputs.MERGE_COMMIT_IDS }}
+            \`\`\`
+            
+            **To fix this:**
+            1. Rebase your branch: \`git rebase -i main\`
+            2. Remove the merge commits during interactive rebase
+            3. Force push: \`git push --force-with-lease\`
+            
+            **Please mark this PR as draft manually until the merge commits are resolved.**
+            `;
+            
+            await github.rest.issues.addLabels({ 
+              owner: context.repo.owner, 
+              repo: context.repo.repo, 
+              issue_number: prNumber, 
+              labels: [labelName] 
+            });
+            // Check if comment already exists and update it, otherwise create new one
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber
+            });
+            
+            const commentPrefix = '🚨 **AUTOMATED CHECK: MERGE COMMITS FOUND** 🚨';
+            const existingComment = comments.find(comment => comment.body.includes(commentPrefix));
+            
+            if (existingComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+                body: commentBody
+              });
+              console.log('Updated existing merge commit comment');
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({ 
+                owner: context.repo.owner, 
+                repo: context.repo.repo, 
+                issue_number: prNumber, 
+                body: commentBody 
+              });
+              console.log('Created new merge commit comment');
+            }
+            // Close PR when merge commits are found
+            // Fail the workflow to prevent merging
+            console.log('🚫 WORKFLOW FAILED: Merge commits detected in PR');
+            console.log('This PR cannot be merged until merge commits are removed');
+            process.exit(1);  // This will fail the workflow
+
+      - name: Remove 'backport-error' label and comment
+        if: steps.check_merges.outputs.merge_commit_found != 'true' && needs.get-pr-info.outputs.has_no_backport == 'false'
+        uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNumber = ${{ needs.get-pr-info.outputs.pr_number }};
+            const commentPrefix = '🚨 **AUTOMATED CHECK: MERGE COMMITS FOUND** 🚨';
+            const labelName = '${{ env.BACKPORT_ERROR_LABEL }}';
+
+            try {
+              // Get PR details to check if it's draft
+              const { data: pr } = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber
+              });
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber
+              });
+              const botComments = comments.filter(comment => comment.body.includes(commentPrefix));
+            
+              if (botComments.length > 0) {
+                console.log(`Found ${botComments.length} merge commit comment(s) to remove`);
+                for (const botComment of botComments) {
+                  try {
+                    await github.rest.issues.deleteComment({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      comment_id: botComment.id
+                    });
+                    console.log(`Deleted merge commit comment (ID: ${botComment.id})`);
+                  } catch (error) {
+                    console.log(`Could not delete comment ${botComment.id}: ${error.message}`);
+                  }
+                }
+                console.log('All merge commit comments successfully removed.');
+              } else {
+                console.log('No merge commit comments found to remove.');
+              }
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                name: labelName
+              });
+              console.log('do not merge label successfully removed.');
+            } catch (error) {
+              console.log('Comment or label not found, skipping.');
+            }
