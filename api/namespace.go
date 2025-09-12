@@ -170,7 +170,11 @@ func (n *Namespaces) Read(name string, q *QueryOptions) (*Namespace, *QueryMeta,
 	}
 
 	qm := &QueryMeta{}
-	parseQueryMeta(resp, qm)
+	err = parseQueryMeta(resp, qm)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	qm.RequestTime = rtt
 
 	if !found {
@@ -213,7 +217,10 @@ func (n *Namespaces) List(q *QueryOptions) ([]*Namespace, *QueryMeta, error) {
 	}
 
 	qm := &QueryMeta{}
-	parseQueryMeta(resp, qm)
+	err = parseQueryMeta(resp, qm)
+	if err != nil {
+		return nil, nil, err
+	}
 	qm.RequestTime = rtt
 
 	if err := decodeBody(resp, &out); err != nil {
