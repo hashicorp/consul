@@ -110,6 +110,7 @@ func New(c *Config, logger hclog.Logger) (*Authenticator, error) {
 			}
 		}
 		// Use CAP's OIDC provider to leverage its built-in support for
+		// both standard client secret and JWT assertion authentication methods
 		providerConfig, err := capOidc.NewConfig(
 			a.config.OIDCDiscoveryURL,
 			a.config.OIDCClientID,

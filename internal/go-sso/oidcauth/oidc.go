@@ -11,8 +11,6 @@ import (
 	"strings"
 	"time"
 
-	// HashiCorp CAP (Cloud Authentication Primitives) library for OIDC flows
-	// Provides enhanced OIDC support including private key JWT client authentication
 	"github.com/hashicorp/cap/oidc"
 	cass "github.com/hashicorp/cap/oidc/clientassertion"
 
@@ -91,10 +89,6 @@ func (a *Authenticator) ClaimsFromAuthCode(ctx context.Context, stateParam, code
 		}
 	}
 
-	// Use HashiCorp CAP provider for token exchange
-	// This provider supports private key JWT client authentication if configured
-	provider := a.capProvider
-
 	// Use the stored request object from the initial authorization request
 	if state.request == nil {
 		a.logger.Error("Request object not found in state", "stateParam", stateParam)
@@ -102,6 +96,10 @@ func (a *Authenticator) ClaimsFromAuthCode(ctx context.Context, stateParam, code
 			Err: fmt.Errorf("missing request object in OAuth state"),
 		}
 	}
+
+	// Use HashiCorp CAP provider for token exchange
+	// This provider supports private key JWT client authentication if configured
+	provider := a.capProvider
 
 	tokens, err := provider.Exchange(ctx, state.request, stateParam, code)
 	if err != nil {
