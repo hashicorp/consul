@@ -255,7 +255,6 @@ jobs:
     uses: ./.github/workflows/reusable-unit.yml
     with:
       directory: .
-      runner-count: 1
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
       go-tags: ""
