@@ -252,7 +252,7 @@ jobs:
     - setup
     - get-go-version
     - dev-build
-    uses: ./.github/workflows/reusable-unit-split.yml
+    uses: ./.github/workflows/reusable-unit.yml
     with:
       directory: .
       runner-count: 1
