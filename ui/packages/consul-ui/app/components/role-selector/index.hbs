@@ -150,56 +150,37 @@ as |modal|>
         </td>
       </BlockSlot>
       <BlockSlot @name="actions" as |index change checked|>
-        <PopoverMenu @expanded={{if (eq checked index) true false}} @onchange={{action change index}} @keyboardAccess={{false}}>
+        <PopoverMenu @expanded={{if (eq checked index) true false}} @onchange={{action change index}} @keyboardAccess={{true}} as |components|>
           <BlockSlot @name="trigger">
             More
           </BlockSlot>
           <BlockSlot @name="menu" as |confirm send keypressClick|>
-              <li role="none">
-                <a role="menuitem" tabindex="-1" href={{href-to 'dc.acls.roles.edit' item.ID}}>
-{{#if (can "edit role" item=item)}}
-                  Edit
-{{else}}
-                  View
-{{/if}}
-                </a>
-              </li>
-{{#if (not disabled)}}
-              <li role="none" class="dangerous">
-                <label for={{confirm}} role="menuitem" tabindex="-1" onkeypress={{keypressClick}} data-test-delete>Remove</label>
-                <div role="menu">
-                  <InformedAction
-                    class="warning"
-                  >
-                    <:header>
-                      Confirm Remove
-                    </:header>
-                    <:body>
-                      <p>
-                        Are you sure you want to remove this role?
-                      </p>
-                    </:body>
-                    <:actions as |Actions|>
-                      <Actions.Action class="dangerous">
-                        <Action
-                          tabindex="-1"
-                          {{on 'click' (action send 'remove' item items)}}
-                        >
-                          Remove
-                        </Action>
-                      </Actions.Action>
-                      <Actions.Action>
-                        <Action
-                          @for={{confirm}}
-                        >
-                          Cancel
-                        </Action>
-                      </Actions.Action>
-                    </:actions>
-                  </InformedAction>
-                </div>
-              </li>
-{{/if}}
+              <components.MenuItem @href={{href-to 'dc.acls.roles.edit' item.ID}}>
+                <BlockSlot @name="label">
+                  {{#if (can "edit role" item=item)}}
+                    Edit
+                  {{else}}
+                    View
+                  {{/if}}
+                </BlockSlot>
+              </components.MenuItem>
+
+            {{#if (not disabled)}}
+              <components.MenuItem class="dangerous" @onclick={{action send 'remove' item items}}>
+                <BlockSlot @name="label">
+                  Remove
+                </BlockSlot>
+                <BlockSlot @name="confirm-header">
+                  Confirm Remove
+                </BlockSlot>
+                <BlockSlot @name="confirm-body">
+                  Are you sure you want to remove this role?
+                </BlockSlot>
+                <BlockSlot @name="confirm-footer" as |Params|>
+                  <Params.button @text='Remove' {{on 'click' Params.confirmAction}} />
+                </BlockSlot>
+              </components.MenuItem>
+            {{/if}}
           </BlockSlot>
         </PopoverMenu>
       </BlockSlot>
