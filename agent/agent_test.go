@@ -6468,3 +6468,46 @@ func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
 		t.Fatalf("assertion failed: values are not equal\n--- expected\n+++ actual\n%v", diff)
 	}
 }
+
+func TestAgent_HTTPServerTimeouts(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	// Test with custom timeout configuration
+	a := NewTestAgent(t, `
+		http_config = {
+			read_timeout = "5s"
+			read_header_timeout = "2s"
+			write_timeout = "5s"
+			idle_timeout = "60s"
+		}
+	`)
+	defer a.Shutdown()
+
+	// Verify timeout values are configured correctly
+	require.Equal(t, 5*time.Second, a.config.HTTPReadTimeout)
+	require.Equal(t, 2*time.Second, a.config.HTTPReadHeaderTimeout)
+	require.Equal(t, 5*time.Second, a.config.HTTPWriteTimeout)
+	require.Equal(t, 60*time.Second, a.config.HTTPIdleTimeout)
+}
+
+func TestAgent_HTTPServerDefaultTimeouts(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	// Test with default timeout configuration (no explicit timeouts set)
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+
+	// Verify default timeout values are applied
+	require.Equal(t, 30*time.Second, a.config.HTTPReadTimeout)
+	require.Equal(t, 10*time.Second, a.config.HTTPReadHeaderTimeout)
+	require.Equal(t, 30*time.Second, a.config.HTTPWriteTimeout)
+	require.Equal(t, 120*time.Second, a.config.HTTPIdleTimeout)
+}
