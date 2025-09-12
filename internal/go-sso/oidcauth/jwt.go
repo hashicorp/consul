@@ -211,7 +211,7 @@ func parsePublicKeyPEM(data []byte) (interface{}, error) {
 }
 
 func (a *Authenticator) verifyOIDCToken(ctx context.Context, rawToken string) (map[string]interface{}, error) {
-	allClaims := make(map[string]interface{})
+	allClaims := make(map[string]any)
 
 	oidcConfig := &oidc.Config{
 		SupportedSigningAlgs: a.config.JWTSupportedAlgs,

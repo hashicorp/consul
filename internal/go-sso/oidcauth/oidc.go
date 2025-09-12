@@ -120,7 +120,7 @@ func (a *Authenticator) ClaimsFromAuthCode(ctx context.Context, stateParam, code
 		a.logger.Debug("OIDC provider response", "ID token", idToken)
 	}
 
-	var allClaims map[string]interface{}
+	var allClaims map[string]any
 	if err := idToken.Claims(&allClaims); err != nil {
 		return nil, nil, &TokenVerificationFailedError{
 			Err: err,
