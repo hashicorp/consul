@@ -10,6 +10,11 @@ import (
 	"github.com/hashicorp/consul/api"
 )
 
+// GetAgentConfigFunc is the function type for getting agent config
+var GetAgentConfigFunc = GetAgentConfig
+
+var GetAgentBindAddrFunc = GetAgentBindAddr
+
 // GetAgentConfig retrieves the agent's configuration using the local Consul agent's API.
 func GetAgentConfig() (map[string]map[string]interface{}, error) {
 	client, err := api.NewClient(api.DefaultConfig())
@@ -27,7 +32,7 @@ func GetAgentConfig() (map[string]map[string]interface{}, error) {
 
 // GetAgentBindAddr retrieves the bind address from the agent's configuration.
 func GetAgentBindAddr() (net.IP, error) {
-	agentConfig, err := GetAgentConfig()
+	agentConfig, err := GetAgentConfigFunc()
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +54,7 @@ func GetAgentBindAddr() (net.IP, error) {
 // It returns true if the agent is running in dual-stack mode, false otherwise.
 // An error is returned if the agent's bind address cannot be determined.
 func IsDualStack() (bool, error) {
-	bindIP, err := GetAgentBindAddr()
+	bindIP, err := GetAgentBindAddrFunc()
 	if err != nil {
 		return false, err
 	}
