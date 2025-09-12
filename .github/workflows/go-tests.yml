@@ -256,7 +256,7 @@ jobs:
     with:
       directory: .
       runner-count: 3
-      runs-on: ${{ compute-xl }}
+      runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
       go-tags: ""
       go-version: ${{ needs.get-go-version.outputs.go-version }}
