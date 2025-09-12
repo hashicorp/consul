@@ -255,7 +255,7 @@ jobs:
     uses: ./.github/workflows/reusable-unit-split.yml
     with:
       directory: .
-      runner-count: 3
+      runner-count: 6
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       go-tags: ""
