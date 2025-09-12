@@ -120,6 +120,8 @@
       <:body>
         <Hds::SideNav::List
           class='hds-side-nav-hide-when-minimized consul-side-nav__selector-group'
+          aria-labelledby="context selectors"
+          aria-label="context selectors"
           as |SNL|
         >
           <HcpNavItem @list={{SNL}}/>
@@ -148,7 +150,7 @@
             @onchange={{action (mut this.nspaces) value='data'}}
           />
         </Hds::SideNav::List>
-        <Hds::SideNav::List class='hds-side-nav-hide-when-minimized' as |SNL|>
+        <Hds::SideNav::List class='hds-side-nav-hide-when-minimized' aria-label="main navigation" aria-labelledby='main navigation' as |SNL|>
           {{#if (can 'access overview')}}
             <SNL.Link
               @text={{t "components.hashicorp-consul.side-nav.overview"}}
