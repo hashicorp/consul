@@ -1818,7 +1818,11 @@ func TestHTTPServer_HandshakeTimeout(t *testing.T) {
 		buf := make([]byte, 10)
 		_, err = conn.Read(buf)
 		require.Error(r, err)
-		require.Contains(r, err.Error(), "EOF")
+		// After adding timeouts to prevent slowloris attacks, the connection
+		// times out with "i/o timeout" instead of "EOF"
+		if !strings.Contains(err.Error(), "EOF") && !strings.Contains(err.Error(), "i/o timeout") {
+			r.Errorf("Expected connection to be closed with EOF or i/o timeout, got: %v", err)
+		}
 	})
 }
 
