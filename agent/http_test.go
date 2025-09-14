@@ -113,7 +113,11 @@ func TestHTTPServer_UnixSocket_FileExists(t *testing.T) {
 		t.SkipNow()
 	}
 
-	tempDir := testutil.TempDir(t, "consul")
+	tempDir, err := os.MkdirTemp("", "consul_sock_test_")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
 	socket := filepath.Join(tempDir, "test.sock")
 
 	// Create a regular file at the socket path
