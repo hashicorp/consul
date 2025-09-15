@@ -96,6 +96,10 @@ type cmd struct {
 }
 
 const meshGatewayVal = "mesh"
+const (
+	ipv4loopback string = "127.0.0.1"
+	ipv6loopback string = "::1"
+)
 
 var defaultEnvoyVersion = xdscommon.EnvoyVersions[0]
 
@@ -611,7 +615,7 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 
 	if c.adminBind == "" {
 		if c.useIPv6loopback {
-			c.adminBind = fmt.Sprintf("[::1]:%v", 19000)
+			c.adminBind = fmt.Sprintf("[%v]:%v", ipv6loopback, 19000)
 		} else {
 			c.adminBind = fmt.Sprintf("localhost:%v", 19000)
 		}

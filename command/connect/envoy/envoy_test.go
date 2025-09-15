@@ -210,11 +210,11 @@ func TestGenerateConfig(t *testing.T) {
 				// everywhere which might make this test brittle but not sure what else
 				// to do.
 				GRPC: GRPC{
-					AgentAddress: "::1",
+					AgentAddress: ipv6loopback,
 					AgentPort:    "8502",
 				},
 				AdminAccessLogPath:    "/dev/null",
-				AdminBindAddress:      "::1",
+				AdminBindAddress:      ipv6loopback,
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
 				PrometheusScrapePath:  "/metrics",
@@ -235,11 +235,11 @@ func TestGenerateConfig(t *testing.T) {
 				// everywhere which might make this test brittle but not sure what else
 				// to do.
 				GRPC: GRPC{
-					AgentAddress: "::1",
+					AgentAddress: ipv6loopback,
 					AgentPort:    "8502",
 				},
 				AdminAccessLogPath:    "/dev/null",
-				AdminBindAddress:      "127.0.0.1",
+				AdminBindAddress:      ipv4loopback,
 				AdminBindPort:         "9999",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
 				PrometheusScrapePath:  "/metrics",
@@ -522,11 +522,11 @@ func TestGenerateConfig(t *testing.T) {
 				// everywhere which might make this test brittle but not sure what else
 				// to do.
 				GRPC: GRPC{
-					AgentAddress: "127.0.0.1",
+					AgentAddress: ipv4loopback,
 					AgentPort:    "9999",
 				},
 				AdminAccessLogPath:    "/dev/null",
-				AdminBindAddress:      "::1",
+				AdminBindAddress:      ipv6loopback,
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
 				PrometheusScrapePath:  "/metrics",
