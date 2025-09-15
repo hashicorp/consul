@@ -1,0 +1,3 @@
+```release-note:feature
+agent: Added IsDualStack utility function to detect if the agent is configured for both IPv4 and IPv6 (dual-stack mode) based on its bind address retrieved from "agent/self" API.
+```
