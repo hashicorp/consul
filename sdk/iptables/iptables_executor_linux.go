@@ -9,6 +9,8 @@ import (
 	"bytes"
 	"fmt"
 	"os/exec"
+
+	"github.com/hashicorp/go-hclog"
 )
 
 // iptablesExecutor implements IptablesProvider using exec.Cmd.
@@ -23,6 +25,12 @@ func (i *iptablesExecutor) AddRule(name string, args ...string) {
 		nsenterArgs := []string{fmt.Sprintf("--net=%s", i.cfg.NetNS), "--", name}
 		nsenterArgs = append(nsenterArgs, args...)
 		cmd := exec.Command("nsenter", nsenterArgs...)
+		logPrefix := fmt.Sprintf("%s/%s", podNamespace, podName)
+		logger := hclog.New(&hclog.LoggerOptions{
+			Name:  logPrefix,
+			Level: hclog.LevelFromString("debug"),
+		})
+		logger.Info("ajay log AddRule iptables command ----------->", cmd.String())
 		i.commands = append(i.commands, cmd)
 	} else {
 		i.commands = append(i.commands, exec.Command(name, args...))
