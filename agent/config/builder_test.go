@@ -421,15 +421,16 @@ func TestBuilder_DurationVal_EdgeCases(t *testing.T) {
 				require.Equal(t, time.Duration(0), result)
 			} else {
 				require.NoError(t, b.err)
-				if tc.input == "-5s" {
+				switch tc.input {
+				case "-5s":
 					require.Equal(t, -5*time.Second, result)
-				} else if tc.input == "0s" {
+				case "0s":
 					require.Equal(t, time.Duration(0), result)
-				} else if tc.input == "8760h" {
+				case "8760h":
 					require.Equal(t, 8760*time.Hour, result)
-				} else if tc.input == "1.5s" {
+				case "1.5s":
 					require.Equal(t, 1500*time.Millisecond, result)
-				} else if tc.input == "1h30m45s" {
+				case "1h30m45s":
 					expected := time.Hour + 30*time.Minute + 45*time.Second
 					require.Equal(t, expected, result)
 				}

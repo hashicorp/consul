@@ -244,7 +244,7 @@ func TestFlagUpstreams_ConnectTimeout(t *testing.T) {
 			// Get the parsed upstream
 			var upstream *proxy.UpstreamConfig
 			for _, u := range upstreams {
-				upstream = (*proxy.UpstreamConfig)(&u)
+				upstream = &u
 				break
 			}
 			require.NotNil(t, upstream)
