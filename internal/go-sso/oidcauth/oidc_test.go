@@ -139,11 +139,12 @@ func TestOIDC_AuthURL(t *testing.T) {
 		// Extract query parameters
 		params := parsedURL.Query()
 		require.Contains(t, authURL, "scope=openid+profile+email")
-		require.NotContains(t, params, "code_challenge")
-		require.Empty(t, params.Get("code_challenge"))
+		require.Contains(t, params, "code_challenge")
+		require.NotEmpty(t, params.Get("code_challenge"))
+		require.Equal(t, "S256", params.Get("code_challenge_method"))
 
-		oa.config.OIDCClientUsePKCE = new(bool) // PKCE enabled
-		*oa.config.OIDCClientUsePKCE = true
+		oa.config.OIDCClientUsePKCE = new(bool)
+		*oa.config.OIDCClientUsePKCE = false // PKCE disabled
 		authURL2, _ := oa.GetAuthCodeURL(
 			context.Background(),
 			"https://example.com",
@@ -156,9 +157,8 @@ func TestOIDC_AuthURL(t *testing.T) {
 		params = parsedURL.Query()
 		require.NoError(t, err)
 		require.Contains(t, authURL2, "scope=openid+profile+email")
-		require.Contains(t, params, "code_challenge")
-		require.NotEmpty(t, params.Get("code_challenge"))
-		require.Equal(t, "S256", params.Get("code_challenge_method"))
+		require.NotContains(t, params, "code_challenge")
+		require.Empty(t, params.Get("code_challenge"))
 	})
 
 	t.Run("oidc client assertion (private key JWT)", func(t *testing.T) {
@@ -187,6 +187,7 @@ func TestOIDC_AuthURL(t *testing.T) {
 
 		au, err := url.Parse(authURL)
 		require.NoError(t, err)
+		params := au.Query()
 
 		for k, v := range expected {
 			assert.Equal(t, v, au.Query().Get(k), "key %q is incorrect", k)
@@ -194,6 +195,9 @@ func TestOIDC_AuthURL(t *testing.T) {
 
 		assert.Regexp(t, `^[a-z0-9]{40}$`, au.Query().Get("nonce"))
 		assert.Regexp(t, `^[a-z0-9]{40}$`, au.Query().Get("state"))
+		require.Contains(t, params, "code_challenge")
+		require.NotEmpty(t, params.Get("code_challenge"))
+		require.Equal(t, "S256", params.Get("code_challenge_method"))
 	})
 
 	t.Run("oidc client assertion invalid pemkey", func(t *testing.T) {

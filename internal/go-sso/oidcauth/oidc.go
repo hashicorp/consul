@@ -280,7 +280,7 @@ func (a *Authenticator) oidcRequest(nonce, redirect string, stateID string) (*oi
 		opts = append(opts, oidc.WithACRValues(acrValues))
 	}
 
-	if a.config.OIDCClientUsePKCE != nil && *a.config.OIDCClientUsePKCE {
+	if a.config.OIDCClientUsePKCE == nil || *a.config.OIDCClientUsePKCE {
 		verifier, err := oidc.NewCodeVerifier()
 		if err != nil {
 			return nil, fmt.Errorf("failed to make pkce verifier: %w", err)
