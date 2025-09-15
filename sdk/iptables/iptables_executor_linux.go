@@ -19,22 +19,26 @@ type iptablesExecutor struct {
 	cfg      Config
 }
 
+var logPrefix = fmt.Sprintf("%s/%s", "ajay", "test")
+var logger = hclog.New(&hclog.LoggerOptions{
+	Name:  logPrefix,
+	Level: hclog.LevelFromString("debug"),
+})
+
 func (i *iptablesExecutor) AddRule(name string, args ...string) {
 	if i.cfg.NetNS != "" {
 		// If network namespace is provided, then we need to execute the command in the given network namespace.
 		nsenterArgs := []string{fmt.Sprintf("--net=%s", i.cfg.NetNS), "--", name}
 		nsenterArgs = append(nsenterArgs, args...)
 		cmd := exec.Command("nsenter", nsenterArgs...)
-		logPrefix := fmt.Sprintf("%s/%s", "ajay", "test")
-		logger := hclog.New(&hclog.LoggerOptions{
-			Name:  logPrefix,
-			Level: hclog.LevelFromString("debug"),
-		})
-		logger.Info("ajay log AddRule iptables command ----------->", cmd.String())
 		i.commands = append(i.commands, cmd)
+		logger.Info("ajay log AddRule ns iptables command -----------> : %s :", i.cfg.NetNS, cmd.String())
 	} else {
+		cmd := exec.Command(name, args...)
 		i.commands = append(i.commands, exec.Command(name, args...))
+		logger.Info("ajay log AddRule no ns iptables command ----------->:", cmd.String())
 	}
+
 }
 
 func (i *iptablesExecutor) ApplyRules(command string) error {
