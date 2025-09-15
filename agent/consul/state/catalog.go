@@ -6,8 +6,6 @@ package state
 import (
 	"errors"
 	"fmt"
-	"github.com/hashicorp/consul/agent/netutil"
-	"github.com/hashicorp/consul/api"
 	"net"
 	"reflect"
 	"slices"
@@ -19,6 +17,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/maps"
 	"github.com/hashicorp/consul/lib/stringslice"
@@ -48,20 +47,6 @@ var (
 	startingVirtualIP = net.IP{240, 0, 0, 0}
 
 	virtualIPMaxOffset = net.IP{15, 255, 255, 254}
-
-	startingVirtualIPv6 = net.IP{
-		0x20, 0x00, 0x00, 0x00,
-		0x00, 0x00, 0x00, 0x00,
-		0x00, 0x00, 0x00, 0x00,
-		0x00, 0x00, 0x00, 0x00,
-	}
-
-	virtualIPv6MaxOffset = net.IP{
-		0x1F, 0xFF, 0xFF, 0xFF,
-		0xFF, 0xFF, 0xFF, 0xFF,
-		0xFF, 0xFF, 0xFF, 0xFF,
-		0xFF, 0xFF, 0xFF, 0xFF,
-	}
 
 	ErrNodeNotFound = errors.New("node not found")
 )
@@ -1024,7 +1009,7 @@ func assignServiceVirtualIP(tx WriteTxn, idx uint64, psn structs.PeeredServiceNa
 	// Service already has a virtual IP assigned, nothing to do.
 	if serviceVIP != nil {
 		sVIP := serviceVIP.(ServiceVirtualIP).IP
-		result, err := addIPOffset(sVIP)
+		result, err := addIPOffset(startingVirtualIP, sVIP)
 		if err != nil {
 			return "", err
 		}
@@ -1075,12 +1060,9 @@ func assignServiceVirtualIP(tx WriteTxn, idx uint64, psn structs.PeeredServiceNa
 				break
 			}
 		}
-		maxIPOffset := virtualIPMaxOffset
-		if p := net.ParseIP(newEntry.IP.String()); p == nil || p.To4() == nil {
-			maxIPOffset = virtualIPv6MaxOffset
-		}
+
 		// Out of virtual IPs, fail registration.
-		if newEntry.IP.Equal(maxIPOffset) {
+		if newEntry.IP.Equal(virtualIPMaxOffset) {
 			return "", fmt.Errorf("cannot allocate any more unique service virtual IPs")
 		}
 
@@ -1104,7 +1086,7 @@ func assignServiceVirtualIP(tx WriteTxn, idx uint64, psn structs.PeeredServiceNa
 		return "", err
 	}
 
-	result, err := addIPOffset(assignedVIP.IP)
+	result, err := addIPOffset(startingVirtualIP, assignedVIP.IP)
 	if err != nil {
 		return "", err
 	}
@@ -1230,76 +1212,7 @@ func updateVirtualIPMaxIndexes(txn WriteTxn, idx uint64, partition, peerName str
 	return nil
 }
 
-func addIPOffset(ip net.IP) (net.IP, error) {
-	bindAddr, err := netutil.GetAgentBindAddr()
-	if err != nil {
-		return nil, err
-	}
-
-	var vip net.IP
-	switch {
-	case bindAddr.To4() == nil: // IPv6
-		vip, err = addIPv6Offset(startingVirtualIPv6, ip)
-	case bindAddr.To16() == nil: // IPv4
-		vip, err = addIPv4Offset(startingVirtualIP, ip)
-	default:
-		err = fmt.Errorf("invalid bind address: %v", bindAddr)
-	}
-
-	return vip, err
-}
-
-func getAgentBindAddr() (net.IP, error) {
-	agentConfig, err := netutil.GetAgentConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	configMap, ok := agentConfig["Config"]
-	if !ok {
-		return nil, errors.New("agent config 'Config' field is not a map")
-	}
-
-	bindAddr, ok := configMap["BindAddr"]
-	if !ok {
-		return nil, errors.New("BindAddr is not set in agent config")
-	}
-
-	ip, ok := bindAddr.(net.IP)
-	if !ok {
-		return nil, errors.New("BindAddr is not of type net.IP")
-	}
-
-	return ip, nil
-}
-
-// addIPv6Offset adds two IPv6 address byte slices (a and b).
-// Both must be 16 bytes long.
-// Returns the sum modulo 2^128 as a new IPv6 address.
-func addIPv6Offset(a, b net.IP) (net.IP, error) {
-	a16 := a.To16()
-	b16 := b.To16()
-	if a16 == nil || b16 == nil {
-		return nil, errors.New("ip is not valid IPv6")
-	}
-	if len(a16) != 16 || len(b16) != 16 {
-		return nil, errors.New("ip length is not 16 bytes")
-	}
-
-	result := make(net.IP, 16)
-	var carry uint16 = 0
-
-	// Add from the least significant byte to most significant byte
-	for i := 15; i >= 0; i-- {
-		sum := uint16(a16[i]) + uint16(b16[i]) + carry
-		result[i] = byte(sum & 0xFF)
-		carry = sum >> 8 // carry 1 if sum > 255
-	}
-	// Carry beyond 128 bits is discarded (mod 2^128 arithmetic)
-	return result, nil
-}
-
-func addIPv4Offset(a, b net.IP) (net.IP, error) {
+func addIPOffset(a, b net.IP) (net.IP, error) {
 	a4 := a.To4()
 	b4 := b.To4()
 	if a4 == nil || b4 == nil {
