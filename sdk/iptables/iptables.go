@@ -6,6 +6,7 @@ package iptables
 import (
 	"errors"
 	"fmt"
+	"net"
 	"strconv"
 )
 
@@ -123,7 +124,7 @@ func Setup(cfg Config) error {
 	// // List all tables and chains for IPv6 ip6tables
 	// runCommand("ip6tables", "-S")
 	// runCommand("ip6tables", "-L")
-	// runCommand("ip6tables", "-t", "nat", "-L")
+	// runCommand("", "-t", "nat", "-L")
 
 	// fmt.Fprintln(os.Stderr, "------------------------------>Setting up ipv4 rules")
 	if err := SetupWithAdditionalRules(cfg, nil); err != nil {
@@ -292,11 +293,11 @@ func SetupWithAdditionalRulesIPv6(cfg Config, additionalRulesFn AdditionalRulesF
 			cfg.IptablesProvider.AddRule("ip6tables", "-t", "nat", "-A", "OUTPUT", "-p", "tcp", "--dport", "53", "-j", DNSChain)
 		} else if cfg.ConsulDNSPort != 0 {
 			consulDNSIP := "::1"
-			// if cfg.ConsulDNSIP != "" {
-			// 	consulDNSIP = cfg.ConsulDNSIP
-			// }
+			if cfg.ConsulDNSIP != "" {
+				consulDNSIP = cfg.ConsulDNSIP
+			}
 
-			consulDNSHostPort := fmt.Sprintf("%s:%d", consulDNSIP, cfg.ConsulDNSPort)
+			consulDNSHostPort := net.JoinHostPort(consulDNSIP, strconv.Itoa(cfg.ConsulDNSPort))
 			// Traffic in the DNSChain is directed to the Consul DNS Service IP.
 			cfg.IptablesProvider.AddRule("ip6tables", "-t", "nat", "-A", DNSChain, "-p", "udp", "-d", consulDNSIP, "--dport", "53", "-j", "DNAT", "--to-destination", consulDNSHostPort)
 			cfg.IptablesProvider.AddRule("ip6tables", "-t", "nat", "-A", DNSChain, "-p", "tcp", "-d", consulDNSIP, "--dport", "53", "-j", "DNAT", "--to-destination", consulDNSHostPort)
