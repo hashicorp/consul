@@ -135,7 +135,7 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.adminAccessLogPath, "admin-access-log-path", DefaultAdminAccessLogPath,
 		"DEPRECATED: use proxy-defaults.accessLogs to set Envoy access logs.")
 
-	c.flags.StringVar(&c.adminBind, "admin-bind", "localhost:19000",
+	c.flags.StringVar(&c.adminBind, "admin-bind", "",
 		"The address:port to start envoy's admin server on. Envoy requires this "+
 			"but care must be taken to ensure it's not exposed to an untrusted network "+
 			"as it has full control over the secrets and config of the proxy.")
@@ -609,6 +609,14 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 		}
 	}
 
+	if c.adminBind == "" {
+		if c.useIPv6loopback {
+			c.adminBind = fmt.Sprintf("[::1]:%v", 19000)
+		} else {
+			c.adminBind = fmt.Sprintf("localhost:%v", 19000)
+		}
+	}
+
 	adminAddr, adminPort, err := net.SplitHostPort(c.adminBind)
 	if err != nil {
 		return nil, fmt.Errorf("Invalid Consul HTTP address: %s", err)
@@ -869,7 +877,11 @@ func (c *cmd) xdsAddress() (GRPC, error) {
 			port = 8502
 			c.UI.Warn("-grpc-addr not provided and unable to discover a gRPC address for xDS. Defaulting to localhost:8502")
 		}
-		addr = fmt.Sprintf("%vlocalhost:%v", protocol, port)
+		if c.useIPv6loopback {
+			addr = fmt.Sprintf("%v[::1]:%v", protocol, port)
+		} else {
+			addr = fmt.Sprintf("%vlocalhost:%v", protocol, port)
+		}
 	}
 
 	// TODO: parse addr as a url instead of strings.HasPrefix/TrimPrefix
