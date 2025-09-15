@@ -72,6 +72,9 @@ func TestEnvoyGateway_Validation(t *testing.T) {
 			ui := cli.NewMockUi()
 			c := New(ui)
 			c.init()
+			c.checkDualStack = func() (bool, error) {
+				return false, nil
+			}
 
 			code := c.Run(tc.args)
 			if code == 0 {
@@ -127,6 +130,7 @@ type generateConfigTestCase struct {
 	XDSPorts          agent.GRPCPorts // used to mock an agent's configured gRPC ports. Plaintext defaults to 8502 and TLS defaults to 8503.
 	AgentSelf110      bool            // fake the agent API from versions v1.10 and earlier
 	GRPCDisabled      bool
+	IsDualStack       bool
 	WantArgs          BootstrapTplArgs
 	WantErr           string
 	WantWarn          string
@@ -1291,6 +1295,10 @@ func TestGenerateConfig(t *testing.T) {
 				return nil, nil
 			}
 
+			c.checkDualStack = func() (bool, error) {
+				return tc.IsDualStack, nil
+			}
+
 			// Run the command
 			myFlags := copyAndReplaceAll(tc.Flags, "@@TEMPDIR@@", testDirPrefix)
 			args := append([]string{"-bootstrap"}, myFlags...)
@@ -1405,6 +1413,9 @@ func TestEnvoy_GatewayRegistration(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ui := cli.NewMockUi()
 			c := New(ui)
+			c.checkDualStack = func() (bool, error) {
+				return false, nil
+			}
 
 			code := c.Run(tc.args)
 			if code != 0 {

@@ -21,6 +21,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/agent/xds/accesslogs"
@@ -88,6 +89,10 @@ type cmd struct {
 	gatewayKind    api.ServiceKind
 
 	dialFunc func(network string, address string) (net.Conn, error)
+
+	//checks if the consul agent is configured to use both IPv4 and IPv6 addresses.
+	checkDualStack  func() (bool, error)
+	useIPv6loopback bool
 }
 
 const meshGatewayVal = "mesh"
@@ -239,6 +244,9 @@ func (c *cmd) init() {
 	c.dialFunc = func(network string, address string) (net.Conn, error) {
 		return net.DialTimeout(network, address, 3*time.Second)
 	}
+	c.checkDualStack = func() (bool, error) {
+		return netutil.IsDualStack()
+	}
 }
 
 // canBindInternal is here mainly so we can unit test this with a constant net.Addr list
@@ -383,6 +391,18 @@ func (c *cmd) run(args []string) int {
 				"-prometheus-cert-file and -prometheus-key-file to enable TLS for prometheus metrics")
 			return 1
 		}
+	}
+
+	// check dual stack is configured
+	isDualStack, err := c.checkDualStack()
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("Error checking dual stack: %s", err.Error()))
+		return 1
+	}
+
+	if isDualStack {
+		c.logger.Debug("using dual-stack configuration: default localhost to IPv6 loopback")
+		c.useIPv6loopback = true
 	}
 
 	if c.register {
