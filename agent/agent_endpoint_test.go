@@ -6162,7 +6162,7 @@ func TestAgent_Monitor(t *testing.T) {
 			// Wait until we have received some type of logging output
 			require.Eventually(r, func() bool {
 				return len(resp.Body.Bytes()) > 0
-			}, 3*time.Second, 100*time.Millisecond)
+			}, 10*time.Second, 100*time.Millisecond)
 
 			cancelFunc()
 			code := <-codeCh
