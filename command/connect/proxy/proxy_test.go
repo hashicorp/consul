@@ -8,10 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent"
-	"github.com/hashicorp/consul/connect/proxy"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent"
+	"github.com/hashicorp/consul/connect/proxy"
 )
 
 func TestCommandConfigWatcher(t *testing.T) {
@@ -200,6 +201,64 @@ func testConfig(t *testing.T, cw proxy.ConfigWatcher) *proxy.Config {
 	case <-time.After(1 * time.Second):
 		t.Fatal("no configuration loaded")
 		return nil // satisfy compiler
+	}
+}
+
+func TestFlagUpstreams_ConnectTimeout(t *testing.T) {
+	testCases := []struct {
+		name           string
+		upstreamFlag   string
+		configOverride map[string]interface{}
+		expectedMs     int
+	}{
+		{
+			name:         "default timeout",
+			upstreamFlag: "db:8080",
+			expectedMs:   10000, // 10s default
+		},
+		{
+			name:         "custom timeout via config",
+			upstreamFlag: "db:8080",
+			configOverride: map[string]interface{}{
+				"connect_timeout_ms": 5000,
+			},
+			expectedMs: 5000,
+		},
+		{
+			name:         "zero timeout",
+			upstreamFlag: "cache:6379",
+			configOverride: map[string]interface{}{
+				"connect_timeout_ms": 0,
+			},
+			expectedMs: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Parse the upstream flag
+			var upstreams FlagUpstreams
+			err := upstreams.Set(tc.upstreamFlag)
+			require.NoError(t, err)
+
+			// Get the parsed upstream
+			var upstream *proxy.UpstreamConfig
+			for _, u := range upstreams {
+				upstream = (*proxy.UpstreamConfig)(&u)
+				break
+			}
+			require.NotNil(t, upstream)
+
+			// Override config if provided
+			if tc.configOverride != nil {
+				upstream.Config = tc.configOverride
+			}
+
+			// Test the timeout
+			timeout := upstream.ConnectTimeout()
+			expectedDuration := time.Duration(tc.expectedMs) * time.Millisecond
+			require.Equal(t, expectedDuration, timeout)
+		})
 	}
 }
 
