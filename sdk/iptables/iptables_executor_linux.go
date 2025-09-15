@@ -25,7 +25,7 @@ func (i *iptablesExecutor) AddRule(name string, args ...string) {
 		nsenterArgs := []string{fmt.Sprintf("--net=%s", i.cfg.NetNS), "--", name}
 		nsenterArgs = append(nsenterArgs, args...)
 		cmd := exec.Command("nsenter", nsenterArgs...)
-		logPrefix := fmt.Sprintf("%s/%s", podNamespace, podName)
+		logPrefix := fmt.Sprintf("%s/%s", "ajay", "test")
 		logger := hclog.New(&hclog.LoggerOptions{
 			Name:  logPrefix,
 			Level: hclog.LevelFromString("debug"),
