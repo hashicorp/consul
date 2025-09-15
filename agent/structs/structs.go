@@ -1604,6 +1604,14 @@ func (s *NodeService) Validate() error {
 		result = multierror.Append(result, commonValidation)
 	}
 
+	if len(s.Ports) > 0 && s.Port != 0 {
+		result = multierror.Append(result, fmt.Errorf("Cannot set both Port and Ports"))
+	}
+
+	if err := s.Ports.Validate(); err != nil {
+		result = multierror.Append(result, err)
+	}
+
 	return result
 }
 

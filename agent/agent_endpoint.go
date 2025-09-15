@@ -1204,15 +1204,8 @@ func (s *HTTPHandlers) AgentRegisterService(resp http.ResponseWriter, req *http.
 	}
 
 	// Get the node service.
+	//TODO: Maybe 'port' to 'ports' here?
 	ns := args.NodeService()
-
-	if len(ns.Ports) < 0 && ns.Port != 0 {
-		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Cannot specify both Port and Ports"}
-	}
-
-	if err := ns.Ports.Validate(); err != nil {
-		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: err.Error()}
-	}
 
 	// We currently do not persist locality inherited from the node service
 	// (it is inherited at runtime). See agent/proxycfg-sources/local/sync.go.
