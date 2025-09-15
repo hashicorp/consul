@@ -119,6 +119,20 @@ func (s *ServiceDefinition) NodeService() *NodeService {
 
 		ns.TaggedAddresses = taggedAddrs
 	}
+
+	// If the service is not a proxy or connect native, and a Port is specified
+	// but no Ports, we create a default port. This is for forward compatibility
+	if !ns.Kind.IsProxy() && !ns.Connect.Native && ns.Port != 0 && len(ns.Ports) == 0 {
+		ns.Ports = ServicePorts{
+			{
+				Name:    "default",
+				Port:    ns.Port,
+				Default: true,
+			},
+		}
+		ns.Port = 0
+	}
+
 	return ns
 }
 
