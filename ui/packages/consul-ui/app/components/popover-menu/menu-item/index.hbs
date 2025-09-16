@@ -19,7 +19,7 @@
     {{#if this.formModalActive}}
       {{#in-element this.modalRoot insertBefore=null}}
         <Hds::Modal
-          id='form-modal'
+          id='confirm-modal'
           @color='critical'
           @onClose={{action 'deactivateModal' 'formModalActive'}}
           as |M|
@@ -36,12 +36,13 @@
               </YieldSlot>
             </p>
           </M.Body>
-          <M.Footer as |F|>
+                    <M.Footer as |F|>
             <YieldSlot
               @name='confirm-footer'
               @params={{block-params
                 (hash
-                  button=(component 'hds/button' color='critical')
+                  button=(component 'popover-menu/menu-item/critical-button' confirmAction=(queue (action menu.clickTrigger) (action onclick) F.close))
+                  btnAtts=(hash data-test-id='confirm-action')
                   confirmAction=(queue (action menu.clickTrigger) (action onclick) F.close)
                   close=F.close
                 )
