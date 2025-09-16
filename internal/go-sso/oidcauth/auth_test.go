@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// mockConfig is a minimal valid config for testing.
 func mockConfig(typ string, t *testing.T) *Config {
 	t.Helper()
 
@@ -162,7 +161,6 @@ func TestAuthenticator_OIDCFlow_Failure(t *testing.T) {
 		_, err := New(cfg, logger)
 
 		assert.Error(t, err)
-		// Should match the actual error pattern from the code
 		requireErrorContains(t, err, "error checking OIDCDiscoveryURL")
 	})
 }
