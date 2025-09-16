@@ -287,6 +287,7 @@ func (s *Sprawl) registerCatalogNodeV1(
 		logger = s.logger.With("cluster", cluster.Name)
 	)
 
+	// For future, if we start accepting service definitions, make sure to add forward compatibility ( ref ServiceDefinition.NodeService() )
 	reg := &api.CatalogRegistration{
 		Node:    node.PodName(),
 		Address: node.LocalAddress(),
