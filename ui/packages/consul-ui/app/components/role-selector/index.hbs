@@ -166,7 +166,7 @@ as |modal|>
               </components.MenuItem>
 
             {{#if (not disabled)}}
-              <components.MenuItem class="dangerous" @onclick={{action send 'remove' item items}}>
+              <components.MenuItem class="dangerous" @onclick={{action send 'remove' item items}} data-test-delete>
                 <BlockSlot @name="label">
                   Remove
                 </BlockSlot>
