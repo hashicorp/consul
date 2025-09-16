@@ -55,11 +55,11 @@ parameters are required to properly configure an auth method of type
   Only one of `OIDCClientSecret` or `OIDCClientAssertion` can be set; setting both will result in a configuration error. 
   The JWT for client assertion is currently signed using the RS256 algorithm.
 
-  - `Audience` `(array<string>)` - Who processes the assertion. Defaults to the parent ACLAuthMethodConfig's OIDCDiscoveryURL
+  - `Audience` `(array<string>)` - Who processes the assertion. Defaults to the parent ACLAuthMethodConfig's OIDCDiscoveryURL.
 
   - `PrivateKey` `(OIDCClientAssertionKey)` - External key material to sign the JWT.
 
-      - `PemKey` `(string)` - An RSA private key, in pem format. It is used to sign the JWT.
+    - `PemKey` `(string)` - An RSA private key, in pem format. It is used to sign the JWT.
 
 - `OIDCClientUsePKCE` `(bool: true)` - Enables the use of [Proof Key for Code Exchange (PKCE)](https://datatracker.ietf.org/doc/html/rfc7636) in the OIDC authentication flow.
   PKCE is an additional security mechanism for OAuth 2.0 authorization code grants, designed to protect against authorization code interception attacks. When set to `true` (the default),
