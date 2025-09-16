@@ -1338,6 +1338,10 @@ func (sp ServicePorts) Validate() error {
 		}
 		seenPort[p.Port] = struct{}{}
 
+		if seenDefault && p.Default {
+			return fmt.Errorf("Only one port can be marked as default")
+		}
+
 		if p.Default {
 			seenDefault = true
 		}
@@ -1623,14 +1627,6 @@ func (s *NodeService) ValidateForAgent() error {
 	var result error
 
 	// TODO(partitions): remember to double check that this doesn't cross partition boundaries
-
-	if len(s.Ports) > 0 && s.Port != 0 {
-		result = multierror.Append(result, fmt.Errorf("Cannot set both Port and Ports"))
-	}
-
-	if err := s.Ports.Validate(); err != nil {
-		result = multierror.Append(result, err)
-	}
 
 	// ConnectProxy validation
 	if s.Kind == ServiceKindConnectProxy {

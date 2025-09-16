@@ -2176,3 +2176,52 @@ func TestMemberIsConsulServer(t *testing.T) {
 		})
 	}
 }
+
+func TestAPI_AgentServices_MultiPort(t *testing.T) {
+	t.Parallel()
+
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+	s.WaitForSerfCheck(t)
+
+	reg := &AgentServiceRegistration{
+		Name: "srv-1",
+		ID:   "srv-1",
+		Ports: ServicePorts{
+			{
+				Name:    "http",
+				Port:    8080,
+				Default: true,
+			},
+			{
+				Name: "metrics",
+				Port: 9090,
+			},
+		},
+	}
+
+	if err := agent.ServiceRegister(reg); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	services, err := agent.Services()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	srv, ok := services["srv-1"]
+	if !ok {
+		t.Fatalf("missing service: %v", services)
+	}
+
+	require.Len(t, srv.Ports, 2)
+	require.Equal(t, "http", srv.Ports[0].Name)
+	require.Equal(t, 8080, srv.Ports[0].Port)
+	require.True(t, srv.Ports[0].Default)
+	require.Equal(t, "metrics", srv.Ports[1].Name)
+	require.Equal(t, 9090, srv.Ports[1].Port)
+	require.False(t, srv.Ports[1].Default)
+
+}
