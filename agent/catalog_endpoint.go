@@ -418,6 +418,16 @@ func (s *HTTPHandlers) catalogServiceNodes(resp http.ResponseWriter, req *http.R
 			clone.ServiceTags = make([]string, 0)
 			out.ServiceNodes[i] = &clone
 		}
+
+		// Populate ServicePort for backward compatibility
+		if s.ServicePort == 0 && len(s.ServicePorts) == 1 && s.ServicePorts[0].Name == "default" {
+			// Since `DefaultPort()` implementation already exists in NodeService, we use the same to avoid duplication of logic
+			s.ServicePort = s.ToNodeService().DefaultPort()
+
+			// If ServicePorts only contains one entry and the name is 'default', it means the service was registered as a single port service using 'port'
+			// So make the ServicePorts empty
+			s.ServicePorts = make(structs.ServicePorts, 0)
+		}
 	}
 	metrics.IncrCounterWithLabels([]string{"client", "api", "success", "catalog_service_nodes"}, 1,
 		s.nodeMetricsLabels())
