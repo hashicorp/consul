@@ -8516,6 +8516,9 @@ func testAgent_RegisterService_MultiPort(t *testing.T, extraHCL string) {
 		t.Fatalf("Expected 3 for Weights.Warning, got: %v", val)
 	}
 
+	if len(svc.Ports) != 2 {
+		t.Fatalf("Expected 2 ports, got: %v", len(svc.Ports))
+	}
 	if !svc.Ports.IsSame(args.Ports) {
 		t.Fatalf("Ports do not match. Expected: %v, got: %v", args.Ports, svc.Ports)
 	}
