@@ -616,7 +616,7 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 
 	if c.adminBind == "" {
 		if c.useIPv6loopback {
-			c.adminBind = fmt.Sprintf("[%v]:%v", ipv6loopback, 19000)
+			c.adminBind = fmt.Sprintf("[%s]:%v", ipv6loopback, 19000)
 		} else {
 			c.adminBind = fmt.Sprintf("localhost:%v", 19000)
 		}
@@ -883,7 +883,7 @@ func (c *cmd) xdsAddress() (GRPC, error) {
 			c.UI.Warn("-grpc-addr not provided and unable to discover a gRPC address for xDS. Defaulting to localhost:8502")
 		}
 		if c.useIPv6loopback {
-			addr = fmt.Sprintf("%v[::1]:%v", protocol, port)
+			addr = fmt.Sprintf("%v[%s]:%v", protocol, ipv6loopback, port)
 		} else {
 			addr = fmt.Sprintf("%vlocalhost:%v", protocol, port)
 		}
