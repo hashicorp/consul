@@ -219,6 +219,18 @@ func testServiceNode(t *testing.T) *ServiceNode {
 			},
 		},
 		ServicePort: 8080,
+		ServicePorts: ServicePorts{
+			{
+				Name:    "http",
+				Port:    8080,
+				Default: true,
+			},
+			{
+				Name:    "https",
+				Port:    8443,
+				Default: false,
+			},
+		},
 		ServiceMeta: map[string]string{
 			"service": "metadata",
 		},
@@ -483,6 +495,35 @@ func TestStructs_ServiceNode_IsSameService(t *testing.T) {
 				sn.ServiceTaggedAddresses = nil
 			},
 		},
+		{
+			name: "ServiceMultiPort_Same",
+			setup: func(sn *ServiceNode) {
+				sn.ServicePorts = ServicePorts{
+					{
+						Name:    "http",
+						Port:    8080,
+						Default: true,
+					},
+					{
+						Name:    "https",
+						Port:    8443,
+						Default: false,
+					},
+				}
+			},
+			expect: true,
+		},
+		{
+			name: "ServiceMultiPort_Different",
+			setup: func(sn *ServiceNode) {
+				sn.ServicePorts = ServicePorts{
+					{
+						Name: "http",
+						Port: 1393,
+					},
+				}
+			},
+		},
 	}
 
 	run := func(t *testing.T, tc testcase) {
@@ -624,6 +665,146 @@ func TestStructs_Locality_Validate(t *testing.T) {
 			} else {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), tc.err)
+			}
+		})
+	}
+}
+
+func TestStructs_NodeService_ValidateMultiPort(t *testing.T) {
+	type testCase struct {
+		Ns  NodeService
+		Err string
+	}
+
+	cases := map[string]testCase{
+		"valid": {
+			Ns: NodeService{
+				Ports: ServicePorts{
+					{
+						Name:    "http",
+						Port:    80,
+						Default: true,
+					},
+					{
+						Name:    "https",
+						Port:    443,
+						Default: false,
+					},
+				},
+			},
+			Err: "",
+		},
+		"no-default": {
+			Ns: NodeService{
+				Ports: ServicePorts{
+					{
+						Name: "http",
+						Port: 80,
+					},
+					{
+						Name: "https",
+						Port: 443,
+					},
+				},
+			},
+			Err: "One of the Ports must be marked as Default",
+		},
+		"multiple-default": {
+			Ns: NodeService{
+				Ports: ServicePorts{
+					{
+						Name:    "http",
+						Port:    80,
+						Default: true,
+					},
+					{
+						Name:    "https",
+						Port:    443,
+						Default: true,
+					},
+				},
+			},
+			Err: "Only one port can be marked as default",
+		},
+		"duplicate-names": {
+			Ns: NodeService{
+				Ports: ServicePorts{
+					{
+						Name:    "http",
+						Port:    80,
+						Default: true,
+					},
+					{
+						Name:    "http",
+						Port:    8080,
+						Default: false,
+					},
+				},
+			},
+			Err: "Ports.Name \"http\" has to be unique",
+		},
+		"duplicate-port": {
+			Ns: NodeService{
+				Ports: ServicePorts{
+					{
+						Name:    "http",
+						Port:    80,
+						Default: true,
+					},
+					{
+						Name:    "https",
+						Port:    80,
+						Default: false,
+					},
+				},
+			},
+			Err: "Ports.Port 80 has to be unique",
+		},
+		"empty-name": {
+			Ns: NodeService{
+				Ports: ServicePorts{
+					{
+						Name:    "",
+						Port:    80,
+						Default: true,
+					},
+					{
+						Name:    "https",
+						Port:    80,
+						Default: false,
+					},
+				},
+			},
+			Err: "Ports.Name cannot be empty",
+		},
+		"zero-port": {
+			Ns: NodeService{
+				Ports: ServicePorts{
+					{
+						Name:    "http",
+						Port:    0,
+						Default: true,
+					},
+					{
+						Name:    "https",
+						Port:    80,
+						Default: false,
+					},
+				},
+			},
+			Err: "Ports.Port must be non-zero",
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			err := tc.Ns.Validate()
+
+			if tc.Err == "" {
+				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
+				require.Contains(t, strings.ToLower(err.Error()), strings.ToLower(tc.Err))
 			}
 		})
 	}
@@ -1386,7 +1567,17 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 			"meta1": "value1",
 			"meta2": "value2",
 		},
-		Port:              1234,
+		Port: 1234,
+		Ports: ServicePorts{
+			{
+				Name: "http",
+				Port: 8080,
+			},
+			{
+				Name: "metrics",
+				Port: 9090,
+			},
+		},
 		EnableTagOverride: true,
 		Proxy: ConnectProxyConfig{
 			DestinationServiceName: "db",
@@ -1401,11 +1592,21 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 	}
 
 	other := &NodeService{
-		ID:                "node1",
-		Service:           "theservice",
-		Tags:              []string{"foo", "bar"},
-		Address:           "127.0.0.1",
-		Port:              1234,
+		ID:      "node1",
+		Service: "theservice",
+		Tags:    []string{"foo", "bar"},
+		Address: "127.0.0.1",
+		Port:    1234,
+		Ports: ServicePorts{
+			{
+				Name: "http",
+				Port: 8080,
+			},
+			{
+				Name: "metrics",
+				Port: 9090,
+			},
+		},
 		EnableTagOverride: true,
 		TaggedAddresses: map[string]ServiceAddress{
 			"wan": {
@@ -1480,6 +1681,7 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 		t.Fatalf("copy should be the same, but was\n %#v\nVS\n %#v", otherServiceNode, otherServiceNodeCopy2)
 	}
 	check(func() { other.TaggedAddresses["lan"] = ServiceAddress{Address: "127.0.0.1", Port: 9999} }, func() { other.TaggedAddresses["lan"] = ServiceAddress{Address: "127.0.0.1", Port: 3456} })
+	check(func() { other.Ports[0].Name = "port1" }, func() { other.Ports[0].Name = "http" })
 }
 
 func TestStructs_HealthCheck_IsSame(t *testing.T) {
