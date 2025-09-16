@@ -61,6 +61,10 @@ parameters are required to properly configure an auth method of type
 
       - `PemKey` `(string)` - An RSA private key, in pem format. It is used to sign the JWT.
 
+- `OIDCClientUsePKCE` `(bool: true)` - Enables the use of [Proof Key for Code Exchange (PKCE)](https://datatracker.ietf.org/doc/html/rfc7636) in the OIDC authentication flow.
+  PKCE is an additional security mechanism for OAuth 2.0 authorization code grants, designed to protect against authorization code interception attacks. When set to `true` (the default),
+  Consul will use PKCE for OIDC logins, which is recommended for all public clients and browser-based authentication. Set to `false` only if your OIDC provider does not support PKCE.
+
 - `AllowedRedirectURIs` `(array<string>)` - A list of allowed
   values for `redirect_uri`. Must be non-empty.
 
@@ -93,7 +97,7 @@ parameters are required to properly configure an auth method of type
   debug-level logging is active. Not recommended in production since sensitive
   information may be present in OIDC responses.
 
-### Sample config
+### Sample config with client secret
 
 ```json
 {
@@ -117,6 +121,39 @@ parameters are required to properly configure an auth method of type
         },
         "OIDCClientID": "V1RPi2MYptMV1RPi2MYptMV1RPi2MYpt",
         "OIDCClientSecret": "...(omitted)...",
+        "OIDCDiscoveryURL": "https://my-corp-app-name.auth0.com/"
+    }
+}
+```
+
+### Sample config with client assertion
+
+```json
+{
+    "Name": "example-oidc-auth",
+    "Type": "oidc",
+    "Description": "Example OIDC auth method",
+    "Config": {
+        "AllowedRedirectURIs": [
+            "http://localhost:8550/oidc/callback",
+            "http://localhost:8500/ui/oidc/callback"
+        ],
+        "BoundAudiences": [
+            "V1RPi2MYptMV1RPi2MYptMV1RPi2MYpt"
+        ],
+        "ClaimMappings": {
+            "http://example.com/first_name": "first_name",
+            "http://example.com/last_name": "last_name"
+        },
+        "ListClaimMappings": {
+            "http://consul.com/groups": "groups"
+        },
+        "OIDCClientID": "V1RPi2MYptMV1RPi2MYptMV1RPi2MYpt",
+        "OIDCClientAssertion": {
+          "PrivateKey": {
+            "PemKey": "-----BEGIN PRIVATE KEY-----\n...(omitted)...\n-----END PRIVATE KEY-----\n"
+          }
+        },
         "OIDCDiscoveryURL": "https://my-corp-app-name.auth0.com/"
     }
 }
