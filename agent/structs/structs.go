@@ -1375,6 +1375,15 @@ func (sp ServicePorts) IsSame(other ServicePorts) bool {
 	return true
 }
 
+func (sp ServicePorts) GetPortWithName(name string) (int, bool) {
+	for _, p := range sp {
+		if p.Name == name {
+			return p.Port, true
+		}
+	}
+	return 0, false
+}
+
 func (a ServiceAddress) ToAPIServiceAddress() api.ServiceAddress {
 	return api.ServiceAddress{Address: a.Address, Port: a.Port}
 }

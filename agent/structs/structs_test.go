@@ -1684,6 +1684,70 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 	check(func() { other.Ports[0].Name = "port1" }, func() { other.Ports[0].Name = "http" })
 }
 
+func TestStructs_NodeService_DefaultPort(t *testing.T) {
+	type testCase struct {
+		ns       NodeService
+		expected int
+	}
+
+	cases := map[string]testCase{
+		"no_ports_with_port": {
+			ns: NodeService{
+				Port: 8080,
+			},
+			expected: 8080,
+		},
+		"no_ports_no_port": {
+			ns:       NodeService{},
+			expected: 0,
+		},
+		"with_ports_no_port": {
+			ns: NodeService{
+				Ports: ServicePorts{
+					{
+						Name:    "http",
+						Port:    8080,
+						Default: true,
+					},
+				},
+			},
+			expected: 8080,
+		},
+		"with_ports_with_port": {
+			ns: NodeService{
+				Ports: ServicePorts{
+					{
+						Name:    "http",
+						Port:    8080,
+						Default: true,
+					},
+				},
+				Port: 8081,
+			},
+			expected: 8080,
+		},
+		// Although this scenario isn't possible, helps improve coverage :D
+		"only_ports_no_default": {
+			ns: NodeService{
+				Ports: ServicePorts{
+					{
+						Name: "http",
+						Port: 8080,
+					},
+				},
+			},
+			expected: 0,
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			actual := tc.ns.DefaultPort()
+			require.Equal(t, tc.expected, actual)
+		})
+	}
+}
+
 func TestStructs_HealthCheck_IsSame(t *testing.T) {
 	type testcase struct {
 		name   string
@@ -3237,4 +3301,141 @@ func TestServiceList_Sort(t *testing.T) {
 			run(t, tc)
 		})
 	}
+}
+
+func TestServicePorts_Validate(t *testing.T) {
+	type testCase struct {
+		ports       ServicePorts
+		expectedErr string
+	}
+
+	cases := map[string]testCase{
+		"valid": {
+			ports: ServicePorts{
+				{
+					Name:    "http",
+					Port:    80,
+					Default: true,
+				},
+				{
+					Name: "https",
+					Port: 443,
+				},
+			},
+			expectedErr: "",
+		},
+		"empty": {
+			ports:       ServicePorts{},
+			expectedErr: "",
+		},
+		"invalid_duplicate_name": {
+			ports: ServicePorts{
+				{
+					Name:    "http",
+					Port:    80,
+					Default: true,
+				},
+				{
+					Name: "http",
+					Port: 8080,
+				},
+			},
+			expectedErr: "Ports.Name \"http\" has to be unique",
+		},
+		"invalid_duplicate_port": {
+			ports: ServicePorts{
+				{
+					Name:    "http",
+					Port:    80,
+					Default: true,
+				},
+				{
+					Name: "http-alt",
+					Port: 80,
+				},
+			},
+			expectedErr: "Ports.Port 80 has to be unique",
+		},
+		"invalid_port_name": {
+			ports: ServicePorts{
+				{
+					Name: "",
+					Port: 80,
+				},
+			},
+			expectedErr: "Ports.Name cannot be empty",
+		},
+		"invalid_port_number": {
+			ports: ServicePorts{
+				{
+					Name: "http",
+					Port: 0,
+				},
+			},
+			expectedErr: "Ports.Port must be non-zero",
+		},
+		"invalid_no_default": {
+			ports: ServicePorts{
+				{
+					Name: "http",
+					Port: 80,
+				},
+			},
+			expectedErr: "One of the Ports must be marked as Default",
+		},
+		"invalid_multiple_default": {
+			ports: ServicePorts{
+				{
+					Name:    "http",
+					Port:    80,
+					Default: true,
+				},
+				{
+					Name:    "https",
+					Port:    443,
+					Default: true,
+				},
+			},
+			expectedErr: "Only one port can be marked as default",
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			err := tc.ports.Validate()
+			if tc.expectedErr == "" {
+				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tc.expectedErr)
+			}
+		})
+	}
+
+}
+
+func TestServicePorts_GetPortWithName(t *testing.T) {
+	ports := ServicePorts{
+		{
+			Name:    "http",
+			Port:    80,
+			Default: true,
+		},
+		{
+			Name: "https",
+			Port: 443,
+		},
+	}
+
+	p, ok := ports.GetPortWithName("http")
+	require.True(t, ok)
+	require.Equal(t, 80, p)
+
+	p, ok = ports.GetPortWithName("https")
+	require.True(t, ok)
+	require.Equal(t, 443, p)
+
+	p, ok = ports.GetPortWithName("other")
+	require.False(t, ok)
+	require.Equal(t, 0, p)
 }

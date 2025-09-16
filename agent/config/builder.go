@@ -1467,6 +1467,12 @@ func (b *builder) validate(rt RuntimeConfig) error {
 		if err := s.Validate(); err != nil {
 			return fmt.Errorf("service %q: %s", s.Name, err)
 		}
+
+		for _, portInfo := range s.Ports {
+			if dnsutil.InvalidNameRe.MatchString(portInfo.Name) {
+				b.warn("Service %q port name %q will not be discoverable via DNS due to invalid characters. Valid characters include all alpha-numerics and dashes.", s.Name, portInfo.Name)
+			}
+		}
 	}
 	// Check for errors in the node check definitions
 	for _, c := range rt.Checks {
