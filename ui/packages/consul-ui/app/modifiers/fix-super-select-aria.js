@@ -27,6 +27,11 @@ export default modifier(function fixSuperSelectAria(element) {
       if (!listbox.hasAttribute('aria-label')) {
         listbox.setAttribute('aria-label', 'Available Options');
       }
+
+      // Make listbox keyboard accessible
+      if (!listbox.hasAttribute('tabindex')) {
+        listbox.setAttribute('tabindex', '0');
+      }
     });
   }
 
