@@ -404,6 +404,7 @@ func (c *cmd) run(args []string) int {
 		return 1
 	}
 
+	c.logger.Debug("Received", "isDualStack", strconv.FormatBool(isDualStack))
 	if isDualStack {
 		c.logger.Debug("using dual-stack configuration: default localhost to IPv6 loopback")
 		c.useIPv6loopback = true
