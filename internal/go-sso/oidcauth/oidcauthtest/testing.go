@@ -73,7 +73,7 @@ func Start(t TestingT) *Server {
 			"https://example.com",
 		},
 		replySubject: "r3qXcK2bix9eFECzsU3Sbmh0K16fatW6@clients",
-		replyUserinfo: map[string]interface{}{
+		replyUserinfo: map[string]any{
 			"sub":         "r3qXcK2bix9eFECzsU3Sbmh0K16fatW6@clients",
 			"color":       "red",
 			"temperature": "76",
@@ -116,7 +116,7 @@ func (s *Server) SetExpectedAuthCode(code string) {
 	s.expectedAuthCode = code
 }
 
-func (s *Server) SetUserInfo(info map[string]interface{}) {
+func (s *Server) SetUserInfo(info map[string]any) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.replyUserinfo = info

@@ -124,9 +124,9 @@ func New(c *Config, logger hclog.Logger) (*Authenticator, error) {
 			return nil, fmt.Errorf("error creating provider config: %v", err)
 		}
 
-		provider, error := capOidc.NewProvider(providerConfig)
-		if error != nil {
-			return nil, fmt.Errorf("error creating provider: %v", error)
+		provider, err := capOidc.NewProvider(providerConfig)
+		if err != nil {
+			return nil, fmt.Errorf("error creating provider: %v", err)
 		}
 		a.capProvider = provider
 	case authOIDCDiscovery:

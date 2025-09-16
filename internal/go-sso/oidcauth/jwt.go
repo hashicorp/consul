@@ -210,7 +210,7 @@ func parsePublicKeyPEM(data []byte) (interface{}, error) {
 	return nil, errors.New("data does not contain any valid RSA, ECDSA, or ED25519 public keys")
 }
 
-func (a *Authenticator) verifyOIDCToken(ctx context.Context, rawToken string) (map[string]interface{}, error) {
+func (a *Authenticator) verifyOIDCToken(ctx context.Context, rawToken string) (map[string]any, error) {
 	allClaims := make(map[string]any)
 
 	oidcConfig := &oidc.Config{

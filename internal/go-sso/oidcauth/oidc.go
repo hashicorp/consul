@@ -50,12 +50,12 @@ func (a *Authenticator) GetAuthCodeURL(ctx context.Context, redirectURI string, 
 	// The request object is stored for later use during token exchange
 	request, error := a.createOIDCState(redirectURI, payload)
 	if error != nil {
-		return "", fmt.Errorf("Error generating OAuth state: %v", error)
+		return "", fmt.Errorf("error generating OAuth state: %v", error)
 	}
 
 	authURL, err := provider.AuthURL(ctx, request)
 	if err != nil {
-		return "", fmt.Errorf("Error while generating AuthURL %q", err)
+		return "", fmt.Errorf("error while generating AuthURL %q", err)
 	}
 
 	return authURL, nil
@@ -237,7 +237,7 @@ func (a *Authenticator) createOIDCState(redirectURI string, payload interface{})
 	// This request will be reused during token exchange
 	request, error := a.oidcRequest(nonce, redirectURI, stateID)
 	if error != nil {
-		return nil, fmt.Errorf("Error while creating oidc req %w", error)
+		return nil, fmt.Errorf("error while creating oidc req %w", error)
 	}
 
 	a.oidcStates.SetDefault(stateID, &oidcState{
