@@ -1082,7 +1082,7 @@ type ServiceNode struct {
 	ServiceWeights           Weights
 	ServiceMeta              map[string]string
 	ServicePort              int
-	ServicePorts             ServicePorts
+	ServicePorts             ServicePorts `bexpr:"-"`
 	ServiceSocketPath        string
 	ServiceEnableTagOverride bool
 	ServiceProxy             ConnectProxyConfig
@@ -1403,7 +1403,7 @@ type NodeService struct {
 	Address           string
 	TaggedAddresses   map[string]ServiceAddress `json:",omitempty"`
 	Meta              map[string]string
-	Port              int          `json:",omitempty"`
+	Port              int          `json:",omitempty"  bexpr:"-"`
 	Ports             ServicePorts `json:",omitempty"`
 	SocketPath        string       `json:",omitempty"` // TODO This might be integrated into Address somehow, but not sure about the ergonomics. Only one of (address,port) or socketpath can be defined.
 	Weights           *Weights

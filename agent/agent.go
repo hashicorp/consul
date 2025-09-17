@@ -2362,10 +2362,19 @@ func (a *Agent) addServiceLocked(req addServiceLockedRequest) error {
 	// Must auto-assign the port and default checks (if needed) here to avoid race collisions.
 	if req.Service.LocallyRegisteredAsSidecar {
 		if req.Service.Port < 1 {
-			port, err := a.sidecarPortFromServiceIDLocked(req.Service.CompoundServiceID())
-			if err != nil {
-				return err
+			var port int
+			if len(req.Service.Ports) > 0 {
+				// If there are ports, pick the first one as the service port.
+				port = req.Service.Ports[0].Port
+				req.Service.Ports = nil
+			} else {
+				sidecarPort, err := a.sidecarPortFromServiceIDLocked(req.Service.CompoundServiceID())
+				if err != nil {
+					return err
+				}
+				port = sidecarPort
 			}
+
 			req.Service.Port = port
 		}
 		// Setup default check if none given.
