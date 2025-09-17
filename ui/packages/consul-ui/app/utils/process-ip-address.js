@@ -11,6 +11,10 @@ export function processIpAddress(ip) {
   // Basic IPv6 pattern (loose, just enough to pass to URL)
   const ipv6Pattern = /^[0-9a-fA-F:]+$/;
 
+  // FQDN validation (RFC 1035, basic)
+  const fqdnPattern =
+    /^(?=.{1,253}$)(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.(?!-)[A-Za-z0-9-]{1,63}(?<!-))*\.?[A-Za-z]{2,}$/;
+
   if (ipv4Pattern.test(ip)) {
     return ip; // Valid IPv4, return as-is
   }
@@ -24,5 +28,10 @@ export function processIpAddress(ip) {
     }
   }
 
-  return null; // Not valid IPv4 or IPv6
+  if (fqdnPattern.test(ip)) {
+    return ip; // Valid FQDN, return as-is
+  }
+
+  return null; // Not valid IPv4, IPv6, or FQDN
 }
+
