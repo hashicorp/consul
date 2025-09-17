@@ -133,6 +133,15 @@ func (sp ServicePorts) Validate() error {
 	return nil
 }
 
+func (sp ServicePorts) HasDefault() bool {
+	for _, p := range sp {
+		if p.Default {
+			return true
+		}
+	}
+	return false
+}
+
 // AgentService represents a service known to the agent
 type AgentService struct {
 	Kind              ServiceKind `json:",omitempty"`
