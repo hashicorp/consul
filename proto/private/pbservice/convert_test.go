@@ -31,6 +31,17 @@ func TestNewCheckServiceNodeFromStructs_RoundTrip(t *testing.T) {
 	})
 }
 
+func TestServiceDefinition_RoundTrip(t *testing.T) {
+	repeat(t, func(t *testing.T, fuzzer *fuzz.Fuzzer) {
+		fuzzer.Funcs(randInt32, randUint32, randInterface, randStructsUpstream, randEnterpriseMeta, randStructsConnectProxyConfig)
+		var target structs.ServiceDefinition
+		fuzzer.Fuzz(&target)
+
+		result := ServiceDefinitionPtrToStructs(NewServiceDefinitionPtrFromStructs(&target))
+		assertEqual(t, &target, result)
+	})
+}
+
 func repeat(t *testing.T, fn func(t *testing.T, fuzzer *fuzz.Fuzzer)) {
 	reps := getEnvIntWithDefault(t, "TEST_REPEAT_COUNT", 5)
 	seed := getEnvIntWithDefault(t, "TEST_RANDOM_SEED", time.Now().UnixNano())
