@@ -40,21 +40,13 @@
               </YieldSlot>
             </p>
           </M.Body>
-<<<<<<< HEAD
                     <M.Footer as |F|>
-=======
-          <M.Footer as |F|>
->>>>>>> 168111095f (ui: remove in menu confirmation and use modal instead)
             <YieldSlot
               @name='confirm-footer'
               @params={{block-params
                 (hash
-<<<<<<< HEAD
                   button=(component 'popover-menu/menu-item/critical-button' confirmAction=(queue (action menu.clickTrigger) (action onclick) F.close))
                   btnAtts=(hash data-test-id='confirm-action')
-=======
-                  button=(component 'hds/button' color='critical')
->>>>>>> 168111095f (ui: remove in menu confirmation and use modal instead)
                   confirmAction=(queue (action menu.clickTrigger) (action onclick) F.close)
                   close=F.close
                 )
