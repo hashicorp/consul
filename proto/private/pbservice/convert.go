@@ -280,6 +280,34 @@ func NewServiceDefinitionPtrFromStructs(t *structs.ServiceDefinition) *ServiceDe
 	return sd
 }
 
+// PortsToStructs converts a slice of protobuf Port messages to a slice of agent Port structs.
+func PortsToStructs(s []*ServicePort) structs.ServicePorts {
+	if s == nil {
+		return nil
+	}
+	t := make(structs.ServicePorts, len(s))
+	for i, v := range s {
+		p := new(structs.ServicePort)
+		ServicePortToStructs(v, p)
+		t[i] = *p
+	}
+	return t
+}
+
+// NewPortsFromStructs converts a slice of agent Port structs to a slice of protobuf Port messages.
+func NewPortsFromStructs(t structs.ServicePorts) []*ServicePort {
+	if t == nil {
+		return nil
+	}
+	s := make([]*ServicePort, len(t))
+	for i, v := range t {
+		p := new(ServicePort)
+		ServicePortFromStructs(&v, p)
+		s[i] = p
+	}
+	return s
+}
+
 // TODO: handle this with mog
 func LocalityToStructs(l *pbcommon.Locality) *structs.Locality {
 	if l == nil {

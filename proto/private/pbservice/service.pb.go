@@ -930,7 +930,10 @@ type ServiceDefinition struct {
 	Connect *ServiceConnect `protobuf:"bytes,15,opt,name=Connect,proto3" json:"Connect,omitempty"`
 	// Locality identifies where the service is running.
 	// mog: func-to=LocalityToStructs func-from=LocalityFromStructs
-	Locality      *pbcommon.Locality `protobuf:"bytes,19,opt,name=Locality,proto3" json:"Locality,omitempty"`
+	Locality *pbcommon.Locality `protobuf:"bytes,19,opt,name=Locality,proto3" json:"Locality,omitempty"`
+	// Ports is a list of ports that the service exposes.
+	// mog: func-to=PortsToStructs func-from=NewPortsFromStructs
+	Ports         []*ServicePort `protobuf:"bytes,20,rep,name=Ports,proto3" json:"Ports,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1091,6 +1094,83 @@ func (x *ServiceDefinition) GetLocality() *pbcommon.Locality {
 	return nil
 }
 
+func (x *ServiceDefinition) GetPorts() []*ServicePort {
+	if x != nil {
+		return x.Ports
+	}
+	return nil
+}
+
+// ServicePort contains the port information for a service.
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ServicePort
+// output=service.gen.go
+// name=Structs
+type ServicePort struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Port is the port number.
+	// mog: func-to=int func-from=int32
+	Port int32 `protobuf:"varint,1,opt,name=Port,proto3" json:"Port,omitempty"`
+	// Name is the name of the port.
+	Name string `protobuf:"bytes,2,opt,name=Name,proto3" json:"Name,omitempty"`
+	// Default is true if this is the default port for the service.
+	Default       bool `protobuf:"varint,3,opt,name=Default,proto3" json:"Default,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ServicePort) Reset() {
+	*x = ServicePort{}
+	mi := &file_private_pbservice_service_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ServicePort) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ServicePort) ProtoMessage() {}
+
+func (x *ServicePort) ProtoReflect() protoreflect.Message {
+	mi := &file_private_pbservice_service_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ServicePort.ProtoReflect.Descriptor instead.
+func (*ServicePort) Descriptor() ([]byte, []int) {
+	return file_private_pbservice_service_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *ServicePort) GetPort() int32 {
+	if x != nil {
+		return x.Port
+	}
+	return 0
+}
+
+func (x *ServicePort) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *ServicePort) GetDefault() bool {
+	if x != nil {
+		return x.Default
+	}
+	return false
+}
+
 // Type to hold an address and port of a service
 type ServiceAddress struct {
 	state   protoimpl.MessageState `protogen:"open.v1"`
@@ -1103,7 +1183,7 @@ type ServiceAddress struct {
 
 func (x *ServiceAddress) Reset() {
 	*x = ServiceAddress{}
-	mi := &file_private_pbservice_service_proto_msgTypes[10]
+	mi := &file_private_pbservice_service_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1115,7 +1195,7 @@ func (x *ServiceAddress) String() string {
 func (*ServiceAddress) ProtoMessage() {}
 
 func (x *ServiceAddress) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbservice_service_proto_msgTypes[10]
+	mi := &file_private_pbservice_service_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1128,7 +1208,7 @@ func (x *ServiceAddress) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ServiceAddress.ProtoReflect.Descriptor instead.
 func (*ServiceAddress) Descriptor() ([]byte, []int) {
-	return file_private_pbservice_service_proto_rawDescGZIP(), []int{10}
+	return file_private_pbservice_service_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *ServiceAddress) GetAddress() string {
@@ -1158,7 +1238,7 @@ type Weights struct {
 
 func (x *Weights) Reset() {
 	*x = Weights{}
-	mi := &file_private_pbservice_service_proto_msgTypes[11]
+	mi := &file_private_pbservice_service_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1170,7 +1250,7 @@ func (x *Weights) String() string {
 func (*Weights) ProtoMessage() {}
 
 func (x *Weights) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbservice_service_proto_msgTypes[11]
+	mi := &file_private_pbservice_service_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1183,7 +1263,7 @@ func (x *Weights) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Weights.ProtoReflect.Descriptor instead.
 func (*Weights) Descriptor() ([]byte, []int) {
-	return file_private_pbservice_service_proto_rawDescGZIP(), []int{11}
+	return file_private_pbservice_service_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *Weights) GetPassing() int32 {
@@ -1272,7 +1352,7 @@ const file_private_pbservice_service_proto_rawDesc = "" +
 	"JSONFormat\x12\x1e\n" +
 	"\n" +
 	"TextFormat\x18\x06 \x01(\tR\n" +
-	"TextFormat\"\xf6\b\n" +
+	"TextFormat\"\xbc\t\n" +
 	"\x11ServiceDefinition\x12\x12\n" +
 	"\x04Kind\x18\x01 \x01(\tR\x04Kind\x12\x0e\n" +
 	"\x02ID\x18\x02 \x01(\tR\x02ID\x12\x12\n" +
@@ -1294,13 +1374,18 @@ const file_private_pbservice_service_proto_rawDesc = "" +
 	"\x05Proxy\x18\x0e \x01(\v25.hashicorp.consul.internal.service.ConnectProxyConfigR\x05Proxy\x12X\n" +
 	"\x0eEnterpriseMeta\x18\x11 \x01(\v20.hashicorp.consul.internal.common.EnterpriseMetaR\x0eEnterpriseMeta\x12K\n" +
 	"\aConnect\x18\x0f \x01(\v21.hashicorp.consul.internal.service.ServiceConnectR\aConnect\x12F\n" +
-	"\bLocality\x18\x13 \x01(\v2*.hashicorp.consul.internal.common.LocalityR\bLocality\x1au\n" +
+	"\bLocality\x18\x13 \x01(\v2*.hashicorp.consul.internal.common.LocalityR\bLocality\x12D\n" +
+	"\x05Ports\x18\x14 \x03(\v2..hashicorp.consul.internal.service.ServicePortR\x05Ports\x1au\n" +
 	"\x14TaggedAddressesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12G\n" +
 	"\x05value\x18\x02 \x01(\v21.hashicorp.consul.internal.service.ServiceAddressR\x05value:\x028\x01\x1a7\n" +
 	"\tMetaEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\">\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"O\n" +
+	"\vServicePort\x12\x12\n" +
+	"\x04Port\x18\x01 \x01(\x05R\x04Port\x12\x12\n" +
+	"\x04Name\x18\x02 \x01(\tR\x04Name\x12\x18\n" +
+	"\aDefault\x18\x03 \x01(\bR\aDefault\">\n" +
 	"\x0eServiceAddress\x12\x18\n" +
 	"\aAddress\x18\x01 \x01(\tR\aAddress\x12\x12\n" +
 	"\x04Port\x18\x02 \x01(\x05R\x04Port\"=\n" +
@@ -1321,7 +1406,7 @@ func file_private_pbservice_service_proto_rawDescGZIP() []byte {
 	return file_private_pbservice_service_proto_rawDescData
 }
 
-var file_private_pbservice_service_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_private_pbservice_service_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_private_pbservice_service_proto_goTypes = []any{
 	(*ConnectProxyConfig)(nil),      // 0: hashicorp.consul.internal.service.ConnectProxyConfig
 	(*Upstream)(nil),                // 1: hashicorp.consul.internal.service.Upstream
@@ -1333,44 +1418,46 @@ var file_private_pbservice_service_proto_goTypes = []any{
 	(*TransparentProxyConfig)(nil),  // 7: hashicorp.consul.internal.service.TransparentProxyConfig
 	(*AccessLogsConfig)(nil),        // 8: hashicorp.consul.internal.service.AccessLogsConfig
 	(*ServiceDefinition)(nil),       // 9: hashicorp.consul.internal.service.ServiceDefinition
-	(*ServiceAddress)(nil),          // 10: hashicorp.consul.internal.service.ServiceAddress
-	(*Weights)(nil),                 // 11: hashicorp.consul.internal.service.Weights
-	nil,                             // 12: hashicorp.consul.internal.service.ServiceDefinition.TaggedAddressesEntry
-	nil,                             // 13: hashicorp.consul.internal.service.ServiceDefinition.MetaEntry
-	(*structpb.Struct)(nil),         // 14: google.protobuf.Struct
-	(*pbcommon.EnvoyExtension)(nil), // 15: hashicorp.consul.internal.common.EnvoyExtension
-	(*CheckType)(nil),               // 16: hashicorp.consul.internal.service.CheckType
-	(*pbcommon.EnterpriseMeta)(nil), // 17: hashicorp.consul.internal.common.EnterpriseMeta
-	(*pbcommon.Locality)(nil),       // 18: hashicorp.consul.internal.common.Locality
+	(*ServicePort)(nil),             // 10: hashicorp.consul.internal.service.ServicePort
+	(*ServiceAddress)(nil),          // 11: hashicorp.consul.internal.service.ServiceAddress
+	(*Weights)(nil),                 // 12: hashicorp.consul.internal.service.Weights
+	nil,                             // 13: hashicorp.consul.internal.service.ServiceDefinition.TaggedAddressesEntry
+	nil,                             // 14: hashicorp.consul.internal.service.ServiceDefinition.MetaEntry
+	(*structpb.Struct)(nil),         // 15: google.protobuf.Struct
+	(*pbcommon.EnvoyExtension)(nil), // 16: hashicorp.consul.internal.common.EnvoyExtension
+	(*CheckType)(nil),               // 17: hashicorp.consul.internal.service.CheckType
+	(*pbcommon.EnterpriseMeta)(nil), // 18: hashicorp.consul.internal.common.EnterpriseMeta
+	(*pbcommon.Locality)(nil),       // 19: hashicorp.consul.internal.common.Locality
 }
 var file_private_pbservice_service_proto_depIdxs = []int32{
-	14, // 0: hashicorp.consul.internal.service.ConnectProxyConfig.Config:type_name -> google.protobuf.Struct
+	15, // 0: hashicorp.consul.internal.service.ConnectProxyConfig.Config:type_name -> google.protobuf.Struct
 	1,  // 1: hashicorp.consul.internal.service.ConnectProxyConfig.Upstreams:type_name -> hashicorp.consul.internal.service.Upstream
 	6,  // 2: hashicorp.consul.internal.service.ConnectProxyConfig.MeshGateway:type_name -> hashicorp.consul.internal.service.MeshGatewayConfig
 	4,  // 3: hashicorp.consul.internal.service.ConnectProxyConfig.Expose:type_name -> hashicorp.consul.internal.service.ExposeConfig
 	7,  // 4: hashicorp.consul.internal.service.ConnectProxyConfig.TransparentProxy:type_name -> hashicorp.consul.internal.service.TransparentProxyConfig
-	15, // 5: hashicorp.consul.internal.service.ConnectProxyConfig.EnvoyExtensions:type_name -> hashicorp.consul.internal.common.EnvoyExtension
+	16, // 5: hashicorp.consul.internal.service.ConnectProxyConfig.EnvoyExtensions:type_name -> hashicorp.consul.internal.common.EnvoyExtension
 	8,  // 6: hashicorp.consul.internal.service.ConnectProxyConfig.AccessLogs:type_name -> hashicorp.consul.internal.service.AccessLogsConfig
-	14, // 7: hashicorp.consul.internal.service.Upstream.Config:type_name -> google.protobuf.Struct
+	15, // 7: hashicorp.consul.internal.service.Upstream.Config:type_name -> google.protobuf.Struct
 	6,  // 8: hashicorp.consul.internal.service.Upstream.MeshGateway:type_name -> hashicorp.consul.internal.service.MeshGatewayConfig
 	9,  // 9: hashicorp.consul.internal.service.ServiceConnect.SidecarService:type_name -> hashicorp.consul.internal.service.ServiceDefinition
 	3,  // 10: hashicorp.consul.internal.service.ServiceConnect.PeerMeta:type_name -> hashicorp.consul.internal.service.PeeringServiceMeta
 	5,  // 11: hashicorp.consul.internal.service.ExposeConfig.Paths:type_name -> hashicorp.consul.internal.service.ExposePath
-	12, // 12: hashicorp.consul.internal.service.ServiceDefinition.TaggedAddresses:type_name -> hashicorp.consul.internal.service.ServiceDefinition.TaggedAddressesEntry
-	13, // 13: hashicorp.consul.internal.service.ServiceDefinition.Meta:type_name -> hashicorp.consul.internal.service.ServiceDefinition.MetaEntry
-	16, // 14: hashicorp.consul.internal.service.ServiceDefinition.Check:type_name -> hashicorp.consul.internal.service.CheckType
-	16, // 15: hashicorp.consul.internal.service.ServiceDefinition.Checks:type_name -> hashicorp.consul.internal.service.CheckType
-	11, // 16: hashicorp.consul.internal.service.ServiceDefinition.Weights:type_name -> hashicorp.consul.internal.service.Weights
+	13, // 12: hashicorp.consul.internal.service.ServiceDefinition.TaggedAddresses:type_name -> hashicorp.consul.internal.service.ServiceDefinition.TaggedAddressesEntry
+	14, // 13: hashicorp.consul.internal.service.ServiceDefinition.Meta:type_name -> hashicorp.consul.internal.service.ServiceDefinition.MetaEntry
+	17, // 14: hashicorp.consul.internal.service.ServiceDefinition.Check:type_name -> hashicorp.consul.internal.service.CheckType
+	17, // 15: hashicorp.consul.internal.service.ServiceDefinition.Checks:type_name -> hashicorp.consul.internal.service.CheckType
+	12, // 16: hashicorp.consul.internal.service.ServiceDefinition.Weights:type_name -> hashicorp.consul.internal.service.Weights
 	0,  // 17: hashicorp.consul.internal.service.ServiceDefinition.Proxy:type_name -> hashicorp.consul.internal.service.ConnectProxyConfig
-	17, // 18: hashicorp.consul.internal.service.ServiceDefinition.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	18, // 18: hashicorp.consul.internal.service.ServiceDefinition.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
 	2,  // 19: hashicorp.consul.internal.service.ServiceDefinition.Connect:type_name -> hashicorp.consul.internal.service.ServiceConnect
-	18, // 20: hashicorp.consul.internal.service.ServiceDefinition.Locality:type_name -> hashicorp.consul.internal.common.Locality
-	10, // 21: hashicorp.consul.internal.service.ServiceDefinition.TaggedAddressesEntry.value:type_name -> hashicorp.consul.internal.service.ServiceAddress
-	22, // [22:22] is the sub-list for method output_type
-	22, // [22:22] is the sub-list for method input_type
-	22, // [22:22] is the sub-list for extension type_name
-	22, // [22:22] is the sub-list for extension extendee
-	0,  // [0:22] is the sub-list for field type_name
+	19, // 20: hashicorp.consul.internal.service.ServiceDefinition.Locality:type_name -> hashicorp.consul.internal.common.Locality
+	10, // 21: hashicorp.consul.internal.service.ServiceDefinition.Ports:type_name -> hashicorp.consul.internal.service.ServicePort
+	11, // 22: hashicorp.consul.internal.service.ServiceDefinition.TaggedAddressesEntry.value:type_name -> hashicorp.consul.internal.service.ServiceAddress
+	23, // [23:23] is the sub-list for method output_type
+	23, // [23:23] is the sub-list for method input_type
+	23, // [23:23] is the sub-list for extension type_name
+	23, // [23:23] is the sub-list for extension extendee
+	0,  // [0:23] is the sub-list for field type_name
 }
 
 func init() { file_private_pbservice_service_proto_init() }
@@ -1385,7 +1472,7 @@ func file_private_pbservice_service_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_private_pbservice_service_proto_rawDesc), len(file_private_pbservice_service_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   14,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
