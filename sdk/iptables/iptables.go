@@ -122,10 +122,11 @@ func Setup(cfg Config, dualStack bool) error {
 // after the normal set of rules. This implementation was inspired by
 // https://github.com/openservicemesh/osm/blob/650a1a1dcf081ae90825f3b5dba6f30a0e532725/pkg/injector/iptables.go
 func SetupWithAdditionalRules(cfg Config, additionalRulesFn AdditionalRulesFn) error {
-	// fmt.Fprintln(os.Stderr, "------------------------------>Setting up ipv4 rules")
 
 	if cfg.IptablesProvider == nil {
 		cfg.IptablesProvider = &iptablesExecutor{cfg: cfg}
+	} else {
+		cfg.IptablesProvider.ClearAllRules()
 	}
 
 	err := validateConfig(cfg)
@@ -219,15 +220,15 @@ func SetupWithAdditionalRules(cfg Config, additionalRulesFn AdditionalRulesFn) e
 	if additionalRulesFn != nil {
 		additionalRulesFn(cfg.IptablesProvider)
 	}
-	// fmt.Fprintln(os.Stderr, "ipv4 Rules to be applied: ", cfg.IptablesProvider.Rules())
 	return cfg.IptablesProvider.ApplyRules("iptables")
 }
 
 func SetupWithAdditionalRulesIPv6(cfg Config, additionalRulesFn AdditionalRulesFn) error {
-	// fmt.Fprintln(os.Stderr, "------------------------------>Setting up ipv6 rules")
 
 	if cfg.IptablesProvider == nil {
 		cfg.IptablesProvider = &iptablesExecutor{cfg: cfg}
+	} else {
+		cfg.IptablesProvider.ClearAllRules()
 	}
 
 	err := validateConfig(cfg)
@@ -322,8 +323,6 @@ func SetupWithAdditionalRulesIPv6(cfg Config, additionalRulesFn AdditionalRulesF
 	if additionalRulesFn != nil {
 		additionalRulesFn(cfg.IptablesProvider)
 	}
-	// fmt.Fprintln(os.Stderr, "ipv4 Rules to be applied: ", cfg.IptablesProvider.Rules())
-
 	return cfg.IptablesProvider.ApplyRules("ip6tables")
 }
 
