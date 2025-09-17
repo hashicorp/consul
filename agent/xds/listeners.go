@@ -30,6 +30,7 @@ import (
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/xds/config"
 	"github.com/hashicorp/consul/agent/xds/naming"
 	"github.com/hashicorp/consul/agent/xds/platform"
@@ -114,22 +115,14 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		if err != nil {
 			return nil, err
 		}
-		agentConfig, err := getAgentConfig()
-		if err != nil {
-			return nil, err
-		}
-		configMap, ok := agentConfig["Config"]
-		if !ok {
-			return nil, errors.New("agent config 'Config' field is not a map")
-		}
 
-		bindAddr, ok := configMap["BindAddr"].(string)
-		if !ok {
-			return nil, errors.New("BindAddr is not of type net.IP")
+		ds, err := netutil.IsDualStack()
+		if err != nil {
+			return nil, fmt.Errorf("failed to determine if dual-stack mode is enabled: %w", err)
 		}
 
 		addr := "127.0.0.1"
-		if p := net.ParseIP(bindAddr); p != nil && p.To4() == nil {
+		if ds {
 			addr = "::1"
 		}
 

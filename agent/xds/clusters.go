@@ -19,6 +19,7 @@ import (
 	envoy_upstreams_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
 	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/xds/config"
 	"github.com/hashicorp/consul/agent/xds/naming"
 
@@ -213,6 +214,16 @@ func makeJWTProviderCluster(p *structs.JWTProviderConfigEntry) (*envoy_cluster_v
 	if err != nil {
 		return nil, err
 	}
+
+	// if hostname == "120.0.0.1" {
+	// 	ds, err := netutil.IsDualStack()
+	// 	if err != nil {
+	// 		return nil, fmt.Errorf("failed to determine if agent is dual-stack: %v", err)
+	// 	}
+	// 	if ds {
+	// 		hostname = "::1"
+	// 	}
+	// }
 
 	discoveryType := makeJWKSDiscoveryClusterType(p.JSONWebKeySet.Remote)
 	lookupFamily := makeJWKSClusterDNSLookupFamilyType(discoveryType)
@@ -1105,9 +1116,18 @@ func (s *ResourceGenerator) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot, nam
 		endpoint = makePipeEndpoint(cfgSnap.Proxy.LocalServiceSocketPath)
 	} else {
 		addr := cfgSnap.Proxy.LocalServiceAddress
+
+		ds, err := netutil.IsDualStack()
+		if err != nil {
+			s.Logger.Error("failed to determine if dual stack is supported, assuming not", "error", err)
+		}
 		if addr == "" {
 			addr = "127.0.0.1"
+			if ds {
+				addr = "::1"
+			}
 		}
+
 		endpoint = makeEndpoint(addr, port)
 	}
 

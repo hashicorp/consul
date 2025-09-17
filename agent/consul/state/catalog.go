@@ -14,6 +14,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
@@ -1232,21 +1233,12 @@ func addIPOffset(b net.IP) (net.IP, error) {
 	var vip net.IP
 	var err error
 
-	agentConfig, err := getAgentConfig()
+	ds, err := netutil.IsDualStack()
 	if err != nil {
-		return nil, err
-	}
-	configMap, ok := agentConfig["Config"]
-	if !ok {
-		return nil, errors.New("agent config 'Config' field is not a map")
+		return nil, fmt.Errorf("failed to determine if dual-stack mode is enabled: %w", err)
 	}
 
-	bindAddr, ok := configMap["BindAddr"].(string)
-	if !ok {
-		return nil, errors.New("BindAddr is not of type net.IP")
-	}
-
-	if p := net.ParseIP(bindAddr); p != nil && p.To4() == nil {
+	if ds {
 		vip, err = addIPv6Offset(startingVirtualIPv6, b)
 	} else {
 		vip, err = addIPv4Offset(startingVirtualIP, b)

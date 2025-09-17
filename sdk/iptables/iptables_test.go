@@ -345,8 +345,11 @@ func TestSetup_errors(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			err := Setup(c.cfg)
+			err := Setup(c.cfg, true)
 			require.EqualError(t, err, c.expErr)
+			err = Setup(c.cfg, false)
+			require.EqualError(t, err, c.expErr)
+
 		})
 	}
 }
@@ -363,7 +366,7 @@ func (f *fakeIptablesProvider) AddRule(name string, args ...string) {
 	f.rules = append(f.rules, strings.Join(rule, " "))
 }
 
-func (f *fakeIptablesProvider) ApplyRules() error {
+func (f *fakeIptablesProvider) ApplyRules(command string) error {
 	return nil
 }
 

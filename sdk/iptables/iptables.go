@@ -100,51 +100,20 @@ type Provider interface {
 	ClearAllRules()
 }
 
-// func runCommand(name string, args ...string) {
-// 	cmd := exec.Command(name, args...)
-// 	cmd.Stdout = os.Stderr
-// 	cmd.Stderr = os.Stderr
-// 	cmd.Stdin = os.Stdin
-// 	output, err := cmd.CombinedOutput()
-// 	if err != nil {
-// 		fmt.Printf("Error running %s %v: %v\n", name, args, err)
-// 	}
-// 	fmt.Printf("==== %s %v ====\n%s\n", name, args, string(output))
-// }
-
 // Setup will set up iptables interception and redirection rules
 // based on the configuration provided in cfg.
-func Setup(cfg Config) error {
-
-	// fmt.Fprintln(os.Stderr, "------------------------------>Prestart bbbbbbb")
-	// List all tables and chains for IPv4 iptables
-	// runCommand("iptables", "-S") // rules
-	// runCommand("iptables", "-L") // chains
-	// runCommand("iptables", "-t", "nat", "-L")
-	// // List all tables and chains for IPv6 ip6tables
-	// runCommand("ip6tables", "-S")
-	// runCommand("ip6tables", "-L")
-	// runCommand("", "-t", "nat", "-L")
-
-	// fmt.Fprintln(os.Stderr, "------------------------------>Setting up ipv4 rules")
+func Setup(cfg Config, dualStack bool) error {
 	if err := SetupWithAdditionalRules(cfg, nil); err != nil {
-		// fmt.Fprintln(os.Stderr, "Error setting up iptables4 rules: ", err)
+		return err
 	}
-	if err := SetupWithAdditionalRulesIPv6(cfg, nil); err != nil {
-		// fmt.Fprintln(os.Stderr, "Error setting up iptables6 rules: ", err)
+
+	// If dual-stack is enabled, set up ip6tables rules as well.
+	if dualStack {
+		if err := SetupWithAdditionalRulesIPv6(cfg, nil); err != nil {
+			return err
+		}
 	}
-	// fmt.Fprintln(os.Stderr, "------------------------------>Setting up ipv6 rules")
 
-	// fmt.Fprintln(os.Stderr, "------------------------------>Postset aaaaaaa")
-	// List all tables and chains for IPv4 iptables
-	// runCommand("iptables", "-S") // rules
-	// runCommand("iptables", "-L") // chains
-	// runCommand("iptables", "-t", "nat", "-L")
-
-	// // List all tables and chains for IPv6 ip6tables
-	// runCommand("ip6tables", "-S")
-	// runCommand("ip6tables", "-L")
-	// runCommand("ip6tables", "-t", "nat", "-L")
 	return nil
 }
 

@@ -109,8 +109,13 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Error(fmt.Sprintf("Failed to create configuration to apply traffic redirection rules: %s", err))
 		return 1
 	}
+	dualStack := false
 
-	err = iptables.Setup(cfg)
+
+	// Need login to check its dual stack or not
+
+	
+	err = iptables.Setup(cfg, dualStack)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error setting up traffic redirection rules: %s", err.Error()))
 		return 1
