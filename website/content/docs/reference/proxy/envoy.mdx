@@ -269,8 +269,6 @@ The [Advanced Configuration](#advanced-configuration) section describes addition
 
 ### Bootstrap Envoy on Windows VMs
 
-> Complete the [Connect Services on Windows Workloads to Consul Service Mesh tutorial](/consul/tutorials/developer-mesh/consul-windows-workloads) to learn how to deploy Consul and use its service mesh on Windows VMs.
-
 If you are running Consul on a Windows VM, attempting to bootstrap Envoy with the `consul connect envoy` command returns the following output:
 
 ```shell-session hideClipboard
@@ -433,6 +431,11 @@ defaults that are inherited by all services.
   - `""` - Empty string (default). No connection balancing strategy is used. Consul does not balance inbound connections.
   - `exact_balance` - Inbound connections to the service use the
   [Envoy Exact Balance Strategy.](https://cloudnative.to/envoy/api-v3/config/listener/v3/listener.proto.html#config-listener-v3-listener-connectionbalanceconfig-exactbalance)
+
+- `max_request_headers_kb` - The maximum size in kilobytes for request headers 
+  sent from downstream clients to upstream services. Applies to HTTP-based protocols only (HTTP, HTTP/2, gRPC). 
+  If not specified, uses Envoy's default limit(60KB). 
+  **Note**: This setting only takes effect when the service protocol is configured as `http`, `http2`, or `grpc`.
 
 - `xds_fetch_timeout_ms` - In milliseconds, the amount of time for Envoy to wait for EDS and RDS configuration before timing out. If not specified, this field uses Envoy's default value of `15000`, or 15 seconds. When an Envoy instance is configured with a large number of upstreams that take a significant amount of time to populate with data, setting this field to a higher value may prevent temporary disruption caused by unexpected timeouts.
 

@@ -49,8 +49,8 @@ require (
 	github.com/hashicorp/consul-net-rpc v0.0.0-20221205195236-156cfab66a69
 	github.com/hashicorp/consul/api v1.31.2
 	github.com/hashicorp/consul/envoyextensions v0.7.3
-	github.com/hashicorp/consul/proto-public v0.6.2
-	github.com/hashicorp/consul/sdk v0.16.1
+	github.com/hashicorp/consul/proto-public v0.6.4
+	github.com/hashicorp/consul/sdk v0.16.2
 	github.com/hashicorp/consul/troubleshoot v0.7.1
 	github.com/hashicorp/go-bexpr v0.1.2
 	github.com/hashicorp/go-checkpoint v0.5.0
@@ -90,7 +90,7 @@ require (
 	github.com/hashicorp/yamux v0.0.0-20211028200310-0bc27b27de87
 	github.com/imdario/mergo v0.3.15
 	github.com/kr/text v0.2.0
-	github.com/miekg/dns v1.1.50
+	github.com/miekg/dns v1.1.68
 	github.com/mitchellh/cli v1.1.4
 	github.com/mitchellh/copystructure v1.2.0
 	github.com/mitchellh/go-testing-interface v1.14.1
@@ -107,7 +107,7 @@ require (
 	github.com/rboyer/safeio v0.2.3
 	github.com/ryanuber/columnize v2.1.2+incompatible
 	github.com/shirou/gopsutil/v3 v3.22.9
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	github.com/xeipuuv/gojsonschema v1.2.0
 	github.com/zclconf/go-cty v1.11.1
 	go.etcd.io/bbolt v1.3.7
