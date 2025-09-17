@@ -128,7 +128,7 @@ func SetupWithAdditionalRules(cfg Config, additionalRulesFn AdditionalRulesFn) e
 	} else {
 		cfg.IptablesProvider.ClearAllRules()
 	}
-
+	cfg.ConsulDNSIP = "127.0.0.1"
 	err := validateConfig(cfg)
 	if err != nil {
 		return err

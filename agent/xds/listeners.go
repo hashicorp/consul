@@ -34,7 +34,6 @@ import (
 	"github.com/hashicorp/consul/agent/xds/config"
 	"github.com/hashicorp/consul/agent/xds/naming"
 	"github.com/hashicorp/consul/agent/xds/platform"
-	"github.com/hashicorp/consul/api"
 
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -74,19 +73,6 @@ func (s *ResourceGenerator) listenersFromSnapshot(cfgSnap *proxycfg.ConfigSnapsh
 	default:
 		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
 	}
-}
-
-// Fetch agent config using Self
-func getAgentConfig() (map[string]map[string]interface{}, error) {
-	client, err := api.NewClient(api.DefaultConfig())
-	if err != nil {
-		return nil, err
-	}
-	self, err := client.Agent().Self()
-	if err != nil {
-		return nil, err
-	}
-	return self, nil
 }
 
 // listenersFromSnapshotConnectProxy returns the "listeners" for a connect proxy service

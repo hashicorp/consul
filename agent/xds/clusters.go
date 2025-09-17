@@ -215,16 +215,6 @@ func makeJWTProviderCluster(p *structs.JWTProviderConfigEntry) (*envoy_cluster_v
 		return nil, err
 	}
 
-	// if hostname == "120.0.0.1" {
-	// 	ds, err := netutil.IsDualStack()
-	// 	if err != nil {
-	// 		return nil, fmt.Errorf("failed to determine if agent is dual-stack: %v", err)
-	// 	}
-	// 	if ds {
-	// 		hostname = "::1"
-	// 	}
-	// }
-
 	discoveryType := makeJWKSDiscoveryClusterType(p.JSONWebKeySet.Remote)
 	lookupFamily := makeJWKSClusterDNSLookupFamilyType(discoveryType)
 	cluster := &envoy_cluster_v3.Cluster{

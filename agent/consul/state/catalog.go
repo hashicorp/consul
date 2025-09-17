@@ -5177,15 +5177,3 @@ func (s *Store) CatalogDump() (*structs.CatalogContents, error) {
 	return contents, nil
 }
 
-// Fetch agent config using Self
-func getAgentConfig() (map[string]map[string]interface{}, error) {
-	client, err := api.NewClient(api.DefaultConfig())
-	if err != nil {
-		return nil, err
-	}
-	self, err := client.Agent().Self()
-	if err != nil {
-		return nil, err
-	}
-	return self, nil
-}
