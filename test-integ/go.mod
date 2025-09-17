@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/google/go-cmp v0.7.0
-	github.com/hashicorp/consul/api v1.32.2
+	github.com/hashicorp/consul/api v1.32.3
 	github.com/hashicorp/consul/proto-public v0.6.5
 	github.com/hashicorp/consul/sdk v0.16.3
 	github.com/hashicorp/consul/test/integration/consul-container v0.0.0-20230628201853-bdf4fad7c5a5
