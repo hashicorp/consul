@@ -36,20 +36,16 @@ as |item|>
           <BlockSlot @name="label">
             Delete
           </BlockSlot>
-          <BlockSlot @name="confirmation" as |Confirmation|>
-            <Confirmation class="warning">
-              <BlockSlot @name="header">
-                Confirm delete
-              </BlockSlot>
-              <BlockSlot @name="body">
-                <p>
-                  Are you sure you want to delete this role?
-                </p>
-              </BlockSlot>
-              <BlockSlot @name="confirm" as |Confirm|>
-                <Confirm>Delete</Confirm>
-              </BlockSlot>
-            </Confirmation>
+          <BlockSlot @name='confirm-header'>
+            Confirm delete
+          </BlockSlot>
+          <BlockSlot @name='confirm-body'>
+            <p>
+              Are you sure you want to delete this role?
+            </p>
+          </BlockSlot>
+          <BlockSlot @name='confirm-footer' as |Params|>
+            <Params.button @text='Delete' {{on 'click' Params.confirmAction}} />
           </BlockSlot>
         </Action>
 {{/if}}
