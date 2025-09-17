@@ -37,4 +37,33 @@ module('Integration | Helper | format-ipaddr', function (hooks) {
 
     assert.dom(this.element).hasText('[2001:db8::ff00:42:8329]');
   });
+
+  test('it renders valid FQDNs as-is', async function (assert) {
+    this.set('inputValue', 'example.com');
+    await render(hbs`<div>{{format-ipaddr this.inputValue}}</div>`);
+    assert.dom(this.element).hasText('example.com');
+
+    this.set('inputValue', 'sub.domain.example.com');
+    await render(hbs`<div>{{format-ipaddr this.inputValue}}</div>`);
+    assert.dom(this.element).hasText('sub.domain.example.com');
+
+    this.set('inputValue', 'my-service.local');
+    await render(hbs`<div>{{format-ipaddr this.inputValue}}</div>`);
+    assert.dom(this.element).hasText('my-service.local');
+  });
+
+  test('it returns an empty string for invalid FQDNs', async function (assert) {
+    this.set('inputValue', '-example.com');
+    await render(hbs`<div>{{format-ipaddr this.inputValue}}</div>`);
+    assert.dom(this.element).hasText('');
+
+    this.set('inputValue', 'example..com');
+    await render(hbs`<div>{{format-ipaddr this.inputValue}}</div>`);
+    assert.dom(this.element).hasText('');
+
+    this.set('inputValue', '');
+    await render(hbs`<div>{{format-ipaddr this.inputValue}}</div>`);
+    assert.dom(this.element).hasText('');
+  });
 });
+

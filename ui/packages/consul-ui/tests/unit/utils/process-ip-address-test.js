@@ -42,4 +42,23 @@ module('Unit | Utility | Process Ip Address', function () {
 
     assert.equal(processIpAddress('fe80::202:b3ff:fe1e:8329'), '[fe80::202:b3ff:fe1e:8329]');
   });
+
+  test('Returns as it is for valid FQDNs', function (assert) {
+    assert.equal(processIpAddress('example.com'), 'example.com');
+    assert.equal(processIpAddress('sub.domain.example.com'), 'sub.domain.example.com');
+    assert.equal(processIpAddress('a-b-c.domain.co.uk'), 'a-b-c.domain.co.uk');
+    assert.equal(processIpAddress('xn--d1acufc.xn--p1ai'), 'xn--d1acufc.xn--p1ai'); // punycode
+    assert.equal(processIpAddress('localhost'), 'localhost');
+    assert.equal(processIpAddress('my-service.local'), 'my-service.local');
+  });
+
+  test('Returns null for invalid FQDNs', function (assert) {
+    assert.equal(processIpAddress('-example.com'), null);
+    assert.equal(processIpAddress('example-.com'), null);
+    assert.equal(processIpAddress('example..com'), null);
+    assert.equal(processIpAddress('ex_ample.com'), null);
+    assert.equal(processIpAddress(''), null);
+    assert.equal(processIpAddress('.com'), null);
+  });
 });
+
