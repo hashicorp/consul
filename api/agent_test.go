@@ -131,9 +131,13 @@ func TestAPI_AgentReload(t *testing.T) {
 	if !ok {
 		t.Fatalf("bad: %v", ok)
 	}
-	if service.Port != 1234 {
-		t.Fatalf("bad: %v", service.Port)
-	}
+
+	require.Len(t, service.Ports, 1)
+	require.Equal(t, service.Ports[0].Port, 1234)
+	require.Equal(t, service.Ports[0].Name, "default")
+	require.True(t, service.Ports[0].Default)
+	require.Equal(t, service.Port, 0)
+
 	if service.Meta["some"] != "meta" {
 		t.Fatalf("Missing metadata some:=meta in %v", service)
 	}
@@ -275,14 +279,19 @@ func TestAPI_AgentServiceAndReplaceChecks(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, out)
 	require.Equal(t, HealthPassing, state)
-	require.Equal(t, 9000, out.Service.Port)
+
+	require.Len(t, out.Service.Ports, 1)
+	require.Equal(t, 9000, out.Service.Ports[0].Port)
+	require.Equal(t, "default", out.Service.Ports[0].Name)
+	require.True(t, out.Service.Ports[0].Default)
+
+	require.Equal(t, 0, out.Service.Port)
 	require.Equal(t, locality, out.Service.Locality)
 
 	state, outs, err := agent.AgentHealthServiceByName("foo")
 	require.Nil(t, err)
 	require.NotNil(t, outs)
 	require.Equal(t, HealthPassing, state)
-	require.Equal(t, 9000, outs[0].Service.Port)
 	require.Equal(t, locality, outs[0].Service.Locality)
 
 	if err := agent.ServiceDeregister("foo"); err != nil {
@@ -433,14 +442,19 @@ func TestAPI_AgentServices(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, out)
 	require.Equal(t, HealthCritical, state)
-	require.Equal(t, 8000, out.Service.Port)
+
+	require.Len(t, out.Service.Ports, 1)
+	require.Equal(t, 8000, out.Service.Ports[0].Port)
+	require.Equal(t, "default", out.Service.Ports[0].Name)
+	require.True(t, out.Service.Ports[0].Default)
+
+	require.Equal(t, 0, out.Service.Port)
 	require.Equal(t, locality, out.Service.Locality)
 
 	state, outs, err := agent.AgentHealthServiceByName("foo")
 	require.Nil(t, err)
 	require.NotNil(t, outs)
 	require.Equal(t, HealthCritical, state)
-	require.Equal(t, 8000, outs[0].Service.Port)
 
 	if err := agent.ServiceDeregister("foo"); err != nil {
 		t.Fatalf("err: %v", err)
@@ -897,8 +911,15 @@ func TestAPI_AgentService(t *testing.T) {
 		ID:          "foo",
 		Service:     "foo",
 		Tags:        []string{"bar", "baz"},
-		ContentHash: "3e352f348d44f7eb",
-		Port:        8000,
+		ContentHash: "1f57c75d692afb7a",
+		Port:        0,
+		Ports: ServicePorts{
+			{
+				Port:    8000,
+				Name:    "default",
+				Default: true,
+			},
+		},
 		Weights: AgentWeights{
 			Passing: 1,
 			Warning: 1,

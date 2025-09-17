@@ -150,7 +150,7 @@ type AgentService struct {
 	Tags              []string
 	Meta              map[string]string
 	Port              int
-	Ports             ServicePorts
+	Ports             ServicePorts `json:",omitempty" bexpr:"-"`
 	Address           string
 	SocketPath        string                    `json:",omitempty"`
 	TaggedAddresses   map[string]ServiceAddress `json:",omitempty"`
