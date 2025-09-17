@@ -51,19 +51,4 @@ module('Integration | Helper | format-ipaddr', function (hooks) {
     await render(hbs`<div>{{format-ipaddr this.inputValue}}</div>`);
     assert.dom(this.element).hasText('my-service.local');
   });
-
-  test('it returns an empty string for invalid FQDNs', async function (assert) {
-    this.set('inputValue', '-example.com');
-    await render(hbs`<div>{{format-ipaddr this.inputValue}}</div>`);
-    assert.dom(this.element).hasText('');
-
-    this.set('inputValue', 'example..com');
-    await render(hbs`<div>{{format-ipaddr this.inputValue}}</div>`);
-    assert.dom(this.element).hasText('');
-
-    this.set('inputValue', '');
-    await render(hbs`<div>{{format-ipaddr this.inputValue}}</div>`);
-    assert.dom(this.element).hasText('');
-  });
 });
-

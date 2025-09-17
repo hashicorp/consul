@@ -34,4 +34,3 @@ export function processIpAddress(ip) {
 
   return null; // Not valid IPv4, IPv6, or FQDN
 }
-
