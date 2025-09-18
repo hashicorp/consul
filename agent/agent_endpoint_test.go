@@ -4542,7 +4542,6 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 		policies                    string
 		wantNS                      *structs.NodeService
 		wantErr                     string
-		wantMultiPort               bool
 		wantSidecarIDLeftAfterDereg bool
 		assertStateFn               func(t *testing.T, state *local.State)
 	}{
@@ -4554,9 +4553,8 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 				"port": 1111
 			}
 			`,
-			wantNS:        nil,
-			wantErr:       "",
-			wantMultiPort: true,
+			wantNS:  nil,
+			wantErr: "",
 		},
 		{
 			name: "default sidecar",
@@ -4826,7 +4824,6 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 			// clashing ID SHOULD NOT have been removed since it wasn't part of the
 			// original registration.
 			wantSidecarIDLeftAfterDereg: true,
-			wantMultiPort:               true,
 		},
 		{
 			name: "updates to sidecar should work",
@@ -4897,9 +4894,8 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 			assertStateFn: func(t *testing.T, state *local.State) {
 				svc := state.Service(structs.NewServiceID("web", nil))
 				require.NotNil(t, svc)
-				require.Equal(t, 2222, svc.Ports[0].Port)
+				require.Equal(t, 2222, svc.Port)
 			},
-			wantMultiPort: true,
 		},
 	}
 
@@ -4964,14 +4960,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 			require.True(t, ok, "has service "+sid.String())
 			assert.Equal(t, sd.Name, svc.Service)
 
-			if tt.wantMultiPort {
-				assert.Equal(t, 1, len(svc.Ports))
-				assert.Equal(t, sd.Port, svc.Ports[0].Port)
-				assert.Equal(t, "default", svc.Ports[0].Name)
-				assert.True(t, svc.Ports[0].Default)
-			} else {
-				assert.Equal(t, sd.Port, svc.Port)
-			}
+			assert.Equal(t, sd.Port, svc.Port)
 
 			// Ensure that the actual registered service _doesn't_ still have it's
 			// sidecar info since it's duplicate and we don't want that synced up to
@@ -5053,7 +5042,6 @@ func testAgent_RegisterServiceDeregisterService_Sidecar_UDP(t *testing.T, extraH
 		wantNS                      *structs.NodeService
 		wantErr                     string
 		wantSidecarIDLeftAfterDereg bool
-		wantMultiPort               bool
 		assertStateFn               func(t *testing.T, state *local.State)
 	}{
 		{
@@ -5064,9 +5052,8 @@ func testAgent_RegisterServiceDeregisterService_Sidecar_UDP(t *testing.T, extraH
 				"port": 1111
 			}
 			`,
-			wantNS:        nil,
-			wantErr:       "",
-			wantMultiPort: true,
+			wantNS:  nil,
+			wantErr: "",
 		},
 		{
 			name: "default sidecar",
@@ -5336,7 +5323,6 @@ func testAgent_RegisterServiceDeregisterService_Sidecar_UDP(t *testing.T, extraH
 			// clashing ID SHOULD NOT have been removed since it wasn't part of the
 			// original registration.
 			wantSidecarIDLeftAfterDereg: true,
-			wantMultiPort:               true,
 		},
 		{
 			name: "updates to sidecar should work",
@@ -5407,10 +5393,8 @@ func testAgent_RegisterServiceDeregisterService_Sidecar_UDP(t *testing.T, extraH
 			assertStateFn: func(t *testing.T, state *local.State) {
 				svc := state.Service(structs.NewServiceID("web", nil))
 				require.NotNil(t, svc)
-				require.Len(t, svc.Ports, 1)
-				require.Equal(t, 2222, svc.Ports[0].Port)
+				require.Equal(t, 2222, svc.Port)
 			},
-			wantMultiPort: true,
 		},
 	}
 
@@ -5475,18 +5459,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar_UDP(t *testing.T, extraH
 			require.True(t, ok, "has service "+sid.String())
 			assert.Equal(t, sd.Name, svc.Service)
 
-			fmt.Println("========")
-			fmt.Printf("sd: %+v\n", sd)
-			fmt.Printf("svc: %+v\n", svc)
-
-			if tt.wantMultiPort {
-				require.Len(t, svc.Ports, 1)
-				require.Equal(t, svc.Ports[0].Port, sd.Port)
-				require.Equal(t, svc.Ports[0].Name, "default")
-				require.True(t, svc.Ports[0].Default)
-			} else {
-				assert.Equal(t, sd.Port, svc.Port)
-			}
+			assert.Equal(t, sd.Port, svc.Port)
 
 			// Ensure that the actual registered service _doesn't_ still have it's
 			// sidecar info since it's duplicate and we don't want that synced up to

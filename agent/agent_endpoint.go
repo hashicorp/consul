@@ -316,22 +316,13 @@ func buildAgentService(s *structs.NodeService, dc string) api.AgentService {
 		}
 	}
 
-	port := s.Port
-	if len(servicePorts) == 1 && servicePorts[0].Name == "default" {
-		// This was registered using 'port' not 'ports'. For forward compatibility, we moved 'port' to 'ports'
-		// Since APIs might still depend on the 'port' in the output, populate it with default port and make service ports empty
-
-		port = s.DefaultPort()
-		servicePorts = make(api.ServicePorts, 0)
-	}
-
 	as := api.AgentService{
 		Kind:              api.ServiceKind(s.Kind),
 		ID:                s.ID,
 		Service:           s.Service,
 		Tags:              s.Tags,
 		Meta:              s.Meta,
-		Port:              port,
+		Port:              s.Port,
 		Ports:             servicePorts,
 		Address:           s.Address,
 		SocketPath:        s.SocketPath,
