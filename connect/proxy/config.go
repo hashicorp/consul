@@ -5,6 +5,7 @@ package proxy
 
 import (
 	"fmt"
+	"github.com/hashicorp/consul/agent/netutil"
 	"net"
 	"strconv"
 	"time"
@@ -17,6 +18,11 @@ import (
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/go-hclog"
+)
+
+const (
+	defaultIPv4LocalBindAddress = "127.0.0.1"
+	defaultIPv6LocalBindAddress = "::1"
 )
 
 // Config is the publicly configurable state for an entire proxy instance. It's
@@ -115,7 +121,12 @@ func (uc *UpstreamConfig) applyDefaults() {
 		uc.DestinationPartition = "default"
 	}
 	if uc.LocalBindAddress == "" && uc.LocalBindSocketPath == "" {
-		uc.LocalBindAddress = "127.0.0.1"
+		dualStack, _ := netutil.IsDualStack()
+		if dualStack {
+			uc.LocalBindAddress = defaultIPv6LocalBindAddress
+		} else {
+			uc.LocalBindAddress = defaultIPv4LocalBindAddress
+		}
 	}
 }
 

@@ -460,7 +460,8 @@ type Upstream struct {
 	Datacenter string
 
 	// LocalBindAddress is the ip address a side-car proxy should listen on for
-	// traffic destined for this upstream service. Default if empty is 127.0.0.1.
+	// traffic destined for this upstream service. Default if empty is 127.0.0.1 for IPv4
+	// or ::1 if IPv6 agent bind address.
 	LocalBindAddress string `json:",omitempty" alias:"local_bind_address"`
 
 	// LocalBindPort is the ip address a side-car proxy should listen on for traffic
