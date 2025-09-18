@@ -11,9 +11,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/coreos/go-oidc/v3/oidc"
+	"github.com/hashicorp/cap/oidc"
+	cass "github.com/hashicorp/cap/oidc/clientassertion"
+
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/hashicorp/go-uuid"
-	"golang.org/x/oauth2"
 )
 
 var (
@@ -39,31 +41,24 @@ func (a *Authenticator) GetAuthCodeURL(ctx context.Context, redirectURI string, 
 		return "", fmt.Errorf("unauthorized redirect_uri: %s", redirectURI)
 	}
 
-	// "openid" is a required scope for OpenID Connect flows
-	scopes := append([]string{oidc.ScopeOpenID}, a.config.OIDCScopes...)
+	// Use HashiCorp CAP provider which supports advanced OIDC features
+	// including private key JWT client authentication configured during initialization
+	provider := a.capProvider
+	payload := statePayload
 
-	// Configure an OpenID Connect aware OAuth2 client
-	oauth2Config := oauth2.Config{
-		ClientID:     a.config.OIDCClientID,
-		ClientSecret: a.config.OIDCClientSecret,
-		RedirectURL:  redirectURI,
-		Endpoint:     a.provider.Endpoint(),
-		Scopes:       scopes,
+	// Generate a secure state and nonce for the OIDC request
+	// The request object is stored for later use during token exchange
+	request, error := a.createOIDCState(redirectURI, payload)
+	if error != nil {
+		return "", fmt.Errorf("error generating OAuth state: %v", error)
 	}
 
-	stateID, nonce, err := a.createOIDCState(redirectURI, statePayload)
+	authURL, err := provider.AuthURL(ctx, request)
 	if err != nil {
-		return "", fmt.Errorf("error generating OAuth state: %v", err)
+		return "", fmt.Errorf("error while generating AuthURL %q", err)
 	}
 
-	authCodeOpts := []oauth2.AuthCodeOption{
-		oidc.Nonce(nonce),
-	}
-	if len(a.config.OIDCACRValues) > 0 {
-		authCodeOpts = append(authCodeOpts, oauth2.SetAuthURLParam("acr_values", strings.Join(a.config.OIDCACRValues, " ")))
-	}
-
-	return oauth2Config.AuthCodeURL(stateID, authCodeOpts...), nil
+	return authURL, nil
 }
 
 // ClaimsFromAuthCode is the second part of the OIDC authorization code
@@ -94,38 +89,39 @@ func (a *Authenticator) ClaimsFromAuthCode(ctx context.Context, stateParam, code
 		}
 	}
 
-	oidcCtx := contextWithHttpClient(ctx, a.httpClient)
-
-	var oauth2Config = oauth2.Config{
-		ClientID:     a.config.OIDCClientID,
-		ClientSecret: a.config.OIDCClientSecret,
-		RedirectURL:  state.redirectURI,
-		Endpoint:     a.provider.Endpoint(),
-		Scopes:       []string{oidc.ScopeOpenID},
+	// Use the stored request object from the initial authorization request
+	if state.request == nil {
+		a.logger.Error("Request object not found in state", "stateParam", stateParam)
+		return nil, nil, &ProviderLoginFailedError{
+			Err: fmt.Errorf("missing request object in OAuth state"),
+		}
 	}
 
-	oauth2Token, err := oauth2Config.Exchange(oidcCtx, code)
+	// Use HashiCorp CAP provider for token exchange
+	// This provider supports private key JWT client authentication if configured
+	provider := a.capProvider
+
+	tokens, err := provider.Exchange(ctx, state.request, stateParam, code)
 	if err != nil {
 		return nil, nil, &ProviderLoginFailedError{
 			Err: fmt.Errorf("Error exchanging oidc code: %w", err),
 		}
 	}
 
-	// Extract the ID Token from OAuth2 token.
-	rawToken, ok := oauth2Token.Extra("id_token").(string)
-	if !ok {
+	if !tokens.Valid() {
 		return nil, nil, &TokenVerificationFailedError{
-			Err: errors.New("No id_token found in response."),
+			Err: err,
 		}
 	}
 
+	idToken := tokens.IDToken()
+
 	if a.config.VerboseOIDCLogging && a.logger != nil {
-		a.logger.Debug("OIDC provider response", "ID token", rawToken)
+		a.logger.Debug("OIDC provider response", "ID token", idToken)
 	}
 
-	// Parse and verify ID Token payload.
-	allClaims, err := a.verifyOIDCToken(ctx, rawToken) // TODO(sso): should this use oidcCtx?
-	if err != nil {
+	var allClaims map[string]any
+	if err := idToken.Claims(&allClaims); err != nil {
 		return nil, nil, &TokenVerificationFailedError{
 			Err: err,
 		}
@@ -141,15 +137,15 @@ func (a *Authenticator) ClaimsFromAuthCode(ctx context.Context, stateParam, code
 	// Attempt to fetch information from the /userinfo endpoint and merge it with
 	// the existing claims data. A failure to fetch additional information from this
 	// endpoint will not invalidate the authorization flow.
-	if userinfo, err := a.provider.UserInfo(oidcCtx, oauth2.StaticTokenSource(oauth2Token)); err == nil {
-		_ = userinfo.Claims(&allClaims)
-	} else {
-		if a.logger != nil {
-			logFunc := a.logger.Warn
-			if strings.Contains(err.Error(), "user info endpoint is not supported") {
-				logFunc = a.logger.Info
+	if tokenSource := tokens.StaticTokenSource(); tokenSource != nil {
+		if err := provider.UserInfo(ctx, tokenSource, allClaims["sub"].(string), &allClaims); err != nil {
+			if a.logger != nil {
+				logFunc := a.logger.Warn
+				if strings.Contains(err.Error(), "user info endpoint is not supported") {
+					logFunc = a.logger.Info
+				}
+				logFunc("error reading /userinfo endpoint", "error", err)
 			}
-			logFunc("error reading /userinfo endpoint", "error", err)
 		}
 	}
 
@@ -210,40 +206,6 @@ func (e *TokenVerificationFailedError) Error() string {
 
 func (e *TokenVerificationFailedError) Unwrap() error { return e.Err }
 
-func (a *Authenticator) verifyOIDCToken(ctx context.Context, rawToken string) (map[string]interface{}, error) {
-	allClaims := make(map[string]interface{})
-
-	oidcConfig := &oidc.Config{
-		SupportedSigningAlgs: a.config.JWTSupportedAlgs,
-	}
-	switch a.config.authType() {
-	case authOIDCFlow:
-		oidcConfig.ClientID = a.config.OIDCClientID
-	case authOIDCDiscovery:
-		oidcConfig.SkipClientIDCheck = true
-	default:
-		return nil, fmt.Errorf("unsupported auth type for this verifyOIDCToken: %d", a.config.authType())
-	}
-
-	verifier := a.provider.Verifier(oidcConfig)
-
-	idToken, err := verifier.Verify(ctx, rawToken)
-	if err != nil {
-		return nil, fmt.Errorf("error validating signature: %v", err)
-	}
-
-	if err := idToken.Claims(&allClaims); err != nil {
-		return nil, fmt.Errorf("unable to successfully parse all claims from token: %v", err)
-	}
-	// Follows behavior of hashicorp/vault-plugin-auth-jwt (non-strict validation).
-	// See https://developer.hashicorp.com/consul/docs/security/acl/auth-methods/oidc#oidc-configuration-troubleshooting.
-	if err := validateAudience(a.config.BoundAudiences, idToken.Audience, false); err != nil {
-		return nil, fmt.Errorf("error validating claims: %v", err)
-	}
-
-	return allClaims, nil
-}
-
 // verifyOIDCState tests whether the provided state ID is valid and returns the
 // associated state object if so. A nil state is returned if the ID is not found
 // or expired. The state should only ever be retrieved once and is deleted as
@@ -261,23 +223,31 @@ func (a *Authenticator) verifyOIDCState(stateID string) *oidcState {
 // createOIDCState make an expiring state object, associated with a random state ID
 // that is passed throughout the OAuth process. A nonce is also included in the
 // auth process, and for simplicity will be identical in length/format as the state ID.
-func (a *Authenticator) createOIDCState(redirectURI string, payload interface{}) (string, string, error) {
+func (a *Authenticator) createOIDCState(redirectURI string, payload interface{}) (*oidc.Req, error) {
 	// Get enough bytes for 2 160-bit IDs (per rfc6749#section-10.10)
 	bytes, err := uuid.GenerateRandomBytes(2 * 20)
 	if err != nil {
-		return "", "", err
+		return nil, err
 	}
 
 	stateID := fmt.Sprintf("%x", bytes[:20])
 	nonce := fmt.Sprintf("%x", bytes[20:])
 
+	// Create OIDC request object using CAP library
+	// This request will be reused during token exchange
+	request, error := a.oidcRequest(nonce, redirectURI, stateID)
+	if error != nil {
+		return nil, fmt.Errorf("error while creating oidc req %w", error)
+	}
+
 	a.oidcStates.SetDefault(stateID, &oidcState{
 		nonce:       nonce,
 		redirectURI: redirectURI,
 		payload:     payload,
+		request:     request,
 	})
 
-	return stateID, nonce, nil
+	return request, nil
 }
 
 // oidcState is created when an authURL is requested. The state
@@ -286,4 +256,74 @@ type oidcState struct {
 	nonce       string
 	redirectURI string
 	payload     interface{}
+	request     *oidc.Req // Store the request object for later use in exchange
+}
+
+// oidcRequest builds the request to send to the HashiCorp CAP library.
+// This method configures all necessary OIDC parameters including scopes,
+// audiences, and security parameters like state and nonce.
+func (a *Authenticator) oidcRequest(nonce, redirect string, stateID string) (*oidc.Req, error) {
+	opts := []oidc.Option{
+		oidc.WithNonce(nonce),
+		oidc.WithState(stateID),
+	}
+
+	if len(a.config.OIDCScopes) > 0 {
+		scopes := append([]string{"openid"}, a.config.OIDCScopes...)
+		opts = append(opts, oidc.WithScopes(scopes...))
+	}
+	if len(a.config.BoundAudiences) > 0 {
+		opts = append(opts, oidc.WithAudiences(a.config.BoundAudiences...))
+	}
+	if len(a.config.OIDCACRValues) > 0 {
+		acrValues := strings.Join(a.config.OIDCACRValues, " ")
+		opts = append(opts, oidc.WithACRValues(acrValues))
+	}
+
+	if a.config.OIDCClientUsePKCE == nil || *a.config.OIDCClientUsePKCE {
+		verifier, err := oidc.NewCodeVerifier()
+		if err != nil {
+			return nil, fmt.Errorf("failed to make pkce verifier: %w", err)
+		}
+		opts = append(opts, oidc.WithPKCE(verifier))
+	}
+
+	if a.config.OIDCClientAssertion != nil {
+		rsaKey, parseErr := jwt.ParseRSAPrivateKeyFromPEM([]byte(a.config.OIDCClientAssertion.PrivateKey.PemKey))
+		if parseErr != nil {
+			return nil, fmt.Errorf("failed to parse RSA private key: %w", parseErr)
+		}
+
+		// Create a JWT with the token endpoint as the audience
+		var audience []string
+		if len(a.config.OIDCClientAssertion.Audience) > 0 {
+			audience = a.config.OIDCClientAssertion.Audience
+		} else {
+			audience = []string{a.config.OIDCDiscoveryURL}
+		}
+
+		var alg cass.RSAlgorithm
+		switch a.config.OIDCClientAssertion.KeyAlgorithm {
+		case "RS256", "": // Default to RS256 if empty
+			alg = cass.RS256
+		default:
+			return nil, fmt.Errorf("unsupported key algorithm: %s", a.config.OIDCClientAssertion.KeyAlgorithm)
+		}
+		j, err := cass.NewJWTWithRSAKey(a.config.OIDCClientID, audience, alg, rsaKey)
+		if err != nil {
+			return nil, err
+		}
+		opts = append(opts, oidc.WithClientAssertionJWT(j))
+	}
+
+	req, err := oidc.NewRequest(
+		oidcStateTimeout,
+		redirect,
+		opts...,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create OIDC request: %w", err)
+	}
+
+	return req, nil
 }
