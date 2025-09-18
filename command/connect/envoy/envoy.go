@@ -250,7 +250,7 @@ func (c *cmd) init() {
 		return net.DialTimeout(network, address, 3*time.Second)
 	}
 	c.checkDualStack = func() (bool, error) {
-		return netutil.IsDualStack()
+		return netutil.IsDualStack(nil, false)
 	}
 }
 
