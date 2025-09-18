@@ -1,0 +1,3 @@
+```release-note:bug
+ui: Allow FQDN to be displayed in the Consul web interface.
+```
