@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib/stringslice"
@@ -1793,6 +1794,7 @@ func TestStateStore_EnsureService_connectProxy(t *testing.T) {
 }
 
 func TestStateStore_EnsureService_VirtualIPAssign(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	s := testStateStore(t)
 	setVirtualIPFlags(t, s)
 
@@ -2249,6 +2251,7 @@ func TestStateStore_AssignManualVirtualIPs(t *testing.T) {
 }
 
 func TestStateStore_EnsureService_ReassignFreedVIPs(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	s := testStateStore(t)
 	setVirtualIPFlags(t, s)
 

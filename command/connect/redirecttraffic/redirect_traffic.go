@@ -51,11 +51,11 @@ type cmd struct {
 	excludeOutboundCIDRs []string
 	excludeUIDs          []string
 	netNS                string
+	dualStack            bool
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
-
 	c.flags.StringVar(&c.nodeName, "node-name", "",
 		"The node name where the proxy service is registered. It requires proxy-id to be specified. This is needed if running in an environment without client agents.")
 	c.flags.StringVar(&c.consulDNSIP, "consul-dns-ip", "", "IP used to reach Consul DNS. If provided, DNS queries will be redirected to Consul.")
@@ -75,6 +75,7 @@ func (c *cmd) init() {
 		"Additional user ID to exclude from traffic redirection. May be provided multiple times.")
 	c.flags.StringVar(&c.netNS, "netns", "", "The network namespace where traffic redirection rules should apply."+
 		"This must be a path to the network namespace, e.g. /var/run/netns/foo.")
+	c.flags.BoolVar(&c.dualStack, "dual-stack", false, "To setup dual-stack based routing")
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
@@ -110,7 +111,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	err = iptables.Setup(cfg)
+	err = iptables.Setup(cfg, c.dualStack)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error setting up traffic redirection rules: %s", err.Error()))
 		return 1
