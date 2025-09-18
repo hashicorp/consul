@@ -330,12 +330,7 @@ func TestAPI_AgentServiceAndReplaceChecks(t *testing.T) {
 	require.NotNil(t, out)
 	require.Equal(t, HealthPassing, state)
 
-	require.Len(t, out.Service.Ports, 1)
-	require.Equal(t, 9000, out.Service.Ports[0].Port)
-	require.Equal(t, "default", out.Service.Ports[0].Name)
-	require.True(t, out.Service.Ports[0].Default)
-
-	require.Equal(t, 0, out.Service.Port)
+	require.Equal(t, 9000, out.Service.Port)
 	require.Equal(t, locality, out.Service.Locality)
 
 	state, outs, err := agent.AgentHealthServiceByName("foo")
@@ -493,12 +488,7 @@ func TestAPI_AgentServices(t *testing.T) {
 	require.NotNil(t, out)
 	require.Equal(t, HealthCritical, state)
 
-	require.Len(t, out.Service.Ports, 1)
-	require.Equal(t, 8000, out.Service.Ports[0].Port)
-	require.Equal(t, "default", out.Service.Ports[0].Name)
-	require.True(t, out.Service.Ports[0].Default)
-
-	require.Equal(t, 0, out.Service.Port)
+	require.Equal(t, 8000, out.Service.Port)
 	require.Equal(t, locality, out.Service.Locality)
 
 	state, outs, err := agent.AgentHealthServiceByName("foo")
@@ -961,15 +951,8 @@ func TestAPI_AgentService(t *testing.T) {
 		ID:          "foo",
 		Service:     "foo",
 		Tags:        []string{"bar", "baz"},
-		ContentHash: "1f57c75d692afb7a",
-		Port:        0,
-		Ports: ServicePorts{
-			{
-				Port:    8000,
-				Name:    "default",
-				Default: true,
-			},
-		},
+		ContentHash: "c4bb6737c185ed93",
+		Port:        8000,
 		Weights: AgentWeights{
 			Passing: 1,
 			Warning: 1,
