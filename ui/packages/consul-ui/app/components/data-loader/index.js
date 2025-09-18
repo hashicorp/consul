@@ -29,8 +29,23 @@ export default Component.extend(Slotted, {
     isLoaded: function () {
       return typeof this.items !== 'undefined' || typeof this.src === 'undefined';
     },
+    // caching data for namesapce page only currently to avoid showing a Welcome screen when we switch tabs
+    // and come back to this page.
+    // For other pages, it will behave as before without a need of explicit caching logic used here.
     change: function (data) {
-      set(this, 'data', this.onchange(data));
+      if (
+        this.useCachedOnEmpty && // Only apply for namespace page
+        ((Array.isArray(data) && data.length === 0) || (!Array.isArray(data) && !data))
+      ) {
+        if (this._lastKnownData) {
+          set(this, 'data', this.onchange(this._lastKnownData));
+        } else {
+          set(this, 'data', this.onchange(data));
+        }
+      } else {
+        set(this, 'data', this.onchange(data));
+        this._lastKnownData = data;
+      }
     },
   },
 });
