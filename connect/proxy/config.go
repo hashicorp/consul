@@ -5,7 +5,6 @@ package proxy
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/agent/netutil"
 	"net"
 	"strconv"
 	"time"
@@ -22,8 +21,8 @@ import (
 )
 
 const (
-	defaultIPv4BindAddr = "0.0.0.0"
-	defaultIPv6BindAddr = "::"
+	defaultIPv4BindAddr         = "0.0.0.0"
+	defaultIPv6BindAddr         = "::"
 	defaultIPv4LocalBindAddress = "127.0.0.1"
 	defaultIPv6LocalBindAddress = "::1"
 )
