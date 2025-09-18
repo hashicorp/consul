@@ -122,16 +122,16 @@ func (s *ServiceDefinition) NodeService() *NodeService {
 
 	// If the service is not a proxy or connect native, and a Port is specified
 	// but no Ports, we create a default port. This is for forward compatibility
-	if s.Connect == nil && s.Proxy == nil && !ns.IsSidecarProxy() && !ns.IsGateway() && ns.Port != 0 && len(ns.Ports) == 0 {
-		ns.Ports = ServicePorts{
-			{
-				Name:    "default",
-				Port:    ns.Port,
-				Default: true,
-			},
-		}
-		ns.Port = 0
-	}
+	// if s.Connect == nil && s.Proxy == nil && !ns.IsSidecarProxy() && !ns.IsGateway() && ns.Port != 0 && len(ns.Ports) == 0 {
+	// 	ns.Ports = ServicePorts{
+	// 		{
+	// 			Name:    "default",
+	// 			Port:    ns.Port,
+	// 			Default: true,
+	// 		},
+	// 	}
+	// 	ns.Port = 0
+	// }
 
 	return ns
 }
