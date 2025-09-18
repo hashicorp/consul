@@ -14,6 +14,7 @@ as |route|>
         nspace=route.params.nspace
         dc=route.params.dc
       )}}
+      @useCachedOnEmpty={{true}}
     as |loader|>
 
     <BlockSlot @name="error">
