@@ -13,6 +13,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/stream"
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/proto/private/pbsubscribe"
@@ -74,6 +75,7 @@ func TestServiceHealthSnapshot(t *testing.T) {
 }
 
 func TestServiceHealthSnapshot_ConnectTopic(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	store := NewStateStore(nil)
 
 	setVirtualIPFlags(t, store)
@@ -1742,6 +1744,8 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 }
 
 func (tc eventsTestCase) run(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
+
 	s := NewStateStore(nil)
 	require.NoError(t, s.SystemMetadataSet(0, &structs.SystemMetadataEntry{
 		Key:   structs.SystemMetadataVirtualIPsEnabled,

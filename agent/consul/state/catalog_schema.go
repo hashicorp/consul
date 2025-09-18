@@ -617,9 +617,7 @@ type ServiceVirtualIP struct {
 }
 
 func (s ServiceVirtualIP) IPWithOffset() (string, error) {
-	var result net.IP
-	var err error
-	result, err = addIPOffset(s.IP)
+	result, err := addIPOffset(s.IP)
 	if err != nil {
 		return "", err
 	}

@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/hashicorp/consul/proto/private/prototest"
@@ -22,6 +23,8 @@ import (
 )
 
 func TestStore_ConfigEntry(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
+
 	s := testConfigStateStore(t)
 
 	cfg := &structs.ProxyConfigEntry{
@@ -185,6 +188,8 @@ func TestStore_ConfigEntry_DeleteCAS(t *testing.T) {
 }
 
 func TestStore_ConfigEntry_UpdateOver(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
+
 	// This test uses ServiceIntentions because they are the only
 	// kind that implements UpdateOver() at this time.
 
@@ -281,6 +286,8 @@ func TestStore_ConfigEntry_UpdateOver(t *testing.T) {
 }
 
 func TestStore_ConfigEntries(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
+
 	s := testConfigStateStore(t)
 
 	// Create some config entries.
@@ -334,6 +341,8 @@ func TestStore_ConfigEntries(t *testing.T) {
 }
 
 func TestStore_ServiceDefaults_Kind_Destination(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
+
 	s := testConfigStateStore(t)
 
 	Gtwy := &structs.TerminatingGatewayConfigEntry{
@@ -401,6 +410,8 @@ func TestStore_ServiceDefaults_Kind_Destination(t *testing.T) {
 }
 
 func TestStore_ServiceDefaults_Kind_NotDestination(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
+
 	s := testConfigStateStore(t)
 
 	Gtwy := &structs.TerminatingGatewayConfigEntry{
@@ -458,6 +469,8 @@ func TestStore_ServiceDefaults_Kind_NotDestination(t *testing.T) {
 }
 
 func TestStore_Service_TerminatingGateway_Kind_Service_Destination(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
+
 	s := testConfigStateStore(t)
 
 	Gtwy := &structs.TerminatingGatewayConfigEntry{
@@ -543,6 +556,8 @@ func TestStore_Service_TerminatingGateway_Kind_Service_Destination(t *testing.T)
 }
 
 func TestStore_Service_TerminatingGateway_Kind_Destination_Service(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
+
 	s := testConfigStateStore(t)
 
 	Gtwy := &structs.TerminatingGatewayConfigEntry{
@@ -686,6 +701,8 @@ func TestStore_Service_TerminatingGateway_Kind_Service(t *testing.T) {
 }
 
 func TestStore_ServiceDefaults_Kind_Destination_Wildcard(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
+
 	s := testConfigStateStore(t)
 
 	Gtwy := &structs.TerminatingGatewayConfigEntry{
@@ -926,6 +943,8 @@ func TestStore_Service_TerminatingGateway_Kind_Service_Wildcard(t *testing.T) {
 }
 
 func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
+
 	ensureConfigEntry := func(s *Store, idx uint64, entry structs.ConfigEntry) error {
 		if err := entry.Normalize(); err != nil {
 			return err
@@ -1961,6 +1980,8 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 }
 
 func TestStore_ReadDiscoveryChainConfigEntries_Overrides(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
+
 	for _, tc := range []struct {
 		name           string
 		entries        []structs.ConfigEntry
@@ -2363,6 +2384,8 @@ func TestStore_ReadDiscoveryChainConfigEntries_SubsetSplit(t *testing.T) {
 }
 
 func TestStore_ReadDiscoveryChainConfigEntries_FetchPeers(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
+
 	s := testConfigStateStore(t)
 
 	entries := []structs.ConfigEntry{
@@ -2445,6 +2468,8 @@ func TestStore_ValidateGatewayNamesCannotBeShared(t *testing.T) {
 }
 
 func TestStore_ValidateIngressGatewayErrorOnMismatchedProtocols(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
+
 	newIngress := func(protocol, name string) *structs.IngressGatewayConfigEntry {
 		return &structs.IngressGatewayConfigEntry{
 			Kind: structs.IngressGateway,
@@ -3097,6 +3122,8 @@ func TestTargetsForSource(t *testing.T) {
 }
 
 func TestStore_ValidateServiceIntentionsErrorOnIncompatibleProtocols(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
+
 	l7perms := []*structs.IntentionPermission{
 		{
 			Action: structs.IntentionActionAllow,
@@ -3475,6 +3502,8 @@ func TestStateStore_ConfigEntry_VirtualIP(t *testing.T) {
 }
 
 func TestStore_MutualTLSMode_Validation_InitialWrite(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
+
 	cases := []struct {
 		// setup
 		mesh *structs.MeshConfigEntry
@@ -3565,6 +3594,8 @@ func TestStore_MutualTLSMode_Validation_InitialWrite(t *testing.T) {
 }
 
 func TestStore_MutualTLSMode_Validation_SubsequentWrite(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
+
 	cases := []struct {
 		allowPermissive bool
 		initialModes    []structs.MutualTLSMode
@@ -3674,6 +3705,8 @@ func TestStore_MutualTLSMode_Validation_SubsequentWrite(t *testing.T) {
 }
 
 func writeConfigAndBumpIndexForTest(s *Store, idx uint64, entry structs.ConfigEntry) (uint64, error) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
+
 	err := s.EnsureConfigEntry(idx, entry)
 	if err == nil {
 		idx++

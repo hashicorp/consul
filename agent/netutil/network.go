@@ -4,6 +4,7 @@
 package netutil
 
 import (
+	"fmt"
 	"net"
 	"net/netip"
 
@@ -16,6 +17,16 @@ var GetAgentConfigFunc = GetAgentConfig
 var GetAgentBindAddrFunc = GetAgentBindAddr
 
 var cachedBindAddr net.IP
+
+func GetMockGetAgentBindAddrFunc(ip string) func(config *api.Config, cached bool) (net.IP, error) {
+	return func(config *api.Config, cached bool) (net.IP, error) {
+		ip := net.ParseIP(ip)
+		if ip == nil {
+			return nil, fmt.Errorf("unable to parse bind address")
+		}
+		return ip, nil
+	}
+}
 
 // GetAgentConfig retrieves the agent's configuration using the local Consul agent's API.
 func GetAgentConfig(config *api.Config) (map[string]map[string]interface{}, error) {

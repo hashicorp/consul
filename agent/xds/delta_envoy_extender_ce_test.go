@@ -22,6 +22,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	propertyoverride "github.com/hashicorp/consul/agent/envoyextensions/builtin/property-override"
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/extensionruntime"
@@ -35,6 +36,8 @@ import (
 )
 
 func TestEnvoyExtenderWithSnapshot(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
+
 	consulVersion, _ := goversion.NewVersion(version.Version)
 
 	// If opposite is true, the returned service defaults config entry will have

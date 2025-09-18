@@ -94,7 +94,7 @@ func (plc *PublicListenerConfig) applyDefaults() {
 		plc.HandshakeTimeoutMs = 10000
 	}
 	if plc.BindAddress == "" {
-		dualStack, _ := netutil.IsDualStack()
+		dualStack, _ := netutil.IsDualStack(nil, false)
 		if dualStack {
 			plc.BindAddress = defaultIPv6BindAddr
 		} else {
@@ -128,7 +128,7 @@ func (uc *UpstreamConfig) applyDefaults() {
 		uc.DestinationPartition = "default"
 	}
 	if uc.LocalBindAddress == "" && uc.LocalBindSocketPath == "" {
-		dualStack, _ := netutil.IsDualStack()
+		dualStack, _ := netutil.IsDualStack(nil, false)
 		if dualStack {
 			uc.LocalBindAddress = defaultIPv6LocalBindAddress
 		} else {

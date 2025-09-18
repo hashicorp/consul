@@ -100,16 +100,46 @@ type Provider interface {
 	ClearAllRules()
 }
 
+func verifyDualStackConfig(cfg Config, dualStack bool) error {
+	if dualStack == true {
+		if cfg.ConsulDNSIP != "" {
+			ip := net.ParseIP(cfg.ConsulDNSIP)
+			if ip == nil {
+				return fmt.Errorf("unable to parse consulDNSIP")
+			}
+			if ip.To16() == nil {
+				return fmt.Errorf("for dual stack ipv6 consulDNSIP required")
+			}
+		}
+	} else {
+		if cfg.ConsulDNSIP != "" {
+			ip := net.ParseIP(cfg.ConsulDNSIP)
+			if ip == nil {
+				return fmt.Errorf("unable to parse consulDNSIP")
+			}
+			if ip.To4() == nil {
+				return fmt.Errorf("for non dual stack setup ipv4 consulDNSIP required")
+			}
+		}
+	}
+	return nil
+}
+
 // Setup will set up iptables interception and redirection rules
 // based on the configuration provided in cfg.
 func Setup(cfg Config, dualStack bool) error {
-	if err := SetupWithAdditionalRules(cfg, nil); err != nil {
+
+	if err := verifyDualStackConfig(cfg, dualStack); err != nil {
+		return err
+	}
+
+	if err := SetupWithAdditionalRules(cfg, nil, dualStack); err != nil {
 		return err
 	}
 
 	// If dual-stack is enabled, set up ip6tables rules as well.
 	if dualStack {
-		if err := SetupWithAdditionalRulesIPv6(cfg, nil); err != nil {
+		if err := SetupWithAdditionalRulesIPv6(cfg, nil, dualStack); err != nil {
 			return err
 		}
 	}
@@ -121,14 +151,14 @@ func Setup(cfg Config, dualStack bool) error {
 // based on the configuration provided in cfg. The additionalRulesFn will be applied
 // after the normal set of rules. This implementation was inspired by
 // https://github.com/openservicemesh/osm/blob/650a1a1dcf081ae90825f3b5dba6f30a0e532725/pkg/injector/iptables.go
-func SetupWithAdditionalRules(cfg Config, additionalRulesFn AdditionalRulesFn) error {
+func SetupWithAdditionalRules(cfg Config, additionalRulesFn AdditionalRulesFn, dualStack bool) error {
 
 	if cfg.IptablesProvider == nil {
 		cfg.IptablesProvider = &iptablesExecutor{cfg: cfg}
 	} else {
 		cfg.IptablesProvider.ClearAllRules()
 	}
-	cfg.ConsulDNSIP = "127.0.0.1"
+
 	err := validateConfig(cfg)
 	if err != nil {
 		return err
@@ -144,34 +174,35 @@ func SetupWithAdditionalRules(cfg Config, additionalRulesFn AdditionalRulesFn) e
 	for _, chain := range chains {
 		cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-N", chain)
 	}
-
 	// Configure outbound rules.
 	{
 		// Redirects outbound TCP traffic hitting PROXY_REDIRECT chain to Envoy's outbound listener port.
 		cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", ProxyOutputRedirectChain, "-p", "tcp", "-j", "REDIRECT", "--to-port", strconv.Itoa(cfg.ProxyOutboundPort))
 
-		// The DNS rules are applied before the rules that directs all TCP traffic, so that the traffic going to port 53 goes through this rule first.
-		if cfg.ConsulDNSIP != "" && cfg.ConsulDNSPort == 0 {
-			// Traffic in the DNSChain is directed to the Consul DNS Service IP.
-			cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", DNSChain, "-p", "udp", "--dport", "53", "-j", "DNAT", "--to-destination", cfg.ConsulDNSIP)
-			cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", DNSChain, "-p", "tcp", "--dport", "53", "-j", "DNAT", "--to-destination", cfg.ConsulDNSIP)
+		if !dualStack {
+			// The DNS rules are applied before the rules that directs all TCP traffic, so that the traffic going to port 53 goes through this rule first.
+			if cfg.ConsulDNSIP != "" && cfg.ConsulDNSPort == 0 {
+				// Traffic in the DNSChain is directed to the Consul DNS Service IP.
+				cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", DNSChain, "-p", "udp", "--dport", "53", "-j", "DNAT", "--to-destination", cfg.ConsulDNSIP)
+				cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", DNSChain, "-p", "tcp", "--dport", "53", "-j", "DNAT", "--to-destination", cfg.ConsulDNSIP)
 
-			// For outbound TCP and UDP traffic going to port 53 (DNS), jump to the DNSChain.
-			cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", "OUTPUT", "-p", "udp", "--dport", "53", "-j", DNSChain)
-			cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", "OUTPUT", "-p", "tcp", "--dport", "53", "-j", DNSChain)
-		} else if cfg.ConsulDNSPort != 0 {
-			consulDNSIP := "127.0.0.1"
-			if cfg.ConsulDNSIP != "" {
-				consulDNSIP = cfg.ConsulDNSIP
+				// For outbound TCP and UDP traffic going to port 53 (DNS), jump to the DNSChain.
+				cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", "OUTPUT", "-p", "udp", "--dport", "53", "-j", DNSChain)
+				cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", "OUTPUT", "-p", "tcp", "--dport", "53", "-j", DNSChain)
+			} else if cfg.ConsulDNSPort != 0 {
+				consulDNSIP := "127.0.0.1"
+				if cfg.ConsulDNSIP != "" {
+					consulDNSIP = cfg.ConsulDNSIP
+				}
+				consulDNSHostPort := fmt.Sprintf("%s:%d", consulDNSIP, cfg.ConsulDNSPort)
+				// Traffic in the DNSChain is directed to the Consul DNS Service IP.
+				cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", DNSChain, "-p", "udp", "-d", consulDNSIP, "--dport", "53", "-j", "DNAT", "--to-destination", consulDNSHostPort)
+				cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", DNSChain, "-p", "tcp", "-d", consulDNSIP, "--dport", "53", "-j", "DNAT", "--to-destination", consulDNSHostPort)
+
+				// For outbound TCP and UDP traffic going to port 53 (DNS), jump to the DNSChain. Only redirect traffic that's going to consul's DNS IP.
+				cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", "OUTPUT", "-p", "udp", "-d", consulDNSIP, "--dport", "53", "-j", DNSChain)
+				cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", "OUTPUT", "-p", "tcp", "-d", consulDNSIP, "--dport", "53", "-j", DNSChain)
 			}
-			consulDNSHostPort := fmt.Sprintf("%s:%d", consulDNSIP, cfg.ConsulDNSPort)
-			// Traffic in the DNSChain is directed to the Consul DNS Service IP.
-			cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", DNSChain, "-p", "udp", "-d", consulDNSIP, "--dport", "53", "-j", "DNAT", "--to-destination", consulDNSHostPort)
-			cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", DNSChain, "-p", "tcp", "-d", consulDNSIP, "--dport", "53", "-j", "DNAT", "--to-destination", consulDNSHostPort)
-
-			// For outbound TCP and UDP traffic going to port 53 (DNS), jump to the DNSChain. Only redirect traffic that's going to consul's DNS IP.
-			cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", "OUTPUT", "-p", "udp", "-d", consulDNSIP, "--dport", "53", "-j", DNSChain)
-			cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", "OUTPUT", "-p", "tcp", "-d", consulDNSIP, "--dport", "53", "-j", DNSChain)
 		}
 
 		// For outbound TCP traffic jump from OUTPUT chain to PROXY_OUTPUT chain.
@@ -223,7 +254,7 @@ func SetupWithAdditionalRules(cfg Config, additionalRulesFn AdditionalRulesFn) e
 	return cfg.IptablesProvider.ApplyRules("iptables")
 }
 
-func SetupWithAdditionalRulesIPv6(cfg Config, additionalRulesFn AdditionalRulesFn) error {
+func SetupWithAdditionalRulesIPv6(cfg Config, additionalRulesFn AdditionalRulesFn, dualStack bool) error {
 
 	if cfg.IptablesProvider == nil {
 		cfg.IptablesProvider = &iptablesExecutor{cfg: cfg}

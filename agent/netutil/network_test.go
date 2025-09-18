@@ -12,8 +12,10 @@ import (
 	"os"
 	"testing"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/stretchr/testify/require"
 )
+
 
 func TestGetAgentConfig(t *testing.T) {
 	// Test cases
@@ -78,7 +80,7 @@ func TestGetAgentConfig(t *testing.T) {
 			defer os.Setenv("CONSUL_HTTP_ADDR", oldEnv)
 
 			// Call the function under test
-			result, err := GetAgentConfig()
+			result, err := GetAgentConfig(nil)
 
 			if tc.expectError {
 				require.Error(t, err)
@@ -155,7 +157,7 @@ func TestIsDualStack(t *testing.T) {
 		{
 			name: "invalid IP address",
 			setupMock: func() {
-				GetAgentBindAddrFunc = func() (net.IP, error) {
+				GetAgentBindAddrFunc = func(config *api.Config, cached bool) (net.IP, error) {
 					return nil, fmt.Errorf("unable to parse bind address")
 				}
 			},
@@ -170,7 +172,7 @@ func TestIsDualStack(t *testing.T) {
 				tc.setupMock()
 			} else {
 				// Set up a default mock for GetAgentBindAddr
-				GetAgentBindAddrFunc = func() (net.IP, error) {
+				GetAgentBindAddrFunc = func(config *api.Config, cached bool) (net.IP, error) {
 					if tc.mockBindIP == "" {
 						return nil, nil
 					}
@@ -183,7 +185,7 @@ func TestIsDualStack(t *testing.T) {
 			}
 
 			// Call the function under test
-			isDualStack, err := IsDualStack()
+			isDualStack, err := IsDualStack(nil, false)
 
 			if tc.expectError {
 				require.Error(t, err)
@@ -257,10 +259,10 @@ func TestGetAgentBindAddr(t *testing.T) {
 			expectError:   true,
 			expectedError: "failed to get agent config",
 			setupMock: func() {
-				GetAgentConfigFunc = func() (map[string]map[string]interface{}, error) {
+				GetAgentConfigFunc = func(config *api.Config) (map[string]map[string]interface{}, error) {
 					return nil, fmt.Errorf("failed to get agent config")
 				}
-				GetAgentBindAddrFunc = func() (net.IP, error) {
+				GetAgentBindAddrFunc = func(config *api.Config, cached bool) (net.IP, error) {
 					return nil, fmt.Errorf("failed to get bind address")
 				}
 			},
@@ -274,7 +276,7 @@ func TestGetAgentBindAddr(t *testing.T) {
 				tc.setupMock()
 			} else {
 				// Default mock setup if no setupMock provided
-				GetAgentConfigFunc = func() (map[string]map[string]interface{}, error) {
+				GetAgentConfigFunc = func(config *api.Config) (map[string]map[string]interface{}, error) {
 					if tc.mockConfig == nil {
 						return nil, fmt.Errorf("mock error")
 					}
@@ -283,7 +285,7 @@ func TestGetAgentBindAddr(t *testing.T) {
 			}
 
 			// Call the function under test
-			ip, err := GetAgentBindAddr()
+			ip, err := GetAgentBindAddr(nil, false)
 
 			if tc.expectError {
 				require.Error(t, err)

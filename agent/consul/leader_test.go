@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/serf/serf"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/structs"
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
@@ -1094,7 +1095,7 @@ func TestDatacenterSupportsIntentionsAsConfigEntries(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	addLegacyIntention := func(srv *Server, dc, src, dest string, allow bool) error {
 		ixn := &structs.Intention{
 			SourceNS:        structs.IntentionDefaultNamespace,
@@ -1550,7 +1551,7 @@ func TestLeader_EnableVirtualIPs(t *testing.T) {
 		require.NotNil(r, entry)
 		require.Equal(r, "true", entry.Value)
 	})
-
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	// Update the connect-native service - now there should be a virtual IP assigned.
 	err = state.EnsureRegistration(20, &structs.RegisterRequest{
 		Node:    "foo",

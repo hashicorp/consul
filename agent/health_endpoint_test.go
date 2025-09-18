@@ -20,6 +20,7 @@ import (
 
 	"github.com/hashicorp/serf/coordinate"
 
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -1713,6 +1714,8 @@ func TestHealthConnectServiceNodes(t *testing.T) {
 }
 
 func testHealthConnectServiceNodes(t *testing.T, backendCfg *queryBackendConfiguration) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
+
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
