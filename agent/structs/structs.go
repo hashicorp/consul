@@ -1403,8 +1403,8 @@ type NodeService struct {
 	Address           string
 	TaggedAddresses   map[string]ServiceAddress `json:",omitempty"`
 	Meta              map[string]string
-	Port              int          `json:",omitempty"  bexpr:"-"`
-	Ports             ServicePorts `json:",omitempty"`
+	Port              int          `json:",omitempty"`
+	Ports             ServicePorts `json:",omitempty" bexpr:"-"`
 	SocketPath        string       `json:",omitempty"` // TODO This might be integrated into Address somehow, but not sure about the ergonomics. Only one of (address,port) or socketpath can be defined.
 	Weights           *Weights
 	EnableTagOverride bool
@@ -1473,17 +1473,13 @@ func (ns *NodeService) FillAuthzContext(ctx *acl.AuthorizerContext) {
 }
 
 func (ns *NodeService) DefaultPort() int {
-	if len(ns.Ports) == 0 {
-		return ns.Port
-	}
-
 	for _, p := range ns.Ports {
 		if p.Default {
 			return p.Port
 		}
 	}
 
-	return 0
+	return ns.Port
 }
 
 func (ns *NodeService) BestAddress(wan bool) (string, int) {

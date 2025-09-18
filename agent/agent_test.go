@@ -6469,9 +6469,8 @@ func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
 	}
 }
 
-func TestAgent_ServiceRegistration_Singe_MultiPort_ForwardCompatibility(t *testing.T) {
-	// Since we accept both 'port' and 'ports' in the service definition, we mapped 'port' to be placed in 'ports' array
-	// This ensures schema uniformity in the backend
+func TestAgent_ServiceRegistration(t *testing.T) {
+	// Since we accept both `port` and `ports` for service registration, we need to ensure that catalog stores it as it gets it
 
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -6524,14 +6523,11 @@ func TestAgent_ServiceRegistration_Singe_MultiPort_ForwardCompatibility(t *testi
 		require.Nil(t, obj)
 	}
 
-	// Fetch single port service and ensure 'ports' array is populated and 'port' is set to 0
+	// Fetch single port service and ensure 'port' value is populated and 'ports' array is empty
 	singleportSrv := agent.State.Service(structs.ServiceIDFromString("singleport-srv"))
 	require.NotNil(t, singleportSrv)
-	require.Equal(t, 0, singleportSrv.Port)
-	require.Len(t, singleportSrv.Ports, 1)
-	require.Equal(t, "default", singleportSrv.Ports[0].Name)
-	require.Equal(t, port, singleportSrv.Ports[0].Port)
-	require.True(t, singleportSrv.Ports[0].Default)
+	require.Equal(t, port, singleportSrv.Port)
+	require.Len(t, singleportSrv.Ports, 0)
 
 	// Fetch multi port service and ensure 'ports' array is populated
 	multiportSrv := agent.State.Service(structs.ServiceIDFromString("multiport-srv"))
@@ -6540,8 +6536,8 @@ func TestAgent_ServiceRegistration_Singe_MultiPort_ForwardCompatibility(t *testi
 	require.Equal(t, "http", multiportSrv.Ports[0].Name)
 	require.Equal(t, port, multiportSrv.Ports[0].Port)
 	require.True(t, multiportSrv.Ports[0].Default)
+	require.Equal(t, 0, multiportSrv.Port) // Port should be 0 as we didn't set it
 
-	// Although we convert 'port' to 'ports', we still populate 'port' field for backward compatibility in HTTP requests.
 	{
 		req, err := http.NewRequest(http.MethodGet, "/v1/catalog/service/singleport-srv", nil)
 		require.NoError(t, err)
