@@ -56,7 +56,20 @@ func TestConfigValidate(t *testing.T) {
 			},
 			expectErr: "must be set for type",
 		},
-		"missing required OIDCClientSecret": {
+		"missing required OIDCClientAssertion.PrivateKey": {
+			config: Config{
+				Type:                TypeOIDC,
+				OIDCDiscoveryURL:    srv.Addr(),
+				OIDCDiscoveryCACert: srv.CACert(),
+				OIDCClientID:        "abc",
+				OIDCClientAssertion: &OIDCClientAssertion{
+					Audience: []string{srv.Addr()},
+				},
+				AllowedRedirectURIs: []string{"http://foo.test"},
+			},
+			expectErr: "OIDCClientAssertion.PrivateKey' must be set when 'OIDCClientAssertion' is set for type",
+		},
+		"missing required OIDCClientSecret or OIDCClientAssertion": {
 			config: Config{
 				Type:                TypeOIDC,
 				OIDCDiscoveryURL:    srv.Addr(),
@@ -65,7 +78,7 @@ func TestConfigValidate(t *testing.T) {
 				// OIDCClientSecret:    "def",
 				AllowedRedirectURIs: []string{"http://foo.test"},
 			},
-			expectErr: "must be set for type",
+			expectErr: "OIDCClientSecret' or 'OIDCClientAssertion' must be set for type",
 		},
 		"missing required AllowedRedirectURIs": {
 			config: Config{
@@ -77,6 +90,36 @@ func TestConfigValidate(t *testing.T) {
 				AllowedRedirectURIs: []string{},
 			},
 			expectErr: "must be set for type",
+		},
+		"incompatible with OIDCClientSecret and OIDCClientAssertion": {
+			config: Config{
+				Type:                TypeOIDC,
+				OIDCDiscoveryURL:    srv.Addr(),
+				OIDCDiscoveryCACert: srv.CACert(),
+				OIDCClientID:        "abc",
+				OIDCClientSecret:    "def",
+				OIDCClientAssertion: &OIDCClientAssertion{
+					PrivateKey: &OIDCClientAssertionKey{PemKey: testRSAPrivateKey},
+					Audience:   []string{srv.Addr()},
+				},
+				AllowedRedirectURIs: []string{"http://foo.test"},
+			},
+			expectErr: "only one of 'OIDCClientSecret' or 'OIDCClientAssertion",
+		},
+		"incompatible key algorithm": {
+			config: Config{
+				Type:                TypeOIDC,
+				OIDCDiscoveryURL:    srv.Addr(),
+				OIDCDiscoveryCACert: srv.CACert(),
+				OIDCClientID:        "abc",
+				OIDCClientAssertion: &OIDCClientAssertion{
+					PrivateKey:   &OIDCClientAssertionKey{PemKey: testRSAPrivateKey},
+					Audience:     []string{srv.Addr()},
+					KeyAlgorithm: "foo",
+				},
+				AllowedRedirectURIs: []string{"http://foo.test"},
+			},
+			expectErr: "OIDCClientAssertion.KeyAlgorithm' must be 'RS256' currently",
 		},
 		"incompatible with JWKSURL": {
 			config: Config{
@@ -363,6 +406,16 @@ func TestConfigValidate(t *testing.T) {
 				Type:                 TypeJWT,
 				JWTValidationPubKeys: []string{testJWTPubKey},
 				OIDCClientSecret:     "abc",
+			},
+			expectErr: "must not be set for type",
+		},
+		"incompatible with OIDCClientAssertion": {
+			config: Config{
+				Type:                 TypeJWT,
+				JWTValidationPubKeys: []string{testJWTPubKey},
+				OIDCClientAssertion: &OIDCClientAssertion{
+					Audience: []string{srv.Addr()},
+				},
 			},
 			expectErr: "must not be set for type",
 		},

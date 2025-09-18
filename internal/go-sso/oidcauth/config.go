@@ -87,6 +87,13 @@ type Config struct {
 	// Valid only if Type=oidc
 	OIDCClientSecret string
 
+	// Optionally send a signed JWT ("private key jwt") as a client assertion
+	// for client authentication. This enables enhanced
+	// security by using asymmetric cryptography instead of shared secrets.
+	OIDCClientAssertion *OIDCClientAssertion
+	// Disable S256 PKCE challenge verification
+	OIDCClientUsePKCE *bool
+
 	// Comma-separated list of OIDC scopes
 	//
 	// Valid only if Type=oidc
@@ -166,6 +173,30 @@ type Config struct {
 	ClockSkewLeeway time.Duration
 }
 
+// OIDCClientAssertion configures private key JWT client authentication
+// for enhanced security in OIDC flows. This allowing clients to authenticate
+// using signed JWTs instead of shared secrets.
+// See also: structs.OIDCClientAssertion
+type OIDCClientAssertion struct {
+	// Audience is/are who will be processing the assertion.
+	// Typically set to the OIDC provider's token endpoint URL.
+	// Defaults to the parent ACLAuthMethodConfig's OIDCDiscoveryURL
+	Audience []string
+
+	// PrivateKey contains external key material provided by users.
+	// KeySource must be "private_key" to enable this.
+	PrivateKey *OIDCClientAssertionKey
+
+	KeyAlgorithm string
+}
+
+// OIDCClientAssertionKey holds the private key used for signing client assertions
+type OIDCClientAssertionKey struct {
+	// PemKey is the private key, in pem format. It is used to sign the JWT.
+	// Mutually exclusive with PemKeyFile.
+	PemKey string
+}
+
 // Validate returns an error if the config is not valid.
 func (c *Config) Validate() error {
 	validateCtx, validateCtxCancel := context.WithCancel(context.Background())
@@ -179,8 +210,10 @@ func (c *Config) Validate() error {
 			return fmt.Errorf("'OIDCDiscoveryURL' must be set for type %q", c.Type)
 		case c.OIDCClientID == "":
 			return fmt.Errorf("'OIDCClientID' must be set for type %q", c.Type)
-		case c.OIDCClientSecret == "":
-			return fmt.Errorf("'OIDCClientSecret' must be set for type %q", c.Type)
+		case c.OIDCClientSecret == "" && c.OIDCClientAssertion == nil:
+			return fmt.Errorf("'OIDCClientSecret' or 'OIDCClientAssertion' must be set for type %q", c.Type)
+		case c.OIDCClientAssertion != nil && c.OIDCClientAssertion.PrivateKey == nil:
+			return fmt.Errorf("'OIDCClientAssertion.PrivateKey' must be set when 'OIDCClientAssertion' is set for type %q", c.Type)
 		case len(c.AllowedRedirectURIs) == 0:
 			return fmt.Errorf("'AllowedRedirectURIs' must be set for type %q", c.Type)
 		}
@@ -189,6 +222,8 @@ func (c *Config) Validate() error {
 		switch {
 		case c.JWKSURL != "":
 			return fmt.Errorf("'JWKSURL' must not be set for type %q", c.Type)
+		case c.OIDCClientSecret != "" && c.OIDCClientAssertion != nil:
+			return fmt.Errorf("only one of 'OIDCClientSecret' or 'OIDCClientAssertion' can be set for type %q", c.Type)
 		case c.JWKSCACert != "":
 			return fmt.Errorf("'JWKSCACert' must not be set for type %q", c.Type)
 		case len(c.JWTValidationPubKeys) != 0:
@@ -213,6 +248,14 @@ func (c *Config) Validate() error {
 			return fmt.Errorf("Invalid AllowedRedirectURIs provided: %v", bad)
 		}
 
+		if c.OIDCClientAssertion != nil {
+			// Validate KeyAlgorithm if set
+			if c.OIDCClientAssertion.KeyAlgorithm != "" &&
+				c.OIDCClientAssertion.KeyAlgorithm != "RS256" {
+				return fmt.Errorf("'OIDCClientAssertion.KeyAlgorithm' must be 'RS256' currently")
+			}
+		}
+
 	case TypeJWT:
 		// not allowed
 		switch {
@@ -220,6 +263,8 @@ func (c *Config) Validate() error {
 			return fmt.Errorf("'OIDCClientID' must not be set for type %q", c.Type)
 		case c.OIDCClientSecret != "":
 			return fmt.Errorf("'OIDCClientSecret' must not be set for type %q", c.Type)
+		case c.OIDCClientAssertion != nil:
+			return fmt.Errorf("'OIDCClientAssertion' must not be set for type %q", c.Type)
 		case len(c.OIDCScopes) != 0:
 			return fmt.Errorf("'OIDCScopes' must not be set for type %q", c.Type)
 		case len(c.OIDCACRValues) != 0:
@@ -347,6 +392,8 @@ func (c *Config) authType() int {
 	case c.OIDCDiscoveryURL != "":
 		if c.OIDCClientID != "" && c.OIDCClientSecret != "" {
 			return authOIDCFlow
+		} else if c.OIDCClientID != "" && c.OIDCClientAssertion != nil {
+			return authOIDCFlow
 		}
 		return authOIDCDiscovery
 	default:
@@ -354,4 +401,4 @@ func (c *Config) authType() int {
 	}
 }
 
-const testJWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.Hf3E3iCHzqC5QIQ0nCqS1kw78IiQTRVzsLTuKoDIpdk"
+const testJWT = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.e30.Hf3E3iCHzqC5QIQ0nCqS1kw78IiQTRVzsLTuKoDIpdk"

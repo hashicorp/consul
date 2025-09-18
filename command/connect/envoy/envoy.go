@@ -21,6 +21,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/agent/xds/accesslogs"
@@ -88,9 +89,18 @@ type cmd struct {
 	gatewayKind    api.ServiceKind
 
 	dialFunc func(network string, address string) (net.Conn, error)
+
+	//checks if the consul agent is configured to use both IPv4 and IPv6 addresses.
+	checkDualStack  func() (bool, error)
+	useIPv6loopback bool
 }
 
 const meshGatewayVal = "mesh"
+const (
+	ipv4loopback     string = "127.0.0.1"
+	ipv6loopback     string = "::1"
+	defaultAdminPort int    = 19000
+)
 
 var defaultEnvoyVersion = xdscommon.EnvoyVersions[0]
 
@@ -130,7 +140,7 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.adminAccessLogPath, "admin-access-log-path", DefaultAdminAccessLogPath,
 		"DEPRECATED: use proxy-defaults.accessLogs to set Envoy access logs.")
 
-	c.flags.StringVar(&c.adminBind, "admin-bind", "localhost:19000",
+	c.flags.StringVar(&c.adminBind, "admin-bind", "",
 		"The address:port to start envoy's admin server on. Envoy requires this "+
 			"but care must be taken to ensure it's not exposed to an untrusted network "+
 			"as it has full control over the secrets and config of the proxy.")
@@ -238,6 +248,9 @@ func (c *cmd) init() {
 
 	c.dialFunc = func(network string, address string) (net.Conn, error) {
 		return net.DialTimeout(network, address, 3*time.Second)
+	}
+	c.checkDualStack = func() (bool, error) {
+		return netutil.IsDualStack()
 	}
 }
 
@@ -383,6 +396,19 @@ func (c *cmd) run(args []string) int {
 				"-prometheus-cert-file and -prometheus-key-file to enable TLS for prometheus metrics")
 			return 1
 		}
+	}
+
+	// check dual stack is configured
+	isDualStack, err := c.checkDualStack()
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("Error checking dual stack: %s", err.Error()))
+		return 1
+	}
+
+	c.logger.Debug("Received", "isDualStack", strconv.FormatBool(isDualStack))
+	if isDualStack {
+		c.logger.Debug("using dual-stack configuration: default localhost to IPv6 loopback")
+		c.useIPv6loopback = true
 	}
 
 	if c.register {
@@ -586,6 +612,14 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 	if !c.bootstrap {
 		if err := checkDial(xdsAddr, c.dialFunc); err != nil {
 			c.UI.Warn("There was an error dialing the xDS address: " + err.Error())
+		}
+	}
+
+	if c.adminBind == "" {
+		if c.useIPv6loopback {
+			c.adminBind = fmt.Sprintf("[%s]:%v", ipv6loopback, defaultAdminPort)
+		} else {
+			c.adminBind = fmt.Sprintf("localhost:%v", defaultAdminPort)
 		}
 	}
 
@@ -849,7 +883,11 @@ func (c *cmd) xdsAddress() (GRPC, error) {
 			port = 8502
 			c.UI.Warn("-grpc-addr not provided and unable to discover a gRPC address for xDS. Defaulting to localhost:8502")
 		}
-		addr = fmt.Sprintf("%vlocalhost:%v", protocol, port)
+		if c.useIPv6loopback {
+			addr = fmt.Sprintf("%v[%s]:%v", protocol, ipv6loopback, port)
+		} else {
+			addr = fmt.Sprintf("%vlocalhost:%v", protocol, port)
+		}
 	}
 
 	// TODO: parse addr as a url instead of strings.HasPrefix/TrimPrefix
