@@ -254,7 +254,7 @@ type ConnectProxyConfig struct {
 
 	// LocalServiceAddress is the address of the local service instance. It is
 	// optional and should only be specified for "side-car" style proxies. It will
-	// default to 127.0.0.1 if the proxy is a "side-car" (DestinationServiceID is
+	// default to 127.0.0.1 or ::1 if the proxy is a "side-car" (DestinationServiceID is
 	// set) but otherwise will be ignored.
 	LocalServiceAddress string `json:",omitempty" alias:"local_service_address"`
 
