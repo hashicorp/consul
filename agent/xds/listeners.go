@@ -102,7 +102,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			return nil, err
 		}
 
-		ds, err := netutil.IsDualStack()
+		ds, err := netutil.IsDualStack(nil, true)
 		if err != nil {
 			return nil, fmt.Errorf("failed to determine if dual-stack mode is enabled: %w", err)
 		}

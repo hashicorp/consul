@@ -87,8 +87,6 @@ func (s *Server) Query(ctx context.Context, req *pbdns.QueryRequest) (*pbdns.Que
 		s.Logger.Error("error unpacking message", "err", err)
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failure decoding dns request: %s", err.Error()))
 	}
-	fmt.Println("-----> DNS Request:", msg.String())
-	fmt.Println("-----> RespWriter :", string(respWriter.ResponseBuffer()))
 
 	s.DNSServeMux.ServeDNS(respWriter, msg)
 

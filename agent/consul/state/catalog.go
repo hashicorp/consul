@@ -1233,7 +1233,7 @@ func addIPOffset(b net.IP) (net.IP, error) {
 	var vip net.IP
 	var err error
 
-	ds, err := netutil.IsDualStack()
+	ds, err := netutil.IsDualStack(nil, true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to determine if dual-stack mode is enabled: %w", err)
 	}
@@ -5176,4 +5176,3 @@ func (s *Store) CatalogDump() (*structs.CatalogContents, error) {
 
 	return contents, nil
 }
-

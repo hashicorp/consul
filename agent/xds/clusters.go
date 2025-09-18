@@ -1107,7 +1107,7 @@ func (s *ResourceGenerator) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot, nam
 	} else {
 		addr := cfgSnap.Proxy.LocalServiceAddress
 
-		ds, err := netutil.IsDualStack()
+		ds, err := netutil.IsDualStack(nil, true)
 		if err != nil {
 			s.Logger.Error("failed to determine if dual stack is supported, assuming not", "error", err)
 		}

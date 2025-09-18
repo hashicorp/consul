@@ -921,12 +921,9 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, cfg *dnsRe
 		if err := d.agent.RPC(context.Background(), "Catalog.VirtualIPForService", &args, &out); err != nil {
 			return err
 		}
-		fmt.Println("--------------->. outoutout ", out)
 		if out != "" {
 			p := net.ParseIP(out)
 			if p.To4() == nil {
-				fmt.Println("---------------> an ipv6 ", out)
-
 				aaaaRecord := &dns.AAAA{
 					Hdr: dns.RR_Header{
 						Name:   qName + respDomain,
@@ -938,16 +935,12 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, cfg *dnsRe
 				}
 
 				if qType == dns.TypeAAAA || qType == dns.TypeANY {
-					fmt.Println("---------------> an ipv6 answer", out)
 					resp.Answer = append(resp.Answer, aaaaRecord)
-
 				} else {
-					fmt.Println("---------------> an ipv6 Extra", out)
 					resp.Extra = append(resp.Extra, aaaaRecord)
 
 				}
 			} else {
-				fmt.Println("---------------> is an ipv4 ", out)
 				aRecord := &dns.A{
 					Hdr: dns.RR_Header{
 						Name:   qName + respDomain,
@@ -959,9 +952,7 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, cfg *dnsRe
 				}
 				if qType == dns.TypeA && qType == dns.TypeANY {
 					resp.Answer = append(resp.Answer, aRecord)
-					fmt.Println("---------------> is an ipv4 answer", out)
 				} else {
-					fmt.Println("---------------> is an ipv4 extra", out)
 					resp.Extra = append(resp.Answer, aRecord)
 				}
 			}
