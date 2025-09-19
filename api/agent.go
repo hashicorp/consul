@@ -172,6 +172,16 @@ type AgentService struct {
 	Locality   *Locality `json:",omitempty" bexpr:"-" hash:"ignore"`
 }
 
+func (a AgentService) DefaultPort() int {
+	for _, p := range a.Ports {
+		if p.Default {
+			return p.Port
+		}
+	}
+
+	return a.Port
+}
+
 // AgentServiceChecksInfo returns information about a Service and its checks
 type AgentServiceChecksInfo struct {
 	AggregatedStatus string
