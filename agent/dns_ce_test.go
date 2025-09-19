@@ -9,15 +9,16 @@ import (
 	"context"
 	"testing"
 
-	"github.com/miekg/dns"
-	"github.com/stretchr/testify/require"
-
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/miekg/dns"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDNS_CE_PeeredServices(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}

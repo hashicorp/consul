@@ -17,6 +17,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/state"
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/internal/storage"
@@ -1029,6 +1030,7 @@ func TestFSM_BadSnapshot_NilCAConfig(t *testing.T) {
 // in 1.13.0, can still restore from older snapshots which use the old
 // state.ServiceVirtualIP type.
 func Test_restoreServiceVirtualIP(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	psn := structs.PeeredServiceName{
 		ServiceName: structs.ServiceName{
 			Name: "foo",
