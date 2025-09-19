@@ -1,0 +1,3 @@
+```release-note:bug
+ui: fixes the issue where namespaces where disappearing and Welcome to Namespace screen showed up after tab switching
+```
