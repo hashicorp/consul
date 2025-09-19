@@ -4,7 +4,6 @@
 package redirecttraffic
 
 import (
-	"fmt"
 	"sort"
 	"testing"
 
@@ -691,10 +690,9 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 				require.NoError(t, err)
 				testServer.WaitForSerfCheck(t)
 				defer testServer.Stop()
-				fmt.Println("My name is ", t.Name())
 				client, err := api.NewClient(&api.Config{Address: testServer.HTTPAddr})
-				cmd.client = client
 				require.NoError(t, err)
+				cmd.client = client
 				for _, service := range c.consulServices {
 					if cmd.nodeName != "" {
 						catalogRegistration := &api.CatalogRegistration{
