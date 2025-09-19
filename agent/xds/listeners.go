@@ -30,6 +30,7 @@ import (
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/xds/config"
 	"github.com/hashicorp/consul/agent/xds/naming"
 	"github.com/hashicorp/consul/agent/xds/platform"
@@ -101,10 +102,20 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			return nil, err
 		}
 
+		ds, err := netutil.IsDualStack(nil, true)
+		if err != nil {
+			return nil, fmt.Errorf("failed to determine if dual-stack mode is enabled: %w", err)
+		}
+
+		addr := "127.0.0.1"
+		if ds {
+			addr = "::1"
+		}
+
 		opts := makeListenerOpts{
 			name:       xdscommon.OutboundListenerName,
 			accessLogs: cfgSnap.Proxy.AccessLogs,
-			addr:       "127.0.0.1",
+			addr:       addr,
 			port:       port,
 			direction:  envoy_core_v3.TrafficDirection_OUTBOUND,
 			logger:     s.Logger,

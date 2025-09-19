@@ -21,6 +21,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/response"
@@ -50,6 +51,8 @@ type goldenTestCase struct {
 }
 
 func TestAllResourcesFromSnapshot(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
+
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}

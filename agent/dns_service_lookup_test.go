@@ -14,6 +14,7 @@ import (
 	"github.com/miekg/dns"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
@@ -520,6 +521,8 @@ func TestDNS_ServiceLookupWithInternalServiceAddress(t *testing.T) {
 }
 
 func TestDNS_ConnectServiceLookup(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
+
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}

@@ -127,7 +127,7 @@ func sidecarServiceFromNodeService(ns *structs.NodeService, token string) (*stru
 			sidecar.Proxy.LocalServiceSocketPath = ns.SocketPath
 		} else {
 			if sidecar.Proxy.LocalServiceAddress == "" {
-				dualStack, _ := netutil.IsDualStack()
+				dualStack, _ := netutil.IsDualStack(nil, true)
 				if dualStack {
 					sidecar.Proxy.LocalServiceAddress = defaultIPv6Address
 				} else {

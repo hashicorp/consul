@@ -15,6 +15,7 @@ import (
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -140,6 +141,8 @@ func TestClientSideVerifier(t *testing.T) {
 }
 
 func TestServerSideVerifier(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
+
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}

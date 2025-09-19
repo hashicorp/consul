@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib/stringslice"
@@ -1236,6 +1237,8 @@ func TestInternal_ServiceDump_ACL(t *testing.T) {
 }
 
 func TestInternal_GatewayServiceDump_Terminating(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
+
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -1445,6 +1448,8 @@ func TestInternal_GatewayServiceDump_Terminating(t *testing.T) {
 }
 
 func TestInternal_GatewayServiceDump_Terminating_ACL(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
+
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -2032,6 +2037,8 @@ func addPeerService(t *testing.T, codec rpc.ClientCodec) {
 }
 
 func TestInternal_GatewayIntentions(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
+
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -2150,6 +2157,7 @@ func TestInternal_GatewayIntentions_aclDeny(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 
 	dir1, s1 := testServerWithConfig(t, testServerACLConfig)
 	defer os.RemoveAll(dir1)
@@ -3048,6 +3056,7 @@ func TestInternal_PeeredUpstreams(t *testing.T) {
 }
 
 func TestInternal_ServiceGatewayService_Terminating(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -3210,6 +3219,7 @@ func TestInternal_ServiceGatewayService_Terminating(t *testing.T) {
 }
 
 func TestInternal_ServiceGatewayService_Terminating_ACL(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -3387,6 +3397,7 @@ func TestInternal_ServiceGatewayService_Terminating_ACL(t *testing.T) {
 }
 
 func TestInternal_ServiceGatewayService_Terminating_Destination(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -3836,6 +3847,7 @@ func testUUID() string {
 }
 
 func TestInternal_AssignManualServiceVIPs(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}

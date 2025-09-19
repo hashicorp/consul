@@ -12,12 +12,15 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func registerService(t *testing.T, index uint64, peerName, serviceName, nodeName string, store *state.Store) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
+
 	require.NoError(t, store.EnsureRegistration(index, &structs.RegisterRequest{
 		Node:           nodeName,
 		Service:        &structs.NodeService{Service: serviceName, ID: serviceName},

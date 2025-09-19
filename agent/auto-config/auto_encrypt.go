@@ -96,6 +96,8 @@ func (ac *AutoConfig) joinHosts() ([]string, error) {
 		if err != nil {
 			if strings.Contains(err.Error(), "missing port in address") {
 				host = addr
+			} else if strings.Contains(err.Error(), "too many colons in address") {
+				host = addr
 			} else {
 				ac.logger.Warn("error splitting host address into IP and port", "address", addr, "error", err)
 				continue

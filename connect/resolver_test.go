@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/api"
 	"github.com/stretchr/testify/require"
 )
@@ -43,6 +44,8 @@ func TestStaticResolver_Resolve(t *testing.T) {
 }
 
 func TestConsulResolver_Resolve(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
+
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}

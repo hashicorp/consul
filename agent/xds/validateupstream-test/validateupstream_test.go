@@ -6,6 +6,7 @@ package validateupstream_test
 import (
 	"testing"
 
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds"
@@ -20,6 +21,8 @@ import (
 // TestValidateUpstreams only tests validation for listeners, routes, and clusters. Endpoints validation is done in a
 // top level test that can parse the output of the /clusters endpoint.
 func TestValidateUpstreams(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
+
 	sni := "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
 	listenerName := "db:127.0.0.1:9191"
 	httpServiceDefaults := &structs.ServiceConfigEntry{

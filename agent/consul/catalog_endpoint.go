@@ -1131,7 +1131,6 @@ func (c *Catalog) VirtualIPForService(args *structs.ServiceSpecificRequest, repl
 	if done, err := c.srv.ForwardRPC("Catalog.VirtualIPForService", args, reply); done {
 		return err
 	}
-
 	authzContext := acl.AuthorizerContext{
 		Peer: args.PeerName,
 	}
@@ -1150,6 +1149,7 @@ func (c *Catalog) VirtualIPForService(args *structs.ServiceSpecificRequest, repl
 
 	state := c.srv.fsm.State()
 	psn := structs.PeeredServiceName{Peer: args.PeerName, ServiceName: structs.NewServiceName(args.ServiceName, &args.EnterpriseMeta)}
+
 	*reply, err = state.VirtualIPForService(psn)
 	return err
 }

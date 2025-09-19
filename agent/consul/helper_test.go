@@ -18,6 +18,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -610,6 +611,8 @@ func registerTestCatalogProxyEntries(t *testing.T, codec rpc.ClientCodec) {
 }
 
 func registerTestCatalogEntriesMap(t *testing.T, codec rpc.ClientCodec, registrations map[string]*structs.RegisterRequest) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
+
 	t.Helper()
 	for name, reg := range registrations {
 		err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", reg, nil)
@@ -1024,6 +1027,8 @@ func registerTestTopologyEntries(t *testing.T, codec rpc.ClientCodec, token stri
 }
 
 func registerTestRoutingConfigTopologyEntries(t *testing.T, codec rpc.ClientCodec) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
+
 	registrations := map[string]*structs.RegisterRequest{
 		"Service dashboard": {
 			Datacenter:     "dc1",
@@ -1214,6 +1219,7 @@ func registerTestRoutingConfigTopologyEntries(t *testing.T, codec rpc.ClientCode
 }
 
 func registerLocalAndRemoteServicesVIPEnabled(t *testing.T, state *state.Store) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	t.Helper()
 
 	retry.Run(t, func(r *retry.R) {

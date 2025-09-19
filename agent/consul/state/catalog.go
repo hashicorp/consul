@@ -12,16 +12,16 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/hashicorp/go-memdb"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/maps"
 	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-memdb"
 )
 
 const (
@@ -47,6 +47,20 @@ var (
 	startingVirtualIP = net.IP{240, 0, 0, 0}
 
 	virtualIPMaxOffset = net.IP{15, 255, 255, 254}
+
+	startingVirtualIPv6 = net.IP{
+		0x20, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00,
+	}
+
+	virtualIPv6MaxOffset = net.IP{
+		0x1F, 0xFF, 0xFF, 0xFF,
+		0xFF, 0xFF, 0xFF, 0xFF,
+		0xFF, 0xFF, 0xFF, 0xFF,
+		0xFF, 0xFF, 0xFF, 0xFF,
+	}
 
 	ErrNodeNotFound = errors.New("node not found")
 )
@@ -1009,7 +1023,7 @@ func assignServiceVirtualIP(tx WriteTxn, idx uint64, psn structs.PeeredServiceNa
 	// Service already has a virtual IP assigned, nothing to do.
 	if serviceVIP != nil {
 		sVIP := serviceVIP.(ServiceVirtualIP).IP
-		result, err := addIPOffset(startingVirtualIP, sVIP)
+		result, err := addIPOffset(sVIP)
 		if err != nil {
 			return "", err
 		}
@@ -1060,9 +1074,12 @@ func assignServiceVirtualIP(tx WriteTxn, idx uint64, psn structs.PeeredServiceNa
 				break
 			}
 		}
-
+		maxIPOffset := virtualIPMaxOffset
+		if p := net.ParseIP(newEntry.IP.String()); p == nil || p.To4() == nil {
+			maxIPOffset = virtualIPv6MaxOffset
+		}
 		// Out of virtual IPs, fail registration.
-		if newEntry.IP.Equal(virtualIPMaxOffset) {
+		if newEntry.IP.Equal(maxIPOffset) {
 			return "", fmt.Errorf("cannot allocate any more unique service virtual IPs")
 		}
 
@@ -1086,7 +1103,7 @@ func assignServiceVirtualIP(tx WriteTxn, idx uint64, psn structs.PeeredServiceNa
 		return "", err
 	}
 
-	result, err := addIPOffset(startingVirtualIP, assignedVIP.IP)
+	result, err := addIPOffset(assignedVIP.IP)
 	if err != nil {
 		return "", err
 	}
@@ -1212,7 +1229,50 @@ func updateVirtualIPMaxIndexes(txn WriteTxn, idx uint64, partition, peerName str
 	return nil
 }
 
-func addIPOffset(a, b net.IP) (net.IP, error) {
+func addIPOffset(b net.IP) (net.IP, error) {
+	var vip net.IP
+	var err error
+
+	ds, err := netutil.IsDualStack(nil, true)
+	if err != nil {
+		return nil, fmt.Errorf("failed to determine if dual-stack mode is enabled: %w", err)
+	}
+
+	if ds {
+		vip, err = addIPv6Offset(startingVirtualIPv6, b)
+	} else {
+		vip, err = addIPv4Offset(startingVirtualIP, b)
+	}
+	return vip, err
+}
+
+// addIPv6Offset adds two IPv6 address byte slices (a and b).
+// Both must be 16 bytes long.
+// Returns the sum modulo 2^128 as a new IPv6 address.
+func addIPv6Offset(a, b net.IP) (net.IP, error) {
+	a16 := a.To16()
+	b16 := b.To16()
+	if a16 == nil || b16 == nil {
+		return nil, errors.New("ip is not valid IPv6")
+	}
+	if len(a16) != 16 || len(b16) != 16 {
+		return nil, errors.New("ip length is not 16 bytes")
+	}
+
+	result := make(net.IP, 16)
+	var carry uint16 = 0
+
+	// Add from least significant byte to most significant byte
+	for i := 15; i >= 0; i-- {
+		sum := uint16(a16[i]) + uint16(b16[i]) + carry
+		result[i] = byte(sum & 0xFF)
+		carry = sum >> 8 // carry 1 if sum > 255
+	}
+	// Carry beyond 128 bits is discarded (mod 2^128 arithmetic)
+	return result, nil
+}
+
+func addIPv4Offset(a, b net.IP) (net.IP, error) {
 	a4 := a.To4()
 	b4 := b.To4()
 	if a4 == nil || b4 == nil {

@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/agent"
+	"github.com/hashicorp/consul/agent/netutil"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
@@ -65,6 +67,8 @@ func TestIntentionGet_Validation(t *testing.T) {
 }
 
 func TestIntentionGet_id(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
+
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -103,6 +107,8 @@ func TestIntentionGet_id(t *testing.T) {
 }
 
 func TestIntentionGet_srcDst(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
+
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -141,6 +147,8 @@ func TestIntentionGet_srcDst(t *testing.T) {
 }
 
 func TestIntentionGet_verticalBar(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
+
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
