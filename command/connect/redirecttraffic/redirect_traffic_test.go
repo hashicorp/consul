@@ -4,13 +4,13 @@
 package redirecttraffic
 
 import (
+	"fmt"
 	"sort"
 	"testing"
 
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/iptables"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -63,7 +63,6 @@ func TestRun_FlagValidation(t *testing.T) {
 }
 
 func TestGenerateConfigFromFlags(t *testing.T) {
-	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -692,8 +691,9 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 				require.NoError(t, err)
 				testServer.WaitForSerfCheck(t)
 				defer testServer.Stop()
-
+				fmt.Println("My name is ", t.Name())
 				client, err := api.NewClient(&api.Config{Address: testServer.HTTPAddr})
+				cmd.client = client
 				require.NoError(t, err)
 				for _, service := range c.consulServices {
 					if cmd.nodeName != "" {
@@ -709,7 +709,6 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 								Proxy:   service.Proxy,
 							},
 						}
-						netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 						_, err := client.Catalog().Register(catalogRegistration, nil)
 						require.NoError(t, err)
 					}
