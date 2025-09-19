@@ -413,11 +413,19 @@ func (s *HTTPHandlers) catalogServiceNodes(resp http.ResponseWriter, req *http.R
 		out.ServiceNodes = make(structs.ServiceNodes, 0)
 	}
 	for i, s := range out.ServiceNodes {
+		var clone = *s
+
 		if s.ServiceTags == nil {
-			clone := *s
 			clone.ServiceTags = make([]string, 0)
-			out.ServiceNodes[i] = &clone
 		}
+
+		if clone.ServicePort == 0 && len(clone.ServicePorts) > 0 {
+			// Populate `port` with default port for backward compatibility
+			clone.ServicePort = clone.ToNodeService().DefaultPort()
+		}
+
+		out.ServiceNodes[i] = &clone
+
 	}
 	metrics.IncrCounterWithLabels([]string{"client", "api", "success", "catalog_service_nodes"}, 1,
 		s.nodeMetricsLabels())
