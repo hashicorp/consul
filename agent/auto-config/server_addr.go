@@ -87,7 +87,13 @@ func (ac *AutoConfig) resolveHost(hostPort string) []net.TCPAddr {
 		if strings.Contains(err.Error(), "missing port in address") {
 			host = hostPort
 		} else if strings.Contains(err.Error(), "too many colons in address") {
-			host = hostPort
+			ip := net.ParseIP(hostPort)
+			if ip == nil {
+				ac.logger.Warn("not a valid ip address", "address", hostPort, "error", err)
+				return nil
+			} else {
+				host = hostPort
+			}
 		} else {
 			ac.logger.Warn("error splitting host address into IP and port", "address", hostPort, "error", err)
 			return nil

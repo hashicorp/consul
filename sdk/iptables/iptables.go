@@ -101,7 +101,7 @@ type Provider interface {
 }
 
 func verifyDualStackConfig(cfg Config, dualStack bool) error {
-	if dualStack == true {
+	if dualStack {
 		if cfg.ConsulDNSIP != "" {
 			ip := net.ParseIP(cfg.ConsulDNSIP)
 			if ip == nil {
