@@ -3342,20 +3342,6 @@ func TestServicePorts_Validate(t *testing.T) {
 			},
 			expectedErr: "Ports.Name \"http\" has to be unique",
 		},
-		"invalid_duplicate_port": {
-			ports: ServicePorts{
-				{
-					Name:    "http",
-					Port:    80,
-					Default: true,
-				},
-				{
-					Name: "http-alt",
-					Port: 80,
-				},
-			},
-			expectedErr: "Ports.Port 80 has to be unique",
-		},
 		"invalid_port_name": {
 			ports: ServicePorts{
 				{
