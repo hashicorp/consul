@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/go-jose/go-jose/v3/jwt"
 )
 
@@ -207,4 +208,38 @@ func parsePublicKeyPEM(data []byte) (interface{}, error) {
 	}
 
 	return nil, errors.New("data does not contain any valid RSA, ECDSA, or ED25519 public keys")
+}
+
+func (a *Authenticator) verifyOIDCToken(ctx context.Context, rawToken string) (map[string]any, error) {
+	allClaims := make(map[string]any)
+
+	oidcConfig := &oidc.Config{
+		SupportedSigningAlgs: a.config.JWTSupportedAlgs,
+	}
+	switch a.config.authType() {
+	case authOIDCFlow:
+		oidcConfig.ClientID = a.config.OIDCClientID
+	case authOIDCDiscovery:
+		oidcConfig.SkipClientIDCheck = true
+	default:
+		return nil, fmt.Errorf("unsupported auth type for this verifyOIDCToken: %d", a.config.authType())
+	}
+
+	verifier := a.provider.Verifier(oidcConfig)
+
+	idToken, err := verifier.Verify(ctx, rawToken)
+	if err != nil {
+		return nil, fmt.Errorf("error validating signature: %v", err)
+	}
+
+	if err := idToken.Claims(&allClaims); err != nil {
+		return nil, fmt.Errorf("unable to successfully parse all claims from token: %v", err)
+	}
+	// Follows behavior of hashicorp/vault-plugin-auth-jwt (non-strict validation).
+	// See https://developer.hashicorp.com/consul/docs/security/acl/auth-methods/oidc#oidc-configuration-troubleshooting.
+	if err := validateAudience(a.config.BoundAudiences, idToken.Audience, false); err != nil {
+		return nil, fmt.Errorf("error validating claims: %v", err)
+	}
+
+	return allClaims, nil
 }

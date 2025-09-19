@@ -1,0 +1,3 @@
+```release-note:feature
+oidc: add client authentication using JWT assertion and PKCE. default PKCE is enabled.
+```

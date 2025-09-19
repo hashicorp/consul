@@ -6133,7 +6133,7 @@ func TestAgent_Monitor(t *testing.T) {
 	t.Run("stream unstructured logs", func(t *testing.T) {
 		// Try to stream logs until we see the expected log line
 		retry.Run(t, func(r *retry.R) {
-			req, _ := http.NewRequest("GET", "/v1/agent/monitor?loglevel=debug", nil)
+			req, _ := http.NewRequest("GET", "/v1/agent/monitor?loglevel=info", nil)
 			cancelCtx, cancelFunc := context.WithCancel(context.Background())
 			req = req.WithContext(cancelCtx)
 

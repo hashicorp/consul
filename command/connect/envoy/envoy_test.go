@@ -72,6 +72,9 @@ func TestEnvoyGateway_Validation(t *testing.T) {
 			ui := cli.NewMockUi()
 			c := New(ui)
 			c.init()
+			c.checkDualStack = func() (bool, error) {
+				return false, nil
+			}
 
 			code := c.Run(tc.args)
 			if code == 0 {
@@ -127,6 +130,7 @@ type generateConfigTestCase struct {
 	XDSPorts          agent.GRPCPorts // used to mock an agent's configured gRPC ports. Plaintext defaults to 8502 and TLS defaults to 8503.
 	AgentSelf110      bool            // fake the agent API from versions v1.10 and earlier
 	GRPCDisabled      bool
+	IsDualStack       bool
 	WantArgs          BootstrapTplArgs
 	WantErr           string
 	WantWarn          string
@@ -189,6 +193,55 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
 				PrometheusBackendPort: "",
+				PrometheusScrapePath:  "/metrics",
+			},
+		},
+		{
+			Name:        "defaults-with-dual-stack",
+			Flags:       []string{"-proxy-id", "test-proxy"},
+			IsDualStack: true,
+			WantArgs: BootstrapTplArgs{
+				ProxyCluster: "test-proxy",
+				ProxyID:      "test-proxy",
+				// We don't know this til after the lookup so it will be empty in the
+				// initial args call we are testing here.
+				ProxySourceService: "",
+				// Should resolve IP, note this might not resolve the same way
+				// everywhere which might make this test brittle but not sure what else
+				// to do.
+				GRPC: GRPC{
+					AgentAddress: ipv6loopback,
+					AgentPort:    "8502",
+				},
+				AdminAccessLogPath:    "/dev/null",
+				AdminBindAddress:      ipv6loopback,
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
+			},
+		},
+		{
+			Name: "admin-bind-flag-with-dual-stack",
+			Flags: []string{"-proxy-id", "test-proxy",
+				"-admin-bind", "localhost:9999"},
+			IsDualStack: true,
+			WantArgs: BootstrapTplArgs{
+				ProxyCluster: "test-proxy",
+				ProxyID:      "test-proxy",
+				// We don't know this til after the lookup so it will be empty in the
+				// initial args call we are testing here.
+				ProxySourceService: "",
+				// Should resolve IP, note this might not resolve the same way
+				// everywhere which might make this test brittle but not sure what else
+				// to do.
+				GRPC: GRPC{
+					AgentAddress: ipv6loopback,
+					AgentPort:    "8502",
+				},
+				AdminAccessLogPath:    "/dev/null",
+				AdminBindAddress:      ipv4loopback,
+				AdminBindPort:         "9999",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
 				PrometheusScrapePath:  "/metrics",
 			},
 		},
@@ -449,6 +502,31 @@ func TestGenerateConfig(t *testing.T) {
 				},
 				AdminAccessLogPath:    "/dev/null",
 				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
+			},
+		},
+		{
+			Name: "grpc-addr-flag-with-dual-stack",
+			Flags: []string{"-proxy-id", "test-proxy",
+				"-grpc-addr", "localhost:9999"},
+			IsDualStack: true,
+			WantArgs: BootstrapTplArgs{
+				ProxyCluster: "test-proxy",
+				ProxyID:      "test-proxy",
+				// We don't know this til after the lookup so it will be empty in the
+				// initial args call we are testing here.
+				ProxySourceService: "",
+				// Should resolve IP, note this might not resolve the same way
+				// everywhere which might make this test brittle but not sure what else
+				// to do.
+				GRPC: GRPC{
+					AgentAddress: ipv4loopback,
+					AgentPort:    "9999",
+				},
+				AdminAccessLogPath:    "/dev/null",
+				AdminBindAddress:      ipv6loopback,
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
 				PrometheusScrapePath:  "/metrics",
@@ -1291,6 +1369,10 @@ func TestGenerateConfig(t *testing.T) {
 				return nil, nil
 			}
 
+			c.checkDualStack = func() (bool, error) {
+				return tc.IsDualStack, nil
+			}
+
 			// Run the command
 			myFlags := copyAndReplaceAll(tc.Flags, "@@TEMPDIR@@", testDirPrefix)
 			args := append([]string{"-bootstrap"}, myFlags...)
@@ -1405,6 +1487,9 @@ func TestEnvoy_GatewayRegistration(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ui := cli.NewMockUi()
 			c := New(ui)
+			c.checkDualStack = func() (bool, error) {
+				return false, nil
+			}
 
 			code := c.Run(tc.args)
 			if code != 0 {

@@ -190,6 +190,10 @@ as |item|}}
           <dt>{{t 'models.auth-method.Config.OIDCClientSecret'}}</dt>
           <dd>{{@item.Config.OIDCClientSecret}}</dd>
         {{/if}}
+        {{#if @item.Config.OIDCClientAssertion.PrivateKey.PemKey}}
+          <dt>{{t 'models.auth-method.Config.OIDCClientAssertionPrivateKey'}}</dt>
+          <dd>{{@item.Config.OIDCClientAssertion.PrivateKey.PemKey}}</dd>
+        {{/if}}
         {{#if @item.Config.AllowedRedirectURIs}}
           <dt>{{t 'models.auth-method.Config.AllowedRedirectURIs'}}</dt>
           <dd>
