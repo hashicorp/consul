@@ -312,7 +312,7 @@ func TestSetup(t *testing.T) {
 				}
 			}
 
-			err := SetupWithAdditionalRules(c.cfg, fn)
+			err := SetupWithAdditionalRules(c.cfg, fn, false)
 			require.NoError(t, err)
 			require.Equal(t, c.expectedRules, c.cfg.IptablesProvider.Rules())
 		})

@@ -685,7 +685,6 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 	}
 
 	for _, c := range cases {
-
 		t.Run(c.name, func(t *testing.T) {
 			cmd := c.command()
 			if c.consulServices != nil {
@@ -696,8 +695,6 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 
 				client, err := api.NewClient(&api.Config{Address: testServer.HTTPAddr})
 				require.NoError(t, err)
-				cmd.client = client
-
 				for _, service := range c.consulServices {
 					if cmd.nodeName != "" {
 						catalogRegistration := &api.CatalogRegistration{
@@ -712,7 +709,7 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 								Proxy:   service.Proxy,
 							},
 						}
-
+						netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 						_, err := client.Catalog().Register(catalogRegistration, nil)
 						require.NoError(t, err)
 					}

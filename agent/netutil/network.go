@@ -18,6 +18,10 @@ var GetAgentBindAddrFunc = GetAgentBindAddr
 
 var cachedBindAddr net.IP
 
+func SetAgentBindAddr(ip *net.IPAddr) {
+	cachedBindAddr = ip.IP
+}
+
 func GetMockGetAgentBindAddrFunc(ip string) func(config *api.Config, cached bool) (net.IP, error) {
 	return func(config *api.Config, cached bool) (net.IP, error) {
 		ip := net.ParseIP(ip)
