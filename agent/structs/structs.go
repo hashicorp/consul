@@ -1314,7 +1314,6 @@ func (sp ServicePorts) Validate() error {
 	}
 
 	seenName := make(map[string]struct{}, len(sp))
-	seenPort := make(map[int]struct{}, len(sp))
 	seenDefault := false
 	for _, p := range sp {
 		if strings.TrimSpace(p.Name) == "" {
@@ -1331,12 +1330,6 @@ func (sp ServicePorts) Validate() error {
 		}
 
 		seenName[p.Name] = struct{}{}
-
-		_, ok = seenPort[p.Port]
-		if ok {
-			return fmt.Errorf("Ports.Port %d has to be unique", p.Port)
-		}
-		seenPort[p.Port] = struct{}{}
 
 		if seenDefault && p.Default {
 			return fmt.Errorf("Only one port can be marked as default")
