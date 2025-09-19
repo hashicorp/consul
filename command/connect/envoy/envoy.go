@@ -401,8 +401,13 @@ func (c *cmd) run(args []string) int {
 	// check dual stack is configured
 	isDualStack, err := c.checkDualStack()
 	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error checking dual stack: %s", err.Error()))
-		return 1
+		if strings.Contains(err.Error(), "Permission denied") {
+			// Token did not have agent:read. Suppress and proceed with defaults.
+			c.logger.Warn("Permission denied checking for dual stack. Proceeding with default localhost address when unset")
+		} else {
+			c.UI.Error(fmt.Sprintf("Error checking dual stack: %s", err.Error()))
+			return 1
+		}
 	}
 
 	c.logger.Debug("Received", "isDualStack", strconv.FormatBool(isDualStack))
