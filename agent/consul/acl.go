@@ -5,6 +5,7 @@ package consul
 
 import (
 	"context"
+	"crypto/subtle"
 	"fmt"
 	"sort"
 	"sync"
@@ -969,7 +970,7 @@ func (r *ACLResolver) resolveTokenToIdentityAndPolicies(token string) (structs.A
 		lastErr = err
 
 		if tokenErr, ok := err.(*policyOrRoleTokenError); ok {
-			if acl.IsErrNotFound(err) && tokenErr.token == identity.SecretToken() {
+			if acl.IsErrNotFound(err) && subtle.ConstantTimeCompare([]byte(tokenErr.token), []byte(identity.SecretToken())) == 1 {
 				// token was deleted while resolving policies
 				return nil, nil, acl.ErrNotFound
 			}
@@ -1008,8 +1009,7 @@ func (r *ACLResolver) resolveTokenToIdentityAndRoles(token string) (structs.ACLI
 		lastErr = err
 
 		if tokenErr, ok := err.(*policyOrRoleTokenError); ok {
-			if acl.IsErrNotFound(err) && tokenErr.token == identity.SecretToken() {
-				// token was deleted while resolving roles
+			if acl.IsErrNotFound(err) && subtle.ConstantTimeCompare([]byte(tokenErr.token), []byte(identity.SecretToken())) == 1 { // token was deleted while resolving roles
 				return nil, nil, acl.ErrNotFound
 			}
 
