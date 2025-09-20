@@ -13,6 +13,7 @@
   @help={{@help}}
   @validations={{@validations}}
   @chart={{@chart}}
+  {{fix-super-select-aria}}
 >
   <:label>
     {{!- add an optional slot here called <:label>-}}
@@ -26,16 +27,18 @@
         {{! radiobuttons }}
       {{/if}}
     {{else}}
-      <PowerSelect
-        @disabled={{@disabled}}
-        @onChange={{@onchange}}
+      <Hds::Form::SuperSelect::Single::Field
+        @options={{@items}}
         @selected={{@selected}}
+        @onChange={{@onchange}}
+        @disabled={{@disabled}}
         @searchEnabled={{false}}
-        @options={{@items}} as |item|>
-        {{yield (hash
-          item=item
-        ) to='option'}}
-      </PowerSelect>
+        ...
+      as |F|>
+        <F.Options>
+          {{yield (hash item=F.options) to='option'}}
+        </F.Options>
+      </Hds::Form::SuperSelect::Single::Field>
     {{/if}}
   </:input>
 </FormInput>

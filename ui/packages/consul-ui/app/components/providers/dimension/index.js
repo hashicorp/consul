@@ -32,7 +32,7 @@ export default class DimensionsProvider extends Component {
   }
 
   get footer() {
-    return document.querySelector('footer[role="contentinfo"]');
+    return document.querySelector('#contentinfo');
   }
 
   @action measureDimensions(element) {

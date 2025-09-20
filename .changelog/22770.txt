@@ -1,0 +1,3 @@
+```release-note:improvement
+ui: Improved accessibility features in the Consul UI to enhance usability for users with disabilities
+```

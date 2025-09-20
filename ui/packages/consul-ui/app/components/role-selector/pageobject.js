@@ -12,8 +12,11 @@ export default (clickable, deletable, collection, alias, roleForm) =>
       roles: alias('selectedOptions'),
       selectedOptions: collection('[data-test-roles] [data-test-tabular-row]', {
         actions: clickable('label > button'),
-        delete: clickable('[data-test-delete]'),
-        confirmDelete: clickable('.informed-action button'),
+        delete: clickable('[data-test-delete] [role="menuitem"]'),
+        confirmDelete: clickable("#confirm-modal [data-test-id='confirm-action']", {
+          resetScope: true,
+          testContainer: 'body', // modal is rendered in the body
+        }),
       }),
     };
   };

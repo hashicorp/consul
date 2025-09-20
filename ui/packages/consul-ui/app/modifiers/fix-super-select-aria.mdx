@@ -1,0 +1,46 @@
+# fix-super-select-aria
+
+Fixes multiple ARIA accessibility issues in SuperSelect (ember-power-select) components by correcting roles, attributes, and labels.
+
+## Problems Fixed
+
+- **Invalid roles**: Changes `role="alert"` to `role="option"` on select options
+- **Broken references**: Removes invalid `aria-controls` pointing to non-existent elements
+- **Missing attributes**: Adds `aria-expanded` to comboboxes and `aria-label` to listboxes
+
+```html
+<!-- Before -->
+<div role="alert" aria-selected="true">Option 1</div>
+<input role="combobox" aria-controls="missing-dropdown" />
+<ul role="listbox"></ul>
+
+<!-- After -->
+<div role="option" aria-selected="true">Option 1</div>
+<input role="combobox" aria-expanded="false" />
+<ul role="listbox" aria-label="Available Options"></ul>
+```
+
+## Usage
+
+Apply to a parent element containing SuperSelect components:
+
+```hbs preview-template
+<div {{fix-super-select-aria}}>
+  <PowerSelect
+    @options={{array "Option 1" "Option 2" "Option 3"}}
+    @selected={{this.selected}}
+    @onChange={{fn (mut this.selected)}}
+    as |option|
+  >
+    {{option}}
+  </PowerSelect>
+</div>
+```
+
+## How it works
+
+- Scans for common ARIA violations in select components
+- Automatically fixes roles, attributes, and labels
+- Uses MutationObserver to handle dynamically rendered dropdowns
+
+**Temporary workaround** - remove when ember-power-select fixes these ARIA issues.

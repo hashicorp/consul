@@ -1,0 +1,43 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+<div class="super-select-with-create {{if this.isCreating 'is-creating'}}" ...attributes>
+  <Hds::Form::SuperSelect::Single::Field
+    @searchEnabled={{true}}
+    @onFilter={{action "handleFilter"}}
+    @search={{this.customSearch}}  {{! Add custom search function }}
+    @options={{this.allOptions}}  {{! Use all options, not enhanced }}
+    @selected={{@selected}}
+    @placeholder={{@searchPlaceholder}}
+    @onChange={{action "handleChange"}}
+    @onOpen={{action "handleOpen"}}
+    @onClose={{action "handleClose"}}
+    @disabled={{or @disabled this.isCreating}}
+    @label={{@label}}
+    @listboxAriaLabel={{@listboxAriaLabel}}
+    @isOptional={{@isOptional}}
+    @searchField={{@searchField}}
+    @searchPlaceholder={{@searchPlaceholder}}
+    id={{@id}}
+  as |F|>
+    <F.Options>
+      {{#if F.options.__isSuggestion__}}
+        <div class="create-option">
+          {{F.options.text}}
+        </div>
+      {{else}}
+          {{yield F.options}}
+      {{/if}}
+    </F.Options>
+
+    {{#if @helperText}}
+      <F.HelperText>{{@helperText}}</F.HelperText>
+    {{/if}}
+
+    {{#if @errorText}}
+      <F.Error>{{@errorText}}</F.Error>
+    {{/if}}
+  </Hds::Form::SuperSelect::Single::Field>
+</div>

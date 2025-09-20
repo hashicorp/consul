@@ -73,7 +73,7 @@
   </:notifications>
 
   <:side-nav>
-    <Hds::SideNav @hasA11yRefocus={{false}} @isResponsive={{false}} class='consul-side-nav' data-test-navigation>
+    <Hds::SideNav @hasA11yRefocus={{false}} @isResponsive={{false}} class='consul-side-nav' role="navigation" data-test-navigation>
       <:header>
         <Hds::SideNav::Header>
           <:logo>
@@ -120,6 +120,8 @@
       <:body>
         <Hds::SideNav::List
           class='hds-side-nav-hide-when-minimized consul-side-nav__selector-group'
+          aria-labelledby="context selectors"
+          aria-label="context selectors"
           as |SNL|
         >
           <HcpNavItem @list={{SNL}}/>
@@ -148,7 +150,7 @@
             @onchange={{action (mut this.nspaces) value='data'}}
           />
         </Hds::SideNav::List>
-        <Hds::SideNav::List class='hds-side-nav-hide-when-minimized' as |SNL|>
+        <Hds::SideNav::List class='hds-side-nav-hide-when-minimized' aria-label="main navigation" aria-labelledby='main navigation' as |SNL|>
           {{#if (can 'access overview')}}
             <SNL.Link
               @text={{t "components.hashicorp-consul.side-nav.overview"}}
@@ -211,7 +213,7 @@
         </Hds::SideNav::List>
       </:body>
       <:footer>
-        <footer role='contentinfo' data-test-footer>
+        <div data-test-footer id="contentinfo">
           <Hds::Text::Display
             class='hds-side-nav-hide-when-minimized'
             @size='100'
@@ -220,7 +222,7 @@
             {{t "components.hashicorp-consul.side-nav.footer" version=this.consulVersion}}
           </Hds::Text::Display>
           {{{concat '<!-- ' (env 'CONSUL_GIT_SHA') '-->'}}}
-        </footer>
+        </div>
       </:footer>
     </Hds::SideNav>
   </:side-nav>

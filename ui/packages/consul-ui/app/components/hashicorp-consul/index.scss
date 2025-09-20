@@ -13,7 +13,7 @@
       min-height: var(--token-side-nav-body-list-item-height);
       padding: var(--token-side-nav-body-list-item-padding-vertical)
         var(--token-side-nav-body-list-item-padding-horizontal);
-      color: var(--token-color-foreground-disabled);
+      color: var(--token-color-foreground-faint);
     }
 
     li.consul-side-nav__selector {
@@ -21,7 +21,7 @@
         min-width: 15.5rem;
 
         &:disabled {
-          color: var(--token-color-foreground-disabled);
+          color: var(--token-color-foreground-faint);
           border-color: var(--token-color-border-primary);
 
           &:hover {

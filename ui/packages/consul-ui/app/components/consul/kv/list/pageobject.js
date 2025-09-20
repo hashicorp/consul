@@ -9,5 +9,10 @@ export default (collection, clickable, attribute, deletable) => () => {
     kv: clickable('a'),
     actions: clickable('label'),
     ...deletable(),
+    delete: clickable('[data-test-delete] [role="menuitem"]'),
+    confirmInlineDelete: clickable("#confirm-modal [data-test-id='confirm-action']", {
+      resetScope: true,
+      testContainer: 'body', // modal is rendered in the body
+    }),
   });
 };

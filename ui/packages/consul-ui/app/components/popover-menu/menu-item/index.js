@@ -12,6 +12,13 @@ import Slotted from 'block-slots';
 export default Component.extend(Slotted, {
   tagName: '',
   dom: service('dom'),
+
+  formModalActive: false,
+
+  get modalRoot() {
+    return document.body;
+  },
+
   init: function () {
     this._super(...arguments);
     this.guid = this.dom.guid(this);
@@ -26,6 +33,16 @@ export default Component.extend(Slotted, {
   },
   willRender: function () {
     this._super(...arguments);
-    set(this, 'hasConfirmation', this._isRegistered('confirmation'));
+    set(this, 'hasConfirmation', this._isRegistered('confirm-footer'));
+  },
+
+  actions: {
+    activateModal(modalName) {
+      set(this, modalName, true);
+    },
+
+    deactivateModal(modalName) {
+      set(this, modalName, false);
+    },
   },
 });

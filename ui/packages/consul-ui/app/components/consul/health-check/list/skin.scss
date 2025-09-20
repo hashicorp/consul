@@ -48,7 +48,7 @@
   border-radius: var(--decor-radius-100);
 }
 %healthcheck-output dd:first-of-type {
-  color: var(--token-color-foreground-disabled);
+  color: var(--token-color-foreground-faint);
 }
 %healthcheck-output pre {
   background-color: var(--token-color-surface-strong);
