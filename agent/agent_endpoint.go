@@ -316,9 +316,10 @@ func buildAgentService(s *structs.NodeService, dc string) api.AgentService {
 		}
 	}
 
+	port := s.Port
 	if s.Port == 0 && len(s.Ports) > 0 {
 		// Populate `port` with default port for backward compatibility
-		s.Port = s.DefaultPort()
+		port = s.DefaultPort()
 	}
 
 	as := api.AgentService{
@@ -327,7 +328,7 @@ func buildAgentService(s *structs.NodeService, dc string) api.AgentService {
 		Service:           s.Service,
 		Tags:              s.Tags,
 		Meta:              s.Meta,
-		Port:              s.Port,
+		Port:              port,
 		Ports:             servicePorts,
 		Address:           s.Address,
 		SocketPath:        s.SocketPath,
