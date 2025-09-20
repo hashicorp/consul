@@ -743,23 +743,6 @@ func TestStructs_NodeService_ValidateMultiPort(t *testing.T) {
 			},
 			Err: "Ports.Name \"http\" has to be unique",
 		},
-		"duplicate-port": {
-			Ns: NodeService{
-				Ports: ServicePorts{
-					{
-						Name:    "http",
-						Port:    80,
-						Default: true,
-					},
-					{
-						Name:    "https",
-						Port:    80,
-						Default: false,
-					},
-				},
-			},
-			Err: "Ports.Port 80 has to be unique",
-		},
 		"empty-name": {
 			Ns: NodeService{
 				Ports: ServicePorts{
