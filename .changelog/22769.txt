@@ -1,0 +1,3 @@
+```release-note:feature
+Added support to register a service in consul with multiple ports
+```

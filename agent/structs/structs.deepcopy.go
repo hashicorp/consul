@@ -898,6 +898,10 @@ func (o *NodeService) DeepCopy() *NodeService {
 			cp.Meta[k2] = v2
 		}
 	}
+	if o.Ports != nil {
+		cp.Ports = make([]ServicePort, len(o.Ports))
+		copy(cp.Ports, o.Ports)
+	}
 	if o.Weights != nil {
 		cp.Weights = new(Weights)
 		*cp.Weights = *o.Weights
@@ -1066,6 +1070,10 @@ func (o *ServiceDefinition) DeepCopy() *ServiceDefinition {
 		for k2, v2 := range o.Meta {
 			cp.Meta[k2] = v2
 		}
+	}
+	if o.Ports != nil {
+		cp.Ports = make([]ServicePort, len(o.Ports))
+		copy(cp.Ports, o.Ports)
 	}
 	{
 		retV := o.Check.DeepCopy()

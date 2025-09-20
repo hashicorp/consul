@@ -184,6 +184,7 @@ func ServiceDefinitionToStructs(s *ServiceDefinition, t *structs.ServiceDefiniti
 	t.TaggedAddresses = MapStringServiceAddressToStructs(s.TaggedAddresses)
 	t.Meta = s.Meta
 	t.Port = int(s.Port)
+	t.Ports = PortsToStructs(s.Ports)
 	t.SocketPath = s.SocketPath
 	if s.Check != nil {
 		CheckTypeToStructs(s.Check, &t.Check)
@@ -209,6 +210,7 @@ func ServiceDefinitionFromStructs(t *structs.ServiceDefinition, s *ServiceDefini
 	s.TaggedAddresses = NewMapStringServiceAddressFromStructs(t.TaggedAddresses)
 	s.Meta = t.Meta
 	s.Port = int32(t.Port)
+	s.Ports = NewPortsFromStructs(t.Ports)
 	s.SocketPath = t.SocketPath
 	{
 		var x CheckType
@@ -223,6 +225,22 @@ func ServiceDefinitionFromStructs(t *structs.ServiceDefinition, s *ServiceDefini
 	s.Proxy = NewConnectProxyConfigPtrFromStructs(t.Proxy)
 	s.EnterpriseMeta = NewEnterpriseMetaFromStructs(t.EnterpriseMeta)
 	s.Connect = NewServiceConnectPtrFromStructs(t.Connect)
+}
+func ServicePortToStructs(s *ServicePort, t *structs.ServicePort) {
+	if s == nil {
+		return
+	}
+	t.Name = s.Name
+	t.Port = int(s.Port)
+	t.Default = s.Default
+}
+func ServicePortFromStructs(t *structs.ServicePort, s *ServicePort) {
+	if s == nil {
+		return
+	}
+	s.Name = t.Name
+	s.Port = int32(t.Port)
+	s.Default = t.Default
 }
 func TransparentProxyConfigToStructs(s *TransparentProxyConfig, t *structs.TransparentProxyConfig) {
 	if s == nil {

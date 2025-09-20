@@ -131,9 +131,63 @@ func TestAPI_AgentReload(t *testing.T) {
 	if !ok {
 		t.Fatalf("bad: %v", ok)
 	}
-	if service.Port != 1234 {
-		t.Fatalf("bad: %v", service.Port)
+
+	require.Equal(t, service.Port, 1234)
+
+	if service.Meta["some"] != "meta" {
+		t.Fatalf("Missing metadata some:=meta in %v", service)
 	}
+}
+
+func TestAPI_AgentReload_MultiPort(t *testing.T) {
+	t.Parallel()
+
+	// Create our initial empty config file, to be overwritten later
+	cfgDir := testutil.TempDir(t, "consul-config")
+
+	cfgFilePath := filepath.Join(cfgDir, "reload.json")
+	configFile, err := os.Create(cfgFilePath)
+	if err != nil {
+		t.Fatalf("Unable to create file %v, got error:%v", cfgFilePath, err)
+	}
+
+	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
+		conf.Args = []string{"-config-file", configFile.Name()}
+	})
+	defer s.Stop()
+
+	agent := c.Agent()
+
+	// Update the config file with a service definition
+	config := `{"service":{"name":"redis", "ports": [{ "name": "http", "port": 8080, "default": true }, { "name": "metrics", "port": 9090 }], "Meta": {"some": "meta"}}}`
+	err = os.WriteFile(configFile.Name(), []byte(config), 0644)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err = agent.Reload(); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	services, err := agent.Services()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	service, ok := services["redis"]
+	if !ok {
+		t.Fatalf("bad: %v", ok)
+	}
+
+	require.Len(t, service.Ports, 2)
+	require.Equal(t, "http", service.Ports[0].Name)
+	require.Equal(t, 8080, service.Ports[0].Port)
+	require.True(t, service.Ports[0].Default)
+
+	require.Equal(t, "metrics", service.Ports[1].Name)
+	require.Equal(t, 9090, service.Ports[1].Port)
+	require.False(t, service.Ports[1].Default)
+
 	if service.Meta["some"] != "meta" {
 		t.Fatalf("Missing metadata some:=meta in %v", service)
 	}
@@ -275,6 +329,7 @@ func TestAPI_AgentServiceAndReplaceChecks(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, out)
 	require.Equal(t, HealthPassing, state)
+
 	require.Equal(t, 9000, out.Service.Port)
 	require.Equal(t, locality, out.Service.Locality)
 
@@ -282,7 +337,6 @@ func TestAPI_AgentServiceAndReplaceChecks(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, outs)
 	require.Equal(t, HealthPassing, state)
-	require.Equal(t, 9000, outs[0].Service.Port)
 	require.Equal(t, locality, outs[0].Service.Locality)
 
 	if err := agent.ServiceDeregister("foo"); err != nil {
@@ -433,6 +487,7 @@ func TestAPI_AgentServices(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, out)
 	require.Equal(t, HealthCritical, state)
+
 	require.Equal(t, 8000, out.Service.Port)
 	require.Equal(t, locality, out.Service.Locality)
 
@@ -440,7 +495,6 @@ func TestAPI_AgentServices(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, outs)
 	require.Equal(t, HealthCritical, state)
-	require.Equal(t, 8000, outs[0].Service.Port)
 
 	if err := agent.ServiceDeregister("foo"); err != nil {
 		t.Fatalf("err: %v", err)
@@ -897,7 +951,7 @@ func TestAPI_AgentService(t *testing.T) {
 		ID:          "foo",
 		Service:     "foo",
 		Tags:        []string{"bar", "baz"},
-		ContentHash: "3e352f348d44f7eb",
+		ContentHash: "c4bb6737c185ed93",
 		Port:        8000,
 		Weights: AgentWeights{
 			Passing: 1,
@@ -2175,4 +2229,53 @@ func TestMemberIsConsulServer(t *testing.T) {
 			require.Equal(t, tcase.isServer, m.IsConsulServer())
 		})
 	}
+}
+
+func TestAPI_AgentServices_MultiPort(t *testing.T) {
+	t.Parallel()
+
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+	s.WaitForSerfCheck(t)
+
+	reg := &AgentServiceRegistration{
+		Name: "srv-1",
+		ID:   "srv-1",
+		Ports: ServicePorts{
+			{
+				Name:    "http",
+				Port:    8080,
+				Default: true,
+			},
+			{
+				Name: "metrics",
+				Port: 9090,
+			},
+		},
+	}
+
+	if err := agent.ServiceRegister(reg); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	services, err := agent.Services()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	srv, ok := services["srv-1"]
+	if !ok {
+		t.Fatalf("missing service: %v", services)
+	}
+
+	require.Len(t, srv.Ports, 2)
+	require.Equal(t, "http", srv.Ports[0].Name)
+	require.Equal(t, 8080, srv.Ports[0].Port)
+	require.True(t, srv.Ports[0].Default)
+	require.Equal(t, "metrics", srv.Ports[1].Name)
+	require.Equal(t, 9090, srv.Ports[1].Port)
+	require.False(t, srv.Ports[1].Default)
+
 }

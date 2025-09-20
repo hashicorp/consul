@@ -315,6 +315,26 @@ message ServiceDefinition {
   // Locality identifies where the service is running.
   // mog: func-to=LocalityToStructs func-from=LocalityFromStructs
   common.Locality Locality = 19;
+
+  // Ports is a list of ports that the service exposes.
+  // mog: func-to=PortsToStructs func-from=NewPortsFromStructs
+  repeated ServicePort Ports = 20;
+}
+
+// ServicePort contains the port information for a service.
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ServicePort
+// output=service.gen.go
+// name=Structs
+message ServicePort {
+  // Port is the port number.
+  // mog: func-to=int func-from=int32
+  int32 Port = 1;
+  // Name is the name of the port.
+  string Name = 2;
+  // Default is true if this is the default port for the service.
+  bool Default = 3;
 }
 
 // Type to hold an address and port of a service
