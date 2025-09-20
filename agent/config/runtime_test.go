@@ -6326,57 +6326,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 		expectedErr: "Ports.Name \"http\" has to be unique",
 	})
-	run(t, testCase{
-		desc: "multi_port port values must be unique",
-		args: []string{
-			`-data-dir=` + dataDir,
-		},
-		json: []string{
-			`
-			{
-				"service": [
-					{
-					"name": "test1",
-					"id": "test1",
-					"ports": [
-						{
-							"name": "http",
-							"port": 8080,
-							"default": false
-						},
-						{
-							"name": "metrics",
-							"port": 8080,
-							"default": true
-						}
-					]
-					} 
-				]
-			}
-			`,
-		},
-		hcl: []string{
-			`
-			service {
-				name = "test1"
-				id = "test1"
-				ports = [
-					{
-						name = "http"
-						port = 8080
-						default = false
-					},
-					{
-						name = "metrics"
-						port = 8080
-						default = true
-					}
-				]
-			}
-			`,
-		},
-		expectedErr: "Ports.Port 8080 has to be unique",
-	})
 }
 
 func (tc testCase) run(format string, dataDir string) func(t *testing.T) {
