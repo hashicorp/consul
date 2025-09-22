@@ -168,6 +168,7 @@
     "eslint-plugin-node": "^11.0.0",
     "eslint-plugin-prettier": "^3.4.1",
     "eslint-plugin-qunit": "^6.2.0",
+    "express": "^5.1.0",
     "faker": "^5.5.3",
     "flat": "^5.0.0",
     "hast-util-to-string": "^1.0.4",
