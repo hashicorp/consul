@@ -692,32 +692,32 @@ Use these links to navigate to a particular top-level stanza.
   - `cloud` ((#v-global-cloud)) - Enables installing an HCP Consul Central self-managed cluster.
     Requires Consul v1.14+.
 
-    - `enabled` ((#v-global-cloud-enabled)) (`boolean: false`) - If true, the Helm chart will link a [self-managed cluster to HCP](/hcp/docs/consul/self-managed).
-      This can either be used to [configure a new cluster](/hcp/docs/consul/self-managed/new)
+    - `enabled` ((#v-global-cloud-enabled)) (`boolean: false`) - If true, the Helm chart links a [self-managed cluster to HCP](/hcp/docs/consul/self-managed).
+      Use this to either [configure a new cluster](/hcp/docs/consul/self-managed/new)
       or [link an existing one](/hcp/docs/consul/self-managed/existing).
 
-      Note: this setting should not be enabled for [HCP Consul Dedicated clusters](/hcp/docs/consul/dedicated).
+      Do not enable this setting for [HCP Consul Dedicated clusters](/hcp/docs/consul/dedicated).
       It is strictly for linking self-managed clusters.
 
-    - `resourceId` ((#v-global-cloud-resourceid)) - The resource id of the HCP Consul Central cluster to link to. Eg:
-      organization/27109cd4-a309-4bf3-9986-e1d071914b18/project/fcef6c24-259d-4510-bb8d-1d812e120e34/hashicorp.consul.global-network-manager.cluster/consul-cluster
-      This is required when global.cloud.enabled is true.
+    - `resourceId` ((#v-global-cloud-resourceid)) - The resource ID of the HCP Consul Central cluster to link to. For example:
+      `organization/27109cd4-a309-4bf3-9986-e1d071914b18/project/fcef6c24-259d-4510-bb8d-1d812e120e34/hashicorp.consul.global-network-manager.cluster/consul-cluster`
+      This is required when `global.cloud.enabled` is true.
 
-      - `secretName` ((#v-global-cloud-resourceid-secretname)) (`string: null`) - The name of the Kubernetes secret that holds the resource id.
+      - `secretName` ((#v-global-cloud-resourceid-secretname)) (`string: null`) - The name of the Kubernetes secret that holds the resource ID.
 
-      - `secretKey` ((#v-global-cloud-resourceid-secretkey)) (`string: null`) - The key within the Kubernetes secret that holds the resource id.
+      - `secretKey` ((#v-global-cloud-resourceid-secretkey)) (`string: null`) - The key within the Kubernetes secret that holds the resource ID.
 
-    - `clientId` ((#v-global-cloud-clientid)) - The client id portion of a [service principal](/hcp/docs/hcp/admin/iam/service-principals#service-principals) with authorization to link the cluster
-      in global.cloud.resourceId to HCP Consul Central.
-      This is required when global.cloud.enabled is true.
+    - `clientId` ((#v-global-cloud-clientid)) - The client ID portion of a [service principal](/hcp/docs/hcp/admin/iam/service-principals#service-principals) with authorization to link the cluster
+      in `global.cloud.resourceId` to HCP Consul Central.
+      This is required when `global.cloud.enabled` is true.
 
-      - `secretName` ((#v-global-cloud-clientid-secretname)) (`string: null`) - The name of the Kubernetes secret that holds the client id.
+      - `secretName` ((#v-global-cloud-clientid-secretname)) (`string: null`) - The name of the Kubernetes secret that holds the client ID.
 
-      - `secretKey` ((#v-global-cloud-clientid-secretkey)) (`string: null`) - The key within the Kubernetes secret that holds the client id.
+      - `secretKey` ((#v-global-cloud-clientid-secretkey)) (`string: null`) - The key within the Kubernetes secret that holds the client ID.
 
     - `clientSecret` ((#v-global-cloud-clientsecret)) - The client secret portion of a [service principal](/hcp/docs/hcp/admin/iam/service-principals#service-principals) with authorization to link the cluster
-      in global.cloud.resourceId to HCP Consul Central.
-      This is required when global.cloud.enabled is true.
+      in `global.cloud.resourceId` to HCP Consul Central.
+      This is required when `global.cloud.enabled` is true.
 
       - `secretName` ((#v-global-cloud-clientsecret-secretname)) (`string: null`) - The name of the Kubernetes secret that holds the client secret.
 
@@ -725,21 +725,21 @@ Use these links to navigate to a particular top-level stanza.
 
     - `apiHost` ((#v-global-cloud-apihost)) - The hostname of HCP's API. This setting is used for internal testing and validation.
 
-      - `secretName` ((#v-global-cloud-apihost-secretname)) (`string: null`) - The name of the Kubernetes secret that holds the api hostname.
+      - `secretName` ((#v-global-cloud-apihost-secretname)) (`string: null`) - The name of the Kubernetes secret that holds the API hostname.
 
-      - `secretKey` ((#v-global-cloud-apihost-secretkey)) (`string: null`) - The key within the Kubernetes secret that holds the api hostname.
+      - `secretKey` ((#v-global-cloud-apihost-secretkey)) (`string: null`) - The key within the Kubernetes secret that holds the API hostname.
 
     - `authUrl` ((#v-global-cloud-authurl)) - The URL of HCP's auth API. This setting is used for internal testing and validation.
 
-      - `secretName` ((#v-global-cloud-authurl-secretname)) (`string: null`) - The name of the Kubernetes secret that holds the authorization url.
+      - `secretName` ((#v-global-cloud-authurl-secretname)) (`string: null`) - The name of the Kubernetes secret that holds the authorization URL.
 
-      - `secretKey` ((#v-global-cloud-authurl-secretkey)) (`string: null`) - The key within the Kubernetes secret that holds the authorization url.
+      - `secretKey` ((#v-global-cloud-authurl-secretkey)) (`string: null`) - The key within the Kubernetes secret that holds the authorization URL.
 
-    - `scadaAddress` ((#v-global-cloud-scadaaddress)) - The address of HCP's scada service. This setting is used for internal testing and validation.
+    - `scadaAddress` ((#v-global-cloud-scadaaddress)) - The address of HCP's SCADA service. This setting is used for internal testing and validation.
 
-      - `secretName` ((#v-global-cloud-scadaaddress-secretname)) (`string: null`) - The name of the Kubernetes secret that holds the scada address.
+      - `secretName` ((#v-global-cloud-scadaaddress-secretname)) (`string: null`) - The name of the Kubernetes secret that holds the SCADA address.
 
-      - `secretKey` ((#v-global-cloud-scadaaddress-secretkey)) (`string: null`) - The key within the Kubernetes secret that holds the scada address.
+      - `secretKey` ((#v-global-cloud-scadaaddress-secretkey)) (`string: null`) - The key within the Kubernetes secret that holds the SCADA address.
 
   - `extraLabels` ((#v-global-extralabels)) (`map`) - Extra labels to attach to all pods, deployments, daemonsets, statefulsets, and jobs. This should be a YAML map.
 
