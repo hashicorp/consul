@@ -1209,9 +1209,9 @@ Use these links to navigate to a particular top-level stanza.
       - `type` - Type of the volume. Must be one of `configMap` or `secret`. Case sensitive.
 
       - `name` - Name of the configMap or secret to mount. This specification also controls
-        the path it mounts to. The volume will be mounted to `/consul/userconfig/<name>`.
+        the path it mounts to. Consul mounts the volume to `/consul/userconfig/<name>`.
 
-      The snapshot agent will not attempt to load any volumes passed in this stanza
+      The snapshot agent does not attempt to load any volumes passed in this stanza.
 
   - `auditLogs` ((#v-server-auditlogs)) - <EnterpriseAlert inline /> Added in Consul 1.8, the audit object allow users to enable auditing
     and configure a sink and filters for their audit logs. Please refer to
