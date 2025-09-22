@@ -813,19 +813,33 @@ func (s *HTTPHandlers) UIMetricsProxy(resp http.ResponseWriter, req *http.Reques
 	// Replace prefix in the path
 	subPath := strings.TrimPrefix(req.URL.Path, "/v1/internal/ui/metrics-proxy")
 
-	// Append that to the BaseURL (which might contain a path prefix component)
-	newURL := cfg.BaseURL + subPath
+	// This prevents path traversal while preserving URL structure
+	cleanedSubPath := path.Clean(subPath)
+
+	// Clean the base URL for security in logging and comparisons
+	cleanedBaseURL := cfg.BaseURL
+	if parsedBase, err := url.Parse(cfg.BaseURL); err == nil && parsedBase.Path != "" {
+		parsedBase.Path = path.Clean(parsedBase.Path)
+		cleanedBaseURL = parsedBase.String()
+	}
+
+	// Parse the base URL to get its components
+	baseURL, err := url.Parse(cfg.BaseURL)
+	if err != nil {
+		log.Error("couldn't parse base URL", "base_url", cleanedBaseURL)
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Invalid base URL."}
+	}
+
+	// Join the base path with the cleaned subpath using proper URL path joining
+	baseURL.Path = path.Join(baseURL.Path, cleanedSubPath)
+	newURL := baseURL.String()
 
 	// Parse it into a new URL
 	u, err := url.Parse(newURL)
 	if err != nil {
-		log.Error("couldn't parse target URL", "base_url", cfg.BaseURL, "path", subPath)
+		log.Error("couldn't parse target URL", "base_url", cleanedBaseURL, "path", subPath)
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Invalid path."}
 	}
-
-	// Clean the new URL path to prevent path traversal attacks and remove any
-	// double slashes etc.
-	u.Path = path.Clean(u.Path)
 
 	if len(cfg.PathAllowlist) > 0 {
 		// This could be done better with a map, but for the prometheus default
@@ -840,7 +854,7 @@ func (s *HTTPHandlers) UIMetricsProxy(resp http.ResponseWriter, req *http.Reques
 		}
 		if denied {
 			log.Error("target URL path is not allowed",
-				"base_url", cfg.BaseURL,
+				"base_url", cleanedBaseURL,
 				"path", subPath,
 				"target_url", u.String(),
 				"path_allowlist", cfg.PathAllowlist,
@@ -863,9 +877,18 @@ func (s *HTTPHandlers) UIMetricsProxy(resp http.ResponseWriter, req *http.Reques
 	// hit this handler. Any /../ that are far enough into the path to hit this
 	// handler, can't backtrack far enough to eat into the BaseURL either. But we
 	// leave this in anyway in case something changes in the future.
-	if !strings.HasPrefix(u.String(), cfg.BaseURL) {
+
+	// Security fix: Ensure BaseURL has trailing "/" for proper prefix checking
+	baseURLForPrefix := cfg.BaseURL
+	if !strings.HasSuffix(baseURLForPrefix, "/") {
+		baseURLForPrefix += "/"
+	}
+
+	targetURL := u.String()
+	// Allow exact match of BaseURL (without trailing slash) or proper prefix match
+	if targetURL != cfg.BaseURL && !strings.HasPrefix(targetURL, baseURLForPrefix) {
 		log.Error("target URL escaped from base path",
-			"base_url", cfg.BaseURL,
+			"base_url", cleanedBaseURL,
 			"path", subPath,
 			"target_url", u.String(),
 		)
