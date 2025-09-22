@@ -1,6 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: BUSL-1.1
-
 lockfileVersion: '9.0'
 
 settings:
@@ -151,19 +148,19 @@ importers:
         version: 2.0.11
       consul-acls:
         specifier: file:../consul-acls
-        version: file:packages/consul-acls
+        version: link:../consul-acls
       consul-lock-sessions:
         specifier: file:../consul-lock-sessions
-        version: file:packages/consul-lock-sessions
+        version: link:../consul-lock-sessions
       consul-nspaces:
         specifier: file:../consul-nspaces
-        version: file:packages/consul-nspaces
+        version: link:../consul-nspaces
       consul-partitions:
         specifier: file:../consul-partitions
-        version: file:packages/consul-partitions
+        version: link:../consul-partitions
       consul-peerings:
         specifier: file:../consul-peerings
-        version: file:packages/consul-peerings
+        version: link:../consul-peerings
       css:
         specifier: ^3.0.0
         version: 3.0.0
@@ -359,6 +356,9 @@ importers:
       ember-string-fns:
         specifier: ^1.4.0
         version: 1.4.1
+      ember-template-lint:
+        specifier: ^2.21.0
+        version: 2.21.0
       ember-test-selectors:
         specifier: ^5.0.0
         version: 5.5.0
@@ -1771,8 +1771,9 @@ packages:
   '@types/glob@7.2.0':
     resolution: {integrity: sha512-ZUxbzKl0IfJILTS6t7ip5fQQM/J3TJYubDm3nMbgubNNYS62eXeUpoLUC8/7fJNiFYHTrGPQn7hspDUzIHX3UA==}
 
-  '@types/glob@8.1.0':
-    resolution: {integrity: sha512-IO+MJPVhoqz+28h1qLAcBEH2+xHMK6MTyHJc7MTnnYb6wsoLR29POVGJ7LycmVXIqyy/4/2ShP5sUwTXuOwb/w==}
+  '@types/glob@9.0.0':
+    resolution: {integrity: sha512-00UxlRaIUvYm4R4W9WYkN8/J+kV8fmOQ7okeH6YFtGWFMt3odD45tpG5yA5wnL7HE6lLgjaTW5n14ju2hl2NNA==}
+    deprecated: This is a stub types definition. glob provides its own type definitions, so you do not need this installed.
 
   '@types/hast@2.3.10':
     resolution: {integrity: sha512-McWspRw8xx8J9HurkVBfYj0xKoE25tOFlHGdx4MJ5xORQrMGZNqJhVQWaIbm6Oyla5kYOXtDiopzKRJzEOkwJw==}
@@ -1792,11 +1793,15 @@ packages:
   '@types/minimatch@3.0.5':
     resolution: {integrity: sha512-Klz949h02Gz2uZCMGwDUSDS1YBlTdDDgbWHi+81l29tQALUtvz4rAYi5uoVhE5Lagoq6DeqAUlbrHvW/mXDgdQ==}
 
-  '@types/minimatch@5.1.2':
-    resolution: {integrity: sha512-K0VQKziLUWkVKiRVrx4a40iPaxTUefQmjtkQofBkYRcoaaL/8rhwDWww9qWbrgicNOgnpIsMxyNIUM4+n6dUIA==}
+  '@types/minimatch@6.0.0':
+    resolution: {integrity: sha512-zmPitbQ8+6zNutpwgcQuLcsEpn/Cj54Kbn7L5pX0Os5kdWplB7xPgEh/g+SWOB/qmows2gpuCaPyduq8ZZRnxA==}
+    deprecated: This is a stub types definition. minimatch provides its own type definitions, so you do not need this installed.
 
   '@types/node@20.14.10':
     resolution: {integrity: sha512-MdiXf+nDuMvY0gJKxyfZ7/6UFsETO7mGKF54MVD/ekJS6HdFtpZFBgrh6Pseu64XTb2MLyFPlbW6hj8HYRQNOQ==}
+
+  '@types/node@24.5.2':
+    resolution: {integrity: sha512-FYxk1I7wPv3K2XBaoyH2cTnocQEu8AOZ60hPbsyukMPLv5/5qr7V1i8PLHdl6Zf87I+xZXFvPCXYjiTFq+YSDQ==}
 
   '@types/parse-json@4.0.2':
     resolution: {integrity: sha512-dISoDXWWQwUquiKsyZ4Ng+HX2KsPL7LyHKHQwgGFEA3IaKac4Obd+h2a/a6waisAoepJlBcx9paWqjA8/HVjCw==}
@@ -3289,21 +3294,6 @@ packages:
   constants-browserify@1.0.0:
     resolution: {integrity: sha512-xFxOwqIzR/e1k1gLiWEophSCMqXcwVHIH7akf7b/vxcUeGunlj3hvZaaqxwHsTgn+IndtkQJgSztIDWeumWJDQ==}
 
-  consul-acls@file:packages/consul-acls:
-    resolution: {directory: packages/consul-acls, type: directory}
-
-  consul-lock-sessions@file:packages/consul-lock-sessions:
-    resolution: {directory: packages/consul-lock-sessions, type: directory}
-
-  consul-nspaces@file:packages/consul-nspaces:
-    resolution: {directory: packages/consul-nspaces, type: directory}
-
-  consul-partitions@file:packages/consul-partitions:
-    resolution: {directory: packages/consul-partitions, type: directory}
-
-  consul-peerings@file:packages/consul-peerings:
-    resolution: {directory: packages/consul-peerings, type: directory}
-
   content-disposition@0.5.4:
     resolution: {integrity: sha512-FveZTNuGw04cxlAiWbzi6zTAL/lhehaWbTtgluJh4/E95DqMwTmha3KZN1aAWA8cFIhHzMZUvLevkw5Rqk+tSQ==}
     engines: {node: '>= 0.6'}
@@ -4554,6 +4544,10 @@ packages:
     resolution: {integrity: sha512-oX2ruAFQwf/Orj8m737Y5adxDQO0LAB7/S5MnxCdTNDd4p6BsyIVsv9JQsATbTSq8KHRpLwIHbVlUNatxd+1Ow==}
     engines: {node: '>=8.6.0'}
 
+  fast-glob@3.3.3:
+    resolution: {integrity: sha512-7MptL8U0cqcFdzIzwOTHoilX9x5BrNqye7Z/LuC7kCMRio1EMSyqRK3BEAUD7sXRq4iT4AzTVuZdhgQ2TCvYLg==}
+    engines: {node: '>=8.6.0'}
+
   fast-json-stable-stringify@2.1.0:
     resolution: {integrity: sha512-lhd/wF+Lk98HZoTCtlVraHtfh5XYijIjalXck7saUtuanSDyLMxnHhSXEDJqHxD7msR8D0uCmqlkwjCV8xvwHw==}
 
@@ -5173,6 +5167,10 @@ packages:
     resolution: {integrity: sha512-5Fytz/IraMjqpwfd34ke28PTVMjZjJG2MPn5t7OE4eUCUNf8BAa7b5WUS9/Qvr6mwOQS7Mk6vdsMno5he+T8Xw==}
     engines: {node: '>= 4'}
 
+  ignore@5.3.2:
+    resolution: {integrity: sha512-hsBTNUqQTDwkWtcdYI2i06Y/nUBEsNEDJKjWdigLvegy8kDuJAS8uRlpkkcQpyEXL0Z/pjDy5HBmMjRCJ2gq+g==}
+    engines: {node: '>= 4'}
+
   immutable@5.1.3:
     resolution: {integrity: sha512-+chQdDfvscSF1SJqv2gn4SRO2ZyS3xL3r7IW/wWEEzrzLisnOlKiQu5ytC/BVNcS15C39WT2Hg/bjKjDMcu+zg==}
 
@@ -5286,6 +5284,10 @@ packages:
 
   is-core-module@2.14.0:
     resolution: {integrity: sha512-a5dFJih5ZLYlRtDc0dZWP7RiKr6xIKzmn/oAYCDvdLThadVgyJwlaoQPmRtMSpz+rk0OGAgIu+TcM9HUF0fk1A==}
+    engines: {node: '>= 0.4'}
+
+  is-core-module@2.16.1:
+    resolution: {integrity: sha512-UfoeMA6fIJ8wTYFEUjelnaGI67v6+N7qXJEvQuIGa99l4xsCruSYOVSQ0uPANn4dAzm8lkYPaKLrrijLq7x23w==}
     engines: {node: '>= 0.4'}
 
   is-data-view@1.0.1:
@@ -6986,6 +6988,11 @@ packages:
     resolution: {integrity: sha512-OcXjMsGdhL4XnbShKpAcSqPMzQoYkYyhbEaeSko47MjRP9NfEQMhZkXL1DoFlt9LWQn4YttrdnV6X2OiyzBi+A==}
     engines: {node: '>=10'}
 
+  resolve@1.22.10:
+    resolution: {integrity: sha512-NPRy+/ncIMeDlTAsuqwKIiferiawhefFJtkNSW0qZJEqMEb+qBt/77B/jGeeek+F0uOeN05CDa6HXbbIgtVX4w==}
+    engines: {node: '>= 0.4'}
+    hasBin: true
+
   resolve@1.22.8:
     resolution: {integrity: sha512-oKWePCxqpd6FlLvGV1VU0x7bkPmmCNolxzjMf4NczoDnQcIWrAF+cPtZn5i6n+RfD2d9i0tzpKnG6Yk168yIyw==}
     hasBin: true
@@ -7800,6 +7807,9 @@ packages:
 
   undici-types@5.26.5:
     resolution: {integrity: sha512-JlCMO+ehdEIKqlFxk6IfVoAUVmgz7cU7zD/h9XZ0qzeosSHmUJVOzSQvvYSYWXkFXC+IfLKSIffhv0sVZup6pA==}
+
+  undici-types@7.12.0:
+    resolution: {integrity: sha512-goOacqME2GYyOZZfb5Lgtu+1IDmAlAEu5xnD3+xTzS10hT0vzpf0SPjkXwAw9Jm+4n/mQGDP3LO8CPbYROeBfQ==}
 
   unicode-canonical-property-names-ecmascript@2.0.0:
     resolution: {integrity: sha512-yY5PpDlfVIU5+y/BSCxAJRBIS1Zc2dDG3Ujq+sR0U+JjUevW2JhocOF+soROYDSaAezOzOKuyyixhD6mBknSmQ==}
@@ -9503,7 +9513,7 @@ snapshots:
       json-stable-stringify: 1.1.1
       lodash: 4.17.21
       pkg-up: 3.1.0
-      resolve: 1.22.8
+      resolve: 1.22.10
       resolve-package-path: 1.2.7
       semver: 7.6.2
       strip-bom: 3.0.0
@@ -9525,7 +9535,7 @@ snapshots:
       assert-never: 1.3.0
       ember-cli-babel: 7.26.11
       lodash: 4.17.21
-      resolve: 1.22.8
+      resolve: 1.22.10
       semver: 7.6.2
     transitivePeerDependencies:
       - bufferutil
@@ -9539,7 +9549,7 @@ snapshots:
       assert-never: 1.3.0
       ember-cli-babel: 7.26.11
       lodash: 4.17.21
-      resolve: 1.22.8
+      resolve: 1.22.10
       semver: 7.6.2
     transitivePeerDependencies:
       - supports-color
@@ -9550,7 +9560,7 @@ snapshots:
       assert-never: 1.3.0
       ember-cli-babel: 7.26.11
       lodash: 4.17.21
-      resolve: 1.22.8
+      resolve: 1.22.10
       semver: 7.6.2
     transitivePeerDependencies:
       - supports-color
@@ -9563,7 +9573,7 @@ snapshots:
       ember-cli-babel: 7.26.11
       find-up: 5.0.0
       lodash: 4.17.21
-      resolve: 1.22.8
+      resolve: 1.22.10
       semver: 7.6.2
     optionalDependencies:
       '@glint/template': 1.5.2
@@ -10262,13 +10272,12 @@ snapshots:
 
   '@types/glob@7.2.0':
     dependencies:
-      '@types/minimatch': 5.1.2
-      '@types/node': 20.14.10
+      '@types/minimatch': 6.0.0
+      '@types/node': 24.5.2
 
-  '@types/glob@8.1.0':
+  '@types/glob@9.0.0':
     dependencies:
-      '@types/minimatch': 5.1.2
-      '@types/node': 20.14.10
+      glob: 7.2.3
 
   '@types/hast@2.3.10':
     dependencies:
@@ -10286,11 +10295,17 @@ snapshots:
 
   '@types/minimatch@3.0.5': {}
 
-  '@types/minimatch@5.1.2': {}
+  '@types/minimatch@6.0.0':
+    dependencies:
+      minimatch: 3.1.2
 
   '@types/node@20.14.10':
     dependencies:
       undici-types: 5.26.5
+
+  '@types/node@24.5.2':
+    dependencies:
+      undici-types: 7.12.0
 
   '@types/parse-json@4.0.2': {}
 
@@ -10300,7 +10315,7 @@ snapshots:
 
   '@types/rimraf@2.0.5':
     dependencies:
-      '@types/glob': 8.1.0
+      '@types/glob': 9.0.0
       '@types/node': 20.14.10
 
   '@types/send@0.17.4':
@@ -11017,7 +11032,7 @@ snapshots:
       glob: 7.2.3
       pkg-up: 2.0.0
       reselect: 3.0.1
-      resolve: 1.22.8
+      resolve: 1.22.10
 
   babel-plugin-module-resolver@4.1.0:
     dependencies:
@@ -11033,7 +11048,7 @@ snapshots:
       glob: 9.3.5
       pkg-up: 3.1.0
       reselect: 4.1.8
-      resolve: 1.22.8
+      resolve: 1.22.10
 
   babel-plugin-polyfill-corejs2@0.4.11(@babel/core@7.28.3):
     dependencies:
@@ -12404,16 +12419,6 @@ snapshots:
 
   constants-browserify@1.0.0: {}
 
-  consul-acls@file:packages/consul-acls: {}
-
-  consul-lock-sessions@file:packages/consul-lock-sessions: {}
-
-  consul-nspaces@file:packages/consul-nspaces: {}
-
-  consul-partitions@file:packages/consul-partitions: {}
-
-  consul-peerings@file:packages/consul-peerings: {}
-
   content-disposition@0.5.4:
     dependencies:
       safe-buffer: 5.2.1
@@ -13271,7 +13276,7 @@ snapshots:
       broccoli-source: 1.1.0
       debug: 2.6.9
       lodash: 4.17.21
-      resolve: 1.22.8
+      resolve: 1.22.10
     transitivePeerDependencies:
       - supports-color
 
@@ -13373,7 +13378,7 @@ snapshots:
       ember-cli-babel-plugin-helpers: 1.1.1
       execa: 1.0.0
       fs-extra: 7.0.1
-      resolve: 1.22.8
+      resolve: 1.22.10
       rsvp: 4.8.5
       semver: 6.3.1
       stagehand: 1.0.1
@@ -13421,7 +13426,7 @@ snapshots:
       debug: 4.4.1
       execa: 4.1.0
       fs-extra: 9.1.0
-      resolve: 1.22.8
+      resolve: 1.22.10
       rsvp: 4.8.5
       semver: 7.6.2
       stagehand: 1.0.1
@@ -13431,7 +13436,7 @@ snapshots:
 
   ember-cli-version-checker@2.2.0:
     dependencies:
-      resolve: 1.22.8
+      resolve: 1.22.10
       semver: 5.7.2
 
   ember-cli-version-checker@3.1.3:
@@ -14209,7 +14214,7 @@ snapshots:
       globby: 11.1.0
       is-glob: 4.0.3
       micromatch: 4.0.8
-      resolve: 1.22.8
+      resolve: 1.22.10
       v8-compile-cache: 2.4.0
       yargs: 16.2.0
     transitivePeerDependencies:
@@ -14756,6 +14761,14 @@ snapshots:
       merge2: 1.4.1
       micromatch: 4.0.8
 
+  fast-glob@3.3.3:
+    dependencies:
+      '@nodelib/fs.stat': 2.0.5
+      '@nodelib/fs.walk': 1.2.8
+      glob-parent: 5.1.2
+      merge2: 1.4.1
+      micromatch: 4.0.8
+
   fast-json-stable-stringify@2.1.0: {}
 
   fast-levenshtein@2.0.6: {}
@@ -15281,9 +15294,9 @@ snapshots:
       '@types/glob': 7.2.0
       array-union: 2.1.0
       dir-glob: 3.0.1
-      fast-glob: 3.3.2
+      fast-glob: 3.3.3
       glob: 7.2.3
-      ignore: 5.3.1
+      ignore: 5.3.2
       merge2: 1.4.1
       slash: 3.0.0
 
@@ -15291,8 +15304,8 @@ snapshots:
     dependencies:
       array-union: 2.1.0
       dir-glob: 3.0.1
-      fast-glob: 3.3.2
-      ignore: 5.3.1
+      fast-glob: 3.3.3
+      ignore: 5.3.2
       merge2: 1.4.1
       slash: 3.0.0
 
@@ -15365,7 +15378,7 @@ snapshots:
       heimdalljs: 0.2.6
       heimdalljs-logger: 0.1.10
       path-root: 0.1.1
-      resolve: 1.22.8
+      resolve: 1.22.10
       resolve-package-path: 1.2.7
     transitivePeerDependencies:
       - supports-color
@@ -15552,6 +15565,8 @@ snapshots:
 
   ignore@5.3.1: {}
 
+  ignore@5.3.2: {}
+
   immutable@5.1.3: {}
 
   import-fresh@3.3.0:
@@ -15689,6 +15704,10 @@ snapshots:
   is-callable@1.2.7: {}
 
   is-core-module@2.14.0:
+    dependencies:
+      hasown: 2.0.2
+
+  is-core-module@2.16.1:
     dependencies:
       hasown: 2.0.2
 
@@ -16739,7 +16758,7 @@ snapshots:
   normalize-package-data@2.5.0:
     dependencies:
       hosted-git-info: 2.8.9
-      resolve: 1.22.8
+      resolve: 1.22.10
       semver: 5.7.2
       validate-npm-package-license: 3.0.4
 
@@ -17528,12 +17547,12 @@ snapshots:
   resolve-package-path@1.2.7:
     dependencies:
       path-root: 0.1.1
-      resolve: 1.22.8
+      resolve: 1.22.10
 
   resolve-package-path@2.0.0:
     dependencies:
       path-root: 0.1.1
-      resolve: 1.22.8
+      resolve: 1.22.10
 
   resolve-package-path@3.1.0:
     dependencies:
@@ -17550,6 +17569,12 @@ snapshots:
       path-is-absolute: 1.0.1
 
   resolve.exports@2.0.3: {}
+
+  resolve@1.22.10:
+    dependencies:
+      is-core-module: 2.16.1
+      path-parse: 1.0.7
+      supports-preserve-symlinks-flag: 1.0.0
 
   resolve@1.22.8:
     dependencies:
@@ -18645,6 +18670,8 @@ snapshots:
 
   undici-types@5.26.5: {}
 
+  undici-types@7.12.0: {}
+
   unicode-canonical-property-names-ecmascript@2.0.0: {}
 
   unicode-match-property-ecmascript@2.0.0:
@@ -19004,7 +19031,7 @@ snapshots:
 
   wide-align@1.1.5:
     dependencies:
-      string-width: 4.2.3
+      string-width: 1.0.2
 
   word-wrap@1.2.5: {}
 
