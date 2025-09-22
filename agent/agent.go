@@ -2369,6 +2369,7 @@ func (a *Agent) addServiceLocked(req addServiceLockedRequest) error {
 			if err != nil {
 				return err
 			}
+
 			req.Service.Port = port
 		}
 		// Setup default check if none given.
@@ -2451,17 +2452,18 @@ func (a *Agent) addServiceInternal(req addServiceInternalRequest) error {
 	if service.TaggedAddresses == nil {
 		service.TaggedAddresses = map[string]structs.ServiceAddress{}
 	}
+
 	if _, ok := service.TaggedAddresses[structs.TaggedAddressLANIPv4]; !ok && serviceAddressIs4 {
-		service.TaggedAddresses[structs.TaggedAddressLANIPv4] = structs.ServiceAddress{Address: service.Address, Port: service.Port}
+		service.TaggedAddresses[structs.TaggedAddressLANIPv4] = structs.ServiceAddress{Address: service.Address, Port: service.DefaultPort()}
 	}
 	if _, ok := service.TaggedAddresses[structs.TaggedAddressWANIPv4]; !ok && serviceAddressIs4 {
-		service.TaggedAddresses[structs.TaggedAddressWANIPv4] = structs.ServiceAddress{Address: service.Address, Port: service.Port}
+		service.TaggedAddresses[structs.TaggedAddressWANIPv4] = structs.ServiceAddress{Address: service.Address, Port: service.DefaultPort()}
 	}
 	if _, ok := service.TaggedAddresses[structs.TaggedAddressLANIPv6]; !ok && serviceAddressIs6 {
-		service.TaggedAddresses[structs.TaggedAddressLANIPv6] = structs.ServiceAddress{Address: service.Address, Port: service.Port}
+		service.TaggedAddresses[structs.TaggedAddressLANIPv6] = structs.ServiceAddress{Address: service.Address, Port: service.DefaultPort()}
 	}
 	if _, ok := service.TaggedAddresses[structs.TaggedAddressWANIPv6]; !ok && serviceAddressIs6 {
-		service.TaggedAddresses[structs.TaggedAddressWANIPv6] = structs.ServiceAddress{Address: service.Address, Port: service.Port}
+		service.TaggedAddresses[structs.TaggedAddressWANIPv6] = structs.ServiceAddress{Address: service.Address, Port: service.DefaultPort()}
 	}
 
 	var checks []*structs.HealthCheck
@@ -2662,6 +2664,20 @@ func (a *Agent) validateService(service *structs.NodeService, chkTypes []*struct
 			"1 and 63 bytes.",
 			"service", service.Service,
 		)
+	}
+
+	if len(service.Ports) > 0 && service.Port != 0 {
+		return fmt.Errorf("Both port and ports cannot be set")
+	}
+
+	if err := service.Ports.Validate(); err != nil {
+		return err
+	}
+
+	for _, port := range service.Ports {
+		if libdns.InvalidNameRe.MatchString(port.Name) {
+			a.logger.Warn("Service Port with name %s will not be discoverable via DNS due to invalid characters. Valid characters include all alpha-numerics and dashes.", port.Name)
+		}
 	}
 
 	// Warn if any tags are incompatible with DNS
