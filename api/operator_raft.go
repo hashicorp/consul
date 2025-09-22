@@ -64,7 +64,6 @@ func (op *Operator) RaftGetConfiguration(q *QueryOptions) (*RaftConfiguration, e
 	if err := decodeBody(resp, &out); err != nil {
 		return nil, err
 	}
-
 	return &out, nil
 }
 
