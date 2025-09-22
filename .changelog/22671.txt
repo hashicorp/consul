@@ -1,0 +1,3 @@
+```release-note:security
+security: Fixed proxied URL path validation to prevent path traversal.
+```
