@@ -270,6 +270,10 @@ func (s *HTTPHandlers) healthServiceNodes(resp http.ResponseWriter, req *http.Re
 			clone.Tags = make([]string, 0)
 			out.Nodes[i].Service = &clone
 		}
+
+		if out.Nodes[i].Service != nil && out.Nodes[i].Service.Port == 0 && len(out.Nodes[i].Service.Ports) > 0 {
+			out.Nodes[i].Service.Port = out.Nodes[i].Service.DefaultPort()
+		}
 	}
 	return out.Nodes, nil
 }
