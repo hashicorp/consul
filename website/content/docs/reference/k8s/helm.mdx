@@ -2973,33 +2973,33 @@ Use these links to navigate to a particular top-level stanza.
 
   - `cloud` ((#v-telemetrycollector-cloud))
 
-    - `resourceId` ((#v-telemetrycollector-cloud-resourceid)) - The resource id of the HCP Consul Central cluster to push metrics for. Eg:
+    - `resourceId` ((#v-telemetrycollector-cloud-resourceid)) - The resource ID of the HCP Consul Central cluster to push metrics for. For example:
       `organization/27109cd4-a309-4bf3-9986-e1d071914b18/project/fcef6c24-259d-4510-bb8d-1d812e120e34/hashicorp.consul.global-network-manager.cluster/consul-cluster`
 
-      This is used for HCP Consul Central-linked or HCP Consul Dedicated clusters where global.cloud.resourceId is unset. For example, when using externalServers
+      This is used for HCP Consul Central-linked or HCP Consul Dedicated clusters where `global.cloud.resourceId` is unset. For example, when using external servers
       with HCP Consul Dedicated clusters or HCP Consul Central-linked clusters in a different admin partition.
 
-      If global.cloud.resourceId is set, this should either be unset (defaulting to global.cloud.resourceId) or be the same as global.cloud.resourceId.
+      If `global.cloud.resourceId` is set, this should either be unset (defaulting to `global.cloud.resourceId`) or be the same as `global.cloud.resourceId`.
 
-      - `secretName` ((#v-telemetrycollector-cloud-resourceid-secretname)) (`string: null`) - The name of the Kubernetes secret that holds the resource id.
+      - `secretName` ((#v-telemetrycollector-cloud-resourceid-secretname)) (`string: null`) - The name of the Kubernetes secret that holds the resource ID.
 
-      - `secretKey` ((#v-telemetrycollector-cloud-resourceid-secretkey)) (`string: null`) - The key within the Kubernetes secret that holds the resource id.
+      - `secretKey` ((#v-telemetrycollector-cloud-resourceid-secretkey)) (`string: null`) - The key within the Kubernetes secret that holds the resource ID.
 
-    - `clientId` ((#v-telemetrycollector-cloud-clientid)) - The client id portion of a [service principal](/hcp/docs/hcp/admin/iam/service-principals#service-principals) with authorization to push metrics to HCP
-
-      This is set in two scenarios:
-        - the service principal in global.cloud is unset
-        - the HCP UI provides a service principal with more narrowly scoped permissions that the service principal used in global.cloud
-
-      - `secretName` ((#v-telemetrycollector-cloud-clientid-secretname)) (`string: null`) - The name of the Kubernetes secret that holds the client id.
-
-      - `secretKey` ((#v-telemetrycollector-cloud-clientid-secretkey)) (`string: null`) - The key within the Kubernetes secret that holds the client id.
-
-    - `clientSecret` ((#v-telemetrycollector-cloud-clientsecret)) - The client secret portion of a [service principal](/hcp/docs/hcp/admin/iam/service-principals#service-principals) with authorization to push metrics to HCP.
+    - `clientId` ((#v-telemetrycollector-cloud-clientid)) - The client ID portion of a [service principal](/hcp/docs/hcp/iam/service-principal) with authorization to push metrics to HCP.
 
       This is set in two scenarios:
-        - the service principal in global.cloud is unset
-        - the HCP UI provides a service principal with more narrowly scoped permissions that the service principal used in global.cloud
+        - The service principal in `global.cloud` is unset.
+        - The HCP UI provides a service principal with more narrowly scoped permissions that the service principal used in `global.cloud`.
+
+      - `secretName` ((#v-telemetrycollector-cloud-clientid-secretname)) (`string: null`) - The name of the Kubernetes secret that holds the client ID.
+
+      - `secretKey` ((#v-telemetrycollector-cloud-clientid-secretkey)) (`string: null`) - The key within the Kubernetes secret that holds the client ID.
+
+    - `clientSecret` ((#v-telemetrycollector-cloud-clientsecret)) - The client secret portion of a [service principal](/hcp/docs/hcp/iam/service-principal) with authorization to push metrics to HCP.
+
+      This is set in two scenarios:
+        - The service principal in `global.cloud` is unset.
+        - The HCP UI provides a service principal with more narrowly scoped permissions that the service principal used in `global.cloud`.
 
       - `secretName` ((#v-telemetrycollector-cloud-clientsecret-secretname)) (`string: null`) - The name of the Kubernetes secret that holds the client secret.
 
