@@ -1188,10 +1188,6 @@ Use these links to navigate to a particular top-level stanza.
         ...
       ```
 
-    - `extraEnvironmentVars` ((#v-server-snapshotagent-extraenvironmentvars)) (`map`) - A list of extra environment variables to set on the snapshot agent specifically.
-      Use this parameter to configure credentials that the rest of the
-      stateful set would not need access to, like `GOOGLE_APPLICATION_CREDENTIALS`.
-
     - `extraVolumes` ((#v-server-snapshotagent-extravolumes)) (`array<map>`) - A list of extra volumes to mount onto the snapshot agent. Use this block
       to include extra data that only the snapshot agent needs access
       to, such as storage credentials. This value should be a list of objects.
