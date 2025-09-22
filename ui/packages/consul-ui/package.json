@@ -160,6 +160,7 @@
     "ember-source": "3.28.8",
     "ember-stargate": "^0.2.0",
     "ember-string-fns": "^1.4.0",
+    "ember-template-lint": "^2.21.0",
     "ember-test-selectors": "^5.0.0",
     "ember-truth-helpers": "^3.0.0",
     "eslint": "^7.32.0",
