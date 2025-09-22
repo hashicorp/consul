@@ -1563,7 +1563,23 @@ Use these links to navigate to a particular top-level stanza.
       type: RollingUpdate
     ```
 
-  - `livenessProbe` ((#v-client-livenessprobe)) (`string: ""`) - Override the default livenessProbe and readinessProbe for the DaemonSet consul-client container.
+  - `livenessProbe` ((#v-client-livenessprobe)) (`string: ""`) - Override the default livenessProbe for the DaemonSet consul-client container.
+    Refer to the Kubernetes documentation on how to [Configure Liveness, Readiness and Startup Probes](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/)
+
+    This should be a multi-line string.
+
+    Example:
+
+    ```yaml
+    livenessProbe:
+        exec:
+          command:
+          - /bin/sh
+          - -ec
+          - "curl http://127.0.0.1:8500/v1/status/leader 2>/dev/null | grep -E '\".+\"' \n"
+    ```
+
+  - `readinessProbe` ((#v-client-readinessprobe)) (`string: ""`) - Override the default readinessProbe for the DaemonSet consul-client container.
     Refer to the Kubernetes documentation on how to [Configure Liveness, Readiness and Startup Probes](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/)
 
     This should be a multi-line string.
@@ -1578,8 +1594,6 @@ Use these links to navigate to a particular top-level stanza.
           - -ec
           - "curl http://127.0.0.1:8500/v1/status/leader 2>/dev/null | grep -E '\".+\"' \n"
     ```
-
-  - `readinessProbe` ((#v-client-readinessprobe))
 
 ### dns ((#h-dns))
 
