@@ -3,11 +3,6 @@
 
 package api
 
-import (
-	"fmt"
-	"io"
-)
-
 // RaftServer has information about a server in the Raft configuration.
 type RaftServer struct {
 	// ID is the unique ID for the server. These are currently the same
@@ -69,20 +64,7 @@ func (op *Operator) RaftGetConfiguration(q *QueryOptions) (*RaftConfiguration, e
 	if err := decodeBody(resp, &out); err != nil {
 		return nil, err
 	}
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	fmt.Printf("inside raftget body: %s\n", string(body))
-	//
 
-	// fmt.Println("before utile dump Dump of HTTP response:")
-	// dump, err := httputil.DumpResponse(resp, true) // `true` includes the body
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// fmt.Println("Dump of HTTP response:")
-	// fmt.Println(string(dump))
 	return &out, nil
 }
 
