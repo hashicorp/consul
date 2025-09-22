@@ -670,7 +670,11 @@ func (s *HTTPHandlers) AgentMembers(resp http.ResponseWriter, req *http.Request)
 		}
 		members = raw.([]serf.Member)
 	}
-
+	for i := range members {
+		if _, ok := members[i].Tags["name"]; ok {
+			members[i].Name = members[i].Tags["name"]
+		}
+	}
 	return members, nil
 }
 
