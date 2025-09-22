@@ -1737,10 +1737,10 @@ Use these links to navigate to a particular top-level stanza.
     - `baseURL` ((#v-ui-metrics-baseurl)) (`string: http://prometheus-server`) - baseURL is the URL of the prometheus server, usually the service URL.
       This value is only used if `ui.enabled` is set to true.
 
-  - `dashboardURLTemplates` ((#v-ui-dashboardurltemplates)) - Corresponds to [`dashboard_url_templates`](/consul/docs/agent/config/config-files#ui_config_dashboard_url_templates)
+  - `dashboardURLTemplates` ((#v-ui-dashboardurltemplates)) - Corresponds to [`dashboard_url_templates`](/consul/docs/reference/agent/configuration-file/ui#ui_config_dashboard_url_templates)
     configuration.
 
-    - `service` ((#v-ui-dashboardurltemplates-service)) (`string: ""`) - Sets [`dashboardURLTemplates.service`](/consul/docs/agent/config/config-files#ui_config_dashboard_url_templates_service).
+    - `service` ((#v-ui-dashboardurltemplates-service)) (`string: ""`) - Sets [`dashboardURLTemplates.service`]((/consul/docs/reference/agent/configuration-file/ui#ui_config_dashboard_url_templates_service).
 
 ### syncCatalog ((#h-synccatalog))
 
@@ -1756,7 +1756,7 @@ Use these links to navigate to a particular top-level stanza.
   - `enabled` ((#v-synccatalog-enabled)) (`boolean: false`) - True if you want to enable the catalog sync. Set to "-" to inherit from
     global.enabled.
 
-  - `cleanupNodeOnRemoval` ((#v-synccatalog-cleanupnodeonremoval)) (`boolean: false`) - True if you want to deregister all services in this cluster from consul that have been registered by the catalog sync when the `enabled` flag is set to false.
+  - `cleanupNodeOnRemoval` ((#v-synccatalog-cleanupnodeonremoval)) (`boolean: false`) - True if you want to deregister all services in this cluster from Consul that have been registered by the catalog sync when the `enabled` flag is set to false.
 
   - `image` ((#v-synccatalog-image)) (`string: null`) - The name of the Docker image (including any tag) for consul-k8s-control-plane
     to run the sync program.
@@ -1860,7 +1860,7 @@ Use these links to navigate to a particular top-level stanza.
     or may not be broadly accessible depending on your Kubernetes cluster.
     Set this to false to skip syncing ClusterIP services.
 
-  - `syncLoadBalancerEndpoints` ((#v-synccatalog-syncloadbalancerendpoints)) (`boolean: false`) - If true, LoadBalancer service endpoints instead of ingress addresses will be synced to Consul. 
+  - `syncLoadBalancerEndpoints` ((#v-synccatalog-syncloadbalancerendpoints)) (`boolean: false`) - If true, Consul syncs LoadBalancer service endpoints instead of ingress addresses. 
     If false, LoadBalancer endpoints are not synced to Consul.
 
   - `metrics` ((#v-synccatalog-metrics)) - Metrics settings for syncCatalog
@@ -1870,7 +1870,7 @@ Use these links to navigate to a particular top-level stanza.
     - `port` ((#v-synccatalog-metrics-port)) (`int: null`) - This value sets the port to use for scraping syncCatalog metrics via prometheus, defaults to 20300 if not set. Must be in the port
       range of 1024-65535.
 
-    - `path` ((#v-synccatalog-metrics-path)) (`string: null`) - This value sets the path to use for scraping syncCatalog metrics via prometheus, defaults to /metrics if not set.
+    - `path` ((#v-synccatalog-metrics-path)) (`string: null`) - This value sets the path to use for scraping syncCatalog metrics via prometheus, defaults to `/metrics` if not set.
 
   - `ingress` ((#v-synccatalog-ingress))
 
@@ -2069,11 +2069,11 @@ Use these links to navigate to a particular top-level stanza.
         Example: The gateway listener is defined on port 80, but the underlying value of the port on the container
         will be the 80 + the number defined below.
 
-      - `resourceJob` ((#v-connectinject-apigateway-managedgatewayclass-resourcejob)) - This value contains settings related to the gateway_resources_job that runs on helm install
+      - `resourceJob` ((#v-connectinject-apigateway-managedgatewayclass-resourcejob)) - This value contains settings related to the `gateway_resources_job` that runs on Helm install.
 
-        - `resources` ((#v-connectinject-apigateway-managedgatewayclass-resourcejob-resources)) (`map`) - The resource requests (CPU, memory, etc.) for the server-acl-init and server-acl-init-cleanup pods.
+        - `resources` ((#v-connectinject-apigateway-managedgatewayclass-resourcejob-resources)) (`map`) - The resource request, such as CPU and memory, for the `server-acl-init` and `server-acl-init-cleanup` pods.
           This should be a YAML map corresponding to a Kubernetes
-          [`ResourceRequirements``](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#resourcerequirements-v1-core)
+          [ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#resourcerequirements-v1-core)
           object.
 
           Example:
@@ -2104,14 +2104,13 @@ Use these links to navigate to a particular top-level stanza.
     - `enabled` ((#v-connectinject-cni-enabled)) (`boolean: false`) - If true, then all traffic redirection setup uses the consul-cni plugin.
       Requires connectInject.enabled to also be true.
 
-    - `autorotateToken` ((#v-connectinject-cni-autorotatetoken)) (`boolean: false`) - If true, then use projected service account tokens for the CNI plugin and
-      Uses auto-rotated projected token everytime when interacting with Kubernetes API.
+    - `autorotateToken` ((#v-connectinject-cni-autorotatetoken)) (`boolean: false`) - If true, then use projected service account tokens for the CNI plugin. Uses auto-rotated projected token every time when interacting with Kubernetes API.
 
-    - `tokenExpiration` ((#v-connectinject-cni-tokenexpiration)) (`Integer: 3600`) - Set the CNI plugin ServiceAccount token validity period. Applicable only when autorotateToken is true.
-      In some environments this may not work(eg. azure 1.30+ with oidc enabled)  as providers may have native expiration limits.
-      Optional and setup to 1 hour by default. Value is in seconds.
+    - `tokenExpiration` ((#v-connectinject-cni-tokenexpiration)) (`Integer: 3600`) - Set the CNI plugin ServiceAccount token validity period. Applicable only when `autorotateToken` is true.
+      This may not work in some environments this may not work, such as Azure 1.30+ with OIDC enabled, as providers may have native expiration limits.
+      Optional and configured to 1 hour by default. Value is in seconds.
 
-    - `logLevel` ((#v-connectinject-cni-loglevel)) (`string: null`) - Log level for the installer and plugin. Overrides global.logLevel. One of "trace", "debug", "info", "warn", or "error".
+    - `logLevel` ((#v-connectinject-cni-loglevel)) (`string: null`) - Log level for the installer and plugin. Overrides `global.logLevel`. One of "trace", "debug", "info", "warn", or "error".
 
     - `namespace` ((#v-connectinject-cni-namespace)) (`string: null`) - Set the namespace to install the CNI plugin into. Overrides global namespace settings for CNI resources.
       Ex: "kube-system"
@@ -2435,10 +2434,10 @@ Use these links to navigate to a particular top-level stanza.
 
   - `dataplaneAsSidecarInitContainer` ((#v-connectinject-dataplaneassidecarinitcontainer))
 
-    - `defaultEnabled` ((#v-connectinject-dataplaneassidecarinitcontainer-defaultenabled)) (`boolean: false`) - If true, the consul-dataplane will run as an init container with the restart policy set to "Always" and using startup probe to determine readiness.
-      Also, Kubelet will wait for the consul-dataplane init container to be ready before starting the application container.
+    - `defaultEnabled` ((#v-connectinject-dataplaneassidecarinitcontainer-defaultenabled)) (`boolean: false`) - If true, the  Consul dataplane runs as an init container with the restart policy set to "Always" and uses startup probe to determine readiness.
+      Also, Kubelet waits for the Consul dataplane init container to be ready before starting the application container.
 
-    - `initialProbeCheckDelaySeconds` ((#v-connectinject-dataplaneassidecarinitcontainer-initialprobecheckdelayseconds)) (`integer: 1`) - Configures how long the k8s startup probe will wait initially before performing the first check.
+    - `initialProbeCheckDelaySeconds` ((#v-connectinject-dataplaneassidecarinitcontainer-initialprobecheckdelayseconds)) (`integer: 1`) - Configures how long the k8s startup probe waits initially before performing the first check.
 
     - `probeCheckPeriodSeconds` ((#v-connectinject-dataplaneassidecarinitcontainer-probecheckperiodseconds)) (`integer: 1`) - Configures how often the k8s startup probe checks the readiness of the consul-dataplane init container.
 
