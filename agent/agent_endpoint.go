@@ -305,13 +305,31 @@ func buildAgentService(s *structs.NodeService, dc string) api.AgentService {
 		}
 	}
 
+	servicePorts := make(api.ServicePorts, 0, len(s.Ports))
+	if len(s.Ports) > 0 {
+		for _, p := range s.Ports {
+			servicePorts = append(servicePorts, api.ServicePort{
+				Name:    p.Name,
+				Port:    p.Port,
+				Default: p.Default,
+			})
+		}
+	}
+
+	port := s.Port
+	if s.Port == 0 && len(s.Ports) > 0 {
+		// Populate `port` with default port for backward compatibility
+		port = s.DefaultPort()
+	}
+
 	as := api.AgentService{
 		Kind:              api.ServiceKind(s.Kind),
 		ID:                s.ID,
 		Service:           s.Service,
 		Tags:              s.Tags,
 		Meta:              s.Meta,
-		Port:              s.Port,
+		Port:              port,
+		Ports:             servicePorts,
 		Address:           s.Address,
 		SocketPath:        s.SocketPath,
 		TaggedAddresses:   taggedAddrs,

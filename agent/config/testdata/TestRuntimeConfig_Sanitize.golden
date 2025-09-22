@@ -396,6 +396,7 @@
             "Meta": {},
             "Name": "foo",
             "Port": 0,
+            "Ports": [],
             "Proxy": null,
             "SocketPath": "",
             "TaggedAddresses": {},

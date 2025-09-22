@@ -800,12 +800,17 @@ func TestBuilder_parsePrefixFilter(t *testing.T) {
 
 func TestBuidler_hostMetricsWithCloud(t *testing.T) {
 	devMode := true
+
+	// We hardcode `node_name` to make the tests pass because the default might not be DNS compliant which throws error in local setup
 	builderOpts := LoadOpts{
 		DevMode: &devMode,
 		DefaultConfig: FileSource{
 			Name:   "test",
 			Format: "hcl",
-			Data:   `cloud{ resource_id = "abc" client_id = "abc" client_secret = "abc"}`,
+			Data: `
+					node_name = "test"
+					cloud{ resource_id = "abc" client_id = "abc" client_secret = "abc"}
+					`,
 		},
 	}
 
