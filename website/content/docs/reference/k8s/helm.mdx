@@ -1269,8 +1269,8 @@ Use these links to navigate to a particular top-level stanza.
 
     - `requestLimits` ((#v-server-limits-requestlimits)) - This object specifies configurations that limit the rate of RPC and gRPC
       requests on the Consul server. Limiting the rate of gRPC and RPC requests
-      also limits HTTP requests to the Consul server.
-      /consul/docs/agent/config/config-files#request_limits
+      also limits HTTP requests to the Consul server. Refer to [Consul agent
+      configuration `request_limits`](/consul/docs/reference/agent/configuration-file/general#request_limits)
 
       - `mode` ((#v-server-limits-requestlimits-mode)) (`string: disabled`) - Setting for disabling or enabling rate limiting.  If not disabled, it
         enforces the action that will occur when RequestLimitsReadRate
