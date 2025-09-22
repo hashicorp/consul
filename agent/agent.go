@@ -54,7 +54,6 @@ import (
 	"github.com/hashicorp/consul/agent/hcp/scada"
 	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/local"
-	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	proxycfgglue "github.com/hashicorp/consul/agent/proxycfg-glue"
 	catalogproxycfg "github.com/hashicorp/consul/agent/proxycfg-sources/catalog"
@@ -871,8 +870,6 @@ func (a *Agent) Start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-
-	netutil.SetAgentBindAddr(a.config.BindAddr)
 
 	// Start HTTP and HTTPS servers.
 	for _, srv := range servers {
