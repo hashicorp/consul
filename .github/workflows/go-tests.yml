@@ -25,7 +25,7 @@ env:
 
 # concurrency
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  group: go-tests-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -562,6 +562,8 @@ jobs:
           # Capturing in an env var makes this safe against GHA shell injection via commit message.
           # See https://securitylab.github.com/research/github-actions-untrusted-input/
           COMMIT_MESSAGE_FULL: ${{ github.event.head_commit.message }}
+          # Capturing workflow name in env var to prevent shell injection
+          WORKFLOW_NAME: ${{ github.workflow }}
         run: |
           # if failure (not cancelled), notify Slack
           if printf '${{ toJSON(needs) }}' | grep -E -i '\"result\": \"(failure)\"'; then
@@ -574,7 +576,7 @@ jobs:
             # Send multi-line env var to GITHUB_ENV.
             # github.event.head_commit.message and github.ref_name both rely on this event occurring on a push / merge
             echo "SLACK_MESSAGE_RAW<<EOF" >> $GITHUB_ENV
-            echo "❌ ${{ github.workflow }} workflow failed:
+            echo "❌ ${WORKFLOW_NAME} workflow failed:
             
             - Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
             - Branch: ${{ github.ref_name }}

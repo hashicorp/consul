@@ -29,7 +29,7 @@ env:
   GOPRIVATE: github.com/hashicorp # Required for enterprise deps
 
 concurrency:
-  group: "${{ github.workflow }}-${{ github.head_ref || github.ref }}"
+  group: "test-integrations-${{ github.head_ref || github.ref }}"
   cancel-in-progress: true
 
 jobs:
