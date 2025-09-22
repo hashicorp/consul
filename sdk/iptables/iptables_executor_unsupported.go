@@ -23,5 +23,4 @@ func (i *iptablesExecutor) Rules() []string {
 }
 
 func (i *iptablesExecutor) ClearAllRules() {
-	return
 }

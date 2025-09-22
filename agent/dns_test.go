@@ -52,6 +52,36 @@ const (
 	generateNumNodes = testUDPTruncateLimit * defaultNumUDPResponses * configUDPAnswerLimit
 )
 
+// makeRecursorIPv6 creates a generic DNS server which always returns
+// the provided reply. This is useful for mocking a DNS recursor with
+// an expected result.
+func makeRecursorIPv6(t *testing.T, answer dns.Msg) *dns.Server {
+	a := answer
+	mux := dns.NewServeMux()
+	mux.HandleFunc(".", func(resp dns.ResponseWriter, msg *dns.Msg) {
+		// The SetReply function sets the return code of the DNS
+		// query to SUCCESS
+		// We need a way to copy the variables not addressed
+		// in SetReply
+		answer.SetReply(msg)
+		answer.Rcode = a.Rcode
+		if err := resp.WriteMsg(&answer); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	})
+	up := make(chan struct{})
+	server := &dns.Server{
+		Addr:              "[::1]:0",
+		Net:               "udp",
+		Handler:           mux,
+		NotifyStartedFunc: func() { close(up) },
+	}
+	go server.ListenAndServe()
+	<-up
+	server.Addr = server.PacketConn.LocalAddr().String()
+	return server
+}
+
 // makeRecursor creates a generic DNS server which always returns
 // the provided reply. This is useful for mocking a DNS recursor with
 // an expected result.
@@ -103,6 +133,18 @@ func dnsA(src, dest string) *dns.A {
 			Class:  dns.ClassINET,
 		},
 		A: net.ParseIP(dest),
+	}
+}
+
+// dnsAAAAA returns a DNS AAAA record struct
+func dnsAAAA(src, dest string) *dns.AAAA {
+	return &dns.AAAA{
+		Hdr: dns.RR_Header{
+			Name:   dns.Fqdn(src),
+			Rrtype: dns.TypeAAAA,
+			Class:  dns.ClassINET,
+		},
+		AAAA: net.ParseIP(dest),
 	}
 }
 
@@ -265,6 +307,51 @@ func TestDNS_CycleRecursorCheck(t *testing.T) {
 	require.NotNil(t, in)
 	require.Equal(t, wantAnswer, in.Answer)
 }
+
+func TestDNS_CycleRecursorCheck_IPv6(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	// Start a DNS recursor that returns a SERVFAIL
+	server1 := makeRecursorIPv6(t, dns.Msg{
+		MsgHdr: dns.MsgHdr{Rcode: dns.RcodeServerFailure},
+	})
+	// Start a DNS recursor that returns the result
+	defer server1.Shutdown()
+	server2 := makeRecursorIPv6(t, dns.Msg{
+		MsgHdr: dns.MsgHdr{Rcode: dns.RcodeSuccess},
+		Answer: []dns.RR{
+			dnsAAAA("www.google.com", "3000::ffff"),
+		},
+	})
+	defer server2.Shutdown()
+	// Mock the agent startup with the necessary configs
+	agent := NewTestAgent(t,
+		`recursors = ["`+server1.Addr+`", "`+server2.Addr+`"]
+		`)
+	defer agent.Shutdown()
+	// DNS Message init
+	m := new(dns.Msg)
+	m.SetQuestion("google.com.", dns.TypeAAAA)
+	// Agent request
+	client := new(dns.Client)
+	in, _, _ := client.Exchange(m, agent.DNSAddr())
+	wantAnswer := []dns.RR{
+		&dns.AAAA{
+			Hdr: dns.RR_Header{Name: "www.google.com.", Rrtype: dns.TypeAAAA, Class: dns.ClassINET, Rdlength: 16},
+			AAAA: []byte{
+				0x30, 0x00, 0x00, 0x00,
+				0x00, 0x00, 0x00, 0x00,
+				0x00, 0x00, 0x00, 0x00,
+				0x00, 0x00, 0xff, 0xff,
+			},
+		},
+	}
+	require.NotNil(t, in)
+	require.Equal(t, wantAnswer, in.Answer)
+}
+
 func TestDNS_CycleRecursorCheckAllFail(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -291,6 +378,41 @@ func TestDNS_CycleRecursorCheckAllFail(t *testing.T) {
 	// DNS dummy message initialization
 	m := new(dns.Msg)
 	m.SetQuestion("google.com.", dns.TypeA)
+	// Agent request
+	client := new(dns.Client)
+	in, _, err := client.Exchange(m, agent.DNSAddr())
+	require.NoError(t, err)
+	// Verify if we hit SERVFAIL from Consul
+	require.NotNil(t, in)
+	require.Equal(t, dns.RcodeServerFailure, in.Rcode)
+}
+
+func TestDNS_CycleRecursorCheckAllFail_IPv6(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	// Start 3 DNS recursors that returns a REFUSED status
+	server1 := makeRecursorIPv6(t, dns.Msg{
+		MsgHdr: dns.MsgHdr{Rcode: dns.RcodeRefused},
+	})
+	defer server1.Shutdown()
+	server2 := makeRecursorIPv6(t, dns.Msg{
+		MsgHdr: dns.MsgHdr{Rcode: dns.RcodeRefused},
+	})
+	defer server2.Shutdown()
+	server3 := makeRecursorIPv6(t, dns.Msg{
+		MsgHdr: dns.MsgHdr{Rcode: dns.RcodeRefused},
+	})
+	defer server3.Shutdown()
+	// Mock the agent startup with the necessary configs
+	agent := NewTestAgent(t,
+		`recursors = ["`+server1.Addr+`", "`+server2.Addr+`","`+server3.Addr+`"]
+		`)
+	defer agent.Shutdown()
+	// DNS dummy message initialization
+	m := new(dns.Msg)
+	m.SetQuestion("google.com.", dns.TypeAAAA)
 	// Agent request
 	client := new(dns.Client)
 	in, _, err := client.Exchange(m, agent.DNSAddr())
@@ -1252,6 +1374,40 @@ func TestDNS_Recurse(t *testing.T) {
 
 	recursor := makeRecursor(t, dns.Msg{
 		Answer: []dns.RR{dnsA("apple.com", "1.2.3.4")},
+	})
+	defer recursor.Shutdown()
+
+	a := NewTestAgent(t, `
+		recursors = ["`+recursor.Addr+`"]
+	`)
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	m := new(dns.Msg)
+	m.SetQuestion("apple.com.", dns.TypeANY)
+
+	c := new(dns.Client)
+	in, _, err := c.Exchange(m, a.DNSAddr())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(in.Answer) == 0 {
+		t.Fatalf("Bad: %#v", in)
+	}
+	if in.Rcode != dns.RcodeSuccess {
+		t.Fatalf("Bad: %#v", in)
+	}
+
+}
+
+func TestDNS_Recurse_IPv6(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	recursor := makeRecursorIPv6(t, dns.Msg{
+		Answer: []dns.RR{dnsAAAA("www.google.com", "3000::ffff")},
 	})
 	defer recursor.Shutdown()
 
@@ -3051,6 +3207,56 @@ func TestDNS_Compression_Query(t *testing.T) {
 	}
 }
 
+func TestDNS_Compression_Recurse_IPv6(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	recursor := makeRecursorIPv6(t, dns.Msg{
+		Answer: []dns.RR{dnsAAAA("apple.com", "3000::ffff")},
+	})
+	defer recursor.Shutdown()
+
+	a := NewTestAgent(t, `
+		recursors = ["`+recursor.Addr+`"]
+	`)
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	m := new(dns.Msg)
+	m.SetQuestion("apple.com.", dns.TypeANY)
+
+	conn, err := dns.Dial("udp", a.DNSAddr())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Do a manual exchange with compression on (the default).
+	if err := conn.WriteMsg(m); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	p := make([]byte, dns.MaxMsgSize)
+	compressed, err := conn.Read(p)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Disable compression and try again.
+	a.DNSDisableCompression(true)
+	if err := conn.WriteMsg(m); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	unc, err := conn.Read(p)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// We can't see the compressed status given the DNS API, so we just make
+	// sure the message is smaller to see if it's respecting the flag.
+	if compressed == 0 || unc == 0 || compressed >= unc {
+		t.Fatalf("doesn't look compressed: %d vs. %d", compressed, unc)
+	}
+}
 func TestDNS_Compression_Recurse(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")

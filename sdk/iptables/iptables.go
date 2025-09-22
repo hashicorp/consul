@@ -107,7 +107,7 @@ func verifyDualStackConfig(cfg Config, dualStack bool) error {
 			if ip == nil {
 				return fmt.Errorf("unable to parse consulDNSIP")
 			}
-			if ip.To16() == nil {
+			if ip.To4() != nil {
 				return fmt.Errorf("for dual stack ipv6 consulDNSIP required")
 			}
 		}
