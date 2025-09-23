@@ -62,10 +62,11 @@
     padding-right: 30px;
   }
   code {
-    display: inline-block;
+    display: block;
     overflow: hidden;
     text-overflow: ellipsis;
     width: 100%;
+    white-space: pre-wrap;
   }
   hr {
     width: calc(100% - 80px);

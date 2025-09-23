@@ -91,7 +91,7 @@ consul.
 
 You can also run the UI against a normal Consul installation.
 
-* `consul server -dev` to start consul listening on http://localhost:8500
+* `consul agent -dev` to start consul listening on http://localhost:8500
 * `make start-consul` to start the ember app proxying to `consul` (this will
 respect the `CONSUL_HTTP_ADDR` environment variable to locate the Consul
 installation.

@@ -390,6 +390,26 @@ type ServiceAddress struct {
 	Port    *int    `mapstructure:"port"`
 }
 
+type ServicePorts []ServicePort
+
+type ServicePort struct {
+	Name    *string `mapstructure:"name"`
+	Port    *int    `mapstructure:"port"`
+	Default *bool   `mapstructure:"default"`
+}
+
+func (sp ServicePort) Validate() error {
+	if sp.Name == nil {
+		return fmt.Errorf("every port in ports must have a name defined")
+	}
+
+	if sp.Port == nil {
+		return fmt.Errorf("every port in ports must have a port defined")
+	}
+
+	return nil
+}
+
 type ServiceDefinition struct {
 	Kind              *string                   `mapstructure:"kind"`
 	ID                *string                   `mapstructure:"id"`
@@ -399,6 +419,7 @@ type ServiceDefinition struct {
 	TaggedAddresses   map[string]ServiceAddress `mapstructure:"tagged_addresses"`
 	Meta              map[string]string         `mapstructure:"meta"`
 	Port              *int                      `mapstructure:"port"`
+	Ports             ServicePorts              `mapstructure:"ports"`
 	SocketPath        *string                   `mapstructure:"socket_path"`
 	Check             *CheckDefinition          `mapstructure:"check"`
 	Checks            []CheckDefinition         `mapstructure:"checks"`
