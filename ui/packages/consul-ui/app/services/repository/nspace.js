@@ -57,7 +57,7 @@ export default class NspaceService extends RepositoryService {
     if (!this.permissions.can('use nspaces')) {
       return [];
     }
-    return super.findAll(...arguments).catch(() => []);
+    return super.findAll(...arguments);
   }
 
   @dataSource('/:partition/:ns/:dc/namespace/:id')
