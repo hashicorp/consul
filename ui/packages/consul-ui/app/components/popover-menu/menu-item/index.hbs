@@ -4,47 +4,85 @@
 }}
 
 {{yield}}
-<li role="none" ...attributes>
-{{#if hasConfirmation}}
-  <label for={{concat menu.confirm guid}} role="menuitem" tabindex="-1" onkeypress={{menu.keypressClick}}>
-    <YieldSlot @name="label">{{yield}}</YieldSlot>
-  </label>
-  <div role="menu">
-    <YieldSlot @name="confirmation" @params={{
-      block-params (component 'confirmation-alert'
-        onclick=(queue (action menu.clickTrigger) (action onclick))
-        name=(concat menu.confirm guid)
-      )
-    }}>{{yield}}</YieldSlot>
-  </div>
-{{else if href}}
-{{#let (string-includes href '://') as |external|}}
-  <a
-    role="menuitem" tabindex="-1"
-    onclick={{action menu.clickTrigger}}
-    href={{href}}
-    target={{if external '_blank'}}
-    rel={{if external 'noopener noreferrer'}}
-  >
-    <YieldSlot @name="label">
-    {{yield}}
-    </YieldSlot>
-  </a>
-{{/let}}
-{{else}}
-<button
-  type="button"
-  role="menuitem"
-  aria-selected={{if selected 'true'}}
-  tabindex="-1"
-  onclick={{queue
-    (action (or this.onclick (noop)))
-    (action (if this.close menu.clickTrigger (noop)))
-  }}>
-    <YieldSlot @name="label">
-      {{yield}}
-    </YieldSlot>
-  </button>
-{{/if}}
-</li>
+<li role='none' ...attributes>
+  {{#if hasConfirmation}}
+    <button
+      type='button'
+      role='menuitem'
+      tabindex='-1'
+      onkeypress={{action 'activateModal' 'formModalActive'}}
+      onClick={{action 'activateModal' 'formModalActive'}}
+    >
+      <YieldSlot @name='label'>{{yield}}</YieldSlot>
+    </button>
 
+    {{#if this.formModalActive}}
+      {{#in-element this.modalRoot insertBefore=null}}
+        <Hds::Modal
+          id='confirm-modal'
+          @color='critical'
+          @onClose={{action 'deactivateModal' 'formModalActive'}}
+          as |M|
+        >
+          <M.Header>
+            <YieldSlot @name='confirm-header'>
+              {{yield}}
+            </YieldSlot>
+          </M.Header>
+          <M.Body>
+            <p class='hds-typography-body-300 hds-foreground-primary'>
+              <YieldSlot @name='confirm-body'>
+                {{yield}}
+              </YieldSlot>
+            </p>
+          </M.Body>
+                    <M.Footer as |F|>
+            <YieldSlot
+              @name='confirm-footer'
+              @params={{block-params
+                (hash
+                  button=(component 'popover-menu/menu-item/critical-button' confirmAction=(queue (action menu.clickTrigger) (action onclick) F.close))
+                  btnAtts=(hash data-test-id='confirm-action')
+                  confirmAction=(queue (action menu.clickTrigger) (action onclick) F.close)
+                  close=F.close
+                )
+              }}
+            >
+              {{yield}}
+            </YieldSlot>
+          </M.Footer>
+        </Hds::Modal>
+      {{/in-element}}
+    {{/if}}
+  {{else if href}}
+    {{#let (string-includes href '://') as |external|}}
+      <a
+        role='menuitem'
+        tabindex='-1'
+        onclick={{action menu.clickTrigger}}
+        href={{href}}
+        target={{if external '_blank'}}
+        rel={{if external 'noopener noreferrer'}}
+      >
+        <YieldSlot @name='label'>
+          {{yield}}
+        </YieldSlot>
+      </a>
+    {{/let}}
+  {{else}}
+    <button
+      type='button'
+      role='menuitem'
+      aria-selected={{if selected 'true'}}
+      tabindex='-1'
+      onclick={{queue
+        (action (or this.onclick (noop)))
+        (action (if this.close menu.clickTrigger (noop)))
+      }}
+    >
+      <YieldSlot @name='label'>
+        {{yield}}
+      </YieldSlot>
+    </button>
+  {{/if}}
+</li>

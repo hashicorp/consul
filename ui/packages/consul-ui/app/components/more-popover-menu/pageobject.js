@@ -11,7 +11,11 @@ export default (clickable, confirmation) => (actions, scope) => {
         ...prev,
         [item]: clickable(`${itemScope} [role='menuitem']`),
         [`confirm${item.charAt(0).toUpperCase()}${item.substr(1)}`]: clickable(
-          `${itemScope} [role='menu'] button`
+          "#confirm-modal [data-test-id='confirm-action']",
+          {
+            resetScope: true,
+            testContainer: 'body', // modal is rendered in the body
+          }
         ),
       };
     },
