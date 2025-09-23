@@ -1,3 +1,0 @@
-```release-note:security
-security: Configure HTTP server timeouts to prevent Slowloris denial-of-service attacks on agent HTTP endpoints and connect proxy pprof endpoints
-```
