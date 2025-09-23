@@ -45,7 +45,7 @@
 }
 %popover-select .value-empty button::before {
   @extend %with-minus-square-fill-mask, %as-pseudo;
-  color: var(--token-color-foreground-disabled);
+  color: var(--token-color-foreground-faint);
 }
 %popover-select .value-unknown button::before {
   @extend %with-help-circle-outline-mask, %as-pseudo;
