@@ -87,24 +87,26 @@ Examples:
 
 Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDuration) for additional information.
 
-#### Duration validation
+#### Duration formatting validation
 
-When configuring timeout and duration values, Consul validates the format and enforces minimum values where applicable. Invalid duration strings will cause the agent to fail to start with a descriptive error message.
+When you configure timeout and duration values, Consul validates the formatting and enforces minimum values where applicable. When you use invalid duration strings, the agent will fail to start and the output will include a descriptive error message.
 
-**Valid examples:**
+**Examples of valid duration formatting**:
+
 - `"10s"` - 10 seconds
-- `"1.5m"` - 1.5 minutes (90 seconds)
+- `"1.5m"` - 1.5 minutes, equivalent to 90 seconds (`90s`)
 - `"2h30m45s"` - Complex duration with hours, minutes, and seconds
-- `"0s"` - Zero duration (where allowed)
+- `"0s"` - Zero duration, although not all fields support this value.
 
-**Invalid examples that will cause errors:**
+**Examples of invalid formatting that produce errors**:
+
 - `"10"` - Missing unit specification
-- `"10x"` - Invalid unit (`x` is not a recognized unit)
+- `"10x"` - Invalid unit, as `x` is not a recognized duration
 - `""` - Empty string
 - `"abc"` - Non-numeric string
-- `"-5s"` - Negative durations (not accepted for timeout configurations)
+- `"-5s"` - Negative durations are not accepted for timeout configurations
 
-**Minimum value enforcement:** Some timeout configurations enforce minimum values to prevent misconfigurations that could cause connection issues or security vulnerabilities. For example, handshake timeouts typically require a minimum of 1 second. When a configured value is below the minimum, Consul will report a validation error during startup.
+Some timeout configurations enforce minimum values to prevent connection issues or security vulnerabilities. For example, handshake timeouts typically require a minimum of 1 second. When a configured value is below the minimum, Consul reports a validation error during startup.
 
 ## Examples
 
