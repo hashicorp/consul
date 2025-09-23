@@ -18,7 +18,7 @@
   @extend %frame-border-000;
   background-color: var(--token-color-surface-strong);
   border-color: var(--token-color-palette-neutral-300);
-  color: var(--token-color-foreground-disabled);
+  color: var(--token-color-foreground-faint);
 }
 /* button focus */
 %frame-gray-300 {
