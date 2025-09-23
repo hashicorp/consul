@@ -1,0 +1,3 @@
+```release-note:improvement
+ui: auth method config values were overflowing. This PR fixes the issue and adds word break for table elements with large content.
+```
