@@ -821,6 +821,14 @@ func (s *ResourceGenerator) listenersFromSnapshotGateway(cfgSnap *proxycfg.Confi
 		addr := cfgSnap.Address
 		if addr == "" {
 			addr = "0.0.0.0"
+
+			ds, err := netutil.IsDualStack(nil, true)
+			if err != nil {
+				return nil, err
+			}
+			if ds {
+				addr = "::"
+			}
 		}
 
 		a := structs.ServiceAddress{
