@@ -1374,7 +1374,13 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	cfg.Datacenter = runtimeCfg.Datacenter
 	cfg.PrimaryDatacenter = runtimeCfg.PrimaryDatacenter
 	cfg.DataDir = runtimeCfg.DataDir
-	cfg.NodeName = runtimeCfg.NodeName
+	cfg.NodeName = string(runtimeCfg.NodeID)
+	cfg.NodeMeta = make(map[string]string)
+	cfg.NodeMeta["name"] = runtimeCfg.NodeName
+	cfg.NodeMeta["ipv4"] = runtimeCfg.AdvertiseAddrLAN.IP.String()
+	cfg.NodeMeta["dc"] = runtimeCfg.Datacenter
+
+	// cfg.NodeName = runtimeCfg.NodeName
 	cfg.ACLResolverSettings = runtimeCfg.ACLResolverSettings
 
 	cfg.CoordinateUpdateBatchSize = runtimeCfg.ConsulCoordinateUpdateBatchSize

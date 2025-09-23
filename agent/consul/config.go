@@ -470,6 +470,9 @@ type Config struct {
 	// When disabled, Consul does not restrict on the number of xDS connections on a server.
 	// In this scenario, you should deploy an external load balancer in front of the consul servers and distribute the load accordingly.
 	EnableXDSLoadBalancing bool
+
+	// node details for logging and readability
+	NodeMeta map[string]string
 }
 
 func (c *Config) InPrimaryDatacenter() bool {

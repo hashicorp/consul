@@ -68,8 +68,12 @@ func FloodJoins(logger hclog.Logger, addrFn FloodAddrFn,
 			continue
 		}
 
-		dstServerName := fmt.Sprintf("%s.%s", server.Name, server.Datacenter)
-
+		// dstServerName := fmt.Sprintf("%s.%s", server.Name, server.Datacenter)
+		dstServerName := fmt.Sprintf("%s.%s", server.ID, localDatacenter)
+		logger.Debug("Attempting flood-join for server",
+			"server", dstServerName,
+			"address", addr,
+		)
 		// Do the join!
 		n, err := dstSerf.Join([]string{dstServerName + "/" + addr}, true)
 		if err != nil {
