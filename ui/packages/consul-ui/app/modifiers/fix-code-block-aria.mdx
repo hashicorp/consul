@@ -1,0 +1,37 @@
+# fix-code-block-aria
+
+Fixes ARIA accessibility issues in HDS CodeBlock components by adding `role="region"` to `<pre>` elements that have `aria-labelledby` but no role attribute.
+
+## Problem
+
+HDS CodeBlock renders invalid ARIA markup:
+```html
+<!-- Missing role attribute -->
+<pre aria-labelledby="title-123">
+  <code>console.log('hello');</code>
+</pre>
+```
+
+## Usage
+
+Apply to a parent element containing CodeBlock components:
+
+```hbs preview-template
+<div {{fix-code-block-aria}}>
+  <Hds::CodeBlock
+    @language="javascript"
+    @value="console.log('Hello, World!');"
+    as |CB|
+  >
+    <CB.Title>Example Code</CB.Title>
+  </Hds::CodeBlock>
+</div>
+```
+
+## How it works
+
+- Automatically adds `role="region"` to fix ARIA violations
+- Only affects `<pre>` elements with `aria-labelledby` and no existing role
+- Uses MutationObserver to handle dynamically added content
+
+**Temporary workaround** - remove when HDS is updated to include proper ARIA roles.
