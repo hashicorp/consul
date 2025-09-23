@@ -9,7 +9,7 @@ a[rel*='external']::after {
   margin-left: 8px;
 }
 %main-content label a[rel*='help'] {
-  color: var(--token-color-foreground-disabled);
+  color: var(--token-color-foreground-faint);
 }
 %main-content a[rel*='help']::after {
   @extend %with-info-circle-outline-icon, %as-pseudo;

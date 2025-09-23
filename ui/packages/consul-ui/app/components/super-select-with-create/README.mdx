@@ -1,0 +1,142 @@
+---
+class: ember
+---
+# SuperSelectWithCreate
+
+```hbs
+<SuperSelectWithCreate
+  @options={{availableOptions}}
+  @selected={{selectedOption}}
+  @onCreate={{action "createNewOption"}}
+  @onChange={{action "handleSelection"}}
+  as |option|>
+  {{option.name}}
+</SuperSelectWithCreate>
+```
+
+`<SuperSelectWithCreate />` is an accessible dropdown component that extends the functionality of HDS SuperSelect to allow users to create new options on-the-fly. It provides the same API as PowerSelectWithCreate but with built-in accessibility features and proper ARIA attributes.
+
+**Please note**: This component uses HDS SuperSelect as its foundation and includes automatic ARIA fixes for PowerSelect accessibility issues. All accessibility features are handled internally without requiring external modifiers.
+
+### Arguments
+
+| Argument/Attribute | Type | Default | Description |
+| --- | --- | --- | --- |
+| `options` | `Array` | `[]` | Array of available options to display in the dropdown |
+| `selected` | `Object/String` | `null` | Currently selected option |
+| `onCreate` | `Function` | `function() {}` | **Required** - Action called when creating a new option. Receives the search term as parameter |
+| `onChange` | `Function` | `function() {}` | Action called when selection changes. Receives the selected option as parameter |
+| `onFilter` | `Function` | `function() {}` | Action called when search term changes |
+| `onOpen` | `Function` | `function() {}` | Action called when dropdown opens |
+| `onClose` | `Function` | `function() {}` | Action called when dropdown closes |
+| `onError` | `Function` | `function() {}` | Action called when create operation fails |
+| `buildSuggestion` | `Function` | `null` | Custom function to build the "Create..." option text |
+| `showCreateWhen` | `Function` | `null` | Custom function to determine when to show create option |
+| `searchField` | `String` | `'name'` | Field to use for searching and displaying options |
+| `searchPlaceholder` | `String` | `'Search...'` | Placeholder text for search input |
+| `label` | `String` | `''` | Label for the select component |
+| `listboxAriaLabel` | `String` | `'Available options'` | ARIA label for the dropdown listbox |
+| `isOptional` | `Boolean` | `true` | Whether the field is optional |
+| `helperText` | `String` | `''` | Helper text displayed below the component |
+| `errorText` | `String` | `''` | Error text displayed when validation fails |
+| `disabled` | `Boolean` | `false` | Whether the component is disabled |
+| `placeholder` | `String` | `null` | Placeholder text for the input |
+| `type` | `String` | `'option'` | Type of items being selected (used in labels) |
+| `id` | `String` | `null` | HTML id attribute for the component |
+
+The component yields contextual content through named blocks:
+
+- `<:option>`: Used for rendering individual options
+- `<:label>`: Used for rendering the label content  
+- `<:create>`: Used for rendering create-specific content
+- `<:creating>`: Used for rendering loading state during creation
+- `<:selected>`: Used for rendering content when options are selected
+- `<:empty>`: Used for rendering content when no options are selected
+
+### Example
+
+```hbs
+<SuperSelectWithCreate
+  @options={{availableTags}}
+  @selected={{selectedTag}}
+  @onCreate={{action "createTag"}}
+  @onChange={{action "updateTag"}}
+  @buildSuggestion={{this.buildTagSuggestion}}
+  @showCreateWhen={{this.shouldAllowTagCreation}}
+  @searchField="name"
+  @label="Select or create tag"
+  @searchPlaceholder="Search tags or type to create..."
+  @type="tag"
+>
+  <:label>Tag Selection</:label>
+  <:option as |tag|>
+    <strong>{{tag.name}}</strong>
+    {{#if tag.description}}
+      <br><small>{{tag.description}}</small>
+    {{/if}}
+  </:option>
+  <:creating>
+    <div class="custom-creating">Creating new tag...</div>
+  </:creating>
+  <:selected>
+    <p>Selected: {{selectedTag.name}}</p>
+  </:selected>
+</SuperSelectWithCreate>
+```
+
+### Component Actions Example
+
+```javascript
+// In your parent component
+@action
+async createTag(tagName) {
+  try {
+    const newTag = await this.tagService.create({ name: tagName });
+    this.availableTags.pushObject(newTag);
+    return newTag; // Will be selected automatically
+  } catch (error) {
+    console.error('Failed to create tag:', error);
+    throw error;
+  }
+}
+
+@action
+buildTagSuggestion(term) {
+  return `Add new tag: "${term}"`;
+}
+
+@action
+shouldAllowTagCreation(term, options) {
+  return term.length >= 3 && !options.find(opt => 
+    opt.name.toLowerCase() === term.toLowerCase()
+  );
+}
+```
+
+### Accessibility Features
+
+This component includes built-in accessibility features:
+
+- ✅ **Proper ARIA roles** - Fixes PowerSelect's `role="alert"` to `role="option"`
+- ✅ **Keyboard navigation** - Full arrow key and Enter/Escape support  
+- ✅ **Screen reader support** - Proper ARIA labels and descriptions
+- ✅ **Focus management** - Correct focus handling for dropdown states
+- ✅ **Scroll accessibility** - Auto-scroll to highlighted options
+
+### States
+
+The component manages several internal states:
+
+- `idle` - Normal state, ready for interaction
+- `searching` - User is typing to filter options  
+- `creating` - New option is being created (shows loading indicator)
+- `error` - Creation failed (if onError handler provided)
+
+### See
+
+- [Component Source Code](./index.js)
+- [Template Source Code](./index.hbs)
+- [HDS SuperSelect Documentation](https://helios.hashicorp.design/components/form/super-select)
+- [PowerSelectWithCreate Documentation](https://ember-power-select.com/addons/with-create)
+
+---

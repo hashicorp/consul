@@ -21,30 +21,7 @@
   transition: min-height 150ms, max-height 150ms;
   min-height: 0;
 }
-%menu-panel-deprecated:not(.confirmation) [type='checkbox'] ~ * {
-  transition: transform 150ms;
-}
-%menu-panel-deprecated [type='checkbox']:checked ~ * {
-  transform: translateX(calc(-100% - 10px));
-}
-%menu-panel-deprecated.confirmation [role='menu'] {
-  min-height: 205px !important;
-}
-%menu-panel-deprecated [type='checkbox']:checked ~ * {
-  /* this needs to autocalculate */
-  min-height: 143px;
-  max-height: 143px;
-}
-%menu-panel-deprecated [id$='-']:first-child:checked ~ ul label[for$='-'] * [role='menu'],
-%menu-panel-deprecated [id$='-']:first-child:checked ~ ul > li > [role='menu'] {
-  display: block;
-}
-/**/
-%menu-panel-deprecated > ul > li > div[role='menu'] {
-  position: absolute;
-  top: 0;
-  left: calc(100% + 10px);
-}
+
 %menu-panel-deprecated > ul > li > *:not(div[role='menu']) {
   position: relative;
 }
