@@ -39,6 +39,7 @@ jobs:
       uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
       with:
           run_install: false
+          package_json_file: ui/package.json
 
     # Install dependencies.
     - name: install packages
