@@ -59,6 +59,7 @@ jobs:
       uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
       with:
           run_install: false
+          package_json_file: ui/package.json
 
     # Install dependencies.
     - name: install packages
@@ -87,6 +88,7 @@ jobs:
         uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
         with:
             run_install: false
+            package_json_file: ui/package.json
 
       - name: Install Chrome
         uses: browser-actions/setup-chrome@82b9ce628cc5595478a9ebadc480958a36457dc2 # v1.6.0
@@ -125,6 +127,7 @@ jobs:
       uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
       with:
           run_install: false
+          package_json_file: ui/package.json
 
     - name: Install Chrome
       uses: browser-actions/setup-chrome@82b9ce628cc5595478a9ebadc480958a36457dc2 # v1.6.0
