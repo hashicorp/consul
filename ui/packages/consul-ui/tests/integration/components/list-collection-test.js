@@ -35,7 +35,7 @@ module('Integration | Component | list collection', function (hooks) {
 
     // Add a footer for collision detection
     const footer = document.createElement('footer');
-    footer.setAttribute('role', 'contentinfo');
+    footer.id = 'contentinfo';
     footer.style.position = 'fixed';
     footer.style.bottom = '0';
     footer.style.height = '50px';
