@@ -5,6 +5,7 @@
 
 <div
   class="child-selector {{type}}-child-selector"
+  {{fix-super-select-aria}}
   ...attributes
 >
 {{yield}}
@@ -12,7 +13,7 @@
   <YieldSlot @name="create">{{yield}}</YieldSlot>
   <label class="type-text">
     <span><YieldSlot @name="label">{{yield}}</YieldSlot></span>
-    {{#if isOpen}}
+    {{!-- {{#if isOpen}} --}}
       <DataSource
         @src={{uri '/${partition}/${nspace}/${dc}/${type}'
           (hash
@@ -24,7 +25,7 @@
         }}
         @onchange={{action (mut allOptions) value="data"}}
       />
-    {{/if}}
+    {{!-- {{/if}} --}}
     <DataCollection
       @type={{type}}
       @sort='Name:asc'
@@ -33,19 +34,18 @@
       }}
       @items={{options}}
     as |collection|>
-      <PowerSelect
+      <Hds::Form::SuperSelect::Single::Field
         @searchEnabled={{true}}
-        @search={{action collection.search}}
+        @onFilter={{action collection.search}}
         @options={{sort-by 'Name:asc' options}}
-        @loadingMessage="Loading..."
-        @searchMessage="No possible options"
-        @searchPlaceholder={{placeholder}}
-        @onOpen={{action (mut isOpen) true}}
-        @onClose={{action (mut isOpen) false}}
+        @placeholder={{placeholder}}
         @onChange={{action "change" "items[]" items}}
-      as |item|>
-        <YieldSlot @name="option" @params={{block-params item}}>{{yield}}</YieldSlot>
-      </PowerSelect>
+        @label="Select {{type}}"
+        @isOptional={{true}}
+        @searchField="Name"
+      as |F|>
+        <F.Options>{{F.options.Name}}</F.Options>
+      </Hds::Form::SuperSelect::Single::Field>
     </DataCollection>
   </label>
 {{/if}}

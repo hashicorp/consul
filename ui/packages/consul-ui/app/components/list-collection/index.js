@@ -60,7 +60,7 @@ export default Component.extend(Slotted, {
       // TODO: This top part is very similar to resize in tabular-collection
       // see if it make sense to DRY out
       const dom = this.dom;
-      const $footer = dom.element('footer[role="contentinfo"]');
+      const $footer = dom.element('#contentinfo');
       if ($footer) {
         const border = 1;
         const rect = this.$element.getBoundingClientRect();
@@ -84,7 +84,7 @@ export default Component.extend(Slotted, {
         const groupRect = $group.getBoundingClientRect();
         const groupBottom = groupRect.top + $group.clientHeight;
 
-        const $footer = this.dom.element('footer[role="contentinfo"]');
+        const $footer = this.dom.element('#contentinfo');
         const footerRect = $footer.getBoundingClientRect();
         const footerTop = footerRect.top;
 
