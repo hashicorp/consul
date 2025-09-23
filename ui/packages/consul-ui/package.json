@@ -40,9 +40,7 @@
     "test:oss:ci": "CONSUL_NSPACES_ENABLED=0 ember test --test-port=${EMBER_TEST_PORT:-7357} --path dist --silent --reporter xunit",
     "test:oss:view": "CONSUL_NSPACES_ENABLED=0 ember test --server --test-port=${EMBER_TEST_PORT:-7357}",
     "test:parallel": "EMBER_EXAM_PARALLEL=true ember exam --split=4 --parallel",
-    "test:view": "ember test --server --test-port=${EMBER_TEST_PORT:-7357}",
-    "toolkit:link": "yalc link @hashicorp/consul-ui-toolkit",
-    "toolkit:remove": "yalc remove @hashicorp/consul-ui-toolkit"
+    "test:view": "ember test --server --test-port=${EMBER_TEST_PORT:-7357}"
   },
   "husky": {
     "hooks": {
