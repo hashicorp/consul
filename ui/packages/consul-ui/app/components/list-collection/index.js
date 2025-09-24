@@ -40,7 +40,8 @@ export default Component.extend(Slotted, {
     const o = this;
     this['cell-layout'].formatItemStyle = function (itemIndex) {
       let style = formatItemStyle.apply(this, arguments);
-      if (o.checked === itemIndex) {
+      const items = get(o, 'items');
+      if (items && items[itemIndex] && o.checked === items[itemIndex].uid) {
         style = `${style};z-index: 1`;
       }
       return style;
@@ -75,7 +76,7 @@ export default Component.extend(Slotted, {
     },
     change: function (index, e = {}) {
       if (e.target.checked && index !== this.checked) {
-        set(this, 'checked', parseInt(index));
+        set(this, 'checked', index);
         this.$row = this.dom.closest('li', e.target);
         this.$row.style.zIndex = 1;
 

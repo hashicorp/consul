@@ -1,0 +1,3 @@
+```release-note:bug
+ui: fixes the issue where when doing deletes of multiple tokens or policies, the three dots on the right hand side stops responding after the first delete.
+```
