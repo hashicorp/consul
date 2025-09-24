@@ -58,7 +58,7 @@ Use these links to navigate to a particular top-level stanza.
     the prefix will be `<helm release name>-consul`.
 
   - `domain` ((#v-global-domain)) (`string: consul`) - The domain Consul will answer DNS queries for
-    (Refer to [`-domain`](/consul/docs/agent/config/cli-flags#_domain)) and the domain services synced from
+    (Refer to [`-domain`](/consul/commands/agent#_domain)) and the domain services synced from
     Consul into Kubernetes will have, e.g. `service-name.service.consul`.
 
   - `peering` ((#v-global-peering)) - Configures the Cluster Peering feature. Requires Consul v1.14+ and Consul-K8s v1.0.0+.
@@ -122,7 +122,7 @@ Use these links to navigate to a particular top-level stanza.
   - `secretsBackend` ((#v-global-secretsbackend)) - secretsBackend is used to configure Vault as the secrets backend for the Consul on Kubernetes installation.
     The Vault cluster needs to have the Kubernetes Auth Method, KV2 and PKI secrets engines enabled
     and have necessary secrets, policies and roles created prior to installing Consul.
-    Refer to [Vault as the Secrets Backend](/consul/docs/k8s/deployment-configurations/vault)
+    Refer to [Vault as the Secrets Backend](/consul/docs/deploy/server/k8s/vault)
     documentation for full instructions.
 
     The Vault cluster _must_ not have the Consul cluster installed by this Helm chart as its storage backend
@@ -264,7 +264,7 @@ Use these links to navigate to a particular top-level stanza.
             inject webhooks.
 
   - `gossipEncryption` ((#v-global-gossipencryption)) - Configures Consul's gossip encryption key.
-    (Refer to [`-encrypt`](/consul/docs/agent/config/cli-flags#_encrypt)).
+    (Refer to [`-encrypt`](/consul/commands/agent#_encrypt)).
     By default, gossip encryption is not enabled. The gossip encryption key may be set automatically or manually.
     The recommended method is to automatically generate the key.
     To automatically generate and set a gossip encryption key, set autoGenerate to true.
@@ -297,7 +297,7 @@ Use these links to navigate to a particular top-level stanza.
 
   - `recursors` ((#v-global-recursors)) (`array<string>: []`) - A list of addresses of upstream DNS servers that are used to recursively resolve DNS queries.
     These values are given as `-recursor` flags to Consul servers and clients.
-    Refer to [`-recursor`](/consul/docs/agent/config/cli-flags#_recursor) for more details.
+    Refer to [`-recursor`](/consul/commands/agent#_recursor) for more details.
     If this is an empty array (the default), then Consul DNS will only resolve queries for the Consul top level domain (by default `.consul`).
 
   - `tls` ((#v-global-tls)) - Enables [TLS](/consul/tutorials/security/tls-encryption-secure)
@@ -326,7 +326,7 @@ Use these links to navigate to a particular top-level stanza.
     - `verify` ((#v-global-tls-verify)) (`boolean: true`) - If true, `verify_outgoing`, `verify_server_hostname`,
       and `verify_incoming` for internal RPC communication will be set to `true` for Consul servers and clients.
       Set this to false to incrementally roll out TLS on an existing Consul cluster.
-      Please refer to [TLS on existing clusters](/consul/docs/k8s/operations/tls-on-existing-cluster)
+      Please refer to [TLS on existing clusters](/consul/docs/secure/encryption/tls/enable/existing/k8s)
       for more details.
 
     - `httpsOnly` ((#v-global-tls-httpsonly)) (`boolean: true`) - If true, the Helm chart will configure Consul to disable the HTTP port on
@@ -525,7 +525,7 @@ Use these links to navigate to a particular top-level stanza.
       This address must be reachable from the Consul servers in the primary datacenter.
       This auth method will be used to provision ACL tokens for Consul components and is different
       from the one used by the Consul Service Mesh.
-      Please refer to the [Kubernetes Auth Method documentation](/consul/docs/security/acl/auth-methods/kubernetes).
+      Please refer to the [Kubernetes Auth Method documentation](/consul/docs/secure/acl/auth-method/k8s).
 
       If `externalServers.enabled` is set to true, `global.federation.k8sAuthMethodHost` and
       `externalServers.k8sAuthMethodHost` should be set to the same value.
@@ -689,58 +689,6 @@ Use these links to navigate to a particular top-level stanza.
   - `consulAPITimeout` ((#v-global-consulapitimeout)) (`string: 5s`) - The time in seconds that the consul API client will wait for a response from
     the API before cancelling the request.
 
-  - `cloud` ((#v-global-cloud)) - Enables installing an HCP Consul Central self-managed cluster.
-    Requires Consul v1.14+.
-
-    - `enabled` ((#v-global-cloud-enabled)) (`boolean: false`) - If true, the Helm chart links a [self-managed cluster to HCP](/hcp/docs/consul/self-managed).
-      Use this to either [configure a new cluster](/hcp/docs/consul/self-managed/new)
-      or [link an existing one](/hcp/docs/consul/self-managed/existing).
-
-      Do not enable this setting for [HCP Consul Dedicated clusters](/hcp/docs/consul/dedicated).
-      It is strictly for linking self-managed clusters.
-
-    - `resourceId` ((#v-global-cloud-resourceid)) - The resource ID of the HCP Consul Central cluster to link to. For example:
-      `organization/27109cd4-a309-4bf3-9986-e1d071914b18/project/fcef6c24-259d-4510-bb8d-1d812e120e34/hashicorp.consul.global-network-manager.cluster/consul-cluster`
-      This is required when `global.cloud.enabled` is true.
-
-      - `secretName` ((#v-global-cloud-resourceid-secretname)) (`string: null`) - The name of the Kubernetes secret that holds the resource ID.
-
-      - `secretKey` ((#v-global-cloud-resourceid-secretkey)) (`string: null`) - The key within the Kubernetes secret that holds the resource ID.
-
-    - `clientId` ((#v-global-cloud-clientid)) - The client ID portion of a [service principal](/hcp/docs/hcp/admin/iam/service-principals#service-principals) with authorization to link the cluster
-      in `global.cloud.resourceId` to HCP Consul Central.
-      This is required when `global.cloud.enabled` is true.
-
-      - `secretName` ((#v-global-cloud-clientid-secretname)) (`string: null`) - The name of the Kubernetes secret that holds the client ID.
-
-      - `secretKey` ((#v-global-cloud-clientid-secretkey)) (`string: null`) - The key within the Kubernetes secret that holds the client ID.
-
-    - `clientSecret` ((#v-global-cloud-clientsecret)) - The client secret portion of a [service principal](/hcp/docs/hcp/admin/iam/service-principals#service-principals) with authorization to link the cluster
-      in `global.cloud.resourceId` to HCP Consul Central.
-      This is required when `global.cloud.enabled` is true.
-
-      - `secretName` ((#v-global-cloud-clientsecret-secretname)) (`string: null`) - The name of the Kubernetes secret that holds the client secret.
-
-      - `secretKey` ((#v-global-cloud-clientsecret-secretkey)) (`string: null`) - The key within the Kubernetes secret that holds the client secret.
-
-    - `apiHost` ((#v-global-cloud-apihost)) - The hostname of HCP's API. This setting is used for internal testing and validation.
-
-      - `secretName` ((#v-global-cloud-apihost-secretname)) (`string: null`) - The name of the Kubernetes secret that holds the API hostname.
-
-      - `secretKey` ((#v-global-cloud-apihost-secretkey)) (`string: null`) - The key within the Kubernetes secret that holds the API hostname.
-
-    - `authUrl` ((#v-global-cloud-authurl)) - The URL of HCP's auth API. This setting is used for internal testing and validation.
-
-      - `secretName` ((#v-global-cloud-authurl-secretname)) (`string: null`) - The name of the Kubernetes secret that holds the authorization URL.
-
-      - `secretKey` ((#v-global-cloud-authurl-secretkey)) (`string: null`) - The key within the Kubernetes secret that holds the authorization URL.
-
-    - `scadaAddress` ((#v-global-cloud-scadaaddress)) - The address of HCP's SCADA service. This setting is used for internal testing and validation.
-
-      - `secretName` ((#v-global-cloud-scadaaddress-secretname)) (`string: null`) - The name of the Kubernetes secret that holds the SCADA address.
-
-      - `secretKey` ((#v-global-cloud-scadaaddress-secretkey)) (`string: null`) - The key within the Kubernetes secret that holds the SCADA address.
-
   - `extraLabels` ((#v-global-extralabels)) (`map`) - Extra labels to attach to all pods, deployments, daemonsets, statefulsets, and jobs. This should be a YAML map.
 
     Example:
@@ -767,19 +715,11 @@ Use these links to navigate to a particular top-level stanza.
   - `experiments` ((#v-global-experiments)) (`array<string>: []`) - Consul feature flags that will be enabled across components.
     Supported feature flags:
 
-    - `v1dns`:
-      When this flag is set, Consul agents use the legacy DNS implementation.
-      This setting exists in the case a DNS bug is found after the refactoring introduced in v1.19.0.
-
     Example:
 
     ```yaml
-    experiments: [ "v1dns" ]
+    experiments: [ "<experiment name>" ]
     ```
-
-  - `dualStack` ((#v-global-dualstack))
-
-    - `defaultEnabled` ((#v-global-dualstack-defaultenabled)) (`boolean: false`)
 
 ### server ((#h-server))
 
@@ -901,7 +841,7 @@ Use these links to navigate to a particular top-level stanza.
     _will not_ automatically secure pod communication, this
     setting will only enable usage of the feature. Consul will automatically initialize
     a new CA and set of certificates. Additional service mesh settings can be configured
-    by setting the `server.extraConfig` value or by applying [configuration entries](/consul/docs/connect/config-entries).
+    by setting the `server.extraConfig` value or by applying [configuration entries](/consul/docs/fundamentals/config-entry).
 
   - `enableAgentDebug` ((#v-server-enableagentdebug)) (`boolean: false`) - When set to true, enables Consul to report additional debugging information, including runtime profiling (pprof) data.
     This setting is only required for clusters without ACL enabled. Sets `enable_debug` in server agent config to `true`.
@@ -979,7 +919,7 @@ Use these links to navigate to a particular top-level stanza.
       --set 'server.disruptionBudget.maxUnavailable=0'` flag to the helm chart installation
       command because of a limitation in the Helm templating language.
 
-  - `extraConfig` ((#v-server-extraconfig)) (`string: {}`) - A raw string of extra [JSON configuration](/consul/docs/agent/config/config-files) for Consul
+  - `extraConfig` ((#v-server-extraconfig)) (`string: {}`) - A raw string of extra [JSON configuration](/consul/docs/reference/agent/configuration-file) for Consul
     servers. This will be saved as-is into a ConfigMap that is read by the Consul
     server agents. This can be used to add additional configuration that
     isn't directly exposed by the chart.
@@ -1188,30 +1128,9 @@ Use these links to navigate to a particular top-level stanza.
         ...
       ```
 
-    - `extraVolumes` ((#v-server-snapshotagent-extravolumes)) (`array<map>`) - A list of extra volumes to mount onto the snapshot agent. Use this block
-      to include extra data that only the snapshot agent needs access
-      to, such as storage credentials. This value should be a list of objects.
-
-      Example:
-
-      ```yaml
-      extraVolumes:
-        - type: secret
-          name: storage-credentials
-      ```
-
-      Each object supports the following keys:
-
-      - `type` - Type of the volume. Must be one of `configMap` or `secret`. Case sensitive.
-
-      - `name` - Name of the configMap or secret to mount. This specification also controls
-        the path it mounts to. Consul mounts the volume to `/consul/userconfig/<name>`.
-
-      The snapshot agent does not attempt to load any volumes passed in this stanza.
-
   - `auditLogs` ((#v-server-auditlogs)) - <EnterpriseAlert inline /> Added in Consul 1.8, the audit object allow users to enable auditing
     and configure a sink and filters for their audit logs. Please refer to
-    [audit logs](/consul/docs/enterprise/audit-logging) documentation
+    [audit logs](/consul/docs/monitor/log/audit) documentation
     for further information.
 
     - `enabled` ((#v-server-auditlogs-enabled)) (`boolean: false`) - Controls whether Consul logs out each time a user performs an operation.
@@ -1327,7 +1246,7 @@ Use these links to navigate to a particular top-level stanza.
   - `k8sAuthMethodHost` ((#v-externalservers-k8sauthmethodhost)) (`string: null`) - If you are setting `global.acls.manageSystemACLs` and
     `connectInject.enabled` to true, set `k8sAuthMethodHost` to the address of the Kubernetes API server.
     This address must be reachable from the Consul servers.
-    Please refer to the [Kubernetes Auth Method documentation](/consul/docs/security/acl/auth-methods/kubernetes).
+    Please refer to the [Kubernetes Auth Method documentation](/consul/docs/secure/acl/auth-method/k8s).
 
     If `global.federation.enabled` is set to true, `global.federation.k8sAuthMethodHost` and
     `externalServers.k8sAuthMethodHost` should be set to the same value.
@@ -1355,7 +1274,7 @@ Use these links to navigate to a particular top-level stanza.
   - `image` ((#v-client-image)) (`string: null`) - The name of the Docker image (including any tag) for the containers
     running Consul client agents.
 
-  - `join` ((#v-client-join)) (`array<string>: null`) - A list of valid [`-retry-join` values](/consul/docs/agent/config/cli-flags#_retry_join).
+  - `join` ((#v-client-join)) (`array<string>: null`) - A list of valid [`-retry-join` values](/consul/commands/agent#_retry_join).
     If this is `null` (default), then the clients will attempt to automatically
     join the server cluster running within Kubernetes.
     This means that with `server.enabled` set to true, clients will automatically
@@ -1376,7 +1295,7 @@ Use these links to navigate to a particular top-level stanza.
     required for Connect.
 
   - `nodeMeta` ((#v-client-nodemeta)) - nodeMeta specifies an arbitrary metadata key/value pair to associate with the node
-    (refer to [`-node-meta`](/consul/docs/agent/config/cli-flags#_node_meta))
+    (refer to [`-node-meta`](/consul/commands/agent#_node_meta))
 
     - `pod-name` ((#v-client-nodemeta-pod-name)) (`string: ${HOSTNAME}`)
 
@@ -1420,7 +1339,7 @@ Use these links to navigate to a particular top-level stanza.
 
     - `tlsInit` ((#v-client-containersecuritycontext-tlsinit)) (`map`) - The tls-init initContainer
 
-  - `extraConfig` ((#v-client-extraconfig)) (`string: {}`) - A raw string of extra [JSON configuration](/consul/docs/agent/config/config-files) for Consul
+  - `extraConfig` ((#v-client-extraconfig)) (`string: {}`) - A raw string of extra [JSON configuration](/consul/docs/reference/agent/configuration-file) for Consul
     clients. This will be saved as-is into a ConfigMap that is read by the Consul
     client agents. This can be used to add additional configuration that
     isn't directly exposed by the chart.
@@ -1563,38 +1482,6 @@ Use these links to navigate to a particular top-level stanza.
       type: RollingUpdate
     ```
 
-  - `livenessProbe` ((#v-client-livenessprobe)) (`string: ""`) - Override the default livenessProbe for the DaemonSet consul-client container.
-    Refer to the Kubernetes documentation on how to [Configure Liveness, Readiness and Startup Probes](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/)
-
-    This should be a multi-line string.
-
-    Example:
-
-    ```yaml
-    livenessProbe:
-        exec:
-          command:
-          - /bin/sh
-          - -ec
-          - "curl http://127.0.0.1:8500/v1/status/leader 2>/dev/null | grep -E '\".+\"' \n"
-    ```
-
-  - `readinessProbe` ((#v-client-readinessprobe)) (`string: ""`) - Override the default readinessProbe for the DaemonSet consul-client container.
-    Refer to the Kubernetes documentation on how to [Configure Liveness, Readiness and Startup Probes](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/)
-
-    This should be a multi-line string.
-
-    Example:
-
-    ```yaml
-    readinessProbe:
-        exec:
-          command:
-          - /bin/sh
-          - -ec
-          - "curl http://127.0.0.1:8500/v1/status/leader 2>/dev/null | grep -E '\".+\"' \n"
-    ```
-
 ### dns ((#h-dns))
 
 - `dns` ((#v-dns)) - Configuration for DNS configuration within the Kubernetes cluster.
@@ -1625,29 +1512,6 @@ Use these links to navigate to a particular top-level stanza.
   - `additionalSpec` ((#v-dns-additionalspec)) (`string: null`) - Additional ServiceSpec values
     This should be a multi-line string mapping directly to a Kubernetes
     ServiceSpec object.
-
-  - `proxy` ((#v-dns-proxy)) - Configures Consul DNS proxy for Kubernetes deployment.
-
-    - `enabled` ((#v-dns-proxy-enabled)) (`boolean: false`) - True if you want to enable Consul DNS proxy for Kubernetes.
-
-    - `replicas` ((#v-dns-proxy-replicas)) (`integer: 1`) - The number of deployment replicas.
-
-    - `port` ((#v-dns-proxy-port)) (`integer: 53`)
-
-    - `aclToken` ((#v-dns-proxy-acltoken)) - Refers to an existing Kubernetes secret that contains an ACL token
-      for your Consul cluster. This token provides permissions for the DNS
-      proxy. This field is required when `global.acls.manageSystemACLs` 
-      is set to `false` to enable manual ACL management in a Consul cluster.
-      node_prefix "" {
-        policy = "read"
-      }
-      service_prefix "" {
-        policy = "read"
-      }
-
-      - `secretName` ((#v-dns-proxy-acltoken-secretname)) (`string: null`) - The name of the Kubernetes secret that holds the ACL token.
-
-      - `secretKey` ((#v-dns-proxy-acltoken-secretkey)) (`string: null`) - The key within the Kubernetes secret that holds the ACL token.
 
 ### ui ((#h-ui))
 
@@ -1750,7 +1614,7 @@ Use these links to navigate to a particular top-level stanza.
   - `dashboardURLTemplates` ((#v-ui-dashboardurltemplates)) - Corresponds to [`dashboard_url_templates`](/consul/docs/reference/agent/configuration-file/ui#ui_config_dashboard_url_templates)
     configuration.
 
-    - `service` ((#v-ui-dashboardurltemplates-service)) (`string: ""`) - Sets [`dashboardURLTemplates.service`]((/consul/docs/reference/agent/configuration-file/ui#ui_config_dashboard_url_templates_service).
+    - `service` ((#v-ui-dashboardurltemplates-service)) (`string: ""`) - Sets [`dashboardURLTemplates.service`](/consul/docs/reference/agent/configuration-file/ui#ui_config_dashboard_url_templates_service).
 
 ### syncCatalog ((#h-synccatalog))
 
@@ -1765,8 +1629,6 @@ Use these links to navigate to a particular top-level stanza.
 
   - `enabled` ((#v-synccatalog-enabled)) (`boolean: false`) - True if you want to enable the catalog sync. Set to "-" to inherit from
     global.enabled.
-
-  - `cleanupNodeOnRemoval` ((#v-synccatalog-cleanupnodeonremoval)) (`boolean: false`) - True if you want to deregister all services in this cluster from Consul that have been registered by the catalog sync when the `enabled` flag is set to false.
 
   - `image` ((#v-synccatalog-image)) (`string: null`) - The name of the Docker image (including any tag) for consul-k8s-control-plane
     to run the sync program.
@@ -1870,17 +1732,8 @@ Use these links to navigate to a particular top-level stanza.
     or may not be broadly accessible depending on your Kubernetes cluster.
     Set this to false to skip syncing ClusterIP services.
 
-  - `syncLoadBalancerEndpoints` ((#v-synccatalog-syncloadbalancerendpoints)) (`boolean: false`) - If true, Consul syncs LoadBalancer service endpoints instead of ingress addresses. 
+  - `syncLoadBalancerEndpoints` ((#v-synccatalog-syncloadbalancerendpoints)) (`boolean: false`) - If true, LoadBalancer service endpoints instead of ingress addresses will be synced to Consul.
     If false, LoadBalancer endpoints are not synced to Consul.
-
-  - `metrics` ((#v-synccatalog-metrics)) - Metrics settings for syncCatalog
-
-    - `enabled` ((#v-synccatalog-metrics-enabled)) (`boolean: false`) - This value enables or disables metrics collection for registered services, overriding the global metrics collection settings.
-
-    - `port` ((#v-synccatalog-metrics-port)) (`int: null`) - This value sets the port to use for scraping syncCatalog metrics via prometheus, defaults to 20300 if not set. Must be in the port
-      range of 1024-65535.
-
-    - `path` ((#v-synccatalog-metrics-path)) (`string: null`) - This value sets the path to use for scraping syncCatalog metrics via prometheus, defaults to `/metrics` if not set.
 
   - `ingress` ((#v-synccatalog-ingress))
 
@@ -2079,25 +1932,6 @@ Use these links to navigate to a particular top-level stanza.
         Example: The gateway listener is defined on port 80, but the underlying value of the port on the container
         will be the 80 + the number defined below.
 
-      - `resourceJob` ((#v-connectinject-apigateway-managedgatewayclass-resourcejob)) - This value contains settings related to the `gateway_resources_job` that runs on Helm install.
-
-        - `resources` ((#v-connectinject-apigateway-managedgatewayclass-resourcejob-resources)) (`map`) - The resource request, such as CPU and memory, for the `server-acl-init` and `server-acl-init-cleanup` pods.
-          This should be a YAML map corresponding to a Kubernetes
-          [ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#resourcerequirements-v1-core)
-          object.
-
-          Example:
-
-          ```yaml
-          resources:
-            requests:
-              memory: '200Mi'
-              cpu: '100m'
-            limits:
-              memory: '200Mi'
-              cpu: '100m'
-          ```
-
     - `serviceAccount` ((#v-connectinject-apigateway-serviceaccount)) - Configuration for the ServiceAccount created for the api-gateway component
 
       - `annotations` ((#v-connectinject-apigateway-serviceaccount-annotations)) (`string: null`) - This value defines additional annotations for the client service account. This should be formatted as a multi-line
@@ -2114,13 +1948,7 @@ Use these links to navigate to a particular top-level stanza.
     - `enabled` ((#v-connectinject-cni-enabled)) (`boolean: false`) - If true, then all traffic redirection setup uses the consul-cni plugin.
       Requires connectInject.enabled to also be true.
 
-    - `autorotateToken` ((#v-connectinject-cni-autorotatetoken)) (`boolean: false`) - If true, then use projected service account tokens for the CNI plugin. Uses auto-rotated projected token every time when interacting with Kubernetes API.
-
-    - `tokenExpiration` ((#v-connectinject-cni-tokenexpiration)) (`Integer: 3600`) - Set the CNI plugin ServiceAccount token validity period. Applicable only when `autorotateToken` is true.
-      This may not work in some environments this may not work, such as Azure 1.30+ with OIDC enabled, as providers may have native expiration limits.
-      Optional and configured to 1 hour by default. Value is in seconds.
-
-    - `logLevel` ((#v-connectinject-cni-loglevel)) (`string: null`) - Log level for the installer and plugin. Overrides `global.logLevel`. One of "trace", "debug", "info", "warn", or "error".
+    - `logLevel` ((#v-connectinject-cni-loglevel)) (`string: null`) - Log level for the installer and plugin. Overrides global.logLevel
 
     - `namespace` ((#v-connectinject-cni-namespace)) (`string: null`) - Set the namespace to install the CNI plugin into. Overrides global namespace settings for CNI resources.
       Ex: "kube-system"
@@ -2156,6 +1984,20 @@ Use these links to navigate to a particular top-level stanza.
       By default, servers will run as root, with user ID `0` and group ID `0`.
       Note: if running on OpenShift, this setting is ignored because the user and group are set automatically
       by the OpenShift platform.
+
+    - `updateStrategy` ((#v-connectinject-cni-updatestrategy)) (`string: null`) - updateStrategy for the CNI installer DaemonSet.
+      Refer to the Kubernetes [Daemonset upgrade strategy](https://kubernetes.io/docs/tasks/manage-daemon/update-daemon-set/#daemonset-update-strategy)
+      documentation.
+      This should be a multi-line string mapping directly to the updateStrategy
+
+      Example:
+
+      ```yaml
+      updateStrategy: |
+        rollingUpdate:
+          maxUnavailable: 5
+        type: RollingUpdate
+      ```
 
   - `consulNode` ((#v-connectinject-consulnode))
 
@@ -2276,7 +2118,6 @@ Use these links to navigate to a particular top-level stanza.
     By default, we exclude kube-system since usually users won't
     want those pods injected and local-path-storage and openebs so that
     Kind (Kubernetes In Docker) and [OpenEBS](https://openebs.io/) respectively can provision Pods used to create PVCs.
-    We also exclude gmp-system and gke-managed-cim namespaces that are used by GKE for managing the cluster.
     Note that this exclusion is only supported in Kubernetes v1.21.1+.
 
     Example:
@@ -2903,23 +2744,6 @@ Use these links to navigate to a particular top-level stanza.
       beta.kubernetes.io/arch: amd64
     ```
 
-  - `resources` ((#v-webhookcertmanager-resources)) (`map`) - The resource requests (CPU, memory, etc.) for the server-acl-init and server-acl-init-cleanup pods.
-    This should be a YAML map corresponding to a Kubernetes
-    [ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#resourcerequirements-v1-core)
-    object.
-
-    Example:
-
-    ```yaml
-    resources:
-      requests:
-        memory: '200Mi'
-        cpu: '100m'
-      limits:
-        memory: '200Mi'
-        cpu: '100m'
-    ```
-
 ### prometheus ((#h-prometheus))
 
 - `prometheus` ((#v-prometheus)) - Configures a demo Prometheus installation.
@@ -2979,40 +2803,6 @@ Use these links to navigate to a particular top-level stanza.
         "sample/annotation1": "foo"
         "sample/annotation2": "bar"
       ```
-
-  - `cloud` ((#v-telemetrycollector-cloud))
-
-    - `resourceId` ((#v-telemetrycollector-cloud-resourceid)) - The resource ID of the HCP Consul Central cluster to push metrics for. For example:
-      `organization/27109cd4-a309-4bf3-9986-e1d071914b18/project/fcef6c24-259d-4510-bb8d-1d812e120e34/hashicorp.consul.global-network-manager.cluster/consul-cluster`
-
-      This is used for HCP Consul Central-linked or HCP Consul Dedicated clusters where `global.cloud.resourceId` is unset. For example, when using external servers
-      with HCP Consul Dedicated clusters or HCP Consul Central-linked clusters in a different admin partition.
-
-      If `global.cloud.resourceId` is set, this should either be unset (defaulting to `global.cloud.resourceId`) or be the same as `global.cloud.resourceId`.
-
-      - `secretName` ((#v-telemetrycollector-cloud-resourceid-secretname)) (`string: null`) - The name of the Kubernetes secret that holds the resource ID.
-
-      - `secretKey` ((#v-telemetrycollector-cloud-resourceid-secretkey)) (`string: null`) - The key within the Kubernetes secret that holds the resource ID.
-
-    - `clientId` ((#v-telemetrycollector-cloud-clientid)) - The client ID portion of a [service principal](/hcp/docs/hcp/iam/service-principal) with authorization to push metrics to HCP.
-
-      This is set in two scenarios:
-        - The service principal in `global.cloud` is unset.
-        - The HCP UI provides a service principal with more narrowly scoped permissions that the service principal used in `global.cloud`.
-
-      - `secretName` ((#v-telemetrycollector-cloud-clientid-secretname)) (`string: null`) - The name of the Kubernetes secret that holds the client ID.
-
-      - `secretKey` ((#v-telemetrycollector-cloud-clientid-secretkey)) (`string: null`) - The key within the Kubernetes secret that holds the client ID.
-
-    - `clientSecret` ((#v-telemetrycollector-cloud-clientsecret)) - The client secret portion of a [service principal](/hcp/docs/hcp/iam/service-principal) with authorization to push metrics to HCP.
-
-      This is set in two scenarios:
-        - The service principal in `global.cloud` is unset.
-        - The HCP UI provides a service principal with more narrowly scoped permissions that the service principal used in `global.cloud`.
-
-      - `secretName` ((#v-telemetrycollector-cloud-clientsecret-secretname)) (`string: null`) - The name of the Kubernetes secret that holds the client secret.
-
-      - `secretKey` ((#v-telemetrycollector-cloud-clientsecret-secretkey)) (`string: null`) - The key within the Kubernetes secret that holds the client secret.
 
   - `initContainer` ((#v-telemetrycollector-initcontainer))
 
