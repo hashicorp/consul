@@ -239,7 +239,8 @@ func TestAddIPv6Offset(t *testing.T) {
 			name:      "IPv4 address for b",
 			a:         net.ParseIP("fd00::1"),
 			b:         net.ParseIP("1.2.3.4"),
-			expectErr: true,
+			expected:  net.ParseIP("fd00::ffff:102:305"),
+			expectErr: false,
 		},
 	}
 

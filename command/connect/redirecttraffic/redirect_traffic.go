@@ -10,6 +10,7 @@ import (
 	"strconv"
 
 	"github.com/go-viper/mapstructure/v2"
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/sdk/iptables"
@@ -75,7 +76,6 @@ func (c *cmd) init() {
 		"Additional user ID to exclude from traffic redirection. May be provided multiple times.")
 	c.flags.StringVar(&c.netNS, "netns", "", "The network namespace where traffic redirection rules should apply."+
 		"This must be a path to the network namespace, e.g. /var/run/netns/foo.")
-	c.flags.BoolVar(&c.dualStack, "dual-stack", false, "To setup dual-stack based routing")
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
@@ -111,7 +111,18 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	err = iptables.Setup(cfg, c.dualStack)
+	ac, err := c.http.APIConfig()
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("error creating Consul API client: %s", err.Error()))
+		return 1
+	}
+	ds, err := netutil.IsDualStack(ac, false)
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("error determining if agent is running in dual-stack mode: %s", err.Error()))
+		return 1
+	}
+
+	err = iptables.Setup(cfg, ds)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error setting up traffic redirection rules: %s", err.Error()))
 		return 1
