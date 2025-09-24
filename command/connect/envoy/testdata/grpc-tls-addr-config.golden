@@ -41,19 +41,6 @@
         "ignore_health_on_host_removal": false,
         "connect_timeout": "1s",
         "type": "STATIC",
-        "transport_socket": {
-          "name": "tls",
-          "typed_config": {
-            "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
-            "common_tls_context": {
-              "validation_context": {
-                "trusted_ca": {
-                  "inline_string": ""
-                }
-              }
-            }
-          }
-        },
         "typed_extension_protocol_options": {
           "envoy.extensions.upstreams.http.v3.HttpProtocolOptions": {
             "@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",

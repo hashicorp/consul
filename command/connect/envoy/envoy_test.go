@@ -1029,6 +1029,30 @@ func TestGenerateConfig(t *testing.T) {
 				PrometheusScrapePath:  "/metrics",
 			},
 		},
+		// New behavior (Envoy 1.35+ strict validation): if TLS is implied via https scheme
+		// but no CA material can be loaded, we no longer emit an empty trusted_ca
+		// (which caused a DataSource error). We fallback to plaintext cluster with
+		// AgentCAPEM empty. This test locks in that behavior.
+		{
+			Name:  "https-scheme-no-ca-fallback-plaintext",
+			Flags: []string{"-proxy-id", "test-proxy"},
+			Env:   []string{"CONSUL_GRPC_ADDR=https://127.0.0.1:8502"},
+			// We expect args to still mark AgentTLS true (scheme parsing) but AgentCAPEM empty.
+			// The template guard will omit the transport_socket. We assert absence by
+			// generating bootstrap later in the test harness if it inspects output.
+			WantArgs: BootstrapTplArgs{
+				ProxyCluster:          "test-proxy",
+				ProxyID:               "test-proxy",
+				ProxySourceService:    "",
+				GRPC:                  GRPC{AgentAddress: "127.0.0.1", AgentPort: "8502", AgentTLS: true},
+				AgentCAPEM:            "",
+				AdminAccessLogPath:    "/dev/null",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
+			},
+		},
 		{
 			Name:  "both-CONSUL_HTTP_ADDR-TLS-and-CONSUL_GRPC_ADDR-PLAIN-is-plain",
 			Flags: []string{"-proxy-id", "test-proxy", "-ca-file", "../../../test/ca/root.cer"},
