@@ -17,6 +17,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -759,6 +760,7 @@ func TestConfigEntry_List_Filter_UnsupportedType(t *testing.T) {
 }
 
 func TestConfigEntry_List_ACLDeny(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -883,6 +885,7 @@ operator = "read"
 }
 
 func TestConfigEntry_ListAll_ACLDeny(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -954,6 +957,7 @@ operator = "read"
 }
 
 func TestConfigEntry_Delete(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -1050,6 +1054,7 @@ func TestConfigEntry_Delete(t *testing.T) {
 }
 
 func TestConfigEntry_DeleteCAS(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -1106,6 +1111,7 @@ func TestConfigEntry_DeleteCAS(t *testing.T) {
 }
 
 func TestConfigEntry_Delete_ACLDeny(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -2421,6 +2427,7 @@ func BenchmarkConfigEntry_ResolveServiceConfig_Hash(b *testing.B) {
 }
 
 func TestConfigEntry_ResolveServiceConfig_BlockOnNoChange(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -2534,6 +2541,7 @@ func TestConfigEntry_ResolveServiceConfigNoConfig(t *testing.T) {
 }
 
 func TestConfigEntry_ResolveServiceConfig_ACLDeny(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}

@@ -7,6 +7,7 @@ import (
 	"context"
 	crand "crypto/rand"
 	"fmt"
+	"net"
 	"reflect"
 	"sort"
 	"strings"
@@ -22,6 +23,7 @@ import (
 	"github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib/stringslice"
@@ -35,6 +37,224 @@ func makeRandomNodeID(t *testing.T) types.NodeID {
 		t.Fatalf("err: %v", err)
 	}
 	return types.NodeID(id)
+}
+
+func TestAddIPOffset(t *testing.T) {
+	// Test cases for Single-Stack (IPv4) mode
+	t.Run("SingleStackIPv4", func(t *testing.T) {
+		testCases := []struct {
+			name       string
+			offset     net.IP
+			expectedIP net.IP
+			expectErr  bool
+		}{
+			{
+				name:       "Valid IPv4 offset",
+				offset:     net.ParseIP("0.0.0.5"),
+				expectedIP: net.ParseIP("240.0.0.5"),
+				expectErr:  false,
+			},
+			{
+				name:       "Carry IPv4 offset",
+				offset:     net.ParseIP("0.0.0.255"),
+				expectedIP: net.ParseIP("240.0.0.255"),
+				expectErr:  false,
+			},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
+				vip, err := addIPOffset(tc.offset)
+				if (err != nil) != tc.expectErr {
+					t.Errorf("addIPOffset() error = %v, expectErr %v", err, tc.expectErr)
+					return
+				}
+				if !tc.expectErr && !vip.Equal(tc.expectedIP) {
+					t.Errorf("addIPOffset() = %v, want %v", vip, tc.expectedIP)
+				}
+			})
+		}
+	})
+
+	// Test cases for Dual-Stack (IPv6) mode
+	t.Run("DualStackIPv6", func(t *testing.T) {
+		testCases := []struct {
+			name       string
+			offset     net.IP
+			expectedIP net.IP
+			expectErr  bool
+		}{
+			{
+				name:       "Valid IPv6 offset",
+				offset:     net.ParseIP("::5"),
+				expectedIP: net.ParseIP("2000::5"),
+				expectErr:  false,
+			},
+			{
+				name:       "Carry IPv6 offset",
+				offset:     net.ParseIP("::ffff"),
+				expectedIP: net.ParseIP("2000::ffff"),
+				expectErr:  false,
+			},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("::1")
+				vip, err := addIPOffset(tc.offset)
+				if (err != nil) != tc.expectErr {
+					t.Errorf("addIPOffset() error = %v, expectErr %v", err, tc.expectErr)
+					return
+				}
+				if !tc.expectErr && !vip.Equal(tc.expectedIP) {
+					t.Errorf("addIPOffset() = %v, want %v", vip, tc.expectedIP)
+				}
+			})
+		}
+	})
+}
+
+func TestAddIPv4Offset(t *testing.T) {
+	testCases := []struct {
+		name      string
+		a, b      net.IP
+		expected  net.IP
+		expectErr bool
+	}{
+		{
+			name:     "Simple addition",
+			a:        net.ParseIP("192.168.1.1"),
+			b:        net.ParseIP("0.0.0.10"),
+			expected: net.ParseIP("192.168.1.11"),
+		},
+		{
+			name:     "Addition with carry",
+			a:        net.ParseIP("10.0.0.250"),
+			b:        net.ParseIP("0.0.0.10"),
+			expected: net.ParseIP("10.0.1.4"),
+		},
+		{
+			name:     "Zero offset",
+			a:        net.ParseIP("10.0.0.1"),
+			b:        net.ParseIP("0.0.0.0"),
+			expected: net.ParseIP("10.0.0.1"),
+		},
+		{
+			name:      "Nil IP for a",
+			a:         nil,
+			b:         net.ParseIP("0.0.0.1"),
+			expectErr: true,
+		},
+		{
+			name:      "Nil IP for b",
+			a:         net.ParseIP("10.0.0.1"),
+			b:         nil,
+			expectErr: true,
+		},
+		{
+			name:      "IPv6 address for a",
+			a:         net.ParseIP("::1"),
+			b:         net.ParseIP("10.0.0.1"),
+			expectErr: true,
+		},
+		{
+			name:      "IPv6 address for b",
+			a:         net.ParseIP("10.0.0.1"),
+			b:         net.ParseIP("::1"),
+			expectErr: true,
+		},
+		{
+			name:     "Overflow case leading to incorrect result",
+			a:        net.ParseIP("255.0.0.0"),
+			b:        net.ParseIP("1.0.0.0"),
+			expected: net.ParseIP("0.0.0.0"), // The current implementation has this behavior
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := addIPv4Offset(tc.a, tc.b)
+			if (err != nil) != tc.expectErr {
+				t.Errorf("addIPv4Offset() error = %v, expectErr %v", err, tc.expectErr)
+				return
+			}
+			if !tc.expectErr && !result.Equal(tc.expected) {
+				t.Errorf("addIPv4Offset() = %v, want %v", result, tc.expected)
+			}
+		})
+	}
+}
+
+func TestAddIPv6Offset(t *testing.T) {
+	testCases := []struct {
+		name      string
+		a, b      net.IP
+		expected  net.IP
+		expectErr bool
+	}{
+		{
+			name:     "Simple addition",
+			a:        net.ParseIP("fd00::1"),
+			b:        net.ParseIP("::5"),
+			expected: net.ParseIP("fd00::6"),
+		},
+		{
+			name:     "Addition with carry",
+			a:        net.ParseIP("fd00::ffff"),
+			b:        net.ParseIP("::1"),
+			expected: net.ParseIP("fd00::1:0"),
+		},
+		{
+			name:     "Zero offset",
+			a:        net.ParseIP("fd00::1"),
+			b:        net.ParseIP("::"),
+			expected: net.ParseIP("fd00::1"),
+		},
+		{
+			name:     "Full wrap-around (overflow)",
+			a:        net.ParseIP("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"),
+			b:        net.ParseIP("::1"),
+			expected: net.ParseIP("::"),
+		},
+		{
+			name:      "Nil IP for a",
+			a:         nil,
+			b:         net.ParseIP("::1"),
+			expectErr: true,
+		},
+		{
+			name:      "Nil IP for b",
+			a:         net.ParseIP("fd00::1"),
+			b:         nil,
+			expectErr: true,
+		},
+		{
+			name:      "IPv4 address for a",
+			a:         net.ParseIP("1.2.3.4"),
+			b:         net.ParseIP("fd00::1"),
+			expectErr: true,
+		},
+		{
+			name:      "IPv4 address for b",
+			a:         net.ParseIP("fd00::1"),
+			b:         net.ParseIP("1.2.3.4"),
+			expectErr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := addIPv6Offset(tc.a, tc.b)
+			if (err != nil) != tc.expectErr {
+				t.Errorf("addIPv6Offset() error = %v, expectErr %v", err, tc.expectErr)
+				return
+			}
+			if !tc.expectErr && !result.Equal(tc.expected) {
+				t.Errorf("addIPv6Offset() = %v, want %v", result, tc.expected)
+			}
+		})
+	}
 }
 
 func TestStateStore_GetNodeID(t *testing.T) {
@@ -1793,6 +2013,7 @@ func TestStateStore_EnsureService_connectProxy(t *testing.T) {
 }
 
 func TestStateStore_EnsureService_VirtualIPAssign(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	s := testStateStore(t)
 	setVirtualIPFlags(t, s)
 
@@ -2249,6 +2470,7 @@ func TestStateStore_AssignManualVirtualIPs(t *testing.T) {
 }
 
 func TestStateStore_EnsureService_ReassignFreedVIPs(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	s := testStateStore(t)
 	setVirtualIPFlags(t, s)
 

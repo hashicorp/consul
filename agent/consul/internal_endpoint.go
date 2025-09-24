@@ -788,8 +788,8 @@ func (m *Internal) AssignManualServiceVIPs(args *structs.AssignServiceManualVIPs
 	vipMap := make(map[string]struct{})
 	for _, ip := range args.ManualVIPs {
 		parsedIP := net.ParseIP(ip)
-		if parsedIP == nil || parsedIP.To4() == nil {
-			return fmt.Errorf("%q is not a valid IPv4 address", parsedIP.String())
+		if parsedIP == nil {
+			return fmt.Errorf("%q is not a valid ip address", parsedIP.String())
 		}
 		vipMap[ip] = struct{}{}
 	}
