@@ -194,7 +194,7 @@ func SetupWithAdditionalRules(cfg Config, additionalRulesFn AdditionalRulesFn, d
 				if cfg.ConsulDNSIP != "" {
 					consulDNSIP = cfg.ConsulDNSIP
 				}
-				consulDNSHostPort := fmt.Sprintf("%s:%d", consulDNSIP, cfg.ConsulDNSPort)
+				consulDNSHostPort := net.JoinHostPort(consulDNSIP, strconv.Itoa(cfg.ConsulDNSPort))
 				// Traffic in the DNSChain is directed to the Consul DNS Service IP.
 				cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", DNSChain, "-p", "udp", "-d", consulDNSIP, "--dport", "53", "-j", "DNAT", "--to-destination", consulDNSHostPort)
 				cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", DNSChain, "-p", "tcp", "-d", consulDNSIP, "--dport", "53", "-j", "DNAT", "--to-destination", consulDNSHostPort)

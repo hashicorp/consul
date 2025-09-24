@@ -6,7 +6,9 @@ package sprawl
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
+	"strconv"
 	"time"
 
 	"google.golang.org/protobuf/proto"
@@ -630,7 +632,7 @@ func workloadToSidecarCatalogRegistration(
 			ServiceID:   pid.Name,
 			ServiceName: pid.Name,
 			Definition: api.HealthCheckDefinition{
-				TCP: fmt.Sprintf("%s:%d", node.LocalAddress(), wrk.EnvoyPublicListenerPort),
+				TCP: net.JoinHostPort(node.LocalAddress(), strconv.Itoa(wrk.EnvoyAdminPort)),
 			},
 			Output: "",
 		}},
