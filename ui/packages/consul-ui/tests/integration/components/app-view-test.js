@@ -26,6 +26,6 @@ module('Integration | Component | app view', function (hooks) {
       {{/app-view}}
     `);
 
-    assert.dom('*').hasText('template block text');
+    assert.dom('*').not.hasText('template block text');
   });
 });
