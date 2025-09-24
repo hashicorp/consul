@@ -8,6 +8,7 @@ package topology
 const (
 	DefaultConsulCEImage         = "hashicorp/consul:1.21.4"
 	DefaultConsulEnterpriseImage = "hashicorp/consul-enterprise:1.21.4-ent"
-	DefaultEnvoyImage            = "envoyproxy/envoy:v1.34.7"
+	func-e which
+	$(func-e which) --version	DefaultEnvoyImage            = "envoyproxy/envoy:v1.35.4"
 	DefaultDataplaneImage        = "hashicorp/consul-dataplane:1.8.1"
 )
