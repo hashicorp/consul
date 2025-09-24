@@ -1251,8 +1251,7 @@ func addIPOffset(b net.IP) (net.IP, error) {
 // Returns the sum modulo 2^128 as a new IPv6 address.
 func addIPv6Offset(a, b net.IP) (net.IP, error) {
 	a4 := a.To4()
-	b4 := b.To4()
-	if a4 != nil || b4 != nil {
+	if a4 != nil {
 		return nil, errors.New("ip is not valid IPv6")
 	}
 	a16 := a.To16()
