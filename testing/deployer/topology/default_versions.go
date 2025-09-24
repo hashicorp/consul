@@ -9,6 +9,6 @@ const (
 	DefaultConsulCEImage         = "hashicorp/consul:1.21.4"
 	DefaultConsulEnterpriseImage = "hashicorp/consul-enterprise:1.21.4-ent"
 	func-e which
-	$(func-e which) --version	DefaultEnvoyImage            = "envoyproxy/envoy:v1.35.4"
+	$(func-e which) --version	DefaultEnvoyImage            = "envoyproxy/envoy:v1.35.3"
 	DefaultDataplaneImage        = "hashicorp/consul-dataplane:1.8.1"
 )
