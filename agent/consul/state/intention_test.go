@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
@@ -60,6 +61,7 @@ func TestStore_IntentionGet_none(t *testing.T) {
 }
 
 func TestStore_IntentionSetGet_basic(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	testBothIntentionFormats(t, func(t *testing.T, s *Store, legacy bool) {
 		lastIndex := uint64(1)
 
@@ -278,6 +280,7 @@ func TestStore_LegacyIntentionDelete_failsAfterUpgrade(t *testing.T) {
 }
 
 func TestStore_IntentionMutation(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	testBothIntentionFormats(t, func(t *testing.T, s *Store, legacy bool) {
 		if legacy {
 			mut := &structs.IntentionMutation{}
@@ -827,6 +830,7 @@ func TestStore_LegacyIntentionSet_emptyId(t *testing.T) {
 }
 
 func TestStore_IntentionSet_updateCreatedAt(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	testBothIntentionFormats(t, func(t *testing.T, s *Store, legacy bool) {
 		// Build a valid intention
 		var (
@@ -885,6 +889,7 @@ func TestStore_IntentionSet_updateCreatedAt(t *testing.T) {
 }
 
 func TestStore_IntentionSet_metaNil(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	testBothIntentionFormats(t, func(t *testing.T, s *Store, legacy bool) {
 		id := testUUID()
 		if legacy {
@@ -932,6 +937,7 @@ func TestStore_IntentionSet_metaNil(t *testing.T) {
 }
 
 func TestStore_IntentionSet_metaSet(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	testBothIntentionFormats(t, func(t *testing.T, s *Store, legacy bool) {
 		var (
 			id         = testUUID()
@@ -985,6 +991,7 @@ func TestStore_IntentionSet_metaSet(t *testing.T) {
 }
 
 func TestStore_IntentionDelete(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	testBothIntentionFormats(t, func(t *testing.T, s *Store, legacy bool) {
 		lastIndex := uint64(1)
 

@@ -1,3 +1,36 @@
+## 1.21.5 (September 21, 2025)
+
+SECURITY:
+
+* Migrate transitive dependency from archived `mitchellh/mapstructure` to `go-viper/mapstructure` to v2 to address [CVE-2025-52893](https://www.cve.org/CVERecord?id=CVE-2025-52893). [[GH-22581](https://github.com/hashicorp/consul/issues/22581)]
+* agent: Add the KV Validations to block path traversal allowing access to unauthorized endpoints. [[GH-22682](https://github.com/hashicorp/consul/issues/22682)]
+* agent: Fix a security vulnerability to filter out anonymous tokens along with empty tokens when setting the Results-Filtered-By-ACLs header [[GH-22534](https://github.com/hashicorp/consul/issues/22534)]
+* agent: Fix a security vulnerability where the attacker could read agent’s TLS certificate and private key by using the group ID that the Consul agent runs as. [[GH-22626](https://github.com/hashicorp/consul/issues/22626)]
+* api: add charset in all applicable content-types. [[GH-22598](https://github.com/hashicorp/consul/issues/22598)]
+* connect: Upgrade envoy version to 1.34.7 [[GH-22735](https://github.com/hashicorp/consul/issues/22735)]
+* security: Fix GHSA-65rg-554r-9j5x (CVE-2024-48908) by upgrading lycheeverse/lychee-action. [[GH-22667](https://github.com/hashicorp/consul/issues/22667)]
+* security: Fix a security vulnerability where the attacker could bypass authentication by passing url params as there was no validation on them. [[GH-22612](https://github.com/hashicorp/consul/issues/22612)]
+* security: perform constant time compare for sensitive values. [[GH-22537](https://github.com/hashicorp/consul/issues/22537)]
+* security: upgrade go version to 1.25.0 [[GH-22652](https://github.com/hashicorp/consul/issues/22652)]
+* security:: **(Enterprise only)**  fix nil pointer dereference.
+* security:: **(Enterprise only)**  fix potential race condition in partition CRUD.
+* security:: **(Enterprise only)**  perform constant time compare for sensitive values.
+
+FEATURES:
+
+* config: Add new parameter `max_request_headers_kb` to configure maximum header size for requests from downstream to upstream [[GH-22604](https://github.com/hashicorp/consul/issues/22604)]
+* config: Handle a new parameter `max_request_headers_kb` to configure maximum header size for requests from downstream to upstream in API Gateway config and proxy-defaults [[GH-22679](https://github.com/hashicorp/consul/issues/22679)]
+* config: Handle a new parameter `max_request_headers_kb` to configure maximum header size for requests from downstream to upstream in Mesh Gateway via service-defaults and proxy-defaults [[GH-22722](https://github.com/hashicorp/consul/issues/22722)]
+* config: Handle a new parameter `max_request_headers_kb` to configure maximum header size for requests from downstream to upstream in Terminating Gateway service-defaults and proxy-defaults [[GH-22680](https://github.com/hashicorp/consul/issues/22680)]
+
+IMPROVEMENTS:
+
+* cli: add troubleshoot ports in debug command. A ports.json file is created, which lists the open or closed ports on the host where the command is executed. [[GH-22624](https://github.com/hashicorp/consul/issues/22624)]
+
+BUG FIXES:
+
+* agent: Don't show admin partition during errors [[GH-11154](https://github.com/hashicorp/consul/issues/11154)]
+
 ## 1.21.4 (August 13, 2025)
 
 SECURITY:

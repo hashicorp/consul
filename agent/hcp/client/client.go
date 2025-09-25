@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -316,7 +317,7 @@ func (c *hcpClient) DiscoverServers(ctx context.Context) ([]string, error) {
 	var servers []string
 	for _, srv := range resp.Payload.Servers {
 		if srv != nil {
-			servers = append(servers, fmt.Sprintf("%s:%d", srv.LanAddress, srv.GossipPort))
+			servers = append(servers, net.JoinHostPort(srv.LanAddress, strconv.Itoa(int(srv.GossipPort))))
 		}
 	}
 

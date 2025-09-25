@@ -124,4 +124,7 @@ message NodeService {
   // Locality identifies where the service is running.
   // mog: func-to=LocalityToStructs func-from=LocalityFromStructs
   common.Locality Locality = 19;
+
+  // mog: func-to=PortsToStructs func-from=NewPortsFromStructs
+  repeated ServicePort Ports = 20;
 }

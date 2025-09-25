@@ -8,13 +8,15 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	agentdns "github.com/hashicorp/consul/agent/dns"
 	"math"
 	"net"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
+
+	agentdns "github.com/hashicorp/consul/agent/dns"
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-radix"
@@ -107,6 +109,7 @@ type serviceLookup struct {
 	MaxRecursionLevel int
 	Connect           bool
 	Ingress           bool
+	PortName          string //Only applicable for SRV records
 	acl.EnterpriseMeta
 }
 
@@ -747,6 +750,10 @@ type queryLocality struct {
 	// Example query: <service>.service.<sameness group>.sg.consul
 	samenessGroup string
 
+	// portName is the portName parsed from a label that has explicit parts ( only applicable for SRV records )
+	// Example query: _<service>._<protocol>.service.<port_name>.port.consul
+	portName string
+
 	acl.EnterpriseMeta
 }
 
@@ -772,7 +779,7 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, cfg *dnsRe
 	// Get the QName without the domain suffix
 	qName := strings.ToLower(dns.Fqdn(req.Question[0].Name))
 	qName = d.trimDomain(qName)
-
+	qType := req.Question[0].Qtype
 	// Split into the label parts
 	labels := dns.SplitDomainName(qName)
 
@@ -791,7 +798,7 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, cfg *dnsRe
 		default:
 			// If this is a SRV query the "service" label is optional, we add it back to use the
 			// existing code-path.
-			if req.Question[0].Qtype == dns.TypeSRV && strings.HasPrefix(labels[i], "_") {
+			if qType == dns.TypeSRV && strings.HasPrefix(labels[i], "_") {
 				queryKind = "service"
 				queryParts = labels[:i+1]
 				querySuffixes = labels[i+1:]
@@ -825,6 +832,7 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, cfg *dnsRe
 			Ingress:           false,
 			MaxRecursionLevel: maxRecursionLevel,
 			EnterpriseMeta:    locality.EnterpriseMeta,
+			PortName:          locality.portName,
 		}
 
 		// Only one of dc or peer can be used.
@@ -921,15 +929,40 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, cfg *dnsRe
 			return err
 		}
 		if out != "" {
-			resp.Answer = append(resp.Answer, &dns.A{
-				Hdr: dns.RR_Header{
-					Name:   qName + respDomain,
-					Rrtype: dns.TypeA,
-					Class:  dns.ClassINET,
-					Ttl:    uint32(cfg.NodeTTL / time.Second),
-				},
-				A: net.ParseIP(out),
-			})
+			p := net.ParseIP(out)
+			if p.To4() == nil {
+				aaaaRecord := &dns.AAAA{
+					Hdr: dns.RR_Header{
+						Name:   qName + respDomain,
+						Rrtype: dns.TypeAAAA,
+						Class:  dns.ClassINET,
+						Ttl:    uint32(cfg.NodeTTL / time.Second),
+					},
+					AAAA: p,
+				}
+
+				if qType == dns.TypeAAAA || qType == dns.TypeANY {
+					resp.Answer = append(resp.Answer, aaaaRecord)
+				} else {
+					resp.Extra = append(resp.Extra, aaaaRecord)
+
+				}
+			} else {
+				aRecord := &dns.A{
+					Hdr: dns.RR_Header{
+						Name:   qName + respDomain,
+						Rrtype: dns.TypeA,
+						Class:  dns.ClassINET,
+						Ttl:    uint32(cfg.NodeTTL / time.Second),
+					},
+					A: p,
+				}
+				if qType == dns.TypeA || qType == dns.TypeANY {
+					resp.Answer = append(resp.Answer, aRecord)
+				} else {
+					resp.Extra = append(resp.Answer, aRecord)
+				}
+			}
 		}
 
 		return nil
@@ -1047,7 +1080,7 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, cfg *dnsRe
 				},
 				A: ip,
 			}
-			if req.Question[0].Qtype != dns.TypeA && req.Question[0].Qtype != dns.TypeANY {
+			if qType != dns.TypeA && qType != dns.TypeANY {
 				resp.Extra = append(resp.Answer, aRecord)
 			} else {
 				resp.Answer = append(resp.Answer, aRecord)
@@ -1068,7 +1101,7 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, cfg *dnsRe
 				},
 				AAAA: ip,
 			}
-			if req.Question[0].Qtype != dns.TypeAAAA && req.Question[0].Qtype != dns.TypeANY {
+			if qType != dns.TypeAAAA && qType != dns.TypeANY {
 				resp.Extra = append(resp.Extra, aaaaRecord)
 			} else {
 				resp.Answer = append(resp.Answer, aaaaRecord)
@@ -1509,7 +1542,10 @@ func (d *DNSServer) handleServiceQuery(cfg *dnsRequestConfig, lookup serviceLook
 	// Add various responses depending on the request
 	qType := req.Question[0].Qtype
 	if qType == dns.TypeSRV {
-		d.addServiceSRVRecordsToMessage(cfg, lookup, out.Nodes, req, resp, ttl, lookup.MaxRecursionLevel)
+		err := d.addServiceSRVRecordsToMessage(cfg, lookup, out.Nodes, req, resp, ttl, lookup.MaxRecursionLevel)
+		if err != nil {
+			return err
+		}
 	} else {
 		d.addServiceNodeRecordsToMessage(cfg, lookup, out.Nodes, req, resp, ttl, lookup.MaxRecursionLevel)
 	}
@@ -1682,7 +1718,7 @@ func (d *DNSServer) addServiceNodeRecordsToMessage(cfg *dnsRequestConfig, lookup
 	for _, node := range nodes {
 		// Add the node record
 		had_answer := false
-		records, _ := d.makeNodeServiceRecords(lookup, node, req, ttl, cfg, maxRecursionLevel)
+		records, _ := d.makeNodeServiceRecords(lookup, node, req, ttl, cfg, maxRecursionLevel, node.Service.DefaultPort())
 		if len(records) == 0 {
 			continue
 		}
@@ -1860,7 +1896,7 @@ func (d *DNSServer) makeRecordFromNode(node *structs.Node, qType uint16, qName s
 // Craft dns records for a service
 // In case of an SRV query the answer will be a IN SRV and additional data will store an IN A to the node IP
 // Otherwise it will return a IN A record
-func (d *DNSServer) makeRecordFromServiceNode(lookup serviceLookup, serviceNode structs.CheckServiceNode, addr net.IP, req *dns.Msg, ttl time.Duration) ([]dns.RR, []dns.RR) {
+func (d *DNSServer) makeRecordFromServiceNode(lookup serviceLookup, serviceNode structs.CheckServiceNode, addr net.IP, req *dns.Msg, ttl time.Duration, port int) ([]dns.RR, []dns.RR) {
 	q := req.Question[0]
 	ipRecord := makeARecord(q.Qtype, addr, ttl)
 	if ipRecord == nil {
@@ -1880,7 +1916,7 @@ func (d *DNSServer) makeRecordFromServiceNode(lookup serviceLookup, serviceNode 
 				},
 				Priority: 1,
 				Weight:   uint16(findWeight(serviceNode)),
-				Port:     uint16(d.agent.TranslateServicePort(lookup.Datacenter, serviceNode.Service.Port, serviceNode.Service.TaggedAddresses)),
+				Port:     uint16(d.agent.TranslateServicePort(lookup.Datacenter, port, serviceNode.Service.TaggedAddresses)),
 				Target:   nodeFQDN,
 			},
 		}
@@ -1896,7 +1932,7 @@ func (d *DNSServer) makeRecordFromServiceNode(lookup serviceLookup, serviceNode 
 // Craft dns records for an IP
 // In case of an SRV query the answer will be a IN SRV and additional data will store an IN A to the IP
 // Otherwise it will return a IN A record
-func (d *DNSServer) makeRecordFromIP(lookup serviceLookup, addr net.IP, serviceNode structs.CheckServiceNode, req *dns.Msg, ttl time.Duration) ([]dns.RR, []dns.RR) {
+func (d *DNSServer) makeRecordFromIP(lookup serviceLookup, addr net.IP, serviceNode structs.CheckServiceNode, req *dns.Msg, ttl time.Duration, port int) ([]dns.RR, []dns.RR) {
 	q := req.Question[0]
 	ipRecord := makeARecord(q.Qtype, addr, ttl)
 	if ipRecord == nil {
@@ -1915,7 +1951,7 @@ func (d *DNSServer) makeRecordFromIP(lookup serviceLookup, addr net.IP, serviceN
 				},
 				Priority: 1,
 				Weight:   uint16(findWeight(serviceNode)),
-				Port:     uint16(d.agent.TranslateServicePort(lookup.Datacenter, serviceNode.Service.Port, serviceNode.Service.TaggedAddresses)),
+				Port:     uint16(d.agent.TranslateServicePort(lookup.Datacenter, port, serviceNode.Service.TaggedAddresses)),
 				Target:   ipFQDN,
 			},
 		}
@@ -1931,7 +1967,7 @@ func (d *DNSServer) makeRecordFromIP(lookup serviceLookup, addr net.IP, serviceN
 // Craft dns records for an FQDN
 // In case of an SRV query the answer will be a IN SRV and additional data will store an IN A to the IP
 // Otherwise it will return a CNAME and a IN A record
-func (d *DNSServer) makeRecordFromFQDN(lookup serviceLookup, fqdn string, serviceNode structs.CheckServiceNode, req *dns.Msg, ttl time.Duration, cfg *dnsRequestConfig, maxRecursionLevel int) ([]dns.RR, []dns.RR) {
+func (d *DNSServer) makeRecordFromFQDN(lookup serviceLookup, fqdn string, serviceNode structs.CheckServiceNode, req *dns.Msg, ttl time.Duration, cfg *dnsRequestConfig, maxRecursionLevel int, port int) ([]dns.RR, []dns.RR) {
 	edns := req.IsEdns0() != nil
 	q := req.Question[0]
 
@@ -1964,7 +2000,7 @@ MORE_REC:
 				},
 				Priority: 1,
 				Weight:   uint16(findWeight(serviceNode)),
-				Port:     uint16(d.agent.TranslateServicePort(lookup.Datacenter, serviceNode.Service.Port, serviceNode.Service.TaggedAddresses)),
+				Port:     uint16(d.agent.TranslateServicePort(lookup.Datacenter, port, serviceNode.Service.TaggedAddresses)),
 				Target:   dns.Fqdn(fqdn),
 			},
 		}
@@ -1987,7 +2023,7 @@ MORE_REC:
 }
 
 // Craft dns records from a CheckServiceNode struct
-func (d *DNSServer) makeNodeServiceRecords(lookup serviceLookup, node structs.CheckServiceNode, req *dns.Msg, ttl time.Duration, cfg *dnsRequestConfig, maxRecursionLevel int) ([]dns.RR, []dns.RR) {
+func (d *DNSServer) makeNodeServiceRecords(lookup serviceLookup, node structs.CheckServiceNode, req *dns.Msg, ttl time.Duration, cfg *dnsRequestConfig, maxRecursionLevel int, port int) ([]dns.RR, []dns.RR) {
 	addrTranslate := dnsutil.TranslateAddressAcceptDomain
 	switch req.Question[0].Qtype {
 	case dns.TypeA:
@@ -2013,30 +2049,30 @@ func (d *DNSServer) makeNodeServiceRecords(lookup serviceLookup, node structs.Ch
 	if serviceAddr == "" && nodeIPAddr != nil {
 		if node.Node.Address != nodeAddr {
 			// Do not CNAME node address in case of WAN address
-			return d.makeRecordFromIP(lookup, nodeIPAddr, node, req, ttl)
+			return d.makeRecordFromIP(lookup, nodeIPAddr, node, req, ttl, port)
 		}
 
-		return d.makeRecordFromServiceNode(lookup, node, nodeIPAddr, req, ttl)
+		return d.makeRecordFromServiceNode(lookup, node, nodeIPAddr, req, ttl, port)
 	}
 
 	// There is no service address and the node address is a FQDN (external service)
 	if serviceAddr == "" {
-		return d.makeRecordFromFQDN(lookup, nodeAddr, node, req, ttl, cfg, maxRecursionLevel)
+		return d.makeRecordFromFQDN(lookup, nodeAddr, node, req, ttl, cfg, maxRecursionLevel, port)
 	}
 
 	// The service address is an IP
 	if serviceIPAddr != nil {
-		return d.makeRecordFromIP(lookup, serviceIPAddr, node, req, ttl)
+		return d.makeRecordFromIP(lookup, serviceIPAddr, node, req, ttl, port)
 	}
 
 	// If the service address is a CNAME for the service we are looking
 	// for then use the node address.
 	if dns.Fqdn(serviceAddr) == req.Question[0].Name && nodeIPAddr != nil {
-		return d.makeRecordFromServiceNode(lookup, node, nodeIPAddr, req, ttl)
+		return d.makeRecordFromServiceNode(lookup, node, nodeIPAddr, req, ttl, port)
 	}
 
 	// The service address is a FQDN (external service)
-	return d.makeRecordFromFQDN(lookup, serviceAddr, node, req, ttl, cfg, maxRecursionLevel)
+	return d.makeRecordFromFQDN(lookup, serviceAddr, node, req, ttl, cfg, maxRecursionLevel, port)
 }
 
 // Craft dns records for TXT from a node's metadata
@@ -2062,7 +2098,7 @@ func (d *DNSServer) makeTXTRecordFromNodeMeta(qName string, node *structs.Node, 
 }
 
 // addServiceSRVRecordsToMessage is used to add the SRV records for a service lookup
-func (d *DNSServer) addServiceSRVRecordsToMessage(cfg *dnsRequestConfig, lookup serviceLookup, nodes structs.CheckServiceNodes, req, resp *dns.Msg, ttl time.Duration, maxRecursionLevel int) {
+func (d *DNSServer) addServiceSRVRecordsToMessage(cfg *dnsRequestConfig, lookup serviceLookup, nodes structs.CheckServiceNodes, req, resp *dns.Msg, ttl time.Duration, maxRecursionLevel int) error {
 	handled := make(map[string]struct{})
 
 	for _, node := range nodes {
@@ -2072,14 +2108,20 @@ func (d *DNSServer) addServiceSRVRecordsToMessage(cfg *dnsRequestConfig, lookup 
 		// The datacenter should be empty during translation if it is a peering lookup.
 		// This should be fine because we should always prefer the WAN address.
 		serviceAddress := d.agent.TranslateServiceAddress(lookup.Datacenter, node.Service.Address, node.Service.TaggedAddresses, dnsutil.TranslateAddressAcceptAny)
-		servicePort := d.agent.TranslateServicePort(lookup.Datacenter, node.Service.Port, node.Service.TaggedAddresses)
-		tuple := fmt.Sprintf("%s:%s:%d", node.Node.Node, serviceAddress, servicePort)
+
+		port, ok := findPort(node.Service, lookup.PortName)
+		if !ok {
+			return errNameNotFound
+		}
+
+		servicePort := d.agent.TranslateServicePort(lookup.Datacenter, port, node.Service.TaggedAddresses)
+		tuple := fmt.Sprintf("%s:%s", node.Node.Node, net.JoinHostPort(serviceAddress, strconv.Itoa(servicePort)))
 		if _, ok := handled[tuple]; ok {
 			continue
 		}
 		handled[tuple] = struct{}{}
 
-		answers, extra := d.makeNodeServiceRecords(lookup, node, req, ttl, cfg, maxRecursionLevel)
+		answers, extra := d.makeNodeServiceRecords(lookup, node, req, ttl, cfg, maxRecursionLevel, servicePort)
 
 		respDomain := d.getResponseDomain(req.Question[0].Name)
 		resp.Answer = append(resp.Answer, answers...)
@@ -2089,6 +2131,8 @@ func (d *DNSServer) addServiceSRVRecordsToMessage(cfg *dnsRequestConfig, lookup 
 			resp.Extra = append(resp.Extra, d.makeTXTRecordFromNodeMeta(nodeCanonicalDNSName(node.Node, respDomain), node.Node, ttl)...)
 		}
 	}
+
+	return nil
 }
 
 // handleRecurse is used to handle recursive DNS queries
@@ -2264,4 +2308,12 @@ func (d *DNSServer) getRequestConfig(resp dns.ResponseWriter) *dnsRequestConfig 
 	}
 
 	return requestDnsConfig
+}
+
+func findPort(srv *structs.NodeService, portName string) (int, bool) {
+	if portName == "" {
+		return srv.DefaultPort(), true
+	}
+
+	return srv.Ports.GetPortWithName(portName)
 }

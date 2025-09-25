@@ -1,6 +1,6 @@
 module github.com/hashicorp/consul/test/integration/consul-container
 
-go 1.25.0
+go 1.25.1
 
 require (
 	fortio.org/fortio v1.54.0

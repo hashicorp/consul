@@ -33,16 +33,19 @@ func (d *DNSServer) parseLocality(labels []string, cfg *dnsRequestConfig) (query
 	}
 
 	switch len(labels) {
-	case 2, 4:
+	case 2, 4, 6:
 		// Support the following formats:
 		// - [.<datacenter>.dc]
 		// - [.<peer>.peer]
+		// - [.<port-name>.port]
 		for i := 0; i < len(labels); i += 2 {
 			switch labels[i+1] {
 			case "dc":
 				locality.datacenter = labels[i]
 			case "peer":
 				locality.peer = labels[i]
+			case "port":
+				locality.portName = labels[i]
 			default:
 				return queryLocality{}, false
 			}

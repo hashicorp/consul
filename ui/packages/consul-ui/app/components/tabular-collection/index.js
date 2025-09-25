@@ -107,7 +107,7 @@ export default CollectionComponent.extend(Slotted, {
         const groupRect = $group.getBoundingClientRect();
         const groupBottom = groupRect.top + $group.clientHeight;
 
-        const $footer = this.dom.element('footer[role="contentinfo"]');
+        const $footer = this.dom.element('#contentinfo');
         const footerRect = $footer.getBoundingClientRect();
         const footerTop = footerRect.top;
 

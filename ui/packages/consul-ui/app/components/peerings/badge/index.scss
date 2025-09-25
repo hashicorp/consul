@@ -13,11 +13,11 @@
 
   &.active {
     background: var(--token-color-surface-success);
-    color: var(--token-color-foreground-success);
+    color: var(--token-color-foreground-success-on-surface);
   }
   &.pending {
     background: var(--token-color-consul-surface);
-    color: var(--token-color-consul-brand);
+    color: var(--token-color-consul-foreground);
   }
   &.establishing {
     background: var(--token-color-surface-action);
@@ -25,7 +25,7 @@
   }
   &.failing {
     background: var(--token-color-surface-critical);
-    color: var(--token-color-foreground-critical);
+    color: var(--token-color-foreground-critical-on-surface);
   }
   &.deleting {
     background: var(--token-color-surface-warning);

@@ -145,6 +145,16 @@ func (c *cmd) Run(args []string) int {
 					return 1
 				}
 			}
+
+			if len(svc.Ports) > 0 && svc.Port != 0 {
+				c.UI.Error(fmt.Sprintf("Service '%s' has both 'port' and 'ports' fields set; only one is allowed", svc.Name))
+				return 1
+			}
+
+			if err := svc.Ports.Validate(); err != nil {
+				c.UI.Error(fmt.Sprintf("Invalid ports configuration for service '%s': %v", svc.Name, err))
+				return 1
+			}
 		}
 	}
 

@@ -10,9 +10,11 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -624,7 +626,7 @@ func (s *Sprawl) SnapshotEnvoy(ctx context.Context) error {
 				if wrk.Disabled || wrk.EnvoyAdminPort <= 0 {
 					continue
 				}
-				prefix := fmt.Sprintf("http://%s:%d", n.LocalAddress(), wrk.EnvoyAdminPort)
+				prefix := net.JoinHostPort(n.LocalAddress(), strconv.Itoa(wrk.EnvoyAdminPort))
 
 				for fn, target := range targets {
 					u := prefix + "/" + target

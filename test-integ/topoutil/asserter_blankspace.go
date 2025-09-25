@@ -6,6 +6,8 @@ package topoutil
 import (
 	"context"
 	"fmt"
+	"net"
+	"strconv"
 	"testing"
 	"time"
 
@@ -71,7 +73,7 @@ func (a *Asserter) checkBlankspaceNameViaHTTPWithCallback(
 	var (
 		node         = workload.Node
 		internalPort = workload.Port
-		addr         = fmt.Sprintf("%s:%d", node.LocalAddress(), internalPort)
+		addr         = net.JoinHostPort(node.LocalAddress(), strconv.Itoa(internalPort))
 		client       = a.mustGetHTTPClient(t, node.Cluster)
 	)
 
@@ -80,7 +82,7 @@ func (a *Asserter) checkBlankspaceNameViaHTTPWithCallback(
 		exposedPort := node.ExposedPort(internalPort)
 		require.True(t, exposedPort > 0)
 
-		addr = fmt.Sprintf("%s:%d", "127.0.0.1", exposedPort)
+		addr = net.JoinHostPort("127.0.0.1", strconv.Itoa(exposedPort))
 
 		// This will clear the proxy field on the transport.
 		client = EnableHTTP2(client)
@@ -153,7 +155,7 @@ func (a *Asserter) checkBlankspaceNameViaTCPWithCallback(
 	exposedPort := node.ExposedPort(port)
 	require.True(t, exposedPort > 0)
 
-	addr := fmt.Sprintf("%s:%d", "127.0.0.1", exposedPort)
+	addr := net.JoinHostPort("127.0.0.1", strconv.Itoa(exposedPort))
 
 	multiassert(t, count, resetFn, func(r *retry.R) {
 		name, err := GetBlankspaceNameViaTCP(context.Background(), addr)
@@ -220,7 +222,7 @@ func (a *Asserter) checkBlankspaceNameViaGRPCWithCallback(
 	exposedPort := node.ExposedPort(port)
 	require.True(t, exposedPort > 0)
 
-	addr := fmt.Sprintf("%s:%d", "127.0.0.1", exposedPort)
+	addr := net.JoinHostPort("127.0.0.1", strconv.Itoa(exposedPort))
 
 	multiassert(t, count, resetFn, func(r *retry.R) {
 		name, err := GetBlankspaceNameViaGRPC(context.Background(), addr)
