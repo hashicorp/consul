@@ -2285,16 +2285,15 @@ Use these links to navigate to a particular top-level stanza.
 
   - `dataplaneAsSidecarInitContainer` ((#v-connectinject-dataplaneassidecarinitcontainer))
 
-    - `defaultEnabled` ((#v-connectinject-dataplaneassidecarinitcontainer-defaultenabled)) (`boolean: false`) - If true, the  Consul dataplane runs as an init container with the restart policy set to "Always" and uses startup probe to determine readiness.
-      Also, Kubelet waits for the Consul dataplane init container to be ready before starting the application container.
+    - `defaultEnabled` ((#v-connectinject-dataplaneassidecarinitcontainer-defaultenabled)) (`boolean: false`) - When set to `true`, the Consul dataplane runs as an init container that has a restart policy set to "Always" and uses startup probe to determine readiness. The kubelet also waits for the Consul dataplane init container to be ready before starting the application container.
 
-    - `initialProbeCheckDelaySeconds` ((#v-connectinject-dataplaneassidecarinitcontainer-initialprobecheckdelayseconds)) (`integer: 1`) - Configures how long the k8s startup probe waits initially before performing the first check.
+    - `initialProbeCheckDelaySeconds` ((#v-connectinject-dataplaneassidecarinitcontainer-initialprobecheckdelayseconds)) (`integer: 1`) - Configures length of time the startup probe waits before performing its first check.
 
-    - `probeCheckPeriodSeconds` ((#v-connectinject-dataplaneassidecarinitcontainer-probecheckperiodseconds)) (`integer: 1`) - Configures how often the k8s startup probe checks the readiness of the consul-dataplane init container.
+    - `probeCheckPeriodSeconds` ((#v-connectinject-dataplaneassidecarinitcontainer-probecheckperiodseconds)) (`integer: 1`) - Configures period of time between startup probe checks for the readiness of the consul-dataplane init container.
 
-    - `probeCheckFailureThreshold` ((#v-connectinject-dataplaneassidecarinitcontainer-probecheckfailurethreshold)) (`integer: 10`) - Configures the failure threshold for the k8s startup probe.
+    - `probeCheckFailureThreshold` ((#v-connectinject-dataplaneassidecarinitcontainer-probecheckfailurethreshold)) (`integer: 10`) - Configures the number of times the k8s startup probe fails to connect to the consul-dataplane init container before it marks the container as unhealthy and takes action.
 
-    - `probeCheckTimeoutSeconds` ((#v-connectinject-dataplaneassidecarinitcontainer-probechecktimeoutseconds)) (`integer: 5`) - Configures the timeout for each k8s startup probe check.
+    - `probeCheckTimeoutSeconds` ((#v-connectinject-dataplaneassidecarinitcontainer-probechecktimeoutseconds)) (`integer: 5`) - Configures the length of time until the k8s startup probe readiness check times out.
 
   - `initContainer` ((#v-connectinject-initcontainer)) (`map`) - The resource settings for the Connect injected init container. If null, the resources
     won't be set for the initContainer. The defaults are optimized for developer instances of
