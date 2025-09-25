@@ -919,10 +919,6 @@
             "path": "manage/disaster-recovery/restore-federated"
           },
           {
-            "title": "Old content",
-            "path": "manage/disaster-recovery/federation"
-          },
-          {
             "title": "Reset ACL system",
             "href": "secure/acl/reset"
           }
