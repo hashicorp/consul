@@ -220,13 +220,11 @@ const bootstrapTemplate = `{
 
           Envoy <=1.34 tolerated an empty trusted_ca DataSource. Envoy 1.35+
           rejects it with: "DataSource cannot be empty" during bootstrap.
-          Previously, if AgentTLS was true but the CA file(s) could not be
-          loaded, AgentCAPEM ended up empty and we emitted an empty
-          inline_string, causing the hard failure. Guarding on both conditions
-          avoids generating invalid bootstrap while keeping previous behavior
-          for valid TLS configurations.
+          
+          If AgentTLS is true but AgentCAPEM is empty, this is now an error condition
+          that should be propagated to the user rather than silently failing.
         */}}
-        {{- if and .AgentTLS (ne .AgentCAPEM "") -}}
+        {{- if .AgentTLS -}}
         "transport_socket": {
           "name": "tls",
           "typed_config": {
