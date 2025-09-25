@@ -19,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
         with:
-          ref: ${{ env.BRANCH }}
+          ref: ${{ env.GITHUB_REF_NAME }}
 
       - name: Install PNPM
         uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
@@ -57,7 +57,7 @@ jobs:
     steps:
       - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
         with:
-          ref: ${{ env.BRANCH }}
+          ref: ${{ env.BRAGITHUB_REF_NAMENCH }}
 
       - name: Install PNPM
         uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
@@ -85,7 +85,7 @@ jobs:
       - name: Upload CE Frontend
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         with:
-          name: frontend-ce-${{ env.BRANCH_NAME }}
+          name: frontend-ce-${{ env.GITHUB_REF_NAME }}
           path: ./ui/packages/consul-ui/dist
           if-no-files-found: error
 
@@ -102,7 +102,7 @@ jobs:
     steps:
       - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
         with:
-          ref: ${{ env.BRANCH }}
+          ref: ${{ env.GITHUB_REF_NAME }}
 
       - name: Install PNPM
         uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
@@ -125,7 +125,7 @@ jobs:
       - name: Download CE Frontend
         uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
         with:
-          name: frontend-ce-${{ env.BRANCH_NAME }}
+          name: frontend-ce-${{ env.GITHUB_REF_NAME }}
           path: ./ui/packages/consul-ui/dist
 
       - name: Ember Test CE
