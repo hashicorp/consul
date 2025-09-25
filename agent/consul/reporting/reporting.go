@@ -15,6 +15,8 @@ import (
 
 type ReportingManager struct {
 	logger         hclog.Logger
+	clusterId      string
+	autoReporting  bool
 	server         ServerDelegate
 	stateProvider  StateDelegate
 	tickerInterval time.Duration
@@ -39,9 +41,11 @@ type StateDelegate interface {
 	ServiceUsage(ws memdb.WatchSet, tenantUsage bool) (uint64, structs.ServiceUsage, error)
 }
 
-func NewReportingManager(logger hclog.Logger, deps EntDeps, server ServerDelegate, stateProvider StateDelegate) *ReportingManager {
+func NewReportingManager(logger hclog.Logger, clusterId string, autoReporting bool, deps EntDeps, server ServerDelegate, stateProvider StateDelegate) *ReportingManager {
 	rm := &ReportingManager{
 		logger:         logger.Named("reporting"),
+		clusterId:      clusterId,
+		autoReporting:  autoReporting,
 		server:         server,
 		stateProvider:  stateProvider,
 		tickerInterval: ReportingInterval,

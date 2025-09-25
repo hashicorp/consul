@@ -340,9 +340,8 @@ func (s *Server) establishLeadership(ctx context.Context) error {
 		s.startLogVerification(ctx)
 	}
 
-	if s.config.Reporting.License.Enabled && s.reportingManager != nil {
-		s.reportingManager.StartReportingAgent()
-	}
+	// The reporting manager will start the metrics collection but will only report if config.reporting.license.enabled is true
+	s.reportingManager.StartReportingAgent()
 
 	s.logger.Debug("successfully established leadership", "duration", time.Since(start))
 	return nil

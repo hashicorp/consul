@@ -817,7 +817,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	s.overviewManager = NewOverviewManager(s.logger, s.fsm, s.config.MetricsReportingInterval)
 	go s.overviewManager.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
-	s.reportingManager = reporting.NewReportingManager(s.logger, getEnterpriseReportingDeps(flat), s, s.fsm.State())
+	s.reportingManager = reporting.NewReportingManager(s.logger, config.Datacenter, config.Reporting.License.Enabled, getEnterpriseReportingDeps(flat), s, s.fsm.State())
 	go s.reportingManager.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
 	// configure the server specific grpc interfaces (in-process + internal multiplexed grpc)
