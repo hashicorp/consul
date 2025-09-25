@@ -1,0 +1,175 @@
+---
+layout: docs
+page_title: Restore primary datacenter
+description: >-
+  Restore primary Consul datacenter in the event of an outage.
+---
+
+# Restore primary datacenter
+
+This topic provides an overview of the best practices for restoring a primary datacenter in case of an outage.
+
+## Introduction
+
+Depending on your configuration, multiple levels of outage can occur.
+
+This page covers how to handle outages that render the primary datacenter unable to serve requests, including service discovery requests to Consul DNS and intention validation. This can happen in many possible ways, but the two extremes of the spectrum are the following:
+
+- **Loss of quorum in the primary datacenter.** This is an outage where the datacenter has less than *(N/2)+1* servers available, where N is the total number of servers. While some of the nodes are unaffected, there are not enough healthy nodes to form a quorum.
+- **Complete loss of the primary datacenter.** This is either a disaster event that completely wipes an entire facility or a major outage of your cloud provider.
+
+For the topics discussed in this page, we use the definition _primary datacenter_ to define both the only datacenter in the environment and the primary datacenter in a federated environment. The reason for this is that, in both cases, an outage in the datacenter impact the functionalities of the whole environment.
+
+## Loss of quorum in the primary datacenter
+
+In the scenario where you have lost enough servers in your primary datacenter that a quorum cannot be reached, you will experience the same level service failure as if the whole
+datacenter is unavailable.
+
+If the outage is limited to the server nodes, or did not severely impact your client fleet, it might not be practical to rebuild the whole datacenter only to re-establish a quorum.
+
+In this scenario, you can follow the [Outage Recovery](/consul/tutorials/operate-consul/recovery-outage#server-failure-in-a-multi-server-cluster-losing-quorum) tutorial to restore your server nodes and make sure they are able to reform the raft cluster and elect a leader.
+
+Once the raft cluster is reformed, and the datacenter is again operational, you can now restart any client agents that might have been affected by the outage.
+
+## Complete loss of the primary datacenter
+
+The worst case scenario in Consul environment, federated or not, is the loss of the primary datacenter.
+
+In this scenario, the course of action should aim to restore the lost datacenter as quickly as possible. The following sections will guide you through the necessary steps to perform a restore and to make sure all functionalities are re-established.
+
+## Restore primary datacenter
+
+The steps necessary to restore your environment after a full outage of your primary datacenter are the following:
+
+1. [Restore datacenter nodes](#restore-datacenter-nodes).
+1. [Restore the last snapshot](#restore-snapshot) to the newly recovered datacenter.
+1. [Set Consul ACL agent tokens](#set-consul-acl-agent-tokens) to the servers.
+1. [Perform a rolling restart of the servers](#perform-a-rolling-restart-of-the-servers).
+1. [Perform a rolling restart of the clients](#perform-a-rolling-restart-of-the-clients).
+1. If you have a federated environment, the last step after restore is to [restore and validate federation](#restore-and-validate-federation).
+
+### Restore datacenter nodes
+
+The first step for your recovery is to re-deploy your Consul datacenter. For this you can follow the same process you used for the initial deploy of your Consul datacenter.
+
+This process should be automated as much as possible to reduce downtime and to reduce human errors.
+
+In a federated environment, to make sure the new deployment is able to communicate with the secondary datacenters, you need to ensure that the recovered datacenter uses the same:
+
+- CA certificate
+- CA key
+- Gossip encryption key
+
+as the ones used in the failed environment. This process can be simplified by introducing Vault both to [generate mTLS Certificates for Consul agents](/consul/docs/automate/consul-template/vault/mtls) and as a [Consul service mesh certification authority](/consul/tutorials/operate-consul/vault-pki-consul-connect-ca). 
+
+### Restore snapshot
+
+After the datacenter has been restored, restore the latest snapshot using the [`consul snapshot restore`](/consul/commands/snapshot/restore) command.
+
+```shell-session
+$ consul snapshot restore -token=<value> backup.snap
+
+Restored snapshot
+```
+
+<Note>
+
+The `token` used for the snapshot restore procedure needs to be a token valid for the newly restored datacenter. If your restored datacenter does not have ACL enabled, you can restore the snapshot without a token.
+
+</Note>
+
+### Set Consul ACL agent tokens
+
+The newly restarted nodes will now be missing the ACL tokens needed to successfully join the datacenter. Once you restored the ACL system with the snapshot restore you will be able to set the tokens for the different nodes using the [`consul acl`](/consul/commands/acl) commands.
+
+The following operations require a token with `acl = write` privileges. Also, after the snapshot is restored the ACL system will now contain the previous tokens created before the outage. You can use the any management token you had in your datacenter before the outage. To setup the token for the request you can either use the `CONSUL_HTTP_TOKEN` environment
+variable or to pass it directly using the `-token=` command parameter.
+
+If you lost the management token in the outage, you can follow [Reset Access Control List (ACL) system](/consul/docs/secure/acl/reset) to generate a new one.
+
+First, retrieve the tokens available in the datacenter.
+
+```shell-session
+$ consul acl token list
+
+...
+
+AccessorID:       6e5516f1-c29d-4503-82bc-016f7957a5c9
+Description:      consul-server-0 agent token
+Local:            false
+Create Time:      2025-09-25 15:31:42.146542875 +0000 UTC
+Legacy:           false
+Policies:
+   036c181a-1afe-4a6e-bdb1-2d553f36327d - acl-policy-server-node
+
+...
+```
+
+Then, retrieve the token using the `AccessorID`.
+
+```shell-session
+$ consul acl token read -id 6e5516f1-c29d-4503-82bc-016f7957a5c9
+
+AccessorID:       6e5516f1-c29d-4503-82bc-016f7957a5c9
+SecretID:         e26bd23e-5edd-4aa4-bf7d-3ef5963e0ec0
+Description:      consul-server-0 agent token
+Local:            false
+Create Time:      2025-09-25 15:31:42.146542875 +0000 UTC
+Policies:
+   036c181a-1afe-4a6e-bdb1-2d553f36327d - acl-policy-server-node
+```
+
+Finally, apply the token to the server.
+
+```shell-session
+$ consul acl set-agent-token agent e26bd23e-5edd-4aa4-bf7d-3ef5963e0ec0
+
+ACL token "agent" set successfully
+```
+
+You will have to set the token for all the server nodes in order to get them able to re-join the datacenter successfully. Depending on your configuration you might have different tokens for each server or re-use the same token for all server agents but in both cases the token needs to be set on all server agents otherwise they will not be able to successfully join the datacenter.
+
+
+### Perform a rolling restart of the servers
+
+After the snapshot is restored and the tokens have been set on the nodes, you will observe errors in the server logs about duplicate node ids. This happens because the servers received new node ids when they were reinstalled, and these node ids are different from the ones stored in the snapshot.
+
+<CodeBlockConfig hideClipboard>
+
+```log
+...
+[WARN]  agent.fsm: EnsureRegistration failed: error="failed inserting node: Error while renaming Node ID: "88855b78-1459-4d03-aa88-a7078a3798f0": Node name consul-server-0 is reserved by node a12b2c56-7a94-4ea2-b29b-ca8f48139c77 with name consul-server-0 (172.20.0.10)"
+[WARN]  agent.fsm: EnsureRegistration failed: error="failed inserting node: Error while renaming Node ID: "3d2df283-109b-4595-9279-d274a3c225ba": Node name consul-server-1 is reserved by node 6a361f2f-4e1e-4ee2-a836-20a7d85eb9e9 with name consul-server-1 (172.20.0.9)"
+[WARN]  agent.fsm: EnsureRegistration failed: error="failed inserting node: Error while renaming Node ID: "39dbf0d7-51a9-4b8a-a4cc-5a937e0e405f": Node name consul-server-2 is reserved by node 520a29ee-43e0-4d50-89e5-df72d8746c92 with name consul-server-2 (172.20.0.14)"
+...
+```
+
+</CodeBlockConfig>
+
+To resolve these errors, perform a [`consul leave`](/consul/commands/leave) on each server and then start the server again. Do this one server at a time. Once servers are restarted, the node ids will be set to the expected value and this will resolve the errors in the logs.
+
+<Tip>
+
+For more information on this error and for more ways to resolve it, refer to [Snapshot restore error](/consul/docs/error-messages/consul#snapshot-restore-error).
+
+</Tip>
+
+### Perform a rolling restart of the clients
+
+The same log errors will be present on the clients. After completing the server restarts, perform the same operations on the clients to resolve the log errors.
+
+## Restore and validate federation
+
+If you have a federated environment, after the primary datacenter restore it is possible that the IP addresses of the Consul server agents changed.
+
+Depending on the configuration of your secondary datacenters' server agents, you might need to re-establish federation by updating the server configuration.
+
+Refer to [Loss of federation due to primary datacenter restore.](/consul/docs/manage/disaster-recovery/restore-federated#loss-of-federation-due-to-primary-datacenter-restore) for more information on this.
+
+
+## Additional guidance
+
+To familiarize with the concepts mentioned in this page you can try our tutorials for disaster recovery:
+
+- [Disaster recovery for Consul clusters](/consul/tutorials/operate-consul/recovery-outage).
+- [Disaster Recovery for Consul on Kubernetes](/consul/tutorials/production-kubernetes/kubernetes-disaster-recovery).

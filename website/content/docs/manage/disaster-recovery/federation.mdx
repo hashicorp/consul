@@ -7,60 +7,41 @@ description: >-
 
 # Disaster recovery for WAN-federated datacenters
 
-This describes the process to backup and restore a federated Consul datacenter.
+This page describes the process to prepare for an outage event for a federated Consul datacenter, and the process to restore a federated Consul datacenter in case of outage.
 
 ## Overview
 
-Operating a multi-datacenter federated environment requires you to prepare for
-many possibilities, including a complete outage of one of your physical
-datacenters, or a cloud provider outage that might make one of the
-components of your environment temporarily or permanently unavailable.
+Disaster recovery is an important part of business continuity planning. When operating a WAN federated Consul cluster, composed of multiple datacenters, you need to prepare a strategy that includes many outage possibilities, including a complete outage of one of your physical datacenters, or a cloud provider outage that might make one of the components of your environment temporarily or permanently unavailable.
 
-This can have different implications depending on your configuration, but it is
-something you want to be prepared for, in case the unthinkable happens.
+Each outage possibility can have different implications, depending on your configuration, but there are strategies that can help you mitigate the damage in case of disaster.
 
-This tutorial guides you through the process of creating a recovery strategy
-from a quorum loss to the complete loss of your primary datacenter.
+This page helps with the creation of a recovery strategy from a quorum loss event up to the complete loss of your primary datacenter.
 
-The recommended logical steps are listed in three main sections, the first will help you [prepare for an outage event](#disaster-preparation-strategy), the second will help you [restore your primary datacenter](#restore-primary-datacenter), and the third will help you [validate the restore was successful](#restore-and-validate-federation) and ensure federation is re-established.
+The process can be summarized in the following phases:
+
+1. Follow the [disaster preparation strategy](#disaster-preparation-strategy) to reduce risks and be prepared for all possible outage cases.
+1. Identify the kind of outage event occurred for the primary datacenter.
+1. Restore primary datacenter.
+1. Restore and validate datacenter federation.
 
 ## Prerequisites
 
-### Base configuration
+The following instructions require two or more wide area network (WAN) federated Consul datacenters with access control list (ACL) replication enabled.
 
-To complete this tutorial, you will need two wide area network (WAN) joined
-Consul datacenters with access control list (ACL) replication enabled. If you
-are starting from scratch, follow these tutorials to set up your datacenters,
-or use them to check that you have the proper configuration in place:
+If you have not met these deployment requirements, refer to the follow documentation to set up your datacenters:
 
 - [Deployment Guide](/consul/tutorials/production-deploy/deployment-guide)
-- [Securing Consul with ACLs](/consul/tutorials/security/access-control-setup-production)
-- [Basic Federation with WAN Gossip](/consul/tutorials/networking/federation-gossip-wan)
+- [Securing Consul with ACLs](/consul/docs/secure/acl)
+- [Basic Federation with WAN Gossip](/consul/docs/east-west/wan-federation/vms)
+- [ACL Replication for Multiple Datacenters](/consul/docs/secure/acl/token/federation)
 
-You will also need to enable ACL replication, which you can do by following the steps in the
-[ACL Replication for Multiple
-Datacenters](/consul/tutorials/security-operations/access-control-replication-multiple-datacenters)
-tutorial.
+If you are using Consul's service mesh in your WAN-Federated environment, you should also set [`enable_central_service_config = true`](/consul/docs/reference/agent/configuration-file/general#enable_central_service_config) on your Consul clients, which allows you to centrally configure the sidecar and mesh gateway proxies.
 
-### Mesh gateways
-
-If you want to make use of the mesh gateway functionality, you can follow [Connect Services Across Datacenters with Mesh Gateways](/consul/tutorials/developer-mesh/service-mesh-gateways) to setup them for the two datacenters.
-
-### Central service configuration
-
-Lastly, you should set [`enable_central_service_config = true`](/consul/docs/reference/agent/configuration-file/general#enable_central_service_config)
-on your Consul clients which will allow you to centrally configure the sidecar
-and mesh gateway proxies.
-
-## Disaster recovery process
-
-The process can be summarized in the following phases:
-1. Formulate a disaster preparation strategy
-1. Outage event occurs for the primary datacenter
-1. Restore primary datacenter
-1. Restore and validate federation
+To make use of the mesh gateway functionality, refer to the [Mesh gateways ](/consul/docs/east-west/mesh-gateway) documentation.
 
 ## Disaster preparation strategy
+
+
 
 ### Use a recommended architecture
 
