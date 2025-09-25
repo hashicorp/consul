@@ -50,6 +50,19 @@ parameters are required to properly configure an auth method of type
 - `OIDCClientSecret` `(string: <required>)` - The OAuth Client Secret configured with
   your OIDC provider.
 
+- `OIDCClientAssertion` `(OIDCClientAssertion)` - Send a signed JWT as a client assertion to the OIDC provider. This enables "[private key JWT](https://oauth.net/private-key-jwt/)" authentication for OIDC clients. This field is optional.
+  You can set only one of `OIDCClientSecret` or `OIDCClientAssertion`, and setting both fields results in a configuration error. The JWT for the client assertion is signed using the RS256 algorithm.
+
+  - `Audience` `(array<string>)` - The URL that processes the assertion. Defaults to the `OIDCDiscoveryURL` in the parent ACLAuthMethodConfig.
+
+  - `PrivateKey` `(OIDCClientAssertionKey)` - External key material to sign the JWT.
+
+    - `PemKey` `(string)` - An RSA private key, in pem format to use for signing the JWT.
+
+- `OIDCClientUsePKCE` `(bool: true)` - Enables [Proof Key for Code Exchange (PKCE)](https://datatracker.ietf.org/doc/html/rfc7636) in the OIDC authentication flow. Defaults to `true`.
+  PKCE is an additional security mechanism for OAuth 2.0 authorization code grants, designed to protect against authorization code interception attacks. When enabled,
+  Consul will use PKCE for OIDC logins, which is recommended for all public clients and browser-based authentication. We recommend PKCE unless your OIDC provider does not support PKCE.
+
 - `AllowedRedirectURIs` `(array<string>)` - A list of allowed
   values for `redirect_uri`. Must be non-empty.
 
@@ -82,7 +95,7 @@ parameters are required to properly configure an auth method of type
   debug-level logging is active. Not recommended in production since sensitive
   information may be present in OIDC responses.
 
-### Sample config
+### Example configuration with client secret
 
 ```json
 {
@@ -106,6 +119,41 @@ parameters are required to properly configure an auth method of type
         },
         "OIDCClientID": "V1RPi2MYptMV1RPi2MYptMV1RPi2MYpt",
         "OIDCClientSecret": "...(omitted)...",
+        "OIDCDiscoveryURL": "https://my-corp-app-name.auth0.com/"
+    }
+}
+```
+
+### Example configuration with JWT as client assertion
+
+The following example enables an OIDC auth method that sets a JWT signed with an RSA private key as the client assertion sent to the OIDC provider.
+
+```json
+{
+    "Name": "example-oidc-auth",
+    "Type": "oidc",
+    "Description": "Example OIDC auth method",
+    "Config": {
+        "AllowedRedirectURIs": [
+            "http://localhost:8550/oidc/callback",
+            "http://localhost:8500/ui/oidc/callback"
+        ],
+        "BoundAudiences": [
+            "V1RPi2MYptMV1RPi2MYptMV1RPi2MYpt"
+        ],
+        "ClaimMappings": {
+            "http://example.com/first_name": "first_name",
+            "http://example.com/last_name": "last_name"
+        },
+        "ListClaimMappings": {
+            "http://consul.com/groups": "groups"
+        },
+        "OIDCClientID": "V1RPi2MYptMV1RPi2MYptMV1RPi2MYpt",
+        "OIDCClientAssertion": {
+          "PrivateKey": {
+            "PemKey": "-----BEGIN PRIVATE KEY-----\n...(omitted)...\n-----END PRIVATE KEY-----\n"
+          }
+        },
         "OIDCDiscoveryURL": "https://my-corp-app-name.auth0.com/"
     }
 }
