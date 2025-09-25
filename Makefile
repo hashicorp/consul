@@ -479,7 +479,7 @@ test-connect-ca-providers: ## Running /agent/connect/ca tests in verbose mode
 ui: ui-docker ## Build the static web ui inside a Docker container. For local testing only; do not commit these assets.
 
 .PHONY: ui-regen
-ui-regen: ## Build the static web ui with yarn. This is the version to commit.
+ui-regen: ## Build the static web ui. This is the version to commit.
 	cd $(CURDIR)/ui && make && cd ..
 	rm -rf $(CURDIR)/agent/uiserver/dist
 	mv $(CURDIR)/ui/packages/consul-ui/dist $(CURDIR)/agent/uiserver/
