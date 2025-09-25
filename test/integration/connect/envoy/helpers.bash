@@ -872,7 +872,7 @@ function gen_envoy_bootstrap {
     -proxy-id $PROXY_ID \
     -envoy-version "$ENVOY_VERSION" \
     -admin-bind 0.0.0.0:$ADMIN_PORT \
-    -grpc-ca-file /workdir/test-sds-server/certs/ca-root.crt ${EXTRA_ENVOY_BS_ARGS} 2>&1); then
+    -grpc-addr http://localhost:8502 ${EXTRA_ENVOY_BS_ARGS} 2>&1); then
 
     # All OK, write config to file
     echo "$output" >workdir/${DC}/envoy/$SERVICE-bootstrap.json
