@@ -69,7 +69,7 @@ jobs:
     outputs:
       filepath: ${{ steps.generate-metadata-file.outputs.filepath }}
     steps:
-      - name: 'Checkout directory'
+      - name: "Checkout directory"
         uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
       - name: Generate metadata file
         id: generate-metadata-file
@@ -85,41 +85,41 @@ jobs:
 
   build:
     needs:
-    - set-product-version
-    - get-go-version
+      - set-product-version
+      - get-go-version
     runs-on: ubuntu-latest
     strategy:
       matrix:
         include:
-          - {goos: "linux", goarch: "386"}
-          - {goos: "linux", goarch: "amd64"}
-          - {goos: "linux", goarch: "arm"}
-          - {goos: "linux", goarch: "arm64"}
-          - {goos: "darwin", goarch: "amd64"}
-          - {goos: "darwin", goarch: "arm64"}
-          - {goos: "freebsd", goarch: "386"}
-          - {goos: "freebsd", goarch: "amd64"}
-          - {goos: "windows", goarch: "386"}
-          - {goos: "windows", goarch: "amd64"}
-          - {goos: "solaris", goarch: "amd64"}
+          - { goos: "linux", goarch: "386" }
+          - { goos: "linux", goarch: "amd64" }
+          - { goos: "linux", goarch: "arm" }
+          - { goos: "linux", goarch: "arm64" }
+          - { goos: "darwin", goarch: "amd64" }
+          - { goos: "darwin", goarch: "arm64" }
+          - { goos: "freebsd", goarch: "386" }
+          - { goos: "freebsd", goarch: "amd64" }
+          - { goos: "windows", goarch: "386" }
+          - { goos: "windows", goarch: "amd64" }
+          - { goos: "solaris", goarch: "amd64" }
       fail-fast: true
 
     name: Go ${{ needs.get-go-version.outputs.go-version }} ${{ matrix.goos }} ${{ matrix.goarch }} build
     steps:
       - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
 
-      - name: Setup node and pnpm cache
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
-        with:
-          node-version-file: './ui/.nvmrc'
-          cache: 'pnpm'
-          cache-dependency-path: 'ui/pnpm-lock.yaml'
-      
       - name: Install PNPM
         uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
         with:
-            run_install: false
-            package_json_file: ui/package.json
+          run_install: false
+          package_json_file: ui/package.json
+
+      - name: Setup node and pnpm cache
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+        with:
+          node-version-file: "./ui/.nvmrc"
+          cache: "pnpm"
+          cache-dependency-path: "ui/pnpm-lock.yaml"
 
       - name: Build UI
         run: |
@@ -201,26 +201,32 @@ jobs:
 
   build-s390x:
     needs:
-    - set-product-version
-    - get-go-version
+      - set-product-version
+      - get-go-version
     if: ${{ endsWith(github.repository, '-enterprise') }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
         include:
-          - {goos: "linux", goarch: "s390x"}
+          - { goos: "linux", goarch: "s390x" }
       fail-fast: true
 
     name: Go ${{ needs.get-go-version.outputs.go-version }} ${{ matrix.goos }} ${{ matrix.goarch }} build
     steps:
       - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
 
+      - name: Install PNPM
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        with:
+          run_install: false
+          package_json_file: ui/package.json
+
       - name: Setup with node and pnpm
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
         with:
-          node-version: '20'
-          cache: 'pnpm'
-          cache-dependency-path: 'ui/pnpm-lock.yaml'
+          node-version: "20"
+          cache: "pnpm"
+          cache-dependency-path: "ui/pnpm-lock.yaml"
 
       - name: Build UI
         run: |
@@ -428,8 +434,8 @@ jobs:
           - { arch: "i386" }
           - { arch: "x86_64" }
         # TODO(eculver): re-enable when there is a smaller verification container available
-          # - { arch: "armv7hl" }
-          # - { arch: "aarch64" }
+        # - { arch: "armv7hl" }
+        # - { arch: "aarch64" }
     env:
       version: ${{ needs.set-product-version.outputs.product-version }}
 
