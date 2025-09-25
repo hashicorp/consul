@@ -8,13 +8,15 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	agentdns "github.com/hashicorp/consul/agent/dns"
 	"math"
 	"net"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
+
+	agentdns "github.com/hashicorp/consul/agent/dns"
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-radix"
@@ -777,7 +779,7 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, cfg *dnsRe
 	// Get the QName without the domain suffix
 	qName := strings.ToLower(dns.Fqdn(req.Question[0].Name))
 	qName = d.trimDomain(qName)
-
+	qType := req.Question[0].Qtype
 	// Split into the label parts
 	labels := dns.SplitDomainName(qName)
 
@@ -796,7 +798,7 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, cfg *dnsRe
 		default:
 			// If this is a SRV query the "service" label is optional, we add it back to use the
 			// existing code-path.
-			if req.Question[0].Qtype == dns.TypeSRV && strings.HasPrefix(labels[i], "_") {
+			if qType == dns.TypeSRV && strings.HasPrefix(labels[i], "_") {
 				queryKind = "service"
 				queryParts = labels[:i+1]
 				querySuffixes = labels[i+1:]
@@ -927,15 +929,40 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, cfg *dnsRe
 			return err
 		}
 		if out != "" {
-			resp.Answer = append(resp.Answer, &dns.A{
-				Hdr: dns.RR_Header{
-					Name:   qName + respDomain,
-					Rrtype: dns.TypeA,
-					Class:  dns.ClassINET,
-					Ttl:    uint32(cfg.NodeTTL / time.Second),
-				},
-				A: net.ParseIP(out),
-			})
+			p := net.ParseIP(out)
+			if p.To4() == nil {
+				aaaaRecord := &dns.AAAA{
+					Hdr: dns.RR_Header{
+						Name:   qName + respDomain,
+						Rrtype: dns.TypeAAAA,
+						Class:  dns.ClassINET,
+						Ttl:    uint32(cfg.NodeTTL / time.Second),
+					},
+					AAAA: p,
+				}
+
+				if qType == dns.TypeAAAA || qType == dns.TypeANY {
+					resp.Answer = append(resp.Answer, aaaaRecord)
+				} else {
+					resp.Extra = append(resp.Extra, aaaaRecord)
+
+				}
+			} else {
+				aRecord := &dns.A{
+					Hdr: dns.RR_Header{
+						Name:   qName + respDomain,
+						Rrtype: dns.TypeA,
+						Class:  dns.ClassINET,
+						Ttl:    uint32(cfg.NodeTTL / time.Second),
+					},
+					A: p,
+				}
+				if qType == dns.TypeA || qType == dns.TypeANY {
+					resp.Answer = append(resp.Answer, aRecord)
+				} else {
+					resp.Extra = append(resp.Answer, aRecord)
+				}
+			}
 		}
 
 		return nil
@@ -1053,7 +1080,7 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, cfg *dnsRe
 				},
 				A: ip,
 			}
-			if req.Question[0].Qtype != dns.TypeA && req.Question[0].Qtype != dns.TypeANY {
+			if qType != dns.TypeA && qType != dns.TypeANY {
 				resp.Extra = append(resp.Answer, aRecord)
 			} else {
 				resp.Answer = append(resp.Answer, aRecord)
@@ -1074,7 +1101,7 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, cfg *dnsRe
 				},
 				AAAA: ip,
 			}
-			if req.Question[0].Qtype != dns.TypeAAAA && req.Question[0].Qtype != dns.TypeANY {
+			if qType != dns.TypeAAAA && qType != dns.TypeANY {
 				resp.Extra = append(resp.Extra, aaaaRecord)
 			} else {
 				resp.Answer = append(resp.Answer, aaaaRecord)
@@ -2088,7 +2115,7 @@ func (d *DNSServer) addServiceSRVRecordsToMessage(cfg *dnsRequestConfig, lookup 
 		}
 
 		servicePort := d.agent.TranslateServicePort(lookup.Datacenter, port, node.Service.TaggedAddresses)
-		tuple := fmt.Sprintf("%s:%s:%d", node.Node.Node, serviceAddress, servicePort)
+		tuple := fmt.Sprintf("%s:%s", node.Node.Node, net.JoinHostPort(serviceAddress, strconv.Itoa(servicePort)))
 		if _, ok := handled[tuple]; ok {
 			continue
 		}

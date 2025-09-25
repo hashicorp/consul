@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/agent"
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
@@ -59,6 +60,7 @@ func TestIntentionCreate_Validation(t *testing.T) {
 }
 
 func TestIntentionCreate(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -89,6 +91,7 @@ func TestIntentionCreate(t *testing.T) {
 }
 
 func TestIntentionCreate_deny(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -120,6 +123,7 @@ func TestIntentionCreate_deny(t *testing.T) {
 }
 
 func TestIntentionCreate_meta(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -151,6 +155,7 @@ func TestIntentionCreate_meta(t *testing.T) {
 }
 
 func TestIntentionCreate_File(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -258,6 +263,7 @@ func TestIntentionCreate_FileNoExist(t *testing.T) {
 }
 
 func TestIntentionCreate_replace(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}

@@ -10,6 +10,7 @@ import (
 	"strconv"
 
 	"github.com/go-viper/mapstructure/v2"
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/sdk/iptables"
@@ -51,11 +52,11 @@ type cmd struct {
 	excludeOutboundCIDRs []string
 	excludeUIDs          []string
 	netNS                string
+	dualStack            bool
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
-
 	c.flags.StringVar(&c.nodeName, "node-name", "",
 		"The node name where the proxy service is registered. It requires proxy-id to be specified. This is needed if running in an environment without client agents.")
 	c.flags.StringVar(&c.consulDNSIP, "consul-dns-ip", "", "IP used to reach Consul DNS. If provided, DNS queries will be redirected to Consul.")
@@ -110,7 +111,18 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	err = iptables.Setup(cfg)
+	ac, err := c.http.APIConfig()
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("error creating Consul API client: %s", err.Error()))
+		return 1
+	}
+	ds, err := netutil.IsDualStack(ac, false)
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("error determining if agent is running in dual-stack mode: %s", err.Error()))
+		return 1
+	}
+
+	err = iptables.Setup(cfg, ds)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error setting up traffic redirection rules: %s", err.Error()))
 		return 1

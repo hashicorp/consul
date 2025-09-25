@@ -6,8 +6,9 @@ package dns
 import (
 	"context"
 	"fmt"
-	agentdns "github.com/hashicorp/consul/agent/dns"
 	"net"
+
+	agentdns "github.com/hashicorp/consul/agent/dns"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/miekg/dns"
