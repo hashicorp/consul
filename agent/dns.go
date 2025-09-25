@@ -11,6 +11,7 @@ import (
 	"math"
 	"net"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -2114,7 +2115,7 @@ func (d *DNSServer) addServiceSRVRecordsToMessage(cfg *dnsRequestConfig, lookup 
 		}
 
 		servicePort := d.agent.TranslateServicePort(lookup.Datacenter, port, node.Service.TaggedAddresses)
-		tuple := fmt.Sprintf("%s:%s:%d", node.Node.Node, serviceAddress, servicePort)
+		tuple := fmt.Sprintf("%s:%s", node.Node.Node, net.JoinHostPort(serviceAddress, strconv.Itoa(servicePort)))
 		if _, ok := handled[tuple]; ok {
 			continue
 		}
