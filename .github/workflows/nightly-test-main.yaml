@@ -19,14 +19,26 @@ jobs:
     steps:
       - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
         with:
-          ref: ${{ env.BRANCH }}
+          ref: ${{ env.GITHUB_BASE_REF }}
 
-      # Not necessary to use yarn, but enables caching
-      - uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+      - name: Install PNPM
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
         with:
-          node-version: 20
-          cache: 'yarn'
-          cache-dependency-path: ./ui/yarn.lock
+            run_install: false
+            package_json_file: ui/package.json
+            
+      - name: PNPM cache
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        id: pnpm-cache
+        env:
+          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
+        with:
+            path: |
+              ./ui/node_modules
+              ./ui/packages/consul-ui/node_modules
+            key: pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+            restore-keys: |
+              pnpm-store-
 
       - name: Install
         id: install
@@ -51,14 +63,26 @@ jobs:
     steps:
       - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
         with:
-          ref: ${{ env.BRANCH }}
+          ref: ${{ env.GITHUB_BASE_REF }}
 
-      # Not necessary to use yarn, but enables caching
-      - uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+      - name: Install PNPM
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
         with:
-          node-version: 20
-          cache: 'yarn'
-          cache-dependency-path: ./ui/yarn.lock
+            run_install: false
+            package_json_file: ui/package.json
+            
+      - name: PNPM cache
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        id: pnpm-cache
+        env:
+          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
+        with:
+            path: |
+              ./ui/node_modules
+              ./ui/packages/consul-ui/node_modules
+            key: pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+            restore-keys: |
+              pnpm-store-
 
       - name: Install
         id: install
@@ -73,7 +97,7 @@ jobs:
       - name: Upload CE Frontend
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         with:
-          name: frontend-ce-${{ env.BRANCH_NAME }}
+          name: frontend-ce-${{ env.GITHUB_BASE_REF }}
           path: ./ui/packages/consul-ui/dist
           if-no-files-found: error
 
@@ -90,7 +114,7 @@ jobs:
     steps:
       - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
         with:
-          ref: ${{ env.BRANCH }}
+          ref: ${{ env.GITHUB_BASE_REF }}
 
       # Not necessary to use yarn, but enables caching
       - uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
