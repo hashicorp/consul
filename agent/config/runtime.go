@@ -1541,7 +1541,8 @@ type LicenseConfig struct {
 }
 
 type ReportingConfig struct {
-	License LicenseConfig
+	License               LicenseConfig
+	SnapshotRetentionTime time.Duration
 }
 
 type AutoConfig struct {

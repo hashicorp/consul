@@ -31,6 +31,12 @@ func (s *Server) SetSystemMetadataKey(key, val string) error {
 	return err
 }
 
+func (s *Server) ApplyCensusRequest(req *structs.CensusRequest) error {
+	// TODO(rpc-metrics-improv): dedicated metrics label for reporting/manual snapshot operations
+	_, err := s.leaderRaftApply("Reporting.Census", structs.CensusRequestType, req)
+	return err
+}
+
 func (s *Server) deleteSystemMetadataKey(key string) error {
 	args := &structs.SystemMetadataRequest{
 		Op:    structs.SystemMetadataDelete,

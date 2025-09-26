@@ -105,6 +105,7 @@ import (
 	"github.com/hashicorp/consul/command/operator/raft/transferleader"
 	"github.com/hashicorp/consul/command/operator/usage"
 	"github.com/hashicorp/consul/command/operator/usage/instances"
+	operutil "github.com/hashicorp/consul/command/operator/utilization"
 	"github.com/hashicorp/consul/command/peering"
 	peerdelete "github.com/hashicorp/consul/command/peering/delete"
 	peerestablish "github.com/hashicorp/consul/command/peering/establish"
@@ -252,6 +253,7 @@ func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 		entry{"operator raft transfer-leader", func(ui cli.Ui) (cli.Command, error) { return transferleader.New(ui), nil }},
 		entry{"operator usage", func(ui cli.Ui) (cli.Command, error) { return usage.New(), nil }},
 		entry{"operator usage instances", func(ui cli.Ui) (cli.Command, error) { return instances.New(ui), nil }},
+		entry{"operator utilization", func(ui cli.Ui) (cli.Command, error) { return operutil.New(ui), nil }},
 		entry{"peering", func(cli.Ui) (cli.Command, error) { return peering.New(), nil }},
 		entry{"peering delete", func(ui cli.Ui) (cli.Command, error) { return peerdelete.New(ui), nil }},
 		entry{"peering exported-services", func(ui cli.Ui) (cli.Command, error) { return peerexported.New(ui), nil }},

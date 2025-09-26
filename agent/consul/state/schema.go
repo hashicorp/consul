@@ -48,6 +48,7 @@ func newDBSchema() *memdb.DBSchema {
 		tokensTableSchema,
 		tombstonesTableSchema,
 		usageTableSchema,
+		censusTableSchema,
 	)
 	withEnterpriseSchema(db)
 	return db
