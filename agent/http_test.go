@@ -113,7 +113,11 @@ func TestHTTPServer_UnixSocket_FileExists(t *testing.T) {
 		t.SkipNow()
 	}
 
-	tempDir := testutil.TempDir(t, "consul")
+	tempDir, err := os.MkdirTemp("", "consul_sock_test_")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
 	socket := filepath.Join(tempDir, "test.sock")
 
 	// Create a regular file at the socket path
@@ -1818,7 +1822,11 @@ func TestHTTPServer_HandshakeTimeout(t *testing.T) {
 		buf := make([]byte, 10)
 		_, err = conn.Read(buf)
 		require.Error(r, err)
-		require.Contains(r, err.Error(), "EOF")
+		// After adding timeouts to prevent slowloris attacks, the connection
+		// times out with "i/o timeout" instead of "EOF"
+		if !strings.Contains(err.Error(), "EOF") && !strings.Contains(err.Error(), "i/o timeout") {
+			r.Errorf("Expected connection to be closed with EOF or i/o timeout, got: %v", err)
+		}
 	})
 }
 
