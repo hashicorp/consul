@@ -26,6 +26,10 @@ func (rm *ReportingManager) StopReportingAgent() error {
 	return nil
 }
 
-func (m *ReportingManager) Run(ctx context.Context) {
+func (rm *ReportingManager) RunMetricsWriter(ctx context.Context) {
+	// no op
+}
+
+func (rm *ReportingManager) RunManualSnapshotWriter(ctx context.Context) {
 	// no op
 }
