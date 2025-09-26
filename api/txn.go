@@ -167,7 +167,7 @@ type CheckTxnOp struct {
 type CensusOp string
 
 const (
-	CensusPut CensusOp = "put"
+	CensusPut   CensusOp = "put"
 	CensusPrune CensusOp = "prune"
 )
 

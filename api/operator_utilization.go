@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package api
 
 import (
@@ -11,7 +14,6 @@ type Census struct {
 
 // UtilizationBundleRequest configures generation of a census utilization bundle.
 type UtilizationBundleRequest struct {
-	CustomerID string
 	Message    string
 	TodayOnly  bool
 	SendReport bool
@@ -21,18 +23,15 @@ func (c *Client) Census() *Census {
 	return &Census{c}
 }
 
-// UtilizationBundle generates a census utilization bundle by calling the
+// Utilization generates a census utilization bundle by calling the
 // /v1/operator/utilization endpoint. The returned byte slice contains the bundle
 // JSON payload suitable for saving to disk or further processing.
-func (c *Census) UtilizationBundle(req *UtilizationBundleRequest, q *QueryOptions) ([]byte, *QueryMeta, error) {
+func (c *Census) Utilization(req *UtilizationBundleRequest, q *QueryOptions) ([]byte, *QueryMeta, error) {
 	r := c.client.newRequest("GET", "/v1/operator/utilization")
 	if q != nil {
 		r.setQueryOptions(q)
 	}
 	if req != nil {
-		if req.CustomerID != "" {
-			r.params.Set("customer_id", req.CustomerID)
-		}
 		if req.Message != "" {
 			r.params.Set("message", req.Message)
 		}
