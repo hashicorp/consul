@@ -5,6 +5,7 @@
 
 /* eslint-env node */
 /*eslint node/no-extraneous-require: "off"*/
+/*eslint node/no-missing-require: "off"*/
 'use strict';
 //
 const $ = process.env;
