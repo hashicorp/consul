@@ -17,7 +17,7 @@ the README that is in `./packages/consul-ui/README.md`.**
 
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
-- [Yarn Commands](#yarn-commands)
+- [Pnpm Commands](#pnpm-commands)
 - [Contributing](#contributing)
   - [Building ToC](#building-toc)
 
@@ -29,26 +29,25 @@ You will need the following things properly installed on your computer.
 
 * [Git][git]
 * [Node.js][node]
-* [Yarn][yarn] installed globally
+* [Pnpm][pnpm] installed globally
 * [Google Chrome][chrome]
 * [Firefox][firefox]
 
 [git]: https://git-scm.com/
 [node]: https://nodejs.org/
-[yarn]: https://classic.yarnpkg.com/lang/en/
+[pnpm]: https://pnpm.io/
 [chrome]: https://google.com/chrome/
 [firefox]: https://firefox.com/
-[yarn-workspaces]: https://classic.yarnpkg.com/en/docs/workspaces/
 
 ## Installation
 
 * `git clone https://github.com/hashicorp/consul.git` this repository
 * `cd ui`
-* `yarn`
+* `pnpm i`
 
-## Yarn Commands
+## Pnpm Commands
 
-List of available project commands.  `yarn run <command-name>`
+List of available project commands.  `pnpm run <command-name>`
 
 | Command             | Description                        |
 |---------------------|------------------------------------|
@@ -60,5 +59,5 @@ List of available project commands.  `yarn run <command-name>`
 ### Building ToC
 
 To autogenerate a ToC (table of contents) for this README,
-run `yarn doc:toc`.  Please update the ToC whenever editing the structure
+run `pnpm doc:toc`.  Please update the ToC whenever editing the structure
 of README.
