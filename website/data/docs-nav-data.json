@@ -907,8 +907,16 @@
             "path": "manage/disaster-recovery/backup-restore"
           },
           {
+            "title": "Disaster preparation strategy",
+            "path": "manage/disaster-recovery/disaster-preparation"
+          },
+          {
+            "title": "Restore primary datacenter",
+            "path": "manage/disaster-recovery/restore-primary"
+          },
+          {
             "title": "Restore federated datacenters",
-            "path": "manage/disaster-recovery/federation"
+            "path": "manage/disaster-recovery/restore-federated"
           },
           {
             "title": "Reset ACL system",
