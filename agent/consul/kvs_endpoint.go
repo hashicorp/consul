@@ -211,7 +211,7 @@ func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) e
 
 			total := len(ent)
 			ent = FilterDirEnt(authz, ent)
-			reply.QueryMeta.ResultsFilteredByACLs = total != len(ent)
+			reply.ResultsFilteredByACLs = total != len(ent)
 
 			if len(ent) == 0 {
 				// Must provide non-zero index to prevent blocking
@@ -274,7 +274,7 @@ func (k *KVS) ListKeys(args *structs.KeyListRequest, reply *structs.IndexedKeyLi
 
 			total := len(entries)
 			entries = FilterDirEnt(authz, entries)
-			reply.QueryMeta.ResultsFilteredByACLs = total != len(entries)
+			reply.ResultsFilteredByACLs = total != len(entries)
 
 			// Collect the keys from the filtered entries
 			prefixLen := len(args.Prefix)

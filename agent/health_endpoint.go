@@ -45,12 +45,12 @@ RETRY_ONCE:
 	if err := s.agent.RPC(req.Context(), "Health.ChecksInState", &args, &out); err != nil {
 		return nil, err
 	}
-	if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
+	if args.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
 		args.AllowStale = false
 		args.MaxStaleDuration = 0
 		goto RETRY_ONCE
 	}
-	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
+	out.ConsistencyLevel = args.ConsistencyLevel()
 
 	// Use empty list instead of nil
 	if out.HealthChecks == nil {
@@ -89,12 +89,12 @@ RETRY_ONCE:
 	if err := s.agent.RPC(req.Context(), "Health.NodeChecks", &args, &out); err != nil {
 		return nil, err
 	}
-	if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
+	if args.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
 		args.AllowStale = false
 		args.MaxStaleDuration = 0
 		goto RETRY_ONCE
 	}
-	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
+	out.ConsistencyLevel = args.ConsistencyLevel()
 
 	// Use empty list instead of nil
 	if out.HealthChecks == nil {
@@ -135,12 +135,12 @@ RETRY_ONCE:
 	if err := s.agent.RPC(req.Context(), "Health.ServiceChecks", &args, &out); err != nil {
 		return nil, err
 	}
-	if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
+	if args.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
 		args.AllowStale = false
 		args.MaxStaleDuration = 0
 		goto RETRY_ONCE
 	}
-	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
+	out.ConsistencyLevel = args.ConsistencyLevel()
 
 	// Use empty list instead of nil
 	if out.HealthChecks == nil {
@@ -241,10 +241,10 @@ func (s *HTTPHandlers) healthServiceNodes(resp http.ResponseWriter, req *http.Re
 		return nil, err
 	}
 
-	if args.QueryOptions.UseCache {
+	if args.UseCache {
 		setCacheMeta(resp, &md)
 	}
-	out.QueryMeta.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
+	out.ConsistencyLevel = args.ConsistencyLevel()
 	_ = setMeta(resp, &out.QueryMeta)
 
 	// Translate addresses after filtering so we don't waste effort.
@@ -269,6 +269,10 @@ func (s *HTTPHandlers) healthServiceNodes(resp http.ResponseWriter, req *http.Re
 			clone := *out.Nodes[i].Service
 			clone.Tags = make([]string, 0)
 			out.Nodes[i].Service = &clone
+		}
+
+		if out.Nodes[i].Service != nil && out.Nodes[i].Service.Port == 0 && len(out.Nodes[i].Service.Ports) > 0 {
+			out.Nodes[i].Service.Port = out.Nodes[i].Service.DefaultPort()
 		}
 	}
 	return out.Nodes, nil

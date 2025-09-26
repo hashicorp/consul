@@ -5,8 +5,12 @@
 
 @charset 'utf-8';
 
+@use "ember-basic-dropdown.css"; // ember-basic-dropdown
+@use "ember-power-select"; // ember-power-select
+
 /* css for hds */
-@import '@hashicorp/design-system-components';
+@use "helpers/typography.css";
+@use '@hashicorp/design-system-components.css';
 
 /* all variables and custom queries including generic base variables */
 @import 'variables';
@@ -28,23 +32,4 @@
 /* but uses the contents of ./debug.scss during dev */
 @import '_debug';
 
-// Should be removed when we remove FlightIcons
-.w-4 {
-  width: 1rem;
-}
-
-.h-4 {
-  height: 1rem;
-}
-
-svg {
-  vertical-align: middle;
-}
-
-.mt-2 {
-    margin-top: .5rem;
-}
-
-.mb-3 {
-    margin-bottom: .75rem;
-}
+@import 'tailwind-like';

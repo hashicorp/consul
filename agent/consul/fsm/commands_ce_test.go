@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mitchellh/mapstructure"
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
@@ -1352,8 +1352,8 @@ func TestFSM_ConfigEntry(t *testing.T) {
 	{
 		_, config, err := fsm.state.ConfigEntry(nil, structs.ProxyDefaults, "global", nil)
 		require.NoError(t, err)
-		entry.RaftIndex.CreateIndex = 1
-		entry.RaftIndex.ModifyIndex = 1
+		entry.CreateIndex = 1
+		entry.ModifyIndex = 1
 		require.Equal(t, entry, config)
 	}
 }
@@ -1396,8 +1396,8 @@ func TestFSM_ConfigEntry_StatusCAS(t *testing.T) {
 	{
 		_, config, err := fsm.state.ConfigEntry(nil, structs.APIGateway, "global", nil)
 		require.NoError(t, err)
-		entry.RaftIndex.CreateIndex = 1
-		entry.RaftIndex.ModifyIndex = 1
+		entry.CreateIndex = 1
+		entry.ModifyIndex = 1
 		require.Equal(t, entry.DefaultStatus(), config.(*structs.APIGatewayConfigEntry).GetStatus())
 	}
 
@@ -1425,7 +1425,7 @@ func TestFSM_ConfigEntry_StatusCAS(t *testing.T) {
 	{
 		_, config, err := fsm.state.ConfigEntry(nil, structs.APIGateway, "global", nil)
 		require.NoError(t, err)
-		entry.RaftIndex.ModifyIndex = 2
+		entry.ModifyIndex = 2
 		conditions := config.(*structs.APIGatewayConfigEntry).Status.Conditions
 		require.Len(t, conditions, 1)
 		require.Equal(t, string(api.ConditionStatusTrue), conditions[0].Status)

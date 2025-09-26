@@ -13,6 +13,7 @@ import (
 
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/internal/gossip/librtt"
@@ -1080,7 +1081,7 @@ node "foo" {
 
 		// Register a service
 		args := structs.TestRegisterRequestProxy(t)
-		args.WriteRequest.Token = "root"
+		args.Token = "root"
 		args.Service.ID = "foo-proxy-0"
 		args.Service.Service = "foo-proxy"
 		args.Service.Proxy.DestinationServiceName = "bar"
@@ -1093,7 +1094,7 @@ node "foo" {
 
 		// Register a service
 		args = structs.TestRegisterRequestProxy(t)
-		args.WriteRequest.Token = "root"
+		args.Token = "root"
 		args.Service.Service = "foo-proxy"
 		args.Service.Proxy.DestinationServiceName = "foo"
 		args.Check = &structs.HealthCheck{
@@ -1105,7 +1106,7 @@ node "foo" {
 
 		// Register a service
 		args = structs.TestRegisterRequestProxy(t)
-		args.WriteRequest.Token = "root"
+		args.Token = "root"
 		args.Service.Service = "another-proxy"
 		args.Service.Proxy.DestinationServiceName = "foo"
 		args.Check = &structs.HealthCheck{
@@ -1141,6 +1142,7 @@ node "foo" {
 }
 
 func TestHealth_ServiceNodes_Gateway(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -1525,7 +1527,7 @@ func TestHealth_NodeChecks_FilterACL(t *testing.T) {
 		}
 	}
 	require.True(t, found, "bad: %#v", reply.HealthChecks)
-	require.True(t, reply.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+	require.True(t, reply.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 
 	const bexprMatchingUserTokenPermissions = "ServiceName matches `f.*`"
 	const bexprNotMatchingUserTokenPermissions = "ServiceName matches `b.*`"
@@ -1620,7 +1622,7 @@ func TestHealth_ServiceChecks_FilterACL(t *testing.T) {
 	err = msgpackrpc.CallWithCodec(codec, "Health.ServiceChecks", &opt, &reply)
 	require.NoError(t, err)
 	require.Empty(t, reply.HealthChecks)
-	require.True(t, reply.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+	require.True(t, reply.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 
 	// Register a service of the same name on the denied node
 	regArg := structs.RegisterRequest{
@@ -1722,7 +1724,7 @@ func TestHealth_ServiceNodes_FilterACL(t *testing.T) {
 	err = msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &opt, &reply)
 	require.NoError(t, err)
 	require.Empty(t, reply.Nodes)
-	require.True(t, reply.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+	require.True(t, reply.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 
 	// Register a service of the same name on the denied node
 	regArg := structs.RegisterRequest{
@@ -1828,7 +1830,7 @@ func TestHealth_ChecksInState_FilterACL(t *testing.T) {
 		}
 	}
 	require.True(t, found, "missing service 'foo': %#v", reply.HealthChecks)
-	require.True(t, reply.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+	require.True(t, reply.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 
 	const bexprMatchingUserTokenPermissions = "ServiceName matches `f.*`"
 	const bexprNotMatchingUserTokenPermissions = "ServiceName matches `b.*`"

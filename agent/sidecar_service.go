@@ -8,12 +8,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/consul/ipaddr"
-
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/ipaddr"
 )
 
-const sidecarIDSuffix = structs.SidecarProxySuffix
+const (
+	sidecarIDSuffix    = structs.SidecarProxySuffix
+	defaultIPv4Address = "127.0.0.1"
+	defaultIPv6Address = "::1"
+)
 
 func sidecarIDFromServiceID(serviceID string) string {
 	return serviceID + sidecarIDSuffix
@@ -123,7 +127,12 @@ func sidecarServiceFromNodeService(ns *structs.NodeService, token string) (*stru
 			sidecar.Proxy.LocalServiceSocketPath = ns.SocketPath
 		} else {
 			if sidecar.Proxy.LocalServiceAddress == "" {
-				sidecar.Proxy.LocalServiceAddress = "127.0.0.1"
+				dualStack, _ := netutil.IsDualStack(nil, true)
+				if dualStack {
+					sidecar.Proxy.LocalServiceAddress = defaultIPv6Address
+				} else {
+					sidecar.Proxy.LocalServiceAddress = defaultIPv4Address
+				}
 			}
 			if sidecar.Proxy.LocalServicePort < 1 {
 				sidecar.Proxy.LocalServicePort = ns.Port

@@ -254,7 +254,7 @@ type ConnectProxyConfig struct {
 
 	// LocalServiceAddress is the address of the local service instance. It is
 	// optional and should only be specified for "side-car" style proxies. It will
-	// default to 127.0.0.1 if the proxy is a "side-car" (DestinationServiceID is
+	// default to 127.0.0.1 or ::1 if the proxy is a "side-car" (DestinationServiceID is
 	// set) but otherwise will be ignored.
 	LocalServiceAddress string `json:",omitempty" alias:"local_service_address"`
 
@@ -373,7 +373,7 @@ func (c *ConnectProxyConfig) MarshalJSON() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	out.Alias.Config = proxyConfig
+	out.Config = proxyConfig
 
 	if !c.TransparentProxy.IsZero() {
 		out.TransparentProxy = &out.Alias.TransparentProxy
@@ -460,7 +460,8 @@ type Upstream struct {
 	Datacenter string
 
 	// LocalBindAddress is the ip address a side-car proxy should listen on for
-	// traffic destined for this upstream service. Default if empty is 127.0.0.1.
+	// traffic destined for this upstream service. Default if empty is 127.0.0.1 for IPv4
+	// or ::1 if IPv6 agent bind address.
 	LocalBindAddress string `json:",omitempty" alias:"local_bind_address"`
 
 	// LocalBindPort is the ip address a side-car proxy should listen on for traffic
@@ -718,9 +719,7 @@ func (e ExposeConfig) Clone() ExposeConfig {
 	e2 := e
 	if len(e.Paths) > 0 {
 		e2.Paths = make([]ExposePath, 0, len(e.Paths))
-		for _, p := range e.Paths {
-			e2.Paths = append(e2.Paths, p)
-		}
+		e2.Paths = append(e2.Paths, e.Paths...)
 	}
 	return e2
 }

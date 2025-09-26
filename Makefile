@@ -10,15 +10,15 @@ GO_MODULES := $(shell find . -name go.mod -exec dirname {} \; | grep -v "proto-g
 # These version variables can either be a valid string for "go install <module>@<version>"
 # or the string @DEV to imply use what is currently installed locally.
 ###
-GOLANGCI_LINT_VERSION='v1.64.8'
-MOCKERY_VERSION='v2.53.4'
-BUF_VERSION='v1.26.0'
+GOLANGCI_LINT_VERSION='v2.4.0'
+MOCKERY_VERSION='v3.5.2'
+BUF_VERSION='v1.56.0'
 
-PROTOC_GEN_GO_GRPC_VERSION='v1.2.0'
-MOG_VERSION='74a24e5f2782c2421cc6335c478686f62e9a0688'
+PROTOC_GEN_GO_GRPC_VERSION='v1.5.1'
+MOG_VERSION='ee61dbb3714674e897406d364d14c6d2e6b2e89f'
 PROTOC_GO_INJECT_TAG_VERSION='v1.3.0'
 PROTOC_GEN_GO_BINARY_VERSION='v0.1.0'
-DEEP_COPY_VERSION='e112476c0181d3d69067bac191f9b6bcda2ce812'
+DEEP_COPY_VERSION='dc4a8d91ed65656858cd53e6e83bbf7b83d5b7cb'
 COPYWRITE_TOOL_VERSION='v0.16.4'
 LINT_CONSUL_RETRY_VERSION='v1.4.0'
 # Go imports formatter
@@ -479,7 +479,7 @@ test-connect-ca-providers: ## Running /agent/connect/ca tests in verbose mode
 ui: ui-docker ## Build the static web ui inside a Docker container. For local testing only; do not commit these assets.
 
 .PHONY: ui-regen
-ui-regen: ## Build the static web ui with yarn. This is the version to commit.
+ui-regen: ## Build the static web ui. This is the version to commit.
 	cd $(CURDIR)/ui && make && cd ..
 	rm -rf $(CURDIR)/agent/uiserver/dist
 	mv $(CURDIR)/ui/packages/consul-ui/dist $(CURDIR)/agent/uiserver/

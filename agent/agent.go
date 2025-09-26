@@ -54,6 +54,7 @@ import (
 	"github.com/hashicorp/consul/agent/hcp/scada"
 	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/local"
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	proxycfgglue "github.com/hashicorp/consul/agent/proxycfg-glue"
 	catalogproxycfg "github.com/hashicorp/consul/agent/proxycfg-sources/catalog"
@@ -870,6 +871,8 @@ func (a *Agent) Start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
+	netutil.SetAgentBindAddr(a.config.BindAddr)
 
 	// Start HTTP and HTTPS servers.
 	for _, srv := range servers {
@@ -2366,6 +2369,7 @@ func (a *Agent) addServiceLocked(req addServiceLockedRequest) error {
 			if err != nil {
 				return err
 			}
+
 			req.Service.Port = port
 		}
 		// Setup default check if none given.
@@ -2374,7 +2378,7 @@ func (a *Agent) addServiceLocked(req addServiceLockedRequest) error {
 		}
 	}
 
-	req.Service.EnterpriseMeta.Normalize()
+	req.Service.Normalize()
 
 	if err := a.validateService(req.Service, req.chkTypes); err != nil {
 		return err
@@ -2448,17 +2452,18 @@ func (a *Agent) addServiceInternal(req addServiceInternalRequest) error {
 	if service.TaggedAddresses == nil {
 		service.TaggedAddresses = map[string]structs.ServiceAddress{}
 	}
+
 	if _, ok := service.TaggedAddresses[structs.TaggedAddressLANIPv4]; !ok && serviceAddressIs4 {
-		service.TaggedAddresses[structs.TaggedAddressLANIPv4] = structs.ServiceAddress{Address: service.Address, Port: service.Port}
+		service.TaggedAddresses[structs.TaggedAddressLANIPv4] = structs.ServiceAddress{Address: service.Address, Port: service.DefaultPort()}
 	}
 	if _, ok := service.TaggedAddresses[structs.TaggedAddressWANIPv4]; !ok && serviceAddressIs4 {
-		service.TaggedAddresses[structs.TaggedAddressWANIPv4] = structs.ServiceAddress{Address: service.Address, Port: service.Port}
+		service.TaggedAddresses[structs.TaggedAddressWANIPv4] = structs.ServiceAddress{Address: service.Address, Port: service.DefaultPort()}
 	}
 	if _, ok := service.TaggedAddresses[structs.TaggedAddressLANIPv6]; !ok && serviceAddressIs6 {
-		service.TaggedAddresses[structs.TaggedAddressLANIPv6] = structs.ServiceAddress{Address: service.Address, Port: service.Port}
+		service.TaggedAddresses[structs.TaggedAddressLANIPv6] = structs.ServiceAddress{Address: service.Address, Port: service.DefaultPort()}
 	}
 	if _, ok := service.TaggedAddresses[structs.TaggedAddressWANIPv6]; !ok && serviceAddressIs6 {
-		service.TaggedAddresses[structs.TaggedAddressWANIPv6] = structs.ServiceAddress{Address: service.Address, Port: service.Port}
+		service.TaggedAddresses[structs.TaggedAddressWANIPv6] = structs.ServiceAddress{Address: service.Address, Port: service.DefaultPort()}
 	}
 
 	var checks []*structs.HealthCheck
@@ -2661,6 +2666,20 @@ func (a *Agent) validateService(service *structs.NodeService, chkTypes []*struct
 		)
 	}
 
+	if len(service.Ports) > 0 && service.Port != 0 {
+		return fmt.Errorf("Both port and ports cannot be set")
+	}
+
+	if err := service.Ports.Validate(); err != nil {
+		return err
+	}
+
+	for _, port := range service.Ports {
+		if libdns.InvalidNameRe.MatchString(port.Name) {
+			a.logger.Warn("Service Port with name %s will not be discoverable via DNS due to invalid characters. Valid characters include all alpha-numerics and dashes.", port.Name)
+		}
+	}
+
 	// Warn if any tags are incompatible with DNS
 	for _, tag := range service.Tags {
 		if libdns.InvalidNameRe.MatchString(tag) {
@@ -2855,7 +2874,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 func (a *Agent) addCheckLocked(check *structs.HealthCheck, chkType *structs.CheckType, persist bool, token string, source configSource) error {
 	var service *structs.NodeService
 
-	check.EnterpriseMeta.Normalize()
+	check.Normalize()
 
 	if check.ServiceID != "" {
 		cid := check.CompoundServiceID()
@@ -3630,7 +3649,7 @@ func (a *Agent) storePid() error {
 
 	// Write out the PID
 	pid := os.Getpid()
-	_, err = pidFile.WriteString(fmt.Sprintf("%d", pid))
+	_, err = fmt.Fprintf(pidFile, "%d", pid)
 	if err != nil {
 		return fmt.Errorf("Could not write to pid file: %s", err)
 	}
@@ -3674,8 +3693,8 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 	// Register the services from config
 	for _, service := range conf.Services {
 		// Default service partition to the same as agent
-		if service.EnterpriseMeta.PartitionOrEmpty() == "" {
-			service.EnterpriseMeta.OverridePartition(a.AgentEnterpriseMeta().PartitionOrDefault())
+		if service.PartitionOrEmpty() == "" {
+			service.OverridePartition(a.AgentEnterpriseMeta().PartitionOrDefault())
 		}
 
 		ns := service.NodeService()
@@ -3801,7 +3820,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 		} else if !acl.EqualPartitions(a.AgentEnterpriseMeta().PartitionOrDefault(), p.Service.PartitionOrDefault()) {
 			a.logger.Info("Purging service file in wrong partition",
 				"file", file,
-				"partition", p.Service.EnterpriseMeta.PartitionOrDefault(),
+				"partition", p.Service.PartitionOrDefault(),
 			)
 			if err := os.Remove(file); err != nil {
 				a.logger.Error("Failed purging service file",
@@ -4216,10 +4235,8 @@ func revertStaticConfig(oldCfg tlsutil.ProtocolConfig, newCfg tlsutil.ProtocolCo
 	newOldcfg := newCfg
 	newOldcfg.CertFile = oldCfg.CertFile
 	newOldcfg.KeyFile = oldCfg.KeyFile
-	if !reflect.DeepEqual(newOldcfg, oldCfg) {
-		return true
-	}
-	return false
+
+	return !reflect.DeepEqual(newOldcfg, oldCfg)
 }
 
 // reloadConfigInternal is mainly needed for some unit tests. Instead of parsing

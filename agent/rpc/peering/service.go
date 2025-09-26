@@ -205,7 +205,7 @@ func (s *Server) GenerateToken(
 	ctx context.Context,
 	req *pbpeering.GenerateTokenRequest,
 ) (*pbpeering.GenerateTokenResponse, error) {
-	if !s.Config.PeeringEnabled {
+	if !s.PeeringEnabled {
 		return nil, peeringNotEnabledErr
 	}
 
@@ -338,7 +338,7 @@ func (s *Server) GenerateToken(
 		Remote: structs.PeeringTokenRemote{
 			Partition:  req.PartitionOrDefault(),
 			Datacenter: s.Datacenter,
-			Locality:   s.Config.Locality,
+			Locality:   s.Locality,
 		},
 	}
 
@@ -357,7 +357,7 @@ func (s *Server) Establish(
 	ctx context.Context,
 	req *pbpeering.EstablishRequest,
 ) (*pbpeering.EstablishResponse, error) {
-	if !s.Config.PeeringEnabled {
+	if !s.PeeringEnabled {
 		return nil, peeringNotEnabledErr
 	}
 
@@ -606,7 +606,7 @@ func retryExchange(ctx context.Context, req *pbpeerstream.ExchangeSecretRequest,
 // storage Index, which does not include the hydrated state from reconcilePeering, including
 // the Active state and the count of imported/exported services.
 func (s *Server) PeeringRead(ctx context.Context, req *pbpeering.PeeringReadRequest) (*pbpeering.PeeringReadResponse, error) {
-	if !s.Config.PeeringEnabled {
+	if !s.PeeringEnabled {
 		return nil, peeringNotEnabledErr
 	}
 
@@ -684,7 +684,7 @@ func (s *Server) PeeringRead(ctx context.Context, req *pbpeering.PeeringReadRequ
 // storage Index, which does not include the hydrated state from reconcilePeering, including
 // the Active state and the count of imported/exported services.
 func (s *Server) PeeringList(ctx context.Context, req *pbpeering.PeeringListRequest) (*pbpeering.PeeringListResponse, error) {
-	if !s.Config.PeeringEnabled {
+	if !s.PeeringEnabled {
 		return nil, peeringNotEnabledErr
 	}
 
@@ -811,7 +811,7 @@ func (s *Server) reconcilePeering(peering *pbpeering.Peering) *pbpeering.Peering
 // TODO(peering): As of writing, this method is only used in tests to set up Peerings in the state store.
 // Consider removing if we can find another way to populate state store in peering_endpoint_test.go
 func (s *Server) PeeringWrite(ctx context.Context, req *pbpeering.PeeringWriteRequest) (*pbpeering.PeeringWriteResponse, error) {
-	if !s.Config.PeeringEnabled {
+	if !s.PeeringEnabled {
 		return nil, peeringNotEnabledErr
 	}
 
@@ -875,7 +875,7 @@ func (s *Server) PeeringWrite(ctx context.Context, req *pbpeering.PeeringWriteRe
 }
 
 func (s *Server) PeeringDelete(ctx context.Context, req *pbpeering.PeeringDeleteRequest) (*pbpeering.PeeringDeleteResponse, error) {
-	if !s.Config.PeeringEnabled {
+	if !s.PeeringEnabled {
 		return nil, peeringNotEnabledErr
 	}
 
@@ -954,7 +954,7 @@ func (s *Server) PeeringDelete(ctx context.Context, req *pbpeering.PeeringDelete
 }
 
 func (s *Server) TrustBundleRead(ctx context.Context, req *pbpeering.TrustBundleReadRequest) (*pbpeering.TrustBundleReadResponse, error) {
-	if !s.Config.PeeringEnabled {
+	if !s.PeeringEnabled {
 		return nil, peeringNotEnabledErr
 	}
 
@@ -1032,7 +1032,7 @@ func (s *Server) TrustBundleRead(ctx context.Context, req *pbpeering.TrustBundle
 
 // TODO(peering): rename rpc & request/response to drop the "service" part
 func (s *Server) TrustBundleListByService(ctx context.Context, req *pbpeering.TrustBundleListByServiceRequest) (*pbpeering.TrustBundleListByServiceResponse, error) {
-	if !s.Config.PeeringEnabled {
+	if !s.PeeringEnabled {
 		return nil, peeringNotEnabledErr
 	}
 

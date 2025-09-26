@@ -6149,6 +6149,183 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.EnableDebug = true
 		},
 	})
+	// Multi Port Test Cases
+	run(t, testCase{
+		desc: "multi_port with ports",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{
+			`
+			{
+				"service": [
+					{
+					"name": "test1",
+					"id": "test1",
+					"ports": [
+						{
+							"name": "http",
+							"port": 8080,
+							"default": false
+						},
+						{
+							"name": "metrics",
+							"port": 9090,
+							"default": true
+						}
+					]
+					} 
+				]
+			}
+			`,
+		},
+		hcl: []string{
+			`
+			service {
+				name = "test1"
+				id = "test1"
+				ports = [
+					{
+						name = "http"
+						port = 8080
+						default = false
+					},
+					{
+						name = "metrics"
+						port = 9090
+						default = true
+					}
+				]
+			}
+			`,
+		},
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+			rt.Services = []*structs.ServiceDefinition{
+				{
+					Name: "test1",
+					ID:   "test1",
+					Ports: []structs.ServicePort{
+						{
+							Name:    "http",
+							Port:    8080,
+							Default: false,
+						},
+						{
+							Name:    "metrics",
+							Port:    9090,
+							Default: true,
+						},
+					},
+					Weights: &structs.Weights{Passing: 1, Warning: 1},
+				},
+			}
+		},
+	})
+	run(t, testCase{
+		desc: "multi_port without default should error",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{
+			`
+			{
+				"service": [
+					{
+					"name": "test1",
+					"id": "test1",
+					"port": 8080,
+					"ports": [
+						{
+							"name": "http",
+							"port": 8080,
+							"default": false
+						},
+						{
+							"name": "metrics",
+							"port": 9090,
+							"default": false
+						}
+					]
+					} 
+				]
+			}
+			`,
+		},
+		hcl: []string{
+			`
+			service {
+				name = "test1"
+				id = "test1"
+				port = 8080
+				ports = [
+					{
+						name = "http"
+						port = 8080
+						default = false
+					},
+					{
+						name = "metrics"
+						port = 9090
+						default = false
+					}
+				]
+			}
+			`,
+		},
+		expectedErr: "One of the Ports must be marked as Default",
+	})
+	run(t, testCase{
+		desc: "multi_port port names must be unique",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{
+			`
+			{
+				"service": [
+					{
+					"name": "test1",
+					"id": "test1",
+					"ports": [
+						{
+							"name": "http",
+							"port": 8080,
+							"default": false
+						},
+						{
+							"name": "http",
+							"port": 9090,
+							"default": true
+						}
+					]
+					} 
+				]
+			}
+			`,
+		},
+		hcl: []string{
+			`
+			service {
+				name = "test1"
+				id = "test1"
+				ports = [
+					{
+						name = "http"
+						port = 8080
+						default = false
+					},
+					{
+						name = "http"
+						port = 9090
+						default = true
+					}
+				]
+			}
+			`,
+		},
+		expectedErr: "Ports.Name \"http\" has to be unique",
+	})
 }
 
 func (tc testCase) run(format string, dataDir string) func(t *testing.T) {
@@ -6814,6 +6991,30 @@ func TestLoad_FullConfig(t *testing.T) {
 					Passing: 1,
 					Warning: 1,
 				},
+			},
+			{
+				ID:      "AI1d2xY4",
+				Name:    "discovery-multi-port",
+				Tags:    []string{"0Zwg8l6v", "zebELdN5"},
+				Address: "9RhAPlPB",
+				Token:   "myjKJkWH",
+				Weights: &structs.Weights{
+					Passing: 1,
+					Warning: 1,
+				},
+				Ports: structs.ServicePorts{
+					{
+						Name:    "http",
+						Port:    8080,
+						Default: true,
+					},
+					{
+						Name:    "admin",
+						Port:    9090,
+						Default: false,
+					},
+				},
+				EnableTagOverride: true,
 			},
 			{
 				ID:   "dLOXpSCI",

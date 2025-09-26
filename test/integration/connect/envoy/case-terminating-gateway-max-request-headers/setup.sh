@@ -1,0 +1,35 @@
+#!/bin/bash
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: BUSL-1.1
+
+set -euo pipefail
+
+# Configure service defaults for s2 with max_request_headers_kb
+upsert_config_entry primary '
+kind = "service-defaults"
+name = "s2"
+protocol = "http"
+MaxRequestHeadersKB = 96
+'
+
+# Wait for the service-defaults to be available (important for client mode)
+wait_for_config_entry service-defaults s2 primary
+
+# Configure terminating gateway
+upsert_config_entry primary '
+kind = "terminating-gateway"
+name = "terminating-gateway"
+services = [
+  {
+    name = "s2"
+  }
+]
+'
+
+# Wait for the terminating-gateway config to be available (important for client mode)
+wait_for_config_entry terminating-gateway terminating-gateway primary
+
+register_services primary
+
+gen_envoy_bootstrap terminating-gateway 20000 primary true
+gen_envoy_bootstrap s1 19000

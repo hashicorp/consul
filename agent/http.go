@@ -24,7 +24,7 @@ import (
 	"github.com/NYTimes/gziphandler"
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
-	"github.com/mitchellh/mapstructure"
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -191,7 +191,7 @@ func (s *HTTPHandlers) handler() http.Handler {
 		// Omit the leading slash.
 		// Distinguish thing like /v1/query from /v1/query/<query_id> by having
 		// an extra underscore.
-		path_label := strings.Replace(pattern[1:], "/", "_", -1)
+		path_label := strings.ReplaceAll(pattern[1:], "/", "_")
 
 		// Register the wrapper.
 		wrapper := func(resp http.ResponseWriter, req *http.Request) {
@@ -426,7 +426,7 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 					logURL += "<hidden>"
 					continue
 				}
-				logURL = strings.Replace(logURL, token, "<hidden>", -1)
+				logURL = strings.ReplaceAll(logURL, token, "<hidden>")
 			}
 			httpLogger.Warn("This request used the token query parameter "+
 				"which is deprecated and will be removed in a future Consul version",
@@ -886,7 +886,7 @@ func setResultsFilteredByACLs(resp http.ResponseWriter, filtered bool) {
 // setHeaders is used to set canonical response header fields
 func setHeaders(resp http.ResponseWriter, headers map[string]string) {
 	for field, value := range headers {
-		resp.Header().Set(http.CanonicalHeaderKey(field), value)
+		resp.Header().Set(field, value)
 	}
 }
 
@@ -1040,14 +1040,6 @@ func (s *HTTPHandlers) parseConsistency(resp http.ResponseWriter, req *http.Requ
 	return false
 }
 
-// parseConsistencyReadRequest is used to parse the ?consistent query param.
-func parseConsistencyReadRequest(resp http.ResponseWriter, req *http.Request, b *pbcommon.ReadRequest) {
-	query := req.URL.Query()
-	if _, ok := query["consistent"]; ok {
-		b.RequireConsistent = true
-	}
-}
-
 // parseDC is used to parse the datacenter from the query params.
 // ?datacenter has precedence over ?dc.
 func (s *HTTPHandlers) parseDC(req *http.Request, dc *string) {
@@ -1073,7 +1065,6 @@ func (s *HTTPHandlers) parseTokenInternal(req *http.Request, token *string) {
 	}
 
 	*token = ""
-	return
 }
 
 func (s *HTTPHandlers) parseTokenFromHeaders(req *http.Request, token *string) bool {
@@ -1119,9 +1110,7 @@ func (s *HTTPHandlers) parseTokenWithDefault(req *http.Request, token *string) {
 	s.parseTokenInternal(req, token) // parseTokenInternal modifies *token
 	if token != nil && *token == "" {
 		*token = s.agent.tokens.UserToken()
-		return
 	}
-	return
 }
 
 // parseToken is used to parse the ?token query param or the X-Consul-Token header or

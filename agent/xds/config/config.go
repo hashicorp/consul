@@ -10,7 +10,7 @@ import (
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	"google.golang.org/protobuf/types/known/durationpb"
 
-	"github.com/mitchellh/mapstructure"
+	"github.com/go-viper/mapstructure/v2"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/hashicorp/consul/agent/structs"
@@ -122,6 +122,10 @@ type ProxyConfig struct {
 	// BalanceInboundConnections indicates how the proxy should attempt to distribute
 	// connections across worker threads. Only used by envoy proxies.
 	BalanceInboundConnections string `json:",omitempty" alias:"balance_inbound_connections"`
+
+	// MaxRequestHeadersKB configures the maximum size in kilobytes for request headers
+	// sent from downstream clients to upstream services. If not set, uses Envoy's default.
+	MaxRequestHeadersKB *uint32 `json:",omitempty" mapstructure:"max_request_headers_kb"`
 }
 
 // ParseProxyConfig returns the ProxyConfig parsed from the an opaque map. If an

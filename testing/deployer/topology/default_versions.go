@@ -6,8 +6,8 @@
 package topology
 
 const (
-    DefaultConsulCEImage         = "hashicorp/consul:1.21.3"
-    DefaultConsulEnterpriseImage = "hashicorp/consul-enterprise:1.21.3-ent"
-    DefaultEnvoyImage            = "envoyproxy/envoy:v1.34.1"
-    DefaultDataplaneImage        = "hashicorp/consul-dataplane:1.8.0"
+	DefaultConsulCEImage         = "hashicorp/consul:1.21.4"
+	DefaultConsulEnterpriseImage = "hashicorp/consul-enterprise:1.21.4-ent"
+	DefaultEnvoyImage            = "envoyproxy/envoy:v1.35.3"
+	DefaultDataplaneImage        = "hashicorp/consul-dataplane:1.8.1"
 )

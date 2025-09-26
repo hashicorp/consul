@@ -871,7 +871,8 @@ function gen_envoy_bootstrap {
   if output=$(docker_consul_for_proxy_bootstrap "$DC" connect envoy -bootstrap \
     -proxy-id $PROXY_ID \
     -envoy-version "$ENVOY_VERSION" \
-    -admin-bind 0.0.0.0:$ADMIN_PORT ${EXTRA_ENVOY_BS_ARGS} 2>&1); then
+    -admin-bind 0.0.0.0:$ADMIN_PORT \
+    -grpc-addr http://localhost:8502 ${EXTRA_ENVOY_BS_ARGS} 2>&1); then
 
     # All OK, write config to file
     echo "$output" >workdir/${DC}/envoy/$SERVICE-bootstrap.json
@@ -1186,4 +1187,50 @@ function assert_url_header {
   run get_url_header "$URL" "$HEADER"
   [ "$status" == 0 ]
   [ "$VALUE" = "$output" ]
+}
+
+function assert_envoy_max_request_headers_kb {
+  local HOSTPORT=$1
+  local EXPECT_SIZE_KB=$2
+  
+  echo "Checking Envoy max_request_headers_kb at $HOSTPORT, expecting $EXPECT_SIZE_KB KB"
+  
+  # Use existing retry_default pattern like get_envoy_http_filter and others
+  run retry_default curl -s -f $HOSTPORT/config_dump
+  [ "$status" -eq 0 ]
+  
+  # Extract all max_request_headers_kb values (handles multiple values like your example)
+  local VALUES=$(echo "$output" | jq -r '
+    .configs[]
+    | select(."@type"=="type.googleapis.com/envoy.admin.v3.ListenersConfigDump")
+    | (.dynamic_listeners[]? | .active_state.listener)
+    | .filter_chains[]?
+    | .filters[]?
+    | select(.name=="envoy.filters.network.http_connection_manager")
+    | .typed_config.max_request_headers_kb // empty
+  ')
+  
+  echo "Found max_request_headers_kb values: $VALUES"
+  
+  # Check that we found at least one value
+  [ -n "$VALUES" ]
+  
+  # Check that all values match the expected value
+  # Convert values to an array and verify each one
+  local all_match=true
+  while IFS= read -r value; do
+    if [ -n "$value" ] && [ "$value" != "$EXPECT_SIZE_KB" ]; then
+      echo "ERROR: Found value $value, expected $EXPECT_SIZE_KB"
+      all_match=false
+    fi
+  done <<< "$VALUES"
+  
+  # Ensure at least one value was found and all matched
+  if [ "$all_match" = "true" ]; then
+    echo "SUCCESS: All max_request_headers_kb values match expected $EXPECT_SIZE_KB KB"
+    return 0
+  else
+    echo "FAILURE: Not all max_request_headers_kb values match expected $EXPECT_SIZE_KB KB"
+    return 1
+  fi
 }

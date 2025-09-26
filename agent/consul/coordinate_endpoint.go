@@ -86,11 +86,11 @@ func (c *Coordinate) batchApplyUpdates() error {
 	i := 0
 	updates := make(structs.Coordinates, size)
 	for _, update := range pending {
-		if !(i < size) {
+		if i >= size {
 			break
 		}
 
-		update.EnterpriseMeta.Normalize()
+		update.Normalize()
 
 		updates[i] = &structs.Coordinate{
 			Node:      update.Node,

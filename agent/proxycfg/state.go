@@ -150,10 +150,10 @@ func copyProxyConfig(ns *structs.NodeService) (structs.ConnectProxyConfig, error
 			// places and makes tracking these upstreams simpler as we can dedup them
 			// with the maps tracking upstream ids being watched.
 			if us.DestinationPartition == "" {
-				proxyCfg.Upstreams[idx].DestinationPartition = ns.EnterpriseMeta.PartitionOrDefault()
+				proxyCfg.Upstreams[idx].DestinationPartition = ns.PartitionOrDefault()
 			}
 			if us.DestinationNamespace == "" {
-				proxyCfg.Upstreams[idx].DestinationNamespace = ns.EnterpriseMeta.NamespaceOrDefault()
+				proxyCfg.Upstreams[idx].DestinationNamespace = ns.NamespaceOrDefault()
 			}
 
 			// If PeerName is not empty, the DestinationPartition refers
@@ -217,10 +217,10 @@ func newKindHandler(config stateConfig, s serviceInstance, ch chan UpdateEvent) 
 	case structs.ServiceKindConnectProxy:
 		handler = &handlerConnectProxy{handlerState: h}
 	case structs.ServiceKindTerminatingGateway:
-		h.stateConfig.logger = config.logger.Named(logging.TerminatingGateway)
+		h.logger = config.logger.Named(logging.TerminatingGateway)
 		handler = &handlerTerminatingGateway{handlerState: h}
 	case structs.ServiceKindMeshGateway:
-		h.stateConfig.logger = config.logger.Named(logging.MeshGateway)
+		h.logger = config.logger.Named(logging.MeshGateway)
 		handler = &handlerMeshGateway{handlerState: h}
 	case structs.ServiceKindIngressGateway:
 		handler = &handlerIngressGateway{handlerState: h}

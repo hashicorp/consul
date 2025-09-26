@@ -8,7 +8,7 @@
 #
 # See https://developer.hashicorp.com/docs/connect/proxies/envoy#supported-versions for more information on Consul's Envoy
 # version support.
-1.34.4
-1.33.6
-1.32.9
-1.31.10
+1.35.3
+1.34.7
+1.33.9
+1.32.12

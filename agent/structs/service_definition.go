@@ -23,6 +23,7 @@ type ServiceDefinition struct {
 	TaggedAddresses   map[string]ServiceAddress
 	Meta              map[string]string
 	Port              int
+	Ports             ServicePorts
 	SocketPath        string
 	Check             CheckType
 	Checks            CheckTypes
@@ -76,13 +77,14 @@ func (s *ServiceDefinition) NodeService() *NodeService {
 		Address:           s.Address,
 		Meta:              s.Meta,
 		Port:              s.Port,
+		Ports:             s.Ports,
 		SocketPath:        s.SocketPath,
 		Weights:           s.Weights,
 		EnableTagOverride: s.EnableTagOverride,
 		EnterpriseMeta:    s.EnterpriseMeta,
 		Locality:          s.Locality,
 	}
-	ns.EnterpriseMeta.Normalize()
+	ns.Normalize()
 
 	if s.Connect != nil {
 		ns.Connect = *s.Connect
@@ -98,10 +100,10 @@ func (s *ServiceDefinition) NodeService() *NodeService {
 			// If a proxy's namespace and partition are not defined, inherit from the proxied service
 			// Applicable only to Consul Enterprise.
 			if ns.Proxy.Upstreams[i].DestinationNamespace == "" {
-				ns.Proxy.Upstreams[i].DestinationNamespace = ns.EnterpriseMeta.NamespaceOrEmpty()
+				ns.Proxy.Upstreams[i].DestinationNamespace = ns.NamespaceOrEmpty()
 			}
 			if ns.Proxy.Upstreams[i].DestinationPartition == "" {
-				ns.Proxy.Upstreams[i].DestinationPartition = ns.EnterpriseMeta.PartitionOrEmpty()
+				ns.Proxy.Upstreams[i].DestinationPartition = ns.PartitionOrEmpty()
 			}
 		}
 		ns.Proxy.Expose = s.Proxy.Expose
@@ -117,6 +119,7 @@ func (s *ServiceDefinition) NodeService() *NodeService {
 
 		ns.TaggedAddresses = taggedAddrs
 	}
+
 	return ns
 }
 

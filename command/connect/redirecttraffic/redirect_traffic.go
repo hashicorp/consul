@@ -9,11 +9,12 @@ import (
 	"net"
 	"strconv"
 
+	"github.com/go-viper/mapstructure/v2"
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/sdk/iptables"
 	"github.com/mitchellh/cli"
-	"github.com/mitchellh/mapstructure"
 )
 
 func New(ui cli.Ui) *cmd {
@@ -51,11 +52,11 @@ type cmd struct {
 	excludeOutboundCIDRs []string
 	excludeUIDs          []string
 	netNS                string
+	dualStack            bool
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
-
 	c.flags.StringVar(&c.nodeName, "node-name", "",
 		"The node name where the proxy service is registered. It requires proxy-id to be specified. This is needed if running in an environment without client agents.")
 	c.flags.StringVar(&c.consulDNSIP, "consul-dns-ip", "", "IP used to reach Consul DNS. If provided, DNS queries will be redirected to Consul.")
@@ -110,7 +111,18 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	err = iptables.Setup(cfg)
+	ac, err := c.http.APIConfig()
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("error creating Consul API client: %s", err.Error()))
+		return 1
+	}
+	ds, err := netutil.IsDualStack(ac, false)
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("error determining if agent is running in dual-stack mode: %s", err.Error()))
+		return 1
+	}
+
+	err = iptables.Setup(cfg, ds)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error setting up traffic redirection rules: %s", err.Error()))
 		return 1
@@ -248,21 +260,13 @@ func (c *cmd) generateConfigFromFlags() (iptables.Config, error) {
 		}
 	}
 
-	for _, port := range c.excludeInboundPorts {
-		cfg.ExcludeInboundPorts = append(cfg.ExcludeInboundPorts, port)
-	}
+	cfg.ExcludeInboundPorts = append(cfg.ExcludeInboundPorts, c.excludeInboundPorts...)
 
-	for _, port := range c.excludeOutboundPorts {
-		cfg.ExcludeOutboundPorts = append(cfg.ExcludeOutboundPorts, port)
-	}
+	cfg.ExcludeOutboundPorts = append(cfg.ExcludeOutboundPorts, c.excludeOutboundPorts...)
 
-	for _, cidr := range c.excludeOutboundCIDRs {
-		cfg.ExcludeOutboundCIDRs = append(cfg.ExcludeOutboundCIDRs, cidr)
-	}
+	cfg.ExcludeOutboundCIDRs = append(cfg.ExcludeOutboundCIDRs, c.excludeOutboundCIDRs...)
 
-	for _, uid := range c.excludeUIDs {
-		cfg.ExcludeUIDs = append(cfg.ExcludeUIDs, uid)
-	}
+	cfg.ExcludeUIDs = append(cfg.ExcludeUIDs, c.excludeUIDs...)
 
 	return cfg, nil
 }

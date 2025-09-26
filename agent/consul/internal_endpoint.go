@@ -179,7 +179,7 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 					// Note we fetch imported services with wildcard namespace because imported services' namespaces
 					// are in a different locality; regardless of our local namespace, we return all imported services
 					// of the local partition.
-					args.EnterpriseMeta.WithWildcardNamespace(),
+					args.WithWildcardNamespace(),
 					args.PeerName)
 				if err != nil {
 					return fmt.Errorf("could not get a service dump for peer %q: %w", args.PeerName, err)
@@ -220,7 +220,7 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 						// Note we fetch imported services with wildcard namespace because imported services' namespaces
 						// are in a different locality; regardless of our local namespace, we return all imported services
 						// of the local partition.
-						index, importedNodes, err := state.ServiceDump(ws, args.ServiceKind, args.UseServiceKind, args.EnterpriseMeta.WithWildcardNamespace(), p.Name)
+						index, importedNodes, err := state.ServiceDump(ws, args.ServiceKind, args.UseServiceKind, args.WithWildcardNamespace(), p.Name)
 						if err != nil {
 							return fmt.Errorf("could not get a service dump for peer %q: %w", p.Name, err)
 						}
@@ -788,8 +788,8 @@ func (m *Internal) AssignManualServiceVIPs(args *structs.AssignServiceManualVIPs
 	vipMap := make(map[string]struct{})
 	for _, ip := range args.ManualVIPs {
 		parsedIP := net.ParseIP(ip)
-		if parsedIP == nil || parsedIP.To4() == nil {
-			return fmt.Errorf("%q is not a valid IPv4 address", parsedIP.String())
+		if parsedIP == nil {
+			return fmt.Errorf("%q is not a valid ip address", parsedIP.String())
 		}
 		vipMap[ip] = struct{}{}
 	}
@@ -873,7 +873,7 @@ func (m *Internal) KeyringOperation(
 	}
 
 	// Check ACLs
-	authz, err := m.srv.ACLResolver.ResolveToken(args.Token)
+	authz, err := m.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}

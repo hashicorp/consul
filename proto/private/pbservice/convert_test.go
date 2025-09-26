@@ -31,6 +31,17 @@ func TestNewCheckServiceNodeFromStructs_RoundTrip(t *testing.T) {
 	})
 }
 
+func TestServiceDefinition_RoundTrip(t *testing.T) {
+	repeat(t, func(t *testing.T, fuzzer *fuzz.Fuzzer) {
+		fuzzer.Funcs(randInt32, randUint32, randInterface, randStructsUpstream, randEnterpriseMeta, randStructsConnectProxyConfig)
+		var target structs.ServiceDefinition
+		fuzzer.Fuzz(&target)
+
+		result := ServiceDefinitionPtrToStructs(NewServiceDefinitionPtrFromStructs(&target))
+		assertEqual(t, &target, result)
+	})
+}
+
 func repeat(t *testing.T, fn func(t *testing.T, fuzzer *fuzz.Fuzzer)) {
 	reps := getEnvIntWithDefault(t, "TEST_REPEAT_COUNT", 5)
 	seed := getEnvIntWithDefault(t, "TEST_RANDOM_SEED", time.Now().UnixNano())
@@ -69,12 +80,12 @@ func assertEqual(t *testing.T, x, y interface{}) {
 // practice they are constrained to 32 bits, and the protobuf types use (u)int32.
 // The structs types use (u)int64 for any fields that require 64 bits.
 func randUint32(i *uint, c fuzz.Continue) {
-	*i = uint(c.Rand.Uint32())
+	*i = uint(c.Uint32())
 }
 
 // see randUint32
 func randInt32(i *int, c fuzz.Continue) {
-	*i = int(c.Rand.Int31())
+	*i = int(c.Int31())
 }
 
 // randStructsConnectProxyConfig is a custom fuzzer function which skips
@@ -108,21 +119,21 @@ func randStructsUpstream(u *structs.Upstream, c fuzz.Continue) {
 // The random data does not contain any ints (or float32) because protobuf
 // converts them to float64, which will cause the test to fail.
 func randInterface(m *interface{}, c fuzz.Continue) {
-	switch c.Rand.Intn(6) {
+	switch c.Intn(6) {
 	case 0:
 		*m = nil
 	case 1:
 		*m = c.RandBool()
 	case 2:
-		*m = c.Rand.Float64()
+		*m = c.Float64()
 	case 3:
 		*m = c.RandString()
 	case 4:
-		*m = []interface{}{c.RandString(), c.RandBool(), nil, c.Rand.Float64()}
+		*m = []interface{}{c.RandString(), c.RandBool(), nil, c.Float64()}
 	case 5:
 		*m = map[string]interface{}{
 			c.RandString(): c.RandString(),
-			c.RandString(): c.Rand.Float64(),
+			c.RandString(): c.Float64(),
 			c.RandString(): nil,
 		}
 	}

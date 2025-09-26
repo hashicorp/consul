@@ -115,15 +115,15 @@ func formatExportedServices(services []structs.ServiceID) string {
 
 	result := make([]string, 0, len(services)+1)
 
-	if services[0].EnterpriseMeta.ToEnterprisePolicyMeta() != nil {
+	if services[0].ToEnterprisePolicyMeta() != nil {
 		result = append(result, "Partition\x1fNamespace\x1fService Name")
 	}
 
 	for _, svc := range services {
-		if svc.EnterpriseMeta.ToEnterprisePolicyMeta() == nil {
+		if svc.ToEnterprisePolicyMeta() == nil {
 			result = append(result, svc.ID)
 		} else {
-			result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s", svc.EnterpriseMeta.PartitionOrDefault(), svc.EnterpriseMeta.NamespaceOrDefault(), svc.ID))
+			result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s", svc.PartitionOrDefault(), svc.NamespaceOrDefault(), svc.ID))
 		}
 	}
 

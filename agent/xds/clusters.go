@@ -19,6 +19,7 @@ import (
 	envoy_upstreams_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
 	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/xds/config"
 	"github.com/hashicorp/consul/agent/xds/naming"
 
@@ -864,7 +865,7 @@ func (s *ResourceGenerator) makeDestinationClusters(cfgSnap *proxycfg.ConfigSnap
 	clusters := make([]proto.Message, 0, len(cfgSnap.TerminatingGateway.DestinationServices))
 
 	for _, svcName := range cfgSnap.TerminatingGateway.ValidDestinations() {
-		svcConfig, _ := serviceConfigs[svcName]
+		svcConfig := serviceConfigs[svcName]
 		dest := svcConfig.Destination
 
 		for _, address := range dest.Addresses {
@@ -1105,9 +1106,18 @@ func (s *ResourceGenerator) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot, nam
 		endpoint = makePipeEndpoint(cfgSnap.Proxy.LocalServiceSocketPath)
 	} else {
 		addr := cfgSnap.Proxy.LocalServiceAddress
+
+		ds, err := netutil.IsDualStack(nil, true)
+		if err != nil {
+			s.Logger.Error("failed to determine if dual stack is supported, assuming not", "error", err)
+		}
 		if addr == "" {
 			addr = "127.0.0.1"
+			if ds {
+				addr = "::1"
+			}
 		}
+
 		endpoint = makeEndpoint(addr, port)
 	}
 
@@ -1761,10 +1771,7 @@ func (s *ResourceGenerator) makeGatewayCluster(snap *proxycfg.ConfigSnapshot, op
 		OutlierDetection: &envoy_cluster_v3.OutlierDetection{},
 	}
 
-	useEDS := true
-	if len(opts.hostnameEndpoints) > 0 {
-		useEDS = false
-	}
+	useEDS := len(opts.hostnameEndpoints) <= 0
 
 	// TCP keepalive settings can be enabled for terminating gateway upstreams or remote mesh gateways.
 	remoteUpstream := opts.isRemote || snap.Kind == structs.ServiceKindTerminatingGateway

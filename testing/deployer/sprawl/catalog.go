@@ -6,7 +6,9 @@ package sprawl
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
+	"strconv"
 	"time"
 
 	"google.golang.org/protobuf/proto"
@@ -287,6 +289,7 @@ func (s *Sprawl) registerCatalogNodeV1(
 		logger = s.logger.With("cluster", cluster.Name)
 	)
 
+	// For future, if we start accepting service definitions, make sure to add forward compatibility ( ref ServiceDefinition.NodeService() )
 	reg := &api.CatalogRegistration{
 		Node:    node.PodName(),
 		Address: node.LocalAddress(),
@@ -629,7 +632,7 @@ func workloadToSidecarCatalogRegistration(
 			ServiceID:   pid.Name,
 			ServiceName: pid.Name,
 			Definition: api.HealthCheckDefinition{
-				TCP: fmt.Sprintf("%s:%d", node.LocalAddress(), wrk.EnvoyPublicListenerPort),
+				TCP: net.JoinHostPort(node.LocalAddress(), strconv.Itoa(wrk.EnvoyAdminPort)),
 			},
 			Output: "",
 		}},

@@ -119,6 +119,83 @@ func waitForLeaderEstablishment(t *testing.T, servers ...*Server) {
 	})
 }
 
+func testServerConfigIPv6(t testutil.TestingTB) (string, *Config) {
+	dir := testutil.TempDir(t, "consul")
+	config := DefaultConfig()
+
+	ports := freeport.GetN(t, 4) // {server, serf_lan, serf_wan, grpc}
+	config.NodeName = uniqueNodeName(t.Name())
+	config.Bootstrap = true
+	config.Datacenter = "dc1"
+	config.PrimaryDatacenter = "dc1"
+	config.DataDir = dir
+
+	// bind the rpc server to a random port. config.RPCAdvertise will be
+	// set to the listen address unless it was set in the configuration.
+	// In that case get the address from srv.Listener.Addr().
+	config.RPCAddr = &net.TCPAddr{IP: []byte{127, 0, 0, 1}, Port: ports[0]}
+
+	nodeID, err := uuid.GenerateUUID()
+	if err != nil {
+		t.Fatal(err)
+	}
+	config.NodeID = types.NodeID(nodeID)
+
+	// set the memberlist bind port to 0 to bind to a random port.
+	// memberlist will update the value of BindPort after bind
+	// to the actual value.
+	config.SerfLANConfig.MemberlistConfig.BindAddr = "::1"
+	config.SerfLANConfig.MemberlistConfig.BindPort = ports[1]
+	config.SerfLANConfig.MemberlistConfig.AdvertisePort = ports[1]
+	config.SerfLANConfig.MemberlistConfig.SuspicionMult = 2
+	config.SerfLANConfig.MemberlistConfig.ProbeTimeout = 50 * time.Millisecond
+	config.SerfLANConfig.MemberlistConfig.ProbeInterval = 100 * time.Millisecond
+	config.SerfLANConfig.MemberlistConfig.GossipInterval = 100 * time.Millisecond
+	config.SerfLANConfig.MemberlistConfig.DeadNodeReclaimTime = 100 * time.Millisecond
+
+	config.SerfWANConfig.MemberlistConfig.BindAddr = "::1"
+	config.SerfWANConfig.MemberlistConfig.BindPort = ports[2]
+	config.SerfWANConfig.MemberlistConfig.AdvertisePort = ports[2]
+	config.SerfWANConfig.MemberlistConfig.SuspicionMult = 2
+	config.SerfWANConfig.MemberlistConfig.ProbeTimeout = 50 * time.Millisecond
+	config.SerfWANConfig.MemberlistConfig.ProbeInterval = 100 * time.Millisecond
+	config.SerfWANConfig.MemberlistConfig.GossipInterval = 100 * time.Millisecond
+	config.SerfWANConfig.MemberlistConfig.DeadNodeReclaimTime = 100 * time.Millisecond
+
+	config.RaftConfig.LeaderLeaseTimeout = 100 * time.Millisecond
+	config.RaftConfig.HeartbeatTimeout = 200 * time.Millisecond
+	config.RaftConfig.ElectionTimeout = 200 * time.Millisecond
+
+	config.ReconcileInterval = 300 * time.Millisecond
+
+	config.AutopilotConfig.ServerStabilizationTime = 100 * time.Millisecond
+	config.ServerHealthInterval = 50 * time.Millisecond
+	config.AutopilotInterval = 100 * time.Millisecond
+
+	config.CoordinateUpdatePeriod = 100 * time.Millisecond
+	config.LeaveDrainTime = 1 * time.Millisecond
+
+	// TODO (slackpad) - We should be able to run all tests w/o this, but it
+	// looks like several depend on it.
+	config.RPCHoldTimeout = 10 * time.Second
+
+	config.GRPCPort = ports[3]
+
+	config.ConnectEnabled = true
+	config.CAConfig = &structs.CAConfiguration{
+		ClusterID: connect.TestClusterID,
+		Provider:  structs.ConsulCAProvider,
+		Config: map[string]interface{}{
+			"PrivateKey":          "",
+			"RootCert":            "",
+			"LeafCertTTL":         "72h",
+			"IntermediateCertTTL": "288h",
+		},
+	}
+	config.PeeringEnabled = true
+	return dir, config
+}
+
 func testServerConfig(t testutil.TestingTB) (string, *Config) {
 	dir := testutil.TempDir(t, "consul")
 	config := DefaultConfig()

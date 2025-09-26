@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net"
 	"strconv"
 	"sync"
 
@@ -224,10 +225,11 @@ func meshGatewayAdresses(state *state.Store, ws memdb.WatchSet, wan bool) ([]str
 
 func parseNodeAddr(node *structs.ServiceNode) string {
 	// Prefer the wan address
+	na := node.Address
 	if v, ok := node.TaggedAddresses[structs.TaggedAddressWAN]; ok {
-		return v
+		na = v
 	}
-	return node.Address
+	return na
 }
 
 func serverAddresses(state *state.Store) ([]string, error) {
@@ -242,13 +244,13 @@ func serverAddresses(state *state.Store) ([]string, error) {
 		// Prefer the TLS port if it is defined.
 		grpcPortStr := node.ServiceMeta["grpc_tls_port"]
 		if v, err := strconv.Atoi(grpcPortStr); err == nil && v > 0 {
-			addrs = append(addrs, addr+":"+grpcPortStr)
+			addrs = append(addrs, net.JoinHostPort(addr, grpcPortStr))
 			continue
 		}
 		// Fallback to the standard port if TLS is not defined.
 		grpcPortStr = node.ServiceMeta["grpc_port"]
 		if v, err := strconv.Atoi(grpcPortStr); err == nil && v > 0 {
-			addrs = append(addrs, addr+":"+grpcPortStr)
+			addrs = append(addrs, net.JoinHostPort(addr, grpcPortStr))
 			continue
 		}
 		// Skip node if neither defined.

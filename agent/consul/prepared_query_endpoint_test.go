@@ -27,6 +27,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	grpcexternal "github.com/hashicorp/consul/agent/grpc-external"
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/structs/aclfilter"
 	tokenStore "github.com/hashicorp/consul/agent/token"
@@ -269,7 +270,7 @@ func TestPreparedQuery_Apply_ACLDeny(t *testing.T) {
 	}
 
 	// Now add the token and try again.
-	query.WriteRequest.Token = token
+	query.Token = token
 	if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Apply", &query, &reply); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -305,28 +306,28 @@ func TestPreparedQuery_Apply_ACLDeny(t *testing.T) {
 
 	// Try to do an update without a token; this should get rejected.
 	query.Op = structs.PreparedQueryUpdate
-	query.WriteRequest.Token = ""
+	query.Token = ""
 	err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Apply", &query, &reply)
 	if !acl.IsErrPermissionDenied(err) {
 		t.Fatalf("bad: %v", err)
 	}
 
 	// Try again with the original token; this should go through.
-	query.WriteRequest.Token = token
+	query.Token = token
 	if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Apply", &query, &reply); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	// Try to do a delete with no token; this should get rejected.
 	query.Op = structs.PreparedQueryDelete
-	query.WriteRequest.Token = ""
+	query.Token = ""
 	err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Apply", &query, &reply)
 	if !acl.IsErrPermissionDenied(err) {
 		t.Fatalf("bad: %v", err)
 	}
 
 	// Try again with the original token. This should go through.
-	query.WriteRequest.Token = token
+	query.Token = token
 	if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Apply", &query, &reply); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -353,7 +354,7 @@ func TestPreparedQuery_Apply_ACLDeny(t *testing.T) {
 	// Make the query again.
 	query.Op = structs.PreparedQueryCreate
 	query.Query.ID = ""
-	query.WriteRequest.Token = token
+	query.Token = token
 	if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Apply", &query, &reply); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -388,7 +389,7 @@ func TestPreparedQuery_Apply_ACLDeny(t *testing.T) {
 
 	// A management token should be able to update the query no matter what.
 	query.Op = structs.PreparedQueryUpdate
-	query.WriteRequest.Token = "root"
+	query.Token = "root"
 	if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Apply", &query, &reply); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -421,7 +422,7 @@ func TestPreparedQuery_Apply_ACLDeny(t *testing.T) {
 
 	// A management token should be able to delete the query no matter what.
 	query.Op = structs.PreparedQueryDelete
-	query.WriteRequest.Token = "root"
+	query.Token = "root"
 	if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Apply", &query, &reply); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -449,7 +450,7 @@ func TestPreparedQuery_Apply_ACLDeny(t *testing.T) {
 	query.Op = structs.PreparedQueryCreate
 	query.Query.ID = ""
 	query.Query.Name = "cassandra"
-	query.WriteRequest.Token = "root"
+	query.Token = "root"
 	if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Apply", &query, &reply); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -485,7 +486,7 @@ func TestPreparedQuery_Apply_ACLDeny(t *testing.T) {
 	// fail because that token can't change cassandra queries.
 	query.Op = structs.PreparedQueryUpdate
 	query.Query.Name = "redis"
-	query.WriteRequest.Token = token
+	query.Token = token
 	err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Apply", &query, &reply)
 	if !acl.IsErrPermissionDenied(err) {
 		t.Fatalf("bad: %v", err)
@@ -702,7 +703,7 @@ func TestPreparedQuery_ACLDeny_Catchall_Template(t *testing.T) {
 	}
 
 	// Now add the token and try again.
-	query.WriteRequest.Token = token
+	query.Token = token
 	if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Apply", &query, &reply); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1218,7 +1219,7 @@ func TestPreparedQuery_List(t *testing.T) {
 		if len(resp.Queries) != 0 {
 			t.Fatalf("bad: %v", resp)
 		}
-		if !resp.QueryMeta.ResultsFilteredByACLs {
+		if !resp.ResultsFilteredByACLs {
 			t.Fatal("ResultsFilteredByACLs should be true")
 		}
 	}
@@ -1545,7 +1546,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		assert.Equal(t, 0, reply.Failovers)
 		assert.Equal(t, query.Query.Service.Service, reply.Service)
 		assert.Equal(t, query.Query.DNS, reply.DNS)
-		assert.True(t, reply.QueryMeta.KnownLeader)
+		assert.True(t, reply.KnownLeader)
 	}
 	expectFailoverNodes := func(t require.TestingT, query *structs.PreparedQueryRequest, reply *structs.PreparedQueryExecuteResponse, n int) {
 		assert.Len(t, reply.Nodes, n)
@@ -1553,7 +1554,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		assert.Equal(t, 1, reply.Failovers)
 		assert.Equal(t, query.Query.Service.Service, reply.Service)
 		assert.Equal(t, query.Query.DNS, reply.DNS)
-		assert.True(t, reply.QueryMeta.KnownLeader)
+		assert.True(t, reply.KnownLeader)
 	}
 
 	expectFailoverPeerNodes := func(t require.TestingT, query *structs.PreparedQueryRequest, reply *structs.PreparedQueryExecuteResponse, n int) {
@@ -1563,7 +1564,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		assert.Equal(t, 2, reply.Failovers)
 		assert.Equal(t, query.Query.Service.Service, reply.Service)
 		assert.Equal(t, query.Query.DNS, reply.DNS)
-		assert.True(t, reply.QueryMeta.KnownLeader)
+		assert.True(t, reply.KnownLeader)
 	}
 
 	t.Run("run the registered query", func(t *testing.T) {
@@ -2141,7 +2142,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Execute", &req, &reply))
 
 		expectNodes(t, &query, &reply, 0)
-		require.True(t, reply.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, reply.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	t.Run("normal operation again with exec token", func(t *testing.T) {
@@ -2275,7 +2276,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Execute", &req, &reply))
 
 		expectFailoverNodes(t, &query, &reply, 0)
-		require.True(t, reply.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, reply.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	// Bake the exec token into the query.
@@ -2514,6 +2515,7 @@ func TestPreparedQuery_Execute_ForwardLeader(t *testing.T) {
 }
 
 func TestPreparedQuery_Execute_ConnectExact(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -2594,7 +2596,7 @@ func TestPreparedQuery_Execute_ConnectExact(t *testing.T) {
 		require.Len(t, reply.Nodes, 2)
 		require.Equal(t, query.Query.Service.Service, reply.Service)
 		require.Equal(t, query.Query.DNS, reply.DNS)
-		require.True(t, reply.QueryMeta.KnownLeader, "queried leader")
+		require.True(t, reply.KnownLeader, "queried leader")
 	}
 
 	// Run with the Connect setting specified on the request
@@ -2614,7 +2616,7 @@ func TestPreparedQuery_Execute_ConnectExact(t *testing.T) {
 		require.Len(t, reply.Nodes, 2)
 		require.Equal(t, query.Query.Service.Service, reply.Service)
 		require.Equal(t, query.Query.DNS, reply.DNS)
-		require.True(t, reply.QueryMeta.KnownLeader, "queried leader")
+		require.True(t, reply.KnownLeader, "queried leader")
 
 		// Make sure the native is the first one
 		if !reply.Nodes[0].Service.Connect.Native {
@@ -2649,7 +2651,7 @@ func TestPreparedQuery_Execute_ConnectExact(t *testing.T) {
 		require.Len(t, reply.Nodes, 2)
 		require.Equal(t, query.Query.Service.Service, reply.Service)
 		require.Equal(t, query.Query.DNS, reply.DNS)
-		require.True(t, reply.QueryMeta.KnownLeader, "queried leader")
+		require.True(t, reply.KnownLeader, "queried leader")
 
 		// Make sure the native is the first one
 		if !reply.Nodes[0].Service.Connect.Native {
@@ -3145,9 +3147,10 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 		mock := &mockQueryServer{
 			Datacenters: []string{"dc1", "dc2", "dc3", "xxx", "dc4"},
 			QueryFn: func(req *structs.PreparedQueryExecuteRemoteRequest, reply *structs.PreparedQueryExecuteResponse) error {
-				if req.Datacenter == "dc1" {
+				switch req.Datacenter {
+				case "dc1":
 					return fmt.Errorf("XXX")
-				} else if req.Datacenter == "dc4" {
+				case "dc4":
 					reply.Nodes = nodes()
 				}
 				return nil

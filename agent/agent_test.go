@@ -797,7 +797,7 @@ func test_createAlias(t *testing.T, agent *TestAgent, chk *structs.CheckType, ex
 				found = true
 				assert.Equal(t, expectedResult, c.Check.Status, "Check state should be %s, was %s in %#v", expectedResult, c.Check.Status, c.Check)
 				srvID := structs.NewServiceID(srv.ID, structs.WildcardEnterpriseMetaInDefaultPartition())
-				if err := agent.Agent.State.RemoveService(srvID); err != nil {
+				if err := agent.State.RemoveService(srvID); err != nil {
 					fmt.Println("[DEBUG] Fail to remove service", srvID, ", err:=", err)
 				}
 				fmt.Println("[DEBUG] Service Removed", srvID, ", err:=", err)
@@ -2273,7 +2273,7 @@ func TestAgent_HTTPCheck_EnableAgentTLSForChecks(t *testing.T) {
 			Status:  api.HealthCritical,
 		}
 
-		addr, err := firstAddr(a.Agent.apiServers, "https")
+		addr, err := firstAddr(a.apiServers, "https")
 		require.NoError(t, err)
 		url := fmt.Sprintf("https://%s/v1/agent/self", addr.String())
 		chk := &structs.CheckType{
@@ -5378,7 +5378,7 @@ func TestAutoConfig_Integration(t *testing.T) {
 	defer client.Shutdown()
 
 	retry.Run(t, func(r *retry.R) {
-		require.NotNil(r, client.Agent.tlsConfigurator.Cert())
+		require.NotNil(r, client.tlsConfigurator.Cert())
 	})
 
 	// when this is successful we managed to get the gossip key and serf addresses to bind to
@@ -5390,7 +5390,7 @@ func TestAutoConfig_Integration(t *testing.T) {
 	require.NotEmpty(t, client.tokens.AgentToken())
 
 	// grab the existing cert
-	cert1 := client.Agent.tlsConfigurator.Cert()
+	cert1 := client.tlsConfigurator.Cert()
 	require.NotNil(t, cert1)
 
 	// force a roots rotation by updating the CA config
@@ -5414,7 +5414,7 @@ func TestAutoConfig_Integration(t *testing.T) {
 
 	// ensure that a new cert gets generated and pushed into the TLS configurator
 	retry.Run(t, func(r *retry.R) {
-		require.NotEqual(r, cert1, client.Agent.tlsConfigurator.Cert())
+		require.NotEqual(r, cert1, client.tlsConfigurator.Cert())
 
 		// check that the on disk certs match expectations
 		data, err := os.ReadFile(filepath.Join(client.DataDir, "auto-config.json"))
@@ -5428,7 +5428,7 @@ func TestAutoConfig_Integration(t *testing.T) {
 
 		actual, err := tls.X509KeyPair([]byte(resp.Certificate.CertPEM), []byte(resp.Certificate.PrivateKeyPEM))
 		require.NoError(r, err)
-		require.Equal(r, client.Agent.tlsConfigurator.Cert(), &actual)
+		require.Equal(r, client.tlsConfigurator.Cert(), &actual)
 	})
 }
 
@@ -5527,7 +5527,7 @@ func TestSharedRPCRouter(t *testing.T) {
 
 	testrpc.WaitForTestAgent(t, srv.RPC, "dc1")
 
-	mgr, server := srv.Agent.baseDeps.Router.FindLANRoute()
+	mgr, server := srv.baseDeps.Router.FindLANRoute()
 	require.NotNil(t, mgr)
 	require.NotNil(t, server)
 
@@ -5539,7 +5539,7 @@ func TestSharedRPCRouter(t *testing.T) {
 
 	testrpc.WaitForTestAgent(t, client.RPC, "dc1")
 
-	mgr, server = client.Agent.baseDeps.Router.FindLANRoute()
+	mgr, server = client.baseDeps.Router.FindLANRoute()
 	require.NotNil(t, mgr)
 	require.NotNil(t, server)
 }
@@ -6466,5 +6466,107 @@ func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
 	t.Helper()
 	if diff := cmp.Diff(x, y, opts...); diff != "" {
 		t.Fatalf("assertion failed: values are not equal\n--- expected\n+++ actual\n%v", diff)
+	}
+}
+
+func TestAgent_ServiceRegistration(t *testing.T) {
+	// Since we accept both `port` and `ports` for service registration, we need to ensure that catalog stores it as it gets it
+
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	port := freeport.GetOne(t)
+	agent := StartTestAgent(t, TestAgent{Name: "bob", HCL: `
+		domain = "consul"
+		node_name = "bob"
+		datacenter = "dc1"
+		primary_datacenter = "dc1"
+	`})
+	defer agent.Shutdown()
+	testrpc.WaitForTestAgent(t, agent.RPC, "dc1")
+
+	// Register a single port service
+	{
+		args := &structs.ServiceDefinition{
+			ID:   "singleport-srv",
+			Name: "singleport-srv",
+			Port: port,
+		}
+		req, err := http.NewRequest(http.MethodPut, "/v1/agent/service/register", jsonReader(args))
+		require.NoError(t, err)
+
+		obj, err := agent.srv.AgentRegisterService(nil, req)
+		require.NoError(t, err)
+		require.Nil(t, obj)
+	}
+
+	// Register a multi port service
+	{
+		args := &structs.ServiceDefinition{
+			ID:   "multiport-srv",
+			Name: "multiport-srv",
+			Ports: structs.ServicePorts{
+				{
+					Name:    "http",
+					Port:    port,
+					Default: true,
+				},
+			},
+		}
+		req, err := http.NewRequest(http.MethodPut, "/v1/agent/service/register", jsonReader(args))
+		require.NoError(t, err)
+
+		obj, err := agent.srv.AgentRegisterService(nil, req)
+		require.NoError(t, err)
+		require.Nil(t, obj)
+	}
+
+	// Fetch single port service and ensure 'port' value is populated and 'ports' array is empty
+	singleportSrv := agent.State.Service(structs.ServiceIDFromString("singleport-srv"))
+	require.NotNil(t, singleportSrv)
+	require.Equal(t, port, singleportSrv.Port)
+	require.Len(t, singleportSrv.Ports, 0)
+
+	// Fetch multi port service and ensure 'ports' array is populated
+	multiportSrv := agent.State.Service(structs.ServiceIDFromString("multiport-srv"))
+	require.NotNil(t, multiportSrv)
+	require.Len(t, multiportSrv.Ports, 1)
+	require.Equal(t, "http", multiportSrv.Ports[0].Name)
+	require.Equal(t, port, multiportSrv.Ports[0].Port)
+	require.True(t, multiportSrv.Ports[0].Default)
+	require.Equal(t, 0, multiportSrv.Port) // Port should be 0 as we didn't set it
+
+	{
+		req, err := http.NewRequest(http.MethodGet, "/v1/catalog/service/singleport-srv", nil)
+		require.NoError(t, err)
+
+		resp := httptest.NewRecorder()
+		obj, err := agent.srv.CatalogServiceNodes(resp, req)
+		require.NoError(t, err)
+
+		nodes, ok := obj.(structs.ServiceNodes)
+		require.True(t, ok)
+		require.Len(t, nodes, 1)
+		require.Equal(t, port, nodes[0].ServicePort)
+		require.Len(t, nodes[0].ServicePorts, 0)
+	}
+
+	{
+		req, err := http.NewRequest(http.MethodGet, "/v1/catalog/service/multiport-srv", nil)
+		require.NoError(t, err)
+
+		resp := httptest.NewRecorder()
+		obj, err := agent.srv.CatalogServiceNodes(resp, req)
+		require.NoError(t, err)
+
+		nodes, ok := obj.(structs.ServiceNodes)
+		require.True(t, ok)
+		require.Len(t, nodes, 1)
+		require.Len(t, nodes[0].ServicePorts, 1)
+		require.Equal(t, port, nodes[0].ServicePorts[0].Port)
+		require.Equal(t, "http", nodes[0].ServicePorts[0].Name)
+		require.True(t, nodes[0].ServicePorts[0].Default)
 	}
 }

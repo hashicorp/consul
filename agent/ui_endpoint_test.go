@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -2636,6 +2637,78 @@ func TestUIEndpoint_MetricsProxy(t *testing.T) {
 			wantContains: "Moved Permanently",
 		},
 		{
+			name: "path traversal with single dot-dot should be cleaned",
+			config: config.UIMetricsProxy{
+				BaseURL: backendURL,
+			},
+			path:         endpointPath + "/../ok",
+			wantCode:     http.StatusMovedPermanently,
+			wantContains: "Moved Permanently",
+		},
+		{
+			name: "path traversal with multiple dot-dots should be cleaned",
+			config: config.UIMetricsProxy{
+				BaseURL: backendURL,
+			},
+			path:         endpointPath + "/../../ok",
+			wantCode:     http.StatusMovedPermanently,
+			wantContains: "Moved Permanently",
+		},
+		{
+			name: "path traversal with mixed slashes should be cleaned",
+			config: config.UIMetricsProxy{
+				BaseURL: backendURL,
+			},
+			path:         endpointPath + "/./../ok",
+			wantCode:     http.StatusMovedPermanently,
+			wantContains: "Moved Permanently",
+		},
+		{
+			name: "path traversal with encoded dots should be handled",
+			config: config.UIMetricsProxy{
+				BaseURL: backendURL,
+			},
+			path:         endpointPath + "/%2e%2e/ok",
+			wantCode:     http.StatusOK,
+			wantContains: "OK",
+		},
+		{
+			name: "path with double slashes should be cleaned",
+			config: config.UIMetricsProxy{
+				BaseURL: backendURL,
+			},
+			path:         endpointPath + "//ok",
+			wantCode:     http.StatusMovedPermanently,
+			wantContains: "Moved Permanently",
+		},
+		{
+			name: "path with trailing slash should work",
+			config: config.UIMetricsProxy{
+				BaseURL: backendURL,
+			},
+			path:         endpointPath + "/ok/",
+			wantCode:     http.StatusOK,
+			wantContains: "OK",
+		},
+		{
+			name: "baseURL exact match should work",
+			config: config.UIMetricsProxy{
+				BaseURL: strings.TrimSuffix(backendURL, "/"),
+			},
+			path:         endpointPath + "/",
+			wantCode:     http.StatusNotFound,
+			wantContains: "not found on backend",
+		},
+		{
+			name: "clean path prevents directory traversal",
+			config: config.UIMetricsProxy{
+				BaseURL: backendURL,
+			},
+			path:         endpointPath + "/subdir/../../../etc/passwd",
+			wantCode:     http.StatusMovedPermanently,
+			wantContains: "Moved Permanently",
+		},
+		{
 			name: "adding auth header",
 			config: config.UIMetricsProxy{
 				BaseURL: backendURL,
@@ -2671,6 +2744,40 @@ func TestUIEndpoint_MetricsProxy(t *testing.T) {
 			wantCode:     http.StatusOK,
 			wantContains: "RawQuery: foo=bar&encoded=test%5B0%5D%26%26test%5B1%5D%3D%3D%21%40%C2%A3%24%25%5E",
 		},
+		{
+			name: "targetURL exactly matches BaseURL without trailing slash",
+			config: config.UIMetricsProxy{
+				BaseURL: strings.TrimSuffix(backendURL, "/some/prefix"),
+			},
+			path:         endpointPath + "/",
+			wantCode:     http.StatusNotFound,
+			wantContains: "not found on backend",
+		},
+		{
+			name: "targetURL matches BaseURL prefix with trailing slash",
+			config: config.UIMetricsProxy{
+				BaseURL: backendURL,
+			},
+			path:         endpointPath + "/ok",
+			wantCode:     http.StatusOK,
+			wantContains: "OK",
+		},
+		{
+			name: "targetURL fails prefix check - different domain",
+			config: config.UIMetricsProxy{
+				BaseURL: "http://localhost:9999/metrics",
+			},
+			path:     endpointPath + "/../../evil.com/attack",
+			wantCode: http.StatusMovedPermanently,
+		},
+		{
+			name: "targetURL fails prefix check - sibling path escape",
+			config: config.UIMetricsProxy{
+				BaseURL: backend.URL + "/secure/metrics",
+			},
+			path:     endpointPath + "/../../../public/data",
+			wantCode: http.StatusMovedPermanently,
+		},
 	}
 
 	for _, tc := range cases {
@@ -2678,13 +2785,13 @@ func TestUIEndpoint_MetricsProxy(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// Reload the agent config with the desired UI config by making a copy and
 			// using internal reload.
-			cfg := *a.Agent.config
+			cfg := *a.config
 
 			// Modify the UIConfig part (this is a copy remember and that struct is
 			// not a pointer)
 			cfg.UIConfig.MetricsProxy = tc.config
 
-			require.NoError(t, a.Agent.reloadConfigInternal(&cfg))
+			require.NoError(t, a.reloadConfigInternal(&cfg))
 
 			// Now fetch the API handler to run requests against
 			a.enableDebug.Store(true)
@@ -2711,6 +2818,130 @@ func TestUIEndpoint_MetricsProxy(t *testing.T) {
 					require.Contains(t, headersSent[k], v,
 						"header %s doesn't have the right value set", k)
 				}
+			}
+		})
+	}
+}
+
+func TestUIEndpoint_MetricsProxy_TargetURLValidation(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	// Create a test backend server
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
+	}))
+	defer backend.Close()
+
+	a := NewTestAgent(t, `
+		ui_config {
+			enabled = true
+		}
+	`)
+	defer a.Shutdown()
+
+	endpointPath := "/v1/internal/ui/metrics-proxy"
+
+	cases := []struct {
+		name         string
+		baseURL      string
+		requestPath  string
+		wantCode     int
+		wantContains string
+	}{
+		{
+			name:         "exact BaseURL match - allowed",
+			baseURL:      backend.URL + "/metrics",
+			requestPath:  endpointPath + "/",
+			wantCode:     http.StatusOK,
+			wantContains: "OK",
+		},
+		{
+			name:         "proper prefix match with trailing slash - allowed",
+			baseURL:      backend.URL + "/metrics",
+			requestPath:  endpointPath + "/dashboard",
+			wantCode:     http.StatusOK,
+			wantContains: "OK",
+		},
+		{
+			name:         "baseURL without trailing slash, targetURL with prefix - allowed",
+			baseURL:      strings.TrimSuffix(backend.URL, "/") + "/metrics",
+			requestPath:  endpointPath + "/dashboard",
+			wantCode:     http.StatusOK,
+			wantContains: "OK",
+		},
+		{
+			name:         "baseURL with trailing slash, targetURL matches prefix - allowed",
+			baseURL:      backend.URL + "/metrics/",
+			requestPath:  endpointPath + "/dashboard",
+			wantCode:     http.StatusOK,
+			wantContains: "OK",
+		},
+		{
+			name:         "targetURL escapes from baseURL prefix - blocked",
+			baseURL:      backend.URL + "/secure/metrics",
+			requestPath:  endpointPath + "/../../public/data",
+			wantCode:     http.StatusMovedPermanently,
+			wantContains: "Moved Permanently",
+		},
+		{
+			name:         "targetURL attempts sibling directory access - blocked",
+			baseURL:      backend.URL + "/app/metrics",
+			requestPath:  endpointPath + "/../admin/config",
+			wantCode:     http.StatusMovedPermanently,
+			wantContains: "Moved Permanently",
+		},
+		{
+			name:         "targetURL with encoded dots - path.Clean prevents traversal",
+			baseURL:      backend.URL + "/app/metrics",
+			requestPath:  endpointPath + "/%2e%2e/admin/config",
+			wantCode:     http.StatusOK,
+			wantContains: "OK",
+		},
+		{
+			name:         "baseURL validation - exact match is allowed",
+			baseURL:      backend.URL,
+			requestPath:  endpointPath + "/",
+			wantCode:     http.StatusOK,
+			wantContains: "OK",
+		},
+		{
+			name:         "baseURL validation - proper prefix is allowed",
+			baseURL:      backend.URL + "/secure",
+			requestPath:  endpointPath + "/dashboard",
+			wantCode:     http.StatusOK,
+			wantContains: "OK",
+		},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			// Configure the metrics proxy with the specific BaseURL
+			cfg := *a.config
+			cfg.UIConfig.MetricsProxy = config.UIMetricsProxy{
+				BaseURL: tc.baseURL,
+			}
+
+			require.NoError(t, a.reloadConfigInternal(&cfg))
+
+			// Make the request
+			h := a.srv.handler()
+			req := httptest.NewRequest("GET", tc.requestPath, nil)
+			rec := httptest.NewRecorder()
+
+			h.ServeHTTP(rec, req)
+
+			require.Equal(t, tc.wantCode, rec.Code,
+				"Wrong status code for %s. Body = %s", tc.name, rec.Body.String())
+
+			if tc.wantContains != "" {
+				require.Contains(t, rec.Body.String(), tc.wantContains,
+					"Response body should contain expected text for %s", tc.name)
 			}
 		})
 	}

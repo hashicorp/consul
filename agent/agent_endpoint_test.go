@@ -9,6 +9,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -40,7 +41,6 @@ import (
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
-	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/lib"
@@ -1728,7 +1728,7 @@ func newDefaultBaseDeps(t *testing.T) BaseDeps {
 func TestHTTPHandlers_AgentMetricsStream_ACLDeny(t *testing.T) {
 	t.Skip("this test panics without a license manager in enterprise")
 	bd := newDefaultBaseDeps(t)
-	bd.Tokens = new(tokenStore.Store)
+	bd.Tokens = new(token.Store)
 	sink := metrics.NewInmemSink(30*time.Millisecond, time.Second)
 	bd.MetricsConfig = &lib.MetricsConfig{
 		Handler: sink,
@@ -1760,7 +1760,7 @@ func TestHTTPHandlers_AgentMetricsStream_ACLDeny(t *testing.T) {
 func TestHTTPHandlers_AgentMetricsStream(t *testing.T) {
 	t.Skip("this test panics without a license manager in enterprise")
 	bd := newDefaultBaseDeps(t)
-	bd.Tokens = new(tokenStore.Store)
+	bd.Tokens = new(token.Store)
 	sink := metrics.NewInmemSink(20*time.Millisecond, time.Second)
 	bd.MetricsConfig = &lib.MetricsConfig{
 		Handler: sink,
@@ -4959,7 +4959,9 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 			svc, ok := svcs[sid]
 			require.True(t, ok, "has service "+sid.String())
 			assert.Equal(t, sd.Name, svc.Service)
+
 			assert.Equal(t, sd.Port, svc.Port)
+
 			// Ensure that the actual registered service _doesn't_ still have it's
 			// sidecar info since it's duplicate and we don't want that synced up to
 			// the catalog or included in responses particularly - it's just
@@ -5456,7 +5458,9 @@ func testAgent_RegisterServiceDeregisterService_Sidecar_UDP(t *testing.T, extraH
 			svc, ok := svcs[sid]
 			require.True(t, ok, "has service "+sid.String())
 			assert.Equal(t, sd.Name, svc.Service)
+
 			assert.Equal(t, sd.Port, svc.Port)
+
 			// Ensure that the actual registered service _doesn't_ still have it's
 			// sidecar info since it's duplicate and we don't want that synced up to
 			// the catalog or included in responses particularly - it's just
@@ -6133,7 +6137,7 @@ func TestAgent_Monitor(t *testing.T) {
 	t.Run("stream unstructured logs", func(t *testing.T) {
 		// Try to stream logs until we see the expected log line
 		retry.Run(t, func(r *retry.R) {
-			req, _ := http.NewRequest("GET", "/v1/agent/monitor?loglevel=debug", nil)
+			req, _ := http.NewRequest("GET", "/v1/agent/monitor?loglevel=info", nil)
 			cancelCtx, cancelFunc := context.WithCancel(context.Background())
 			req = req.WithContext(cancelCtx)
 
@@ -6479,15 +6483,15 @@ func TestAgent_Token(t *testing.T) {
 
 	type tokens struct {
 		user                string
-		userSource          tokenStore.TokenSource
+		userSource          token.TokenSource
 		agent               string
-		agentSource         tokenStore.TokenSource
+		agentSource         token.TokenSource
 		agentRecovery       string
-		agentRecoverySource tokenStore.TokenSource
+		agentRecoverySource token.TokenSource
 		repl                string
-		replSource          tokenStore.TokenSource
+		replSource          token.TokenSource
 		registration        string
-		registrationSource  tokenStore.TokenSource
+		registrationSource  token.TokenSource
 	}
 
 	resetTokens := func(init tokens) {
@@ -6538,7 +6542,7 @@ func TestAgent_Token(t *testing.T) {
 			url:       "acl_token",
 			body:      body("U"),
 			code:      http.StatusOK,
-			raw:       tokens{user: "U", userSource: tokenStore.TokenSourceAPI},
+			raw:       tokens{user: "U", userSource: token.TokenSourceAPI},
 			effective: tokens{user: "U", agent: "U"},
 		},
 		{
@@ -6547,7 +6551,7 @@ func TestAgent_Token(t *testing.T) {
 			url:       "default",
 			body:      body("U"),
 			code:      http.StatusOK,
-			raw:       tokens{user: "U", userSource: tokenStore.TokenSourceAPI},
+			raw:       tokens{user: "U", userSource: token.TokenSourceAPI},
 			effective: tokens{user: "U", agent: "U"},
 		},
 		{
@@ -6557,7 +6561,7 @@ func TestAgent_Token(t *testing.T) {
 			body:      body("A"),
 			code:      http.StatusOK,
 			init:      tokens{user: "U", agent: "U"},
-			raw:       tokens{user: "U", agent: "A", agentSource: tokenStore.TokenSourceAPI},
+			raw:       tokens{user: "U", agent: "A", agentSource: token.TokenSourceAPI},
 			effective: tokens{user: "U", agent: "A"},
 		},
 		{
@@ -6567,7 +6571,7 @@ func TestAgent_Token(t *testing.T) {
 			body:      body("A"),
 			code:      http.StatusOK,
 			init:      tokens{user: "U", agent: "U"},
-			raw:       tokens{user: "U", agent: "A", agentSource: tokenStore.TokenSourceAPI},
+			raw:       tokens{user: "U", agent: "A", agentSource: token.TokenSourceAPI},
 			effective: tokens{user: "U", agent: "A"},
 		},
 		{
@@ -6576,7 +6580,7 @@ func TestAgent_Token(t *testing.T) {
 			url:       "acl_agent_master_token",
 			body:      body("M"),
 			code:      http.StatusOK,
-			raw:       tokens{agentRecovery: "M", agentRecoverySource: tokenStore.TokenSourceAPI},
+			raw:       tokens{agentRecovery: "M", agentRecoverySource: token.TokenSourceAPI},
 			effective: tokens{agentRecovery: "M"},
 		},
 		{
@@ -6585,7 +6589,7 @@ func TestAgent_Token(t *testing.T) {
 			url:       "agent_master",
 			body:      body("M"),
 			code:      http.StatusOK,
-			raw:       tokens{agentRecovery: "M", agentRecoverySource: tokenStore.TokenSourceAPI},
+			raw:       tokens{agentRecovery: "M", agentRecoverySource: token.TokenSourceAPI},
 			effective: tokens{agentRecovery: "M"},
 		},
 		{
@@ -6594,8 +6598,8 @@ func TestAgent_Token(t *testing.T) {
 			url:       "agent_recovery",
 			body:      body("R"),
 			code:      http.StatusOK,
-			raw:       tokens{agentRecovery: "R", agentRecoverySource: tokenStore.TokenSourceAPI},
-			effective: tokens{agentRecovery: "R", agentRecoverySource: tokenStore.TokenSourceAPI},
+			raw:       tokens{agentRecovery: "R", agentRecoverySource: token.TokenSourceAPI},
+			effective: tokens{agentRecovery: "R", agentRecoverySource: token.TokenSourceAPI},
 		},
 		{
 			name:      "set repl legacy",
@@ -6603,7 +6607,7 @@ func TestAgent_Token(t *testing.T) {
 			url:       "acl_replication_token",
 			body:      body("R"),
 			code:      http.StatusOK,
-			raw:       tokens{repl: "R", replSource: tokenStore.TokenSourceAPI},
+			raw:       tokens{repl: "R", replSource: token.TokenSourceAPI},
 			effective: tokens{repl: "R"},
 		},
 		{
@@ -6612,7 +6616,7 @@ func TestAgent_Token(t *testing.T) {
 			url:       "replication",
 			body:      body("R"),
 			code:      http.StatusOK,
-			raw:       tokens{repl: "R", replSource: tokenStore.TokenSourceAPI},
+			raw:       tokens{repl: "R", replSource: token.TokenSourceAPI},
 			effective: tokens{repl: "R"},
 		},
 		{
@@ -6621,7 +6625,7 @@ func TestAgent_Token(t *testing.T) {
 			url:       "config_file_service_registration",
 			body:      body("G"),
 			code:      http.StatusOK,
-			raw:       tokens{registration: "G", registrationSource: tokenStore.TokenSourceAPI},
+			raw:       tokens{registration: "G", registrationSource: token.TokenSourceAPI},
 			effective: tokens{registration: "G"},
 		},
 		{
@@ -6631,7 +6635,7 @@ func TestAgent_Token(t *testing.T) {
 			body:   body(""),
 			code:   http.StatusOK,
 			init:   tokens{user: "U"},
-			raw:    tokens{userSource: tokenStore.TokenSourceAPI},
+			raw:    tokens{userSource: token.TokenSourceAPI},
 		},
 		{
 			name:   "clear default",
@@ -6640,7 +6644,7 @@ func TestAgent_Token(t *testing.T) {
 			body:   body(""),
 			code:   http.StatusOK,
 			init:   tokens{user: "U"},
-			raw:    tokens{userSource: tokenStore.TokenSourceAPI},
+			raw:    tokens{userSource: token.TokenSourceAPI},
 		},
 		{
 			name:   "clear agent legacy",
@@ -6649,7 +6653,7 @@ func TestAgent_Token(t *testing.T) {
 			body:   body(""),
 			code:   http.StatusOK,
 			init:   tokens{agent: "A"},
-			raw:    tokens{agentSource: tokenStore.TokenSourceAPI},
+			raw:    tokens{agentSource: token.TokenSourceAPI},
 		},
 		{
 			name:   "clear agent",
@@ -6658,7 +6662,7 @@ func TestAgent_Token(t *testing.T) {
 			body:   body(""),
 			code:   http.StatusOK,
 			init:   tokens{agent: "A"},
-			raw:    tokens{agentSource: tokenStore.TokenSourceAPI},
+			raw:    tokens{agentSource: token.TokenSourceAPI},
 		},
 		{
 			name:   "clear master legacy",
@@ -6667,7 +6671,7 @@ func TestAgent_Token(t *testing.T) {
 			body:   body(""),
 			code:   http.StatusOK,
 			init:   tokens{agentRecovery: "M"},
-			raw:    tokens{agentRecoverySource: tokenStore.TokenSourceAPI},
+			raw:    tokens{agentRecoverySource: token.TokenSourceAPI},
 		},
 		{
 			name:   "clear master",
@@ -6676,7 +6680,7 @@ func TestAgent_Token(t *testing.T) {
 			body:   body(""),
 			code:   http.StatusOK,
 			init:   tokens{agentRecovery: "M"},
-			raw:    tokens{agentRecoverySource: tokenStore.TokenSourceAPI},
+			raw:    tokens{agentRecoverySource: token.TokenSourceAPI},
 		},
 		{
 			name:   "clear recovery",
@@ -6685,7 +6689,7 @@ func TestAgent_Token(t *testing.T) {
 			body:   body(""),
 			code:   http.StatusOK,
 			init:   tokens{agentRecovery: "R"},
-			raw:    tokens{agentRecoverySource: tokenStore.TokenSourceAPI},
+			raw:    tokens{agentRecoverySource: token.TokenSourceAPI},
 		},
 		{
 			name:   "clear repl legacy",
@@ -6694,7 +6698,7 @@ func TestAgent_Token(t *testing.T) {
 			body:   body(""),
 			code:   http.StatusOK,
 			init:   tokens{repl: "R"},
-			raw:    tokens{replSource: tokenStore.TokenSourceAPI},
+			raw:    tokens{replSource: token.TokenSourceAPI},
 		},
 		{
 			name:   "clear repl",
@@ -6703,7 +6707,7 @@ func TestAgent_Token(t *testing.T) {
 			body:   body(""),
 			code:   http.StatusOK,
 			init:   tokens{repl: "R"},
-			raw:    tokens{replSource: tokenStore.TokenSourceAPI},
+			raw:    tokens{replSource: token.TokenSourceAPI},
 		},
 		{
 			name:   "clear registration",
@@ -6712,7 +6716,7 @@ func TestAgent_Token(t *testing.T) {
 			body:   body(""),
 			code:   http.StatusOK,
 			init:   tokens{registration: "G"},
-			raw:    tokens{registrationSource: tokenStore.TokenSourceAPI},
+			raw:    tokens{registrationSource: token.TokenSourceAPI},
 		},
 	}
 	for _, tt := range tests {
@@ -7486,7 +7490,7 @@ func TestAgentConnectCALeafCert_Vault_doesNotChurnLeafCertsAtIdle(t *testing.T) 
 			resp := httptest.NewRecorder()
 			a.srv.h.ServeHTTP(resp, req)
 			if resp.Code != http.StatusOK {
-				ch <- fmt.Errorf(resp.Body.String())
+				ch <- errors.New(resp.Body.String())
 				return
 			}
 
@@ -7622,7 +7626,7 @@ func TestAgentConnectCALeafCert_secondaryDC_good(t *testing.T) {
 			resp := httptest.NewRecorder()
 			a2.srv.h.ServeHTTP(resp, req)
 			if resp.Code != http.StatusOK {
-				ch <- fmt.Errorf(resp.Body.String())
+				ch <- errors.New(resp.Body.String())
 				return
 			}
 
@@ -8438,4 +8442,108 @@ func TestAgent_Self_Reload(t *testing.T) {
 	require.Equal(t, "debug", val.DebugConfig["Logging"].(map[string]interface{})["LogLevel"])
 	require.Equal(t, float64(200), val.DebugConfig["RaftSnapshotThreshold"].(float64))
 
+}
+
+func TestAgent_RegisterService_MultiPort(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Run("multi-port service registration", func(t *testing.T) {
+		testAgent_RegisterService_MultiPort(t, "")
+	})
+}
+
+func testAgent_RegisterService_MultiPort(t *testing.T, extraHCL string) {
+	t.Helper()
+
+	a := NewTestAgent(t, extraHCL)
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	args := &structs.ServiceDefinition{
+		Name: "test",
+		Meta: map[string]string{"hello": "world"},
+		Tags: []string{"primary"},
+		Ports: structs.ServicePorts{
+			{
+				Name:    "http",
+				Port:    8080,
+				Default: true,
+			},
+			{
+				Name: "metrics",
+				Port: 9090,
+			},
+		},
+		Check: structs.CheckType{
+			TTL: 15 * time.Second,
+		},
+		Checks: []*structs.CheckType{
+			{
+				TTL: 20 * time.Second,
+			},
+			{
+				TTL: 30 * time.Second,
+			},
+			{
+				UDP:      "1.1.1.1",
+				Interval: 5 * time.Second,
+			},
+		},
+		Weights: &structs.Weights{
+			Passing: 100,
+			Warning: 3,
+		},
+	}
+	req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
+	req.Header.Add("X-Consul-Token", "abc123")
+	resp := httptest.NewRecorder()
+	a.srv.h.ServeHTTP(resp, req)
+	if http.StatusOK != resp.Code {
+		t.Fatalf("expected 200 but got %v", resp.Code)
+	}
+
+	// Ensure the service
+	sid := structs.NewServiceID("test", nil)
+	svc := a.State.Service(sid)
+	if svc == nil {
+		t.Fatalf("missing test service")
+	}
+	if val := svc.Meta["hello"]; val != "world" {
+		t.Fatalf("Missing meta: %v", svc.Meta)
+	}
+	if val := svc.Weights.Passing; val != 100 {
+		t.Fatalf("Expected 100 for Weights.Passing, got: %v", val)
+	}
+	if val := svc.Weights.Warning; val != 3 {
+		t.Fatalf("Expected 3 for Weights.Warning, got: %v", val)
+	}
+
+	if len(svc.Ports) != 2 {
+		t.Fatalf("Expected 2 ports, got: %v", len(svc.Ports))
+	}
+	if !svc.Ports.IsSame(args.Ports) {
+		t.Fatalf("Ports do not match. Expected: %v, got: %v", args.Ports, svc.Ports)
+	}
+
+	// Ensure we have a check mapping
+	checks := a.State.Checks(structs.WildcardEnterpriseMetaInDefaultPartition())
+	if len(checks) != 4 {
+		t.Fatalf("bad: %v", checks)
+	}
+	for _, c := range checks {
+		if c.Type != "ttl" && c.Type != "udp" {
+			t.Fatalf("expected ttl or udp check type, got %s", c.Type)
+		}
+	}
+
+	if len(a.checkTTLs) != 3 {
+		t.Fatalf("missing test check ttls: %v", a.checkTTLs)
+	}
+
+	// Ensure the token was configured
+	if token := a.State.ServiceToken(sid); token == "" {
+		t.Fatalf("missing token")
+	}
 }

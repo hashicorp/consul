@@ -7,12 +7,13 @@
 <fieldset
   class='policy-form'
   disabled={{if (not (can 'write policy' item=item)) 'disabled'}}
+  {{fix-super-select-aria}}
   ...attributes
 >
   {{#yield-slot name='template'}}{{else}}
-    <header>
+    <h3>
       Policy{{if allowIdentity ' or identity?' ''}}
-    </header>
+    </h3>
     {{#if allowIdentity}}
       <p>
         Identities are default policies with configurable names. They save you some time and effort
@@ -68,12 +69,13 @@
         }}
         as |CB|
       >
-        <CB.Title @tag='h3'>
+        <CB.Title @tag='span'>
           Rules
           <a
             href='{{env "CONSUL_DOCS_URL"}}/guides/acl.html#rule-specification'
             rel='help noopener noreferrer'
             target='_blank'
+            style="color: inherit;"
           >(HCL Format)</a>
         </CB.Title>
       </Hds::CodeBlock>
@@ -89,12 +91,13 @@
         }}
         as |CB|
       >
-        <CB.Title @tag='h3'>
+        <CB.Title @tag='span'>
           Rules
           <a
             href='{{env "CONSUL_DOCS_URL"}}/guides/acl.html#rule-specification'
             rel='help noopener noreferrer'
             target='_blank'
+            style="color: inherit;"
           >(HCL Format)</a>
         </CB.Title>
       </Hds::CodeBlock>
@@ -106,12 +109,13 @@
         @onInput={{action 'change' (concat name '[Rules]')}}
         as |CE|
       >
-        <CE.Title @tag='h3'>
+        <CE.Title @tag='span'>
           Rules
           <a
             href='{{env "CONSUL_DOCS_URL"}}/guides/acl.html#rule-specification'
             rel='help noopener noreferrer'
             target='_blank'
+            style="color: inherit;"
           >(HCL Format)</a>
         </CE.Title>
       </Hds::CodeEditor>
@@ -128,16 +132,20 @@
     />
     <label class='type-select' data-test-datacenter>
       <span>Datacenter</span>
-      <PowerSelect
+      <Hds::Form::SuperSelect::Single::Field
         @options={{map-by 'Name' datacenters}}
-        @searchField='Name'
         @selected={{or item.Datacenter dc}}
-        @searchPlaceholder='Type a datacenter name'
+        @searchField="Name"
+        @searchPlaceholder="Type a datacenter name"
         @onChange={{action 'change' 'Datacenter'}}
-        as |Name|
-      >
-        {{Name}}
-      </PowerSelect>
+        @searchEnabled={{true}}
+        @label="Datacenter"
+        @listboxAriaLabel="Available datacenters"
+        @isOptional={{false}}
+        id="datacenter-select"
+      as |F|>
+        <F.Options>{{F.options}}</F.Options>
+      </Hds::Form::SuperSelect::Single::Field>
     </label>
   {{else}}
     {{! only show Valid Datacenters for the default partition }}

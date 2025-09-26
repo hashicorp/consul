@@ -513,7 +513,7 @@ node "foo" {
 	args := structs.TestRegisterRequestProxy(t)
 	args.Service.Service = "foo"
 	args.Service.Proxy.DestinationServiceName = "bar"
-	args.WriteRequest.Token = token
+	args.Token = token
 	var out struct{}
 	err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out)
 	assert.True(t, acl.IsErrPermissionDenied(err))
@@ -522,7 +522,7 @@ node "foo" {
 	args = structs.TestRegisterRequestProxy(t)
 	args.Service.Service = "bar"
 	args.Service.Proxy.DestinationServiceName = "foo"
-	args.WriteRequest.Token = token
+	args.Token = token
 	err = msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out)
 	assert.True(t, acl.IsErrPermissionDenied(err))
 
@@ -530,7 +530,7 @@ node "foo" {
 	args = structs.TestRegisterRequestProxy(t)
 	args.Service.Service = "foo"
 	args.Service.Proxy.DestinationServiceName = "foo"
-	args.WriteRequest.Token = token
+	args.Token = token
 	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 }
 
@@ -884,20 +884,20 @@ func TestCatalog_ListNodes(t *testing.T) {
 	if out.Nodes[0].Address != "127.0.0.1" {
 		t.Fatalf("bad: %v", out)
 	}
-	require.False(t, out.QueryMeta.NotModified)
+	require.False(t, out.NotModified)
 
 	t.Run("with option AllowNotModifiedResponse", func(t *testing.T) {
 		args.QueryOptions = structs.QueryOptions{
-			MinQueryIndex:            out.QueryMeta.Index,
+			MinQueryIndex:            out.Index,
 			MaxQueryTime:             20 * time.Millisecond,
 			AllowNotModifiedResponse: true,
 		}
 		err := msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out)
 		require.NoError(t, err)
 
-		require.Equal(t, out.Index, out.QueryMeta.Index)
+		require.Equal(t, out.Index, out.Index)
 		require.Len(t, out.Nodes, 0)
-		require.True(t, out.QueryMeta.NotModified, "NotModified should be true")
+		require.True(t, out.NotModified, "NotModified should be true")
 	})
 }
 
@@ -1152,10 +1152,10 @@ func TestCatalog_ListNodes_StaleRead(t *testing.T) {
 		if !found {
 			r.Fatalf("failed to find foo in %#v", out.Nodes)
 		}
-		if out.QueryMeta.LastContact == 0 {
+		if out.LastContact == 0 {
 			r.Fatalf("should have a last contact time")
 		}
-		if !out.QueryMeta.KnownLeader {
+		if !out.KnownLeader {
 			r.Fatalf("should have known leader")
 		}
 	})
@@ -1213,10 +1213,10 @@ func TestCatalog_ListNodes_ConsistentRead_Fail(t *testing.T) {
 	if err == nil || !strings.HasPrefix(err.Error(), "leadership lost") {
 		t.Fatalf("err: %v", err)
 	}
-	if out.QueryMeta.LastContact != 0 {
+	if out.LastContact != 0 {
 		t.Fatalf("should not have a last contact time")
 	}
-	if out.QueryMeta.KnownLeader {
+	if out.KnownLeader {
 		t.Fatalf("should have no known leader")
 	}
 }
@@ -1262,10 +1262,10 @@ func TestCatalog_ListNodes_ConsistentRead(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if out.QueryMeta.LastContact != 0 {
+	if out.LastContact != 0 {
 		t.Fatalf("should not have a last contact time")
 	}
-	if !out.QueryMeta.KnownLeader {
+	if !out.KnownLeader {
 		t.Fatalf("should have known leader")
 	}
 }
@@ -1408,7 +1408,7 @@ func TestCatalog_ListNodes_ACLFilter(t *testing.T) {
 		if len(reply.Nodes) != 0 {
 			t.Fatalf("bad: %v", reply.Nodes)
 		}
-		if !reply.QueryMeta.ResultsFilteredByACLs {
+		if !reply.ResultsFilteredByACLs {
 			t.Fatal("ResultsFilteredByACLs should be true")
 		}
 	})
@@ -1423,7 +1423,7 @@ func TestCatalog_ListNodes_ACLFilter(t *testing.T) {
 		if len(reply.Nodes) != 1 {
 			t.Fatalf("bad: %v", reply.Nodes)
 		}
-		if reply.QueryMeta.ResultsFilteredByACLs {
+		if reply.ResultsFilteredByACLs {
 			t.Fatal("ResultsFilteredByACLs should not true")
 		}
 	})
@@ -1566,21 +1566,21 @@ func TestCatalog_ListServices(t *testing.T) {
 	if out.Services["db"][0] != "primary" {
 		t.Fatalf("bad: %v", out)
 	}
-	require.False(t, out.QueryMeta.NotModified)
-	require.False(t, out.QueryMeta.ResultsFilteredByACLs)
+	require.False(t, out.NotModified)
+	require.False(t, out.ResultsFilteredByACLs)
 
 	t.Run("with option AllowNotModifiedResponse", func(t *testing.T) {
 		args.QueryOptions = structs.QueryOptions{
-			MinQueryIndex:            out.QueryMeta.Index,
+			MinQueryIndex:            out.Index,
 			MaxQueryTime:             20 * time.Millisecond,
 			AllowNotModifiedResponse: true,
 		}
 		err := msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, &out)
 		require.NoError(t, err)
 
-		require.Equal(t, out.Index, out.QueryMeta.Index)
+		require.Equal(t, out.Index, out.Index)
 		require.Len(t, out.Services, 0)
-		require.True(t, out.QueryMeta.NotModified, "NotModified should be true")
+		require.True(t, out.NotModified, "NotModified should be true")
 	})
 }
 
@@ -2612,7 +2612,7 @@ node "foo" {
 		args := structs.TestRegisterRequestProxy(t)
 		args.Service.Service = "foo-proxy"
 		args.Service.Proxy.DestinationServiceName = "bar"
-		args.WriteRequest.Token = "root"
+		args.Token = "root"
 		var out struct{}
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 
@@ -2620,14 +2620,14 @@ node "foo" {
 		args = structs.TestRegisterRequestProxy(t)
 		args.Service.Service = "foo-proxy"
 		args.Service.Proxy.DestinationServiceName = "foo"
-		args.WriteRequest.Token = "root"
+		args.Token = "root"
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 
 		// Register a proxy
 		args = structs.TestRegisterRequestProxy(t)
 		args.Service.Service = "another-proxy"
 		args.Service.Proxy.DestinationServiceName = "foo"
-		args.WriteRequest.Token = "root"
+		args.Token = "root"
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 	}
 
@@ -2656,7 +2656,7 @@ node "foo" {
 	require.Len(t, resp.ServiceNodes, 1)
 	v := resp.ServiceNodes[0]
 	require.Equal(t, "foo-proxy", v.ServiceName)
-	require.True(t, resp.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+	require.True(t, resp.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 }
 
 func TestCatalog_ListServiceNodes_ConnectNative(t *testing.T) {
@@ -3065,7 +3065,7 @@ func TestCatalog_ListServices_FilterACL(t *testing.T) {
 		if _, ok := reply.Services["bar"]; ok {
 			t.Fatalf("bad: %#v", reply.Services)
 		}
-		if !reply.QueryMeta.ResultsFilteredByACLs {
+		if !reply.ResultsFilteredByACLs {
 			t.Fatal("ResultsFilteredByACLs should be true")
 		}
 	})
@@ -3168,7 +3168,7 @@ func TestCatalog_ServiceNodes_FilterACL(t *testing.T) {
 			t.Fatalf("bad: %#v", reply.ServiceNodes)
 		}
 	}
-	require.True(t, reply.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+	require.True(t, reply.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 
 	bexprMatchingUserTokenPermissions := fmt.Sprintf("Node matches `%s.*`", srv.config.NodeName)
 	const bexpNotMatchingUserTokenPermissions = "Node matches `node-deny.*`"
@@ -3290,7 +3290,7 @@ func TestCatalog_NodeServices_ACL(t *testing.T) {
 		err := msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &args, &reply)
 		require.NoError(t, err)
 		require.Nil(t, reply.NodeServices)
-		require.True(t, reply.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		require.True(t, reply.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	t.Run("allow", func(t *testing.T) {
@@ -3301,7 +3301,7 @@ func TestCatalog_NodeServices_ACL(t *testing.T) {
 		err := msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &args, &reply)
 		require.NoError(t, err)
 		require.NotNil(t, reply.NodeServices)
-		require.False(t, reply.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+		require.False(t, reply.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
 	})
 }
 
@@ -3933,7 +3933,7 @@ service "gateway" {
 		var resp structs.IndexedGatewayServices
 		assert.Nil(r, msgpackrpc.CallWithCodec(codec, "Catalog.GatewayServices", &req, &resp))
 		assert.Len(r, resp.Services, 0)
-		assert.True(r, resp.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		assert.True(r, resp.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
 	rules = `
@@ -3957,7 +3957,7 @@ service "gateway" {
 		var resp structs.IndexedGatewayServices
 		assert.Nil(r, msgpackrpc.CallWithCodec(codec, "Catalog.GatewayServices", &req, &resp))
 		assert.Len(r, resp.Services, 2)
-		assert.True(r, resp.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+		assert.True(r, resp.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 
 		expect := structs.GatewayServices{
 			{
@@ -4005,7 +4005,7 @@ func TestVetRegisterWithACL(t *testing.T) {
 		require.NoError(t, vetRegisterWithACL(resolver.Result{Authorizer: acl.ManageAll()}, args, nil))
 	})
 
-	var perms acl.Authorizer = acl.DenyAll()
+	var perms = acl.DenyAll()
 	var resolvedPerms resolver.Result
 
 	args := &structs.RegisterRequest{

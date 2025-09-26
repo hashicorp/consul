@@ -795,6 +795,29 @@
           "1CuJHVfw": "Kzqsa7yc"
         }
       }
+    },
+    {
+      "id": "AI1d2xY4",
+      "name": "discovery-multi-port",
+      "tags": [
+        "0Zwg8l6v",
+        "zebELdN5"
+      ],
+      "address": "9RhAPlPB",
+      "token": "myjKJkWH",
+      "ports": [
+        {
+          "name": "http",
+          "port": 8080,
+          "default": true
+        },
+        {
+          "name": "admin",
+          "port": 9090,
+          "default": false
+        }
+      ],
+      "enable_tag_override": true
     }
   ],
   "session_ttl_min": "26627s",

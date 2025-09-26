@@ -6,6 +6,7 @@ package agent
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -121,6 +122,7 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 		Server            bool
 		Version           string
 		BuildDate         string
+		BindAddr          net.IP
 	}{
 		Datacenter:        displayConfig.Datacenter,
 		PrimaryDatacenter: displayConfig.PrimaryDatacenter,
@@ -132,6 +134,12 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 		// We expect the ent version to be part of the reported version string, and that's now part of the metadata, not the actual version.
 		Version:   displayConfig.VersionWithMetadata(),
 		BuildDate: displayConfig.BuildDate.Format(time.RFC3339),
+		BindAddr: func() net.IP {
+			if displayConfig.BindAddr != nil {
+				return displayConfig.BindAddr.IP
+			}
+			return nil
+		}(),
 	}
 
 	return Self{
@@ -297,13 +305,31 @@ func buildAgentService(s *structs.NodeService, dc string) api.AgentService {
 		}
 	}
 
+	servicePorts := make(api.ServicePorts, 0, len(s.Ports))
+	if len(s.Ports) > 0 {
+		for _, p := range s.Ports {
+			servicePorts = append(servicePorts, api.ServicePort{
+				Name:    p.Name,
+				Port:    p.Port,
+				Default: p.Default,
+			})
+		}
+	}
+
+	port := s.Port
+	if s.Port == 0 && len(s.Ports) > 0 {
+		// Populate `port` with default port for backward compatibility
+		port = s.DefaultPort()
+	}
+
 	as := api.AgentService{
 		Kind:              api.ServiceKind(s.Kind),
 		ID:                s.ID,
 		Service:           s.Service,
 		Tags:              s.Tags,
 		Meta:              s.Meta,
-		Port:              s.Port,
+		Port:              port,
+		Ports:             servicePorts,
 		Address:           s.Address,
 		SocketPath:        s.SocketPath,
 		TaggedAddresses:   taggedAddrs,

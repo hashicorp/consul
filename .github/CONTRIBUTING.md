@@ -94,7 +94,7 @@ import (
 	"net/http"
 
 	"github.com/hashicorp/go-cleanhttp"
-	"github.com/mitchellh/mapstructure"
+	"github.com/go-viper/mapstructure/v2"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"

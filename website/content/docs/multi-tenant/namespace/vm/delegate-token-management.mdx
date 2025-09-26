@@ -1,0 +1,243 @@
+---
+layout: docs
+page_title: Delegate ACL token management with namespaces
+description: |-
+  Delegate administrative privileges to namespace operators and remove resource uniqueness restrictions using Consul Enterprise namespace and Access Control Lists (ACLS).
+---
+
+# Delegate ACL token management with namespaces
+
+@include 'alerts/enterprise-alert.mdx'
+
+This page describes the process to create multiple namespace operator tokens, each with operator permission for a specific namespace.
+
+## Introduction
+
+One of the key benefits of namespaces is the ability to delegate responsibilities of token management to more operators. This strategy helps provide unrestricted access to portions of the datacenter to the people whose workflows are impacted directly.
+
+The namespace operators become responsible for managing access to services, Consul KV, and other resources within their namespaces. The namespace operator can further delegate service-access privileges to developers or end users. 
+
+Before namespaces, only one or a few operators managed tokens for an entire datacenter.
+
+Namespace operators are limited to viewing data within their namespaces, unless they are intentionally given access. Without global privileges, they cannot view data in other namespaces.
+
+However, Consul nodes exist across namespaces, so namespace operators can locate all the agents in the datacenter.
+
+To create namespace ACL tokens, you need a token with [` acl = "write"` policy](/consul/docs/secure/acl/rule#acl-resource-rules). We suggest using a token associated with the [`global-management` policy](/consul/docs/secure/acl/policy#global-management).
+
+## Review existing namespaces
+
+First, review the namespaces available in the Consul datacenter. If you follow the example instructions to [configure Consul namespaces on VMs](/consul/docs/multi-tenant/namespace/vm/configure), the datacenter contains two different namespaces: `app-team` and `db-team`.
+
+```shell-session
+$ consul namespace list
+app-team:
+   Description:
+      Namespace for the team managing the production application
+   Partition:   default
+db-team:
+   Description:
+      Namespace for db-team managing the production database
+   Partition:   default
+```
+
+## Default namespace policy privileges
+
+Consul provides a built-in ACL policy to simplify management token creation for namespace operators. The `namespace-management` policy grants unrestricted privileges for a
+namespace. Most importantly, this policy grants permission to create ACL tokens, which enables the holders to grant themselves any additional permissions they require for operations within their namespace. 
+
+The `namespace-management` policy includes the following rules.
+
+```hcl
+policy = "write"
+
+acl = "write"
+
+key_prefix "" {
+  policy = "write"
+}
+
+node_prefix "" {
+  # node policy is restricted to read within a namespace
+  policy = "read"
+}
+
+session_prefix "" {
+  policy = "write"
+}
+
+service_prefix "" {
+  policy = "write"
+  intentions = "write"
+}
+```
+
+## Create namespace management tokens
+
+Create a management token for namespace `app-team` with the [`consul acl token create` command](/consul/commands/acl/token/create).
+
+```shell-session
+$ consul acl token create \
+      -namespace app-team \
+      -description "app-team namespace administrator" \
+      -policy-name "namespace-management"
+```
+
+If the command is successful, Consul returns the token information.
+
+<CodeBlockConfig hideClipboard>
+
+```plaintext
+AccessorID:       0b83cf6b-42d7-3deb-06aa-da8018350c32
+SecretID:         93ed2e80-1212-092e-4be4-2a4355c615bd
+Partition:        default
+Namespace:        app-team
+Description:      app-team namespace administrator
+Local:            false
+Create Time:      2025-07-30 14:14:46.312957334 +0000 UTC
+Policies:
+   4aa30a6a-d38a-1bf4-3d63-bd56270f15f5 - namespace-management
+```
+
+</CodeBlockConfig>
+
+Create a management token for namespace `db-team`.
+
+```shell-session
+$ consul acl token create \
+      -namespace db-team \
+      -description "db-team namespace administrator" \
+      -policy-name "namespace-management"
+```
+
+If the command is successful, Consul returns the token information.
+
+<CodeBlockConfig hideClipboard>
+
+```plaintext
+AccessorID:       f96b0dcd-e1f5-d440-46ca-faf07e45d6a6
+SecretID:         5c117a9a-23d9-5e3f-78dd-85370e9e73c5
+Partition:        default
+Namespace:        db-team
+Description:      db-team namespace administrator
+Local:            false
+Create Time:      2025-07-30 14:15:57.556382756 +0000 UTC
+Policies:
+   388803f1-8cda-027a-0691-b02d14843b8b - namespace-management
+```
+
+</CodeBlockConfig>
+
+
+## View namespace management tokens
+
+Review the tokens you created with the [`consul acl token list` command](/consul/commands/acl/token/list). Include the `-namespace` flag to view tokens within a specific namespace.
+
+```shell-session
+$ consul acl token list -namespace db-team
+AccessorID:       f96b0dcd-e1f5-d440-46ca-faf07e45d6a6
+SecretID:         5c117a9a-23d9-5e3f-78dd-85370e9e73c5
+Partition:        default
+Namespace:        db-team
+Description:      db-team namespace administrator
+Local:            false
+Create Time:      2025-07-30 14:15:57.556382756 +0000 UTC
+Policies:
+   388803f1-8cda-027a-0691-b02d14843b8b - namespace-management
+```
+
+
+## Create additional tokens for a namespace
+
+You can create additional tokens that restrict privileges for users in a namespace so that you provide only the minimum necessary privileges for their role. The following example demonstrates how to create an ACL token for developers in the database team's namespace. This token limits their actions in the namespace to registering their own services and creating service intentions.
+
+### Use the namespace operator token
+
+Set the namespace operator's token as the `CONSUL_HTTP_TOKEN` environment variable to ensure that you update the correct namespace.
+
+```shell-session
+$ export CONSUL_HTTP_TOKEN=<db-team operator token here>
+```
+
+If any of the following commands fail with a permission error, then the token was not created correctly. Confirm the the value of the ACL token you set matches the intended namespace.
+
+### Create the policy
+
+Create a policy for the database team's developers.
+
+<CodeBlockConfig filename="db-developer-policy.hcl">
+
+```hcl
+service_prefix "" {
+  policy = "write"
+  intention = "write"
+}
+```
+
+</CodeBlockConfig>
+
+This policy allows writing services and intentions for those services.
+
+Use the Consul CLI to create the policy with the rules in the policy file.
+
+```shell-session
+$ consul acl policy create \
+  -name developer-policy \
+  -description "Write services and intentions" \
+  -namespace db-team \
+  -rules @db-developer-policy.hcl
+```
+
+If the command is successful, Consul outputs the policy details.
+
+<CodeBlockConfig hideClipboard>
+
+```plaintext
+ID:           de1d2f24-c523-0308-5a10-0db4a2c0c2e2
+Name:         developer-policy
+Partition:    default
+Namespace:    db-team
+Description:  Write services and intentions
+Datacenters:
+Rules:
+service_prefix "" {
+  policy = "write"
+  intention = "write"
+}
+```
+
+</CodeBlockConfig>
+
+### Create the token
+
+Use the developer policy to  create a token for the
+developer in the `db-team` namespace.
+
+```shell-session
+$ consul acl token create \
+  -description "DB developer token" \
+  -namespace db-team \
+  -policy-name developer-policy
+```
+
+Consul outputs the token information, including the namespace
+where the token is located.
+
+<CodeBlockConfig hideClipboard>
+
+```plaintext
+AccessorID:       e7bba3d7-2dcb-591f-e83a-3330ed70655b
+SecretID:         f8a7840b-b90f-1f5a-e090-f50bfbc3d85d
+Partition:        default
+Namespace:        db-team
+Description:      DB developer token
+Local:            false
+Create Time:      2025-07-30 14:25:13.95734493 +0000 UTC
+Policies:
+   de1d2f24-c523-0308-5a10-0db4a2c0c2e2 - developer-policy
+```
+
+</CodeBlockConfig>
+
+You can now distribute the token to the `db-team` developers to enable them to register and manage access to their service autonomously.
+

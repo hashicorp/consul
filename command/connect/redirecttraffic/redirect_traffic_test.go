@@ -215,7 +215,7 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 					},
 				},
 			},
-			expError: "failed parsing Proxy.Config: 1 error(s) decoding:\n\n* cannot parse 'bind_port' as int:",
+			expError: "'bind_port' cannot parse value as 'int'",
 		},
 		{
 			name: "proxyID with proxy outbound port",
@@ -690,11 +690,9 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 				require.NoError(t, err)
 				testServer.WaitForSerfCheck(t)
 				defer testServer.Stop()
-
 				client, err := api.NewClient(&api.Config{Address: testServer.HTTPAddr})
 				require.NoError(t, err)
 				cmd.client = client
-
 				for _, service := range c.consulServices {
 					if cmd.nodeName != "" {
 						catalogRegistration := &api.CatalogRegistration{
@@ -709,7 +707,6 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 								Proxy:   service.Proxy,
 							},
 						}
-
 						_, err := client.Catalog().Register(catalogRegistration, nil)
 						require.NoError(t, err)
 					}

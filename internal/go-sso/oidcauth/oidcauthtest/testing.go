@@ -73,7 +73,8 @@ func Start(t TestingT) *Server {
 			"https://example.com",
 		},
 		replySubject: "r3qXcK2bix9eFECzsU3Sbmh0K16fatW6@clients",
-		replyUserinfo: map[string]interface{}{
+		replyUserinfo: map[string]any{
+			"sub":         "r3qXcK2bix9eFECzsU3Sbmh0K16fatW6@clients",
 			"color":       "red",
 			"temperature": "76",
 			"flavor":      "umami",
@@ -113,6 +114,12 @@ func (s *Server) SetExpectedAuthCode(code string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.expectedAuthCode = code
+}
+
+func (s *Server) SetUserInfo(info map[string]any) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.replyUserinfo = info
 }
 
 // SetExpectedAuthNonce configures the nonce value required for /auth.
@@ -285,13 +292,13 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 		switch {
 		case req.FormValue("grant_type") != "authorization_code":
-			_ = writeTokenErrorResponse(w, req, http.StatusBadRequest, "invalid_request", "bad grant_type")
+			_ = writeTokenErrorResponse(w, http.StatusBadRequest, "invalid_request", "bad grant_type")
 			return
 		case !strutil.StrListContains(s.allowedRedirectURIs, req.FormValue("redirect_uri")):
-			_ = writeTokenErrorResponse(w, req, http.StatusBadRequest, "invalid_request", "redirect_uri is not allowed")
+			_ = writeTokenErrorResponse(w, http.StatusBadRequest, "invalid_request", "redirect_uri is not allowed")
 			return
 		case req.FormValue("code") != s.expectedAuthCode:
-			_ = writeTokenErrorResponse(w, req, http.StatusUnauthorized, "invalid_grant", "unexpected auth code")
+			_ = writeTokenErrorResponse(w, http.StatusUnauthorized, "invalid_grant", "unexpected auth code")
 			return
 		}
 
@@ -308,7 +315,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 		jwtData, err := SignJWT("", stdClaims, s.customClaims)
 		if err != nil {
-			_ = writeTokenErrorResponse(w, req, http.StatusInternalServerError, "server_error", err.Error())
+			_ = writeTokenErrorResponse(w, http.StatusInternalServerError, "server_error", err.Error())
 			return
 		}
 
@@ -359,7 +366,7 @@ func writeAuthErrorResponse(w http.ResponseWriter, req *http.Request, errorCode,
 	http.Redirect(w, req, redirectURI, http.StatusFound)
 }
 
-func writeTokenErrorResponse(w http.ResponseWriter, req *http.Request, statusCode int, errorCode, errorMessage string) error {
+func writeTokenErrorResponse(w http.ResponseWriter, statusCode int, errorCode, errorMessage string) error {
 	body := struct {
 		Code string `json:"error"`
 		Desc string `json:"error_description,omitempty"`
