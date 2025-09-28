@@ -15,15 +15,17 @@ import (
 )
 
 type ReportingManager struct {
-	logger                 hclog.Logger
-	clusterId              string
-	autoReporting          bool
-	server                 ServerDelegate
-	stateProvider          StateDelegate
-	tickerInterval         time.Duration
-	manualSnapshotInterval time.Duration
-	snapshotRetention      time.Duration
-	customerID             string
+	logger                      hclog.Logger
+	clusterId                   string
+	autoReporting               bool
+	server                      ServerDelegate
+	stateProvider               StateDelegate
+	tickerInterval              time.Duration
+	manualSnapshotInterval      time.Duration
+	snapshotRetention           time.Duration
+	initialMetricsRetryInterval time.Duration
+	initialMetricsTimeout       time.Duration
+	customerID                  string
 	EntDeps
 	sync.RWMutex
 	manualHTTPClient     *retryablehttp.Client
@@ -40,6 +42,11 @@ const (
 	ManualSnapshotInterval = 24 * time.Hour
 	// DefaultSnapshotRetention is the default retention period for manual census snapshots.
 	DefaultSnapshotRetention = 9600 * time.Hour // 400 days
+)
+
+const (
+	defaultInitialMetricsRetryInterval = 500 * time.Millisecond
+	defaultInitialMetricsTimeout       = 30 * time.Second
 )
 
 //go:generate mockery --name ServerDelegate --inpackage
@@ -66,14 +73,16 @@ func NewReportingManager(logger hclog.Logger, clusterId string, autoReporting bo
 	}
 
 	rm := &ReportingManager{
-		logger:                 logger.Named("reporting"),
-		clusterId:              clusterId,
-		autoReporting:          autoReporting,
-		server:                 server,
-		stateProvider:          stateProvider,
-		tickerInterval:         ReportingInterval,
-		manualSnapshotInterval: ManualSnapshotInterval,
-		snapshotRetention:      snapshotRetention,
+		logger:                      logger.Named("reporting"),
+		clusterId:                   clusterId,
+		autoReporting:               autoReporting,
+		server:                      server,
+		stateProvider:               stateProvider,
+		tickerInterval:              ReportingInterval,
+		manualSnapshotInterval:      ManualSnapshotInterval,
+		snapshotRetention:           snapshotRetention,
+		initialMetricsRetryInterval: defaultInitialMetricsRetryInterval,
+		initialMetricsTimeout:       defaultInitialMetricsTimeout,
 	}
 	err := rm.initEnterpriseReporting(deps)
 	if err != nil {
@@ -82,4 +91,11 @@ func NewReportingManager(logger hclog.Logger, clusterId string, autoReporting bo
 	}
 	rm.logger.Debug("Created reporting manager")
 	return rm
+}
+
+// ConfigureInitialMetricsBootstrap allows callers (primarily tests) to override the retry interval and timeout
+// used when warming initial reporting metrics. A timeout <= 0 disables the bootstrap routine entirely.
+func (rm *ReportingManager) ConfigureInitialMetricsBootstrap(timeout, interval time.Duration) {
+	rm.initialMetricsTimeout = timeout
+	rm.initialMetricsRetryInterval = interval
 }
