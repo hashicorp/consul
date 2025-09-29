@@ -578,7 +578,7 @@ func TestKVSEndpoint_DELETE_ConflictingFlags(t *testing.T) {
 }
 
 func TestValidateKVKey(t *testing.T) {
-	pattern := `^[a-zA-Z0-9,_./\-?&=+*%]+$`
+	pattern := `^[a-zA-Z0-9,_./\-?&=+*%ç]+$`
 	tests := []struct {
 		name    string
 		key     string
@@ -599,6 +599,7 @@ func TestValidateKVKey(t *testing.T) {
 		{"valid key with plus", "foo+bar", false},
 		{"valid key with asterisk", "foo*bar", false},
 		{"valid key with percent", "foo%bar", false},
+		{"valid key with C-cedilla", "fooçbar", false},
 		{"empty key", "", true},
 		// Invalid
 		{"invalid key with space", "foo bar", true},
