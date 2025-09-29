@@ -2,7 +2,7 @@ module github.com/hashicorp/consul/api
 
 go 1.25.1
 
-replace github.com/hashicorp/consul/sdk => ../sdk
+// replace github.com/hashicorp/consul/sdk => ../sdk
 
 retract (
 	v1.31.1 // checksum mismatch with tag
@@ -15,7 +15,7 @@ retract (
 require (
 	github.com/go-viper/mapstructure/v2 v2.4.0
 	github.com/google/go-cmp v0.6.0
-	github.com/hashicorp/consul/sdk v0.16.3
+	github.com/hashicorp/consul/sdk v0.17.0-rc1
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-hclog v1.5.0
 	github.com/hashicorp/go-multierror v1.1.1
