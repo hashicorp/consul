@@ -46,7 +46,7 @@ func (s *HTTPHandlers) KVSEndpoint(resp http.ResponseWriter, req *http.Request) 
 	if !s.agent.config.DisableHTTPUnprintableCharFilter && args.Key != "" {
 		// Allowed key pattern: a-zA-Z0-9 ,-_./
 		// https://developer.hashicorp.com/consul/docs/automate/kv#using-consul-kv
-		kvKeyPattern := `^[a-zA-Z0-9,_./\-?&=]+$`
+		kvKeyPattern := `^[a-zA-Z0-9,_./\-?&=+*%]+$`
 		if err := validateKVKey(args.Key, kvKeyPattern); err != nil {
 			return nil, fmt.Errorf("invalid key name, keys should respect the %q format", kvKeyPattern)
 		}
