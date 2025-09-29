@@ -1,96 +1,110 @@
-When reviewing HashiCorp Consul pull requests, enforce these specific requirements:
+CONSUL PR REVIEW – COMPACT AI INSTRUCTIONS
 
-LANGUAGE AND DOCUMENTATION
-1. All comments must be grammatically correct with proper punctuation and capitalization
-2. Changelog entries and other text entries like documentation changes must follow proper grammar and style guidelines
-3. Error messages should be user-facing and grammatically correct
-4. Function/method documentation must follow Go's godoc format exactly
-5. Variable and function names must use proper camelCase/PascalCase conventions
-6. No spelling errors in comments, documentation, or string literals
+GOAL
+High-signal automated review. Surface only material issues. Categorize by severity: MUST (blocks), SHOULD (recommended), INFO (non-blocking).
 
-GO CODE QUALITY
-7. All functions must handle errors explicitly - no ignored errors with underscore
-8. Use `fmt.Errorf` for error wrapping, not string concatenation
-9. Context must be first parameter in all functions that accept it
-10. Interfaces should be defined where they are used, not where they are implemented
-11. Struct initialization must use explicit field names for structs with more than 3 fields
-12. No naked returns in functions longer than 5 lines
-13. Constants must be grouped in const blocks with proper iota usage where applicable
-14. All exported functions/types must have comments starting with the function/type name
-15. Use early returns to reduce nesting levels
-16. Prefer composition over inheritance - use embedding correctly
+WORKFLOW (ALWAYS IN THIS ORDER)
+1 Classify diff scope (code / tests / docs / config / proto / UI / deps / build).
+2 Select only relevant rule categories.
+3 Scan diff (not whole repo) for violations.
+4 Produce summary (counts) then focused actionable comments.
+5 Combine repeated pattern instances into one comment with examples.
 
-IMPORTS AND DEPENDENCIES
-17. Import groups must follow this order: stdlib, external, consul internal
-20. No unused imports or variables
-21. Vendor dependencies should not be modified directly
+OUTPUT FORMAT
+Summary: BLOCKERS: X | SHOULD: Y | INFO: Z
+Then issues grouped by category. Each:
+[RULE-ID] One-line problem
+Fix: Concrete minimal remediation
 
-TESTING REQUIREMENTS
-22. Every new function must have corresponding unit tests
-23. Use `testify/require` for assertions.
-25. Use `testify/suite` for complex test setups
-27. No hardcoded sleep statements in tests - use proper synchronization
-28. Mock objects must be from `grpcmocks/` package
-29. Test setup must use `testutil.TestContext()` for context
+PROHIBITED
+- No abandoned architecture references.
+- No speculative refactors or style nits without rule ID.
+- No invented config/flags.
+- Don’t suggest API renames without deprecation path.
 
-CONSUL-SPECIFIC PATTERNS
-30. ACL checks must be performed before any resource operations
-31. HTTP endpoints must validate input parameters and return consistent error formats
-32. Service mesh code must handle Envoy proxy lifecycle correctly
-33. All configuration must use HCL format validation
-34. Agent configuration must follow existing patterns in agent/config
-35. RPC endpoints must properly handle datacenter routing and forwarding
+CORE MUST RULES (retain only most impactful)
+DOC-001 Grammar and punctuation correct in comments, changelog, user-visible errors.
+DOC-003 Exported identifiers have godoc starting with the identifier.
+DOC-006 SPDX header in new Go files.
+GO-001 No ignored errors.
+GO-002 Use fmt.Errorf with %w (no string concat wrapping).
+GO-003 Context first param; not stored globally.
+GO-004 No naked returns (>5 line funcs).
+GO-005 Struct literals (>3 fields) keyed.
+GO-008 No panics except unrecoverable init.
+GO-010 No var shadowing hiding errors.
+DEP-002 No unused imports/vars; go mod tidy clean.
+DEP-005 go.mod / go.sum must be tidy (no drift).
+TEST-001 New logic has unit tests (happy + failure path).
+TEST-004 No hard sleeps; use polling/timeout.
+TEST-007 Golden file updates intentional for xDS changes.
+CONSUL-001 ACL check before state mutation.
+CONSUL-002 HTTP input validated; consistent error JSON.
+CONSUL-004 Use existing HCL validation (no duplicate parsers).
+CONSUL-006 RPC endpoints respect context cancel / DC forwarding.
+SEC-001 Never log secrets / tokens / private material.
+SEC-002 Validate all external inputs (length/charset/range).
+SEC-003 Modern TLS only (no deprecated ciphers/protos).
+SEC-005 crypto/rand for entropy-critical values.
+PERF-001 No unbounded O(n^2) over cluster/member lists.
+PERF-003 Close all bodies/files/connections (no leaks).
+ERR-001 Wrap & contextualize propagated errors (%w).
+ERR-005 Stop on unrecoverable error; no partial silent continuation.
+CONC-001 Protect shared mutable state (locks/ownership).
+CONC-002 Goroutines have termination path (ctx.Done()).
+CONC-004 Don’t hold locks across network/disk I/O.
+CONC-007/008 Channels not double-closed / written after close.
+LOGIC-001 Bounds check before indexing with external/user data.
+LOGIC-002 No off-by-one (avoid i <= len()).
+LOGIC-005 Multi-step mutation has rollback or is idempotent.
+LOGIC-006 Retries use max attempts + backoff/jitter.
+LOGIC-008 No silent error swallowing.
+CONF-001 New config fields: default + validation + docs + changelog (unless pr/no-changelog).
+CONF-002 Field removal/rename requires deprecation path.
+API-001 Public API: backward compatible or deprecation noted.
+API-003 Proto: no tag reuse / renumbering; removed tags reserved.
+METRIC-001 Metrics avoid high-cardinality labels; stable names.
+UI-001 Interactive elements keyboard accessible.
+UI-004 Significant UI behavior changes include/update acceptance or page object tests.
+UPG-001 Persistent/on-disk/raft format changes include migration or explicit rationale.
+GUARD-002 Generated code not manually edited (proto, mocks) unless regenerated.
+GUARD-003 Remove debug println/log.Printf (use structured logger).
 
-SECURITY ENFORCEMENT
-36. Never log sensitive information like tokens, passwords, or private keys
-37. All user inputs must be validated and sanitized
-38. ACL permissions must follow least privilege principle
-39. TLS configuration must use modern cipher suites
+SHOULD (mention only if diff touches them & easy to fix)
+GO-007 Reduce deep nesting with early returns.
+TEST-003 Use testify/suite for complex multi-step state.
+PERF-002 Cache repeated expensive lookups with invalidation.
+LOGIC-007 Explicitly reject unknown enum/config values.
+METRIC-002 Add units comment if not obvious.
+UI-003 Prefer existing design system components.
+UPG-003 Note mixed-version behavior if relevant.
 
-PERFORMANCE REQUIREMENTS
-42. Implement proper caching with TTL where appropriate
-43. Avoid memory leaks - properly close channels, connections, and file handles
-44. Use connection pooling for network operations
+LOGICAL ERROR HEURISTICS (MUST when present)
+LE-BOUNDS Slice/map index or len math must guard against nil/short slices.
+LE-NIL Nil ptr from map lookup or type assertion checked before method call.
+LE-DEFER Defer unlock/close immediately after acquire/open; no missing paths.
+LE-RETRY Retry loops bounded; backoff used (no tight infinite loop).
+LE-RACE Unsynchronized read/write to map/slice in goroutines rejected.
+LE-RESOURCE File/conn/goroutine started must have deterministic close/stop.
+LE-SHADOW Inner := must not hide outer err causing skip of handling.
+LE-TIMEOUT External calls use context with timeout/cancel.
 
-ERROR HANDLING
-50. Errors must be wrapped with context using `fmt.Errorf` with %w verb
-51. Log appropriate error levels using `go-hclog` (Debug, Info, Warn, Error)
-52. Panic should only be used for truly unrecoverable errors
-53. Error messages must be actionable and include relevant context
+AUTO-FIX HINT KEYS (include when obvious): WrapError, AddGodoc, ImportOrder, AddBoundsCheck, AddContextParam, CloseResource, AddRetryBackoff, ReplacePanic.
 
-CONCURRENCY AND RACE CONDITIONS
-54. All shared state must be protected with proper synchronization
-55. Use channels for communication, mutexes for protecting state
-56. Avoid goroutine leaks by ensuring proper cleanup
-57. Context cancellation must be respected in all blocking operations
+SUMMARY TEMPLATE
+BLOCKERS: <n> | SHOULD: <n> | INFO: <n>
+Categories: (list affected prefixes)
+Example:
+[GO-002] String concat used for wrapping err in pkg/foo/bar.go:57
+Fix: return fmt.Errorf("opening index %s: %w", name, err)
 
-BREAKING CHANGES
-58. API changes must maintain backward compatibility or be clearly documented
-59. Configuration changes require migration documentation
-61. Deprecation warnings must be added before removing functionality
+APPROVAL CHECKLIST
+1 No remaining MUST violations.
+2 Security + data integrity risks addressed.
+3 Tests updated/added for new logic & failures.
+4 Changelog/config/docs updated where required.
+5 No secret or debug output.
+6 Concurrency safe (locks, ctx cancel, no leaks).
+7 API / proto compatibility preserved or deprecated properly.
 
-LOGICAL ERROR DETECTION AND PREVENTION
-62. Check for off-by-one errors in loops, array indexing, and boundary conditions
-63. Verify nil pointer checks are present before dereferencing pointers or interfaces
-64. Ensure proper initialization of maps, slices, and channels before use
-65. Validate that mutex locks have corresponding unlocks in all code paths
-66. Check for resource leaks - files, connections, goroutines must be properly closed/stopped
-67. Verify error handling covers all failure scenarios, not just happy path
-68. Ensure atomic operations are used correctly for shared counters and flags
-69. Check for race conditions in concurrent access to shared data structures
-70. Validate that timeouts and contexts are properly propagated and respected
-71. Ensure cleanup functions (defer statements) handle errors appropriately
-72. Check for infinite loops or recursion without proper exit conditions
-73. Verify that slice/map bounds are checked before access to prevent panics
-74. Ensure proper handling of zero values and empty collections
-75. Check that string operations handle UTF-8 encoding correctly
-76. Validate that network operations handle connection failures and retries properly
-77. Ensure proper validation of user input ranges and formats before processing
-78. Check for inconsistent state updates that could lead to data corruption
-79. Verify that error paths properly clean up partial operations
-80. Ensure proper handling of edge cases like empty inputs, large datasets, or malformed data
-81. Check for logical inconsistencies in conditional statements and boolean expressions
-82. Validate that async operations properly handle cancellation and cleanup
-83. Ensure proper ordering of operations when dealing with dependencies
-84. Check for potential deadlocks in multi-lock scenarios
-85. Verify that retry logic includes exponential backoff and maximum retry limits
+END GOAL
