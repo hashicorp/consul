@@ -775,7 +775,7 @@ func TestStructs_NodeService_ValidateMultiPort(t *testing.T) {
 					},
 				},
 			},
-			Err: "Ports.Port must be non-zero",
+			Err: "ports.port must be greater than zero",
 		},
 	}
 
