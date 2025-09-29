@@ -673,6 +673,8 @@ func CloneSerfLANConfig(base *serf.Config) *serf.Config {
 	cfg.TombstoneTimeout = base.TombstoneTimeout
 	cfg.MemberlistConfig.SecretKey = base.MemberlistConfig.SecretKey
 	cfg.MetricLabels = base.MetricLabels
+	cfg.MsgpackUseNewTimeFormat = base.MsgpackUseNewTimeFormat
+	cfg.MemberlistConfig.MsgpackUseNewTimeFormat = base.MemberlistConfig.MsgpackUseNewTimeFormat
 
 	return cfg
 }

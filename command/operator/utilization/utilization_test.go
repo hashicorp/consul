@@ -127,6 +127,10 @@ func TestRun_PromptSendsReportWhenConfirmed(t *testing.T) {
 func TestRun_CommunityEditionReturnsFriendlyError(t *testing.T) {
 	ui := mcli.NewMockUi()
 
+	oldMeta := version.VersionMetadata
+	version.VersionMetadata = ""
+	defer func() { version.VersionMetadata = oldMeta }()
+
 	cmd := New(ui)
 	cmd.clientFn = func() (*api.Client, error) {
 		t.Fatal("client should not be called in community edition")
