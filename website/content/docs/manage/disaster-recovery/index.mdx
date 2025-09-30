@@ -11,44 +11,46 @@ This page provides an overview of the resources available for preparing a disast
 
 ## Overview
 
-Disaster recovery is an important part of business continuity planning. When operating a Consul datacenter, standalone or composed of multiple datacenters, you need to prepare a strategy that includes many outage possibilities. 
+Disaster recovery is an important part of business continuity planning. When operating a Consul environment, you need to prepare a strategy that includes many outage possibilities. You should also take into account the unique outage possibilities that can occur when your network is composed of multiple Consul datacenters.
 
-Each outage possibility can have different implications, depending on your configuration, but there are strategies that can help you mitigate the damage in case of disaster. The strategy you adopt should include recovery plans for the most severe cases, like a complete outage of one of your physical datacenters, or a cloud provider outage that might make one of the components of your environment temporarily or permanently unavailable.
+You should prepare a disaster recovery process for the most severe cases, like a complete outage of one of your physical datacenters, or a cloud provider outage that might make one of the components of your environment temporarily or permanently unavailable. Each outage possibility depends on your configurations, but there are strategies that can help you mitigate the impact when disaster occurs. 
 
-To prepare for an outage in your Consul environment follow these logical steps.
+To prepare for an outage in your Consul deployment, you should learn how to do the following:
 
-- Learn how to [backup and restore](#backup-and-restore) a Consul datacenter.
-- Create a [disaster preparation strategy](#disaster-preparation-strategy) to reduce risks and be prepared for all possible outage cases.
-- Learn how to [restore a primary datacenter](#restore-a-primary-datacenter).
-- If using Consul in a federated environment, learn how to [restore a federated datacenter](#restore-a-federated-datacenter).
+- [Backup and restore a Consul datacenter](#backup-and-restore)
+- [Plan a disaster preparation strategy](#disaster-preparation-strategy) specific to your network and application requirements
+- [Restore a primary datacenter](#restore-a-primary-datacenter)
+- [Restore a federated datacenter](#restore-a-federated-datacenter), if you connect multiple Consul datacenters in a single environment
 
 ## Backup and restore
 
-Our recommended method for backing up Consul state uses the built-in Consul snapshot feature, which is available through the HTTP API, using the [`/v1/snapshot`](/consul/api-docs/snapshot) endpoint, or CLI, using the [`consul snapshot`](/consul/commands/snapshot) command.
+We recommend backing up Consul's state using the built-in Consul snapshot feature, which is available through the [HTTP API's `/v1/snapshot` endpoint](/consul/api-docs/snapshot), or the [CLI's `consul snapshot` command](/consul/commands/snapshot).
 
-The [Backup and restore a Consul datacenter](/consul/docs/manage/disaster-recovery/backup-restore) documentation covers this in further detail.
+For step-by-step instructions, refer to [Backup and restore a Consul datacenter](/consul/docs/manage/disaster-recovery/backup-restore).
 
-You should take snapshots of Consul clusters on a regular basis and store them on mounted or external storage. We recommend to avoid local or ephemeral storage, and we suggest the use of object storage versus block or file based storage, such as Azure blobs, Google Cloud storage, or AWS S3 storage. 
+We also recommend that you take snapshots of Consul clusters on a regular basis and store them on mounted or external storage. We recommend that you avoid local or ephemeral storage. We also suggest object storage, instead of block or file based storage. 
 
 Enterprise customers can automate the backup process by using the [Automated Backups](/consul/docs/manage/scale/automated-backup) functionality.
 
 ## Disaster preparation strategy
 
-We recommend to regularly test and validate the restore process for critical systems to ensure that everything works as expected. This testing process is typically defined in a _Disaster recovery plan (DRP)_, which is a formal document created by an organization that contains the processes used to recover access to systems and data after a catastrophic event. DRPs typically also include a set of processes for testing and validating disaster recovery procedures and establish a defined process to tackle these events.
+We recommend to regularly test and validate the restore process for critical systems to ensure that everything works as expected. 
 
-The [Disaster preparation strategy](/consul/docs/manage/disaster-recovery/disaster-preparation) page offers you a list of best practices to make your Consul datacenter more resilient to possible outages.
+This testing process is typically defined in a _Disaster recovery plan (DRP)_, which is a formal document created by an organization that contains the processes used to recover access to systems and data after a catastrophic event. DRPs typically also include a set of processes for testing and validating disaster recovery procedures and establish a defined process to tackle these events.
+
+For more information about best practices and considerations for your own deployments, refer to [Disaster preparation strategy](/consul/docs/manage/disaster-recovery/disaster-preparation).
 
 ## Restore a primary datacenter
 
-When an outage happens in the primary datacenter, a lot of the Consul cluster functionalities become unavailable. Refer to [Restore primary datacenter](/consul/docs/manage/disaster-recovery/restore-primary) to learn how to restore a single Consul datacenter functionalities. You should use the instruction provided, adapted to your environment, to build up and internal operations manual for disaster recovery.
+When an outage happens in the primary datacenter, many of the Consul cluster's functions become unavailable.  To learn how to restore functionality to a single Consul datacenter, refer to [Restore primary datacenter](/consul/docs/manage/disaster-recovery/restore-primary). You should adapt these instructions  to your environment as you build your internal operations manual for disaster recovery.
 
 We also provide tutorials on disaster recovery to help you test the commands in a sandbox environment:
 
 - [Disaster recovery for Consul clusters](/consul/tutorials/operate-consul/recovery-outage)
 - [Disaster Recovery for Consul on Kubernetes](/consul/tutorials/production-kubernetes/kubernetes-disaster-recovery)
 
-## Restore a federated datacenter
+## Restore a federated (secondary) datacenter
 
-A secondary datacenter outage, while not as tragic as a primary datacenter loss, can still impact deeply your environment. Refer to [Restore federated datacenter](/consul/docs/manage/disaster-recovery/restore-federated) to learn how to restore a federated Consul datacenter functionalities. You should use the instruction provided, adapted to your environment, to build up and internal operations manual for disaster recovery.
+When a secondary datacenter experiences an outage, it can still impact your environment even though the primary datacenter never stopped operations. To learn how to restore a federated Consul datacenter's functionality, refer to [Restore federated datacenter](/consul/docs/manage/disaster-recovery/restore-federated). You should adapt these instructions  to your environment as you build your internal operations manual for disaster recovery.
 
 

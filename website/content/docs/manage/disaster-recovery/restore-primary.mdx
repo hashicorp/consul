@@ -7,27 +7,25 @@ description: >-
 
 # Restore primary datacenter
 
-This topic provides an overview of the best practices for restoring a primary datacenter in case of an outage.
+This describes the process to restore a primary datacenter after an outage.
 
 ## Introduction
 
-Depending on your configuration, multiple levels of outage can occur.
+When the primary datacenter is unable to serve requests after an outage, there are two possible scenarios:
 
-This page covers how to handle outages that render the primary datacenter unable to serve requests, including service discovery requests to Consul DNS and intention validation. This can happen in many possible ways, but the two extremes of the spectrum are the following:
+- **Loss of quorum in the primary datacenter.** The datacenter has less than *(N/2)+1* servers available, where N is the total number of servers. While some of the nodes are unaffected, there are not enough healthy nodes to form a quorum.
+- **Complete loss of the primary datacenter.** When a disaster event at a facility completely wipes out your cluster, or a major outage occurs with your cloud provider.
 
-- **Loss of quorum in the primary datacenter.** This is an outage where the datacenter has less than *(N/2)+1* servers available, where N is the total number of servers. While some of the nodes are unaffected, there are not enough healthy nodes to form a quorum.
-- **Complete loss of the primary datacenter.** This is either a disaster event that completely wipes an entire facility or a major outage of your cloud provider.
-
-For the topics discussed in this page, we use the definition _primary datacenter_ to define both the only datacenter in the environment and the primary datacenter in a federated environment. The reason for this is that, in both cases, an outage in the datacenter impact the functionalities of the whole environment.
+In Consul, _primary datacenter_ can refer to the only datacenter in the environment, or it can refer to the main datacenter in a WAN-federated environment.
 
 ## Loss of quorum in the primary datacenter
 
-In the scenario where you have lost enough servers in your primary datacenter that a quorum cannot be reached, you will experience the same level service failure as if the whole
+If you lost enough servers that your primary datacenter cannot reach quorum, you will experience service failure as if the whole
 datacenter is unavailable.
 
-If the outage is limited to the server nodes, or did not severely impact your client fleet, it might not be practical to rebuild the whole datacenter only to re-establish a quorum.
+If the outage is limited to the server nodes, or did not severely impact your client fleet, it may be possible to resume operations by re-establishing quorum.
 
-In this scenario, you can follow the [Outage Recovery](/consul/tutorials/operate-consul/recovery-outage#server-failure-in-a-multi-server-cluster-losing-quorum) tutorial to restore your server nodes and make sure they are able to reform the raft cluster and elect a leader.
+The [Outage Recovery tutorial](/consul/tutorials/operate-consul/recovery-outage#server-failure-in-a-multi-server-cluster-losing-quorum) provides a guide to restore your server nodes and make sure they are reform the raft cluster and elect a leader.
 
 Once the raft cluster is reformed, and the datacenter is again operational, you can now restart any client agents that might have been affected by the outage.
 
