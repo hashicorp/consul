@@ -105,7 +105,7 @@ Be sure to apply this change on all Consul nodes you are upgrading.
 
 ## Install new Consul version on agents
 
-Follow instructions listed in [Install Consul](/consul/install) to install the last version of Consul on your agents.
+[Install the later version of Consul](/consul/install) on every node where a Consul agent runs.
 
 ## Server rolling upgrade
 
@@ -229,7 +229,7 @@ If you run multiple instance of the same service, each with its own Consul clien
 
 If you are using the Consul service mesh functionality, when upgrading Consul on the client nodes you will also have to make sure the Envoy version you have on the node is compatible with the new version of Consul.
 
-You can check out the Envoy version supported by your new Consul version on the [Envoy Integration](/consul/docs/connect/proxies/envoy#supported-versions)
+You can find the Envoy versions that your new Consul version supports on the [Envoy proxy configuration reference](/consul/docs/connect/proxies/envoy#supported-versions).
 documentation page.
 
 <Tip>
@@ -266,7 +266,7 @@ consul-server-1.secondary  172.20.0.4:8302   alive   server  1.21.4  2         s
 consul-server-2.secondary  172.20.0.8:8302   alive   server  1.21.4  2         secondary  default    <all>
 ```
 
-To confirm that ACL replication is still active in the secondary datacenter ,use the [`/v1/acl/replication`](/consul/api-docs/acl#check-acl-replication) REST endpoint on any Consul agent on the secondary datacenter.  The command in the followingexample uses one of the secondary datacenter servers.
+To confirm that ACL replication is still active in the secondary datacenter, use the [`/v1/acl/replication`](/consul/api-docs/acl#check-acl-replication) REST endpoint on any Consul agent on the secondary datacenter.  The command in the following example uses one of the secondary datacenter servers.
 
 ```shell-session
 $ curl -s -H "X-Consul-Token: $CONSUL_HTTP_TOKEN" https://consul-server-0.secondary/v1/acl/replication?pretty
