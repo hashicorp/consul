@@ -308,7 +308,8 @@
     "Reporting": {
         "License": {
             "Enabled": false
-        }
+        },
+        "SnapshotRetentionTime": "0s"
     },
     "RequestLimitsMode": 0,
     "RequestLimitsReadRate": 0,

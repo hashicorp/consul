@@ -9,25 +9,25 @@ deps: ../../node_modules clean
 clean:
 
 build-staging: deps
-	yarn run build:staging
+	pnpm run build:staging
 
 build-ci: deps
-	yarn run build:ci --output-path=dist
+	pnpm run build:ci --output-path=dist
 
 build: deps
-	yarn run build
+	pnpm run build
 
 build-debug:
 	BROCCOLI_DEBUG=* $(MAKE) build
 
 start: deps
-	yarn run start
+	pnpm run start
 
 start-consul: deps
-	yarn run start:consul
+	pnpm run start:consul
 
 start-api: deps
-	yarn run start:api
+	pnpm run start:api
 
 # testing
 
@@ -37,51 +37,51 @@ start-api: deps
 # TODO(spatel): CE refactor
 # oss is currently with namespace support disabled
 test: deps test-node
-	yarn run test
+	pnpm run test
 
 test-view: deps test-node
-	yarn run test:view
+	pnpm run test:view
 
 test-oss: deps test-node
-	yarn run test:oss
+	pnpm run test:oss
 
 test-oss-view: deps test-node
-	yarn run test:oss:view
+	pnpm run test:oss:view
 
 # these run from CI, both with and without namespaces
 test-ci: deps test-node
-	yarn run test:ci
+	pnpm run test:ci
 
 test-oss-ci: deps test-node
-	yarn run test:oss:ci
+	pnpm run test:oss:ci
 
 # these tests are only possible to run outside of ember
 # and use node + tape for a test harness
 test-node:
-	yarn run test:node
+	pnpm run test:node
 
 test-coverage: deps
-	yarn run test:coverage
+	pnpm run test:coverage
 
 test-coverage-view: deps
-	yarn run test:coverage:view
+	pnpm run test:coverage:view
 
 test-coverage-ci: deps
-	yarn run test:coverage:ci
+	pnpm run test:coverage:ci
 
 test-parallel: deps
-	yarn run test:parallel
+	pnpm run test:parallel
 
 lint: deps
-	yarn run lint
+	pnpm run lint
 
 format: deps
-	yarn run format
+	pnpm run format
 
 steps:
-	yarn run steps:list
+	pnpm run steps:list
 
-../../node_modules: ../../yarn.lock package.json
-	yarn install $(CONSUL_UI_INSTALL_FLAGS)
+../../node_modules: ../../pnpm-lock.yaml package.json
+	pnpm install $(CONSUL_UI_INSTALL_FLAGS)
 
 .PHONY: all deps build start test test-view lint format clean

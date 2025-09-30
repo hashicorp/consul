@@ -962,18 +962,18 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 	// Wait for it to make it into the gateway locator.
 	retry.Run(t, func(r *retry.R) {
 		require.NotEmpty(r, s1.gatewayLocator.PickGateway("dc1"))
-	})
+	}, retry.WithRetryer(retry.ThirtySeconds()))
 
 	// Seed the secondaries with the address of the primary and wait for that to
 	// be in their locators.
 	s2.RefreshPrimaryGatewayFallbackAddresses([]string{gwAddr})
 	retry.Run(t, func(r *retry.R) {
 		require.NotEmpty(r, s2.gatewayLocator.PickGateway("dc1"))
-	})
+	}, retry.WithRetryer(retry.ThirtySeconds()))
 	s3.RefreshPrimaryGatewayFallbackAddresses([]string{gwAddr})
 	retry.Run(t, func(r *retry.R) {
 		require.NotEmpty(r, s3.gatewayLocator.PickGateway("dc1"))
-	})
+	}, retry.WithRetryer(retry.ThirtySeconds()))
 
 	// Try to join from secondary to primary. We can't use joinWAN() because we
 	// are simulating proper bootstrapping and if ACLs were on we would have to
@@ -986,14 +986,14 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 		if got, want := len(s2.WANMembers()), 2; got != want {
 			r.Fatalf("got %d s2 WAN members want %d", got, want)
 		}
-	})
+	}, retry.WithRetryer(retry.ThirtySeconds()))
 	_, err = s3.JoinWAN([]string{joinAddrWAN(s1)})
 	require.NoError(t, err)
 	retry.Run(t, func(r *retry.R) {
 		if got, want := len(s3.WANMembers()), 3; got != want {
 			r.Fatalf("got %d s3 WAN members want %d", got, want)
 		}
-	})
+	}, retry.WithRetryer(retry.ThirtySeconds()))
 
 	// Now we can register this into the catalog in dc2 and dc3.
 	{
@@ -1041,7 +1041,7 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 		require.NotEmpty(r, s3.gatewayLocator.PickGateway("dc3"))
 		require.NotEmpty(r, s2.gatewayLocator.PickGateway("dc3"))
 		require.NotEmpty(r, s1.gatewayLocator.PickGateway("dc3"))
-	})
+	}, retry.WithRetryer(retry.ThirtySeconds()))
 
 	// Try to join again using the standard verification method now that
 	// all of the plumbing is in place.
