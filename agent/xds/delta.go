@@ -118,10 +118,14 @@ const (
 )
 
 func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discovery_v3.DeltaDiscoveryRequest) error {
+	s.Logger.Info("=== XDS DEBUG: processDelta - ENTRY ===")
+
 	// Handle invalid ACL tokens up-front.
 	if _, err := s.authenticate(stream.Context()); err != nil {
+		s.Logger.Info("=== XDS DEBUG: processDelta - authentication failed, EXIT ===", "error", err)
 		return err
 	}
+	s.Logger.Info("=== XDS DEBUG: processDelta - authentication successful ===")
 
 	// Loop state
 	var (
@@ -151,9 +155,11 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 	)
 
 	logger := s.Logger.Named(logging.XDS).With("xdsVersion", "v3")
+	s.Logger.Info("=== XDS DEBUG: processDelta - logger initialized ===", "logger", logger)
 
 	// need to run a small state machine to get through initial authentication.
 	var state = stateDeltaInit
+	s.Logger.Info("=== XDS DEBUG: processDelta - initial state set ===", "state", "stateDeltaInit", "stateValue", state)
 
 	// Configure handlers for each type of request we currently care about.
 	handlers := map[string]*xDSDeltaType{
@@ -169,6 +175,9 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 		xdscommon.EndpointType: newDeltaType(logger, stream, xdscommon.EndpointType, nil),
 		xdscommon.SecretType:   newDeltaType(logger, stream, xdscommon.SecretType, nil), // TODO allowEmptyFn
 	}
+	s.Logger.Info("=== XDS DEBUG: processDelta - handlers configured ===", "handlerTypes", []string{
+		xdscommon.ListenerType, xdscommon.RouteType, xdscommon.ClusterType, xdscommon.EndpointType, xdscommon.SecretType,
+	})
 
 	// Endpoints are stored within a Cluster (and Routes
 	// are stored within a Listener) so whenever the
@@ -198,59 +207,85 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 	}
 
 	for {
+		s.Logger.Info("=== XDS DEBUG: processDelta - entering main select loop ===", "state", state, "ready", ready, "nonce", nonce)
 		select {
 		case <-drainCh:
+			s.Logger.Info("=== XDS DEBUG: processDelta - CASE drainCh - ENTRY ===")
 			logger.Debug("draining stream to rebalance load")
 			metrics.IncrCounter([]string{"xds", "server", "streamDrained"}, 1)
+			s.Logger.Info("=== XDS DEBUG: processDelta - CASE drainCh - EXIT with errOverwhelmed ===")
 			return errOverwhelmed
 		case <-authTimer:
+			s.Logger.Info("=== XDS DEBUG: processDelta - CASE authTimer - ENTRY ===")
 			// It's been too long since a Discovery{Request,Response} so recheck ACLs.
 			if err := checkStreamACLs(snapshot); err != nil {
+				s.Logger.Info("=== XDS DEBUG: processDelta - CASE authTimer - ACL check failed, EXIT ===", "error", err)
 				return err
 			}
+			s.Logger.Info("=== XDS DEBUG: processDelta - CASE authTimer - ACL check passed ===")
 			extendAuthTimer()
+			s.Logger.Info("=== XDS DEBUG: processDelta - CASE authTimer - EXIT ===")
 
 		case req, ok := <-reqCh:
+			s.Logger.Info("=== XDS DEBUG: processDelta - CASE reqCh - ENTRY ===", "ok", ok, "req_type", func() string {
+				if req != nil {
+					return req.TypeUrl
+				}
+				return "nil"
+			}())
 			if !ok {
 				// reqCh is closed when stream.Recv errors which is how we detect client
 				// going away. AFAICT the stream.Context() is only canceled once the
 				// RPC method returns which it can't until we return from this one so
 				// there's no point in blocking on that.
+				s.Logger.Info("=== XDS DEBUG: processDelta - CASE reqCh - channel closed, EXIT ===")
 				return nil
 			}
 
 			logTraceRequest(logger, "Incremental xDS v3", req)
+			s.Logger.Info("=== XDS DEBUG: processDelta - received request ===", "typeUrl", req.TypeUrl, "nonce", req.ResponseNonce)
 
 			if req.TypeUrl == "" {
+				s.Logger.Info("=== XDS DEBUG: processDelta - CASE reqCh - empty TypeUrl, EXIT with error ===")
 				return status.Errorf(codes.InvalidArgument, "type URL is required for ADS")
 			}
 
 			var proxyFeatures xdscommon.SupportedProxyFeatures
 			if node == nil && req.Node != nil {
+				s.Logger.Info("=== XDS DEBUG: processDelta - setting node from request ===", "nodeId", req.Node.Id)
 				node = req.Node
 				var err error
 				proxyFeatures, err = xdscommon.DetermineSupportedProxyFeatures(req.Node)
 				if err != nil {
+					s.Logger.Info("=== XDS DEBUG: processDelta - failed to determine proxy features, EXIT ===", "error", err)
 					return status.Error(codes.InvalidArgument, err.Error())
 				}
+				s.Logger.Info("=== XDS DEBUG: processDelta - proxy features determined ===", "features", proxyFeatures)
 			}
 
 			if handler, ok := handlers[req.TypeUrl]; ok {
 				switch handler.Recv(req, proxyFeatures) {
 				case deltaRecvNewSubscription:
+					s.Logger.Info("=== XDS DEBUG: processDelta - CASE deltaRecvNewSubscription ===", "typeUrl", req.TypeUrl)
 					logger.Trace("subscribing to type", "typeUrl", req.TypeUrl)
 
 				case deltaRecvResponseNack:
+					s.Logger.Info("=== XDS DEBUG: processDelta - CASE deltaRecvResponseNack ===", "typeUrl", req.TypeUrl)
 					logger.Trace("got nack response for type", "typeUrl", req.TypeUrl)
 
 					// There is no reason to believe that generating new xDS resources from the same snapshot
 					// would lead to an ACK from Envoy. Instead we continue to the top of this for loop and wait
 					// for a new request or snapshot.
+					s.Logger.Info("=== XDS DEBUG: processDelta - NACK received, continuing loop ===")
 					continue
 				}
+			} else {
+				s.Logger.Info("=== XDS DEBUG: processDelta - no handler found for TypeUrl ===", "typeUrl", req.TypeUrl)
 			}
+			s.Logger.Info("=== XDS DEBUG: processDelta - CASE reqCh - EXIT ===")
 
 		case cs, ok := <-stateCh:
+			s.Logger.Info("=== XDS DEBUG: processDelta - CASE stateCh - ENTRY ===", "ok", ok, "snapshot_present", cs != nil)
 			if !ok {
 				// stateCh is closed either when *we* cancel the watch (on-exit via defer)
 				// or by the proxycfg.Manager when an irrecoverable error is encountered
@@ -258,53 +293,89 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 				//
 				// We know for sure that this is the latter case, because in the former we
 				// would've already exited this loop.
+				s.Logger.Info("=== XDS DEBUG: processDelta - CASE stateCh - channel closed, EXIT with error ===")
 				return status.Error(codes.Aborted, "xDS stream terminated due to an irrecoverable error, please try again")
 			}
 			snapshot = cs
+			s.Logger.Info("=== XDS DEBUG: processDelta - snapshot updated ===", "snapshotKind", snapshot.Kind, "service", snapshot.Service)
 
+			s.Logger.Info("=== XDS DEBUG: processDelta - calling getEnvoyConfiguration ===")
 			newRes, err := getEnvoyConfiguration(snapshot, logger, s.CfgFetcher)
 			if err != nil {
+				s.Logger.Info("=== XDS DEBUG: processDelta - getEnvoyConfiguration failed, EXIT ===", "error", err)
 				return status.Errorf(codes.Unavailable, "failed to generate all xDS resources from the snapshot: %v", err)
 			}
+			s.Logger.Info("=== XDS DEBUG: processDelta - getEnvoyConfiguration successful ===", "resourceTypes", func() []string {
+				var types []string
+				for k := range newRes {
+					types = append(types, k)
+				}
+				return types
+			}())
 
 			// index and hash the xDS structures
+			s.Logger.Info("=== XDS DEBUG: processDelta - calling IndexResources ===")
 			newResourceMap := xdscommon.IndexResources(logger, newRes)
+			s.Logger.Info("=== XDS DEBUG: processDelta - IndexResources completed ===")
 
 			if s.ResourceMapMutateFn != nil {
+				s.Logger.Info("=== XDS DEBUG: processDelta - calling ResourceMapMutateFn ===")
 				s.ResourceMapMutateFn(newResourceMap)
+				s.Logger.Info("=== XDS DEBUG: processDelta - ResourceMapMutateFn completed ===")
 			}
 
+			s.Logger.Info("=== XDS DEBUG: processDelta - calling applyEnvoyExtensions ===")
 			if newResourceMap, err = s.applyEnvoyExtensions(newResourceMap, snapshot, node); err != nil {
 				// err is already the result of calling status.Errorf
+				s.Logger.Info("=== XDS DEBUG: processDelta - applyEnvoyExtensions failed, EXIT ===", "error", err)
 				return err
 			}
+			s.Logger.Info("=== XDS DEBUG: processDelta - applyEnvoyExtensions completed ===")
 
+			s.Logger.Info("=== XDS DEBUG: processDelta - calling populateChildIndexMap ===")
 			if err := populateChildIndexMap(newResourceMap); err != nil {
+				s.Logger.Info("=== XDS DEBUG: processDelta - populateChildIndexMap failed, EXIT ===", "error", err)
 				return status.Errorf(codes.Unavailable, "failed to index xDS resource versions: %v", err)
 			}
+			s.Logger.Info("=== XDS DEBUG: processDelta - populateChildIndexMap completed ===")
 
+			s.Logger.Info("=== XDS DEBUG: processDelta - calling computeResourceVersions ===")
 			newVersions, err := computeResourceVersions(newResourceMap)
 			if err != nil {
+				s.Logger.Info("=== XDS DEBUG: processDelta - computeResourceVersions failed, EXIT ===", "error", err)
 				return status.Errorf(codes.Unavailable, "failed to compute xDS resource versions: %v", err)
 			}
+			s.Logger.Info("=== XDS DEBUG: processDelta - computeResourceVersions completed ===", "versionCounts", func() map[string]int {
+				counts := make(map[string]int)
+				for k, v := range newVersions {
+					counts[k] = len(v)
+				}
+				return counts
+			}())
 
 			resourceMap = newResourceMap
 			currentVersions = newVersions
 			ready = true
+			s.Logger.Info("=== XDS DEBUG: processDelta - CASE stateCh - EXIT, ready set to true ===")
 		case <-cfgSrcTerminated:
+			s.Logger.Info("=== XDS DEBUG: processDelta - CASE cfgSrcTerminated - ENTRY ===")
 			// Ensure that we cancel and cleanup resources if the sync loop terminates for any reason.
 			// This is necessary to handle the scenario where an unexpected error occurs that the loop
 			// cannot recover from.
 			logger.Debug("config-source sync loop terminated due to error")
+			s.Logger.Info("=== XDS DEBUG: processDelta - CASE cfgSrcTerminated - EXIT with errConfigSyncError ===")
 			return errConfigSyncError
 		}
 
 		// Trigger state machine
+		s.Logger.Info("=== XDS DEBUG: processDelta - entering state machine ===", "state", state)
 		switch state {
 		case stateDeltaInit:
+			s.Logger.Info("=== XDS DEBUG: processDelta - CASE stateDeltaInit - ENTRY ===")
 			if node == nil {
 				// This can't happen (tm) since stateCh is nil until after the first req
 				// is received but lets not panic about it.
+				s.Logger.Info("=== XDS DEBUG: processDelta - CASE stateDeltaInit - node is nil, continuing ===")
 				continue
 			}
 
@@ -312,24 +383,32 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 			if nodeName == "" {
 				nodeName = s.NodeName
 			}
+			s.Logger.Info("=== XDS DEBUG: processDelta - node info ===", "nodeId", node.Id, "nodeName", nodeName)
 
 			// Start authentication process, we need the proxyID
 			proxyID := structs.NewServiceID(node.Id, parseEnterpriseMeta(node))
+			s.Logger.Info("=== XDS DEBUG: processDelta - proxyID created ===", "proxyID", proxyID.String())
 
 			// Start watching config for that proxy
 			var err error
 			options, err := external.QueryOptionsFromContext(stream.Context())
 			if err != nil {
+				s.Logger.Info("=== XDS DEBUG: processDelta - failed to get query options, EXIT ===", "error", err)
 				return status.Errorf(codes.Internal, "failed to watch proxy service: %s", err)
 			}
+			s.Logger.Info("=== XDS DEBUG: processDelta - query options obtained ===", "token", options.Token != "")
 
+			s.Logger.Info("=== XDS DEBUG: processDelta - calling ProxyWatcher.Watch ===", "proxyID", proxyID, "nodeName", nodeName)
 			stateCh, drainCh, cfgSrcTerminated, watchCancel, err = s.ProxyWatcher.Watch(proxyID, nodeName, options.Token)
 			switch {
 			case errors.Is(err, limiter.ErrCapacityReached):
+				s.Logger.Info("=== XDS DEBUG: processDelta - capacity reached, EXIT ===")
 				return errOverwhelmed
 			case err != nil:
+				s.Logger.Info("=== XDS DEBUG: processDelta - watch failed, EXIT ===", "error", err)
 				return status.Errorf(codes.Internal, "failed to watch proxy: %s", err)
 			}
+			s.Logger.Info("=== XDS DEBUG: processDelta - ProxyWatcher.Watch successful ===")
 			// Note that in this case we _intend_ the defer to only be triggered when
 			// this whole process method ends (i.e. when streaming RPC aborts) not at
 			// the end of the current loop iteration. We have to do it in the loop
@@ -343,9 +422,12 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 
 			// Now wait for the config so we can check ACL
 			state = stateDeltaPendingInitialConfig
+			s.Logger.Info("=== XDS DEBUG: processDelta - CASE stateDeltaInit - EXIT, state changed to stateDeltaPendingInitialConfig ===")
 		case stateDeltaPendingInitialConfig:
+			s.Logger.Info("=== XDS DEBUG: processDelta - CASE stateDeltaPendingInitialConfig - ENTRY ===", "snapshot_present", snapshot != nil)
 			if snapshot == nil {
 				// Nothing we can do until we get the initial config
+				s.Logger.Info("=== XDS DEBUG: processDelta - CASE stateDeltaPendingInitialConfig - no snapshot, continuing ===")
 				continue
 			}
 
@@ -357,34 +439,45 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 			if loggerName != "" {
 				logger = logger.Named(loggerName)
 			}
+			s.Logger.Info("=== XDS DEBUG: processDelta - CASE stateDeltaPendingInitialConfig - snapshot received, logger upgraded ===", "loggerName", loggerName)
 
 			logger.Trace("Got initial config snapshot")
 
 			// Let's actually process the config we just got, or we'll miss responding
+			s.Logger.Info("=== XDS DEBUG: processDelta - CASE stateDeltaPendingInitialConfig - EXIT, falling through to stateDeltaRunning ===")
 			fallthrough
 		case stateDeltaRunning:
+			s.Logger.Info("=== XDS DEBUG: processDelta - CASE stateDeltaRunning - ENTRY ===", "ready", ready)
 			// Check ACLs on every Discovery{Request,Response}.
 			if err := checkStreamACLs(snapshot); err != nil {
+				s.Logger.Info("=== XDS DEBUG: processDelta - CASE stateDeltaRunning - ACL check failed, EXIT ===", "error", err)
 				return err
 			}
+			s.Logger.Info("=== XDS DEBUG: processDelta - CASE stateDeltaRunning - ACL check passed ===")
 			// For the first time through the state machine, this is when the
 			// timer is first started.
 			extendAuthTimer()
 
 			if !ready {
+				s.Logger.Info("=== XDS DEBUG: processDelta - CASE stateDeltaRunning - not ready, skipping delta computation ===")
 				logger.Trace("Skipping delta computation because we haven't gotten a snapshot yet")
 				continue
 			}
 
+			s.Logger.Info("=== XDS DEBUG: processDelta - CASE stateDeltaRunning - ready, invoking xDS handlers ===")
 			logger.Trace("Invoking all xDS resource handlers and sending changed data if there are any")
 
 			streamStartOnce.Do(func() {
 				metrics.MeasureSince([]string{"xds", "server", "streamStart"}, streamStartTime)
 			})
 
-			for _, op := range xDSUpdateOrder {
+			s.Logger.Info("=== XDS DEBUG: processDelta - iterating through xDSUpdateOrder ===", "orderCount", len(xDSUpdateOrder))
+			for i, op := range xDSUpdateOrder {
+				s.Logger.Info("=== XDS DEBUG: processDelta - processing xDS operation ===", "index", i, "typeUrl", op.TypeUrl, "upsert", op.Upsert, "remove", op.Remove)
+
 				if op.TypeUrl == xdscommon.ListenerType || op.TypeUrl == xdscommon.RouteType {
 					if clusterHandler := handlers[xdscommon.ClusterType]; clusterHandler.registered && len(clusterHandler.pendingUpdates) > 0 {
+						s.Logger.Info("=== XDS DEBUG: processDelta - skipping due to pending cluster updates ===", "typeUrl", op.TypeUrl, "pendingClusterUpdates", len(clusterHandler.pendingUpdates))
 						logger.Trace("Skipping delta computation for resource because there are dependent updates pending",
 							"typeUrl", op.TypeUrl, "dependent", xdscommon.ClusterType)
 
@@ -393,6 +486,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 						break
 					}
 					if endpointHandler := handlers[xdscommon.EndpointType]; endpointHandler.registered && len(endpointHandler.pendingUpdates) > 0 {
+						s.Logger.Info("=== XDS DEBUG: processDelta - skipping due to pending endpoint updates ===", "typeUrl", op.TypeUrl, "pendingEndpointUpdates", len(endpointHandler.pendingUpdates))
 						logger.Trace("Skipping delta computation for resource because there are dependent updates pending",
 							"typeUrl", op.TypeUrl, "dependent", xdscommon.EndpointType)
 
@@ -401,14 +495,26 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 						break
 					}
 				}
-				err, _ := handlers[op.TypeUrl].SendIfNew(currentVersions[op.TypeUrl], resourceMap, &nonce, op.Upsert, op.Remove)
+
+				s.Logger.Info("=== XDS DEBUG: processDelta - calling SendIfNew ===", "typeUrl", op.TypeUrl, "currentVersionsCount", func() int {
+					if v, ok := currentVersions[op.TypeUrl]; ok {
+						return len(v)
+					}
+					return 0
+				}(), "nonce", *(&nonce))
+
+				err, sent := handlers[op.TypeUrl].SendIfNew(currentVersions[op.TypeUrl], resourceMap, &nonce, op.Upsert, op.Remove)
+				s.Logger.Info("=== XDS DEBUG: processDelta - SendIfNew result ===", "typeUrl", op.TypeUrl, "error", err, "sent", sent, "newNonce", *(&nonce))
+
 				if err != nil {
+					s.Logger.Info("=== XDS DEBUG: processDelta - SendIfNew failed, EXIT ===", "typeUrl", op.TypeUrl, "error", err)
 					return status.Errorf(codes.Unavailable,
 						"failed to send %sreply for type %q: %v",
 						op.errorLogNameReplyPrefix(),
 						op.TypeUrl, err)
 				}
 			}
+			s.Logger.Info("=== XDS DEBUG: processDelta - CASE stateDeltaRunning - EXIT ===")
 		}
 	}
 }
@@ -652,7 +758,7 @@ type xDSDeltaType struct {
 	// specific resource names. subscribe/unsubscribe are ignored.
 	wildcard bool
 
-	// sentToEnvoyOnce is true after we've sent one response to envoy.
+	// sent to Envoy once is true after we've sent one response to envoy.
 	sentToEnvoyOnce bool
 
 	// subscriptions is the set of currently subscribed envoy resources.
@@ -866,18 +972,24 @@ func (t *xDSDeltaType) SendIfNew(
 	nonce *uint64,
 	upsert, remove bool,
 ) (error, bool) {
+	t.logger.Info("=== XDS DEBUG: SendIfNew - ENTRY ===", "typeUrl", t.typeURL, "registered", t.registered, "currentVersionsCount", len(currentVersions), "upsert", upsert, "remove", remove)
+
 	if t == nil || !t.registered {
+		t.logger.Info("=== XDS DEBUG: SendIfNew - EXIT early, not registered ===", "typeUrl", t.typeURL, "t_nil", t == nil, "registered", t != nil && t.registered)
 		return nil, false
 	}
 
 	// Wait for Envoy to catch up with this delta type before sending something new.
 	if len(t.pendingUpdates) > 0 {
+		t.logger.Info("=== XDS DEBUG: SendIfNew - EXIT early, pending updates ===", "typeUrl", t.typeURL, "pendingUpdatesCount", len(t.pendingUpdates))
 		return nil, false
 	}
 
 	logger := t.logger.With("typeUrl", t.typeURL)
+	t.logger.Info("=== XDS DEBUG: SendIfNew - logger created ===", "typeUrl", t.typeURL)
 
 	allowEmpty := t.allowEmptyFn != nil && t.allowEmptyFn()
+	t.logger.Info("=== XDS DEBUG: SendIfNew - allowEmpty check ===", "typeUrl", t.typeURL, "allowEmpty", allowEmpty, "allowEmptyFn_exists", t.allowEmptyFn != nil)
 
 	// Zero length resource responses should be ignored and are the result of no
 	// data yet. Notice that this caused a bug originally where we had zero
@@ -887,27 +999,37 @@ func (t *xDSDeltaType) SendIfNew(
 	// empty resources.
 	if len(currentVersions) == 0 && !allowEmpty {
 		// Nothing to send yet
+		t.logger.Info("=== XDS DEBUG: SendIfNew - EXIT early, no current versions and not allowing empty ===", "typeUrl", t.typeURL)
 		return nil, false
 	}
 
+	t.logger.Info("=== XDS DEBUG: SendIfNew - calling createDeltaResponse ===", "typeUrl", t.typeURL, "currentVersionsCount", len(currentVersions))
 	resp, updates, err := t.createDeltaResponse(currentVersions, resourceMap, upsert, remove)
+	t.logger.Info("=== XDS DEBUG: SendIfNew - createDeltaResponse result ===", "typeUrl", t.typeURL, "error", err, "resp_nil", resp == nil, "updatesCount", len(updates))
+
 	if err != nil {
+		t.logger.Info("=== XDS DEBUG: SendIfNew - EXIT with error from createDeltaResponse ===", "typeUrl", t.typeURL, "error", err)
 		return err, false
 	}
 
 	if resp == nil {
+		t.logger.Info("=== XDS DEBUG: SendIfNew - EXIT early, no response from createDeltaResponse ===", "typeUrl", t.typeURL)
 		return nil, false
 	}
 
 	*nonce++
 	resp.Nonce = fmt.Sprintf("%08x", *nonce)
+	t.logger.Info("=== XDS DEBUG: SendIfNew - nonce assigned ===", "typeUrl", t.typeURL, "nonce", resp.Nonce, "nonceValue", *nonce)
 
 	logTraceResponse(t.logger, "Incremental xDS v3", resp)
 
+	t.logger.Info("=== XDS DEBUG: SendIfNew - sending response to stream ===", "typeUrl", t.typeURL, "nonce", resp.Nonce, "resourceCount", len(resp.Resources), "removedResourceCount", len(resp.RemovedResources))
 	logger.Trace("sending response", "nonce", resp.Nonce)
 	if err := t.stream.Send(resp); err != nil {
+		t.logger.Info("=== XDS DEBUG: SendIfNew - EXIT with stream send error ===", "typeUrl", t.typeURL, "error", err, "nonce", resp.Nonce)
 		return err, false
 	}
+	t.logger.Info("=== XDS DEBUG: SendIfNew - response sent successfully ===", "typeUrl", t.typeURL, "nonce", resp.Nonce)
 	logger.Trace("sent response", "nonce", resp.Nonce)
 
 	// Certain xDS types are children of other types, meaning that if an update is pushed for a parent,
@@ -918,19 +1040,28 @@ func (t *xDSDeltaType) SendIfNew(
 	// parent types before child types, meaning that it's expected on first send of a parent that
 	// there are no subscriptions for the child type.
 	if t.deltaChild != nil {
+		t.logger.Info("=== XDS DEBUG: SendIfNew - processing delta child updates ===", "typeUrl", t.typeURL, "childTypeUrl", t.deltaChild.childType.typeURL)
 		for name := range updates {
 			if children, ok := resourceMap.ChildIndex[t.typeURL][name]; ok {
+				t.logger.Info("=== XDS DEBUG: SendIfNew - found children for resource ===", "typeUrl", t.typeURL, "resourceName", name, "childrenCount", len(children), "children", children)
 				// Capture the relevant child resource names on this pending update so
 				// we can know the linked children if Envoy ever re-subscribes to the parent resource.
 				t.deltaChild.childrenNames[name] = children
 
 				for _, childName := range children {
+					t.logger.Info("=== XDS DEBUG: SendIfNew - calling ensureChildResend ===", "typeUrl", t.typeURL, "parentName", name, "childName", childName)
 					t.ensureChildResend(name, childName)
 				}
+			} else {
+				t.logger.Info("=== XDS DEBUG: SendIfNew - no children found for resource ===", "typeUrl", t.typeURL, "resourceName", name)
 			}
 		}
+	} else {
+		t.logger.Info("=== XDS DEBUG: SendIfNew - no delta child ===", "typeUrl", t.typeURL)
 	}
+
 	t.pendingUpdates[resp.Nonce] = updates
+	t.logger.Info("=== XDS DEBUG: SendIfNew - EXIT successfully ===", "typeUrl", t.typeURL, "nonce", resp.Nonce, "pendingUpdatesCount", len(t.pendingUpdates))
 
 	return nil, true
 }
@@ -940,26 +1071,34 @@ func (t *xDSDeltaType) createDeltaResponse(
 	resourceMap *xdscommon.IndexedResources,
 	upsert, remove bool,
 ) (*envoy_discovery_v3.DeltaDiscoveryResponse, map[string]PendingUpdate, error) {
+	t.logger.Info("=== XDS DEBUG: createDeltaResponse - ENTRY ===", "typeUrl", t.typeURL, "currentVersionsCount", len(currentVersions), "upsert", upsert, "remove", remove, "wildcard", t.wildcard)
+
 	// compute difference
 	var (
 		hasRelevantUpdates = false
 		updates            = make(map[string]PendingUpdate)
 	)
 
+	t.logger.Info("=== XDS DEBUG: createDeltaResponse - entering version comparison logic ===", "typeUrl", t.typeURL, "wildcard", t.wildcard, "resourceVersionsCount", len(t.resourceVersions))
+
 	if t.wildcard {
+		t.logger.Info("=== XDS DEBUG: createDeltaResponse - CASE wildcard mode ===", "typeUrl", t.typeURL)
 		// First find things that need updating or deleting
 		for name, envoyVers := range t.resourceVersions {
 			currVers, ok := currentVersions[name]
+			t.logger.Info("=== XDS DEBUG: createDeltaResponse - checking existing resource ===", "typeUrl", t.typeURL, "resourceName", name, "envoyVersion", envoyVers, "currentVersion", currVers, "exists", ok)
 			if !ok {
 				if remove {
 					hasRelevantUpdates = true
 				}
 				updates[name] = PendingUpdate{Remove: true}
+				t.logger.Info("=== XDS DEBUG: createDeltaResponse - marking resource for removal ===", "typeUrl", t.typeURL, "resourceName", name, "hasRelevantUpdates", hasRelevantUpdates)
 			} else if currVers != envoyVers {
 				if upsert {
 					hasRelevantUpdates = true
 				}
 				updates[name] = PendingUpdate{Version: currVers}
+				t.logger.Info("=== XDS DEBUG: createDeltaResponse - version mismatch, marking for update ===", "typeUrl", t.typeURL, "resourceName", name, "envoyVersion", envoyVers, "currentVersion", currVers, "hasRelevantUpdates", hasRelevantUpdates)
 			}
 		}
 
@@ -972,21 +1111,27 @@ func (t *xDSDeltaType) createDeltaResponse(
 				hasRelevantUpdates = true
 			}
 			updates[name] = PendingUpdate{Version: currVers}
+			t.logger.Info("=== XDS DEBUG: createDeltaResponse - new resource found ===", "typeUrl", t.typeURL, "resourceName", name, "version", currVers, "hasRelevantUpdates", hasRelevantUpdates)
 		}
 	} else {
+		t.logger.Info("=== XDS DEBUG: createDeltaResponse - CASE subscription mode ===", "typeUrl", t.typeURL, "subscriptionsCount", len(t.subscriptions))
 		// First find things that need updating or deleting
 
 		// Walk the list of things currently stored in envoy
 		for name, envoyVers := range t.resourceVersions {
 			if t.subscribed(name) {
+				t.logger.Info("=== XDS DEBUG: createDeltaResponse - checking subscribed resource ===", "typeUrl", t.typeURL, "resourceName", name, "envoyVersion", envoyVers)
 				if currVers, ok := currentVersions[name]; ok {
 					if currVers != envoyVers {
 						if upsert {
 							hasRelevantUpdates = true
 						}
 						updates[name] = PendingUpdate{Version: currVers}
+						t.logger.Info("=== XDS DEBUG: createDeltaResponse - subscribed resource version mismatch ===", "typeUrl", t.typeURL, "resourceName", name, "envoyVersion", envoyVers, "currentVersion", currVers, "hasRelevantUpdates", hasRelevantUpdates)
 					}
 				}
+			} else {
+				t.logger.Info("=== XDS DEBUG: createDeltaResponse - resource not subscribed ===", "typeUrl", t.typeURL, "resourceName", name)
 			}
 		}
 
@@ -1000,11 +1145,17 @@ func (t *xDSDeltaType) createDeltaResponse(
 				if upsert {
 					hasRelevantUpdates = true
 				}
+				t.logger.Info("=== XDS DEBUG: createDeltaResponse - new subscription resource ===", "typeUrl", t.typeURL, "resourceName", name, "version", currVers, "hasRelevantUpdates", hasRelevantUpdates)
+			} else {
+				t.logger.Info("=== XDS DEBUG: createDeltaResponse - subscribed resource not in current versions ===", "typeUrl", t.typeURL, "resourceName", name)
 			}
 		}
 	}
 
+	t.logger.Info("=== XDS DEBUG: createDeltaResponse - version comparison complete ===", "typeUrl", t.typeURL, "hasRelevantUpdates", hasRelevantUpdates, "updatesCount", len(updates), "sentToEnvoyOnce", t.sentToEnvoyOnce)
+
 	if !hasRelevantUpdates && t.sentToEnvoyOnce {
+		t.logger.Info("=== XDS DEBUG: createDeltaResponse - EXIT early, no relevant updates ===", "typeUrl", t.typeURL)
 		return nil, nil, nil
 	}
 
@@ -1013,24 +1164,33 @@ func (t *xDSDeltaType) createDeltaResponse(
 		// TODO(rb): consider putting something in SystemVersionInfo?
 		TypeUrl: t.typeURL,
 	}
+	t.logger.Info("=== XDS DEBUG: createDeltaResponse - creating delta response ===", "typeUrl", t.typeURL)
+
 	realUpdates := make(map[string]PendingUpdate)
 	for name, obj := range updates {
+		t.logger.Info("=== XDS DEBUG: createDeltaResponse - processing update ===", "typeUrl", t.typeURL, "resourceName", name, "remove", obj.Remove, "version", obj.Version)
 		if obj.Remove {
 			if remove {
 				resp.RemovedResources = append(resp.RemovedResources, name)
 				realUpdates[name] = PendingUpdate{Remove: true}
+				t.logger.Info("=== XDS DEBUG: createDeltaResponse - added to removed resources ===", "typeUrl", t.typeURL, "resourceName", name)
+			} else {
+				t.logger.Info("=== XDS DEBUG: createDeltaResponse - skipped removal (remove=false) ===", "typeUrl", t.typeURL, "resourceName", name)
 			}
 		} else if upsert {
 			resources, ok := resourceMap.Index[t.typeURL]
 			if !ok {
+				t.logger.Info("=== XDS DEBUG: createDeltaResponse - EXIT with error, unknown type url ===", "typeUrl", t.typeURL)
 				return nil, nil, fmt.Errorf("unknown type url: %s", t.typeURL)
 			}
 			res, ok := resources[name]
 			if !ok {
+				t.logger.Info("=== XDS DEBUG: createDeltaResponse - EXIT with error, unknown resource name ===", "typeUrl", t.typeURL, "resourceName", name)
 				return nil, nil, fmt.Errorf("unknown name for type url %q: %s", t.typeURL, name)
 			}
 			any, err := anypb.New(res)
 			if err != nil {
+				t.logger.Info("=== XDS DEBUG: createDeltaResponse - EXIT with error, anypb.New failed ===", "typeUrl", t.typeURL, "resourceName", name, "error", err)
 				return nil, nil, err
 			}
 
@@ -1040,9 +1200,13 @@ func (t *xDSDeltaType) createDeltaResponse(
 				Version:  obj.Version,
 			})
 			realUpdates[name] = obj
+			t.logger.Info("=== XDS DEBUG: createDeltaResponse - added to resources ===", "typeUrl", t.typeURL, "resourceName", name, "version", obj.Version)
+		} else {
+			t.logger.Info("=== XDS DEBUG: createDeltaResponse - skipped upsert (upsert=false) ===", "typeUrl", t.typeURL, "resourceName", name)
 		}
 	}
 
+	t.logger.Info("=== XDS DEBUG: createDeltaResponse - EXIT successfully ===", "typeUrl", t.typeURL, "responseResourceCount", len(resp.Resources), "removedResourceCount", len(resp.RemovedResources), "realUpdatesCount", len(realUpdates))
 	return resp, realUpdates, nil
 }
 

@@ -4,6 +4,7 @@
 package netutil
 
 import (
+	"log"
 	"net"
 	"net/netip"
 
@@ -56,6 +57,7 @@ func GetAgentBindAddr() (net.IP, error) {
 func IsDualStack() (bool, error) {
 	bindIP, err := GetAgentBindAddrFunc()
 	if err != nil {
+		log.Printf("Error getting agent bind address in IsDualStack: %v", err)
 		return false, err
 	}
 

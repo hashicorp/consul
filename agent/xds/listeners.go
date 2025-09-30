@@ -6,6 +6,7 @@ package xds
 import (
 	"errors"
 	"fmt"
+	"github.com/hashicorp/consul/agent/netutil"
 	"net"
 	"net/url"
 	"regexp"
@@ -795,8 +796,12 @@ func parseCheckPath(check structs.CheckType) (structs.ExposePath, error) {
 
 // listenersFromSnapshotGateway returns the "listener" for a terminating-gateway or mesh-gateway service
 func (s *ResourceGenerator) listenersFromSnapshotGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+	s.Logger.Info("=== XDS DEBUG: listenersFromSnapshotGateway - ENTRY ===", "snapshotKind", cfgSnap.Kind, "service", cfgSnap.Service)
+
 	var err error
+
 	cfg := cfgSnap.GetGatewayConfig(s.Logger)
+	s.Logger.Info("=== XDS DEBUG: listenersFromSnapshotGateway - gateway config obtained ===", "noDefaultBind", cfg.NoDefaultBind, "bindTaggedAddresses", cfg.BindTaggedAddresses, "bindAddressesCount", len(cfg.BindAddresses))
 
 	// We'll collect all of the desired listeners first, and deduplicate them later.
 	type namedAddress struct {
@@ -811,30 +816,42 @@ func (s *ResourceGenerator) listenersFromSnapshotGateway(cfgSnap *proxycfg.Confi
 		if addr == "" {
 			addr = "0.0.0.0"
 		}
+		if isDualStack, _ := netutil.IsDualStack(); isDualStack {
+			addr = "::"
+		}
 
 		a := structs.ServiceAddress{
 			Address: addr,
 			Port:    cfgSnap.Port,
 		}
 		addrs = append(addrs, namedAddress{name: "default", ServiceAddress: a})
+		s.Logger.Info("=== XDS DEBUG: listenersFromSnapshotGateway - added default address ===", "address", addr, "port", cfgSnap.Port)
+	} else {
+		s.Logger.Info("=== XDS DEBUG: listenersFromSnapshotGateway - skipping default bind ===")
 	}
 
 	if cfg.BindTaggedAddresses {
+		s.Logger.Info("=== XDS DEBUG: listenersFromSnapshotGateway - processing tagged addresses ===", "taggedAddressesCount", len(cfgSnap.TaggedAddresses))
 		for name, addrCfg := range cfgSnap.TaggedAddresses {
 			a := structs.ServiceAddress{
 				Address: addrCfg.Address,
 				Port:    addrCfg.Port,
 			}
 			addrs = append(addrs, namedAddress{name: name, ServiceAddress: a})
+			s.Logger.Info("=== XDS DEBUG: listenersFromSnapshotGateway - added tagged address ===", "name", name, "address", addrCfg.Address, "port", addrCfg.Port)
 		}
+	} else {
+		s.Logger.Info("=== XDS DEBUG: listenersFromSnapshotGateway - skipping tagged addresses ===")
 	}
 
+	s.Logger.Info("=== XDS DEBUG: listenersFromSnapshotGateway - processing bind addresses ===", "bindAddressesCount", len(cfg.BindAddresses))
 	for name, addrCfg := range cfg.BindAddresses {
 		a := structs.ServiceAddress{
 			Address: addrCfg.Address,
 			Port:    addrCfg.Port,
 		}
 		addrs = append(addrs, namedAddress{name: name, ServiceAddress: a})
+		s.Logger.Info("=== XDS DEBUG: listenersFromSnapshotGateway - added bind address ===", "name", name, "address", addrCfg.Address, "port", addrCfg.Port)
 	}
 
 	// Prevent invalid configurations of binding to the same port/addr twice
@@ -846,46 +863,65 @@ func (s *ResourceGenerator) listenersFromSnapshotGateway(cfgSnap *proxycfg.Confi
 	sort.Slice(addrs, func(i, j int) bool {
 		return addrs[i].name < addrs[j].name
 	})
+	s.Logger.Info("=== XDS DEBUG: listenersFromSnapshotGateway - addresses sorted ===", "totalAddresses", len(addrs))
 
 	// Make listeners and deduplicate on the fly.
 	seen := make(map[structs.ServiceAddress]bool)
-	for _, a := range addrs {
+	s.Logger.Info("=== XDS DEBUG: listenersFromSnapshotGateway - starting listener creation loop ===", "totalAddresses", len(addrs))
+
+	for i, a := range addrs {
+		s.Logger.Info("=== XDS DEBUG: listenersFromSnapshotGateway - processing address ===", "index", i, "name", a.name, "address", a.Address, "port", a.Port)
+
 		if seen[a.ServiceAddress] {
+			s.Logger.Info("=== XDS DEBUG: listenersFromSnapshotGateway - skipping duplicate ===", "address", a.Address, "port", a.Port)
 			continue
 		}
 		seen[a.ServiceAddress] = true
 
 		var l *envoy_listener_v3.Listener
 
+		s.Logger.Info("=== XDS DEBUG: listenersFromSnapshotGateway - gateway kind switch ===", "kind", cfgSnap.Kind)
 		switch cfgSnap.Kind {
 		case structs.ServiceKindTerminatingGateway:
+			s.Logger.Info("=== XDS DEBUG: listenersFromSnapshotGateway - making TerminatingGateway listener ===")
 			l, err = s.makeTerminatingGatewayListener(cfgSnap, a.name, a.Address, a.Port)
 			if err != nil {
+				s.Logger.Info("=== XDS DEBUG: listenersFromSnapshotGateway - TerminatingGateway error ===", "error", err)
 				return nil, err
 			}
 		case structs.ServiceKindAPIGateway:
+			s.Logger.Info("=== XDS DEBUG: listenersFromSnapshotGateway - making APIGateway listeners ===")
 			listeners, err := s.makeAPIGatewayListeners(a.Address, cfgSnap)
 			if err != nil {
+				s.Logger.Info("=== XDS DEBUG: listenersFromSnapshotGateway - APIGateway error ===", "error", err)
 				return nil, err
 			}
-
+			s.Logger.Info("=== XDS DEBUG: listenersFromSnapshotGateway - APIGateway success ===", "listenersCount", len(listeners))
 			resources = append(resources, listeners...)
 		case structs.ServiceKindIngressGateway:
+			s.Logger.Info("=== XDS DEBUG: listenersFromSnapshotGateway - making IngressGateway listeners ===")
 			listeners, err := s.makeIngressGatewayListeners(a.Address, cfgSnap)
 			if err != nil {
+				s.Logger.Info("=== XDS DEBUG: listenersFromSnapshotGateway - IngressGateway error ===", "error", err)
 				return nil, err
 			}
+			s.Logger.Info("=== XDS DEBUG: listenersFromSnapshotGateway - IngressGateway success ===", "listenersCount", len(listeners))
 			resources = append(resources, listeners...)
 		case structs.ServiceKindMeshGateway:
+			s.Logger.Info("=== XDS DEBUG: listenersFromSnapshotGateway - making MeshGateway listener ===")
 			l, err = s.makeMeshGatewayListener(a.name, a.Address, a.Port, cfgSnap)
 			if err != nil {
+				s.Logger.Info("=== XDS DEBUG: listenersFromSnapshotGateway - MeshGateway error ===", "error", err)
 				return nil, err
 			}
 		}
 		if l != nil {
 			resources = append(resources, l)
+			s.Logger.Info("=== XDS DEBUG: listenersFromSnapshotGateway - listener appended ===", "totalResourcesCount", len(resources))
 		}
 	}
+
+	s.Logger.Info("=== XDS DEBUG: listenersFromSnapshotGateway - EXIT ===", "finalResourcesCount", len(resources))
 	return resources, err
 }
 
@@ -928,20 +964,46 @@ func makeListener(opts makeListenerOpts) *envoy_listener_v3.Listener {
 }
 
 func makeListenerWithDefault(opts makeListenerOpts) *envoy_listener_v3.Listener {
+	if opts.logger != nil {
+		opts.logger.Info("=== XDS DEBUG: makeListenerWithDefault - ENTRY ===", "name", opts.name, "addr", opts.addr, "port", opts.port, "direction", opts.direction)
+	}
+
 	if opts.addr == "" {
 		opts.addr = "127.0.0.1"
+		if opts.logger != nil {
+			opts.logger.Info("=== XDS DEBUG: makeListenerWithDefault - addr was empty, set to default ===", "addr", opts.addr)
+		}
+	}
+
+	if opts.logger != nil {
+		opts.logger.Info("=== XDS DEBUG: makeListenerWithDefault - calling MakeAccessLogs ===", "accessLogsConfig", opts.accessLogs)
 	}
 	accessLog, err := accesslogs.MakeAccessLogs(&opts.accessLogs, true)
 	if err != nil && opts.logger != nil {
 		// Since access logging is non-essential for routing, warn and move on
 		opts.logger.Warn("error generating access log xds", err)
+		opts.logger.Info("=== XDS DEBUG: makeListenerWithDefault - MakeAccessLogs failed ===", "error", err)
+	} else if opts.logger != nil {
+		opts.logger.Info("=== XDS DEBUG: makeListenerWithDefault - MakeAccessLogs successful ===", "accessLogCount", len(accessLog))
 	}
-	return &envoy_listener_v3.Listener{
-		Name:             fmt.Sprintf("%s:%s", opts.name, net.JoinHostPort(opts.addr, strconv.Itoa(opts.port))),
+
+	listenerName := fmt.Sprintf("%s:%s", opts.name, net.JoinHostPort(opts.addr, strconv.Itoa(opts.port)))
+	if opts.logger != nil {
+		opts.logger.Info("=== XDS DEBUG: makeListenerWithDefault - creating listener ===", "listenerName", listenerName)
+	}
+
+	listener := &envoy_listener_v3.Listener{
+		Name:             listenerName,
 		AccessLog:        accessLog,
 		Address:          response.MakeAddress(opts.addr, opts.port),
 		TrafficDirection: opts.direction,
 	}
+
+	if opts.logger != nil {
+		opts.logger.Info("=== XDS DEBUG: makeListenerWithDefault - EXIT ===", "listenerName", listenerName, "hasAccessLog", len(accessLog) > 0)
+	}
+
+	return listener
 }
 
 func makePipeListener(opts makeListenerOpts) *envoy_listener_v3.Listener {
@@ -1912,8 +1974,7 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.
 
 		if meshConfig := cfgSnap.MeshConfig(); meshConfig == nil || meshConfig.HTTP == nil || !meshConfig.HTTP.SanitizeXForwardedClientCert {
 			opts.forwardClientDetails = true
-			// This assumes that we have a client cert (mTLS) (implied by the context of this function)
-			opts.forwardClientPolicy = envoy_http_v3.HttpConnectionManager_APPEND_FORWARD
+			opts.forwardClientPolicy = envoy_http_v3.HttpConnectionManager_SANITIZE_SET
 		}
 	}
 
