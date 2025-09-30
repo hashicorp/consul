@@ -7,7 +7,7 @@ description: >-
 
 # Disaster preparation strategy
 
-This topic provides an overview of the best practices for preparing a disaster recovery strategy for your Consul cluster.
+This topic provides an overview of the concerns and recommendations you should consider to help you prepare a disaster recovery strategy for your Consul cluster.
 
 ## Introduction
 
@@ -53,43 +53,44 @@ If you are using Kubernetes refer to the following documentation:
 
 - [Consul and Kubernetes deployment guide](/consul/tutorials/production-kubernetes/kubernetes-deployment-guide).
 
-To learn more about best practices for your deployments you can also refer to HashiCorp's [Well-Architected Framework](/well-architected-framework/what-is) documentation for a list of best practices that can help you define and automate your processes, optimize your resources and costs, design reliable systems, and secure your infrastructure and services.
+You can also refer to HashiCorp's [Well-Architected Framework documentation](/well-architected-framework/what-is) for a list of best practices that can help you define and automate your processes, optimize your resources and costs, design reliable systems, and secure your infrastructure and services.
 
 
 ## Implement a backup strategy
 
-A Consul datacenter's state is more than just the initial configuration, it includes data that is generated during normal operations such as KV entries, ACL tokens, and intentions. When your datacenter fails, this information is lost and cannot be manually recreated without a backup. 
+A Consul datacenter's state is more than just the initial configuration. It includes data that is generated during normal operations, such as KV entries, ACL tokens, and intentions. When your datacenter fails, this information is lost and cannot be manually recreated without a backup. 
 
-Restoring from a snapshot ensures all the intentions, KV entries and ACL tokens are reintroduced.
+Restoring from a snapshot ensures that previously configured intentions, KV entries, and ACL tokens are reintroduced to your Consul datacenter.
 
-You can follow [Backup Consul Data and State](/consul/tutorials/production-deploy/backup-and-restore) to learn how to perform a snapshot of your Consul datacenter to use in case of disaster.
+Follow the instructions in [Backup and restore a Consul datacenter](/consul/tutorials/production-deploy/backup-and-restore) to create a snapshot of your Consul datacenter.
 
 
 ## TLS certificate distribution process
 
-Certificates are stored on the agent disk and are not saved in a snapshot. This means you will have to re-generate them in case you lose access to the agent's data.
+Certificates are stored on the agent disk and are not saved in a snapshot. As a result, you must re-generate them when you lose access to the agent's data.
 
-Consul comes equipped with a command, [`consul tls cert create`](/consul/commands/tls/cert), that permits you to generate TLS certificates for the agents. This simplifies the automation of deployment by giving you the ability to generate a CA and TLS certificates as part of the process.
+The Consul CLI includes a command, [`consul tls cert create`](/consul/commands/tls/cert), that generates new TLS certificates for the agents. This command can streamline deployment automations, lowering Consul's overall recovery time.
 
-As an alternative, we suggest you use Vault as a CA and TLS certificate generator to help you automate the process. Refer to [Generate mTLS Certificates for Consul with Vault](/consul/docs/automate/consul-template/vault/mtls) to learn how to automate certificate generation and distribution for your Consul server agents.
+Alternatively, we recommend using Vault as a CA and TLS certificate generator to help you automate the process. Refer to [Generate mTLS Certificates for Consul with Vault](/consul/docs/automate/consul-template/vault/mtls) to learn how to automate certificate generation and distribution for your Consul server agents.
 
 
 ## ACL down policy
 
-When your primary datacenter is down you lose your ability to validate ACL policies. To mitigate this, Consul has a configuration parameter, [`acl.down_policy`](/consul/docs/reference/agent/configuration-file/acl#acl_down_policy), that tells Consul which strategy to follow if ACLs cannot be validated against the primary datacenter.
+When your primary datacenter is down, you lose your ability to validate ACL policies in a WAN-federated environment. To mitigate this effect, Consul has a configuration parameter, [`acl.down_policy`](/consul/docs/reference/agent/configuration-file/acl#acl_down_policy), that defines a strategy for Consul agents to follow when ACLs cannot be validated against the primary datacenter.
 
-By default, Consul adopts the `extend-cache` approach, meaning that in case of an outage Consul will allow cached ACL objects to be used, ignoring their TTL values. If a non-cached ACL is used, `extend-cache` acts like `deny`.
+Consul adopts the `extend-cache` approach by default. During an outage, Consul allows cached ACL objects to be used, and it ignores their TTL values. When a non-cached ACL is used, `extend-cache` enforces the `deny` rule.
 
-If you changed the `down_policy` to the more restrictive value of `deny`, you will be impacted more severely from the outage, since all ACL protected operations in the secondary datacenter will be denied until the primary datacenter is restored.
+If you change the `acl.down_policy` to a more restrictive value, an outage will have a greater impact because all ACL-protected operations in the secondary datacenter will be denied until the primary datacenter is restored.
 
 
 ### Client ACL tokens reconfiguration
 
-When you restore a snapshot to a new Consul cluster, depending on the initial configuration you might need to reconfigure the ACL tokens for the client agents.
+After you restore a Consul cluster from a snapshot, you may need to reconfigure the ACL tokens for the client agents, depending on your initial configuration.
 
-- If token persistence was enabled before the snapshot was captured, using the [`enable_token_persistence`](/consul/docs/reference/agent/configuration-file/acl#acl_enable_token_persistence) configuration flag, then the client agents will resume function after the snapshot restore in the cluster's server agents, without the need for reconfiguration.
-- If the ACL tokens for the agents were specified directly in the client agent configuration before the snapshot was captured, using the [`acl.tokens.agent`](/consul/docs/reference/agent/configuration-file/acl#acl_tokens_agent) parameter, then the client agents will resume function after the snapshot restore in the cluster's server agents, without the need for reconfiguration.
--  If none of the previous options were enabled, then ACL tokens will not be persisted after a restore. This means that Consul clients will not be able to re-join the datacenter because they do not have the required permissions and they require an extra configuration to be restored. Use the [`consul acl set-agent-token` command](/consul/commands/acl/set-agent-token#agent), the [`acl.tokens.agent`](/consul/docs/reference/agent/configuration-file/acl#acl_tokens_agent) configuration parameter, or the `CONSUL_HTTP_TOKEN` variable to update the token on client agents.
+- If token persistence was enabled before you created the snapshot, then the client agents resume function after the snapshot restore in the cluster's server agents, without the need for additional reconfiguration. To learn more, refer to [`enable_token_persistence` in the agent configuration reference](/consul/docs/reference/agent/configuration-file/acl#acl_enable_token_persistence).
+- If you used the [`acl.tokens.agent`](/consul/docs/reference/agent/configuration-file/acl#acl_tokens_agent) parameter to specify the ACL tokens for the agents directly in the client agent configuration, then the client agents resume function after the snapshot restore in the cluster's server agents, without the need for additional reconfiguration.
+
+If neither option was enabled, then Consul will not persist ACL tokens after a restore. As a result, Consul clients cannot automatically re-join the datacenter because they do not have the required permissions. You can use the [`consul acl set-agent-token` command](/consul/commands/acl/set-agent-token#agent), the [`acl.tokens.agent` configuration parameter](/consul/docs/reference/agent/configuration-file/acl#acl_tokens_agent), or the `CONSUL_HTTP_TOKEN` environment variable to update the token on each client agent.
 
 The table below offers an overview of the different configuration possibilities and an indication over the need for Consul clients' reconfiguration.
 
@@ -102,11 +103,11 @@ The table below offers an overview of the different configuration possibilities 
 | No  | No  | Yes |
 
 
-## Federation strategies to mitigate outages
+## Multi-cluster strategies to mitigate outages
 
-Introducing Consul federation in your environment, by having multiple Consul datacenters federated using WAN or cluster peering, can increase your resilience to disruptive events by replicating services across multiple datacenters, regions, and cloud providers.
+Connecting multiple Consul datacenters using WAN federation or cluster peering can increase your resilience to disruptive events by replicating services across multiple datacenters, regions, and cloud providers.
 
-Implementing federation in your environment you can leverage Consul functionalities that increase resilience towards service failure:
+Multi-cluster Consul networks increase resilience towards service failure in the following ways:
 
   - Within a single datacenter, Consul provides automatic failover for services by omitting failed service instances from DNS lookups.
   - WAN federated clusters can use [prepared queries](/consul/docs/manage-traffic/failover/prepared-query) to let users define failover policies in a centralized way.
@@ -119,16 +120,16 @@ To deploy a multi-datacenter federated Consul cluster you can refer to the follo
 
 If you are using Consul's service mesh in your WAN-Federated environment, you should also set [`enable_central_service_config = true`](/consul/docs/reference/agent/configuration-file/general#enable_central_service_config) on your Consul clients, which allows you to centrally configure the sidecar and mesh gateway proxies.
 
-To make use of the mesh gateway functionality, refer to the [Mesh gateways ](/consul/docs/east-west/mesh-gateway) documentation.
+To learn about using mesh gateways to secure communications between Consul datacenters, refer to [Mesh gateways](/consul/docs/east-west/mesh-gateway).
 
 
 ## Primary Consul datacenter outage impact
 
-When you design and architect your WAN-federated Consul environment, it is important to consider the critical role of the primary datacenter in the multi-cluster deployment. The primary Consul datacenter serves as the source of truth for the following data.
+When you design and architect your WAN-federated Consul environment, it is important to consider the critical role of the primary datacenter in the multi-cluster deployment. The primary Consul datacenter serves as the source of truth for the following data:
 
-1. Certificate Authority management, if you use the built-in Consul CA. The root CA resides in the primary Consul datacenter and must sign the certificates for the additional Consul datacenters.
-1. ACLs
-1. Intentions
+- ACL operations, including tokens and policies.
+- Service intentions for secure service-to-service communication.
+- Certificate Authority management, if you use the built-in Consul CA. The root CA resides in the primary Consul datacenter and must sign the certificates for the additional Consul datacenters.
 
 The table below shows the impact on Consul operations of a full outage of the primary Consul datacenter.
 
@@ -147,12 +148,14 @@ For the TLS certificate management you can greatly reduce the impact of a primar
 
 ### Clientless primary Consul datacenter
 
-Once you establish and federate a primary Consul datacenter, you cannot migrate, change, or move it. An effective pattern for large Consul multi-cluster deployments is to have a dedicated primary Consul datacenter with the sole purpose of serving as a primary. You would only include Consul servers in this primary datacenter and not connect any client nodes or services. This primary Consul datacenter can then be federated normally with other Consul datacenters, which will each contain both servers and clients.
+Once you establish a primary Consul datacenter for your federated deployment, you cannot migrate, change, or move it. 
+
+One effective pattern for large Consul multi-cluster deployments is to have a dedicated primary Consul datacenter with the sole purpose of serving as the primary datacenter. You would only include Consul servers in this primary datacenter and not connect any client nodes or services. This primary Consul datacenter can then be federated normally with other Consul datacenters, which contain both servers and clients.
 
 This approach provides two distinct advantages.
 
-- It becomes easier to move the primary Consul datacenter. For example, you may want to migrate it from an on premises datacenter to a cloud environment. Typically, this would entail performing a backup and restore of the primary Consul datacenter to the alternate location. Review the [Disaster Recovery for the Primary Datacenter](/consul/tutorials/datacenter-operations/recovery-outage-primary) tutorial for guidance on restoring a Consul cluster.
-- In the event of a disaster, the additional Consul datacenters can still continue to function independently of the primary Consul datacenter although functionality will be reduced until the primary Consul datacenter is brought back online.
+- It becomes easier to move the primary Consul datacenter. For example, you may want to migrate it from an on premises datacenter to a cloud environment. Typically, this process entails performing a backup and restore of the primary Consul datacenter to the alternate location. For more information, refer to [Backup and restore a Consul datacenter](/consul/docs/manage/disaster-recovery/backup-restore).
+- If your primary datacenter experiences a disaster, the other Consul datacenters can still continue to function independently. They will operate with reduced functionality until the primary Consul datacenter is brought back online.
 
 ## Additional guidance
 
