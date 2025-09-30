@@ -91,6 +91,7 @@ const (
 	RaftLogVerifierCheckpoint                   = 41 // Only used for log verifier, no-op on FSM.
 	ResourceOperationType                       = 42
 	UpdateVirtualIPRequestType                  = 43
+	CensusRequestType                           = 44
 )
 
 const (
@@ -160,6 +161,7 @@ var requestTypeStrings = map[MessageType]string{
 	RaftLogVerifierCheckpoint:       "RaftLogVerifierCheckpoint",
 	ResourceOperationType:           "Resource",
 	UpdateVirtualIPRequestType:      "UpdateManualVirtualIPRequestType",
+	CensusRequestType:               "Census",
 }
 
 const (
@@ -3280,4 +3282,32 @@ func (l *Locality) Validate() error {
 	}
 
 	return nil
+}
+
+// CensusRequest is used to perform operations on the local census
+type CensusRequest struct {
+	Action api.CensusOp
+	// PUT fields
+	ID   string    `json:",omitempty"`
+	TS   time.Time `json:",omitempty"`
+	Data []byte    `json:",omitempty"`
+	// PRUNE field
+	Cutoff  time.Time `json:",omitempty"`
+	Version uint16    `json:",omitempty"` // start at 1
+}
+
+// UtilizationBundleRequest is used to request a utilization bundle be generated via the API
+type UtilizationBundleRequest struct {
+	TodayOnly  bool
+	Message    string
+	SendReport bool
+
+	DCSpecificRequest
+}
+
+// UtilizationBundleResponse captures the server response when generating
+// manual utilization bundles via the System RPC/API.
+type UtilizationBundleResponse struct {
+	Bundle    []byte
+	QueryMeta QueryMeta
 }

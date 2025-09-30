@@ -1000,5 +1000,6 @@ type License struct {
 }
 
 type Reporting struct {
-	License License `mapstructure:"license"`
+	License               License `mapstructure:"license"`
+	SnapshotRetentionTime *string `mapstructure:"snapshot_retention_time" json:"snapshot_retention_time,omitempty"`
 }
