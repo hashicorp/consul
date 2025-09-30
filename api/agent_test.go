@@ -2279,3 +2279,136 @@ func TestAPI_AgentServices_MultiPort(t *testing.T) {
 	require.False(t, srv.Ports[1].Default)
 
 }
+
+func TestServicePortsValidation(t *testing.T) {
+	type testcase struct {
+		ports       ServicePorts
+		expectError bool
+	}
+
+	testcases := map[string]testcase{
+		"valid": {
+			ports: ServicePorts{
+				{
+					Name:    "http",
+					Port:    8080,
+					Default: true,
+				},
+				{
+					Name: "metrics",
+					Port: 9090,
+				},
+			},
+			expectError: false,
+		},
+		"valid-duplicate-port": {
+			ports: ServicePorts{
+				{
+					Name:    "http",
+					Port:    8080,
+					Default: true,
+				},
+				{
+					Name: "metrics",
+					Port: 8080,
+				},
+			},
+			expectError: false,
+		},
+		"invalid-duplicate-name": {
+			ports: ServicePorts{
+				{
+					Name:    "http",
+					Port:    8080,
+					Default: true,
+				},
+				{
+					Name: "http",
+					Port: 8080,
+				},
+			},
+			expectError: true,
+		},
+		"invalid-empty-name": {
+			ports: ServicePorts{
+				{
+					Name:    "http",
+					Port:    8080,
+					Default: true,
+				},
+				{
+					Name: "",
+					Port: 8080,
+				},
+			},
+			expectError: true,
+		},
+		"invalid-multiple-defaults": {
+			ports: ServicePorts{
+				{
+					Name:    "http",
+					Port:    8080,
+					Default: true,
+				},
+				{
+					Name:    "metrics",
+					Port:    8080,
+					Default: true,
+				},
+			},
+			expectError: true,
+		},
+		"invalid-no-default": {
+			ports: ServicePorts{
+				{
+					Name: "http",
+					Port: 8080,
+				},
+				{
+					Name: "metrics",
+					Port: 8080,
+				},
+			},
+			expectError: true,
+		},
+		"invalid-port-zero": {
+			ports: ServicePorts{
+				{
+					Name:    "http",
+					Port:    0,
+					Default: true,
+				},
+				{
+					Name: "metrics",
+					Port: 8080,
+				},
+			},
+			expectError: true,
+		},
+		"invalid-port-negative": {
+			ports: ServicePorts{
+				{
+					Name:    "http",
+					Port:    -8080,
+					Default: true,
+				},
+				{
+					Name: "metrics",
+					Port: 8080,
+				},
+			},
+			expectError: true,
+		},
+	}
+
+	for name, tc := range testcases {
+		t.Run(name, func(t *testing.T) {
+			err := tc.ports.Validate()
+			if tc.expectError {
+				require.Error(t, err, "expected error but got none")
+			} else {
+				require.NoError(t, err, "did not expect error but got one: %v", err)
+			}
+		})
+	}
+}

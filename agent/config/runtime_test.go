@@ -6205,7 +6205,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 				{
 					Name: "test1",
 					ID:   "test1",
-					Ports: []structs.ServicePort{
+					Ports: structs.ServicePorts{
 						{
 							Name:    "http",
 							Port:    8080,

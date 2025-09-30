@@ -97,15 +97,14 @@ func (sp ServicePorts) Validate() error {
 	}
 
 	seenName := make(map[string]struct{}, len(sp))
-	seenPort := make(map[int]struct{}, len(sp))
 	seenDefault := false
 	for _, p := range sp {
 		if strings.TrimSpace(p.Name) == "" {
-			return fmt.Errorf("Ports.Name cannot be empty")
+			return errors.New("Ports.Name cannot be empty")
 		}
 
-		if p.Port == 0 {
-			return fmt.Errorf("Ports.Port must be non-zero")
+		if p.Port <= 0 {
+			return errors.New("Ports.Port must be non-zero")
 		}
 
 		_, ok := seenName[p.Name]
@@ -115,11 +114,9 @@ func (sp ServicePorts) Validate() error {
 
 		seenName[p.Name] = struct{}{}
 
-		_, ok = seenPort[p.Port]
-		if ok {
-			return fmt.Errorf("Ports.Port %d has to be unique", p.Port)
+		if p.Default && seenDefault {
+			return errors.New("only one port can be marked as default")
 		}
-		seenPort[p.Port] = struct{}{}
 
 		if p.Default {
 			seenDefault = true
@@ -127,7 +124,7 @@ func (sp ServicePorts) Validate() error {
 	}
 
 	if !seenDefault {
-		return fmt.Errorf("One of the Ports must be marked as Default")
+		return fmt.Errorf("one of the Ports must be marked as Default")
 	}
 
 	return nil
@@ -172,7 +169,7 @@ type AgentService struct {
 	Locality   *Locality `json:",omitempty" bexpr:"-" hash:"ignore"`
 }
 
-func (a AgentService) DefaultPort() int {
+func (a *AgentService) DefaultPort() int {
 	for _, p := range a.Ports {
 		if p.Default {
 			return p.Port

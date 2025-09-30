@@ -1322,8 +1322,8 @@ func (sp ServicePorts) Validate() error {
 			return fmt.Errorf("Ports.Name cannot be empty")
 		}
 
-		if p.Port == 0 {
-			return fmt.Errorf("Ports.Port must be non-zero")
+		if p.Port <= 0 {
+			return fmt.Errorf("Ports.Port must be greater than zero")
 		}
 
 		_, ok := seenName[p.Name]
