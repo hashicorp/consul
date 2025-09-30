@@ -26,11 +26,6 @@ Repeat this process for each secondary datacenter in the WAN-federated environme
 
 ## Prerequisites
 
-
-
-
-
-
 The following instructions require two Consul datacenters joined by WAN federation, with access control list (ACL) replication enabled. 
 
 If you have not met these deployment requirements, refer to the follow documentation to set up your datacenters:
@@ -63,7 +58,9 @@ Before you upgrade your datacenters, take the following steps to prepare for the
 - Check for additional Consul version compatibility requirements
 - Take a snapshot to backup your primary datacenter
 - Increase agent log verbosity to debug errors
-### Check version compatibility
+
+
+### Check Consul version compatibility
 
 For all Consul upgrades, we suggest performing, at most, two major versions jumps. For example, if `1.21.x` is the current release, do not use versions older than `1.19.x`.  This helps avoiding risks during upgrades. Consul Enterprise users can take longer jumps between some versions with [Consul Long-Term Support](/consul/docs/upgrade/lts).
 
@@ -72,11 +69,35 @@ To verify if your upgrade path is safe check:
 - [Upgrade Instructions](/consul/docs/upgrade/instructions)
 - [Upgrading Specific Versions](/consul/docs/upgrade/version-specific)
 
+
+### Check Envoy version compatibility
+
+If you are using the Consul service mesh functionality, when upgrading Consul on the client nodes you will also have to make sure the Envoy version you have on the node is compatible with the new version of Consul.
+
+You can find the Envoy versions that your new Consul version supports on the [Envoy proxy configuration reference](/consul/docs/connect/proxies/envoy#supported-versions).
+documentation page.
+
+<Tip>
+
+If you are using Consul `1.8.4` or later you can also use the [`/v1/agent/self`](/consul/api-docs/agent#read-configuration) API endpoint to check the compatible Envoy version for your running agent.
+
+</Tip>
+
+In this scenario we are upgradring from Consul `1.12.2`, which supports Envoy up to version `1.33.x` to Consul `1.21.4` that supports Envoy from version `1.31.x`.
+
+This means that, the two version share a compatible Envoy version and that if you are running Envoy `1.33.x` on your agents you might not need to upgrade Envoy right away.
+
+We recommend to upgrade Envoy to the latest supported version to leverage the Consul compatibility with the new Envoy functionalities and improvements.
+
+Refer to [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/start/install) to learn how to install Envoy on your system.
+
+
 ### Take a snapshot
 
 Even though this procedure should not result in any data loss in Consul state, we still recommend creating a backup by taking a snapshot of your environment every time you perform a potentially disruptive operation such as an upgrade.
 
  To learn how to perform a snapshot on an existing Consul datacenter, refer to [Backup a Consul datacenter](/consul/docs/manage/disaster-recovery/backup-restore#backup-a-consul-datacenter).
+
 
 ### Increase log verbosity on agents
 
@@ -92,7 +113,6 @@ log_level = "debug"
 
 </CodeBlockConfig>
 
-
 Use the following command on your servers to reload the configuration.
 
 ```shell-session
@@ -103,9 +123,11 @@ Configuration reload triggered
 
 Be sure to apply this change on all Consul nodes you are upgrading.
 
+
 ## Install new Consul version on agents
 
 [Install the later version of Consul](/consul/install) on every node where a Consul agent runs.
+
 
 ## Server rolling upgrade
 
@@ -133,6 +155,7 @@ In the example output above the leader is `consul-server-1`. Proceed with upgrad
 The upgrade on the servers is not complete until after you complete the upgrade steps on ALL servers. 
 
 </Note>
+
 
 ### Leave datacenter
 
@@ -162,6 +185,7 @@ consul-server-2  172.20.0.14:8301  alive   server  1.19.2  2         primary  de
 </CodeBlockConfig>
 
 Confirm from the output the server's status now appears as `left`.
+
 
 ### Start new Consul version
 
@@ -193,18 +217,19 @@ consul-server-2  172.20.0.14:8301  alive   server  1.19.2  2         primary  de
 
 Confirm that all the three servers are marked as `alive`, and now `consul-server-0` shows `1.21.4` as its version.
 
+
 ### Update ACL token for agent
 
 If your ACL configuration did not include `enable_token_persistence = true` and you did not set the server tokens in the configuration files, you must add the `agent` and `default` tokens to the agent again before it could join the datacenter.
 
 Refer to [Apply individual tokens to agents](/consul/docs/secure/acl/bootstrap#apply-individual-tokens-to-agents) for detailed steps.
 
+
 ### Leader restart
 
 It is important to perform the upgrade one server at a time to ensure there are enough alive servers to maintain quorum. 
 
 Once enough servers with the new version join the raft cluster, it is possible that a new leader election will be triggered without the leading server leaving the datacenter or being restarted. If the process is followed, Consul will gracefully react to the leave and restart of the server agents and will remain available during the whole upgrade process.
-
 
 In this scenario, each datacenter runs a total of 3 servers. That mains you can maintain quorum as long as 2 servers are still part of the Raft cluster.
 
@@ -218,6 +243,7 @@ After the servers are correctly restarted and they re-join the datacenter, perfo
 1. Start Consul using the new binary
 1. Verify the client is correcly shown in `consul members`
 
+
 ### Service downtime considerations
 
 When you upgrade the client agents, the service provided by the agent will be marked as unhealthy and will not be discoverable from the time you issue  the `consul leave` command until the Consul client agent has restarted.
@@ -225,30 +251,10 @@ When you upgrade the client agents, the service provided by the agent will be ma
 If you run multiple instance of the same service, each with its own Consul client agent, then the service will still be available in your datacenter while other nodes upgrade.
 
 
-### Envoy version compatibility
-
-If you are using the Consul service mesh functionality, when upgrading Consul on the client nodes you will also have to make sure the Envoy version you have on the node is compatible with the new version of Consul.
-
-You can find the Envoy versions that your new Consul version supports on the [Envoy proxy configuration reference](/consul/docs/connect/proxies/envoy#supported-versions).
-documentation page.
-
-<Tip>
-
-If you are using Consul `1.8.4` or later you can also use the [`/v1/agent/self`](/consul/api-docs/agent#read-configuration) API endpoint to check the compatible Envoy version for your running agent.
-
-</Tip>
-
-In this scenario we are upgradring from Consul `1.12.2`, which supports Envoy up to version `1.33.x` to Consul `1.21.4` that supports Envoy from version `1.31.x`.
-
-This means that, the two version share a compatible Envoy version and that if you are running Envoy `1.33.x` on your agents you might not need to upgrade Envoy right away.
-
-We recommend to upgrade Envoy to the latest supported version to leverage the Consul compatibility with the new Envoy functionalities and improvements.
-
-Refer to [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/start/install) to learn how to install Envoy on your system.
-
 ## Update Secondary Datacenter
 
 After your upgrade for the primary datacenter is complete, follow the same steps to perform the upgrade on each secondary datacenter.
+
 
 ## Verify federation
 
@@ -283,7 +289,6 @@ $ curl -s -H "X-Consul-Token: $CONSUL_HTTP_TOKEN" https://consul-server-0.second
     "LastError": "0001-01-01T00:00:00Z"
 }
 ```
-
 
 You must send the request to a secondary datacenter because the primary datacenter always appears as having replication disabled, even when replication is happening.
 
