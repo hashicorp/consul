@@ -2,7 +2,7 @@
 
 SECURITY:
 
-* connect: Upgrade envoy version to 1.35.3 [[GH-22824](https://github.com/hashicorp/consul/issues/22824)]
+connect: Upgrade Consul's bundled Envoy version to 1.35.3 and remove support for 1.31.10. This update also includes a fix to prevent Envoy (v1.35+) startup failures by only configuring the TLS transport socket when the CA bundle is present. GH-22824
 
 FEATURES:
 
