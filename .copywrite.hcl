@@ -26,6 +26,9 @@ project {
     "agent/proxycfg/proxycfg.deepcopy.go",
     "agent/grpc-middleware/rate_limit_mappings.gen.go",
     "agent/uiserver/dist/**",
+    "ui/pnpm-lock.yaml",
+    "ui/node_modules/**",
+    "ui/packages/consul-ui/node_modules/**",
 
     # ignoring policy embedded files
     "agent/structs/acltemplatedpolicy/policies/ce/**",
