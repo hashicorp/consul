@@ -606,6 +606,7 @@ func TestValidateKVKey(t *testing.T) {
 		{"invalid key with colon", "foo:bar", true},
 		{"invalid key with semicolon", "foo;bar", true},
 		{"malicious key with path traversal", "../../etc/passwd", true},
+		{"malicious key with path traversal with URL encoded /", "..%2F..%2Fetc%2Fpasswd", true},
 		{"malicious key with unicode control", "foo\u202Etxt", true},
 	}
 
