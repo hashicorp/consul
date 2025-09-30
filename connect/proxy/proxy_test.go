@@ -129,3 +129,164 @@ func TestProxy_public(t *testing.T) {
 		require.NoFileExists(t, unixSocket)
 	})
 }
+
+func TestPublicListenerConfig_Defaults(t *testing.T) {
+	testCases := []struct {
+		name     string
+		config   PublicListenerConfig
+		expected PublicListenerConfig
+	}{
+		{
+			name:   "empty config gets defaults",
+			config: PublicListenerConfig{},
+			expected: PublicListenerConfig{
+				LocalConnectTimeoutMs: 1000,
+				HandshakeTimeoutMs:    10000,
+				BindAddress:           "0.0.0.0",
+			},
+		},
+		{
+			name: "partial config preserves values",
+			config: PublicListenerConfig{
+				LocalConnectTimeoutMs: 5000,
+				BindAddress:           "127.0.0.1",
+			},
+			expected: PublicListenerConfig{
+				LocalConnectTimeoutMs: 5000,
+				HandshakeTimeoutMs:    10000,
+				BindAddress:           "127.0.0.1",
+			},
+		},
+		{
+			name: "full config unchanged",
+			config: PublicListenerConfig{
+				LocalConnectTimeoutMs: 2000,
+				HandshakeTimeoutMs:    15000,
+				BindAddress:           "192.168.1.100",
+			},
+			expected: PublicListenerConfig{
+				LocalConnectTimeoutMs: 2000,
+				HandshakeTimeoutMs:    15000,
+				BindAddress:           "192.168.1.100",
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			tc.config.applyDefaults()
+			require.Equal(t, tc.expected, tc.config)
+		})
+	}
+}
+
+func TestUpstreamConfig_ConnectTimeout(t *testing.T) {
+	testCases := []struct {
+		name     string
+		config   map[string]interface{}
+		expected time.Duration
+	}{
+		{
+			name:     "no config uses default",
+			config:   map[string]interface{}{},
+			expected: 10000 * time.Millisecond, // 10s default
+		},
+		{
+			name:     "nil config uses default",
+			config:   nil,
+			expected: 10000 * time.Millisecond,
+		},
+		{
+			name: "custom timeout",
+			config: map[string]interface{}{
+				"connect_timeout_ms": 5000,
+			},
+			expected: 5000 * time.Millisecond,
+		},
+		{
+			name: "zero timeout",
+			config: map[string]interface{}{
+				"connect_timeout_ms": 0,
+			},
+			expected: 0,
+		},
+		{
+			name: "very large timeout",
+			config: map[string]interface{}{
+				"connect_timeout_ms": 300000, // 5 minutes
+			},
+			expected: 300000 * time.Millisecond,
+		},
+		{
+			name: "invalid type falls back to default",
+			config: map[string]interface{}{
+				"connect_timeout_ms": "invalid",
+			},
+			expected: 10000 * time.Millisecond,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			upstream := &UpstreamConfig{
+				Config: tc.config,
+			}
+			result := upstream.ConnectTimeout()
+			require.Equal(t, tc.expected, result)
+		})
+	}
+}
+
+func TestUpstreamConfig_Defaults(t *testing.T) {
+	testCases := []struct {
+		name     string
+		config   UpstreamConfig
+		expected UpstreamConfig
+	}{
+		{
+			name:   "empty config gets defaults",
+			config: UpstreamConfig{},
+			expected: UpstreamConfig{
+				DestinationType:      "service",
+				DestinationNamespace: "default",
+				DestinationPartition: "default",
+				LocalBindAddress:     "127.0.0.1",
+			},
+		},
+		{
+			name: "partial config preserves values",
+			config: UpstreamConfig{
+				DestinationName:      "web",
+				DestinationNamespace: "prod",
+				LocalBindPort:        8080,
+			},
+			expected: UpstreamConfig{
+				DestinationName:      "web",
+				DestinationType:      "service",
+				DestinationNamespace: "prod",
+				DestinationPartition: "default",
+				LocalBindAddress:     "127.0.0.1",
+				LocalBindPort:        8080,
+			},
+		},
+		{
+			name: "socket path overrides bind address default",
+			config: UpstreamConfig{
+				LocalBindSocketPath: "/var/run/socket.sock",
+			},
+			expected: UpstreamConfig{
+				DestinationType:      "service",
+				DestinationNamespace: "default",
+				DestinationPartition: "default",
+				LocalBindSocketPath:  "/var/run/socket.sock",
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			tc.config.applyDefaults()
+			require.Equal(t, tc.expected, tc.config)
+		})
+	}
+}
