@@ -578,7 +578,7 @@ func TestKVSEndpoint_DELETE_ConflictingFlags(t *testing.T) {
 }
 
 func TestValidateKVKey(t *testing.T) {
-	pattern := `^[a-zA-Z0-9,_./\-?&=]+$`
+	pattern := `^[a-zA-Z0-9,_./\-?&=+*%ç]+$`
 	tests := []struct {
 		name    string
 		key     string
@@ -593,14 +593,20 @@ func TestValidateKVKey(t *testing.T) {
 		{"valid key with comma", "foo,bar", false},
 		{"valid key with slash", "foo/bar", false},
 		{"valid key with numbers", "foo123", false},
+		{"valid key with equals", "foo=bar", false},
+		{"valid key with ampersand", "foo&bar", false},
+		{"valid key with question mark", "foo?bar", false},
+		{"valid key with plus", "foo+bar", false},
+		{"valid key with asterisk", "foo*bar", false},
+		{"valid key with percent", "foo%bar", false},
+		{"valid key with C-cedilla", "fooçbar", false},
 		{"empty key", "", true},
 		// Invalid
 		{"invalid key with space", "foo bar", true},
-		{"invalid key with star", "foo*bar", true},
-		{"invalid key with percent", "foo%bar", true},
 		{"invalid key with colon", "foo:bar", true},
 		{"invalid key with semicolon", "foo;bar", true},
 		{"malicious key with path traversal", "../../etc/passwd", true},
+		{"malicious key with path traversal with URL encoded /", "..%2F..%2Fetc%2Fpasswd", true},
 		{"malicious key with unicode control", "foo\u202Etxt", true},
 	}
 
