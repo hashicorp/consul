@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"path"
-	"regexp"
 	"strconv"
 	"strings"
 
@@ -44,11 +44,8 @@ func (s *HTTPHandlers) KVSEndpoint(resp http.ResponseWriter, req *http.Request) 
 	// The DisableHTTPUnprintableCharFilter flag allows access to keys with
 	// unprintable characters for cleanup purposes
 	if !s.agent.config.DisableHTTPUnprintableCharFilter && args.Key != "" {
-		// Allowed key pattern: a-zA-Z0-9 ,-_./
-		// https://developer.hashicorp.com/consul/docs/automate/kv#using-consul-kv
-		kvKeyPattern := `^[a-zA-Z0-9,_./\-?&=+*%ç]+$`
-		if err := validateKVKey(args.Key, kvKeyPattern); err != nil {
-			return nil, fmt.Errorf("invalid key name, keys should respect the %q format", kvKeyPattern)
+		if err := validateKVKey(args.Key); err != nil {
+			return nil, err
 		}
 	}
 
@@ -330,20 +327,31 @@ func conflictingFlags(resp http.ResponseWriter, req *http.Request, flags ...stri
 	return false
 }
 
-func validateKVKey(key string, pattern string) error {
+func validateKVKey(key string) error {
 	if len(key) == 0 {
-		return fmt.Errorf("invalid key name, keys should respect the %q format", pattern)
+		return fmt.Errorf("empty key name is not allowed")
 	}
 
-	matched, err := regexp.MatchString(pattern, key)
-	if err != nil {
-		return fmt.Errorf("failed to validate key: %w", err)
+	if strings.HasPrefix(key, " ") || strings.HasSuffix(key, " ") {
+		return fmt.Errorf("invalid key name, leading/trailing spaces are not allowed")
 	}
-	if !matched {
-		return fmt.Errorf("invalid key name, keys should respect the %q format", pattern)
+
+	parts := strings.Split(key, "/")
+	for _, p := range parts {
+		if p == ".." {
+			return fmt.Errorf("invalid key name, path traversal is not allowed")
+		}
 	}
-	if strings.Contains(key, "..") {
-		return fmt.Errorf("invalid key name, path traversal is not allowed")
+
+	decoded, err := url.PathUnescape(key)
+	if err == nil && decoded != key {
+		if strings.Contains(decoded, "..") {
+			return fmt.Errorf("invalid key name, encoded path traversal is not allowed")
+		}
+		if strings.Contains(decoded, " ") {
+			return fmt.Errorf("invalid key name, leading/trailing spaces are not allowed")
+		}
 	}
+
 	return nil
 }

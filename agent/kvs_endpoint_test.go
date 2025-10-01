@@ -578,7 +578,6 @@ func TestKVSEndpoint_DELETE_ConflictingFlags(t *testing.T) {
 }
 
 func TestValidateKVKey(t *testing.T) {
-	pattern := `^[a-zA-Z0-9,_./\-?&=+*%ç]+$`
 	tests := []struct {
 		name    string
 		key     string
@@ -600,19 +599,29 @@ func TestValidateKVKey(t *testing.T) {
 		{"valid key with asterisk", "foo*bar", false},
 		{"valid key with percent", "foo%bar", false},
 		{"valid key with C-cedilla", "fooçbar", false},
-		{"empty key", "", true},
+		{"invalid key with space", "foo bar", false},
+		{"invalid key with colon", "foo:bar", false},
+		{"invalid key with semicolon", "foo;bar", false},
+		{"dots in middle", "con..fig", false},
+		{"valid URL encoded key", "foo/bar/baz%2Fqux", false},
+		{"valid URL encoded key 2", "foo/bar%2Fbaz%2Fqux", false},
+		{"valid key with leading slash", "/foo/bar", false},
+		{"valid key with + in name", "foo+bar/baz", false},
 		// Invalid
-		{"invalid key with space", "foo bar", true},
-		{"invalid key with colon", "foo:bar", true},
-		{"invalid key with semicolon", "foo;bar", true},
+		{"empty key", "", true},
+		{"trailing space", "foo ", true},
 		{"malicious key with path traversal", "../../etc/passwd", true},
+		{"malicious key with path traversal from current directory", "./../../etc/passwd", true},
 		{"malicious key with path traversal with URL encoded /", "..%2F..%2Fetc%2Fpasswd", true},
-		{"malicious key with unicode control", "foo\u202Etxt", true},
+		{"URL encoded path traversal", "..%2Fetc%2Fpasswd", true},
+		{"URL encoded double dot", "%2E%2E/config", true},
+		{"mixed encoded path traversal", "../%2E%2E/secret", true},
+		{"encoded slash with dots", "..%2F..%2Fconfig", true},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validateKVKey(tt.key, pattern)
+			err := validateKVKey(tt.key)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("validateKVKey(%q) error = %v, wantErr %v", tt.key, err, tt.wantErr)
 			}
