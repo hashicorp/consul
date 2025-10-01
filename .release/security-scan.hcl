@@ -100,7 +100,6 @@ binary {
 	triage {
 		suppress {
 			vulnerabilities = [
-				"GO-2022-0635",
 			]
 			paths = [
 				"internal/tools/proto-gen-rpc-glue/e2e/consul/*",
