@@ -40,10 +40,11 @@ func (s *HTTPHandlers) KVSEndpoint(resp http.ResponseWriter, req *http.Request) 
 	}
 	args.Key = cleanedKey
 
-	// Validate key format unless unprintable character filter is disabled
-	// The DisableHTTPUnprintableCharFilter flag allows access to keys with
-	// unprintable characters for cleanup purposes
-	if !s.agent.config.DisableHTTPUnprintableCharFilter && args.Key != "" {
+	// The DisableKVKeyValidation configuration option controls whether
+	// we validate the key name to prevent path traversal or leading/trailing spaces.
+	// We strongly recommend leaving this validation enabled (false) unless you have a specific reason
+	// to disable it for legacy compatibility.
+	if !s.agent.config.DisableKVKeyValidation && args.Key != "" {
 		if err := validateKVKey(args.Key); err != nil {
 			return nil, err
 		}

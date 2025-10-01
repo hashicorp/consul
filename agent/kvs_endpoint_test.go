@@ -859,6 +859,175 @@ func TestKVSEndpoint_KeyConstruction_TrailingSlashes(t *testing.T) {
 	}
 }
 
+func TestKVSEndpoint_DisableValidation(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	// Test with disable_kv_key_validation set to true
+	// Should allow normally invalid keys
+	a := NewTestAgent(t, `disable_kv_key_validation = true`)
+	defer a.Shutdown()
+
+	// Wait for leader
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	// Test keys that would normally be rejected by validation but should be allowed now
+	// because validation is disabled
+	testCases := []struct {
+		name        string
+		key         string
+		description string
+	}{
+		{
+			name:        "path traversal",
+			key:         "../../etc/passwd",
+			description: "Path traversal should be allowed when validation is disabled",
+		},
+		{
+			name:        "url encoded path traversal",
+			key:         "..%2F..%2Fetc%2Fpasswd",
+			description: "URL encoded path traversal should be allowed when validation is disabled",
+		},
+		{
+			name:        "trailing space",
+			key:         "foo ",
+			description: "Trailing space should be allowed when validation is disabled",
+		},
+		{
+			name:        "leading space",
+			key:         " foo",
+			description: "Leading space should be allowed when validation is disabled",
+		},
+		{
+			name:        "url encoded double dot",
+			key:         "%2E%2E/config",
+			description: "URL encoded double dot should be allowed when validation is disabled",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Try to PUT the key - should succeed with validation disabled
+			buf := bytes.NewBuffer([]byte("test-value"))
+			req, _ := http.NewRequest("PUT", "/v1/kv/"+tc.key, buf)
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.KVSEndpoint(resp, req)
+
+			if err != nil {
+				t.Errorf("Expected success with validation disabled, but got error: %v (%s)", err, tc.description)
+				return
+			}
+
+			if obj == nil {
+				t.Errorf("Expected non-nil response with validation disabled (%s)", tc.description)
+				return
+			}
+
+			result, ok := obj.(bool)
+			if !ok || !result {
+				t.Errorf("Expected successful PUT response with validation disabled (%s)", tc.description)
+				return
+			}
+
+			// Verify we can retrieve the key
+			getReq, _ := http.NewRequest("GET", "/v1/kv/"+tc.key, nil)
+			getResp := httptest.NewRecorder()
+			getObj, getErr := a.srv.KVSEndpoint(getResp, getReq)
+
+			if getErr != nil {
+				t.Errorf("Failed to retrieve key %q with validation disabled: %v (%s)", tc.key, getErr, tc.description)
+				return
+			}
+
+			if getObj == nil {
+				t.Errorf("Key %q was not found with validation disabled (%s)", tc.key, tc.description)
+				return
+			}
+
+			entries, ok := getObj.(structs.DirEntries)
+			if !ok || len(entries) == 0 {
+				t.Errorf("Unexpected response format for key %q with validation disabled (%s)", tc.key, tc.description)
+				return
+			}
+
+			if string(entries[0].Value) != "test-value" {
+				t.Errorf("Expected value 'test-value' for key %q, got %q (%s)", tc.key, string(entries[0].Value), tc.description)
+			}
+		})
+	}
+}
+
+func TestKVSEndpoint_EnabledValidation(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	// Test with disable_kv_key_validation set to false (default)
+	// Should reject invalid keys
+	a := NewTestAgent(t, `disable_kv_key_validation = false`)
+	defer a.Shutdown()
+
+	// Wait for leader
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	// Test keys that should be rejected by validation
+	testCases := []struct {
+		name        string
+		key         string
+		description string
+	}{
+		{
+			name:        "path traversal",
+			key:         "../../etc/passwd",
+			description: "Path traversal should be rejected when validation is enabled",
+		},
+		{
+			name:        "url encoded path traversal",
+			key:         "..%2F..%2Fetc%2Fpasswd",
+			description: "URL encoded path traversal should be rejected when validation is enabled",
+		},
+		{
+			name:        "trailing space",
+			key:         "foo ",
+			description: "Trailing space should be rejected when validation is enabled",
+		},
+		{
+			name:        "leading space",
+			key:         " foo",
+			description: "Leading space should be rejected when validation is enabled",
+		},
+		{
+			name:        "url encoded double dot",
+			key:         "%2E%2E/config",
+			description: "URL encoded double dot should be rejected when validation is enabled",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Try to PUT the key - should fail with validation enabled
+			buf := bytes.NewBuffer([]byte("test-value"))
+			req, _ := http.NewRequest("PUT", "/v1/kv/"+tc.key, buf)
+			resp := httptest.NewRecorder()
+			_, err := a.srv.KVSEndpoint(resp, req)
+
+			if err == nil {
+				t.Errorf("Expected error with validation enabled, but got success (%s)", tc.description)
+				return
+			}
+
+			if !strings.Contains(err.Error(), "invalid key name") {
+				t.Errorf("Expected 'invalid key name' error, but got: %v (%s)", err, tc.description)
+			}
+		})
+	}
+}
+
 func TestKVSEndpoint_PathCleaningEdgeCases(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
