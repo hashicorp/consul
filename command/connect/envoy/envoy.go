@@ -92,7 +92,7 @@ type cmd struct {
 	dialFunc func(network string, address string) (net.Conn, error)
 
 	//checks if the consul agent is configured to use both IPv4 and IPv6 addresses.
-	checkDualStack  func() (bool, error)
+	checkDualStack  func(config *api.Config) (bool, error)
 	useIPv6loopback bool
 }
 
@@ -250,7 +250,7 @@ func (c *cmd) init() {
 	c.dialFunc = func(network string, address string) (net.Conn, error) {
 		return net.DialTimeout(network, address, 3*time.Second)
 	}
-	c.checkDualStack = func() (bool, error) {
+	c.checkDualStack = func(config *api.Config) (bool, error) {
 		return netutil.IsDualStack(nil, false)
 	}
 }
@@ -400,7 +400,8 @@ func (c *cmd) run(args []string) int {
 	}
 
 	// check dual stack is configured
-	isDualStack, err := c.checkDualStack()
+
+	isDualStack, err := c.checkDualStack(c.client.GetConfig())
 	if err != nil {
 		if strings.Contains(err.Error(), "Permission denied") {
 			// Token did not have agent:read. Suppress and proceed with defaults.
