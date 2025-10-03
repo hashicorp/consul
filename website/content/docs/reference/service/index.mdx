@@ -18,8 +18,12 @@ The following outline shows how to format the configurations in the root `servic
 
 - [`name`](#name): string | required
 - [`id`](#id): string 
-- [`address`](#address): string 
-- [`port`](#port): number 
+- [`address`](#address): string
+- [`port`](#port): number
+- [`ports`](#ports): map (service discovery only)
+  - [`name`](#ports): string
+  - [`port`](#ports): number 
+  - [`default`](#ports): boolean
 - [`tags`](#tags): list of strings 
 - [`meta`](#meta): map   
   - [_`custom_meta_key`_](#meta): string 
@@ -48,6 +52,7 @@ The following outline shows how to format the configurations in the root `servic
 - [`namespace`](#namespace): string | <EnterpriseAlert inline /> 
 
 ## Specification
+
 This topic provides details about the configuration parameters.
 
 ### `name`
@@ -77,8 +82,28 @@ There is no service-side validation of this parameter.
 
 Specifies a port number for the service. To improve service discoverability, we recommend specifying the port number, as well as an address in the [`tagged_addresses`](#tagged_addresses) parameter.
 
+You can use this field for both service discovery and service mesh use cases. You cannot configure both this parameter and the [`ports` parameter](#ports) in the same service definition.
+
 - Type: integer
 - Default: Port number of the agent
+
+### `ports`
+
+Specifies a series of maps that identify services with multiple ports for the Consul catalog.
+
+This field supports service discovery use cases only. You cannot configure both this parameter and the [`ports` parameter](#ports) in the same service definition.
+
+- Type: map
+
+Define the following parameters for each port you want to specify:
+
+| Parameter | Description                                                               | Type    | Default |
+| :-------- | :------------------------------------------------------------------------ | :------ | :------ |
+| `name`    | Specifies a name for the port. This value is addressable with Consul DNS. | string  | None    |
+| `port`    | Specifies a numeric port where the service is available.                  | number  | None    |
+| `default` | Sets a port as the default service when a port is not included.           | boolean | `false` |
+
+For an example service definition, refer to [Multi-port service definition](#multi-port-service-definition).
 
 ### `tags`
 
@@ -528,7 +553,8 @@ services {
 
 </CodeTabs>
 
-## Example definition
+## Example definitions
+
 The following example includes all possible parameters, but only the top-level `service` parameter and its `name` parameter are required by default.
 
 <CodeTabs tabs={[ "HCL", "JSON" ]}>
@@ -688,6 +714,52 @@ service {
     "namespace": "foo"
   }
 }
+```
+
+</CodeTabs>
+
+## Multi-port service definition
+
+The following example defines a service with multiple ports using the [`ports` parameter](#ports). This definition registers the `orders` service with an `http` port and a `metrics` port.
+
+<CodeTabs tabs={[ "HCL", "JSON" ]}>
+
+```hcl
+service {
+  name = "orders"
+  id   = "order-service-1"
+  ports = [
+    {
+      name = "http"
+      port = 8080
+      default = true
+    },
+    {
+      name = "metrics"
+      port = 9090
+    }
+  ]
+}
+```
+
+```json
+{
+  "name": "orders",
+  "id" : "order-service-1",
+  "ports": [
+      {
+	      "name": "http",
+	      "port": 8080,
+        "default": true
+      },
+      {
+        "name": "metrics",
+	      "port": 9090,
+		    "default": false
+      }
+   ]
+}
+
 ```
 
 </CodeTabs>
