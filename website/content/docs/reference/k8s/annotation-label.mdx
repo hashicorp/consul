@@ -237,11 +237,13 @@ The following Kubernetes resource annotations could be used on a pod to control 
   - `consul.hashicorp.com/consul-sidecar-cpu-request` - Override the default CPU request.
   - `consul.hashicorp.com/consul-sidecar-memory-limit` - Override the default memory limit.
   - `consul.hashicorp.com/consul-sidecar-memory-request` - Override the default memory request.
-  - `consul.hashicorp.com/enable-consul-dataplane-as-sidecar` - If this is set to `true`, then `consul-dataplane` will load as an init container and check the readiness using the startup probe. This will stall the initialisation of the application container until `consul-dataplane` is ready. Default value is `false`.
-  - `consul.hashicorp.com/sidecar-initial-probe-check-delay-seconds` - Number of seconds for the initial delay in Kubernetes before the startup probe starts checking the `consul-dataplane sidecar` container. Default value is `1`.
-  - `consul.hashicorp.com/sidecar-probe-period-seconds` - Number of seconds for the period between Kubernetes startup probe checks. Default value is `1`.
-  - `consul.hashicorp.com/sidecar-probe-failure-threshold` - Number of consecutive failures for the Kubernetes startup probe checks before restarting the `consul-dataplane` sidecar container. Default value is `1`.
-  - `consul.hashicorp.com/sidecar-probe-check-timeout-seconds` - Number of seconds for Kubernetes to trigger a timeout on startup probe checks.  Default value is `1`.
+
+- `consul.hashicorp.com/enable-consul-dataplane-as-sidecar` - If this is set to `true`, then `consul-dataplane` will load as an init container and check the readiness using the startup probe. This will stall the initialisation of the application container until `consul-dataplane` is ready. Default value is `false`.
+- `consul.hashicorp.com/sidecar-initial-probe-check-delay-seconds` - Number of seconds for the initial delay in Kubernetes before the startup probe starts checking the `consul-dataplane sidecar` container. Default value is `1`.
+- `consul.hashicorp.com/sidecar-probe-period-seconds` - Number of seconds for the period between Kubernetes startup probe checks. Default value is `1`.
+- `consul.hashicorp.com/sidecar-probe-failure-threshold` - Number of consecutive failures for the Kubernetes startup probe checks before restarting the `consul-dataplane` sidecar container. Default value is `1`.
+- `consul.hashicorp.com/sidecar-probe-check-timeout-seconds` - Number of seconds for Kubernetes to trigger a timeout on startup probe checks.  Default value is `1`.
+
 - `consul.hashicorp.com/enable-sidecar-proxy-lifecycle` - Override the default Helm value [`connectInject.sidecarProxy.lifecycle.defaultEnabled`](/consul/docs/reference/k8s/helm#v-connectinject-sidecarproxy-lifecycle-defaultenabled)
 - `consul.hashicorp.com/enable-sidecar-proxy-shutdown-drain-listeners` - Override the default Helm value [`connectInject.sidecarProxy.lifecycle.defaultEnableShutdownDrainListeners`](/consul/docs/reference/k8s/helm#v-connectinject-sidecarproxy-lifecycle-defaultenableshutdowndrainlisteners)
 - `consul.hashicorp.com/sidecar-proxy-lifecycle-shutdown-grace-period-seconds` - Override the default Helm value [`connectInject.sidecarProxy.lifecycle.defaultShutdownGracePeriodSeconds`](/consul/docs/reference/k8s/helm#v-connectinject-sidecarproxy-lifecycle-defaultshutdowngraceperiodseconds)
