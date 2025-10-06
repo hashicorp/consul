@@ -169,7 +169,7 @@ type AgentService struct {
 	Locality   *Locality `json:",omitempty" bexpr:"-" hash:"ignore"`
 }
 
-func (a *AgentService) DefaultPort() int {
+func (a AgentService) DefaultPort() int {
 	for _, p := range a.Ports {
 		if p.Default {
 			return p.Port

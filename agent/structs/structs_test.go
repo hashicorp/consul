@@ -3347,7 +3347,7 @@ func TestServicePorts_Validate(t *testing.T) {
 			ports: ServicePorts{
 				{
 					Name: "http",
-					Port: 0,
+					Port: -8080,
 				},
 			},
 			expectedErr: "Ports.Port must be greater than zero",
