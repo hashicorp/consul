@@ -6790,6 +6790,7 @@ func TestLoad_FullConfig(t *testing.T) {
 		RejoinAfterLeave:        true,
 		RetryJoinIntervalLAN:    8067 * time.Second,
 		RetryJoinIntervalWAN:    28866 * time.Second,
+		RetryJoinDNSTTL:         30 * time.Second,
 		RetryJoinLAN:            []string{"pbsSFY7U", "l0qLtWij", "LR3hGDoG", "MwVpZ4Up"},
 		RetryJoinMaxAttemptsLAN: 913,
 		RetryJoinMaxAttemptsWAN: 23160,

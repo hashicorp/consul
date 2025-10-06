@@ -394,6 +394,7 @@ retry_interval = "8067s"
 retry_interval_wan = "28866s"
 retry_join = [ "pbsSFY7U", "l0qLtWij" ]
 retry_join_wan = [ "PFsR02Ye", "rJdQIhER" ]
+retry_join_dns_ttl = "30s"
 retry_max = 913
 retry_max_wan = 23160
 rpc {

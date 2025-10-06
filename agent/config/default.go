@@ -164,6 +164,7 @@ func DefaultSource() Source {
 		peering = {
 			enabled = true
 		}
+		retry_join_dns_ttl = "30s"
 	`,
 	}
 }
