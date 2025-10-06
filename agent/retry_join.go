@@ -4,8 +4,11 @@
 package agent
 
 import (
+	"context"
 	"fmt"
+	"net"
 	"strings"
+	"sync"
 	"time"
 
 	discoverhcp "github.com/hashicorp/consul/agent/hcp/discover"
@@ -15,6 +18,9 @@ import (
 
 	"github.com/hashicorp/consul/lib"
 )
+
+// resolveHostnameFunc can be overridden in tests
+var resolveHostnameFunc = resolveHostname
 
 func (a *Agent) retryJoinLAN() {
 	r := &retryJoiner{
@@ -28,7 +34,8 @@ func (a *Agent) retryJoinLAN() {
 			// to join nodes in the default partition.
 			return a.JoinLAN(addrs, a.AgentEnterpriseMeta())
 		},
-		logger: a.logger.With("cluster", "LAN"),
+		logger:   a.logger.With("cluster", "LAN"),
+		dnsCache: newDNSCache(a.config.RetryJoinDNSTTL),
 	}
 	if err := r.retryJoin(); err != nil {
 		a.retryJoinCh <- err
@@ -83,6 +90,7 @@ func (a *Agent) retryJoinWAN() {
 		interval:    a.config.RetryJoinIntervalWAN,
 		join:        a.JoinWAN,
 		logger:      a.logger.With("cluster", "WAN"),
+		dnsCache:    newDNSCache(a.config.RetryJoinDNSTTL),
 	}
 	if err := r.retryJoin(); err != nil {
 		a.retryJoinCh <- err
@@ -102,8 +110,9 @@ func (a *Agent) refreshPrimaryGatewayFallbackAddresses() {
 			}
 			return len(addrs), nil
 		},
-		logger: a.logger,
-		stopCh: a.PrimaryMeshGatewayAddressesReadyCh(),
+		dnsCache: newDNSCache(a.config.RetryJoinDNSTTL),
+		logger:   a.logger,
+		stopCh:   a.PrimaryMeshGatewayAddressesReadyCh(),
 	}
 	if err := r.retryJoin(); err != nil {
 		a.retryJoinCh <- err
@@ -124,14 +133,14 @@ func newDiscover() (*discover.Discover, error) {
 	)
 }
 
-func retryJoinAddrs(disco *discover.Discover, variant, cluster string, retryJoin []string, logger hclog.Logger) []string {
+func retryJoinAddrs(disco *discover.Discover, variant, cluster string, retryJoin []string, dnsCache *dnsCache, logger hclog.Logger) []string {
 	addrs := []string{}
 	if disco == nil {
 		return addrs
 	}
 	for _, addr := range retryJoin {
 		switch {
-		case strings.Contains(addr, "provider="):
+		case isProvider(addr):
 			servers, err := disco.Addrs(addr, logger.StandardLogger(&hclog.StandardLoggerOptions{
 				InferLevels: true,
 			}))
@@ -160,7 +169,38 @@ func retryJoinAddrs(disco *discover.Discover, variant, cluster string, retryJoin
 			}
 
 		default:
-			addrs = append(addrs, addr)
+			if isHostname(addr) {
+				cachedAddrs, expires, found := dnsCache.get(addr)
+				if found && time.Now().Before(expires) {
+					addrs = append(addrs, cachedAddrs...)
+					if logger != nil {
+						logger.Debug("Using cached DNS resolution for hostname",
+							"address", addr,
+							"cached_addresses", strings.Join(cachedAddrs, " "))
+					}
+					continue
+				}
+
+				resolvedAddrs, err := resolveHostnameFunc(addr)
+				if err != nil {
+					if logger != nil {
+						logger.Error("Failed to resolve hostname", "address", addr, "error", err)
+					}
+
+					// Fall back to original address
+					addrs = append(addrs, addr)
+					continue
+				}
+
+				if logger != nil {
+					logger.Debug("Resolved hostname", "address", addr, "addresses", strings.Join(resolvedAddrs, " "))
+				}
+
+				addrs = append(addrs, resolvedAddrs...)
+				dnsCache.set(addr, resolvedAddrs)
+			} else {
+				addrs = append(addrs, addr)
+			}
 		}
 	}
 
@@ -201,6 +241,9 @@ type retryJoiner struct {
 
 	// logger is the agent logger.
 	logger hclog.Logger
+
+	// dnsCache is the dns cache.
+	dnsCache *dnsCache
 }
 
 func (r *retryJoiner) retryJoin() error {
@@ -227,10 +270,22 @@ func (r *retryJoiner) retryJoin() error {
 
 	attempt := 0
 	for {
-		addrs := retryJoinAddrs(disco, r.variant, r.cluster, r.addrs, r.logger)
+		addrs := retryJoinAddrs(disco, r.variant, r.cluster, r.addrs, r.dnsCache, r.logger)
 		if len(addrs) > 0 {
 			n := 0
 			n, err = r.join(addrs)
+			if err != nil {
+				if isConnectionRefusedError(err) {
+					r.logger.Error("Connection refused, will retry DNS resolution", "error", err)
+					for _, addr := range r.addrs {
+						if !isProvider(addr) {
+							r.dnsCache.delete(addr)
+						}
+					}
+				} else {
+					r.logger.Warn("Join cluster failed", "error", err)
+				}
+			}
 			if err == nil {
 				if r.variant == retryJoinMeshGatewayVariant {
 					r.logger.Info("Refreshing mesh gateways completed")
@@ -274,4 +329,112 @@ func (r *retryJoiner) retryJoin() error {
 			return nil
 		}
 	}
+}
+
+type dnsCacheEntry struct {
+	addresses []string
+	expires   time.Time
+}
+
+type dnsCache struct {
+	entries map[string]*dnsCacheEntry
+	ttl     time.Duration
+	mu      sync.RWMutex
+}
+
+func newDNSCache(ttl time.Duration) *dnsCache {
+	return &dnsCache{
+		entries: make(map[string]*dnsCacheEntry),
+		ttl:     ttl,
+	}
+}
+
+func (c *dnsCache) get(key string) ([]string, time.Time, bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	entry, ok := c.entries[key]
+
+	if !ok || time.Now().After(entry.expires) {
+		delete(c.entries, key)
+		return nil, time.Time{}, false
+	}
+
+	return entry.addresses, entry.expires, true
+}
+
+func (c *dnsCache) set(key string, addresses []string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.entries[key] = &dnsCacheEntry{
+		addresses: addresses,
+		expires:   time.Now().Add(c.ttl),
+	}
+}
+
+func (c *dnsCache) delete(key string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	delete(c.entries, key)
+}
+
+func isHostname(addr string) bool {
+	if i := strings.Index(addr, ":"); i != -1 {
+		addr = addr[:i]
+	}
+
+	return net.ParseIP(addr) == nil
+}
+
+func resolveHostname(addr string) ([]string, error) {
+	host := addr
+	port := ""
+
+	if i := strings.LastIndex(addr, ":"); i != -1 {
+		host = addr[:i]
+		port = addr[i:]
+	}
+
+	resolver := &net.Resolver{
+		PreferGo: true,
+		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+			d := net.Dialer{Timeout: 2 * time.Second}
+			return d.DialContext(ctx, network, address)
+		},
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	ips, err := resolver.LookupIP(ctx, "ip", host)
+	if err != nil {
+		return nil, err
+	}
+
+	var addresses []string
+	for _, ip := range ips {
+		if ip.To4() != nil {
+			addresses = append(addresses, ip.String()+port)
+		}
+	}
+
+	if len(addresses) == 0 {
+		return nil, fmt.Errorf("no addresses found for hostname: %s", addr)
+	}
+
+	return addresses, nil
+}
+
+func isConnectionRefusedError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	errStr := err.Error()
+	return strings.Contains(errStr, "connection refused") ||
+		strings.Contains(errStr, "connect: connection refused")
+}
+
+func isProvider(addr string) bool {
+	return strings.Contains(addr, "provider=")
 }

@@ -226,6 +226,7 @@ type Config struct {
 	RetryJoinMaxAttemptsLAN          *int                `mapstructure:"retry_max" json:"retry_max,omitempty"`
 	RetryJoinMaxAttemptsWAN          *int                `mapstructure:"retry_max_wan" json:"retry_max_wan,omitempty"`
 	RetryJoinWAN                     []string            `mapstructure:"retry_join_wan" json:"retry_join_wan,omitempty"`
+	RetryJoinDNSTTL                  *string             `mapstructure:"retry_join_dns_ttl" json:"retry_join_dns_ttl,omitempty"`
 	SerfAllowedCIDRsLAN              []string            `mapstructure:"serf_lan_allowed_cidrs" json:"serf_lan_allowed_cidrs,omitempty"`
 	SerfAllowedCIDRsWAN              []string            `mapstructure:"serf_wan_allowed_cidrs" json:"serf_wan_allowed_cidrs,omitempty"`
 	SerfBindAddrLAN                  *string             `mapstructure:"serf_lan" json:"serf_lan,omitempty"`

@@ -1089,6 +1089,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		RetryJoinMaxAttemptsLAN:           intVal(c.RetryJoinMaxAttemptsLAN),
 		RetryJoinMaxAttemptsWAN:           intVal(c.RetryJoinMaxAttemptsWAN),
 		RetryJoinWAN:                      b.expandAllOptionalAddrs("retry_join_wan", c.RetryJoinWAN),
+		RetryJoinDNSTTL:                   b.durationVal("retry_join_dns_ttl", c.RetryJoinDNSTTL),
 		SegmentName:                       stringVal(c.SegmentName),
 		Segments:                          segments,
 		SegmentLimit:                      intVal(c.SegmentLimit),

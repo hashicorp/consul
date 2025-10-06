@@ -1126,6 +1126,14 @@ type RuntimeConfig struct {
 	// flag: -retry-join-wan string -retry-join-wan string
 	RetryJoinWAN []string
 
+	// DNSTTL specifies how long to cache DNS resolutions
+	// for retry_join addresses. When connection failures occur,
+	// the DNS cache is invalidated and fresh resolutions are
+	// attempted. Defaults to 130 seconds.
+	//
+	// hcl: dns-ttl = "duration"
+	RetryJoinDNSTTL time.Duration
+
 	// SegmentName is the network segment for this client to join.
 	// (Enterprise-only)
 	//
