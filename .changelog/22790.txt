@@ -1,0 +1,3 @@
+```release-note:improvement
+ui: Replace yarn with pnpm for package management
+```

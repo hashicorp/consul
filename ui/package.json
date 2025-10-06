@@ -3,44 +3,41 @@
   "description": "Monorepo for Consul UI, packages and addons.",
   "license": "MPL-2.0",
   "author": "HashiCorp",
-  "workspaces": {
-    "packages": [
-      "packages/*"
-    ]
-  },
   "scripts": {
-    "doc:toc": "doctoc README.md",
     "compliance": "npm-run-all compliance:*",
-    "compliance:licenses": "license-checker --summary --onlyAllow 'Python-2.0;Apache*;Apache License, Version 2.0;Apache-2.0;Apache 2.0;Artistic-2.0;BSD;BSD-3-Clause;CC-BY-3.0;CC-BY-4.0;CC0-1.0;ISC;MIT;MPL-2.0;Public Domain;Unicode-TOU;Unlicense;WTFPL' --excludePackages 'consul-ui@2.2.0;consul-acls@0.1.0;consul-lock-sessions@0.1.0;consul-partitions@0.1.0;consul-nspaces@0.1.0;consul-peerings@0.1.0'"
-
+    "compliance:licenses": "license-checker --summary --onlyAllow 'Python-2.0;Apache*;Apache License, Version 2.0;Apache-2.0;Apache 2.0;Artistic-2.0;BSD;BSD-3-Clause;CC-BY-3.0;CC-BY-4.0;CC0-1.0;ISC;MIT;MPL-2.0;Public Domain;Unicode-TOU;Unlicense;WTFPL' --excludePackages 'consul-ui@2.2.0;consul-acls@0.1.0;consul-lock-sessions@0.1.0;consul-partitions@0.1.0;consul-nspaces@0.1.0;consul-peerings@0.1.0'",
+    "doc:toc": "doctoc README.md"
   },
   "devDependencies": {
     "doctoc": "^2.0.0",
     "license-checker": "^25.0.1",
     "npm-run-all": "^4.1.5"
   },
-  "resolutions": {
-    "xmlhttprequest-ssl": "^1.6.3",
-    "ember-basic-dropdown": "3.0.21",
-    "glob": "7.2.3",
-    "braces": "^3.0.0",
-    "markdown-it": "^12.3.2",
-    "codemirror": "5.58.2",
-    "ansi-html": "0.0.8",
-    "json5": "^2.2.3",
-    "**/express/path-to-regexp": "0.1.12",
-    "**/nise/path-to-regexp": "1.9.0",
-    "body-parser": "1.20.3",
-    "elliptic": "6.6.1",
-    "nanoid": "3.3.8",
-    "prismjs": "1.30.0",
-    "@babel/runtime": "8.0.0-alpha.17",
-    "@babel/helpers": "7.26.10",
-    "micromatch": "4.0.8",
-    "webpack": "5.94.0",
-    "rollup": "2.79.2"
-  },
+  "packageManager": "pnpm@10.16.1+sha512.0e155aa2629db8672b49e8475da6226aa4bdea85fdcdfdc15350874946d4f3c91faaf64cbdc4a5d1ab8002f473d5c3fcedcd197989cf0390f9badd3c04678706",
   "engines": {
-    "node": "20"
+    "node": "20",
+    "pnpm": ">= 10.*"
+  },
+  "pnpm": {
+    "overrides": {
+      "clean-css@<4.1.11": ">=4.1.11",
+      "markdown-it@<12.3.2": ">=12.3.2",
+      "json5@<1.0.2": ">=1.0.2",
+      "braces@<3.0.3": ">=3.0.3",
+      "micromatch@<4.0.8": ">=4.0.8",
+      "body-parser@<1.20.3": ">=1.20.3",
+      "send@<0.19.0": ">=0.19.0",
+      "serve-static@<1.16.0": ">=1.16.0",
+      "path-to-regexp@<0.1.10": ">=0.1.10",
+      "ansi-html@<0.0.8": ">=0.0.8",
+      "cookie@<0.7.0": ">=0.7.0",
+      "@babel/runtime@<7.26.10": ">=7.26.10",
+      "cross-spawn@<6.0.6": ">=6.0.6",
+      "cross-spawn@>=7.0.0 <7.0.5": ">=7.0.5",
+      "path-to-regexp@<0.1.12": ">=0.1.12",
+      "prismjs@<1.30.0": ">=1.30.0",
+      "on-headers@<1.1.0": ">=1.1.0",
+      "tmp@<=0.2.3": ">=0.2.4"
+    }
   }
 }
