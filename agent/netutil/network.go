@@ -40,7 +40,56 @@ func GetMockGetAgentBindAddrFunc(ip string) func(config *api.Config, cached bool
 }
 
 // GetAgentConfig retrieves the agent's configuration using the local Consul agent's API.
-func GetAgentConfig(req *IPStackRequestDTO) (map[string]map[string]interface{}, error) {
+func GetAgentConfig(config *api.Config) (map[string]map[string]interface{}, error) {
+	if config == nil {
+		config = api.DefaultConfig()
+	}
+	client, err := api.NewClient(config)
+	if err != nil {
+		return nil, err
+	}
+
+	self, err := client.Agent().Self()
+	if err != nil {
+		return nil, err
+	}
+
+	return self, nil
+}
+
+// GetAgentBindAddr retrieves the bind address from the agent's configuration.
+func GetAgentBindAddr(config *api.Config, cached bool) (net.IP, error) {
+	if cachedBindAddr != nil && cached {
+		return cachedBindAddr, nil
+	}
+	agentConfig, err := GetAgentConfigFunc(config)
+	if err != nil {
+		return nil, err
+	}
+
+	bindAddr, ok := agentConfig["Config"]["BindAddr"].(string)
+	if !ok || bindAddr == "" {
+		return nil, nil
+	}
+
+	ip, err := netip.ParseAddr(bindAddr)
+	if err != nil {
+		return nil, err
+	}
+	cachedBindAddr = ip.AsSlice()
+	return cachedBindAddr, nil
+}
+
+func IsDualStack(config *api.Config, cached bool) (bool, error) {
+	req := &IPStackRequestDTO{
+		Config: config,
+		Cached: cached,
+	}
+	return IsDualStackWithDTO(req)
+}
+
+// GetAgentConfigDTO retrieves the agent's configuration using the local Consul agent's API.
+func GetAgentConfigWithDTO(req *IPStackRequestDTO) (map[string]map[string]interface{}, error) {
 	var client *api.Client
 	var err error
 
@@ -66,12 +115,12 @@ func GetAgentConfig(req *IPStackRequestDTO) (map[string]map[string]interface{}, 
 	return self, nil
 }
 
-// GetAgentBindAddr retrieves the bind address from the agent's configuration.
-func GetAgentBindAddr(req *IPStackRequestDTO) (net.IP, error) {
+// GetAgentBindAddrDTO retrieves the bind address from the agent's configuration.
+func GetAgentBindAddrWithDTO(req *IPStackRequestDTO) (net.IP, error) {
 	if cachedBindAddr != nil && req.Cached {
 		return cachedBindAddr, nil
 	}
-	agentConfig, err := GetAgentConfigFunc(req)
+	agentConfig, err := GetAgentConfigWithDTO(req)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +142,11 @@ func GetAgentBindAddr(req *IPStackRequestDTO) (net.IP, error) {
 // It returns true if the agent is running in dual-stack mode, false otherwise.
 // An error is returned if the agent's bind address cannot be determined.
 func IsDualStackWithDTO(req *IPStackRequestDTO) (bool, error) {
-	bindIP, err := GetAgentBindAddrFunc(req)
+	if req.Client == nil {
+		//fallback to older DualStack
+		return IsDualStack(req.Config, req.Cached)
+	}
+	bindIP, err := GetAgentBindAddrWithDTO(req)
 	if err != nil {
 		return false, err
 	}
@@ -111,12 +164,4 @@ func IsDualStackWithDTO(req *IPStackRequestDTO) (bool, error) {
 
 	// For IPv6, check if it's a dual-stack address
 	return bindIP.To16() != nil && bindIP.To4() == nil, nil
-}
-
-func IsDualStack(config *api.Config, cached bool) (bool, error) {
-	req := &IPStackRequestDTO{
-		Config: config,
-		Cached: cached,
-	}
-	return IsDualStackWithDTO(req)
 }
