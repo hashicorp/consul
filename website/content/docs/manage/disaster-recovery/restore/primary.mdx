@@ -122,7 +122,6 @@ ACL token "agent" set successfully
 ```
 
 You must set the token for each server node for them to re-join the datacenter successfully. Depending on your configuration you might have different tokens for each server, or you may reuse the same token for all server agents. In both cases, the token must be set on all server agents, otherwise they cannot successfully join the datacenter.
-
 ### Perform a rolling restart of the servers
 
 After you restore from the snapshot and set the tokens on all nodes, you may observe errors in the server logs indicating duplicate node IDs. This error occurs because the servers received new node IDs when they were reinstalled, which are different from the ones stored in the snapshot.
@@ -154,7 +153,6 @@ If you have a federated environment, it is possible that the IP addresses of the
 Depending on how you configured the server agents in your secondary datacenter, you may need to re-establish federation by updating the secondary datacenter configurations as well.
 
 For more information, refer to [Loss of federation due to primary datacenter restore](/consul/docs/manage/disaster-recovery/restore/secondary#loss-of-federation-due-to-primary-datacenter-restore).
-
 ## Additional guidance
 
 To familiarize with the concepts mentioned in this page you can try our tutorials for disaster recovery:
