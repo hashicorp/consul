@@ -23,13 +23,6 @@ module('Integration | Component | consul/role/form', function (hooks) {
 
     // Helper function to render component with common args
     this.renderRoleForm = async (extraArgs = {}) => {
-      const args = {
-        form: this.form,
-        onCreate: this.onCreate,
-        onUpdate: this.onUpdate,
-        onCancel: this.onCancel,
-        ...extraArgs,
-      };
 
       return render(hbs`
         <Consul::Role::Form
