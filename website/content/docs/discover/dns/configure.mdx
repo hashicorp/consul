@@ -49,7 +49,7 @@ You can forward all queries sent to the `consul.` domain from the existing DNS s
 
 By default, Consul responds to DNS queries in the `consul` domain, but you can set a specific domain for responding to DNS queries by configuring the [`domain`](/consul/docs/reference/agent/configuration-file/dns#domain) parameter.
 
-You can also specify an additional domain in the [`alt_domain`](//consul/docs/reference/agent/configuration-file/general##alt_domain) agent configuration option, which configures Consul to respond to queries in a secondary domain. Configuring an alternate domain may be useful during a DNS migration or to distinguish between internal and external queries, for example.
+You can also specify an additional domain in the [`alt_domain`](/consul/docs/reference/agent/configuration-file/general##alt_domain) agent configuration option, which configures Consul to respond to queries in a secondary domain. Configuring an alternate domain may be useful during a DNS migration or to distinguish between internal and external queries, for example.
 
 Consul's DNS response uses the same domain as the query.
 
