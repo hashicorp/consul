@@ -2942,7 +2942,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				a.logger.Warn("Scripts are enabled on this agent without ACLs; this is not recommended for security reasons")
 			}
 
-			if !a.config.ACLsEnabled && a.config.EnableLocalScriptChecks {
+			if !a.config.ACLsEnabled && a.config.EnableRemoteScriptChecks {
 				a.logger.Warn("Scripts are enabled on this agent from remote calls without ACLs; this is not recommended for security reasons")
 			}
 		}
