@@ -1,0 +1,315 @@
+---
+layout: commands
+page_title: 'Commands: Operator Area'
+description: >
+  The operator area command is used to interact with Consul's network area
+  subsystem.
+---
+
+# Consul Operator Area
+
+Command: `consul operator area`
+
+<EnterpriseAlert />
+
+Consul Enterprise supports network areas, which are operator-defined relationships
+between servers in two different Consul datacenters. The operator area command is used to
+interact with Consul's network area subsystem.
+
+Unlike Consul's WAN feature, network areas use just the server RPC port for communication,
+and relationships can be made between independent pairs of datacenters, so not all servers
+need to be fully connected. This allows for complex topologies among Consul datacenters like
+hub/spoke and more general trees.
+
+See the [Network Areas Guide](/consul/tutorials/datacenter-operations/federation-network-areas) for more details.
+
+```text
+Usage: consul operator area <subcommand> [options]
+
+The operator area command is used to interact with Consul's network area
+subsystem. Network areas are used to link together Consul servers in different
+Consul datacenters. With network areas, Consul datacenters can be linked
+together in ways other than a fully-connected mesh, as is required for Consul's
+WAN.
+
+Subcommands:
+
+    create     Create a new network area
+    delete     Remove a network area
+    join       Join Consul servers into an existing network area
+    list       List network areas
+    members    Display Consul server members present in network areas
+    update     Update the configuration of a network area
+```
+
+If ACLs are enabled, the client will need to supply an ACL Token with `operator`
+read or write privileges to use these commands.
+
+## create
+
+Corresponding HTTP API Endpoint: [\[POST\] /v1/operator/area](/consul/api-docs/operator/area#create-network-area)
+
+This command creates a new network area.
+
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required     |
+| ---------------- |
+| `operator:write` |
+
+Usage: `consul operator area create [options]`
+
+The following example output shows the ID of the newly-created network area:
+
+```text
+Created area "d2872ec5-68ea-b862-b75d-0bee99aca100" with peer datacenter "other"!
+```
+
+The return code indicates success or failure.
+
+#### Command Options
+
+- `-peer-datacenter=<value>` - Declares the peer Consul datacenter that will make up the other
+  side of this network area. Network areas always involve a pair of datacenters: the datacenter
+  where the area was created, and the peer datacenter. This is required.
+
+- `-retry-join=<value>` Specifies the address of a Consul server to join to, such as an IP
+  or hostname with an optional port number. This is optional and can be specified multiple times.
+
+- `-use-tls=<value>` Specifies whether gossip over this area should be encrypted with
+  TLS if possible. Must be either `true` or `false`.
+
+#### API Options
+
+@include 'legacy/http_api_options_client.mdx'
+
+@include 'legacy/http_api_options_server.mdx'
+
+## delete
+
+Corresponding HTTP API Endpoint: [\[DELETE\] /v1/operator/area/:uuid](/consul/api-docs/operator/area#delete-network-area)
+
+This command deletes an existing network area.
+
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required     |
+| ---------------- |
+| `operator:write` |
+
+Usage: `consul operator area delete [options]`
+
+The output looks like this:
+
+```text
+Deleted area "154941b0-80e2-9d69-c560-ab2c02807332"!
+```
+
+The return code indicates success or failure.
+
+#### Command Options
+
+- `-id=<value>` - Specifies the ID of a network area to operate on.
+  Use this option as an alternative to `-peer-datacenter`.
+
+- `-peer-datacenter=<value>` - Specifies the peer datacenter of a network area to operate on.
+  Use this option as an alternative to `-id`.
+
+#### API Options
+
+@include 'legacy/http_api_options_client.mdx'
+
+@include 'legacy/http_api_options_server.mdx'
+
+## join
+
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/operator/area/:uuid/join](/consul/api-docs/operator/area#join-network-area)
+
+This command joins Consul servers into an existing network area by address, such as
+an IP or hostname with an optional port. Multiple addresses may be given.
+
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required     |
+| ---------------- |
+| `operator:write` |
+
+Usage: `consul operator area join [options] ADDRESSES`
+
+The output looks like this:
+
+```text
+Address   Joined  Error
+10.1.2.3  false   failed to connect to "10.1.2.3:8300": dial tcp 10.1.2.3:8300: i/o timeout
+10.1.2.4  true    (none)
+10.1.2.5  true    (none)
+```
+
+The `Error` field will have a human-readable error message if Consul was unable
+to join the given address.
+
+The return code indicates success or failure.
+
+#### Command Options
+
+- `-id=<value>` - Specifies the ID of a network area to operate on.
+  Use this option as an alternative to `-peer-datacenter`.
+
+- `-peer-datacenter=<value>` - Specifies the peer datacenter of a network area to operate on.
+  Use this option as an alternative to `-id`.
+
+#### API Options
+
+@include 'legacy/http_api_options_client.mdx'
+
+@include 'legacy/http_api_options_server.mdx'
+
+## list
+
+Corresponding HTTP API Endpoint: [\[GET\] /v1/operator/area](/consul/api-docs/operator/area#list-network-areas)
+
+This command lists all network areas.
+
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required    |
+| --------------- |
+| `operator:read` |
+
+Usage: `consul operator area list [options]`
+
+The output looks like this:
+
+```text
+Area                                  PeerDC  RetryJoin
+6a52a0af-62e2-dad4-da60-e66acc37096c  dc2     10.1.2.3,10.1.2.4,10.1.2.5
+96e33424-f5ce-9fcd-ecab-27974e36678f  other   (none)
+```
+
+`Area` is the ID of the network area.
+
+`PeerDC` is the peer datacenter for the area.
+
+`RetryJoin` is the list of servers to join, defined when the area was created.
+
+The return code indicates success or failure.
+
+#### API Options
+
+@include 'legacy/http_api_options_client.mdx'
+
+@include 'legacy/http_api_options_server.mdx'
+
+## members
+
+Corresponding HTTP API Endpoint: [\[GET\] /v1/operator/area/:uuid/members](/consul/api-docs/operator/area#list-network-area-members)
+
+This command displays Consul server nodes present in a network area, or all
+areas if no area is specified.
+
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required    |
+| --------------- |
+| `operator:read` |
+
+Usage: `consul operator area members [options]`
+
+The output looks like this:
+
+```text
+Area                                  Node        Address         Status  Build  Protocol  DC   RTT
+6a52a0af-62e2-dad4-da60-e66acc37096c  node-1.dc1  127.0.0.1:8300  alive   0.8.0  2         dc1  0s
+6a52a0af-62e2-dad4-da60-e66acc37096c  node-2.dc1  127.0.0.2:8300  alive   0.8.0  2         dc1  594.191µs
+96e33424-f5ce-9fcd-ecab-27974e36678f  node-1.dc1  127.0.0.1:8300  alive   0.8.0  2         dc1  0s
+96e33424-f5ce-9fcd-ecab-27974e36678f  node-2.dc1  127.0.0.2:8300  alive   0.8.0  2         dc1  634.109µs
+```
+
+`Area` is the ID of the network area.
+
+`Node` is the name of the node.
+
+`Address` is the IP and server RPC port for the node.
+
+`Status` is the current health status of the node, as determined by the network
+area distributed failure detector. This will be "alive", "leaving", "left", or
+"failed". A "failed" status means that other servers are not able to probe this
+server over its server RPC interface.
+
+`Build` has the Consul version running on the node.
+
+`Protocol` is the [protocol version](/consul/docs/upgrading#protocol-versions) being
+spoken by the node.
+
+`DC` is the node's Consul datacenter.
+
+`RTT` is an estimated network round trip time from the server answering the query
+to the given server, in a human-readable format. This is computed using
+[network coordinates](/consul/docs/architecture/coordinates).
+
+The return code indicates success or failure.
+
+#### Command Options
+
+- `-id=<value>` - Specifies the ID of a network area to operate on.
+  Use this option as an alternative to `-peer-datacenter`.
+
+- `-peer-datacenter=<value>` - Specifies the peer datacenter of a network area to operate on.
+  Use this option as an alternative to `-id`.
+
+#### API Options
+
+@include 'legacy/http_api_options_client.mdx'
+
+@include 'legacy/http_api_options_server.mdx'
+
+## update
+
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/operator/area/:uuid](/consul/api-docs/operator/area#update-network-area)
+
+This command updates the configuration of network area.
+
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required     |
+| ---------------- |
+| `operator:write` |
+
+Usage: `consul operator area update [options]`
+
+The output looks like this:
+
+```text
+Updated area "d2872ec5-68ea-b862-b75d-0bee99aca100"
+```
+
+The return code indicates success or failure.
+
+#### Command Options
+
+- `-id=<value>` - Specifies the ID of a network area to operate on.
+  Use this option as an alternative to `-peer-datacenter`.
+
+- `-peer-datacenter=<value>` - Specifies the peer datacenter of a network area to operate on.
+  Use this option as an alternative to `-id`.
+
+- `-use-tls=<value>` Specifies whether gossip over this area should be encrypted with
+  TLS if possible. Must be either `true` or `false`.
+
+#### API Options
+
+@include 'legacy/http_api_options_client.mdx'
+
+@include 'legacy/http_api_options_server.mdx'
