@@ -92,7 +92,7 @@ type cmd struct {
 	dialFunc func(network string, address string) (net.Conn, error)
 
 	//checks if the consul agent is configured to use both IPv4 and IPv6 addresses.
-	checkDualStack  func(config *api.Config) (bool, error)
+	checkDualStack  func(dto *netutil.IPStackRequestDTO) (bool, error)
 	useIPv6loopback bool
 }
 
@@ -250,9 +250,7 @@ func (c *cmd) init() {
 	c.dialFunc = func(network string, address string) (net.Conn, error) {
 		return net.DialTimeout(network, address, 3*time.Second)
 	}
-	c.checkDualStack = func(config *api.Config) (bool, error) {
-		return netutil.IsDualStack(nil, false)
-	}
+	c.checkDualStack = netutil.IsDualStackFromDTO
 }
 
 // canBindInternal is here mainly so we can unit test this with a constant net.Addr list
@@ -358,6 +356,21 @@ func (c *cmd) run(args []string) int {
 		}
 	}
 
+	// check dual stack is configured
+
+	isDualStack, err := c.checkDualStack(&netutil.IPStackRequestDTO{
+		Client: c.client,
+	})
+	if err != nil {
+		if strings.Contains(err.Error(), "Permission denied") {
+			// Token did not have agent:read. Suppress and proceed with defaults.
+			c.logger.Warn("Permission denied checking for dual stack. Proceeding with default localhost address when unset")
+		} else {
+			c.UI.Error(fmt.Sprintf("Error checking dual stack: %s", err.Error()))
+			return 1
+		}
+	}
+
 	var svcForSidecar api.AgentService
 	if c.proxyID == "" {
 		switch {
@@ -395,19 +408,6 @@ func (c *cmd) run(args []string) int {
 		if c.prometheusKeyFile == "" || c.prometheusCertFile == "" || (c.prometheusCAFile == "" && c.prometheusCAPath == "") {
 			c.UI.Error("Must provide a CA (-prometheus-ca-file or -prometheus-ca-path) as well as " +
 				"-prometheus-cert-file and -prometheus-key-file to enable TLS for prometheus metrics")
-			return 1
-		}
-	}
-
-	// check dual stack is configured
-
-	isDualStack, err := c.checkDualStack(c.client.GetConfig())
-	if err != nil {
-		if strings.Contains(err.Error(), "Permission denied") {
-			// Token did not have agent:read. Suppress and proceed with defaults.
-			c.logger.Warn("Permission denied checking for dual stack. Proceeding with default localhost address when unset")
-		} else {
-			c.UI.Error(fmt.Sprintf("Error checking dual stack: %s", err.Error()))
 			return 1
 		}
 	}
