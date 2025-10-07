@@ -382,7 +382,7 @@ include: "/etc/unbound/unbound.conf.d/*.conf"
 
 If you do not have a local DNS server on the Consul agent node, use `iptables` to forward DNS requests on port `53` to the Consul agent running on the same machine without using a secondary service.
 
-This configuration realizes full DNS forwarding, which means that all DNS queries for the host are forwarded to Consul, not just the ones for the `.consul` top level domain. Consul's default configuration resolves only the `.consul` top level domain, so you must set the [`recursors`](/consul/docs/reference/agent/configuration-file/general#recursors) flag if you want your node to be able to resolve other domains when using `iptables` configuration.
+This configuration realizes full DNS forwarding, which means that all DNS queries for the host are forwarded to Consul, not just the ones for the `.consul` top level domain. Consul's default configuration resolves only the `.consul` top level domain, so you must set the [`recursors`](/consul/docs/reference/agent/configuration-file/dns#recursors) flag if you want your node to be able to resolve other domains when using `iptables` configuration.
 
 If you use DNS relay hosts in your network, do not place them on the same host as Consul. The redirects may intercept the traffic.
 
