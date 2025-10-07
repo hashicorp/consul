@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/hashicorp/consul/agent/netutil"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -72,7 +73,7 @@ func TestEnvoyGateway_Validation(t *testing.T) {
 			ui := cli.NewMockUi()
 			c := New(ui)
 			c.init()
-			c.checkDualStack = func() (bool, error) {
+			c.checkDualStack = func(dto *netutil.IPStackRequestDTO) (bool, error) {
 				return false, nil
 			}
 
@@ -1379,7 +1380,7 @@ func TestGenerateConfig(t *testing.T) {
 				return nil, nil
 			}
 
-			c.checkDualStack = func() (bool, error) {
+			c.checkDualStack = func(dto *netutil.IPStackRequestDTO) (bool, error) {
 				return tc.IsDualStack, nil
 			}
 
@@ -1501,7 +1502,7 @@ func TestEnvoy_GatewayRegistration(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ui := cli.NewMockUi()
 			c := New(ui)
-			c.checkDualStack = func() (bool, error) {
+			c.checkDualStack = func(dto *netutil.IPStackRequestDTO) (bool, error) {
 				return false, nil
 			}
 
