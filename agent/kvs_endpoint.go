@@ -44,9 +44,15 @@ func (s *HTTPHandlers) KVSEndpoint(resp http.ResponseWriter, req *http.Request) 
 	// we validate the key name to prevent path traversal or leading/trailing spaces.
 	// We strongly recommend leaving this validation enabled (false) unless you have a specific reason
 	// to disable it for legacy compatibility.
-	if !s.agent.config.DisableKVKeyValidation && args.Key != "" {
+	if args.Key != "" {
 		if err := validateKVKey(args.Key); err != nil {
-			return nil, err
+			if s.agent.config.DisableKVKeyValidation {
+				// When validation is disabled, log a warning
+				s.agent.logger.Warn("KV key validation is disabled but key would fail validation",
+					"key", args.Key, "validation_error", err.Error())
+			} else {
+				return nil, err
+			}
 		}
 	}
 
@@ -347,7 +353,7 @@ func validateKVKey(key string) error {
 	decoded, err := url.PathUnescape(key)
 	if err == nil && decoded != key {
 		if strings.Contains(decoded, "..") {
-			return fmt.Errorf("invalid key name, encoded path traversal is not allowed")
+			return fmt.Errorf("invalid key name, path traversal is not allowed")
 		}
 		if strings.Contains(decoded, " ") {
 			return fmt.Errorf("invalid key name, leading/trailing spaces are not allowed")

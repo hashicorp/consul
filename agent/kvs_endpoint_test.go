@@ -15,6 +15,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/go-hclog"
 )
 
 func TestKVSEndpoint_PUT_GET_DELETE(t *testing.T) {
@@ -1023,6 +1024,100 @@ func TestKVSEndpoint_EnabledValidation(t *testing.T) {
 
 			if !strings.Contains(err.Error(), "invalid key name") {
 				t.Errorf("Expected 'invalid key name' error, but got: %v (%s)", err, tc.description)
+			}
+		})
+	}
+}
+
+func TestKVSEndpoint_DisableValidation_LogsWarning(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	var logBuffer bytes.Buffer
+
+	// Test with disable_kv_key_validation set to true
+	a := NewTestAgent(t, `disable_kv_key_validation = true`)
+	defer a.Shutdown()
+
+	a.logger = hclog.NewInterceptLogger(&hclog.LoggerOptions{
+		Name:       "consul.agent",
+		Level:      hclog.Warn,
+		Output:     &logBuffer,
+		TimeFormat: "15:04:05.000",
+	})
+
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	// Test keys that would fail validation but should now only generate warnings
+	testCases := []struct {
+		name              string
+		key               string
+		expectedLogSubstr string
+		description       string
+	}{
+		{
+			name:              "path traversal",
+			key:               "../../etc/passwd",
+			expectedLogSubstr: "path traversal is not allowed",
+			description:       "Path traversal should log warning when validation is disabled",
+		},
+		{
+			name:              "trailing space",
+			key:               "foo ",
+			expectedLogSubstr: "leading/trailing spaces are not allowed",
+			description:       "Trailing space should log warning when validation is disabled",
+		},
+		{
+			name:              "leading space",
+			key:               " foo",
+			expectedLogSubstr: "leading/trailing spaces are not allowed",
+			description:       "Leading space should log warning when validation is disabled",
+		},
+		{
+			name:              "url encoded double dot",
+			key:               "%2E%2E/config",
+			expectedLogSubstr: "path traversal is not allowed",
+			description:       "URL encoded double dot should log warning when validation is disabled",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Clear the log buffer before each test
+			logBuffer.Reset()
+
+			buf := bytes.NewBuffer([]byte("test-value"))
+			req, _ := http.NewRequest("PUT", "/v1/kv/"+tc.key, buf)
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.KVSEndpoint(resp, req)
+
+			if err != nil {
+				t.Errorf("Expected success with validation disabled, but got error: %v (%s)", err, tc.description)
+				return
+			}
+
+			if obj == nil {
+				t.Errorf("Expected non-nil response with validation disabled (%s)", tc.description)
+				return
+			}
+
+			result, ok := obj.(bool)
+			if !ok || !result {
+				t.Errorf("Expected successful PUT response with validation disabled (%s)", tc.description)
+				return
+			}
+
+			// Check that the warning was logged
+			logOutput := logBuffer.String()
+			if !strings.Contains(logOutput, "KV key validation is disabled but key would fail validation") {
+				t.Errorf("Expected warning log message not found in log output: %s (%s)", logOutput, tc.description)
+			}
+			if !strings.Contains(logOutput, tc.expectedLogSubstr) {
+				t.Errorf("Expected validation error message '%s' not found in log output: %s (%s)",
+					tc.expectedLogSubstr, logOutput, tc.description)
 			}
 		})
 	}
