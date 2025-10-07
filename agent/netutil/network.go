@@ -146,7 +146,7 @@ func IsDualStackWithDTO(req *IPStackRequestDTO) (bool, error) {
 	var err error
 	if req.Client == nil {
 		//fallback to older DualStack
-		bindIP, err = GetAgentBindAddr(req.Config, req.Cached)
+		bindIP, err = GetAgentBindAddrFunc(req.Config, req.Cached)
 	} else {
 		bindIP, err = GetAgentBindAddrWithDTO(req)
 	}
