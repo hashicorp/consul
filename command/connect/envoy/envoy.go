@@ -356,21 +356,6 @@ func (c *cmd) run(args []string) int {
 		}
 	}
 
-	// check dual stack is configured
-
-	isDualStack, err := c.checkDualStack(&netutil.IPStackRequestDTO{
-		Client: c.client,
-	})
-	if err != nil {
-		if strings.Contains(err.Error(), "Permission denied") {
-			// Token did not have agent:read. Suppress and proceed with defaults.
-			c.logger.Warn("Permission denied checking for dual stack. Proceeding with default localhost address when unset")
-		} else {
-			c.UI.Error(fmt.Sprintf("Error checking dual stack: %s", err.Error()))
-			return 1
-		}
-	}
-
 	var svcForSidecar api.AgentService
 	if c.proxyID == "" {
 		switch {
@@ -412,6 +397,20 @@ func (c *cmd) run(args []string) int {
 		}
 	}
 
+	// check dual stack is configured
+
+	isDualStack, err := c.checkDualStack(&netutil.IPStackRequestDTO{
+		Client: c.client,
+	})
+	if err != nil {
+		if strings.Contains(err.Error(), "Permission denied") {
+			// Token did not have agent:read. Suppress and proceed with defaults.
+			c.logger.Warn("Permission denied checking for dual stack. Proceeding with default localhost address when unset")
+		} else {
+			c.UI.Error(fmt.Sprintf("Error checking dual stack: %s", err.Error()))
+			return 1
+		}
+	}
 	c.logger.Debug("Received", "isDualStack", strconv.FormatBool(isDualStack))
 	if isDualStack {
 		c.logger.Debug("using dual-stack configuration: default localhost to IPv6 loopback")
