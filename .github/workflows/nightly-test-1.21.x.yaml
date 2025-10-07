@@ -28,18 +28,18 @@ jobs:
         with:
           ref: ${{ env.BRANCH }}
 
+      - name: Install PNPM
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        with:
+          run_install: false
+          package_json_file: ui/package.json
+
       - name: Setup node and pnpm cache
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
         with:
           node-version-file: "./ui/package.json"
           cache: "pnpm"
           cache-dependency-path: "ui/pnpm-lock.yaml"
-
-      - name: Install PNPM
-        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
-        with:
-          run_install: false
-          package_json_file: ui/package.json
 
       - name: Install
         id: install
