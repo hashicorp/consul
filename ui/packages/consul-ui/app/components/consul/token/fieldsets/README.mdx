@@ -1,0 +1,52 @@
+# Consul::Token::Fieldsets
+
+A presentational component that renders token fieldsets used on token create/edit pages:
+- local/global toggle (create flow)
+- description textarea
+- RoleSelector
+- PolicySelector
+
+## Usage
+
+```hbs
+<Consul::Token::Fieldsets
+  @item={{item}}
+  @create={{create}}
+  @local={{local}}
+  @dc={{dc}}
+  @partition={{partition}}
+  @nspace={{nspace}}
+  @onChange={{action 'change'}}
+/>
+```
+
+## Arguments
+
+| Arg | Type | Required | Description |
+|---|---:|:---:|---|
+| `@item` | object | yes | Token model / changeset (expects .Roles and .Policies arrays). |
+| `@create` | boolean | no | True when rendering the "create" flow (shows Local toggle). |
+| `@local` | boolean | no | Whether the token is local. Used to set checkbox checked state. (Use lowercase `@local`, not `@Local`.) |
+| `@dc` | string | no | Datacenter id forwarded to selectors. |
+| `@partition` | string | no | Partition forwarded to selectors. |
+| `@nspace` | string | no | Namespace forwarded to selectors. |
+| `@onChange` | function | no | Change handler invoked for checkbox `onchange` and textarea `oninput`. Typically `action 'change'`. |
+
+## Behavior / Notes
+
+- The outer <fieldset> is disabled when the current user cannot "write token" for the provided `@item`.
+- When `@create` is true the component renders a Local datacenter toggle. The checkbox uses `checked={{if @local 'checked'}}` and triggers the provided `@onChange` closure.
+- Description uses `<textarea name="Description" oninput={{@onChange}}>` so callers can update the changeset/state.
+- RoleSelector and PolicySelector receive `@item.Roles` and `@item.Policies` respectively and are disabled when the user lacks write permission.
+- Keep argument names consistent with callers. Do not use uppercase reserved names for args (e.g. `@Local` is reserved; use `@local`).
+
+## Implementation hints
+
+- Invoke `@onChange` as a closure from the parent so the parent route/controller can update the item changeset.
+- Preserve permission checks using `can "write token" item=@item` to match existing UX.
+- This component is intentionally presentational — any business logic or persistence should remain in the caller route/controller.
+
+## See
+
+- Template: ./index.hbs  
+- Component class (optional): ./index.js
