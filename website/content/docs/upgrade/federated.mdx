@@ -72,7 +72,7 @@ To verify if your upgrade path is safe check:
 
 ### Check Envoy version compatibility
 
-If you are using the Consul service mesh functionality, when upgrading Consul on the client nodes you will also have to make sure the Envoy version you have on the node is compatible with the new version of Consul.
+If you are using Consul's service mesh, when you upgrade Consul on the client nodes you must also make sure that the Envoy version you have on the node is compatible with the new version of Consul.
 
 You can find the Envoy versions that your new Consul version supports on the [Envoy proxy configuration reference](/consul/docs/connect/proxies/envoy#supported-versions).
 documentation page.
@@ -83,11 +83,11 @@ If you are using Consul `1.8.4` or later you can also use the [`/v1/agent/self`]
 
 </Tip>
 
-In this scenario we are upgradring from Consul `1.12.2`, which supports Envoy up to version `1.33.x` to Consul `1.21.4` that supports Envoy from version `1.31.x`.
+In this scenario we are upgrading from Consul `1.12.2`, which supports Envoy up to version `1.33.x` to Consul `1.21.4`, which supports Envoy from version `1.31.x`.
 
-This means that, the two version share a compatible Envoy version and that if you are running Envoy `1.33.x` on your agents you might not need to upgrade Envoy right away.
+That means the two versions share a compatible Envoy version, so if you are running Envoy `1.33.x` with your agents you might not need to upgrade Envoy right away.
 
-We recommend to upgrade Envoy to the latest supported version to leverage the Consul compatibility with the new Envoy functionalities and improvements.
+We recommend that you upgrade Envoy to the latest supported version so that you can leverage new Envoy functionalities and improvements in your network.
 
 Refer to [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/start/install) to learn how to install Envoy on your system.
 
