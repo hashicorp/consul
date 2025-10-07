@@ -92,7 +92,7 @@ func GetAgentBindAddr(req *IPStackRequestDTO) (net.IP, error) {
 // IsDualStack checks if the agent is configured to use both IPv4 and IPv6 addresses.
 // It returns true if the agent is running in dual-stack mode, false otherwise.
 // An error is returned if the agent's bind address cannot be determined.
-func IsDualStackFromDTO(req *IPStackRequestDTO) (bool, error) {
+func IsDualStackWithDTO(req *IPStackRequestDTO) (bool, error) {
 	bindIP, err := GetAgentBindAddrFunc(req)
 	if err != nil {
 		return false, err
@@ -118,5 +118,5 @@ func IsDualStack(config *api.Config, cached bool) (bool, error) {
 		Config: config,
 		Cached: cached,
 	}
-	return IsDualStackFromDTO(req)
+	return IsDualStackWithDTO(req)
 }

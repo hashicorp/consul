@@ -250,7 +250,7 @@ func (c *cmd) init() {
 	c.dialFunc = func(network string, address string) (net.Conn, error) {
 		return net.DialTimeout(network, address, 3*time.Second)
 	}
-	c.checkDualStack = netutil.IsDualStackFromDTO
+	c.checkDualStack = netutil.IsDualStackWithDTO
 }
 
 // canBindInternal is here mainly so we can unit test this with a constant net.Addr list
