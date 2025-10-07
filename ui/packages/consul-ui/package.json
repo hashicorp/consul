@@ -40,12 +40,8 @@
     "test:oss:ci": "CONSUL_NSPACES_ENABLED=0 ember test --test-port=${EMBER_TEST_PORT:-7357} --path dist --silent --reporter xunit",
     "test:oss:view": "CONSUL_NSPACES_ENABLED=0 ember test --server --test-port=${EMBER_TEST_PORT:-7357}",
     "test:parallel": "EMBER_EXAM_PARALLEL=true ember exam --split=4 --parallel",
-    "test:view": "ember test --server --test-port=${EMBER_TEST_PORT:-7357}"
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged"
-    }
+    "test:view": "ember test --server --test-port=${EMBER_TEST_PORT:-7357}",
+    "prepare": "husky"
   },
   "lint-staged": {
     "{app,config,lib,server,vendor,tests}/**/*.js": [
@@ -171,9 +167,9 @@
     "faker": "^5.5.3",
     "flat": "^5.0.0",
     "hast-util-to-string": "^1.0.4",
-    "husky": "^4.2.5",
+    "husky": "^9.1.7",
     "js-yaml": "^4.0.0",
-    "lint-staged": "^10.2.11",
+    "lint-staged": "^16.2.3",
     "loader.js": "^4.7.0",
     "mnemonist": "^0.38.0",
     "ngraph.graph": "^19.1.0",
