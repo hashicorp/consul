@@ -142,11 +142,14 @@ func GetAgentBindAddrWithDTO(req *IPStackRequestDTO) (net.IP, error) {
 // It returns true if the agent is running in dual-stack mode, false otherwise.
 // An error is returned if the agent's bind address cannot be determined.
 func IsDualStackWithDTO(req *IPStackRequestDTO) (bool, error) {
+	var bindIP net.IP
+	var err error
 	if req.Client == nil {
 		//fallback to older DualStack
-		return IsDualStack(req.Config, req.Cached)
+		bindIP, err = GetAgentBindAddr(req.Config, req.Cached)
+	} else {
+		bindIP, err = GetAgentBindAddrWithDTO(req)
 	}
-	bindIP, err := GetAgentBindAddrWithDTO(req)
 	if err != nil {
 		return false, err
 	}
