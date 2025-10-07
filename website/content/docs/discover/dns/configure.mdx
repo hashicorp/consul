@@ -39,7 +39,7 @@ Nodes that query records outside the `consul.` domain resolve to an upstream DNS
 
 ### Enable non-Consul queries
 
-You enable non-Consul queries to be resolved by setting Consul as the DNS server for a node and providing a [`recursors`](/consul/docs/reference/agent/configuration-file/general##recursors) configuration.
+You enable non-Consul queries to be resolved by setting Consul as the DNS server for a node and providing a [`recursors`](/consul/docs/reference/agent/configuration-file/general#recursors) configuration.
 
 ### Forward queries to an agent
 
@@ -49,7 +49,7 @@ You can forward all queries sent to the `consul.` domain from the existing DNS s
 
 By default, Consul responds to DNS queries in the `consul` domain, but you can set a specific domain for responding to DNS queries by configuring the [`domain`](/consul/docs/reference/agent/configuration-file/dns#domain) parameter.
 
-You can also specify an additional domain in the [`alt_domain`](/consul/docs/reference/agent/configuration-file/general##alt_domain) agent configuration option, which configures Consul to respond to queries in a secondary domain. Configuring an alternate domain may be useful during a DNS migration or to distinguish between internal and external queries, for example.
+You can also specify an additional domain in the [`alt_domain`](/consul/docs/reference/agent/configuration-file/general#alt_domain) agent configuration option, which configures Consul to respond to queries in a secondary domain. Configuring an alternate domain may be useful during a DNS migration or to distinguish between internal and external queries, for example.
 
 Consul's DNS response uses the same domain as the query.
 
