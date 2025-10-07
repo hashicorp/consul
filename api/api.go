@@ -1172,10 +1172,6 @@ func (c *Client) delete(endpoint string, q *QueryOptions) (*WriteMeta, error) {
 	return wm, nil
 }
 
-func (c *Client) GetConfig() *Config {
-	return &c.config
-}
-
 // parseQueryMeta is used to help parse query meta-data
 //
 // TODO(rb): bug? the error from this function is never handled
