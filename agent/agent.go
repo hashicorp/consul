@@ -2937,6 +2937,14 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			if source == ConfigSourceRemote && !a.config.EnableRemoteScriptChecks {
 				return fmt.Errorf("Scripts are disabled on this agent from remote calls; to enable, configure 'enable_script_checks' to true")
 			}
+
+			if !a.config.ACLsEnabled && a.config.EnableLocalScriptChecks {
+				a.logger.Warn("Scripts are enabled on this agent without ACLs; this is not recommended for security reasons")
+			}
+
+			if !a.config.ACLsEnabled && a.config.EnableLocalScriptChecks {
+				a.logger.Warn("Scripts are enabled on this agent from remote calls without ACLs; this is not recommended for security reasons")
+			}
 		}
 	}
 
