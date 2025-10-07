@@ -7,14 +7,15 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
-	"github.com/armon/go-metrics"
-	"github.com/armon/go-metrics/prometheus"
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/types"
 	"math/big"
 	"net"
 	"net/url"
 	"time"
+
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-metrics"
+	"github.com/hashicorp/go-metrics/prometheus"
 )
 
 // DeepCopy generates a deep copy of *RuntimeConfig

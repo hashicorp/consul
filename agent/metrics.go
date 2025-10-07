@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-metrics/prometheus"
 
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/tlsutil"

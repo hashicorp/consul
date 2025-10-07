@@ -18,9 +18,9 @@ import (
 
 	agentdns "github.com/hashicorp/consul/agent/dns"
 
-	"github.com/armon/go-metrics"
 	"github.com/armon/go-radix"
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-metrics"
 	"github.com/miekg/dns"
 
 	"github.com/hashicorp/consul/acl"

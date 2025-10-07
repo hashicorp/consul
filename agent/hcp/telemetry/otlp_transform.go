@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 
-	goMetrics "github.com/armon/go-metrics"
+	goMetrics "github.com/hashicorp/go-metrics"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	cpb "go.opentelemetry.io/proto/otlp/common/v1"
