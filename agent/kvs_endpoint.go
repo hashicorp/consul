@@ -47,9 +47,9 @@ func (s *HTTPHandlers) KVSEndpoint(resp http.ResponseWriter, req *http.Request) 
 	if args.Key != "" {
 		if err := validateKVKey(args.Key); err != nil {
 			if s.agent.config.DisableKVKeyValidation {
-				// When validation is disabled, log a warning
-				s.agent.logger.Warn("KV key validation is disabled but key would fail validation",
-					"key", args.Key, "validation_error", err.Error())
+				// Add a warning header for the user to see
+				warningMsg := fmt.Sprintf("KV key validation bypassed: %s. Consider enabling key validation for security.", err.Error())
+				resp.Header().Set("X-Consul-KV-Warning", warningMsg)
 			} else {
 				return nil, err
 			}
