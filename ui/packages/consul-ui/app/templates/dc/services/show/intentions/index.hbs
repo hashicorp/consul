@@ -4,7 +4,7 @@
 }}
 
 <Route
-  @name={{routeName}}
+  @name={{this.routeName}}
 as |route|>
   <DataLoader
     @src={{uri '/${partition}/${nspace}/${dc}/intentions/for-service/${slug}'
@@ -23,22 +23,22 @@ as |route|>
   {{#let
 
     (hash
-      value=(or sortBy "Action:asc")
-      change=(action (mut sortBy) value="target.selected")
+      value=(or this.sortBy "Action:asc")
+      change=(action (mut this.sortBy) value="target.selected")
     )
 
     (hash
       access=(hash
-        value=(if access (split access ',') undefined)
-        change=(action (mut access) value="target.selectedItems")
+        value=(if this.access (split this.access ',') undefined)
+        change=(action (mut this.access) value="target.selectedItems")
       )
       searchproperty=(hash
-        value=(if (not-eq searchproperty undefined)
-          (split searchproperty ',')
-          searchProperties
+        value=(if (not-eq this.searchproperty undefined)
+          (split this.searchproperty ',')
+          this.searchProperties
         )
-        change=(action (mut searchproperty) value="target.selectedItems")
-        default=searchProperties
+        change=(action (mut this.searchproperty) value="target.selectedItems")
+        default=this.searchProperties
       )
     )
 
@@ -58,8 +58,8 @@ as |route|>
   {{/if}}
   {{#if (gt items.length 0) }}
         <Consul::Intention::SearchBar
-          @search={{search}}
-          @onsearch={{action (mut search) value="target.value"}}
+          @search={{this.search}}
+          @onsearch={{action (mut this.search) value="target.value"}}
 
           @sort={{sort}}
 
@@ -76,20 +76,20 @@ as |route|>
             )
           }}
           @type="intention"
-          @ondelete={{refresh-route}}
+          @ondelete={{this.refresh-route}}
         as |writer|>
           <BlockSlot @name="content">
             <DataCollection
               @type="intention"
               @sort={{sort.value}}
               @filters={{filters}}
-              @search={{search}}
+              @search={{this.search}}
               @items={{items}}
             as |collection|>
               <collection.Collection>
                 <Consul::Intention::List
                   @items={{collection.items}}
-                  @check={{search}}
+                  @check={{this.search}}
                   @delete={{writer.delete}}
                 as |list|>
                   <list.CustomResourceNotice />
