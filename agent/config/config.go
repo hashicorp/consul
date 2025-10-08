@@ -399,18 +399,6 @@ type ServicePort struct {
 	Default *bool   `mapstructure:"default"`
 }
 
-func (sp ServicePort) Validate() error {
-	if sp.Name == nil {
-		return fmt.Errorf("every port in ports must have a name defined")
-	}
-
-	if sp.Port == nil {
-		return fmt.Errorf("every port in ports must have a port defined")
-	}
-
-	return nil
-}
-
 type ServiceDefinition struct {
 	Kind              *string                   `mapstructure:"kind"`
 	ID                *string                   `mapstructure:"id"`

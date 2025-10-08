@@ -775,7 +775,7 @@ func TestStructs_NodeService_ValidateMultiPort(t *testing.T) {
 					},
 				},
 			},
-			Err: "Ports.Port must be non-zero",
+			Err: "ports.port must be greater than zero",
 		},
 	}
 
@@ -3341,7 +3341,16 @@ func TestServicePorts_Validate(t *testing.T) {
 					Port: 0,
 				},
 			},
-			expectedErr: "Ports.Port must be non-zero",
+			expectedErr: "Ports.Port must be greater than zero",
+		},
+		"invalid_negative_port_number": {
+			ports: ServicePorts{
+				{
+					Name: "http",
+					Port: -8080,
+				},
+			},
+			expectedErr: "Ports.Port must be greater than zero",
 		},
 		"invalid_no_default": {
 			ports: ServicePorts{
