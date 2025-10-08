@@ -1,0 +1,94 @@
+---
+layout: docs
+page_title: Restore secondary datacenters
+description: >-
+  Restore secondary Consul datacenters in the event of an outage.
+---
+
+# Restore secondary datacenters
+
+This topic provides an overview of the best practices for restoring a secondary datacenter in a WAN-federated deployment that experiences an outage.
+
+## Introduction
+
+If you operate a WAN-federated environment and you experience an outage in a secondary datacenter, there are multiple levels of disruption that can occur.
+
+- **Loss of quorum in the secondary datacenter.** When the datacenter has less than *(N/2)+1* servers available, where N is the total number of servers, it loses quorum. In this situation, some of the nodes are unaffected but there are not enough healthy nodes to form a quorum.
+- **Complete loss of the secondary datacenter.** When a disaster event at a facility completely wipes out your cluster, or a major outage occurs with your cloud provider.
+- **Loss of federation due to primary datacenter restore.** After you restore a primary datacenter, the newly deployed primary datacenter nodes have different IP addresses than the ones used the configurations of your secondary datacenters.
+
+## Loss of quorum in the secondary datacenter
+
+This situation is equivalent to a loss of quorum in your primary datacenter, but the issue is limited to the secondary datacenter and does not affect the rest of your Consul environment.
+
+The [Outage Recovery tutorial](/consul/tutorials/operate-consul/recovery-outage#server-failure-in-a-multi-server-cluster-losing-quorum) provides a guide to restore your server nodes and make sure they re-form the Raft cluster and elect a leader.
+
+## Complete loss of the secondary datacenter
+
+This situation is equivalent to a complete loss of your primary datacenter, but the issue is limited to the secondary datacenter does not affect the rest of your Consul environment.
+
+To restore the affected datacenter, follow the instructions in [Complete loss of the primary datacenter](/consul/docs/manage/disaster-recovery/restore/primary#complete-loss-of-the-primary-datacenter).
+
+## Connection to primary datacenter lost
+
+After recovering a primary datacenter, it is possible that the new servers will have a different IP address than the one used to join them from the secondary datacenter. In that situation, the secondary datacenters cannot reconnect to the primary datacenter.
+
+To verify the federation on the primary datacenter, use the [`consul members -wan` command](/consul/commands/members).
+
+```shell-session
+$ consul members -wan
+Node                       Address           Status  Type    Build   Protocol  DC         Partition  Segment
+consul-server-0.primary    172.20.0.10:8302  alive   server  1.21.4  2         primary    default    <all>
+consul-server-1.primary    172.20.0.9:8302   alive   server  1.21.4  2         primary    default    <all>
+consul-server-2.primary    172.20.0.14:8302  alive   server  1.21.4  2         primary    default    <all>
+```
+
+In this example, the command only shows servers from the primary datacenter, indicating that the federation is not in place.
+
+To restore federation, you must perform a rolling restart of the secondary datacenter servers using the new IP of the primary datacenter servers in the [`retry-join-wan` agent configuration parameter](/consul/docs/reference/agent/configuration-file/join#_retry_join_wan).
+
+A configuration for the `retry-join-wan` parameter resembles the following example:
+
+<CodeBlockConfig hideClipboard>
+
+```hcl
+## ...
+
+retry_join_wan = [ "172.20.0.10", "172.20.0.9", "172.20.0.14" ]
+
+## ...
+```
+
+</CodeBlockConfig>
+
+After you update the configuration in each of secondary datacenter's server nodes, perform a rolling restart of the nodes. If the new configuration is correct you will be able to observe it from the logs.
+
+<CodeBlockConfig hideClipboard>
+
+```log
+[INFO]  agent: Joining cluster...: cluster=WAN
+[INFO]  agent: (WAN) joining: wan_addresses=["172.20.0.10", "172.20.0.9", "172.20.0.14"]
+```
+
+</CodeBlockConfig>
+
+After the rolling restart, running the `consul members -wan` command on the primary datacenter should return all of the servers.
+
+```shell-session
+$ consul members -wan
+Node                       Address           Status  Type    Build   Protocol  DC         Partition  Segment
+consul-server-0.primary    172.20.0.10:8302  alive   server  1.21.4  2         primary    default    <all>
+consul-server-1.primary    172.20.0.9:8302   alive   server  1.21.4  2         primary    default    <all>
+consul-server-2.primary    172.20.0.14:8302  alive   server  1.21.4  2         primary    default    <all>
+consul-server-0.secondary  172.20.0.5:8302   alive   server  1.21.4  2         secondary  default    <all>
+consul-server-1.secondary  172.20.0.4:8302   alive   server  1.21.4  2         secondary  default    <all>
+consul-server-2.secondary  172.20.0.8:8302   alive   server  1.21.4  2         secondary  default    <all>
+```
+
+To prevent these kinds of outages, you can use hostnames instead of IP addresses, or for cloud providers that support it, you can use Consul's [cloud auto join feature](/consul/docs/deploy/server/cloud-auto-join).
+## Additional guidance
+
+To familiarize with the concepts mentioned in this page you can try our tutorials for disaster recovery:
+
+- [Disaster recovery for Consul clusters](/consul/tutorials/operate-consul/recovery-outage).
+- [Disaster Recovery for Consul on Kubernetes](/consul/tutorials/production-kubernetes/kubernetes-disaster-recovery).
