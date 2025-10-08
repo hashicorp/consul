@@ -2678,6 +2678,8 @@ func (a *Agent) validateService(service *structs.NodeService, chkTypes []*struct
 	for _, port := range service.Ports {
 		if libdns.InvalidNameRe.MatchString(port.Name) {
 			a.logger.Warn("Service Port with name %s will not be discoverable via DNS due to invalid characters. Valid characters include all alpha-numerics and dashes.", port.Name)
+		} else if len(port.Name) > libdns.MaxLabelLength {
+			a.logger.Warn("Service Port with name %s will not be discoverable via DNS due to it being too long. Valid lengths are between 1 and 63 bytes.", "portName", port.Name)
 		}
 	}
 
