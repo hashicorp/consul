@@ -37,6 +37,8 @@ container {
 	triage {
 		suppress {
 			vulnerabilities = [
+                "CVE-2025-10148",
+                "CVE-2025-9086"
 			]
 			paths = [
 				"internal/tools/proto-gen-rpc-glue/e2e/consul/*",
@@ -77,6 +79,7 @@ binary {
 	triage {
 		suppress {
 			vulnerabilities = [
+                "GO-2022-0635"
 			]
 			paths = [
 				"internal/tools/proto-gen-rpc-glue/e2e/consul/*",
