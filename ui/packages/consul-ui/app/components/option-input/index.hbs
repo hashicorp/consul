@@ -33,7 +33,6 @@
         @onChange={{@onchange}}
         @disabled={{@disabled}}
         @searchEnabled={{false}}
-        ...
       as |F|>
         <F.Options>
           {{yield (hash item=F.options) to='option'}}
