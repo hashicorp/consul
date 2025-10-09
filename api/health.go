@@ -66,6 +66,8 @@ type HealthCheckDefinition struct {
 	Body                                   string
 	TLSServerName                          string
 	TLSSkipVerify                          bool
+	H2PING                                 string
+	H2PingUseTLS                           bool
 	TCP                                    string
 	TCPUseTLS                              bool
 	UDP                                    string
