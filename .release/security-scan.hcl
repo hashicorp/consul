@@ -25,7 +25,6 @@ container {
       known = [
         // "hashicorp",
         "aws",
-
         "google",
         "slack",
         "github",
@@ -81,7 +80,7 @@ binary {
   triage {
     suppress {
       vulnerabilities = []
-
+      
       paths = [
         "internal/tools/proto-gen-rpc-glue/e2e/consul/*",
         "test/integration/connect/envoy/test-sds-server/*",
