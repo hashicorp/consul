@@ -9,18 +9,13 @@ description: |-
 
 <EnterpriseAlert />
 
-The `/operator/utilization` endpoints provide tools to interact with Consul's audit 
-logging subsystem via Consul's HTTP API.
+The `/operator/utilization` endpoints provide tools generate a Consul utilization bundle for license reporting.
 
-The audit logging functionality described here is available only in
-[Consul Enterprise](https://www.hashicorp.com/products/consul/) version 1.8.0 and
-later. 
+Please check the [Manual license utilization reporting documentation](/consul/docs/enterprise/license/reporting#manual-license-utilization-reporting) for more details.
 
-Please check the [audit logging documentation](/consul/docs/monitor/log/audit) for more details.
+## Generate utilization bundle
 
-## Calculate data hash
-
-This endpoint calculate the hash of the data used by the audit log hash function and salt.
+This endpoint generates a Consul utilization bundle for license reporting.
 
 | Method | Path                           | Produces           |
 | ------ | ------------------------------ | ------------------ |
