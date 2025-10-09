@@ -10,14 +10,13 @@ description: >-
 The HashiCorp Consul Integration Program enables prospective partners to build integrations with HashiCorp Consul that are reviewed and verified by HashiCorp. You can integrate with any of the following Consul versions: 
 
 - **Self-Managed**. Community Edition, always free
-- **HashiCorp Cloud Platform (HCP)**. A hosted version of Consul managed in the cloud
 - **Consul Enterprise**. Self-managed, with additional features for custom deployments
 
 The program is intended to be largely self-service with links to resources, code samples, documentation, and clear integration steps.
 
 ## Categories of Consul Integrations
 
-By leveraging Consul's RESTful HTTP API system, prospective partners are able to build extensible integrations at the data plane, platform, and the infrastructure layer to extend Consul's functionalities. These integrations can be performed both with the community edition of Consul, Consul Enterprise, and HCP Consul.
+By leveraging Consul's RESTful HTTP API system, prospective partners are able to build extensible integrations at the data plane, platform, and the infrastructure layer to extend Consul's functionalities. These integrations can be performed both with the community edition of Consul and Consul Enterprise.
 
 **The Consul ecosystem of integrations:**
 
@@ -35,13 +34,9 @@ By leveraging Consul's RESTful HTTP API system, prospective partners are able to
 
 **Infrastructure**: There are two integration options in this category: natively through a direct integration with Consul or via Consul-Terraform-Sync (CTS). By leveraging Consul's powerful **Network Infrastructure Automation (NIA)*** capabilities through CTS, changes in an infrastructure are seamlessly automated when Consul detects a change in its service catalog. For example, these integrations could be used to automate IP updates of load balancers or firewall security policies by leveraging Consul service discovery.
 
--> **Network Infrastructure Automation (NIA)***: These integrations leverage Consul's service catalog to seamlessly integrate with Consul-Terraform-Sync (CTS) to automate changes in network infrastructure via a publisher-subscriber method. Refer to the [NIA documentation](/consul/docs/integrate/nia) for details.
+-> ***Network Infrastructure Automation (NIA)**: These integrations leverage Consul's service catalog to seamlessly integrate with Consul-Terraform-Sync (CTS) to automate changes in network infrastructure via a publisher-subscriber method. Refer to the [NIA documentation](/consul/docs/integrate/nia) for details.
 
-**HCP Consul**: HCP Consul is secure by default and offers an out-of-the-box service mesh solution to streamline operations without the hassle of managing Consul servers. [Sign up for a free HCP Consul account](https://cloud.hashicorp.com/products/consul).
-
-@include 'alerts/hcp-dedicated-eol.mdx'
-
-**Consul integration verification badges**: Partners will be issued the Consul Enterprise badge for integrations that work with [Consul Enterprise features](/consul/docs/enterprise) such as namespaces. Partners will be issued the HCP Consul badge for integrations validated to work with [HCP Consul](/hcp/docs/consul#features). Each badge would be displayed on HashiCorp's partner page as well as be available for posting on the partner's own website to provide better visibility and differentiation of the integration for joint customers.
+**Consul Enterprise integration verification badge**: Partners will be issued the Consul Enterprise badge for integrations that work with [Consul Enterprise features](/consul/docs/enterprise) such as namespaces. The badge would be displayed on HashiCorp's partner page as well as be available for posting on the partner's own website to provide better visibility and differentiation of the integration for joint customers.
 
 <span style={{display:'block', textAlign:'center'}}>
 <ImageConfig inline height={192} width={192}>
@@ -49,14 +44,9 @@ By leveraging Consul's RESTful HTTP API system, prospective partners are able to
 ![Consul Enterprise Badge](/img/consul_enterprise_partner_badge.png)
 
 </ImageConfig>
-<ImageConfig inline height={192} width={192}>
-
-![HCP Consul](/img/HCPc_badge.png)
-
-</ImageConfig>
 </span>
 
-Developing a valid integration with either Consul Enterprise or HCP Consul also qualifies the partner for the Premier tier of the HashiCorp Technology Partners program. The process for verification of these integrations is detailed below.
+Developing a valid integration with either Consul Enterprise also qualifies the partner for the Premier tier of the HashiCorp Technology Partners program. The process for verification of these integrations is detailed below.
 
 ## Development Process
 
@@ -89,8 +79,7 @@ Here are links to resources, documentation, examples and best practices to guide
 
 - [Consul Telemetry Documentation](/consul/docs/reference/agent/telemetry)
 - [Monitoring Consul with Datadog APM](https://www.datadoghq.com/blog/consul-datadog/)
-- [Monitor HCP Consul with New Relic Instant Observability](https://github.com/newrelic-experimental/hashicorp-quickstart-annex/blob/main/hcp-consul/README.md)
-- [HCP Consul and CloudFabrix AIOps Integration](https://bot-docs.cloudfabrix.io/Bots/consul/?h=consul)
+- [Monitor Consul with New Relic Instant Observability](https://github.com/newrelic-experimental/hashicorp-quickstart-annex/blob/main/hcp-consul/README.md)
 - [Consul and SnappyFlow Full Stack Observability](https://docs.snappyflow.io/docs/Integrations/hcp_consul)
 
 **Network Performance Monitoring (NPM)**
@@ -113,7 +102,7 @@ Here are links to resources, documentation, examples and best practices to guide
 
 - [F5 Terminating Gateway Integration Documentation](https://www.hashicorp.com/integrations/f5-networks/consul)
 - [Traefik Integration with Consul Service Mesh](https://traefik.io/blog/integrating-consul-connect-service-mesh-with-traefik-2-5/)
-- [Kong's Ingress Controller Integration with Consul](https://www.hashicorp.com/integrations/kong/consul)
+- [HAProxy Fusion and Consul Service Discovery](https://www.haproxy.com/blog/announcing-haproxy-fusion-1-3)
 - [Configuring Ingress Controllers with Consul-on-Kubernetes](/consul/docs/north-south/ingress-controller)
 - [Introduction to Consul Transparent Proxy](/consul/docs/connect/transparent-proxy)
 - [Getting Started with Transparent Proxy](https://www.hashicorp.com/blog/transparent-proxy-on-consul-service-mesh)
@@ -128,9 +117,9 @@ Here are links to resources, documentation, examples and best practices to guide
 
 -> **Note**: The types of integration areas below could be developed to natively work with Consul or through leveraging Consul-Terraform-Sync and Consul's network automation capabilities. 
 
-**Firewalls**
+##### Network Infrastructure Automation:
 
-  **Network Infrastructure Automation:**
+**Firewalls:**
   
   - [Automated Firewalling with Check Point](https://www.hashicorp.com/integrations/checkpoint-software/consul)
   - [Automated Firewalling with Palo Alto Networks](https://www.hashicorp.com/integrations/pan/consul)
@@ -145,11 +134,8 @@ Here are links to resources, documentation, examples and best practices to guide
 
 - [Load Balancing with NGINX and Consul Template](/consul/tutorials/load-balancing/load-balancing-nginx?utm_source=docs)
 - [Load Balancing with HAProxy Service Discovery](/consul/tutorials/load-balancing/load-balancing-haproxy?utm_source=docs)
-
-  **Network Infrastructure Automation:**
-  
-  - [Zero-Touch Configuration of Secure Apps across BIG-IP Tenants using CTS](https://community.f5.com/t5/technical-articles/zero-touch-configuration-of-secure-apps-across-big-ip-tenants/ta-p/300190)
-  - [Automate VMware Advanced Load Balancers (Avi) with Consul NIA](https://www.hashicorp.com/integrations/_vmware/consul)
+- [Zero-Touch Configuration of Secure Apps across BIG-IP Tenants using CTS](https://community.f5.com/t5/technical-articles/zero-touch-configuration-of-secure-apps-across-big-ip-tenants/ta-p/300190)
+- [Automate VMware Advanced Load Balancers (Avi) with Consul NIA](https://www.hashicorp.com/integrations/_vmware/consul)
 
 **Application Delivery Controllers \(ADC\)**
 
@@ -159,7 +145,7 @@ Here are links to resources, documentation, examples and best practices to guide
 **Domain Name Service (DNS) Automation**
 
 - [Automate DNSimple public facing DNS records with Consul NIA](https://registry.terraform.io/modules/dnsimple/cts/dnsimple/latest)
-- [Automate NS1 managed DNS with Consul NIA](https://github.com/ns1-terraform/terraform-ns1-record-sync-nia)
+- [Automate UltraDNS with Consul-Terraform-Sync](https://github.com/ultradns/terraform-ultradns-cts)
 
 **No-Code/Low-Code**
 
@@ -168,20 +154,6 @@ Here are links to resources, documentation, examples and best practices to guide
 ### 3. Develop and Test
 
 The only knowledge necessary to write a plugin is basic command-line skills and knowledge of the [Go programming language](http://www.golang.org). Use the plugin interface to develop your integration. All integrations should contain unit and acceptance testing.
-
-**HCP Consul**:  As a managed service, minimal configuration is required to deploy HCP Consul server clusters. You only need to install Consul client agents. Furthermore, HashiCorp provides all new users an initial credit, which provides approximately two months worth of [development cluster](https://cloud.hashicorp.com/products/consul/pricing) access. When deployed with AWS or Azure free tier services, there should be no cost beyond the time spent by the designated tester. Refer to the [Deploy HCP Consul tutorial](/consul/tutorials/get-started-hcp/hcp-gs-deploy) for details on getting started.
-
-HCP Consul is currently only deployed on AWS and Microsoft Azure, so your application can be deployed to or run in AWS or Azure. 
-
-#### HCP Consul Resource Links:
-
-@include 'alerts/hcp-dedicated-eol.mdx'
-
-- [Getting Started with HCP Consul](/consul/tutorials/get-started-hcp/hcp-gs-deploy)
-- [HCP Consul End-to-End Deployment](/consul/tutorials/cloud-deploy-automation/consul-end-to-end-overview)
-- [Deploy HCP Consul with EKS using Terraform](/consul/tutorials/cloud-deploy-automation/consul-end-to-end-eks)
-- [HCP Consul Deployment Automation](/consul/tutorials/cloud-deploy-automation)
-- [HCP Consul documentation](/hcp/docs/consul/usage)
 
 **Consul Enterprise**: An integration qualifies for Consul Enterprise when it is tested and compatible with Consul Enterprise Namespaces.
 
