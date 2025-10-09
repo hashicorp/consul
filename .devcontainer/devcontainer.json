@@ -1,25 +1,7 @@
-// For format details, see https://aka.ms/devcontainer.json. For config options, see the
 {
 	"name": "Hashicorp - Consul",
-  
-	// Docker image to use
 	"image": "hashicorp/consul",
-	
-	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-	// "build": {
-	//   // Path is relative to the devcontainer.json file.
-	//   "dockerfile": "../Dockerfile"
-	// }
-
-	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	// "forwardPorts": [],
-
-	// Use 'postCreateCommand' to run commands after the container is created.
-	// "postCreateCommand": "consul info",
-
-	// Use 'postStartCommand' to run commands after the container is created like starting consul.
 	"postStartCommand": "sh -c 'consul agent -dev'",
-
 	"forwardPorts": [8500],
 	"portsAttributes": {
 		"8500": {
@@ -27,9 +9,4 @@
 			"onAutoForward": "notify"
 		}
 	}
-	// Configure tool-specific properties.
-	// "customizations": {},
-
-	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
-	// "remoteUser": "root"
 }
