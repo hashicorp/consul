@@ -229,11 +229,6 @@ func parseNodeAddr(node *structs.ServiceNode) string {
 	if v, ok := node.TaggedAddresses[structs.TaggedAddressWAN]; ok {
 		na = v
 	}
-	parsed := net.ParseIP(na)
-	if parsed != nil && parsed.To16() == nil {
-		// Adding [] to IPv6 address
-		return fmt.Sprintf("[%s]", parsed.String())
-	}
 	return na
 }
 
@@ -249,13 +244,13 @@ func serverAddresses(state *state.Store) ([]string, error) {
 		// Prefer the TLS port if it is defined.
 		grpcPortStr := node.ServiceMeta["grpc_tls_port"]
 		if v, err := strconv.Atoi(grpcPortStr); err == nil && v > 0 {
-			addrs = append(addrs, addr+":"+grpcPortStr)
+			addrs = append(addrs, net.JoinHostPort(addr, grpcPortStr))
 			continue
 		}
 		// Fallback to the standard port if TLS is not defined.
 		grpcPortStr = node.ServiceMeta["grpc_port"]
 		if v, err := strconv.Atoi(grpcPortStr); err == nil && v > 0 {
-			addrs = append(addrs, addr+":"+grpcPortStr)
+			addrs = append(addrs, net.JoinHostPort(addr, grpcPortStr))
 			continue
 		}
 		// Skip node if neither defined.

@@ -48,7 +48,7 @@ field to filter by the tests you want to run.
 Alternatively you can also run a single test by bypassing `make` and using:
 
 ```bash
-yarn test:oss:view --filter=<test name substring>
+pnpm test:oss:view --filter=<test name substring>
 ```
 
 Please note: If filtering using the CLI, normally you would expect a filter to
@@ -65,13 +65,13 @@ working on.
 We also run a quick lint check for you (plus a few other things) that you should
 fix up before you run your test.
 
-If you do use yarn --filter, please run these other checks before submitting a
+If you do use pnpm --filter, please run these other checks before submitting a
 PR. If you just use `make test-oss-view` you (and nobody else) needs to worry
 about those things.
 
-Additionally, there are ongoing discussions regarding moving to use npm and or
+~~Additionally, there are ongoing discussions regarding moving to use npm and or
 corepack) as a package manager, so if you are using yarn, we may break your
-workflow. If you are using `make`, don't worry as it stands right now nothing
+workflow.~~ We have moved to pnpm. If you are using `make`, don't worry as it stands right now nothing
 will change.
 
 If you specify your filter using the CLI and you make a typo or type your filter
@@ -80,7 +80,7 @@ and restart. That takes comparatively long time. You may aswell wait and then
 amend the typo in QUnit's HTML test runner's filter input field.
 
 Ember folks can also just use [`ember test`](https://cli.emberjs.com/release/basic-use/cli-commands/#testingyourapp)
-and bypass both `yarn` and `make` but all of the above regarding using `yarn`
+and bypass both `pnpm` and `make` but all of the above regarding using `pnpm`
 instead of `make` applies there also.
 
 Please note: Currently the QUnit runner we depend on has an unfortunate UX

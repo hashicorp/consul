@@ -761,6 +761,7 @@ function run_container_s1-sidecar-proxy-consul-exec {
     $(network_snippet primary) \
     consul-dev-envoy:${ENVOY_VERSION} \
     consul connect envoy -sidecar-for s1 \
+    -grpc-addr http://localhost:8502 \
     -envoy-version ${ENVOY_VERSION} \
     -- \
     -l trace >/dev/null

@@ -54,6 +54,7 @@ import (
 	"github.com/hashicorp/consul/agent/hcp/scada"
 	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/local"
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	proxycfgglue "github.com/hashicorp/consul/agent/proxycfg-glue"
 	catalogproxycfg "github.com/hashicorp/consul/agent/proxycfg-sources/catalog"
@@ -871,6 +872,8 @@ func (a *Agent) Start(ctx context.Context) error {
 		return err
 	}
 
+	netutil.SetAgentBindAddr(a.config.BindAddr)
+
 	// Start HTTP and HTTPS servers.
 	for _, srv := range servers {
 		a.apiServers.Start(srv)
@@ -1603,6 +1606,7 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	cfg.Cloud = runtimeCfg.Cloud
 
 	cfg.Reporting.License.Enabled = runtimeCfg.Reporting.License.Enabled
+	cfg.Reporting.SnapshotRetentionTime = runtimeCfg.Reporting.SnapshotRetentionTime
 
 	cfg.ServerRejoinAgeMax = runtimeCfg.ServerRejoinAgeMax
 	cfg.EnableXDSLoadBalancing = runtimeCfg.EnableXDSLoadBalancing

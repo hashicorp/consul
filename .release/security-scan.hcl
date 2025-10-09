@@ -55,6 +55,11 @@ container {
 				"CVE-2025-8058",
 				"CVE-2024-23337",
 				"CVE-2025-6395",
+				"CVE-2025-46394"
+				"CVE-2024-58251",
+				"CVE-2025-48964",
+				"CVE-2025-10148",
+				"CVE-2025-9086",
 			]
 			paths = [
 				"internal/tools/proto-gen-rpc-glue/e2e/consul/*",
@@ -72,7 +77,7 @@ binary {
 	osv          = true
 	go_stdlib    = true
 	# We can't enable npm for binary targets today because we don't yet embed the relevant file
-	# (yarn.lock) in the Consul binary. This is something we may investigate in the future.
+	# (pnpm-lock.yaml) in the Consul binary. This is something we may investigate in the future.
 	
 	secrets {
 		matchers {

@@ -1,0 +1,3 @@
+```release-note:enhancement
+api: Added a new API (/v1/operator/utilization) to support enterprise API for Manual Snapshot Reporting
+```

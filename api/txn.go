@@ -164,6 +164,13 @@ type CheckTxnOp struct {
 	Check HealthCheck
 }
 
+type CensusOp string
+
+const (
+	CensusPut   CensusOp = "put"
+	CensusPrune CensusOp = "prune"
+)
+
 // Txn is used to apply multiple Consul operations in a single, atomic transaction.
 //
 // Note that Go will perform the required base64 encoding on the values

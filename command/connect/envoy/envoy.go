@@ -15,10 +15,11 @@ import (
 	"time"
 
 	"github.com/go-viper/mapstructure/v2"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-version"
 	"github.com/mitchellh/cli"
 	"google.golang.org/protobuf/encoding/protojson"
+
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-version"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/netutil"
@@ -250,7 +251,7 @@ func (c *cmd) init() {
 		return net.DialTimeout(network, address, 3*time.Second)
 	}
 	c.checkDualStack = func() (bool, error) {
-		return netutil.IsDualStack()
+		return netutil.IsDualStack(nil, false)
 	}
 }
 
@@ -673,6 +674,12 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 		return nil, err
 	}
 	caPEM = strings.ReplaceAll(strings.Join(pems, ""), "\n", "\\n")
+
+	// Check for invalid configuration: AgentTLS enabled but no CA material
+	if xdsAddr.AgentTLS && caPEM == "" {
+		return nil, fmt.Errorf("TLS is enabled for xDS connections but no CA certificates are available. " +
+			"Please configure CA certificates via -ca-file, -ca-path, or the corresponding config options")
+	}
 
 	return &BootstrapTplArgs{
 		GRPC:                  xdsAddr,
