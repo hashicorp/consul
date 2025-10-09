@@ -2,140 +2,22 @@
 layout: commands
 page_title: 'Commands: Operator Utilization'
 description: >
-  The operator audit command is used to generate a Consul utilization bundle for license reporting
+  The operator audit command is used to generate a Consul utilization bundle for license reporting.
 ---
 
-# Consul Operator Area
+# Consul Operator Utilization
 
 Command: `consul operator utilization`
 
+Corresponding HTTP API Endpoint: [\[POST\] /v1/connect/intentions](/consul/api-docs/operator/utilization)
+
 <EnterpriseAlert />
 
+The `operator utilization` command generates a license utilization bundle that can be shared with HashiCorp. The bundle is written to a JSON file and can optionally be sent automatically to HashiCorp during generation. 
 
+Air-gapped environments or environments that are unable to satisfy [automatic reporting requirements](/consul/docs/enterprise/license/reporting#requirements), can use the `operator utilization` command to generate a license utilization report that can be sent to HashiCorp directly or using a different process.
 
-Consul Enterprise supports network areas, which are operator-defined relationships
-between servers in two different Consul datacenters. The operator area command is used to
-interact with Consul's network area subsystem.
-
-Unlike Consul's WAN feature, network areas use just the server RPC port for communication,
-and relationships can be made between independent pairs of datacenters, so not all servers
-need to be fully connected. This allows for complex topologies among Consul datacenters like
-hub/spoke and more general trees.
-
-See the [Network Areas Guide](/consul/tutorials/datacenter-operations/federation-network-areas) for more details.
-
-```text
-Usage: consul operator utilization [options]
-
-  Generate a license utilization bundle that can be shared with HashiCorp. The
-  bundle is written to a JSON file and can optionally be sent automatically to
-  HashiCorp during generation.
-
-  Examples:
-    Export all snapshots (in a bundle):
-      $ consul operator utilization -message "Change Control 12345"
-
-    Export today only:
-      $ consul operator utilization --today-only
-
-    Custom file path for bundle output:
-      $ consul operator utilization -output "/reports/latest.json"
-
-HTTP API Options
-
-  -ca-file=<value>
-     Path to a CA file to use for TLS when communicating with Consul.
-     This can also be specified via the CONSUL_CACERT environment
-     variable.
-
-  -ca-path=<value>
-     Path to a directory of CA certificates to use for TLS when
-     communicating with Consul. This can also be specified via the
-     CONSUL_CAPATH environment variable.
-
-  -client-cert=<value>
-     Path to a client cert file to use for TLS when 'verify_incoming'
-     is enabled. This can also be specified via the CONSUL_CLIENT_CERT
-     environment variable.
-
-  -client-key=<value>
-     Path to a client key file to use for TLS when 'verify_incoming'
-     is enabled. This can also be specified via the CONSUL_CLIENT_KEY
-     environment variable.
-
-  -datacenter=<value>
-     Name of the datacenter to query. If unspecified, this will default
-     to the datacenter of the queried agent.
-
-  -http-addr=<address>
-     The `address` and port of the Consul HTTP agent. The value can be
-     an IP address or DNS address, but it must also include the port.
-     This can also be specified via the CONSUL_HTTP_ADDR environment
-     variable. The default value is http://127.0.0.1:8500. The scheme
-     can also be set to HTTPS by setting the environment variable
-     CONSUL_HTTP_SSL=true.
-
-  -stale
-     Permit any Consul server (non-leader) to respond to this request.
-     This allows for lower latency and higher throughput, but can result
-     in stale data. This option has no effect on non-read operations.
-     The default value is false.
-
-  -tls-server-name=<value>
-     The server name to use as the SNI host when connecting via
-     TLS. This can also be specified via the CONSUL_TLS_SERVER_NAME
-     environment variable.
-
-  -token=<value>
-     ACL token to use in the request. This can also be specified via the
-     CONSUL_HTTP_TOKEN environment variable. If unspecified, the query
-     will default to the token of the Consul agent at the HTTP address.
-
-  -token-file=<value>
-     File containing the ACL token to use in the request instead of one
-     specified via the -token argument or CONSUL_HTTP_TOKEN environment
-     variable. This can also be specified via the CONSUL_HTTP_TOKEN_FILE
-     environment variable.
-
-Command Options
-
-  -message=<string>
-     Optional context that will be logged with the utilization export.
-
-  -namespace=<default>
-     Specifies the namespace to query. If not provided, the namespace
-     will be inferred from the request's ACL token, or will default
-     to the `default` namespace. Namespaces are a Consul Enterprise
-     feature.
-
-  -output=<string>
-     Path to write the utilization bundle JSON. Defaults to
-     consul-utilization-<timestamp>.json in the current directory.
-
-  -partition=<default>
-     Specifies the admin partition to query. If not provided, the admin
-     partition will be inferred from the request's ACL token, or will
-     default to the `default` admin partition. Admin Partitions are a
-     Consul Enterprise feature.
-
-  -peer=<local>
-     Specifies the name of peer to query. By default, it is `local`.
-
-  -today-only
-     Include only the most recent utilization snapshot.
-
-  -y
-     Automatically send the utilization report to HashiCorp.
-```
-
-If ACLs are enabled, the client will need to supply an ACL Token with `operator`
-read or write privileges to use these commands.
-
-## hash
-
-Corresponding HTTP API Endpoint: [\[POST\] /v1/operator/area](/consul/api-docs/operator/area#create-network-area)
-
-This command creates a new network area.
+Refer to [Automated license utilization reporting](/consul/docs/enterprise/license/reporting) for more details.
 
 The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
 [blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
@@ -143,20 +25,50 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 
 | ACL Required     |
 | ---------------- |
-| `operator:write` |
+| `operator:read`  |
 
-Usage: `consul operator area create [options]`
+## Usage
 
-The following example output shows the ID of the newly-created network area:
+Usage: `consul operator utilization [options]`
 
-```text
-Created area "d2872ec5-68ea-b862-b75d-0bee99aca100" with peer datacenter "other"!
+#### API options
+
+@include 'legacy/http_api_options_client.mdx'
+
+@include 'legacy/http_api_options_server.mdx'
+
+#### Command Options 
+
+- `-message=<string>` - Optional context that will be logged with the utilization export.
+
+- `-namespace=<default>` - Specifies the namespace to query. If not provided, the namespace will be inferred from the request's ACL token, or will default to the `default` namespace. Namespaces are a Consul Enterprise feature.
+
+- `-output=<string>` - Path to write the utilization bundle JSON. Defaults to `consul-utilization-<timestamp>.json` in the current directory.
+
+- `-partition=<default>` - Specifies the admin partition to query. If not provided, the admin partition will be inferred from the request's ACL token, or will default to the `default` admin partition. Admin Partitions are a Consul Enterprise feature.
+
+- `-peer=<local>` - Specifies the name of peer to query. By default, it is `local`.
+
+- `-today-only` - Include only the most recent utilization snapshot.
+
+- `-y` - Automatically send the utilization report to HashiCorp.
+
+## Examples
+
+Export all snapshots (in a bundle):
+
+```shell-session
+$ consul operator utilization -message "Change Control 12345"
 ```
 
-The return code indicates success or failure.
+Export today only:
 
-#### Command Options
+```shell-session
+$ consul operator utilization --today-only
+```
 
+Custom file path for bundle output:
 
-#### API Options
-
+```shell-session
+$ consul operator utilization -output "/reports/latest.json"
+```
