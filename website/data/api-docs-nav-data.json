@@ -155,6 +155,10 @@
         "path": "operator/area"
       },
       {
+        "title": "Audit",
+        "path": "operator/audit"
+      },
+      {
         "title": "Autopilot",
         "path": "operator/autopilot"
       },
@@ -177,6 +181,10 @@
       {
         "title": "Usage",
         "path": "operator/usage"
+      },
+      {
+        "title": "Utilization",
+        "path": "operator/utilization"
       }
     ]
   },
