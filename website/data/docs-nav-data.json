@@ -899,8 +899,21 @@
             "path": "manage/disaster-recovery/backup-restore"
           },
           {
-            "title": "Restore federated datacenters",
-            "path": "manage/disaster-recovery/federation"
+            "title": "Disaster preparation strategy",
+            "path": "manage/disaster-recovery/prepare"
+          },
+          {
+            "title": "Restore federated clusters",
+            "routes": [
+              {
+                "title": "Restore primary datacenter",
+                "path": "manage/disaster-recovery/restore/primary"
+              },
+              {
+                "title": "Restore secondary datacenters",
+                "path": "manage/disaster-recovery/restore/secondary"
+              }
+            ]
           },
           {
             "title": "Reset ACL system",

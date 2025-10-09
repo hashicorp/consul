@@ -35,6 +35,7 @@ To reduce the burden on the leader, it is possible to [run the snapshot command 
 
 However, we still recommend you take `consistent` snapshots for write-heavy production use cases, or when you want to snapshot a cluster state immediately after a specific change.
 
+
 ## Workflow
 
 1. **Backup the Consul datacenter**: Use the `consul snapshot save` command to create a backup of the Consul datacenter.
@@ -42,9 +43,7 @@ However, we still recommend you take `consistent` snapshots for write-heavy prod
 1. **Restore from snapshot**: Use the `consul snapshot restore` command to restore the Consul datacenter from the backup.
 
 
-
 ## Backup a Consul datacenter
-
 
 Run the basic snapshot command on one of the servers. Because it uses the default settings, this request runs in `consistent` mode.
 
@@ -68,6 +67,11 @@ Version      1
 
 For more information about the `snapshot inspect` sub-command and its output, refer to the [`consul snapshot inspect` CLI documentation](/consul/commands/snapshot/inspect).
 
+<Warning heading="Security warning">
+
+Consul snapshots contain extremely sensitive data, such as credentials in recoverable form. Store snapshots on an encrypted medium with sufficiently strict access controls in place.
+
+</Warning>
 
 
 ## Restore a Consul datacenter
@@ -83,10 +87,9 @@ $ consul snapshot restore backup.snap
 Restored snapshot
 ```
 
-
 ## Additional guidance
 
 For more information on disaster recovery, including detailed instructions on how to backup and restore Consul datacenters, refer to the following resources:
 
 - [Consul Disaster Recovery](/consul/docs/manage/disaster-recovery)
-- [Disaster recovery for WAN-federated datacenters](/consul/docs/manage/disaster-recovery/federation)
+- [Disaster recovery for WAN-federated datacenters](/consul/docs/manage/disaster-recovery/restore/secondary)
