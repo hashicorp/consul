@@ -1,6 +1,6 @@
 module github.com/hashicorp/consul
 
-go 1.25.1
+go 1.25.2
 
 replace (
 	github.com/hashicorp/consul/api => ./api
@@ -21,7 +21,7 @@ require (
 	github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e
 	github.com/armon/go-metrics v0.4.1
 	github.com/armon/go-radix v1.0.0
-	github.com/aws/aws-sdk-go v1.55.7
+	github.com/aws/aws-sdk-go v1.55.8
 	github.com/coreos/go-oidc/v3 v3.11.0
 	github.com/deckarep/golang-set/v2 v2.3.1
 	github.com/docker/go-connections v0.4.0
