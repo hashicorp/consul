@@ -471,12 +471,6 @@ importers:
         specifier: ^5.74.0
         version: 5.94.0
 
-  packages/consul-ui/lib/startup:
-    dependencies:
-      body-parser:
-        specifier: ^2.2.0
-        version: 2.2.0
-
 packages:
 
   '@ampproject/remapping@2.3.0':
