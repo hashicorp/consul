@@ -46,10 +46,6 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.outputPath, "output", "", "Path to write the utilization bundle JSON. Defaults to consul-utilization-<timestamp>.json in the current directory.")
 
 	c.http = &flags.HTTPFlags{}
-	flags.Merge(c.flags, c.http.ClientFlags())
-	flags.Merge(c.flags, c.http.ServerFlags())
-	flags.Merge(c.flags, c.http.MultiTenancyFlags())
-	flags.Merge(c.flags, c.http.AddPeerName())
 
 	c.help = flags.Usage(help, c.flags)
 }
@@ -97,10 +93,6 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	query := &api.QueryOptions{
-		Datacenter: c.http.Datacenter(),
-		Namespace:  c.http.Namespace(),
-		Partition:  c.http.Partition(),
-		Peer:       c.http.PeerName(),
 		AllowStale: c.http.Stale(),
 	}
 
