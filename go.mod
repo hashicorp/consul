@@ -21,7 +21,7 @@ require (
 	github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e
 	github.com/armon/go-metrics v0.4.1
 	github.com/armon/go-radix v1.0.0
-	github.com/aws/aws-sdk-go v1.55.7
+	github.com/aws/aws-sdk-go v1.55.8
 	github.com/coreos/go-oidc/v3 v3.11.0
 	github.com/deckarep/golang-set/v2 v2.3.1
 	github.com/docker/go-connections v0.4.0
@@ -158,21 +158,22 @@ require (
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/apparentlymart/go-textseg/v13 v13.0.0 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
-	github.com/aws/aws-sdk-go-v2 v1.33.0 // indirect
-	github.com/aws/aws-sdk-go-v2/config v1.29.1 // indirect
-	github.com/aws/aws-sdk-go-v2/credentials v1.17.54 // indirect
-	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.24 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.28 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.28 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.1 // indirect
+	github.com/aws/aws-sdk-go-v2 v1.39.2 // indirect
+	github.com/aws/aws-sdk-go-v2/config v1.31.12 // indirect
+	github.com/aws/aws-sdk-go-v2/credentials v1.18.16 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.9 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.9 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.9 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.3 // indirect
+	github.com/aws/aws-sdk-go-v2/service/acmpca v1.44.5 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.200.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ecs v1.53.8 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.12.1 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.12.9 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sso v1.24.11 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.28.10 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sts v1.33.9 // indirect
-	github.com/aws/smithy-go v1.22.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.9 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sso v1.29.6 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.35.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sts v1.38.6 // indirect
+	github.com/aws/smithy-go v1.23.0 // indirect
 	github.com/benbjohnson/immutable v0.4.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bgentry/speakeasy v0.1.0 // indirect
@@ -309,4 +310,10 @@ require (
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
+)
+
+exclude (
+	github.com/aws/aws-sdk-go v1.55.5
+	github.com/aws/aws-sdk-go v1.55.6
+	github.com/aws/aws-sdk-go v1.55.7
 )
