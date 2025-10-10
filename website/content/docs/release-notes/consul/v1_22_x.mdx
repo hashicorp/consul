@@ -1,0 +1,33 @@
+---
+layout: docs
+page_title: 1.22.x
+description: >-
+  Consul release notes for version 1.22.x
+---
+
+# Consul 1.22.0
+
+We are pleased to announce the following Consul updates.
+
+## Release highlights
+
+- Multi-port service support for service discovery. Consul service definitions now include an optional `ports` parameter so that the Consul catalog can register multi-port services for service discovery operations. For more information and an example service definition, refer to the [service definition reference documentation](/consul/docs/reference/service#ports). Multi-port support for service discovery includes support for registering multi-port Kubernetes Services with [Kubernetes Service sync](/consul/docs/register/service/k8s/service-sync#service-ports). You can also address a service running a specific port using the new `port` field in [Consul DNS](/consul/docs/reference/dns).
+- Azure Managed Identity support for backups. The [Consul Enterprise snapshot agent](/consul/commands/snapshot/agent) now supports authentication with Azure Blob Storage using Azure Managed Service Identities (MSI). This support aligns with modern cloud security best practices, simplifies configuration for operators, and removes the need to store static credentials in configuration files.
+
+## Upgrading
+
+For more detailed information, please refer to the [upgrade details page](/consul/docs/upgrade/version-specific) and the changelogs.
+
+## Known issues
+
+There are no known issues at this time. These release notes are updated as issues are discovered.
+
+[Report issues on Github](https://github.com/hashicorp/consul/issues).
+
+## Changelogs
+
+The changelogs for this major release version and any maintenance versions are listed below.
+
+<Note> These links take you to the changelogs on the GitHub website. </Note>
+
+- [1.22.0](https://github.com/hashicorp/consul/releases/tag/v1.22.0)
