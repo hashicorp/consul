@@ -7,8 +7,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/armon/go-metrics"
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-metrics"
 	"go.opentelemetry.io/otel"
 
 	"github.com/hashicorp/consul/agent/hcp/client"
