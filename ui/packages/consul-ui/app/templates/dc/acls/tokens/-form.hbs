@@ -4,10 +4,28 @@
 }}
 
 <form>
-  {{#if (not (token/is-legacy item))}}
+  {{!-- {{#if (not (token/is-legacy item))}}
     {{partial 'dc/acls/tokens/fieldsets'}}
   {{else}}
     {{partial 'dc/acls/tokens/fieldsets-legacy'}}
+  {{/if}} --}}
+  {{#if (not (token/is-legacy item))}}
+    <Consul::Token::Fieldsets 
+      @item={{item}} 
+      @create={{create}}
+      @local={{Local}}
+      @dc={{dc}}
+      @partition={{partition}}
+      @nspace={{nspace}}
+      @onChange={{action 'change'}}
+    />
+  {{else}}
+    <Consul::Token::FieldsetsLegacy 
+      @item={{item}} 
+      @create={{create}}
+      @name={{name}}
+      @onChange={{action 'change'}}
+    />
   {{/if}}
   {{!TODO: Make this into a slotted component}}
   <div>

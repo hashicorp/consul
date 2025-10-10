@@ -1,0 +1,56 @@
+# Consul::Role::Form
+
+A presentational component that renders the Role edit/create form, loads tokens that reference the role, and exposes Save / Cancel / Delete actions as closure args.
+
+## Usage
+
+```hbs
+<Consul::Role::Form
+  @form={{form}}
+  @item={{item}}
+  @dc={{dc}}
+  @nspace={{nspace}}
+  @partition={{partition}}
+  @create={{create}}
+  @id={{id}}
+  @items={{items}}
+  @onCreate={{route-action 'create' item}}
+  @onUpdate={{route-action 'update' item}}
+  @onCancel={{route-action 'cancel' item}}
+  @onDelete={{route-action 'delete'}}
+  @onChange={{action 'change'}}
+/>
+```
+
+## Arguments
+
+| Arg | Type | Required | Description |
+|---|---:|:---:|---|
+| `@form` | object | yes | Form builder / changeset consumed by RoleForm. |
+| `@item` | object | yes | Role model / changeset. |
+| `@dc` | string | no | Datacenter id used to build DataSource URIs. |
+| `@nspace` | string | no | Namespace. |
+| `@partition` | string | no | Partition. |
+| `@create` | boolean | no | True when rendering create flow. |
+| `@id` | string | no | Role ID (used to fetch tokens for role). |
+| `@items` | array | no | Tokens associated with the role (caller state). |
+| `@onCreate` | function | no | Closure to invoke to create the role (usually `route-action 'create' item`). |
+| `@onUpdate` | function | no | Closure to invoke to update the role (usually `route-action 'update' item`). |
+| `@onCancel` | function | no | Closure invoked when Cancel is clicked (route-action recommended). |
+| `@onDelete` | function | no | Closure invoked to delete the role (route-action recommended). |
+| `@onChange` | function | no | Handler forwarded to child components for change events. |
+
+## Behavior / Notes
+
+- When not in `create` mode the component loads tokens that reference the role via a DataSource: /{partition}/{nspace}/{dc}/tokens/for-role/{id}. Use `@onChange` or `@onItemsChange` from caller to keep caller state in sync.
+- Save button:
+  - If `@create` is true and caller has permission → calls `@onCreate`.
+  - Otherwise → calls `@onUpdate` if provided.
+- Cancel calls `@onCancel`. Prefer passing `route-action 'cancel' item` so route-level handlers (e.g. WithBlockingActions) are used.
+- Delete opens a confirmation dialog and invokes `@onDelete` when confirmed.
+- Inside the component, invoke closures directly with `{{on 'click' @onCreate}}`, `{{on 'click' @onCancel}}`, and `{{on 'click' (fn confirm @onDelete @item)}}` to preserve original behavior.
+
+## See
+
+- Template: ./index.hbs  
+- Component class: ./index.js

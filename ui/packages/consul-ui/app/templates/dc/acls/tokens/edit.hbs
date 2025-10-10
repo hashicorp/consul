@@ -137,7 +137,24 @@ as |dc partition nspace item create|}}
             </dl>
         </div>
   {{/if}}
-          {{ partial 'dc/acls/tokens/form'}}
+          {{!-- {{ partial 'dc/acls/tokens/form'}} --}}
+          <Consul::Token::Form
+            @form={{form}}
+            @item={{item}}
+            @token={{token}}
+            @create={{create}}
+            @local={{Local}}
+            @name={{name}}
+            @dc={{dc}}
+            @partition={{partition}}
+            @nspace={{nspace}}
+            @id={{id}}
+            @onCreate={{route-action 'create' item}}
+            @onUpdate={{route-action 'update' item}}
+            @onCancel={{route-action 'cancel' item}}
+            @onDelete={{route-action 'delete'}}
+            @onChange={{action 'change'}}
+          />
       </BlockSlot>
   </AppView>
 {{/let}}

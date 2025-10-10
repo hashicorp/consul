@@ -69,7 +69,22 @@ as |dc partition nspace item create|}}
             </dl>
         </div>
   {{/if}}
-        {{ partial 'dc/acls/roles/form'}}
+        {{!-- {{ partial 'dc/acls/roles/form'}} --}}
+        <Consul::Role::Form
+          @form={{form}}
+          @item={{item}}
+          @dc={{dc}}
+          @nspace={{nspace}}
+          @partition={{partition}}
+          @create={{create}}
+          @id={{id}}
+          @items={{items}}
+          @onCreate={{route-action 'create' item}}
+          @onUpdate={{route-action 'update' item}}
+          @onCancel={{route-action "cancel" item}}
+          @onDelete={{route-action 'delete'}}
+          @onItemsChange={{action (mut items) value="data"}}
+        />
       </BlockSlot>
   </AppView>
 {{/let}}
