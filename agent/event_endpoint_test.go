@@ -389,7 +389,7 @@ func TestEventFire_PayloadSizeLimit(t *testing.T) {
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
-	const maxPayloadSize = 100
+	const maxPayloadSize = 300
 
 	type expectedResponse struct {
 		success      bool
@@ -433,7 +433,7 @@ func TestEventFire_PayloadSizeLimit(t *testing.T) {
 				eventName:   "test",
 				payloadSize: maxPayloadSize,
 			},
-			description: "payload at exactly 100 bytes should be accepted",
+			description: "payload at exactly 300 bytes should be accepted",
 		},
 		{
 			name:        "payload exceeds limit by 1 byte",
@@ -453,7 +453,6 @@ func TestEventFire_PayloadSizeLimit(t *testing.T) {
 			},
 			description: "large payload should be rejected",
 		},
-
 	}
 
 	for _, tc := range testCases {

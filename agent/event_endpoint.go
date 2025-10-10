@@ -49,13 +49,13 @@ func (s *HTTPHandlers) EventFire(resp http.ResponseWriter, req *http.Request) (i
 		// The underlying gossip sets limits on the size of a user event
 		// message. It is hard to give an exact number, as it depends on various
 		// parameters of the event, but the payload should be kept very small
-		// (< 100 bytes).
-		const maxEventPayloadSize = 100
+		// (< 100 bytes). We've multiplied this by 3 to be safe.
+		const maxEventPayloadSize = 300
 		if req.ContentLength > maxEventPayloadSize {
 			return nil, HTTPError{
 				StatusCode: http.StatusRequestEntityTooLarge,
-				Reason: fmt.Sprintf("Event payload too large, max size: %d bytes. User events should be kept small for efficient gossip propagation.",
-					maxEventPayloadSize),
+				Reason: fmt.Sprintf("Event payload too large, received %d bytes, max size: %d bytes. User events should be kept small for efficient gossip propagation.",
+					req.ContentLength, maxEventPayloadSize),
 			}
 		}
 
