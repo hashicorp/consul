@@ -453,6 +453,7 @@
     "PFsR02Ye",
     "rJdQIhER"
   ],
+  "retry_join_dns_ttl": "30s",
   "retry_max": 913,
   "retry_max_wan": 23160,
   "rpc": {
