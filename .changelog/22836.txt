@@ -1,4 +1,3 @@
 ```release-note:security
-security: adding a maximum Content-Length on the event endpoint to fix denial-of-service (DoS) attacks. This resolves CVE
-[CVE-2025-11375](https://nvd.nist.gov/vuln/detail/CVE-2025-11375).
+security: adding a maximum Content-Length on the event endpoint to fix denial-of-service (DoS) attacks. This resolves [CVE-2025-11375](https://nvd.nist.gov/vuln/detail/CVE-2025-11375).
 ```
