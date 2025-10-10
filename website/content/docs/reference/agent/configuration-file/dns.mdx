@@ -61,12 +61,12 @@ The page provides reference information for DNS parameters in a Consul agent con
     critical.
 
   - `recursor_strategy` - If set to `sequential`, Consul will query recursors in the
-    order listed in the [`recursors`](/consul/docs/reference/agent/configuration-file/general#recursors) option. If set to `random`,
+    order listed in the [`recursors`](/consul/docs/reference/agent/configuration-file/dns#recursors) option. If set to `random`,
     Consul will query an upstream DNS resolvers in a random order. Defaults to
     `sequential`.
 
   - `recursor_timeout` - Timeout used by Consul when
-    recursively querying an upstream DNS server. See [`recursors`](/consul/docs/reference/agent/configuration-file/general#recursors) for more details. Default is 2s. This is available in Consul 0.7 and later.
+    recursively querying an upstream DNS server. See [`recursors`](/consul/docs/reference/agent/configuration-file/dns#recursors) for more details. Default is 2s. This is available in Consul 0.7 and later.
 
   - `disable_compression` - If set to true, DNS
     responses will not be compressed. Compression was added and enabled by default

@@ -58,7 +58,7 @@ Each terminating gateway needs:
 Terminating gateways also require that your Consul datacenters are configured correctly:
 
 - You'll need to use Consul version 1.8.0 or newer.
-- Consul [service mesh](//consul/docs/reference/agent/configuration-file/service-mesh#connect) must be enabled on the datacenter's Consul servers.
+- Consul [service mesh](/consul/docs/reference/agent/configuration-file/service-mesh#connect) must be enabled on the datacenter's Consul servers.
 - [gRPC](/consul/docs/reference/agent/configuration-file/general#grpc_port) must be enabled on all client agents.
 
 Currently, [Envoy](https://www.envoyproxy.io/) is the only proxy with terminating gateway capabilities in Consul.
