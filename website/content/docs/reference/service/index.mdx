@@ -20,7 +20,7 @@ The following outline shows how to format the configurations in the root `servic
 - [`id`](#id): string 
 - [`address`](#address): string
 - [`port`](#port): number
-- [`ports`](#ports): map (service discovery only)
+- [`ports`](#ports): list of maps (service discovery only)
   - [`name`](#ports): string
   - [`port`](#ports): number 
   - [`default`](#ports): boolean
@@ -97,13 +97,15 @@ This field supports service discovery use cases only. You cannot configure both 
 
 Define the following parameters for each port you want to specify:
 
-| Parameter | Description                                                               | Type    | Default |
-| :-------- | :------------------------------------------------------------------------ | :------ | :------ |
-| `name`    | Specifies a name for the port. This value is addressable with Consul DNS. | string  | None    |
-| `port`    | Specifies a numeric port where the service is available.                  | number  | None    |
-| `default` | Sets a port as the default when one is not included.                      | boolean | `false` |
+| Parameter | Description                                                                                                      | Type    | Default |
+| :-------- | :--------------------------------------------------------------------------------------------------------------- | :------ | :------ |
+| `name`    | Specifies a name for the port. This value is addressable with Consul DNS. Each name should be unique.            | string  | None    |
+| `port`    | Specifies a numeric port where the service is available.                                                         | number  | None    |
+| `default` | Sets a port as the default when one is not included. Do not set more than one port as the default for a service. | boolean | `false` |
 
 When the `tagged_address` parameter is not set, Consul uses the service's `address` and the `default` port defined for the service.
+
+If multiple ports are set as the default port, Consul returns an error when you attempt to register the service.
 
 For an example service definition, refer to [Multi-port service definition](#multi-port-service-definition).
 
@@ -751,17 +753,17 @@ service {
   "name": "orders",
   "id" : "order-service-1",
   "ports": [
-      {
-	      "name": "http",
-	      "port": 8080,
-        "default": true
-      },
-      {
-        "name": "metrics",
-	      "port": 9090,
-		    "default": false
-      }
-   ]
+    {
+      "name": "http",
+      "port": 8080,
+      "default": true
+    },
+    {
+      "name": "metrics",
+      "port": 9090,
+      "default": false
+    }
+  ]
 }
 
 ```
