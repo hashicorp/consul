@@ -1,0 +1,12 @@
+{
+	"name": "Hashicorp - Consul",
+	"image": "hashicorp/consul",
+	"postStartCommand": "sh -c 'consul agent -dev'",
+	"forwardPorts": [8500],
+	"portsAttributes": {
+		"8500": {
+			"label": "Consul UI",
+			"onAutoForward": "notify"
+		}
+	}
+}
