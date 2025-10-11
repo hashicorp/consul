@@ -228,6 +228,11 @@ func (k *KV) put(key string, params map[string]string, body []byte, q *WriteOpti
 	qm := &WriteMeta{}
 	qm.RequestTime = rtt
 
+	// Check for warning headers
+	if warning := resp.Header.Get("X-Consul-KV-Warning"); warning != "" {
+		qm.Warnings = append(qm.Warnings, warning)
+	}
+
 	var buf bytes.Buffer
 	if _, err := io.Copy(&buf, resp.Body); err != nil {
 		return false, nil, fmt.Errorf("Failed to read response: %v", err)
