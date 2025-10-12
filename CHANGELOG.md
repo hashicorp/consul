@@ -28,7 +28,6 @@ agent: Always enabled census metrics collection with configurable option to expo
 
 BUG FIXES:
 
-* operator: fix consul operator utilization help description [[GH-22912](https://github.com/hashicorp/consul/issues/22912)]
 * ui: Allow FQDN to be displayed in the Consul web interface. [[GH-22779](https://github.com/hashicorp/consul/issues/22779)]
 * ui: fixes the issue where namespaces where disappearing and Welcome to Namespace screen showed up after tab switching [[GH-22789](https://github.com/hashicorp/consul/issues/22789)]
 * ui: fixes the issue where when doing deletes of multiple tokens or policies, the three dots on the right hand side stops responding after the first delete. [[GH-22752](https://github.com/hashicorp/consul/issues/22752)]
