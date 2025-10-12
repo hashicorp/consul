@@ -354,3 +354,52 @@ func TestLooksLikeIP(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateMultiPortWithConnectEnabled(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	a := agent.NewTestAgent(t, ``)
+	defer a.Shutdown()
+
+	ui := cli.NewMockUi()
+	c := New(ui)
+
+	type testCase struct {
+		serviceRegistration string
+		expectErr           bool
+	}
+
+	testCases := map[string]testCase{
+		"sidecar-proxy": {
+			serviceRegistration: `{ "Service": { "Name": "web", "Ports": [ { "Name": "test", "Port": 8080, "Default": true } ] }, "Connect": { "SidecarService": {} } }`,
+			expectErr:           true,
+		},
+		"native-proxy": {
+			serviceRegistration: `{ "Service": { "Name": "web", "Ports": [ { "Name": "test", "Port": 8080, "Default": true } ] }, "Connect": { "Native": true } }`,
+			expectErr:           true,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			f := testFile(t, "json")
+			defer os.Remove(f.Name())
+			if _, err := f.WriteString(tc.serviceRegistration); err != nil {
+				t.Fatalf("err: %#v", err)
+			}
+
+			exitCode := c.Run([]string{f.Name()})
+
+			if tc.expectErr {
+				require.Equal(t, 1, exitCode, "expected error but got success")
+			} else {
+				require.Equal(t, 0, exitCode, "expected success but got error: %s", ui.ErrorWriter.String())
+			}
+		})
+	}
+
+}
