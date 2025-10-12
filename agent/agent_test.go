@@ -6578,7 +6578,7 @@ func TestAgent_ServiceRegistration(t *testing.T) {
 					},
 				},
 				Connect: &structs.ServiceConnect{
-					Native: true,
+					SidecarService: &structs.ServiceDefinition{},
 				},
 			},
 			expectErr: true,
