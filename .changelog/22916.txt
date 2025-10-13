@@ -1,0 +1,3 @@
+```release-note:security
+security: Consul's KV endpoint is vulnerable to denial of service [CVE-2025-11374]()
+```
