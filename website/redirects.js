@@ -5297,4 +5297,65 @@ module.exports = [
     destination: "/consul/docs/reference/config-entry/:slug*",
     permanent: true,
   },
+  {
+    source: "/consul/docs/agent/encryption",
+    destination: "/consul/docs/fundamentals/agent",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/agent/options",
+    destination: "/consul/docs/fundamentals/agent",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/api-gateway/tech-specs",
+    destination: "/consul/docs/north-south/api-gateway/k8s/tech-specs",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/api-gateway/usage",
+    destination: "/consul/docs/consul/docs/north-south/api-gateway",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/api-gateway/usage",
+    destination: "/consul/docs/consul/docs/north-south/api-gateway",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/commands/:slug*",
+    destination: "/consul/commands/:slug*",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/concepts/anti-entropy",
+    destination: "/consul/docs/concepts/consistency",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/concepts/security",
+    destination: "/consul/docs/architecture/security",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/connect/config-entries/partition-exports",
+    destination: "/consul/docs/reference/config-entry/exported-services",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/connect/configuration",
+    destination: "/consul/docs/fundamentals/config-entry",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/connect/gateways/api-gateway/configuration/:slug*",
+    destination: "/consul/docs/north-south/api-gateway",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/connect/gateways/ingress-gateway/:slug*",
+    destination: "/consul/docs/north-south/ingress-gateway",
+    permanent: true,
+  },
 ]
+
