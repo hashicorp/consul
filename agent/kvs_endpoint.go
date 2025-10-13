@@ -238,11 +238,11 @@ func (s *HTTPHandlers) KVSPut(resp http.ResponseWriter, req *http.Request, args 
 	var buf *bytes.Buffer
 
 	switch {
-	case req.ContentLength <= 0:
-		return nil, HTTPError{
-			StatusCode: http.StatusBadRequest,
-			Reason:     fmt.Sprintf("Request does not specify content-length .Expected content-length between 1 and %d .", maxSize),
-		}
+	// case req.ContentLength <= 0:
+	// 	return nil, HTTPError{
+	// 		StatusCode: http.StatusBadRequest,
+	// 		Reason:     fmt.Sprintf("Request does not specify content-length .Expected content-length between 1 and %d .", maxSize),
+	// 	}
 	case req.ContentLength > maxSize:
 		return nil, HTTPError{
 			StatusCode: http.StatusRequestEntityTooLarge,
