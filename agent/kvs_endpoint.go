@@ -235,6 +235,7 @@ func (s *HTTPHandlers) KVSPut(resp http.ResponseWriter, req *http.Request, args 
 
 	// Check the content-length
 	maxSize := int64(s.agent.config.KVMaxValueSize)
+	var buf *bytes.Buffer
 
 	switch {
 	case req.ContentLength <= 0:
@@ -250,7 +251,7 @@ func (s *HTTPHandlers) KVSPut(resp http.ResponseWriter, req *http.Request, args 
 		}
 	default:
 		// Copy the value
-		buf := bytes.NewBuffer(nil)
+		buf = bytes.NewBuffer(nil)
 		if _, err := io.Copy(buf, req.Body); err != nil {
 			return nil, err
 		}
