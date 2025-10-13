@@ -369,6 +369,10 @@ type AgentServiceRegistration struct {
 	Locality          *Locality                       `json:",omitempty" bexpr:"-" hash:"ignore"`
 }
 
+func (a *AgentServiceRegistration) IsConnectEnabled() bool {
+	return a.Connect != nil && (a.Connect.Native || a.Connect.SidecarService != nil)
+}
+
 // ServiceRegisterOpts is used to pass extra options to the service register.
 type ServiceRegisterOpts struct {
 	// Missing healthchecks will be deleted from the agent.
