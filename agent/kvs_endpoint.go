@@ -247,9 +247,10 @@ func (s *HTTPHandlers) KVSPut(resp http.ResponseWriter, req *http.Request, args 
 		// LimitReader to limit copy of large requests with no Content-Length
 		//+1 ensures we can detect if the body is too large
 		limitedReader := io.LimitReader(req.Body, maxSize+1)
-		buf := new(bytes.Buffer)
+		buf = new(bytes.Buffer)
 		copiedBytes, err := io.Copy(buf, limitedReader)
 		if err != nil {
+			fmt.Print("MANISHA ERROR")
 			return nil, err
 		}
 
