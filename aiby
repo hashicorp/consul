@@ -1,0 +1,40 @@
+Hi [insert supervisor’s name],
+
+I’d like to attend API Summit Live 2025, October 14-15 in New York City. At API Summit, I am guaranteed to learn a ton, spending two whole days with Kong experts and networking with other customers. Past attendees and speakers include companies like Goldman Sachs, IKEA, Siemens, Uber, GSK, and much more. I can bring learnings back to help our company:
+
+* Roll out AI and LLM projects with built-in security, reliability, and compliance guardrails.
+* Simplify management of traffic across multiple services and multiple clouds.
+* Secure, govern, discover, and observe event streams in your API platform.
+
+The estimated cost to attend the conference will be:
+
+Registration fee: $495
+Domestic airfare estimate: $500
+Hotel (3 nights at average NYC rate): $250 per night / $750 + taxes and fees
+Total: $1,745
+
+After API Summit, I’ll plan to assemble a report summarizing what I learned and how we can implement it at our company.
+
+Thank you for your consideration and I look forward to your reply!
+
+[Insert your name]
+https://kong-0b1ca02de5usi40s4.kongcloud.devhttps://api.leaseweb.com/publicCloud/v1/regions<?php
+
+$client = new http\Client;
+$request = new http\Client\Request;
+
+$request->setRequestUrl('https://api.leaseweb.com/publicCloud/v1/regions');
+$request->setRequestMethod('GET');
+$request->setQuery(new http\QueryString([
+  'limit' => '20',
+  'offset' => '10'
+]));
+
+$request->setHeaders([
+  'X-LSW-Auth' => 'REPLACE_KEY_VALUE'
+]);
+
+$client->enqueue($request)->send();
+$response = $client->getResponse();
+
+echo $response->getBody();
