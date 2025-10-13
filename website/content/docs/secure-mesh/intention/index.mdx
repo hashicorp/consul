@@ -17,7 +17,7 @@ Intentions control traffic communication between services at the network layer, 
 
 ### L4 traffic intentions
 
-If the destination service uses TCP or any non-HTTP-based protocol, then intentions can control traffic based on identities encoded in mTLS certificates. Refer to [Mutual transport layer security (mTLS)](/consul/architecture/data-plane/connect#mutual-transport-layer-security-mtls) for additional information.
+If the destination service uses TCP or any non-HTTP-based protocol, then intentions can control traffic based on identities encoded in mTLS certificates. Refer to [Mutual transport layer security (mTLS)](/consul/docs/architecture/data-plane/connect#mutual-transport-layer-security-mtls) for additional information.
 
 This implementation allows broad all-or-nothing access control between pairs of services. The only requirement is that the service is aware of the TLS handshake that wraps the opaque TCP connection.
 
