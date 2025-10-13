@@ -88,4 +88,6 @@ $ consul kv delete -recurse redis
 Success! Deleted keys with prefix: redis
 ```
 
--> Path and directory escapes, leading or trailing spaces in keys are not allowed by default from consul v1.22.0 to mitigate vulnerability [CVE-2025-11392]. If you have any existing keys of this format and would want to continue using the same keys, set the flag `disable_kv_key_validation` to `true` in agent config to bypass this validation. However we strongly recommend leaving this validation enabled (false) unless you have a specific reason to disable it for legacy compatibility.
+<Warning title="Security warning">
+To mitigate vulnerability [CVE-2025-11392], Consul does not allow path escapes, directory escapes, leading spaces, or trailing spaces in keys, beginning with Consul v1.22.0. If you have any existing keys in this format and want to continue using the same keys, set the `disable_kv_key_validation` parameter to `true` in the Consul agent configuration. We strongly recommend using validated keys unless you have a specific reason to disable it for legacy compatibility.
+</Warning>
