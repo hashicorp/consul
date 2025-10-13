@@ -29,37 +29,37 @@ module.exports = {
     'link-rel-noopener': false,
 
     'no-implicit-this': {
-  allow: [
-    // Template variables commonly used in partials
-    'item',
-    'item.isPristine',
-    'item.isInvalid', 
-    'item.AccessorID',
-    'item.Description',
-    'item.Roles',
-    'item.Policies',
-    'item.Rules',
-    'item.Type',
-    'item.ID',
-    'item.Name',
-    'item.error.Name',
-    'item.error.Type',
-    'items',
-    'items.length',
-    'create',
-    'token',
-    // Route params passed as template variables
-    'dc',
-    'partition', 
-    'nspace',
-    'id',
-    // Form field variables
-    'Local',
-    'name',
-    'form'
-  ]
-},
-// 'no-implicit-this': 'error',
+      allow: [
+        // Template variables commonly used in partials
+        'item',
+        'item.isPristine',
+        'item.isInvalid',
+        'item.AccessorID',
+        'item.Description',
+        'item.Roles',
+        'item.Policies',
+        'item.Rules',
+        'item.Type',
+        'item.ID',
+        'item.Name',
+        'item.error.Name',
+        'item.error.Type',
+        'items',
+        'items.length',
+        'create',
+        'token',
+        // Route params passed as template variables
+        'dc',
+        'partition',
+        'nspace',
+        'id',
+        // Form field variables
+        'Local',
+        'name',
+        'form',
+      ],
+    },
+    // 'no-implicit-this': 'error',
     'no-curly-component-invocation': false,
     'no-action': false,
     'no-negated-condition': false,
