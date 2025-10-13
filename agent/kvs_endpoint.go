@@ -5,6 +5,7 @@ package agent
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -244,18 +245,17 @@ func (s *HTTPHandlers) KVSPut(resp http.ResponseWriter, req *http.Request, args 
 	case req.ContentLength <= 0 && req.Body != nil:
 		// LimitReader to limit copy of large requests with no Content-Length
 		//+1 ensures we can detect if the body is too large
-		limitedReader := http.MaxBytesReader(nil, req.Body, maxSize+1)
+		byteReader := http.MaxBytesReader(nil, req.Body, maxSize+1)
 		buf = new(bytes.Buffer)
-		copiedBytes, err := io.Copy(buf, limitedReader)
-		if err != nil {
-			return nil, err
-		}
-		// Reject request if actual read size exceeds allowed maxsize limit
-		if copiedBytes > maxSize {
-			return nil, HTTPError{
-				StatusCode: http.StatusRequestEntityTooLarge,
-				Reason:     fmt.Sprintf("Request body too large.Max body and content-length allowed is %d bytes.", maxSize),
+		if _, err := io.Copy(buf, byteReader); err != nil {
+			var bodyTooLargeErr *http.MaxBytesError
+			if errors.As(err, &bodyTooLargeErr) {
+				return nil, HTTPError{
+					StatusCode: http.StatusRequestEntityTooLarge,
+					Reason:     fmt.Sprintf("Request body too large. Max allowed is %d bytes.", maxSize),
+				}
 			}
+			return nil, err
 		}
 
 	case req.ContentLength > maxSize:
