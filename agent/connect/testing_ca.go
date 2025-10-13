@@ -17,8 +17,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/go-uuid"
 	"github.com/mitchellh/go-testing-interface"
+
+	"github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
@@ -241,7 +242,11 @@ func testLeafWithID(t testing.T, spiffeId CertURI, dnsSAN string, root *structs.
 		NotBefore:      time.Now(),
 		AuthorityKeyId: testKeyID(t, caSigner.Public()),
 		SubjectKeyId:   testKeyID(t, pkSigner.Public()),
-		DNSNames:       []string{dnsSAN},
+	}
+
+	// Only add DNS SANs if dnsSAN is not empty to avoid malformed SAN errors in Go 1.25.2+
+	if dnsSAN != "" {
+		template.DNSNames = []string{dnsSAN}
 	}
 
 	// Create the certificate, PEM encode it and return that value.
