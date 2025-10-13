@@ -1,0 +1,3 @@
+```release-note:improvement
+security: Upgrade golang to 1.25.2.
+```
