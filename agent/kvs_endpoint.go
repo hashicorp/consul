@@ -238,12 +238,25 @@ func (s *HTTPHandlers) KVSPut(resp http.ResponseWriter, req *http.Request, args 
 	var buf *bytes.Buffer
 
 	switch {
+
 	case req.ContentLength <= 0:
-		return nil, HTTPError{
-			StatusCode: http.StatusBadRequest,
-			Reason:     fmt.Sprintf("Request does not specify content-length .Expected content-length between 1 and %d .", maxSize),
+		//Read request with no or zero content-length
+		limitedReader := io.LimitReader(req.Body, maxSize+1)
+		buf := new(bytes.Buffer)
+		copiedBytes, err := io.Copy(buf, limitedReader)
+		if err != nil {
+			return nil, err
 		}
+		// Reject request if actual read size exceeds allowed limit
+		if copiedBytes > maxSize {
+			return nil, HTTPError{
+				StatusCode: http.StatusRequestEntityTooLarge,
+				Reason:     fmt.Sprintf("Request body too large, max allowed is %d bytes.", maxSize),
+			}
+		}
+
 	case req.ContentLength > maxSize:
+		// Throw error if Content-Length is greater than max size
 		return nil, HTTPError{
 			StatusCode: http.StatusRequestEntityTooLarge,
 			Reason: fmt.Sprintf("Request body(%d bytes) too large, max size: %d bytes. See %s.",
