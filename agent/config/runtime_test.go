@@ -6205,7 +6205,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 				{
 					Name: "test1",
 					ID:   "test1",
-					Ports: []structs.ServicePort{
+					Ports: structs.ServicePorts{
 						{
 							Name:    "http",
 							Port:    8080,
@@ -6720,6 +6720,7 @@ func TestLoad_FullConfig(t *testing.T) {
 		EnableAgentTLSForChecks:          true,
 		EnableCentralServiceConfig:       false,
 		EnableDebug:                      true,
+		DisableKVKeyValidation:           false,
 		EnableRemoteScriptChecks:         true,
 		EnableLocalScriptChecks:          true,
 		EncryptKey:                       "A4wELWqH",

@@ -1322,8 +1322,8 @@ func (sp ServicePorts) Validate() error {
 			return fmt.Errorf("Ports.Name cannot be empty")
 		}
 
-		if p.Port == 0 {
-			return fmt.Errorf("Ports.Port must be non-zero")
+		if p.Port <= 0 {
+			return fmt.Errorf("Ports.Port must be greater than zero")
 		}
 
 		_, ok := seenName[p.Name]
@@ -1598,6 +1598,9 @@ func (s *NodeService) Validate() error {
 	}
 
 	if s.Kind == ServiceKindConnectProxy {
+		if len(s.Ports) > 0 {
+			result = multierror.Append(result, fmt.Errorf("Ports cannot be set for a %s", s.Kind))
+		}
 		if s.Port == 0 && s.SocketPath == "" {
 			result = multierror.Append(result, fmt.Errorf("Port or SocketPath must be set for a %s", s.Kind))
 		}
@@ -1740,6 +1743,9 @@ func (s *NodeService) ValidateForAgent() error {
 
 	// Gateway validation
 	if s.IsGateway() {
+		if len(s.Ports) > 0 {
+			result = multierror.Append(result, fmt.Errorf("Ports cannot be set for a %s", s.Kind))
+		}
 		// Non-ingress gateways must have a port
 		if s.Port == 0 && s.Kind != ServiceKindIngressGateway && s.Kind != ServiceKindAPIGateway {
 			result = multierror.Append(result, fmt.Errorf("Port must be non-zero for a %s", s.Kind))

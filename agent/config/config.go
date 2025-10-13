@@ -181,6 +181,7 @@ type Config struct {
 	EnableDebug                      *bool               `mapstructure:"enable_debug" json:"enable_debug,omitempty"`
 	EnableScriptChecks               *bool               `mapstructure:"enable_script_checks" json:"enable_script_checks,omitempty"`
 	EnableLocalScriptChecks          *bool               `mapstructure:"enable_local_script_checks" json:"enable_local_script_checks,omitempty"`
+	DisableKVKeyValidation           *bool               `mapstructure:"disable_kv_key_validation" json:"disable_kv_key_validation,omitempty"`
 	EnableSyslog                     *bool               `mapstructure:"enable_syslog" json:"enable_syslog,omitempty"`
 	EncryptKey                       *string             `mapstructure:"encrypt" json:"encrypt,omitempty"`
 	EncryptVerifyIncoming            *bool               `mapstructure:"encrypt_verify_incoming" json:"encrypt_verify_incoming,omitempty"`
@@ -396,18 +397,6 @@ type ServicePort struct {
 	Name    *string `mapstructure:"name"`
 	Port    *int    `mapstructure:"port"`
 	Default *bool   `mapstructure:"default"`
-}
-
-func (sp ServicePort) Validate() error {
-	if sp.Name == nil {
-		return fmt.Errorf("every port in ports must have a name defined")
-	}
-
-	if sp.Port == nil {
-		return fmt.Errorf("every port in ports must have a port defined")
-	}
-
-	return nil
 }
 
 type ServiceDefinition struct {

@@ -6472,12 +6472,124 @@ func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
 func TestAgent_ServiceRegistration(t *testing.T) {
 	// Since we accept both `port` and `ports` for service registration, we need to ensure that catalog stores it as it gets it
 
+	type testCase struct {
+		serviceDef *structs.ServiceDefinition
+		expectErr  bool
+		validateFn func(t *testing.T, agent *TestAgent)
+	}
+
+	port := freeport.GetOne(t)
+	testCases := map[string]testCase{
+		"single_port_valid": {
+			serviceDef: &structs.ServiceDefinition{
+				ID:   "singleport-srv",
+				Name: "singleport-srv",
+				Port: port,
+			},
+			expectErr: false,
+			validateFn: func(t *testing.T, agent *TestAgent) {
+				t.Helper()
+
+				// Fetch single port service and ensure 'port' value is populated and 'ports' array is empty
+				singleportSrv := agent.State.Service(structs.ServiceIDFromString("singleport-srv"))
+				require.NotNil(t, singleportSrv)
+				require.Equal(t, port, singleportSrv.Port)
+				require.Len(t, singleportSrv.Ports, 0)
+
+				req, err := http.NewRequest(http.MethodGet, "/v1/catalog/service/singleport-srv", nil)
+				require.NoError(t, err)
+
+				resp := httptest.NewRecorder()
+				obj, err := agent.srv.CatalogServiceNodes(resp, req)
+				require.NoError(t, err)
+
+				nodes, ok := obj.(structs.ServiceNodes)
+				require.True(t, ok)
+				require.Len(t, nodes, 1)
+				require.Equal(t, port, nodes[0].ServicePort)
+				require.Len(t, nodes[0].ServicePorts, 0)
+			},
+		},
+		"multi_port_valid": {
+			serviceDef: &structs.ServiceDefinition{
+				ID:   "multiport-srv",
+				Name: "multiport-srv",
+				Ports: structs.ServicePorts{
+					{
+						Name:    "http",
+						Port:    port,
+						Default: true,
+					},
+				},
+			},
+			expectErr: false,
+			validateFn: func(t *testing.T, agent *TestAgent) {
+				// Fetch multi port service and ensure 'ports' array is populated
+				multiportSrv := agent.State.Service(structs.ServiceIDFromString("multiport-srv"))
+				require.NotNil(t, multiportSrv)
+				require.Len(t, multiportSrv.Ports, 1)
+				require.Equal(t, "http", multiportSrv.Ports[0].Name)
+				require.Equal(t, port, multiportSrv.Ports[0].Port)
+				require.True(t, multiportSrv.Ports[0].Default)
+				require.Equal(t, 0, multiportSrv.Port) // Port should be 0 as we didn't set it
+
+				req, err := http.NewRequest(http.MethodGet, "/v1/catalog/service/multiport-srv", nil)
+				require.NoError(t, err)
+
+				resp := httptest.NewRecorder()
+				obj, err := agent.srv.CatalogServiceNodes(resp, req)
+				require.NoError(t, err)
+
+				nodes, ok := obj.(structs.ServiceNodes)
+				require.True(t, ok)
+				require.Len(t, nodes, 1)
+				require.Len(t, nodes[0].ServicePorts, 1)
+				require.Equal(t, port, nodes[0].ServicePorts[0].Port)
+				require.Equal(t, "http", nodes[0].ServicePorts[0].Name)
+				require.True(t, nodes[0].ServicePorts[0].Default)
+			},
+		},
+		"multi_port_connect_native": {
+			serviceDef: &structs.ServiceDefinition{
+				ID:   "multiport-srv",
+				Name: "multiport-srv",
+				Ports: structs.ServicePorts{
+					{
+						Name:    "http",
+						Port:    port,
+						Default: true,
+					},
+				},
+				Connect: &structs.ServiceConnect{
+					Native: true,
+				},
+			},
+			expectErr: true,
+		},
+		"multi_port_connect_sidecar": {
+			serviceDef: &structs.ServiceDefinition{
+				ID:   "multiport-srv",
+				Name: "multiport-srv",
+				Ports: structs.ServicePorts{
+					{
+						Name:    "http",
+						Port:    port,
+						Default: true,
+					},
+				},
+				Connect: &structs.ServiceConnect{
+					SidecarService: &structs.ServiceDefinition{},
+				},
+			},
+			expectErr: true,
+		},
+	}
+
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
 	t.Parallel()
-	port := freeport.GetOne(t)
 	agent := StartTestAgent(t, TestAgent{Name: "bob", HCL: `
 		domain = "consul"
 		node_name = "bob"
@@ -6487,86 +6599,22 @@ func TestAgent_ServiceRegistration(t *testing.T) {
 	defer agent.Shutdown()
 	testrpc.WaitForTestAgent(t, agent.RPC, "dc1")
 
-	// Register a single port service
-	{
-		args := &structs.ServiceDefinition{
-			ID:   "singleport-srv",
-			Name: "singleport-srv",
-			Port: port,
-		}
-		req, err := http.NewRequest(http.MethodPut, "/v1/agent/service/register", jsonReader(args))
-		require.NoError(t, err)
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			req, err := http.NewRequest(http.MethodPut, "/v1/agent/service/register", jsonReader(tc.serviceDef))
+			require.NoError(t, err)
 
-		obj, err := agent.srv.AgentRegisterService(nil, req)
-		require.NoError(t, err)
-		require.Nil(t, obj)
-	}
+			obj, err := agent.srv.AgentRegisterService(nil, req)
 
-	// Register a multi port service
-	{
-		args := &structs.ServiceDefinition{
-			ID:   "multiport-srv",
-			Name: "multiport-srv",
-			Ports: structs.ServicePorts{
-				{
-					Name:    "http",
-					Port:    port,
-					Default: true,
-				},
-			},
-		}
-		req, err := http.NewRequest(http.MethodPut, "/v1/agent/service/register", jsonReader(args))
-		require.NoError(t, err)
+			if tc.expectErr {
+				require.Error(t, err)
+				return
+			}
 
-		obj, err := agent.srv.AgentRegisterService(nil, req)
-		require.NoError(t, err)
-		require.Nil(t, obj)
-	}
+			require.NoError(t, err)
+			require.Nil(t, obj)
 
-	// Fetch single port service and ensure 'port' value is populated and 'ports' array is empty
-	singleportSrv := agent.State.Service(structs.ServiceIDFromString("singleport-srv"))
-	require.NotNil(t, singleportSrv)
-	require.Equal(t, port, singleportSrv.Port)
-	require.Len(t, singleportSrv.Ports, 0)
-
-	// Fetch multi port service and ensure 'ports' array is populated
-	multiportSrv := agent.State.Service(structs.ServiceIDFromString("multiport-srv"))
-	require.NotNil(t, multiportSrv)
-	require.Len(t, multiportSrv.Ports, 1)
-	require.Equal(t, "http", multiportSrv.Ports[0].Name)
-	require.Equal(t, port, multiportSrv.Ports[0].Port)
-	require.True(t, multiportSrv.Ports[0].Default)
-	require.Equal(t, 0, multiportSrv.Port) // Port should be 0 as we didn't set it
-
-	{
-		req, err := http.NewRequest(http.MethodGet, "/v1/catalog/service/singleport-srv", nil)
-		require.NoError(t, err)
-
-		resp := httptest.NewRecorder()
-		obj, err := agent.srv.CatalogServiceNodes(resp, req)
-		require.NoError(t, err)
-
-		nodes, ok := obj.(structs.ServiceNodes)
-		require.True(t, ok)
-		require.Len(t, nodes, 1)
-		require.Equal(t, port, nodes[0].ServicePort)
-		require.Len(t, nodes[0].ServicePorts, 0)
-	}
-
-	{
-		req, err := http.NewRequest(http.MethodGet, "/v1/catalog/service/multiport-srv", nil)
-		require.NoError(t, err)
-
-		resp := httptest.NewRecorder()
-		obj, err := agent.srv.CatalogServiceNodes(resp, req)
-		require.NoError(t, err)
-
-		nodes, ok := obj.(structs.ServiceNodes)
-		require.True(t, ok)
-		require.Len(t, nodes, 1)
-		require.Len(t, nodes[0].ServicePorts, 1)
-		require.Equal(t, port, nodes[0].ServicePorts[0].Port)
-		require.Equal(t, "http", nodes[0].ServicePorts[0].Name)
-		require.True(t, nodes[0].ServicePorts[0].Default)
+			tc.validateFn(t, agent)
+		})
 	}
 }
