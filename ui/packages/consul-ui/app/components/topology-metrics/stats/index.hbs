@@ -17,13 +17,13 @@
       )
     }}
     @onchange={{action 'statsUpdate'}}
-    @onerror={{action (mut error) value="error"}}
+    @onerror={{action (mut this.error) value="error"}}
   />
 {{/if}}
 
 <div ...attributes class="topology-metrics-stats" data-test-topology-metrics-stats>
-  {{#if hasLoaded }}
-    {{#each stats as |stat|}}
+  {{#if this.hasLoaded }}
+    {{#each this.stats as |stat|}}
     <dl {{tooltip
       stat.desc
       options=(hash
@@ -43,7 +43,7 @@
   {{else}}
     <TopologyMetrics::Status
       @noMetricsReason={{@noMetricsReason}}
-      @error={{error}}
+      @error={{this.error}}
     />
   {{/if}}
 </div>

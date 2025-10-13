@@ -59,7 +59,7 @@
         </Action>
       {{/if}}
 
-      {{#if (eq item.AccessorID token.AccessorID)}}
+      {{#if (eq item.AccessorID @token.AccessorID)}}
         <Action data-test-logout-action class='dangerous' @onclick={{action @onlogout item}}>
           <BlockSlot @name='label'>
             Logout

@@ -4,7 +4,7 @@
 }}
 
 <Route
-  @name={{routeName}}
+  @name={{this.routeName}}
 as |route|>
   <DataLoader @src={{
     uri '/${partition}/${nspace}/${dc}/token/${id}'
@@ -58,7 +58,7 @@ as |dc partition nspace item create|}}
       <BlockSlot @name="actions">
   {{#if (not create)}}
     <Hds::ButtonSet>
-    {{#if (not-eq item.AccessorID token.AccessorID)}}
+    {{#if (not-eq item.AccessorID route.model.token.AccessorID)}}
         <ConfirmationDialog @message="Are you sure you want to use this ACL token?">
           <BlockSlot @name="action" as |confirm|>
             <Hds::Button

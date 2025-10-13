@@ -4,7 +4,7 @@
 }}
 
 <Route
-  @name={{routeName}}
+  @name={{this.routeName}}
 as |route|>
   <DataSource
     @src={{uri '/${partition}/${nspace}/${dc}/kv/${key}'
@@ -15,7 +15,7 @@ as |route|>
         key=(or route.params.key '/')
       )
     }}
-    @onchange={{action (mut parent) value="data"}}
+    @onchange={{action (mut this.parent) value="data"}}
   />
   <DataLoader
     @src={{uri '/${partition}/${nspace}/${dc}/kvs/${key}'
@@ -71,18 +71,18 @@ as |route|>
 {{#let
 
   (hash
-    value=(or sortBy "Kind:asc")
-    change=(action (mut sortBy) value="target.selected")
+    value=(or this.sortBy "Kind:asc")
+    change=(action (mut this.sortBy) value="target.selected")
   )
 
   (hash
     kind=(hash
-      value=(if kind (split kind ',') undefined)
-      change=(action (mut kind) value="target.selectedItems")
+      value=(if this.kind (split this.kind ',') undefined)
+      change=(action (mut this.kind) value="target.selectedItems")
     )
   )
 
-  parent
+  this.parent
   loader.data
 
 as |sort filters parent items|}}
@@ -110,8 +110,8 @@ as |sort filters parent items|}}
       <BlockSlot @name="toolbar">
     {{#if (gt items.length 0) }}
         <Consul::Kv::SearchBar
-          @search={{search}}
-          @onsearch={{action (mut search) value="target.value"}}
+          @search={{this.search}}
+          @onsearch={{action (mut this.search) value="target.value"}}
 
           @sort={{sort}}
 
@@ -148,14 +148,14 @@ as |sort filters parent items|}}
           }}
           @type="kv"
           @label="key"
-          @ondelete={{refresh-route}}
+          @ondelete={{this.refresh-route}}
           as |writer|>
           <BlockSlot @name="content">
             <DataCollection
               @type="kv"
               @sort={{sort.value}}
               @filters={{filters}}
-              @search={{search}}
+              @search={{this.search}}
               @items={{items}}
             as |collection|>
               <collection.Collection>
