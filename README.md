@@ -39,7 +39,7 @@ Consul provides several key features:
 
 Consul runs on Linux, macOS, FreeBSD, Solaris, and Windows and includes an
 optional [browser based UI](https://demo.consul.io). A commercial version
-called [Consul Enterprise](https://developer.hashicorp.com/docs/enterprise) is also
+called [Consul Enterprise](https://developer.hashicorp.com/consul/docs/enterprise) is also
 available.
 
 **Please note**: We take Consul's security and our users' trust very seriously. If you
