@@ -1,3 +1,9 @@
+## 1.22.0-rc2(October 16, 2025)
+
+SECURITY:
+
+* security: Fix Consul's KV endpoint is vulnerable to denial of service address CVE-2025-11374 [[GH-22916](https://github.com/hashicorp/consul/pull/22916)]
+
 ## 1.22.0-rc1 (September 30, 2025)
 
 SECURITY:

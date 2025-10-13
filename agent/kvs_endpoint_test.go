@@ -37,6 +37,7 @@ func TestKVSEndpoint_PUT_GET_DELETE(t *testing.T) {
 	for _, key := range keys {
 		buf := bytes.NewBuffer([]byte("test"))
 		req, _ := http.NewRequest("PUT", "/v1/kv/"+key, buf)
+		req.ContentLength = int64(buf.Len())
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.KVSEndpoint(resp, req)
 		if err != nil {

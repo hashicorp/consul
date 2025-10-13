@@ -237,7 +237,7 @@ func (s *HTTPHandlers) KVSPut(resp http.ResponseWriter, req *http.Request, args 
 	maxSize := int64(s.agent.config.KVMaxValueSize)
 
 	switch {
-	case req.ContentLength < 0:
+	case req.ContentLength <= 0:
 		return nil, HTTPError{
 			StatusCode: http.StatusBadRequest,
 			Reason:     fmt.Sprintf("Request does not specify content-length .Expected content-length between 1 and %d .", maxSize),
@@ -248,7 +248,6 @@ func (s *HTTPHandlers) KVSPut(resp http.ResponseWriter, req *http.Request, args 
 			Reason: fmt.Sprintf("Request body(%d bytes) too large, max size: %d bytes. See %s.",
 				req.ContentLength, maxSize, "https://developer.hashicorp.com/docs/agent/config/config-files#kv_max_value_size"),
 		}
-
 	default:
 		// Copy the value
 		buf := bytes.NewBuffer(nil)
