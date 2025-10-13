@@ -240,7 +240,7 @@ func (s *HTTPHandlers) KVSPut(resp http.ResponseWriter, req *http.Request, args 
 	switch {
 
 	case req.ContentLength < 0 && req.Body == nil:
-		return fmt.Sprint("Request has no content-length & no body"), nil
+		return "Request has no content-length & no body", nil
 
 	case req.ContentLength <= 0 && req.Body != nil:
 		return nil, HTTPError{
