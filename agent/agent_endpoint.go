@@ -1246,6 +1246,9 @@ func (s *HTTPHandlers) AgentRegisterService(resp http.ResponseWriter, req *http.
 
 	// Verify the sidecar check types
 	if args.Connect != nil && args.Connect.SidecarService != nil {
+		if len(args.Ports) > 0 {
+			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "MultiPort cannot be used with Consul Connect."}
+		}
 		chkTypes, err := args.Connect.SidecarService.CheckTypes()
 		if err != nil {
 			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Invalid check in sidecar_service: %v", err)}
