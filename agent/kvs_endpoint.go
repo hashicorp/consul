@@ -238,17 +238,34 @@ func (s *HTTPHandlers) KVSPut(resp http.ResponseWriter, req *http.Request, args 
 	var buf *bytes.Buffer
 
 	switch {
-	// case req.ContentLength <= 0:
-	// 	return nil, HTTPError{
-	// 		StatusCode: http.StatusBadRequest,
-	// 		Reason:     fmt.Sprintf("Request does not specify content-length .Expected content-length between 1 and %d .", maxSize),
-	// 	}
+	case req.ContentLength <= 0 && req.Body == nil:
+		return "Request has no content-length & no body", nil
+
+	case req.ContentLength <= 0 && req.Body != nil:
+		// LimitReader to limit copy of large requests with no Content-Length
+		//+1 ensures we can detect if the body is too large
+		limitedReader := io.LimitReader(req.Body, maxSize+1)
+		buf = new(bytes.Buffer)
+		copiedBytes, err := io.Copy(buf, limitedReader)
+		if err != nil {
+			return nil, err
+		}
+		// Reject request if actual read size exceeds allowed maxsize limit
+		if copiedBytes > maxSize {
+			return nil, HTTPError{
+				StatusCode: http.StatusRequestEntityTooLarge,
+				Reason:     fmt.Sprintf("Request body too large.Max body and content-length allowed is %d bytes.", maxSize),
+			}
+		}
+
 	case req.ContentLength > maxSize:
+		// Throw error if Content-Length is greater than max size
 		return nil, HTTPError{
 			StatusCode: http.StatusRequestEntityTooLarge,
 			Reason: fmt.Sprintf("Request body(%d bytes) too large, max size: %d bytes. See %s.",
 				req.ContentLength, maxSize, "https://developer.hashicorp.com/docs/agent/config/config-files#kv_max_value_size"),
 		}
+
 	default:
 		// Copy the value
 		buf = bytes.NewBuffer(nil)
