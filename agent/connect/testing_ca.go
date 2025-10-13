@@ -223,6 +223,9 @@ func testLeafWithID(t testing.T, spiffeId CertURI, dnsSAN string, root *structs.
 	if err != nil {
 		return "", "", fmt.Errorf("error getting CA key type: %s", err)
 	}
+	if dnsSAN == "" {
+		dnsSAN = "localhost"
+	}
 
 	// Cert template for generation
 	template := x509.Certificate{
