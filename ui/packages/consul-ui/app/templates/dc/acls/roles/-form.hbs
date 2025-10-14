@@ -65,7 +65,7 @@
             <Hds::Button
               @text='Delete'
               @color='critical'
-              {{action confirm 'delete' item}}
+              {{action confirm }}
               data-test-delete
             />
           </BlockSlot>
@@ -96,7 +96,7 @@
                       @text='Yes, Delete'
                       @color='critical'
                       data-test-delete
-                      {{action execute}}
+                      {{action (queue execute (fn this.delete item))}}
                     />
                     <Hds::Button
                       @text='Cancel'
@@ -107,7 +107,7 @@
                 </BlockSlot>
               </ModalDialog>
             {{else}}
-              <DeleteConfirmation @message={{message}} @execute={{execute}} @cancel={{cancel}} />
+              <DeleteConfirmation @message={{message}} @execute={{queue execute (fn this.delete item)}} @cancel={{cancel}} />
             {{/if}}
           </BlockSlot>
         </ConfirmationDialog>

@@ -127,13 +127,13 @@
                     @color='critical'
                     data-test-delete
                     disabled={{api.disabled}}
-                    {{on 'click' (action confirm api.delete)}}
+                    {{on 'click' (action confirm)}}
                   />
                 </BlockSlot>
                 <BlockSlot @name='dialog' as |execute cancel message|>
                   <DeleteConfirmation
                     @message={{message}}
-                    @execute={{execute}}
+                    @execute={{queue execute api.delete}}
                     @cancel={{cancel}}
                   />
                 </BlockSlot>
