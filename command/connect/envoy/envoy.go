@@ -528,6 +528,13 @@ func (c *cmd) proxyRegistration(svcForSidecar *api.AgentService) (*api.AgentServ
 		// fallback to localhost as the gateway has to reside in the same network namespace
 		// as the agent
 		tcpCheckAddr = "127.0.0.1"
+		ds, err := netutil.IsDualStack(nil, false)
+		if err == nil {
+			return nil, err
+		}
+		if ds {
+			tcpCheckAddr = "::1"
+		}
 	}
 
 	var proxyConf *api.AgentServiceConnectProxyConfig
