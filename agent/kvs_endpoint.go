@@ -5,6 +5,7 @@ package agent
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -234,19 +235,45 @@ func (s *HTTPHandlers) KVSPut(resp http.ResponseWriter, req *http.Request, args 
 	}
 
 	// Check the content-length
-	if req.ContentLength > int64(s.agent.config.KVMaxValueSize) {
+	maxSize := int64(s.agent.config.KVMaxValueSize)
+	var buf *bytes.Buffer
+
+	switch {
+	case req.ContentLength <= 0 && req.Body == nil:
+		return "Request has no content-length & no body", nil
+
+	case req.ContentLength <= 0 && req.Body != nil:
+		// LimitReader to limit copy of large requests with no Content-Length
+		//+1 ensures we can detect if the body is too large
+		byteReader := http.MaxBytesReader(nil, req.Body, maxSize+1)
+		buf = new(bytes.Buffer)
+		if _, err := io.Copy(buf, byteReader); err != nil {
+			var bodyTooLargeErr *http.MaxBytesError
+			if errors.As(err, &bodyTooLargeErr) {
+				return nil, HTTPError{
+					StatusCode: http.StatusRequestEntityTooLarge,
+					Reason:     fmt.Sprintf("Request body too large. Max allowed is %d bytes.", maxSize),
+				}
+			}
+			return nil, err
+		}
+
+	case req.ContentLength > maxSize:
+		// Throw error if Content-Length is greater than max size
 		return nil, HTTPError{
 			StatusCode: http.StatusRequestEntityTooLarge,
 			Reason: fmt.Sprintf("Request body(%d bytes) too large, max size: %d bytes. See %s.",
-				req.ContentLength, s.agent.config.KVMaxValueSize, "https://developer.hashicorp.com/docs/agent/config/config-files#kv_max_value_size"),
+				req.ContentLength, maxSize, "https://developer.hashicorp.com/docs/agent/config/config-files#kv_max_value_size"),
+		}
+
+	default:
+		// Copy the value
+		buf = bytes.NewBuffer(nil)
+		if _, err := io.Copy(buf, req.Body); err != nil {
+			return nil, err
 		}
 	}
 
-	// Copy the value
-	buf := bytes.NewBuffer(nil)
-	if _, err := io.Copy(buf, req.Body); err != nil {
-		return nil, err
-	}
 	applyReq.DirEnt.Value = buf.Bytes()
 
 	// Make the RPC
