@@ -15,12 +15,14 @@ import (
 	"time"
 
 	"github.com/go-viper/mapstructure/v2"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-version"
 	"github.com/mitchellh/cli"
 	"google.golang.org/protobuf/encoding/protojson"
 
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-version"
+
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/agent/xds/accesslogs"
@@ -88,9 +90,18 @@ type cmd struct {
 	gatewayKind    api.ServiceKind
 
 	dialFunc func(network string, address string) (net.Conn, error)
+
+	//checks if the consul agent is configured to use both IPv4 and IPv6 addresses.
+	checkDualStack  func(dto *netutil.IPStackRequestDTO) (bool, error)
+	useIPv6loopback bool
 }
 
 const meshGatewayVal = "mesh"
+const (
+	ipv4loopback     string = "127.0.0.1"
+	ipv6loopback     string = "::1"
+	defaultAdminPort int    = 19000
+)
 
 var defaultEnvoyVersion = xdscommon.EnvoyVersions[0]
 
@@ -130,7 +141,7 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.adminAccessLogPath, "admin-access-log-path", DefaultAdminAccessLogPath,
 		"DEPRECATED: use proxy-defaults.accessLogs to set Envoy access logs.")
 
-	c.flags.StringVar(&c.adminBind, "admin-bind", "localhost:19000",
+	c.flags.StringVar(&c.adminBind, "admin-bind", "",
 		"The address:port to start envoy's admin server on. Envoy requires this "+
 			"but care must be taken to ensure it's not exposed to an untrusted network "+
 			"as it has full control over the secrets and config of the proxy.")
@@ -239,6 +250,7 @@ func (c *cmd) init() {
 	c.dialFunc = func(network string, address string) (net.Conn, error) {
 		return net.DialTimeout(network, address, 3*time.Second)
 	}
+	c.checkDualStack = netutil.IsDualStackWithDTO
 }
 
 // canBindInternal is here mainly so we can unit test this with a constant net.Addr list
@@ -385,6 +397,26 @@ func (c *cmd) run(args []string) int {
 		}
 	}
 
+	// check dual stack is configured
+
+	isDualStack, err := c.checkDualStack(&netutil.IPStackRequestDTO{
+		Client: c.client,
+	})
+	if err != nil {
+		if strings.Contains(err.Error(), "Permission denied") {
+			// Token did not have agent:read. Suppress and proceed with defaults.
+			c.logger.Warn("Permission denied checking for dual stack. Proceeding with default localhost address when unset")
+		} else {
+			c.UI.Error(fmt.Sprintf("Error checking dual stack: %s", err.Error()))
+			return 1
+		}
+	}
+	c.logger.Debug("Received", "isDualStack", strconv.FormatBool(isDualStack))
+	if isDualStack {
+		c.logger.Debug("using dual-stack configuration: default localhost to IPv6 loopback")
+		c.useIPv6loopback = true
+	}
+
 	if c.register {
 		if c.nodeName != "" {
 			c.UI.Error("'-register' cannot be used with '-node-name'")
@@ -496,6 +528,13 @@ func (c *cmd) proxyRegistration(svcForSidecar *api.AgentService) (*api.AgentServ
 		// fallback to localhost as the gateway has to reside in the same network namespace
 		// as the agent
 		tcpCheckAddr = "127.0.0.1"
+		ds, err := netutil.IsDualStack(nil, false)
+		if err == nil {
+			return nil, err
+		}
+		if ds {
+			tcpCheckAddr = "::1"
+		}
 	}
 
 	var proxyConf *api.AgentServiceConnectProxyConfig
@@ -589,6 +628,14 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 		}
 	}
 
+	if c.adminBind == "" {
+		if c.useIPv6loopback {
+			c.adminBind = fmt.Sprintf("[%s]:%v", ipv6loopback, defaultAdminPort)
+		} else {
+			c.adminBind = fmt.Sprintf("localhost:%v", defaultAdminPort)
+		}
+	}
+
 	adminAddr, adminPort, err := net.SplitHostPort(c.adminBind)
 	if err != nil {
 		return nil, fmt.Errorf("Invalid Consul HTTP address: %s", err)
@@ -634,6 +681,12 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 		return nil, err
 	}
 	caPEM = strings.ReplaceAll(strings.Join(pems, ""), "\n", "\\n")
+
+	// Check for invalid configuration: AgentTLS enabled but no CA material
+	if xdsAddr.AgentTLS && caPEM == "" {
+		return nil, fmt.Errorf("TLS is enabled for xDS connections but no CA certificates are available. " +
+			"Please configure CA certificates via -ca-file, -ca-path, or the corresponding config options")
+	}
 
 	return &BootstrapTplArgs{
 		GRPC:                  xdsAddr,
@@ -849,7 +902,11 @@ func (c *cmd) xdsAddress() (GRPC, error) {
 			port = 8502
 			c.UI.Warn("-grpc-addr not provided and unable to discover a gRPC address for xDS. Defaulting to localhost:8502")
 		}
-		addr = fmt.Sprintf("%vlocalhost:%v", protocol, port)
+		if c.useIPv6loopback {
+			addr = fmt.Sprintf("%v[%s]:%v", protocol, ipv6loopback, port)
+		} else {
+			addr = fmt.Sprintf("%vlocalhost:%v", protocol, port)
+		}
 	}
 
 	// TODO: parse addr as a url instead of strings.HasPrefix/TrimPrefix

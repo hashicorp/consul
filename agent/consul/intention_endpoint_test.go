@@ -14,12 +14,14 @@ import (
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 // Test basic creation
 func TestIntentionApply_new(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -192,6 +194,7 @@ func TestIntentionApply_createWithID(t *testing.T) {
 
 // Test basic updating
 func TestIntentionApply_updateGood(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -346,6 +349,7 @@ func TestIntentionApply_updateNonExist(t *testing.T) {
 
 // Test basic deleting
 func TestIntentionApply_deleteGood(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -404,6 +408,7 @@ func TestIntentionApply_deleteGood(t *testing.T) {
 }
 
 func TestIntentionApply_WithoutIDs(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -892,6 +897,7 @@ func TestIntentionApply_WithoutIDs(t *testing.T) {
 
 // Test apply with a deny ACL
 func TestIntentionApply_aclDeny(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -960,6 +966,7 @@ service "foobar" {
 }
 
 func TestIntention_WildcardACLEnforcement(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -1281,6 +1288,7 @@ func TestIntention_WildcardACLEnforcement(t *testing.T) {
 
 // Test apply with delete and a default deny ACL
 func TestIntentionApply_aclDelete(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -1346,6 +1354,7 @@ service "foobar" {
 
 // Test apply with update and a default deny ACL
 func TestIntentionApply_aclUpdate(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -1399,6 +1408,7 @@ service "foobar" {
 
 // Test apply with a management token
 func TestIntentionApply_aclManagement(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -1443,6 +1453,7 @@ func TestIntentionApply_aclManagement(t *testing.T) {
 
 // Test update changing the name where an ACL won't allow it
 func TestIntentionApply_aclUpdateChange(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -1493,6 +1504,7 @@ service "foobar" {
 
 // Test reading with ACLs
 func TestIntentionGet_acl(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -1622,6 +1634,7 @@ func TestIntentionList(t *testing.T) {
 
 // Test listing with ACLs
 func TestIntentionList_acl(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -1780,6 +1793,7 @@ func TestIntentionList_acl(t *testing.T) {
 // Test basic matching. We don't need to exhaustively test inputs since this
 // is tested in the agent/consul/state package.
 func TestIntentionMatch_good(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -1852,6 +1866,7 @@ func TestIntentionMatch_good(t *testing.T) {
 }
 
 func TestIntentionMatch_BlockOnNoChange(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -2159,6 +2174,7 @@ service "bar" {
 
 // Test the Check method returns allow/deny properly.
 func TestIntentionCheck_match(t *testing.T) {
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}

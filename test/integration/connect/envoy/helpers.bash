@@ -871,7 +871,8 @@ function gen_envoy_bootstrap {
   if output=$(docker_consul_for_proxy_bootstrap "$DC" connect envoy -bootstrap \
     -proxy-id $PROXY_ID \
     -envoy-version "$ENVOY_VERSION" \
-    -admin-bind 0.0.0.0:$ADMIN_PORT ${EXTRA_ENVOY_BS_ARGS} 2>&1); then
+    -admin-bind 0.0.0.0:$ADMIN_PORT \
+    -grpc-addr http://localhost:8502 ${EXTRA_ENVOY_BS_ARGS} 2>&1); then
 
     # All OK, write config to file
     echo "$output" >workdir/${DC}/envoy/$SERVICE-bootstrap.json

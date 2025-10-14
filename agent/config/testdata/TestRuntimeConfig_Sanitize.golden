@@ -202,6 +202,7 @@
     "EnableCentralServiceConfig": false,
     "EnableDebug": false,
     "EnableLocalScriptChecks": false,
+    "DisableKVKeyValidation": false,
     "EnableRemoteScriptChecks": false,
     "EncryptKey": "hidden",
     "EnterpriseRuntimeConfig": {},
@@ -308,7 +309,8 @@
     "Reporting": {
         "License": {
             "Enabled": false
-        }
+        },
+        "SnapshotRetentionTime": "0s"
     },
     "RequestLimitsMode": 0,
     "RequestLimitsReadRate": 0,
@@ -392,6 +394,7 @@
             "Meta": {},
             "Name": "foo",
             "Port": 0,
+            "Ports": [],
             "Proxy": null,
             "SocketPath": "",
             "TaggedAddresses": {},

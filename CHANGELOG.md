@@ -1,3 +1,70 @@
+## 1.22.0-rc1 (September 30, 2025)
+
+SECURITY:
+
+* connect: Upgrade Consul's bundled Envoy version to 1.35.3 and remove support for 1.31.10. This update also includes a fix to prevent Envoy (v1.35+) startup failures by only configuring the TLS transport socket when the CA bundle is present. [[GH-22824](https://github.com/hashicorp/consul/issues/22824)]
+
+FEATURES:
+
+* Added support to register a service in consul with multiple ports [[GH-22769](https://github.com/hashicorp/consul/issues/22769)]
+* agent: Added IsDualStack utility function to detect if the agent is configured for both IPv4 and IPv6 (dual-stack mode) based on its bind address retrieved from "agent/self" API. [[GH-22741](https://github.com/hashicorp/consul/issues/22741)]
+* install: Updated license information displayed during post-install
+* ipv6: addtition of ip6tables changes for ipv6 and dual stack support [[GH-22787](https://github.com/hashicorp/consul/issues/22787)]
+* oidc: add client authentication using JWT assertion and PKCE. default PKCE is enabled. [[GH-22732](https://github.com/hashicorp/consul/issues/22732)]
+
+IMPROVEMENTS:
+
+* api: Added a new API (/v1/operator/utilization) to support enterprise API for Manual Snapshot Reporting [[GH-22837](https://github.com/hashicorp/consul/issues/22837)]
+* cmd: Added new subcommand `consul operator utilization [-today-only] [-message] [-y]` to generate a bundle with census utilization snapshot. Main flow is implemented in consul-enterprise
+http: Added a new API Handler for `/v1/operator/utilization`. Core functionality to be implemented in consul-enterprise
+agent: Always enabled census metrics collection with configurable option to export it to Hashicorp Reporting [[GH-22843](https://github.com/hashicorp/consul/issues/22843)]
+* cli: `snapshot agent` now supports authenticating to Azure Blob Storage using Azure Managed Service Identities (MSI). [[GH-11171](https://github.com/hashicorp/consul/issues/11171)]
+* command: connect envoy bootstrap defaults to 127.0.0.1 in IPv4-only environment and to ::1 in IPv6/DualStack environment. [[GH-22763](https://github.com/hashicorp/consul/issues/22763)]
+* connect: default upstream.local_bind_address to ::1 for IPv6 agent bind address [[GH-22773](https://github.com/hashicorp/consul/issues/22773)]
+* proxy: default proxy.local_service_address to ::1 for IPv6 agent bind address [[GH-22772](https://github.com/hashicorp/consul/issues/22772)]
+* ui: Improved accessibility features in the Consul UI to enhance usability for users with disabilities [[GH-22770](https://github.com/hashicorp/consul/issues/22770)]
+* ui: Replace yarn with pnpm for package management [[GH-22790](https://github.com/hashicorp/consul/issues/22790)]
+* ui: auth method config values were overflowing. This PR fixes the issue and adds word break for table elements with large content. [[GH-22813](https://github.com/hashicorp/consul/issues/22813)]
+
+BUG FIXES:
+
+* ui: Allow FQDN to be displayed in the Consul web interface. [[GH-22779](https://github.com/hashicorp/consul/issues/22779)]
+* ui: fixes the issue where namespaces where disappearing and Welcome to Namespace screen showed up after tab switching [[GH-22789](https://github.com/hashicorp/consul/issues/22789)]
+* ui: fixes the issue where when doing deletes of multiple tokens or policies, the three dots on the right hand side stops responding after the first delete. [[GH-22752](https://github.com/hashicorp/consul/issues/22752)]
+
+## 1.21.5 (September 21, 2025)
+
+SECURITY:
+
+* Migrate transitive dependency from archived `mitchellh/mapstructure` to `go-viper/mapstructure` to v2 to address [CVE-2025-52893](https://www.cve.org/CVERecord?id=CVE-2025-52893). [[GH-22581](https://github.com/hashicorp/consul/issues/22581)]
+* agent: Add the KV Validations to block path traversal allowing access to unauthorized endpoints. [[GH-22682](https://github.com/hashicorp/consul/issues/22682)]
+* agent: Fix a security vulnerability to filter out anonymous tokens along with empty tokens when setting the Results-Filtered-By-ACLs header [[GH-22534](https://github.com/hashicorp/consul/issues/22534)]
+* agent: Fix a security vulnerability where the attacker could read agent’s TLS certificate and private key by using the group ID that the Consul agent runs as. [[GH-22626](https://github.com/hashicorp/consul/issues/22626)]
+* api: add charset in all applicable content-types. [[GH-22598](https://github.com/hashicorp/consul/issues/22598)]
+* connect: Upgrade envoy version to 1.34.7 [[GH-22735](https://github.com/hashicorp/consul/issues/22735)]
+* security: Fix GHSA-65rg-554r-9j5x (CVE-2024-48908) by upgrading lycheeverse/lychee-action. [[GH-22667](https://github.com/hashicorp/consul/issues/22667)]
+* security: Fix a security vulnerability where the attacker could bypass authentication by passing url params as there was no validation on them. [[GH-22612](https://github.com/hashicorp/consul/issues/22612)]
+* security: perform constant time compare for sensitive values. [[GH-22537](https://github.com/hashicorp/consul/issues/22537)]
+* security: upgrade go version to 1.25.0 [[GH-22652](https://github.com/hashicorp/consul/issues/22652)]
+* security:: **(Enterprise only)**  fix nil pointer dereference.
+* security:: **(Enterprise only)**  fix potential race condition in partition CRUD.
+* security:: **(Enterprise only)**  perform constant time compare for sensitive values.
+
+FEATURES:
+
+* config: Add new parameter `max_request_headers_kb` to configure maximum header size for requests from downstream to upstream [[GH-22604](https://github.com/hashicorp/consul/issues/22604)]
+* config: Handle a new parameter `max_request_headers_kb` to configure maximum header size for requests from downstream to upstream in API Gateway config and proxy-defaults [[GH-22679](https://github.com/hashicorp/consul/issues/22679)]
+* config: Handle a new parameter `max_request_headers_kb` to configure maximum header size for requests from downstream to upstream in Mesh Gateway via service-defaults and proxy-defaults [[GH-22722](https://github.com/hashicorp/consul/issues/22722)]
+* config: Handle a new parameter `max_request_headers_kb` to configure maximum header size for requests from downstream to upstream in Terminating Gateway service-defaults and proxy-defaults [[GH-22680](https://github.com/hashicorp/consul/issues/22680)]
+
+IMPROVEMENTS:
+
+* cli: add troubleshoot ports in debug command. A ports.json file is created, which lists the open or closed ports on the host where the command is executed. [[GH-22624](https://github.com/hashicorp/consul/issues/22624)]
+
+BUG FIXES:
+
+* agent: Don't show admin partition during errors [[GH-11154](https://github.com/hashicorp/consul/issues/11154)]
+
 ## 1.21.4 (August 13, 2025)
 
 SECURITY:

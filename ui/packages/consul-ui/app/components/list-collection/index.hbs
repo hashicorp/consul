@@ -33,7 +33,7 @@
         <YieldSlot @name="details"><div class="detail">{{yield cell.item cell.index}}</div></YieldSlot>
         <YieldSlot @name="actions"
           @params={{
-            block-params (component 'more-popover-menu' expanded=(if (eq checked cell.index) true false) onchange=(action "change" cell.index))
+            block-params (component 'more-popover-menu' expanded=(if (eq checked cell.item.uid) true false) onchange=(action "change" cell.item.uid))
           }}
         >
           <div class="actions">
@@ -51,13 +51,13 @@
       <li
         data-test-list-row
         onclick={{action 'click'}}
-        class={{if (not linkable) 'linkable' (if (is linkable item=cell.item) 'linkable')}}
+        class={{if (not linkable) 'linkable' (if (is linkable item=item) 'linkable')}}
       >
         <YieldSlot @name="header"><div class="header">{{yield item index}}</div></YieldSlot>
         <YieldSlot @name="details"><div class="detail">{{yield item index}}</div></YieldSlot>
         <YieldSlot @name="actions"
           @params={{
-            block-params (component 'more-popover-menu' onchange=(action "change" index))
+            block-params (component 'more-popover-menu' onchange=(action "change" item.uid))
           }}
         >
           <div class="actions">

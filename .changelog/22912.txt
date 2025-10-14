@@ -1,0 +1,3 @@
+```release-note:bug
+cmd: Fix `consul operator utilization --help` to show only available options without extra parameters.
+```

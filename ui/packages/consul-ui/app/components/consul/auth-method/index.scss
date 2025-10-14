@@ -24,6 +24,7 @@
       padding-bottom: 12px;
     }
     table {
+      table-layout: fixed;
       thead td {
         @extend %body-200-semibold;
         color: var(--token-color-foreground-faint);
@@ -31,6 +32,7 @@
       tbody {
         td {
           color: var(--token-color-hashicorp-brand);
+          word-break: break-word;
         }
         tr {
           cursor: default;

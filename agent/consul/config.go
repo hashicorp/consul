@@ -17,6 +17,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/checks"
 	consulrate "github.com/hashicorp/consul/agent/consul/rate"
+	"github.com/hashicorp/consul/agent/consul/reporting"
 	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/gossip/libserf"
@@ -597,6 +598,8 @@ func DefaultConfig() *Config {
 		ServerRejoinAgeMax: 24 * 7 * time.Hour,
 	}
 
+	conf.Reporting.SnapshotRetentionTime = reporting.DefaultSnapshotRetention
+
 	// Increase our reap interval to 3 days instead of 24h.
 	conf.SerfLANConfig.ReconnectTimeout = 3 * 24 * time.Hour
 	conf.SerfWANConfig.ReconnectTimeout = 3 * 24 * time.Hour
@@ -670,6 +673,8 @@ func CloneSerfLANConfig(base *serf.Config) *serf.Config {
 	cfg.TombstoneTimeout = base.TombstoneTimeout
 	cfg.MemberlistConfig.SecretKey = base.MemberlistConfig.SecretKey
 	cfg.MetricLabels = base.MetricLabels
+	cfg.MsgpackUseNewTimeFormat = base.MsgpackUseNewTimeFormat
+	cfg.MemberlistConfig.MsgpackUseNewTimeFormat = base.MemberlistConfig.MsgpackUseNewTimeFormat
 
 	return cfg
 }
@@ -732,5 +737,6 @@ type License struct {
 }
 
 type Reporting struct {
-	License License
+	License               License
+	SnapshotRetentionTime time.Duration
 }

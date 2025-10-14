@@ -281,6 +281,7 @@ enable_central_service_config = false
 enable_debug = true
 enable_script_checks = true
 enable_local_script_checks = true
+disable_kv_key_validation = false
 enable_syslog = true
 encrypt = "A4wELWqH"
 encrypt_verify_incoming = true
@@ -683,6 +684,26 @@ services = [
                 "1CuJHVfw" = "Kzqsa7yc"
             }
         }
+    },
+    {
+        id = "AI1d2xY4"
+        name = "discovery-multi-port"
+        tags = ["0Zwg8l6v", "zebELdN5"]
+        address = "9RhAPlPB"
+        token = "myjKJkWH"
+        ports = [
+            {
+                name = "http"
+                port = 8080
+                default = true
+            },
+            {
+                name = "admin"
+                port = 9090
+                default = false
+            }
+        ]
+        enable_tag_override = true
     }
 ]
 session_ttl_min = "26627s"

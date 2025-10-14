@@ -1,0 +1,3 @@
+```release-note:feature
+ipv6: addtition of ip6tables changes for ipv6 and dual stack support
+```

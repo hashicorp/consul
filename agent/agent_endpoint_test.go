@@ -4959,7 +4959,9 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 			svc, ok := svcs[sid]
 			require.True(t, ok, "has service "+sid.String())
 			assert.Equal(t, sd.Name, svc.Service)
+
 			assert.Equal(t, sd.Port, svc.Port)
+
 			// Ensure that the actual registered service _doesn't_ still have it's
 			// sidecar info since it's duplicate and we don't want that synced up to
 			// the catalog or included in responses particularly - it's just
@@ -5456,7 +5458,9 @@ func testAgent_RegisterServiceDeregisterService_Sidecar_UDP(t *testing.T, extraH
 			svc, ok := svcs[sid]
 			require.True(t, ok, "has service "+sid.String())
 			assert.Equal(t, sd.Name, svc.Service)
+
 			assert.Equal(t, sd.Port, svc.Port)
+
 			// Ensure that the actual registered service _doesn't_ still have it's
 			// sidecar info since it's duplicate and we don't want that synced up to
 			// the catalog or included in responses particularly - it's just
@@ -6133,7 +6137,7 @@ func TestAgent_Monitor(t *testing.T) {
 	t.Run("stream unstructured logs", func(t *testing.T) {
 		// Try to stream logs until we see the expected log line
 		retry.Run(t, func(r *retry.R) {
-			req, _ := http.NewRequest("GET", "/v1/agent/monitor?loglevel=debug", nil)
+			req, _ := http.NewRequest("GET", "/v1/agent/monitor?loglevel=info", nil)
 			cancelCtx, cancelFunc := context.WithCancel(context.Background())
 			req = req.WithContext(cancelCtx)
 
@@ -8438,4 +8442,159 @@ func TestAgent_Self_Reload(t *testing.T) {
 	require.Equal(t, "debug", val.DebugConfig["Logging"].(map[string]interface{})["LogLevel"])
 	require.Equal(t, float64(200), val.DebugConfig["RaftSnapshotThreshold"].(float64))
 
+}
+
+func TestAgent_RegisterService_MultiPort(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Helper()
+
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	type testCase struct {
+		args               *structs.ServiceDefinition
+		expectedStatusCode int
+	}
+
+	testCases := map[string]testCase{
+		"valid multi-port service registration": {
+			args: &structs.ServiceDefinition{
+				ID:   "test-id",
+				Name: "test",
+				Ports: structs.ServicePorts{
+					{
+						Name:    "http",
+						Port:    8080,
+						Default: true,
+					},
+					{
+						Name: "metrics",
+						Port: 9090,
+					},
+				},
+			},
+			expectedStatusCode: http.StatusOK,
+		},
+		"invalid multi-port service registration - missing default": {
+			args: &structs.ServiceDefinition{
+				ID:   "test-id",
+				Name: "test",
+				Ports: structs.ServicePorts{
+					{
+						Name: "http",
+						Port: 8080,
+					},
+					{
+						Name: "metrics",
+						Port: 9090,
+					},
+				},
+			},
+			expectedStatusCode: http.StatusBadRequest,
+		},
+		"invalid multi-port service registration - missing name": {
+			args: &structs.ServiceDefinition{
+				ID:   "test-id",
+				Name: "test",
+				Ports: structs.ServicePorts{
+					{
+						Port:    8080,
+						Default: true,
+					},
+					{
+						Name: "metrics",
+						Port: 9090,
+					},
+				},
+			},
+			expectedStatusCode: http.StatusBadRequest,
+		},
+		"invalid multi-port service registration - missing port": {
+			args: &structs.ServiceDefinition{
+				ID:   "test-id",
+				Name: "test",
+				Ports: structs.ServicePorts{
+					{
+						Name:    "http",
+						Default: true,
+					},
+					{
+						Name: "metrics",
+						Port: 9090,
+					},
+				},
+			},
+			expectedStatusCode: http.StatusBadRequest,
+		},
+		"invalid multi-port service registration - duplicate name": {
+			args: &structs.ServiceDefinition{
+				ID:   "test-id",
+				Name: "test",
+				Ports: structs.ServicePorts{
+					{
+						Name:    "http",
+						Port:    8080,
+						Default: true,
+					},
+					{
+						Name: "http",
+						Port: 9090,
+					},
+				},
+			},
+			expectedStatusCode: http.StatusBadRequest,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(tc.args))
+			req.Header.Add("X-Consul-Token", "abc123")
+			resp := httptest.NewRecorder()
+			a.srv.h.ServeHTTP(resp, req)
+
+			if tc.expectedStatusCode != resp.Code {
+				t.Fatalf("expected %d but got %v", tc.expectedStatusCode, resp.Code)
+			}
+
+			if tc.expectedStatusCode != http.StatusOK {
+				// we're done
+				return
+			}
+
+			defer deregisterService(t, a, tc.args.ID)
+
+			// Ensure the service
+			sid := structs.NewServiceID(tc.args.ID, nil)
+			svc := a.State.Service(sid)
+			if svc == nil {
+				t.Fatalf("missing service %s", tc.args.Name)
+			}
+
+			if len(svc.Ports) != len(tc.args.Ports) {
+				t.Fatalf("Expected %d ports, got: %v", len(tc.args.Ports), len(svc.Ports))
+			}
+
+			if !svc.Ports.IsSame(tc.args.Ports) {
+				t.Fatalf("Ports do not match. Expected: %v, got: %v", tc.args.Ports, svc.Ports)
+			}
+		})
+	}
+}
+
+func deregisterService(t *testing.T, a *TestAgent, serviceID string) {
+	t.Helper()
+	req := httptest.NewRequest("PUT", "/v1/agent/service/deregister/"+serviceID, nil)
+	req.Header.Add("X-Consul-Token", "abc123")
+	resp := httptest.NewRecorder()
+	a.srv.h.ServeHTTP(resp, req)
+	require.Equal(t, http.StatusOK, resp.Code)
+
+	// Ensure the service is gone
+	sid := structs.NewServiceID(serviceID, nil)
+	require.Nil(t, a.State.Service(sid))
 }

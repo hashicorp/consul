@@ -1,6 +1,6 @@
 module test-sds-server
 
-go 1.25.0
+go 1.25.1
 
 require (
 	github.com/envoyproxy/go-control-plane v0.13.4
@@ -16,7 +16,7 @@ require (
 	github.com/envoyproxy/go-control-plane/ratelimit v0.1.0 // indirect
 	github.com/envoyproxy/protoc-gen-validate v1.1.0 // indirect
 	github.com/fatih/color v1.16.0 // indirect
-	github.com/hashicorp/consul/sdk v0.16.0 // indirect
+	github.com/hashicorp/consul/sdk v0.16.3 // indirect
 	github.com/hashicorp/go-syslog v1.0.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect

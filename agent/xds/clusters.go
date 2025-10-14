@@ -19,6 +19,7 @@ import (
 	envoy_upstreams_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
 	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/xds/config"
 	"github.com/hashicorp/consul/agent/xds/naming"
 
@@ -1105,9 +1106,18 @@ func (s *ResourceGenerator) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot, nam
 		endpoint = makePipeEndpoint(cfgSnap.Proxy.LocalServiceSocketPath)
 	} else {
 		addr := cfgSnap.Proxy.LocalServiceAddress
+
+		ds, err := netutil.IsDualStack(nil, true)
+		if err != nil {
+			s.Logger.Error("failed to determine if dual stack is supported, assuming not", "error", err)
+		}
 		if addr == "" {
 			addr = "127.0.0.1"
+			if ds {
+				addr = "::1"
+			}
 		}
+
 		endpoint = makeEndpoint(addr, port)
 	}
 
@@ -1832,6 +1842,10 @@ func configureClusterWithHostnames(
 	rate := 10 * time.Second
 	cluster.DnsRefreshRate = durationpb.New(rate)
 	cluster.DnsLookupFamily = envoy_cluster_v3.Cluster_V4_ONLY
+	ds, _ := netutil.IsDualStack(nil, true)
+	if ds {
+		cluster.DnsLookupFamily = envoy_cluster_v3.Cluster_ALL
+	}
 
 	envoyMaxEndpoints := 1
 	discoveryType := envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_LOGICAL_DNS}
@@ -1935,7 +1949,11 @@ func (s *ResourceGenerator) makeExternalIPCluster(snap *proxycfg.ConfigSnapshot,
 func (s *ResourceGenerator) makeExternalHostnameCluster(snap *proxycfg.ConfigSnapshot, opts clusterOpts, discoveryType envoy_cluster_v3.Cluster_DiscoveryType) *envoy_cluster_v3.Cluster {
 	cfg := snap.GetGatewayConfig(s.Logger)
 	opts.connectTimeout = time.Duration(cfg.ConnectTimeoutMs) * time.Millisecond
-
+	dlf := envoy_cluster_v3.Cluster_V4_ONLY
+	ds, _ := netutil.IsDualStack(nil, true)
+	if ds {
+		dlf = envoy_cluster_v3.Cluster_ALL
+	}
 	cluster := &envoy_cluster_v3.Cluster{
 		Name:           opts.name,
 		ConnectTimeout: durationpb.New(opts.connectTimeout),
@@ -1943,7 +1961,7 @@ func (s *ResourceGenerator) makeExternalHostnameCluster(snap *proxycfg.ConfigSna
 		// Having an empty config enables outlier detection with default config.
 		OutlierDetection:     &envoy_cluster_v3.OutlierDetection{},
 		ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{Type: discoveryType},
-		DnsLookupFamily:      envoy_cluster_v3.Cluster_V4_ONLY,
+		DnsLookupFamily:      dlf,
 	}
 
 	rate := 10 * time.Second

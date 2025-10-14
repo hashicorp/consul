@@ -181,6 +181,7 @@ type Config struct {
 	EnableDebug                      *bool               `mapstructure:"enable_debug" json:"enable_debug,omitempty"`
 	EnableScriptChecks               *bool               `mapstructure:"enable_script_checks" json:"enable_script_checks,omitempty"`
 	EnableLocalScriptChecks          *bool               `mapstructure:"enable_local_script_checks" json:"enable_local_script_checks,omitempty"`
+	DisableKVKeyValidation           *bool               `mapstructure:"disable_kv_key_validation" json:"disable_kv_key_validation,omitempty"`
 	EnableSyslog                     *bool               `mapstructure:"enable_syslog" json:"enable_syslog,omitempty"`
 	EncryptKey                       *string             `mapstructure:"encrypt" json:"encrypt,omitempty"`
 	EncryptVerifyIncoming            *bool               `mapstructure:"encrypt_verify_incoming" json:"encrypt_verify_incoming,omitempty"`
@@ -390,6 +391,14 @@ type ServiceAddress struct {
 	Port    *int    `mapstructure:"port"`
 }
 
+type ServicePorts []ServicePort
+
+type ServicePort struct {
+	Name    *string `mapstructure:"name"`
+	Port    *int    `mapstructure:"port"`
+	Default *bool   `mapstructure:"default"`
+}
+
 type ServiceDefinition struct {
 	Kind              *string                   `mapstructure:"kind"`
 	ID                *string                   `mapstructure:"id"`
@@ -399,6 +408,7 @@ type ServiceDefinition struct {
 	TaggedAddresses   map[string]ServiceAddress `mapstructure:"tagged_addresses"`
 	Meta              map[string]string         `mapstructure:"meta"`
 	Port              *int                      `mapstructure:"port"`
+	Ports             ServicePorts              `mapstructure:"ports"`
 	SocketPath        *string                   `mapstructure:"socket_path"`
 	Check             *CheckDefinition          `mapstructure:"check"`
 	Checks            []CheckDefinition         `mapstructure:"checks"`
@@ -979,5 +989,6 @@ type License struct {
 }
 
 type Reporting struct {
-	License License `mapstructure:"license"`
+	License               License `mapstructure:"license"`
+	SnapshotRetentionTime *string `mapstructure:"snapshot_retention_time" json:"snapshot_retention_time,omitempty"`
 }

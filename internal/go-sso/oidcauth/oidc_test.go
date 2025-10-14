@@ -18,6 +18,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const testRSAPrivateKey = "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDVMMi3HiDYhYmD\nbRi1MmacojGKP5HZMp4whUwp0oI+M0hpu2zQGv+p/vxUrsQQ6Esgp+sYA8aPRDky\ndMNLR+f0gjkAT7KglCIB6M4JfoLHaKrwCUPngQYWqdeVhl5abmRms/+gkZhqkkXr\nc3ax9yOCoyWMhaJjZeFyaeKt+DFDBB/VE8xNB5pVfCPgDJx5lmFwRtvzue65HLE6\nJHq8mA+y7k8qlH4H/yj5c1sZhJVUVxA/ixlDcYVI2vuPyoUAQsgUr4ZwlRVbbXOI\nUTMvnfy7OnScW0FxVNc66+7tp/qeTLBdkdMLa68hym/WbUnNqFbq7woraBoi+b+M\nNp1Uz5+7AgMBAAECggEATttsKvvcd2qxqmkEziVV+lMuUu5fswD7rYPo38Frhrlu\nbBm1Tqbl8coNKP+6K2zZOTuThL8Ex8KbC5RQFr0CyhkPH5PbRXV1vNIRwEZI9py7\nOe2bbfr2NxTc1wSsSvPxdGHZSNoCEE2JymVbvsllG7HgNkHKBs1NHoaXH/WhtyEX\nFoi2zEAl1xP3nrO6iJ/1Zjz0AHj+Ut0IL2abbT4ktQ4gkoSRjh7QMnBkQ4X5pyaM\nnQ1xhCMw8ryaV7zzCk5TuHiY2on1mp3F9TTq/lnyy712tY9g55IhX1vFu2iQ8Cv7\nfvOwZNvaxFJQVrs+kP3GZISEb34OvrKPycAN6lBEtQKBgQDrAXbFVW8TmPc38MjU\n/qEBfvzjzyUz9dGwuPK2y4ht1RdqYjT6n09FHTMUEcz+QxCTleAoZbI4TibAIWqG\nWu7HhjwEF0tIyXiEoUEWVhmbsPwbBc0yYFTJ3EhsyzLHwJ+tC0CSK5WTGygXpj6M\n1ZcpPjiiHDVpx/UQGtwKqvAk/wKBgQDoPGlgyKUTjpa6yj3Y2TMZnmWI4nJOBh7o\nEDX5vOhj7tfqrINllD6t4NFJFcVA30UK7RhmE0PkFAxnx/9+/+E0fUbRxFCNDGv5\nfVa6XaTqAwBsniGObkDjbzeNvRMloD3UzxeFdVkRVObXxJj7tLQ3ZymkYABBU3g7\nbEPt/cdZRQKBgEbKtBqRt9oxdBdX40e2RI4M0OVXGx/h5v7TV9oUyc48KMeVOdxd\nbSWmvCJJknTtgurSdSn2KI+piybJait67P8RwraAxd7xQerCILc3zJMH54nEX6HT\nPvdn8jFDrNJbhj48a4Ecu/wKbDNjkugd12FHKww6bySkZYAqdyqHf7vFAoGBAIXb\n5GWL4VKPeqP51II8V27p1N58n6QHdSMPzPzA/TY0wjGa9DXFqAczMY6txL+qsbIl\njU2wxw4c3DWpmsQKGzXVC8/3FvLl+QqaSzYqqdbUmhcBYpglRrORNHU3SWUDowAZ\nyhX72LXbuR8fS4qx0rqodOExEJSW1xNxSQpRn+j9AoGAXk6U9md5J3iRHtAPRIJI\nuWNm0rkBJnxBmxWVBlqghP5kXS6RGj72BlJjjT2nrbJeXjvHvBf31LHG+RrLuJUr\nl+P1QU5tkz6x487/yss7ZDkWgLoBuJmuVaTr8yQ548NJ48fuQEGRmQTtk/hXRqRp\n4keWXLkzwcqw6VF5MjfHaWA=\n-----END PRIVATE KEY-----\n"
+const badRSAPrivateKey = "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgk\n-----END PRIVATE KEY-----\n"
+
 func setupForOIDC(t *testing.T) (*Authenticator, *oidcauthtest.Server) {
 	t.Helper()
 
@@ -118,6 +121,117 @@ func TestOIDC_AuthURL(t *testing.T) {
 		)
 		requireErrorContains(t, err, "missing redirect_uri")
 	})
+
+	t.Run("custom scopes and PKCE enabled/disabled", func(t *testing.T) {
+		oa, _ := setupForOIDC(t)
+		oa.config.OIDCScopes = []string{"profile", "email"}
+
+		authURL, err := oa.GetAuthCodeURL(
+			context.Background(),
+			"https://example.com",
+			map[string]string{"foo": "bar"},
+		)
+		require.NoError(t, err)
+
+		parsedURL, err := url.Parse(authURL)
+		require.NoError(t, err)
+
+		// Extract query parameters
+		params := parsedURL.Query()
+		require.Contains(t, authURL, "scope=openid+profile+email")
+		require.Contains(t, params, "code_challenge")
+		require.NotEmpty(t, params.Get("code_challenge"))
+		require.Equal(t, "S256", params.Get("code_challenge_method"))
+
+		oa.config.OIDCClientUsePKCE = new(bool)
+		*oa.config.OIDCClientUsePKCE = false // PKCE disabled
+		authURL2, _ := oa.GetAuthCodeURL(
+			context.Background(),
+			"https://example.com",
+			map[string]string{"foo": "bar"},
+		)
+		parsedURL, err = url.Parse(authURL2)
+		require.NoError(t, err)
+
+		// Extract query parameters
+		params = parsedURL.Query()
+		require.NoError(t, err)
+		require.Contains(t, authURL2, "scope=openid+profile+email")
+		require.NotContains(t, params, "code_challenge")
+		require.Empty(t, params.Get("code_challenge"))
+	})
+
+	t.Run("oidc client assertion (private key JWT)", func(t *testing.T) {
+		oa, _ := setupForOIDC(t)
+		oa.config.OIDCClientAssertion = &OIDCClientAssertion{
+			PrivateKey:   &OIDCClientAssertionKey{PemKey: testRSAPrivateKey},
+			Audience:     []string{oa.config.OIDCDiscoveryURL},
+			KeyAlgorithm: "RS256",
+		}
+		authURL, err := oa.GetAuthCodeURL(
+			context.Background(),
+			"https://example.com",
+			map[string]string{"foo": "bar"},
+		)
+		require.NoError(t, err)
+		require.True(t, strings.HasPrefix(authURL, oa.config.OIDCDiscoveryURL+"/auth?"))
+
+		expected := map[string]string{
+			"client_id":     "abc",
+			"redirect_uri":  "https://example.com",
+			"response_type": "code",
+			"scope":         "openid",
+			// optional values
+			"acr_values": "acr1 acr2",
+		}
+
+		au, err := url.Parse(authURL)
+		require.NoError(t, err)
+		params := au.Query()
+
+		for k, v := range expected {
+			assert.Equal(t, v, au.Query().Get(k), "key %q is incorrect", k)
+		}
+
+		assert.Regexp(t, `^[a-z0-9]{40}$`, au.Query().Get("nonce"))
+		assert.Regexp(t, `^[a-z0-9]{40}$`, au.Query().Get("state"))
+		require.Contains(t, params, "code_challenge")
+		require.NotEmpty(t, params.Get("code_challenge"))
+		require.Equal(t, "S256", params.Get("code_challenge_method"))
+	})
+
+	t.Run("oidc client assertion invalid pemkey", func(t *testing.T) {
+		oa, _ := setupForOIDC(t)
+		oa.config.OIDCClientAssertion = &OIDCClientAssertion{
+			PrivateKey:   &OIDCClientAssertionKey{PemKey: badRSAPrivateKey},
+			Audience:     []string{oa.config.OIDCDiscoveryURL},
+			KeyAlgorithm: "RS256",
+		}
+		_, err := oa.GetAuthCodeURL(
+			context.Background(),
+			"https://example.com",
+			map[string]string{"foo": "bar"},
+		)
+		requireErrorContains(t, err, "failed to parse RSA private key")
+	})
+
+	t.Run("unsupported key algorithm", func(t *testing.T) {
+		oa, _ := setupForOIDC(t)
+
+		oa.config.OIDCClientAssertion = &OIDCClientAssertion{
+			PrivateKey:   &OIDCClientAssertionKey{PemKey: testRSAPrivateKey},
+			Audience:     []string{oa.config.OIDCDiscoveryURL},
+			KeyAlgorithm: "ES256",
+		}
+		origPayload := map[string]string{"foo": "bar"}
+		_, err := oa.GetAuthCodeURL(
+			context.Background(),
+			"https://example.com",
+			origPayload,
+		)
+		requireErrorContains(t, err, "unsupported key algorithm")
+
+	})
 }
 
 func TestOIDC_JWT_Functions_Fail(t *testing.T) {
@@ -203,6 +317,73 @@ func TestOIDC_ClaimsFromAuthCode(t *testing.T) {
 		}
 
 		require.Equal(t, expectedClaims, claims)
+	})
+
+	t.Run("multiple and nested claim mappings", func(t *testing.T) {
+		oa, srv := setupForOIDC(t)
+
+		origPayload := map[string]string{"foo": "bar"}
+		authURL, err := oa.GetAuthCodeURL(
+			context.Background(),
+			"https://example.com",
+			origPayload,
+		)
+		require.NoError(t, err)
+
+		state := getQueryParam(t, authURL, "state")
+		nonce := getQueryParam(t, authURL, "nonce")
+
+		// set provider claims that will be returned by the mock server
+		srv.SetCustomClaims(sampleClaims(nonce))
+
+		// set mock provider's expected code
+		srv.SetExpectedAuthCode("abc")
+
+		oa.config.ClaimMappings = map[string]string{
+			"email":        "user_email",
+			"/nested/Size": "user_size",
+		}
+		oa.config.ListClaimMappings = map[string]string{
+			"/nested/Groups": "groups",
+		}
+
+		srv.SetExpectedAuthCode("abc")
+
+		// Now use mockState in your test
+		resultClaims, _, err := oa.ClaimsFromAuthCode(
+			context.Background(),
+			state, "abc",
+		)
+		require.NoError(t, err)
+		require.Equal(t, "bob@example.com", resultClaims.Values["user_email"])
+		require.Equal(t, "medium", resultClaims.Values["user_size"])
+		require.ElementsMatch(t, []string{"a", "b"}, resultClaims.Lists["groups"])
+	})
+
+	t.Run("State not found", func(t *testing.T) {
+		oa, srv := setupForOIDC(t)
+		nonce := "test-nonce"
+		srv.SetCustomClaims(sampleClaims(nonce))
+		srv.SetExpectedAuthCode("abc")
+
+		_, _, err := oa.ClaimsFromAuthCode(
+			context.Background(),
+			"state", "abc",
+		)
+		requireErrorContains(t, err, "Expired or missing OAuth state")
+	})
+
+	t.Run("multiple audiences", func(t *testing.T) {
+		oa, _ := setupForOIDC(t)
+		oa.config.BoundAudiences = []string{"abc", "def"}
+		authURL, err := oa.GetAuthCodeURL(
+			context.Background(),
+			"https://example.com",
+			map[string]string{"foo": "bar"},
+		)
+		require.NoError(t, err)
+		require.Contains(t, authURL, "client_id=abc")
+		// Optionally: test with a token that matches one of the audiences
 	})
 
 	t.Run("failed login unusable claims", func(t *testing.T) {
@@ -307,8 +488,8 @@ func TestOIDC_ClaimsFromAuthCode(t *testing.T) {
 			context.Background(),
 			state, "abc",
 		)
-		requireErrorContains(t, err, "Invalid ID token nonce")
-		requireTokenVerificationError(t, err)
+		requireErrorContains(t, err, "invalid id_token nonce: invalid nonce")
+		requireProviderError(t, err)
 	})
 
 	t.Run("missing state", func(t *testing.T) {
@@ -420,8 +601,8 @@ func TestOIDC_ClaimsFromAuthCode(t *testing.T) {
 			context.Background(),
 			state, "abc",
 		)
-		requireErrorContains(t, err, "No id_token found in response")
-		requireTokenVerificationError(t, err)
+		requireErrorContains(t, err, "id_token is missing from auth code exchange")
+		requireProviderError(t, err)
 	})
 
 	t.Run("no response from provider", func(t *testing.T) {
@@ -475,8 +656,8 @@ func TestOIDC_ClaimsFromAuthCode(t *testing.T) {
 			context.Background(),
 			state, "abc",
 		)
-		requireErrorContains(t, err, `error validating signature: oidc: expected audience "abc" got ["not_gonna_match"]`)
-		requireTokenVerificationError(t, err)
+		requireErrorContains(t, err, `invalid id_token audiences`)
+		requireProviderError(t, err)
 	})
 }
 
@@ -502,13 +683,15 @@ func sampleClaims(nonce string) map[string]interface{} {
 func getQueryParam(t *testing.T, inputURL, param string) string {
 	t.Helper()
 
-	m, err := url.ParseQuery(inputURL)
+	// Replace this function with one that properly parses full URLs
+	u, err := url.Parse(inputURL)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("Failed to parse URL %q: %v", inputURL, err)
 	}
-	v, ok := m[param]
-	if !ok {
-		t.Fatalf("query param %q not found", param)
+
+	v := u.Query().Get(param)
+	if v == "" {
+		t.Fatalf("Query param %q not found in URL", param)
 	}
-	return v[0]
+	return v
 }

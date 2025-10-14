@@ -7,10 +7,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -100,7 +102,7 @@ func (a *Asserter) UpstreamEndpointStatus(
 	node := workload.Node
 	ip := node.LocalAddress()
 	port := workload.EnvoyAdminPort
-	addr := fmt.Sprintf("%s:%d", ip, port)
+	addr := net.JoinHostPort(ip, strconv.Itoa(port))
 
 	client := a.mustGetHTTPClient(t, node.Cluster)
 	libassert.AssertUpstreamEndpointStatusWithClient(t, client, addr, clusterName, healthStatus, count)
@@ -110,7 +112,7 @@ func (a *Asserter) getEnvoyClient(t *testing.T, workload *topology.Workload) (cl
 	node := workload.Node
 	ip := node.LocalAddress()
 	port := workload.EnvoyAdminPort
-	addr = fmt.Sprintf("%s:%d", ip, port)
+	addr = net.JoinHostPort(ip, strconv.Itoa(port))
 	client = a.mustGetHTTPClient(t, node.Cluster)
 	return client, addr
 }
@@ -183,7 +185,7 @@ func (a *Asserter) HTTPServiceEchoes(
 
 	node := workload.Node
 	ip := node.LocalAddress()
-	addr := fmt.Sprintf("%s:%d", ip, port)
+	addr := net.JoinHostPort(ip, strconv.Itoa(port))
 
 	client := a.mustGetHTTPClient(t, node.Cluster)
 	libassert.HTTPServiceEchoesWithClient(t, client, addr, path)
@@ -208,7 +210,7 @@ func (a *Asserter) HTTPServiceEchoesResHeader(
 
 	node := workload.Node
 	ip := node.LocalAddress()
-	addr := fmt.Sprintf("%s:%d", ip, port)
+	addr := net.JoinHostPort(ip, strconv.Itoa(port))
 
 	client := a.mustGetHTTPClient(t, node.Cluster)
 	libassert.HTTPServiceEchoesResHeaderWithClient(t, client, addr, path, expectedResHeader)
@@ -225,7 +227,7 @@ func (a *Asserter) HTTPStatus(
 
 	node := workload.Node
 	ip := node.LocalAddress()
-	addr := fmt.Sprintf("%s:%d", ip, port)
+	addr := net.JoinHostPort(ip, strconv.Itoa(port))
 
 	client := a.mustGetHTTPClient(t, node.Cluster)
 
@@ -323,7 +325,7 @@ func (a *Asserter) FortioFetch2HeaderEcho(t *testing.T, fortioWrk *topology.Work
 
 	var (
 		node   = fortioWrk.Node
-		addr   = fmt.Sprintf("%s:%d", node.LocalAddress(), fortioWrk.Port)
+		addr   = net.JoinHostPort(node.LocalAddress(), strconv.Itoa(fortioWrk.Port))
 		client = a.mustGetHTTPClient(t, node.Cluster)
 	)
 
@@ -349,7 +351,7 @@ func (a *Asserter) FortioFetch2FortioName(
 
 	var (
 		node   = fortioWrk.Node
-		addr   = fmt.Sprintf("%s:%d", node.LocalAddress(), fortioWrk.Port)
+		addr   = net.JoinHostPort(node.LocalAddress(), strconv.Itoa(fortioWrk.Port))
 		client = a.mustGetHTTPClient(t, node.Cluster)
 	)
 
@@ -381,7 +383,7 @@ func (a *Asserter) FortioFetch2ServiceUnavailable(t *testing.T, fortioWrk *topol
 func (a *Asserter) FortioFetch2ServiceStatusCodes(t *testing.T, fortioWrk *topology.Workload, us *topology.Upstream, path string, headers map[string]string, statuses []int) {
 	var (
 		node   = fortioWrk.Node
-		addr   = fmt.Sprintf("%s:%d", node.LocalAddress(), fortioWrk.Port)
+		addr   = net.JoinHostPort(node.LocalAddress(), strconv.Itoa(fortioWrk.Port))
 		client = a.mustGetHTTPClient(t, node.Cluster)
 	)
 

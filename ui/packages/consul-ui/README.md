@@ -5,7 +5,7 @@
 
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
-- [Yarn Commands](#yarn-commands)
+- [Pnpm Commands](#pnpm-commands)
 - [Running / Development](#running--development)
   - [Environment Variables](#environment-variables)
   - [Contributing/Engineering Documentation](#contributingengineering-documentation)
@@ -25,7 +25,7 @@ You will need the following things properly installed on your computer.
 * [Git](https://git-scm.com/)
 * [Node.js](https://nodejs.org/) (with npm)
 
-* [yarn](https://yarnpkg.com)
+* [pnpm](https://pnpm.io/)
 * [Ember CLI](https://ember-cli.com/)
 * [Google Chrome](https://google.com/chrome/)
 
@@ -51,12 +51,12 @@ From within `ui/packages/consul-ui` directory run:
 (see below and/or the [testing section of the engineering docs](./docs/testing.mdx) for
 further detail)
 
-## Yarn Commands
+## Pnpm Commands
 
-Most used tooling scripts below primarily use `make` which will `yarn install`
+Most used tooling scripts below primarily use `make` which will `pnpm install`
 and in turn call node package scripts.
 
-List of available project commands.  `yarn run <command-name>`
+List of available project commands.  `pnpm run <command-name>`
 
 | Command | Description |
 | ------- | ----------- |
@@ -86,12 +86,12 @@ The source code comes with a small development mode that runs enough of the cons
 as a set of mocks/fixtures to be able to run the UI without having to run
 consul.
 
-* `make start` or `yarn start` to start the ember app
+* `make start` or `pnpm start` to start the ember app
 * Visit your app at [http://localhost:4200](http://localhost:4200).
 
 You can also run the UI against a normal Consul installation.
 
-* `consul server -dev` to start consul listening on http://localhost:8500
+* `consul agent -dev` to start consul listening on http://localhost:8500
 * `make start-consul` to start the ember app proxying to `consul` (this will
 respect the `CONSUL_HTTP_ADDR` environment variable to locate the Consul
 installation.
@@ -144,15 +144,15 @@ Tests use the mock api (see ./mock-api for details), the mock-api runs
 automatically during testing, you don't need to run anything separately from
 the below commands in order for the tests to use the mock-api.
 
-* `make test` or `yarn run test`
-* `make test-view` or `yarn run test:view` to view the tests running in Chrome
+* `make test` or `pnpm run test`
+* `make test-view` or `pnpm run test:view` to view the tests running in Chrome
 
 For more guidance on running tests, see the [testing section of the engineering docs](./docs/testing.mdx).
 
 OSS only tests can also be run using:
 
-* `make test-oss` or `yarn run test:oss`
-* `make test-oss-view` or `yarn run test:oss:view` to view the tests running in Chrome
+* `make test-oss` or `pnpm run test:oss`
+* `make test-oss-view` or `pnpm run test:oss:view` to view the tests running in Chrome
 
 ### Linting
 
@@ -160,12 +160,6 @@ OSS only tests can also be run using:
 
 See `.eslintrc.js` and `.eslintignore` for specific configuration.
 
-### Testing local changes to `@hashicorp/consul-ui-toolkit`
-
-| Command                | Description                                                          |
-|------------------------|----------------------------------------------------------------------|
-| `yarn toolkit:link`    | Similar to `npm link` it adds the dependency locally from yalc store |
-| `yarn toolkit:remove"` | It will remove package info from package.json and yarn.lock file     |
 
 ### Building
 

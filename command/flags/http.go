@@ -159,6 +159,13 @@ func (f *HTTPFlags) APIClient() (*api.Client, error) {
 	return api.NewClient(c)
 }
 
+func (f *HTTPFlags) APIConfig() (*api.Config, error) {
+	c := api.DefaultConfig()
+	f.MergeOntoConfig(c)
+
+	return c, nil
+}
+
 func (f *HTTPFlags) MergeOntoConfig(c *api.Config) {
 	f.address.Merge(&c.Address)
 	f.token.Merge(&c.Token)

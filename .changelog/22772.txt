@@ -1,0 +1,3 @@
+```release-note:improvement
+proxy: default proxy.local_service_address to ::1 for IPv6 agent bind address
+```

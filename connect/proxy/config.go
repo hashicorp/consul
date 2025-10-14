@@ -9,14 +9,22 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/go-viper/mapstructure/v2"
-
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/api/watch"
 	"github.com/hashicorp/consul/connect"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
+
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/hashicorp/go-hclog"
+)
+
+const (
+	defaultIPv4BindAddr         = "0.0.0.0"
+	defaultIPv6BindAddr         = "::"
+	defaultIPv4LocalBindAddress = "127.0.0.1"
+	defaultIPv6LocalBindAddress = "::1"
 )
 
 // Config is the publicly configurable state for an entire proxy instance. It's
@@ -86,7 +94,12 @@ func (plc *PublicListenerConfig) applyDefaults() {
 		plc.HandshakeTimeoutMs = 10000
 	}
 	if plc.BindAddress == "" {
-		plc.BindAddress = "0.0.0.0"
+		dualStack, _ := netutil.IsDualStack(nil, false)
+		if dualStack {
+			plc.BindAddress = defaultIPv6BindAddr
+		} else {
+			plc.BindAddress = defaultIPv4BindAddr
+		}
 	}
 }
 
@@ -115,7 +128,12 @@ func (uc *UpstreamConfig) applyDefaults() {
 		uc.DestinationPartition = "default"
 	}
 	if uc.LocalBindAddress == "" && uc.LocalBindSocketPath == "" {
-		uc.LocalBindAddress = "127.0.0.1"
+		dualStack, _ := netutil.IsDualStack(nil, false)
+		if dualStack {
+			uc.LocalBindAddress = defaultIPv6LocalBindAddress
+		} else {
+			uc.LocalBindAddress = defaultIPv4LocalBindAddress
+		}
 	}
 }
 

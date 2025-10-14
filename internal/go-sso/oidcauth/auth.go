@@ -17,6 +17,7 @@ import (
 	"sync"
 
 	"github.com/coreos/go-oidc/v3/oidc"
+	capOidc "github.com/hashicorp/cap/oidc"
 	"github.com/hashicorp/go-hclog"
 	"github.com/patrickmn/go-cache"
 )
@@ -41,8 +42,14 @@ type Authenticator struct {
 
 	// parsedJWTPubKeys is the parsed form of config.JWTValidationPubKeys
 	parsedJWTPubKeys []interface{}
-	provider         *oidc.Provider
-	keySet           oidc.KeySet
+
+	// provider is the coreos/go-oidc provider used for JWT validation
+	provider *oidc.Provider
+
+	// capProvider is the HashiCorp CAP library provider used for OIDC flows
+	// with support for private key JWT client authentication
+	capProvider *capOidc.Provider
+	keySet      oidc.KeySet
 
 	// httpClient should be configured with all relevant root CA certs and be
 	// reused for all OIDC or JWKS operations. This will be nil for the static
@@ -86,13 +93,43 @@ func New(c *Config, logger hclog.Logger) (*Authenticator, error) {
 	}
 	a.backgroundCtx, a.backgroundCtxCancel = context.WithCancel(context.Background())
 
+	var err error
 	if c.Type == TypeOIDC {
 		a.oidcStates = cache.New(oidcStateTimeout, oidcStateCleanupInterval)
 	}
 
-	var err error
 	switch c.authType() {
-	case authOIDCDiscovery, authOIDCFlow:
+	case authOIDCFlow:
+		var supported []capOidc.Alg
+		if len(a.config.JWTSupportedAlgs) == 0 {
+			// Default to RS256 if nothing is specified.
+			supported = []capOidc.Alg{capOidc.RS256}
+		} else {
+			for _, alg := range a.config.JWTSupportedAlgs {
+				supported = append(supported, capOidc.Alg(alg))
+			}
+		}
+		// Use CAP's OIDC provider to leverage its built-in support for
+		// both standard client secret and JWT assertion authentication methods
+		providerConfig, err := capOidc.NewConfig(
+			a.config.OIDCDiscoveryURL,
+			a.config.OIDCClientID,
+			capOidc.ClientSecret(a.config.OIDCClientSecret),
+			supported,
+			a.config.AllowedRedirectURIs,
+			capOidc.WithAudiences(a.config.BoundAudiences...),
+			capOidc.WithProviderCA(a.config.OIDCDiscoveryCACert),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error creating provider config: %v", err)
+		}
+
+		provider, err := capOidc.NewProvider(providerConfig)
+		if err != nil {
+			return nil, fmt.Errorf("error creating provider: %v", err)
+		}
+		a.capProvider = provider
+	case authOIDCDiscovery:
 		a.httpClient, err = createHTTPClient(a.config.OIDCDiscoveryCACert)
 		if err != nil {
 			return nil, fmt.Errorf("error parsing OIDCDiscoveryCACert: %v", err)

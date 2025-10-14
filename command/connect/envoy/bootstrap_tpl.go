@@ -213,6 +213,17 @@ const bootstrapTemplate = `{
         "ignore_health_on_host_removal": false,
         "connect_timeout": "1s",
         "type": "STATIC",
+        {{/*
+          Only render the TLS transport_socket for the local agent cluster when:
+            - AgentTLS is enabled AND
+            - We actually have a non-empty CA bundle (AgentCAPEM)
+
+          Envoy <=1.34 tolerated an empty trusted_ca DataSource. Envoy 1.35+
+          rejects it with: "DataSource cannot be empty" during bootstrap.
+          
+          If AgentTLS is true but AgentCAPEM is empty, this is now an error condition
+          that should be propagated to the user rather than silently failing.
+        */}}
         {{- if .AgentTLS -}}
         "transport_socket": {
           "name": "tls",

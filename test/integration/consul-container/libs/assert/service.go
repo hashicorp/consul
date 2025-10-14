@@ -6,8 +6,10 @@ package assert
 import (
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -135,7 +137,7 @@ func HTTPServiceEchoesResHeaderWithClient(t *testing.T, client *http.Client, add
 // in the response body. Optional path can be provided to differentiate requests.
 func doHTTPServiceEchoes(t *testing.T, ip string, port int, path string, requestHeaders map[string]string, expectedResHeader map[string]string) {
 	client := cleanhttp.DefaultClient()
-	addr := fmt.Sprintf("%s:%d", ip, port)
+	addr := net.JoinHostPort(ip, strconv.Itoa(port))
 	doHTTPServiceEchoesWithClient(t, client, addr, path, requestHeaders, expectedResHeader)
 }
 

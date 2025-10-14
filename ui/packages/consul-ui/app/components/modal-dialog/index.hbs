@@ -52,7 +52,7 @@
               )}}
             </YieldSlot>
           </div>
-          <footer class="modal-dialog-footer">
+          <div class="modal-dialog-footer">
             <YieldSlot @name="actions" @params={{block-params (action "close")}}>
               {{yield (hash
                 open=(action "open")
@@ -61,7 +61,7 @@
                 aria=aria
               )}}
             </YieldSlot>
-          </footer>
+          </div>
         </div>
       </div>
     </div>
