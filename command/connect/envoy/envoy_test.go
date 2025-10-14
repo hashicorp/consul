@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/hashicorp/consul/agent/netutil"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -72,7 +73,7 @@ func TestEnvoyGateway_Validation(t *testing.T) {
 			ui := cli.NewMockUi()
 			c := New(ui)
 			c.init()
-			c.checkDualStack = func() (bool, error) {
+			c.checkDualStack = func(dto *netutil.IPStackRequestDTO) (bool, error) {
 				return false, nil
 			}
 
@@ -624,7 +625,7 @@ func TestGenerateConfig(t *testing.T) {
 		},
 		{
 			Name:         "grpc-tls-addr-config",
-			Flags:        []string{"-proxy-id", "test-proxy"},
+			Flags:        []string{"-proxy-id", "test-proxy", "-ca-file", "../../../test/ca/root.cer"},
 			XDSPorts:     agent.GRPCPorts{Plaintext: 9997, TLS: 9998},
 			AgentSelf110: false,
 			WantArgs: BootstrapTplArgs{
@@ -641,6 +642,7 @@ func TestGenerateConfig(t *testing.T) {
 					AgentPort:    "9998",
 					AgentTLS:     true,
 				},
+				AgentCAPEM:            "-----BEGIN CERTIFICATE-----\\nMIIEEzCCAvugAwIBAgIUIYIXKNRBFBPuuOit2D2CfVJAoDAwDQYJKoZIhvcNAQEL\\nBQAwgZgxCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJDQTEWMBQGA1UEBwwNU2FuIEZy\\nYW5jaXNjbzEcMBoGA1UECgwTSGFzaGlDb3JwIFRlc3QgQ2VydDEMMAoGA1UECwwD\\nRGV2MRYwFAYDVQQDDA10ZXN0LmludGVybmFsMSAwHgYJKoZIhvcNAQkBFhF0ZXN0\\nQGludGVybmFsLmNvbTAeFw0yMzExMDIxNTUwMjlaFw0zMzEwMzAxNTUwMjlaMIGY\\nMQswCQYDVQQGEwJVUzELMAkGA1UECAwCQ0ExFjAUBgNVBAcMDVNhbiBGcmFuY2lz\\nY28xHDAaBgNVBAoME0hhc2hpQ29ycCBUZXN0IENlcnQxDDAKBgNVBAsMA0RldjEW\\nMBQGA1UEAwwNdGVzdC5pbnRlcm5hbDEgMB4GCSqGSIb3DQEJARYRdGVzdEBpbnRl\\ncm5hbC5jb20wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCIA00iG5Iv\\neRzZwf2P1Laih3eoiK2Wl1Re22cz2Pcpf6gb7agPguwU5Hco0DWzsnmek2Qyw9gl\\noroX1t7LbTW2rxbK1hP7PkFCwSxi9u8MZDaLF3a79bwbsYZzf3toeoz8DCBxo9bB\\nSSACj4uI/S+lUjMctQrK1nFjGoNUHfxioXPwIJH+TS/76TiZPu3Zj6kN6taVFNe3\\nISBNXW6Vg8E3koz+9Bwv0a6Ty7oFRoJXpsud1k/83Iy288jhYDuB56+ypUmcCNqG\\nT+e0Bn/VXHx26GXTx97cXSLJE+o+JrHZaI1TcQUL2Z5DJZVJRUg/wtcXggoMLVI1\\nO0enJm2jdmLXAgMBAAGjUzBRMB0GA1UdDgQWBBTmrmqnZIdFOj6vhCUAJKLZNUDw\\nFDAfBgNVHSMEGDAWgBTmrmqnZIdFOj6vhCUAJKLZNUDwFDAPBgNVHRMBAf8EBTAD\\nAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQB3j6gvalxq54hZSwVmVZPMzjdTVYRC11b0\\n6C9pWKsLwu+WINcs59ui8wpYVjcw1AK4/2I1Q7P4RgpSarAxG5tYIMB1xcfFKqBn\\nf/dDXexONgwpW6SoBJ58c7OB/aH8CenDT8Vwk3fwjYslOywbFRqBjH+PB8uTlu0e\\nD1fzjpcQCrQeA5VD4pjJAaTmi7bLVuH5XIya3++f/N3xOn53GVMUDO1OdFz8ZMvJ\\nWrrg7E/wMXB1b5Wo2n2ypVU4sejikSjg2nfdLojUWGMrZ8TuUnjFs88PeQ9CObAp\\nA36dLfs4JLF3sVOtqTd6BGwegDsmmllYO5Ky6I+laoLSHpGDEihS\\n-----END CERTIFICATE-----\\n",
 				AdminAccessLogPath:    "/dev/null",
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
@@ -1029,6 +1031,15 @@ func TestGenerateConfig(t *testing.T) {
 				PrometheusScrapePath:  "/metrics",
 			},
 		},
+		// Error case: TLS enabled but no CA material available
+		// Previously this would silently generate invalid bootstrap (empty trusted_ca),
+		// now it should return an error to properly inform the user of the misconfiguration.
+		{
+			Name:    "https-scheme-no-ca-error",
+			Flags:   []string{"-proxy-id", "test-proxy"},
+			Env:     []string{"CONSUL_GRPC_ADDR=https://127.0.0.1:8502"},
+			WantErr: "TLS is enabled for xDS connections but no CA certificates are available",
+		},
 		{
 			Name:  "both-CONSUL_HTTP_ADDR-TLS-and-CONSUL_GRPC_ADDR-PLAIN-is-plain",
 			Flags: []string{"-proxy-id", "test-proxy", "-ca-file", "../../../test/ca/root.cer"},
@@ -1369,7 +1380,7 @@ func TestGenerateConfig(t *testing.T) {
 				return nil, nil
 			}
 
-			c.checkDualStack = func() (bool, error) {
+			c.checkDualStack = func(dto *netutil.IPStackRequestDTO) (bool, error) {
 				return tc.IsDualStack, nil
 			}
 
@@ -1433,6 +1444,7 @@ func TestEnvoy_GatewayRegistration(t *testing.T) {
 			name: "register gateway with proxy-id and name",
 			args: []string{
 				"-http-addr=" + a.HTTPAddr(),
+				"-grpc-addr=http://127.0.0.1:" + strconv.Itoa(a.Config.GRPCPort),
 				"-register",
 				"-bootstrap",
 				"-gateway", "ingress",
@@ -1447,6 +1459,7 @@ func TestEnvoy_GatewayRegistration(t *testing.T) {
 			name: "register gateway without proxy-id with name",
 			args: []string{
 				"-http-addr=" + a.HTTPAddr(),
+				"-grpc-addr=http://127.0.0.1:" + strconv.Itoa(a.Config.GRPCPort),
 				"-register",
 				"-bootstrap",
 				"-gateway", "ingress",
@@ -1460,6 +1473,7 @@ func TestEnvoy_GatewayRegistration(t *testing.T) {
 			name: "register gateway without proxy-id and without name",
 			args: []string{
 				"-http-addr=" + a.HTTPAddr(),
+				"-grpc-addr=http://127.0.0.1:" + strconv.Itoa(a.Config.GRPCPort),
 				"-register",
 				"-bootstrap",
 				"-gateway", "ingress",
@@ -1472,13 +1486,14 @@ func TestEnvoy_GatewayRegistration(t *testing.T) {
 			name: "register gateway with proxy-id without name",
 			args: []string{
 				"-http-addr=" + a.HTTPAddr(),
+				"-grpc-addr=http://127.0.0.1:" + strconv.Itoa(a.Config.GRPCPort),
 				"-register",
 				"-bootstrap",
 				"-gateway", "ingress",
-				"-proxy-id", "us-ingress-1",
+				"-proxy-id", "us-ingress",
 			},
 			kind:    api.ServiceKindIngressGateway,
-			id:      "us-ingress-1",
+			id:      "us-ingress",
 			service: "ingress-gateway",
 		},
 	}
@@ -1487,7 +1502,7 @@ func TestEnvoy_GatewayRegistration(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ui := cli.NewMockUi()
 			c := New(ui)
-			c.checkDualStack = func() (bool, error) {
+			c.checkDualStack = func(dto *netutil.IPStackRequestDTO) (bool, error) {
 				return false, nil
 			}
 

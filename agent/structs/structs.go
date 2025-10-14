@@ -91,6 +91,7 @@ const (
 	RaftLogVerifierCheckpoint                   = 41 // Only used for log verifier, no-op on FSM.
 	ResourceOperationType                       = 42
 	UpdateVirtualIPRequestType                  = 43
+	CensusRequestType                           = 44
 )
 
 const (
@@ -160,6 +161,7 @@ var requestTypeStrings = map[MessageType]string{
 	RaftLogVerifierCheckpoint:       "RaftLogVerifierCheckpoint",
 	ResourceOperationType:           "Resource",
 	UpdateVirtualIPRequestType:      "UpdateManualVirtualIPRequestType",
+	CensusRequestType:               "Census",
 }
 
 const (
@@ -1320,8 +1322,8 @@ func (sp ServicePorts) Validate() error {
 			return fmt.Errorf("Ports.Name cannot be empty")
 		}
 
-		if p.Port == 0 {
-			return fmt.Errorf("Ports.Port must be non-zero")
+		if p.Port <= 0 {
+			return fmt.Errorf("Ports.Port must be greater than zero")
 		}
 
 		_, ok := seenName[p.Name]
@@ -1596,6 +1598,9 @@ func (s *NodeService) Validate() error {
 	}
 
 	if s.Kind == ServiceKindConnectProxy {
+		if len(s.Ports) > 0 {
+			result = multierror.Append(result, fmt.Errorf("Ports cannot be set for a %s", s.Kind))
+		}
 		if s.Port == 0 && s.SocketPath == "" {
 			result = multierror.Append(result, fmt.Errorf("Port or SocketPath must be set for a %s", s.Kind))
 		}
@@ -1738,6 +1743,9 @@ func (s *NodeService) ValidateForAgent() error {
 
 	// Gateway validation
 	if s.IsGateway() {
+		if len(s.Ports) > 0 {
+			result = multierror.Append(result, fmt.Errorf("Ports cannot be set for a %s", s.Kind))
+		}
 		// Non-ingress gateways must have a port
 		if s.Port == 0 && s.Kind != ServiceKindIngressGateway && s.Kind != ServiceKindAPIGateway {
 			result = multierror.Append(result, fmt.Errorf("Port must be non-zero for a %s", s.Kind))
@@ -3280,4 +3288,32 @@ func (l *Locality) Validate() error {
 	}
 
 	return nil
+}
+
+// CensusRequest is used to perform operations on the local census
+type CensusRequest struct {
+	Action api.CensusOp
+	// PUT fields
+	ID   string    `json:",omitempty"`
+	TS   time.Time `json:",omitempty"`
+	Data []byte    `json:",omitempty"`
+	// PRUNE field
+	Cutoff  time.Time `json:",omitempty"`
+	Version uint16    `json:",omitempty"` // start at 1
+}
+
+// UtilizationBundleRequest is used to request a utilization bundle be generated via the API
+type UtilizationBundleRequest struct {
+	TodayOnly  bool
+	Message    string
+	SendReport bool
+
+	DCSpecificRequest
+}
+
+// UtilizationBundleResponse captures the server response when generating
+// manual utilization bundles via the System RPC/API.
+type UtilizationBundleResponse struct {
+	Bundle    []byte
+	QueryMeta QueryMeta
 }

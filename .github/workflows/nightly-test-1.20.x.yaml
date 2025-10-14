@@ -4,13 +4,13 @@
 name: Nightly Frontend Test 1.20.x
 on:
   schedule:
-    - cron: '0 4 * * *'
+    - cron: "0 4 * * *"
   workflow_dispatch: {}
 
 env:
-  EMBER_PARTITION_TOTAL: 4        # Has to be changed in tandem with the matrix.partition
+  EMBER_PARTITION_TOTAL: 4 # Has to be changed in tandem with the matrix.partition
   BRANCH: "release/1.20.x"
-  BRANCH_NAME: "release-1.20.x"   # Used for naming artifacts
+  BRANCH_NAME: "release-1.20.x" # Used for naming artifacts
   GOPRIVATE: github.com/hashicorp # Required for enterprise deps
 
 jobs:
@@ -22,18 +22,24 @@ jobs:
 
   frontend-test-workspace-node:
     runs-on: ubuntu-latest
-    needs: [ check-ent ]
+    needs: [check-ent]
     steps:
       - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
         with:
           ref: ${{ env.BRANCH }}
 
-      # Not necessary to use yarn, but enables caching
-      - uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+      - name: Setup node and pnpm cache
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
         with:
-          node-version: 20
-          cache: 'yarn'
-          cache-dependency-path: ./ui/yarn.lock
+          node-version-file: "./ui/package.json"
+          cache: "pnpm"
+          cache-dependency-path: "ui/pnpm-lock.yaml"
+
+      - name: Install PNPM
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        with:
+          run_install: false
+          package_json_file: ui/package.json
 
       - name: Install
         id: install
@@ -52,7 +58,7 @@ jobs:
 
   frontend-build-ce:
     runs-on: ubuntu-latest
-    needs: [ check-ent ]
+    needs: [check-ent]
     env:
       JOBS: 2
       CONSUL_NSPACES_ENABLED: 0
@@ -61,12 +67,18 @@ jobs:
         with:
           ref: ${{ env.BRANCH }}
 
-      # Not necessary to use yarn, but enables caching
-      - uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+      - name: Setup node and pnpm cache
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
         with:
-          node-version: 20
-          cache: 'yarn'
-          cache-dependency-path: ./ui/yarn.lock
+          node-version-file: "./ui/package.json"
+          cache: "pnpm"
+          cache-dependency-path: "ui/pnpm-lock.yaml"
+
+      - name: Install PNPM
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        with:
+          run_install: false
+          package_json_file: ui/package.json
 
       - name: Install
         id: install
@@ -90,7 +102,7 @@ jobs:
     needs: [frontend-build-ce]
     strategy:
       matrix:
-        partition: [ 1, 2, 3, 4 ]
+        partition: [1, 2, 3, 4]
     env:
       CONSUL_NSPACES_ENABLED: 0
       EMBER_TEST_REPORT: test-results/report-ce.xml #outputs test report for CI test summary
@@ -100,12 +112,18 @@ jobs:
         with:
           ref: ${{ env.BRANCH }}
 
-      # Not necessary to use yarn, but enables caching
-      - uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+      - name: Setup node and pnpm cache
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
         with:
-          node-version: 20
-          cache: 'yarn'
-          cache-dependency-path: ./ui/yarn.lock
+          node-version-file: "./ui/package.json"
+          cache: "pnpm"
+          cache-dependency-path: "ui/pnpm-lock.yaml"
+
+      - name: Install PNPM
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        with:
+          run_install: false
+          package_json_file: ui/package.json
 
       - name: Install
         id: install
@@ -125,7 +143,7 @@ jobs:
 
   frontend-build-ent:
     runs-on: ubuntu-latest
-    needs: [ check-ent ]
+    needs: [check-ent]
     env:
       JOBS: 2
       CONSUL_NSPACES_ENABLED: 1
@@ -134,12 +152,18 @@ jobs:
         with:
           ref: ${{ env.BRANCH }}
 
-      # Not necessary to use yarn, but enables caching
-      - uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+      - name: Setup node and pnpm cache
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
         with:
-          node-version: 20
-          cache: 'yarn'
-          cache-dependency-path: ./ui/yarn.lock
+          node-version-file: "./ui/package.json"
+          cache: "pnpm"
+          cache-dependency-path: "ui/pnpm-lock.yaml"
+
+      - name: Install PNPM
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        with:
+          run_install: false
+          package_json_file: ui/package.json
 
       - name: Install
         id: install
@@ -163,7 +187,7 @@ jobs:
     needs: [frontend-build-ent]
     strategy:
       matrix:
-        partition: [ 1, 2, 3, 4 ]
+        partition: [1, 2, 3, 4]
     env:
       CONSUL_NSPACES_ENABLED: 1
       EMBER_TEST_REPORT: test-results/report-ce.xml #outputs test report for CI test summary
@@ -173,12 +197,18 @@ jobs:
         with:
           ref: ${{ env.BRANCH }}
 
-      # Not necessary to use yarn, but enables caching
-      - uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+      - name: Setup node and pnpm cache
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
         with:
-          node-version: 20
-          cache: 'yarn'
-          cache-dependency-path: ./ui/yarn.lock
+          node-version-file: "./ui/package.json"
+          cache: "pnpm"
+          cache-dependency-path: "ui/pnpm-lock.yaml"
+
+      - name: Install PNPM
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        with:
+          run_install: false
+          package_json_file: ui/package.json
 
       - name: Install
         id: install
@@ -204,12 +234,18 @@ jobs:
         with:
           ref: ${{ env.BRANCH }}
 
-      # Not necessary to use yarn, but enables caching
-      - uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+      - name: Install PNPM
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
         with:
-          node-version: 20
-          cache: 'yarn'
-          cache-dependency-path: ./ui/yarn.lock
+          run_install: false
+          package_json_file: ui/package.json
+
+      - name: Setup node and pnpm cache
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+        with:
+          node-version-file: "./ui/package.json"
+          cache: "pnpm"
+          cache-dependency-path: "ui/pnpm-lock.yaml"
 
       - name: Install
         id: install

@@ -1602,6 +1602,7 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	cfg.Cloud = runtimeCfg.Cloud
 
 	cfg.Reporting.License.Enabled = runtimeCfg.Reporting.License.Enabled
+	cfg.Reporting.SnapshotRetentionTime = runtimeCfg.Reporting.SnapshotRetentionTime
 
 	cfg.ServerRejoinAgeMax = runtimeCfg.ServerRejoinAgeMax
 	cfg.EnableXDSLoadBalancing = runtimeCfg.EnableXDSLoadBalancing
@@ -2677,6 +2678,8 @@ func (a *Agent) validateService(service *structs.NodeService, chkTypes []*struct
 	for _, port := range service.Ports {
 		if libdns.InvalidNameRe.MatchString(port.Name) {
 			a.logger.Warn("Service Port with name %s will not be discoverable via DNS due to invalid characters. Valid characters include all alpha-numerics and dashes.", port.Name)
+		} else if len(port.Name) > libdns.MaxLabelLength {
+			a.logger.Warn("Service Port with name %s will not be discoverable via DNS due to it being too long. Valid lengths are between 1 and 63 bytes.", "portName", port.Name)
 		}
 	}
 
@@ -2935,6 +2938,14 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 
 			if source == ConfigSourceRemote && !a.config.EnableRemoteScriptChecks {
 				return fmt.Errorf("Scripts are disabled on this agent from remote calls; to enable, configure 'enable_script_checks' to true")
+			}
+
+			if !a.config.ACLsEnabled && a.config.EnableLocalScriptChecks {
+				a.logger.Warn("Scripts are enabled on this agent without ACLs; this is not recommended for security reasons")
+			}
+
+			if !a.config.ACLsEnabled && a.config.EnableRemoteScriptChecks {
+				a.logger.Warn("Scripts are enabled on this agent from remote calls without ACLs; this is not recommended for security reasons")
 			}
 		}
 	}

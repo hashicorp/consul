@@ -73,3 +73,11 @@ func GetBuildInfo() *BuildInfo {
 		FIPS:         GetFIPSInfo(),
 	}
 }
+
+// IsEnterprise reports whether this build of Consul includes Enterprise features.
+// Enterprise binaries set VersionMetadata to "ent" (or an "ent." prefixed variant)
+// via build-time ldflags. Community builds leave the metadata empty.
+func IsEnterprise() bool {
+	metadata := VersionMetadata
+	return strings.HasPrefix(metadata, "ent")
+}

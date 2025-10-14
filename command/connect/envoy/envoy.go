@@ -15,10 +15,11 @@ import (
 	"time"
 
 	"github.com/go-viper/mapstructure/v2"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-version"
 	"github.com/mitchellh/cli"
 	"google.golang.org/protobuf/encoding/protojson"
+
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-version"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/netutil"
@@ -91,7 +92,7 @@ type cmd struct {
 	dialFunc func(network string, address string) (net.Conn, error)
 
 	//checks if the consul agent is configured to use both IPv4 and IPv6 addresses.
-	checkDualStack  func() (bool, error)
+	checkDualStack  func(dto *netutil.IPStackRequestDTO) (bool, error)
 	useIPv6loopback bool
 }
 
@@ -249,9 +250,7 @@ func (c *cmd) init() {
 	c.dialFunc = func(network string, address string) (net.Conn, error) {
 		return net.DialTimeout(network, address, 3*time.Second)
 	}
-	c.checkDualStack = func() (bool, error) {
-		return netutil.IsDualStack(nil, false)
-	}
+	c.checkDualStack = netutil.IsDualStackWithDTO
 }
 
 // canBindInternal is here mainly so we can unit test this with a constant net.Addr list
@@ -399,7 +398,10 @@ func (c *cmd) run(args []string) int {
 	}
 
 	// check dual stack is configured
-	isDualStack, err := c.checkDualStack()
+
+	isDualStack, err := c.checkDualStack(&netutil.IPStackRequestDTO{
+		Client: c.client,
+	})
 	if err != nil {
 		if strings.Contains(err.Error(), "Permission denied") {
 			// Token did not have agent:read. Suppress and proceed with defaults.
@@ -409,7 +411,6 @@ func (c *cmd) run(args []string) int {
 			return 1
 		}
 	}
-
 	c.logger.Debug("Received", "isDualStack", strconv.FormatBool(isDualStack))
 	if isDualStack {
 		c.logger.Debug("using dual-stack configuration: default localhost to IPv6 loopback")
@@ -680,6 +681,12 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 		return nil, err
 	}
 	caPEM = strings.ReplaceAll(strings.Join(pems, ""), "\n", "\\n")
+
+	// Check for invalid configuration: AgentTLS enabled but no CA material
+	if xdsAddr.AgentTLS && caPEM == "" {
+		return nil, fmt.Errorf("TLS is enabled for xDS connections but no CA certificates are available. " +
+			"Please configure CA certificates via -ca-file, -ca-path, or the corresponding config options")
+	}
 
 	return &BootstrapTplArgs{
 		GRPC:                  xdsAddr,
