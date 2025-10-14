@@ -42,12 +42,12 @@
             <Hds::Button
               @text='Delete'
               @color='critical'
-              {{action confirm 'delete' item}}
+              {{action confirm}}
               data-test-delete
             />
           </BlockSlot>
           <BlockSlot @name="dialog" as |execute cancel message|>
-            <DeleteConfirmation @message={{message}} @execute={{execute}} @cancel={{cancel}} />
+            <DeleteConfirmation @message={{message}} @execute={{queue execute (fn this.delete item)}} @cancel={{cancel}} />
           </BlockSlot>
         </ConfirmationDialog>
       {{/if}}

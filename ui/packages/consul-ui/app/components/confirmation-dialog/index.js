@@ -20,12 +20,12 @@ export default Component.extend(Slotted, {
     },
     execute: function () {
       set(this, 'confirming', false);
-      this.sendAction(...['actionName', ...this['arguments']]);
+      // this.sendAction(...['actionName', ...this['arguments']]);
     },
     confirm: function () {
-      const [action, ...args] = arguments;
-      set(this, 'actionName', action);
-      set(this, 'arguments', args);
+      // const [action, ...args] = arguments;
+      // set(this, 'actionName', action);
+      // set(this, 'arguments', args);
       set(this, 'confirming', true);
     },
   },
