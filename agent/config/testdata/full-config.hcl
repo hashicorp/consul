@@ -281,6 +281,7 @@ enable_central_service_config = false
 enable_debug = true
 enable_script_checks = true
 enable_local_script_checks = true
+disable_kv_key_validation = false
 enable_syslog = true
 encrypt = "A4wELWqH"
 encrypt_verify_incoming = true
