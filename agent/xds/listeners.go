@@ -949,6 +949,13 @@ func makeListener(opts makeListenerOpts) *envoy_listener_v3.Listener {
 func makeListenerWithDefault(opts makeListenerOpts) *envoy_listener_v3.Listener {
 	if opts.addr == "" {
 		opts.addr = "127.0.0.1"
+		ds, err := netutil.IsDualStack(nil, true)
+		if err != nil {
+			return nil
+		}
+		if ds {
+			opts.addr = "::1"
+		}
 	}
 	accessLog, err := accesslogs.MakeAccessLogs(&opts.accessLogs, true)
 	if err != nil && opts.logger != nil {
@@ -1342,6 +1349,13 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 	addr := cfgSnap.Address
 	if addr == "" {
 		addr = "0.0.0.0"
+		ds, err := netutil.IsDualStack(nil, true)
+		if err != nil {
+			return nil, err
+		}
+		if ds {
+			addr = "::"
+		}
 	}
 	if cfg.BindAddress != "" {
 		addr = cfg.BindAddress
@@ -1565,6 +1579,13 @@ func (s *ResourceGenerator) makeExposedCheckListener(cfgSnap *proxycfg.ConfigSna
 		addr = cfg.BindAddress
 	} else if addr == "" {
 		addr = "0.0.0.0"
+		ds, err := netutil.IsDualStack(nil, true)
+		if err != nil {
+			return nil, err
+		}
+		if ds {
+			addr = "::"
+		}
 	}
 
 	// Strip any special characters from path to make a valid and hopefully unique name
