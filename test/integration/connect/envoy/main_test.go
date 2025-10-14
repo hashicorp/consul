@@ -19,7 +19,8 @@ import (
 )
 
 var (
-	flagWin = flag.Bool("win", false, "Execute tests on windows")
+	flagWin  = flag.Bool("win", false, "Execute tests on windows")
+	flagIPv6 = flag.Bool("ipv6", false, "Execute tests using IPv6 instead of IPv4")
 )
 
 func TestEnvoy(t *testing.T) {
@@ -30,26 +31,32 @@ func TestEnvoy(t *testing.T) {
 		check_dir_files(dir)
 	}
 
+	// Prepare environment variables
+	var envVars []string
+	if *flagIPv6 {
+		envVars = append(envVars, "USE_IPV6=true")
+	}
+
 	testcases, err := discoverCases()
 	require.NoError(t, err)
 
-	runCmd(t, "suite_setup")
+	runCmd(t, "suite_setup", envVars...)
 
-	defer runCmd(t, "suite_teardown")
+	defer runCmd(t, "suite_teardown", envVars...)
 
 	for _, tc := range testcases {
 		t.Run(tc, func(t *testing.T) {
-			caseDir := "CASE_DIR=" + tc
+			testEnvVars := append(envVars, "CASE_DIR="+tc)
 
 			t.Cleanup(func() {
 				if t.Failed() {
-					runCmd(t, "capture_logs", caseDir)
+					runCmd(t, "capture_logs", testEnvVars...)
 				}
 
-				runCmd(t, "test_teardown", caseDir)
+				runCmd(t, "test_teardown", testEnvVars...)
 			})
 
-			runCmd(t, "run_tests", caseDir)
+			runCmd(t, "run_tests", testEnvVars...)
 		})
 	}
 }
@@ -88,7 +95,6 @@ func runCmd(t *testing.T, c string, env ...string) {
 
 	if *flagWin == true {
 		runCmdWindows(t, c, env...)
-
 	} else {
 		runCmdLinux(t, c, env...)
 	}
@@ -144,7 +150,6 @@ func check_dir_files(path string) {
 
 // Check if a file contains CRLF line endings if so call crlf_normalize
 func crlf_file_check(file_name string) {
-
 	file, err := ioutil.ReadFile(file_name)
 	text := string(file)
 
