@@ -132,9 +132,9 @@ Check your product logs roughly 24 hours after opting out to make sure that the 
 
 If you opted-out from the automated license utilization reporting you might still need to produce license utilization reports.
 
-For this you can use the [`consul operator utilization`](/consul/commands/operator/utilization) CLI command.
+You can use the [`consul operator utilization`](/consul/commands/operator/utilization) CLI command to generate these reports.
 
-The command will ask if you want to automatically send the report to HashiCorp, if you are running an air-gapped environment or did not configure your traffic as mentioned in [Enable automated reporting](#enable-automated-reporting), you can select `N`, otherwise we recommend you to send the report to HashiCorp.
+This command will ask if you want to automatically send the report to HashiCorp. If you are running an air-gapped environment or you did not configure your traffic to [enable automated reporting](#enable-automated-reporting), you can select `N`.
 
 ```shell-session
 $ consul operator utilization -output license-report.json 
@@ -187,9 +187,9 @@ After the command completes you can review the report.
 
 </CodeBlockConfig>
 
-The amount of snapshots exported by the command depends on the [`snapshot_retention_time`](/consul/docs/reference/agent/configuration-file/general#snapshot_retention_time) configuration parameter. Consul takes a snapshot every 24 hours even if automated reporting to HashiCorp is disabled.
+The amount of snapshots exported by the command depends on the [agent configuration's `snapshot_retention_time` parameter](/consul/docs/reference/agent/configuration-file/general#snapshot_retention_time). Consul takes a snapshot every 24 hours, even if automated reporting to HashiCorp is disabled.
 
-For the full list of options for the CLI command refer to the [`consul operator utilization`](/consul/commands/operator/utilization) documentation.
+For the full list of options, refer to the [`consul operator utilization` CLI documentation](/consul/commands/operator/utilization).
 
 ## Example payloads
 

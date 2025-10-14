@@ -383,7 +383,7 @@ The page provides reference information for general parameters in a Consul agent
 - `reporting`<EnterpriseAlert inline /> - This option allows options for HashiCorp reporting.
     - `license` - The license object allows users to control automatic reporting of license utilization metrics to HashiCorp.
       - `enabled`: (Defaults to `true`) Enables automatic license utilization reporting.
-    - `snapshot_retention_time` ((#snapshot_retention_time))  - This option controls the time the license utilization snapshots will be retained in Consul's internal Raft-replicated state. The default value is `9600h` (~400 days). Snapshot are taken automatically every 24 hours, even if reporting to HashiCorp is disabled, so using the default value will keep up to 400 reports in Consul's internal Raft-replicated state.   
+    - `snapshot_retention_time` ((#snapshot_retention_time))  - This option controls the time Consul retains the license utilization snapshots in its internal Raft-replicated state. The default value is `9600h`, which is approximately 400 days. Snapshot are taken automatically every 24 hours, even when reporting to HashiCorp is disabled, so using Consul will keep 400 reports in its internal Raft-replicated state by default.   
 
 - `segment` ((#\_segment)) <EnterpriseAlert inline /> - This parameter sets the name of the network segment the agent belongs to. An agent can only join and
   communicate with other agents within its network segment. Ensure the [join operation uses the correct port for this segment](/consul/docs/multi-tenant/network-segment/vm#configure-clients-to-join-segments). Review the [Network Segments documentation](/consul/docs/multi-tenant/network-segment/vm)
