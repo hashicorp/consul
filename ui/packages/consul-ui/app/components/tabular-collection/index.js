@@ -39,18 +39,32 @@ export default CollectionComponent.extend(Slotted, {
     this.$element = this.dom.element(`#${this.guid}`);
     this.actions.resize.apply(this, [{ target: this.dom.viewport() }]);
   },
-  style: computed('rowHeight', '_items', 'maxRows', 'maxHeight', function () {
-    const maxRows = this.rows;
-    let height = this.maxHeight;
-    if (maxRows) {
-      let rows = Math.max(3, get(this._items || [], 'length'));
-      rows = Math.min(maxRows, rows);
-      height = this.rowHeight * rows + 29;
-    }
-    return {
-      height: height,
-    };
+
+  style: computed('rowHeight', '_items', 'maxRows', 'maxHeight', {
+    get() {
+      if (this._style !== undefined) {
+        return this._style;
+      }
+
+      const maxRows = this.rows;
+      let height = this.maxHeight;
+
+      if (maxRows) {
+        let rows = Math.max(3, get(this._items || [], 'length'));
+        rows = Math.min(maxRows, rows);
+        height = this.rowHeight * rows + 29;
+      }
+
+      this._style = { height }; // optional caching
+      return this._style;
+    },
+
+    set(_key, value) {
+      this._style = value;
+      return this._style;
+    },
   }),
+
   willRender: function () {
     this._super(...arguments);
     set(this, 'hasCaption', this._isRegistered('caption'));

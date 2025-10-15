@@ -47,14 +47,32 @@ export default Component.extend(Slotted, {
       return style;
     };
   },
-  style: computed('height', function () {
-    if (this.scroll !== 'virtual') {
-      return {};
-    }
-    return {
-      height: this.height,
-    };
+
+  style: computed('height', {
+    get() {
+      if (this._style !== undefined) {
+        return this._style;
+      }
+
+      let styleValue;
+      if (this.scroll !== 'virtual') {
+        styleValue = {};
+      } else {
+        styleValue = {
+          height: this.height,
+        };
+      }
+
+      this._style = styleValue; // optional caching
+      return styleValue;
+    },
+
+    set(_key, value) {
+      this._style = value;
+      return this._style;
+    },
   }),
+
   actions: {
     resize: function (e) {
       // TODO: This top part is very similar to resize in tabular-collection

@@ -33,6 +33,17 @@ export default class IntentionPermission extends Fragment {
 
   @computed(...schema.HeaderType.allowedValues)
   get HeaderType() {
+    // Use manual override if one was set
+    if (this._headerTypeManual !== undefined) {
+      return this._headerTypeManual;
+    }
+    // Original logic: find first defined variant field
     return schema.HeaderType.allowedValues.find((prop) => typeof this[prop] !== 'undefined');
+  }
+
+  set HeaderType(value) {
+    // Store manual override
+    this._headerTypeManual = value;
+    return value;
   }
 }
