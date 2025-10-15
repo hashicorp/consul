@@ -1,3 +1,16 @@
+## 1.22.0-rc2 (October 15, 2025)
+
+SECURITY:
+
+* security: Adding warning when remote/local script checks are enabled without enabling ACL's [[GH-22877](https://github.com/hashicorp/consul/issues/22877)]
+* security: Improved validation of the Content-Length header in the Consul KV endpoint to prevent potential denial of service attacks[CVE-2025-11374]() [[GH-22916](https://github.com/hashicorp/consul/issues/22916)]
+* security: adding a maximum Content-Length on the event endpoint to fix denial-of-service (DoS) attacks. This resolves [CVE-2025-11375](https://nvd.nist.gov/vuln/detail/CVE-2025-11375). [[GH-22836](https://github.com/hashicorp/consul/issues/22836)]
+* security: breaking change - adding a key name validation on the key/value endpoint along side with the DisableKVKeyValidation config to disable/enable it to fix path traversal attacks. This resolves [CVE-2025-11392](https://nvd.nist.gov/vuln/detail/CVE-2025-11392). [[GH-22850](https://github.com/hashicorp/consul/issues/22850)]
+
+BUG FIXES:
+
+* cmd: Fix `consul operator utilization --help` to show only available options without extra parameters. [[GH-22912](https://github.com/hashicorp/consul/issues/22912)]
+
 ## 1.22.0-rc1+ent (September 30, 2025)
 
 SECURITY:
