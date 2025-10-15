@@ -50,26 +50,17 @@ export default Component.extend(Slotted, {
 
   style: computed('height', {
     get() {
-      if (this._style !== undefined) {
-        return this._style;
-      }
-
-      let styleValue;
       if (this.scroll !== 'virtual') {
-        styleValue = {};
+        return {};
       } else {
-        styleValue = {
+        return {
           height: this.height,
         };
       }
-
-      this._style = styleValue; // optional caching
-      return styleValue;
     },
 
     set(_key, value) {
-      this._style = value;
-      return this._style;
+      return value;
     },
   }),
 

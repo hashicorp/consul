@@ -41,6 +41,5 @@ export default class IntentionPermissionHttp extends Fragment {
   set PathType(value) {
     // Store manual override
     this._pathTypeManual = value;
-    return value;
   }
 }

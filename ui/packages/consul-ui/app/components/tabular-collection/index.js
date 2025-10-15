@@ -42,10 +42,6 @@ export default CollectionComponent.extend(Slotted, {
 
   style: computed('rowHeight', '_items', 'maxRows', 'maxHeight', {
     get() {
-      if (this._style !== undefined) {
-        return this._style;
-      }
-
       const maxRows = this.rows;
       let height = this.maxHeight;
 
@@ -55,13 +51,11 @@ export default CollectionComponent.extend(Slotted, {
         height = this.rowHeight * rows + 29;
       }
 
-      this._style = { height }; // optional caching
-      return this._style;
+      return { height };
     },
 
     set(_key, value) {
-      this._style = value;
-      return this._style;
+      return value;
     },
   }),
 

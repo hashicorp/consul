@@ -21,13 +21,10 @@ export default Component.extend({
 
   state: computed('instance', 'instance.{dirtyType,isSaving}', {
     get() {
-      if (this._state !== undefined) {
-        return this._state;
-      }
-
       let id;
       const isSaving = get(this, 'instance.isSaving');
       const dirtyType = get(this, 'instance.dirtyType');
+      
       if (typeof isSaving === 'undefined' && typeof dirtyType === 'undefined') {
         id = 'idle';
       } else {
@@ -45,18 +42,14 @@ export default Component.extend({
         }
         id = `active.${id}`;
       }
-      
-      const stateObj = {
+
+      return {
         matches: (name) => id.indexOf(name) !== -1,
       };
-
-      this._state = stateObj; // optional cache
-      return stateObj;
     },
 
     set(_key, value) {
-      this._state = value;
-      return this._state;
+      return value;
     },
   }),
 

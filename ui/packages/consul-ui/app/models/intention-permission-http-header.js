@@ -44,6 +44,5 @@ export default class IntentionPermission extends Fragment {
   set HeaderType(value) {
     // Store manual override
     this._headerTypeManual = value;
-    return value;
   }
 }
