@@ -700,7 +700,10 @@ func (a *ACL) Info(id string, q *QueryOptions) (*ACLEntry, *QueryMeta, error) {
 		return nil, nil, err
 	}
 	qm := &QueryMeta{}
-	parseQueryMeta(resp, qm)
+	err = parseQueryMeta(resp, qm)
+	if err != nil {
+		return nil, nil, err
+	}
 	qm.RequestTime = rtt
 
 	var entries []*ACLEntry
@@ -728,7 +731,10 @@ func (a *ACL) List(q *QueryOptions) ([]*ACLEntry, *QueryMeta, error) {
 		return nil, nil, err
 	}
 	qm := &QueryMeta{}
-	parseQueryMeta(resp, qm)
+	err = parseQueryMeta(resp, qm)
+	if err != nil {
+		return nil, nil, err
+	}
 	qm.RequestTime = rtt
 
 	var entries []*ACLEntry
@@ -751,7 +757,10 @@ func (a *ACL) Replication(q *QueryOptions) (*ACLReplicationStatus, *QueryMeta, e
 		return nil, nil, err
 	}
 	qm := &QueryMeta{}
-	parseQueryMeta(resp, qm)
+	err = parseQueryMeta(resp, qm)
+	if err != nil {
+		return nil, nil, err
+	}
 	qm.RequestTime = rtt
 
 	var entries *ACLReplicationStatus
@@ -872,7 +881,10 @@ func (a *ACL) TokenRead(accessorID string, q *QueryOptions) (*ACLToken, *QueryMe
 		return nil, nil, err
 	}
 	qm := &QueryMeta{}
-	parseQueryMeta(resp, qm)
+	err = parseQueryMeta(resp, qm)
+	if err != nil {
+		return nil, nil, err
+	}
 	qm.RequestTime = rtt
 
 	var out ACLToken
@@ -898,7 +910,10 @@ func (a *ACL) TokenReadExpanded(accessorID string, q *QueryOptions) (*ACLTokenEx
 		return nil, nil, err
 	}
 	qm := &QueryMeta{}
-	parseQueryMeta(resp, qm)
+	err = parseQueryMeta(resp, qm)
+	if err != nil {
+		return nil, nil, err
+	}
 	qm.RequestTime = rtt
 
 	var out ACLTokenExpanded
@@ -924,7 +939,10 @@ func (a *ACL) TokenReadSelf(q *QueryOptions) (*ACLToken, *QueryMeta, error) {
 		return nil, nil, err
 	}
 	qm := &QueryMeta{}
-	parseQueryMeta(resp, qm)
+	err = parseQueryMeta(resp, qm)
+	if err != nil {
+		return nil, nil, err
+	}
 	qm.RequestTime = rtt
 
 	var out ACLToken
@@ -949,7 +967,10 @@ func (a *ACL) TokenList(q *QueryOptions) ([]*ACLTokenListEntry, *QueryMeta, erro
 		return nil, nil, err
 	}
 	qm := &QueryMeta{}
-	parseQueryMeta(resp, qm)
+	err = parseQueryMeta(resp, qm)
+	if err != nil {
+		return nil, nil, err
+	}
 	qm.RequestTime = rtt
 
 	var entries []*ACLTokenListEntry
@@ -987,7 +1008,10 @@ func (a *ACL) TokenListFiltered(t ACLTokenFilterOptions, q *QueryOptions) ([]*AC
 		return nil, nil, err
 	}
 	qm := &QueryMeta{}
-	parseQueryMeta(resp, qm)
+	err = parseQueryMeta(resp, qm)
+	if err != nil {
+		return nil, nil, err
+	}
 	qm.RequestTime = rtt
 
 	var entries []*ACLTokenListEntry
@@ -1080,7 +1104,10 @@ func (a *ACL) PolicyRead(policyID string, q *QueryOptions) (*ACLPolicy, *QueryMe
 		return nil, nil, err
 	}
 	qm := &QueryMeta{}
-	parseQueryMeta(resp, qm)
+	err = parseQueryMeta(resp, qm)
+	if err != nil {
+		return nil, nil, err
+	}
 	qm.RequestTime = rtt
 
 	var out ACLPolicy
@@ -1106,7 +1133,10 @@ func (a *ACL) PolicyReadByName(policyName string, q *QueryOptions) (*ACLPolicy, 
 	}
 
 	qm := &QueryMeta{}
-	parseQueryMeta(resp, qm)
+	err = parseQueryMeta(resp, qm)
+	if err != nil {
+		return nil, nil, err
+	}
 	qm.RequestTime = rtt
 
 	if !found {
@@ -1135,7 +1165,10 @@ func (a *ACL) PolicyList(q *QueryOptions) ([]*ACLPolicyListEntry, *QueryMeta, er
 		return nil, nil, err
 	}
 	qm := &QueryMeta{}
-	parseQueryMeta(resp, qm)
+	err = parseQueryMeta(resp, qm)
+	if err != nil {
+		return nil, nil, err
+	}
 	qm.RequestTime = rtt
 
 	var entries []*ACLPolicyListEntry
@@ -1248,7 +1281,10 @@ func (a *ACL) RoleRead(roleID string, q *QueryOptions) (*ACLRole, *QueryMeta, er
 	}
 
 	qm := &QueryMeta{}
-	parseQueryMeta(resp, qm)
+	err = parseQueryMeta(resp, qm)
+	if err != nil {
+		return nil, nil, err
+	}
 	qm.RequestTime = rtt
 
 	if !found {
@@ -1278,7 +1314,10 @@ func (a *ACL) RoleReadByName(roleName string, q *QueryOptions) (*ACLRole, *Query
 	}
 
 	qm := &QueryMeta{}
-	parseQueryMeta(resp, qm)
+	err = parseQueryMeta(resp, qm)
+	if err != nil {
+		return nil, nil, err
+	}
 	qm.RequestTime = rtt
 
 	if !found {
@@ -1308,7 +1347,10 @@ func (a *ACL) RoleList(q *QueryOptions) ([]*ACLRole, *QueryMeta, error) {
 		return nil, nil, err
 	}
 	qm := &QueryMeta{}
-	parseQueryMeta(resp, qm)
+	err = parseQueryMeta(resp, qm)
+	if err != nil {
+		return nil, nil, err
+	}
 	qm.RequestTime = rtt
 
 	var entries []*ACLRole
@@ -1410,7 +1452,10 @@ func (a *ACL) AuthMethodRead(methodName string, q *QueryOptions) (*ACLAuthMethod
 	}
 
 	qm := &QueryMeta{}
-	parseQueryMeta(resp, qm)
+	err = parseQueryMeta(resp, qm)
+	if err != nil {
+		return nil, nil, err
+	}
 	qm.RequestTime = rtt
 
 	if !found {
@@ -1440,7 +1485,10 @@ func (a *ACL) AuthMethodList(q *QueryOptions) ([]*ACLAuthMethodListEntry, *Query
 		return nil, nil, err
 	}
 	qm := &QueryMeta{}
-	parseQueryMeta(resp, qm)
+	err = parseQueryMeta(resp, qm)
+	if err != nil {
+		return nil, nil, err
+	}
 	qm.RequestTime = rtt
 
 	var entries []*ACLAuthMethodListEntry
@@ -1537,7 +1585,10 @@ func (a *ACL) BindingRuleRead(bindingRuleID string, q *QueryOptions) (*ACLBindin
 	}
 
 	qm := &QueryMeta{}
-	parseQueryMeta(resp, qm)
+	err = parseQueryMeta(resp, qm)
+	if err != nil {
+		return nil, nil, err
+	}
 	qm.RequestTime = rtt
 
 	if !found {
