@@ -4,6 +4,7 @@
 package consul
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 
@@ -84,6 +85,11 @@ func (r *aclTokenReplicator) FetchUpdated(srv *Server, updates []string) (int, e
 	}
 
 	return len(r.updated), nil
+}
+
+func (r *aclTokenReplicator) ensureUpdatedConsistent(updates []string) ([]string, []string, error) {
+	//return true if consistent updates,
+	return []string{}, []string{}, nil
 }
 
 func (r *aclTokenReplicator) DeleteLocalBatch(srv *Server, batch []string) error {
@@ -184,6 +190,43 @@ func (r *aclPolicyReplicator) FetchUpdated(srv *Server, updates []string) (int, 
 	}
 
 	return len(r.updated), nil
+}
+
+func (r *aclPolicyReplicator) ensureUpdatedConsistent(updates []string) ([]string, []string, error) {
+	updatedMap := make(map[string]*structs.ACLPolicy)
+	for _, policy := range r.updated {
+		updatedMap[policy.ID] = policy
+	}
+
+	remoteMap := make(map[string]*structs.ACLPolicyListStub)
+	for _, policyStub := range r.remote {
+		remoteMap[policyStub.ID] = policyStub
+	}
+
+	//iterate over all updates array which are policy IDs check if the hash match for both
+	var consistent bool = true
+	var deleted []string
+	var updated []string
+	var err error = nil
+
+	for _, policyID := range updates {
+		if updatedPolicy, ok := updatedMap[policyID]; ok {
+			if remotePolicy, ok := remoteMap[policyID]; ok {
+				if !bytes.Equal(updatedPolicy.Hash, remotePolicy.Hash) {
+					updated = append(updated, policyID)
+					consistent = false
+				}
+			}
+		} else {
+			deleted = append(deleted, policyID)
+			consistent = false
+		}
+	}
+
+	if !consistent {
+		err = errContainsStaleData
+	}
+	return deleted, updated, err
 }
 
 func (r *aclPolicyReplicator) DeleteLocalBatch(srv *Server, batch []string) error {
@@ -305,6 +348,11 @@ func (r *aclRoleReplicator) FetchUpdated(srv *Server, updates []string) (int, er
 	}
 
 	return len(r.updated), nil
+}
+
+func (r *aclRoleReplicator) ensureUpdatedConsistent(updates []string) ([]string, []string, error) {
+	//return true if consistent updates,
+	return []string{}, []string{}, nil
 }
 
 func (r *aclRoleReplicator) DeleteLocalBatch(srv *Server, batch []string) error {
