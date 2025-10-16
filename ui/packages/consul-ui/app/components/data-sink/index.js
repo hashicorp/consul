@@ -19,30 +19,38 @@ export default Component.extend({
   onchange: function (e) {},
   onerror: function (e) {},
 
-  state: computed('instance', 'instance.{dirtyType,isSaving}', function () {
-    let id;
-    const isSaving = get(this, 'instance.isSaving');
-    const dirtyType = get(this, 'instance.dirtyType');
-    if (typeof isSaving === 'undefined' && typeof dirtyType === 'undefined') {
-      id = 'idle';
-    } else {
-      switch (dirtyType) {
-        case 'created':
-          id = isSaving ? 'creating' : 'create';
-          break;
-        case 'updated':
-          id = isSaving ? 'updating' : 'update';
-          break;
-        case 'deleted':
-        case undefined:
-          id = isSaving ? 'removing' : 'remove';
-          break;
+  state: computed('instance', 'instance.{dirtyType,isSaving}', {
+    get() {
+      let id;
+      const isSaving = get(this, 'instance.isSaving');
+      const dirtyType = get(this, 'instance.dirtyType');
+
+      if (typeof isSaving === 'undefined' && typeof dirtyType === 'undefined') {
+        id = 'idle';
+      } else {
+        switch (dirtyType) {
+          case 'created':
+            id = isSaving ? 'creating' : 'create';
+            break;
+          case 'updated':
+            id = isSaving ? 'updating' : 'update';
+            break;
+          case 'deleted':
+          case undefined:
+            id = isSaving ? 'removing' : 'remove';
+            break;
+        }
+        id = `active.${id}`;
       }
-      id = `active.${id}`;
-    }
-    return {
-      matches: (name) => id.indexOf(name) !== -1,
-    };
+
+      return {
+        matches: (name) => id.indexOf(name) !== -1,
+      };
+    },
+
+    set(_key, value) {
+      return value;
+    },
   }),
 
   init: function () {

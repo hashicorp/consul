@@ -5,50 +5,50 @@
 
 <form>
   <PolicyForm
-    @form={{form}}
-    @partition={{partition}}
-    @nspace={{nspace}}
-    @item={{item}}
+    @form={{@form}}
+    @partition={{@partition}}
+    @nspace={{@nspace}}
+    @item={{@item}}
   >
     {{!don't show template selection here, i.e. Service Identity}}
     <BlockSlot @name="template" />
   </PolicyForm>
-{{#if (not create) }}
+{{#if (and (not @create) @item @item.ID)}}
     <DataSource
       @src={{uri '/${partition}/${nspace}/${dc}/tokens/for-policy/${id}'
         (hash
-          partition=partition
-          nspace=nspace
-          dc=dc
-          id=(or id '')
+          partition=@partition
+          nspace=@nspace
+          dc=@dc
+          id=(or @id '')
         )
       }}
-      @onchange={{action (mut items) value="data"}}
+      @onchange={{@onItemsChange}}
     />
-    {{#if (gt items.length 0)}}
+    {{#if (gt @items.length 0)}}
       <TokenList
         @caption="Applied to the following tokens:"
-        @items={{items}}
+        @items={{@items}}
       />
     {{/if}}
 {{/if}}
     <div>
       <Hds::ButtonSet>
-        {{#if (and create (can "create tokens")) }}
+        {{#if (and @create (can "create tokens")) }}
         {{! we only need to check for an empty name here as ember munges autofocus, once we have autofocus back revisit this}}
           <Hds::Button
             @text='Save'
             type='submit'
-            {{ on 'click' (route-action 'create' item)}}
-            disabled={{if (or item.isPristine item.isInvalid (eq item.Name '')) 'disabled'}}
+            {{ on 'click' @onCreate}}
+            disabled={{if (or @item.isPristine @item.isInvalid (eq @item.Name '')) 'disabled'}}
           />
         {{ else }}
-          {{#if (can "write policy" item=item)}}
+          {{#if (can "write policy" item=@item)}}
             <Hds::Button
               @text='Save'
               type='submit'
-              {{ on 'click' (route-action 'update' item)}}
-              disabled={{if item.isInvalid 'disabled'}}
+              {{ on 'click' @onUpdate}}
+              disabled={{if @item.isInvalid 'disabled'}}
             />
           {{/if}}
         {{/if}}
@@ -56,23 +56,23 @@
           @text='Cancel'
           @color='secondary'
           type='reset'
-          {{ action "cancel" item}}
+          {{ on 'click' @onCancel}}
         />
-        {{# if (and (not create) (can "delete policy" item=item) ) }}
+        {{# if (and (not @create) (can "delete policy" item=@item) ) }}
           <ConfirmationDialog @message="Are you sure you want to delete this Policy?">
             <BlockSlot @name="action" as |confirm|>
               <Hds::Button
                 @text='Delete'
                 @color='critical'
-                {{action confirm 'delete' item}}
+                {{on 'click' (fn confirm @onDelete @item)}}
                 data-test-delete
               />
             </BlockSlot>
             <BlockSlot @name="dialog" as |execute cancel message|>
-              {{#if (gt items.length 0)}}
+              {{#if (gt @items.length 0)}}
                 <ModalDialog
                   data-test-delete-modal
-                  @onclose={{action cancel}}
+                  @onclose={{cancel}}
                   @open={{true}}
                   @aria={{hash
                   label="Policy in Use"
@@ -84,9 +84,9 @@
                   <BlockSlot @name="body">
                     <p>
                       This Policy is currently in use. If you choose to delete this Policy, it will be removed from the
-                      following <strong>{{items.length}} Tokens</strong>:
+                      following <strong>{{@items.length}} Tokens</strong>:
                     </p>
-                    <TokenList @items={{items}} @target="_blank" />
+                    <TokenList @items={{@items}} @target="_blank" />
                     <p>
                       This action cannot be undone. {{message}}
                     </p>
@@ -97,12 +97,12 @@
                         @text='Yes, Delete'
                         data-test-delete
                         @color='critical'
-                        {{action execute}}
+                        {{on 'click' execute}}
                       />
                       <Hds::Button
                         @text='Cancel'
                         @color='secondary'
-                        {{action close}}
+                        {{on 'click' close}}
                       />
                     </Hds::ButtonSet>
                   </BlockSlot>
