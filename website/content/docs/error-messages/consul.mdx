@@ -165,11 +165,13 @@ When restoring a Consul datacenter with a snapshot on new infrastructure, Consul
 
 This error means that in the new datacenter there is at least one node with the same `node_name` as a node in the snapshot's datacenter, but with a different `node_id`. This represents a consistency issue.
 
-There are two possible workarounds:
+There are three possible workarounds:
 
 1. Save the UUID from the previous node’s data directory. Then re-use that same UUID when you first start the agent on the new node. You can configure node IDs for your Consul agent nodes with the [`node_id` configuration parameter](/consul/docs/reference/agent/configuration-file/node#_node_id).
 
 1. Always use unique node names for your Consul datacenters so that there is no risk of conflicts. You can configure node names for your Consul agent nodes using the [`node_name`](/consul/docs/reference/agent/configuration-file/node#_node) configuration parameter.
+
+1. Perform a [`consul leave`](/consul/commands/leave) on each server and then start the server again. Do this one server at a time. Once all servers are restarted, the node ids will be set to the expected value, resolving the errors in the logs.
 
 ## ACL not found
 
