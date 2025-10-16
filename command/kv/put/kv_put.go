@@ -119,7 +119,7 @@ func (c *cmd) Run(args []string) int {
 
 	switch {
 	case c.cas:
-		ok, _, err := client.KV().CAS(pair, nil)
+		ok, wm, err := client.KV().CAS(pair, nil)
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error! Did not write to %s: %s", key, err))
 			return 1
@@ -133,10 +133,17 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		}
 
+		// Display any warnings from the server
+		if wm != nil && len(wm.Warnings) > 0 {
+			for _, warning := range wm.Warnings {
+				c.UI.Warn(fmt.Sprintf("Warning: %s", warning))
+			}
+		}
+
 		c.UI.Info(fmt.Sprintf("Success! Data written to: %s", key))
 		return 0
 	case c.acquire:
-		ok, _, err := client.KV().Acquire(pair, nil)
+		ok, wm, err := client.KV().Acquire(pair, nil)
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error! Failed writing data: %s", err))
 			return 1
@@ -146,10 +153,17 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		}
 
+		// Display any warnings from the server
+		if wm != nil && len(wm.Warnings) > 0 {
+			for _, warning := range wm.Warnings {
+				c.UI.Warn(fmt.Sprintf("Warning: %s", warning))
+			}
+		}
+
 		c.UI.Info(fmt.Sprintf("Success! Lock acquired on: %s", key))
 		return 0
 	case c.release:
-		ok, _, err := client.KV().Release(pair, nil)
+		ok, wm, err := client.KV().Release(pair, nil)
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error! Failed writing data: %s", key))
 			return 1
@@ -159,12 +173,27 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		}
 
+		// Display any warnings from the server
+		if wm != nil && len(wm.Warnings) > 0 {
+			for _, warning := range wm.Warnings {
+				c.UI.Warn(fmt.Sprintf("Warning: %s", warning))
+			}
+		}
+
 		c.UI.Info(fmt.Sprintf("Success! Lock released on: %s", key))
 		return 0
 	default:
-		if _, err := client.KV().Put(pair, nil); err != nil {
+		wm, err := client.KV().Put(pair, nil)
+		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error! Failed writing data: %s", err))
 			return 1
+		}
+
+		// Display any warnings from the server
+		if wm != nil && len(wm.Warnings) > 0 {
+			for _, warning := range wm.Warnings {
+				c.UI.Warn(fmt.Sprintf("Warning: %s", warning))
+			}
 		}
 
 		c.UI.Info(fmt.Sprintf("Success! Data written to: %s", key))
