@@ -19,9 +19,9 @@ The page provides reference information for address advertisement parameters in 
   state as other nodes will treat the non-routability as a failure. In Consul v1.1.0 and later this can be dynamically defined with a [go-sockaddr]
   template that is resolved at runtime. Equivalent to the [`-advertise` command-line flag](/consul/commands/agent#_advertise).
 
-- `advertise_addr_ipv4` - This was added together with [`advertise_addr_ipv6`](#advertise_addr_ipv6) to support dual stack IPv4/IPv6 environments. Using this, both IPv4 and IPv6 addresses can be specified and requested during eg service discovery.
+- `advertise_addr_ipv4` - This was added together with [`advertise_addr_ipv6`](#advertise_addr_ipv6) to support dual stack IPv4/IPv6 environments. Using this, both IPv4 and IPv6 addresses can be specified and requested during service discovery.
 
-- `advertise_addr_ipv6` - This was added together with [`advertise_addr_ipv4`](#advertise_addr_ipv4) to support dual stack IPv4/IPv6 environments. Using this, both IPv4 and IPv6 addresses can be specified and requested during eg service discovery.
+- `advertise_addr_ipv6` - This was added together with [`advertise_addr_ipv4`](#advertise_addr_ipv4) to support dual stack IPv4/IPv6 environments. Using this, both IPv4 and IPv6 addresses can be specified and requested during service discovery.
 
 - `advertise_addr_wan` ((#\_advertise-wan)) - The advertise WAN address is used
   to change the address that we advertise to server nodes joining through the WAN.

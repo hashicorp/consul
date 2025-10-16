@@ -11,6 +11,7 @@ We are pleased to announce the following Consul updates.
 
 ## Release highlights
 
+- Consul now supports IPv4 and IPv6 network addresses. However, we recommend using only one address type per Consul datacenter.
 - Multi-port service support for service discovery. Consul service definitions now include an optional `ports` parameter so that the Consul catalog can register multi-port services for service discovery operations. For more information and an example service definition, refer to the [service definition reference documentation](/consul/docs/reference/service#ports). Multi-port support for service discovery includes support for registering multi-port Kubernetes Services with [Kubernetes Service sync](/consul/docs/register/service/k8s/service-sync#service-ports). You can also address a service running a specific port using the new `port` field in [Consul DNS](/consul/docs/reference/dns).
 - Azure Managed Identity support for backups. The [Consul Enterprise snapshot agent](/consul/commands/snapshot/agent) now supports authentication with Azure Blob Storage using Azure Managed Service Identities (MSI). This support aligns with modern cloud security best practices, simplifies configuration for operators, and removes the need to store static credentials in configuration files.
 
