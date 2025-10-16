@@ -47,14 +47,23 @@ export default Component.extend(Slotted, {
       return style;
     };
   },
-  style: computed('height', function () {
-    if (this.scroll !== 'virtual') {
-      return {};
-    }
-    return {
-      height: this.height,
-    };
+
+  style: computed('height', {
+    get() {
+      if (this.scroll !== 'virtual') {
+        return {};
+      } else {
+        return {
+          height: this.height,
+        };
+      }
+    },
+
+    set(_key, value) {
+      return value;
+    },
   }),
+
   actions: {
     resize: function (e) {
       // TODO: This top part is very similar to resize in tabular-collection
