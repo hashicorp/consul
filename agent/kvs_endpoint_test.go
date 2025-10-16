@@ -6,6 +6,7 @@ package agent
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"path"
@@ -37,6 +38,7 @@ func TestKVSEndpoint_PUT_GET_DELETE(t *testing.T) {
 	for _, key := range keys {
 		buf := bytes.NewBuffer([]byte("test"))
 		req, _ := http.NewRequest("PUT", "/v1/kv/"+key, buf)
+		req.ContentLength = int64(buf.Len())
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.KVSEndpoint(resp, req)
 		if err != nil {
@@ -551,6 +553,96 @@ func TestKVSEndpoint_GET(t *testing.T) {
 	cspHeader := resp.Header().Values("Content-Security-Policy")
 	if len(cspHeader) != 0 {
 		t.Fatalf("expected no Content-Security-Policy header, got %d: %+v", len(optionsHdr), optionsHdr)
+	}
+}
+
+func TestKVSPUT_SwitchCases(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode")
+	}
+
+	t.Parallel()
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+
+	maxSize := int(a.srv.agent.config.KVMaxValueSize)
+
+	tests := []struct {
+		name          string
+		body          string
+		contentLength int64
+		expectErr     bool
+		expectMsg     string
+		expectHTTPMsg string
+	}{
+		{
+			name:          "Case 2: No Content-Length but Body exists (allowed size)",
+			body:          "small-value",
+			contentLength: 0,
+			expectErr:     false,
+		},
+		{
+			name:          "Case 2b: No Content-Length but Body exists (too large)",
+			body:          strings.Repeat("x", maxSize+50),
+			contentLength: 0,
+			expectErr:     true,
+			expectHTTPMsg: fmt.Sprintf("Request body too large. Max allowed is %d bytes.", maxSize),
+		},
+		{
+			name:          "Case 3: Content-Length greater than max allowed limit",
+			body:          strings.Repeat("x", maxSize+10),
+			contentLength: int64(maxSize) + 10,
+			expectErr:     true,
+			expectHTTPMsg: fmt.Sprintf("Request body(%d bytes) too large, max size: %d bytes.", int64(maxSize)+10, maxSize),
+		},
+		{
+			name:          "Case 4: Normal body within allowed limit",
+			body:          "tiny",
+			contentLength: 4,
+			expectErr:     false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var bodyReader io.Reader
+			if tt.body != "" {
+				bodyReader = bytes.NewBufferString(tt.body)
+			} else {
+				bodyReader = nil
+			}
+
+			req := httptest.NewRequest(http.MethodPut, "/v1/kv/switch-test", bodyReader)
+			req.ContentLength = tt.contentLength
+			resp := httptest.NewRecorder()
+
+			obj, err := a.srv.KVSEndpoint(resp, req)
+
+			// Expected error cases
+			if tt.expectErr {
+				if err == nil {
+					t.Fatalf("expected error, got nil")
+				}
+				httpErr, ok := err.(HTTPError)
+				if !ok {
+					t.Fatalf("expected HTTPError, got %T", err)
+				}
+				if !strings.Contains(httpErr.Reason, tt.expectHTTPMsg[:20]) { // partial match
+					t.Fatalf("expected HTTPError reason to contain %q, got %q", tt.expectHTTPMsg, httpErr.Reason)
+				}
+				return
+			}
+
+			// Unexpected error
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			// Normal successful PUT result
+			if res, ok := obj.(bool); !ok || !res {
+				t.Fatalf("expected successful PUT result, got %v", obj)
+			}
+		})
 	}
 }
 
