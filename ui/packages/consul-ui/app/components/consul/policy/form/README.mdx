@@ -1,0 +1,62 @@
+# Consul::Policy::Form
+
+A presentational component that renders the Policy edit/create form and the action buttons (Save / Cancel / Delete). It wraps the existing PolicyForm fieldset, conditionally loads tokens that use the policy, and delegates create/update/cancel/delete behavior to closure actions supplied by caller.
+
+## Usage
+
+```hbs
+<Consul::Policy::Form
+  @form={{form}}
+  @partition={{partition}}
+  @nspace={{nspace}}
+  @item={{item}}
+  @create={{create}}
+  @dc={{dc}}
+  @id={{id}}
+  @items={{items}}
+  @onCreate={{route-action 'create' item}}
+  @onUpdate={{route-action 'update' item}}
+  @onCancel={{route-action 'cancel' item}}
+  @onDelete={{route-action 'delete'}}
+  @onItemsChange={{action (mut items) value="data"}}
+/>
+```
+
+## Arguments
+
+| Argument | Type | Required | Description |
+|---|---:|:---:|---|
+| `@form` | object | yes | Form builder / changeset used by PolicyForm. |
+| `@partition` | string | yes | Current partition. |
+| `@nspace` | string | yes | Current namespace. |
+| `@item` | object | yes | Policy model / changeset. |
+| `@create` | boolean | no | True when rendering the "create" flow. |
+| `@dc` | string | no | Datacenter identifier used to build DataSource URIs. |
+| `@id` | string | no | Policy id (used to fetch tokens for the policy). |
+| `@items` | array | no | Tokens currently associated with the policy (passed from caller). |
+| `@onCreate` | function | no | Closure invoked to create the policy (caller typically passes `route-action 'create' item`). |
+| `@onUpdate` | function | no | Closure invoked to update the policy (caller typically passes `route-action 'update' item`). |
+| `@onCancel` | function | no | Closure invoked when Cancel is clicked (caller typically passes `route-action 'cancel' item` or a transition). |
+| `@onDelete` | function | no | Closure invoked to delete the policy (caller typically passes `route-action 'delete'`). |
+| `@onItemsChange` | function | no | Handler for DataSource `onchange`; recommended: `action (mut items) value="data"`. |
+
+## Behavior / Notes
+
+- When not in create mode and the policy has an ID, the component loads related tokens via the DataSource:
+  /{partition}/{nspace}/{dc}/tokens/for-policy/{id}. The caller should provide `@onItemsChange` to keep caller state in sync.
+- Save button:
+  - If `@create` is true and caller has permission → invokes `@onCreate`.
+  - Otherwise → invokes `@onUpdate` if provided.
+- Cancel button calls `@onCancel`. Pass a route-action (preferred) so route-level handlers (e.g. WithBlockingActions) are used, or pass a controller action if desired.
+- Delete button opens a confirmation dialog; actual delete is triggered by calling the provided `@onDelete` closure (confirmed via the dialog).
+- Keep argument names and usage consistent with existing callers. Pass route-action closures when the route/mixin provides the action (create/update/delete/cancel).
+
+## See
+
+- Component template: ./index.hbs  
+- Component class: ./index.js
+
+## Implementation hints
+
+- Invoke closure args directly inside the component (use `{{on 'click' @onCreate}}`, `{{on 'click' @onCancel}}`, `{{on 'click' (fn confirm @onDelete @item)}}`) so the calling context (route or controller) receives the event.
+- Avoid reserved/uppercase argument names (e.g. use `@local` not `@Local`).
