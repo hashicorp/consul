@@ -45,7 +45,7 @@ This approach can be useful in scenarios where the Consul agent's node is alloca
 ![Consul DNS forwarding - All requests are routed to Consul](/img/consul-dns-forwarding.png#light-theme-only)
 ![Consul DNS forwarding - All requests are routed to Consul](/img/consul-dns-forwarding-dark.png#dark-theme-only)
 
-This behavior is not enabled by default. Consul standard configuration only resolves DNS records inside the `.consul` zone. To enable DNS forwarding, you need to set the [recursors](/consul/docs/reference/agent/configuration-file/general#recursors) option in your Consul configuration.
+This behavior is not enabled by default. Consul standard configuration only resolves DNS records inside the `.consul` zone. To enable DNS forwarding, you need to set the [recursors](/consul/docs/reference/agent/configuration-file/dns#recursors) option in your Consul configuration.
 
 In this scenario, if a Consul DNS reply includes a `CNAME` record pointing outside the `.consul` top level domain, then the DNS reply only includes `CNAME` records by default.
 
