@@ -50,7 +50,7 @@
   </label>
 {{/if}}
 {{#if (gt items.length 0)}}
-  <YieldSlot @name="set">{{yield}}</YieldSlot>
+  <YieldSlot @name="set" @params={{block-params (action "remove")}}>{{yield}}</YieldSlot>
 {{else}}
 
 {{/if}}

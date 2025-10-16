@@ -45,11 +45,5 @@ export default Component.extend(Slotted, {
       }
       this.onchange(e);
     },
-    // Temporary send here so we can send route actions
-    // easily. It kind of makes sense that you'll want to perform
-    // route actions from a popup menu for the moment
-    send: function () {
-      this.sendAction(...arguments);
-    },
   },
 });

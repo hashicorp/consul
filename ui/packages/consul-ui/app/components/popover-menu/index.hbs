@@ -58,7 +58,7 @@ as |api|}}
         </BlockSlot>
       {{/if}}
       <BlockSlot @name="menu">
-        <YieldSlot @name="menu" @params={{block-params (concat "popover-menu-" guid "-") send keypressClick this.toggle.click}}>
+        <YieldSlot @name="menu" @params={{block-params (concat "popover-menu-" guid "-") keypressClick this.toggle.click}}>
           {{yield components api}}
         </YieldSlot>
       </BlockSlot>

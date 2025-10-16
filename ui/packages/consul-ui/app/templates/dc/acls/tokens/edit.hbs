@@ -65,7 +65,7 @@ as |dc partition nspace item create|}}
               @text='Use'
               @color='secondary'
               data-test-use
-              {{ action confirm 'use' item }}
+              {{ action confirm }}
             />
           </BlockSlot>
           <BlockSlot @name="dialog" as |execute cancel message|>
@@ -77,7 +77,7 @@ as |dc partition nspace item create|}}
                 @text='Confirm Use'
                 @color='critical'
                 data-test-confirm-use
-                {{action execute}}
+                {{action (queue execute (fn this.use item))}}
               />
               <Hds::Button
                 @text='Cancel'

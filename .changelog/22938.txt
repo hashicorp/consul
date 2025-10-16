@@ -1,0 +1,3 @@
+```release-note:improvement
+ui: removes send action instances as part of https://deprecations.emberjs.com/id/ember-component-send-action/
+```
