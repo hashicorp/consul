@@ -1,0 +1,39 @@
+# Consul::Token::FieldsetsLegacy
+
+Presentational component rendering token fieldsets for legacy (pre-policy) tokens:
+- Name input
+- Rules code editor (HCL)
+- Optional ID field for create flow
+
+## Usage
+
+```hbs
+<Consul::Token::FieldsetsLegacy
+  @item={{item}}
+  @create={{create}}
+  @name={{name}}
+  @onChange={{action 'change'}}
+/>
+```
+
+## Arguments
+
+| Arg | Type | Required | Description |
+|---|---:|:---:|---|
+| `@item` | object | yes | Legacy token model / changeset (expects .Rules, .ID, .error). |
+| `@create` | boolean | no | True when rendering create flow (shows ID input). |
+| `@name` | string | no | Prefix/name used when composing change events for nested fields (used with concat in @onInput). |
+| `@onChange` | function | no | Change handler invoked for inputs / code editor. Use `action 'change'` from caller. |
+
+## Behavior / Notes
+
+- Outer fieldset is disabled when the user cannot `write token` for the provided item.
+- Name input binds to `@item.Description` in the template — the caller should update the changeset on `@onChange`.
+- Rules are edited with an Hds::CodeEditor (`@syntax='hcl'`); `@onInput` calls `fn @onChange (concat @name '[Rules]')` so pass `@name` when needed.
+- When `@create` is true the component renders an optional ID input; callers may leave it empty to auto-generate a UUID.
+- This component is presentational — handle persistence and validation in the calling route/controller.
+
+## See
+
+- Template: ./index.hbs  
+- Component class (optional): ./index.js
