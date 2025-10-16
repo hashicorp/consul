@@ -121,7 +121,7 @@
     "ember-cli-template-lint": "^2.0.1",
     "ember-cli-terser": "^4.0.2",
     "ember-cli-yadda": "^0.7.0",
-    "ember-collection": "^1.0.0",
+    "ember-collection": "^3.0.0",
     "ember-compatibility-helpers": "^1.2.5",
     "ember-composable-helpers": "^5.0.0",
     "ember-data": "~3.28.6",
