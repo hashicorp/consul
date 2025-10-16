@@ -4,6 +4,7 @@
  */
 
 /*eslint node/no-missing-require: "off"*/
+/*eslint node/no-extraneous-require: "off"*/
 const useTestFrameworkDetector = require('@ember-data/private-build-infra/src/utilities/test-framework-detector');
 
 module.exports = useTestFrameworkDetector({

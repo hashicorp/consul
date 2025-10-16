@@ -24,7 +24,7 @@ export default Component.extend({
       let id;
       const isSaving = get(this, 'instance.isSaving');
       const dirtyType = get(this, 'instance.dirtyType');
-      
+
       if (typeof isSaving === 'undefined' && typeof dirtyType === 'undefined') {
         id = 'idle';
       } else {
@@ -52,7 +52,6 @@ export default Component.extend({
       return value;
     },
   }),
-
 
   init: function () {
     this._super(...arguments);
