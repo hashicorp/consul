@@ -1,3 +1,63 @@
+## 1.22.0-rc2+ent (October 15, 2025)
+
+SECURITY:
+
+* security: Adding warning when remote/local script checks are enabled without enabling ACL's [[GH-22877](https://github.com/hashicorp/consul/issues/22877)]
+* security: Improved validation of the Content-Length header in the Consul KV endpoint to prevent potential denial of service attacks[CVE-2025-11374]() [[GH-22916](https://github.com/hashicorp/consul/issues/22916)]
+* security: adding a maximum Content-Length on the event endpoint to fix denial-of-service (DoS) attacks. This resolves [CVE-2025-11375](https://nvd.nist.gov/vuln/detail/CVE-2025-11375). [[GH-22836](https://github.com/hashicorp/consul/issues/22836)]
+* security: breaking change - adding a key name validation on the key/value endpoint along side with the DisableKVKeyValidation config to disable/enable it to fix path traversal attacks. This resolves [CVE-2025-11392](https://nvd.nist.gov/vuln/detail/CVE-2025-11392). [[GH-22850](https://github.com/hashicorp/consul/issues/22850)]
+
+BUG FIXES:
+
+* cmd: Fix `consul operator utilization --help` to show only available options without extra parameters. [[GH-22912](https://github.com/hashicorp/consul/issues/22912)]
+
+## 1.22.0-rc2 (October 15, 2025)
+
+SECURITY:
+
+* security: Adding warning when remote/local script checks are enabled without enabling ACL's [[GH-22877](https://github.com/hashicorp/consul/issues/22877)]
+* security: Improved validation of the Content-Length header in the Consul KV endpoint to prevent potential denial of service attacks[CVE-2025-11374]() [[GH-22916](https://github.com/hashicorp/consul/issues/22916)]
+* security: adding a maximum Content-Length on the event endpoint to fix denial-of-service (DoS) attacks. This resolves [CVE-2025-11375](https://nvd.nist.gov/vuln/detail/CVE-2025-11375). [[GH-22836](https://github.com/hashicorp/consul/issues/22836)]
+* security: breaking change - adding a key name validation on the key/value endpoint along side with the DisableKVKeyValidation config to disable/enable it to fix path traversal attacks. This resolves [CVE-2025-11392](https://nvd.nist.gov/vuln/detail/CVE-2025-11392). [[GH-22850](https://github.com/hashicorp/consul/issues/22850)]
+
+BUG FIXES:
+
+* cmd: Fix `consul operator utilization --help` to show only available options without extra parameters. [[GH-22912](https://github.com/hashicorp/consul/issues/22912)]
+
+## 1.22.0-rc1+ent (September 30, 2025)
+
+SECURITY:
+
+* connect: Upgrade Consul's bundled Envoy version to 1.35.3 and remove support for 1.31.10. This update also includes a fix to prevent Envoy (v1.35+) startup failures by only configuring the TLS transport socket when the CA bundle is present. [[GH-22824](https://github.com/hashicorp/consul/issues/22824)]
+
+FEATURES:
+
+* Added support to register a service in consul with multiple ports [[GH-22769](https://github.com/hashicorp/consul/issues/22769)]
+* agent: Added IsDualStack utility function to detect if the agent is configured for both IPv4 and IPv6 (dual-stack mode) based on its bind address retrieved from "agent/self" API. [[GH-22741](https://github.com/hashicorp/consul/issues/22741)]
+* install: Updated license information displayed during post-install
+* ipv6: addtition of ip6tables changes for ipv6 and dual stack support [[GH-22787](https://github.com/hashicorp/consul/issues/22787)]
+* oidc: add client authentication using JWT assertion and PKCE. default PKCE is enabled. [[GH-22732](https://github.com/hashicorp/consul/issues/22732)]
+
+IMPROVEMENTS:
+
+* api: Added a new API (/v1/operator/utilization) to support enterprise API for Manual Snapshot Reporting [[GH-22837](https://github.com/hashicorp/consul/issues/22837)]
+* cmd: Added new subcommand `consul operator utilization [-today-only] [-message] [-y]` to generate a bundle with census utilization snapshot. Main flow is implemented in consul-enterprise
+http: Added a new API Handler for `/v1/operator/utilization`. Core functionality to be implemented in consul-enterprise
+agent: Always enabled census metrics collection with configurable option to export it to Hashicorp Reporting [[GH-22843](https://github.com/hashicorp/consul/issues/22843)]
+* cli: `snapshot agent` now supports authenticating to Azure Blob Storage using Azure Managed Service Identities (MSI). [[GH-11171](https://github.com/hashicorp/consul/issues/11171)]
+* command: connect envoy bootstrap defaults to 127.0.0.1 in IPv4-only environment and to ::1 in IPv6/DualStack environment. [[GH-22763](https://github.com/hashicorp/consul/issues/22763)]
+* connect: default upstream.local_bind_address to ::1 for IPv6 agent bind address [[GH-22773](https://github.com/hashicorp/consul/issues/22773)]
+* proxy: default proxy.local_service_address to ::1 for IPv6 agent bind address [[GH-22772](https://github.com/hashicorp/consul/issues/22772)]
+* ui: Improved accessibility features in the Consul UI to enhance usability for users with disabilities [[GH-22770](https://github.com/hashicorp/consul/issues/22770)]
+* ui: Replace yarn with pnpm for package management [[GH-22790](https://github.com/hashicorp/consul/issues/22790)]
+* ui: auth method config values were overflowing. This PR fixes the issue and adds word break for table elements with large content. [[GH-22813](https://github.com/hashicorp/consul/issues/22813)]
+
+BUG FIXES:
+
+* ui: Allow FQDN to be displayed in the Consul web interface. [[GH-22779](https://github.com/hashicorp/consul/issues/22779)]
+* ui: fixes the issue where namespaces where disappearing and Welcome to Namespace screen showed up after tab switching [[GH-22789](https://github.com/hashicorp/consul/issues/22789)]
+* ui: fixes the issue where when doing deletes of multiple tokens or policies, the three dots on the right hand side stops responding after the first delete. [[GH-22752](https://github.com/hashicorp/consul/issues/22752)]
+
 ## 1.22.0-rc1 (September 30, 2025)
 
 SECURITY:
