@@ -4,12 +4,12 @@
 }}
 
 <fieldset
-  disabled={{if (not (can "write token" item=item)) "disabled"}}
+  disabled={{if (not (can "write token" item=@item)) "disabled"}}
 >
-{{#if create }}
+{{#if @create }}
   <div class="type-toggle">
     <label>
-      <input type="checkbox" name="Local" checked={{if Local 'checked' }} onchange={{action 'change'}} />
+      <input type="checkbox" name="Local" checked={{if @local 'checked' }} onchange={{@onChange}} />
       <span>Restrict this token to a local datacenter?</span>
     </label>
     <em>Local tokens get set in the Raft store of the local DC and do not ever get transmitted to the primary DC or replicated to any other DC.</em>
@@ -17,26 +17,26 @@
 {{/if}}
   <label class="type-text validate-optional">
     <span>Description (Optional)</span>
-    <textarea name="Description" oninput={{action 'change'}}>{{item.Description}}</textarea>
+    <textarea name="Description" oninput={{@onChange}}>{{@item.Description}}</textarea>
   </label>
 </fieldset>
 <fieldset id="roles">
   <h2>Roles</h2>
   <RoleSelector
-    @disabled={{not (can "write token" item=item)}}
-    @dc={{dc}}
-    @partition={{partition}}
-    @nspace={{nspace}}
-    @items={{item.Roles}}
+    @disabled={{not (can "write token" item=@item)}}
+    @dc={{@dc}}
+    @partition={{@partition}}
+    @nspace={{@nspace}}
+    @items={{@item.Roles}}
   />
 </fieldset>
 <fieldset id="policies">
   <h2>Policies</h2>
   <PolicySelector
-    @disabled={{not (can "write token" item=item)}}
-    @dc={{dc}}
-    @partition={{partition}}
-    @nspace={{nspace}}
-    @items={{item.Policies}}
+    @disabled={{not (can "write token" item=@item)}}
+    @dc={{@dc}}
+    @partition={{@partition}}
+    @nspace={{@nspace}}
+    @items={{@item.Policies}}
   />
 </fieldset>
