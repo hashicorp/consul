@@ -20,14 +20,23 @@ export default Component.extend({
   onsubmit: function () {},
   onreset: function () {},
 
-  changeset: computed('item', function () {
-    return this.change.changesetFor(
-      name,
-      this.item ||
-        this.repo.create({
-          HeaderType: this.headerTypes.firstObject,
-        })
-    );
+  changeset: computed('item', {
+    get() {
+      if (this._changeset !== undefined) {
+        return this._changeset;
+      }
+      return this.change.changesetFor(
+        name,
+        this.item ||
+          this.repo.create({
+            HeaderType: this.headerTypes.firstObject,
+          })
+      );
+    },
+    set(_key, value) {
+      this._changeset = value;
+      return this._changeset;
+    },
   }),
 
   headerTypes: alias(`schema.${name}.HeaderType.allowedValues`),
