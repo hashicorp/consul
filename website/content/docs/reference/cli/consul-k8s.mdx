@@ -472,7 +472,7 @@ $ consul-k8s proxy read <PODNAME> <OPTIONS>
 
 The command takes a required value, `<PODNAME>`. This should be the full name
 of a Kubernetes Pod. If a Pod is running more than one Envoy proxy managed by
-Consul, as in the [Multiport configuration](/consul/docs/k8s/connect#kubernetes-pods-with-multiple-ports),
+Consul, as in the [service mesh multi-port configuration](/consul/docs/k8s/connect#kubernetes-pods-with-multiple-ports),
 configuration for all proxies in the Pod will be displayed.
 
 The following options are available.
@@ -740,7 +740,7 @@ $ consul-k8s proxy log <PODNAME> <OPTIONS>
 
 The command takes a required value, `<PODNAME>`. This should be the full name
 of a Kubernetes Pod. If a Pod is running more than one Envoy proxy managed by
-Consul, as in the [Multiport configuration](/consul/docs/k8s/connect#kubernetes-pods-with-multiple-ports),
+Consul, as in the [service mesh multi-port configuration](/consul/docs/k8s/connect#kubernetes-pods-with-multiple-ports),
 the terminal displays configuration information for all proxies in the pod.
 
 The following options are available.

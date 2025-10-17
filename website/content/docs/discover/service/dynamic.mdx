@@ -15,7 +15,7 @@ Prepared queries provide a rich set of lookup features, such as filtering by mul
 
 ## Requirements
 
-Consul 0.6.4 or later is required to create prepared query templates.
+Consul supports prepared queries for services registered with a single port. You cannot filter for [a service's `ports` parameter](/consul/docs/reference/service#port) when using prepared queries.
 
 ### ACLs
 
