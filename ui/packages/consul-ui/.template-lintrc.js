@@ -29,7 +29,7 @@ module.exports = {
     'link-rel-noopener': false,
 
     'no-implicit-this': {
-      allow: ['refresh-route']
+      allow: ['refresh-route'],
     },
     'no-curly-component-invocation': false,
     'no-action': false,
