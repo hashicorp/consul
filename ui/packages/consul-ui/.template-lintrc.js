@@ -28,7 +28,9 @@ module.exports = {
     'style-concatenation': false,
     'link-rel-noopener': false,
 
-    'no-implicit-this': 'error',
+    'no-implicit-this': {
+      allow: ['refresh-route']
+    },
     'no-curly-component-invocation': false,
     'no-action': false,
     'no-negated-condition': false,
