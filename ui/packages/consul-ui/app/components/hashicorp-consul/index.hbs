@@ -6,7 +6,7 @@
 <App class='hashicorp-consul' ...attributes>
 
   <:notifications as |app|>
-    {{#each flashMessages.queue as |flash|}}
+    {{#each this.flashMessages.queue as |flash|}}
       <app.Notification @delay={{sub flash.timeout flash.extendedTimeout}} @sticky={{flash.sticky}}>
         {{#if flash.dom}}
           {{{flash.dom}}}

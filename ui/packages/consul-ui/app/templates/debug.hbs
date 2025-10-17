@@ -19,7 +19,7 @@
 <App class='docs' id='wrapper'>
 
   <:notifications as |app|>
-    {{#each flashMessages.queue as |flash|}}
+    {{#each this.flashMessages.queue as |flash|}}
       {{#if flash.dom}}
         <app.Notification
           @delay={{sub flash.timeout flash.extendedTimeout}}

@@ -4,10 +4,10 @@
 }}
 
 <Route
-  @name={{routeName}}
+  @name={{this.routeName}}
 as |route|>
 {{#let
-  (not (can "write intention for service" item=item.Service))
+  (not (can "write intention for service" item=route.model.item.Service))
 as |readOnly|}}
   <DataLoader @src={{
     uri '/${partition}/${nspace}/${dc}/intention/${id}'

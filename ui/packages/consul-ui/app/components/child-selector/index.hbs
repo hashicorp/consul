@@ -4,12 +4,12 @@
 }}
 
 <div
-  class="child-selector {{type}}-child-selector"
+  class="child-selector {{this.type}}-child-selector"
   {{fix-super-select-aria}}
   ...attributes
 >
 {{yield}}
-{{#if (not disabled)}}
+{{#if (not @disabled)}}
   <YieldSlot @name="create">{{yield}}</YieldSlot>
   <label class="type-text">
     <span><YieldSlot @name="label">{{yield}}</YieldSlot></span>
@@ -17,30 +17,30 @@
       <DataSource
         @src={{uri '/${partition}/${nspace}/${dc}/${type}'
           (hash
-            partition=partition
-            nspace=nspace
-            dc=dc
-            type=(pluralize type)
+            partition=@partition
+            nspace=@nspace
+            dc=@dc
+            type=(pluralize this.type)
           )
         }}
-        @onchange={{action (mut allOptions) value="data"}}
+        @onchange={{action (mut this.allOptions) value="data"}}
       />
     {{!-- {{/if}} --}}
     <DataCollection
-      @type={{type}}
+      @type={{this.type}}
       @sort='Name:asc'
       @filters={{hash
         searchproperties=(array 'Name')
       }}
-      @items={{options}}
+      @items={{this.options}}
     as |collection|>
       <Hds::Form::SuperSelect::Single::Field
         @searchEnabled={{true}}
         @onFilter={{action collection.search}}
-        @options={{sort-by 'Name:asc' options}}
-        @placeholder={{placeholder}}
-        @onChange={{action "change" "items[]" items}}
-        @label="Select {{type}}"
+        @options={{sort-by 'Name:asc' this.options}}
+        @placeholder={{@placeholder}}
+        @onChange={{action "change" "items[]" @items}}
+        @label="Select {{this.type}}"
         @isOptional={{true}}
         @searchField="Name"
       as |F|>
@@ -49,7 +49,7 @@
     </DataCollection>
   </label>
 {{/if}}
-{{#if (gt items.length 0)}}
+{{#if (gt @items.length 0)}}
   <YieldSlot @name="set">{{yield}}</YieldSlot>
 {{else}}
 

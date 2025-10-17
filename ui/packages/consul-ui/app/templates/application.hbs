@@ -3,7 +3,7 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-<Route @name={{routeName}} as |route|>
+<Route @name={{this.routeName}} as |route|>
 
   {{! Add the a11y route announcer }}
   <route.Announcer @title='Consul' />
@@ -39,7 +39,7 @@
     {{#if (can 'use acls')}}
       <DataSource
         @src={{uri 'settings://consul:token'}}
-        @onchange={{action (mut token) value='data'}}
+        @onchange={{action (mut this.token) value='data'}}
       />
     {{/if}}
   {{/unless}}
@@ -63,7 +63,7 @@
       {{#if (eq route.currentName 'notfound')}}
         <DataSource
           @src={{uri '/*/*/*/notfound/${path}' (hash path=route.params.notfound)}}
-          @onchange={{action (mut notfound) value='data'}}
+          @onchange={{action (mut this.notfound) value='data'}}
         />
       {{/if}}
 
@@ -71,10 +71,10 @@
       {{#let
         (if
           (can 'use partitions')
-          (or route.params.partition notfound.partition token.Partition '')
+          (or route.params.partition this.notfound.partition this.token.Partition '')
           ''
         )
-        (if (can 'use nspaces') (or route.params.nspace notfound.nspace token.Namespace '') '')
+        (if (can 'use nspaces') (or route.params.nspace this.notfound.nspace this.token.Namespace '') '')
         as |partition nspace|
       }}
 
@@ -85,7 +85,7 @@
           {{! If not use the DC that the UI is running in }}
           {{#let
             (or
-              (if nofound.dc (object-at 0 (cached-model 'dc' (hash Name=notfound.dc))))
+              (if this.notfound.dc (object-at 0 (cached-model 'dc' (hash Name=this.notfound.dc))))
               (object-at 0 (cached-model 'dc' (hash Name=route.params.dc)))
               (hash Name=(env 'CONSUL_DATACENTER_LOCAL'))
             )
@@ -109,19 +109,19 @@
                     @dc={{dc.data}}
                     @partition={{partition}}
                     @nspace={{nspace}}
-                    @user={{hash token=token}}
+                    @user={{hash token=this.token}}
                     @onchange={{action 'reauthorize'}}
                     as |consul|
                   >
 
-                    {{#if error}}
+                    {{#if this.error}}
                       {{! If we got an error from anything, show an error page }}
-                      <AppError @error={{error}} @login={{consul.login.open}} />
+                      <AppError @error={{this.error}} @login={{consul.login.open}} />
                     {{else}}
                       {{! Otherwise show the rest of the app}}
                       <Outlet
                         @name='application'
-                        @model={{hash app=consul user=(hash token=token) dc=dc.data dcs=dcs}}
+                        @model={{hash app=consul user=(hash token=this.token) dc=dc.data dcs=dcs}}
                         as |o|
                       >
                         {{outlet}}
@@ -141,7 +141,7 @@
     {{/if}}
   {{else}}
     {{! Routes with no main navigation }}
-    <Outlet @name='application' @model={{hash user=(hash token=token)}} as |o|>
+    <Outlet @name='application' @model={{hash user=(hash token=this.token)}} as |o|>
       {{outlet}}
     </Outlet>
   {{/if}}

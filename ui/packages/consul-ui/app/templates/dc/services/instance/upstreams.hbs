@@ -4,24 +4,24 @@
 }}
 
 <Route
-  @name={{routeName}}
+  @name={{this.routeName}}
 as |route|>
   <div class="tab-section">
   {{#let
 
     (hash
-      value=(or sortBy "DestinationName:asc")
-      change=(action (mut sortBy) value="target.selected")
+      value=(or this.sortBy "DestinationName:asc")
+      change=(action (mut this.sortBy) value="target.selected")
     )
 
     (hash
       searchproperty=(hash
-        value=(if (not-eq searchproperty undefined)
-          (split searchproperty ',')
-          searchProperties
+        value=(if (not-eq this.searchproperty undefined)
+          (split this.searchproperty ',')
+          this.searchProperties
         )
-        change=(action (mut searchproperty) value="target.selectedItems")
-        default=searchProperties
+        change=(action (mut this.searchproperty) value="target.selectedItems")
+        default=this.searchProperties
       )
     )
 
@@ -37,9 +37,9 @@ as |route|>
       {{#if (gt items.length 0)}}
         <input type="checkbox" id="toolbar-toggle" />
         <Consul::UpstreamInstance::SearchBar
-          @search={{search}}
-          @onsearch={{action (mut search) value="target.value"}}
-          @searchproperties={{searchProperties}}
+          @search={{this.search}}
+          @onsearch={{action (mut this.search) value="target.value"}}
+          @searchproperties={{this.searchProperties}}
 
           @sort={{sort}}
 
@@ -67,7 +67,7 @@ as |route|>
         @type="upstream-instance"
         @sort={{sort.value}}
         @filters={{filters}}
-        @search={{search}}
+        @search={{this.search}}
         @items={{items}}
       as |collection|>
         <collection.Collection>

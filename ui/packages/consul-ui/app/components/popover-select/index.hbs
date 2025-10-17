@@ -6,7 +6,7 @@
 <PopoverMenu
   class="popover-select"
   ...attributes
-  @position={{or position "left"}}
+  @position={{or @position "left"}}
   as |components menu|
 >
   {{yield}}
@@ -16,7 +16,7 @@
       select=this components=components
       onclick=(pipe
         (action "click")
-        (if multiple (noop) menu.toggle)
+        (if this.multiple (noop) menu.toggle)
       )
     )
     as |Optgroup Option|

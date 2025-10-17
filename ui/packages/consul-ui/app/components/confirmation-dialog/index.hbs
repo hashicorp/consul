@@ -3,15 +3,15 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-<div class={{concat "with-confirmation" (if confirming " confirming" "")}} ...attributes>
+<div class={{concat "with-confirmation" (if this.confirming " confirming" "")}} ...attributes>
 {{yield}}
 <YieldSlot @name="action" @params={{block-params (action "confirm") (action "cancel")}}>
-{{#if (or permanent (not confirming))}}
+{{#if (or this.permanent (not this.confirming))}}
     {{yield}}
 {{/if}}
 </YieldSlot>
-<YieldSlot @name="dialog" @params={{block-params (action "execute") (action "cancel") message actionName}}>
-{{#if confirming }}
+<YieldSlot @name="dialog" @params={{block-params (action "execute") (action "cancel") @message this.actionName}}>
+{{#if this.confirming }}
     {{yield}}
 {{/if}}
 </YieldSlot>

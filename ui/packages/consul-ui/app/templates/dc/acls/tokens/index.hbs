@@ -4,7 +4,7 @@
 }}
 
 <Route
-  @name={{routeName}}
+  @name={{this.routeName}}
 as |route|>
   <DataLoader
     @src={{
@@ -31,22 +31,22 @@ as |route|>
   {{#let
 
     (hash
-      value=(or sortBy "CreateTime:desc")
-      change=(action (mut sortBy) value="target.selected")
+      value=(or this.sortBy "CreateTime:desc")
+      change=(action (mut this.sortBy) value="target.selected")
     )
 
     (hash
       kind=(hash
-        value=(if kind (split kind ',') undefined)
-        change=(action (mut kind) value="target.selectedItems")
+        value=(if this.kind (split this.kind ',') undefined)
+        change=(action (mut this.kind) value="target.selectedItems")
       )
       searchproperty=(hash
-        value=(if (not-eq searchproperty undefined)
-          (split searchproperty ',')
-          searchProperties
+        value=(if (not-eq this.searchproperty undefined)
+          (split this.searchproperty ',')
+          this.searchProperties
         )
-        change=(action (mut searchproperty) value="target.selectedItems")
-        default=searchProperties
+        change=(action (mut this.searchproperty) value="target.selectedItems")
+        default=this.searchProperties
       )
     )
 
@@ -74,8 +74,8 @@ as |route|>
       <BlockSlot @name="toolbar">
     {{#if (gt items.length 0)}}
         <Consul::Token::SearchBar
-          @search={{search}}
-          @onsearch={{action (mut search) value="target.value"}}
+          @search={{this.search}}
+          @onsearch={{action (mut this.search) value="target.value"}}
 
           @sort={{sort}}
 
@@ -98,7 +98,7 @@ as |route|>
           @type="token"
           @sort={{sort.value}}
           @filters={{filters}}
-          @search={{search}}
+          @search={{this.search}}
           @items={{items}}
         as |collection|>
           <collection.Collection>

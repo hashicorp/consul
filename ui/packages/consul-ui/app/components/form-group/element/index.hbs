@@ -15,13 +15,13 @@
   Label=(component 'form-group/element/label')
   Error=(component 'form-group/element/error')
 
-  state=state
+  state=this.state
 )
 as |el|}}
   {{#if (includes this.type (array 'radiogroup' 'checkbox-group' 'checkboxgroup'))}}
     <div
       data-property={{this.prop}}
-      class="type-{{this.type}}{{if (state-matches state 'error') ' has-error'}}"
+      class="type-{{this.type}}{{if (state-matches this.state 'error') ' has-error'}}"
       ...attributes
     >
       {{yield el}}
@@ -29,7 +29,7 @@ as |el|}}
   {{else}}
     <label
       data-property={{this.prop}}
-      class="type-{{this.type}}{{if (state-matches state 'error') ' has-error'}}"
+      class="type-{{this.type}}{{if (state-matches this.state 'error') ' has-error'}}"
       ...attributes
     >
       {{yield el}}
