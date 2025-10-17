@@ -58,7 +58,7 @@ as |dc partition nspace item create|}}
       <BlockSlot @name="actions">
   {{#if (not create)}}
     <Hds::ButtonSet>
-    {{#if (not-eq item.AccessorID route.model.token.AccessorID)}}
+    {{#if (not-eq item.AccessorID this.token.AccessorID)}}
         <ConfirmationDialog @message="Are you sure you want to use this ACL token?">
           <BlockSlot @name="action" as |confirm|>
             <Hds::Button
@@ -138,16 +138,16 @@ as |dc partition nspace item create|}}
         </div>
   {{/if}}
           <Consul::Token::Form
-            @form={{form}}
+            @form={{this.form}}
             @item={{item}}
-            @token={{token}}
+            @token={{this.token}}
             @create={{create}}
-            @local={{Local}}
-            @name={{name}}
+            @local={{item.Local}}
+            @name={{item.Name}}
             @dc={{dc}}
             @partition={{partition}}
             @nspace={{nspace}}
-            @id={{id}}
+            @id={{route.params.id}}
             @onCreate={{route-action 'create' item}}
             @onUpdate={{route-action 'update' item}}
             @onCancel={{route-action 'cancel' item}}

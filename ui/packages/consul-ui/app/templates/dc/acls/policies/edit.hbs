@@ -111,19 +111,19 @@ as |dc partition nspace id item create|}}
     </DataSource>
   {{else}}
         <Consul::Policy::Form
-          @form={{form}}
+          @form={{this.form}}
           @partition={{partition}}
           @nspace={{nspace}}
           @item={{item}}
           @create={{create}}
           @dc={{dc}}
           @id={{id}}
-          @items={{items}}
+          @items={{this.items}}
           @onCreate={{route-action 'create' item}}
           @onUpdate={{route-action 'update' item}}
           @onCancel={{route-action 'cancel' item}}
           @onDelete={{route-action 'delete'}}
-          @onItemsChange={{action (mut items) value="data"}}
+          @onItemsChange={{action (mut this.items) value="data"}}
         />
   {{/if}}
       </BlockSlot>

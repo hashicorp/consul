@@ -70,19 +70,19 @@ as |dc partition nspace item create|}}
         </div>
   {{/if}}
         <Consul::Role::Form
-          @form={{form}}
+          @form={{this.form}}
           @item={{item}}
           @dc={{dc}}
           @nspace={{nspace}}
           @partition={{partition}}
           @create={{create}}
-          @id={{id}}
-          @items={{items}}
+          @id={{route.params.id}}
+          @items={{this.items}}
           @onCreate={{route-action 'create' item}}
           @onUpdate={{route-action 'update' item}}
           @onCancel={{route-action "cancel" item}}
           @onDelete={{route-action 'delete'}}
-          @onItemsChange={{action (mut items) value="data"}}
+          @onItemsChange={{action (mut this.items) value="data"}}
         />
       </BlockSlot>
   </AppView>

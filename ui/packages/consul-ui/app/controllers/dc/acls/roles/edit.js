@@ -9,6 +9,8 @@ export default class EditController extends Controller {
   @service('form')
   builder;
 
+  items = [];
+
   init() {
     super.init(...arguments);
     this.form = this.builder.form('role');
