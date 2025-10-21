@@ -108,7 +108,7 @@
                   </BlockSlot>
                 </ModalDialog>
               {{else}}
-                <DeleteConfirmation @message={{message}} @execute={{queue execute (fn this.delete item)}} @cancel={{cancel}} />
+                <DeleteConfirmation @message={{message}} @execute={{queue execute (fn @delete @item)}} @cancel={{cancel}} />
               {{/if}}
             </BlockSlot>
           </ConfirmationDialog>
