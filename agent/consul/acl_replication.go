@@ -66,10 +66,10 @@ type aclTypeReplicator interface {
 	// correction phase).
 	FetchUpdated(srv *Server, updates []string) (int, error)
 
-	//ensureUpdatedConsistent compares the updated items with the upsertable remotes
+	//ensureRemoteConsistent compares the updated items with the upsertable remotes
 	//returns consistent update check post stale batch read or other scenarios
 	//[]string of items missing from remote, []string of items updated remote, error if inconsistent
-	ensureUpdatedConsistent(updates []string) ([]string, []string, error)
+	ensureRemoteConsistent(updates []string) ([]string, []string, error)
 
 	// LenPendingUpdates should be the size of the data retrieved in
 	// FetchUpdated.
@@ -448,7 +448,10 @@ func (s *Server) replicateACLType(ctx context.Context, logger hclog.Logger, tr a
 			}
 			return 0, false, fmt.Errorf("failed to retrieve ACL %s updates: %v", tr.SingularNoun(), err)
 		}
-		_, _, err = tr.ensureUpdatedConsistent(res.LocalUpserts)
+		//if fetch updated gets stale inconsistent data then we should not proceed with applying
+		//the updates as that would lead to partial/stale data being replicated
+		//hence, we call ensureRemoteConsistent to validate the fetched updates with diff results
+		_, _, err = tr.ensureRemoteConsistent(res.LocalUpserts)
 		if err != nil {
 			if err == errContainsStaleData {
 				return 0, false, fmt.Errorf("failed to ensure consistent %s replication updates - stale data", tr.PluralNoun())
