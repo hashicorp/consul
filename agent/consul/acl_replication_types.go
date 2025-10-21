@@ -212,12 +212,14 @@ func (r *aclPolicyReplicator) ensureUpdatedConsistent(updates []string) ([]strin
 	for _, policyID := range updates {
 		if updatedPolicy, ok := updatedMap[policyID]; ok {
 			if remotePolicy, ok := remoteMap[policyID]; ok {
-				if !bytes.Equal(updatedPolicy.Hash, remotePolicy.Hash) {
+				if !bytes.Equal(updatedPolicy.Hash, remotePolicy.Hash) && updatedPolicy.ModifyIndex < remotePolicy.ModifyIndex {
+					// remote stale batch did not get modified policy than what local diff calculated
 					updated = append(updated, policyID)
 					consistent = false
 				}
 			}
-		} else {
+		} else if remotePolicy, ok := remoteMap[policyID]; ok && remotePolicy.ModifyIndex == remotePolicy.CreateIndex {
+			// remote stale batch did not get the created policy than what local diff calculated
 			deleted = append(deleted, policyID)
 			consistent = false
 		}
