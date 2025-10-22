@@ -4,7 +4,7 @@
 }}
 
 <Route
-  @name={{routeName}}
+  @name={{this.routeName}}
 as |route|>
 {{#if (eq route.model.item.Checks.length 0)}}
   {{did-insert (route-action 'replaceWith' 'dc.nodes.show.services')}}

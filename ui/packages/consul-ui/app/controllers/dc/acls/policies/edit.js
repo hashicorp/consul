@@ -8,9 +8,11 @@ import Controller from '@ember/controller';
 export default class EditController extends Controller {
   @service('form')
   builder;
+  
+  items = [];
 
-  init() {
-    super.init(...arguments);
+  constructor() {
+    super(...arguments);
     this.form = this.builder.form('policy');
   }
 

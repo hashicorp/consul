@@ -69,7 +69,7 @@
             />
           </BlockSlot>
           <BlockSlot @name="dialog" as |execute cancel message|>
-            {{#if (gt items.length 0)}}
+            {{#if (gt @items.length 0)}}
               <ModalDialog
                 @onclose={{cancel}}
                 @aria={{hash
@@ -82,9 +82,9 @@
                 <BlockSlot @name="body">
                   <p>
                     This Role is currently in use. If you choose to delete this Role, it will be removed from the
-                    following <strong>{{items.length}} Tokens</strong>:
+                    following <strong>{{@items.length}} Tokens</strong>:
                   </p>
-                  <TokenList @items={{items}} @target="_blank" />
+                  <TokenList @items={{@items}} @target="_blank" />
                   <p>
                     This action cannot be undone. {{message}}
                   </p>

@@ -97,7 +97,7 @@
       </BlockSlot>
       <BlockSlot @name='menu' as |confirm send keypressClick change|>
         {{#if (can 'write intention' item=item)}}
-          <components.MenuItem href={{href-to (or routeName 'dc.intentions.edit') item.ID}}>
+          <components.MenuItem href={{href-to (or @routeName 'dc.intentions.edit') item.ID}}>
             <BlockSlot @name="label">
               Edit
             </BlockSlot>
@@ -157,7 +157,7 @@
             <a
               role='menuitem'
               tabindex='-1'
-              href={{href-to (or routeName 'dc.intentions.edit') item.ID}}
+              href={{href-to (or @routeName 'dc.intentions.edit') item.ID}}
             >
               View
             </a>
