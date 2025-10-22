@@ -95,7 +95,7 @@
       <BlockSlot @name='trigger'>
         More
       </BlockSlot>
-      <BlockSlot @name='menu' as |confirm send keypressClick change|>
+      <BlockSlot @name='menu' as |confirm keypressClick change|>
         {{#if (can 'write intention' item=item)}}
           <components.MenuItem href={{href-to (or routeName 'dc.intentions.edit') item.ID}}>
             <BlockSlot @name="label">
