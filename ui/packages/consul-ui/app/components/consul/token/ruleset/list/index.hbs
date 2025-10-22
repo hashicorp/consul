@@ -3,7 +3,7 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-{{#let (policy/group (or item.Policies item.ACLs.PolicyDefaults (array))) as |policies|}}
+{{#let (policy/group (or @item.Policies @item.ACLs.PolicyDefaults (array))) as |policies|}}
   {{#let (get policies 'management') as |management|}}
     {{#if (gt management.length 0)}}
         <dl>
@@ -30,7 +30,7 @@
         </dl>
     {{/if}}
   {{/let}}
-  {{#if (token/is-legacy item) }}
+  {{#if (token/is-legacy @item) }}
         <dl>
           <dt>Rules</dt>
           <dd>
@@ -38,7 +38,7 @@
           </dd>
         </dl>
   {{else}}
-    {{#let (append (get policies 'policies') (or item.Roles item.ACLs.RoleDefaults (array))) as |policies|}}
+    {{#let (append (get policies 'policies') (or @item.Roles @item.ACLs.RoleDefaults (array))) as |policies|}}
       {{#if (gt policies.length 0)}}
         <dl>
           <dt>Rules</dt>
