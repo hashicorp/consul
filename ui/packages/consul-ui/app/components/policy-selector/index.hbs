@@ -202,7 +202,7 @@
                     @text='Confirm remove'
                     @color='critical'
                     @size='small'
-                    {{action (queue execute (action remove item items))}}
+                    {{action (queue execute (action remove item @items))}}
                     data-test-delete
                   />
                   <Hds::Button
