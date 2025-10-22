@@ -247,7 +247,7 @@ func testLeafWithID(t testing.T, spiffeId CertURI, dnsSAN string, root *structs.
 		SubjectKeyId:   testKeyID(t, pkSigner.Public()),
 	}
 
-	// Only add DNS SANs if dnsSAN is not empty to avoid malformed SAN errors in Go 1.25.2+
+	// Only add DNS SANs if dnsSAN is not empty to avoid malformed SAN errors in Go 1.25.3+
 	if dnsSAN != "" {
 		template.DNSNames = []string{dnsSAN}
 	}
