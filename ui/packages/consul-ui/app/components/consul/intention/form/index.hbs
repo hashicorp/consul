@@ -178,14 +178,14 @@ as |item readonly|}}
                 @text='Delete'
                 @color='critical'
                 disabled={{api.disabled}}
-                {{on 'click' (fn confirm api.delete)}}
+                {{on 'click' (fn confirm)}}
                 data-test-delete
               />
             </BlockSlot>
             <BlockSlot @name="dialog" as |execute cancel message|>
               <DeleteConfirmation
                 @message={{message}}
-                @execute={{execute}}
+                @execute={{queue execute api.delete}}
                 @cancel={{cancel}}
               />
             </BlockSlot>

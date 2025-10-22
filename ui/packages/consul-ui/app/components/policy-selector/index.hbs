@@ -78,7 +78,7 @@
   <BlockSlot @name='option' as |option|>
     {{option.Name}}
   </BlockSlot>
-  <BlockSlot @name='set'>
+  <BlockSlot @name='set' as |remove|>
     <TabularDetails
       data-test-policies
       @onchange={{action 'open'}}
@@ -189,7 +189,7 @@
                   @text='Remove'
                   @color='critical'
                   @size='small'
-                  {{action confirm 'remove' item @items}}
+                  {{action confirm}}
                   data-test-delete
                 />
               </BlockSlot>
@@ -202,7 +202,7 @@
                     @text='Confirm remove'
                     @color='critical'
                     @size='small'
-                    {{action execute}}
+                    {{action (queue execute (action remove item items))}}
                     data-test-delete
                   />
                   <Hds::Button

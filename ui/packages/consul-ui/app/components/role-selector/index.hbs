@@ -131,7 +131,7 @@ as |modal|>
   <BlockSlot @name="option" as |option|>
     {{option.Name}}
   </BlockSlot>
-  <BlockSlot @name="set">
+  <BlockSlot @name="set" as |remove|>
     <TabularCollection
         data-test-roles
         @rows={{5}}
@@ -154,7 +154,7 @@ as |modal|>
           <BlockSlot @name="trigger">
             More
           </BlockSlot>
-          <BlockSlot @name="menu" as |confirm send keypressClick|>
+          <BlockSlot @name="menu" as |confirm keypressClick|>
               <components.MenuItem @href={{href-to 'dc.acls.roles.edit' item.ID}}>
                 <BlockSlot @name="label">
                   {{#if (can "edit role" item=item)}}
@@ -166,7 +166,7 @@ as |modal|>
               </components.MenuItem>
 
             {{#if (not @disabled)}}
-              <components.MenuItem class="dangerous" @onclick={{action send 'remove' item @items}} data-test-delete>
+              <components.MenuItem class="dangerous" @onclick={{fn remove item @items}} data-test-delete>
                 <BlockSlot @name="label">
                   Remove
                 </BlockSlot>
