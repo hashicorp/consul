@@ -4,7 +4,7 @@
 }}
 
 <Route
-  @name={{routeName}}
+  @name={{this.routeName}}
 as |route|>
     <DataLoader
     @src={{uri '/${partition}/${nspace}/${dc}/service-instances/for-service/${name}/${peer}'
@@ -73,7 +73,7 @@ as |items item dc|}}
             name=route.params.name
           )
         }}
-        @onchange={{action (mut proxies) value="data"}}
+        @onchange={{action (mut this.proxies) value="data"}}
       />
         {{! currently we use the discovery chain endpoint to understand whether }}
         {{! connect is enabled/disabled. We get a 500 error when its disabled }}
@@ -81,7 +81,7 @@ as |items item dc|}}
         {{! if once chain is set, i.e. we've checked this dc we remove the DataSource }}
         {{! which will mark it for closure, which possibly could be reopened if }}
         {{! the user clicks the routing/disco-chain tab}}
-        {{#if (not chain)}}
+        {{#if (not this.chain)}}
           <DataSource
             @src={{uri '/${partition}/${nspace}/${dc}/discovery-chain/${name}'
               (hash
@@ -91,14 +91,14 @@ as |items item dc|}}
                 name=route.params.name
               )
             }}
-            @onchange={{action (mut chain) value="data"}}
+            @onchange={{action (mut this.chain) value="data"}}
           />
         {{/if}}
         {{did-insert (set this 'chain' undefined) route.params.dc}}
       {{/if}}
   {{#let
   (hash
-      topology=(and dc.MeshEnabled item.IsMeshOrigin (or (gt proxies.length 0) (eq item.Service.Kind 'ingress-gateway') (eq item.Service.Kind 'api-gateway')) (not item.Service.PeerName))
+      topology=(and dc.MeshEnabled item.IsMeshOrigin (or (gt this.proxies.length 0) (eq item.Service.Kind 'ingress-gateway') (eq item.Service.Kind 'api-gateway')) (not item.Service.PeerName))
       services=(and (eq item.Service.Kind 'terminating-gateway') (not item.Service.PeerName))
       upstreams=(and (eq item.Service.Kind 'ingress-gateway') (not item.Service.PeerName))
       instances=true
@@ -192,12 +192,12 @@ as |items item dc|}}
           <BlockSlot @name="content">
           {{! if its not an origin service we don't care as to whether connect }}
           {{! is enabled or not (we figure that out using the chain var) }}
-          {{#if (or (not item.IsOrigin) chain)}}
+          {{#if (or (not item.IsOrigin) this.chain)}}
             <Outlet
-              @name={{routeName}}
+              @name={{this.routeName}}
               @model={{assign (hash
                 items=items
-                proxies=proxies
+                proxies=this.proxies
                 item=item
                 tabs=tabs
               ) route.model}}

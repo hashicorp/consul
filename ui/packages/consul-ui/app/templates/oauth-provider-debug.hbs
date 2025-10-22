@@ -4,7 +4,7 @@
 }}
 
 <Route
-  @name={{routeName}}
+  @name={{this.routeName}}
 as |route|>
 <div
   style="width: 50%;margin: 0 auto;"
@@ -13,7 +13,7 @@ as |route|>
   <main>
     <form
       method="GET"
-      action={{redirect_uri}}
+      action={{this.redirect_uri}}
     >
 {{#let (hash
   state="state-123456789/abcdefghijklmnopqrstuvwxyz"
