@@ -6,8 +6,8 @@
 <form>
   {{!-- fieldsets already converted to components --}}
   {{#if (not (token/is-legacy @item))}}
-    <Consul::Token::Fieldsets 
-      @item={{@item}} 
+    <Consul::Token::Fieldsets
+      @item={{@item}}
       @create={{@create}}
       @local={{@local}}
       @dc={{@dc}}
@@ -16,8 +16,8 @@
       @onChange={{@onChange}}
     />
   {{else}}
-    <Consul::Token::FieldsetsLegacy 
-      @item={{@item}} 
+    <Consul::Token::FieldsetsLegacy
+      @item={{@item}}
       @create={{@create}}
       @name={{@name}}
       @onChange={{@onChange}}
@@ -57,12 +57,12 @@
             <Hds::Button
               @text='Delete'
               @color='critical'
-              {{on 'click' (fn confirm @onDelete @item)}}
+              {{on 'click' confirm}}
               data-test-delete
             />
           </BlockSlot>
           <BlockSlot @name="dialog" as |execute cancel message|>
-            <DeleteConfirmation @message={{message}} @execute={{execute}} @cancel={{cancel}} />
+            <DeleteConfirmation @message={{message}} @execute={{queue execute (fn @onDelete @item)}} @cancel={{cancel}} />
           </BlockSlot>
         </ConfirmationDialog>
       {{/if}}
