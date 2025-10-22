@@ -3,7 +3,7 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-<Route @name={{routeName}} as |route|>
+<Route @name={{this.routeName}} as |route|>
   {{#if (env 'CONSUL_V2_CATALOG_ENABLED')}}
     <div class='h-screen w-full flex flex-col justify-center items-center'>
       <div>

@@ -4,36 +4,36 @@
 }}
 
 <div
-  class="list-collection list-collection-scroll-{{scroll}}"
+  class="list-collection list-collection-scroll-{{this.scroll}}"
   style={{{concat
-    'height:' style.height 'px'
+    'height:' this.style.height 'px'
   }}}
-  id={{guid}}
+  id={{this.guid}}
   ...attributes
 >
 {{yield}}
-{{#if (eq scroll 'virtual')}}
+{{#if (eq this.scroll 'virtual')}}
   {{on-window 'resize' (action "resize") }}
   <EmberNativeScrollable
     @tagName="ul"
-    @content-size={{_contentSize}}
-    @scroll-left={{_scrollLeft}}
-    @scroll-top={{_scrollTop}}
+    @content-size={{this._contentSize}}
+    @scroll-left={{this._scrollLeft}}
+    @scroll-top={{this._scrollTop}}
     @scrollChange={{action "scrollChange"}}
     @clientSizeChange={{action "clientSizeChange"}}
   >
       <li></li>
-    {{~#each _cells as |cell|~}}
+    {{~#each this._cells as |cell|~}}
       <li
         data-test-list-row
         onclick={{action 'click'}} style={{{cell.style}}}
-        class={{if linkable (if (is linkable item=cell.item) 'linkable')}}
+        class={{if @linkable (if (is @linkable item=cell.item) 'linkable')}}
       >
         <YieldSlot @name="header"><div class="header">{{yield cell.item cell.index}}</div></YieldSlot>
         <YieldSlot @name="details"><div class="detail">{{yield cell.item cell.index}}</div></YieldSlot>
         <YieldSlot @name="actions"
           @params={{
-            block-params (component 'more-popover-menu' expanded=(if (eq checked cell.item.uid) true false) onchange=(action "change" cell.item.uid))
+            block-params (component 'more-popover-menu' expanded=(if (eq this.checked cell.item.uid) true false) onchange=(action "change" cell.item.uid))
           }}
         >
           <div class="actions">
@@ -44,14 +44,14 @@
     {{~/each~}}
   </EmberNativeScrollable>
 {{else}}
-{{#let (if (and partial (not this.expand)) (slice 0 partial items) items) as |slice|}}
+{{#let (if (and @partial (not this.expand)) (slice 0 @partial @items) @items) as |slice|}}
   <ul>
     <li style="display: none;"></li>
     {{~#each slice as |item index|~}}
       <li
         data-test-list-row
         onclick={{action 'click'}}
-        class={{if (not linkable) 'linkable' (if (is linkable item=item) 'linkable')}}
+        class={{if (not @linkable) 'linkable' (if (is @linkable item=item) 'linkable')}}
       >
         <YieldSlot @name="header"><div class="header">{{yield item index}}</div></YieldSlot>
         <YieldSlot @name="details"><div class="detail">{{yield item index}}</div></YieldSlot>
@@ -67,15 +67,15 @@
       </li>
     {{~/each~}}
   </ul>
-{{#if (and partial (gt items.length partial))}}
-  {{#let (not-eq slice.length items.length) as |more|}}
+{{#if (and @partial (gt @items.length @partial))}}
+  {{#let (not-eq slice.length @items.length) as |more|}}
   <button
     class={{if more 'closed'}}
     type="button"
     onclick={{action (mut this.expand) more}}
   >
     {{#if more}}
-      View {{sub items.length slice.length}} more
+      View {{sub @items.length slice.length}} more
     {{else}}
       View less
     {{/if}}
