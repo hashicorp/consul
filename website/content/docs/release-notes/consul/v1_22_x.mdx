@@ -11,7 +11,7 @@ We are pleased to announce the following Consul updates.
 
 ## Release highlights
 
-- **IPv6 address support**. This version introduces support for both IPv4 and IPv6 network addresses in agent and service configurations. Although both are supported, we recommend using only one address type per Consul datacenter.
+- **IPv6 address support for VMs and Kubernetes**. This version introduces support for both IPv4 and IPv6 network addresses in agent and service configurations when Consul runs on VMs or Kubernetes. Although both address types are supported, we recommend using only one type per Consul datacenter. Other runtimes, including RedHat OpenShift, Nomad, and ECS do not support IPv6 addresses in this release.
 - **Multi-port service support for service discovery**. Consul service definitions now include an optional `ports` parameter so that the Consul catalog can register multi-port services for service discovery operations. For more information and an example service definition, refer to the [service definition reference documentation](/consul/docs/reference/service#ports).
   - Multi-port support for service discovery includes support for registering multi-port Kubernetes Services with [Kubernetes Service sync](/consul/docs/register/service/k8s/service-sync#service-ports).
   - You can also address a service running a specific port using the new `port` field in [Consul DNS](/consul/docs/reference/dns).
