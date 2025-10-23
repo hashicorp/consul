@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-import LinkComponent from '@ember/routing/link-component';
+import {LinkComponent as LegacyLinkComponent} from '@ember/legacy-built-in-components';
 
 export class HrefTo {
   constructor(container, target) {
@@ -57,7 +57,7 @@ export class HrefTo {
     const id = $el.id;
     if (id) {
       const componentInstance = this.applicationInstance.lookup('-view-registry:main')[id];
-      isLinkComponent = componentInstance && componentInstance instanceof LinkComponent;
+      isLinkComponent = componentInstance && componentInstance instanceof LegacyLinkComponent;
     }
     return isLinkComponent;
   }
