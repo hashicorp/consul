@@ -5,12 +5,16 @@
 
 import { inject as service } from '@ember/service';
 import Controller from '@ember/controller';
+import { action } from '@ember/object';
+
 export default class EditController extends Controller {
   @service('form')
   builder;
 
-  init() {
-    super.init(...arguments);
+  items = [];
+
+  constructor() {
+    super(...arguments);
     this.form = this.builder.form('role');
   }
 
@@ -26,5 +30,10 @@ export default class EditController extends Controller {
         return prev;
       }, model)
     );
+  }
+
+  @action
+  delete(item) {
+    this.target.send('delete', item);
   }
 }
