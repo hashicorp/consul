@@ -1,0 +1,3 @@
+```release-note:bug
+acl: fixed a bug where ACL policy replication in WANfed is impacted when primaryDC is inconsistent
+```
