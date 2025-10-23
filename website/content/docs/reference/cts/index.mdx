@@ -102,7 +102,7 @@ The `consul` block configures the CTS connection with a Consul agent so that CTS
 
 <Note>
 
-Use HTTP/2 to improve Consul-Terraform-Sync performance when communicating with the local Consul process. [TLS/HTTPS](/consul/docs/reference/agent) must be configured for the local Consul with the [cert_file](/consul/docs/reference/agent/configuration-file/tls#cert_file) and [key_file](/consul/docs/reference/agent/configuration-file/tls#key_file) parameters set. For the Consul-Terraform-Sync configuration, set `tls.enabled = true` and set the `address` parameter to the HTTPS URL, e.g., `address = example.consul.com:8501`. If using self-signed certificates for Consul, you will also need to set `tls.verify = false` or add the certificate to `ca_cert` or `ca_path`.
+Use HTTP/2 to improve Consul-Terraform-Sync performance when communicating with the local Consul process. [TLS/HTTPS](/consul/docs/reference/agent/configuration-file) must be configured for the local Consul with the [cert_file](/consul/docs/reference/agent/configuration-file/tls#cert_file) and [key_file](/consul/docs/reference/agent/configuration-file/tls#key_file) parameters set. For the Consul-Terraform-Sync configuration, set `tls.enabled = true` and set the `address` parameter to the HTTPS URL, e.g., `address = example.consul.com:8501`. If using self-signed certificates for Consul, you will also need to set `tls.verify = false` or add the certificate to `ca_cert` or `ca_path`.
 
 </Note>
 

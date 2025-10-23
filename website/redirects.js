@@ -993,7 +993,7 @@ module.exports = [
   {
     source:
       "/consul/docs/connect/proxies/envoy-extensions/usage/otel-access-logging",
-    destination: "/consul/docs/envoy-extension/otel-access-logging",
+    destination: "/consul/docs/envoy-extension/otel",
     permanent: true,
   },
   {
@@ -4950,7 +4950,7 @@ module.exports = [
   },
   {
     source:
-      "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/docs/reference/consul-template/:slug*",
+      "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19|20)\\.x)/reference/consul-template/:slug*",
     destination: "/consul/docs/docs/reference/consul-template/:slug*",
     permanent: true,
   },
@@ -5059,7 +5059,7 @@ module.exports = [
   },
   {
     source: "/consul/tutorials/archive/troubleshooting",
-    destination: "/consul/docs/fundamentals/troubleshoot",
+    destination: "/consul/docs/troubleshoot",
     permanent: true,
   },
   {
@@ -5357,5 +5357,128 @@ module.exports = [
     destination: "/consul/docs/north-south/ingress-gateway",
     permanent: true,
   },
+  {
+    source: "/docs/k8s/crds",
+    destination: "/consul/docs/fundamentals/config-entry",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:18|19|20)\\.x)/agent/telemetry",
+    destination: "/consul/docs/:version/agent/monitor/telemetry",
+    permanent: true,
+  },
+  {
+    source: "/docs/connect/intentions",
+    destination: "/consul/docs/secure-mesh/intention",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/security/acl/acl-legacy",
+    destination: "/consul/docs/secure/acl/legacy",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:18|19|20)\\.x)/connect/transparent-proxy",
+    destination: "/consul/docs/:version/k8s/connect/transparent-proxy",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:9|10)\\.x)/agent/services",
+    destination: "/consul/docs/:version/discovery/services",
+    permanent: true,
+  },
+  {
+    source: "/docs/connect/config-entries/service-router",
+    destination: "/consul/docs/reference/config-entry/service-router",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/guides/sentinel",
+    destination: "/sentinel/docs",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/v1.20.x/k8s/dns/*slug",
+    destination: "/consul/docs/manage/dns/forwarding/k8s",
+    permanent: true,
+  },
+  {
+    source: "/docs/enterprise/admin-partitions",
+    destination: "/consul/docs/multi-tenant/admin-partition",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:18|19|20)\\.x)/nia/network-drivers/terraform-cloud",
+    destination: "/consul/docs/:version/nia/network-drivers/hcp-terraform",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/security/acl/acl-tokens",
+    destination: "/consul/docs/secure/acl/token",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/security/acl/acl-system",
+    destination: "/consul/docs/secure/acl/reset",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/security/acl/migrate-tokens",
+    destination: "/consul/docs/secure/acl/legacy",
+    permanent: true,
+  },
+  {
+    source: "/docs/enterprise",
+    destination: "/consul/docs/enterprise",
+    permanent: true,
+  },  
+  {
+    source:
+      "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19)\\.x)/release-notes/consul/v1_20_x",
+    destination: "/consul/docs/release-notes/consul/v1_20_x",
+    permanent: true,
+  },
+  {
+    source:
+      "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18)\\.x)/release-notes/consul/v1_19_x",
+    destination: "/consul/docs/release-notes/consul/v1_19_x",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:12|13)\\.x)/website/content/docs/:slug*",
+    destination: "/consul/docs/:version/:slug*",
+    permanent: true,
+  },  
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13)\\.x)/acl/:slug*",
+    destination: "/consul/docs/security/acl/:slug*",
+    permanent: true,
+  },     
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13)\\.x)/acl/auth-methods/kubernetes",
+    destination: "/consul/docs/secure/acl/auth-method/k8s",
+    permanent: true,
+  },      
+  {
+    source: "/consul/docs/v1.10.x/agent/acl-rules",
+    destination: "/consul/docs/v1.10.x/security/acl/acl-rules",
+    permanent: true,
+  },      
+  {
+    source: "/consul/docs/v1.10.x/commands/:slug*",
+    destination: "/consul/commands/v1.10.x/:slug*",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:8|9|10|11|12)\\.x)/internals/:slug*",
+    destination: "/consul/docs/:version/architecture/:slug*",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/guides/sentinel",
+    destination: "/sentinel/docs",
+    permanent: true,
+  },        
 ]
+
 

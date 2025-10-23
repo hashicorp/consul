@@ -59,7 +59,7 @@ Consul's security model is applicable only if all parts of the system are runnin
 
   - [`auto_encrypt`](/consul/docs/reference/agent/configuration-file/encryption#auto_encrypt) - Enables automated TLS certificate distribution for client agent RPC communication using the service mesh CA. Using this configuration a [`ca_file`](/consul/docs/reference/agent/configuration-file/tls#tls_defaults_ca_file) and ACL token would still need to be distributed to client agents.
 
-    - [`allow_tls`](/consul/docs/reference/agent/configuration-file/auto-encrypt#allow_tls) - By default this is false, and should be set to true on server agents to allow certificates to be automatically generated and distributed from the service mesh CA to client agents.
+    - [`allow_tls`](/consul/docs/reference/agent/configuration-file/tls#allow_tls) - By default this is false, and should be set to true on server agents to allow certificates to be automatically generated and distributed from the service mesh CA to client agents.
 
     - [`tls`](/consul/docs/reference/agent/configuration-file/tls) - By default this is false, and should be set to true on client agents to automatically request a client TLS certificate from the server's service mesh CA.
 
