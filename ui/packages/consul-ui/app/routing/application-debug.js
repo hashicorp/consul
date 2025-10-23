@@ -17,13 +17,6 @@ export default class DebugRoute extends ApplicationRoute {
     this.router.on('routeWillChange', routeChange);
   }
 
-  renderTemplate() {
-    if (isDebugRoute) {
-      this.render('debug');
-    } else {
-      super.renderTemplate(...arguments);
-    }
-  }
 
   willDestroy() {
     this.router.off('routeWillChange', routeChange);

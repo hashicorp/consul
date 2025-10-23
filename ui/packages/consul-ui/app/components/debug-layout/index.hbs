@@ -1,0 +1,101 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+{{page-title 'Engineering Docs - Consul' separator=' - '}}
+
+{{document-attrs class='is-debug'}}
+{{! Tell CSS what we have enabled }}
+{{#if (can 'use acls')}}
+  {{document-attrs class='has-acls'}}
+{{/if}}
+{{#if (can 'use nspaces')}}
+  {{document-attrs class='has-nspaces'}}
+{{/if}}
+{{#if (can 'use partitions')}}
+  {{document-attrs class='has-partitions'}}
+{{/if}}
+<App class='docs' id='wrapper'>
+
+  <:notifications as |app|>
+    {{#each this.flashMessages.queue as |flash|}}
+      {{#if flash.dom}}
+        <app.Notification
+          @delay={{sub flash.timeout flash.extendedTimeout}}
+          @sticky={{flash.sticky}}
+        >
+          {{{flash.dom}}}
+        </app.Notification>
+      {{/if}}
+    {{/each}}
+  </:notifications>
+
+  <:side-nav>
+    <Hds::SideNav @hasA11yRefocus={{false}} @isResponsive={{true}} class='consul-side-nav'>
+      <:header>
+        <Hds::SideNav::Header>
+          <:logo>
+            <Hds::SideNav::Header::HomeLink
+              @icon='consul-color'
+              @ariaLabel='Consul'
+              @route='index'
+              @query={{hash peer=undefined}}
+            />
+          </:logo>
+        </Hds::SideNav::Header>
+      </:header>
+      <:body>
+        <DocfyOutput as |node|>
+          <Hds::SideNav::List class='hds-side-nav-hide-when-minimized' as |SNL|>
+            <SNL.Title>Docs</SNL.Title>
+
+            {{#each node.children as |child|}}
+              {{#each child.pages as |child|}}
+                <SNL.Link
+                  @href={{concat '/ui' child.url}}
+                  @isHrefExternal={{false}}
+                  @isActive={{is-href (to-route child.url)}}
+                  @text={{classify child.title}}
+                />
+              {{/each}}
+
+              {{!hardcode in styles next}}
+              {{#let (find-by 'label' 'styles' child.children) as |section|}}
+                <SNL.Title>{{section.label}}</SNL.Title>
+                {{#each (flatten-property section 'pages') as |child|}}
+                  <SNL.Link
+                    @href={{concat '/ui' child.url}}
+                    @text={{classify child.title}}
+                    @isHrefExternal={{false}}
+                    @isActive={{is-href (to-route child.url)}}
+                  />
+                {{/each}}
+              {{/let}}
+
+              {{!print out the rest}}
+              {{#each child.children as |section|}}
+                {{#if (not-eq section.label 'styles')}}
+                  <SNL.Title>{{section.label}}</SNL.Title>
+                  {{#each (flatten-property section 'pages') as |child|}}
+                    <SNL.Link
+                      @href={{concat '/ui' child.url}}
+                      @text={{classify child.title}}
+                      @isHrefExternal={{false}}
+                      @isActive={{is-href (to-route child.url)}}
+                    />
+                  {{/each}}
+                {{/if}}
+              {{/each}}
+            {{/each}}
+          </Hds::SideNav::List>
+        </DocfyOutput>
+      </:body>
+    </Hds::SideNav>
+  </:side-nav>
+  <:main>
+    <DocfyOutput @fromCurrentURL={{true}} as |page|>
+      {{yield}}
+    </DocfyOutput>
+  </:main>
+</App>
