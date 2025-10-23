@@ -4,16 +4,16 @@
 }}
 
 <DataForm
-  @dc={{dc}}
-  @nspace={{nspace}}
-  @partition={{partition}}
+  @dc={{@dc}}
+  @nspace={{@nspace}}
+  @partition={{@partition}}
   @type='kv'
   @label='key'
-  @autofill={{autofill}}
-  @item={{item}}
-  @src={{src}}
+  @autofill={{@autofill}}
+  @item={{@item}}
+  @src={{@src}}
   @onchange={{action 'change'}}
-  @onsubmit={{action onsubmit}}
+  @onsubmit={{action (or @onsubmit this.onsubmit)}}
   as |api|
 >
   <BlockSlot @name='content'>
@@ -26,7 +26,7 @@
               <input
                 autofocus='autofocus'
                 type='text'
-                value={{left-trim api.data.Key parent}}
+                value={{left-trim api.data.Key @parent}}
                 name='additional'
                 oninput={{action api.change}}
                 placeholder='Key or folder'
@@ -34,13 +34,13 @@
               <em>To create a folder, end a key with <code>/</code></em>
             </label>
           {{/if}}
-          {{#if (or (eq (left-trim api.data.Key parent) '') (not-eq (last api.data.Key) '/'))}}
+          {{#if (or (eq (left-trim api.data.Key @parent) '') (not-eq (last api.data.Key) '/'))}}
             <Hds::Layout::Flex @direction='column' as |LF|>
 
               <LF.Item style='align-self: flex-end;'>
                 <Hds::Form::Toggle::Field
                   name='json'
-                  checked={{if json 'checked'}}
+                  checked={{if this.json 'checked'}}
                   {{on 'change' api.change}}
                   as |F|
                 >
@@ -48,7 +48,7 @@
                 </Hds::Form::Toggle::Field>
               </LF.Item>
               <label for='' class='type-text{{if api.data.error.Value " has-error"}}'>
-                {{#if json}}
+                {{#if this.json}}
                   {{#if (or disabld api.disabled)}}
                     <Hds::CodeBlock
                       @language='bash'
@@ -102,7 +102,7 @@
               @color='secondary'
               type='reset'
               disabled={{api.disabled}}
-              onclick={{action oncancel api.data}}
+              onclick={{action this.oncancel api.data}}
             />
           {{else}}
             {{#if (not disabld)}}
@@ -117,7 +117,7 @@
               @color='secondary'
               type='reset'
               disabled={{api.disabled}}
-              onclick={{action oncancel api.data}}
+              onclick={{action this.oncancel api.data}}
             />
             {{#if (not disabld)}}
               <ConfirmationDialog @message='Are you sure you want to delete this key?'>
@@ -127,13 +127,13 @@
                     @color='critical'
                     data-test-delete
                     disabled={{api.disabled}}
-                    {{on 'click' (action confirm api.delete)}}
+                    {{on 'click' (action confirm)}}
                   />
                 </BlockSlot>
                 <BlockSlot @name='dialog' as |execute cancel message|>
                   <DeleteConfirmation
                     @message={{message}}
-                    @execute={{execute}}
+                    @execute={{queue execute api.delete}}
                     @cancel={{cancel}}
                   />
                 </BlockSlot>

@@ -1,0 +1,53 @@
+# Consul::Token::Form
+
+Presentational component that renders the token create/edit form: it delegates field rendering to Fieldsets or FieldsetsLegacy and exposes Save / Cancel / Delete actions as closure args.
+
+## Usage
+
+```hbs
+<Consul::Token::Form
+  @form={{form}}
+  @item={{item}}
+  @token={{token}}
+  @create={{create}}
+  @local={{local}}
+  @name={{name}}
+  @dc={{dc}}
+  @partition={{partition}}
+  @nspace={{nspace}}
+  @id={{id}}
+  @onCreate={{route-action 'create' item}}
+  @onUpdate={{route-action 'update' item}}
+  @onCancel={{route-action 'cancel' item}}
+  @onDelete={{route-action 'delete'}}
+  @onChange={{action 'change'}}
+/>
+```
+
+## Arguments
+
+| Arg | Type | Required | Description |
+|---|---:|:---:|---|
+| `@form` | object | yes | Form builder / changeset used by fieldsets. |
+| `@item` | object | yes | Token model / changeset. |
+| `@token` | object | no | Token metadata (used for comparisons like AccessorID). |
+| `@create` | boolean | no | True when rendering create flow. |
+| `@local` | boolean | no | Local flag for new tokens (use lowercase `@local`). |
+| `@name` | string | no | Prefix/name used by legacy fieldset inputs. |
+| `@dc` `@partition` `@nspace` `@id` | string | no | Context values forwarded to selectors and DataSource URIs. |
+| `@onCreate` `@onUpdate` `@onCancel` `@onDelete` | function | no | Closure actions invoked for Save/Cancel/Delete (pass route-action closures to invoke route handlers). |
+| `@onChange` | function | no | Change handler forwarded to fieldsets (use `action 'change'`). |
+
+## Behavior / Notes
+
+- Renders Consul::Token::Fieldsets for new-style tokens, or Consul::Token::FieldsetsLegacy for legacy tokens.
+- Save button invokes `@onCreate` when creating, otherwise `@onUpdate`.
+- Cancel invokes `@onCancel`. Prefer passing `route-action` so route-level hooks (e.g. WithBlockingActions) run.
+- Delete opens a confirmation dialog; confirmed deletes invoke `@onDelete`.
+- Fieldsets receive `@onChange` to update caller state; pass `action 'change'` from the parent.
+- Avoid uppercase arg names (e.g. `@Local` is reserved) — use lowercase names.
+
+## See
+
+- Template: ./index.hbs  
+- Optional component class: ./index.js

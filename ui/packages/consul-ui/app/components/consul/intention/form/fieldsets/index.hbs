@@ -8,21 +8,21 @@
   class="consul-intention-fieldsets"
   {{fix-super-select-aria}}
 >
-  <fieldset disabled={{disabled}}>
+  <fieldset disabled={{@disabled}}>
     <div role="group">
       <fieldset>
         <h2>Source</h2>
-        <label data-test-source-element class="type-select{{if item.error.SourceName ' has-error'}}">
+        <label data-test-source-element class="type-select{{if @item.error.SourceName ' has-error'}}">
           <span>Source Service</span>
           <SuperSelectWithCreate
-            @disabled={{not create}}
-            @options={{services}}
+            @disabled={{not @create}}
+            @options={{@services}}
             @searchField="Name"
-            @selected={{SourceName}}
+            @selected={{@sourceName}}
             @searchPlaceholder="Type service name"
             @buildSuggestion="Use a Consul Service called '__TERM__'"
-            @showCreateWhen={{action "isUnique" services}}
-            @onChange={{action onchange "SourceName"}}
+            @showCreateWhen={{action "isUnique" @services}}
+            @onChange={{action @onchange "SourceName"}}
             @label="Source Service"
             @listboxAriaLabel="Available source services"
             @isOptional={{false}}
@@ -34,22 +34,22 @@
             {{/if}}
           </SuperSelectWithCreate>
           
-        {{#if create}}
+        {{#if @create}}
           <em>Search for an existing service, or enter any Service name.</em>
         {{/if}}
         </label>
   {{#if (can 'choose nspaces')}}
-        <label data-test-source-nspace class="type-select{{if item.error.SourceNS ' has-error'}}">
+        <label data-test-source-nspace class="type-select{{if @item.error.SourceNS ' has-error'}}">
           <span>Source Namespace</span>
           <SuperSelectWithCreate
-            @disabled={{not create}}
-            @options={{nspaces}}
+            @disabled={{not @create}}
+            @options={{@nspaces}}
             @searchField="Name"
-            @selected={{SourceNS}}
+            @selected={{@sourceNS}}
             @searchPlaceholder="Type namespace name"
             @buildSuggestion="Use a Consul Namespace called '__TERM__'"
-            @showCreateWhen={{action "isUnique" nspaces}}
-            @onChange={{action onchange "SourceNS"}}
+            @showCreateWhen={{action "isUnique" @nspaces}}
+            @onChange={{action @onchange "SourceNS"}}
             @label="Source Namespace"
             @listboxAriaLabel="Available source namespaces"
             @isOptional={{false}}
@@ -60,30 +60,30 @@
               {{nspace.Name}}
             {{/if}}
           </SuperSelectWithCreate>
-        {{#if create}}
+        {{#if @create}}
           <em>Search for an existing namespace, or enter any Namespace name.</em>
         {{/if}}
         </label>
   {{/if}}
   {{#if (can 'choose partitions' dc=@dc)}}
-        <label data-test-source-partition class="type-select{{if item.error.SourcePartition ' has-error'}}">
+        <label data-test-source-partition class="type-select{{if @item.error.SourcePartition ' has-error'}}">
           <span>Source Partition</span>
           <SuperSelectWithCreate
-            @disabled={{not create}}
-            @options={{partitions}}
+            @disabled={{not @create}}
+            @options={{@partitions}}
             @searchField="Name"
-            @selected={{SourcePartition}}
+            @selected={{@sourcePartition}}
             @searchPlaceholder="Type partition name"
             @buildSuggestion="Use a Consul Partition called '__TERM__'"
-            @showCreateWhen={{action "isUnique" partitions}}
-            @onChange={{action onchange "SourcePartition"}}
+            @showCreateWhen={{action "isUnique" @partitions}}
+            @onChange={{action @onchange "SourcePartition"}}
             @label="Source Partition"
             @listboxAriaLabel="Available source partitions"
             @isOptional={{false}}
           as |partition|>
             {{partition.Name}}
           </SuperSelectWithCreate>
-        {{#if create}}
+        {{#if @create}}
           <em>Search for an existing partition, or enter any Partition name.</em>
         {{/if}}
         </label>
@@ -91,18 +91,18 @@
       </fieldset>
       <fieldset>
         <h2>Destination</h2>
-        <label data-test-destination-element class="type-select{{if item.error.DestinationName ' has-error'}}">
+        <label data-test-destination-element class="type-select{{if @item.error.DestinationName ' has-error'}}">
           <span>Destination Service</span>
 
           <SuperSelectWithCreate
-            @disabled={{not create}}
-            @options={{services}}
+            @disabled={{not @create}}
+            @options={{@services}}
             @searchField="Name"
-            @selected={{DestinationName}}
+            @selected={{@destinationName}}
             @searchPlaceholder="Type service name"
             @buildSuggestion="Use a Consul Service called '__TERM__'"
-            @showCreateWhen={{action "isUnique" services}}
-            @onChange={{action onchange "DestinationName"}}
+            @showCreateWhen={{action "isUnique" @services}}
+            @onChange={{action @onchange "DestinationName"}}
             @label="Destination Service"
             @listboxAriaLabel="Available destination services"
             @isOptional={{false}}
@@ -113,22 +113,22 @@
               {{service.Name}}
             {{/if}}
           </SuperSelectWithCreate>
-        {{#if create}}
+        {{#if @create}}
           <em>Search for an existing service, or enter any Service name.</em>
         {{/if}}
         </label>
   {{#if (can 'choose nspaces')}}
-        <label data-test-destination-nspace class="type-select{{if item.error.DestinationNS ' has-error'}}">
+        <label data-test-destination-nspace class="type-select{{if @item.error.DestinationNS ' has-error'}}">
           <span>Destination Namespace</span>
           <SuperSelectWithCreate
-            @disabled={{not create}}
-            @options={{nspaces}}
+            @disabled={{not @create}}
+            @options={{@nspaces}}
             @searchField="Name"
-            @selected={{DestinationNS}}
+            @selected={{@destinationNS}}
             @searchPlaceholder="Type namespace name"
             @buildSuggestion="Use a future Consul Namespace called '__TERM__'"
-            @showCreateWhen={{action "isUnique" nspaces}}
-            @onChange={{action onchange "DestinationNS"}}
+            @showCreateWhen={{action "isUnique" @nspaces}}
+            @onChange={{action @onchange "DestinationNS"}}
             @label="Destination Namespace"
             @listboxAriaLabel="Available destination namespaces"
             @isOptional={{false}}
@@ -139,30 +139,30 @@
               {{nspace.Name}}
             {{/if}}
           </SuperSelectWithCreate>
-        {{#if create}}
+        {{#if @create}}
           <em>For the destination, you may choose any namespace for which you have access.</em>
         {{/if}}
         </label>
   {{/if}}
   {{#if (can 'choose partitions' dc=@dc)}}
-        <label data-test-destination-partition class="type-select{{if item.error.DestinationPartition ' has-error'}}">
+        <label data-test-destination-partition class="type-select{{if @item.error.DestinationPartition ' has-error'}}">
           <span>Destination Partition</span>
           <SuperSelectWithCreate
-            @disabled={{not create}}
-            @options={{partitions}}
+            @disabled={{not @create}}
+            @options={{@partitions}}
             @searchField="Name"
-            @selected={{DestinationPartition}}
+            @selected={{@destinationPartition}}
             @searchPlaceholder="Type partition name"
             @buildSuggestion="Use a future Consul Partition called '__TERM__'"
-            @showCreateWhen={{action "isUnique" partitions}}
-            @onChange={{action onchange "DestinationPartition"}}
+            @showCreateWhen={{action "isUnique" @partitions}}
+            @onChange={{action @onchange "DestinationPartition"}}
             @label="Destination Partition"
             @listboxAriaLabel="Available destination partitions"
             @isOptional={{false}}
           as |partition|>
             {{partition.Name}}
           </SuperSelectWithCreate>
-        {{#if create}}
+        {{#if @create}}
           <em>For the destination, you may choose any partition for which you have access.</em>
         {{/if}}
         </label>
@@ -170,14 +170,14 @@
       </fieldset>
     </div>
   <fieldset>
-    <label class="type-text{{if item.error.Description ' has-error'}}">
+    <label class="type-text{{if @item.error.Description ' has-error'}}">
       <span>Description (Optional)</span>
-      <input type="text" name="Description" value={{item.Description}} placeholder="Description (Optional)" onchange={{action onchange}} />
+      <input type="text" name="Description" value={{@item.Description}} placeholder="Description (Optional)" onchange={{action @onchange}} />
     </label>
   </fieldset>
     <div>
       <span class="label">Should this source connect to the destination?</span>
-      <div role="radiogroup" class={{if item.error.Action ' has-error'}}>
+      <div role="radiogroup" class={{if @item.error.Action ' has-error'}}>
         {{#each
           (array
             (hash
@@ -200,8 +200,8 @@
           <RadioCard
             class={{concat 'value-' _action.intent}}
             @value={{_action.intent}}
-            @checked={{if (eq (or item.Action '') _action.intent) 'checked'}}
-            @onchange={{action onchange}}
+            @checked={{if (eq (or @item.Action '') _action.intent) 'checked'}}
+            @onchange={{action @onchange}}
             @name="Action"
           as |radio|>
             <header>
@@ -215,7 +215,7 @@
       </div>
     </div>
   </fieldset>
-{{#if (eq (or item.Action '') '')}}
+{{#if (eq (or @item.Action '') '')}}
   <fieldset class="permissions">
     <Hds::Button
       @text='Add permission'
@@ -226,12 +226,12 @@
       {{on "click" (action this.openModal)}}
     />
     <h2>Permissions</h2>
-{{#if (gt item.Permissions.length 0) }}
+{{#if (gt @item.Permissions.length 0) }}
     <Consul::Intention::Notice::Permissions />
     <Consul::Intention::Permission::List
-      @items={{item.Permissions}}
-      @onclick={{queue (action (mut permission)) (action this.openModal)}}
-      @ondelete={{action 'delete' 'Permissions' item}}
+      @items={{@item.Permissions}}
+      @onclick={{queue (action (mut this.permission)) (action this.openModal)}}
+      @ondelete={{action 'delete' 'Permissions' @item}}
     />
 {{else}}
     <EmptyState>
@@ -272,7 +272,7 @@
 
   <ModalDialog
     class="consul-intention-permission-modal"
-    @onclose={{action (mut permission) undefined}}
+    @onclose={{action (mut this.permission) undefined}}
     @aria={{hash
       label="Edit Permission"
     }}
@@ -283,8 +283,8 @@
     </BlockSlot>
     <BlockSlot @name="body">
       <Consul::Intention::Permission::Form
-        @item={{permission}}
-        @onsubmit={{action 'add' 'Permissions' item}}
+        @item={{this.permission}}
+        @onsubmit={{action 'add' 'Permissions' @item}}
       as |permissionForm|>
         <Ref @target={{this}} @name="permissionForm" @value={{permissionForm}} />
       </Consul::Intention::Permission::Form>

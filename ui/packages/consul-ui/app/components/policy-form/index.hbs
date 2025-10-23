@@ -6,44 +6,44 @@
 {{yield}}
 <fieldset
   class='policy-form'
-  disabled={{if (not (can 'write policy' item=item)) 'disabled'}}
+  disabled={{if (not (can 'write policy' item=this.item)) 'disabled'}}
   {{fix-super-select-aria}}
   ...attributes
 >
   {{#yield-slot name='template'}}{{else}}
     <h3>
-      Policy{{if allowIdentity ' or identity?' ''}}
+      Policy{{if this.allowIdentity ' or identity?' ''}}
     </h3>
-    {{#if allowIdentity}}
+    {{#if this.allowIdentity}}
       <p>
         Identities are default policies with configurable names. They save you some time and effort
         you're using Consul for Connect features.
       </p>
       {{! this should use radio-group }}
-      <div role='radiogroup' class={{if item.error.Type ' has-error'}}>
-        {{#each templates as |template|}}
+      <div role='radiogroup' class={{if this.item.error.Type ' has-error'}}>
+        {{#each this.templates as |template|}}
           <label data-test-radiobutton={{concat 'template_' template.template}}>
             <span>{{template.name}}</span>
             <input
               type='radio'
-              name={{concat name '[template]'}}
+              name={{concat this.name '[template]'}}
               value={{template.template}}
-              checked={{eq item.template template.template}}
-              onchange={{action (optional (changeset-set item 'template')) value='target.value'}}
+              checked={{eq this.item.template template.template}}
+              onchange={{action (optional (changeset-set this.item 'template')) value='target.value'}}
             />
           </label>
         {{/each}}
       </div>
     {{else}}
-      <input type='hidden' name={{concat name '[template]'}} value='' />
+      <input type='hidden' name={{concat this.name '[template]'}} value='' />
     {{/if}}
   {{/yield-slot}}
-  <label class='type-text{{if (and item.error.Name (not item.isPristine)) " has-error"}}'>
+  <label class='type-text{{if (and this.item.error.Name (not this.item.isPristine)) " has-error"}}'>
     <span>Name</span>
     <input
       type='text'
-      value={{item.Name}}
-      name='{{name}}[Name]'
+      value={{this.item.Name}}
+      name='{{this.name}}[Name]'
       autofocus='autofocus'
       oninput={{action 'change'}}
     />
@@ -51,19 +51,19 @@
       Maximum 128 characters. May only include letters (uppercase and/or lowercase) and/or numbers.
       Must be unique.
     </em>
-    {{#if (and item.error.Name (not item.isPristine))}}
-      <strong>{{item.error.Name.validation}}</strong>
+    {{#if (and this.item.error.Name (not this.item.isPristine))}}
+      <strong>{{this.item.error.Name.validation}}</strong>
     {{/if}}
   </label>
   <label for='' class='type-text' data-test-rules>
-    {{#if (eq item.template 'service-identity')}}
+    {{#if (eq this.item.template 'service-identity')}}
       <Hds::CodeBlock
         @language='hcl'
-        @ariaLabel={{concat name '[Rules]'}}
+        @ariaLabel={{concat this.name '[Rules]'}}
         @value={{service-identity-template
-          item.Name
-          nspace=nspace
-          partition=partition
+          this.item.Name
+          nspace=@nspace
+          partition=@partition
           canUsePartitions=(can 'use partitions')
           canUseNspaces=(can 'use nspaces')
         }}
@@ -79,13 +79,13 @@
           >(HCL Format)</a>
         </CB.Title>
       </Hds::CodeBlock>
-    {{else if (eq item.template 'node-identity')}}
+    {{else if (eq this.item.template 'node-identity')}}
       <Hds::CodeBlock
         @language='hcl'
-        @ariaLabel={{concat name '[Rules]'}}
+        @ariaLabel={{concat this.name '[Rules]'}}
         @value={{node-identity-template
-          item.Name
-          partition=partition
+          this.item.Name
+          partition=@partition
           canUsePartitions=(can 'use partitions')
           canUseNspaces=(can 'use nspaces')
         }}
@@ -103,10 +103,10 @@
       </Hds::CodeBlock>
     {{else}}
       <Hds::CodeEditor
-        @value={{item.Rules}}
-        @ariaLabel={{concat name '[Rules]'}}
+        @value={{this.item.Rules}}
+        @ariaLabel={{concat this.name '[Rules]'}}
         @syntax='hcl'
-        @onInput={{action 'change' (concat name '[Rules]')}}
+        @onInput={{action 'change' (concat this.name '[Rules]')}}
         as |CE|
       >
         <CE.Title @tag='span'>
@@ -119,22 +119,22 @@
           >(HCL Format)</a>
         </CE.Title>
       </Hds::CodeEditor>
-      {{#if item.error.Rules}}
-        <strong>{{item.error.Rules.validation}}</strong>
+      {{#if this.item.error.Rules}}
+        <strong>{{this.item.error.Rules.validation}}</strong>
       {{/if}}
     {{/if}}
   </label>
-  {{#if (eq item.template 'node-identity')}}
+  {{#if (eq this.item.template 'node-identity')}}
 
     <DataSource
       @src={{uri '/*/*/*/datacenters'}}
-      @onchange={{action (mut datacenters) value='data'}}
+      @onchange={{action (mut this.datacenters) value='data'}}
     />
     <label class='type-select' data-test-datacenter>
       <span>Datacenter</span>
       <Hds::Form::SuperSelect::Single::Field
-        @options={{map-by 'Name' datacenters}}
-        @selected={{or item.Datacenter dc}}
+        @options={{map-by 'Name' this.datacenters}}
+        @selected={{or this.item.Datacenter @dc}}
         @searchField="Name"
         @searchPlaceholder="Type a datacenter name"
         @onChange={{action 'change' 'Datacenter'}}
@@ -149,45 +149,45 @@
     </label>
   {{else}}
     {{! only show Valid Datacenters for the default partition }}
-    {{#if (eq (or partition 'default') 'default')}}
+    {{#if (eq (or @partition 'default') 'default')}}
       <div class='type-toggle'>
         <span>Valid datacenters</span>
         <label>
           <input
             type='checkbox'
-            name='{{name}}[isScoped]'
-            checked={{if (not isScoped) 'checked'}}
+            name='{{this.name}}[isScoped]'
+            checked={{if (not this.isScoped) 'checked'}}
             onchange={{action 'change'}}
           />
           <span>All</span>
         </label>
       </div>
     {{/if}}
-    {{#if isScoped}}
+    {{#if this.isScoped}}
       <DataSource
         @src={{uri '/*/*/*/datacenters'}}
-        @onchange={{action (mut datacenters) value='data'}}
+        @onchange={{action (mut this.datacenters) value='data'}}
       />
 
       <div class='checkbox-group' role='group'>
-        {{#each datacenters as |dc|}}
+        {{#each this.datacenters as |dc|}}
           <label class='type-checkbox'>
             <input
               type='checkbox'
-              name='{{name}}[Datacenters]'
+              name='{{this.name}}[Datacenters]'
               value={{dc.Name}}
-              checked={{if (includes dc.Name item.Datacenters) 'checked'}}
+              checked={{if (includes dc.Name this.item.Datacenters) 'checked'}}
               onchange={{action 'change'}}
             />
             <span>{{dc.Name}}</span>
           </label>
         {{/each}}
-        {{#each item.Datacenters as |dc|}}
-          {{#if (not (find-by 'Name' dc datacenters))}}
+        {{#each this.item.Datacenters as |dc|}}
+          {{#if (not (find-by 'Name' dc this.datacenters))}}
             <label class='type-checkbox'>
               <input
                 type='checkbox'
-                name='{{name}}[Datacenters]'
+                name='{{this.name}}[Datacenters]'
                 value={{dc}}
                 checked='checked'
                 onchange={{action 'change'}}
@@ -200,12 +200,12 @@
 
     {{/if}}
   {{/if}}
-  {{#if (eq item.template '')}}
+  {{#if (eq this.item.template '')}}
     <label class='type-text'>
       <span>Description (Optional)</span>
       <textarea
-        name='{{name}}[Description]'
-        value={{item.Description}}
+        name='{{this.name}}[Description]'
+        value={{this.item.Description}}
         oninput={{action 'change'}}
       ></textarea>
     </label>
