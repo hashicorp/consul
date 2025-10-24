@@ -71,7 +71,6 @@
     "AutopilotDisableUpgradeMigration": false,
     "AutopilotLastContactThreshold": "0s",
     "AutopilotMaxTrailingLogs": 0,
-
     "AutopilotMinQuorum": 0,
     "AutopilotRedundancyZoneTag": "",
     "AutopilotServerStabilizationTime": "0s",
@@ -204,6 +203,7 @@
     "EnableLocalScriptChecks": false,
     "DisableKVKeyValidation": false,
     "EnableRemoteScriptChecks": false,
+    "EnableXDSLoadBalancing": true,
     "EncryptKey": "hidden",
     "EnterpriseRuntimeConfig": {},
     "Experiments": [],
@@ -297,11 +297,11 @@
             "SegmentSize": 0
         }
     },
+    "RaftPreVoteDisabled": false,
     "RaftProtocol": 3,
     "RaftSnapshotInterval": "0s",
     "RaftSnapshotThreshold": 0,
     "RaftTrailingLogs": 0,
-    "RaftPreVoteDisabled": false,
     "ReadReplica": false,
     "ReconnectTimeoutLAN": "0s",
     "ReconnectTimeoutWAN": "0s",
@@ -315,6 +315,7 @@
     "RequestLimitsMode": 0,
     "RequestLimitsReadRate": 0,
     "RequestLimitsWriteRate": 0,
+    "RetryJoinDNSTTL": "0s",
     "RetryJoinIntervalLAN": "0s",
     "RetryJoinIntervalWAN": "0s",
     "RetryJoinLAN": [
@@ -525,6 +526,5 @@
     "VersionMetadata": "",
     "VersionPrerelease": "",
     "Watches": [],
-    "XDSUpdateRateLimit": 0,
-    "EnableXDSLoadBalancing":true
+    "XDSUpdateRateLimit": 0
 }
