@@ -4,13 +4,16 @@
  */
 
 import Route from './index';
+import { inject as service } from '@ember/service';
 
 export default class FolderRoute extends Route {
+  @service router;
+
   beforeModel(transition) {
     super.beforeModel(...arguments);
     const params = this.paramsFor('dc.kv.folder');
     if (params.key === '/' || params.key == null) {
-      return this.transitionTo('dc.kv.index');
+      return this.router.transitionTo('dc.kv.index');
     }
   }
 }
