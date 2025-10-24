@@ -252,11 +252,10 @@ jobs:
     - setup
     - get-go-version
     - dev-build
-    uses: ./.github/workflows/reusable-unit-split.yml
+    uses: ./.github/workflows/reusable-unit.yml
     with:
       directory: .
-      runner-count: 6
-      runs-on: ${{ needs.setup.outputs.compute-large }}
+      runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
       go-tags: ""
       go-version: ${{ needs.get-go-version.outputs.go-version }}
