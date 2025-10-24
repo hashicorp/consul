@@ -440,6 +440,10 @@
         "path": "operator/area"
       },
       {
+        "title": "audit",
+        "path": "operator/audit"
+      },
+      {
         "title": "autopilot",
         "path": "operator/autopilot"
       },
@@ -450,6 +454,10 @@
       {
         "title": "usage",
         "path": "operator/usage"
+      },
+      {
+        "title": "utilization",
+        "path": "operator/utilization"
       }
     ]
   },
