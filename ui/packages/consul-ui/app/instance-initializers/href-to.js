@@ -142,12 +142,15 @@ export default {
       };
 
       doc.body.addEventListener('click', listener);
-      container.reopen({
-        willDestroy() {
-          doc.body.removeEventListener('click', listener);
-          return this._super(...arguments);
-        },
-      });
+
+      // Store original destroy method
+      const originalDestroy = container.willDestroy || function () {};
+
+      // Override without reopening
+      container.willDestroy = function () {
+        doc.body.removeEventListener('click', listener);
+        return originalDestroy.call(this);
+      };
     }
   },
 };
