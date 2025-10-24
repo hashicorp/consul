@@ -5478,7 +5478,162 @@ module.exports = [
     source: "/consul/docs/guides/sentinel",
     destination: "/sentinel/docs",
     permanent: true,
-  },        
+  }, 
+  {
+    source: "/consul/docs/connect/intentions-legacy",
+    destination: "/consul/docs/secure-mesh/intention",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/connect/mesh_gateway",
+    destination: "/consul/docs/east-west/mesh-gateway",
+    permanent: true,
+  },   
+  {
+    source: "/consul/docs/connect/proxies/managed-deprecated",
+    destination: "/consul/docs/v1.9.x/connect/proxies/managed-deprecated",
+    permanent: true,
+  },   
+  {
+    source: "/consul/docs/download-tools",
+    destination: "/consul/docs/integrate/consul-tools",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/enterprise/network-segments",
+    destination: "/consul/docs/multi-tenant/network-segment",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/guides/acl",
+    destination: "/consul/docs/secure/acl",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/guides/datacenters",
+    destination: "/consul/docs/glossary#datacenters",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/guides/deployment-guide",
+    destination: "/consul/tutorials/production-vms/deployment-guide",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/integrate/consul",
+    destination: "/consul/docs/integrate",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/internals/anti-entropy",
+    destination: "/consul/docs/concept/consistency",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/internals/consensus",
+    destination: "/consul/docs/concept/consensus",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/internals/security",
+    destination: "/consul/docs/architecture/security",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/k8s/connect/ambassador",
+    destination: "/consul/tutorials/archive/kubernetes-consul-design-patterns#ambassador-pattern",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/k8s/deployment-configurations/vault/data-integration/connect-ca",
+    destination: "/consul/docs/deploy/server/k8s/vault/data/mesh-ca",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/k8s/installation/deployment-configurations/clients-outside-kubernetes",
+    destination: "/consul/docs/deploy/workload/client/k8s",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/k8s/installation/deployment-configurations/consul-enterprise",
+    destination: "/consul/docs/deploy/server/k8s/enterprise",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/k8s/installation/deployment-configurations/servers-outside-kubernetes",
+    destination: "/consul/docs/deploy/server/k8s/external",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/k8s/installation/deployment-configurations/single-dc-multi-k8s",
+    destination: "/consul/docs/deploy/server/k8s/multi-cluster",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/k8s/installation/multi-cluster",
+    destination: "consul/docs/deploy/server/k8s/multi-cluster",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/k8s/installation/multi-cluster/kubernetes",
+    destination: "consul/docs/deploy/server/k8s/multi-cluster",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/k8s/installation/multi-cluster/vms-and-kubernetes",
+    destination: "/consul/docs/manage/dns/views",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/k8s/installation/vault/:slug*",
+    destination: "/consul/docs/deploy/server/k8s/vault",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/k8s/tls-on-existing-cluster",
+    destination: "/consul/docs/secure/encryption/tls/enable/existing/k8s",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/k8s/uninstall",
+    destination: "/consul/docs/deploy/server/k8s/uninstall",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/k8s/upgrade/compatibility",
+    destination: "/consul/docs/upgrade/k8s/compatibility",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/nia/cli/cli-overview",
+    destination: "/consul/docs/reference/cli/cts",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/nia/installation/requirements",
+    destination: "/consul/docs/automate/infrastructure/requirements",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/nia/installation/run",
+    destination: "/consul/docs/automate/infrastructure/run",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/proxies/deploy-sidecar-services",
+    destination: "/consul/docs/connect/proxy/sidecar",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/secure/encryption/mtls",
+    destination: "/consul/docs/secure/encryption/tls/mtls",
+    permanent: true,
+  },
+  {
+    source: "/consul/docs/:version(v1\\.(?:11|12|13|18|19|20)\\.x)/k8s/installation/vault/:slug*",
+    destination: "/consul/docs//docs/deploy/server/k8s/vault",
+    permanent: true,
+  },    
 ]
 
 
