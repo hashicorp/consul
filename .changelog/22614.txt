@@ -1,0 +1,3 @@
+```release-note:bug
+cli: Enhanced error messages in `consul config write` command to provide actionable guidance when config entries cannot be modified due to references by gateways or routers.
+```
