@@ -17,8 +17,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/armon/go-metrics"
 	"github.com/google/tcpproxy"
+	"github.com/hashicorp/go-metrics"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"

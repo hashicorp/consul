@@ -20,8 +20,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/armon/go-metrics/prometheus"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/hashicorp/go-metrics/prometheus"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
 

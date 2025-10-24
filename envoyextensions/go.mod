@@ -25,7 +25,7 @@ require (
 
 require (
 	cel.dev/expr v0.16.0 // indirect
-	github.com/armon/go-metrics v0.4.1 // indirect
+	github.com/hashicorp/go-metrics v0.4.1 // indirect
 	github.com/cncf/xds/go v0.0.0-20240723142845-024c85f92f20 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/envoyproxy/protoc-gen-validate v1.1.0 // indirect
