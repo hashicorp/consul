@@ -105,7 +105,7 @@ Define the following parameters for each port you want to specify:
 
 When the `tagged_address` parameter is not set, Consul uses the service's `address` and the `default` port defined for the service.
 
-If multiple ports are set as the default port, Consul returns an error when you attempt to register the service.
+If you set multiple ports as the default port, Consul returns an error when you attempt to register the service.
 
 For an example service definition, refer to [Multi-port service definition](#multi-port-service-definition).
 
@@ -161,7 +161,7 @@ The `tagged_address` field is an object that configures additional addresses for
 - [`wan_ipv4`](#tagged_addresses-wan): IPv4 WAN address where the node or service is accessible when dialed from a remote data center.
 - [`wan_ipv6`](#tagged_addresses-lan): IPv6 WAN address at which the node or service is accessible when being dialed from a remote data center.
 
-When `tagged_address` is not configured in a service definition, Consul uses the `address` and `port` properties in the definition. When a multi-port service is defined using the `ports` parameter, Consul uses the port configured as the default in the `ports.default` parameter.
+When `tagged_address` is not configured in a service definition, Consul uses the `address` and `port` properties in the definition. When you define a multi-port service with the `ports` parameter, Consul uses the port configured as the default in the `ports.default` parameter.
 
 ### `tagged_addresses.lan`
 
