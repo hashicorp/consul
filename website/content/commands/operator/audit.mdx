@@ -1,0 +1,73 @@
+---
+layout: commands
+page_title: 'Commands: Operator Audit'
+description: >
+  The operator audit command is used to interact with Consul's audit logging subsystem.
+---
+
+# Consul Operator Audit
+
+Command: `consul operator audit`
+
+<EnterpriseAlert />
+
+Consul Enterprise audit logging captures a list of authenticated events that 
+Consul processes through its HTTP API. The `operator audit` command is used to 
+interact with Consul's audit logging subsystem.
+
+Fore information and workflow guidance, refer to the [audit logging documentation](/consul/docs/monitor/log/audit).
+
+```text
+Usage: consul operator audit <subcommand> [options]
+  The Audit operator command is used to interact with Consul's Audit logging subsystem. The
+  command can be used to calculate the audit log hash of a given string.
+
+Subcommands:
+    hash    Computes the audit hash of a string
+```
+
+If ACLs are enabled, the client must supply an ACL Token with `operator`
+read or write privileges to use these commands.
+
+## hash
+
+Corresponding HTTP API Endpoint: [\[POST\] /v1/operator/audit-hash](/consul/api-docs/operator/audit)
+
+Computes the audit hash of a string. Can optionally compare the computed hash to a specified hash.
+
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required     |
+| ---------------- |
+| `operator:read`  |
+
+Usage: `consul operator audit hash -input INPUT [options]`
+
+#### API Options
+
+@include 'legacy/http_api_options_client.mdx'
+
+@include 'legacy/http_api_options_server.mdx'
+
+#### Command Options
+
+- `-hash-to-match=<string>` - Optional. If specified, the command outputs whether this value matches the computed hash of the 'input' value. Should be in the format: `hmac_sha256:xxxx`
+
+- `-input=<string>` - Specifies the input string to hash. This flag is required.
+
+### Examples
+
+Display audit hash of provided value:
+
+```shell-session
+$ consul operator audit hash -input="my-value"
+```
+
+Compare audit hash of provided value:
+
+```
+$ consul operator audit hash -input="my-value" -hash-to-match="hmac_sha256:37ed9ed..."
+```
+
