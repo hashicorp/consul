@@ -2,7 +2,7 @@
 layout: commands
 page_title: 'Commands: Operator Utilization'
 description: >
-  The operator audit command is used to generate a Consul utilization bundle for license reporting.
+  Use the operator audit command to generate a Consul utilization bundle for license reporting.
 ---
 
 # Consul Operator Utilization
@@ -13,16 +13,14 @@ Corresponding HTTP API Endpoint: [\[GET\] /v1/operator/utilization](/consul/api-
 
 <EnterpriseAlert />
 
-The `operator utilization` command generates a license utilization bundle that can be shared with HashiCorp. The bundle is written to a JSON file and can optionally be sent automatically to HashiCorp during generation. 
+The `operator utilization` command generates a license utilization bundle that you may share with HashiCorp. This command writes the bundle to a JSON file and optionally sends the bundle automatically to HashiCorp during generation. 
 
 Air-gapped environments or environments that are unable to satisfy [automatic reporting requirements](/consul/docs/enterprise/license/reporting#requirements) can use the `operator utilization` command to generate a license utilization report that you can send to HashiCorp directly or submit using a different process.
 
 Refer to [Automated license utilization reporting](/consul/docs/enterprise/license/reporting) for more details.
 
-The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
-are not supported from commands, but may be from the corresponding HTTP endpoint.
-
+The following tableshows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Commands do not support configuration of
+[blocking queries](/consul/api-docs/features/blocking) or [agent caching](/consul/api-docs/features/caching), but the corresponding HTTP endpoint may support that configuration.
 | ACL Required     |
 | ---------------- |
 | `operator:read`  |
@@ -31,11 +29,9 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 
 Usage: `consul operator utilization [options]`
 
-#### Command Options 
+#### Command options 
 
-- `-message=<string>` - Optional context that will be logged with the utilization export.
-
-- `-output=<string>` - Path to write the utilization bundle JSON. Defaults to `consul-utilization-<timestamp>.json` in the current directory.
+- `-message=<string>` - Optional context that is logged with the utilization export.
 
 - `-today-only` - Include only the most recent utilization snapshot.
 
@@ -43,19 +39,19 @@ Usage: `consul operator utilization [options]`
 
 ## Examples
 
-Export all snapshots (in a bundle):
+This example exports all snapshots in a bundle.
 
 ```shell-session
 $ consul operator utilization -message "Change Control 12345"
 ```
 
-Export today only:
+Use the `-today-only` parameter to export only today's data.  
 
 ```shell-session
-$ consul operator utilization --today-only
+$ consul operator utilization -today-only
 ```
 
-Custom file path for bundle output:
+Use the `-output` parameter to specify a custom file path for bundle output.  
 
 ```shell-session
 $ consul operator utilization -output "/reports/latest.json"

@@ -130,11 +130,11 @@ Check your product logs roughly 24 hours after opting out to make sure that the 
 
 ## Manual license utilization reporting
 
-If you opted-out from the automated license utilization reporting you might still need to produce license utilization reports.
+Even if you opted out of the automated license utilization reporting, you might still need to produce license utilization reports.
 
-You can use the [`consul operator utilization`](/consul/commands/operator/utilization) CLI command to generate these reports.
+Use the [`consul operator utilization`](/consul/commands/operator/utilization) CLI command to generate these reports.
 
-This command will ask if you want to automatically send the report to HashiCorp. If you are running an air-gapped environment or you did not configure your traffic to [enable automated reporting](#enable-automated-reporting), you can select `N`.
+This command asks if you want to automatically send the report to HashiCorp. If you are running an air-gapped environment or you did not configure your traffic to [enable automated reporting](#enable-automated-reporting), select `N`.
 
 ```shell-session
 $ consul operator utilization -output license-report.json 

@@ -2,7 +2,7 @@
 layout: commands
 page_title: 'Commands: Operator Audit'
 description: >
-  The operator audit command is used to interact with Consul's audit logging subsystem.
+  Use the operator audit command to interact with Consul's audit logging subsystem.
 ---
 
 # Consul Operator Audit
@@ -12,7 +12,7 @@ Command: `consul operator audit`
 <EnterpriseAlert />
 
 Consul Enterprise audit logging captures a list of authenticated events that 
-Consul processes through its HTTP API. The `operator audit` command is used to 
+Consul processes through its HTTP API. Use the `operator audit` command to 
 interact with Consul's audit logging subsystem.
 
 Fore information and workflow guidance, refer to the [audit logging documentation](/consul/docs/monitor/log/audit).
@@ -33,11 +33,10 @@ read or write privileges to use these commands.
 
 Corresponding HTTP API Endpoint: [\[POST\] /v1/operator/audit-hash](/consul/api-docs/operator/audit)
 
-Computes the audit hash of a string. Can optionally compare the computed hash to a specified hash.
+Computes the audit hash of a string. Optionally compare the computed hash to a specified hash.
 
-The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
-are not supported from commands, but may be from the corresponding HTTP endpoint.
+The following table shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Commands do not support configuration of
+[blocking queries](/consul/api-docs/features/blocking) or [agent caching](/consul/api-docs/features/caching), but the corresponding HTTP endpoint may support that configuration.
 
 | ACL Required     |
 | ---------------- |
@@ -45,13 +44,13 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 
 Usage: `consul operator audit hash -input INPUT [options]`
 
-#### API Options
+#### API options
 
 @include 'legacy/http_api_options_client.mdx'
 
 @include 'legacy/http_api_options_server.mdx'
 
-#### Command Options
+#### Command options
 
 - `-hash-to-match=<string>` - Optional. If specified, the command outputs whether this value matches the computed hash of the 'input' value. Should be in the format: `hmac_sha256:xxxx`
 
@@ -59,13 +58,13 @@ Usage: `consul operator audit hash -input INPUT [options]`
 
 ### Examples
 
-Display audit hash of provided value:
+This example displays the audit hash of the provided value.
 
 ```shell-session
 $ consul operator audit hash -input="my-value"
 ```
 
-Compare audit hash of provided value:
+This example compares the audit hash of a provided value.
 
 ```
 $ consul operator audit hash -input="my-value" -hash-to-match="hmac_sha256:37ed9ed..."

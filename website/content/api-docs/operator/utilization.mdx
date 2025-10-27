@@ -21,7 +21,7 @@ This endpoint generates a Consul utilization bundle for license reporting.
 | ------ | ------------------------------ | ------------------ |
 | `GET` | `/operator/utilization`         | `application/json` |
 
-The table below shows this endpoint's support for
+The following table shows this endpoint's support for
 [blocking queries](/consul/api-docs/features/blocking),
 [consistency modes](/consul/api-docs/features/consistency),
 [agent caching](/consul/api-docs/features/caching), and
@@ -34,22 +34,22 @@ The table below shows this endpoint's support for
 The corresponding CLI command is [`consul operator utilization`](/consul/commands/operator/utilization).
 
 
-### Query Parameters
+### Query parameters
 
-- `message`  `(string: "")` - Optional context that will be logged with the utilization export.
+- `message`  `(string: "")` - Optional context that is logged with the utilization export.
 
 - `today_only` `(bool: false)` - Include only the most recent utilization snapshot.
 
 - `send_report` `(bool: false)` - Automatically send the utilization report to HashiCorp.
 
-### Sample Request
+### Sample request
 
 ```shell-session
 $ curl \
     http://127.0.0.1:8500/v1/operator/utilization
 ```
 
-### Sample Response
+### Sample response
 
 ```json
 {
