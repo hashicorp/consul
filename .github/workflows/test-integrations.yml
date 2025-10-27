@@ -346,7 +346,7 @@ jobs:
           # Add IPv6 flag if testing IPv6
           IPV6_FLAG=""
           if [ "${{ matrix.ip-version }}" == "ipv6" ]; then
-            IPV6_FLAG="-ipv6"
+            IPV6_FLAG="-ipv6=true"
           fi
           
           go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
