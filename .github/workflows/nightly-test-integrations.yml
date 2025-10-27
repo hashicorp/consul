@@ -175,6 +175,8 @@ jobs:
           IPV6_FLAG=""
           if [ "${{ matrix.ip-version }}" == "ipv6" ]; then
             IPV6_FLAG="-ipv6=true"
+          else
+            IPV6_FLAG=""
           fi
           
           go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
@@ -182,8 +184,7 @@ jobs:
               --rerun-fails \
               --rerun-fails-report=/tmp/gotestsum-rerun-fails \
               --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/(${{ matrix.test-cases }})" $IPV6_FLAG
+              -- -timeout=30m -tags integration -run="TestEnvoy/(${{ matrix.test-cases }})" ./test/integration/connect/envoy $IPV6_FLAG
 
       # NOTE: ENT specific step as we store secrets in Vault.
       - name: Authenticate to Vault
