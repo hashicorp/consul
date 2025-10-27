@@ -7,6 +7,7 @@ package envoy
 
 import (
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -31,10 +32,13 @@ func TestEnvoy(t *testing.T) {
 		check_dir_files(dir)
 	}
 
+	fmt.Println("flagIPv6", *flagIPv6)
+
 	// Prepare environment variables
 	var envVars []string
 	if *flagIPv6 {
 		envVars = append(envVars, "USE_IPV6=true")
+		envVars = append(envVars, "IPV6=true")
 	}
 
 	testcases, err := discoverCases()
@@ -102,13 +106,18 @@ func runCmd(t *testing.T, c string, env ...string) {
 
 // Discover the cases so we pick up both ce and ent copies.
 func discoverCases() ([]string, error) {
+	fmt.Println("Running discoverCases:::")
+
 	cwd, err := os.Getwd()
 	if err != nil {
 		return nil, err
 	}
 
+	fmt.Println("Running discoverCases:::", cwd)
+
 	dirs, err := os.ReadDir(cwd)
 	if err != nil {
+		fmt.Println("dirs, err := os.ReadDir(cwd)", err)
 		return nil, err
 	}
 

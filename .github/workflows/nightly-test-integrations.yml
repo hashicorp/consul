@@ -111,6 +111,7 @@ jobs:
       matrix:
         envoy-version: ${{ fromJSON(needs.get-envoy-versions.outputs.envoy-versions-json) }}
         xds-target: ["server", "client"]
+        ip-version: ["ipv4", "ipv6"]
         test-cases: ${{ fromJSON(needs.generate-envoy-job-matrices.outputs.envoy-matrix) }}
     env:
       ENVOY_VERSION: ${{ matrix.envoy-version }}
@@ -152,13 +153,20 @@ jobs:
           echo "Running $(sed 's,|, ,g' <<< "${{ matrix.test-cases }}" |wc -w) subtests"
           # shellcheck disable=SC2001
           sed 's,|,\n,g' <<< "${{ matrix.test-cases }}"
+          
+          # Add IPv6 flag if testing IPv6
+          IPV6_FLAG=""
+          if [ "${{ matrix.ip-version }}" == "ipv6" ]; then
+            IPV6_FLAG="-ipv6"
+          fi
+          
           go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
               --debug \
               --rerun-fails \
               --rerun-fails-report=/tmp/gotestsum-rerun-fails \
               --jsonfile /tmp/jsonfile/go-test.log \
               --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/(${{ matrix.test-cases }})"
+              -- -timeout=30m -tags integration $IPV6_FLAG -run="TestEnvoy/(${{ matrix.test-cases }})"
 
       # NOTE: ENT specific step as we store secrets in Vault.
       - name: Authenticate to Vault

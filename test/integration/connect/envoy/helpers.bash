@@ -68,6 +68,15 @@ function assert_upstream_message {
   return 1
 }
 
+# get_loopback_ip returns 127.0.0.1 for IPv4 or [::1] for IPv6 based on the IPv6 flag
+function get_loopback_ip {
+  if [ "${IPV6:-}" == "true" ] || [ "${USE_IPV6:-}" == "true" ]; then
+    echo "[::1]"
+  else
+    echo "127.0.0.1"
+  fi
+}
+
 function is_set {
   # Arguments:
   #   $1 - string value to check its truthiness
@@ -615,7 +624,7 @@ function check_intention {
   local SOURCE=$1
   local DESTINATION=$2
 
-  curl -s -f "localhost:8500/v1/connect/intentions/check?source=${SOURCE}&destination=${DESTINATION}" | jq ".Allowed"
+  curl -s -f "$(get_loopback_ip):8500/v1/connect/intentions/check?source=${SOURCE}&destination=${DESTINATION}" | jq ".Allowed"
 }
 
 function assert_intention_allowed {
@@ -896,7 +905,7 @@ function read_config_entry {
 function wait_for_namespace {
   local NS="${1}"
   local DC=${2:-primary}
-  retry_default docker_curl "$DC" -sLf "http://127.0.0.1:8500/v1/namespace/${NS}" >/dev/null
+  retry_default docker_curl "$DC" -sLf "http://localhost:8500/v1/namespace/${NS}" >/dev/null
 }
 
 function wait_for_config_entry {
@@ -928,7 +937,7 @@ function assert_config_entry_status {
 function delete_config_entry {
   local KIND=$1
   local NAME=$2
-  retry_default curl -sL -XDELETE "http://127.0.0.1:8500/v1/config/${KIND}/${NAME}"
+  retry_default curl -sL -XDELETE "http://$(get_loopback_ip):8500/v1/config/${KIND}/${NAME}"
 }
 
 function register_services {
@@ -940,7 +949,7 @@ function register_services {
 # wait_for_leader waits until a leader is elected.
 # Its first argument must be the datacenter name.
 function wait_for_leader {
-  retry_default docker_consul_exec "$1" sh -c '[[ $(curl --fail -sS http://127.0.0.1:8500/v1/status/leader) ]]'
+  retry_default docker_consul_exec "$1" sh -c "[[ \$(curl --fail -sS http://$(get_loopback_ip):8500/v1/status/leader) ]]"
 }
 
 function setup_upsert_l4_intention {
@@ -948,7 +957,7 @@ function setup_upsert_l4_intention {
   local DESTINATION=$2
   local ACTION=$3
 
-  retry_default docker_curl primary -sL -XPUT "http://127.0.0.1:8500/v1/connect/intentions/exact?source=${SOURCE}&destination=${DESTINATION}" \
+  retry_default docker_curl primary -sL -XPUT "http://$(get_loopback_ip):8500/v1/connect/intentions/exact?source=${SOURCE}&destination=${DESTINATION}" \
     -d"{\"Action\": \"${ACTION}\"}" >/dev/null
 }
 
@@ -957,18 +966,18 @@ function upsert_l4_intention {
   local DESTINATION=$2
   local ACTION=$3
 
-  retry_default curl -sL -XPUT "http://127.0.0.1:8500/v1/connect/intentions/exact?source=${SOURCE}&destination=${DESTINATION}" \
+  retry_default curl -sL -XPUT "http://$(get_loopback_ip):8500/v1/connect/intentions/exact?source=${SOURCE}&destination=${DESTINATION}" \
     -d"{\"Action\": \"${ACTION}\"}" >/dev/null
 }
 
 function get_ca_root {
-  curl -s -f "http://localhost:8500/v1/connect/ca/roots" | jq -r ".Roots[0].RootCert"
+  curl -s -f "http://$(get_loopback_ip):8500/v1/connect/ca/roots" | jq -r ".Roots[0].RootCert"
 }
 
 function wait_for_agent_service_register {
   local SERVICE_ID=$1
   local DC=${2:-primary}
-  retry_default docker_curl "$DC" -sLf "http://127.0.0.1:8500/v1/agent/service/${SERVICE_ID}" >/dev/null
+  retry_default docker_curl "$DC" -sLf "http://localhost:8500/v1/agent/service/${SERVICE_ID}" >/dev/null
 }
 
 function set_ttl_check_state {
@@ -1012,7 +1021,7 @@ function get_upstream_fortio_name {
   fi
   # We use --resolve instead of setting a Host header since we need the right
   # name to be sent for SNI in some cases too.
-  run retry_default curl -v -s -f --resolve "${HOST}:${PORT}:127.0.0.1" $extra_args \
+  run retry_default curl -v -s -f --resolve "${HOST}:${PORT}:$(get_loopback_ip)" $extra_args \
     "${PROTO}${HOST}:${PORT}${PREFIX}/debug?env=dump"
 
   # Useful Debugging but breaks the expectation that the value output is just

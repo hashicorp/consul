@@ -2,6 +2,15 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: BUSL-1.1
 
+# get_loopback_ip returns 127.0.0.1 for IPv4 or [::1] for IPv6 based on the IPv6 flag
+function get_loopback_ip {
+  if [ "${IPV6:-}" == "true" ] || [ "${USE_IPV6:-}" == "true" ]; then
+    echo "[::1]"
+  else
+    echo "127.0.0.1"
+  fi
+}
+
 
 CONSUL_HOSTNAME=""
 MOD_ARG=""
@@ -656,7 +665,7 @@ function kill_envoy {
   local DC=${2:-primary}
 
   PORT=$( cat /c/workdir/$DC/envoy/${BOOTSTRAP_NAME}-bootstrap.json | jq .admin.address.socket_address.port_value )
-  PID=$( netstat -qo | grep "127.0.0.1:$PORT" | sed -r "s/.* //g" )
+  PID=$( netstat -qo | grep "$(get_loopback_ip):$PORT" | sed -r "s/.* //g" )
   tskill $PID
 }
 
@@ -821,7 +830,7 @@ function gen_envoy_bootstrap {
   PROXY_ID="$SERVICE"
   if ! is_set "$IS_GW"; then
     PROXY_ID="$SERVICE-sidecar-proxy"
-    ADMIN_HOST="127.0.0.1"
+    ADMIN_HOST="$(get_loopback_ip)"
   fi
 
   if output=$(docker_consul_for_proxy_bootstrap $DC "consul connect envoy -bootstrap \
@@ -973,7 +982,7 @@ function get_upstream_fortio_name {
   fi
   # We use --resolve instead of setting a Host header since we need the right
   # name to be sent for SNI in some cases too.
-  run retry_default curl --ssl-revoke-best-effort -v -s -f --resolve "${HOST}:${PORT}:127.0.0.1" $extra_args \
+  run retry_default curl --ssl-revoke-best-effort -v -s -f --resolve "${HOST}:${PORT}:$(get_loopback_ip)" $extra_args \
       "${PROTO}${HOST}:${PORT}${PREFIX}/debug?env=dump"
 
   # Useful Debugging but breaks the expectation that the value output is just
