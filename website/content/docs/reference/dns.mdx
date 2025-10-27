@@ -35,6 +35,6 @@ The following table lists elements of a Consul DNS address, how to format the el
 
 ## Technical constraints and limitations
 
-- If an IPv6 address was specified in the service’s `address` field and an IPv4 address is present in the either the `lan` or `lan_ipv4` tagged address, then DNS service lookups that use the A query type for `<name>.service.consul` and `<name>.connect.consul` must return NOERROR.
+- If an IPv6 address was specified in the service’s `address` field and an IPv4 address is present in the either the `lan` or `lan_ipv4` tagged address, then DNS service lookups that use the A query type for `<name>.service.consul` and `<name>.connect.consul` must return `NOERROR`.
 - If an IPv6 address was specified in the service’s `address` field, the `lan` tagged address, or the `lan_ipv6` tagged address, then DNS service lookups that use the AAAA query for `<name>.service.consul` and `<name>.connect.consul` must return an IPv6 address in the response.
 - Virtual IP DNS lookups that use the AAAA query type, such as `<service>.virtual.consul`, must not return Consul-allocated IPv4 addresses.
