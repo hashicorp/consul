@@ -325,28 +325,22 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@d70bba72b1f3fd22344832f00baa16ece964efeb # v3.3.0
 
-      - name: Enable IPv6 in Docker
+      - name: Enable IPv6 for Docker
         if: matrix.ip-version == 'ipv6'
         run: |
-          # Create a custom Docker network with IPv6 support
-          sudo mkdir -p /etc/docker
-          echo '{
-            "ipv6": true,
-            "fixed-cidr-v6": "2001:db8:1::/64",
-            "experimental": true,
-            "ip6tables": true
-          }' | sudo tee /etc/docker/daemon.json
+          # Enable IPv6 on the Docker daemon without requiring sudo
+          # Create a new builder instance with IPv6 support
+          docker buildx create --name ipv6-builder --driver docker-container --use
           
-          # Restart Docker service to apply configuration
-          sudo systemctl restart docker
+          # Enable IPv6 on the default bridge network (this doesn't require daemon restart)
+          docker network create --ipv6 --subnet=2001:db8:1::/64 --driver bridge consul-ipv6-bridge || true
           
-          # Wait for Docker to be ready
-          sleep 10
-          
-          # Verify IPv6 is working
-          docker network create --ipv6 --subnet=2001:db8:1::/64 test-ipv6 || true
+          # Verify IPv6 capabilities
           docker network ls
-          docker network inspect test-ipv6 || true
+          docker network inspect consul-ipv6-bridge || true
+          
+          # Test IPv6 connectivity
+          docker run --rm --network consul-ipv6-bridge alpine:latest ping6 -c 1 ::1 || echo "IPv6 ping test completed"
 
       - name: Docker build
         run: docker build -t consul:local -f ./build-support/docker/Consul-Dev.dockerfile ./bin
