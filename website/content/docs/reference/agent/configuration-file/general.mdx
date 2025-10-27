@@ -15,6 +15,8 @@ The page provides reference information for general parameters in a Consul agent
   bind addresses. In Consul 1.0 and later these can be set to a space-separated list
   of addresses to bind to, or a go-sockaddr template that can potentially resolve to multiple addresses.
 
+  On VMs and Kubernetes, Consul supports both IPv4 and IPv6 addresses. However, we recommend using only one address type per Consul datacenter.
+
   `http`, `https` and `grpc` all support binding to a Unix domain socket. A
   socket can be specified in the form `unix:///path/to/socket`. A new domain
   socket will be created at the given path. If the specified file path already
