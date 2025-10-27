@@ -40,8 +40,8 @@ func enterpriseConsulConfig(_ *consul.Config, _ *config.RuntimeConfig) {
 }
 
 // validateFIPSConfig is a noop stub for the func defined in agent_ent.go
-func validateFIPSConfig(_ *config.RuntimeConfig) error {
-	return nil
+func validateFIPSConfig(_ *config.RuntimeConfig) ([]string, error) {
+	return []string{}, nil
 }
 
 // WriteEvent is a noop stub for the func defined agent_ent.go
