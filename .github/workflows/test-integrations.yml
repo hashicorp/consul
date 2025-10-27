@@ -364,16 +364,17 @@ jobs:
           IPV6_FLAG=""
           if [ "${{ matrix.ip-version }}" == "ipv6" ]; then
             IPV6_FLAG="-ipv6=true"
-          else
-            IPV6_FLAG=""
           fi
           
+          # Use gotestsum with --raw-command to control exact command structure
           go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
               --debug \
               --rerun-fails \
               --rerun-fails-report=/tmp/gotestsum-rerun-fails \
               --jsonfile /tmp/jsonfile/go-test.log \
-              -- -timeout=30m -tags integration -run="TestEnvoy/(${{ matrix.test-cases }})" ./test/integration/connect/envoy $IPV6_FLAG
+              --raw-command \
+              -- \
+              go test -timeout=30m -tags integration -run="TestEnvoy/(${{ matrix.test-cases }})" ./test/integration/connect/envoy $IPV6_FLAG
 
       # See https://github.com/orgs/community/discussions/8945#discussioncomment-9897011
       # and overall topic discussion for why this is necessary.
