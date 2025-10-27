@@ -3,10 +3,10 @@ module github.com/hashicorp/consul/troubleshoot
 go 1.25.3
 
 replace (
-	github.com/hashicorp/consul/api => ../api
-	github.com/hashicorp/consul/envoyextensions => ../envoyextensions
+	// github.com/hashicorp/consul/api => ../api
+	// github.com/hashicorp/consul/envoyextensions => ../envoyextensions
 	github.com/hashicorp/consul/proto-public => ../proto-public
-	github.com/hashicorp/consul/sdk => ../sdk
+// github.com/hashicorp/consul/sdk => ../sdk
 )
 
 exclude (
@@ -26,9 +26,9 @@ require (
 	github.com/envoyproxy/go-control-plane/envoy v1.32.4
 	github.com/envoyproxy/go-control-plane/ratelimit v0.1.0
 	github.com/envoyproxy/go-control-plane/xdsmatcher v0.13.4
-	github.com/hashicorp/consul/api v1.33.0-rc2
-	github.com/hashicorp/consul/envoyextensions v0.9.0-rc2
-	github.com/hashicorp/consul/sdk v0.17.0-rc1
+	github.com/hashicorp/consul/api v1.33.0
+	github.com/hashicorp/consul/envoyextensions v0.9.0
+	github.com/hashicorp/consul/sdk v0.17.0
 	github.com/stretchr/testify v1.10.0
 	google.golang.org/protobuf v1.36.4
 )
