@@ -8,7 +8,7 @@
 module.exports = {
   extends: 'recommended',
   rules: {
-    'no-partial': false,
+    'no-partial': 'error',
     'table-groups': false,
 
     'no-invalid-interactive': false,
