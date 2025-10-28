@@ -182,8 +182,9 @@ jobs:
               --rerun-fails \
               --rerun-fails-report=/tmp/gotestsum-rerun-fails \
               --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy $IPV6_FLAG \
+              --packages=./test/integration/connect/envoy \
               -- -timeout=30m -tags integration -run="TestEnvoy/(${{ matrix.test-cases }})"
+              -- -args $IPV6_FLAG
 
       # NOTE: ENT specific step as we store secrets in Vault.
       - name: Authenticate to Vault
