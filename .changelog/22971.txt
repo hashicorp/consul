@@ -1,0 +1,3 @@
+```release-note:improvement
+ui: Replaced `reopen()` calls with direct property assignment and subclassing to resolve Ember component reopen deprecation warnings
+```

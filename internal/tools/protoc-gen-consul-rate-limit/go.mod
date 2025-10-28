@@ -1,11 +1,11 @@
 module github.com/hashicorp/consul/internal/tools/protoc-gen-consul-rate-limit
 
-go 1.25.1
+go 1.25.3
 
 replace github.com/hashicorp/consul/proto-public => ../../../proto-public
 
 require (
-	github.com/hashicorp/consul/proto-public v0.7.0-rc1
+	github.com/hashicorp/consul/proto-public v0.7.0
 	google.golang.org/protobuf v1.36.6
 )
 

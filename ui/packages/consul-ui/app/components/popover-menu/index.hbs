@@ -8,7 +8,7 @@
   class="popover-menu"
   ...attributes
 >
-  <AriaMenu @keyboardAccess={{keyboardAccess}} as |change keypress keypressClick aria|>
+  <AriaMenu @keyboardAccess={{this.keyboardAccess}} as |change keypress keypressClick aria|>
 
 {{#let (hash
   MenuItem=(component
@@ -16,7 +16,7 @@
     menu=(hash
       addSubmenu=(action "addSubmenu")
       removeSubmenu=(action "removeSubmenu")
-      confirm=(concat "popover-menu-" guid "-")
+      confirm=(concat "popover-menu-" this.guid "-")
       clickTrigger=this.toggle.click
       keypressClick=keypressClick
     )
@@ -32,7 +32,7 @@ as |components|}}
 as |api|}}
 
     <ToggleButton
-      @checked={{if keyboardAccess aria.expanded expanded}}
+      @checked={{if this.keyboardAccess aria.expanded this.expanded}}
       @onchange={{queue change (action "change")}}
     as |toggle|>
       <Ref @target={{this}} @name="toggle" @value={{toggle}} />
@@ -43,22 +43,22 @@ as |api|}}
       </button>
     </ToggleButton>
 
-    <MenuPanel @position={{position}} id={{aria.controls}} aria-labelledby={{aria.labelledBy}} aria-expanded={{aria.expanded}} as |menu|>
+    <MenuPanel @position={{this.position}} id={{aria.controls}} aria-labelledby={{aria.labelledBy}} aria-expanded={{aria.expanded}} as |menu|>
       <Ref @target={{this}} @name="menu" @value={{menu}} />
       <BlockSlot @name="controls">
-        <input type="checkbox" id={{concat 'popover-menu-' guid '-'}} />
-      {{#each submenus as |sub|}}
-        <input type="checkbox" id={{concat 'popover-menu-' guid '-' sub}} onchange={{menu.change}} />
+        <input type="checkbox" id={{concat 'popover-menu-' this.guid '-'}} />
+      {{#each this.submenus as |sub|}}
+        <input type="checkbox" id={{concat 'popover-menu-' this.guid '-' sub}} onchange={{menu.change}} />
       {{/each}}
       </BlockSlot>
-      {{#if hasHeader}}
+      {{#if this.hasHeader}}
         <BlockSlot @name="header">
           {{yield components api}}
           {{#yield-slot name="header"}}{{else}}{{/yield-slot}}
         </BlockSlot>
       {{/if}}
       <BlockSlot @name="menu">
-        <YieldSlot @name="menu" @params={{block-params (concat "popover-menu-" guid "-") send keypressClick this.toggle.click}}>
+        <YieldSlot @name="menu" @params={{block-params (concat "popover-menu-" this.guid "-") keypressClick this.toggle.click}}>
           {{yield components api}}
         </YieldSlot>
       </BlockSlot>

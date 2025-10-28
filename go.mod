@@ -1,6 +1,6 @@
 module github.com/hashicorp/consul
 
-go 1.25.1
+go 1.25.3
 
 replace (
 	github.com/hashicorp/consul/api => ./api
@@ -47,11 +47,11 @@ require (
 	github.com/hashicorp/cap v0.10.0
 	github.com/hashicorp/consul-awsauth v0.0.0-20250825122907-9e35fe9ded3a
 	github.com/hashicorp/consul-net-rpc v0.0.0-20221205195236-156cfab66a69
-	github.com/hashicorp/consul/api v1.33.0-rc2
-	github.com/hashicorp/consul/envoyextensions v0.9.0-rc2
-	github.com/hashicorp/consul/proto-public v0.7.0-rc1
-	github.com/hashicorp/consul/sdk v0.17.0-rc1
-	github.com/hashicorp/consul/troubleshoot v0.8.0-rc2
+	github.com/hashicorp/consul/api v1.33.0
+	github.com/hashicorp/consul/envoyextensions v0.9.0
+	github.com/hashicorp/consul/proto-public v0.7.0
+	github.com/hashicorp/consul/sdk v0.17.0
+	github.com/hashicorp/consul/troubleshoot v0.8.0
 	github.com/hashicorp/go-bexpr v0.1.2
 	github.com/hashicorp/go-checkpoint v0.5.0
 	github.com/hashicorp/go-cleanhttp v0.5.2
@@ -270,7 +270,7 @@ require (
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
 	github.com/segmentio/fasthash v1.0.3 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
-	github.com/sirupsen/logrus v1.9.0 // indirect
+	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966 // indirect
 	github.com/softlayer/softlayer-go v0.0.0-20180806151055-260589d94c7d // indirect
 	github.com/spf13/cast v1.5.0 // indirect
