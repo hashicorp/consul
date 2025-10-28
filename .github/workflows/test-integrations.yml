@@ -372,8 +372,7 @@ jobs:
               --rerun-fails-report=/tmp/gotestsum-rerun-fails \
               --jsonfile /tmp/jsonfile/go-test.log \
               --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/(${{ matrix.test-cases }})"
-              -- -args $IPV6_FLAG
+              -- -timeout=30m -tags integration -run="TestEnvoy/(${{ matrix.test-cases }})" -args $IPV6_FLAG
 
       # See https://github.com/orgs/community/discussions/8945#discussioncomment-9897011
       # and overall topic discussion for why this is necessary.
