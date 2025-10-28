@@ -5,22 +5,22 @@
 
 <form>
   <RoleForm
-    @form={{form}}
-    @item={{item}}
-    @dc={{dc}}
-    @nspace={{nspace}}
-    @partition={{partition}}
+    @form={{@form}}
+    @item={{@item}}
+    @dc={{@dc}}
+    @nspace={{@nspace}}
+    @partition={{@partition}}
   />
-  {{#if (not create)}}
+  {{#if (not @create)}}
     <DataSource
       @src={{uri '/${partition}/${nspace}/${dc}/tokens/for-role/${id}'
                  (hash
-                   partition=partition
-                   nspace=nspace
-                   dc=dc
-                   id=(if item item.ID '')
+                   partition=@partition
+                   nspace=@nspace
+                   dc=@dc
+                   id=(if @item @item.ID '')
                  )
-    }}
+      }}
       as |loader|>
       {{#if (gt loader.data.length 0)}}
         <h2>Where is this role used?</h2>
@@ -34,21 +34,20 @@
   {{/if}}
   <div>
     <Hds::ButtonSet>
-      {{#if (and create (can "create roles")) }}
-      {{! we only need to check for an empty name here as ember munges autofocus, once we have autofocus back revisit this}}
+      {{#if (and @create (can "create roles")) }}
         <Hds::Button
           @text='Save'
           type='submit'
-          {{ on 'click' (route-action 'create' item)}}
-          disabled={{or item.isPristine item.isInvalid (eq item.Name '')}}
+          {{on 'click' @onCreate}}
+          disabled={{or @item.isPristine @item.isInvalid (eq @item.Name '')}}
         />
       {{ else }}
-        {{#if (can "write role" item=item)}}
+        {{#if (can "write role" item=@item)}}
           <Hds::Button
             @text='Save'
             type='submit'
-            {{ on 'click' (route-action 'update' item)}}
-            disabled={{item.isInvalid}}
+            {{on 'click' @onUpdate}}
+            disabled={{@item.isInvalid}}
           />
         {{/if}}
       {{/if}}
@@ -56,23 +55,23 @@
         @text='Cancel'
         @color='secondary'
         type='reset'
-        {{ action "cancel" item}}
+        {{on 'click' @onCancel}}
       />
 
-      {{# if (and (not create) (can "delete role" item=item) ) }}
+      {{# if (and (not @create) (can "delete role" item=@item) ) }}
         <ConfirmationDialog @message="Are you sure you want to delete this Role?">
           <BlockSlot @name="action" as |confirm|>
             <Hds::Button
               @text='Delete'
               @color='critical'
-              {{action confirm 'delete' item}}
+              {{on 'click' confirm}}
               data-test-delete
             />
           </BlockSlot>
           <BlockSlot @name="dialog" as |execute cancel message|>
-            {{#if (gt items.length 0)}}
+            {{#if (gt @items.length 0)}}
               <ModalDialog
-                @onclose={{action cancel}}
+                @onclose={{cancel}}
                 @aria={{hash
                 label="Role in Use"
               }}
@@ -83,9 +82,9 @@
                 <BlockSlot @name="body">
                   <p>
                     This Role is currently in use. If you choose to delete this Role, it will be removed from the
-                    following <strong>{{items.length}} Tokens</strong>:
+                    following <strong>{{@items.length}} Tokens</strong>:
                   </p>
-                  <TokenList @items={{items}} @target="_blank" />
+                  <TokenList @items={{@items}} @target="_blank" />
                   <p>
                     This action cannot be undone. {{message}}
                   </p>
@@ -96,18 +95,18 @@
                       @text='Yes, Delete'
                       @color='critical'
                       data-test-delete
-                      {{action execute}}
+                      {{on 'click' (queue execute (fn @onDelete @item))}}
                     />
                     <Hds::Button
                       @text='Cancel'
                       @color='secondary'
-                      {{action close}}
+                      {{on 'click' close}}
                     />
                   </Hds::ButtonSet>
                 </BlockSlot>
               </ModalDialog>
             {{else}}
-              <DeleteConfirmation @message={{message}} @execute={{execute}} @cancel={{cancel}} />
+              <DeleteConfirmation @message={{message}} @execute={{queue execute (fn @delete @item)}} @cancel={{cancel}} />
             {{/if}}
           </BlockSlot>
         </ConfirmationDialog>
