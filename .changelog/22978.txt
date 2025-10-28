@@ -1,0 +1,3 @@
+```release-note:improvement
+ui: removed deprecated Route#renderTemplate usage by introducing DebugLayout component and controller-based conditional rendering for docs routes
+```
