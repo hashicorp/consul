@@ -65,12 +65,17 @@ export default {
     doc.body.addEventListener('mousedown', mousedown);
     doc.body.addEventListener('mouseup', mouseup);
 
-    container.reopen({
-      willDestroy: function () {
-        doc.body.removeEventListener('mousedown', mousedown);
-        doc.body.removeEventListener('mouseup', mouseup);
-        return this._super(...arguments);
-      },
-    });
+    // Store cleanup for later
+    let cleanupFn = () => {
+      doc.body.removeEventListener('mousedown', mousedown);
+      doc.body.removeEventListener('mouseup', mouseup);
+    };
+
+    const originalWillDestroy = container.willDestroy || function () {};
+
+    container.willDestroy = function () {
+      cleanupFn();
+      return originalWillDestroy.call(this);
+    };
   },
 };
