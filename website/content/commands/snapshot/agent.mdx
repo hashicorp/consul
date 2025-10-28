@@ -390,8 +390,7 @@ From Consul Enterprise version `1.5.0` onwards, you can store snapshots in Azure
 
 These options cannot be used when using `backup_destinations` in a config file.
 
-- `-azure-blob-account-name` and `-azure-blob-account-key` - These arguments supply
-  authentication information for connecting to Azure Blob storage.
+- `-azure-blob-account-name` - The Azure storage account name. Always required for Azure Blob storage.
 
 - `-azure-blob-container-name` - Container to use. Required for Azure blob storage, and setting this
   disables local storage.
@@ -399,12 +398,18 @@ These options cannot be used when using `backup_destinations` in a config file.
 - `-azure-blob-environment` - Environment to use. Defaults to AZUREPUBLICCLOUD. Other valid environments
   are AZURECHINACLOUD, AZUREGERMANCLOUD and AZUREUSGOVERNMENTCLOUD. Introduced in Consul 1.7.3.
 
-~> The following options were introduced in v1.20.1+ent.
+- `-azure-blob-auth-type` - Authentication type to use for Azure Blob storage. Valid options are `msi` (Managed Service Identity), `service-principal`, or `shared-key`. Defaults to `msi`.
 
-- `-azure-blob-service-principal-id` - The ID of the service principal that owns the blob object.
-- `-azure-blob-service-principal-secret` - The secret of the service principal that owns the blob object.
+#### Authentication Methods
 
-- `-azure-blob-tenant-id` - The ID of the tenant that owns the Azure blob.
+Azure Blob storage supports three authentication methods:
+
+1. **Shared key authentication:** Include the `-azure-blob-account-key` parameter. This value is the shared access key for the storage account. It is required when using shared key authentication.
+1. **Service principal authentication:**
+   - `-azure-blob-service-principal-id` - The ID of the service principal that owns the blob object.
+   - `-azure-blob-service-principal-secret` - The secret of the service principal that owns the blob object.
+   - `-azure-blob-tenant-id` - The ID of the tenant that owns the Azure blob.
+1. **Managed Service Identity (MSI) authentication:** MSI authentication uses the Azure instance's managed identity and requires no additional configuration beyond the account name and container. This authentication method is used by default, and we recommend using it when running on Azure infrastructure that supports managed identities. This option was introduced in Consul v1.22.0+ent.
 
 #### Google Cloud Storage options
 
