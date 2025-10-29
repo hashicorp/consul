@@ -1,0 +1,58 @@
+---
+layout: commands
+page_title: 'Commands: Operator Utilization'
+description: >
+  Use the operator audit command to generate a Consul utilization bundle for license reporting.
+---
+
+# Consul Operator Utilization
+
+Command: `consul operator utilization`
+
+Corresponding HTTP API Endpoint: [\[GET\] /v1/operator/utilization](/consul/api-docs/operator/utilization)
+
+<EnterpriseAlert />
+
+The `operator utilization` command generates a license utilization bundle that you may share with HashiCorp. This command writes the bundle to a JSON file and optionally sends the bundle automatically to HashiCorp during generation. 
+
+Air-gapped environments or environments that are unable to satisfy [automatic reporting requirements](/consul/docs/enterprise/license/reporting#requirements) can use the `operator utilization` command to generate a license utilization report that you can send to HashiCorp directly or submit using a different process.
+
+Refer to [Automated license utilization reporting](/consul/docs/enterprise/license/reporting) for more details.
+
+The following tableshows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Commands do not support configuration of
+[blocking queries](/consul/api-docs/features/blocking) or [agent caching](/consul/api-docs/features/caching), but the corresponding HTTP endpoint may support that configuration.
+| ACL Required     |
+| ---------------- |
+| `operator:read`  |
+
+## Usage
+
+Usage: `consul operator utilization [options]`
+
+#### Command options 
+
+- `-message=<string>` - Optional context that is logged with the utilization export.
+
+- `-today-only` - Include only the most recent utilization snapshot.
+
+- `-y` - Automatically send the utilization report to HashiCorp.
+
+## Examples
+
+This example exports all snapshots in a bundle.
+
+```shell-session
+$ consul operator utilization -message "Change Control 12345"
+```
+
+Use the `-today-only` parameter to export only today's data.  
+
+```shell-session
+$ consul operator utilization -today-only
+```
+
+Use the `-output` parameter to specify a custom file path for bundle output.  
+
+```shell-session
+$ consul operator utilization -output "/reports/latest.json"
+```
