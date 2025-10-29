@@ -18,6 +18,20 @@ export default class ApplicationController extends Controller {
   // as the nspace and dc variables aren't available directly on the Route
   // look to see if we can move this up there so we can empty the Controller
   // out again
+
+  @action
+  gotoDefaultDcServices(dcName) {
+    // Preserve prior semantics (was route.replaceWith with a hash)
+    // If your router expects a positional segment instead, change to: this.router.replaceWith('dc.services.index', dcName);
+    this.router.replaceWith('dc.services.index', { dc: dcName });
+  }
+
+  @action
+  onClientChanged(e) {
+    const route = getOwner(this).lookup('route:application');
+    route.onClientChanged(e);
+  }
+
   @action
   reauthorize(e) {
     // TODO: For the moment e isn't a real event
