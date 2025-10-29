@@ -8,7 +8,7 @@
 module.exports = {
   extends: 'recommended',
   rules: {
-    'no-partial': false,
+    'no-partial': 'error',
     'table-groups': false,
 
     'no-invalid-interactive': false,
@@ -28,7 +28,9 @@ module.exports = {
     'style-concatenation': false,
     'link-rel-noopener': false,
 
-    'no-implicit-this': false,
+    'no-implicit-this': {
+      allow: ['refresh-route'],
+    },
     'no-curly-component-invocation': false,
     'no-action': false,
     'no-negated-condition': false,

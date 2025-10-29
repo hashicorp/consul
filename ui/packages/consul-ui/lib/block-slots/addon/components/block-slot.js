@@ -8,8 +8,13 @@ import YieldSlot from './yield-slot';
 const BlockSlot = Component.extend({
   layout,
   tagName: '',
-  _name: computed('name', function () {
-    return this.name;
+  _name: computed('name', {
+    get() {
+      return this.name;
+    },
+    set(_key, value) {
+      return value;
+    },
   }),
   didInsertElement: function () {
     const slottedComponent = this.nearestOfType(Slots);

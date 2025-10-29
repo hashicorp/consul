@@ -1,0 +1,38 @@
+---
+layout: docs
+page_title: 1.22.x
+description: >-
+  Consul release notes for version 1.22.x
+---
+
+# Consul 1.22.0
+
+We are pleased to announce the following Consul updates.
+
+## Release highlights
+
+- **IPv6 address support for VMs and Kubernetes**. This version introduces support for both IPv4 and IPv6 network addresses in agent and service configurations when Consul runs on VMs or Kubernetes. Although both address types are supported, we recommend using only one type per Consul datacenter. Other runtimes, including RedHat OpenShift, Nomad, and ECS do not support IPv6 addresses in this release.
+- **Multi-port service support for service discovery**. Consul service definitions now include an optional `ports` parameter so that the Consul catalog can register multi-port services for service discovery operations. For more information and an example service definition, refer to the [service definition reference documentation](/consul/docs/reference/service#ports).
+  - Multi-port support for service discovery includes support for registering multi-port Kubernetes Services with [Kubernetes Service sync](/consul/docs/register/service/k8s/service-sync#service-ports).
+  - You can also address a service running a specific port using the new `port` field in [Consul DNS](/consul/docs/reference/dns).
+- **Azure Managed Identity support for backups**. The [Consul Enterprise snapshot agent](/consul/commands/snapshot/agent) now supports authentication with Azure Blob Storage using Azure Managed Service Identities (MSI). This support aligns with modern cloud security best practices, simplifies configuration for operators, and removes the need to store static credentials in configuration files.
+- **JWT integration with OIDC for Consul UI SSO**. This Consul release enables Proof Key for Code Exchange (PKCE) in the OIDC authentication flow by default. As a result, when you configure Consul to use an OIDC provider for logging in to the Consul UI, you can now use a JWT instead of a client secret. This change enhances security and aligns with industry best practices for improved compliance. Refer to [ACL OpenID Connect (OIDC) auth method configuration reference](/consul/docs/reference/acl/auth-method/oidc) for configuration specifications and [an example configuration](/consul/docs/reference/acl/auth-method/oidc#example-configuration-wit-jwt-as-client-assertion).
+- **Manual license utilization reporting**. This release introduces the [`consul operator utilization` CLI command](/consul/commands/operator/utilization) and the [`/operator/utilization` API endpoint](/consul/api-docs/operator/utilization) to generate and submit Enterprise license utilization information to HashiCorp. To support Consul operations in air-gapped environments, you can also generate this report and submit it manually. For more information, refer to [Manual license utilization reporting](/consul/docs/enterprise/license/reporting#manual-license-utilization-reporting).
+
+## Upgrading
+
+For more detailed information, please refer to the [upgrade details page](/consul/docs/upgrade/version-specific) and the changelogs.
+
+## Known issues
+
+There are no known issues at this time. These release notes are updated as issues are discovered.
+
+[Report issues on Github](https://github.com/hashicorp/consul/issues).
+
+## Changelogs
+
+The changelogs for this major release version and any maintenance versions are listed below.
+
+<Note> These links take you to the changelogs on the GitHub website. </Note>
+
+- [1.22.0](https://github.com/hashicorp/consul/releases/tag/v1.22.0)

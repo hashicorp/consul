@@ -16,7 +16,9 @@ Consul tracks information about registered services through its catalog API. Thi
 
 ### v2 Catalog
 
-Consul introduced an experimental v2 Catalog API in v1.17.0. This API supported multi-port Service configurations on Kubernetes, and it was made available for testing and development purposes. The v2 catalog and its support for multiport Kubernetes Services were deprecated in the v1.19.0 release.
+Consul introduced an experimental v2 Catalog API in v1.17.0. This API supported multi-port Service configurations on Kubernetes, and we made it available for testing and development purposes. We deprecated the v2 catalog and its support for multi-port Kubernetes Services in the v1.19.0 release.
+
+As of v1.22, Consul's catalog supports service discovery operations for multi-port services registered using Service sync. For more information, refer to [service ports](/consul/docs/register/service/k8s/service-sync#service-ports).
 
 ## Catalog structure
 

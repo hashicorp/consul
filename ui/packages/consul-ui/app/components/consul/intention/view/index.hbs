@@ -14,9 +14,9 @@
         <dd>
           <Consul::Bucket::List
             @item={{hash
-              Namespace=item.DestinationNS
-              Partition=item.DestinationPartition
-              Service=item.DestinationName
+              Namespace=@item.DestinationNS
+              Partition=@item.DestinationPartition
+              Service=@item.DestinationName
             }}
             @nspace="-"
             @partition="-"
@@ -27,34 +27,34 @@
         <dd>
           <Consul::Bucket::List
             @item={{hash
-              Namespace=item.SourceNS
-              Partition=item.SourcePartition
-              Service=item.SourceName
-              PeerName=item.SourcePeer
+              Namespace=@item.SourceNS
+              Partition=@item.SourcePartition
+              Service=@item.SourceName
+              PeerName=@item.SourcePeer
             }}
             @nspace="-"
             @partition="-"
             @service={{true}}
           />
         </dd>
-{{#if item.Action}}
+{{#if @item.Action}}
         <dt>Action</dt>
         <dd>
-          {{item.Action}}
+          {{@item.Action}}
         </dd>
 {{/if}}
         <dt>Description</dt>
         <dd>
-          {{or item.Description 'N/A'}}
+          {{or @item.Description 'N/A'}}
         </dd>
       </dl>
   </div>
 
-{{#if (gt item.Permissions.length 0) }}
+{{#if (gt @item.Permissions.length 0) }}
   <h2>Permissions</h2>
   <Consul::Intention::Notice::Permissions />
   <Consul::Intention::Permission::List
-    @items={{item.Permissions}}
+    @items={{@item.Permissions}}
   />
 {{/if}}
 
