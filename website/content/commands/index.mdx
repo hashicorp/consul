@@ -138,18 +138,34 @@ These environment variables and their purpose are described below:
 
 ### `CONSUL_HTTP_ADDR`
 
-This is the HTTP API address to the _local_ Consul agent
-(not the remote server) specified as a URI with optional scheme:
+This variable specifies the IPv4 or IPv 6 address of the Consul agent you want to interact with locally, specified as a URI with optional scheme.
+
+<Tabs>
+
+<Tab heading="IPv4">
 
 ```
 CONSUL_HTTP_ADDR=127.0.0.1:8500
 ```
 
-or as a Unix socket path:
+</Tab>
+
+<Tab heading="IPv6">
+
+```
+CONSUL_HTTP_ADDR=2001:db8:3333:4444:5555:6666:7777:8888
+```
+
+</Tab>
+
+<Tab heading="Unix socket path">
 
 ```
 CONSUL_HTTP_ADDR=unix:///var/run/consul_http.sock
 ```
+
+</Tab>
+</Tabs>
 
 If the `https://` scheme is used, `CONSUL_HTTP_SSL` is implied to be true.
 
@@ -240,7 +256,7 @@ CONSUL_TLS_SERVER_NAME=consulserver.domain
 
 ### `CONSUL_GRPC_ADDR`
 
-Like [`CONSUL_HTTP_ADDR`](#consul_http_addr) but configures the address the
+Like [`CONSUL_HTTP_ADDR`](#consul_http_addr) but configures the IPv4 or IPv6 address the
 local agent is listening for gRPC requests. Currently gRPC is only used for
 integrating [Envoy proxy](/consul/docs/reference/proxy/envoy) and must be [enabled
 explicitly](/consul/docs/reference/agent/configuration-file/general#grpc_port) in agent configuration.

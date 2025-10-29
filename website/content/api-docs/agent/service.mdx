@@ -628,7 +628,12 @@ The `/agent/service/register` endpoint supports camel case and _snake case_ for 
   This field takes precedence over the `ns` query parameter,
   one of several [other methods to specify the namespace](#methods-to-specify-namespace).
 
-- `Port` `(int: 0)` - Specifies the port of the service.
+- `Port` `(int: 0)` - Specifies the port of the service. This field is mutually exclusive with the `Ports` field. You can use this field in both service discovery and service mesh use cases.
+
+- `Ports` `(array<Port>: nil)` - Specifies multiple ports for a service. This field is mutually exclusive with the `Port` field. Consul supports multi-port services for service discovery use cases only. For an example service definition, refer to [Multi-port service definition](#multi-port-service-definition). You can specify the following values:
+  - `name` `(string: "")` - Specifies a name for the port. This value is addressable with Consul DNS.
+  - `port` `(int: 0)` - Specifies a numeric port where the service is available. 
+  - `default` `(bool: false)` - Sets a port as the default service when a port is not included. 
 
 - `Kind` `(string: "")` - The kind of service. Defaults to `""`, which is a
   typical Consul service. You can specify the following values: 

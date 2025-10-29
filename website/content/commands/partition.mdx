@@ -83,6 +83,7 @@ The admin partition is created according to the values specified in the options.
 | `-description` &nbsp; &nbsp; &nbsp; &nbsp; | String value that specifies a description of the new partition.                                                                                                         | none     | Optional |
 | `-format`                                  | Specifies how to format the output of the operation in the console.                                                                                                     | none     | Optional |
 | `-show-meta`                               | Prints the description and raft indices to the console in the response. <br/> This option does not take a value. Include the option when issuing the command to enable. | Disabled | Optional |
+| `-disable-gossip`                          | Disables gossip communication for the admin partition. | `false` | Optional |
 
 In the following example, a partition named `webdev` is created:
 
@@ -211,6 +212,32 @@ $ consul partition list -format json -show-meta
       "ModifyIndex": 1462
    }
 ]
+```
+
+### `update`
+
+The `updates` subcommand updates an existing admin partition.
+This subcommand has the following characteristics:
+
+| Characteristic | Value |
+| -------------- | ----- |
+| [Required ACLs] | `operator:write` |
+| Corresponding HTTP API endpoint | [\[PUT\] /v1/partition](/consul/api-docs/admin-partitions#create-a-partition) |
+
+The admin partition is updated according to the values specified in the options. You can specify the following options:
+
+| Option                                     | Description                                                                                                                                                             | Default  | Required |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------- |
+| `-name`                                    | String value that specifies the name of the partition to update.                                                                                                             | none     | Required |
+| `-description` &nbsp; &nbsp; &nbsp; &nbsp; | String value that specifies a description of the partition. Overwrites the existing value.                                                                                                         | none     | Optional |
+| `-format`                                  | Specifies how to format the output of the operation in the console.                                                                                                     | none     | Optional |
+| `-show-meta`                               | Prints the description and raft indices to the console in the response. <br/> This option does not take a value. Include the option when issuing the command to enable. | Disabled | Optional |
+| `-disable-gossip`                          | Disables gossip communication for the admin partition. | `false` | Optional |
+
+In the following example, a partition named `webdev` is updated to disable gossip communication on the partition:
+
+```shell-session
+$ consul partition update -name "webdev"  -disable-gossip
 ```
 
 ### `delete`

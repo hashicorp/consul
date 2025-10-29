@@ -1,0 +1,68 @@
+---
+layout: api
+page_title: Audit - Operator - HTTP API
+description: |-
+  The /operator/audit endpoints expose audit log information via Consul's HTTP API.
+---
+
+# Audit logs - Operator HTTP API
+
+<EnterpriseAlert />
+
+The `/operator/audit` endpoints provide tools to interact with Consul's audit 
+logging subsystem through Consul's HTTP API.
+
+The audit logging functionality described here is available only in
+[Consul Enterprise](https://www.hashicorp.com/products/consul/) version 1.8.0 and
+later. 
+
+Refer to the [audit logging documentation](/consul/docs/monitor/log/audit) for workflow guidance and additional information.
+
+## Calculate data hash
+
+This endpoint calculates the hash of the data used by the audit log hash function and salt.
+
+| Method | Path                           | Produces           |
+| ------ | ------------------------------ | ------------------ |
+| `POST` | `/operator/audit-hash`         | `application/json` |
+
+The following table shows this endpoint's support for
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
+| ---------------- | ----------------- | ------------- | --------------- |
+| `NO`             | `none`            | `none`        | `operator:read` |
+
+The corresponding CLI command is [`consul operator audit hash`](/consul/commands/operator/audit#hash).
+
+### JSON request body schema
+
+- `Input` `(string: <required>)` - Specifies the input string to hash.
+
+### Sample payload
+
+```json
+{
+  "Input": "test"
+}
+```
+
+### Sample request
+
+```shell-session
+$ curl \
+    --request POST \
+    --data @payload.json \
+    http://127.0.0.1:8500/v1/operator/audit-hash
+```
+
+### Sample response
+
+```json
+{
+  "Hash": "hmac_sha256:794c39dbc00d4714740199fe79982d02bbc5d303ab73149dfabc1244e3df3d4c"
+}
+```
