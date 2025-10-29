@@ -19,6 +19,7 @@ The following table lists elements of a Consul DNS address, how to format the el
 | Service Record (SRV)         | `_<service>._<protocol>`    | None                                | &#10060;                    |
 | Custom tag                   | `<tag>.`                    | None                                | &#10060;                    |
 | Service                      | `<service>.service`         | None                                | &#10060;                    |
+| Port                         | `<port>.port`               | None                                | &#10060;                    |
 | Service mesh enabled service | `<service>.connect`         | None                                | &#9989;                     |
 | Virtual service              | `<service>.virtual`         | None                                | &#9989;                     |
 | Ingress-enabled service      | `<service>.ingress`         | None                                | &#9989;                     |
@@ -31,3 +32,9 @@ The following table lists elements of a Consul DNS address, how to format the el
 | Cluster Peer                 | `<cluster-peer>.peer`       | None                                | &#10060;                    |
 | Sameness group               | `<sameness-group>.sg`       | None                                | &#9989;                     |
 | Domain                       | `.<consul>`                 | `consul`                            | &#10060;                    |
+
+## Technical constraints and limitations
+
+- If an IPv6 address was specified in the service’s `address` field and an IPv4 address is present in the either the `lan` or `lan_ipv4` tagged address, then DNS service lookups that use the A query type for `<name>.service.consul` and `<name>.connect.consul` must return `NOERROR`.
+- If an IPv6 address was specified in the service’s `address` field, the `lan` tagged address, or the `lan_ipv6` tagged address, then DNS service lookups that use the AAAA query for `<name>.service.consul` and `<name>.connect.consul` must return an IPv6 address in the response.
+- Virtual IP DNS lookups that use the AAAA query type, such as `<service>.virtual.consul`, must not return Consul-allocated IPv4 addresses.

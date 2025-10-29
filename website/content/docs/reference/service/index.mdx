@@ -18,8 +18,12 @@ The following outline shows how to format the configurations in the root `servic
 
 - [`name`](#name): string | required
 - [`id`](#id): string 
-- [`address`](#address): string 
-- [`port`](#port): number 
+- [`address`](#address): string
+- [`port`](#port): number
+- [`ports`](#ports): list of maps (service discovery only)
+  - [`name`](#ports): string
+  - [`port`](#ports): number 
+  - [`default`](#ports): boolean
 - [`tags`](#tags): list of strings 
 - [`meta`](#meta): map   
   - [_`custom_meta_key`_](#meta): string 
@@ -48,6 +52,7 @@ The following outline shows how to format the configurations in the root `servic
 - [`namespace`](#namespace): string | <EnterpriseAlert inline /> 
 
 ## Specification
+
 This topic provides details about the configuration parameters.
 
 ### `name`
@@ -77,8 +82,32 @@ There is no service-side validation of this parameter.
 
 Specifies a port number for the service. To improve service discoverability, we recommend specifying the port number, as well as an address in the [`tagged_addresses`](#tagged_addresses) parameter.
 
+You can use this field for both service discovery and service mesh use cases. You cannot configure both this parameter and the [`ports` parameter](#ports) in the same service definition.
+
 - Type: integer
 - Default: Port number of the agent
+
+### `ports`
+
+Specifies a series of maps that identify services with multiple ports for the Consul catalog.
+
+This field supports service discovery use cases only. You cannot configure both this parameter and the [`ports` parameter](#ports) in the same service definition.
+
+- Type: map
+
+Define the following parameters for each port you want to specify:
+
+| Parameter | Description                                                                                                      | Type    | Default |
+| :-------- | :--------------------------------------------------------------------------------------------------------------- | :------ | :------ |
+| `name`    | Specifies a name for the port. This value is addressable with Consul DNS. Each name should be unique.            | string  | None    |
+| `port`    | Specifies a numeric port where the service is available.                                                         | number  | None    |
+| `default` | Sets a port as the default when one is not included. Do not set more than one port as the default for a service. | boolean | `false` |
+
+When the `tagged_address` parameter is not set, Consul uses the service's `address` and the `default` port defined for the service.
+
+If you set multiple ports as the default port, Consul returns an error when you attempt to register the service.
+
+For an example service definition, refer to [Multi-port service definition](#multi-port-service-definition).
 
 ### `tags`
 
@@ -131,6 +160,8 @@ The `tagged_address` field is an object that configures additional addresses for
 - [`wan`](#tagged_addresses-wan): IPv4 WAN address where the node or service is accessible when dialed from a remote data center.
 - [`wan_ipv4`](#tagged_addresses-wan): IPv4 WAN address where the node or service is accessible when dialed from a remote data center.
 - [`wan_ipv6`](#tagged_addresses-lan): IPv6 WAN address at which the node or service is accessible when being dialed from a remote data center.
+
+When `tagged_address` is not configured in a service definition, Consul uses the `address` and `port` properties in the definition. When you define a multi-port service with the `ports` parameter, Consul uses the port configured as the default in the `ports.default` parameter.
 
 ### `tagged_addresses.lan`
 
@@ -528,7 +559,8 @@ services {
 
 </CodeTabs>
 
-## Example definition
+## Example definitions
+
 The following example includes all possible parameters, but only the top-level `service` parameter and its `name` parameter are required by default.
 
 <CodeTabs tabs={[ "HCL", "JSON" ]}>
@@ -688,6 +720,52 @@ service {
     "namespace": "foo"
   }
 }
+```
+
+</CodeTabs>
+
+## Multi-port service definition
+
+The following example defines a service with multiple ports using the [`ports` parameter](#ports). This definition registers the `orders` service with an `http` port and a `metrics` port.
+
+<CodeTabs tabs={[ "HCL", "JSON" ]}>
+
+```hcl
+service {
+  name = "orders"
+  id   = "order-service-1"
+  ports = [
+    {
+      name = "http"
+      port = 8080
+      default = true
+    },
+    {
+      name = "metrics"
+      port = 9090
+    }
+  ]
+}
+```
+
+```json
+{
+  "name": "orders",
+  "id" : "order-service-1",
+  "ports": [
+    {
+      "name": "http",
+      "port": 8080,
+      "default": true
+    },
+    {
+      "name": "metrics",
+      "port": 9090,
+      "default": false
+    }
+  ]
+}
+
 ```
 
 </CodeTabs>

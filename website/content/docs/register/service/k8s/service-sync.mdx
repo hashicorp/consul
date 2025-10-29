@@ -254,10 +254,11 @@ transitioning a service between deployments inside and outside of Kubernetes.
 
 ### Service ports
 
-When syncing the Kubernetes service to Consul, the Consul service port is the first defined port in the service. Additionally, all ports become registered in the service instance metadata with the key "port-X," where X is
-the name of the port and the value is the externally accessible port.
+When using service discovery features, Consul automatically syncs its catalog with the Kubernetes service catalog. Both single and multi-port services are available. If a Kubernetes service has multiple ports, Consul registers the first port in the series as the service's default unless you specify a default with the `consul.hashicorp.com/service-port` annotation.
 
-The default service port can be overridden using an annotation:
+For Consul service mesh, the catalog must register the service at a single port. Consul uses the service's default port for service mesh operations.
+
+The following example demonstrates how to override the default service port with the `consul.hashicorp.com/service-port` annotation. It sets the default port for the `my-service` Service to `http`.
 
 ```yaml
 kind: Service
@@ -268,7 +269,7 @@ metadata:
     'consul.hashicorp.com/service-port': 'http'
 ```
 
-The annotation value may be a name of a port (recommended) or an exact port value.
+The annotation value may be a name of a port or an exact port value. We recommend using ports with unique names.
 
 ### Service tags
 

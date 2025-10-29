@@ -37,7 +37,7 @@ information.
   a very large output in their checks. In order to completely disable check output
   capture, it is possible to use [`discard_check_output`](/consul/docs/reference/agent/configuration-file/general#discard_check_output).
 
-- `-client` ((#\_client)) - The address to which Consul will bind client
+- `-client` ((#\_client)) - The IPV4 or IPv6 address to which Consul will bind client
   interfaces, including the HTTP and DNS servers. By default, this is "127.0.0.1",
   allowing only loopback connections. In Consul 1.0 and later this can be set to
   a space-separated list of addresses to bind to, or a [go-sockaddr]
@@ -203,11 +203,11 @@ information.
 ## Address Bind Options
 
 - `-bind` ((#\_bind)) - The address that should be bound to for internal
-  cluster communications. This is an IP address that should be reachable by all other
-  nodes in the cluster. By default, this is "0.0.0.0", meaning Consul will bind to
+  cluster communications. This is an IPv4 or IPv6 address that should be reachable by all other
+  nodes in the cluster. By default, this is `0.0.0.0`, meaning Consul will bind to
   all addresses on the local machine and will [advertise](#_advertise)
-  the private IPv4 address to the rest of the cluster. If there are multiple private
-  IPv4 addresses available, Consul will exit with an error at startup. If you specify
+  the private IPv4 or IPv6 address to the rest of the cluster. If there are multiple private
+  IPv4 or IPv6 addresses available, Consul will exit with an error at startup. If you specify
   `"[::]"`, Consul will [advertise](#_advertise) the public
   IPv6 address. If there are multiple public IPv6 addresses available, Consul will
   exit with an error at startup. Consul uses both TCP and UDP and the same port for
@@ -238,14 +238,14 @@ information.
 
   </CodeBlockConfig>
 
-- `-serf-wan-bind` ((#\_serf_wan_bind)) - The address that should be bound
+- `-serf-wan-bind` ((#\_serf_wan_bind)) - The IPv4 or IPv6 address that should be bound
   to for Serf WAN gossip communications. By default, the value follows the same rules
   as [`-bind` command-line flag](#_bind), and if this is not specified, the `-bind`
   option is used. This is available in Consul 0.7.1 and later. In Consul 1.1.0 and later this can be dynamically defined with a [go-sockaddr]
   template that is resolved at runtime.
 
 - `-serf-lan-bind` ((#\_serf_lan_bind)) - The address that should be bound
-  to for Serf LAN gossip communications. This is an IP address that should be reachable
+  to for Serf LAN gossip communications. This is an IPv4 or IPv6 address that should be reachable
   by all other LAN nodes in the cluster. By default, the value follows the same rules
   as [`-bind` command-line flag](#_bind), and if this is not specified, the `-bind`
   option is used. This is available in Consul 0.7.1 and later. In Consul 1.1.0 and later this can be dynamically defined with a [go-sockaddr]
@@ -295,7 +295,7 @@ information.
 ## DNS and Domain Options
 
 - `-dns-port` ((#\_dns_port)) - the DNS port to listen on. This overrides
-  the default port 8600. This is available in Consul 0.7 and later.
+  the default port `8600`. This is available in Consul 0.7 and later.
 
 - `-domain` ((#\_domain)) - By default, Consul responds to DNS queries in
   the "consul." domain. This flag can be used to change that domain. All queries

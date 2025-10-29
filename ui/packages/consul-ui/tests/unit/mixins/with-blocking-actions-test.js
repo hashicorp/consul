@@ -34,11 +34,11 @@ module('Unit | Mixin | with blocking actions', function (hooks) {
     assert.deepEqual(actual, expected);
     assert.ok(afterUpdate.calledOnce);
   });
-  test('afterUpdate calls transitionTo without the last part of the current route name', function (assert) {
+  test('afterUpdate calls router.transitionTo without the last part of the current route name', function (assert) {
     const subject = this.subject();
     const expected = 'dc.kv';
     subject.routeName = expected + '.edit';
-    const transitionTo = sinon.stub(subject, 'transitionTo').returnsArg(0);
+    const transitionTo = sinon.stub(subject.router, 'transitionTo').returnsArg(0);
     const actual = subject.afterUpdate();
     assert.equal(actual, expected);
     assert.ok(transitionTo.calledOnce);
@@ -47,7 +47,7 @@ module('Unit | Mixin | with blocking actions', function (hooks) {
     const subject = this.subject();
     const expected = 'dc.kv';
     subject.routeName = expected + '.edit';
-    const transitionTo = sinon.stub(subject, 'transitionTo').returnsArg(0);
+    const transitionTo = sinon.stub(subject.router, 'transitionTo').returnsArg(0);
     const actual = subject.afterDelete();
     assert.equal(actual, expected);
     assert.ok(transitionTo.calledOnce);

@@ -1,0 +1,92 @@
+---
+layout: api
+page_title: Utilization - Operator - HTTP API
+description: |-
+  The /operator/utilization endpoints generate a Consul utilization bundle for license reporting.
+---
+
+# Utilization - Operator HTTP API
+
+<EnterpriseAlert />
+
+The `/operator/utilization` endpoints provide tools to generate a Consul utilization bundle for license reporting.
+
+Refer to the [Manual license utilization reporting documentation](/consul/docs/enterprise/license/reporting#manual-license-utilization-reporting) for more information.
+
+## Generate utilization bundle
+
+This endpoint generates a Consul utilization bundle for license reporting.
+
+| Method | Path                           | Produces           |
+| ------ | ------------------------------ | ------------------ |
+| `GET` | `/operator/utilization`         | `application/json` |
+
+The following table shows this endpoint's support for
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
+| ---------------- | ----------------- | ------------- | --------------- |
+| `NO`             | `none`            | `none`        | `operator:read` |
+
+The corresponding CLI command is [`consul operator utilization`](/consul/commands/operator/utilization).
+
+
+### Query parameters
+
+- `message`  `(string: "")` - Optional context that is logged with the utilization export.
+
+- `today_only` `(bool: false)` - Include only the most recent utilization snapshot.
+
+- `send_report` `(bool: false)` - Automatically send the utilization report to HashiCorp.
+
+### Sample request
+
+```shell-session
+$ curl \
+    http://127.0.0.1:8500/v1/operator/utilization
+```
+
+### Sample response
+
+```json
+{
+  "version": "2",
+  "mode": "manual",
+  "timestamp": "2025-10-09T15:23:48.354524388Z",
+  "signature": "9ea44420679b3776d1636acbe9ec1f636a58bd4a5b7f2b215cc2958084ded505",
+  "checksum": 17512992959032736032,
+  "snapshots": [
+    {
+      "snapshot_version": 2,
+      "id": "0001MEFMW4B0G5JJHKQN4T9RCE",
+      "timestamp": "2025-10-09T15:23:48.348542971Z",
+      "schema_version": "2.0.0",
+      "product": "consul",
+      "process_id": "01K6FXJDTFBQQP5B3RAXRFRB1K",
+      "metrics": {
+        "consul.billable.nodes": {
+          "key": "consul.billable.nodes",
+          "value": 7,
+          "mode": "write"
+        },
+        "consul.billable.service_instances": {
+          "key": "consul.billable.service_instances",
+          "value": 4,
+          "mode": "write"
+        }
+      },
+      "product_version": "1.22.0-rc1+ent",
+      "license_id": "642088be-c801-c34a-bb5c-e70d4feb18fe",
+      "checksum": 18094916709627403007,
+      "metadata": {
+        "billing_start": "2021-09-30T00:00:00Z",
+        "cluster_id": "dc1"
+      }
+    }
+  ]
+}
+```
+

@@ -14,6 +14,10 @@ export default class ApplicationController extends Controller {
   @service('store') store;
   @service('feedback') feedback;
 
+  get isDebugRoute() {
+    return this.router.currentRouteName?.startsWith('docs');
+  }
+
   // TODO: We currently do this in the controller instead of the router
   // as the nspace and dc variables aren't available directly on the Route
   // look to see if we can move this up there so we can empty the Controller
