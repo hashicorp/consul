@@ -9,11 +9,13 @@ import { action } from '@ember/object';
 export default class DcNodesShowIndexController extends Controller {
   @service router;
 
-  @action goServices() {
+  @action
+  goServices() {
     this.router.replaceWith('dc.nodes.show.services');
   }
 
-  @action goHealthChecks() {
+  @action
+  goHealthChecks() {
     this.router.replaceWith('dc.nodes.show.healthchecks');
   }
 }

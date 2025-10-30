@@ -52,22 +52,26 @@ export default class EditController extends Controller {
     this.target.send('use', item);
   }
 
-  @action onCreate(item, event) {
+  @action
+  onCreate(item, event) {
     event?.preventDefault();
     this.target.send('create', item, event);
   }
 
-  @action onUpdate(item, event) {
+  @action
+  onUpdate(item, event) {
     event?.preventDefault();
     this.target.send('update', item, event);
   }
 
-  @action onCancel(item, event) {
+  @action
+  onCancel(item, event) {
     event?.preventDefault();
     this.target.send('cancel', item, event);
   }
 
-  @action onDelete(item) {
+  @action
+  onDelete(item) {
     this.target.send('delete', item);
   }
 }

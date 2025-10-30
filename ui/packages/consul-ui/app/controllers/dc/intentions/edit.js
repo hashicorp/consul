@@ -9,7 +9,8 @@ import { action } from '@ember/object';
 export default class DcIntentionsEditController extends Controller {
   @service router;
 
-  @action goToIndex(dc) {
+  @action
+  goToIndex(dc) {
     this.router.transitionTo('dc.intentions.index', dc);
   }
 }

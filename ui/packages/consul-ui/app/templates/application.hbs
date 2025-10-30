@@ -29,7 +29,7 @@
     {{! Listen out for blocking query/client setting changes }}
     <DataSource
       @src={{uri 'settings://consul:client'}}
-      @onchange={{fn this.onClientChanged}}
+      @onchange={{this.onClientChanged}}
     />
 
       {{! Tell CSS about our theme }}

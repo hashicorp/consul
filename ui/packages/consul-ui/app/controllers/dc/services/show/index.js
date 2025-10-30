@@ -9,7 +9,8 @@ import { action } from '@ember/object';
 export default class DcServicesShowIndexController extends Controller {
   @service router;
 
-  @action forward(tabs = {}) {
+  @action
+  forward(tabs = {}) {
     if (tabs.topology) return this.router.replaceWith('dc.services.show.topology');
     if (tabs.upstreams) return this.router.replaceWith('dc.services.show.upstreams');
     if (tabs.services) return this.router.replaceWith('dc.services.show.services');
