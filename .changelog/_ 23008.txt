@@ -1,0 +1,3 @@
+```release-note:improvement
+agent: Removed the wildcard check for namespace for exported-services config entry.
+```
