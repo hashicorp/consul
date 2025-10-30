@@ -176,7 +176,7 @@ func (s *HTTPHandlers) ConfigApply(resp http.ResponseWriter, req *http.Request) 
 }
 
 func (s *HTTPHandlers) parseEntMetaForConfigEntryKind(kind string, req *http.Request, entMeta *acl.EnterpriseMeta) error {
-	if kind == structs.ServiceIntentions {
+	if kind == structs.ServiceIntentions || kind == structs.ExportedServices {
 		return s.parseEntMeta(req, entMeta)
 	}
 	return s.parseEntMetaNoWildcard(req, entMeta)
