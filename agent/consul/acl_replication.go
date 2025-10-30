@@ -66,6 +66,11 @@ type aclTypeReplicator interface {
 	// correction phase).
 	FetchUpdated(srv *Server, updates []string) (int, error)
 
+	//ensureRemoteConsistent compares the updated items with the upsertable remotes
+	//returns consistent update check post stale batch read or other scenarios
+	//[]string of items missing from remote, []string of items updated remote, error if inconsistent
+	ensureRemoteConsistent(updates []string) ([]string, []string, error)
+
 	// LenPendingUpdates should be the size of the data retrieved in
 	// FetchUpdated.
 	LenPendingUpdates() int
@@ -87,6 +92,7 @@ type aclTypeReplicator interface {
 }
 
 var errContainsRedactedData = errors.New("replication results contain redacted data")
+var errContainsStaleData = errors.New("replication batch read for update items contain stale data")
 
 func (s *Server) fetchACLRolesBatch(roleIDs []string) (*structs.ACLRoleBatchResponse, error) {
 	req := structs.ACLRoleBatchGetRequest{
@@ -436,10 +442,21 @@ func (s *Server) replicateACLType(ctx context.Context, logger hclog.Logger, tr a
 
 	if len(res.LocalUpserts) > 0 {
 		lenUpdated, err := tr.FetchUpdated(s, res.LocalUpserts)
-		if err == errContainsRedactedData {
-			return 0, false, fmt.Errorf("failed to retrieve unredacted %s - replication token in use does not grant acl:write", tr.PluralNoun())
-		} else if err != nil {
+		if err != nil {
+			if err == errContainsRedactedData {
+				return 0, false, fmt.Errorf("failed to retrieve unredacted %s - replication token in use does not grant acl:write", tr.PluralNoun())
+			}
 			return 0, false, fmt.Errorf("failed to retrieve ACL %s updates: %v", tr.SingularNoun(), err)
+		}
+		//if fetch updated gets stale inconsistent data then we should not proceed with applying
+		//the updates as that would lead to partial/stale data being replicated
+		//hence, we call ensureRemoteConsistent to validate the fetched updates with diff results
+		_, _, err = tr.ensureRemoteConsistent(res.LocalUpserts)
+		if err != nil {
+			if err == errContainsStaleData {
+				return 0, false, fmt.Errorf("failed to ensure consistent %s replication updates - stale data", tr.PluralNoun())
+			}
+			return 0, false, fmt.Errorf("failed to ensure consistent ACL %s updates: %v", tr.SingularNoun(), err)
 		}
 		logger.Debug(
 			"acl replication - downloaded updates",
