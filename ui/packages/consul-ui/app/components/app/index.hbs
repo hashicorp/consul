@@ -3,13 +3,13 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-{{#let (hash main=(concat this.guid '-main') Notification=(component 'app/notification')) as |exported|}}
+{{#let (hash main=(concat guid '-main') Notification=(component 'app/notification')) as |exported|}}
 
   <div class='app' ...attributes>
     <ModalLayer />
 
     {{yield exported to='side-nav'}}
-    <main id={{concat this.guid '-main'}}>
+    <main id={{concat guid '-main'}}>
       <div class='notifications'>
         {{yield exported to='notifications'}}
         <PortalTarget @name='app-notifications' @multiple={{true}} />

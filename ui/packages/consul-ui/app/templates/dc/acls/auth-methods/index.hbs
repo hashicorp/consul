@@ -4,7 +4,7 @@
 }}
 
 <Route
-  @name={{this.routeName}}
+  @name={{routeName}}
 as |route|>
 
   <DataLoader
@@ -32,26 +32,26 @@ as |route|>
   {{#let
 
     (hash
-      value=(or this.sortBy "MethodName:asc")
-      change=(action (mut this.sortBy) value="target.selected")
+      value=(or sortBy "MethodName:asc")
+      change=(action (mut sortBy) value="target.selected")
     )
 
     (hash
       kind=(hash
-        value=(if this.kind (split this.kind ',') undefined)
-        change=(action (mut this.kind) value="target.selectedItems")
+        value=(if kind (split kind ',') undefined)
+        change=(action (mut kind) value="target.selectedItems")
       )
       source=(hash
-        value=(if this.source (split this.source ',') undefined)
-        change=(action (mut this.source) value="target.selectedItems")
+        value=(if source (split source ',') undefined)
+        change=(action (mut source) value="target.selectedItems")
       )
       searchproperty=(hash
-        value=(if (not-eq this.searchproperty undefined)
-          (split this.searchproperty ',')
-          this.searchProperties
+        value=(if (not-eq searchproperty undefined)
+          (split searchproperty ',')
+          searchProperties
         )
-        change=(action (mut this.searchproperty) value="target.selectedItems")
-        default=this.searchProperties
+        change=(action (mut searchproperty) value="target.selectedItems")
+        default=searchProperties
       )
     )
 
@@ -71,8 +71,8 @@ as |route|>
       <BlockSlot @name="toolbar">
       {{#if (gt items.length 0)}}
         <Consul::AuthMethod::SearchBar
-          @search={{this.search}}
-          @onsearch={{action (mut this.search) value="target.value"}}
+          @search={{search}}
+          @onsearch={{action (mut search) value="target.value"}}
           @sort={{sort}}
           @filter={{filters}}
         />
@@ -83,7 +83,7 @@ as |route|>
           @type="auth-method"
           @sort={{sort.value}}
           @filters={{filters}}
-          @search={{this.search}}
+          @search={{search}}
           @items={{items}}
         as |collection|>
           <collection.Collection>

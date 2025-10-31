@@ -33,7 +33,7 @@
           {{did-upsert (if item.selected (fn select) (noop)) @items.length}}
           data-test-tab={{concat name '_' (if item.label (slugify item.label) (slugify item))}}
           class={{if
-            (or item.selected (eq this.selected (if item.label (slugify item.label) (slugify item))))
+            (or item.selected (eq selected (if item.label (slugify item.label) (slugify item))))
             'selected'
           }}
         >

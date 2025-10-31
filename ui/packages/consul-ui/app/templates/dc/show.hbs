@@ -4,7 +4,7 @@
 }}
 
 <Route
-  @name={{this.routeName}}
+  @name={{routeName}}
 as |route|>
   <AppView>
     <BlockSlot @name="header">
@@ -62,7 +62,7 @@ as |tabs|}}
     </BlockSlot>
     <BlockSlot @name="content">
       <Outlet
-        @name={{this.routeName}}
+        @name={{routeName}}
         @model={{route.model}}
       as |o|>
         {{outlet}}

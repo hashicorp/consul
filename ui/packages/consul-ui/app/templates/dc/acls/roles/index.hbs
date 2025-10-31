@@ -4,7 +4,7 @@
 }}
 
 <Route
-  @name={{this.routeName}}
+  @name={{routeName}}
   @title="Roles"
 as |route|>
   <DataLoader
@@ -32,18 +32,18 @@ as |route|>
   {{#let
 
     (hash
-      value=(or this.sortBy "Name:asc")
-      change=(action (mut this.sortBy) value="target.selected")
+      value=(or sortBy "Name:asc")
+      change=(action (mut sortBy) value="target.selected")
     )
 
     (hash
       searchproperty=(hash
-        value=(if (not-eq this.searchproperty undefined)
-          (split this.searchproperty ',')
-          this.searchProperties
+        value=(if (not-eq searchproperty undefined)
+          (split searchproperty ',')
+          searchProperties
         )
-        change=(action (mut this.searchproperty) value="target.selectedItems")
-        default=this.searchProperties
+        change=(action (mut searchproperty) value="target.selectedItems")
+        default=searchProperties
       )
     )
 
@@ -71,8 +71,8 @@ as |route|>
       <BlockSlot @name="toolbar">
       {{#if (gt items.length 0) }}
         <Consul::Role::SearchBar
-          @search={{this.search}}
-          @onsearch={{action (mut this.search) value="target.value"}}
+          @search={{search}}
+          @onsearch={{action (mut search) value="target.value"}}
 
           @sort={{sort}}
 
@@ -85,7 +85,7 @@ as |route|>
           @type="role"
           @sort={{sort.value}}
           @filters={{filters}}
-          @search={{this.search}}
+          @search={{search}}
           @items={{items}}
         as |collection|>
           <collection.Collection>

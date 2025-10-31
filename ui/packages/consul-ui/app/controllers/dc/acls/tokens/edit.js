@@ -5,22 +5,17 @@
 
 import Controller from '@ember/controller';
 import { inject as service } from '@ember/service';
-import { action } from '@ember/object';
-
-export default class EditController extends Controller {
-  @service('dom') dom;
-  @service('form') builder;
-
-  isScoped = false;
-
-  constructor() {
-    super(...arguments);
+export default Controller.extend({
+  dom: service('dom'),
+  builder: service('form'),
+  isScoped: false,
+  init: function () {
+    this._super(...arguments);
     this.form = this.builder.form('token');
-  }
-
-  setProperties(model) {
+  },
+  setProperties: function (model) {
     // essentially this replaces the data with changesets
-    super.setProperties(
+    this._super(
       Object.keys(model).reduce((prev, key, i) => {
         switch (key) {
           case 'item':
@@ -30,30 +25,20 @@ export default class EditController extends Controller {
         return prev;
       }, model)
     );
-  }
-
-  @action
-  change(e, value, item) {
-    const event = this.dom.normalizeEvent(e, value);
-    const form = this.form;
-    try {
-      form.handleEvent(event);
-    } catch (err) {
-      const target = event.target;
-      switch (target.name) {
-        default:
-          throw err;
+  },
+  actions: {
+    change: function (e, value, item) {
+      const event = this.dom.normalizeEvent(e, value);
+      const form = this.form;
+      try {
+        form.handleEvent(event);
+      } catch (err) {
+        const target = event.target;
+        switch (target.name) {
+          default:
+            throw err;
+        }
       }
-    }
-  }
-
-  @action
-  use(item) {
-    this.target.send('use', item);
-  }
-
-  @action
-  delete(item) {
-    this.target.send('delete', item);
-  }
-}
+    },
+  },
+});

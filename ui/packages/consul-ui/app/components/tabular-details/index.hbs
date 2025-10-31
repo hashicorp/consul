@@ -12,8 +12,8 @@
     </tr>
   </thead>
   <tbody>
-  {{#let (concat 'tabular-details-' @name '-toggle-' this.guid '_') as |inputId|}}
-    {{#each @items as |item index|}}
+  {{#let (concat 'tabular-details-' name '-toggle-' guid '_') as |inputId|}}
+    {{#each items as |item index|}}
       <tr data-test-tabular-row onclick={{action 'click'}}>
           <YieldSlot @name="row">{{yield item index}}</YieldSlot>
           <td class="actions">
@@ -22,7 +22,7 @@
       </tr>
       <tr>
         <td colspan="3">
-          <input type="checkbox" checked={{ not (is-empty item.closed) }} value={{index}} name={{@name}} id={{concat inputId index}} onchange={{action 'change' item @items}} />
+          <input type="checkbox" checked={{ not (is-empty item.closed) }} value={{index}} name={{name}} id={{concat inputId index}} onchange={{action 'change' item items}} />
           <div>
             <label for={{concat inputId index}}><span>Hide details</span></label>
             <div>

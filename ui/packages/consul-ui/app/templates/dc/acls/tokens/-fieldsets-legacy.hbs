@@ -3,13 +3,13 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-<fieldset disabled={{if (not (can 'write token' item=@item)) 'disabled'}}>
-  <label class='type-text{{if @item.error.Name " has-error"}}'>
+<fieldset disabled={{if (not (can 'write token' item=item)) 'disabled'}}>
+  <label class='type-text{{if item.error.Name " has-error"}}'>
     <span>Name</span>
-    <Input @value={{@item.Description}} @name='name' @autofocus='autofocus' />
+    <Input @value={{item.Description}} @name='name' @autofocus='autofocus' />
   </label>
   {{#if false}}
-    <div role='radiogroup' class={{if @item.error.Type ' has-error'}}>
+    <div role='radiogroup' class={{if item.error.Type ' has-error'}}>
       {{#each (array 'management' 'client') as |type|}}
         <label>
           <span>{{capitalize type}}</span>
@@ -17,8 +17,8 @@
             type='radio'
             name='Type'
             value='{{type}}'
-            checked={{if (eq @item.Type type) 'checked'}}
-            onchange={{@onChange}}
+            checked={{if (eq item.Type type) 'checked'}}
+            onchange={{action 'change'}}
           />
         </label>
       {{/each}}
@@ -27,9 +27,9 @@
   <label class='type-text'>
     <Hds::CodeEditor
       @ariaLabel='[Rules]'
-      @value={{@item.Rules}}
+      @value={{item.Rules}}
       @syntax='hcl'
-      @onInput={{fn @onChange (concat @name '[Rules]')}}
+      @onInput={{action 'change' (concat name '[Rules]')}}
       as |CE|
     >
       <CE.Title @tag='h3'>
@@ -42,10 +42,10 @@
       </CE.Title>
     </Hds::CodeEditor>
   </label>
-  {{#if @create}}
+  {{#if create}}
     <label class='type-text'>
       <span>ID</span>
-      <Input @value={{@item.ID}} />
+      <Input @value={{item.ID}} />
       <em>We'll generate a UUID if this field is left empty.</em>
     </label>
   {{/if}}

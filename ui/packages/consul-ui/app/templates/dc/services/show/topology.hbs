@@ -4,7 +4,7 @@
 }}
 
 <Route
-  @name={{this.routeName}}
+  @name={{routeName}}
 as |route|>
   <DataLoader @src={{
       uri '/${partition}/${nspace}/${dc}/topology/${name}/${kind}'

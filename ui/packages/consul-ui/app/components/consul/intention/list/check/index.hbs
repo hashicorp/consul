@@ -19,7 +19,7 @@ as |titles|}}
   </h3>
   <p>
   {{#if (eq @item.Action 'allow')}}
-    Yes, {{@item.SourceName}} is allowed to connect to {{@item.DestinationName}} due to the highest precedence intention below:
+    Yes, {{item.SourceName}} is allowed to connect to {{@item.DestinationName}} due to the highest precedence intention below:
   {{else if (eq @item.Action 'deny')}}
     No, {{@item.SourceName}} is not allowed to connect to {{@item.DestinationName}} due to the highest precedence intention below:
   {{else}}

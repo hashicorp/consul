@@ -670,14 +670,6 @@ type RuntimeConfig struct {
 	// flag: -enable-script-checks, -enable-local-script-checks
 	EnableLocalScriptChecks bool
 
-	// DisableKVKeyValidation controls whether KV key validation is disabled.
-	// When set to true, it disables validation that prevents path traversal and other
-	// security issues in KV key names. This can introduce security risks if not used carefully.
-	// We recommend keeping validation enabled (false) unless you have a specific reason to disable it.
-	//
-	// hcl: disable_kv_key_validation = (true|false)
-	DisableKVKeyValidation bool
-
 	// EnableRemoeScriptChecks controls whether health checks declared from the http API
 	// which execute scripts are enabled. This includes regular script checks and Docker
 	// checks.

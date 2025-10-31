@@ -118,13 +118,13 @@ as |State Guard ChartAction dispatch state|>
             @text='Delete'
             data-test-delete
             @color='critical'
-            {{on 'click' confirm}}
+            {{on 'click' (fn confirm (fn writer.delete item))}}
           />
         </BlockSlot>
         <BlockSlot @name="dialog" as |execute cancel message|>
           <DeleteConfirmation
             @message={{message}}
-            @execute={{queue execute (fn writer.delete item)}}
+            @execute={{execute}}
             @cancel={{cancel}}
           />
         </BlockSlot>

@@ -1,3 +1,0 @@
-```release-note:improvement
-ui: replaced ember partials with components as an incremental step to upgrade to ember v4
-```

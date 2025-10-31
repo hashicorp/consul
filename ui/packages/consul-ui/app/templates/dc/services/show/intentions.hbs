@@ -4,10 +4,10 @@
 }}
 
 <Route
-  @name={{this.routeName}}
+  @name={{routeName}}
 as |route|>
   <Outlet
-    @name={{this.routeName}}
+    @name={{routeName}}
     @model={{route.model}}
   as |o|>
     {{outlet}}

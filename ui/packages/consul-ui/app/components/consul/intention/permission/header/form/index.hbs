@@ -9,15 +9,15 @@
   {{fix-super-select-aria}}
 >
   <FormGroup
-    @name={{this.name}}
+    @name={{name}}
   as |group|>
 
     {{yield (hash
-      submit=(action 'submit' this.changeset)
-      reset=(action 'reset' this.changeset)
+      submit=(action 'submit' changeset)
+      reset=(action 'reset' changeset)
 
-      isDirty=(and this.changeset.isValid this.changeset.isDirty)
-      changeset=this.changeset
+      isDirty=(and changeset.isValid changeset.isDirty)
+      changeset=changeset
     )}}
 
     <fieldset>
@@ -28,61 +28,61 @@
         as |el|>
           <el.Label>Header type</el.Label>
           <Hds::Form::SuperSelect::Single::Field
-            @options={{this.headerTypes}}
-            @selected={{this.headerType}}
-            @onChange={{action 'change' 'HeaderType' this.changeset}}
+            @options={{headerTypes}}
+            @selected={{headerType}}
+            @onChange={{action 'change' 'HeaderType' changeset}}
             @label="Header type"
             @listboxAriaLabel="Header type options"
             id="header-type-select"
           as |F|>
-            <F.Options>{{get this.headerLabels F.options}}</F.Options>
+            <F.Options>{{get headerLabels F.options}}</F.Options>
           </Hds::Form::SuperSelect::Single::Field>
         </group.Element>
 
 
         <group.Element
           @name="Name"
-          @error={{changeset-get this.changeset 'error.Name'}}
+          @error={{changeset-get changeset 'error.Name'}}
         as |el|>
           <el.Label>Header name</el.Label>
           <el.Text
-            @value={{changeset-get this.changeset 'Name'}}
-            oninput={{action 'change' 'Name' this.changeset}}
+            @value={{changeset-get changeset 'Name'}}
+            oninput={{action 'change' 'Name' changeset}}
           />
           <State @state={{el.state}} @matches="error">
             <el.Error>
-              {{changeset-get this.changeset 'error.Name.validation'}}
+              {{changeset-get changeset 'error.Name.validation'}}
             </el.Error>
           </State>
         </group.Element>
 
-  {{#if this.shouldShowValueField}}
+  {{#if shouldShowValueField}}
         <group.Element
           @name="Value"
-          @error={{changeset-get this.changeset 'error.Value'}}
+          @error={{changeset-get changeset 'error.Value'}}
         as |el|>
-          <el.Label>Header {{lowercase (get this.headerLabels this.headerType)}}</el.Label>
+          <el.Label>Header {{lowercase (get headerLabels headerType)}}</el.Label>
           <el.Text
-            @value={{changeset-get this.changeset 'Value'}}
-            oninput={{action 'change' 'Value' this.changeset}}
+            @value={{changeset-get changeset 'Value'}}
+            oninput={{action 'change' 'Value' changeset}}
           />
           <State @state={{el.state}} @matches="error">
             <el.Error>
-              {{changeset-get this.changeset 'error.Value.validation'}}
+              {{changeset-get changeset 'error.Value.validation'}}
             </el.Error>
           </State>
         </group.Element>
   {{/if}}
 
-  {{#if this.shouldShowIgnoreCaseField}}
+  {{#if shouldShowIgnoreCaseField}}
         <group.Element
           @name="IgnoreCase"
-          @error={{changeset-get this.changeset 'error.IgnoreCase'}}
+          @error={{changeset-get changeset 'error.IgnoreCase'}}
         as |el|>
           <el.Label>Ignore Case</el.Label>
           <el.Checkbox
-            checked={{if (changeset-get this.changeset 'IgnoreCase') 'checked'}}
-            onchange={{action 'change' 'IgnoreCase' this.changeset}}
+            checked={{if IgnoreCase 'checked'}}
+            onchange={{action 'change' 'IgnoreCase' changeset}}
           />
         </group.Element>
   {{/if}}

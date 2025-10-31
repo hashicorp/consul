@@ -7,13 +7,13 @@
   ...attributes
   {{did-insert (set this 'input')}}
   type="checkbox"
-  checked={{if this.checked 'checked' undefined}}
-  id={{concat 'toggle-button-' this.guid}}
+  checked={{if checked 'checked' undefined}}
+  id={{concat 'toggle-button-' guid}}
   onchange={{action 'change'}}
 />
 <label
   {{did-insert (set this 'label')}}
-  for={{concat 'toggle-button-' this.guid}}
+  for={{concat 'toggle-button-' guid}}
 >
   {{yield (hash
     click=(action 'click')

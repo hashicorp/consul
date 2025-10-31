@@ -8,7 +8,7 @@
   class="empty-state"
   ...attributes
 >
-{{#if this.hasHeader}}
+{{#if hasHeader}}
   <header>
     {{#yield-slot name="header"}}
       {{yield}}
@@ -21,16 +21,16 @@
   {{#yield-slot name="body"}}
     <div>
       {{yield}}
-      {{#if @login}}
+      {{#if login}}
         <Hds::Button
           @color='primary'
-          @text={{if (and this.token this.token.AccessorID) 'Log in with a different token' 'Log in'}}
+          @text={{if token.AccessorID 'Log in with a different token' 'Log in'}}
           data-test-empty-state-login
-          {{on "click" @login}}
+          {{on "click" login}}
         >
           <DataSource
             @src={{uri 'settings://consul:token'}}
-            @onchange={{action (mut this.token) value="data"}}
+            @onchange={{action (mut token) value="data"}}
           />
         </Hds::Button>
       {{/if}}

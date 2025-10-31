@@ -202,7 +202,6 @@
     "EnableCentralServiceConfig": false,
     "EnableDebug": false,
     "EnableLocalScriptChecks": false,
-    "DisableKVKeyValidation": false,
     "EnableRemoteScriptChecks": false,
     "EncryptKey": "hidden",
     "EnterpriseRuntimeConfig": {},

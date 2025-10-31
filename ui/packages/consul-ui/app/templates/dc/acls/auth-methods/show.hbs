@@ -4,7 +4,7 @@
 }}
 
 <Route
-  @name={{this.routeName}}
+  @name={{routeName}}
 as |route|>
   <DataLoader @src={{
     uri '/${partition}/${nspace}/${dc}/auth-method/${name}'
@@ -59,7 +59,7 @@ as |item|}}
       </BlockSlot>
       <BlockSlot @name="content">
         <Outlet
-          @name={{this.routeName}}
+          @name={{routeName}}
           @model={{hash
             item=item
           }}

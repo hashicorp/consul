@@ -4,14 +4,14 @@
 }}
 
 <ChildSelector
-  @disabled={{@disabled}}
-  @repo={{this.repo}}
-  @dc={{@dc}}
-  @partition={{@partition}}
-  @nspace={{@nspace}}
+  @disabled={{disabled}}
+  @repo={{repo}}
+  @dc={{dc}}
+  @partition={{partition}}
+  @nspace={{nspace}}
   @type='policy'
   @placeholder='Search for policy'
-  @items={{@items}}
+  @items={{items}}
   {{fix-code-block-aria}}
   ...attributes
 >
@@ -47,26 +47,26 @@
         </BlockSlot>
         <BlockSlot @name='body'>
           <PolicyForm
-            @form={{this.form}}
-            @nspace={{@nspace}}
-            @partition={{@partition}}
-            @dc={{@dc}}
-            @allowServiceIdentity={{@allowServiceIdentity}}
+            @form={{form}}
+            @nspace={{nspace}}
+            @partition={{partition}}
+            @dc={{dc}}
+            @allowServiceIdentity={{allowServiceIdentity}}
           />
         </BlockSlot>
         <BlockSlot @name='actions' as |close|>
           <Hds::ButtonSet>
             <Hds::Button
               type='submit'
-              @isLoading={{this.item.isSaving}}
-              onclick={{perform this.save this.item @items (queue (action close) (action 'reset'))}}
-              disabled={{if (or this.item.isSaving this.item.isPristine this.item.isInvalid) 'disabled'}}
+              @isLoading={{item.isSaving}}
+              onclick={{perform this.save item items (queue (action close) (action 'reset'))}}
+              disabled={{if (or item.isSaving item.isPristine item.isInvalid) 'disabled'}}
               @text='Create and apply'
             />
             <Hds::Button
               type='reset'
               @color='secondary'
-              disabled={{if this.item.isSaving 'disabled'}}
+              disabled={{if item.isSaving 'disabled'}}
               {{on 'click' (action (queue (action close) (action 'reset')))}}
               @text='Cancel'
             />
@@ -78,11 +78,11 @@
   <BlockSlot @name='option' as |option|>
     {{option.Name}}
   </BlockSlot>
-  <BlockSlot @name='set' as |remove|>
+  <BlockSlot @name='set'>
     <TabularDetails
       data-test-policies
       @onchange={{action 'open'}}
-      @items={{sort-by 'CreateTime:desc' 'Name:asc' @items}}
+      @items={{sort-by 'CreateTime:desc' 'Name:asc' items}}
       as |item index|
     >
       <BlockSlot @name='header'>
@@ -102,9 +102,9 @@
           <DataSource
             @src={{uri
               '/${partition}/${nspace}/${dc}/policy/${id}'
-              (hash partition=@partition nspace=@nspace dc=@dc id=item.ID)
+              (hash partition=partition nspace=nspace dc=dc id=item.ID)
             }}
-            @onchange={{action (mut this.loadedItem) value='data'}}
+            @onchange={{action (mut loadedItem) value='data'}}
             @loading='lazy'
           />
         {{/if}}
@@ -119,7 +119,7 @@
           <dl>
             <dt>Datacenters:</dt>
             <dd>
-              {{join ', ' (policy/datacenters (or this.loadedItem item))}}
+              {{join ', ' (policy/datacenters (or loadedItem item))}}
             </dd>
           </dl>
         {{/if}}
@@ -129,8 +129,8 @@
               @language='hcl'
               @value={{service-identity-template
                 item.Name
-                partition=@partition
-                nspace=@nspace
+                partition=partition
+                nspace=nspace
                 canUsePartitions=(can 'use partitions')
                 canUseNspaces=(can 'use nspaces')
               }}
@@ -150,7 +150,7 @@
               @language='hcl'
               @value={{node-identity-template
                 item.Name
-                partition=@partition
+                partition=partition
                 canUsePartitions=(can 'use partitions')
                 canUseNspaces=(can 'use nspaces')
               }}
@@ -166,7 +166,7 @@
                 >(HCL Format)</a>
               </CB.Title></Hds::CodeBlock>
           {{else}}
-            <Hds::CodeBlock @language='hcl' @value={{or this.loadedItem.Rules this.item.Rules ''}} as |CB|>
+            <Hds::CodeBlock @language='hcl' @value={{or loadedItem.Rules item.Rules ''}} as |CB|>
               <CB.Title @tag='span'>
                 Rules
                 <a
@@ -179,7 +179,7 @@
             </Hds::CodeBlock>
           {{/if}}
         </label>
-        {{#if (not @disabled)}}
+        {{#if (not disabled)}}
           <div>
             <ConfirmationDialog
               @message='Are you sure you want to remove this policy from this token?'
@@ -189,7 +189,7 @@
                   @text='Remove'
                   @color='critical'
                   @size='small'
-                  {{action confirm}}
+                  {{action confirm 'remove' item items}}
                   data-test-delete
                 />
               </BlockSlot>
@@ -202,7 +202,7 @@
                     @text='Confirm remove'
                     @color='critical'
                     @size='small'
-                    {{action (queue execute (action remove item @items))}}
+                    {{action execute}}
                     data-test-delete
                   />
                   <Hds::Button

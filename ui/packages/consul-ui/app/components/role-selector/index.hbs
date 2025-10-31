@@ -7,14 +7,14 @@
   class="role-selector"
   data-test-role-form
   id="new-role"
-  @onclose={{action (mut this.state) "role"}}
+  @onclose={{action (mut state) "role"}}
   @aria={{hash
-    label=(if (eq this.state 'role') 'New Role' 'New Policy')
+    label=(if (eq state 'role') 'New Role' 'New Policy')
   }}
 as |modal|>
   <Ref @target={{this}} @name="modal" @value={{modal}} />
   <BlockSlot @name="header">
-{{#if (eq this.state 'role')}}
+{{#if (eq state 'role')}}
     <h2>New Role</h2>
 {{else}}
     <h2>New Policy</h2>
@@ -22,21 +22,21 @@ as |modal|>
   </BlockSlot>
   <BlockSlot @name="body">
 
-  <input id="{{this.name}}_state_role" type="radio" name="{{this.name}}[state]" value="role" checked={{if (eq this.state 'role') 'checked'}} onchange={{action 'change'}} />
+  <input id="{{name}}_state_role" type="radio" name="{{name}}[state]" value="role" checked={{if (eq state 'role') 'checked'}} onchange={{action 'change'}} />
     <RoleForm
-      @form={{this.form}}
-      @dc={{@dc}}
-      @nspace={{@nspace}}
-      @partition={{@partition}}
+      @form={{form}}
+      @dc={{dc}}
+      @nspace={{nspace}}
+      @partition={{partition}}
     >
       <BlockSlot @name="policy">
 
         <PolicySelector
-          @source={{this.source}}
-          @dc={{@dc}}
-          @partition={{@partition}}
-          @nspace={{@nspace}}
-          @items={{this.item.Policies}}
+          @source={{source}}
+          @dc={{dc}}
+          @partition={{partition}}
+          @nspace={{nspace}}
+          @items={{item.Policies}}
         >
           <BlockSlot @name="trigger">
             <Hds::Button
@@ -54,33 +54,33 @@ as |modal|>
       </BlockSlot>
     </RoleForm>
 
-    <input id="{{this.name}}_state_policy" type="radio" name="{{this.name}}[state]" value="policy" checked={{if (eq this.state 'policy') 'checked'}} onchange={{action 'change'}} />
+    <input id="{{name}}_state_policy" type="radio" name="{{name}}[state]" value="policy" checked={{if (eq state 'policy') 'checked'}} onchange={{action 'change'}} />
     <PolicyForm
       data-test-policy-form
       @name="role[policy]"
-      @form={{this.policyForm}}
-      @dc={{@dc}}
-      @nspace={{@nspace}}
-      @partition={{@partition}}
+      @form={{policyForm}}
+      @dc={{dc}}
+      @nspace={{nspace}}
+      @partition={{partition}}
     />
 
   </BlockSlot>
   <BlockSlot @name="actions" as |close|>
 
     <Hds::ButtonSet>
-      {{#if (eq this.state 'role')}}
+      {{#if (eq state 'role')}}
         <Hds::Button
           type='submit'
           @text='Create and apply'
-          @isLoading={{this.item.isSaving}}
-          onclick={{perform this.save this.item @items (queue (action close) (action 'reset'))}}
-          disabled={{if (or this.item.isSaving this.item.isPristine this.item.isInvalid) 'disabled'}}
+          @isLoading={{item.isSaving}}
+          onclick={{perform this.save item items (queue (action close) (action 'reset'))}}
+          disabled={{if (or item.isSaving item.isPristine item.isInvalid) 'disabled'}}
         />
         <Hds::Button
           @text='Cancel'
           type='reset'
           @color='secondary'
-          disabled={{if this.item.isSaving 'disabled'}}
+          disabled={{if item.isSaving 'disabled'}}
           {{on 'click' (action (queue (action close) (action 'reset')))}}
         />
 
@@ -88,16 +88,16 @@ as |modal|>
         <Hds::Button
           type='submit'
           @text='Create and apply'
-          @isLoading={{this.policy.isSaving}}
-          {{action 'dispatch' 'save' (array this.policy this.item.Policies (action (mut this.state) 'role'))}}
-          disabled={{if (or this.policy.isSaving this.policy.isPristine this.policy.isInvalid) 'disabled'}}
+          @isLoading={{policy.isSaving}}
+          {{action 'dispatch' 'save' (array policy item.Policies (action (mut state) 'role'))}}
+          disabled={{if (or policy.isSaving policy.isPristine policy.isInvalid) 'disabled'}}
         />
         <Hds::Button
           @text='Cancel'
           type='reset'
           @color='secondary'
-          disabled={{if this.policy.isSaving 'disabled'}}
-          {{on 'click' (action (mut this.state) 'role')}}
+          disabled={{if policy.isSaving 'disabled'}}
+          {{on 'click' (action (mut state) 'role')}}
         />
       {{/if}}
     </Hds::ButtonSet>
@@ -105,14 +105,14 @@ as |modal|>
 </ModalDialog>
 
 <ChildSelector
-  @disabled={{@disabled}}
-  @repo={{this.repo}}
-  @dc={{@dc}}
-  @partition={{@partition}}
-  @nspace={{@nspace}}
+  @disabled={{disabled}}
+  @repo={{repo}}
+  @dc={{dc}}
+  @partition={{partition}}
+  @nspace={{nspace}}
   @type="role"
   @placeholder="Search for role"
-  @items={{@items}}
+  @items={{items}}
 >
   <BlockSlot @name="label">
     Apply an existing role
@@ -131,11 +131,11 @@ as |modal|>
   <BlockSlot @name="option" as |option|>
     {{option.Name}}
   </BlockSlot>
-  <BlockSlot @name="set" as |remove|>
+  <BlockSlot @name="set">
     <TabularCollection
         data-test-roles
         @rows={{5}}
-        @items={{sort-by 'CreateTime:desc' 'Name:asc' @items}} as |item index|
+        @items={{sort-by 'CreateTime:desc' 'Name:asc' items}} as |item index|
     >
       <BlockSlot @name="header">
         <th>Name</th>
@@ -154,7 +154,7 @@ as |modal|>
           <BlockSlot @name="trigger">
             More
           </BlockSlot>
-          <BlockSlot @name="menu" as |confirm keypressClick|>
+          <BlockSlot @name="menu" as |confirm send keypressClick|>
               <components.MenuItem @href={{href-to 'dc.acls.roles.edit' item.ID}}>
                 <BlockSlot @name="label">
                   {{#if (can "edit role" item=item)}}
@@ -165,8 +165,8 @@ as |modal|>
                 </BlockSlot>
               </components.MenuItem>
 
-            {{#if (not @disabled)}}
-              <components.MenuItem class="dangerous" @onclick={{fn remove item @items}} data-test-delete>
+            {{#if (not disabled)}}
+              <components.MenuItem class="dangerous" @onclick={{action send 'remove' item items}} data-test-delete>
                 <BlockSlot @name="label">
                   Remove
                 </BlockSlot>

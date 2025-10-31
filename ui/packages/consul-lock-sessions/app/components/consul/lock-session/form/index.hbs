@@ -86,7 +86,7 @@
               @text='Invalidate Session'
               @color='critical'
               data-test-delete
-              {{on 'click' (fn confirm )}}
+              {{on 'click' (fn confirm (fn writer.delete @item))}}
             />
           </BlockSlot>
           <BlockSlot @name="dialog" as |execute cancel message|>
@@ -98,7 +98,7 @@
                 @text='Confirm Invalidation'
                 @color='critical'
                 data-test-delete
-                {{on 'click' (queue execute (fn writer.delete @item))}}
+                {{on 'click' (fn execute)}}
               />
               <Hds::Button
                 @text='Cancel'

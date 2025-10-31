@@ -5,7 +5,7 @@
 
 {{yield}}
 <li role='none' ...attributes>
-  {{#if this.hasConfirmation}}
+  {{#if hasConfirmation}}
     <button
       type='button'
       role='menuitem'
@@ -41,9 +41,9 @@
               @name='confirm-footer'
               @params={{block-params
                 (hash
-                  button=(component 'popover-menu/menu-item/critical-button' confirmAction=(queue (action this.menu.clickTrigger) (action this.onclick) F.close))
+                  button=(component 'popover-menu/menu-item/critical-button' confirmAction=(queue (action menu.clickTrigger) (action onclick) F.close))
                   btnAtts=(hash data-test-id='confirm-action')
-                  confirmAction=(queue (action this.menu.clickTrigger) (action this.onclick) F.close)
+                  confirmAction=(queue (action menu.clickTrigger) (action onclick) F.close)
                   close=F.close
                 )
               }}
@@ -54,13 +54,13 @@
         </Hds::Modal>
       {{/in-element}}
     {{/if}}
-  {{else if @href}}
-    {{#let (string-includes @href '://') as |external|}}
+  {{else if href}}
+    {{#let (string-includes href '://') as |external|}}
       <a
         role='menuitem'
         tabindex='-1'
-        onclick={{action this.menu.clickTrigger}}
-        href={{@href}}
+        onclick={{action menu.clickTrigger}}
+        href={{href}}
         target={{if external '_blank'}}
         rel={{if external 'noopener noreferrer'}}
       >
@@ -73,11 +73,11 @@
     <button
       type='button'
       role='menuitem'
-      aria-selected={{if @selected 'true'}}
+      aria-selected={{if selected 'true'}}
       tabindex='-1'
       onclick={{queue
         (action (or this.onclick (noop)))
-        (action (if this.close this.menu.clickTrigger (noop)))
+        (action (if this.close menu.clickTrigger (noop)))
       }}
     >
       <YieldSlot @name='label'>

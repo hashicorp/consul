@@ -4,7 +4,7 @@
 }}
 
 <Route
-  @name={{this.routeName}}
+  @name={{routeName}}
 as |route|>
   <DataLoader @src={{
       uri '/${partition}/${nspace}/${dc}/gateways/for-service/${name}'
@@ -28,22 +28,22 @@ as |route|>
   {{#let
 
     (hash
-      value=(or this.sortBy "Status:asc")
-      change=(action (mut this.sortBy) value="target.selected")
+      value=(or sortBy "Status:asc")
+      change=(action (mut sortBy) value="target.selected")
     )
 
     (hash
       instance=(hash
-        value=(if this.instance (split this.instance ',') undefined)
-        change=(action (mut this.instance) value="target.selectedItems")
+        value=(if instance (split instance ',') undefined)
+        change=(action (mut instance) value="target.selectedItems")
       )
       searchproperty=(hash
-        value=(if (not-eq this.searchproperty undefined)
-          (split this.searchproperty ',')
-          this.searchProperties
+        value=(if (not-eq searchproperty undefined)
+          (split searchproperty ',')
+          searchProperties
         )
-        change=(action (mut this.searchproperty) value="target.selectedItems")
-        default=this.searchProperties
+        change=(action (mut searchproperty) value="target.selectedItems")
+        default=searchProperties
       )
     )
 
@@ -56,8 +56,8 @@ as |route|>
   {{#if (gt items.length 0)}}
       <input type="checkbox" id="toolbar-toggle" />
       <Consul::Upstream::SearchBar
-        @search={{this.search}}
-        @onsearch={{action (mut this.search) value="target.value"}}
+        @search={{search}}
+        @onsearch={{action (mut search) value="target.value"}}
 
         @sort={{sort}}
 
@@ -72,7 +72,7 @@ as |route|>
           @type="service"
           @sort={{sort.value}}
           @filters={{filters}}
-          @search={{this.search}}
+          @search={{search}}
           @items={{items}}
         as |collection|>
           <collection.Collection>

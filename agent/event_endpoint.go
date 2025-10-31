@@ -5,7 +5,6 @@ package agent
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -45,29 +44,12 @@ func (s *HTTPHandlers) EventFire(resp http.ResponseWriter, req *http.Request) (i
 	}
 
 	// Get the payload
-	if req.ContentLength >= 0 {
-		// The underlying gossip sets limits on the size of a user event
-		// message. It is hard to give an exact number, as it depends on various
-		// parameters of the event, but the payload should be kept very small
-		// (< 100 bytes). We've multiplied this by 3 to be safe.
-		const maxEventPayloadSize = 300
-		if req.ContentLength > maxEventPayloadSize {
-			return nil, HTTPError{
-				StatusCode: http.StatusRequestEntityTooLarge,
-				Reason: fmt.Sprintf("Event payload too large, received %d bytes, max size: %d bytes. User events should be kept small for efficient gossip propagation.",
-					req.ContentLength, maxEventPayloadSize),
-			}
-		}
-
+	if req.ContentLength > 0 {
 		var buf bytes.Buffer
-		if req.Body != nil {
-			if _, err := io.Copy(&buf, req.Body); err != nil {
-				return nil, err
-			}
-			event.Payload = buf.Bytes()
+		if _, err := io.Copy(&buf, req.Body); err != nil {
+			return nil, err
 		}
-	} else {
-		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Event payload size must be greater than zero"}
+		event.Payload = buf.Bytes()
 	}
 
 	// Try to fire the event

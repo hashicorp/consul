@@ -3,7 +3,7 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-<Route @name={{this.routeName}} as |route|>
+<Route @name={{routeName}} as |route|>
   <DataLoader
     @src={{uri
       '/${partition}/${nspace}/${dc}/service-instance/${id}/${node}/${name}/${peer}'
@@ -73,7 +73,7 @@
                 name=route.params.name
               )
             }}
-            @onchange={{action (mut this.meta) value='data'}}
+            @onchange={{action (mut meta) value='data'}}
             as |meta|
           >
             {{! We only really need meta to get the correct ServiceID }}
@@ -100,7 +100,7 @@
                     peer=route.params.peer
                   )
                 }}
-                @onchange={{action (mut this.proxy) value='data'}}
+                @onchange={{action (mut proxy) value='data'}}
               />
             {{/if}}
           </DataSource>
@@ -126,7 +126,7 @@
             <Consul::Kind @item={{item}} @withInfo={{true}} />
             {{! TODO: Looks like we can get this straight from item.Proxy.Mode }}
             {{! the less we need `proxy` and `meta` the better }}
-            {{#if (eq this.meta.ServiceProxy.Mode 'transparent')}}
+            {{#if (eq meta.ServiceProxy.Mode 'transparent')}}
               <Consul::TransparentProxy />
             {{/if}}
           </BlockSlot>
@@ -183,7 +183,7 @@
                     )
                   )
                   (if
-                    this.proxy
+                    proxy
                     (hash
                       label='Upstreams'
                       href=(href-to 'dc.services.instance.upstreams')
@@ -191,7 +191,7 @@
                     )
                   )
                   (if
-                    this.proxy
+                    proxy
                     (hash
                       label='Exposed Paths'
                       href=(href-to 'dc.services.instance.exposedpaths')
@@ -207,8 +207,8 @@
               }}
             />
             <Outlet
-              @name={{this.routeName}}
-              @model={{assign (hash proxy=this.proxy meta=this.meta item=item) route.model}}
+              @name={{routeName}}
+              @model={{assign (hash proxy=proxy meta=meta item=item) route.model}}
               as |o|
             >
               {{outlet}}

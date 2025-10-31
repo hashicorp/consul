@@ -3,7 +3,7 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-<StateChart @src={{this.chart}} as |State Guard ChartAction dispatch state|>
+<StateChart @src={{chart}} as |State Guard ChartAction dispatch state|>
   {{#let
     (hash State=State Guard=Guard Action=ChartAction dispatch=dispatch state=state)
     as |chart|

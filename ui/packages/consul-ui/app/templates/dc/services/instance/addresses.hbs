@@ -4,7 +4,7 @@
 }}
 
 <Route
-  @name={{this.routeName}}
+  @name={{routeName}}
 as |route|>
 {{#let
   (entries route.model.item.Service.TaggedAddresses)
@@ -23,7 +23,7 @@ as |items|}}
           <BlockSlot @name="row">
       {{#with (object-at 1 taggedAddress) as |address|}}
             <td>
-              {{object-at 0 taggedAddress}}{{#if (and (eq address.Address route.model.item.Address) (eq address.Port route.model.item.Port))}}&nbsp;<em data-test-address-default>(default)</em>{{/if}}
+              {{object-at 0 taggedAddress}}{{#if (and (eq address.Address item.Address) (eq address.Port item.Port))}}&nbsp;<em data-test-address-default>(default)</em>{{/if}}
             </td>
             <td data-test-address>
               {{address.Address}}:{{address.Port}}

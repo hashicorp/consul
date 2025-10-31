@@ -15,15 +15,15 @@
       )
     }}
     @onchange={{action 'change'}}
-    @onerror={{action (mut this.error) value="error"}}
+    @onerror={{action (mut error) value="error"}}
   />
 {{/if}}
 
 {{on-window 'resize' (action 'redraw')}}
 {{did-insert (action 'redraw')}}
 
-{{#if (not this.empty)}}
-  {{#if this.data.labels}}
+{{#if (not empty)}}
+  {{#if data.labels}}
     <a
       class="sparkline-key-link"
       {{on "click" (optional this.modal.open)}}
@@ -37,10 +37,10 @@
   <div class="tooltip">
     <div class="sparkline-time">Timestamp</div>
   </div>
-  {{#if this.empty}}
+  {{#if empty}}
     <TopologyMetrics::Status
       @noMetricsReason={{@noMetricsReason}}
-      @error={{this.error}}
+      @error={{error}}
     />
   {{/if}}
   <svg class="sparkline"></svg>
@@ -60,12 +60,12 @@
       <div class="sparkline-key-content">
         <p>This key describes the metrics corresponding to the graph tooltip labels in more detail.</p>
         <dl>
-          {{#each-in this.data.labels as |label desc| }}
+          {{#each-in data.labels as |label desc| }}
             <dt>{{label}}</dt>
             <dd>{{desc}}</dd>
           {{/each-in}}
         </dl>
-        {{#unless this.data.labels}}
+        {{#unless data.labels}}
           <span class="no-data">No metrics loaded.</span>
         {{/unless}}
       </div>

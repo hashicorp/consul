@@ -1,3 +1,0 @@
-``release-note:improvement
-ui: use explicit @ and this for property names instead of allowing them to fallback automatically. Fixes deprecation to upgrade to Ember v4.
-```

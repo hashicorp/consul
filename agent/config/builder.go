@@ -1020,7 +1020,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		EnableAgentTLSForChecks:    boolVal(c.EnableAgentTLSForChecks),
 		EnableCentralServiceConfig: boolVal(c.EnableCentralServiceConfig),
 		EnableDebug:                boolVal(c.EnableDebug),
-		DisableKVKeyValidation:     boolVal(c.DisableKVKeyValidation),
 		EnableRemoteScriptChecks:   enableRemoteScriptChecks,
 		EnableLocalScriptChecks:    enableLocalScriptChecks,
 		EncryptKey:                 stringVal(c.EncryptKey),

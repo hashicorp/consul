@@ -4,7 +4,7 @@
 }}
 
 <Route
-  @name={{this.routeName}}
+  @name={{routeName}}
 as |route|>
   <DataSource @src={{uri '/${partition}/${nspace}/${dc}/coordinates/for-node/${name}'
     (hash
@@ -127,7 +127,7 @@ as |item tomography|}}
           </BlockSlot>
           <BlockSlot @name="content">
             <Outlet
-              @name={{this.routeName}}
+              @name={{routeName}}
               @model={{assign
                 (hash
                   item=item

@@ -30,16 +30,6 @@ export default class IntentionPermissionHttp extends Fragment {
 
   @computed(...schema.PathType.allowedValues)
   get PathType() {
-    // Use manual override if one was set
-    if (this._pathTypeManual !== undefined) {
-      return this._pathTypeManual;
-    }
-    // Original logic: find first defined property
     return schema.PathType.allowedValues.find((prop) => typeof this[prop] === 'string');
-  }
-
-  set PathType(value) {
-    // Store manual override
-    this._pathTypeManual = value;
   }
 }

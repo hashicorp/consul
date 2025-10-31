@@ -6543,7 +6543,6 @@ func TestLoad_FullConfig(t *testing.T) {
 		EnableAgentTLSForChecks:          true,
 		EnableCentralServiceConfig:       false,
 		EnableDebug:                      true,
-		DisableKVKeyValidation:           false,
 		EnableRemoteScriptChecks:         true,
 		EnableLocalScriptChecks:          true,
 		EncryptKey:                       "A4wELWqH",

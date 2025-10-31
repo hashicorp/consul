@@ -57,7 +57,7 @@
     {{#if @hasMetricsProvider}}
       <TopologyMetrics::Series
         @nspace={{or @service.Service.Namespace 'default'}}
-        @partition={{or @service.Service.Partition 'default'}}
+        @partition={{or service.Service.Partition 'default'}}
         @dc={{@dc.Name}}
         @service={{@service.Service.Service}}
         @protocol={{@topology.Protocol}}
@@ -66,7 +66,7 @@
       {{#if (or (this.mainNotIngressService) (this.mainNotAPIGatewayService))}}
       <TopologyMetrics::Stats
         @nspace={{or @service.Service.Namespace 'default'}}
-        @partition={{or @service.Service.Partition 'default'}}
+        @partition={{or service.Service.Partition 'default'}}
         @dc={{@dc.Name}}
         @endpoint='summary-for-service'
         @service={{@service.Service.Service}}

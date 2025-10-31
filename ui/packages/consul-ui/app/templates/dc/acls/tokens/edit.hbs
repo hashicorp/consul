@@ -4,7 +4,7 @@
 }}
 
 <Route
-  @name={{this.routeName}}
+  @name={{routeName}}
 as |route|>
   <DataLoader @src={{
     uri '/${partition}/${nspace}/${dc}/token/${id}'
@@ -58,14 +58,14 @@ as |dc partition nspace item create|}}
       <BlockSlot @name="actions">
   {{#if (not create)}}
     <Hds::ButtonSet>
-    {{#if (not-eq item.AccessorID this.token.AccessorID)}}
+    {{#if (not-eq item.AccessorID token.AccessorID)}}
         <ConfirmationDialog @message="Are you sure you want to use this ACL token?">
           <BlockSlot @name="action" as |confirm|>
             <Hds::Button
               @text='Use'
               @color='secondary'
               data-test-use
-              {{ action confirm }}
+              {{ action confirm 'use' item }}
             />
           </BlockSlot>
           <BlockSlot @name="dialog" as |execute cancel message|>
@@ -77,7 +77,7 @@ as |dc partition nspace item create|}}
                 @text='Confirm Use'
                 @color='critical'
                 data-test-confirm-use
-                {{action (queue execute (fn this.use item))}}
+                {{action execute}}
               />
               <Hds::Button
                 @text='Cancel'
@@ -137,23 +137,7 @@ as |dc partition nspace item create|}}
             </dl>
         </div>
   {{/if}}
-          <Consul::Token::Form
-            @form={{this.form}}
-            @item={{item}}
-            @token={{this.token}}
-            @create={{create}}
-            @local={{item.Local}}
-            @name={{item.Name}}
-            @dc={{dc}}
-            @partition={{partition}}
-            @nspace={{nspace}}
-            @id={{route.params.id}}
-            @onCreate={{route-action 'create' item}}
-            @onUpdate={{route-action 'update' item}}
-            @onCancel={{route-action 'cancel' item}}
-            @onDelete={{route-action 'delete'}}
-            @onChange={{action 'change'}}
-          />
+          {{ partial 'dc/acls/tokens/form'}}
       </BlockSlot>
   </AppView>
 {{/let}}

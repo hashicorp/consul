@@ -181,7 +181,6 @@ type Config struct {
 	EnableDebug                      *bool               `mapstructure:"enable_debug" json:"enable_debug,omitempty"`
 	EnableScriptChecks               *bool               `mapstructure:"enable_script_checks" json:"enable_script_checks,omitempty"`
 	EnableLocalScriptChecks          *bool               `mapstructure:"enable_local_script_checks" json:"enable_local_script_checks,omitempty"`
-	DisableKVKeyValidation           *bool               `mapstructure:"disable_kv_key_validation" json:"disable_kv_key_validation,omitempty"`
 	EnableSyslog                     *bool               `mapstructure:"enable_syslog" json:"enable_syslog,omitempty"`
 	EncryptKey                       *string             `mapstructure:"encrypt" json:"encrypt,omitempty"`
 	EncryptVerifyIncoming            *bool               `mapstructure:"encrypt_verify_incoming" json:"encrypt_verify_incoming,omitempty"`

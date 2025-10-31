@@ -5,12 +5,11 @@ package agent
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"path"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -41,19 +40,15 @@ func (s *HTTPHandlers) KVSEndpoint(resp http.ResponseWriter, req *http.Request) 
 	}
 	args.Key = cleanedKey
 
-	// The DisableKVKeyValidation configuration option controls whether
-	// we validate the key name to prevent path traversal or leading/trailing spaces.
-	// We strongly recommend leaving this validation enabled (false) unless you have a specific reason
-	// to disable it for legacy compatibility.
-	if args.Key != "" {
-		if err := validateKVKey(args.Key); err != nil {
-			if s.agent.config.DisableKVKeyValidation {
-				// Add a warning header for the user to see
-				warningMsg := fmt.Sprintf("KV key validation bypassed: %s. Consider enabling key validation for security.", err.Error())
-				resp.Header().Set("X-Consul-KV-Warning", warningMsg)
-			} else {
-				return nil, err
-			}
+	// Validate key format unless unprintable character filter is disabled
+	// The DisableHTTPUnprintableCharFilter flag allows access to keys with
+	// unprintable characters for cleanup purposes
+	if !s.agent.config.DisableHTTPUnprintableCharFilter && args.Key != "" {
+		// Allowed key pattern: a-zA-Z0-9 ,-_./
+		// https://developer.hashicorp.com/consul/docs/automate/kv#using-consul-kv
+		kvKeyPattern := `^[a-zA-Z0-9,_./\-?&=]+$`
+		if err := validateKVKey(args.Key, kvKeyPattern); err != nil {
+			return nil, fmt.Errorf("invalid key name, keys should respect the %q format", kvKeyPattern)
 		}
 	}
 
@@ -239,45 +234,19 @@ func (s *HTTPHandlers) KVSPut(resp http.ResponseWriter, req *http.Request, args 
 	}
 
 	// Check the content-length
-	maxSize := int64(s.agent.config.KVMaxValueSize)
-	var buf *bytes.Buffer
-
-	switch {
-	case req.ContentLength <= 0 && req.Body == nil:
-		return "Request has no content-length & no body", nil
-
-	case req.ContentLength <= 0 && req.Body != nil:
-		// LimitReader to limit copy of large requests with no Content-Length
-		//+1 ensures we can detect if the body is too large
-		byteReader := http.MaxBytesReader(nil, req.Body, maxSize+1)
-		buf = new(bytes.Buffer)
-		if _, err := io.Copy(buf, byteReader); err != nil {
-			var bodyTooLargeErr *http.MaxBytesError
-			if errors.As(err, &bodyTooLargeErr) {
-				return nil, HTTPError{
-					StatusCode: http.StatusRequestEntityTooLarge,
-					Reason:     fmt.Sprintf("Request body too large. Max allowed is %d bytes.", maxSize),
-				}
-			}
-			return nil, err
-		}
-
-	case req.ContentLength > maxSize:
-		// Throw error if Content-Length is greater than max size
+	if req.ContentLength > int64(s.agent.config.KVMaxValueSize) {
 		return nil, HTTPError{
 			StatusCode: http.StatusRequestEntityTooLarge,
 			Reason: fmt.Sprintf("Request body(%d bytes) too large, max size: %d bytes. See %s.",
-				req.ContentLength, maxSize, "https://developer.hashicorp.com/docs/agent/config/config-files#kv_max_value_size"),
-		}
-
-	default:
-		// Copy the value
-		buf = bytes.NewBuffer(nil)
-		if _, err := io.Copy(buf, req.Body); err != nil {
-			return nil, err
+				req.ContentLength, s.agent.config.KVMaxValueSize, "https://developer.hashicorp.com/docs/agent/config/config-files#kv_max_value_size"),
 		}
 	}
 
+	// Copy the value
+	buf := bytes.NewBuffer(nil)
+	if _, err := io.Copy(buf, req.Body); err != nil {
+		return nil, err
+	}
 	applyReq.DirEnt.Value = buf.Bytes()
 
 	// Make the RPC
@@ -361,31 +330,20 @@ func conflictingFlags(resp http.ResponseWriter, req *http.Request, flags ...stri
 	return false
 }
 
-func validateKVKey(key string) error {
+func validateKVKey(key string, pattern string) error {
 	if len(key) == 0 {
-		return fmt.Errorf("empty key name is not allowed")
+		return fmt.Errorf("invalid key name, keys should respect the %q format", pattern)
 	}
 
-	if strings.HasPrefix(key, " ") || strings.HasSuffix(key, " ") {
-		return fmt.Errorf("invalid key name, leading/trailing spaces are not allowed")
+	matched, err := regexp.MatchString(pattern, key)
+	if err != nil {
+		return fmt.Errorf("failed to validate key: %w", err)
 	}
-
-	parts := strings.Split(key, "/")
-	for _, p := range parts {
-		if p == ".." {
-			return fmt.Errorf("invalid key name, path traversal is not allowed")
-		}
+	if !matched {
+		return fmt.Errorf("invalid key name, keys should respect the %q format", pattern)
 	}
-
-	decoded, err := url.PathUnescape(key)
-	if err == nil && decoded != key {
-		if strings.Contains(decoded, "..") {
-			return fmt.Errorf("invalid key name, path traversal is not allowed")
-		}
-		if strings.Contains(decoded, " ") {
-			return fmt.Errorf("invalid key name, leading/trailing spaces are not allowed")
-		}
+	if strings.Contains(key, "..") {
+		return fmt.Errorf("invalid key name, path traversal is not allowed")
 	}
-
 	return nil
 }

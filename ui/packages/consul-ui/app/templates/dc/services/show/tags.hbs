@@ -4,7 +4,7 @@
 }}
 
 <Route
-  @name={{this.routeName}}
+  @name={{routeName}}
 as |route|>
   <div class="tab-section">
   {{#let (flatten (map-by "Tags" route.model.items)) as |tags|}}

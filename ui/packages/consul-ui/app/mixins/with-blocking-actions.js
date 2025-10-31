@@ -24,7 +24,6 @@ import { singularize } from 'ember-inflector';
  *
  */
 export default Mixin.create({
-  router: service('router'),
   _feedback: service('feedback'),
   settings: service('settings'),
   init: function () {
@@ -51,7 +50,7 @@ export default Mixin.create({
     // e.g. index or edit
     parts.pop();
     // e.g. dc.intentions, essentially go to the listings page
-    return this.router.transitionTo(parts.join('.'));
+    return this.transitionTo(parts.join('.'));
   },
   afterDelete: function (item) {
     // e.g. dc.intentions.index
@@ -64,7 +63,7 @@ export default Mixin.create({
         return this.refresh();
       default:
         // e.g. dc.intentions essentially do to the listings page
-        return this.router.transitionTo(parts.join('.'));
+        return this.transitionTo(parts.join('.'));
     }
   },
   errorCreate: function (type, e) {

@@ -332,9 +332,6 @@ type QueryMeta struct {
 type WriteMeta struct {
 	// How long did the request take
 	RequestTime time.Duration
-
-	// Warnings contains any warning messages from the server
-	Warnings []string
 }
 
 // HttpBasicAuth is used to authenticate http client with HTTP Basic Authentication
@@ -1148,12 +1145,6 @@ func (c *Client) write(endpoint string, in, out interface{}, q *WriteOptions) (*
 	}
 
 	wm := &WriteMeta{RequestTime: rtt}
-
-	// Check for warning headers
-	if warning := resp.Header.Get("X-Consul-KV-Warning"); warning != "" {
-		wm.Warnings = append(wm.Warnings, warning)
-	}
-
 	if out != nil {
 		if err := decodeBody(resp, &out); err != nil {
 			return nil, err
@@ -1178,12 +1169,6 @@ func (c *Client) delete(endpoint string, q *QueryOptions) (*WriteMeta, error) {
 	}
 
 	wm := &WriteMeta{RequestTime: rtt}
-
-	// Check for warning headers
-	if warning := resp.Header.Get("X-Consul-KV-Warning"); warning != "" {
-		wm.Warnings = append(wm.Warnings, warning)
-	}
-
 	return wm, nil
 }
 

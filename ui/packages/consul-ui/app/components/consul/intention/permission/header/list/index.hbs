@@ -3,10 +3,10 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-{{#if (gt @items.length 0)}}
+{{#if (gt items.length 0)}}
 <ListCollection
   class="consul-intention-permission-header-list"
-  @items={{@items}}
+  @items={{items}}
   @scroll="native"
   @cellHeight={{42}}
 as |item|>
@@ -24,7 +24,7 @@ as |item|>
   </BlockSlot>
   <BlockSlot @name="actions" as |Actions|>
     <Actions as |Action|>
-      <Action data-test-delete-action @onclick={{action @ondelete item}} class="dangerous">
+      <Action data-test-delete-action @onclick={{action ondelete item}} class="dangerous">
         <BlockSlot @name="label">
           Delete
         </BlockSlot>

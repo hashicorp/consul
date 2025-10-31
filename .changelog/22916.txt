@@ -1,3 +1,0 @@
-```release-note:security
-security: Improved validation of the Content-Length header in the Consul KV endpoint to prevent potential denial of service attacks[CVE-2025-11374]()
-```

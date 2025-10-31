@@ -9,15 +9,15 @@
   {{fix-super-select-aria}}
 >
 <FormGroup
-  @name={{this.name}}
+  @name={{name}}
 as |group|>
 
   {{yield (hash
-    submit=(action 'submit' this.changeset)
-    reset=(action 'reset' this.changeset)
+    submit=(action 'submit' changeset)
+    reset=(action 'reset' changeset)
 
-    isDirty=(and this.changeset.isValid)
-    changeset=this.changeset
+    isDirty=(and changeset.isValid)
+    changeset=changeset
   )}}
 
   <fieldset>
@@ -25,16 +25,16 @@ as |group|>
       <span class="label">
         Should this permission allow the source connect to the destination?
       </span>
-      <div role="radiogroup" class={{if this.changeset.error.Action ' has-error'}}>
-        {{#each this.intents as |intent|}}
+      <div role="radiogroup" class={{if changeset.error.Action ' has-error'}}>
+        {{#each intents as |intent|}}
           <label>
             <span>{{capitalize intent}}</span>
             <input
               type="radio"
               name="Action"
               value={{intent}}
-              checked={{if (eq this.changeset.Action intent) 'checked'}}
-              onchange={{action (changeset-set this.changeset 'Action') value="target.value"}}
+              checked={{if (eq changeset.Action intent) 'checked'}}
+              onchange={{action (changeset-set changeset 'Action') value="target.value"}}
             />
           </label>
         {{/each}}
@@ -53,32 +53,32 @@ as |group|>
             Path type
           </el.Label>
           <Hds::Form::SuperSelect::Single::Field
-            @options={{this.pathTypes}}
-            @selected={{this.pathType}}
-            @onChange={{action 'change' 'HTTP.PathType' this.changeset}}
+            @options={{pathTypes}}
+            @selected={{pathType}}
+            @onChange={{action 'change' 'HTTP.PathType' changeset}}
             @label="Path type"
             @listboxAriaLabel="Path type options"
             id="path-type-select"
           as |F|>
-            <F.Options>{{get this.pathLabels F.options}}</F.Options>
+            <F.Options>{{get pathLabels F.options}}</F.Options>
           </Hds::Form::SuperSelect::Single::Field>
         </group.Element>
 
-{{#if this.shouldShowPathField}}
+{{#if shouldShowPathField}}
         <group.Element
           @name="Path"
-          @error={{changeset-get this.changeset 'error.HTTP.Path'}}
+          @error={{changeset-get changeset 'error.HTTP.Path'}}
         as |el|>
           <el.Label>
-            {{get this.pathLabels this.pathType}}
+            {{get pathLabels pathType}}
           </el.Label>
           <el.Text
-            @value={{changeset-get this.changeset 'HTTP.Path'}}
-            oninput={{action 'change' 'HTTP.Path' this.changeset}}
+            @value={{changeset-get changeset 'HTTP.Path'}}
+            oninput={{action 'change' 'HTTP.Path' changeset}}
           />
           <State @state={{el.state}} @matches="error">
             <el.Error>
-              {{#if (eq (changeset-get this.changeset 'HTTP.Path') 'Regex')}}
+              {{#if (eq (changeset-get changeset 'HTTP.Path') 'Regex')}}
                 Path Regex should not be blank
               {{else}}
                 Path should begin with a '/'
@@ -99,8 +99,8 @@ as |group|>
         @name="allMethods"
       as |el|>
         <el.Checkbox
-          checked={{if this.allMethods 'checked'}}
-          onchange={{action 'change' 'allMethods' this.changeset}}
+          checked={{if allMethods 'checked'}}
+          onchange={{action 'change' 'allMethods' changeset}}
         />
         <el.Label>
           All Methods
@@ -108,16 +108,16 @@ as |group|>
       </group.Element>
     </div>
 
-{{#if this.shouldShowMethods}}
+{{#if shouldShowMethods}}
     <div class="checkbox-group" role="group">
-      {{#each this.methods as |method|}}
+      {{#each methods as |method|}}
         <label class="type-checkbox">
           <input
             type="checkbox"
             name="method"
             value={{method}}
-            checked={{if (includes method this.changeset.HTTP.Methods) 'checked'}}
-            onchange={{action 'change' 'method' this.changeset}}
+            checked={{if (includes method changeset.HTTP.Methods) 'checked'}}
+            onchange={{action 'change' 'method' changeset}}
           />
           <span>{{method}}</span>
         </label>
@@ -130,14 +130,14 @@ as |group|>
     <h2>Headers</h2>
 
     <Consul::Intention::Permission::Header::List
-      @items={{changeset-get this.changeset 'HTTP.Header'}}
-      @ondelete={{action 'delete' 'HTTP.Header' this.changeset}}
+      @items={{changeset-get changeset 'HTTP.Header'}}
+      @ondelete={{action 'delete' 'HTTP.Header' changeset}}
     as |headerList|>
 
     </Consul::Intention::Permission::Header::List>
 
     <Consul::Intention::Permission::Header::Form
-      @onsubmit={{action 'add' 'HTTP.Header' this.changeset}}
+      @onsubmit={{action 'add' 'HTTP.Header' changeset}}
     as |headerForm|>
       <Ref @target={{this}} @name="headerForm" @value={{headerForm}} />
     </Consul::Intention::Permission::Header::Form>
@@ -145,7 +145,7 @@ as |group|>
     <Hds::ButtonSet>
       <Hds::Button
         data-test-add-header
-        @text='Add{{if (gt (get (changeset-get this.changeset 'HTTP.Header') 'length') 0) ' another' ''}} header'
+        @text='Add{{if (gt (get (changeset-get changeset 'HTTP.Header') 'length') 0) ' another' ''}} header'
         @color='primary'
         disabled={{if (not this.headerForm.isDirty) 'disabled'}}
         onclick={{action this.headerForm.submit}}

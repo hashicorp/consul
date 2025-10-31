@@ -25,7 +25,7 @@
       <BlockSlot @name='trigger'>
         More
       </BlockSlot>
-      <BlockSlot @name='menu' as |confirm keypressClick|>
+      <BlockSlot @name='menu' as |confirm send keypressClick|>
         {{#if (can 'write kv' item=item)}}
           <components.MenuItem
             data-test-edit

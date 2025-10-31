@@ -4,7 +4,7 @@
 }}
 
 <Route
-  @name={{this.routeName}}
+  @name={{routeName}}
 as |route|>
 {{#if route.model.tabs.topology}}
   {{did-insert (route-action 'replaceWith' 'dc.services.show.topology')}}

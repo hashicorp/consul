@@ -1,3 +1,0 @@
-```release-note:improvement
-ui: Fixes computed property override issues currently occurring and in some cases pre-emptively as this has been deprecated in ember v4
-```

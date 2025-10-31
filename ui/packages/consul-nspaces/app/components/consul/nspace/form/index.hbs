@@ -145,13 +145,13 @@
                       data-test-delete
                       @color='critical'
                       @text='Delete'
-                      {{on "click" (fn confirm )}}
+                      {{on "click" (fn confirm (fn writer.delete item))}}
                     />
                   </BlockSlot>
                   <BlockSlot @name="dialog" as |execute cancel message|>
                     <DeleteConfirmation
                       @message={{message}}
-                      @execute={{queue execute (fn writer.delete item)}}
+                      @execute={{execute}}
                       @cancel={{cancel}}
                     />
                   </BlockSlot>

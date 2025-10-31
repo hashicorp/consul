@@ -3,15 +3,15 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-<StateChart @src={{this.chart}} as |State Guard Action dispatch state|>
+<StateChart @src={{chart}} as |State Guard Action dispatch state|>
 
   <Ref @target={{this}} @name="dispatch" @value={{dispatch}} />
 
 {{#let (hash
-  data=this.data
-  error=this.error
+  data=data
+  error=error
   persist=(action "persist")
-  delete=(queue (action (mut this.data)) (action dispatch "REMOVE"))
+  delete=(queue (action (mut data)) (action dispatch "REMOVE"))
   inflight=(state-matches state (array "persisting" "removing"))
   disabled=(state-matches state (array "persisting" "removing"))
 ) as |api|}}
@@ -20,8 +20,8 @@
 
   <State @matches="removing">
     <DataSink
-      @sink={{@sink}}
-      @item={{this.data}}
+      @sink={{sink}}
+      @item={{data}}
       @data={{null}}
       @onchange={{action dispatch "SUCCESS"}}
       @onerror={{action "error"}}
@@ -30,8 +30,8 @@
 
   <State @matches="persisting">
     <DataSink
-      @sink={{@sink}}
-      @item={{this.data}}
+      @sink={{sink}}
+      @item={{data}}
       @onchange={{action dispatch "SUCCESS"}}
       @onerror={{action "error"}}
     />
@@ -39,7 +39,7 @@
 
   <State @matches="removed">
 {{#let
-  (queue (action dispatch "RESET") (action this.ondelete))
+  (queue (action dispatch "RESET") (action ondelete))
 as |after|}}
     {{#yield-slot name="removed" params=(block-params after)}}
       {{yield api}}
@@ -50,7 +50,7 @@ as |after|}}
           after=(action after)
         }} as |T|>
         <T.Title>Success!</T.Title>
-        <T.Description>Your {{or @label @type}} has been deleted.</T.Description>
+        <T.Description>Your {{or label type}} has been deleted.</T.Description>
       </Hds::Toast>
     {{/yield-slot}}
 {{/let}}
@@ -58,7 +58,7 @@ as |after|}}
 
   <State @matches="persisted">
 {{#let
-  (action this.onchange)
+  (action onchange)
 as |after|}}
     {{#yield-slot name="persisted" params=(block-params after)}}
       {{yield api}}
@@ -69,7 +69,7 @@ as |after|}}
           after=(action after)
         }} as |T|>
         <T.Title>Success!</T.Title>
-        <T.Description>Your {{or @label @type}} has been saved.</T.Description>
+        <T.Description>Your {{or label type}} has been saved.</T.Description>
       </Hds::Toast>
     {{/yield-slot}}
 {{/let}}
@@ -88,7 +88,7 @@ as |after|}}
           after=(action after)
         }} as |T|>
         <T.Title>Error!</T.Title>
-        <T.Description>There was an error saving your {{or @label @type}}.
+        <T.Description>There was an error saving your {{or label type}}.
           {{#if (and api.error.status api.error.detail)}}
             <br />{{api.error.status}}: {{api.error.detail}}
           {{else if api.error.message}}
