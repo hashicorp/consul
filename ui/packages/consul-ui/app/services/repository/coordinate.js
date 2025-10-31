@@ -35,6 +35,9 @@ export default class CoordinateService extends RepositoryService {
     let results = {};
     if (coordinates.length > 1) {
       results = tomography(params.id, coordinates);
+    } else {
+      // Ensure consistent shape
+      results = { distances: [], min: 0, median: 0, max: 0 };
     }
     results.meta = coordinates.meta;
     return results;
