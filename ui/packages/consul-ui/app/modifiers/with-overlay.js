@@ -13,7 +13,8 @@ import tippy, { followCursor } from 'tippy.js';
  * {{tooltip 'Text' options=(hash )}}
  */
 export default modifier(($element, [content], hash = {}) => {
-  const options = hash.options || {};
+  const userOptions = hash.options || {};
+  const options = { ...userOptions };
 
   let $anchor = $element;
 
@@ -29,7 +30,7 @@ export default modifier(($element, [content], hash = {}) => {
     }
     content = $anchor.cloneNode(true);
     $el.remove();
-    hash.options.triggerTarget = undefined;
+    delete options.triggerTarget;
   }
   // {{tooltip}} will just use the HTML content
   if (typeof content === 'undefined') {

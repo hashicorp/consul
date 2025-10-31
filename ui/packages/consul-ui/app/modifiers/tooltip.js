@@ -16,7 +16,8 @@ export default modifier(($element, [content], hash = {}) => {
   if (typeof content === 'string' && content.trim() === '') {
     return;
   }
-  const options = hash.options || {};
+  const userOptions = hash.options || {};
+  const options = { ...userOptions };
 
   let $anchor = $element;
 
@@ -32,7 +33,7 @@ export default modifier(($element, [content], hash = {}) => {
     }
     content = $anchor.cloneNode(true);
     $el.remove();
-    hash.options.triggerTarget = undefined;
+    delete options.triggerTarget;
   }
   // {{tooltip}} will just use the HTML content
   if (typeof content === 'undefined') {
@@ -45,7 +46,7 @@ export default modifier(($element, [content], hash = {}) => {
     // amount of time specified by the delay
     const delay = options.delay || [];
     if (typeof delay[1] !== 'undefined') {
-      hash.options.onShown = (tooltip) => {
+      options.onShown = (tooltip) => {
         clearInterval(interval);
         interval = setTimeout(() => {
           tooltip.hide();
@@ -68,7 +69,7 @@ export default modifier(($element, [content], hash = {}) => {
     plugins: [typeof options.followCursor !== 'undefined' ? followCursor : undefined].filter(
       (item) => Boolean(item)
     ),
-    ...hash.options,
+    ...options,
   });
 
   return () => {

@@ -4,9 +4,12 @@
  */
 
 import Route from 'consul-ui/routing/route';
+import { inject as service } from '@ember/service';
 
 export default class NotfoundRoute extends Route {
+  @service router;
+
   redirect(model, transition) {
-    this.replaceWith('dc.services.instance', model.name, model.node, model.id);
+    this.router.replaceWith('dc.services.instance', model.name, model.node, model.id);
   }
 }

@@ -158,7 +158,7 @@ module.exports = function (defaults, $ = process.env) {
       addons: addons,
       outputPaths: outputPaths,
       'ember-cli-babel': {
-        includePolyfill: true,
+        includePolyfill: false,
       },
       'ember-cli-string-helpers': {
         only: [

@@ -1,0 +1,6 @@
+```release-note:improvement
+ui: resolved multiple Ember deprecations:
+- Removed mutation-after-consumption warnings in Outlet by staging state updates outside the render pass
+- Replaced deprecated Route#replaceWith/transitionTo usage with RouterService in affected routes
+- Avoided mutating objects produced by {{hash}} (setting-on-hash) by switching to tracked POJOs
+```

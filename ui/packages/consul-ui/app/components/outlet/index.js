@@ -7,6 +7,7 @@ import Component from '@glimmer/component';
 import { tracked } from '@glimmer/tracking';
 import { action } from '@ember/object';
 import { inject as service } from '@ember/service';
+import { schedule } from '@ember/runloop';
 
 class State {
   constructor(name) {
@@ -23,11 +24,20 @@ export default class Outlet extends Component {
 
   @tracked element;
   @tracked routeName;
-  @tracked state;
-  @tracked previousState;
+  @tracked _state = new State('idle');
+  @tracked _previousState = new State('idle');
   @tracked endTransition;
+  // Non-tracked staging variable (won't trigger tracking violations)
+  _stagingState = null;
 
   @tracked route;
+  get state() {
+    return this._stagingState || this._state;
+  }
+
+  get previousState() {
+    return this._previousState;
+  }
 
   get model() {
     return this.args.model || {};
@@ -81,8 +91,14 @@ export default class Outlet extends Component {
   startLoad(transition) {
     const outlet = this.routlet.findOutlet(transition.to.name) || 'application';
     if (this.args.name === outlet) {
-      this.previousState = this.state;
-      this.state = new State('loading');
+      this._stagingState = new State('loading');
+      // Commit after render
+      schedule('afterRender', () => {
+        this._previousState = this._state;
+
+        this._state = this._stagingState || new State('loading');
+        this._stagingState = null;
+      });
       this.endTransition = this.routlet.transition();
       let duration;
       if (this.element) {
@@ -103,9 +119,14 @@ export default class Outlet extends Component {
 
   @action
   endLoad(transition) {
-    if (this.state.matches('loading')) {
-      this.previousState = this.state;
-      this.state = new State('idle');
+    const currentState = this._stagingState || this._state;
+    if (currentState.matches('loading')) {
+      this._stagingState = new State('idle');
+      schedule('afterRender', () => {
+        this._previousState = this._state;
+        this._state = this._stagingState || new State('idle');
+        this._stagingState = null;
+      });
     }
     if (this.args.name === 'application') {
       this.setAppRoute(this.router.currentRouteName);
@@ -115,7 +136,6 @@ export default class Outlet extends Component {
   @action
   connect() {
     this.routlet.addOutlet(this.args.name, this);
-    this.previousState = this.state = new State('idle');
     this.router.on('routeWillChange', this.startLoad);
     this.router.on('routeDidChange', this.endLoad);
   }
