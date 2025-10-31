@@ -5176,16 +5176,6 @@ module.exports = [
   // Additional 404 fixes.         //
   ///////////////////////////////////
   {
-    source: "/api-docs/:slug*",
-    destination: "/consul/api-docs/:slug*",
-    permanent: true,
-  },
-  {
-    source: "/commands/:slug*",
-    destination: "/consul/commands/:slug*",
-    permanent: true,
-  },
-  {
     source: "/consul/api-docs/acl/acl",
     destination: "/consul/api-docs/acl",
     permanent: true,
@@ -5357,19 +5347,10 @@ module.exports = [
     destination: "/consul/docs/north-south/ingress-gateway",
     permanent: true,
   },
-  {
-    source: "/docs/k8s/crds",
-    destination: "/consul/docs/fundamentals/config-entry",
-    permanent: true,
-  },
+
   {
     source: "/consul/docs/:version(v1\\.(?:18|19|20)\\.x)/agent/telemetry",
     destination: "/consul/docs/:version/agent/monitor/telemetry",
-    permanent: true,
-  },
-  {
-    source: "/docs/connect/intentions",
-    destination: "/consul/docs/secure-mesh/intention",
     permanent: true,
   },
   {
@@ -5388,11 +5369,6 @@ module.exports = [
     permanent: true,
   },
   {
-    source: "/docs/connect/config-entries/service-router",
-    destination: "/consul/docs/reference/config-entry/service-router",
-    permanent: true,
-  },
-  {
     source: "/consul/docs/guides/sentinel",
     destination: "/sentinel/docs",
     permanent: true,
@@ -5400,11 +5376,6 @@ module.exports = [
   {
     source: "/consul/docs/v1.20.x/k8s/dns/:slug*",
     destination: "/consul/docs/manage/dns/forwarding/k8s",
-    permanent: true,
-  },
-  {
-    source: "/docs/enterprise/admin-partitions",
-    destination: "/consul/docs/multi-tenant/admin-partition",
     permanent: true,
   },
   {
@@ -5427,11 +5398,6 @@ module.exports = [
     destination: "/consul/docs/secure/acl/legacy",
     permanent: true,
   },
-  {
-    source: "/docs/enterprise",
-    destination: "/consul/docs/enterprise",
-    permanent: true,
-  },  
   {
     source:
       "/consul/docs/:version(v1\\.(?:8|9|10|11|12|13|14|15|16|17|18|19)\\.x)/release-notes/consul/v1_20_x",
