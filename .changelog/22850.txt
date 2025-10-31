@@ -1,3 +1,3 @@
 ```release-note:security
-security: breaking change - adding a key name validation on the key/value endpoint along side with the DisableKVKeyValidation config to disable/enable it to fix path traversal attacks. This resolves [CVE-2025-11392](https://nvd.nist.gov/vuln/detail/CVE-2025-11392).
+security: breaking change - adding a key name validation on the key/value endpoint along side with the DisableKVKeyValidation config to disable/enable it to fix path traversal attacks on misconfigured or missing ACL policies.
 ```

@@ -4,9 +4,9 @@ SECURITY:
 
 * connect: Upgrade Consul's bundled Envoy version to 1.35.3 and remove support for 1.31.10. This update also includes a fix to prevent Envoy (v1.35+) startup failures by only configuring the TLS transport socket when the CA bundle is present. [[GH-22824](https://github.com/hashicorp/consul/issues/22824)]
 * security: Adding warning when remote/local script checks are enabled without enabling ACL's [[GH-22877](https://github.com/hashicorp/consul/issues/22877)]
-* security: Improved validation of the Content-Length header in the Consul KV endpoint to prevent potential denial of service attacks[CVE-2025-11374]() [[GH-22916](https://github.com/hashicorp/consul/issues/22916)]
+* security: Improved validation of the Content-Length header in the Consul KV endpoint to prevent potential denial of service attacks[CVE-2025-11374](https://nvd.nist.gov/vuln/detail/CVE-2025-11374) [[GH-22916](https://github.com/hashicorp/consul/issues/22916)]
 * security: adding a maximum Content-Length on the event endpoint to fix denial-of-service (DoS) attacks. This resolves [CVE-2025-11375](https://nvd.nist.gov/vuln/detail/CVE-2025-11375). [[GH-22836](https://github.com/hashicorp/consul/issues/22836)]
-* security: breaking change - adding a key name validation on the key/value endpoint along side with the DisableKVKeyValidation config to disable/enable it to fix path traversal attacks. This resolves [CVE-2025-11392](https://nvd.nist.gov/vuln/detail/CVE-2025-11392). [[GH-22850](https://github.com/hashicorp/consul/issues/22850)]
+* security: breaking change - adding a key name validation on the key/value endpoint along side with the DisableKVKeyValidation config to disable/enable it to fix path traversal attacks on misconfigured or missing ACL policies. [[GH-22850](https://github.com/hashicorp/consul/issues/22850)]
 
 FEATURES:
 
@@ -47,9 +47,9 @@ SECURITY:
 
 * connect: Upgrade Consul's bundled Envoy version to 1.35.3 and remove support for 1.31.10. This update also includes a fix to prevent Envoy (v1.35+) startup failures by only configuring the TLS transport socket when the CA bundle is present. [[GH-22824](https://github.com/hashicorp/consul/issues/22824)]
 * security: Adding warning when remote/local script checks are enabled without enabling ACL's [[GH-22877](https://github.com/hashicorp/consul/issues/22877)]
-* security: Improved validation of the Content-Length header in the Consul KV endpoint to prevent potential denial of service attacks[CVE-2025-11374]() [[GH-22916](https://github.com/hashicorp/consul/issues/22916)]
+* security: Improved validation of the Content-Length header in the Consul KV endpoint to prevent potential denial of service attacks[CVE-2025-11374](https://nvd.nist.gov/vuln/detail/CVE-2025-11374) [[GH-22916](https://github.com/hashicorp/consul/issues/22916)]
 * security: adding a maximum Content-Length on the event endpoint to fix denial-of-service (DoS) attacks. This resolves [CVE-2025-11375](https://nvd.nist.gov/vuln/detail/CVE-2025-11375). [[GH-22836](https://github.com/hashicorp/consul/issues/22836)]
-* security: breaking change - adding a key name validation on the key/value endpoint along side with the DisableKVKeyValidation config to disable/enable it to fix path traversal attacks. This resolves [CVE-2025-11392](https://nvd.nist.gov/vuln/detail/CVE-2025-11392). [[GH-22850](https://github.com/hashicorp/consul/issues/22850)]
+* security: breaking change - adding a key name validation on the key/value endpoint along side with the DisableKVKeyValidation config to disable/enable it to fix path traversal attacks on misconfigured or missing ACL policies. [[GH-22850](https://github.com/hashicorp/consul/issues/22850)]
 
 FEATURES:
 
@@ -89,9 +89,9 @@ BUG FIXES:
 SECURITY:
 
 * security: Adding warning when remote/local script checks are enabled without enabling ACL's [[GH-22877](https://github.com/hashicorp/consul/issues/22877)]
-* security: Improved validation of the Content-Length header in the Consul KV endpoint to prevent potential denial of service attacks[CVE-2025-11374]() [[GH-22916](https://github.com/hashicorp/consul/issues/22916)]
+* security: Improved validation of the Content-Length header in the Consul KV endpoint to prevent potential denial of service attacks[CVE-2025-11374](https://nvd.nist.gov/vuln/detail/CVE-2025-11374) [[GH-22916](https://github.com/hashicorp/consul/issues/22916)]
 * security: adding a maximum Content-Length on the event endpoint to fix denial-of-service (DoS) attacks. This resolves [CVE-2025-11375](https://nvd.nist.gov/vuln/detail/CVE-2025-11375). [[GH-22836](https://github.com/hashicorp/consul/issues/22836)]
-* security: breaking change - adding a key name validation on the key/value endpoint along side with the DisableKVKeyValidation config to disable/enable it to fix path traversal attacks. This resolves [CVE-2025-11392](https://nvd.nist.gov/vuln/detail/CVE-2025-11392). [[GH-22850](https://github.com/hashicorp/consul/issues/22850)]
+* security: breaking change - adding a key name validation on the key/value endpoint along side with the DisableKVKeyValidation config to disable/enable it to fix path traversal attacks on misconfigured or missing ACL policies. [[GH-22850](https://github.com/hashicorp/consul/issues/22850)]
 
 BUG FIXES:
 
@@ -102,9 +102,9 @@ BUG FIXES:
 SECURITY:
 
 * security: Adding warning when remote/local script checks are enabled without enabling ACL's [[GH-22877](https://github.com/hashicorp/consul/issues/22877)]
-* security: Improved validation of the Content-Length header in the Consul KV endpoint to prevent potential denial of service attacks[CVE-2025-11374]() [[GH-22916](https://github.com/hashicorp/consul/issues/22916)]
+* security: Improved validation of the Content-Length header in the Consul KV endpoint to prevent potential denial of service attacks[CVE-2025-11374](https://nvd.nist.gov/vuln/detail/CVE-2025-11374) [[GH-22916](https://github.com/hashicorp/consul/issues/22916)]
 * security: adding a maximum Content-Length on the event endpoint to fix denial-of-service (DoS) attacks. This resolves [CVE-2025-11375](https://nvd.nist.gov/vuln/detail/CVE-2025-11375). [[GH-22836](https://github.com/hashicorp/consul/issues/22836)]
-* security: breaking change - adding a key name validation on the key/value endpoint along side with the DisableKVKeyValidation config to disable/enable it to fix path traversal attacks. This resolves [CVE-2025-11392](https://nvd.nist.gov/vuln/detail/CVE-2025-11392). [[GH-22850](https://github.com/hashicorp/consul/issues/22850)]
+* security: breaking change - adding a key name validation on the key/value endpoint along side with the DisableKVKeyValidation config to disable/enable it to fix path traversal attacks on misconfigured or missing ACL policies. [[GH-22850](https://github.com/hashicorp/consul/issues/22850)]
 
 BUG FIXES:
 
