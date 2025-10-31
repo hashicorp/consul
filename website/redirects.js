@@ -5398,7 +5398,7 @@ module.exports = [
     permanent: true,
   },
   {
-    source: "/consul/docs/v1.20.x/k8s/dns/*slug",
+    source: "/consul/docs/v1.20.x/k8s/dns/:slug*",
     destination: "/consul/docs/manage/dns/forwarding/k8s",
     permanent: true,
   },
