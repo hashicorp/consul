@@ -118,7 +118,6 @@
     "ember-cli-sass": "^11.0.1",
     "ember-cli-sri": "^2.1.1",
     "ember-cli-string-helpers": "^6.1.0",
-    "ember-cli-template-lint": "^2.0.1",
     "ember-cli-terser": "^4.0.2",
     "ember-cli-yadda": "^0.7.0",
     "ember-collection": "^3.0.0",
