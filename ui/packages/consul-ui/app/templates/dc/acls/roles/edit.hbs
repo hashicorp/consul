@@ -78,10 +78,10 @@ as |dc partition nspace item create|}}
           @create={{create}}
           @id={{route.params.id}}
           @items={{this.items}}
-          @onCreate={{route-action 'create' item}}
-          @onUpdate={{route-action 'update' item}}
-          @onCancel={{route-action "cancel" item}}
-          @onDelete={{route-action 'delete'}}
+          @onCreate={{fn this.onCreate item}}
+          @onUpdate={{fn this.onUpdate item}}
+          @onCancel={{fn this.onCancel item}}
+          @onDelete={{fn this.onDelete item}}
           @onItemsChange={{action (mut this.items) value="data"}}
         />
       </BlockSlot>

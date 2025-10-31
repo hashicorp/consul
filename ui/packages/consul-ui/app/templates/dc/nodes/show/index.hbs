@@ -6,9 +6,9 @@
 <Route
   @name={{this.routeName}}
 as |route|>
-{{#if (eq route.model.item.Checks.length 0)}}
-  {{did-insert (route-action 'replaceWith' 'dc.nodes.show.services')}}
-{{else}}
-  {{did-insert (route-action 'replaceWith' 'dc.nodes.show.healthchecks')}}
-{{/if}}
+  {{#if (eq route.model.item.Checks.length 0)}}
+    {{did-insert this.goServices}}
+  {{else}}
+    {{did-insert this.goHealthChecks}}
+  {{/if}}
 </Route>

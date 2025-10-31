@@ -172,7 +172,7 @@ as |nspace dc items topology|}}
         }}
         @isRemoteDC={{not dc.Local}}
         @hasMetricsProvider={{gt config.data.metrics_provider.length 0}}
-        @oncreate={{route-action 'createIntention'}}
+        @oncreate={{this.createIntention}}
       />
 
     {{/if}}

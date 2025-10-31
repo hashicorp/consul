@@ -1,0 +1,3 @@
+```release-note:improvement
+ui: Removed ember-route-action-helper and migrated all {{route-action}} usages to explicit route/controller logic.
+```
