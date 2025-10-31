@@ -9,6 +9,7 @@ import CollectionComponent from 'ember-collection/components/ember-collection';
 import needsRevalidate from 'ember-collection/utils/needs-revalidate';
 import Grid from 'ember-collection/layouts/grid';
 import Slotted from 'block-slots';
+import { A } from '@ember/array'; 
 
 const formatItemStyle = Grid.prototype.formatItemStyle;
 
@@ -76,6 +77,45 @@ export default CollectionComponent.extend(Slotted, {
       needsRevalidate(this);
     }
   },
+  updateItems() {
+    this._cellLayout = this.getAttr('cell-layout');
+    const rawItems = this.getAttr('items');
+    if (this._rawItems !== rawItems) {
+      this._rawItems = rawItems;
+      const items = A(rawItems);
+
+      // Patch mutators once to mimic old addArrayObserver didChange -> _needsRevalidate.
+      if (!items.__patchedMutators) {
+        items.__patchedMutators = true;
+        const self = this;
+        ['pushObject','popObject','removeObject','insertAt','unshiftObject','shiftObject','splice','setObjects','reverse','sort'].forEach(m => {
+          if (typeof items[m] === 'function') {
+            const orig = items[m];
+            items[m] = function() {
+              const out = orig.apply(this, arguments);
+              if (!self.isDestroying && !self.isDestroyed) {
+                self._needsRevalidate();
+              }
+              return out;
+            };
+          }
+        });
+      }
+
+      this.set('_items', items);
+      this._needsRevalidate();
+    }
+  },
+
+  willDestroyElement() {
+    // Skip legacy removeArrayObserver logic.
+    this._isManuallyDestroying = true;
+    set(this, '_items', null);
+    this._cells = null;
+    this._cellMap = null;
+    this._cellLayout = null;
+  },
+
   actions: {
     resize: function (e) {
       const $tbody = this.$element;
