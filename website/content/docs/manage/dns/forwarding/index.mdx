@@ -22,8 +22,8 @@ You deployed a Consul datacenter and want to use Consul DNS interface for name r
 
 When configured with default values, Consul exposes the DNS interface on port
 8600, while the standard port for DNS is 53. On most operating systems,
-binding to port 53 requires elevated privileges. It is also common, for most
-operating systems, to have a local DNS server already running on port 53.
+binding to port 53 requires elevated privileges. It is also common for 
+operating systems to have a local DNS server already running on port 53.
 
 Instead of running Consul with an administrative or root account, you may forward appropriate queries to Consul, running on an unprivileged port, from another DNS server or using port redirect.
 
