@@ -91,7 +91,7 @@ as |route|>
           <collection.Collection>
             <Consul::Role::List
               @items={{collection.items}}
-              @ondelete={{route-action 'delete'}}
+              @ondelete={{this.delete}}
             />
           </collection.Collection>
           <collection.Empty>

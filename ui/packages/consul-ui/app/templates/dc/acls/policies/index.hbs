@@ -99,7 +99,7 @@ as |route|>
           <collection.Collection>
             <Consul::Policy::List
               @items={{collection.items}}
-              @ondelete={{route-action 'delete'}}
+              @ondelete={{this.delete}}
             />
           </collection.Collection>
           <collection.Empty>
