@@ -105,10 +105,10 @@ as |route|>
             <Consul::Token::List
               @items={{collection.items}}
               @token={{route.model.user.token}}
-              @onuse={{route-action 'use'}}
-              @ondelete={{route-action 'delete'}}
-              @onlogout={{route-action 'logout'}}
-              @onclone={{route-action 'clone'}}
+              @onuse={{this.onUse}}
+              @ondelete={{this.onDelete}}
+              @onlogout={{this.onLogout}}
+              @onclone={{this.onClone}}
             />
           </collection.Collection>
           <collection.Empty>

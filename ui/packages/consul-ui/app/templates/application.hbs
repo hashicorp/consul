@@ -26,11 +26,11 @@
         {{document-attrs class='has-partitions'}}
       {{/if}}
 
-      {{! Listen out for blocking query/client setting changes }}
-      <DataSource
-        @src={{uri 'settings://consul:client'}}
-        @onchange={{route-action 'onClientChanged'}}
-      />
+    {{! Listen out for blocking query/client setting changes }}
+    <DataSource
+      @src={{uri 'settings://consul:client'}}
+      @onchange={{this.onClientChanged}}
+    />
 
       {{! Tell CSS about our theme }}
       <DataSource @src={{uri 'settings://consul:theme'}} as |source|>
@@ -60,18 +60,16 @@
         {{! as we don't know the dc, any inital permission based }}
         {{! redirects are in the dc.show route}}
 
-        {{! 2022-04-15: Temporarily reverting the services page to the default }}
-        {{did-insert
-          (route-action 'replaceWith' 'dc.services.index' (hash dc=(env 'CONSUL_DATACENTER_LOCAL')))
-        }}
-      {{else}}
-        {{! If we are notfound, guess the params we need }}
-        {{#if (eq route.currentName 'notfound')}}
-          <DataSource
-            @src={{uri '/*/*/*/notfound/${path}' (hash path=route.params.notfound)}}
-            @onchange={{action (mut this.notfound) value='data'}}
-          />
-        {{/if}}
+      {{! 2022-04-15: Temporarily reverting the services page to the default }}
+      {{did-insert (fn this.gotoDefaultDcServices (env 'CONSUL_DATACENTER_LOCAL'))}}
+    {{else}}
+      {{! If we are notfound, guess the params we need }}
+      {{#if (eq route.currentName 'notfound')}}
+        <DataSource
+          @src={{uri '/*/*/*/notfound/${path}' (hash path=route.params.notfound)}}
+          @onchange={{action (mut this.notfound) value='data'}}
+        />
+      {{/if}}
 
         {{! Make sure we guess and default to the right params when not found }}
         {{#let
