@@ -9,7 +9,7 @@ import CollectionComponent from 'ember-collection/components/ember-collection';
 import needsRevalidate from 'ember-collection/utils/needs-revalidate';
 import Grid from 'ember-collection/layouts/grid';
 import Slotted from 'block-slots';
-import { A } from '@ember/array'; 
+import { A } from '@ember/array';
 
 const formatItemStyle = Grid.prototype.formatItemStyle;
 
@@ -88,11 +88,22 @@ export default CollectionComponent.extend(Slotted, {
       if (!items.__patchedMutators) {
         items.__patchedMutators = true;
         const self = this;
-        ['pushObject','popObject','removeObject','insertAt','unshiftObject','shiftObject','splice','setObjects','reverse','sort'].forEach(m => {
+        [
+          'pushObject',
+          'popObject',
+          'removeObject',
+          'insertAt',
+          'unshiftObject',
+          'shiftObject',
+          'splice',
+          'setObjects',
+          'reverse',
+          'sort',
+        ].forEach((m) => {
           if (typeof items[m] === 'function') {
             const orig = items[m];
-            items[m] = function() {
-              const out = orig.apply(this, arguments);
+            items[m] = function (...args) {
+              const out = orig.apply(this, args);
               if (!self.isDestroying && !self.isDestroyed) {
                 self._needsRevalidate();
               }
