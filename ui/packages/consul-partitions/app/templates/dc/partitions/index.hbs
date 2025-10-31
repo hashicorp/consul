@@ -74,6 +74,7 @@ as |route|>
       {{/if}}
       </BlockSlot>
       <BlockSlot @name="content">
+        {{#let (refresh-route) as |refreshRoute|}}
         <DataWriter
           @sink={{uri '/${partition}/${dc}/${nspace}/partition/'
             (hash
@@ -84,7 +85,7 @@ as |route|>
           }}
           @type="partition"
           @label="Partition"
-          @ondelete={{refresh-route}}
+          @ondelete={{refreshRoute}}
         as |writer|>
           <BlockSlot @name="removed" as |after|>
             <Consul::Partition::Notifications 
@@ -140,6 +141,7 @@ as |route|>
         </DataCollection>
     </BlockSlot>
   </DataWriter>
+  {{/let}}
       </BlockSlot>
     </AppView>
   {{/let}}

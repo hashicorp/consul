@@ -138,6 +138,7 @@ as |sort filters parent items|}}
 {{/if}}
       </BlockSlot>
       <BlockSlot @name="content">
+        {{#let (refresh-route) as |refreshRoute|}}
         <DataWriter
           @sink={{uri '/${partition}/${nspace}/${dc}/kv/'
             (hash
@@ -148,7 +149,7 @@ as |sort filters parent items|}}
           }}
           @type="kv"
           @label="key"
-          @ondelete={{refresh-route}}
+          @ondelete={{refreshRoute}}
           as |writer|>
           <BlockSlot @name="content">
             <DataCollection
@@ -208,6 +209,7 @@ as |sort filters parent items|}}
             </DataCollection>
           </BlockSlot>
         </DataWriter>
+        {{/let}}
       </BlockSlot>
     </AppView>
 {{/let}}

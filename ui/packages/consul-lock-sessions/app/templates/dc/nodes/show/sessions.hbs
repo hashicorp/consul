@@ -4,7 +4,7 @@
 }}
 
 <Route
-  @name={{routeName}}
+  @name={{this.routeName}}
 as |route|>
   <DataLoader @src={{uri '/${partition}/${nspace}/${dc}/sessions/for-node/${node}'
     (hash
@@ -23,7 +23,7 @@ as |route|>
     </BlockSlot>
 
     <BlockSlot @name="loaded">
-{{#let api.data as |items|}}
+{{#let api.data (refresh-route) as |items refreshRoute|}}
     <div class="tab-section">
       <DataWriter
         @sink={{uri '/${partition}/${dc}/${nspace}/session/'
@@ -35,7 +35,8 @@ as |route|>
         }}
         @type="session"
         @label="Lock Session"
-        @ondelete={{refresh-route}}
+        {{!-- @ondelete={{refresh-route}} --}}
+        @ondelete={{refreshRoute}}
       as |writer|>
 
         <BlockSlot @name="removed" as |after|>
