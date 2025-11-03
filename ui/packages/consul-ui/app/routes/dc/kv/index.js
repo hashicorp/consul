@@ -17,7 +17,7 @@ export default class IndexRoute extends Route {
     const params = this.paramsFor(this.routeName);
     const key = params.key || '/';
     if (!isFolder(key)) {
-      return this.replaceWith(this.routeName, key + '/');
+      return this.router.replaceWith(this.routeName, key + '/');
     }
   }
 
