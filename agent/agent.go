@@ -26,7 +26,6 @@ import (
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/rboyer/safeio"
 	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 
@@ -34,7 +33,6 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/hcp-scada-provider/capability"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 
@@ -51,7 +49,6 @@ import (
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	grpcDNS "github.com/hashicorp/consul/agent/grpc-external/services/dns"
 	middleware "github.com/hashicorp/consul/agent/grpc-middleware"
-	"github.com/hashicorp/consul/agent/hcp/scada"
 	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/netutil"
@@ -432,10 +429,6 @@ type Agent struct {
 	// xdsServer serves the XDS protocol for configuring Envoy proxies.
 	xdsServer *xds.Server
 
-	// scadaProvider is set when HashiCorp Cloud Platform integration is configured and exposes the agent's API over
-	// an encrypted session to HCP
-	scadaProvider scada.Provider
-
 	// enterpriseAgent embeds fields that we only access in consul-enterprise builds
 	enterpriseAgent
 
@@ -492,7 +485,6 @@ func New(bd BaseDeps) (*Agent, error) {
 		cache:           bd.Cache,
 		leafCertManager: bd.LeafCertManager,
 		routineManager:  routine.NewManager(bd.Logger),
-		scadaProvider:   bd.HCP.Provider,
 	}
 
 	// TODO: create rpcClientHealth in BaseDeps once NetRPC is available without Agent
@@ -1109,12 +1101,6 @@ func (a *Agent) startListeners(addrs []net.Addr) ([]net.Listener, error) {
 			}
 			l = &tcpKeepAliveListener{l.(*net.TCPListener)}
 
-		case *capability.Addr:
-			l, err = a.scadaProvider.Listen(x.Capability())
-			if err != nil {
-				return nil, err
-			}
-
 		default:
 			closeAll()
 			return nil, fmt.Errorf("unsupported address type %T", addr)
@@ -1173,11 +1159,6 @@ func (a *Agent) listenHTTP() ([]apiServer, error) {
 				MaxHeaderBytes: a.config.HTTPMaxHeaderBytes,
 			}
 
-			if scada.IsCapability(l.Addr()) {
-				// wrap in http2 server handler
-				httpServer.Handler = h2c.NewHandler(srv.handler(), &http2.Server{})
-			}
-
 			// Load the connlimit helper into the server
 			connLimitFn := a.httpConnLimiter.HTTPConnStateFuncWithDefault429Handler(10 * time.Millisecond)
 
@@ -1195,9 +1176,6 @@ func (a *Agent) listenHTTP() ([]apiServer, error) {
 	}
 
 	httpAddrs := a.config.HTTPAddrs
-	if a.config.IsCloudEnabled() && a.scadaProvider != nil {
-		httpAddrs = append(httpAddrs, scada.CAPCoreAPI)
-	}
 
 	if err := start("http", httpAddrs); err != nil {
 		closeListeners(ln)
@@ -1601,8 +1579,6 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	cfg.RequestLimitsWriteRate = runtimeCfg.RequestLimitsWriteRate
 	cfg.Locality = runtimeCfg.StructLocality()
 
-	cfg.Cloud = runtimeCfg.Cloud
-
 	cfg.Reporting.License.Enabled = runtimeCfg.Reporting.License.Enabled
 	cfg.Reporting.SnapshotRetentionTime = runtimeCfg.Reporting.SnapshotRetentionTime
 
@@ -1781,11 +1757,6 @@ func (a *Agent) ShutdownAgent() error {
 
 	a.rpcClientHealth.Close()
 	a.rpcClientConfigEntry.Close()
-
-	// Shutdown SCADA provider
-	if a.scadaProvider != nil {
-		a.scadaProvider.Stop()
-	}
 
 	var err error
 	if a.delegate != nil {

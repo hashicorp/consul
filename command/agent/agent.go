@@ -21,8 +21,6 @@ import (
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/config"
-	hcpbootstrap "github.com/hashicorp/consul/agent/hcp/bootstrap/config-loader"
-	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/command/cli"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/lib"
@@ -158,32 +156,6 @@ func (c *cmd) run(args []string) int {
 	// takes care of that!
 	suLogger := newStartupLogger()
 	go handleStartupSignals(ctx, cancel, signalCh, suLogger)
-
-	// See if we need to bootstrap config from HCP before we go any further with
-	// agent startup. First do a preliminary load of agent configuration using the given loader.
-	// This is just to peek whether bootstrapping from HCP is enabled. The result is discarded
-	// on the call to agent.NewBaseDeps so that the wrapped loader takes effect.
-	res, err := loader(nil)
-	if err != nil {
-		ui.Error(err.Error())
-		return 1
-	}
-	if res.RuntimeConfig.IsCloudEnabled() {
-		client, err := hcpclient.NewClient(res.RuntimeConfig.Cloud)
-		if err != nil {
-			ui.Error("error building HCP HTTP client: " + err.Error())
-			return 1
-		}
-
-		// We override loader with the one returned as it was modified to include HCP-provided config.
-		loader, err = hcpbootstrap.LoadConfig(ctx, client, res.RuntimeConfig.DataDir, loader, ui)
-		if err != nil {
-			ui.Error(err.Error())
-			return 1
-		}
-
-		loader = hcpbootstrap.AddAclPolicyAccessControlHeader(loader)
-	}
 
 	bd, err := agent.NewBaseDeps(loader, logGate, nil)
 	if err != nil {
