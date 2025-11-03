@@ -93,7 +93,8 @@ export default class FSMWithOptionalLocation {
   }
 
   constructor(owner, doc, env) {
-    this.container = Object.entries(owner)[0][1];
+    const ownerSymbol = Object.getOwnPropertySymbols(owner);
+    this.container = owner[ownerSymbol[0]];
 
     // add the route/state change handler
     this.route = route.bind(this);

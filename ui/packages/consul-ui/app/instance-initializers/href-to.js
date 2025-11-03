@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-import {LinkComponent as LegacyLinkComponent} from '@ember/legacy-built-in-components';
+import { LinkComponent as LegacyLinkComponent } from '@ember/legacy-built-in-components';
 
 export class HrefTo {
   constructor(container, target) {
