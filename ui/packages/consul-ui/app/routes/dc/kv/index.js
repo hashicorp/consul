@@ -13,11 +13,11 @@ export default class IndexRoute extends Route {
 
   beforeModel() {
     // we are index or folder, so if the key doesn't have a trailing slash
-    // add one to force a fake findBySlug
+    // add one slash to force a fake findBySlug
     const params = this.paramsFor(this.routeName);
     const key = params.key || '/';
     if (!isFolder(key)) {
-      return this.replaceWith(this.routeName, key + '/');
+      return this.router.replaceWith(this.routeName, key + '/');
     }
   }
 
