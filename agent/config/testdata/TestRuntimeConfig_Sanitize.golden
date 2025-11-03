@@ -129,18 +129,6 @@
         }
     ],
     "ClientAddrs": [],
-    "Cloud": {
-        "AuthURL": "",
-        "ClientID": "id",
-        "ClientSecret": "hidden",
-        "Hostname": "",
-        "ManagementToken": "hidden",
-        "NodeID": "",
-        "NodeName": "",
-        "ResourceID": "cluster1",
-        "ScadaAddress": "",
-        "TLSConfig": null
-    },
     "ConfigEntryBootstrap": [],
     "ConnectCAConfig": {},
     "ConnectCAProvider": "",
@@ -502,7 +490,6 @@
         "DashboardURLTemplates": {},
         "Dir": "",
         "Enabled": false,
-        "HCPEnabled": false,
         "MetricsProvider": "",
         "MetricsProviderFiles": [],
         "MetricsProviderOptionsJSON": "",
