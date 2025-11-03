@@ -81,6 +81,7 @@ as |route|>
 
       </BlockSlot>
       <BlockSlot @name="content">
+        {{#let (refresh-route) as |refreshRoute|}}
         <DataWriter
           @sink={{uri '/${partition}/${dc}/${nspace}/intention/'
             (hash
@@ -90,8 +91,8 @@ as |route|>
             )
           }}
           @type="intention"
-          @ondelete={{refresh-route}}
-          @onchange={{refresh-route}}
+          @ondelete={{refreshRoute}}
+          @onchange={{refreshRoute}}
         as |writer|>
           <BlockSlot @name="content">
             <DataCollection
@@ -153,6 +154,7 @@ as |route|>
             </DataCollection>
           </BlockSlot>
         </DataWriter>
+        {{/let}}
       </BlockSlot>
     </AppView>
 
