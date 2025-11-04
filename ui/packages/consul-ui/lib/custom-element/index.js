@@ -10,10 +10,11 @@ module.exports = {
   getTransform: function () {
     return {
       name: 'custom-element',
-      plugin: class {
-        transform(ast) {
-          this.syntax.traverse(ast, {
-            ElementNode: (node) => {
+      plugin: function (env) {
+        return {
+          name: 'custom-element',
+          visitor: {
+            ElementNode: function (node) {
               if (node.tag === 'CustomElement') {
                 node.attributes = node.attributes
                   // completely remove these ones, they are not used runtime
@@ -45,9 +46,8 @@ module.exports = {
                   });
               }
             },
-          });
-          return ast;
-        }
+          },
+        };
       },
       baseDir: function () {
         return __dirname;
