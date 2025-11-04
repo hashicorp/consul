@@ -876,11 +876,17 @@ function gen_envoy_bootstrap {
   if ! is_set "$IS_GW"; then
     PROXY_ID="$SERVICE-sidecar-proxy"
   fi
+  
+  if [ "${IPV6:-}" == "true" ] || [ "${USE_IPV6:-}" == "true" ]; then
+    ADMIN_BIND="[::]:$ADMIN_PORT"   # host:port
+  else
+    ADMIN_BIND="0.0.0.0:$ADMIN_PORT"  # just port, default host
+  fi
 
   if output=$(docker_consul_for_proxy_bootstrap "$DC" connect envoy -bootstrap \
     -proxy-id $PROXY_ID \
     -envoy-version "$ENVOY_VERSION" \
-    -admin-bind 0.0.0.0:$ADMIN_PORT \
+    -admin-bind $ADMIN_BIND \
     -grpc-addr http://localhost:8502 ${EXTRA_ENVOY_BS_ARGS} 2>&1); then
 
     # All OK, write config to file
