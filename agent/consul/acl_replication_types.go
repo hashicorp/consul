@@ -204,7 +204,7 @@ func (r *aclPolicyReplicator) ensureRemoteConsistent(updates []string) ([]string
 	}
 
 	//iterate over all updates array which are policy IDs check if the hash match for both
-	var consistent bool = true
+	var consistent = true
 	var remoteNotCreated []string
 	var remoteNotUpdated []string
 	var err error = nil
