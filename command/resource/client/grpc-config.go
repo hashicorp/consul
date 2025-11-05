@@ -87,7 +87,7 @@ type GRPCConfig struct {
 
 func GetDefaultGRPCConfig() *GRPCConfig {
 	return &GRPCConfig{
-		Address:       "127.0.0.1:8502",
+		Address:       "localhost:8502",
 		GRPCTLSVerify: false,
 	}
 }
