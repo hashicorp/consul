@@ -5,6 +5,11 @@ description: >-
   You can migrate tasks in existing Amazon Web Services ECS deployments to a service mesh deployed with Terraform. Learn how to convert a task specified as an ECS task definition into a `mesh-task` Terraform module.
 ---
 
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
 # Register existing ECS tasks with Terraform
 
 To migrate existing tasks to Consul, rewrite the existing Terraform code for your tasks so that the container definitions include the [`mesh-task` Terraform module](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/mesh-task). 

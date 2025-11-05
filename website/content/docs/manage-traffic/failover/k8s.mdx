@@ -4,6 +4,11 @@ page_title: Configure failover services on Kubernetes
 description: Learn how to define failover services in Consul on Kubernetes when proxies are in transparent proxy mode. Consul can send traffic to backup service instances if a destination service becomes unhealthy or unresponsive.
 ---
 
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
 # Configure failover services on Kubernetes
 
 This topic describes how to configure failover service instances in Consul on Kubernetes when proxies are in transparent proxy mode. If a service becomes unhealthy or unresponsive, Consul can use the service resolver configuration entry to send inbound requests to backup services. Service resolvers are part of the service mesh proxy upstream discovery chain. Refer to [Service mesh traffic management](/consul/docs/manage-traffic) for additional information.
