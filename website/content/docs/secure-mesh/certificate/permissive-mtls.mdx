@@ -5,6 +5,11 @@ description: >-
   Learn how to enable permissive mutual transport layer security (permissive mTLS) so that you can safely add services to your service mesh when transparent proxy is enabled in Kubernetes deployments.
 ---
 
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
 # Enable permissive mTLS mode
 
 Depending on the services you are onboarding, you may not need to enable permissive mTLS mode. If the service does not accept incoming traffic or accepts traffic from downstream services that are already part of the service mesh, then permissive mTLS mode is not required to continue. 

@@ -5,6 +5,11 @@ description: >-
   Consul includes a built-in CA, but when bootstrapping a cluster on k8s, you can configure your service mesh to use a custom certificate provider instead. Learn how to configure Vault as an external CA in primary and secondary datacenters and manually rotate Vault tokens.
 ---
 
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
 # Configure service mesh certificate authority (CA) for Consul on Kubernetes
 
 If `connect` is enabled, the built-in Consul CA provider is automatically enabled for the service mesh certificate authority (CA). You can use different CA providers with Consul service mesh. Refer to [Service Mesh Certificate Management](/consul/docs/secure-mesh/certificate) for supported providers.
