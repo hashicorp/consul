@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -703,9 +704,8 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 			route := &envoy_route_v3.Route{}
 
 			if destination != nil {
-				if destination.PrefixRewrite != "" {
-					routeAction.Route.PrefixRewrite = destination.PrefixRewrite
-				}
+				// Gateway API: Path rewrite using replacePrefixMatch results in // or no rewrite CSL-12379-fix
+				applyURLRewrite(routeAction.Route, destination.PrefixRewrite, routeMatch.GetPrefix())
 
 				if destination.RequestTimeout > 0 {
 					routeAction.Route.Timeout = durationpb.New(destination.RequestTimeout)
@@ -1244,4 +1244,20 @@ func injectHeaderManipToWeightedCluster(split *structs.ServiceSplit, c *envoy_ro
 		)
 	}
 	return nil
+}
+
+// applyURLRewrite configures the correct Envoy rewrite (Regex or Prefix) on a route.
+func applyURLRewrite(route *envoy_route_v3.RouteAction, prefixRewrite string, matchPrefix string) {
+	if prefixRewrite == "" || prefixRewrite == "/" {
+		// Use RegexRewrite for stripping the prefix (e.g., /v1 -> /)
+		route.RegexRewrite = &envoy_matcher_v3.RegexMatchAndSubstitute{
+			Pattern: &envoy_matcher_v3.RegexMatcher{
+				Regex: fmt.Sprintf(`^%s(/?)(.*)`, regexp.QuoteMeta(matchPrefix)),
+			},
+			Substitution: `/\2`,
+		}
+	} else if prefixRewrite != "" {
+		// Use standard PrefixRewrite for replacement (e.g., /v2 -> /api/v2)
+		route.PrefixRewrite = prefixRewrite
+	}
 }
