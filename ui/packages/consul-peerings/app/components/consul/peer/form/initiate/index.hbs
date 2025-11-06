@@ -25,7 +25,7 @@
       </Hds::Alert>
     </BlockSlot>
     <BlockSlot @name="content">
-      {{#let (unique-id) as |id|}}
+      {{#let (dom-guid) as |id|}}
         <form id={{id}} {{on "submit" (fn writer.persist @item)}}>
           {{yield
             (hash

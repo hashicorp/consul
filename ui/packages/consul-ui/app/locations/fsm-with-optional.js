@@ -93,7 +93,36 @@ export default class FSMWithOptionalLocation {
   }
 
   constructor(owner, doc, env) {
-    this.container = Object.entries(owner)[0][1];
+    /* eslint-disable no-console */
+    // console.log('[fsm-with-optional] raw constructor args:', owner, doc, env);
+
+    // // this.container = Object.entries(owner)[0][1];
+
+    // // Extract application instance from symbol keys
+    // const symbols = Object.getOwnPropertySymbols(owner);
+    // let app = owner;
+    // for (const s of symbols) {
+    //   const val = owner[s];
+    //   if (val && typeof val.lookup === 'function') {
+    //     app = val;
+    //     break;
+    //   } else if (val && val.owner && typeof val.owner.lookup === 'function') {
+    //     app = val.owner;
+    //     break;
+    //   }
+    // }
+
+    console.log('[fsm-with-optional] ctor args:', owner, doc, env);
+
+    // Simplified owner resolution (supports direct owner or symbol-wrapped)
+    let app = owner;
+    if (!app?.lookup && owner) {
+      for (const val of Object.getOwnPropertySymbols(owner).map(sym => owner[sym])) {
+        if (val?.lookup) { app = val; break; }
+        if (val?.owner?.lookup) { app = val.owner; break; }
+      }
+    }
+    this.container = app;
 
     // add the route/state change handler
     this.route = route.bind(this);

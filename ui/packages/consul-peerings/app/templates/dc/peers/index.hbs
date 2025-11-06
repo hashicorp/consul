@@ -70,7 +70,7 @@
               as |modal|
             >
               <BlockSlot @name="header">
-                {{did-insert (set this "create" modal)}}
+                {{did-insert-helper (set this "create" modal)}}
                 <h2>
                   Add peer connection
                 </h2>
@@ -84,7 +84,7 @@
                       @onsubmit={{fn this.redirectToPeerShow modal.close}}
                       as |form|
                     >
-                      {{did-insert (set this "form" form)}}
+                      {{did-insert-helper (set this "form" form)}}
                       <form.Fieldsets />
                     </form.Form>
                   </Consul::Peer::Form>
@@ -133,7 +133,7 @@
                   as |modal|
                 >
                   <BlockSlot @name="header">
-                    {{did-insert (set this "regenerate" modal)}}
+                    {{did-insert-helper (set this "regenerate" modal)}}
                     <h2>
                       Regenerate token
                     </h2>
@@ -146,7 +146,7 @@
                         @regenerate={{true}}
                         as |form|
                       >
-                        {{did-insert (set this "regenerateForm" form)}}
+                        {{did-insert-helper (set this "regenerateForm" form)}}
                         <form.Fieldsets />
                       </Consul::Peer::Form::Generate>
                     {{/if}}

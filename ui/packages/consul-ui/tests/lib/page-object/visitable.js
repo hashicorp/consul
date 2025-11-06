@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-import { getContext } from '@ember/test-helpers';
-import { getExecutionContext } from 'ember-cli-page-object/-private/execution_context';
+import { getContext, visit } from '@ember/test-helpers';
+// import { getExecutionContext } from 'ember-cli-page-object/-private/execution_context';
 import createQueryParams from 'consul-ui/utils/http/create-query-params';
 
 const assign = Object.assign;
@@ -58,47 +58,88 @@ function appendQueryParams(path, queryParams) {
  *    until it finds one that it can construct. This follows the same thinking
  *    as 'if you don't specify an item, then we are looking to create one'
  */
+// export function visitable(path, encoder = encodeURIComponent) {
+//   return {
+//     isDescriptor: true,
+
+//     value(dynamicSegmentsAndQueryParams = {}) {
+//       let executionContext = getExecutionContext(this);
+
+//       return executionContext.runAsync((context) => {
+//         let params;
+//         let fullPath = (function _try(paths) {
+//           let path = paths.shift();
+//           if (typeof dynamicSegmentsAndQueryParams.nspace !== 'undefined') {
+//             path = `/:nspace${path}`;
+//           }
+//           params = assign({}, dynamicSegmentsAndQueryParams);
+//           let fullPath;
+//           try {
+//             fullPath = fillInDynamicSegments(path, params, encoder);
+//           } catch (e) {
+//             if (paths.length > 0) {
+//               fullPath = _try(paths);
+//             } else {
+//               throw e;
+//             }
+//           }
+//           return fullPath;
+//         })(typeof path === 'string' ? [path] : path.slice(0));
+
+//         fullPath = appendQueryParams(fullPath, params);
+
+//         const container = getContext().owner;
+//         const locationType = container.lookup('service:env').var('locationType');
+//         const location = container.lookup(`location:${locationType}`);
+//         // look for a visit on the current location first before just using
+//         // visit on the current context/app
+//         if (typeof location.visit === 'function') {
+//           return location.visit(fullPath);
+//         } else {
+//           return context.visit(fullPath);
+//         }
+//       });
+//     },
+//   };
+// }
+
+
 export function visitable(path, encoder = encodeURIComponent) {
   return {
     isDescriptor: true,
 
-    value(dynamicSegmentsAndQueryParams = {}) {
-      let executionContext = getExecutionContext(this);
-
-      return executionContext.runAsync((context) => {
-        let params;
-        let fullPath = (function _try(paths) {
-          let path = paths.shift();
-          if (typeof dynamicSegmentsAndQueryParams.nspace !== 'undefined') {
-            path = `/:nspace${path}`;
-          }
-          params = assign({}, dynamicSegmentsAndQueryParams);
-          let fullPath;
-          try {
-            fullPath = fillInDynamicSegments(path, params, encoder);
-          } catch (e) {
-            if (paths.length > 0) {
-              fullPath = _try(paths);
-            } else {
-              throw e;
-            }
-          }
-          return fullPath;
-        })(typeof path === 'string' ? [path] : path.slice(0));
-
-        fullPath = appendQueryParams(fullPath, params);
-
-        const container = getContext().owner;
-        const locationType = container.lookup('service:env').var('locationType');
-        const location = container.lookup(`location:${locationType}`);
-        // look for a visit on the current location first before just using
-        // visit on the current context/app
-        if (typeof location.visit === 'function') {
-          return location.visit(fullPath);
-        } else {
-          return context.visit(fullPath);
+    async value(dynamicSegmentsAndQueryParams = {}) { // made async
+      let params;
+      let fullPath = (function _try(paths) {
+        let pathCandidate = paths.shift();
+        if (typeof dynamicSegmentsAndQueryParams.nspace !== 'undefined') {
+          pathCandidate = `/:nspace${pathCandidate}`;
         }
-      });
+        params = assign({}, dynamicSegmentsAndQueryParams);
+        let built;
+        try {
+          built = fillInDynamicSegments(pathCandidate, params, encoder);
+        } catch (e) {
+          if (paths.length > 0) {
+            built = _try(paths);
+          } else {
+            throw e;
+          }
+        }
+        return built;
+      })(typeof path === 'string' ? [path] : path.slice(0));
+
+      fullPath = appendQueryParams(fullPath, params);
+
+      const container = getContext().owner;
+      const locationType = container.lookup('service:env').var('locationType');
+      const location = container.lookup(`location:${locationType}`);
+
+      if (typeof location.visit === 'function') {
+        return location.visit(fullPath);
+      } else {
+        return visit(fullPath);
+      }
     },
   };
 }

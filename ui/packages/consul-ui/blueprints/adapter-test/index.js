@@ -5,9 +5,9 @@
 
 /*eslint node/no-extraneous-require: "off"*/
 /*eslint node/no-missing-require: "off"*/
-const useTestFrameworkDetector = require('@ember-data/private-build-infra/src/utilities/test-framework-detector');
+// const useTestFrameworkDetector = require('@ember-data/private-build-infra/src/utilities/test-framework-detector');
 
-module.exports = useTestFrameworkDetector({
+module.exports = {
   description: 'Generates Consul HTTP ember-data adapter unit and integration tests',
 
   root: __dirname,
@@ -26,4 +26,4 @@ module.exports = useTestFrameworkDetector({
   locals(options) {
     return {};
   },
-});
+};

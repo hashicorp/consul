@@ -8,10 +8,23 @@ export default class I18nService extends IntlService {
    * Additionally injects selected project level environment variables into the
    * message formatting context for usage within translated texts
    */
-  formatMessage(value, formatOptions) {
-    formatOptions = this[formatOptionsSymbol](formatOptions);
-    return super.formatMessage(value, formatOptions);
+
+  constructor(...args) {
+    super(...args);
+    // Ensure locale array exists immediately
+    if (!this.locale || this.locale.length === 0) {
+      super.setLocale(['en-us']);
+    }
   }
+
+  formatMessage(value, formatOptions, ...rest) {
+    formatOptions = this[formatOptionsSymbol](formatOptions);
+    return super.formatMessage(value, formatOptions, ...rest);
+  }
+  // formatMessage(value, formatOptions) {
+  //   formatOptions = this[formatOptionsSymbol](formatOptions);
+  //   return super.formatMessage(value, formatOptions);
+  // }
   [formatOptionsSymbol](options) {
     const env = [
       'CONSUL_HOME_URL',

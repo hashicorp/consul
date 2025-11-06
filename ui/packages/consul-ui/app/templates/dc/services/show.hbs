@@ -94,7 +94,7 @@ as |items item dc|}}
             @onchange={{action (mut this.chain) value="data"}}
           />
         {{/if}}
-        {{did-insert (set this 'chain' undefined) route.params.dc}}
+        {{did-insert-helper (set this 'chain' undefined) route.params.dc}}
       {{/if}}
   {{#let
   (hash

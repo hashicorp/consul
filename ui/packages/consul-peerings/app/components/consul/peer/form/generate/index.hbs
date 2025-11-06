@@ -13,7 +13,7 @@
     as |fsm|
   >
 
-    {{#let (unique-id) as |id reset|}}
+    {{#let (dom-guid) as |id reset|}}
       <form {{on "submit" (fn fsm.dispatch "LOAD")}} id={{id}}>
 
         <fsm.State @matches={{array "idle" "error"}}>
