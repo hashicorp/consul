@@ -268,9 +268,9 @@ func TestGenerateConfig(t *testing.T) {
 				PrometheusScrapePath:  "/metrics",
 			},
 		},
-				{
-			Name:  "defaults-nodemeta-dualstack",
-			Flags: []string{"-proxy-id", "test-proxy", "-node-name", "test-node"},
+		{
+			Name:        "defaults-nodemeta-dualstack",
+			Flags:       []string{"-proxy-id", "test-proxy", "-node-name", "test-node"},
 			IsDualStack: true,
 			WantArgs: BootstrapTplArgs{
 				ProxyCluster: "test-proxy",
@@ -315,8 +315,8 @@ func TestGenerateConfig(t *testing.T) {
 			},
 		},
 		{
-			Name:  "telemetry-collector-dualstack",
-			Flags: []string{"-proxy-id", "test-proxy"},
+			Name:        "telemetry-collector-dualstack",
+			Flags:       []string{"-proxy-id", "test-proxy"},
 			IsDualStack: true,
 			ProxyConfig: map[string]interface{}{
 				"envoy_telemetry_collector_bind_socket_dir": "/tmp/consul/telemetry-collector",
@@ -388,7 +388,7 @@ func TestGenerateConfig(t *testing.T) {
 					AgentPort:    "8502", // Note this is the gRPC port
 				},
 				AdminAccessLogPath:    "/dev/null",
-				AdminBindAddress:     ipv6loopback,
+				AdminBindAddress:      ipv6loopback,
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
 				PrometheusBackendPort: "20100",
@@ -599,8 +599,8 @@ func TestGenerateConfig(t *testing.T) {
 			},
 		},
 		{
-			Name:  "token-env-dualstack",
-			Flags: []string{"-proxy-id", "test-proxy"},
+			Name:        "token-env-dualstack",
+			Flags:       []string{"-proxy-id", "test-proxy"},
 			IsDualStack: true,
 			Env: []string{
 				"CONSUL_HTTP_TOKEN=c9a52720-bf6c-4aa6-b8bc-66881a5ade95",
@@ -704,8 +704,8 @@ func TestGenerateConfig(t *testing.T) {
 			},
 		},
 		{
-			Name:  "token-file-env-dualstack",
-			Flags: []string{"-proxy-id", "test-proxy"},
+			Name:        "token-file-env-dualstack",
+			Flags:       []string{"-proxy-id", "test-proxy"},
 			IsDualStack: true,
 			Env: []string{
 				"CONSUL_HTTP_TOKEN_FILE=@@TEMPDIR@@token.txt",
@@ -806,9 +806,9 @@ func TestGenerateConfig(t *testing.T) {
 				PrometheusScrapePath:  "/metrics",
 			},
 		},
-				{
-			Name:  "grpc-addr-env-dualstack",
-			Flags: []string{"-proxy-id", "test-proxy"},
+		{
+			Name:        "grpc-addr-env-dualstack",
+			Flags:       []string{"-proxy-id", "test-proxy"},
 			IsDualStack: true,
 			Env: []string{
 				"CONSUL_GRPC_ADDR=localhost:9999",
@@ -940,10 +940,10 @@ func TestGenerateConfig(t *testing.T) {
 			},
 		},
 		{
-			Name:     "xds-addr-config-dualstack",
-			Flags:    []string{"-proxy-id", "test-proxy"},
+			Name:        "xds-addr-config-dualstack",
+			Flags:       []string{"-proxy-id", "test-proxy"},
 			IsDualStack: true,
-			XDSPorts: agent.GRPCPorts{Plaintext: 9999, TLS: 0},
+			XDSPorts:    agent.GRPCPorts{Plaintext: 9999, TLS: 0},
 			WantArgs: BootstrapTplArgs{
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
@@ -994,7 +994,7 @@ func TestGenerateConfig(t *testing.T) {
 		{
 			Name:         "grpc-tls-addr-config-dualstack",
 			Flags:        []string{"-proxy-id", "test-proxy", "-ca-file", "../../../test/ca/root.cer"},
-			IsDualStack: true,
+			IsDualStack:  true,
 			XDSPorts:     agent.GRPCPorts{Plaintext: 9997, TLS: 9998},
 			AgentSelf110: false,
 			WantArgs: BootstrapTplArgs{
@@ -1047,7 +1047,7 @@ func TestGenerateConfig(t *testing.T) {
 		{
 			Name:         "deprecated-grpc-addr-config-dualstack",
 			Flags:        []string{"-proxy-id", "test-proxy"},
-			IsDualStack: true,
+			IsDualStack:  true,
 			XDSPorts:     agent.GRPCPorts{Plaintext: 9999, TLS: 0},
 			AgentSelf110: true,
 			WantArgs: BootstrapTplArgs{
@@ -1095,10 +1095,10 @@ func TestGenerateConfig(t *testing.T) {
 			},
 		},
 		{
-			Name:     "access-log-path-dualstack",
-			Flags:    []string{"-proxy-id", "test-proxy", "-admin-access-log-path", "/some/path/access.log"},
+			Name:        "access-log-path-dualstack",
+			Flags:       []string{"-proxy-id", "test-proxy", "-admin-access-log-path", "/some/path/access.log"},
 			IsDualStack: true,
-			WantWarn: "-admin-access-log-path is deprecated",
+			WantWarn:    "-admin-access-log-path is deprecated",
 			WantArgs: BootstrapTplArgs{
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
@@ -1152,11 +1152,11 @@ func TestGenerateConfig(t *testing.T) {
 			},
 		},
 		{
-			Name:      "existing-ca-file-dualstack",
-			TLSServer: true,
-			Flags:     []string{"-proxy-id", "test-proxy", "-grpc-ca-file", "../../../test/ca/root.cer"},
+			Name:        "existing-ca-file-dualstack",
+			TLSServer:   true,
+			Flags:       []string{"-proxy-id", "test-proxy", "-grpc-ca-file", "../../../test/ca/root.cer"},
 			IsDualStack: true,
-			Env:       []string{"CONSUL_GRPC_ADDR=https://127.0.0.1:8502"},
+			Env:         []string{"CONSUL_GRPC_ADDR=https://127.0.0.1:8502"},
 			WantArgs: BootstrapTplArgs{
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
@@ -1185,10 +1185,10 @@ func TestGenerateConfig(t *testing.T) {
 			WantErr: "lstat some/path: no such file or directory",
 		},
 		{
-			Name:    "missing-ca-path-dualstack",
-			Flags:   []string{"-proxy-id", "test-proxy", "-ca-path", "some/path"},
+			Name:        "missing-ca-path-dualstack",
+			Flags:       []string{"-proxy-id", "test-proxy", "-ca-path", "some/path"},
 			IsDualStack: true,
-			WantErr: "lstat some/path: no such file or directory",
+			WantErr:     "lstat some/path: no such file or directory",
 		},
 		{
 			Name:      "existing-ca-path",
@@ -1218,11 +1218,11 @@ func TestGenerateConfig(t *testing.T) {
 			},
 		},
 		{
-			Name:      "existing-ca-path-dualstack",
-			TLSServer: true,
-			Flags:     []string{"-proxy-id", "test-proxy", "-grpc-ca-path", "../../../test/ca_path/"},
+			Name:        "existing-ca-path-dualstack",
+			TLSServer:   true,
+			Flags:       []string{"-proxy-id", "test-proxy", "-grpc-ca-path", "../../../test/ca_path/"},
 			IsDualStack: true,
-			Env:       []string{"CONSUL_GRPC_ADDR=https://127.0.0.1:8502"},
+			Env:         []string{"CONSUL_GRPC_ADDR=https://127.0.0.1:8502"},
 			WantArgs: BootstrapTplArgs{
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
@@ -1296,8 +1296,8 @@ func TestGenerateConfig(t *testing.T) {
 			},
 		},
 		{
-			Name:  "custom-bootstrap-dualstack",
-			Flags: []string{"-proxy-id", "test-proxy"},
+			Name:        "custom-bootstrap-dualstack",
+			Flags:       []string{"-proxy-id", "test-proxy"},
 			IsDualStack: true,
 			ProxyConfig: map[string]interface{}{
 				// Add a completely custom bootstrap template. Never mind if this is
@@ -1384,8 +1384,8 @@ func TestGenerateConfig(t *testing.T) {
 			},
 		},
 		{
-			Name:  "extra_-single-dualstack",
-			Flags: []string{"-proxy-id", "test-proxy"},
+			Name:        "extra_-single-dualstack",
+			Flags:       []string{"-proxy-id", "test-proxy"},
 			IsDualStack: true,
 			ProxyConfig: map[string]interface{}{
 				// Add a custom sections with interpolated variables. These are all
@@ -1464,8 +1464,8 @@ func TestGenerateConfig(t *testing.T) {
 			},
 		},
 		{
-			Name:  "extra_-multiple-dualstack",
-			Flags: []string{"-proxy-id", "test-proxy"},
+			Name:        "extra_-multiple-dualstack",
+			Flags:       []string{"-proxy-id", "test-proxy"},
 			IsDualStack: true,
 			ProxyConfig: map[string]interface{}{
 				// Add a custom sections with interpolated variables. These are all
@@ -1529,15 +1529,15 @@ func TestGenerateConfig(t *testing.T) {
 					AgentPort:    "8502",
 				},
 				AdminAccessLogPath:    "/dev/null",
-				AdminBindAddress:       "127.0.0.1",
+				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
 				PrometheusScrapePath:  "/metrics",
 			},
 		},
 		{
-			Name:  "stats-config-override-dualstack",
-			Flags: []string{"-proxy-id", "test-proxy"},
+			Name:        "stats-config-override-dualstack",
+			Flags:       []string{"-proxy-id", "test-proxy"},
 			IsDualStack: true,
 			ProxyConfig: map[string]interface{}{
 				// Add a custom sections with interpolated variables. These are all
@@ -1625,8 +1625,8 @@ func TestGenerateConfig(t *testing.T) {
 			},
 		},
 		{
-			Name:  "zipkin-tracing-config-dualstack",
-			Flags: []string{"-proxy-id", "test-proxy"},
+			Name:        "zipkin-tracing-config-dualstack",
+			Flags:       []string{"-proxy-id", "test-proxy"},
 			IsDualStack: true,
 			ProxyConfig: map[string]interface{}{
 				// Add a custom sections with interpolated variables. These are all
