@@ -706,10 +706,22 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 			if destination != nil {
 				// Gateway API: Path rewrite using replacePrefixMatch results in // or no rewrite CSL-12379-fix
 				if destination.PrefixRewrite == "" || destination.PrefixRewrite == "/" {
-					// Use RegexRewrite for stripping the prefix (e.g., /v1 -> /)
+					// Build the basic regex pattern
+					regexPattern := fmt.Sprintf(`^%s(/?)(.*)`, regexp.QuoteMeta(routeMatch.GetPrefix()))
+
+					// Check if the route match is case-insensitive.
+					// The proto field is CaseSensitive; 'false' means case-insensitive.
+					isCaseInsensitive := routeMatch.CaseSensitive != nil && !routeMatch.CaseSensitive.Value
+
+					// If the match is case-insensitive, the rewrite regex must be too.
+					if isCaseInsensitive {
+						// Prepend the regex flag for case-insensitivity
+						regexPattern = "(?i)" + regexPattern
+					}
+
 					routeAction.Route.RegexRewrite = &envoy_matcher_v3.RegexMatchAndSubstitute{
 						Pattern: &envoy_matcher_v3.RegexMatcher{
-							Regex: fmt.Sprintf(`^%s(/?)(.*)`, regexp.QuoteMeta(routeMatch.GetPrefix())),
+							Regex: regexPattern,
 						},
 						Substitution: `/\2`,
 					}
