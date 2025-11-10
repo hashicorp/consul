@@ -846,12 +846,6 @@ func makeTestRoute(t *testing.T, fixtureName string) *envoy_route_v3.RouteConfig
 									ClusterSpecifier: &envoy_route_v3.RouteAction_Cluster{
 										Cluster: "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
 									},
-									RegexRewrite: &envoy_matcher_v3.RegexMatchAndSubstitute{
-										Pattern: &envoy_matcher_v3.RegexMatcher{
-											Regex: fmt.Sprintf(`^%s(/?)(.*)`, regexp.QuoteMeta("/")),
-										},
-										Substitution: `/\2`,
-									},
 								},
 							},
 						},
