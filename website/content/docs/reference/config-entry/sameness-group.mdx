@@ -5,6 +5,11 @@ description: >-
   Sameness groups enable Consul to associate service instances with the same name deployed to the same namespace as identical services. Learn how to configure a `sameness-group` configuration entry to enable failover between partitions and cluster peers in non-federated networks.
 ---
 
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
 # Sameness group configuration entry reference
 
 This page provides reference information for sameness group configuration entries. Sameness groups associate identical admin partitions to facilitate traffic between identical services. When partitions are part of the same Consul datacenter, you can create a sameness group by listing them in the `Members[].Partition` field. When partitions are located on remote clusters, you must establish cluster peering connections between remote partitions in order to add them to a sameness group in the `Members[].Peer` field.

@@ -5,6 +5,11 @@ description: >-
   The Consul-Terraform-Sync (CTS) security model details requirements and recommendations for securing your CTS deployment. Learn about potential threats and how to protect CTS from malicious actors.
 ---
 
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
 # Consul-Terraform-Sync (CTS) security model
 
 Network Infrastructure Automation (NIA) enables dynamic updates to network infrastructure devices triggered by service changes using the [Consul-Terraform-Sync](https://github.com/hashicorp/consul-terraform-sync) (`consul-terraform-sync`) daemon. This daemon uses Consul's catalog to monitor networking information about services along with [Terraform](https://www.terraform.io/)'s provider ecosystem to apply relevant changes to network infrastructure.

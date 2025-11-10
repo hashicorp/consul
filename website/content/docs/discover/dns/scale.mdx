@@ -5,6 +5,11 @@ description: ->
     You tune Consul DNS query handling to balance between current information and reducing request response time. Learn how to enable caching by modifying TTL values, how to return stale results from the DNS cache, and how to configure Consul for negative response caching.
 ---
 
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
 # Scale Consul DNS
 
 This page describes the process to return cached results in response to DNS lookups. Consul agents can use DNS caching to reduce response time, but might provide stale information in the process.

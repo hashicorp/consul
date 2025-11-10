@@ -4,6 +4,11 @@ description: |-
   Learn how to create sameness groups between partitions and cluster peers so that Consul can identify instances of the same service across partitions and datacenters.
 ---
 
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
 # Create sameness groups
 
 This page describes how to create a sameness group, which designates a set of admin partitions as functionally identical in your network. Adding an admin partition to a sameness group enables Consul to recognize services registered to remote partitions with cluster peering connections as instances of the same service when they share a name and namespace.

@@ -5,6 +5,11 @@ description: >-
   When running on Kubernetes, Consul’s control plane architecture does not change significantly. Server agents are deployed as a StatefulSet with a persistent volume, while client agents can run as a k8s DaemonSet with an exposed API port or be omitted with Consul Dataplanes.
 ---
 
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
 # Consul on Kubernetes architecture
 
 This topic describes the architecture, components, and resources associated with Consul deployments to Kubernetes. Consul employs the same architectural design on Kubernetes as it does with other platforms, but Kubernetes provides additional benefits that make operating a Consul cluster easier. Refer to [Consul control plane architecture](/consul/docs/architecture/control-plane) for more general information on Consul's architecture.

@@ -1,5 +1,9 @@
 # Consul Website
 
+[!IMPORTANT]
+
+> **Documentation Update:** Product documentation, which were located in this repository under `/website`, are now located in [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs), colocated with all other product documentation. Contributions to this content should be done in the `web-unified-docs` repo, and not this one. Changes made to `/website` content in this repo will not be reflected on the developer.hashicorp.com website.
+
 This subdirectory contains the entire source for the [Consul Website](https://consul.io/). This is a [NextJS](https://nextjs.org/) project, which builds a static site from these source files.
 
 <!--

@@ -5,6 +5,11 @@ description: >-
    Learn how to create and distribute TLS certificates to server and client agents using OpenSSL as your certificate authority (CA).
 ---
 
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
 # Enable TLS encryption with OpenSSL
 
 This page describes how to use OpenSSL to enable TLS encryption to secure Consul agent communication. Consul supports using TLS to verify the authenticity of servers and clients. To enable TLS, Consul requires that all servers have certificates that are signed by a single certificate authority (CA). Clients should also have certificates that are authenticated with the same CA.
