@@ -12,9 +12,9 @@ load helpers
 }
 
 @test "api gateway should have no healthy endpoints for s1" {
-  assert_upstream_missing 127.0.0.1:20000 s1
+  assert_upstream_missing localhost:20000 s1
 }
 
 @test "api gateway should have no healthy endpoints for s2" {
-  assert_upstream_missing 127.0.0.1:20000 s2
+  assert_upstream_missing localhost:20000 s2
 }

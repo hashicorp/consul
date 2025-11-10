@@ -46,8 +46,8 @@ load helpers
 # Failover
 
 @test "s1 upstream should have healthy endpoints for s2 in both primary and failover" {
-  assert_upstream_has_endpoints_in_status 127.0.0.1:19000 failover-target~0~s2.default.primary.internal HEALTHY 1
-  assert_upstream_has_endpoints_in_status 127.0.0.1:19000 failover-target~1~s2.default.primary.internal HEALTHY 1
+  assert_upstream_has_endpoints_in_status localhost:19000 failover-target~0~s2.default.primary.internal HEALTHY 1
+  assert_upstream_has_endpoints_in_status localhost:19000 failover-target~1~s2.default.primary.internal HEALTHY 1
 }
 
 @test "s1 upstream should be able to connect to s2" {
@@ -57,7 +57,7 @@ load helpers
 }
 
 @test "s1 upstream made 1 connection" {
-  assert_envoy_metric_at_least 127.0.0.1:19000 "cluster.failover-target~0~s2.default.primary.internal.*cx_total" 1
+  assert_envoy_metric_at_least localhost:19000 "cluster.failover-target~0~s2.default.primary.internal.*cx_total" 1
 }
 
 @test "terminate instance of s2 primary envoy which should trigger failover to s2 alpha when the tcp check fails" {
@@ -69,12 +69,12 @@ load helpers
 }
 
 @test "s1 upstream should have healthy endpoints for s2 in the failover cluster peer" {
-  assert_upstream_has_endpoints_in_status 127.0.0.1:19000 failover-target~0~s2.default.primary.internal UNHEALTHY 1
-  assert_upstream_has_endpoints_in_status 127.0.0.1:19000 failover-target~1~s2.default.primary.internal HEALTHY 1
+  assert_upstream_has_endpoints_in_status localhost:19000 failover-target~0~s2.default.primary.internal UNHEALTHY 1
+  assert_upstream_has_endpoints_in_status localhost:19000 failover-target~1~s2.default.primary.internal HEALTHY 1
 }
 
 @test "reset envoy statistics for failover" {
-  reset_envoy_metrics 127.0.0.1:19000
+  reset_envoy_metrics localhost:19000
 }
 
 @test "gateway-alpha should have healthy endpoints for s2" {
@@ -88,17 +88,17 @@ load helpers
 }
 
 @test "s1 upstream made 1 connection to s2 through the cluster peer" {
-  assert_envoy_metric_at_least 127.0.0.1:19000 "cluster.failover-target~1~s2.default.primary.internal.*cx_total" 1
+  assert_envoy_metric_at_least localhost:19000 "cluster.failover-target~1~s2.default.primary.internal.*cx_total" 1
 }
 
 # Redirect
 
 @test "reset envoy statistics for redirect" {
-  reset_envoy_metrics 127.0.0.1:19000
+  reset_envoy_metrics localhost:19000
 }
 
 @test "s1 upstream should have healthy endpoints for s2 (virtual-s2) in the cluster peer" {
-  assert_upstream_has_endpoints_in_status 127.0.0.1:19000 s2.default.primary-to-alpha.external HEALTHY 1
+  assert_upstream_has_endpoints_in_status localhost:19000 s2.default.primary-to-alpha.external HEALTHY 1
 }
 
 @test "s1 upstream should be able to connect to s2 via virtual-s2" {
@@ -108,5 +108,5 @@ load helpers
 }
 
 @test "s1 upstream made 1 connection to s2 via virtual-s2 through the cluster peer" {
-  assert_envoy_metric_at_least 127.0.0.1:19000 "cluster.s2.default.primary-to-alpha.external.*cx_total" 1
+  assert_envoy_metric_at_least localhost:19000 "cluster.s2.default.primary-to-alpha.external.*cx_total" 1
 }

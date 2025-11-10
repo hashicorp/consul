@@ -13,12 +13,12 @@ load helpers
 
 @test "api gateway should have healthy endpoints for s1" {
   assert_config_entry_status Bound True Bound primary http-route api-gateway-route-one
-  assert_upstream_has_endpoints_in_status 127.0.0.1:20000 s1 HEALTHY 1
+  assert_upstream_has_endpoints_in_status localhost:20000 s1 HEALTHY 1
 }
 
 @test "api gateway should have healthy endpoints for s2" {
   assert_config_entry_status Bound True Bound primary http-route api-gateway-route-two
-  assert_upstream_has_endpoints_in_status 127.0.0.1:20000 s2 HEALTHY 1
+  assert_upstream_has_endpoints_in_status localhost:20000 s2 HEALTHY 1
 }
 
 @test "api gateway should be able to connect to s1 via configured port" {

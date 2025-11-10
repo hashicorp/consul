@@ -46,6 +46,7 @@ function retry_default {
 }
 
 function retry_long {
+  echo "Starting long retry for command: $@"
   retry 30 1 "$@"
 }
 
