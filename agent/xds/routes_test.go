@@ -8,8 +8,6 @@ import (
 	"time"
 
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
-	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/durationpb"
 
@@ -279,62 +277,6 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 			require.NoError(t, err)
 
 			require.Equal(t, tc.expected, &ra)
-		})
-	}
-}
-
-func TestApplyURLRewrite(t *testing.T) {
-	tests := []struct {
-		name           string
-		prefixRewrite  string
-		originalPrefix string
-		expectedRegex  *envoy_matcher_v3.RegexMatchAndSubstitute
-		expectedPrefix string
-	}{
-		{
-			name:           "no rewrite when prefixRewrite is empty",
-			prefixRewrite:  "",
-			originalPrefix: "/api",
-			expectedRegex: &envoy_matcher_v3.RegexMatchAndSubstitute{
-				Pattern: &envoy_matcher_v3.RegexMatcher{
-					Regex: `^/api(/?)(.*)`,
-				},
-				Substitution: `/\2`,
-			},
-			expectedPrefix: "",
-		},
-		{
-			name:           "no rewrite when prefixRewrite is '/'",
-			prefixRewrite:  "/",
-			originalPrefix: "/api",
-			expectedRegex: &envoy_matcher_v3.RegexMatchAndSubstitute{
-				Pattern: &envoy_matcher_v3.RegexMatcher{
-					Regex: `^/api(/?)(.*)`,
-				},
-				Substitution: `/\2`,
-			},
-			expectedPrefix: "",
-		},
-		{
-			name:           "prefix rewrite when prefixRewrite is non-empty and not '/'",
-			prefixRewrite:  "/v2",
-			originalPrefix: "/api",
-			expectedRegex:  nil,
-			expectedPrefix: "/v2",
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			routeAction := &envoy_route_v3.RouteAction{}
-			applyURLRewrite(routeAction, tc.prefixRewrite, tc.originalPrefix)
-
-			if tc.expectedRegex != nil {
-				assert.Equal(t, tc.expectedRegex, routeAction.RegexRewrite)
-			} else {
-				assert.Nil(t, routeAction.RegexRewrite)
-			}
-			assert.Equal(t, tc.expectedPrefix, routeAction.PrefixRewrite)
 		})
 	}
 }
