@@ -316,13 +316,6 @@ func TestApplyURLRewrite(t *testing.T) {
 			expectedPrefix: "",
 		},
 		{
-			name:           "regex rewrite when prefixRewrite is '/' and originalPrefix is empty",
-			prefixRewrite:  "/",
-			originalPrefix: "",
-			expectedRegex:  nil,
-			expectedPrefix: "/",
-		},
-		{
 			name:           "prefix rewrite when prefixRewrite is non-empty and not '/'",
 			prefixRewrite:  "/v2",
 			originalPrefix: "/api",

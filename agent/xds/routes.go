@@ -1248,7 +1248,7 @@ func injectHeaderManipToWeightedCluster(split *structs.ServiceSplit, c *envoy_ro
 
 // applyURLRewrite configures the correct Envoy rewrite (Regex or Prefix) on a route.
 func applyURLRewrite(route *envoy_route_v3.RouteAction, prefixRewrite string, matchPrefix string) {
-	if prefixRewrite == "" || prefixRewrite == "/" && matchPrefix != "" {
+	if prefixRewrite == "" || prefixRewrite == "/" {
 		// Use RegexRewrite for stripping the prefix (e.g., /v1 -> /)
 		route.RegexRewrite = &envoy_matcher_v3.RegexMatchAndSubstitute{
 			Pattern: &envoy_matcher_v3.RegexMatcher{
