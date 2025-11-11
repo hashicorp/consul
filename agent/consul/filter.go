@@ -5,7 +5,9 @@ package consul
 
 import (
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/go-memdb"
 )
 
 type dirEntFilter struct {
@@ -115,4 +117,20 @@ func FilterEntries(f Filter) int {
 
 	// Return the size of the slice
 	return dst
+}
+
+func FilterKVList(state *state.Store, ws memdb.WatchSet, prefix string, entMeta *acl.EnterpriseMeta,
+	queryMeta *structs.QueryMeta, queryOptions structs.QueryOptions) (uint64, structs.DirEntries, error) {
+	// If the UpdatesOnly query option is set, utilize MinQueryIndex to only
+	// get back entries that have a ModifyIndex >= than that value.
+	//
+	// MinQueryIndex represents the minimum query index for blocking queries,
+	// corresponding to the index HTTP query parameter and the WaitIndex
+	// client-side parameter, after deserialization.
+	minQueryIndex := uint64(0)
+	if queryOptions.UpdatesOnly {
+		minQueryIndex = queryOptions.MinQueryIndex
+	}
+
+	return state.KVSList(ws, prefix, entMeta, minQueryIndex)
 }

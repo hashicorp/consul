@@ -204,16 +204,16 @@ func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) e
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, ent, err := state.KVSList(ws, args.Key, &args.EnterpriseMeta)
+			index, entries, err := FilterKVList(state, ws, args.Key, &args.EnterpriseMeta, &reply.QueryMeta, args.QueryOptions)
 			if err != nil {
 				return err
 			}
 
-			total := len(ent)
-			ent = FilterDirEnt(authz, ent)
-			reply.ResultsFilteredByACLs = total != len(ent)
+			total := len(entries)
+			entries = FilterDirEnt(authz, entries)
+			reply.ResultsFilteredByACLs = total != len(entries)
 
-			if len(ent) == 0 {
+			if len(entries) == 0 {
 				// Must provide non-zero index to prevent blocking
 				// Index 1 is impossible anyways (due to Raft internals)
 				if index == 0 {
@@ -224,7 +224,7 @@ func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) e
 				reply.Entries = nil
 			} else {
 				reply.Index = index
-				reply.Entries = ent
+				reply.Entries = entries
 			}
 			return nil
 		})
@@ -259,7 +259,7 @@ func (k *KVS) ListKeys(args *structs.KeyListRequest, reply *structs.IndexedKeyLi
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, entries, err := state.KVSList(ws, args.Prefix, &args.EnterpriseMeta)
+			index, entries, err := FilterKVList(state, ws, args.Prefix, &args.EnterpriseMeta, &reply.QueryMeta, args.QueryOptions)
 			if err != nil {
 				return err
 			}

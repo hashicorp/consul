@@ -330,6 +330,10 @@ type QueryOptions struct {
 	// QueryMeta.Index, the response can be left empty and QueryMeta.NotModified
 	// will be set to true to indicate the result of the query has not changed.
 	AllowNotModifiedResponse bool `mapstructure:"allow-not-modified-response,omitempty"`
+
+	// UpdatesOnly is used to filter out K/V entries or keys with an old
+	// ModifyIndex in the state layer, before data is returned.
+	UpdatesOnly bool `mapstructure:"updates-only,omitempty"`
 }
 
 // IsRead is always true for QueryOption.
