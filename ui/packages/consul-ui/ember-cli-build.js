@@ -42,7 +42,7 @@ module.exports = function (defaults, $ = process.env) {
   ].map((item) => {
     return {
       name: item,
-      path: path.dirname(require.resolve(`${item}/package.json`)),
+      path: path.resolve(__dirname, '..', item),
     };
   });
 
