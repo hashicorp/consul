@@ -705,30 +705,14 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 
 			if destination != nil {
 				// Gateway API: Path rewrite using replacePrefixMatch results in // or no rewrite CSL-12379-fix
-				if destination.PrefixRewrite == "" || destination.PrefixRewrite == "/" {
-					// Build the basic regex pattern
-					regexPattern := fmt.Sprintf(`^%s(/?)(.*)`, regexp.QuoteMeta(routeMatch.GetPrefix()))
-
-					// Check if the route match is case-insensitive.
-					// The proto field is CaseSensitive; 'false' means case-insensitive.
-					isCaseInsensitive := routeMatch.CaseSensitive != nil && !routeMatch.CaseSensitive.Value
-
-					// If the match is case-insensitive, the rewrite regex must be too.
-					if isCaseInsensitive {
-						// Prepend the regex flag for case-insensitivity
-						regexPattern = "(?i)" + regexPattern
-					}
-
-					routeAction.Route.RegexRewrite = &envoy_matcher_v3.RegexMatchAndSubstitute{
-						Pattern: &envoy_matcher_v3.RegexMatcher{
-							Regex: regexPattern,
-						},
-						Substitution: `/\2`,
-					}
-				} else if destination.PrefixRewrite != "" {
-					// Use standard PrefixRewrite for replacement (e.g., /v2 -> /api/v2)
-					routeAction.Route.PrefixRewrite = destination.PrefixRewrite
+				// its a temporary fix for that issue as it needs to be fixed from envoy itself https://github.com/envoyproxy/envoy/issues/26055
+				ra := getRewriteActionForUserLogic(destination, routeMatch)
+				if ra != nil && ra.RegexRewrite != nil {
+					routeAction.Route.RegexRewrite = ra.RegexRewrite
+				} else if ra != nil && ra.PrefixRewrite != "" {
+					routeAction.Route.PrefixRewrite = ra.PrefixRewrite
 				}
+
 				if destination.RequestTimeout > 0 {
 					routeAction.Route.Timeout = durationpb.New(destination.RequestTimeout)
 				}
@@ -1266,4 +1250,40 @@ func injectHeaderManipToWeightedCluster(split *structs.ServiceSplit, c *envoy_ro
 		)
 	}
 	return nil
+}
+
+// getRewriteActionForUserLogic isolates the exact logic block you provided for testing.
+func getRewriteActionForUserLogic(destination *structs.ServiceRouteDestination, routeMatch *envoy_route_v3.RouteMatch) *envoy_route_v3.RouteAction {
+	routeAction := &envoy_route_v3.RouteAction{}
+
+	if destination != nil {
+		// --- THIS IS THE LOGIC UNDER TEST ---
+		if destination.PrefixRewrite == "" || destination.PrefixRewrite == "/" {
+			// Build the basic regex pattern
+			regexPattern := fmt.Sprintf(`^%s(/?)(.*)`, regexp.QuoteMeta(routeMatch.GetPrefix()))
+
+			// Check if the route match is case-insensitive.
+			// The proto field is CaseSensitive; 'false' means case-insensitive.
+			isCaseInsensitive := routeMatch.CaseSensitive != nil && !routeMatch.CaseSensitive.Value
+
+			// If the match is case-insensitive, the rewrite regex must be too.
+			if isCaseInsensitive {
+				// Prepend the regex flag for case-insensitivity
+				regexPattern = "(?i)" + regexPattern
+			}
+
+			routeAction.RegexRewrite = &envoy_matcher_v3.RegexMatchAndSubstitute{
+				Pattern: &envoy_matcher_v3.RegexMatcher{
+					Regex: regexPattern,
+				},
+				Substitution: `/\2`,
+			}
+		} else if destination.PrefixRewrite != "" {
+			// Use standard PrefixRewrite for replacement (e.g., /v2 -> /api/v2)
+			routeAction.PrefixRewrite = destination.PrefixRewrite
+		}
+		// --- END OF LOGIC UNDER TEST ---
+	}
+
+	return routeAction
 }
