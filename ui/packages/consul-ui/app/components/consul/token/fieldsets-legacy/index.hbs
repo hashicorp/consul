@@ -4,26 +4,16 @@
 }}
 
 <fieldset disabled={{if (not (can 'write token' item=@item)) 'disabled'}}>
-  <label class='type-text{{if @item.error.Name " has-error"}}'>
-    <span>Name</span>
-    <Input @value={{@item.Description}} name='name' autofocus='autofocus' />
-  </label>
-  {{#if false}}
-    <div role='radiogroup' class={{if @item.error.Type ' has-error'}}>
-      {{#each (array 'management' 'client') as |type|}}
-        <label>
-          <span>{{capitalize type}}</span>
-          <input
-            type='radio'
-            name='Type'
-            value='{{type}}'
-            checked={{if (eq @item.Type type) 'checked'}}
-            onchange={{@onChange}}
-          />
-        </label>
-      {{/each}}
-    </div>
-  {{/if}}
+  <Hds::Form::TextInput::Field
+    class='type-text'
+    @value={{@item.Description}}
+    @isInvalid={{@item.error.Name}}
+    name='name'
+    {{on 'input' @onChange}}
+    as |F|
+  >
+    <F.Label>Name</F.Label>
+  </Hds::Form::TextInput::Field>
   <label class='type-text'>
     <Hds::CodeEditor
       @ariaLabel='[Rules]'
@@ -43,10 +33,14 @@
     </Hds::CodeEditor>
   </label>
   {{#if @create}}
-    <label class='type-text'>
-      <span>ID</span>
-      <Input @value={{@item.ID}} />
-      <em>We'll generate a UUID if this field is left empty.</em>
-    </label>
+    <Hds::Form::TextInput::Field
+      class='type-text'
+      @value={{@item.ID}}
+      {{on 'input' @onChange}}
+      as |F|
+    >
+      <F.Label>ID</F.Label>
+      <F.HelperText>We'll generate a UUID if this field is left empty.</F.HelperText>
+    </Hds::Form::TextInput::Field>
   {{/if}}
 </fieldset>
