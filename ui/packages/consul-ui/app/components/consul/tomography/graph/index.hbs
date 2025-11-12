@@ -8,13 +8,13 @@
   ...attributes
 >
   <svg width={{this.size}} height={{this.size}}>
-      <g transform="translate({{div this.size 2}}, {{div this.size 2}})">
+      <g transform="translate({{div this.size 2}}, {{div this.size 2}}">
           <g>
-              <circle class="background" r={{this.circle.[0]}} />
-              <circle class="axis" r={{this.circle.[1]}} />
-              <circle class="axis" r={{this.circle.[2]}} />
-              <circle class="axis" r={{this.circle.[3]}} />
-              <circle class="border" r={{this.circle.[4]}} />
+              <circle class="background" r={{get this.circle "0"}} />
+              <circle class="axis" r={{get this.circle "1"}} />
+              <circle class="axis" r={{get this.circle "2"}} />
+              <circle class="axis" r={{get this.circle "3"}} />
+              <circle class="border" r={{get this.circle "4"}} />
           </g>
           <g class="lines">
       {{#each this.distances as |item|}}
@@ -28,7 +28,7 @@
                 allowHTML=true
               )
             }}
-            transform="rotate({{item.rotate}})"
+            transform="rotate({{item.rotate}}"
             width={{item.y2}}
             height="1"
           />
@@ -36,21 +36,21 @@
           </g>
           <g class="labels">
               <circle class="point" r="5" />
-              <g class="tick" transform="translate(0, {{this.labels.[0]}})">
+              <g class="tick" transform="translate(0, {{get this.labels "0"}}">
                   <line x2="70" />
-                  <text x="75" y="0" dy=".32em">{{format-number this.milliseconds.[0] maximumFractionDigits=2}}ms</text>
+                  <text x="75" y="0" dy=".32em">{{format-number (get this.milliseconds "0") maximumFractionDigits=2}}ms</text>
               </g>
-              <g class="tick" transform="translate(0, {{this.labels.[1]}})">
+              <g class="tick" transform="translate(0, {{get this.labels "1"}}">
                   <line x2="70" />
-                  <text x="75" y="0" dy=".32em">{{format-number this.milliseconds.[1] maximumFractionDigits=2}}ms</text>
+                  <text x="75" y="0" dy=".32em">{{format-number (get this.milliseconds "1") maximumFractionDigits=2}}ms</text>
               </g>
-              <g class="tick" transform="translate(0, {{this.labels.[2]}})">
+              <g class="tick" transform="translate(0, {{get this.labels "2"}}">
                   <line x2="70" />
-                  <text x="75" y="0" dy=".32em">{{format-number this.milliseconds.[2] maximumFractionDigits=2}}ms</text>
+                  <text x="75" y="0" dy=".32em">{{format-number (get this.milliseconds "2") maximumFractionDigits=2}}ms</text>
               </g>
-              <g class="tick" transform="translate(0, {{this.labels.[3]}})">
+              <g class="tick" transform="translate(0, {{get this.labels "3"}}">
                   <line x2="70" />
-                  <text x="75" y="0" dy=".32em">{{format-number this.milliseconds.[3] maximumFractionDigits=2}}ms</text>
+                  <text x="75" y="0" dy=".32em">{{format-number (get this.milliseconds "3") maximumFractionDigits=2}}ms</text>
               </g>
           </g>
       </g>
