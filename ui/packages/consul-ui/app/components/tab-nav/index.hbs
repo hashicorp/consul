@@ -29,8 +29,8 @@
     <ul>
       {{#each @items as |item|}}
         <li
-          {{on 'click' (fn select)}}
-          {{did-upsert (if item.selected (fn select) (noop)) @items.length}}
+          {{on 'click' select}}
+          {{did-upsert (if item.selected select (noop)) @items.length}}
           data-test-tab={{concat name '_' (if item.label (slugify item.label) (slugify item))}}
           class={{if
             (or item.selected (eq this.selected (if item.label (slugify item.label) (slugify item))))
