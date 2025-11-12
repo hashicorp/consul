@@ -8,8 +8,10 @@ import (
 	"time"
 
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -279,4 +281,92 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 			require.Equal(t, tc.expected, &ra)
 		})
 	}
+}
+
+// TestUserRewriteLogic validates all paths for the provided rewrite logic.
+func TestUserRewriteLogic(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Standard rewrite (e.g., /v2 -> /api/v2)", func(t *testing.T) {
+		t.Parallel()
+		dest := &structs.ServiceRouteDestination{
+			PrefixRewrite: "/api/v2-rewritten",
+		}
+		match := &envoy_route_v3.RouteMatch{
+			PathSpecifier: &envoy_route_v3.RouteMatch_Prefix{
+				Prefix: "/v2",
+			},
+		}
+
+		action := getRewriteActionForUserLogic(dest, match)
+
+		// EXPECT: Uses PrefixRewrite
+		assert.Equal(t, "/api/v2-rewritten", action.GetPrefixRewrite())
+		assert.Nil(t, action.GetRegexRewrite())
+	})
+
+	t.Run("Special / rewrite (case-sensitive)", func(t *testing.T) {
+		t.Parallel()
+		dest := &structs.ServiceRouteDestination{
+			PrefixRewrite: "/",
+		}
+		match := &envoy_route_v3.RouteMatch{
+			PathSpecifier: &envoy_route_v3.RouteMatch_Prefix{
+				Prefix: "/v1",
+			},
+			CaseSensitive: wrapperspb.Bool(true), // Explicitly case-sensitive
+		}
+
+		action := getRewriteActionForUserLogic(dest, match)
+
+		// EXPECT: Uses RegexRewrite
+		assert.Empty(t, action.GetPrefixRewrite())
+		require.NotNil(t, action.GetRegexRewrite())
+		assert.Equal(t, `^/v1(/?)(.*)`, action.GetRegexRewrite().Pattern.GetRegex())
+		assert.Equal(t, `/\2`, action.GetRegexRewrite().GetSubstitution())
+	})
+
+	t.Run("Special / rewrite (case-insensitive)", func(t *testing.T) {
+		t.Parallel()
+		dest := &structs.ServiceRouteDestination{
+			PrefixRewrite: "/",
+		}
+		match := &envoy_route_v3.RouteMatch{
+			PathSpecifier: &envoy_route_v3.RouteMatch_Prefix{
+				Prefix: "/prefix-case-insensitive/",
+			},
+			CaseSensitive: wrapperspb.Bool(false), // Case-insensitive
+		}
+
+		action := getRewriteActionForUserLogic(dest, match)
+
+		// EXPECT: Uses case-insensitive RegexRewrite
+		assert.Empty(t, action.GetPrefixRewrite())
+		require.NotNil(t, action.GetRegexRewrite())
+		assert.Equal(t, `(?i)^/prefix-case-insensitive/(/?)(.*)`, action.GetRegexRewrite().Pattern.GetRegex())
+		assert.Equal(t, `/\2`, action.GetRegexRewrite().GetSubstitution())
+	})
+
+	t.Run("No rewrite (Buggy Case)", func(t *testing.T) {
+		t.Parallel()
+		dest := &structs.ServiceRouteDestination{
+			PrefixRewrite: "", // No rewrite defined
+		}
+		match := &envoy_route_v3.RouteMatch{
+			PathSpecifier: &envoy_route_v3.RouteMatch_Prefix{
+				Prefix: "/foo",
+			},
+		}
+
+		action := getRewriteActionForUserLogic(dest, match)
+
+		// EXPECT (based on your code): This FAILS.
+		// It enters the `if` block because `destination.PrefixRewrite == ""` is true.
+		assert.Empty(t, action.GetPrefixRewrite())
+		require.NotNil(t, action.GetRegexRewrite(), "This assertion fails because your logic incorrectly creates a RegexRewrite")
+
+		// This test proves the logic is applying a rewrite when it shouldn't be.
+		assert.Equal(t, `^/foo(/?)(.*)`, action.GetRegexRewrite().Pattern.GetRegex())
+		assert.Equal(t, `/\2`, action.GetRegexRewrite().GetSubstitution())
+	})
 }
