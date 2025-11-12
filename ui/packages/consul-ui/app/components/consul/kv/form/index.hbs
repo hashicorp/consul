@@ -24,7 +24,6 @@
             <label data-test-kv-key class='type-text{{if api.data.error.Key " has-error"}}'>
               <span>Key or folder</span>
               <input
-                autofocus='autofocus'
                 type='text'
                 value={{left-trim api.data.Key @parent}}
                 name='additional'
@@ -78,7 +77,6 @@
                   <span>Value</span>
                   <textarea
                     {{disabled (or disabld api.disabled)}}
-                    autofocus={{not api.isCreate}}
                     name='value'
                     oninput={{action api.change}}
                   >{{atob api.data.Value}}</textarea>
