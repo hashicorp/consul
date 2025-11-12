@@ -37,6 +37,12 @@
               "route": {
                 "cluster": "service.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
                 "idleTimeout": "30s",
+                "regexRewrite": {
+                  "pattern": {
+                    "regex": "^/(/?)(.*)"
+                  },
+                  "substitution": "/\\2"
+                },
                 "retryPolicy": {
                   "numRetries": 3,
                   "retriableStatusCodes": [

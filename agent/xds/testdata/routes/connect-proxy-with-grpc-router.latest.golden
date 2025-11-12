@@ -16,7 +16,13 @@
                 "path": "/fgrpc.PingServer/Ping"
               },
               "route": {
-                "cluster": "prefix.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+                "cluster": "prefix.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "regexRewrite": {
+                  "pattern": {
+                    "regex": "^(/?)(.*)"
+                  },
+                  "substitution": "/\\2"
+                }
               }
             },
             {
@@ -24,7 +30,13 @@
                 "prefix": "/"
               },
               "route": {
-                "cluster": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+                "cluster": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "regexRewrite": {
+                  "pattern": {
+                    "regex": "^/(/?)(.*)"
+                  },
+                  "substitution": "/\\2"
+                }
               }
             }
           ]
