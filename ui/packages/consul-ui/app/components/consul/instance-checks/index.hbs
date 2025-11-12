@@ -18,7 +18,7 @@ as |grouped|}}
     )
   as |checks|}}
     {{#let
-      checks.firstObject.Status
+      (get checks "0.Status")
     as |status|}}
     <dl
       class={{class-map
