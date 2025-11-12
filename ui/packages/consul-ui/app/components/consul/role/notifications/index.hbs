@@ -22,7 +22,7 @@
     There was an error deleting your role.
   {{/if}}
 {{/if}}
-{{#let @error.errors.firstObject as |error|}}
+{{#let (get @error.errors "0") as |error|}}
   {{#if error.detail }}
     <br />{{concat '(' (if error.status (concat error.status ': ')) error.detail ')'}}
   {{/if}}
