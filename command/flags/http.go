@@ -38,7 +38,7 @@ func (f *HTTPFlags) ClientFlags() *flag.FlagSet {
 		"The `address` and port of the Consul HTTP agent. The value can be an IP "+
 			"address or DNS address, but it must also include the port. This can "+
 			"also be specified via the CONSUL_HTTP_ADDR environment variable. The "+
-			"default value is http://127.0.0.1:8500. The scheme can also be set to "+
+			"default value is http://localhost:8500. The scheme can also be set to "+
 			"HTTPS by setting the environment variable CONSUL_HTTP_SSL=true.")
 	fs.Var(&f.token, "token",
 		"ACL token to use in the request. This can also be specified via the "+
