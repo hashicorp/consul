@@ -70,7 +70,7 @@ as |item|}}
           <DataSink
             @data={{item}}
             @sink='settings://consul:client'
-            @onchange={{action (fn disclosure.close)}}
+            @onchange={{action disclosure.close}}
           />
         </disclosure.Details>
         <fieldset data-test-blocking-queries>
@@ -81,7 +81,7 @@ as |item|}}
               <input
                 {{on 'change' (queue
                   (set item 'blocking' (not item.blocking))
-                  (fn disclosure.open)
+                  disclosure.open
                 )}}
                 type="checkbox"
                 name="client[blocking]"
