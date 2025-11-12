@@ -1,3 +1,8 @@
+## 1.22.1
+BUG FIXES:
+* proxy: fixed RBAC failure in upstream service when there are more than one downstream exported service with same name but different peer
+
+
 ## 1.22.0 Enterprise (October 24, 2025)
 
 SECURITY:
