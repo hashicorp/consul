@@ -13,7 +13,7 @@ as |route|>
         nspace=route.params.nspace
         dc=route.params.dc
         name=route.params.name
-        kind=(or route.model.items.firstObject.Service.Kind '')
+        kind=(or (get route.model.items "firstObject.Service.Kind") '')
       )
   }} as |loader|>
 
@@ -157,16 +157,16 @@ as |nspace dc items topology|}}
       <TopologyMetrics
         @nspace={{nspace}}
         @dc={{dc}}
-        @service={{items.firstObject}}
+        @service={{get items "firstObject"}}
         @topology={{topology}}
 
         @metricsHref={{render-template config.data.dashboard_url_templates.service
           (hash
             Datacenter=dc.Name
             Service=(hash
-              Name=items.firstObject.Name
-              Namespace=(or items.firstObject.Namespace '')
-              Partition=(or items.firstObject.Partition '')
+              Name=(get items "firstObject.Name")
+              Namespace=(or (get items "firstObject.Namespace") '')
+              Partition=(or (get items "firstObject.Partition") '')
             )
           )
         }}
