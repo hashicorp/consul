@@ -6,7 +6,7 @@
 <fieldset disabled={{if (not (can 'write token' item=@item)) 'disabled'}}>
   <label class='type-text{{if @item.error.Name " has-error"}}'>
     <span>Name</span>
-    <Input @value={{@item.Description}} @name='name' @autofocus='autofocus' />
+    <Input @value={{@item.Description}} name='name' autofocus='autofocus' />
   </label>
   {{#if false}}
     <div role='radiogroup' class={{if @item.error.Type ' has-error'}}>
