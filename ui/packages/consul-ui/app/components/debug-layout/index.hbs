@@ -31,7 +31,7 @@
     {{/each}}
   </:notifications>
 
-  <:side-nav>
+  <:sideNav>
     <Hds::SideNav @hasA11yRefocus={{false}} @isResponsive={{true}} class='consul-side-nav'>
       <:header>
         <Hds::SideNav::Header>
@@ -92,7 +92,7 @@
         </DocfyOutput>
       </:body>
     </Hds::SideNav>
-  </:side-nav>
+  </:sideNav>
   <:main>
     <DocfyOutput @fromCurrentURL={{true}} as |page|>
       {{yield}}
