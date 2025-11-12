@@ -28,6 +28,7 @@
   </header>
 {{#if (gt @item.Definition.Match.HTTP.Header.length 0) }}
   <section class="match-headers">
+    {{!-- template-lint-disable no-duplicate-landmark-elements --}}
     <header {{tooltip 'Header'}}>
       <h4>Headers</h4>
     </header>
@@ -45,6 +46,7 @@
 {{/if}}
 {{#if (gt @item.Definition.Match.HTTP.QueryParam.length 0) }}
   <section class="match-queryparams">
+    {{!-- template-lint-disable no-duplicate-landmark-elements --}}
     <header {{tooltip 'Query Params'}}>
       <h4>Query Params</h4>
     </header>
