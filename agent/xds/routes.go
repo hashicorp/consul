@@ -1256,34 +1256,35 @@ func injectHeaderManipToWeightedCluster(split *structs.ServiceSplit, c *envoy_ro
 func getRewriteActionForUserLogic(destination *structs.ServiceRouteDestination, routeMatch *envoy_route_v3.RouteMatch) *envoy_route_v3.RouteAction {
 	routeAction := &envoy_route_v3.RouteAction{}
 
-	if destination != nil {
-		// --- THIS IS THE LOGIC UNDER TEST ---
-		if destination.PrefixRewrite == "" || destination.PrefixRewrite == "/" {
-			// Build the basic regex pattern
-			regexPattern := fmt.Sprintf(`^%s(/?)(.*)`, regexp.QuoteMeta(routeMatch.GetPrefix()))
-
-			// Check if the route match is case-insensitive.
-			// The proto field is CaseSensitive; 'false' means case-insensitive.
-			isCaseInsensitive := routeMatch.CaseSensitive != nil && !routeMatch.CaseSensitive.Value
-
-			// If the match is case-insensitive, the rewrite regex must be too.
-			if isCaseInsensitive {
-				// Prepend the regex flag for case-insensitivity
-				regexPattern = "(?i)" + regexPattern
-			}
-
-			routeAction.RegexRewrite = &envoy_matcher_v3.RegexMatchAndSubstitute{
-				Pattern: &envoy_matcher_v3.RegexMatcher{
-					Regex: regexPattern,
-				},
-				Substitution: `/\2`,
-			}
-		} else if destination.PrefixRewrite != "" {
-			// Use standard PrefixRewrite for replacement (e.g., /v2 -> /api/v2)
-			routeAction.PrefixRewrite = destination.PrefixRewrite
-		}
-		// --- END OF LOGIC UNDER TEST ---
+	if destination == nil {
+		return routeAction
 	}
+	// --- THIS IS THE LOGIC UNDER TEST ---
+	if destination.PrefixRewrite == "" || destination.PrefixRewrite == "/" {
+		// Build the basic regex pattern
+		regexPattern := fmt.Sprintf(`^%s(/?)(.*)`, regexp.QuoteMeta(routeMatch.GetPrefix()))
+
+		// Check if the route match is case-insensitive.
+		// The proto field is CaseSensitive; 'false' means case-insensitive.
+		isCaseInsensitive := routeMatch.CaseSensitive != nil && !routeMatch.CaseSensitive.Value
+
+		// If the match is case-insensitive, the rewrite regex must be too.
+		if isCaseInsensitive {
+			// Prepend the regex flag for case-insensitivity
+			regexPattern = "(?i)" + regexPattern
+		}
+
+		routeAction.RegexRewrite = &envoy_matcher_v3.RegexMatchAndSubstitute{
+			Pattern: &envoy_matcher_v3.RegexMatcher{
+				Regex: regexPattern,
+			},
+			Substitution: `/\2`,
+		}
+	} else if destination.PrefixRewrite != "" {
+		// Use standard PrefixRewrite for replacement (e.g., /v2 -> /api/v2)
+		routeAction.PrefixRewrite = destination.PrefixRewrite
+	}
+	// --- END OF LOGIC UNDER TEST ---
 
 	return routeAction
 }
