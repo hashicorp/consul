@@ -2569,6 +2569,228 @@ func TestStateStore_PeeringsForService(t *testing.T) {
 	}
 }
 
+func TestStateStore_PeeringsForService_MultipleExportsAndDeduplication(t *testing.T) {
+	// This test specifically validates the behavior when:
+	// 1. A service has multiple exported service entries at the same precedence level
+	// 2. Multiple entries export to overlapping sets of peers (deduplication needed)
+	// 3. Multiple entries export to different peers (aggregation needed)
+
+	s := testStateStore(t)
+	var lastIdx uint64
+
+	// Create peerings
+	peerings := []*pbpeering.Peering{
+		{
+			ID:    testUUID(),
+			Name:  "peer1",
+			State: pbpeering.PeeringState_ACTIVE,
+		},
+		{
+			ID:    testUUID(),
+			Name:  "peer2",
+			State: pbpeering.PeeringState_ACTIVE,
+		},
+		{
+			ID:    testUUID(),
+			Name:  "peer3",
+			State: pbpeering.PeeringState_ACTIVE,
+		},
+		{
+			ID:    testUUID(),
+			Name:  "peer4",
+			State: pbpeering.PeeringState_ACTIVE,
+		},
+	}
+
+	for _, p := range peerings {
+		lastIdx++
+		require.NoError(t, s.PeeringWrite(lastIdx, &pbpeering.PeeringWriteRequest{Peering: p}))
+	}
+
+	// Create a node for services
+	svcNode := &structs.Node{Node: "test-node", Address: "127.0.0.1"}
+	lastIdx++
+	require.NoError(t, s.EnsureNode(lastIdx, svcNode))
+
+	// Create test services
+	services := []string{"api", "web", "db"}
+	for _, svcName := range services {
+		lastIdx++
+		require.NoError(t, s.EnsureService(lastIdx, svcNode.Node, &structs.NodeService{
+			ID:      svcName,
+			Service: svcName,
+			Port:    8080,
+		}))
+	}
+
+	testCases := []struct {
+		name        string
+		entry       *structs.ExportedServicesConfigEntry
+		queryName   string
+		expectPeers []string
+	}{
+		{
+			name: "multiple exact match entries with overlapping peers - deduplication",
+			entry: &structs.ExportedServicesConfigEntry{
+				Name: "default",
+				Services: []structs.ExportedService{
+					{
+						Name: "api",
+						Consumers: []structs.ServiceConsumer{
+							{Peer: "peer1"},
+							{Peer: "peer2"},
+						},
+					},
+					{
+						Name: "api", // Duplicate exact match
+						Consumers: []structs.ServiceConsumer{
+							{Peer: "peer2"}, // Duplicate peer
+							{Peer: "peer3"},
+						},
+					},
+				},
+			},
+			queryName:   "api",
+			expectPeers: []string{"peer1", "peer2", "peer3"}, // peer2 should be deduplicated
+		},
+		{
+			name: "multiple exact match entries with distinct peers - aggregation",
+			entry: &structs.ExportedServicesConfigEntry{
+				Name: "default",
+				Services: []structs.ExportedService{
+					{
+						Name: "web",
+						Consumers: []structs.ServiceConsumer{
+							{Peer: "peer1"},
+						},
+					},
+					{
+						Name: "web",
+						Consumers: []structs.ServiceConsumer{
+							{Peer: "peer2"},
+						},
+					},
+					{
+						Name: "web",
+						Consumers: []structs.ServiceConsumer{
+							{Peer: "peer3"},
+						},
+					},
+				},
+			},
+			queryName:   "web",
+			expectPeers: []string{"peer1", "peer2", "peer3"},
+		},
+		{
+			name: "multiple wildcard service entries - deduplication across wildcards",
+			entry: &structs.ExportedServicesConfigEntry{
+				Name: "default",
+				Services: []structs.ExportedService{
+					{
+						Name: "*", // First wildcard
+						Consumers: []structs.ServiceConsumer{
+							{Peer: "peer1"},
+							{Peer: "peer2"},
+						},
+					},
+					{
+						Name: "*", // Second wildcard
+						Consumers: []structs.ServiceConsumer{
+							{Peer: "peer2"}, // Duplicate
+							{Peer: "peer3"},
+						},
+					},
+				},
+			},
+			queryName:   "db",
+			expectPeers: []string{"peer1", "peer2", "peer3"},
+		},
+		{
+			name: "exact match takes precedence over wildcards even with multiple entries",
+			entry: &structs.ExportedServicesConfigEntry{
+				Name: "default",
+				Services: []structs.ExportedService{
+					{
+						Name: "*", // Wildcard
+						Consumers: []structs.ServiceConsumer{
+							{Peer: "peer1"},
+							{Peer: "peer2"},
+						},
+					},
+					{
+						Name: "api", // Exact match entry 1
+						Consumers: []structs.ServiceConsumer{
+							{Peer: "peer3"},
+						},
+					},
+					{
+						Name: "api", // Exact match entry 2
+						Consumers: []structs.ServiceConsumer{
+							{Peer: "peer4"},
+						},
+					},
+				},
+			},
+			queryName:   "api",
+			expectPeers: []string{"peer3", "peer4"}, // Should NOT include peer1, peer2 from wildcard
+		},
+		{
+			name: "multiple exact matches with duplicate and non-duplicate peers",
+			entry: &structs.ExportedServicesConfigEntry{
+				Name: "default",
+				Services: []structs.ExportedService{
+					{
+						Name: "api",
+						Consumers: []structs.ServiceConsumer{
+							{Peer: "peer1"},
+							{Peer: "peer2"},
+							{Peer: "peer3"},
+						},
+					},
+					{
+						Name: "api",
+						Consumers: []structs.ServiceConsumer{
+							{Peer: "peer1"}, // Duplicate
+							{Peer: "peer3"}, // Duplicate
+							{Peer: "peer4"}, // New
+						},
+					},
+				},
+			},
+			queryName:   "api",
+			expectPeers: []string{"peer1", "peer2", "peer3", "peer4"},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Write the config entry
+			lastIdx++
+			require.NoError(t, tc.entry.Normalize())
+			require.NoError(t, s.EnsureConfigEntry(lastIdx, tc.entry))
+
+			// Query for peers
+			idx, peers, err := s.PeeringsForService(nil, tc.queryName, *acl.DefaultEnterpriseMeta())
+			require.NoError(t, err)
+			require.Equal(t, lastIdx, idx)
+
+			// Extract peer names from results
+			var gotPeerNames []string
+			for _, p := range peers {
+				gotPeerNames = append(gotPeerNames, p.Name)
+			}
+
+			// Verify the result
+			require.Len(t, gotPeerNames, len(tc.expectPeers), "unexpected number of peers returned")
+			require.ElementsMatch(t, tc.expectPeers, gotPeerNames, "peer names don't match expected")
+
+			// Cleanup: delete the config entry for next test
+			lastIdx++
+			require.NoError(t, s.DeleteConfigEntry(lastIdx, structs.ExportedServices, tc.entry.Name, &tc.entry.EnterpriseMeta))
+		})
+	}
+}
+
 func TestStore_TrustBundleListByService(t *testing.T) {
 	store := testStateStore(t)
 	entMeta := *acl.DefaultEnterpriseMeta()
