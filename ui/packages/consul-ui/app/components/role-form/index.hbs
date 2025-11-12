@@ -12,7 +12,7 @@
 >
     <label class="type-text{{if this.item.error.Name ' has-error'}}">
         <span>Name</span>
-        <input type="text" value={{this.item.Name}} name="role[Name]" autofocus="autofocus" oninput={{action 'change'}} />
+        <input type="text" value={{this.item.Name}} name="role[Name]" oninput={{action 'change'}} />
         <em>
           Maximum 256 characters. May only include letters (uppercase and/or lowercase) and/or numbers. Must be unique.
         </em>
