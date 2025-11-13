@@ -19,19 +19,19 @@ module('Integration | Helper | state-matches', function (hooks) {
       },
     });
 
-    await render(hbs`{{state-matches state 'idle'}}`);
+    await render(hbs`{{state-matches this.state 'idle'}}`);
     assert.equal(this.element.textContent.trim(), 'true');
 
-    await render(hbs`{{state-matches state 'loading'}}`);
+    await render(hbs`{{state-matches this.state 'loading'}}`);
     assert.equal(this.element.textContent.trim(), 'false');
 
-    await render(hbs`{{state-matches state (array 'idle' 'loading')}}`);
+    await render(hbs`{{state-matches this.state (array 'idle' 'loading')}}`);
     assert.equal(this.element.textContent.trim(), 'true');
 
-    await render(hbs`{{state-matches state (array 'loading' 'idle')}}`);
+    await render(hbs`{{state-matches this.state (array 'loading' 'idle')}}`);
     assert.equal(this.element.textContent.trim(), 'true');
 
-    await render(hbs`{{state-matches state (array 'loading' 'deleting')}}`);
+    await render(hbs`{{state-matches this.state (array 'loading' 'deleting')}}`);
     assert.equal(this.element.textContent.trim(), 'false');
   });
 });
