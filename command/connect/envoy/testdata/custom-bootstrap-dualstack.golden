@@ -1,0 +1,24 @@
+{
+  "admin": {
+    "access_log": [
+      {
+        "name": "envoy.access_loggers.file",
+        "typed_config": {
+          "@type": "type.googleapis.com/envoy.extensions.access_loggers.file.v3.FileAccessLog",
+          "path": "/dev/null"
+        }
+      }
+    ],
+    "address": {
+      "socket_address": {
+        "address": "::1",
+        "port_value": 19000
+      }
+    }
+  },
+  "node": {
+    "cluster": "test",
+    "id": "test-proxy"
+  },
+  "custom_field": "foo"
+}
