@@ -23,7 +23,7 @@ module('Integration | Component | ref', function (hooks) {
       publicAction: componentAction,
     };
     this.set('api', _yield);
-    await render(hbs`<Ref @target={{this}} @name="api" @value={{api}} />`);
+    await render(hbs`<Ref @target={{this}} @name="api" @value={{this.api}} />`);
     // the value is now available on the target
     // in most cases `this` i.e. the scope of the template (component/controller)
     assert.deepEqual(this.api, _yield);
