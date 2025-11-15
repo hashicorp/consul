@@ -79,7 +79,9 @@ binary {
   # periodically cleaned up to remove items that are no longer found by the scanner.
   triage {
     suppress {
-      vulnerabilities = []
+      vulnerabilities = [
+        "GO-2022-0635", // github.com/aws/aws-sdk-go@v1.x
+      ]
       
       paths = [
         "internal/tools/proto-gen-rpc-glue/e2e/consul/*",
