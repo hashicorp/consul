@@ -1,0 +1,3 @@
+```release-note:security
+connect: Upgrade envoy version to 1.35.6
+```
