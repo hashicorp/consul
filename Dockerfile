@@ -217,7 +217,7 @@ CMD ["agent", "-dev", "-client", "0.0.0.0"]
 
 # Red Hat UBI-based image
 # This target is used to build a Consul image for use on OpenShift.
-FROM registry.access.redhat.com/ubi9-minimal:9.6 as ubi
+FROM registry.access.redhat.com/ubi9-minimal:9.7 as ubi
 
 ARG PRODUCT_VERSION
 ARG PRODUCT_REVISION
@@ -259,7 +259,8 @@ COPY LICENSE /licenses/mozilla.txt
 # Its shasum is hardcoded. If you upgrade the dumb-init version you'll need to
 # also update the shasum.
 RUN set -eux && \
-    microdnf install -y ca-certificates shadow-utils gnupg libcap openssl iputils jq iptables wget unzip tar && \
+    microdnf update -y && \
+    microdnf install -y ca-certificates shadow-utils gnupg libcap openssl openssl-libs iputils jq iptables wget unzip tar && \
     wget -O /usr/bin/dumb-init https://github.com/Yelp/dumb-init/releases/download/v1.2.5/dumb-init_1.2.5_x86_64 && \
     echo 'e874b55f3279ca41415d290c512a7ba9d08f98041b28ae7c2acb19a545f1c4df /usr/bin/dumb-init' > dumb-init-shasum && \
     sha256sum --check dumb-init-shasum && \
