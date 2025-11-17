@@ -4,7 +4,6 @@ SECURITY:
 
 * connect: Upgrade envoy version to 1.35.6 [[GH-23056](https://github.com/hashicorp/consul/issues/23056)]
 * security: Updated `golang.org/x/crypto` from v0.42.0 to v0.44.0. This resolves [GO-2025-4116](https://pkg.go.dev/vuln/GO-2025-4116)
-* security: Updated UBI9 base image from 9.6 to 9.7 to address OS-level vulnerabilities. This resolves [CVE-2024-56433](https://nvd.nist.gov/vuln/detail/CVE-2024-56433) and [CVE-2025-9230](https://nvd.nist.gov/vuln/detail/CVE-2025-9230)
 
 IMPROVEMENTS:
 
