@@ -12,10 +12,12 @@ on:
 
 
 jobs:
-  trigger-ce-merge:
+  check-conditions:
     # run this only on merge events in CE repo
     if: ${{ github.event.pull_request.merged && github.repository == 'hashicorp/consul' }}
     runs-on: ubuntu-latest
+    outputs:
+      active: ${{ steps.active.outputs.active }}
     env:
       BRANCH: ${{ github.ref_name }}
     steps:
@@ -40,6 +42,53 @@ jobs:
             fi
           fi
           echo "active=$IS_ACTIVE" >> $GITHUB_OUTPUT
+
+  trigger-ce-merge:
+    needs: check-conditions
+    if: needs.check-conditions.outputs.active == '1'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get Latest Merge Commit
+        id: merge_commit
+        run: |
+          # Try the event payload first
+          MERGE_SHA="${{ github.event.pull_request.merge_commit_sha }}"
+          
+          echo "Initial merge SHA from event: $MERGE_SHA"
+          
+          # If null or empty, fetch from API with retry
+          if [[ -z "$MERGE_SHA" || "$MERGE_SHA" == "null" ]]; then
+            echo "Event merge_commit_sha is null/empty, fetching from API..."
+            
+            MAX_ATTEMPTS=10
+            for i in $(seq 1 $MAX_ATTEMPTS); do
+              echo "Attempt $i: Fetching merge commit from API..."
+              
+              MERGE_SHA=$(curl -s -H "Authorization: token ${{ secrets.ELEVATED_GITHUB_TOKEN }}" \
+                "https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}" | \
+                jq -r '.merge_commit_sha // empty')
+              
+              if [[ -n "$MERGE_SHA" && "$MERGE_SHA" != "null" ]]; then
+                echo "✅ Found merge commit: $MERGE_SHA"
+                break
+              fi
+              
+              echo "⏳ Merge commit not ready (got: '$MERGE_SHA'), waiting 3 seconds..."
+              sleep 3
+            done
+            
+            # Final fallback - if still no merge commit, fail the workflow
+            if [[ -z "$MERGE_SHA" || "$MERGE_SHA" == "null" ]]; then
+              echo "❌ Failed to get merge commit after $MAX_ATTEMPTS attempts"
+              echo "Cannot proceed without a valid merge commit SHA"
+              exit 1
+            fi
+          else
+            echo "✅ Using merge commit from event payload: $MERGE_SHA"
+          fi
+          
+          echo "Final merge SHA: $MERGE_SHA"
+          echo "merge_sha=$MERGE_SHA" >> $GITHUB_OUTPUT
       - name: Get Approving Reviewers
         id: reviewers
         continue-on-error: true
@@ -54,10 +103,9 @@ jobs:
           echo "approved_reviewers=$reviewers" >> $GITHUB_OUTPUT
           echo "Approved reviewers: $reviewers"
       - name: Trigger Merge
-        if: steps.active.outputs.active == '1'
         env:
           GIT_REF: ${{ github.ref_name }}
-          GIT_SHA: ${{ github.sha }}
+          GIT_SHA: ${{ steps.merge_commit.outputs.merge_sha }}
           GH_PAT: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
           GIT_ACTOR: ${{ github.actor }}
           PR_TITLE: ${{ github.event.pull_request.title }}
