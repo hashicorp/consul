@@ -12,7 +12,7 @@ import (
 	"sync"
 	"testing"
 
-	gometrics "github.com/armon/go-metrics"
+	gometrics "github.com/hashicorp/go-metrics"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/sdk/metric"
