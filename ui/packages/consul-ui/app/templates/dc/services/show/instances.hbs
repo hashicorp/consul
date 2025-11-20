@@ -34,7 +34,8 @@ as |route|>
   )
 
   route.model.items
-  route.model.proxies.firstObject
+
+  (get route.model.proxies "firstObject")
 
 as |sort filters items proxyMeta|}}
     {{#if (gt items.length 0) }}
