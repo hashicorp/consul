@@ -25,7 +25,7 @@ module('Integration | Component | consul/intention/permission/header/form', func
       <Consul::Intention::Permission::Header::Form
 
       as |api|>
-        <Ref @target={{this.PermissionHeaderForm}} @name="api" @value={{api}} />
+        <Ref @target={{this.permissionHeaderForm}} @name="api" @value={{api}} />
       </Consul::Intention::Permission::Header::Form>
     `);
 
