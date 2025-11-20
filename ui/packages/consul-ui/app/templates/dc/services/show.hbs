@@ -59,7 +59,7 @@ as |route|>
       <BlockSlot @name="loaded">
 {{#let
   loader.data
-  loader.data.firstObject
+  (get loader.data "firstObject")
   route.model.dc
 as |items item dc|}}
 

@@ -15,7 +15,7 @@ module('Integration | Helper | service/health-percentage', function (hooks) {
   test('it renders', async function (assert) {
     this.set('inputValue', {});
 
-    await render(hbs`{{service/health-percentage inputValue}}`);
+    await render(hbs`{{service/health-percentage this.inputValue}}`);
 
     assert.equal(this.element.textContent.trim(), {});
   });
