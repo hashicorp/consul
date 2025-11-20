@@ -5,6 +5,11 @@ description: >-
   In Consul service mesh, each service has a sidecar proxy that secures connections with other services in the mesh without modifying the underlying application code. You can use the built-in proxy, Envoy, or a custom proxy to handle communication and verify TLS connections.
 ---
 
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
 # Service mesh proxy overview
 
 This topic provides an overview of how Consul uses proxies in your service mesh. A proxy is a type of service that enables unmodified applications to connect to other services in the service mesh. Consul ships with a built-in L4 proxy and has first class support for Envoy. You can plug other proxies into your environment as well, and apply configurations in Consul to define proxy behavior.

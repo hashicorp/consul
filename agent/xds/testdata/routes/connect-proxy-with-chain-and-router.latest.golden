@@ -16,7 +16,13 @@
                 "prefix": "/prefix"
               },
               "route": {
-                "cluster": "prefix.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+                "cluster": "prefix.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "regexRewrite": {
+                  "pattern": {
+                    "regex": "^/prefix(/?)(.*)"
+                  },
+                  "substitution": "/\\2"
+                }
               }
             },
             {
@@ -24,7 +30,13 @@
                 "path": "/exact"
               },
               "route": {
-                "cluster": "exact.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+                "cluster": "exact.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "regexRewrite": {
+                  "pattern": {
+                    "regex": "^(/?)(.*)"
+                  },
+                  "substitution": "/\\2"
+                }
               }
             },
             {
@@ -34,7 +46,13 @@
                 }
               },
               "route": {
-                "cluster": "regex.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+                "cluster": "regex.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "regexRewrite": {
+                  "pattern": {
+                    "regex": "^(/?)(.*)"
+                  },
+                  "substitution": "/\\2"
+                }
               }
             },
             {
@@ -48,7 +66,13 @@
                 "prefix": "/"
               },
               "route": {
-                "cluster": "hdr-present.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+                "cluster": "hdr-present.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "regexRewrite": {
+                  "pattern": {
+                    "regex": "^/(/?)(.*)"
+                  },
+                  "substitution": "/\\2"
+                }
               }
             },
             {
@@ -63,7 +87,13 @@
                 "prefix": "/"
               },
               "route": {
-                "cluster": "hdr-not-present.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+                "cluster": "hdr-not-present.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "regexRewrite": {
+                  "pattern": {
+                    "regex": "^/(/?)(.*)"
+                  },
+                  "substitution": "/\\2"
+                }
               }
             },
             {
@@ -79,7 +109,13 @@
                 "prefix": "/"
               },
               "route": {
-                "cluster": "hdr-exact.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+                "cluster": "hdr-exact.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "regexRewrite": {
+                  "pattern": {
+                    "regex": "^/(/?)(.*)"
+                  },
+                  "substitution": "/\\2"
+                }
               }
             },
             {
@@ -95,7 +131,13 @@
                 "prefix": "/"
               },
               "route": {
-                "cluster": "hdr-prefix.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+                "cluster": "hdr-prefix.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "regexRewrite": {
+                  "pattern": {
+                    "regex": "^/(/?)(.*)"
+                  },
+                  "substitution": "/\\2"
+                }
               }
             },
             {
@@ -111,7 +153,13 @@
                 "prefix": "/"
               },
               "route": {
-                "cluster": "hdr-suffix.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+                "cluster": "hdr-suffix.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "regexRewrite": {
+                  "pattern": {
+                    "regex": "^/(/?)(.*)"
+                  },
+                  "substitution": "/\\2"
+                }
               }
             },
             {
@@ -129,7 +177,13 @@
                 "prefix": "/"
               },
               "route": {
-                "cluster": "hdr-regex.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+                "cluster": "hdr-regex.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "regexRewrite": {
+                  "pattern": {
+                    "regex": "^/(/?)(.*)"
+                  },
+                  "substitution": "/\\2"
+                }
               }
             },
             {
@@ -147,7 +201,13 @@
                 "prefix": "/"
               },
               "route": {
-                "cluster": "just-methods.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+                "cluster": "just-methods.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "regexRewrite": {
+                  "pattern": {
+                    "regex": "^/(/?)(.*)"
+                  },
+                  "substitution": "/\\2"
+                }
               }
             },
             {
@@ -171,7 +231,13 @@
                 "prefix": "/"
               },
               "route": {
-                "cluster": "hdr-exact-with-method.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+                "cluster": "hdr-exact-with-method.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "regexRewrite": {
+                  "pattern": {
+                    "regex": "^/(/?)(.*)"
+                  },
+                  "substitution": "/\\2"
+                }
               }
             },
             {
@@ -187,7 +253,13 @@
                 ]
               },
               "route": {
-                "cluster": "prm-exact.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+                "cluster": "prm-exact.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "regexRewrite": {
+                  "pattern": {
+                    "regex": "^/(/?)(.*)"
+                  },
+                  "substitution": "/\\2"
+                }
               }
             },
             {
@@ -205,7 +277,13 @@
                 ]
               },
               "route": {
-                "cluster": "prm-regex.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+                "cluster": "prm-regex.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "regexRewrite": {
+                  "pattern": {
+                    "regex": "^/(/?)(.*)"
+                  },
+                  "substitution": "/\\2"
+                }
               }
             },
             {
@@ -219,7 +297,13 @@
                 ]
               },
               "route": {
-                "cluster": "prm-present.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+                "cluster": "prm-present.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "regexRewrite": {
+                  "pattern": {
+                    "regex": "^/(/?)(.*)"
+                  },
+                  "substitution": "/\\2"
+                }
               }
             },
             {
@@ -227,7 +311,13 @@
                 "prefix": "/"
               },
               "route": {
-                "cluster": "nil-match.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+                "cluster": "nil-match.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "regexRewrite": {
+                  "pattern": {
+                    "regex": "^/(/?)(.*)"
+                  },
+                  "substitution": "/\\2"
+                }
               }
             },
             {
@@ -235,7 +325,13 @@
                 "prefix": "/"
               },
               "route": {
-                "cluster": "empty-match-1.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+                "cluster": "empty-match-1.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "regexRewrite": {
+                  "pattern": {
+                    "regex": "^/(/?)(.*)"
+                  },
+                  "substitution": "/\\2"
+                }
               }
             },
             {
@@ -243,7 +339,13 @@
                 "prefix": "/"
               },
               "route": {
-                "cluster": "empty-match-2.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+                "cluster": "empty-match-2.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "regexRewrite": {
+                  "pattern": {
+                    "regex": "^/(/?)(.*)"
+                  },
+                  "substitution": "/\\2"
+                }
               }
             },
             {
@@ -252,7 +354,12 @@
               },
               "route": {
                 "cluster": "prefix-rewrite-1.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-                "prefixRewrite": "/"
+                "regexRewrite": {
+                  "pattern": {
+                    "regex": "^/prefix(/?)(.*)"
+                  },
+                  "substitution": "/\\2"
+                }
               }
             },
             {
@@ -270,6 +377,12 @@
               },
               "route": {
                 "cluster": "req-timeout.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "regexRewrite": {
+                  "pattern": {
+                    "regex": "^/timeout(/?)(.*)"
+                  },
+                  "substitution": "/\\2"
+                },
                 "timeout": "33s"
               }
             },
@@ -279,7 +392,13 @@
               },
               "route": {
                 "cluster": "idle-timeout.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-                "idleTimeout": "33s"
+                "idleTimeout": "33s",
+                "regexRewrite": {
+                  "pattern": {
+                    "regex": "^/idle-timeout(/?)(.*)"
+                  },
+                  "substitution": "/\\2"
+                }
               }
             },
             {
@@ -288,6 +407,12 @@
               },
               "route": {
                 "cluster": "retry-connect.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "regexRewrite": {
+                  "pattern": {
+                    "regex": "^/retry-connect(/?)(.*)"
+                  },
+                  "substitution": "/\\2"
+                },
                 "retryPolicy": {
                   "numRetries": 15,
                   "retryOn": "connect-failure"
@@ -300,6 +425,12 @@
               },
               "route": {
                 "cluster": "retry-reset.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "regexRewrite": {
+                  "pattern": {
+                    "regex": "^/retry-reset(/?)(.*)"
+                  },
+                  "substitution": "/\\2"
+                },
                 "retryPolicy": {
                   "numRetries": 15,
                   "retryOn": "reset"
@@ -312,6 +443,12 @@
               },
               "route": {
                 "cluster": "retry-codes.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "regexRewrite": {
+                  "pattern": {
+                    "regex": "^/retry-codes(/?)(.*)"
+                  },
+                  "substitution": "/\\2"
+                },
                 "retryPolicy": {
                   "numRetries": 15,
                   "retriableStatusCodes": [
@@ -329,6 +466,12 @@
               },
               "route": {
                 "cluster": "retry-all.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "regexRewrite": {
+                  "pattern": {
+                    "regex": "^/retry-all(/?)(.*)"
+                  },
+                  "substitution": "/\\2"
+                },
                 "retryPolicy": {
                   "retriableStatusCodes": [
                     401,
@@ -344,6 +487,12 @@
                 "prefix": "/split-3-ways"
               },
               "route": {
+                "regexRewrite": {
+                  "pattern": {
+                    "regex": "^/split-3-ways(/?)(.*)"
+                  },
+                  "substitution": "/\\2"
+                },
                 "weightedClusters": {
                   "clusters": [
                     {
@@ -403,7 +552,13 @@
                 "qux"
               ],
               "route": {
-                "cluster": "header-manip.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+                "cluster": "header-manip.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "regexRewrite": {
+                  "pattern": {
+                    "regex": "^(/?)(.*)"
+                  },
+                  "substitution": "/\\2"
+                }
               }
             },
             {
@@ -411,7 +566,13 @@
                 "prefix": "/"
               },
               "route": {
-                "cluster": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+                "cluster": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "regexRewrite": {
+                  "pattern": {
+                    "regex": "^/(/?)(.*)"
+                  },
+                  "substitution": "/\\2"
+                }
               }
             }
           ]

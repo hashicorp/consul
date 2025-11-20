@@ -1424,9 +1424,9 @@ func peersForServiceTxn(
 	}
 
 	var (
-		wildcardNamespaceIdx = -1
-		wildcardServiceIdx   = -1
-		exactMatchIdx        = -1
+		wildcardNamespaceIdxs []int // Indexes where namespace is wildcarded (*)
+		wildcardServiceIdxs   []int // Indexes where service is wildcarded (*) in the matching namespace
+		exactMatchIdxs        []int // Indexes where both service name and namespace match exactly
 	)
 
 	// Ensure the metadata is defaulted since we make assertions against potentially empty values below.
@@ -1443,39 +1443,48 @@ func peersForServiceTxn(
 	for i, service := range exportedServices.Services {
 		switch {
 		case service.Namespace == structs.WildcardSpecifier:
-			wildcardNamespaceIdx = i
+			wildcardNamespaceIdxs = append(wildcardNamespaceIdxs, i)
 
 		case service.Name == structs.WildcardSpecifier && acl.EqualNamespaces(service.Namespace, entMeta.NamespaceOrDefault()):
-			wildcardServiceIdx = i
+			wildcardServiceIdxs = append(wildcardServiceIdxs, i)
 
 		case service.Name == serviceName && acl.EqualNamespaces(service.Namespace, entMeta.NamespaceOrDefault()):
-			exactMatchIdx = i
+			exactMatchIdxs = append(exactMatchIdxs, i) // Capture all exact matches
 		}
 	}
 
 	var results []string
+	peerSet := make(map[string]struct{}) // Track unique peers
 
 	// Prefer the exact match over the wildcard match. This matches how we handle intention precedence.
-	var targetIdx int
+	var targetIdxs []int
 	switch {
-	case exactMatchIdx >= 0:
-		targetIdx = exactMatchIdx
+	case len(exactMatchIdxs) > 0:
+		targetIdxs = exactMatchIdxs
 
-	case wildcardServiceIdx >= 0:
-		targetIdx = wildcardServiceIdx
+	case len(wildcardServiceIdxs) > 0:
+		targetIdxs = wildcardServiceIdxs
 
-	case wildcardNamespaceIdx >= 0:
-		targetIdx = wildcardNamespaceIdx
+	case len(wildcardNamespaceIdxs) > 0:
+		targetIdxs = wildcardNamespaceIdxs
 
 	default:
 		return idx, results, nil
 	}
 
-	for _, c := range exportedServices.Services[targetIdx].Consumers {
-		if c.Peer != "" {
-			results = append(results, c.Peer)
+	// Process all target indexes and collect unique peers
+	for _, targetIdx := range targetIdxs {
+		for _, c := range exportedServices.Services[targetIdx].Consumers {
+			if c.Peer != "" {
+				// Check if peer is unique
+				if _, exists := peerSet[c.Peer]; !exists {
+					peerSet[c.Peer] = struct{}{}
+					results = append(results, c.Peer)
+				}
+			}
 		}
 	}
+
 	return idx, results, nil
 }
 

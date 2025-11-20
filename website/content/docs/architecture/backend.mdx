@@ -5,6 +5,11 @@ description: >-
   Consul persists the Raft index, which logs cluster activities, with the Write-ahead log (WAL) LogStore backend. Consul saves the Raft index in the server's data directory.
 ---
 
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
 # Persistent data backend architecture
 
 This page introduces the architecture of the backend that Consul server agents use to store Raft index data.

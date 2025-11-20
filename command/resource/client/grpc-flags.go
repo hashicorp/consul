@@ -49,7 +49,7 @@ func (f *GRPCFlags) ClientFlags() *flag.FlagSet {
 		"The `address` and `port` of the Consul GRPC agent. The value can be an IP "+
 			"address or DNS address, but it must also include the port. This can also be specified "+
 			"via the CONSUL_GRPC_ADDR environment variable. The default value is "+
-			"127.0.0.1:8502. If you intend to communicate in TLS mode, you have to either "+
+			"localhost:8502. If you intend to communicate in TLS mode, you have to either "+
 			"include https:// schema in the address, use grpc-tls flag or set environment variable "+
 			"CONSUL_GRPC_TLS = true, otherwise it uses plaintext mode")
 	fs.Var(&f.grpcTLS, "grpc-tls",

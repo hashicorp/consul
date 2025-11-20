@@ -3,6 +3,7 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
+{{!-- template-lint-disable no-forbidden-elements --}}
 <style>
   {{#if this.selected.nodes}}
     {{this.selected.nodes}}
@@ -17,7 +18,7 @@
 </style>
 
 <div class='routes'>
-  <header>
+  <header aria-label="Routes configuration">
     <h2>
       {{@chain.ServiceName}}
       Router
@@ -41,7 +42,7 @@
 </div>
 
 <div class='splitters'>
-  <header>
+  <header aria-label="Splitters configuration">
     <h2>
       Splitters
       <span
@@ -64,7 +65,7 @@
 </div>
 
 <div class='resolvers'>
-  <header>
+  <header aria-label="Resolvers configuration">
     <h2>
       Resolvers
       <span

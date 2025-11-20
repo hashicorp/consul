@@ -6,11 +6,11 @@
 {{yield (hash
   items=this.items
   page=@page
-  pane=(fn this.setPane)
-  resize=(fn this.resize)
-  viewport=(fn this.setViewport)
-  rowHeight=(fn this.setRowHeight)
-  maxHeight=(fn this.setMaxHeight)
+  pane=this.setPane
+  resize=this.resize
+  viewport=this.setViewport
+  rowHeight=this.setRowHeight
+  maxHeight=this.setMaxHeight
   startHeight=this.startHeight
   totalHeight=this.totalHeight
   totalPages=this.totalPages

@@ -5,6 +5,11 @@ description: >-
   Learn how to update Consul on RedHat OpenShift, its configurations, Helm versions, Consul versions, and Consul agents, as well as how to determine what will change and its impact on your service mesh.
 ---
 
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
 # Upgrade Consul version on RedHat OpenShift clusters
 
 This page describes process and considerations to upgrade the version of Consul deployments running on OpenShift clusters. When Consul runs on OpenShift clusters, there are two packages to update: a Helm chart located in Docker Hub and a Consul container from the Red Hat Ecosystem Catalog. That means that you may need to update the container image and the Helm chart version.

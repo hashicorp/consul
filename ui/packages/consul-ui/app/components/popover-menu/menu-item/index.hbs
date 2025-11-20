@@ -72,9 +72,7 @@
   {{else}}
     <button
       type='button'
-      role='menuitem'
-      aria-selected={{if @selected 'true'}}
-      tabindex='-1'
+      role='menuitem' tabindex='-1'
       onclick={{queue
         (action (or this.onclick (noop)))
         (action (if this.close this.menu.clickTrigger (noop)))

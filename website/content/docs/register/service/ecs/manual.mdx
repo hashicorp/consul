@@ -5,6 +5,11 @@ description: >-
   Manually install Consul on Amazon Web Services ECS by using the Docker `consul-ecs` image to create task definitions that include required containers. Learn how to configure task definitions with example configurations.
 ---
 
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
 # Register services on ECS manually
 
 The following instructions describe how to use the `consul-ecs` Docker image to manually create the ECS task definition without Terraform. If you intend to peer the service mesh to multiple Consul datacenters or partitions, you must use the Consul ECS Terraform module to install your service mesh on ECS. There is no manual process for deploying a mesh gateway to an ECS cluster.

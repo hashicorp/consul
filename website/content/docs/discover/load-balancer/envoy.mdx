@@ -5,6 +5,11 @@ description: >-
   Manage traffic across services within Consul service mesh with Envoy load balancing policies.
 ---
 
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
 # Load balancing services in Consul service mesh with Envoy
 
 Load balancing is a mechanism of distributing traffic between multiple targets in order to make use of available resources in the most effective way. There are many different ways of accomplishing this, so Envoy provides several different load balancing strategies. To take advantage of this Envoy functionality, Consul supports changing the load balancing policy used by the Envoy data plane proxy. Consul configuration entries specify the desired load balancing algorithm.

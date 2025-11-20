@@ -239,7 +239,7 @@ as |item|}}
         {{/if}}
         {{#if @item.Config.VerboseOIDCLogging}}
         <dt class="check">{{t 'models.auth-method.Config.VerboseOIDCLogging'}}</dt>
-        <dd><input type="checkbox" disabled="disabled" checked={{@item.Config.VerboseOIDCLogging}}></dd>
+        <dd><label><input type="checkbox" disabled="disabled" checked={{@item.Config.VerboseOIDCLogging}}> {{t 'models.auth-method.Config.VerboseOIDCLogging'}}</label></dd>
         {{/if}}
       {{/if}}
       </dl>
