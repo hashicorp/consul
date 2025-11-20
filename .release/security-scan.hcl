@@ -59,7 +59,9 @@ container {
                 "CVE-2024-58251",
                 "CVE-2025-48964",
                 "CVE-2025-10148",
-                "CVE-2025-9086"
+                "CVE-2025-9086",
+                "CVE-2024-56433",
+                "CVE-2025-9230",
 			]
 			paths = [
 				"internal/tools/proto-gen-rpc-glue/e2e/consul/*",
