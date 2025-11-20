@@ -60,7 +60,8 @@ as |sort filters items proxyMeta|}}
             peer=route.params.peer
           )
         }}
-        @onchange={{action (mut this.proxies) value="data"}}
+        {{!-- @onchange={{action (mut this.proxies) value="data"}} --}}
+        @onchange={{fn this.setProxies}}
       />
     {{/if}}
     {{! Service > Service Instance view doesn't require filtering of proxies }}

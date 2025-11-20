@@ -5,7 +5,7 @@
 
 import { inject as service } from '@ember/service';
 import { get } from '@ember/object';
-import { Ability } from 'ember-can';
+import Ability from 'ember-can/ability';
 
 export const ACCESS_READ = 'read';
 export const ACCESS_WRITE = 'write';

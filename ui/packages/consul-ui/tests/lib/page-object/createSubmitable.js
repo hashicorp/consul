@@ -3,16 +3,22 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-export default function (clickable, is) {
+export default function (clickable, property) {
   return function (obj = {}, scope = '') {
     if (scope !== '') {
       scope = scope + ' ';
     }
+    
+    const disabledProp = property('disabled', scope + '[type=submit]');
+    
     return {
       ...obj,
-      ...{
-        submit: clickable(scope + '[type=submit]'),
-        submitIsEnabled: is(':not(:disabled)', scope + '[type=submit]'),
+      submit: clickable(scope + '[type=submit]'),
+      submitIsEnabled: {
+        isDescriptor: true,
+        get() {
+          return !disabledProp.get.call(this);
+        }
       },
     };
   };

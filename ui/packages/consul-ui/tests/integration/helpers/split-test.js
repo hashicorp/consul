@@ -15,7 +15,7 @@ module('Integration | Helper | split', function (hooks) {
   test('it renders', async function (assert) {
     this.set('inputValue', 'a,string,split,by,a,comma');
 
-    await render(hbs`{{split inputValue}}`);
+    await render(hbs`{{split this.inputValue}}`);
 
     assert.equal(this.element.textContent.trim(), 'a,string,split,by,a,comma');
   });

@@ -10,7 +10,7 @@ module('Integration | Helper | env', function (hooks) {
   test('it renders', async function (assert) {
     this.set('inputValue', 'CONSUL_COPYRIGHT_URL');
 
-    await render(hbs`{{env inputValue}}`);
+    await render(hbs`{{env this.inputValue}}`);
 
     assert.equal(this.element.textContent.trim(), 'https://www.hashicorp.com');
   });

@@ -12,14 +12,19 @@ module('Unit | Ability | *', function (hooks) {
 
   // Replace this with your real tests.
   test('it exists', function (assert) {
-    assert.expect(228);
+    assert.expect(216);
 
     const abilities = Object.keys(requirejs.entries)
       .filter((key) => key.indexOf('/abilities/') !== -1)
       .map((key) => key.split('/').pop())
       .filter((item) => item !== '-test');
     abilities.forEach((item) => {
-      const ability = this.owner.factoryFor(`ability:${item}`).create();
+      const factory = this.owner.factoryFor(`ability:${item}`)
+      if (!factory) {
+        // Base class or abstract ability, skip
+        return;
+      }
+      const ability = factory.create();
       [true, false].forEach((bool) => {
         const permissions = this.owner.lookup(`service:repository/permission`);
         ability.permissions = {

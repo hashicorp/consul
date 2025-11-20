@@ -2,14 +2,12 @@
  * Copyright (c) HashiCorp, Inc.
  * SPDX-License-Identifier: BUSL-1.1
  */
-
 import Helper from '@ember/component/helper';
 import { inject as service } from '@ember/service';
 
-export default class UniqueIdHelper extends Helper {
+export default class DomGuidHelper extends Helper {
   @service('dom') dom;
-
-  compute(params, hash) {
+  compute() {
     return this.dom.guid({});
   }
 }

@@ -7,13 +7,13 @@ export default function (visitable, text, clickable, attribute, collection, popo
   const node = {
     name: text('[data-test-node]'),
     leader: attribute('data-test-leader', '[data-test-leader]'),
-    node: clickable('a'),
+    node: clickable('a', { at: 0 }),
     status: attribute('data-test-status', '[data-test-status]'),
   };
   return {
     visit: visitable('/:dc/nodes'),
     nodes: collection('.consul-node-list [data-test-list-row]', node),
-    home: clickable('[data-test-home]'),
+    home: clickable('[data-test-home]', { at: 0 }),
     sort: popoverSelect('[data-test-sort-control]'),
   };
 }

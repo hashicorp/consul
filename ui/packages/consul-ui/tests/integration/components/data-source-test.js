@@ -85,7 +85,7 @@ module('Integration | Component | data-source', function (hooks) {
     };
 
     this.set('src', 'a');
-    await render(hbs`<DataSource @src={{src}} @onchange={{action "change" value="data"}} />`);
+    await render(hbs`<DataSource @src={{this.src}} @onchange={{action "change" value="data"}} />`);
     assert.equal(this.element.textContent.trim(), '');
     await waitUntil(() => {
       return close.calledTwice;

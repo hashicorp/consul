@@ -15,7 +15,7 @@ module('Integration | Helper | atob', function (hooks) {
   test('it renders', async function (assert) {
     this.set('inputValue', 'MTIzNA==');
 
-    await render(hbs`{{atob inputValue}}`);
+    await render(hbs`{{atob this.inputValue}}`);
     assert.equal(this.element.textContent.trim(), '1234');
   });
 });

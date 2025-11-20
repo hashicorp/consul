@@ -17,6 +17,19 @@ export default class BaseRoute extends Route {
   @service('router') router;
   @service('routlet') routlet;
 
+  _optionsForQueryParam(qp) {
+    const result = super._optionsForQueryParam(qp);
+    
+    // Ember 4.x compatibility: ensure result is always an object
+    // In Ember 3.x, string shorthand was handled internally
+    // In Ember 4.x, we need to convert strings to objects ourselves
+    if (typeof result === 'string') {
+      return { as: result };
+    }
+    
+    return result;
+  }
+
   _setRouteName() {
     super._setRouteName(...arguments);
 

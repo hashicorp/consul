@@ -3,8 +3,8 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-{{did-insert this.connect}}
-{{will-destroy this.disconnect}}
+{{did-insert-helper this.connect}}
+{{will-destroy-helper this.disconnect}}
 <section
   {{did-insert (fn this.attributeChanged 'element')}}
   {{did-update (fn this.attributeChanged 'model' @model)}}

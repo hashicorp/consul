@@ -4,10 +4,9 @@
  */
 
 export default function (visitable, creatable, clickable, intentions, popoverSelect) {
-  return {
+  return creatable({
     visit: visitable('/:dc/intentions'),
     intentionList: intentions(),
     sort: popoverSelect('[data-test-sort-control]'),
-    ...creatable({}),
-  };
+  });
 }

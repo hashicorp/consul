@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-/*eslint no-console: "off", ember/no-jquery: "off", ember/no-global-jquery: "off"*/
-
 const elementNotFound = 'Element not found';
 // this error comes from our pageObject `find `function
 const pageObjectNotFound = 'PageObject not found';
@@ -36,7 +34,7 @@ const isExpectedError = function (e) {
   );
 };
 const dont = `( don't| shouldn't| can't)?`;
-export default function (scenario, assert, find, currentPage, $) {
+export default function (scenario, assert, find, currentPage) {
   scenario
     .then(
       [`I${dont} $verb the $pageObject object`],
@@ -118,10 +116,36 @@ export default function (scenario, assert, find, currentPage, $) {
         assert.ok(iterator.length > 0);
 
         const items = _component.toArray().sort((a, b) => {
-          return (
-            $(a.scope).get(0).getBoundingClientRect().top -
-            $(b.scope).get(0).getBoundingClientRect().top
-          );
+
+          // If scope is a string, it checks for a trailing jQuery-style pseudo selector :eq(n) using regex /^(.*):eq((\d+))$/.
+          // If matched, it splits into the base selector (m[1]) and the index n (m[2]).
+          // Runs document.querySelectorAll(base) to get all matching elements.
+          // Returns the nth element (or null if out of bounds).
+
+          const pick = scope => {
+            if (scope instanceof Element) return scope;
+            if (typeof scope !== 'string') return null;
+            // Handle trailing :eq(n)
+            const m = scope.match(/^(.*):eq\((\d+)\)$/);
+            if (m) {
+              const base = m[1];
+              const idx = parseInt(m[2], 10);
+              const list = document.querySelectorAll(base);
+              return list[idx] || null;
+            }
+            try {
+              return document.querySelector(scope);
+            } catch {
+              return null;
+            }
+          };
+          const elA = pick(a.scope);
+          const elB = pick(b.scope);
+          if (!elA || !elB) {
+            // Keep stable ordering if one is missing
+            return (!elA && !elB) ? 0 : (!elA ? 1 : -1);
+          }
+          return elA.getBoundingClientRect().top - elB.getBoundingClientRect().top;
         });
 
         iterator.forEach(function (item, i, arr) {

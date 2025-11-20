@@ -13,8 +13,8 @@
         dc=(or @item.Datacenter "")
       )
     }}
-    @type={{"peer"}}
-    @label={{"peer"}}
+    @type="peer"
+    @label="peer"
     @onchange={{fn (optional @onsubmit) @item}}
     as |writer|
   >
@@ -25,7 +25,7 @@
       </Hds::Alert>
     </BlockSlot>
     <BlockSlot @name="content">
-      {{#let (unique-id) as |id|}}
+      {{#let (dom-guid) as |id|}}
         <form id={{id}} {{on "submit" (fn writer.persist @item)}}>
           {{yield
             (hash

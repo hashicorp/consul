@@ -15,7 +15,7 @@ module('Integration | Helper | token/is-anonymous', function (hooks) {
   test('it renders', async function (assert) {
     this.set('inputValue', { AccessorID: '00000' });
 
-    await render(hbs`{{token/is-anonymous inputValue}}`);
+    await render(hbs`{{token/is-anonymous this.inputValue}}`);
 
     assert.equal(this.element.textContent.trim(), 'false');
   });
