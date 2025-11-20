@@ -40,5 +40,9 @@ module.exports = {
     'no-positive-tabindex': false,
 
     'no-bare-strings': false,
+    // A11y checks
+    'require-context-role': false,
+    // Fixme: Fix all uses of ember-render-modifiers
+    'no-at-ember-render-modifiers': false,
   },
 };

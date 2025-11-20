@@ -17,7 +17,6 @@
       aria-label={{t 'components.consul-copy-button.title' name=@name}}
       type="button"
       class="copy-btn"
-      ...attributes
       {{tooltip
         (if (state-matches state 'success') (t 'components.consul-copy-button.success' name=@name) (t 'components.consul-copy-button.error'))
         options=(hash

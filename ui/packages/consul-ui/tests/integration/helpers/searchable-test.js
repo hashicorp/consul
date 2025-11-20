@@ -15,7 +15,7 @@ module('Integration | Helper | searchable', function (hooks) {
   skip('it renders', async function (assert) {
     this.set('inputValue', '1234');
 
-    await render(hbs`{{searchable inputValue}}`);
+    await render(hbs`{{searchable this.inputValue}}`);
 
     assert.equal(this.element.textContent.trim(), '1234');
   });
