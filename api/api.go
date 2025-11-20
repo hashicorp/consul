@@ -221,6 +221,10 @@ type QueryOptions struct {
 	// Global is used to request information from all datacenters. Currently only
 	// used for operator usage requests.
 	Global bool
+
+	// UpdatesOnly is used to filter out K/V entries or keys with an old
+	// ModifyIndex in the state layer, before data is returned.
+	UpdatesOnly bool
 }
 
 func (o *QueryOptions) Context() context.Context {
@@ -928,6 +932,9 @@ func (r *request) setQueryOptions(q *QueryOptions) {
 	}
 	if q.Global {
 		r.params.Set("global", "")
+	}
+	if q.UpdatesOnly {
+		r.params.Set("updates-only", "true")
 	}
 
 	r.ctx = q.ctx
