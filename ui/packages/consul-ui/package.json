@@ -169,7 +169,7 @@
     "flat": "^5.0.0",
     "hast-util-to-string": "^1.0.4",
     "husky": "^9.1.7",
-    "js-yaml": "^4.0.0",
+    "js-yaml": "^4.1.1",
     "lint-staged": "^16.2.3",
     "loader.js": "^4.7.0",
     "mnemonist": "^0.38.0",
