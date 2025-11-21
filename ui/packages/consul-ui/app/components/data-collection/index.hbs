@@ -3,7 +3,7 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-{{did-update (action (fn (set this 'term') '') @search)}}
+{{did-update-helper (action (fn (set this 'term') '') @search)}}
 {{yield (hash
   search=(action this.search)
   items=this.items

@@ -15,7 +15,7 @@ side-nav:
   user-menu:
     settings: Settings
     log-in: Log in
-    Log out: Log out
+    log-out: Log out
   hcp: Back to HCP
   datacenters:
     title: Datacenter

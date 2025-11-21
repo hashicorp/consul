@@ -28,7 +28,7 @@ module('Integration | Adapter | session', function (hooks) {
         id: node,
         ns: nspace,
       });
-      assert.equal(`${actual.method} ${actual.url}`, expected);
+      assert.strictEqual(`${actual.method} ${actual.url}`, expected);
     });
     test(`requestForQueryRecord returns the correct url/method when nspace is ${nspace}`, function (assert) {
       const adapter = this.owner.lookup('adapter:session');
@@ -42,7 +42,7 @@ module('Integration | Adapter | session', function (hooks) {
         id: id,
         ns: nspace,
       });
-      assert.equal(`${actual.method} ${actual.url}`, expected);
+      assert.strictEqual(`${actual.method} ${actual.url}`, expected);
     });
     test(`requestForDeleteRecord returns the correct url/method when the nspace is ${nspace}`, function (assert) {
       const adapter = this.owner.lookup('adapter:session');
@@ -63,7 +63,7 @@ module('Integration | Adapter | session', function (hooks) {
         )
         .split('\n')
         .shift();
-      assert.equal(actual, expected);
+      assert.strictEqual(actual, expected);
     });
   });
   test("requestForQuery throws if you don't specify an id", function (assert) {

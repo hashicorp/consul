@@ -3,7 +3,7 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-<Route @name={{routeName}} as |route|>
+<Route @name={{this.routeName}} as |route|>
   <DataLoader
     @src={{uri
       "/${partition}/${nspace}/${dc}/peers"
@@ -23,22 +23,22 @@
     <BlockSlot @name="loaded">
       {{#let
         (hash
-          value=(or sortBy "State:asc")
-          change=(action (mut sortBy) value="target.selected")
+          value=(or this.sortBy "State:asc")
+          change=(action (mut this.sortBy) value="target.selected")
         )
         (hash
           state=(hash
-            value=(if state (split state ",") undefined)
-            change=(action (mut state) value="target.selectedItems")
+            value=(if this.state (split this.state ",") undefined)
+            change=(action (mut this.state) value="target.selectedItems")
           )
           searchproperty=(hash
             value=(if
-              (not-eq searchproperty undefined)
-              (split searchproperty ",")
-              searchProperties
+              (not-eq this.searchproperty undefined)
+              (split this.searchproperty ",")
+              this.searchProperties
             )
-            change=(action (mut searchproperty) value="target.selectedItems")
-            default=searchProperties
+            change=(action (mut this.searchproperty) value="target.selectedItems")
+            default=this.searchProperties
           )
         )
         loader.data
@@ -54,8 +54,8 @@
 
             {{#if (gt items.length 0)}}
               <Consul::Peer::SearchBar
-                @search={{search}}
-                @onsearch={{action (mut search) value="target.value"}}
+                @search={{this.search}}
+                @onsearch={{action (mut this.search) value="target.value"}}
                 @sort={{sort}}
                 @filter={{filters}}
               />
@@ -70,7 +70,7 @@
               as |modal|
             >
               <BlockSlot @name="header">
-                {{did-insert (set this "create" modal)}}
+                {{did-insert-helper (set this "create" modal)}}
                 <h2>
                   Add peer connection
                 </h2>
@@ -84,7 +84,7 @@
                       @onsubmit={{fn this.redirectToPeerShow modal.close}}
                       as |form|
                     >
-                      {{did-insert (set this "form" form)}}
+                      {{did-insert-helper (set this "form" form)}}
                       <form.Fieldsets />
                     </form.Form>
                   </Consul::Peer::Form>
@@ -133,7 +133,7 @@
                   as |modal|
                 >
                   <BlockSlot @name="header">
-                    {{did-insert (set this "regenerate" modal)}}
+                    {{did-insert-helper (set this "regenerate" modal)}}
                     <h2>
                       Regenerate token
                     </h2>
@@ -146,7 +146,7 @@
                         @regenerate={{true}}
                         as |form|
                       >
-                        {{did-insert (set this "regenerateForm" form)}}
+                        {{did-insert-helper (set this "regenerateForm" form)}}
                         <form.Fieldsets />
                       </Consul::Peer::Form::Generate>
                     {{/if}}
@@ -162,7 +162,7 @@
                   @type="peer"
                   @sort={{sort.value}}
                   @filters={{filters}}
-                  @search={{search}}
+                  @search={{this.search}}
                   @items={{items}}
                   as |collection|
                 >

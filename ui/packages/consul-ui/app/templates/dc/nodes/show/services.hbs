@@ -32,10 +32,12 @@ as |route|>
       )
     )
 
-    route.model.item.MeshServiceInstances
-    route.model.item.ProxyServiceInstances
-
-  as |sort filters items proxies|}}
+    route.model.item.Services
+  as |sort filters allServices|}}
+    {{#let
+      (reject-by 'Service.Kind' 'connect-proxy' allServices)
+      (filter-by 'Service.Kind' 'connect-proxy' allServices)
+    as |items proxies|}}
   <div class="tab-section">
     {{#if (gt items.length 0) }}
       <input type="checkbox" id="toolbar-toggle" />
@@ -77,5 +79,6 @@ as |route|>
         </collection.Empty>
       </DataCollection>
   </div>
+  {{/let}}
   {{/let}}
 </Route>

@@ -60,7 +60,7 @@ module('Integration | Component | list collection', function (hooks) {
     // Test checking - should set z-index and handle footer collision
     checkbox.checked = true;
     await triggerEvent(checkbox, 'change');
-    assert.equal(row.style.zIndex, '1', 'Row should have z-index 1 when checked');
+    assert.strictEqual(row.style.zIndex, '1', 'Row should have z-index 1 when checked');
 
     // Test unchecking - should clear z-index
     checkbox.checked = false;

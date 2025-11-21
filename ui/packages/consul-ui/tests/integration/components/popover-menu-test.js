@@ -15,7 +15,7 @@ module('Integration | Component | popover-menu', function (hooks) {
     // Set any properties with this.set('myProperty', 'value');
     // Handle any actions with this.set('myAction', function(val) { ... });
 
-    await render(hbs`{{popover-menu}}`);
+    await render(hbs`<PopoverMenu/>`);
 
     assert.equal(this.element.textContent.trim(), '');
 

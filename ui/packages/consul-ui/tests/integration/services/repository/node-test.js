@@ -16,8 +16,6 @@ module(`Integration | Service | node`, function (hooks) {
   setupTest(hooks);
 
   test('findByDatacenter returns the correct data for list endpoint', function (assert) {
-    assert.expect(200);
-
     const subject = this.owner.lookup('service:repository/node');
     subject.store.serializerFor('node').timestamp = function () {
       return now;
@@ -41,15 +39,13 @@ module(`Integration | Service | node`, function (hooks) {
       },
       function performAssertion(actual, expected) {
         actual.forEach((item) => {
-          assert.equal(item.uid, `["${partition}","${nspace}","${dc}","${item.ID}"]`);
-          assert.equal(item.Datacenter, dc);
+          assert.strictEqual(item.uid, `["${partition}","${nspace}","${dc}","${item.ID}"]`);
+          assert.strictEqual(item.Datacenter, dc);
         });
       }
     );
   });
   test('findBySlug returns the correct data for item endpoint', function (assert) {
-    assert.expect(2);
-
     const subject = this.owner.lookup('service:repository/node');
 
     return repo(
@@ -67,8 +63,8 @@ module(`Integration | Service | node`, function (hooks) {
         return service.findBySlug({ id, dc, partition });
       },
       function (actual, expected) {
-        assert.equal(actual.uid, `["${partition}","${nspace}","${dc}","${actual.ID}"]`);
-        assert.equal(actual.Datacenter, dc);
+        assert.strictEqual(actual.uid, `["${partition}","${nspace}","${dc}","${actual.ID}"]`);
+        assert.strictEqual(actual.Datacenter, dc);
       }
     );
   });

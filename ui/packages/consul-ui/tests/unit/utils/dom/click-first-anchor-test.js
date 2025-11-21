@@ -8,8 +8,6 @@ import { module, test } from 'qunit';
 
 module('Unit | Utility | dom/click first anchor', function () {
   test('it does nothing if the clicked element is generally a clickable thing', function (assert) {
-    assert.expect(4);
-
     const closest = function () {
       return {
         querySelector: function () {
@@ -25,7 +23,7 @@ module('Unit | Utility | dom/click first anchor', function () {
           nodeName: item,
         },
       });
-      assert.equal(actual, expected);
+      assert.strictEqual(actual, expected);
     });
   });
   test("it does nothing if an anchor isn't found", function (assert) {
@@ -43,10 +41,9 @@ module('Unit | Utility | dom/click first anchor', function () {
         nodeName: 'DIV',
       },
     });
-    assert.equal(actual, expected);
+    assert.strictEqual(actual, expected);
   });
   test('it dispatches the result of `mouseup`, `mousedown`, `click` if an anchor is found', function (assert) {
-    assert.expect(3);
     const expected = ['mousedown', 'mouseup', 'click'];
     const closest = function () {
       return {
@@ -54,7 +51,7 @@ module('Unit | Utility | dom/click first anchor', function () {
           return {
             dispatchEvent: function (ev) {
               const actual = ev.type;
-              assert.equal(actual, expected.shift());
+              assert.strictEqual(actual, expected.shift());
             },
           };
         },

@@ -10,7 +10,8 @@ import { setApplication } from '@ember/test-helpers';
 import { setup } from 'qunit-dom';
 import { registerWaiter } from '@ember/test';
 import './helpers/flash-message';
-import start from 'ember-exam/test-support/start';
+import { setupEmberOnerrorValidation } from 'ember-qunit';
+import { start as startEmberExam } from 'ember-exam/test-support';
 import setupSinon from 'ember-sinon-qunit';
 
 import ClientConnections from 'consul-ui/services/client/connections';
@@ -45,8 +46,6 @@ application.inject('component:copy-button', 'clipboard', 'service:clipboard/loca
 setApplication(application);
 
 setup(QUnit.assert);
+setupEmberOnerrorValidation(QUnit);
 setupSinon();
-
-setup(QUnit.assert);
-
-start();
+startEmberExam();

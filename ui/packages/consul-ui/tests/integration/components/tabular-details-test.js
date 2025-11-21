@@ -15,7 +15,7 @@ module('Integration | Component | tabular details', function (hooks) {
     // Set any properties with this.set('myProperty', 'value');
     // Handle any actions with this.on('myAction', function(val) { ... });
 
-    await render(hbs`{{tabular-details}}`);
+    await render(hbs`<TabularDetails/>`);
 
     assert.dom('*').hasText('Actions');
 

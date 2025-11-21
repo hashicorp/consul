@@ -12,13 +12,13 @@
       style="width: 0;height: 0;font-size: 0;padding: 0;margin: 0;"
     />
   {{else}}
-    {{did-insert this.connect}}
+    {{did-insert-helper this.connect}}
   {{/if}}
-  {{did-update this.attributeChanged 'src' @src}}
-  {{did-update this.attributeChanged 'loading' @loading}}
-  {{will-destroy this.disconnect}}
+  {{did-update-helper this.attributeChanged 'src' @src}}
+  {{did-update-helper this.attributeChanged 'loading' @loading}}
+  {{will-destroy-helper this.disconnect}}
 {{/if}}
-{{did-update this.attributeChanged 'disabled' @disabled}}
+{{did-update-helper this.attributeChanged 'disabled' @disabled}}
 {{yield (hash
   data=this.data
   error=this.error

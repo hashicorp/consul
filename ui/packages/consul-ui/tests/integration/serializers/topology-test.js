@@ -17,8 +17,6 @@ import {
 module('Integration | Serializer | topology', function (hooks) {
   setupTest(hooks);
   test('respondForQueryRecord returns the correct data for item endpoint', function (assert) {
-    assert.expect(2);
-
     const serializer = this.owner.lookup('serializer:topology');
     const dc = 'dc-1';
     const id = 'slug';
@@ -50,8 +48,8 @@ module('Integration | Serializer | topology', function (hooks) {
           kind: kind,
         }
       );
-      assert.equal(actual.Datacenter, expected.Datacenter);
-      assert.equal(actual.uid, expected.uid);
+      assert.strictEqual(actual.Datacenter, expected.Datacenter);
+      assert.strictEqual(actual.uid, expected.uid);
     });
   });
 });

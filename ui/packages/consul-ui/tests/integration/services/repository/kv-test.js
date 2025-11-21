@@ -18,8 +18,6 @@ module(`Integration | Service | kv`, function (hooks) {
   const partition = 'default';
   [undefinedNspace, 'team-1', undefined].forEach((nspace) => {
     test(`findAllBySlug returns the correct data for list endpoint when nspace is ${nspace}`, function (assert) {
-      assert.expect(2);
-
       const subject = this.owner.lookup('service:repository/kv');
 
       subject.store.serializerFor('kv').timestamp = function () {
@@ -55,18 +53,16 @@ module(`Integration | Service | kv`, function (hooks) {
             ? partition || undefinedPartition
             : 'default';
           actual.forEach((item) => {
-            assert.equal(
+            assert.strictEqual(
               item.uid,
               `["${expectedPartition}","${expectedNspace}","${dc}","${item.Key}"]`
             );
-            assert.equal(item.Datacenter, dc);
+            assert.strictEqual(item.Datacenter, dc);
           });
         }
       );
     });
     test(`findBySlug returns the correct data for item endpoint when nspace is ${nspace}`, function (assert) {
-      assert.expect(2);
-
       const subject = this.owner.lookup('service:repository/kv');
 
       return repo(
@@ -91,13 +87,13 @@ module(`Integration | Service | kv`, function (hooks) {
         function (actual, expected) {
           expected(function (payload) {
             const item = payload[0];
-            assert.equal(
+            assert.strictEqual(
               actual.uid,
               `["${item.Partition || undefinedPartition}","${
                 item.Namespace || undefinedNspace
               }","${dc}","${item.Key}"]`
             );
-            assert.equal(actual.Datacenter, dc);
+            assert.strictEqual(actual.Datacenter, dc);
           });
         }
       );

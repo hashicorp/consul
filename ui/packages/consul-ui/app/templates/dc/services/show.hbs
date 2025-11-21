@@ -73,7 +73,7 @@ as |items item dc|}}
             name=route.params.name
           )
         }}
-        @onchange={{action (mut this.proxies) value="data"}}
+        @onchange={{this.setProxies}}
       />
         {{! currently we use the discovery chain endpoint to understand whether }}
         {{! connect is enabled/disabled. We get a 500 error when its disabled }}
@@ -91,10 +91,9 @@ as |items item dc|}}
                 name=route.params.name
               )
             }}
-            @onchange={{action (mut this.chain) value="data"}}
+            @onchange={{this.setChain}}
           />
         {{/if}}
-        {{did-insert (set this 'chain' undefined) route.params.dc}}
       {{/if}}
   {{#let
   (hash

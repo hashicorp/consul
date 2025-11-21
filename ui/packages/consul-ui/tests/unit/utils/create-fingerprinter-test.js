@@ -39,8 +39,6 @@ module('Unit | Utility | create fingerprinter', function () {
     assert.deepEqual(actual, expected);
   });
   test("fingerprint throws an error if it can't find a foreignKey", function (assert) {
-    assert.expect(2);
-
     const fingerprint = createFingerprinter('Datacenter', 'Namespace', 'Partition');
     [undefined, null].forEach(function (item) {
       assert.throws(function () {
@@ -49,7 +47,6 @@ module('Unit | Utility | create fingerprinter', function () {
     });
   });
   test("fingerprint throws an error if it can't find a slug", function (assert) {
-    assert.expect(2);
     const fingerprint = createFingerprinter('Datacenter', 'Namespace', 'Partition');
     [
       {},

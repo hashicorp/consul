@@ -15,7 +15,6 @@ module('Integration | Adapter | intention', function (hooks) {
   const id =
     'SourcePartition:SourceNS:SourceName:DestinationPartition:DestinationNS:DestinationName';
   test('requestForQuery returns the correct url', function (assert) {
-    assert.expect(2);
     return nspaceRunner(
       (adapter, serializer, client) => {
         const request = client.body.bind(client);
@@ -52,7 +51,7 @@ module('Integration | Adapter | intention', function (hooks) {
         id: id,
       })
       .split('\n')[0];
-    assert.equal(actual, expected);
+    assert.strictEqual(actual, expected);
   });
   test("requestForQueryRecord throws if you don't specify an id", function (assert) {
     const adapter = this.owner.lookup('adapter:intention');
@@ -84,7 +83,7 @@ module('Integration | Adapter | intention', function (hooks) {
         }
       )
       .split('\n')[0];
-    assert.equal(actual, expected);
+    assert.strictEqual(actual, expected);
   });
   test('requestForUpdateRecord returns the correct url', function (assert) {
     const adapter = this.owner.lookup('adapter:intention');
@@ -106,7 +105,7 @@ module('Integration | Adapter | intention', function (hooks) {
         }
       )
       .split('\n')[0];
-    assert.equal(actual, expected);
+    assert.strictEqual(actual, expected);
   });
   test('requestForDeleteRecord returns the correct url', function (assert) {
     const adapter = this.owner.lookup('adapter:intention');
@@ -128,6 +127,6 @@ module('Integration | Adapter | intention', function (hooks) {
         }
       )
       .split('\n')[0];
-    assert.equal(actual, expected);
+    assert.strictEqual(actual, expected);
   });
 });

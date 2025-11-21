@@ -15,7 +15,7 @@ module('Integration | Component | route-card', function (hooks) {
     // Set any properties with this.set('myProperty', 'value');
     // Handle any actions with this.set('myAction', function(val) { ... });
 
-    await render(hbs`{{route-card}}`);
+    await render(hbs`<RouteCard/>`);
 
     assert.equal(this.element.textContent.trim(), '');
 

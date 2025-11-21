@@ -15,7 +15,7 @@ module('Integration | Component | freetext filter', function (hooks) {
     // Set any properties with this.set('myProperty', 'value');
     // Handle any actions with this.on('myAction', function(val) { ... });
 
-    await render(hbs`{{freetext-filter}}`);
+    await render(hbs`<FreetextFilter/>`);
 
     assert.dom('*').hasText('Search');
 

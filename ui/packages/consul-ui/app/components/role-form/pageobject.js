@@ -8,7 +8,9 @@ export default (submitable, cancelable, policySelector) => () => {
     // this should probably be settable
     resetScope: true,
     scope: '[data-test-role-form]',
-    prefix: 'role',
+    get prefix() {
+      return 'role';
+    },
     ...submitable(),
     ...cancelable(),
     policies: policySelector('', '[data-test-create-policy]'),

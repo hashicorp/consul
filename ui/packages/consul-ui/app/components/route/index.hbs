@@ -3,8 +3,8 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-{{did-insert this.connect}}
-{{will-destroy this.disconnect}}
+{{did-insert-helper this.connect}}
+{{will-destroy-helper this.disconnect}}
 {{yield (hash
   model=this.model
   params=this.params

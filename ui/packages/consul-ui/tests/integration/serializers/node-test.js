@@ -17,7 +17,6 @@ module('Integration | Serializer | node', function (hooks) {
   const nspace = 'default';
   const partition = 'default';
   test('respondForQuery returns the correct data for list endpoint', function (assert) {
-    assert.expect(4);
     const store = this.owner.lookup('service:store');
     const serializer = this.owner.lookup('serializer:node');
     serializer.store = store;
@@ -45,14 +44,13 @@ module('Integration | Serializer | node', function (hooks) {
         },
         modelClass
       );
-      assert.equal(actual[0].Datacenter, dc);
-      assert.equal(actual[0].Namespace, nspace);
-      assert.equal(actual[0].Partition, partition);
-      assert.equal(actual[0].uid, `["${partition}","${nspace}","${dc}","${actual[0].ID}"]`);
+      assert.strictEqual(actual[0].Datacenter, dc);
+      assert.strictEqual(actual[0].Namespace, nspace);
+      assert.strictEqual(actual[0].Partition, partition);
+      assert.strictEqual(actual[0].uid, `["${partition}","${nspace}","${dc}","${actual[0].ID}"]`);
     });
   });
   test('respondForQueryRecord returns the correct data for item endpoint', function (assert) {
-    assert.expect(4);
     const store = this.owner.lookup('service:store');
     const serializer = this.owner.lookup('serializer:node');
     serializer.store = store;
@@ -81,15 +79,13 @@ module('Integration | Serializer | node', function (hooks) {
         },
         modelClass
       );
-      assert.equal(actual.Datacenter, dc);
-      assert.equal(actual.Namespace, nspace);
-      assert.equal(actual.Partition, partition);
-      assert.equal(actual.uid, `["${partition}","${nspace}","${dc}","${actual.ID}"]`);
+      assert.strictEqual(actual.Datacenter, dc);
+      assert.strictEqual(actual.Namespace, nspace);
+      assert.strictEqual(actual.Partition, partition);
+      assert.strictEqual(actual.uid, `["${partition}","${nspace}","${dc}","${actual.ID}"]`);
     });
   });
   test('respondForQueryLeader returns the correct data', function (assert) {
-    assert.expect(1);
-
     const serializer = this.owner.lookup('serializer:node');
     const dc = 'dc-1';
     const request = {

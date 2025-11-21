@@ -9,7 +9,9 @@ export default (submitable, cancelable, radiogroup, text) =>
       // this should probably be settable
       resetScope: true,
       scope: scope,
-      prefix: 'policy',
+      get prefix() {
+        return 'policy';
+      },
       ...submitable(),
       ...cancelable(),
       ...radiogroup('template', ['', 'service-identity', 'node-identity'], 'policy'),

@@ -5,10 +5,17 @@
 
 module.exports = {
   root: true,
-  parser: 'babel-eslint',
+  parser: '@babel/eslint-parser',
   parserOptions: {
-    ecmaVersion: 2018,
+    ecmaVersion: 2022,
     sourceType: 'module',
+    requireConfigFile: false,
+    babelOptions: {
+      plugins: [
+        ['@babel/plugin-proposal-decorators', { legacy: true }],
+        ['@babel/plugin-transform-class-properties', { loose: true }],
+      ],
+    },
     ecmaFeatures: {
       legacyDecorators: true,
     },
@@ -22,8 +29,8 @@ module.exports = {
     'no-console': ['error', { allow: ['error', 'info'] }],
     'no-unused-vars': ['error', { args: 'none' }],
     'ember/no-new-mixins': ['warn'],
-    'ember/no-jquery': 'warn',
-    'ember/no-global-jquery': 'warn',
+    'ember/no-jquery': 'error',
+    'ember/no-global-jquery': 'error',
 
     // for 3.24 update
     'ember/classic-decorator-no-classic-methods': ['warn'],

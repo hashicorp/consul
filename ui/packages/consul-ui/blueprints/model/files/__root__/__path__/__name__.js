@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-import Model from 'ember-data/model';
-import attr from 'ember-data/attr';
+import Model, { attr } from '@ember-data/model';
 //import { nullValue } from 'consul-ui/decorators/replace';
 
 export const PRIMARY_KEY = 'uid';

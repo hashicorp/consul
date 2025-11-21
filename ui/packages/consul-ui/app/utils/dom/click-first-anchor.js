@@ -33,11 +33,13 @@ export default function (closest, click = clickEvent) {
       case 'label':
       case 'a':
       case 'button':
-        return;
+        return null;
     }
     const $a = closest(stopElement, e.target).querySelector('a');
     if ($a) {
       click($a);
+      return null;
     }
+    return null;
   };
 }

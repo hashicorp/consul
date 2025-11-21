@@ -15,7 +15,7 @@ module('Integration | Component | app view', function (hooks) {
     // Set any properties with this.set('myProperty', 'value');
     // Handle any actions with this.on('myAction', function(val) { ... });
 
-    await render(hbs`{{app-view}}`);
+    await render(hbs`<AppView/>`);
 
     assert.dom('*').hasText('');
 

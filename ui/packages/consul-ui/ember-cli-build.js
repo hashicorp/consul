@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-/*eslint ember/no-jquery: "off", ember/no-global-jquery: "off"*/
 'use strict';
 const path = require('path');
 const exists = require('fs').existsSync;
@@ -47,7 +46,10 @@ module.exports = function (defaults, $ = process.env) {
   });
 
   const babel = {
-    plugins: ['@babel/plugin-proposal-object-rest-spread'],
+    plugins: [
+      ['@babel/plugin-proposal-decorators', { legacy: true }],
+      ['@babel/plugin-transform-class-properties', { loose: true }],
+    ],
     sourceMaps: sourcemaps ? 'inline' : false,
   };
 

@@ -6,6 +6,9 @@
 import { helper } from '@ember/component/helper';
 
 export default helper(function serviceHealthPercentage([params] /*, hash*/) {
+  if (!params || Object.keys(params).length === 0) {
+    return '';
+  }
   const total = params.ChecksCritical + params.ChecksPassing + params.ChecksWarning;
 
   if (total === 0) {

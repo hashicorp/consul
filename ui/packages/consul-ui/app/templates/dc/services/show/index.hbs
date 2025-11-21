@@ -6,5 +6,5 @@
 <Route
   @name={{this.routeName}}
 as |route|>
-{{did-insert (fn this.forward route.model.tabs)}}
+{{did-insert-helper (fn this.forward route.model.tabs)}}
 </Route>

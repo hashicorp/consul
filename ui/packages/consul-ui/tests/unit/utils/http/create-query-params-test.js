@@ -14,7 +14,7 @@ module('Unit | Utility | http/create-query-params', function () {
       something: 'here',
       another: 'variable',
     });
-    assert.equal(actual, expected);
+    assert.strictEqual(actual, expected);
   });
   test('it ignores undefined properties', function (assert) {
     const expected = 'something=here';
@@ -22,7 +22,7 @@ module('Unit | Utility | http/create-query-params', function () {
       something: 'here',
       another: undefined,
     });
-    assert.equal(actual, expected);
+    assert.strictEqual(actual, expected);
   });
   test('it stringifies nested objects', function (assert) {
     const expected = 'something=here&another[something]=here&another[another][something]=here';
@@ -35,7 +35,7 @@ module('Unit | Utility | http/create-query-params', function () {
         },
       },
     });
-    assert.equal(actual, expected);
+    assert.strictEqual(actual, expected);
   });
   test('it only adds the property if the value is null', function (assert) {
     const expected = 'something&another=here';
@@ -43,6 +43,6 @@ module('Unit | Utility | http/create-query-params', function () {
       something: null,
       another: 'here',
     });
-    assert.equal(actual, expected);
+    assert.strictEqual(actual, expected);
   });
 });

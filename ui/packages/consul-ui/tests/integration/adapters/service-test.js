@@ -26,7 +26,7 @@ module('Integration | Adapter | service', function (hooks) {
         dc: dc,
         ns: nspace,
       });
-      assert.equal(`${actual.method} ${actual.url}`, expected);
+      assert.strictEqual(`${actual.method} ${actual.url}`, expected);
     });
     test(`requestForQuery returns the correct url/method when called with gateway when nspace is ${nspace}`, function (assert) {
       const adapter = this.owner.lookup('adapter:service');
@@ -41,7 +41,7 @@ module('Integration | Adapter | service', function (hooks) {
         ns: nspace,
         gateway: gateway,
       });
-      assert.equal(`${actual.method} ${actual.url}`, expected);
+      assert.strictEqual(`${actual.method} ${actual.url}`, expected);
     });
     test(`requestForQueryRecord returns the correct url/method when nspace is ${nspace}`, function (assert) {
       const adapter = this.owner.lookup('adapter:service');
@@ -55,7 +55,7 @@ module('Integration | Adapter | service', function (hooks) {
         id: id,
         ns: nspace,
       });
-      assert.equal(`${actual.method} ${actual.url}`, expected);
+      assert.strictEqual(`${actual.method} ${actual.url}`, expected);
     });
   });
   test("requestForQueryRecord throws if you don't specify an id", function (assert) {

@@ -12,7 +12,7 @@ module('Unit | Sort | Comparator | service', function () {
   test('Passing anything but Status: just returns what you gave it', function (assert) {
     const expected = 'Name:asc';
     const actual = comparator(expected);
-    assert.equal(actual, expected);
+    assert.strictEqual(String(actual), expected);
   });
   test('items are sorted by a fake Status which uses MeshChecks{Passing,Warning,Critical}', function (assert) {
     const items = [
@@ -33,7 +33,7 @@ module('Unit | Sort | Comparator | service', function () {
       },
     ];
     const comp = comparator('Status:asc');
-    assert.equal(typeof comp, 'function');
+    assert.strictEqual(typeof comp, 'function');
 
     const expected = [
       {

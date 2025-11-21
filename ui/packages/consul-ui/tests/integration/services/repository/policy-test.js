@@ -65,7 +65,6 @@ module(`Integration | Service | policy`, function (hooks) {
       );
     });
     test(`findBySlug returns the correct data for item endpoint when the nspace is ${nspace}`, function (assert) {
-      assert.expect(2);
       const subject = this.owner.lookup('service:repository/policy');
       return repo(
         'Policy',
@@ -87,13 +86,13 @@ module(`Integration | Service | policy`, function (hooks) {
           });
         },
         function performAssertion(actual, expected) {
-          assert.equal(
+          assert.strictEqual(
             actual.uid,
             `["${partition || undefinedPartition}","${nspace || undefinedNspace}","${dc}","${
               actual.ID
             }"]`
           );
-          assert.equal(actual.Datacenter, dc);
+          assert.strictEqual(actual.Datacenter, dc);
         }
       );
     });

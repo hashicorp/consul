@@ -26,14 +26,12 @@ module('Unit | Serializer | kv', function (hooks) {
 
     const serializedRecord = record.serialize();
     // anything but a string ends up as null
-    assert.equal(serializedRecord, null);
+    assert.strictEqual(serializedRecord, null);
   });
   skip(
     'what should respondForCreate/UpdateRecord return when createRecord is called with a `false` payload'
   );
   test('respondForCreate/UpdateRecord returns a KV uid object when receiving a `true` payload', function (assert) {
-    assert.expect(2);
-
     const uid = 'key/name';
     const dc = 'dc1';
     const nspace = 'default';
@@ -68,8 +66,6 @@ module('Unit | Serializer | kv', function (hooks) {
     });
   });
   test("respondForCreate/UpdateRecord returns the original object if it's not a Boolean", function (assert) {
-    assert.expect(1);
-
     const uid = 'key/name';
     const dc = 'dc1';
     const nspace = 'default';
@@ -121,7 +117,7 @@ module('Unit | Serializer | kv', function (hooks) {
     };
     const options = {};
     const actual = serializer.serialize(snapshot, options);
-    assert.equal(actual, expected);
+    assert.strictEqual(actual, expected);
     assert.ok(serializer.decoder.execute.calledOnce);
   });
 });

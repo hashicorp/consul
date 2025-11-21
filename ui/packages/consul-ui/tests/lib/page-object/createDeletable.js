@@ -11,9 +11,9 @@ export default function (clickable) {
     return {
       ...obj,
       ...{
-        delete: clickable(scope + '[data-test-delete]'),
-        confirmDelete: clickable(scope + '[data-test-delete]'),
-        confirmInlineDelete: clickable(scope + 'button.type-delete'),
+        delete: clickable(scope + '[data-test-delete]', { at: 0 }),
+        confirmDelete: clickable(scope + '[data-test-delete]', { at: 0 }),
+        confirmInlineDelete: clickable(scope + 'button.type-delete', { at: 0 }),
       },
     };
   };

@@ -15,9 +15,9 @@ module('Integration | Component | token list', function (hooks) {
     // Set any properties with this.set('myProperty', 'value');
     // Handle any actions with this.on('myAction', function(val) { ... });
 
-    await render(hbs`{{token-list}}`);
+    await render(hbs`<TokenList/>`);
 
-    assert.equal(this.element.textContent.trim(), '');
+    assert.strictEqual(this.element.textContent.trim(), '');
 
     // Template block usage:
     await render(hbs`
@@ -25,6 +25,6 @@ module('Integration | Component | token list', function (hooks) {
       {{/token-list}}
     `);
 
-    assert.equal(this.element.textContent.trim(), '');
+    assert.strictEqual(this.element.textContent.trim(), '');
   });
 });

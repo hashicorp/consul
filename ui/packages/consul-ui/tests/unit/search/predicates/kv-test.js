@@ -29,7 +29,7 @@ module('Unit | Search | Predicate | kv', function () {
         finders: predicates,
       }
     ).search('hit');
-    assert.equal(actual.length, 3);
+    assert.strictEqual(actual.length, 3);
   });
   test('items are not found', function (assert) {
     const actual = new ExactSearch(
@@ -42,6 +42,6 @@ module('Unit | Search | Predicate | kv', function () {
         finders: predicates,
       }
     ).search('hit');
-    assert.equal(actual.length, 0);
+    assert.strictEqual(actual.length, 0);
   });
 });

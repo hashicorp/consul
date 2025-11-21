@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-import { is, clickable } from 'ember-cli-page-object';
+import { property, clickable } from 'ember-cli-page-object';
 import ucfirst from 'consul-ui/utils/ucfirst';
 // TODO: We no longer need to use name here
 // remove the arg in all objects
@@ -23,7 +23,7 @@ export default function (name, items, blankKey = 'all') {
     return {
       ...prev,
       ...{
-        [`${key}IsSelected`]: is(
+        [`${key}IsSelected`]: property(
           ':checked',
           `[data-test-radiobutton$="_${item}"] > input[type="radio"]`
         ),

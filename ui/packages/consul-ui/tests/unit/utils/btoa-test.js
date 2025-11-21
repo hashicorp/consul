@@ -8,7 +8,6 @@ import btoa from 'consul-ui/utils/btoa';
 
 module('Unit | Utils | btoa', function () {
   test('it encodes strings properly', function (assert) {
-    assert.expect(2);
     [
       {
         test: '',
@@ -20,7 +19,7 @@ module('Unit | Utils | btoa', function () {
       },
     ].forEach(function (item) {
       const actual = btoa(item.test);
-      assert.equal(actual, item.expected);
+      assert.strictEqual(actual, item.expected);
     });
   });
 });

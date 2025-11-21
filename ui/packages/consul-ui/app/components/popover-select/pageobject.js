@@ -7,7 +7,7 @@ export default (clickable, collection) =>
   (scope = '.popover-select') => {
     return {
       scope: scope,
-      selected: clickable('button'),
+      selected: clickable('button', { at: 0 }),
       options: collection('li[role="none"]', {
         button: clickable('button'),
       }),

@@ -15,7 +15,7 @@ module('Integration | Component | radio group', function (hooks) {
     // Set any properties with this.set('myProperty', 'value');
     // Handle any actions with this.on('myAction', function(val) { ... });
 
-    await render(hbs`{{radio-group}}`);
+    await render(hbs`<RadioGroup/>`);
 
     assert.dom('*').hasText('');
 

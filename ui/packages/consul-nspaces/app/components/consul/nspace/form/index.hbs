@@ -9,8 +9,8 @@
       "/${partition}/${nspace}/${dc}/nspace"
       (hash partition="" nspace="" dc=@item.Datacenter)
     }}
-    @type={{"nspace"}}
-    @label={{"Namespace"}}
+    @type="nspace"
+    @label="Namespace"
     @ondelete={{fn this.onDelete @item}}
     @onchange={{fn this.onSubmit @item}}
     as |writer|
@@ -145,7 +145,7 @@
                       data-test-delete
                       @color='critical'
                       @text='Delete'
-                      {{on "click" (fn confirm )}}
+                      {{on "click" confirm }}
                     />
                   </BlockSlot>
                   <BlockSlot @name="dialog" as |execute cancel message|>

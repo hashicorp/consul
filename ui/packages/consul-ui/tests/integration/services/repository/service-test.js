@@ -16,8 +16,6 @@ module(`Integration | Service | service`, function (hooks) {
   const partition = 'default';
   [undefinedNspace, 'team-1', undefined].forEach((nspace) => {
     test(`findGatewayBySlug returns the correct data for list endpoint when nspace is ${nspace}`, function (assert) {
-      assert.expect(5);
-
       const subject = this.owner.lookup('service:repository/service');
       subject.store.serializerFor('service').timestamp = function () {
         return now;
@@ -65,11 +63,11 @@ module(`Integration | Service | service`, function (hooks) {
               })
             );
           });
-          assert.equal(actual[0].SyncTime, result[0].SyncTime);
-          assert.equal(actual[0].Datacenter, result[0].Datacenter);
-          assert.equal(actual[0].Namespace, result[0].Namespace);
-          assert.equal(actual[0].Partition, result[0].Partition);
-          assert.equal(actual[0].uid, result[0].uid);
+          assert.strictEqual(actual[0].SyncTime, result[0].SyncTime);
+          assert.strictEqual(actual[0].Datacenter, result[0].Datacenter);
+          assert.strictEqual(actual[0].Namespace, result[0].Namespace);
+          assert.strictEqual(actual[0].Partition, result[0].Partition);
+          assert.strictEqual(actual[0].uid, result[0].uid);
         }
       );
     });

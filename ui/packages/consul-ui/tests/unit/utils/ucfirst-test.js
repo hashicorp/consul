@@ -8,8 +8,6 @@ import ucfirst from 'consul-ui/utils/ucfirst';
 
 module('Unit | Utils | ucfirst', function () {
   test('it returns the first letter in uppercase', function (assert) {
-    assert.expect(4);
-
     [
       {
         test: 'hello world',
@@ -29,7 +27,7 @@ module('Unit | Utils | ucfirst', function () {
       },
     ].forEach(function (item) {
       const actual = ucfirst(item.test);
-      assert.equal(actual, item.expected);
+      assert.strictEqual(actual, item.expected);
     });
   });
 });

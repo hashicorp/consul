@@ -15,7 +15,7 @@ module('Integration | Helper | route-match', function (hooks) {
   skip('it renders', async function (assert) {
     this.set('inputValue', '1234');
 
-    await render(hbs`{{route-match inputValue}}`);
+    await render(hbs`{{route-match this.inputValue}}`);
 
     assert.equal(this.element.textContent.trim(), '1234');
   });

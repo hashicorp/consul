@@ -3,7 +3,7 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-<Route @name={{routeName}} as |route|>
+<Route @name={{this.routeName}} as |route|>
   <DataLoader
     @src={{uri
       "/${partition}/${nspace}/${dc}/peer/${name}"
@@ -47,7 +47,7 @@
 
             </Peerings::Provider>
             <Outlet
-              @name={{routeName}}
+              @name={{this.routeName}}
               @model={{assign
                 (hash items=item.PeerServerAddresses peer=item)
                 route.model

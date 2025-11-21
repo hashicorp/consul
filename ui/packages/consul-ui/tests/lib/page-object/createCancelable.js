@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-export default function (clickable, is) {
+export default function (clickable, property) {
   return function (obj, scope = '') {
     if (scope !== '') {
       scope = scope + ' ';
@@ -12,7 +12,7 @@ export default function (clickable, is) {
       ...obj,
       ...{
         cancel: clickable(scope + '[type=reset]'),
-        cancelIsEnabled: is(':not(:disabled)', scope + '[type=reset]'),
+        cancelIsEnabled: property(':not(:disabled)', scope + '[type=reset]'),
       },
     };
   };

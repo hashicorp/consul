@@ -19,36 +19,33 @@ module('Unit | Utility | storage/local-storage', function () {
       },
     });
     const actual = storage.getValue('test');
-    assert.equal(actual, expected);
+    assert.strictEqual(actual, expected);
   });
   test('getValue uses the scheme in the path', function (assert) {
-    assert.expect(1);
     const expected = 'test:test';
     const storage = mockStorage({
       getItem: function (actual) {
-        assert.equal(actual, expected);
+        assert.strictEqual(actual, expected);
         return '';
       },
     });
     storage.getValue('test');
   });
   test('setValue uses the scheme in the path', function (assert) {
-    assert.expect(1);
     const expected = 'test:test';
     const storage = mockStorage({
       setItem: function (actual, value) {
-        assert.equal(actual, expected);
+        assert.strictEqual(actual, expected);
         return '';
       },
     });
     storage.setValue('test');
   });
   test('setValue calls removeItem if the value is null', function (assert) {
-    assert.expect(1);
     const expected = 'test:test';
     const storage = mockStorage({
       removeItem: function (actual) {
-        assert.equal(actual, expected);
+        assert.strictEqual(actual, expected);
       },
     });
     storage.setValue('test', null);

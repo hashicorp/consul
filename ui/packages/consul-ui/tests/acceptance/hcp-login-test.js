@@ -49,8 +49,6 @@ module('Acceptance | hcp login', function (hooks) {
     });
 
     test('when no token was persisted to settings', async function (assert) {
-      assert.expect(3);
-
       // stub out the settings service to not access local-storage directly
       this.owner.register(
         'service:settings',
@@ -75,7 +73,7 @@ module('Acceptance | hcp login', function (hooks) {
           self(params) {
             const { secret } = params;
 
-            assert.equal(
+            assert.strictEqual(
               secret,
               TOKEN_SET_BY_HCP,
               'we try to request token based on what HCP set for us'
@@ -94,8 +92,6 @@ module('Acceptance | hcp login', function (hooks) {
     });
 
     test('when we already persisted a token to settings and it is different to the secret HCP set for us', async function (assert) {
-      assert.expect(3);
-
       this.owner.register(
         'service:settings',
         class extends SettingsService {
@@ -120,7 +116,7 @@ module('Acceptance | hcp login', function (hooks) {
           self(params) {
             const { secret } = params;
 
-            assert.equal(
+            assert.strictEqual(
               secret,
               TOKEN_SET_BY_HCP,
               'we try to request token based on what HCP set for us'
@@ -139,8 +135,6 @@ module('Acceptance | hcp login', function (hooks) {
     });
 
     test('when we already persisted a token to settings, but it is the same secret as HCP set for us', async function (assert) {
-      assert.expect(1);
-
       this.owner.register(
         'service:settings',
         class extends SettingsService {

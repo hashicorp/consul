@@ -17,7 +17,7 @@ module('Integration | Adapter | policy', function (hooks) {
     const request = client.id.bind(client);
     const expected = `GET /v1/acl/policy/translate`;
     const actual = adapter.requestForTranslateRecord(request, {});
-    assert.equal(actual, expected);
+    assert.strictEqual(actual, expected);
   });
   const dc = 'dc-1';
   const id = 'policy-name';
@@ -34,7 +34,7 @@ module('Integration | Adapter | policy', function (hooks) {
         dc: dc,
         ns: nspace,
       });
-      assert.equal(`${actual.method} ${actual.url}`, expected);
+      assert.strictEqual(`${actual.method} ${actual.url}`, expected);
     });
     test(`requestForQueryRecord returns the correct url/method when nspace is ${nspace}`, function (assert) {
       const adapter = this.owner.lookup('adapter:policy');
@@ -48,7 +48,7 @@ module('Integration | Adapter | policy', function (hooks) {
         id: id,
         ns: nspace,
       });
-      assert.equal(`${actual.method} ${actual.url}`, expected);
+      assert.strictEqual(`${actual.method} ${actual.url}`, expected);
     });
     test(`requestForCreateRecord returns the correct url/method when nspace is ${nspace}`, function (assert) {
       const adapter = this.owner.lookup('adapter:policy');
@@ -68,7 +68,7 @@ module('Integration | Adapter | policy', function (hooks) {
         )
         .split('\n')
         .shift();
-      assert.equal(actual, expected);
+      assert.strictEqual(actual, expected);
     });
     test(`requestForUpdateRecord returns the correct url/method when nspace is ${nspace}`, function (assert) {
       const adapter = this.owner.lookup('adapter:policy');
@@ -89,7 +89,7 @@ module('Integration | Adapter | policy', function (hooks) {
         )
         .split('\n')
         .shift();
-      assert.equal(actual, expected);
+      assert.strictEqual(actual, expected);
     });
     test(`requestForDeleteRecord returns the correct url/method when the nspace is ${nspace}`, function (assert) {
       const adapter = this.owner.lookup('adapter:policy');
@@ -110,7 +110,7 @@ module('Integration | Adapter | policy', function (hooks) {
         )
         .split('\n')
         .shift();
-      assert.equal(actual, expected);
+      assert.strictEqual(actual, expected);
     });
   });
   test("requestForQueryRecord throws if you don't specify an id", function (assert) {

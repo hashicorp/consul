@@ -5,7 +5,6 @@
 
 import Inflector from 'ember-inflector';
 import helpers from '@ember/test-helpers';
-import $ from '-jquery';
 
 import steps from 'consul-ui/tests/steps';
 import pages from 'consul-ui/tests/pages';
@@ -21,6 +20,5 @@ export default function ({ assert, utils, library }) {
     helpers,
     api,
     Inflector,
-    $,
   });
 }

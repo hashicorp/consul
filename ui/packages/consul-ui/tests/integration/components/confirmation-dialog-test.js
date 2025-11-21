@@ -15,7 +15,7 @@ module('Integration | Component | confirmation dialog', function (hooks) {
     // Set any properties with this.set('myProperty', 'value');
     // Handle any actions with this.on('myAction', function(val) { ... });
 
-    await render(hbs`{{confirmation-dialog}}`);
+    await render(hbs`<ConfirmationDialog/>>`);
 
     assert.dom('*').hasText('');
 

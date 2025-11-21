@@ -95,8 +95,6 @@ module('Unit | Utility | dom/event-source/cache', function () {
     assert.ok(retrievedEventSource instanceof Promise, 'source returns a Promise');
   });
   test('cache creates the default EventSource and keeps it open when there is a cursor 2', function (assert) {
-    assert.expect(4);
-
     const EventSource = createEventSource();
     const stub = {
       close: sinon.stub(),
@@ -125,8 +123,6 @@ module('Unit | Utility | dom/event-source/cache', function () {
     });
   });
   test("cache creates the default EventSource and closes it when there isn't a cursor", function (assert) {
-    assert.expect(4);
-
     const EventSource = createEventSource();
     const stub = {
       close: sinon.stub(),
