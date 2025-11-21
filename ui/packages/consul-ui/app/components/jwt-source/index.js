@@ -16,15 +16,13 @@ export default class JWTSource extends Component {
 
   constructor() {
     super(...arguments);
-    console.log('JWTSource constructor - args:', this.args);
-    console.log('JWTSource constructor - src:', this.args.src);
 
     if (!this.args.src) {
       console.error('JWTSource: missing @src argument');
       // Don't crash - let the test continue
       return;
     }
-  
+
     if (this.source) {
       this.source.close();
     }
