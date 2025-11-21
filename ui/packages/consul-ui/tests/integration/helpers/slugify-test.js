@@ -17,7 +17,7 @@ module('Integration | Helper | slugify', function (hooks) {
 
     await render(hbs`{{slugify this.inputValue}}`);
 
-    assert.equal(this.element.textContent.trim(), 'hi-there');
+    assert.strictEqual(this.element.textContent.trim(), 'hi-there');
   });
   skip("it copes with more values such as ' etc");
 });

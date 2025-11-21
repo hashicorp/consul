@@ -40,7 +40,6 @@ module('Unit | Utility | dom/event-source/callable', function () {
     assert.ok(source instanceof EventTarget);
   });
   test('the default runner loops and can be closed', function (assert) {
-    assert.expect(13); // 10 not closed, 1 to close, the final call count, plus the close event
     let count = 0;
     const isClosed = function () {
       count++;
@@ -58,7 +57,7 @@ module('Unit | Utility | dom/event-source/callable', function () {
       dispatchEvent: sinon.stub(),
     };
     defaultRunner(target, configuration, isClosed);
-    assert.equal(then.callCount, 10);
+    assert.strictEqual(then.callCount, 10);
     assert.ok(target.dispatchEvent.calledOnce);
   });
   test('it calls the defaultRunner', function (assert) {
@@ -68,6 +67,6 @@ module('Unit | Utility | dom/event-source/callable', function () {
     const EventSource = domEventSourceCallable(EventTarget, Promise, run);
     const source = new EventSource();
     assert.ok(run.calledOnce);
-    assert.equal(source.readyState, 2);
+    assert.strictEqual(source.readyState, 2);
   });
 });

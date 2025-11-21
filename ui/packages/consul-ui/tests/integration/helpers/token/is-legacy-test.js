@@ -17,6 +17,6 @@ module('Integration | Helper | token/is-legacy', function (hooks) {
 
     await render(hbs`{{token/is-legacy this.inputValue}}`);
 
-    assert.equal(this.element.textContent.trim(), 'false');
+    assert.strictEqual(this.element.textContent.trim(), 'false');
   });
 });

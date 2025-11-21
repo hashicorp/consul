@@ -12,9 +12,8 @@ export default class DcServicesShowController extends Controller {
   @tracked proxies = [];
 
   @action setProxies(data) {
-    
     // Ensure it's always an array
-    this.proxies = Array.isArray(data) ? data : (data ? [data] : []);
+    this.proxies = Array.isArray(data) ? data : data ? [data] : [];
   }
 
   @action setChain(data) {

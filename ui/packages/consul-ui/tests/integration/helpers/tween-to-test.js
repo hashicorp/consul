@@ -17,6 +17,6 @@ module('Integration | Helper | tween-to', function (hooks) {
 
     await render(hbs`{{tween-to this.inputValue}}`);
 
-    assert.equal(this.element.textContent.trim(), '1234');
+    assert.strictEqual(this.element.textContent.trim(), '1234');
   });
 });

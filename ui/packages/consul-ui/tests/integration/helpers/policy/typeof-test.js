@@ -19,6 +19,6 @@ module('Integration | Helper | policy/typeof', function (hooks) {
 
     await render(hbs`{{policy/typeof this.inputValue}}`);
 
-    assert.equal(this.element.textContent.trim(), 'read-only');
+    assert.strictEqual(this.element.textContent.trim(), 'read-only');
   });
 });

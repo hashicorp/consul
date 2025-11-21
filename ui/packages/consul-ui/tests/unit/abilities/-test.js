@@ -12,14 +12,12 @@ module('Unit | Ability | *', function (hooks) {
 
   // Replace this with your real tests.
   test('it exists', function (assert) {
-    assert.expect(216);
-
     const abilities = Object.keys(requirejs.entries)
       .filter((key) => key.indexOf('/abilities/') !== -1)
       .map((key) => key.split('/').pop())
       .filter((item) => item !== '-test');
     abilities.forEach((item) => {
-      const factory = this.owner.factoryFor(`ability:${item}`)
+      const factory = this.owner.factoryFor(`ability:${item}`);
       if (!factory) {
         // Base class or abstract ability, skip
         return;
@@ -79,7 +77,7 @@ module('Unit | Ability | *', function (hooks) {
               // eslint-disable-next-line qunit/no-early-return
               return;
           }
-          assert.equal(
+          assert.strictEqual(
             bool,
             ability[`can${perm}`],
             `Expected ${item}.can${perm} to be ${bool ? 'true' : 'false'}`

@@ -49,5 +49,5 @@ export function initialize(app) {
 
 export default {
   name: 'register-abilities',
-  initialize
+  initialize,
 };

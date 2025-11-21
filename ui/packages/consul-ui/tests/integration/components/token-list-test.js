@@ -17,7 +17,7 @@ module('Integration | Component | token list', function (hooks) {
 
     await render(hbs`<TokenList/>`);
 
-    assert.equal(this.element.textContent.trim(), '');
+    assert.strictEqual(this.element.textContent.trim(), '');
 
     // Template block usage:
     await render(hbs`
@@ -25,6 +25,6 @@ module('Integration | Component | token list', function (hooks) {
       {{/token-list}}
     `);
 
-    assert.equal(this.element.textContent.trim(), '');
+    assert.strictEqual(this.element.textContent.trim(), '');
   });
 });

@@ -12,6 +12,6 @@ module('Integration | Helper | env', function (hooks) {
 
     await render(hbs`{{env this.inputValue}}`);
 
-    assert.equal(this.element.textContent.trim(), 'https://www.hashicorp.com');
+    assert.strictEqual(this.element.textContent.trim(), 'https://www.hashicorp.com');
   });
 });

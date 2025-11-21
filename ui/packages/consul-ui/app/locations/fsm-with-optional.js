@@ -98,13 +98,13 @@ export default class FSMWithOptionalLocation {
     if (!app?.lookup && owner) {
       for (const sym of Object.getOwnPropertySymbols(owner)) {
         const val = owner[sym];
-        if (val?.lookup) { 
-          app = val; 
-          break; 
+        if (val?.lookup) {
+          app = val;
+          break;
         }
-        if (val?.owner?.lookup) { 
-          app = val.owner; 
-          break; 
+        if (val?.owner?.lookup) {
+          app = val.owner;
+          break;
         }
       }
     }

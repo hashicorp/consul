@@ -73,9 +73,9 @@ export default function (scenario, assert, find, currentPage) {
       setTimeout(() => next());
     })
     .then(['I see $num of the $component object'], function (num, component) {
-      assert.equal(
-        currentPage()[component].length,
-        num,
+      assert.strictEqual(
+        Number(currentPage()[component].length),
+        Number(num),
         `Expected to see ${num} items in the ${component} object`
       );
     })
@@ -116,13 +116,12 @@ export default function (scenario, assert, find, currentPage) {
         assert.ok(iterator.length > 0);
 
         const items = _component.toArray().sort((a, b) => {
-
           // If scope is a string, it checks for a trailing jQuery-style pseudo selector :eq(n) using regex /^(.*):eq((\d+))$/.
           // If matched, it splits into the base selector (m[1]) and the index n (m[2]).
           // Runs document.querySelectorAll(base) to get all matching elements.
           // Returns the nth element (or null if out of bounds).
 
-          const pick = scope => {
+          const pick = (scope) => {
             if (scope instanceof Element) return scope;
             if (typeof scope !== 'string') return null;
             // Handle trailing :eq(n)
@@ -143,7 +142,7 @@ export default function (scenario, assert, find, currentPage) {
           const elB = pick(b.scope);
           if (!elA || !elB) {
             // Keep stable ordering if one is missing
-            return (!elA && !elB) ? 0 : (!elA ? 1 : -1);
+            if (!elA || !elB) return !elA && !elB ? 0 : !elA ? 1 : -1;
           }
           return elA.getBoundingClientRect().top - elB.getBoundingClientRect().top;
         });
@@ -230,7 +229,7 @@ export default function (scenario, assert, find, currentPage) {
         target = find(property);
 
         if (containsLike === 'like') {
-          assert.equal(
+          assert.strictEqual(
             target,
             value,
             `Expected to see ${property} on ${component} as ${value}, was ${target}`
@@ -245,6 +244,6 @@ export default function (scenario, assert, find, currentPage) {
     )
     .then(['I see $property like "$value"'], function (property, value) {
       const target = currentPage()[property];
-      assert.equal(target, value, `Expected to see ${property} as ${value}, was ${target}`);
+      assert.strictEqual(target, value, `Expected to see ${property} as ${value}, was ${target}`);
     });
 }

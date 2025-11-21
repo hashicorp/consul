@@ -17,6 +17,6 @@ module('Integration | Helper | policy/datacenters', function (hooks) {
 
     await render(hbs`{{policy/datacenters this.inputValue}}`);
 
-    assert.equal(this.element.textContent.trim(), 'All');
+    assert.strictEqual(this.element.textContent.trim(), 'All');
   });
 });

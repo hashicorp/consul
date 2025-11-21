@@ -16,7 +16,7 @@ module('Integration | Adapter | coordinate', function (hooks) {
     const actual = adapter.requestForQuery(request, {
       dc: dc,
     });
-    assert.equal(`${actual.method} ${actual.url}`, expected);
+    assert.strictEqual(`${actual.method} ${actual.url}`, expected);
   });
   test('requestForQuery returns the correct body', function (assert) {
     const adapter = this.owner.lookup('adapter:coordinate');

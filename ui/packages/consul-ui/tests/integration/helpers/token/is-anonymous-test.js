@@ -17,6 +17,6 @@ module('Integration | Helper | token/is-anonymous', function (hooks) {
 
     await render(hbs`{{token/is-anonymous this.inputValue}}`);
 
-    assert.equal(this.element.textContent.trim(), 'false');
+    assert.strictEqual(this.element.textContent.trim(), 'false');
   });
 });

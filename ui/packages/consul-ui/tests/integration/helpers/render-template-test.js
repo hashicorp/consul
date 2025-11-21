@@ -105,7 +105,7 @@ module('Integration | Helper | render-template', function (hooks) {
 
       await render(hbs`{{render-template this.template this.vars}}`);
 
-      assert.equal(this.element.textContent.trim(), item.result);
+      assert.strictEqual(this.element.textContent.trim(), item.result);
     });
   });
 });

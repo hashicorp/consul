@@ -17,6 +17,6 @@ module('Integration | Helper | substr', function (hooks) {
 
     await render(hbs`{{substr this.inputValue -4}}`);
 
-    assert.equal(this.element.textContent.trim(), '65f1');
+    assert.strictEqual(this.element.textContent.trim(), '65f1');
   });
 });

@@ -17,6 +17,6 @@ module('Integration | Helper | last', function (hooks) {
 
     await render(hbs`{{last this.inputValue}}`);
 
-    assert.equal(this.element.textContent.trim(), '/');
+    assert.strictEqual(this.element.textContent.trim(), '/');
   });
 });

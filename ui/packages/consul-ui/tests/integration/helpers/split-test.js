@@ -17,6 +17,6 @@ module('Integration | Helper | split', function (hooks) {
 
     await render(hbs`{{split this.inputValue}}`);
 
-    assert.equal(this.element.textContent.trim(), 'a,string,split,by,a,comma');
+    assert.strictEqual(this.element.textContent.trim(), 'a,string,split,by,a,comma');
   });
 });

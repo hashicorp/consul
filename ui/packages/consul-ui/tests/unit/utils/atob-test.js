@@ -43,11 +43,10 @@ module('Unit | Utils | atob', function () {
       },
     ].forEach(function (item) {
       const actual = atob(item.test);
-      assert.equal(actual, item.expected);
+      assert.strictEqual(actual, item.expected);
     });
   });
   test('it decodes strings properly', function (assert) {
-    assert.expect(2);
     [
       {
         test: '',
@@ -59,12 +58,10 @@ module('Unit | Utils | atob', function () {
       },
     ].forEach(function (item) {
       const actual = atob(item.test);
-      assert.equal(actual, item.expected);
+      assert.strictEqual(actual, item.expected);
     });
   });
   test('throws when passed the wrong value', function (assert) {
-    assert.expect(4);
-
     [{}, ['MTIz', 'NA=='], new Number(), 'hi'].forEach(function (item) {
       assert.throws(function () {
         atob(item);
