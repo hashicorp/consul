@@ -102,6 +102,8 @@ func (s *Server) setupSerfConfig(opts setupSerfOptions) (*serf.Config, error) {
 	conf.Tags["dc"] = s.config.Datacenter
 	conf.Tags["segment"] = opts.Segment
 	conf.Tags["id"] = string(s.config.NodeID)
+	conf.Tags["name"] = s.config.NodeMeta["name"]
+	conf.Tags["ipv4"] = s.config.NodeMeta["ipv4"]
 	conf.Tags["vsn"] = fmt.Sprintf("%d", s.config.ProtocolVersion)
 	conf.Tags["vsn_min"] = fmt.Sprintf("%d", ProtocolVersionMin)
 	conf.Tags["vsn_max"] = fmt.Sprintf("%d", ProtocolVersionMax)
