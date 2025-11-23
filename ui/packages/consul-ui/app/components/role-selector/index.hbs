@@ -150,7 +150,7 @@ as |modal|>
         </td>
       </BlockSlot>
       <BlockSlot @name="actions" as |index change checked|>
-        <PopoverMenu @expanded={{if (eq checked index) true false}} @onchange={{action change index}} @keyboardAccess={{true}} as |components|>
+        <PopoverMenu @expanded={{if (eq checked index) true false}} @onchange={{fn change index}} @keyboardAccess={{true}} as |components|>
           <BlockSlot @name="trigger">
             More
           </BlockSlot>

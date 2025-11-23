@@ -5,17 +5,22 @@
 
 <input
   ...attributes
-  {{did-insert (set this 'input')}}
+  {{element-ref this.setupInput}}
   type="checkbox"
   checked={{if this.checked 'checked' undefined}}
   id={{concat 'toggle-button-' this.guid}}
-  onchange={{action 'change'}}
+  {{on 'change' this.change}}
 />
 <label
-  {{did-insert (set this 'label')}}
+  {{element-ref this.setupLabel}}
+  {{click-outside
+    enabled=this.checked
+    excludeElements=(array this.input)
+    onClickOutside=this.handleClickOutside
+  }}
   for={{concat 'toggle-button-' this.guid}}
 >
   {{yield (hash
-    click=(action 'click')
+    click=this.click
   )}}
 </label>
