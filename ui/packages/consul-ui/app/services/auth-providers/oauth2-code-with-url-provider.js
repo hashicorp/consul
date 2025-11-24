@@ -18,7 +18,7 @@ export default class OAuth2CodeWithURLProvider extends OAuth2CodeProvider {
       this._lastBaseUrl = options.baseUrl;
     }
     const name = this.name,
-      url = (options.baseUrl || this.buildUrl()),
+      url = options.baseUrl || this.buildUrl(),
       responseParams = ['state', 'code'],
       responseType = 'code';
     return this.popup.open(url, responseParams, options).then((authData) => {
