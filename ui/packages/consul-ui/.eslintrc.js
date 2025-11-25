@@ -45,7 +45,7 @@ module.exports = {
     'ember/no-component-lifecycle-hooks': ['warn'],
     'ember/require-tagless-components': ['warn'],
     'ember/no-legacy-test-waiters': ['warn'],
-    'ember/no-empty-glimmer-component-classes': ['warn'],
+    'ember/no-empty-glimmer-component-classes': ['error'],
     'ember/no-get': ['off'], // be careful with autofix, might change behavior
     'ember/require-computed-property-dependencies': ['off'], // be careful with autofix
     'ember/use-ember-data-rfc-395-imports': ['off'], // be carful with autofix
