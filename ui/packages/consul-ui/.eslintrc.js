@@ -34,7 +34,7 @@ module.exports = {
 
     // for 3.24 update
     'ember/classic-decorator-no-classic-methods': ['error'],
-    'ember/classic-decorator-hooks': ['warn'],
+    'ember/classic-decorator-hooks': ['error'],
     'ember/no-classic-classes': ['warn'],
     'ember/no-mixins': ['warn'],
     'ember/no-computed-properties-in-native-classes': ['warn'],

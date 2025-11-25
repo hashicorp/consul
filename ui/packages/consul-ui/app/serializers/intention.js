@@ -14,8 +14,8 @@ export default class IntentionSerializer extends Serializer {
   primaryKey = PRIMARY_KEY;
   slugKey = SLUG_KEY;
 
-  init() {
-    super.init(...arguments);
+  constructor(...args) {
+    super(...args);
     this.uri = this.encoder.uriTag();
   }
 

@@ -8,8 +8,8 @@ import { Tween } from 'consul-ui/utils/ticker';
 
 let map;
 export default class TickerService extends Service {
-  init() {
-    super.init(...arguments);
+  constructor(...args) {
+    super(...args);
     this.reset();
   }
 
@@ -32,9 +32,10 @@ export default class TickerService extends Service {
   }
 
   // TODO: We'll try and use obj later for ticker bookkeeping
-  destroy(obj) {
+  willDestroy(...args) {
+    super.willDestroy(...args);
     this.reset();
-    return Tween.destroy();
+    Tween.destroy();
   }
 
   reset() {
