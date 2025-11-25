@@ -33,7 +33,7 @@ module.exports = {
     'ember/no-global-jquery': 'error',
 
     // for 3.24 update
-    'ember/classic-decorator-no-classic-methods': ['warn'],
+    'ember/classic-decorator-no-classic-methods': ['error'],
     'ember/classic-decorator-hooks': ['warn'],
     'ember/no-classic-classes': ['warn'],
     'ember/no-mixins': ['warn'],

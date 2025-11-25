@@ -86,6 +86,9 @@ importers:
       '@ember/render-modifiers':
         specifier: ^3.0.0
         version: 3.0.0(@glint/template@1.5.2)(ember-source@4.12.4(@babel/core@7.28.5)(@glimmer/component@1.1.2(@babel/core@7.28.5))(@glint/template@1.5.2)(webpack@5.94.0))
+      '@ember/string':
+        specifier: ^4.0.1
+        version: 4.0.1
       '@ember/test-helpers':
         specifier: ^5.4.1
         version: 5.4.1(@babel/core@7.28.5)(@glint/template@1.5.2)
@@ -239,6 +242,9 @@ importers:
       ember-changeset-validations:
         specifier: ~5.0.0
         version: 5.0.0(@babel/core@7.28.5)(@ember/string@4.0.1)(@glint/template@1.5.2)(ember-source@4.12.4(@babel/core@7.28.5)(@glimmer/component@1.1.2(@babel/core@7.28.5))(@glint/template@1.5.2)(webpack@5.94.0))
+      ember-classic-decorator:
+        specifier: ^4.0.0
+        version: 4.0.0(@glint/template@1.5.2)(ember-source@4.12.4(@babel/core@7.28.5)(@glimmer/component@1.1.2(@babel/core@7.28.5))(@glint/template@1.5.2)(webpack@5.94.0))
       ember-cli:
         specifier: ^4.12.3
         version: 4.12.3(@types/node@24.5.2)(handlebars@4.7.8)(underscore@1.13.6)
@@ -3428,6 +3434,12 @@ packages:
         optional: true
       ember-data:
         optional: true
+
+  ember-classic-decorator@4.0.0:
+    resolution: {integrity: sha512-Y9AsVKuwy8VPekiQEGK+vwpWhSJxPqakl37SZwn3KK5Wuab6iMKquU3QNNFolTyZ5YXOks2iKB/QN+8181p+KA==}
+    engines: {node: '>= 18'}
+    peerDependencies:
+      ember-source: '>= 4.0.0'
 
   ember-cli-app-version@7.0.0:
     resolution: {integrity: sha512-zWIkxvlRrW7w1/vp+bGkmS27QsVum7NKp8N9DgAjhFMWuKewVqGyl/jeYaujMS/I4WSKBzSG9WHwBy2rjbUWxA==}
@@ -11336,6 +11348,17 @@ snapshots:
       ember-data: 4.0.0(@babel/core@7.28.5)(@glint/template@1.5.2)(ember-source@4.12.4(@babel/core@7.28.5)(@glimmer/component@1.1.2(@babel/core@7.28.5))(@glint/template@1.5.2)(webpack@5.94.0))(webpack@5.94.0)
     transitivePeerDependencies:
       - '@babel/core'
+      - '@glint/template'
+      - supports-color
+
+  ember-classic-decorator@4.0.0(@glint/template@1.5.2)(ember-source@4.12.4(@babel/core@7.28.5)(@glimmer/component@1.1.2(@babel/core@7.28.5))(@glint/template@1.5.2)(webpack@5.94.0)):
+    dependencies:
+      '@babel/core': 7.28.5
+      '@embroider/macros': 1.19.2(@glint/template@1.5.2)
+      babel-plugin-filter-imports: 4.0.0
+      ember-cli-babel: 8.2.0(@babel/core@7.28.5)
+      ember-source: 4.12.4(@babel/core@7.28.5)(@glimmer/component@1.1.2(@babel/core@7.28.5))(@glint/template@1.5.2)(webpack@5.94.0)
+    transitivePeerDependencies:
       - '@glint/template'
       - supports-color
 

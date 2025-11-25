@@ -6,6 +6,7 @@
 import { inject as service } from '@ember/service';
 import { get } from '@ember/object';
 import Ability from 'ember-can/ability';
+import classic from 'ember-classic-decorator';
 
 export const ACCESS_READ = 'read';
 export const ACCESS_WRITE = 'write';
@@ -18,6 +19,7 @@ export const ACCESS_LIST = 'list';
 // permissions list. This is also fine for permission inspection for single
 // items/models as we only request the permissions for the namespace you are
 // in, we don't need to recheck that namespace here
+@classic
 export default class BaseAbility extends Ability {
   @service('repository/permission') permissions;
 

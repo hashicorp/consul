@@ -5,7 +5,9 @@
 
 import { get } from '@ember/object';
 import { EmberChangeset as Changeset } from 'ember-changeset';
+import classic from 'ember-classic-decorator';
 const CHANGES = '_changes';
+@classic
 export default class extends Changeset {
   pushObject(prop, value) {
     let val;
