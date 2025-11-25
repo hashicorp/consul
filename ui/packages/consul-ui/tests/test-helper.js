@@ -8,18 +8,17 @@ import config from 'consul-ui/config/environment';
 import * as QUnit from 'qunit';
 import { setApplication } from '@ember/test-helpers';
 import { setup } from 'qunit-dom';
-import { registerWaiter } from '@ember/test';
 import './helpers/flash-message';
 import { setupEmberOnerrorValidation } from 'ember-qunit';
 import { start as startEmberExam } from 'ember-exam/test-support';
 import setupSinon from 'ember-sinon-qunit';
+import { buildWaiter } from 'ember-test-waiters';
 
 import ClientConnections from 'consul-ui/services/client/connections';
 
-let activeRequests = 0;
-registerWaiter(function () {
-  return activeRequests === 0;
-});
+const waiter = buildWaiter('client-connections');
+let tokens = [];
+
 ClientConnections.reopen({
   addVisibilityChange: function () {
     // for the moment don't listen for tab hiding during testing
@@ -27,16 +26,19 @@ ClientConnections.reopen({
   },
   purge: function () {
     const res = this._super(...arguments);
-    activeRequests = 0;
+    while (tokens.length) {
+      waiter.endAsync(tokens.pop());
+    }
     return res;
   },
   acquire: function () {
-    activeRequests++;
+    tokens.push(waiter.beginAsync());
     return this._super(...arguments);
   },
   release: function () {
     const res = this._super(...arguments);
-    activeRequests--;
+    const t = tokens.pop();
+    if (t) waiter.endAsync(t);
     return res;
   },
 });

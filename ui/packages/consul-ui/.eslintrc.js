@@ -44,7 +44,7 @@ module.exports = {
     'ember/no-classic-components': ['warn'],
     'ember/no-component-lifecycle-hooks': ['warn'],
     'ember/require-tagless-components': ['warn'],
-    'ember/no-legacy-test-waiters': ['warn'],
+    'ember/no-legacy-test-waiters': ['error'],
     'ember/no-empty-glimmer-component-classes': ['error'],
     'ember/no-get': ['off'], // be careful with autofix, might change behavior
     'ember/require-computed-property-dependencies': ['off'], // be careful with autofix
