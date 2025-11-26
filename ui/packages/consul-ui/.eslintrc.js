@@ -39,7 +39,7 @@ module.exports = {
     'ember/no-mixins': ['warn'],
     'ember/no-computed-properties-in-native-classes': ['warn'],
     'ember/no-private-routing-service': ['warn'],
-    'ember/no-test-import-export': ['warn'],
+    'ember/no-test-import-export': ['error'],
     'ember/no-actions-hash': ['warn'],
     'ember/no-classic-components': ['warn'],
     'ember/no-component-lifecycle-hooks': ['warn'],

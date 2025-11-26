@@ -9,7 +9,7 @@ import { FSM, Location } from './fsm';
 import { settled } from '@ember/test-helpers';
 
 export default class FSMWithOptionalTestLocation extends FSMWithOptionalLocation {
-  implementation = 'fsm-with-optional-test';
+  implementation = 'fsm-with-optional-test-location';
   static create() {
     return new this(...arguments);
   }
