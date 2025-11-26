@@ -22,7 +22,7 @@ export default class TopologyService extends RepositoryService {
   @dataSource('/:partition/:ns/:dc/topology/:id/:kind')
   findBySlug(params, configuration = {}) {
     const datacenter = this.dcs.peekOne(params.dc);
-    if (datacenter !== null && !get(datacenter, 'MeshEnabled')) {
+    if (datacenter !== null && !datacenter.MeshEnabled) {
       return Promise.resolve();
     }
     if (typeof configuration.cursor !== 'undefined') {

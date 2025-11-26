@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-import { get, set } from '@ember/object';
+import { set } from '@ember/object';
 
 const proxies = {};
 export default function (ObjProxy, ArrProxy, createListeners) {
@@ -11,11 +11,11 @@ export default function (ObjProxy, ArrProxy, createListeners) {
     let Proxy = ObjProxy;
     // TODO: When is data ever a string?
     let type = 'object';
-    if (typeof data !== 'string' && typeof get(data, 'length') !== 'undefined') {
+    if (typeof data !== 'string' && typeof data?.length !== 'undefined') {
       Proxy = ArrProxy;
       type = 'array';
       data = data.filter(function (item) {
-        return !get(item, 'isDestroyed') && !get(item, 'isDeleted') && get(item, 'isLoaded');
+        return !item?.isDestroyed && !item?.isDeleted && item?.isLoaded;
       });
     }
     if (typeof proxies[type] === 'undefined') {

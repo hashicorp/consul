@@ -45,11 +45,11 @@ export default Component.extend(Slotted, {
       // losing reference as its just to figure out the diff
       let options = this.allOptions || [];
       const items = this.selectedOptions || [];
-      if (get(items, 'length') > 0) {
+      if (items.length > 0) {
         // filter out any items from the available options that have already been
         // selected/added
         // TODO: find a proper ember-data diff
-        options = options.filter((item) => !items.findBy('ID', get(item, 'ID')));
+        options = options.filter((item) => !items.findBy('ID', item.ID));
       }
       return options;
     },

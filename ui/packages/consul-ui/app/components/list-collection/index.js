@@ -4,7 +4,7 @@
  */
 
 import { inject as service } from '@ember/service';
-import { computed, get, set } from '@ember/object';
+import { computed, set } from '@ember/object';
 import Component from 'ember-collection/components/ember-collection';
 import PercentageColumns from 'ember-collection/layouts/percentage-columns';
 import Slotted from 'block-slots';
@@ -33,14 +33,14 @@ export default Component.extend(Slotted, {
   didReceiveAttrs: function () {
     this._super(...arguments);
     this._cellLayout = this['cell-layout'] = new PercentageColumns(
-      get(this, 'items.length'),
+      this.items?.length,
       this.columns,
       this.cellHeight
     );
     const o = this;
     this['cell-layout'].formatItemStyle = function (itemIndex) {
       let style = formatItemStyle.apply(this, arguments);
-      const items = get(o, 'items');
+      const items = o.items;
       if (items && items[itemIndex] && o.checked === items[itemIndex].uid) {
         style = `${style};z-index: 1`;
       }

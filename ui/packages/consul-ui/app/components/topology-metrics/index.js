@@ -5,7 +5,7 @@
 
 import Component from '@glimmer/component';
 import { tracked } from '@glimmer/tracking';
-import { action, get } from '@ember/object';
+import { action } from '@ember/object';
 import { inject as service } from '@ember/service';
 
 export default class TopologyMetrics extends Component {
@@ -76,14 +76,14 @@ export default class TopologyMetrics extends Component {
   }
 
   emptyColumn() {
-    const noDependencies = get(this.args.topology, 'noDependencies');
+    const noDependencies = this.args.topology?.noDependencies;
     return !this.env.var('CONSUL_ACLS_ENABLED') || noDependencies;
   }
 
   get downstreams() {
-    const downstreams = get(this.args.topology, 'Downstreams') || [];
+    const downstreams = this.args.topology?.Downstreams || [];
     const items = [...downstreams];
-    const noDependencies = get(this.args.topology, 'noDependencies');
+    const noDependencies = this.args.topology?.noDependencies;
 
     if (!this.env.var('CONSUL_ACLS_ENABLED') && noDependencies) {
       items.push({
@@ -108,14 +108,14 @@ export default class TopologyMetrics extends Component {
   }
 
   get upstreams() {
-    const upstreams = get(this.args.topology, 'Upstreams') || [];
+    const upstreams = this.args.topology?.Upstreams || [];
     upstreams.forEach((u) => {
       u.PeerOrDatacenter = u.PeerName || u.Datacenter;
     });
     const items = [...upstreams];
-    const defaultACLPolicy = get(this.args.dc, 'DefaultACLPolicy');
-    const wildcardIntention = get(this.args.topology, 'wildcardIntention');
-    const noDependencies = get(this.args.topology, 'noDependencies');
+    const defaultACLPolicy = this.args.dc?.DefaultACLPolicy;
+    const wildcardIntention = this.args.topology?.wildcardIntention;
+    const noDependencies = this.args.topology?.noDependencies;
 
     if (!this.env.var('CONSUL_ACLS_ENABLED') && noDependencies) {
       items.push({
@@ -143,13 +143,13 @@ export default class TopologyMetrics extends Component {
   }
 
   get mainNotIngressService() {
-    const kind = get(this.args.service.Service, 'Kind') || '';
+    const kind = this.args.service?.Service?.Kind || '';
 
     return kind !== 'ingress-gateway';
   }
 
   get mainNotAPIGatewayService() {
-    const kind = get(this.args.service.Service, 'Kind') || '';
+    const kind = this.args.service?.Service?.Kind || '';
 
     return kind !== 'api-gateway';
   }

@@ -6,7 +6,7 @@
 import { inject as service } from '@ember/service';
 import Controller from '@ember/controller';
 import { getOwner } from '@ember/application';
-import { get, action } from '@ember/object';
+import { action } from '@ember/object';
 import transitionable from 'consul-ui/utils/routing/transitionable';
 
 export default class ApplicationController extends Controller {
@@ -54,7 +54,7 @@ export default class ApplicationController extends Controller {
           const token = e.data;
           // TODO: Do I actually need to check to see if nspaces are enabled here?
           if (typeof this.nspace !== 'undefined') {
-            const nspace = get(token, 'Namespace') || this.nspace.Name;
+            const nspace = token?.Namespace || this.nspace.Name;
             // you potentially have a new namespace
             // if you do redirect to it
             if (nspace !== this.nspace.Name) {

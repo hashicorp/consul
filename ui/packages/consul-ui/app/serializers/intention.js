@@ -5,7 +5,6 @@
 
 import Serializer from './application';
 import { inject as service } from '@ember/service';
-import { get } from '@ember/object';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/intention';
 
 export default class IntentionSerializer extends Serializer {
@@ -20,7 +19,7 @@ export default class IntentionSerializer extends Serializer {
   }
 
   ensureID(item) {
-    if (!get(item, 'ID.length')) {
+    if (!item.ID?.length) {
       item.Legacy = false;
     } else {
       item.Legacy = true;
