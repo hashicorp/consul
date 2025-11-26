@@ -5,7 +5,7 @@
 
 import Component from '@ember/component';
 import { set, computed } from '@ember/object';
-import { alias, equal, not } from '@ember/object/computed';
+import { alias, equal, not, or } from '@ember/object/computed';
 import { inject as service } from '@ember/service';
 
 const name = 'intention-permission-http-header';
@@ -51,9 +51,7 @@ export default Component.extend({
     };
   }),
 
-  headerType: computed('changeset.HeaderType', 'headerTypes.firstObject', function () {
-    return this.changeset.HeaderType || this.headerTypes.firstObject;
-  }),
+  headerType: or('changeset.HeaderType', 'headerTypes.firstObject'),
 
   headerTypeEqualsPresent: equal('headerType', 'Present'),
   shouldShowValueField: not('headerTypeEqualsPresent'),

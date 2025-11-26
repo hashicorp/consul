@@ -52,7 +52,7 @@ export default Component.extend({
     }
     return changeset;
   }),
-
+  // eslint-disable-next-line ember/require-computed-macros
   pathType: computed(
     'changeset._changes.HTTP.PathType',
     'pathTypes.firstObject',
