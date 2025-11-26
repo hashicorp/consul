@@ -68,6 +68,7 @@ export default Component.extend({
   shouldShowMethods: not('allMethods'),
 
   didReceiveAttrs: function () {
+    this._super(...arguments);
     if (!get(this, 'item.HTTP.Methods.length')) {
       set(this, 'allMethods', true);
     }

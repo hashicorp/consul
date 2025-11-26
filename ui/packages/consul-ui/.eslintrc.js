@@ -48,8 +48,8 @@ module.exports = {
     'ember/no-empty-glimmer-component-classes': ['error'],
     'ember/no-get': ['off'], // be careful with autofix, might change behavior
     'ember/require-computed-property-dependencies': ['error'], // be careful with autofix
-    'ember/use-ember-data-rfc-395-imports': ['off'], // be carful with autofix
-    'ember/require-super-in-lifecycle-hooks': ['off'], // be careful with autofix
+    'ember/use-ember-data-rfc-395-imports': ['error'], // be carful with autofix
+    'ember/require-super-in-lifecycle-hooks': ['error'], // be careful with autofix
     'ember/require-computed-macros': ['off'], // be careful with autofix
     'ember/use-brace-expansion': 'off',
   },

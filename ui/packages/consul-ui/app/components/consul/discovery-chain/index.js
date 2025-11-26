@@ -21,6 +21,7 @@ export default Component.extend({
     this._listeners = this.dom.listeners();
   },
   didInsertElement: function () {
+    this._super(...arguments);
     this._listeners.add(this.dom.document(), {
       click: (e) => {
         // all route/splitter/resolver components currently
