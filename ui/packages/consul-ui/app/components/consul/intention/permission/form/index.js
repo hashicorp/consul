@@ -53,9 +53,14 @@ export default Component.extend({
     return changeset;
   }),
 
-  pathType: computed('changeset._changes.HTTP.PathType', 'pathTypes.firstObject', function () {
-    return this.changeset.HTTP.PathType || this.pathTypes.firstObject;
-  }),
+  pathType: computed(
+    'changeset._changes.HTTP.PathType',
+    'pathTypes.firstObject',
+    'changeset.HTTP.PathType',
+    function () {
+      return this.changeset.HTTP.PathType || this.pathTypes.firstObject;
+    }
+  ),
   noPathType: equal('pathType', 'NoPath'),
   shouldShowPathField: not('noPathType'),
 

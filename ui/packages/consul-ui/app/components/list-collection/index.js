@@ -48,7 +48,7 @@ export default Component.extend(Slotted, {
     };
   },
 
-  style: computed('height', {
+  style: computed('height', 'scroll', {
     get() {
       if (this.scroll !== 'virtual') {
         return {};

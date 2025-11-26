@@ -40,7 +40,7 @@ export default CollectionComponent.extend(Slotted, {
     this.actions.resize.apply(this, [{ target: this.dom.viewport() }]);
   },
 
-  style: computed('rowHeight', '_items', 'maxRows', 'maxHeight', {
+  style: computed('rowHeight', '_items', 'maxRows', 'maxHeight', 'rows', {
     get() {
       const maxRows = this.rows;
       let height = this.maxHeight;

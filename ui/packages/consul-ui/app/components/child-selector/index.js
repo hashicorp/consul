@@ -36,7 +36,7 @@ export default Component.extend(Slotted, {
     this._super(...arguments);
     this._listeners.remove();
   },
-  options: computed('selectedOptions.[]', 'allOptions.[]', {
+  options: computed('selectedOptions.[]', 'allOptions.[]', '_options', {
     get() {
       if (this._options !== undefined) {
         return this._options;
@@ -54,8 +54,7 @@ export default Component.extend(Slotted, {
       return options;
     },
     set(_key, value) {
-      this._options = value;
-      return this._options;
+      return this.set('_options', value);
     },
   }),
   save: task(function* (item, items, success = function () {}) {

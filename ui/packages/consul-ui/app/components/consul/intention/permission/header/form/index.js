@@ -20,7 +20,7 @@ export default Component.extend({
   onsubmit: function () {},
   onreset: function () {},
 
-  changeset: computed('item', {
+  changeset: computed('item', '_changeset', 'headerTypes.firstObject', {
     get() {
       if (this._changeset !== undefined) {
         return this._changeset;
@@ -34,8 +34,7 @@ export default Component.extend({
       );
     },
     set(_key, value) {
-      this._changeset = value;
-      return this._changeset;
+      return this.set('_changeset', value);
     },
   }),
 
