@@ -3,28 +3,35 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-import Component from '@glimmer/component';
-import { tracked } from '@glimmer/tracking';
-import { action } from '@ember/object';
+import Component from '@ember/component';
 import { inject as service } from '@ember/service';
 import { schedule } from '@ember/runloop';
+import { set } from '@ember/object';
 
-export default class MenuPanelComponent extends Component {
-  @service dom;
+import Slotted from 'block-slots';
 
-  @tracked isConfirmation = false;
+export default Component.extend(Slotted, {
+  tagName: '',
+  dom: service('dom'),
+  isConfirmation: false,
 
-  @action
-  connect(element) {
-    schedule('afterRender', () => {
-      // if theres only a single choice in the menu and it doesn't have an
-      // immediate button/link/label to click then it will be a
-      // confirmation/informed action
-      const isConfirmationMenu = this.dom.element(
-        'li:only-child > [role="menu"]:first-child',
-        element
-      );
-      this.isConfirmation = typeof isConfirmationMenu !== 'undefined';
-    });
-  }
-}
+  actions: {
+    connect: function ($el) {
+      schedule('afterRender', () => {
+        if (!this.isDestroyed) {
+          // if theres only a single choice in the menu and it doesn't have an
+          // immediate button/link/label to click then it will be a
+          // confirmation/informed action
+          const isConfirmationMenu = this.dom.element(
+            'li:only-child > [role="menu"]:first-child',
+            $el
+          );
+          set(this, 'isConfirmation', typeof isConfirmationMenu !== 'undefined');
+        }
+      });
+    },
+    change: function (e) {
+      // not being used
+    },
+  },
+});

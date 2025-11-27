@@ -12,8 +12,12 @@
       class="modal-dialog"
       aria-hidden="true"
       ...attributes
-      {{did-insert (action "connect")}}
-      {{will-destroy (action "disconnect")}}
+      {{a11y-dialog
+        onShow=(action "handleShow")
+        onHide=(action "handleHide")
+        onSetup=(action "handleSetup")
+        autoOpen=@open
+      }}
     >
       <div tabindex="-1" data-a11y-dialog-hide></div>
       <div
