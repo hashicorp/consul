@@ -38,7 +38,7 @@ module('Integration | Modifier | on-insert', function (hooks) {
     };
 
     await render(hbs`
-      <button {{on-insert this.captureElement}} class="test-button">Click me</button>
+      <button class="test-button" type="button" {{on-insert this.captureElement}}>Click me</button>
     `);
 
     assert.ok(receivedElement instanceof HTMLButtonElement, 'received a button element');
@@ -116,7 +116,7 @@ module('Integration | Modifier | on-insert', function (hooks) {
     await render(hbs`
       <div>
         <span {{on-insert this.handleInsert}} data-test-span></span>
-        <button {{on-insert this.handleInsert}} data-test-button></button>
+        <button data-test-button type="button" {{on-insert this.handleInsert}}></button>
         <input {{on-insert this.handleInsert}} data-test-input />
       </div>
     `);
@@ -217,7 +217,7 @@ module('Integration | Modifier | on-insert', function (hooks) {
       <div {{on-insert this.captureDiv}}></div>
       <span {{on-insert this.captureSpan}}></span>
       <input {{on-insert this.captureInput}} />
-      <button {{on-insert this.captureButton}}></button>
+      <button type="button" {{on-insert this.captureButton}}></button>
     `);
 
     assert.ok(elements.div instanceof HTMLDivElement, 'captured div');
