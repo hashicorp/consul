@@ -22,7 +22,7 @@ module('Integration | Modifier | a11y-dialog', function (hooks) {
     await render(hbs`
       <div {{a11y-dialog onSetup=this.handleSetup}} data-a11y-dialog>
         <div role="dialog">
-          <button data-a11y-dialog-hide>Close</button>
+          <button data-a11y-dialog-hide type="button">Close</button>
           <div>Dialog content</div>
         </div>
       </div>
@@ -51,7 +51,7 @@ module('Integration | Modifier | a11y-dialog', function (hooks) {
     await render(hbs`
       <div {{a11y-dialog onSetup=this.handleSetup onShow=this.handleShow}} data-test-dialog>
         <div role="dialog">
-          <button data-a11y-dialog-hide>Close</button>
+          <button data-a11y-dialog-hide type="button">Close</button>
           <div>Dialog content</div>
         </div>
       </div>
@@ -85,7 +85,7 @@ module('Integration | Modifier | a11y-dialog', function (hooks) {
     await render(hbs`
       <div {{a11y-dialog onSetup=this.handleSetup onHide=this.handleHide}} data-test-dialog>
         <div role="dialog">
-          <button data-a11y-dialog-hide>Close</button>
+          <button data-a11y-dialog-hide type="button">Close</button>
           <div>Dialog content</div>
         </div>
       </div>
@@ -115,7 +115,7 @@ module('Integration | Modifier | a11y-dialog', function (hooks) {
     await render(hbs`
       <div {{a11y-dialog onShow=this.handleShow autoOpen=true}}>
         <div role="dialog">
-          <button data-a11y-dialog-hide>Close</button>
+          <button data-a11y-dialog-hide type="button">Close</button>
           <div>Dialog content</div>
         </div>
       </div>
@@ -135,7 +135,7 @@ module('Integration | Modifier | a11y-dialog', function (hooks) {
     await render(hbs`
       <div {{a11y-dialog onShow=this.handleShow autoOpen=false}}>
         <div role="dialog">
-          <button data-a11y-dialog-hide>Close</button>
+          <button data-a11y-dialog-hide type="button">Close</button>
           <div>Dialog content</div>
         </div>
       </div>
@@ -155,7 +155,7 @@ module('Integration | Modifier | a11y-dialog', function (hooks) {
     await render(hbs`
       <div {{a11y-dialog onSetup=this.handleSetup}}>
         <div role="dialog">
-          <button data-a11y-dialog-hide>Close</button>
+          <button data-a11y-dialog-hide type="button">Close</button>
           <div>Dialog content</div>
         </div>
       </div>
@@ -178,7 +178,7 @@ module('Integration | Modifier | a11y-dialog', function (hooks) {
     await render(hbs`
       <div {{a11y-dialog onSetup=this.handleSetup}}>
         <div role="dialog">
-          <button data-a11y-dialog-hide>Close</button>
+          <button data-a11y-dialog-hide type="button">Close</button>
           <div>Dialog content</div>
         </div>
       </div>
@@ -198,7 +198,7 @@ module('Integration | Modifier | a11y-dialog', function (hooks) {
     await render(hbs`
       <div {{a11y-dialog}}>
         <div role="dialog">
-          <button data-a11y-dialog-hide>Close</button>
+          <button data-a11y-dialog-hide type="button">Close</button>
           <div>Dialog content</div>
         </div>
       </div>
@@ -232,7 +232,7 @@ module('Integration | Modifier | a11y-dialog', function (hooks) {
       {{#if this.state.showDialog}}
         <div {{a11y-dialog onSetup=this.handleSetup}}>
           <div role="dialog">
-            <button data-a11y-dialog-hide>Close</button>
+            <button data-a11y-dialog-hide type="button">Close</button>
             <div>Dialog content</div>
           </div>
         </div>
@@ -269,7 +269,7 @@ module('Integration | Modifier | a11y-dialog', function (hooks) {
     await render(hbs`
       <div {{a11y-dialog onSetup=this.handleSetup onShow=this.handleShow onHide=this.handleHide}}>
         <div role="dialog">
-          <button data-a11y-dialog-hide>Close</button>
+          <button data-a11y-dialog-hide type="button">Close</button>
           <div>Dialog content</div>
         </div>
       </div>
@@ -315,7 +315,7 @@ module('Integration | Modifier | a11y-dialog', function (hooks) {
     await render(hbs`
       <div {{a11y-dialog onSetup=this.handleSetup}}>
         <div role="dialog">
-          <button data-a11y-dialog-hide>Close</button>
+          <button data-a11y-dialog-hide type="button">Close</button>
           <div>Dialog content</div>
         </div>
       </div>
@@ -348,7 +348,7 @@ module('Integration | Modifier | a11y-dialog', function (hooks) {
     await render(hbs`
       <div {{a11y-dialog onSetup=this.handleSetup onShow=this.state.showCallback}}>
         <div role="dialog">
-          <button data-a11y-dialog-hide>Close</button>
+          <button data-a11y-dialog-hide type="button">Close</button>
           <div>Dialog content</div>
         </div>
       </div>
@@ -399,14 +399,14 @@ module('Integration | Modifier | a11y-dialog', function (hooks) {
         <div class="outer-container">
           <div role="dialog" class="inner-dialog">
             <header>
-              <button data-a11y-dialog-hide>Close</button>
+              <button data-a11y-dialog-hide type="button">Close</button>
               <h2>Title</h2>
             </header>
             <div class="content">
               <p>Dialog content</p>
             </div>
             <footer>
-              <button>Action</button>
+              <button type="button">Action</button>
             </footer>
           </div>
         </div>
