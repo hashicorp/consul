@@ -117,6 +117,7 @@ module('Integration | Modifier | on-insert', function (hooks) {
       <div>
         <span {{on-insert this.handleInsert}} data-test-span></span>
         <button data-test-button type="button" {{on-insert this.handleInsert}}></button>
+        {{! template-lint-disable require-input-label }}
         <input {{on-insert this.handleInsert}} data-test-input />
       </div>
     `);
@@ -170,6 +171,7 @@ module('Integration | Modifier | on-insert', function (hooks) {
     };
 
     await render(hbs`
+      {{! template-lint-disable require-input-label }}
       <input {{on-insert this.storeInput}} type="text" value="test value" />
     `);
 
@@ -216,6 +218,7 @@ module('Integration | Modifier | on-insert', function (hooks) {
     await render(hbs`
       <div {{on-insert this.captureDiv}}></div>
       <span {{on-insert this.captureSpan}}></span>
+      {{! template-lint-disable require-input-label }}
       <input {{on-insert this.captureInput}} />
       <button type="button" {{on-insert this.captureButton}}></button>
     `);
