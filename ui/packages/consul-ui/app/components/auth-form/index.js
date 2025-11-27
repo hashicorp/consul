@@ -22,6 +22,11 @@ export default class AuthForm extends Component {
   }
 
   @action
+  captureInput(element) {
+    this.input = element;
+  }
+
+  @action
   focus() {
     this.input.focus();
   }
