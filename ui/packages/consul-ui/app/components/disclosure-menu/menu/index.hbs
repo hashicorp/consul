@@ -7,7 +7,7 @@
   <PagedCollection @items={{or @items (array)}} as |pager|>
     <div
       {{on-outside 'click' @disclosure.close}}
-      {{did-insert pager.viewport}}
+      {{on-insert pager.viewport}}
       {{on-resize pager.resize}}
       {{css-prop '--paged-row-height' returns=pager.rowHeight}}
       {{css-prop 'max-height' returns=pager.maxHeight}}

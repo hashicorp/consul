@@ -6,7 +6,6 @@
 <div
   class="consul-intention-list"
   ...attributes
-  {{did-update this.updateCRDManagement @items}}
 >
 {{yield (hash
   Table=(component 'consul/intention/list/table' delete=@delete items=this.items)
