@@ -5,7 +5,7 @@
 
 {{yield}}
 {{#let (hash
-  change=(action "change")
+  change=(fn (noop))
 ) as |api|}}
 <div
   class={{class-map
@@ -14,7 +14,7 @@
     (array @position)
     (array this.isConfirmation 'confirmation')
   }}
-  {{did-insert (action 'connect')}}
+  {{on-insert this.connect}}
 >
   <YieldSlot @name="controls">
     {{yield api}}
