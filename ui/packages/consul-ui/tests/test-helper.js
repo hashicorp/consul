@@ -43,7 +43,6 @@ ClientConnections.reopen({
   },
 });
 const application = Application.create(config.APP);
-application.inject('component:copy-button', 'clipboard', 'service:clipboard/local-storage');
 
 setApplication(application);
 
