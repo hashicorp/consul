@@ -11,7 +11,7 @@
       '--paged-start' (if (and @pager (not-eq @pager.type 'native-scroll')) @pager.startHeight) 'px'
     )
   }}}
-  {{did-insert (optional @pager.pane)}}
+  {{on-insert (optional @pager.pane)}}
   {{aria-menu onclose=(or @onclose @disclosure.close) openEvent=(or @event @disclosure.event)}}
 >
   {{yield
