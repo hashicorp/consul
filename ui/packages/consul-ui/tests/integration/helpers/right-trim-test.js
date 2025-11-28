@@ -15,8 +15,8 @@ module('Integration | Helper | right-trim', function (hooks) {
   test('it renders', async function (assert) {
     this.set('inputValue', '1234');
 
-    await render(hbs`{{right-trim inputValue}}`);
+    await render(hbs`{{right-trim this.inputValue}}`);
 
-    assert.equal(this.element.textContent.trim(), '1234');
+    assert.strictEqual(this.element.textContent.trim(), '1234');
   });
 });

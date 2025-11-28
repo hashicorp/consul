@@ -22,7 +22,7 @@ module('Unit | Sort | Comparator | node', function () {
       },
     ];
     const comp = comparator('Version:asc');
-    assert.equal(typeof comp, 'function');
+    assert.strictEqual(typeof comp, 'function');
 
     const expected = [
       {

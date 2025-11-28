@@ -13,7 +13,6 @@ import sinon from 'sinon';
 module('Integration | Utility | dom/event-source/callable', function (hooks) {
   setupTest(hooks);
   skip('it dispatches messages', function (assert) {
-    assert.expect(1);
     const EventSource = domEventSourceCallable(EventTarget);
     const listener = sinon.stub();
     const source = new EventSource(
@@ -48,22 +47,20 @@ module('Integration | Utility | dom/event-source/callable', function (hooks) {
   // (using an EventSource with no callable)
   // so we'll come back here to investigate
   skip('it dispatches a single open event and closes when called with no callable', function (assert) {
-    assert.expect(4);
     const EventSource = domEventSourceCallable(EventTarget, Promise);
     const listener = sinon.stub();
     const source = new EventSource();
     source.addEventListener('open', function (e) {
       assert.deepEqual(e.target, this);
-      assert.equal(e.target.readyState, 1);
+      assert.strictEqual(e.target.readyState, 1);
       listener();
     });
     return Promise.resolve().then(function () {
       assert.ok(listener.calledOnce);
-      assert.equal(source.readyState, 2);
+      assert.strictEqual(source.readyState, 2);
     });
   });
   test('it dispatches a single open event, and calls the specified callable that can dispatch an event', function (assert) {
-    assert.expect(1);
     const EventSource = domEventSourceCallable(EventTarget);
     const listener = sinon.stub();
     const source = new EventSource(function () {
@@ -90,19 +87,18 @@ module('Integration | Utility | dom/event-source/callable', function (hooks) {
     });
   });
   test("it can be closed before the first tick, and therefore doesn't run", function (assert) {
-    assert.expect(4);
     const EventSource = domEventSourceCallable(EventTarget);
     const listener = sinon.stub();
     const source = new EventSource();
-    assert.equal(source.readyState, 0);
+    assert.strictEqual(source.readyState, 0);
     source.close();
-    assert.equal(source.readyState, 2);
+    assert.strictEqual(source.readyState, 2);
     source.addEventListener('open', function (e) {
       listener();
     });
     return Promise.resolve().then(function () {
       assert.notOk(listener.called);
-      assert.equal(source.readyState, 2);
+      assert.strictEqual(source.readyState, 2);
     });
   });
 });

@@ -10,6 +10,6 @@ export default function (sel, el) {
   try {
     return el.closest(sel);
   } catch (e) {
-    return;
+    return null;
   }
 }

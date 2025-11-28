@@ -118,8 +118,6 @@ module('Integration | Component | super-select-with-create', function (hooks) {
   });
 
   test('it executes the onChange callback when creating new option', async function (assert) {
-    assert.expect(1);
-
     this.onChange = (newService) => {
       assert.strictEqual(
         newService.Name,
@@ -180,8 +178,6 @@ module('Integration | Component | super-select-with-create', function (hooks) {
   });
 
   test('it calls onChange when existing option is selected', async function (assert) {
-    assert.expect(1);
-
     this.onChange = (selectedService) => {
       assert.strictEqual(
         selectedService.Name,

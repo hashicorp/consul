@@ -15,7 +15,7 @@ module('Integration | Helper | dom-position', function (hooks) {
   skip('it renders', async function (assert) {
     this.set('inputValue', '1234');
 
-    await render(hbs`{{dom-position inputValue}}`);
+    await render(hbs`{{dom-position this.inputValue}}`);
 
     assert.equal(this.element.textContent.trim(), '1234');
   });

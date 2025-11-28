@@ -10,7 +10,7 @@ export default (collection, clickable, attribute, text, actions) => () => {
     policy: text('[data-test-policy].policy', { multiple: true }),
     role: text('[data-test-policy].role', { multiple: true }),
     serviceIdentity: text('[data-test-policy].policy-service-identity', { multiple: true }),
-    token: clickable('a'),
+    token: clickable('a', { at: 0 }),
     ...actions(['edit', 'delete', 'use', 'logout', 'clone']),
   });
 };

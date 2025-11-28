@@ -16,8 +16,8 @@
           dc=@item.Datacenter
         )
       }}
-      @type={{'partition'}}
-      @label={{'Partition'}}
+      @type='partition'
+      @label='Partition'
       @ondelete={{fn (if @ondelete @ondelete @onsubmit) @item}}
       @onchange={{fn (optional @onsubmit) @item}}
       as |writer|>
