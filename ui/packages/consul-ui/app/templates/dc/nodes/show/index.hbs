@@ -7,8 +7,8 @@
   @name={{this.routeName}}
 as |route|>
   {{#if (eq route.model.item.Checks.length 0)}}
-    {{did-insert this.goServices}}
+    {{did-insert-helper this.goServices}}
   {{else}}
-    {{did-insert this.goHealthChecks}}
+    {{did-insert-helper this.goHealthChecks}}
   {{/if}}
 </Route>

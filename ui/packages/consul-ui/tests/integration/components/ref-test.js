@@ -28,7 +28,7 @@ module('Integration | Component | ref', function (hooks) {
     // in most cases `this` i.e. the scope of the template (component/controller)
     assert.deepEqual(this.api, _yield);
 
-    assert.equal(this.element.textContent.trim(), '');
+    assert.strictEqual(this.element.textContent.trim(), '');
 
     // // Template block usage:
     // await render(hbs`

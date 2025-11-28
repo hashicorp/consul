@@ -1,0 +1,3 @@
+```release-note:improvement
+ui: upgraded Ember framework from v3.28 to v4.12, improving performance and stability. Upgrades multiple other packages which support Ember v4.
+```

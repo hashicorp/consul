@@ -17,6 +17,6 @@ module('Integration | Helper | format-short-time', function (hooks) {
 
     await render(hbs`{{format-short-time this.inputValue}}`);
 
-    assert.equal(this.element.textContent.trim(), '2h');
+    assert.strictEqual(this.element.textContent.trim(), '2h');
   });
 });

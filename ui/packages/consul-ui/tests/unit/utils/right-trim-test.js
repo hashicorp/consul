@@ -8,8 +8,6 @@ import rightTrim from 'consul-ui/utils/right-trim';
 
 module('Unit | Utility | right trim', function () {
   test('it trims characters from the right hand side', function (assert) {
-    assert.expect(12);
-
     [
       {
         args: ['/a/folder/here/', '/'],
@@ -61,7 +59,7 @@ module('Unit | Utility | right trim', function () {
       },
     ].forEach(function (item) {
       const actual = rightTrim(...item.args);
-      assert.equal(actual, item.expected);
+      assert.strictEqual(actual, item.expected);
     });
   });
 });

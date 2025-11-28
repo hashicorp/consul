@@ -23,7 +23,7 @@ module('Integration | Adapter | topology', function (hooks) {
       id: id,
       kind: kind,
     });
-    assert.equal(`${actual.method} ${actual.url}`, expected);
+    assert.strictEqual(`${actual.method} ${actual.url}`, expected);
   });
   test("requestForQueryRecord throws if you don't specify an id", function (assert) {
     const adapter = this.owner.lookup('adapter:topology');
@@ -36,7 +36,6 @@ module('Integration | Adapter | topology', function (hooks) {
     });
   });
   test('requestForQueryRecord returns the correct body', function (assert) {
-    assert.expect(2);
     return nspaceRunner(
       (adapter, serializer, client) => {
         const request = client.body.bind(client);
