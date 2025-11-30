@@ -6674,6 +6674,8 @@ func TestLoad_FullConfig(t *testing.T) {
 			"CSRMaxPerSecond":     float64(100),
 			"CSRMaxConcurrent":    float64(2),
 		},
+		ConnectVirtualIPCIDRv4:                 "240.0.0.0/4",
+		ConnectVirtualIPCIDRv6:                 "2000::/3",
 		ConnectMeshGatewayWANFederationEnabled: false,
 		Cloud: hcpconfig.CloudConfig{
 			ResourceID:   "N43DsscE",

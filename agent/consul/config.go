@@ -415,6 +415,12 @@ type Config struct {
 	// datacenters should exclusively traverse mesh gateways.
 	ConnectMeshGatewayWANFederationEnabled bool
 
+	// ConnectVirtualIPCIDRv4 defines the IPv4 CIDR block used for auto-allocated virtual IPs.
+	ConnectVirtualIPCIDRv4 string
+
+	// ConnectVirtualIPCIDRv6 defines the IPv6 CIDR block used for auto-allocated virtual IPs.
+	ConnectVirtualIPCIDRv6 string
+
 	// DefaultIntentionPolicy is used to define a default intention action for all
 	// sources and destinations. Possible values are "allow", "deny", or "" (blank).
 	// For compatibility, falls back to ACLResolverSettings.ACLDefaultPolicy (which
