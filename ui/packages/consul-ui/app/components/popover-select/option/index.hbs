@@ -6,10 +6,7 @@
 {{#let @components.MenuItem as |MenuItem|}}
   <MenuItem
     class={{if this.selected 'is-active'}}
-    {{did-insert this.connect}}
-    {{did-insert (set this "selected" @selected)}}
-    {{did-update (set this "selected" @selected)}}
-    {{will-destroy this.disconnect}}
+    {{did-upsert this.connect @selected}}
     ...attributes
     @onclick={{action @onclick this}}
     @selected={{this.selected}}
