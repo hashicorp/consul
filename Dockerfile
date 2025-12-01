@@ -259,11 +259,25 @@ COPY LICENSE /licenses/mozilla.txt
 # Its shasum is hardcoded. If you upgrade the dumb-init version you'll need to
 # also update the shasum.
 RUN set -eux && \
-    microdnf install -y ca-certificates shadow-utils gnupg libcap openssl iputils jq iptables wget unzip tar && \
+    microdnf update -y && \
+    microdnf install -y \
+        ca-certificates \
+        shadow-utils \
+        gnupg \
+        libcap \
+        openssl \
+        iputils \
+        jq \
+        iptables \
+        wget \
+        unzip \
+        tar && \
+    microdnf clean all && \
     wget -O /usr/bin/dumb-init https://github.com/Yelp/dumb-init/releases/download/v1.2.5/dumb-init_1.2.5_x86_64 && \
     echo 'e874b55f3279ca41415d290c512a7ba9d08f98041b28ae7c2acb19a545f1c4df /usr/bin/dumb-init' > dumb-init-shasum && \
     sha256sum --check dumb-init-shasum && \
     chmod +x /usr/bin/dumb-init
+
  
 # Create a non-root user to run the software. On OpenShift, this
 # will not matter since the container is run as a random user and group
