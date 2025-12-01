@@ -1,3 +1,26 @@
+## 1.22.1 (November 27, 2025)
+
+SECURITY:
+
+* connect: Upgrade envoy version to 1.35.6 [[GH-23056](https://github.com/hashicorp/consul/issues/23056)]
+* security: Updated `golang.org/x/crypto` from v0.42.0 to v0.44.0. This resolves [GO-2025-4116](https://pkg.go.dev/vuln/GO-2025-4116)
+
+IMPROVEMENTS:
+
+* ui: Removed ember-route-action-helper and migrated all {{route-action}} usages to explicit route/controller logic. [[GH-23004](https://github.com/hashicorp/consul/issues/23004)]
+* ui: Replaced `reopen()` calls with direct property assignment and subclassing to resolve Ember component reopen deprecation warnings [[GH-22971](https://github.com/hashicorp/consul/issues/22971)]
+* ui: removed deprecated Route#renderTemplate usage by introducing DebugLayout component and controller-based conditional rendering for docs routes [[GH-22978](https://github.com/hashicorp/consul/issues/22978)]
+* ui: resolved multiple Ember deprecations:
+- Removed mutation-after-consumption warnings in Outlet by staging state updates outside the render pass
+- Replaced deprecated Route#replaceWith/transitionTo usage with RouterService in affected routes
+- Avoided mutating objects produced by {{hash}} (setting-on-hash) by switching to tracked POJOs [[GH-23010](https://github.com/hashicorp/consul/issues/23010)]
+
+BUG FIXES:
+
+* acl: fixed a bug where ACL policy replication in WANfed is impacted when primaryDC is inconsistent [[GH-22954](https://github.com/hashicorp/consul/issues/22954)]
+* xds: fix RBAC failure in upstream service when there are more than one downstream exported service with same name but different peer [[GH-23049](https://github.com/hashicorp/consul/issues/23049)]
+* xds: fix bug where Using replacePrefixMatch: "/" results in double slashes (//path) and Using replacePrefixMatch: "" does not strip the prefix at all (e.g., mapping /v1/dashboard → /dashboard) resulting in 301 and 404 errors respectively [[GH-23035](https://github.com/hashicorp/consul/issues/23035)]
+
 ## 1.22.0 Enterprise (October 24, 2025)
 
 SECURITY:
