@@ -2159,8 +2159,9 @@ type persistedService struct {
 	// to exclude it from API output, but we need it to properly deregister
 	// persisted sidecars.
 	LocallyRegisteredAsSidecar bool `json:",omitempty"`
-	// we need it to properly disable the default TCP checks
-	// based on the sidecar services in reload and restart of the local agent.
+	// we need it tracks whether default sidecar checks (TCP + alias) were
+	// disabled at registration time. Persisted to maintain consistent check configuration
+	// across agent restarts/reloads. Excluded from API responses but required for state restoration.
 	DisableSidecarDefaultChecks bool `json:",omitempty"`
 }
 
@@ -3709,9 +3710,6 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 	}
 
 	// Register the services from config
-	// If we are registring service from the config file, we do not want to
-	// persist them again (persist=false) as they are already persisted in the
-	// config file.
 	for _, service := range conf.Services {
 		// Default service partition to the same as agent
 		if service.PartitionOrEmpty() == "" {
@@ -3760,9 +3758,6 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 		}
 
 		// If there is a sidecar service, register that too.
-		// This will add the changes needed to support sidecar services.
-		//here locally registered as sidecar is set to false because this is the initial registration from config
-		//and not a sidecar registration triggered by the main service registration.
 		if sidecar != nil {
 			sidecarServiceID := sidecar.CompoundServiceID()
 			err = a.addServiceLocked(addServiceLockedRequest{
@@ -3857,9 +3852,6 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 
 		// Restore LocallyRegisteredAsSidecar, see persistedService.LocallyRegisteredAsSidecar
 		p.Service.LocallyRegisteredAsSidecar = p.LocallyRegisteredAsSidecar
-
-		// Restore DisableDefaultChecksInSidecar, see persistedService.DisableDefaultChecksInSidecar
-		//p.Service.DisableDefaultChecksInSidecar = p.DisableDefaultChecksInSidecar
 
 		serviceID := p.Service.CompoundServiceID()
 
