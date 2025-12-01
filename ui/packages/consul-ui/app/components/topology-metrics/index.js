@@ -157,7 +157,6 @@ export default class TopologyMetrics extends Component {
   // =actions
   @action
   setHeight(el, item) {
-    console.log(el, item);
     if (el) {
       const container = el.getBoundingClientRect();
       document.getElementById(`${item}`).setAttribute('style', `height:${container.height}px`);
