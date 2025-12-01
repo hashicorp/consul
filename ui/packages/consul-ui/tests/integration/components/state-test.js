@@ -26,13 +26,13 @@ module('Integration | Component | state', function (hooks) {
       </State>
     `);
 
-    assert.equal(this.element.textContent.trim(), 'Currently Idle');
+    assert.strictEqual(this.element.textContent.trim(), 'Currently Idle');
     await render(hbs`
       <State @state={{this.state}} @matches="loading">
         Currently Idle
       </State>
     `);
 
-    assert.equal(this.element.textContent.trim(), '');
+    assert.strictEqual(this.element.textContent.trim(), '');
   });
 });

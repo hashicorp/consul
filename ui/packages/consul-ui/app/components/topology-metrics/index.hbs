@@ -4,14 +4,13 @@
 }}
 
 <div
-  {{on-resize this.calculate}}
+  {{on-resize this.calculateThrottled}}
   class="topology-container consul-topology-metrics"
 >
 {{#if (gt this.downstreams.length 0)}}
   <div
     id="downstream-container"
-    {{did-insert this.setHeight 'downstream-lines'}}
-    {{did-update this.setHeight 'downstream-lines' this.downstreams}}
+    {{on-insert this.setHeight 'downstream-lines'}}
   >
   {{#if (not this.emptyColumn)}}
     <div>
@@ -100,8 +99,7 @@
   {{#each-in (group-by "PeerOrDatacenter" this.upstreams) as |dc upstreams|}}
     <div
       id="upstream-container"
-      {{did-insert this.setHeight 'upstream-lines'}}
-      {{did-update this.setHeight 'upstream-lines' this.upstreams}}
+      {{on-insert this.setHeight 'upstream-lines'}}
     >
     {{#if dc}}
       <p>{{dc}}</p>

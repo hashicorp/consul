@@ -1,4 +1,4 @@
-export default (collection, clickable, attribute, is, authForm, emptyState) => (scope) => {
+export default (collection, clickable, attribute, property, authForm, emptyState) => (scope) => {
   const page = {
     navigation: [
       'services',
@@ -49,7 +49,7 @@ export default (collection, clickable, attribute, is, authForm, emptyState) => (
   page.navigation.manageNspaces = clickable(
     '[data-test-nspace-menu] [data-test-nav-selector-footer-link]'
   );
-  page.navigation.manageNspacesIsVisible = is(
+  page.navigation.manageNspacesIsVisible = property(
     ':checked',
     '[data-test-nspace-menu] > input[type="checkbox"]'
   );

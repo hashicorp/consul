@@ -6,7 +6,7 @@
 import {
   create as createPage,
   clickable,
-  is,
+  property,
   attribute,
   collection,
   text,
@@ -84,9 +84,9 @@ import peersShow from 'consul-ui/tests/pages/dc/peers/show';
 
 // utils
 const deletable = createDeletable(clickable);
-const submitable = createSubmitable(clickable, is);
-const creatable = createCreatable(clickable, is);
-const cancelable = createCancelable(clickable, is);
+const submitable = createSubmitable(clickable, property);
+const creatable = createCreatable(clickable, property);
+const cancelable = createCancelable(clickable, property);
 
 // components
 const tokenList = tokenListFactory(clickable, attribute, collection, deletable);
@@ -141,7 +141,7 @@ const consulPolicyList = consulPolicyListFactory(
   morePopoverMenu
 );
 
-const page = pageFactory(collection, clickable, attribute, is, authForm, emptyState);
+const page = pageFactory(collection, clickable, attribute, property, authForm, emptyState);
 
 // pages
 const create = function (appView) {

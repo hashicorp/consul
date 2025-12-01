@@ -19,7 +19,6 @@ module('Integration | Serializer | service', function (hooks) {
   const partition = 'default';
   [undefinedNspace, 'team-1', undefined].forEach((nspace) => {
     test(`respondForQuery returns the correct data for list endpoint when nspace is ${nspace}`, function (assert) {
-      assert.expect(4);
       const serializer = this.owner.lookup('serializer:service');
       const request = {
         url: `/v1/internal/ui/services?dc=${dc}${
@@ -53,15 +52,13 @@ module('Integration | Serializer | service', function (hooks) {
             partition: partition || undefinedPartition,
           }
         );
-        assert.equal(actual[0].Namespace, expected[0].Namespace);
-        assert.equal(actual[0].Partition, expected[0].Partition);
-        assert.equal(actual[0].Datacenter, expected[0].Datacenter);
-        assert.equal(actual[0].uid, expected[0].uid);
+        assert.strictEqual(actual[0].Namespace, expected[0].Namespace);
+        assert.strictEqual(actual[0].Partition, expected[0].Partition);
+        assert.strictEqual(actual[0].Datacenter, expected[0].Datacenter);
+        assert.strictEqual(actual[0].uid, expected[0].uid);
       });
     });
     test(`respondForQuery returns the correct data for list endpoint when gateway is set when nspace is ${nspace}`, function (assert) {
-      assert.expect(1);
-
       const serializer = this.owner.lookup('serializer:service');
       const gateway = 'gateway';
       const request = {

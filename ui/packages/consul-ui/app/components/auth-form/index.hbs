@@ -105,7 +105,7 @@
                   {{! this will only occur during acceptance testing so }}
                   {{! turn them into text inputs during acceptance testing }}
                   <input
-                    {{did-insert (set this 'input')}}
+                    {{on-insert this.captureInput}}
                     disabled={{state-matches state 'loading'}}
                     type={{if (eq (env 'environment') 'testing') 'text' 'password'}}
                     name='auth[SecretID]'

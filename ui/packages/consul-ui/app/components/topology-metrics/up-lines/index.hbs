@@ -5,8 +5,7 @@
 
 {{#if (gt @lines.length 0)}}
   <svg
-    {{did-insert this.getIconPositions}}
-    {{did-update this.getIconPositions @lines}}
+    {{on-insert this.getIconPositions @lines}}
     viewBox={{concat @center.x ' ' @view.y ' ' @view.width ' ' @view.height}}
     preserveAspectRatio="none"
   >

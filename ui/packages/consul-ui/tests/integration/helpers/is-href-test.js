@@ -15,7 +15,7 @@ module('Integration | Helper | is-href', function (hooks) {
   skip('it renders', async function (assert) {
     this.set('inputValue', '1234');
 
-    await render(hbs`{{is-href inputValue}}`);
+    await render(hbs`{{is-href this.inputValue}}`);
 
     assert.equal(this.element.textContent.trim(), '1234');
   });

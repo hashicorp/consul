@@ -20,7 +20,7 @@
 {{/if}}
 
 {{on-window 'resize' (action 'redraw')}}
-{{did-insert (action 'redraw')}}
+{{did-insert-helper (action 'redraw')}}
 
 {{#if (not this.empty)}}
   {{#if this.data.labels}}

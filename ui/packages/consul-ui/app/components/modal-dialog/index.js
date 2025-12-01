@@ -6,7 +6,6 @@
 import Component from '@ember/component';
 import { set } from '@ember/object';
 import Slotted from 'block-slots';
-import A11yDialog from 'a11y-dialog';
 import { schedule } from '@ember/runloop';
 
 export default Component.extend(Slotted, {
@@ -14,29 +13,28 @@ export default Component.extend(Slotted, {
   onclose: function () {},
   onopen: function () {},
   isOpen: false,
+
   actions: {
-    connect: function ($el) {
-      this.dialog = new A11yDialog($el);
-      this.dialog.on('hide', () => {
-        schedule('afterRender', (_) => set(this, 'isOpen', false));
-        this.onclose({ target: $el });
-      });
-      this.dialog.on('show', () => {
-        set(this, 'isOpen', true);
-        this.onopen({ target: $el });
-      });
-      if (this.open) {
-        this.actions.open.apply(this, []);
-      }
+    handleSetup: function (dialog) {
+      this.dialog = dialog;
     },
-    disconnect: function ($el) {
-      this.dialog.destroy();
+    handleShow: function ({ target }) {
+      set(this, 'isOpen', true);
+      this.onopen({ target });
+    },
+    handleHide: function ({ target }) {
+      schedule('afterRender', () => set(this, 'isOpen', false));
+      this.onclose({ target });
     },
     open: function () {
-      this.dialog.show();
+      if (this.dialog) {
+        this.dialog.show();
+      }
     },
     close: function () {
-      this.dialog.hide();
+      if (this.dialog) {
+        this.dialog.hide();
+      }
     },
   },
 });

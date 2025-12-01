@@ -14,7 +14,7 @@
     (array @position)
     (array this.isConfirmation 'confirmation')
   }}
-  {{did-insert (action 'connect')}}
+  {{on-insert (action 'connect')}}
 >
   <YieldSlot @name="controls">
     {{yield api}}

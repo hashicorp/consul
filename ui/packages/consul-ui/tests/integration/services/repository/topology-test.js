@@ -13,8 +13,6 @@ module('Integration | Service | topology', function (hooks) {
   const id = 'slug';
   const kind = '';
   test('findBySlug returns the correct data for item endpoint', function (assert) {
-    assert.expect(2);
-
     return repo(
       'Service',
       'findBySlug',
@@ -42,8 +40,8 @@ module('Integration | Service | topology', function (hooks) {
             payload
           );
         });
-        assert.equal(actual.Datacenter, result.Datacenter);
-        assert.equal(actual.uid, result.uid);
+        assert.strictEqual(actual.Datacenter, result.Datacenter);
+        assert.strictEqual(actual.uid, result.uid);
       }
     );
   });

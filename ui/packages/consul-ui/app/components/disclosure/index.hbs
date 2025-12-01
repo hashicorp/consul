@@ -13,7 +13,7 @@ as |State Guard Action dispatch state|>
   open=(fn dispatch 'TRUE')
   expanded=(state-matches state 'true')
   event=state.context
-  button=(unique-id)
+  button=(dom-guid)
   controls=this.ids
 ) as |_api|}}
   {{#let (assign _api (hash

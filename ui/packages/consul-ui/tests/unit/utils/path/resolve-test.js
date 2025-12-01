@@ -8,7 +8,6 @@ import { module, test } from 'qunit';
 
 module('Unit | Utility | path/resolve', function () {
   test('it resolves paths', function (assert) {
-    assert.expect(9);
     [
       {
         from: 'dc/intentions/create',
@@ -57,7 +56,7 @@ module('Unit | Utility | path/resolve', function () {
       },
     ].forEach((item) => {
       const actual = resolve(item.from, item.to);
-      assert.equal(
+      assert.strictEqual(
         actual,
         item.expected,
         `Expected '${item.from}' < '${item.to}' to equal ${item.expected}`

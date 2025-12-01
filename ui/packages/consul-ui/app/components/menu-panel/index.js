@@ -5,7 +5,7 @@
 
 import Component from '@ember/component';
 import { inject as service } from '@ember/service';
-import { next } from '@ember/runloop';
+import { schedule } from '@ember/runloop';
 import { set } from '@ember/object';
 
 import Slotted from 'block-slots';
@@ -14,9 +14,10 @@ export default Component.extend(Slotted, {
   tagName: '',
   dom: service('dom'),
   isConfirmation: false,
+
   actions: {
     connect: function ($el) {
-      next(() => {
+      schedule('afterRender', () => {
         if (!this.isDestroyed) {
           // if theres only a single choice in the menu and it doesn't have an
           // immediate button/link/label to click then it will be a
