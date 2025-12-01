@@ -2159,6 +2159,9 @@ type persistedService struct {
 	// to exclude it from API output, but we need it to properly deregister
 	// persisted sidecars.
 	LocallyRegisteredAsSidecar bool `json:",omitempty"`
+	// we need it to properly disable the default TCP checks
+	// based on the sidecar services in reload and restart of the local agent.
+	DisableSidecarDefaultChecks bool `json:",omitempty"`
 }
 
 func (a *Agent) makeServiceFilePath(svcID structs.ServiceID) string {
@@ -2166,15 +2169,16 @@ func (a *Agent) makeServiceFilePath(svcID structs.ServiceID) string {
 }
 
 // persistService saves a service definition to a JSON file in the data dir
-func (a *Agent) persistService(service *structs.NodeService, source configSource) error {
+func (a *Agent) persistService(service *structs.NodeService, source configSource, disableSidecarDefaultChecks bool) error {
 	svcID := service.CompoundServiceID()
 	svcPath := a.makeServiceFilePath(svcID)
 
 	wrapped := persistedService{
-		Token:                      a.State.ServiceToken(service.CompoundServiceID()),
-		Service:                    service,
-		Source:                     source.String(),
-		LocallyRegisteredAsSidecar: service.LocallyRegisteredAsSidecar,
+		Token:                       a.State.ServiceToken(service.CompoundServiceID()),
+		Service:                     service,
+		Source:                      source.String(),
+		LocallyRegisteredAsSidecar:  service.LocallyRegisteredAsSidecar,
+		DisableSidecarDefaultChecks: disableSidecarDefaultChecks,
 	}
 	encoded, err := json.Marshal(wrapped)
 	if err != nil {
@@ -2374,8 +2378,10 @@ func (a *Agent) addServiceLocked(req addServiceLockedRequest) error {
 			req.Service.Port = port
 		}
 		// Setup default check if none given.
-		if len(req.chkTypes) < 1 {
+		if len(req.chkTypes) < 1 && !req.disableSidecarDefaultChecks {
 			req.chkTypes = sidecarDefaultChecks(req.Service.ID, req.Service.Address, req.Service.Proxy.LocalServiceAddress, req.Service.Port)
+		} else {
+			req.disableSidecarDefaultChecks = true
 		}
 	}
 
@@ -2416,12 +2422,13 @@ type addServiceLockedRequest struct {
 // AddServiceRequest contains the fields used to register a service on the local
 // agent using Agent.AddService.
 type AddServiceRequest struct {
-	Service               *structs.NodeService
-	chkTypes              []*structs.CheckType
-	persist               bool
-	token                 string
-	replaceExistingChecks bool
-	Source                configSource
+	Service                     *structs.NodeService
+	chkTypes                    []*structs.CheckType
+	persist                     bool
+	token                       string
+	replaceExistingChecks       bool
+	Source                      configSource
+	disableSidecarDefaultChecks bool
 }
 
 type addServiceInternalRequest struct {
@@ -2614,7 +2621,7 @@ func (a *Agent) addServiceInternal(req addServiceInternalRequest) error {
 			req.persistService = service
 		}
 
-		if err := a.persistService(req.persistService, source); err != nil {
+		if err := a.persistService(req.persistService, source, req.disableSidecarDefaultChecks); err != nil {
 			a.cleanupRegistration(cleanupServices, cleanupChecks)
 			return err
 		}
@@ -3702,6 +3709,9 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 	}
 
 	// Register the services from config
+	// If we are registring service from the config file, we do not want to
+	// persist them again (persist=false) as they are already persisted in the
+	// config file.
 	for _, service := range conf.Services {
 		// Default service partition to the same as agent
 		if service.PartitionOrEmpty() == "" {
@@ -3750,6 +3760,9 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 		}
 
 		// If there is a sidecar service, register that too.
+		// This will add the changes needed to support sidecar services.
+		//here locally registered as sidecar is set to false because this is the initial registration from config
+		//and not a sidecar registration triggered by the main service registration.
 		if sidecar != nil {
 			sidecarServiceID := sidecar.CompoundServiceID()
 			err = a.addServiceLocked(addServiceLockedRequest{
@@ -3845,6 +3858,9 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 		// Restore LocallyRegisteredAsSidecar, see persistedService.LocallyRegisteredAsSidecar
 		p.Service.LocallyRegisteredAsSidecar = p.LocallyRegisteredAsSidecar
 
+		// Restore DisableDefaultChecksInSidecar, see persistedService.DisableDefaultChecksInSidecar
+		//p.Service.DisableDefaultChecksInSidecar = p.DisableDefaultChecksInSidecar
+
 		serviceID := p.Service.CompoundServiceID()
 
 		source, ok := ConfigSourceFromName(p.Source)
@@ -3882,12 +3898,13 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 			)
 			err = a.addServiceLocked(addServiceLockedRequest{
 				AddServiceRequest: AddServiceRequest{
-					Service:               p.Service,
-					chkTypes:              nil,
-					persist:               false, // don't rewrite the file with the same data we just read
-					token:                 p.Token,
-					replaceExistingChecks: false, // do default behavior
-					Source:                source,
+					Service:                     p.Service,
+					chkTypes:                    nil,
+					persist:                     false, // don't rewrite the file with the same data we just read
+					token:                       p.Token,
+					replaceExistingChecks:       false, // do default behavior
+					Source:                      source,
+					disableSidecarDefaultChecks: p.DisableSidecarDefaultChecks,
 				},
 				serviceDefaults:      serviceDefaultsFromStruct(persistedServiceConfigs[serviceID]),
 				persistServiceConfig: false, // don't rewrite the file with the same data we just read
