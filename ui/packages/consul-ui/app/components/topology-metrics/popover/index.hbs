@@ -15,7 +15,7 @@ as |style label|}}
     {{#if (eq @type 'deny')}}
       <InformedAction
         class="dangerous"
-        {{did-insert (set this 'popover')}}
+        {{on-insert (set this 'popover')}}
       >
         <:header>
           <h3>
@@ -59,7 +59,7 @@ as |style label|}}
     {{else if (eq @type 'not-defined')}}
       <InformedAction
         class="warning documentation"
-        {{did-insert (set this 'popover')}}
+        {{on-insert (set this 'popover')}}
       >
         <:header>
           <h3>
@@ -91,7 +91,7 @@ as |style label|}}
     {{else}}
       <InformedAction
         class="info"
-        {{did-insert (set this 'popover')}}
+        {{on-insert (set this 'popover')}}
       >
         <:header>
           <h3>
