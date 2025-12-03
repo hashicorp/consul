@@ -3,12 +3,11 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-<div>
+<div ...attributes>
   <Hds::ButtonSet>
     <Hds::Button
       @text='Copy token'
       @color='primary'
-      ...attributes
       {{with-copyable @token}}
     />
     <Hds::Button
