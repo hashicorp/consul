@@ -924,12 +924,14 @@ func (s *Server) leaderRaftApply(method string, t structs.MessageType, msg inter
 // raftApplyWithEncoder.
 // Deprecated: use raftApplyMsgpack
 func (s *Server) raftApply(t structs.MessageType, msg interface{}) (interface{}, error) {
+	fmt.Println("============================> raftApply called")
 	return s.raftApplyMsgpack(t, msg)
 }
 
 // raftApplyMsgpack encodes the msg using msgpack and calls raft.Apply. See
 // raftApplyEncoded.
 func (s *Server) raftApplyMsgpack(t structs.MessageType, msg interface{}) (interface{}, error) {
+	fmt.Println("============================> raftApplyMsgpack called")
 	return s.raftApplyWithEncoder(t, msg, structs.Encode)
 }
 
@@ -946,6 +948,7 @@ func (s *Server) raftApplyWithEncoder(
 	msg interface{},
 	encoder raftEncoder,
 ) (response interface{}, err error) {
+	fmt.Println("============================> raftApplyWithEncoder called")
 	if encoder == nil {
 		return nil, fmt.Errorf("Failed to encode request: nil encoder")
 	}
@@ -960,6 +963,7 @@ func (s *Server) raftApplyWithEncoder(
 // response along with any errors. If the FSM.Apply response is an error it will
 // be returned as the error return value with a nil response.
 func (s *Server) raftApplyEncoded(t structs.MessageType, buf []byte) (any, error) {
+	fmt.Println("============================> raftApplyEncoded called")
 	// Warn if the command is very large
 	if n := len(buf); n > raftWarnSize {
 		s.rpcLogger().Warn("Attempting to apply large raft entry", "size_in_bytes", n)
@@ -967,6 +971,8 @@ func (s *Server) raftApplyEncoded(t structs.MessageType, buf []byte) (any, error
 
 	var chunked bool
 	var future raft.ApplyFuture
+	fmt.Println("============================> raftApplyEncoded future", future)
+
 	switch {
 	case len(buf) <= raft.SuggestedMaxDataSize || t != structs.KVSRequestType:
 		future = s.raft.Apply(buf, enqueueLimit)
@@ -980,6 +986,7 @@ func (s *Server) raftApplyEncoded(t structs.MessageType, buf []byte) (any, error
 	}
 
 	resp := future.Response()
+	fmt.Println("============================> raftApplyEncoded 11111 called", resp)
 
 	if chunked {
 		// In this case we didn't apply all chunks successfully, possibly due
@@ -1147,19 +1154,24 @@ func (s *Server) RPCQueryTimeout(queryTimeout time.Duration) time.Duration {
 //     ResultsFilteredByACLs is only set to try when applying the already-resolved
 //     token's policies.
 func maskResultsFilteredByACLs(token string, m blockingQueryResponseMeta, s *Server) {
+	fmt.Println("============================> maskResultsFilteredByACLs called", token)
 	if token == "" {
 		m.SetResultsFilteredByACLs(false)
 		return
 	}
+	fmt.Println("============================> maskResultsFilteredByACLs 1", token)
 
 	identity, err := s.resolveIdentityFromToken(token)
 	if err != nil {
-		s.rpcLogger().Error("Failed to resolve identity from token", "err", err)
+		s.rpcLogger().Error("Failed to resolve identity from token", "err", err, "token", token)
 		m.SetResultsFilteredByACLs(false)
 		return
 	}
+	fmt.Println("============================> maskResultsFilteredByACLs 3", token)
 
 	if identity.ID() == anonymousAccessorID && identity.SecretToken() == anonymousSecretID {
 		m.SetResultsFilteredByACLs(false)
 	}
+	fmt.Println("============================> maskResultsFilteredByACLs 4", token)
+
 }

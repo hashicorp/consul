@@ -4,6 +4,7 @@
 package structs
 
 import (
+	"fmt"
 	"time"
 
 	lru "github.com/hashicorp/golang-lru"
@@ -207,12 +208,16 @@ func (c *ACLCaches) PutIdentity(id string, ident ACLIdentity) {
 // PutIdentityWithSecretToken adds a new identity to the cache, keyed by the
 // given secret token (with a prefix to prevent collisions).
 func (c *ACLCaches) PutIdentityWithSecretToken(secretToken string, identity ACLIdentity) {
+	fmt.Println("============================> PutIdentityWithSecretToken 8 called ", secretToken)
+
 	c.PutIdentity(cacheIDSecretToken(secretToken), identity)
 }
 
 // RemoveIdentityWithSecretToken removes the identity from the cache with the
 // given secret token.
 func (c *ACLCaches) RemoveIdentityWithSecretToken(secretToken string) {
+	fmt.Println("============================> RemoveIdentityWithSecretToken 8 called ", secretToken)
+
 	if c == nil || c.identities == nil {
 		return
 	}

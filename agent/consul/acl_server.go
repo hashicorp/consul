@@ -142,16 +142,29 @@ func (s *serverACLResolverBackend) ACLDatacenter() string {
 func (s *Server) ResolveIdentityFromToken(token string) (bool, structs.ACLIdentity, error) {
 	// only allow remote RPC resolution when token replication is off and
 	// when not in the ACL datacenter
+	fmt.Println("============================> ResolveIdentityFromToken called ", token)
+
 	if !s.InPrimaryDatacenter() && !s.config.ACLTokenReplication {
 		return false, nil, nil
 	}
+	fmt.Println("============================> ResolveIdentityFromToken 1 called ", token)
+
 	index, aclToken, err := s.fsm.State().ACLTokenGetBySecret(nil, token, nil)
+	fmt.Println("============================> ResolveIdentityFromToken 1111222222 called ", token, "aclToken", aclToken, "err", err, index)
+
 	if err != nil {
+		fmt.Println("============================> ResolveIdentityFromToken 1222222222 called ", token, "err", err)
 		return true, nil, err
 	} else if aclToken != nil && !aclToken.IsExpired(time.Now()) {
+		fmt.Println("============================> ResolveIdentityFromToken 13333333333333 called ", token, "err", err)
 		return true, aclToken, nil
 	}
+
+	fmt.Println("============================> ResolveIdentityFromToken 2 called ", token, "aclToken", aclToken)
+
 	if aclToken == nil && token == acl.AnonymousTokenSecret && s.InPrimaryDatacenter() {
+		fmt.Println("============================> ResolveIdentityFromToken 2111111111 called ", token)
+
 		// synthesize the anonymous token for early use, bootstrapping has not completed
 		s.insertAnonymousToken()
 		fallbackId := structs.ACLToken{
@@ -159,14 +172,22 @@ func (s *Server) ResolveIdentityFromToken(token string) (bool, structs.ACLIdenti
 			SecretID:    acl.AnonymousTokenSecret,
 			Description: "synthesized anonymous token",
 		}
+		fmt.Println("============================> ResolveIdentityFromToken 22222222 called ", token)
+
 		return true, &fallbackId, nil
 	}
+	fmt.Println("============================> ResolveIdentityFromToken 3 called ", token)
 
-	defaultErr := acl.ErrNotFound
+	defaultErr := acl.ErrACLNotFound
+	fmt.Println("============================> ResolveIdentityFromToken 300001 defaultErr ", token, defaultErr)
 	canBootstrap, _, _ := s.fsm.State().CanBootstrapACLToken()
 	if canBootstrap {
+		fmt.Println("============================> ResolveIdentityFromToken 31111111111 called ", token)
+
 		defaultErr = fmt.Errorf("ACL system must be bootstrapped before making any requests that require authorization: %w", defaultErr)
 	}
+	fmt.Println("============================> ResolveIdentityFromToken 4 called ", token, "defaultErr", defaultErr)
+
 	return s.InPrimaryDatacenter() || index > 0, nil, defaultErr
 }
 
@@ -181,7 +202,7 @@ func (s *serverACLResolverBackend) ResolvePolicyFromID(policyID string) (bool, *
 	// If the max index of the policies table is non-zero then we have acls, until then
 	// we may need to allow remote resolution. This is particularly useful to allow updating
 	// the replication token via the API in a non-primary dc.
-	return s.InPrimaryDatacenter() || index > 0, policy, acl.ErrNotFound
+	return s.InPrimaryDatacenter() || index > 0, policy, acl.ErrACLNotFound
 }
 
 func (s *serverACLResolverBackend) ResolveRoleFromID(roleID string) (bool, *structs.ACLRole, error) {
@@ -195,7 +216,7 @@ func (s *serverACLResolverBackend) ResolveRoleFromID(roleID string) (bool, *stru
 	// If the max index of the roles table is non-zero then we have acls, until then
 	// we may need to allow remote resolution. This is particularly useful to allow updating
 	// the replication token via the API in a non-primary dc.
-	return s.InPrimaryDatacenter() || index > 0, role, acl.ErrNotFound
+	return s.InPrimaryDatacenter() || index > 0, role, acl.ErrACLNotFound
 }
 
 func (s *Server) filterACL(token string, subj interface{}) error {
@@ -233,7 +254,7 @@ func (s *Server) loadAuthMethod(methodName string, entMeta *acl.EnterpriseMeta) 
 	if err != nil {
 		return nil, nil, err
 	} else if method == nil {
-		return nil, nil, fmt.Errorf("%w: auth method %q not found", acl.ErrNotFound, methodName)
+		return nil, nil, fmt.Errorf("%w: auth method %q not found", acl.ErrACLNotFound, methodName)
 	}
 
 	if err := s.enterpriseAuthMethodTypeValidation(method.Type); err != nil {
