@@ -15,6 +15,7 @@ import (
 
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	prevpriorities "github.com/envoyproxy/go-control-plane/envoy/extensions/retry/priority/previous_priorities/v3"
 	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
@@ -26,6 +27,7 @@ import (
 	"github.com/hashicorp/consul/agent/xds/config"
 	"github.com/hashicorp/consul/agent/xds/response"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
@@ -655,6 +657,17 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 		return nil, err
 	}
 
+	// Get the upstream config for this service to support failover logic
+	var upstreamConfigMap map[string]interface{}
+	upstream, skip := cfgSnap.ConnectProxy.GetUpstream(uid, &cfgSnap.ProxyID.EnterpriseMeta)
+	if !skip && upstream != nil {
+		upstreamConfigMap = upstream.Config
+	}
+	rawUpstreamConfig, err := structs.ParseUpstreamConfigNoDefaults(upstreamConfigMap)
+	if err != nil {
+		return nil, err
+	}
+
 	switch startNode.Type {
 	case structs.DiscoveryGraphNodeTypeRouter:
 		routes = make([]*envoy_route_v3.Route, 0, len(startNode.Routes))
@@ -666,6 +679,7 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 			var (
 				routeAction *envoy_route_v3.Route_Route
 				err         error
+				isAggregate bool
 			)
 
 			nextNode := chain.Nodes[discoveryRoute.NextNode]
@@ -677,10 +691,12 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 
 			switch nextNode.Type {
 			case structs.DiscoveryGraphNodeTypeSplitter:
-				routeAction, err = s.makeRouteActionForSplitter(upstreamsSnapshot, nextNode.Splits, chain, forMeshGateway)
+				ra, agg, err := s.makeRouteActionForSplitterWithFailover(cfgSnap, upstreamsSnapshot, nextNode.Splits, chain, rawUpstreamConfig, forMeshGateway)
 				if err != nil {
 					return nil, err
 				}
+				routeAction = ra
+				isAggregate = agg
 
 			case structs.DiscoveryGraphNodeTypeResolver:
 				ra, ok := s.makeRouteActionForChainCluster(upstreamsSnapshot, nextNode.Resolver.Target, chain, forMeshGateway)
@@ -730,7 +746,8 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 				}
 
 				if destination.HasRetryFeatures() {
-					routeAction.Route.RetryPolicy = getRetryPolicyForDestination(destination)
+					s.Logger.Trace("creating custom retry policy if ", "isAggregate", isAggregate)
+					routeAction.Route.RetryPolicy = getRetryPolicyForDestination(destination, isAggregate)
 				}
 
 				if err := injectHeaderManipToRoute(destination, route); err != nil {
@@ -814,7 +831,7 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 	return host, nil
 }
 
-func getRetryPolicyForDestination(destination *structs.ServiceRouteDestination) *envoy_route_v3.RetryPolicy {
+func getRetryPolicyForDestination(destination *structs.ServiceRouteDestination, isAggregate bool) *envoy_route_v3.RetryPolicy {
 	retryPolicy := &envoy_route_v3.RetryPolicy{}
 	if destination.NumRetries > 0 {
 		retryPolicy.NumRetries = response.MakeUint32Value(int(destination.NumRetries))
@@ -848,6 +865,22 @@ func getRetryPolicyForDestination(destination *structs.ServiceRouteDestination) 
 
 	retryPolicy.RetryOn = strings.Join(retryStrings, ",")
 
+	// If using an aggregate cluster (failover), add retry priority configuration
+	if isAggregate {
+		prevPriorityConfig := &prevpriorities.PreviousPrioritiesConfig{
+			UpdateFrequency: 1,
+		}
+		pbst, err := anypb.New(prevPriorityConfig)
+		if err != nil {
+			panic(err)
+		}
+		retryPolicy.RetryPriority = &envoy_route_v3.RetryPolicy_RetryPriority{
+			Name: "envoy.retry_priorities.previous_priorities",
+			ConfigType: &envoy_route_v3.RetryPolicy_RetryPriority_TypedConfig{
+				TypedConfig: pbst,
+			},
+		}
+	}
 	return retryPolicy
 }
 
@@ -1084,6 +1117,71 @@ func (s *ResourceGenerator) makeRouteActionForSplitter(
 			},
 		},
 	}, nil
+}
+
+// makeRouteActionForSplitterWithFailover is similar to makeRouteActionForSplitter but also
+// checks if any of the splits have an aggregate cluster (failover) and returns that flag.
+func (s *ResourceGenerator) makeRouteActionForSplitterWithFailover(
+	cfgSnap *proxycfg.ConfigSnapshot,
+	upstreamsSnapshot *proxycfg.ConfigSnapshotUpstreams,
+	splits []*structs.DiscoverySplit,
+	chain *structs.CompiledDiscoveryChain,
+	rawUpstreamConfig structs.UpstreamConfig,
+	forMeshGateway bool,
+) (*envoy_route_v3.Route_Route, bool, error) {
+	clusters := make([]*envoy_route_v3.WeightedCluster_ClusterWeight, 0, len(splits))
+	var hasAggregate bool
+
+	for _, split := range splits {
+		nextNode := chain.Nodes[split.NextNode]
+
+		if nextNode.Type != structs.DiscoveryGraphNodeTypeResolver {
+			return nil, false, fmt.Errorf("unexpected splitter destination node type: %s", nextNode.Type)
+		}
+
+		// Check if this split's resolver has failover (aggregate cluster)
+		upstreamConfig := finalizeUpstreamConfig(rawUpstreamConfig, chain, nextNode.Resolver.ConnectTimeout)
+		mappedTargets, err := s.mapDiscoChainTargets(cfgSnap, chain, nextNode, upstreamConfig, forMeshGateway)
+		if err != nil {
+			s.Logger.Debug("failed to map disco chain targets for split", "error", err)
+		} else if mappedTargets.isAggregateCluster() {
+			s.Logger.Debug("split has aggregate cluster (failover)", "targetID", nextNode.Resolver.Target)
+			hasAggregate = true
+		}
+
+		targetID := nextNode.Resolver.Target
+		clusterName := s.getTargetClusterName(upstreamsSnapshot, chain, targetID, forMeshGateway)
+		if clusterName == "" {
+			continue
+		}
+
+		// The smallest representable weight is 1/10000 or .01% but envoy
+		// deals with integers so scale everything up by 100x.
+		weight := int(split.Weight * 100)
+		cw := &envoy_route_v3.WeightedCluster_ClusterWeight{
+			Weight: response.MakeUint32Value(weight),
+			Name:   clusterName,
+		}
+		if err := injectHeaderManipToWeightedCluster(split.Definition, cw); err != nil {
+			return nil, false, err
+		}
+
+		clusters = append(clusters, cw)
+	}
+
+	if len(clusters) <= 0 {
+		return nil, false, fmt.Errorf("number of clusters in splitter must be > 0; got %d", len(clusters))
+	}
+
+	return &envoy_route_v3.Route_Route{
+		Route: &envoy_route_v3.RouteAction{
+			ClusterSpecifier: &envoy_route_v3.RouteAction_WeightedClusters{
+				WeightedClusters: &envoy_route_v3.WeightedCluster{
+					Clusters: clusters,
+				},
+			},
+		},
+	}, hasAggregate, nil
 }
 
 func injectLBToRouteAction(lb *structs.LoadBalancer, action *envoy_route_v3.RouteAction) error {

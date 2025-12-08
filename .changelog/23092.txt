@@ -1,0 +1,3 @@
+```release-note:bug
+mesh: router + splitter + failover with retry now correctly failover for external services failover subsets through terminating gateways.
+```
