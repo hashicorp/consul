@@ -35,7 +35,11 @@ export default function (closest, click = clickEvent) {
       case 'button':
         return null;
     }
-    const $a = closest(stopElement, e.target).querySelector('a');
+    const $row = closest(stopElement, e.target);
+    if (!$row) { // Adding null check
+      return null; 
+    }
+    const $a = $row.querySelector('a'); 
     if ($a) {
       click($a);
       return null;
