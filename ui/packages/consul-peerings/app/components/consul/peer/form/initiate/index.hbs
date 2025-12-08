@@ -13,19 +13,19 @@
         dc=(or @item.Datacenter "")
       )
     }}
-    @type={{"peer"}}
-    @label={{"peer"}}
+    @type="peer"
+    @label="peer"
     @onchange={{fn (optional @onsubmit) @item}}
     as |writer|
   >
     <BlockSlot @name="error" as |after error|>
-      <Hds::Alert @color='critical' class='mb-3 mt-2' as |A|>
+      <Hds::Alert @type="inline" @color='critical' class='mb-3 mt-2' as |A|>
         <A.Title>Error</A.Title>
         <A.Description>{{error.message}}</A.Description>
       </Hds::Alert>
     </BlockSlot>
     <BlockSlot @name="content">
-      {{#let (unique-id) as |id|}}
+      {{#let (dom-guid) as |id|}}
         <form id={{id}} {{on "submit" (fn writer.persist @item)}}>
           {{yield
             (hash

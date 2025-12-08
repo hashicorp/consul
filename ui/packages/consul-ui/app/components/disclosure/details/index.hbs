@@ -4,7 +4,7 @@
 }}
 
 {{#let
-  (unique-id)
+  (dom-guid)
 as |id|}}
 {{#if (or
     (and (eq @auto undefined) @disclosure.expanded)
@@ -16,6 +16,6 @@ as |id|}}
   expanded=@disclosure.expanded
 )}}
 {{/if}}
-{{did-insert (fn @disclosure.add id)}}
-{{will-destroy (fn @disclosure.remove id)}}
+{{did-insert-helper (fn @disclosure.add id)}}
+{{will-destroy-helper (fn @disclosure.remove id)}}
 {{/let}}

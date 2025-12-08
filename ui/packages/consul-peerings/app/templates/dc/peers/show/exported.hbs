@@ -3,7 +3,7 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-<Route @name={{routeName}} as |route|>
+<Route @name={{this.routeName}} as |route|>
   <DataLoader
     @src={{uri
       "/${partition}/${nspace}/${dc}/exported-services/${name}"

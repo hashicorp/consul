@@ -17,6 +17,6 @@ module('Integration | Helper | duration-from', function (hooks) {
 
     await render(hbs`{{duration-from this.inputValue}}`);
 
-    assert.equal(this.element.textContent.trim(), '15s');
+    assert.strictEqual(this.element.textContent.trim(), '15s');
   });
 });

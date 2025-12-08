@@ -15,14 +15,12 @@ module('Acceptance | unavailable page', function (hooks) {
   setupApplicationTest(hooks);
 
   test('it redirects to the unavailable page when the v2 catalog is enabled', async function (assert) {
-    assert.expect(3);
-
     setupTestEnv(this.owner, {
       CONSUL_V2_CATALOG_ENABLED: true,
     });
 
     await visit('/');
-    assert.equal(currentURL(), '/unavailable', 'It should redirect to the unavailable page');
+    assert.strictEqual(currentURL(), '/unavailable', 'It should redirect to the unavailable page');
 
     // Expect the warning message to be visible
     assert.dom(unavailableHeaderSelector).hasText('User Interface Unavailable');
@@ -30,14 +28,12 @@ module('Acceptance | unavailable page', function (hooks) {
   });
 
   test('it does not redirect to the unavailable page', async function (assert) {
-    assert.expect(3);
-
     setupTestEnv(this.owner, {
       CONSUL_V2_CATALOG_ENABLED: false,
     });
 
     await visit('/');
-    assert.equal(
+    assert.strictEqual(
       currentURL(),
       '/dc1/services',
       'It should continue to the services page when v2 catalog is disabled'
@@ -49,14 +45,12 @@ module('Acceptance | unavailable page', function (hooks) {
   });
 
   test('it redirects away from the unavailable page when v2 catalog is not enabled', async function (assert) {
-    assert.expect(3);
-
     setupTestEnv(this.owner, {
       CONSUL_V2_CATALOG_ENABLED: false,
     });
 
     await visit('/unavailable');
-    assert.equal(currentURL(), '/dc1/services', 'It should redirect to the services page');
+    assert.strictEqual(currentURL(), '/dc1/services', 'It should redirect to the services page');
 
     // Expect the warning message to be not be visible
     assert.dom(unavailableHeaderSelector).doesNotExist();

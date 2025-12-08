@@ -8,8 +8,6 @@ import isFolder from 'consul-ui/utils/isFolder';
 
 module('Unit | Utils | isFolder', function () {
   test('it detects if a string ends in a slash', function (assert) {
-    assert.expect(5);
-
     [
       {
         test: 'hello/world',
@@ -33,7 +31,7 @@ module('Unit | Utils | isFolder', function () {
       },
     ].forEach(function (item) {
       const actual = isFolder(item.test);
-      assert.equal(actual, item.expected);
+      assert.strictEqual(actual, item.expected);
     });
   });
 });

@@ -60,11 +60,10 @@ module('Unit | Adapter | permission', function (hooks) {
         ns: '',
       },
     ];
-    assert.expect(cases.length);
     cases.forEach((params) => {
       assertAuthorize(
         (request, params) => {
-          assert.equal(params.ns, expected);
+          assert.strictEqual(params.ns, expected);
         },
         params,
         token,
@@ -75,7 +74,6 @@ module('Unit | Adapter | permission', function (hooks) {
   });
 
   test(`authorize doesn't add the tokens default namespace if one is specified`, function (assert) {
-    assert.expect(1);
     const adapter = this.owner.lookup('adapter:permission');
     const notExpected = 'test';
     const expected = 'default';
@@ -87,7 +85,7 @@ module('Unit | Adapter | permission', function (hooks) {
     };
     assertAuthorize(
       (request, params) => {
-        assert.equal(params.ns, expected);
+        assert.strictEqual(params.ns, expected);
       },
       {
         ns: expected,
@@ -115,11 +113,10 @@ module('Unit | Adapter | permission', function (hooks) {
         partition: '',
       },
     ];
-    assert.expect(cases.length);
     cases.forEach((params) => {
       assertAuthorize(
         (request, params) => {
-          assert.equal(params.partition, expected);
+          assert.strictEqual(params.partition, expected);
         },
         params,
         token,
@@ -130,7 +127,6 @@ module('Unit | Adapter | permission', function (hooks) {
   });
 
   test(`authorize doesn't add the tokens default partition if one is specified`, function (assert) {
-    assert.expect(1);
     const adapter = this.owner.lookup('adapter:permission');
     const notExpected = 'test';
     const expected = 'default';
@@ -142,7 +138,7 @@ module('Unit | Adapter | permission', function (hooks) {
     };
     assertAuthorize(
       (request, params) => {
-        assert.equal(params.partition, expected);
+        assert.strictEqual(params.partition, expected);
       },
       {
         partition: expected,

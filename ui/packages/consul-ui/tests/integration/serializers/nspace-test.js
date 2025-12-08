@@ -18,7 +18,6 @@ module('Integration | Serializer | nspace', function (hooks) {
   const undefinedPartition = 'default';
   const partition = 'default';
   test('respondForQuery returns the correct data for list endpoint', function (assert) {
-    assert.expect(1);
     const serializer = this.owner.lookup('serializer:nspace');
     const request = {
       url: `/v1/namespaces?dc=${dc}${
@@ -50,7 +49,6 @@ module('Integration | Serializer | nspace', function (hooks) {
     });
   });
   test('respondForQueryRecord returns the correct data for item endpoint', function (assert) {
-    assert.expect(1);
     const serializer = this.owner.lookup('serializer:nspace');
     const id = 'slug';
     const request = {
