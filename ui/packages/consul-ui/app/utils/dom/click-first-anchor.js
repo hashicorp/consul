@@ -36,10 +36,10 @@ export default function (closest, click = clickEvent) {
         return null;
     }
     const $row = closest(stopElement, e.target);
-    if (!$row) { // Adding null check
-      return null; 
+    if (!$row) {
+      return null;
     }
-    const $a = $row.querySelector('a'); 
+    const $a = $row.querySelector('a');
     if ($a) {
       click($a);
       return null;
