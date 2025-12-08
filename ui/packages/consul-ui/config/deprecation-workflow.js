@@ -17,7 +17,7 @@ self.deprecationWorkflow.config = {
     { handler: 'log', matchId: 'ember-component.send-action' },
     { handler: 'log', matchId: 'ember-cli-page-object.multiple' },
     { handler: 'log', matchId: 'computed-property.override' },
-    { handler: 'silence', matchId: 'autotracking.mutation-after-consumption' },
+    { handler: 'log', matchId: 'autotracking.mutation-after-consumption' },
     { handler: 'log', matchId: 'ember-data:legacy-test-helper-support' },
     { handler: 'log', matchId: 'ember-data:Model.data' },
   ],

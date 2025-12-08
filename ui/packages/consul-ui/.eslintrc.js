@@ -29,8 +29,6 @@ module.exports = {
     'no-console': ['error', { allow: ['error', 'info'] }],
     'no-unused-vars': ['error', { args: 'none' }],
     'ember/no-new-mixins': ['warn'],
-    'ember/no-jquery': 'error',
-    'ember/no-global-jquery': 'error',
 
     // for 3.24 update
     'ember/classic-decorator-no-classic-methods': ['error'],
