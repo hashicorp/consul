@@ -26,7 +26,7 @@ module('Integration | Adapter | node', function (hooks) {
         dc: dc,
         ns: nspace,
       });
-      assert.equal(`${actual.method} ${actual.url}`, expected);
+      assert.strictEqual(`${actual.method} ${actual.url}`, expected);
     });
     test(`requestForQueryRecord returns the correct url when the nspace is ${nspace}`, function (assert) {
       const adapter = this.owner.lookup('adapter:node');
@@ -40,7 +40,7 @@ module('Integration | Adapter | node', function (hooks) {
         id: id,
         ns: nspace,
       });
-      assert.equal(`${actual.method} ${actual.url}`, expected);
+      assert.strictEqual(`${actual.method} ${actual.url}`, expected);
     });
   });
   // the following don't require nspacing
@@ -62,6 +62,6 @@ module('Integration | Adapter | node', function (hooks) {
     const actual = adapter.requestForQueryLeader(request, {
       dc: dc,
     });
-    assert.equal(`${actual.method} ${actual.url}`, expected);
+    assert.strictEqual(`${actual.method} ${actual.url}`, expected);
   });
 });

@@ -19,7 +19,6 @@ module('Integration | Serializer | intention', function (hooks) {
   const nspace = 'default';
   const partition = 'default';
   test('respondForQuery returns the correct data for list endpoint', function (assert) {
-    assert.expect(4);
     const serializer = this.owner.lookup('serializer:intention');
     const request = {
       url: `/v1/connect/intentions?dc=${dc}`,
@@ -52,14 +51,13 @@ module('Integration | Serializer | intention', function (hooks) {
           dc: dc,
         }
       );
-      assert.equal(actual[0].Partition, expected[0].Partition);
-      assert.equal(actual[0].Namespace, expected[0].Namespace);
-      assert.equal(actual[0].Datacenter, expected[0].Datacenter);
-      assert.equal(actual[0].uid, expected[0].uid);
+      assert.strictEqual(actual[0].Partition, expected[0].Partition);
+      assert.strictEqual(actual[0].Namespace, expected[0].Namespace);
+      assert.strictEqual(actual[0].Datacenter, expected[0].Datacenter);
+      assert.strictEqual(actual[0].uid, expected[0].uid);
     });
   });
   test('respondForQueryRecord returns the correct data for item endpoint', function (assert) {
-    assert.expect(4);
     const serializer = this.owner.lookup('serializer:intention');
     const request = {
       url: `/v1/connect/intentions/${id}?dc=${dc}`,
@@ -104,10 +102,10 @@ module('Integration | Serializer | intention', function (hooks) {
           dc: dc,
         }
       );
-      assert.equal(actual.Partition, expected.Partition);
-      assert.equal(actual.Namespace, expected.Namespace);
-      assert.equal(actual.Datacenter, expected.Datacenter);
-      assert.equal(actual.uid, expected.uid);
+      assert.strictEqual(actual.Partition, expected.Partition);
+      assert.strictEqual(actual.Namespace, expected.Namespace);
+      assert.strictEqual(actual.Datacenter, expected.Datacenter);
+      assert.strictEqual(actual.uid, expected.uid);
     });
   });
 });

@@ -60,10 +60,12 @@ export default class TopologyRoute extends Route {
       ...this.paramsFor('dc'),
       ...this.paramsFor('dc.services.show'),
     };
-    this.intentions = this.data.source(
-      (uri) =>
+
+    this.intentions = this.data.source((uri) => {
+      return this.data.uri(
         uri`/${params.partition}/${params.nspace}/${params.dc}/intentions/for-service/${params.name}`
-    );
+      );
+    });
   }
 
   async deactivate(transition) {
