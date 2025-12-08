@@ -3,7 +3,7 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-<Route @name={{routeName}} as |route|>
+<Route @name={{this.routeName}} as |route|>
   {{#if (gt route.model.items.length 0)}}
     <Consul::Peer::Address::List @items={{route.model.items}} />
   {{else}}

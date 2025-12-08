@@ -25,7 +25,7 @@ module('Unit | Search | Predicate | policy', function () {
         finders: predicates,
       }
     ).search('hit');
-    assert.equal(actual.length, 2);
+    assert.strictEqual(actual.length, 2);
   });
   test('items are not found', function (assert) {
     const actual = new ExactSearch(
@@ -39,6 +39,6 @@ module('Unit | Search | Predicate | policy', function () {
         finders: predicates,
       }
     ).search('hit');
-    assert.equal(actual.length, 0);
+    assert.strictEqual(actual.length, 0);
   });
 });

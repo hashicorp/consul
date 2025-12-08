@@ -68,7 +68,7 @@ module('Unit | Search | Predicate | token', function () {
         finders: predicates,
       }
     ).search('hit');
-    assert.equal(actual.length, 7);
+    assert.strictEqual(actual.length, 7);
   });
   test('items are not found', function (assert) {
     const actual = new ExactSearch(
@@ -108,7 +108,7 @@ module('Unit | Search | Predicate | token', function () {
         finders: predicates,
       }
     ).search('hit');
-    assert.equal(actual.length, 0);
+    assert.strictEqual(actual.length, 0);
   });
   test('arraylike things can be empty', function (assert) {
     const actual = new ExactSearch(
@@ -141,6 +141,6 @@ module('Unit | Search | Predicate | token', function () {
         finders: predicates,
       }
     ).search('hit');
-    assert.equal(actual.length, 0);
+    assert.strictEqual(actual.length, 0);
   });
 });

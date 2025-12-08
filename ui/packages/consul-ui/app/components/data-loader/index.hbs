@@ -31,7 +31,7 @@
               @onchange={{queue (action "change" value="data") (action dispatch "SUCCESS")}}
               @onerror={{api.dispatchError}}
             as |source|>
-              {{did-insert (set this 'invalidate' source.invalidate)}}
+              {{did-insert-helper (set this 'invalidate' source.invalidate)}}
             </DataSource>
           {{/if}}
         </State>
@@ -86,5 +86,5 @@
   </State>
 
 {{/let}}
-  {{did-update (fn dispatch "LOAD") src=@src}}
+  {{did-update-helper (fn dispatch "LOAD") src=@src}}
 </StateChart>

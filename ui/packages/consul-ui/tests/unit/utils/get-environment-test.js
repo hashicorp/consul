@@ -55,14 +55,14 @@ module('Unit | Utility | getEnvironment', function () {
   test('it returns the correct operator value', function (assert) {
     const config = {};
     const env = getEnvironment(config, win, doc);
-    assert.equal(env('CONSUL_HTTP_PROTOCOL'), 'spdy');
+    assert.strictEqual(env('CONSUL_HTTP_PROTOCOL'), 'spdy');
   });
   test('it returns the correct operator value when set via config', function (assert) {
     const config = {
       CONSUL_HTTP_PROTOCOL: 'hq',
     };
     const env = getEnvironment(config, win, doc);
-    assert.equal(env('CONSUL_HTTP_PROTOCOL'), 'hq');
+    assert.strictEqual(env('CONSUL_HTTP_PROTOCOL'), 'hq');
   });
   test('it returns the correct URL for the root of the UI', function (assert) {
     let config = {
@@ -76,7 +76,7 @@ module('Unit | Utility | getEnvironment', function () {
       querySelector: () => makeOperatorConfig({}),
     };
     let env = getEnvironment(config, win, doc);
-    assert.equal(env('CONSUL_BASE_UI_URL'), expected);
+    assert.strictEqual(env('CONSUL_BASE_UI_URL'), expected);
     expected = 'http://localhost/somewhere/else';
     doc = {
       cookie: '',
@@ -85,7 +85,7 @@ module('Unit | Utility | getEnvironment', function () {
       querySelector: () => makeOperatorConfig({}),
     };
     env = getEnvironment(config, win, doc);
-    assert.equal(env('CONSUL_BASE_UI_URL'), expected);
+    assert.strictEqual(env('CONSUL_BASE_UI_URL'), expected);
   });
 
   test('it returns the correct max connections depending on protocol', function (assert) {
@@ -93,23 +93,23 @@ module('Unit | Utility | getEnvironment', function () {
       CONSUL_HTTP_PROTOCOL: 'hq',
     };
     let env = getEnvironment(config, win, doc);
-    assert.equal(env('CONSUL_HTTP_MAX_CONNECTIONS'), undefined);
+    assert.strictEqual(env('CONSUL_HTTP_MAX_CONNECTIONS'), undefined);
     config = {
       CONSUL_HTTP_PROTOCOL: 'http/1.1',
     };
     env = getEnvironment(config, win, doc);
-    assert.equal(env('CONSUL_HTTP_MAX_CONNECTIONS'), 5);
+    assert.strictEqual(env('CONSUL_HTTP_MAX_CONNECTIONS'), 5);
   });
   test('it returns the correct max connections if performance.getEntriesByType is not available', function (assert) {
     const config = {};
     let win = {};
     let env = getEnvironment(config, win, doc);
-    assert.equal(env('CONSUL_HTTP_MAX_CONNECTIONS'), 5);
+    assert.strictEqual(env('CONSUL_HTTP_MAX_CONNECTIONS'), 5);
     win = {
       performance: {},
     };
     env = getEnvironment(config, win, doc);
-    assert.equal(env('CONSUL_HTTP_MAX_CONNECTIONS'), 5);
+    assert.strictEqual(env('CONSUL_HTTP_MAX_CONNECTIONS'), 5);
   });
   test('it returns the correct user value', function (assert) {
     const config = {};

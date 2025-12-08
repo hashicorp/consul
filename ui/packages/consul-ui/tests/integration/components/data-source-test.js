@@ -43,7 +43,6 @@ module('Integration | Component | data-source', function (hooks) {
   test('open and closed are called correctly when the src is changed', async function (assert) {
     // Set any properties with this.set('myProperty', 'value');
     // Handle any actions with this.set('myAction', function(val) { ... });
-    assert.expect(9);
     const close = sinon.stub();
     const open = sinon.stub();
     const addEventListener = sinon.stub();
@@ -73,20 +72,20 @@ module('Integration | Component | data-source', function (hooks) {
       count++;
       switch (count) {
         case 1:
-          assert.equal(data, 'a', 'change was called first with "a"');
+          assert.strictEqual(data, 'a', 'change was called first with "a"');
           setTimeout(() => {
             this.set('src', 'b');
           }, 0);
           break;
         case 2:
-          assert.equal(data, 'b', 'change was called second with "b"');
+          assert.strictEqual(data, 'b', 'change was called second with "b"');
           break;
       }
     };
 
     this.set('src', 'a');
-    await render(hbs`<DataSource @src={{src}} @onchange={{action "change" value="data"}} />`);
-    assert.equal(this.element.textContent.trim(), '');
+    await render(hbs`<DataSource @src={{this.src}} @onchange={{action "change" value="data"}} />`);
+    assert.strictEqual(this.element.textContent.trim(), '');
     await waitUntil(() => {
       return close.calledTwice;
     });
@@ -98,8 +97,8 @@ module('Integration | Component | data-source', function (hooks) {
     });
     assert.ok(open.calledTwice, 'open is _still_ only called when src is set');
     assert.ok(close.calledThrice, 'close is called an extra time as the component is destroyed');
-    assert.equal(addEventListener.callCount, 4, 'all event listeners were added');
-    assert.equal(removeEventListener.callCount, 4, 'all event listeners were removed');
+    assert.strictEqual(addEventListener.callCount, 4, 'all event listeners were added');
+    assert.strictEqual(removeEventListener.callCount, 4, 'all event listeners were removed');
   });
   test('error actions are triggered when errors are dispatched', async function (assert) {
     const source = new RealEventSource();
