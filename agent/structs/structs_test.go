@@ -3417,3 +3417,10 @@ func TestServicePorts_GetPortWithName(t *testing.T) {
 	require.False(t, ok)
 	require.Equal(t, 0, p)
 }
+
+func TestUtilizationBundleRequest_IsWrite(t *testing.T) {
+	var req UtilizationBundleRequest
+
+	require.False(t, req.IsRead())
+	require.False(t, req.AllowStaleRead())
+}

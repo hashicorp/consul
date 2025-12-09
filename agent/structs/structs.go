@@ -3311,6 +3311,17 @@ type UtilizationBundleRequest struct {
 	DCSpecificRequest
 }
 
+// IsRead returns false because utilization bundle generation writes census
+// snapshots before responding.
+func (r *UtilizationBundleRequest) IsRead() bool {
+	return false
+}
+
+// AllowStaleRead is false to ensure requests are always forwarded to the leader.
+func (r *UtilizationBundleRequest) AllowStaleRead() bool {
+	return false
+}
+
 // UtilizationBundleResponse captures the server response when generating
 // manual utilization bundles via the System RPC/API.
 type UtilizationBundleResponse struct {
