@@ -1,0 +1,3 @@
+```release-note:bug
+agent: fix bug prevents default TCP checks from being re-added on service reload when they were explicitly disabled or when custom checks were specified during initial registration.
+```
