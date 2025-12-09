@@ -13,7 +13,8 @@ export default class UiConfigService extends Service {
 
   @dataSource('/:partition/:nspace/:dc/ui-config/:path')
   async findByPath(params) {
-    return get(this.get(), params.path);
+    const cfg = await this.fetchUiConfig();
+    return get(cfg, params.path);
   }
 
   @dataSource('/:partition/:nspace/:dc/notfound/:path')
@@ -35,7 +36,7 @@ export default class UiConfigService extends Service {
   }
 
   @dataSource('/:partition/:nspace/:dc/ui-config')
-  async get() {
+  async fetchUiConfig() {
     return this.env.var('CONSUL_UI_CONFIG');
   }
 

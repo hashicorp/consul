@@ -91,8 +91,8 @@ export default class HttpService extends Service {
   @service('encoder') encoder;
   @service('store') store;
 
-  init() {
-    super.init(...arguments);
+  constructor(...args) {
+    super(...args);
     this._listeners = this.dom.listeners();
     this.parseURL = createURL(encodeURIComponent, (obj) =>
       QueryParams.stringify(this.sanitize(obj))

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-import { get, set } from '@ember/object';
+import { set } from '@ember/object';
 import MultiMap from 'mnemonist/multi-map';
 
 /**
@@ -58,7 +58,7 @@ export default (checks = [], exposed = false, MMap = MultiMap) => {
   // TODO: consider moving this out of here so we aren't doing too much in one util
   if (exposed) {
     result
-      .filter((item) => get(item, 'Exposable'))
+      .filter((item) => item?.Exposable)
       .forEach((item) => {
         set(item, 'Exposed', exposed);
       });

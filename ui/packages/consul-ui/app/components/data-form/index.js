@@ -5,7 +5,7 @@
 
 import Component from '@ember/component';
 import { inject as service } from '@ember/service';
-import { set, get } from '@ember/object';
+import { set } from '@ember/object';
 import Slotted from 'block-slots';
 import { isChangeset } from 'validated-changeset';
 
@@ -46,7 +46,7 @@ export default Component.extend(Slotted, {
       }
       // mark as creating
       // and autofill the new record if required
-      if (get(data, 'isNew')) {
+      if (data?.isNew) {
         set(this, 'create', true);
         changeset = Object.entries(this.autofill || {}).reduce(function (prev, [key, value]) {
           set(prev, key, value);
