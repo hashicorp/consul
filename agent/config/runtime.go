@@ -526,6 +526,12 @@ type RuntimeConfig struct {
 	// datacenters should exclusively traverse mesh gateways.
 	ConnectMeshGatewayWANFederationEnabled bool
 
+	// ConnectVirtualIPCIDRv4 defines the IPv4 CIDR block used for automatic virtual IPs.
+	ConnectVirtualIPCIDRv4 string
+
+	// ConnectVirtualIPCIDRv6 defines the IPv6 CIDR block used for automatic virtual IPs.
+	ConnectVirtualIPCIDRv6 string
+
 	// ConnectTestCALeafRootChangeSpread is used to control how long the CA leaf
 	// cache with spread CSRs over when a root change occurs. For now we don't
 	// expose this in public config intentionally but could later with a rename.

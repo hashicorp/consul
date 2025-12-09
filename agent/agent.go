@@ -1564,6 +1564,8 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 
 		cfg.CAConfig = ca
 	}
+	cfg.ConnectVirtualIPCIDRv4 = runtimeCfg.ConnectVirtualIPCIDRv4
+	cfg.ConnectVirtualIPCIDRv6 = runtimeCfg.ConnectVirtualIPCIDRv6
 
 	// copy over auto runtimeCfg settings
 	cfg.AutoConfigEnabled = runtimeCfg.AutoConfig.Enabled

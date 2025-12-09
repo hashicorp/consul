@@ -36,6 +36,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
 	consulrate "github.com/hashicorp/consul/agent/consul/rate"
+	"github.com/hashicorp/consul/agent/consul/state"
 	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/structs"
@@ -691,6 +692,17 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	connectEnabled := boolVal(c.Connect.Enabled)
 	connectCAProvider := stringVal(c.Connect.CAProvider)
 	connectCAConfig := c.Connect.CAConfig
+	connectVirtualIPCIDRv4 := state.DefaultVirtualIPv4CIDR
+	if cidr := stringVal(c.Connect.VirtualIPCIDRv4); cidr != "" {
+		connectVirtualIPCIDRv4 = cidr
+	}
+	connectVirtualIPCIDRv6 := state.DefaultVirtualIPv6CIDR
+	if cidr := stringVal(c.Connect.VirtualIPCIDRv6); cidr != "" {
+		connectVirtualIPCIDRv6 = cidr
+	}
+	if err := state.ValidateVirtualIPCIDRs(connectVirtualIPCIDRv4, connectVirtualIPCIDRv6); err != nil {
+		return RuntimeConfig{}, err
+	}
 
 	// autoEncrypt and autoConfig implicitly turns on connect which is why
 	// they need to be above other settings that rely on connect.
@@ -999,6 +1011,8 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		ConnectMeshGatewayWANFederationEnabled: connectMeshGatewayWANFederationEnabled,
 		ConnectSidecarMinPort:                  sidecarMinPort,
 		ConnectSidecarMaxPort:                  sidecarMaxPort,
+		ConnectVirtualIPCIDRv4:                 connectVirtualIPCIDRv4,
+		ConnectVirtualIPCIDRv6:                 connectVirtualIPCIDRv6,
 		ConnectTestCALeafRootChangeSpread:      b.durationVal("connect.test_ca_leaf_root_change_spread", c.Connect.TestCALeafRootChangeSpread),
 		ExposeMinPort:                          exposeMinPort,
 		ExposeMaxPort:                          exposeMaxPort,
