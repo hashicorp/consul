@@ -4,14 +4,16 @@
 package ca
 
 import (
+	"context"
 	"os"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/acmpca"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/acmpca"
+	"github.com/aws/aws-sdk-go-v2/service/acmpca/types"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/connect"
@@ -23,7 +25,7 @@ import (
 // These tests are not run in CI.  If you are making changes to the AWS provider
 // you probably want to run these tests locally. The tests will run using any
 // credentials available to the AWS SDK. See
-// https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials
+// https://docs.aws.amazon.com/sdk-for-go/api/aws/session/
 // for a list of options.
 func skipIfAWSNotConfigured(t *testing.T) {
 	enabled := os.Getenv("ENABLE_AWS_PCA_TESTS")
@@ -293,14 +295,13 @@ func TestAWSProvider_Cleanup(t *testing.T) {
 		input := &acmpca.DescribeCertificateAuthorityInput{
 			CertificateAuthorityArn: aws.String(state[AWSStateCAARNKey]),
 		}
-		output, err := provider.client.DescribeCertificateAuthority(input)
+		output, err := provider.client.DescribeCertificateAuthority(context.Background(), input)
 		if err != nil {
 			return false, err
 		}
 		require.NotNil(t, output)
 		require.NotNil(t, output.CertificateAuthority)
-		require.NotNil(t, output.CertificateAuthority.Status)
-		return *output.CertificateAuthority.Status == acmpca.CertificateAuthorityStatusDeleted, nil
+		return output.CertificateAuthority.Status == types.CertificateAuthorityStatusDeleted, nil
 	}
 
 	requirePCADeleted := func(t *testing.T, provider *AWSProvider) {
