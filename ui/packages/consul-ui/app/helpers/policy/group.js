@@ -4,7 +4,6 @@
  */
 
 import { helper } from '@ember/component/helper';
-import { get } from '@ember/object';
 import { MANAGEMENT_ID } from 'consul-ui/models/policy';
 
 export default helper(function policyGroup([items] /*, hash*/) {
@@ -12,10 +11,10 @@ export default helper(function policyGroup([items] /*, hash*/) {
     function (prev, item) {
       let group;
       switch (true) {
-        case get(item, 'ID') === MANAGEMENT_ID:
+        case item?.ID === MANAGEMENT_ID:
           group = 'management';
           break;
-        case get(item, 'template') !== '':
+        case item?.template !== '':
           group = 'identities';
           break;
         default:

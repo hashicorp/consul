@@ -4,7 +4,6 @@
  */
 
 import Model, { attr } from '@ember-data/model';
-import { computed } from '@ember/object';
 
 export const PRIMARY_KEY = 'uid';
 export const SLUG_KEY = 'ServiceName';
@@ -24,7 +23,6 @@ export default class Topology extends Model {
   @attr() Downstreams; // Service[],
   @attr() meta; // {}
 
-  @computed('Downstreams')
   get notDefinedIntention() {
     let undefinedDownstream = false;
 
@@ -40,7 +38,6 @@ export default class Topology extends Model {
     return undefinedDownstream;
   }
 
-  @computed('Downstreams', 'Upstreams')
   // A service has a wildcard intention if `Allowed == true`  and `HasExact = false`
   // The Permissive Intention notice appears if at least one upstream or downstream has
   // a wildcard intention
@@ -56,7 +53,6 @@ export default class Topology extends Model {
     return downstreamWildcard || upstreamWildcard;
   }
 
-  @computed('Downstreams', 'Upstreams')
   get noDependencies() {
     return this.Upstreams.length === 0 && this.Downstreams.length === 0;
   }

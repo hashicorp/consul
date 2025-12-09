@@ -16,7 +16,8 @@ const BlockSlot = Component.extend({
       return value;
     },
   }),
-  didInsertElement: function () {
+  didInsertElement: function (...args) {
+    this._super(...args);
     const slottedComponent = this.nearestOfType(Slots);
     if (!slottedComponent._isRegistered(this._name)) {
       slottedComponent._activateSlot(this._name);
@@ -47,7 +48,8 @@ const BlockSlot = Component.extend({
       }
     }
   },
-  willDestroyElement: function () {
+  willDestroyElement: function (...args) {
+    this._super(...args);
     if (this.slottedComponent) {
       // Deactivate the yield slot using the slots interface when the block
       // is destroyed to allow the yield slot default {{else}} to take effect

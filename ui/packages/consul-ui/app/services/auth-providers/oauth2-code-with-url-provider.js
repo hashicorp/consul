@@ -5,7 +5,9 @@
 
 import OAuth2CodeProvider from 'torii/providers/oauth2-code';
 import { runInDebug } from '@ember/debug';
+import classic from 'ember-classic-decorator';
 
+@classic
 export default class OAuth2CodeWithURLProvider extends OAuth2CodeProvider {
   name = 'oidc-with-url';
 
@@ -35,7 +37,7 @@ export default class OAuth2CodeWithURLProvider extends OAuth2CodeProvider {
   }
 
   close() {
-    const popup = this.get('popup.remote') || {};
+    const popup = this.popup?.remote ?? {};
     if (typeof popup.close === 'function') {
       return popup.close();
     }

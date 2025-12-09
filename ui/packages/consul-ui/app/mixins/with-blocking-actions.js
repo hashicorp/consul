@@ -5,7 +5,7 @@
 
 import Mixin from '@ember/object/mixin';
 import { inject as service } from '@ember/service';
-import { set, get } from '@ember/object';
+import { set } from '@ember/object';
 import { singularize } from 'ember-inflector';
 
 /** With Blocking Actions
@@ -127,18 +127,18 @@ export default Mixin.create({
     use: function (item) {
       return this.repo
         .findBySlug({
-          dc: get(item, 'Datacenter'),
-          ns: get(item, 'Namespace'),
-          partition: get(item, 'Partition'),
-          id: get(item, 'AccessorID'),
+          dc: item.Datacenter,
+          ns: item.Namespace,
+          partition: item.Partition,
+          id: item.AccessorID,
         })
         .then((item) => {
           return this.settings.persist({
             token: {
-              AccessorID: get(item, 'AccessorID'),
-              SecretID: get(item, 'SecretID'),
-              Namespace: get(item, 'Namespace'),
-              Partition: get(item, 'Partition'),
+              AccessorID: item.AccessorID,
+              SecretID: item.SecretID,
+              Namespace: item.Namespace,
+              Partition: item.Partition,
             },
           });
         });

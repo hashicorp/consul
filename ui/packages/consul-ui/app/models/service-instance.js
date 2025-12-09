@@ -6,7 +6,6 @@
 import Model, { attr } from '@ember-data/model';
 import { fragmentArray } from 'ember-data-model-fragments/attributes';
 import { computed } from '@ember/object';
-import { or, filter, alias } from '@ember/object/computed';
 import { tracked } from '@glimmer/tracking';
 
 export const PRIMARY_KEY = 'uid';
@@ -42,20 +41,38 @@ export default class ServiceInstance extends Model {
   @attr({ defaultValue: () => [] }) Resources; // []
 
   // The name is the Name of the Service (the grouping of instances)
-  @alias('Service.Service') Name;
+  get Name() {
+    return this.Service?.Service;
+  }
 
   // If the ID is blank fallback to the Service.Service (the Name)
-  @or('Service.{ID,Service}') ID;
-  @or('Service.Address', 'Node.Service') Address;
+  get ID() {
+    return this.Service?.ID || this.Service?.Service;
+  }
+  get Address() {
+    return this.Service?.Address || this.Node?.Address;
+  }
   @attr('string') SocketPath;
 
-  @alias('Service.Tags') Tags;
-  @alias('Service.Meta') Meta;
-  @alias('Service.Namespace') Namespace;
-  @alias('Service.Partition') Partition;
+  get Tags() {
+    return this.Service?.Tags;
+  }
+  get Meta() {
+    return this.Service?.Meta;
+  }
+  get Namespace() {
+    return this.Service?.Namespace;
+  }
+  get Partition() {
+    return this.Service?.Partition;
+  }
 
-  @filter('Checks.@each.Kind', (item, i, arr) => item.Kind === 'service') ServiceChecks;
-  @filter('Checks.@each.Kind', (item, i, arr) => item.Kind === 'node') NodeChecks;
+  get ServiceChecks() {
+    return this.Checks.filter((item) => item.Kind === 'service');
+  }
+  get NodeChecks() {
+    return this.Checks.filter((item) => item.Kind === 'node');
+  }
 
   @computed('Service.Meta')
   get ExternalSources() {
@@ -87,12 +104,12 @@ export default class ServiceInstance extends Model {
 
   // IsMeshOrigin means that the service can have associated up or downstreams
   // that are in the Consul mesh itself
-  @computed('IsOrigin')
+  @computed('IsOrigin', 'Service.Kind')
   get IsMeshOrigin() {
     return this.IsOrigin && !['terminating-gateway'].includes(this.Service.Kind);
   }
 
-  @computed('ChecksPassing', 'ChecksWarning', 'ChecksCritical')
+  @computed('ChecksCritical.[]', 'ChecksPassing.[]', 'ChecksWarning.[]')
   get Status() {
     switch (true) {
       case this.ChecksCritical.length !== 0:
@@ -121,17 +138,17 @@ export default class ServiceInstance extends Model {
     return this.Checks.filter((item) => item.Status === 'critical');
   }
 
-  @computed('Checks.[]', 'ChecksPassing')
+  @computed('Checks.[]', 'ChecksPassing.[]')
   get PercentageChecksPassing() {
     return (this.ChecksPassing.length / this.Checks.length) * 100;
   }
 
-  @computed('Checks.[]', 'ChecksWarning')
+  @computed('Checks.[]', 'ChecksWarning.[]')
   get PercentageChecksWarning() {
     return (this.ChecksWarning.length / this.Checks.length) * 100;
   }
 
-  @computed('Checks.[]', 'ChecksCritical')
+  @computed('Checks.[]', 'ChecksCritical.[]')
   get PercentageChecksCritical() {
     return (this.ChecksCritical.length / this.Checks.length) * 100;
   }

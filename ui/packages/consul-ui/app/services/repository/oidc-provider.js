@@ -14,8 +14,8 @@ export default class OidcProviderService extends RepositoryService {
   @service('torii') manager;
   @service('settings') settings;
 
-  init() {
-    super.init(...arguments);
+  constructor(...args) {
+    super(...args);
     this.provider = getOwner(this).lookup(`torii-provider:${OAUTH_PROVIDER_NAME}`);
   }
 
