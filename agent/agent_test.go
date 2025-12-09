@@ -2469,6 +2469,105 @@ func testAgent_PersistService(t *testing.T, extraHCL string) {
 	}
 }
 
+func TestAgent_Reload_HonorsDisableDefaultSidecarChecks(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Run("no custom checks - should add default TCP and alias checks", func(t *testing.T) {
+		t.Parallel()
+		testAgent_Reload_HonorsDisableDefaultSidecarChecks(t, nil, false)
+	})
+
+	t.Run("with custom alias check - should not add default checks", func(t *testing.T) {
+		t.Parallel()
+		testAgent_Reload_HonorsDisableDefaultSidecarChecks(t, []*structs.CheckType{
+			{
+				Name:         "Custom Connect Sidecar Aliasing redis",
+				AliasService: "redis",
+			},
+		}, true)
+	})
+}
+
+func testAgent_Reload_HonorsDisableDefaultSidecarChecks(t *testing.T, checks []*structs.CheckType, disable_default_tcp_check bool) {
+	t.Helper()
+
+	cfg := `
+        server = false
+        bootstrap = false
+    `
+	a := StartTestAgent(t, TestAgent{HCL: cfg})
+	defer a.Shutdown()
+
+	svc := &structs.NodeService{
+		Kind:                       "connect-proxy",
+		ID:                         "redis-proxy",
+		Service:                    "redis",
+		Tags:                       []string{"foo"},
+		Port:                       8000,
+		LocallyRegisteredAsSidecar: true,
+	}
+
+	file := filepath.Join(a.Config.DataDir, servicesDir, structs.NewServiceID(svc.ID, nil).StringHashSHA256())
+
+	if err := a.addServiceFromSource(svc, checks, true, "mytoken", ConfigSourceLocal); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	expected, err := json.Marshal(persistedService{
+		Token:                       "mytoken",
+		Service:                     svc,
+		Source:                      "local",
+		LocallyRegisteredAsSidecar:  true,
+		DisableSidecarDefaultChecks: disable_default_tcp_check,
+	})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	content, err := os.ReadFile(file)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if !bytes.Equal(expected, content) {
+		t.Fatalf("bad: %s %s", string(expected), string(content))
+	}
+
+	// Shutdown the agent
+	a.Shutdown()
+
+	// Restart the agent
+	a2 := StartTestAgent(t, TestAgent{HCL: cfg, DataDir: a.DataDir})
+	defer a2.Shutdown()
+
+	restored := a2.State.ServiceState(structs.NewServiceID(svc.ID, nil))
+	if restored == nil {
+		t.Fatalf("service %q missing", svc.ID)
+	}
+	// check service does not have default sidecar TCP checks after restart
+	checkStateSnapshot := a2.State.AllChecks()
+	if disable_default_tcp_check {
+		require.Len(t, checkStateSnapshot, 1)
+	} else {
+		require.Len(t, checkStateSnapshot, 2)
+	}
+
+	// Now reload the config and ensure the flag is still honored
+	a2.reloadConfig(false)
+
+	reloadRestored := a2.State.ServiceState(structs.NewServiceID(svc.ID, nil))
+	if reloadRestored == nil {
+		t.Fatalf("service %q missing", svc.ID)
+	}
+	// check service does not have default sidecar TCP checks after config reload
+	checkStateSnapshotAfterReload := a2.State.AllChecks()
+	if disable_default_tcp_check {
+		require.Len(t, checkStateSnapshotAfterReload, 1)
+	} else {
+		require.Len(t, checkStateSnapshotAfterReload, 2)
+	}
+}
+
 func TestAgent_persistedService_compat(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
