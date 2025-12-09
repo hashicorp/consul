@@ -4,7 +4,6 @@
  */
 
 import Model, { attr } from '@ember-data/model';
-import { computed } from '@ember/object';
 import { fragmentArray } from 'ember-data-model-fragments/attributes';
 import replace, { nullValue } from 'consul-ui/decorators/replace';
 
@@ -40,7 +39,6 @@ export default class Intention extends Model {
   @attr({ defaultValue: () => [] }) Resources; // []
   @fragmentArray('intention-permission') Permissions;
 
-  @computed('Meta')
   get IsManagedByCRD() {
     const meta = Object.entries(this.Meta || {}).find(
       ([key, value]) => key === 'external-source' && value === 'kubernetes'

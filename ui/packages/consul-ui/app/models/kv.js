@@ -4,7 +4,6 @@
  */
 
 import Model, { attr } from '@ember-data/model';
-import { computed } from '@ember/object';
 import isFolder from 'consul-ui/utils/isFolder';
 import { nullValue } from 'consul-ui/decorators/replace';
 
@@ -31,12 +30,10 @@ export default class Kv extends Model {
   @attr('string') Session;
   @attr({ defaultValue: () => [] }) Resources; // []
 
-  @computed('isFolder')
   get Kind() {
     return this.isFolder ? 'folder' : 'key';
   }
 
-  @computed('Key')
   get isFolder() {
     return isFolder(this.Key || '');
   }

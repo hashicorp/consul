@@ -106,7 +106,7 @@ export default function (EventSource, backoff = createErrorBackoff()) {
               };
             }
             // meta is also configurable by using createEvent
-            const meta = get(event.data || {}, 'meta');
+            const meta = event.data?.meta;
             if (meta) {
               // pick off the `cursor` from the meta and add it to configuration
               // along with cursor validation

@@ -5,7 +5,7 @@
 
 import Component from '@ember/component';
 import { set, computed } from '@ember/object';
-import { alias, equal, not } from '@ember/object/computed';
+import { alias, equal, not, or } from '@ember/object/computed';
 import { inject as service } from '@ember/service';
 
 const name = 'intention-permission-http-header';
@@ -20,7 +20,7 @@ export default Component.extend({
   onsubmit: function () {},
   onreset: function () {},
 
-  changeset: computed('item', {
+  changeset: computed('item', '_changeset', 'headerTypes.firstObject', {
     get() {
       if (this._changeset !== undefined) {
         return this._changeset;
@@ -34,8 +34,7 @@ export default Component.extend({
       );
     },
     set(_key, value) {
-      this._changeset = value;
-      return this._changeset;
+      return this.set('_changeset', value);
     },
   }),
 
@@ -52,9 +51,7 @@ export default Component.extend({
     };
   }),
 
-  headerType: computed('changeset.HeaderType', 'headerTypes.firstObject', function () {
-    return this.changeset.HeaderType || this.headerTypes.firstObject;
-  }),
+  headerType: or('changeset.HeaderType', 'headerTypes.firstObject'),
 
   headerTypeEqualsPresent: equal('headerType', 'Present'),
   shouldShowValueField: not('headerTypeEqualsPresent'),

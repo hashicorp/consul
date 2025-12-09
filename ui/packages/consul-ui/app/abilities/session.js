@@ -4,7 +4,9 @@
  */
 
 import BaseAbility from './base';
+import classic from 'ember-classic-decorator';
 
+@classic
 export default class SessionAbility extends BaseAbility {
   resource = 'session';
 }

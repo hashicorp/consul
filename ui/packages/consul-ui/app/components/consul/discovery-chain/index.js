@@ -21,6 +21,7 @@ export default Component.extend({
     this._listeners = this.dom.listeners();
   },
   didInsertElement: function () {
+    this._super(...arguments);
     this._listeners.add(this.dom.document(), {
       click: (e) => {
         // all route/splitter/resolver components currently
@@ -40,43 +41,47 @@ export default Component.extend({
   splitters: computed('chain.Nodes', function () {
     return getSplitters(get(this, 'chain.Nodes'));
   }),
-  routes: computed('chain.Nodes', function () {
-    const routes = getRoutes(get(this, 'chain.Nodes'), this.dom.guid);
-    // if we have no routes with a PathPrefix of '/' or one with no definition at all
-    // then add our own 'default catch all'
-    if (
-      !routes.find((item) => get(item, 'Definition.Match.HTTP.PathPrefix') === '/') &&
-      !routes.find((item) => typeof item.Definition === 'undefined')
-    ) {
-      let nextNode;
-      const resolverID = `resolver:${this.chain.ServiceName}.${this.chain.Namespace}.${this.chain.Partition}.${this.chain.Datacenter}`;
-      const splitterID = `splitter:${this.chain.ServiceName}.${this.chain.Namespace}.${this.chain.Partition}`;
-      // The default router should look for a splitter first,
-      // if there isn't one try the default resolver
-      if (typeof this.chain.Nodes[splitterID] !== 'undefined') {
-        nextNode = splitterID;
-      } else if (typeof this.chain.Nodes[resolverID] !== 'undefined') {
-        nextNode = resolverID;
-      }
-      if (typeof nextNode !== 'undefined') {
-        const route = {
-          Default: true,
-          ID: `route:${this.chain.ServiceName}`,
-          Name: this.chain.ServiceName,
-          Definition: {
-            Match: {
-              HTTP: {
-                PathPrefix: '/',
+  routes: computed(
+    'chain.{Nodes,Datacenter,Namespace,Partition,ServiceName}',
+    'dom.guid',
+    function () {
+      const routes = getRoutes(get(this, 'chain.Nodes'), this.dom.guid);
+      // if we have no routes with a PathPrefix of '/' or one with no definition at all
+      // then add our own 'default catch all'
+      if (
+        !routes.find((item) => get(item, 'Definition.Match.HTTP.PathPrefix') === '/') &&
+        !routes.find((item) => typeof item.Definition === 'undefined')
+      ) {
+        let nextNode;
+        const resolverID = `resolver:${this.chain.ServiceName}.${this.chain.Namespace}.${this.chain.Partition}.${this.chain.Datacenter}`;
+        const splitterID = `splitter:${this.chain.ServiceName}.${this.chain.Namespace}.${this.chain.Partition}`;
+        // The default router should look for a splitter first,
+        // if there isn't one try the default resolver
+        if (typeof this.chain.Nodes[splitterID] !== 'undefined') {
+          nextNode = splitterID;
+        } else if (typeof this.chain.Nodes[resolverID] !== 'undefined') {
+          nextNode = resolverID;
+        }
+        if (typeof nextNode !== 'undefined') {
+          const route = {
+            Default: true,
+            ID: `route:${this.chain.ServiceName}`,
+            Name: this.chain.ServiceName,
+            Definition: {
+              Match: {
+                HTTP: {
+                  PathPrefix: '/',
+                },
               },
             },
-          },
-          NextNode: nextNode,
-        };
-        routes.push(createRoute(route, this.chain.ServiceName, this.dom.guid));
+            NextNode: nextNode,
+          };
+          routes.push(createRoute(route, this.chain.ServiceName, this.dom.guid));
+        }
       }
+      return routes;
     }
-    return routes;
-  }),
+  ),
   nodes: computed('routes', 'splitters', 'resolvers', function () {
     let nodes = this.resolvers.reduce((prev, item) => {
       prev[`resolver:${item.ID}`] = item;
@@ -108,7 +113,7 @@ export default Component.extend({
     });
     return '';
   }),
-  resolvers: computed('chain.{Nodes,Targets}', function () {
+  resolvers: computed('chain.{Nodes,Targets,Datacenter,Partition,Namespace}', function () {
     return getResolvers(
       this.chain.Datacenter,
       this.chain.Partition,

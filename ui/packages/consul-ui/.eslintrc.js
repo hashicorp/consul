@@ -31,24 +31,25 @@ module.exports = {
     'ember/no-new-mixins': ['warn'],
 
     // for 3.24 update
-    'ember/classic-decorator-no-classic-methods': ['warn'],
-    'ember/classic-decorator-hooks': ['warn'],
+    'ember/classic-decorator-no-classic-methods': ['error'],
+    'ember/classic-decorator-hooks': ['error'],
     'ember/no-classic-classes': ['warn'],
     'ember/no-mixins': ['warn'],
     'ember/no-computed-properties-in-native-classes': ['warn'],
     'ember/no-private-routing-service': ['warn'],
-    'ember/no-test-import-export': ['warn'],
+    'ember/no-test-import-export': ['error'],
     'ember/no-actions-hash': ['warn'],
     'ember/no-classic-components': ['warn'],
     'ember/no-component-lifecycle-hooks': ['warn'],
     'ember/require-tagless-components': ['warn'],
-    'ember/no-legacy-test-waiters': ['warn'],
-    'ember/no-empty-glimmer-component-classes': ['warn'],
+    'ember/no-legacy-test-waiters': ['error'],
+    'ember/no-empty-glimmer-component-classes': ['error'],
     'ember/no-get': ['off'], // be careful with autofix, might change behavior
-    'ember/require-computed-property-dependencies': ['off'], // be careful with autofix
-    'ember/use-ember-data-rfc-395-imports': ['off'], // be carful with autofix
-    'ember/require-super-in-lifecycle-hooks': ['off'], // be careful with autofix
-    'ember/require-computed-macros': ['off'], // be careful with autofix
+    'ember/require-computed-property-dependencies': ['error'], // be careful with autofix
+    'ember/use-ember-data-rfc-395-imports': ['error'], // be carful with autofix
+    'ember/require-super-in-lifecycle-hooks': ['error'], // be careful with autofix
+    'ember/require-computed-macros': ['error'], // be careful with autofix
+    'ember/use-brace-expansion': 'off',
   },
   overrides: [
     // node files
