@@ -10,7 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/armon/go-metrics"
+	"github.com/hashicorp/go-metrics"
+	metricscompat "github.com/hashicorp/go-metrics/compat"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/serf/coordinate"
@@ -174,9 +175,9 @@ func getSerfMemberEnterpriseMeta(member serf.Member) *acl.EnterpriseMeta {
 }
 
 func addSerfMetricsLabels(conf *serf.Config, wan bool, segment string, partition string, areaID string) {
-	conf.MetricLabels = []metrics.Label{}
+	conf.MetricLabels = []metricscompat.Label{}
 
-	networkMetric := metrics.Label{
+	networkMetric := metricscompat.Label{
 		Name: "network",
 	}
 	if wan {

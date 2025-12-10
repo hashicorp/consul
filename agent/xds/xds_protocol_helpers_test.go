@@ -12,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/armon/go-metrics"
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
@@ -28,6 +27,7 @@ import (
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
+	"github.com/hashicorp/go-metrics"
 	"github.com/mitchellh/copystructure"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
