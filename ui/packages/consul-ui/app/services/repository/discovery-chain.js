@@ -23,7 +23,7 @@ export default class DiscoveryChainService extends RepositoryService {
     // peekAll and find is fine here as datacenter count should be relatively
     // low, and DCs are the top bucket (when talking dc's partitions, nspaces)
     const datacenter = this.dcs.peekAll().findBy('Name', params.dc);
-    if (typeof datacenter !== 'undefined' && !get(datacenter, 'MeshEnabled')) {
+    if (typeof datacenter !== 'undefined' && !datacenter.MeshEnabled) {
       return Promise.resolve();
     }
     return super.findBySlug(...arguments).catch((e) => {

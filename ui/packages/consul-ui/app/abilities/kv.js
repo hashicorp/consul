@@ -4,7 +4,9 @@
  */
 
 import BaseAbility, { ACCESS_LIST } from './base';
+import classic from 'ember-classic-decorator';
 
+@classic
 export default class KVAbility extends BaseAbility {
   resource = 'key';
 

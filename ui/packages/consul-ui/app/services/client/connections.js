@@ -15,8 +15,8 @@ export default class ConnectionsService extends Service {
   @service('data-source/service')
   data;
 
-  init() {
-    super.init(...arguments);
+  constructor(...args) {
+    super(...args);
     this._listeners = this.dom.listeners();
     this.connections = new Set();
     this.addVisibilityChange();

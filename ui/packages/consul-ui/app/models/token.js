@@ -4,7 +4,6 @@
  */
 
 import Model, { attr } from '@ember-data/model';
-import { computed } from '@ember/object';
 import { MANAGEMENT_ID } from 'consul-ui/models/policy';
 
 export const PRIMARY_KEY = 'uid';
@@ -40,12 +39,10 @@ export default class Token extends Model {
   @attr('string') Rules;
   // End Legacy
 
-  @computed('Policies.[]')
   get isGlobalManagement() {
     return (this.Policies || []).find((item) => item.ID === MANAGEMENT_ID);
   }
 
-  @computed('SecretID')
   get hasSecretID() {
     return this.SecretID !== '' && this.SecretID !== '<hidden>';
   }

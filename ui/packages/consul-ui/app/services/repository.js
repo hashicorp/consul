@@ -90,25 +90,25 @@ export default class RepositoryService extends Service {
     // TODO: We mostly use this to authorize single items but we do
     // occasionally get an array back here e.g. service-instances, so we
     // should make this fact more obvious
-    if (get(item, 'Resources')) {
+    if (item?.Resources) {
       set(item, 'Resources', params.resources);
     }
     return item;
   }
 
   shouldReconcile(item, params) {
-    const dc = get(item, 'Datacenter');
+    const dc = item?.Datacenter;
     if (dc !== params.dc) {
       return false;
     }
     if (this.env.var('CONSUL_NSPACES_ENABLED')) {
-      const nspace = get(item, 'Namespace');
+      const nspace = item?.Namespace;
       if (typeof nspace !== 'undefined' && nspace !== params.ns) {
         return false;
       }
     }
     if (this.env.var('CONSUL_PARTITIONS_ENABLED')) {
-      const partition = get(item, 'Partition');
+      const partition = item?.Partition;
       if (typeof partition !== 'undefined' && partition !== params.partition) {
         return false;
       }
@@ -131,7 +131,7 @@ export default class RepositoryService extends Service {
     // unload anything older than our current sync date/time
     if (typeof meta.date !== 'undefined') {
       this.store.peekAll(this.getModelName()).forEach((item) => {
-        const date = get(item, 'SyncTime');
+        const date = item?.SyncTime;
         if (
           !item.isDeleted &&
           typeof date !== 'undefined' &&

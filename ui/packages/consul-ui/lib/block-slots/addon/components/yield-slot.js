@@ -1,16 +1,13 @@
 import { computed, get } from '@ember/object';
+import { reads } from '@ember/object/computed';
 import Component from '@ember/component';
 import layout from '../templates/components/yield-slot';
 import Slots from '../mixins/slots';
 const YieldSlotComponent = Component.extend({
   layout,
   tagName: '',
-  _name: computed('name', function () {
-    return this.name;
-  }),
-  _blockParams: computed('params', function () {
-    return this.params;
-  }),
+  _name: reads('name'),
+  _blockParams: reads('params'),
   _parentView: computed(function () {
     return this.nearestOfType(Slots);
   }),

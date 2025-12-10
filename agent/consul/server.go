@@ -484,6 +484,9 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	if err := config.CheckEnumStrings(); err != nil {
 		return nil, err
 	}
+	if err := state.SetVirtualIPConfig(config.ConnectVirtualIPCIDRv4, config.ConnectVirtualIPCIDRv6); err != nil {
+		return nil, fmt.Errorf("failed to configure virtual IP ranges: %w", err)
+	}
 
 	// Create the tombstone GC.
 	gc, err := state.NewTombstoneGC(config.TombstoneTTL, config.TombstoneTTLGranularity)
