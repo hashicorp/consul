@@ -50,6 +50,8 @@ func (g *ResourceGenerator) AllResourcesFromSnapshot(cfgSnap *proxycfg.ConfigSna
 }
 
 func (g *ResourceGenerator) resourcesFromSnapshot(typeUrl string, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+	fmt.Println("==============> resourcesFromSnapshot 1`", typeUrl)
+
 	switch typeUrl {
 	case xdscommon.ListenerType:
 		return g.listenersFromSnapshot(cfgSnap)
