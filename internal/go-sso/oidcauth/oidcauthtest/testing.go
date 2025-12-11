@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2025
 // SPDX-License-Identifier: BUSL-1.1
 
 // package oidcauthtest exposes tools to assist in writing unit tests of OIDC

@@ -1,6 +1,6 @@
 // filepath: /Users/rishabh/Documents/Hashicorp/consul/ui/packages/consul-ui/tests/lib/page-object/visitable.js
 /**
- * Copyright (c) HashiCorp, Inc.
+ * Copyright IBM Corp. 2014, 2025
  * SPDX-License-Identifier: BUSL-1.1
  */
 

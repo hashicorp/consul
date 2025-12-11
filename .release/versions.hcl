@@ -1,4 +1,4 @@
-# Copyright (c) HashiCorp, Inc.
+# Copyright IBM Corp. 2014, 2025
 # SPDX-License-Identifier: BUSL-1.1
 
 # This manifest file describes active releases and is consumed by the backport tooling.
