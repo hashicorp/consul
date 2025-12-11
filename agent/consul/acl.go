@@ -380,6 +380,8 @@ func (r *ACLResolver) Close() {
 }
 
 func (r *ACLResolver) fetchAndCacheIdentityFromToken(token string, cached *structs.IdentityCacheEntry) (structs.ACLIdentity, error) {
+	fmt.Println("============================> fetchAndCacheIdentityFromToken called ", token)
+
 	req := structs.ACLTokenGetRequest{
 		Datacenter:  r.backend.ACLDatacenter(),
 		TokenID:     token,
@@ -389,28 +391,43 @@ func (r *ACLResolver) fetchAndCacheIdentityFromToken(token string, cached *struc
 			AllowStale: true,
 		},
 	}
+	fmt.Println("============================> fetchAndCacheIdentityFromToken 1 called ", token)
 
 	var resp structs.ACLTokenResponse
 	err := r.backend.RPC(context.Background(), "ACL.TokenRead", &req, &resp)
+	fmt.Println("============================> fetchAndCacheIdentityFromToken 2 called ", token, err)
+
 	if err == nil {
+		fmt.Println("============================> fetchAndCacheIdentityFromToken 3 called ", token, err)
+
 		if resp.Token == nil {
+			fmt.Println("============================> fetchAndCacheIdentityFromToken 4 called ", token, err)
+
 			r.cache.RemoveIdentityWithSecretToken(token)
-			return nil, acl.ErrNotFound
+			return nil, acl.ErrACLNotFound
 		} else if resp.Token.Local && r.config.Datacenter != resp.SourceDatacenter {
+			fmt.Println("============================> fetchAndCacheIdentityFromToken 5 called ", token, err)
+
 			r.cache.RemoveIdentityWithSecretToken(token)
 			return nil, acl.PermissionDeniedError{Cause: fmt.Sprintf("This is a local token in datacenter %q", resp.SourceDatacenter)}
 		} else {
+			fmt.Println("============================> fetchAndCacheIdentityFromToken 6 called ", token, err)
+
 			r.cache.PutIdentityWithSecretToken(token, resp.Token)
 			return resp.Token, nil
 		}
 	}
+	fmt.Println("============================> fetchAndCacheIdentityFromToken 7 called ", token, err)
 
 	if acl.IsErrNotFound(err) {
 		// Make sure to remove from the cache if it was deleted
+		fmt.Println("============================> fetchAndCacheIdentityFromToken 8 called ", token, err)
+
 		r.cache.RemoveIdentityWithSecretToken(token)
-		return nil, acl.ErrNotFound
+		return nil, acl.ErrACLNotFound
 
 	}
+	fmt.Println("============================> fetchAndCacheIdentityFromToken 8 called ", token, err)
 
 	// some other RPC error
 	if cached != nil && (r.config.ACLDownPolicy == "extend-cache" || r.config.ACLDownPolicy == "async-cache") {
@@ -428,13 +445,16 @@ func (r *ACLResolver) fetchAndCacheIdentityFromToken(token string, cached *struc
 // we initiate an RPC for the value.
 func (r *ACLResolver) resolveIdentityFromToken(token string) (structs.ACLIdentity, error) {
 	// Attempt to resolve locally first (local results are not cached)
+	fmt.Println("============================> resolveIdentityFromToken called with token:", token)
 	if done, identity, err := r.backend.ResolveIdentityFromToken(token); done {
+		fmt.Println("============================> resolveIdentityFromToken 1 called with token:", token, "identity", identity, "err", err)
 		return identity, err
 	}
 
 	// Check the cache before making any RPC requests
 	cacheEntry := r.cache.GetIdentityWithSecretToken(token)
 	if cacheEntry != nil && cacheEntry.Age() <= r.config.ACLTokenTTL {
+		fmt.Println("============================> resolveIdentityFromToken cache hit for token:", token)
 		metrics.IncrCounter([]string{"acl", "token", "cache_hit"}, 1)
 		return cacheEntry.Identity, nil
 	}
@@ -588,7 +608,7 @@ func (r *ACLResolver) maybeHandleIdentityErrorDuringFetch(identity structs.ACLId
 		// Do not touch the cache. Getting a top level ACL not found error
 		// only indicates that the secret token used in the request
 		// no longer exists
-		return &policyOrRoleTokenError{acl.ErrNotFound, identity.SecretToken()}
+		return &policyOrRoleTokenError{acl.ErrACLNotFound, identity.SecretToken()}
 	}
 
 	if acl.IsErrPermissionDenied(err) {
@@ -949,30 +969,44 @@ func (r *ACLResolver) collectRolesForIdentity(identity structs.ACLIdentity, role
 func (r *ACLResolver) resolveTokenToIdentityAndPolicies(token string) (structs.ACLIdentity, structs.ACLPolicies, error) {
 	var lastErr error
 	var lastIdentity structs.ACLIdentity
+	fmt.Println("============================> resolveTokenToIdentityAndPolicies called ", token)
 
 	for i := 0; i < tokenPolicyResolutionMaxRetries; i++ {
 		// Resolve the token to an ACLIdentity
+		fmt.Println("============================> resolveTokenToIdentityAndPolicies 1 called ", token)
+
 		identity, err := r.resolveIdentityFromToken(token)
 		if err != nil {
+			fmt.Println("============================> resolveTokenToIdentityAndPolicies 2 called ", token, err)
+
 			return nil, nil, err
 		} else if identity == nil {
-			return nil, nil, acl.ErrNotFound
+			fmt.Println("============================> resolveTokenToIdentityAndPolicies 3 called ", token, err)
+
+			return nil, nil, acl.ErrACLNotFound
 		} else if identity.IsExpired(time.Now()) {
-			return nil, nil, acl.ErrNotFound
+			fmt.Println("============================> resolveTokenToIdentityAndPolicies 4 called ", token, err)
+
+			return nil, nil, acl.ErrACLNotFound
 		}
 
 		lastIdentity = identity
+		fmt.Println("============================> resolveTokenToIdentityAndPolicies 5 called ", token, err)
 
 		policies, err := r.resolvePoliciesForIdentity(identity)
 		if err == nil {
 			return identity, policies, nil
 		}
+		fmt.Println("============================> resolveTokenToIdentityAndPolicies 6 called ", token, err)
+
 		lastErr = err
 
 		if tokenErr, ok := err.(*policyOrRoleTokenError); ok {
 			if acl.IsErrNotFound(err) && subtle.ConstantTimeCompare([]byte(tokenErr.token), []byte(identity.SecretToken())) == 1 {
 				// token was deleted while resolving policies
-				return nil, nil, acl.ErrNotFound
+				fmt.Println("============================> resolveTokenToIdentityAndPolicies 7 called ", token, err)
+
+				return nil, nil, acl.ErrACLNotFound
 			}
 
 			// other types of policyOrRoleTokenErrors should cause retrying the whole token
@@ -988,21 +1022,35 @@ func (r *ACLResolver) resolveTokenToIdentityAndPolicies(token string) (structs.A
 func (r *ACLResolver) resolveTokenToIdentityAndRoles(token string) (structs.ACLIdentity, structs.ACLRoles, error) {
 	var lastErr error
 	var lastIdentity structs.ACLIdentity
+	fmt.Println("============================> resolveTokenToIdentityAndRoles called ", token)
 
 	for i := 0; i < tokenRoleResolutionMaxRetries; i++ {
 		// Resolve the token to an ACLIdentity
+		fmt.Println("============================> resolveTokenToIdentityAndRoles 1 called ", token)
+
 		identity, err := r.resolveIdentityFromToken(token)
+		fmt.Println("============================> resolveTokenToIdentityAndRoles 2 called ", token, err)
+
 		if err != nil {
+			fmt.Println("============================> resolveTokenToIdentityAndRoles 3 called ", token, err)
+
 			return nil, nil, err
 		} else if identity == nil {
-			return nil, nil, acl.ErrNotFound
+			fmt.Println("============================> resolveTokenToIdentityAndRoles 4 called ", token, err)
+
+			return nil, nil, acl.ErrACLNotFound
 		} else if identity.IsExpired(time.Now()) {
-			return nil, nil, acl.ErrNotFound
+			fmt.Println("============================> resolveTokenToIdentityAndRoles 5 called ", token, err)
+
+			return nil, nil, acl.ErrACLNotFound
 		}
 
 		lastIdentity = identity
+		fmt.Println("============================> resolveTokenToIdentityAndRoles 6 called ", token, err)
 
 		roles, err := r.resolveRolesForIdentity(identity)
+		fmt.Println("============================> resolveTokenToIdentityAndRoles 7 called ", token, err)
+
 		if err == nil {
 			return identity, roles, nil
 		}
@@ -1010,7 +1058,9 @@ func (r *ACLResolver) resolveTokenToIdentityAndRoles(token string) (structs.ACLI
 
 		if tokenErr, ok := err.(*policyOrRoleTokenError); ok {
 			if acl.IsErrNotFound(err) && subtle.ConstantTimeCompare([]byte(tokenErr.token), []byte(identity.SecretToken())) == 1 { // token was deleted while resolving roles
-				return nil, nil, acl.ErrNotFound
+				fmt.Println("============================> resolveTokenToIdentityAndRoles 8 called ", token, err)
+
+				return nil, nil, acl.ErrACLNotFound
 			}
 
 			// other types of policyOrRoleTokenErrors should cause retrying the whole token
@@ -1055,18 +1105,22 @@ func (r *ACLResolver) resolveLocallyManagedToken(token string) (structs.ACLIdent
 // can be used to check permissions granted to the token using its secret, and the
 // ACLIdentity describes the token and any defaults applied to it.
 func (r *ACLResolver) ResolveToken(tokenSecretID string) (resolver.Result, error) {
+	fmt.Println("============================> ACLResolver ResolveToken called with tokenSecretID:", tokenSecretID)
 	if !r.ACLsEnabled() {
 		return resolver.Result{Authorizer: acl.ManageAll()}, nil
 	}
+	fmt.Println("============================> ACLResolver ResolveToken 111")
 
 	if acl.RootAuthorizer(tokenSecretID) != nil {
 		return resolver.Result{}, acl.ErrRootDenied
 	}
+	fmt.Println("============================> ACLResolver ResolveToken 2222")
 
 	// handle the anonymous token
 	if tokenSecretID == "" {
 		tokenSecretID = anonymousToken
 	}
+	fmt.Println("============================> ACLResolver ResolveToken 33333", tokenSecretID)
 
 	if ident, authz, ok := r.resolveLocallyManagedToken(tokenSecretID); ok {
 		return resolver.Result{Authorizer: authz, ACLIdentity: ident}, nil
@@ -1136,10 +1190,12 @@ func (r *ACLResolver) ResolveTokenAndDefaultMeta(
 	entMeta *acl.EnterpriseMeta,
 	authzContext *acl.AuthorizerContext,
 ) (resolver.Result, error) {
+	fmt.Println("============================> ACLResolver ResolveTokenAndDefaultMeta called with tokenSecretID:", tokenSecretID)
 	result, err := r.ResolveToken(tokenSecretID)
 	if err != nil {
 		return resolver.Result{}, err
 	}
+	fmt.Println("============================> ACLResolver ResolveTokenAndDefaultMeta 1 called with tokenSecretID:", tokenSecretID, err)
 
 	if entMeta == nil {
 		entMeta = &acl.EnterpriseMeta{}
@@ -1149,12 +1205,16 @@ func (r *ACLResolver) ResolveTokenAndDefaultMeta(
 	// in the case of unknown identity
 	switch {
 	case authzContext.PeerOrEmpty() == "" && result.ACLIdentity != nil:
+		fmt.Println("============================> ACLResolver ResolveTokenAndDefaultMeta 3 called with tokenSecretID:", tokenSecretID, err)
+
 		entMeta.Merge(result.ACLIdentity.EnterpriseMetadata())
 
 	case result.ACLIdentity != nil:
 		// We _do not_ normalize the enterprise meta from the token when a peer
 		// name was specified because namespaces across clusters are not
 		// equivalent. A local namespace is _never_ correct for a remote query.
+		fmt.Println("============================> ACLResolver ResolveTokenAndDefaultMeta 4 called with tokenSecretID:", tokenSecretID, err)
+
 		entMeta.Merge(
 			structs.DefaultEnterpriseMetaInPartition(
 				result.ACLIdentity.EnterpriseMetadata().PartitionOrDefault(),
@@ -1163,6 +1223,7 @@ func (r *ACLResolver) ResolveTokenAndDefaultMeta(
 	default:
 		entMeta.Merge(structs.DefaultEnterpriseMetaInDefaultPartition())
 	}
+	fmt.Println("============================> ACLResolver ResolveTokenAndDefaultMeta 5 called with tokenSecretID:", tokenSecretID, result, err)
 
 	// Use the meta to fill in the ACL authorization context
 	entMeta.FillAuthzContext(authzContext)

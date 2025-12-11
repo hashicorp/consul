@@ -66,6 +66,8 @@ type TokenWriterStore interface {
 // Create a new token. Setting fromLogin to true changes behavior slightly for
 // tokens created by login (as opposed to set manually via the API).
 func (w *TokenWriter) Create(token *structs.ACLToken, fromLogin bool) (*structs.ACLToken, error) {
+	fmt.Println("============================> (w *TokenWriter) Create(token *structs.ACLToken, fromLogin bool) called  ", token, fromLogin)
+
 	if err := w.checkCanWriteToken(token); err != nil {
 		return nil, err
 	}
@@ -150,6 +152,7 @@ func (w *TokenWriter) Create(token *structs.ACLToken, fromLogin bool) (*structs.
 			return nil, errors.New("AuthMethod field is disallowed outside of login")
 		}
 	}
+	fmt.Println("============================> (w *TokenWriter) Create(token *structs.ACLToken, fromLogin bool) token  ", token, fromLogin)
 
 	return w.write(token, nil, fromLogin)
 }
@@ -224,7 +227,7 @@ func (w *TokenWriter) Delete(secretID string, fromLogout bool) error {
 	case err != nil:
 		return err
 	case token == nil:
-		return acl.ErrNotFound
+		return acl.ErrACLNotFound
 	case token.AuthMethod == "" && fromLogout:
 		return fmt.Errorf("%w: token wasn't created via login", acl.ErrPermissionDenied)
 	}
@@ -286,6 +289,9 @@ func (w *TokenWriter) tokenIDInUse(id string) (bool, error) {
 }
 
 func (w *TokenWriter) write(token, existing *structs.ACLToken, fromLogin bool) (*structs.ACLToken, error) {
+
+	fmt.Println("============================> (w *TokenWriter) Write   ", token, existing, fromLogin)
+
 	roles, err := w.normalizeRoleLinks(token.Roles, &token.EnterpriseMeta)
 	if err != nil {
 		return nil, err
@@ -321,6 +327,7 @@ func (w *TokenWriter) write(token, existing *structs.ACLToken, fromLogin bool) (
 	}
 
 	token.SetHash(true)
+	fmt.Println("============================> (w *TokenWriter) Write   token", token)
 
 	// Persist the token by writing to Raft.
 	_, err = w.RaftApply(structs.ACLTokenSetRequestType, &structs.ACLTokenBatchSetRequest{
@@ -334,6 +341,7 @@ func (w *TokenWriter) write(token, existing *structs.ACLToken, fromLogin bool) (
 	if err != nil {
 		return nil, fmt.Errorf("Failed to apply token write request: %w", err)
 	}
+	fmt.Println("============================> RaftApply called", token)
 
 	// Purge the token from the ACL cache.
 	w.ACLCache.RemoveIdentityWithSecretToken(token.SecretID)
@@ -343,6 +351,8 @@ func (w *TokenWriter) write(token, existing *structs.ACLToken, fromLogin bool) (
 	if err != nil || updatedToken == nil {
 		return nil, errors.New("Failed to retrieve token after insertion")
 	}
+	fmt.Println("============================> updatedToken ", updatedToken)
+
 	return updatedToken, nil
 }
 

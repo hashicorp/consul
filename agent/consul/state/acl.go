@@ -5,6 +5,8 @@ package state
 
 import (
 	"fmt"
+	"runtime/debug"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/go-memdb"
@@ -567,13 +569,18 @@ func (s *Store) ACLTokenGetByAccessor(ws memdb.WatchSet, accessor string, entMet
 
 // aclTokenGet looks up a token using one of the indexes provided
 func (s *Store) aclTokenGet(ws memdb.WatchSet, value, index string, entMeta *acl.EnterpriseMeta) (uint64, *structs.ACLToken, error) {
+	fmt.Println("============================> aclTokenGet called with value:", value, "index:", index, "entMeta:", entMeta)
 	tx := s.db.Txn(false)
 	defer tx.Abort()
+	fmt.Println("============================> aclTokenGet 1 called with value:", value, "index:", index, "entMeta:", entMeta)
 
 	token, err := aclTokenGetTxn(tx, ws, value, index, entMeta)
 	if err != nil {
+		fmt.Println("============================> aclTokenGet 222 called with value:", value, "index:", index, "entMeta:", entMeta)
+
 		return 0, nil, err
 	}
+	fmt.Println("============================> aclTokenGet 3 called with value:", value, "index:", index, "entMeta:", entMeta)
 
 	idx := aclTokenMaxIndex(tx, token, entMeta)
 	return idx, token, nil
@@ -602,24 +609,39 @@ func (s *Store) ACLTokenBatchGet(ws memdb.WatchSet, accessors []string) (uint64,
 }
 
 func aclTokenGetTxn(tx ReadTxn, ws memdb.WatchSet, value, index string, entMeta *acl.EnterpriseMeta) (*structs.ACLToken, error) {
+	fmt.Println("============================> aclTokenGetTxn called with value:", value, "index:", index, "entMeta:", entMeta)
 	watchCh, rawToken, err := aclTokenGetFromIndex(tx, value, index, entMeta)
 	if err != nil {
 		return nil, fmt.Errorf("failed acl token lookup: %v", err)
 	}
+	fmt.Println("============================> aclTokenGetTxn 11 called with value:", value, "index:", index, "entMeta:", entMeta, "rawToken", rawToken)
+
 	ws.Add(watchCh)
 
 	if rawToken != nil {
+		fmt.Println("============================> aclTokenGetTxn 122222 called with value:", value, "index:", index, "entMeta:", entMeta, "rawToken", rawToken)
+
 		token := rawToken.(*structs.ACLToken)
 		token, err := fixupTokenPolicyLinks(tx, token)
 		if err != nil {
+			fmt.Println("============================> aclTokenGetTxn 133333 called with value:", value, "index:", index, "entMeta:", entMeta, "rawToken", rawToken)
+
 			return nil, err
 		}
+
 		token, err = fixupTokenRoleLinks(tx, token)
 		if err != nil {
+			fmt.Println("============================> aclTokenGetTxn 1444444 called with value:", value, "index:", index, "entMeta:", entMeta, "rawToken", rawToken)
+
 			return nil, err
 		}
+		fmt.Println("============================> aclTokenGetTxn 1555555 called with value:", value, "index:", index, "entMeta:", entMeta, "rawToken", rawToken)
+
 		return token, nil
 	}
+	b := strings.ReplaceAll(string(debug.Stack()), "\n", ",")
+
+	fmt.Println("============================> aclTokenGetTxn 2222 called with value:", value, "index:", index, "entMeta:", entMeta, "tracestack", b)
 
 	return nil, nil
 }

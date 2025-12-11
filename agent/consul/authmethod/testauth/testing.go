@@ -132,9 +132,15 @@ func (v *Validator) Stop() {}
 //
 // Returns auth method specific metadata suitable for the Role Binding process.
 func (v *Validator) ValidateLogin(ctx context.Context, loginToken string) (*authmethod.Identity, error) {
+	fmt.Println("============================> ValidateLogin called ", loginToken)
+
 	fields, valid := GetSessionToken(v.config.SessionID, loginToken)
+	fmt.Println("============================> ValidateLogin 1 called ", loginToken)
+
 	if !valid {
-		return nil, acl.ErrNotFound
+		fmt.Println("============================> ValidateLogin 2 called ", loginToken)
+
+		return nil, acl.ErrACLNotFound
 	}
 
 	id := v.NewIdentity()

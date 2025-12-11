@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -18,6 +19,8 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
@@ -25,6 +28,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
+
 	"github.com/hashicorp/consul/agent/structs/aclfilter"
 	"github.com/hashicorp/consul/lib"
 )
@@ -262,25 +266,96 @@ func (a *ACL) BootstrapTokens(args *structs.ACLInitialTokenBootstrapRequest, rep
 	a.logger.Info("ACL bootstrap completed")
 	return nil
 }
-
-func (a *ACL) TokenRead(args *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
+func (a *ACL) RequireAnyValidACLToken(args *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
+	fmt.Println("============================> RequireAnyValidACLToken 111111", args.Token)
 	if err := a.aclPreCheck(); err != nil {
+		fmt.Println("============================> RequireAnyValidACLToken 22222222", args.Token, err)
+
 		return err
 	}
+	fmt.Println("============================> RequireAnyValidACLToken 3333333333", args.Token)
 
 	if err := a.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		fmt.Println("============================> RequireAnyValidACLToken 44444444", args.Token, err)
 		return err
 	}
+	fmt.Println("============================> RequireAnyValidACLToken 555555555", args.Token)
 
 	// clients will not know whether the server has local token store. In the case
 	// where it doesn't we will transparently forward requests.
 	if !a.srv.LocalTokensEnabled() {
+		fmt.Println("============================> RequireAnyValidACLToken 66666666", args.Token, a.srv.config.PrimaryDatacenter)
+
 		args.Datacenter = a.srv.config.PrimaryDatacenter
 	}
+	fmt.Println("============================> RequireAnyValidACLToken 7777777777", args.Token)
 
-	if done, err := a.srv.ForwardRPC("ACL.TokenRead", args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.RequireAnyValidACLToken", args, reply); done {
+		fmt.Println("============================> RequireAnyValidACLToken 888888888", args.Token, err)
+
 		return err
 	}
+	fmt.Println("============================> RequireAnyValidACLToken 99999999", args.Token)
+
+	if args.TokenIDType == structs.ACLTokenAccessor {
+		var err error
+		var authzContext acl.AuthorizerContext
+		// Only ACLRead privileges are required to list tokens
+		// However if you do not have ACLWrite as well the token
+		// secrets will be redacted
+		fmt.Println("============================> RequireAnyValidACLToken 1010101010", args.Token)
+
+		authz, err := a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
+		if err != nil {
+			fmt.Println("============================> RequireAnyValidACLToken 1-111111111", args.Token, err)
+			return err
+		}
+
+		if id := authz.ACLIdentity; id != nil && id.ID() == acl.AnonymousTokenID {
+			fmt.Println("============================> RequireAnyValidACLToken 1-2121212121212", args.Token)
+
+			return status.Error(codes.Unauthenticated, "An ACL token must be provided (via the `x-consul-token` metadata field) to call this endpoint")
+		}
+		fmt.Println("============================> RequireAnyValidACLToken 1-1-2121212121212", args.Token)
+
+		return nil
+	}
+	fmt.Println("============================> RequireAnyValidACLToken 13131313131313", args.Token)
+
+	return status.Error(codes.Unauthenticated, string(args.TokenIDType)+" is not a valid token identifier")
+
+}
+
+func (a *ACL) TokenRead(args *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
+	fmt.Println("============================> TokenRead 111111", args.Token)
+	if err := a.aclPreCheck(); err != nil {
+		fmt.Println("============================> TokenRead 22222222", args.Token, err)
+
+		return err
+	}
+	fmt.Println("============================> TokenRead 3333333333", args.Token)
+
+	if err := a.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		fmt.Println("============================> TokenRead 44444444", args.Token, err)
+		return err
+	}
+	fmt.Println("============================> TokenRead 555555555", args.Token)
+
+	// clients will not know whether the server has local token store. In the case
+	// where it doesn't we will transparently forward requests.
+	if !a.srv.LocalTokensEnabled() {
+		fmt.Println("============================> TokenRead 66666666", args.Token, a.srv.config.PrimaryDatacenter)
+
+		args.Datacenter = a.srv.config.PrimaryDatacenter
+	}
+	fmt.Println("============================> TokenRead 7777777777", args.Token)
+
+	if done, err := a.srv.ForwardRPC("ACL.TokenRead", args, reply); done {
+		fmt.Println("============================> TokenRead 888888888", args.Token, err)
+
+		return err
+	}
+	fmt.Println("============================> TokenRead 99999999", args.Token)
 
 	var authz resolver.Result
 
@@ -290,61 +365,101 @@ func (a *ACL) TokenRead(args *structs.ACLTokenGetRequest, reply *structs.ACLToke
 		// Only ACLRead privileges are required to list tokens
 		// However if you do not have ACLWrite as well the token
 		// secrets will be redacted
+		fmt.Println("============================> TokenRead 1010101010", args.Token)
+
 		if authz, err = a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext); err != nil {
+			fmt.Println("============================> TokenRead 1-111111111", args.Token, err)
 			return err
 		} else if err := authz.ToAllowAuthorizer().ACLReadAllowed(&authzContext); err != nil {
+			fmt.Println("============================> TokenRead 1212121212121212", args.Token, err)
+
 			return err
 		}
 	}
+	fmt.Println("============================> TokenRead 13131313131313", args.Token)
 
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
+			fmt.Println("============================> TokenRead 141414141414", args.Token)
+
 			var index uint64
 			var token *structs.ACLToken
 			var err error
 
 			if args.TokenIDType == structs.ACLTokenAccessor {
+				fmt.Println("============================> TokenRead 151515151515", args.Token)
+
 				index, token, err = state.ACLTokenGetByAccessor(ws, args.TokenID, &args.EnterpriseMeta)
+				fmt.Println("============================> TokenRead 16161616161616", args.Token, index, token, err)
+
 				if token != nil {
+					fmt.Println("============================> TokenRead 17171717171717", args.Token, index, token, err)
+
 					a.srv.filterACLWithAuthorizer(authz, &token)
 
 					// token secret was redacted
 					if token.SecretID == aclfilter.RedactedToken {
+						fmt.Println("============================> TokenRead 181818181919", args.Token, index, token, err)
+
 						reply.Redacted = true
 					}
+					fmt.Println("============================> TokenRead 191919191919", args.Token, index, token, err)
+
 				}
 			} else {
+
 				index, token, err = state.ACLTokenGetBySecret(ws, args.TokenID, nil)
+				fmt.Println("============================> TokenRead 202020202020", args.Token, index, token, err)
+
 				// no extra validation is needed here. If you have the secret ID you can read it.
 			}
+			fmt.Println("============================> TokenRead 2121212121", args.Token, err)
 
 			if err != nil {
+				fmt.Println("============================> TokenRead 2-2222222222", args.Token, err)
+
 				return err
 			}
+			fmt.Println("============================> TokenRead 2323232323", args.Token, err)
 
 			if token != nil && token.IsExpired(time.Now()) {
-				return fmt.Errorf("token has expired: %w", acl.ErrNotFound)
+				fmt.Println("============================> TokenRead 24242424242424", args.Token, err)
+
+				return fmt.Errorf("token has expired: %w", acl.ErrACLNotFound)
 			} else if token == nil {
 				// token does not exist
+				fmt.Println("============================> TokenRead 2525252525", args.Token, err)
+
 				if ns := args.NamespaceOrEmpty(); ns != "" {
-					return fmt.Errorf("token not found in namespace %s: %w", ns, acl.ErrNotFound)
+					return fmt.Errorf("token not found in namespace %s: %w", ns, acl.ErrACLNotFound)
 				}
-				return fmt.Errorf("token does not exist: %w", acl.ErrNotFound)
+				return fmt.Errorf("token does not exist: %w", acl.ErrACLNotFound)
 			}
+			fmt.Println("============================> TokenRead 262626262626", args.Token, err)
 
 			reply.Index, reply.Token = index, token
 			reply.SourceDatacenter = args.Datacenter
 
 			if args.Expanded {
+				fmt.Println("============================> TokenRead 27272727272727", args.Token, err)
+
 				info, err := a.lookupExpandedTokenInfo(ws, state, token)
+				fmt.Println("============================> TokenRead 282828282828", args.Token, info, err)
+
 				if err != nil {
+					fmt.Println("============================> TokenRead 2929292929292", args.Token, info, err)
+
 					return err
 				}
 				reply.ExpandedTokenInfo = info
+				fmt.Println("============================> TokenRead 30303030303", args.Token, info, err)
+
 			}
+			fmt.Println("============================> TokenRead 313131313131", args.Token, err)
 
 			return nil
 		})
+
 }
 
 func (a *ACL) lookupExpandedTokenInfo(ws memdb.WatchSet, state *state.Store, token *structs.ACLToken) (structs.ExpandedTokenInfo, error) {
@@ -487,11 +602,11 @@ func (a *ACL) TokenClone(args *structs.ACLTokenSetRequest, reply *structs.ACLTok
 		return err
 	} else if token == nil {
 		if ns := args.ACLToken.NamespaceOrEmpty(); ns != "" {
-			return fmt.Errorf("token not found in namespace %s: %w", ns, acl.ErrNotFound)
+			return fmt.Errorf("token not found in namespace %s: %w", ns, acl.ErrACLNotFound)
 		}
-		return fmt.Errorf("token does not exist: %w", acl.ErrNotFound)
+		return fmt.Errorf("token does not exist: %w", acl.ErrACLNotFound)
 	} else if token.IsExpired(time.Now()) {
-		return fmt.Errorf("token is expired: %w", acl.ErrNotFound)
+		return fmt.Errorf("token is expired: %w", acl.ErrACLNotFound)
 	} else if !a.srv.InPrimaryDatacenter() && !token.Local {
 		// global token writes must be forwarded to the primary DC
 		args.Datacenter = a.srv.config.PrimaryDatacenter
@@ -632,9 +747,9 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 	} else {
 		// in Primary Datacenter but the token does not exist - return early indicating it wasn't found.
 		if ns := args.NamespaceOrEmpty(); ns != "" {
-			return fmt.Errorf("token not found in namespace %s: %w", ns, acl.ErrNotFound)
+			return fmt.Errorf("token not found in namespace %s: %w", ns, acl.ErrACLNotFound)
 		}
-		return fmt.Errorf("token does not exist: %w", acl.ErrNotFound)
+		return fmt.Errorf("token does not exist: %w", acl.ErrACLNotFound)
 	}
 
 	req := &structs.ACLTokenBatchDeleteRequest{
@@ -1026,9 +1141,9 @@ func (a *ACL) PolicyDelete(args *structs.ACLPolicyDeleteRequest, reply *string) 
 
 	if policy == nil {
 		if ns := args.NamespaceOrEmpty(); ns != "" {
-			return fmt.Errorf("policy not found in namespace %s: %w", ns, acl.ErrNotFound)
+			return fmt.Errorf("policy not found in namespace %s: %w", ns, acl.ErrACLNotFound)
 		}
-		return fmt.Errorf("policy does not exist: %w", acl.ErrNotFound)
+		return fmt.Errorf("policy does not exist: %w", acl.ErrACLNotFound)
 	}
 
 	if builtinPolicy, ok := structs.ACLBuiltinPolicies[policy.ID]; ok {
@@ -1464,9 +1579,9 @@ func (a *ACL) RoleDelete(args *structs.ACLRoleDeleteRequest, reply *string) erro
 
 	if role == nil {
 		if ns := args.NamespaceOrEmpty(); ns != "" {
-			return fmt.Errorf("role not found in namespace %s: %w", ns, acl.ErrNotFound)
+			return fmt.Errorf("role not found in namespace %s: %w", ns, acl.ErrACLNotFound)
 		}
-		return fmt.Errorf("role does not exist: %w", acl.ErrNotFound)
+		return fmt.Errorf("role does not exist: %w", acl.ErrACLNotFound)
 	}
 
 	req := structs.ACLRoleBatchDeleteRequest{
@@ -1779,9 +1894,9 @@ func (a *ACL) BindingRuleDelete(args *structs.ACLBindingRuleDeleteRequest, reply
 
 	if rule == nil {
 		if ns := args.NamespaceOrEmpty(); ns != "" {
-			return fmt.Errorf("binding rule not found in namespace %s: %w", ns, acl.ErrNotFound)
+			return fmt.Errorf("binding rule not found in namespace %s: %w", ns, acl.ErrACLNotFound)
 		}
-		return fmt.Errorf("binding rule does not exist: %w", acl.ErrNotFound)
+		return fmt.Errorf("binding rule does not exist: %w", acl.ErrACLNotFound)
 	}
 
 	req := structs.ACLBindingRuleBatchDeleteRequest{
@@ -2027,9 +2142,9 @@ func (a *ACL) AuthMethodDelete(args *structs.ACLAuthMethodDeleteRequest, reply *
 
 	if method == nil {
 		if ns := args.NamespaceOrEmpty(); ns != "" {
-			return fmt.Errorf("auth method not found in namespace %s: %w", ns, acl.ErrNotFound)
+			return fmt.Errorf("auth method not found in namespace %s: %w", ns, acl.ErrACLNotFound)
 		}
-		return fmt.Errorf("auth method does not exist: %w", acl.ErrNotFound)
+		return fmt.Errorf("auth method does not exist: %w", acl.ErrACLNotFound)
 	}
 
 	if err := a.srv.enterpriseAuthMethodTypeValidation(method.Type); err != nil {
@@ -2098,51 +2213,64 @@ func (a *ACL) AuthMethodList(args *structs.ACLAuthMethodListRequest, reply *stru
 }
 
 func (a *ACL) Login(args *structs.ACLLoginRequest, reply *structs.ACLToken) error {
+	fmt.Println("============================> acl login called ", string(debug.Stack()))
 	if err := a.aclPreCheck(); err != nil {
 		return err
 	}
+	fmt.Println("============================> acl login 1 ")
 
 	if !a.srv.LocalTokensEnabled() {
 		return errAuthMethodsRequireTokenReplication
 	}
+	fmt.Println("============================> acl login 2")
 
 	if args.Auth == nil {
 		return fmt.Errorf("Invalid Login request: Missing auth parameters")
 	}
+	fmt.Println("============================> acl login 3")
 
 	if err := a.srv.validateEnterpriseRequest(&args.Auth.EnterpriseMeta, true); err != nil {
 		return err
 	}
+	fmt.Println("============================> acl login 4")
 
 	if args.Token != "" { // This shouldn't happen.
 		return errors.New("do not provide a token when logging in")
 	}
+	fmt.Println("============================> acl login 5")
 
 	if done, err := a.srv.ForwardRPC("ACL.Login", args, reply); done {
 		return err
 	}
+	fmt.Println("============================> acl login 6", args, reply)
 
 	defer metrics.MeasureSince([]string{"acl", "login"}, time.Now())
+	fmt.Println("============================> acl login 7")
 
 	authMethod, validator, err := a.srv.loadAuthMethod(args.Auth.AuthMethod, &args.Auth.EnterpriseMeta)
 	if err != nil {
 		return err
 	}
+	fmt.Println("============================> acl login 8", authMethod, validator)
 
 	verifiedIdentity, err := validator.ValidateLogin(context.Background(), args.Auth.BearerToken)
 	if err != nil {
 		return err
 	}
+	fmt.Println("============================> acl login 9", verifiedIdentity)
 
 	description, err := auth.BuildTokenDescription("token created via login", args.Auth.Meta)
 	if err != nil {
 		return err
 	}
+	fmt.Println("============================> acl login 10", description)
 
 	token, err := a.srv.aclLogin().TokenForVerifiedIdentity(verifiedIdentity, authMethod, description)
 	if err == nil {
 		*reply = *token
 	}
+	fmt.Println("============================> acl login 11", token, err)
+
 	return err
 }
 
@@ -2156,7 +2284,7 @@ func (a *ACL) Logout(args *structs.ACLLogoutRequest, reply *bool) error {
 	}
 
 	if args.Token == "" {
-		return fmt.Errorf("no valid token ID provided: %w", acl.ErrNotFound)
+		return fmt.Errorf("no valid token ID provided: %w", acl.ErrACLNotFound)
 	}
 
 	if done, err := a.srv.ForwardRPC("ACL.Logout", args, reply); done {

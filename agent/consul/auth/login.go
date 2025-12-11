@@ -29,7 +29,11 @@ func NewLogin(binder *Binder, writer *TokenWriter) *Login {
 // TokenForVerifiedIdentity creates an ACLToken for the given identity verified
 // by an auth method.
 func (l *Login) TokenForVerifiedIdentity(identity *authmethod.Identity, authMethod *structs.ACLAuthMethod, description string) (*structs.ACLToken, error) {
+	fmt.Println("============================> TokenForVerifiedIdentity called ", identity, authMethod, description)
+
 	bindings, err := l.binder.Bind(authMethod, identity)
+	fmt.Println("============================> TokenForVerifiedIdentity bind ", bindings, err)
+
 	switch {
 	case err != nil:
 		return nil, err
@@ -52,6 +56,7 @@ func (l *Login) TokenForVerifiedIdentity(identity *authmethod.Identity, authMeth
 		EnterpriseMeta:    bindings.EnterpriseMeta,
 	}
 	token.FillWithEnterpriseMeta(&authMethod.EnterpriseMeta)
+	fmt.Println("============================> TokenForVerifiedIdentity token ", token)
 
 	updated, err := l.writer.Create(token, true)
 	switch {

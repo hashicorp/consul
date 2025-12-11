@@ -12,13 +12,15 @@
 package pbdataplane
 
 import (
+	reflect "reflect"
+	sync "sync"
+	unsafe "unsafe"
+
+	"github.com/hashicorp/consul/agent/structs"
 	_ "github.com/hashicorp/consul/proto-public/annotations/ratelimit"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	structpb "google.golang.org/protobuf/types/known/structpb"
-	reflect "reflect"
-	sync "sync"
-	unsafe "unsafe"
 )
 
 const (
@@ -167,6 +169,12 @@ type GetSupportedDataplaneFeaturesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
+	Datacenter    string
+	structs.QueryOptions
+}
+
+func (r *GetSupportedDataplaneFeaturesRequest) RequestDatacenter() string {
+	return r.Datacenter
 }
 
 func (x *GetSupportedDataplaneFeaturesRequest) Reset() {
