@@ -23,7 +23,7 @@ load helpers
 }
 
 @test "s1 upstream should have healthy endpoints for s2" {
-  assert_upstream_has_endpoints_in_status 127.0.0.1:19000 s2.default.primary HEALTHY 1
+  assert_upstream_has_endpoints_in_status localhost:19000 s2.default.primary HEALTHY 1
 }
 
 @test "s2 should have network rbac rules loaded from xDS" {
