@@ -1,6 +1,6 @@
 module main
 
-go 1.25.4
+go 1.25.5
 
 require github.com/tetratelabs/proxy-wasm-go-sdk v0.21.0
 
