@@ -481,7 +481,7 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 		// In the happy path where we found some healthy nodes we go with that
 		// and bail out. Otherwise, we fail over and try remote DCs, as allowed
 		// by the query setup.
-		if len(reply.Nodes) == 0 {
+		if len(reply.Nodes) == 0 && !query.Service.Failover.IsEmpty() {
 			wrapper := newQueryServerWrapper(p.srv, p.ExecuteRemote)
 			if err := queryFailover(wrapper, *query, args, reply); err != nil {
 				return err
