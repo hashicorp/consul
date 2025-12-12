@@ -1,6 +1,6 @@
 module github.com/hashicorp/consul/proto-public
 
-go 1.25.4
+go 1.25.5
 
 require (
 	google.golang.org/grpc v1.75.0
