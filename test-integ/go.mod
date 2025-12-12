@@ -14,7 +14,7 @@ require (
 	github.com/mitchellh/copystructure v1.2.0
 	github.com/rboyer/blankspace v0.2.1
 	github.com/stretchr/testify v1.11.1
-	golang.org/x/net v0.46.0
+	golang.org/x/net v0.47.0
 	google.golang.org/grpc v1.75.0
 )
 
@@ -98,7 +98,7 @@ require (
 	github.com/teris-io/shortid v0.0.0-20220617161101-71ec9f2aa569 // indirect
 	github.com/testcontainers/testcontainers-go v0.22.0 // indirect
 	github.com/zclconf/go-cty v1.12.1 // indirect
-	golang.org/x/crypto v0.44.0 // indirect
+	golang.org/x/crypto v0.45.0 // indirect
 	golang.org/x/exp v0.0.0-20250911091902-df9299821621 // indirect
 	golang.org/x/mod v0.29.0 // indirect
 	golang.org/x/sync v0.18.0 // indirect
