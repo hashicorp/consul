@@ -1,0 +1,3 @@
+```release-note:logger
+fips: Fix logger set to info for 'tls.defaults.verify_incoming' in FIPS mode
+```
