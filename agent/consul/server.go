@@ -5,7 +5,6 @@ package consul
 
 import (
 	"context"
-	"crypto/x509"
 	"errors"
 	"fmt"
 	"io"
@@ -39,7 +38,6 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/blockingquery"
-	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
 	"github.com/hashicorp/consul/agent/consul/fsm"
@@ -52,8 +50,6 @@ import (
 	"github.com/hashicorp/consul/agent/consul/wanfed"
 	"github.com/hashicorp/consul/agent/consul/xdscapacity"
 	"github.com/hashicorp/consul/agent/grpc-external/services/peerstream"
-	"github.com/hashicorp/consul/agent/hcp"
-	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	logdrop "github.com/hashicorp/consul/agent/log-drop"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
@@ -76,7 +72,6 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
-	cslversion "github.com/hashicorp/consul/version"
 )
 
 // NOTE The "consul.client.rpc" and "consul.client.rpc.exceeded" counters are defined in consul/client.go
@@ -432,9 +427,6 @@ type Server struct {
 	// server is able to handle.
 	xdsCapacityController *xdscapacity.Controller
 
-	// hcpManager handles pushing server status updates to the HashiCorp Cloud Platform when enabled
-	hcpManager *hcp.HCPManager
-
 	// embedded struct to hold all the enterprise specific data
 	EnterpriseServer
 
@@ -548,35 +540,6 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 		Publisher:      flat.EventPublisher,
 		StorageBackend: s.raftStorageBackend,
 	})
-
-	if s.config.Cloud.IsConfigured() {
-		s.hcpManager = hcp.NewManager(hcp.ManagerConfig{
-			CloudConfig:       flat.HCP.Config,
-			StatusFn:          s.hcpServerStatus(flat),
-			Logger:            logger.Named("hcp_manager"),
-			SCADAProvider:     flat.HCP.Provider,
-			TelemetryProvider: flat.HCP.TelemetryProvider,
-			ManagementTokenUpserterFn: func(name, secretId string) error {
-				// Check the state of the server before attempting to upsert the token. Otherwise,
-				// the upsert will fail and log errors that do not require action from the user.
-				if s.config.ACLsEnabled && s.IsLeader() && s.InPrimaryDatacenter() {
-					// Idea for improvement: Upsert a token with a well-known accessorId here instead
-					// of a randomly generated one. This would prevent any possible insertion collision between
-					// this and the insertion that happens during the ACL initialization process (initializeACLs function)
-					return s.upsertManagementToken(name, secretId)
-				}
-				return nil
-			},
-			ManagementTokenDeleterFn: func(secretId string) error {
-				// Check the state of the server before attempting to delete the token.Otherwise,
-				// the delete will fail and log errors that do not require action from the user.
-				if s.config.ACLsEnabled && s.IsLeader() && s.InPrimaryDatacenter() {
-					return s.deleteManagementToken(secretId)
-				}
-				return nil
-			},
-		})
-	}
 
 	var recorder *middleware.RequestRecorder
 	if flat.NewRequestRecorderFunc != nil {
@@ -1924,57 +1887,10 @@ func (s *Server) trackLeaderChanges() {
 			s.raftStorageBackend.LeaderChanged()
 			s.controllerManager.SetRaftLeader(s.IsLeader())
 
-			if s.config.Cloud.IsConfigured() {
-				// Trigger sending an update to HCP status
-				s.hcpManager.SendUpdate()
-			}
 		case <-s.shutdownCh:
 			s.raft.DeregisterObserver(observer)
 			return
 		}
-	}
-}
-
-// hcpServerStatus is the callback used by the HCP manager to emit status updates to the HashiCorp Cloud Platform when
-// enabled.
-func (s *Server) hcpServerStatus(deps Deps) hcp.StatusCallback {
-	return func(ctx context.Context) (status hcpclient.ServerStatus, err error) {
-		status.Name = s.config.NodeName
-		status.ID = string(s.config.NodeID)
-		status.Version = cslversion.GetHumanVersion()
-		status.LanAddress = s.config.RPCAdvertise.IP.String()
-		status.GossipPort = s.config.SerfLANConfig.MemberlistConfig.AdvertisePort
-		status.RPCPort = s.config.RPCAddr.Port
-		status.Datacenter = s.config.Datacenter
-
-		err = addServerTLSInfo(&status, s.tlsConfigurator)
-		if err != nil {
-			return status, fmt.Errorf("error adding server tls info: %w", err)
-		}
-
-		status.Raft.IsLeader = s.raft.State() == raft.Leader
-		_, leaderID := s.raft.LeaderWithID()
-		status.Raft.KnownLeader = leaderID != ""
-		status.Raft.AppliedIndex = s.raft.AppliedIndex()
-		if !status.Raft.IsLeader {
-			status.Raft.TimeSinceLastContact = time.Since(s.raft.LastContact())
-		}
-
-		apState := s.autopilot.GetState()
-		status.Autopilot.Healthy = apState.Healthy
-		status.Autopilot.FailureTolerance = apState.FailureTolerance
-		status.Autopilot.NumServers = len(apState.Servers)
-		status.Autopilot.NumVoters = len(apState.Voters)
-		status.Autopilot.MinQuorum = int(s.getAutopilotConfigOrDefault().MinQuorum)
-
-		status.ScadaStatus = "unknown"
-		if deps.HCP.Provider != nil {
-			status.ScadaStatus = deps.HCP.Provider.SessionStatus()
-		}
-
-		status.ACL.Enabled = s.config.ACLsEnabled
-
-		return status, nil
 	}
 }
 
@@ -2036,83 +1952,6 @@ func convertConsulConfigToRateLimitHandlerConfig(limitsConfig RequestLimits, mul
 	}
 
 	return hc
-}
-
-// addServerTLSInfo adds the server's TLS information if available to the status
-func addServerTLSInfo(status *hcpclient.ServerStatus, tlsConfigurator tlsutil.ConfiguratorIface) error {
-	tlsCert := tlsConfigurator.Cert()
-	if tlsCert == nil {
-		return nil
-	}
-
-	leaf := tlsCert.Leaf
-	var err error
-	if leaf == nil {
-		// Parse the leaf cert
-		if len(tlsCert.Certificate) == 0 {
-			return fmt.Errorf("expected a leaf certificate but there was none")
-		}
-		leaf, err = x509.ParseCertificate(tlsCert.Certificate[0])
-		if err != nil {
-			// Shouldn't be possible
-			return fmt.Errorf("error parsing leaf cert: %w", err)
-		}
-	}
-
-	tlsInfo := hcpclient.ServerTLSInfo{
-		Enabled:              true,
-		CertIssuer:           leaf.Issuer.CommonName,
-		CertName:             leaf.Subject.CommonName,
-		CertSerial:           leaf.SerialNumber.String(),
-		CertExpiry:           leaf.NotAfter,
-		VerifyIncoming:       tlsConfigurator.VerifyIncomingRPC(),
-		VerifyOutgoing:       tlsConfigurator.Base().InternalRPC.VerifyOutgoing,
-		VerifyServerHostname: tlsConfigurator.VerifyServerHostname(),
-	}
-
-	// Collect metadata for all CA certs used for internal RPC
-	metadata := make([]hcpclient.CertificateMetadata, 0)
-	for _, pemStr := range tlsConfigurator.ManualCAPems() {
-		cert, err := connect.ParseCert(pemStr)
-		if err != nil {
-			return fmt.Errorf("error parsing manual ca pem: %w", err)
-		}
-
-		metadatum := hcpclient.CertificateMetadata{
-			CertExpiry: cert.NotAfter,
-			CertName:   cert.Subject.CommonName,
-			CertSerial: cert.SerialNumber.String(),
-		}
-		metadata = append(metadata, metadatum)
-	}
-	for ix, certBytes := range tlsCert.Certificate {
-		if ix == 0 {
-			// Skip the leaf cert at index 0. Only collect intermediates
-			continue
-		}
-
-		cert, err := x509.ParseCertificate(certBytes)
-		if err != nil {
-			return fmt.Errorf("error parsing tls cert index %d: %w", ix, err)
-		}
-
-		metadatum := hcpclient.CertificateMetadata{
-			CertExpiry: cert.NotAfter,
-			CertName:   cert.Subject.CommonName,
-			CertSerial: cert.SerialNumber.String(),
-		}
-		metadata = append(metadata, metadatum)
-	}
-	tlsInfo.CertificateAuthorities = metadata
-
-	status.ServerTLSMetadata.InternalRPC = tlsInfo
-
-	// TODO: remove status.TLS in preference for server.ServerTLSMetadata.InternalRPC
-	// when deprecation path is ready
-	// https://hashicorp.atlassian.net/browse/CC-7015
-	status.TLS = tlsInfo
-
-	return nil
 }
 
 // peersInfoContent is used to help operators understand what happened to the
