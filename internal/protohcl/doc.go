@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2025
 // SPDX-License-Identifier: BUSL-1.1
 
 // The protohcl package aims to define a canonical way to translate between

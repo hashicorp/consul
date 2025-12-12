@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Copyright (c) HashiCorp, Inc.
+# Copyright IBM Corp. 2014, 2025
 # SPDX-License-Identifier: BUSL-1.1
 
 readonly PACKAGE_DIR="$(dirname "${BASH_SOURCE[0]}")"
