@@ -30,20 +30,29 @@ const (
 
 // endpointsFromSnapshot returns the xDS API representation of the "endpoints"
 func (s *ResourceGenerator) endpointsFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+	fmt.Println("==============> endpointsFromSnapshot 1")
 	if cfgSnap == nil {
+		fmt.Println("==============> endpointsFromSnapshot 1.1")
+
 		return nil, errors.New("nil config given")
 	}
+	fmt.Println("==============> endpointsFromSnapshot 2")
 
 	switch cfgSnap.Kind {
 	case structs.ServiceKindConnectProxy:
+		fmt.Println("==============> endpointsFromSnapshot 3")
 		return s.endpointsFromSnapshotConnectProxy(cfgSnap)
 	case structs.ServiceKindTerminatingGateway:
+		fmt.Println("==============> endpointsFromSnapshot 4")
 		return s.endpointsFromSnapshotTerminatingGateway(cfgSnap)
 	case structs.ServiceKindMeshGateway:
+		fmt.Println("==============> endpointsFromSnapshot 5")
 		return s.endpointsFromSnapshotMeshGateway(cfgSnap)
 	case structs.ServiceKindIngressGateway:
+		fmt.Println("==============> endpointsFromSnapshot 6")
 		return s.endpointsFromSnapshotIngressGateway(cfgSnap)
 	case structs.ServiceKindAPIGateway:
+		fmt.Println("==============> endpointsFromSnapshot 7")
 		return s.endpointsFromSnapshotAPIGateway(cfgSnap)
 	default:
 		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
@@ -53,6 +62,7 @@ func (s *ResourceGenerator) endpointsFromSnapshot(cfgSnap *proxycfg.ConfigSnapsh
 // endpointsFromSnapshotConnectProxy returns the xDS API representation of the "endpoints"
 // (upstream instances) in the snapshot.
 func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+	fmt.Println("==============> endpointsFromSnapshotConnectProxy 1")
 	// TODO: this estimate is wrong
 	resources := make([]proto.Message, 0,
 		len(cfgSnap.ConnectProxy.PreparedQueryEndpoints)+
@@ -61,17 +71,26 @@ func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.
 
 	// NOTE: Any time we skip a chain below we MUST also skip that discovery chain in clusters.go
 	// so that the sets of endpoints generated matches the sets of clusters.
+	fmt.Println("==============> endpointsFromSnapshotConnectProxy 2")
+
 	for uid, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
+		fmt.Println("==============> endpointsFromSnapshotConnectProxy 3", uid.String(), chain)
 		upstream, skip := cfgSnap.ConnectProxy.GetUpstream(uid, &cfgSnap.ProxyID.EnterpriseMeta)
+		fmt.Println("==============> endpointsFromSnapshotConnectProxy 4", upstream, skip)
+
 		if skip {
+			fmt.Println("==============> endpointsFromSnapshotConnectProxy 5")
+
 			// Discovery chain is not associated with a known explicit or implicit upstream so it is skipped.
 			continue
 		}
+		fmt.Println("==============> endpointsFromSnapshotConnectProxy 6")
 
 		var upstreamConfigMap map[string]interface{}
 		if upstream != nil {
 			upstreamConfigMap = upstream.Config
 		}
+		fmt.Println("==============> endpointsFromSnapshotConnectProxy 7", upstreamConfigMap)
 
 		es, err := s.endpointsFromDiscoveryChain(
 			uid,
@@ -83,60 +102,86 @@ func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			cfgSnap.ConnectProxy.WatchedGatewayEndpoints[uid],
 			false,
 		)
+		fmt.Println("==============> endpointsFromSnapshotConnectProxy 8", es, err)
+
 		if err != nil {
+			fmt.Println("==============> endpointsFromSnapshotConnectProxy 9", err)
 			return nil, err
 		}
+		fmt.Println("==============> endpointsFromSnapshotConnectProxy 10")
+
 		resources = append(resources, es...)
 	}
+	fmt.Println("==============> endpointsFromSnapshotConnectProxy 11")
 
 	// NOTE: Any time we skip an upstream below we MUST also skip that same
 	// upstream in clusters.go so that the sets of endpoints generated matches
 	// the sets of clusters.
 	for _, uid := range cfgSnap.ConnectProxy.PeeredUpstreamIDs() {
+		fmt.Println("==============> endpointsFromSnapshotConnectProxy 12", uid)
 		upstream, skip := cfgSnap.ConnectProxy.GetUpstream(uid, &cfgSnap.ProxyID.EnterpriseMeta)
+		fmt.Println("==============> endpointsFromSnapshotConnectProxy 13", upstream, skip)
 		if skip {
+			fmt.Println("==============> endpointsFromSnapshotConnectProxy 14")
 			// Discovery chain is not associated with a known explicit or implicit upstream so it is skipped.
 			continue
 		}
-
+		fmt.Println("==============> endpointsFromSnapshotConnectProxy 15")
 		tbs, ok := cfgSnap.ConnectProxy.UpstreamPeerTrustBundles.Get(uid.Peer)
+		fmt.Println("==============> endpointsFromSnapshotConnectProxy 16", tbs, ok)
 		if !ok {
+			fmt.Println("==============> endpointsFromSnapshotConnectProxy 17")
 			// this should never happen since we loop through upstreams with
 			// set trust bundles
 			return nil, fmt.Errorf("trust bundle not ready for peer %s", uid.Peer)
 		}
-
+		fmt.Println("==============> endpointsFromSnapshotConnectProxy 18")
 		clusterName := generatePeeredClusterName(uid, tbs)
-
+		fmt.Println("==============> endpointsFromSnapshotConnectProxy 19", clusterName)
 		mgwMode := structs.MeshGatewayModeDefault
+
 		if upstream != nil {
+			fmt.Println("==============> endpointsFromSnapshotConnectProxy 20", upstream)
 			mgwMode = upstream.MeshGateway.Mode
 		}
+		fmt.Println("==============> endpointsFromSnapshotConnectProxy 21", mgwMode)
 		loadAssignment, err := s.makeUpstreamLoadAssignmentForPeerService(cfgSnap, clusterName, uid, mgwMode)
+		fmt.Println("==============> endpointsFromSnapshotConnectProxy 22", loadAssignment, err)
 		if err != nil {
+			fmt.Println("==============> endpointsFromSnapshotConnectProxy 23", err)
 			return nil, err
 		}
+		fmt.Println("==============> endpointsFromSnapshotConnectProxy 24", loadAssignment)
 
 		if loadAssignment != nil {
+			fmt.Println("==============> endpointsFromSnapshotConnectProxy 25")
 			resources = append(resources, loadAssignment)
 		}
+		fmt.Println("==============> endpointsFromSnapshotConnectProxy 26")
 	}
-
+	fmt.Println("==============> endpointsFromSnapshotConnectProxy 27")
 	// Looping over explicit upstreams is only needed for prepared queries because they do not have discovery chains
 	for _, u := range cfgSnap.Proxy.Upstreams {
+		fmt.Println("==============> endpointsFromSnapshotConnectProxy 28", u)
 		if u.DestinationType != structs.UpstreamDestTypePreparedQuery {
+			fmt.Println("==============> endpointsFromSnapshotConnectProxy 29")
 			continue
 		}
+		fmt.Println("==============> endpointsFromSnapshotConnectProxy 30")
 		uid := proxycfg.NewUpstreamID(&u)
-
+		fmt.Println("==============> endpointsFromSnapshotConnectProxy 31", uid)
 		dc := u.Datacenter
 		if dc == "" {
+			fmt.Println("==============> endpointsFromSnapshotConnectProxy 32")
 			dc = cfgSnap.Datacenter
 		}
+		fmt.Println("==============> endpointsFromSnapshotConnectProxy 33", dc)
 		clusterName := connect.UpstreamSNI(&u, "", dc, cfgSnap.Roots.TrustDomain)
 
 		endpoints, ok := cfgSnap.ConnectProxy.PreparedQueryEndpoints[uid]
+		fmt.Println("==============> endpointsFromSnapshotConnectProxy 34", endpoints, ok)
 		if ok {
+			fmt.Println("==============> endpointsFromSnapshotConnectProxy 35")
 			la := makeLoadAssignment(
 				s.Logger,
 				cfgSnap,
@@ -147,22 +192,35 @@ func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.
 				},
 				cfgSnap.Locality,
 			)
+			fmt.Println("==============> endpointsFromSnapshotConnectProxy 36", la)
 			resources = append(resources, la)
+			fmt.Println("==============> endpointsFromSnapshotConnectProxy 37")
+
 		}
+		fmt.Println("==============> endpointsFromSnapshotConnectProxy 38")
+
 	}
+	fmt.Println("==============> endpointsFromSnapshotConnectProxy 39")
 
 	// Loop over potential destinations in the mesh, then grab the gateway nodes associated with each
 	cfgSnap.ConnectProxy.DestinationsUpstream.ForEachKey(func(uid proxycfg.UpstreamID) bool {
+		fmt.Println("==============> endpointsFromSnapshotConnectProxy 40", uid)
+
 		svcConfig, ok := cfgSnap.ConnectProxy.DestinationsUpstream.Get(uid)
+		fmt.Println("==============> endpointsFromSnapshotConnectProxy 41", svcConfig, ok)
 		if !ok || svcConfig.Destination == nil {
+			fmt.Println("==============> endpointsFromSnapshotConnectProxy 42")
 			return true
 		}
-
+		fmt.Println("==============> endpointsFromSnapshotConnectProxy 43", svcConfig.Destination.Addresses)
 		for _, address := range svcConfig.Destination.Addresses {
+			fmt.Println("==============> endpointsFromSnapshotConnectProxy 44", address)
 			name := clusterNameForDestination(cfgSnap, uid.Name, address, uid.NamespaceOrDefault(), uid.PartitionOrDefault())
-
+			fmt.Println("==============> endpointsFromSnapshotConnectProxy 45", name)
 			endpoints, ok := cfgSnap.ConnectProxy.DestinationGateways.Get(uid)
+			fmt.Println("==============> endpointsFromSnapshotConnectProxy 46", endpoints, ok)
 			if ok {
+				fmt.Println("==============> endpointsFromSnapshotConnectProxy 47")
 				la := makeLoadAssignment(
 					s.Logger,
 					cfgSnap,
@@ -173,12 +231,16 @@ func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.
 					},
 					proxycfg.GatewayKey{ /*empty so it never matches*/ },
 				)
+				fmt.Println("==============> endpointsFromSnapshotConnectProxy 48", la)
 				resources = append(resources, la)
+				fmt.Println("==============> endpointsFromSnapshotConnectProxy 49")
 			}
+			fmt.Println("==============> endpointsFromSnapshotConnectProxy 50", name)
 		}
 
 		return true
 	})
+	fmt.Println("==============> endpointsFromSnapshotConnectProxy 51")
 
 	return resources, nil
 }
@@ -783,7 +845,6 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 				s.Logger.Trace("skipping endpoint generation for invalid target group", "cluster", clusterName)
 				continue // skip the cluster if we're still populating the snapshot
 			}
-
 			la := makeLoadAssignment(
 				s.Logger,
 				cfgSnap,
@@ -793,6 +854,19 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 				gatewayKey,
 			)
 			resources = append(resources, la)
+
+			for _, port := range []int{9090, 10100} {
+
+				la := makeLoadAssignment(
+					s.Logger,
+					cfgSnap,
+					clusterName+"-"+strconv.Itoa(port),
+					ti.PrioritizeByLocality,
+					[]loadAssignmentEndpointGroup{endpointGroup},
+					gatewayKey,
+				)
+				resources = append(resources, la)
+			}
 		}
 	}
 
