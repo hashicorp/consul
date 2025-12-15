@@ -1,6 +1,6 @@
 module github.com/hashicorp/consul/internal/tools/proto-gen-rpc-glue
 
-go 1.25.4
+go 1.25.5
 
 require github.com/stretchr/testify v1.8.4
 
