@@ -1,3 +1,21 @@
+## 1.22.2 (December 15, 2025)
+
+SECURITY:
+
+* security: Upgrade golang to 1.25.4. [[GH-23029](https://github.com/hashicorp/consul/issues/23029)]
+* security: upgrade internal packages of RHEL builds to include security fixes [[GH-23078](https://github.com/hashicorp/consul/issues/23078)]
+
+IMPROVEMENTS:
+
+* ui: upgraded Ember framework from v3.28 to v4.12, improving performance and stability. Upgrades multiple other packages which support Ember v4. [[GH-23070](https://github.com/hashicorp/consul/issues/23070)]
+
+BUG FIXES:
+
+* agent: fix bug prevents default TCP checks from being re-added on service reload when they were explicitly disabled or when custom checks were specified during initial registration. [[GH-23088](https://github.com/hashicorp/consul/issues/23088)]
+* audit-logging: (Enterprise only) Fixed JSON unmarshall error when array of obj is passed for auditReq body. [[GH-11546](https://github.com/hashicorp/consul/issues/11546)]
+* cli: Enhanced error messages in `consul config write` command to provide actionable guidance when config entries cannot be modified due to references by gateways or routers. [[GH-22921](https://github.com/hashicorp/consul/issues/22921)]
+* mesh: router + splitter + failover with retry now correctly failover for external services failover subsets through terminating gateways. [[GH-23092](https://github.com/hashicorp/consul/issues/23092)]
+
 ## 1.22.1 (November 27, 2025)
 
 SECURITY:
