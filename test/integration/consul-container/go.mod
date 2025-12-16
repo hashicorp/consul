@@ -32,7 +32,6 @@ require (
 	google.golang.org/grpc v1.75.0
 )
 
-
 require (
 	cel.dev/expr v0.24.0 // indirect
 	dario.cat/mergo v1.0.0 // indirect
