@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
@@ -366,34 +365,62 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) (uint64, bool, 
 	)
 	subCh := mgr.subscribe(streamReq.Stream.Context(), streamReq.LocalID, streamReq.PeerName, streamReq.Partition)
 
-	// We need a mutex to protect against simultaneous sends to the client.
-	var sendMutex sync.Mutex
+	// sendCh is used to queue messages to be sent to the stream.
+	// We buffer this to prevent the main loop from blocking on sends, which could lead to deadlocks
+	// if the peer is also blocked sending to us.
+	sendCh := make(chan *pbpeerstream.ReplicationMessage, 64)
+	// sendErrCh is used to report errors from the sender goroutine.
+	sendErrCh := make(chan error, 1)
 
-	// streamSend is a helper function that sends msg over the stream
-	// respecting the send mutex. It also logs the send and calls status.TrackSendError
-	// on error.
-	streamSend := func(msg *pbpeerstream.ReplicationMessage) error {
-		logTraceSend(logger, msg)
+	// Start a goroutine to send messages to the stream.
+	// This ensures that sending is decoupled from the main loop and that we don't block
+	// the main loop (and thus the reading of recvCh) when the network is slow.
+	go func() {
+		for {
+			select {
+			case msg := <-sendCh:
+				logTraceSend(logger, msg)
+				err := streamReq.Stream.Send(msg)
 
-		sendMutex.Lock()
-		err := streamReq.Stream.Send(msg)
-		sendMutex.Unlock()
-
-		// We only track send successes and errors for response types because this is meant to track
-		// resources, not request/ack messages.
-		if msg.GetResponse() != nil {
-			if err != nil {
-				if id := msg.GetResponse().GetResourceID(); id != "" {
-					logger.Error("failed to send resource", "resourceID", id, "error", err)
-					status.TrackSendError(err.Error())
-					return nil
+				// We only track send successes and errors for response types because this is meant to track
+				// resources, not request/ack messages.
+				if msg.GetResponse() != nil {
+					if err != nil {
+						if id := msg.GetResponse().GetResourceID(); id != "" {
+							logger.Error("failed to send resource", "resourceID", id, "error", err)
+							status.TrackSendError(err.Error())
+						} else {
+							status.TrackSendError(err.Error())
+						}
+					} else {
+						status.TrackSendSuccess()
+					}
 				}
-				status.TrackSendError(err.Error())
-			} else {
-				status.TrackSendSuccess()
+
+				if err != nil {
+					select {
+					case sendErrCh <- err:
+					case <-handleStreamCtx.Done():
+					}
+					return
+				}
+			case <-handleStreamCtx.Done():
+				return
 			}
 		}
-		return err
+	}()
+
+	// streamSend is a helper function that queues msg to be sent over the stream.
+	// It accepts a context to allow the caller to control cancellation/timeout (e.g. heartbeat timeout).
+	streamSend := func(ctx context.Context, msg *pbpeerstream.ReplicationMessage) error {
+		select {
+		case sendCh <- msg:
+			return nil
+		case <-ctx.Done():
+			return ctx.Err()
+		case err := <-sendErrCh:
+			return err
+		}
 	}
 
 	resources := []string{
@@ -412,16 +439,17 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) (uint64, bool, 
 			ResourceURL: resourceURL,
 			PeerID:      streamReq.RemoteID,
 		})
-		if err := streamSend(sub); err != nil {
+		if err := streamSend(handleStreamCtx, sub); err != nil {
 			// TODO(peering) Test error handling in calls to Send/Recv
 			return gen, true, fmt.Errorf("failed to send subscription for %q to stream: %w", resourceURL, err)
 		}
 	}
 
 	// recvCh sends messages from the gRPC stream.
-	recvCh := make(chan *pbpeerstream.ReplicationMessage)
+	// We buffer this to allow the receiver to make progress even if the main loop is busy.
+	recvCh := make(chan *pbpeerstream.ReplicationMessage, 64)
 	// recvErrCh sends errors received from the gRPC stream.
-	recvErrCh := make(chan error)
+	recvErrCh := make(chan error, 1)
 
 	// Start a goroutine to read from the stream and pass to recvCh and recvErrCh.
 	// Using a separate goroutine allows us to process sends and receives all in the main for{} loop.
@@ -457,7 +485,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) (uint64, bool, 
 						Heartbeat: &pbpeerstream.ReplicationMessage_Heartbeat{},
 					},
 				}
-				if err := streamSend(heartbeat); err != nil {
+				if err := streamSend(handleStreamCtx, heartbeat); err != nil {
 					logger.Warn("error sending heartbeat", "err", err)
 				}
 			}
@@ -489,7 +517,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) (uint64, bool, 
 					Terminated: &pbpeerstream.ReplicationMessage_Terminated{},
 				},
 			}
-			if err := streamSend(term); err != nil {
+			if err := streamSend(incomingHeartbeatCtx, term); err != nil {
 				// Nolint directive needed due to bug in govet that doesn't see that the cancel
 				// func of the incomingHeartbeatTimer _does_ get called.
 				//nolint:govet
@@ -500,6 +528,10 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) (uint64, bool, 
 			s.Tracker.DeleteStatus(streamReq.LocalID)
 
 			return gen, true, nil
+
+		// Handle errors received from the sender goroutine.
+		case err := <-sendErrCh:
+			return fmt.Errorf("error sending to stream: %w", err)
 
 		// Handle errors received from the stream by shutting down our handler.
 		case err := <-recvErrCh:
@@ -635,7 +667,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) (uint64, bool, 
 				}
 
 				// We are replying ACK or NACK depending on whether we successfully processed the response.
-				if err := streamSend(reply); err != nil {
+				if err := streamSend(incomingHeartbeatCtx, reply); err != nil {
 					return gen, true, fmt.Errorf("failed to send to stream: %v", err)
 				}
 
@@ -714,7 +746,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) (uint64, bool, 
 			resp.Nonce = fmt.Sprintf("%08x", nonce)
 
 			replResp := makeReplicationResponse(resp)
-			if err := streamSend(replResp); err != nil {
+			if err := streamSend(incomingHeartbeatCtx, replResp); err != nil {
 				// note: govet warns of context leak but it is cleaned up in a defer
 				return gen, true, fmt.Errorf("failed to push data for %q: %w", update.CorrelationID, err)
 			}
