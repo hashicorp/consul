@@ -56,6 +56,7 @@ jobs:
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.JIRA_SYNC_GITHUB_TOKEN }}
+    
 
       - name: Create ticket if an issue is filed, or if PR not by a team member is opened
         if: ( github.event.action == 'opened' && steps.is-team-member.outputs.MESSAGE == 'false' )
