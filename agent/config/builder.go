@@ -886,17 +886,17 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		},
 
 		ACLEnableKeyListPolicy:    boolVal(c.ACL.EnableKeyListPolicy),
-		ACLInitialManagementToken: stringVal(c.ACL.Tokens.InitialManagement),
+		ACLInitialManagementToken: b.stringValOrFile(c.ACL.Tokens.InitialManagement, c.ACL.Tokens.InitialManagementFile, "acl.tokens.initial_management"),
 
 		ACLTokenReplication: boolVal(c.ACL.TokenReplication),
 
 		ACLTokens: token.Config{
 			DataDir:                        dataDir,
 			EnablePersistence:              boolValWithDefault(c.ACL.EnableTokenPersistence, false),
-			ACLDefaultToken:                stringVal(c.ACL.Tokens.Default),
-			ACLAgentToken:                  stringVal(c.ACL.Tokens.Agent),
-			ACLAgentRecoveryToken:          stringVal(c.ACL.Tokens.AgentRecovery),
-			ACLReplicationToken:            stringVal(c.ACL.Tokens.Replication),
+			ACLDefaultToken:                b.stringValOrFile(c.ACL.Tokens.Default, c.ACL.Tokens.DefaultFile, "acl.tokens.default"),
+			ACLAgentToken:                  b.stringValOrFile(c.ACL.Tokens.Agent, c.ACL.Tokens.AgentFile, "acl.tokens.agent"),
+			ACLAgentRecoveryToken:          b.stringValOrFile(c.ACL.Tokens.AgentRecovery, c.ACL.Tokens.AgentRecoveryFile, "acl.tokens.agent_recovery"),
+			ACLReplicationToken:            b.stringValOrFile(c.ACL.Tokens.Replication, c.ACL.Tokens.ReplicationFile, "acl.tokens.replication"),
 			ACLConfigFileRegistrationToken: stringVal(c.ACL.Tokens.ConfigFileRegistration),
 			ACLDNSToken:                    stringVal(c.ACL.Tokens.DNS),
 		},
@@ -1623,6 +1623,28 @@ func splitSlicesAndValues(c Config) (slices, values Config) {
 
 func (b *builder) warn(msg string, args ...interface{}) {
 	b.Warnings = append(b.Warnings, fmt.Sprintf(msg, args...))
+}
+
+// stringValOrFile returns the token from the given value. If tokenFile is provided,
+// it reads the token from the file (trimming whitespace). If both token and tokenFile
+// are provided, tokenFile takes precedence (with a warning).
+func (b *builder) stringValOrFile(token *string, tokenFile *string, name string) string {
+	tokenVal := stringVal(token)
+	tokenFileVal := stringVal(tokenFile)
+
+	if tokenFileVal != "" {
+		if tokenVal != "" {
+			b.warn("%s is set and %s_file is also set. %s_file will be used.", name, name, name)
+		}
+		data, err := os.ReadFile(tokenFileVal)
+		if err != nil {
+			b.err = multierror.Append(b.err, fmt.Errorf("%s_file: %w", name, err))
+			return ""
+		}
+		return strings.TrimSpace(string(data))
+	}
+
+	return tokenVal
 }
 
 func (b *builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {

@@ -793,10 +793,15 @@ type ACL struct {
 
 type Tokens struct {
 	InitialManagement      *string `mapstructure:"initial_management"`
+	InitialManagementFile  *string `mapstructure:"initial_management_file"`
 	Replication            *string `mapstructure:"replication"`
+	ReplicationFile        *string `mapstructure:"replication_file"`
 	AgentRecovery          *string `mapstructure:"agent_recovery"`
+	AgentRecoveryFile      *string `mapstructure:"agent_recovery_file"`
 	Default                *string `mapstructure:"default"`
+	DefaultFile            *string `mapstructure:"default_file"`
 	Agent                  *string `mapstructure:"agent"`
+	AgentFile              *string `mapstructure:"agent_file"`
 	ConfigFileRegistration *string `mapstructure:"config_file_service_registration"`
 	DNS                    *string `mapstructure:"dns"`
 
