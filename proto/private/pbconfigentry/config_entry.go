@@ -711,3 +711,18 @@ func (r *ResolvedExportedService) ToAPI() *api.ResolvedExportedService {
 
 	return &t
 }
+
+func (r *ResolvedImportedService) ToAPI() *api.ResolvedImportedService {
+	var t api.ResolvedImportedService
+
+	t.Service = r.Service
+	if r.EnterpriseMeta != nil {
+		t.Namespace = r.EnterpriseMeta.Namespace
+		t.Partition = r.EnterpriseMeta.Partition
+	}
+
+	t.SourcePeer = r.SourcePeer
+	t.SourcePartition = r.SourcePartition
+
+	return &t
+}

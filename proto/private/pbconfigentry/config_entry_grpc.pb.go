@@ -23,6 +23,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	ConfigEntryService_GetResolvedExportedServices_FullMethodName = "/hashicorp.consul.internal.configentry.ConfigEntryService/GetResolvedExportedServices"
+	ConfigEntryService_GetResolvedImportedServices_FullMethodName = "/hashicorp.consul.internal.configentry.ConfigEntryService/GetResolvedImportedServices"
 )
 
 // ConfigEntryServiceClient is the client API for ConfigEntryService service.
@@ -32,6 +33,7 @@ const (
 // ConfigEntryService handles operations related to config entries
 type ConfigEntryServiceClient interface {
 	GetResolvedExportedServices(ctx context.Context, in *GetResolvedExportedServicesRequest, opts ...grpc.CallOption) (*GetResolvedExportedServicesResponse, error)
+	GetResolvedImportedServices(ctx context.Context, in *GetResolvedImportedServicesRequest, opts ...grpc.CallOption) (*GetResolvedImportedServicesResponse, error)
 }
 
 type configEntryServiceClient struct {
@@ -52,6 +54,16 @@ func (c *configEntryServiceClient) GetResolvedExportedServices(ctx context.Conte
 	return out, nil
 }
 
+func (c *configEntryServiceClient) GetResolvedImportedServices(ctx context.Context, in *GetResolvedImportedServicesRequest, opts ...grpc.CallOption) (*GetResolvedImportedServicesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetResolvedImportedServicesResponse)
+	err := c.cc.Invoke(ctx, ConfigEntryService_GetResolvedImportedServices_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ConfigEntryServiceServer is the server API for ConfigEntryService service.
 // All implementations should embed UnimplementedConfigEntryServiceServer
 // for forward compatibility.
@@ -59,6 +71,7 @@ func (c *configEntryServiceClient) GetResolvedExportedServices(ctx context.Conte
 // ConfigEntryService handles operations related to config entries
 type ConfigEntryServiceServer interface {
 	GetResolvedExportedServices(context.Context, *GetResolvedExportedServicesRequest) (*GetResolvedExportedServicesResponse, error)
+	GetResolvedImportedServices(context.Context, *GetResolvedImportedServicesRequest) (*GetResolvedImportedServicesResponse, error)
 }
 
 // UnimplementedConfigEntryServiceServer should be embedded to have
@@ -70,6 +83,9 @@ type UnimplementedConfigEntryServiceServer struct{}
 
 func (UnimplementedConfigEntryServiceServer) GetResolvedExportedServices(context.Context, *GetResolvedExportedServicesRequest) (*GetResolvedExportedServicesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetResolvedExportedServices not implemented")
+}
+func (UnimplementedConfigEntryServiceServer) GetResolvedImportedServices(context.Context, *GetResolvedImportedServicesRequest) (*GetResolvedImportedServicesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetResolvedImportedServices not implemented")
 }
 func (UnimplementedConfigEntryServiceServer) testEmbeddedByValue() {}
 
@@ -109,6 +125,24 @@ func _ConfigEntryService_GetResolvedExportedServices_Handler(srv interface{}, ct
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ConfigEntryService_GetResolvedImportedServices_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetResolvedImportedServicesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ConfigEntryServiceServer).GetResolvedImportedServices(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ConfigEntryService_GetResolvedImportedServices_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ConfigEntryServiceServer).GetResolvedImportedServices(ctx, req.(*GetResolvedImportedServicesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ConfigEntryService_ServiceDesc is the grpc.ServiceDesc for ConfigEntryService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -119,6 +153,10 @@ var ConfigEntryService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetResolvedExportedServices",
 			Handler:    _ConfigEntryService_GetResolvedExportedServices_Handler,
+		},
+		{
+			MethodName: "GetResolvedImportedServices",
+			Handler:    _ConfigEntryService_GetResolvedImportedServices_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
