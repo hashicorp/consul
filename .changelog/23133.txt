@@ -1,3 +1,3 @@
 ```release-note:improvement
-api: Add `consul services imported-services` and new api(/v1/exported-services) command to list services imported from cluster peers
+api: Add `consul services imported-services` and new api(/v1/exported-services) command to list services imported by partitions within a local datacenter
 ```
