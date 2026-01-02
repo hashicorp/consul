@@ -158,3 +158,9 @@ func (ft discoChainTargets) sequential() ([]discoChainTargetGroup, error) {
 	}
 	return targetGroups, nil
 }
+
+// isAggregateCluster returns true if the mapped targets contain failover configuration
+// and should be rendered as an aggregate cluster (which delegates to multiple target clusters).
+func (ft discoChainTargets) isAggregateCluster() bool {
+	return ft.failover
+}
