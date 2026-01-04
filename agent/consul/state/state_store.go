@@ -6,8 +6,11 @@ package state
 import (
 	"errors"
 	"fmt"
+	"sync"
 
+	"github.com/hashicorp/go-hclog"
 	memdb "github.com/hashicorp/go-memdb"
+	lru "github.com/hashicorp/golang-lru/v2"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/stream"
@@ -115,6 +118,14 @@ type Store struct {
 
 	// lockDelay holds expiration times for locks associated with keys.
 	lockDelay *Delay
+
+	// logger is used for logging state store operations.
+	logger hclog.Logger
+
+	// discoveryChainCache caches compiled discovery chains to avoid expensive
+	// recompilation when config entries haven't changed.
+	discoveryChainCacheLock sync.RWMutex
+	discoveryChainCache     *lru.Cache[discoveryChainCacheKey, *discoveryChainCacheEntry]
 }
 
 // Snapshot is used to provide a point-in-time snapshot. It
@@ -155,11 +166,20 @@ func NewStateStore(gc *TombstoneGC) *Store {
 		// be a programming error, which should panic.
 		panic(fmt.Sprintf("failed to create state store: %v", err))
 	}
+	// Create discovery chain cache with a reasonable size
+	// Each entry contains a compiled chain which can be large, so we limit to 1000 entries
+	discoveryCache, err := lru.New[discoveryChainCacheKey, *discoveryChainCacheEntry](1000)
+	if err != nil {
+		panic(fmt.Sprintf("failed to create discovery chain cache: %v", err))
+	}
+
 	s := &Store{
-		schema:       schema,
-		abandonCh:    make(chan struct{}),
-		kvsGraveyard: NewGraveyard(gc),
-		lockDelay:    NewDelay(),
+		schema:              schema,
+		abandonCh:           make(chan struct{}),
+		kvsGraveyard:        NewGraveyard(gc),
+		lockDelay:           NewDelay(),
+		logger:              hclog.NewNullLogger(),
+		discoveryChainCache: discoveryCache,
 		db: &changeTrackerDB{
 			db:             db,
 			publisher:      stream.NoOpEventPublisher{},
@@ -174,6 +194,13 @@ func NewStateStoreWithEventPublisher(gc *TombstoneGC, publisher EventPublisher) 
 	store.db.publisher = publisher
 
 	return store
+}
+
+// SetLogger sets the logger for the state store.
+func (s *Store) SetLogger(logger hclog.Logger) {
+	if logger != nil {
+		s.logger = logger.Named("state")
+	}
 }
 
 // Snapshot is used to create a point-in-time snapshot of the entire db.
