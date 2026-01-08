@@ -56,8 +56,8 @@ func resolvedImportedServicesTxn(tx ReadTxn, ws memdb.WatchSet, entMeta *acl.Ent
 		}
 
 		// Update max index
-		if intention.RaftIndex.ModifyIndex > maxIdx {
-			maxIdx = intention.RaftIndex.ModifyIndex
+		if intention.ModifyIndex > maxIdx {
+			maxIdx = intention.ModifyIndex
 		}
 
 		// Check each source intention for peer imports
@@ -72,14 +72,14 @@ func resolvedImportedServicesTxn(tx ReadTxn, ws memdb.WatchSet, entMeta *acl.Ent
 		}
 	}
 
-	uniqueImportedServices := getUniqueImportedServices(importedServices, entMeta)
+	uniqueImportedServices := getUniqueImportedServices(importedServices)
 	resp := prepareImportedServicesResponse(uniqueImportedServices, entMeta)
 
 	return lib.MaxUint64(maxIdx, 1), resp, nil
 }
 
 // getUniqueImportedServices removes duplicate services and sources. Services are also sorted in ascending order
-func getUniqueImportedServices(importedServices []importedService, entMeta *acl.EnterpriseMeta) []importedService {
+func getUniqueImportedServices(importedServices []importedService) []importedService {
 	// Service -> SourcePeers
 	type serviceKey struct {
 		name      string

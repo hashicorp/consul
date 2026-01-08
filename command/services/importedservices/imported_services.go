@@ -114,7 +114,8 @@ func (c *cmd) Run(args []string) int {
 		return 0
 	}
 
-	if c.format == JSONFormat {
+	switch c.format == JSONFormat {
+	case true:
 		output, err := json.MarshalIndent(filteredServices, "", "    ")
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error marshalling JSON: %s", err))
@@ -122,9 +123,10 @@ func (c *cmd) Run(args []string) int {
 		}
 		c.UI.Output(string(output))
 		return 0
-	}
 
-	c.UI.Output(formatImportedServices(filteredServices))
+	default:
+		c.UI.Output(formatImportedServices(filteredServices))
+	}
 
 	return 0
 }
