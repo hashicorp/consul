@@ -1,0 +1,12 @@
+```release-note:security
+Upgrade to use Go `1.25.5`. This resolves CVEs
+[CVE-2025-47914](https://nvd.nist.gov/vuln/detail/CVE-2025-47914) (`golang.org/x/crypto`).
+[CVE-2025-58181⁠](https://nvd.nist.gov/vuln/detail/CVE-2025-58181) (`golang.org/x/crypto`).
+```
+
+```release-note:security
+Update the Consul Build Go base image to `alpine3.23.2`. This resolves CVEs
+[CVE-2025-47268](https://nvd.nist.gov/vuln/detail/CVE-2025-47268)
+[CVE-2025-10966⁠](https://nvd.nist.gov/vuln/detail/CVE-2025-10966)
+[CVE-2025-48964](https://nvd.nist.gov/vuln/detail/CVE-2025-48964)
+```
