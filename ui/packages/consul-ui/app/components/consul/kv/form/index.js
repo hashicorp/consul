@@ -16,8 +16,9 @@ import { inject as service } from '@ember/service';
  */
 const LANGUAGES = [
   { value: 'json', label: 'JSON', codeBlockLanguage: 'json' },
-  { value: 'yaml', label: 'YAML', codeBlockLanguage: 'yaml' },
   { value: 'hcl', label: 'HCL', codeBlockLanguage: 'hcl' },
+  { value: 'yaml', label: 'YAML', codeBlockLanguage: 'yaml' },
+  { value: 'xml', label: 'XML', codeBlockLanguage: 'xml' },
   { value: 'toml', label: 'TOML', codeBlockLanguage: 'hcl' }, // TOML uses HCL as CodeBlock fallback (similar syntax)
 ];
 
@@ -25,7 +26,7 @@ export default Component.extend({
   tagName: '',
   encoder: service('btoa'),
   json: true,
-  language: 'json', // Default syntax highlighting language
+  language: 'yaml', // Default syntax highlighting language
 
   /**
    * Available languages for the syntax highlighting dropdown.
