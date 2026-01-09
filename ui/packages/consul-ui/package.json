@@ -56,6 +56,8 @@
     "@babel/eslint-parser": "^7.28.5",
     "@babel/plugin-proposal-decorators": "^7.28.0",
     "@babel/plugin-transform-class-properties": "^7.27.1",
+    "@codemirror/language": "^6.11.2",
+    "@codemirror/legacy-modes": "^6.5.1",
     "@docfy/ember": "^0.8.5",
     "@ember-data/adapter": "~4.12.8",
     "@ember-data/model": "~4.12.8",

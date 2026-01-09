@@ -72,15 +72,31 @@
               <label for='' class='type-text{{if api.data.error.Value " has-error"}}'>
                 {{#if this.json}}
                   {{#if (or disabld api.disabled)}}
-                    <Hds::CodeBlock
-                      @language={{this.codeBlockLanguage}}
-                      @value={{atob api.data.Value}}
-                      @isStandalone={{false}}
-                      @ariaLabel='value'
-                      as |CB|
-                    >
-                      <CB.Title @tag='h2'>Value</CB.Title>
-                    </Hds::CodeBlock>
+                    {{#if (eq this.language 'toml')}}
+                      <Hds::CodeEditor
+                        @name='Value'
+                        @readonly={{true}}
+                        @value={{atob api.data.Value}}
+                        @onInput={{action api.change 'value'}}
+                        @customExtensions={{(toml-extension)}}
+                        @ariaLabel='value'
+                        @hasCopyButton={{true}}
+                        @isStandalone={{false}}
+                        as |CE|
+                      >
+                        <CE.Title @tag='h2'>Value</CE.Title>
+                      </Hds::CodeEditor>
+                    {{else}}
+                      <Hds::CodeBlock
+                        @language={{this.codeBlockLanguage}}
+                        @value={{atob api.data.Value}}
+                        @isStandalone={{false}}
+                        @ariaLabel='value'
+                        as |CB|
+                      >
+                        <CB.Title @tag='h2'>Value</CB.Title>
+                      </Hds::CodeBlock>
+                    {{/if}}
                   {{else}}
                     {{#if (eq this.language 'toml')}}
                       <Hds::CodeEditor
