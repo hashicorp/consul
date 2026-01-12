@@ -25,9 +25,13 @@ type Config struct {
 	Logger      hclog.Logger
 	ACLResolver ACLResolver
 	// Datacenter of the Consul server this gRPC server is hosted on
-	Datacenter string
+	Datacenter   string
+	ConsulServer ConsulServer
 }
 
+type ConsulServer interface {
+	ForwardRPC(method string, info structs.RPCInfo, reply interface{}) (bool, error)
+}
 type StateStore interface {
 	ServiceNode(string, string, string, *acl.EnterpriseMeta, string) (uint64, *structs.ServiceNode, error)
 	ReadResolvedServiceConfigEntries(memdb.WatchSet, string, *acl.EnterpriseMeta, []structs.ServiceID, structs.ProxyMode) (uint64, *configentry.ResolvedServiceConfigSet, error)

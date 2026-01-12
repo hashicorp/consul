@@ -181,7 +181,7 @@ func GetBindingRuleIDFromPartial(client *api.Client, partialID string) (string, 
 	}
 
 	if ruleID == "" {
-		return "", fmt.Errorf("no such rule ID with prefix: %s: %w", partialID, acl.ErrNotFound)
+		return "", fmt.Errorf("no such rule ID with prefix: %s: %w", partialID, acl.ErrACLNotFound)
 	}
 
 	return ruleID, nil

@@ -13,7 +13,7 @@ import (
 // must not be changed since the error values are sent via RPC calls
 // from older clients and may not have the correct type.
 const (
-	errNotFound         = "ACL not found"
+	errACLNotFound      = "ACL not found"
 	errRootDenied       = "Cannot resolve root ACL"
 	errDisabled         = "ACL support disabled"
 	errPermissionDenied = "Permission denied"
@@ -22,7 +22,7 @@ const (
 
 var (
 	// ErrNotFound indicates there is no matching ACL.
-	ErrNotFound = errors.New(errNotFound)
+	ErrACLNotFound = errors.New(errACLNotFound)
 
 	// ErrRootDenied is returned when attempting to resolve a root ACL.
 	ErrRootDenied = errors.New(errRootDenied)
@@ -43,7 +43,8 @@ var (
 // IsErrNotFound checks if the given error message is comparable to
 // ErrNotFound.
 func IsErrNotFound(err error) bool {
-	return err != nil && strings.Contains(err.Error(), errNotFound)
+	
+	return err != nil && strings.Contains(err.Error(), errACLNotFound)
 }
 
 // IsErrRootDenied checks if the given error message is comparable to
@@ -146,7 +147,7 @@ func extractAccessorID(authz interface{}) string {
 
 func ACLResourceNotExistError(resourceType string, entMeta EnterpriseMeta) error {
 	if ns := entMeta.NamespaceOrEmpty(); ns != "" {
-		return fmt.Errorf("Requested %s not found in namespace %s: %w", resourceType, ns, ErrNotFound)
+		return fmt.Errorf("Requested %s not found in namespace %s: %w", resourceType, ns, ErrACLNotFound)
 	}
-	return fmt.Errorf("Requested %s does not exist: %w", resourceType, ErrNotFound)
+	return fmt.Errorf("Requested %s does not exist: %w", resourceType, ErrACLNotFound)
 }

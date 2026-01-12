@@ -57,7 +57,7 @@ func (s *Server) Logout(ctx context.Context, req *pbacl.LogoutRequest) (*pbacl.L
 			return err
 		}, logger)
 		return rsp, err
-	case errors.Is(err, acl.ErrNotFound):
+	case errors.Is(err, acl.ErrACLNotFound):
 		// No token? Pretend the delete was successful (for idempotency).
 		return &pbacl.LogoutResponse{}, nil
 	case errors.Is(err, acl.ErrPermissionDenied):

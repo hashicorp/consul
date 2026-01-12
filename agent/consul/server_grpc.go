@@ -496,10 +496,11 @@ func (s *Server) registerConnectCAServer(registrars ...grpc.ServiceRegistrar) er
 
 func (s *Server) registerDataplaneServer(registrars ...grpc.ServiceRegistrar) error {
 	srv := dataplane.NewServer(dataplane.Config{
-		GetStore:    func() dataplane.StateStore { return s.FSM().State() },
-		Logger:      s.loggers.Named(logging.GRPCAPI).Named(logging.Dataplane),
-		ACLResolver: s.ACLResolver,
-		Datacenter:  s.config.Datacenter,
+		GetStore:     func() dataplane.StateStore { return s.FSM().State() },
+		Logger:       s.loggers.Named(logging.GRPCAPI).Named(logging.Dataplane),
+		ACLResolver:  s.ACLResolver,
+		Datacenter:   s.config.Datacenter,
+		ConsulServer: s,
 	})
 
 	for _, reg := range registrars {
