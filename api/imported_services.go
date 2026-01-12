@@ -20,6 +20,11 @@ type ImportedService struct {
 	SourcePartition string `json:",omitempty"`
 }
 
+type importedServicesResponse struct {
+	Partition        string            `json:"Partition"`
+	ImportedServices []ImportedService `json:"ImportedServices"`
+}
+
 func (c *Client) ImportedServices(q *QueryOptions) ([]ImportedService, *QueryMeta, error) {
 
 	r := c.newRequest("GET", "/v1/imported-services")
@@ -37,11 +42,11 @@ func (c *Client) ImportedServices(q *QueryOptions) ([]ImportedService, *QueryMet
 	parseQueryMeta(resp, qm)
 	qm.RequestTime = rtt
 
-	var impSvcs []ImportedService
+	var result importedServicesResponse
 
-	if err := decodeBody(resp, &impSvcs); err != nil {
+	if err := decodeBody(resp, &result); err != nil {
 		return nil, nil, err
 	}
 
-	return impSvcs, qm, nil
+	return result.ImportedServices, qm, nil
 }

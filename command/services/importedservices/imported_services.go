@@ -134,27 +134,29 @@ func (c *cmd) Run(args []string) int {
 func formatImportedServices(services []api.ImportedService) string {
 	result := make([]string, 0, len(services)+1)
 
-	if len(services) > 0 && services[0].Partition != "" {
-		result = append(result, "Service\x1fPartition\x1fNamespace\x1fSource Peer\x1fSource Partition")
+	// Determine if we're in enterprise mode based on presence of partition/namespace
+	hasEnterpriseMeta := len(services) > 0 && (services[0].Partition != "" || services[0].Namespace != "")
+
+	// Build header - always show both peer and partition in enterprise mode
+	if hasEnterpriseMeta {
+		result = append(result, "Service\x1fSource Partition\x1fSource Peer\x1fNamespace")
 	} else {
 		result = append(result, "Service\x1fSource Peer")
 	}
 
 	for _, impService := range services {
 		row := ""
-		if impService.Partition != "" {
-			row = fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%s",
+		if hasEnterpriseMeta {
+			row = fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s",
 				impService.Service,
-				impService.Partition,
-				impService.Namespace,
+				impService.SourcePartition,
 				impService.SourcePeer,
-				impService.SourcePartition)
+				impService.Namespace)
 		} else {
 			row = fmt.Sprintf("%s\x1f%s", impService.Service, impService.SourcePeer)
 		}
 
 		result = append(result, row)
-
 	}
 
 	return columnize.Format(result, &columnize.Config{Delim: string([]byte{0x1f})})
