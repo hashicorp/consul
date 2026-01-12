@@ -279,11 +279,11 @@ func connectRootsWatch(params map[string]interface{}) (WatcherFunc, error) {
 
 		roots, meta, err := agent.ConnectCARoots(&opts)
 		if err != nil {
-			fmt.Println(time.Now().String()+"===================>  connectRootsWatch watch function called 1 error", err)
+			fmt.Println(time.Now().String()+" ===================>  connectRootsWatch watch function called 1 error", err)
 
 			return nil, nil, err
 		}
-		fmt.Println(time.Now().String()+"===================>  connectRootsWatch watch function called 2 meta.LastIndex", meta.LastIndex)
+		fmt.Println(time.Now().String()+" ===================>  connectRootsWatch watch function called 2 meta.LastIndex", meta.LastIndex)
 
 		return WaitIndexVal(meta.LastIndex), roots, err
 	}

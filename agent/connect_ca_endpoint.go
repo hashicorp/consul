@@ -22,7 +22,7 @@ func (s *HTTPHandlers) ConnectCARoots(resp http.ResponseWriter, req *http.Reques
 		return nil, nil
 	}
 
-	fmt.Println(time.Now().String()+"===================>  ConnectCARoots HTTPHandlers function called 1 token = ", args.Token)
+	fmt.Println(time.Now().String()+" ===================>  ConnectCARoots HTTPHandlers function called 1 token = ", args.Token)
 
 	pemResponse := false
 	if pemParam := req.URL.Query().Get("pem"); pemParam != "" {

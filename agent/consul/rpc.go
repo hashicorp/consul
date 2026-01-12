@@ -12,6 +12,7 @@ import (
 	"io"
 	"math"
 	"net"
+	"runtime/debug"
 	"strings"
 	"time"
 
@@ -425,6 +426,8 @@ func (s *Server) handleMultiplexV2(conn net.Conn) {
 // handleConsulConn is used to service a single Consul RPC connection
 func (s *Server) handleConsulConn(conn net.Conn) {
 	defer conn.Close()
+	fmt.Println("---------- connection remote addr, remote port", conn.RemoteAddr().String())
+
 	rpcCodec := msgpackrpc.NewCodecFromHandle(true, true, conn, structs.MsgpackHandle)
 	for {
 		select {
@@ -1147,18 +1150,16 @@ func (s *Server) RPCQueryTimeout(queryTimeout time.Duration) time.Duration {
 //     ResultsFilteredByACLs is only set to try when applying the already-resolved
 //     token's policies.
 func maskResultsFilteredByACLs(token string, m blockingQueryResponseMeta, s *Server) {
-	fmt.Println(time.Now().String()+"===================>  maskResultsFilteredByACLs function called with token", token)
-
 	if token == "" {
-		fmt.Println(time.Now().String()+"===================>  maskResultsFilteredByACLs function called with token 1", token)
+		fmt.Println(time.Now().String()+" ===================>  maskResultsFilteredByACLs function called with token 1", token)
 		m.SetResultsFilteredByACLs(false)
 		return
 	}
-	fmt.Println(time.Now().String()+"===================>  maskResultsFilteredByACLs function called with token 2", token)
 
 	identity, err := s.resolveIdentityFromToken(token)
 	if err != nil {
-		fmt.Println(time.Now().String()+"===================>  maskResultsFilteredByACLs failed token 3", token)
+		fmt.Println(time.Now().String()+" ===================>  maskResultsFilteredByACLs failed token 3", token)
+		debug.PrintStack()
 		s.rpcLogger().Debug("Failed to resolve identity from token", "err", err)
 		m.SetResultsFilteredByACLs(false)
 		return
@@ -1169,7 +1170,7 @@ func maskResultsFilteredByACLs(token string, m blockingQueryResponseMeta, s *Ser
 	}
 
 	if identity.ID() == anonymousAccessorID && identity.SecretToken() == anonymousSecretID {
-		fmt.Println(time.Now().String()+"===================>  maskResultsFilteredByACLs failed token 5", token)
+		fmt.Println(time.Now().String()+" ===================>  maskResultsFilteredByACLs failed token 5", token)
 		m.SetResultsFilteredByACLs(false)
 	}
 }

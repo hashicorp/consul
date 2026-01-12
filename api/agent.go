@@ -1218,17 +1218,17 @@ func (a *Agent) ConnectAuthorize(auth *AgentAuthorizeParams) (*AgentAuthorize, e
 
 // ConnectCARoots returns the list of roots.
 func (a *Agent) ConnectCARoots(q *QueryOptions) (*CARootList, *QueryMeta, error) {
-	fmt.Println(time.Now().String()+"===================>  ConnectCARoots function called with token", q.Token)
+	fmt.Println(time.Now().String()+" ===================>  ConnectCARoots function called with token", q.Token)
 
 	r := a.c.newRequest("GET", "/v1/agent/connect/ca/roots")
 	r.setQueryOptions(q)
-	fmt.Println(time.Now().String()+"===================>  ConnectCARoots function called 1", q.Token)
+	fmt.Println(time.Now().String()+" ===================>  ConnectCARoots function called 1", q.Token)
 
 	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
-	fmt.Println(time.Now().String()+"===================>  ConnectCARoots function called 2", q.Token)
+	fmt.Println(time.Now().String()+" ===================>  ConnectCARoots function called 2", q.Token)
 
 	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {

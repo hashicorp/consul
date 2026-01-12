@@ -21,6 +21,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"runtime/debug"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -612,6 +613,10 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 	// By the time we get here the system WANTS to make a replacement fetcher, so
 	// we terminate the prior one and replace it.
 	handle := c.getOrReplaceFetchHandle(key)
+	fmt.Println("=================unwanted tracing==================")
+	debug.PrintStack()
+	fmt.Println("===================================")
+
 	go func(handle fetchHandle) {
 		defer c.deleteFetchHandle(key, handle.id)
 
@@ -660,6 +665,7 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 			return
 		}
 		// Start building the new entry by blocking on the fetch.
+
 		result, err := r.Fetch(fOpts)
 		if connectedTimer != nil {
 			connectedTimer.Stop()

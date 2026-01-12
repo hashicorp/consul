@@ -115,32 +115,32 @@ func (s *ConnectCA) Roots(
 
 	// how to know who made this call? client, ip anything to log?
 
-	fmt.Println(time.Now().String()+"===================>  Roots rpc function called with token", args.TokenSecret())
+	fmt.Println(time.Now().String()+" ===================>  Roots rpc function called with token", args.TokenSecret())
 
 	b, err := json.Marshal(args.Source)
-	fmt.Println(time.Now().String()+"===================>  "+string(b), err)
+	fmt.Println(time.Now().String()+" ===================>  "+string(b), err)
 
 	if done, err := s.srv.ForwardRPC("ConnectCA.Roots", args, reply); done {
 		return err
 	}
-	fmt.Println(time.Now().String()+"===================>  Roots rpc function called with token 1", args.Token)
+	fmt.Println(time.Now().String()+" ===================>  Roots rpc function called with token 1", args.Token)
 
 	// Exit early if Connect hasn't been enabled.
 	if !s.srv.config.ConnectEnabled {
 		return ErrConnectNotEnabled
 	}
-	fmt.Println(time.Now().String()+"===================>  Roots rpc function called with token 2", args.Token)
+	fmt.Println(time.Now().String()+" ===================>  Roots rpc function called with token 2", args.Token)
 
 	return s.srv.blockingQuery(
 		&args.QueryOptions, &reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			fmt.Println(time.Now().String()+"===================>  Roots rpc function called with token 3", args.Token)
+			fmt.Println(time.Now().String()+" ===================>  Roots rpc function called with token 3", args.Token)
 
 			roots, err := s.srv.getCARoots(ws, state)
 			if err != nil {
 				return err
 			}
-			fmt.Println(time.Now().String()+"===================>  Roots rpc function called with token 4", args.Token)
+			fmt.Println(time.Now().String()+" ===================>  Roots rpc function called with token 4", args.Token)
 
 			*reply = *roots
 			return nil

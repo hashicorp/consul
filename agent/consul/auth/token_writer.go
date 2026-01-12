@@ -219,25 +219,41 @@ func (w *TokenWriter) Update(token *structs.ACLToken) (*structs.ACLToken, error)
 
 // Delete the ACL token with the given SecretID from the state store.
 func (w *TokenWriter) Delete(secretID string, fromLogout bool) error {
+	fmt.Println(time.Now().String()+" ===================>  TokenWriter) Delete function called", secretID, fromLogout)
+
 	_, token, err := w.Store.ACLTokenGetBySecret(nil, secretID, nil)
+	fmt.Println(time.Now().String()+" ===================>  TokenWriter) Delete function called 2", secretID, token, err)
+
 	switch {
 	case err != nil:
+		fmt.Println(time.Now().String()+" ===================>  TokenWriter) Delete function called 3", secretID, token, err)
 		return err
 	case token == nil:
+		fmt.Println(time.Now().String()+" ===================>  TokenWriter) Delete function called 4", secretID, token, err)
+
 		return acl.ErrNotFound
 	case token.AuthMethod == "" && fromLogout:
+		fmt.Println(time.Now().String()+" ===================>  TokenWriter) Delete function called 5", secretID, token, err)
+
 		return fmt.Errorf("%w: token wasn't created via login", acl.ErrPermissionDenied)
 	}
+	fmt.Println(time.Now().String()+" ===================>  TokenWriter) Delete function called 6", secretID, token)
 
 	if err := w.checkCanWriteToken(token); err != nil {
+		fmt.Println(time.Now().String()+" ===================>  TokenWriter) Delete function called 7", secretID, token, err)
+
 		return err
 	}
+	fmt.Println(time.Now().String()+" ===================>  TokenWriter) Delete function called 8", secretID, token)
 
 	if _, err := w.RaftApply(structs.ACLTokenDeleteRequestType, &structs.ACLTokenBatchDeleteRequest{
 		TokenIDs: []string{token.AccessorID},
 	}); err != nil {
+		fmt.Println(time.Now().String()+" ===================>  TokenWriter) Delete function called 9", secretID, token, err)
+
 		return fmt.Errorf("Failed to apply token delete request: %w", err)
 	}
+	fmt.Println(time.Now().String()+" ===================>  TokenWriter) Delete function called 10", secretID, token, err)
 
 	w.ACLCache.RemoveIdentityWithSecretToken(token.SecretID)
 	return nil

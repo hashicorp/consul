@@ -262,7 +262,7 @@ func (m *CertManager) handleLeafUpdate(event cache.UpdateEvent) error {
 
 	if event.Err != nil {
 		e := fmt.Errorf("leaf cert watch returned an error: %w", event.Err)
-		fmt.Println(time.Now().String()+"===================>  handleLeafUpdate 1 error", e)
+		fmt.Println(time.Now().String()+" ===================>  handleLeafUpdate 1 error", e)
 
 		return e
 	}
@@ -270,7 +270,7 @@ func (m *CertManager) handleLeafUpdate(event cache.UpdateEvent) error {
 
 	if event.CorrelationID != leafWatchID {
 		e := fmt.Errorf("got unexpected update correlation ID %q while expecting %q", event.CorrelationID, leafWatchID)
-		fmt.Println(time.Now().String()+"===================>  handleLeafUpdate 3 error", e)
+		fmt.Println(time.Now().String()+" ===================>  handleLeafUpdate 3 error", e)
 		return fmt.Errorf("got unexpected update correlation ID %q while expecting %q", event.CorrelationID, leafWatchID)
 	}
 

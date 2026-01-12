@@ -1580,39 +1580,54 @@ func (a *ACL) BindingRuleList(methodName string, q *QueryOptions) ([]*ACLBinding
 
 // Login is used to exchange auth method credentials for a newly-minted Consul Token.
 func (a *ACL) Login(auth *ACLLoginParams, q *WriteOptions) (*ACLToken, *WriteMeta, error) {
+	fmt.Println(time.Now().String() + " ===================>  (a *ACL) Login called")
 	r := a.c.newRequest("POST", "/v1/acl/login")
 	r.setWriteOptions(q)
 	r.obj = auth
 
 	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
+		fmt.Println(time.Now().String()+" ===================>  (a *ACL) Login 2", err)
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
+		fmt.Println(time.Now().String()+" ===================>  (a *ACL) Login 3", err)
 		return nil, nil, err
 	}
 	wm := &WriteMeta{RequestTime: rtt}
 	var out ACLToken
 	if err := decodeBody(resp, &out); err != nil {
+		fmt.Println(time.Now().String()+" ===================>  (a *ACL) Login 4", err)
 		return nil, nil, err
 	}
+	b, err := json.Marshal(out)
+	if err != nil {
+		fmt.Println(time.Now().String()+" ===================>  (a *ACL) Login 4.1", err)
+	}
+	fmt.Println(time.Now().String()+" ===================>  (a *ACL) Login token json:", string(b))
+	fmt.Println(time.Now().String()+" ===================>  (a *ACL) Login 5", out, wm, nil)
+
 	return &out, wm, nil
 }
 
 // Logout is used to destroy a Consul Token created via Login().
 func (a *ACL) Logout(q *WriteOptions) (*WriteMeta, error) {
+	fmt.Println(time.Now().String()+" ===================>  (a *ACL) Logout called", a.c.config.Token)
+
 	r := a.c.newRequest("POST", "/v1/acl/logout")
 	r.setWriteOptions(q)
 	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
+		fmt.Println(time.Now().String()+" ===================>  (a *ACL) Logout 2", a.c.config.Token, err)
 		return nil, err
 	}
 	if err := requireOK(resp); err != nil {
+		fmt.Println(time.Now().String()+" ===================>  (a *ACL) Logout 3", a.c.config.Token, err)
 		return nil, err
 	}
 	closeResponseBody(resp)
-
+	fmt.Println(time.Now().String()+" ===================>  (a *ACL) Logout 44444", a.c.config.Token)
 	wm := &WriteMeta{RequestTime: rtt}
 	return wm, nil
 }

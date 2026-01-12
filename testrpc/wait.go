@@ -5,7 +5,9 @@ package testrpc
 
 import (
 	"context"
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -191,10 +193,13 @@ func WaitForActiveCARoot(t *testing.T, rpc rpcFn, dc string, expect *structs.CAR
 		args := &structs.DCSpecificRequest{
 			Datacenter: dc,
 		}
+		fmt.Println(time.Now().String() + " ===================>  WaitForActiveCARoot")
+
 		var reply structs.IndexedCARoots
 		if err := rpc(context.Background(), "ConnectCA.Roots", args, &reply); err != nil {
 			r.Fatalf("err: %v", err)
 		}
+		fmt.Println(time.Now().String() + " ===================>  WaitForActiveCARoot 2")
 
 		root := reply.Active()
 		if root == nil {

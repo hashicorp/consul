@@ -6,6 +6,7 @@ package consul
 import (
 	"context"
 	"crypto/subtle"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -2098,48 +2099,83 @@ func (a *ACL) AuthMethodList(args *structs.ACLAuthMethodListRequest, reply *stru
 }
 
 func (a *ACL) Login(args *structs.ACLLoginRequest, reply *structs.ACLToken) error {
+	b, err := json.Marshal(args)
+	if err != nil {
+		fmt.Println("===================>  ACL Login Error marshalling login args:", err)
+	}
+	fmt.Println(time.Now().String()+" ===================>  ACL Login function called 1", b)
+
 	if err := a.aclPreCheck(); err != nil {
+		fmt.Println(time.Now().String()+" ===================>  ACL Login function called 2", err)
+
 		return err
 	}
+	fmt.Println(time.Now().String() + " ===================>  ACL Login function called 3")
 
 	if !a.srv.LocalTokensEnabled() {
+		fmt.Println(time.Now().String() + " ===================>  ACL Login function called 4")
+
 		return errAuthMethodsRequireTokenReplication
 	}
+	fmt.Println(time.Now().String() + " ===================>  ACL Login function called 5")
 
 	if args.Auth == nil {
+		fmt.Println(time.Now().String() + " ===================>  ACL Login function called 6")
+
 		return fmt.Errorf("Invalid Login request: Missing auth parameters")
 	}
+	fmt.Println(time.Now().String() + " ===================>  ACL Login function called 7")
 
 	if err := a.srv.validateEnterpriseRequest(&args.Auth.EnterpriseMeta, true); err != nil {
+		fmt.Println(time.Now().String()+" ===================>  ACL Login function called 8", err)
+
 		return err
 	}
+	fmt.Println(time.Now().String() + " ===================>  ACL Login function called 9")
 
 	if args.Token != "" { // This shouldn't happen.
+		fmt.Println(time.Now().String() + " ===================>  ACL Login function called 10")
+
 		return errors.New("do not provide a token when logging in")
 	}
+	fmt.Println(time.Now().String() + " ===================>  ACL Login function called 11")
 
 	if done, err := a.srv.ForwardRPC("ACL.Login", args, reply); done {
+		fmt.Println(time.Now().String()+" ===================>  ACL Login function called 12", err)
+
 		return err
 	}
+	fmt.Println(time.Now().String() + " ===================>  ACL Login function called 13")
 
 	defer metrics.MeasureSince([]string{"acl", "login"}, time.Now())
 
 	authMethod, validator, err := a.srv.loadAuthMethod(args.Auth.AuthMethod, &args.Auth.EnterpriseMeta)
 	if err != nil {
+		fmt.Println(time.Now().String()+" ===================>  ACL Login function called 14", err)
+
 		return err
 	}
+	fmt.Println(time.Now().String() + " ===================>  ACL Login function called 15")
 
 	verifiedIdentity, err := validator.ValidateLogin(context.Background(), args.Auth.BearerToken)
 	if err != nil {
+		fmt.Println(time.Now().String()+" ===================>  ACL Login function called 16", err)
+
 		return err
 	}
+	fmt.Println(time.Now().String() + " ===================>  ACL Login function called 17")
 
 	description, err := auth.BuildTokenDescription("token created via login", args.Auth.Meta)
 	if err != nil {
+		fmt.Println(time.Now().String()+" ===================>  ACL Login function called 18", err)
+
 		return err
 	}
+	fmt.Println(time.Now().String() + " ===================>  ACL Login function called 18")
 
 	token, err := a.srv.aclLogin().TokenForVerifiedIdentity(verifiedIdentity, authMethod, description)
+	fmt.Println(time.Now().String()+" ===================>  ACL Login function called 20", token, err)
+
 	if err == nil {
 		*reply = *token
 	}
@@ -2147,34 +2183,53 @@ func (a *ACL) Login(args *structs.ACLLoginRequest, reply *structs.ACLToken) erro
 }
 
 func (a *ACL) Logout(args *structs.ACLLogoutRequest, reply *bool) error {
+	fmt.Println(time.Now().String()+" ===================>  ACL Logout function called", args.Token)
+
 	if err := a.aclPreCheck(); err != nil {
+		fmt.Println(time.Now().String()+" ===================>  ACL Logout function called 1", args.Token, err)
+
 		return err
 	}
+	fmt.Println(time.Now().String()+" ===================>  ACL Logout function called 2", args.Token)
 
 	if !a.srv.LocalTokensEnabled() {
+		fmt.Println(time.Now().String()+" ===================>  ACL Logout function called 3", args.Token)
+
 		return errAuthMethodsRequireTokenReplication
 	}
+	fmt.Println(time.Now().String()+" ===================>  ACL Logout function called 4", args.Token)
 
 	if args.Token == "" {
+		fmt.Println(time.Now().String()+" ===================>  ACL Logout function called 5", args.Token)
+
 		return fmt.Errorf("no valid token ID provided: %w", acl.ErrNotFound)
 	}
+	fmt.Println(time.Now().String()+" ===================>  ACL Logout function called 6", args.Token)
 
 	if done, err := a.srv.ForwardRPC("ACL.Logout", args, reply); done {
+		fmt.Println(time.Now().String()+" ===================>  ACL Logout function called 6", args.Token, err)
+
 		return err
 	}
 
 	defer metrics.MeasureSince([]string{"acl", "logout"}, time.Now())
+	fmt.Println(time.Now().String() + " ===================>  ACL Logout function called 8")
 
 	// No need to check expiration time because it's being deleted.
 	err := a.srv.aclTokenWriter().Delete(args.Token, true)
+	fmt.Println(time.Now().String()+" ===================>  ACL Logout function called 9", args.Token, err)
 	switch {
 	case errors.Is(err, auth.ErrCannotWriteGlobalToken):
 		// Writes to global tokens must be forwarded to the primary DC.
+		fmt.Println(time.Now().String()+" ===================>  ACL Logout function called 10", args.Token, err)
+
 		args.Datacenter = a.srv.config.PrimaryDatacenter
 		return a.srv.forwardDC("ACL.Logout", a.srv.config.PrimaryDatacenter, args, reply)
 	case err != nil:
+		fmt.Println(time.Now().String()+" ===================>  ACL Logout function called 11", args.Token, err)
 		return err
 	}
+	fmt.Println(time.Now().String()+" ===================>  ACL Logout function called 12", args.Token, err)
 
 	*reply = true
 	return nil

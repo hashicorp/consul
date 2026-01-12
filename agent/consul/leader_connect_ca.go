@@ -436,10 +436,14 @@ func (c *CAManager) secondaryInitialize(provider ca.Provider, conf *structs.CACo
 	args := structs.DCSpecificRequest{
 		Datacenter: c.serverConf.PrimaryDatacenter,
 	}
+	fmt.Println(time.Now().String() + " ===================>  secondaryInitialize")
+
 	var roots structs.IndexedCARoots
 	if err := c.delegate.forwardDC("ConnectCA.Roots", c.serverConf.PrimaryDatacenter, &args, &roots); err != nil {
 		return fmt.Errorf("failed to get CA roots from primary DC: %w", err)
 	}
+	fmt.Println(time.Now().String() + " ===================>  secondaryInitialize 2")
+
 	c.secondarySetPrimaryRoots(roots)
 
 	// Configure the CA provider and initialize the intermediate certificate if necessary.
@@ -1263,9 +1267,12 @@ func (c *CAManager) secondaryCARootWatch(ctx context.Context) error {
 
 	retryLoopBackoff(ctx, func() error {
 		var roots structs.IndexedCARoots
+		fmt.Println(time.Now().String() + " ===================>  secondaryCARootWatch")
+
 		if err := c.delegate.forwardDC("ConnectCA.Roots", c.serverConf.PrimaryDatacenter, &args, &roots); err != nil {
 			return fmt.Errorf("Error retrieving the primary datacenter's roots: %v", err)
 		}
+		fmt.Println(time.Now().String() + " ===================>  secondaryCARootWatch")
 
 		// Return if the context has been canceled while waiting on the RPC.
 		select {

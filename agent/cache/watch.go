@@ -73,22 +73,28 @@ func (c *Cache) NotifyCallback(
 	correlationID string,
 	cb Callback,
 ) error {
+	fmt.Println(time.Now().String()+" ===================>  NotifyCallback 1", t, correlationID)
+
 	c.typesLock.RLock()
 	tEntry, ok := c.types[t]
 	c.typesLock.RUnlock()
 	if !ok {
 		return fmt.Errorf("unknown type in cache: %s", t)
 	}
+	fmt.Println(time.Now().String()+" ===================>  NotifyCallback 2", t, correlationID)
 
 	if tEntry.Opts.SupportsBlocking {
 		go c.notifyBlockingQuery(ctx, newGetOptions(tEntry, r), correlationID, cb)
 		return nil
 	}
+	fmt.Println(time.Now().String()+" ===================>  NotifyCallback 3", t, correlationID)
 
 	info := r.CacheInfo()
 	if info.MaxAge == 0 {
 		return fmt.Errorf("Cannot use Notify for polling cache types without specifying the MaxAge")
 	}
+	fmt.Println(time.Now().String()+" ===================>  NotifyCallback 4", t, correlationID)
+
 	go c.notifyPollingQuery(ctx, newGetOptions(tEntry, r), correlationID, cb)
 	return nil
 }

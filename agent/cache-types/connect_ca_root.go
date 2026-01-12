@@ -5,7 +5,10 @@ package cachetype
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"runtime/debug"
+	"time"
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/cacheshim"
@@ -24,14 +27,26 @@ type ConnectCARoot struct {
 }
 
 func (c *ConnectCARoot) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
+
+	fmt.Println(time.Now().String() + " ===================>  ConnectCARoot Fetch function called")
+	// debug.PrintStack()
 	var result cache.FetchResult
 
 	// The request should be a DCSpecificRequest.
 	reqReal, ok := req.(*structs.DCSpecificRequest)
+
 	if !ok {
+		fmt.Println(time.Now().String() + " ===================>  ConnectCARoot Fetch function called 1")
+
 		return result, fmt.Errorf(
 			"Internal cache failure: request wrong type: %T", req)
 	}
+	b, err := json.Marshal(reqReal)
+	if err != nil {
+		fmt.Println(time.Now().String()+" ===================>  ConnectCARoot Fetch function called 3", err)
+
+	}
+	fmt.Println(time.Now().String()+" ===================>  ConnectCARoot Fetch function called 4", string(b))
 
 	// Lightweight copy this object so that manipulating QueryOptions doesn't race.
 	dup := *reqReal
@@ -44,8 +59,11 @@ func (c *ConnectCARoot) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 	// Fetch
 	var reply structs.IndexedCARoots
 	if err := c.RPC.RPC(context.Background(), "ConnectCA.Roots", reqReal, &reply); err != nil {
+		fmt.Println(time.Now().String() + " ===================>  ConnectCARoot Fetch function called 5")
+
 		return result, err
 	}
+	fmt.Println(time.Now().String() + " ===================>  ConnectCARoot Fetch function called 6")
 
 	result.Value = &reply
 	result.Index = reply.Index

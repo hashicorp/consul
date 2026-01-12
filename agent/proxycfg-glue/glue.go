@@ -6,6 +6,8 @@ package proxycfgglue
 import (
 	"context"
 	"errors"
+	"fmt"
+	"time"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -107,6 +109,7 @@ func (c *cacheProxyDataSource[ReqType]) Notify(
 	correlationID string,
 	ch chan<- proxycfg.UpdateEvent,
 ) error {
+	fmt.Println(time.Now().String()+" ===================>  cacheProxyDataSource) Notify called ", c.t, correlationID)
 	return c.c.NotifyCallback(ctx, c.t, req, correlationID, dispatchCacheUpdate(ch))
 }
 
