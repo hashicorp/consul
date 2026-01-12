@@ -3,6 +3,11 @@
 
 package api
 
+import (
+	"encoding/json"
+	"io"
+)
+
 type ImportedService struct {
 	// Service is the name of the service which is imported.
 	Service string
@@ -42,11 +47,25 @@ func (c *Client) ImportedServices(q *QueryOptions) ([]ImportedService, *QueryMet
 	parseQueryMeta(resp, qm)
 	qm.RequestTime = rtt
 
-	var result importedServicesResponse
-
-	if err := decodeBody(resp, &result); err != nil {
+	// Read the body so we can try different decode formats
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
 		return nil, nil, err
 	}
 
-	return result.ImportedServices, qm, nil
+	// Try to decode as wrapped response (ENT format)
+	// ENT returns: {Partition: "...", ImportedServices: [...]}
+	var result importedServicesResponse
+	if err := json.Unmarshal(body, &result); err == nil && result.Partition != "" {
+		return result.ImportedServices, qm, nil
+	}
+
+	// If that fails, try to decode as raw array (CE format)
+	// CE returns: [...]
+	var services []ImportedService
+	if err := json.Unmarshal(body, &services); err != nil {
+		return nil, nil, err
+	}
+
+	return services, qm, nil
 }
