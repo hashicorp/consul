@@ -5,7 +5,7 @@
 
 import RepositoryService from 'consul-ui/services/repository';
 import { PRIMARY_KEY } from 'consul-ui/models/proxy';
-import { get, set } from '@ember/object';
+import { set } from '@ember/object';
 import dataSource from 'consul-ui/decorators/data-source';
 
 const modelName = 'proxy';
@@ -45,7 +45,7 @@ export default class ProxyService extends RepositoryService {
     const items = await this.findAllBySlug(params, configuration);
 
     let res = {};
-    if (get(items, 'length') > 0) {
+    if (items.length > 0) {
       let instance = items
         .filterBy('ServiceProxy.DestinationServiceID', params.serviceId)
         .findBy('NodeName', params.node);
@@ -58,7 +58,7 @@ export default class ProxyService extends RepositoryService {
         }
       }
     }
-    set(res, 'meta', get(items, 'meta'));
+    set(res, 'meta', items.meta);
     return res;
   }
 }

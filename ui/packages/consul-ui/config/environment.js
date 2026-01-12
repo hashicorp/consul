@@ -109,7 +109,7 @@ module.exports = function (environment, $ = process.env) {
   switch (true) {
     case environment === 'test':
       ENV = Object.assign({}, ENV, {
-        locationType: 'fsm-with-optional-test',
+        locationType: 'fsm-with-optional-test-location',
 
         // During testing ACLs default to being turned on
         operatorConfig: {

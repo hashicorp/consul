@@ -10,8 +10,8 @@ import { scheduleOnce } from '@ember/runloop';
 
 export default class IsHrefHelper extends Helper {
   @service('router') router;
-  init() {
-    super.init(...arguments);
+  constructor(...args) {
+    super(...args);
     this.router.on('routeWillChange', this.routeWillChange);
   }
 

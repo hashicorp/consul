@@ -36,7 +36,7 @@ export default Component.extend(Slotted, {
     this._super(...arguments);
     this._listeners.remove();
   },
-  options: computed('selectedOptions.[]', 'allOptions.[]', {
+  options: computed('selectedOptions.[]', 'allOptions.[]', '_options', {
     get() {
       if (this._options !== undefined) {
         return this._options;
@@ -45,17 +45,16 @@ export default Component.extend(Slotted, {
       // losing reference as its just to figure out the diff
       let options = this.allOptions || [];
       const items = this.selectedOptions || [];
-      if (get(items, 'length') > 0) {
+      if (items.length > 0) {
         // filter out any items from the available options that have already been
         // selected/added
         // TODO: find a proper ember-data diff
-        options = options.filter((item) => !items.findBy('ID', get(item, 'ID')));
+        options = options.filter((item) => !items.findBy('ID', item.ID));
       }
       return options;
     },
     set(_key, value) {
-      this._options = value;
-      return this._options;
+      return this.set('_options', value);
     },
   }),
   save: task(function* (item, items, success = function () {}) {

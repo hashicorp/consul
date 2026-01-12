@@ -16,7 +16,7 @@ module('Unit | Component | consul/discovery-chain/get-alternative-services', fun
       ['service.different-ns.partition.dc', 'service.different-ns2.partition.dc'],
       'service.namespace.partition.dc'
     );
-    assert.equal(actual.Type, expected.Type);
+    assert.strictEqual(actual.Type, expected.Type);
     assert.deepEqual(actual.Targets, expected.Targets);
   });
   test('it guesses a different datacenter', function (assert) {
@@ -28,7 +28,7 @@ module('Unit | Component | consul/discovery-chain/get-alternative-services', fun
       ['service.namespace.partition.dc1', 'service.namespace.partition.dc2'],
       'service.namespace.partition.dc'
     );
-    assert.equal(actual.Type, expected.Type);
+    assert.strictEqual(actual.Type, expected.Type);
     assert.deepEqual(actual.Targets, expected.Targets);
   });
   test('it guesses a different service', function (assert) {
@@ -40,7 +40,7 @@ module('Unit | Component | consul/discovery-chain/get-alternative-services', fun
       ['service-2.namespace.partition.dc', 'service-3.namespace.partition.dc'],
       'service.namespace.partition.dc'
     );
-    assert.equal(actual.Type, expected.Type);
+    assert.strictEqual(actual.Type, expected.Type);
     assert.deepEqual(actual.Targets, expected.Targets);
   });
   test('it guesses a different subset', function (assert) {
@@ -52,7 +52,7 @@ module('Unit | Component | consul/discovery-chain/get-alternative-services', fun
       ['v3.service.namespace.partition.dc', 'v2.service.namespace.partition.dc'],
       'v1.service.namespace.partition.dc'
     );
-    assert.equal(actual.Type, expected.Type);
+    assert.strictEqual(actual.Type, expected.Type);
     assert.deepEqual(actual.Targets, expected.Targets);
   });
 });

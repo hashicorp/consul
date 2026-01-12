@@ -14,13 +14,13 @@ module('Unit | Utility | dom/get component factory', function () {
         return { id: expected };
       },
     });
-    assert.equal(typeof getComponent, 'function', 'returns a function');
+    assert.strictEqual(typeof getComponent, 'function', 'returns a function');
     const actual = getComponent({
       getAttribute: function (name) {
         return 'id';
       },
     });
-    assert.equal(actual, expected, 'performs a lookup based on the id');
+    assert.strictEqual(actual, expected, 'performs a lookup based on the id');
   });
   test("it returns null if it can't find it", function (assert) {
     const expected = null;
@@ -34,7 +34,7 @@ module('Unit | Utility | dom/get component factory', function () {
         return 'non-existent';
       },
     });
-    assert.equal(actual, expected);
+    assert.strictEqual(actual, expected);
   });
   test('it returns null if there is no id', function (assert) {
     const expected = null;
@@ -48,6 +48,6 @@ module('Unit | Utility | dom/get component factory', function () {
         return;
       },
     });
-    assert.equal(actual, expected);
+    assert.strictEqual(actual, expected);
   });
 });

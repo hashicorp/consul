@@ -4,7 +4,6 @@
  */
 
 import Model, { attr, belongsTo } from '@ember-data/model';
-import { computed } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
 import { fragment } from 'ember-data-model-fragments/attributes';
 import replace, { nullValue } from 'consul-ui/decorators/replace';
@@ -65,44 +64,31 @@ export default class Service extends Model {
 
   @belongsTo({ async: false }) peer;
 
-  @computed('peer', 'InstanceCount')
   get isZeroCountButPeered() {
     return this.peer && this.InstanceCount === 0;
   }
 
-  @computed('peer.State')
   get peerIsFailing() {
     return this.peer && this.peer.State === 'FAILING';
   }
 
-  @computed('ChecksPassing', 'ChecksWarning', 'ChecksCritical')
   get ChecksTotal() {
     return this.ChecksPassing + this.ChecksWarning + this.ChecksCritical;
   }
 
-  @computed('MeshChecksPassing', 'MeshChecksWarning', 'MeshChecksCritical')
   get MeshChecksTotal() {
     return this.MeshChecksPassing + this.MeshChecksWarning + this.MeshChecksCritical;
   }
 
   /* Mesh properties involve both the service and the associated proxy */
-  @computed('ConnectedWithProxy', 'ConnectedWithGateway')
   get MeshEnabled() {
     return this.ConnectedWithProxy || this.ConnectedWithGateway;
   }
 
-  @computed('MeshEnabled', 'Kind')
   get InMesh() {
     return this.MeshEnabled || (this.Kind || '').length > 0;
   }
 
-  @computed(
-    'MeshChecksPassing',
-    'MeshChecksWarning',
-    'MeshChecksCritical',
-    'isZeroCountButPeered',
-    'peerIsFailing'
-  )
   get MeshStatus() {
     switch (true) {
       case this.isZeroCountButPeered:
@@ -120,7 +106,6 @@ export default class Service extends Model {
     }
   }
 
-  @computed('isZeroCountButPeered', 'peerIsFailing', 'MeshStatus')
   get healthTooltipText() {
     const { MeshStatus, isZeroCountButPeered, peerIsFailing } = this;
     if (isZeroCountButPeered) {
@@ -141,7 +126,6 @@ export default class Service extends Model {
     return 'There are no health checks';
   }
 
-  @computed('ChecksPassing', 'Proxy.ChecksPassing')
   get MeshChecksPassing() {
     let proxyCount = 0;
     if (typeof this.Proxy !== 'undefined') {
@@ -150,7 +134,6 @@ export default class Service extends Model {
     return this.ChecksPassing + proxyCount;
   }
 
-  @computed('ChecksWarning', 'Proxy.ChecksWarning')
   get MeshChecksWarning() {
     let proxyCount = 0;
     if (typeof this.Proxy !== 'undefined') {
@@ -159,7 +142,6 @@ export default class Service extends Model {
     return this.ChecksWarning + proxyCount;
   }
 
-  @computed('ChecksCritical', 'Proxy.ChecksCritical')
   get MeshChecksCritical() {
     let proxyCount = 0;
     if (typeof this.Proxy !== 'undefined') {

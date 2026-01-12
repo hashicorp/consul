@@ -20,8 +20,8 @@ export default class MetricsService extends RepositoryService {
     return 'metrics';
   }
 
-  init() {
-    super.init(...arguments);
+  constructor(...args) {
+    super(...args);
     // TODO: this flow should be be async, then can just use either get or a DataSource
     const config = this.config.getSync();
     // Inject whether or not the proxy is enabled as an option into the opaque

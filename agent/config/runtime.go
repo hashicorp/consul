@@ -17,7 +17,6 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/consul"
 	consulrate "github.com/hashicorp/consul/agent/consul/rate"
-	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
@@ -161,11 +160,6 @@ type RuntimeConfig struct {
 	//
 	// hcl: autopilot { upgrade_version_tag = string }
 	AutopilotUpgradeVersionTag string
-
-	// Cloud contains configuration for agents to connect to HCP.
-	//
-	// hcl: cloud { ... }
-	Cloud hcpconfig.CloudConfig
 
 	// DNSAllowStale is used to enable lookups with stale
 	// data. This gives horizontal read scalability since
@@ -525,6 +519,12 @@ type RuntimeConfig struct {
 	// ConnectMeshGatewayWANFederationEnabled determines if wan federation of
 	// datacenters should exclusively traverse mesh gateways.
 	ConnectMeshGatewayWANFederationEnabled bool
+
+	// ConnectVirtualIPCIDRv4 defines the IPv4 CIDR block used for automatic virtual IPs.
+	ConnectVirtualIPCIDRv4 string
+
+	// ConnectVirtualIPCIDRv6 defines the IPv6 CIDR block used for automatic virtual IPs.
+	ConnectVirtualIPCIDRv6 string
 
 	// ConnectTestCALeafRootChangeSpread is used to control how long the CA leaf
 	// cache with spread CSRs over when a root change occurs. For now we don't
@@ -1580,7 +1580,6 @@ type UIConfig struct {
 	MetricsProviderOptionsJSON string
 	MetricsProxy               UIMetricsProxy
 	DashboardURLTemplates      map[string]string
-	HCPEnabled                 bool
 }
 
 type UIMetricsProxy struct {
@@ -1801,14 +1800,6 @@ func (c *RuntimeConfig) StructLocality() *structs.Locality {
 // time.Duration values are formatted to improve readability.
 func (c *RuntimeConfig) Sanitized() map[string]interface{} {
 	return sanitize("rt", reflect.ValueOf(c)).Interface().(map[string]interface{})
-}
-
-// IsCloudEnabled returns true if a cloud.resource_id is set and the server mode is enabled
-func (c *RuntimeConfig) IsCloudEnabled() bool {
-	if c == nil {
-		return false
-	}
-	return c.ServerMode && c.Cloud.ResourceID != ""
 }
 
 // isSecret determines whether a field name represents a field which

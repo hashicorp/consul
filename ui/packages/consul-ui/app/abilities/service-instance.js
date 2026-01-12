@@ -4,7 +4,9 @@
  */
 
 import BaseAbility, { ACCESS_READ, ACCESS_WRITE } from './base';
+import classic from 'ember-classic-decorator';
 
+@classic
 export default class ServiceInstanceAbility extends BaseAbility {
   resource = 'service';
   generateForSegment(segment) {

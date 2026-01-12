@@ -35,7 +35,7 @@ module('Unit | Utility | dom/create listeners', function () {
     const actual = listeners.remove();
     assert.deepEqual(actual, [expected]);
     // handlers should now be empty
-    assert.equal(handlers.length, 0);
+    assert.strictEqual(handlers.length, 0);
   });
   test('remove calls the remove functions', function (assert) {
     const expected = sinon.stub();
@@ -43,7 +43,7 @@ module('Unit | Utility | dom/create listeners', function () {
     const listeners = createListeners(arr);
     listeners.remove();
     assert.ok(expected.calledOnce);
-    assert.equal(arr.length, 0);
+    assert.strictEqual(arr.length, 0);
   });
   test('listeners are added on add', function (assert) {
     const listeners = createListeners();

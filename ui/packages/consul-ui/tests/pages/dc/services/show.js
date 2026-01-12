@@ -38,7 +38,7 @@ export default function (
     instances: collection('.consul-service-instance-list > ul > li:not(:first-child)', {
       address: text('[data-test-address]'),
       externalSource: attribute('data-test-external-source', '[data-test-external-source]'),
-      instance: clickable('a'),
+      instance: clickable('a', { at: 0 }),
       nodeChecks: text('[data-test-node-health-checks]'),
       nodeName: text('[data-test-node-name]'),
     }),

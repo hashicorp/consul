@@ -17,8 +17,8 @@
         dc=@item.Datacenter
       )
     }}
-    @type={{'session'}}
-    @label={{'Lock Session'}}
+    @type='session'
+    @label='Lock Session'
     @ondelete={{fn (if @ondelete @ondelete @onsubmit) @item}}
     @onchange={{fn (optional @onsubmit) @item}}
     as |writer|>
@@ -86,7 +86,7 @@
               @text='Invalidate Session'
               @color='critical'
               data-test-delete
-              {{on 'click' (fn confirm )}}
+              {{on 'click' confirm }}
             />
           </BlockSlot>
           <BlockSlot @name="dialog" as |execute cancel message|>
@@ -103,7 +103,7 @@
               <Hds::Button
                 @text='Cancel'
                 @color='secondary'
-                {{on 'click' (fn cancel)}}
+                {{on 'click' cancel}}
               />
             </Hds::ButtonSet>
           </BlockSlot>

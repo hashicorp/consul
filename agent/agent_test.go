@@ -33,6 +33,9 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/tcpproxy"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/serf/coordinate"
+	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
@@ -40,19 +43,12 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/encoding/protojson"
 
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/hcp-scada-provider/capability"
-	"github.com/hashicorp/serf/coordinate"
-	"github.com/hashicorp/serf/serf"
-
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul"
-	"github.com/hashicorp/consul/agent/hcp"
-	"github.com/hashicorp/consul/agent/hcp/scada"
 	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
@@ -2466,6 +2462,105 @@ func testAgent_PersistService(t *testing.T, extraHCL string) {
 	}
 	if got, want := restored.Service.Port, 8001; got != want {
 		t.Fatalf("got port %d want %d", got, want)
+	}
+}
+
+func TestAgent_Reload_HonorsDisableDefaultSidecarChecks(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Run("no custom checks - should add default TCP and alias checks", func(t *testing.T) {
+		t.Parallel()
+		testAgent_Reload_HonorsDisableDefaultSidecarChecks(t, nil, false)
+	})
+
+	t.Run("with custom alias check - should not add default checks", func(t *testing.T) {
+		t.Parallel()
+		testAgent_Reload_HonorsDisableDefaultSidecarChecks(t, []*structs.CheckType{
+			{
+				Name:         "Custom Connect Sidecar Aliasing redis",
+				AliasService: "redis",
+			},
+		}, true)
+	})
+}
+
+func testAgent_Reload_HonorsDisableDefaultSidecarChecks(t *testing.T, checks []*structs.CheckType, disable_default_tcp_check bool) {
+	t.Helper()
+
+	cfg := `
+        server = false
+        bootstrap = false
+    `
+	a := StartTestAgent(t, TestAgent{HCL: cfg})
+	defer a.Shutdown()
+
+	svc := &structs.NodeService{
+		Kind:                       "connect-proxy",
+		ID:                         "redis-proxy",
+		Service:                    "redis",
+		Tags:                       []string{"foo"},
+		Port:                       8000,
+		LocallyRegisteredAsSidecar: true,
+	}
+
+	file := filepath.Join(a.Config.DataDir, servicesDir, structs.NewServiceID(svc.ID, nil).StringHashSHA256())
+
+	if err := a.addServiceFromSource(svc, checks, true, "mytoken", ConfigSourceLocal); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	expected, err := json.Marshal(persistedService{
+		Token:                       "mytoken",
+		Service:                     svc,
+		Source:                      "local",
+		LocallyRegisteredAsSidecar:  true,
+		DisableSidecarDefaultChecks: disable_default_tcp_check,
+	})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	content, err := os.ReadFile(file)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if !bytes.Equal(expected, content) {
+		t.Fatalf("bad: %s %s", string(expected), string(content))
+	}
+
+	// Shutdown the agent
+	a.Shutdown()
+
+	// Restart the agent
+	a2 := StartTestAgent(t, TestAgent{HCL: cfg, DataDir: a.DataDir})
+	defer a2.Shutdown()
+
+	restored := a2.State.ServiceState(structs.NewServiceID(svc.ID, nil))
+	if restored == nil {
+		t.Fatalf("service %q missing", svc.ID)
+	}
+	// check service does not have default sidecar TCP checks after restart
+	checkStateSnapshot := a2.State.AllChecks()
+	if disable_default_tcp_check {
+		require.Len(t, checkStateSnapshot, 1)
+	} else {
+		require.Len(t, checkStateSnapshot, 2)
+	}
+
+	// Now reload the config and ensure the flag is still honored
+	a2.reloadConfig(false)
+
+	reloadRestored := a2.State.ServiceState(structs.NewServiceID(svc.ID, nil))
+	if reloadRestored == nil {
+		t.Fatalf("service %q missing", svc.ID)
+	}
+	// check service does not have default sidecar TCP checks after config reload
+	checkStateSnapshotAfterReload := a2.State.AllChecks()
+	if disable_default_tcp_check {
+		require.Len(t, checkStateSnapshotAfterReload, 1)
+	} else {
+		require.Len(t, checkStateSnapshotAfterReload, 2)
 	}
 }
 
@@ -6288,69 +6383,6 @@ peering {
 		require.Len(r, cert.URIs, 1)
 		require.Equal(r, expectURI, cert.URIs[0].String())
 	})
-}
-
-func TestAgent_startListeners_scada(t *testing.T) {
-	t.Parallel()
-	pvd := scada.NewMockProvider(t)
-	c := capability.NewAddr("testcap")
-	pvd.EXPECT().Listen(c.Capability()).Return(nil, nil).Once()
-	bd := BaseDeps{
-		Deps: consul.Deps{
-			Logger:       hclog.NewInterceptLogger(nil),
-			Tokens:       new(token.Store),
-			GRPCConnPool: &fakeGRPCConnPool{},
-			HCP: hcp.Deps{
-				Provider: pvd,
-			},
-			Registry: resource.NewRegistry(),
-		},
-		RuntimeConfig: &config.RuntimeConfig{},
-		Cache:         cache.New(cache.Options{}),
-		NetRPC:        &LazyNetRPC{},
-	}
-
-	bd.LeafCertManager = leafcert.NewManager(leafcert.Deps{
-		CertSigner:  leafcert.NewNetRPCCertSigner(bd.NetRPC),
-		RootsReader: leafcert.NewCachedRootsReader(bd.Cache, "dc1"),
-		Config:      leafcert.Config{},
-	})
-
-	cfg := config.RuntimeConfig{BuildDate: time.Date(2000, 1, 1, 0, 0, 1, 0, time.UTC)}
-	bd, err := initEnterpriseBaseDeps(bd, &cfg)
-	require.NoError(t, err)
-
-	agent, err := New(bd)
-	mockDelegate := delegateMock{}
-	mockDelegate.On("LicenseCheck").Return()
-	agent.delegate = &mockDelegate
-	require.NoError(t, err)
-
-	_, err = agent.startListeners([]net.Addr{c})
-	require.NoError(t, err)
-}
-
-func TestAgent_scadaProvider(t *testing.T) {
-	pvd := scada.NewMockProvider(t)
-
-	// this listener is used when mocking out the scada provider
-	l, err := net.Listen("tcp4", fmt.Sprintf("127.0.0.1:%d", freeport.GetOne(t)))
-	require.NoError(t, err)
-	defer require.NoError(t, l.Close())
-
-	pvd.EXPECT().Listen(scada.CAPCoreAPI.Capability()).Return(l, nil).Once()
-	pvd.EXPECT().Stop().Return(nil).Once()
-	a := TestAgent{
-		HCL: `cloud = { resource_id = "test-resource-id" client_id = "test-client-id" client_secret = "test-client-secret" }`,
-		OverrideDeps: func(deps *BaseDeps) {
-			deps.HCP.Provider = pvd
-		},
-	}
-	defer a.Shutdown()
-	require.NoError(t, a.Start(t))
-
-	_, err = api.NewClient(&api.Config{Address: l.Addr().String()})
-	require.NoError(t, err)
 }
 
 func TestAgent_checkServerLastSeen(t *testing.T) {

@@ -50,12 +50,12 @@ export default Component.extend({
   },
 
   allOptions: computed('options.[]', function () {
-    return get(this, 'options') || [];
+    return this.options || [];
   }),
 
   customSearch(term, options) {
     // Ignore the passed options parameter and use our own
-    const allOptions = get(this, 'options') || [];
+    const allOptions = this.options || [];
 
     if (!term || term.trim() === '') {
       return allOptions;
@@ -93,7 +93,7 @@ export default Component.extend({
 
   shouldShowCreateOption(term) {
     // Only hide create option if there's an exact match
-    const allOptions = get(this, 'options') || [];
+    const allOptions = this.options || [];
     const hasExactMatch = allOptions.some((option) => {
       const optionValue = this.searchField ? get(option, this.searchField) : option;
       return optionValue && optionValue.toLowerCase() === term.toLowerCase();
@@ -102,7 +102,7 @@ export default Component.extend({
   },
 
   buildSuggestionForTerm(term) {
-    const buildSuggestion = get(this, 'buildSuggestion');
+    const buildSuggestion = this.buildSuggestion;
 
     let label;
     if (buildSuggestion) {
@@ -125,7 +125,7 @@ export default Component.extend({
     try {
       const newOption = { [this.searchField]: value };
       // Add to options array first (optimistic update)
-      (get(this, 'options') || []).pushObject(newOption);
+      (this.options || []).pushObject(newOption);
       // Call onChange handler for both creation and selection
       yield this.onChange(newOption);
       return newOption;

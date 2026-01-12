@@ -5,8 +5,7 @@
 
 import Fragment from 'ember-data-model-fragments/fragment';
 import { attr } from '@ember-data/model';
-import { computed } from '@ember/object';
-import { or } from '@ember/object/computed';
+import { tracked } from '@glimmer/tracking';
 
 export const schema = {
   Name: {
@@ -28,10 +27,13 @@ export default class IntentionPermission extends Fragment {
   // this is a boolean but we don't want it to automatically be set to false
   @attr() Present;
 
-  @or(...schema.HeaderType.allowedValues) Value;
+  @tracked _headerTypeManual;
+
+  get Value() {
+    return this.Exact || this.Prefix || this.Suffix || this.Contains || this.Regex || this.Present;
+  }
   @attr('boolean') IgnoreCase;
 
-  @computed(...schema.HeaderType.allowedValues)
   get HeaderType() {
     // Use manual override if one was set
     if (this._headerTypeManual !== undefined) {

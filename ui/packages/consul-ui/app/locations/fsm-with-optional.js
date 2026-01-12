@@ -93,7 +93,22 @@ export default class FSMWithOptionalLocation {
   }
 
   constructor(owner, doc, env) {
-    this.container = Object.entries(owner)[0][1];
+    // Simplified owner resolution (supports direct owner or symbol-wrapped)
+    let app = owner;
+    if (!app?.lookup && owner) {
+      for (const sym of Object.getOwnPropertySymbols(owner)) {
+        const val = owner[sym];
+        if (val?.lookup) {
+          app = val;
+          break;
+        }
+        if (val?.owner?.lookup) {
+          app = val.owner;
+          break;
+        }
+      }
+    }
+    this.container = app;
 
     // add the route/state change handler
     this.route = route.bind(this);

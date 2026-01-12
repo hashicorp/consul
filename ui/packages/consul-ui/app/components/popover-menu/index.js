@@ -24,6 +24,7 @@ export default Component.extend(Slotted, {
     this.submenus = [];
   },
   willRender: function () {
+    this._super(...arguments);
     set(this, 'hasHeader', this._isRegistered('header'));
   },
   actions: {

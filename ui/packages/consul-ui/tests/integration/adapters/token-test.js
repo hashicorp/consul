@@ -26,7 +26,7 @@ module('Integration | Adapter | token', function (hooks) {
         dc: dc,
         ns: nspace,
       });
-      assert.equal(`${actual.method} ${actual.url}`, expected);
+      assert.strictEqual(`${actual.method} ${actual.url}`, expected);
     });
     test(`requestForQuery returns the correct url/method when a policy is specified when nspace is ${nspace}`, function (assert) {
       const adapter = this.owner.lookup('adapter:token');
@@ -40,7 +40,7 @@ module('Integration | Adapter | token', function (hooks) {
         policy: id,
         ns: nspace,
       });
-      assert.equal(`${actual.method} ${actual.url}`, expected);
+      assert.strictEqual(`${actual.method} ${actual.url}`, expected);
     });
     test(`requestForQuery returns the correct url/method when a role is specified when nspace is ${nspace}`, function (assert) {
       const adapter = this.owner.lookup('adapter:token');
@@ -54,7 +54,7 @@ module('Integration | Adapter | token', function (hooks) {
         role: id,
         ns: nspace,
       });
-      assert.equal(`${actual.method} ${actual.url}`, expected);
+      assert.strictEqual(`${actual.method} ${actual.url}`, expected);
     });
     test(`requestForQueryRecord returns the correct url/method when nspace is ${nspace}`, async function (assert) {
       const adapter = this.owner.lookup('adapter:token');
@@ -71,7 +71,7 @@ module('Integration | Adapter | token', function (hooks) {
         ns: nspace,
       });
       actual = actual();
-      assert.equal(`${actual.method} ${actual.url}`, expected);
+      assert.strictEqual(`${actual.method} ${actual.url}`, expected);
     });
     test(`requestForCreateRecord returns the correct url/method when nspace is ${nspace}`, function (assert) {
       const adapter = this.owner.lookup('adapter:token');
@@ -91,7 +91,7 @@ module('Integration | Adapter | token', function (hooks) {
         )
         .split('\n')
         .shift();
-      assert.equal(actual, expected);
+      assert.strictEqual(actual, expected);
     });
     test(`requestForUpdateRecord returns the correct url (without Rules it uses the v2 API) when nspace is ${nspace}`, function (assert) {
       const adapter = this.owner.lookup('adapter:token');
@@ -112,7 +112,7 @@ module('Integration | Adapter | token', function (hooks) {
         )
         .split('\n')
         .shift();
-      assert.equal(actual, expected);
+      assert.strictEqual(actual, expected);
     });
     test(`requestForUpdateRecord returns the correct url (with Rules it uses the v1 API) when nspace is ${nspace}`, function (assert) {
       const adapter = this.owner.lookup('adapter:token');
@@ -134,7 +134,7 @@ module('Integration | Adapter | token', function (hooks) {
         )
         .split('\n')
         .shift();
-      assert.equal(actual, expected);
+      assert.strictEqual(actual, expected);
     });
     test(`requestForDeleteRecord returns the correct url/method when the nspace is ${nspace}`, function (assert) {
       const adapter = this.owner.lookup('adapter:token');
@@ -155,7 +155,7 @@ module('Integration | Adapter | token', function (hooks) {
         )
         .split('\n')
         .shift();
-      assert.equal(actual, expected);
+      assert.strictEqual(actual, expected);
     });
     test(`requestForCloneRecord returns the correct url when the nspace is ${nspace}`, function (assert) {
       const adapter = this.owner.lookup('adapter:token');
@@ -176,7 +176,7 @@ module('Integration | Adapter | token', function (hooks) {
         )
         .split('\n')
         .shift();
-      assert.equal(actual, expected);
+      assert.strictEqual(actual, expected);
     });
   });
   test("requestForQueryRecord throws if you don't specify an id", function (assert) {
@@ -203,7 +203,7 @@ module('Integration | Adapter | token', function (hooks) {
         }
       )
       .split('\n')[0];
-    assert.equal(actual, expected);
+    assert.strictEqual(actual, expected);
   });
   test('requestForSelf sets a token header using a secret', function (assert) {
     const adapter = this.owner.lookup('adapter:token');
@@ -222,6 +222,6 @@ module('Integration | Adapter | token', function (hooks) {
       )
       .split('\n')[1]
       .trim();
-    assert.equal(actual, expected);
+    assert.strictEqual(actual, expected);
   });
 });

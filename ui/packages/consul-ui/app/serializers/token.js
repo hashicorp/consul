@@ -4,7 +4,6 @@
  */
 
 import Serializer from './application';
-import { get } from '@ember/object';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/token';
 import WithPolicies from 'consul-ui/mixins/policy/as-many';
 import WithRoles from 'consul-ui/mixins/role/as-many';
@@ -54,7 +53,7 @@ export default class TokenSerializer extends Serializer.extend(WithPolicies, Wit
             const item = this.store.peekAll('token').findBy('SecretID', body['ID']);
             if (item) {
               body['SecretID'] = body['ID'];
-              body['AccessorID'] = get(item, 'AccessorID');
+              body['AccessorID'] = item.AccessorID;
             }
           }
           return cb(headers, body);

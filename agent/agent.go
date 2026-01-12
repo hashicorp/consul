@@ -26,7 +26,6 @@ import (
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/rboyer/safeio"
 	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 
@@ -34,7 +33,6 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/hcp-scada-provider/capability"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 
@@ -51,7 +49,6 @@ import (
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	grpcDNS "github.com/hashicorp/consul/agent/grpc-external/services/dns"
 	middleware "github.com/hashicorp/consul/agent/grpc-middleware"
-	"github.com/hashicorp/consul/agent/hcp/scada"
 	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/netutil"
@@ -432,10 +429,6 @@ type Agent struct {
 	// xdsServer serves the XDS protocol for configuring Envoy proxies.
 	xdsServer *xds.Server
 
-	// scadaProvider is set when HashiCorp Cloud Platform integration is configured and exposes the agent's API over
-	// an encrypted session to HCP
-	scadaProvider scada.Provider
-
 	// enterpriseAgent embeds fields that we only access in consul-enterprise builds
 	enterpriseAgent
 
@@ -492,7 +485,6 @@ func New(bd BaseDeps) (*Agent, error) {
 		cache:           bd.Cache,
 		leafCertManager: bd.LeafCertManager,
 		routineManager:  routine.NewManager(bd.Logger),
-		scadaProvider:   bd.HCP.Provider,
 	}
 
 	// TODO: create rpcClientHealth in BaseDeps once NetRPC is available without Agent
@@ -1109,12 +1101,6 @@ func (a *Agent) startListeners(addrs []net.Addr) ([]net.Listener, error) {
 			}
 			l = &tcpKeepAliveListener{l.(*net.TCPListener)}
 
-		case *capability.Addr:
-			l, err = a.scadaProvider.Listen(x.Capability())
-			if err != nil {
-				return nil, err
-			}
-
 		default:
 			closeAll()
 			return nil, fmt.Errorf("unsupported address type %T", addr)
@@ -1173,11 +1159,6 @@ func (a *Agent) listenHTTP() ([]apiServer, error) {
 				MaxHeaderBytes: a.config.HTTPMaxHeaderBytes,
 			}
 
-			if scada.IsCapability(l.Addr()) {
-				// wrap in http2 server handler
-				httpServer.Handler = h2c.NewHandler(srv.handler(), &http2.Server{})
-			}
-
 			// Load the connlimit helper into the server
 			connLimitFn := a.httpConnLimiter.HTTPConnStateFuncWithDefault429Handler(10 * time.Millisecond)
 
@@ -1195,9 +1176,6 @@ func (a *Agent) listenHTTP() ([]apiServer, error) {
 	}
 
 	httpAddrs := a.config.HTTPAddrs
-	if a.config.IsCloudEnabled() && a.scadaProvider != nil {
-		httpAddrs = append(httpAddrs, scada.CAPCoreAPI)
-	}
 
 	if err := start("http", httpAddrs); err != nil {
 		closeListeners(ln)
@@ -1564,6 +1542,8 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 
 		cfg.CAConfig = ca
 	}
+	cfg.ConnectVirtualIPCIDRv4 = runtimeCfg.ConnectVirtualIPCIDRv4
+	cfg.ConnectVirtualIPCIDRv6 = runtimeCfg.ConnectVirtualIPCIDRv6
 
 	// copy over auto runtimeCfg settings
 	cfg.AutoConfigEnabled = runtimeCfg.AutoConfig.Enabled
@@ -1598,8 +1578,6 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	cfg.RequestLimitsReadRate = runtimeCfg.RequestLimitsReadRate
 	cfg.RequestLimitsWriteRate = runtimeCfg.RequestLimitsWriteRate
 	cfg.Locality = runtimeCfg.StructLocality()
-
-	cfg.Cloud = runtimeCfg.Cloud
 
 	cfg.Reporting.License.Enabled = runtimeCfg.Reporting.License.Enabled
 	cfg.Reporting.SnapshotRetentionTime = runtimeCfg.Reporting.SnapshotRetentionTime
@@ -1779,11 +1757,6 @@ func (a *Agent) ShutdownAgent() error {
 
 	a.rpcClientHealth.Close()
 	a.rpcClientConfigEntry.Close()
-
-	// Shutdown SCADA provider
-	if a.scadaProvider != nil {
-		a.scadaProvider.Stop()
-	}
 
 	var err error
 	if a.delegate != nil {
@@ -2159,6 +2132,10 @@ type persistedService struct {
 	// to exclude it from API output, but we need it to properly deregister
 	// persisted sidecars.
 	LocallyRegisteredAsSidecar bool `json:",omitempty"`
+	// we need it tracks whether default sidecar checks (TCP + alias) were
+	// disabled at registration time. Persisted to maintain consistent check configuration
+	// across agent restarts/reloads. Excluded from API responses but required for state restoration.
+	DisableSidecarDefaultChecks bool `json:",omitempty"`
 }
 
 func (a *Agent) makeServiceFilePath(svcID structs.ServiceID) string {
@@ -2166,15 +2143,16 @@ func (a *Agent) makeServiceFilePath(svcID structs.ServiceID) string {
 }
 
 // persistService saves a service definition to a JSON file in the data dir
-func (a *Agent) persistService(service *structs.NodeService, source configSource) error {
+func (a *Agent) persistService(service *structs.NodeService, source configSource, disableSidecarDefaultChecks bool) error {
 	svcID := service.CompoundServiceID()
 	svcPath := a.makeServiceFilePath(svcID)
 
 	wrapped := persistedService{
-		Token:                      a.State.ServiceToken(service.CompoundServiceID()),
-		Service:                    service,
-		Source:                     source.String(),
-		LocallyRegisteredAsSidecar: service.LocallyRegisteredAsSidecar,
+		Token:                       a.State.ServiceToken(service.CompoundServiceID()),
+		Service:                     service,
+		Source:                      source.String(),
+		LocallyRegisteredAsSidecar:  service.LocallyRegisteredAsSidecar,
+		DisableSidecarDefaultChecks: disableSidecarDefaultChecks,
 	}
 	encoded, err := json.Marshal(wrapped)
 	if err != nil {
@@ -2374,8 +2352,10 @@ func (a *Agent) addServiceLocked(req addServiceLockedRequest) error {
 			req.Service.Port = port
 		}
 		// Setup default check if none given.
-		if len(req.chkTypes) < 1 {
+		if len(req.chkTypes) < 1 && !req.disableSidecarDefaultChecks {
 			req.chkTypes = sidecarDefaultChecks(req.Service.ID, req.Service.Address, req.Service.Proxy.LocalServiceAddress, req.Service.Port)
+		} else {
+			req.disableSidecarDefaultChecks = true
 		}
 	}
 
@@ -2416,12 +2396,13 @@ type addServiceLockedRequest struct {
 // AddServiceRequest contains the fields used to register a service on the local
 // agent using Agent.AddService.
 type AddServiceRequest struct {
-	Service               *structs.NodeService
-	chkTypes              []*structs.CheckType
-	persist               bool
-	token                 string
-	replaceExistingChecks bool
-	Source                configSource
+	Service                     *structs.NodeService
+	chkTypes                    []*structs.CheckType
+	persist                     bool
+	token                       string
+	replaceExistingChecks       bool
+	Source                      configSource
+	disableSidecarDefaultChecks bool
 }
 
 type addServiceInternalRequest struct {
@@ -2614,7 +2595,7 @@ func (a *Agent) addServiceInternal(req addServiceInternalRequest) error {
 			req.persistService = service
 		}
 
-		if err := a.persistService(req.persistService, source); err != nil {
+		if err := a.persistService(req.persistService, source, req.disableSidecarDefaultChecks); err != nil {
 			a.cleanupRegistration(cleanupServices, cleanupChecks)
 			return err
 		}
@@ -3882,12 +3863,13 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 			)
 			err = a.addServiceLocked(addServiceLockedRequest{
 				AddServiceRequest: AddServiceRequest{
-					Service:               p.Service,
-					chkTypes:              nil,
-					persist:               false, // don't rewrite the file with the same data we just read
-					token:                 p.Token,
-					replaceExistingChecks: false, // do default behavior
-					Source:                source,
+					Service:                     p.Service,
+					chkTypes:                    nil,
+					persist:                     false, // don't rewrite the file with the same data we just read
+					token:                       p.Token,
+					replaceExistingChecks:       false, // do default behavior
+					Source:                      source,
+					disableSidecarDefaultChecks: p.DisableSidecarDefaultChecks,
 				},
 				serviceDefaults:      serviceDefaultsFromStruct(persistedServiceConfigs[serviceID]),
 				persistServiceConfig: false, // don't rewrite the file with the same data we just read

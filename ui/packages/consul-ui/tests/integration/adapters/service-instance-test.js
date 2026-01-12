@@ -27,7 +27,7 @@ module('Integration | Adapter | service-instance', function (hooks) {
         id: id,
         ns: nspace,
       });
-      assert.equal(`${actual.method} ${actual.url}`, expected);
+      assert.strictEqual(`${actual.method} ${actual.url}`, expected);
     });
   });
   test("requestForQueryRecord throws if you don't specify an id", function (assert) {

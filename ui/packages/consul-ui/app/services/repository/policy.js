@@ -4,7 +4,6 @@
  */
 
 import RepositoryService from 'consul-ui/services/repository';
-import { get } from '@ember/object';
 import { inject as service } from '@ember/service';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/policy';
 import dataSource from 'consul-ui/decorators/data-source';
@@ -49,7 +48,7 @@ export default class PolicyService extends RepositoryService {
     // only if a policy doesn't have a template, save it
     // right now only ServiceIdentities have templates and
     // are not saveable themselves (but can be saved to a Role/Token)
-    switch (get(item, 'template')) {
+    switch (item.template) {
       case '':
         return item.save();
     }
@@ -57,6 +56,6 @@ export default class PolicyService extends RepositoryService {
   }
 
   translate(item) {
-    return this.store.translate('policy', get(item, 'Rules'));
+    return this.store.translate('policy', item.Rules);
   }
 }

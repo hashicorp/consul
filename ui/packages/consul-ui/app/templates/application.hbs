@@ -61,7 +61,7 @@
         {{! redirects are in the dc.show route}}
 
       {{! 2022-04-15: Temporarily reverting the services page to the default }}
-      {{did-insert (fn this.gotoDefaultDcServices (env 'CONSUL_DATACENTER_LOCAL'))}}
+      {{did-insert-helper (fn this.gotoDefaultDcServices (env 'CONSUL_DATACENTER_LOCAL'))}}
     {{else}}
       {{! If we are notfound, guess the params we need }}
       {{#if (eq route.currentName 'notfound')}}

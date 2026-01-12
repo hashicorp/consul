@@ -30,7 +30,6 @@ import (
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/consul"
 	consulrate "github.com/hashicorp/consul/agent/consul/rate"
-	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib"
@@ -622,7 +621,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.NodeName = "a"
 			rt.TLS.NodeName = "a"
 			rt.DataDir = dataDir
-			rt.Cloud.NodeName = "a"
 		},
 	})
 	run(t, testCase{
@@ -634,7 +632,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expected: func(rt *RuntimeConfig) {
 			rt.NodeID = "a"
 			rt.DataDir = dataDir
-			rt.Cloud.NodeID = "a"
 		},
 	})
 	run(t, testCase{
@@ -2322,77 +2319,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expected: func(rt *RuntimeConfig) {
 			rt.DataDir = dataDir
 			rt.HTTPUseCache = false
-		},
-	})
-	run(t, testCase{
-		desc: "cloud resource id from env",
-		args: []string{
-			`-server`,
-			`-data-dir=` + dataDir,
-		},
-		setup: func() {
-			os.Setenv("HCP_RESOURCE_ID", "env-id")
-		},
-		cleanup: func() {
-			os.Unsetenv("HCP_RESOURCE_ID")
-		},
-		expected: func(rt *RuntimeConfig) {
-			rt.DataDir = dataDir
-			rt.Cloud = hcpconfig.CloudConfig{
-				ResourceID: "env-id",
-				NodeName:   "thehostname",
-				NodeID:     "",
-			}
-
-			// server things
-			rt.ServerMode = true
-			rt.Telemetry.EnableHostMetrics = true
-			rt.TLS.ServerMode = true
-			rt.LeaveOnTerm = false
-			rt.SkipLeaveOnInt = true
-			rt.RPCConfig.EnableStreaming = true
-			rt.GRPCTLSPort = 8503
-			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
-		},
-	})
-	run(t, testCase{
-		desc: "cloud resource id from file",
-		args: []string{
-			`-server`,
-			`-data-dir=` + dataDir,
-		},
-		setup: func() {
-			os.Setenv("HCP_RESOURCE_ID", "env-id")
-		},
-		cleanup: func() {
-			os.Unsetenv("HCP_RESOURCE_ID")
-		},
-		json: []string{`{
-			  "cloud": {
-              	"resource_id": "file-id"
-              }
-			}`},
-		hcl: []string{`
-			  cloud = {
-	            resource_id = "file-id"
-			  }
-			`},
-		expected: func(rt *RuntimeConfig) {
-			rt.DataDir = dataDir
-			rt.Cloud = hcpconfig.CloudConfig{
-				ResourceID: "env-id",
-				NodeName:   "thehostname",
-			}
-
-			// server things
-			rt.ServerMode = true
-			rt.Telemetry.EnableHostMetrics = true
-			rt.TLS.ServerMode = true
-			rt.LeaveOnTerm = false
-			rt.SkipLeaveOnInt = true
-			rt.RPCConfig.EnableStreaming = true
-			rt.GRPCTLSPort = 8503
-			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 		},
 	})
 	run(t, testCase{
@@ -6674,57 +6600,49 @@ func TestLoad_FullConfig(t *testing.T) {
 			"CSRMaxPerSecond":     float64(100),
 			"CSRMaxConcurrent":    float64(2),
 		},
+		ConnectVirtualIPCIDRv4:                 "240.0.0.0/4",
+		ConnectVirtualIPCIDRv6:                 "2000::/3",
 		ConnectMeshGatewayWANFederationEnabled: false,
-		Cloud: hcpconfig.CloudConfig{
-			ResourceID:   "N43DsscE",
-			ClientID:     "6WvsDZCP",
-			ClientSecret: "lCSMHOpB",
-			Hostname:     "DH4bh7aC",
-			AuthURL:      "332nCdR2",
-			ScadaAddress: "aoeusth232",
-			NodeID:       types.NodeID("AsUIlw99"),
-			NodeName:     "otlLxGaI",
-		},
-		DNSAddrs:                         []net.Addr{tcpAddr("93.95.95.81:7001"), udpAddr("93.95.95.81:7001")},
-		DNSARecordLimit:                  29907,
-		DNSAllowStale:                    true,
-		DNSDisableCompression:            true,
-		DNSDomain:                        "7W1xXSqd",
-		DNSAltDomain:                     "1789hsd",
-		DNSEnableTruncate:                true,
-		DNSMaxStale:                      29685 * time.Second,
-		DNSNodeTTL:                       7084 * time.Second,
-		DNSOnlyPassing:                   true,
-		DNSPort:                          7001,
-		DNSRecursorStrategy:              "sequential",
-		DNSRecursorTimeout:               4427 * time.Second,
-		DNSRecursors:                     []string{"63.38.39.58", "92.49.18.18"},
-		DNSSOA:                           RuntimeSOAConfig{Refresh: 3600, Retry: 600, Expire: 86400, Minttl: 0},
-		DNSServiceTTL:                    map[string]time.Duration{"*": 32030 * time.Second},
-		DNSUDPAnswerLimit:                29909,
-		DNSNodeMetaTXT:                   true,
-		DNSUseCache:                      true,
-		DNSCacheMaxAge:                   5 * time.Minute,
-		DataDir:                          dataDir,
-		Datacenter:                       "rzo029wg",
-		DefaultQueryTime:                 16743 * time.Second,
-		DisableAnonymousSignature:        true,
-		DisableCoordinates:               true,
-		DisableHostNodeID:                true,
-		DisableHTTPUnprintableCharFilter: true,
-		DisableKeyringFile:               true,
-		DisableRemoteExec:                true,
-		DisableUpdateCheck:               true,
-		DiscardCheckOutput:               true,
-		DiscoveryMaxStale:                5 * time.Second,
-		EnableAgentTLSForChecks:          true,
-		EnableCentralServiceConfig:       false,
-		EnableDebug:                      true,
-		DisableKVKeyValidation:           false,
-		EnableRemoteScriptChecks:         true,
-		EnableLocalScriptChecks:          true,
-		EncryptKey:                       "A4wELWqH",
-		Experiments:                      []string{"foo"},
+		DNSAddrs:                               []net.Addr{tcpAddr("93.95.95.81:7001"), udpAddr("93.95.95.81:7001")},
+		DNSARecordLimit:                        29907,
+		DNSAllowStale:                          true,
+		DNSDisableCompression:                  true,
+		DNSDomain:                              "7W1xXSqd",
+		DNSAltDomain:                           "1789hsd",
+		DNSEnableTruncate:                      true,
+		DNSMaxStale:                            29685 * time.Second,
+		DNSNodeTTL:                             7084 * time.Second,
+		DNSOnlyPassing:                         true,
+		DNSPort:                                7001,
+		DNSRecursorStrategy:                    "sequential",
+		DNSRecursorTimeout:                     4427 * time.Second,
+		DNSRecursors:                           []string{"63.38.39.58", "92.49.18.18"},
+		DNSSOA:                                 RuntimeSOAConfig{Refresh: 3600, Retry: 600, Expire: 86400, Minttl: 0},
+		DNSServiceTTL:                          map[string]time.Duration{"*": 32030 * time.Second},
+		DNSUDPAnswerLimit:                      29909,
+		DNSNodeMetaTXT:                         true,
+		DNSUseCache:                            true,
+		DNSCacheMaxAge:                         5 * time.Minute,
+		DataDir:                                dataDir,
+		Datacenter:                             "rzo029wg",
+		DefaultQueryTime:                       16743 * time.Second,
+		DisableAnonymousSignature:              true,
+		DisableCoordinates:                     true,
+		DisableHostNodeID:                      true,
+		DisableHTTPUnprintableCharFilter:       true,
+		DisableKeyringFile:                     true,
+		DisableRemoteExec:                      true,
+		DisableUpdateCheck:                     true,
+		DiscardCheckOutput:                     true,
+		DiscoveryMaxStale:                      5 * time.Second,
+		EnableAgentTLSForChecks:                true,
+		EnableCentralServiceConfig:             false,
+		EnableDebug:                            true,
+		DisableKVKeyValidation:                 false,
+		EnableRemoteScriptChecks:               true,
+		EnableLocalScriptChecks:                true,
+		EncryptKey:                             "A4wELWqH",
+		Experiments:                            []string{"foo"},
 		StaticRuntimeConfig: StaticRuntimeConfig{
 			EncryptVerifyIncoming: true,
 			EncryptVerifyOutgoing: true,
@@ -7533,11 +7451,6 @@ func TestRuntimeConfig_Sanitize(t *testing.T) {
 		Cache: cache.Options{
 			EntryFetchMaxBurst: 42,
 			EntryFetchRate:     0.334,
-		},
-		Cloud: hcpconfig.CloudConfig{
-			ResourceID:   "cluster1",
-			ClientID:     "id",
-			ClientSecret: "secret",
 		},
 		ConsulCoordinateUpdatePeriod: 15 * time.Second,
 		RaftProtocol:                 3,

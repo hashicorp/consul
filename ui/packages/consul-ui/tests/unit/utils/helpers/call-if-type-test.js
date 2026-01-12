@@ -20,6 +20,6 @@ module('Unit | Utility | helpers/call if type', function () {
     const expected = 'hi';
     const actual = helper(['hi']);
 
-    assert.equal(actual, expected);
+    assert.strictEqual(actual, expected);
   });
 });
