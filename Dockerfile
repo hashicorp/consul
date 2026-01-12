@@ -16,7 +16,7 @@
 # Official docker image that includes binaries from releases.hashicorp.com. This
 # downloads the release from releases.hashicorp.com and therefore requires that
 # the release is published before building the Docker image.
-FROM docker.mirror.hashicorp.services/alpine:3.22 as official
+FROM docker.mirror.hashicorp.services/alpine:3.23.2 as official
 
 # This is the release of Consul to pull in.
 ARG VERSION
@@ -49,7 +49,7 @@ RUN addgroup consul && \
 # Set up certificates, base tools, and Consul.
 # libc6-compat is needed to symlink the shared libraries for ARM builds
 RUN set -eux && \
-    apk add --no-cache ca-certificates curl dumb-init gnupg libcap openssl su-exec iputils jq libc6-compat iptables tzdata && \
+    apk add --no-cache --upgrade ca-certificates curl dumb-init gnupg libcap openssl su-exec iputils jq libc6-compat iptables tzdata && \
     gpg --keyserver keyserver.ubuntu.com --recv-keys C874011F0AB405110D02105534365D9472D7468F && \
     mkdir -p /tmp/build && \
     cd /tmp/build && \
@@ -119,7 +119,7 @@ CMD ["agent", "-dev", "-client", "0.0.0.0"]
 
 # Production docker image that uses CI built binaries.
 # Remember, this image cannot be built locally.
-FROM docker.mirror.hashicorp.services/alpine:3.22 as default
+FROM docker.mirror.hashicorp.services/alpine:3.23.2 as default
 
 ARG PRODUCT_VERSION
 ARG BIN_NAME
@@ -156,7 +156,7 @@ LABEL org.opencontainers.image.authors="Consul Team <consul@hashicorp.com>" \
 COPY LICENSE /usr/share/doc/$PRODUCT_NAME/LICENSE.txt
 # Set up certificates and base tools.
 # libc6-compat is needed to symlink the shared libraries for ARM builds
-RUN apk add -v --no-cache \
+RUN apk add -v --no-cache --upgrade \
 		dumb-init \
 		libc6-compat \
 		iptables \
