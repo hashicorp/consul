@@ -98,7 +98,7 @@ func NewCertManager(deps Deps) *CertManager {
 		waiter: retry.Waiter{
 			MinFailures: 1,
 			MinWait:     1 * time.Second,
-			MaxWait:     5 * time.Minute,
+			MaxWait:     5 * time.Second,
 			Jitter:      retry.NewJitter(20),
 		},
 	}
@@ -234,27 +234,43 @@ func retryLoopBackoff(ctx context.Context, waiter retry.Waiter, loopFn func() er
 }
 
 func (m *CertManager) handleUpdates(ctx context.Context) {
+	fmt.Println(time.Now().String() + "===================>  handleUpdates called")
 	for {
+		fmt.Println(time.Now().String() + "===================>  handleUpdates called for loop begin 1")
+
 		select {
 		case <-ctx.Done():
+			fmt.Println(time.Now().String() + "===================>  handleUpdates called for loop 2")
 			m.logger.Debug("context canceled")
 			return
 
 		case event := <-m.cacheUpdateCh:
+			fmt.Println(time.Now().String() + "===================>  handleUpdates called for loop 3")
 			m.logger.Debug("got cache update event", "correlationID", event.CorrelationID, "error", event.Err)
 
 			if err := m.handleLeafUpdate(event); err != nil {
+				fmt.Println(time.Now().String() + "===================>  handleUpdates called for loop 4")
 				m.logger.Error("failed to handle cache update event", "error", err)
 			}
 		}
 	}
+	fmt.Println(time.Now().String() + "===================>  handleUpdates called out of loop")
 }
 
 func (m *CertManager) handleLeafUpdate(event cache.UpdateEvent) error {
+	fmt.Println(time.Now().String() + "===================>  handleLeafUpdate called")
+
 	if event.Err != nil {
-		return fmt.Errorf("leaf cert watch returned an error: %w", event.Err)
+		e := fmt.Errorf("leaf cert watch returned an error: %w", event.Err)
+		fmt.Println(time.Now().String()+"===================>  handleLeafUpdate 1 error", e)
+
+		return e
 	}
+	fmt.Println(time.Now().String() + "===================>  handleLeafUpdate 2")
+
 	if event.CorrelationID != leafWatchID {
+		e := fmt.Errorf("got unexpected update correlation ID %q while expecting %q", event.CorrelationID, leafWatchID)
+		fmt.Println(time.Now().String()+"===================>  handleLeafUpdate 3 error", e)
 		return fmt.Errorf("got unexpected update correlation ID %q while expecting %q", event.CorrelationID, leafWatchID)
 	}
 

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
@@ -14,10 +15,14 @@ import (
 
 // GET /v1/connect/ca/roots
 func (s *HTTPHandlers) ConnectCARoots(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	fmt.Println(time.Now().String() + "===================>  ConnectCARoots HTTPHandlers function called")
+
 	var args structs.DCSpecificRequest
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
+
+	fmt.Println(time.Now().String()+"===================>  ConnectCARoots HTTPHandlers function called 1 token = ", args.Token)
 
 	pemResponse := false
 	if pemParam := req.URL.Query().Get("pem"); pemParam != "" {
@@ -27,6 +32,7 @@ func (s *HTTPHandlers) ConnectCARoots(resp http.ResponseWriter, req *http.Reques
 		}
 		pemResponse = val
 	}
+	fmt.Println(time.Now().String() + "===================>  ConnectCARoots HTTPHandlers function called 1")
 
 	var reply structs.IndexedCARoots
 	defer setMeta(resp, &reply.QueryMeta)

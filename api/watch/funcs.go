@@ -6,6 +6,7 @@ package watch
 import (
 	"context"
 	"fmt"
+	"time"
 
 	consulapi "github.com/hashicorp/consul/api"
 )
@@ -271,14 +272,18 @@ func connectRootsWatch(params map[string]interface{}) (WatcherFunc, error) {
 	// We don't support stale since roots are cached locally in the agent.
 
 	fn := func(p *Plan) (BlockingParamVal, interface{}, error) {
+		fmt.Println(time.Now().String() + "===================>  connectRootsWatch watch function called")
 		agent := p.client.Agent()
 		opts := makeQueryOptionsWithContext(p, false)
 		defer p.cancelFunc()
 
 		roots, meta, err := agent.ConnectCARoots(&opts)
 		if err != nil {
+			fmt.Println(time.Now().String()+"===================>  connectRootsWatch watch function called 1 error", err)
+
 			return nil, nil, err
 		}
+		fmt.Println(time.Now().String()+"===================>  connectRootsWatch watch function called 2 meta.LastIndex", meta.LastIndex)
 
 		return WaitIndexVal(meta.LastIndex), roots, err
 	}
