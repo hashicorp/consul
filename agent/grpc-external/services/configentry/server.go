@@ -133,10 +133,10 @@ func (s *Server) GetResolvedExportedServices(
 	return res, nil
 }
 
-func (s *Server) GetResolvedImportedServices(
+func (s *Server) GetImportedServices(
 	ctx context.Context,
-	req *pbconfigentry.GetResolvedImportedServicesRequest,
-) (*pbconfigentry.GetResolvedImportedServicesResponse, error) {
+	req *pbconfigentry.GetImportedServicesRequest,
+) (*pbconfigentry.GetImportedServicesResponse, error) {
 
 	if err := s.Backend.EnterpriseCheckPartitions(req.Partition); err != nil {
 		return nil, grpcstatus.Error(codes.InvalidArgument, err.Error())
@@ -147,19 +147,19 @@ func (s *Server) GetResolvedImportedServices(
 		return nil, err
 	}
 
-	var resp *pbconfigentry.GetResolvedImportedServicesResponse
+	var resp *pbconfigentry.GetImportedServicesResponse
 	var emptyDCSpecificRequest structs.DCSpecificRequest
 
 	handled, err := s.ForwardRPC(&readRequest{options, emptyDCSpecificRequest}, func(conn *grpc.ClientConn) error {
 		var err error
-		resp, err = pbconfigentry.NewConfigEntryServiceClient(conn).GetResolvedImportedServices(ctx, req)
+		resp, err = pbconfigentry.NewConfigEntryServiceClient(conn).GetImportedServices(ctx, req)
 		return err
 	})
 	if handled || err != nil {
 		return resp, err
 	}
 
-	defer metrics.MeasureSince([]string{"configentry", "get_resolved_imported_services"}, time.Now())
+	defer metrics.MeasureSince([]string{"configentry", "get_imported_services"}, time.Now())
 
 	var authzCtx acl.AuthorizerContext
 	entMeta := structs.DefaultEnterpriseMetaInPartition(req.Partition)
@@ -173,10 +173,10 @@ func (s *Server) GetResolvedImportedServices(
 		return nil, err
 	}
 
-	res := &pbconfigentry.GetResolvedImportedServicesResponse{}
+	res := &pbconfigentry.GetImportedServicesResponse{}
 	meta := structs.QueryMeta{}
 	err = blockingquery.Query(s.FSMServer, &options, &meta, func(ws memdb.WatchSet, store *state.Store) error {
-		idx, importedSvcs, err := store.ResolvedImportedServices(ws, entMeta)
+		idx, importedSvcs, err := store.ImportedServicesForPartition(ws, req.Partition)
 		if err != nil {
 			return err
 		}

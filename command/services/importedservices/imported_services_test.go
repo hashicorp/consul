@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/testrpc"
 )
 
 func TestImportedServices_noTabs(t *testing.T) {
@@ -70,6 +71,7 @@ func TestImportedServices_Pretty(t *testing.T) {
 
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 	client := a.Client()
 
 	ui := cli.NewMockUi()
@@ -126,6 +128,7 @@ func TestImportedServices_JSON(t *testing.T) {
 
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 	client := a.Client()
 
 	ui := cli.NewMockUi()
@@ -167,7 +170,7 @@ func TestImportedServices_JSON(t *testing.T) {
 	code := c.Run(args)
 	require.Equal(t, 0, code)
 
-	var resp []api.ResolvedImportedService
+	var resp []api.ImportedService
 
 	err = json.Unmarshal(ui.OutputWriter.Bytes(), &resp)
 	require.NoError(t, err)
@@ -188,6 +191,7 @@ func TestImportedServices_filter(t *testing.T) {
 
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 	client := a.Client()
 
 	set, _, err := client.ConfigEntries().Set(&api.ServiceIntentionsConfigEntry{
@@ -259,7 +263,7 @@ func TestImportedServices_filter(t *testing.T) {
 		code := cmd.Run(args)
 		require.Equal(t, 0, code)
 
-		var resp []api.ResolvedImportedService
+		var resp []api.ImportedService
 		err = json.Unmarshal(ui.OutputWriter.Bytes(), &resp)
 		require.NoError(t, err)
 
@@ -281,7 +285,7 @@ func TestImportedServices_filter(t *testing.T) {
 		code := cmd.Run(args)
 		require.Equal(t, 0, code)
 
-		var resp []api.ResolvedImportedService
+		var resp []api.ImportedService
 		err = json.Unmarshal(ui.OutputWriter.Bytes(), &resp)
 		require.NoError(t, err)
 
@@ -305,7 +309,7 @@ func TestImportedServices_filter(t *testing.T) {
 		code := cmd.Run(args)
 		require.Equal(t, 0, code)
 
-		var resp []api.ResolvedImportedService
+		var resp []api.ImportedService
 		err = json.Unmarshal(ui.OutputWriter.Bytes(), &resp)
 		require.NoError(t, err)
 

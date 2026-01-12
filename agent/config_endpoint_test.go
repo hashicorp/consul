@@ -914,14 +914,14 @@ func TestConfig_Imported_Services(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, resp.Code)
 
-		services, ok := raw.([]api.ResolvedImportedService)
+		services, ok := raw.([]api.ImportedService)
 		require.True(t, ok)
 		require.Len(t, services, 2)
 		assertIndex(t, resp)
 
 		entMeta := acl.DefaultEnterpriseMeta()
 
-		expected := []api.ResolvedImportedService{
+		expected := []api.ImportedService{
 			{
 				Service:    "api",
 				Partition:  entMeta.PartitionOrEmpty(),

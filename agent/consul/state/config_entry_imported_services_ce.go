@@ -10,14 +10,14 @@ import (
 	"github.com/hashicorp/consul/proto/private/pbconfigentry"
 )
 
-func prepareImportedServicesResponse(importedServices []importedService, entMeta *acl.EnterpriseMeta) []*pbconfigentry.ResolvedImportedService {
+func prepareImportedServicesResponse(importedServices []importedService, entMeta *acl.EnterpriseMeta) []*pbconfigentry.ImportedService {
 
-	resp := make([]*pbconfigentry.ResolvedImportedService, len(importedServices))
+	resp := make([]*pbconfigentry.ImportedService, len(importedServices))
 
-	for idx, importedService := range importedServices {
-		resp[idx] = &pbconfigentry.ResolvedImportedService{
-			Service:    importedService.service,
-			SourcePeer: importedService.peer,
+	for idx, svc := range importedServices {
+		resp[idx] = &pbconfigentry.ImportedService{
+			Service:    svc.service,
+			SourcePeer: svc.peer,
 		}
 	}
 

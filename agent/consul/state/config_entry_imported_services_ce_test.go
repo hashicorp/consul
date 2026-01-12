@@ -30,7 +30,7 @@ func TestStore_prepareImportedServicesResponse(t *testing.T) {
 
 	resp := prepareImportedServicesResponse(importedServices, nil)
 
-	expected := []*pbconfigentry.ResolvedImportedService{
+	expected := []*pbconfigentry.ImportedService{
 		{
 			Service:    "db",
 			SourcePeer: "east",
@@ -88,12 +88,12 @@ func TestStore_ResolvedImportedServices(t *testing.T) {
 
 	// Query for imported services
 	entMeta := acl.EnterpriseMeta{}
-	_, importedServices, err := s.ResolvedImportedServices(nil, &entMeta)
+	_, importedServices, err := s.ImportedServicesForPartition(nil, entMeta.PartitionOrDefault())
 
 	require.NoError(t, err)
 	require.Len(t, importedServices, 3)
 
-	expected := []*pbconfigentry.ResolvedImportedService{
+	expected := []*pbconfigentry.ImportedService{
 		{
 			Service:    "cache",
 			SourcePeer: "east",
@@ -139,13 +139,13 @@ func TestStore_ResolvedImportedServices_NoDuplicates(t *testing.T) {
 
 	// Query for imported services
 	entMeta := acl.EnterpriseMeta{}
-	_, importedServices, err := s.ResolvedImportedServices(nil, &entMeta)
+	_, importedServices, err := s.ImportedServicesForPartition(nil, entMeta.PartitionOrDefault())
 
 	require.NoError(t, err)
 	// Should only have one entry despite two sources from the same peer
 	require.Len(t, importedServices, 1)
 
-	expected := []*pbconfigentry.ResolvedImportedService{
+	expected := []*pbconfigentry.ImportedService{
 		{
 			Service:    "db",
 			SourcePeer: "east",
@@ -177,7 +177,7 @@ func TestStore_ResolvedImportedServices_NoImports(t *testing.T) {
 
 	// Query for imported services
 	entMeta := acl.EnterpriseMeta{}
-	_, importedServices, err := s.ResolvedImportedServices(nil, &entMeta)
+	_, importedServices, err := s.ImportedServicesForPartition(nil, entMeta.PartitionOrDefault())
 
 	require.NoError(t, err)
 	require.Len(t, importedServices, 0)

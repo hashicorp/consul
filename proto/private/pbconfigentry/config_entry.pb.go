@@ -925,27 +925,27 @@ func (x *Consumers) GetPartitions() []string {
 	return nil
 }
 
-type GetResolvedImportedServicesRequest struct {
+type GetImportedServicesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Partition     string                 `protobuf:"bytes,1,opt,name=Partition,proto3" json:"Partition,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetResolvedImportedServicesRequest) Reset() {
-	*x = GetResolvedImportedServicesRequest{}
+func (x *GetImportedServicesRequest) Reset() {
+	*x = GetImportedServicesRequest{}
 	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetResolvedImportedServicesRequest) String() string {
+func (x *GetImportedServicesRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetResolvedImportedServicesRequest) ProtoMessage() {}
+func (*GetImportedServicesRequest) ProtoMessage() {}
 
-func (x *GetResolvedImportedServicesRequest) ProtoReflect() protoreflect.Message {
+func (x *GetImportedServicesRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -957,39 +957,39 @@ func (x *GetResolvedImportedServicesRequest) ProtoReflect() protoreflect.Message
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetResolvedImportedServicesRequest.ProtoReflect.Descriptor instead.
-func (*GetResolvedImportedServicesRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetImportedServicesRequest.ProtoReflect.Descriptor instead.
+func (*GetImportedServicesRequest) Descriptor() ([]byte, []int) {
 	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *GetResolvedImportedServicesRequest) GetPartition() string {
+func (x *GetImportedServicesRequest) GetPartition() string {
 	if x != nil {
 		return x.Partition
 	}
 	return ""
 }
 
-type GetResolvedImportedServicesResponse struct {
-	state         protoimpl.MessageState     `protogen:"open.v1"`
-	Services      []*ResolvedImportedService `protobuf:"bytes,1,rep,name=services,proto3" json:"services,omitempty"`
+type GetImportedServicesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Services      []*ImportedService     `protobuf:"bytes,1,rep,name=Services,proto3" json:"Services,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetResolvedImportedServicesResponse) Reset() {
-	*x = GetResolvedImportedServicesResponse{}
+func (x *GetImportedServicesResponse) Reset() {
+	*x = GetImportedServicesResponse{}
 	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetResolvedImportedServicesResponse) String() string {
+func (x *GetImportedServicesResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetResolvedImportedServicesResponse) ProtoMessage() {}
+func (*GetImportedServicesResponse) ProtoMessage() {}
 
-func (x *GetResolvedImportedServicesResponse) ProtoReflect() protoreflect.Message {
+func (x *GetImportedServicesResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1001,19 +1001,19 @@ func (x *GetResolvedImportedServicesResponse) ProtoReflect() protoreflect.Messag
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetResolvedImportedServicesResponse.ProtoReflect.Descriptor instead.
-func (*GetResolvedImportedServicesResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetImportedServicesResponse.ProtoReflect.Descriptor instead.
+func (*GetImportedServicesResponse) Descriptor() ([]byte, []int) {
 	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *GetResolvedImportedServicesResponse) GetServices() []*ResolvedImportedService {
+func (x *GetImportedServicesResponse) GetServices() []*ImportedService {
 	if x != nil {
 		return x.Services
 	}
 	return nil
 }
 
-type ResolvedImportedService struct {
+type ImportedService struct {
 	state           protoimpl.MessageState   `protogen:"open.v1"`
 	Service         string                   `protobuf:"bytes,1,opt,name=Service,proto3" json:"Service,omitempty"`
 	EnterpriseMeta  *pbcommon.EnterpriseMeta `protobuf:"bytes,2,opt,name=EnterpriseMeta,proto3" json:"EnterpriseMeta,omitempty"`
@@ -1023,20 +1023,20 @@ type ResolvedImportedService struct {
 	sizeCache       protoimpl.SizeCache
 }
 
-func (x *ResolvedImportedService) Reset() {
-	*x = ResolvedImportedService{}
+func (x *ImportedService) Reset() {
+	*x = ImportedService{}
 	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ResolvedImportedService) String() string {
+func (x *ImportedService) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ResolvedImportedService) ProtoMessage() {}
+func (*ImportedService) ProtoMessage() {}
 
-func (x *ResolvedImportedService) ProtoReflect() protoreflect.Message {
+func (x *ImportedService) ProtoReflect() protoreflect.Message {
 	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1048,33 +1048,33 @@ func (x *ResolvedImportedService) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ResolvedImportedService.ProtoReflect.Descriptor instead.
-func (*ResolvedImportedService) Descriptor() ([]byte, []int) {
+// Deprecated: Use ImportedService.ProtoReflect.Descriptor instead.
+func (*ImportedService) Descriptor() ([]byte, []int) {
 	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *ResolvedImportedService) GetService() string {
+func (x *ImportedService) GetService() string {
 	if x != nil {
 		return x.Service
 	}
 	return ""
 }
 
-func (x *ResolvedImportedService) GetEnterpriseMeta() *pbcommon.EnterpriseMeta {
+func (x *ImportedService) GetEnterpriseMeta() *pbcommon.EnterpriseMeta {
 	if x != nil {
 		return x.EnterpriseMeta
 	}
 	return nil
 }
 
-func (x *ResolvedImportedService) GetSourcePeer() string {
+func (x *ImportedService) GetSourcePeer() string {
 	if x != nil {
 		return x.SourcePeer
 	}
 	return ""
 }
 
-func (x *ResolvedImportedService) GetSourcePartition() string {
+func (x *ImportedService) GetSourcePartition() string {
 	if x != nil {
 		return x.SourcePartition
 	}
@@ -8583,12 +8583,12 @@ const file_private_pbconfigentry_config_entry_proto_rawDesc = "" +
 	"\x05Peers\x18\x01 \x03(\tR\x05Peers\x12\x1e\n" +
 	"\n" +
 	"Partitions\x18\x02 \x03(\tR\n" +
-	"Partitions\"B\n" +
-	"\"GetResolvedImportedServicesRequest\x12\x1c\n" +
-	"\tPartition\x18\x01 \x01(\tR\tPartition\"\x81\x01\n" +
-	"#GetResolvedImportedServicesResponse\x12Z\n" +
-	"\bservices\x18\x01 \x03(\v2>.hashicorp.consul.internal.configentry.ResolvedImportedServiceR\bservices\"\xd7\x01\n" +
-	"\x17ResolvedImportedService\x12\x18\n" +
+	"Partitions\":\n" +
+	"\x1aGetImportedServicesRequest\x12\x1c\n" +
+	"\tPartition\x18\x01 \x01(\tR\tPartition\"q\n" +
+	"\x1bGetImportedServicesResponse\x12R\n" +
+	"\bServices\x18\x01 \x03(\v26.hashicorp.consul.internal.configentry.ImportedServiceR\bServices\"\xcf\x01\n" +
+	"\x0fImportedService\x12\x18\n" +
 	"\aService\x18\x01 \x01(\tR\aService\x12X\n" +
 	"\x0eEnterpriseMeta\x18\x02 \x01(\v20.hashicorp.consul.internal.common.EnterpriseMetaR\x0eEnterpriseMeta\x12\x1e\n" +
 	"\n" +
@@ -9291,10 +9291,10 @@ const file_private_pbconfigentry_config_entry_proto_rawDesc = "" +
 	"\x12HTTPQueryMatchType\x12\x17\n" +
 	"\x13HTTPQueryMatchExact\x10\x00\x12\x19\n" +
 	"\x15HTTPQueryMatchPresent\x10\x01\x12#\n" +
-	"\x1fHTTPQueryMatchRegularExpression\x10\x032\x96\x03\n" +
+	"\x1fHTTPQueryMatchRegularExpression\x10\x032\xfe\x02\n" +
 	"\x12ConfigEntryService\x12\xbe\x01\n" +
-	"\x1bGetResolvedExportedServices\x12I.hashicorp.consul.internal.configentry.GetResolvedExportedServicesRequest\x1aJ.hashicorp.consul.internal.configentry.GetResolvedExportedServicesResponse\"\b\xe2\x86\x04\x04\b\x02\x10\f\x12\xbe\x01\n" +
-	"\x1bGetResolvedImportedServices\x12I.hashicorp.consul.internal.configentry.GetResolvedImportedServicesRequest\x1aJ.hashicorp.consul.internal.configentry.GetResolvedImportedServicesResponse\"\b\xe2\x86\x04\x04\b\x02\x10\fB\xae\x02\n" +
+	"\x1bGetResolvedExportedServices\x12I.hashicorp.consul.internal.configentry.GetResolvedExportedServicesRequest\x1aJ.hashicorp.consul.internal.configentry.GetResolvedExportedServicesResponse\"\b\xe2\x86\x04\x04\b\x02\x10\f\x12\xa6\x01\n" +
+	"\x13GetImportedServices\x12A.hashicorp.consul.internal.configentry.GetImportedServicesRequest\x1aB.hashicorp.consul.internal.configentry.GetImportedServicesResponse\"\b\xe2\x86\x04\x04\b\x02\x10\fB\xae\x02\n" +
 	")com.hashicorp.consul.internal.configentryB\x10ConfigEntryProtoP\x01Z7github.com/hashicorp/consul/proto/private/pbconfigentry\xa2\x02\x04HCIC\xaa\x02%Hashicorp.Consul.Internal.Configentry\xca\x02%Hashicorp\\Consul\\Internal\\Configentry\xe2\x021Hashicorp\\Consul\\Internal\\Configentry\\GPBMetadata\xea\x02(Hashicorp::Consul::Internal::Configentryb\x06proto3"
 
 var (
@@ -9329,9 +9329,9 @@ var file_private_pbconfigentry_config_entry_proto_goTypes = []any{
 	(*GetResolvedExportedServicesResponse)(nil), // 14: hashicorp.consul.internal.configentry.GetResolvedExportedServicesResponse
 	(*ResolvedExportedService)(nil),             // 15: hashicorp.consul.internal.configentry.ResolvedExportedService
 	(*Consumers)(nil),                           // 16: hashicorp.consul.internal.configentry.Consumers
-	(*GetResolvedImportedServicesRequest)(nil),  // 17: hashicorp.consul.internal.configentry.GetResolvedImportedServicesRequest
-	(*GetResolvedImportedServicesResponse)(nil), // 18: hashicorp.consul.internal.configentry.GetResolvedImportedServicesResponse
-	(*ResolvedImportedService)(nil),             // 19: hashicorp.consul.internal.configentry.ResolvedImportedService
+	(*GetImportedServicesRequest)(nil),          // 17: hashicorp.consul.internal.configentry.GetImportedServicesRequest
+	(*GetImportedServicesResponse)(nil),         // 18: hashicorp.consul.internal.configentry.GetImportedServicesResponse
+	(*ImportedService)(nil),                     // 19: hashicorp.consul.internal.configentry.ImportedService
 	(*ConfigEntry)(nil),                         // 20: hashicorp.consul.internal.configentry.ConfigEntry
 	(*MeshConfig)(nil),                          // 21: hashicorp.consul.internal.configentry.MeshConfig
 	(*TransparentProxyMeshConfig)(nil),          // 22: hashicorp.consul.internal.configentry.TransparentProxyMeshConfig
@@ -9467,8 +9467,8 @@ var file_private_pbconfigentry_config_entry_proto_depIdxs = []int32{
 	15,  // 0: hashicorp.consul.internal.configentry.GetResolvedExportedServicesResponse.services:type_name -> hashicorp.consul.internal.configentry.ResolvedExportedService
 	145, // 1: hashicorp.consul.internal.configentry.ResolvedExportedService.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
 	16,  // 2: hashicorp.consul.internal.configentry.ResolvedExportedService.Consumers:type_name -> hashicorp.consul.internal.configentry.Consumers
-	19,  // 3: hashicorp.consul.internal.configentry.GetResolvedImportedServicesResponse.services:type_name -> hashicorp.consul.internal.configentry.ResolvedImportedService
-	145, // 4: hashicorp.consul.internal.configentry.ResolvedImportedService.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	19,  // 3: hashicorp.consul.internal.configentry.GetImportedServicesResponse.Services:type_name -> hashicorp.consul.internal.configentry.ImportedService
+	145, // 4: hashicorp.consul.internal.configentry.ImportedService.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
 	0,   // 5: hashicorp.consul.internal.configentry.ConfigEntry.Kind:type_name -> hashicorp.consul.internal.configentry.Kind
 	145, // 6: hashicorp.consul.internal.configentry.ConfigEntry.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
 	146, // 7: hashicorp.consul.internal.configentry.ConfigEntry.RaftIndex:type_name -> hashicorp.consul.internal.common.RaftIndex
@@ -9655,9 +9655,9 @@ var file_private_pbconfigentry_config_entry_proto_depIdxs = []int32{
 	32,  // 188: hashicorp.consul.internal.configentry.ServiceResolver.FailoverEntry.value:type_name -> hashicorp.consul.internal.configentry.ServiceResolverFailover
 	81,  // 189: hashicorp.consul.internal.configentry.BoundAPIGateway.ServicesEntry.value:type_name -> hashicorp.consul.internal.configentry.ListOfResourceReference
 	13,  // 190: hashicorp.consul.internal.configentry.ConfigEntryService.GetResolvedExportedServices:input_type -> hashicorp.consul.internal.configentry.GetResolvedExportedServicesRequest
-	17,  // 191: hashicorp.consul.internal.configentry.ConfigEntryService.GetResolvedImportedServices:input_type -> hashicorp.consul.internal.configentry.GetResolvedImportedServicesRequest
+	17,  // 191: hashicorp.consul.internal.configentry.ConfigEntryService.GetImportedServices:input_type -> hashicorp.consul.internal.configentry.GetImportedServicesRequest
 	14,  // 192: hashicorp.consul.internal.configentry.ConfigEntryService.GetResolvedExportedServices:output_type -> hashicorp.consul.internal.configentry.GetResolvedExportedServicesResponse
-	18,  // 193: hashicorp.consul.internal.configentry.ConfigEntryService.GetResolvedImportedServices:output_type -> hashicorp.consul.internal.configentry.GetResolvedImportedServicesResponse
+	18,  // 193: hashicorp.consul.internal.configentry.ConfigEntryService.GetImportedServices:output_type -> hashicorp.consul.internal.configentry.GetImportedServicesResponse
 	192, // [192:194] is the sub-list for method output_type
 	190, // [190:192] is the sub-list for method input_type
 	190, // [190:190] is the sub-list for extension type_name

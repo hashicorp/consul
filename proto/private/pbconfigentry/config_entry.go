@@ -712,8 +712,8 @@ func (r *ResolvedExportedService) ToAPI() *api.ResolvedExportedService {
 	return &t
 }
 
-func (r *ResolvedImportedService) ToAPI() *api.ResolvedImportedService {
-	var t api.ResolvedImportedService
+func (r *ImportedService) ToAPI() *api.ImportedService {
+	var t api.ImportedService
 
 	t.Service = r.Service
 	if r.EnterpriseMeta != nil {

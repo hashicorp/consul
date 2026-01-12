@@ -3,7 +3,7 @@
 
 package api
 
-type ResolvedImportedService struct {
+type ImportedService struct {
 	// Service is the name of the service which is imported.
 	Service string
 
@@ -20,7 +20,7 @@ type ResolvedImportedService struct {
 	SourcePartition string `json:",omitempty"`
 }
 
-func (c *Client) ImportedServices(q *QueryOptions) ([]ResolvedImportedService, *QueryMeta, error) {
+func (c *Client) ImportedServices(q *QueryOptions) ([]ImportedService, *QueryMeta, error) {
 
 	r := c.newRequest("GET", "/v1/imported-services")
 	r.setQueryOptions(q)
@@ -37,7 +37,7 @@ func (c *Client) ImportedServices(q *QueryOptions) ([]ResolvedImportedService, *
 	parseQueryMeta(resp, qm)
 	qm.RequestTime = rtt
 
-	var impSvcs []ResolvedImportedService
+	var impSvcs []ImportedService
 
 	if err := decodeBody(resp, &impSvcs); err != nil {
 		return nil, nil, err

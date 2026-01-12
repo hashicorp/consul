@@ -22,16 +22,17 @@ type importedService struct {
 	peer      string
 }
 
-// ResolvedImportedServices returns the list of imported services along with their sources.
+// ImportedServicesForPartition returns the list of imported services along with their sources.
 // This shows which services are being imported from peers.
-func (s *Store) ResolvedImportedServices(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta) (uint64, []*pbconfigentry.ResolvedImportedService, error) {
+func (s *Store) ImportedServicesForPartition(ws memdb.WatchSet, partition string) (uint64, []*pbconfigentry.ImportedService, error) {
 	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
-	return resolvedImportedServicesTxn(tx, ws, entMeta)
+	entMeta := acl.NewEnterpriseMetaWithPartition(partition, acl.WildcardName)
+	return importedServicesForPartitionTxn(tx, ws, &entMeta)
 }
 
-func resolvedImportedServicesTxn(tx ReadTxn, ws memdb.WatchSet, entMeta *acl.EnterpriseMeta) (uint64, []*pbconfigentry.ResolvedImportedService, error) {
+func importedServicesForPartitionTxn(tx ReadTxn, ws memdb.WatchSet, entMeta *acl.EnterpriseMeta) (uint64, []*pbconfigentry.ImportedService, error) {
 	maxIdx := uint64(0)
 
 	// Get all service intentions that have a source peer set

@@ -48,32 +48,32 @@ func (msg *Consumers) UnmarshalBinary(b []byte) error {
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
-func (msg *GetResolvedImportedServicesRequest) MarshalBinary() ([]byte, error) {
+func (msg *GetImportedServicesRequest) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (msg *GetResolvedImportedServicesRequest) UnmarshalBinary(b []byte) error {
+func (msg *GetImportedServicesRequest) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
-func (msg *GetResolvedImportedServicesResponse) MarshalBinary() ([]byte, error) {
+func (msg *GetImportedServicesResponse) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (msg *GetResolvedImportedServicesResponse) UnmarshalBinary(b []byte) error {
+func (msg *GetImportedServicesResponse) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
-func (msg *ResolvedImportedService) MarshalBinary() ([]byte, error) {
+func (msg *ImportedService) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (msg *ResolvedImportedService) UnmarshalBinary(b []byte) error {
+func (msg *ImportedService) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
 

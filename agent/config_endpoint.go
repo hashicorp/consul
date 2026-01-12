@@ -230,7 +230,7 @@ func (s *HTTPHandlers) ImportedServices(resp http.ResponseWriter, req *http.Requ
 	if err := s.parseEntMetaPartition(req, &entMeta); err != nil {
 		return nil, err
 	}
-	args := pbconfigentry.GetResolvedImportedServicesRequest{
+	args := pbconfigentry.GetImportedServicesRequest{
 		Partition: entMeta.PartitionOrEmpty(),
 	}
 
@@ -243,7 +243,7 @@ func (s *HTTPHandlers) ImportedServices(resp http.ResponseWriter, req *http.Requ
 	}
 
 	var header metadata.MD
-	result, err := s.agent.grpcClientConfigEntry.GetResolvedImportedServices(ctx, &args, grpc.Header(&header))
+	result, err := s.agent.grpcClientConfigEntry.GetImportedServices(ctx, &args, grpc.Header(&header))
 	if err != nil {
 		return nil, err
 	}
@@ -256,7 +256,7 @@ func (s *HTTPHandlers) ImportedServices(resp http.ResponseWriter, req *http.Requ
 		return nil, err
 	}
 
-	svcs := make([]api.ResolvedImportedService, len(result.Services))
+	svcs := make([]api.ImportedService, len(result.Services))
 
 	for idx, svc := range result.Services {
 		svcs[idx] = *svc.ToAPI()

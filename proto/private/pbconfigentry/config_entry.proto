@@ -18,7 +18,7 @@ service ConfigEntryService {
       operation_category: OPERATION_CATEGORY_CONFIGENTRY
     };
   }
-  rpc GetResolvedImportedServices(GetResolvedImportedServicesRequest) returns (GetResolvedImportedServicesResponse) {
+  rpc GetImportedServices(GetImportedServicesRequest) returns (GetImportedServicesResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
       operation_type: OPERATION_TYPE_READ
       operation_category: OPERATION_CATEGORY_CONFIGENTRY
@@ -45,15 +45,15 @@ message Consumers {
   repeated string Partitions = 2;
 }
 
-message GetResolvedImportedServicesRequest {
+message GetImportedServicesRequest {
   string Partition = 1;
 }
 
-message GetResolvedImportedServicesResponse {
-  repeated ResolvedImportedService services = 1;
+message GetImportedServicesResponse {
+  repeated ImportedService Services = 1;
 }
 
-message ResolvedImportedService {
+message ImportedService {
   string Service = 1;
   common.EnterpriseMeta EnterpriseMeta = 2;
   string SourcePeer = 3;

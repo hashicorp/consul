@@ -94,7 +94,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	var filterType []api.ResolvedImportedService
+	var filterType []api.ImportedService
 	filter, err := bexpr.CreateFilter(c.filter, nil, filterType)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error while creating filter: %s", err))
@@ -107,7 +107,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	filteredServices := raw.([]api.ResolvedImportedService)
+	filteredServices := raw.([]api.ImportedService)
 
 	if len(filteredServices) == 0 {
 		c.UI.Info("No imported services found")
@@ -131,7 +131,7 @@ func (c *cmd) Run(args []string) int {
 	return 0
 }
 
-func formatImportedServices(services []api.ResolvedImportedService) string {
+func formatImportedServices(services []api.ImportedService) string {
 	result := make([]string, 0, len(services)+1)
 
 	if len(services) > 0 && services[0].Partition != "" {
