@@ -105,17 +105,7 @@ func (a *AWSLogin) createAWSBearerToken() (string, error) {
 
 	// Set endpoint if provided (for STS)
 	if a.stsEndpoint != "" {
-		configOpts = append(configOpts, config.WithEndpointResolverWithOptions(
-			awsv2.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (awsv2.Endpoint, error) {
-				if service == "STS" {
-					return awsv2.Endpoint{
-						URL:           a.stsEndpoint,
-						SigningRegion: region,
-					}, nil
-				}
-				return awsv2.Endpoint{}, &awsv2.EndpointNotFoundError{}
-			}),
-		))
+		configOpts = append(configOpts, config.WithBaseEndpoint(a.stsEndpoint))
 	}
 
 	// Set static credentials if provided
