@@ -28,7 +28,7 @@ require (
 	github.com/envoyproxy/go-control-plane/xdsmatcher v0.13.4
 	github.com/hashicorp/consul/api v1.33.0
 	github.com/hashicorp/consul/envoyextensions v0.9.0
-	github.com/hashicorp/consul/sdk v0.17.0
+	github.com/hashicorp/consul/sdk v0.17.1
 	github.com/stretchr/testify v1.10.0
 	google.golang.org/protobuf v1.36.4
 )

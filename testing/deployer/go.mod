@@ -8,7 +8,7 @@ require (
 	github.com/hashicorp/consul-server-connection-manager v0.1.12
 	github.com/hashicorp/consul/api v1.33.0
 	github.com/hashicorp/consul/proto-public v0.7.0
-	github.com/hashicorp/consul/sdk v0.17.0
+	github.com/hashicorp/consul/sdk v0.17.1
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-hclog v1.5.0
 	github.com/hashicorp/go-multierror v1.1.1

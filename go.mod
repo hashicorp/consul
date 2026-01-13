@@ -48,7 +48,7 @@ require (
 	github.com/hashicorp/consul/api v1.33.0
 	github.com/hashicorp/consul/envoyextensions v0.9.0
 	github.com/hashicorp/consul/proto-public v0.7.0
-	github.com/hashicorp/consul/sdk v0.17.0
+	github.com/hashicorp/consul/sdk v0.17.1
 	github.com/hashicorp/consul/troubleshoot v0.8.0
 	github.com/hashicorp/go-bexpr v0.1.2
 	github.com/hashicorp/go-checkpoint v0.5.0
