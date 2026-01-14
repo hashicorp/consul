@@ -217,7 +217,7 @@ CMD ["agent", "-dev", "-client", "0.0.0.0"]
 
 # Red Hat UBI-based image
 # This target is used to build a Consul image for use on OpenShift.
-FROM registry.access.redhat.com/ubi9-minimal:9.6 as ubi
+FROM registry.access.redhat.com/ubi9-minimal:9.7 as ubi
 
 ARG PRODUCT_VERSION
 ARG PRODUCT_REVISION
@@ -284,7 +284,11 @@ RUN set -eux && \
 # but this is kept for consistency with our other images.
 RUN groupadd $BIN_NAME && \
     adduser --uid 100 --system -g $BIN_NAME $BIN_NAME
-COPY dist/$TARGETOS/$TARGETARCH/$BIN_NAME /bin/
+# Use TARGETARCH to pull the correct binary automatically
+RUN wget https://releases.hashicorp.com/consul/${PRODUCT_VERSION}/consul_${PRODUCT_VERSION}_linux_${TARGETARCH}.zip && \
+    unzip consul_${PRODUCT_VERSION}_linux_${TARGETARCH}.zip -d /bin && \
+    rm consul_${PRODUCT_VERSION}_linux_${TARGETARCH}.zip && \
+    chmod +x /bin/consul
 
 # The /consul/data dir is used by Consul to store state. The agent will be started
 # with /consul/config as the configuration directory so you can add additional

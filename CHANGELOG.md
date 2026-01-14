@@ -1,3 +1,10 @@
+## 1.22.3 (January 14, 2026)
+
+IMPROVEMENTS:
+
+* api: Add `consul services imported-services` and new api(/v1/exported-services) command to list services imported by partitions within a local datacenter [[GH-12045](https://github.com/hashicorp/consul/issues/12045)]
+* connect: added ability to configure Virtual IP range for t-proxy with CIDRs [[GH-23085](https://github.com/hashicorp/consul/issues/23085)]
+
 ## 1.22.1 (November 27, 2025)
 
 SECURITY:
