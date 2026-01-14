@@ -1034,8 +1034,9 @@ func (s *Server) blockingQuery(
 	requestOpts blockingquery.RequestOptions,
 	responseMeta blockingquery.ResponseMeta,
 	query blockingquery.QueryFn,
+	tokenAutneticated bool,
 ) error {
-	return blockingquery.Query(s, requestOpts, responseMeta, query)
+	return blockingquery.Query(s, requestOpts, responseMeta, query, tokenAutneticated)
 }
 
 var (
@@ -1046,7 +1047,7 @@ var (
 // SetQueryMeta is used to populate the QueryMeta data for an RPC call
 //
 // Note: This method must be called *after* filtering query results with ACLs.
-func (s *Server) SetQueryMeta(m blockingquery.ResponseMeta, token string) {
+func (s *Server) SetQueryMeta(m blockingquery.ResponseMeta, token string, tokenAuthenticated bool) error {
 	if s.IsLeader() {
 		m.SetLastContact(0)
 		m.SetKnownLeader(true)
@@ -1054,7 +1055,7 @@ func (s *Server) SetQueryMeta(m blockingquery.ResponseMeta, token string) {
 		m.SetLastContact(time.Since(s.raft.LastContact()))
 		m.SetKnownLeader(s.raft.Leader() != "")
 	}
-	maskResultsFilteredByACLs(token, m, s)
+	maskResultsFilteredByACLs(token, tokenAuthenticated, m, s)
 
 	// Always set a non-zero QueryMeta.Index. Generally we expect the
 	// QueryMeta.Index to be set to structs.RaftIndex.ModifyIndex. If the query
@@ -1066,6 +1067,7 @@ func (s *Server) SetQueryMeta(m blockingquery.ResponseMeta, token string) {
 	if m.GetIndex() < 1 {
 		m.SetIndex(1)
 	}
+	return nil
 }
 
 func (s *Server) consistentReadWithContext(ctx context.Context) error {
@@ -1149,11 +1151,11 @@ func (s *Server) RPCQueryTimeout(queryTimeout time.Duration) time.Duration {
 //     will only check whether it is blank or anonymous). It's a safe assumption because
 //     ResultsFilteredByACLs is only set to try when applying the already-resolved
 //     token's policies.
-func maskResultsFilteredByACLs(token string, m blockingQueryResponseMeta, s *Server) {
+func maskResultsFilteredByACLs(token string, tokenAuthenticated bool, m blockingQueryResponseMeta, s *Server) error {
 	if token == "" {
 		fmt.Println(time.Now().String()+" ===================>  maskResultsFilteredByACLs function called with token 1", token)
 		m.SetResultsFilteredByACLs(false)
-		return
+		return nil
 	}
 
 	identity, err := s.resolveIdentityFromToken(token)
@@ -1162,15 +1164,16 @@ func maskResultsFilteredByACLs(token string, m blockingQueryResponseMeta, s *Ser
 		debug.PrintStack()
 		s.rpcLogger().Debug("Failed to resolve identity from token", "err", err)
 		m.SetResultsFilteredByACLs(false)
-		return
+		return nil
 	} else if identity == nil {
-		return
+		return nil
 	} else if identity.IsExpired(time.Now()) {
-		return
+		return nil
 	}
 
 	if identity.ID() == anonymousAccessorID && identity.SecretToken() == anonymousSecretID {
 		fmt.Println(time.Now().String()+" ===================>  maskResultsFilteredByACLs failed token 5", token)
 		m.SetResultsFilteredByACLs(false)
 	}
+	return nil
 }

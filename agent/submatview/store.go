@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"runtime/debug"
 	"sync"
 	"time"
 
@@ -68,30 +69,42 @@ func NewStore(logger hclog.Logger) *Store {
 
 // Run the expiration loop until the context is cancelled.
 func (s *Store) Run(ctx context.Context) {
+
+	fmt.Println(time.Now().String()+" ===================>  agent submatview started \n", string(debug.Stack()))
+
 	for {
+		// fmt.Println(time.Now().String() + " ===================>  agent submatview loop")
 		s.lock.RLock()
 		timer := s.expiryHeap.Next()
 		s.lock.RUnlock()
 
 		select {
 		case <-ctx.Done():
+			fmt.Println(time.Now().String() + " ===================>  agent submatview loop 1")
+
 			timer.Stop()
 			return
 
 		// the first item in the heap has changed, restart the timer with the
 		// new TTL.
 		case <-s.expiryHeap.NotifyCh:
+			fmt.Println(time.Now().String() + " ===================>  agent submatview loop 2")
+
 			timer.Stop()
 			continue
 
 		// the TTL for the first item has been reached, attempt an expiration.
 		case <-timer.Wait():
+			fmt.Println(time.Now().String() + " ===================>  agent submatview loop 3")
+
 			s.lock.Lock()
 
 			he := timer.Entry
 			s.expiryHeap.Remove(he.Index())
 
 			e := s.byKey[he.Key()]
+			fmt.Println(time.Now().String()+" ===================>  agent submatview loop 5",
+				he.Key(), e.requests)
 
 			// Only stop the materializer if there are no active requests.
 			if e.requests == 0 {
@@ -99,6 +112,7 @@ func (s *Store) Run(ctx context.Context) {
 				e.stop()
 				delete(s.byKey, he.Key())
 			}
+			// fmt.Println(time.Now().String() + " ===================>  agent submatview loop 7")
 
 			s.lock.Unlock()
 		}

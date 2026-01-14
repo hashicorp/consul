@@ -61,5 +61,5 @@ func (op *Operator) Usage(args *structs.OperatorUsageRequest, reply *structs.Usa
 
 			reply.Index, reply.Usage[op.srv.config.Datacenter] = index, serviceUsage
 			return nil
-		})
+		}, true)
 }

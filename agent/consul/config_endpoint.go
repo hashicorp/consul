@@ -197,7 +197,7 @@ func (c *ConfigEntry) Get(args *structs.ConfigEntryQuery, reply *structs.ConfigE
 				return errNotFound
 			}
 			return nil
-		})
+		}, true)
 }
 
 // List returns all the config entries of the given kind. If Kind is blank,
@@ -302,7 +302,7 @@ func (c *ConfigEntry) List(args *structs.ConfigEntryQuery, reply *structs.Indexe
 			}
 
 			return nil
-		})
+		}, true)
 }
 
 var configEntryKindsFromConsul_1_8_0 = []string{
@@ -372,7 +372,7 @@ func (c *ConfigEntry) ListAll(args *structs.ConfigEntryListAllRequest, reply *st
 			reply.Entries = filteredEntries
 			reply.Index = index
 			return nil
-		})
+		}, true)
 }
 
 // Delete deletes a config entry.
@@ -517,7 +517,7 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 			}
 
 			return nil
-		})
+		}, true)
 }
 
 func gateWriteToSecondary(targetDC, localDC, primaryDC, kind string) error {

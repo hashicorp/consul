@@ -109,7 +109,7 @@ func (f *FakeBlockingFSM) RPCQueryTimeout(queryTimeout time.Duration) time.Durat
 	return queryTimeout
 }
 
-func (f *FakeBlockingFSM) SetQueryMeta(blockingquery.ResponseMeta, string) {
+func (f *FakeBlockingFSM) SetQueryMeta(blockingquery.ResponseMeta, string, bool) {
 }
 
 func SetupFSMAndPublisher(t *testing.T, config FakeFSMConfig) (*FakeFSM, state.EventPublisher) {

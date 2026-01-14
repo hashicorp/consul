@@ -100,6 +100,7 @@ func (s *ConnectCA) ConfigurationSet(
 	if err != nil {
 		return err
 	}
+
 	if err := authz.ToAllowAuthorizer().OperatorWriteAllowed(nil); err != nil {
 		return err
 	}
@@ -130,7 +131,6 @@ func (s *ConnectCA) Roots(
 		return ErrConnectNotEnabled
 	}
 	fmt.Println(time.Now().String()+" ===================>  Roots rpc function called with token 2", args.Token)
-
 	return s.srv.blockingQuery(
 		&args.QueryOptions, &reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
@@ -143,8 +143,9 @@ func (s *ConnectCA) Roots(
 			fmt.Println(time.Now().String()+" ===================>  Roots rpc function called with token 4", args.Token)
 
 			*reply = *roots
+			reply.ResultsFilteredByACLs = false
 			return nil
-		},
+		}, false,
 	)
 }
 

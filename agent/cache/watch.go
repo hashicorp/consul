@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"runtime/debug"
 	"time"
 
 	"google.golang.org/protobuf/proto"
@@ -55,6 +56,7 @@ func (c *Cache) Notify(
 	correlationID string,
 	ch chan<- UpdateEvent,
 ) error {
+
 	return c.NotifyCallback(ctx, t, r, correlationID, func(ctx context.Context, event UpdateEvent) {
 		select {
 		case ch <- event:
@@ -84,6 +86,10 @@ func (c *Cache) NotifyCallback(
 	fmt.Println(time.Now().String()+" ===================>  NotifyCallback 2", t, correlationID)
 
 	if tEntry.Opts.SupportsBlocking {
+		fmt.Println("================== THE SOURCE===================")
+debug.PrintStack()
+		fmt.Println("=================================================")
+
 		go c.notifyBlockingQuery(ctx, newGetOptions(tEntry, r), correlationID, cb)
 		return nil
 	}

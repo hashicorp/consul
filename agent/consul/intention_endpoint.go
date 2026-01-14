@@ -487,7 +487,7 @@ func (s *Intention) Get(args *structs.IntentionQueryRequest, reply *structs.Inde
 			}
 
 			return nil
-		},
+		}, true,
 	)
 }
 
@@ -566,7 +566,7 @@ func (s *Intention) List(args *structs.IntentionListRequest, reply *structs.Inde
 
 			return nil
 		},
-	)
+		true,
 }
 
 // Match returns the set of intentions that match the given source/destination.
@@ -675,6 +675,7 @@ func (s *Intention) Match(args *structs.IntentionQueryRequest, reply *structs.In
 
 			return nil
 		},
+		true,
 	)
 }
 

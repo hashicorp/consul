@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"runtime/debug"
 	"time"
 
 	"github.com/hashicorp/consul/agent/cache"
@@ -55,8 +54,8 @@ func (c *ConnectCARoot) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 	// Set the minimum query index to our current index so we block
 	reqReal.MinQueryIndex = opts.MinIndex
 	reqReal.MaxQueryTime = opts.Timeout
+	reqReal.Token = "" // No ACL token needed to fetch Connect CA roots
 
-	// Fetch
 	var reply structs.IndexedCARoots
 	if err := c.RPC.RPC(context.Background(), "ConnectCA.Roots", reqReal, &reply); err != nil {
 		fmt.Println(time.Now().String() + " ===================>  ConnectCARoot Fetch function called 5")

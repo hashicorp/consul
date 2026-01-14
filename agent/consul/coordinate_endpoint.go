@@ -228,7 +228,7 @@ func (c *Coordinate) ListNodes(args *structs.DCSpecificRequest, reply *structs.I
 			}
 
 			return nil
-		})
+		}, true)
 }
 
 // Node returns the raw coordinates for a single node.
@@ -272,5 +272,5 @@ func (c *Coordinate) Node(args *structs.NodeSpecificRequest, reply *structs.Inde
 			reply.Index, reply.Coordinates = index, coords
 
 			return nil
-		})
+		}, true)
 }

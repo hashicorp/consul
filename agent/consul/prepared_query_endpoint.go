@@ -277,7 +277,7 @@ func (p *PreparedQuery) Get(args *structs.PreparedQuerySpecificRequest,
 			}
 
 			return nil
-		})
+		}, true)
 }
 
 // List returns all the prepared queries.
@@ -297,7 +297,7 @@ func (p *PreparedQuery) List(args *structs.DCSpecificRequest, reply *structs.Ind
 
 			reply.Index, reply.Queries = index, queries
 			return p.srv.filterACL(args.Token, reply)
-		})
+		}, true)
 }
 
 // Explain resolves a prepared query and returns the (possibly rendered template)
@@ -312,7 +312,7 @@ func (p *PreparedQuery) Explain(args *structs.PreparedQueryExecuteRequest,
 	defer metrics.MeasureSince([]string{"prepared-query", "explain"}, time.Now())
 
 	// We have to do this ourselves since we are not doing a blocking RPC.
-	p.srv.SetQueryMeta(&reply.QueryMeta, args.Token)
+	p.srv.SetQueryMeta(&reply.QueryMeta, args.Token, true)
 	if args.RequireConsistent {
 		if err := p.srv.ConsistentRead(); err != nil {
 			return err
@@ -404,7 +404,7 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 		// though, since this is essentially a misconfiguration.
 
 		// We have to do this ourselves since we are not doing a blocking RPC.
-		p.srv.SetQueryMeta(&reply.QueryMeta, token)
+		p.srv.SetQueryMeta(&reply.QueryMeta, token, true)
 
 		// Shuffle the results in case coordinates are not available if they
 		// requested an RTT sort.
@@ -527,7 +527,7 @@ func (p *PreparedQuery) ExecuteRemote(args *structs.PreparedQueryExecuteRemoteRe
 	}
 
 	// We have to do this ourselves since we are not doing a blocking RPC.
-	p.srv.SetQueryMeta(&reply.QueryMeta, token)
+	p.srv.SetQueryMeta(&reply.QueryMeta, token, true)
 
 	// We don't bother trying to do an RTT sort here since we are by
 	// definition in another DC. We just shuffle to make sure that we

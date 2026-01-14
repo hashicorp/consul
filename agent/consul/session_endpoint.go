@@ -205,7 +205,7 @@ func (s *Session) Get(args *structs.SessionSpecificRequest,
 			}
 			s.srv.filterACLWithAuthorizer(authz, reply)
 			return nil
-		})
+		}, true)
 }
 
 // List is used to list all the active sessions
@@ -237,7 +237,7 @@ func (s *Session) List(args *structs.SessionSpecificRequest,
 			reply.Index, reply.Sessions = index, sessions
 			s.srv.filterACLWithAuthorizer(authz, reply)
 			return nil
-		})
+		}, true)
 }
 
 // NodeSessions is used to get all the sessions for a particular node
@@ -269,7 +269,7 @@ func (s *Session) NodeSessions(args *structs.NodeSpecificRequest,
 			reply.Index, reply.Sessions = index, sessions
 			s.srv.filterACLWithAuthorizer(authz, reply)
 			return nil
-		})
+		}, true)
 }
 
 // Renew is used to renew the TTL on a single session

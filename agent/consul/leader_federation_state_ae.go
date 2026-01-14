@@ -181,7 +181,7 @@ func (s *Server) fetchFederationStateAntiEntropyDetails(
 			currFedState = curr
 
 			return nil
-		})
+		}, false)
 	if err != nil {
 		return 0, nil, nil, err
 	}

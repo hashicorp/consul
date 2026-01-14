@@ -54,7 +54,7 @@ func (m *Internal) NodeInfo(args *structs.NodeSpecificRequest,
 
 			reply.Index, reply.Dump = index, dump
 			return m.srv.filterACL(args.Token, reply)
-		})
+		}, true)
 }
 
 // NodeDump is used to generate information about all of the nodes.
@@ -145,7 +145,7 @@ func (m *Internal) NodeDump(args *structs.DCSpecificRequest,
 			reply.ImportedDump = importedRaw.(structs.NodeDump)
 
 			return nil
-		})
+		}, true)
 }
 
 func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.IndexedNodesWithGateways) error {
@@ -272,7 +272,7 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 			}
 
 			return nil
-		})
+		}, true)
 }
 
 func (m *Internal) CatalogOverview(args *structs.DCSpecificRequest, reply *structs.CatalogSummary) error {
@@ -335,7 +335,7 @@ func (m *Internal) ServiceTopology(args *structs.ServiceSpecificRequest, reply *
 				return err
 			}
 			return nil
-		})
+		}, true)
 }
 
 // IntentionUpstreams returns a service's upstreams which are inferred from intentions.
@@ -418,7 +418,7 @@ func (m *Internal) internalUpstreams(args *structs.ServiceSpecificRequest, reply
 			}
 
 			return nil
-		})
+		}, true)
 }
 
 // GatewayServiceDump returns all the nodes for services associated with a gateway along with their gateway config
@@ -494,7 +494,7 @@ func (m *Internal) GatewayServiceDump(args *structs.ServiceSpecificRequest, repl
 				return err
 			}
 			return nil
-		})
+		}, true)
 
 	return err
 }
@@ -544,7 +544,7 @@ func (m *Internal) ServiceGateways(args *structs.ServiceSpecificRequest, reply *
 				return err
 			}
 			return nil
-		})
+		}, true)
 
 	return err
 }
@@ -630,7 +630,7 @@ func (m *Internal) GatewayIntentions(args *structs.IntentionQueryRequest, reply 
 				return err
 			}
 			return nil
-		},
+		}, true,
 	)
 }
 
@@ -662,7 +662,7 @@ func (m *Internal) ExportedPeeredServices(args *structs.DCSpecificRequest, reply
 			reply.Index, reply.Services = index, serviceMap
 			m.srv.filterACLWithAuthorizer(authz, reply)
 			return nil
-		})
+		}, true)
 }
 
 // ExportedServicesForPeer returns a list of Service names that are exported for a given peer.
@@ -715,7 +715,7 @@ func (m *Internal) ExportedServicesForPeer(args *structs.ServiceDumpRequest, rep
 			}
 
 			return nil
-		})
+		}, true)
 }
 
 // PeeredUpstreams returns all imported services as upstreams for any service in a given partition.
@@ -758,7 +758,7 @@ func (m *Internal) PeeredUpstreams(args *structs.PartitionSpecificRequest, reply
 
 			reply.Index, reply.Services = index, result
 			return nil
-		})
+		}, true)
 }
 
 // AssignManualServiceVIPs allows for assigning virtual IPs to a service manually, so that they can
@@ -853,7 +853,7 @@ func (m *Internal) EventFire(args *structs.EventFireRequest,
 	}
 
 	// Set the query meta data
-	m.srv.SetQueryMeta(&reply.QueryMeta, args.Token)
+	m.srv.SetQueryMeta(&reply.QueryMeta, args.Token, true)
 
 	// Add the consul prefix to the event name
 	eventName := userEventName(args.Name)

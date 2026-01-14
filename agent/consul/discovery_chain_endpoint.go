@@ -101,5 +101,5 @@ func (c *DiscoveryChain) Get(args *structs.DiscoveryChainRequest, reply *structs
 			}
 
 			return nil
-		})
+		}, true)
 }

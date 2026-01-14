@@ -345,7 +345,7 @@ func (a *ACL) TokenRead(args *structs.ACLTokenGetRequest, reply *structs.ACLToke
 			}
 
 			return nil
-		})
+		}, true)
 }
 
 func (a *ACL) lookupExpandedTokenInfo(ws memdb.WatchSet, state *state.Store, token *structs.ACLToken) (structs.ExpandedTokenInfo, error) {
@@ -734,7 +734,7 @@ func (a *ACL) TokenList(args *structs.ACLTokenListRequest, reply *structs.ACLTok
 
 			reply.Index, reply.Tokens = index, stubs
 			return nil
-		})
+		}, true)
 }
 
 func (a *ACL) TokenBatchRead(args *structs.ACLTokenBatchGetRequest, reply *structs.ACLTokenBatchResponse) error {
@@ -786,7 +786,7 @@ func (a *ACL) TokenBatchRead(args *structs.ACLTokenBatchGetRequest, reply *struc
 
 			reply.Index, reply.Tokens = index, ret
 			return nil
-		})
+		}, true)
 }
 
 func (a *ACL) PolicyRead(args *structs.ACLPolicyGetRequest, reply *structs.ACLPolicyResponse) error {
@@ -831,7 +831,7 @@ func (a *ACL) PolicyRead(args *structs.ACLPolicyGetRequest, reply *structs.ACLPo
 				return errNotFound
 			}
 			return nil
-		})
+		}, true)
 }
 
 func (a *ACL) PolicyBatchRead(args *structs.ACLPolicyBatchGetRequest, reply *structs.ACLPolicyBatchResponse) error {
@@ -859,7 +859,7 @@ func (a *ACL) PolicyBatchRead(args *structs.ACLPolicyBatchGetRequest, reply *str
 
 			reply.Index, reply.Policies = index, policies
 			return nil
-		})
+		}, true)
 }
 
 func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPolicy) error {
@@ -1091,7 +1091,7 @@ func (a *ACL) PolicyList(args *structs.ACLPolicyListRequest, reply *structs.ACLP
 
 			reply.Index, reply.Policies = index, stubs
 			return nil
-		})
+		}, true)
 }
 
 // PolicyResolve is used to retrieve a subset of the policies associated with a given token
@@ -1146,7 +1146,7 @@ func (a *ACL) PolicyResolve(args *structs.ACLPolicyBatchGetRequest, reply *struc
 		}
 	}
 
-	a.srv.SetQueryMeta(&reply.QueryMeta, args.Token)
+	a.srv.SetQueryMeta(&reply.QueryMeta, args.Token, true)
 
 	return nil
 }
@@ -1220,7 +1220,7 @@ func (a *ACL) RoleRead(args *structs.ACLRoleGetRequest, reply *structs.ACLRoleRe
 				return errNotFound
 			}
 			return nil
-		})
+		}, true)
 }
 
 func (a *ACL) RoleBatchRead(args *structs.ACLRoleBatchGetRequest, reply *structs.ACLRoleBatchResponse) error {
@@ -1248,7 +1248,7 @@ func (a *ACL) RoleBatchRead(args *structs.ACLRoleBatchGetRequest, reply *structs
 
 			reply.Index, reply.Roles = index, roles
 			return nil
-		})
+		}, true)
 }
 
 func (a *ACL) RoleSet(args *structs.ACLRoleSetRequest, reply *structs.ACLRole) error {
@@ -1519,7 +1519,7 @@ func (a *ACL) RoleList(args *structs.ACLRoleListRequest, reply *structs.ACLRoleL
 
 			reply.Index, reply.Roles = index, roles
 			return nil
-		})
+		}, true)
 }
 
 // RoleResolve is used to retrieve a subset of the roles associated with a given token
@@ -1574,7 +1574,7 @@ func (a *ACL) RoleResolve(args *structs.ACLRoleBatchGetRequest, reply *structs.A
 		}
 	}
 
-	a.srv.SetQueryMeta(&reply.QueryMeta, args.Token)
+	a.srv.SetQueryMeta(&reply.QueryMeta, args.Token, true)
 
 	return nil
 }
@@ -1619,7 +1619,7 @@ func (a *ACL) BindingRuleRead(args *structs.ACLBindingRuleGetRequest, reply *str
 				return errNotFound
 			}
 			return nil
-		})
+		}, true)
 }
 
 func (a *ACL) BindingRuleSet(args *structs.ACLBindingRuleSetRequest, reply *structs.ACLBindingRule) error {
@@ -1836,7 +1836,7 @@ func (a *ACL) BindingRuleList(args *structs.ACLBindingRuleListRequest, reply *st
 
 			reply.Index, reply.BindingRules = index, rules
 			return nil
-		})
+		}, true)
 }
 
 func (a *ACL) AuthMethodRead(args *structs.ACLAuthMethodGetRequest, reply *structs.ACLAuthMethodResponse) error {
@@ -1878,7 +1878,7 @@ func (a *ACL) AuthMethodRead(args *structs.ACLAuthMethodGetRequest, reply *struc
 
 			_ = a.srv.enterpriseAuthMethodTypeValidation(method.Type)
 			return nil
-		})
+		}, true)
 }
 
 func (a *ACL) AuthMethodSet(args *structs.ACLAuthMethodSetRequest, reply *structs.ACLAuthMethod) error {
@@ -2095,7 +2095,7 @@ func (a *ACL) AuthMethodList(args *structs.ACLAuthMethodListRequest, reply *stru
 
 			reply.Index, reply.AuthMethods = index, stubs
 			return nil
-		})
+		}, true)
 }
 
 func (a *ACL) Login(args *structs.ACLLoginRequest, reply *structs.ACLToken) error {

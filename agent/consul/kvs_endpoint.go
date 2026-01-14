@@ -175,7 +175,7 @@ func (k *KVS) Get(args *structs.KeyRequest, reply *structs.IndexedDirEntries) er
 			reply.Index = ent.ModifyIndex
 			reply.Entries = structs.DirEntries{ent}
 			return nil
-		})
+		}, true)
 }
 
 // List is used to list all keys with a given prefix.
@@ -227,7 +227,7 @@ func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) e
 				reply.Entries = ent
 			}
 			return nil
-		})
+		}, true)
 }
 
 // ListKeys is used to list all keys with a given prefix to a separator.
@@ -306,5 +306,5 @@ func (k *KVS) ListKeys(args *structs.KeyListRequest, reply *structs.IndexedKeyLi
 			}
 			reply.Keys = keys
 			return nil
-		})
+		}, true)
 }

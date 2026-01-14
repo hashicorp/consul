@@ -556,7 +556,7 @@ func (c *Catalog) ListNodes(args *structs.DCSpecificRequest, reply *structs.Inde
 			reply.Nodes = raw.(structs.Nodes)
 
 			return c.srv.sortNodesByDistanceFrom(args.Source, reply.Nodes)
-		})
+		}, true)
 }
 
 func isUnmodified(opts structs.QueryOptions, index uint64) bool {
@@ -637,7 +637,7 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 			reply.QueryMeta = idxServiceNodeReply.QueryMeta
 
 			return nil
-		})
+		}, true)
 }
 
 func servicesTagsByName(services []*structs.ServiceNode) structs.Services {
@@ -692,7 +692,7 @@ func (c *Catalog) ServiceList(args *structs.DCSpecificRequest, reply *structs.In
 			reply.Index, reply.Services = index, services
 			c.srv.filterACLWithAuthorizer(authz, reply)
 			return nil
-		})
+		}, true)
 }
 
 // ServiceNodes returns all the nodes registered as part of a service.
@@ -853,7 +853,7 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 			reply.ServiceNodes = raw.(structs.ServiceNodes)
 
 			return c.srv.sortNodesByDistanceFrom(args.Source, reply.ServiceNodes)
-		})
+		}, true)
 
 	// Provide some metrics
 	if err == nil {
@@ -950,7 +950,7 @@ func (c *Catalog) NodeServices(args *structs.NodeSpecificRequest, reply *structs
 			}
 
 			return nil
-		})
+		}, true)
 }
 
 // NodeServiceList returns all the services registered as part of a node.
@@ -1060,7 +1060,7 @@ func (c *Catalog) NodeServiceList(args *structs.NodeSpecificRequest, reply *stru
 			reply.NodeServices.Services = raw.([]*structs.NodeService)
 
 			return nil
-		})
+		}, true)
 }
 
 func (c *Catalog) GatewayServices(args *structs.ServiceSpecificRequest, reply *structs.IndexedGatewayServices) error {
@@ -1124,7 +1124,7 @@ func (c *Catalog) GatewayServices(args *structs.ServiceSpecificRequest, reply *s
 				return err
 			}
 			return nil
-		})
+		}, true)
 }
 
 func (c *Catalog) VirtualIPForService(args *structs.ServiceSpecificRequest, reply *string) error {

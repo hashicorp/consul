@@ -663,7 +663,7 @@ func (s *Server) PeeringRead(ctx context.Context, req *pbpeering.PeeringReadRequ
 
 		res.Peering = s.reconcilePeering(peering)
 		return nil
-	})
+	}, true)
 	if err != nil {
 		return nil, fmt.Errorf("error executing peering read blocking query: %w", err)
 	}
@@ -742,7 +742,7 @@ func (s *Server) PeeringList(ctx context.Context, req *pbpeering.PeeringListRequ
 		res.OBSOLETE_Index = idx // Compatibility with 1.14 API, deprecate in future release
 
 		return nil
-	})
+	}, true)
 	if err != nil {
 		return nil, fmt.Errorf("error executing peering list blocking query: %w", err)
 	}
@@ -1014,7 +1014,7 @@ func (s *Server) TrustBundleRead(ctx context.Context, req *pbpeering.TrustBundle
 		res.OBSOLETE_Index = idx // Compatibility with 1.14 API, deprecate in future release
 
 		return nil
-	})
+	}, true)
 	if err != nil {
 		return nil, fmt.Errorf("error executing trust bundle read blocking query: %w", err)
 	}
@@ -1103,7 +1103,7 @@ func (s *Server) TrustBundleListByService(ctx context.Context, req *pbpeering.Tr
 		res.OBSOLETE_Index = idx // Compatibility with 1.14 API, deprecate in future release
 
 		return nil
-	})
+	}, true)
 	if err != nil {
 		return nil, fmt.Errorf("error executing trust bundle list blocking query: %w", err)
 	}

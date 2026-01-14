@@ -82,7 +82,7 @@ func (h *Health) ChecksInState(args *structs.ChecksInStateRequest,
 			reply.HealthChecks = raw.(structs.HealthChecks)
 
 			return h.srv.sortNodesByDistanceFrom(args.Source, reply.HealthChecks)
-		})
+		}, true)
 }
 
 // NodeChecks is used to get all the checks for a node
@@ -135,7 +135,7 @@ func (h *Health) NodeChecks(args *structs.NodeSpecificRequest,
 			reply.HealthChecks = raw.(structs.HealthChecks)
 
 			return nil
-		})
+		}, true)
 }
 
 // ServiceChecks is used to get all the checks for a service
@@ -197,7 +197,7 @@ func (h *Health) ServiceChecks(args *structs.ServiceSpecificRequest,
 			}
 
 			return h.srv.sortNodesByDistanceFrom(args.Source, reply.HealthChecks)
-		})
+		}, true)
 }
 
 // ServiceNodes returns all the nodes registered as part of a service including health info
@@ -349,7 +349,7 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 
 			*reply = thisReply
 			return nil
-		})
+		}, true)
 
 	// Provide some metrics
 	if err == nil {

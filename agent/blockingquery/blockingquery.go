@@ -60,7 +60,7 @@ type FSMServer interface {
 	GetState() *state.Store
 	IncrementBlockingQueries() uint64
 	RPCQueryTimeout(time.Duration) time.Duration
-	SetQueryMeta(ResponseMeta, string)
+	SetQueryMeta(ResponseMeta, string, bool) error
 }
 
 // Query performs a blocking query if opts.GetMinQueryIndex is
@@ -119,6 +119,7 @@ func Query(
 	requestOpts RequestOptions,
 	responseMeta ResponseMeta,
 	query QueryFn,
+	tokenAuthenticated bool,
 ) error {
 	var ctx context.Context = &lib.StopChannelContext{StopCh: fsmServer.GetShutdownChannel()}
 
@@ -135,7 +136,7 @@ func Query(
 
 		var ws memdb.WatchSet
 		err := query(ws, fsmServer.GetState())
-		fsmServer.SetQueryMeta(responseMeta, requestOpts.GetToken())
+		fsmServer.SetQueryMeta(responseMeta, requestOpts.GetToken(), tokenAuthenticated)
 		if errors.Is(err, ErrNotFound) || errors.Is(err, ErrNotChanged) {
 			return nil
 		}
@@ -178,7 +179,9 @@ func Query(
 		ws.Add(store.AbandonCh())
 
 		err := query(ws, store)
-		fsmServer.SetQueryMeta(responseMeta, requestOpts.GetToken())
+		if err := fsmServer.SetQueryMeta(responseMeta, requestOpts.GetToken(), tokenAuthenticated); err != nil {
+			return err
+		}
 
 		switch {
 		case errors.Is(err, ErrNotFound):

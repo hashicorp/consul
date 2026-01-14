@@ -355,7 +355,7 @@ func (g *GatewayLocator) runOnce(lastFetchIndex uint64) (uint64, error) {
 			results = all
 
 			return nil
-		})
+		}, false)
 	if err != nil {
 		return 0, err
 	}

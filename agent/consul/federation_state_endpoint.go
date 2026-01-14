@@ -129,7 +129,7 @@ func (c *FederationState) Get(args *structs.FederationStateQuery, reply *structs
 				return errNotFound
 			}
 			return nil
-		})
+		}, true)
 }
 
 // List is the endpoint meant to be used by consul servers performing
@@ -171,7 +171,7 @@ func (c *FederationState) List(args *structs.DCSpecificRequest, reply *structs.I
 			reply.States = fedStates
 
 			return nil
-		})
+		}, true)
 }
 
 // ListMeshGateways is the endpoint meant to be used by proxies only interested
@@ -215,5 +215,5 @@ func (c *FederationState) ListMeshGateways(args *structs.DCSpecificRequest, repl
 			}
 
 			return nil
-		})
+		}, true)
 }

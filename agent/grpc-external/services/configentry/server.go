@@ -116,7 +116,7 @@ func (s *Server) GetResolvedExportedServices(
 
 		res.Services = exportedSvcs
 		return nil
-	})
+	}, true)
 	if err != nil {
 		return nil, fmt.Errorf("error executing exported services blocking query: %w", err)
 	}
