@@ -1,0 +1,3 @@
+```release-note:security
+Update the Consul Build Go base image to `alpine3.23.2`
+```
