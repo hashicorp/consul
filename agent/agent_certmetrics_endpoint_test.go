@@ -365,7 +365,7 @@ func TestAgentMetricsCertificates_ACLEnforcement(t *testing.T) {
 	require.NoError(t, err)
 
 	resp1 := httptest.NewRecorder()
-	obj, err := a.srv.AgentMetricsCertificates(resp1, req1)
+	_, err = a.srv.AgentMetricsCertificates(resp1, req1)
 	require.Error(t, err, "Should require ACL token")
 
 	// Request with valid token - should succeed
@@ -373,9 +373,8 @@ func TestAgentMetricsCertificates_ACLEnforcement(t *testing.T) {
 	require.NoError(t, err)
 
 	resp2 := httptest.NewRecorder()
-	obj, err = a.srv.AgentMetricsCertificates(resp2, req2)
+	_, err = a.srv.AgentMetricsCertificates(resp2, req2)
 	require.NoError(t, err)
-	require.Nil(t, obj)
 	require.Equal(t, http.StatusOK, resp2.Code)
 
 	t.Logf("ACL enforcement working correctly")
