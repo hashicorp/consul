@@ -284,11 +284,7 @@ RUN set -eux && \
 # but this is kept for consistency with our other images.
 RUN groupadd $BIN_NAME && \
     adduser --uid 100 --system -g $BIN_NAME $BIN_NAME
-# Use TARGETARCH to pull the correct binary automatically
-RUN wget https://releases.hashicorp.com/consul/${PRODUCT_VERSION}/consul_${PRODUCT_VERSION}_linux_${TARGETARCH}.zip && \
-    unzip consul_${PRODUCT_VERSION}_linux_${TARGETARCH}.zip -d /bin && \
-    rm consul_${PRODUCT_VERSION}_linux_${TARGETARCH}.zip && \
-    chmod +x /bin/consul
+COPY dist/$TARGETOS/$TARGETARCH/$BIN_NAME /bin/
 
 # The /consul/data dir is used by Consul to store state. The agent will be started
 # with /consul/config as the configuration directory so you can add additional
