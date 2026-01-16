@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"context"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
@@ -83,12 +84,13 @@ func TestFederationStateListMeshGateways(t *testing.T) {
 		})
 
 	// Fetch
-	resultA, err := typ.Fetch(cache.FetchOptions{
-		MinIndex: 24,
-		Timeout:  1 * time.Second,
-	}, &structs.DCSpecificRequest{
-		Datacenter: "dc1",
-	})
+	resultA, err := typ.Fetch(context.Background(),
+		cache.FetchOptions{
+			MinIndex: 24,
+			Timeout:  1 * time.Second,
+		}, &structs.DCSpecificRequest{
+			Datacenter: "dc1",
+		})
 	require.NoError(t, err)
 	require.Equal(t, cache.FetchResult{
 		Value: resp,
@@ -103,7 +105,7 @@ func TestFederationStateListMeshGateways_badReqType(t *testing.T) {
 	typ := &FederationStateListMeshGateways{RPC: rpc}
 
 	// Fetch
-	_, err := typ.Fetch(cache.FetchOptions{}, cache.TestRequest(
+	_, err := typ.Fetch(context.Background(), cache.FetchOptions{}, cache.TestRequest(
 		t, cache.RequestInfo{Key: "foo", MinIndex: 64}))
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "wrong type")
