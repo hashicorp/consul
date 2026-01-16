@@ -2302,11 +2302,6 @@ func TestFetch_Refresh_Backoff_Logic(t *testing.T) {
 		Run(func(args mock.Arguments) {
 			val := atomic.AddInt32(&callCount, 1)
 			fetched <- struct{}{}
-			// On second call, cancel the context to stop the loop
-			if val == 2 {
-				// We can't cancel the outer context easily here without passing it down,
-				// but we can rely on the test finishing.
-			}
 		}).
 		Return(FetchResult{}, errors.New("fail")) // Always fail to trigger backoff
 
