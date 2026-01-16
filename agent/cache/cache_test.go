@@ -2295,12 +2295,10 @@ func TestFetch_Refresh_Backoff_Logic(t *testing.T) {
 	// 3. Waits backoff.
 	// 4. Calls fetch again.
 
-	var callCount int32
 	fetched := make(chan struct{}, 2)
 
 	typ.On("Fetch", mock.Anything, mock.Anything, mock.Anything).
 		Run(func(args mock.Arguments) {
-			val := atomic.AddInt32(&callCount, 1)
 			fetched <- struct{}{}
 		}).
 		Return(FetchResult{}, errors.New("fail")) // Always fail to trigger backoff
