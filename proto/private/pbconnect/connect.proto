@@ -131,6 +131,12 @@ message CARoot {
 
   // mog: func-to=RaftIndexTo func-from=RaftIndexFrom
   common.RaftIndex RaftIndex = 16;
+
+  // DaysRemaining is the number of days until the certificate expires.
+  // This is a computed field based on NotAfter and the current time.
+  // Negative values indicate the certificate has already expired.
+  // mog: func-to=int func-from=int32
+  int32 DaysRemaining = 17;
 }
 
 // RaftIndex is used to track the index used while creating

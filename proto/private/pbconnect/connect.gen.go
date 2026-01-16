@@ -15,6 +15,7 @@ func CARootToStructsCARoot(s *CARoot, t *structs.CARoot) {
 	t.ExternalTrustDomain = s.ExternalTrustDomain
 	t.NotBefore = structs.TimeFromProto(s.NotBefore)
 	t.NotAfter = structs.TimeFromProto(s.NotAfter)
+	t.DaysRemaining = int(s.DaysRemaining)
 	t.RootCert = s.RootCert
 	t.IntermediateCerts = s.IntermediateCerts
 	t.SigningCert = s.SigningCert
@@ -36,6 +37,7 @@ func CARootFromStructsCARoot(t *structs.CARoot, s *CARoot) {
 	s.ExternalTrustDomain = t.ExternalTrustDomain
 	s.NotBefore = structs.TimeToProto(t.NotBefore)
 	s.NotAfter = structs.TimeToProto(t.NotAfter)
+	s.DaysRemaining = int32(t.DaysRemaining)
 	s.RootCert = t.RootCert
 	s.IntermediateCerts = t.IntermediateCerts
 	s.SigningCert = t.SigningCert
