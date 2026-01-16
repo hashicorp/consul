@@ -1630,6 +1630,13 @@ func (s *HTTPHandlers) AgentConnectCARoots(resp http.ResponseWriter, req *http.R
 	}
 	defer setMeta(resp, &reply.QueryMeta)
 
+	// Populate computed DaysRemaining field for each root
+	for _, root := range reply.Roots {
+		if !root.NotAfter.IsZero() {
+			root.DaysRemaining = int(time.Until(root.NotAfter).Hours() / 24)
+		}
+	}
+
 	return *reply, nil
 }
 
