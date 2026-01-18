@@ -21,7 +21,7 @@ type ResolvedServiceConfig struct {
 	RPC RPC
 }
 
-func (c *ResolvedServiceConfig) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
+func (c *ResolvedServiceConfig) Fetch(ctx context.Context, opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
 	var result cache.FetchResult
 
 	// The request should be a ServiceConfigRequest.
@@ -47,7 +47,7 @@ func (c *ResolvedServiceConfig) Fetch(opts cache.FetchOptions, req cache.Request
 
 	// Fetch
 	var reply structs.ServiceConfigResponse
-	if err := c.RPC.RPC(context.Background(), "ConfigEntry.ResolveServiceConfig", reqReal, &reply); err != nil {
+	if err := c.RPC.RPC(ctx, "ConfigEntry.ResolveServiceConfig", reqReal, &reply); err != nil {
 		return result, err
 	}
 

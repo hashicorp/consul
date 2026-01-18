@@ -6,6 +6,7 @@ package cachetype
 import (
 	"testing"
 
+	"context"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
@@ -16,7 +17,7 @@ import (
 func TestCatalogDatacenters(t *testing.T) {
 	rpc := TestRPC(t)
 	typ := &CatalogDatacenters{RPC: rpc}
-
+	ctx := context.Background()
 	// Expect the proper RPC call. This also sets the expected value
 	// since that is return-by-pointer in the arguments.
 	var resp *[]string
@@ -57,21 +58,21 @@ func TestCatalogDatacenters(t *testing.T) {
 		})
 
 	// Fetch first time
-	result, err := typ.Fetch(cache.FetchOptions{}, &structs.DatacentersRequest{})
+	result, err := typ.Fetch(ctx, cache.FetchOptions{}, &structs.DatacentersRequest{})
 	require.NoError(t, err)
 	require.Equal(t, result, cache.FetchResult{
 		Value: resp,
 		Index: 1,
 	})
 
-	result2, err := typ.Fetch(cache.FetchOptions{LastResult: &result}, &structs.DatacentersRequest{QueryOptions: structs.QueryOptions{MustRevalidate: true}})
+	result2, err := typ.Fetch(ctx, cache.FetchOptions{LastResult: &result}, &structs.DatacentersRequest{QueryOptions: structs.QueryOptions{MustRevalidate: true}})
 	require.NoError(t, err)
 	require.Equal(t, result2, cache.FetchResult{
 		Value: resp2,
 		Index: 2,
 	})
 
-	result3, err := typ.Fetch(cache.FetchOptions{LastResult: &result2}, &structs.DatacentersRequest{QueryOptions: structs.QueryOptions{MustRevalidate: true}})
+	result3, err := typ.Fetch(ctx, cache.FetchOptions{LastResult: &result2}, &structs.DatacentersRequest{QueryOptions: structs.QueryOptions{MustRevalidate: true}})
 	require.NoError(t, err)
 	require.Equal(t, result3, cache.FetchResult{
 		Value: resp3,
@@ -85,9 +86,10 @@ func TestCatalogDatacenters(t *testing.T) {
 func TestDatacenters_badReqType(t *testing.T) {
 	rpc := TestRPC(t)
 	typ := &PreparedQuery{RPC: rpc}
+	ctx := context.Background()
 
 	// Fetch
-	_, err := typ.Fetch(cache.FetchOptions{}, cache.TestRequest(
+	_, err := typ.Fetch(ctx, cache.FetchOptions{}, cache.TestRequest(
 		t, cache.RequestInfo{Key: "foo", MinIndex: 64}))
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "wrong type")

@@ -338,15 +338,15 @@ func (c *Cache) Get(ctx context.Context, t string, r Request) (interface{}, Resu
 type getOptions struct {
 	// Fetch is a closure over tEntry.Type.Fetch which provides the original
 	// Request from the caller.
-	Fetch     func(opts FetchOptions) (FetchResult, error)
+	Fetch     func(ctx context.Context, opts FetchOptions) (FetchResult, error)
 	Info      RequestInfo
 	TypeEntry typeEntry
 }
 
 func newGetOptions(tEntry typeEntry, r Request) getOptions {
 	return getOptions{
-		Fetch: func(opts FetchOptions) (FetchResult, error) {
-			return tEntry.Type.Fetch(opts, r)
+		Fetch: func(ctx context.Context, opts FetchOptions) (FetchResult, error) {
+			return tEntry.Type.Fetch(ctx, opts, r)
 		},
 		Info:      r.CacheInfo(),
 		TypeEntry: tEntry,
@@ -410,7 +410,7 @@ func (c *Cache) getWithIndex(ctx context.Context, r getOptions) (interface{}, Re
 
 		// If no key is specified, then we do not cache this request.
 		// Pass directly through to the backend.
-		result, err := r.Fetch(FetchOptions{MinIndex: r.Info.MinIndex})
+		result, err := r.Fetch(ctx, FetchOptions{MinIndex: r.Info.MinIndex})
 		return result.Value, ResultMeta{}, err
 	}
 
@@ -514,10 +514,16 @@ RETRY_GET:
 	if r.Info.Timeout > 0 && timeoutCh == nil {
 		timeoutCh = time.After(r.Info.Timeout)
 	}
+	select {
+	case <-ctx.Done():
+		return nil, ResultMeta{}, ctx.Err()
+	default:
+
+	}
 
 	// At this point, we know we either don't have a value at all or the
 	// value we have is too old. We need to wait for new data.
-	waiterCh := c.fetch(key, r, true, 0, false)
+	waiterCh := c.fetch(ctx, key, r, true, 0, false)
 
 	// No longer our first time through
 	first = false
@@ -552,7 +558,7 @@ func makeEntryKey(t, dc, peerName, token, key string) string {
 // If allowNew is true then the fetch should create the cache entry
 // if it doesn't exist. If this is false, then fetch will do nothing
 // if the entry doesn't exist. This latter case is to support refreshing.
-func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ignoreExisting bool) <-chan struct{} {
+func (c *Cache) fetch(ctx context.Context, key string, r getOptions, allowNew bool, attempt uint, ignoreExisting bool) <-chan struct{} {
 	// We acquire a write lock because we may have to set Fetching to true.
 	c.entriesLock.Lock()
 	defer c.entriesLock.Unlock()
@@ -660,7 +666,7 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 			return
 		}
 		// Start building the new entry by blocking on the fetch.
-		result, err := r.Fetch(fOpts)
+		result, err := r.Fetch(ctx, fOpts)
 		if connectedTimer != nil {
 			connectedTimer.Stop()
 		}
@@ -669,6 +675,8 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 		// good time to detect that.
 		select {
 		case <-handle.stopCh:
+			return
+		case <-ctx.Done():
 			return
 		default:
 		}
@@ -684,7 +692,6 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 		// error is non-nil then we need to set it anyway and used to do it in the
 		// code below. See https://github.com/hashicorp/consul/issues/4480.
 		newEntry.Error = err
-
 		if result.Value != nil {
 			// A new value was given, so we create a brand new entry.
 			if !result.NotModified {
@@ -834,6 +841,8 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 
 			select {
 			case <-time.After(wait):
+			case <-ctx.Done():
+				return
 			case <-handle.stopCh:
 				return
 			}
@@ -843,7 +852,7 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 			// happened, we don't want to create a new entry.
 			r.Info.MustRevalidate = false
 			r.Info.MinIndex = 0
-			c.fetch(key, r, false, attempt, true)
+			c.fetch(ctx, key, r, false, attempt, true)
 		}
 	}(handle)
 

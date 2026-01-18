@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"context"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
@@ -34,7 +35,7 @@ func TestIntentionMatch(t *testing.T) {
 		})
 
 	// Fetch
-	result, err := typ.Fetch(cache.FetchOptions{
+	result, err := typ.Fetch(context.Background(), cache.FetchOptions{
 		MinIndex: 24,
 		Timeout:  1 * time.Second,
 	}, &structs.IntentionQueryRequest{Datacenter: "dc1"})
@@ -51,7 +52,7 @@ func TestIntentionMatch_badReqType(t *testing.T) {
 	typ := &IntentionMatch{RPC: rpc}
 
 	// Fetch
-	_, err := typ.Fetch(cache.FetchOptions{}, cache.TestRequest(
+	_, err := typ.Fetch(context.Background(), cache.FetchOptions{}, cache.TestRequest(
 		t, cache.RequestInfo{Key: "foo", MinIndex: 64}))
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "wrong type")
