@@ -238,7 +238,7 @@ func TestCacheGet_blockingInitDiffKeys(t *testing.T) {
 		Run(func(args mock.Arguments) {
 			keysLock.Lock()
 			defer keysLock.Unlock()
-			keys = append(keys, args.Get(1).(Request).CacheInfo().Key)
+			keys = append(keys, args.Get(2).(Request).CacheInfo().Key)
 		})
 
 	// Perform multiple gets
@@ -420,7 +420,7 @@ func TestCacheGet_emptyFetchResult(t *testing.T) {
 	// Return different State, it should NOT be ignored
 	typ.Static(FetchResult{Value: nil, State: 32}, nil).Run(func(args mock.Arguments) {
 		// We should get back the original state
-		opts := args.Get(0).(FetchOptions)
+		opts := args.Get(1).(FetchOptions)
 		require.NotNil(t, opts.LastResult)
 		stateCh <- opts.LastResult.State.(int)
 	})
@@ -685,7 +685,7 @@ func TestCacheGet_noIndexSetsOne(t *testing.T) {
 		first := int32(1)
 
 		typ.Static(FetchResult{Value: 0, Index: 1}, nil).Run(func(args mock.Arguments) {
-			opts := args.Get(0).(FetchOptions)
+			opts := args.Get(1).(FetchOptions)
 			isFirst := atomic.SwapInt32(&first, 0)
 			if isFirst == 1 {
 				assert.Equal(t, uint64(0), opts.MinIndex)
@@ -744,7 +744,7 @@ func TestCacheGet_fetchTimeout(t *testing.T) {
 	// Configure the type
 	var actual time.Duration
 	typ.Static(FetchResult{Value: 42}, nil).Times(1).Run(func(args mock.Arguments) {
-		opts := args.Get(0).(FetchOptions)
+		opts := args.Get(1).(FetchOptions)
 		actual = opts.Timeout
 	})
 
@@ -849,10 +849,10 @@ func TestCacheGet_expireBackgroudRefreshCancel(t *testing.T) {
 	}
 
 	// Configure the type
-	typ.On("Fetch", mock.Anything, mock.Anything).
-		Return(func(o FetchOptions, r Request) FetchResult {
+	typ.On("Fetch", mock.Anything, mock.Anything, mock.Anything).
+		Return(func(ctx context.Context, o FetchOptions, r Request) FetchResult {
 			return FetchResult{Value: 8, Index: 4, State: closer}
-		}, func(o FetchOptions, r Request) error {
+		}, func(ctx context.Context, o FetchOptions, r Request) error {
 			if o.MinIndex == 4 {
 				// Simulate waiting for a new value on second call until the cache type
 				// is evicted
@@ -864,7 +864,7 @@ func TestCacheGet_expireBackgroudRefreshCancel(t *testing.T) {
 
 	// Get, should fetch
 	req := TestRequest(t, RequestInfo{Key: "hello"})
-	result, meta, err := c.Get(context.Background(), "t", req)
+	result, meta, err := c.Get(ctx, "t", req)
 	require.NoError(t, err)
 	require.Equal(t, 8, result)
 	require.Equal(t, uint64(4), meta.Index)
@@ -872,7 +872,7 @@ func TestCacheGet_expireBackgroudRefreshCancel(t *testing.T) {
 
 	// Get, should not fetch, verified via the mock assertions above
 	req = TestRequest(t, RequestInfo{Key: "hello"})
-	result, meta, err = c.Get(context.Background(), "t", req)
+	result, meta, err = c.Get(ctx, "t", req)
 	require.NoError(t, err)
 	require.Equal(t, 8, result)
 	require.Equal(t, uint64(4), meta.Index)
@@ -917,15 +917,15 @@ func TestCacheGet_expireBackgroudRefresh(t *testing.T) {
 	ctrlCh := make(chan struct{})
 
 	// Configure the type
-	typ.On("Fetch", mock.Anything, mock.Anything).
-		Return(func(o FetchOptions, r Request) FetchResult {
+	typ.On("Fetch", mock.Anything, mock.Anything, mock.Anything).
+		Return(func(ctx context.Context, o FetchOptions, r Request) FetchResult {
 			if o.MinIndex == 4 {
 				// Simulate returning from fetch (after a timeout with no value change)
 				// at a time controlled by the test to ensure we interleave requests.
 				<-ctrlCh
 			}
 			return FetchResult{Value: 8, Index: 4}
-		}, func(o FetchOptions, r Request) error {
+		}, func(ctx context.Context, o FetchOptions, r Request) error {
 			return nil
 		})
 
@@ -1037,8 +1037,8 @@ func TestCacheGet_expireResetGetNoChange(t *testing.T) {
 		SupportsBlocking: true,
 		Refresh:          true,
 	})
-	typ.On("Fetch", mock.Anything, mock.Anything).
-		Return(func(o FetchOptions, r Request) FetchResult {
+	typ.On("Fetch", mock.Anything, mock.Anything, mock.Anything).
+		Return(func(ctx context.Context, o FetchOptions, r Request) FetchResult {
 			if o.MinIndex == 10 {
 				// Simulate a very fast timeout from the backend. This must be shorter
 				// than the TTL above (as it would be in real life) so that fetch returns
@@ -1048,7 +1048,7 @@ func TestCacheGet_expireResetGetNoChange(t *testing.T) {
 				time.Sleep(10 * time.Millisecond)
 			}
 			return FetchResult{Value: 42, Index: 10, State: closer}
-		}, func(o FetchOptions, r Request) error {
+		}, func(ctx context.Context, o FetchOptions, r Request) error {
 			return nil
 		})
 	defer typ.AssertExpectations(t)
@@ -1234,7 +1234,7 @@ func TestCacheGet_partitionToken(t *testing.T) {
 // partitioning.
 type testPartitionType struct{}
 
-func (t *testPartitionType) Fetch(opts FetchOptions, r Request) (FetchResult, error) {
+func (t *testPartitionType) Fetch(ctx context.Context, opts FetchOptions, r Request) (FetchResult, error) {
 	info := r.CacheInfo()
 	return FetchResult{
 		Value: fmt.Sprintf("%s%s", info.Datacenter, info.Token),
@@ -1272,8 +1272,8 @@ func TestCacheGet_refreshAge(t *testing.T) {
 	// Configure the type
 	var index, shouldFail uint64
 
-	typ.On("Fetch", mock.Anything, mock.Anything).
-		Return(func(o FetchOptions, r Request) FetchResult {
+	typ.On("Fetch", mock.Anything, mock.Anything, mock.Anything).
+		Return(func(ctx context.Context, o FetchOptions, r Request) FetchResult {
 			idx := atomic.LoadUint64(&index)
 			if atomic.LoadUint64(&shouldFail) == 1 {
 				return FetchResult{Value: nil, Index: idx}
@@ -1283,7 +1283,7 @@ func TestCacheGet_refreshAge(t *testing.T) {
 				time.Sleep(5 * time.Millisecond)
 			}
 			return FetchResult{Value: int(idx * 2), Index: idx}
-		}, func(o FetchOptions, r Request) error {
+		}, func(ctx context.Context, o FetchOptions, r Request) error {
 			if atomic.LoadUint64(&shouldFail) == 1 {
 				return errors.New("test error")
 			}
@@ -1391,8 +1391,8 @@ func TestCacheGet_nonRefreshAge(t *testing.T) {
 	// Configure the type
 	var index uint64
 
-	typ.On("Fetch", mock.Anything, mock.Anything).
-		Return(func(o FetchOptions, r Request) FetchResult {
+	typ.On("Fetch", mock.Anything, mock.Anything, mock.Anything).
+		Return(func(ctx context.Context, o FetchOptions, r Request) FetchResult {
 			idx := atomic.LoadUint64(&index)
 			return FetchResult{Value: int(idx * 2), Index: idx}
 		}, nil)
@@ -1472,7 +1472,7 @@ func TestCacheGet_nonBlockingType(t *testing.T) {
 	typ.Static(FetchResult{Value: 42, Index: 1}, nil).Once()
 	typ.Static(FetchResult{Value: 43, Index: 2}, nil).Twice().
 		Run(func(args mock.Arguments) {
-			opts := args.Get(0).(FetchOptions)
+			opts := args.Get(1).(FetchOptions)
 			// MinIndex should never be set for a non-blocking type.
 			require.Equal(t, uint64(0), opts.MinIndex)
 		})
@@ -1537,7 +1537,7 @@ func TestCacheReload(t *testing.T) {
 
 	c := New(Options{EntryFetchRate: rate.Limit(1), EntryFetchMaxBurst: 1})
 	c.RegisterType("t1", typ1)
-	typ1.Mock.On("Fetch", mock.Anything, mock.Anything).Return(FetchResult{Value: 42, Index: 42}, nil).Maybe()
+	typ1.Mock.On("Fetch", mock.Anything, mock.Anything, mock.Anything).Return(FetchResult{Value: 42, Index: 42}, nil).Maybe()
 
 	require.False(t, c.ReloadOptions(Options{EntryFetchRate: rate.Limit(1), EntryFetchMaxBurst: 1}), "Value should not be reloaded")
 
@@ -1730,16 +1730,16 @@ func TestCache_RefreshLifeCycle(t *testing.T) {
 		}
 	}
 
-	typ.On("Fetch", mock.Anything, mock.Anything).Once().Return(FetchResult{
+	typ.On("Fetch", mock.Anything, mock.Anything, mock.Anything).Once().Return(FetchResult{
 		Value: true,
 		Index: 2,
 	}, nil)
 
 	releaseSecondReq := make(chan time.Time)
-	typ.On("Fetch", mock.Anything, mock.Anything).Once().Return(FetchResult{}, acl.PermissionDenied("forced error")).WaitUntil(releaseSecondReq)
+	typ.On("Fetch", mock.Anything, mock.Anything, mock.Anything).Once().Return(FetchResult{}, acl.PermissionDenied("forced error")).WaitUntil(releaseSecondReq)
 
 	releaseThirdReq := make(chan time.Time)
-	typ.On("Fetch", mock.Anything, mock.Anything).Once().Return(FetchResult{}, acl.ErrNotFound).WaitUntil(releaseThirdReq)
+	typ.On("Fetch", mock.Anything, mock.Anything, mock.Anything).Once().Return(FetchResult{}, acl.ErrNotFound).WaitUntil(releaseThirdReq)
 
 	c := New(Options{})
 	c.RegisterType("t", typ)
@@ -1831,7 +1831,7 @@ type fakeType struct {
 	index uint64
 }
 
-func (f fakeType) Fetch(_ FetchOptions, _ Request) (FetchResult, error) {
+func (f fakeType) Fetch(_ context.Context, _ FetchOptions, _ Request) (FetchResult, error) {
 	idx := atomic.LoadUint64(&f.index)
 	return FetchResult{Value: int(idx * 2), Index: idx}, nil
 }
@@ -1851,3 +1851,474 @@ func (f fakeRequest) CacheInfo() RequestInfo {
 }
 
 var _ Request = (*fakeRequest)(nil)
+
+// TestGetWithIndex_ContextCanceledImmediately verifies that if the context passed
+// to getWithIndex is already canceled, it returns the error immediately.
+func TestGetWithIndex_ContextCanceledImmediately(t *testing.T) {
+	t.Parallel()
+	c := New(Options{})
+	typ := &MockType{}
+	typ.On("RegisterOptions").Return(RegisterOptions{})
+	c.RegisterType("t", typ)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // Cancel immediately
+
+	opts := newGetOptions(c.types["t"], TestRequest(t, RequestInfo{Key: "k"}))
+
+	val, _, err := c.getWithIndex(ctx, opts)
+	require.Error(t, err)
+	require.Equal(t, context.Canceled, err)
+	require.Nil(t, val)
+}
+
+// TestGetWithIndex_ContextCanceledDuringFetch verifies that if the context is canceled
+// while waiting for the fetch channel, it returns the context error.
+func TestGetWithIndex_ContextCanceledDuringFetch(t *testing.T) {
+	t.Parallel()
+	c := New(Options{})
+	typ := &MockType{}
+	typ.On("RegisterOptions").Return(RegisterOptions{})
+	c.RegisterType("t", typ)
+
+	// Fetch blocks until we tell it to proceed, but we won't tell it to.
+	// This forces getWithIndex to sit in the select waiting on waiterCh.
+	blockCh := make(chan struct{})
+	typ.On("Fetch", mock.Anything, mock.Anything, mock.Anything).
+		Return(FetchResult{}, nil).
+		WaitUntil(time.After(1 * time.Hour)) // Simulate long fetch
+
+	ctx, cancel := context.WithCancel(context.Background())
+	opts := newGetOptions(c.types["t"], TestRequest(t, RequestInfo{Key: "k"}))
+
+	errCh := make(chan error)
+	go func() {
+		close(blockCh)
+		_, _, err := c.getWithIndex(ctx, opts)
+		errCh <- err
+	}()
+
+	<-blockCh                         // Wait for goroutine to start
+	time.Sleep(10 * time.Millisecond) // Ensure it is inside the select
+	cancel()                          // Cancel context
+
+	select {
+	case err := <-errCh:
+		require.Error(t, err)
+		require.Equal(t, context.Canceled, err)
+	case <-time.After(1 * time.Second):
+		t.Fatal("getWithIndex did not return after context cancellation")
+	}
+}
+
+// TestGetWithIndex_Timeout verifies the internal timeoutCh logic.
+// It simulates a blocking query where the server doesn't respond before the client timeout.
+func TestGetWithIndex_Timeout(t *testing.T) {
+	t.Parallel()
+	c := New(Options{})
+	typ := &MockType{}
+	typ.On("RegisterOptions").Return(RegisterOptions{})
+	c.RegisterType("t", typ)
+
+	// Pre-populate with an old value so we have something to return on timeout
+	c.entries["t/dc1//k"] = cacheEntry{
+		Valid:     true,
+		Value:     "old_value",
+		Index:     5,
+		FetchedAt: time.Now().Add(-1 * time.Hour),
+		// Rate limiter needed to avoid panics in fetch
+		FetchRateLimiter: rate.NewLimiter(rate.Inf, 1),
+	}
+
+	// Fetch blocks longer than the request timeout
+	typ.On("Fetch", mock.Anything, mock.Anything, mock.Anything).
+		Return(FetchResult{}, nil).
+		WaitUntil(time.After(500 * time.Millisecond))
+	typ.On("Fetch", mock.Anything, mock.Anything, mock.Anything).
+		Return(FetchResult{}, nil).Maybe()
+	// Request with short timeout
+	req := TestRequest(t, RequestInfo{
+		Key:        "k",
+		Datacenter: "dc1",
+		MinIndex:   10, // Higher than cached 5, forces blocking
+		Timeout:    50 * time.Millisecond,
+	})
+	opts := newGetOptions(c.types["t"], req)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	val, meta, err := c.getWithIndex(ctx, opts)
+
+	require.NoError(t, err)
+	require.Equal(t, "old_value", val) // Should return what we have
+	require.Equal(t, uint64(5), meta.Index)
+}
+
+// TestGetWithIndex_RetryLoop_Error verifies the goto RETRY_GET logic.
+// If a fetch happens and returns an error, the loop should execute again
+// and catch that error.
+func TestGetWithIndex_RetryLoop_Error(t *testing.T) {
+	t.Parallel()
+	c := New(Options{})
+	typ := &MockType{}
+	typ.On("RegisterOptions").Return(RegisterOptions{})
+	c.RegisterType("t", typ)
+
+	fetchErr := errors.New("network failure")
+
+	// First fetch returns error
+	typ.On("Fetch", mock.Anything, mock.Anything, mock.Anything).
+		Return(FetchResult{}, fetchErr).
+		Once()
+	typ.On("Fetch", mock.Anything, mock.Anything, mock.Anything).
+		Return(FetchResult{}, nil).Maybe()
+	opts := newGetOptions(c.types["t"], TestRequest(t, RequestInfo{Key: "error_key"}))
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	val, _, err := c.getWithIndex(ctx, opts)
+
+	require.Error(t, err)
+	require.Equal(t, fetchErr, err)
+	require.Nil(t, val)
+}
+
+// TestFetch_ExistingValid_NoIgnore verifies that if a valid entry exists
+// and ignoreExisting is false, fetch returns immediately without doing work.
+func TestFetch_ExistingValid_NoIgnore(t *testing.T) {
+	t.Parallel()
+	c := New(Options{})
+	typ := &MockType{}
+	typ.On("RegisterOptions").Return(RegisterOptions{})
+	typ.On("Fetch", mock.Anything, mock.Anything, mock.Anything).
+		Return(FetchResult{}, nil).Maybe()
+	c.RegisterType("t", typ)
+
+	key := "test/key"
+	c.entries[key] = cacheEntry{
+		Valid: true,
+		Value: "exists",
+	}
+
+	opts := newGetOptions(c.types["t"], TestRequest(t, RequestInfo{Key: "key"}))
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	// Should return a closed channel immediately
+	ch := c.fetch(ctx, key, opts, true, 0, false)
+
+	select {
+	case <-ch:
+		// success
+	default:
+		t.Fatal("expected closed channel for existing valid entry")
+	}
+
+	typ.AssertNotCalled(t, "Fetch")
+}
+
+// TestFetch_AllowNewFalse verifies that if no entry exists and allowNew is false,
+// it returns immediately (does not create entry).
+func TestFetch_AllowNewFalse(t *testing.T) {
+	t.Parallel()
+	c := New(Options{})
+	typ := &MockType{}
+	typ.On("RegisterOptions").Return(RegisterOptions{})
+	typ.On("Fetch", mock.Anything, mock.Anything, mock.Anything).
+		Return(FetchResult{}, nil).Maybe()
+	c.RegisterType("t", typ)
+
+	key := "test/missing"
+	opts := newGetOptions(c.types["t"], TestRequest(t, RequestInfo{Key: "missing"}))
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	ch := c.fetch(ctx, key, opts, false, 0, false)
+
+	select {
+	case <-ch:
+		// success
+	default:
+		t.Fatal("expected closed channel")
+	}
+
+	c.entriesLock.RLock()
+	_, exists := c.entries[key]
+	c.entriesLock.RUnlock()
+	require.False(t, exists, "should not have created an entry")
+}
+
+// TestFetch_Coalescing verifies that if a fetch is already in progress (Fetching=true),
+// a second call returns the *same* waiter channel and triggers no new Goroutine.
+func TestFetch_Coalescing(t *testing.T) {
+	t.Parallel()
+	c := New(Options{})
+	typ := &MockType{}
+	typ.On("RegisterOptions").Return(RegisterOptions{})
+	c.RegisterType("t", typ)
+
+	key := "test/coalesce"
+	existingWaiter := make(chan struct{})
+
+	// Manually inject a fetching entry
+	c.entries[key] = cacheEntry{
+		Fetching: true,
+		Waiter:   existingWaiter,
+		Valid:    false,
+	}
+
+	opts := newGetOptions(c.types["t"], TestRequest(t, RequestInfo{Key: "coalesce"}))
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	// Call fetch
+	ch := c.fetch(ctx, key, opts, true, 0, false)
+
+	// Ensure we got the exact same channel back.
+	// Note: We cast the local bidirectional channel to read-only for comparison.
+	require.Equal(t, (<-chan struct{})(existingWaiter), ch)
+
+	// Ensure Fetch wasn't called (mock would complain if we didn't set expectations)
+	typ.AssertNotCalled(t, "Fetch")
+}
+
+// TestFetch_StopCh verifies that the fetch goroutine exits if the cache is closed (stopCh).
+func TestFetch_StopCh(t *testing.T) {
+	t.Parallel()
+	c := New(Options{})
+	typ := &MockType{}
+	typ.On("RegisterOptions").Return(RegisterOptions{})
+	c.RegisterType("t", typ)
+
+	// Mock fetch to block forever
+	blockCh := make(chan struct{})
+	typ.On("Fetch", mock.Anything, mock.Anything, mock.Anything).
+		Run(func(args mock.Arguments) {
+			<-blockCh // block
+		}).
+		Return(FetchResult{}, nil)
+
+	opts := newGetOptions(c.types["t"], TestRequest(t, RequestInfo{Key: "k"}))
+	key := makeEntryKey("t", "", "", "", "k")
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	// Start fetch
+	waiter := c.fetch(ctx, key, opts, true, 0, false)
+
+	// Ensure fetch has started (Wait for Fetching to be true)
+	assert.Eventually(t, func() bool {
+		c.entriesLock.RLock()
+		defer c.entriesLock.RUnlock()
+		e, ok := c.entries[key]
+		return ok && e.Fetching
+	}, 1*time.Second, 10*time.Millisecond)
+
+	// Close the cache
+	// We manually close stopCh here because c.Close() also cancels context
+	// and we want to ensure stopCh specifically works.
+	close(c.stopCh)
+	close(blockCh) // Allow the mock to proceed so it hits the select
+
+	select {
+	case <-waiter:
+		// success
+	case <-time.After(1 * time.Second):
+		t.Fatal("fetch did not return after StopCh closed")
+	}
+}
+
+// TestFetch_ResultStateOnly verifies edge case where Fetch returns State but no Value.
+// This happens in rate limiting or some auth errors where we want to update metadata/backoff
+// but not validity.
+func TestFetch_ResultStateOnly(t *testing.T) {
+	t.Parallel()
+	c := New(Options{})
+	typ := &MockType{}
+	typ.On("RegisterOptions").Return(RegisterOptions{})
+	c.RegisterType("t", typ)
+
+	key := makeEntryKey("t", "", "", "", "state_only")
+
+	// Mock returns State but nil value and nil error
+	typ.On("Fetch", mock.Anything, mock.Anything, mock.Anything).
+		Return(FetchResult{Value: nil, State: "some_state"}, nil)
+
+	opts := newGetOptions(c.types["t"], TestRequest(t, RequestInfo{Key: "state_only"}))
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	waiter := c.fetch(ctx, key, opts, true, 0, false)
+	<-waiter
+
+	c.entriesLock.RLock()
+	entry := c.entries[key]
+	c.entriesLock.RUnlock()
+
+	// Valid should remain false (no value), but State should be updated
+	require.False(t, entry.Valid)
+	require.Equal(t, "some_state", entry.State)
+	require.Nil(t, entry.Error)
+}
+
+// TestFetch_ZeroIndexSafety checks the logic that sets index to 1 if RPC returns 0
+// to prevent busy loops.
+func TestFetch_ZeroIndexSafety(t *testing.T) {
+	t.Parallel()
+	c := New(Options{})
+	typ := &MockType{}
+	typ.On("RegisterOptions").Return(RegisterOptions{})
+	c.RegisterType("t", typ)
+
+	key := makeEntryKey("t", "", "", "", "zero_idx")
+
+	// RPC returns value but Index 0
+	typ.On("Fetch", mock.Anything, mock.Anything, mock.Anything).
+		Return(FetchResult{Value: "val", Index: 0}, nil)
+
+	opts := newGetOptions(c.types["t"], TestRequest(t, RequestInfo{Key: "zero_idx"}))
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	waiter := c.fetch(ctx, key, opts, true, 0, false)
+	<-waiter
+
+	c.entriesLock.RLock()
+	entry := c.entries[key]
+	c.entriesLock.RUnlock()
+
+	require.True(t, entry.Valid)
+	require.Equal(t, uint64(1), entry.Index, "Fetch should bump index 0 to 1")
+}
+
+// TestFetch_ReplacesHandle verifies that if a fetch is forcefully replaced (fetching=true),
+// the previous handle is stopped.
+func TestFetch_ReplacesHandle(t *testing.T) {
+	t.Parallel()
+	c := New(Options{})
+	typ := &MockType{}
+	typ.On("RegisterOptions").Return(RegisterOptions{})
+	c.RegisterType("t", typ)
+
+	key := "test/replace"
+
+	// Create a "stuck" handle manually
+	handle := c.getOrReplaceFetchHandle(key)
+
+	// Start a new fetch for the same key. This calls getOrReplaceFetchHandle again.
+	// We expect the previous handle's stopCh to be closed.
+
+	typ.On("Fetch", mock.Anything, mock.Anything, mock.Anything).
+		Return(FetchResult{Value: "val"}, nil)
+
+	opts := newGetOptions(c.types["t"], TestRequest(t, RequestInfo{Key: "k"}))
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	waiter := c.fetch(ctx, key, opts, true, 0, true) // ignoreExisting forces new fetch logic
+	<-waiter
+
+	select {
+	case <-handle.stopCh:
+		// Success: the previous handle was signaled to stop
+	default:
+		t.Fatal("Expected previous fetch handle to be stopped")
+	}
+}
+
+// TestFetch_EvictionRace verifies the block:
+// if _, ok := c.entries[key]; !ok { return }
+// This simulates an entry being evicted while the fetch was running.
+func TestFetch_EvictionRace(t *testing.T) {
+	t.Parallel()
+	c := New(Options{})
+	typ := &MockType{}
+	typ.On("RegisterOptions").Return(RegisterOptions{})
+	c.RegisterType("t", typ)
+
+	key := makeEntryKey("t", "", "", "", "evict")
+
+	// Setup synchronization
+	fetchStarted := make(chan struct{})
+	fetchBlock := make(chan struct{})
+
+	typ.On("Fetch", mock.Anything, mock.Anything, mock.Anything).
+		Run(func(args mock.Arguments) {
+			close(fetchStarted)
+			<-fetchBlock
+		}).
+		Return(FetchResult{Value: "val"}, nil)
+
+	opts := newGetOptions(c.types["t"], TestRequest(t, RequestInfo{Key: "evict"}))
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	// Start fetch in background
+	go c.fetch(ctx, key, opts, true, 0, false)
+
+	<-fetchStarted
+
+	// Simulate eviction by deleting map entry directly
+	c.entriesLock.Lock()
+	delete(c.entries, key)
+	c.entriesLock.Unlock()
+
+	// Allow fetch to finish
+	close(fetchBlock)
+
+	// We can't easily assert return values here since it runs in a goroutine,
+	// but we can ensure it didn't panic and didn't re-add the entry.
+	time.Sleep(50 * time.Millisecond)
+
+	c.entriesLock.RLock()
+	_, ok := c.entries[key]
+	c.entriesLock.RUnlock()
+
+	require.False(t, ok, "Entry should not have been re-added after eviction")
+}
+
+// TestFetch_Refresh_Backoff_Logic verifies that if a refresh is active
+// and we are retrying, the backoff logic (mocked) allows the loop to continue
+// or exit on context done.
+func TestFetch_Refresh_Backoff_Logic(t *testing.T) {
+	t.Parallel()
+	c := New(Options{})
+	typ := &MockType{}
+
+	// Setup type with Refresh enabled
+	// Note: We use RegisterOptions here to enable the refresh loop logic
+	typ.On("RegisterOptions").Return(RegisterOptions{
+		Refresh:      true,
+		RefreshTimer: 1 * time.Millisecond,
+	})
+	c.RegisterType("t", typ)
+
+	key := makeEntryKey("t", "", "", "", "refresh")
+
+	// We want to verify that fetch calls itself recursively.
+	// 1. First call fails (error).
+	// 2. Refresh logic triggers.
+	// 3. Waits backoff.
+	// 4. Calls fetch again.
+
+	fetched := make(chan struct{}, 2)
+
+	typ.On("Fetch", mock.Anything, mock.Anything, mock.Anything).
+		Run(func(args mock.Arguments) {
+			fetched <- struct{}{}
+		}).
+		Return(FetchResult{}, errors.New("fail")) // Always fail to trigger backoff
+
+	opts := newGetOptions(c.types["t"], TestRequest(t, RequestInfo{Key: "refresh"}))
+
+	// Start initial fetch
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	c.fetch(ctx, key, opts, true, 0, false)
+
+	// Wait for first fetch
+	<-fetched
+
+	// Wait for second fetch (triggered by refresh loop)
+	select {
+	case <-fetched:
+		// Success, recursion worked
+	case <-time.After(2 * time.Second):
+		t.Fatal("Background refresh did not trigger second fetch")
+	}
+}
