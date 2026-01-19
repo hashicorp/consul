@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"context"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
@@ -39,14 +40,15 @@ func TestCatalogServices(t *testing.T) {
 		})
 
 	// Fetch
-	resultA, err := typ.Fetch(cache.FetchOptions{
-		MinIndex: 24,
-		Timeout:  1 * time.Second,
-	}, &structs.ServiceSpecificRequest{
-		Datacenter:  "dc1",
-		ServiceName: "web",
-		ServiceTags: []string{"tag1", "tag2"},
-	})
+	resultA, err := typ.Fetch(context.Background(),
+		cache.FetchOptions{
+			MinIndex: 24,
+			Timeout:  1 * time.Second,
+		}, &structs.ServiceSpecificRequest{
+			Datacenter:  "dc1",
+			ServiceName: "web",
+			ServiceTags: []string{"tag1", "tag2"},
+		})
 	require.NoError(t, err)
 	require.Equal(t, cache.FetchResult{
 		Value: resp,
@@ -60,8 +62,9 @@ func TestCatalogServices_badReqType(t *testing.T) {
 	typ := &CatalogServices{RPC: rpc}
 
 	// Fetch
-	_, err := typ.Fetch(cache.FetchOptions{}, cache.TestRequest(
-		t, cache.RequestInfo{Key: "foo", MinIndex: 64}))
+	_, err := typ.Fetch(context.Background(),
+		cache.FetchOptions{}, cache.TestRequest(
+			t, cache.RequestInfo{Key: "foo", MinIndex: 64}))
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "wrong type")
 

@@ -21,7 +21,7 @@ type NodeServices struct {
 	RPC RPC
 }
 
-func (c *NodeServices) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
+func (c *NodeServices) Fetch(ctx context.Context, opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
 	var result cache.FetchResult
 
 	// The request should be a DCSpecificRequest.
@@ -47,7 +47,7 @@ func (c *NodeServices) Fetch(opts cache.FetchOptions, req cache.Request) (cache.
 
 	// Fetch
 	var reply structs.IndexedNodeServices
-	if err := c.RPC.RPC(context.Background(), "Catalog.NodeServices", reqReal, &reply); err != nil {
+	if err := c.RPC.RPC(ctx, "Catalog.NodeServices", reqReal, &reply); err != nil {
 		return result, err
 	}
 

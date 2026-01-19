@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"context"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
@@ -41,13 +42,14 @@ func TestConfigEntries(t *testing.T) {
 		})
 
 	// Fetch
-	resultA, err := typ.Fetch(cache.FetchOptions{
-		MinIndex: 24,
-		Timeout:  1 * time.Second,
-	}, &structs.ConfigEntryQuery{
-		Datacenter: "dc1",
-		Kind:       structs.ServiceResolver,
-	})
+	resultA, err := typ.Fetch(context.Background(),
+		cache.FetchOptions{
+			MinIndex: 24,
+			Timeout:  1 * time.Second,
+		}, &structs.ConfigEntryQuery{
+			Datacenter: "dc1",
+			Kind:       structs.ServiceResolver,
+		})
 	require.NoError(t, err)
 	require.Equal(t, cache.FetchResult{
 		Value: resp,
@@ -84,14 +86,15 @@ func TestConfigEntry(t *testing.T) {
 		})
 
 	// Fetch
-	resultA, err := typ.Fetch(cache.FetchOptions{
-		MinIndex: 24,
-		Timeout:  1 * time.Second,
-	}, &structs.ConfigEntryQuery{
-		Datacenter: "dc1",
-		Kind:       structs.ServiceResolver,
-		Name:       "foo",
-	})
+	resultA, err := typ.Fetch(context.Background(),
+		cache.FetchOptions{
+			MinIndex: 24,
+			Timeout:  1 * time.Second,
+		}, &structs.ConfigEntryQuery{
+			Datacenter: "dc1",
+			Kind:       structs.ServiceResolver,
+			Name:       "foo",
+		})
 	require.NoError(t, err)
 	require.Equal(t, cache.FetchResult{
 		Value: resp,
@@ -106,8 +109,9 @@ func TestConfigEntries_badReqType(t *testing.T) {
 	typ := &ConfigEntryList{RPC: rpc}
 
 	// Fetch
-	_, err := typ.Fetch(cache.FetchOptions{}, cache.TestRequest(
-		t, cache.RequestInfo{Key: "foo", MinIndex: 64}))
+	_, err := typ.Fetch(context.Background(),
+		cache.FetchOptions{}, cache.TestRequest(
+			t, cache.RequestInfo{Key: "foo", MinIndex: 64}))
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "wrong type")
 	rpc.AssertExpectations(t)
