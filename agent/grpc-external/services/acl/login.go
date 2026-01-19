@@ -12,7 +12,6 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/consul/auth"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/proto-public/pbacl"
 )
@@ -71,13 +70,7 @@ func (s *Server) Login(ctx context.Context, req *pbacl.LoginRequest) (*pbacl.Log
 		return nil, status.Error(codes.Unauthenticated, err.Error())
 	}
 
-	description, err := auth.BuildTokenDescription("token created via login", req.Meta)
-	if err != nil {
-		logger.Error("failed to build token description", "error", err.Error())
-		return nil, status.Error(codes.Internal, err.Error())
-	}
-
-	token, err := s.NewLogin().TokenForVerifiedIdentity(verifiedIdentity, authMethod, description)
+	token, err := s.NewLogin().TokenForVerifiedIdentityWithMeta(verifiedIdentity, authMethod, req.Meta)
 	switch {
 	case acl.IsErrPermissionDenied(err):
 		return nil, status.Error(codes.PermissionDenied, err.Error())

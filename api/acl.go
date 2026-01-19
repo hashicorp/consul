@@ -294,6 +294,11 @@ type ACLAuthMethod struct {
 	// This can be either 'local' or 'global'. If empty 'local' is assumed.
 	TokenLocality string `json:",omitempty"`
 
+	// TokenNameFormat is a template used to generate the Description field for tokens
+	// created via this auth method. Available variables include identity attributes
+	// such as ${auth_method}, ${identity.username}, ${identity.email}, etc.
+	TokenNameFormat string `json:",omitempty"`
+
 	// Configuration is arbitrary configuration for the auth method. This
 	// should only contain primitive values and containers (such as lists and
 	// maps).

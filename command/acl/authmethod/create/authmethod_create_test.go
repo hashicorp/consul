@@ -12,19 +12,19 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/go-uuid"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/go-uuid"
+
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/connect"
+	// activate testing auth method
+	_ "github.com/hashicorp/consul/agent/consul/authmethod/testauth"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/acl"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
-
-	// activate testing auth method
-	_ "github.com/hashicorp/consul/agent/consul/authmethod/testauth"
 )
 
 func TestAuthMethodCreateCommand_noTabs(t *testing.T) {
@@ -184,6 +184,36 @@ func TestAuthMethodCreateCommand(t *testing.T) {
 			DisplayName:   "display",
 			Description:   "desc",
 			TokenLocality: "global",
+		}
+		require.Equal(t, expect, got)
+	})
+
+	t.Run("create testing with token name format", func(t *testing.T) {
+		name := getTestName(t)
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-type=testing",
+			"-name", name,
+			"-description=desc",
+			"-display-name=display",
+			"-token-name-format=${auth_method}-${identity.username}",
+		}
+
+		ui := cli.NewMockUi()
+		cmd := New(ui)
+
+		code := cmd.Run(args)
+		require.Equal(t, code, 0, "err: "+ui.ErrorWriter.String())
+		require.Empty(t, ui.ErrorWriter.String())
+
+		got := getTestMethod(t, client, name)
+		expect := &api.ACLAuthMethod{
+			Name:            name,
+			Type:            "testing",
+			DisplayName:     "display",
+			Description:     "desc",
+			TokenNameFormat: "${auth_method}-${identity.username}",
 		}
 		require.Equal(t, expect, got)
 	})

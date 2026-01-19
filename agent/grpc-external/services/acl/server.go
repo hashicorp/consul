@@ -6,10 +6,11 @@ package acl
 import (
 	"context"
 
-	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
@@ -33,6 +34,7 @@ type Config struct {
 //go:generate mockery --name Login --inpackage
 type Login interface {
 	TokenForVerifiedIdentity(identity *authmethod.Identity, authMethod *structs.ACLAuthMethod, description string) (*structs.ACLToken, error)
+	TokenForVerifiedIdentityWithMeta(identity *authmethod.Identity, authMethod *structs.ACLAuthMethod, meta map[string]string) (*structs.ACLToken, error)
 }
 
 //go:generate mockery --name Validator --inpackage

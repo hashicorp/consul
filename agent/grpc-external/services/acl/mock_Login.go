@@ -37,6 +37,29 @@ func (_m *MockLogin) TokenForVerifiedIdentity(identity *authmethod.Identity, aut
 	return r0, r1
 }
 
+// TokenForVerifiedIdentityWithMeta provides a mock function with given fields: identity, authMethod, meta
+func (_m *MockLogin) TokenForVerifiedIdentityWithMeta(identity *authmethod.Identity, authMethod *structs.ACLAuthMethod, meta map[string]string) (*structs.ACLToken, error) {
+	ret := _m.Called(identity, authMethod, meta)
+
+	var r0 *structs.ACLToken
+	if rf, ok := ret.Get(0).(func(*authmethod.Identity, *structs.ACLAuthMethod, map[string]string) *structs.ACLToken); ok {
+		r0 = rf(identity, authMethod, meta)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*structs.ACLToken)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*authmethod.Identity, *structs.ACLAuthMethod, map[string]string) error); ok {
+		r1 = rf(identity, authMethod, meta)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 type mockConstructorTestingTNewMockLogin interface {
 	mock.TestingT
 	Cleanup(func())

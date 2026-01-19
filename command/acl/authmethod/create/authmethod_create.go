@@ -11,11 +11,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mitchellh/cli"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/acl/authmethod"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/helpers"
-	"github.com/mitchellh/cli"
 )
 
 func New(ui cli.Ui) *cmd {
@@ -30,13 +31,14 @@ type cmd struct {
 	http  *flags.HTTPFlags
 	help  string
 
-	authMethodType string
-	name           string
-	displayName    string
-	description    string
-	maxTokenTTL    time.Duration
-	tokenLocality  string
-	config         string
+	authMethodType  string
+	name            string
+	displayName     string
+	description     string
+	maxTokenTTL     time.Duration
+	tokenLocality   string
+	tokenNameFormat string
+	config          string
 
 	k8sHost              string
 	k8sCACert            string
@@ -97,6 +99,14 @@ func (c *cmd) init() {
 		"",
 		"Defines the kind of token that this auth method should produce. "+
 			"This can be either 'local' or 'global'. If empty the value of 'local' is assumed.",
+	)
+
+	c.flags.StringVar(
+		&c.tokenNameFormat,
+		"token-name-format",
+		"",
+		"Template to use for generating token names/descriptions. Can use variables like "+
+			"${auth_method}, ${identity.username}, ${identity.email}, etc.",
 	)
 
 	c.flags.StringVar(
@@ -168,11 +178,12 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	newAuthMethod := &api.ACLAuthMethod{
-		Type:          c.authMethodType,
-		Name:          c.name,
-		DisplayName:   c.displayName,
-		Description:   c.description,
-		TokenLocality: c.tokenLocality,
+		Type:            c.authMethodType,
+		Name:            c.name,
+		DisplayName:     c.displayName,
+		Description:     c.description,
+		TokenLocality:   c.tokenLocality,
+		TokenNameFormat: c.tokenNameFormat,
 	}
 	if c.maxTokenTTL > 0 {
 		newAuthMethod.MaxTokenTTL = c.maxTokenTTL

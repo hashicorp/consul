@@ -14,6 +14,7 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+
 	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -2134,12 +2135,7 @@ func (a *ACL) Login(args *structs.ACLLoginRequest, reply *structs.ACLToken) erro
 		return err
 	}
 
-	description, err := auth.BuildTokenDescription("token created via login", args.Auth.Meta)
-	if err != nil {
-		return err
-	}
-
-	token, err := a.srv.aclLogin().TokenForVerifiedIdentity(verifiedIdentity, authMethod, description)
+	token, err := a.srv.aclLogin().TokenForVerifiedIdentityWithMeta(verifiedIdentity, authMethod, args.Auth.Meta)
 	if err == nil {
 		*reply = *token
 	}
