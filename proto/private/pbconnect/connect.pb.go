@@ -194,7 +194,12 @@ type CARoot struct {
 	// mog: func-to=int func-from=int32
 	PrivateKeyBits int32 `protobuf:"varint,15,opt,name=PrivateKeyBits,proto3" json:"PrivateKeyBits,omitempty"`
 	// mog: func-to=RaftIndexTo func-from=RaftIndexFrom
-	RaftIndex     *pbcommon.RaftIndex `protobuf:"bytes,16,opt,name=RaftIndex,proto3" json:"RaftIndex,omitempty"`
+	RaftIndex *pbcommon.RaftIndex `protobuf:"bytes,16,opt,name=RaftIndex,proto3" json:"RaftIndex,omitempty"`
+	// DaysRemaining is the number of days until the certificate expires.
+	// This is a computed field based on NotAfter and the current time.
+	// Negative values indicate the certificate has already expired.
+	// mog: func-to=int func-from=int32
+	DaysRemaining int32 `protobuf:"varint,17,opt,name=DaysRemaining,proto3" json:"DaysRemaining,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -339,6 +344,13 @@ func (x *CARoot) GetRaftIndex() *pbcommon.RaftIndex {
 		return x.RaftIndex
 	}
 	return nil
+}
+
+func (x *CARoot) GetDaysRemaining() int32 {
+	if x != nil {
+		return x.DaysRemaining
+	}
+	return 0
 }
 
 // RaftIndex is used to track the index used while creating
@@ -527,7 +539,7 @@ const file_private_pbconnect_connect_proto_rawDesc = "" +
 	"\fActiveRootID\x18\x01 \x01(\tR\fActiveRootID\x12 \n" +
 	"\vTrustDomain\x18\x02 \x01(\tR\vTrustDomain\x12?\n" +
 	"\x05Roots\x18\x03 \x03(\v2).hashicorp.consul.internal.connect.CARootR\x05Roots\x12I\n" +
-	"\tQueryMeta\x18\x04 \x01(\v2+.hashicorp.consul.internal.common.QueryMetaR\tQueryMeta\"\x97\x05\n" +
+	"\tQueryMeta\x18\x04 \x01(\v2+.hashicorp.consul.internal.common.QueryMetaR\tQueryMeta\"\xbd\x05\n" +
 	"\x06CARoot\x12\x0e\n" +
 	"\x02ID\x18\x01 \x01(\tR\x02ID\x12\x12\n" +
 	"\x04Name\x18\x02 \x01(\tR\x04Name\x12\"\n" +
@@ -547,7 +559,8 @@ const file_private_pbconnect_connect_proto_rawDesc = "" +
 	"\fRotatedOutAt\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\fRotatedOutAt\x12&\n" +
 	"\x0ePrivateKeyType\x18\x0e \x01(\tR\x0ePrivateKeyType\x12&\n" +
 	"\x0ePrivateKeyBits\x18\x0f \x01(\x05R\x0ePrivateKeyBits\x12I\n" +
-	"\tRaftIndex\x18\x10 \x01(\v2+.hashicorp.consul.internal.common.RaftIndexR\tRaftIndex\"\xd3\x04\n" +
+	"\tRaftIndex\x18\x10 \x01(\v2+.hashicorp.consul.internal.common.RaftIndexR\tRaftIndex\x12$\n" +
+	"\rDaysRemaining\x18\x11 \x01(\x05R\rDaysRemaining\"\xd3\x04\n" +
 	"\n" +
 	"IssuedCert\x12\"\n" +
 	"\fSerialNumber\x18\x01 \x01(\tR\fSerialNumber\x12\x18\n" +

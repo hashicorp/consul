@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
@@ -32,6 +33,13 @@ func (s *HTTPHandlers) ConnectCARoots(resp http.ResponseWriter, req *http.Reques
 	defer setMeta(resp, &reply.QueryMeta)
 	if err := s.agent.RPC(req.Context(), "ConnectCA.Roots", &args, &reply); err != nil {
 		return nil, err
+	}
+
+	// Populate computed DaysRemaining field for each root
+	for _, root := range reply.Roots {
+		if !root.NotAfter.IsZero() {
+			root.DaysRemaining = int(time.Until(root.NotAfter).Hours() / 24)
+		}
 	}
 
 	if !pemResponse {
