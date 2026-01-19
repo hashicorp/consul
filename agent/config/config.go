@@ -698,31 +698,41 @@ type Performance struct {
 }
 
 type Telemetry struct {
-	CirconusAPIApp                     *string  `mapstructure:"circonus_api_app" json:"circonus_api_app,omitempty"`
-	CirconusAPIToken                   *string  `mapstructure:"circonus_api_token" json:"circonus_api_token,omitempty"`
-	CirconusAPIURL                     *string  `mapstructure:"circonus_api_url" json:"circonus_api_url,omitempty"`
-	CirconusBrokerID                   *string  `mapstructure:"circonus_broker_id" json:"circonus_broker_id,omitempty"`
-	CirconusBrokerSelectTag            *string  `mapstructure:"circonus_broker_select_tag" json:"circonus_broker_select_tag,omitempty"`
-	CirconusCheckDisplayName           *string  `mapstructure:"circonus_check_display_name" json:"circonus_check_display_name,omitempty"`
-	CirconusCheckForceMetricActivation *string  `mapstructure:"circonus_check_force_metric_activation" json:"circonus_check_force_metric_activation,omitempty"`
-	CirconusCheckID                    *string  `mapstructure:"circonus_check_id" json:"circonus_check_id,omitempty"`
-	CirconusCheckInstanceID            *string  `mapstructure:"circonus_check_instance_id" json:"circonus_check_instance_id,omitempty"`
-	CirconusCheckSearchTag             *string  `mapstructure:"circonus_check_search_tag" json:"circonus_check_search_tag,omitempty"`
-	CirconusCheckTags                  *string  `mapstructure:"circonus_check_tags" json:"circonus_check_tags,omitempty"`
-	CirconusSubmissionInterval         *string  `mapstructure:"circonus_submission_interval" json:"circonus_submission_interval,omitempty"`
-	CirconusSubmissionURL              *string  `mapstructure:"circonus_submission_url" json:"circonus_submission_url,omitempty"`
-	DisableHostname                    *bool    `mapstructure:"disable_hostname" json:"disable_hostname,omitempty"`
-	DisablePerTenancyUsageMetrics      *bool    `mapstructure:"disable_per_tenancy_usage_metrics" json:"disable_per_tenancy_usage_metrics,omitempty"`
-	EnableHostMetrics                  *bool    `mapstructure:"enable_host_metrics" json:"enable_host_metrics,omitempty"`
-	DogstatsdAddr                      *string  `mapstructure:"dogstatsd_addr" json:"dogstatsd_addr,omitempty"`
-	DogstatsdTags                      []string `mapstructure:"dogstatsd_tags" json:"dogstatsd_tags,omitempty"`
-	RetryFailedConfiguration           *bool    `mapstructure:"retry_failed_connection" json:"retry_failed_connection,omitempty"`
-	FilterDefault                      *bool    `mapstructure:"filter_default" json:"filter_default,omitempty"`
-	PrefixFilter                       []string `mapstructure:"prefix_filter" json:"prefix_filter,omitempty"`
-	MetricsPrefix                      *string  `mapstructure:"metrics_prefix" json:"metrics_prefix,omitempty"`
-	PrometheusRetentionTime            *string  `mapstructure:"prometheus_retention_time" json:"prometheus_retention_time,omitempty"`
-	StatsdAddr                         *string  `mapstructure:"statsd_address" json:"statsd_address,omitempty"`
-	StatsiteAddr                       *string  `mapstructure:"statsite_address" json:"statsite_address,omitempty"`
+	CirconusAPIApp                     *string               `mapstructure:"circonus_api_app" json:"circonus_api_app,omitempty"`
+	CirconusAPIToken                   *string               `mapstructure:"circonus_api_token" json:"circonus_api_token,omitempty"`
+	CirconusAPIURL                     *string               `mapstructure:"circonus_api_url" json:"circonus_api_url,omitempty"`
+	CirconusBrokerID                   *string               `mapstructure:"circonus_broker_id" json:"circonus_broker_id,omitempty"`
+	CirconusBrokerSelectTag            *string               `mapstructure:"circonus_broker_select_tag" json:"circonus_broker_select_tag,omitempty"`
+	CirconusCheckDisplayName           *string               `mapstructure:"circonus_check_display_name" json:"circonus_check_display_name,omitempty"`
+	CirconusCheckForceMetricActivation *string               `mapstructure:"circonus_check_force_metric_activation" json:"circonus_check_force_metric_activation,omitempty"`
+	CirconusCheckID                    *string               `mapstructure:"circonus_check_id" json:"circonus_check_id,omitempty"`
+	CirconusCheckInstanceID            *string               `mapstructure:"circonus_check_instance_id" json:"circonus_check_instance_id,omitempty"`
+	CirconusCheckSearchTag             *string               `mapstructure:"circonus_check_search_tag" json:"circonus_check_search_tag,omitempty"`
+	CirconusCheckTags                  *string               `mapstructure:"circonus_check_tags" json:"circonus_check_tags,omitempty"`
+	CirconusSubmissionInterval         *string               `mapstructure:"circonus_submission_interval" json:"circonus_submission_interval,omitempty"`
+	CirconusSubmissionURL              *string               `mapstructure:"circonus_submission_url" json:"circonus_submission_url,omitempty"`
+	DisableHostname                    *bool                 `mapstructure:"disable_hostname" json:"disable_hostname,omitempty"`
+	DisablePerTenancyUsageMetrics      *bool                 `mapstructure:"disable_per_tenancy_usage_metrics" json:"disable_per_tenancy_usage_metrics,omitempty"`
+	EnableHostMetrics                  *bool                 `mapstructure:"enable_host_metrics" json:"enable_host_metrics,omitempty"`
+	DogstatsdAddr                      *string               `mapstructure:"dogstatsd_addr" json:"dogstatsd_addr,omitempty"`
+	DogstatsdTags                      []string              `mapstructure:"dogstatsd_tags" json:"dogstatsd_tags,omitempty"`
+	RetryFailedConfiguration           *bool                 `mapstructure:"retry_failed_connection" json:"retry_failed_connection,omitempty"`
+	FilterDefault                      *bool                 `mapstructure:"filter_default" json:"filter_default,omitempty"`
+	PrefixFilter                       []string              `mapstructure:"prefix_filter" json:"prefix_filter,omitempty"`
+	MetricsPrefix                      *string               `mapstructure:"metrics_prefix" json:"metrics_prefix,omitempty"`
+	PrometheusRetentionTime            *string               `mapstructure:"prometheus_retention_time" json:"prometheus_retention_time,omitempty"`
+	StatsdAddr                         *string               `mapstructure:"statsd_address" json:"statsd_address,omitempty"`
+	StatsiteAddr                       *string               `mapstructure:"statsite_address" json:"statsite_address,omitempty"`
+	Certificate                        *CertificateTelemetry `mapstructure:"certificate" json:"certificate,omitempty"`
+}
+
+type CertificateTelemetry struct {
+	Enabled               *bool   `mapstructure:"enabled" json:"enabled,omitempty"`
+	CacheDuration         *string `mapstructure:"cache_duration" json:"cache_duration,omitempty"`
+	CriticalThresholdDays *int    `mapstructure:"critical_threshold_days" json:"critical_threshold_days,omitempty"`
+	WarningThresholdDays  *int    `mapstructure:"warning_threshold_days" json:"warning_threshold_days,omitempty"`
+	InfoThresholdDays     *int    `mapstructure:"info_threshold_days" json:"info_threshold_days,omitempty"`
+	ExcludeAutoRenewable  *bool   `mapstructure:"exclude_auto_renewable" json:"exclude_auto_renewable,omitempty"`
 }
 
 type Ports struct {
