@@ -6470,10 +6470,6 @@ func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
 }
 
 func TestAgent_HTTPServerTimeouts(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
 	t.Parallel()
 
 	// Test with custom timeout configuration
@@ -6495,10 +6491,6 @@ func TestAgent_HTTPServerTimeouts(t *testing.T) {
 }
 
 func TestAgent_HTTPServerDefaultTimeouts(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
 	t.Parallel()
 
 	// Test with default timeout configuration (no explicit timeouts set)
