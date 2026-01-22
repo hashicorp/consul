@@ -11,7 +11,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	promcollect "github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
 
 	"github.com/hashicorp/consul/acl"
@@ -158,8 +158,9 @@ func (s *HTTPHandlers) AgentMetricsCertificates(resp http.ResponseWriter, req *h
 		return nil, nil
 	}
 
-	// Gather metrics from the default gatherer
-	fams, err := promcollect.DefaultGatherer.Gather()
+	// Gather metrics from the Prometheus default gatherer
+	// This includes metrics emitted via go-metrics that are exported through the Prometheus sink
+	fams, err := prometheus.DefaultGatherer.Gather()
 	if err != nil {
 		return nil, err
 	}
