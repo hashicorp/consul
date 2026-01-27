@@ -891,7 +891,7 @@ func (a *Agent) Start(ctx context.Context) error {
 	}
 
 	if a.tlsConfigurator.Cert() != nil {
-		m := tlsCertExpirationMonitor(a.tlsConfigurator, a.logger)
+		m := tlsCertExpirationMonitor(a.tlsConfigurator, a.config.NodeName, a.logger)
 		go m.Monitor(&lib.StopChannelContext{StopCh: a.shutdownCh})
 	}
 

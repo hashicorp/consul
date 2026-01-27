@@ -44,6 +44,7 @@ type certificateItem struct {
 	RequiresManualRotation bool   `json:"requires_manual_rotation,omitempty"`
 	CAProvider             string `json:"ca_provider,omitempty"`
 	Path                   string `json:"path,omitempty"`
+	NodeName               string `json:"node_name,omitempty"` // For agent TLS certs
 	// Renewal failure tracking
 	RenewalFailure *certificateRenewalFailure `json:"renewal_failure,omitempty"`
 }
@@ -284,14 +285,22 @@ func buildItemFromFamily(fam *dto.MetricFamily, id, displayName, typ, subtype st
 		itemName := displayName
 		itemSubtype := subtype
 		var failureKey string
+		var nodeName string
 
-		// For metrics with labels (e.g., leaf certs), use labels to create unique IDs
+		// For metrics with labels (e.g., leaf certs, agent TLS), use labels to create unique IDs
 		if len(m.Label) > 0 {
 			labels := make(map[string]string)
 			for _, label := range m.Label {
 				if label.Name != nil && label.Value != nil {
 					labels[*label.Name] = *label.Value
 				}
+			}
+
+			// Extract node name if present (for agent TLS certs)
+			if node, ok := labels["node"]; ok {
+				nodeName = node
+				itemID = id + "-" + node
+				itemName = displayName + " (" + node + ")"
 			}
 
 			// For leaf certs, use service name and kind
@@ -333,6 +342,7 @@ func buildItemFromFamily(fam *dto.MetricFamily, id, displayName, typ, subtype st
 			Severity:         severity,
 			SeverityScore:    score,
 			Color:            color,
+			NodeName:         nodeName,
 		}
 
 		// Add failure info if available

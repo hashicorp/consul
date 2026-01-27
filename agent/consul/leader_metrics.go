@@ -143,7 +143,8 @@ func (m CertExpirationMonitor) Monitor(ctx context.Context) error {
 		key := strings.Join(m.Key, ":")
 		var certType string
 		var suggestedAction string
-		
+		var nodeName string
+
 		switch key {
 		case "mesh:active-root-ca:expiry":
 			certType = "Root"
@@ -153,26 +154,37 @@ func (m CertExpirationMonitor) Monitor(ctx context.Context) error {
 			suggestedAction = "check consul logs for rotation issues"
 		case "agent:tls:cert:expiry":
 			certType = "Agent"
-			suggestedAction = "manually rotate this agent's certificate"
+			// Try to extract node name from labels if available
+			for _, label := range m.Labels {
+				if label.Name == "node" {
+					nodeName = label.Value
+					break
+				}
+			}
+			if nodeName != "" {
+				suggestedAction = fmt.Sprintf("manually rotate this agent's certificate on node %s", nodeName)
+			} else {
+				suggestedAction = "manually rotate this agent's certificate"
+			}
+		}
+
+		// Build log fields
+		logFields := []interface{}{
+			"cert_type", certType,
+			"days_remaining", daysRemaining,
+			"time_to_expiry", untilAfter,
+			"expiration", time.Now().Add(untilAfter),
+			"suggested_action", suggestedAction,
+		}
+		if nodeName != "" {
+			logFields = append(logFields, "node", nodeName)
 		}
 
 		// Log based on threshold severity with detailed context
 		if daysRemaining < criticalDays {
-			logger.Error("certificate expiring soon",
-				"cert_type", certType,
-				"days_remaining", daysRemaining,
-				"time_to_expiry", untilAfter,
-				"expiration", time.Now().Add(untilAfter),
-				"suggested_action", suggestedAction,
-			)
+			logger.Error("certificate expiring soon", logFields...)
 		} else if daysRemaining < warningDays {
-			logger.Warn("certificate expiring soon",
-				"cert_type", certType,
-				"days_remaining", daysRemaining,
-				"time_to_expiry", untilAfter,
-				"expiration", time.Now().Add(untilAfter),
-				"suggested_action", suggestedAction,
-			)
+			logger.Warn("certificate expiring soon", logFields...)
 		}
 
 		expiry := untilAfter / time.Second

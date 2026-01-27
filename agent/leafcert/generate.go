@@ -55,7 +55,7 @@ func (m *Manager) attemptLeafRefresh(
 
 	// Handle brand new request first as it's simplest.
 	if existing == nil {
-		return m.generateNewLeaf(req, state, true)
+		return m.generateNewLeaf(req, existing, state, true)
 	}
 
 	// We have a certificate in cache already. Check it's still valid.
@@ -71,7 +71,7 @@ func (m *Manager) attemptLeafRefresh(
 
 	if expiresAt.Equal(now) || expiresAt.Before(now) {
 		// Already expired, just make a new one right away
-		return m.generateNewLeaf(req, state, false)
+		return m.generateNewLeaf(req, existing, state, false)
 	}
 
 	// If we called Get() with MustRevalidate then this call came from a non-blocking query.
@@ -92,7 +92,7 @@ func (m *Manager) attemptLeafRefresh(
 		}
 
 		// if we reach here then the current leaf was not signed by the same CAs, just regen
-		return m.generateNewLeaf(req, state, false)
+		return m.generateNewLeaf(req, existing, state, false)
 	}
 
 	// We are about to block and wait for a change or timeout.
@@ -138,7 +138,7 @@ func (m *Manager) attemptLeafRefresh(
 
 		case <-expiresTimer.C:
 			// Cert expired or was force-expired by a root change.
-			return m.generateNewLeaf(req, state, false)
+			return m.generateNewLeaf(req, existing, state, false)
 
 		case <-rootUpdateCh:
 			// A root cache change occurred, reload roots from cache.
@@ -211,6 +211,7 @@ func activeRootHasKey(roots *structs.IndexedCARoots, currentSigningKeyID string)
 // NOTE: do not hold the lock while doing the RPC/blocking stuff
 func (m *Manager) generateNewLeaf(
 	req *ConnectCALeafRequest,
+	existing *structs.IssuedCert,
 	newState fetchState,
 	firstTime bool,
 ) (*structs.IssuedCert, fetchState, error) {
@@ -331,6 +332,40 @@ func (m *Manager) generateNewLeaf(
 				},
 			)
 
+			// Log renewal failure with severity based on cert expiry time
+			if existing != nil {
+				daysRemaining := int(time.Until(existing.ValidBefore).Hours() / 24)
+				criticalDays := m.config.CertificateTelemetryCriticalThresholdDays
+				warningDays := m.config.CertificateTelemetryWarningThresholdDays
+
+				logFields := []interface{}{
+					"service", req.Service,
+					"kind", req.Kind,
+					"consecutive_errors", newState.consecutiveRateLimitErrs + 1,
+					"total_failures", newState.totalRenewalFailures,
+					"days_remaining", daysRemaining,
+					"expiration", existing.ValidBefore,
+					"suggested_action", "Certificate renewal is being rate limited. This is normal during root CA rotation. The certificate will retry automatically.",
+				}
+
+				if daysRemaining < criticalDays {
+					m.logger.Error("leaf certificate renewal rate limited - certificate expiring soon", logFields...)
+				} else if daysRemaining < warningDays {
+					m.logger.Warn("leaf certificate renewal rate limited", logFields...)
+				} else {
+					m.logger.Debug("leaf certificate renewal rate limited", logFields...)
+				}
+			} else {
+				// No existing cert to check expiry
+				m.logger.Warn("leaf certificate renewal rate limited",
+					"service", req.Service,
+					"kind", req.Kind,
+					"consecutive_errors", newState.consecutiveRateLimitErrs+1,
+					"total_failures", newState.totalRenewalFailures,
+					"suggested_action", "Certificate renewal is being rate limited. This is normal during root CA rotation. The certificate will retry automatically.",
+				)
+			}
+
 			if firstTime {
 				// This was a first fetch - we have no good value in cache. In this case
 				// we just return the error to the caller rather than rely on surprising
@@ -386,6 +421,40 @@ func (m *Manager) generateNewLeaf(
 				{Name: "reason", Value: "signing_error"},
 			},
 		)
+
+		// Log renewal failure with severity based on cert expiry time
+		if existing != nil {
+			daysRemaining := int(time.Until(existing.ValidBefore).Hours() / 24)
+			criticalDays := m.config.CertificateTelemetryCriticalThresholdDays
+			warningDays := m.config.CertificateTelemetryWarningThresholdDays
+
+			logFields := []interface{}{
+				"service", req.Service,
+				"kind", req.Kind,
+				"error", err,
+				"total_failures", newState.totalRenewalFailures,
+				"days_remaining", daysRemaining,
+				"expiration", existing.ValidBefore,
+				"suggested_action", "Check CA availability, network connectivity, and ACL permissions. Certificate may expire if renewal continues to fail.",
+			}
+
+			if daysRemaining < criticalDays {
+				m.logger.Error("leaf certificate renewal failed - certificate expiring soon", logFields...)
+			} else if daysRemaining < warningDays {
+				m.logger.Error("leaf certificate renewal failed", logFields...)
+			} else {
+				m.logger.Warn("leaf certificate renewal failed", logFields...)
+			}
+		} else {
+			// No existing cert - this is critical since we have no valid cert
+			m.logger.Error("leaf certificate renewal failed",
+				"service", req.Service,
+				"kind", req.Kind,
+				"error", err,
+				"total_failures", newState.totalRenewalFailures,
+				"suggested_action", "Check CA availability, network connectivity, and ACL permissions. Certificate may expire if renewal continues to fail.",
+			)
+		}
 
 		return nil, newState, err
 	}
