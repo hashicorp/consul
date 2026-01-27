@@ -20,6 +20,6 @@ self.deprecationWorkflow.config = {
     { handler: 'log', matchId: 'autotracking.mutation-after-consumption' },
     { handler: 'log', matchId: 'ember-data:legacy-test-helper-support' },
     { handler: 'log', matchId: 'ember-data:Model.data' },
-    { handler: "silence", matchId: "ember-data:rsvp-unresolved-async" },
+    { handler: 'silence', matchId: 'ember-data:rsvp-unresolved-async' },
   ],
 };

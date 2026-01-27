@@ -77,7 +77,7 @@ export default Component.extend(Slotted, {
     }
   }),
   actions: {
-    setAllOptions: function(data) {
+    setAllOptions: function (data) {
       if (this.isDestroyed || this.isDestroying) {
         return;
       }

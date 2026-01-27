@@ -29,13 +29,13 @@ export default class StoreService extends Store {
   // cloning immediately refreshes the view
   clone(modelName, id) {
     const adapter = this.adapterFor(modelName);
-    
+
     // Use peekRecord (public API) instead of _internalModelForId (removed in ember-data 4.x)
     const record = this.peekRecord(modelName, id);
     if (!record) {
       throw new Error(`Record not found: ${modelName}:${id}`);
     }
-    
+
     // Try ember-data 3.x style first
     if (record._internalModel && typeof record._internalModel.createSnapshot === 'function') {
       return adapter.clone(
@@ -45,7 +45,7 @@ export default class StoreService extends Store {
         record._internalModel.createSnapshot()
       );
     }
-    
+
     // ember-data 4.x+: create snapshot-like object
     // The serializer.serialize() needs eachAttribute, eachRelationship, attr, belongsTo, hasMany
     const modelClass = this.modelFor(modelName);
@@ -53,33 +53,33 @@ export default class StoreService extends Store {
     record.eachAttribute((name) => {
       attrs[name] = record[name];
     });
-    
+
     const snapshot = {
       id: record.id,
       type: modelClass,
       modelName: modelName,
       record: record,
-      
+
       // Return all attributes as object
       attributes: () => attrs,
-      
+
       // Return single attribute value
       attr: (name) => attrs[name],
-      
+
       // Iterate over attributes - required by JSONSerializer.serialize()
       eachAttribute: (callback) => {
         record.eachAttribute((name, meta) => {
           callback(name, meta);
         });
       },
-      
+
       // Iterate over relationships - required by JSONSerializer.serialize()
       eachRelationship: (callback) => {
         record.eachRelationship((name, meta) => {
           callback(name, meta);
         });
       },
-      
+
       // Handle belongsTo relationships
       belongsTo: (name) => {
         try {
@@ -95,7 +95,7 @@ export default class StoreService extends Store {
         }
         return null;
       },
-      
+
       // Handle hasMany relationships
       hasMany: (name) => {
         try {
@@ -112,13 +112,8 @@ export default class StoreService extends Store {
         return null;
       },
     };
-    
-    return adapter.clone(
-      this,
-      { modelName: modelName },
-      id,
-      snapshot
-    );
+
+    return this._findRecord(this, { modelName: modelName }, id, snapshot);
   }
 
   self(modelName, token) {

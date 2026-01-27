@@ -38,15 +38,15 @@ function getDataAsJSON(data) {
   if (typeof data.toJSON === 'function') {
     return data.toJSON();
   }
-  
+
   // Get the underlying model from changeset
   const innerData = get(data, 'data') || get(data, '_content');
-  
+
   // Try innerData.toJSON() (older ember-data < 4.0)
   if (innerData && typeof innerData.toJSON === 'function') {
     return innerData.toJSON();
   }
-  
+
   // For ember-data 4.0+, use serialize() instead of toJSON()
   if (innerData && typeof innerData.serialize === 'function') {
     const serialized = innerData.serialize();
@@ -57,7 +57,7 @@ function getDataAsJSON(data) {
     }
     return serialized;
   }
-  
+
   // Fallback: get attributes from the model's constructor
   if (innerData && innerData.constructor && innerData.constructor.attributes) {
     const result = {};
@@ -66,7 +66,7 @@ function getDataAsJSON(data) {
     });
     return result;
   }
-  
+
   // Fallback: use eachAttribute if available
   if (innerData && typeof innerData.eachAttribute === 'function') {
     const result = {};
@@ -75,7 +75,7 @@ function getDataAsJSON(data) {
     });
     return result;
   }
-  
+
   return {};
 }
 
