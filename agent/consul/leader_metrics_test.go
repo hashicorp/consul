@@ -90,9 +90,9 @@ func TestCertificateTelemetry_ThresholdLogging(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Determine expected severity based on thresholds
 			var severity string
-			if tt.daysRemaining < tt.criticalDays {
+			if tt.daysRemaining <= tt.criticalDays {
 				severity = "critical"
-			} else if tt.daysRemaining < tt.warningDays {
+			} else if tt.daysRemaining <= tt.warningDays {
 				severity = "warning"
 			} else {
 				severity = "ok"

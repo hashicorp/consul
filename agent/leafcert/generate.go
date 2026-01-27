@@ -348,9 +348,9 @@ func (m *Manager) generateNewLeaf(
 					"suggested_action", "Certificate renewal is being rate limited. This is normal during root CA rotation. The certificate will retry automatically.",
 				}
 
-				if daysRemaining < criticalDays {
+				if daysRemaining <= criticalDays {
 					m.logger.Error("leaf certificate renewal rate limited - certificate expiring soon", logFields...)
-				} else if daysRemaining < warningDays {
+				} else if daysRemaining <= warningDays {
 					m.logger.Warn("leaf certificate renewal rate limited", logFields...)
 				} else {
 					m.logger.Debug("leaf certificate renewal rate limited", logFields...)
@@ -438,9 +438,9 @@ func (m *Manager) generateNewLeaf(
 				"suggested_action", "Check CA availability, network connectivity, and ACL permissions. Certificate may expire if renewal continues to fail.",
 			}
 
-			if daysRemaining < criticalDays {
+			if daysRemaining <= criticalDays {
 				m.logger.Error("leaf certificate renewal failed - certificate expiring soon", logFields...)
-			} else if daysRemaining < warningDays {
+			} else if daysRemaining <= warningDays {
 				m.logger.Error("leaf certificate renewal failed", logFields...)
 			} else {
 				m.logger.Warn("leaf certificate renewal failed", logFields...)

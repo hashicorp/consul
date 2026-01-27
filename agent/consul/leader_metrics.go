@@ -181,9 +181,9 @@ func (m CertExpirationMonitor) Monitor(ctx context.Context) error {
 		}
 
 		// Log based on threshold severity with detailed context
-		if daysRemaining < criticalDays {
+		if daysRemaining <= criticalDays {
 			logger.Error("certificate expiring soon", logFields...)
-		} else if daysRemaining < warningDays {
+		} else if daysRemaining <= warningDays {
 			logger.Warn("certificate expiring soon", logFields...)
 		}
 
