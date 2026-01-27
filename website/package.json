@@ -8,7 +8,7 @@
     "@hashicorp/platform-content-conformance": "^0.0.1",
     "dart-linkcheck": "^2.0.15",
     "husky": "^9.0.7",
-    "next": "^15.5.4",
+    "next": "^16.1.5",
     "prettier": "^3.6.2"
   },
   "main": "index.js",
