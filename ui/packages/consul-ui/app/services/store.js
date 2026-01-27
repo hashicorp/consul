@@ -28,18 +28,97 @@ export default class StoreService extends Store {
   // nicely if you aren't on ACLs for good DX
   // cloning immediately refreshes the view
   clone(modelName, id) {
-    // TODO: no normalization, type it properly for the moment
     const adapter = this.adapterFor(modelName);
-    // passing empty options gives me a snapshot - ?
-    const options = {};
-    // _internalModel starts with _ but isn't marked as private ?
+    
+    // Use peekRecord (public API) instead of _internalModelForId (removed in ember-data 4.x)
+    const record = this.peekRecord(modelName, id);
+    if (!record) {
+      throw new Error(`Record not found: ${modelName}:${id}`);
+    }
+    
+    // Try ember-data 3.x style first
+    if (record._internalModel && typeof record._internalModel.createSnapshot === 'function') {
+      return adapter.clone(
+        this,
+        { modelName: modelName },
+        id,
+        record._internalModel.createSnapshot()
+      );
+    }
+    
+    // ember-data 4.x+: create snapshot-like object
+    // The serializer.serialize() needs eachAttribute, eachRelationship, attr, belongsTo, hasMany
+    const modelClass = this.modelFor(modelName);
+    const attrs = {};
+    record.eachAttribute((name) => {
+      attrs[name] = record[name];
+    });
+    
+    const snapshot = {
+      id: record.id,
+      type: modelClass,
+      modelName: modelName,
+      record: record,
+      
+      // Return all attributes as object
+      attributes: () => attrs,
+      
+      // Return single attribute value
+      attr: (name) => attrs[name],
+      
+      // Iterate over attributes - required by JSONSerializer.serialize()
+      eachAttribute: (callback) => {
+        record.eachAttribute((name, meta) => {
+          callback(name, meta);
+        });
+      },
+      
+      // Iterate over relationships - required by JSONSerializer.serialize()
+      eachRelationship: (callback) => {
+        record.eachRelationship((name, meta) => {
+          callback(name, meta);
+        });
+      },
+      
+      // Handle belongsTo relationships
+      belongsTo: (name) => {
+        try {
+          const rel = record.belongsTo(name);
+          if (rel && typeof rel.value === 'function') {
+            const value = rel.value();
+            if (value) {
+              return { id: value.id };
+            }
+          }
+        } catch (e) {
+          // relationship may not exist
+        }
+        return null;
+      },
+      
+      // Handle hasMany relationships
+      hasMany: (name) => {
+        try {
+          const rel = record.hasMany(name);
+          if (rel && typeof rel.value === 'function') {
+            const values = rel.value();
+            if (values) {
+              return values.map((v) => ({ id: v.id }));
+            }
+          }
+        } catch (e) {
+          // relationship may not exist
+        }
+        return null;
+      },
+    };
+    
     return adapter.clone(
       this,
       { modelName: modelName },
       id,
-      this._internalModelForId(modelName, id).createSnapshot(options)
+      snapshot
     );
-    // TODO: See https://github.com/emberjs/data/blob/7b8019818526a17ee72747bd3c0041354e58371a/addon/-private/system/promise-proxies.js#L68
   }
 
   self(modelName, token) {

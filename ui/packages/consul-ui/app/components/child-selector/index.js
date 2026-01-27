@@ -77,6 +77,12 @@ export default Component.extend(Slotted, {
     }
   }),
   actions: {
+    setAllOptions: function(data) {
+      if (this.isDestroyed || this.isDestroying) {
+        return;
+      }
+      this.set('allOptions', data);
+    },
     reset: function () {
       this.form.clear({ Datacenter: this.dc, Namespace: this.nspace, Partition: this.partition });
     },
