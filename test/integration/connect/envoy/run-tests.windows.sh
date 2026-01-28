@@ -31,6 +31,25 @@ fi
 
 source helpers.windows.bash
 
+
+# get_loopback_ip returns 127.0.0.1 for IPv4 or [::1] for IPv6 based on the IPv6 flag
+function get_loopback_ip {
+  if [ "${IPV6:-}" == "true" ] || [ "${USE_IPV6:-}" == "true" ]; then
+    echo "[::1]"
+  else
+    echo "127.0.0.1"
+  fi
+}
+
+# ipv6_sysctl_snippet returns Docker sysctl parameters based on IPv6 flag
+function ipv6_sysctl_snippet {
+  if [[ -n "${USE_IPV6:-}" && "${USE_IPV6}" != "false" ]]; then
+    echo ""
+  else
+    echo "--sysctl net.ipv6.conf.all.disable_ipv6=1"
+  fi
+}
+
 function command_error {
   echo "ERR: command exited with status $1" 1>&2
   echo "     command:   $2" 1>&2
@@ -228,7 +247,7 @@ function start_consul {
       server_grpc_port="8502"
     fi
 
-    docker.exe run -d --name envoy_consul-${DC}-server_1 \
+    docker.exe run $(ipv6_sysctl_snippet) -d --name envoy_consul-${DC}-server_1 \
       --net=envoy-tests \
       $WORKDIR_SNIPPET \
       --hostname "consul-${DC}-server" \
@@ -242,7 +261,7 @@ function start_consul {
       -client "0.0.0.0" \
       -bind "0.0.0.0" >/dev/null
 
-    docker.exe run -d --name envoy_consul-${DC}_1 \
+    docker.exe run $(ipv6_sysctl_snippet) -d --name envoy_consul-${DC}_1 \
       --net=envoy-tests \
       $WORKDIR_SNIPPET \
       --hostname "consul-${DC}-client" \
@@ -260,7 +279,7 @@ function start_consul {
   else
     docker_kill_rm consul-${DC}
 
-    docker.exe run -d --name envoy_consul-${DC}_1 \
+    docker.exe run $(ipv6_sysctl_snippet) -d --name envoy_consul-${DC}_1 \
       --net=envoy-tests \
       $WORKDIR_SNIPPET \
       --memory 4096m \
@@ -298,7 +317,7 @@ function start_partitioned_client {
   # Run consul and expose some ports to the host to make debugging locally a
   # bit easier.
   #
-  docker.exe run -d --name envoy_consul-${PARTITION}_1 \
+  docker.exe run $(ipv6_sysctl_snippet) -d --name envoy_consul-${PARTITION}_1 \
     --net=envoy-tests \
     $WORKDIR_SNIPPET \
     --hostname "consul-${PARTITION}-client" \
@@ -560,14 +579,19 @@ function suite_setup {
   # Cleanup from any previous unclean runs.
   suite_teardown
 
-  docker.exe network create -d "nat" envoy-tests &>/dev/null
+  # Create Docker network with IPv6 support if enabled
+  if [[ -n "${USE_IPV6:-}" && "${USE_IPV6}" != "false" ]]; then
+    docker.exe network create -d "nat" --ipv6 envoy-tests &>/dev/null
+  else
+    docker.exe network create -d "nat" envoy-tests &>/dev/null
+  fi
 
   # Start the volume container
   #
   # This is a dummy container that we use to create volume and keep it
   # accessible while other containers are down.
   docker.exe volume create envoy_workdir &>/dev/null
-  docker.exe run -d --name envoy_workdir_1 \
+  docker.exe run $(ipv6_sysctl_snippet) -d --name envoy_workdir_1 \
       $WORKDIR_SNIPPET \
       --user ContainerAdministrator \
       --net=none \
@@ -725,7 +749,7 @@ function run_container_s1-ap1-sidecar-proxy {
 function run_container_s1-sidecar-proxy-consul-exec {
   local CLUSTER="primary"
   local CONTAINER_NAME="$SINGLE_CONTAINER_BASE_NAME"-"$CLUSTER"_1
-  local ADMIN_HOST="127.0.0.1"
+  local ADMIN_HOST="$(get_loopback_ip)"
   local ADMIN_PORT="19000"
 
   docker.exe exec -d $CONTAINER_NAME bash \
@@ -835,7 +859,7 @@ function run_container_fake-statsd {
 }
 
 function run_container_zipkin {
-  docker.exe run -d --name $(container_name) \
+  docker.exe run $(ipv6_sysctl_snippet) -d --name $(container_name) \
     $WORKDIR_SNIPPET \
     $(network_snippet primary) \
     "${HASHICORP_DOCKER_PROXY}/windows/openzipkin"
@@ -900,7 +924,7 @@ function common_run_container_tcpdump {
 
 #     docker.exe build --rm=false -t envoy-tcpdump -f Dockerfile-tcpdump-windows .
 
-    docker.exe run -d --name $(container_name_prev) \
+    docker.exe run $(ipv6_sysctl_snippet) -d --name $(container_name_prev) \
         $(network_snippet $DC) \
         envoy-tcpdump \
         -v -i any \

@@ -20,7 +20,7 @@ load helpers
 }
 
 @test "api gateway should have healthy endpoints for s1" {
-  assert_upstream_has_endpoints_in_status 127.0.0.1:20000 s1 HEALTHY 1
+  assert_upstream_has_endpoints_in_status localhost:20000 s1 HEALTHY 1
 }
 
 @test "api gateway should be able to connect to s1 with normal headers" {

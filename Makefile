@@ -27,6 +27,7 @@ GCI_VERSION='v0.11.2'
 MOCKED_PB_DIRS= pbdns
 
 GOTAGS ?=
+IPV6 ?= false
 GOPATH=$(shell go env GOPATH)
 GOARCH?=$(shell go env GOARCH)
 MAIN_GOPATH=$(shell go env GOPATH | cut -d: -f1)
@@ -365,11 +366,13 @@ other-consul: ## Checking for other consul instances
 
 # Use GO_TEST_FLAGS to run specific tests:
 #      make test-envoy-integ GO_TEST_FLAGS="-run TestEnvoy/case-basic"
+# Use IPV6=true to enable IPv6 testing:
+#      make test-envoy-integ IPV6=true GO_TEST_FLAGS="-run TestEnvoy/case-basic"
 # NOTE: Always uses amd64 images, even when running on M1 macs, to match CI/CD environment.
 #       You can also specify the envoy version (example: 1.27.0) setting the environment variable: ENVOY_VERSION=1.27.0
 .PHONY: test-envoy-integ
 test-envoy-integ: $(ENVOY_INTEG_DEPS) ## Run envoy integration tests.
-	@go test -v -timeout=30m -tags integration $(GO_TEST_FLAGS) ./test/integration/connect/envoy
+	@go test -v -timeout=30m -tags integration ./test/integration/connect/envoy $(GO_TEST_FLAGS) -ipv6=$(IPV6)
 
 # NOTE: Use DOCKER_BUILDKIT=0, if docker build fails to resolve consul:local base image
 .PHONY: test-compat-integ-setup
