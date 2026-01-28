@@ -63,6 +63,12 @@ importers:
       '@babel/plugin-transform-class-properties':
         specifier: ^7.27.1
         version: 7.27.1(@babel/core@7.28.5)
+      '@codemirror/language':
+        specifier: ^6.11.2
+        version: 6.11.2
+      '@codemirror/legacy-modes':
+        specifier: ^6.5.1
+        version: 6.5.1
       '@docfy/ember':
         specifier: ^0.8.5
         version: 0.8.5(@babel/core@7.28.5)(@glint/template@1.5.2)

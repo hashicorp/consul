@@ -37,41 +37,96 @@
             <Hds::Layout::Flex @direction='column' as |LF|>
 
               <LF.Item style='align-self: flex-end;'>
-                <Hds::Form::Toggle::Field
-                  name='json'
-                  checked={{if this.json 'checked'}}
-                  {{on 'change' api.change}}
-                  as |F|
-                >
-                  <F.Label>Code</F.Label>
-                </Hds::Form::Toggle::Field>
+                <Hds::Layout::Flex @gap='16' @align='center' as |F|>
+                  {{#if this.json}}
+                    <F.Item>
+                      <Hds::Form::Select::Field
+                        name='language'
+                        @width='150px'
+                        {{on 'change' api.change}}
+                        as |S|
+                      >
+                        <S.Label>Format</S.Label>
+                        <S.Options>
+                          {{#each this.languages as |lang|}}
+                            <option value={{lang.value}} selected={{eq this.language lang.value}}>
+                              {{lang.label}}
+                            </option>
+                          {{/each}}
+                        </S.Options>
+                      </Hds::Form::Select::Field>
+                    </F.Item>
+                  {{/if}}
+                  <F.Item>
+                    <Hds::Form::Toggle::Field
+                      name='json'
+                      checked={{if this.json 'checked'}}
+                      {{on 'change' api.change}}
+                      as |F|
+                    >
+                      <F.Label>Code</F.Label>
+                    </Hds::Form::Toggle::Field>
+                  </F.Item>
+                </Hds::Layout::Flex>
               </LF.Item>
               <label for='' class='type-text{{if api.data.error.Value " has-error"}}'>
                 {{#if this.json}}
                   {{#if (or disabld api.disabled)}}
-                    <Hds::CodeBlock
-                      @language='bash'
-                      @value={{atob api.data.Value}}
-                      @isStandalone={{false}}
-                      @ariaLabel='value'
-                      as |CB|
-                    >
-                      <CB.Title @tag='h2'>Value</CB.Title>
-                    </Hds::CodeBlock>
+                    {{#if (eq this.language 'toml')}}
+                      <Hds::CodeEditor
+                        @name='Value'
+                        @readonly={{true}}
+                        @value={{atob api.data.Value}}
+                        @onInput={{action api.change 'value'}}
+                        @customExtensions={{(toml-extension)}}
+                        @ariaLabel='value'
+                        @hasCopyButton={{true}}
+                        @isStandalone={{false}}
+                        as |CE|
+                      >
+                        <CE.Title @tag='h2'>Value</CE.Title>
+                      </Hds::CodeEditor>
+                    {{else}}
+                      <Hds::CodeBlock
+                        @language={{this.codeBlockLanguage}}
+                        @value={{atob api.data.Value}}
+                        @isStandalone={{false}}
+                        @ariaLabel='value'
+                        as |CB|
+                      >
+                        <CB.Title @tag='h2'>Value</CB.Title>
+                      </Hds::CodeBlock>
+                    {{/if}}
                   {{else}}
-                    <Hds::CodeEditor
-                      @name='Value'
-                      @readonly={{or disabld api.disabled}}
-                      @value={{atob api.data.Value}}
-                      @onInput={{action api.change 'value'}}
-                      @language='yaml'
-                      @ariaLabel='value'
-                      @hasCopyButton={{true}}
-                      @isStandalone={{false}}
-                      as |CE|
-                    >
-                      <CE.Title @tag='h2'>Value</CE.Title>
-                    </Hds::CodeEditor>
+                    {{#if (eq this.language 'toml')}}
+                      <Hds::CodeEditor
+                        @name='Value'
+                        @readonly={{or disabld api.disabled}}
+                        @value={{atob api.data.Value}}
+                        @onInput={{action api.change 'value'}}
+                        @customExtensions={{(toml-extension)}}
+                        @ariaLabel='value'
+                        @hasCopyButton={{true}}
+                        @isStandalone={{false}}
+                        as |CE|
+                      >
+                        <CE.Title @tag='h2'>Value</CE.Title>
+                      </Hds::CodeEditor>
+                    {{else}}
+                      <Hds::CodeEditor
+                        @name='Value'
+                        @readonly={{or disabld api.disabled}}
+                        @value={{atob api.data.Value}}
+                        @onInput={{action api.change 'value'}}
+                        @language={{this.language}}
+                        @ariaLabel='value'
+                        @hasCopyButton={{true}}
+                        @isStandalone={{false}}
+                        as |CE|
+                      >
+                        <CE.Title @tag='h2'>Value</CE.Title>
+                      </Hds::CodeEditor>
+                    {{/if}}
                   {{/if}}
                 {{else}}
                   <span>Value</span>
