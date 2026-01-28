@@ -6,6 +6,7 @@
 import Component from '@ember/component';
 import { inject as service } from '@ember/service';
 import { set } from '@ember/object';
+import { schedule } from '@ember/runloop';
 
 export default Component.extend({
   chart: service('state'),
@@ -26,17 +27,20 @@ export default Component.extend({
     }
     this.machine = this.chart.interpret(this.src, {
       onTransition: (state) => {
-        const e = new CustomEvent('transition', { detail: state });
-        this.ontransition(e);
-        if (!e.defaultPrevented) {
-          state.actions.forEach((item) => {
-            const action = this._actions[item.type];
-            if (typeof action === 'function') {
-              this._actions[item.type](item.type, state.context, state.event);
-            }
-          });
-        }
-        set(this, 'state', state);
+        // 2. Wrap the transition logic in schedule to run AFTER render
+        schedule('actions', () => {
+          const e = new CustomEvent('transition', { detail: state });
+          this.ontransition(e);
+          if (!e.defaultPrevented) {
+            state.actions.forEach((item) => {
+              const action = this._actions[item.type];
+              if (typeof action === 'function') {
+                this._actions[item.type](item.type, state.context, state.event);
+              }
+            });
+          }
+          set(this, 'state', state);
+        });
       },
       onGuard: (name, ...rest) => {
         return this._guards[name](...rest);
