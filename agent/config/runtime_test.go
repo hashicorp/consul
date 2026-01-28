@@ -906,6 +906,79 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 	})
 	run(t, testCase{
+		desc: "-token-file",
+		args: []string{
+			`-token-file=` + filepath.Join(dataDir, "token-file"),
+			`-data-dir=` + dataDir,
+		},
+		setup: func() {
+			writeFile(filepath.Join(dataDir, "token-file"), []byte("my-test-token\n"))
+		},
+		expected: func(rt *RuntimeConfig) {
+			rt.ACLTokens.ACLDefaultToken = "my-test-token"
+			rt.DataDir = dataDir
+		},
+	})
+	run(t, testCase{
+		desc: "acl.tokens.default_file in config",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		setup: func() {
+			writeFile(filepath.Join(dataDir, "token-file"), []byte("  token-from-file  \n"))
+		},
+		hcl: []string{`
+			acl {
+				tokens {
+					default_file = "` + filepath.Join(dataDir, "token-file") + `"
+				}
+			}
+		`},
+		json: []string{`{
+			"acl": {
+				"tokens": {
+					"default_file": "` + filepath.Join(dataDir, "token-file") + `"
+				}
+			}
+		}`},
+		expected: func(rt *RuntimeConfig) {
+			rt.ACLTokens.ACLDefaultToken = "token-from-file"
+			rt.DataDir = dataDir
+		},
+	})
+	run(t, testCase{
+		desc: "acl.tokens.default and default_file both set",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		setup: func() {
+			writeFile(filepath.Join(dataDir, "token-file"), []byte("token-from-file"))
+		},
+		hcl: []string{`
+			acl {
+				tokens {
+					default = "inline-token"
+					default_file = "` + filepath.Join(dataDir, "token-file") + `"
+				}
+			}
+		`},
+		json: []string{`{
+			"acl": {
+				"tokens": {
+					"default": "inline-token",
+					"default_file": "` + filepath.Join(dataDir, "token-file") + `"
+				}
+			}
+		}`},
+		expectedWarnings: []string{
+			"acl.tokens.default is set and acl.tokens.default_file is also set. acl.tokens.default_file will be used.",
+		},
+		expected: func(rt *RuntimeConfig) {
+			rt.ACLTokens.ACLDefaultToken = "token-from-file"
+			rt.DataDir = dataDir
+		},
+	})
+	run(t, testCase{
 		desc: "-ui",
 		args: []string{
 			`-ui`,
