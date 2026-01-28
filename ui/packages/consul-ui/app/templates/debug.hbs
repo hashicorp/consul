@@ -19,7 +19,7 @@
 <App class='docs' id='wrapper'>
 
   <:notifications as |app|>
-    {{#each flashMessages.queue as |flash|}}
+    {{#each this.flashMessages.queue as |flash|}}
       {{#if flash.dom}}
         <app.Notification
           @delay={{sub flash.timeout flash.extendedTimeout}}
@@ -31,7 +31,7 @@
     {{/each}}
   </:notifications>
 
-  <:side-nav>
+  <:sideNav>
     <Hds::SideNav @hasA11yRefocus={{false}} @isResponsive={{true}} class='consul-side-nav'>
       <:header>
         <Hds::SideNav::Header>
@@ -92,7 +92,7 @@
         </DocfyOutput>
       </:body>
     </Hds::SideNav>
-  </:side-nav>
+  </:sideNav>
   <:main>
     <DocfyOutput @fromCurrentURL={{true}} as |page|>
       {{outlet}}

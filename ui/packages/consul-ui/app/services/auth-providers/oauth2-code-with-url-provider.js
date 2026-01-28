@@ -5,27 +5,31 @@
 
 import OAuth2CodeProvider from 'torii/providers/oauth2-code';
 import { runInDebug } from '@ember/debug';
+import classic from 'ember-classic-decorator';
 
+@classic
 export default class OAuth2CodeWithURLProvider extends OAuth2CodeProvider {
   name = 'oidc-with-url';
 
   buildUrl() {
-    return this.baseUrl;
+    return this._lastBaseUrl || this.baseUrl;
   }
 
-  open(options) {
+  open(options = {}) {
+    if (options.baseUrl) {
+      this._lastBaseUrl = options.baseUrl;
+    }
     const name = this.name,
-      url = this.buildUrl(),
+      url = options.baseUrl || this.buildUrl(),
       responseParams = ['state', 'code'],
       responseType = 'code';
-    return this.popup.open(url, responseParams, options).then(function (authData) {
-      // the same as the parent class but with an authorizationState added
+    return this.popup.open(url, responseParams, options).then((authData) => {
       const creds = {
         authorizationState: authData.state,
         authorizationCode: decodeURIComponent(authData[responseType]),
         provider: name,
       };
-      runInDebug((_) =>
+      runInDebug(() =>
         console.info('Retrieved the following creds from the OAuth Provider', creds)
       );
       return creds;
@@ -33,7 +37,7 @@ export default class OAuth2CodeWithURLProvider extends OAuth2CodeProvider {
   }
 
   close() {
-    const popup = this.get('popup.remote') || {};
+    const popup = this.popup?.remote ?? {};
     if (typeof popup.close === 'function') {
       return popup.close();
     }

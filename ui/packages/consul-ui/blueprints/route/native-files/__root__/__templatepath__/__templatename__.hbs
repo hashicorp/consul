@@ -4,13 +4,13 @@
 }}
 
 <Route
-  @name={{routeName}}
+  @name={{this.routeName}}
 as |route|>
 
   <route.Title @title="<%= classifiedModuleName %>" />
 
   <Outlet
-    @name={{routeName}}
+    @name={{this.routeName}}
   as |o|>
     {{outlet}}
   </Outlet>

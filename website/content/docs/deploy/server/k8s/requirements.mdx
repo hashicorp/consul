@@ -5,6 +5,11 @@ description: >-
   New releases require corresponding version updates to Consul on Kubernetes and its Helm chart. Review the compatibility matrix for Consul and consul-k8s and additional notes for integrating Vault and third-party platforms.
 ---
 
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
 # Consul on Kubernetes Version Compatibility
 
 For every release of Consul on Kubernetes, a Helm chart, `consul-k8s-control-plane` binary and a `consul-k8s` CLI binary is built and distributed through a single version. When deploying via Helm, the recommended best path for upgrading Consul on Kubernetes, is to upgrade using the same `consul-k8s-control-plane` version as the Helm Chart, as the Helm Chart and Control Plane binary are tightly coupled.
@@ -41,7 +46,7 @@ Starting with Consul K8s 0.39.0 and Consul 1.11.x, Consul Kubernetes supports th
 
 ### Red Hat OpenShift
 
-You can enable support for Red Hat OpenShift by setting `enabled: true` in the `global.openshift` stanza. Refer to the [Deploy Consul on RedHat OpenShift tutorial](/consul/deploy/server/k8s/platform/openshift) for instructions on deploying to OpenShift. 
+You can enable support for Red Hat OpenShift by setting `enabled: true` in the `global.openshift` stanza. Refer to the [Deploy Consul on RedHat OpenShift tutorial](/consul/docs/deploy/server/k8s/platform/openshift) for instructions on deploying to OpenShift. 
 
 ### VMware Tanzu Kubernetes Grid and Tanzu Kubernetes Grid Integrated Edition
 

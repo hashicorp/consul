@@ -3,23 +3,24 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
+{{!-- template-lint-disable no-forbidden-elements --}}
 <style>
-  {{#if selected.nodes}}
-    {{selected.nodes}}
+  {{#if this.selected.nodes}}
+    {{this.selected.nodes}}
     { opacity: 1 !important; background-color: var(--token-color-surface-interactive); border:
     var(--decor-border-100); border-radius: var(--decor-radius-200); border-color:
     var(--token-color-foreground-faint); box-shadow: var(--token-surface-high-box-shadow); }
   {{/if}}
-  {{#if selected.edges}}
-    {{selected.edges}}
+  {{#if this.selected.edges}}
+    {{this.selected.edges}}
     { opacity: 1; }
   {{/if}}
 </style>
 
 <div class='routes'>
-  <header>
+  <header aria-label="Routes configuration">
     <h2>
-      {{chain.ServiceName}}
+      {{@chain.ServiceName}}
       Router
       <span
         {{tooltip
@@ -30,7 +31,7 @@
     </h2>
   </header>
   <div role='group'>
-    {{#each routes as |item|}}
+    {{#each this.routes as |item|}}
       <Consul::DiscoveryChain::RouteCard
         {{on-resize (dom-position (set item 'rect') from=this.edges)}}
         @item={{item}}
@@ -41,7 +42,7 @@
 </div>
 
 <div class='splitters'>
-  <header>
+  <header aria-label="Splitters configuration">
     <h2>
       Splitters
       <span
@@ -53,7 +54,7 @@
     </h2>
   </header>
   <div role='group'>
-    {{#each (sort-by 'Name' splitters) as |item|}}
+    {{#each (sort-by 'Name' this.splitters) as |item|}}
       <Consul::DiscoveryChain::SplitterCard
         {{on-resize (dom-position (set item 'rect') from=this.edges)}}
         @item={{item}}
@@ -64,7 +65,7 @@
 </div>
 
 <div class='resolvers'>
-  <header>
+  <header aria-label="Resolvers configuration">
     <h2>
       Resolvers
       <span
@@ -76,7 +77,7 @@
     </h2>
   </header>
   <div role='group'>
-    {{#each (sort-by 'Name' resolvers) as |item|}}
+    {{#each (sort-by 'Name' this.resolvers) as |item|}}
       <Consul::DiscoveryChain::ResolverCard
         {{on-resize (dom-position (set item 'rect') from=this.edges)}}
         @item={{item}}
@@ -87,7 +88,7 @@
   </div>
 </div>
 
-{{nodes}}
+{{this.nodes}}
 
 <svg
   class='edges'
@@ -96,7 +97,7 @@
   height='100%'
   preserveAspectRatio='none'
 >
-  {{#each routes as |item|}}
+  {{#each this.routes as |item|}}
     {{#if item.rect}}
       {{#let item.rect item.NextItem.rect as |src destRect|}}
         {{#let
@@ -117,7 +118,7 @@
     {{/if}}
   {{/each}}
 
-  {{#each splitters as |splitter|}}
+  {{#each this.splitters as |splitter|}}
     {{#if splitter.rect}}
       {{#let splitter.rect as |src|}}
         {{#each splitter.Splits as |item index|}}
@@ -153,14 +154,14 @@
 </svg>
 
 <svg class='resolver-inlets' height='100%'>
-  {{#each routes as |item|}}
+  {{#each this.routes as |item|}}
     {{#if (string-starts-with item.NextNode 'resolver:')}}
       {{#let (or item.NextItem.rect (hash y=0 height=0)) as |dest|}}
         <circle r='2.5' cx='5' cy={{add dest.y (div dest.height 2)}}></circle>
       {{/let}}
     {{/if}}
   {{/each}}
-  {{#each splitters as |item|}}
+  {{#each this.splitters as |item|}}
     {{#each item.Splits as |item|}}
       {{#let (or item.NextItem.rect (hash y=0 height=0)) as |dest|}}
         <circle r='2.5' cx='5' cy={{add dest.y (div dest.height 2)}}></circle>
@@ -170,7 +171,7 @@
 </svg>
 
 <svg class='splitter-inlets' height='100%'>
-  {{#each routes as |item|}}
+  {{#each this.routes as |item|}}
     {{#if (string-starts-with item.NextNode 'splitter:')}}
       {{#let (or item.NextItem.rect (hash y=0 height=0)) as |dest|}}
         <circle r='2.5' cx='5' cy={{add dest.y (div dest.height 2)}}></circle>

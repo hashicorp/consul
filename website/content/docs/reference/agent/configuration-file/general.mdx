@@ -5,6 +5,11 @@ description: >-
   Use agent configuration files to assign attributes to agents and configure multiple agents at once. Learn about agent configuration file parameters and formatting with this reference page and sample code.
 ---
 
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
 # General parameters for Consul agent configuration
 
 The page provides reference information for general parameters in a Consul agent configuration file.
@@ -14,6 +19,8 @@ The page provides reference information for general parameters in a Consul agent
 - `addresses` ((#\_addresses)) - This is a nested object that allows setting
   bind addresses. In Consul 1.0 and later these can be set to a space-separated list
   of addresses to bind to, or a go-sockaddr template that can potentially resolve to multiple addresses.
+
+  On VMs and Kubernetes, Consul supports both IPv4 and IPv6 addresses. However, we recommend using only one address type per Consul datacenter.
 
   `http`, `https` and `grpc` all support binding to a Unix domain socket. A
   socket can be specified in the form `unix:///path/to/socket`. A new domain
@@ -150,6 +157,8 @@ The page provides reference information for general parameters in a Consul agent
   This defaults to `false` in versions of Consul prior to 1.9.0, and defaults to `true` in Consul 1.9.0 and later.
 
 - `enable_debug` (boolean, default is `false`): When set to `true`, enables Consul to report additional debugging information, including runtime profiling (`pprof`) data. This setting is only required for clusters without ACL [enabled](/consul/docs/reference/agent/configuration-file/acl#acl_enabled). If you change this setting, you must restart the agent for the change to take effect.
+
+- `disable_kv_key_validation` (boolean, default is `false`): When set to `true`, this parameter disables KV key validation that prevents path traversal attacks and other security issues. Key validation does not allow path escapes, directory escapes, leading spaces, or trailing spaces in keys, beginning with Consul v1.22.0. We strongly recommend that you keep this parameter set to `false` for security reasons, unless you have a specific legacy compatibility requirement.
 
 - `enable_script_checks` ((#\_enable_script_checks)) This parameter controls whether
   [health checks that execute scripts](/consul/docs/register/health-check/vm) are enabled on this
@@ -383,6 +392,7 @@ The page provides reference information for general parameters in a Consul agent
 - `reporting`<EnterpriseAlert inline /> - This option allows options for HashiCorp reporting.
     - `license` - The license object allows users to control automatic reporting of license utilization metrics to HashiCorp.
       - `enabled`: (Defaults to `true`) Enables automatic license utilization reporting.
+    - `snapshot_retention_time` ((#snapshot_retention_time))  - This option controls the time Consul retains the license utilization snapshots in its internal Raft-replicated state. The default value is `9600h`, which is approximately 400 days. Consul automatically takes snapshot every 24 hours, even when reporting to HashiCorp is disabled. Therefore, Consul keeps 400 reports in its internal Raft-replicated state by default.   
 
 - `segment` ((#\_segment)) <EnterpriseAlert inline /> - This parameter sets the name of the network segment the agent belongs to. An agent can only join and
   communicate with other agents within its network segment. Ensure the [join operation uses the correct port for this segment](/consul/docs/multi-tenant/network-segment/vm#configure-clients-to-join-segments). Review the [Network Segments documentation](/consul/docs/multi-tenant/network-segment/vm)

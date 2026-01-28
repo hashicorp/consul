@@ -4,45 +4,46 @@
 }}
 
 <Route
-  @name={{routeName}}
+  @name={{this.routeName}}
 as |route|>
 <div class="tab-section">
 {{#let
 
   (hash
-    value=(or sortBy "Status:asc")
-    change=(action (mut sortBy) value="target.selected")
+    value=(or this.sortBy "Status:asc")
+    change=(action (mut this.sortBy) value="target.selected")
   )
 
   (hash
     status=(hash
-      value=(if status (split status ',') undefined)
-      change=(action (mut status) value="target.selectedItems")
+      value=(if this.status (split this.status ',') undefined)
+      change=(action (mut this.status) value="target.selectedItems")
     )
     source=(hash
-      value=(if source (split source ',') undefined)
-      change=(action (mut source) value="target.selectedItems")
+      value=(if this.source (split this.source ',') undefined)
+      change=(action (mut this.source) value="target.selectedItems")
     )
     searchproperty=(hash
-      value=(if (not-eq searchproperty undefined)
-        (split searchproperty ',')
-        searchProperties
+      value=(if (not-eq this.searchproperty undefined)
+        (split this.searchproperty ',')
+        this.searchProperties
       )
-      change=(action (mut searchproperty) value="target.selectedItems")
-      default=searchProperties
+      change=(action (mut this.searchproperty) value="target.selectedItems")
+      default=this.searchProperties
     )
   )
 
   route.model.items
-  route.model.proxies.firstObject
+
+  (get route.model.proxies "firstObject")
 
 as |sort filters items proxyMeta|}}
     {{#if (gt items.length 0) }}
     <input type="checkbox" id="toolbar-toggle" />
     <Consul::ServiceInstance::SearchBar
       @sources={{get (collection items) 'ExternalSources'}}
-      @search={{search}}
-      @onsearch={{action (mut search) value="target.value"}}
+      @search={{this.search}}
+      @onsearch={{action (mut this.search) value="target.value"}}
 
       @sort={{sort}}
 
@@ -60,7 +61,7 @@ as |sort filters items proxyMeta|}}
             peer=route.params.peer
           )
         }}
-        @onchange={{action (mut proxies) value="data"}}
+        @onchange={{this.setProxies}}
       />
     {{/if}}
     {{! Service > Service Instance view doesn't require filtering of proxies }}
@@ -68,14 +69,14 @@ as |sort filters items proxyMeta|}}
       @type="service-instance"
       @sort={{sort.value}}
       @filters={{filters}}
-      @search={{search}}
+      @search={{this.search}}
       @items={{items}}
     as |collection|>
       <collection.Collection>
         <Consul::ServiceInstance::List
           @routeName="dc.services.instance"
           @items={{collection.items}}
-          @proxies={{proxies}}
+          @proxies={{this.proxies}}
         />
       </collection.Collection>
       <collection.Empty>

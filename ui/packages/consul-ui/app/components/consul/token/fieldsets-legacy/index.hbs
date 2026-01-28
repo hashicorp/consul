@@ -1,0 +1,46 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+<fieldset disabled={{if (not (can 'write token' item=@item)) 'disabled'}}>
+  <Hds::Form::TextInput::Field
+    class='type-text'
+    @value={{@item.Description}}
+    @isInvalid={{@item.error.Name}}
+    name='name'
+    {{on 'input' @onChange}}
+    as |F|
+  >
+    <F.Label>Name</F.Label>
+  </Hds::Form::TextInput::Field>
+  <label class='type-text'>
+    <Hds::CodeEditor
+      @ariaLabel='[Rules]'
+      @value={{@item.Rules}}
+      @syntax='hcl'
+      @onInput={{fn @onChange (concat @name '[Rules]')}}
+      as |CE|
+    >
+      <CE.Title @tag='h3'>
+        Rules
+        <a
+          href='{{env "CONSUL_DOCS_URL"}}/guides/acl.html#rule-specification'
+          rel='help noopener noreferrer'
+          target='_blank'
+        >(HCL Format)</a>
+      </CE.Title>
+    </Hds::CodeEditor>
+  </label>
+  {{#if @create}}
+    <Hds::Form::TextInput::Field
+      class='type-text'
+      @value={{@item.ID}}
+      {{on 'input' @onChange}}
+      as |F|
+    >
+      <F.Label>ID</F.Label>
+      <F.HelperText>We'll generate a UUID if this field is left empty.</F.HelperText>
+    </Hds::Form::TextInput::Field>
+  {{/if}}
+</fieldset>

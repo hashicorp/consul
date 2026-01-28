@@ -17,7 +17,6 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/consul"
 	consulrate "github.com/hashicorp/consul/agent/consul/rate"
-	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
@@ -161,11 +160,6 @@ type RuntimeConfig struct {
 	//
 	// hcl: autopilot { upgrade_version_tag = string }
 	AutopilotUpgradeVersionTag string
-
-	// Cloud contains configuration for agents to connect to HCP.
-	//
-	// hcl: cloud { ... }
-	Cloud hcpconfig.CloudConfig
 
 	// DNSAllowStale is used to enable lookups with stale
 	// data. This gives horizontal read scalability since
@@ -526,6 +520,12 @@ type RuntimeConfig struct {
 	// datacenters should exclusively traverse mesh gateways.
 	ConnectMeshGatewayWANFederationEnabled bool
 
+	// ConnectVirtualIPCIDRv4 defines the IPv4 CIDR block used for automatic virtual IPs.
+	ConnectVirtualIPCIDRv4 string
+
+	// ConnectVirtualIPCIDRv6 defines the IPv6 CIDR block used for automatic virtual IPs.
+	ConnectVirtualIPCIDRv6 string
+
 	// ConnectTestCALeafRootChangeSpread is used to control how long the CA leaf
 	// cache with spread CSRs over when a root change occurs. For now we don't
 	// expose this in public config intentionally but could later with a rename.
@@ -669,6 +669,14 @@ type RuntimeConfig struct {
 	// hcl: (enable_script_checks|enable_local_script_checks) = (true|false)
 	// flag: -enable-script-checks, -enable-local-script-checks
 	EnableLocalScriptChecks bool
+
+	// DisableKVKeyValidation controls whether KV key validation is disabled.
+	// When set to true, it disables validation that prevents path traversal and other
+	// security issues in KV key names. This can introduce security risks if not used carefully.
+	// We recommend keeping validation enabled (false) unless you have a specific reason to disable it.
+	//
+	// hcl: disable_kv_key_validation = (true|false)
+	DisableKVKeyValidation bool
 
 	// EnableRemoeScriptChecks controls whether health checks declared from the http API
 	// which execute scripts are enabled. This includes regular script checks and Docker
@@ -1604,7 +1612,6 @@ type UIConfig struct {
 	MetricsProviderOptionsJSON string
 	MetricsProxy               UIMetricsProxy
 	DashboardURLTemplates      map[string]string
-	HCPEnabled                 bool
 }
 
 type UIMetricsProxy struct {
@@ -1825,14 +1832,6 @@ func (c *RuntimeConfig) StructLocality() *structs.Locality {
 // time.Duration values are formatted to improve readability.
 func (c *RuntimeConfig) Sanitized() map[string]interface{} {
 	return sanitize("rt", reflect.ValueOf(c)).Interface().(map[string]interface{})
-}
-
-// IsCloudEnabled returns true if a cloud.resource_id is set and the server mode is enabled
-func (c *RuntimeConfig) IsCloudEnabled() bool {
-	if c == nil {
-		return false
-	}
-	return c.ServerMode && c.Cloud.ResourceID != ""
 }
 
 // isSecret determines whether a field name represents a field which

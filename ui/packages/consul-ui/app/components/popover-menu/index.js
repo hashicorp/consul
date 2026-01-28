@@ -24,6 +24,7 @@ export default Component.extend(Slotted, {
     this.submenus = [];
   },
   willRender: function () {
+    this._super(...arguments);
     set(this, 'hasHeader', this._isRegistered('header'));
   },
   actions: {
@@ -44,12 +45,6 @@ export default Component.extend(Slotted, {
         });
       }
       this.onchange(e);
-    },
-    // Temporary send here so we can send route actions
-    // easily. It kind of makes sense that you'll want to perform
-    // route actions from a popup menu for the moment
-    send: function () {
-      this.sendAction(...arguments);
     },
   },
 });

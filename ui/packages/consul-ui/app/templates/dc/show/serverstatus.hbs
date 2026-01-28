@@ -4,7 +4,7 @@
 }}
 
 <Route
-  @name={{routeName}}
+  @name={{this.routeName}}
 as |route|>
   <DataLoader
     @src={{
@@ -67,7 +67,7 @@ as |item|}}
             }}
           >
 
-            <header>
+            <header aria-label="Tolerance">
               <h2>
                 {{compute (fn route.t 'tolerance.header')}}
               </h2>
@@ -84,7 +84,7 @@ as |item|}}
                 (array 'immediate-tolerance')
               }}
             >
-              <header>
+              <header aria-label="Immediate Fault Tolerance">
                 <h3>
                   {{compute (fn route.t 'tolerance.immediate.header')}}
                 </h3>
@@ -112,7 +112,7 @@ as |item|}}
                 (array 'optimistic-tolerance')
               }}
             >
-              <header>
+              <header aria-label="Optimistic Fault Tolerance">
                 <h3>
                   {{compute (fn route.t 'tolerance.optimistic.header')}}
                   <span
@@ -144,7 +144,7 @@ as |item|}}
               'redundancy-zones'
             }}
           >
-            <header>
+            <header aria-label="Redundancy Zones">
               <h2>
                 {{pluralize (t 'common.consul.redundancyzone')}}
               </h2>
@@ -153,7 +153,7 @@ as |item|}}
       {{#each item.RedundancyZones as |item|}}
         {{#if (gt item.Servers.length 0) }}
               <section>
-                <header>
+                <header aria-label="Redundancy Zone {{item.Name}}">
                   <h3>
                     {{item.Name}}
                   </h3>
@@ -176,7 +176,7 @@ as |item|}}
 
       {{#if (gt item.Default.Servers.length 0)}}
               <section>
-                <header>
+                <header aria-label="Unassigned Servers">
                   <h3>
                     {{compute (fn route.t 'unassigned')}}
                   </h3>
@@ -190,7 +190,7 @@ as |item|}}
           </section>
     {{else}}
           <section>
-            <header>
+            <header aria-label="Default Servers">
               <h2>
                 {{compute (fn route.t 'servers')}}
               </h2>
@@ -203,7 +203,7 @@ as |item|}}
 
     {{#if (gt item.ReadReplicas.length 0)}}
           <section>
-            <header>
+            <header aria-label="Read Replicas">
               <h2>
                 {{pluralize (t 'common.consul.readreplica')}}
               </h2>

@@ -4,7 +4,7 @@
 }}
 
 <Route
-  @name={{routeName}}
+  @name={{this.routeName}}
 as |route|>
   <DataLoader
   @src={{uri 'settings://consul:client'}}
@@ -38,25 +38,25 @@ as |item|}}
 
       <DataSource
         @src={{uri "settings://consul:token"}}
-        @onchange={{action (mut token) value="data"}}
-        @onerror={{action (mut error) value="error"}}
+        @onchange={{action (mut this.token) value="data"}}
+        @onerror={{action (mut this.error) value="error"}}
       />
-      {{#if error}}
+      {{#if this.error}}
         <Hds::Alert @type="inline" @color="highlight" class="mb-3 mt-2" @icon="token" as |A|>
           <A.Title>Error loading token</A.Title>
           <A.Description>
-            {{error.message}}
+            {{this.error.message}}
           </A.Description>
         </Hds::Alert>
       {{/if}}
-      {{#if token}}
+      {{#if this.token}}
         <Hds::Alert @type="inline" @color="highlight" class="mb-3 mt-2" @icon="token" as |A|>
           <A.Title>Your Access Token</A.Title>
           <A.Description>
-          <Hds::Form::MaskedInput::Field readonly @isContentMasked={{false}} @hasCopyButton={{true}} @value={{token.AccessorID}} as |F|>
+          <Hds::Form::MaskedInput::Field readonly @isContentMasked={{false}} @hasCopyButton={{true}} @value={{this.token.AccessorID}} as |F|>
             <F.Label>Accessor ID</F.Label>
           </Hds::Form::MaskedInput::Field>
-          <Hds::Form::MaskedInput::Field readonly @hasCopyButton={{true}} @value={{token.SecretID}} as |F|>
+          <Hds::Form::MaskedInput::Field readonly @hasCopyButton={{true}} @value={{this.token.SecretID}} as |F|>
             <F.Label>Secret ID</F.Label>
           </Hds::Form::MaskedInput::Field>
           </A.Description>
@@ -70,7 +70,7 @@ as |item|}}
           <DataSink
             @data={{item}}
             @sink='settings://consul:client'
-            @onchange={{action (fn disclosure.close)}}
+            @onchange={{action disclosure.close}}
           />
         </disclosure.Details>
         <fieldset data-test-blocking-queries>
@@ -81,7 +81,7 @@ as |item|}}
               <input
                 {{on 'change' (queue
                   (set item 'blocking' (not item.blocking))
-                  (fn disclosure.open)
+                  disclosure.open
                 )}}
                 type="checkbox"
                 name="client[blocking]"

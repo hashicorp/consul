@@ -90,7 +90,7 @@ as |item index|>
           @text='Invalidate'
           @color='critical'
           data-test-delete
-          {{on 'click' (fn confirm (fn @ondelete item))}}
+          {{on 'click' confirm}}
         />
       </BlockSlot>
       <BlockSlot @name="dialog" as |execute cancel message|>
@@ -102,12 +102,12 @@ as |item index|>
             @text='Confirm Invalidate'
             @color='critical'
             data-test-delete
-            {{on 'click' (fn execute)}}
+            {{on 'click' (queue execute (fn @ondelete item))}}
           />
           <Hds::Button
             @text='Cancel'
             @color='secondary'
-            {{on 'click' (fn cancel)}}
+            {{on 'click' cancel}}
           />
         </Hds::ButtonSet>
       </BlockSlot>

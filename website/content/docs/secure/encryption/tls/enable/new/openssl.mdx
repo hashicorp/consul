@@ -5,6 +5,11 @@ description: >-
    Learn how to create and distribute TLS certificates to server and client agents using OpenSSL as your certificate authority (CA).
 ---
 
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
 # Enable TLS encryption with OpenSSL
 
 This page describes how to use OpenSSL to enable TLS encryption to secure Consul agent communication. Consul supports using TLS to verify the authenticity of servers and clients. To enable TLS, Consul requires that all servers have certificates that are signed by a single certificate authority (CA). Clients should also have certificates that are authenticated with the same CA.
@@ -33,7 +38,7 @@ You can create these certificates on any machine with `openssl`. The examples in
 
 To authenticate Consul servers, servers are provided with a special certificate that contains `server.dc1.consul` in the `Common Name`. If you enable [`verify_server_hostname`](/consul/docs/reference/agent/configuration-file/tls#verify_server_hostname), only agents that provide this certificate are allowed to boot as a server. Without `verify_server_hostname = true`, an attacker could compromise a Consul client agent and restart the agent as a server in order to get access to all the data in your datacenter. These server certificates are special and only servers should provision them.
 
-Create a certificate signing request with the private key. The following command generates a CSR that has Common Name `server.dc1.consul`. Configure the CSR to use the [name of your datacenter](/consul/docs/reference/agent/configuration=file/general#datacenter) and your [domain](/consul/docs/reference/agent/configuration-file/dns#domain).
+Create a certificate signing request with the private key. The following command generates a CSR that has Common Name `server.dc1.consul`. Configure the CSR to use the [name of your datacenter](/consul/docs/reference/agent/configuration-file/general#datacenter) and your [domain](/consul/docs/reference/agent/configuration-file/dns#domain).
 
 ```shell-session
 $ openssl req -new -newkey rsa:2048 -nodes -keyout server1.dc1.consul.key -out server1.dc1.consul.csr -subj '/CN=server.dc1.consul'

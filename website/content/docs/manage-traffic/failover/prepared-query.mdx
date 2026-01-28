@@ -4,6 +4,11 @@ page_title: Automate geo-failover with prepared queries
 description: Learn about failover strategies and service mesh features you can implement to route traffic if services become unhealthy or unreachable, including sameness groups, prepared queries, and service resolvers.
 ---
 
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
 # Automate geo-failover with prepared queries
 
 <Tip>
@@ -34,7 +39,7 @@ To complete this tutorial, you must have a Consul WAN federation of three
 Consul clusters. In this example, the local Consul datacenter is called `dc1`,
 and it has been federated with two remote datacenters - `dc2` and `dc3`. For
 more information on how to federate clusters, please read the
-[Federate Multiple Datacenters tutorial](/consul/docs/east-west/wan-federation/create).
+[Federate Multiple Datacenters tutorial](/consul/docs/east-west/wan-federation/vms).
 
 ## Prepared query introduction
 
@@ -69,7 +74,7 @@ Applications can make use of this query in two ways.
 
 ## Failover policy types
 
-Using the techniques in this section you will develop prepared queries with failover policies where simply changing application configurations to look up "banking-app.query.consul" instead of "banking-app.service.consul" via DNS will result in automatic geo failover to the next closest [federated](/consul/docs/east-west/wan-federation/create) Consul datacenters, in order of increasing network round trip time.
+Using the techniques in this section you will develop prepared queries with failover policies where simply changing application configurations to look up "banking-app.query.consul" instead of "banking-app.service.consul" via DNS will result in automatic geo failover to the next closest [federated](/consul/docs/east-west/wan-federation/vms) Consul datacenters, in order of increasing network round trip time.
 
 Failover is just another policy choice for a prepared query, it works in the same manner as the previous example and is similarly transparent to applications. The failover policy is configured using the `Failover` structure, which contains two fields, both of which are optional, and determine what happens if no healthy nodes are available in the local datacenter when the query is executed.
 

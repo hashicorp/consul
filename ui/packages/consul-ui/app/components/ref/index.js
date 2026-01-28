@@ -9,6 +9,7 @@ import { set } from '@ember/object';
 export default Component.extend({
   tagName: '',
   didReceiveAttrs: function () {
+    this._super(...arguments);
     set(this.target, this.name, this.value);
   },
 });

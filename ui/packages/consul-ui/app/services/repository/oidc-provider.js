@@ -6,7 +6,6 @@
 import { inject as service } from '@ember/service';
 import RepositoryService from 'consul-ui/services/repository';
 import { getOwner } from '@ember/application';
-import { set } from '@ember/object';
 import dataSource from 'consul-ui/decorators/data-source';
 
 const modelName = 'oidc-provider';
@@ -15,8 +14,8 @@ export default class OidcProviderService extends RepositoryService {
   @service('torii') manager;
   @service('settings') settings;
 
-  init() {
-    super.init(...arguments);
+  constructor(...args) {
+    super(...args);
     this.provider = getOwner(this).lookup(`torii-provider:${OAUTH_PROVIDER_NAME}`);
   }
 
@@ -85,9 +84,7 @@ export default class OidcProviderService extends RepositoryService {
   }
 
   findCodeByURL(src) {
-    // TODO: Maybe move this to the provider itself
-    set(this.provider, 'baseUrl', src);
-    return this.manager.open(OAUTH_PROVIDER_NAME, {}).catch((e) => {
+    return this.manager.open(OAUTH_PROVIDER_NAME, { baseUrl: src }).catch((e) => {
       let err;
       switch (true) {
         case e.message.startsWith('remote was closed'):

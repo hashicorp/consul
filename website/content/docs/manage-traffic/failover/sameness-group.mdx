@@ -4,6 +4,11 @@ page_title: Failover with sameness groups
 description: You can configure sameness groups so that when a service instance fails, traffic automatically routes to an identical service instance. Learn how to use sameness groups to create a failover strategy for deployments with multiple datacenters and cluster peering connections.
 ---
 
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
 # Failover with sameness groups
 
 This page describes how to use sameness groups to automatically redirect service traffic to healthy instances in failover scenarios. Sameness groups are a user-defined set of Consul admin partitions with identical registered services. These admin paritions typically belong to Consul datacenters in different cloud regions, which enables sameness groups to participate in several service failover configuration strategies.

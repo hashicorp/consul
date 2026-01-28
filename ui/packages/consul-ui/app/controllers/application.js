@@ -6,7 +6,7 @@
 import { inject as service } from '@ember/service';
 import Controller from '@ember/controller';
 import { getOwner } from '@ember/application';
-import { get, action } from '@ember/object';
+import { action } from '@ember/object';
 import transitionable from 'consul-ui/utils/routing/transitionable';
 
 export default class ApplicationController extends Controller {
@@ -14,10 +14,28 @@ export default class ApplicationController extends Controller {
   @service('store') store;
   @service('feedback') feedback;
 
+  get isDebugRoute() {
+    return this.router.currentRouteName?.startsWith('docs');
+  }
+
   // TODO: We currently do this in the controller instead of the router
   // as the nspace and dc variables aren't available directly on the Route
   // look to see if we can move this up there so we can empty the Controller
   // out again
+
+  @action
+  gotoDefaultDcServices(dcName) {
+    // Preserve prior semantics (was route.replaceWith with a hash)
+    // If your router expects a positional segment instead, change to: this.router.replaceWith('dc.services.index', dcName);
+    this.router.replaceWith('dc.services.index', { dc: dcName });
+  }
+
+  @action
+  onClientChanged(e) {
+    const route = getOwner(this).lookup('route:application');
+    route.onClientChanged(e);
+  }
+
   @action
   reauthorize(e) {
     // TODO: For the moment e isn't a real event
@@ -36,7 +54,7 @@ export default class ApplicationController extends Controller {
           const token = e.data;
           // TODO: Do I actually need to check to see if nspaces are enabled here?
           if (typeof this.nspace !== 'undefined') {
-            const nspace = get(token, 'Namespace') || this.nspace.Name;
+            const nspace = token?.Namespace || this.nspace.Name;
             // you potentially have a new namespace
             // if you do redirect to it
             if (nspace !== this.nspace.Name) {

@@ -4,6 +4,7 @@
 package cache
 
 import (
+	"context"
 	"time"
 )
 
@@ -33,7 +34,7 @@ type Type interface {
 	// cache will reuse the last value automatically. If an unset Value is
 	// returned, the State field will still be updated which allows maintaining
 	// metadata even when there is no result.
-	Fetch(FetchOptions, Request) (FetchResult, error)
+	Fetch(context.Context, FetchOptions, Request) (FetchResult, error)
 
 	// RegisterOptions are used when the type is registered to configure the
 	// behaviour of cache entries for this type.

@@ -1,12 +1,12 @@
 module github.com/hashicorp/consul/test-integ
 
-go 1.25.1
+go 1.25.5
 
 require (
 	github.com/google/go-cmp v0.7.0
-	github.com/hashicorp/consul/api v1.33.0-rc1
-	github.com/hashicorp/consul/proto-public v0.7.0-rc1
-	github.com/hashicorp/consul/sdk v0.17.0-rc1
+	github.com/hashicorp/consul/api v1.33.2
+	github.com/hashicorp/consul/proto-public v0.7.1
+	github.com/hashicorp/consul/sdk v0.17.1
 	github.com/hashicorp/consul/test/integration/consul-container v0.0.0-20230628201853-bdf4fad7c5a5
 	github.com/hashicorp/consul/testing/deployer v0.0.0-20230811171106-4a0afb5d1373
 	github.com/hashicorp/go-cleanhttp v0.5.2
@@ -14,7 +14,7 @@ require (
 	github.com/mitchellh/copystructure v1.2.0
 	github.com/rboyer/blankspace v0.2.1
 	github.com/stretchr/testify v1.11.1
-	golang.org/x/net v0.44.0
+	golang.org/x/net v0.47.0
 	google.golang.org/grpc v1.75.0
 )
 
@@ -98,13 +98,13 @@ require (
 	github.com/teris-io/shortid v0.0.0-20220617161101-71ec9f2aa569 // indirect
 	github.com/testcontainers/testcontainers-go v0.22.0 // indirect
 	github.com/zclconf/go-cty v1.12.1 // indirect
-	golang.org/x/crypto v0.42.0 // indirect
+	golang.org/x/crypto v0.45.0 // indirect
 	golang.org/x/exp v0.0.0-20250911091902-df9299821621 // indirect
-	golang.org/x/mod v0.28.0 // indirect
-	golang.org/x/sync v0.17.0 // indirect
-	golang.org/x/sys v0.36.0 // indirect
-	golang.org/x/text v0.29.0 // indirect
-	golang.org/x/tools v0.37.0 // indirect
+	golang.org/x/mod v0.29.0 // indirect
+	golang.org/x/sync v0.18.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
+	golang.org/x/text v0.31.0 // indirect
+	golang.org/x/tools v0.38.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250707201910-8d1bb00bc6a7 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

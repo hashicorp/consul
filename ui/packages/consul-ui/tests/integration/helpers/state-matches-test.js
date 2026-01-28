@@ -19,19 +19,19 @@ module('Integration | Helper | state-matches', function (hooks) {
       },
     });
 
-    await render(hbs`{{state-matches state 'idle'}}`);
-    assert.equal(this.element.textContent.trim(), 'true');
+    await render(hbs`{{state-matches this.state 'idle'}}`);
+    assert.strictEqual(this.element.textContent.trim(), 'true');
 
-    await render(hbs`{{state-matches state 'loading'}}`);
-    assert.equal(this.element.textContent.trim(), 'false');
+    await render(hbs`{{state-matches this.state 'loading'}}`);
+    assert.strictEqual(this.element.textContent.trim(), 'false');
 
-    await render(hbs`{{state-matches state (array 'idle' 'loading')}}`);
-    assert.equal(this.element.textContent.trim(), 'true');
+    await render(hbs`{{state-matches this.state (array 'idle' 'loading')}}`);
+    assert.strictEqual(this.element.textContent.trim(), 'true');
 
-    await render(hbs`{{state-matches state (array 'loading' 'idle')}}`);
-    assert.equal(this.element.textContent.trim(), 'true');
+    await render(hbs`{{state-matches this.state (array 'loading' 'idle')}}`);
+    assert.strictEqual(this.element.textContent.trim(), 'true');
 
-    await render(hbs`{{state-matches state (array 'loading' 'deleting')}}`);
-    assert.equal(this.element.textContent.trim(), 'false');
+    await render(hbs`{{state-matches this.state (array 'loading' 'deleting')}}`);
+    assert.strictEqual(this.element.textContent.trim(), 'false');
   });
 });

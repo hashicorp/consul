@@ -4,7 +4,7 @@
 }}
 
 <Route
-  @name={{routeName}}
+  @name={{this.routeName}}
 as |route|>
   <DataSource @src={{uri '/${partition}/${nspace}/${dc}/coordinates/for-node/${name}'
     (hash
@@ -100,7 +100,7 @@ as |item tomography|}}
                     href=(href-to "dc.nodes.show.services")
                     selected=(is-href "dc.nodes.show.services")
                   )
-(if tomography.distances
+(if (gt tomography.distances.length 0)
                   (hash
                     label=(t 'routes.dc.nodes.show.rtt.title')
                     href=(href-to "dc.nodes.show.rtt")
@@ -127,7 +127,7 @@ as |item tomography|}}
           </BlockSlot>
           <BlockSlot @name="content">
             <Outlet
-              @name={{routeName}}
+              @name={{this.routeName}}
               @model={{assign
                 (hash
                   item=item

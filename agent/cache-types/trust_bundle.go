@@ -66,7 +66,7 @@ type TrustBundleReader interface {
 	) (*pbpeering.TrustBundleReadResponse, error)
 }
 
-func (t *TrustBundle) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
+func (t *TrustBundle) Fetch(ctx context.Context, opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
 	var result cache.FetchResult
 
 	// The request should be a TrustBundleReadRequest.
@@ -93,13 +93,13 @@ func (t *TrustBundle) Fetch(opts cache.FetchOptions, req cache.Request) (cache.F
 	reqReal.SetAllowStale(true)
 
 	// Fetch
-	ctx, err := external.ContextWithQueryOptions(context.Background(), reqReal.QueryOptions)
+	qctx, err := external.ContextWithQueryOptions(ctx, reqReal.QueryOptions)
 	if err != nil {
 		return result, err
 	}
 
 	var header metadata.MD
-	reply, err := t.Client.TrustBundleRead(ctx, reqReal.Request, grpc.Header(&header))
+	reply, err := t.Client.TrustBundleRead(qctx, reqReal.Request, grpc.Header(&header))
 	if err != nil {
 		return result, err
 	}

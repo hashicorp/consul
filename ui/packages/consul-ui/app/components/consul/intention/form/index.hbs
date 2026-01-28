@@ -145,12 +145,12 @@ as |item readonly|}}
           @dc={{@dc}}
           @partitions={{this.partitions}}
           @services={{this.services}}
-          @SourceName={{this.SourceName}}
-          @SourceNS={{this.SourceNS}}
-          @SourcePartition={{this.SourcePartition}}
-          @DestinationName={{this.DestinationName}}
-          @DestinationNS={{this.DestinationNS}}
-          @DestinationPartition={{this.DestinationPartition}}
+          @sourceName={{this.SourceName}}
+          @sourceNS={{this.SourceNS}}
+          @sourcePartition={{this.SourcePartition}}
+          @destinationName={{this.DestinationName}}
+          @destinationNS={{this.DestinationNS}}
+          @destinationPartition={{this.DestinationPartition}}
           @item={{item}}
           @disabled={{api.disabled}}
           @create={{api.isCreate}}
@@ -178,14 +178,14 @@ as |item readonly|}}
                 @text='Delete'
                 @color='critical'
                 disabled={{api.disabled}}
-                {{on 'click' (fn confirm api.delete)}}
+                {{on 'click' confirm}}
                 data-test-delete
               />
             </BlockSlot>
             <BlockSlot @name="dialog" as |execute cancel message|>
               <DeleteConfirmation
                 @message={{message}}
-                @execute={{execute}}
+                @execute={{queue execute api.delete}}
                 @cancel={{cancel}}
               />
             </BlockSlot>

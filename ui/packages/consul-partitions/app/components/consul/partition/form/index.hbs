@@ -16,8 +16,8 @@
           dc=@item.Datacenter
         )
       }}
-      @type={{'partition'}}
-      @label={{'Partition'}}
+      @type='partition'
+      @label='Partition'
       @ondelete={{fn (if @ondelete @ondelete @onsubmit) @item}}
       @onchange={{fn (optional @onsubmit) @item}}
       as |writer|>
@@ -118,13 +118,13 @@ as |State Guard ChartAction dispatch state|>
             @text='Delete'
             data-test-delete
             @color='critical'
-            {{on 'click' (fn confirm (fn writer.delete item))}}
+            {{on 'click' confirm}}
           />
         </BlockSlot>
         <BlockSlot @name="dialog" as |execute cancel message|>
           <DeleteConfirmation
             @message={{message}}
-            @execute={{execute}}
+            @execute={{queue execute (fn writer.delete item)}}
             @cancel={{cancel}}
           />
         </BlockSlot>

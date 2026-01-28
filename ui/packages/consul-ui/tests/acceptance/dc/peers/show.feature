@@ -1,4 +1,4 @@
-@setupApplcationTest
+@setupApplicationTest
 Feature: dc / peers / show: Peers show
   Scenario: Dialer side tabs
     And 1 datacenter model with the value "dc-1"

@@ -1,3 +1,269 @@
+## 1.22.3 (January 23, 2026)
+
+SECURITY:
+
+* Update the Consul Build Go base image to `alpine3.23.2` [[GH-23138](https://github.com/hashicorp/consul/issues/23138)]
+
+IMPROVEMENTS:
+
+* api: Add `consul services imported-services` and new api(/v1/exported-services) command to list services imported by partitions within a local datacenter [[GH-12045](https://github.com/hashicorp/consul/issues/12045)]
+* connect: added ability to configure Virtual IP range for t-proxy with CIDRs [[GH-23085](https://github.com/hashicorp/consul/issues/23085)]
+
+## 1.22.1 (November 27, 2025)
+
+SECURITY:
+
+* connect: Upgrade envoy version to 1.35.6 [[GH-23056](https://github.com/hashicorp/consul/issues/23056)]
+* security: Updated `golang.org/x/crypto` from v0.42.0 to v0.44.0. This resolves [GO-2025-4116](https://pkg.go.dev/vuln/GO-2025-4116)
+
+IMPROVEMENTS:
+
+* ui: Removed ember-route-action-helper and migrated all {{route-action}} usages to explicit route/controller logic. [[GH-23004](https://github.com/hashicorp/consul/issues/23004)]
+* ui: Replaced `reopen()` calls with direct property assignment and subclassing to resolve Ember component reopen deprecation warnings [[GH-22971](https://github.com/hashicorp/consul/issues/22971)]
+* ui: removed deprecated Route#renderTemplate usage by introducing DebugLayout component and controller-based conditional rendering for docs routes [[GH-22978](https://github.com/hashicorp/consul/issues/22978)]
+* ui: resolved multiple Ember deprecations:
+- Removed mutation-after-consumption warnings in Outlet by staging state updates outside the render pass
+- Replaced deprecated Route#replaceWith/transitionTo usage with RouterService in affected routes
+- Avoided mutating objects produced by {{hash}} (setting-on-hash) by switching to tracked POJOs [[GH-23010](https://github.com/hashicorp/consul/issues/23010)]
+
+BUG FIXES:
+
+* acl: fixed a bug where ACL policy replication in WANfed is impacted when primaryDC is inconsistent [[GH-22954](https://github.com/hashicorp/consul/issues/22954)]
+* xds: fix RBAC failure in upstream service when there are more than one downstream exported service with same name but different peer [[GH-23049](https://github.com/hashicorp/consul/issues/23049)]
+* xds: fix bug where Using replacePrefixMatch: "/" results in double slashes (//path) and Using replacePrefixMatch: "" does not strip the prefix at all (e.g., mapping /v1/dashboard → /dashboard) resulting in 301 and 404 errors respectively [[GH-23035](https://github.com/hashicorp/consul/issues/23035)]
+
+## 1.22.1 Enterprise (November 27, 2025)
+SECURITY:
+
+* connect: Upgrade envoy version to 1.35.6 [[GH-23056](https://github.com/hashicorp/consul/issues/23056)]
+* security: Updated `golang.org/x/crypto` from v0.42.0 to v0.44.0. This resolves [GO-2025-4116](https://pkg.go.dev/vuln/GO-2025-4116) 
+
+IMPROVEMENTS:
+
+* ui: Removed ember-route-action-helper and migrated all {{route-action}} usages to explicit route/controller logic. [[GH-23004](https://github.com/hashicorp/consul/issues/23004)]
+* ui: Replaced `reopen()` calls with direct property assignment and subclassing to resolve Ember component reopen deprecation warnings [[GH-22971](https://github.com/hashicorp/consul/issues/22971)]
+* ui: removed deprecated Route#renderTemplate usage by introducing DebugLayout component and controller-based conditional rendering for docs routes [[GH-22978](https://github.com/hashicorp/consul/issues/22978)]
+* ui: resolved multiple Ember deprecations:
+- Removed mutation-after-consumption warnings in Outlet by staging state updates outside the render pass
+- Replaced deprecated Route#replaceWith/transitionTo usage with RouterService in affected routes
+- Avoided mutating objects produced by {{hash}} (setting-on-hash) by switching to tracked POJOs [[GH-23010](https://github.com/hashicorp/consul/issues/23010)]
+
+BUG FIXES:
+
+* acl: fixed a bug where ACL policy replication in WANfed is impacted when primaryDC is inconsistent [[GH-22954](https://github.com/hashicorp/consul/issues/22954)]
+* xds: fix RBAC failure in upstream service when there are more than one downstream exported service with same name but different peer [[GH-23049](https://github.com/hashicorp/consul/issues/23049)]
+* xds: fix bug where Using replacePrefixMatch: "/" results in double slashes (//path) and Using replacePrefixMatch: "" does not strip the prefix at all (e.g., mapping /v1/dashboard → /dashboard) resulting in 301 and 404 errors respectively [[GH-23035](https://github.com/hashicorp/consul/issues/23035)]
+
+## 1.21.7 Enterprise (November 27, 2025)
+
+SECURITY:
+
+* security: Upgrade golang to 1.25.4. [[GH-23029](https://github.com/hashicorp/consul/issues/23029)]
+
+IMPROVEMENTS:
+
+* ui: Removed ember-route-action-helper and migrated all {{route-action}} usages to explicit route/controller logic. [[GH-23004](https://github.com/hashicorp/consul/issues/23004)]
+* ui: resolved multiple Ember deprecations:
+- Removed mutation-after-consumption warnings in Outlet by staging state updates outside the render pass
+- Replaced deprecated Route#replaceWith/transitionTo usage with RouterService in affected routes
+- Avoided mutating objects produced by {{hash}} (setting-on-hash) by switching to tracked POJOs [[GH-23010](https://github.com/hashicorp/consul/issues/23010)]
+
+BUG FIXES:
+
+* acl: fixed a bug where ACL policy replication in WANfed is impacted when primaryDC is inconsistent [[GH-22954](https://github.com/hashicorp/consul/issues/22954)]
+* xds: fix RBAC failure in upstream service when there are more than one downstream exported service with same name but different peer [[GH-23049](https://github.com/hashicorp/consul/issues/23049)]
+* xds: fix bug where Using replacePrefixMatch: "/" results in double slashes (//path) and Using replacePrefixMatch: "" does not strip the prefix at all (e.g., mapping /v1/dashboard → /dashboard) resulting in 301 and 404 errors respectively [[GH-23035](https://github.com/hashicorp/consul/issues/23035)]
+
+## 1.20.13 Enterprise (November 27, 2025)
+
+SECURITY:
+
+* security: Upgrade golang to 1.25.4. [[GH-23029](https://github.com/hashicorp/consul/issues/23029)]
+
+IMPROVEMENTS:
+
+* ui: Removed ember-route-action-helper and migrated all {{route-action}} usages to explicit route/controller logic. [[GH-23004](https://github.com/hashicorp/consul/issues/23004)]
+* ui: resolved multiple Ember deprecations:
+- Removed mutation-after-consumption warnings in Outlet by staging state updates outside the render pass
+- Replaced deprecated Route#replaceWith/transitionTo usage with RouterService in affected routes
+- Avoided mutating objects produced by {{hash}} (setting-on-hash) by switching to tracked POJOs [[GH-23010](https://github.com/hashicorp/consul/issues/23010)]
+
+BUG FIXES:
+
+* acl: fixed a bug where ACL policy replication in WANfed is impacted when primaryDC is inconsistent [[GH-22954](https://github.com/hashicorp/consul/issues/22954)]
+* xds: fix RBAC failure in upstream service when there are more than one downstream exported service with same name but different peer [[GH-23049](https://github.com/hashicorp/consul/issues/23049)]
+* xds: fix bug where Using replacePrefixMatch: "/" results in double slashes (//path) and Using replacePrefixMatch: "" does not strip the prefix at all (e.g., mapping /v1/dashboard → /dashboard) resulting in 301 and 404 errors respectively [[GH-23035](https://github.com/hashicorp/consul/issues/23035)]
+
+## 1.18.17 Enterprise (November 27, 2025)
+
+Enterprise LTS: Consul Enterprise 1.18 is a Long-Term Support (LTS) release.
+
+SECURITY:
+
+* Update `registry.access.redhat.com/ubi9-minimal` image to 9.6 to address CVEs [[GH-11815](https://github.com/hashicorp/consul/issues/11815)]
+* security: Upgrade golang to 1.25.4. [[GH-23029](https://github.com/hashicorp/consul/issues/23029)]
+
+IMPROVEMENTS:
+
+* ui: Removed ember-route-action-helper and migrated all {{route-action}} usages to explicit route/controller logic. [[GH-23004](https://github.com/hashicorp/consul/issues/23004)]
+* ui: resolved multiple Ember deprecations:
+- Removed mutation-after-consumption warnings in Outlet by staging state updates outside the render pass
+- Replaced deprecated Route#replaceWith/transitionTo usage with RouterService in affected routes
+- Avoided mutating objects produced by {{hash}} (setting-on-hash) by switching to tracked POJOs [[GH-23010](https://github.com/hashicorp/consul/issues/23010)]
+
+BUG FIXES:
+
+* acl: fixed a bug where ACL policy replication in WANfed is impacted when primaryDC is inconsistent [[GH-22954](https://github.com/hashicorp/consul/issues/22954)]
+* xds: fix RBAC failure in upstream service when there are more than one downstream exported service with same name but different peer [[GH-23049](https://github.com/hashicorp/consul/issues/23049)]
+* xds: fix bug where Using replacePrefixMatch: "/" results in double slashes (//path) and Using replacePrefixMatch: "" does not strip the prefix at all (e.g., mapping /v1/dashboard → /dashboard) resulting in 301 and 404 errors respectively [[GH-23035](https://github.com/hashicorp/consul/issues/23035)]
+
+
+## 1.22.0 Enterprise (October 24, 2025)
+
+SECURITY:
+
+* connect: Upgrade Consul's bundled Envoy version to 1.35.3 and remove support for 1.31.10. This update also includes a fix to prevent Envoy (v1.35+) startup failures by only configuring the TLS transport socket when the CA bundle is present. [[GH-22824](https://github.com/hashicorp/consul/issues/22824)]
+* security: Adding warning when remote/local script checks are enabled without enabling ACL's [[GH-22877](https://github.com/hashicorp/consul/issues/22877)]
+* security: Improved validation of the Content-Length header in the Consul KV endpoint to prevent potential denial of service attacks[CVE-2025-11374](https://nvd.nist.gov/vuln/detail/CVE-2025-11374) [[GH-22916](https://github.com/hashicorp/consul/issues/22916)]
+* security: adding a maximum Content-Length on the event endpoint to fix denial-of-service (DoS) attacks. This resolves [CVE-2025-11375](https://nvd.nist.gov/vuln/detail/CVE-2025-11375). [[GH-22836](https://github.com/hashicorp/consul/issues/22836)]
+* security: breaking change - adding a key name validation on the key/value endpoint along side with the DisableKVKeyValidation config to disable/enable it to fix path traversal attacks on misconfigured or missing ACL policies. [[GH-22850](https://github.com/hashicorp/consul/issues/22850)]
+
+FEATURES:
+
+* Added support to register a service in consul with multiple ports [[GH-22769](https://github.com/hashicorp/consul/issues/22769)]
+* agent: Added IsDualStack utility function to detect if the agent is configured for both IPv4 and IPv6 (dual-stack mode) based on its bind address retrieved from "agent/self" API. [[GH-22741](https://github.com/hashicorp/consul/issues/22741)]
+* install: Updated license information displayed during post-install
+* ipv6: addtition of ip6tables changes for ipv6 and dual stack support [[GH-22787](https://github.com/hashicorp/consul/issues/22787)]
+* oidc: add client authentication using JWT assertion and PKCE. default PKCE is enabled. [[GH-22732](https://github.com/hashicorp/consul/issues/22732)]
+
+IMPROVEMENTS:
+
+* security: Upgrade golang to 1.25.3. [[GH-22926](https://github.com/hashicorp/consul/issues/22926)]
+* ui: Fixes computed property override issues currently occurring and in some cases pre-emptively as this has been deprecated in ember v4 [[GH-22947](https://github.com/hashicorp/consul/issues/22947)]
+* ui: removes send action instances as part of https://deprecations.emberjs.com/id/ember-component-send-action/ [[GH-22938](https://github.com/hashicorp/consul/issues/22938)]
+* ui: replaced ember partials with components as an incremental step to upgrade to ember v4 [[GH-22888](https://github.com/hashicorp/consul/issues/22888)]
+* api: Added a new API (/v1/operator/utilization) to support enterprise API for Manual Snapshot Reporting [[GH-22837](https://github.com/hashicorp/consul/issues/22837)]
+* cmd: Added new subcommand `consul operator utilization [-today-only] [-message] [-y]` to generate a bundle with census utilization snapshot. Main flow is implemented in consul-enterprise
+http: Added a new API Handler for `/v1/operator/utilization`. Core functionality to be implemented in consul-enterprise
+agent: Always enabled census metrics collection with configurable option to export it to Hashicorp Reporting [[GH-22843](https://github.com/hashicorp/consul/issues/22843)]
+* cli: `snapshot agent` now supports authenticating to Azure Blob Storage using Azure Managed Service Identities (MSI). [[GH-11171](https://github.com/hashicorp/consul/issues/11171)]
+* command: connect envoy bootstrap defaults to 127.0.0.1 in IPv4-only environment and to ::1 in IPv6/DualStack environment. [[GH-22763](https://github.com/hashicorp/consul/issues/22763)]
+* connect: default upstream.local_bind_address to ::1 for IPv6 agent bind address [[GH-22773](https://github.com/hashicorp/consul/issues/22773)]
+* proxy: default proxy.local_service_address to ::1 for IPv6 agent bind address [[GH-22772](https://github.com/hashicorp/consul/issues/22772)]
+* ui: Improved accessibility features in the Consul UI to enhance usability for users with disabilities [[GH-22770](https://github.com/hashicorp/consul/issues/22770)]
+* ui: Replace yarn with pnpm for package management [[GH-22790](https://github.com/hashicorp/consul/issues/22790)]
+* ui: auth method config values were overflowing. This PR fixes the issue and adds word break for table elements with large content. [[GH-22813](https://github.com/hashicorp/consul/issues/22813)]
+
+BUG FIXES:
+
+* ui: Allow FQDN to be displayed in the Consul web interface. [[GH-22779](https://github.com/hashicorp/consul/issues/22779)]
+* ui: fixes the issue where namespaces where disappearing and Welcome to Namespace screen showed up after tab switching [[GH-22789](https://github.com/hashicorp/consul/issues/22789)]
+* ui: fixes the issue where when doing deletes of multiple tokens or policies, the three dots on the right hand side stops responding after the first delete. [[GH-22752](https://github.com/hashicorp/consul/issues/22752)]
+* cmd: Fix `consul operator utilization --help` to show only available options without extra parameters. [[GH-22912](https://github.com/hashicorp/consul/issues/22912)]
+
+## 1.22.0 (October 24, 2025)
+
+SECURITY:
+
+* connect: Upgrade Consul's bundled Envoy version to 1.35.3 and remove support for 1.31.10. This update also includes a fix to prevent Envoy (v1.35+) startup failures by only configuring the TLS transport socket when the CA bundle is present. [[GH-22824](https://github.com/hashicorp/consul/issues/22824)]
+* security: Adding warning when remote/local script checks are enabled without enabling ACL's [[GH-22877](https://github.com/hashicorp/consul/issues/22877)]
+* security: Improved validation of the Content-Length header in the Consul KV endpoint to prevent potential denial of service attacks[CVE-2025-11374](https://nvd.nist.gov/vuln/detail/CVE-2025-11374) [[GH-22916](https://github.com/hashicorp/consul/issues/22916)]
+* security: adding a maximum Content-Length on the event endpoint to fix denial-of-service (DoS) attacks. This resolves [CVE-2025-11375](https://nvd.nist.gov/vuln/detail/CVE-2025-11375). [[GH-22836](https://github.com/hashicorp/consul/issues/22836)]
+* security: breaking change - adding a key name validation on the key/value endpoint along side with the DisableKVKeyValidation config to disable/enable it to fix path traversal attacks on misconfigured or missing ACL policies. [[GH-22850](https://github.com/hashicorp/consul/issues/22850)]
+
+FEATURES:
+
+* Added support to register a service in consul with multiple ports [[GH-22769](https://github.com/hashicorp/consul/issues/22769)]
+* agent: Added IsDualStack utility function to detect if the agent is configured for both IPv4 and IPv6 (dual-stack mode) based on its bind address retrieved from "agent/self" API. [[GH-22741](https://github.com/hashicorp/consul/issues/22741)]
+* install: Updated license information displayed during post-install
+* ipv6: addtition of ip6tables changes for ipv6 and dual stack support [[GH-22787](https://github.com/hashicorp/consul/issues/22787)]
+* oidc: add client authentication using JWT assertion and PKCE. default PKCE is enabled. [[GH-22732](https://github.com/hashicorp/consul/issues/22732)]
+
+IMPROVEMENTS:
+
+* security: Upgrade golang to 1.25.3. [[GH-22926](https://github.com/hashicorp/consul/issues/22926)]
+* ui: Fixes computed property override issues currently occurring and in some cases pre-emptively as this has been deprecated in ember v4 [[GH-22947](https://github.com/hashicorp/consul/issues/22947)]
+* ui: removes send action instances as part of https://deprecations.emberjs.com/id/ember-component-send-action/ [[GH-22938](https://github.com/hashicorp/consul/issues/22938)]
+* ui: replaced ember partials with components as an incremental step to upgrade to ember v4 [[GH-22888](https://github.com/hashicorp/consul/issues/22888)]
+* api: Added a new API (/v1/operator/utilization) to support enterprise API for Manual Snapshot Reporting [[GH-22837](https://github.com/hashicorp/consul/issues/22837)]
+* cmd: Added new subcommand `consul operator utilization [-today-only] [-message] [-y]` to generate a bundle with census utilization snapshot. Main flow is implemented in consul-enterprise
+http: Added a new API Handler for `/v1/operator/utilization`. Core functionality to be implemented in consul-enterprise
+agent: Always enabled census metrics collection with configurable option to export it to Hashicorp Reporting [[GH-22843](https://github.com/hashicorp/consul/issues/22843)]
+* cli: `snapshot agent` now supports authenticating to Azure Blob Storage using Azure Managed Service Identities (MSI). [[GH-11171](https://github.com/hashicorp/consul/issues/11171)]
+* command: connect envoy bootstrap defaults to 127.0.0.1 in IPv4-only environment and to ::1 in IPv6/DualStack environment. [[GH-22763](https://github.com/hashicorp/consul/issues/22763)]
+* connect: default upstream.local_bind_address to ::1 for IPv6 agent bind address [[GH-22773](https://github.com/hashicorp/consul/issues/22773)]
+* proxy: default proxy.local_service_address to ::1 for IPv6 agent bind address [[GH-22772](https://github.com/hashicorp/consul/issues/22772)]
+* ui: Improved accessibility features in the Consul UI to enhance usability for users with disabilities [[GH-22770](https://github.com/hashicorp/consul/issues/22770)]
+* ui: Replace yarn with pnpm for package management [[GH-22790](https://github.com/hashicorp/consul/issues/22790)]
+* ui: auth method config values were overflowing. This PR fixes the issue and adds word break for table elements with large content. [[GH-22813](https://github.com/hashicorp/consul/issues/22813)]
+
+BUG FIXES:
+
+* ui: Allow FQDN to be displayed in the Consul web interface. [[GH-22779](https://github.com/hashicorp/consul/issues/22779)]
+* ui: fixes the issue where namespaces where disappearing and Welcome to Namespace screen showed up after tab switching [[GH-22789](https://github.com/hashicorp/consul/issues/22789)]
+* ui: fixes the issue where when doing deletes of multiple tokens or policies, the three dots on the right hand side stops responding after the first delete. [[GH-22752](https://github.com/hashicorp/consul/issues/22752)]
+* cmd: Fix `consul operator utilization --help` to show only available options without extra parameters. [[GH-22912](https://github.com/hashicorp/consul/issues/22912)]
+
+## 1.22.0-rc2+ent (October 15, 2025)
+
+SECURITY:
+
+* security: Adding warning when remote/local script checks are enabled without enabling ACL's [[GH-22877](https://github.com/hashicorp/consul/issues/22877)]
+* security: Improved validation of the Content-Length header in the Consul KV endpoint to prevent potential denial of service attacks[CVE-2025-11374](https://nvd.nist.gov/vuln/detail/CVE-2025-11374) [[GH-22916](https://github.com/hashicorp/consul/issues/22916)]
+* security: adding a maximum Content-Length on the event endpoint to fix denial-of-service (DoS) attacks. This resolves [CVE-2025-11375](https://nvd.nist.gov/vuln/detail/CVE-2025-11375). [[GH-22836](https://github.com/hashicorp/consul/issues/22836)]
+* security: breaking change - adding a key name validation on the key/value endpoint along side with the DisableKVKeyValidation config to disable/enable it to fix path traversal attacks on misconfigured or missing ACL policies. [[GH-22850](https://github.com/hashicorp/consul/issues/22850)]
+
+BUG FIXES:
+
+* cmd: Fix `consul operator utilization --help` to show only available options without extra parameters. [[GH-22912](https://github.com/hashicorp/consul/issues/22912)]
+
+## 1.22.0-rc2 (October 15, 2025)
+
+SECURITY:
+
+* security: Adding warning when remote/local script checks are enabled without enabling ACL's [[GH-22877](https://github.com/hashicorp/consul/issues/22877)]
+* security: Improved validation of the Content-Length header in the Consul KV endpoint to prevent potential denial of service attacks[CVE-2025-11374](https://nvd.nist.gov/vuln/detail/CVE-2025-11374) [[GH-22916](https://github.com/hashicorp/consul/issues/22916)]
+* security: adding a maximum Content-Length on the event endpoint to fix denial-of-service (DoS) attacks. This resolves [CVE-2025-11375](https://nvd.nist.gov/vuln/detail/CVE-2025-11375). [[GH-22836](https://github.com/hashicorp/consul/issues/22836)]
+* security: breaking change - adding a key name validation on the key/value endpoint along side with the DisableKVKeyValidation config to disable/enable it to fix path traversal attacks on misconfigured or missing ACL policies. [[GH-22850](https://github.com/hashicorp/consul/issues/22850)]
+
+BUG FIXES:
+
+* cmd: Fix `consul operator utilization --help` to show only available options without extra parameters. [[GH-22912](https://github.com/hashicorp/consul/issues/22912)]
+
+## 1.22.0-rc1+ent (September 30, 2025)
+
+SECURITY:
+
+* connect: Upgrade Consul's bundled Envoy version to 1.35.3 and remove support for 1.31.10. This update also includes a fix to prevent Envoy (v1.35+) startup failures by only configuring the TLS transport socket when the CA bundle is present. [[GH-22824](https://github.com/hashicorp/consul/issues/22824)]
+
+FEATURES:
+
+* Added support to register a service in consul with multiple ports [[GH-22769](https://github.com/hashicorp/consul/issues/22769)]
+* agent: Added IsDualStack utility function to detect if the agent is configured for both IPv4 and IPv6 (dual-stack mode) based on its bind address retrieved from "agent/self" API. [[GH-22741](https://github.com/hashicorp/consul/issues/22741)]
+* install: Updated license information displayed during post-install
+* ipv6: addtition of ip6tables changes for ipv6 and dual stack support [[GH-22787](https://github.com/hashicorp/consul/issues/22787)]
+* oidc: add client authentication using JWT assertion and PKCE. default PKCE is enabled. [[GH-22732](https://github.com/hashicorp/consul/issues/22732)]
+
+IMPROVEMENTS:
+
+* api: Added a new API (/v1/operator/utilization) to support enterprise API for Manual Snapshot Reporting [[GH-22837](https://github.com/hashicorp/consul/issues/22837)]
+* cmd: Added new subcommand `consul operator utilization [-today-only] [-message] [-y]` to generate a bundle with census utilization snapshot. Main flow is implemented in consul-enterprise
+http: Added a new API Handler for `/v1/operator/utilization`. Core functionality to be implemented in consul-enterprise
+agent: Always enabled census metrics collection with configurable option to export it to Hashicorp Reporting [[GH-22843](https://github.com/hashicorp/consul/issues/22843)]
+* cli: `snapshot agent` now supports authenticating to Azure Blob Storage using Azure Managed Service Identities (MSI). [[GH-11171](https://github.com/hashicorp/consul/issues/11171)]
+* command: connect envoy bootstrap defaults to 127.0.0.1 in IPv4-only environment and to ::1 in IPv6/DualStack environment. [[GH-22763](https://github.com/hashicorp/consul/issues/22763)]
+* connect: default upstream.local_bind_address to ::1 for IPv6 agent bind address [[GH-22773](https://github.com/hashicorp/consul/issues/22773)]
+* proxy: default proxy.local_service_address to ::1 for IPv6 agent bind address [[GH-22772](https://github.com/hashicorp/consul/issues/22772)]
+* ui: Improved accessibility features in the Consul UI to enhance usability for users with disabilities [[GH-22770](https://github.com/hashicorp/consul/issues/22770)]
+* ui: Replace yarn with pnpm for package management [[GH-22790](https://github.com/hashicorp/consul/issues/22790)]
+* ui: auth method config values were overflowing. This PR fixes the issue and adds word break for table elements with large content. [[GH-22813](https://github.com/hashicorp/consul/issues/22813)]
+
+BUG FIXES:
+
+* ui: Allow FQDN to be displayed in the Consul web interface. [[GH-22779](https://github.com/hashicorp/consul/issues/22779)]
+* ui: fixes the issue where namespaces where disappearing and Welcome to Namespace screen showed up after tab switching [[GH-22789](https://github.com/hashicorp/consul/issues/22789)]
+* ui: fixes the issue where when doing deletes of multiple tokens or policies, the three dots on the right hand side stops responding after the first delete. [[GH-22752](https://github.com/hashicorp/consul/issues/22752)]
+
 ## 1.22.0-rc1 (September 30, 2025)
 
 SECURITY:

@@ -6,6 +6,11 @@ description: >-
   command-line interface.
 ---
 
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
 # Store and access key/value data
 
 This page describes the processes for interacting with Consul's KV store. You can interact with the KV store using the [`consul kv` CLI command](/consul/commands/kv) or the [`/kv` endpoint](/consul/api-docs/kv).
@@ -87,3 +92,7 @@ The following example deletes all the keys with the `redis` prefix using the `-r
 $ consul kv delete -recurse redis
 Success! Deleted keys with prefix: redis
 ```
+
+<Warning title="Security warning">
+By default, Consul does not allow path escapes, directory escapes, leading spaces, or trailing spaces in keys, beginning with Consul v1.22.0. If you have any existing keys in this format and want to continue using the same keys, set the `disable_kv_key_validation` parameter to `true` in the Consul agent configuration. We strongly recommend using validated keys unless you have a specific reason to disable it for legacy compatibility.
+</Warning>

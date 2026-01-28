@@ -4,7 +4,7 @@
 }}
 
 {{#let (hash
-  labelledby=(unique-id)
+  labelledby=(dom-guid)
 ) as |aria|}}
   <Portal @target="modal">
     {{yield}}

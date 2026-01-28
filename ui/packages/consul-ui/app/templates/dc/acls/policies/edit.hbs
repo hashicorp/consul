@@ -4,7 +4,7 @@
 }}
 
 <Route
-  @name={{routeName}}
+  @name={{this.routeName}}
 as |route|>
   <DataLoader @src={{
     uri '/${partition}/${nspace}/${dc}/policy/${id}'
@@ -110,7 +110,21 @@ as |dc partition nspace id item create|}}
     {{/if}}
     </DataSource>
   {{else}}
-        {{ partial 'dc/acls/policies/form'}}
+        <Consul::Policy::Form
+          @form={{this.form}}
+          @partition={{partition}}
+          @nspace={{nspace}}
+          @item={{item}}
+          @create={{create}}
+          @dc={{dc}}
+          @id={{id}}
+          @items={{this.items}}
+          @onCreate={{fn this.onCreate item}}
+          @onUpdate={{fn this.onUpdate item}}
+          @onCancel={{fn this.onCancel item}}
+          @onDelete={{fn this.onDelete item}}
+          @onItemsChange={{action (mut this.items) value="data"}}
+        />
   {{/if}}
       </BlockSlot>
   </AppView>

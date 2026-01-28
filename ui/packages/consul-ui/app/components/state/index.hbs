@@ -3,8 +3,8 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-{{did-insert this.attributeChanged @state @matches @notMatches}}
-{{did-update this.attributeChanged @state @matches @notMatches}}
-{{#if render}}
+{{did-insert-helper this.attributeChanged @state @matches @notMatches}}
+{{did-update-helper this.attributeChanged @state @matches @notMatches}}
+{{#if this.render}}
   {{yield}}
 {{/if}}

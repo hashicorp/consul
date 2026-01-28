@@ -5,6 +5,11 @@ description: |-
   Delegate administrative privileges to namespace operators and remove resource uniqueness restrictions using Consul Enterprise namespace and Access Control Lists (ACLS).
 ---
 
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
 # Delegate ACL token management with namespaces
 
 @include 'alerts/enterprise-alert.mdx'
@@ -27,7 +32,7 @@ To create namespace ACL tokens, you need a token with [` acl = "write"` policy](
 
 ## Review existing namespaces
 
-First, review the namespaces available in the Consul datacenter. If you follow the example instructions to [configure Consul namespaces on VMs](/consul/docs/multi-tenant/namespace/vm/configure), the datacenter contains two different namespaces: `app-team` and `db-team`.
+First, review the namespaces available in the Consul datacenter. If you follow the example instructions to [configure Consul namespaces on VMs](/consul/docs/multi-tenant/namespace/vm/configure-namespaces), the datacenter contains two different namespaces: `app-team` and `db-team`.
 
 ```shell-session
 $ consul namespace list

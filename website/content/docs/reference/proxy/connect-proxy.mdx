@@ -5,6 +5,11 @@ description: >-
   You can register a service mesh sidecar proxy separately from the registration of the service instance it fronts. Learn about `connect-proxy` configuration options and how to format them with examples.
 ---
 
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
 # Connect proxy configuration reference
 
 This topic describes how to declare a service mesh proxy in a service definition. The `kind` must be declared and information about the service they represent must be provided to function as a Consul service mesh proxy.
@@ -436,7 +441,7 @@ The following example expose an HTTP2 listener in Envoy at port `21501` that rou
 
 - `checks` `(bool: false)` - If enabled, all HTTP and gRPC checks registered with the agent are exposed through Envoy.
   Envoy will expose listeners for these checks and will only accept connections originating from localhost or Consul's
-  [advertise address](/consul/docs/reference/agent/configuration-file/advertise). The port for these listeners are dynamically allocated from
+  [advertise address](/consul/docs/reference/agent/configuration-file/address). The port for these listeners are dynamically allocated from
   [expose_min_port](/consul/docs/reference/agent/configuration-file/general#expose_min_port) to [expose_max_port](/consul/docs/reference/agent/configuration-file/general#expose_max_port).
   This flag is useful when a Consul client cannot reach registered services over localhost. One example is when running
   Consul on Kubernetes, and Consul agents run in their own pods.

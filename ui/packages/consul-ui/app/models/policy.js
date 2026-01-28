@@ -4,7 +4,6 @@
  */
 
 import Model, { attr } from '@ember-data/model';
-import { computed } from '@ember/object';
 
 export const MANAGEMENT_ID = '00000000-0000-0000-0000-000000000001';
 export const PRIMARY_KEY = 'uid';
@@ -30,7 +29,6 @@ export default class Policy extends Model {
   // frontend only for ordering where CreateIndex can't be used
   @attr('number', { defaultValue: () => new Date().getTime() }) CreateTime;
 
-  @computed('ID')
   get isGlobalManagement() {
     return this.ID === MANAGEMENT_ID;
   }

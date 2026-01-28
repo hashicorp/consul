@@ -21,7 +21,7 @@ type CatalogServices struct {
 	RPC RPC
 }
 
-func (c *CatalogServices) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
+func (c *CatalogServices) Fetch(ctx context.Context, opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
 	var result cache.FetchResult
 
 	// The request should be a ServiceSpecificRequest.
@@ -47,7 +47,7 @@ func (c *CatalogServices) Fetch(opts cache.FetchOptions, req cache.Request) (cac
 
 	// Fetch
 	var reply structs.IndexedServiceNodes
-	if err := c.RPC.RPC(context.Background(), "Catalog.ServiceNodes", reqReal, &reply); err != nil {
+	if err := c.RPC.RPC(ctx, "Catalog.ServiceNodes", reqReal, &reply); err != nil {
 		return result, err
 	}
 

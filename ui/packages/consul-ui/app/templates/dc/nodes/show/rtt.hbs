@@ -4,14 +4,12 @@
 }}
 
 <Route
-  @name={{routeName}}
+  @name={{this.routeName}}
 as |route|>
 {{#let
   route.model.tomography
 as |tomography|}}
-{{#if (not tomography.distances)}}
-  {{did-insert (route-action 'replaceWith' 'dc.nodes.show')}}
-{{else}}
+ {{#if (gt tomography.distances.length 0)}}
   <div class="tab-section">
     <div class="definition-table">
       <dl>

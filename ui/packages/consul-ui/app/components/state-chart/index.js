@@ -17,6 +17,7 @@ export default Component.extend({
     this._guards = {};
   },
   didReceiveAttrs: function () {
+    this._super(...arguments);
     if (typeof this.machine !== 'undefined') {
       this.machine.stop();
     }

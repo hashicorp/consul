@@ -32,7 +32,7 @@ module('Unit | Utility | dom/event-source/openable', function () {
     const EventSource = createEventSource();
     const OpenableEventSource = domEventSourceOpenable(EventSource);
     const source = new OpenableEventSource(callable);
-    assert.equal(source.readyState, 1);
+    assert.strictEqual(source.readyState, 1);
     // first automatic EventSource `open`
     assert.ok(callable.calledOnce);
     source.readyState = 3;
@@ -40,7 +40,7 @@ module('Unit | Utility | dom/event-source/openable', function () {
     // still only called once as it hasn't completely closed yet
     // therefore is just opened by resetting the readyState
     assert.ok(callable.calledOnce);
-    assert.equal(source.readyState, 1);
+    assert.strictEqual(source.readyState, 1);
     // properly close the source
     source.readyState = 2;
     source.open();

@@ -5,12 +5,16 @@
 
 import { inject as service } from '@ember/service';
 import Controller from '@ember/controller';
+import { action } from '@ember/object';
+
 export default class EditController extends Controller {
   @service('form')
   builder;
 
-  init() {
-    super.init(...arguments);
+  items = [];
+
+  constructor() {
+    super(...arguments);
     this.form = this.builder.form('policy');
   }
 
@@ -26,5 +30,29 @@ export default class EditController extends Controller {
         return prev;
       }, model)
     );
+  }
+
+  // Forwarders replacing route-action usage
+  @action
+  onCreate(item, event) {
+    event?.preventDefault();
+    this.target.send('create', item, event);
+  }
+
+  @action
+  onUpdate(item, event) {
+    event?.preventDefault();
+    this.target.send('update', item, event);
+  }
+
+  @action
+  onCancel(item, event) {
+    event?.preventDefault();
+    this.target.send('cancel', item, event);
+  }
+
+  @action
+  onDelete(item) {
+    this.target.send('delete', item);
   }
 }

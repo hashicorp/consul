@@ -4,7 +4,6 @@
  */
 
 import Service, { inject as service } from '@ember/service';
-import { get } from '@ember/object';
 
 import { BlockingEventSource as EventSource } from 'consul-ui/utils/dom/event-source';
 import { ifNotBlocking } from 'consul-ui/services/settings';
@@ -27,7 +26,7 @@ export default class BlockingService extends Service {
         return find(configuration)
           .then(maybeCall(close, ifNotBlocking(this.settings)))
           .then(function (res = {}) {
-            const meta = get(res, 'meta') || {};
+            const meta = res?.meta || {};
             if (typeof meta.cursor === 'undefined' && typeof meta.interval === 'undefined') {
               close();
             }

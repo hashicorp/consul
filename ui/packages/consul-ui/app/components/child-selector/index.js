@@ -36,18 +36,26 @@ export default Component.extend(Slotted, {
     this._super(...arguments);
     this._listeners.remove();
   },
-  options: computed('selectedOptions.[]', 'allOptions.[]', function () {
-    // It's not massively important here that we are defaulting `items` and
-    // losing reference as its just to figure out the diff
-    let options = this.allOptions || [];
-    const items = this.selectedOptions || [];
-    if (get(items, 'length') > 0) {
-      // filter out any items from the available options that have already been
-      // selected/added
-      // TODO: find a proper ember-data diff
-      options = options.filter((item) => !items.findBy('ID', get(item, 'ID')));
-    }
-    return options;
+  options: computed('selectedOptions.[]', 'allOptions.[]', '_options', {
+    get() {
+      if (this._options !== undefined) {
+        return this._options;
+      }
+      // It's not massively important here that we are defaulting `items` and
+      // losing reference as its just to figure out the diff
+      let options = this.allOptions || [];
+      const items = this.selectedOptions || [];
+      if (items.length > 0) {
+        // filter out any items from the available options that have already been
+        // selected/added
+        // TODO: find a proper ember-data diff
+        options = options.filter((item) => !items.findBy('ID', item.ID));
+      }
+      return options;
+    },
+    set(_key, value) {
+      return this.set('_options', value);
+    },
   }),
   save: task(function* (item, items, success = function () {}) {
     const repo = this.repo;

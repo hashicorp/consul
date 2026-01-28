@@ -6,8 +6,7 @@
 import Fragment from 'ember-data-model-fragments/fragment';
 import { fragmentArray, array } from 'ember-data-model-fragments/attributes';
 import { attr } from '@ember-data/model';
-import { computed } from '@ember/object';
-import { or } from '@ember/object/computed';
+import { tracked } from '@glimmer/tracking';
 
 export const schema = {
   PathType: {
@@ -26,10 +25,23 @@ export default class IntentionPermissionHttp extends Fragment {
   @fragmentArray('intention-permission-http-header') Header;
   @array('string') Methods;
 
-  @or(...schema.PathType.allowedValues) Path;
+  @tracked _pathTypeManual;
 
-  @computed(...schema.PathType.allowedValues)
+  get Path() {
+    return this.PathPrefix || this.PathExact || this.PathRegex;
+  }
+
   get PathType() {
+    // Use manual override if one was set
+    if (this._pathTypeManual !== undefined) {
+      return this._pathTypeManual;
+    }
+    // Original logic: find first defined property
     return schema.PathType.allowedValues.find((prop) => typeof this[prop] === 'string');
+  }
+
+  set PathType(value) {
+    // Store manual override
+    this._pathTypeManual = value;
   }
 }

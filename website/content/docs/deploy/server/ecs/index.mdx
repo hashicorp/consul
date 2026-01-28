@@ -5,6 +5,11 @@ description: >-
   Terraform modules simplify the process to install Consul on Amazon Web Services ECS. Learn how to create task definitions, schedule tasks for your service mesh, and configure routes with example configurations so that you can Deploy Consul to ECS using Terraform.
 ---
 
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
 # Deploy Consul to ECS using the Terraform module
 
 This topic describes how to create a Terraform configuration that deploys Consul service mesh to your ECS cluster workloads. Consul server agents do not run on ECS and must be deployed to another runtime, such as EKS, and connected to your ECS workloads. Refer [Consul on AWS Elastic Container Service overview](/consul/docs/ecs) for additional information.

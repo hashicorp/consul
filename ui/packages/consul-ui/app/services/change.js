@@ -22,8 +22,8 @@ export default class ChangeService extends Service {
   @service('schema')
   schema;
 
-  init() {
-    super.init(...arguments);
+  constructor(...args) {
+    super(...args);
     this._validators = new Map();
   }
 

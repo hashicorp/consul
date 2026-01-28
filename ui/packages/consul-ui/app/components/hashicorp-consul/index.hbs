@@ -6,7 +6,7 @@
 <App class='hashicorp-consul' ...attributes>
 
   <:notifications as |app|>
-    {{#each flashMessages.queue as |flash|}}
+    {{#each this.flashMessages.queue as |flash|}}
       <app.Notification @delay={{sub flash.timeout flash.extendedTimeout}} @sticky={{flash.sticky}}>
         {{#if flash.dom}}
           {{{flash.dom}}}
@@ -72,7 +72,7 @@
 
   </:notifications>
 
-  <:side-nav>
+  <:sideNav>
     <Hds::SideNav @hasA11yRefocus={{false}} @isResponsive={{false}} class='consul-side-nav' role="navigation" data-test-navigation>
       <:header>
         <Hds::SideNav::Header>
@@ -225,7 +225,7 @@
         </div>
       </:footer>
     </Hds::SideNav>
-  </:side-nav>
+  </:sideNav>
 
   <:main>
     {{yield

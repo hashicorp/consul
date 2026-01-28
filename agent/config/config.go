@@ -181,6 +181,7 @@ type Config struct {
 	EnableDebug                      *bool               `mapstructure:"enable_debug" json:"enable_debug,omitempty"`
 	EnableScriptChecks               *bool               `mapstructure:"enable_script_checks" json:"enable_script_checks,omitempty"`
 	EnableLocalScriptChecks          *bool               `mapstructure:"enable_local_script_checks" json:"enable_local_script_checks,omitempty"`
+	DisableKVKeyValidation           *bool               `mapstructure:"disable_kv_key_validation" json:"disable_kv_key_validation,omitempty"`
 	EnableSyslog                     *bool               `mapstructure:"enable_syslog" json:"enable_syslog,omitempty"`
 	EncryptKey                       *string             `mapstructure:"encrypt" json:"encrypt,omitempty"`
 	EncryptVerifyIncoming            *bool               `mapstructure:"encrypt_verify_incoming" json:"encrypt_verify_incoming,omitempty"`
@@ -641,6 +642,8 @@ type Connect struct {
 	CAProvider                      *string                `mapstructure:"ca_provider" json:"ca_provider,omitempty"`
 	CAConfig                        map[string]interface{} `mapstructure:"ca_config" json:"ca_config,omitempty"`
 	MeshGatewayWANFederationEnabled *bool                  `mapstructure:"enable_mesh_gateway_wan_federation" json:"enable_mesh_gateway_wan_federation,omitempty"`
+	VirtualIPCIDRv4                 *string                `mapstructure:"virtual_ip_cidr_v4" json:"virtual_ip_cidr_v4,omitempty"`
+	VirtualIPCIDRv6                 *string                `mapstructure:"virtual_ip_cidr_v6" json:"virtual_ip_cidr_v6,omitempty"`
 
 	// TestCALeafRootChangeSpread controls how long after a CA roots change before new leaf certs will be generated.
 	// This is only tuned in tests, generally set to 1ns to make tests deterministic with when to expect updated leaf

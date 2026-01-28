@@ -35,7 +35,15 @@ export default class DataCollectionComponent extends Component {
     return this.term || this.args.search || '';
   }
 
-  @computed('type', 'searchMethod', 'filtered', 'args.filters')
+  @computed(
+    'type',
+    'searchMethod',
+    'filtered',
+    'args.filters',
+    'args.filters.searchproperty.value',
+    'args.searchable',
+    'searchableMap'
+  )
   get searchable() {
     const searchproperties =
       get(this, 'args.filters.searchproperty.value') || get(this, 'args.filters.searchproperty');
@@ -61,7 +69,7 @@ export default class DataCollectionComponent extends Component {
     return this.sort.comparator(this.type)(this.args.sort);
   }
 
-  @computed('comparator', 'searched')
+  @computed('comparator', 'searched', 'sorted')
   get items() {
     // the ember sort computed accepts either:
     // 1. The name of a property (as a string) returning an array properties to sort by

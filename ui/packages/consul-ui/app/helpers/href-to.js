@@ -14,6 +14,7 @@ import { getOwner } from '@ember/application';
 import transitionable from 'consul-ui/utils/routing/transitionable';
 import wildcard from 'consul-ui/utils/routing/wildcard';
 import { routes } from 'consul-ui/router';
+import { scheduleOnce } from '@ember/runloop';
 
 const isWildcard = wildcard(routes);
 
@@ -54,8 +55,8 @@ export const hrefTo = function (container, params, hash = {}) {
 export default class HrefToHelper extends Helper {
   @service('router') router;
 
-  init() {
-    super.init(...arguments);
+  constructor(...args) {
+    super(...args);
     this.router.on('routeWillChange', this.routeWillChange);
   }
 
@@ -65,7 +66,7 @@ export default class HrefToHelper extends Helper {
 
   @action
   routeWillChange(transition) {
-    this.recompute();
+    scheduleOnce('afterRender', this, 'recompute');
   }
 
   willDestroy() {

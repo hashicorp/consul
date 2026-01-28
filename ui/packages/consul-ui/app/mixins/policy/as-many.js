@@ -33,21 +33,21 @@ const normalizePolicies = function (items) {
 const serializeIdentities = function (items, template, name, dc) {
   return items
     .filter(function (item) {
-      return get(item, 'template') === template;
+      return item.template === template;
     })
     .map(function (item) {
       const identity = {
-        [name]: get(item, 'Name'),
+        [name]: item.Name,
       };
       if (typeof get(item, dc) !== 'undefined') {
-        identity[dc] = get(item, dc);
+        identity[dc] = item[dc];
       }
       return identity;
     });
 };
 const serializePolicies = function (items) {
   return items.filter(function (item) {
-    return get(item, 'template') === '';
+    return item.template === '';
   });
 };
 

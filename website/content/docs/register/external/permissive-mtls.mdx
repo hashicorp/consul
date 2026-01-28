@@ -4,6 +4,11 @@ page_title: Onboard services in transparent proxy mode
 description: Learn how to enable permissive mutual transport layer security (permissive mTLS) so that you can safely add services to your service mesh when transparent proxy is enabled in Kubernetes deployments. 
 ---
 
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
 # Onboard services in transparent proxy mode
 
 This topic describes how to run Consul in permissive mTLS mode so that you can safely onboard existing applications to Consul service mesh when transparent proxy mode is enabled.
@@ -75,7 +80,7 @@ spec:
 
 </CodeTabs>
 
-Alternatively, you can selectively allow outgoing traffic on a per-service basis by configuring [outbound port exclusions](/consul/docs/connect/proxy/transparent-proxy/enable#exclude-outbound-ports). This setting excludes outgoing traffic from traffic redirection imposed by transparent proxy. When changing this setting, you must redeploy your application.
+Alternatively, you can selectively allow outgoing traffic on a per-service basis by configuring [outbound port exclusions](/consul/docs/connect/proxy/transparent-proxy/k8s#exclude-outbound-ports). This setting excludes outgoing traffic from traffic redirection imposed by transparent proxy. When changing this setting, you must redeploy your application.
 
 ### Allow permissive mTLS modes for incoming traffic
 

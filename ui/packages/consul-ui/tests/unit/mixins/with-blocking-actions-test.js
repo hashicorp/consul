@@ -34,22 +34,22 @@ module('Unit | Mixin | with blocking actions', function (hooks) {
     assert.deepEqual(actual, expected);
     assert.ok(afterUpdate.calledOnce);
   });
-  test('afterUpdate calls transitionTo without the last part of the current route name', function (assert) {
+  test('afterUpdate calls router.transitionTo without the last part of the current route name', function (assert) {
     const subject = this.subject();
     const expected = 'dc.kv';
     subject.routeName = expected + '.edit';
-    const transitionTo = sinon.stub(subject, 'transitionTo').returnsArg(0);
+    const transitionTo = sinon.stub(subject.router, 'transitionTo').returnsArg(0);
     const actual = subject.afterUpdate();
-    assert.equal(actual, expected);
+    assert.strictEqual(actual, expected);
     assert.ok(transitionTo.calledOnce);
   });
   test('afterDelete calls transitionTo without the last part of the current route name if the last part is not `index`', function (assert) {
     const subject = this.subject();
     const expected = 'dc.kv';
     subject.routeName = expected + '.edit';
-    const transitionTo = sinon.stub(subject, 'transitionTo').returnsArg(0);
+    const transitionTo = sinon.stub(subject.router, 'transitionTo').returnsArg(0);
     const actual = subject.afterDelete();
-    assert.equal(actual, expected);
+    assert.strictEqual(actual, expected);
     assert.ok(transitionTo.calledOnce);
   });
   test('afterDelete calls refresh if the last part is `index`', function (assert) {
@@ -58,17 +58,15 @@ module('Unit | Mixin | with blocking actions', function (hooks) {
     const expected = 'refresh';
     const refresh = sinon.stub(subject, 'refresh').returns(expected);
     const actual = subject.afterDelete();
-    assert.equal(actual, expected);
+    assert.strictEqual(actual, expected);
     assert.ok(refresh.calledOnce);
   });
   test('the error hooks return type', function (assert) {
-    assert.expect(3);
-
     const subject = this.subject();
     const expected = 'success';
     ['errorCreate', 'errorUpdate', 'errorDelete'].forEach(function (item) {
       const actual = subject[item](expected, {});
-      assert.equal(actual, expected);
+      assert.strictEqual(actual, expected);
     });
   });
   test('action cancel just calls afterUpdate', function (assert) {

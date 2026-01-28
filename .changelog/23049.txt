@@ -1,0 +1,3 @@
+```release-note:bug
+xds: fix RBAC failure in upstream service when there are more than one downstream exported service with same name but different peer
+```

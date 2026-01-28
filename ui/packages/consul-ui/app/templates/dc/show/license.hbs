@@ -4,7 +4,7 @@
 }}
 
 <Route
-  @name={{routeName}}
+  @name={{this.routeName}}
 as |route|>
   <DataLoader
     @src={{
@@ -63,7 +63,7 @@ as |item|}}
             (array 'valid' item.Valid)
           }}
         >
-          <header>
+          <header aria-label="License Expiry">
             <h2>
               {{compute (fn route.t 'expiry.header')}}
             </h2>
@@ -110,7 +110,7 @@ as |item|}}
           </dl>
 
           <aside>
-            <header>
+            <header aria-label="Documentation">
               <h3>
                 {{compute (fn route.t 'documentation.title')}}
               </h3>

@@ -4,7 +4,7 @@
 }}
 
 <Route
-  @name={{routeName}}
+  @name={{this.routeName}}
 as |route|>
   <DataLoader @src={{
     uri '/${partition}/${nspace}/${dc}/intention/${id}'
@@ -55,11 +55,7 @@ as |item readOnly|}}
           @dc={{route.model.dc}}
           @nspace={{route.params.nspace}}
           @partition={{route.params.partition}}
-          @onsubmit={{route-action 'transitionTo' 'dc.intentions.index'
-            (hash
-              dc=route.params.dc
-            )
-          }}
+          @onsubmit={{fn this.goToIndex route.params.dc}}
         />
       </BlockSlot>
   </AppView>

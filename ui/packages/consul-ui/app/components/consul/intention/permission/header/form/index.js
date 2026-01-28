@@ -5,7 +5,7 @@
 
 import Component from '@ember/component';
 import { set, computed } from '@ember/object';
-import { alias, equal, not } from '@ember/object/computed';
+import { alias, equal, not, or } from '@ember/object/computed';
 import { inject as service } from '@ember/service';
 
 const name = 'intention-permission-http-header';
@@ -20,14 +20,22 @@ export default Component.extend({
   onsubmit: function () {},
   onreset: function () {},
 
-  changeset: computed('item', function () {
-    return this.change.changesetFor(
-      name,
-      this.item ||
-        this.repo.create({
-          HeaderType: this.headerTypes.firstObject,
-        })
-    );
+  changeset: computed('item', '_changeset', 'headerTypes.firstObject', {
+    get() {
+      if (this._changeset !== undefined) {
+        return this._changeset;
+      }
+      return this.change.changesetFor(
+        name,
+        this.item ||
+          this.repo.create({
+            HeaderType: this.headerTypes.firstObject,
+          })
+      );
+    },
+    set(_key, value) {
+      return this.set('_changeset', value);
+    },
   }),
 
   headerTypes: alias(`schema.${name}.HeaderType.allowedValues`),
@@ -43,9 +51,7 @@ export default Component.extend({
     };
   }),
 
-  headerType: computed('changeset.HeaderType', 'headerTypes.firstObject', function () {
-    return this.changeset.HeaderType || this.headerTypes.firstObject;
-  }),
+  headerType: or('changeset.HeaderType', 'headerTypes.firstObject'),
 
   headerTypeEqualsPresent: equal('headerType', 'Present'),
   shouldShowValueField: not('headerTypeEqualsPresent'),

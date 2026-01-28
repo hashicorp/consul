@@ -85,7 +85,7 @@ as |key value|}}
         <BlockSlot @name="options">
   {{#let components.Optgroup components.Option as |Optgroup Option|}}
     {{#each (array "folder" "key") as |item|}}
-          <Option class="value-{item}}" @value={{item}} @selected={{includes item @filter.kind.value}}>
+          <Option class="value-{{item}}" @value={{item}} @selected={{includes item @filter.kind.value}}>
             {{t (concat "components.consul.kv.search-bar.kind.options." item)}}
           </Option>
     {{/each}}

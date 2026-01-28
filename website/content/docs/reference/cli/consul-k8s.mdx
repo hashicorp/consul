@@ -5,6 +5,11 @@ description: >-
   The Consul on Kubernetes CLI tool enables you to manage Consul with the `consul-k8s` command instead of direct interaction with Helm, kubectl, or Consul's CLI. Learn about commands, their flags, and review examples in this reference guide.
 ---
 
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
 # Consul on Kubernetes CLI reference
 
 The Consul on Kubernetes CLI, `consul-k8s`, lets you manage Consul without interacting directly with Helm, the [Consul CLI](/consul/commands), or `kubectl`.
@@ -472,7 +477,7 @@ $ consul-k8s proxy read <PODNAME> <OPTIONS>
 
 The command takes a required value, `<PODNAME>`. This should be the full name
 of a Kubernetes Pod. If a Pod is running more than one Envoy proxy managed by
-Consul, as in the [Multiport configuration](/consul/docs/k8s/connect#kubernetes-pods-with-multiple-ports),
+Consul, as in the [service mesh multi-port configuration](/consul/docs/k8s/connect#kubernetes-pods-with-multiple-ports),
 configuration for all proxies in the Pod will be displayed.
 
 The following options are available.
@@ -740,7 +745,7 @@ $ consul-k8s proxy log <PODNAME> <OPTIONS>
 
 The command takes a required value, `<PODNAME>`. This should be the full name
 of a Kubernetes Pod. If a Pod is running more than one Envoy proxy managed by
-Consul, as in the [Multiport configuration](/consul/docs/k8s/connect#kubernetes-pods-with-multiple-ports),
+Consul, as in the [service mesh multi-port configuration](/consul/docs/k8s/connect#kubernetes-pods-with-multiple-ports),
 the terminal displays configuration information for all proxies in the pod.
 
 The following options are available.

@@ -1162,6 +1162,10 @@
         "title": "Consul",
         "routes": [
           {
+            "title": "v1.22.x",
+            "path": "release-notes/consul/v1_22_x"
+          },
+          {
             "title": "v1.21.x",
             "path": "release-notes/consul/v1_21_x"
           },

@@ -5,6 +5,11 @@ description: >-
   Consul agents use encryption keys to secure their gossip communication, and you must rotate the keys periodically to maintain network security. Learn how to use `keygen` and `keyring` commands to rotate keys for agents on k8s clusters.
 ---
 
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
 # Rotate Gossip Encryption Keys for Consul on Kubernetes
 
 The following instructions provides a step-by-step manual process for rotating [gossip encryption](/consul/docs/security/encryption#gossip-encryption) keys on Consul clusters that are deployed onto a Kubernetes cluster with Consul on Kubernetes.

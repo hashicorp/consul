@@ -4,7 +4,7 @@
 }}
 
 <Route
-  @name={{routeName}}
+  @name={{this.routeName}}
 as |route|>
   <DataLoader @src={{
     uri '/${partition}/${nspace}/${dc}/role/${id}'
@@ -69,7 +69,21 @@ as |dc partition nspace item create|}}
             </dl>
         </div>
   {{/if}}
-        {{ partial 'dc/acls/roles/form'}}
+        <Consul::Role::Form
+          @form={{this.form}}
+          @item={{item}}
+          @dc={{dc}}
+          @nspace={{nspace}}
+          @partition={{partition}}
+          @create={{create}}
+          @id={{route.params.id}}
+          @items={{this.items}}
+          @onCreate={{fn this.onCreate item}}
+          @onUpdate={{fn this.onUpdate item}}
+          @onCancel={{fn this.onCancel item}}
+          @onDelete={{fn this.onDelete item}}
+          @onItemsChange={{action (mut this.items) value="data"}}
+        />
       </BlockSlot>
   </AppView>
 {{/let}}

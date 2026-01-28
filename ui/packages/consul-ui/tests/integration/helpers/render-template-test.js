@@ -103,9 +103,9 @@ module('Integration | Helper | render-template', function (hooks) {
       this.set('template', item.href);
       this.set('vars', item.vars);
 
-      await render(hbs`{{render-template template vars}}`);
+      await render(hbs`{{render-template this.template this.vars}}`);
 
-      assert.equal(this.element.textContent.trim(), item.result);
+      assert.strictEqual(this.element.textContent.trim(), item.result);
     });
   });
 });

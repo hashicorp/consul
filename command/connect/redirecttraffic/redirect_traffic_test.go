@@ -162,6 +162,99 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 			},
 		},
 		{
+			name: "proxyID with Consul DNS IP and port provided ipv6 dns 1",
+			command: func() cmd {
+				var c cmd
+				c.init()
+				c.proxyUID = "1234"
+				c.proxyID = "test-proxy-id"
+				c.consulDNSIP = "89ac:297d:b795:8c15:8cf4:a99a:49a1:6512"
+				c.consulDNSPort = 8600
+				return c
+			},
+			consulServices: []api.AgentServiceRegistration{
+				{
+					Kind:    api.ServiceKindConnectProxy,
+					ID:      "test-proxy-id",
+					Name:    "test-proxy",
+					Port:    20000,
+					Address: "89ac:297d:b795:8c15:8cf4:a99a:49a1:ffff",
+					Proxy: &api.AgentServiceConnectProxyConfig{
+						DestinationServiceName: "foo",
+					},
+				},
+			},
+			expCfg: iptables.Config{
+				ConsulDNSIP:       "89ac:297d:b795:8c15:8cf4:a99a:49a1:6512",
+				ConsulDNSPort:     8600,
+				ProxyUserID:       "1234",
+				ProxyInboundPort:  20000,
+				ProxyOutboundPort: iptables.DefaultTProxyOutboundPort,
+			},
+		},
+		{
+			name: "proxyID with Consul DNS IP and port provided ipv6 dns 2",
+			command: func() cmd {
+				var c cmd
+				c.init()
+				c.proxyUID = "1234"
+				c.proxyID = "test-proxy-id"
+				c.consulDNSIP = "::"
+				c.consulDNSPort = 8600
+				return c
+			},
+			consulServices: []api.AgentServiceRegistration{
+				{
+					Kind:    api.ServiceKindConnectProxy,
+					ID:      "test-proxy-id",
+					Name:    "test-proxy",
+					Port:    20000,
+					Address: "89ac:297d:b795:8c15:8cf4:a99a:49a1:ffff",
+					Proxy: &api.AgentServiceConnectProxyConfig{
+						DestinationServiceName: "foo",
+					},
+				},
+			},
+			expCfg: iptables.Config{
+				ConsulDNSIP:       "::",
+				ConsulDNSPort:     8600,
+				ProxyUserID:       "1234",
+				ProxyInboundPort:  20000,
+				ProxyOutboundPort: iptables.DefaultTProxyOutboundPort,
+			},
+		},
+		{
+			name: "proxyID with Consul DNS IP and port provided ipv6 dns 3",
+			command: func() cmd {
+				var c cmd
+				c.init()
+				c.proxyUID = "1234"
+				c.proxyID = "test-proxy-id"
+				c.consulDNSIP = "::1"
+				c.consulDNSPort = 8600
+				return c
+			},
+			consulServices: []api.AgentServiceRegistration{
+				{
+					Kind:    api.ServiceKindConnectProxy,
+					ID:      "test-proxy-id",
+					Name:    "test-proxy",
+					Port:    20000,
+					Address: "89ac:297d:b795:8c15:8cf4:a99a:49a1:ffff",
+					Proxy: &api.AgentServiceConnectProxyConfig{
+						DestinationServiceName: "foo",
+					},
+				},
+			},
+			expCfg: iptables.Config{
+				ConsulDNSIP:       "::1",
+				ConsulDNSPort:     8600,
+				ProxyUserID:       "1234",
+				ProxyInboundPort:  20000,
+				ProxyOutboundPort: iptables.DefaultTProxyOutboundPort,
+			},
+		},
+		{
 			name: "proxyID with bind_port(string) provided",
 			command: func() cmd {
 				var c cmd

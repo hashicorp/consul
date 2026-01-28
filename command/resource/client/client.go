@@ -445,7 +445,7 @@ func defaultConfig(logger hclog.Logger, transportFn func() *http.Transport) *Con
 	}
 
 	config := &Config{
-		Address:   "127.0.0.1:8500",
+		Address:   "localhost:8500",
 		Scheme:    "http",
 		Transport: transportFn(),
 	}

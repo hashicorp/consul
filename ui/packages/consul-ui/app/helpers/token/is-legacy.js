@@ -4,16 +4,15 @@
  */
 
 import { helper } from '@ember/component/helper';
-import { get } from '@ember/object';
 
 const _isLegacy = function (token) {
   // Empty Rules take priority over a Legacy: true
   // in order to make this decision
-  const rules = get(token, 'Rules');
+  const rules = token.Rules;
   if (rules != null) {
     return rules.trim() !== '';
   }
-  const legacy = get(token, 'Legacy');
+  const legacy = token.Legacy;
   if (typeof legacy !== 'undefined') {
     return legacy;
   }

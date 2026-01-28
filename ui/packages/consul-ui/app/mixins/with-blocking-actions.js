@@ -5,7 +5,7 @@
 
 import Mixin from '@ember/object/mixin';
 import { inject as service } from '@ember/service';
-import { set, get } from '@ember/object';
+import { set } from '@ember/object';
 import { singularize } from 'ember-inflector';
 
 /** With Blocking Actions
@@ -24,6 +24,7 @@ import { singularize } from 'ember-inflector';
  *
  */
 export default Mixin.create({
+  router: service('router'),
   _feedback: service('feedback'),
   settings: service('settings'),
   init: function () {
@@ -50,7 +51,7 @@ export default Mixin.create({
     // e.g. index or edit
     parts.pop();
     // e.g. dc.intentions, essentially go to the listings page
-    return this.transitionTo(parts.join('.'));
+    return this.router.transitionTo(parts.join('.'));
   },
   afterDelete: function (item) {
     // e.g. dc.intentions.index
@@ -63,7 +64,7 @@ export default Mixin.create({
         return this.refresh();
       default:
         // e.g. dc.intentions essentially do to the listings page
-        return this.transitionTo(parts.join('.'));
+        return this.router.transitionTo(parts.join('.'));
     }
   },
   errorCreate: function (type, e) {
@@ -126,18 +127,18 @@ export default Mixin.create({
     use: function (item) {
       return this.repo
         .findBySlug({
-          dc: get(item, 'Datacenter'),
-          ns: get(item, 'Namespace'),
-          partition: get(item, 'Partition'),
-          id: get(item, 'AccessorID'),
+          dc: item.Datacenter,
+          ns: item.Namespace,
+          partition: item.Partition,
+          id: item.AccessorID,
         })
         .then((item) => {
           return this.settings.persist({
             token: {
-              AccessorID: get(item, 'AccessorID'),
-              SecretID: get(item, 'SecretID'),
-              Namespace: get(item, 'Namespace'),
-              Partition: get(item, 'Partition'),
+              AccessorID: item.AccessorID,
+              SecretID: item.SecretID,
+              Namespace: item.Namespace,
+              Partition: item.Partition,
             },
           });
         });

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-import LinkComponent from '@ember/routing/link-component';
+import { LinkComponent as LegacyLinkComponent } from '@ember/legacy-built-in-components';
 
 export class HrefTo {
   constructor(container, target) {
@@ -57,7 +57,7 @@ export class HrefTo {
     const id = $el.id;
     if (id) {
       const componentInstance = this.applicationInstance.lookup('-view-registry:main')[id];
-      isLinkComponent = componentInstance && componentInstance instanceof LinkComponent;
+      isLinkComponent = componentInstance && componentInstance instanceof LegacyLinkComponent;
     }
     return isLinkComponent;
   }
@@ -142,12 +142,15 @@ export default {
       };
 
       doc.body.addEventListener('click', listener);
-      container.reopen({
-        willDestroy() {
-          doc.body.removeEventListener('click', listener);
-          return this._super(...arguments);
-        },
-      });
+
+      // Store original destroy method
+      const originalDestroy = container.willDestroy || function () {};
+
+      // Override without reopening
+      container.willDestroy = function () {
+        doc.body.removeEventListener('click', listener);
+        return originalDestroy.call(this);
+      };
     }
   },
 };

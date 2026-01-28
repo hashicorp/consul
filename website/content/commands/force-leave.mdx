@@ -7,6 +7,11 @@ description: >-
   the cluster. The true purpose of this method is to force remove failed nodes.
 ---
 
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
 # Consul Force Leave
 
 Command: `consul force-leave`
@@ -57,7 +62,7 @@ consul force-leave ec2-001-staging
 ```
 
 When run on a server that is part of a
-[WAN gossip pool](/consul/docs/east-west/wan-federation/vms),
+[WAN gossip pool](/consul/tutorials/networking/federation-gossip-wan),
 `force-leave` can remove failed servers in other datacenters from the WAN pool.
 
 The identifying node-name in a WAN pool is `[node-name].[datacenter]`.

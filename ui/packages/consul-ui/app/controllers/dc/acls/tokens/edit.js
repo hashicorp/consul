@@ -5,17 +5,22 @@
 
 import Controller from '@ember/controller';
 import { inject as service } from '@ember/service';
-export default Controller.extend({
-  dom: service('dom'),
-  builder: service('form'),
-  isScoped: false,
-  init: function () {
-    this._super(...arguments);
+import { action } from '@ember/object';
+
+export default class EditController extends Controller {
+  @service('dom') dom;
+  @service('form') builder;
+
+  isScoped = false;
+
+  constructor() {
+    super(...arguments);
     this.form = this.builder.form('token');
-  },
-  setProperties: function (model) {
+  }
+
+  setProperties(model) {
     // essentially this replaces the data with changesets
-    this._super(
+    super.setProperties(
       Object.keys(model).reduce((prev, key, i) => {
         switch (key) {
           case 'item':
@@ -25,20 +30,48 @@ export default Controller.extend({
         return prev;
       }, model)
     );
-  },
-  actions: {
-    change: function (e, value, item) {
-      const event = this.dom.normalizeEvent(e, value);
-      const form = this.form;
-      try {
-        form.handleEvent(event);
-      } catch (err) {
-        const target = event.target;
-        switch (target.name) {
-          default:
-            throw err;
-        }
+  }
+
+  @action
+  change(e, value, item) {
+    const event = this.dom.normalizeEvent(e, value);
+    const form = this.form;
+    try {
+      form.handleEvent(event);
+    } catch (err) {
+      const target = event.target;
+      switch (target.name) {
+        default:
+          throw err;
       }
-    },
-  },
-});
+    }
+  }
+
+  @action
+  use(item) {
+    this.target.send('use', item);
+  }
+
+  @action
+  onCreate(item, event) {
+    event?.preventDefault();
+    this.target.send('create', item, event);
+  }
+
+  @action
+  onUpdate(item, event) {
+    event?.preventDefault();
+    this.target.send('update', item, event);
+  }
+
+  @action
+  onCancel(item, event) {
+    event?.preventDefault();
+    this.target.send('cancel', item, event);
+  }
+
+  @action
+  onDelete(item) {
+    this.target.send('delete', item);
+  }
+}

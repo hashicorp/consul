@@ -853,3 +853,88 @@ func TestConfig_Exported_Services(t *testing.T) {
 		require.Equal(t, expected, services)
 	})
 }
+
+func TestConfig_Imported_Services(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := NewTestAgent(t, "")
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	defer a.Shutdown()
+
+	{
+		// Setup imported services via service intentions from peers
+		args := &structs.ServiceIntentionsConfigEntry{
+			Kind: structs.ServiceIntentions,
+			Name: "api",
+			Sources: []*structs.SourceIntention{
+				{
+					Name:   "web",
+					Action: structs.IntentionActionAllow,
+					Peer:   "east",
+				},
+			},
+		}
+		req := structs.ConfigEntryRequest{
+			Datacenter: "dc1",
+			Entry:      args,
+		}
+		var configOutput bool
+		require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Apply", &req, &configOutput))
+		require.True(t, configOutput)
+	}
+
+	{
+		args := &structs.ServiceIntentionsConfigEntry{
+			Kind: structs.ServiceIntentions,
+			Name: "db",
+			Sources: []*structs.SourceIntention{
+				{
+					Name:   "backend",
+					Action: structs.IntentionActionAllow,
+					Peer:   "west",
+				},
+			},
+		}
+		req := structs.ConfigEntryRequest{
+			Datacenter: "dc1",
+			Entry:      args,
+		}
+		var configOutput bool
+		require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Apply", &req, &configOutput))
+		require.True(t, configOutput)
+	}
+
+	t.Run("imported services", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/v1/imported-services", nil)
+		resp := httptest.NewRecorder()
+		raw, err := a.srv.ImportedServices(resp, req)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.Code)
+
+		services, ok := raw.([]api.ImportedService)
+		require.True(t, ok)
+		require.Len(t, services, 2)
+		assertIndex(t, resp)
+
+		entMeta := acl.DefaultEnterpriseMeta()
+
+		expected := []api.ImportedService{
+			{
+				Service:    "api",
+				Partition:  entMeta.PartitionOrEmpty(),
+				Namespace:  entMeta.NamespaceOrEmpty(),
+				SourcePeer: "east",
+			},
+			{
+				Service:    "db",
+				Partition:  entMeta.PartitionOrEmpty(),
+				Namespace:  entMeta.NamespaceOrEmpty(),
+				SourcePeer: "west",
+			},
+		}
+		require.Equal(t, expected, services)
+	})
+}

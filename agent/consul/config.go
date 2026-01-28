@@ -18,7 +18,6 @@ import (
 	"github.com/hashicorp/consul/agent/checks"
 	consulrate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/consul/reporting"
-	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/gossip/libserf"
 	"github.com/hashicorp/consul/tlsutil"
@@ -415,6 +414,12 @@ type Config struct {
 	// datacenters should exclusively traverse mesh gateways.
 	ConnectMeshGatewayWANFederationEnabled bool
 
+	// ConnectVirtualIPCIDRv4 defines the IPv4 CIDR block used for auto-allocated virtual IPs.
+	ConnectVirtualIPCIDRv4 string
+
+	// ConnectVirtualIPCIDRv6 defines the IPv6 CIDR block used for auto-allocated virtual IPs.
+	ConnectVirtualIPCIDRv6 string
+
 	// DefaultIntentionPolicy is used to define a default intention action for all
 	// sources and destinations. Possible values are "allow", "deny", or "" (blank).
 	// For compatibility, falls back to ACLResolverSettings.ACLDefaultPolicy (which
@@ -453,8 +458,6 @@ type Config struct {
 	PeeringTestAllowPeerRegistrations bool
 
 	Locality *structs.Locality
-
-	Cloud hcpconfig.CloudConfig
 
 	Reporting Reporting
 
