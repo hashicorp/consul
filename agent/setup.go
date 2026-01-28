@@ -14,10 +14,11 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+	"google.golang.org/grpc/grpclog"
+
 	"github.com/hashicorp/go-hclog"
 	wal "github.com/hashicorp/raft-wal"
 	"github.com/hashicorp/raft-wal/verifier"
-	"google.golang.org/grpc/grpclog"
 
 	autoconf "github.com/hashicorp/consul/agent/auto-config"
 	"github.com/hashicorp/consul/agent/cache"
@@ -169,7 +170,9 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 		CertSigner:  leafcert.NewNetRPCCertSigner(d.NetRPC),
 		RootsReader: leafcert.NewCachedRootsReader(d.Cache, cfg.Datacenter),
 		Config: leafcert.Config{
-			TestOverrideCAChangeInitialDelay: cfg.ConnectTestCALeafRootChangeSpread,
+			TestOverrideCAChangeInitialDelay:          cfg.ConnectTestCALeafRootChangeSpread,
+			CertificateTelemetryCriticalThresholdDays: cfg.Telemetry.CertificateCriticalThresholdDays,
+			CertificateTelemetryWarningThresholdDays:  cfg.Telemetry.CertificateWarningThresholdDays,
 		},
 	})
 	// Set the leaf cert manager in the embedded deps type so it can be used by consul servers.

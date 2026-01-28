@@ -71,6 +71,10 @@ type Config struct {
 	// deterministic time delay in order to test the behavior here fully and
 	// determinstically.
 	TestOverrideCAChangeInitialDelay time.Duration
+
+	// Certificate telemetry thresholds for determining log severity
+	CertificateTelemetryCriticalThresholdDays int
+	CertificateTelemetryWarningThresholdDays  int
 }
 
 func (c Config) withDefaults() Config {

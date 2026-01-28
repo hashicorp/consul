@@ -7087,8 +7087,13 @@ func TestLoad_FullConfig(t *testing.T) {
 				Expiration: 15 * time.Second,
 				Name:       "ftO6DySn", // notice this is the same as the metrics prefix
 			},
-			EnableHostMetrics:             true,
-			DisablePerTenancyUsageMetrics: true,
+			EnableHostMetrics:                true,
+			DisablePerTenancyUsageMetrics:    true,
+			CertificateEnabled:               true,
+			CertificateCacheDuration:         5 * time.Minute,
+			CertificateCriticalThresholdDays: 7,
+			CertificateWarningThresholdDays:  30,
+			CertificateInfoThresholdDays:     90,
 		},
 		TLS: tlsutil.Config{
 			InternalRPC: tlsutil.ProtocolConfig{
