@@ -21,9 +21,9 @@ You may apply these operations on every node where a Consul agent is running. On
 You deployed a Consul datacenter and want to use Consul DNS interface for name resolution.
 
 When configured with default values, Consul exposes the DNS interface on port
-8600. By default, Consul serves DNS from port 53. On most operating systems,
-this requires elevated privileges. It is also common, for most operating
-systems, to have a local DNS server already running on port 53.
+8600, while the standard port for DNS is 53. On most operating systems,
+binding to port 53 requires elevated privileges. It is also common for 
+operating systems to have a local DNS server already running on port 53.
 
 Instead of running Consul with an administrative or root account, you may forward appropriate queries to Consul, running on an unprivileged port, from another DNS server or using port redirect.
 
