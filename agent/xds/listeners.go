@@ -122,7 +122,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		}
 		outboundListener = makeListener(opts)
 		outboundListener.FilterChains = make([]*envoy_listener_v3.FilterChain, 0)
-
+		outboundListener.UseOriginalDst = &wrapperspb.BoolValue{Value: true}
 		outboundListener.ListenerFilters = []*envoy_listener_v3.ListenerFilter{
 			// The original_dst filter is a listener filter that recovers the original destination
 			// address before the iptables redirection. This filter is needed for transparent
@@ -219,75 +219,78 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			continue
 		}
 
-		// The rest of this loop is used exclusively for transparent proxies.
-		// Below we create a filter chain per upstream, rather than a listener per upstream
-		// as we do for explicit upstreams above.
-		filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
-			accessLogs:          &cfgSnap.Proxy.AccessLogs,
-			routeName:           uid.EnvoyID(),
-			clusterName:         clusterName,
-			filterName:          filterName,
-			protocol:            cfg.Protocol,
-			useRDS:              useRDS,
-			fetchTimeoutRDS:     cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
-			tracing:             tracing,
-			maxRequestHeadersKb: proxyCfg.MaxRequestHeadersKB,
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		endpoints := cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[uid][chain.ID()]
-		uniqueAddrs := make(map[string]struct{})
-
-		if chain.Partition == cfgSnap.ProxyID.PartitionOrDefault() {
-			for _, ip := range chain.AutoVirtualIPs {
-				uniqueAddrs[ip] = struct{}{}
+		for _, port := range []int{9090, 10100} {
+			// The rest of this loop is used exclusively for transparent proxies.
+			// Below we create a filter chain per upstream, rather than a listener per upstream
+			// as we do for explicit upstreams above.
+			filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
+				accessLogs:          &cfgSnap.Proxy.AccessLogs,
+				routeName:           uid.EnvoyID(),
+				clusterName:         clusterName + "-" + strconv.Itoa(port),
+				filterName:          filterName,
+				protocol:            cfg.Protocol,
+				useRDS:              useRDS,
+				fetchTimeoutRDS:     cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
+				tracing:             tracing,
+				maxRequestHeadersKb: proxyCfg.MaxRequestHeadersKB,
+			})
+			if err != nil {
+				return nil, err
 			}
-			for _, ip := range chain.ManualVirtualIPs {
-				uniqueAddrs[ip] = struct{}{}
+			
+			endpoints := cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[uid][chain.ID()]
+			uniqueAddrs := make(map[string]struct{})
+
+			if chain.Partition == cfgSnap.ProxyID.PartitionOrDefault() {
+				for _, ip := range chain.AutoVirtualIPs {
+					uniqueAddrs[ip] = struct{}{}
+				}
+				for _, ip := range chain.ManualVirtualIPs {
+					uniqueAddrs[ip] = struct{}{}
+				}
 			}
-		}
 
-		// Match on the virtual IP for the upstream service (identified by the chain's ID).
-		// We do not match on all endpoints here since it would lead to load balancing across
-		// all instances when any instance address is dialed.
-		for _, e := range endpoints {
-			if e.Service.Kind == structs.ServiceKind(structs.TerminatingGateway) {
-				key := structs.ServiceGatewayVirtualIPTag(chain.CompoundServiceName())
+			// Match on the virtual IP for the upstream service (identified by the chain's ID).
+			// We do not match on all endpoints here since it would lead to load balancing across
+			// all instances when any instance address is dialed.
+			for _, e := range endpoints {
+				if e.Service.Kind == structs.ServiceKind(structs.TerminatingGateway) {
+					key := structs.ServiceGatewayVirtualIPTag(chain.CompoundServiceName())
 
-				if vip := e.Service.TaggedAddresses[key]; vip.Address != "" {
+					if vip := e.Service.TaggedAddresses[key]; vip.Address != "" {
+						uniqueAddrs[vip.Address] = struct{}{}
+					}
+
+					continue
+				}
+				if vip := e.Service.TaggedAddresses[structs.TaggedAddressVirtualIP]; vip.Address != "" {
 					uniqueAddrs[vip.Address] = struct{}{}
 				}
 
-				continue
-			}
-			if vip := e.Service.TaggedAddresses[structs.TaggedAddressVirtualIP]; vip.Address != "" {
-				uniqueAddrs[vip.Address] = struct{}{}
-			}
-
-			// The virtualIPTag is used by consul-k8s to store the ClusterIP for a service.
-			// We only match on this virtual IP if the upstream is in the proxy's partition.
-			// This is because the IP is not guaranteed to be unique across k8s clusters.
-			if acl.EqualPartitions(e.Node.PartitionOrDefault(), cfgSnap.ProxyID.PartitionOrDefault()) {
-				if vip := e.Service.TaggedAddresses[naming.VirtualIPTag]; vip.Address != "" {
-					uniqueAddrs[vip.Address] = struct{}{}
+				// The virtualIPTag is used by consul-k8s to store the ClusterIP for a service.
+				// We only match on this virtual IP if the upstream is in the proxy's partition.
+				// This is because the IP is not guaranteed to be unique across k8s clusters.
+				if acl.EqualPartitions(e.Node.PartitionOrDefault(), cfgSnap.ProxyID.PartitionOrDefault()) {
+					if vip := e.Service.TaggedAddresses[naming.VirtualIPTag]; vip.Address != "" {
+						uniqueAddrs[vip.Address] = struct{}{}
+					}
 				}
 			}
-		}
-		if len(uniqueAddrs) > 2 {
-			s.Logger.Debug("detected multiple virtual IPs for an upstream, all will be used to match traffic",
-				"upstream", uid, "ip_count", len(uniqueAddrs))
-		}
+			if len(uniqueAddrs) > 2 {
+				s.Logger.Debug("detected multiple virtual IPs for an upstream, all will be used to match traffic",
+					"upstream", uid, "ip_count", len(uniqueAddrs))
+			}
 
-		// For every potential address we collected, create the appropriate address prefix to match on.
-		// In this case we are matching on exact addresses, so the prefix is the address itself,
-		// and the prefix length is based on whether it's IPv4 or IPv6.
-		filterChain.FilterChainMatch = makeFilterChainMatchFromAddrs(uniqueAddrs)
-
-		// Only attach the filter chain if there are addresses to match on
-		if filterChain.FilterChainMatch != nil && len(filterChain.FilterChainMatch.PrefixRanges) > 0 {
-			outboundListener.FilterChains = append(outboundListener.FilterChains, filterChain)
+			// For every potential address we collected, create the appropriate address prefix to match on.
+			// In this case we are matching on exact addresses, so the prefix is the address itself,
+			// and the prefix length is based on whether it's IPv4 or IPv6.
+			filterChain.FilterChainMatch = makeFilterChainMatchFromAddrs(uniqueAddrs)
+			filterChain.FilterChainMatch.DestinationPort = &wrapperspb.UInt32Value{Value: uint32(port)}
+			// filterChain.FilterChainMatch.ApplicationProtocols = append(filterChain.FilterChainMatch.ApplicationProtocols, "app-"+strconv.Itoa(port))
+			// Only attach the filter chain if there are addresses to match on
+			if filterChain.FilterChainMatch != nil && len(filterChain.FilterChainMatch.PrefixRanges) > 0 {
+				outboundListener.FilterChains = append(outboundListener.FilterChains, filterChain)
+			}
 		}
 	}
 	requiresTLSInspector := false
@@ -442,63 +445,64 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			// Avoid creating filter chains below for upstreams that have dedicated listeners
 			continue
 		}
+		for _, port := range []int{9090, 10100} {
+			// The rest of this loop is used exclusively for transparent proxies.
+			// Below we create a filter chain per upstream, rather than a listener per upstream
+			// as we do for explicit upstreams above.
 
-		// The rest of this loop is used exclusively for transparent proxies.
-		// Below we create a filter chain per upstream, rather than a listener per upstream
-		// as we do for explicit upstreams above.
-
-		filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
-			accessLogs:  &cfgSnap.Proxy.AccessLogs,
-			routeName:   uid.EnvoyID(),
-			clusterName: clusterName,
-			filterName: fmt.Sprintf("%s.%s.%s",
-				uid.Name,
-				uid.NamespaceOrDefault(),
-				uid.Peer),
-			protocol:            cfg.Protocol,
-			useRDS:              false,
-			statPrefix:          "upstream_peered.",
-			tracing:             tracing,
-			maxRequestHeadersKb: proxyCfg.MaxRequestHeadersKB,
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		endpoints, _ := cfgSnap.ConnectProxy.PeerUpstreamEndpoints.Get(uid)
-		uniqueAddrs := make(map[string]struct{})
-
-		// Match on the virtual IP for the upstream service (identified by the chain's ID).
-		// We do not match on all endpoints here since it would lead to load balancing across
-		// all instances when any instance address is dialed.
-		for _, e := range endpoints {
-			if vip := e.Service.TaggedAddresses[structs.TaggedAddressVirtualIP]; vip.Address != "" {
-				uniqueAddrs[vip.Address] = struct{}{}
+			filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
+				accessLogs:  &cfgSnap.Proxy.AccessLogs,
+				routeName:   uid.EnvoyID(),
+				clusterName: clusterName + "-" + strconv.Itoa(port),
+				filterName: fmt.Sprintf("%s.%s.%s",
+					uid.Name,
+					uid.NamespaceOrDefault(),
+					uid.Peer),
+				protocol:            cfg.Protocol,
+				useRDS:              false,
+				statPrefix:          "upstream_peered.",
+				tracing:             tracing,
+				maxRequestHeadersKb: proxyCfg.MaxRequestHeadersKB,
+			})
+			if err != nil {
+				return nil, err
 			}
 
-			// The virtualIPTag is used by consul-k8s to store the ClusterIP for a service.
-			// For services imported from a peer,the partition will be equal in all cases.
-			if acl.EqualPartitions(e.Node.PartitionOrDefault(), cfgSnap.ProxyID.PartitionOrDefault()) {
-				if vip := e.Service.TaggedAddresses[naming.VirtualIPTag]; vip.Address != "" {
+			endpoints, _ := cfgSnap.ConnectProxy.PeerUpstreamEndpoints.Get(uid)
+			uniqueAddrs := make(map[string]struct{})
+
+			// Match on the virtual IP for the upstream service (identified by the chain's ID).
+			// We do not match on all endpoints here since it would lead to load balancing across
+			// all instances when any instance address is dialed.
+			for _, e := range endpoints {
+				if vip := e.Service.TaggedAddresses[structs.TaggedAddressVirtualIP]; vip.Address != "" {
 					uniqueAddrs[vip.Address] = struct{}{}
 				}
+
+				// The virtualIPTag is used by consul-k8s to store the ClusterIP for a service.
+				// For services imported from a peer,the partition will be equal in all cases.
+				if acl.EqualPartitions(e.Node.PartitionOrDefault(), cfgSnap.ProxyID.PartitionOrDefault()) {
+					if vip := e.Service.TaggedAddresses[naming.VirtualIPTag]; vip.Address != "" {
+						uniqueAddrs[vip.Address] = struct{}{}
+					}
+				}
+			}
+			if len(uniqueAddrs) > 2 {
+				s.Logger.Debug("detected multiple virtual IPs for an upstream, all will be used to match traffic",
+					"upstream", uid, "ip_count", len(uniqueAddrs))
+			}
+
+			// For every potential address we collected, create the appropriate address prefix to match on.
+			// In this case we are matching on exact addresses, so the prefix is the address itself,
+			// and the prefix length is based on whether it's IPv4 or IPv6.
+			filterChain.FilterChainMatch = makeFilterChainMatchFromAddrs(uniqueAddrs)
+			filterChain.FilterChainMatch.DestinationPort = &wrapperspb.UInt32Value{Value: uint32(port)}
+			// filterChain.FilterChainMatch.ApplicationProtocols = append(filterChain.FilterChainMatch.ApplicationProtocols, "app-"+strconv.Itoa(port))
+			// Only attach the filter chain if there are addresses to match on
+			if filterChain.FilterChainMatch != nil && len(filterChain.FilterChainMatch.PrefixRanges) > 0 {
+				outboundListener.FilterChains = append(outboundListener.FilterChains, filterChain)
 			}
 		}
-		if len(uniqueAddrs) > 2 {
-			s.Logger.Debug("detected multiple virtual IPs for an upstream, all will be used to match traffic",
-				"upstream", uid, "ip_count", len(uniqueAddrs))
-		}
-
-		// For every potential address we collected, create the appropriate address prefix to match on.
-		// In this case we are matching on exact addresses, so the prefix is the address itself,
-		// and the prefix length is based on whether it's IPv4 or IPv6.
-		filterChain.FilterChainMatch = makeFilterChainMatchFromAddrs(uniqueAddrs)
-
-		// Only attach the filter chain if there are addresses to match on
-		if filterChain.FilterChainMatch != nil && len(filterChain.FilterChainMatch.PrefixRanges) > 0 {
-			outboundListener.FilterChains = append(outboundListener.FilterChains, filterChain)
-		}
-
 	}
 
 	if outboundListener != nil {
@@ -1454,24 +1458,49 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 			},
 		}
 	}
-
-	filter, err := makeListenerFilter(filterOpts)
+	filterOpts.cluster = xdscommon.LocalAppClusterName + "-10100"
+	filter1, err := makeListenerFilter(filterOpts)
 	if err != nil {
 		return nil, err
 	}
-
+	filterOpts.cluster = xdscommon.LocalAppClusterName + "-9090"
+	filter2, err := makeListenerFilter(filterOpts)
+	if err != nil {
+		return nil, err
+	}
 	if len(l.FilterChains) > 0 {
 		// The list of FilterChains has already been initialized
-		l.FilterChains[0].Filters = append(l.FilterChains[0].Filters, filter)
+		l.FilterChains[0].Filters = append(l.FilterChains[0].Filters, filter1)
+		// l.FilterChains[0].Filters = append(l.FilterChains[1].Filters, filter2)
+
+		l.FilterChains[0].FilterChainMatch.ApplicationProtocols = append(l.FilterChains[0].FilterChainMatch.ApplicationProtocols, "foo1")
 	} else {
 		l.FilterChains = []*envoy_listener_v3.FilterChain{
 			{
+				FilterChainMatch: &envoy_listener_v3.FilterChainMatch{
+					ApplicationProtocols: []string{"app-10100"},
+				},
 				Filters: []*envoy_listener_v3.Filter{
-					filter,
+					filter1,
+				},
+			},
+			{
+				FilterChainMatch: &envoy_listener_v3.FilterChainMatch{
+					ApplicationProtocols: []string{"app-9090"},
+				},
+				Filters: []*envoy_listener_v3.Filter{
+					filter2,
 				},
 			},
 		}
 	}
+
+	// Also allow the listener to look at TLS info such as ALPN protocols or SNI.
+	tlsInspector, err := makeTLSInspectorListenerFilter()
+	if err != nil {
+		return nil, err
+	}
+	l.ListenerFilters = []*envoy_listener_v3.ListenerFilter{tlsInspector}
 
 	err = s.finalizePublicListenerFromConfig(l, cfgSnap, useHTTPFilter)
 	if err != nil {
