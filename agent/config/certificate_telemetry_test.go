@@ -15,6 +15,7 @@ func TestCertificateTelemetry_Defaults(t *testing.T) {
 	// Test that default values are applied when no certificate telemetry config is provided
 	hcl := `
 		data_dir = "/tmp/consul"
+		bind_addr = "127.0.0.1"
 	`
 
 	result, err := Load(LoadOpts{HCL: []string{hcl}})
@@ -36,6 +37,7 @@ func TestCertificateTelemetry_CustomValues(t *testing.T) {
 	// Test that custom values override defaults
 	hcl := `
 		data_dir = "/tmp/consul"
+		bind_addr = "127.0.0.1"
 		
 		telemetry {
 			certificate {
@@ -68,6 +70,7 @@ func TestCertificateTelemetry_PartialConfig(t *testing.T) {
 	// Test that partial config merges with defaults
 	hcl := `
 		data_dir = "/tmp/consul"
+		bind_addr = "127.0.0.1"
 		
 		telemetry {
 			certificate {
@@ -108,6 +111,7 @@ func TestCertificateTelemetry_DurationParsing(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			hcl := `
 				data_dir = "/tmp/consul"
+				bind_addr = "127.0.0.1"
 				
 				telemetry {
 					certificate {
@@ -126,6 +130,7 @@ func TestCertificateTelemetry_DurationParsing(t *testing.T) {
 func TestCertificateTelemetry_InvalidDuration(t *testing.T) {
 	hcl := `
 		data_dir = "/tmp/consul"
+		bind_addr = "127.0.0.1"
 		
 		telemetry {
 			certificate {
@@ -157,6 +162,7 @@ func TestCertificateTelemetry_ThresholdValidation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			hcl := fmt.Sprintf(`
 				data_dir = "/tmp/consul"
+				bind_addr = "127.0.0.1"
 				
 				telemetry {
 					certificate {
@@ -180,6 +186,7 @@ func TestCertificateTelemetry_JSONConfig(t *testing.T) {
 	// Test JSON configuration format
 	json := `{
 		"data_dir": "/tmp/consul",
+		"bind_addr": "127.0.0.1",
 		"telemetry": {
 			"certificate": {
 				"enabled": false,
@@ -209,6 +216,7 @@ func TestCertificateTelemetry_MultipleConfigSources(t *testing.T) {
 	// Test that later configs override earlier ones
 	hcl1 := `
 		data_dir = "/tmp/consul"
+		bind_addr = "127.0.0.1"
 		
 		telemetry {
 			certificate {
@@ -239,6 +247,7 @@ func TestCertificateTelemetry_ConsulServerConfig(t *testing.T) {
 	// Test that telemetry config is properly passed to consul server config
 	hcl := `
 		data_dir = "/tmp/consul"
+		bind_addr = "127.0.0.1"
 		server = true
 		bootstrap = true
 		
