@@ -805,6 +805,38 @@ type RuntimeConfig struct {
 	// If zero, or negative, http.DefaultMaxHeaderBytes is used.
 	HTTPMaxHeaderBytes int
 
+	// HTTPReadTimeout is the maximum duration for reading the entire request,
+	// including the body. This timeout prevents slow request body attacks.
+	// A zero or negative value means there will be no timeout.
+	//
+	// Default: 30s, Minimum: 1s
+	// hcl: http_config { read_timeout = "30s" }
+	HTTPReadTimeout time.Duration
+
+	// HTTPReadHeaderTimeout is the amount of time allowed to read request headers.
+	// The connection's read deadline is reset after reading the headers and the
+	// Handler can decide what is considered too slow for the body.
+	// This timeout prevents slowloris attacks on header parsing.
+	//
+	// Default: 10s, Minimum: 1s
+	// hcl: http_config { read_header_timeout = "10s" }
+	HTTPReadHeaderTimeout time.Duration
+
+	// HTTPWriteTimeout is the maximum duration before timing out writes of the response.
+	// This timeout prevents slow response drain attacks.
+	// A zero or negative value means there will be no timeout.
+	//
+	// Default: 30s, Minimum: 1s
+	// hcl: http_config { write_timeout = "30s" }
+	HTTPWriteTimeout time.Duration
+
+	// HTTPIdleTimeout is the maximum amount of time to wait for the next request
+	// when keep-alives are enabled. This timeout prevents connection exhaustion attacks.
+	//
+	// Default: 120s, Minimum: 10s
+	// hcl: http_config { idle_timeout = "120s" }
+	HTTPIdleTimeout time.Duration
+
 	// HTTPSHandshakeTimeout is the time allowed for HTTPS client to complete the
 	// TLS handshake and send first bytes of the request.
 	//
