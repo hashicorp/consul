@@ -890,7 +890,7 @@ func (a *Agent) Start(ctx context.Context) error {
 		go a.retryJoinWAN()
 	}
 
-	if a.tlsConfigurator.Cert() != nil {
+	if a.config.Telemetry.CertificateEnabled && a.tlsConfigurator.Cert() != nil {
 		m := tlsCertExpirationMonitor(
 			a.tlsConfigurator,
 			a.config.NodeName,
