@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2025
 // SPDX-License-Identifier: BUSL-1.1
 
 // The archive utilities manage the internal format of a snapshot, which is a
