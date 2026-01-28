@@ -62,12 +62,8 @@ func (t *Troubleshoot) GetEnvoyConfigDump() error {
 }
 
 func envoyID(listenerName string) string {
-
 	parts := strings.Split(listenerName, ":")
-	if parts != nil || len(parts) > 0 {
-		return parts[0]
-	}
-	return ""
+	return parts[0]
 }
 
 func (t *Troubleshoot) parseClusters(clusters *envoy_admin_v3.Clusters) ([]string, error) {
