@@ -1,0 +1,3 @@
+```release-note: improvement
+telemetry: Add `telemetry.disable_per_tenancy_usage_metrics` in agent configuration to disable setting tenancy labels on usage metrics. This significantly decreases CPU utilization in clusters with many admin partitions or namespaces.
+```

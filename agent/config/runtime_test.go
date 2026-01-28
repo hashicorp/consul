@@ -6023,7 +6023,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		json: []string{`
 			{
 				"experiments": ["resource-apis"]
-			}	
+			}
 		`},
 		hcl: []string{`experiments=["resource-apis"]`},
 		expected: func(rt *RuntimeConfig) {
@@ -6974,7 +6974,8 @@ func TestLoad_FullConfig(t *testing.T) {
 				Expiration: 15 * time.Second,
 				Name:       "ftO6DySn", // notice this is the same as the metrics prefix
 			},
-			EnableHostMetrics: true,
+			EnableHostMetrics:             true,
+			DisablePerTenancyUsageMetrics: true,
 		},
 		TLS: tlsutil.Config{
 			InternalRPC: tlsutil.ProtocolConfig{

@@ -85,6 +85,14 @@ func ConfigEntryToStructs(s *ConfigEntry) structs.ConfigEntry {
 		pbcommon.RaftIndexToStructs(s.RaftIndex, &target.RaftIndex)
 		pbcommon.EnterpriseMetaToStructs(s.EnterpriseMeta, &target.EnterpriseMeta)
 		return &target
+	case Kind_KindFileSystemCertificate:
+		var target structs.FileSystemCertificateConfigEntry
+		target.Name = s.Name
+
+		FileSystemCertificateToStructs(s.GetFileSystemCertificate(), &target)
+		pbcommon.RaftIndexToStructs(s.RaftIndex, &target.RaftIndex)
+		pbcommon.EnterpriseMetaToStructs(s.EnterpriseMeta, &target.EnterpriseMeta)
+		return &target
 	case Kind_KindInlineCertificate:
 		var target structs.InlineCertificateConfigEntry
 		target.Name = s.Name
@@ -212,6 +220,14 @@ func ConfigEntryFromStructs(s structs.ConfigEntry) *ConfigEntry {
 		configEntry.Kind = Kind_KindHTTPRoute
 		configEntry.Entry = &ConfigEntry_HTTPRoute{
 			HTTPRoute: &route,
+		}
+	case *structs.FileSystemCertificateConfigEntry:
+		var cert FileSystemCertificate
+		FileSystemCertificateFromStructs(v, &cert)
+
+		configEntry.Kind = Kind_KindFileSystemCertificate
+		configEntry.Entry = &ConfigEntry_FileSystemCertificate{
+			FileSystemCertificate: &cert,
 		}
 	case *structs.InlineCertificateConfigEntry:
 		var cert InlineCertificate

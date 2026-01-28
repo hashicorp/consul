@@ -470,6 +470,10 @@
             "path": "connect/config-entries/tcp-route"
           },
           {
+            "title": "File system certificate",
+            "path": "connect/config-entries/file-system-certificate"
+          },
+          {
             "title": "Inline certificate",
             "path": "connect/config-entries/inline-certificate"
           },

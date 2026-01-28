@@ -24,6 +24,7 @@ deep-copy \
   -type DiscoverySplit \
   -type ExposeConfig \
   -type ExportedServicesConfigEntry \
+  -type FileSystemCertificateConfigEntry \
   -type GatewayService \
   -type GatewayServiceTLSConfig \
   -type HTTPHeaderModifiers \

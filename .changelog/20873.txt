@@ -1,0 +1,3 @@
+```release-note:feature
+gateways: api-gateway can leverage listener TLS certificates available on the gateway's local filesystem by specifying the public certificate and private key path in the new file-system-certificate configuration entry
+```
