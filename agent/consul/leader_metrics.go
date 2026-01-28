@@ -113,13 +113,16 @@ type CertExpirationMonitor struct {
 	// query failed.
 	Query  func() (time.Duration, time.Duration, error)
 	Server *Server
+	// Optional threshold overrides (used when Server is nil, e.g., for agent TLS)
+	CriticalThresholdDays int
+	WarningThresholdDays  int
 }
 
 const certExpirationMonitorInterval = time.Hour
 
 func (m CertExpirationMonitor) Monitor(ctx context.Context) error {
-	// Check if certificate telemetry is enabled
-	if !m.Server.config.CertificateTelemetryEnabled {
+	// Check if certificate telemetry is enabled (only for server-based monitors)
+	if m.Server != nil && !m.Server.config.CertificateTelemetryEnabled {
 		return nil
 	}
 
@@ -136,8 +139,16 @@ func (m CertExpirationMonitor) Monitor(ctx context.Context) error {
 		}
 
 		daysRemaining := int(untilAfter.Hours() / 24)
-		criticalDays := m.Server.config.CertificateTelemetryCriticalThresholdDays
-		warningDays := m.Server.config.CertificateTelemetryWarningThresholdDays
+
+		// Get thresholds from Server config or use provided values
+		var criticalDays, warningDays int
+		if m.Server != nil {
+			criticalDays = m.Server.config.CertificateTelemetryCriticalThresholdDays
+			warningDays = m.Server.config.CertificateTelemetryWarningThresholdDays
+		} else {
+			criticalDays = m.CriticalThresholdDays
+			warningDays = m.WarningThresholdDays
+		}
 
 		// Determine cert type and suggested action for logging
 		key := strings.Join(m.Key, ":")

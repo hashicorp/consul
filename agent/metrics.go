@@ -28,11 +28,13 @@ var metricsKeyAgentTLSCertExpiry = []string{"agent", "tls", "cert", "expiry"}
 
 // tlsCertExpirationMonitor returns a CertExpirationMonitor which will
 // monitor the expiration of the certificate used for agent TLS.
-func tlsCertExpirationMonitor(c *tlsutil.Configurator, nodeName string, logger hclog.Logger) consul.CertExpirationMonitor {
+func tlsCertExpirationMonitor(c *tlsutil.Configurator, nodeName string, criticalDays int, warningDays int, logger hclog.Logger) consul.CertExpirationMonitor {
 	return consul.CertExpirationMonitor{
-		Key:    metricsKeyAgentTLSCertExpiry,
-		Labels: []metrics.Label{{Name: "node", Value: nodeName}},
-		Logger: logger,
+		Key:                   metricsKeyAgentTLSCertExpiry,
+		Labels:                []metrics.Label{{Name: "node", Value: nodeName}},
+		Logger:                logger,
+		CriticalThresholdDays: criticalDays,
+		WarningThresholdDays:  warningDays,
 		Query: func() (time.Duration, time.Duration, error) {
 			raw := c.Cert()
 			if raw == nil {
