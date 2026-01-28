@@ -137,6 +137,9 @@ func NewFromDeps(deps Deps) *FSM {
 		state:  deps.NewStateStore(),
 	}
 
+	// Set the logger for the state store
+	fsm.state.SetLogger(fsm.logger)
+
 	// Build out the apply dispatch table based on the registered commands.
 	for msg, fn := range commands {
 		thisFn := fn
@@ -230,6 +233,9 @@ func (c *FSM) Restore(old io.ReadCloser) error {
 	defer old.Close()
 
 	stateNew := c.deps.NewStateStore()
+
+	// Set the logger for the new state store
+	stateNew.SetLogger(c.logger)
 
 	// Set up a new restore transaction
 	restore := stateNew.Restore()

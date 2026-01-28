@@ -727,7 +727,7 @@ func (s *Store) ExportedServicesForPeer(ws memdb.WatchSet, peerID string, dc str
 		return 0, &structs.ExportedServiceList{}, nil
 	}
 
-	return exportedServicesForPeerTxn(ws, tx, peering, dc)
+	return s.exportedServicesForPeerTxn(ws, tx, peering, dc)
 }
 
 func (s *Store) ExportedServicesForAllPeersByName(ws memdb.WatchSet, dc string, entMeta acl.EnterpriseMeta) (uint64, map[string]structs.ServiceList, error) {
@@ -741,7 +741,7 @@ func (s *Store) ExportedServicesForAllPeersByName(ws memdb.WatchSet, dc string, 
 
 	out := make(map[string]structs.ServiceList)
 	for _, peering := range peerings {
-		idx, list, err := exportedServicesForPeerTxn(ws, tx, peering, dc)
+		idx, list, err := s.exportedServicesForPeerTxn(ws, tx, peering, dc)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed to list exported services for peer %q: %w", peering.ID, err)
 		}
@@ -763,7 +763,7 @@ func (s *Store) ExportedServicesForAllPeersByName(ws memdb.WatchSet, dc string, 
 // specific peering, and optionally include information about discovery chain
 // reachable targets for these exported services if the "dc" parameter is
 // specified.
-func exportedServicesForPeerTxn(
+func (s *Store) exportedServicesForPeerTxn(
 	ws memdb.WatchSet,
 	tx ReadTxn,
 	peering *pbpeering.Peering,
@@ -970,7 +970,7 @@ func exportedServicesForPeerTxn(
 		}
 		info.Protocol = protocol
 
-		idx, targets, err := discoveryChainOriginalTargetsTxn(tx, ws, dc, svc.Name, &svc.EnterpriseMeta)
+		idx, targets, err := s.discoveryChainOriginalTargetsTxn(tx, ws, dc, svc.Name, &svc.EnterpriseMeta)
 		if err != nil {
 			return fmt.Errorf("failed to get discovery chain targets for service %q: %w", svc, err)
 		}
