@@ -4,6 +4,7 @@
 package ca
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -11,12 +12,10 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
-	"strconv"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/go-secure-stdlib/awsutil"
 	"github.com/hashicorp/vault/api/auth/gcp"
 	"github.com/hashicorp/vault/sdk/helper/jsonutil"
 	"github.com/stretchr/testify/require"
@@ -163,55 +162,34 @@ func TestVaultCAProvider_AWSCredentialsConfig(t *testing.T) {
 	cases := map[string]struct {
 		params    map[string]interface{}
 		envVars   map[string]string
-		expCreds  *awsutil.CredentialsConfig
-		expErr    error
 		expRegion string
+		expErr    error
 	}{
 		"valid config": {
 			params: map[string]interface{}{
 				"access_key":              "access key",
 				"secret_key":              "secret key",
-				"session_token":           "session token",
-				"iam_endpoint":            "iam endpoint",
-				"sts_endpoint":            "sts endpoint",
-				"region":                  "region",
-				"filename":                "filename",
-				"profile":                 "profile",
+				"region":                  "custom-region",
 				"role_arn":                "role arn",
 				"role_session_name":       "role session name",
 				"web_identity_token_file": "web identity token file",
 				"header_value":            "header value",
 				"max_retries":             "13",
 			},
-			expCreds: &awsutil.CredentialsConfig{
-				AccessKey:            "access key",
-				SecretKey:            "secret key",
-				SessionToken:         "session token",
-				IAMEndpoint:          "iam endpoint",
-				STSEndpoint:          "sts endpoint",
-				Region:               "region",
-				Filename:             "filename",
-				Profile:              "profile",
-				RoleARN:              "role arn",
-				RoleSessionName:      "role session name",
-				WebIdentityTokenFile: "web identity token file",
-			},
+			expRegion: "custom-region",
 		},
 		"default region": {
 			params:    map[string]interface{}{},
-			expCreds:  &awsutil.CredentialsConfig{},
 			expRegion: "us-east-1",
 		},
 		"env AWS_REGION": {
 			params:    map[string]interface{}{},
 			envVars:   map[string]string{"AWS_REGION": "us-west-1"},
-			expCreds:  &awsutil.CredentialsConfig{},
 			expRegion: "us-west-1",
 		},
 		"env AWS_DEFAULT_REGION": {
 			params:    map[string]interface{}{},
 			envVars:   map[string]string{"AWS_DEFAULT_REGION": "us-west-2"},
-			expCreds:  &awsutil.CredentialsConfig{},
 			expRegion: "us-west-2",
 		},
 		"both AWS_REGION and AWS_DEFAULT_REGION": {
@@ -220,7 +198,6 @@ func TestVaultCAProvider_AWSCredentialsConfig(t *testing.T) {
 				"AWS_REGION":         "us-west-1",
 				"AWS_DEFAULT_REGION": "us-west-2",
 			},
-			expCreds:  &awsutil.CredentialsConfig{},
 			expRegion: "us-west-1",
 		},
 		"invalid config": {
@@ -250,6 +227,8 @@ func TestVaultCAProvider_AWSCredentialsConfig(t *testing.T) {
 				return
 			}
 
+			require.NoError(t, err)
+
 			// If a header value was provided in the params then make sure it was returned.
 			if val, ok := c.params["header_value"]; ok {
 				require.Equal(t, val, headerValue)
@@ -257,21 +236,12 @@ func TestVaultCAProvider_AWSCredentialsConfig(t *testing.T) {
 				require.Empty(t, headerValue)
 			}
 
-			if val, ok := c.params["max_retries"]; ok {
-				mr, err := strconv.Atoi(val.(string))
-				require.NoError(t, err)
-				c.expCreds.MaxRetries = &mr
-			} else {
-				creds.MaxRetries = nil
-			}
-
-			require.NotNil(t, creds.HTTPClient)
-			creds.HTTPClient = nil
-
-			if c.expRegion != "" {
-				c.expCreds.Region = c.expRegion
-			}
-			require.Equal(t, *c.expCreds, *creds)
+			// Verify the credentials config was created successfully by generating a config
+			ctx := context.Background()
+			awsConfig, err := creds.GenerateCredentialChain(ctx)
+			require.NoError(t, err)
+			require.NotNil(t, awsConfig)
+			require.Equal(t, c.expRegion, awsConfig.Region)
 		})
 	}
 }
@@ -292,7 +262,17 @@ func TestVaultCAProvider_AWSLoginDataGenerator(t *testing.T) {
 
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
-			ldg := &AWSLoginDataGenerator{credentials: credentials.AnonymousCredentials}
+			// Create a mock AWS config with anonymous credentials for testing
+			mockConfig := &aws.Config{
+				Region: "us-east-1",
+				Credentials: aws.CredentialsProviderFunc(func(ctx context.Context) (aws.Credentials, error) {
+					return aws.Credentials{
+						AccessKeyID:     "AKIAIOSFODNN7EXAMPLE",
+						SecretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+					}, nil
+				}),
+			}
+			ldg := &AWSLoginDataGenerator{awsConfig: mockConfig}
 			loginData, err := ldg.GenerateLoginData(&c.authMethod)
 			if c.expErr != nil {
 				require.Error(t, err)

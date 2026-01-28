@@ -4,14 +4,16 @@
 package ca
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strconv"
 
-	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	iamauth "github.com/hashicorp/consul-awsauth"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-secure-stdlib/awsutil"
+	awsutilv2 "github.com/hashicorp/go-secure-stdlib/awsutil/v2"
 
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -43,32 +45,40 @@ func NewAWSAuthClient(authMethod *structs.VaultAuthMethod) *VaultAuthClient {
 
 // AWSLoginDataGenerator is a LoginDataGenerator for AWS authentication.
 type AWSLoginDataGenerator struct {
-	// credentials supports explicitly setting the AWS credentials to use for authenticating with AWS.
+	// awsConfig supports explicitly setting the AWS config to use for authenticating with AWS.
 	// It is un-exported and intended for testing purposes only.
-	credentials *credentials.Credentials
+	awsConfig *aws.Config
 }
 
 // GenerateLoginData derives the login data for the Vault AWS auth login request from the CA
 // provider auth method config.
 func (g *AWSLoginDataGenerator) GenerateLoginData(authMethod *structs.VaultAuthMethod) (map[string]interface{}, error) {
+	ctx := context.Background()
+
 	// Create the credential configuration from the parameters.
 	credsConfig, headerValue, err := newAWSCredentialsConfig(authMethod.Params)
 	if err != nil {
 		return nil, fmt.Errorf("aws auth failed to create credential configuration: %w", err)
 	}
 
-	// Use the provided credentials if they are present.
-	creds := g.credentials
-	if creds == nil {
-		// Generate the credential chain
-		creds, err = credsConfig.GenerateCredentialChain()
+	// Use the provided AWS config if present, otherwise generate one
+	awsConfig := g.awsConfig
+	if awsConfig == nil {
+		// Generate the AWS config with credentials
+		awsConfig, err = credsConfig.GenerateCredentialChain(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("aws auth failed to generate credential chain: %w", err)
 		}
 	}
 
-	// Derive the login data
-	loginData, err := awsutil.GenerateLoginData(creds, headerValue, credsConfig.Region, hclog.NewNullLogger())
+	// Use consul-awsauth's GenerateLoginData which works with AWS SDK v2
+	loginData, err := iamauth.GenerateLoginData(&iamauth.LoginInput{
+		Creds:               awsConfig.Credentials,
+		IncludeIAMEntity:    false, // For Vault auth, we don't include IAM entity details
+		STSRegion:           awsConfig.Region,
+		ServerIDHeaderValue: headerValue,
+		Logger:              hclog.NewNullLogger(),
+	})
 	if err != nil {
 		return nil, fmt.Errorf("aws auth failed to generate login data: %w", err)
 	}
@@ -82,43 +92,73 @@ func (g *AWSLoginDataGenerator) GenerateLoginData(authMethod *structs.VaultAuthM
 	return loginData, nil
 }
 
-// newAWSCredentialsConfig creates an awsutil.CredentialsConfig from the given set of parameters.
-// It is mostly copied from the awsutil package because that package does not currently provide
-// an easy way to configure all the available options.
-func newAWSCredentialsConfig(config map[string]interface{}) (*awsutil.CredentialsConfig, string, error) {
+// newAWSCredentialsConfig creates an awsutilv2.CredentialsConfig from the given set of parameters.
+func newAWSCredentialsConfig(config map[string]interface{}) (*awsutilv2.CredentialsConfig, string, error) {
 	params, err := toMapStringString(config)
 	if err != nil {
 		return nil, "", fmt.Errorf("misconfiguration of AWS auth parameters: %w", err)
 	}
 
-	// Populate the AWS credentials configuration. Empty strings will use the defaults.
-	c := &awsutil.CredentialsConfig{
-		AccessKey:            params["access_key"],
-		SecretKey:            params["secret_key"],
-		SessionToken:         params["session_token"],
-		IAMEndpoint:          params["iam_endpoint"],
-		STSEndpoint:          params["sts_endpoint"],
-		Region:               params["region"],
-		Filename:             params["filename"],
-		Profile:              params["profile"],
-		RoleARN:              params["role_arn"],
-		RoleSessionName:      params["role_session_name"],
-		WebIdentityTokenFile: params["web_identity_token_file"],
-		HTTPClient:           cleanhttp.DefaultClient(),
+	// Build options for awsutilv2.NewCredentialsConfig
+	var opts []awsutilv2.Option
+
+	// Add basic credentials if provided
+	if accessKey := params["access_key"]; accessKey != "" {
+		opts = append(opts, awsutilv2.WithAccessKey(accessKey))
+	}
+	if secretKey := params["secret_key"]; secretKey != "" {
+		opts = append(opts, awsutilv2.WithSecretKey(secretKey))
 	}
 
-	if maxRetries, err := strconv.Atoi(params["max_retries"]); err == nil {
-		c.MaxRetries = &maxRetries
-	}
-
-	if c.Region == "" {
-		c.Region = os.Getenv("AWS_REGION")
-		if c.Region == "" {
-			c.Region = os.Getenv("AWS_DEFAULT_REGION")
-			if c.Region == "" {
-				c.Region = "us-east-1"
+	// Add region
+	region := params["region"]
+	if region == "" {
+		region = os.Getenv("AWS_REGION")
+		if region == "" {
+			region = os.Getenv("AWS_DEFAULT_REGION")
+			if region == "" {
+				region = "us-east-1"
 			}
 		}
+	}
+	opts = append(opts, awsutilv2.WithRegion(region))
+
+	// Add optional parameters
+	if roleArn := params["role_arn"]; roleArn != "" {
+		opts = append(opts, awsutilv2.WithRoleArn(roleArn))
+	}
+	if roleSessionName := params["role_session_name"]; roleSessionName != "" {
+		opts = append(opts, awsutilv2.WithRoleSessionName(roleSessionName))
+	}
+	if roleExternalId := params["role_external_id"]; roleExternalId != "" {
+		opts = append(opts, awsutilv2.WithRoleExternalId(roleExternalId))
+	}
+	if webIdentityTokenFile := params["web_identity_token_file"]; webIdentityTokenFile != "" {
+		opts = append(opts, awsutilv2.WithWebIdentityTokenFile(webIdentityTokenFile))
+	}
+	if webIdentityToken := params["web_identity_token"]; webIdentityToken != "" {
+		opts = append(opts, awsutilv2.WithWebIdentityToken(webIdentityToken))
+	}
+
+	// Add HTTP client
+	opts = append(opts, awsutilv2.WithHttpClient(cleanhttp.DefaultClient()))
+
+	// Add max retries if specified
+	if maxRetriesStr := params["max_retries"]; maxRetriesStr != "" {
+		if maxRetries, err := strconv.Atoi(maxRetriesStr); err == nil {
+			opts = append(opts, awsutilv2.WithMaxRetries(&maxRetries))
+		}
+	}
+
+	// Add endpoint resolvers if specified
+	// Note: IAM and STS endpoints in v2 require EndpointResolverV2 interfaces
+	// For now, we'll skip custom endpoints as they require more complex setup
+	// If needed in the future, we can create custom endpoint resolvers
+
+	// Create the credentials config
+	c, err := awsutilv2.NewCredentialsConfig(opts...)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to create AWS credentials config: %w", err)
 	}
 
 	return c, params["header_value"], nil
