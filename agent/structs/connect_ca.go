@@ -109,6 +109,12 @@ type CARoot struct {
 	// certificate. This is the time when the certificate will expire.
 	NotAfter time.Time
 
+	// DaysRemaining is the number of days until the certificate expires.
+	// This is a computed field based on NotAfter and the current time.
+	// Negative values indicate the certificate has already expired.
+	// This field is dynamically calculated and not stored.
+	DaysRemaining int `json:",omitempty"`
+
 	// RootCert is the PEM-encoded public certificate for the root CA. The
 	// certificate is the same for all federated clusters.
 	RootCert string

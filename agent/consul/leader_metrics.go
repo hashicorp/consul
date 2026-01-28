@@ -13,6 +13,7 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/connect"
@@ -120,33 +121,56 @@ func (m CertExpirationMonitor) Monitor(ctx context.Context) error {
 	logger := m.Logger.With("metric", strings.Join(m.Key, "."))
 
 	emitMetric := func() {
-		lifetime, untilAfter, err := m.Query()
+		_, untilAfter, err := m.Query()
 		if err != nil {
 			logger.Warn("failed to emit certificate expiry metric", "error", err)
 			return
 		}
 
-		if expiresSoon(lifetime, untilAfter) {
-			key := strings.Join(m.Key, ":")
-			switch key {
-			case "mesh:active-root-ca:expiry":
-				logger.Warn("root certificate will expire soon",
-					"time_to_expiry", untilAfter,
-					"expiration", time.Now().Add(untilAfter),
-					"suggested_action", "manually rotate the root certificate",
-				)
-			case "mesh:active-signing-ca:expiry":
-				logger.Warn("signing (intermediate) certificate will expire soon",
-					"time_to_expiry", untilAfter,
-					"expiration", time.Now().Add(untilAfter),
-					"suggested_action", "check consul logs for rotation issues",
-				)
-			case "agent:tls:cert:expiry":
-				logger.Warn("agent TLS certificate will expire soon",
-					"time_to_expiry", untilAfter,
-					"expiration", time.Now().Add(untilAfter),
-					"suggested_action", "manually rotate this agent's certificate",
-				)
+		key := strings.Join(m.Key, ":")
+		daysRemaining := int(untilAfter.Hours() / 24)
+
+		// Log based on severity thresholds: Error <7 days, Warning <30 days
+		var certType string
+		var shouldLog bool
+		var logLevel string
+
+		switch key {
+		case "mesh:active-root-ca:expiry":
+			certType = "Root"
+			shouldLog = daysRemaining < 30
+			if daysRemaining < 7 {
+				logLevel = "error"
+			} else {
+				logLevel = "warn"
+			}
+		case "mesh:active-signing-ca:expiry":
+			certType = "Intermediate"
+			// Only log if critically low (auto-renewal may have failed)
+			shouldLog = daysRemaining < 7
+			logLevel = "error"
+		case "agent:tls:cert:expiry":
+			certType = "Agent"
+			shouldLog = daysRemaining < 30
+			if daysRemaining < 7 {
+				logLevel = "error"
+			} else {
+				logLevel = "warn"
+			}
+		}
+
+		if shouldLog {
+			logArgs := []interface{}{
+				"cert_type", certType,
+				"days_remaining", daysRemaining,
+				"time_to_expiry", untilAfter,
+				"expiration", time.Now().Add(untilAfter),
+			}
+
+			if logLevel == "error" {
+				logger.Error("certificate expiring soon", logArgs...)
+			} else {
+				logger.Warn("certificate expiring soon", logArgs...)
 			}
 		}
 
@@ -178,20 +202,4 @@ func initLeaderMetrics() {
 	for _, g := range LeaderCertExpirationGauges {
 		metrics.SetGaugeWithLabels(g.Name, float32(math.NaN()), g.ConstLabels)
 	}
-}
-
-// expiresSoon checks to see if we are close enough to the cert expiring that
-// we should send out a WARN log message.
-// It returns true if the cert will expire within 28 days or 40% of the
-// certificate's total duration (whichever is shorter).
-func expiresSoon(lifetime, untilAfter time.Duration) bool {
-	defaultPeriod := 28 * (24 * time.Hour) // 28 days
-	fortyPercent := (lifetime / 10) * 4    // 40% of total duration
-
-	warningPeriod := defaultPeriod
-	if fortyPercent < defaultPeriod {
-		warningPeriod = fortyPercent
-	}
-
-	return untilAfter < warningPeriod
 }

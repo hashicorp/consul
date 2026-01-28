@@ -10,6 +10,8 @@ import (
 	"net"
 	"time"
 
+	"github.com/armon/go-metrics"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
@@ -307,7 +309,28 @@ func (m *Manager) generateNewLeaf(
 
 	reply, err := m.certSigner.SignCert(context.Background(), &args)
 	if err != nil {
+		// Track renewal attempt and failure
+		newState.lastRenewalAttempt = time.Now()
+		newState.totalRenewalFailures++
+
 		if err.Error() == structs.ErrRateLimited.Error() {
+			newState.lastRenewalFailureReason = "rate_limited"
+
+			// Emit metrics for rate limiting
+			metrics.IncrCounter([]string{"leaf-certs", "renewal_failed", "rate_limited"}, 1)
+			metrics.SetGauge([]string{"leaf-certs", "consecutive_rate_limit_errors"}, float32(newState.consecutiveRateLimitErrs+1))
+
+			// Emit per-certificate failure metric
+			metrics.SetGaugeWithLabels(
+				[]string{"leaf-certs", "cert_renewal_failure"},
+				1,
+				[]metrics.Label{
+					{Name: "service", Value: req.Service},
+					{Name: "kind", Value: string(req.Kind)},
+					{Name: "reason", Value: "rate_limited"},
+				},
+			)
+
 			if firstTime {
 				// This was a first fetch - we have no good value in cache. In this case
 				// we just return the error to the caller rather than rely on surprising
@@ -344,14 +367,40 @@ func (m *Manager) generateNewLeaf(
 			// here due to the nil value check above.
 			return nil, newState, nil
 		}
+
+		// Other errors (CA unreachable, permission denied, etc.)
+		newState.lastRenewalFailureReason = fmt.Sprintf("error: %s", err.Error())
+		metrics.IncrCounterWithLabels(
+			[]string{"leaf-certs", "renewal_failed"},
+			1,
+			[]metrics.Label{{Name: "reason", Value: "signing_error"}},
+		)
+
+		// Emit per-certificate failure metric
+		metrics.SetGaugeWithLabels(
+			[]string{"leaf-certs", "cert_renewal_failure"},
+			1,
+			[]metrics.Label{
+				{Name: "service", Value: req.Service},
+				{Name: "kind", Value: string(req.Kind)},
+				{Name: "reason", Value: "signing_error"},
+			},
+		)
+
 		return nil, newState, err
 	}
 	reply.PrivateKeyPEM = pkPEM
 
-	// Reset rotation state
+	// Successful renewal - reset failure tracking
 	newState.forceExpireAfter = time.Time{}
 	newState.consecutiveRateLimitErrs = 0
 	newState.activeRootRotationStart = time.Time{}
+	newState.lastRenewalFailureReason = ""
+	newState.lastRenewalAttempt = time.Now()
+	// Note: totalRenewalFailures is cumulative, not reset
+
+	// Emit success metric
+	metrics.IncrCounter([]string{"leaf-certs", "renewal_success"}, 1)
 
 	cert, err := connect.ParseCert(reply.CertPEM)
 	if err != nil {
@@ -359,6 +408,25 @@ func (m *Manager) generateNewLeaf(
 	}
 	// Set the CA key ID so we can easily tell when a active root has changed.
 	newState.authorityKeyID = connect.EncodeSigningKeyID(cert.AuthorityKeyId)
+
+	// Emit expiry metric for this specific certificate
+	timeUntilExpiry := time.Until(cert.NotAfter)
+	labels := []metrics.Label{
+		{Name: "service", Value: req.Service},
+		{Name: "kind", Value: string(req.Kind)},
+	}
+	metrics.SetGaugeWithLabels(
+		[]string{"leaf-certs", "cert_expiry"},
+		float32(timeUntilExpiry.Seconds()),
+		labels,
+	)
+
+	// Clear any previous failure metric for this cert
+	metrics.SetGaugeWithLabels(
+		[]string{"leaf-certs", "cert_renewal_failure"},
+		0,
+		labels,
+	)
 
 	return reply, newState, nil
 }
