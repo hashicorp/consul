@@ -70,7 +70,7 @@ type TrustBundleLister interface {
 	) (*pbpeering.TrustBundleListByServiceResponse, error)
 }
 
-func (t *TrustBundles) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
+func (t *TrustBundles) Fetch(ctx context.Context, opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
 	var result cache.FetchResult
 
 	// The request should be a TrustBundleListRequest.
@@ -97,13 +97,13 @@ func (t *TrustBundles) Fetch(opts cache.FetchOptions, req cache.Request) (cache.
 	reqReal.SetAllowStale(true)
 
 	// Fetch
-	ctx, err := external.ContextWithQueryOptions(context.Background(), reqReal.QueryOptions)
+	qctx, err := external.ContextWithQueryOptions(ctx, reqReal.QueryOptions)
 	if err != nil {
 		return result, err
 	}
 
 	var header metadata.MD
-	reply, err := t.Client.TrustBundleListByService(ctx, reqReal.Request, grpc.Header(&header))
+	reply, err := t.Client.TrustBundleListByService(qctx, reqReal.Request, grpc.Header(&header))
 	if err != nil {
 		// Return an empty result if the error is due to peering being disabled.
 		// This allows mesh gateways to receive an update and confirm that the watch is set.

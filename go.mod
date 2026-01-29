@@ -45,11 +45,11 @@ require (
 	github.com/hashicorp/cap v0.10.0
 	github.com/hashicorp/consul-awsauth v0.0.0-20250825122907-9e35fe9ded3a
 	github.com/hashicorp/consul-net-rpc v0.0.0-20221205195236-156cfab66a69
-	github.com/hashicorp/consul/api v1.33.0
-	github.com/hashicorp/consul/envoyextensions v0.9.0
-	github.com/hashicorp/consul/proto-public v0.7.0
-	github.com/hashicorp/consul/sdk v0.17.0
-	github.com/hashicorp/consul/troubleshoot v0.8.0
+	github.com/hashicorp/consul/api v1.33.2
+	github.com/hashicorp/consul/envoyextensions v0.9.2
+	github.com/hashicorp/consul/proto-public v0.7.1
+	github.com/hashicorp/consul/sdk v0.17.1
+	github.com/hashicorp/consul/troubleshoot v0.8.3
 	github.com/hashicorp/go-bexpr v0.1.2
 	github.com/hashicorp/go-checkpoint v0.5.0
 	github.com/hashicorp/go-cleanhttp v0.5.2
@@ -109,9 +109,9 @@ require (
 	go.etcd.io/bbolt v1.3.7
 	go.opentelemetry.io/proto/otlp v1.0.0
 	go.uber.org/goleak v1.3.0
-	golang.org/x/crypto v0.44.0
+	golang.org/x/crypto v0.45.0
 	golang.org/x/exp v0.0.0-20250911091902-df9299821621
-	golang.org/x/net v0.46.0
+	golang.org/x/net v0.47.0
 	golang.org/x/oauth2 v0.30.0
 	golang.org/x/sync v0.18.0
 	golang.org/x/sys v0.38.0
