@@ -44,6 +44,7 @@ type certificateItem struct {
 	RequiresManualRotation bool   `json:"requires_manual_rotation,omitempty"`
 	CAProvider             string `json:"ca_provider,omitempty"`
 	Path                   string `json:"path,omitempty"`
+	NodeName               string `json:"node_name,omitempty"` // For agent TLS certs
 	// Renewal failure tracking
 	RenewalFailure *certificateRenewalFailure `json:"renewal_failure,omitempty"`
 }
@@ -75,13 +76,6 @@ type certificatesResponse struct {
 	Cached       bool      `json:"cached"`
 	CacheExpires time.Time `json:"cache_expires_at"`
 }
-
-// thresholds
-const (
-	criticalDays = 7
-	warningDays  = 30
-	cacheTTL     = 5 * time.Minute
-)
 
 // metricMapping defines how to identify and categorize certificate expiry metrics
 type metricMapping struct {
@@ -141,6 +135,17 @@ func (s *HTTPHandlers) AgentMetricsCertificates(resp http.ResponseWriter, req *h
 		return nil, err
 	}
 
+	// Check if certificate telemetry is enabled
+	if !s.agent.config.Telemetry.CertificateEnabled {
+		resp.WriteHeader(http.StatusServiceUnavailable)
+		return nil, nil
+	}
+
+	// Get certificate telemetry config with defaults
+	criticalDays := s.agent.config.Telemetry.CertificateCriticalThresholdDays
+	warningDays := s.agent.config.Telemetry.CertificateWarningThresholdDays
+	cacheTTL := s.agent.config.Telemetry.CertificateCacheDuration
+
 	// Serve from cache if valid
 	if cached := certsCache.Load(); cached != nil && time.Now().Before(cached.expiresAt) {
 		// Make a copy and mark as cached to avoid mutating the stored payload
@@ -165,7 +170,7 @@ func (s *HTTPHandlers) AgentMetricsCertificates(resp http.ResponseWriter, req *h
 		return nil, err
 	}
 
-	items := extractCertificateItemsFromFamilies(fams)
+	items := extractCertificateItemsFromFamilies(fams, criticalDays, warningDays)
 	summary := summarizeCertificateItems(items)
 
 	payload := certificatesResponse{
@@ -191,7 +196,7 @@ func (s *HTTPHandlers) AgentMetricsCertificates(resp http.ResponseWriter, req *h
 	return nil, nil
 }
 
-func extractCertificateItemsFromFamilies(fams []*dto.MetricFamily) []certificateItem {
+func extractCertificateItemsFromFamilies(fams []*dto.MetricFamily, criticalDays, warningDays int) []certificateItem {
 	var items []certificateItem
 
 	// First pass: collect all failure info by service+kind
@@ -243,6 +248,8 @@ func extractCertificateItemsFromFamilies(fams []*dto.MetricFamily) []certificate
 					mapping.certType,
 					mapping.subtype,
 					failureMap,
+					criticalDays,
+					warningDays,
 				)...)
 				break // matched, no need to check other mappings
 			}
@@ -258,7 +265,7 @@ func hasSuffix(name, suffix string) bool {
 	return strings.HasSuffix(name, "_"+suffix)
 }
 
-func buildItemFromFamily(fam *dto.MetricFamily, id, displayName, typ, subtype string, failureMap map[string]*certificateRenewalFailure) []certificateItem {
+func buildItemFromFamily(fam *dto.MetricFamily, id, displayName, typ, subtype string, failureMap map[string]*certificateRenewalFailure, criticalDays, warningDays int) []certificateItem {
 	var out []certificateItem
 	for _, m := range fam.GetMetric() {
 		seconds := int64(0)
@@ -271,21 +278,29 @@ func buildItemFromFamily(fam *dto.MetricFamily, id, displayName, typ, subtype st
 			seconds = int64(v)
 		}
 		days := int(seconds / 86400)
-		severity, color, score := severityForDays(days)
+		severity, color, score := severityForDays(days, criticalDays, warningDays)
 
 		// Extract labels for more specific identification
 		itemID := id
 		itemName := displayName
 		itemSubtype := subtype
 		var failureKey string
+		var nodeName string
 
-		// For metrics with labels (e.g., leaf certs), use labels to create unique IDs
+		// For metrics with labels (e.g., leaf certs, agent TLS), use labels to create unique IDs
 		if len(m.Label) > 0 {
 			labels := make(map[string]string)
 			for _, label := range m.Label {
 				if label.Name != nil && label.Value != nil {
 					labels[*label.Name] = *label.Value
 				}
+			}
+
+			// Extract node name if present (for agent TLS certs)
+			if node, ok := labels["node"]; ok {
+				nodeName = node
+				itemID = id + "-" + node
+				itemName = displayName + " (" + node + ")"
 			}
 
 			// For leaf certs, use service name and kind
@@ -327,6 +342,7 @@ func buildItemFromFamily(fam *dto.MetricFamily, id, displayName, typ, subtype st
 			Severity:         severity,
 			SeverityScore:    score,
 			Color:            color,
+			NodeName:         nodeName,
 		}
 
 		// Add failure info if available
@@ -341,7 +357,7 @@ func buildItemFromFamily(fam *dto.MetricFamily, id, displayName, typ, subtype st
 	return out
 }
 
-func severityForDays(days int) (severity, color string, score int) {
+func severityForDays(days, criticalDays, warningDays int) (severity, color string, score int) {
 	switch {
 	case days < criticalDays:
 		return "CRITICAL", "red", 90

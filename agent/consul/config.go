@@ -474,6 +474,15 @@ type Config struct {
 	// When disabled, Consul does not restrict on the number of xDS connections on a server.
 	// In this scenario, you should deploy an external load balancer in front of the consul servers and distribute the load accordingly.
 	EnableXDSLoadBalancing bool
+
+	// CertificateTelemetryEnabled controls whether certificate expiry metrics are emitted.
+	CertificateTelemetryEnabled bool
+
+	// CertificateTelemetryCriticalThresholdDays is the number of days before expiry to emit critical severity.
+	CertificateTelemetryCriticalThresholdDays int
+
+	// CertificateTelemetryWarningThresholdDays is the number of days before expiry to emit warning severity.
+	CertificateTelemetryWarningThresholdDays int
 }
 
 func (c *Config) InPrimaryDatacenter() bool {

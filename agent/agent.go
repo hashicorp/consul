@@ -891,7 +891,7 @@ func (a *Agent) Start(ctx context.Context) error {
 	}
 
 	if a.tlsConfigurator.Cert() != nil {
-		m := tlsCertExpirationMonitor(a.tlsConfigurator, a.logger)
+		m := tlsCertExpirationMonitor(a.tlsConfigurator, a.config.NodeName, a.logger)
 		go m.Monitor(&lib.StopChannelContext{StopCh: a.shutdownCh})
 	}
 
@@ -1378,6 +1378,11 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	cfg.SerfLANConfig.MemberlistConfig.GossipInterval = runtimeCfg.GossipLANGossipInterval
 	cfg.SerfLANConfig.MemberlistConfig.GossipNodes = runtimeCfg.GossipLANGossipNodes
 	cfg.SerfLANConfig.MemberlistConfig.ProbeInterval = runtimeCfg.GossipLANProbeInterval
+
+	// Certificate telemetry configuration
+	cfg.CertificateTelemetryEnabled = runtimeCfg.Telemetry.CertificateEnabled
+	cfg.CertificateTelemetryCriticalThresholdDays = runtimeCfg.Telemetry.CertificateCriticalThresholdDays
+	cfg.CertificateTelemetryWarningThresholdDays = runtimeCfg.Telemetry.CertificateWarningThresholdDays
 	cfg.SerfLANConfig.MemberlistConfig.ProbeTimeout = runtimeCfg.GossipLANProbeTimeout
 	cfg.SerfLANConfig.MemberlistConfig.SuspicionMult = runtimeCfg.GossipLANSuspicionMult
 	cfg.SerfLANConfig.MemberlistConfig.RetransmitMult = runtimeCfg.GossipLANRetransmitMult

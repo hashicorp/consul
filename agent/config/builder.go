@@ -323,6 +323,54 @@ func (a byName) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
 
 func (a byName) Less(i, j int) bool { return a[i].Name() < a[j].Name() }
 
+// getCertificateEnabled returns the certificate telemetry enabled flag with default true
+func (b *builder) getCertificateEnabled(cert *CertificateTelemetry) bool {
+	if cert == nil {
+		return true
+	}
+	return boolValWithDefault(cert.Enabled, true)
+}
+
+// getCertificateCacheDuration returns the certificate telemetry cache duration with default 5m
+func (b *builder) getCertificateCacheDuration(cert *CertificateTelemetry) time.Duration {
+	if cert == nil {
+		return 5 * time.Minute
+	}
+	return b.durationValWithDefault("telemetry.certificate.cache_duration", cert.CacheDuration, 5*time.Minute)
+}
+
+// getCertificateCriticalThresholdDays returns the certificate critical threshold with default 7
+func (b *builder) getCertificateCriticalThresholdDays(cert *CertificateTelemetry) int {
+	if cert == nil {
+		return 7
+	}
+	return intValWithDefault(cert.CriticalThresholdDays, 7)
+}
+
+// getCertificateWarningThresholdDays returns the certificate warning threshold with default 30
+func (b *builder) getCertificateWarningThresholdDays(cert *CertificateTelemetry) int {
+	if cert == nil {
+		return 30
+	}
+	return intValWithDefault(cert.WarningThresholdDays, 30)
+}
+
+// getCertificateInfoThresholdDays returns the certificate info threshold with default 90
+func (b *builder) getCertificateInfoThresholdDays(cert *CertificateTelemetry) int {
+	if cert == nil {
+		return 90
+	}
+	return intValWithDefault(cert.InfoThresholdDays, 90)
+}
+
+// getCertificateExcludeAutoRenewable returns the certificate exclude auto-renewable flag with default false
+func (b *builder) getCertificateExcludeAutoRenewable(cert *CertificateTelemetry) bool {
+	if cert == nil {
+		return false
+	}
+	return boolValWithDefault(cert.ExcludeAutoRenewable, false)
+}
+
 // build constructs the runtime configuration from the config sources
 // and the command line flags. The config sources are processed in the
 // order they were added with the flags being processed last to give
@@ -974,6 +1022,12 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 				Expiration: b.durationVal("prometheus_retention_time", c.Telemetry.PrometheusRetentionTime),
 				Name:       stringVal(c.Telemetry.MetricsPrefix),
 			},
+			CertificateEnabled:               b.getCertificateEnabled(c.Telemetry.Certificate),
+			CertificateCacheDuration:         b.getCertificateCacheDuration(c.Telemetry.Certificate),
+			CertificateCriticalThresholdDays: b.getCertificateCriticalThresholdDays(c.Telemetry.Certificate),
+			CertificateWarningThresholdDays:  b.getCertificateWarningThresholdDays(c.Telemetry.Certificate),
+			CertificateInfoThresholdDays:     b.getCertificateInfoThresholdDays(c.Telemetry.Certificate),
+			CertificateExcludeAutoRenewable:  b.getCertificateExcludeAutoRenewable(c.Telemetry.Certificate),
 		},
 
 		// Agent

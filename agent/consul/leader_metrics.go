@@ -43,6 +43,7 @@ func rootCAExpiryMonitor(s *Server) CertExpirationMonitor {
 		Query: func() (time.Duration, time.Duration, error) {
 			return getRootCAExpiry(s)
 		},
+		Server: s,
 	}
 }
 
@@ -70,6 +71,7 @@ func signingCAExpiryMonitor(s *Server) CertExpirationMonitor {
 			}
 			return getRootCAExpiry(s)
 		},
+		Server: s,
 	}
 }
 
@@ -109,12 +111,18 @@ type CertExpirationMonitor struct {
 	// lifespan of the certificate (NotBefore -> NotAfter) and the duration
 	// until the certificate expires (Now -> NotAfter), or an error if the
 	// query failed.
-	Query func() (time.Duration, time.Duration, error)
+	Query  func() (time.Duration, time.Duration, error)
+	Server *Server
 }
 
 const certExpirationMonitorInterval = time.Hour
 
 func (m CertExpirationMonitor) Monitor(ctx context.Context) error {
+	// Check if certificate telemetry is enabled
+	if !m.Server.config.CertificateTelemetryEnabled {
+		return nil
+	}
+
 	ticker := time.NewTicker(certExpirationMonitorInterval)
 	defer ticker.Stop()
 
@@ -127,51 +135,56 @@ func (m CertExpirationMonitor) Monitor(ctx context.Context) error {
 			return
 		}
 
-		key := strings.Join(m.Key, ":")
 		daysRemaining := int(untilAfter.Hours() / 24)
+		criticalDays := m.Server.config.CertificateTelemetryCriticalThresholdDays
+		warningDays := m.Server.config.CertificateTelemetryWarningThresholdDays
 
-		// Log based on severity thresholds: Error <7 days, Warning <30 days
+		// Determine cert type and suggested action for logging
+		key := strings.Join(m.Key, ":")
 		var certType string
-		var shouldLog bool
-		var logLevel string
+		var suggestedAction string
+		var nodeName string
 
 		switch key {
 		case "mesh:active-root-ca:expiry":
 			certType = "Root"
-			shouldLog = daysRemaining < 30
-			if daysRemaining < 7 {
-				logLevel = "error"
-			} else {
-				logLevel = "warn"
-			}
+			suggestedAction = "manually rotate the root certificate"
 		case "mesh:active-signing-ca:expiry":
 			certType = "Intermediate"
-			// Only log if critically low (auto-renewal may have failed)
-			shouldLog = daysRemaining < 7
-			logLevel = "error"
+			suggestedAction = "check consul logs for rotation issues"
 		case "agent:tls:cert:expiry":
 			certType = "Agent"
-			shouldLog = daysRemaining < 30
-			if daysRemaining < 7 {
-				logLevel = "error"
+			// Try to extract node name from labels if available
+			for _, label := range m.Labels {
+				if label.Name == "node" {
+					nodeName = label.Value
+					break
+				}
+			}
+			if nodeName != "" {
+				suggestedAction = fmt.Sprintf("manually rotate this agent's certificate on node %s", nodeName)
 			} else {
-				logLevel = "warn"
+				suggestedAction = "manually rotate this agent's certificate"
 			}
 		}
 
-		if shouldLog {
-			logArgs := []interface{}{
-				"cert_type", certType,
-				"days_remaining", daysRemaining,
-				"time_to_expiry", untilAfter,
-				"expiration", time.Now().Add(untilAfter),
-			}
+		// Build log fields
+		logFields := []interface{}{
+			"cert_type", certType,
+			"days_remaining", daysRemaining,
+			"time_to_expiry", untilAfter,
+			"expiration", time.Now().Add(untilAfter),
+			"suggested_action", suggestedAction,
+		}
+		if nodeName != "" {
+			logFields = append(logFields, "node", nodeName)
+		}
 
-			if logLevel == "error" {
-				logger.Error("certificate expiring soon", logArgs...)
-			} else {
-				logger.Warn("certificate expiring soon", logArgs...)
-			}
+		// Log based on threshold severity with detailed context
+		if daysRemaining < criticalDays {
+			logger.Error("certificate expiring soon", logFields...)
+		} else if daysRemaining < warningDays {
+			logger.Warn("certificate expiring soon", logFields...)
 		}
 
 		expiry := untilAfter / time.Second
