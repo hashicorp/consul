@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strconv"
 	"testing"
 
@@ -446,12 +447,23 @@ func TestVaultCAProvider_AzureAuthClient(t *testing.T) {
 }
 
 func TestVaultCAProvider_JwtAuthClient(t *testing.T) {
-	tokenF, err := os.CreateTemp("", "token-path")
+	// Create temp directory and symlink from allowed directory
+	tmpDir := t.TempDir()
+	tokenDir := filepath.Join(tmpDir, "jwt-tokens")
+	err := os.MkdirAll(tokenDir, 0755)
 	require.NoError(t, err)
-	defer func() { os.Remove(tokenF.Name()) }()
-	_, err = tokenF.WriteString("test-token")
-	require.NoError(t, err)
-	err = tokenF.Close()
+
+	// Create symlink from allowed directory to temp directory
+	symlinkPath := "/var/run/secrets"
+	_ = os.Remove(symlinkPath) // Remove if exists (ignore error)
+	err = os.Symlink(tokenDir, symlinkPath)
+	if err != nil {
+		t.Skipf("Cannot create symlink %s -> %s (requires permissions): %v", symlinkPath, tokenDir, err)
+	}
+	defer os.Remove(symlinkPath)
+
+	tokenPath := filepath.Join(symlinkPath, "jwt-token")
+	err = os.WriteFile(tokenPath, []byte("test-token"), 0644)
 	require.NoError(t, err)
 
 	cases := map[string]struct {
@@ -464,7 +476,7 @@ func TestVaultCAProvider_JwtAuthClient(t *testing.T) {
 				Type: "jwt",
 				Params: map[string]any{
 					"role": "test-role",
-					"path": tokenF.Name(),
+					"path": tokenPath,
 				},
 			},
 			expData: map[string]any{
@@ -520,12 +532,27 @@ func TestVaultCAProvider_JwtAuthClient(t *testing.T) {
 }
 
 func TestVaultCAProvider_K8sAuthClient(t *testing.T) {
-	tokenF, err := os.CreateTemp("", "token-path")
+	// Create temp directory and symlink from allowed directory
+	tmpDir := t.TempDir()
+	tokenDir := filepath.Join(tmpDir, "serviceaccount")
+	err := os.MkdirAll(tokenDir, 0755)
 	require.NoError(t, err)
-	defer func() { os.Remove(tokenF.Name()) }()
-	_, err = tokenF.WriteString("test-token")
-	require.NoError(t, err)
-	err = tokenF.Close()
+
+	// Create symlink from allowed directory to temp directory
+	symlinkPath := "/var/run/secrets/kubernetes.io/serviceaccount"
+	_ = os.RemoveAll(symlinkPath) // Remove if exists (ignore error)
+	err = os.MkdirAll(filepath.Dir(symlinkPath), 0755)
+	if err != nil {
+		t.Skipf("Cannot create parent directory for symlink (requires permissions): %v", err)
+	}
+	err = os.Symlink(tokenDir, symlinkPath)
+	if err != nil {
+		t.Skipf("Cannot create symlink %s -> %s (requires permissions): %v", symlinkPath, tokenDir, err)
+	}
+	defer os.RemoveAll("/var/run/secrets/kubernetes.io")
+
+	tokenPath := filepath.Join(symlinkPath, "token")
+	err = os.WriteFile(tokenPath, []byte("test-token"), 0644)
 	require.NoError(t, err)
 
 	cases := map[string]struct {
@@ -538,7 +565,7 @@ func TestVaultCAProvider_K8sAuthClient(t *testing.T) {
 				Type: "kubernetes",
 				Params: map[string]any{
 					"role":       "test-role",
-					"token_path": tokenF.Name(),
+					"token_path": tokenPath,
 				},
 			},
 			expData: map[string]any{
@@ -588,27 +615,32 @@ func TestVaultCAProvider_K8sAuthClient(t *testing.T) {
 func TestVaultCAProvider_AppRoleAuthClient(t *testing.T) {
 	roleID, secretID := "test_role_id", "test_secret_id"
 
-	roleFd, err := os.CreateTemp("", "role")
-	require.NoError(t, err)
-	_, err = roleFd.WriteString(roleID)
-	require.NoError(t, err)
-	err = roleFd.Close()
-	require.NoError(t, err)
-
-	secretFd, err := os.CreateTemp("", "secret")
-	require.NoError(t, err)
-	_, err = secretFd.WriteString(secretID)
-	require.NoError(t, err)
-	err = secretFd.Close()
+	// Create temp directory and symlink from allowed directory
+	tmpDir := t.TempDir()
+	vaultDir := filepath.Join(tmpDir, "vault")
+	err := os.MkdirAll(vaultDir, 0755)
 	require.NoError(t, err)
 
-	roleIdPath := roleFd.Name()
-	secretIdPath := secretFd.Name()
+	// Create symlink from allowed directory to temp directory
+	symlinkPath := "/var/run/secrets/vault"
+	_ = os.RemoveAll(symlinkPath) // Remove if exists (ignore error)
+	err = os.MkdirAll(filepath.Dir(symlinkPath), 0755)
+	if err != nil {
+		t.Skipf("Cannot create parent directory for symlink (requires permissions): %v", err)
+	}
+	err = os.Symlink(vaultDir, symlinkPath)
+	if err != nil {
+		t.Skipf("Cannot create symlink %s -> %s (requires permissions): %v", symlinkPath, vaultDir, err)
+	}
+	defer os.RemoveAll("/var/run/secrets/vault")
 
-	defer func() {
-		os.Remove(secretFd.Name())
-		os.Remove(roleFd.Name())
-	}()
+	roleIdPath := filepath.Join(symlinkPath, "role-id")
+	err = os.WriteFile(roleIdPath, []byte(roleID), 0644)
+	require.NoError(t, err)
+
+	secretIdPath := filepath.Join(symlinkPath, "secret-id")
+	err = os.WriteFile(secretIdPath, []byte(secretID), 0644)
+	require.NoError(t, err)
 
 	cases := map[string]struct {
 		authMethod *structs.VaultAuthMethod
