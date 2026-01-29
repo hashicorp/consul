@@ -141,8 +141,6 @@ func (m CertExpirationMonitor) Monitor(ctx context.Context) error {
 		}
 
 		daysRemaining := int(untilAfter.Hours() / 24)
-		criticalDays := m.Server.config.CertificateTelemetryCriticalThresholdDays
-		warningDays := m.Server.config.CertificateTelemetryWarningThresholdDays
 
 		// Get thresholds from Server config or use provided values
 		var criticalDays, warningDays int
