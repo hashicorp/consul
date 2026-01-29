@@ -920,7 +920,7 @@ func TestTxnEndpoint_KV_KeyValidation(t *testing.T) {
 			"Value": "dGVzdA=="
 		}
 	}
-]go test -v ./agent -run TestTxnEndpoint_KV_KeyValidation
+]
 `))
 		req, _ := http.NewRequest("PUT", "/v1/txn", buf)
 		resp := httptest.NewRecorder()
@@ -946,7 +946,6 @@ func TestTxnEndpoint_KV_KeyValidation(t *testing.T) {
 		resp := httptest.NewRecorder()
 		_, err := a.srv.Txn(resp, req)
 		require.Error(t, err)
-		t.Logf("Error: %v", err)
 		require.Contains(t, err.Error(), "empty key")
 	})
 

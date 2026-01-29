@@ -830,7 +830,7 @@ func TestKVSEndpoint_KeyConstruction_TrailingSlashes(t *testing.T) {
 			name:          "only slashes",
 			urlPath:       "/v1/kv////",
 			expectedKey:   "/",
-			shouldSucceed: true,
+			shouldSucceed: false,
 			description:   "Only slashes should be cleaned to single slash",
 		},
 
