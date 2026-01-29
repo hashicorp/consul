@@ -898,3 +898,80 @@ func TestTxnEndpoint_OperationsSize(t *testing.T) {
 		agent.Shutdown()
 	})
 }
+
+func TestTxnEndpoint_KV_KeyValidation(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	// Test key with leading slash - should be rejected
+	t.Run("leading slash", func(t *testing.T) {
+		buf := bytes.NewBuffer([]byte(`
+[
+	{
+		"KV": {
+			"Verb": "set",
+			"Key": "/foo/bar",
+			"Value": "dGVzdA=="
+		}
+	}
+]go test -v ./agent -run TestTxnEndpoint_KV_KeyValidation
+`))
+		req, _ := http.NewRequest("PUT", "/v1/txn", buf)
+		resp := httptest.NewRecorder()
+		_, err := a.srv.Txn(resp, req)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "must not begin with '/'")
+	})
+
+	// Test empty key - should be rejected
+	t.Run("empty key", func(t *testing.T) {
+		buf := bytes.NewBuffer([]byte(`
+[
+	{
+		"KV": {
+			"Verb": "set",
+			"Key": "",
+			"Value": "dGVzdA=="
+		}
+	}
+]
+`))
+		req, _ := http.NewRequest("PUT", "/v1/txn", buf)
+		resp := httptest.NewRecorder()
+		_, err := a.srv.Txn(resp, req)
+		require.Error(t, err)
+		t.Logf("Error: %v", err)
+		require.Contains(t, err.Error(), "empty key")
+	})
+
+	// Test valid key - should succeed
+	t.Run("valid key", func(t *testing.T) {
+		buf := bytes.NewBuffer([]byte(`
+[
+	{
+		"KV": {
+			"Verb": "set",
+			"Key": "foo/bar",
+			"Value": "dGVzdA=="
+		}
+	}
+]
+`))
+		req, _ := http.NewRequest("PUT", "/v1/txn", buf)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.Txn(resp, req)
+		require.NoError(t, err)
+		require.Equal(t, 200, resp.Code)
+
+		txnResp, ok := obj.(structs.TxnResponse)
+		require.True(t, ok)
+		require.Len(t, txnResp.Results, 1)
+		require.Equal(t, "foo/bar", txnResp.Results[0].KV.Key)
+	})
+}
