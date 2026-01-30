@@ -4,14 +4,16 @@
 package consul
 
 import (
+	"encoding/binary"
 	"fmt"
+	"hash/fnv"
 	"time"
 
 	metrics "github.com/armon/go-metrics"
 	memdb "github.com/hashicorp/go-memdb"
-	hashstructure_v2 "github.com/mitchellh/hashstructure/v2"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
@@ -77,10 +79,7 @@ func (c *DiscoveryChain) Get(args *structs.DiscoveryChainRequest, reply *structs
 			// Generate a hash of the config entry content driving this
 			// response. Use it to determine if the response is identical to a
 			// prior wakeup.
-			newHash, err := hashstructure_v2.Hash(chain, hashstructure_v2.FormatV2, nil)
-			if err != nil {
-				return fmt.Errorf("error hashing reply for spurious wakeup suppression: %w", err)
-			}
+			newHash := computeDiscoveryChainHash(entries, req, chain)
 
 			if ranOnce && priorHash == newHash {
 				priorHash = newHash
@@ -102,4 +101,52 @@ func (c *DiscoveryChain) Get(args *structs.DiscoveryChainRequest, reply *structs
 
 			return nil
 		})
+}
+
+func computeDiscoveryChainHash(
+	entries *configentry.DiscoveryChainSet,
+	req discoverychain.CompileRequest,
+	chain *structs.CompiledDiscoveryChain,
+) uint64 {
+	h := fnv.New64a()
+
+	// Helper to write a uint64 to the hash
+	writeUint64 := func(v uint64) {
+		var buf [8]byte
+		binary.LittleEndian.PutUint64(buf[:], v)
+		h.Write(buf[:])
+	}
+
+	// Helper to write a string to the hash
+	writeString := func(s string) {
+		h.Write([]byte(s))
+		h.Write([]byte{0}) // null terminator as separator
+	}
+
+	// 1. Hash all config entries using their pre-computed hashes
+	if entries != nil {
+		writeUint64(entries.Hash())
+	}
+
+	// 2. Hash compile request parameters that affect the output
+	writeString(req.ServiceName)
+	writeString(req.EvaluateInNamespace)
+	writeString(req.EvaluateInPartition)
+	writeString(req.EvaluateInDatacenter)
+	writeString(req.EvaluateInTrustDomain)
+	writeString(req.OverrideProtocol)
+	writeUint64(uint64(req.OverrideConnectTimeout))
+	writeString(string(req.OverrideMeshGateway.Mode))
+
+	// 3. Hash virtual IPs which also affect the result
+	if chain != nil {
+		for _, vip := range chain.AutoVirtualIPs {
+			writeString(vip)
+		}
+		for _, vip := range chain.ManualVirtualIPs {
+			writeString(vip)
+		}
+	}
+
+	return h.Sum64()
 }

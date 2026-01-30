@@ -4,6 +4,10 @@
 package configentry
 
 import (
+	"encoding/binary"
+	"hash/fnv"
+	"sort"
+
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
 )
@@ -205,4 +209,141 @@ func (e *DiscoveryChainSet) IsEmpty() bool {
 // entries are the primary parts of the discovery chain.
 func (e *DiscoveryChainSet) IsChainEmpty() bool {
 	return len(e.Routers) == 0 && len(e.Splitters) == 0 && len(e.Resolvers) == 0 && e.DefaultSamenessGroup == nil
+}
+
+func (e *DiscoveryChainSet) Hash() uint64 {
+	h := fnv.New64a()
+
+	writeUint64 := func(v uint64) {
+		var buf [8]byte
+		binary.LittleEndian.PutUint64(buf[:], v)
+		h.Write(buf[:])
+	}
+
+	writeString := func(s string) {
+		h.Write([]byte(s))
+		h.Write([]byte{0}) // null terminator as separator
+	}
+
+	if len(e.Routers) > 0 {
+		writeString("routers")
+		sids := make([]structs.ServiceID, 0, len(e.Routers))
+		for sid := range e.Routers {
+			sids = append(sids, sid)
+		}
+		sort.Slice(sids, func(i, j int) bool {
+			return sids[i].String() < sids[j].String()
+		})
+		for _, sid := range sids {
+			if entry := e.Routers[sid]; entry != nil {
+				writeString(sid.String())
+				writeUint64(entry.GetHash())
+			}
+		}
+	}
+
+	if len(e.Splitters) > 0 {
+		writeString("splitters")
+		sids := make([]structs.ServiceID, 0, len(e.Splitters))
+		for sid := range e.Splitters {
+			sids = append(sids, sid)
+		}
+		sort.Slice(sids, func(i, j int) bool {
+			return sids[i].String() < sids[j].String()
+		})
+		for _, sid := range sids {
+			if entry := e.Splitters[sid]; entry != nil {
+				writeString(sid.String())
+				writeUint64(entry.GetHash())
+			}
+		}
+	}
+
+	if len(e.Resolvers) > 0 {
+		writeString("resolvers")
+		sids := make([]structs.ServiceID, 0, len(e.Resolvers))
+		for sid := range e.Resolvers {
+			sids = append(sids, sid)
+		}
+		sort.Slice(sids, func(i, j int) bool {
+			return sids[i].String() < sids[j].String()
+		})
+		for _, sid := range sids {
+			if entry := e.Resolvers[sid]; entry != nil {
+				writeString(sid.String())
+				writeUint64(entry.GetHash())
+			}
+		}
+	}
+
+	if len(e.Services) > 0 {
+		writeString("services")
+		sids := make([]structs.ServiceID, 0, len(e.Services))
+		for sid := range e.Services {
+			sids = append(sids, sid)
+		}
+		sort.Slice(sids, func(i, j int) bool {
+			return sids[i].String() < sids[j].String()
+		})
+		for _, sid := range sids {
+			if entry := e.Services[sid]; entry != nil {
+				writeString(sid.String())
+				writeUint64(entry.GetHash())
+			}
+		}
+	}
+
+	if len(e.ProxyDefaults) > 0 {
+		writeString("proxydefaults")
+		partitions := make([]string, 0, len(e.ProxyDefaults))
+		for partition := range e.ProxyDefaults {
+			partitions = append(partitions, partition)
+		}
+		sort.Strings(partitions)
+		for _, partition := range partitions {
+			if entry := e.ProxyDefaults[partition]; entry != nil {
+				writeString(partition)
+				writeUint64(entry.GetHash())
+			}
+		}
+	}
+
+	if len(e.SamenessGroups) > 0 {
+		writeString("samenessgroups")
+		names := make([]string, 0, len(e.SamenessGroups))
+		for name := range e.SamenessGroups {
+			names = append(names, name)
+		}
+		sort.Strings(names)
+		for _, name := range names {
+			if entry := e.SamenessGroups[name]; entry != nil {
+				writeString(name)
+				writeUint64(entry.GetHash())
+			}
+		}
+	}
+
+	if e.DefaultSamenessGroup != nil {
+		writeString("defaultsamenessgroup")
+		writeString(e.DefaultSamenessGroup.Name)
+		writeUint64(e.DefaultSamenessGroup.GetHash())
+	}
+
+	if len(e.Peers) > 0 {
+		writeString("peers")
+		peerNames := make([]string, 0, len(e.Peers))
+		for name := range e.Peers {
+			peerNames = append(peerNames, name)
+		}
+		sort.Strings(peerNames)
+		for _, name := range peerNames {
+			if peer := e.Peers[name]; peer != nil {
+				writeString(name)
+				writeString(peer.PeerServerName)
+				writeString(string(peer.State))
+			}
+		}
+	}
+
+	return h.Sum64()
 }
