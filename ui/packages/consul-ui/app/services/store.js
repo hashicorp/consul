@@ -115,17 +115,16 @@ export default class StoreService extends Store {
 
     const serializer = this.serializerFor(modelName);
 
-    return adapter.clone(this, { modelName: modelName }, id, snapshot)
-      .then((payload) => {
-        const normalized = serializer.normalizeResponse(
-          this, 
-          modelClass, 
-          payload, 
-          id, 
-          'findRecord' // Triggers standard findRecord normalization rules
-        );
-        return this.push(normalized);
-      });
+    return adapter.clone(this, { modelName: modelName }, id, snapshot).then((payload) => {
+      const normalized = serializer.normalizeResponse(
+        this,
+        modelClass,
+        payload,
+        id,
+        'findRecord' // Triggers standard findRecord normalization rules
+      );
+      return this.push(normalized);
+    });
   }
 
   self(modelName, token) {

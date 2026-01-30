@@ -106,7 +106,7 @@ export default Component.extend(Slotted, {
       if (!items) {
         items = A(); // Create a new Ember Array
         // Update the component's 'items' property so the UI updates
-        this.set('items', items); 
+        this.set('items', items);
       }
 
       switch (event.target.name) {
