@@ -366,6 +366,11 @@ func validateKVKey(key string) error {
 		return fmt.Errorf("empty key name is not allowed")
 	}
 
+	// Adding this for consistency
+	if strings.HasPrefix(key, "/") {
+		return fmt.Errorf("invalid key name, must not begin with '/'")
+	}
+
 	if strings.HasPrefix(key, " ") || strings.HasSuffix(key, " ") {
 		return fmt.Errorf("invalid key name, leading/trailing spaces are not allowed")
 	}
