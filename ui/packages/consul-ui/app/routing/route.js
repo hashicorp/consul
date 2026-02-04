@@ -141,7 +141,7 @@ export default class BaseRoute extends Route {
     if (typeof obj !== 'undefined' && !Array.isArray(obj) && typeof obj !== 'string') {
       params = Object.values(obj);
     }
-    return super.replaceWith(routeName, ...params);
+    return this.router.replaceWith(routeName, ...params);
   }
 
   @action
