@@ -303,8 +303,14 @@ func (s *Server) DrainStream(req HandleStreamRequest) {
 }
 
 func (s *Server) HandleStream(streamReq HandleStreamRequest) error {
-	if err := s.realHandleStream(streamReq); err != nil {
-		s.Tracker.DisconnectedDueToError(streamReq.LocalID, err.Error())
+	connected, err := s.realHandleStream(streamReq)
+	if err != nil {
+		// Only mark as disconnected if this stream was actually connected.
+		// If Connected() failed (e.g., because there's already an active stream
+		// for this peer), we should not corrupt the existing stream's status.
+		if connected {
+			s.Tracker.DisconnectedDueToError(streamReq.LocalID, err.Error())
+		}
 		return err
 	}
 	// TODO(peering) Also need to clear subscriptions associated with the peer
@@ -314,7 +320,10 @@ func (s *Server) HandleStream(streamReq HandleStreamRequest) error {
 
 // The localID provided is the locally-generated identifier for the peering.
 // The remoteID is an identifier that the remote peer recognizes for the peering.
-func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
+// Returns (connected, error) where connected indicates if this stream successfully
+// registered as the active stream for the peer. This is used by HandleStream to
+// determine whether to mark the stream as disconnected on error.
+func (s *Server) realHandleStream(streamReq HandleStreamRequest) (bool, error) {
 	// TODO: pass logger down from caller?
 	logger := s.Logger.Named("stream").
 		With("peer_name", streamReq.PeerName).
@@ -328,8 +337,11 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 
 	status, err := s.Tracker.Connected(streamReq.LocalID)
 	if err != nil {
-		return fmt.Errorf("failed to register stream: %v", err)
+		// Return connected=false so HandleStream knows not to mark as disconnected.
+		// This prevents corrupting an existing active stream's status.
+		return false, fmt.Errorf("failed to register stream: %v", err)
 	}
+	// From this point on, this stream is the connected stream for this peer.
 
 	var trustDomain string
 	if s.ConnectEnabled {
@@ -337,7 +349,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 		// so reading it once at the beginning of the stream is sufficient.
 		trustDomain, err = getTrustDomain(s.GetStore(), logger)
 		if err != nil {
-			return err
+			return true, err
 		}
 	}
 
@@ -401,7 +413,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 		})
 		if err := streamSend(sub); err != nil {
 			// TODO(peering) Test error handling in calls to Send/Recv
-			return fmt.Errorf("failed to send subscription for %q to stream: %w", resourceURL, err)
+			return true, fmt.Errorf("failed to send subscription for %q to stream: %w", resourceURL, err)
 		}
 	}
 
@@ -480,13 +492,13 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 				// Nolint directive needed due to bug in govet that doesn't see that the cancel
 				// func of the incomingHeartbeatTimer _does_ get called.
 				//nolint:govet
-				return fmt.Errorf("failed to send to stream: %v", err)
+				return true, fmt.Errorf("failed to send to stream: %v", err)
 			}
 
 			logger.Trace("deleting stream status")
 			s.Tracker.DeleteStatus(streamReq.LocalID)
 
-			return nil
+			return true, nil
 
 		// Handle errors received from the stream by shutting down our handler.
 		case err := <-recvErrCh:
@@ -501,11 +513,11 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 				err = fmt.Errorf("unexpected error receiving from the stream: %w", err)
 			}
 			status.TrackRecvError(err.Error())
-			return err
+			return true, err
 
 		// We haven't received a heartbeat within the expected interval. Kill the stream.
 		case <-incomingHeartbeatCtx.Done():
-			return fmt.Errorf("heartbeat timeout")
+			return true, fmt.Errorf("heartbeat timeout")
 
 		case msg := <-recvCh:
 			// NOTE: this code should have similar error handling to the
@@ -520,15 +532,15 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 					&pbpeerstream.LeaderAddress{Address: s.Backend.GetLeaderAddress()})
 				if err != nil {
 					logger.Error(fmt.Sprintf("failed to marshal the leader address in response; err: %v", err))
-					return grpcstatus.Error(codes.FailedPrecondition, "node is not a leader anymore; cannot continue streaming")
+					return true, grpcstatus.Error(codes.FailedPrecondition, "node is not a leader anymore; cannot continue streaming")
 				} else {
-					return st.Err()
+					return true, st.Err()
 				}
 			}
 
 			if req := msg.GetRequest(); req != nil {
 				if !pbpeerstream.KnownTypeURL(req.ResourceURL) {
-					return grpcstatus.Errorf(codes.InvalidArgument, "subscription request to unknown resource URL: %s", req.ResourceURL)
+					return true, grpcstatus.Errorf(codes.InvalidArgument, "subscription request to unknown resource URL: %s", req.ResourceURL)
 				}
 
 				// There are different formats of requests depending upon where in the stream lifecycle we are.
@@ -570,7 +582,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 						if req.PeerID != "" && req.PeerID != streamReq.RemoteID {
 							// Not necessary after the first request from the dialer,
 							// but if provided must match.
-							return grpcstatus.Errorf(codes.InvalidArgument,
+							return true, grpcstatus.Errorf(codes.InvalidArgument,
 								"initial subscription requests for a resource type must have consistent PeerID values: got=%q expected=%q",
 								req.PeerID,
 								streamReq.RemoteID,
@@ -578,10 +590,10 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 						}
 					}
 					if req.ResponseNonce != "" {
-						return grpcstatus.Error(codes.InvalidArgument, "initial subscription requests for a resource type must not contain a nonce")
+						return true, grpcstatus.Error(codes.InvalidArgument, "initial subscription requests for a resource type must not contain a nonce")
 					}
 					if req.Error != nil {
-						return grpcstatus.Error(codes.InvalidArgument, "initial subscription request for a resource type must not contain an error")
+						return true, grpcstatus.Error(codes.InvalidArgument, "initial subscription request for a resource type must not contain an error")
 					}
 
 					if remoteSubTracker.Subscribe(req.ResourceURL) {
@@ -636,7 +648,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 				if err := s.Backend.PeeringTerminateByID(&pbpeering.PeeringTerminateByIDRequest{ID: streamReq.LocalID}); err != nil {
 					logger.Error("failed to mark peering as terminated: %w", err)
 				}
-				return nil
+				return true, nil
 			}
 
 			if msg.GetHeartbeat() != nil {
