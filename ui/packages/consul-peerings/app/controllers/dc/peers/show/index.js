@@ -6,11 +6,14 @@
 import Controller from "@ember/controller";
 import { inject as service } from "@ember/service";
 import { action } from "@ember/object";
+import { schedule } from "@ember/runloop";
 
 export default class DcPeersEditIndexController extends Controller {
   @service router;
 
   @action transitionToImported() {
-    this.router.replaceWith("dc.peers.show.imported");
+    schedule('afterRender', this, () => {
+      this.router.replaceWith("dc.peers.show.imported");
+    });
   }
 }
