@@ -18,6 +18,10 @@ const (
 	// federationStatePruneInterval is how often we check for stale federation
 	// states to remove should a datacenter be removed from the WAN.
 	federationStatePruneInterval = time.Hour
+
+	// defaultFederationStateAntiEntropySyncInterval is the default minimum
+	// interval between federation state anti-entropy sync operations.
+	defaultFederationStateAntiEntropySyncInterval = 5 * time.Second
 )
 
 func (s *Server) startFederationStateAntiEntropy(ctx context.Context) {
@@ -54,11 +58,42 @@ func (s *Server) stopFederationStateAntiEntropy() {
 }
 
 func (s *Server) federationStateAntiEntropySync(ctx context.Context) error {
-	var lastFetchIndex uint64
+	var (
+		lastFetchIndex uint64
+		lastSyncTime   time.Time
+	)
+
+	interval := s.config.FederationStateAntiEntropySyncInterval
+	if interval <= 0 {
+		interval = defaultFederationStateAntiEntropySyncInterval
+	}
 
 	retryLoopBackoff(ctx, func() error {
 		if !s.DatacenterSupportsFederationStates() {
-			return nil
+			// FIX: Prevent a hot loop if federation is not supported.
+			// We wait for the interval (or until context cancel) before checking again.
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(interval):
+				return nil
+			}
+		}
+
+		// Enforce a minimum interval between expensive sync operations. This
+		// acts as a debounce over the blockingQuery wake-ups that fetch the
+		// federation state and mesh-gateway dump.
+		if !lastSyncTime.IsZero() {
+			nextAllowed := lastSyncTime.Add(interval)
+			if wait := time.Until(nextAllowed); wait > 0 {
+				timer := time.NewTimer(wait)
+				defer timer.Stop()
+				select {
+				case <-ctx.Done():
+					return ctx.Err()
+				case <-timer.C:
+				}
+			}
 		}
 
 		idx, err := s.federationStateAntiEntropyMaybeSync(ctx, lastFetchIndex)
@@ -67,6 +102,7 @@ func (s *Server) federationStateAntiEntropySync(ctx context.Context) error {
 		}
 
 		lastFetchIndex = idx
+		lastSyncTime = time.Now()
 		return nil
 	}, func(err error) {
 		s.logger.Error("error performing anti-entropy sync of federation state", "error", err)

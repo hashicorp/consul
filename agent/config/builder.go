@@ -856,6 +856,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		ConsulRaftHeartbeatTimeout:       consulRaftHeartbeatTimeout,
 		ConsulRaftLeaderLeaseTimeout:     consulRaftLeaderLeaseTimeout,
 		ConsulServerHealthInterval:       b.durationVal("consul.server.health_interval", c.Consul.Server.HealthInterval),
+		FederationStateAntiEntropySyncInterval: b.durationVal("federation_state_anti_entropy_sync_interval", c.FederationStateAntiEntropySyncInterval),
 
 		// gossip configuration
 		GossipLANGossipInterval: b.durationVal("gossip_lan..gossip_interval", c.GossipLAN.GossipInterval),
