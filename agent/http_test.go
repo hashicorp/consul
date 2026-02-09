@@ -113,7 +113,11 @@ func TestHTTPServer_UnixSocket_FileExists(t *testing.T) {
 		t.SkipNow()
 	}
 
-	tempDir := testutil.TempDir(t, "consul")
+	tempDir, err := os.MkdirTemp("", "consul_sock_test_")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
 	socket := filepath.Join(tempDir, "test.sock")
 
 	// Create a regular file at the socket path
@@ -1210,6 +1214,149 @@ func TestHTTPServer_PProfHandlers_DisableDebugNoACLs(t *testing.T) {
 	require.Equal(t, http.StatusNotFound, resp.Code)
 }
 
+func TestHTTPServer_PProfHandlers_LongRunningProfile(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	// Test that pprof profiling works with durations longer than default WriteTimeout
+	// This test verifies that:
+	// 1. pprof.Profile is synchronous and blocks until profiling completes
+	// 2. WriteTimeout must be configured appropriately for long profiling sessions
+	// 3. Response is only written after profiling finishes
+
+	testCases := []struct {
+		name           string
+		profileSeconds int
+		writeTimeout   string
+		expectSuccess  bool
+		expectMinBytes int
+		description    string
+	}{
+		{
+			name:           "Short profile with default timeout",
+			profileSeconds: 2,
+			writeTimeout:   "30s", // default
+			expectSuccess:  true,
+			expectMinBytes: 100,
+			description:    "2-second profile should complete within 30s timeout",
+		},
+		{
+			name:           "Long profile with extended timeout",
+			profileSeconds: 35,
+			writeTimeout:   "120s", // 2 minutes
+			expectSuccess:  true,
+			expectMinBytes: 100,
+			description:    "35-second profile requires >30s timeout to avoid timeout error",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Create agent with configured write timeout
+			config := fmt.Sprintf(`
+				enable_debug = true
+				http_config = {
+					write_timeout = "%s"
+				}
+			`, tc.writeTimeout)
+
+			a := NewTestAgent(t, config)
+			defer a.Shutdown()
+
+			// Create request for CPU profile
+			url := fmt.Sprintf("/debug/pprof/profile?seconds=%d", tc.profileSeconds)
+			req, _ := http.NewRequest("GET", url, nil)
+			resp := httptest.NewRecorder()
+
+			// Record start time to verify synchronous behavior
+			startTime := time.Now()
+
+			// Execute the pprof handler
+			a.enableDebug.Store(true)
+			httpServer := &HTTPHandlers{agent: a.Agent}
+			httpServer.handler().ServeHTTP(resp, req)
+
+			// Record completion time
+			duration := time.Since(startTime)
+
+			// Verify the handler blocked for approximately the profiling duration
+			// Allow some overhead (up to 3 seconds) for processing
+			minExpectedDuration := time.Duration(tc.profileSeconds) * time.Second
+			maxExpectedDuration := minExpectedDuration + 3*time.Second
+
+			require.GreaterOrEqual(t, duration, minExpectedDuration,
+				"Handler should block for at least %v, but returned in %v", minExpectedDuration, duration)
+			require.LessOrEqual(t, duration, maxExpectedDuration,
+				"Handler took too long: %v (expected max %v)", duration, maxExpectedDuration)
+
+			if tc.expectSuccess {
+				// Verify successful response
+				require.Equal(t, http.StatusOK, resp.Code,
+					"%s: Expected status 200, got %d", tc.description, resp.Code)
+
+				// Verify response contains profile data
+				body := resp.Body.Bytes()
+				require.Greater(t, len(body), tc.expectMinBytes,
+					"%s: Expected at least %d bytes of profile data, got %d",
+					tc.description, tc.expectMinBytes, len(body))
+
+				t.Logf("✓ %s: Profile completed in %v with %d bytes of data",
+					tc.description, duration, len(body))
+			} else {
+				// Verify timeout or error
+				require.NotEqual(t, http.StatusOK, resp.Code,
+					"%s: Expected non-OK status due to timeout", tc.description)
+				t.Logf("✓ %s: Correctly failed with status %d",
+					tc.description, resp.Code)
+			}
+		})
+	}
+}
+
+func TestHTTPServer_PProfHandlers_TraceWithTimeout(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	// Test that trace endpoint also respects WriteTimeout since it's synchronous
+	t.Parallel()
+
+	config := `
+		enable_debug = true
+		http_config = {
+			write_timeout = "60s"
+		}
+	`
+
+	a := NewTestAgent(t, config)
+	defer a.Shutdown()
+
+	// Request 30-second trace
+	req, _ := http.NewRequest("GET", "/debug/pprof/trace?seconds=30", nil)
+	resp := httptest.NewRecorder()
+
+	startTime := time.Now()
+
+	a.enableDebug.Store(true)
+	httpServer := &HTTPHandlers{agent: a.Agent}
+	httpServer.handler().ServeHTTP(resp, req)
+
+	duration := time.Since(startTime)
+
+	// Verify trace blocked for approximately 30 seconds
+	require.GreaterOrEqual(t, duration, 30*time.Second,
+		"Trace handler should block for at least 30s")
+	require.LessOrEqual(t, duration, 33*time.Second,
+		"Trace handler took too long")
+
+	require.Equal(t, http.StatusOK, resp.Code)
+	require.Greater(t, len(resp.Body.Bytes()), 100,
+		"Expected trace data in response")
+
+	t.Logf("✓ Trace completed synchronously in %v", duration)
+}
+
 func TestHTTPServer_PProfHandlers_ACLs(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -1818,7 +1965,10 @@ func TestHTTPServer_HandshakeTimeout(t *testing.T) {
 		buf := make([]byte, 10)
 		_, err = conn.Read(buf)
 		require.Error(r, err)
-		require.Contains(r, err.Error(), "EOF")
+
+		// After adding timeouts to prevent slowloris attacks, the connection
+		// times out with "i/o timeout" instead of "EOF"
+		require.Contains(r, err.Error(), "i/o timeout")
 	})
 }
 

@@ -20,7 +20,7 @@ type IntentionUpstreams struct {
 	RPC RPC
 }
 
-func (i *IntentionUpstreams) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
+func (i *IntentionUpstreams) Fetch(ctx context.Context, opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
 	var result cache.FetchResult
 
 	// The request should be a ServiceSpecificRequest.
@@ -46,7 +46,7 @@ func (i *IntentionUpstreams) Fetch(opts cache.FetchOptions, req cache.Request) (
 
 	// Fetch
 	var reply structs.IndexedServiceList
-	if err := i.RPC.RPC(context.Background(), "Internal.IntentionUpstreams", reqReal, &reply); err != nil {
+	if err := i.RPC.RPC(ctx, "Internal.IntentionUpstreams", reqReal, &reply); err != nil {
 		return result, err
 	}
 

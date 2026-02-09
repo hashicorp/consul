@@ -686,6 +686,10 @@ type HTTPConfig struct {
 	ResponseHeaders    map[string]string `mapstructure:"response_headers"`
 	UseCache           *bool             `mapstructure:"use_cache"`
 	MaxHeaderBytes     *int              `mapstructure:"max_header_bytes"`
+	ReadTimeout        *string           `mapstructure:"read_timeout"`
+	ReadHeaderTimeout  *string           `mapstructure:"read_header_timeout"`
+	WriteTimeout       *string           `mapstructure:"write_timeout"`
+	IdleTimeout        *string           `mapstructure:"idle_timeout"`
 }
 
 type Performance struct {

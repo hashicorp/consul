@@ -20,7 +20,7 @@ type PeeredUpstreams struct {
 	RPC RPC
 }
 
-func (i *PeeredUpstreams) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
+func (i *PeeredUpstreams) Fetch(ctx context.Context, opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
 	var result cache.FetchResult
 
 	reqReal, ok := req.(*structs.PartitionSpecificRequest)
@@ -45,7 +45,7 @@ func (i *PeeredUpstreams) Fetch(opts cache.FetchOptions, req cache.Request) (cac
 
 	// Fetch
 	var reply structs.IndexedPeeredServiceList
-	if err := i.RPC.RPC(context.Background(), "Internal.PeeredUpstreams", reqReal, &reply); err != nil {
+	if err := i.RPC.RPC(ctx, "Internal.PeeredUpstreams", reqReal, &reply); err != nil {
 		return result, err
 	}
 

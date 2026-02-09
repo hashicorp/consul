@@ -6662,6 +6662,10 @@ func TestLoad_FullConfig(t *testing.T) {
 		HTTPSAddrs:            []net.Addr{tcpAddr("95.17.17.19:15127")},
 		HTTPMaxConnsPerClient: 100,
 		HTTPMaxHeaderBytes:    10,
+		HTTPReadTimeout:       30 * time.Second,
+		HTTPReadHeaderTimeout: 10 * time.Second,
+		HTTPWriteTimeout:      30 * time.Second,
+		HTTPIdleTimeout:       120 * time.Second,
 		HTTPSHandshakeTimeout: 2391 * time.Millisecond,
 		HTTPSPort:             15127,
 		HTTPUseCache:          false,
@@ -7489,7 +7493,11 @@ func TestRuntimeConfig_Sanitize(t *testing.T) {
 			*parseCIDR(t, "192.168.1.0/24"),
 			*parseCIDR(t, "127.0.0.0/8"),
 		},
-		TxnMaxReqLen: 5678000000000000,
+		TxnMaxReqLen:          5678000000000000,
+		HTTPReadTimeout:       0,
+		HTTPReadHeaderTimeout: 0,
+		HTTPWriteTimeout:      0,
+		HTTPIdleTimeout:       0,
 		UIConfig: UIConfig{
 			MetricsProxy: UIMetricsProxy{
 				AddHeaders: []UIMetricsProxyAddHeader{
