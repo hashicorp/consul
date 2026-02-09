@@ -431,6 +431,11 @@ type Config struct {
 	// disable a background routine.
 	DisableFederationStateAntiEntropy bool
 
+	// FederationStateAntiEntropySyncInterval is the minimum duration between
+	// successive federation state anti-entropy sync attempts. If zero, a
+	// default interval is used.
+	FederationStateAntiEntropySyncInterval time.Duration
+
 	// OverrideInitialSerfTags solely exists for use in unit tests to ensure
 	// that a serf tag is initially set to a known value, rather than the
 	// default to test some consul upgrade scenarios with fewer races.
@@ -543,7 +548,8 @@ func DefaultConfig() *Config {
 		FederationStateReplicationRate:       1,
 		FederationStateReplicationBurst:      5,
 		FederationStateReplicationApplyLimit: 100, // ops / sec
-		TombstoneTTL:                         15 * time.Minute,
+		FederationStateAntiEntropySyncInterval: defaultFederationStateAntiEntropySyncInterval,
+		TombstoneTTL:                           15 * time.Minute,
 		TombstoneTTLGranularity:              30 * time.Second,
 		SessionTTLMin:                        10 * time.Second,
 		ACLTokenMinExpirationTTL:             1 * time.Minute,

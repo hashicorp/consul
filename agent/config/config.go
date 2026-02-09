@@ -168,6 +168,7 @@ type Config struct {
 	DefaultQueryTime                 *string             `mapstructure:"default_query_time" json:"default_query_time,omitempty"`
 	DefaultIntentionPolicy           *string             `mapstructure:"default_intention_policy" json:"default_intention_policy,omitempty"`
 	DisableAnonymousSignature        *bool               `mapstructure:"disable_anonymous_signature" json:"disable_anonymous_signature,omitempty"`
+	FederationStateAntiEntropySyncInterval *string       `mapstructure:"federation_state_anti_entropy_sync_interval" json:"federation_state_anti_entropy_sync_interval,omitempty"`
 	DisableCoordinates               *bool               `mapstructure:"disable_coordinates" json:"disable_coordinates,omitempty"`
 	DisableHostNodeID                *bool               `mapstructure:"disable_host_node_id" json:"disable_host_node_id,omitempty"`
 	DisableHTTPUnprintableCharFilter *bool               `mapstructure:"disable_http_unprintable_char_filter" json:"disable_http_unprintable_char_filter,omitempty"`
