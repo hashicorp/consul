@@ -1,3 +1,9 @@
+## UNRELEASED
+
+BUG FIXES:
+
+* acl: Fix ACL token accumulation by revoking login-derived agent tokens during `ShutdownAgent`. Previously, tokens created via `acl/login` were never revoked on agent shutdown, causing indefinite accumulation in the server state store and degraded Raft performance. [[GH-22613](https://github.com/hashicorp/consul/issues/22613)]
+
 ## 1.22.3 (January 23, 2026)
 
 SECURITY:
@@ -203,6 +209,7 @@ BUG FIXES:
 * ui: fixes the issue where namespaces where disappearing and Welcome to Namespace screen showed up after tab switching [[GH-22789](https://github.com/hashicorp/consul/issues/22789)]
 * ui: fixes the issue where when doing deletes of multiple tokens or policies, the three dots on the right hand side stops responding after the first delete. [[GH-22752](https://github.com/hashicorp/consul/issues/22752)]
 * cmd: Fix `consul operator utilization --help` to show only available options without extra parameters. [[GH-22912](https://github.com/hashicorp/consul/issues/22912)]
+
 
 ## 1.22.0-rc2+ent (October 15, 2025)
 
