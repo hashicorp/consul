@@ -175,12 +175,12 @@ func TestTracker_ConnectedFailsForDuplicatePeerID(t *testing.T) {
 	peerID := "63b60245-c475-426b-b314-4588d210859d"
 
 	// First connection succeeds
-	status, err := tracker.Connected(peerID)
+	status, _, err := tracker.Connected(peerID)
 	require.NoError(t, err)
 	require.True(t, status.Connected)
 
 	// Second connection with same peer ID fails
-	_, err = tracker.Connected(peerID)
+	_, _, err = tracker.Connected(peerID)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "there is an active stream for the given PeerID")
 
@@ -189,4 +189,90 @@ func TestTracker_ConnectedFailsForDuplicatePeerID(t *testing.T) {
 	require.True(t, ok)
 	require.True(t, streamStatus.Connected)
 	require.Nil(t, streamStatus.DisconnectTime)
+}
+
+// TestHandleStream_StaleDisconnectDoesNotCorruptNewStream tests that when a stale
+// stream goroutine's disconnect fires after a new stream has connected, the new
+// stream's status is not corrupted.
+func TestHandleStream_StaleDisconnectDoesNotCorruptNewStream(t *testing.T) {
+	srv, _ := newTestServer(t, func(c *Config) {
+		c.ConnectEnabled = false
+	})
+	peerID := "63b60245-c475-426b-b314-4588d210859d"
+
+	// Simulate: Stream A connects (gen=1), then disconnects
+	ctxA, cancelA := context.WithCancel(context.Background())
+	streamA := newTestReplicationStream(ctxA)
+
+	streamADone := make(chan error, 1)
+	go func() {
+		streamADone <- srv.HandleStream(HandleStreamRequest{
+			LocalID:  peerID,
+			RemoteID: "remote-a",
+			PeerName: "my-peer",
+			Stream:   streamA,
+		})
+	}()
+
+	// Wait for Stream A to connect
+	require.Eventually(t, func() bool {
+		status, ok := srv.Tracker.StreamStatus(peerID)
+		return ok && status.Connected
+	}, 5*time.Second, 10*time.Millisecond)
+
+	// Disconnect Stream A
+	close(streamA.recvCh)
+	cancelA()
+	select {
+	case <-streamADone:
+	case <-time.After(5 * time.Second):
+		t.Fatal("Stream A did not finish")
+	}
+
+	// Verify Stream A is disconnected
+	status, ok := srv.Tracker.StreamStatus(peerID)
+	require.True(t, ok)
+	require.False(t, status.Connected)
+
+	// Now Stream B connects (gen=2)
+	ctxB, cancelB := context.WithCancel(context.Background())
+	defer cancelB()
+	streamB := newTestReplicationStream(ctxB)
+
+	streamBDone := make(chan error, 1)
+	go func() {
+		streamBDone <- srv.HandleStream(HandleStreamRequest{
+			LocalID:  peerID,
+			RemoteID: "remote-b",
+			PeerName: "my-peer",
+			Stream:   streamB,
+		})
+	}()
+
+	// Wait for Stream B to connect
+	require.Eventually(t, func() bool {
+		status, ok := srv.Tracker.StreamStatus(peerID)
+		return ok && status.Connected
+	}, 5*time.Second, 10*time.Millisecond)
+
+	// Simulate stale disconnect from Stream A's generation (gen=1)
+	// This should be a no-op because Stream B has gen=2
+	srv.Tracker.DisconnectedDueToError(peerID, 1, "stale error from old stream")
+
+	// Verify Stream B is still connected
+	status, ok = srv.Tracker.StreamStatus(peerID)
+	require.True(t, ok)
+	require.True(t, status.Connected,
+		"BUG: stale disconnect from old stream corrupted new stream's status")
+	require.Nil(t, status.DisconnectTime,
+		"BUG: stale disconnect set DisconnectTime on new stream")
+
+	// Clean up
+	close(streamB.recvCh)
+	cancelB()
+	select {
+	case <-streamBDone:
+	case <-time.After(5 * time.Second):
+		t.Fatal("Stream B did not finish")
+	}
 }
