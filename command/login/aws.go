@@ -9,9 +9,8 @@ import (
 	"flag"
 	"fmt"
 
-	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
-
 	iamauth "github.com/hashicorp/consul-awsauth"
 	"github.com/hashicorp/consul/agent/consul/authmethod/awsauth"
 	"github.com/hashicorp/go-hclog"
@@ -111,8 +110,8 @@ func (a *AWSLogin) createAWSBearerToken() (string, error) {
 	// Set static credentials if provided
 	if a.accessKeyId != "" {
 		configOpts = append(configOpts, config.WithCredentialsProvider(
-			awsv2.CredentialsProviderFunc(func(ctx context.Context) (awsv2.Credentials, error) {
-				return awsv2.Credentials{
+			aws.CredentialsProviderFunc(func(ctx context.Context) (aws.Credentials, error) {
+				return aws.Credentials{
 					AccessKeyID:     a.accessKeyId,
 					SecretAccessKey: a.secretAccessKey,
 					SessionToken:    a.sessionToken,

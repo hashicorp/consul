@@ -200,6 +200,25 @@ func TestVaultCAProvider_AWSCredentialsConfig(t *testing.T) {
 			},
 			expRegion: "us-west-1",
 		},
+		"with role_external_id": {
+			params: map[string]interface{}{
+				"access_key":       "access key",
+				"secret_key":       "secret key",
+				"region":           "eu-west-1",
+				"role_arn":         "arn:aws:iam::123456789012:role/test-role",
+				"role_external_id": "external-id-12345",
+			},
+			expRegion: "eu-west-1",
+		},
+		"with web_identity_token": {
+			params: map[string]interface{}{
+				"region":             "ap-southeast-1",
+				"role_arn":           "arn:aws:iam::123456789012:role/web-identity-role",
+				"web_identity_token": "mock-web-identity-token",
+				"role_session_name":  "test-session",
+			},
+			expRegion: "ap-southeast-1",
+		},
 		"invalid config": {
 			params: map[string]interface{}{
 				"invalid": true,
@@ -248,8 +267,10 @@ func TestVaultCAProvider_AWSCredentialsConfig(t *testing.T) {
 
 func TestVaultCAProvider_AWSLoginDataGenerator(t *testing.T) {
 	cases := map[string]struct {
-		expErr     error
-		authMethod structs.VaultAuthMethod
+		expErr        error
+		authMethod    structs.VaultAuthMethod
+		useNilConfig  bool
+		expectHeaders bool
 	}{
 		"valid login data": {
 			authMethod: structs.VaultAuthMethod{},
@@ -258,21 +279,65 @@ func TestVaultCAProvider_AWSLoginDataGenerator(t *testing.T) {
 			expErr:     nil,
 			authMethod: structs.VaultAuthMethod{Type: "aws", MountPath: "", Params: map[string]interface{}{"role": "test-role"}},
 		},
+		"with header_value": {
+			authMethod: structs.VaultAuthMethod{
+				Type:      "aws",
+				MountPath: "",
+				Params: map[string]interface{}{
+					"access_key":   "AKIAIOSFODNN7EXAMPLE",
+					"secret_key":   "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+					"region":       "us-west-2",
+					"header_value": "vault.example.com",
+				},
+			},
+			useNilConfig:  true,
+			expectHeaders: true,
+		},
+		"nil awsConfig generates credentials": {
+			authMethod: structs.VaultAuthMethod{
+				Type:      "aws",
+				MountPath: "",
+				Params: map[string]interface{}{
+					"access_key": "AKIAIOSFODNN7EXAMPLE",
+					"secret_key": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+					"region":     "eu-central-1",
+				},
+			},
+			useNilConfig: true,
+		},
+		"error on invalid config": {
+			authMethod: structs.VaultAuthMethod{
+				Type:      "aws",
+				MountPath: "",
+				Params: map[string]interface{}{
+					"invalid": true,
+				},
+			},
+			expErr: fmt.Errorf("aws auth failed to create credential configuration"),
+		},
 	}
 
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
-			// Create a mock AWS config with anonymous credentials for testing
-			mockConfig := &aws.Config{
-				Region: "us-east-1",
-				Credentials: aws.CredentialsProviderFunc(func(ctx context.Context) (aws.Credentials, error) {
-					return aws.Credentials{
-						AccessKeyID:     "AKIAIOSFODNN7EXAMPLE",
-						SecretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
-					}, nil
-				}),
+			var ldg *AWSLoginDataGenerator
+
+			if c.useNilConfig {
+				// Test the path where awsConfig is nil and needs to be generated
+				ldg = &AWSLoginDataGenerator{awsConfig: nil}
+			} else {
+				// Create a mock AWS config with anonymous credentials for testing
+				mockConfig := &aws.Config{
+					Region: "us-east-1",
+					Credentials: aws.CredentialsProviderFunc(func(ctx context.Context) (aws.Credentials, error) {
+						return aws.Credentials{
+							AccessKeyID:     "AKIAIOSFODNN7EXAMPLE",
+							SecretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+						}, nil
+					}),
+				}
+				ldg = &AWSLoginDataGenerator{awsConfig: mockConfig}
 			}
-			ldg := &AWSLoginDataGenerator{awsConfig: mockConfig}
+
 			loginData, err := ldg.GenerateLoginData(&c.authMethod)
 			if c.expErr != nil {
 				require.Error(t, err)

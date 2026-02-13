@@ -13,7 +13,7 @@ import (
 	iamauth "github.com/hashicorp/consul-awsauth"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-hclog"
-	awsutilv2 "github.com/hashicorp/go-secure-stdlib/awsutil/v2"
+	"github.com/hashicorp/go-secure-stdlib/awsutil/v2"
 
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -92,22 +92,22 @@ func (g *AWSLoginDataGenerator) GenerateLoginData(authMethod *structs.VaultAuthM
 	return loginData, nil
 }
 
-// newAWSCredentialsConfig creates an awsutilv2.CredentialsConfig from the given set of parameters.
-func newAWSCredentialsConfig(config map[string]interface{}) (*awsutilv2.CredentialsConfig, string, error) {
+// newAWSCredentialsConfig creates an awsutil.CredentialsConfig from the given set of parameters.
+func newAWSCredentialsConfig(config map[string]interface{}) (*awsutil.CredentialsConfig, string, error) {
 	params, err := toMapStringString(config)
 	if err != nil {
 		return nil, "", fmt.Errorf("misconfiguration of AWS auth parameters: %w", err)
 	}
 
-	// Build options for awsutilv2.NewCredentialsConfig
-	var opts []awsutilv2.Option
+	// Build options for awsutil.NewCredentialsConfig
+	var opts []awsutil.Option
 
 	// Add basic credentials if provided
 	if accessKey := params["access_key"]; accessKey != "" {
-		opts = append(opts, awsutilv2.WithAccessKey(accessKey))
+		opts = append(opts, awsutil.WithAccessKey(accessKey))
 	}
 	if secretKey := params["secret_key"]; secretKey != "" {
-		opts = append(opts, awsutilv2.WithSecretKey(secretKey))
+		opts = append(opts, awsutil.WithSecretKey(secretKey))
 	}
 
 	// Add region
@@ -121,32 +121,32 @@ func newAWSCredentialsConfig(config map[string]interface{}) (*awsutilv2.Credenti
 			}
 		}
 	}
-	opts = append(opts, awsutilv2.WithRegion(region))
+	opts = append(opts, awsutil.WithRegion(region))
 
 	// Add optional parameters
 	if roleArn := params["role_arn"]; roleArn != "" {
-		opts = append(opts, awsutilv2.WithRoleArn(roleArn))
+		opts = append(opts, awsutil.WithRoleArn(roleArn))
 	}
 	if roleSessionName := params["role_session_name"]; roleSessionName != "" {
-		opts = append(opts, awsutilv2.WithRoleSessionName(roleSessionName))
+		opts = append(opts, awsutil.WithRoleSessionName(roleSessionName))
 	}
 	if roleExternalId := params["role_external_id"]; roleExternalId != "" {
-		opts = append(opts, awsutilv2.WithRoleExternalId(roleExternalId))
+		opts = append(opts, awsutil.WithRoleExternalId(roleExternalId))
 	}
 	if webIdentityTokenFile := params["web_identity_token_file"]; webIdentityTokenFile != "" {
-		opts = append(opts, awsutilv2.WithWebIdentityTokenFile(webIdentityTokenFile))
+		opts = append(opts, awsutil.WithWebIdentityTokenFile(webIdentityTokenFile))
 	}
 	if webIdentityToken := params["web_identity_token"]; webIdentityToken != "" {
-		opts = append(opts, awsutilv2.WithWebIdentityToken(webIdentityToken))
+		opts = append(opts, awsutil.WithWebIdentityToken(webIdentityToken))
 	}
 
 	// Add HTTP client
-	opts = append(opts, awsutilv2.WithHttpClient(cleanhttp.DefaultClient()))
+	opts = append(opts, awsutil.WithHttpClient(cleanhttp.DefaultClient()))
 
 	// Add max retries if specified
 	if maxRetriesStr := params["max_retries"]; maxRetriesStr != "" {
 		if maxRetries, err := strconv.Atoi(maxRetriesStr); err == nil {
-			opts = append(opts, awsutilv2.WithMaxRetries(&maxRetries))
+			opts = append(opts, awsutil.WithMaxRetries(&maxRetries))
 		}
 	}
 
@@ -156,7 +156,7 @@ func newAWSCredentialsConfig(config map[string]interface{}) (*awsutilv2.Credenti
 	// If needed in the future, we can create custom endpoint resolvers
 
 	// Create the credentials config
-	c, err := awsutilv2.NewCredentialsConfig(opts...)
+	c, err := awsutil.NewCredentialsConfig(opts...)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to create AWS credentials config: %w", err)
 	}
