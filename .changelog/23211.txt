@@ -1,0 +1,4 @@
+```release-note:security
+1: Upgraded to latest curl@edge to fix CVE-2025-14819, CVE-2025-14524, and CVE-2025-14017.
+2: Removed unused gnupg and openssl in default target, resolving CVE-2025-30258 and reducing image footprint.
+```

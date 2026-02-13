@@ -49,7 +49,11 @@ RUN addgroup consul && \
 # Set up certificates, base tools, and Consul.
 # libc6-compat is needed to symlink the shared libraries for ARM builds
 RUN set -eux && \
-    apk add --no-cache --upgrade ca-certificates curl dumb-init gnupg libcap openssl su-exec iputils jq libc6-compat iptables tzdata && \
+    echo '@edge https://dl-cdn.alpinelinux.org/alpine/edge/main' >> /etc/apk/repositories && \
+    apk update && \
+    apk upgrade --no-cache && \
+    apk add --no-cache ca-certificates dumb-init gnupg libcap openssl su-exec iputils jq libc6-compat iptables tzdata && \
+    apk add --no-cache curl@edge && \
     gpg --keyserver keyserver.ubuntu.com --recv-keys C874011F0AB405110D02105534365D9472D7468F && \
     mkdir -p /tmp/build && \
     cd /tmp/build && \
@@ -156,19 +160,20 @@ LABEL org.opencontainers.image.authors="Consul Team <consul@hashicorp.com>" \
 COPY LICENSE /usr/share/doc/$PRODUCT_NAME/LICENSE.txt
 # Set up certificates and base tools.
 # libc6-compat is needed to symlink the shared libraries for ARM builds
-RUN apk add -v --no-cache --upgrade \
+RUN echo '@edge https://dl-cdn.alpinelinux.org/alpine/edge/main' >> /etc/apk/repositories && \
+    apk update && \
+    apk upgrade --no-cache && \
+    apk add -v --no-cache \
 		dumb-init \
 		libc6-compat \
 		iptables \
 		tzdata \
-		curl \
 		ca-certificates \
-		gnupg \
 		iputils \ 
 		libcap \
-		openssl \
 		su-exec \
-		jq 
+		jq && \
+    apk add --no-cache curl@edge 
 
 # Create a consul user and group first so the IDs get set the same way, even as
 # the rest of this may change over time.
