@@ -1,0 +1,4 @@
+```release-note:improvement
+Migration of code to use aws-sdk-go-v2 from aws-sdk-go (v1)
+Updated consul-awsauth and go-secure-stdlib/awsutil dependencies to their v2 versions
+```
