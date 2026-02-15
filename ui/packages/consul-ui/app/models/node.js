@@ -29,7 +29,7 @@ export default class Node extends Model {
   // the response, see models/node.js
   @hasMany('service-instance', { async: false, inverse: null }) Services; // TODO: Rename to ServiceInstances
   @fragmentArray('health-check') Checks;
-  
+
   // MeshServiceInstances are all instances that aren't connect-proxies this
   // currently includes gateways as these need to show up in listings
   get MeshServiceInstances() {
@@ -40,7 +40,7 @@ export default class Node extends Model {
     }
     return services.filter((item) => item.Service.Kind !== 'connect-proxy');
   }
-  
+
   // ProxyServiceInstances are all instances that are connect-proxies
   get ProxyServiceInstances() {
     const services = this.Services;

@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-import Controller from "@ember/controller";
-import { inject as service } from "@ember/service";
+import Controller from '@ember/controller';
+import { inject as service } from '@ember/service';
 
 export default class DcPeersIndexController extends Controller {
   @service router;
@@ -12,6 +12,6 @@ export default class DcPeersIndexController extends Controller {
   redirectToPeerShow = (modalCloseFn, peerModel) => {
     modalCloseFn?.();
 
-    this.router.transitionTo("dc.peers.show", peerModel.Name);
+    this.router.transitionTo('dc.peers.show', peerModel.Name);
   };
 }

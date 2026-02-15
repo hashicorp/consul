@@ -10,26 +10,26 @@ export default {
     idle: {
       on: {
         LOAD: {
-          target: 'loading'
-        }
-      }
+          target: 'loading',
+        },
+      },
     },
     loading: {
       on: {
         SUCCESS: {
-          target: 'success'
+          target: 'success',
         },
         ERROR: {
-          target: 'error'
-        }
-      }
+          target: 'error',
+        },
+      },
     },
     success: {
       on: {
         RESET: {
-          target: 'idle'
-        }
-      }
+          target: 'idle',
+        },
+      },
     },
     error: {},
   },

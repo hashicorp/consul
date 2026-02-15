@@ -53,9 +53,7 @@ export default class ProxyService extends RepositoryService {
       if (instance) {
         res = instance;
       } else {
-        instance = items.find(
-          (item) => item?.ServiceProxy?.DestinationServiceName === params.id
-        );
+        instance = items.find((item) => item?.ServiceProxy?.DestinationServiceName === params.id);
         if (instance) {
           res = instance;
         }

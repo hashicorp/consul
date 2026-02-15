@@ -6,8 +6,6 @@
 import Mixin from '@ember/object/mixin';
 import { get } from '@ember/object';
 
-import minimizeModel from 'consul-ui/utils/minimizeModel';
-
 const normalizeIdentities = function (items, template, name, dc) {
   return (items || []).map(function (item) {
     const policy = {
@@ -111,28 +109,25 @@ export default Mixin.create({
   },
   serialize: function (snapshot, options) {
     const data = this._super(...arguments);
-    
+
     let policies = [];
     if (snapshot && snapshot.record && snapshot.record.Policies) {
-      policies = snapshot.record.Policies.toArray ? snapshot.record.Policies.toArray() : snapshot.record.Policies;
+      policies = snapshot.record.Policies.toArray
+        ? snapshot.record.Policies.toArray()
+        : snapshot.record.Policies;
     }
-    
+
     if ((!policies || policies.length === 0) && data.Policies && Array.isArray(data.Policies)) {
       policies = data.Policies;
     }
-    
+
     data.ServiceIdentities = serializeIdentities(
       policies,
       'service-identity',
       'ServiceName',
       'Datacenters'
     );
-    data.NodeIdentities = serializeIdentities(
-      policies,
-      'node-identity',
-      'NodeName',
-      'Datacenter'
-    );
+    data.NodeIdentities = serializeIdentities(policies, 'node-identity', 'NodeName', 'Datacenter');
     data.Policies = serializePolicies(policies);
     return data;
   },

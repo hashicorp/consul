@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-import Component from "@glimmer/component";
-import { action } from "@ember/object";
+import Component from '@glimmer/component';
+import { action } from '@ember/object';
 
 export default class NspaceForm extends Component {
   @action onSubmit(item) {

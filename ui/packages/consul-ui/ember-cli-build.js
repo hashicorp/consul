@@ -30,9 +30,7 @@ module.exports = function (defaults, $ = process.env) {
   const addons = {};
   let excludeFiles = [];
 
-  const apps = [
-    'consul-ui',
-  ].map((item) => {
+  const apps = ['consul-ui'].map((item) => {
     return {
       name: item,
       path: path.resolve(__dirname, '..', item),

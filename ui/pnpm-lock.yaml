@@ -39,16 +39,6 @@ importers:
         specifier: ^4.1.5
         version: 4.1.5
 
-  packages/consul-acls: {}
-
-  packages/consul-lock-sessions: {}
-
-  packages/consul-nspaces: {}
-
-  packages/consul-partitions: {}
-
-  packages/consul-peerings: {}
-
   packages/consul-ui:
     devDependencies:
       '@babel/core':

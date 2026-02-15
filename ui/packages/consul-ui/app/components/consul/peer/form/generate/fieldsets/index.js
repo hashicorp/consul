@@ -10,11 +10,11 @@ export default class PeerGenerateFieldSets extends Component {
   @action
   onInput(addresses) {
     if (addresses) {
-      addresses = addresses.split(',').map(address => address.trim());
+      addresses = addresses.split(',').map((address) => address.trim());
     } else {
       addresses = [];
     }
 
     this.args.item.ServerExternalAddresses = addresses;
-  } 
+  }
 }

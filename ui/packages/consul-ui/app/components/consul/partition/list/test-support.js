@@ -9,9 +9,9 @@ export const selectors = () => ({
       $: '[data-test-list-row]',
       partition: 'a',
       name: '[data-test-partition]',
-      description: '[data-test-description]'
-    }
-  }
+      description: '[data-test-description]',
+    },
+  },
 });
 export const pageObject = (collection, clickable, attribute, text, actions) => () => {
   return collection('.consul-partition-list [data-test-list-row]', {

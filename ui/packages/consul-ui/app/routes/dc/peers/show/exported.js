@@ -10,5 +10,5 @@ export default class PeersShowExportedRoute extends Route {
     search: {
       as: 'filter',
     },
-  };  // Object format in route with configuration
+  };
 }
