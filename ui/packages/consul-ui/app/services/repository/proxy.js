@@ -46,13 +46,16 @@ export default class ProxyService extends RepositoryService {
 
     let res = {};
     if (items.length > 0) {
-      let instance = items
-        .filterBy('ServiceProxy.DestinationServiceID', params.serviceId)
-        .findBy('NodeName', params.node);
+      const matching = items.filter(
+        (item) => item?.ServiceProxy?.DestinationServiceID === params.serviceId
+      );
+      let instance = matching.find((item) => item?.NodeName === params.node);
       if (instance) {
         res = instance;
       } else {
-        instance = items.findBy('ServiceProxy.DestinationServiceName', params.id);
+        instance = items.find(
+          (item) => item?.ServiceProxy?.DestinationServiceName === params.id
+        );
         if (instance) {
           res = instance;
         }

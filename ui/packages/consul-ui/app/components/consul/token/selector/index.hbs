@@ -1,0 +1,164 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+{{#if (can "use acls")}}
+  <AuthDialog
+    @src={{uri "settings://consul:token"}}
+    @sink={{uri "settings://consul:token"}}
+    @onchange={{this.reauthorize}}
+  >
+    <:unauthorized as |authDialog|>
+
+      <ModalDialog
+        @name="login-toggle"
+        @onclose={{this.close}}
+        @onopen={{this.open}}
+        @aria={{hash label="Log in to Consul"}}
+        as |modal|
+      >
+        <Ref @target={{this}} @name="modal" @value={{modal}} />
+        <BlockSlot @name="header">
+          <h2>
+            Log in to Consul
+          </h2>
+        </BlockSlot>
+        <BlockSlot @name="body">
+          <AuthForm
+            @dc={{@dc.Name}}
+            @partition={{@partition}}
+            @nspace={{@nspace}}
+            @onsubmit={{action authDialog.login value="data"}}
+            as |authForm|
+          >
+            <Ref @target={{this}} @name="authForm" @value={{authForm}} />
+            {{#if (can "use SSO")}}
+              <authForm.Method @matches="sso">
+                <OidcSelect
+                  @dc={{@dc.Name}}
+                  @partition={{@partition}}
+                  @nspace={{@nspace}}
+                  @disabled={{authForm.disabled}}
+                  @onchange={{authForm.submit}}
+                  @onerror={{authForm.error}}
+                />
+              </authForm.Method>
+            {{/if}}
+          </AuthForm>
+        </BlockSlot>
+        <BlockSlot @name="actions">
+          <Hds::Button
+            @color="secondary"
+            @text="Continue without logging in"
+            {{on "click" modal.close}}
+          />
+        </BlockSlot>
+      </ModalDialog>
+
+      <Hds::Dropdown
+        class="hds-side-nav__dropdown"
+        @listPosition="bottom-left"
+        as |dd|
+      >
+
+        <dd.ToggleIcon @icon="user" @text="Auth menu" data-test-auth-menu />
+        <dd.Interactive
+          @href={{href-to
+            "settings"
+            params=(hash nspace=undefined partition=undefined)
+          }}
+          @text={{t "components.hashicorp-consul.side-nav.user-menu.settings"}}
+          @isHrefExternal={{false}}
+        />
+        <dd.Interactive
+          @text={{t "components.hashicorp-consul.side-nav.user-menu.log-in"}}
+          data-test-auth-menu-login
+          {{on "click" (optional this.modal.open)}}
+        />
+      </Hds::Dropdown>
+    </:unauthorized>
+    <:authorized as |authDialog|>
+
+      <ModalDialog
+        @name="login-toggle"
+        @onclose={{this.close}}
+        @onopen={{this.open}}
+        @aria={{hash label="Log in with a different token"}}
+        as |modal|
+      >
+        <Ref @target={{this}} @name="modal" @value={{modal}} />
+        <BlockSlot @name="header">
+          <h2>
+            Log in with a different token
+          </h2>
+        </BlockSlot>
+        <BlockSlot @name="body">
+          <AuthForm
+            @dc={{@dc.Name}}
+            @nspace={{@nspace}}
+            @partition={{@partition}}
+            @onsubmit={{action authDialog.login value="data"}}
+            as |authForm|
+          >
+            <Ref @target={{this}} @name="authForm" @value={{authForm}} />
+          </AuthForm>
+        </BlockSlot>
+        <BlockSlot @name="actions">
+          <Hds::Button
+            @color="secondary"
+            @text="Continue without logging in"
+            {{on "click" modal.close}}
+          />
+        </BlockSlot>
+      </ModalDialog>
+
+      <Hds::Dropdown
+        class="hds-side-nav__dropdown"
+        @listPosition="bottom-left"
+        as |dd|
+      >
+        <dd.ToggleIcon @icon="user" @text="Auth menu" data-test-auth-menu />
+        {{#if authDialog.token.AccessorID}}
+          <dd.Description
+            @text={{t
+              "components.consul.token.selector.logged-in"
+              token=(string-substring
+                authDialog.token.AccessorID
+                (sub authDialog.token.AccessorID.length 8)
+              )
+              htmlSafe=true
+            }}
+          />
+        {{/if}}
+        <dd.Separator />
+        <dd.Interactive
+          @href={{href-to
+            "settings"
+            params=(hash nspace=undefined partition=undefined)
+          }}
+          @text={{t "components.hashicorp-consul.side-nav.user-menu.settings"}}
+          @isHrefExternal={{false}}
+        />
+        <dd.Interactive
+          @text={{t "components.hashicorp-consul.side-nav.user-menu.log-out"}}
+          data-test-auth-menu-logout
+          {{on "click" (optional authDialog.logout)}}
+        />
+      </Hds::Dropdown>
+    </:authorized>
+  </AuthDialog>
+  {{yield (hash open=this.modal.open close=this.model.close)}}
+{{else}}
+  <Hds::Dropdown class="hds-side-nav__dropdown" @listPosition="bottom-left" as |dd|>
+    <dd.ToggleIcon @icon="user" @text="Auth menu" data-test-auth-menu />
+    <dd.Interactive
+      @href={{href-to
+        "settings"
+        params=(hash nspace=undefined partition=undefined)
+      }}
+      @text={{t "components.hashicorp-consul.side-nav.user-menu.settings"}}
+      @isHrefExternal={{false}}
+    />
+  </Hds::Dropdown>
+{{/if}}

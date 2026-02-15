@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-import { LinkComponent as LegacyLinkComponent } from '@ember/legacy-built-in-components';
-
 export class HrefTo {
   constructor(container, target) {
     this.applicationInstance = container;
@@ -56,8 +54,17 @@ export class HrefTo {
     let isLinkComponent = false;
     const id = $el.id;
     if (id) {
-      const componentInstance = this.applicationInstance.lookup('-view-registry:main')[id];
-      isLinkComponent = componentInstance && componentInstance instanceof LegacyLinkComponent;
+      const viewRegistry = this.applicationInstance.lookup('-view-registry:main');
+      if (!viewRegistry) {
+        return false;
+      }
+      const componentInstance = viewRegistry[id];
+      // In Ember 5.x, check if it's a LinkTo component by checking the element attributes
+      // or component instance properties rather than instanceof check
+      isLinkComponent = componentInstance && (
+        componentInstance.constructor.name === 'LinkToComponent' ||
+        (componentInstance.tagName === 'a' && componentInstance.hasOwnProperty('route'))
+      );
     }
     return isLinkComponent;
   }

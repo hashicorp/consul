@@ -1,0 +1,40 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+{{#if (eq @type 'remove')}}
+  {{#if @error}}
+    <Hds::Toast
+      @color='critical'
+      ...attributes
+      as |T|>
+      <T.Title>Error!</T.Title>
+      <T.Description>
+        There was an error invalidating the Lock Session.
+        {{#if (and @error.status @error.detail)}}
+          <br />{{@error.status}}: {{@error.detail}}
+        {{/if}}
+      </T.Description>
+    </Hds::Toast>
+  {{else}}
+    <Hds::Toast
+      @color='success'
+      ...attributes
+      as |T|>
+      <T.Title>Success!</T.Title>
+      <T.Description>
+        Your Lock Session has been invalidated.
+      </T.Description>
+    </Hds::Toast>
+  {{/if}}
+{{else if (eq @type 'kv')}}
+  <Hds::Alert @type='inline' @color='warning' class='mb-3' data-test-session-warning as |A|>
+    <A.Title>Warning</A.Title>
+    <A.Description>This KV has a lock session. You can edit KV's with lock sessions, but we recommend doing so with care, or not doing so at all. It may negatively impact the active node it's associated with. See below for more details on the Lock Session.</A.Description>
+    <A.Link::Standalone @text='Learn more'
+                        @href="{{env 'CONSUL_DOCS_URL'}}/internals/sessions.html"
+                        @icon='docs-link'
+                        @iconPosition='trailing' />
+  </Hds::Alert>
+{{/if}}

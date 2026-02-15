@@ -1,0 +1,114 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+<div
+  class="consul-lock-session-form"
+  data-test-session={{@item.ID}}
+  ...attributes
+>
+  <DataWriter
+    @sink={{uri
+      '/${partition}/${nspace}/${dc}/session'
+      (hash
+        partition=@item.Partition
+        nspace=@item.Namespace
+        dc=@item.Datacenter
+      )
+    }}
+    @type='session'
+    @label='Lock Session'
+    @ondelete={{fn (if @ondelete @ondelete @onsubmit) @item}}
+    @onchange={{fn (optional @onsubmit) @item}}
+    as |writer|>
+      <BlockSlot @name="removed" as |after|>
+        <Consul::LockSession::Notifications
+          {{notification
+            after=(action after)
+          }}
+          @type="remove"
+        />
+      </BlockSlot>
+      <BlockSlot @name="error" as |after error|>
+        <Consul::LockSession::Notifications
+          {{notification
+            after=(action after)
+          }}
+          @type="remove"
+          @error={{error}}
+        />
+      </BlockSlot>
+      <BlockSlot @name="content">
+        <div
+          class="definition-table"
+        >
+          <dl>
+  {{#if @item.Name}}
+            <dt>Name</dt>
+            <dd>{{@item.Name}}</dd>
+  {{/if}}
+            <dt>ID</dt>
+            <dd>{{@item.ID}}</dd>
+            <dt>Node</dt>
+            <dd>
+              <Hds::Button
+                @text={{@item.Node}}
+                @icon='git-commit'
+                @href={{href-to 'dc.nodes.show' @item.Node}}
+                @isHrefExternal={{false}}
+                @size='small'
+                @color='tertiary'
+              />
+            </dd>
+            <dt>Delay</dt>
+            <dd>{{duration-from @item.LockDelay}}</dd>
+            <dt>TTL</dt>
+            <dd>{{or @item.TTL '-'}}</dd>
+            <dt>Behavior</dt>
+            <dd>{{@item.Behavior}}</dd>
+  {{#let @item.checks as |checks|}}
+            <dt>Health Checks</dt>
+            <dd>
+    {{#if (gt checks.length 0)}}
+                {{ join ', ' checks}}
+    {{else}}
+                -
+    {{/if}}
+            </dd>
+  {{/let}}
+          </dl>
+        </div>
+  {{#if (can 'delete session' item=@item)}}
+        <ConfirmationDialog @message="Are you sure you want to invalidate this Lock Session?">
+          <BlockSlot @name="action" as |confirm|>
+            <Hds::Button
+              @text='Invalidate Session'
+              @color='critical'
+              data-test-delete
+              {{on 'click' confirm }}
+            />
+          </BlockSlot>
+          <BlockSlot @name="dialog" as |execute cancel message|>
+            <p>
+              {{message}}
+            </p>
+            <Hds::ButtonSet>
+              <Hds::Button
+                @text='Confirm Invalidation'
+                @color='critical'
+                data-test-delete
+                {{on 'click' (queue execute (fn writer.delete @item))}}
+              />
+              <Hds::Button
+                @text='Cancel'
+                @color='secondary'
+                {{on 'click' cancel}}
+              />
+            </Hds::ButtonSet>
+          </BlockSlot>
+        </ConfirmationDialog>
+  {{/if}}
+      </BlockSlot>
+    </DataWriter>
+</div>

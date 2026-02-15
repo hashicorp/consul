@@ -1,0 +1,150 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+<Route
+  @name={{this.routeName}}
+as |route|>
+  <DataLoader
+    @src={{
+      uri '/${partition}/${nspace}/${dc}/partitions'
+      (hash
+        partition=route.params.partition
+        nspace=route.params.nspace
+        dc=route.params.dc
+      )}}
+    as |loader|>
+
+    <BlockSlot @name="error">
+      <AppError
+        @error={{loader.error}}
+        @login={{route.model.app.login.open}}
+      />
+    </BlockSlot>
+
+    <BlockSlot @name="loaded">
+  {{#let
+
+    (hash
+      value=(or this.sortBy "Name:asc")
+      change=(action (mut this.sortBy) value="target.selected")
+    )
+
+    (hash
+      searchproperty=(hash
+        value=(if (not-eq this.searchproperty undefined)
+          (split this.searchproperty ',')
+          this.searchProperties
+        )
+        change=(action (mut this.searchproperty) value="target.selectedItems")
+        default=this.searchProperties
+      )
+    )
+
+    loader.data
+
+  as |sort filters items|}}
+
+    <AppView>
+      <BlockSlot @name="header">
+        <h1>
+          <route.Title @title="Admin Partitions" />
+        </h1>
+      </BlockSlot>
+      <BlockSlot @name="actions">
+{{#if (can 'create partitions')}}
+  <Hds::Button
+    @text='Create'
+    @route='dc.partitions.create'
+    data-test-create
+  />
+{{/if}}
+      </BlockSlot>
+      <BlockSlot @name="toolbar">
+      {{#if (gt items.length 0)}}
+        <Consul::Partition::SearchBar
+          @search={{this.search}}
+          @onsearch={{action (mut this.search) value="target.value"}}
+
+          @sort={{sort}}
+
+          @filter={{filters}}
+        />
+      {{/if}}
+      </BlockSlot>
+      <BlockSlot @name="content">
+        {{#let (refresh-route) as |refreshRoute|}}
+        <DataWriter
+          @sink={{uri '/${partition}/${dc}/${nspace}/partition/'
+            (hash
+              partition=route.params.partition
+              nspace=route.params.nspace
+              dc=route.params.dc
+            )
+          }}
+          @type="partition"
+          @label="Partition"
+          @ondelete={{refreshRoute}}
+        as |writer|>
+          <BlockSlot @name="removed" as |after|>
+            <Consul::Partition::Notifications 
+              {{notification
+                after=(action after)
+              }}
+              @type="remove"
+            />
+          </BlockSlot>
+          <BlockSlot @name="content">
+        <DataCollection
+          @type="nspace"
+          @sort={{sort.value}}
+          @filters={{filters}}
+          @search={{this.search}}
+          @items={{items}}
+        as |collection|>
+          <collection.Collection>
+            <Consul::Partition::List
+              @items={{collection.items}}
+              @ondelete={{writer.delete}}
+            />
+          </collection.Collection>
+          <collection.Empty>
+            <EmptyState
+              @login={{route.model.app.login.open}}
+            >
+              <BlockSlot @name="header">
+                <h2>
+                  {{t 'routes.dc.partitions.index.empty.header'
+                    items=items.length}}
+                </h2>
+              </BlockSlot>
+              <BlockSlot @name="body">
+                <p>
+                  {{t 'routes.dc.partitions.index.empty.body'
+                    items=items.length
+                    canUseACLs=(can 'use acls')}}
+                </p>
+              </BlockSlot>
+              <BlockSlot @name="actions">
+                <li class="docs-link">
+                  <Action
+                    @href="{{env 'CONSUL_DOCS_URL'}}/enterprise/admin-partitions"
+                    @external={{true}}
+                  >
+                    Documentation on Admin Partitions
+                  </Action>
+                </li>
+              </BlockSlot>
+            </EmptyState>
+          </collection.Empty>
+        </DataCollection>
+    </BlockSlot>
+  </DataWriter>
+  {{/let}}
+      </BlockSlot>
+    </AppView>
+  {{/let}}
+    </BlockSlot>
+  </DataLoader>
+</Route>

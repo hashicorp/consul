@@ -46,9 +46,22 @@ const serializeIdentities = function (items, template, name, dc) {
     });
 };
 const serializePolicies = function (items) {
-  return items.filter(function (item) {
-    return item.template === '';
-  });
+  return items
+    .filter(function (item) {
+      const template = get(item, 'template');
+      return template === '' || typeof template === 'undefined';
+    })
+    .map(function (item) {
+      // Extract ID and Name - use get() for both to handle models and objects
+      return {
+        ID: get(item, 'ID'),
+        Name: get(item, 'Name'),
+      };
+    })
+    .filter(function (item) {
+      // Only include items that have both ID and Name
+      return item.ID && item.Name;
+    });
 };
 
 export default Mixin.create({
@@ -98,19 +111,29 @@ export default Mixin.create({
   },
   serialize: function (snapshot, options) {
     const data = this._super(...arguments);
+    
+    let policies = [];
+    if (snapshot && snapshot.record && snapshot.record.Policies) {
+      policies = snapshot.record.Policies.toArray ? snapshot.record.Policies.toArray() : snapshot.record.Policies;
+    }
+    
+    if ((!policies || policies.length === 0) && data.Policies && Array.isArray(data.Policies)) {
+      policies = data.Policies;
+    }
+    
     data.ServiceIdentities = serializeIdentities(
-      data.Policies,
+      policies,
       'service-identity',
       'ServiceName',
       'Datacenters'
     );
     data.NodeIdentities = serializeIdentities(
-      data.Policies,
+      policies,
       'node-identity',
       'NodeName',
       'Datacenter'
     );
-    data.Policies = minimizeModel(serializePolicies(data.Policies));
+    data.Policies = serializePolicies(policies);
     return data;
   },
 });
