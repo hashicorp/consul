@@ -1,6 +1,6 @@
 module test-sds-server
 
-go 1.25.5
+go 1.25.7
 
 require (
 	github.com/envoyproxy/go-control-plane v0.13.4
