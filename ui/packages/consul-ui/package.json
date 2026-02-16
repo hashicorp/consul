@@ -198,7 +198,7 @@
     "unist-util-visit": "^2.0.3",
     "validated-changeset": "^1.4.1",
     "wayfarer": "^7.0.1",
-    "webpack": "^5.74.0"
+    "webpack": "^5.104.1"
   },
   "engines": {
     "node": "20"
