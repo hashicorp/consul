@@ -94,11 +94,11 @@ var ACLEndpointSummaries = []prometheus.SummaryDefinition{
 	},
 	{
 		Name: []string{"acl", "logout"},
-		Help: "",
+		Help: "Measures the time it takes to complete an ACL logout operation, invalidating the session.",
 	},
 	{
 		Name: []string{"acl", "logout"},
-		Help: "",
+		Help: "Measures the time it takes to complete an ACL logout operation, invalidating the session.",
 	},
 }
 
