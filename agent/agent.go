@@ -1763,6 +1763,24 @@ func (a *Agent) ShutdownAgent() error {
 	a.rpcClientConfigEntry.Close()
 
 	var err error
+	if a.config.ACLsEnabled {
+		if agentToken := a.tokens.AgentToken(); agentToken != "" {
+			logoutArgs := structs.ACLLogoutRequest{
+				Datacenter: a.config.Datacenter,
+				WriteRequest: structs.WriteRequest{
+					Token: agentToken,
+				},
+			}
+
+			var ignored bool
+			if logoutErr := a.RPC(context.TODO(), "ACL.Logout", &logoutArgs, &ignored); logoutErr != nil {
+				// ErrPermissionDenied = static token (not login-derived), expected and fine.
+				// Any other error = log a warning but don't block shutdown.
+				a.logger.Debug("agent token logout on shutdown", "error", logoutErr)
+			}
+		}
+	}
+
 	if a.delegate != nil {
 		err = a.delegate.Shutdown()
 		if _, ok := a.delegate.(*consul.Server); ok {

@@ -49,6 +49,7 @@ import (
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul"
+	"github.com/hashicorp/consul/agent/consul/authmethod/testauth"
 	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
@@ -6684,4 +6685,77 @@ func TestAgent_ServiceRegistration(t *testing.T) {
 			tc.validateFn(t, agent)
 		})
 	}
+}
+
+// TestShutdownAgent_RevokesLoginDerivedAgentToken verifies that ShutdownAgent
+// revokes an agent token that was obtained via ACL login. Tokens created through
+// an auth method must be explicitly deleted on shutdown; otherwise they accumulate
+// in the server state store and degrade Raft performance over time.
+//
+// The expected lifecycle is:
+//  1. An init process (e.g. consul-k8s acl-init) logs in via POST /v1/acl/login
+//     and the resulting token is set as the agent token.
+//  2. On shutdown, ShutdownAgent calls ACL.Logout before closing the delegate,
+//     which deletes the token from the state store.
+//  3. Tokens backed by a static configuration (no AuthMethod) are left untouched.
+func TestShutdownAgent_RevokesLoginDerivedAgentToken(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+	t.Parallel()
+
+	a := NewTestAgent(t, TestACLConfig())
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	// Register a session-based auth method and a matching binding rule so that
+	// a login call produces a valid service-identity token.
+	testSessionID := testauth.StartSession()
+	defer testauth.ResetSession(testSessionID)
+	testauth.InstallSessionToken(testSessionID, "sa-token", "default", "consul-agent", "uid-001")
+
+	methodReq, _ := http.NewRequest("PUT", "/v1/acl/auth-method", jsonBody(&structs.ACLAuthMethod{
+		Name:   "agent-auth-method",
+		Type:   "testing",
+		Config: map[string]interface{}{"SessionID": testSessionID},
+	}))
+	methodReq.Header.Add("X-Consul-Token", "root")
+	_, err := a.srv.ACLAuthMethodCreate(httptest.NewRecorder(), methodReq)
+	require.NoError(t, err)
+
+	ruleReq, _ := http.NewRequest("PUT", "/v1/acl/binding-rule", jsonBody(&structs.ACLBindingRule{
+		AuthMethod: "agent-auth-method",
+		Selector:   "serviceaccount.namespace==default",
+		BindType:   structs.BindingRuleBindTypeService,
+		BindName:   "consul-agent",
+	}))
+	ruleReq.Header.Add("X-Consul-Token", "root")
+	_, err = a.srv.ACLBindingRuleCreate(httptest.NewRecorder(), ruleReq)
+	require.NoError(t, err)
+
+	// Perform a login to obtain a token, then set it as the agent token.
+	// This mirrors the flow where an init container logs in and the resulting
+	// secret is passed to the agent via CONSUL_HTTP_TOKEN_FILE.
+	loginReq, _ := http.NewRequest("POST", "/v1/acl/login", jsonBody(&structs.ACLLoginParams{
+		AuthMethod:  "agent-auth-method",
+		BearerToken: "sa-token",
+	}))
+	obj, err := a.srv.ACLLogin(httptest.NewRecorder(), loginReq)
+	require.NoError(t, err)
+	loginToken := obj.(*structs.ACLToken)
+
+	a.tokens.UpdateAgentToken(loginToken.SecretID, token.TokenSourceAPI)
+
+	// Retain a reference to the state store before shutdown so we can inspect
+	// it after the server has been stopped.
+	store := a.delegate.(*consul.Server).GetState()
+
+	_, tok, err := store.ACLTokenGetByAccessor(nil, loginToken.AccessorID, nil)
+	require.NoError(t, err)
+	require.NotNil(t, tok, "login-derived token must exist in state store before shutdown")
+
+	require.NoError(t, a.ShutdownAgent())
+
+	_, tok, err = store.ACLTokenGetByAccessor(nil, loginToken.AccessorID, nil)
+	require.NoError(t, err)
+	require.Nil(t, tok, "login-derived token must be revoked from state store on shutdown")
 }
