@@ -344,6 +344,52 @@ func getPrometheusDefs(cfg *config.RuntimeConfig, isServer bool) ([]prometheus.G
 		},
 	}
 
+	// Runtime metrics
+	runtimeGauges := []prometheus.GaugeDefinition{
+		{
+			Name: []string{"runtime", "num_goroutines"},
+			Help: "Tracks the number of running goroutines, indicating concurrent processing load.",
+		},
+		{
+			Name: []string{"runtime", "alloc_bytes"},
+			Help: "Measures the number of bytes currently allocated by the Consul process and in use.",
+		},
+		{
+			Name: []string{"runtime", "heap_objects"},
+			Help: "Measures the number of objects currently allocated on the heap, indicating memory pressure.",
+		},
+		{
+			Name: []string{"runtime", "sys_bytes"},
+			Help: "Total bytes of memory obtained from the operating system by the Consul process.",
+		},
+	}
+
+	runtimeCounters := []prometheus.CounterDefinition{
+		{
+			Name: []string{"runtime", "malloc_count"},
+			Help: "Total number of memory allocations (mallocs) performed by the Consul process.",
+		},
+		{
+			Name: []string{"runtime", "free_count"},
+			Help: "Total number of memory deallocations (frees) performed by the Consul process.",
+		},
+		{
+			Name: []string{"runtime", "total_gc_runs"},
+			Help: "Total number of completed garbage collection cycles since the process started.",
+		},
+	}
+
+	runtimeSummaries := []prometheus.SummaryDefinition{
+		{
+			Name: []string{"runtime", "gc_pause_ns"},
+			Help: "Measures the duration of individual garbage collection pause events in nanoseconds.",
+		},
+		{
+			Name: []string{"runtime", "total_gc_pause_ns"},
+			Help: "Cumulative nanoseconds spent in garbage collection pauses since the process started.",
+		},
+	}
+
 	// Build slice of slices for all gauge definitions
 	var gauges = [][]prometheus.GaugeDefinition{
 		cache.Gauges,
@@ -357,6 +403,7 @@ func getPrometheusDefs(cfg *config.RuntimeConfig, isServer bool) ([]prometheus.G
 		Gauges,
 		raftGauges,
 		serverGauges,
+		runtimeGauges,
 	}
 
 	if cfg.Telemetry.EnableHostMetrics {
@@ -427,6 +474,14 @@ func getPrometheusDefs(cfg *config.RuntimeConfig, isServer bool) ([]prometheus.G
 			Name: []string{"raft", "state", "leader"},
 			Help: "This increments whenever a Consul server becomes a leader.",
 		},
+		{
+			Name: []string{"raft", "state", "follower"},
+			Help: "Counts the number of times an agent has entered the follower state during cluster operations or elections.",
+		},
+		{
+			Name: []string{"raft", "barrier"},
+			Help: "Counts the number of times the agent has started a raft barrier to ensure all pending operations are applied.",
+		},
 	}
 
 	var counters = [][]prometheus.CounterDefinition{
@@ -441,6 +496,7 @@ func getPrometheusDefs(cfg *config.RuntimeConfig, isServer bool) ([]prometheus.G
 		xds.StatsCounters,
 		raftCounters,
 		rate.Counters,
+		runtimeCounters,
 	}
 
 	// For some unknown reason, we seem to add the raft counters above without
@@ -502,6 +558,18 @@ func getPrometheusDefs(cfg *config.RuntimeConfig, isServer bool) ([]prometheus.G
 			Name: []string{"raft", "rpc", "installSnapshot"},
 			Help: "Measures the time it takes the raft leader to install a snapshot on a follower that is catching up after being down or has just joined the cluster.",
 		},
+		{
+			Name: []string{"raft", "fsm", "apply"},
+			Help: "Measures the time taken to apply a log entry to the Finite State Machine (FSM).",
+		},
+		{
+			Name: []string{"raft", "fsm", "enqueue"},
+			Help: "Measures the time taken to enqueue a batch of log entries for the FSM to apply.",
+		},
+		{
+			Name: []string{"raft", "leader", "dispatchLog"},
+			Help: "Measures the time it takes for the raft leader to write log entries to disk.",
+		},
 	}
 
 	var summaries = [][]prometheus.SummaryDefinition{
@@ -523,6 +591,7 @@ func getPrometheusDefs(cfg *config.RuntimeConfig, isServer bool) ([]prometheus.G
 		fsm.SnapshotSummaries,
 		raftSummaries,
 		xds.StatsSummaries,
+		runtimeSummaries,
 	}
 	// Flatten definitions
 	// NOTE(kit): Do we actually want to create a set here so we can ensure definition names are unique?
