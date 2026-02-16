@@ -123,7 +123,7 @@ func (e *HTTPRouteConfigEntry) Normalize() error {
 func (e *HTTPRouteConfigEntry) normalizeHTTPService(service HTTPService) HTTPService {
 	service.Merge(e.GetEnterpriseMeta())
 	service.Normalize()
-	if service.Weight <= 0 {
+	if service.Weight < 0 {
 		service.Weight = 1
 	}
 	return service
