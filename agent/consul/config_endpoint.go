@@ -481,10 +481,23 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 				return err
 			}
 
+			// Compute the resolved service config.
+			// This merges together all relevant config entries.
+			// After this we compare the config with the old hash
+			// to see if anything changed.
+			thisReply, err := configentry.ComputeResolvedServiceConfig(
+				args,
+				entries,
+				c.logger,
+			)
+			if err != nil {
+				return err
+			}
+
 			// Generate a hash of the config entry content driving this
 			// response. Use it to determine if the response is identical to a
 			// prior wakeup.
-			newHash, err := hashstructure_v2.Hash(entries, hashstructure_v2.FormatV2, nil)
+			newHash, err := hashstructure_v2.Hash(thisReply, hashstructure_v2.FormatV2, nil)
 			if err != nil {
 				return fmt.Errorf("error hashing reply for spurious wakeup suppression: %w", err)
 			}
@@ -500,14 +513,6 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 				ranOnce = true
 			}
 
-			thisReply, err := configentry.ComputeResolvedServiceConfig(
-				args,
-				entries,
-				c.logger,
-			)
-			if err != nil {
-				return err
-			}
 			thisReply.Index = index
 
 			*reply = *thisReply
