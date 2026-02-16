@@ -49,7 +49,6 @@ ${environment === 'production' ? `{{jsonEncode .}}` : JSON.stringify(config.oper
   </script>
   <script src="${rootURL}assets/consul-ui/services.js"></script>
   <script src="${rootURL}assets/consul-ui/routes.js"></script>
-  <script src="${rootURL}assets/consul-lock-sessions/routes.js"></script>
 ${
   environment === 'development' || environment === 'staging'
     ? `
@@ -57,61 +56,6 @@ ${
   <script src="${rootURL}assets/consul-ui/routes-debug.js"></script>
 `
     : ``
-}
-${
-  environment === 'production'
-    ? `
-{{if .ACLsEnabled}}
-  <script src="${rootURL}assets/consul-acls/routes.js"></script>
-{{end}}
-{{if .PeeringEnabled}}
-  <script src="${rootURL}assets/consul-peerings/services.js"></script>
-  <script src="${rootURL}assets/consul-peerings/routes.js"></script>
-{{end}}
-{{if .PartitionsEnabled}}
-  <script src="${rootURL}assets/consul-partitions/services.js"></script>
-  <script src="${rootURL}assets/consul-partitions/routes.js"></script>
-{{end}}
-{{if .NamespacesEnabled}}
-  <script src="${rootURL}assets/consul-nspaces/routes.js"></script>
-{{end}}
-`
-    : `
-<script>
-(
-  function(get, obj) {
-    Object.entries(obj).forEach(([key, value]) => {
-      if(value.default || get(key) || (key === 'CONSUL_NSPACES_ENABLE' && ${
-        env('CONSUL_NSPACES_ENABLED') === '1' ? `true` : `false`
-      })) {
-        document.write(\`\\x3Cscript src="${rootURL}assets/\${value.name}/services.js">\\x3C/script>\`);
-        document.write(\`\\x3Cscript src="${rootURL}assets/\${value.name}/routes.js">\\x3C/script>\`);
-      }
-    });
-  }
-)(
-  key => document.cookie.split('; ').find(item => item.startsWith(\`\${key}=\`)),
-  {
-    'CONSUL_ACLS_ENABLE': {
-      name: 'consul-acls',
-      default: ${config.operatorConfig.ACLsEnabled}
-    },
-    'CONSUL_PEERINGS_ENABLE': {
-      name: 'consul-peerings',
-      default: ${config.operatorConfig.PeeringEnabled}
-    },
-    'CONSUL_PARTITIONS_ENABLE': {
-      name: 'consul-partitions',
-      default: ${config.operatorConfig.PartitionsEnabled}
-    },
-    'CONSUL_NSPACES_ENABLE': {
-      name: 'consul-nspaces',
-      default: ${config.operatorConfig.NamespacesEnabled}
-    },
-  }
-);
-</script>
-`
 }
   <script src="${rootURL}assets/init.js"></script>
   <script src="${rootURL}assets/vendor.js"></script>
