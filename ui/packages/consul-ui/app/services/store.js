@@ -5,11 +5,22 @@
 
 import { inject as service } from '@ember/service';
 import Store from '@ember-data/store';
+import RequestManager from '@ember-data/request';
+import Fetch from '@ember-data/request/fetch';
+import { LegacyNetworkHandler } from '@ember-data/legacy-compat';
 
 export default class StoreService extends Store {
+  requestManager = new RequestManager();
+
   @service('data-source/service') dataSource;
 
   @service('client/http') client;
+
+  constructor(...args) {
+    super(...args);
+
+    this.requestManager.use([LegacyNetworkHandler, Fetch]);
+  }
 
   invalidate(status = 401) {
     // Aborting the client will close all open http type sources
