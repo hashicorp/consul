@@ -6,7 +6,7 @@ Tags are de-duplicated when rendered.
 
 Uses `%horizontal-kv-list` for positioning/icon and `%csv-list` for tag separating
 
-```hbs
+```hbs preview-template
 <TagList
   @item={{hash
     Tags=(array 'tag' 'tag' 'another-tag')
@@ -23,7 +23,7 @@ Uses `%horizontal-kv-list` for positioning/icon and `%csv-list` for tag separati
 `TagList` is also a recursive component, which can currently be used for when you need to wrap the `TagList` component in more DOM, but you only want that DOM to appear if your array of tags is non-empty.
 
 
-```hbs
+```hbs preview-template
 <figure>
   <figcaption>
     This list has tags therefore the red border div will also be rendered.

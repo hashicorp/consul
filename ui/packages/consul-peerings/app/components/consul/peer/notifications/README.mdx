@@ -1,0 +1,19 @@
+# Consul::Peer::Notifications
+
+A Notification component specifically for Peers. This is only a component as we currently use this in two places and if we need to add more types we can do so in one place.
+
+We currently one have one 'remove' type due to the fact that Peers can't use the default 'delete' notification as they get 'marked for deletion' instead.
+
+```hbs preview-template
+  <Consul::Peer::Notifications
+    @type={{'remove'}}
+  />
+```
+
+
+
+## See
+
+- [Template Source Code](./index.hbs)
+
+---

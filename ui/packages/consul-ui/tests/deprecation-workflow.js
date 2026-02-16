@@ -21,7 +21,5 @@ self.deprecationWorkflow.config = {
     { handler: 'log', matchId: 'ember-data:legacy-test-helper-support' },
     { handler: 'log', matchId: 'ember-data:Model.data' },
     { handler: 'silence', matchId: 'ember-data:rsvp-unresolved-async' },
-    { handler: 'silence', matchId: 'ember-data:deprecate-model-reopenclass' },
-    { handler: 'silence', matchId: 'template-action' },
   ],
 };

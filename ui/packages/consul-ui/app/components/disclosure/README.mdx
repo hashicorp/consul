@@ -24,7 +24,7 @@ disclosing. Every `Details` component has its `id` added to the `Action`
 `aria-controls` attribute by default so you don't need to do this yourself if
 using the `Details` component.
 
-```hbs
+```hbs preview-template
 <Disclosure as |disclosure|>
   <disclosure.Action
     {{on-outside 'click' disclosure.close}}
@@ -44,7 +44,7 @@ using the `Details` component.
 
 You can also use multiple Details components for a single Discloure Action component to control multiple areas.
 
-```hbs
+```hbs preview-template
 <Disclosure as |disclosure|>
   <disclosure.Action
     {{on-outside 'click' disclosure.close}}
@@ -71,7 +71,7 @@ You can also use multiple Details components for a single Discloure Action compo
 
 Or use two buttons/Actions to control one Detail (or multiple Details).
 
-```hbs
+```hbs preview-template
 <Disclosure as |disclosure|>
   <div
     {{on-outside 'click' disclosure.close}}
@@ -101,7 +101,7 @@ If you don't want to use the automatic hiding/showing (and therefore removal fro
 
 **Please note:** We use a `style` attribute here just for illustrative purposes, you should consider using a `class` attribute instead if you want to use CSS for disclosure.
 
-```hbs
+```hbs preview-template
 <Disclosure as |disclosure|>
   <disclosure.Action
     {{on-outside 'click' disclosure.close}}
@@ -139,7 +139,7 @@ If you don't want to use the automatic hiding/showing (and therefore removal fro
 By making use of `@auto={{false}}` and hand-rolling your show/hide logic you
 can use disclosure to implement slightly more complex UI.
 
-```hbs
+```hbs preview-template
 <Disclosure as |disclosure|>
   <disclosure.Action
     {{on-outside 'click' disclosure.close}}

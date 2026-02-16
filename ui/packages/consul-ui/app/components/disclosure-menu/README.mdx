@@ -8,7 +8,7 @@ be on another DOM layer/absolutely positioned so you should apply that layout
 yourself, but it's root node is relatively positioned to help for the fairly
 common usecase of having a floating menu.
 
-```hbs
+```hbs preview-template
 <figure>
   <figcaption>
     Non-floating Menu
@@ -62,7 +62,7 @@ common usecase of having a floating menu.
 
 `DisclosureMenu` also supports virtually scrolling its menu items for when you have 1000s of items to display in the menu whilst avoiding DOM stuttering. The set up is a tinsy bit more involved. but eesnetially you provide the data items for the menu using the `@items` argument, and then you can loop through these in the menu to make/use your menu items. The `menu.items` property is automatically paged for you depending on the scroll position of the menu panel. Importantly, right now, you should provide a height value for each menu.item using the `--paged-row-height` CSS property, you can do this inline or within your CSS (preferred). If you don't do this the component is unable to calculate the size of the scroll track/thumb. In the future (when needed) we will provide a callback for each item so you can specify a function to calculate the size of each individual item to give us a little more flexibility on what we can do with this component.
 
-```hbs
+```hbs preview-template
 <DataSource
   @src={{uri
   '/${partition}/${nspace}/${dc}/nodes'

@@ -23,7 +23,7 @@ If the `@login` attribute is provided, a button will be shown directly
 underneath the body text clicking on which will fire the provided `@login`
 function.
 
-```hbs
+```hbs preview-template
 <EmptyState
   class="status-404"
   @login={{noop}}
@@ -70,7 +70,7 @@ The component has four slots for specifying header, subheader, body and
 'actions', although the component will show a minimal empty slot if only the
 body slot is specified:
 
-```hbs
+```hbs preview-template
 <EmptyState>
   <BlockSlot @name="body">
     <p>

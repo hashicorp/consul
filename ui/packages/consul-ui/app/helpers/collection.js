@@ -16,18 +16,13 @@ const collections = {
 class EmptyCollection {}
 export default class CollectionHelper extends Helper {
   compute([collection, str], hash) {
-    if (!collection || collection.length === 0) {
+    if (collection.length > 0) {
+      // TODO: Looksee if theres ever going to be a public way to get this
+      const modelName = get(collection, 'firstObject')._internalModel.modelName;
+      const Collection = collections[modelName];
+      return new Collection(collection);
+    } else {
       return new EmptyCollection();
     }
-
-    const first = get(collection, 'firstObject') || collection[0];
-    const modelName = get(first, 'constructor.modelName') || first?.modelName;
-    const Collection = collections[modelName];
-
-    if (!Collection) {
-      return new EmptyCollection();
-    }
-
-    return new Collection(collection);
   }
 }

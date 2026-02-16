@@ -46,7 +46,6 @@ export default (collection, clickable, attribute, property, authForm, emptyState
   page.navigation.login = clickable('[data-test-auth-menu-login]');
   page.navigation.dc = clickable('[data-test-datacenter-menu] button');
   page.navigation.nspace = clickable('[data-test-nspace-menu] button');
-  page.navigation.partition = clickable('[data-test-partition-menu] button');
   page.navigation.manageNspaces = clickable(
     '[data-test-nspace-menu] [data-test-nav-selector-footer-link]'
   );
@@ -54,13 +53,7 @@ export default (collection, clickable, attribute, property, authForm, emptyState
     ':checked',
     '[data-test-nspace-menu] > input[type="checkbox"]'
   );
-  page.navigation.managePartitions = clickable(
-    '[data-test-partition-menu] [data-test-nav-selector-footer-link]'
-  );
   page.navigation.dcs = collection('[data-test-datacenter-menu] [data-test-dc-item]', {
-    name: clickable(),
-  });
-  page.navigation.partitions = collection('[data-test-partition-menu] [data-test-partition-item]', {
     name: clickable(),
   });
   return page;

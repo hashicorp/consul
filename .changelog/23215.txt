@@ -1,3 +1,0 @@
-```release-note:improvement
-ui: Consolidate consul-ui addon packages (acls, peerings, partitions, namespaces, lock-sessions) into main consul-ui application to simplify build configuration and reduce package complexity.
-```

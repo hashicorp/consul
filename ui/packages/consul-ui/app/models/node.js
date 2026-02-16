@@ -4,6 +4,8 @@
  */
 
 import Model, { attr, hasMany } from '@ember-data/model';
+import { computed } from '@ember/object';
+import { filter } from '@ember/object/computed';
 import { fragmentArray } from 'ember-data-model-fragments/attributes';
 
 export const PRIMARY_KEY = 'uid';
@@ -27,38 +29,17 @@ export default class Node extends Model {
   @attr({ defaultValue: () => [] }) Resources; // []
   // Services are reshaped to a different shape to what you sometimes get from
   // the response, see models/node.js
-  @hasMany('service-instance', { async: false, inverse: null }) Services; // TODO: Rename to ServiceInstances
+  @hasMany('service-instance') Services; // TODO: Rename to ServiceInstances
   @fragmentArray('health-check') Checks;
-
   // MeshServiceInstances are all instances that aren't connect-proxies this
   // currently includes gateways as these need to show up in listings
-  get MeshServiceInstances() {
-    const services = this.Services;
-    // Check if the relationship content is loaded before filtering
-    if (!services || !services.length) {
-      return [];
-    }
-    return services.filter((item) => item.Service.Kind !== 'connect-proxy');
-  }
-
+  @filter('Services', (item) => item.Service.Kind !== 'connect-proxy') MeshServiceInstances;
   // ProxyServiceInstances are all instances that are connect-proxies
-  get ProxyServiceInstances() {
-    const services = this.Services;
-    // Check if the relationship content is loaded before filtering
-    if (!services || !services.length) {
-      return [];
-    }
-    return services.filter((item) => item.Service.Kind === 'connect-proxy');
-  }
+  @filter('Services', (item) => item.Service.Kind === 'connect-proxy') ProxyServiceInstances;
 
-  get NodeChecks() {
-    const checks = this.Checks;
-    if (!checks || !checks.length) {
-      return [];
-    }
-    return checks.filter((item) => item.ServiceID === '');
-  }
+  @filter('Checks', (item) => item.ServiceID === '') NodeChecks;
 
+  @computed('ChecksCritical', 'ChecksPassing', 'ChecksWarning')
   get Status() {
     switch (true) {
       case this.ChecksCritical !== 0:
@@ -72,18 +53,22 @@ export default class Node extends Model {
     }
   }
 
+  @computed('NodeChecks.[]')
   get ChecksCritical() {
     return this.NodeChecks.filter((item) => item.Status === 'critical').length;
   }
 
+  @computed('NodeChecks.[]')
   get ChecksPassing() {
     return this.NodeChecks.filter((item) => item.Status === 'passing').length;
   }
 
+  @computed('NodeChecks.[]')
   get ChecksWarning() {
     return this.NodeChecks.filter((item) => item.Status === 'warning').length;
   }
 
+  @computed('Meta')
   get Version() {
     return this.Meta?.['consul-version'] ?? '';
   }

@@ -18,7 +18,7 @@ export default Component.extend({
       return template.replace(/{{term}}/g, term);
     },
     isUnique: function (items, term) {
-      return !items.find((item) => item.Name === term);
+      return !items.findBy('Name', term);
     },
     add: function (name, changeset, value) {
       if (!(changeset.get(name) || []).includes(value)) {

@@ -89,12 +89,12 @@ export default class ConsulIntentionForm extends Component {
       )
       .sort((a, b) => a.Name.localeCompare(b.Name));
     items = [{ Name: '*' }].concat(items);
-    let source = items.find((service) => service.Name === item.SourceName);
+    let source = items.findBy('Name', item.SourceName);
     if (!source) {
       source = { Name: item.SourceName };
       items = [source].concat(items);
     }
-    let destination = items.find((service) => service.Name === item.DestinationName);
+    let destination = items.findBy('Name', item.DestinationName);
     if (!destination) {
       destination = { Name: item.DestinationName };
       items = [destination].concat(items);
@@ -111,12 +111,12 @@ export default class ConsulIntentionForm extends Component {
     // 2. Include the current SourceNS and DestinationNS incase they don't exist yet
     let items = e.data.toArray().sort((a, b) => a.Name.localeCompare(b.Name));
     items = [{ Name: '*' }].concat(items);
-    let source = items.find((nspace) => nspace.Name === item.SourceNS);
+    let source = items.findBy('Name', item.SourceNS);
     if (!source) {
       source = { Name: item.SourceNS };
       items = [source].concat(items);
     }
-    let destination = items.find((nspace) => nspace.Name === item.DestinationNS);
+    let destination = items.findBy('Name', item.DestinationNS);
     if (!destination) {
       destination = { Name: item.DestinationNS };
       items = [destination].concat(items);
@@ -132,12 +132,12 @@ export default class ConsulIntentionForm extends Component {
     // 1. NOT include an 'All Partitions' option
     // 2. Include the current SourcePartition and DestinationPartition incase they don't exist yet
     let items = e.data.toArray().sort((a, b) => a.Name.localeCompare(b.Name));
-    let source = items.find((partition) => partition.Name === item.SourcePartition);
+    let source = items.findBy('Name', item.SourcePartition);
     if (!source) {
       source = { Name: item.SourcePartition };
       items = [source].concat(items);
     }
-    let destination = items.find((partition) => partition.Name === item.DestinationPartition);
+    let destination = items.findBy('Name', item.DestinationPartition);
     if (!destination) {
       destination = { Name: item.DestinationPartition };
       items = [destination].concat(items);

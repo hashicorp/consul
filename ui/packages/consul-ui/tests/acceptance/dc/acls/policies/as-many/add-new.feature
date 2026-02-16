@@ -1,5 +1,4 @@
 @setupApplicationTest
-@ignore
 Feature: dc / acls / policies / as many / add new: Add new policy
   Background:
     Given 1 datacenter model with the value "datacenter"

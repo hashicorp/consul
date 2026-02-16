@@ -2,7 +2,7 @@
 
 A presentational component for rendering a list of Consul Services.
 
-```hbs
+```hbs preview-template
 <DataSource
   @src={{uri "/partition/default/dc-1/gateways/for-service/service-name"}} as |source|>
     <Consul::Service::List

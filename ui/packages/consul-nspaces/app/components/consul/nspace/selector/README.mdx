@@ -1,0 +1,40 @@
+# Consul::Nspace::Selector
+
+A conditional, autoloading, menu component specifically for making it easy to select namespaces.
+
+Please note: 
+
+- Currently at least, you must add this inside of a `<ul>` element, as the `<li>` elements output by this component are intended to be mixed with other sibling `<li>`s from other components or template code.
+- For the moment, make sure you have enabled nspaces using developer debug
+  cookies.
+
+```hbs preview-template
+<ul>
+  <Consul::Nspace::Selector
+    @dc={{hash
+      Name='dc-1'
+    }}
+    @nspace='default'
+    @partition='default'
+    @nspaces={{or this.nspaces (array)}}
+    @onchange={{action (mut this.nspaces) value="data"}}
+  />
+</ul>
+```
+
+
+## Arguments
+
+| Argument/Attribute | Type | Default | Description |
+| --- | --- | --- | --- |
+| `dc` | `object` |  | The current datacenter |
+| `nspace` | `string` |  | The name of the current namespace |
+| `partition` | `string` |  | The name of the current partition |
+| `nspaces` | `array` |  | A list of nspace models/objects to use for the selector |
+| `onchange` | `function` |  | An event handler, for when nspaces are loaded. You probably want to update `@nspaces` using this. |
+
+## See
+
+- [Template Source Code](./index.hbs)
+
+---

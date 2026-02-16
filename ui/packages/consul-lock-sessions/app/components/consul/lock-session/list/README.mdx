@@ -1,0 +1,26 @@
+# Consul::LockSession::List
+
+A presentational component for rendering Node Lock Sessions
+
+```hbs preview-template
+<DataSource
+  @src={{uri "/partition/default/dc-1/sessions/for-node/my-node"}} as |source|>
+  <Consul::LockSession::List
+    @items={{source.data}}
+    @ondelete={{action (noop)}}
+  />
+</DataSource>
+```
+
+## Arguments
+
+| Argument/Attribute | Type | Default | Description |
+| --- | --- | --- | --- |
+| `items` | `array` |  | An array of Node Lock Sessions  |
+| `ondelete` | `function` |  | An action to confirm when the `delete` (or Invalidate) action is clicked and confirmed |
+
+## See
+
+- [Template Source Code](./index.hbs)
+
+---
