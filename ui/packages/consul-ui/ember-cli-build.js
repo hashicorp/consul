@@ -28,7 +28,7 @@ module.exports = function (defaults, $ = process.env) {
 
   const trees = {};
   const addons = {};
-  const outputPaths = {};
+  // const outputPaths = {};
   let excludeFiles = [];
 
   const apps = [
@@ -158,7 +158,7 @@ module.exports = function (defaults, $ = process.env) {
     {
       trees: trees,
       addons: addons,
-      outputPaths: outputPaths,
+      // outputPaths: outputPaths,
       'ember-cli-babel': {
         includePolyfill: false,
       },
