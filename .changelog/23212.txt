@@ -1,0 +1,3 @@
+```release-note:bug
+api-gateway: Fixed xDS listener generation for multiple file-system-certificate entries. Previously, using multiple file-system certificates on a single TLS listener caused Envoy to reject the configuration with "duplicate matcher" errors. The fix consolidates all file-system certificates into a single filter chain with multiple SDS configs, allowing Envoy to automatically select the correct certificate based on SNI.
+```
