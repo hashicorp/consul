@@ -45,6 +45,7 @@ const (
 	TCPRoute              string = "tcp-route"
 	// TODO: decide if we want to highlight 'ip' keyword in the name of RateLimitIPConfig
 	RateLimitIPConfig string = "control-plane-request-limit"
+	RateLimit         string = "rate-limit"
 	JWTProvider       string = "jwt-provider"
 
 	ProxyConfigGlobal string = "global"
@@ -74,6 +75,7 @@ var AllConfigEntryKinds = []string{
 	FileSystemCertificate,
 	InlineCertificate,
 	RateLimitIPConfig,
+	RateLimit,
 	JWTProvider,
 }
 
@@ -852,6 +854,8 @@ func MakeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &TCPRouteConfigEntry{Name: name}, nil
 	case JWTProvider:
 		return &JWTProviderConfigEntry{Name: name}, nil
+	case RateLimit:
+		return &GlobalRateLimitConfigEntry{Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}

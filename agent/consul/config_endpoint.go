@@ -17,6 +17,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
+	rpcRate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -95,6 +96,23 @@ func (c *ConfigEntry) Apply(args *structs.ConfigEntryRequest, reply *bool) error
 	}
 	if respBool, ok := resp.(bool); ok {
 		*reply = respBool
+	}
+
+	// Update the rate limiter if this is a global-rate-limit config entry
+	if args.Entry.GetKind() == structs.RateLimit {
+		handler, ok := c.srv.incomingRPCLimiter.(*rpcRate.Handler)
+		if !ok {
+			c.logger.Warn("incoming RPC limiter is not a rate.Handler, cannot update global rate limit config on Apply",
+				"limiter_type", fmt.Sprintf("%T", c.srv.incomingRPCLimiter))
+		} else {
+			cfg, ok := args.Entry.(*structs.GlobalRateLimitConfigEntry)
+			if !ok {
+				c.logger.Error("failed to cast config entry to GlobalRateLimitConfigEntry",
+					"entry_type", fmt.Sprintf("%T", args.Entry))
+			} else {
+				handler.UpdateGlobalRateLimitConfig(cfg)
+			}
+		}
 	}
 
 	return nil
@@ -436,6 +454,20 @@ func (c *ConfigEntry) Delete(args *structs.ConfigEntryRequest, reply *structs.Co
 	} else {
 		// For non-CAS deletions any non-error result indicates a successful deletion.
 		reply.Deleted = true
+	}
+
+	// Clear the rate limiter if this was a global-rate-limit config entry deletion
+	if reply.Deleted && args.Entry.GetKind() == structs.RateLimit {
+		handler, ok := c.srv.incomingRPCLimiter.(*rpcRate.Handler)
+		if !ok {
+			c.logger.Warn("incoming RPC limiter is not a rate.Handler, cannot clear global rate limit config on Delete",
+				"limiter_type", fmt.Sprintf("%T", c.srv.incomingRPCLimiter))
+		} else {
+			handler.UpdateGlobalRateLimitConfig(nil)
+			c.logger.Info("cleared global rate limit config",
+				"name", args.Entry.GetName(),
+				"operation", "delete")
+		}
 	}
 
 	return nil
