@@ -43,7 +43,7 @@ refractor.alias({
 
 module.exports = {
   remarkHbsOptions: {
-    escapeCurliesCode: false,
+    escapeCurliesCode: true,
   },
   remarkPlugins: [
     autolinkHeadings,
@@ -106,36 +106,6 @@ module.exports = {
       pattern: '**/README.mdx',
       urlSchema: 'auto',
       urlPrefix: 'docs/providers',
-    },
-    {
-      root: `${path.dirname(require.resolve('consul-acls/package.json'))}/app/components`,
-      pattern: '**/README.mdx',
-      urlSchema: 'auto',
-      urlPrefix: 'docs/consul-acls',
-    },
-    {
-      root: `${path.dirname(require.resolve('consul-lock-sessions/package.json'))}/app/components`,
-      pattern: '**/README.mdx',
-      urlSchema: 'auto',
-      urlPrefix: 'docs/consul-lock-sessions',
-    },
-    {
-      root: `${path.dirname(require.resolve('consul-peerings/package.json'))}/app/components`,
-      pattern: '**/README.mdx',
-      urlSchema: 'auto',
-      urlPrefix: 'docs/consul-peerings',
-    },
-    {
-      root: `${path.dirname(require.resolve('consul-partitions/package.json'))}/app/components`,
-      pattern: '**/README.mdx',
-      urlSchema: 'auto',
-      urlPrefix: 'docs/consul-partitions',
-    },
-    {
-      root: `${path.dirname(require.resolve('consul-nspaces/package.json'))}/app/components`,
-      pattern: '**/README.mdx',
-      urlSchema: 'auto',
-      urlPrefix: 'docs/consul-nspaces',
     },
   ].concat(user.sources),
   labels: {
