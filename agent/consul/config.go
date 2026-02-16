@@ -539,20 +539,20 @@ func DefaultConfig() *Config {
 			ACLDownPolicy:    "extend-cache",
 			ACLDefaultPolicy: "allow",
 		},
-		ACLReplicationRate:                   1,
-		ACLReplicationBurst:                  5,
-		ACLReplicationApplyLimit:             100, // ops / sec
-		ConfigReplicationRate:                1,
-		ConfigReplicationBurst:               5,
-		ConfigReplicationApplyLimit:          100, // ops / sec
-		FederationStateReplicationRate:       1,
-		FederationStateReplicationBurst:      5,
-		FederationStateReplicationApplyLimit: 100, // ops / sec
+		ACLReplicationRate:                     1,
+		ACLReplicationBurst:                    5,
+		ACLReplicationApplyLimit:               100, // ops / sec
+		ConfigReplicationRate:                  1,
+		ConfigReplicationBurst:                 5,
+		ConfigReplicationApplyLimit:            100, // ops / sec
+		FederationStateReplicationRate:         1,
+		FederationStateReplicationBurst:        5,
+		FederationStateReplicationApplyLimit:   100, // ops / sec
 		FederationStateAntiEntropySyncInterval: defaultFederationStateAntiEntropySyncInterval,
 		TombstoneTTL:                           15 * time.Minute,
-		TombstoneTTLGranularity:              30 * time.Second,
-		SessionTTLMin:                        10 * time.Second,
-		ACLTokenMinExpirationTTL:             1 * time.Minute,
+		TombstoneTTLGranularity:                30 * time.Second,
+		SessionTTLMin:                          10 * time.Second,
+		ACLTokenMinExpirationTTL:               1 * time.Minute,
 		// Duration is stored as an int64. Setting the default max
 		// to the max possible duration (approx 290 years).
 		ACLTokenMaxExpirationTTL: 1<<63 - 1,
