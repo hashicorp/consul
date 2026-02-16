@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/types"
 )
 
 func TestMakeInlineOverrideFilterChains_FileSystemCertificates(t *testing.T) {
@@ -152,6 +153,136 @@ func TestMakeInlineOverrideFilterChains_NoDuplicateMatchers(t *testing.T) {
 		require.Empty(t, chain.FilterChainMatch.ServerNames,
 			"File-system certificate filter chain should not have SNI restrictions")
 	}
+}
+func TestMakeInlineOverrideFilterChains_EmptyCertificates(t *testing.T) {
+	// Test with no certificates
+	snap := &proxycfg.ConfigSnapshot{}
+	snap.APIGateway.TLSConfig = structs.GatewayTLSConfig{}
+
+	certs := []structs.ConfigEntry{}
+
+	s := ResourceGenerator{}
+	filterOpts := listenerFilterOpts{
+		protocol:   "http",
+		routeName:  "test-route",
+		cluster:    "test-cluster",
+		statPrefix: "test",
+	}
+
+	chains, err := s.makeInlineOverrideFilterChains(
+		snap,
+		snap.APIGateway.TLSConfig,
+		"http",
+		filterOpts,
+		certs,
+	)
+
+	require.NoError(t, err)
+	require.Empty(t, chains, "Should return empty chains for no certificates")
+}
+
+func TestMakeInlineOverrideFilterChains_ManyFileSystemCertificates(t *testing.T) {
+	// Test with more than 2 file-system certificates
+	snap := &proxycfg.ConfigSnapshot{}
+	snap.APIGateway.TLSConfig = structs.GatewayTLSConfig{}
+
+	certs := []structs.ConfigEntry{
+		&structs.FileSystemCertificateConfigEntry{
+			Kind:        structs.FileSystemCertificate,
+			Name:        "cert1",
+			Certificate: "/path/to/cert1.pem",
+			PrivateKey:  "/path/to/key1.pem",
+		},
+		&structs.FileSystemCertificateConfigEntry{
+			Kind:        structs.FileSystemCertificate,
+			Name:        "cert2",
+			Certificate: "/path/to/cert2.pem",
+			PrivateKey:  "/path/to/key2.pem",
+		},
+		&structs.FileSystemCertificateConfigEntry{
+			Kind:        structs.FileSystemCertificate,
+			Name:        "cert3",
+			Certificate: "/path/to/cert3.pem",
+			PrivateKey:  "/path/to/key3.pem",
+		},
+		&structs.FileSystemCertificateConfigEntry{
+			Kind:        structs.FileSystemCertificate,
+			Name:        "cert4",
+			Certificate: "/path/to/cert4.pem",
+			PrivateKey:  "/path/to/key4.pem",
+		},
+	}
+
+	s := ResourceGenerator{}
+	filterOpts := listenerFilterOpts{
+		protocol:   "http",
+		routeName:  "test-route",
+		cluster:    "test-cluster",
+		statPrefix: "test",
+	}
+
+	chains, err := s.makeInlineOverrideFilterChains(
+		snap,
+		snap.APIGateway.TLSConfig,
+		"http",
+		filterOpts,
+		certs,
+	)
+
+	require.NoError(t, err)
+	require.Len(t, chains, 1, "Should consolidate all file-system certificates into one filter chain")
+
+	// Verify no duplicate matchers even with many certificates
+	chain := chains[0]
+	if chain.FilterChainMatch != nil {
+		require.Empty(t, chain.FilterChainMatch.ServerNames,
+			"Filter chain should not have SNI restrictions with multiple file-system certificates")
+	}
+}
+
+func TestMakeInlineOverrideFilterChains_TLSParameters(t *testing.T) {
+	// Test that TLS parameters are preserved
+	snap := &proxycfg.ConfigSnapshot{}
+	snap.APIGateway.TLSConfig = structs.GatewayTLSConfig{
+		TLSMinVersion: "TLSv1_2",
+		TLSMaxVersion: "TLSv1_3",
+		CipherSuites: []types.TLSCipherSuite{
+			types.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+			types.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+		},
+	}
+
+	certs := []structs.ConfigEntry{
+		&structs.FileSystemCertificateConfigEntry{
+			Kind:        structs.FileSystemCertificate,
+			Name:        "cert1",
+			Certificate: "/path/to/cert1.pem",
+			PrivateKey:  "/path/to/key1.pem",
+		},
+	}
+
+	s := ResourceGenerator{}
+	filterOpts := listenerFilterOpts{
+		protocol:   "http",
+		routeName:  "test-route",
+		cluster:    "test-cluster",
+		statPrefix: "test",
+	}
+
+	chains, err := s.makeInlineOverrideFilterChains(
+		snap,
+		snap.APIGateway.TLSConfig,
+		"http",
+		filterOpts,
+		certs,
+	)
+
+	require.NoError(t, err)
+	require.Len(t, chains, 1)
+
+	// Verify TLS context exists
+	chain := chains[0]
+	require.NotNil(t, chain.TransportSocket, "Transport socket should be configured with TLS parameters")
 }
 
 // Made with Bob

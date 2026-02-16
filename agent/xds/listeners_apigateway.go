@@ -495,7 +495,9 @@ func (s *ResourceGenerator) makeInlineOverrideFilterChains(cfgSnap *proxycfg.Con
 	}
 
 	// Handle inline certificates with the existing logic
-	multipleCerts := len(inlineCerts) > 1
+	// When we have file-system certs, we need to treat single inline cert as multiple
+	// to avoid duplicate catch-all filter chains
+	multipleCerts := len(inlineCerts) > 1 || len(fileSystemCerts) > 0
 
 	allCertHosts := map[string]struct{}{}
 	overlappingHosts := map[string]struct{}{}
@@ -547,7 +549,9 @@ func (s *ResourceGenerator) makeInlineOverrideFilterChains(cfgSnap *proxycfg.Con
 		}
 	}
 
-	if len(inlineCerts) > 1 {
+	// Only add default chain if we have multiple inline certs AND no file-system certs
+	// If we have file-system certs, they already provide the catch-all behavior
+	if len(inlineCerts) > 1 && len(fileSystemCerts) == 0 {
 		// if we have more than one cert, add a default handler that uses the leaf cert from connect
 		if err := constructChain("default", nil, makeCommonTLSContext(cfgSnap.Leaf(), cfgSnap.RootPEMs(), makeTLSParametersFromGatewayTLSConfig(tlsCfg))); err != nil {
 			return nil, err
