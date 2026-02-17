@@ -20,6 +20,7 @@ type AWSLogin struct {
 	autoBearerToken     bool
 	includeEntity       bool
 	stsEndpoint         string
+	iamEndpoint         string
 	region              string
 	serverIDHeaderValue string
 	accessKeyId         string
@@ -40,6 +41,9 @@ func (a *AWSLogin) flags() *flag.FlagSet {
 
 	fs.StringVar(&a.stsEndpoint, "aws-sts-endpoint", "",
 		"URL for AWS STS API calls. [aws-iam only]")
+
+	fs.StringVar(&a.iamEndpoint, "aws-iam-endpoint", "",
+		"URL for AWS IAM API calls. Used when -aws-include-entity is set to true. [aws-iam only]")
 
 	fs.StringVar(&a.region, "aws-region", "",
 		"Region for AWS API calls. If set, should match the region of -aws-sts-endpoint. "+
@@ -141,6 +145,7 @@ func (a *AWSLogin) createAWSBearerToken() (string, error) {
 		Creds:                  cfg.Credentials,
 		IncludeIAMEntity:       a.includeEntity,
 		STSEndpoint:            a.stsEndpoint,
+		IAMEndpoint:            a.iamEndpoint,
 		STSRegion:              cfg.Region,
 		Logger:                 hclog.New(nil),
 		ServerIDHeaderValue:    a.serverIDHeaderValue,

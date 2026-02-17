@@ -367,6 +367,133 @@ func TestVaultCAProvider_AWSLoginDataGenerator(t *testing.T) {
 	}
 }
 
+// TestVaultCAProvider_AWSEndpointConfiguration tests that custom IAM and STS endpoints
+// are properly extracted from auth method params and passed to consul-awsauth.
+func TestVaultCAProvider_AWSEndpointConfiguration(t *testing.T) {
+	cases := map[string]struct {
+		params              map[string]interface{}
+		expectLoginDataKeys []string
+		expectRole          string
+	}{
+		"with custom iam_endpoint": {
+			params: map[string]interface{}{
+				"access_key":   "AKIAIOSFODNN7EXAMPLE",
+				"secret_key":   "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+				"region":       "us-east-1",
+				"iam_endpoint": "https://iam.custom-endpoint.example.com",
+			},
+			expectLoginDataKeys: []string{
+				"iam_http_request_method",
+				"iam_request_url",
+				"iam_request_headers",
+				"iam_request_body",
+			},
+		},
+		"with custom sts_endpoint": {
+			params: map[string]interface{}{
+				"access_key":   "AKIAIOSFODNN7EXAMPLE",
+				"secret_key":   "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+				"region":       "us-west-2",
+				"sts_endpoint": "https://sts.custom-endpoint.example.com",
+			},
+			expectLoginDataKeys: []string{
+				"iam_http_request_method",
+				"iam_request_url",
+				"iam_request_headers",
+				"iam_request_body",
+			},
+		},
+		"with both iam_endpoint and sts_endpoint": {
+			params: map[string]interface{}{
+				"access_key":   "AKIAIOSFODNN7EXAMPLE",
+				"secret_key":   "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+				"region":       "eu-west-1",
+				"iam_endpoint": "https://iam.custom.example.com",
+				"sts_endpoint": "https://sts.custom.example.com",
+			},
+			expectLoginDataKeys: []string{
+				"iam_http_request_method",
+				"iam_request_url",
+				"iam_request_headers",
+				"iam_request_body",
+			},
+		},
+		"without custom endpoints (default behavior)": {
+			params: map[string]interface{}{
+				"access_key": "AKIAIOSFODNN7EXAMPLE",
+				"secret_key": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+				"region":     "ap-southeast-1",
+			},
+			expectLoginDataKeys: []string{
+				"iam_http_request_method",
+				"iam_request_url",
+				"iam_request_headers",
+				"iam_request_body",
+			},
+		},
+		"with role and custom endpoints": {
+			params: map[string]interface{}{
+				"access_key":   "AKIAIOSFODNN7EXAMPLE",
+				"secret_key":   "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+				"region":       "us-east-1",
+				"role":         "test-vault-role",
+				"iam_endpoint": "https://iam-fips.us-gov-west-1.amazonaws.com",
+				"sts_endpoint": "https://sts-fips.us-gov-west-1.amazonaws.com",
+			},
+			expectLoginDataKeys: []string{
+				"iam_http_request_method",
+				"iam_request_url",
+				"iam_request_headers",
+				"iam_request_body",
+			},
+			expectRole: "test-vault-role",
+		},
+	}
+
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			// Create auth method with params
+			authMethod := &structs.VaultAuthMethod{
+				Type:      "aws",
+				MountPath: "aws",
+				Params:    c.params,
+			}
+
+			// Create AWS auth client which initializes the login data generator
+			authClient := NewAWSAuthClient(authMethod)
+			require.NotNil(t, authClient)
+			require.NotNil(t, authClient.LoginDataGen)
+
+			// Generate login data - this tests the actual code path in provider_vault_auth_aws.go
+			// including extraction of iam_endpoint and sts_endpoint from params
+			loginData, err := authClient.LoginDataGen(authMethod)
+			require.NoError(t, err)
+			require.NotNil(t, loginData)
+
+			// Verify that all expected login data keys are present
+			for _, key := range c.expectLoginDataKeys {
+				val, exists := loginData[key]
+				require.True(t, exists, "missing expected key: %s", key)
+				require.NotEmpty(t, val, "expected non-empty value for key: %s", key)
+			}
+
+			// If role was specified, verify it's in the login data
+			if c.expectRole != "" {
+				require.Equal(t, c.expectRole, loginData["role"])
+			}
+
+			// Note: We can't directly verify that the endpoints were passed to consul-awsauth
+			// without mocking the IAM/STS services, but we can verify:
+			// 1. The function succeeds (doesn't error)
+			// 2. Login data is generated with all required fields
+			// 3. The code path that extracts iam_endpoint and sts_endpoint executes
+
+			// The actual endpoint usage is tested in consul-awsauth's own test suite
+			// This test verifies the integration: extracting params and calling GenerateLoginData
+		})
+	}
+}
+
 func TestVaultCAProvider_AzureAuthClient(t *testing.T) {
 	instance := instanceData{Compute: Compute{
 		Name: "a", ResourceGroupName: "b", SubscriptionID: "c", VMScaleSetName: "d",

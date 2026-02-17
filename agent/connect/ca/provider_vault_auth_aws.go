@@ -71,11 +71,31 @@ func (g *AWSLoginDataGenerator) GenerateLoginData(authMethod *structs.VaultAuthM
 		}
 	}
 
+	// Extract STS endpoint from params if provided
+	// This is needed because consul-awsauth creates its own STS client
+	stsEndpoint := ""
+	if ep, ok := authMethod.Params["sts_endpoint"].(string); ok {
+		stsEndpoint = ep
+	}
+
+	// Extract IAM endpoint from params if provided
+	// This is needed because consul-awsauth creates its own IAM client internally
+	iamEndpoint := ""
+	if ep, ok := authMethod.Params["iam_endpoint"].(string); ok {
+		iamEndpoint = ep
+	}
+
 	// Use consul-awsauth's GenerateLoginData which works with AWS SDK v2
+	// Note: IncludeIAMEntity is set to false for Vault authentication because:
+	// 1. Vault's AWS auth method doesn't use the entity headers that consul-awsauth requires
+	// 2. The entity headers (GetEntityMethodHeader, etc.) are specific to Consul's auth method
+	// 3. Vault validates AWS identity differently and doesn't need IAM entity details in the request
 	loginData, err := iamauth.GenerateLoginData(&iamauth.LoginInput{
 		Creds:               awsConfig.Credentials,
-		IncludeIAMEntity:    false, // For Vault auth, we don't include IAM entity details
+		IncludeIAMEntity:    false, // Always false for Vault auth (entity headers not applicable)
 		STSRegion:           awsConfig.Region,
+		STSEndpoint:         stsEndpoint, // Pass custom STS endpoint if specified
+		IAMEndpoint:         iamEndpoint, // Pass custom IAM endpoint if specified
 		ServerIDHeaderValue: headerValue,
 		Logger:              hclog.NewNullLogger(),
 	})
@@ -94,7 +114,18 @@ func (g *AWSLoginDataGenerator) GenerateLoginData(authMethod *structs.VaultAuthM
 
 // newAWSCredentialsConfig creates an awsutil.CredentialsConfig from the given set of parameters.
 func newAWSCredentialsConfig(config map[string]interface{}) (*awsutil.CredentialsConfig, string, error) {
-	params, err := toMapStringString(config)
+	// Filter out non-credential parameters before passing to awsutil
+	// These parameters (endpoints, role) are handled separately in the auth flow
+	filteredConfig := make(map[string]interface{})
+	for k, v := range config {
+		// Skip parameters that aren't credentials-related
+		if k == "sts_endpoint" || k == "iam_endpoint" || k == "role" {
+			continue
+		}
+		filteredConfig[k] = v
+	}
+
+	params, err := toMapStringString(filteredConfig)
 	if err != nil {
 		return nil, "", fmt.Errorf("misconfiguration of AWS auth parameters: %w", err)
 	}
@@ -150,15 +181,32 @@ func newAWSCredentialsConfig(config map[string]interface{}) (*awsutil.Credential
 		}
 	}
 
-	// Add endpoint resolvers if specified
-	// Note: IAM and STS endpoints in v2 require EndpointResolverV2 interfaces
-	// For now, we'll skip custom endpoints as they require more complex setup
-	// If needed in the future, we can create custom endpoint resolvers
+	// Note: IAM and STS endpoint configuration is NOT added to awsutil config here
+	// because consul-awsauth creates its own STS/IAM clients and doesn't use the
+	// awsutil-provided config. Instead, we extract the endpoint strings from params
+	// and pass them directly to consul-awsauth.GenerateLoginData() (see lines 74-86).
 
 	// Create the credentials config
 	c, err := awsutil.NewCredentialsConfig(opts...)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to create AWS credentials config: %w", err)
+	}
+
+	// Set session token directly on the config struct as there is no WithSessionToken option in awsutil
+	if sessionToken := params["session_token"]; sessionToken != "" {
+		c.SessionToken = sessionToken
+	}
+
+	// Set filename (custom credential file path) if provided
+	// This allows using a custom AWS credentials file instead of the default ~/.aws/credentials
+	if filename := params["filename"]; filename != "" {
+		c.Filename = filename
+	}
+
+	// Set profile (AWS profile selection) if provided
+	// This allows selecting a specific profile from the AWS credentials/config files
+	if profile := params["profile"]; profile != "" {
+		c.Profile = profile
 	}
 
 	return c, params["header_value"], nil

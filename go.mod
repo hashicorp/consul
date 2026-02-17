@@ -47,7 +47,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/hashi-derek/grpc-proxy v0.0.0-20231207191910-191266484d75
 	github.com/hashicorp/cap v0.10.0
-	github.com/hashicorp/consul-awsauth v0.0.0-20260123053240-2ffd05b55ac0
+	github.com/hashicorp/consul-awsauth v0.0.0-20260217031309-8adb652c4fb2
 	github.com/hashicorp/consul-net-rpc v0.0.0-20221205195236-156cfab66a69
 	github.com/hashicorp/consul/api v1.33.2
 	github.com/hashicorp/consul/envoyextensions v0.9.2
