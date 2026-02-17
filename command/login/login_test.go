@@ -654,6 +654,7 @@ func TestLoginCommand_aws_iam(t *testing.T) {
 				"-method=iam-test",
 				"-token-sink-file", tokenSinkFile,
 				"-aws-sts-endpoint", fakeAws.URL + "/sts",
+				"-aws-iam-endpoint", fakeAws.URL + "/iam",
 				"-aws-region", "fake-region",
 				"-aws-access-key-id", "fake-key-id",
 				"-aws-secret-access-key", "fake-secret-key",

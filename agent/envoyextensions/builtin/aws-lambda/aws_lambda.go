@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 
-	arn_sdk "github.com/aws/aws-sdk-go/aws/arn"
+	arn_sdk "github.com/aws/aws-sdk-go-v2/aws/arn"
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
