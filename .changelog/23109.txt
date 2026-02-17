@@ -1,3 +1,4 @@
 ```release-note:improvement
 connect: Migration of code to use aws-sdk-go-v2 from aws-sdk-go (v1). Also updated consul-awsauth and go-secure-stdlib/awsutil dependencies to their v2 versions.For more information on AWS SDK v2, see the [AWS SDK for Go V2 documentation](https://docs.aws.amazon.com/sdk-for-go/v2/developer-guide/).
+cli: Added `--aws-iam-endpoint` flag to `consul login` command for AWS IAM auth method to support custom IAM endpoint configuration.
 ```
