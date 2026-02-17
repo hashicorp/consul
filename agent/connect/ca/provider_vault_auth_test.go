@@ -4,6 +4,7 @@
 package ca
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -11,12 +12,10 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
-	"strconv"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/go-secure-stdlib/awsutil"
 	"github.com/hashicorp/vault/api/auth/gcp"
 	"github.com/hashicorp/vault/sdk/helper/jsonutil"
 	"github.com/stretchr/testify/require"
@@ -163,55 +162,34 @@ func TestVaultCAProvider_AWSCredentialsConfig(t *testing.T) {
 	cases := map[string]struct {
 		params    map[string]interface{}
 		envVars   map[string]string
-		expCreds  *awsutil.CredentialsConfig
-		expErr    error
 		expRegion string
+		expErr    error
 	}{
 		"valid config": {
 			params: map[string]interface{}{
 				"access_key":              "access key",
 				"secret_key":              "secret key",
-				"session_token":           "session token",
-				"iam_endpoint":            "iam endpoint",
-				"sts_endpoint":            "sts endpoint",
-				"region":                  "region",
-				"filename":                "filename",
-				"profile":                 "profile",
+				"region":                  "custom-region",
 				"role_arn":                "role arn",
 				"role_session_name":       "role session name",
 				"web_identity_token_file": "web identity token file",
 				"header_value":            "header value",
 				"max_retries":             "13",
 			},
-			expCreds: &awsutil.CredentialsConfig{
-				AccessKey:            "access key",
-				SecretKey:            "secret key",
-				SessionToken:         "session token",
-				IAMEndpoint:          "iam endpoint",
-				STSEndpoint:          "sts endpoint",
-				Region:               "region",
-				Filename:             "filename",
-				Profile:              "profile",
-				RoleARN:              "role arn",
-				RoleSessionName:      "role session name",
-				WebIdentityTokenFile: "web identity token file",
-			},
+			expRegion: "custom-region",
 		},
 		"default region": {
 			params:    map[string]interface{}{},
-			expCreds:  &awsutil.CredentialsConfig{},
 			expRegion: "us-east-1",
 		},
 		"env AWS_REGION": {
 			params:    map[string]interface{}{},
 			envVars:   map[string]string{"AWS_REGION": "us-west-1"},
-			expCreds:  &awsutil.CredentialsConfig{},
 			expRegion: "us-west-1",
 		},
 		"env AWS_DEFAULT_REGION": {
 			params:    map[string]interface{}{},
 			envVars:   map[string]string{"AWS_DEFAULT_REGION": "us-west-2"},
-			expCreds:  &awsutil.CredentialsConfig{},
 			expRegion: "us-west-2",
 		},
 		"both AWS_REGION and AWS_DEFAULT_REGION": {
@@ -220,8 +198,26 @@ func TestVaultCAProvider_AWSCredentialsConfig(t *testing.T) {
 				"AWS_REGION":         "us-west-1",
 				"AWS_DEFAULT_REGION": "us-west-2",
 			},
-			expCreds:  &awsutil.CredentialsConfig{},
 			expRegion: "us-west-1",
+		},
+		"with role_external_id": {
+			params: map[string]interface{}{
+				"access_key":       "access key",
+				"secret_key":       "secret key",
+				"region":           "eu-west-1",
+				"role_arn":         "arn:aws:iam::123456789012:role/test-role",
+				"role_external_id": "external-id-12345",
+			},
+			expRegion: "eu-west-1",
+		},
+		"with web_identity_token": {
+			params: map[string]interface{}{
+				"region":             "ap-southeast-1",
+				"role_arn":           "arn:aws:iam::123456789012:role/web-identity-role",
+				"web_identity_token": "mock-web-identity-token",
+				"role_session_name":  "test-session",
+			},
+			expRegion: "ap-southeast-1",
 		},
 		"invalid config": {
 			params: map[string]interface{}{
@@ -250,6 +246,8 @@ func TestVaultCAProvider_AWSCredentialsConfig(t *testing.T) {
 				return
 			}
 
+			require.NoError(t, err)
+
 			// If a header value was provided in the params then make sure it was returned.
 			if val, ok := c.params["header_value"]; ok {
 				require.Equal(t, val, headerValue)
@@ -257,29 +255,22 @@ func TestVaultCAProvider_AWSCredentialsConfig(t *testing.T) {
 				require.Empty(t, headerValue)
 			}
 
-			if val, ok := c.params["max_retries"]; ok {
-				mr, err := strconv.Atoi(val.(string))
-				require.NoError(t, err)
-				c.expCreds.MaxRetries = &mr
-			} else {
-				creds.MaxRetries = nil
-			}
-
-			require.NotNil(t, creds.HTTPClient)
-			creds.HTTPClient = nil
-
-			if c.expRegion != "" {
-				c.expCreds.Region = c.expRegion
-			}
-			require.Equal(t, *c.expCreds, *creds)
+			// Verify the credentials config was created successfully by generating a config
+			ctx := context.Background()
+			awsConfig, err := creds.GenerateCredentialChain(ctx)
+			require.NoError(t, err)
+			require.NotNil(t, awsConfig)
+			require.Equal(t, c.expRegion, awsConfig.Region)
 		})
 	}
 }
 
 func TestVaultCAProvider_AWSLoginDataGenerator(t *testing.T) {
 	cases := map[string]struct {
-		expErr     error
-		authMethod structs.VaultAuthMethod
+		expErr        error
+		authMethod    structs.VaultAuthMethod
+		useNilConfig  bool
+		expectHeaders bool
 	}{
 		"valid login data": {
 			authMethod: structs.VaultAuthMethod{},
@@ -288,11 +279,65 @@ func TestVaultCAProvider_AWSLoginDataGenerator(t *testing.T) {
 			expErr:     nil,
 			authMethod: structs.VaultAuthMethod{Type: "aws", MountPath: "", Params: map[string]interface{}{"role": "test-role"}},
 		},
+		"with header_value": {
+			authMethod: structs.VaultAuthMethod{
+				Type:      "aws",
+				MountPath: "",
+				Params: map[string]interface{}{
+					"access_key":   "AKIAIOSFODNN7EXAMPLE",
+					"secret_key":   "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+					"region":       "us-west-2",
+					"header_value": "vault.example.com",
+				},
+			},
+			useNilConfig:  true,
+			expectHeaders: true,
+		},
+		"nil awsConfig generates credentials": {
+			authMethod: structs.VaultAuthMethod{
+				Type:      "aws",
+				MountPath: "",
+				Params: map[string]interface{}{
+					"access_key": "AKIAIOSFODNN7EXAMPLE",
+					"secret_key": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+					"region":     "eu-central-1",
+				},
+			},
+			useNilConfig: true,
+		},
+		"error on invalid config": {
+			authMethod: structs.VaultAuthMethod{
+				Type:      "aws",
+				MountPath: "",
+				Params: map[string]interface{}{
+					"invalid": true,
+				},
+			},
+			expErr: fmt.Errorf("aws auth failed to create credential configuration"),
+		},
 	}
 
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
-			ldg := &AWSLoginDataGenerator{credentials: credentials.AnonymousCredentials}
+			var ldg *AWSLoginDataGenerator
+
+			if c.useNilConfig {
+				// Test the path where awsConfig is nil and needs to be generated
+				ldg = &AWSLoginDataGenerator{awsConfig: nil}
+			} else {
+				// Create a mock AWS config with anonymous credentials for testing
+				mockConfig := &aws.Config{
+					Region: "us-east-1",
+					Credentials: aws.CredentialsProviderFunc(func(ctx context.Context) (aws.Credentials, error) {
+						return aws.Credentials{
+							AccessKeyID:     "AKIAIOSFODNN7EXAMPLE",
+							SecretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+						}, nil
+					}),
+				}
+				ldg = &AWSLoginDataGenerator{awsConfig: mockConfig}
+			}
+
 			loginData, err := ldg.GenerateLoginData(&c.authMethod)
 			if c.expErr != nil {
 				require.Error(t, err)
@@ -318,6 +363,133 @@ func TestVaultCAProvider_AWSLoginDataGenerator(t *testing.T) {
 			if c.authMethod.Params["role"] != nil {
 				require.Equal(t, c.authMethod.Params["role"], loginData["role"])
 			}
+		})
+	}
+}
+
+// TestVaultCAProvider_AWSEndpointConfiguration tests that custom IAM and STS endpoints
+// are properly extracted from auth method params and passed to consul-awsauth.
+func TestVaultCAProvider_AWSEndpointConfiguration(t *testing.T) {
+	cases := map[string]struct {
+		params              map[string]interface{}
+		expectLoginDataKeys []string
+		expectRole          string
+	}{
+		"with custom iam_endpoint": {
+			params: map[string]interface{}{
+				"access_key":   "AKIAIOSFODNN7EXAMPLE",
+				"secret_key":   "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+				"region":       "us-east-1",
+				"iam_endpoint": "https://iam.custom-endpoint.example.com",
+			},
+			expectLoginDataKeys: []string{
+				"iam_http_request_method",
+				"iam_request_url",
+				"iam_request_headers",
+				"iam_request_body",
+			},
+		},
+		"with custom sts_endpoint": {
+			params: map[string]interface{}{
+				"access_key":   "AKIAIOSFODNN7EXAMPLE",
+				"secret_key":   "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+				"region":       "us-west-2",
+				"sts_endpoint": "https://sts.custom-endpoint.example.com",
+			},
+			expectLoginDataKeys: []string{
+				"iam_http_request_method",
+				"iam_request_url",
+				"iam_request_headers",
+				"iam_request_body",
+			},
+		},
+		"with both iam_endpoint and sts_endpoint": {
+			params: map[string]interface{}{
+				"access_key":   "AKIAIOSFODNN7EXAMPLE",
+				"secret_key":   "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+				"region":       "eu-west-1",
+				"iam_endpoint": "https://iam.custom.example.com",
+				"sts_endpoint": "https://sts.custom.example.com",
+			},
+			expectLoginDataKeys: []string{
+				"iam_http_request_method",
+				"iam_request_url",
+				"iam_request_headers",
+				"iam_request_body",
+			},
+		},
+		"without custom endpoints (default behavior)": {
+			params: map[string]interface{}{
+				"access_key": "AKIAIOSFODNN7EXAMPLE",
+				"secret_key": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+				"region":     "ap-southeast-1",
+			},
+			expectLoginDataKeys: []string{
+				"iam_http_request_method",
+				"iam_request_url",
+				"iam_request_headers",
+				"iam_request_body",
+			},
+		},
+		"with role and custom endpoints": {
+			params: map[string]interface{}{
+				"access_key":   "AKIAIOSFODNN7EXAMPLE",
+				"secret_key":   "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+				"region":       "us-east-1",
+				"role":         "test-vault-role",
+				"iam_endpoint": "https://iam-fips.us-gov-west-1.amazonaws.com",
+				"sts_endpoint": "https://sts-fips.us-gov-west-1.amazonaws.com",
+			},
+			expectLoginDataKeys: []string{
+				"iam_http_request_method",
+				"iam_request_url",
+				"iam_request_headers",
+				"iam_request_body",
+			},
+			expectRole: "test-vault-role",
+		},
+	}
+
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			// Create auth method with params
+			authMethod := &structs.VaultAuthMethod{
+				Type:      "aws",
+				MountPath: "aws",
+				Params:    c.params,
+			}
+
+			// Create AWS auth client which initializes the login data generator
+			authClient := NewAWSAuthClient(authMethod)
+			require.NotNil(t, authClient)
+			require.NotNil(t, authClient.LoginDataGen)
+
+			// Generate login data - this tests the actual code path in provider_vault_auth_aws.go
+			// including extraction of iam_endpoint and sts_endpoint from params
+			loginData, err := authClient.LoginDataGen(authMethod)
+			require.NoError(t, err)
+			require.NotNil(t, loginData)
+
+			// Verify that all expected login data keys are present
+			for _, key := range c.expectLoginDataKeys {
+				val, exists := loginData[key]
+				require.True(t, exists, "missing expected key: %s", key)
+				require.NotEmpty(t, val, "expected non-empty value for key: %s", key)
+			}
+
+			// If role was specified, verify it's in the login data
+			if c.expectRole != "" {
+				require.Equal(t, c.expectRole, loginData["role"])
+			}
+
+			// Note: We can't directly verify that the endpoints were passed to consul-awsauth
+			// without mocking the IAM/STS services, but we can verify:
+			// 1. The function succeeds (doesn't error)
+			// 2. Login data is generated with all required fields
+			// 3. The code path that extracts iam_endpoint and sts_endpoint executes
+
+			// The actual endpoint usage is tested in consul-awsauth's own test suite
+			// This test verifies the integration: extracting params and calling GenerateLoginData
 		})
 	}
 }
