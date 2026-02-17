@@ -169,9 +169,24 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
+	//Create existingsvcs to test for existing services
+	existingsvcs, err := client.Agent().Services()
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("Error checking for existing services %s", err))
+	}
 
 	// Create all the services
 	for _, svc := range svcs {
+		//iterate through existing services to check for duplicate sidecar ports
+		for _, existingsvc := range existingsvcs {
+			if svc.Connect.SidecarService.Port > 0 && existingsvc.Port > 0 {
+				if svc.Connect.SidecarService.Port == existingsvc.Port {
+					c.UI.Output(fmt.Sprintf("Error registering service %q. Service %q is using the same sidecar port %d. Please make sidecar ports unique to avoid address binding issues in Envoy",
+						svc.Name, existingsvc.Service, svc.Connect.SidecarService.Port))
+					return 1
+				}
+			}
+		}
 		if err := client.Agent().ServiceRegister(svc); err != nil {
 			c.UI.Error(fmt.Sprintf("Error registering service %q: %s",
 				svc.Name, err))
