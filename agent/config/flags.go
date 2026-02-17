@@ -96,6 +96,7 @@ func AddFlags(fs *flag.FlagSet, f *LoadOpts) {
 	add(&f.FlagValues.Ports.SerfWAN, "serf-wan-port", "Sets the Serf WAN port to listen on.")
 	add(&f.FlagValues.ServerMode, "server", "Switches agent to server mode.")
 	add(&f.FlagValues.EnableSyslog, "syslog", "Enables logging to syslog.")
+	add(&f.FlagValues.ACL.Tokens.DefaultFile, "token-file", "Path to a file containing the ACL token to use as the default token. This can also be specified via the CONSUL_HTTP_TOKEN_FILE environment variable.")
 	add(&f.FlagValues.UIConfig.Enabled, "ui", "Enables the built-in static web UI server.")
 	add(&f.FlagValues.UIConfig.ContentPath, "ui-content-path", "Sets the external UI path to a string. Defaults to: /ui/ ")
 	add(&f.FlagValues.UIConfig.Dir, "ui-dir", "Path to directory containing the web UI resources.")
