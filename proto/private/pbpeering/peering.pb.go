@@ -10,14 +10,16 @@
 package pbpeering
 
 import (
-	_ "github.com/hashicorp/consul/proto-public/annotations/ratelimit"
-	pbcommon "github.com/hashicorp/consul/proto/private/pbcommon"
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
+
+	_ "github.com/hashicorp/consul/proto-public/annotations/ratelimit"
+	pbcommon "github.com/hashicorp/consul/proto/private/pbcommon"
+	"github.com/mitchellh/hashstructure"
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const (
@@ -478,6 +480,14 @@ func (x *Peering) GetManualServerAddresses() []string {
 		return x.ManualServerAddresses
 	}
 	return nil
+}
+
+func (x *Peering) GetHash() (uint64, error) {
+	hash, err := hashstructure.Hash(x, nil)
+	if err != nil {
+		return 0, err
+	}
+	return hash, nil
 }
 
 // mog annotation:

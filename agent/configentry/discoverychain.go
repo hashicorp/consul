@@ -6,6 +6,7 @@ package configentry
 import (
 	"encoding/binary"
 	"hash/fnv"
+	"reflect"
 	"sort"
 
 	"github.com/hashicorp/consul/agent/structs"
@@ -16,6 +17,13 @@ import (
 // necessary for the DiscoveryChain.Get RPC process.
 //
 // None of these are defaulted.
+//
+// NOTE: The Hash() method uses reflection with switch case to iterate through
+// all struct fields. When adding a new field:
+// 1. Add field to struct
+// 2. Add case handler in Hash() method's switch statement
+// 3. Add populateField() case in discoverychain_test.go
+// 4. Tests will automatically validate the field is hashed
 type DiscoveryChainSet struct {
 	Routers              map[structs.ServiceID]*structs.ServiceRouterConfigEntry
 	Splitters            map[structs.ServiceID]*structs.ServiceSplitterConfigEntry
@@ -225,124 +233,155 @@ func (e *DiscoveryChainSet) Hash() uint64 {
 		h.Write([]byte{0}) // null terminator as separator
 	}
 
-	if len(e.Routers) > 0 {
-		writeString("routers")
-		sids := make([]structs.ServiceID, 0, len(e.Routers))
-		for sid := range e.Routers {
-			sids = append(sids, sid)
-		}
-		sort.Slice(sids, func(i, j int) bool {
-			return sids[i].String() < sids[j].String()
-		})
-		for _, sid := range sids {
-			if entry := e.Routers[sid]; entry != nil {
-				writeString(sid.String())
-				writeUint64(entry.GetHash())
-			}
-		}
-	}
+	// Use reflection to iterate through all struct fields
+	val := reflect.ValueOf(*e)
+	typ := val.Type()
 
-	if len(e.Splitters) > 0 {
-		writeString("splitters")
-		sids := make([]structs.ServiceID, 0, len(e.Splitters))
-		for sid := range e.Splitters {
-			sids = append(sids, sid)
-		}
-		sort.Slice(sids, func(i, j int) bool {
-			return sids[i].String() < sids[j].String()
-		})
-		for _, sid := range sids {
-			if entry := e.Splitters[sid]; entry != nil {
-				writeString(sid.String())
-				writeUint64(entry.GetHash())
-			}
-		}
-	}
+	for i := 0; i < typ.NumField(); i++ {
+		field := typ.Field(i)
+		fieldVal := val.Field(i)
+		fieldName := field.Name
 
-	if len(e.Resolvers) > 0 {
-		writeString("resolvers")
-		sids := make([]structs.ServiceID, 0, len(e.Resolvers))
-		for sid := range e.Resolvers {
-			sids = append(sids, sid)
+		// Skip unexported fields
+		if !field.IsExported() {
+			continue
 		}
-		sort.Slice(sids, func(i, j int) bool {
-			return sids[i].String() < sids[j].String()
-		})
-		for _, sid := range sids {
-			if entry := e.Resolvers[sid]; entry != nil {
-				writeString(sid.String())
-				writeUint64(entry.GetHash())
-			}
-		}
-	}
 
-	if len(e.Services) > 0 {
-		writeString("services")
-		sids := make([]structs.ServiceID, 0, len(e.Services))
-		for sid := range e.Services {
-			sids = append(sids, sid)
-		}
-		sort.Slice(sids, func(i, j int) bool {
-			return sids[i].String() < sids[j].String()
-		})
-		for _, sid := range sids {
-			if entry := e.Services[sid]; entry != nil {
-				writeString(sid.String())
-				writeUint64(entry.GetHash())
-			}
-		}
-	}
+		// Write field name to hash for uniqueness
+		writeString(fieldName)
 
-	if len(e.ProxyDefaults) > 0 {
-		writeString("proxydefaults")
-		partitions := make([]string, 0, len(e.ProxyDefaults))
-		for partition := range e.ProxyDefaults {
-			partitions = append(partitions, partition)
-		}
-		sort.Strings(partitions)
-		for _, partition := range partitions {
-			if entry := e.ProxyDefaults[partition]; entry != nil {
-				writeString(partition)
-				writeUint64(entry.GetHash())
+		// Handle each field type with switch case
+		switch fieldName {
+		case "Routers":
+			routers := fieldVal.Interface().(map[structs.ServiceID]*structs.ServiceRouterConfigEntry)
+			if len(routers) > 0 {
+				sids := make([]structs.ServiceID, 0, len(routers))
+				for sid := range routers {
+					sids = append(sids, sid)
+				}
+				sort.Slice(sids, func(i, j int) bool {
+					return sids[i].String() < sids[j].String()
+				})
+				for _, sid := range sids {
+					if entry := routers[sid]; entry != nil {
+						writeString(sid.String())
+						writeUint64(entry.GetHash())
+					}
+				}
 			}
-		}
-	}
 
-	if len(e.SamenessGroups) > 0 {
-		writeString("samenessgroups")
-		names := make([]string, 0, len(e.SamenessGroups))
-		for name := range e.SamenessGroups {
-			names = append(names, name)
-		}
-		sort.Strings(names)
-		for _, name := range names {
-			if entry := e.SamenessGroups[name]; entry != nil {
-				writeString(name)
-				writeUint64(entry.GetHash())
+		case "Splitters":
+			splitters := fieldVal.Interface().(map[structs.ServiceID]*structs.ServiceSplitterConfigEntry)
+			if len(splitters) > 0 {
+				sids := make([]structs.ServiceID, 0, len(splitters))
+				for sid := range splitters {
+					sids = append(sids, sid)
+				}
+				sort.Slice(sids, func(i, j int) bool {
+					return sids[i].String() < sids[j].String()
+				})
+				for _, sid := range sids {
+					if entry := splitters[sid]; entry != nil {
+						writeString(sid.String())
+						writeUint64(entry.GetHash())
+					}
+				}
 			}
-		}
-	}
 
-	if e.DefaultSamenessGroup != nil {
-		writeString("defaultsamenessgroup")
-		writeString(e.DefaultSamenessGroup.Name)
-		writeUint64(e.DefaultSamenessGroup.GetHash())
-	}
-
-	if len(e.Peers) > 0 {
-		writeString("peers")
-		peerNames := make([]string, 0, len(e.Peers))
-		for name := range e.Peers {
-			peerNames = append(peerNames, name)
-		}
-		sort.Strings(peerNames)
-		for _, name := range peerNames {
-			if peer := e.Peers[name]; peer != nil {
-				writeString(name)
-				writeString(peer.PeerServerName)
-				writeString(string(peer.State))
+		case "Resolvers":
+			resolvers := fieldVal.Interface().(map[structs.ServiceID]*structs.ServiceResolverConfigEntry)
+			if len(resolvers) > 0 {
+				sids := make([]structs.ServiceID, 0, len(resolvers))
+				for sid := range resolvers {
+					sids = append(sids, sid)
+				}
+				sort.Slice(sids, func(i, j int) bool {
+					return sids[i].String() < sids[j].String()
+				})
+				for _, sid := range sids {
+					if entry := resolvers[sid]; entry != nil {
+						writeString(sid.String())
+						writeUint64(entry.GetHash())
+					}
+				}
 			}
+
+		case "Services":
+			services := fieldVal.Interface().(map[structs.ServiceID]*structs.ServiceConfigEntry)
+			if len(services) > 0 {
+				sids := make([]structs.ServiceID, 0, len(services))
+				for sid := range services {
+					sids = append(sids, sid)
+				}
+				sort.Slice(sids, func(i, j int) bool {
+					return sids[i].String() < sids[j].String()
+				})
+				for _, sid := range sids {
+					if entry := services[sid]; entry != nil {
+						writeString(sid.String())
+						writeUint64(entry.GetHash())
+					}
+				}
+			}
+
+		case "ProxyDefaults":
+			proxyDefaults := fieldVal.Interface().(map[string]*structs.ProxyConfigEntry)
+			if len(proxyDefaults) > 0 {
+				partitions := make([]string, 0, len(proxyDefaults))
+				for partition := range proxyDefaults {
+					partitions = append(partitions, partition)
+				}
+				sort.Strings(partitions)
+				for _, partition := range partitions {
+					if entry := proxyDefaults[partition]; entry != nil {
+						writeString(partition)
+						writeUint64(entry.GetHash())
+					}
+				}
+			}
+
+		case "SamenessGroups":
+			samenessGroups := fieldVal.Interface().(map[string]*structs.SamenessGroupConfigEntry)
+			if len(samenessGroups) > 0 {
+				names := make([]string, 0, len(samenessGroups))
+				for name := range samenessGroups {
+					names = append(names, name)
+				}
+				sort.Strings(names)
+				for _, name := range names {
+					if entry := samenessGroups[name]; entry != nil {
+						writeString(name)
+						writeUint64(entry.GetHash())
+					}
+				}
+			}
+
+		case "DefaultSamenessGroup":
+			if defaultSamenessGroup := fieldVal.Interface().(*structs.SamenessGroupConfigEntry); defaultSamenessGroup != nil {
+				writeString(defaultSamenessGroup.Name)
+				writeUint64(defaultSamenessGroup.GetHash())
+			}
+
+		case "Peers":
+			peers := fieldVal.Interface().(map[string]*pbpeering.Peering)
+			if len(peers) > 0 {
+				peerNames := make([]string, 0, len(peers))
+				for name := range peers {
+					peerNames = append(peerNames, name)
+				}
+				sort.Strings(peerNames)
+				for _, name := range peerNames {
+					if peer := peers[name]; peer != nil {
+						v, _ := peer.GetHash()
+						writeUint64(v)
+					}
+				}
+			}
+		default:
+			// For any new fields added, we need to add a case here to include them in the hash
+			panic("unhandled field in DiscoveryChainSet.Hash(): " + fieldName)
 		}
+
 	}
 
 	return h.Sum64()
