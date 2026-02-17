@@ -429,8 +429,8 @@ github.com/hashi-derek/grpc-proxy v0.0.0-20231207191910-191266484d75 h1:V5Uqf7Vo
 github.com/hashi-derek/grpc-proxy v0.0.0-20231207191910-191266484d75/go.mod h1:5eEnHfK72jOkp4gC1dI/Q/E9MFNOM/ewE/vql5ijV3g=
 github.com/hashicorp/cap v0.10.0 h1:OJM3JQTwVO1DigRIPNTxM387oqXlokKhttZHotU0b1s=
 github.com/hashicorp/cap v0.10.0/go.mod h1:HKbv27kfps+wONFNyNTHpAQmU/DCjjDuB5HF6mFsqPQ=
-github.com/hashicorp/consul-awsauth v0.0.0-20260217031309-8adb652c4fb2 h1:RxmZqGTNGxrH3d1EjB0aTvwi+mgqe7dbMeAm10W2Lxo=
-github.com/hashicorp/consul-awsauth v0.0.0-20260217031309-8adb652c4fb2/go.mod h1:D1LiYVM9NJA2BSo7ob5cdf90HVHpPnjDo0txd1A1rH0=
+github.com/hashicorp/consul-awsauth v0.0.0-20260217094118-6b9b26380433 h1:hnoHGxFEjHVLGxWTXpNXoI0S3LMlmd6BelVX7FaH2OA=
+github.com/hashicorp/consul-awsauth v0.0.0-20260217094118-6b9b26380433/go.mod h1:D1LiYVM9NJA2BSo7ob5cdf90HVHpPnjDo0txd1A1rH0=
 github.com/hashicorp/consul-net-rpc v0.0.0-20221205195236-156cfab66a69 h1:wzWurXrxfSyG1PHskIZlfuXlTSCj1Tsyatp9DtaasuY=
 github.com/hashicorp/consul-net-rpc v0.0.0-20221205195236-156cfab66a69/go.mod h1:svUZZDvotY8zTODknUePc6mZ9pX8nN0ViGwWcUSOBEA=
 github.com/hashicorp/errwrap v1.0.0/go.mod h1:YH+1FKiLXxHSkmPseP+kNlulaMuP3n2brvKWEqk/Jc4=
