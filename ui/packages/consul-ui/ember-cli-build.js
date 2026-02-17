@@ -28,17 +28,9 @@ module.exports = function (defaults, $ = process.env) {
 
   const trees = {};
   const addons = {};
-  const outputPaths = {};
   let excludeFiles = [];
 
-  const apps = [
-    'consul-ui',
-    'consul-acls',
-    'consul-lock-sessions',
-    'consul-peerings',
-    'consul-partitions',
-    'consul-nspaces',
-  ].map((item) => {
+  const apps = ['consul-ui'].map((item) => {
     return {
       name: item,
       path: path.resolve(__dirname, '..', item),
@@ -97,6 +89,7 @@ module.exports = function (defaults, $ = process.env) {
     addons.blacklist = [
       // exclude docfy
       '@docfy/ember',
+      '@docfy/ember-cli',
     ];
   }
 
@@ -158,7 +151,6 @@ module.exports = function (defaults, $ = process.env) {
     {
       trees: trees,
       addons: addons,
-      outputPaths: outputPaths,
       'ember-cli-babel': {
         includePolyfill: false,
       },

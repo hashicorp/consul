@@ -133,14 +133,16 @@
             @dcs={{@dcs}}
           />
 
-          <Consul::Partition::Selector
-            @dc={{@dc}}
-            @partition={{@partition}}
-            @nspace={{@nspace}}
-            @partitions={{this.partitions}}
-            @list={{SNL}}
-            @onchange={{action (mut this.partitions) value='data'}}
-          />
+          {{#if (can 'use partitions')}}
+            <Consul::Partition::Selector
+              @dc={{@dc}}
+              @partition={{@partition}}
+              @nspace={{@nspace}}
+              @partitions={{this.partitions}}
+              @list={{SNL}}
+              @onchange={{action (mut this.partitions) value='data'}}
+            />
+          {{/if}}
           <Consul::Nspace::Selector
             @list={{SNL}}
             @dc={{@dc}}
