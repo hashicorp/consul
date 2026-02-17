@@ -184,7 +184,7 @@ func newAWSCredentialsConfig(config map[string]interface{}) (*awsutil.Credential
 	// Note: IAM and STS endpoint configuration is NOT added to awsutil config here
 	// because consul-awsauth creates its own STS/IAM clients and doesn't use the
 	// awsutil-provided config. Instead, we extract the endpoint strings from params
-	// and pass them directly to consul-awsauth.GenerateLoginData() (see lines 74-86).
+	// and pass them directly to consul-awsauth.GenerateLoginData()
 
 	// Create the credentials config
 	c, err := awsutil.NewCredentialsConfig(opts...)
@@ -192,7 +192,10 @@ func newAWSCredentialsConfig(config map[string]interface{}) (*awsutil.Credential
 		return nil, "", fmt.Errorf("failed to create AWS credentials config: %w", err)
 	}
 
-	// Set session token directly on the config struct as there is no WithSessionToken option in awsutil
+	// Set session token directly on the config struct if provided in auth method params.
+	// The session_token parameter comes from the Vault CA provider's auth_method configuration
+	// awsutil.NewCredentialsConfig() doesn't provide
+	// a WithSessionToken option, we set it directly on the returned config struct.
 	if sessionToken := params["session_token"]; sessionToken != "" {
 		c.SessionToken = sessionToken
 	}
