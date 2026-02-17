@@ -10,6 +10,7 @@ import (
 
 	memdb "github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-multierror"
+	hashstructure_v2 "github.com/mitchellh/hashstructure/v2"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
@@ -19,6 +20,25 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/maps"
 )
+
+// discoveryChainCacheKey is the key for caching compiled discovery chains
+type discoveryChainCacheKey struct {
+	ServiceName      string
+	Namespace        string
+	Partition        string
+	Datacenter       string
+	OverrideProtocol string
+	// Hash of other override parameters (mesh gateway, connect timeout)
+	OverridesHash uint64
+}
+
+// discoveryChainCacheEntry contains a cached compiled discovery chain
+type discoveryChainCacheEntry struct {
+	Chain   *structs.CompiledDiscoveryChain
+	Entries *configentry.DiscoveryChainSet
+	// Index is the config entry index this chain was compiled at
+	Index uint64
+}
 
 var (
 	permissiveModeNotAllowedError = errors.New("cannot set MutualTLSMode=permissive because AllowEnablingPermissiveMutualTLS=false in the mesh config entry")
@@ -879,7 +899,7 @@ var serviceGraphKinds = []string{
 
 // discoveryChainTargets will return a list of services listed as a target for the input's discovery chain
 func (s *Store) discoveryChainTargetsTxn(tx ReadTxn, ws memdb.WatchSet, dc, service string, entMeta *acl.EnterpriseMeta) (uint64, []structs.ServiceName, error) {
-	idx, targets, err := discoveryChainOriginalTargetsTxn(tx, ws, dc, service, entMeta)
+	idx, targets, err := s.discoveryChainOriginalTargetsTxn(tx, ws, dc, service, entMeta)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -897,7 +917,7 @@ func (s *Store) discoveryChainTargetsTxn(tx ReadTxn, ws memdb.WatchSet, dc, serv
 	return idx, resp, nil
 }
 
-func discoveryChainOriginalTargetsTxn(
+func (s *Store) discoveryChainOriginalTargetsTxn(
 	tx ReadTxn,
 	ws memdb.WatchSet,
 	dc, service string,
@@ -910,7 +930,7 @@ func discoveryChainOriginalTargetsTxn(
 		EvaluateInPartition:  source.PartitionOrDefault(),
 		EvaluateInDatacenter: dc,
 	}
-	idx, chain, _, err := serviceDiscoveryChainTxn(tx, ws, source.Name, entMeta, req)
+	idx, chain, _, err := s.serviceDiscoveryChainTxn(tx, ws, source.Name, entMeta, req)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to fetch discovery chain for %q: %v", source.String(), err)
 	}
@@ -957,7 +977,7 @@ func (s *Store) discoveryChainSourcesTxn(tx ReadTxn, ws memdb.WatchSet, dc strin
 			EvaluateInPartition:  sn.PartitionOrDefault(),
 			EvaluateInDatacenter: dc,
 		}
-		idx, chain, _, err := serviceDiscoveryChainTxn(tx, ws, sn.Name, &sn.EnterpriseMeta, req)
+		idx, chain, _, err := s.serviceDiscoveryChainTxn(tx, ws, sn.Name, &sn.EnterpriseMeta, req)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed to fetch discovery chain for %q: %v", sn.String(), err)
 		}
@@ -1463,10 +1483,10 @@ func (s *Store) ServiceDiscoveryChain(
 	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
-	return serviceDiscoveryChainTxn(tx, ws, serviceName, entMeta, req)
+	return s.serviceDiscoveryChainTxn(tx, ws, serviceName, entMeta, req)
 }
 
-func serviceDiscoveryChainTxn(
+func (s *Store) serviceDiscoveryChainTxn(
 	tx ReadTxn,
 	ws memdb.WatchSet,
 	serviceName string,
@@ -1478,6 +1498,63 @@ func serviceDiscoveryChainTxn(
 	if err != nil {
 		return 0, nil, nil, err
 	}
+
+	// Generate cache key
+	overridesHash, err := hashstructure_v2.Hash(struct {
+		MeshGateway    structs.MeshGatewayConfig
+		ConnectTimeout any
+	}{
+		MeshGateway:    req.OverrideMeshGateway,
+		ConnectTimeout: req.OverrideConnectTimeout,
+	}, hashstructure_v2.FormatV2, nil)
+	if err != nil {
+		return 0, nil, nil, fmt.Errorf("error hashing compile overrides: %w", err)
+	}
+
+	cacheKey := discoveryChainCacheKey{
+		ServiceName:      serviceName,
+		Namespace:        entMeta.NamespaceOrDefault(),
+		Partition:        entMeta.PartitionOrDefault(),
+		Datacenter:       req.EvaluateInDatacenter,
+		OverrideProtocol: req.OverrideProtocol,
+		OverridesHash:    overridesHash,
+	}
+
+	// Check cache
+	s.discoveryChainCacheLock.RLock()
+	cached, ok := s.discoveryChainCache.Get(cacheKey)
+	s.discoveryChainCacheLock.RUnlock()
+
+	// Cache hit: return cached chain if index matches
+	if ok && cached.Index == index {
+		s.logger.Trace("discovery chain cache hit",
+			"service", serviceName,
+			"namespace", entMeta.NamespaceOrDefault(),
+			"partition", entMeta.PartitionOrDefault(),
+			"datacenter", req.EvaluateInDatacenter,
+			"index", index,
+		)
+		return index, cached.Chain, cached.Entries, nil
+	}
+
+	// Cache miss or stale
+	if ok {
+		s.logger.Debug("discovery chain cache stale, recompiling",
+			"service", serviceName,
+			"namespace", entMeta.NamespaceOrDefault(),
+			"partition", entMeta.PartitionOrDefault(),
+			"cached_index", cached.Index,
+			"current_index", index,
+		)
+	} else {
+		s.logger.Debug("discovery chain cache miss, compiling",
+			"service", serviceName,
+			"namespace", entMeta.NamespaceOrDefault(),
+			"partition", entMeta.PartitionOrDefault(),
+		)
+	}
+
+	// Cache miss or stale: compile the chain
 	req.Entries = entries
 
 	_, config, err := caConfigTxn(tx, ws)
@@ -1512,11 +1589,31 @@ func serviceDiscoveryChainTxn(
 		copy(req.ManualVirtualIPs, serviceVIPEntry.ManualIPs)
 	}
 
-	// Then we compile it into something useful.
+	// Compile the discovery chain.
 	chain, err := discoverychain.Compile(req)
 	if err != nil {
 		return 0, nil, nil, fmt.Errorf("failed to compile discovery chain: %v", err)
 	}
+
+	// Store in cache
+	cacheEntry := &discoveryChainCacheEntry{
+		Chain:   chain,
+		Entries: entries,
+		Index:   index,
+	}
+
+	s.discoveryChainCacheLock.Lock()
+	s.discoveryChainCache.Add(cacheKey, cacheEntry)
+	cacheSize := s.discoveryChainCache.Len()
+	s.discoveryChainCacheLock.Unlock()
+
+	s.logger.Trace("discovery chain compiled and cached",
+		"service", serviceName,
+		"namespace", entMeta.NamespaceOrDefault(),
+		"partition", entMeta.PartitionOrDefault(),
+		"index", index,
+		"cache_size", cacheSize,
+	)
 
 	return index, chain, entries, nil
 }
