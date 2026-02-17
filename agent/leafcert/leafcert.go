@@ -11,9 +11,10 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/go-hclog"
 	"golang.org/x/sync/singleflight"
 	"golang.org/x/time/rate"
+
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/cacheshim"
 	"github.com/hashicorp/consul/agent/structs"
@@ -70,6 +71,10 @@ type Config struct {
 	// deterministic time delay in order to test the behavior here fully and
 	// determinstically.
 	TestOverrideCAChangeInitialDelay time.Duration
+
+	// Certificate telemetry thresholds for determining log severity
+	CertificateTelemetryCriticalThresholdDays int
+	CertificateTelemetryWarningThresholdDays  int
 }
 
 func (c Config) withDefaults() Config {
@@ -143,6 +148,9 @@ func NewManager(deps Deps) *Manager {
 
 	// Start the expiry watcher
 	go m.runExpiryLoop()
+
+	// Start periodic metric emitter to keep metrics fresh across restarts
+	go m.emitCertMetrics()
 
 	return m
 }
@@ -554,6 +562,75 @@ func (m *Manager) runExpiryLoop() {
 			metrics.SetGauge([]string{"leaf-certs", "entries_count"}, float32(len(m.certs)))
 
 			m.lock.Unlock()
+		}
+	}
+}
+
+// emitCertMetrics periodically re-emits certificate expiry and failure metrics
+// This ensures metrics persist across agent restarts and remain visible to Prometheus
+func (m *Manager) emitCertMetrics() {
+	ticker := time.NewTicker(5 * time.Minute)
+	defer ticker.Stop()
+
+	emitMetrics := func() {
+		m.lock.RLock()
+		defer m.lock.RUnlock()
+
+		for _, cd := range m.certs {
+			cd.lock.Lock()
+			cert := cd.value
+			failureReason := cd.state.lastRenewalFailureReason
+			rateLimitErrs := cd.state.consecutiveRateLimitErrs
+			cd.lock.Unlock()
+
+			if cert == nil {
+				continue
+			}
+
+			// Re-emit expiry metric
+			timeUntilExpiry := time.Until(cert.ValidBefore)
+			labels := []metrics.Label{
+				{Name: "service", Value: cert.Service},
+				{Name: "kind", Value: string(cert.Kind)},
+			}
+
+			metrics.SetGaugeWithLabels(
+				[]string{"leaf-certs", "cert_expiry"},
+				float32(timeUntilExpiry.Seconds()),
+				labels,
+			)
+
+			// Re-emit failure metric if applicable
+			if failureReason != "" || rateLimitErrs > 0 {
+				reason := failureReason
+				if reason == "" {
+					reason = "rate_limited"
+				}
+				metrics.SetGaugeWithLabels(
+					[]string{"leaf-certs", "cert_renewal_failure"},
+					1,
+					append(labels, metrics.Label{Name: "reason", Value: reason}),
+				)
+			} else {
+				// Clear failure metric
+				metrics.SetGaugeWithLabels(
+					[]string{"leaf-certs", "cert_renewal_failure"},
+					0,
+					labels,
+				)
+			}
+		}
+	}
+
+	// Emit immediately on startup
+	emitMetrics()
+
+	for {
+		select {
+		case <-m.ctx.Done():
+			return
+		case <-ticker.C:
+			emitMetrics()
 		}
 	}
 }

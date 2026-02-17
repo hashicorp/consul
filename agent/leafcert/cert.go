@@ -133,4 +133,14 @@ type fetchState struct {
 	// use this to choose a new window for the next retry. See comment on
 	// const caChangeJitterWindow above for more.
 	consecutiveRateLimitErrs int
+
+	// lastRenewalFailureReason stores the most recent renewal failure reason
+	// for metrics and observability
+	lastRenewalFailureReason string
+
+	// lastRenewalAttempt tracks when we last tried to renew this cert
+	lastRenewalAttempt time.Time
+
+	// totalRenewalFailures tracks cumulative renewal failures (not just rate limits)
+	totalRenewalFailures int
 }

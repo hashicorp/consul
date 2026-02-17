@@ -15,9 +15,10 @@ import (
 	"github.com/armon/go-metrics/circonus"
 	"github.com/armon/go-metrics/datadog"
 	"github.com/armon/go-metrics/prometheus"
+	prometheuscore "github.com/prometheus/client_golang/prometheus"
+
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-multierror"
-	prometheuscore "github.com/prometheus/client_golang/prometheus"
 
 	"github.com/hashicorp/consul/lib/retry"
 )
@@ -220,6 +221,16 @@ type TelemetryConfig struct {
 	//
 	// hcl: telemetry { prometheus_retention_time = "duration" }
 	PrometheusOpts prometheus.PrometheusOpts
+
+	// Certificate telemetry configuration for certificate expiry monitoring
+	//
+	// hcl: telemetry { certificate { ... } }
+	CertificateEnabled               bool          `json:"certificate_enabled" mapstructure:"certificate_enabled"`
+	CertificateCacheDuration         time.Duration `json:"certificate_cache_duration" mapstructure:"certificate_cache_duration"`
+	CertificateCriticalThresholdDays int           `json:"certificate_critical_threshold_days" mapstructure:"certificate_critical_threshold_days"`
+	CertificateWarningThresholdDays  int           `json:"certificate_warning_threshold_days" mapstructure:"certificate_warning_threshold_days"`
+	CertificateInfoThresholdDays     int           `json:"certificate_info_threshold_days" mapstructure:"certificate_info_threshold_days"`
+	CertificateExcludeAutoRenewable  bool          `json:"certificate_exclude_auto_renewable" mapstructure:"certificate_exclude_auto_renewable"`
 }
 
 // MetricsHandler provides an http.Handler for displaying metrics.

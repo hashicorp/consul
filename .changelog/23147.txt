@@ -1,0 +1,3 @@
+```release-note:feature
+telemetry: Add comprehensive certificate expiry monitoring with configurable thresholds, metrics, logging, and API endpoint for tracking CA root, intermediate, leaf, and agent TLS certificates
+```

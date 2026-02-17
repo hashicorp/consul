@@ -456,6 +456,12 @@
     "Telemetry": {
         "AllowedPrefixes": [],
         "BlockedPrefixes": [],
+        "CertificateCacheDuration": "0s",
+        "CertificateCriticalThresholdDays": 0,
+        "CertificateEnabled": false,
+        "CertificateExcludeAutoRenewable": false,
+        "CertificateInfoThresholdDays": 0,
+        "CertificateWarningThresholdDays": 0,
         "CirconusAPIApp": "",
         "CirconusAPIToken": "hidden",
         "CirconusAPIURL": "",
