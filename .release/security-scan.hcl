@@ -37,13 +37,10 @@ container {
 	triage {
 		suppress {
 			vulnerabilities = [
-                //curl
 				"CVE-2025-14819",
 				"CVE-2025-14524",
 				"CVE-2025-14017",
-				//gnupg
 				"CVE-2025-30258",
-				//ubi-rpmdb
 				"CVE-2006-1174",
 				"CVE-2015-3194",
 				"CVE-2015-4000",
