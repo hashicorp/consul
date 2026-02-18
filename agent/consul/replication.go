@@ -61,11 +61,11 @@ var ReplicationGauges = []prometheus.GaugeDefinition{
 	},
 	{
 		Name: []string{"leader", "replication", "namespaces", "status"},
-		Help: "Tracks the current health of namespace replication on the leader",
+		Help: "Tracks the current health of federation state replication on the leader",
 	},
 	{
 		Name: []string{"leader", "replication", "namespaces", "index"},
-		Help: "Tracks the index of namespaces in the primary that the secondary has successfully replicated",
+		Help: "Tracks the index of federation states in the primary that the secondary has successfully replicated",
 	},
 }
 
