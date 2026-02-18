@@ -82,7 +82,7 @@ var ACLEndpointSummaries = []prometheus.SummaryDefinition{
 	},
 	{
 		Name: []string{"acl", "authmethod", "delete"},
-		Help: "Measures the time it takes to delete an ACL authentication method.",
+		Help: "Measures the time it takes to delete an ACL authmethod.",
 	},
 	{
 		Name: []string{"acl", "login"},
