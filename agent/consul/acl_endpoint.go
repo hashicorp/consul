@@ -90,7 +90,7 @@ var ACLEndpointSummaries = []prometheus.SummaryDefinition{
 	},
 	{
 		Name: []string{"acl", "login"},
-		Help: "Measures the time it takes to complete an ACL login operation using an authentication method.",
+		Help: "Measures the time it takes to complete an ACL login operation using an authmethod method.",
 	},
 	{
 		Name: []string{"acl", "logout"},
