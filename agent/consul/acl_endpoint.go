@@ -78,7 +78,7 @@ var ACLEndpointSummaries = []prometheus.SummaryDefinition{
 	},
 	{
 		Name: []string{"acl", "authmethod", "upsert"},
-		Help: "Measures the time it takes to create or update an ACL authentication method.",
+		Help: "Measures the time it takes to create or update an ACL authmethod.",
 	},
 	{
 		Name: []string{"acl", "authmethod", "delete"},
