@@ -102,13 +102,9 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			return nil, err
 		}
 
-		ds, err := netutil.IsDualStack(nil, true)
-		if err != nil {
-			return nil, fmt.Errorf("failed to determine if dual-stack mode is enabled: %w", err)
-		}
-
 		addr := "127.0.0.1"
-		if ds {
+		ds, err := netutil.IsDualStack(nil, true)
+		if err == nil && ds {
 			addr = "::1"
 		}
 
@@ -823,10 +819,7 @@ func (s *ResourceGenerator) listenersFromSnapshotGateway(cfgSnap *proxycfg.Confi
 			addr = "0.0.0.0"
 
 			ds, err := netutil.IsDualStack(nil, true)
-			if err != nil {
-				return nil, err
-			}
-			if ds {
+			if err == nil && ds {
 				addr = "::"
 			}
 		}
@@ -950,10 +943,7 @@ func makeListenerWithDefault(opts makeListenerOpts) *envoy_listener_v3.Listener 
 	if opts.addr == "" {
 		opts.addr = "127.0.0.1"
 		ds, err := netutil.IsDualStack(nil, true)
-		if err != nil {
-			return nil
-		}
-		if ds {
+		if err == nil && ds {
 			opts.addr = "::1"
 		}
 	}
@@ -1350,10 +1340,7 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 	if addr == "" {
 		addr = "0.0.0.0"
 		ds, err := netutil.IsDualStack(nil, true)
-		if err != nil {
-			return nil, err
-		}
-		if ds {
+		if err == nil && ds {
 			addr = "::"
 		}
 	}
@@ -1580,10 +1567,7 @@ func (s *ResourceGenerator) makeExposedCheckListener(cfgSnap *proxycfg.ConfigSna
 	} else if addr == "" {
 		addr = "0.0.0.0"
 		ds, err := netutil.IsDualStack(nil, true)
-		if err != nil {
-			return nil, err
-		}
-		if ds {
+		if err == nil && ds {
 			addr = "::"
 		}
 	}
