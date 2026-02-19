@@ -1358,7 +1358,7 @@ func getRewriteActionForUserLogic(destination *structs.ServiceRouteDestination, 
 		return routeAction
 	}
 	// --- THIS IS THE LOGIC UNDER TEST ---
-	if destination.PrefixRewrite == "" || destination.PrefixRewrite == "/" {
+	if destination.PrefixRewrite == "/" || (destination.PrefixRewrite == "" && destination.PrefixRewriteSet) {
 		// Build the basic regex pattern
 		regexPattern := fmt.Sprintf(`^%s(/?)(.*)`, regexp.QuoteMeta(routeMatch.GetPrefix()))
 

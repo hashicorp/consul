@@ -444,6 +444,11 @@ type ServiceRouteDestination struct {
 	// below in the envoy implementation section.
 	PrefixRewrite string `json:",omitempty" alias:"prefix_rewrite"`
 
+	// PrefixRewriteSet tracks whether PrefixRewrite was explicitly configured.
+	// It is internal-only and used to distinguish "not set" from an explicit
+	// empty value (e.g. Gateway API replacePrefixMatch: "").
+	PrefixRewriteSet bool `json:"-"`
+
 	// RequestTimeout is the total amount of time permitted for the entire
 	// downstream request (and retries) to be processed.
 	RequestTimeout time.Duration `json:",omitempty" alias:"request_timeout"`

@@ -17,13 +17,7 @@
                 "prefix": "/"
               },
               "route": {
-                "cluster": "backend.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-                "regexRewrite": {
-                  "pattern": {
-                    "regex": "^/(/?)(.*)"
-                  },
-                  "substitution": "/\\2"
-                }
+                "cluster": "backend.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
               }
             }
           ]

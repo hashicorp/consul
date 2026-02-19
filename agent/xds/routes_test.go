@@ -347,7 +347,7 @@ func TestUserRewriteLogic(t *testing.T) {
 		assert.Equal(t, `/\2`, action.GetRegexRewrite().GetSubstitution())
 	})
 
-	t.Run("No rewrite (Buggy Case)", func(t *testing.T) {
+	t.Run("No rewrite when not explicitly configured", func(t *testing.T) {
 		t.Parallel()
 		dest := &structs.ServiceRouteDestination{
 			PrefixRewrite: "", // No rewrite defined
@@ -360,12 +360,26 @@ func TestUserRewriteLogic(t *testing.T) {
 
 		action := getRewriteActionForUserLogic(dest, match)
 
-		// EXPECT (based on your code): This FAILS.
-		// It enters the `if` block because `destination.PrefixRewrite == ""` is true.
 		assert.Empty(t, action.GetPrefixRewrite())
-		require.NotNil(t, action.GetRegexRewrite(), "This assertion fails because your logic incorrectly creates a RegexRewrite")
+		assert.Nil(t, action.GetRegexRewrite())
+	})
 
-		// This test proves the logic is applying a rewrite when it shouldn't be.
+	t.Run("Explicit empty rewrite strips prefix (replacePrefixMatch='')", func(t *testing.T) {
+		t.Parallel()
+		dest := &structs.ServiceRouteDestination{
+			PrefixRewrite:    "",
+			PrefixRewriteSet: true,
+		}
+		match := &envoy_route_v3.RouteMatch{
+			PathSpecifier: &envoy_route_v3.RouteMatch_Prefix{
+				Prefix: "/foo",
+			},
+		}
+
+		action := getRewriteActionForUserLogic(dest, match)
+
+		assert.Empty(t, action.GetPrefixRewrite())
+		require.NotNil(t, action.GetRegexRewrite())
 		assert.Equal(t, `^/foo(/?)(.*)`, action.GetRegexRewrite().Pattern.GetRegex())
 		assert.Equal(t, `/\2`, action.GetRegexRewrite().GetSubstitution())
 	})

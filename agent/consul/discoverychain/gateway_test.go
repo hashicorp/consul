@@ -471,6 +471,93 @@ func TestGatewayChainSynthesizer_AddHTTPRoute(t *testing.T) {
 	}
 }
 
+func TestSynthesizeHTTPRouteDiscoveryChain_PrefixRewriteSet(t *testing.T) {
+	t.Parallel()
+
+	cases := map[string]struct {
+		rule                structs.HTTPRouteRule
+		expectPrefixRewrite string
+		expectRewriteSet    bool
+	}{
+		"no URLRewrite filter": {
+			rule: structs.HTTPRouteRule{
+				Matches: []structs.HTTPMatch{{
+					Path: structs.HTTPPathMatch{
+						Match: structs.HTTPPathMatchPrefix,
+						Value: "/admin",
+					},
+				}},
+				Services: []structs.HTTPService{{
+					Name: "svc",
+				}},
+			},
+			expectPrefixRewrite: "",
+			expectRewriteSet:    false,
+		},
+		"rule URLRewrite explicit empty path": {
+			rule: structs.HTTPRouteRule{
+				Matches: []structs.HTTPMatch{{
+					Path: structs.HTTPPathMatch{
+						Match: structs.HTTPPathMatchPrefix,
+						Value: "/admin",
+					},
+				}},
+				Filters: structs.HTTPFilters{
+					URLRewrite: &structs.URLRewrite{
+						Path: "",
+					},
+				},
+				Services: []structs.HTTPService{{
+					Name: "svc",
+				}},
+			},
+			expectPrefixRewrite: "",
+			expectRewriteSet:    true,
+		},
+		"service inherits rule URLRewrite": {
+			rule: structs.HTTPRouteRule{
+				Matches: []structs.HTTPMatch{{
+					Path: structs.HTTPPathMatch{
+						Match: structs.HTTPPathMatchPrefix,
+						Value: "/admin",
+					},
+				}},
+				Filters: structs.HTTPFilters{
+					URLRewrite: &structs.URLRewrite{
+						Path: "/",
+					},
+				},
+				Services: []structs.HTTPService{{
+					Name: "svc",
+				}},
+			},
+			expectPrefixRewrite: "/",
+			expectRewriteSet:    true,
+		},
+	}
+
+	for name, tc := range cases {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			route := structs.HTTPRouteConfigEntry{
+				Kind: structs.HTTPRoute,
+				Name: "route",
+				Rules: []structs.HTTPRouteRule{
+					tc.rule,
+				},
+			}
+
+			_, router, _, _ := synthesizeHTTPRouteDiscoveryChain(route)
+			require.Len(t, router.Routes, 1)
+			require.NotNil(t, router.Routes[0].Destination)
+			require.Equal(t, tc.expectPrefixRewrite, router.Routes[0].Destination.PrefixRewrite)
+			require.Equal(t, tc.expectRewriteSet, router.Routes[0].Destination.PrefixRewriteSet)
+		})
+	}
+}
+
 func TestGatewayChainSynthesizer_Synthesize(t *testing.T) {
 	t.Parallel()
 

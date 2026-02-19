@@ -81,15 +81,16 @@ func httpRouteToDiscoveryChain(route structs.HTTPRouteConfigEntry) (*structs.Ser
 	for idx, rule := range route.Rules {
 		requestModifier := httpRouteFiltersToServiceRouteHeaderModifier(rule.Filters.Headers)
 		responseModifier := httpRouteFiltersToServiceRouteHeaderModifier(rule.ResponseFilters.Headers)
-		prefixRewrite := httpRouteFiltersToDestinationPrefixRewrite(rule.Filters.URLRewrite)
+		prefixRewrite, prefixRewriteSet := httpRouteFiltersToDestinationPrefixRewrite(rule.Filters.URLRewrite)
 
 		var destination structs.ServiceRouteDestination
 		if len(rule.Services) == 1 {
 			service := rule.Services[0]
 
-			servicePrefixRewrite := httpRouteFiltersToDestinationPrefixRewrite(service.Filters.URLRewrite)
+			servicePrefixRewrite, servicePrefixRewriteSet := httpRouteFiltersToDestinationPrefixRewrite(service.Filters.URLRewrite)
 			if service.Filters.URLRewrite == nil {
 				servicePrefixRewrite = prefixRewrite
+				servicePrefixRewriteSet = prefixRewriteSet
 			}
 
 			// Merge service request header modifier(s) onto route rule modifiers
@@ -112,6 +113,7 @@ func httpRouteToDiscoveryChain(route structs.HTTPRouteConfigEntry) (*structs.Ser
 			destination.Namespace = service.NamespaceOrDefault()
 			destination.Partition = service.PartitionOrDefault()
 			destination.PrefixRewrite = servicePrefixRewrite
+			destination.PrefixRewriteSet = servicePrefixRewriteSet
 			destination.RequestHeaders = requestModifier
 			destination.ResponseHeaders = responseModifier
 
@@ -129,6 +131,7 @@ func httpRouteToDiscoveryChain(route structs.HTTPRouteConfigEntry) (*structs.Ser
 			destination.Namespace = route.NamespaceOrDefault()
 			destination.Partition = route.PartitionOrDefault()
 			destination.PrefixRewrite = prefixRewrite
+			destination.PrefixRewriteSet = prefixRewriteSet
 			destination.RequestHeaders = requestModifier
 			destination.ResponseHeaders = responseModifier
 
@@ -213,11 +216,11 @@ func httpRouteToDiscoveryChain(route structs.HTTPRouteConfigEntry) (*structs.Ser
 	return router, splitters, defaults
 }
 
-func httpRouteFiltersToDestinationPrefixRewrite(rewrite *structs.URLRewrite) string {
+func httpRouteFiltersToDestinationPrefixRewrite(rewrite *structs.URLRewrite) (string, bool) {
 	if rewrite == nil {
-		return ""
+		return "", false
 	}
-	return rewrite.Path
+	return rewrite.Path, true
 }
 
 // httpRouteFiltersToServiceRouteHeaderModifier will consolidate a list of HTTP filters
