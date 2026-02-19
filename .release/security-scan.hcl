@@ -36,33 +36,7 @@ container {
 	# periodically cleaned up to remove items that are no longer found by the scanner.
 	triage {
 		suppress {
-			vulnerabilities = [
-                "CVE-2024-52533",
-                "CVE-2025-5914",
-                "CVE-2025-32414",
-                "CVE-2025-5702",
-                "CVE-2024-40896",
-                "CVE-2024-12797",
-                "CVE-2024-57970",
-                "CVE-2025-6021",
-                "CVE-2025-31115",
-                "CVE-2025-3277",
-                "CVE-2024-4067",
-                "CVE-2025-47268",
-                "CVE-2025-6965",
-                "CVE-2025-25724",
-                "CVE-2025-3576",
-                "CVE-2025-8058",
-                "CVE-2024-23337",
-                "CVE-2025-6395",
-                "CVE-2025-46394",
-                "CVE-2024-58251",
-                "CVE-2025-48964",
-                "CVE-2025-10148",
-                "CVE-2025-9086",
-                "CVE-2024-56433",
-                "CVE-2025-9230",
-			]
+			vulnerabilities = []
 			paths = [
 				"internal/tools/proto-gen-rpc-glue/e2e/consul/*",
 				"test/integration/connect/envoy/test-sds-server/*",
@@ -101,9 +75,7 @@ binary {
 	# periodically cleaned up to remove items that are no longer found by the scanner.
 	triage {
 		suppress {
-			vulnerabilities = [
-                "GO-2022-0635"
-			]
+			vulnerabilities = []
 			paths = [
 				"internal/tools/proto-gen-rpc-glue/e2e/consul/*",
 				"test/integration/connect/envoy/test-sds-server/*",
