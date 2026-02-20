@@ -5,21 +5,21 @@ The following example shows how to configure Consul to listen on multiple interf
 The `bind_addr` is used for internal RPC and Serf communication ([read the Agent Configuration for more information](/consul/docs/reference/agent/configuration-file/general#bind_addr)).
 
 The `client_addr` configuration specifies IP addresses used for HTTP, HTTPS, DNS
-and gRPC servers. Refer to read the Agent Configuration for more
-information](/consul/docs/reference/agent/configuration-file/general#client_addr)).
+and gRPC servers. Refer to the [Agent Configuration for more
+information](/consul/docs/reference/agent/configuration-file/general#client_addr).
 
 <CodeTabs>
 
 ```hcl
-node_name = "consul-client"
-server    = false
-bootstrap = true
-ui_config {
-  enabled = true
-}
+node_name  = "consul-client"
+server     = false
 datacenter = "dc1"
 data_dir   = "consul/data"
 log_level  = "INFO"
+
+ui_config {
+  enabled = true
+}
 
 # used for internal RPC and Serf
 bind_addr = "0.0.0.0"
@@ -36,14 +36,13 @@ advertise_addr = "{{ GetInterfaceIP \"en0\" }}"
 {
   "node_name": "consul-client",
   "server": false,
-  "bootstrap": true,
-  "ui_config": {
-    "enabled": true
-  },
   "datacenter": "dc1",
   "data_dir": "consul/data",
   "log_level": "INFO",
-  "bind_addr": "{{ GetPrivateIP }}",
+  "ui_config": {
+    "enabled": true
+  },
+  "bind_addr": "0.0.0.0",
   "client_addr": "{{ GetPrivateInterfaces | exclude \"type\" \"ipv6\" | join \"address\" \" \" }} {{ GetAllInterfaces | include \"flags\" \"loopback\" | join \"address\" \" \" }}",
   "advertise_addr": "{{ GetInterfaceIP \"en0\"}}"
 }
