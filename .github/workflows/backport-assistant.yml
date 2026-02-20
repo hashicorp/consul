@@ -16,35 +16,6 @@ on:
       - 'release/*.*.x'
 
 jobs:
-  prepare-labels:
-    # Only run if 'backport/all' is present on a merged PR
-    if: github.event.pull_request.merged && contains(github.event.pull_request.labels.*.name, 'backport/all')
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Extract Versions and Apply Labels
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: |
-          # 1. Extract version numbers from the HCL file (assuming file is named 'versions.hcl')
-          # This looks for lines like: version "1.22" {
-          # And extracts: 1.22
-          VERSIONS=$(grep -oE 'version "[0-9]+\.[0-9]+"' .release/versions.hcl | cut -d'"' -f2)
-          
-          if [ -z "$VERSIONS" ]; then
-            echo "No versions found in file. Exiting."
-            exit 1
-          fi
-          
-          # 2. Loop through and apply labels
-          for v in $VERSIONS; do
-            echo "Processing version: $v"
-            gh pr edit $PR_NUMBER --add-label "backport/$v"
-            gh pr edit $PR_NUMBER --add-label "backport/ent/$v"
-          done
   backport:
     if: github.event.pull_request.merged
     runs-on: ubuntu-latest
