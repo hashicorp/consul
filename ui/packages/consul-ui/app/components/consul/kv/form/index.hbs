@@ -37,20 +37,40 @@
             <Hds::Layout::Flex @direction='column' as |LF|>
 
               <LF.Item style='align-self: flex-end;'>
-                <Hds::Form::Toggle::Field
-                  name='json'
-                  checked={{if this.json 'checked'}}
-                  {{on 'change' api.change}}
-                  as |F|
-                >
-                  <F.Label>Code</F.Label>
-                </Hds::Form::Toggle::Field>
+                <Hds::Layout::Flex @gap='24px' @align='center' as |LF2|>
+                  <LF2.Item>
+                    <Hds::Form::Toggle::Field
+                      name='json'
+                      checked={{if this.json 'checked'}}
+                      {{on 'change' api.change}}
+                      as |F|
+                    >
+                      <F.Label>Code</F.Label>
+                    </Hds::Form::Toggle::Field>
+                  </LF2.Item>
+                  {{#if this.json}}
+                    <LF2.Item>
+                      <Hds::Form::Select::Field
+                        name='language'
+                        {{on 'change' (action api.change)}}
+                        as |F|
+                      >
+                        <F.Label>Language</F.Label>
+                        {{#each this.languages as |lang|}}
+                          <F.Options>
+                            <option value={{lang.value}} selected={{eq this.language lang.value}}>{{lang.label}}</option>
+                          </F.Options>
+                        {{/each}}
+                      </Hds::Form::Select::Field>
+                    </LF2.Item>
+                  {{/if}}
+                </Hds::Layout::Flex>
               </LF.Item>
               <label for='' class='type-text{{if api.data.error.Value " has-error"}}'>
                 {{#if this.json}}
                   {{#if (or disabld api.disabled)}}
                     <Hds::CodeBlock
-                      @language='bash'
+                      @language={{this.codeBlockLanguage}}
                       @value={{atob api.data.Value}}
                       @isStandalone={{false}}
                       @ariaLabel='value'
@@ -64,7 +84,7 @@
                       @readonly={{or disabld api.disabled}}
                       @value={{atob api.data.Value}}
                       @onInput={{action api.change 'value'}}
-                      @language='yaml'
+                      @language={{this.language}}
                       @ariaLabel='value'
                       @hasCopyButton={{true}}
                       @isStandalone={{false}}
