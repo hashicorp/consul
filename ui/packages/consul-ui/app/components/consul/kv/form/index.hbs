@@ -19,7 +19,7 @@
   <BlockSlot @name='content'>
     {{#let (cannot 'write kv' item=api.data) as |disabld|}}
       <form onsubmit={{action api.submit}}>
-        <fieldset {{disabled (or disabld api.disabled)}}>
+          <fieldset style='min-width: inherit;' {{disabled (or disabld api.disabled)}}>
           {{#if api.isCreate}}
             <label data-test-kv-key class='type-text{{if api.data.error.Key " has-error"}}'>
               <span>Key or folder</span>
