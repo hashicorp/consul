@@ -31,7 +31,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.ELEVATED_GITHUB_TOKEN_WORKFLOW }}
           ENABLE_VERSION_MANIFESTS: true
   backport-ent:
-    if: github.event.pull_request.merged && contains(join(github.event.pull_request.labels.*.name), 'backport/ent')
+    if: github.event.pull_request.merged && (contains(join(github.event.pull_request.labels.*.name), 'backport/ent') ||
+      contains(join(github.event.pull_request.labels.*.name), 'backport/all'))
     runs-on: ubuntu-latest
     steps:
       - name: Trigger backport for Enterprise
