@@ -338,7 +338,7 @@ func TestHTTPRoute(t *testing.T) {
 				}},
 			},
 		},
-		"rule normalizes service weight": {
+		"rule preserves zero service weight and normalizes negative service weight": {
 			entry: &HTTPRouteConfigEntry{
 				Kind: HTTPRoute,
 				Name: "route-one",
@@ -351,6 +351,29 @@ func TestHTTPRoute(t *testing.T) {
 						{
 							Name:   "test2",
 							Weight: -1,
+						},
+					},
+				}},
+			},
+			check: func(t *testing.T, entry ConfigEntry) {
+				route := entry.(*HTTPRouteConfigEntry)
+				require.Equal(t, 0, route.Rules[0].Services[0].Weight)
+				require.Equal(t, 1, route.Rules[0].Services[1].Weight)
+			},
+		},
+		"rule normalizes all-zero service weights to defaults": {
+			entry: &HTTPRouteConfigEntry{
+				Kind: HTTPRoute,
+				Name: "route-one",
+				Rules: []HTTPRouteRule{{
+					Services: []HTTPService{
+						{
+							Name:   "test",
+							Weight: 0,
+						},
+						{
+							Name:   "test2",
+							Weight: 0,
 						},
 					},
 				}},

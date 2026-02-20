@@ -105,8 +105,19 @@ func (e *HTTPRouteConfigEntry) Normalize() error {
 			rule.Matches[j] = normalizeHTTPMatch(match)
 		}
 
+		allServicesHaveZeroWeight := true
 		for j, service := range rule.Services {
 			rule.Services[j] = e.normalizeHTTPService(service)
+			if rule.Services[j].Weight != 0 {
+				allServicesHaveZeroWeight = false
+			}
+		}
+		// Preserve historical behavior for routes that omit all service weights by
+		// normalizing them to 1.
+		if allServicesHaveZeroWeight {
+			for j := range rule.Services {
+				rule.Services[j].Weight = 1
+			}
 		}
 		e.Rules[i] = rule
 	}
@@ -123,7 +134,7 @@ func (e *HTTPRouteConfigEntry) Normalize() error {
 func (e *HTTPRouteConfigEntry) normalizeHTTPService(service HTTPService) HTTPService {
 	service.Merge(e.GetEnterpriseMeta())
 	service.Normalize()
-	if service.Weight <= 0 {
+	if service.Weight < 0 {
 		service.Weight = 1
 	}
 	return service
