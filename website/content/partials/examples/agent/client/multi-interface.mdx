@@ -8,12 +8,13 @@ The `client_addr` configuration specifies IP addresses used for HTTP, HTTPS, DNS
 and gRPC servers. Refer to read the Agent Configuration for more
 information](/consul/docs/reference/agent/configuration-file/general#client_addr)).
 
+Note that client agents should not be bootstrapped; the examples below omit the `bootstrap` setting for that reason.
+
 <CodeTabs>
 
 ```hcl
 node_name = "consul-client"
 server    = false
-bootstrap = true
 ui_config {
   enabled = true
 }
@@ -36,7 +37,6 @@ advertise_addr = "{{ GetInterfaceIP \"en0\" }}"
 {
   "node_name": "consul-client",
   "server": false,
-  "bootstrap": true,
   "ui_config": {
     "enabled": true
   },
