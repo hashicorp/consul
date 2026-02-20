@@ -18,7 +18,45 @@ const (
 	// federationStatePruneInterval is how often we check for stale federation
 	// states to remove should a datacenter be removed from the WAN.
 	federationStatePruneInterval = time.Hour
+
+	// defaultFederationStateAntiEntropySyncInterval is the default minimum
+	// interval between federation state anti-entropy sync operations.
+	defaultFederationStateAntiEntropySyncInterval = 5 * time.Second
 )
+
+func waitForDurationOrCancel(ctx context.Context, d time.Duration) error {
+	if d <= 0 {
+		return nil
+	}
+
+	timer := time.NewTimer(d)
+	defer timer.Stop()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
+	}
+}
+
+func federationStateAntiEntropyEffectiveInterval(interval time.Duration) time.Duration {
+	if interval <= 0 {
+		return defaultFederationStateAntiEntropySyncInterval
+	}
+	return interval
+}
+
+func federationStateAntiEntropyDebounceWait(lastSync time.Time, interval time.Duration, now time.Time) time.Duration {
+	if lastSync.IsZero() {
+		return 0
+	}
+	nextAllowed := lastSync.Add(interval)
+	if !now.Before(nextAllowed) {
+		return 0
+	}
+	return nextAllowed.Sub(now)
+}
 
 func (s *Server) startFederationStateAntiEntropy(ctx context.Context) {
 	// Check to see if we can skip waiting for serf feature detection below.
@@ -54,11 +92,30 @@ func (s *Server) stopFederationStateAntiEntropy() {
 }
 
 func (s *Server) federationStateAntiEntropySync(ctx context.Context) error {
-	var lastFetchIndex uint64
+	var (
+		lastFetchIndex uint64
+		lastSyncTime   time.Time
+	)
+
+	interval := federationStateAntiEntropyEffectiveInterval(s.config.FederationStateAntiEntropySyncInterval)
 
 	retryLoopBackoff(ctx, func() error {
 		if !s.DatacenterSupportsFederationStates() {
+			// FIX: Prevent a hot loop if federation is not supported.
+			// We wait for the interval (or until context cancel) before checking again.
+			if err := waitForDurationOrCancel(ctx, interval); err != nil {
+				return err
+			}
 			return nil
+		}
+
+		// Enforce a minimum interval between expensive sync operations. This
+		// acts as a debounce over the blockingQuery wake-ups that fetch the
+		// federation state and mesh-gateway dump.
+		if wait := federationStateAntiEntropyDebounceWait(lastSyncTime, interval, time.Now()); wait > 0 {
+			if err := waitForDurationOrCancel(ctx, wait); err != nil {
+				return err
+			}
 		}
 
 		idx, err := s.federationStateAntiEntropyMaybeSync(ctx, lastFetchIndex)
@@ -67,6 +124,7 @@ func (s *Server) federationStateAntiEntropySync(ctx context.Context) error {
 		}
 
 		lastFetchIndex = idx
+		lastSyncTime = time.Now()
 		return nil
 	}, func(err error) {
 		s.logger.Error("error performing anti-entropy sync of federation state", "error", err)

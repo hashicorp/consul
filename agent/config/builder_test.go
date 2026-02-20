@@ -311,6 +311,54 @@ func TestBuilder_DurationVal_InvalidDuration(t *testing.T) {
 	require.Contains(t, b.err.Error(), badDuration2)
 }
 
+func TestLoad_FederationStateAntiEntropySyncInterval_Valid(t *testing.T) {
+	devMode := true
+	opts := LoadOpts{
+		DevMode: &devMode,
+		Overrides: []Source{
+			FileSource{
+				Name:   "overrides",
+				Format: "hcl",
+				Data: `
+				node_name = "test"
+				data_dir = "dir"
+				federation_state_anti_entropy_sync_interval = "250ms"
+				`,
+			},
+		},
+	}
+	patchLoadOptsShims(&opts)
+
+	result, err := Load(opts)
+	require.NoError(t, err)
+	require.NotNil(t, result.RuntimeConfig)
+	require.Equal(t, 250*time.Millisecond, result.RuntimeConfig.FederationStateAntiEntropySyncInterval)
+}
+
+func TestLoad_FederationStateAntiEntropySyncInterval_Invalid(t *testing.T) {
+	devMode := true
+	opts := LoadOpts{
+		DevMode: &devMode,
+		Overrides: []Source{
+			FileSource{
+				Name:   "overrides",
+				Format: "hcl",
+				Data: `
+				node_name = "test"
+				data_dir = "dir"
+				federation_state_anti_entropy_sync_interval = "not-a-duration"
+				`,
+			},
+		},
+	}
+	patchLoadOptsShims(&opts)
+
+	_, err := Load(opts)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "federation_state_anti_entropy_sync_interval")
+	require.Contains(t, err.Error(), "invalid duration")
+}
+
 func TestBuilder_DurationValWithDefaultMin(t *testing.T) {
 	b := builder{}
 

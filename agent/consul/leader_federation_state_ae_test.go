@@ -352,6 +352,43 @@ func TestLeader_FederationStateAntiEntropyPruning(t *testing.T) {
 	})
 }
 
+func TestWaitForDurationOrCancel_Waits(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	d := 25 * time.Millisecond
+
+	start := time.Now()
+	err := waitForDurationOrCancel(ctx, d)
+	elapsed := time.Since(start)
+
+	require.NoError(t, err)
+	require.GreaterOrEqual(t, elapsed, d-5*time.Millisecond)
+}
+
+func TestFederationStateAntiEntropyDebounceWait(t *testing.T) {
+	t.Parallel()
+
+	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	interval := 100 * time.Millisecond
+
+	t.Run("zero last sync", func(t *testing.T) {
+		require.Equal(t, time.Duration(0), federationStateAntiEntropyDebounceWait(time.Time{}, interval, now))
+	})
+
+	t.Run("already past next allowed", func(t *testing.T) {
+		lastSync := now.Add(-2 * interval)
+		require.Equal(t, time.Duration(0), federationStateAntiEntropyDebounceWait(lastSync, interval, now))
+	})
+
+	t.Run("needs to wait", func(t *testing.T) {
+		lastSync := now.Add(-50 * time.Millisecond)
+		wait := federationStateAntiEntropyDebounceWait(lastSync, interval, now)
+		require.Greater(t, wait, time.Duration(0))
+		require.LessOrEqual(t, wait, interval)
+	})
+}
+
 func TestLeader_FederationStateAntiEntropyPruning_ACLDeny(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
