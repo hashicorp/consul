@@ -275,6 +275,71 @@
           metadata: {
             _options: { path: '/metadata' },
           },
+          sessions: {
+            _options: { path: '/lock-sessions' },
+          },
+        },
+      },
+      peers: {
+        _options: {
+          path: '/peers',
+        },
+        index: {
+          _options: {
+            path: '/',
+            queryParams: {
+              sortBy: 'sort',
+              state: 'state',
+              searchproperty: {
+                as: 'searchproperty',
+                empty: [['Name', 'ID']],
+              },
+              search: {
+                as: 'filter',
+                replace: true,
+              },
+            },
+          },
+        },
+        show: {
+          _options: {
+            path: '/:name',
+          },
+          imported: {
+            _options: {
+              path: '/imported-services',
+              queryParams: {
+                sortBy: 'sort',
+                status: 'status',
+                source: 'source',
+                kind: 'kind',
+                searchproperty: {
+                  as: 'searchproperty',
+                  empty: [['Name', 'Tags']],
+                },
+                search: {
+                  as: 'filter',
+                  replace: true,
+                },
+              },
+            },
+          },
+          exported: {
+            _options: {
+              path: '/exported-services',
+              queryParams: {
+                search: {
+                  as: 'filter',
+                  replace: true,
+                },
+              },
+            },
+          },
+          addresses: {
+            _options: {
+              path: '/addresses',
+            },
+          },
         },
       },
       intentions: {
@@ -387,7 +452,7 @@
         tokens: {
           _options: {
             path: '/tokens',
-            abilities: ['access acls'],
+            abilities: ['access acls', 'read tokens'],
           },
           edit: {
             _options: { path: '/:id' },
@@ -415,6 +480,70 @@
             'nspace-rules': {
               _options: { path: '/nspace-rules' },
             },
+          },
+        },
+      },
+      partitions: {
+        _options: {
+          path: '/partitions',
+          abilities: ['read partitions'],
+        },
+        index: {
+          _options: {
+            path: '/',
+            queryParams: {
+              sortBy: 'sort',
+              searchproperty: {
+                as: 'searchproperty',
+                empty: [['Name', 'Description']],
+              },
+              search: {
+                as: 'filter',
+                replace: true,
+              },
+            },
+          },
+        },
+        edit: {
+          _options: { path: '/:name' },
+        },
+        create: {
+          _options: {
+            template: '../edit',
+            path: '/create',
+            abilities: ['create partitions'],
+          },
+        },
+      },
+      nspaces: {
+        _options: {
+          path: '/namespaces',
+          abilities: ['read nspaces'],
+        },
+        index: {
+          _options: {
+            path: '/',
+            queryParams: {
+              sortBy: 'sort',
+              searchproperty: {
+                as: 'searchproperty',
+                empty: [['Name', 'Description', 'Role', 'Policy']],
+              },
+              search: {
+                as: 'filter',
+                replace: true,
+              },
+            },
+          },
+        },
+        edit: {
+          _options: { path: '/:name' },
+        },
+        create: {
+          _options: {
+            template: '../edit',
+            path: '/create',
+            abilities: ['create nspaces'],
           },
         },
       },

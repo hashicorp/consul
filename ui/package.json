@@ -5,7 +5,7 @@
   "author": "HashiCorp",
   "scripts": {
     "compliance": "npm-run-all compliance:*",
-    "compliance:licenses": "license-checker --summary --onlyAllow 'Python-2.0;Apache*;Apache License, Version 2.0;Apache-2.0;Apache 2.0;Artistic-2.0;BSD;BSD-3-Clause;CC-BY-3.0;CC-BY-4.0;CC0-1.0;ISC;MIT;MPL-2.0;Public Domain;Unicode-TOU;Unlicense;WTFPL' --excludePackages 'consul-ui@2.2.0;consul-acls@0.1.0;consul-lock-sessions@0.1.0;consul-partitions@0.1.0;consul-nspaces@0.1.0;consul-peerings@0.1.0'",
+    "compliance:licenses": "license-checker --summary --onlyAllow 'Python-2.0;Apache*;Apache License, Version 2.0;Apache-2.0;Apache 2.0;Artistic-2.0;BSD;BSD-3-Clause;CC-BY-3.0;CC-BY-4.0;CC0-1.0;ISC;MIT;MPL-2.0;Public Domain;Unicode-TOU;Unlicense;WTFPL' --excludePackages 'consul-ui@2.2.0'",
     "doc:toc": "doctoc README.md"
   },
   "devDependencies": {
@@ -25,7 +25,7 @@
       "json5@<1.0.2": ">=1.0.2",
       "braces@<3.0.3": ">=3.0.3",
       "micromatch@<4.0.8": ">=4.0.8",
-      "body-parser@<1.20.3": ">=1.20.3",
+      "body-parser@<2.2.1": ">=2.2.1",
       "send@<0.19.0": ">=0.19.0",
       "serve-static@<1.16.0": ">=1.16.0",
       "path-to-regexp@<0.1.10": ">=0.1.10",

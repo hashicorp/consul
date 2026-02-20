@@ -5,16 +5,19 @@ package ca
 
 import (
 	"bytes"
+	"context"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"sync/atomic"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/acmpca"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/acmpca"
+	"github.com/aws/aws-sdk-go-v2/service/acmpca/types"
+	"github.com/aws/smithy-go"
 
 	"github.com/go-viper/mapstructure/v2"
 	"github.com/hashicorp/go-hclog"
@@ -65,8 +68,8 @@ type AWSProvider struct {
 	stopCh  chan struct{}
 
 	config          *structs.AWSCAProviderConfig
-	session         *session.Session
-	client          *acmpca.ACMPCA
+	awsConfig       *aws.Config
+	client          *acmpca.Client
 	isPrimary       bool
 	datacenter      string
 	clusterID       string
@@ -99,19 +102,19 @@ func (a *AWSProvider) Configure(cfg ProviderConfig) error {
 	// another place or sending them via API call and persisting them in state
 	// store in a new place on disk. One of the existing standard solutions seems
 	// better in all cases.
-	awsSession, err := session.NewSessionWithOptions(session.Options{
-		SharedConfigState: session.SharedConfigEnable,
-	})
+	awsConfig, err := awsconfig.LoadDefaultConfig(context.Background(),
+		awsconfig.WithSharedConfigProfile(""),
+	)
 	if err != nil {
 		return err
 	}
 
 	a.config = config
-	a.session = awsSession
+	a.awsConfig = &awsConfig
 	a.isPrimary = cfg.IsPrimary
 	a.clusterID = cfg.ClusterID
 	a.datacenter = cfg.Datacenter
-	a.client = acmpca.New(awsSession)
+	a.client = acmpca.NewFromConfig(awsConfig)
 	a.stopCh = make(chan struct{})
 
 	// Load the ARN from config or previous state.
@@ -171,14 +174,14 @@ func (a *AWSProvider) ensureCA() error {
 		input := &acmpca.DescribeCertificateAuthorityInput{
 			CertificateAuthorityArn: aws.String(a.arn),
 		}
-		output, err := a.client.DescribeCertificateAuthority(input)
+		output, err := a.client.DescribeCertificateAuthority(context.Background(), input)
 		if err != nil {
 			return err
 		}
 		// Allow it to be active or pending a certificate (leadership might have
 		// changed during a secondary initialization for example).
-		if *output.CertificateAuthority.Status != acmpca.CertificateAuthorityStatusActive &&
-			*output.CertificateAuthority.Status != acmpca.CertificateAuthorityStatusPendingCertificate {
+		if output.CertificateAuthority.Status != types.CertificateAuthorityStatusActive &&
+			output.CertificateAuthority.Status != types.CertificateAuthorityStatusPendingCertificate {
 			verb := "configured"
 			if a.caCreated {
 				verb = "created"
@@ -189,7 +192,7 @@ func (a *AWSProvider) ensureCA() error {
 			// but this is simpler and less surprising default behavior if user
 			// disabled a CA due to a security concern and we just work around it.
 			return fmt.Errorf("the %s PCA is not active: status is %s", verb,
-				*output.CertificateAuthority.Status)
+				output.CertificateAuthority.Status)
 		}
 
 		// Load the certs
@@ -233,7 +236,7 @@ func (a *AWSProvider) ensureCA() error {
 	}
 
 	a.logger.Debug("uploading certificate for ARN", "arn", a.arn)
-	_, err = a.client.ImportCertificateAuthorityCertificate(&input)
+	_, err = a.client.ImportCertificateAuthorityCertificate(context.Background(), &input)
 	if err != nil {
 		return err
 	}
@@ -247,9 +250,9 @@ func keyTypeToAlgos(keyType string, keyBits int) (string, string, error) {
 	case "rsa":
 		switch keyBits {
 		case 2048:
-			return acmpca.KeyAlgorithmRsa2048, acmpca.SigningAlgorithmSha256withrsa, nil
+			return string(types.KeyAlgorithmRsa2048), string(types.SigningAlgorithmSha256withrsa), nil
 		case 4096:
-			return acmpca.KeyAlgorithmRsa4096, acmpca.SigningAlgorithmSha256withrsa, nil
+			return string(types.KeyAlgorithmRsa4096), string(types.SigningAlgorithmSha256withrsa), nil
 		default:
 			return "", "", fmt.Errorf("AWS PCA only supports RSA key lengths 2048"+
 				" and 4096, PrivateKeyBits of %d configured", keyBits)
@@ -258,7 +261,7 @@ func keyTypeToAlgos(keyType string, keyBits int) (string, string, error) {
 		if keyBits != 256 {
 			return "", "", fmt.Errorf("AWS PCA only supports P256 EC curve, keyBits of %d configured", keyBits)
 		}
-		return acmpca.KeyAlgorithmEcPrime256v1, acmpca.SigningAlgorithmSha256withecdsa, nil
+		return string(types.KeyAlgorithmEcPrime256v1), string(types.SigningAlgorithmSha256withecdsa), nil
 	default:
 		return "", "", fmt.Errorf("AWS PCA only supports P256 EC curve, or RSA"+
 			" 2048/4096. %s, %d configured", keyType, keyBits)
@@ -268,7 +271,7 @@ func keyTypeToAlgos(keyType string, keyBits int) (string, string, error) {
 func (a *AWSProvider) createPCA() error {
 	pcaType := "ROOT" // For some reason there is no constant for this in the SDK
 	if !a.isPrimary {
-		pcaType = acmpca.CertificateAuthorityTypeSubordinate
+		pcaType = string(types.CertificateAuthorityTypeSubordinate)
 	}
 
 	keyAlg, signAlg, err := keyTypeToAlgos(a.config.PrivateKeyType, a.config.PrivateKeyBits)
@@ -283,32 +286,32 @@ func (a *AWSProvider) createPCA() error {
 	commonName := connect.CACN("aws", uid, a.clusterID, a.isPrimary)
 
 	createInput := acmpca.CreateCertificateAuthorityInput{
-		CertificateAuthorityType: aws.String(pcaType),
-		CertificateAuthorityConfiguration: &acmpca.CertificateAuthorityConfiguration{
-			Subject: &acmpca.ASN1Subject{
+		CertificateAuthorityType: types.CertificateAuthorityType(pcaType),
+		CertificateAuthorityConfiguration: &types.CertificateAuthorityConfiguration{
+			Subject: &types.ASN1Subject{
 				CommonName: aws.String(commonName),
 			},
-			KeyAlgorithm:     aws.String(keyAlg),
-			SigningAlgorithm: aws.String(signAlg),
+			KeyAlgorithm:     types.KeyAlgorithm(keyAlg),
+			SigningAlgorithm: types.SigningAlgorithm(signAlg),
 		},
-		RevocationConfiguration: &acmpca.RevocationConfiguration{
+		RevocationConfiguration: &types.RevocationConfiguration{
 			// TODO support CRL in future when we manage revocation in Connect more
 			// generally.
-			CrlConfiguration: &acmpca.CrlConfiguration{
+			CrlConfiguration: &types.CrlConfiguration{
 				Enabled: aws.Bool(false),
 			},
 		},
 		// uid is unique to each PCA we create so use it as an idempotency string. We
 		// don't actually retry on failure yet but might as well!
 		IdempotencyToken: aws.String(uid),
-		Tags: []*acmpca.Tag{
+		Tags: []types.Tag{
 			{Key: aws.String("consul_cluster_id"), Value: aws.String(a.clusterID)},
 			{Key: aws.String("consul_datacenter"), Value: aws.String(a.datacenter)},
 		},
 	}
 
 	a.logger.Debug("creating new PCA", "common_name", commonName)
-	createOutput, err := a.client.CreateCertificateAuthority(&createInput)
+	createOutput, err := a.client.CreateCertificateAuthority(context.Background(), &createInput)
 	if err != nil {
 		a.logger.Error("failed to create new PCA", "common_name", commonName, "error", err)
 		return err
@@ -320,13 +323,14 @@ func (a *AWSProvider) createPCA() error {
 		CertificateAuthorityArn: aws.String(newARN),
 	}
 	_, err = a.pollLoop("Private CA", AWSCreateTimeout, func() (bool, string, error) {
-		describeOutput, err := a.client.DescribeCertificateAuthority(&describeInput)
+		describeOutput, err := a.client.DescribeCertificateAuthority(context.Background(), &describeInput)
 		if err != nil {
-			if err.(awserr.Error).Code() != acmpca.ErrCodeRequestInProgressException {
+			var apiErr smithy.APIError
+			if errors.As(err, &apiErr) && apiErr.ErrorCode() != "RequestInProgressException" {
 				return true, "", fmt.Errorf("error waiting for PCA to be created: %s", err)
 			}
 		}
-		if *describeOutput.CertificateAuthority.Status == acmpca.CertificateAuthorityStatusPendingCertificate {
+		if describeOutput.CertificateAuthority.Status == types.CertificateAuthorityStatusPendingCertificate {
 			a.logger.Debug("new PCA is ready to accept a certificate", "pca", newARN)
 			a.arn = newARN
 			// We don't need to reload this ARN since we just created it and know what
@@ -345,7 +349,7 @@ func (a *AWSProvider) getCACSR() (string, error) {
 		CertificateAuthorityArn: aws.String(a.arn),
 	}
 	a.logger.Debug("retrieving CSR for PCA", "pca", a.arn)
-	output, err := a.client.GetCertificateAuthorityCsr(input)
+	output, err := a.client.GetCertificateAuthorityCsr(context.Background(), input)
 	if err != nil {
 		return "", err
 	}
@@ -362,7 +366,7 @@ func (a *AWSProvider) loadCACerts() error {
 	input := &acmpca.GetCertificateAuthorityCertificateInput{
 		CertificateAuthorityArn: aws.String(a.arn),
 	}
-	output, err := a.client.GetCertificateAuthorityCertificate(input)
+	output, err := a.client.GetCertificateAuthorityCertificate(context.Background(), input)
 	if err != nil {
 		return err
 	}
@@ -458,24 +462,23 @@ func (a *AWSProvider) signCSR(csrPEM string, templateARN string, ttl time.Durati
 	issueInput := acmpca.IssueCertificateInput{
 		CertificateAuthorityArn: aws.String(a.arn),
 		Csr:                     []byte(csrPEM),
-		SigningAlgorithm:        aws.String(signAlg),
+		SigningAlgorithm:        types.SigningAlgorithm(signAlg),
 		TemplateArn:             aws.String(templateARN),
-		Validity: &acmpca.Validity{
+		Validity: &types.Validity{
 			Value: aws.Int64(int64(ttl / day)),
-			Type:  aws.String(acmpca.ValidityPeriodTypeDays),
+			Type:  types.ValidityPeriodTypeDays,
 		},
 	}
 
-	issueOutput, err := a.client.IssueCertificate(&issueInput)
+	issueOutput, err := a.client.IssueCertificate(context.Background(), &issueInput)
 	// ErrCodeLimitExceededException is used for both hard and soft limits in AWS
 	// SDK :(. In this specific context though (issuing a certificate) there is no
 	// hard limit on number of certs so a limit exceeded here is a rate limit.
-	if aerr, ok := err.(awserr.Error); ok && err != nil {
-		if aerr.Code() == acmpca.ErrCodeLimitExceededException {
+	if err != nil {
+		var apiErr smithy.APIError
+		if errors.As(err, &apiErr) && apiErr.ErrorCode() == "LimitExceededException" {
 			return "", ErrRateLimited
 		}
-	}
-	if err != nil {
 		return "", fmt.Errorf("error issuing certificate from PCA: %s", err)
 	}
 
@@ -487,9 +490,10 @@ func (a *AWSProvider) signCSR(csrPEM string, templateARN string, ttl time.Durati
 	return a.pollLoop(fmt.Sprintf("certificate %s", *issueOutput.CertificateArn),
 		AWSSignTimeout,
 		func() (bool, string, error) {
-			certOutput, err := a.client.GetCertificate(&certInput)
+			certOutput, err := a.client.GetCertificate(context.Background(), &certInput)
 			if err != nil {
-				if err.(awserr.Error).Code() != acmpca.ErrCodeRequestInProgressException {
+				var apiErr smithy.APIError
+				if errors.As(err, &apiErr) && apiErr.ErrorCode() != "RequestInProgressException" {
 					return true, "", fmt.Errorf("error retrieving certificate from PCA: %s", err)
 				}
 			}
@@ -533,7 +537,7 @@ func (a *AWSProvider) SetIntermediate(intermediatePEM string, rootPEM string, _ 
 		CertificateChain:        []byte(rootPEM),
 	}
 	a.logger.Debug("uploading certificate for PCA", "pca", a.arn)
-	_, err = a.client.ImportCertificateAuthorityCertificate(&input)
+	_, err = a.client.ImportCertificateAuthorityCertificate(context.Background(), &input)
 	if err != nil {
 		return err
 	}
@@ -611,10 +615,10 @@ func (a *AWSProvider) disablePCA() error {
 	}
 	input := acmpca.UpdateCertificateAuthorityInput{
 		CertificateAuthorityArn: aws.String(a.arn),
-		Status:                  aws.String(acmpca.CertificateAuthorityStatusDisabled),
+		Status:                  types.CertificateAuthorityStatusDisabled,
 	}
 	a.logger.Info("disabling PCA", "pca", a.arn)
-	_, err := a.client.UpdateCertificateAuthority(&input)
+	_, err := a.client.UpdateCertificateAuthority(context.Background(), &input)
 	return err
 }
 
@@ -626,10 +630,10 @@ func (a *AWSProvider) deletePCA() error {
 		CertificateAuthorityArn: aws.String(a.arn),
 		// We only ever use this to clean up after tests so delete as quickly as
 		// possible (7 days).
-		PermanentDeletionTimeInDays: aws.Int64(7),
+		PermanentDeletionTimeInDays: aws.Int32(7),
 	}
 	a.logger.Info("deleting PCA", "pca", a.arn)
-	_, err := a.client.DeleteCertificateAuthority(&input)
+	_, err := a.client.DeleteCertificateAuthority(context.Background(), &input)
 	return err
 }
 
