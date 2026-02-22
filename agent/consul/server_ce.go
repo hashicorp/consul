@@ -6,6 +6,7 @@
 package consul
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -17,11 +18,13 @@ import (
 	"github.com/hashicorp/serf/serf"
 
 	"github.com/hashicorp/consul/acl"
+	ratectrl "github.com/hashicorp/consul/agent/consul/rate/controller"
 	"github.com/hashicorp/consul/agent/consul/reporting"
 	resourcegrpc "github.com/hashicorp/consul/agent/grpc-external/services/resource"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/gossip/librtt"
 	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
 )
 
@@ -206,4 +209,23 @@ func (s *Server) newResourceServiceConfig(typeRegistry resource.Registry, resolv
 		Logger:        s.loggers.Named(logging.GRPCAPI).Named(logging.Resource),
 		TenancyBridge: tenancyBridge,
 	}
+}
+
+// runEnterpriseRateLimiterConfigEntryController start the rate limiter config controller
+func (s *Server) runRateLimiterConfigEntryController() error {
+	agentCtx := &lib.StopChannelContext{StopCh: s.shutdownCh}
+	err := s.routineManager.Start(agentCtx, "rate limit controller", s.RunRateLimiterController)
+	if err != nil {
+		return fmt.Errorf("failed to start rate limit controller: %w", err)
+	}
+	return nil
+}
+
+func (s *Server) RunRateLimiterController(ctx context.Context) error {
+	logger := s.logger.Named("rate-limiter")
+	return ratectrl.NewRateLimiterController(func(k string, n string) (uint64, structs.ConfigEntry, error) {
+		i, entry, err := s.fsm.State().ConfigEntry(nil, k, n, nil)
+		return i, entry, err
+	},
+		s.publisher, logger, s.incomingRPCLimiter).Run(ctx)
 }

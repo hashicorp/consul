@@ -27,6 +27,7 @@ var configEntryKindToTopic = map[string]stream.Topic{
 	structs.InlineCertificate:     EventTopicInlineCertificate,
 	structs.BoundAPIGateway:       EventTopicBoundAPIGateway,
 	structs.RateLimitIPConfig:     EventTopicIPRateLimit,
+	structs.RateLimit:             EventTopicGlobalRateLimit,
 	structs.SamenessGroup:         EventTopicSamenessGroup,
 	structs.JWTProvider:           EventTopicJWTProvider,
 	structs.ExportedServices:      EventTopicExportedServices,
@@ -170,6 +171,10 @@ func (s *Store) BoundAPIGatewaySnapshot(req stream.SubscribeRequest, buf stream.
 // "control-plane-request-limit" config entries.
 func (s *Store) IPRateLimiterSnapshot(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 	return s.configEntrySnapshot(structs.RateLimitIPConfig, req, buf)
+}
+
+func (s *Store) GlobalRateLimiterSnapshot(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+	return s.configEntrySnapshot(structs.RateLimit, req, buf)
 }
 
 // SamenessGroupSnapshot is a stream.SnapshotFunc that returns a snapshot of

@@ -593,6 +593,8 @@ func MakeShadowConfigEntry(kind, name string) (structs.ConfigEntry, error) {
 	switch kind {
 	case structs.RateLimitIPConfig:
 		return nil, ErrDroppingTenantedReq
+	case structs.RateLimit:
+		return &ShadowGlobalRateLimitConfigEntry{GlobalRateLimitConfigEntry: &structs.GlobalRateLimitConfigEntry{Name: name}}, nil
 	case structs.ServiceDefaults:
 		return &ShadowServiceConfigEntry{ServiceConfigEntry: &structs.ServiceConfigEntry{Name: name}}, nil
 	case structs.ProxyDefaults:
@@ -1019,4 +1021,13 @@ type ShadowJWTProviderConfigEntry struct {
 
 func (s ShadowJWTProviderConfigEntry) GetRealConfigEntry() structs.ConfigEntry {
 	return s.JWTProviderConfigEntry
+}
+
+type ShadowGlobalRateLimitConfigEntry struct {
+	ShadowBase
+	*structs.GlobalRateLimitConfigEntry
+}
+
+func (s ShadowGlobalRateLimitConfigEntry) GetRealConfigEntry() structs.ConfigEntry {
+	return s.GlobalRateLimitConfigEntry
 }

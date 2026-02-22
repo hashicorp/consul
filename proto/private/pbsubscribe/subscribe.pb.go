@@ -19,15 +19,16 @@
 package pbsubscribe
 
 import (
+	reflect "reflect"
+	sync "sync"
+	unsafe "unsafe"
+
 	_ "github.com/hashicorp/consul/proto-public/annotations/ratelimit"
 	pbcommon "github.com/hashicorp/consul/proto/private/pbcommon"
 	pbconfigentry "github.com/hashicorp/consul/proto/private/pbconfigentry"
 	pbservice "github.com/hashicorp/consul/proto/private/pbservice"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	reflect "reflect"
-	sync "sync"
-	unsafe "unsafe"
 )
 
 const (
@@ -83,6 +84,7 @@ const (
 	Topic_ExportedServices Topic = 17
 	// FileSystemCertificate topic contains events for changes to file-system-certificates.
 	Topic_FileSystemCertificate Topic = 18
+	Topic_GlobalRateLimit       Topic = 19
 )
 
 // Enum value maps for Topic.
@@ -107,6 +109,7 @@ var (
 		16: "JWTProvider",
 		17: "ExportedServices",
 		18: "FileSystemCertificate",
+		19: "GlobalRateLimit",
 	}
 	Topic_value = map[string]int32{
 		"Unknown":               0,
@@ -128,6 +131,7 @@ var (
 		"JWTProvider":           16,
 		"ExportedServices":      17,
 		"FileSystemCertificate": 18,
+		"GlobalRateLimit":       19,
 	}
 )
 

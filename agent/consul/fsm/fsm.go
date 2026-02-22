@@ -433,6 +433,11 @@ func (c *FSM) registerStreamSnapshotHandlers() {
 	}, true)
 	panicIfErr(err)
 
+	err = c.deps.Publisher.RegisterHandler(state.EventTopicGlobalRateLimit, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+		return c.State().GlobalRateLimiterSnapshot(req, buf)
+	}, true)
+	panicIfErr(err)
+
 	err = c.deps.Publisher.RegisterHandler(state.EventTopicSamenessGroup, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 		return c.State().SamenessGroupSnapshot(req, buf)
 	}, true)
