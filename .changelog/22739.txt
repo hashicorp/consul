@@ -1,3 +1,3 @@
-```release-note:security
-security: Configure HTTP server timeouts to prevent Slowloris denial-of-service attacks on agent HTTP endpoints and pprof endpoints
+```release-note:breaking-change
+security: Configure HTTP server timeouts to prevent Slowloris denial-of-service attacks on agent HTTP endpoints and pprof endpoints. Timeouts can be customized via `read_timeout`, `read_header_timeout`, `write_timeout`, and `idle_timeout` options in the `http_config` block if longer timeouts are needed for health checks or other operations.
 ```
