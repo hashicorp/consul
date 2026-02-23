@@ -1,3 +1,3 @@
 ```release-note:security
-security: Configure HTTP server timeouts to prevent Slowloris denial-of-service attacks on agent HTTP endpoints and pprof endpoints
+security: Configure HTTP server timeouts to prevent Slowloris denial-of-service attacks on agent HTTP endpoints and pprof endpoints. Default timeouts are: read_timeout=30s, read_header_timeout=10s, write_timeout=30s, idle_timeout=120s. These can be customized via the `http_config` block in agent configuration if longer timeouts are needed for health checks or other operations.
 ```
