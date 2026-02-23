@@ -96,6 +96,7 @@
   width='100%'
   height='100%'
   preserveAspectRatio='none'
+  aria-hidden='true'
 >
   {{#each this.routes as |item|}}
     {{#if item.rect}}
@@ -136,6 +137,7 @@
                   (concat (round (or item.Weight 0) decimals=2) '%')
                   options=(hash followCursor=true)
                 }}
+                tabindex='-1'                
                 id={{concat 'splitter:' splitter.Name '>' item.NextNode}}
                 class='split'
                 d={{svg-curve
@@ -153,7 +155,7 @@
 
 </svg>
 
-<svg class='resolver-inlets' height='100%'>
+<svg class='resolver-inlets' height='100%' aria-hidden='true'>
   {{#each this.routes as |item|}}
     {{#if (string-starts-with item.NextNode 'resolver:')}}
       {{#let (or item.NextItem.rect (hash y=0 height=0)) as |dest|}}
@@ -170,7 +172,7 @@
   {{/each}}
 </svg>
 
-<svg class='splitter-inlets' height='100%'>
+<svg class='splitter-inlets' height='100%' aria-hidden='true'>
   {{#each this.routes as |item|}}
     {{#if (string-starts-with item.NextNode 'splitter:')}}
       {{#let (or item.NextItem.rect (hash y=0 height=0)) as |dest|}}
