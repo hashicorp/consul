@@ -12,7 +12,7 @@ IMPROVEMENTS:
 * cli: Added `--aws-iam-endpoint` flag to `consul login` command for AWS IAM auth method to support custom IAM endpoint configuration [[GH-23109](https://github.com/hashicorp/consul/issues/23109)]
 
 ## 1.22.3 (January 23, 2026)
-
+ASDASDAS
 SECURITY:
 
 * Update the Consul Build Go base image to `alpine3.23.2` [[GH-23138](https://github.com/hashicorp/consul/issues/23138)]
