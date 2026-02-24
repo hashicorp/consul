@@ -33,15 +33,16 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/tcpproxy"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/serf/coordinate"
-	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/encoding/protojson"
+
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/serf/coordinate"
+	"github.com/hashicorp/serf/serf"
 
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
@@ -6530,9 +6531,9 @@ func TestAgent_HTTPServerDefaultTimeouts(t *testing.T) {
 	defer a.Shutdown()
 
 	// Verify default timeout values are applied
-	require.Equal(t, 30*time.Second, a.config.HTTPReadTimeout)
+	require.Equal(t, 15*time.Minute, a.config.HTTPReadTimeout)
 	require.Equal(t, 10*time.Second, a.config.HTTPReadHeaderTimeout)
-	require.Equal(t, 30*time.Second, a.config.HTTPWriteTimeout)
+	require.Equal(t, 15*time.Minute, a.config.HTTPWriteTimeout)
 	require.Equal(t, 120*time.Second, a.config.HTTPIdleTimeout)
 }
 
