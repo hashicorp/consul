@@ -676,8 +676,6 @@ func (c *Cache) fetch(ctx context.Context, key string, r getOptions, allowNew bo
 		select {
 		case <-handle.stopCh:
 			return
-		case <-ctx.Done():
-			return
 		default:
 		}
 
