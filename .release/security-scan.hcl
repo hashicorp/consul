@@ -37,7 +37,7 @@ container {
 	triage {
 		suppress {
 			vulnerabilities = [
-				/ubi-rpmdb
+				//ubi-rpmdb
 				"CVE-2006-1174",
 				"CVE-2015-3194",
 				"CVE-2015-4000",
