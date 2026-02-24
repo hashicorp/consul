@@ -5,6 +5,7 @@ package rate
 import (
 	context "context"
 
+	"github.com/hashicorp/consul/agent/structs"
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -44,6 +45,11 @@ func (_m *MockRequestLimitsHandler) UpdateConfig(cfg HandlerConfig) {
 
 // UpdateIPConfig provides a mock function with given fields: cfg
 func (_m *MockRequestLimitsHandler) UpdateIPConfig(cfg IPLimitConfig) {
+	_m.Called(cfg)
+}
+
+// UpdateIPConfig provides a mock function with given fields: cfg
+func (_m *MockRequestLimitsHandler) UpdateGlobalRateLimitConfig(cfg *structs.GlobalRateLimitConfigEntry) {
 	_m.Called(cfg)
 }
 

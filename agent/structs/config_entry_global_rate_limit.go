@@ -5,6 +5,7 @@ package structs
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/hashicorp/consul/acl"
 )
@@ -13,10 +14,10 @@ import (
 // all Consul servers in the cluster. This configuration is stored in Raft and
 // automatically replicated to all servers.
 type GlobalRateLimitConfigEntry struct {
-	// Kind must be "global-rate-limit"
+	// Kind must be "rate-limit"
 	Kind string
 
-	// Name identifies this rate limit configuration
+	// Name identifies this rate limit configuration, must be "global"
 	Name string
 
 	// GlobalRateLimit contains the rate limiting configuration
@@ -113,24 +114,24 @@ func (e *GlobalRateLimitConfigEntry) Validate() error {
 	}
 
 	if e.Name == "" {
-		return fmt.Errorf("Name is required for global-rate-limit config entry")
+		return fmt.Errorf("Name is required for rate-limit config entry")
 	}
 
 	if e.Name != "global" {
-		return fmt.Errorf("Name for global-rate-limit config entry must be 'global'")
+		return fmt.Errorf("Name for rate-limit config entry must be 'global'")
 	}
 
 	// Config is required and must be valid
 	if e.Config == nil {
-		return fmt.Errorf("Config is required for global-rate-limit config entry")
+		return fmt.Errorf("Config is required for rate-limit config entry")
 	}
 
 	// Validate read and write rates
-	if e.Config.ReadRate != nil && *e.Config.ReadRate < 0 {
-		return fmt.Errorf("read_rate must be non-negative, got %f", *e.Config.ReadRate)
+	if err := validateRate("read_rate", e.Config.ReadRate); err != nil {
+		return err
 	}
-	if e.Config.WriteRate != nil && *e.Config.WriteRate < 0 {
-		return fmt.Errorf("write_rate must be non-negative, got %f", *e.Config.WriteRate)
+	if err := validateRate("write_rate", e.Config.WriteRate); err != nil {
+		return err
 	}
 
 	// Validate exclude endpoints - check for empty strings
@@ -144,6 +145,24 @@ func (e *GlobalRateLimitConfigEntry) Validate() error {
 		return fmt.Errorf("invalid meta: %w", err)
 	}
 
+	return nil
+}
+
+// validateRate validates a rate value, rejecting NaN, Inf, and negative values.
+// A nil rate is valid and means unlimited. A zero rate is valid and means block all.
+func validateRate(name string, rate *float64) error {
+	if rate == nil {
+		return nil
+	}
+	if math.IsNaN(*rate) {
+		return fmt.Errorf("%s must be a valid number, got NaN", name)
+	}
+	if math.IsInf(*rate, 0) {
+		return fmt.Errorf("%s must be a finite number, got %f", name, *rate)
+	}
+	if *rate < 0 {
+		return fmt.Errorf("%s must be non-negative, got %f", name, *rate)
+	}
 	return nil
 }
 

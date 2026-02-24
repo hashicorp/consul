@@ -11,10 +11,10 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-// ceReadEntryFunc is a function type for fetching a config entry by kind and name (CE edition, no EnterpriseMeta).
+//go:generate mockery --name ceReadEntryFunc --inpackage --filename mock_ceReadEntry.go
 type ceReadEntryFunc func(k string, n string) (uint64, structs.ConfigEntry, error)
 
-// ceUpdater is the interface for updating the IP rate limit config.
+//go:generate mockery --name ceUpdater --inpackage --filename mock_ceUpdater.go
 type ceUpdater interface {
 	UpdateGlobalRateLimitConfig(cfg *structs.GlobalRateLimitConfigEntry)
 }
@@ -49,15 +49,13 @@ func reconcileEntry(readEntry ceReadEntryFunc, logger hclog.Logger, _ context.Co
 	}
 
 	// Update with the actual config entry when it exists
-	if entry.GetKind() == structs.RateLimit {
-		cfg, ok := entry.(*structs.GlobalRateLimitConfigEntry)
-		if !ok {
-			logger.Error("failed to cast config entry to GlobalRateLimitConfigEntry",
-				"entry_type", entry.GetKind())
-			return nil
-		}
-		updater.UpdateGlobalRateLimitConfig(cfg)
+	cfg, ok := entry.(*structs.GlobalRateLimitConfigEntry)
+	if !ok {
+		logger.Error("failed to cast config entry to GlobalRateLimitConfigEntry",
+			"entry_type", entry.GetKind())
+		return nil
 	}
+	updater.UpdateGlobalRateLimitConfig(cfg)
 	return nil
 }
 

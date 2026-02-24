@@ -6,6 +6,8 @@
 package rate
 
 import (
+	"math"
+
 	"github.com/hashicorp/consul/agent/consul/multilimiter"
 	"github.com/hashicorp/consul/agent/structs"
 	"golang.org/x/time/rate"
@@ -25,27 +27,32 @@ func (h *Handler) ipCategoryLimit(op Operation) *limit {
 	return nil
 }
 
+// burstFromRate computes an appropriate Burst value for a given rate.
+// The token bucket's Burst (max tokens) must be >= 1 for any positive rate,
+// otherwise rate.Limiter.Allow() will never permit a request.
+// For rates >= 1, Burst is set to ceil(rate) to allow natural bursting.
+// For rates between 0 and 1 (e.g., 0.5 req/s), Burst is clamped to 1.
+// For rate == 0, Burst is 0 (blocks everything).
+func burstFromRate(r float64) int {
+	if r <= 0 {
+		return 0
+	}
+	burst := int(math.Ceil(r))
+	if burst < 1 {
+		burst = 1
+	}
+	return burst
+}
+
 // UpdateGlobalRateLimitConfig updates the global rate limit configuration from Raft.
 // This should be called when the global-rate-limit config entry changes.
+// Note: validation of ReadRate/WriteRate (e.g. rejecting negative values) is handled
+// by GlobalRateLimitConfigEntry.Validate(), which is called during ConfigEntry.Apply
+// before the entry is written to Raft. The handler trusts the config is already valid.
 func (h *Handler) UpdateGlobalRateLimitConfig(cfg *structs.GlobalRateLimitConfigEntry) {
-	prevCfg := h.globalRateLimitCfg.Load()
 	h.globalRateLimitCfg.Store(cfg)
 
 	if cfg != nil {
-
-		// Validate the configuration
-		if cfg.Config.ReadRate != nil && *cfg.Config.ReadRate < 0 {
-			h.logger.Error("invalid global rate limit config: read_rate is negative",
-				"name", cfg.Name,
-				"read_rate", *cfg.Config.ReadRate)
-			return
-		}
-		if cfg.Config.WriteRate != nil && *cfg.Config.WriteRate < 0 {
-			h.logger.Error("invalid global rate limit config: write_rate is negative",
-				"name", cfg.Name,
-				"write_rate", *cfg.Config.WriteRate)
-			return
-		}
 
 		// Update the limiter with separate read and write rates from config entry
 		writeCfg := multilimiter.LimiterConfig{}
@@ -58,7 +65,7 @@ func (h *Handler) UpdateGlobalRateLimitConfig(cfg *structs.GlobalRateLimitConfig
 		} else {
 			readCfg = multilimiter.LimiterConfig{
 				Rate:  rate.Limit(*cfg.Config.ReadRate),
-				Burst: int(*cfg.Config.ReadRate),
+				Burst: burstFromRate(*cfg.Config.ReadRate),
 			}
 		}
 
@@ -70,35 +77,12 @@ func (h *Handler) UpdateGlobalRateLimitConfig(cfg *structs.GlobalRateLimitConfig
 		} else {
 			writeCfg = multilimiter.LimiterConfig{
 				Rate:  rate.Limit(*cfg.Config.WriteRate),
-				Burst: int(*cfg.Config.WriteRate),
+				Burst: burstFromRate(*cfg.Config.WriteRate),
 			}
 		}
 		h.limiter.UpdateConfig(readCfg, configEntryReadLimit)
 		h.limiter.UpdateConfig(writeCfg, configEntryWriteLimit)
 
-		// Log at appropriate level based on whether this is a change or initial load
-		logFields := []interface{}{
-			"name", cfg.Name,
-			"read_rate", cfg.Config.ReadRate,
-			"write_rate", cfg.Config.WriteRate,
-			"priority", cfg.Config.Priority,
-			"exclude_endpoints_count", len(cfg.Config.ExcludeEndpoints),
-			"modify_index", cfg.ModifyIndex,
-		}
-
-		if prevCfg == nil {
-			h.logger.Info("loaded global rate limit config entry", logFields...)
-		} else {
-			logFields = append(logFields, "previous_read_rate", prevCfg.Config.ReadRate)
-			logFields = append(logFields, "previous_write_rate", prevCfg.Config.WriteRate)
-			h.logger.Info("updated global rate limit config entry", logFields...)
-		}
-
-		// Debug log the exclude endpoints for troubleshooting
-		if len(cfg.Config.ExcludeEndpoints) > 0 {
-			h.logger.Debug("global rate limit exclude endpoints configured",
-				"endpoints", cfg.Config.ExcludeEndpoints)
-		}
 	} else {
 		// Config entry removed - set to unlimited
 		limiterCfg := multilimiter.LimiterConfig{
@@ -108,13 +92,5 @@ func (h *Handler) UpdateGlobalRateLimitConfig(cfg *structs.GlobalRateLimitConfig
 		h.limiter.UpdateConfig(limiterCfg, configEntryReadLimit)
 		h.limiter.UpdateConfig(limiterCfg, configEntryWriteLimit)
 
-		if prevCfg != nil {
-			h.logger.Info("removed global rate limit config entry",
-				"previous_name", prevCfg.Name,
-				"previous_read_rate", prevCfg.Config.ReadRate,
-				"previous_write_rate", prevCfg.Config.WriteRate)
-		} else {
-			h.logger.Debug("global rate limit config entry cleared (was already nil)")
-		}
 	}
 }

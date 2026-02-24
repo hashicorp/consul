@@ -251,39 +251,67 @@ func (h *Handler) Allow(op Operation) error {
 		// panic("serversStatusProvider required to be set via Register(..)")
 	}
 
+	globalCfg := h.globalRateLimitCfg.Load()
+	if globalCfg != nil && globalCfg.Config != nil && globalCfg.Config.Priority {
+		if configEntryLimit := h.configEntryGlobalLimit(op); configEntryLimit != nil {
+
+			allow, throttledLimits := h.allowAllLimits([]limit{*configEntryLimit}, h.serversStatusProvider.IsServer(string(metadata.GetIP(op.SourceAddr))))
+
+			if !allow {
+				if err := h.handleThrottledLimits(op, throttledLimits, "RPC exceeded config entry rate limit", nil); err != nil {
+					return err
+				}
+			} else {
+				return nil
+			}
+		}
+	}
+
 	allow, throttledLimits := h.allowAllLimits(h.limits(op), h.serversStatusProvider.IsServer(string(metadata.GetIP(op.SourceAddr))))
 
 	if !allow {
-		for _, l := range throttledLimits {
-			enforced := l.mode == ModeEnforcing
-			h.logger.Debug("RPC exceeded allowed rate limit",
-				"rpc", op.Name,
-				"source_addr", op.SourceAddr,
-				"limit_type", l.desc,
-				"limit_enforced", enforced,
-			)
+		if err := h.handleThrottledLimits(op, throttledLimits, "RPC exceeded allowed rate limit", nil); err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
-			metrics.IncrCounterWithLabels([]string{"rpc", "rate_limit", "exceeded"}, 1, []metrics.Label{
-				{
-					Name:  "limit_type",
-					Value: l.desc,
-				},
-				{
-					Name:  "op",
-					Value: op.Name,
-				},
-				{
-					Name:  "mode",
-					Value: l.mode.String(),
-				},
-			})
+// handleThrottledLimits logs, emits metrics, and returns an error if any of the
+// throttled limits are in enforcing mode. extraLabels are appended to the metric labels.
+func (h *Handler) handleThrottledLimits(op Operation, throttledLimits []limit, logMessage string, extraLabels []metrics.Label) error {
+	for _, l := range throttledLimits {
+		enforced := l.mode == ModeEnforcing
+		h.logger.Debug(logMessage,
+			"rpc", op.Name,
+			"source_addr", op.SourceAddr,
+			"limit_type", l.desc,
+			"limit_enforced", enforced,
+		)
 
-			if enforced {
-				if h.serversStatusProvider.IsLeader() && op.Type == OperationTypeWrite {
-					return ErrRetryLater
-				}
-				return ErrRetryElsewhere
+		labels := []metrics.Label{
+			{
+				Name:  "limit_type",
+				Value: l.desc,
+			},
+			{
+				Name:  "op",
+				Value: op.Name,
+			},
+			{
+				Name:  "mode",
+				Value: l.mode.String(),
+			},
+		}
+		labels = append(labels, extraLabels...)
+
+		metrics.IncrCounterWithLabels([]string{"rpc", "rate_limit", "exceeded"}, 1, labels)
+
+		if enforced {
+			if h.serversStatusProvider.IsLeader() && op.Type == OperationTypeWrite {
+				return ErrRetryLater
 			}
+			return ErrRetryElsewhere
 		}
 	}
 	return nil
@@ -344,10 +372,6 @@ func (h *Handler) allowAllLimits(limits []limit, isServer bool) (bool, []limit) 
 func (h *Handler) limits(op Operation) []limit {
 	limits := make([]limit, 0)
 
-	if configEntryLimit := h.configEntryGlobalLimit(op); configEntryLimit != nil {
-		limits = append(limits, *configEntryLimit)
-	}
-
 	if global := h.globalLimit(op); global != nil {
 		limits = append(limits, *global)
 	}
@@ -368,6 +392,9 @@ func (h *Handler) globalLimit(op Operation) *limit {
 		return nil
 	}
 	cfg := h.globalCfg.Load()
+	if cfg == nil {
+		return nil
+	}
 
 	lim := &limit{mode: cfg.GlobalLimitConfig.Mode, applyOnServer: true}
 	switch op.Type {
@@ -407,15 +434,6 @@ func (h *Handler) configEntryGlobalLimit(op Operation) *limit {
 		return nil
 	}
 
-	// If emergency_mode is false, skip rate limiting entirely
-	// (permissive mode only logs, no need to check limits)
-	if !cfg.Config.Priority {
-		h.logger.Trace("global rate limit config entry exists but emergency_mode is disabled",
-			"config_name", cfg.Name,
-			"rpc", op.Name)
-		return nil
-	}
-
 	// Check if this endpoint is in the priority list (bypasses rate limiting)
 	for _, endpoint := range cfg.Config.ExcludeEndpoints {
 		if endpoint == op.Name {
@@ -437,10 +455,10 @@ func (h *Handler) configEntryGlobalLimit(op Operation) *limit {
 	switch op.Type {
 	case OperationTypeRead:
 		lim.ent = configEntryReadLimit
-		lim.desc = fmt.Sprintf("global/read")
+		lim.desc = "global.configentry/read"
 	case OperationTypeWrite:
 		lim.ent = configEntryWriteLimit
-		lim.desc = fmt.Sprintf("global/write")
+		lim.desc = "global.configentry/write"
 	default:
 		panic(fmt.Sprintf("unknown operation type %d", op.Type))
 	}
@@ -478,10 +496,10 @@ var (
 	globalIPWrite = limitedEntity("global.ip.write")
 
 	// configEntryReadLimit identifies the global rate limit from config entry for read operations.
-	configEntryReadLimit = limitedEntity("config.global.read")
+	configEntryReadLimit = limitedEntity("global.configentry.read")
 
 	// configEntryWriteLimit identifies the global rate limit from config entry for write operations.
-	configEntryWriteLimit = limitedEntity("config.global.write")
+	configEntryWriteLimit = limitedEntity("global.configentry.write")
 )
 
 // limitedEntity convert the string type to Multilimiter.LimitedEntity

@@ -5,11 +5,13 @@ package rate
 
 import (
 	"bytes"
-	"github.com/hashicorp/consul/agent/metrics"
-	"github.com/stretchr/testify/require"
 	"net"
 	"net/netip"
 	"testing"
+
+	"github.com/hashicorp/consul/agent/metrics"
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/stretchr/testify/require"
 
 	"golang.org/x/time/rate"
 
@@ -32,6 +34,8 @@ func TestHandler(t *testing.T) {
 	testCases := map[string]struct {
 		op                Operation
 		globalMode        Mode
+		cfg               *structs.GlobalRateLimitConfigEntry
+		glbcfg            *HandlerConfig
 		checks            []limitCheck
 		isLeader          bool
 		isServer          bool
@@ -92,7 +96,7 @@ func TestHandler(t *testing.T) {
 			expectErr:         nil,
 			expectLog:         true,
 			expectMetric:      true,
-			expectMetricName:  "rpc.rate_limit.exceeded;limit_type=global/write;op=Foo.Bar;mode=permissive",
+			expectMetricName:  "rpc.rate_limit.exceeded;limit_type=server/write;op=Foo.Bar;mode=permissive",
 			expectMetricCount: 1,
 		},
 		"global write limit exceeded (enforcing, leader)": {
@@ -109,7 +113,7 @@ func TestHandler(t *testing.T) {
 			expectErr:         ErrRetryLater,
 			expectLog:         true,
 			expectMetric:      true,
-			expectMetricName:  "rpc.rate_limit.exceeded;limit_type=global/write;op=Foo.Bar;mode=enforcing",
+			expectMetricName:  "rpc.rate_limit.exceeded;limit_type=server/write;op=Foo.Bar;mode=enforcing",
 			expectMetricCount: 1,
 		},
 		"global write limit exceeded (enforcing, follower)": {
@@ -126,7 +130,7 @@ func TestHandler(t *testing.T) {
 			expectErr:         ErrRetryElsewhere,
 			expectLog:         true,
 			expectMetric:      true,
-			expectMetricName:  "rpc.rate_limit.exceeded;limit_type=global/write;op=Foo.Bar;mode=enforcing",
+			expectMetricName:  "rpc.rate_limit.exceeded;limit_type=server/write;op=Foo.Bar;mode=enforcing",
 			expectMetricCount: 1,
 		},
 		"global read limit disabled": {
@@ -168,7 +172,7 @@ func TestHandler(t *testing.T) {
 			expectErr:         nil,
 			expectLog:         true,
 			expectMetric:      true,
-			expectMetricName:  "rpc.rate_limit.exceeded;limit_type=global/read;op=Foo.Bar;mode=permissive",
+			expectMetricName:  "rpc.rate_limit.exceeded;limit_type=server/read;op=Foo.Bar;mode=permissive",
 			expectMetricCount: 1,
 		},
 		"global read limit exceeded (enforcing, leader)": {
@@ -185,7 +189,7 @@ func TestHandler(t *testing.T) {
 			expectErr:         ErrRetryElsewhere,
 			expectLog:         true,
 			expectMetric:      true,
-			expectMetricName:  "rpc.rate_limit.exceeded;limit_type=global/read;op=Foo.Bar;mode=enforcing",
+			expectMetricName:  "rpc.rate_limit.exceeded;limit_type=server/read;op=Foo.Bar;mode=enforcing",
 			expectMetricCount: 1,
 		},
 		"global read limit exceeded (enforcing, follower)": {
@@ -198,11 +202,83 @@ func TestHandler(t *testing.T) {
 			checks: []limitCheck{
 				{limit: globalRead, allow: false},
 			},
+			glbcfg: &HandlerConfig{
+				GlobalLimitConfig: GlobalLimitConfig{
+					Mode: ModeEnforcing,
+					ReadWriteConfig: ReadWriteConfig{
+						ReadConfig: multilimiter.LimiterConfig{Rate: 0, Burst: 0},
+					},
+				},
+			},
 			isLeader:          false,
 			expectErr:         ErrRetryElsewhere,
 			expectLog:         true,
 			expectMetric:      true,
-			expectMetricName:  "rpc.rate_limit.exceeded;limit_type=global/read;op=Foo.Bar;mode=enforcing",
+			expectMetricName:  "rpc.rate_limit.exceeded;limit_type=server/read;op=Foo.Bar;mode=enforcing",
+			expectMetricCount: 1,
+		},
+		"global read limit exceeded but global config entry rate limits priority is True and its exceeded (enforcing, follower)": {
+			op: Operation{
+				Type:       OperationTypeRead,
+				Name:       rpcName,
+				SourceAddr: sourceAddr,
+			},
+			globalMode: ModeEnforcing,
+			checks: []limitCheck{
+				{limit: globalRead, allow: false},
+			},
+			glbcfg: &HandlerConfig{
+				GlobalLimitConfig: GlobalLimitConfig{
+					Mode: ModeEnforcing,
+					ReadWriteConfig: ReadWriteConfig{
+						ReadConfig: multilimiter.LimiterConfig{Rate: 0, Burst: 0},
+					},
+				},
+			},
+			cfg: &structs.GlobalRateLimitConfigEntry{
+				Name: "global",
+				Config: &structs.GlobalRateLimitConfig{
+					Priority:  true,
+					WriteRate: float64Ptr(0),
+				},
+			},
+			isLeader:          false,
+			expectErr:         ErrRetryElsewhere,
+			expectLog:         true,
+			expectMetric:      true,
+			expectMetricName:  "rpc.rate_limit.exceeded;limit_type=global.configentry/read;op=Foo.Bar;mode=enforcing",
+			expectMetricCount: 1,
+		},
+		"global read limit exceeded but global config entry rate limits priority is false (enforcing, follower)": {
+			op: Operation{
+				Type:       OperationTypeRead,
+				Name:       rpcName,
+				SourceAddr: sourceAddr,
+			},
+			globalMode: ModeEnforcing,
+			checks: []limitCheck{
+				{limit: globalRead, allow: false},
+			},
+			glbcfg: &HandlerConfig{
+				GlobalLimitConfig: GlobalLimitConfig{
+					Mode: ModeEnforcing,
+					ReadWriteConfig: ReadWriteConfig{
+						ReadConfig: multilimiter.LimiterConfig{Rate: 100, Burst: 0},
+					},
+				},
+			},
+			cfg: &structs.GlobalRateLimitConfigEntry{
+				Name: "global",
+				Config: &structs.GlobalRateLimitConfig{
+					Priority:  false,
+					WriteRate: float64Ptr(0),
+				},
+			},
+			isLeader:          false,
+			expectErr:         ErrRetryElsewhere,
+			expectLog:         true,
+			expectMetric:      true,
+			expectMetricName:  "rpc.rate_limit.exceeded;limit_type=server/read;op=Foo.Bar;mode=enforcing",
 			expectMetricCount: 1,
 		},
 	}
@@ -239,13 +315,17 @@ func TestHandler(t *testing.T) {
 				logger,
 			)
 			handler.Register(serversStatusProvider)
+			if tc.glbcfg != nil {
+				handler.globalCfg.Store(tc.glbcfg)
+			}
+			handler.globalRateLimitCfg.Store(tc.cfg)
 
 			require.Equal(t, tc.expectErr, handler.Allow(tc.op))
 
 			if tc.expectLog {
-				require.Contains(t, output.String(), "RPC exceeded allowed rate limit")
+				require.Contains(t, output.String(), "RPC exceeded")
 			} else {
-				require.Zero(t, output.Len(), "expected no logs to be emitted")
+				require.NotContains(t, output.String(), "RPC exceeded", "expected no rate limit log to be emitted")
 			}
 
 			if tc.expectMetric {
@@ -421,6 +501,292 @@ func TestAllow(t *testing.T) {
 			mockRateLimiter.Calls = nil
 			handler.Allow(Operation{Name: "test", SourceAddr: addr})
 			mockRateLimiter.AssertExpectations(t)
+		})
+	}
+}
+
+func float64Ptr(f float64) *float64 {
+	return &f
+}
+
+func TestConfigEntryGlobalLimit(t *testing.T) {
+	var (
+		rpcName    = "Foo.Bar"
+		sourceAddr = net.TCPAddrFromAddrPort(netip.MustParseAddrPort("1.2.3.4:5678"))
+	)
+
+	type testCase struct {
+		description  string
+		op           Operation
+		cfg          *structs.GlobalRateLimitConfigEntry
+		expectNil    bool
+		expectMode   Mode
+		expectEnt    multilimiter.LimitedEntity
+		expectDesc   string
+		expectPanic  bool
+		expectLogMsg string
+	}
+
+	testCases := []testCase{
+		{
+			description: "exempt operation returns nil",
+			op: Operation{
+				Type:       OperationTypeExempt,
+				Name:       rpcName,
+				SourceAddr: sourceAddr,
+			},
+			cfg: &structs.GlobalRateLimitConfigEntry{
+				Name: "global",
+				Config: &structs.GlobalRateLimitConfig{
+					Priority: true,
+					ReadRate: float64Ptr(100),
+				},
+			},
+			expectNil:    true,
+			expectLogMsg: "operation exempt from config entry rate limit",
+		},
+		{
+			description: "safety exempt endpoint ConfigEntry.Apply returns nil",
+			op: Operation{
+				Type:       OperationTypeWrite,
+				Name:       "ConfigEntry.Apply",
+				SourceAddr: sourceAddr,
+			},
+			cfg: &structs.GlobalRateLimitConfigEntry{
+				Name: "global",
+				Config: &structs.GlobalRateLimitConfig{
+					Priority:  true,
+					WriteRate: float64Ptr(100),
+				},
+			},
+			expectNil:    true,
+			expectLogMsg: "operation exempt from config entry rate limit for safety",
+		},
+		{
+			description: "safety exempt endpoint ConfigEntry.Delete returns nil",
+			op: Operation{
+				Type:       OperationTypeWrite,
+				Name:       "ConfigEntry.Delete",
+				SourceAddr: sourceAddr,
+			},
+			cfg: &structs.GlobalRateLimitConfigEntry{
+				Name: "global",
+				Config: &structs.GlobalRateLimitConfig{
+					Priority:  true,
+					WriteRate: float64Ptr(100),
+				},
+			},
+			expectNil:    true,
+			expectLogMsg: "operation exempt from config entry rate limit for safety",
+		},
+		{
+			description: "nil config returns nil (no rate limit configured)",
+			op: Operation{
+				Type:       OperationTypeRead,
+				Name:       rpcName,
+				SourceAddr: sourceAddr,
+			},
+			cfg:       nil,
+			expectNil: true,
+		},
+		{
+			description: "priority disabled still returns limit (priority check moved to Allow)",
+			op: Operation{
+				Type:       OperationTypeRead,
+				Name:       rpcName,
+				SourceAddr: sourceAddr,
+			},
+			cfg: &structs.GlobalRateLimitConfigEntry{
+				Name: "global",
+				Config: &structs.GlobalRateLimitConfig{
+					Priority: false,
+					ReadRate: float64Ptr(100),
+				},
+			},
+			expectNil:  false,
+			expectMode: ModeEnforcing,
+			expectEnt:  configEntryReadLimit,
+			expectDesc: "global.configentry/read",
+		},
+		{
+			description: "excluded endpoint bypasses rate limiting",
+			op: Operation{
+				Type:       OperationTypeRead,
+				Name:       "Health.Check",
+				SourceAddr: sourceAddr,
+			},
+			cfg: &structs.GlobalRateLimitConfigEntry{
+				Name: "global",
+				Config: &structs.GlobalRateLimitConfig{
+					Priority:         true,
+					ReadRate:         float64Ptr(100),
+					ExcludeEndpoints: []string{"Health.Check", "Status.Leader"},
+				},
+			},
+			expectNil:    true,
+			expectLogMsg: "operation bypassed rate limiting due to priority endpoint",
+		},
+		{
+			description: "non-excluded endpoint is not bypassed",
+			op: Operation{
+				Type:       OperationTypeRead,
+				Name:       "Catalog.ListServices",
+				SourceAddr: sourceAddr,
+			},
+			cfg: &structs.GlobalRateLimitConfigEntry{
+				Name: "global",
+				Config: &structs.GlobalRateLimitConfig{
+					Priority:         true,
+					ReadRate:         float64Ptr(100),
+					ExcludeEndpoints: []string{"Health.Check"},
+				},
+			},
+			expectNil:  false,
+			expectMode: ModeEnforcing,
+			expectEnt:  configEntryReadLimit,
+			expectDesc: "global.configentry/read",
+		},
+		{
+			description: "read operation returns read limit",
+			op: Operation{
+				Type:       OperationTypeRead,
+				Name:       rpcName,
+				SourceAddr: sourceAddr,
+			},
+			cfg: &structs.GlobalRateLimitConfigEntry{
+				Name: "global",
+				Config: &structs.GlobalRateLimitConfig{
+					Priority: true,
+					ReadRate: float64Ptr(100),
+				},
+			},
+			expectNil:  false,
+			expectMode: ModeEnforcing,
+			expectEnt:  configEntryReadLimit,
+			expectDesc: "global.configentry/read",
+		},
+		{
+			description: "write operation returns write limit",
+			op: Operation{
+				Type:       OperationTypeWrite,
+				Name:       rpcName,
+				SourceAddr: sourceAddr,
+			},
+			cfg: &structs.GlobalRateLimitConfigEntry{
+				Name: "global",
+				Config: &structs.GlobalRateLimitConfig{
+					Priority:  true,
+					WriteRate: float64Ptr(200),
+				},
+			},
+			expectNil:  false,
+			expectMode: ModeEnforcing,
+			expectEnt:  configEntryWriteLimit,
+			expectDesc: "global.configentry/write",
+		},
+		{
+			description: "limit always has mode enforcing and applyOnServer true",
+			op: Operation{
+				Type:       OperationTypeWrite,
+				Name:       rpcName,
+				SourceAddr: sourceAddr,
+			},
+			cfg: &structs.GlobalRateLimitConfigEntry{
+				Name: "global",
+				Config: &structs.GlobalRateLimitConfig{
+					Priority:  true,
+					WriteRate: float64Ptr(50),
+				},
+			},
+			expectNil:  false,
+			expectMode: ModeEnforcing,
+			expectEnt:  configEntryWriteLimit,
+			expectDesc: "global.configentry/write",
+		},
+		{
+			description: "empty exclude endpoints list does not bypass",
+			op: Operation{
+				Type:       OperationTypeRead,
+				Name:       rpcName,
+				SourceAddr: sourceAddr,
+			},
+			cfg: &structs.GlobalRateLimitConfigEntry{
+				Name: "global",
+				Config: &structs.GlobalRateLimitConfig{
+					Priority:         true,
+					ReadRate:         float64Ptr(100),
+					ExcludeEndpoints: []string{},
+				},
+			},
+			expectNil:  false,
+			expectMode: ModeEnforcing,
+			expectEnt:  configEntryReadLimit,
+			expectDesc: "global.configentry/read",
+		},
+		{
+			description: "non-safety endpoint is not exempt",
+			op: Operation{
+				Type:       OperationTypeWrite,
+				Name:       "KV.Put",
+				SourceAddr: sourceAddr,
+			},
+			cfg: &structs.GlobalRateLimitConfigEntry{
+				Name: "global",
+				Config: &structs.GlobalRateLimitConfig{
+					Priority:  true,
+					WriteRate: float64Ptr(100),
+				},
+			},
+			expectNil:  false,
+			expectMode: ModeEnforcing,
+			expectEnt:  configEntryWriteLimit,
+			expectDesc: "global.configentry/write",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.description, func(t *testing.T) {
+			mockLimiter := multilimiter.NewMockRateLimiter(t)
+			mockLimiter.On("UpdateConfig", mock.Anything, mock.Anything).Return()
+
+			var output bytes.Buffer
+			logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
+				Level:  hclog.Trace,
+				Output: &output,
+			})
+
+			handler := NewHandlerWithLimiter(
+				HandlerConfig{
+					GlobalLimitConfig: GlobalLimitConfig{
+						Mode: ModeEnforcing,
+						ReadWriteConfig: ReadWriteConfig{
+							ReadConfig:  multilimiter.LimiterConfig{},
+							WriteConfig: multilimiter.LimiterConfig{},
+						},
+					},
+				},
+				mockLimiter,
+				logger,
+			)
+
+			// Store the config entry
+			handler.globalRateLimitCfg.Store(tc.cfg)
+
+			result := handler.configEntryGlobalLimit(tc.op)
+
+			if tc.expectNil {
+				require.Nil(t, result)
+			} else {
+				require.NotNil(t, result)
+				require.Equal(t, tc.expectMode, result.mode)
+				require.Equal(t, tc.expectEnt, result.ent)
+				require.Equal(t, tc.expectDesc, result.desc)
+				require.True(t, result.applyOnServer)
+			}
+
+			if tc.expectLogMsg != "" {
+				require.Contains(t, output.String(), tc.expectLogMsg)
+			}
 		})
 	}
 }
