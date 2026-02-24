@@ -5,8 +5,6 @@
 
 import { module, test } from 'qunit';
 import { setupRenderingTest } from 'ember-qunit';
-import { render, click, fillIn } from '@ember/test-helpers';
-import hbs from 'htmlbars-inline-precompile';
 import { LANGUAGES } from 'consul-ui/components/consul/kv/form/index';
 
 module('Integration | Component | consul/kv/form', function (hooks) {
