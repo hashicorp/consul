@@ -168,7 +168,6 @@ type Config struct {
 	DefaultQueryTime                       *string             `mapstructure:"default_query_time" json:"default_query_time,omitempty"`
 	DefaultIntentionPolicy                 *string             `mapstructure:"default_intention_policy" json:"default_intention_policy,omitempty"`
 	DisableAnonymousSignature              *bool               `mapstructure:"disable_anonymous_signature" json:"disable_anonymous_signature,omitempty"`
-	FederationStateAntiEntropySyncInterval *string             `mapstructure:"federation_state_anti_entropy_sync_interval" json:"federation_state_anti_entropy_sync_interval,omitempty"`
 	DisableCoordinates                     *bool               `mapstructure:"disable_coordinates" json:"disable_coordinates,omitempty"`
 	DisableHostNodeID                      *bool               `mapstructure:"disable_host_node_id" json:"disable_host_node_id,omitempty"`
 	DisableHTTPUnprintableCharFilter       *bool               `mapstructure:"disable_http_unprintable_char_filter" json:"disable_http_unprintable_char_filter,omitempty"`
@@ -177,17 +176,18 @@ type Config struct {
 	DisableUpdateCheck                     *bool               `mapstructure:"disable_update_check" json:"disable_update_check,omitempty"`
 	DiscardCheckOutput                     *bool               `mapstructure:"discard_check_output" json:"discard_check_output,omitempty"`
 	DiscoveryMaxStale                      *string             `mapstructure:"discovery_max_stale" json:"discovery_max_stale,omitempty"`
+	DisableKVKeyValidation                 *bool               `mapstructure:"disable_kv_key_validation" json:"disable_kv_key_validation,omitempty"`
 	EnableAgentTLSForChecks                *bool               `mapstructure:"enable_agent_tls_for_checks" json:"enable_agent_tls_for_checks,omitempty"`
 	EnableCentralServiceConfig             *bool               `mapstructure:"enable_central_service_config" json:"enable_central_service_config,omitempty"`
 	EnableDebug                            *bool               `mapstructure:"enable_debug" json:"enable_debug,omitempty"`
 	EnableScriptChecks                     *bool               `mapstructure:"enable_script_checks" json:"enable_script_checks,omitempty"`
 	EnableLocalScriptChecks                *bool               `mapstructure:"enable_local_script_checks" json:"enable_local_script_checks,omitempty"`
-	DisableKVKeyValidation                 *bool               `mapstructure:"disable_kv_key_validation" json:"disable_kv_key_validation,omitempty"`
 	EnableSyslog                           *bool               `mapstructure:"enable_syslog" json:"enable_syslog,omitempty"`
 	EncryptKey                             *string             `mapstructure:"encrypt" json:"encrypt,omitempty"`
 	EncryptVerifyIncoming                  *bool               `mapstructure:"encrypt_verify_incoming" json:"encrypt_verify_incoming,omitempty"`
 	EncryptVerifyOutgoing                  *bool               `mapstructure:"encrypt_verify_outgoing" json:"encrypt_verify_outgoing,omitempty"`
 	Experiments                            []string            `mapstructure:"experiments" json:"experiments,omitempty"`
+	FederationStateAntiEntropySyncInterval *string             `mapstructure:"federation_state_anti_entropy_sync_interval" json:"federation_state_anti_entropy_sync_interval,omitempty"`
 	GossipLAN                              GossipLANConfig     `mapstructure:"gossip_lan" json:"-"`
 	GossipWAN                              GossipWANConfig     `mapstructure:"gossip_wan" json:"-"`
 	HTTPConfig                             HTTPConfig          `mapstructure:"http_config" json:"-"`

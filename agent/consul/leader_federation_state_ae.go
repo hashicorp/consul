@@ -40,24 +40,6 @@ func waitForDurationOrCancel(ctx context.Context, d time.Duration) error {
 	}
 }
 
-func federationStateAntiEntropyEffectiveInterval(interval time.Duration) time.Duration {
-	if interval <= 0 {
-		return defaultFederationStateAntiEntropySyncInterval
-	}
-	return interval
-}
-
-func federationStateAntiEntropyDebounceWait(lastSync time.Time, interval time.Duration, now time.Time) time.Duration {
-	if lastSync.IsZero() {
-		return 0
-	}
-	nextAllowed := lastSync.Add(interval)
-	if !now.Before(nextAllowed) {
-		return 0
-	}
-	return nextAllowed.Sub(now)
-}
-
 func (s *Server) startFederationStateAntiEntropy(ctx context.Context) {
 	// Check to see if we can skip waiting for serf feature detection below.
 	if !s.DatacenterSupportsFederationStates() {
@@ -91,13 +73,20 @@ func (s *Server) stopFederationStateAntiEntropy() {
 	}
 }
 
+// federationStateAntiEntropySync runs a continuous loop that periodically syncs
+// the local datacenter's federation state with the primary datacenter.
+// It enforces a minimum interval between sync operations to avoid excessive load,
+// and waits for federation state support to be available before attempting
 func (s *Server) federationStateAntiEntropySync(ctx context.Context) error {
 	var (
 		lastFetchIndex uint64
 		lastSyncTime   time.Time
 	)
 
-	interval := federationStateAntiEntropyEffectiveInterval(s.config.FederationStateAntiEntropySyncInterval)
+	interval := s.config.FederationStateAntiEntropySyncInterval
+	if interval <= 0 {
+		interval = defaultFederationStateAntiEntropySyncInterval
+	}
 
 	retryLoopBackoff(ctx, func() error {
 		if !s.DatacenterSupportsFederationStates() {
@@ -109,12 +98,14 @@ func (s *Server) federationStateAntiEntropySync(ctx context.Context) error {
 			return nil
 		}
 
-		// Enforce a minimum interval between expensive sync operations. This
-		// acts as a debounce over the blockingQuery wake-ups that fetch the
-		// federation state and mesh-gateway dump.
-		if wait := federationStateAntiEntropyDebounceWait(lastSyncTime, interval, time.Now()); wait > 0 {
-			if err := waitForDurationOrCancel(ctx, wait); err != nil {
-				return err
+		// If we have never synced (lastSyncTime is zero), proceed immediately.
+		// Otherwise, compute how much time remains until the next allowed sync and wait.
+		if !lastSyncTime.IsZero() {
+			if nextAllowed := lastSyncTime.Add(interval); time.Now().Before(nextAllowed) {
+				// Not enough time has elapsed since the last sync; wait out the remainder.
+				if err := waitForDurationOrCancel(ctx, time.Until(nextAllowed)); err != nil {
+					return err
+				}
 			}
 		}
 

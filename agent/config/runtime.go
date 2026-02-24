@@ -78,8 +78,7 @@ type RuntimeConfig struct {
 	ConsulServerHealthInterval       time.Duration
 
 	// FederationStateAntiEntropySyncInterval controls the minimum interval between
-	// federation state anti-entropy sync operations on the server.
-	//
+	// federation state anti-entropy sync operations on the leader.
 	// hcl: federation_state_anti_entropy_sync_interval = "duration"
 	FederationStateAntiEntropySyncInterval time.Duration
 
