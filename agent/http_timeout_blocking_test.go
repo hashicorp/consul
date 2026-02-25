@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package agent
 
 import (
@@ -96,5 +99,3 @@ func TestHTTPWriteTimeoutWithBlockingQuery(t *testing.T) {
 		// we get valid JSON, not EOF.
 	})
 }
-
-// Made with Bob
