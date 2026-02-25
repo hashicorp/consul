@@ -146,6 +146,7 @@
     "ConsulRaftHeartbeatTimeout": "0s",
     "ConsulRaftLeaderLeaseTimeout": "0s",
     "ConsulServerHealthInterval": "0s",
+    "FederationStateAntiEntropySyncInterval": "0s",
     "DNSARecordLimit": 0,
     "DNSAddrs": [
         "tcp://1.2.3.4:5678",

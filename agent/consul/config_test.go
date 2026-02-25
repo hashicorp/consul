@@ -133,3 +133,9 @@ func fuzzNonIgnoredFields(value interface{}, ignoredFields []string) []string {
 
 	return fuzzed
 }
+
+func TestDefaultConfig_FederationStateAntiEntropySyncInterval(t *testing.T) {
+	cfg := DefaultConfig()
+	require.NotNil(t, cfg)
+	require.Equal(t, 5*time.Second, cfg.FederationStateAntiEntropySyncInterval)
+}

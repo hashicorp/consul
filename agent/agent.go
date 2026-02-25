@@ -1531,6 +1531,9 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 
 	cfg.DefaultQueryTime = runtimeCfg.DefaultQueryTime
 	cfg.MaxQueryTime = runtimeCfg.MaxQueryTime
+	if runtimeCfg.FederationStateAntiEntropySyncInterval > 0 {
+		cfg.FederationStateAntiEntropySyncInterval = runtimeCfg.FederationStateAntiEntropySyncInterval
+	}
 
 	cfg.AutoEncryptAllowTLS = runtimeCfg.AutoEncryptAllowTLS
 
