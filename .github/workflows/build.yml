@@ -10,6 +10,13 @@ on:
       # Push events on the main branch
       - main
       - release/**
+  pull_request:
+    # This ensures the check runs on PRs targeting these branches
+    branches:
+      - main
+      - release/**
+    paths-ignore:
+      - '.changelog/**'
 
 env:
   PKG_NAME: consul
