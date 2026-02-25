@@ -77,6 +77,11 @@ type RuntimeConfig struct {
 	ConsulRaftLeaderLeaseTimeout     time.Duration
 	ConsulServerHealthInterval       time.Duration
 
+	// FederationStateAntiEntropySyncInterval controls the minimum interval between
+	// federation state anti-entropy sync operations on the leader.
+	// hcl: federation_state_anti_entropy_sync_interval = "duration"
+	FederationStateAntiEntropySyncInterval time.Duration
+
 	// ACLsEnabled is used to determine whether ACLs should be enabled
 	//
 	// hcl: acl.enabled = boolean
