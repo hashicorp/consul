@@ -809,7 +809,7 @@ type RuntimeConfig struct {
 	// including the body. This timeout prevents slow request body attacks.
 	// A zero or negative value means there will be no timeout.
 	//
-	// Default: 30s, Minimum: 1s
+	// Default: 15m, Minimum: 1s
 	// hcl: http_config { read_timeout = "30s" }
 	HTTPReadTimeout time.Duration
 
@@ -826,7 +826,7 @@ type RuntimeConfig struct {
 	// This timeout prevents slow response drain attacks.
 	// A zero or negative value means there will be no timeout.
 	//
-	// Default: 30s, Minimum: 1s
+	// Default: 15m, Minimum: 1s
 	// hcl: http_config { write_timeout = "30s" }
 	HTTPWriteTimeout time.Duration
 

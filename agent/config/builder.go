@@ -943,9 +943,9 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		HTTPResponseHeaders:   c.HTTPConfig.ResponseHeaders,
 		AllowWriteHTTPFrom:    b.cidrsVal("allow_write_http_from", c.HTTPConfig.AllowWriteHTTPFrom),
 		HTTPUseCache:          boolValWithDefault(c.HTTPConfig.UseCache, true),
-		HTTPReadTimeout:       b.durationValWithDefaultMin("http_config.read_timeout", c.HTTPConfig.ReadTimeout, 30*time.Second, 1*time.Second),
+		HTTPReadTimeout:       b.durationValWithDefaultMin("http_config.read_timeout", c.HTTPConfig.ReadTimeout, 15*time.Minute, 1*time.Second),
 		HTTPReadHeaderTimeout: b.durationValWithDefaultMin("http_config.read_header_timeout", c.HTTPConfig.ReadHeaderTimeout, 10*time.Second, 1*time.Second),
-		HTTPWriteTimeout:      b.durationValWithDefaultMin("http_config.write_timeout", c.HTTPConfig.WriteTimeout, 30*time.Second, 1*time.Second),
+		HTTPWriteTimeout:      b.durationValWithDefaultMin("http_config.write_timeout", c.HTTPConfig.WriteTimeout, 15*time.Minute, 1*time.Second),
 		HTTPIdleTimeout:       b.durationValWithDefaultMin("http_config.idle_timeout", c.HTTPConfig.IdleTimeout, 120*time.Second, 10*time.Second),
 
 		// Telemetry
