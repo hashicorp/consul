@@ -12,10 +12,10 @@ import Route from 'consul-ui/routing/route';
 export default class DcRoute extends Route {
   @service('repository/permission') permissionsRepo;
 
-  async model(params) {
+  async model(dcName) {
     // When disabled nspaces is [], so nspace is undefined
     const permissions = await this.permissionsRepo.findAll({
-      dc: params.dc,
+      dc: dcName,
       ns: this.optionalParams().nspace,
       partition: this.optionalParams().partition,
     });
