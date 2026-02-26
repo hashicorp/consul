@@ -31,6 +31,7 @@ jobs:
           echo "BRANCH value: $BRANCH"
           echo "github.base_ref: ${{ github.base_ref }}"
           
+          
           if [[ "$BRANCH" == "main" ]]; then
             echo "Branch is main, setting IS_ACTIVE=1"
             IS_ACTIVE=1
