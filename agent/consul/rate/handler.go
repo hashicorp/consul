@@ -368,7 +368,7 @@ func (h *Handler) allowAllLimits(limits []limit, isServer bool) (bool, []limit) 
 }
 
 // limits returns the limits to check for the given operation (e.g. global +
-// ip-based + tenant-based + config-entry-based).
+// ip-based + tenant-based).
 func (h *Handler) limits(op Operation) []limit {
 	limits := make([]limit, 0)
 
@@ -392,17 +392,14 @@ func (h *Handler) globalLimit(op Operation) *limit {
 		return nil
 	}
 	cfg := h.globalCfg.Load()
-	if cfg == nil {
-		return nil
-	}
 
 	lim := &limit{mode: cfg.GlobalLimitConfig.Mode, applyOnServer: true}
 	switch op.Type {
 	case OperationTypeRead:
-		lim.desc = "server/read"
+		lim.desc = "global/read"
 		lim.ent = globalRead
 	case OperationTypeWrite:
-		lim.desc = "server/write"
+		lim.desc = "global/write"
 		lim.ent = globalWrite
 	default:
 		panic(fmt.Sprintf("unknown operation type %d", op.Type))
