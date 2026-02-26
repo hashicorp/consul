@@ -13,7 +13,7 @@ type GlobalRateLimitConfigEntry struct {
 	Name string
 
 	// GlobalRateLimit contains the rate limiting configuration
-	Config GlobalRateLimitConfig `json:"config" alias:"config"`
+	Config *GlobalRateLimitConfig `json:"config,omitempty" alias:"config"`
 
 	// Partition is the partition the config entry is associated with.
 	// Partitioning is a Consul Enterprise feature.
