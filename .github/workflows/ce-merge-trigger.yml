@@ -3,7 +3,7 @@
 
 name: Trigger Community Edition to Enterprise Merge
 on:
-  pull_request_target:
+  pull_request:
     types:
       - opened
       - synchronize
