@@ -21,14 +21,18 @@ jobs:
     outputs:
       active: ${{ steps.active.outputs.active }}
     env:
-      BRANCH: ${{ github.ref_name }}
+      BRANCH: ${{ github.base_ref }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Fetch active releases
         id: active
         run: |
+          echo "BRANCH value: $BRANCH"
+          echo "github.base_ref: ${{ github.base_ref }}"
+          
           if [[ "$BRANCH" == "main" ]]; then
+            echo "Branch is main, setting IS_ACTIVE=1"
             IS_ACTIVE=1
           else
             IS_ACTIVE=1
@@ -37,12 +41,17 @@ jobs:
               echo "Active versions: $ACTIVE"
               IS_ACTIVE=0
               for v in $ACTIVE; do
-                if [[ "$BRANCH" == "release/$v"* ]]; then IS_ACTIVE=1; fi
+                echo "Checking if $BRANCH starts with release/$v"
+                if [[ "$BRANCH" == "release/$v"* ]]; then 
+                  echo "Match found! Setting IS_ACTIVE=1"
+                  IS_ACTIVE=1
+                fi
               done
             else
               echo ".release/versions.hcl not found, defaulting active=1"
             fi
           fi
+          echo "Final IS_ACTIVE value: $IS_ACTIVE"
           echo "active=$IS_ACTIVE" >> $GITHUB_OUTPUT
 
   trigger-ce-merge:
@@ -66,7 +75,6 @@ jobs:
           echo "sha=$COMMIT_SHA" >> $GITHUB_OUTPUT
       - name: Get Approving Reviewers
         id: reviewers
-        continue-on-error: true
         env:
           GH_PAT: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -74,20 +82,31 @@ jobs:
         run: |
           reviewers=$(curl -s -H "Authorization: token $GH_PAT" \
             "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER/reviews" | \
-            jq -c '[.[] | select(.state=="APPROVED") | .user.login] | unique')
+            jq -c '[.[] | select(.state=="APPROVED") | .user.login] | unique' 2>/dev/null) || reviewers="[]"
+          
+          # Ensure we have a valid JSON array
+          if [[ -z "$reviewers" || "$reviewers" == "null" ]]; then
+            reviewers="[]"
+          fi
+          
           echo "approved_reviewers=$reviewers" >> $GITHUB_OUTPUT
           echo "Approved reviewers: $reviewers"
       - name: Trigger Merge
         env:
-          GIT_REF: ${{ github.ref_name }}
+          GIT_REF: ${{ github.base_ref }}
           GIT_SHA: ${{ steps.commit.outputs.sha }}
           GH_PAT: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
           GIT_ACTOR: ${{ github.actor }}
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_BODY: ${{ github.event.pull_request.body }}
-          PR_APPROVERS: ${{ steps.reviewers.outputs.approved_reviewers }}
+          PR_APPROVERS: ${{ steps.reviewers.outputs.approved_reviewers || '[]' }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
+          # Ensure PR_APPROVERS is a valid JSON array
+          if [[ -z "$PR_APPROVERS" || "$PR_APPROVERS" == "null" ]]; then
+            PR_APPROVERS="[]"
+          fi
+          
           # Create the JSON payload using jq for safe escaping
           payload=$(jq -n \
             --arg event_type "oss-merge" \
