@@ -3,9 +3,11 @@
 
 name: Trigger Community Edition to Enterprise Merge
 on:
-  pull_request_target:
+  pull_request:
     types:
-      - closed
+      - opened
+      - synchronize
+      - reopened
     branches:
       - main
       - release/**
@@ -13,20 +15,25 @@ on:
 
 jobs:
   check-conditions:
-    # run this only on merge events in CE repo
-    if: ${{ github.event.pull_request.merged && github.repository == 'hashicorp/consul' }}
+    # run this only on PR events in CE repo
+    if: ${{ github.repository == 'hashicorp/consul' }}
     runs-on: ubuntu-latest
     outputs:
       active: ${{ steps.active.outputs.active }}
     env:
-      BRANCH: ${{ github.ref_name }}
+      BRANCH: release/1.22.3
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Fetch active releases
         id: active
         run: |
+          echo "BRANCH value: $BRANCH"
+          echo "github.base_ref: ${{ github.base_ref }}"
+          
+          
           if [[ "$BRANCH" == "main" ]]; then
+            echo "Branch is main, setting IS_ACTIVE=1"
             IS_ACTIVE=1
           else
             IS_ACTIVE=1
@@ -35,12 +42,17 @@ jobs:
               echo "Active versions: $ACTIVE"
               IS_ACTIVE=0
               for v in $ACTIVE; do
-                if [[ "$BRANCH" == "release/$v"* ]]; then IS_ACTIVE=1; fi
+                echo "Checking if $BRANCH starts with release/$v"
+                if [[ "$BRANCH" == "release/$v"* ]]; then 
+                  echo "Match found! Setting IS_ACTIVE=1"
+                  IS_ACTIVE=1
+                fi
               done
             else
               echo ".release/versions.hcl not found, defaulting active=1"
             fi
           fi
+          echo "Final IS_ACTIVE value: $IS_ACTIVE"
           echo "active=$IS_ACTIVE" >> $GITHUB_OUTPUT
 
   trigger-ce-merge:
@@ -48,50 +60,22 @@ jobs:
     if: needs.check-conditions.outputs.active == '1'
     runs-on: ubuntu-latest
     steps:
-      - name: Get Latest Merge Commit
-        id: merge_commit
+      - name: Get Latest Commit
+        id: commit
         run: |
-          # Try the event payload first
-          MERGE_SHA="${{ github.event.pull_request.merge_commit_sha }}"
+          # Use the head SHA (latest commit on the PR branch)
+          COMMIT_SHA="${{ github.event.pull_request.head.sha }}"
           
-          echo "Initial merge SHA from event: $MERGE_SHA"
+          echo "Commit SHA: $COMMIT_SHA"
           
-          # If null or empty, fetch from API with retry
-          if [[ -z "$MERGE_SHA" || "$MERGE_SHA" == "null" ]]; then
-            echo "Event merge_commit_sha is null/empty, fetching from API..."
-            
-            MAX_ATTEMPTS=10
-            for i in $(seq 1 $MAX_ATTEMPTS); do
-              echo "Attempt $i: Fetching merge commit from API..."
-              
-              MERGE_SHA=$(curl -s -H "Authorization: token ${{ secrets.ELEVATED_GITHUB_TOKEN }}" \
-                "https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}" | \
-                jq -r '.merge_commit_sha // empty')
-              
-              if [[ -n "$MERGE_SHA" && "$MERGE_SHA" != "null" ]]; then
-                echo "✅ Found merge commit: $MERGE_SHA"
-                break
-              fi
-              
-              echo "⏳ Merge commit not ready (got: '$MERGE_SHA'), waiting 3 seconds..."
-              sleep 3
-            done
-            
-            # Final fallback - if still no merge commit, fail the workflow
-            if [[ -z "$MERGE_SHA" || "$MERGE_SHA" == "null" ]]; then
-              echo "❌ Failed to get merge commit after $MAX_ATTEMPTS attempts"
-              echo "Cannot proceed without a valid merge commit SHA"
-              exit 1
-            fi
-          else
-            echo "✅ Using merge commit from event payload: $MERGE_SHA"
+          if [[ -z "$COMMIT_SHA" || "$COMMIT_SHA" == "null" ]]; then
+            echo "❌ Failed to get commit SHA"
+            exit 1
           fi
           
-          echo "Final merge SHA: $MERGE_SHA"
-          echo "merge_sha=$MERGE_SHA" >> $GITHUB_OUTPUT
+          echo "sha=$COMMIT_SHA" >> $GITHUB_OUTPUT
       - name: Get Approving Reviewers
         id: reviewers
-        continue-on-error: true
         env:
           GH_PAT: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -99,20 +83,31 @@ jobs:
         run: |
           reviewers=$(curl -s -H "Authorization: token $GH_PAT" \
             "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER/reviews" | \
-            jq -c '[.[] | select(.state=="APPROVED") | .user.login] | unique')
+            jq -c '[.[] | select(.state=="APPROVED") | .user.login] | unique' 2>/dev/null) || reviewers="[]"
+          
+          # Ensure we have a valid JSON array
+          if [[ -z "$reviewers" || "$reviewers" == "null" ]]; then
+            reviewers="[]"
+          fi
+          
           echo "approved_reviewers=$reviewers" >> $GITHUB_OUTPUT
           echo "Approved reviewers: $reviewers"
       - name: Trigger Merge
         env:
-          GIT_REF: ${{ github.ref_name }}
-          GIT_SHA: ${{ steps.merge_commit.outputs.merge_sha }}
+          GIT_REF: release/1.22.3
+          GIT_SHA: ${{ steps.commit.outputs.sha }}
           GH_PAT: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
           GIT_ACTOR: ${{ github.actor }}
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_BODY: ${{ github.event.pull_request.body }}
-          PR_APPROVERS: ${{ steps.reviewers.outputs.approved_reviewers }}
+          PR_APPROVERS: ${{ steps.reviewers.outputs.approved_reviewers || '[]' }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
+          # Ensure PR_APPROVERS is a valid JSON array
+          if [[ -z "$PR_APPROVERS" || "$PR_APPROVERS" == "null" ]]; then
+            PR_APPROVERS="[]"
+          fi
+          
           # Create the JSON payload using jq for safe escaping
           payload=$(jq -n \
             --arg event_type "oss-merge" \
