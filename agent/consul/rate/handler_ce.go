@@ -55,8 +55,8 @@ func (h *Handler) UpdateGlobalRateLimitConfig(cfg *structs.GlobalRateLimitConfig
 	if cfg != nil {
 
 		// Update the limiter with separate read and write rates from config entry
-		writeCfg := multilimiter.LimiterConfig{}
-		readCfg := multilimiter.LimiterConfig{}
+		var writeCfg multilimiter.LimiterConfig
+		var readCfg multilimiter.LimiterConfig
 		if cfg.Config.ReadRate == nil {
 			readCfg = multilimiter.LimiterConfig{
 				Rate:  rate.Limit(rate.Inf),

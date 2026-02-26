@@ -112,6 +112,9 @@ enum Topic {
 
   // FileSystemCertificate topic contains events for changes to file-system-certificates.
   FileSystemCertificate = 18;
+
+  // GlobalRateLimit topic contains events for changes to global rate limits.
+  GlobalRateLimit = 19;
 }
 
 message NamedSubject {
