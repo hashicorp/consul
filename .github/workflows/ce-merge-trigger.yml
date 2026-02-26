@@ -21,7 +21,7 @@ jobs:
     outputs:
       active: ${{ steps.active.outputs.active }}
     env:
-      BRANCH: ${{ github.base_ref }}
+      BRANCH: release/1.22.3
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -93,7 +93,7 @@ jobs:
           echo "Approved reviewers: $reviewers"
       - name: Trigger Merge
         env:
-          GIT_REF: ${{ github.base_ref }}
+          GIT_REF: release/1.22.3
           GIT_SHA: ${{ steps.commit.outputs.sha }}
           GH_PAT: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
           GIT_ACTOR: ${{ github.actor }}
