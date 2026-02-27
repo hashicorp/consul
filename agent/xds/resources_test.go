@@ -19,6 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/netutil"
@@ -27,6 +28,7 @@ import (
 	"github.com/hashicorp/consul/agent/xds/response"
 	"github.com/hashicorp/consul/agent/xds/testcommon"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 )
@@ -306,6 +308,7 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 	tests = append(tests, getTrafficControlPeeringGoldenTestCases(false)...)
 	tests = append(tests, getEnterpriseGoldenTestCases(t)...)
 	tests = append(tests, getAPIGatewayGoldenTestCases(t)...)
+	tests = append(tests, getAPIGatewayPeeringGoldenTestCases(t)...)
 	tests = append(tests, getExposePathGoldenTestCases()...)
 	tests = append(tests, getCustomConfigurationGoldenTestCases(false)...)
 	tests = append(tests, getConnectProxyJWTProviderGoldenTestCases()...)
@@ -1735,6 +1738,248 @@ func getAPIGatewayGoldenTestCases(t *testing.T) []goldenTestCase {
 				}, nil, nil)
 			},
 		},
+	}
+}
+
+func getAPIGatewayPeeringGoldenTestCases(t *testing.T) []goldenTestCase {
+	// Test checks if API Gateway with peering, correctly generates
+	// the xDS resources for the upstream service in peer cluster.
+
+	t.Helper()
+	const peerTrustDomain = "1c053652-8512-4373-90cf-5a7f6263a994.consul"
+
+	paymentService := structs.NewServiceName("paymentService", nil)
+	paymentServiceUID := proxycfg.NewUpstreamIDFromServiceName(paymentService)
+	paymentServiceUID.Peer = "paymentpeer"
+	paymentServiceDC := "paymentdc"
+	paymentServicePartition := "default"
+	paymentServiceNamespace := "default"
+
+	// Base entries for paymentService discovery chain.
+	//
+	// Discovery chain is required in case of API Gateway with peering,
+	// because we need service resolver to redirect to peer and
+	// get the endpoints from the peer.
+	// If paymentServiceSet is not provided, then api-gateway will work as simple api-gw
+	// without knowledge of peering and service resolver (no redirection to peer)
+	paymentServiceSet := configentry.NewDiscoveryChainSet()
+	paymentServiceSet.AddEntries(
+		&structs.ProxyConfigEntry{
+			Kind:   structs.ProxyDefaults,
+			Name:   structs.ProxyConfigGlobal,
+			Config: map[string]interface{}{"protocol": "http"},
+		},
+		&structs.ServiceResolverConfigEntry{
+			Kind: structs.ServiceResolver,
+			Name: paymentService.Name,
+			Redirect: &structs.ServiceResolverRedirect{
+				Peer: paymentServiceUID.Peer, // Redirect to peer
+			},
+		},
+	)
+	paymentServiceChain := discoverychain.TestCompileConfigEntries(
+		t,
+		paymentService.Name,
+		"default",
+		"default",
+		"dc1",
+		connect.TestClusterID+".consul",
+		// Below discovery chain (re)compile request is sent, so that
+		// we could get the updated localGatewayEndpoint.
+		//
+		// API Gateway does not directly updated WatchedLocalGWEndpoints.
+		//
+		// It watches route config entries and upstream chains.
+		// So, after every update, DC recompile happens for API GW.
+		// Within recompile,it synthesize the listeners/routes, etc &
+		// then we would be able to get localGatewayEndpoint.
+		//
+		// Also, since we are recompiling the discovery chain,
+		// it prefix the clusterName with customizationHash
+		// while generating the cluster configs.
+		//
+		// Also, Please note that:
+		// API Gateway, do not recomplile when "OverrideMeshGateway" changes.
+		// It do not set "OverrideMeshGateway" in discoveryChainWatchOpts.
+		// This is just to trigger the recompilation.
+		//
+		// MeshGateway mode is updated in TestConfigSnapshotAPIGateway,
+		// which updates the NodeService, and once the NodeService is modified,
+		// proxyCfg manager recreates the state (state config + serviceInstance).
+		func(req *discoverychain.CompileRequest) {
+			req.OverrideMeshGateway = structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeLocal}
+		},
+		paymentServiceSet,
+	)
+
+	// generateNodeServiceTargetAddress generates tagged addresses
+	// for NodeService based on the upstream address type.
+	generateNodeServiceTargetAddress := func(peerServiceName, upstreamAddr string, upstreamAddrIsHostname bool) map[string]structs.ServiceAddress {
+		if upstreamAddrIsHostname {
+			return map[string]structs.ServiceAddress{
+				structs.TaggedAddressLAN: {
+					Address: upstreamAddr,
+					Port:    8443,
+				},
+				structs.TaggedAddressWAN: {
+					Address: peerServiceName + ".us-east-1.elb.notaws.com",
+					Port:    443,
+				},
+			}
+		}
+		return nil
+	}
+
+	newTestCase := func(name string, mgwMode structs.MeshGatewayMode, upstreamAddr string, upstreamAddrIsHostname bool) goldenTestCase {
+		tc := goldenTestCase{
+			name: name,
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				proxyCfgUpdateEvents := []proxycfg.UpdateEvent{
+					// Inject Discovery Chain Events
+					// (because API Gateway uses serviceResolvers)
+					{
+						CorrelationID: "discovery-chain:" + paymentService.Name,
+						Result: &structs.DiscoveryChainResponse{
+							Chain: paymentServiceChain,
+						},
+					},
+					// Trust Bundles & Endpoints
+					{
+						CorrelationID: "peer-trust-bundle:" + paymentServiceUID.Peer,
+						Result: &pbpeering.TrustBundleReadResponse{
+							Bundle: &pbpeering.PeeringTrustBundle{
+								PeerName:          paymentServiceUID.Peer,
+								TrustDomain:       peerTrustDomain,
+								ExportedPartition: "default",
+								RootPEMs:          []string{paymentServiceUID.Peer + "-root"},
+							},
+						},
+					},
+					// Upstream nodes for the payment service in peer cluster.
+					{
+						CorrelationID: "upstream-peer:" + paymentServiceUID.String(),
+						Result: &structs.IndexedCheckServiceNodes{
+							Nodes: structs.CheckServiceNodes{
+								{
+									Node: &structs.Node{
+										ID:         "test1",
+										Node:       "test1",
+										Address:    upstreamAddr,
+										Datacenter: paymentServiceDC,
+									},
+									Service: &structs.NodeService{
+										Kind:            structs.ServiceKindAPIGateway,
+										Service:         "gateway",
+										Port:            8443,
+										TaggedAddresses: generateNodeServiceTargetAddress(paymentService.Name, upstreamAddr, upstreamAddrIsHostname),
+										Connect: structs.ServiceConnect{
+											PeerMeta: &structs.PeeringServiceMeta{
+												SNI: []string{
+													fmt.Sprintf("%s.%s.%s.%s.external.%s",
+														paymentService.Name, paymentServiceNamespace, paymentServicePartition, paymentServiceUID.Peer, peerTrustDomain),
+												},
+												SpiffeID: []string{
+													fmt.Sprintf("spiffe://%s/ns/default/dc/%s/svc/%s", peerTrustDomain, paymentServiceDC, paymentService.Name),
+												},
+												Protocol: "tcp",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+					// Local mesh gateway node service, which will be used as a target when MeshGatewayMode is Local.
+					{
+						CorrelationID: "mesh-gateway:dc1",
+						Result: &structs.IndexedCheckServiceNodes{
+							Nodes: structs.CheckServiceNodes{
+								structs.CheckServiceNode{
+									Node: &structs.Node{
+										ID:         "mesh-gateway",
+										Node:       "mesh-gateway",
+										Address:    "10.45.1.1", // local mesh gateway
+										Datacenter: "dc1",
+									},
+									Service: &structs.NodeService{
+										Kind:    structs.ServiceKindMeshGateway,
+										Service: "mesh-gateway",
+										Port:    8443,
+										TaggedAddresses: map[string]structs.ServiceAddress{
+											structs.TaggedAddressWAN: {
+												Address: "172.100.0.14",
+												Port:    8080,
+											},
+										},
+										EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+									},
+								},
+							},
+						},
+					},
+				}
+
+				return proxycfg.TestConfigSnapshotAPIGateway(t, "default",
+					func(ns *structs.NodeService) {
+						// MeshGateway mode is updated here, which updates the NodeService,
+						// once the NodeService is modified,
+						// proxyCfg manager recreates the state (state config + serviceInstance).
+						// which will be populated when handling update in api_gateway.go.
+						// snap.APIGateway.Upstreams.set(ref, listener, set)
+						ns.Proxy.MeshGateway.Mode = mgwMode
+					},
+					func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+						entry.Listeners = []structs.APIGatewayListener{
+							{
+								Name:     "listener",
+								Protocol: structs.ListenerProtocolHTTP,
+								Port:     8080,
+							},
+						}
+						bound.Listeners = []structs.BoundAPIGatewayListener{
+							{
+								Name: "listener",
+								Routes: []structs.ResourceReference{
+									{
+										Name: "http-route",
+										Kind: structs.HTTPRoute,
+									},
+								},
+							},
+						}
+					},
+					[]structs.BoundRoute{
+						&structs.HTTPRouteConfigEntry{
+							Name: "http-route",
+							Kind: structs.HTTPRoute,
+							Parents: []structs.ResourceReference{
+								{
+									Kind: structs.APIGateway,
+									Name: "api-gateway",
+								},
+							},
+							Rules: []structs.HTTPRouteRule{
+								{
+									Services: []structs.HTTPService{
+										{Name: paymentService.Name},
+									},
+								},
+							},
+						},
+					},
+					nil,
+					proxyCfgUpdateEvents,
+				)
+			},
+		}
+		return tc
+	}
+
+	return []goldenTestCase{
+		newTestCase("api-gateway-with-peers-mesh-mode-local-and-upstream-is-hostname", structs.MeshGatewayModeLocal, "123.us-east-1.elb.notaws.com", true),
+		newTestCase("api-gateway-with-peers-mesh-mode-local-and-upstream-is-static", structs.MeshGatewayModeLocal, "172.68.1.1", false),
+		newTestCase("api-gateway-with-peers-mesh-mode-remote-and-upstream-is-hostname", structs.MeshGatewayModeRemote, "123.us-east-1.elb.notaws.com", true),
+		newTestCase("api-gateway-with-peers-mesh-mode-remote-and-upstream-is-static", structs.MeshGatewayModeRemote, "172.68.1.1", false),
 	}
 }
 
