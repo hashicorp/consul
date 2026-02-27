@@ -17,7 +17,7 @@ jobs:
     if: ${{ github.event.pull_request.merged && github.repository == 'hashicorp/consul' }}
     runs-on: ubuntu-latest
     env:
-      BRANCH: ${{ github.ref_name }}
+      BRANCH: ${{github.event.pull_request.base.ref}}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -56,7 +56,7 @@ jobs:
       - name: Trigger Merge
         if: steps.active.outputs.active == '1'
         env:
-          GIT_REF: ${{ github.ref_name }}
+          GIT_REF: ${{ github.event.pull_request.base.ref }}
           GIT_SHA: ${{ github.sha }}
           GH_PAT: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
           GIT_ACTOR: ${{ github.actor }}
