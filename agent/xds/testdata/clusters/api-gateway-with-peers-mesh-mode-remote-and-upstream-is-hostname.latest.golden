@@ -9,11 +9,28 @@
         "healthyPanicThreshold": {}
       },
       "connectTimeout": "5s",
-      "edsClusterConfig": {
-        "edsConfig": {
-          "ads": {},
-          "resourceApiVersion": "V3"
-        }
+      "dnsLookupFamily": "V4_ONLY",
+      "dnsRefreshRate": "10s",
+      "loadAssignment": {
+        "clusterName": "c225dc1c~paymentService.default.paymentpeer.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
+        "endpoints": [
+          {
+            "lbEndpoints": [
+              {
+                "endpoint": {
+                  "address": {
+                    "socketAddress": {
+                      "address": "paymentService.us-east-1.elb.notaws.com",
+                      "portValue": 443
+                    }
+                  }
+                },
+                "healthStatus": "HEALTHY",
+                "loadBalancingWeight": 1
+              }
+            ]
+          }
+        ]
       },
       "name": "c225dc1c~paymentService.default.paymentpeer.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
       "outlierDetection": {},
@@ -50,7 +67,7 @@
           "sni": "paymentService.default.default.paymentpeer.external.1c053652-8512-4373-90cf-5a7f6263a994.consul"
         }
       },
-      "type": "EDS"
+      "type": "LOGICAL_DNS"
     }
   ],
   "typeUrl": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
