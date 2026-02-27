@@ -1,0 +1,3 @@
+```release-note:bug
+xds: Fixed XDS package to generate correct endpoints and cluster configurations for API Gateways when peered, and updated the API Gateway update handler to propagate mesh gateway config to upstreams.
+```
