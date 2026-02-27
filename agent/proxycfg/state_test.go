@@ -26,7 +26,7 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
-func TestStateChanged(t *testing.T) {
+func TestStateChangedConnectProxy(t *testing.T) {
 	tests := []struct {
 		name   string
 		ns     *structs.NodeService
@@ -104,6 +104,131 @@ func TestStateChanged(t *testing.T) {
 			token: "foo",
 			mutate: func(ns structs.NodeService, token string) (*structs.NodeService, string) {
 				ns.Proxy.Upstreams = nil
+				return &ns, token
+			},
+			want: true,
+		},
+		{
+			name:  "different proxy mesh gateway mode",
+			ns:    structs.TestNodeServiceAPIGateway(t),
+			token: "foo",
+			mutate: func(ns structs.NodeService, token string) (*structs.NodeService, string) {
+				ns.Proxy.MeshGateway.Mode = structs.MeshGatewayModeLocal
+				return &ns, token
+			},
+			want: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			proxyID := ProxyID{ServiceID: tt.ns.CompoundServiceID()}
+			state, err := newState(proxyID, tt.ns, testSource, tt.token, stateConfig{logger: hclog.New(nil)}, rate.NewLimiter(rate.Inf, 1))
+			require.NoError(t, err)
+			otherNS, otherToken := tt.mutate(*tt.ns, tt.token)
+			require.Equal(t, tt.want, state.Changed(otherNS, otherToken))
+		})
+	}
+}
+
+func TestStateChangedAPIGateway(t *testing.T) {
+	tests := []struct {
+		name   string
+		ns     *structs.NodeService
+		token  string
+		mutate func(ns structs.NodeService, token string) (*structs.NodeService, string)
+		want   bool
+	}{
+		{
+			name: "nil node service",
+			ns:   structs.TestNodeServiceAPIGateway(t),
+			mutate: func(ns structs.NodeService, token string) (*structs.NodeService, string) {
+				return nil, token
+			},
+			want: true,
+		},
+		{
+			name: "same service",
+			ns:   structs.TestNodeServiceAPIGateway(t),
+			mutate: func(ns structs.NodeService, token string) (*structs.NodeService, string) {
+				return &ns, token
+			}, want: false,
+		},
+		{
+			name:  "same service, different token",
+			ns:    structs.TestNodeServiceAPIGateway(t),
+			token: "foo",
+			mutate: func(ns structs.NodeService, token string) (*structs.NodeService, string) {
+				return &ns, "bar"
+			},
+			want: true,
+		},
+		{
+			name:  "different address",
+			ns:    structs.TestNodeServiceAPIGateway(t),
+			token: "foo",
+			mutate: func(ns structs.NodeService, token string) (*structs.NodeService, string) {
+				ns.Address = "10.10.10.10"
+				return &ns, token
+			},
+			want: true,
+		},
+		{
+			name:  "different port",
+			ns:    structs.TestNodeServiceAPIGateway(t),
+			token: "foo",
+			mutate: func(ns structs.NodeService, token string) (*structs.NodeService, string) {
+				ns.Port = 12345
+				return &ns, token
+			},
+			want: true,
+		},
+		{
+			name:  "different service kind",
+			ns:    structs.TestNodeServiceAPIGateway(t),
+			token: "foo",
+			mutate: func(ns structs.NodeService, token string) (*structs.NodeService, string) {
+				ns.Kind = ""
+				return &ns, token
+			},
+			want: true,
+		},
+		{
+			name:  "different proxy target",
+			ns:    structs.TestNodeServiceAPIGateway(t),
+			token: "foo",
+			mutate: func(ns structs.NodeService, token string) (*structs.NodeService, string) {
+				ns.Proxy.DestinationServiceName = "badger"
+				return &ns, token
+			},
+			want: true,
+		},
+		{
+			name:  "different proxy upstreams",
+			ns:    structs.TestNodeServiceAPIGateway(t),
+			token: "foo",
+			mutate: func(ns structs.NodeService, token string) (*structs.NodeService, string) {
+				ns.Proxy.Upstreams = nil
+				return &ns, token
+			},
+			want: true,
+		},
+		{
+			name:  "different mesh gateway mode (local)",
+			ns:    structs.TestNodeServiceAPIGateway(t),
+			token: "foo",
+			mutate: func(ns structs.NodeService, token string) (*structs.NodeService, string) {
+				ns.Proxy.MeshGateway.Mode = structs.MeshGatewayModeLocal
+				return &ns, token
+			},
+			want: true,
+		},
+		{
+			name:  "different mesh gateway mode (remote)",
+			ns:    structs.TestNodeServiceAPIGateway(t),
+			token: "foo",
+			mutate: func(ns structs.NodeService, token string) (*structs.NodeService, string) {
+				ns.Proxy.MeshGateway.Mode = structs.MeshGatewayModeRemote
 				return &ns, token
 			},
 			want: true,

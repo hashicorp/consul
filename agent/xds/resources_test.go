@@ -1748,6 +1748,7 @@ func getAPIGatewayPeeringGoldenTestCases(t *testing.T) []goldenTestCase {
 	t.Helper()
 	const peerTrustDomain = "1c053652-8512-4373-90cf-5a7f6263a994.consul"
 
+	// paymentService is the upstream service in peer cluster for gateway.
 	paymentService := structs.NewServiceName("paymentService", nil)
 	paymentServiceUID := proxycfg.NewUpstreamIDFromServiceName(paymentService)
 	paymentServiceUID.Peer = "paymentpeer"
@@ -1758,8 +1759,7 @@ func getAPIGatewayPeeringGoldenTestCases(t *testing.T) []goldenTestCase {
 	// Base entries for paymentService discovery chain.
 	//
 	// Discovery chain is required in case of API Gateway with peering,
-	// because we need service resolver to redirect to peer and
-	// get the endpoints from the peer.
+	// because we need service resolver to redirect request to peer.
 	// If paymentServiceSet is not provided, then api-gateway will work as simple api-gw
 	// without knowledge of peering and service resolver (no redirection to peer)
 	paymentServiceSet := configentry.NewDiscoveryChainSet()
@@ -1787,8 +1787,7 @@ func getAPIGatewayPeeringGoldenTestCases(t *testing.T) []goldenTestCase {
 		// Below discovery chain (re)compile request is sent, so that
 		// we could get the updated localGatewayEndpoint.
 		//
-		// API Gateway does not directly updated WatchedLocalGWEndpoints.
-		//
+		// API Gateway does not directly update WatchedLocalGWEndpoints.
 		// It watches route config entries and upstream chains.
 		// So, after every update, DC recompile happens for API GW.
 		// Within recompile,it synthesize the listeners/routes, etc &
@@ -1798,7 +1797,7 @@ func getAPIGatewayPeeringGoldenTestCases(t *testing.T) []goldenTestCase {
 		// it prefix the clusterName with customizationHash
 		// while generating the cluster configs.
 		//
-		// Also, Please note that:
+		// Please note that:
 		// API Gateway, do not recomplile when "OverrideMeshGateway" changes.
 		// It do not set "OverrideMeshGateway" in discoveryChainWatchOpts.
 		// This is just to trigger the recompilation.

@@ -41,6 +41,7 @@ const (
 	License               string = "license"
 	Manager               string = "manager"
 	Memberlist            string = "memberlist"
+	APIGateway            string = "api_gateway"
 	MeshGateway           string = "mesh_gateway"
 	Namespace             string = "namespace"
 	NetworkAreas          string = "network_areas"

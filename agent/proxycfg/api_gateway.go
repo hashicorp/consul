@@ -360,6 +360,19 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 
 		for _, rule := range route.Rules {
 			for _, service := range rule.Services {
+
+				// Retrieving the meshGatewayConfig from handlerAPIGateway instance.
+				// `handlerAPIGateway` embeds `handlerState`, which exposes `serviceInstance.proxyCfg`.
+				// serviceInstance.proxyCfg.MeshGateway is replicated from NodeService during state setup/update.
+				// and NodeService populated for all gateway's during service resistration `AgentRegisterService`.
+				//
+				// So, Whenever any change happens in NodeService, proxyCfg manager will recreate
+				// the state where it copies NodeService to serviceInstance and
+				// then calls this api_gateway handleUpdates method.
+				// which will update the Mesh-Gateway config to api_gateway upstreams (below).
+				// h.service = <name of api-gateway>
+				meshGatewayConfig := h.proxyCfg.MeshGateway
+
 				for _, listener := range snap.APIGateway.Listeners {
 					shouldBind := false
 					for _, parent := range route.Parents {
@@ -382,6 +395,10 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 						Config: map[string]interface{}{
 							"protocol": "http",
 						},
+						// Propogate the meshGatewayConfig in api gateway upstreams
+						// so that meshGatewayMode can be used in XDS for
+						// endpoints and cluster config generation.
+						MeshGateway: meshGatewayConfig,
 					}
 
 					listenerKey := APIGatewayListenerKeyFromListener(listener)
@@ -410,6 +427,7 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 		snap.APIGateway.TCPRoutes.Set(ref, route)
 
 		for _, service := range route.Services {
+			meshGatewayConfig := h.proxyCfg.MeshGateway
 			upstreamID := NewUpstreamIDFromServiceName(service.ServiceName())
 			seenUpstreamIDs.add(upstreamID)
 
@@ -436,6 +454,7 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 					Config: map[string]interface{}{
 						"protocol": "tcp",
 					},
+					MeshGateway: meshGatewayConfig,
 				}
 
 				listenerKey := APIGatewayListenerKeyFromListener(listener)
