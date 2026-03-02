@@ -470,6 +470,7 @@ func (h *Handler) configEntryGlobalLimit(op Operation) *limit {
 var safetyExemptEndpoints = map[string]struct{}{
 	"ConfigEntry.Apply":  {},
 	"ConfigEntry.Delete": {},
+	"ConfigEntry.Get":    {},
 }
 
 // isSafetyExemptEndpoint checks if an operation is exempt from config entry
