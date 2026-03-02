@@ -13,6 +13,7 @@ import (
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	"github.com/hashicorp/go-hclog"
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -645,4 +646,297 @@ func TestMakeJWTCertValidationContext(t *testing.T) {
 			require.Equal(t, tt.expected, vc)
 		})
 	}
+}
+
+func TestInjectGatewayServiceAddons_TerminatingGateway_NoCAFile(t *testing.T) {
+	s := &ResourceGenerator{Logger: hclog.NewNullLogger()}
+	svc := structs.NewServiceName("web", structs.DefaultEnterpriseMetaInDefaultPartition())
+	snap := proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, nil)
+	snap.TerminatingGateway.GatewayServices = map[structs.ServiceName]structs.GatewayService{
+		svc: {Service: svc},
+	}
+
+	c := &envoy_cluster_v3.Cluster{Name: "web"}
+	err := s.injectGatewayServiceAddons(snap, c, svc, &structs.LoadBalancer{})
+
+	require.NoError(t, err)
+	require.Nil(t, c.TransportSocket)
+}
+
+func TestInjectGatewayServiceAddons_TerminatingGateway_WithCAFile(t *testing.T) {
+	s := &ResourceGenerator{Logger: hclog.NewNullLogger()}
+	svc := structs.NewServiceName("web", structs.DefaultEnterpriseMetaInDefaultPartition())
+	snap := proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, nil)
+	snap.TerminatingGateway.GatewayServices = map[structs.ServiceName]structs.GatewayService{
+		svc: {Service: svc, CAFile: "ca.pem"},
+	}
+
+	c := &envoy_cluster_v3.Cluster{Name: "web"}
+	err := s.injectGatewayServiceAddons(snap, c, svc, &structs.LoadBalancer{})
+
+	require.NoError(t, err)
+	require.NotNil(t, c.TransportSocket)
+	require.Equal(t, "tls", c.TransportSocket.Name)
+}
+
+func TestInjectGatewayServiceAddons_TerminatingGateway_WithCAFileAndSNI_UsesCombinedValidationContext(t *testing.T) {
+	s := &ResourceGenerator{Logger: hclog.NewNullLogger()}
+	svc := structs.NewServiceName("web", structs.DefaultEnterpriseMetaInDefaultPartition())
+	snap := proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, nil)
+	snap.TerminatingGateway.GatewayServices = map[structs.ServiceName]structs.GatewayService{
+		svc: {Service: svc, CAFile: "ca.pem", SNI: "web.example.com"},
+	}
+
+	c := &envoy_cluster_v3.Cluster{Name: "web"}
+	err := s.injectGatewayServiceAddons(snap, c, svc, &structs.LoadBalancer{})
+
+	require.NoError(t, err)
+	require.NotNil(t, c.TransportSocket)
+
+	upstreamTLS := &envoy_tls_v3.UpstreamTlsContext{}
+	err = c.TransportSocket.GetTypedConfig().UnmarshalTo(upstreamTLS)
+	require.NoError(t, err)
+	require.Equal(t, "web.example.com", upstreamTLS.Sni)
+
+	combined, ok := upstreamTLS.CommonTlsContext.ValidationContextType.(*envoy_tls_v3.CommonTlsContext_CombinedValidationContext)
+	require.True(t, ok, "expected CombinedValidationContext, got %T", upstreamTLS.CommonTlsContext.ValidationContextType)
+	require.Equal(t, "web-ca", combined.CombinedValidationContext.ValidationContextSdsSecretConfig.Name)
+	require.NotEmpty(t, combined.CombinedValidationContext.DefaultValidationContext.MatchTypedSubjectAltNames)
+}
+
+func TestInjectGatewayServiceAddons_TerminatingGateway_SNIWithSDSContextUsesCombinedValidationContext(t *testing.T) {
+	s := &ResourceGenerator{Logger: hclog.NewNullLogger()}
+	svc := structs.NewServiceName("api", structs.DefaultEnterpriseMetaInDefaultPartition())
+	snap := proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, nil)
+	snap.TerminatingGateway.GatewayServices = map[structs.ServiceName]structs.GatewayService{
+		svc: {Service: svc, CAFile: "ca.pem", SNI: "api.example.com"},
+	}
+
+	c := &envoy_cluster_v3.Cluster{Name: "api"}
+	err := s.injectGatewayServiceAddons(snap, c, svc, &structs.LoadBalancer{})
+
+	require.NoError(t, err)
+	require.NotNil(t, c.TransportSocket)
+
+	upstreamTLS := &envoy_tls_v3.UpstreamTlsContext{}
+	err = c.TransportSocket.GetTypedConfig().UnmarshalTo(upstreamTLS)
+	require.NoError(t, err)
+	require.Equal(t, "api.example.com", upstreamTLS.Sni)
+
+	combined, ok := upstreamTLS.CommonTlsContext.ValidationContextType.(*envoy_tls_v3.CommonTlsContext_CombinedValidationContext)
+	require.True(t, ok, "expected CombinedValidationContext, got %T", upstreamTLS.CommonTlsContext.ValidationContextType)
+	require.Equal(t, "api-ca", combined.CombinedValidationContext.ValidationContextSdsSecretConfig.Name)
+	require.NotEmpty(t, combined.CombinedValidationContext.DefaultValidationContext.MatchTypedSubjectAltNames)
+}
+
+func TestInjectGatewayServiceAddons_TerminatingGateway_NoSNINoSANMatchers(t *testing.T) {
+	s := &ResourceGenerator{Logger: hclog.NewNullLogger()}
+	svc := structs.NewServiceName("db", structs.DefaultEnterpriseMetaInDefaultPartition())
+	snap := proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, nil)
+	snap.TerminatingGateway.GatewayServices = map[structs.ServiceName]structs.GatewayService{
+		svc: {Service: svc, CAFile: "ca.pem"},
+	}
+
+	c := &envoy_cluster_v3.Cluster{Name: "db"}
+	err := s.injectGatewayServiceAddons(snap, c, svc, &structs.LoadBalancer{})
+
+	require.NoError(t, err)
+	upstreamTLS := &envoy_tls_v3.UpstreamTlsContext{}
+	err = c.TransportSocket.GetTypedConfig().UnmarshalTo(upstreamTLS)
+	require.NoError(t, err)
+	require.Equal(t, "", upstreamTLS.Sni)
+
+	sdsCfg, ok := upstreamTLS.CommonTlsContext.ValidationContextType.(*envoy_tls_v3.CommonTlsContext_ValidationContextSdsSecretConfig)
+	require.True(t, ok)
+	require.Equal(t, "db-ca", sdsCfg.ValidationContextSdsSecretConfig.Name)
+}
+
+func TestInjectGatewayServiceAddons_TerminatingGateway_TLSContextUsesSDS(t *testing.T) {
+	s := &ResourceGenerator{Logger: hclog.NewNullLogger()}
+	svc := structs.NewServiceName("payments", structs.DefaultEnterpriseMetaInDefaultPartition())
+	snap := proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, nil)
+	snap.TerminatingGateway.GatewayServices = map[structs.ServiceName]structs.GatewayService{
+		svc: {Service: svc, CAFile: "ca.pem", CertFile: "cert.pem", KeyFile: "key.pem"},
+	}
+
+	c := &envoy_cluster_v3.Cluster{Name: "payments"}
+	err := s.injectGatewayServiceAddons(snap, c, svc, &structs.LoadBalancer{})
+
+	require.NoError(t, err)
+	upstreamTLS := &envoy_tls_v3.UpstreamTlsContext{}
+	err = c.TransportSocket.GetTypedConfig().UnmarshalTo(upstreamTLS)
+	require.NoError(t, err)
+
+	require.Len(t, upstreamTLS.CommonTlsContext.TlsCertificateSdsSecretConfigs, 1)
+	certSDS := upstreamTLS.CommonTlsContext.TlsCertificateSdsSecretConfigs[0]
+	require.Equal(t, "payments-cert", certSDS.Name)
+	_, usesADS := certSDS.SdsConfig.ConfigSourceSpecifier.(*envoy_core_v3.ConfigSource_Ads)
+	require.True(t, usesADS)
+	require.Equal(t, envoy_core_v3.ApiVersion_V3, certSDS.SdsConfig.ResourceApiVersion)
+}
+
+func TestInjectGatewayServiceAddons_TerminatingGateway_ServiceNotInMap(t *testing.T) {
+	s := &ResourceGenerator{Logger: hclog.NewNullLogger()}
+	svc := structs.NewServiceName("unknown", structs.DefaultEnterpriseMetaInDefaultPartition())
+	snap := proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, nil)
+	snap.TerminatingGateway.GatewayServices = map[structs.ServiceName]structs.GatewayService{}
+
+	c := &envoy_cluster_v3.Cluster{Name: "unknown"}
+	err := s.injectGatewayServiceAddons(snap, c, svc, &structs.LoadBalancer{})
+
+	require.NoError(t, err)
+	require.Nil(t, c.TransportSocket)
+}
+
+func TestInjectGatewayServiceAddons_MeshGateway_DoesNotSetTransportSocket(t *testing.T) {
+	s := &ResourceGenerator{Logger: hclog.NewNullLogger()}
+	svc := structs.NewServiceName("web", structs.DefaultEnterpriseMetaInDefaultPartition())
+	snap := proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, nil)
+	snap.Kind = structs.ServiceKindMeshGateway
+
+	c := &envoy_cluster_v3.Cluster{Name: "web"}
+	err := s.injectGatewayServiceAddons(snap, c, svc, &structs.LoadBalancer{})
+
+	require.NoError(t, err)
+	require.Nil(t, c.TransportSocket)
+}
+
+func TestInjectGatewayDestinationAddons_TerminatingGateway_NoCAFile(t *testing.T) {
+	s := &ResourceGenerator{Logger: hclog.NewNullLogger()}
+	svc := structs.NewServiceName("db", structs.DefaultEnterpriseMetaInDefaultPartition())
+	snap := proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, nil)
+	snap.TerminatingGateway.DestinationServices = map[structs.ServiceName]structs.GatewayService{
+		svc: {Service: svc},
+	}
+
+	c := &envoy_cluster_v3.Cluster{Name: "db"}
+	err := s.injectGatewayDestinationAddons(snap, c, svc)
+
+	require.NoError(t, err)
+	require.Nil(t, c.TransportSocket)
+}
+
+func TestInjectGatewayDestinationAddons_TerminatingGateway_WithCAFile(t *testing.T) {
+	s := &ResourceGenerator{Logger: hclog.NewNullLogger()}
+	svc := structs.NewServiceName("db", structs.DefaultEnterpriseMetaInDefaultPartition())
+	snap := proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, nil)
+	snap.TerminatingGateway.DestinationServices = map[structs.ServiceName]structs.GatewayService{
+		svc: {Service: svc, CAFile: "ca.pem"},
+	}
+
+	c := &envoy_cluster_v3.Cluster{Name: "db"}
+	err := s.injectGatewayDestinationAddons(snap, c, svc)
+
+	require.NoError(t, err)
+	require.NotNil(t, c.TransportSocket)
+	require.Equal(t, "tls", c.TransportSocket.Name)
+}
+
+func TestInjectGatewayDestinationAddons_TerminatingGateway_WithCAFileAndSNI_UsesCombinedValidationContext(t *testing.T) {
+	s := &ResourceGenerator{Logger: hclog.NewNullLogger()}
+	svc := structs.NewServiceName("db", structs.DefaultEnterpriseMetaInDefaultPartition())
+	snap := proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, nil)
+	snap.TerminatingGateway.DestinationServices = map[structs.ServiceName]structs.GatewayService{
+		svc: {Service: svc, CAFile: "ca.pem", SNI: "db.example.com"},
+	}
+
+	c := &envoy_cluster_v3.Cluster{Name: "db"}
+	err := s.injectGatewayDestinationAddons(snap, c, svc)
+
+	require.NoError(t, err)
+	require.NotNil(t, c.TransportSocket)
+
+	upstreamTLS := &envoy_tls_v3.UpstreamTlsContext{}
+	err = c.TransportSocket.GetTypedConfig().UnmarshalTo(upstreamTLS)
+	require.NoError(t, err)
+	require.Equal(t, "db.example.com", upstreamTLS.Sni)
+
+	combined, ok := upstreamTLS.CommonTlsContext.ValidationContextType.(*envoy_tls_v3.CommonTlsContext_CombinedValidationContext)
+	require.True(t, ok, "expected CombinedValidationContext, got %T", upstreamTLS.CommonTlsContext.ValidationContextType)
+	require.Equal(t, "db-ca", combined.CombinedValidationContext.ValidationContextSdsSecretConfig.Name)
+	require.NotEmpty(t, combined.CombinedValidationContext.DefaultValidationContext.MatchTypedSubjectAltNames)
+}
+
+func TestInjectGatewayDestinationAddons_TerminatingGateway_SNIWithSDSContextUsesCombinedValidationContext(t *testing.T) {
+	s := &ResourceGenerator{Logger: hclog.NewNullLogger()}
+	svc := structs.NewServiceName("cache", structs.DefaultEnterpriseMetaInDefaultPartition())
+	snap := proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, nil)
+	snap.TerminatingGateway.DestinationServices = map[structs.ServiceName]structs.GatewayService{
+		svc: {Service: svc, CAFile: "ca.pem", SNI: "cache.example.com"},
+	}
+
+	c := &envoy_cluster_v3.Cluster{Name: "cache"}
+	err := s.injectGatewayDestinationAddons(snap, c, svc)
+
+	require.NoError(t, err)
+	require.NotNil(t, c.TransportSocket)
+
+	upstreamTLS := &envoy_tls_v3.UpstreamTlsContext{}
+	err = c.TransportSocket.GetTypedConfig().UnmarshalTo(upstreamTLS)
+	require.NoError(t, err)
+	require.Equal(t, "cache.example.com", upstreamTLS.Sni)
+
+	combined, ok := upstreamTLS.CommonTlsContext.ValidationContextType.(*envoy_tls_v3.CommonTlsContext_CombinedValidationContext)
+	require.True(t, ok, "expected CombinedValidationContext, got %T", upstreamTLS.CommonTlsContext.ValidationContextType)
+	require.Equal(t, "cache-ca", combined.CombinedValidationContext.ValidationContextSdsSecretConfig.Name)
+	require.NotEmpty(t, combined.CombinedValidationContext.DefaultValidationContext.MatchTypedSubjectAltNames)
+}
+
+func TestInjectGatewayDestinationAddons_TerminatingGateway_TLSContextUsesSDS(t *testing.T) {
+	s := &ResourceGenerator{Logger: hclog.NewNullLogger()}
+	svc := structs.NewServiceName("cache", structs.DefaultEnterpriseMetaInDefaultPartition())
+	snap := proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, nil)
+	snap.TerminatingGateway.DestinationServices = map[structs.ServiceName]structs.GatewayService{
+		svc: {Service: svc, CAFile: "ca.pem"},
+	}
+
+	c := &envoy_cluster_v3.Cluster{Name: "cache"}
+	err := s.injectGatewayDestinationAddons(snap, c, svc)
+
+	require.NoError(t, err)
+	upstreamTLS := &envoy_tls_v3.UpstreamTlsContext{}
+	err = c.TransportSocket.GetTypedConfig().UnmarshalTo(upstreamTLS)
+	require.NoError(t, err)
+
+	require.Len(t, upstreamTLS.CommonTlsContext.TlsCertificateSdsSecretConfigs, 1)
+	certSDS := upstreamTLS.CommonTlsContext.TlsCertificateSdsSecretConfigs[0]
+	require.Equal(t, "cache-cert", certSDS.Name)
+	_, usesADS := certSDS.SdsConfig.ConfigSourceSpecifier.(*envoy_core_v3.ConfigSource_Ads)
+	require.True(t, usesADS)
+	require.Equal(t, envoy_core_v3.ApiVersion_V3, certSDS.SdsConfig.ResourceApiVersion)
+
+	sdsCACfg, ok := upstreamTLS.CommonTlsContext.ValidationContextType.(*envoy_tls_v3.CommonTlsContext_ValidationContextSdsSecretConfig)
+	require.True(t, ok)
+	require.Equal(t, "cache-ca", sdsCACfg.ValidationContextSdsSecretConfig.Name)
+	_, caUsesADS := sdsCACfg.ValidationContextSdsSecretConfig.SdsConfig.ConfigSourceSpecifier.(*envoy_core_v3.ConfigSource_Ads)
+	require.True(t, caUsesADS)
+}
+
+func TestInjectGatewayDestinationAddons_TerminatingGateway_DestinationNotInMap(t *testing.T) {
+	s := &ResourceGenerator{Logger: hclog.NewNullLogger()}
+	svc := structs.NewServiceName("missing", structs.DefaultEnterpriseMetaInDefaultPartition())
+	snap := proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, nil)
+	snap.TerminatingGateway.DestinationServices = map[structs.ServiceName]structs.GatewayService{}
+
+	c := &envoy_cluster_v3.Cluster{Name: "missing"}
+	err := s.injectGatewayDestinationAddons(snap, c, svc)
+
+	require.NoError(t, err)
+	require.Nil(t, c.TransportSocket)
+}
+
+func TestInjectGatewayDestinationAddons_NonTerminatingGatewayKindDoesNothing(t *testing.T) {
+	s := &ResourceGenerator{Logger: hclog.NewNullLogger()}
+	svc := structs.NewServiceName("web", structs.DefaultEnterpriseMetaInDefaultPartition())
+	snap := proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, nil)
+	snap.Kind = structs.ServiceKindMeshGateway
+	snap.TerminatingGateway.DestinationServices = map[structs.ServiceName]structs.GatewayService{
+		svc: {Service: svc, CAFile: "ca.pem"},
+	}
+
+	c := &envoy_cluster_v3.Cluster{Name: "web"}
+	err := s.injectGatewayDestinationAddons(snap, c, svc)
+
+	require.NoError(t, err)
+	require.Nil(t, c.TransportSocket)
 }

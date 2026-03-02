@@ -912,7 +912,10 @@ func (s *ResourceGenerator) injectGatewayServiceAddons(cfgSnap *proxycfg.ConfigS
 			}
 			if mapping.SNI != "" {
 				tlsContext.Sni = mapping.SNI
-				if err := injectSANMatcher(tlsContext.CommonTlsContext, true, mapping.SNI); err != nil {
+				// makeUpstreamTLSContext produces an SDS-based ValidationContext, so we
+				// must use injectSANMatcherSDS which builds a CombinedValidationContext
+				// (SDS secret + typed SAN matchers) instead of the inline path.
+				if err := injectSANMatcherSDS(tlsContext.CommonTlsContext, true, mapping.SNI); err != nil {
 					return fmt.Errorf("failed to inject SNI matcher into TLS context: %v", err)
 				}
 			}
@@ -941,7 +944,10 @@ func (s *ResourceGenerator) injectGatewayDestinationAddons(cfgSnap *proxycfg.Con
 			}
 			if mapping.SNI != "" {
 				tlsContext.Sni = mapping.SNI
-				if err := injectSANMatcher(tlsContext.CommonTlsContext, true, mapping.SNI); err != nil {
+				// makeUpstreamTLSContext produces an SDS-based ValidationContext, so we
+				// must use injectSANMatcherSDS which builds a CombinedValidationContext
+				// (SDS secret + typed SAN matchers) instead of the inline path.
+				if err := injectSANMatcherSDS(tlsContext.CommonTlsContext, true, mapping.SNI); err != nil {
 					return fmt.Errorf("failed to inject SNI matcher into TLS context: %v", err)
 				}
 			}
@@ -1700,6 +1706,66 @@ func injectSANMatcher(tlsContext *envoy_tls_v3.CommonTlsContext, terminatingEgre
 	}
 
 	validationCtx.ValidationContext.MatchTypedSubjectAltNames = matchers
+
+	return nil
+}
+
+// injectSANMatcherSDS updates a TLS context whose ValidationContextType is
+// already SDS-based (CommonTlsContext_ValidationContextSdsSecretConfig) so that
+// it also verifies the upstream SAN.  Because Envoy does not allow
+// MatchTypedSubjectAltNames on a bare SdsSecretConfig, we promote the context
+// to a CombinedValidationContext which pairs the SDS secret with an inline
+// CertificateValidationContext that carries the matchers.
+func injectSANMatcherSDS(tlsContext *envoy_tls_v3.CommonTlsContext, terminatingEgress bool, matchStrings ...string) error {
+	if tlsContext == nil {
+		return fmt.Errorf("invalid type: expected CommonTlsContext not to be nil")
+	}
+
+	sdsCfg, ok := tlsContext.ValidationContextType.(*envoy_tls_v3.CommonTlsContext_ValidationContextSdsSecretConfig)
+	if !ok {
+		return fmt.Errorf("invalid type: expected CommonTlsContext_ValidationContextSdsSecretConfig, got %T",
+			tlsContext.ValidationContextType)
+	}
+
+	// Terminating gateways make egress calls outside the mesh and may need to
+	// match on DNS / email / IP SANs in addition to URIs.  Having multiple
+	// matcher types behaves as an OR so any match is sufficient.
+	types := []envoy_tls_v3.SubjectAltNameMatcher_SanType{
+		envoy_tls_v3.SubjectAltNameMatcher_URI,
+	}
+	if terminatingEgress {
+		types = []envoy_tls_v3.SubjectAltNameMatcher_SanType{
+			envoy_tls_v3.SubjectAltNameMatcher_URI,
+			envoy_tls_v3.SubjectAltNameMatcher_DNS,
+			envoy_tls_v3.SubjectAltNameMatcher_EMAIL,
+			envoy_tls_v3.SubjectAltNameMatcher_IP_ADDRESS,
+		}
+	}
+
+	var matchers []*envoy_tls_v3.SubjectAltNameMatcher
+	for _, m := range matchStrings {
+		for _, t := range types {
+			matchers = append(matchers, &envoy_tls_v3.SubjectAltNameMatcher{
+				SanType: t,
+				Matcher: &envoy_matcher_v3.StringMatcher{
+					MatchPattern: &envoy_matcher_v3.StringMatcher_Exact{
+						Exact: m,
+					},
+				},
+			})
+		}
+	}
+
+	// Promote to CombinedValidationContext: the SDS secret supplies the trusted
+	// CA bundle dynamically while the inline context carries the SAN matchers.
+	tlsContext.ValidationContextType = &envoy_tls_v3.CommonTlsContext_CombinedValidationContext{
+		CombinedValidationContext: &envoy_tls_v3.CommonTlsContext_CombinedCertificateValidationContext{
+			DefaultValidationContext: &envoy_tls_v3.CertificateValidationContext{
+				MatchTypedSubjectAltNames: matchers,
+			},
+			ValidationContextSdsSecretConfig: sdsCfg.ValidationContextSdsSecretConfig,
+		},
+	}
 
 	return nil
 }
