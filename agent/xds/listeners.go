@@ -2852,6 +2852,36 @@ func makeTransportSocket(name string, config proto.Message) (*envoy_core_v3.Tran
 	}, nil
 }
 
+func makeUpstreamTLSContext(mapping structs.GatewayService) *envoy_tls_v3.CommonTlsContext {
+	return &envoy_tls_v3.CommonTlsContext{
+		// This is the CRITICAL change for dynamic rotation.
+		// It tells Envoy: "Ask SDS for a secret named <service-name>".
+		TlsCertificateSdsSecretConfigs: []*envoy_tls_v3.SdsSecretConfig{
+			{
+				Name: mapping.Service.Name + "-cert",
+				SdsConfig: &envoy_core_v3.ConfigSource{
+					ConfigSourceSpecifier: &envoy_core_v3.ConfigSource_Ads{
+						Ads: &envoy_core_v3.AggregatedConfigSource{},
+					},
+					ResourceApiVersion: envoy_core_v3.ApiVersion_V3,
+				},
+			},
+		},
+
+		ValidationContextType: &envoy_tls_v3.CommonTlsContext_ValidationContextSdsSecretConfig{
+			ValidationContextSdsSecretConfig: &envoy_tls_v3.SdsSecretConfig{
+				Name: mapping.Service.Name + "-ca",
+				SdsConfig: &envoy_core_v3.ConfigSource{
+					ConfigSourceSpecifier: &envoy_core_v3.ConfigSource_Ads{
+						Ads: &envoy_core_v3.AggregatedConfigSource{},
+					},
+					ResourceApiVersion: envoy_core_v3.ApiVersion_V3,
+				},
+			},
+		},
+	}
+}
+
 func makeCommonTLSContextFromFiles(caFile, certFile, keyFile string) *envoy_tls_v3.CommonTlsContext {
 	ctx := envoy_tls_v3.CommonTlsContext{
 		TlsParams: &envoy_tls_v3.TlsParameters{},

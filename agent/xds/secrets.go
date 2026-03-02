@@ -24,9 +24,11 @@ func (s *ResourceGenerator) secretsFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot
 
 	switch cfgSnap.Kind {
 	case structs.ServiceKindAPIGateway:
-		return s.secretsFromSnapshotAPIGateway(cfgSnap), nil // return any attached certs
+		return s.secretsFromSnapshotAPIGateway(cfgSnap), nil
+		// return any attached certs case :
+	case structs.ServiceKindTerminatingGateway:
+		return s.secretsFromSnapshotTerminatingGateway(cfgSnap), nil
 	case structs.ServiceKindConnectProxy,
-		structs.ServiceKindTerminatingGateway,
 		structs.ServiceKindMeshGateway,
 		structs.ServiceKindIngressGateway:
 		return nil, nil
@@ -62,6 +64,42 @@ func (s *ResourceGenerator) secretsFromSnapshotAPIGateway(cfgSnap *proxycfg.Conf
 		})
 		return true
 	})
+
+	return resources
+}
+
+func (s *ResourceGenerator) secretsFromSnapshotTerminatingGateway(cfgSnap *proxycfg.ConfigSnapshot) []proto.Message {
+	var resources []proto.Message
+	for _, detail := range cfgSnap.TerminatingGateway.GatewayServices {
+		if detail.CertFile != "" && detail.KeyFile != "" {
+			resources = append(resources, &envoy_tls_v3.Secret{
+				// We use the destination Service Name as the SDS resource "handle"
+				Name: detail.Service.Name + "-cert",
+				Type: &envoy_tls_v3.Secret_TlsCertificate{
+					TlsCertificate: &envoy_tls_v3.TlsCertificate{
+						CertificateChain: &envoy_core_v3.DataSource{
+							Specifier: &envoy_core_v3.DataSource_Filename{Filename: detail.CertFile},
+						},
+						PrivateKey: &envoy_core_v3.DataSource{
+							Specifier: &envoy_core_v3.DataSource_Filename{Filename: detail.KeyFile},
+						},
+					},
+				},
+			})
+		}
+		if detail.CAFile != "" {
+			resources = append(resources, &envoy_tls_v3.Secret{
+				Name: detail.Service.Name + "-ca",
+				Type: &envoy_tls_v3.Secret_ValidationContext{
+					ValidationContext: &envoy_tls_v3.CertificateValidationContext{
+						TrustedCa: &envoy_core_v3.DataSource{
+							Specifier: &envoy_core_v3.DataSource_Filename{Filename: detail.CAFile},
+						},
+					},
+				},
+			})
+		}
+	}
 
 	return resources
 }

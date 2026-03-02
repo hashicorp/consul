@@ -908,7 +908,7 @@ func (s *ResourceGenerator) injectGatewayServiceAddons(cfgSnap *proxycfg.ConfigS
 		// Context used for TLS origination to the cluster
 		if mapping, ok := cfgSnap.TerminatingGateway.GatewayServices[svc]; ok && mapping.CAFile != "" {
 			tlsContext := &envoy_tls_v3.UpstreamTlsContext{
-				CommonTlsContext: makeCommonTLSContextFromFiles(mapping.CAFile, mapping.CertFile, mapping.KeyFile),
+				CommonTlsContext: makeUpstreamTLSContext(mapping),
 			}
 			if mapping.SNI != "" {
 				tlsContext.Sni = mapping.SNI
@@ -937,7 +937,7 @@ func (s *ResourceGenerator) injectGatewayDestinationAddons(cfgSnap *proxycfg.Con
 		// Context used for TLS origination to the cluster
 		if mapping, ok := cfgSnap.TerminatingGateway.DestinationServices[svc]; ok && mapping.CAFile != "" {
 			tlsContext := &envoy_tls_v3.UpstreamTlsContext{
-				CommonTlsContext: makeCommonTLSContextFromFiles(mapping.CAFile, mapping.CertFile, mapping.KeyFile),
+				CommonTlsContext: makeUpstreamTLSContext(mapping),
 			}
 			if mapping.SNI != "" {
 				tlsContext.Sni = mapping.SNI
