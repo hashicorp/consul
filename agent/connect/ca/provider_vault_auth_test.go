@@ -12,13 +12,16 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/hashicorp/consul/agent/structs"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/vault/api/auth/gcp"
 	"github.com/hashicorp/vault/sdk/helper/jsonutil"
-	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 func TestVaultCAProvider_GCPAuthClient(t *testing.T) {
@@ -618,12 +621,23 @@ func TestVaultCAProvider_AzureAuthClient(t *testing.T) {
 }
 
 func TestVaultCAProvider_JwtAuthClient(t *testing.T) {
-	tokenF, err := os.CreateTemp("", "token-path")
+	// Create temp directory and symlink from allowed directory
+	tmpDir := t.TempDir()
+	tokenDir := filepath.Join(tmpDir, "jwt-tokens")
+	err := os.MkdirAll(tokenDir, 0755)
 	require.NoError(t, err)
-	defer func() { os.Remove(tokenF.Name()) }()
-	_, err = tokenF.WriteString("test-token")
-	require.NoError(t, err)
-	err = tokenF.Close()
+
+	// Create symlink from allowed directory to temp directory
+	symlinkPath := "/var/run/secrets"
+	_ = os.Remove(symlinkPath) // Remove if exists (ignore error)
+	err = os.Symlink(tokenDir, symlinkPath)
+	if err != nil {
+		t.Skipf("Cannot create symlink %s -> %s (requires permissions): %v", symlinkPath, tokenDir, err)
+	}
+	defer os.Remove(symlinkPath)
+
+	tokenPath := filepath.Join(symlinkPath, "jwt-token")
+	err = os.WriteFile(tokenPath, []byte("test-token"), 0644)
 	require.NoError(t, err)
 
 	cases := map[string]struct {
@@ -636,7 +650,7 @@ func TestVaultCAProvider_JwtAuthClient(t *testing.T) {
 				Type: "jwt",
 				Params: map[string]any{
 					"role": "test-role",
-					"path": tokenF.Name(),
+					"path": tokenPath,
 				},
 			},
 			expData: map[string]any{
@@ -692,12 +706,27 @@ func TestVaultCAProvider_JwtAuthClient(t *testing.T) {
 }
 
 func TestVaultCAProvider_K8sAuthClient(t *testing.T) {
-	tokenF, err := os.CreateTemp("", "token-path")
+	// Create temp directory and symlink from allowed directory
+	tmpDir := t.TempDir()
+	tokenDir := filepath.Join(tmpDir, "serviceaccount")
+	err := os.MkdirAll(tokenDir, 0755)
 	require.NoError(t, err)
-	defer func() { os.Remove(tokenF.Name()) }()
-	_, err = tokenF.WriteString("test-token")
-	require.NoError(t, err)
-	err = tokenF.Close()
+
+	// Create symlink from allowed directory to temp directory
+	symlinkPath := "/var/run/secrets/kubernetes.io/serviceaccount"
+	_ = os.RemoveAll(symlinkPath) // Remove if exists (ignore error)
+	err = os.MkdirAll(filepath.Dir(symlinkPath), 0755)
+	if err != nil {
+		t.Skipf("Cannot create parent directory for symlink (requires permissions): %v", err)
+	}
+	err = os.Symlink(tokenDir, symlinkPath)
+	if err != nil {
+		t.Skipf("Cannot create symlink %s -> %s (requires permissions): %v", symlinkPath, tokenDir, err)
+	}
+	defer os.RemoveAll("/var/run/secrets/kubernetes.io")
+
+	tokenPath := filepath.Join(symlinkPath, "token")
+	err = os.WriteFile(tokenPath, []byte("test-token"), 0644)
 	require.NoError(t, err)
 
 	cases := map[string]struct {
@@ -710,7 +739,7 @@ func TestVaultCAProvider_K8sAuthClient(t *testing.T) {
 				Type: "kubernetes",
 				Params: map[string]any{
 					"role":       "test-role",
-					"token_path": tokenF.Name(),
+					"token_path": tokenPath,
 				},
 			},
 			expData: map[string]any{
@@ -760,27 +789,32 @@ func TestVaultCAProvider_K8sAuthClient(t *testing.T) {
 func TestVaultCAProvider_AppRoleAuthClient(t *testing.T) {
 	roleID, secretID := "test_role_id", "test_secret_id"
 
-	roleFd, err := os.CreateTemp("", "role")
-	require.NoError(t, err)
-	_, err = roleFd.WriteString(roleID)
-	require.NoError(t, err)
-	err = roleFd.Close()
-	require.NoError(t, err)
-
-	secretFd, err := os.CreateTemp("", "secret")
-	require.NoError(t, err)
-	_, err = secretFd.WriteString(secretID)
-	require.NoError(t, err)
-	err = secretFd.Close()
+	// Create temp directory and symlink from allowed directory
+	tmpDir := t.TempDir()
+	vaultDir := filepath.Join(tmpDir, "vault")
+	err := os.MkdirAll(vaultDir, 0755)
 	require.NoError(t, err)
 
-	roleIdPath := roleFd.Name()
-	secretIdPath := secretFd.Name()
+	// Create symlink from allowed directory to temp directory
+	symlinkPath := "/var/run/secrets/vault"
+	_ = os.RemoveAll(symlinkPath) // Remove if exists (ignore error)
+	err = os.MkdirAll(filepath.Dir(symlinkPath), 0755)
+	if err != nil {
+		t.Skipf("Cannot create parent directory for symlink (requires permissions): %v", err)
+	}
+	err = os.Symlink(vaultDir, symlinkPath)
+	if err != nil {
+		t.Skipf("Cannot create symlink %s -> %s (requires permissions): %v", symlinkPath, vaultDir, err)
+	}
+	defer os.RemoveAll("/var/run/secrets/vault")
 
-	defer func() {
-		os.Remove(secretFd.Name())
-		os.Remove(roleFd.Name())
-	}()
+	roleIdPath := filepath.Join(symlinkPath, "role-id")
+	err = os.WriteFile(roleIdPath, []byte(roleID), 0644)
+	require.NoError(t, err)
+
+	secretIdPath := filepath.Join(symlinkPath, "secret-id")
+	err = os.WriteFile(secretIdPath, []byte(secretID), 0644)
+	require.NoError(t, err)
 
 	cases := map[string]struct {
 		authMethod *structs.VaultAuthMethod
@@ -948,4 +982,392 @@ func TestVaultCAProvider_AliCloudAuthClient(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestReadVaultCredentialFileSecurely(t *testing.T) {
+	// Create a temporary directory structure for testing
+	tmpDir := t.TempDir()
+
+	allowedDir := filepath.Join(tmpDir, "allowed")
+	disallowedDir := filepath.Join(tmpDir, "disallowed")
+
+	require.NoError(t, os.MkdirAll(allowedDir, 0755))
+	require.NoError(t, os.MkdirAll(disallowedDir, 0755))
+
+	// Create test files
+	allowedFile := filepath.Join(allowedDir, "credential.txt")
+	disallowedFile := filepath.Join(disallowedDir, "credential.txt")
+
+	testContent := []byte("test-credential-content")
+	require.NoError(t, os.WriteFile(allowedFile, testContent, 0644))
+	require.NoError(t, os.WriteFile(disallowedFile, testContent, 0644))
+
+	allowedDirs := []string{allowedDir}
+
+	t.Run("successfully reads file from allowed directory", func(t *testing.T) {
+		content, err := readVaultCredentialFileSecurely(allowedFile, allowedDirs)
+		require.NoError(t, err)
+		require.Equal(t, testContent, content)
+	})
+
+	t.Run("rejects file from disallowed directory", func(t *testing.T) {
+		_, err := readVaultCredentialFileSecurely(disallowedFile, allowedDirs)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "credential file must be within allowed directories")
+		// Ensure the error doesn't leak the file path
+		require.NotContains(t, err.Error(), disallowedFile)
+	})
+
+	t.Run("rejects path traversal attempts", func(t *testing.T) {
+		// Try to escape using ../
+		traversalPath := filepath.Join(allowedDir, "..", "disallowed", "credential.txt")
+		_, err := readVaultCredentialFileSecurely(traversalPath, allowedDirs)
+		require.Error(t, err)
+	})
+
+	t.Run("rejects absolute path outside allowed directories", func(t *testing.T) {
+		_, err := readVaultCredentialFileSecurely("/etc/passwd", allowedDirs)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "credential file must be within allowed directories")
+	})
+
+	t.Run("handles symlink within allowed directory", func(t *testing.T) {
+		// Create a symlink within the allowed directory using relative path (like Kubernetes)
+		symlinkPath := filepath.Join(allowedDir, "symlink.txt")
+		targetFile := "target.txt"
+		targetPath := filepath.Join(allowedDir, targetFile)
+
+		require.NoError(t, os.WriteFile(targetPath, []byte("target-content"), 0644))
+		// Use relative symlink (not absolute) - this is how Kubernetes mounts secrets
+		require.NoError(t, os.Symlink(targetFile, symlinkPath))
+
+		content, err := readVaultCredentialFileSecurely(symlinkPath, allowedDirs)
+		require.NoError(t, err)
+		require.Equal(t, []byte("target-content"), content)
+	})
+
+	t.Run("rejects symlink pointing outside allowed directory", func(t *testing.T) {
+		// Create a symlink inside allowed dir pointing to disallowed dir
+		symlinkPath := filepath.Join(allowedDir, "bad-symlink.txt")
+
+		require.NoError(t, os.Symlink(disallowedFile, symlinkPath))
+
+		_, err := readVaultCredentialFileSecurely(symlinkPath, allowedDirs)
+		require.Error(t, err)
+		// os.OpenRoot() blocks the symlink escape at read time, not validation time
+		require.Contains(t, err.Error(), "failed to read credential file")
+	})
+
+	t.Run("handles non-existent file", func(t *testing.T) {
+		nonExistentFile := filepath.Join(allowedDir, "nonexistent.txt")
+		_, err := readVaultCredentialFileSecurely(nonExistentFile, allowedDirs)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "failed to read credential file")
+	})
+
+	t.Run("handles multiple allowed directories", func(t *testing.T) {
+		secondAllowedDir := filepath.Join(tmpDir, "allowed2")
+		require.NoError(t, os.MkdirAll(secondAllowedDir, 0755))
+
+		secondAllowedFile := filepath.Join(secondAllowedDir, "cred2.txt")
+		require.NoError(t, os.WriteFile(secondAllowedFile, []byte("cred2"), 0644))
+
+		multiAllowedDirs := []string{allowedDir, secondAllowedDir}
+
+		content, err := readVaultCredentialFileSecurely(secondAllowedFile, multiAllowedDirs)
+		require.NoError(t, err)
+		require.Equal(t, []byte("cred2"), content)
+	})
+
+	t.Run("rejects empty allowed directories list", func(t *testing.T) {
+		_, err := readVaultCredentialFileSecurely(allowedFile, []string{})
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "credential file must be within allowed directories")
+	})
+
+	t.Run("handles file with special characters in name", func(t *testing.T) {
+		specialFile := filepath.Join(allowedDir, "cred-file_123.json")
+		require.NoError(t, os.WriteFile(specialFile, []byte("special"), 0644))
+
+		content, err := readVaultCredentialFileSecurely(specialFile, allowedDirs)
+		require.NoError(t, err)
+		require.Equal(t, []byte("special"), content)
+	})
+
+	// ========== ADDITIONAL TEST CASES ==========
+
+	t.Run("handles nested subdirectories within allowed directory", func(t *testing.T) {
+		nestedDir := filepath.Join(allowedDir, "subdir1", "subdir2")
+		require.NoError(t, os.MkdirAll(nestedDir, 0755))
+
+		nestedFile := filepath.Join(nestedDir, "nested.txt")
+		require.NoError(t, os.WriteFile(nestedFile, []byte("nested-content"), 0644))
+
+		content, err := readVaultCredentialFileSecurely(nestedFile, allowedDirs)
+		require.NoError(t, err)
+		require.Equal(t, []byte("nested-content"), content)
+	})
+
+	t.Run("handles allowed directory with trailing slash", func(t *testing.T) {
+		allowedDirsWithSlash := []string{allowedDir + string(filepath.Separator)}
+
+		content, err := readVaultCredentialFileSecurely(allowedFile, allowedDirsWithSlash)
+		require.NoError(t, err)
+		require.Equal(t, testContent, content)
+	})
+
+	t.Run("handles path with redundant separators", func(t *testing.T) {
+		// Path like /var/run//secrets///vault/file.txt
+		redundantPath := filepath.Join(allowedDir, "redundant.txt")
+		require.NoError(t, os.WriteFile(redundantPath, []byte("redundant"), 0644))
+
+		// Create a path with double slashes (OS-dependent behavior)
+		messyPath := allowedDir + string(filepath.Separator) + string(filepath.Separator) + "redundant.txt"
+
+		content, err := readVaultCredentialFileSecurely(messyPath, allowedDirs)
+		require.NoError(t, err)
+		require.Equal(t, []byte("redundant"), content)
+	})
+
+	t.Run("handles path with dot (current directory) references", func(t *testing.T) {
+		dotFile := filepath.Join(allowedDir, "dot.txt")
+		require.NoError(t, os.WriteFile(dotFile, []byte("dot-content"), 0644))
+
+		// Path like /var/run/secrets/vault/./file.txt
+		dotPath := filepath.Join(allowedDir, ".", "dot.txt")
+
+		content, err := readVaultCredentialFileSecurely(dotPath, allowedDirs)
+		require.NoError(t, err)
+		require.Equal(t, []byte("dot-content"), content)
+	})
+
+	t.Run("rejects directory instead of file", func(t *testing.T) {
+		subDir := filepath.Join(allowedDir, "subdir")
+		require.NoError(t, os.MkdirAll(subDir, 0755))
+
+		_, err := readVaultCredentialFileSecurely(subDir, allowedDirs)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "failed to read credential file")
+	})
+
+	t.Run("handles empty file", func(t *testing.T) {
+		emptyFile := filepath.Join(allowedDir, "empty.txt")
+		require.NoError(t, os.WriteFile(emptyFile, []byte(""), 0644))
+
+		content, err := readVaultCredentialFileSecurely(emptyFile, allowedDirs)
+		require.NoError(t, err)
+		require.Equal(t, []byte(""), content)
+		require.Len(t, content, 0)
+	})
+
+	t.Run("handles file with only whitespace", func(t *testing.T) {
+		whitespaceFile := filepath.Join(allowedDir, "whitespace.txt")
+		require.NoError(t, os.WriteFile(whitespaceFile, []byte("   \n\t  \n"), 0644))
+
+		content, err := readVaultCredentialFileSecurely(whitespaceFile, allowedDirs)
+		require.NoError(t, err)
+		require.Equal(t, []byte("   \n\t  \n"), content)
+	})
+
+	t.Run("handles permission denied error", func(t *testing.T) {
+		if os.Getuid() == 0 {
+			t.Skip("Skipping permission test when running as root")
+		}
+
+		noPermFile := filepath.Join(allowedDir, "noperm.txt")
+		require.NoError(t, os.WriteFile(noPermFile, []byte("secret"), 0000))
+		defer os.Chmod(noPermFile, 0644) // cleanup
+
+		_, err := readVaultCredentialFileSecurely(noPermFile, allowedDirs)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "failed to read credential file")
+	})
+
+	t.Run("handles larger file (1MB)", func(t *testing.T) {
+		largeFile := filepath.Join(allowedDir, "large.txt")
+		largeContent := make([]byte, 1024*1024) // 1MB
+		for i := range largeContent {
+			largeContent[i] = byte(i % 256)
+		}
+		require.NoError(t, os.WriteFile(largeFile, largeContent, 0644))
+
+		content, err := readVaultCredentialFileSecurely(largeFile, allowedDirs)
+		require.NoError(t, err)
+		require.Equal(t, largeContent, content)
+		require.Len(t, content, 1024*1024)
+	})
+
+	t.Run("rejects path that starts with allowed dir but escapes", func(t *testing.T) {
+		// Attack: /var/run/secrets/vault/../../../etc/passwd
+		escapePath := filepath.Join(allowedDir, "..", "..", "..", "etc", "passwd")
+		_, err := readVaultCredentialFileSecurely(escapePath, allowedDirs)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "credential file must be within allowed directories")
+	})
+
+	t.Run("handles file with unicode characters in name", func(t *testing.T) {
+		unicodeFile := filepath.Join(allowedDir, "файл-🔐.txt")
+		require.NoError(t, os.WriteFile(unicodeFile, []byte("unicode"), 0644))
+
+		content, err := readVaultCredentialFileSecurely(unicodeFile, allowedDirs)
+		require.NoError(t, err)
+		require.Equal(t, []byte("unicode"), content)
+	})
+
+	t.Run("handles file with spaces in name", func(t *testing.T) {
+		spaceFile := filepath.Join(allowedDir, "file with spaces.txt")
+		require.NoError(t, os.WriteFile(spaceFile, []byte("spaces"), 0644))
+
+		content, err := readVaultCredentialFileSecurely(spaceFile, allowedDirs)
+		require.NoError(t, err)
+		require.Equal(t, []byte("spaces"), content)
+	})
+
+	t.Run("handles relative path when current directory is allowed dir", func(t *testing.T) {
+		// Save current directory
+		originalWd, err := os.Getwd()
+		require.NoError(t, err)
+		defer os.Chdir(originalWd)
+
+		// Change to allowed directory
+		require.NoError(t, os.Chdir(allowedDir))
+
+		relFile := "relative.txt"
+		require.NoError(t, os.WriteFile(relFile, []byte("relative"), 0644))
+
+		// This should fail because we expect absolute paths
+		_, err = readVaultCredentialFileSecurely(relFile, allowedDirs)
+		require.Error(t, err)
+	})
+
+	t.Run("first matching allowed directory wins", func(t *testing.T) {
+		// Test that with multiple allowed dirs, first match is used
+		firstDir := filepath.Join(tmpDir, "first")
+		secondDir := filepath.Join(tmpDir, "second")
+
+		require.NoError(t, os.MkdirAll(firstDir, 0755))
+		require.NoError(t, os.MkdirAll(secondDir, 0755))
+
+		testFile := filepath.Join(firstDir, "test.txt")
+		require.NoError(t, os.WriteFile(testFile, []byte("first"), 0644))
+
+		multiDirs := []string{firstDir, secondDir}
+		content, err := readVaultCredentialFileSecurely(testFile, multiDirs)
+		require.NoError(t, err)
+		require.Equal(t, []byte("first"), content)
+	})
+
+	t.Run("nil allowed directories list", func(t *testing.T) {
+		_, err := readVaultCredentialFileSecurely(allowedFile, nil)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "credential file must be within allowed directories")
+	})
+
+	t.Run("handles chain of symlinks within allowed directory", func(t *testing.T) {
+		// Create a chain using relative paths: symlink1 -> symlink2 -> actual_file
+		actualFile := filepath.Join(allowedDir, "actual.txt")
+		symlink2 := filepath.Join(allowedDir, "symlink2.txt")
+		symlink1 := filepath.Join(allowedDir, "symlink1.txt")
+
+		require.NoError(t, os.WriteFile(actualFile, []byte("chained"), 0644))
+		// Use relative symlinks (like Kubernetes secret rotation)
+		require.NoError(t, os.Symlink("actual.txt", symlink2))
+		require.NoError(t, os.Symlink("symlink2.txt", symlink1))
+
+		content, err := readVaultCredentialFileSecurely(symlink1, allowedDirs)
+		require.NoError(t, err)
+		require.Equal(t, []byte("chained"), content)
+	})
+
+	t.Run("rejects chain of symlinks that escape allowed directory", func(t *testing.T) {
+		// Create: symlink1 (in allowed) -> symlink2 (in allowed) -> actual_file (in disallowed)
+		symlink2 := filepath.Join(allowedDir, "symlink2-bad.txt")
+		symlink1 := filepath.Join(allowedDir, "symlink1-bad.txt")
+
+		require.NoError(t, os.Symlink(disallowedFile, symlink2))
+		require.NoError(t, os.Symlink("symlink2-bad.txt", symlink1))
+
+		_, err := readVaultCredentialFileSecurely(symlink1, allowedDirs)
+		require.Error(t, err)
+		// os.OpenRoot() prevents symlink escape at read time
+		require.Contains(t, err.Error(), "failed to read credential file")
+	})
+
+	t.Run("handles broken symlink gracefully", func(t *testing.T) {
+		// Create a symlink to a non-existent file
+		brokenSymlink := filepath.Join(allowedDir, "broken-symlink.txt")
+		nonExistent := filepath.Join(allowedDir, "does-not-exist.txt")
+
+		require.NoError(t, os.Symlink(nonExistent, brokenSymlink))
+
+		// This should fail because the file doesn't exist, not because of path validation
+		_, err := readVaultCredentialFileSecurely(brokenSymlink, allowedDirs)
+		require.Error(t, err)
+		// Should fail at read stage, not validation stage
+		require.Contains(t, err.Error(), "failed to read credential file")
+	})
+
+	t.Run("handles symlink with relative path target within allowed dir", func(t *testing.T) {
+		// Create a symlink using relative path
+		targetFile := filepath.Join(allowedDir, "target-rel.txt")
+		symlinkFile := filepath.Join(allowedDir, "symlink-rel.txt")
+
+		require.NoError(t, os.WriteFile(targetFile, []byte("relative-target"), 0644))
+
+		// Create symlink with relative path (not absolute)
+		originalWd, _ := os.Getwd()
+		require.NoError(t, os.Chdir(allowedDir))
+		require.NoError(t, os.Symlink("target-rel.txt", "symlink-rel.txt"))
+		os.Chdir(originalWd)
+
+		content, err := readVaultCredentialFileSecurely(symlinkFile, allowedDirs)
+		require.NoError(t, err)
+		require.Equal(t, []byte("relative-target"), content)
+	})
+
+	t.Run("rejects symlink using relative path to escape", func(t *testing.T) {
+		// Create a symlink in allowed dir using relative path to escape
+		escapeSymlink := filepath.Join(allowedDir, "escape-symlink.txt")
+
+		// Symlink to ../disallowed/credential.txt - os.OpenRoot() should block this
+		require.NoError(t, os.Symlink("../disallowed/credential.txt", escapeSymlink))
+
+		_, err := readVaultCredentialFileSecurely(escapeSymlink, allowedDirs)
+		require.Error(t, err)
+		// os.OpenRoot() blocks directory traversal via symlinks at read time
+		require.Contains(t, err.Error(), "failed to read credential file")
+	})
+
+	t.Run("handles symlink to file in subdirectory of allowed dir", func(t *testing.T) {
+		subDir := filepath.Join(allowedDir, "subdir")
+		require.NoError(t, os.MkdirAll(subDir, 0755))
+
+		targetFile := filepath.Join(subDir, "target-in-sub.txt")
+		symlinkFile := filepath.Join(allowedDir, "symlink-to-sub.txt")
+
+		require.NoError(t, os.WriteFile(targetFile, []byte("in-subdir"), 0644))
+		// Use relative symlink path
+		require.NoError(t, os.Symlink("subdir/target-in-sub.txt", symlinkFile))
+
+		content, err := readVaultCredentialFileSecurely(symlinkFile, allowedDirs)
+		require.NoError(t, err)
+		require.Equal(t, []byte("in-subdir"), content)
+	})
+
+	t.Run("os.OpenRoot blocks symlinks that escape allowed directory", func(t *testing.T) {
+		// This test validates the NEW security model: os.OpenRoot() provides OS-level
+		// enforcement that prevents symlinks from escaping the rooted filesystem.
+		// The symlink itself is validated to be in the allowed directory, but when
+		// os.OpenRoot() attempts to follow it to a disallowed location, it fails.
+		symlinkInAllowed := filepath.Join(allowedDir, "looks-safe.txt")
+
+		require.NoError(t, os.Symlink(disallowedFile, symlinkInAllowed))
+
+		// The symlink IS in the allowed directory (passes initial validation),
+		// but os.OpenRoot() prevents it from being followed to the disallowed location
+		_, err := readVaultCredentialFileSecurely(symlinkInAllowed, allowedDirs)
+		require.Error(t, err)
+		// Error occurs at read time when os.OpenRoot() blocks the escape
+		require.Contains(t, err.Error(), "failed to read credential file")
+	})
 }

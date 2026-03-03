@@ -209,6 +209,44 @@ The page provides reference information for general parameters in a Consul agent
 
   - `max_header_bytes` This setting controls the maximum number of bytes the consul http server will read parsing the request header's keys and values, including the request line. It does not limit the size of the request body. If zero, or negative, http.DefaultMaxHeaderBytes is used, which equates to 1 Megabyte.
 
+  - `read_timeout` The maximum duration for reading the entire request, including the body. This timeout prevents slow request body attacks. A zero or negative value disables the timeout. Default: `30s`. Minimum: `1s`. Added in Consul 1.22.4.
+
+  - `read_header_timeout` The amount of time allowed to read request headers. The connection's read deadline is reset after reading the headers. This timeout prevents Slowloris attacks on header parsing. Default: `10s`. Minimum: `1s`. Added in Consul 1.22.4.
+
+  - `write_timeout` The maximum duration before timing out writes of the response. This timeout prevents slow response drain attacks. A zero or negative value disables the timeout. Default: `30s`. Minimum: `1s`. Added in Consul 1.22.4.
+
+  - `idle_timeout` The maximum amount of time to wait for the next request when keep-alives are enabled. This timeout prevents connection exhaustion attacks. Default: `120s`. Minimum: `10s`. Added in Consul 1.22.4.
+
+    <Note>
+    
+    If you have health checks or other operations that take longer than the default timeouts, you should increase these values accordingly. For example, if you have health checks that can take up to 60 seconds, set `read_timeout` and `write_timeout` to at least `60s` or higher.
+    
+    </Note>
+
+    <CodeTabs heading="Example: Configuring HTTP timeouts">
+
+    ```hcl
+    http_config {
+      read_timeout = "60s"
+      read_header_timeout = "20s"
+      write_timeout = "60s"
+      idle_timeout = "300s"
+    }
+    ```
+
+    ```json
+    {
+      "http_config": {
+        "read_timeout": "60s",
+        "read_header_timeout": "20s",
+        "write_timeout": "60s",
+        "idle_timeout": "300s"
+      }
+    }
+    ```
+
+    </CodeTabs>
+
 - `leave_on_terminate` If enabled, when the agent receives a TERM signal, it will send a `Leave` message to the rest of the cluster and gracefully leave. The default behavior for this feature varies based on whether or not the agent is running as a client or a server (prior to Consul 0.7 the default value was unconditionally set to `false`). On agents in client-mode, this defaults to `true` and for agents in server-mode, this defaults to `false`.
 
 - `license_path` <EnterpriseAlert inline /> This specifies the path to a file that contains the Consul Enterprise license. Alternatively the license may also be specified in either the `CONSUL_LICENSE` or `CONSUL_LICENSE_PATH` environment variables. Refer to  the [licensing documentation](/consul/docs/enterprise/license) for more information about Consul Enterprise license management. Added in versions 1.10.0, 1.9.7 and 1.8.13. Prior to version 1.10.0 the value may be set for all agents to facilitate forwards compatibility with 1.10 but will only actually be used by client agents.

@@ -1,0 +1,3 @@
+```release-note:security
+agent: Increased default HTTP server timeouts to prevent breaking long-polling blocking queries. `read_timeout` and `write_timeout` are now set to 15 minutes (up from 30 seconds), while `read_header_timeout` (10s) and `idle_timeout` (120s) still provide protection against Slowloris attacks. All timeouts remain configurable via the `http_config` block.
+```
