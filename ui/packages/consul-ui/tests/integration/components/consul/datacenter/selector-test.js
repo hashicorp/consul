@@ -20,7 +20,7 @@ module('Integration | Component | consul datacenter selector', function (hooks) 
     this.set('dcs', dcs);
     this.set('dc', dcs[0]);
 
-      await render(hbs`
+    await render(hbs`
         <Hds::AppSideNav::List as |SNL|>
           <Consul::Datacenter::Selector @list={{SNL}} @dcs={{this.dcs}} @dc={{this.dc}} />
         </Hds::AppSideNav::List>
@@ -47,7 +47,7 @@ module('Integration | Component | consul datacenter selector', function (hooks) 
     this.set('dcs', dcs);
     this.set('dc', dcs[0]);
 
-      await render(hbs`
+    await render(hbs`
         <Hds::AppSideNav::List as |SNL|>
           <Consul::Datacenter::Selector @list={{SNL}} @dcs={{this.dcs}} @dc={{this.dc}} />
         </Hds::AppSideNav::List>
