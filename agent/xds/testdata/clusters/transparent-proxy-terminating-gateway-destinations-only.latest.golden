@@ -164,38 +164,52 @@
         "typedConfig": {
           "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
           "commonTlsContext": {
-            "tlsParams": {},
-            "validationContext": {
-              "matchTypedSubjectAltNames": [
-                {
-                  "matcher": {
-                    "exact": "api.test.com"
+            "combinedValidationContext": {
+              "defaultValidationContext": {
+                "matchTypedSubjectAltNames": [
+                  {
+                    "matcher": {
+                      "exact": "api.test.com"
+                    },
+                    "sanType": "URI"
                   },
-                  "sanType": "URI"
-                },
-                {
-                  "matcher": {
-                    "exact": "api.test.com"
+                  {
+                    "matcher": {
+                      "exact": "api.test.com"
+                    },
+                    "sanType": "DNS"
                   },
-                  "sanType": "DNS"
-                },
-                {
-                  "matcher": {
-                    "exact": "api.test.com"
+                  {
+                    "matcher": {
+                      "exact": "api.test.com"
+                    },
+                    "sanType": "EMAIL"
                   },
-                  "sanType": "EMAIL"
-                },
-                {
-                  "matcher": {
-                    "exact": "api.test.com"
-                  },
-                  "sanType": "IP_ADDRESS"
+                  {
+                    "matcher": {
+                      "exact": "api.test.com"
+                    },
+                    "sanType": "IP_ADDRESS"
+                  }
+                ]
+              },
+              "validationContextSdsSecretConfig": {
+                "name": "external-hostname-with-SNI-ca",
+                "sdsConfig": {
+                  "ads": {},
+                  "resourceApiVersion": "V3"
                 }
-              ],
-              "trustedCa": {
-                "filename": "cert.pem"
               }
-            }
+            },
+            "tlsCertificateSdsSecretConfigs": [
+              {
+                "name": "external-hostname-with-SNI-cert",
+                "sdsConfig": {
+                  "ads": {},
+                  "resourceApiVersion": "V3"
+                }
+              }
+            ]
           },
           "sni": "api.test.com"
         }
