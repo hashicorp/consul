@@ -34,20 +34,20 @@
         "typedConfig": {
           "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
           "commonTlsContext": {
-            "tlsCertificates": [
+            "tlsCertificateSdsSecretConfigs": [
               {
-                "certificateChain": {
-                  "filename": "api.cert.pem"
-                },
-                "privateKey": {
-                  "filename": "api.key.pem"
+                "name": "api-cert",
+                "sdsConfig": {
+                  "ads": {},
+                  "resourceApiVersion": "V3"
                 }
               }
             ],
-            "tlsParams": {},
-            "validationContext": {
-              "trustedCa": {
-                "filename": "ca.cert.pem"
+            "validationContextSdsSecretConfig": {
+              "name": "api-ca",
+              "sdsConfig": {
+                "ads": {},
+                "resourceApiVersion": "V3"
               }
             }
           }
@@ -162,10 +162,20 @@
         "typedConfig": {
           "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
           "commonTlsContext": {
-            "tlsParams": {},
-            "validationContext": {
-              "trustedCa": {
-                "filename": "ca.cert.pem"
+            "tlsCertificateSdsSecretConfigs": [
+              {
+                "name": "web-cert",
+                "sdsConfig": {
+                  "ads": {},
+                  "resourceApiVersion": "V3"
+                }
+              }
+            ],
+            "validationContextSdsSecretConfig": {
+              "name": "web-ca",
+              "sdsConfig": {
+                "ads": {},
+                "resourceApiVersion": "V3"
               }
             }
           }
@@ -190,10 +200,20 @@
         "typedConfig": {
           "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
           "commonTlsContext": {
-            "tlsParams": {},
-            "validationContext": {
-              "trustedCa": {
-                "filename": "ca.cert.pem"
+            "tlsCertificateSdsSecretConfigs": [
+              {
+                "name": "web-cert",
+                "sdsConfig": {
+                  "ads": {},
+                  "resourceApiVersion": "V3"
+                }
+              }
+            ],
+            "validationContextSdsSecretConfig": {
+              "name": "web-ca",
+              "sdsConfig": {
+                "ads": {},
+                "resourceApiVersion": "V3"
               }
             }
           }
@@ -218,10 +238,20 @@
         "typedConfig": {
           "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
           "commonTlsContext": {
-            "tlsParams": {},
-            "validationContext": {
-              "trustedCa": {
-                "filename": "ca.cert.pem"
+            "tlsCertificateSdsSecretConfigs": [
+              {
+                "name": "web-cert",
+                "sdsConfig": {
+                  "ads": {},
+                  "resourceApiVersion": "V3"
+                }
+              }
+            ],
+            "validationContextSdsSecretConfig": {
+              "name": "web-ca",
+              "sdsConfig": {
+                "ads": {},
+                "resourceApiVersion": "V3"
               }
             }
           }
