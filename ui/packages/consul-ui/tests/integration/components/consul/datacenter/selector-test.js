@@ -20,11 +20,11 @@ module('Integration | Component | consul datacenter selector', function (hooks) 
     this.set('dcs', dcs);
     this.set('dc', dcs[0]);
 
-    await render(hbs`
-      <Hds::SideNav::List as |SNL|>
-        <Consul::Datacenter::Selector @list={{SNL}} @dcs={{this.dcs}} @dc={{this.dc}} />
-      </Hds::SideNav::List>
-    `);
+      await render(hbs`
+        <Hds::AppSideNav::List as |SNL|>
+          <Consul::Datacenter::Selector @list={{SNL}} @dcs={{this.dcs}} @dc={{this.dc}} />
+        </Hds::AppSideNav::List>
+      `);
 
     assert
       .dom('[data-test-datacenter-menu]')
@@ -47,11 +47,11 @@ module('Integration | Component | consul datacenter selector', function (hooks) 
     this.set('dcs', dcs);
     this.set('dc', dcs[0]);
 
-    await render(hbs`
-      <Hds::SideNav::List as |SNL|>
-        <Consul::Datacenter::Selector @list={{SNL}} @dcs={{this.dcs}} @dc={{this.dc}} />
-      </Hds::SideNav::List>
-    `);
+      await render(hbs`
+        <Hds::AppSideNav::List as |SNL|>
+          <Consul::Datacenter::Selector @list={{SNL}} @dcs={{this.dcs}} @dc={{this.dc}} />
+        </Hds::AppSideNav::List>
+      `);
 
     assert
       .dom('[data-test-datacenter-single]')
