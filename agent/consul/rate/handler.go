@@ -261,10 +261,9 @@ func (h *Handler) Allow(op Operation) error {
 				if err := h.handleThrottledLimits(op, throttledLimits, "RPC exceeded config entry rate limit", nil); err != nil {
 					return err
 				}
-			} else {
-				return nil
 			}
 		}
+		return nil
 	}
 
 	allow, throttledLimits := h.allowAllLimits(h.limits(op), h.serversStatusProvider.IsServer(string(metadata.GetIP(op.SourceAddr))))
