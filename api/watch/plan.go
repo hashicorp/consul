@@ -236,12 +236,11 @@ func (p *Plan) shouldStop() bool {
 func (p *Plan) setCancelFunc(cancel context.CancelFunc) {
 	p.stopLock.Lock()
 	defer p.stopLock.Unlock()
+	p.cancelFunc = cancel
 	if p.shouldStop() {
 		// The watch is stopped and execute the new cancel func to stop watchFactory
 		cancel()
-		return
 	}
-	p.cancelFunc = cancel
 }
 
 func (p *Plan) IsStopped() bool {

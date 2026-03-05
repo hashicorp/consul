@@ -4,6 +4,8 @@
 package watch
 
 import (
+	"context"
+	"sync"
 	"testing"
 	"time"
 )
@@ -128,6 +130,63 @@ func TestRun_Stop_Hybrid(t *testing.T) {
 
 	if expect == 1 {
 		t.Fatalf("Bad: %d", expect)
+	}
+}
+
+// TestSetCancelFunc_AlwaysSetsCancelFunc verifies that setCancelFunc always
+// assigns p.cancelFunc even when the plan is already stopped. This prevents a
+// nil pointer panic when the deferred cancelFunc() is called in watch functions.
+// See https://github.com/hashicorp/consul/issues/19020
+func TestSetCancelFunc_AlwaysSetsCancelFunc(t *testing.T) {
+	t.Parallel()
+	plan := mustParse(t, `{"type":"noop"}`)
+
+	// Stop the plan first, then call setCancelFunc
+	plan.Stop()
+
+	called := false
+	cancel := context.CancelFunc(func() { called = true })
+	plan.setCancelFunc(cancel)
+
+	// cancelFunc should be set even though the plan is stopped
+	if plan.cancelFunc == nil {
+		t.Fatalf("expected cancelFunc to be set, got nil")
+	}
+
+	// cancel should have been called immediately since the plan is stopped
+	if !called {
+		t.Fatalf("expected cancel to be called when plan is stopped")
+	}
+}
+
+// TestSetCancelFunc_ConcurrentStopAndSet verifies there is no race condition
+// or nil pointer panic when Stop and setCancelFunc are called concurrently.
+// See https://github.com/hashicorp/consul/issues/19020
+func TestSetCancelFunc_ConcurrentStopAndSet(t *testing.T) {
+	t.Parallel()
+
+	for i := 0; i < 100; i++ {
+		plan := mustParse(t, `{"type":"noop"}`)
+
+		var wg sync.WaitGroup
+		wg.Add(2)
+
+		go func() {
+			defer wg.Done()
+			plan.Stop()
+		}()
+
+		go func() {
+			defer wg.Done()
+			cancel := context.CancelFunc(func() {})
+			plan.setCancelFunc(cancel)
+		}()
+
+		wg.Wait()
+
+		if plan.cancelFunc == nil {
+			t.Fatalf("iteration %d: expected cancelFunc to be set, got nil", i)
+		}
 	}
 }
 
