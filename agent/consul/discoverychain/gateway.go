@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -24,6 +25,7 @@ type GatewayChainSynthesizer struct {
 	hostname          string
 	matchesByHostname map[string][]hostnameMatch
 	tcpRoutes         []structs.TCPRouteConfigEntry
+	serviceRouters    map[structs.ServiceName][]*structs.ServiceRoute
 }
 
 type hostnameMatch struct {
@@ -113,7 +115,9 @@ func (l *GatewayChainSynthesizer) Synthesize(chains ...*structs.CompiledDiscover
 		return nil, nil, fmt.Errorf("must provide at least one compiled discovery chain")
 	}
 
+	l.serviceRouters = serviceRouterRulesFromChains(chains)
 	services, set := l.synthesizeEntries()
+	resolverEntries := resolverEntriesFromChains(chains)
 
 	if len(set) == 0 {
 		// we can't actually compile a discovery chain, i.e. we're using a TCPRoute-based listener, instead, just return the ingresses
@@ -125,6 +129,9 @@ func (l *GatewayChainSynthesizer) Synthesize(chains ...*structs.CompiledDiscover
 	for i, service := range services {
 
 		entries := set[i]
+		if len(resolverEntries) > 0 {
+			entries.AddResolvers(resolverEntries...)
+		}
 
 		compiled, err := Compile(CompileRequest{
 			ServiceName:           service.Name,
@@ -190,6 +197,59 @@ func (l *GatewayChainSynthesizer) Synthesize(chains ...*structs.CompiledDiscover
 	}
 
 	return services, compiledChains, nil
+}
+
+// resolverEntriesFromChains builds minimal service-resolver entries that include
+// subset definitions from the real compiled chains. This allows gateway
+// synthesis to compile routes that reference service subsets.
+func resolverEntriesFromChains(chains []*structs.CompiledDiscoveryChain) []*structs.ServiceResolverConfigEntry {
+	out := []*structs.ServiceResolverConfigEntry{}
+	seen := map[structs.ServiceID]*structs.ServiceResolverConfigEntry{}
+
+	for _, chain := range chains {
+		if chain == nil {
+			continue
+		}
+		entMeta := acl.NewEnterpriseMetaWithPartition(chain.Partition, chain.Namespace)
+		sid := structs.NewServiceID(chain.ServiceName, &entMeta)
+
+		entry, ok := seen[sid]
+		if !ok {
+			entry = &structs.ServiceResolverConfigEntry{
+				Kind:           structs.ServiceResolver,
+				Name:           chain.ServiceName,
+				EnterpriseMeta: sid.EnterpriseMeta,
+				Subsets:        make(map[string]structs.ServiceResolverSubset),
+			}
+			seen[sid] = entry
+		}
+
+		for _, target := range chain.Targets {
+			if target == nil {
+				continue
+			}
+			if target.Service != chain.ServiceName {
+				continue
+			}
+			if target.Namespace != chain.Namespace || target.Partition != chain.Partition {
+				continue
+			}
+			if target.ServiceSubset == "" {
+				continue
+			}
+			if _, ok := entry.Subsets[target.ServiceSubset]; !ok {
+				entry.Subsets[target.ServiceSubset] = target.Subset
+			}
+		}
+	}
+
+	for _, entry := range seen {
+		if len(entry.Subsets) == 0 {
+			continue
+		}
+		out = append(out, entry)
+	}
+	return out
 }
 
 // consolidateHTTPRoutes combines all rules into the shortest possible list of routes
@@ -290,7 +350,7 @@ func (l *GatewayChainSynthesizer) synthesizeEntries() ([]structs.IngressService,
 	entries := []*configentry.DiscoveryChainSet{}
 
 	for _, route := range l.consolidateHTTPRoutes() {
-		ingress, router, splitters, defaults := synthesizeHTTPRouteDiscoveryChain(route)
+		ingress, router, splitters, defaults := synthesizeHTTPRouteDiscoveryChain(route, l.serviceRouters)
 
 		services = append(services, ingress)
 
@@ -306,4 +366,40 @@ func (l *GatewayChainSynthesizer) synthesizeEntries() ([]structs.IngressService,
 	}
 
 	return services, entries
+}
+
+func serviceRouterRulesFromChains(chains []*structs.CompiledDiscoveryChain) map[structs.ServiceName][]*structs.ServiceRoute {
+	out := make(map[structs.ServiceName][]*structs.ServiceRoute)
+	for _, chain := range chains {
+		if chain == nil {
+			continue
+		}
+		startNode := chain.Nodes[chain.StartNode]
+		if startNode == nil || !startNode.IsRouter() {
+			continue
+		}
+		routes := make([]*structs.ServiceRoute, 0, len(startNode.Routes))
+		for _, route := range startNode.Routes {
+			if route == nil || route.Definition == nil {
+				continue
+			}
+			def := route.Definition.DeepCopy()
+			// If the route destination doesn't include a subset, but the next
+			// resolver target does, propagate it. This ensures default-subset
+			// behavior is preserved when composing gateway routes.
+			if def.Destination != nil && def.Destination.ServiceSubset == "" {
+				if node := chain.Nodes[route.NextNode]; node != nil && node.IsResolver() && node.Resolver != nil {
+					if target := chain.Targets[node.Resolver.Target]; target != nil && target.ServiceSubset != "" {
+						def.Destination.ServiceSubset = target.ServiceSubset
+					}
+				}
+			}
+			routes = append(routes, def)
+		}
+		if len(routes) == 0 {
+			continue
+		}
+		out[chain.CompoundServiceName()] = routes
+	}
+	return out
 }
