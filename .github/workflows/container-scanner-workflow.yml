@@ -1,0 +1,27 @@
+name: PR Container Security Scan
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'Dockerfile*'
+      - 'build-support/docker/**'
+      - 'agent/**'
+      - 'api/**'
+      - '.github/workflows/pr-container-scan.yml'
+
+permissions:
+  contents: read
+  pull-requests: write
+  security-events: write
+
+jobs:
+  security-scan:
+    name: Scan Container Images
+    uses: hashicorp/crt-workflows-common/.github/workflows/reusable-crt-security-scan-containers.yml@main
+    with:
+      sha: ${{ github.event.pull_request.head.sha }}
+      repository: ${{ github.event.repository.name }}
+      version: "pr-${{ github.event.pull_request.number }}"
+      config: "{}"
+      pr_mode: true
