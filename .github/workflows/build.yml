@@ -10,6 +10,7 @@ on:
       # Push events on the main branch
       - main
       - release/**
+      - sujay/test/**
 
 env:
   PKG_NAME: consul
