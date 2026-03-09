@@ -79,7 +79,7 @@ func (c *DiscoveryChain) Get(args *structs.DiscoveryChainRequest, reply *structs
 			// Generate a hash of the config entry content driving this
 			// response. Use it to determine if the response is identical to a
 			// prior wakeup.
-			newHash := computeDiscoveryChainHash(entries, req, chain)
+			newHash := computeDiscoveryChainHash(entries, chain)
 
 			if ranOnce && priorHash == newHash {
 				priorHash = newHash
@@ -105,7 +105,6 @@ func (c *DiscoveryChain) Get(args *structs.DiscoveryChainRequest, reply *structs
 
 func computeDiscoveryChainHash(
 	entries *configentry.DiscoveryChainSet,
-	req discoverychain.CompileRequest,
 	chain *structs.CompiledDiscoveryChain,
 ) uint64 {
 	h := fnv.New64a()
@@ -128,18 +127,18 @@ func computeDiscoveryChainHash(
 		writeUint64(entries.Hash())
 	}
 
-	// 2. Hash compile request parameters that affect the output
-	writeString(req.ServiceName)
-	writeString(req.EvaluateInNamespace)
-	writeString(req.EvaluateInPartition)
-	writeString(req.EvaluateInDatacenter)
-	writeString(req.EvaluateInTrustDomain)
-	writeString(req.OverrideProtocol)
-	writeUint64(uint64(req.OverrideConnectTimeout))
-	writeString(string(req.OverrideMeshGateway.Mode))
-
-	// 3. Hash virtual IPs which also affect the result
+	// 2. Add chain parameters NOT derived from entries
 	if chain != nil {
+		// Evaluation context
+		writeString(chain.ServiceName)
+		writeString(chain.Namespace)
+		writeString(chain.Partition)
+		writeString(chain.Datacenter)
+
+		// Override customizations (already hashed during compile)
+		writeString(chain.CustomizationHash)
+
+		// VIPs (from VIP table, not config entries)
 		for _, vip := range chain.AutoVirtualIPs {
 			writeString(vip)
 		}

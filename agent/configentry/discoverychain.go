@@ -373,6 +373,7 @@ func (e *DiscoveryChainSet) Hash() uint64 {
 				for _, name := range peerNames {
 					if peer := peers[name]; peer != nil {
 						v, _ := peer.GetHash()
+						writeString(name)
 						writeUint64(v)
 					}
 				}
