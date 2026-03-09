@@ -27,7 +27,7 @@ export default class ApplicationController extends Controller {
   gotoDefaultDcServices(dcName) {
     // Preserve prior semantics (was route.replaceWith with a hash)
     // If your router expects a positional segment instead, change to: this.router.replaceWith('dc.services.index', dcName);
-    this.router.replaceWith('dc.services.index', { dc: dcName });
+    this.router.replaceWith('dc.services.index', dcName);
   }
 
   @action
