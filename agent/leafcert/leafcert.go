@@ -588,7 +588,6 @@ func (m *Manager) emitCertMetrics() {
 			}
 
 			// Re-emit expiry metric
-			timeUntilExpiry := time.Until(cert.ValidBefore)
 			labels := []metrics.Label{
 				{Name: "partition", Value: cert.PartitionOrDefault()},
 				{Name: "namespace", Value: cert.NamespaceOrDefault()},
@@ -596,11 +595,14 @@ func (m *Manager) emitCertMetrics() {
 				{Name: "kind", Value: string(cert.Kind)},
 			}
 
-			metrics.SetGaugeWithLabels(
-				[]string{"leaf-certs", "cert_expiry"},
-				float32(timeUntilExpiry.Seconds()),
-				labels,
-			)
+			if !cert.ValidBefore.IsZero() {
+				timeUntilExpiry := time.Until(cert.ValidBefore)
+				metrics.SetGaugeWithLabels(
+					[]string{"leaf-certs", "cert_expiry"},
+					float32(timeUntilExpiry.Seconds()),
+					labels,
+				)
+			}
 
 			// Re-emit failure metric if applicable
 			if failureReason != "" || rateLimitErrs > 0 {
