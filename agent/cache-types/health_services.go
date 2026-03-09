@@ -21,7 +21,7 @@ type HealthServices struct {
 	RPC RPC
 }
 
-func (c *HealthServices) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
+func (c *HealthServices) Fetch(ctx context.Context, opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
 	var result cache.FetchResult
 
 	// The request should be a DCSpecificRequest.
@@ -47,7 +47,7 @@ func (c *HealthServices) Fetch(opts cache.FetchOptions, req cache.Request) (cach
 
 	// Fetch
 	var reply structs.IndexedCheckServiceNodes
-	if err := c.RPC.RPC(context.Background(), "Health.ServiceNodes", reqReal, &reply); err != nil {
+	if err := c.RPC.RPC(ctx, "Health.ServiceNodes", reqReal, &reply); err != nil {
 		return result, err
 	}
 

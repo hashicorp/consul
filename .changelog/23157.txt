@@ -1,0 +1,3 @@
+```release-note:improvement
+api: Cancel context check for watches cache fetch to stop execution when manager deregisters the watch.
+```

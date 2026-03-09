@@ -23,7 +23,7 @@ type ConfigEntryList struct {
 	RPC RPC
 }
 
-func (c *ConfigEntryList) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
+func (c *ConfigEntryList) Fetch(ctx context.Context, opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
 	var result cache.FetchResult
 
 	// The request should be a ConfigEntryQuery.
@@ -49,7 +49,7 @@ func (c *ConfigEntryList) Fetch(opts cache.FetchOptions, req cache.Request) (cac
 
 	// Fetch
 	var reply structs.IndexedConfigEntries
-	if err := c.RPC.RPC(context.Background(), "ConfigEntry.List", reqReal, &reply); err != nil {
+	if err := c.RPC.RPC(ctx, "ConfigEntry.List", reqReal, &reply); err != nil {
 		return result, err
 	}
 
@@ -64,7 +64,7 @@ type ConfigEntry struct {
 	RPC RPC
 }
 
-func (c *ConfigEntry) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
+func (c *ConfigEntry) Fetch(ctx context.Context, opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
 	var result cache.FetchResult
 
 	// The request should be a ConfigEntryQuery.
@@ -90,7 +90,7 @@ func (c *ConfigEntry) Fetch(opts cache.FetchOptions, req cache.Request) (cache.F
 
 	// Fetch
 	var reply structs.ConfigEntryResponse
-	if err := c.RPC.RPC(context.Background(), "ConfigEntry.Get", reqReal, &reply); err != nil {
+	if err := c.RPC.RPC(ctx, "ConfigEntry.Get", reqReal, &reply); err != nil {
 		return result, err
 	}
 

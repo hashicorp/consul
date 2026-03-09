@@ -67,14 +67,15 @@ func TestTrustBundles(t *testing.T) {
 		Return(resp, nil)
 
 	// Fetch and assert against the result.
-	result, err := typ.Fetch(cache.FetchOptions{
-		MinIndex: 28,
-		Timeout:  time.Duration(1100),
-	}, &TrustBundleListRequest{
-		Request: &pbpeering.TrustBundleListByServiceRequest{
-			ServiceName: "foo",
-		},
-	})
+	result, err := typ.Fetch(context.Background(),
+		cache.FetchOptions{
+			MinIndex: 28,
+			Timeout:  time.Duration(1100),
+		}, &TrustBundleListRequest{
+			Request: &pbpeering.TrustBundleListByServiceRequest{
+				ServiceName: "foo",
+			},
+		})
 	require.NoError(t, err)
 	require.Equal(t, cache.FetchResult{
 		Value: resp,
@@ -94,11 +95,13 @@ func TestTrustBundles_PeeringDisabled(t *testing.T) {
 		Return(resp, grpcstatus.Error(codes.FailedPrecondition, "peering must be enabled to use this endpoint"))
 
 	// Fetch and assert against the result.
-	result, err := typ.Fetch(cache.FetchOptions{}, &TrustBundleListRequest{
-		Request: &pbpeering.TrustBundleListByServiceRequest{
-			ServiceName: "foo",
-		},
-	})
+	result, err := typ.Fetch(
+		context.Background(),
+		cache.FetchOptions{}, &TrustBundleListRequest{
+			Request: &pbpeering.TrustBundleListByServiceRequest{
+				ServiceName: "foo",
+			},
+		})
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.EqualValues(t, 1, result.Index)
@@ -110,8 +113,9 @@ func TestTrustBundles_badReqType(t *testing.T) {
 	typ := &TrustBundles{Client: client}
 
 	// Fetch
-	_, err := typ.Fetch(cache.FetchOptions{}, cache.TestRequest(
-		t, cache.RequestInfo{Key: "foo", MinIndex: 64}))
+	_, err := typ.Fetch(context.Background(),
+		cache.FetchOptions{}, cache.TestRequest(
+			t, cache.RequestInfo{Key: "foo", MinIndex: 64}))
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "wrong type")
 }

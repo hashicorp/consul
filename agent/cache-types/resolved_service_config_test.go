@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"context"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
@@ -50,7 +51,7 @@ func TestResolvedServiceConfig(t *testing.T) {
 		})
 
 	// Fetch
-	resultA, err := typ.Fetch(cache.FetchOptions{
+	resultA, err := typ.Fetch(context.Background(), cache.FetchOptions{
 		MinIndex: 24,
 		Timeout:  1 * time.Second,
 	}, &structs.ServiceConfigRequest{
@@ -70,7 +71,7 @@ func TestResolvedServiceConfig_badReqType(t *testing.T) {
 	typ := &ResolvedServiceConfig{RPC: rpc}
 
 	// Fetch
-	_, err := typ.Fetch(cache.FetchOptions{}, cache.TestRequest(
+	_, err := typ.Fetch(context.Background(), cache.FetchOptions{}, cache.TestRequest(
 		t, cache.RequestInfo{Key: "foo", MinIndex: 64}))
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "wrong type")

@@ -446,7 +446,58 @@ func (s *ResourceGenerator) makeInlineOverrideFilterChains(cfgSnap *proxycfg.Con
 		return nil
 	}
 
-	multipleCerts := len(certs) > 1
+	// Separate file-system and inline certificates
+	var fileSystemCerts []*structs.FileSystemCertificateConfigEntry
+	var inlineCerts []*structs.InlineCertificateConfigEntry
+
+	for _, cert := range certs {
+		switch tce := cert.(type) {
+		case *structs.FileSystemCertificateConfigEntry:
+			fileSystemCerts = append(fileSystemCerts, tce)
+		case *structs.InlineCertificateConfigEntry:
+			inlineCerts = append(inlineCerts, tce)
+		}
+	}
+
+	// Handle file-system certificates: consolidate into ONE filter chain with multiple SDS configs
+	// This prevents duplicate empty filter chain matchers that Envoy rejects
+	if len(fileSystemCerts) > 0 {
+		var sdsConfigs []*envoy_tls_v3.SdsSecretConfig
+		for _, cert := range fileSystemCerts {
+			sdsConfigs = append(sdsConfigs, &envoy_tls_v3.SdsSecretConfig{
+				// Reference the secret returned in xds/secrets.go by name
+				Name: cert.GetName(),
+				SdsConfig: &envoy_core_v3.ConfigSource{
+					// Use ADS (Aggregated Discovery Service) to fetch secrets from Consul
+					ConfigSourceSpecifier: &envoy_core_v3.ConfigSource_Ads{
+						Ads: &envoy_core_v3.AggregatedConfigSource{},
+					},
+					ResourceApiVersion: envoy_core_v3.ApiVersion_V3,
+				},
+			})
+		}
+
+		tlsContext := &envoy_tls_v3.CommonTlsContext{
+			TlsParams:                      makeTLSParametersFromGatewayTLSConfig(tlsCfg),
+			TlsCertificateSdsSecretConfigs: sdsConfigs,
+		}
+
+		// Create a single filter chain for all file-system certificates
+		// Envoy will automatically select the correct certificate based on SNI
+		if err := constructChain("file-system-certificates", nil, tlsContext); err != nil {
+			return nil, err
+		}
+
+		// If we only have file-system certs, return early
+		if len(inlineCerts) == 0 {
+			return chains, nil
+		}
+	}
+
+	// Handle inline certificates with the existing logic
+	// When we have file-system certs, we need to treat single inline cert as multiple
+	// to avoid duplicate catch-all filter chains
+	multipleCerts := len(inlineCerts) > 1 || len(fileSystemCerts) > 0
 
 	allCertHosts := map[string]struct{}{}
 	overlappingHosts := map[string]struct{}{}
@@ -454,73 +505,53 @@ func (s *ResourceGenerator) makeInlineOverrideFilterChains(cfgSnap *proxycfg.Con
 	if multipleCerts {
 		// we only need to prune out overlapping hosts if we have more than
 		// one certificate
-		for _, cert := range certs {
-			switch tce := cert.(type) {
-			case *structs.InlineCertificateConfigEntry:
-				hosts, err := tce.Hosts()
-				if err != nil {
-					return nil, fmt.Errorf("unable to parse hosts from x509 certificate: %v", hosts)
+		for _, cert := range inlineCerts {
+			hosts, err := cert.Hosts()
+			if err != nil {
+				return nil, fmt.Errorf("unable to parse hosts from x509 certificate: %v", hosts)
+			}
+			for _, host := range hosts {
+				if _, ok := allCertHosts[host]; ok {
+					overlappingHosts[host] = struct{}{}
 				}
-				for _, host := range hosts {
-					if _, ok := allCertHosts[host]; ok {
-						overlappingHosts[host] = struct{}{}
-					}
-					allCertHosts[host] = struct{}{}
-				}
-			default:
-				// do nothing for FileSystemCertificates because we don't actually have the certificate available
+				allCertHosts[host] = struct{}{}
 			}
 		}
 	}
 
-	constructTLSContext := func(certConfig structs.ConfigEntry) (*envoy_tls_v3.CommonTlsContext, error) {
-		switch tce := certConfig.(type) {
-		case *structs.InlineCertificateConfigEntry:
-			return makeInlineTLSContextFromGatewayTLSConfig(tlsCfg, tce), nil
-		case *structs.FileSystemCertificateConfigEntry:
-			return makeFileSystemTLSContextFromGatewayTLSConfig(tlsCfg, tce), nil
-		default:
-			return nil, fmt.Errorf("unsupported config entry kind %s", tce.GetKind())
-		}
-	}
-
-	for _, cert := range certs {
+	for _, cert := range inlineCerts {
 		var hosts []string
 
 		// if we only have one cert, we just use it for all ingress
 		if multipleCerts {
-			switch tce := cert.(type) {
-			case *structs.InlineCertificateConfigEntry:
-				certHosts, err := tce.Hosts()
-				if err != nil {
-					return nil, fmt.Errorf("unable to parse hosts from x509 certificate: %v", hosts)
+			certHosts, err := cert.Hosts()
+			if err != nil {
+				return nil, fmt.Errorf("unable to parse hosts from x509 certificate: %v", hosts)
+			}
+			// filter out any overlapping hosts so we don't have collisions in our filter chains
+			for _, host := range certHosts {
+				if _, ok := overlappingHosts[host]; !ok {
+					hosts = append(hosts, host)
 				}
-				// filter out any overlapping hosts so we don't have collisions in our filter chains
-				for _, host := range certHosts {
-					if _, ok := overlappingHosts[host]; !ok {
-						hosts = append(hosts, host)
-					}
-				}
+			}
 
-				if len(hosts) == 0 {
-					// all of our hosts are overlapping, so we just skip this filter and it'll be
-					// handled by the default filter chain
-					continue
-				}
+			if len(hosts) == 0 {
+				// all of our hosts are overlapping, so we just skip this filter and it'll be
+				// handled by the default filter chain
+				continue
 			}
 		}
 
-		tlsContext, err := constructTLSContext(cert)
-		if err != nil {
-			continue
-		}
+		tlsContext := makeInlineTLSContextFromGatewayTLSConfig(tlsCfg, cert)
 
 		if err := constructChain(cert.GetName(), hosts, tlsContext); err != nil {
 			return nil, err
 		}
 	}
 
-	if len(certs) > 1 {
+	// Only add default chain if we have multiple inline certs AND no file-system certs
+	// If we have file-system certs, they already provide the catch-all behavior
+	if len(inlineCerts) > 1 && len(fileSystemCerts) == 0 {
 		// if we have more than one cert, add a default handler that uses the leaf cert from connect
 		if err := constructChain("default", nil, makeCommonTLSContext(cfgSnap.Leaf(), cfgSnap.RootPEMs(), makeTLSParametersFromGatewayTLSConfig(tlsCfg))); err != nil {
 			return nil, err

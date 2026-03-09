@@ -20,7 +20,7 @@ type InternalServiceDump struct {
 	RPC RPC
 }
 
-func (c *InternalServiceDump) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
+func (c *InternalServiceDump) Fetch(ctx context.Context, opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
 	var result cache.FetchResult
 
 	// The request should be a ServiceDumpRequest.
@@ -46,7 +46,7 @@ func (c *InternalServiceDump) Fetch(opts cache.FetchOptions, req cache.Request) 
 
 	// Fetch
 	var reply structs.IndexedNodesWithGateways
-	if err := c.RPC.RPC(context.Background(), "Internal.ServiceDump", reqReal, &reply); err != nil {
+	if err := c.RPC.RPC(ctx, "Internal.ServiceDump", reqReal, &reply); err != nil {
 		return result, err
 	}
 

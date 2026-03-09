@@ -1,0 +1,3 @@
+```release-note:improvement
+ui: Upgrades Ember version to v5.12
+```

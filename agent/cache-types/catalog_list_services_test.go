@@ -18,6 +18,7 @@ import (
 func TestCatalogListServices(t *testing.T) {
 	rpc := TestRPC(t)
 	typ := &CatalogListServices{RPC: rpc}
+	ctx := context.Background()
 
 	// Expect the proper RPC call. This also sets the expected value
 	// since that is return-by-pointer in the arguments.
@@ -39,7 +40,7 @@ func TestCatalogListServices(t *testing.T) {
 		})
 
 	// Fetch
-	resultA, err := typ.Fetch(cache.FetchOptions{
+	resultA, err := typ.Fetch(ctx, cache.FetchOptions{
 		MinIndex: 24,
 		Timeout:  1 * time.Second,
 	}, &structs.DCSpecificRequest{
@@ -59,7 +60,7 @@ func TestCatalogListServices_badReqType(t *testing.T) {
 	typ := &CatalogServices{RPC: rpc}
 
 	// Fetch
-	_, err := typ.Fetch(cache.FetchOptions{}, cache.TestRequest(
+	_, err := typ.Fetch(context.Background(), cache.FetchOptions{}, cache.TestRequest(
 		t, cache.RequestInfo{Key: "foo", MinIndex: 64}))
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "wrong type")

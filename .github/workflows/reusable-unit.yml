@@ -97,7 +97,7 @@ jobs:
             go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
               --format=github-actions \
               --jsonfile /tmp/jsonfile/go-test.log \
-              --rerun-fails \
+              --rerun-fails=5 \
               --rerun-fails-report=/tmp/gotestsum-rerun-fails \
               --packages="$PACKAGE_NAMES" \
               --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml -- \

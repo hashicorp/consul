@@ -43,6 +43,8 @@ module.exports = function (environment, $ = process.env) {
         // Prevent Ember Data from overriding Date.parse.
         Date: false,
       },
+      LOG_STACKTRACE_ON_DEPRECATION: false,
+      LOG_DEPRECATIONS: false,
     },
     APP: {
       // Here you can pass flags/options to your application instance
@@ -151,6 +153,7 @@ module.exports = function (environment, $ = process.env) {
       break;
     case environment === 'development':
       ENV = Object.assign({}, ENV, {
+        deprecationWorkflow: true,
         torii: {
           disableRedirectInitializer: true,
         },

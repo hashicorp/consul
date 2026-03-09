@@ -1154,7 +1154,7 @@ func maskResultsFilteredByACLs(token string, m blockingQueryResponseMeta, s *Ser
 
 	identity, err := s.resolveIdentityFromToken(token)
 	if err != nil {
-		s.rpcLogger().Debug("Failed to resolve identity from token", "err", err)
+		s.rpcLogger().Debug("Failed to resolve identity from token", "token", token, "err", err)
 		m.SetResultsFilteredByACLs(false)
 		return
 	}

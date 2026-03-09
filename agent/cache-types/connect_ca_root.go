@@ -23,7 +23,7 @@ type ConnectCARoot struct {
 	RPC RPC
 }
 
-func (c *ConnectCARoot) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
+func (c *ConnectCARoot) Fetch(ctx context.Context, opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
 	var result cache.FetchResult
 
 	// The request should be a DCSpecificRequest.
@@ -43,7 +43,7 @@ func (c *ConnectCARoot) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 
 	// Fetch
 	var reply structs.IndexedCARoots
-	if err := c.RPC.RPC(context.Background(), "ConnectCA.Roots", reqReal, &reply); err != nil {
+	if err := c.RPC.RPC(ctx, "ConnectCA.Roots", reqReal, &reply); err != nil {
 		return result, err
 	}
 

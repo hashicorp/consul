@@ -33,15 +33,16 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/tcpproxy"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/serf/coordinate"
-	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/encoding/protojson"
+
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/serf/coordinate"
+	"github.com/hashicorp/serf/serf"
 
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
@@ -6499,6 +6500,41 @@ func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
 	if diff := cmp.Diff(x, y, opts...); diff != "" {
 		t.Fatalf("assertion failed: values are not equal\n--- expected\n+++ actual\n%v", diff)
 	}
+}
+
+func TestAgent_HTTPServerTimeouts(t *testing.T) {
+	t.Parallel()
+
+	// Test with custom timeout configuration
+	a := NewTestAgent(t, `
+		http_config = {
+			read_timeout = "5s"
+			read_header_timeout = "2s"
+			write_timeout = "5s"
+			idle_timeout = "60s"
+		}
+	`)
+	defer a.Shutdown()
+
+	// Verify timeout values are configured correctly
+	require.Equal(t, 5*time.Second, a.config.HTTPReadTimeout)
+	require.Equal(t, 2*time.Second, a.config.HTTPReadHeaderTimeout)
+	require.Equal(t, 5*time.Second, a.config.HTTPWriteTimeout)
+	require.Equal(t, 60*time.Second, a.config.HTTPIdleTimeout)
+}
+
+func TestAgent_HTTPServerDefaultTimeouts(t *testing.T) {
+	t.Parallel()
+
+	// Test with default timeout configuration (no explicit timeouts set)
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+
+	// Verify default timeout values are applied
+	require.Equal(t, 15*time.Minute, a.config.HTTPReadTimeout)
+	require.Equal(t, 10*time.Second, a.config.HTTPReadHeaderTimeout)
+	require.Equal(t, 15*time.Minute, a.config.HTTPWriteTimeout)
+	require.Equal(t, 120*time.Second, a.config.HTTPIdleTimeout)
 }
 
 func TestAgent_ServiceRegistration(t *testing.T) {

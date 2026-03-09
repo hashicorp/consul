@@ -44,7 +44,7 @@ func TestCacheNotify(t *testing.T) {
 		// Assert the right request type - all real Fetch implementations do this so
 		// it keeps us honest that Watch doesn't require type mangling which will
 		// break in real life (hint: it did on the first attempt)
-		_, ok := args.Get(1).(*MockRequest)
+		_, ok := args.Get(1).(FetchOptions)
 		require.True(t, ok)
 	}).WaitUntil(trigger[0])
 	typ.Static(FetchResult{Value: 12, Index: 5}, nil).Once().WaitUntil(trigger[1])
@@ -78,6 +78,7 @@ func TestCacheNotify(t *testing.T) {
 
 	// Trigger blocking query to return a "change"
 	close(trigger[0])
+	require.NoError(t, err)
 
 	// Should receive the first real update next.
 	TestCacheNotifyChResult(t, ch, UpdateEvent{
@@ -181,7 +182,7 @@ func TestCacheNotifyPolling(t *testing.T) {
 		// Assert the right request type - all real Fetch implementations do this so
 		// it keeps us honest that Watch doesn't require type mangling which will
 		// break in real life (hint: it did on the first attempt)
-		_, ok := args.Get(1).(*MockRequest)
+		_, ok := args.Get(2).(*MockRequest)
 		require.True(t, ok)
 	})
 	typ.Static(FetchResult{Value: 12, Index: 1}, nil).Once()

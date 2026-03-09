@@ -1,3 +1,27 @@
+## 1.22.4 (February 18, 2026)
+
+SECURITY:
+* security: upgrade go version to 1.25.7 [[GH-23204](https://github.com/hashicorp/consul/issues/23204)]
+* dockerfile: the Consul build Go base image to `alpine3.23` [[GH-23194](https://github.com/hashicorp/consul/issues/23194)]
+* connect: Migrate to aws-sdk-go-v2 from aws-sdk-go (v1). Also updated consul-awsauth and go-secure-stdlib/awsutil dependencies to their v2 versions. [[GH-23109](https://github.com/hashicorp/consul/issues/23109)]
+* security: Configure HTTP server timeouts to prevent Slowloris denial-of-service attacks on agent HTTP endpoints and pprof endpoints. [[GH-22739](https://github.com/hashicorp/consul/issues/22739)]
+
+IMPROVEMENTS:
+* api-gateway: Fixed "duplicate matcher" errors in Envoy when using multiple file-system certificates on a single TLS listener. The certificates are now consolidated into a single filter chain, allowing Envoy to select the correct one. [[GH-23212](https://github.com/hashicorp/consul/issues/23212)]
+* agent: Fix vault provider failure when signing intermediate CA with isCA=true in CSR [[GH-23202](https://github.com/hashicorp/consul/issues/23202)]
+* cli: Added `--aws-iam-endpoint` flag to `consul login` command for AWS IAM auth method to support custom IAM endpoint configuration [[GH-23109](https://github.com/hashicorp/consul/issues/23109)]
+
+## 1.22.3 (January 23, 2026)
+
+SECURITY:
+
+* Update the Consul Build Go base image to `alpine3.23.2` [[GH-23138](https://github.com/hashicorp/consul/issues/23138)]
+
+IMPROVEMENTS:
+
+* api: Add `consul services imported-services` and new api(/v1/exported-services) command to list services imported by partitions within a local datacenter [[GH-12045](https://github.com/hashicorp/consul/issues/12045)]
+* connect: added ability to configure Virtual IP range for t-proxy with CIDRs [[GH-23085](https://github.com/hashicorp/consul/issues/23085)]
+
 ## 1.22.1 (November 27, 2025)
 
 SECURITY:

@@ -20,7 +20,7 @@ type IntentionMatch struct {
 	RPC RPC
 }
 
-func (c *IntentionMatch) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
+func (c *IntentionMatch) Fetch(ctx context.Context, opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
 	var result cache.FetchResult
 
 	// The request should be an IntentionQueryRequest.
@@ -40,7 +40,7 @@ func (c *IntentionMatch) Fetch(opts cache.FetchOptions, req cache.Request) (cach
 
 	// Fetch
 	var reply structs.IndexedIntentionMatches
-	if err := c.RPC.RPC(context.Background(), "Intention.Match", reqReal, &reply); err != nil {
+	if err := c.RPC.RPC(ctx, "Intention.Match", reqReal, &reply); err != nil {
 		return result, err
 	}
 

@@ -63,14 +63,15 @@ func TestTrustBundle(t *testing.T) {
 		Return(resp, nil)
 
 	// Fetch and assert against the result.
-	result, err := typ.Fetch(cache.FetchOptions{
-		MinIndex: 28,
-		Timeout:  time.Duration(1100),
-	}, &TrustBundleReadRequest{
-		Request: &pbpeering.TrustBundleReadRequest{
-			Name: "foo",
-		},
-	})
+	result, err := typ.Fetch(context.Background(),
+		cache.FetchOptions{
+			MinIndex: 28,
+			Timeout:  time.Duration(1100),
+		}, &TrustBundleReadRequest{
+			Request: &pbpeering.TrustBundleReadRequest{
+				Name: "foo",
+			},
+		})
 	require.NoError(t, err)
 	require.Equal(t, cache.FetchResult{
 		Value: resp,
@@ -83,8 +84,9 @@ func TestTrustBundle_badReqType(t *testing.T) {
 	typ := &TrustBundle{Client: client}
 
 	// Fetch
-	_, err := typ.Fetch(cache.FetchOptions{}, cache.TestRequest(
-		t, cache.RequestInfo{Key: "foo", MinIndex: 64}))
+	_, err := typ.Fetch(context.Background(),
+		cache.FetchOptions{}, cache.TestRequest(
+			t, cache.RequestInfo{Key: "foo", MinIndex: 64}))
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "wrong type")
 }

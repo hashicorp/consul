@@ -14,7 +14,7 @@ as a supplement to HDS's utility classes, and should mainly be used for layoutin
 
 To make sure we follow HDS-guidelines, we disabled Tailwind's color utilities completely. Instead of relying on Tailwind for colors, you should be working with the colors from HashiCorp-Design-System and follow the [guidance in the docs](https://design-system-components-hashicorp.vercel.app/foundations/colors) on how to use them:
 
-```hbs preview-template
+```hbs
 <h2 class='hds-foreground-strong'>
   HDS is awesome
 </h2>
@@ -22,7 +22,7 @@ To make sure we follow HDS-guidelines, we disabled Tailwind's color utilities co
 
 Regular TailwindCSS colors aren't available.
 
-```hbs preview-template
+```hbs
 <h2 class='text-red-400'>
   TailwindCSS colors won't work
 </h2>
@@ -34,7 +34,7 @@ HDS core styles are available via the provided `hds`-[utility-classes](https://d
 
 You for example would work with HDS' typography styles in this way:
 
-```hbs preview-template
+```hbs
 <p class='hds-typography-display-400'>
   A paragraph styled via HDS.
 </p>
@@ -46,7 +46,7 @@ Because HDS provides utility classes for core styles, you should not be using Ta
 
 Tailwind is used as a supplement to what HDS provides. You will be using Tailwind for layouting and other utility functionality that isn't provided by HDS.
 
-```hbs preview-template
+```hbs
 <button type='button' class='underline transform scale-100 transition ease-in-out hover:scale-125'>
   Hover me
 </button>
@@ -56,7 +56,7 @@ Tailwind is used as a supplement to what HDS provides. You will be using Tailwin
 
 All components from Hashicorp Design System are available for you to use. Here's an example that shows how to implement a navigation bar with HDS and Tailwind in combination.
 
-```hbs preview-template
+```hbs
 <nav
   class='h-16 w-full consul-surface-nav flex items-center justify-between px-4 hds-font-weight-medium'
 >

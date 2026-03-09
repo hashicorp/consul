@@ -65,7 +65,7 @@ func TestPeerings(t *testing.T) {
 		})
 
 	// Fetch and assert against the result.
-	result, err := typ.Fetch(cache.FetchOptions{
+	result, err := typ.Fetch(context.Background(), cache.FetchOptions{
 		MinIndex: 28,
 		Timeout:  time.Duration(1100),
 	}, &PeeringListRequest{
@@ -89,7 +89,7 @@ func TestPeerings_PeeringDisabled(t *testing.T) {
 		Return(resp, grpcstatus.Error(codes.FailedPrecondition, "peering must be enabled to use this endpoint"))
 
 	// Fetch and assert against the result.
-	result, err := typ.Fetch(cache.FetchOptions{}, &PeeringListRequest{
+	result, err := typ.Fetch(context.Background(), cache.FetchOptions{}, &PeeringListRequest{
 		Request: &pbpeering.PeeringListRequest{},
 	})
 	require.NoError(t, err)
@@ -103,7 +103,7 @@ func TestPeerings_badReqType(t *testing.T) {
 	typ := &Peerings{Client: client}
 
 	// Fetch
-	_, err := typ.Fetch(cache.FetchOptions{}, cache.TestRequest(
+	_, err := typ.Fetch(context.Background(), cache.FetchOptions{}, cache.TestRequest(
 		t, cache.RequestInfo{Key: "foo", MinIndex: 64}))
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "wrong type")
