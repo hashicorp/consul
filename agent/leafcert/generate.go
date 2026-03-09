@@ -326,6 +326,9 @@ func (m *Manager) generateNewLeaf(
 				[]string{"leaf-certs", "cert_renewal_failure"},
 				1,
 				[]metrics.Label{
+					{Name: "datacenter", Value: req.Datacenter},
+					{Name: "partition", Value: req.TargetPartition()},
+					{Name: "namespace", Value: req.TargetNamespace()},
 					{Name: "service", Value: req.Service},
 					{Name: "kind", Value: string(req.Kind)},
 					{Name: "reason", Value: "rate_limited"},
@@ -416,6 +419,9 @@ func (m *Manager) generateNewLeaf(
 			[]string{"leaf-certs", "cert_renewal_failure"},
 			1,
 			[]metrics.Label{
+				{Name: "datacenter", Value: req.Datacenter},
+				{Name: "partition", Value: req.TargetPartition()},
+				{Name: "namespace", Value: req.TargetNamespace()},
 				{Name: "service", Value: req.Service},
 				{Name: "kind", Value: string(req.Kind)},
 				{Name: "reason", Value: "signing_error"},
@@ -481,6 +487,9 @@ func (m *Manager) generateNewLeaf(
 	// Emit expiry metric for this specific certificate
 	timeUntilExpiry := time.Until(cert.NotAfter)
 	labels := []metrics.Label{
+		{Name: "datacenter", Value: req.Datacenter},
+		{Name: "partition", Value: req.TargetPartition()},
+		{Name: "namespace", Value: req.TargetNamespace()},
 		{Name: "service", Value: req.Service},
 		{Name: "kind", Value: string(req.Kind)},
 	}

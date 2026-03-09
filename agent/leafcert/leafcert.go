@@ -590,6 +590,8 @@ func (m *Manager) emitCertMetrics() {
 			// Re-emit expiry metric
 			timeUntilExpiry := time.Until(cert.ValidBefore)
 			labels := []metrics.Label{
+				{Name: "partition", Value: cert.PartitionOrDefault()},
+				{Name: "namespace", Value: cert.NamespaceOrDefault()},
 				{Name: "service", Value: cert.Service},
 				{Name: "kind", Value: string(cert.Kind)},
 			}

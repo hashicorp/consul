@@ -39,6 +39,7 @@ var LeaderCertExpirationGauges = []prometheus.GaugeDefinition{
 func rootCAExpiryMonitor(s *Server) CertExpirationMonitor {
 	return CertExpirationMonitor{
 		Key:    metricsKeyMeshRootCAExpiry,
+		Labels: []metrics.Label{{Name: "datacenter", Value: s.config.Datacenter}},
 		Logger: s.logger.Named(logging.Connect),
 		Query: func() (time.Duration, time.Duration, error) {
 			return getRootCAExpiry(s)
@@ -64,6 +65,7 @@ func getRootCAExpiry(s *Server) (time.Duration, time.Duration, error) {
 func signingCAExpiryMonitor(s *Server) CertExpirationMonitor {
 	return CertExpirationMonitor{
 		Key:    metricsKeyMeshActiveSigningCAExpiry,
+		Labels: []metrics.Label{{Name: "datacenter", Value: s.config.Datacenter}},
 		Logger: s.logger.Named(logging.Connect),
 		Query: func() (time.Duration, time.Duration, error) {
 			if s.caManager.isIntermediateUsedToSignLeaf() {

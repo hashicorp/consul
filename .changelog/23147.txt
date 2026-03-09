@@ -1,3 +1,1 @@
-```release-note:feature
-telemetry: Add comprehensive certificate expiry monitoring with configurable thresholds, metrics, logging, and API endpoint for tracking CA root, intermediate, leaf, and agent TLS certificates
-```
+telemetry: Add certificate expiry monitoring with Prometheus metrics (labeled with datacenter/partition/namespace), structured logging with configurable severity thresholds, and enhanced Connect CA API to include NotAfter field for root and intermediate certificates

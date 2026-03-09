@@ -893,6 +893,8 @@ func (a *Agent) Start(ctx context.Context) error {
 	if a.config.Telemetry.CertificateEnabled && a.tlsConfigurator.Cert() != nil {
 		m := tlsCertExpirationMonitor(
 			a.tlsConfigurator,
+			a.config.Datacenter,
+			a.config.PartitionOrDefault(),
 			a.config.NodeName,
 			a.config.Telemetry.CertificateCriticalThresholdDays,
 			a.config.Telemetry.CertificateWarningThresholdDays,
