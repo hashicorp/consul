@@ -417,8 +417,10 @@ func TestHTTPHandlers_AgentMetrics_TLSCertExpiry_Prometheus(t *testing.T) {
 	recordPromMetrics(t, a, respRec)
 
 	body := respRec.Body.String()
-	// The metric includes a node label, so we check for the metric name with the node label
-	require.Contains(t, body, metricsPrefix+"_agent_tls_cert_expiry{node=")
+	// The metric includes datacenter, partition, and node labels
+	require.Contains(t, body, metricsPrefix+"_agent_tls_cert_expiry{datacenter=")
+	require.Contains(t, body, `partition="default"`)
+	require.Contains(t, body, "node=")
 	// Check that the value is approximately 20 days = 1.728e6 seconds
 	require.Contains(t, body, "1.7")
 }
@@ -472,8 +474,8 @@ func TestHTTPHandlers_AgentMetrics_CACertExpiry_Prometheus(t *testing.T) {
 		recordPromMetrics(t, a, respRec)
 
 		out := respRec.Body.String()
-		require.Contains(t, out, metricsPrefix+"_mesh_active_root_ca_expiry 3.15")
-		require.Contains(t, out, metricsPrefix+"_mesh_active_signing_ca_expiry 3.15")
+		require.Contains(t, out, metricsPrefix+`_mesh_active_root_ca_expiry{datacenter="dc1"} 3.15`)
+		require.Contains(t, out, metricsPrefix+`_mesh_active_signing_ca_expiry{datacenter="dc1"} 3.15`)
 	})
 
 }
