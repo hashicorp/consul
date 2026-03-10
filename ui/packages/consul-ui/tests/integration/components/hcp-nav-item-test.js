@@ -24,9 +24,9 @@ module('Integration | Component | hcp nav item', function (hooks) {
     );
 
     await render(hbs`
-      <Hds::SideNav::List as |SNL|>
+      <Hds::AppSideNav::List as |SNL|>
         <HcpNavItem @list={{SNL}} />
-      </Hds::SideNav::List>
+      </Hds::AppSideNav::List>
     `);
 
     assert.dom('[data-test-back-to-hcp]').isVisible();
@@ -45,9 +45,9 @@ module('Integration | Component | hcp nav item', function (hooks) {
     );
 
     await render(hbs`
-      <Hds::SideNav::List as |SNL|>
+      <Hds::AppSideNav::List as |SNL|>
         <HcpNavItem @list={{SNL}} />
-      </Hds::SideNav::List>
+      </Hds::AppSideNav::List>
     `);
 
     assert.dom('[data-test-back-to-hcp]').doesNotExist();
@@ -65,9 +65,9 @@ module('Integration | Component | hcp nav item', function (hooks) {
     );
 
     await render(hbs`
-      <Hds::SideNav::List as |SNL|>
+      <Hds::AppSideNav::List as |SNL|>
         <HcpNavItem @list={{SNL}} />
-      </Hds::SideNav::List>
+      </Hds::AppSideNav::List>
     `);
 
     assert.dom('[data-test-back-to-hcp]').doesNotExist();
