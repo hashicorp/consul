@@ -57,7 +57,7 @@ as |item index|>
       <dd>
           {{!-- Displaying consul version from node meta data --}}
           {{#if item.Meta.consul-version}}
-            <FlightIcon class='w-4 h-4' @size='24' @name='consul-color' @stretched={{true}} />
+            <Hds::Icon class='w-4 h-4' @size='24' @name='consul-color' @stretched={{true}} />
             <span>v{{item.Meta.consul-version}}</span>
           {{/if}}
       </dd>
