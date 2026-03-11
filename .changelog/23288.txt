@@ -1,0 +1,3 @@
+```release-note:improvement
+terminating-gateway: Updated the cluster upstream tls to use sds instead of static certs, allowing for dynamic certificate updates without needing to restart the terminating gateway.
+```
