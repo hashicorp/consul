@@ -23,6 +23,14 @@
 #
 set -euo pipefail
 
+# --- Ensure we're running from the project root ---
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+cd "${PROJECT_ROOT}"
+
+echo "Running from project root: ${PROJECT_ROOT}"
+echo ""
+
 # --- Configuration ---
 # Accept PRODUCT and VERSION from command line or environment, with defaults
 PRODUCT="${1:-${PRODUCT:-consul}}"
@@ -132,8 +140,7 @@ for entry in "${DECLARE_IMAGES[@]}"; do
     fi
     
     if [ ${SCAN_EXIT_CODE} -ne 0 ]; then
-        echo "   ⚠️  Scan failed for ${FLAVOR} with exit code ${SCAN_EXIT_CODE}" | tee -a "${GLOBAL_REPORT}"
-        echo "   Continuing with remaining images..." | tee -a "${GLOBAL_REPORT}"
+        echo "   Continuing with remaining images..." >> "${GLOBAL_REPORT}"
     else
         echo "   ✅ Scan completed successfully for ${FLAVOR}"
     fi
@@ -148,5 +155,3 @@ rm -f ./consul
 echo "================================================"
 echo "Done! All artifacts are in ${OUTPUT_DIR}"
 echo "Summary report available at: ${GLOBAL_REPORT}"
-
-# Made with Bob
