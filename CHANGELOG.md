@@ -15,6 +15,10 @@ IMPROVEMENTS:
 * docs: Refreshed the security documentation to include the new HTTP server timeout defaults and relevant configuration options. [[GH-23246](https://github.com/hashicorp/consul/pull/23246)]
 * api: Cancel context check for watches cache fetch to stop execution when manager deregisters the watch. [[GH-23157](https://github.com/hashicorp/consul/issues/23157)]
 
+## 1.22.4
+
+**WITHDRAWN** - This release has been retracted from public distribution due to critical issues. Please use 1.22.5 or remain on 1.22.3.
+
 ## 1.22.3 (January 23, 2026)
 
 SECURITY:
