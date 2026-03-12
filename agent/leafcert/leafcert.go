@@ -100,6 +100,9 @@ type Deps struct {
 	Config Config
 	Logger hclog.Logger
 
+	// Datacenter is the datacenter name for metric labels
+	Datacenter string
+
 	// RootsReader is an interface to access connect CA roots.
 	RootsReader RootsReader
 
@@ -132,6 +135,7 @@ func NewManager(deps Deps) *Manager {
 	m := &Manager{
 		config:      deps.Config,
 		logger:      deps.Logger,
+		datacenter:  deps.Datacenter,
 		certSigner:  deps.CertSigner,
 		rootsReader: deps.RootsReader,
 		//
@@ -160,6 +164,9 @@ type Manager struct {
 
 	// config contains agent configuration necessary for the cert manager to operate.
 	config Config
+
+	// datacenter is the datacenter name for metric labels
+	datacenter string
 
 	// rootsReader is an interface to access connect CA roots.
 	rootsReader RootsReader
@@ -589,6 +596,7 @@ func (m *Manager) emitCertMetrics() {
 
 			// Re-emit expiry metric
 			labels := []metrics.Label{
+				{Name: "datacenter", Value: m.datacenter},
 				{Name: "partition", Value: cert.PartitionOrDefault()},
 				{Name: "namespace", Value: cert.NamespaceOrDefault()},
 				{Name: "service", Value: cert.Service},

@@ -167,6 +167,7 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 	// TODO: create leafCertManager in BaseDeps once NetRPC is available without Agent
 	d.LeafCertManager = leafcert.NewManager(leafcert.Deps{
 		Logger:      d.Logger.Named("leaf-certs"),
+		Datacenter:  cfg.Datacenter,
 		CertSigner:  leafcert.NewNetRPCCertSigner(d.NetRPC),
 		RootsReader: leafcert.NewCachedRootsReader(d.Cache, cfg.Datacenter),
 		Config: leafcert.Config{

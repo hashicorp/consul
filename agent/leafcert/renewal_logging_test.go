@@ -71,6 +71,7 @@ func TestLeafCertRenewalFailure_RateLimitLogging(t *testing.T) {
 
 	mgr := NewManager(Deps{
 		Logger:      logger,
+		Datacenter:  "dc1",
 		RootsReader: rootsReader,
 		CertSigner:  certSigner,
 		Config: Config{
@@ -108,6 +109,7 @@ func TestLeafCertRenewalFailure_SigningErrorLogging(t *testing.T) {
 
 	mgr := NewManager(Deps{
 		Logger:      logger,
+		Datacenter:  "dc1",
 		RootsReader: rootsReader,
 		CertSigner:  certSigner,
 		Config: Config{
@@ -153,6 +155,7 @@ func TestLeafCertManager_ThresholdConfiguration(t *testing.T) {
 
 			mgr := NewManager(Deps{
 				Logger:      logger,
+				Datacenter:  "dc1",
 				RootsReader: rootsReader,
 				CertSigner:  certSigner,
 				Config: Config{
