@@ -1,10 +1,10 @@
 #!/bin/bash
-# local-consul-multiarch-scan.sh
+# consul-container-scan.sh
 #
 # Multi-architecture container image build and security scan script
 #
 # Usage:
-#   ./local-consul-multiarch-scan.sh [PRODUCT] [VERSION]
+#   ./build-support/scripts/consul-container-scan.sh [PRODUCT] [VERSION]
 #
 # Arguments:
 #   PRODUCT  - Product name (default: consul)
@@ -16,10 +16,10 @@
 #   SCANNER  - Scanner to use: "security-scanner" (default) or "trivy"
 #
 # Examples:
-#   ./local-consul-multiarch-scan.sh
-#   ./local-consul-multiarch-scan.sh consul 1.18.0
-#   PRODUCT=consul VERSION=1.18.0 ./local-consul-multiarch-scan.sh
-#   SCANNER=trivy ./local-consul-multiarch-scan.sh consul 1.18.0
+#   ./build-support/scripts/consul-container-scan.sh
+#   ./build-support/scripts/consul-container-scan.sh consul 1.18.0
+#   PRODUCT=consul VERSION=1.18.0 ./build-support/scripts/consul-container-scan.sh
+#   SCANNER=trivy ./build-support/scripts/consul-container-scan.sh consul 1.18.0
 #
 set -euo pipefail
 
