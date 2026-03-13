@@ -5,6 +5,22 @@
 
 @import './skin';
 @import './layout';
+
+.app-view-frame {
+  min-height: auto;
+  display: block;
+}
+
+.app-view-main {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.app-view .app-view-breadcrumbs {
+  position: static;
+  margin-bottom: 8px;
+}
+
 .app-view {
   @extend %app-view;
 }

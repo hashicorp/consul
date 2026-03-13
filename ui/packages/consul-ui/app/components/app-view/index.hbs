@@ -3,44 +3,54 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-<div
-  class="app-view"
-  ...attributes
->
-  {{yield}}
-  <header>
-      <div>
+<Hds::AppFrame
+  @hasHeader={{false}}
+  @hasSidebar={{false}}
+  @hasFooter={{false}}
+  @hasModals={{false}}
+  class="app-view-frame"
+as |Frame|>
+  <Frame.Main class="app-view-main">
+    <div
+      class="app-view"
+      ...attributes
+    >
+      {{yield}}
+      <header>
           <div>
-              <nav aria-label="Breadcrumb" data-test-breadcrumbs>
-                  <YieldSlot @name="breadcrumbs">
-                    {{document-attrs class="with-breadcrumbs"}}
+              <div>
+                  <nav aria-label="Breadcrumb" class="app-view-breadcrumbs" data-test-breadcrumbs>
+                      <YieldSlot @name="breadcrumbs">
+                        {{document-attrs class="with-breadcrumbs"}}
+                        {{yield}}
+                      </YieldSlot>
+                  </nav>
+                  <div class="title">
+                    <div class="title-left-container">
+                      <YieldSlot @name="header">
+                          {{yield}}
+                      </YieldSlot>
+                    </div>
+                    <div class="actions">
+                      <YieldSlot @name="actions">
+                        <PortalTarget @name="app-view-actions" />
+                        {{yield}}
+                      </YieldSlot>
+                    </div>
+                  </div>
+                  <YieldSlot @name="nav">
                     {{yield}}
                   </YieldSlot>
-              </nav>
-              <div class="title">
-                <div class="title-left-container">
-                  <YieldSlot @name="header">
-                      {{yield}}
-                  </YieldSlot>
-                </div>
-                <div class="actions">
-                  <YieldSlot @name="actions">
-                    <PortalTarget @name="app-view-actions" />
-                    {{yield}}
-                  </YieldSlot>
-                </div>
               </div>
-              <YieldSlot @name="nav">
-                {{yield}}
-              </YieldSlot>
           </div>
+          <YieldSlot @name="toolbar">
+            <input type="checkbox" id="toolbar-toggle" />
+            {{yield}}
+          </YieldSlot>
+      </header>
+      <div>
+        <YieldSlot @name="content">{{yield}}</YieldSlot>
       </div>
-      <YieldSlot @name="toolbar">
-        <input type="checkbox" id="toolbar-toggle" />
-        {{yield}}
-      </YieldSlot>
-  </header>
-  <div>
-    <YieldSlot @name="content">{{yield}}</YieldSlot>
-  </div>
-</div>
+    </div>
+  </Frame.Main>
+</Hds::AppFrame>
