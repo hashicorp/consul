@@ -16,11 +16,6 @@
   padding-right: 0;
 }
 
-.app-view .app-view-breadcrumbs {
-  position: static;
-  margin-bottom: 8px;
-}
-
 .app-view {
   @extend %app-view;
 }

@@ -19,12 +19,12 @@ as |Frame|>
       <header>
           <div>
               <div>
-                  <nav aria-label="Breadcrumb" class="app-view-breadcrumbs" data-test-breadcrumbs>
+                  <div class="app-view-breadcrumbs" data-test-breadcrumbs>
                       <YieldSlot @name="breadcrumbs">
                         {{document-attrs class="with-breadcrumbs"}}
                         {{yield}}
                       </YieldSlot>
-                  </nav>
+                  </div>
                   <div class="title">
                     <div class="title-left-container">
                       <YieldSlot @name="header">
