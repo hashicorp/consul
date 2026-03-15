@@ -5,6 +5,7 @@ package consul
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"reflect"
 	"testing"
@@ -655,6 +656,7 @@ func TestComputeDiscoveryChainHash_FieldChangesAffectHash(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			entries, chain := tc.modifyFunc()
 			modifiedHash := computeDiscoveryChainHash(entries, chain)
+			log.Printf("Test case %q: baseHash=%d modifiedHash=%d", tc.name, baseHash, modifiedHash)
 			require.NotEqual(t, baseHash, modifiedHash,
 				"changing %s should produce a different hash", tc.name)
 		})
