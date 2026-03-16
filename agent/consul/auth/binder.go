@@ -6,6 +6,7 @@ package auth
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-memdb"
@@ -217,9 +218,28 @@ func computeBindName(bindName string, projectedVars map[string]string, validate 
 	if err != nil {
 		return "", fmt.Errorf("error interpreting template: %w", err)
 	}
+
 	if validate != nil && !validate(computed) {
 		return "", fmt.Errorf("invalid bind name: %q", computed)
 	}
+
+	// Check if any projected variable values contained uppercase characters
+	// that were silently lowercased during interpolation. This produces a
+	// clearer error than the downstream "permission denied" that would
+	// otherwise occur when the generated policy name doesn't match the
+	// actual resource name.
+	if strings.Contains(bindName, "${") {
+		original, err := template.InterpolateHIL(bindName, projectedVars, false)
+		if err == nil && original != computed {
+			return "", fmt.Errorf(
+				"invalid bind name: the projected variables contain uppercase characters "+
+					"(interpolated as %q before lowercasing), but bind names for this type "+
+					"must be lowercase; ensure the bound service or node name is lowercase",
+				original,
+			)
+		}
+	}
+
 	return computed, nil
 }
 
@@ -265,6 +285,20 @@ func computeBindVars(bindVars *structs.ACLTemplatedPolicyVariables, projectedVar
 		if err != nil {
 			return nil, err
 		}
+
+		// Check if uppercase characters were silently lowercased.
+		if strings.Contains(bindVars.Name, "${") {
+			original, oerr := template.InterpolateHIL(bindVars.Name, projectedVars, false)
+			if oerr == nil && original != nameValue {
+				return nil, fmt.Errorf(
+					"invalid bind variable: the projected variables contain uppercase characters "+
+						"(interpolated as %q before lowercasing), but bind variables for this type "+
+						"must be lowercase; ensure the bound resource name is lowercase",
+					original,
+				)
+			}
+		}
+
 		out.Name = nameValue
 	}
 
