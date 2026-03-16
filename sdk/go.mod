@@ -1,6 +1,6 @@
 module github.com/hashicorp/consul/sdk
 
-go 1.25.7
+go 1.25.8
 
 require (
 	github.com/hashicorp/go-cleanhttp v0.5.2
@@ -9,7 +9,7 @@ require (
 	github.com/hashicorp/go-version v1.2.1
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.8.4
-	golang.org/x/sys v0.35.0
+	golang.org/x/sys v0.42.0
 )
 
 require (
