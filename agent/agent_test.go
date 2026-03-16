@@ -334,6 +334,7 @@ func TestAgent_HTTPMaxHeaderBytes(t *testing.T) {
 			}
 
 			bd.LeafCertManager = leafcert.NewManager(leafcert.Deps{
+				Datacenter:  "dc1",
 				CertSigner:  leafcert.NewNetRPCCertSigner(bd.NetRPC),
 				RootsReader: leafcert.NewCachedRootsReader(bd.Cache, "dc1"),
 				Config:      leafcert.Config{},
@@ -5668,6 +5669,7 @@ func TestAgent_ListenHTTP_MultipleAddresses(t *testing.T) {
 	}
 
 	bd.LeafCertManager = leafcert.NewManager(leafcert.Deps{
+		Datacenter:  "dc1",
 		CertSigner:  leafcert.NewNetRPCCertSigner(bd.NetRPC),
 		RootsReader: leafcert.NewCachedRootsReader(bd.Cache, "dc1"),
 		Config:      leafcert.Config{},
@@ -6265,6 +6267,7 @@ func TestAgent_startListeners(t *testing.T) {
 	}
 
 	bd.LeafCertManager = leafcert.NewManager(leafcert.Deps{
+		Datacenter:  "dc1",
 		CertSigner:  leafcert.NewNetRPCCertSigner(bd.NetRPC),
 		RootsReader: leafcert.NewCachedRootsReader(bd.Cache, "dc1"),
 		Config:      leafcert.Config{},
@@ -6399,6 +6402,7 @@ func TestAgent_checkServerLastSeen(t *testing.T) {
 		NetRPC:        &LazyNetRPC{},
 	}
 	bd.LeafCertManager = leafcert.NewManager(leafcert.Deps{
+		Datacenter:  "dc1",
 		CertSigner:  leafcert.NewNetRPCCertSigner(bd.NetRPC),
 		RootsReader: leafcert.NewCachedRootsReader(bd.Cache, "dc1"),
 		Config:      leafcert.Config{},

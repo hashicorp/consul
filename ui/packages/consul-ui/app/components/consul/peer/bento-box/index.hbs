@@ -20,7 +20,7 @@
       <div class="flex items-center">
         {{#if @peering.LastHeartbeat}}
           {{#let (smart-date-format @peering.LastHeartbeat) as |smartDate|}}
-            <FlightIcon
+            <Hds::Icon
               @name="activity"
               @color="var(--token-color-foreground-faint)"
               class="mr-0.5"
