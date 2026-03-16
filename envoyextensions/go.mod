@@ -14,8 +14,8 @@ require (
 	github.com/envoyproxy/go-control-plane v0.13.4
 	github.com/envoyproxy/go-control-plane/envoy v1.32.3
 	github.com/google/go-cmp v0.6.0
-	github.com/hashicorp/consul/api v1.33.4
-	github.com/hashicorp/consul/sdk v0.17.2
+	github.com/hashicorp/consul/api v0.0.0-00010101000000-000000000000
+	github.com/hashicorp/consul/sdk v0.0.0-00010101000000-000000000000
 	github.com/hashicorp/go-hclog v1.5.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-version v1.2.1
@@ -44,8 +44,8 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
-	golang.org/x/exp v0.0.0-20260312153236-7ab1446f8b90 // indirect
-	golang.org/x/sys v0.42.0 // indirect
+	golang.org/x/exp v0.0.0-20260218203240-3dfff04db8fa // indirect
+	golang.org/x/sys v0.41.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240814211410-ddb44dafa142 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240814211410-ddb44dafa142 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
