@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/consul"
@@ -26,10 +28,18 @@ var metricsKeyAgentTLSCertExpiry = []string{"agent", "tls", "cert", "expiry"}
 
 // tlsCertExpirationMonitor returns a CertExpirationMonitor which will
 // monitor the expiration of the certificate used for agent TLS.
-func tlsCertExpirationMonitor(c *tlsutil.Configurator, logger hclog.Logger) consul.CertExpirationMonitor {
+func tlsCertExpirationMonitor(c *tlsutil.Configurator, datacenter, partition, nodeName string, criticalDays int, warningDays int, logger hclog.Logger) consul.CertExpirationMonitor {
+	labels := []metrics.Label{
+		{Name: "datacenter", Value: datacenter},
+		{Name: "partition", Value: partition},
+		{Name: "node", Value: nodeName},
+	}
 	return consul.CertExpirationMonitor{
-		Key:    metricsKeyAgentTLSCertExpiry,
-		Logger: logger,
+		Key:                   metricsKeyAgentTLSCertExpiry,
+		Labels:                labels,
+		Logger:                logger,
+		CriticalThresholdDays: criticalDays,
+		WarningThresholdDays:  warningDays,
 		Query: func() (time.Duration, time.Duration, error) {
 			raw := c.Cert()
 			if raw == nil {
