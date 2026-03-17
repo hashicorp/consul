@@ -4,6 +4,9 @@
 name: frontend
 
 on:
+  pull_request:
+    paths:
+      - ui/**
   push:
     paths:
       - ui/**
