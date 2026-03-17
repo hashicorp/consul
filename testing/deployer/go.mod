@@ -6,7 +6,7 @@ require (
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/google/go-cmp v0.7.0
 	github.com/hashicorp/consul-server-connection-manager v0.1.12
-	github.com/hashicorp/consul/api v0.0.0-00010101000000-000000000000
+	github.com/hashicorp/consul/api v1.33.4
 	github.com/hashicorp/consul/proto-public v0.7.2
 	github.com/hashicorp/consul/sdk v0.17.2
 	github.com/hashicorp/go-cleanhttp v0.5.2
@@ -18,8 +18,8 @@ require (
 	github.com/mitchellh/copystructure v1.2.0
 	github.com/rboyer/safeio v0.2.2
 	github.com/stretchr/testify v1.11.1
-	golang.org/x/crypto v0.48.0
-	golang.org/x/exp v0.0.0-20260218203240-3dfff04db8fa
+	golang.org/x/crypto v0.49.0
+	golang.org/x/exp v0.0.0-20260312153236-7ab1446f8b90
 	google.golang.org/grpc v1.75.0
 	google.golang.org/protobuf v1.36.6
 )
@@ -55,9 +55,9 @@ require (
 	github.com/prometheus/common v0.26.0 // indirect
 	github.com/prometheus/procfs v0.6.0 // indirect
 	github.com/zclconf/go-cty v1.12.1 // indirect
-	golang.org/x/net v0.51.0 // indirect
-	golang.org/x/sys v0.41.0 // indirect
-	golang.org/x/text v0.34.0 // indirect
+	golang.org/x/net v0.52.0 // indirect
+	golang.org/x/sys v0.42.0 // indirect
+	golang.org/x/text v0.35.0 // indirect
 	google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
