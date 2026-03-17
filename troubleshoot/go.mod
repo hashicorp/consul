@@ -1,6 +1,8 @@
 module github.com/hashicorp/consul/troubleshoot
 
-go 1.25.7
+go 1.25.0
+
+toolchain go1.25.7
 
 replace (
 	github.com/hashicorp/consul/api => ../api
