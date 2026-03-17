@@ -4,8 +4,6 @@
 package middleware
 
 import (
-	"sort"
-
 	"github.com/hashicorp/consul/agent/consul/rate"
 )
 
@@ -164,6 +162,5 @@ func RPCMethodNames() []string {
 	for k := range rpcRateLimitSpecs {
 		out = append(out, k)
 	}
-	sort.Strings(out)
 	return out
 }
