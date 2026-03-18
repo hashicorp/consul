@@ -116,7 +116,12 @@ as |items item dc|}}
           </BlockSlot>
           <BlockSlot @name="breadcrumbs">
             <Hds::Breadcrumb>
-              <Hds::Breadcrumb::Item @text="All Services" @route="dc.services" @query={{hash peer=undefined}} data-test-back />
+              <Breadcrumbs::BackLink
+                @route="dc.services"
+                @text="All Services"
+                @params={{hash peer=undefined}}
+                data-test-back
+              />
             </Hds::Breadcrumb>
           </BlockSlot>
           <BlockSlot @name="header">
