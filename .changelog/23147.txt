@@ -1,0 +1,1 @@
+telemetry: Add certificate expiry monitoring with Prometheus metrics (labeled with datacenter/partition/namespace), structured logging with configurable severity thresholds, and enhanced Connect CA API to include NotAfter field for root and intermediate certificates

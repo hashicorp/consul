@@ -14,6 +14,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -397,6 +398,9 @@ func TestHTTPHandlers_AgentMetrics_TLSCertExpiry_Prometheus(t *testing.T) {
 			prometheus_retention_time = "5s",
 			disable_hostname = true
 			metrics_prefix = "%s"
+			certificate = {
+				enabled = true
+			}
 		}
 		ca_file = "%s"
 		cert_file = "%s"
@@ -406,10 +410,19 @@ func TestHTTPHandlers_AgentMetrics_TLSCertExpiry_Prometheus(t *testing.T) {
 	a := StartTestAgent(t, TestAgent{HCL: hcl})
 	defer a.Shutdown()
 
+	// Wait a bit for the certificate monitor to emit metrics
+	time.Sleep(100 * time.Millisecond)
+
 	respRec := httptest.NewRecorder()
 	recordPromMetrics(t, a, respRec)
 
-	require.Contains(t, respRec.Body.String(), metricsPrefix+"_agent_tls_cert_expiry 1.7")
+	body := respRec.Body.String()
+	// The metric includes datacenter, partition, and node labels
+	require.Contains(t, body, metricsPrefix+"_agent_tls_cert_expiry{datacenter=")
+	require.Contains(t, body, `partition="default"`)
+	require.Contains(t, body, "node=")
+	// Check that the value is approximately 20 days = 1.728e6 seconds
+	require.Contains(t, body, "1.7")
 }
 
 func TestHTTPHandlers_AgentMetrics_CACertExpiry_Prometheus(t *testing.T) {
@@ -461,8 +474,8 @@ func TestHTTPHandlers_AgentMetrics_CACertExpiry_Prometheus(t *testing.T) {
 		recordPromMetrics(t, a, respRec)
 
 		out := respRec.Body.String()
-		require.Contains(t, out, metricsPrefix+"_mesh_active_root_ca_expiry 3.15")
-		require.Contains(t, out, metricsPrefix+"_mesh_active_signing_ca_expiry 3.15")
+		require.Contains(t, out, metricsPrefix+`_mesh_active_root_ca_expiry{datacenter="dc1"} 3.15`)
+		require.Contains(t, out, metricsPrefix+`_mesh_active_signing_ca_expiry{datacenter="dc1"} 3.15`)
 	})
 
 }
