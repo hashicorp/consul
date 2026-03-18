@@ -5,11 +5,9 @@ name: frontend
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened]
     paths:
-      - ui/**
-  push:
-    paths:
-      - ui/**
+      - 'ui/**'
   workflow_dispatch: {}
 
 permissions:
