@@ -1,0 +1,3 @@
+```release-note:bug
+api-gateway: allow http-routes to set `weight: 0` to disable traffic to particular service
+```

@@ -6662,9 +6662,9 @@ func TestLoad_FullConfig(t *testing.T) {
 		HTTPSAddrs:            []net.Addr{tcpAddr("95.17.17.19:15127")},
 		HTTPMaxConnsPerClient: 100,
 		HTTPMaxHeaderBytes:    10,
-		HTTPReadTimeout:       30 * time.Second,
+		HTTPReadTimeout:       15 * time.Minute,
 		HTTPReadHeaderTimeout: 10 * time.Second,
-		HTTPWriteTimeout:      30 * time.Second,
+		HTTPWriteTimeout:      15 * time.Minute,
 		HTTPIdleTimeout:       120 * time.Second,
 		HTTPSHandshakeTimeout: 2391 * time.Millisecond,
 		HTTPSPort:             15127,
@@ -7091,8 +7091,13 @@ func TestLoad_FullConfig(t *testing.T) {
 				Expiration: 15 * time.Second,
 				Name:       "ftO6DySn", // notice this is the same as the metrics prefix
 			},
-			EnableHostMetrics:             true,
-			DisablePerTenancyUsageMetrics: true,
+			EnableHostMetrics:                true,
+			DisablePerTenancyUsageMetrics:    true,
+			CertificateEnabled:               true,
+			CertificateCacheDuration:         5 * time.Minute,
+			CertificateCriticalThresholdDays: 7,
+			CertificateWarningThresholdDays:  30,
+			CertificateInfoThresholdDays:     90,
 		},
 		TLS: tlsutil.Config{
 			InternalRPC: tlsutil.ProtocolConfig{

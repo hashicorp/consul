@@ -84,7 +84,7 @@
       <BlockSlot @name='options'>
         {{#let components.Optgroup components.Option as |Optgroup Option|}}
           <Option @value='kubernetes' @selected={{includes 'kubernetes' @filter.kind.value}}>
-            <FlightIcon @name='kubernetes-color' class='mr-2.5' />
+            <Hds::Icon @name="kubernetes-color" @size="16" class="mr-2.5" />
             Kubernetes
           </Option>
           <Option

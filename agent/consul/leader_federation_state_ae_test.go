@@ -352,6 +352,20 @@ func TestLeader_FederationStateAntiEntropyPruning(t *testing.T) {
 	})
 }
 
+func TestWaitForDurationOrCancel_Waits(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	d := 25 * time.Millisecond
+
+	start := time.Now()
+	err := waitForDurationOrCancel(ctx, d)
+	elapsed := time.Since(start)
+
+	require.NoError(t, err)
+	require.GreaterOrEqual(t, elapsed, d-5*time.Millisecond)
+}
+
 func TestLeader_FederationStateAntiEntropyPruning_ACLDeny(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
