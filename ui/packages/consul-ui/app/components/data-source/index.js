@@ -76,7 +76,7 @@ export default class DataSource extends Component {
   @action
   connect($el) {
     // $el is only a DOM node when loading = lazy
-    // otherwise its an array from the did-insert-helper
+    // otherwise its an array from the did-insert-helper 
     if (!Array.isArray($el)) {
       this._lazyListeners.add(
         this.dom.isInViewport($el, (inViewport) => {
