@@ -42,6 +42,7 @@ rules = [
         name = "s1"
         tls {
           sds {
+            cluster_name  = "sds-cluster"
             cert_resource = "foo.example.com"
           }
         }
@@ -68,6 +69,7 @@ rules = [
         name = "s2"
         tls {
           sds {
+            cluster_name  = "sds-cluster"
             cert_resource = "www.example.com"
           }
         }
