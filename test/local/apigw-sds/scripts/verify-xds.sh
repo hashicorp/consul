@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: BUSL-1.1
+
 set -euo pipefail
 
 ADMIN_ADDR="${ADMIN_ADDR:-http://127.0.0.1:19000}"
