@@ -113,9 +113,6 @@ importers:
       '@hashicorp/ember-cli-api-double':
         specifier: ^4.0.0
         version: 4.0.0(@glint/template@1.5.2)(webpack@5.94.0)
-      '@hashicorp/ember-flight-icons':
-        specifier: 4.0.0
-        version: 4.0.0(@glint/template@1.5.2)(webpack@5.94.0)
       '@html-next/vertical-collection':
         specifier: ^4.0.0
         version: 4.0.2
@@ -1655,13 +1652,6 @@ packages:
   '@hashicorp/ember-cli-api-double@4.0.0':
     resolution: {integrity: sha512-ana8k6MjyXgwflAgVJxrgab1vKz/v6212HOHO6Gsz6NaDwzQt0DUuT4dB3VpbiZ6K8D1M7xd0znsmnvR795goA==}
     engines: {node: 14.* || >= 16}
-
-  '@hashicorp/ember-flight-icons@4.0.0':
-    resolution: {integrity: sha512-6uSFNnyqCO4IDLZnybAwvpfLKP81Hkjbx8zD3tT0Ib/YitNFxq3AURnAnnxaMybeuq4pJpA3kav+Bx+8infPZQ==}
-    engines: {node: 16.* || >= 18}
-
-  '@hashicorp/flight-icons@2.25.0':
-    resolution: {integrity: sha512-BFR+xnC7hHgo9QahwFKXUCao4MJLYAnYBb9i924Wz6WAkyNey880nyULedh6J3z/lGx+7VVa7H/xnv4WSFyZyA==}
 
   '@hashicorp/flight-icons@3.13.0':
     resolution: {integrity: sha512-eUPjix112KlkS+LVzqHsvxxAaPNpjG1PmQYzTtUdmLNJkG1PsN1Mcaz3gU7HGNpUSVvOqlNbyCSxgeITBJ+7cw==}
@@ -9300,19 +9290,6 @@ snapshots:
       - '@glint/template'
       - supports-color
       - webpack
-
-  '@hashicorp/ember-flight-icons@4.0.0(@glint/template@1.5.2)(webpack@5.94.0)':
-    dependencies:
-      '@hashicorp/flight-icons': 2.25.0
-      ember-auto-import: 2.11.1(@glint/template@1.5.2)(webpack@5.94.0)
-      ember-cli-babel: 7.26.11
-      ember-cli-htmlbars: 6.3.0
-    transitivePeerDependencies:
-      - '@glint/template'
-      - supports-color
-      - webpack
-
-  '@hashicorp/flight-icons@2.25.0': {}
 
   '@hashicorp/flight-icons@3.13.0': {}
 
