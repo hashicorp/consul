@@ -48,6 +48,7 @@ func TestMakeInlineOverrideFilterChains_FileSystemCertificates(t *testing.T) {
 	chains, err := s.makeInlineOverrideFilterChains(
 		snap,
 		snap.APIGateway.TLSConfig,
+		nil,
 		"http",
 		filterOpts,
 		certs,
@@ -92,6 +93,7 @@ func TestMakeInlineOverrideFilterChains_SingleFileSystemCertificate(t *testing.T
 	chains, err := s.makeInlineOverrideFilterChains(
 		snap,
 		snap.APIGateway.TLSConfig,
+		nil,
 		"http",
 		filterOpts,
 		certs,
@@ -135,6 +137,7 @@ func TestMakeInlineOverrideFilterChains_NoDuplicateMatchers(t *testing.T) {
 	chains, err := s.makeInlineOverrideFilterChains(
 		snap,
 		snap.APIGateway.TLSConfig,
+		nil,
 		"http",
 		filterOpts,
 		certs,
@@ -172,6 +175,7 @@ func TestMakeInlineOverrideFilterChains_EmptyCertificates(t *testing.T) {
 	chains, err := s.makeInlineOverrideFilterChains(
 		snap,
 		snap.APIGateway.TLSConfig,
+		nil,
 		"http",
 		filterOpts,
 		certs,
@@ -224,6 +228,7 @@ func TestMakeInlineOverrideFilterChains_ManyFileSystemCertificates(t *testing.T)
 	chains, err := s.makeInlineOverrideFilterChains(
 		snap,
 		snap.APIGateway.TLSConfig,
+		nil,
 		"http",
 		filterOpts,
 		certs,
@@ -272,6 +277,7 @@ func TestMakeInlineOverrideFilterChains_TLSParameters(t *testing.T) {
 	chains, err := s.makeInlineOverrideFilterChains(
 		snap,
 		snap.APIGateway.TLSConfig,
+		nil,
 		"http",
 		filterOpts,
 		certs,
@@ -283,6 +289,179 @@ func TestMakeInlineOverrideFilterChains_TLSParameters(t *testing.T) {
 	// Verify TLS context exists
 	chain := chains[0]
 	require.NotNil(t, chain.TransportSocket, "Transport socket should be configured with TLS parameters")
+}
+
+func TestMakeInlineOverrideFilterChains_SDSCertificate(t *testing.T) {
+	snap := &proxycfg.ConfigSnapshot{}
+
+	s := ResourceGenerator{}
+	filterOpts := listenerFilterOpts{
+		protocol:   "http",
+		routeName:  "test-route",
+		cluster:    "test-cluster",
+		statPrefix: "test",
+	}
+
+	tlsCfg := structs.GatewayTLSConfig{
+		SDS: &structs.GatewayTLSSDSConfig{
+			ClusterName:  "sds-cluster",
+			CertResource: "api-gw-cert",
+		},
+	}
+
+	chains, err := s.makeInlineOverrideFilterChains(
+		snap,
+		tlsCfg,
+		nil,
+		"http",
+		filterOpts,
+		nil,
+	)
+
+	require.NoError(t, err)
+	require.Len(t, chains, 1, "SDS-configured listener should build a TLS filter chain without certificate config entries")
+	require.NotNil(t, chains[0].TransportSocket)
+}
+
+func TestMakeInlineOverrideFilterChains_ServiceSDSOverrides(t *testing.T) {
+	snap := &proxycfg.ConfigSnapshot{}
+
+	s := ResourceGenerator{}
+	filterOpts := listenerFilterOpts{
+		protocol:   "http",
+		routeName:  "test-route",
+		cluster:    "test-cluster",
+		statPrefix: "test",
+	}
+
+	overrides := []apiGatewayServiceSDSOverride{
+		{
+			Hosts: []string{"api.example.com"},
+			SDS: structs.GatewayTLSSDSConfig{
+				ClusterName:  "sds-cluster",
+				CertResource: "api-cert",
+			},
+		},
+	}
+
+	chains, err := s.makeInlineOverrideFilterChains(
+		snap,
+		structs.GatewayTLSConfig{},
+		overrides,
+		"http",
+		filterOpts,
+		nil,
+	)
+
+	require.NoError(t, err)
+	require.Len(t, chains, 1)
+	require.NotNil(t, chains[0].FilterChainMatch)
+	require.ElementsMatch(t, []string{"api.example.com"}, chains[0].FilterChainMatch.ServerNames)
+}
+
+func TestMakeInlineOverrideFilterChains_ServiceSDSOverrideAndListenerDefault(t *testing.T) {
+	snap := &proxycfg.ConfigSnapshot{}
+
+	s := ResourceGenerator{}
+	filterOpts := listenerFilterOpts{
+		protocol:   "http",
+		routeName:  "test-route",
+		cluster:    "test-cluster",
+		statPrefix: "test",
+	}
+
+	overrides := []apiGatewayServiceSDSOverride{{
+		Hosts: []string{"api.example.com"},
+		SDS: structs.GatewayTLSSDSConfig{
+			ClusterName:  "sds-cluster",
+			CertResource: "api-cert",
+		},
+	}}
+
+	chains, err := s.makeInlineOverrideFilterChains(
+		snap,
+		structs.GatewayTLSConfig{
+			SDS: &structs.GatewayTLSSDSConfig{
+				ClusterName:  "sds-cluster",
+				CertResource: "default-cert",
+			},
+		},
+		overrides,
+		"http",
+		filterOpts,
+		nil,
+	)
+
+	require.NoError(t, err)
+	require.Len(t, chains, 2)
+	require.NotNil(t, chains[0].FilterChainMatch)
+	require.ElementsMatch(t, []string{"api.example.com"}, chains[0].FilterChainMatch.ServerNames)
+	require.True(t, chains[1].FilterChainMatch == nil || len(chains[1].FilterChainMatch.ServerNames) == 0,
+		"listener default SDS chain should be appended after service override chains")
+
+	overrideCount := 0
+	defaultCount := 0
+	for _, chain := range chains {
+		if chain.FilterChainMatch == nil || len(chain.FilterChainMatch.ServerNames) == 0 {
+			defaultCount++
+			continue
+		}
+		if len(chain.FilterChainMatch.ServerNames) == 1 && chain.FilterChainMatch.ServerNames[0] == "api.example.com" {
+			overrideCount++
+		}
+	}
+	require.Equal(t, 1, overrideCount, "expected one SNI override filter chain")
+	require.Equal(t, 1, defaultCount, "expected one catch-all listener SDS filter chain")
+}
+
+func TestMakeInlineOverrideFilterChains_MultipleServiceSDSOverrides_OrderBeforeDefault(t *testing.T) {
+	snap := &proxycfg.ConfigSnapshot{}
+
+	s := ResourceGenerator{}
+	filterOpts := listenerFilterOpts{
+		protocol:   "http",
+		routeName:  "test-route",
+		cluster:    "test-cluster",
+		statPrefix: "test",
+	}
+
+	overrides := []apiGatewayServiceSDSOverride{
+		{
+			Hosts: []string{"api.example.com"},
+			SDS: structs.GatewayTLSSDSConfig{
+				ClusterName:  "sds-cluster",
+				CertResource: "api-cert",
+			},
+		},
+		{
+			Hosts: []string{"admin.example.com"},
+			SDS: structs.GatewayTLSSDSConfig{
+				ClusterName:  "sds-cluster",
+				CertResource: "admin-cert",
+			},
+		},
+	}
+
+	chains, err := s.makeInlineOverrideFilterChains(
+		snap,
+		structs.GatewayTLSConfig{
+			SDS: &structs.GatewayTLSSDSConfig{
+				ClusterName:  "sds-cluster",
+				CertResource: "default-cert",
+			},
+		},
+		overrides,
+		"http",
+		filterOpts,
+		nil,
+	)
+
+	require.NoError(t, err)
+	require.Len(t, chains, 3)
+	require.ElementsMatch(t, []string{"api.example.com"}, chains[0].FilterChainMatch.ServerNames)
+	require.ElementsMatch(t, []string{"admin.example.com"}, chains[1].FilterChainMatch.ServerNames)
+	require.True(t, chains[2].FilterChainMatch == nil || len(chains[2].FilterChainMatch.ServerNames) == 0,
+		"listener default SDS chain should come after all override chains")
 }
 
 // Made with Bob

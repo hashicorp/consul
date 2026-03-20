@@ -1321,6 +1321,89 @@ func TestAPIGateway_Listeners(t *testing.T) {
 			},
 			validateErr: "certificate reference must have a name",
 		},
+		"tls sds missing cluster name": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-sds-one",
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     8443,
+						Protocol: APIGatewayListenerProtocol("http"),
+						TLS: APIGatewayTLSConfiguration{
+							SDS: &GatewayTLSSDSConfig{CertResource: "gw-default-cert"},
+						},
+					},
+				},
+			},
+			validateErr: "TLS.SDS.ClusterName is required if CertResource is set",
+		},
+		"tls sds missing cert resource": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-sds-two",
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     8443,
+						Protocol: APIGatewayListenerProtocol("http"),
+						TLS: APIGatewayTLSConfiguration{
+							SDS: &GatewayTLSSDSConfig{ClusterName: "sds-cluster"},
+						},
+					},
+				},
+			},
+			validateErr: "TLS.SDS.CertResource is required if ClusterName is set",
+		},
+		"tls sds cannot be combined with certificates": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-sds-three",
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     8443,
+						Protocol: APIGatewayListenerProtocol("http"),
+						TLS: APIGatewayTLSConfiguration{
+							Certificates: []ResourceReference{{Kind: InlineCertificate, Name: "api-gw-cert"}},
+							SDS:          &GatewayTLSSDSConfig{ClusterName: "sds-cluster", CertResource: "gw-default-cert"},
+						},
+					},
+				},
+			},
+			validateErr: "cannot specify both TLS.Certificates and TLS.SDS",
+		},
+		"valid tls sds": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-sds-four",
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     8443,
+						Protocol: APIGatewayListenerProtocol("http"),
+						TLS: APIGatewayTLSConfiguration{
+							SDS: &GatewayTLSSDSConfig{ClusterName: "sds-cluster", CertResource: "gw-default-cert"},
+						},
+					},
+				},
+			},
+			expected: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-sds-four",
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     8443,
+						Protocol: APIGatewayListenerProtocol("http"),
+						TLS: APIGatewayTLSConfiguration{
+							SDS: &GatewayTLSSDSConfig{ClusterName: "sds-cluster", CertResource: "gw-default-cert"},
+						},
+					},
+				},
+				EnterpriseMeta: *defaultMeta,
+			},
+		},
 		"valid max request headers kb": {
 			entry: &APIGatewayConfigEntry{
 				Kind: "api-gateway",

@@ -867,6 +867,7 @@ message APIGatewayTLSConfiguration {
   string MaxVersion = 3;
   // mog: func-from=cipherSuitesFromStructs func-to=cipherSuitesToStructs
   repeated string CipherSuites = 4;
+  GatewayTLSSDSConfig SDS = 5;
 }
 
 // mog annotation:
@@ -1153,6 +1154,7 @@ message HTTPService {
   // mog: func-to=enterpriseMetaToStructs func-from=enterpriseMetaFromStructs
   common.EnterpriseMeta EnterpriseMeta = 4;
   HTTPResponseFilters ResponseFilters = 5;
+  GatewayServiceTLSConfig TLS = 6;
 }
 
 // mog annotation:
@@ -1178,6 +1180,7 @@ message TCPService {
   string Name = 1;
   // mog: func-to=enterpriseMetaToStructs func-from=enterpriseMetaFromStructs
   common.EnterpriseMeta EnterpriseMeta = 2;
+  GatewayServiceTLSConfig TLS = 3;
 }
 
 // mog annotation:

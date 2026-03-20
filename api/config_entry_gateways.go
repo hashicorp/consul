@@ -303,6 +303,8 @@ type APIGatewayTLSConfiguration struct {
 	// Certificates is a set of references to certificates
 	// that a gateway listener uses for TLS termination.
 	Certificates []ResourceReference
+	// SDS allows configuring TLS certificate from an SDS service.
+	SDS *GatewayTLSSDSConfig `json:",omitempty"`
 	// MaxVersion is the maximum TLS version that the listener
 	// should support.
 	MaxVersion string `json:",omitempty" alias:"tls_max_version"`

@@ -899,6 +899,18 @@ func (e *APIGatewayConfigEntry) validateListeners() error {
 				return fmt.Errorf("certificate reference must have a name")
 			}
 		}
+		if listener.TLS.SDS != nil {
+			sds := listener.TLS.SDS
+			if sds.ClusterName == "" && sds.CertResource != "" {
+				return fmt.Errorf("TLS.SDS.ClusterName is required if CertResource is set (listener %q)", listener.Name)
+			}
+			if sds.ClusterName != "" && sds.CertResource == "" {
+				return fmt.Errorf("TLS.SDS.CertResource is required if ClusterName is set (listener %q)", listener.Name)
+			}
+			if len(listener.TLS.Certificates) > 0 {
+				return fmt.Errorf("listener %q cannot specify both TLS.Certificates and TLS.SDS", listener.Name)
+			}
+		}
 		if err := validateTLSConfig(listener.TLS.MinVersion, listener.TLS.MaxVersion, listener.TLS.CipherSuites); err != nil {
 			return err
 		}
@@ -971,6 +983,8 @@ type APIGatewayTLSConfiguration struct {
 	// Certificates is a set of references to certificates
 	// that a gateway listener uses for TLS termination.
 	Certificates []ResourceReference
+	// SDS allows configuring TLS certificate from an SDS service.
+	SDS *GatewayTLSSDSConfig `json:",omitempty"`
 	// MaxVersion is the maximum TLS version that the listener
 	// should support.
 	MaxVersion types.TLSVersion
@@ -983,13 +997,13 @@ type APIGatewayTLSConfiguration struct {
 
 // IsEmpty returns true if all values in the struct are nil or empty.
 func (a *APIGatewayTLSConfiguration) IsEmpty() bool {
-	return len(a.Certificates) == 0 && len(a.MaxVersion) == 0 && len(a.MinVersion) == 0 && len(a.CipherSuites) == 0
+	return len(a.Certificates) == 0 && a.SDS == nil && len(a.MaxVersion) == 0 && len(a.MinVersion) == 0 && len(a.CipherSuites) == 0
 }
 
 func (a *APIGatewayTLSConfiguration) ToGatewayTLSConfig() GatewayTLSConfig {
 	return GatewayTLSConfig{
 		Enabled:       true,
-		SDS:           nil,
+		SDS:           a.SDS,
 		TLSMinVersion: a.MinVersion,
 		TLSMaxVersion: a.MaxVersion,
 		CipherSuites:  a.CipherSuites,
