@@ -85,7 +85,7 @@ section[data-route='dc.show.serverstatus'] {
   @extend %display-300-semibold;
   color: var(--token-color-hashicorp-brand);
 }
-%server-failure-tolerance header span::before {
+%server-failure-tolerance .optimistic-tolerance header span::before {
   --icon-name: icon-info;
   --icon-size: icon-300;
   --icon-color: var(--token-color-foreground-faint);
