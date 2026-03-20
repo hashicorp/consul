@@ -29,7 +29,7 @@
   @extend %button-compact;
 }
 
-/* toggleable toolbar for short screens */
+/* toggleable toolbar for short  screens */
 [for='toolbar-toggle'] {
   @extend %with-search-color-icon;
   background-position: 0 4px;
