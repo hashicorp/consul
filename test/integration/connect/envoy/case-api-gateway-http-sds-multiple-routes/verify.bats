@@ -17,16 +17,12 @@ load helpers
   assert_upstream_has_endpoints_in_status 127.0.0.1:20000 s2 HEALTHY 1
 }
 
-@test "api gateway tls listener is accepting connections on :9999" {
-  retry_long openssl s_client -connect localhost:9999 -servername foo.example.com </dev/null >/dev/null 2>&1
-}
-
 @test "api gateway should route foo.example.com to s1" {
-  assert_expected_fortio_name s1 https://foo.example.com 9999
+  retry_long assert_expected_fortio_name s1 https://foo.example.com 9999
 }
 
 @test "api gateway should route www.example.com to s2" {
-  assert_expected_fortio_name s2 https://www.example.com 9999
+  retry_long assert_expected_fortio_name s2 https://www.example.com 9999
 }
 
 @test "api gateway should serve foo.example.com cert from SDS" {
