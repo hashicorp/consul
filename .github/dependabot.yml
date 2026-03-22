@@ -10,9 +10,13 @@ updates:
     - "go"
     - "dependencies"
     - "pr/no-changelog"
+  groups:
+    envoy-dependencies:
+      patterns:
+        - "github.com/envoyproxy/*"
   schedule:
     interval: daily
-- package-ecosystem: npm 
+- package-ecosystem: npm
   open-pull-requests-limit: 5
   directory: "/website"
   labels:
