@@ -1,7 +1,10 @@
-FROM alpine:3.22
+FROM alpine:3.23
 
-RUN apk add --no-cache tcpdump
-VOLUME  [ "/data" ]
+RUN apk update \
+ && apk upgrade zlib \
+ && apk add --no-cache tcpdump
 
-CMD [ "-w", "/data/all.pcap" ]
-ENTRYPOINT [ "/usr/bin/tcpdump" ]
+VOLUME ["/data"]
+
+CMD ["-w", "/data/all.pcap"]
+ENTRYPOINT ["/usr/bin/tcpdump"]
