@@ -149,6 +149,13 @@ module.exports = function (defaults, $ = process.env) {
       productionEnvironments: prodlike,
     }),
     {
+      '@embroider/macros': {
+        setConfig: {
+          '@ember-data/store': {
+            polyfillUUID: true,
+          },
+        },
+      },
       trees: trees,
       addons: addons,
       'ember-cli-babel': {

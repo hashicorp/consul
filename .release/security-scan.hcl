@@ -46,6 +46,14 @@ container {
         "test/integration/consul-container/*",
         "testing/deployer/*",
         "test-integ/*",
+        // The OSV scanner will trip on several packages that are included in the
+        // the UBI images. This is due to RHEL using the same base version in the
+        // package name for the life of the distro regardless of whether or not
+        // that version has been patched for security. Rather than enumate ever
+        // single CVE that the OSV scanner will find (several tens) we'll ignore
+        // the base UBI packages.
+        "usr/lib/sysimage/rpm/*",
+        "var/lib/rpm/*",
       ]
     }
   }
