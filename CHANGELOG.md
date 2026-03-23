@@ -1,3 +1,17 @@
+## 1.22.6 (March 23, 2026)
+
+SECURITY:
+
+* security: upgrade go version to 1.25.8 [[GH-23300](https://github.com/hashicorp/consul/issues/23300)]
+* security: bump golang.org/x/* dependencies to align with consul-enterprise and address security vulnerabilities. [[GH-23322](https://github.com/hashicorp/consul/pull/23322)]
+
+IMPROVEMENTS:
+
+* api-gateway: Add support to disable traffic with weight 0 in services for HTTPRoute backends, allowing explicit zero-weight backends to be excluded from traffic. [[GH-23216](https://github.com/hashicorp/consul/pull/23216)]
+* ui: Fixed Consul UI to work in non-secure environments by enabling Ember Data's UUID polyfill for crypto.randomUUID. [[GH-23341](https://github.com/hashicorp/consul/pull/23341)]
+* ui: Fixed Consul UI services page navigation by ensuring route transitions trigger the expected model hook behavior after Ember upgrade. [[GH-23271](https://github.com/hashicorp/consul/pull/23271)]
+* ui: Replaced deprecated SideNav component with AppSideNav for improved navigation structure.
+
 ## 1.22.5 (February 26, 2026)
 
 SECURITY:
