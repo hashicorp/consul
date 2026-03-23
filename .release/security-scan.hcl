@@ -38,7 +38,10 @@ container {
   # periodically cleaned up to remove items that are no longer found by the scanner.
   triage {
     suppress {
-      vulnerabilities = []
+      vulnerabilities = [
+		"ALPINE-CVE-2026-27171",
+		"ALPINE-CVE-2026-22184",
+	  ]
 
       paths = [
         "internal/tools/proto-gen-rpc-glue/e2e/consul/*",
