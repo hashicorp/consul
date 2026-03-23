@@ -2,12 +2,12 @@ module github.com/hashicorp/consul/troubleshoot
 
 go 1.25.8
 
-replace (
-	github.com/hashicorp/consul/api => ../api
-	github.com/hashicorp/consul/envoyextensions => ../envoyextensions
-	github.com/hashicorp/consul/proto-public => ../proto-public
-	github.com/hashicorp/consul/sdk => ../sdk
-)
+//replace (
+//	github.com/hashicorp/consul/api => ../api
+//	github.com/hashicorp/consul/envoyextensions => ../envoyextensions
+//	github.com/hashicorp/consul/proto-public => ../proto-public
+//	github.com/hashicorp/consul/sdk => ../sdk
+//)
 
 exclude (
 	github.com/hashicorp/go-msgpack v1.1.5 // has breaking changes and must be avoided
@@ -26,17 +26,17 @@ require (
 	github.com/envoyproxy/go-control-plane/envoy v1.32.4
 	github.com/envoyproxy/go-control-plane/ratelimit v0.1.0
 	github.com/envoyproxy/go-control-plane/xdsmatcher v0.13.4
-	github.com/hashicorp/consul/api v1.33.4
-	github.com/hashicorp/consul/envoyextensions v0.9.4
-	github.com/hashicorp/consul/sdk v0.17.2
+	github.com/hashicorp/consul/api v1.33.5
+	github.com/hashicorp/consul/envoyextensions v0.9.5
+	github.com/hashicorp/consul/sdk v0.17.3
 	github.com/stretchr/testify v1.10.0
-	google.golang.org/protobuf v1.36.4
+	google.golang.org/protobuf v1.36.6
 )
 
 require (
-	cel.dev/expr v0.19.0 // indirect
+	cel.dev/expr v0.24.0 // indirect
 	github.com/armon/go-metrics v0.4.1 // indirect
-	github.com/cncf/xds/go v0.0.0-20240905190251-b4127c9b8d78 // indirect
+	github.com/cncf/xds/go v0.0.0-20250501225837-2ac532fd4443 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/envoyproxy/protoc-gen-validate v1.2.1 // indirect
 	github.com/fatih/color v1.16.0 // indirect
@@ -63,8 +63,8 @@ require (
 	golang.org/x/net v0.51.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect
 	golang.org/x/text v0.34.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20241202173237-19429a94021a // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20241202173237-19429a94021a // indirect
-	google.golang.org/grpc v1.70.0 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20250707201910-8d1bb00bc6a7 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250707201910-8d1bb00bc6a7 // indirect
+	google.golang.org/grpc v1.75.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
