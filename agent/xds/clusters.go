@@ -19,20 +19,20 @@ import (
 	envoy_upstreams_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
 	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
-	"github.com/hashicorp/consul/agent/netutil"
-	"github.com/hashicorp/consul/agent/xds/config"
-	"github.com/hashicorp/consul/agent/xds/naming"
-
-	"github.com/hashicorp/go-hclog"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/xds/config"
+	"github.com/hashicorp/consul/agent/xds/naming"
 	"github.com/hashicorp/consul/agent/xds/response"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
@@ -1006,6 +1006,20 @@ func (s *ResourceGenerator) clustersFromSnapshotAPIGateway(cfgSnap *proxycfg.Con
 	var clusters []proto.Message
 	createdClusters := make(map[proxycfg.UpstreamID]bool)
 	readyListeners := getReadyListeners(cfgSnap)
+	mergedLimitsByUID := make(map[proxycfg.UpstreamID]*structs.UpstreamLimits)
+
+	for _, readyListener := range readyListeners {
+		for _, upstream := range readyListener.upstreams {
+			uid := proxycfg.NewUpstreamID(&upstream)
+			upstreamConfig, err := structs.ParseUpstreamConfigNoDefaults(upstream.Config)
+			if err != nil {
+				s.Logger.Warn("failed to parse", "upstream", uid, "error", err)
+				continue
+			}
+
+			mergedLimitsByUID[uid] = mergeAPIGatewayUpstreamLimits(mergedLimitsByUID[uid], upstreamConfig.Limits)
+		}
+	}
 
 	for _, readyListener := range readyListeners {
 		for _, upstream := range readyListener.upstreams {
@@ -1026,8 +1040,11 @@ func (s *ResourceGenerator) clustersFromSnapshotAPIGateway(cfgSnap *proxycfg.Con
 				continue
 			}
 
+			effectiveUpstream := upstream
+			effectiveUpstream.Config = mergedAPIGatewayUpstreamConfig(upstream.Config, mergedLimitsByUID[uid])
+
 			// Generate the list of upstream clusters for the discovery chain
-			upstreamClusters, err := s.makeUpstreamClustersForDiscoveryChain(uid, &upstream, chain, cfgSnap, false)
+			upstreamClusters, err := s.makeUpstreamClustersForDiscoveryChain(uid, &effectiveUpstream, chain, cfgSnap, false)
 			if err != nil {
 				return nil, err
 			}
@@ -1042,6 +1059,85 @@ func (s *ResourceGenerator) clustersFromSnapshotAPIGateway(cfgSnap *proxycfg.Con
 
 	clusters = append(clusters, makeAPIGatewayJWKClusters(s.Logger, cfgSnap)...)
 	return clusters, nil
+}
+
+func mergedAPIGatewayUpstreamConfig(configMap map[string]interface{}, limits *structs.UpstreamLimits) map[string]interface{} {
+	if limits == nil {
+		return configMap
+	}
+
+	merged := make(map[string]interface{}, len(configMap)+1)
+	for k, v := range configMap {
+		merged[k] = v
+	}
+
+	cfg, err := structs.ParseUpstreamConfigNoDefaults(configMap)
+	if err != nil {
+		merged["limits"] = limits
+		return merged
+	}
+
+	cfg.Limits = limits
+	cfg.MergeInto(merged)
+	return merged
+}
+
+func mergeAPIGatewayUpstreamLimits(existing, incoming *structs.UpstreamLimits) *structs.UpstreamLimits {
+	if existing == nil {
+		if incoming == nil {
+			return nil
+		}
+		return incoming.Clone()
+	}
+	if incoming == nil {
+		return existing.Clone()
+	}
+
+	return &structs.UpstreamLimits{
+		MaxConnections:        mergeAPIGatewayLimitValue(existing.MaxConnections, incoming.MaxConnections),
+		MaxPendingRequests:    mergeAPIGatewayLimitValue(existing.MaxPendingRequests, incoming.MaxPendingRequests),
+		MaxConcurrentRequests: mergeAPIGatewayLimitValue(existing.MaxConcurrentRequests, incoming.MaxConcurrentRequests),
+	}
+}
+
+func mergeAPIGatewayLimitValue(existing, incoming *int) *int {
+	if existing == nil {
+		if incoming == nil {
+			return nil
+		}
+		return intPointerCopy(incoming)
+	}
+	if incoming == nil {
+		return intPointerCopy(existing)
+	}
+
+	e := *existing
+	i := *incoming
+
+	if e > 0 && i > 0 {
+		if i < e {
+			return intPointerCopy(incoming)
+		}
+		return intPointerCopy(existing)
+	}
+
+	if e > 0 {
+		return intPointerCopy(existing)
+	}
+	if i > 0 {
+		return intPointerCopy(incoming)
+	}
+
+	zero := 0
+	return &zero
+}
+
+func intPointerCopy(v *int) *int {
+	if v == nil {
+		return nil
+	}
+	v2 := *v
+	return &v2
 }
 
 func (s *ResourceGenerator) configIngressUpstreamCluster(c *envoy_cluster_v3.Cluster, cfgSnap *proxycfg.ConfigSnapshot, listenerKey proxycfg.IngressListenerKey, u *structs.Upstream) {

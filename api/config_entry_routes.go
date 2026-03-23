@@ -57,6 +57,9 @@ type TCPService struct {
 	// TLS allows overriding listener-level TLS certificate settings for this service.
 	TLS *GatewayServiceTLSConfig `json:",omitempty"`
 
+	// Limits are upstream circuit-breaker limits applied to this routed service.
+	Limits *UpstreamLimits `json:",omitempty"`
+
 	// Partition is the partition the config entry is associated with.
 	// Partitioning is a Consul Enterprise feature.
 	Partition string `json:",omitempty"`
@@ -275,6 +278,8 @@ type HTTPService struct {
 
 	// TLS allows overriding listener-level TLS certificate settings for this service.
 	TLS *GatewayServiceTLSConfig `json:",omitempty"`
+	// Limits are upstream circuit-breaker limits applied to this routed service.
+	Limits *UpstreamLimits `json:",omitempty"`
 
 	// Partition is the partition the config entry is associated with.
 	// Partitioning is a Consul Enterprise feature.

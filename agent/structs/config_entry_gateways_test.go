@@ -1479,6 +1479,123 @@ func TestAPIGateway_Listeners(t *testing.T) {
 				EnterpriseMeta: *defaultMeta,
 			},
 		},
+		"valid defaults max connections": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-defaults",
+				Defaults: &UpstreamLimits{
+					MaxConnections: intPointer(128),
+				},
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     80,
+						Protocol: APIGatewayListenerProtocol("http"),
+					},
+				},
+			},
+			expected: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-defaults",
+				Defaults: &UpstreamLimits{
+					MaxConnections: intPointer(128),
+				},
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     80,
+						Protocol: APIGatewayListenerProtocol("http"),
+					},
+				},
+				EnterpriseMeta: *defaultMeta,
+			},
+		},
+		"valid defaults all limits": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-defaults-all",
+				Defaults: &UpstreamLimits{
+					MaxConnections:        intPointer(128),
+					MaxPendingRequests:    intPointer(256),
+					MaxConcurrentRequests: intPointer(512),
+				},
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     80,
+						Protocol: APIGatewayListenerProtocol("http"),
+					},
+				},
+			},
+			expected: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-defaults-all",
+				Defaults: &UpstreamLimits{
+					MaxConnections:        intPointer(128),
+					MaxPendingRequests:    intPointer(256),
+					MaxConcurrentRequests: intPointer(512),
+				},
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     80,
+						Protocol: APIGatewayListenerProtocol("http"),
+					},
+				},
+				EnterpriseMeta: *defaultMeta,
+			},
+		},
+		"invalid defaults max connections": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-defaults-invalid",
+				Defaults: &UpstreamLimits{
+					MaxConnections: intPointer(-1),
+				},
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     80,
+						Protocol: APIGatewayListenerProtocol("http"),
+					},
+				},
+			},
+			validateErr: "max connections cannot be negative",
+		},
+		"invalid defaults max pending requests": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-defaults-invalid-pending",
+				Defaults: &UpstreamLimits{
+					MaxPendingRequests: intPointer(-1),
+				},
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     80,
+						Protocol: APIGatewayListenerProtocol("http"),
+					},
+				},
+			},
+			validateErr: "max pending requests cannot be negative",
+		},
+		"invalid defaults max concurrent requests": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-defaults-invalid-concurrent",
+				Defaults: &UpstreamLimits{
+					MaxConcurrentRequests: intPointer(-1),
+				},
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     80,
+						Protocol: APIGatewayListenerProtocol("http"),
+					},
+				},
+			},
+			validateErr: "max concurrent requests cannot be negative",
+		},
 		"zero max request headers kb": {
 			entry: &APIGatewayConfigEntry{
 				Kind: "api-gateway",
