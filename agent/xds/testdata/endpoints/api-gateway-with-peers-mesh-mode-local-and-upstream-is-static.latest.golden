@@ -11,7 +11,7 @@
               "endpoint": {
                 "address": {
                   "socketAddress": {
-                    "address": "172.68.1.1",
+                    "address": "10.45.1.1",
                     "portValue": 8443
                   }
                 }
