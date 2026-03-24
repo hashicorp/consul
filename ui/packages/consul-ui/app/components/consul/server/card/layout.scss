@@ -3,27 +3,90 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-%consul-server-card {
-  position: relative;
+.consul-server-card {
+  border-radius: 6px;
+  box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.2s, background 0.2s;
+  background: var(--token-color-surface-primary);
+  border: 1.25px solid var(--token-color-border-faint);
+
+  &:hover {
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.18);
+    border-color: var(--token-color-border-strong);
+    background: var(--token-color-surface-secondary);
+  }
+}
+
+.consul-server-card--leader {
+  background: linear-gradient(135deg, #ffe3ec 0%, #fff6fa 100%);
+  border: 2px solid #e36fa0;
+
+  &:hover {
+    background: linear-gradient(135deg, #ffe3ec 0%, #fff6fa 100%);
+    border-color: #d23c7c;
+  }
+}
+
+.consul-server-card__link {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 16px;
+  text-decoration: none;
+  color: inherit;
+  border-radius: inherit;
+  width: 100%;
+  height: 100%;
+
+  &:focus {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
+}
+
+.consul-server-card__content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  justify-content: center;
+}
+
+.consul-server-card__leader-tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  border: 2px solid #e36fa0;
+  background: #ffe3ec;
+  box-shadow: 0 2px 8px 0 rgba(227, 111, 160, 0.1);
+}
+
+.consul-server-card__name {
+  font-weight: var(--token-typography-font-weight-semibold);
+  font-size: var(--token-typography-display-200-font-size);
+  line-height: var(--token-typography-display-200-line-height);
+  color: var(--token-color-hashicorp-brand);
   overflow: hidden;
-
-  @extend %panel;
-  --padding-x: 24px;
-  --padding-y: 24px;
-  padding: var(--padding-y) var(--padding-x);
-
-  --tile-size: 3rem; /* 48px */
-}
-%consul-server-card.voting-status-leader .name {
-  position: absolute !important;
-}
-%consul-server-card dd:not(:last-of-type) {
-  margin-bottom: calc(var(--padding-y) / 2);
-}
-%consul-server-card.voting-status-leader dd {
-  margin-left: calc(var(--tile-size) + 1rem); /* 16px */
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 0;
+  letter-spacing: 0.01em;
 }
 
+.server-failure-tolerance {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 24px;
+}
 
+.tab-section {
+  display: flex;
+  flex-direction: column;
+}
 
 
