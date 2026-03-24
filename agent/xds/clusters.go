@@ -1607,8 +1607,7 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 			targetInfo := groupedTarget.Targets[0]
 			targetUID := proxycfg.NewUpstreamIDFromTargetID(targetInfo.TargetID)
 
-			meshGatewayMode := structs.MeshGatewayModeDefault
-			meshGatewayMode, err = s.getMeshGatewayMode(cfgSnap, upstream, targetUID, groupedTarget.ClusterName)
+			meshGatewayMode, err := s.getMeshGatewayMode(cfgSnap, upstream, targetUID, groupedTarget.ClusterName)
 			if err != nil {
 				s.Logger.Error(err.Error(), "cluster", groupedTarget.ClusterName)
 			}
