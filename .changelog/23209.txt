@@ -1,0 +1,3 @@
+```release-note:security
+connect: discontinued support for Envoy 1.33.14 as it is archived.
+```
