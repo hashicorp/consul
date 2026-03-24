@@ -494,8 +494,18 @@ func (m *subscriptionManager) syncDiscoveryChains(
 		m.collectPendingEventForDiscoveryChain(state, pending, chainName, info)
 	}
 
+	exportedServicesMap := make(map[structs.ServiceName]struct{}, len(state.exportList.Services))
+	for _, m := range state.exportList.Services {
+		exportedServicesMap[m] = struct{}{}
+	}
+
 	// if it was dropped, try to emit an DELETE event
 	for chainName := range state.connectServices {
+
+		if _, ok := exportedServicesMap[chainName]; !ok {
+			delete(state.connectServices, chainName)
+		}
+
 		if _, ok := chainsByName[chainName]; ok {
 			continue
 		}
