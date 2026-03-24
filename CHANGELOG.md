@@ -1,8 +1,8 @@
 ## 1.22.6 (March 23, 2026)
 
 SECURITY:
-
-* security: upgrade go version to 1.25.8 [[GH-23300](https://github.com/hashicorp/consul/issues/23300)]
+* security: update google.golang.org/grpc to fix CVE-2026-33186 [[GH-23379](https://github.com/hashicorp/consul/pull/23379)]
+* security: upgrade go version to 1.25.8 [[GH-23322](https://github.com/hashicorp/consul/pull/23322)]
 * security: bump golang.org/x/* dependencies to align with consul-enterprise and address security vulnerabilities. [[GH-23322](https://github.com/hashicorp/consul/pull/23322)]
 
 IMPROVEMENTS:
