@@ -68,17 +68,12 @@ func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			continue
 		}
 
-		var upstreamConfigMap map[string]interface{}
-		if upstream != nil {
-			upstreamConfigMap = upstream.Config
-		}
-
 		es, err := s.endpointsFromDiscoveryChain(
 			uid,
 			chain,
 			cfgSnap,
 			cfgSnap.Locality,
-			upstreamConfigMap,
+			upstream,
 			cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[uid],
 			cfgSnap.ConnectProxy.WatchedGatewayEndpoints[uid],
 			false,
@@ -527,7 +522,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotIngressGateway(cfgSnap *proxycf
 				cfgSnap.IngressGateway.DiscoveryChain[uid],
 				cfgSnap,
 				proxycfg.GatewayKey{Datacenter: cfgSnap.Datacenter, Partition: u.DestinationPartition},
-				u.Config,
+				&u,
 				cfgSnap.IngressGateway.WatchedUpstreamEndpoints[uid],
 				cfgSnap.IngressGateway.WatchedGatewayEndpoints[uid],
 				false,
@@ -549,8 +544,8 @@ func (s *ResourceGenerator) endpointsFromSnapshotAPIGateway(cfgSnap *proxycfg.Co
 	readyListeners := getReadyListeners(cfgSnap)
 
 	for _, readyListener := range readyListeners {
-		for _, u := range readyListener.upstreams {
-			uid := proxycfg.NewUpstreamID(&u)
+		for _, upstream := range readyListener.upstreams {
+			uid := proxycfg.NewUpstreamID(&upstream)
 
 			// If we've already created endpoints for this upstream, skip it. Multiple listeners may
 			// reference the same upstream, so we don't need to create duplicate endpoints in that case.
@@ -563,8 +558,8 @@ func (s *ResourceGenerator) endpointsFromSnapshotAPIGateway(cfgSnap *proxycfg.Co
 				uid,
 				cfgSnap.APIGateway.DiscoveryChain[uid],
 				cfgSnap,
-				proxycfg.GatewayKey{Datacenter: cfgSnap.Datacenter, Partition: u.DestinationPartition},
-				u.Config,
+				proxycfg.GatewayKey{Datacenter: cfgSnap.Datacenter, Partition: upstream.DestinationPartition},
+				&upstream,
 				cfgSnap.APIGateway.WatchedUpstreamEndpoints[uid],
 				cfgSnap.APIGateway.WatchedGatewayEndpoints[uid],
 				false,
@@ -621,9 +616,26 @@ func (s *ResourceGenerator) makeUpstreamLoadAssignmentForPeerService(
 	// If an upstream is configured with local mesh gw mode, we make a load assignment
 	// from the gateway endpoints instead of those of the upstreams.
 	if upstreamGatewayMode == structs.MeshGatewayModeLocal {
-		localGw, ok := cfgSnap.ConnectProxy.WatchedLocalGWEndpoints.Get(cfgSnap.Locality.String())
-		if !ok {
-			// local GW is not ready; return early
+
+		// This makeUpstreamLoadAssignmentForPeerService is a generic method
+		// and used by both connect-proxy and API-GW.
+		// So, whenever this method is invoked for API Gateway (api gateway peered in local mesh mode),
+		// below, localGw would be nil because the existing statement fetches endpoints from cfg.ConnectProxy.
+		//
+		// Fix: generate endpoints conditionally based on the kind of cfgSnap.
+
+		// localGw, ok := cfgSnap.ConnectProxy.WatchedLocalGWEndpoints.Get(cfgSnap.Locality.String())
+		var localGatewayEndpoint structs.CheckServiceNodes
+		ready := false
+		if cfgSnap.Kind == structs.ServiceKindConnectProxy {
+			localGatewayEndpoint, ready = cfgSnap.ConnectProxy.WatchedLocalGWEndpoints.Get(cfgSnap.Locality.String())
+		}
+		if cfgSnap.Kind == structs.ServiceKindAPIGateway {
+			localGatewayEndpoint, ready = cfgSnap.APIGateway.WatchedLocalGWEndpoints.Get(cfgSnap.Locality.String())
+		}
+		if !ready {
+			// local mesh GW is not ready; skip load assignment; return early
+			s.Logger.Trace("local mesh GW is not ready; skipping load assignment", "cluster", clusterName)
 			return la, nil
 		}
 		la = makeLoadAssignment(
@@ -632,7 +644,7 @@ func (s *ResourceGenerator) makeUpstreamLoadAssignmentForPeerService(
 			clusterName,
 			nil,
 			[]loadAssignmentEndpointGroup{
-				{Endpoints: localGw},
+				{Endpoints: localGatewayEndpoint},
 			},
 			cfgSnap.Locality,
 		)
@@ -647,6 +659,7 @@ func (s *ResourceGenerator) makeUpstreamLoadAssignmentForPeerService(
 
 	endpoints, ok := upstreamsSnapshot.PeerUpstreamEndpoints.Get(uid)
 	if !ok {
+		s.Logger.Trace("skipping load assignment for peer instances with hostname as their address", "upstream", uid, "cluster", clusterName)
 		return nil, nil
 	}
 	la = makeLoadAssignment(
@@ -667,7 +680,7 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 	chain *structs.CompiledDiscoveryChain,
 	cfgSnap *proxycfg.ConfigSnapshot,
 	gatewayKey proxycfg.GatewayKey,
-	upstreamConfigMap map[string]interface{},
+	upstream *structs.Upstream,
 	upstreamEndpoints map[string]structs.CheckServiceNodes,
 	gatewayEndpoints map[string]structs.CheckServiceNodes,
 	forMeshGateway bool,
@@ -679,8 +692,9 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 		return nil, nil
 	}
 
-	if upstreamConfigMap == nil {
-		upstreamConfigMap = make(map[string]interface{}) // TODO:needed?
+	upstreamConfigMap := make(map[string]interface{})
+	if upstream != nil {
+		upstreamConfigMap = upstream.Config
 	}
 
 	var resources []proto.Message
@@ -712,8 +726,25 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 		}
 	}
 
+	// This endpointsFromDiscoveryChain is a generic method
+	// and used by both connect-proxy and API-GW.
+	// So, whenever this method is invoked for API Gateway,
+	// Existing `GetUpstream` method is not defined on cfgSnap.APIGateway,
+	// and would return empty object for upstream,
+	// resulting, upstream.MeshGateway.Mode to be "" and
+	// finally mgwMode will remain to MeshGatewayModeDefault (& Default is always treated as remote mode in peering)
+	// which is incorrect because API GW can be configured in local mesh mode as well.
+	//
+	// Fix: generate mgwMode conditionally based on the kind of cfgSnap.
+
 	mgwMode := structs.MeshGatewayModeDefault
-	if upstream, _ := cfgSnap.ConnectProxy.GetUpstream(uid, &cfgSnap.ProxyID.EnterpriseMeta); upstream != nil {
+	if cfgSnap.Kind == structs.ServiceKindConnectProxy {
+		upstreamConfig, _ := cfgSnap.ConnectProxy.GetUpstream(uid, &cfgSnap.ProxyID.EnterpriseMeta)
+		if upstreamConfig != nil {
+			mgwMode = upstreamConfig.MeshGateway.Mode
+		}
+	}
+	if cfgSnap.Kind == structs.ServiceKindAPIGateway {
 		mgwMode = upstream.MeshGateway.Mode
 	}
 
