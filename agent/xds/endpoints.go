@@ -624,7 +624,6 @@ func (s *ResourceGenerator) makeUpstreamLoadAssignmentForPeerService(
 		//
 		// Fix: generate endpoints conditionally based on the kind of cfgSnap.
 
-		// localGw, ok := cfgSnap.ConnectProxy.WatchedLocalGWEndpoints.Get(cfgSnap.Locality.String())
 		var localGatewayEndpoint structs.CheckServiceNodes
 		ready := false
 		if cfgSnap.Kind == structs.ServiceKindConnectProxy {
