@@ -141,6 +141,7 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 
+		oldExportList := state.exportList
 		state.exportList = evt
 
 		pending := &pendingPayload{}
@@ -159,6 +160,9 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 		}
 
 		state.sendPendingEvents(ctx, m.logger, pending)
+
+		// cleanup connectServices for older deleted exported services
+		state.cleanConnectServicesList(oldExportList)
 
 		// cleanup event versions too
 		state.cleanupEventVersions(m.logger)

@@ -86,6 +86,24 @@ func (s *subscriptionState) sendPendingEvents(
 	}
 }
 
+func (s *subscriptionState) cleanConnectServicesList(oldExportList *structs.ExportedServiceList) {
+
+	if oldExportList == nil {
+		return
+	}
+
+	newServicesMap := make(map[structs.ServiceName]struct{}, len(s.exportList.Services))
+	for _, m := range s.exportList.Services {
+		newServicesMap[m] = struct{}{}
+	}
+
+	for _, v := range oldExportList.Services {
+		if _, ok := newServicesMap[v]; !ok {
+			delete(s.connectServices, v)
+		}
+	}
+}
+
 func (s *subscriptionState) cleanupEventVersions(logger hclog.Logger) {
 	for id := range s.eventVersions {
 		keep := false
