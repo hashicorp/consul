@@ -1,0 +1,3 @@
+```release-note:security
+security: upgrade go.opentelemetry.io/otel to 1.42.0 to remediate CVE-2026-24051 (Path Hijacking / Untrusted Search Paths on macOS).
+```
