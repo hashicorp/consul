@@ -12,11 +12,10 @@
   <ul>
 {{#each @items as |item|}}
     <li>
-      <a href={{href-to 'dc.nodes.show' item.Name}}>
-        <Consul::Server::Card
-          @item={{item}}
-        />
-      </a>
+      <Consul::Server::Card
+        @item={{item}}
+        @href={{href-to 'dc.nodes.show' item.Name}}
+      />
     </li>
 {{/each}}
   </ul>

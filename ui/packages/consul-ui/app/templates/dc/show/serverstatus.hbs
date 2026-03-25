@@ -61,14 +61,15 @@ as |item|}}
     <BlockSlot @name="loaded">
       <div class="tab-section">
 
-          <section
-            class={{class-map
-              'server-failure-tolerance'
-            }}
+          <Hds::Card::Container
+            @hasBorder={{true}}
+            @level="base"
+            class="server-failure-tolerance"
+            aria-labelledby="server-fault-tolerance-title"
+            role="region"
           >
-
-            <header aria-label="Tolerance">
-              <h2>
+            <header class="server-failure-tolerance__header" aria-label="Tolerance">
+              <h2 id="server-fault-tolerance-title" class="hds-typography-display-300 hds-font-weight-semibold">
                 {{compute (fn route.t 'tolerance.header')}}
               </h2>
               <Hds::Link::Standalone
@@ -76,34 +77,22 @@ as |item|}}
                 @iconPosition='trailing'
                 @text={{compute (fn route.t 'tolerance.link-text')}}
                 @href='{{concat (env 'CONSUL_DOCS_URL') (compute (fn route.t 'tolerance.link'))}}'
+                aria-label="Learn how to improve fault tolerance"
               />
             </header>
-
-            <section
-              class={{class-map
-                (array 'immediate-tolerance')
-              }}
-            >
-              <header aria-label="Immediate Fault Tolerance">
-                <h3>
-                  {{compute (fn route.t 'tolerance.immediate.header')}}
-                </h3>
-              </header>
-              <dl
-                class={{class-map
-                  (array 'warning' (and
-                    (eq item.FailureTolerance 0)
-                    (eq item.OptimisticFailureTolerance 0)
-                  ))
-                }}
-              >
-                <dt>
-                  {{compute (fn route.t 'tolerance.immediate.body')}}
-                </dt>
-                <dd>
+            <hr class="server-failure-tolerance__divider" aria-hidden="true" />
+            <section class="server-failure-tolerance__content" aria-label="Immediate Fault Tolerance">
+              <h3 class="hds-typography-display-200 hds-font-weight-semibold">
+                {{compute (fn route.t 'tolerance.immediate.header')}}
+              </h3>
+              <p class="hds-typography-body-100 hds-font-weight-regular">
+                {{compute (fn route.t 'tolerance.immediate.body')}}
+              </p>
+              <div class="server-failure-tolerance__value" aria-live="polite">
+                <span class="hds-typography-display-300 hds-font-weight-semibold">
                   {{item.FailureTolerance}}
-                </dd>
-              </dl>
+                </span>
+              </div>
             </section>
 
               {{#if (can 'read zones')}}
@@ -136,7 +125,7 @@ as |item|}}
 
             </section>
               {{/if}}
-          </section>
+          </Hds::Card::Container>
 
     {{#if (gt item.RedundancyZones.length 0)}}
           <section
