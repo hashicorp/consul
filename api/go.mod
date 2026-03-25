@@ -2,7 +2,7 @@ module github.com/hashicorp/consul/api
 
 go 1.25.8
 
-replace github.com/hashicorp/consul/sdk => ../sdk
+// replace github.com/hashicorp/consul/sdk => ../sdk
 
 retract (
 	v1.31.1 // checksum mismatch with tag
