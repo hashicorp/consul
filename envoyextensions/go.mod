@@ -2,11 +2,11 @@ module github.com/hashicorp/consul/envoyextensions
 
 go 1.25.8
 
-replace (
-	github.com/hashicorp/consul/api => ../api
-	github.com/hashicorp/consul/proto-public => ../proto-public
-	github.com/hashicorp/consul/sdk => ../sdk
-)
+// replace (
+// 	github.com/hashicorp/consul/api => ../api
+// 	github.com/hashicorp/consul/proto-public => ../proto-public
+// 	github.com/hashicorp/consul/sdk => ../sdk
+// )
 
 retract v0.7.2 // tag was mutated
 
@@ -14,8 +14,8 @@ require (
 	github.com/envoyproxy/go-control-plane v0.14.0
 	github.com/envoyproxy/go-control-plane/envoy v1.36.0
 	github.com/google/go-cmp v0.7.0
-	github.com/hashicorp/consul/api v1.33.4
-	github.com/hashicorp/consul/sdk v0.17.2
+	github.com/hashicorp/consul/api v1.33.7
+	github.com/hashicorp/consul/sdk v0.17.3
 	github.com/hashicorp/go-hclog v1.5.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-version v1.2.1
