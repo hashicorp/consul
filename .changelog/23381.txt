@@ -1,0 +1,3 @@
+```release-note:improvement
+- ui: removed consul docs website related code as it is being maintained in a separate internal repository.
+```
