@@ -524,10 +524,6 @@ print-%  : ; @echo $($*) ## utility to echo a makefile variable (i.e. 'make prin
 module-versions: ## Print a list of modules which can be updated. Columns are: module current_version date_of_current_version latest_version
 	@go list -m -u -f '{{if .Update}} {{printf "%-50v %-40s" .Path .Version}} {{with .Time}} {{ .Format "2006-01-02" -}} {{else}} {{printf "%9s" ""}} {{end}}   {{ .Update.Version}} {{end}}' all
 
-.PHONY: docs
-docs: ## Point your web browser to http://localhost:3000/consul to live render docs from ./website/
-	make -C website
-
 ##@ Release
 
 .PHONY: version

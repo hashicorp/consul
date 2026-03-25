@@ -27,12 +27,6 @@ coverage.out
 .LSOverride
 .fseventsd
 
-# Web artifacts
-website/.bundle
-website/build/
-website/npm-debug.log
-website/vendor
-
 ### Terraform gitignore ###
 # Local .terraform directories
 **/.terraform/*
