@@ -176,6 +176,94 @@ jobs:
       - name: Test Coverage CI
         working-directory: ui/packages/consul-ui
         run: make test-coverage-ci
+
+  e2e-tests:
+    needs: setup
+    if: ${{ !endsWith(github.repository, '-enterprise') }}
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-medium) }}
+    continue-on-error: true
+    env:
+      CONSUL_NSPACES_ENABLED: 0
+    steps:
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+
+      - name: Install PNPM
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        with:
+          run_install: false
+          package_json_file: ui/package.json
+
+      - name: Setup node and pnpm cache
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+        with:
+          node-version-file: "./ui/package.json"
+          cache: "pnpm"
+          cache-dependency-path: "ui/pnpm-lock.yaml"
+
+      - name: Install dependencies
+        working-directory: ui
+        run: make deps
+
+      - name: Checkout consul-ui-testing repo
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+        with:
+          repository: hashicorp/consul-ui-testing
+          path: consul-ui-testing
+          token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+
+      - name: Install consul-ui-testing dependencies
+        working-directory: consul-ui-testing
+        run: yarn install
+
+      - name: Start Consul API servers
+        working-directory: consul-ui-testing
+        run: |
+          yarn start hashicorppreview/consul:latest --quiet &
+          echo $! > consul-backend.pid
+
+      - name: Wait for Consul API to be ready
+        run: |
+          npx wait-on http://localhost:8500/v1/status/leader --timeout 60000
+          npx wait-on http://localhost:8501/v1/status/leader --timeout 60000
+
+      - name: Start Consul UI
+        working-directory: ui/packages/consul-ui
+        run: |
+          pnpm run start:consul &
+          echo $! > consul-ui.pid
+        env:
+          CONSUL_HTTP_ADDR: http://localhost:8500
+
+      - name: Wait for UI to be ready
+        run: npx wait-on http://localhost:4200 --timeout 60000
+
+      - name: Run E2E health check
+        working-directory: ui/packages/consul-ui
+        run: pnpm run test:e2e:health
+
+      - name: Run basic E2E tests
+        working-directory: ui/packages/consul-ui
+        run: pnpm run test:e2e:basic
+        env:
+          CI: true
+          CONSUL_UI_TEST_TOKEN: ${{ secrets.CONSUL_UI_TEST_TOKEN }}
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        with:
+          name: e2e-test-results-ce
+          path: ui/packages/consul-ui/e2e-tests/reports/
+          retention-days: 30
+
+      - name: Upload screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        with:
+          name: e2e-screenshots-ce
+          path: ui/packages/consul-ui/e2e-tests/reports/test-results/
+          retention-days: 7
+
   # This is job is required for branch protection as a required gihub check
   # because GitHub actions show up as checks at the job level and not the
   # workflow level.  This is currently a feature request:
@@ -196,6 +284,7 @@ jobs:
       - workspace-tests
       - node-tests
       - ember-build-test
+      - e2e-tests
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     if: ${{ always() }}
     steps:
