@@ -215,6 +215,11 @@ jobs:
         working-directory: consul-ui-testing
         run: yarn install
 
+      - name: Install httpie (required by consul-ui-testing)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y httpie
+
       - name: Start Consul API servers
         working-directory: consul-ui-testing
         run: |
