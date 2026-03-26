@@ -1,0 +1,3 @@
+```release-note:security
+security(ui): backport Rollup fix to 2.80.0 in release/1.22.x to address CVE-2026-27606 (SECVULN-38912).
+```

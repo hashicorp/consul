@@ -1,0 +1,4 @@
+```release-note:security
+- security: upgrade go version to 1.25.8
+- security: upgarde supported envoy to latest for 1.22.x
+```
