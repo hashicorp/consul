@@ -224,11 +224,30 @@ jobs:
         working-directory: consul-ui-testing
         run: |
           echo "Starting Consul API servers at $(date '+%Y-%m-%d %H:%M:%S')"
-          yarn start hashicorppreview/consul-enterprise:1.22 --quiet &
+          yarn start hashicorppreview/consul-enterprise:1.22 > consul-startup.log 2>&1 &
           echo $! > consul-backend.pid
           echo "Consul backend PID: $(cat consul-backend.pid)"
-          sleep 5
+          sleep 10
+          echo "Checking if process is still running..."
+          if ps -p $(cat consul-backend.pid) > /dev/null; then
+            echo "✓ Consul startup process is running"
+          else
+            echo "✗ Consul startup process died!"
+            echo "=== Startup log ==="
+            cat consul-startup.log || echo "No log file found"
+            exit 1
+          fi
           echo "Waiting for Consul to initialize..."
+
+      - name: Monitor Consul startup
+        if: always()
+        working-directory: consul-ui-testing
+        run: |
+          echo "=== Checking Docker containers ==="
+          docker ps -a || true
+          echo ""
+          echo "=== Consul startup log (last 50 lines) ==="
+          tail -50 consul-startup.log || echo "No log file found"
 
       - name: Wait for Consul API to be ready
         run: |
