@@ -308,22 +308,79 @@ type apiGatewayServiceSDSOverride struct {
 }
 
 func collectAPIGatewayServiceSDSOverrides(cfgSnap *proxycfg.ConfigSnapshot, ready readyListener) ([]apiGatewayServiceSDSOverride, error) {
-	if ready.listenerCfg.Protocol != structs.ListenerProtocolHTTP {
-		return nil, nil
-	}
-
 	defaultSDS := ready.listenerCfg.TLS.SDS
-	byKey := make(map[string]*apiGatewayServiceSDSOverride)
-	hostToKey := make(map[string]string)
 
-	for routeRef := range ready.routeReferences {
-		route, ok := cfgSnap.APIGateway.HTTPRoutes.Get(routeRef)
-		if !ok {
-			continue
+	switch ready.listenerCfg.Protocol {
+	case structs.ListenerProtocolHTTP:
+		byKey := make(map[string]*apiGatewayServiceSDSOverride)
+		hostToKey := make(map[string]string)
+
+		for routeRef := range ready.routeReferences {
+			route, ok := cfgSnap.APIGateway.HTTPRoutes.Get(routeRef)
+			if !ok {
+				continue
+			}
+
+			for _, rule := range route.Rules {
+				for _, service := range rule.Services {
+					sds := service.SDSConfigOrNil()
+					if sds == nil {
+						continue
+					}
+
+					effectiveSDS := *sds
+					if effectiveSDS.ClusterName == "" && defaultSDS != nil {
+						effectiveSDS.ClusterName = defaultSDS.ClusterName
+					}
+					if effectiveSDS.ClusterName == "" {
+						return nil, fmt.Errorf("route %q service %q sets TLS.SDS without ClusterName and no listener TLS.SDS.ClusterName is available", route.Name, service.Name)
+					}
+
+					key := fmt.Sprintf("%s|%s", effectiveSDS.ClusterName, effectiveSDS.CertResource)
+					override, ok := byKey[key]
+					if !ok {
+						override = &apiGatewayServiceSDSOverride{SDS: effectiveSDS}
+						byKey[key] = override
+					}
+
+					for _, host := range route.Hostnames {
+						if prev, seen := hostToKey[host]; seen && prev != key {
+							return nil, fmt.Errorf("host %q maps to multiple TLS.SDS configs on listener %q", host, ready.listenerCfg.Name)
+						}
+						hostToKey[host] = key
+						if !containsString(override.Hosts, host) {
+							override.Hosts = append(override.Hosts, host)
+						}
+					}
+				}
+			}
 		}
 
-		for _, rule := range route.Rules {
-			for _, service := range rule.Services {
+		keys := make([]string, 0, len(byKey))
+		for k := range byKey {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+
+		result := make([]apiGatewayServiceSDSOverride, 0, len(keys))
+		for _, key := range keys {
+			override := byKey[key]
+			sort.Strings(override.Hosts)
+			result = append(result, *override)
+		}
+
+		return result, nil
+
+	case structs.ListenerProtocolTCP:
+		var selected *structs.GatewayTLSSDSConfig
+
+		for routeRef := range ready.routeReferences {
+			route, ok := cfgSnap.APIGateway.TCPRoutes.Get(routeRef)
+			if !ok {
+				continue
+			}
+
+			for _, service := range route.Services {
 				sds := service.SDSConfigOrNil()
 				if sds == nil {
 					continue
@@ -337,40 +394,29 @@ func collectAPIGatewayServiceSDSOverrides(cfgSnap *proxycfg.ConfigSnapshot, read
 					return nil, fmt.Errorf("route %q service %q sets TLS.SDS without ClusterName and no listener TLS.SDS.ClusterName is available", route.Name, service.Name)
 				}
 
-				key := fmt.Sprintf("%s|%s", effectiveSDS.ClusterName, effectiveSDS.CertResource)
-				override, ok := byKey[key]
-				if !ok {
-					override = &apiGatewayServiceSDSOverride{SDS: effectiveSDS}
-					byKey[key] = override
+				if selected == nil {
+					selected = &effectiveSDS
+					continue
 				}
 
-				for _, host := range route.Hostnames {
-					if prev, seen := hostToKey[host]; seen && prev != key {
-						return nil, fmt.Errorf("host %q maps to multiple TLS.SDS configs on listener %q", host, ready.listenerCfg.Name)
-					}
-					hostToKey[host] = key
-					if !containsString(override.Hosts, host) {
-						override.Hosts = append(override.Hosts, host)
-					}
+				if selected.ClusterName != effectiveSDS.ClusterName || selected.CertResource != effectiveSDS.CertResource {
+					return nil, fmt.Errorf("listener %q has multiple TCP route TLS.SDS overrides; found both %q/%q and %q/%q",
+						ready.listenerCfg.Name,
+						selected.ClusterName, selected.CertResource,
+						effectiveSDS.ClusterName, effectiveSDS.CertResource,
+					)
 				}
 			}
 		}
+
+		if selected == nil {
+			return nil, nil
+		}
+
+		return []apiGatewayServiceSDSOverride{{SDS: *selected}}, nil
 	}
 
-	keys := make([]string, 0, len(byKey))
-	for k := range byKey {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	result := make([]apiGatewayServiceSDSOverride, 0, len(keys))
-	for _, key := range keys {
-		override := byKey[key]
-		sort.Strings(override.Hosts)
-		result = append(result, *override)
-	}
-
-	return result, nil
+	return nil, nil
 }
 
 func containsString(items []string, val string) bool {
@@ -546,6 +592,14 @@ func (s *ResourceGenerator) makeInlineOverrideFilterChains(cfgSnap *proxycfg.Con
 	}
 
 	if tlsCfg.SDS != nil {
+		for _, override := range serviceSDSOverrides {
+			if len(override.Hosts) == 0 {
+				// A catch-all service override (used by TCP routes) supersedes
+				// the listener default SDS chain on this listener.
+				return chains, nil
+			}
+		}
+
 		if err := constructChain("sds", nil, makeCommonTLSContextFromGatewayTLSConfig(tlsCfg)); err != nil {
 			return nil, err
 		}

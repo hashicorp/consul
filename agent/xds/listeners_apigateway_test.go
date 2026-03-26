@@ -464,4 +464,193 @@ func TestMakeInlineOverrideFilterChains_MultipleServiceSDSOverrides_OrderBeforeD
 		"listener default SDS chain should come after all override chains")
 }
 
+func TestMakeInlineOverrideFilterChains_CatchAllServiceOverrideSkipsListenerDefaultSDS(t *testing.T) {
+	snap := &proxycfg.ConfigSnapshot{}
+
+	s := ResourceGenerator{}
+	filterOpts := listenerFilterOpts{
+		protocol:   "tcp",
+		routeName:  "test-route",
+		cluster:    "test-cluster",
+		statPrefix: "test",
+	}
+
+	overrides := []apiGatewayServiceSDSOverride{{
+		SDS: structs.GatewayTLSSDSConfig{
+			ClusterName:  "sds-cluster",
+			CertResource: "service-cert",
+		},
+	}}
+
+	chains, err := s.makeInlineOverrideFilterChains(
+		snap,
+		structs.GatewayTLSConfig{
+			SDS: &structs.GatewayTLSSDSConfig{
+				ClusterName:  "sds-cluster",
+				CertResource: "listener-default-cert",
+			},
+		},
+		overrides,
+		"tcp",
+		filterOpts,
+		nil,
+	)
+
+	require.NoError(t, err)
+	require.Len(t, chains, 1, "catch-all service override should suppress listener default SDS chain")
+	require.True(t, chains[0].FilterChainMatch == nil || len(chains[0].FilterChainMatch.ServerNames) == 0)
+}
+
+func TestCollectAPIGatewayServiceSDSOverrides_TCPRouteInheritsListenerSDSCluster(t *testing.T) {
+	snap := proxycfg.TestConfigSnapshotAPIGateway(t, "default", nil, func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+		entry.Listeners = []structs.APIGatewayListener{{
+			Name:     "tcp-listener",
+			Protocol: structs.ListenerProtocolTCP,
+			Port:     9000,
+			TLS: structs.APIGatewayTLSConfiguration{
+				SDS: &structs.GatewayTLSSDSConfig{ClusterName: "listener-sds-cluster", CertResource: "listener-default-cert"},
+			},
+		}}
+		bound.Listeners = []structs.BoundAPIGatewayListener{{
+			Name: "tcp-listener",
+			Routes: []structs.ResourceReference{{
+				Kind: structs.TCPRoute,
+				Name: "tcp-route",
+			}},
+		}}
+	}, []structs.BoundRoute{
+		&structs.TCPRouteConfigEntry{
+			Kind: structs.TCPRoute,
+			Name: "tcp-route",
+			Parents: []structs.ResourceReference{{
+				Kind: structs.APIGateway,
+				Name: "api-gateway",
+			}},
+			Services: []structs.TCPService{{
+				Name: "backend",
+				TLS:  &structs.GatewayServiceTLSConfig{SDS: &structs.GatewayTLSSDSConfig{CertResource: "service-cert"}},
+			}},
+		},
+	}, nil, nil)
+
+	overrides, err := collectAPIGatewayServiceSDSOverrides(snap, readyListener{
+		listenerCfg: structs.APIGatewayListener{
+			Name:     "tcp-listener",
+			Protocol: structs.ListenerProtocolTCP,
+			TLS: structs.APIGatewayTLSConfiguration{
+				SDS: &structs.GatewayTLSSDSConfig{ClusterName: "listener-sds-cluster", CertResource: "listener-default-cert"},
+			},
+		},
+		routeReferences: map[structs.ResourceReference]struct{}{
+			{Kind: structs.TCPRoute, Name: "tcp-route"}: {},
+		},
+	})
+
+	require.NoError(t, err)
+	require.Len(t, overrides, 1)
+	require.Equal(t, "listener-sds-cluster", overrides[0].SDS.ClusterName)
+	require.Equal(t, "service-cert", overrides[0].SDS.CertResource)
+	require.Empty(t, overrides[0].Hosts)
+}
+
+func TestCollectAPIGatewayServiceSDSOverrides_TCPRouteRequiresClusterWhenNoListenerDefault(t *testing.T) {
+	snap := proxycfg.TestConfigSnapshotAPIGateway(t, "default", nil, func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+		entry.Listeners = []structs.APIGatewayListener{{
+			Name:     "tcp-listener",
+			Protocol: structs.ListenerProtocolTCP,
+			Port:     9000,
+		}}
+		bound.Listeners = []structs.BoundAPIGatewayListener{{
+			Name: "tcp-listener",
+			Routes: []structs.ResourceReference{{
+				Kind: structs.TCPRoute,
+				Name: "tcp-route",
+			}},
+		}}
+	}, []structs.BoundRoute{
+		&structs.TCPRouteConfigEntry{
+			Kind: structs.TCPRoute,
+			Name: "tcp-route",
+			Parents: []structs.ResourceReference{{
+				Kind: structs.APIGateway,
+				Name: "api-gateway",
+			}},
+			Services: []structs.TCPService{{
+				Name: "backend",
+				TLS:  &structs.GatewayServiceTLSConfig{SDS: &structs.GatewayTLSSDSConfig{CertResource: "service-cert"}},
+			}},
+		},
+	}, nil, nil)
+
+	_, err := collectAPIGatewayServiceSDSOverrides(snap, readyListener{
+		listenerCfg: structs.APIGatewayListener{
+			Name:     "tcp-listener",
+			Protocol: structs.ListenerProtocolTCP,
+		},
+		routeReferences: map[structs.ResourceReference]struct{}{
+			{Kind: structs.TCPRoute, Name: "tcp-route"}: {},
+		},
+	})
+
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "sets TLS.SDS without ClusterName")
+}
+
+func TestCollectAPIGatewayServiceSDSOverrides_TCPRouteRejectsConflictingOverrides(t *testing.T) {
+	snap := proxycfg.TestConfigSnapshotAPIGateway(t, "default", nil, func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+		entry.Listeners = []structs.APIGatewayListener{{
+			Name:     "tcp-listener",
+			Protocol: structs.ListenerProtocolTCP,
+			Port:     9000,
+		}}
+		bound.Listeners = []structs.BoundAPIGatewayListener{{
+			Name: "tcp-listener",
+			Routes: []structs.ResourceReference{
+				{Kind: structs.TCPRoute, Name: "tcp-route-1"},
+			},
+		}}
+	}, []structs.BoundRoute{
+		&structs.TCPRouteConfigEntry{
+			Kind: structs.TCPRoute,
+			Name: "tcp-route-1",
+			Parents: []structs.ResourceReference{{
+				Kind: structs.APIGateway,
+				Name: "api-gateway",
+			}},
+			Services: []structs.TCPService{{
+				Name: "backend-a",
+				TLS:  &structs.GatewayServiceTLSConfig{SDS: &structs.GatewayTLSSDSConfig{ClusterName: "sds-cluster", CertResource: "service-a-cert"}},
+			}},
+		},
+	}, nil, nil)
+
+	routeRef1 := structs.ResourceReference{Kind: structs.TCPRoute, Name: "tcp-route-1"}
+	routeRef2 := structs.ResourceReference{Kind: structs.TCPRoute, Name: "tcp-route-2"}
+
+	snap.APIGateway.TCPRoutes.InitWatch(routeRef2, nil)
+
+	require.True(t, snap.APIGateway.TCPRoutes.Set(routeRef2, &structs.TCPRouteConfigEntry{
+		Kind: structs.TCPRoute,
+		Name: "tcp-route-2",
+		Services: []structs.TCPService{{
+			Name: "backend-b",
+			TLS:  &structs.GatewayServiceTLSConfig{SDS: &structs.GatewayTLSSDSConfig{ClusterName: "sds-cluster", CertResource: "service-b-cert"}},
+		}},
+	}))
+
+	_, err := collectAPIGatewayServiceSDSOverrides(snap, readyListener{
+		listenerCfg: structs.APIGatewayListener{
+			Name:     "tcp-listener",
+			Protocol: structs.ListenerProtocolTCP,
+		},
+		routeReferences: map[structs.ResourceReference]struct{}{
+			routeRef1: {},
+			routeRef2: {},
+		},
+	})
+
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "multiple TCP route TLS.SDS overrides")
+}
+
 // Made with Bob
