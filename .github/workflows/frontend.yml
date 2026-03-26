@@ -224,7 +224,7 @@ jobs:
         working-directory: consul-ui-testing
         run: |
           echo "Starting Consul API servers at $(date '+%Y-%m-%d %H:%M:%S')"
-          yarn start hashicorppreview/consul:latest &
+          yarn start hashicorppreview/consul-enterprise:1.22 --quiet &
           echo $! > consul-backend.pid
           echo "Consul backend PID: $(cat consul-backend.pid)"
           sleep 5
