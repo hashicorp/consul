@@ -218,13 +218,28 @@ jobs:
       - name: Start Consul API servers
         working-directory: consul-ui-testing
         run: |
-          yarn start hashicorppreview/consul:latest --quiet &
+          echo "Starting Consul API servers at $(date '+%Y-%m-%d %H:%M:%S')"
+          yarn start hashicorppreview/consul:latest &
           echo $! > consul-backend.pid
+          echo "Consul backend PID: $(cat consul-backend.pid)"
+          sleep 5
+          echo "Waiting for Consul to initialize..."
 
       - name: Wait for Consul API to be ready
         run: |
-          npx wait-on http://localhost:8500/v1/status/leader --timeout 60000
-          npx wait-on http://localhost:8501/v1/status/leader --timeout 60000
+          echo "Waiting for port 8500 to be ready (timeout: 15 minutes)..."
+          START_TIME=$(date +%s)
+          npx wait-on http://localhost:8500/v1/status/leader --timeout 900000
+          PORT_8500_TIME=$(($(date +%s) - START_TIME))
+          echo "✓ Port 8500 ready after ${PORT_8500_TIME} seconds"
+          
+          echo "Waiting for port 8501 to be ready (timeout: 15 minutes)..."
+          START_TIME=$(date +%s)
+          npx wait-on http://localhost:8501/v1/status/leader --timeout 900000
+          PORT_8501_TIME=$(($(date +%s) - START_TIME))
+          echo "✓ Port 8501 ready after ${PORT_8501_TIME} seconds"
+          
+          echo "Total Consul startup time: $((PORT_8500_TIME + PORT_8501_TIME)) seconds"
 
       - name: Start Consul UI
         working-directory: ui/packages/consul-ui
