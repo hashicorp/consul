@@ -220,6 +220,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y httpie
 
+      - name: Skip HashiCups build (use cached version marker)
+        working-directory: consul-ui-testing
+        run: echo "hashicorppreview/consul:latest" > .last_consul_version_built
+
       - name: Start Consul API servers
         working-directory: consul-ui-testing
         run: |
