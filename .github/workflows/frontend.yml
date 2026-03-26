@@ -249,19 +249,50 @@ jobs:
           echo "=== Consul startup log (last 50 lines) ==="
           tail -50 consul-startup.log || echo "No log file found"
 
+      - name: Check Docker containers before waiting
+        working-directory: consul-ui-testing
+        run: |
+          echo "=== Docker containers status ==="
+          docker ps -a
+          echo ""
+          echo "=== Checking if ports are listening ==="
+          netstat -tuln | grep -E ':(8500|8501)' || echo "Ports 8500/8501 not listening yet"
+          echo ""
+          echo "=== Last 30 lines of startup log ==="
+          tail -30 consul-startup.log || echo "No log file"
+
       - name: Wait for Consul API to be ready
         run: |
-          echo "Waiting for port 8500 to be ready (timeout: 15 minutes)..."
+          echo "Waiting for port 8500 to be ready (timeout: 2 minutes for quick feedback)..."
           START_TIME=$(date +%s)
-          npx wait-on http://localhost:8500/v1/status/leader --timeout 900000
-          PORT_8500_TIME=$(($(date +%s) - START_TIME))
-          echo "✓ Port 8500 ready after ${PORT_8500_TIME} seconds"
           
-          echo "Waiting for port 8501 to be ready (timeout: 15 minutes)..."
+          # Try with shorter timeout first to fail fast
+          if npx wait-on http://localhost:8500/v1/status/leader --timeout 120000; then
+            PORT_8500_TIME=$(($(date +%s) - START_TIME))
+            echo "✓ Port 8500 ready after ${PORT_8500_TIME} seconds"
+          else
+            echo "✗ Port 8500 not ready after 2 minutes"
+            echo "=== Debugging info ==="
+            docker ps -a
+            netstat -tuln | grep -E ':(8500|8501)' || echo "Ports not listening"
+            curl -v http://localhost:8500/v1/status/leader || true
+            exit 1
+          fi
+          
+          echo "Waiting for port 8501 to be ready (timeout: 2 minutes)..."
           START_TIME=$(date +%s)
-          npx wait-on http://localhost:8501/v1/status/leader --timeout 900000
-          PORT_8501_TIME=$(($(date +%s) - START_TIME))
-          echo "✓ Port 8501 ready after ${PORT_8501_TIME} seconds"
+          
+          if npx wait-on http://localhost:8501/v1/status/leader --timeout 120000; then
+            PORT_8501_TIME=$(($(date +%s) - START_TIME))
+            echo "✓ Port 8501 ready after ${PORT_8501_TIME} seconds"
+          else
+            echo "✗ Port 8501 not ready after 2 minutes"
+            echo "=== Debugging info ==="
+            docker ps -a
+            netstat -tuln | grep -E ':(8500|8501)' || echo "Ports not listening"
+            curl -v http://localhost:8501/v1/status/leader || true
+            exit 1
+          fi
           
           echo "Total Consul startup time: $((PORT_8500_TIME + PORT_8501_TIME)) seconds"
 
