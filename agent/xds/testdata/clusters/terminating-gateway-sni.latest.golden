@@ -34,48 +34,52 @@
         "typedConfig": {
           "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
           "commonTlsContext": {
-            "tlsCertificates": [
+            "combinedValidationContext": {
+              "defaultValidationContext": {
+                "matchTypedSubjectAltNames": [
+                  {
+                    "matcher": {
+                      "exact": "bar.com"
+                    },
+                    "sanType": "URI"
+                  },
+                  {
+                    "matcher": {
+                      "exact": "bar.com"
+                    },
+                    "sanType": "DNS"
+                  },
+                  {
+                    "matcher": {
+                      "exact": "bar.com"
+                    },
+                    "sanType": "EMAIL"
+                  },
+                  {
+                    "matcher": {
+                      "exact": "bar.com"
+                    },
+                    "sanType": "IP_ADDRESS"
+                  }
+                ]
+              },
+              "validationContextSdsSecretConfig": {
+                "name": "api-ca",
+                "sdsConfig": {
+                  "ads": {},
+                  "resourceApiVersion": "V3"
+                }
+              }
+            },
+            "tlsCertificateSdsSecretConfigs": [
               {
-                "certificateChain": {
-                  "filename": "api.cert.pem"
-                },
-                "privateKey": {
-                  "filename": "api.key.pem"
+                "name": "api-cert",
+                "sdsConfig": {
+                  "ads": {},
+                  "resourceApiVersion": "V3"
                 }
               }
-            ],
-            "tlsParams": {},
-            "validationContext": {
-              "matchTypedSubjectAltNames": [
-                {
-                  "matcher": {
-                    "exact": "bar.com"
-                  },
-                  "sanType": "URI"
-                },
-                {
-                  "matcher": {
-                    "exact": "bar.com"
-                  },
-                  "sanType": "DNS"
-                },
-                {
-                  "matcher": {
-                    "exact": "bar.com"
-                  },
-                  "sanType": "EMAIL"
-                },
-                {
-                  "matcher": {
-                    "exact": "bar.com"
-                  },
-                  "sanType": "IP_ADDRESS"
-                }
-              ],
-              "trustedCa": {
-                "filename": "ca.cert.pem"
-              }
-            }
+            ]
           },
           "sni": "bar.com"
         }
@@ -158,38 +162,52 @@
         "typedConfig": {
           "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
           "commonTlsContext": {
-            "tlsParams": {},
-            "validationContext": {
-              "matchTypedSubjectAltNames": [
-                {
-                  "matcher": {
-                    "exact": "foo.com"
+            "combinedValidationContext": {
+              "defaultValidationContext": {
+                "matchTypedSubjectAltNames": [
+                  {
+                    "matcher": {
+                      "exact": "foo.com"
+                    },
+                    "sanType": "URI"
                   },
-                  "sanType": "URI"
-                },
-                {
-                  "matcher": {
-                    "exact": "foo.com"
+                  {
+                    "matcher": {
+                      "exact": "foo.com"
+                    },
+                    "sanType": "DNS"
                   },
-                  "sanType": "DNS"
-                },
-                {
-                  "matcher": {
-                    "exact": "foo.com"
+                  {
+                    "matcher": {
+                      "exact": "foo.com"
+                    },
+                    "sanType": "EMAIL"
                   },
-                  "sanType": "EMAIL"
-                },
-                {
-                  "matcher": {
-                    "exact": "foo.com"
-                  },
-                  "sanType": "IP_ADDRESS"
+                  {
+                    "matcher": {
+                      "exact": "foo.com"
+                    },
+                    "sanType": "IP_ADDRESS"
+                  }
+                ]
+              },
+              "validationContextSdsSecretConfig": {
+                "name": "web-ca",
+                "sdsConfig": {
+                  "ads": {},
+                  "resourceApiVersion": "V3"
                 }
-              ],
-              "trustedCa": {
-                "filename": "ca.cert.pem"
               }
-            }
+            },
+            "tlsCertificateSdsSecretConfigs": [
+              {
+                "name": "web-cert",
+                "sdsConfig": {
+                  "ads": {},
+                  "resourceApiVersion": "V3"
+                }
+              }
+            ]
           },
           "sni": "foo.com"
         }
