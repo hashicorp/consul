@@ -22,9 +22,7 @@ var allowedExposeProtocols = map[string]bool{"http": true, "http2": true}
 type MeshGatewayMode string
 
 func (m MeshGatewayMode) getHash() uint64 {
-	h := newCustomHasher()
-	m.appendHash(h)
-	return h.Sum64()
+	return hashValue(m)
 }
 
 func (m MeshGatewayMode) appendHash(h *customHasher) {
