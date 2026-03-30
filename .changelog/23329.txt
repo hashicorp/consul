@@ -1,3 +1,3 @@
 ```release-note:feature
-api: a new API ""/v1/internal/rpc/methods"" which can be used to list all RPC method names. This will be useful to user when they want to perform exclusion of RPC endpoint in rate limit.
+api: a new API ""/v1/internal/rpc/methods"" which can be used to list all RPC method names. Requires an operator:read ACL token. This will be useful to user when they want to perform exclusion of RPC endpoint in rate limit.
 ```
