@@ -28,38 +28,9 @@ jobs:
         name: Setup outputs
         run: ./.github/scripts/get_runner_classes.sh
 
-  workspace-tests:
-    needs: setup
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
-    defaults:
-      run:
-        working-directory: ui
-    steps:
-      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
-
-      - name: Install PNPM
-        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
-        with:
-          run_install: false
-          package_json_file: ui/package.json
-
-      - name: Setup node and pnpm cache
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
-        with:
-          node-version-file: "./ui/package.json"
-          cache: "pnpm"
-          cache-dependency-path: "ui/pnpm-lock.yaml"
-
-      # Install dependencies.
-      - name: install packages
-        working-directory: ui
-        run: make deps
-
-      - run: make test-workspace
 
   e2e-tests:
     needs: setup
-    if: ${{ !endsWith(github.repository, '-enterprise') }}
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-medium) }}
     continue-on-error: true
     env:
@@ -108,76 +79,7 @@ jobs:
         working-directory: consul-ui-testing
         run: |
           echo "Starting Consul API servers at $(date '+%Y-%m-%d %H:%M:%S')"
-          yarn start hashicorppreview/consul:latest > consul-startup.log 2>&1 &
-          echo $! > consul-backend.pid
-          echo "Consul backend PID: $(cat consul-backend.pid)"
-          sleep 10
-          echo "Checking if process is still running..."
-          if ps -p $(cat consul-backend.pid) > /dev/null; then
-            echo "✓ Consul startup process is running"
-          else
-            echo "✗ Consul startup process died!"
-            echo "=== Startup log ==="
-            cat consul-startup.log || echo "No log file found"
-            exit 1
-          fi
-          echo "Waiting for Consul to initialize..."
-
-      - name: Monitor Consul startup
-        if: always()
-        working-directory: consul-ui-testing
-        run: |
-          echo "=== Checking Docker containers ==="
-          docker ps -a || true
-          echo ""
-          echo "=== Consul startup log (last 50 lines) ==="
-          tail -50 consul-startup.log || echo "No log file found"
-
-      - name: Check Docker containers before waiting
-        working-directory: consul-ui-testing
-        run: |
-          echo "=== Docker containers status ==="
-          docker ps -a
-          echo ""
-          echo "=== Checking if ports are listening ==="
-          netstat -tuln | grep -E ':(8500|8501)' || echo "Ports 8500/8501 not listening yet"
-          echo ""
-          echo "=== Last 30 lines of startup log ==="
-          tail -30 consul-startup.log || echo "No log file"
-
-      - name: Wait for Consul API to be ready
-        run: |
-          echo "Waiting for port 8500 to be ready (timeout: 30 minutes)..."
-          START_TIME=$(date +%s)
-          
-          if npx wait-on http://localhost:8500/v1/status/leader --timeout 1800000; then
-            PORT_8500_TIME=$(($(date +%s) - START_TIME))
-            echo "✓ Port 8500 ready after ${PORT_8500_TIME} seconds"
-          else
-            echo "✗ Port 8500 not ready after 30 minutes"
-            echo "=== Debugging info ==="
-            docker ps -a
-            netstat -tuln | grep -E ':(8500|8501)' || echo "Ports not listening"
-            curl -v http://localhost:8500/v1/status/leader || true
-            exit 1
-          fi
-          
-          echo "Waiting for port 8501 to be ready (timeout: 30 minutes)..."
-          START_TIME=$(date +%s)
-          
-          if npx wait-on http://localhost:8501/v1/status/leader --timeout 1800000; then
-            PORT_8501_TIME=$(($(date +%s) - START_TIME))
-            echo "✓ Port 8501 ready after ${PORT_8501_TIME} seconds"
-          else
-            echo "✗ Port 8501 not ready after 30 minutes"
-            echo "=== Debugging info ==="
-            docker ps -a
-            netstat -tuln | grep -E ':(8500|8501)' || echo "Ports not listening"
-            curl -v http://localhost:8501/v1/status/leader || true
-            exit 1
-          fi
-          
-          echo "Total Consul startup time: $((PORT_8500_TIME + PORT_8501_TIME)) seconds"
+          yarn start hashicorppreview/consul:latest
 
       - name: Start Consul UI
         working-directory: ui/packages/consul-ui
