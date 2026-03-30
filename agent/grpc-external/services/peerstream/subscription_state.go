@@ -30,7 +30,7 @@ type subscriptionState struct {
 
 	watchedServices map[structs.ServiceName]context.CancelFunc
 
-	// connectServices stores latest map of latest synthetic discovery chain replies.
+	// connectServices stores latest map of synthetic discovery chain replies.
 	connectServices map[structs.ServiceName]structs.ExportedDiscoveryChainInfo
 
 	// eventVersions is a duplicate event suppression system keyed by the "id"
