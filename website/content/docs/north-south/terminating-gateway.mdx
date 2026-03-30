@@ -6,7 +6,7 @@ description: >-
 ---
 
 ⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
-> [!IMPORTANT]  
+> [!IMPORTANT]
 > **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
 ⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
 
@@ -48,6 +48,11 @@ When certificates for linked services are rotated, the gateway must be restarted
 To avoid downtime, perform a rolling restart to reload the certificates. Registering multiple terminating gateway instances
 with the same [name](/consul/commands/connect/envoy#service) provides additional fault tolerance
 as well as the ability to perform rolling restarts.
+
+-> **Kubernetes only**: On Kubernetes, you can specify the [`secretRef`](/consul/docs/reference/config-entry/terminating-gateway#secretref)
+field along with the file path fields (`caFile`, `certFile`, `keyFile`) in the terminating gateway configuration entry to enable
+TLS via Envoy's Secret Discovery Service (SDS). When SDS is enabled, certificate updates from the referenced Kubernetes secret
+are dynamically delivered to Envoy without requiring a gateway restart.
 
 -> **Note:** If certificates and keys are configured the terminating gateway will upgrade HTTP connections to TLS.
 Client applications can issue plain HTTP requests even when connecting to servers that require HTTPS.
