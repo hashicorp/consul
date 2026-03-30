@@ -16,6 +16,18 @@ type EnvoyExtension struct {
 	EnvoyVersion  string
 }
 
+func (c *EnvoyExtension) getHash() uint64 {
+	return hashValue(c)
+}
+
+func (c *EnvoyExtension) appendHash(h *customHasher) {
+	h.addString(c.Name).
+		addBool(c.Required).
+		addString(c.ConsulVersion).
+		addString(c.EnvoyVersion).
+		addJSONValue(c.Arguments)
+}
+
 type EnvoyExtensions []EnvoyExtension
 
 func (es EnvoyExtensions) ToAPI() []api.EnvoyExtension {

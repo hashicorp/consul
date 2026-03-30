@@ -34,14 +34,17 @@
       "@babel/runtime@<7.26.10": ">=7.26.10",
       "cross-spawn@<6.0.6": ">=6.0.6",
       "cross-spawn@>=7.0.0 <7.0.5": ">=7.0.5",
-      "path-to-regexp@<0.1.12": ">=0.1.12",
+      "path-to-regexp@<0.1.13": "=0.1.13",
       "prismjs@<1.30.0": ">=1.30.0",
       "on-headers@<1.1.0": ">=1.1.0",
       "tmp@<=0.2.3": ">=0.2.4",
-      "qs": ">=6.14.1",
+      "rollup@<2.80.0": ">=2.80.0",
+      "qs": ">=6.14.2",
       "underscore": ">=1.13.8",
       "immutable": ">=5.1.5",
-      "serialize-javascript@<=7.0.2": ">=7.0.3"
+      "serialize-javascript@<=7.0.4": ">=7.0.5",
+      "socket.io-parser@<4.2.6": ">=4.2.6",
+      "handlebars@<4.7.9": ">=4.7.9"
     }
   }
 }
