@@ -210,7 +210,6 @@
       "lib/block-slots",
       "lib/colocated-components",
       "lib/commands",
-      "lib/custom-element",
       "lib/startup"
     ]
   }
