@@ -398,6 +398,9 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 					partition:  service.PartitionOrDefault(),
 					datacenter: h.source.Datacenter,
 				}
+				// Ensure discovery chain compilation is HTTP-like for HTTPRoutes so service
+				// routers/splitters are included when present.
+				watchOpts.cfg.Protocol = string(route.GetProtocol())
 
 				handler := &handlerUpstreams{handlerState: h.handlerState}
 				if err := handler.watchDiscoveryChain(ctx, snap, watchOpts); err != nil {
@@ -449,6 +452,8 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 				partition:  service.PartitionOrDefault(),
 				datacenter: h.source.Datacenter,
 			}
+			// Ensure discovery chain compilation matches the route protocol.
+			watchOpts.cfg.Protocol = string(route.GetProtocol())
 
 			handler := &handlerUpstreams{handlerState: h.handlerState}
 			if err := handler.watchDiscoveryChain(ctx, snap, watchOpts); err != nil {
