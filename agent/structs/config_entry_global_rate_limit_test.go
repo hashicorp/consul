@@ -53,7 +53,7 @@ func TestGlobalRateLimitConfigEntry_Validate(t *testing.T) {
 					WriteRate: float64Ptr(100),
 				},
 			},
-			expectErr: "read_rate must be non-negative",
+			expectErr: "readRate must be non-negative",
 		},
 		"negative write rate": {
 			entry: &GlobalRateLimitConfigEntry{
@@ -73,8 +73,8 @@ func TestGlobalRateLimitConfigEntry_Validate(t *testing.T) {
 					WriteRate: float64Ptr(-2),
 				},
 			},
-			// read_rate is validated first
-			expectErr: "read_rate must be non-negative",
+			// readRate is validated first
+			expectErr: "readRate must be non-negative",
 		},
 		"NaN read rate": {
 			entry: &GlobalRateLimitConfigEntry{
@@ -84,7 +84,7 @@ func TestGlobalRateLimitConfigEntry_Validate(t *testing.T) {
 					WriteRate: float64Ptr(100),
 				},
 			},
-			expectErr: "read_rate must be a valid number, got NaN",
+			expectErr: "readRate must be a valid number, got NaN",
 		},
 		"NaN write rate": {
 			entry: &GlobalRateLimitConfigEntry{
@@ -104,7 +104,7 @@ func TestGlobalRateLimitConfigEntry_Validate(t *testing.T) {
 					WriteRate: float64Ptr(100),
 				},
 			},
-			expectErr: "read_rate must be a finite number",
+			expectErr: "readRate must be a finite number",
 		},
 		"-Inf read rate": {
 			entry: &GlobalRateLimitConfigEntry{
@@ -114,7 +114,7 @@ func TestGlobalRateLimitConfigEntry_Validate(t *testing.T) {
 					WriteRate: float64Ptr(100),
 				},
 			},
-			expectErr: "read_rate must be a finite number",
+			expectErr: "readRate must be a finite number",
 		},
 		"+Inf write rate": {
 			entry: &GlobalRateLimitConfigEntry{
@@ -135,7 +135,7 @@ func TestGlobalRateLimitConfigEntry_Validate(t *testing.T) {
 					ExcludeEndpoints: []string{"Health.Check", ""},
 				},
 			},
-			expectErr: "exclude_endpoints[1] cannot be empty",
+			expectErr: "excludeEndpoints[1] cannot be empty",
 		},
 		"valid with both rates set": {
 			entry: &GlobalRateLimitConfigEntry{
@@ -460,7 +460,7 @@ func TestGlobalRateLimitConfigEntry_DecodeAndValidate(t *testing.T) {
 				}
 			}`,
 			expectDecodeOK: true,
-			expectValidErr: "read_rate must be non-negative",
+			expectValidErr: "readRate must be non-negative",
 		},
 		"null rates are decoded as nil (unlimited)": {
 			jsonBody: `{

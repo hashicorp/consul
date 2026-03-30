@@ -50,7 +50,7 @@ type GlobalRateLimitConfig struct {
 
 	// PriorityEndpoints lists RPC methods that should bypass rate limiting
 	// Example: ["Health.Check", "Status.Leader"]
-	ExcludeEndpoints []string `json:"exclude_endpoints" alias:"exclude_endpoints"`
+	ExcludeEndpoints []string `json:"excludeEndpoints" alias:"excludeEndpoints"`
 }
 
 func (g *GlobalRateLimitConfigEntry) GetKind() string {

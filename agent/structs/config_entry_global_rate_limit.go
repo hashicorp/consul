@@ -44,7 +44,7 @@ type GlobalRateLimitConfig struct {
 
 	// PriorityEndpoints lists RPC methods that should bypass rate limiting
 	// Example: ["Health.Check", "Status.Leader"]
-	ExcludeEndpoints []string `json:"exclude_endpoints" alias:"exclude_endpoints"`
+	ExcludeEndpoints []string `json:"excludeEndpoints" alias:"excludeEndpoints"`
 }
 
 func (e *GlobalRateLimitConfigEntry) GetKind() string {
@@ -127,17 +127,17 @@ func (e *GlobalRateLimitConfigEntry) Validate() error {
 	}
 
 	// Validate read and write rates
-	if err := validateRate("read_rate", e.Config.ReadRate); err != nil {
+	if err := validateRate("readRate", e.Config.ReadRate); err != nil {
 		return err
 	}
-	if err := validateRate("write_rate", e.Config.WriteRate); err != nil {
+	if err := validateRate("writeRate", e.Config.WriteRate); err != nil {
 		return err
 	}
 
 	// Validate exclude endpoints - check for empty strings
 	for i, endpoint := range e.Config.ExcludeEndpoints {
 		if endpoint == "" {
-			return fmt.Errorf("exclude_endpoints[%d] cannot be empty", i)
+			return fmt.Errorf("excludeEndpoints[%d] cannot be empty", i)
 		}
 	}
 
