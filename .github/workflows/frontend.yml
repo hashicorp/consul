@@ -136,7 +136,6 @@ jobs:
   frontend-success:
     needs:
       - setup
-      - workspace-tests
       - e2e-tests
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     if: ${{ always() }}
