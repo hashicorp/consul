@@ -211,7 +211,7 @@ func (s *Server) newResourceServiceConfig(typeRegistry resource.Registry, resolv
 	}
 }
 
-// runEnterpriseRateLimiterConfigEntryController start the rate limiter config controller
+// runRateLimiterConfigEntryController start the rate limiter config controller
 func (s *Server) runRateLimiterConfigEntryController() error {
 	agentCtx := &lib.StopChannelContext{StopCh: s.shutdownCh}
 	err := s.routineManager.Start(agentCtx, "rate limit controller", s.RunRateLimiterController)

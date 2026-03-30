@@ -48,7 +48,7 @@ func (_m *MockRequestLimitsHandler) UpdateIPConfig(cfg IPLimitConfig) {
 	_m.Called(cfg)
 }
 
-// UpdateIPConfig provides a mock function with given fields: cfg
+// UpdateGlobalRateLimitConfig provides a mock function with given fields: cfg
 func (_m *MockRequestLimitsHandler) UpdateGlobalRateLimitConfig(cfg *structs.GlobalRateLimitConfigEntry) {
 	_m.Called(cfg)
 }
