@@ -21,6 +21,14 @@ var allowedExposeProtocols = map[string]bool{"http": true, "http2": true}
 
 type MeshGatewayMode string
 
+func (m MeshGatewayMode) getHash() uint64 {
+	return hashValue(m)
+}
+
+func (m MeshGatewayMode) appendHash(h *customHasher) {
+	h.addString(string(m))
+}
+
 const (
 	// MeshGatewayModeDefault represents no specific mode and should
 	// be used to indicate that a different layer of the configuration
@@ -77,6 +85,17 @@ type MeshGatewayConfig struct {
 	Mode MeshGatewayMode `json:",omitempty"`
 }
 
+func (c *MeshGatewayConfig) getHash() uint64 {
+	return hashValue(c)
+}
+
+func (c *MeshGatewayConfig) appendHash(h *customHasher) {
+	if c == nil {
+		return
+	}
+
+	h.addUint64(c.Mode.getHash())
+}
 func (c *MeshGatewayConfig) IsZero() bool {
 	zeroVal := MeshGatewayConfig{}
 	return *c == zeroVal
@@ -139,6 +158,19 @@ type TransparentProxyConfig struct {
 	// The discovery chain is not considered when dialing a service instance directly.
 	// This setting is useful when addressing stateful services, such as a database cluster with a leader node.
 	DialedDirectly bool `json:",omitempty" alias:"dialed_directly"`
+}
+
+func (c *TransparentProxyConfig) getHash() uint64 {
+	return hashValue(c)
+}
+
+func (c *TransparentProxyConfig) appendHash(h *customHasher) {
+	if c == nil {
+		return
+	}
+
+	h.addInt64(int64(c.OutboundListenerPort))
+	h.addBool(c.DialedDirectly)
 }
 
 func (c TransparentProxyConfig) ToAPI() *api.TransparentProxyConfig {
