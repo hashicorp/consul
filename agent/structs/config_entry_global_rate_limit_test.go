@@ -63,7 +63,7 @@ func TestGlobalRateLimitConfigEntry_Validate(t *testing.T) {
 					WriteRate: float64Ptr(-5),
 				},
 			},
-			expectErr: "write_rate must be non-negative",
+			expectErr: "writeRate must be non-negative",
 		},
 		"both rates negative": {
 			entry: &GlobalRateLimitConfigEntry{
@@ -94,7 +94,7 @@ func TestGlobalRateLimitConfigEntry_Validate(t *testing.T) {
 					WriteRate: float64Ptr(math.NaN()),
 				},
 			},
-			expectErr: "write_rate must be a valid number, got NaN",
+			expectErr: "writeRate must be a valid number, got NaN",
 		},
 		"+Inf read rate": {
 			entry: &GlobalRateLimitConfigEntry{
@@ -124,7 +124,7 @@ func TestGlobalRateLimitConfigEntry_Validate(t *testing.T) {
 					WriteRate: float64Ptr(math.Inf(1)),
 				},
 			},
-			expectErr: "write_rate must be a finite number",
+			expectErr: "writeRate must be a finite number",
 		},
 		"empty exclude endpoint": {
 			entry: &GlobalRateLimitConfigEntry{
