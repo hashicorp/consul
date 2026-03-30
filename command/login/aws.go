@@ -4,14 +4,13 @@
 package login
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
 	iamauth "github.com/hashicorp/consul-awsauth"
 	"github.com/hashicorp/consul/agent/consul/authmethod/awsauth"
 	"github.com/hashicorp/go-hclog"
@@ -21,6 +20,7 @@ type AWSLogin struct {
 	autoBearerToken     bool
 	includeEntity       bool
 	stsEndpoint         string
+	iamEndpoint         string
 	region              string
 	serverIDHeaderValue string
 	accessKeyId         string
@@ -41,6 +41,9 @@ func (a *AWSLogin) flags() *flag.FlagSet {
 
 	fs.StringVar(&a.stsEndpoint, "aws-sts-endpoint", "",
 		"URL for AWS STS API calls. [aws-iam only]")
+
+	fs.StringVar(&a.iamEndpoint, "aws-iam-endpoint", "",
+		"URL for AWS IAM API calls. Used when -aws-include-entity is set to true. [aws-iam only]")
 
 	fs.StringVar(&a.region, "aws-region", "",
 		"Region for AWS API calls. If set, should match the region of -aws-sts-endpoint. "+
@@ -93,44 +96,57 @@ func (a *AWSLogin) checkFlags() error {
 // also included. The AWS credentials are used to retrieve the current user's role
 // or user name for the iam:GetRole or iam:GetUser request.
 func (a *AWSLogin) createAWSBearerToken() (string, error) {
-	cfg := aws.Config{
-		Endpoint: aws.String(a.stsEndpoint),
-		Region:   aws.String(a.region),
-		// More detailed error message to help debug credential discovery.
-		CredentialsChainVerboseErrors: aws.Bool(true),
+	ctx := context.Background()
+
+	// Build config options for AWS SDK v2
+	var configOpts []func(*config.LoadOptions) error
+
+	// Set region if provided
+	if a.region != "" {
+		configOpts = append(configOpts, config.WithRegion(a.region))
 	}
 
+	// Set endpoint if provided (for STS)
+	if a.stsEndpoint != "" {
+		configOpts = append(configOpts, config.WithBaseEndpoint(a.stsEndpoint))
+	}
+
+	// Set static credentials if provided
 	if a.accessKeyId != "" {
-		// Use creds from flags.
-		cfg.Credentials = credentials.NewStaticCredentials(
-			a.accessKeyId, a.secretAccessKey, a.sessionToken,
-		)
+		configOpts = append(configOpts, config.WithCredentialsProvider(
+			aws.CredentialsProviderFunc(func(ctx context.Context) (aws.Credentials, error) {
+				return aws.Credentials{
+					AccessKeyID:     a.accessKeyId,
+					SecretAccessKey: a.secretAccessKey,
+					SessionToken:    a.sessionToken,
+				}, nil
+			}),
+		))
 	}
 
-	// Session loads creds from standard sources (env vars, file, EC2 metadata, ...)
-	sess, err := session.NewSessionWithOptions(session.Options{
-		Config: cfg,
-		// Allow loading from config files by default:
-		//   ~/.aws/config or AWS_CONFIG_FILE
-		//   ~/.aws/credentials or AWS_SHARED_CREDENTIALS_FILE
-		SharedConfigState: session.SharedConfigEnable,
-	})
+	// Load AWS config using SDK v2
+	cfg, err := config.LoadDefaultConfig(ctx, configOpts...)
 	if err != nil {
 		return "", err
 	}
-	if sess.Config.Region == nil || *sess.Config.Region == "" {
+
+	// Validate region is set
+	if cfg.Region == "" {
 		return "", fmt.Errorf("AWS region not found")
 	}
-	if sess.Config.Credentials == nil {
-		return "", fmt.Errorf("AWS credentials not found")
+
+	// Validate credentials are available
+	_, err = cfg.Credentials.Retrieve(ctx)
+	if err != nil {
+		return "", fmt.Errorf("AWS credentials not found: %w", err)
 	}
-	creds := sess.Config.Credentials
 
 	loginData, err := iamauth.GenerateLoginData(&iamauth.LoginInput{
-		Creds:                  creds,
+		Creds:                  cfg.Credentials,
 		IncludeIAMEntity:       a.includeEntity,
 		STSEndpoint:            a.stsEndpoint,
-		STSRegion:              a.region,
+		IAMEndpoint:            a.iamEndpoint,
+		STSRegion:              cfg.Region,
 		Logger:                 hclog.New(nil),
 		ServerIDHeaderValue:    a.serverIDHeaderValue,
 		ServerIDHeaderName:     awsauth.IAMServerIDHeaderName,

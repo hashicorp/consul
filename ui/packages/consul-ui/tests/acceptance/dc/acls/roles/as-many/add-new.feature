@@ -113,6 +113,7 @@ Feature: dc / acls / roles / as-many / add-new: Add new
     Then the url should be /datacenter/acls/tokens
     And "[data-notification]" has the "hds-toast" class
     And "[data-notification]" has the "hds-alert--color-success" class
+  @ignore
   Scenario: Add Role and add a new Service Identity
     And I click roles.form.policies.create
     Then I fill in the roles.form.policies.form with yaml

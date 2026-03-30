@@ -1,0 +1,3 @@
+```release-note:bug
+connect: Fix intermediate CA signing failure with Vault provider when CSR included Basic Constraints isCA=true.
+```

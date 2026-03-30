@@ -22,7 +22,7 @@ probably just be using an `error` object in real-life.
 
 Specifically 403 errors **always** use the same header/body copy, this is hardcoded in and not currently overridable.
 
-```hbs preview-template
+```hbs
 <ErrorState
   @error={{hash status='403'}}
 />
@@ -30,7 +30,7 @@ Specifically 403 errors **always** use the same header/body copy, this is hardco
 
 Other StatusCodes have a global default text but these *are* overridable by using the message/detail properties of the Consul UI shaped errors.
 
-```hbs preview-template
+```hbs
 <ErrorState
   @error={{hash
     status='404'
@@ -43,7 +43,7 @@ Other StatusCodes have a global default text but these *are* overridable by usin
 As with `EmptyState` you can optionally chose to show a login button using the
 `@login` argument.
 
-```hbs preview-template
+```hbs
 <ErrorState
   @error={{hash status='403'}}
   @login={{noop}}

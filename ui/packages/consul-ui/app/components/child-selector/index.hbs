@@ -23,7 +23,7 @@
             type=(pluralize this.type)
           )
         }}
-        @onchange={{action (mut this.allOptions) value="data"}}
+        @onchange={{action "setAllOptions" value="data"}}
       />
     {{!-- {{/if}} --}}
     <DataCollection

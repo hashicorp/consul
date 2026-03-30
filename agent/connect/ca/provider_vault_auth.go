@@ -6,6 +6,9 @@ package ca
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/hashicorp/vault/api"
 
@@ -91,4 +94,70 @@ func legacyCheck(params map[string]any, expectedKeys ...string) bool {
 		}
 	}
 	return false
+}
+
+// readVaultCredentialFileSecurely reads a Vault credential file using os.OpenRoot to prevent
+// path traversal and symlink attacks. This provides OS-level enforcement of file system boundaries.
+//
+// Parameters:
+//   - filePath: the path to the credential file
+//   - allowedDirs: a list of allowed base directories where credential files can reside
+//
+// Returns the file contents or an error if the file is outside allowed directories or cannot be read.
+func readVaultCredentialFileSecurely(filePath string, allowedDirs []string) ([]byte, error) {
+	// Clean and normalize the input path to remove . and .. elements
+	cleanPath := filepath.Clean(filePath)
+
+	// Determine which allowed directory contains the path
+	var baseDir string
+	var relPath string
+
+	for _, dir := range allowedDirs {
+		// Clean the allowed directory path as well
+		cleanDir := filepath.Clean(dir)
+
+		// Use filepath.Rel to properly determine if path is within this directory
+		rel, err := filepath.Rel(cleanDir, cleanPath)
+		if err != nil {
+			// filepath.Rel failed, skip this directory
+			continue
+		}
+
+		// If the relative path starts with "..", the path is outside this directory
+		// If it equals ".", the path is the directory itself (not a file)
+		// Otherwise, it's a file/subdirectory within the allowed directory
+		if !strings.HasPrefix(rel, "..") && rel != "." {
+			baseDir = cleanDir
+			relPath = rel
+			break
+		}
+	}
+
+	// If no allowed directory matches, reject the path
+	if baseDir == "" {
+		return nil, fmt.Errorf("credential file must be within allowed directories")
+	}
+
+	// Use os.OpenRoot to create a rooted file system restricted to the base directory.
+	// This provides OS-level protection against symlink escapes and directory traversal,
+	// as any symlinks within the rooted filesystem cannot escape the root boundary.
+	root, err := os.OpenRoot(baseDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open root directory")
+	}
+	defer root.Close()
+
+	// Read the credential file within the rooted file system
+	// ReadFile will fail appropriately for directories or special files
+	fileBytes, err := root.ReadFile(relPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read credential file")
+	}
+
+	// Validate file size to prevent DoS attacks
+	if len(fileBytes) > 5*1024*1024 { // 5 MB
+		return nil, fmt.Errorf("credential file exceeds maximum allowed 5MB size")
+	}
+
+	return fileBytes, nil
 }

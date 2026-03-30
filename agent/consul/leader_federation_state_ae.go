@@ -18,7 +18,27 @@ const (
 	// federationStatePruneInterval is how often we check for stale federation
 	// states to remove should a datacenter be removed from the WAN.
 	federationStatePruneInterval = time.Hour
+
+	// defaultFederationStateAntiEntropySyncInterval is the default minimum
+	// interval between federation state anti-entropy sync operations.
+	defaultFederationStateAntiEntropySyncInterval = 5 * time.Second
 )
+
+func waitForDurationOrCancel(ctx context.Context, d time.Duration) error {
+	if d <= 0 {
+		return nil
+	}
+
+	timer := time.NewTimer(d)
+	defer timer.Stop()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
+	}
+}
 
 func (s *Server) startFederationStateAntiEntropy(ctx context.Context) {
 	// Check to see if we can skip waiting for serf feature detection below.
@@ -53,12 +73,40 @@ func (s *Server) stopFederationStateAntiEntropy() {
 	}
 }
 
+// federationStateAntiEntropySync runs a continuous loop that periodically syncs
+// the local datacenter's federation state with the primary datacenter.
+// It enforces a minimum interval between sync operations to avoid excessive load,
+// and waits for federation state support to be available before attempting
 func (s *Server) federationStateAntiEntropySync(ctx context.Context) error {
-	var lastFetchIndex uint64
+	var (
+		lastFetchIndex uint64
+		lastSyncTime   time.Time
+	)
+
+	interval := s.config.FederationStateAntiEntropySyncInterval
+	if interval <= 0 {
+		interval = defaultFederationStateAntiEntropySyncInterval
+	}
 
 	retryLoopBackoff(ctx, func() error {
 		if !s.DatacenterSupportsFederationStates() {
+			// FIX: Prevent a hot loop if federation is not supported.
+			// We wait for the interval (or until context cancel) before checking again.
+			if err := waitForDurationOrCancel(ctx, interval); err != nil {
+				return err
+			}
 			return nil
+		}
+
+		// If we have never synced (lastSyncTime is zero), proceed immediately.
+		// Otherwise, compute how much time remains until the next allowed sync and wait.
+		if !lastSyncTime.IsZero() {
+			if nextAllowed := lastSyncTime.Add(interval); time.Now().Before(nextAllowed) {
+				// Not enough time has elapsed since the last sync; wait out the remainder.
+				if err := waitForDurationOrCancel(ctx, time.Until(nextAllowed)); err != nil {
+					return err
+				}
+			}
 		}
 
 		idx, err := s.federationStateAntiEntropyMaybeSync(ctx, lastFetchIndex)
@@ -67,6 +115,7 @@ func (s *Server) federationStateAntiEntropySync(ctx context.Context) error {
 		}
 
 		lastFetchIndex = idx
+		lastSyncTime = time.Now()
 		return nil
 	}, func(err error) {
 		s.logger.Error("error performing anti-entropy sync of federation state", "error", err)

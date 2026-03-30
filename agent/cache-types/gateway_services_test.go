@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"context"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
@@ -48,7 +49,7 @@ func TestGatewayServices(t *testing.T) {
 		})
 
 	// Fetch
-	resultA, err := typ.Fetch(cache.FetchOptions{
+	resultA, err := typ.Fetch(context.Background(), cache.FetchOptions{
 		MinIndex: 24,
 		Timeout:  1 * time.Second,
 	}, &structs.ServiceSpecificRequest{

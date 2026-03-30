@@ -1,0 +1,3 @@
+```release-note:improvement
+bumps: update body-parser to 2.2.1+
+```

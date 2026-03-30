@@ -24,7 +24,7 @@ If you give the Action a `href` then that will navigate you to that hyperlink
 reference (semantically this is the same as the HTML Anchor tag, and
 semantically renders as one).
 
-```hbs preview-template
+```hbs
   <Action
     @href={{href-to 'dc.services'}}
   >
@@ -37,7 +37,7 @@ not be navigation you to a hyperlink reference and instead performing the action
 specified, generally using the `on` modifier (semantically this is the same as
 a HTML button tag, and semantically renders as one).
 
-```hbs preview-template
+```hbs
   <Action
     {{on 'click' (set this 'boolean' (not this.boolean))}}
   >
@@ -50,7 +50,7 @@ reference. The following will add the necessary attributes for you for an
 `external` link so you don't have to. This is likely to be handled automatically
 in the future.
 
-```hbs preview-template
+```hbs
   <Action
     @href="https://developer.hashicorp.com"
     @external={{true}}

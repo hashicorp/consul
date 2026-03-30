@@ -16,7 +16,7 @@
 {{#if (can 'use partitions')}}
   {{document-attrs class='has-partitions'}}
 {{/if}}
-<App class='docs' id='wrapper'>
+<App class='docs hashicorp-consul' id='wrapper'>
 
   <:notifications as |app|>
     {{#each this.flashMessages.queue as |flash|}}
@@ -32,36 +32,44 @@
   </:notifications>
 
   <:sideNav>
-    <Hds::SideNav @hasA11yRefocus={{false}} @isResponsive={{true}} class='consul-side-nav'>
-      <:header>
-        <Hds::SideNav::Header>
-          <:logo>
-            <Hds::SideNav::Header::HomeLink
-              @icon='consul-color'
-              @ariaLabel='Consul'
-              @route='index'
-              @query={{hash peer=undefined}}
-            />
-          </:logo>
-        </Hds::SideNav::Header>
-      </:header>
-      <:body>
-        <DocfyOutput as |node|>
-          <Hds::SideNav::List class='hds-side-nav-hide-when-minimized' as |SNL|>
-            <SNL.Title>Docs</SNL.Title>
+    <Hds::AppSideNav @isResponsive={{true}} class='consul-side-nav'>
+      <DocfyOutput as |node|>
+        <Hds::AppSideNav::List as |SNL|>
+          <SNL.Link
+            @icon='consul-color'
+            @ariaLabel='Consul'
+            @route='index'
+            @query={{hash peer=undefined}}
+            @text='Consul'
+          />
+          <SNL.Title>Docs</SNL.Title>
 
-            {{#each node.children as |child|}}
-              {{#each child.pages as |child|}}
+          {{#each node.children as |child|}}
+            {{#each child.pages as |child|}}
+              <SNL.Link
+                @href={{concat '/ui' child.url}}
+                @isHrefExternal={{false}}
+                @isActive={{is-href (to-route child.url)}}
+                @text={{classify child.title}}
+              />
+            {{/each}}
+
+            {{!hardcode in styles next}}
+            {{#let (find-by 'label' 'styles' child.children) as |section|}}
+              <SNL.Title>{{section.label}}</SNL.Title>
+              {{#each (flatten-property section 'pages') as |child|}}
                 <SNL.Link
                   @href={{concat '/ui' child.url}}
+                  @text={{classify child.title}}
                   @isHrefExternal={{false}}
                   @isActive={{is-href (to-route child.url)}}
-                  @text={{classify child.title}}
                 />
               {{/each}}
+            {{/let}}
 
-              {{!hardcode in styles next}}
-              {{#let (find-by 'label' 'styles' child.children) as |section|}}
+            {{!print out the rest}}
+            {{#each child.children as |section|}}
+              {{#if (not-eq section.label 'styles')}}
                 <SNL.Title>{{section.label}}</SNL.Title>
                 {{#each (flatten-property section 'pages') as |child|}}
                   <SNL.Link
@@ -71,27 +79,12 @@
                     @isActive={{is-href (to-route child.url)}}
                   />
                 {{/each}}
-              {{/let}}
-
-              {{!print out the rest}}
-              {{#each child.children as |section|}}
-                {{#if (not-eq section.label 'styles')}}
-                  <SNL.Title>{{section.label}}</SNL.Title>
-                  {{#each (flatten-property section 'pages') as |child|}}
-                    <SNL.Link
-                      @href={{concat '/ui' child.url}}
-                      @text={{classify child.title}}
-                      @isHrefExternal={{false}}
-                      @isActive={{is-href (to-route child.url)}}
-                    />
-                  {{/each}}
-                {{/if}}
-              {{/each}}
+              {{/if}}
             {{/each}}
-          </Hds::SideNav::List>
-        </DocfyOutput>
-      </:body>
-    </Hds::SideNav>
+          {{/each}}
+        </Hds::AppSideNav::List>
+      </DocfyOutput>
+    </Hds::AppSideNav>
   </:sideNav>
   <:main>
     <DocfyOutput @fromCurrentURL={{true}} as |page|>

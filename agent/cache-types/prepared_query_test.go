@@ -6,6 +6,7 @@ package cachetype
 import (
 	"testing"
 
+	"context"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
@@ -34,7 +35,7 @@ func TestPreparedQuery(t *testing.T) {
 		})
 
 	// Fetch
-	result, err := typ.Fetch(cache.FetchOptions{}, &structs.PreparedQueryExecuteRequest{
+	result, err := typ.Fetch(context.Background(), cache.FetchOptions{}, &structs.PreparedQueryExecuteRequest{
 		Datacenter:    "dc1",
 		QueryIDOrName: "geo-db",
 		Limit:         10,
@@ -52,7 +53,7 @@ func TestPreparedQuery_badReqType(t *testing.T) {
 	typ := &PreparedQuery{RPC: rpc}
 
 	// Fetch
-	_, err := typ.Fetch(cache.FetchOptions{}, cache.TestRequest(
+	_, err := typ.Fetch(context.Background(), cache.FetchOptions{}, cache.TestRequest(
 		t, cache.RequestInfo{Key: "foo", MinIndex: 64}))
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "wrong type")

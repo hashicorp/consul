@@ -4,6 +4,7 @@
 package cachetype
 
 import (
+	"context"
 	"reflect"
 	"time"
 
@@ -31,7 +32,7 @@ func TestFetchCh(
 ) <-chan interface{} {
 	resultCh := make(chan interface{})
 	go func() {
-		result, err := typ.Fetch(opts, req)
+		result, err := typ.Fetch(context.Background(), opts, req)
 		if err != nil {
 			resultCh <- err
 			return

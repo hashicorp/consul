@@ -28,7 +28,7 @@ var IntentionSummaries = []prometheus.SummaryDefinition{
 	},
 	{
 		Name: []string{"intention", "apply"},
-		Help: "",
+		Help: "Measures the time it takes to apply service mesh intention (authorization policy) changes to the state store.",
 	},
 }
 

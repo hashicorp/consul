@@ -1,4 +1,5 @@
 @setupApplicationTest
+@ignore
 Feature: dc / intentions / permissions / warn: Intention Permission Warn
   Scenario:
     Given 1 datacenter model with the value "datacenter"

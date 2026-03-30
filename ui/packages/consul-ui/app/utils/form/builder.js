@@ -31,6 +31,54 @@ export const defaultChangeset = function (data, validators) {
  *   currently the only supported property of these configuration objects is `type` which currently allows you to
  *   set a property as 'array-like'
  */
+
+// Helper to get JSON from data, handles ember-data 4.12+ where toJSON is deprecated
+function getDataAsJSON(data) {
+  // Try data.toJSON() first (older ember-data < 4.0)
+  if (typeof data.toJSON === 'function') {
+    return data.toJSON();
+  }
+
+  // Get the underlying model from changeset
+  const innerData = get(data, 'data') || get(data, '_content');
+
+  // Try innerData.toJSON() (older ember-data < 4.0)
+  if (innerData && typeof innerData.toJSON === 'function') {
+    return innerData.toJSON();
+  }
+
+  // For ember-data 4.0+, use serialize() instead of toJSON()
+  if (innerData && typeof innerData.serialize === 'function') {
+    const serialized = innerData.serialize();
+    // serialize() returns { data: { attributes: {...} } } for JSON:API
+    // or just the attributes for REST serializer
+    if (serialized && serialized.data && serialized.data.attributes) {
+      return serialized.data.attributes;
+    }
+    return serialized;
+  }
+
+  // Fallback: get attributes from the model's constructor
+  if (innerData && innerData.constructor && innerData.constructor.attributes) {
+    const result = {};
+    innerData.constructor.attributes.forEach((meta, name) => {
+      result[name] = get(innerData, name);
+    });
+    return result;
+  }
+
+  // Fallback: use eachAttribute if available
+  if (innerData && typeof innerData.eachAttribute === 'function') {
+    const result = {};
+    innerData.eachAttribute((name) => {
+      result[name] = get(innerData, name);
+    });
+    return result;
+  }
+
+  return {};
+}
+
 export default function (changeset = defaultChangeset, getFormNameProperty = parseElementName) {
   return function (name = '', obj = {}) {
     const _children = {};
@@ -81,7 +129,8 @@ export default function (changeset = defaultChangeset, getFormNameProperty = par
         // ember-data/changeset dance
         // TODO: This works for ember-data RecordSets and Changesets but not for plain js Objects
         // see settings
-        const json = typeof data.toJSON === 'function' ? data.toJSON() : get(data, 'data').toJSON();
+        // const json = typeof data.toJSON === 'function' ? data.toJSON() : get(data, 'data').toJSON();
+        const json = getDataAsJSON(data);
         // if the form doesn't include a property then throw so it can be
         // caught outside, therefore the user can deal with things that aren't in the data
         // TODO: possibly need to add support for deeper properties using `get` here
