@@ -1866,7 +1866,20 @@ func (s *HTTPHandlers) AgentVersion(resp http.ResponseWriter, req *http.Request)
 // InternalRPCMethods returns a list of known net/rpc method names.
 //
 // This is intended for debugging/introspection and is derived from Consul's
-// internal rate-limit mapping list.
+// internal rate-limit mapping list. Requires an operator:read ACL token.
 func (s *HTTPHandlers) InternalRPCMethods(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	var token string
+	s.parseToken(req, &token)
+	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Authorize using the agent's own enterprise meta, not the token.
+	var authzContext acl.AuthorizerContext
+	s.agent.AgentEnterpriseMeta().FillAuthzContext(&authzContext)
+	if err := authz.ToAllowAuthorizer().OperatorReadAllowed(nil); err != nil {
+		return nil, err
+	}
 	return rpcmiddleware.RPCMethodNames(), nil
 }
