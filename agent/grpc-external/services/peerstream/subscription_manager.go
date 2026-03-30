@@ -501,7 +501,7 @@ func (m *subscriptionManager) syncDiscoveryChains(
 
 	// if it was dropped, try to emit an DELETE event
 	for chainName := range state.connectServices {
-
+		// Deleting old state connect services not in exported-service-list
 		if _, ok := exportedServicesMap[chainName]; !ok {
 			delete(state.connectServices, chainName)
 		}
