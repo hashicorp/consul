@@ -6,7 +6,7 @@ description: >-
 ---
 
 ⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
-> [!IMPORTANT]  
+> [!IMPORTANT]
 > **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`, since changes to `/website` in this repository will not appear on developer.hashicorp.com.
 ⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
 
@@ -283,6 +283,27 @@ By default, the trust store is located in the `/etc/ssl/certs/ca-certificates.cr
 Configure the [`caFile`](/consul/docs/reference/config-entry/terminating-gateway#cafile) parameter in the `TerminatingGateway` config entry to point to the `/etc/ssl/cert.pem` directory if TLS is enabled and you are using one of the following components:
 - Consul Helm chart 0.43 or older
 - An Envoy image with an alpine base image
+
+You can also specify a [`secretRef`](/consul/docs/reference/config-entry/terminating-gateway#secretref) along with the file path fields (`caFile`, `certFile`, `keyFile`) to enable TLS via Envoy's Secret Discovery Service (SDS). Both the `secretRef` name and the corresponding file paths must be specified — the file paths indicate where the Kubernetes secret is mounted on the terminating gateway pod's filesystem, and the `secretRef` name identifies the Kubernetes secret so that certificate updates are dynamically delivered to Envoy via SDS without requiring a gateway restart.
+
+<CodeBlockConfig filename="terminating-gateway-tls.yaml">
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: TerminatingGateway
+metadata:
+  name: terminating-gateway
+spec:
+  services:
+    - name: example-https
+      caFile: /etc/ssl/certs/ca-certificates.crt
+      sni: example.com
+      # Specify secretRef along with file paths to enable SDS
+      secretRef:
+        name: example-https-tls-cert
+```
+
+</CodeBlockConfig>
 
 Apply the `TerminatingGateway` resource with `kubectl apply`:
 
