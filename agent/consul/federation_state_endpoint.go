@@ -19,19 +19,19 @@ import (
 var FederationStateSummaries = []prometheus.SummaryDefinition{
 	{
 		Name: []string{"federation_state", "apply"},
-		Help: "",
+		Help: "Measures the time it takes to apply federation state changes across WAN-federated datacenters.",
 	},
 	{
 		Name: []string{"federation_state", "get"},
-		Help: "",
+		Help: "Measures the time it takes to retrieve federation state information for a specific datacenter.",
 	},
 	{
 		Name: []string{"federation_state", "list"},
-		Help: "",
+		Help: "Measures the time it takes to list all federation states across WAN-federated datacenters.",
 	},
 	{
 		Name: []string{"federation_state", "list_mesh_gateways"},
-		Help: "",
+		Help: "Measures the time it takes to list mesh gateways associated with federation states.",
 	},
 }
 

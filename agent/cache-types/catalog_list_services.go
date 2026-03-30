@@ -20,7 +20,7 @@ type CatalogListServices struct {
 	RPC RPC
 }
 
-func (c *CatalogListServices) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
+func (c *CatalogListServices) Fetch(ctx context.Context, opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
 	var result cache.FetchResult
 
 	// The request should be a DCSpecificRequest.
@@ -49,7 +49,7 @@ func (c *CatalogListServices) Fetch(opts cache.FetchOptions, req cache.Request) 
 	}
 
 	var reply structs.IndexedServices
-	if err := c.RPC.RPC(context.Background(), "Catalog.ListServices", reqReal, &reply); err != nil {
+	if err := c.RPC.RPC(ctx, "Catalog.ListServices", reqReal, &reply); err != nil {
 		return result, err
 	}
 

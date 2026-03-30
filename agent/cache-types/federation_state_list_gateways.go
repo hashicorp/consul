@@ -20,7 +20,7 @@ type FederationStateListMeshGateways struct {
 	RPC RPC
 }
 
-func (c *FederationStateListMeshGateways) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
+func (c *FederationStateListMeshGateways) Fetch(ctx context.Context, opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
 	var result cache.FetchResult
 
 	// The request should be a DCSpecificRequest.
@@ -46,7 +46,7 @@ func (c *FederationStateListMeshGateways) Fetch(opts cache.FetchOptions, req cac
 
 	// Fetch
 	var reply structs.DatacenterIndexedCheckServiceNodes
-	if err := c.RPC.RPC(context.Background(), "FederationState.ListMeshGateways", reqReal, &reply); err != nil {
+	if err := c.RPC.RPC(ctx, "FederationState.ListMeshGateways", reqReal, &reply); err != nil {
 		return result, err
 	}
 

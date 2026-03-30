@@ -18,10 +18,10 @@
       class: 'consul-ui/services/auth-providers/oauth2-code-with-url-provider',
     },
     'component:consul/partition/selector': {
-      class: '@glimmer/component',
+      class: 'consul-ui/components/consul/partition/selector',
     },
     'component:consul/peer/selector': {
-      class: '@glimmer/component',
+      class: 'consul-ui/components/consul/peer/selector',
     },
     'component:consul/hcp/home': {
       class: '@glimmer/component',

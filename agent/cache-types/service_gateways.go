@@ -20,7 +20,7 @@ type ServiceGateways struct {
 	RPC RPC
 }
 
-func (g *ServiceGateways) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
+func (g *ServiceGateways) Fetch(ctx context.Context, opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
 	var result cache.FetchResult
 
 	// The request should be a ServiceSpecificRequest.
@@ -46,7 +46,7 @@ func (g *ServiceGateways) Fetch(opts cache.FetchOptions, req cache.Request) (cac
 
 	// Fetch
 	var reply structs.IndexedCheckServiceNodes
-	if err := g.RPC.RPC(context.Background(), "Internal.ServiceGateways", reqReal, &reply); err != nil {
+	if err := g.RPC.RPC(ctx, "Internal.ServiceGateways", reqReal, &reply); err != nil {
 		return result, err
 	}
 

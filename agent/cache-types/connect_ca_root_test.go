@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"context"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
@@ -34,10 +35,11 @@ func TestConnectCARoot(t *testing.T) {
 		})
 
 	// Fetch
-	result, err := typ.Fetch(cache.FetchOptions{
-		MinIndex: 24,
-		Timeout:  1 * time.Second,
-	}, &structs.DCSpecificRequest{Datacenter: "dc1"})
+	result, err := typ.Fetch(context.Background(),
+		cache.FetchOptions{
+			MinIndex: 24,
+			Timeout:  1 * time.Second,
+		}, &structs.DCSpecificRequest{Datacenter: "dc1"})
 	require.Nil(t, err)
 	require.Equal(t, cache.FetchResult{
 		Value: resp,
@@ -51,7 +53,7 @@ func TestConnectCARoot_badReqType(t *testing.T) {
 	typ := &ConnectCARoot{RPC: rpc}
 
 	// Fetch
-	_, err := typ.Fetch(cache.FetchOptions{}, cache.TestRequest(
+	_, err := typ.Fetch(context.Background(), cache.FetchOptions{}, cache.TestRequest(
 		t, cache.RequestInfo{Key: "foo", MinIndex: 64}))
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), "wrong type")

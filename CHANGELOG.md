@@ -1,3 +1,97 @@
+## 1.22.5 (February 26, 2026)
+
+SECURITY:
+
+* security: upgrade go version to 1.25.7 [[GH-23204](https://github.com/hashicorp/consul/issues/23204)]
+* dockerfile: update the Consul build Go base image to `alpine3.23` [[GH-23194](https://github.com/hashicorp/consul/issues/23194)]
+* connect: Migrate to aws-sdk-go-v2 from aws-sdk-go (v1). Also updated consul-awsauth and go-secure-stdlib/awsutil dependencies to their v2 versions. [[GH-23109](https://github.com/hashicorp/consul/issues/23109)]
+* security: Configure HTTP server timeouts to prevent Slowloris denial-of-service attacks on agent HTTP endpoints and pprof endpoints. [[GH-22739](https://github.com/hashicorp/consul/issues/22739)]
+* security: Patched Vault CA provider to prevent arbitrary file reads via Kubernetes, JWT, and AppRole methods. [[GH-23249](https://github.com/hashicorp/consul/pull/23249)]
+* security: Introduced debounce timing for synchronization operations within federationStateAntiEntropySync. [[GH-23196](https://github.com/hashicorp/consul/pull/23196)]
+
+IMPROVEMENTS:
+
+* api-gateway: Fixed "duplicate matcher" errors in Envoy when using multiple file-system certificates on a single TLS listener. The certificates are now consolidated into a single filter chain, allowing Envoy to select the correct one. [[GH-23212](https://github.com/hashicorp/consul/issues/23212)]
+* agent: Fix vault provider failure when signing intermediate CA with isCA=true in CSR [[GH-23202](https://github.com/hashicorp/consul/issues/23202)]
+* cli: Added `--aws-iam-endpoint` flag to `consul login` command for AWS IAM auth method to support custom IAM endpoint configuration [[GH-23109](https://github.com/hashicorp/consul/issues/23109)]
+* docs: Refreshed the security documentation to include the new HTTP server timeout defaults and relevant configuration options. [[GH-23246](https://github.com/hashicorp/consul/pull/23246)]
+* api: Cancel context check for watches cache fetch to stop execution when manager deregisters the watch. [[GH-23157](https://github.com/hashicorp/consul/issues/23157)]
+
+## 1.22.5 Enterprise (February 26, 2026)
+
+SECURITY:
+
+* security: upgrade go version to 1.25.7 [[GH-23204](https://github.com/hashicorp/consul/issues/23204)]
+* dockerfile: the Consul build Go base image to `alpine3.23` [[GH-23194](https://github.com/hashicorp/consul/issues/23194)]
+* connect: Migrate to aws-sdk-go-v2 from aws-sdk-go (v1). Also updated consul-awsauth and go-secure-stdlib/awsutil dependencies to their v2 versions. [[GH-23109](https://github.com/hashicorp/consul/issues/23109)]
+* security: Configure HTTP server timeouts to prevent Slowloris denial-of-service attacks on agent HTTP endpoints and pprof endpoints. [[GH-22739](https://github.com/hashicorp/consul/issues/22739)]
+* security: Patched Vault CA provider to prevent arbitrary file reads via Kubernetes, JWT, and AppRole methods. [[GH-23249](https://github.com/hashicorp/consul/pull/23249)]
+* security: Introduced debounce timing for synchronization operations within federationStateAntiEntropySync. [[GH-23196](https://github.com/hashicorp/consul/pull/23196)]
+
+IMPROVEMENTS:
+
+* api-gateway: Fixed "duplicate matcher" errors in Envoy when using multiple file-system certificates on a single TLS listener. The certificates are now consolidated into a single filter chain, allowing Envoy to select the correct one. [[GH-23212](https://github.com/hashicorp/consul/issues/23212)]
+* agent: Fix vault provider failure when signing intermediate CA with isCA=true in CSR [[GH-23202](https://github.com/hashicorp/consul/issues/23202)]
+* cli: Added `--aws-iam-endpoint` flag to `consul login` command for AWS IAM auth method to support custom IAM endpoint configuration [[GH-23109](https://github.com/hashicorp/consul/issues/23109)]
+* docs: Refreshed the security documentation to include the new HTTP server timeout defaults and relevant configuration options. [[GH-23246](https://github.com/hashicorp/consul/pull/23246)]
+* api: Cancel context check for watches cache fetch to stop execution when manager deregisters the watch. [[GH-23157](https://github.com/hashicorp/consul/issues/23157)]
+
+
+## 1.21.11 Enterprise (February 26, 2026)
+
+SECURITY:
+
+* security: upgrade go version to 1.25.7 [[GH-23204](https://github.com/hashicorp/consul/issues/23204)]
+* dockerfile: the Consul build Go base image to `alpine3.23` [[GH-23194](https://github.com/hashicorp/consul/issues/23194)]
+* connect: Migrate to aws-sdk-go-v2 from aws-sdk-go (v1). Also updated consul-awsauth and go-secure-stdlib/awsutil dependencies to their v2 versions. [[GH-23109](https://github.com/hashicorp/consul/issues/23109)]
+* security: Configure HTTP server timeouts to prevent Slowloris denial-of-service attacks on agent HTTP endpoints and pprof endpoints. [[GH-22739](https://github.com/hashicorp/consul/issues/22739)]
+* security: Patched Vault CA provider to prevent arbitrary file reads via Kubernetes, JWT, and AppRole methods. [[GH-23249](https://github.com/hashicorp/consul/pull/23249)]
+* security: Introduced debounce timing for synchronization operations within federationStateAntiEntropySync. [[GH-23196](https://github.com/hashicorp/consul/pull/23196)]
+
+IMPROVEMENTS:
+
+* api-gateway: Fixed "duplicate matcher" errors in Envoy when using multiple file-system certificates on a single TLS listener. The certificates are now consolidated into a single filter chain, allowing Envoy to select the correct one. [[GH-23212](https://github.com/hashicorp/consul/issues/23212)]
+* agent: Fix vault provider failure when signing intermediate CA with isCA=true in CSR [[GH-23202](https://github.com/hashicorp/consul/issues/23202)]
+* cli: Added `--aws-iam-endpoint` flag to `consul login` command for AWS IAM auth method to support custom IAM endpoint configuration [[GH-23109](https://github.com/hashicorp/consul/issues/23109)]
+* docs: Refreshed the security documentation to include the new HTTP server timeout defaults and relevant configuration options. [[GH-23246](https://github.com/hashicorp/consul/pull/23246)]
+* api: Cancel context check for watches cache fetch to stop execution when manager deregisters the watch. [[GH-23157](https://github.com/hashicorp/consul/issues/23157)]
+
+## 1.18.21 Enterprise (February 26, 2026)
+
+Enterprise LTS: Consul Enterprise 1.18 is a Long-Term Support (LTS) release.
+
+SECURITY:
+
+* security: upgrade go version to 1.25.7 [[GH-23204](https://github.com/hashicorp/consul/issues/23204)]
+* dockerfile: the Consul build Go base image to `alpine3.23` [[GH-23194](https://github.com/hashicorp/consul/issues/23194)]
+* connect: Migrate to aws-sdk-go-v2 from aws-sdk-go (v1). Also updated consul-awsauth and go-secure-stdlib/awsutil dependencies to their v2 versions. [[GH-23109](https://github.com/hashicorp/consul/issues/23109)]
+* security: Configure HTTP server timeouts to prevent Slowloris denial-of-service attacks on agent HTTP endpoints and pprof endpoints. [[GH-22739](https://github.com/hashicorp/consul/issues/22739)]
+* security: Patched Vault CA provider to prevent arbitrary file reads via Kubernetes, JWT, and AppRole methods. [[GH-23249](https://github.com/hashicorp/consul/pull/23249)]
+* security: Introduced debounce timing for synchronization operations within federationStateAntiEntropySync. [[GH-23196](https://github.com/hashicorp/consul/pull/23196)]
+
+IMPROVEMENTS:
+
+* api-gateway: Fixed "duplicate matcher" errors in Envoy when using multiple file-system certificates on a single TLS listener. The certificates are now consolidated into a single filter chain, allowing Envoy to select the correct one. [[GH-23212](https://github.com/hashicorp/consul/issues/23212)]
+* agent: Fix vault provider failure when signing intermediate CA with isCA=true in CSR [[GH-23202](https://github.com/hashicorp/consul/issues/23202)]
+* cli: Added `--aws-iam-endpoint` flag to `consul login` command for AWS IAM auth method to support custom IAM endpoint configuration [[GH-23109](https://github.com/hashicorp/consul/issues/23109)]
+* docs: Refreshed the security documentation to include the new HTTP server timeout defaults and relevant configuration options. [[GH-23246](https://github.com/hashicorp/consul/pull/23246)]
+* api: Cancel context check for watches cache fetch to stop execution when manager deregisters the watch. [[GH-23157](https://github.com/hashicorp/consul/issues/23157)]
+
+## 1.22.4
+
+**WITHDRAWN** - This release has been retracted from public distribution due to critical issues. Please use 1.22.5 or remain on 1.22.3.
+
+## 1.22.3 (January 23, 2026)
+
+SECURITY:
+
+* Update the Consul Build Go base image to `alpine3.23.2` [[GH-23138](https://github.com/hashicorp/consul/issues/23138)]
+
+IMPROVEMENTS:
+
+* api: Add `consul services imported-services` and new api(/v1/exported-services) command to list services imported by partitions within a local datacenter [[GH-12045](https://github.com/hashicorp/consul/issues/12045)]
+* connect: added ability to configure Virtual IP range for t-proxy with CIDRs [[GH-23085](https://github.com/hashicorp/consul/issues/23085)]
+
 ## 1.22.1 (November 27, 2025)
 
 SECURITY:

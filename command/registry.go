@@ -9,6 +9,8 @@ import (
 	"os/signal"
 	"syscall"
 
+	mcli "github.com/mitchellh/cli"
+
 	"github.com/hashicorp/consul/command/acl"
 	aclagent "github.com/hashicorp/consul/command/acl/agenttokens"
 	aclam "github.com/hashicorp/consul/command/acl/authmethod"
@@ -52,6 +54,7 @@ import (
 	catlistdc "github.com/hashicorp/consul/command/catalog/list/dc"
 	catlistnodes "github.com/hashicorp/consul/command/catalog/list/nodes"
 	catlistsvc "github.com/hashicorp/consul/command/catalog/list/services"
+	"github.com/hashicorp/consul/command/cli"
 	"github.com/hashicorp/consul/command/config"
 	configdelete "github.com/hashicorp/consul/command/config/delete"
 	configlist "github.com/hashicorp/consul/command/config/list"
@@ -128,6 +131,7 @@ import (
 	svcsderegister "github.com/hashicorp/consul/command/services/deregister"
 	svcsexport "github.com/hashicorp/consul/command/services/export"
 	exportedservices "github.com/hashicorp/consul/command/services/exportedservices"
+	importedservices "github.com/hashicorp/consul/command/services/importedservices"
 	svcsregister "github.com/hashicorp/consul/command/services/register"
 	"github.com/hashicorp/consul/command/snapshot"
 	snapdecode "github.com/hashicorp/consul/command/snapshot/decode"
@@ -146,10 +150,6 @@ import (
 	"github.com/hashicorp/consul/command/validate"
 	"github.com/hashicorp/consul/command/version"
 	"github.com/hashicorp/consul/command/watch"
-
-	mcli "github.com/mitchellh/cli"
-
-	"github.com/hashicorp/consul/command/cli"
 )
 
 // RegisteredCommands returns a realized mapping of available CLI commands in a format that
@@ -278,6 +278,7 @@ func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 		entry{"services deregister", func(ui cli.Ui) (cli.Command, error) { return svcsderegister.New(ui), nil }},
 		entry{"services export", func(ui cli.Ui) (cli.Command, error) { return svcsexport.New(ui), nil }},
 		entry{"services exported-services", func(ui cli.Ui) (cli.Command, error) { return exportedservices.New(ui), nil }},
+		entry{"services imported-services", func(ui cli.Ui) (cli.Command, error) { return importedservices.New(ui), nil }},
 		entry{"snapshot", func(cli.Ui) (cli.Command, error) { return snapshot.New(), nil }},
 		entry{"snapshot decode", func(ui cli.Ui) (cli.Command, error) { return snapdecode.New(ui), nil }},
 		entry{"snapshot inspect", func(ui cli.Ui) (cli.Command, error) { return snapinspect.New(ui), nil }},

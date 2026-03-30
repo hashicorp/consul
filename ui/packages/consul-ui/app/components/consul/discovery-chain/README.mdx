@@ -6,7 +6,7 @@ state: needs-love
 
 Mainly presentational component to visualize a discovery-chain.
 
-```hbs preview-template
+```hbs
 <DataSource @src={{uri '/partition/default/dc-1/discovery-chain/service-name'}} as |source|>
 {{#if source.data}}
   <Consul::DiscoveryChain

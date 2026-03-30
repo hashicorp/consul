@@ -323,6 +323,54 @@ func (a byName) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
 
 func (a byName) Less(i, j int) bool { return a[i].Name() < a[j].Name() }
 
+// getCertificateEnabled returns the certificate telemetry enabled flag with default true
+func (b *builder) getCertificateEnabled(cert *CertificateTelemetry) bool {
+	if cert == nil {
+		return true
+	}
+	return boolValWithDefault(cert.Enabled, true)
+}
+
+// getCertificateCacheDuration returns the certificate telemetry cache duration with default 5m
+func (b *builder) getCertificateCacheDuration(cert *CertificateTelemetry) time.Duration {
+	if cert == nil {
+		return 5 * time.Minute
+	}
+	return b.durationValWithDefault("telemetry.certificate.cache_duration", cert.CacheDuration, 5*time.Minute)
+}
+
+// getCertificateCriticalThresholdDays returns the certificate critical threshold with default 7
+func (b *builder) getCertificateCriticalThresholdDays(cert *CertificateTelemetry) int {
+	if cert == nil {
+		return 7
+	}
+	return intValWithDefault(cert.CriticalThresholdDays, 7)
+}
+
+// getCertificateWarningThresholdDays returns the certificate warning threshold with default 30
+func (b *builder) getCertificateWarningThresholdDays(cert *CertificateTelemetry) int {
+	if cert == nil {
+		return 30
+	}
+	return intValWithDefault(cert.WarningThresholdDays, 30)
+}
+
+// getCertificateInfoThresholdDays returns the certificate info threshold with default 90
+func (b *builder) getCertificateInfoThresholdDays(cert *CertificateTelemetry) int {
+	if cert == nil {
+		return 90
+	}
+	return intValWithDefault(cert.InfoThresholdDays, 90)
+}
+
+// getCertificateExcludeAutoRenewable returns the certificate exclude auto-renewable flag with default false
+func (b *builder) getCertificateExcludeAutoRenewable(cert *CertificateTelemetry) bool {
+	if cert == nil {
+		return false
+	}
+	return boolValWithDefault(cert.ExcludeAutoRenewable, false)
+}
+
 // build constructs the runtime configuration from the config sources
 // and the command line flags. The config sources are processed in the
 // order they were added with the flags being processed last to give
@@ -849,13 +897,14 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		BuildDate: timeValWithDefault(c.BuildDate, time.Date(1970, 1, 00, 00, 00, 01, 0, time.UTC)),
 
 		// consul configuration
-		ConsulCoordinateUpdateBatchSize:  intVal(c.Consul.Coordinate.UpdateBatchSize),
-		ConsulCoordinateUpdateMaxBatches: intVal(c.Consul.Coordinate.UpdateMaxBatches),
-		ConsulCoordinateUpdatePeriod:     b.durationVal("consul.coordinate.update_period", c.Consul.Coordinate.UpdatePeriod),
-		ConsulRaftElectionTimeout:        consulRaftElectionTimeout,
-		ConsulRaftHeartbeatTimeout:       consulRaftHeartbeatTimeout,
-		ConsulRaftLeaderLeaseTimeout:     consulRaftLeaderLeaseTimeout,
-		ConsulServerHealthInterval:       b.durationVal("consul.server.health_interval", c.Consul.Server.HealthInterval),
+		ConsulCoordinateUpdateBatchSize:        intVal(c.Consul.Coordinate.UpdateBatchSize),
+		ConsulCoordinateUpdateMaxBatches:       intVal(c.Consul.Coordinate.UpdateMaxBatches),
+		ConsulCoordinateUpdatePeriod:           b.durationVal("consul.coordinate.update_period", c.Consul.Coordinate.UpdatePeriod),
+		ConsulRaftElectionTimeout:              consulRaftElectionTimeout,
+		ConsulRaftHeartbeatTimeout:             consulRaftHeartbeatTimeout,
+		ConsulRaftLeaderLeaseTimeout:           consulRaftLeaderLeaseTimeout,
+		ConsulServerHealthInterval:             b.durationVal("consul.server.health_interval", c.Consul.Server.HealthInterval),
+		FederationStateAntiEntropySyncInterval: b.durationVal("federation_state_anti_entropy_sync_interval", c.FederationStateAntiEntropySyncInterval),
 
 		// gossip configuration
 		GossipLANGossipInterval: b.durationVal("gossip_lan..gossip_interval", c.GossipLAN.GossipInterval),
@@ -934,15 +983,19 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		DNSCacheMaxAge:        b.durationVal("dns_config.cache_max_age", c.DNS.CacheMaxAge),
 
 		// HTTP
-		HTTPPort:            httpPort,
-		HTTPSPort:           httpsPort,
-		HTTPAddrs:           httpAddrs,
-		HTTPSAddrs:          httpsAddrs,
-		HTTPBlockEndpoints:  c.HTTPConfig.BlockEndpoints,
-		HTTPMaxHeaderBytes:  intVal(c.HTTPConfig.MaxHeaderBytes),
-		HTTPResponseHeaders: c.HTTPConfig.ResponseHeaders,
-		AllowWriteHTTPFrom:  b.cidrsVal("allow_write_http_from", c.HTTPConfig.AllowWriteHTTPFrom),
-		HTTPUseCache:        boolValWithDefault(c.HTTPConfig.UseCache, true),
+		HTTPPort:              httpPort,
+		HTTPSPort:             httpsPort,
+		HTTPAddrs:             httpAddrs,
+		HTTPSAddrs:            httpsAddrs,
+		HTTPBlockEndpoints:    c.HTTPConfig.BlockEndpoints,
+		HTTPMaxHeaderBytes:    intVal(c.HTTPConfig.MaxHeaderBytes),
+		HTTPResponseHeaders:   c.HTTPConfig.ResponseHeaders,
+		AllowWriteHTTPFrom:    b.cidrsVal("allow_write_http_from", c.HTTPConfig.AllowWriteHTTPFrom),
+		HTTPUseCache:          boolValWithDefault(c.HTTPConfig.UseCache, true),
+		HTTPReadTimeout:       b.durationValWithDefaultMin("http_config.read_timeout", c.HTTPConfig.ReadTimeout, 15*time.Minute, 1*time.Second),
+		HTTPReadHeaderTimeout: b.durationValWithDefaultMin("http_config.read_header_timeout", c.HTTPConfig.ReadHeaderTimeout, 10*time.Second, 1*time.Second),
+		HTTPWriteTimeout:      b.durationValWithDefaultMin("http_config.write_timeout", c.HTTPConfig.WriteTimeout, 15*time.Minute, 1*time.Second),
+		HTTPIdleTimeout:       b.durationValWithDefaultMin("http_config.idle_timeout", c.HTTPConfig.IdleTimeout, 120*time.Second, 10*time.Second),
 
 		// Telemetry
 		Telemetry: lib.TelemetryConfig{
@@ -974,6 +1027,12 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 				Expiration: b.durationVal("prometheus_retention_time", c.Telemetry.PrometheusRetentionTime),
 				Name:       stringVal(c.Telemetry.MetricsPrefix),
 			},
+			CertificateEnabled:               b.getCertificateEnabled(c.Telemetry.Certificate),
+			CertificateCacheDuration:         b.getCertificateCacheDuration(c.Telemetry.Certificate),
+			CertificateCriticalThresholdDays: b.getCertificateCriticalThresholdDays(c.Telemetry.Certificate),
+			CertificateWarningThresholdDays:  b.getCertificateWarningThresholdDays(c.Telemetry.Certificate),
+			CertificateInfoThresholdDays:     b.getCertificateInfoThresholdDays(c.Telemetry.Certificate),
+			CertificateExcludeAutoRenewable:  b.getCertificateExcludeAutoRenewable(c.Telemetry.Certificate),
 		},
 
 		// Agent

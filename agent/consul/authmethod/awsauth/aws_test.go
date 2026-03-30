@@ -10,7 +10,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	iamauth "github.com/hashicorp/consul-awsauth"
 	"github.com/hashicorp/consul-awsauth/iamauthtest"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
@@ -238,7 +238,7 @@ func setup(t *testing.T, config map[string]interface{}, server *iamauthtest.Serv
 
 	// Generate the login token
 	tokenData, err := iamauth.GenerateLoginData(&iamauth.LoginInput{
-		Creds:                  credentials.NewStaticCredentials("fake", "fake", ""),
+		Creds:                  credentials.NewStaticCredentialsProvider("fake", "fake", ""),
 		IncludeIAMEntity:       v.config.EnableIAMEntityDetails,
 		STSEndpoint:            v.config.STSEndpoint,
 		STSRegion:              "fake-region",

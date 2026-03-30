@@ -87,6 +87,7 @@ func init() {
 	registerEndpoint("/v1/internal/federation-state/", []string{"GET"}, (*HTTPHandlers).FederationStateGet)
 	registerEndpoint("/v1/discovery-chain/", []string{"GET", "POST"}, (*HTTPHandlers).DiscoveryChainRead)
 	registerEndpoint("/v1/exported-services", []string{"GET"}, (*HTTPHandlers).ExportedServices)
+	registerEndpoint("/v1/imported-services", []string{"GET"}, (*HTTPHandlers).ImportedServices)
 	registerEndpoint("/v1/event/fire/", []string{"PUT"}, (*HTTPHandlers).EventFire)
 	registerEndpoint("/v1/event/list", []string{"GET"}, (*HTTPHandlers).EventList)
 	registerEndpoint("/v1/health/node/", []string{"GET"}, (*HTTPHandlers).HealthNodeChecks)

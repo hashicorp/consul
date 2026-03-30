@@ -20,7 +20,7 @@ type GatewayServices struct {
 	RPC RPC
 }
 
-func (g *GatewayServices) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
+func (g *GatewayServices) Fetch(ctx context.Context, opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
 	var result cache.FetchResult
 
 	// The request should be a ServiceSpecificRequest.
@@ -46,7 +46,7 @@ func (g *GatewayServices) Fetch(opts cache.FetchOptions, req cache.Request) (cac
 
 	// Fetch
 	var reply structs.IndexedGatewayServices
-	if err := g.RPC.RPC(context.Background(), "Catalog.GatewayServices", reqReal, &reply); err != nil {
+	if err := g.RPC.RPC(ctx, "Catalog.GatewayServices", reqReal, &reply); err != nil {
 		return result, err
 	}
 

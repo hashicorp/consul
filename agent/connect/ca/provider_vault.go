@@ -604,7 +604,8 @@ func (v *VaultProvider) GenerateLeafSigningCert() (string, error) {
 	// Sign the CSR with the root backend.
 	intermediate, err := v.writeNamespaced(v.config.RootPKINamespace, v.config.RootPKIPath+"root/sign-intermediate", map[string]interface{}{
 		"csr":            csr,
-		"use_csr_values": true,
+		"use_csr_values": false,
+		"uri_sans":       v.spiffeID.URI().String(),
 		"format":         "pem_bundle",
 		"ttl":            v.config.IntermediateCertTTL.String(),
 	})
@@ -777,7 +778,8 @@ func (v *VaultProvider) SignIntermediate(csr *x509.CertificateRequest) (string, 
 	// Sign the CSR with the root backend.
 	data, err := v.writeNamespaced(v.config.RootPKINamespace, v.config.RootPKIPath+"root/sign-intermediate", map[string]interface{}{
 		"csr":             pemBuf.String(),
-		"use_csr_values":  true,
+		"use_csr_values":  false,
+		"uri_sans":        v.spiffeID.URI().String(),
 		"format":          "pem_bundle",
 		"max_path_length": 0,
 		"ttl":             v.config.IntermediateCertTTL.String(),

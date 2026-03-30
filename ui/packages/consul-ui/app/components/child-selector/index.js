@@ -7,6 +7,7 @@ import Component from '@ember/component';
 import { get, set, computed } from '@ember/object';
 import { alias } from '@ember/object/computed';
 import { inject as service } from '@ember/service';
+import { A } from '@ember/array';
 
 import { task } from 'ember-concurrency';
 
@@ -77,6 +78,12 @@ export default Component.extend(Slotted, {
     }
   }),
   actions: {
+    setAllOptions: function (data) {
+      if (this.isDestroyed || this.isDestroying) {
+        return;
+      }
+      this.set('allOptions', data);
+    },
     reset: function () {
       this.form.clear({ Datacenter: this.dc, Namespace: this.nspace, Partition: this.partition });
     },
@@ -94,7 +101,14 @@ export default Component.extend(Slotted, {
     },
     change: function (e, value, item) {
       const event = this.dom.normalizeEvent(...arguments);
-      const items = value;
+      // FIX: Ensure items is initialized
+      let items = value;
+      if (!items) {
+        items = A(); // Create a new Ember Array
+        // Update the component's 'items' property so the UI updates
+        this.set('items', items);
+      }
+
       switch (event.target.name) {
         case 'items[]':
           set(item, 'CreateTime', new Date().getTime());

@@ -9,11 +9,12 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-memdb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	grpcstatus "google.golang.org/grpc/status"
+
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
@@ -119,6 +120,74 @@ func (s *Server) GetResolvedExportedServices(
 	})
 	if err != nil {
 		return nil, fmt.Errorf("error executing exported services blocking query: %w", err)
+	}
+
+	header, err := external.GRPCMetadataFromQueryMeta(meta)
+	if err != nil {
+		return nil, fmt.Errorf("could not convert query metadata to gRPC header")
+	}
+	if err := grpc.SendHeader(ctx, header); err != nil {
+		return nil, fmt.Errorf("could not send gRPC header")
+	}
+
+	return res, nil
+}
+
+func (s *Server) GetImportedServices(
+	ctx context.Context,
+	req *pbconfigentry.GetImportedServicesRequest,
+) (*pbconfigentry.GetImportedServicesResponse, error) {
+
+	if err := s.Backend.EnterpriseCheckPartitions(req.Partition); err != nil {
+		return nil, grpcstatus.Error(codes.InvalidArgument, err.Error())
+	}
+
+	options, err := external.QueryOptionsFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var resp *pbconfigentry.GetImportedServicesResponse
+	var emptyDCSpecificRequest structs.DCSpecificRequest
+
+	handled, err := s.ForwardRPC(&readRequest{options, emptyDCSpecificRequest}, func(conn *grpc.ClientConn) error {
+		var err error
+		resp, err = pbconfigentry.NewConfigEntryServiceClient(conn).GetImportedServices(ctx, req)
+		return err
+	})
+	if handled || err != nil {
+		return resp, err
+	}
+
+	defer metrics.MeasureSince([]string{"configentry", "get_imported_services"}, time.Now())
+
+	var authzCtx acl.AuthorizerContext
+	entMeta := structs.DefaultEnterpriseMetaInPartition(req.Partition)
+
+	authz, err := s.Backend.ResolveTokenAndDefaultMeta(options.Token, entMeta, &authzCtx)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := authz.ToAllowAuthorizer().MeshReadAllowed(&authzCtx); err != nil {
+		return nil, err
+	}
+
+	res := &pbconfigentry.GetImportedServicesResponse{}
+	meta := structs.QueryMeta{}
+	err = blockingquery.Query(s.FSMServer, &options, &meta, func(ws memdb.WatchSet, store *state.Store) error {
+		idx, importedSvcs, err := store.ImportedServicesForPartition(ws, req.Partition)
+		if err != nil {
+			return err
+		}
+
+		meta.SetIndex(idx)
+
+		res.Services = importedSvcs
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error executing imported services blocking query: %w", err)
 	}
 
 	header, err := external.GRPCMetadataFromQueryMeta(meta)

@@ -21,7 +21,7 @@ type PreparedQuery struct {
 	RPC RPC
 }
 
-func (c *PreparedQuery) Fetch(_ cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
+func (c *PreparedQuery) Fetch(ctx context.Context, _ cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
 	var result cache.FetchResult
 
 	// The request should be a PreparedQueryExecuteRequest.
@@ -43,7 +43,7 @@ func (c *PreparedQuery) Fetch(_ cache.FetchOptions, req cache.Request) (cache.Fe
 
 	// Fetch
 	var reply structs.PreparedQueryExecuteResponse
-	if err := c.RPC.RPC(context.Background(), "PreparedQuery.Execute", reqReal, &reply); err != nil {
+	if err := c.RPC.RPC(ctx, "PreparedQuery.Execute", reqReal, &reply); err != nil {
 		return result, err
 	}
 

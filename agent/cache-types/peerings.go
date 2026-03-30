@@ -66,7 +66,7 @@ type PeeringLister interface {
 	) (*pbpeering.PeeringListResponse, error)
 }
 
-func (t *Peerings) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
+func (t *Peerings) Fetch(ctx context.Context, opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
 	var result cache.FetchResult
 
 	// The request should be a PeeringListRequest.
@@ -91,14 +91,14 @@ func (t *Peerings) Fetch(opts cache.FetchOptions, req cache.Request) (cache.Fetc
 	// but it could be a problem for a future consumer.
 	reqReal.SetAllowStale(true)
 
-	ctx, err := external.ContextWithQueryOptions(context.Background(), reqReal.QueryOptions)
+	qctx, err := external.ContextWithQueryOptions(ctx, reqReal.QueryOptions)
 	if err != nil {
 		return result, err
 	}
 
 	// Fetch
 	var header metadata.MD
-	reply, err := t.Client.PeeringList(ctx, reqReal.Request, grpc.Header(&header))
+	reply, err := t.Client.PeeringList(qctx, reqReal.Request, grpc.Header(&header))
 	if err != nil {
 		// Return an empty result if the error is due to peering being disabled.
 		// This allows mesh gateways to receive an update and confirm that the watch is set.

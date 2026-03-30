@@ -1,0 +1,3 @@
+```release-note:improvement
+telemetry: Added metric descriptions for ACL, intention, federation state, and runtime metrics to improve Prometheus observability
+```

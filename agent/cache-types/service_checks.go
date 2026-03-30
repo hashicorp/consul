@@ -4,6 +4,7 @@
 package cachetype
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"time"
@@ -33,7 +34,7 @@ type ServiceHTTPChecks struct {
 	Agent Agent
 }
 
-func (c *ServiceHTTPChecks) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
+func (c *ServiceHTTPChecks) Fetch(_ context.Context, opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
 	var result cache.FetchResult
 
 	// The request should be a CatalogDatacentersRequest.

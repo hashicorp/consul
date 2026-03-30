@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"context"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/local"
@@ -53,6 +54,7 @@ func TestServiceHTTPChecks_Fetch(t *testing.T) {
 		t.Fatalf("failed to add check: %v", err)
 	}
 	result, err := typ.Fetch(
+		context.Background(),
 		cache.FetchOptions{},
 		&ServiceHTTPChecksRequest{ServiceID: svcState.Service.ID, MaxQueryTime: 100 * time.Millisecond},
 	)
@@ -70,6 +72,7 @@ func TestServiceHTTPChecks_Fetch(t *testing.T) {
 		t.Fatalf("failed to add check: %v", err)
 	}
 	result, err = typ.Fetch(
+		context.Background(),
 		cache.FetchOptions{},
 		&ServiceHTTPChecksRequest{ServiceID: svcState.Service.ID},
 	)
@@ -93,6 +96,7 @@ func TestServiceHTTPChecks_Fetch(t *testing.T) {
 		t.Fatalf("failed to add check: %v", err)
 	}
 	result2, err := typ.Fetch(
+		context.Background(),
 		cache.FetchOptions{LastResult: &result},
 		&ServiceHTTPChecksRequest{ServiceID: svcState.Service.ID},
 	)
@@ -117,6 +121,7 @@ func TestServiceHTTPChecks_Fetch(t *testing.T) {
 		t.Fatalf("failed to add check: %v", err)
 	}
 	result3, err := typ.Fetch(
+		context.Background(),
 		cache.FetchOptions{LastResult: &result2},
 		&ServiceHTTPChecksRequest{ServiceID: svcState.Service.ID},
 	)
@@ -138,6 +143,7 @@ func TestServiceHTTPChecks_Fetch(t *testing.T) {
 
 	// Fetching again should yield no change in result nor index
 	result4, err := typ.Fetch(
+		context.Background(),
 		cache.FetchOptions{LastResult: &result3},
 		&ServiceHTTPChecksRequest{ServiceID: svcState.Service.ID, MaxQueryTime: 100 * time.Millisecond},
 	)
@@ -163,7 +169,7 @@ func TestServiceHTTPChecks_badReqType(t *testing.T) {
 	typ := ServiceHTTPChecks{Agent: a}
 
 	// Fetch
-	_, err := typ.Fetch(cache.FetchOptions{}, cache.TestRequest(
+	_, err := typ.Fetch(context.Background(), cache.FetchOptions{}, cache.TestRequest(
 		t, cache.RequestInfo{Key: "foo", MinIndex: 64}))
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "wrong request type")

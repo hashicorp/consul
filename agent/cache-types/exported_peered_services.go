@@ -19,7 +19,7 @@ type ExportedPeeredServices struct {
 	RPC RPC
 }
 
-func (c *ExportedPeeredServices) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
+func (c *ExportedPeeredServices) Fetch(ctx context.Context, opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
 	var result cache.FetchResult
 
 	// The request should be a DCSpecificRequest.
@@ -45,7 +45,7 @@ func (c *ExportedPeeredServices) Fetch(opts cache.FetchOptions, req cache.Reques
 
 	// Fetch
 	var reply structs.IndexedExportedServiceList
-	if err := c.RPC.RPC(context.Background(), "Internal.ExportedPeeredServices", reqReal, &reply); err != nil {
+	if err := c.RPC.RPC(ctx, "Internal.ExportedPeeredServices", reqReal, &reply); err != nil {
 		return result, err
 	}
 

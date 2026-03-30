@@ -34,10 +34,20 @@
         "typedConfig": {
           "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
           "commonTlsContext": {
-            "tlsParams": {},
-            "validationContext": {
-              "trustedCa": {
-                "filename": "ca.cert.pem"
+            "tlsCertificateSdsSecretConfigs": [
+              {
+                "name": "web-cert",
+                "sdsConfig": {
+                  "ads": {},
+                  "resourceApiVersion": "V3"
+                }
+              }
+            ],
+            "validationContextSdsSecretConfig": {
+              "name": "web-ca",
+              "sdsConfig": {
+                "ads": {},
+                "resourceApiVersion": "V3"
               }
             }
           }
@@ -86,10 +96,20 @@
         "typedConfig": {
           "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
           "commonTlsContext": {
-            "tlsParams": {},
-            "validationContext": {
-              "trustedCa": {
-                "filename": "ca.cert.pem"
+            "tlsCertificateSdsSecretConfigs": [
+              {
+                "name": "web-cert",
+                "sdsConfig": {
+                  "ads": {},
+                  "resourceApiVersion": "V3"
+                }
+              }
+            ],
+            "validationContextSdsSecretConfig": {
+              "name": "web-ca",
+              "sdsConfig": {
+                "ads": {},
+                "resourceApiVersion": "V3"
               }
             }
           }
@@ -138,10 +158,20 @@
         "typedConfig": {
           "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
           "commonTlsContext": {
-            "tlsParams": {},
-            "validationContext": {
-              "trustedCa": {
-                "filename": "ca.cert.pem"
+            "tlsCertificateSdsSecretConfigs": [
+              {
+                "name": "web-cert",
+                "sdsConfig": {
+                  "ads": {},
+                  "resourceApiVersion": "V3"
+                }
+              }
+            ],
+            "validationContextSdsSecretConfig": {
+              "name": "web-ca",
+              "sdsConfig": {
+                "ads": {},
+                "resourceApiVersion": "V3"
               }
             }
           }
