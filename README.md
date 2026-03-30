@@ -1,5 +1,5 @@
 <h1>
-  <img src="./website/public/img/logo.svg" align="left" height="46px" alt="Consul logo"/>
+  <img src="./ui/logo.svg" align="left" height="46px" alt="Consul logo"/>
   <span>Consul</span>
 </h1>
 
