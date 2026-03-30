@@ -3149,6 +3149,19 @@ type Locality struct {
 	Zone string `json:",omitempty"`
 }
 
+func (c *Locality) getHash() uint64 {
+	return hashValue(c)
+}
+
+func (c *Locality) appendHash(h *customHasher) {
+	if c == nil {
+		return
+	}
+
+	h.addString(c.Region)
+	h.addString(c.Zone)
+}
+
 // ToAPI converts a struct Locality to an API Locality.
 func (l *Locality) ToAPI() *api.Locality {
 	if l == nil {
