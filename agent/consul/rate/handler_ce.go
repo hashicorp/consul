@@ -52,7 +52,7 @@ func burstFromRate(r float64) int {
 func (h *Handler) UpdateGlobalRateLimitConfig(cfg *structs.GlobalRateLimitConfigEntry) {
 	h.globalRateLimitCfg.Store(cfg)
 
-	if cfg != nil {
+	if cfg != nil && cfg.Config != nil {
 
 		// Update the limiter with separate read and write rates from config entry
 		var writeCfg multilimiter.LimiterConfig
