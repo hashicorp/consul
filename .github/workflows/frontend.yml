@@ -204,15 +204,159 @@ jobs:
         working-directory: ui
         run: make deps
 
-      # TODO: Set up Consul backend for E2E tests
-      # Currently disabled due to consul-ui-testing repo issues
+      - name: Checkout consul-ui-testing repo
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+        with:
+          repository: hashicorp/consul-ui-testing
+          path: consul-ui-testing
+          token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
-      - name: Placeholder for E2E tests
+      - name: Install consul-ui-testing dependencies
+        working-directory: consul-ui-testing
+        run: yarn install
+
+      - name: Install httpie (required by consul-ui-testing)
         run: |
-          echo "E2E tests are currently disabled"
-          echo "Reason: consul-ui-testing repo requires internal HashiCorp infrastructure"
-          echo "Next steps: Implement direct Docker-based Consul setup"
-          echo "This job is non-blocking and will be enhanced in future iterations"
+          sudo apt-get update
+          sudo apt-get install -y httpie
+
+      - name: Skip HashiCups build (use cached version marker)
+        working-directory: consul-ui-testing
+        run: echo "hashicorppreview/consul:latest" > .last_consul_version_built
+
+      - name: Start Consul API servers (CE)
+        working-directory: consul-ui-testing
+        run: |
+          echo "Starting Consul API servers at $(date '+%Y-%m-%d %H:%M:%S')"
+          yarn start hashicorppreview/consul:latest
+
+      - name: Start Consul UI
+        working-directory: ui/packages/consul-ui
+        run: |
+          pnpm run start:consul &
+          echo $! > consul-ui.pid
+        env:
+          CONSUL_HTTP_ADDR: http://localhost:8500
+
+      - name: Wait for UI to be ready
+        run: npx wait-on http://localhost:4200 --timeout 60000
+
+      - name: Run E2E health check
+        working-directory: ui/packages/consul-ui
+        run: pnpm run test:e2e:health
+
+      - name: Run basic E2E tests (CE)
+        working-directory: ui/packages/consul-ui
+        run: pnpm run test:e2e:basic
+        env:
+          CI: true
+          CONSUL_UI_TEST_TOKEN: ${{ secrets.CONSUL_UI_TEST_TOKEN }}
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        with:
+          name: e2e-test-results-ce
+          path: ui/packages/consul-ui/e2e-tests/reports/
+          retention-days: 30
+
+      - name: Upload screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        with:
+          name: e2e-screenshots-ce
+          path: ui/packages/consul-ui/e2e-tests/reports/test-results/
+          retention-days: 7
+
+  e2e-tests-ent:
+    needs: setup
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-medium) }}
+    continue-on-error: true
+    env:
+      CONSUL_NSPACES_ENABLED: 1
+    steps:
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+
+      - name: Install PNPM
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        with:
+          run_install: false
+          package_json_file: ui/package.json
+
+      - name: Setup node and pnpm cache
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+        with:
+          node-version-file: "./ui/package.json"
+          cache: "pnpm"
+          cache-dependency-path: "ui/pnpm-lock.yaml"
+
+      - name: Install dependencies
+        working-directory: ui
+        run: make deps
+
+      - name: Checkout consul-ui-testing repo
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+        with:
+          repository: hashicorp/consul-ui-testing
+          path: consul-ui-testing
+          token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+
+      - name: Install consul-ui-testing dependencies
+        working-directory: consul-ui-testing
+        run: yarn install
+
+      - name: Install httpie (required by consul-ui-testing)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y httpie
+
+      - name: Skip HashiCups build (use cached version marker)
+        working-directory: consul-ui-testing
+        run: echo "hashicorppreview/consul-enterprise:latest" > .last_consul_version_built
+
+      - name: Start Consul API servers (ENT)
+        working-directory: consul-ui-testing
+        run: |
+          echo "Starting Consul API servers at $(date '+%Y-%m-%d %H:%M:%S')"
+          yarn start hashicorppreview/consul-enterprise:latest
+
+      - name: Start Consul UI
+        working-directory: ui/packages/consul-ui
+        run: |
+          pnpm run start:consul &
+          echo $! > consul-ui.pid
+        env:
+          CONSUL_HTTP_ADDR: http://localhost:8500
+
+      - name: Wait for UI to be ready
+        run: npx wait-on http://localhost:4200 --timeout 60000
+
+      - name: Run E2E health check
+        working-directory: ui/packages/consul-ui
+        run: pnpm run test:e2e:health
+
+      - name: Run basic E2E tests (ENT)
+        working-directory: ui/packages/consul-ui
+        run: pnpm run test:e2e:basic
+        env:
+          CI: true
+          CONSUL_UI_TEST_TOKEN: ${{ secrets.CONSUL_UI_TEST_TOKEN }}
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        with:
+          name: e2e-test-results-ent
+          path: ui/packages/consul-ui/e2e-tests/reports/
+          retention-days: 30
+
+      - name: Upload screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        with:
+          name: e2e-screenshots-ent
+          path: ui/packages/consul-ui/e2e-tests/reports/test-results/
+          retention-days: 7
 
   # This is job is required for branch protection as a required gihub check
   # because GitHub actions show up as checks at the job level and not the
@@ -234,7 +378,9 @@ jobs:
       - workspace-tests
       - node-tests
       - ember-build-test
+      - ember-build-test-ent
       - e2e-tests
+      - e2e-tests-ent
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     if: ${{ always() }}
     steps:
