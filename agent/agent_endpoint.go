@@ -1878,7 +1878,7 @@ func (s *HTTPHandlers) InternalRPCMethods(resp http.ResponseWriter, req *http.Re
 	// Authorize using the agent's own enterprise meta, not the token.
 	var authzContext acl.AuthorizerContext
 	s.agent.AgentEnterpriseMeta().FillAuthzContext(&authzContext)
-	if err := authz.ToAllowAuthorizer().OperatorReadAllowed(nil); err != nil {
+	if err := authz.ToAllowAuthorizer().OperatorReadAllowed(&authzContext); err != nil {
 		return nil, err
 	}
 	return rpcmiddleware.RPCMethodNames(), nil

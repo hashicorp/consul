@@ -122,22 +122,35 @@ func TestAgent_InternalRPCMethods(t *testing.T) {
 	}
 
 	t.Parallel()
-	a := NewTestAgent(t, "")
+	a := NewTestAgent(t, TestACLConfig())
 	defer func() { _ = a.Shutdown() }()
 
-	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
-	req, _ := http.NewRequest(http.MethodGet, "/v1/internal/rpc/methods", nil)
-	resp := httptest.NewRecorder()
-	a.srv.h.ServeHTTP(resp, req)
+	t.Run("no token", func(t *testing.T) {
+		req, _ := http.NewRequest(http.MethodGet, "/v1/internal/rpc/methods", nil)
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
 
-	require.Equal(t, http.StatusOK, resp.Code)
+		require.Equal(t, http.StatusForbidden, resp.Code)
+	})
 
-	var methods []string
-	require.NoError(t, json.Unmarshal(resp.Body.Bytes(), &methods))
-	require.NotEmpty(t, methods)
-	// Spot-check for a stable, core RPC method.
-	require.Contains(t, methods, "Status.Ping")
+	operatorReadToken := testCreateToken(t, a, `operator = "read"`)
+
+	t.Run("operator read token", func(t *testing.T) {
+		req, _ := http.NewRequest(http.MethodGet, "/v1/internal/rpc/methods", nil)
+		req.Header.Add("X-Consul-Token", operatorReadToken)
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+
+		require.Equal(t, http.StatusOK, resp.Code)
+
+		var methods []string
+		require.NoError(t, json.Unmarshal(resp.Body.Bytes(), &methods))
+		require.NotEmpty(t, methods)
+		// Spot-check for a stable, core RPC method.
+		require.Contains(t, methods, "Status.Ping")
+	})
 }
 
 func TestAgent_ServicesFiltered(t *testing.T) {
