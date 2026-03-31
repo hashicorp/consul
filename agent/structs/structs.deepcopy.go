@@ -3,8 +3,9 @@
 package structs
 
 import (
-	"github.com/hashicorp/consul/types"
 	"time"
+
+	"github.com/hashicorp/consul/types"
 )
 
 // DeepCopy generates a deep copy of *APIGatewayListener
