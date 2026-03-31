@@ -8,16 +8,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/consul/agent/metadata"
 	"net"
 	"reflect"
 	"sync/atomic"
+
+	"github.com/hashicorp/consul/agent/metadata"
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/go-hclog"
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/agent/consul/multilimiter"
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 var (
@@ -155,12 +157,14 @@ type RequestLimitsHandler interface {
 	UpdateConfig(cfg HandlerConfig)
 	UpdateIPConfig(cfg IPLimitConfig)
 	Register(serversStatusProvider ServersStatusProvider)
+	UpdateGlobalRateLimitConfig(cfg *structs.GlobalRateLimitConfigEntry)
 }
 
 // Handler enforces rate limits for incoming RPCs.
 type Handler struct {
 	globalCfg             *atomic.Pointer[HandlerConfig]
 	ipCfg                 *atomic.Pointer[IPLimitConfig]
+	globalRateLimitCfg    *atomic.Pointer[structs.GlobalRateLimitConfigEntry]
 	serversStatusProvider ServersStatusProvider
 
 	limiter multilimiter.RateLimiter
@@ -211,10 +215,11 @@ func NewHandlerWithLimiter(
 	limiter.UpdateConfig(cfg.GlobalLimitConfig.ReadConfig, globalRead)
 
 	h := &Handler{
-		ipCfg:     new(atomic.Pointer[IPLimitConfig]),
-		globalCfg: new(atomic.Pointer[HandlerConfig]),
-		limiter:   limiter,
-		logger:    logger,
+		ipCfg:              new(atomic.Pointer[IPLimitConfig]),
+		globalCfg:          new(atomic.Pointer[HandlerConfig]),
+		globalRateLimitCfg: new(atomic.Pointer[structs.GlobalRateLimitConfigEntry]),
+		limiter:            limiter,
+		logger:             logger,
 	}
 	h.globalCfg.Store(&cfg)
 	h.ipCfg.Store(&IPLimitConfig{})
@@ -246,44 +251,66 @@ func (h *Handler) Allow(op Operation) error {
 		// panic("serversStatusProvider required to be set via Register(..)")
 	}
 
-	cfg := h.globalCfg.Load()
-	if cfg.GlobalLimitConfig.Mode == ModeDisabled {
+	globalCfg := h.globalRateLimitCfg.Load()
+	if globalCfg != nil && globalCfg.Config != nil && globalCfg.Config.Priority {
+		if configEntryLimit := h.configEntryGlobalLimit(op); configEntryLimit != nil {
+
+			allow, throttledLimits := h.allowAllLimits([]limit{*configEntryLimit}, h.serversStatusProvider.IsServer(string(metadata.GetIP(op.SourceAddr))))
+
+			if !allow {
+				if err := h.handleThrottledLimits(op, throttledLimits, "RPC exceeded config entry rate limit", nil); err != nil {
+					return err
+				}
+			}
+		}
 		return nil
 	}
 
 	allow, throttledLimits := h.allowAllLimits(h.limits(op), h.serversStatusProvider.IsServer(string(metadata.GetIP(op.SourceAddr))))
 
 	if !allow {
-		for _, l := range throttledLimits {
-			enforced := l.mode == ModeEnforcing
-			h.logger.Debug("RPC exceeded allowed rate limit",
-				"rpc", op.Name,
-				"source_addr", op.SourceAddr,
-				"limit_type", l.desc,
-				"limit_enforced", enforced,
-			)
+		if err := h.handleThrottledLimits(op, throttledLimits, "RPC exceeded allowed rate limit", nil); err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
-			metrics.IncrCounterWithLabels([]string{"rpc", "rate_limit", "exceeded"}, 1, []metrics.Label{
-				{
-					Name:  "limit_type",
-					Value: l.desc,
-				},
-				{
-					Name:  "op",
-					Value: op.Name,
-				},
-				{
-					Name:  "mode",
-					Value: l.mode.String(),
-				},
-			})
+// handleThrottledLimits logs, emits metrics, and returns an error if any of the
+// throttled limits are in enforcing mode. extraLabels are appended to the metric labels.
+func (h *Handler) handleThrottledLimits(op Operation, throttledLimits []limit, logMessage string, extraLabels []metrics.Label) error {
+	for _, l := range throttledLimits {
+		enforced := l.mode == ModeEnforcing
+		h.logger.Debug(logMessage,
+			"rpc", op.Name,
+			"source_addr", op.SourceAddr,
+			"limit_type", l.desc,
+			"limit_enforced", enforced,
+		)
 
-			if enforced {
-				if h.serversStatusProvider.IsLeader() && op.Type == OperationTypeWrite {
-					return ErrRetryLater
-				}
-				return ErrRetryElsewhere
+		labels := []metrics.Label{
+			{
+				Name:  "limit_type",
+				Value: l.desc,
+			},
+			{
+				Name:  "op",
+				Value: op.Name,
+			},
+			{
+				Name:  "mode",
+				Value: l.mode.String(),
+			},
+		}
+		labels = append(labels, extraLabels...)
+
+		metrics.IncrCounterWithLabels([]string{"rpc", "rate_limit", "exceeded"}, 1, labels)
+
+		if enforced {
+			if h.serversStatusProvider.IsLeader() && op.Type == OperationTypeWrite {
+				return ErrRetryLater
 			}
+			return ErrRetryElsewhere
 		}
 	}
 	return nil
@@ -379,6 +406,79 @@ func (h *Handler) globalLimit(op Operation) *limit {
 	return lim
 }
 
+// configEntryGlobalLimit checks the global rate limit from the config entry stored in Raft.
+// This allows dynamic, cluster-wide rate limiting that's automatically replicated.
+func (h *Handler) configEntryGlobalLimit(op Operation) *limit {
+	if op.Type == OperationTypeExempt {
+		h.logger.Trace("operation exempt from config entry rate limit",
+			"rpc", op.Name,
+			"operation_type", "exempt")
+		return nil
+	}
+
+	// Check if this is a safety-critical endpoint that must always be allowed
+	// to prevent self-lockout scenarios (e.g., max_rps=0 with emergency_mode=true)
+	if h.isSafetyExemptEndpoint(op.Name) {
+		h.logger.Trace("operation exempt from config entry rate limit for safety",
+			"rpc", op.Name)
+		return nil
+	}
+
+	cfg := h.globalRateLimitCfg.Load()
+	if cfg == nil {
+		// No global rate limit config entry configured
+		return nil
+	}
+
+	// Check if this endpoint is in the priority list (bypasses rate limiting)
+	for _, endpoint := range cfg.Config.ExcludeEndpoints {
+		if endpoint == op.Name {
+			h.logger.Debug("operation bypassed rate limiting due to priority endpoint",
+				"rpc", op.Name,
+				"source_addr", op.SourceAddr,
+				"config_name", cfg.Name,
+			)
+			return nil
+		}
+	}
+
+	// Priority mode is enabled, so enforce the limit based on operation type
+	lim := &limit{
+		mode:          ModeEnforcing,
+		applyOnServer: true,
+	}
+
+	switch op.Type {
+	case OperationTypeRead:
+		lim.ent = configEntryReadLimit
+		lim.desc = "global.configentry/read"
+	case OperationTypeWrite:
+		lim.ent = configEntryWriteLimit
+		lim.desc = "global.configentry/write"
+	default:
+		panic(fmt.Sprintf("unknown operation type %d", op.Type))
+	}
+
+	return lim
+}
+
+// safetyExemptEndpoints are RPC endpoints that must always be allowed through
+// the config entry rate limiter to prevent self-lockout scenarios.
+// For example, if max_rps=0 with emergency_mode=true, operators must still
+// be able to update or delete the config entry to recover.
+var safetyExemptEndpoints = map[string]struct{}{
+	"ConfigEntry.Apply":  {},
+	"ConfigEntry.Delete": {},
+	"ConfigEntry.Get":    {},
+}
+
+// isSafetyExemptEndpoint checks if an operation is exempt from config entry
+// rate limiting for safety reasons (to prevent lockout scenarios).
+func (h *Handler) isSafetyExemptEndpoint(opName string) bool {
+	_, ok := safetyExemptEndpoints[opName]
+	return ok
+}
+
 var (
 	// globalWrite identifies the global rate limit applied to write operations.
 	globalWrite = limitedEntity("global.write")
@@ -391,6 +491,12 @@ var (
 
 	// globalIPWrite identifies the global rate limit applied to read operations.
 	globalIPWrite = limitedEntity("global.ip.write")
+
+	// configEntryReadLimit identifies the global rate limit from config entry for read operations.
+	configEntryReadLimit = limitedEntity("global.configentry.read")
+
+	// configEntryWriteLimit identifies the global rate limit from config entry for write operations.
+	configEntryWriteLimit = limitedEntity("global.configentry.write")
 )
 
 // limitedEntity convert the string type to Multilimiter.LimitedEntity
@@ -417,3 +523,6 @@ func (nullRequestLimitsHandler) Run(_ context.Context) {}
 func (nullRequestLimitsHandler) UpdateConfig(_ HandlerConfig) {}
 
 func (nullRequestLimitsHandler) Register(_ ServersStatusProvider) {}
+
+func (nullRequestLimitsHandler) UpdateGlobalRateLimitConfig(cfg *structs.GlobalRateLimitConfigEntry) {
+}
