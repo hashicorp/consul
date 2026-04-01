@@ -222,7 +222,7 @@ jobs:
 
       - name: Skip HashiCups build (use cached version marker)
         working-directory: consul-ui-testing
-        run: echo "hashicorppreview/consul:latest" > .last_consul_version_built
+        run: printf "hashicorppreview/consul:latest" > .last_consul_version_built
 
       - name: Start Consul API servers (CE)
         working-directory: consul-ui-testing
@@ -312,7 +312,7 @@ jobs:
 
       - name: Skip HashiCups build (use cached version marker)
         working-directory: consul-ui-testing
-        run: echo "hashicorppreview/consul-enterprise:latest" > .last_consul_version_built
+        run: printf "hashicorppreview/consul-enterprise:latest" > .last_consul_version_built
 
       - name: Start Consul API servers (ENT)
         working-directory: consul-ui-testing
