@@ -220,9 +220,15 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y httpie
 
-      - name: Skip HashiCups build (use cached version marker)
+      - name: Patch consul-ui-testing Dockerfiles for amd64 CI runners
         working-directory: consul-ui-testing
-        run: printf "hashicorppreview/consul:latest" > .last_consul_version_built
+        run: |
+          # GitHub-hosted Ubuntu runners are amd64; prevent arm64 consul binaries from being copied into images.
+          find . -name 'Dockerfile*' -type f -print0 | xargs -0 sed -i 's|linux/arm64|linux/amd64|g'
+
+      - name: Force HashiCups image rebuild
+        working-directory: consul-ui-testing
+        run: rm -f .last_consul_version_built
 
       - name: Start Consul API servers (CE)
         working-directory: consul-ui-testing
@@ -310,15 +316,23 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y httpie
 
-      - name: Skip HashiCups build (use cached version marker)
+      - name: Patch consul-ui-testing Dockerfiles for amd64 CI runners
         working-directory: consul-ui-testing
-        run: printf "hashicorppreview/consul-enterprise:latest" > .last_consul_version_built
+        run: |
+          # GitHub-hosted Ubuntu runners are amd64; prevent arm64 consul binaries from being copied into images.
+          find . -name 'Dockerfile*' -type f -print0 | xargs -0 sed -i 's|linux/arm64|linux/amd64|g'
+
+      - name: Force HashiCups image rebuild
+        working-directory: consul-ui-testing
+        run: rm -f .last_consul_version_built
 
       - name: Start Consul API servers (ENT)
         working-directory: consul-ui-testing
         run: |
           echo "Starting Consul API servers at $(date '+%Y-%m-%d %H:%M:%S')"
           yarn start hashicorppreview/consul-enterprise:latest
+        env:
+          CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
 
       - name: Start Consul UI
         working-directory: ui/packages/consul-ui
