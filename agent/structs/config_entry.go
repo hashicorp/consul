@@ -854,8 +854,6 @@ func MakeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &TCPRouteConfigEntry{Name: name}, nil
 	case JWTProvider:
 		return &JWTProviderConfigEntry{Name: name}, nil
-	case RateLimit:
-		return &GlobalRateLimitConfigEntry{Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}
