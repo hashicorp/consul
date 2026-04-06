@@ -48,11 +48,19 @@ async function loginWithToken(page, token = process.env.CONSUL_UI_TEST_TOKEN) {
   await authMenuLocator(page).waitFor({ state: 'visible', timeout: 30000 });
   await openAuthMenu(page);
 
-  if (await logoutActionLocator(page).isVisible().catch(() => false)) {
+  if (
+    await logoutActionLocator(page)
+      .isVisible()
+      .catch(() => false)
+  ) {
     return { authenticated: true, reason: 'already-authenticated' };
   }
 
-  if (!(await loginActionLocator(page).isVisible().catch(() => false))) {
+  if (
+    !(await loginActionLocator(page)
+      .isVisible()
+      .catch(() => false))
+  ) {
     return { authenticated: false, reason: 'login-unavailable' };
   }
 
@@ -82,7 +90,9 @@ async function isLoggedIn(page) {
     await page.goto('http://localhost:4200/ui/dc1/services', { waitUntil: 'domcontentloaded' });
     await authMenuLocator(page).waitFor({ state: 'visible', timeout: 10000 });
     await openAuthMenu(page);
-    return await logoutActionLocator(page).isVisible().catch(() => false);
+    return await logoutActionLocator(page)
+      .isVisible()
+      .catch(() => false);
   } catch {
     return false;
   }
