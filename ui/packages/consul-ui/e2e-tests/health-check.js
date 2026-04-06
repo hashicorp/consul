@@ -3,12 +3,12 @@ const { checkAllServices, printServiceErrors } = require('./utils/health-check-u
 
 async function runHealthCheck() {
   console.log('\n🏥 E2E Environment Health Check\n');
-  
+
   const healthChecks = await checkAllServices();
-  
+
   let allRequiredHealthy = true;
   const failedServices = [];
-  
+
   healthChecks.forEach((s) => {
     const status = s.isHealthy ? '✅' : '❌';
     const label = s.required ? 'REQUIRED' : 'OPTIONAL';
@@ -18,7 +18,7 @@ async function runHealthCheck() {
       failedServices.push(s);
     }
   });
-  
+
   if (allRequiredHealthy) {
     console.log('\n✅ Ready! Run: pnpm run test:e2e:basic\n');
     process.exit(0);

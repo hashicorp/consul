@@ -1,4 +1,4 @@
-const { test, expect } = require('@playwright/test');
+const { test } = require('@playwright/test');
 
 /**
  * Peering - Basic Tests
@@ -7,9 +7,7 @@ const { test, expect } = require('@playwright/test');
  */
 
 test.describe('Peering - Basic Tests', () => {
-  
   // TODO: Add tests here
-  
 });
 
 // Made with Bob

@@ -12,14 +12,25 @@ async function checkServiceHealth(url, timeout = 5000) {
     const client = new URL(url).protocol === 'https:' ? https : http;
     const req = client.get(url, { timeout }, (res) => resolve(!!res.statusCode));
     req.on('error', () => resolve(false));
-    req.on('timeout', () => { req.destroy(); resolve(false); });
+    req.on('timeout', () => {
+      req.destroy();
+      resolve(false);
+    });
   });
 }
 
 function getServices(baseURL = 'http://localhost:4200') {
   return [
-    { name: 'Consul HTTP API (8500)', url: 'http://localhost:8500/v1/status/leader', required: true },
-    { name: 'Consul HTTP API (8501)', url: 'http://localhost:8501/v1/status/leader', required: true },
+    {
+      name: 'Consul HTTP API (8500)',
+      url: 'http://localhost:8500/v1/status/leader',
+      required: true,
+    },
+    {
+      name: 'Consul HTTP API (8501)',
+      url: 'http://localhost:8501/v1/status/leader',
+      required: true,
+    },
     { name: 'Consul UI', url: baseURL, required: true },
   ];
 }
@@ -41,16 +52,18 @@ async function checkAllServices(baseURL = 'http://localhost:4200') {
  * @param {Array} failedServices - Array of failed service objects
  */
 function printServiceErrors(failedServices) {
-  const hasConsulAPIFailure = failedServices.some(s => s.url.includes(':8500') || s.url.includes(':8501'));
-  const hasUIFailure = failedServices.some(s => s.url.includes(':4200'));
-  
+  const hasConsulAPIFailure = failedServices.some(
+    (s) => s.url.includes(':8500') || s.url.includes(':8501')
+  );
+  const hasUIFailure = failedServices.some((s) => s.url.includes(':4200'));
+
   if (hasConsulAPIFailure) {
     console.log('📍 Consul API servers (8500/8501) not running:');
     console.log('   → Start servers in consul-ui-testing repo');
     console.log('   → Run: yarn start hashicorppreview/consul-enterprise:<VERSION> --quiet');
     console.log('   → Example: yarn start hashicorppreview/consul-enterprise:1.22 --quiet\n');
   }
-  
+
   if (hasUIFailure) {
     console.log('📍 Consul UI (4200) not running:');
     console.log('   → Start UI in consul repo');

@@ -36,7 +36,9 @@ async function loginWithToken(page, token = process.env.CONSUL_UI_TEST_TOKEN) {
   }
 
   await page.goto('http://localhost:4200/ui/dc1/services', { waitUntil: 'domcontentloaded' });
-  await page.getByRole('button', { name: 'Auth menu' }).waitFor({ state: 'visible', timeout: 30000 });
+  await page
+    .getByRole('button', { name: 'Auth menu' })
+    .waitFor({ state: 'visible', timeout: 30000 });
 
   // Open auth menu and detect current auth state.
   await openAuthMenu(page);
@@ -76,7 +78,9 @@ async function loginWithToken(page, token = process.env.CONSUL_UI_TEST_TOKEN) {
 async function isLoggedIn(page) {
   try {
     await page.goto('http://localhost:4200/ui/dc1/services', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('button', { name: 'Auth menu' }).waitFor({ state: 'visible', timeout: 10000 });
+    await page
+      .getByRole('button', { name: 'Auth menu' })
+      .waitFor({ state: 'visible', timeout: 10000 });
     await openAuthMenu(page);
     return await (await logoutActionLocator(page)).isVisible().catch(() => false);
   } catch {

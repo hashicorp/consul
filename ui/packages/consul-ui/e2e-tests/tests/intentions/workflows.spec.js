@@ -1,14 +1,13 @@
-const { test, expect } = require('@playwright/test');
+const { test } = require('@playwright/test');
 
 /**
  * Intentions - Workflow Tests
- * 
+ *
  * Complex scenarios for Intentions feature
  * Run nightly or before release
  */
 
 test.describe('Intentions - Workflow Tests', () => {
-  
   test('cross-datacenter intentions', async ({ page }) => {
     // TODO: Implement cross-DC intentions test
     // 1. Create intention in primary DC
@@ -22,7 +21,6 @@ test.describe('Intentions - Workflow Tests', () => {
     // 2. Verify chain works correctly
     // 3. Test deny overrides allow
   });
-  
 });
 
 // Made with Bob

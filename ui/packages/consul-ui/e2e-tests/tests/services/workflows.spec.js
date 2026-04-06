@@ -1,15 +1,14 @@
-const { test, expect } = require('@playwright/test');
+const { test } = require('@playwright/test');
 
 /**
  * Services - Workflow Tests
- * 
+ *
  * Complex scenarios for Services feature
  * Run nightly or before release
  * Time: 5-15 minutes
  */
 
 test.describe('Services - Workflow Tests', () => {
-  
   test('service health updates in real-time', async ({ page }) => {
     // TODO: Implement real-time health check updates test
     // 1. Register service with health check via API
@@ -32,7 +31,6 @@ test.describe('Services - Workflow Tests', () => {
     // 2. Export to secondary DC
     // 3. Verify service appears in secondary DC
   });
-  
 });
 
 // Made with Bob
