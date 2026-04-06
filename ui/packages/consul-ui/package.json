@@ -41,6 +41,15 @@
     "test:oss:view": "CONSUL_NSPACES_ENABLED=0 ember test --server --test-port=${EMBER_TEST_PORT:-7357}",
     "test:parallel": "EMBER_EXAM_PARALLEL=true ember exam --split=4 --parallel",
     "test:view": "ember test --server --test-port=${EMBER_TEST_PORT:-7357}",
+    "test:e2e": "playwright test --config=e2e-tests/playwright.config.js",
+    "test:e2e:basic": "playwright test --config=e2e-tests/playwright.config.js --project=basic",
+    "test:e2e:workflows": "playwright test --config=e2e-tests/playwright.config.js --project=workflows",
+    "test:e2e:headed": "playwright test --config=e2e-tests/playwright.config.js --headed",
+    "test:e2e:ui": "playwright test --config=e2e-tests/playwright.config.js --ui",
+    "test:e2e:codegen": "playwright codegen http://localhost:4200 & playwright codegen http://localhost:8501",
+    "test:e2e:codegen:4200": "playwright codegen http://localhost:4200",
+    "test:e2e:report": "playwright show-report e2e-tests/reports/html-report",
+    "test:e2e:health": "node e2e-tests/health-check.js",
     "prepare": "husky"
   },
   "lint-staged": {
@@ -78,6 +87,7 @@
     "@hashicorp/ember-cli-api-double": "^4.0.0",
     "@html-next/vertical-collection": "^4.0.0",
     "@lit/reactive-element": "^1.2.1",
+    "@playwright/test": "^1.58.2",
     "@xstate/fsm": "^2.1.0",
     "a11y-dialog": "^6.0.1",
     "autoprefixer": "^10.4.8",
