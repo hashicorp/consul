@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 const { chromium } = require('@playwright/test');
 const { checkAllServices, printServiceErrors } = require('./utils/health-check-utils');
 const { loginWithToken } = require('./utils/auth-utils');

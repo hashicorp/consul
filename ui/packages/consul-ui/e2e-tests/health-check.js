@@ -1,4 +1,9 @@
 #!/usr/bin/env node
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 const { checkAllServices, printServiceErrors } = require('./utils/health-check-utils');
 
 async function runHealthCheck() {
