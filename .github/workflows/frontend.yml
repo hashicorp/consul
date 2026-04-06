@@ -240,6 +240,8 @@ jobs:
           perl -0pi -e 's{docker run -it --rm -v \$\{PWD\}:/tmp consul-certificate-init "cp /certificates/\* /tmp"}{docker run --rm -v \$\{PWD\}:/tmp consul-certificate-init "cp /certificates/* /tmp && chmod 644 /tmp/*.pem /tmp/*-key.pem"}g' build_images.sh
           # Keep CI failures fast when Consul never becomes reachable.
           perl -0pi -e "s/retry\(20, '5s'/retry(5, '5s'/g" scripts/start-docker.mjs
+          # GitHub Actions has no TTY so HTTPie reads stdin; --ignore-stdin prevents the conflict.
+          sed -i 's/--verify no/--verify no --ignore-stdin/g' scripts/setup-peerings.mjs
 
       - name: Force HashiCups image rebuild
         working-directory: consul-ui-testing
@@ -341,6 +343,8 @@ jobs:
           perl -0pi -e 's{docker run -it --rm -v \$\{PWD\}:/tmp consul-certificate-init "cp /certificates/\* /tmp"}{docker run --rm -v \$\{PWD\}:/tmp consul-certificate-init "cp /certificates/* /tmp && chmod 644 /tmp/*.pem /tmp/*-key.pem"}g' build_images.sh
           # Keep CI failures fast when Consul never becomes reachable.
           perl -0pi -e "s/retry\(20, '5s'/retry(5, '5s'/g" scripts/start-docker.mjs
+          # GitHub Actions has no TTY so HTTPie reads stdin; --ignore-stdin prevents the conflict.
+          sed -i 's/--verify no/--verify no --ignore-stdin/g' scripts/setup-peerings.mjs
 
       - name: Force HashiCups image rebuild
         working-directory: consul-ui-testing
