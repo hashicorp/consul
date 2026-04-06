@@ -215,6 +215,10 @@ jobs:
         working-directory: ui
         run: make deps
 
+      - name: Install Playwright browsers
+        working-directory: ui/packages/consul-ui
+        run: npx playwright install --with-deps chromium
+
       - name: Checkout consul-ui-testing repo
         uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
         with:
@@ -237,9 +241,9 @@ jobs:
           # GitHub-hosted Ubuntu runners are amd64; prevent arm64 consul binaries from being copied into images.
           find . -name 'Dockerfile*' -type f -print0 | xargs -0 sed -i 's|linux/arm64|linux/amd64|g'
           # GitHub Actions does not provide an interactive TTY for docker run.
-          perl -0pi -e 's{docker run -it --rm -v \$\{PWD\}:/tmp consul-certificate-init "cp /certificates/\* /tmp"}{docker run --rm -v \$\{PWD\}:/tmp consul-certificate-init "cp /certificates/* /tmp && chmod 644 /tmp/*.pem /tmp/*-key.pem"}g' build_images.sh
-          # Keep CI failures fast when Consul never becomes reachable.
-          perl -0pi -e "s/retry\(20, '5s'/retry(5, '5s'/g" scripts/start-docker.mjs
+          perl -0pi -e 's{docker run -it --rm -v \$\{PWD\}:/tmp consul-certificate-init "cp /certificates/\* /tmp"}{docker run --rm -v \$\{PWD\}:/tmp consul-certificate-init "cp /certificates/* /tmp && chmod 644 /tmp/*.pem"}g' build_images.sh
+          # Give Consul up to 60s to become reachable before failing.
+          perl -0pi -e "s/retry\(20, '5s'/retry(12, '5s'/g" scripts/start-docker.mjs
           # GitHub Actions has no TTY so HTTPie reads stdin; --ignore-stdin prevents the conflict.
           sed -i 's/--verify no/--verify no --ignore-stdin/g' scripts/setup-peerings.mjs
 
@@ -249,9 +253,40 @@ jobs:
 
       - name: Start Consul API servers (CE)
         working-directory: consul-ui-testing
+        timeout-minutes: 2
         run: |
           echo "Starting Consul API servers at $(date '+%Y-%m-%d %H:%M:%S')"
-          yarn start hashicorppreview/consul:latest
+          yarn start hashicorppreview/consul:latest > consul-start.log 2>&1 &
+          echo $! > consul-start.pid
+
+      - name: Wait for Consul peering setup (CE)
+        working-directory: consul-ui-testing
+        timeout-minutes: 6
+        run: |
+          echo "Waiting up to 5 minutes for Consul peering setup..."
+          for i in $(seq 1 60); do
+            if grep -q "We have successfully setup peering" consul-start.log 2>/dev/null; then
+              echo "Consul peering is ready (after ~$((i * 5))s)"
+              exit 0
+            fi
+
+            if ! kill -0 "$(cat consul-start.pid)" 2>/dev/null; then
+              echo "::error::Consul startup process exited before peering completed"
+              echo "--- Last 300 lines of consul-start.log ---"
+              tail -n 300 consul-start.log
+              exit 1
+            fi
+
+            if (( i % 6 == 0 )); then
+              echo "Still waiting... ($((i * 5))s elapsed)"
+            fi
+            sleep 5
+          done
+
+          echo "::error::Timed out waiting for Consul peering setup (300s)"
+          echo "--- Last 300 lines of consul-start.log ---"
+          tail -n 300 consul-start.log
+          exit 1
 
       - name: Start Consul UI
         working-directory: ui/packages/consul-ui
@@ -262,14 +297,28 @@ jobs:
           CONSUL_HTTP_ADDR: http://localhost:8500
 
       - name: Wait for UI to be ready
-        run: npx wait-on http://localhost:4200 --timeout 60000
+        timeout-minutes: 3
+        run: |
+          echo "Waiting for Consul UI on http://localhost:4200..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:4200 > /dev/null 2>&1; then
+              echo "Consul UI is ready (after ~$((i * 2))s)"
+              exit 0
+            fi
+            echo "Waiting for UI... ($((i * 2))s elapsed)"
+            sleep 2
+          done
+          echo "::error::Timed out waiting for Consul UI (60s)"
+          exit 1
 
       - name: Run E2E health check
         working-directory: ui/packages/consul-ui
+        timeout-minutes: 2
         run: pnpm run test:e2e:health
 
       - name: Run basic E2E tests (CE)
         working-directory: ui/packages/consul-ui
+        timeout-minutes: 15
         run: pnpm run test:e2e:basic
         env:
           CI: true
@@ -318,6 +367,10 @@ jobs:
         working-directory: ui
         run: make deps
 
+      - name: Install Playwright browsers
+        working-directory: ui/packages/consul-ui
+        run: npx playwright install --with-deps chromium
+
       - name: Checkout consul-ui-testing repo
         uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
         with:
@@ -340,9 +393,9 @@ jobs:
           # GitHub-hosted Ubuntu runners are amd64; prevent arm64 consul binaries from being copied into images.
           find . -name 'Dockerfile*' -type f -print0 | xargs -0 sed -i 's|linux/arm64|linux/amd64|g'
           # GitHub Actions does not provide an interactive TTY for docker run.
-          perl -0pi -e 's{docker run -it --rm -v \$\{PWD\}:/tmp consul-certificate-init "cp /certificates/\* /tmp"}{docker run --rm -v \$\{PWD\}:/tmp consul-certificate-init "cp /certificates/* /tmp && chmod 644 /tmp/*.pem /tmp/*-key.pem"}g' build_images.sh
-          # Keep CI failures fast when Consul never becomes reachable.
-          perl -0pi -e "s/retry\(20, '5s'/retry(5, '5s'/g" scripts/start-docker.mjs
+          perl -0pi -e 's{docker run -it --rm -v \$\{PWD\}:/tmp consul-certificate-init "cp /certificates/\* /tmp"}{docker run --rm -v \$\{PWD\}:/tmp consul-certificate-init "cp /certificates/* /tmp && chmod 644 /tmp/*.pem"}g' build_images.sh
+          # Give Consul up to 60s to become reachable before failing.
+          perl -0pi -e "s/retry\(20, '5s'/retry(12, '5s'/g" scripts/start-docker.mjs
           # GitHub Actions has no TTY so HTTPie reads stdin; --ignore-stdin prevents the conflict.
           sed -i 's/--verify no/--verify no --ignore-stdin/g' scripts/setup-peerings.mjs
 
@@ -352,11 +405,42 @@ jobs:
 
       - name: Start Consul API servers (ENT)
         working-directory: consul-ui-testing
+        timeout-minutes: 2
         run: |
           echo "Starting Consul API servers at $(date '+%Y-%m-%d %H:%M:%S')"
-          yarn start hashicorppreview/consul-enterprise:latest
+          yarn start hashicorppreview/consul-enterprise:latest > consul-start.log 2>&1 &
+          echo $! > consul-start.pid
         env:
           CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
+
+      - name: Wait for Consul peering setup (ENT)
+        working-directory: consul-ui-testing
+        timeout-minutes: 6
+        run: |
+          echo "Waiting up to 5 minutes for Consul peering setup..."
+          for i in $(seq 1 60); do
+            if grep -q "We have successfully setup peering" consul-start.log 2>/dev/null; then
+              echo "Consul peering is ready (after ~$((i * 5))s)"
+              exit 0
+            fi
+
+            if ! kill -0 "$(cat consul-start.pid)" 2>/dev/null; then
+              echo "::error::Consul startup process exited before peering completed"
+              echo "--- Last 300 lines of consul-start.log ---"
+              tail -n 300 consul-start.log
+              exit 1
+            fi
+
+            if (( i % 6 == 0 )); then
+              echo "Still waiting... ($((i * 5))s elapsed)"
+            fi
+            sleep 5
+          done
+
+          echo "::error::Timed out waiting for Consul peering setup (300s)"
+          echo "--- Last 300 lines of consul-start.log ---"
+          tail -n 300 consul-start.log
+          exit 1
 
       - name: Start Consul UI
         working-directory: ui/packages/consul-ui
@@ -367,14 +451,28 @@ jobs:
           CONSUL_HTTP_ADDR: http://localhost:8500
 
       - name: Wait for UI to be ready
-        run: npx wait-on http://localhost:4200 --timeout 60000
+        timeout-minutes: 3
+        run: |
+          echo "Waiting for Consul UI on http://localhost:4200..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:4200 > /dev/null 2>&1; then
+              echo "Consul UI is ready (after ~$((i * 2))s)"
+              exit 0
+            fi
+            echo "Waiting for UI... ($((i * 2))s elapsed)"
+            sleep 2
+          done
+          echo "::error::Timed out waiting for Consul UI (60s)"
+          exit 1
 
       - name: Run E2E health check
         working-directory: ui/packages/consul-ui
+        timeout-minutes: 2
         run: pnpm run test:e2e:health
 
       - name: Run basic E2E tests (ENT)
         working-directory: ui/packages/consul-ui
+        timeout-minutes: 15
         run: pnpm run test:e2e:basic
         env:
           CI: true
