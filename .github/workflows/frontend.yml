@@ -192,7 +192,7 @@ jobs:
     needs: setup
     if: ${{ !endsWith(github.repository, '-enterprise') }}
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-medium) }}
-    continue-on-error: true
+    continue-on-error: false
     env:
       CONSUL_NSPACES_ENABLED: 0
     steps:
@@ -344,7 +344,7 @@ jobs:
     needs: setup
     if: ${{ needs.setup.outputs.has-consul-license == 'true' }}
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-medium) }}
-    continue-on-error: true
+    continue-on-error: false
     env:
       CONSUL_NSPACES_ENABLED: 1
     steps:
