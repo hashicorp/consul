@@ -872,11 +872,6 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 		return nil, err
 	}
 
-	err = s.runRateLimiterConfigEntryController()
-	if err != nil {
-		return nil, err
-	}
-
 	return s, nil
 }
 
