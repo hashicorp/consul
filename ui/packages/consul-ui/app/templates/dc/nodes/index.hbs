@@ -52,14 +52,14 @@
         }}
           {{#let (reject-by 'Meta.synthetic-node' items) as |filtered|}}
             <AppView>
-              <BlockSlot @name='header'>
+              <:header>
                 <h1>
                   <route.Title @title='Nodes' />
                   <em>{{format-number items.length}} total</em>
                 </h1>
                 <label for='toolbar-toggle'></label>
-              </BlockSlot>
-              <BlockSlot @name='toolbar'>
+              </:header>
+              <:toolbar>
                 {{#if (gt filtered.length 0)}}
                   <Consul::Node::SearchBar
                     @search={{this.search}}
@@ -69,8 +69,8 @@
                     @versions={{versions}}
                   />
                 {{/if}}
-              </BlockSlot>
-              <BlockSlot @name='content'>
+              </:toolbar>
+              <:content>
                 <Consul::Node::AgentlessNotice @items={{items}} @filteredItems={{filtered}} @postfix={{concat route.params.partition route.params.dc}} />
                 <DataCollection
                   @type='node'
@@ -125,7 +125,7 @@
                     </EmptyState>
                   </collection.Empty>
                 </DataCollection>
-              </BlockSlot>
+              </:content>
             </AppView>
           {{/let}}
         {{/let}}

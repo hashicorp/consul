@@ -47,12 +47,12 @@ as |route|>
   as |sort filters items|}}
 
     <AppView>
-      <BlockSlot @name="header">
+      <:header>
         <h1>
           <route.Title @title="Admin Partitions" />
         </h1>
-      </BlockSlot>
-      <BlockSlot @name="actions">
+      </:header>
+      <:actions>
 {{#if (can 'create partitions')}}
   <Hds::Button
     @text='Create'
@@ -60,8 +60,8 @@ as |route|>
     data-test-create
   />
 {{/if}}
-      </BlockSlot>
-      <BlockSlot @name="toolbar">
+      </:actions>
+      <:toolbar>
       {{#if (gt items.length 0)}}
         <Consul::Partition::SearchBar
           @search={{this.search}}
@@ -72,8 +72,8 @@ as |route|>
           @filter={{filters}}
         />
       {{/if}}
-      </BlockSlot>
-      <BlockSlot @name="content">
+      </:toolbar>
+      <:content>
         {{#let (refresh-route) as |refreshRoute|}}
         <DataWriter
           @sink={{uri '/${partition}/${dc}/${nspace}/partition/'
@@ -142,7 +142,7 @@ as |route|>
     </BlockSlot>
   </DataWriter>
   {{/let}}
-      </BlockSlot>
+      </:content>
     </AppView>
   {{/let}}
     </BlockSlot>

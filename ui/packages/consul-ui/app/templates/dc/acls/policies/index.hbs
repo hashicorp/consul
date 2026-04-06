@@ -60,12 +60,12 @@ as |route|>
     <AppView
       @login={{route.model.app.login.open}}
       >
-      <BlockSlot @name="header">
+      <:header>
         <h1>
           <route.Title @title="Policies" />
         </h1>
-      </BlockSlot>
-      <BlockSlot @name="actions">
+      </:header>
+      <:actions>
   {{#if (can "create policies")}}
     <Hds::Button
       @text='Create'
@@ -73,8 +73,8 @@ as |route|>
       data-test-create
     />
   {{/if}}
-      </BlockSlot>
-      <BlockSlot @name="toolbar">
+      </:actions>
+      <:toolbar>
       {{#if (gt items.length 0) }}
         <Consul::Policy::SearchBar
           @partition={{route.params.partition}}
@@ -87,8 +87,8 @@ as |route|>
           @filter={{filters}}
         />
       {{/if}}
-      </BlockSlot>
-      <BlockSlot @name="content">
+      </:toolbar>
+      <:content>
         <DataCollection
           @type="policy"
           @sort={{sort.value}}
@@ -142,7 +142,7 @@ as |route|>
             </EmptyState>
           </collection.Empty>
         </DataCollection>
-      </BlockSlot>
+      </:content>
     </AppView>
 
   {{/let}}

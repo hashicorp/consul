@@ -30,17 +30,17 @@
         as |dc partition nspace item|
       }}
         <AppView>
-          <BlockSlot @name="breadcrumbs">
+          <:breadcrumbs>
             <Hds::Breadcrumb>
               <Hds::Breadcrumb::Item @text="All Peers" @route="dc.peers" @model={{route.params.dc}} data-test-back />
             </Hds::Breadcrumb>
-          </BlockSlot>
-          <BlockSlot @name="header">
+          </:breadcrumbs>
+          <:header>
             <h1>
               <route.Title @title={{item.Name}} />
             </h1>
-          </BlockSlot>
-          <BlockSlot @name="content">
+          </:header>
+          <:content>
             <Consul::Peer::BentoBox @peering={{item}} />
             <Peerings::Provider @peer={{item}} as |peering|>
               <TabNav @items={{peering.data.tabs}} />
@@ -56,7 +56,7 @@
             >
               {{outlet}}
             </Outlet>
-          </BlockSlot>
+          </:content>
         </AppView>
       {{/let}}
     </BlockSlot>

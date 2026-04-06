@@ -63,12 +63,12 @@ as |route|>
     <AppView
       @login={{route.model.app.login.open}}
       >
-      <BlockSlot @name="header">
+      <:header>
         <h1>
           <route.Title @title="Auth Methods" />
         </h1>
-      </BlockSlot>
-      <BlockSlot @name="toolbar">
+      </:header>
+      <:toolbar>
       {{#if (gt items.length 0)}}
         <Consul::AuthMethod::SearchBar
           @search={{this.search}}
@@ -77,8 +77,8 @@ as |route|>
           @filter={{filters}}
         />
       {{/if}}
-      </BlockSlot>
-      <BlockSlot @name="content">
+      </:toolbar>
+      <:content>
         <DataCollection
           @type="auth-method"
           @sort={{sort.value}}
@@ -129,7 +129,7 @@ as |route|>
             </EmptyState>
           </collection.Empty>
         </DataCollection>
-      </BlockSlot>
+      </:content>
     </AppView>
   {{/let}}
     </BlockSlot>
