@@ -22,11 +22,22 @@ jobs:
       compute-medium: ${{ steps.setup-outputs.outputs.compute-medium }}
       compute-large: ${{ steps.setup-outputs.outputs.compute-large }}
       compute-xl: ${{ steps.setup-outputs.outputs.compute-xl }}
+      has-consul-license: ${{ steps.check-consul-license.outputs.has-consul-license }}
     steps:
       - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
       - id: setup-outputs
         name: Setup outputs
         run: ./.github/scripts/get_runner_classes.sh
+      - id: check-consul-license
+        name: Check Consul license availability
+        env:
+          CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
+        run: |
+          if [ -n "$CONSUL_LICENSE" ]; then
+            echo "has-consul-license=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has-consul-license=false" >> "$GITHUB_OUTPUT"
+          fi
 
   workspace-tests:
     needs: setup
@@ -276,6 +287,7 @@ jobs:
 
   e2e-tests-ent:
     needs: setup
+    if: ${{ needs.setup.outputs.has-consul-license == 'true' }}
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-medium) }}
     continue-on-error: true
     env:
