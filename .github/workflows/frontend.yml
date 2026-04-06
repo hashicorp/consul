@@ -237,19 +237,7 @@ jobs:
 
       - name: Patch consul-ui-testing for CI runners
         working-directory: consul-ui-testing
-        run: |
-          # GitHub-hosted Ubuntu runners are amd64; prevent arm64 consul binaries from being copied into images.
-          find . -name 'Dockerfile*' -type f -print0 | xargs -0 sed -i 's|linux/arm64|linux/amd64|g'
-          # GitHub Actions does not provide an interactive TTY for docker run.
-          perl -0pi -e 's{docker run -it --rm -v \$\{PWD\}:/tmp consul-certificate-init "cp /certificates/\* /tmp"}{docker run --rm -v \$\{PWD\}:/tmp consul-certificate-init "cp /certificates/* /tmp && chmod 644 /tmp/*.pem"}g' build_images.sh
-          # Give Consul up to 60s to become reachable before failing.
-          perl -0pi -e "s/retry\(20, '5s'/retry(12, '5s'/g" scripts/start-docker.mjs
-          # GitHub Actions has no TTY so HTTPie reads stdin; --ignore-stdin prevents the conflict.
-          sed -i 's/--verify no/--verify no --ignore-stdin/g' scripts/setup-peerings.mjs
-          # Secondary datacenters cannot accept exported-services writes; omit that invalid call in CI.
-          perl -0pi -e 's/\n\s*await createConfigurationEntry\(\{\n\s*host: SERVER_2,\n\s*kind: "exported-services",\n\s*config: \{\n\s*Services: \{\n\s*Name: "redis",\n\s*Namespace: "default",\n\s*Consumers: \[\n\s*\{\n\s*Peer: "from-dc1",\n\s*\},\n\s*\],\n\s*\},\n\s*\},\n\s*\}\);/\n      \/\/ Secondary DC exported-services writes are rejected in Consul; skip in CI.\n/g' scripts/setup-peerings.mjs
-          # product-db already seeds via /docker-entrypoint-initdb.d/products.sql during container init; skip the second manual import.
-          perl -0pi -e 's/\n\s*echo "Populate table\.\."\n\s*psql postgres:\/\/postgres:password\@localhost:5432\/products\?sslmode=disable -f \/docker-entrypoint-initdb\.d\/products\.sql\n\s*if \[ \$\? -eq 0 \]; then\n\s*consul services register \/tmp\/svc_db\.hcl\n\s*consul config write \/tmp\/product-db\.hcl\n\s*consul config write \/tmp\/intention\.hcl\n\s*sudo nohup consul connect envoy -sidecar-for \$SERVICE -token=\$CONSUL_HTTP_TOKEN >\/tmp\/proxy\.log 2>&1\n\s*else\n\s*sleep 2\n\s*psql postgres:\/\/postgres:password\@localhost:5432\/products\?sslmode=disable -f \/docker-entrypoint-initdb\.d\/products\.sql\n\s*consul services register \/tmp\/svc_db\.hcl\n\s*consul config write \/tmp\/product-db\.hcl\n\s*consul config write \/tmp\/intention\.hcl\n\s*sudo nohup consul connect envoy -sidecar-for \$SERVICE -token=\$CONSUL_HTTP_TOKEN >\/tmp\/proxy\.log 2>&1\n\s*fi/\n      echo "Skipping duplicate DB seed; products.sql already runs via docker-entrypoint-initdb.d"\n      consul services register \/tmp\/svc_db.hcl\n      consul config write \/tmp\/product-db.hcl\n      consul config write \/tmp\/intention.hcl\n      sudo nohup consul connect envoy -sidecar-for \$SERVICE -token=\$CONSUL_HTTP_TOKEN >\/tmp\/proxy.log 2>&1/sg' install.sh
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/patch_consul_ui_testing.sh"
 
       - name: Force HashiCups image rebuild
         working-directory: consul-ui-testing
@@ -484,19 +472,7 @@ jobs:
 
       - name: Patch consul-ui-testing for CI runners
         working-directory: consul-ui-testing
-        run: |
-          # GitHub-hosted Ubuntu runners are amd64; prevent arm64 consul binaries from being copied into images.
-          find . -name 'Dockerfile*' -type f -print0 | xargs -0 sed -i 's|linux/arm64|linux/amd64|g'
-          # GitHub Actions does not provide an interactive TTY for docker run.
-          perl -0pi -e 's{docker run -it --rm -v \$\{PWD\}:/tmp consul-certificate-init "cp /certificates/\* /tmp"}{docker run --rm -v \$\{PWD\}:/tmp consul-certificate-init "cp /certificates/* /tmp && chmod 644 /tmp/*.pem"}g' build_images.sh
-          # Give Consul up to 60s to become reachable before failing.
-          perl -0pi -e "s/retry\(20, '5s'/retry(12, '5s'/g" scripts/start-docker.mjs
-          # GitHub Actions has no TTY so HTTPie reads stdin; --ignore-stdin prevents the conflict.
-          sed -i 's/--verify no/--verify no --ignore-stdin/g' scripts/setup-peerings.mjs
-          # Secondary datacenters cannot accept exported-services writes; omit that invalid call in CI.
-          perl -0pi -e 's/\n\s*await createConfigurationEntry\(\{\n\s*host: SERVER_2,\n\s*kind: "exported-services",\n\s*config: \{\n\s*Services: \{\n\s*Name: "redis",\n\s*Namespace: "default",\n\s*Consumers: \[\n\s*\{\n\s*Peer: "from-dc1",\n\s*\},\n\s*\],\n\s*\},\n\s*\},\n\s*\}\);/\n      \/\/ Secondary DC exported-services writes are rejected in Consul; skip in CI.\n/g' scripts/setup-peerings.mjs
-          # product-db already seeds via /docker-entrypoint-initdb.d/products.sql during container init; skip the second manual import.
-          perl -0pi -e 's/\n\s*echo "Populate table\.\."\n\s*psql postgres:\/\/postgres:password\@localhost:5432\/products\?sslmode=disable -f \/docker-entrypoint-initdb\.d\/products\.sql\n\s*if \[ \$\? -eq 0 \]; then\n\s*consul services register \/tmp\/svc_db\.hcl\n\s*consul config write \/tmp\/product-db\.hcl\n\s*consul config write \/tmp\/intention\.hcl\n\s*sudo nohup consul connect envoy -sidecar-for \$SERVICE -token=\$CONSUL_HTTP_TOKEN >\/tmp\/proxy\.log 2>&1\n\s*else\n\s*sleep 2\n\s*psql postgres:\/\/postgres:password\@localhost:5432\/products\?sslmode=disable -f \/docker-entrypoint-initdb\.d\/products\.sql\n\s*consul services register \/tmp\/svc_db\.hcl\n\s*consul config write \/tmp\/product-db\.hcl\n\s*consul config write \/tmp\/intention\.hcl\n\s*sudo nohup consul connect envoy -sidecar-for \$SERVICE -token=\$CONSUL_HTTP_TOKEN >\/tmp\/proxy\.log 2>&1\n\s*fi/\n      echo "Skipping duplicate DB seed; products.sql already runs via docker-entrypoint-initdb.d"\n      consul services register \/tmp\/svc_db.hcl\n      consul config write \/tmp\/product-db.hcl\n      consul config write \/tmp\/intention.hcl\n      sudo nohup consul connect envoy -sidecar-for \$SERVICE -token=\$CONSUL_HTTP_TOKEN >\/tmp\/proxy.log 2>&1/sg' install.sh
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/patch_consul_ui_testing.sh"
 
       - name: Force HashiCups image rebuild
         working-directory: consul-ui-testing
