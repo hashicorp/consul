@@ -12,7 +12,7 @@ export default Component.extend(Slotted, {
   tagName: '',
   onchange: (data) => data,
   init: function () {
-    this._super(...arguments);
+    this._super(...arguments); //comment
     this.chart = chart;
   },
   didReceiveAttrs: function () {
