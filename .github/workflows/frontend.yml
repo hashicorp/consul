@@ -237,7 +237,9 @@ jobs:
           # GitHub-hosted Ubuntu runners are amd64; prevent arm64 consul binaries from being copied into images.
           find . -name 'Dockerfile*' -type f -print0 | xargs -0 sed -i 's|linux/arm64|linux/amd64|g'
           # GitHub Actions does not provide an interactive TTY for docker run.
-          sed -i 's|docker run -it --rm|docker run --rm|' build_images.sh
+          perl -0pi -e 's{docker run -it --rm -v \$\{PWD\}:/tmp consul-certificate-init "cp /certificates/\* /tmp"}{docker run --rm -v \$\{PWD\}:/tmp consul-certificate-init "cp /certificates/* /tmp"\nchmod 644 ./*.pem ./*-key.pem}g' build_images.sh
+          # Keep CI failures fast when Consul never becomes reachable.
+          perl -0pi -e "s/retry\(20, '5s'/retry(5, '5s'/g" scripts/start-docker.mjs
 
       - name: Force HashiCups image rebuild
         working-directory: consul-ui-testing
@@ -336,7 +338,9 @@ jobs:
           # GitHub-hosted Ubuntu runners are amd64; prevent arm64 consul binaries from being copied into images.
           find . -name 'Dockerfile*' -type f -print0 | xargs -0 sed -i 's|linux/arm64|linux/amd64|g'
           # GitHub Actions does not provide an interactive TTY for docker run.
-          sed -i 's|docker run -it --rm|docker run --rm|' build_images.sh
+          perl -0pi -e 's{docker run -it --rm -v \$\{PWD\}:/tmp consul-certificate-init "cp /certificates/\* /tmp"}{docker run --rm -v \$\{PWD\}:/tmp consul-certificate-init "cp /certificates/* /tmp"\nchmod 644 ./*.pem ./*-key.pem}g' build_images.sh
+          # Keep CI failures fast when Consul never becomes reachable.
+          perl -0pi -e "s/retry\(20, '5s'/retry(5, '5s'/g" scripts/start-docker.mjs
 
       - name: Force HashiCups image rebuild
         working-directory: consul-ui-testing
