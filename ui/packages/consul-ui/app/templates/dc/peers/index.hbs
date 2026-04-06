@@ -45,12 +45,12 @@
         as |sort filters items|
       }}
         <AppView>
-          <BlockSlot @name="header">
+          <:header>
             <h1>
               <route.Title @title="Peers" />
             </h1>
-          </BlockSlot>
-          <BlockSlot @name="toolbar">
+          </:header>
+          <:toolbar>
 
             {{#if (gt items.length 0)}}
               <Consul::Peer::SearchBar
@@ -61,8 +61,8 @@
               />
             {{/if}}
 
-          </BlockSlot>
-          <BlockSlot @name="actions">
+          </:toolbar>
+          <:actions>
 
             <ModalDialog
               @aria={{hash label="Add peer connection"}}
@@ -102,8 +102,8 @@
               data-test-create
               />
 
-          </BlockSlot>
-          <BlockSlot @name="content">
+          </:actions>
+          <:content>
 
             <DataWriter
               @sink={{uri
@@ -227,7 +227,7 @@
                 </DataCollection>
               </BlockSlot>
             </DataWriter>
-          </BlockSlot>
+          </:content>
         </AppView>
       {{/let}}
     </BlockSlot>

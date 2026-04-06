@@ -25,12 +25,12 @@ as |route|>
   )
 as |item|}}
   <AppView>
-    <BlockSlot @name="header">
+    <:header>
       <h1>
         <route.Title @title="Settings" />
       </h1>
-    </BlockSlot>
-    <BlockSlot @name="content">
+    </:header>
+    <:content>
       <Hds::Alert @type="inline" class='mb-3 mt-2' as |A|>
         <A.Title>Local Storage</A.Title>
         <A.Description>These settings are immediately saved to local storage and persisted through browser usage.</A.Description>
@@ -94,7 +94,7 @@ as |item|}}
       </Disclosure>
       {{/if}}
       </form>
-    </BlockSlot>
+    </:content>
   </AppView>
 {{/let}}
   </BlockSlot>

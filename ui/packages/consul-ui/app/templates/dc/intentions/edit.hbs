@@ -30,12 +30,12 @@ as |route|>
   (not (can "write intention" item=loader.data))
 as |item readOnly|}}
   <AppView>
-      <BlockSlot @name="breadcrumbs">
+      <:breadcrumbs>
         <Hds::Breadcrumb>
           <Hds::Breadcrumb::Item @text="All Intentions" @route="dc.intentions" @model={{route.params.dc}} data-test-back />
         </Hds::Breadcrumb>
-      </BlockSlot>
-      <BlockSlot @name="header">
+      </:breadcrumbs>
+      <:header>
           <h1>
   {{#if (not readOnly)}}
     {{#if item.ID}}
@@ -47,8 +47,8 @@ as |item readOnly|}}
             <route.Title @title="View Intention" />
   {{/if}}
           </h1>
-      </BlockSlot>
-      <BlockSlot @name="content">
+      </:header>
+      <:content>
         <Consul::Intention::Form
           @readonly={{readOnly}}
           @item={{item}}
@@ -57,7 +57,7 @@ as |item readOnly|}}
           @partition={{route.params.partition}}
           @onsubmit={{fn this.goToIndex route.params.dc}}
         />
-      </BlockSlot>
+      </:content>
   </AppView>
 {{/let}}
   </BlockSlot>

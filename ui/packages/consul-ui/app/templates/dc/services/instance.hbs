@@ -106,13 +106,13 @@
           </DataSource>
         {{/if}}
         <AppView>
-          <BlockSlot @name='breadcrumbs'>
+          <:breadcrumbs>
             <Hds::Breadcrumb>
               <Breadcrumbs::BackLink @text="All Services" @route="dc.services" @model={{route.params.dc}} @params={{hash peer=undefined}} />
               <Hds::Breadcrumb::Item @text={{concat "Service (" item.Service.Service ")"}} @route="dc.services.show" data-test-back />
             </Hds::Breadcrumb>
-          </BlockSlot>
-          <BlockSlot @name='header'>
+          </:breadcrumbs>
+          <:header>
             <h1>
               <route.Title @title={{item.Service.ID}} />
             </h1>
@@ -123,8 +123,8 @@
             {{#if (eq this.meta.ServiceProxy.Mode 'transparent')}}
               <Consul::TransparentProxy />
             {{/if}}
-          </BlockSlot>
-          <BlockSlot @name='nav'>
+          </:header>
+          <:nav>
             <dl>
               <dt>Service Name</dt>
               <dd><a
@@ -153,13 +153,13 @@
                   >{{item.Service.PeerName}}</a></dd>
               </dl>
             {{/if}}
-          </BlockSlot>
-          <BlockSlot @name='actions'>
+          </:nav>
+          <:actions>
             {{#let (or item.Service.Address item.Node.Address) as |address|}}
               <ConsulCopyButton @value={{format-ipaddr address}} @name='Address'>{{format-ipaddr address}}</ConsulCopyButton>
             {{/let}}
-          </BlockSlot>
-          <BlockSlot @name='content'>
+          </:actions>
+          <:content>
             <TabNav
               @items={{compact
                 (array
@@ -207,7 +207,7 @@
             >
               {{outlet}}
             </Outlet>
-          </BlockSlot>
+          </:content>
         </AppView>
       {{/let}}
     </BlockSlot>

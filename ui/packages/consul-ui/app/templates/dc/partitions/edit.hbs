@@ -34,23 +34,23 @@ as |route|>
   loader.data
 as |dc partition nspace item|}}
   <AppView>
-    <BlockSlot @name="breadcrumbs">
+    <:breadcrumbs>
       <Hds::Breadcrumb>
         <Hds::Breadcrumb::Item @text="All Admin Partitions" @route="dc.partitions" @model={{route.params.dc}} data-test-back />
       </Hds::Breadcrumb>
-    </BlockSlot>
-    <BlockSlot @name="header">
+    </:breadcrumbs>
+    <:header>
       <h1>
         <route.Title
-          @title={{if 
+          @title={{if
             (is "new partition" item=item)
               "New Partition"
               (concat "Edit " item.Name)
           }}
         />
       </h1>
-    </BlockSlot>
-    <BlockSlot @name="content">
+    </:header>
+    <:content>
 
       <Consul::Partition::Form
         @item={{item}}
@@ -60,7 +60,7 @@ as |dc partition nspace item|}}
         @onsubmit={{transition-to 'dc.partitions.index'}}
       />
 
-    </BlockSlot>
+    </:content>
   </AppView>
 {{/let}}
     </BlockSlot>

@@ -35,19 +35,19 @@ as |route|>
   loader.data.isNew
 as |dc partition nspace item create|}}
   <AppView>
-    <BlockSlot @name="breadcrumbs">
+    <:breadcrumbs>
       <Hds::Breadcrumb>
         <Hds::Breadcrumb::Item @text="All Namespaces" @route="dc.nspaces" @model={{route.params.dc}} data-test-back />
       </Hds::Breadcrumb>
-    </BlockSlot>
-    <BlockSlot @name="header">
+    </:breadcrumbs>
+    <:header>
       <h1>
         <route.Title @title={{if create "New Namespace" (concat "Edit " item.Name)}} />
       </h1>
-    </BlockSlot>
-    <BlockSlot @name="actions">
-    </BlockSlot>
-    <BlockSlot @name="content">
+    </:header>
+    <:actions>
+    </:actions>
+    <:content>
       <Consul::Nspace::Form
         @item={{item}}
         @dc={{route.params.dc}}
@@ -55,7 +55,7 @@ as |dc partition nspace item create|}}
         @partition={{route.params.partition}}
         @onsubmit={{transition-to 'dc.nspaces.index'}}
       />
-    </BlockSlot>
+    </:content>
   </AppView>
 {{/let}}
     </BlockSlot>

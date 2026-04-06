@@ -4,12 +4,12 @@
 }}
 
 <AppView>
-  <BlockSlot @name="header">
+  <:header>
     <h1>
       Tokens
     </h1>
-  </BlockSlot>
-  <BlockSlot @name="content">
+  </:header>
+  <:content>
     <EmptyState data-test-acls-disabled>
       <BlockSlot @name="header">
         <h2>Welcome to ACLs</h2>
@@ -40,6 +40,6 @@
         </li>
       </BlockSlot>
     </EmptyState>
-  </BlockSlot>
+  </:content>
 </AppView>
 

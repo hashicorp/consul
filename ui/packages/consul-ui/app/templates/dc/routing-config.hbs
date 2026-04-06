@@ -30,24 +30,24 @@ as |route|>
   loader.data
 as |item|}}
 <AppView>
-  <BlockSlot @name="breadcrumbs">
+  <:breadcrumbs>
     <Hds::Breadcrumb>
       <Hds::Breadcrumb::Item @text="All Services" @route="dc.services" @model={{route.params.dc}} data-test-back />
     </Hds::Breadcrumb>
-  </BlockSlot>
-  <BlockSlot @name="header">
+  </:breadcrumbs>
+  <:header>
     <h1>
       <route.Title @title={{item.Chain.ServiceName}} />
     </h1>
     <Consul::Source @source={{t "routes.dc.routing-config.source"}} @withInfo={{true}} />
-  </BlockSlot>
-  <BlockSlot @name="content">
+  </:header>
+  <:content>
     <div class="container">
       <Consul::DiscoveryChain
         @chain={{item.Chain}}
       />
     </div>
-  </BlockSlot>
+  </:content>
 </AppView>
 {{/let}}
     </BlockSlot>

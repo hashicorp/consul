@@ -88,16 +88,16 @@ as |route|>
 as |sort filters parent items|}}
     <AppView>
     {{#if (not-eq parent.Key '/') }}
-      <BlockSlot @name="breadcrumbs">
+      <:breadcrumbs>
         <Hds::Breadcrumb>
           <Hds::Breadcrumb::Item @text="Key / Values" @route="dc.kv" />
     {{#each (slice 0 -2 (split parent.Key '/')) as |breadcrumb index|}}
           <Hds::Breadcrumb::Item @text={{breadcrumb}} @route="dc.kv.folder" @model={{join '/' (append (slice 0 (add index 1) (split parent.Key '/')) '')}} />
     {{/each}}
         </Hds::Breadcrumb>
-      </BlockSlot>
+      </:breadcrumbs>
     {{/if}}
-      <BlockSlot @name="header">
+      <:header>
           <h1>
             {{#if (eq parent.Key '/')}}
               <route.Title @title="Key / Value" />
@@ -106,8 +106,8 @@ as |sort filters parent items|}}
             {{/if}}
           </h1>
           <label for="toolbar-toggle"></label>
-      </BlockSlot>
-      <BlockSlot @name="toolbar">
+      </:header>
+      <:toolbar>
     {{#if (gt items.length 0) }}
         <Consul::Kv::SearchBar
           @search={{this.search}}
@@ -118,8 +118,8 @@ as |sort filters parent items|}}
           @filter={{filters}}
         />
     {{/if}}
-      </BlockSlot>
-      <BlockSlot @name="actions">
+      </:toolbar>
+      <:actions>
 {{#if (can 'create kvs')}}
     {{#if (and parent.Key (not-eq parent.Key '/')) }}
       <Hds::Button
@@ -136,8 +136,8 @@ as |sort filters parent items|}}
       />
     {{/if}}
 {{/if}}
-      </BlockSlot>
-      <BlockSlot @name="content">
+      </:actions>
+      <:content>
         {{#let (refresh-route) as |refreshRoute|}}
         <DataWriter
           @sink={{uri '/${partition}/${nspace}/${dc}/kv/'
@@ -210,7 +210,7 @@ as |sort filters parent items|}}
           </BlockSlot>
         </DataWriter>
         {{/let}}
-      </BlockSlot>
+      </:content>
     </AppView>
 {{/let}}
     </BlockSlot>

@@ -64,13 +64,13 @@ as |route|>
 as |sort filters items partition nspace|}}
 
   <AppView>
-    <BlockSlot @name="header">
+    <:header>
         <h1>
           <route.Title @title="Services" /> <em>{{format-number items.length}} total</em>
         </h1>
         <label for="toolbar-toggle"></label>
-    </BlockSlot>
-    <BlockSlot @name="toolbar">
+    </:header>
+    <:toolbar>
 {{#if (gt items.length 0) }}
   {{#let (collection items) as |items|}}
         <Consul::Service::SearchBar
@@ -88,8 +88,8 @@ as |sort filters items partition nspace|}}
         />
   {{/let}}
 {{/if}}
-    </BlockSlot>
-    <BlockSlot @name="content">
+    </:toolbar>
+    <:content>
       <DataCollection
         @type="service"
         @sort={{sort.value}}
@@ -146,7 +146,7 @@ as |sort filters items partition nspace|}}
             </EmptyState>
           </collection.Empty>
         </DataCollection>
-    </BlockSlot>
+    </:content>
 
   </AppView>
 

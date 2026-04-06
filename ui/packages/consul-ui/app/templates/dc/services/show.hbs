@@ -107,14 +107,14 @@ as |items item dc|}}
   )
   as |tabs|}}
         <AppView>
-          <BlockSlot @name="notification" as |status type item error|>
+          <:notification as |status type item error|>
             <TopologyMetrics::Notifications
               @type={{type}}
               @status={{status}}
               @error={{error}}
             />
-          </BlockSlot>
-          <BlockSlot @name="breadcrumbs">
+          </:notification>
+          <:breadcrumbs>
             <Hds::Breadcrumb>
               <Breadcrumbs::BackLink
                 @model={{route.params.dc}}
@@ -124,16 +124,16 @@ as |items item dc|}}
                 data-test-back
               />
             </Hds::Breadcrumb>
-          </BlockSlot>
-          <BlockSlot @name="header">
+          </:breadcrumbs>
+          <:header>
               <h1>
                 <route.Title @title={{item.Service.Service}} />
               </h1>
               <Consul::ExternalSource @item={{item.Service}} @withInfo={{true}} />
               <Consul::Kind @item={{item.Service}} @withInfo={{true}} />
               <Consul::Peer::Info @item={{item.Service}} />
-          </BlockSlot>
-          <BlockSlot @name="nav">
+          </:header>
+          <:nav>
             {{#if (not-eq item.Service.Kind 'mesh-gateway')}}
               <TabNav @items={{
                 compact
@@ -162,8 +162,8 @@ as |items item dc|}}
                   )
               }}/>
             {{/if}}
-          </BlockSlot>
-          <BlockSlot @name="actions">
+          </:nav>
+          <:actions>
             <DataSource
                 @src={{uri '/${partition}/${nspace}/${dc}/ui-config'
                 (hash
@@ -193,8 +193,8 @@ as |items item dc|}}
               </Action>
             {{/if}}
             </DataSource>
-          </BlockSlot>
-          <BlockSlot @name="content">
+          </:actions>
+          <:content>
           {{! if its not an origin service we don't care as to whether connect }}
           {{! is enabled or not (we figure that out using the chain var) }}
           {{#if (or (not item.IsOrigin) this.chain)}}
@@ -210,7 +210,7 @@ as |items item dc|}}
               {{outlet}}
             </Outlet>
           {{/if}}
-          </BlockSlot>
+          </:content>
         </AppView>
   {{/let}}
 {{/let}}
