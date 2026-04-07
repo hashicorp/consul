@@ -5,6 +5,7 @@
 
 import { skip, test } from 'qunit';
 import { setupApplicationTest } from 'ember-qunit';
+import { settled } from '@ember/test-helpers';
 import Yadda from 'yadda';
 
 import { env } from '../../env';
@@ -14,25 +15,34 @@ import dictionary from '../dictionary';
 const getDictionary = dictionary(utils);
 
 const staticClassList = [...document.documentElement.classList];
-const getCookies = () => {
-  return Object.fromEntries(document.cookie.split(';').map((item) => item.split('=')));
-};
-const getResetCookies = function () {
-  const start = getCookies();
-  return () => {
-    const startKeys = Object.keys(start);
-    const endKeys = Object.keys(getCookies());
-    const diff = endKeys.filter((key) => !startKeys.includes(key));
-    diff.forEach((item) => {
-      document.cookie = `${item}= ; expires=${new Date(0)}`;
-    });
-  };
-};
-let resetCookies;
-const reset = function () {
-  resetCookies();
+let timerStart = 0;
+const reset = function (owner) {
+  // Wipe ALL cookies to prevent mutated permission cookies from leaking
+  document.cookie.split(';').forEach((c) => {
+    const name = c.split('=')[0].trim();
+    if (name) {
+      document.cookie = `${name}=; expires=${new Date(0).toUTCString()}`;
+    }
+  });
   window.localStorage.clear();
   api.server.reset();
+
+  // Abort all in-flight connections (blocking queries)
+  try {
+    const connections = owner.lookup('service:client/connections');
+    if (connections) {
+      connections.purge();
+    }
+  } catch (e) {
+    // service may already be destroyed
+  }
+
+  // Cancel any pending timers from api-double latency
+  const timerEnd = setTimeout(() => {}, 0);
+  for (let i = timerStart; i <= timerEnd; i++) {
+    clearTimeout(i);
+  }
+
   const list = document.documentElement.classList;
   while (list.length > 0) {
     list.remove(list.item(0));
@@ -42,7 +52,7 @@ const reset = function () {
   });
 };
 const startup = function () {
-  resetCookies = getResetCookies();
+  timerStart = setTimeout(() => {}, 0);
   api.server.setCookie('CONSUL_LATENCY', 0);
 };
 
@@ -122,8 +132,9 @@ export const setupScenario = function (featureAnnotations, scenarioAnnotations) 
     model.beforeEach(function () {
       startup();
     });
-    model.afterEach(function () {
-      reset();
+    model.afterEach(async function () {
+      reset(this.owner);
+      await settled();
     });
   };
 };
