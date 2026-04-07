@@ -5,6 +5,8 @@
 
 package rate
 
+import "github.com/hashicorp/consul/agent/structs"
+
 type IPLimitConfig struct{}
 
 func (h *Handler) UpdateIPConfig(cfg IPLimitConfig) {
@@ -17,4 +19,7 @@ func (h *Handler) ipGlobalLimit(op Operation) *limit {
 
 func (h *Handler) ipCategoryLimit(op Operation) *limit {
 	return nil
+}
+
+func (h *Handler) UpdateGlobalRateLimitConfig(cfg *structs.GlobalRateLimitConfigEntry) {
 }

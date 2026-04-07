@@ -1,0 +1,3 @@
+```release-note:feature
+api: Added new API "/v1/internal/rpc/methods" that lists all RPC method names. Requires an operator:read ACL token. This is useful when users want to configure rate limits that exclude specific RPC endpoints.
+```

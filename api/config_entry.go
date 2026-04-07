@@ -28,6 +28,7 @@ const (
 	ExportedServices   string = "exported-services"
 	SamenessGroup      string = "sameness-group"
 	RateLimitIPConfig  string = "control-plane-request-limit"
+	RateLimit          string = "rate-limit"
 
 	ProxyConfigGlobal     string = "global"
 	MeshConfigMesh        string = "mesh"
@@ -457,6 +458,8 @@ func makeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &HTTPRouteConfigEntry{Kind: kind, Name: name}, nil
 	case RateLimitIPConfig:
 		return &RateLimitIPConfigEntry{Kind: kind, Name: name}, nil
+	case RateLimit:
+		return &GlobalRateLimitConfigEntry{Kind: kind, Name: name}, nil
 	case JWTProvider:
 		return &JWTProviderConfigEntry{Kind: kind, Name: name}, nil
 	default:
