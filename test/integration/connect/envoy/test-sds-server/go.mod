@@ -5,8 +5,8 @@ go 1.25.8
 require (
 	github.com/envoyproxy/go-control-plane v0.14.0
 	github.com/envoyproxy/go-control-plane/envoy v1.36.0
-	github.com/hashicorp/consul v1.18.1
-	github.com/hashicorp/go-hclog v1.5.0
+	github.com/hashicorp/consul v1.22.5
+	github.com/hashicorp/go-hclog v1.6.3
 	google.golang.org/grpc v1.79.3
 )
 
@@ -15,10 +15,9 @@ require (
 	github.com/cncf/xds/go v0.0.0-20251210132809-ee656c7534f5 // indirect
 	github.com/envoyproxy/go-control-plane/ratelimit v0.1.0 // indirect
 	github.com/envoyproxy/protoc-gen-validate v1.3.0 // indirect
-	github.com/fatih/color v1.16.0 // indirect
-	github.com/hashicorp/consul/sdk v0.16.3 // indirect
+	github.com/fatih/color v1.18.0 // indirect
 	github.com/hashicorp/go-syslog v1.0.0 // indirect
-	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
 	go.opentelemetry.io/otel v1.42.0 // indirect
