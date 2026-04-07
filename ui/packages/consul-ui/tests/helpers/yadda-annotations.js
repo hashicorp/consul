@@ -15,7 +15,6 @@ import dictionary from '../dictionary';
 const getDictionary = dictionary(utils);
 
 const staticClassList = [...document.documentElement.classList];
-let timerStart = 0;
 const reset = function (owner) {
   // Wipe ALL cookies to prevent mutated permission cookies from leaking
   document.cookie.split(';').forEach((c) => {
@@ -37,12 +36,6 @@ const reset = function (owner) {
     // service may already be destroyed
   }
 
-  // Cancel any pending timers from api-double latency
-  const timerEnd = setTimeout(() => {}, 0);
-  for (let i = timerStart; i <= timerEnd; i++) {
-    clearTimeout(i);
-  }
-
   const list = document.documentElement.classList;
   while (list.length > 0) {
     list.remove(list.item(0));
@@ -52,7 +45,6 @@ const reset = function (owner) {
   });
 };
 const startup = function () {
-  timerStart = setTimeout(() => {}, 0);
   api.server.setCookie('CONSUL_LATENCY', 0);
 };
 
