@@ -136,7 +136,7 @@ jobs:
 
       - name: Ember exam
         working-directory: ui/packages/consul-ui
-        run: node_modules/.bin/ember exam --split=4 --partition=${{ matrix.partition }} --path dist --silent -r xunit
+        run: node_modules/.bin/ember exam --split=4 --partition=${{ matrix.partition }} --load-balance --path dist --silent -r xunit
 
       - name: Test Coverage CI
         working-directory: ui/packages/consul-ui
@@ -182,7 +182,7 @@ jobs:
 
       - name: Ember exam
         working-directory: ui/packages/consul-ui
-        run: node_modules/.bin/ember exam --split=4 --partition=${{ matrix.partition }} --path dist --silent -r xunit
+        run: node_modules/.bin/ember exam --split=4 --partition=${{ matrix.partition }} --load-balance --path dist --silent -r xunit
 
       - name: Test Coverage CI
         working-directory: ui/packages/consul-ui
