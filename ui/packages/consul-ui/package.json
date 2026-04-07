@@ -145,7 +145,7 @@
     "ember-data-model-fragments": "~7.0.2",
     "ember-decorators": "^6.1.1",
     "ember-element-helper": "^0.8.8",
-    "ember-exam": "^10.0.0",
+    "ember-exam": "^10.1.0",
     "ember-inflector": "^6.0.0",
     "ember-intl": "^7.4.1",
     "ember-load-initializers": "^2.1.2",
