@@ -54,6 +54,10 @@ github.com/google/go-cmp v0.4.0/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/
 github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=
 github.com/google/go-cmp v0.7.0/go.mod h1:pXiqmnSA92OHEEa9HXL2W4E7lf9JzCmGVUdgjX3N/iU=
 github.com/google/gofuzz v1.0.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/M65Eg=
+github.com/hashicorp/consul/api v1.34.0 h1:9xohQbBmU7BxlrrKYXhEZzXKtqmVlR5RIB+c6pGE2uM=
+github.com/hashicorp/consul/api v1.34.0/go.mod h1:9Gka/GgMEmqxWGMaTkpVWp/Trx/ZMqa/C7A/tvmd5+I=
+github.com/hashicorp/consul/sdk v0.18.0 h1:WvrUz2IYZXY4MX0i45QE9aFrD2izjyuUI+NZv2duatE=
+github.com/hashicorp/consul/sdk v0.18.0/go.mod h1:jnOmYjiNfVRpBaujQ1DFFVs0N6g3S1y6wygSjLTzYfc=
 github.com/hashicorp/errwrap v1.0.0/go.mod h1:YH+1FKiLXxHSkmPseP+kNlulaMuP3n2brvKWEqk/Jc4=
 github.com/hashicorp/errwrap v1.1.0 h1:OxrOeh75EUXMY8TBjag2fzXGZ40LB6IKw45YeGUDY2I=
 github.com/hashicorp/errwrap v1.1.0/go.mod h1:YH+1FKiLXxHSkmPseP+kNlulaMuP3n2brvKWEqk/Jc4=
