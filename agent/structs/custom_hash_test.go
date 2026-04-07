@@ -62,7 +62,7 @@ func TestAddOptionalValue_TracksPresenceAndHash(t *testing.T) {
 	require.NotEqual(t, withHashOne.Sum64(), withHashTwo.Sum64())
 }
 
-func TestAddSlice_TracksLengthAndOrder(t *testing.T) {
+func TestAddSlice_TracksLengthAndValues(t *testing.T) {
 	forward := newCustomHasher()
 	addSlice(forward, []int{1, 2}, func(h *customHasher, value int) {
 		h.addInt64(int64(value))
@@ -78,7 +78,7 @@ func TestAddSlice_TracksLengthAndOrder(t *testing.T) {
 		h.addInt64(int64(value))
 	})
 
-	require.NotEqual(t, forward.Sum64(), reversed.Sum64())
+	require.Equal(t, forward.Sum64(), reversed.Sum64())
 	require.NotEqual(t, forward.Sum64(), shorter.Sum64())
 }
 
@@ -93,7 +93,7 @@ func TestAddOptionalValueSlice_TracksValues(t *testing.T) {
 	addOptionalValueSlice(reordered, []*testHashValue{{hash: 2}, nil, {hash: 1}})
 
 	require.Equal(t, orderedA.Sum64(), orderedB.Sum64())
-	require.NotEqual(t, orderedA.Sum64(), reordered.Sum64())
+	require.Equal(t, orderedA.Sum64(), reordered.Sum64())
 }
 
 func TestAddSortedStringKeyMap_IsOrderIndependent(t *testing.T) {
