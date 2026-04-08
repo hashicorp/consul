@@ -105,7 +105,7 @@ as |item|}}
                 <h3>
                   {{compute (fn route.t 'tolerance.optimistic.header')}}
                   <span
-                    {{tooltip 'With > 30 seconds between server failures, Consul can restore the Immediate Fault Tolerance by replacing failed active voters with healthy back-up voters when using redundancy zones.'}}
+                    {{hds-tooltip 'With > 30 seconds between server failures, Consul can restore the Immediate Fault Tolerance by replacing failed active voters with healthy back-up voters when using redundancy zones.' options=(detached-tooltip-options)}}
                   >
                   </span>
                 </h3>
