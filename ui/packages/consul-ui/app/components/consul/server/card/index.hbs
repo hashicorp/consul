@@ -20,7 +20,7 @@
   <a href={{@href}} class="consul-server-card__link">
 
     {{#if (eq @item.Status 'leader')}}
-      <span class="consul-server-card__leader-tile" {{tooltip "Leader"}}>
+      <span class="consul-server-card__leader-tile" {{hds-tooltip "Leader" options=(detached-tooltip-options)}}>
         <Hds::Icon @name="star-fill" @size="16" @color="var(--token-color-consul-brand)" />
       </span>
     {{/if}}

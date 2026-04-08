@@ -8,10 +8,7 @@
     {{#if (eq item.AccessorID @token.AccessorID)}}
       <dl rel='me'>
         <dt></dt>
-        <dd>
-          <Tooltip @position='top-start'>
-            Your token
-          </Tooltip>
+        <dd {{hds-tooltip "Your token" options=(detached-tooltip-options placement="top-start")}}>
         </dd>
       </dl>
     {{/if}}

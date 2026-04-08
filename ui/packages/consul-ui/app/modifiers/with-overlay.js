@@ -10,7 +10,7 @@ import tippy, { followCursor } from 'tippy.js';
  * Overlay modifier using Tippy.js
  * https://atomiks.github.io/tippyjs
  *
- * {{tooltip 'Text' options=(hash )}}
+ * {{with-overlay 'Text' options=(hash )}}
  */
 export default modifier(($element, [content], hash = {}) => {
   const userOptions = hash.options || {};
@@ -18,7 +18,7 @@ export default modifier(($element, [content], hash = {}) => {
 
   let $anchor = $element;
 
-  // make it easy to specify the modified element as the actual tooltip
+  // make it easy to specify the modified element as the actual overlay trigger
   if (typeof options.triggerTarget === 'string') {
     const $el = $anchor;
     switch (options.triggerTarget) {
@@ -32,7 +32,7 @@ export default modifier(($element, [content], hash = {}) => {
     $el.remove();
     delete options.triggerTarget;
   }
-  // {{tooltip}} will just use the HTML content
+  // with-overlay without content will use the element HTML content
   if (typeof content === 'undefined') {
     content = $anchor.innerHTML;
     $anchor.innerHTML = '';
