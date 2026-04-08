@@ -17,9 +17,9 @@
       aria-label={{t 'components.consul-copy-button.title' name=@name}}
       type="button"
       class="copy-btn"
-      {{tooltip
+      {{hds-tooltip
         (if (state-matches state 'success') (t 'components.consul-copy-button.success' name=@name) (t 'components.consul-copy-button.error'))
-        options=(hash
+        options=(detached-tooltip-options
           trigger='manual'
           showOnCreate=(not (state-matches state 'idle'))
           delay=(array 0 3000)

@@ -16,11 +16,7 @@
   {{#if (not this.emptyColumn)}}
     <div>
       <p>{{@dc.Name}}</p>
-      <span>
-        <Tooltip>
-          Only showing downstreams within the current datacenter for {{@service.Service.Service}}.
-        </Tooltip>
-      </span>
+      <span {{hds-tooltip (concat "Only showing downstreams within the current datacenter for " @service.Service.Service ".") options=(detached-tooltip-options)}}></span>
     </div>
   {{/if}}
   {{#each this.downstreams as |item|}}
