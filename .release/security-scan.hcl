@@ -47,7 +47,9 @@ container {
         "CVE-2025-14524",
         "CVE-2025-14819",
         "CVE-2025-30258",
-        "CVE-2026-27171"
+        "CVE-2026-27171",
+        "GO-2026-4923",
+        "GHSA-6jwv-w5xf-7j27"
       ]
 
       paths = [
@@ -97,7 +99,10 @@ binary {
   # periodically cleaned up to remove items that are no longer found by the scanner.
   triage {
     suppress {
-      vulnerabilities = [ "GO-2026-4923" ]
+      vulnerabilities = [
+        "GO-2026-4923",
+        "GHSA-6jwv-w5xf-7j27"
+        ]
       
       paths = [
         "internal/tools/proto-gen-rpc-glue/e2e/consul/*",
