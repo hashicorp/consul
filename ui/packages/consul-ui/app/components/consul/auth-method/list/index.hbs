@@ -29,10 +29,8 @@
   {{/if}}
   {{#if item.MaxTokenTTL}}
     <dl class="ttl">
-      <dt>
-        <Tooltip>
-          Maximum Time to Live: the maximum life of any token created by this auth method
-        </Tooltip>
+      <dt {{hds-tooltip "Maximum Time to Live: the maximum life of any token created by this auth method" options=(detached-tooltip-options)}}>
+        Maximum Time to Live
       </dt>
       <dd>{{item.MaxTokenTTL}}</dd>
     </dl>
