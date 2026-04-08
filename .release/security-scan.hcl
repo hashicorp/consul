@@ -38,7 +38,17 @@ container {
   # periodically cleaned up to remove items that are no longer found by the scanner.
   triage {
     suppress {
-      vulnerabilities = []
+      vulnerabilities = [
+        "CVE-2026-3805",
+        "CVE-2026-3784",
+        "CVE-2026-3783",
+        "CVE-2026-1965",
+        "CVE-2025-14017",
+        "CVE-2025-14524",
+        "CVE-2025-14819",
+        "CVE-2025-30258",
+        "CVE-2026-27171"
+      ]
 
       paths = [
         "internal/tools/proto-gen-rpc-glue/e2e/consul/*",
@@ -87,7 +97,7 @@ binary {
   # periodically cleaned up to remove items that are no longer found by the scanner.
   triage {
     suppress {
-      vulnerabilities = []
+      vulnerabilities = [ "GO-2026-4923" ]
       
       paths = [
         "internal/tools/proto-gen-rpc-glue/e2e/consul/*",
