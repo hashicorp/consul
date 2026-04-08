@@ -28,10 +28,8 @@
       <div class="detail">
       {{#if path.Protocol}}
         <dl class="protocol">
-          <dt>
-            <Tooltip>
-                Protocol
-            </Tooltip>
+          <dt {{hds-tooltip "Protocol" options=(detached-tooltip-options)}}>
+            Protocol
           </dt>
           <dd>
             {{path.Protocol}}
@@ -40,10 +38,8 @@
       {{/if}}
       {{#if path.ListenerPort}}
         <dl class="port">
-          <dt>
-            <Tooltip>
-              Listener Port
-            </Tooltip>
+          <dt {{hds-tooltip "Listener Port" options=(detached-tooltip-options)}}>
+            Listener Port
           </dt>
           <dd>
             listening on :{{path.ListenerPort}}
@@ -52,10 +48,8 @@
       {{/if}}
       {{#if path.LocalPathPort}}
         <dl class="port">
-          <dt>
-            <Tooltip>
-              Local Path Port
-            </Tooltip>
+          <dt {{hds-tooltip "Local Path Port" options=(detached-tooltip-options)}}>
+            Local Path Port
           </dt>
           <dd>
             local port :{{path.LocalPathPort}}
@@ -64,10 +58,8 @@
       {{/if}}
       {{#if path.Path}}
         <dl class="path">
-          <dt>
-            <Tooltip>
-              Path
-            </Tooltip>
+          <dt {{hds-tooltip "Path" options=(detached-tooltip-options)}}>
+            Path
           </dt>
           <dd>
             {{path.Path}}

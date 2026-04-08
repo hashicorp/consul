@@ -8,7 +8,7 @@
     <dt>
       Health
     </dt>
-    <dd {{tooltip @item.healthTooltipText}}></dd>
+    <dd {{hds-tooltip @item.healthTooltipText options=(detached-tooltip-options)}}></dd>
   </dl>
   {{#if (gt @item.InstanceCount 0)}}
     <a
@@ -58,11 +58,7 @@
   {{/if}}
   {{#if (or @item.ConnectedWithGateway @item.ConnectedWithProxy)}}
     <dl class='mesh'>
-      <dt>
-        <Tooltip>
-          This service uses a proxy for the Consul service mesh
-        </Tooltip>
-      </dt>
+      <dt {{hds-tooltip "This service uses a proxy for the Consul service mesh" options=(detached-tooltip-options)}}></dt>
       {{#if (and @item.ConnectedWithGateway @item.ConnectedWithProxy)}}
         <dd data-test-mesh>
           in service mesh with proxy and gateway
