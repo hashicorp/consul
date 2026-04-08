@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/acl/authmethod"
 	"github.com/hashicorp/consul/command/flags"
@@ -37,6 +38,8 @@ type cmd struct {
 	maxTokenTTL    time.Duration
 	tokenLocality  string
 	config         string
+
+	tokenNameFormat string
 
 	k8sHost              string
 	k8sCACert            string
@@ -136,6 +139,12 @@ func (c *cmd) init() {
 			"to indicate that the value is a file path to load the config from. '-' may also be "+
 			"given to indicate that the config is available on stdin",
 	)
+	c.flags.StringVar(
+		&c.tokenNameFormat,
+		"token-name-format",
+		structs.DefaultACLAuthMethodTokenNameFormat,
+		"Format used to specify the token name for the auth method. Hashicorp HIL syntax is supported.",
+	)
 
 	c.initEnterpriseFlags()
 
@@ -168,11 +177,12 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	newAuthMethod := &api.ACLAuthMethod{
-		Type:          c.authMethodType,
-		Name:          c.name,
-		DisplayName:   c.displayName,
-		Description:   c.description,
-		TokenLocality: c.tokenLocality,
+		Type:            c.authMethodType,
+		Name:            c.name,
+		DisplayName:     c.displayName,
+		Description:     c.description,
+		TokenLocality:   c.tokenLocality,
+		TokenNameFormat: c.tokenNameFormat,
 	}
 	if c.maxTokenTTL > 0 {
 		newAuthMethod.MaxTokenTTL = c.maxTokenTTL

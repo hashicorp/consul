@@ -9,7 +9,7 @@
       <dt>{{t 'models.auth-method.Type'}}</dt>
       <dd><Consul::AuthMethod::Type @item={{@item}} /></dd>
 
-    {{#each (array "MaxTokenTTL" "TokenLocality" "DisplayName" "Description") as |value|}}
+    {{#each (array "Name" "Description" "MaxTokenTTL" "TokenLocality" "TokenNameFormat") as |value|}}
       {{#if (get @item value)}}
       <dt>{{t (concat "models.auth-method." value)}}</dt>
       <dd>{{get @item value}}</dd>
@@ -52,7 +52,7 @@
           <Consul::AuthMethod::Type @item={{@item}} />
         </dd>
 
-{{#each (array "MaxTokenTTL" "TokenLocality" "DisplayName" "Description") as |value|}}
+{{#each (array "Name" "Description" "MaxTokenTTL" "TokenLocality" "TokenNameFormat") as |value|}}
   {{#if (get @item value)}}
 
         <dt>{{t (concat "models.auth-method." value)}}</dt>

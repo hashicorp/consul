@@ -18,7 +18,13 @@
     <a
       data-test-token={{item.AccessorID}}
       href={{href-to 'dc.acls.tokens.edit' item.AccessorID}}
-    >{{substr item.AccessorID -8}}</a>
+    >
+    {{#if item.Name}}
+        {{truncate item.Name 100}}
+    {{else}}
+        {{substr item.AccessorID -8}}
+    {{/if}}
+    </a>
   </BlockSlot>
   <BlockSlot @name='details'>
     <dl>

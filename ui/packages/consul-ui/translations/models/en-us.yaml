@@ -3,8 +3,9 @@
 
 auth-method:
   Description: Description
-  DisplayName: Display name
+  Name: Display name
   TokenLocality: Token locality
+  TokenNameFormat: Token name format
   Type: Type
   MaxTokenTTL: Maximum token TTL
   Selector: Selector

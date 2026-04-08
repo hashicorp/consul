@@ -46,6 +46,8 @@ type cmd struct {
 	showMeta bool
 	format   string
 
+	tokenNameFormat string
+
 	testStdin io.Reader
 
 	enterpriseCmd
@@ -140,7 +142,12 @@ func (c *cmd) init() {
 		authmethod.PrettyFormat,
 		fmt.Sprintf("Output format {%s}", strings.Join(authmethod.GetSupportedFormats(), "|")),
 	)
-
+	c.flags.StringVar(
+		&c.tokenNameFormat,
+		"token-name-format",
+		"",
+		"Format used to specify the token name for the auth method. Hashicorp HIL syntax is supported.",
+	)
 	c.initEnterpriseFlags()
 
 	c.http = &flags.HTTPFlags{}
@@ -190,11 +197,12 @@ func (c *cmd) Run(args []string) int {
 	var method *api.ACLAuthMethod
 	if c.noMerge {
 		method = &api.ACLAuthMethod{
-			Name:          currentAuthMethod.Name,
-			Type:          currentAuthMethod.Type,
-			DisplayName:   c.displayName,
-			Description:   c.description,
-			TokenLocality: c.tokenLocality,
+			Name:            currentAuthMethod.Name,
+			Type:            currentAuthMethod.Type,
+			DisplayName:     c.displayName,
+			Description:     c.description,
+			TokenLocality:   c.tokenLocality,
+			TokenNameFormat: c.tokenNameFormat,
 		}
 		if c.maxTokenTTL > 0 {
 			method.MaxTokenTTL = c.maxTokenTTL
@@ -253,6 +261,9 @@ func (c *cmd) Run(args []string) int {
 		}
 		if c.tokenLocality != "" {
 			method.TokenLocality = c.tokenLocality
+		}
+		if c.tokenNameFormat != "" {
+			method.TokenNameFormat = c.tokenNameFormat
 		}
 		if err := c.enterprisePopulateAuthMethod(method); err != nil {
 			c.UI.Error(err.Error())

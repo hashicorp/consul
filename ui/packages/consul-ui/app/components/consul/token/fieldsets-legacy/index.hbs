@@ -6,9 +6,19 @@
 <fieldset disabled={{if (not (can 'write token' item=@item)) 'disabled'}}>
   <Hds::Form::TextInput::Field
     class='type-text'
-    @value={{@item.Description}}
+    @value={{@item.Name}}
     @isInvalid={{@item.error.Name}}
     name='name'
+    {{on 'input' @onChange}}
+    as |F|
+  >
+    <F.Label>Name</F.Label>
+  </Hds::Form::TextInput::Field>
+  <Hds::Form::TextInput::Field
+    class='type-text'
+    @value={{@item.Description}}
+    @isInvalid={{@item.error.Name}}
+    name='description'
     {{on 'input' @onChange}}
     as |F|
   >
