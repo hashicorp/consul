@@ -115,9 +115,14 @@ as |items item dc|}}
             />
           </BlockSlot>
           <BlockSlot @name="breadcrumbs">
-            <ol>
-              <li><a data-test-back href={{href-to 'dc.services' params=(hash peer=undefined)}}>All Services</a></li>
-            </ol>
+            <Hds::Breadcrumb>
+              <Breadcrumbs::BackLink
+                @route="dc.services"
+                @text="All Services"
+                @params={{hash peer=undefined}}
+                data-test-back
+              />
+            </Hds::Breadcrumb>
           </BlockSlot>
           <BlockSlot @name="header">
               <h1>

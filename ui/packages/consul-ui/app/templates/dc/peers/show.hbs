@@ -31,9 +31,9 @@
       }}
         <AppView>
           <BlockSlot @name="breadcrumbs">
-            <ol>
-              <li><a data-test-back href={{href-to "dc.peers"}}>All Peers</a></li>
-            </ol>
+            <Hds::Breadcrumb>
+              <Hds::Breadcrumb::Item @text="All Peers" @route="dc.peers" data-test-back />
+            </Hds::Breadcrumb>
           </BlockSlot>
           <BlockSlot @name="header">
             <h1>

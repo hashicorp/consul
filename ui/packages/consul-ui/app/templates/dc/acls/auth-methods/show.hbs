@@ -34,9 +34,9 @@ as |route|>
 as |item|}}
   <AppView>
       <BlockSlot @name="breadcrumbs">
-          <ol>
-              <li><a data-test-back href={{href-to 'dc.acls.auth-methods'}}>All Auth Methods</a></li>
-          </ol>
+        <Hds::Breadcrumb>
+          <Hds::Breadcrumb::Item @text="All Auth Methods" @route="dc.acls.auth-methods" data-test-back />
+        </Hds::Breadcrumb>
       </BlockSlot>
       <BlockSlot @name="header">
         <h1>
