@@ -117,11 +117,12 @@ func (u UpstreamID) GoString() string {
 func UpstreamIDFromString(input string) UpstreamID {
 	typ, dc, name, entMeta, peerName, destinationPort := ParseUpstreamIDString(input)
 	id := UpstreamID{
-		Type:           typ,
-		Datacenter:     dc,
-		Name:           name,
-		EnterpriseMeta: *entMeta,
-		Peer:           peerName,
+		Type:            typ,
+		Datacenter:      dc,
+		Name:            name,
+		EnterpriseMeta:  *entMeta,
+		Peer:            peerName,
+		DestinationPort: destinationPort,
 	}
 	id.normalize()
 	return id
@@ -142,7 +143,7 @@ func upstreamIDQueryString(dc, peerName, destinationPort string) string {
 	return strings.Join(parts, "&")
 }
 
-func ParseUpstreamIDString(input string) (typ, dc, name string, meta *acl.EnterpriseMeta, peerName string) {
+func ParseUpstreamIDString(input string) (typ, dc, name string, meta *acl.EnterpriseMeta, peerName string, destinationPort string) {
 	if strings.HasPrefix(input, upstreamTypePreparedQueryPrefix) {
 		typ = structs.UpstreamDestTypePreparedQuery
 		input = strings.TrimPrefix(input, upstreamTypePreparedQueryPrefix)
