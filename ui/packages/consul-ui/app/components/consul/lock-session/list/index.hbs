@@ -37,14 +37,14 @@ as |item index|>
     </dl>
     {{/if}}
     <dl class="lock-delay">
-      <dt {{tooltip}}>
+      <dt {{hds-tooltip options=(detached-tooltip-options)}}>
         Delay
       </dt>
       <dd data-test-session-delay>{{duration-from item.LockDelay}}</dd>
     </dl>
     <dl class="ttl">
       <dt
-        {{tooltip}}
+        {{hds-tooltip options=(detached-tooltip-options)}}
       >
         TTL
       </dt>
@@ -56,7 +56,7 @@ as |item index|>
     </dl>
     <dl class="behavior">
       <dt
-        {{tooltip}}
+        {{hds-tooltip options=(detached-tooltip-options)}}
       >
         Behavior
       </dt>
@@ -65,7 +65,7 @@ as |item index|>
 {{#let (union item.NodeChecks item.ServiceChecks) as |checks|}}
     <dl class="checks">
       <dt
-        {{tooltip}}
+        {{hds-tooltip options=(detached-tooltip-options)}}
       >
         Checks
       </dt>

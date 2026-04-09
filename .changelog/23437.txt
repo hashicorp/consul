@@ -1,0 +1,3 @@
+```release-note:security
+test-sds-server: bump github.com/hashicorp/consul to v1.22.5 in integration test module to align with the CVE-2026-2808 fixed release line.
+```

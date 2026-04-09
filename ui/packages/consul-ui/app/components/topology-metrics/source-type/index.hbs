@@ -6,7 +6,7 @@
 <span
   data-test-topology-metrics-source-type
   class="topology-metrics-source-type"
-  {{tooltip (t (concat "components.consul.topology-metrics.source-type." @source ".tooltip"))}}
+  {{hds-tooltip (t (concat "components.consul.topology-metrics.source-type." @source ".tooltip")) options=(detached-tooltip-options)}}
 >
   {{t (concat "components.consul.topology-metrics.source-type." @source ".text")}}
 </span>
