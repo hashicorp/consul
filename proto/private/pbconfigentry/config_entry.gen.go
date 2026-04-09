@@ -8,6 +8,9 @@ func APIGatewayToStructs(s *APIGateway, t *structs.APIGatewayConfigEntry) {
 	if s == nil {
 		return
 	}
+	if s.TLS != nil {
+		GatewayTLSConfigToStructs(s.TLS, &t.TLS)
+	}
 	{
 		t.Listeners = make([]structs.APIGatewayListener, len(s.Listeners))
 		for i := range s.Listeners {
@@ -25,6 +28,11 @@ func APIGatewayToStructs(s *APIGateway, t *structs.APIGatewayConfigEntry) {
 func APIGatewayFromStructs(t *structs.APIGatewayConfigEntry, s *APIGateway) {
 	if s == nil {
 		return
+	}
+	{
+		var x GatewayTLSConfig
+		GatewayTLSConfigFromStructs(&t.TLS, &x)
+		s.TLS = &x
 	}
 	{
 		s.Listeners = make([]*APIGatewayListener, len(t.Listeners))

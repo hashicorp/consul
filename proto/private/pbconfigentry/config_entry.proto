@@ -804,6 +804,7 @@ message APIGateway {
   repeated APIGatewayListener Listeners = 2;
   Status Status = 3;
   uint64 Hash = 4;
+  GatewayTLSConfig TLS = 5;
 }
 
 // mog annotation:

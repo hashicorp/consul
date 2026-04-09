@@ -5105,6 +5105,7 @@ type APIGateway struct {
 	Listeners     []*APIGatewayListener  `protobuf:"bytes,2,rep,name=Listeners,proto3" json:"Listeners,omitempty"`
 	Status        *Status                `protobuf:"bytes,3,opt,name=Status,proto3" json:"Status,omitempty"`
 	Hash          uint64                 `protobuf:"varint,4,opt,name=Hash,proto3" json:"Hash,omitempty"`
+	TLS           *GatewayTLSConfig      `protobuf:"bytes,5,opt,name=TLS,proto3" json:"TLS,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -5165,6 +5166,13 @@ func (x *APIGateway) GetHash() uint64 {
 		return x.Hash
 	}
 	return 0
+}
+
+func (x *APIGateway) GetTLS() *GatewayTLSConfig {
+	if x != nil {
+		return x.TLS
+	}
+	return nil
 }
 
 // mog annotation:
