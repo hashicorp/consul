@@ -32,7 +32,7 @@ as |item|}}
 <AppView>
   <BlockSlot @name="breadcrumbs">
     <Hds::Breadcrumb>
-      <Hds::Breadcrumb::Item @text="All Services" @route="dc.services" data-test-back />
+      <Hds::Breadcrumb::Item @text="All Services" @route="dc.services" @model={{route.params.dc}} data-test-back />
     </Hds::Breadcrumb>
   </BlockSlot>
   <BlockSlot @name="header">

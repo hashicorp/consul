@@ -8,8 +8,17 @@
 
 /* Breadcrumb container positioning */
 .app-view-breadcrumbs {
-  position: static;
-  margin-bottom: 8px;
+  position: absolute;
+  top: -38px;
+  left: 0;
+  right: 0;
+  margin-bottom: 0;
+}
+
+@media #{$--lt-spacious-page-header} {
+  .app-view-breadcrumbs {
+    top: -32px;
+  }
 }
 
 /* HDS Breadcrumb styling */
@@ -19,7 +28,7 @@
 
   &,
   .hds-breadcrumb__text {
-    font-size: 1rem;
+    font-size: 0.875rem;
   }
 
   &:hover {

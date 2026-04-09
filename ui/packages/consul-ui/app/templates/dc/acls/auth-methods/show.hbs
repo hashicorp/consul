@@ -35,7 +35,7 @@ as |item|}}
   <AppView>
       <BlockSlot @name="breadcrumbs">
         <Hds::Breadcrumb>
-          <Hds::Breadcrumb::Item @text="All Auth Methods" @route="dc.acls.auth-methods" data-test-back />
+          <Hds::Breadcrumb::Item @text="All Auth Methods" @route="dc.acls.auth-methods" @model={{route.params.dc}} data-test-back />
         </Hds::Breadcrumb>
       </BlockSlot>
       <BlockSlot @name="header">

@@ -36,7 +36,7 @@ as |dc partition nspace item|}}
   <AppView>
     <BlockSlot @name="breadcrumbs">
       <Hds::Breadcrumb>
-        <Hds::Breadcrumb::Item @text="All Admin Partitions" @route="dc.partitions" data-test-back />
+        <Hds::Breadcrumb::Item @text="All Admin Partitions" @route="dc.partitions" @model={{route.params.dc}} data-test-back />
       </Hds::Breadcrumb>
     </BlockSlot>
     <BlockSlot @name="header">
