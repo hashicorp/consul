@@ -11,7 +11,6 @@ export const SLUG_KEY = 'AccessorID';
 
 export default class Token extends Model {
   @attr('string') uid;
-  @attr('string') Name;
   @attr('string') AccessorID;
 
   @attr('string') Datacenter;
@@ -23,7 +22,6 @@ export default class Token extends Model {
   @attr('boolean') Legacy;
   @attr('boolean') Local;
   @attr('string', { defaultValue: () => '' }) Description;
-  @attr('string', { defaultValue: () => '' }) Name;
 
   @attr() meta; // {}
 
