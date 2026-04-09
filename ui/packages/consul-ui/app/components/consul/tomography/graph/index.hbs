@@ -19,11 +19,11 @@
           <g class="lines">
       {{#each this.distances as |item|}}
           <rect
-            {{tooltip
+            {{hds-tooltip
               (concat item.node ' - ' (format-number item.distance maximumFractionDigits=2) 'ms'
                 (if item.segment (concat '<br />(Segment: ' item.segment ')'))
               )
-              options=(hash
+              options=(detached-tooltip-options
                 followCursor=true
                 allowHTML=true
               )

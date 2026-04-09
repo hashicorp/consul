@@ -1,6 +1,6 @@
 module github.com/hashicorp/consul/test/integration/consul-container
 
-go 1.25.8
+go 1.25.9
 
 require (
 	fortio.org/fortio v1.54.0
@@ -8,7 +8,7 @@ require (
 	github.com/docker/docker v24.0.5+incompatible
 	github.com/docker/go-connections v0.4.0
 	github.com/evanphx/json-patch v4.12.0+incompatible
-	github.com/go-jose/go-jose/v3 v3.0.4
+	github.com/go-jose/go-jose/v3 v3.0.5
 	github.com/go-viper/mapstructure/v2 v2.4.0
 	github.com/hashicorp/consul v1.16.1
 	github.com/hashicorp/consul/api v1.33.4

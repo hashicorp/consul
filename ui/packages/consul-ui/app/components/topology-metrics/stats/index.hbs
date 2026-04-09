@@ -24,9 +24,9 @@
 <div ...attributes class="topology-metrics-stats" data-test-topology-metrics-stats>
   {{#if this.hasLoaded }}
     {{#each this.stats as |stat|}}
-    <dl {{tooltip
+    <dl {{hds-tooltip
       stat.desc
-      options=(hash
+      options=(detached-tooltip-options
         allowHTML=true
       )
     }}>
