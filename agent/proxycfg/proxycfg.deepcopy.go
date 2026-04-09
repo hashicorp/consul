@@ -362,6 +362,14 @@ func (o *configSnapshotAPIGateway) DeepCopy() *configSnapshotAPIGateway {
 	if o.GatewayConfig != nil {
 		cp.GatewayConfig = new(structs.APIGatewayConfigEntry)
 		*cp.GatewayConfig = *o.GatewayConfig
+		if o.GatewayConfig.TLS.SDS != nil {
+			cp.GatewayConfig.TLS.SDS = new(structs.GatewayTLSSDSConfig)
+			*cp.GatewayConfig.TLS.SDS = *o.GatewayConfig.TLS.SDS
+		}
+		if o.GatewayConfig.TLS.CipherSuites != nil {
+			cp.GatewayConfig.TLS.CipherSuites = make([]types.TLSCipherSuite, len(o.GatewayConfig.TLS.CipherSuites))
+			copy(cp.GatewayConfig.TLS.CipherSuites, o.GatewayConfig.TLS.CipherSuites)
+		}
 		if o.GatewayConfig.Listeners != nil {
 			cp.GatewayConfig.Listeners = make([]structs.APIGatewayListener, len(o.GatewayConfig.Listeners))
 			copy(cp.GatewayConfig.Listeners, o.GatewayConfig.Listeners)

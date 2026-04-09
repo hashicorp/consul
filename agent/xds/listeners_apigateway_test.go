@@ -623,6 +623,9 @@ func TestCollectAPIGatewayServiceSDSOverrides_TCPRouteRejectsConflictingOverride
 			}},
 		},
 	}, nil, nil)
+	if snap == nil {
+		t.Fatal("expected non-nil config snapshot")
+	}
 
 	routeRef1 := structs.ResourceReference{Kind: structs.TCPRoute, Name: "tcp-route-1"}
 	routeRef2 := structs.ResourceReference{Kind: structs.TCPRoute, Name: "tcp-route-2"}
@@ -681,6 +684,9 @@ func TestCollectAPIGatewayServiceSDSOverrides_TCPRouteInheritsGatewaySDSCluster(
 			}},
 		},
 	}, nil, nil)
+	if snap == nil {
+		t.Fatal("expected non-nil config snapshot")
+	}
 
 	snap.APIGateway.TLSConfig = structs.GatewayTLSConfig{
 		SDS: &structs.GatewayTLSSDSConfig{ClusterName: "gateway-sds-cluster"},
