@@ -1338,6 +1338,21 @@ func TestAPIGateway_Listeners(t *testing.T) {
 			},
 			validateErr: "TLS.SDS.ClusterName is required if CertResource is set",
 		},
+		"gateway tls sds missing cluster name": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-sds-gw-one",
+				TLS: GatewayTLSConfig{
+					SDS: &GatewayTLSSDSConfig{CertResource: "gw-default-cert"},
+				},
+				Listeners: []APIGatewayListener{{
+					Name:     "listener",
+					Port:     8443,
+					Protocol: APIGatewayListenerProtocol("http"),
+				}},
+			},
+			validateErr: "TLS.SDS.ClusterName is required if CertResource is set (gateway)",
+		},
 		"tls sds missing cert resource": {
 			entry: &APIGatewayConfigEntry{
 				Kind: "api-gateway",
@@ -1354,6 +1369,39 @@ func TestAPIGateway_Listeners(t *testing.T) {
 				},
 			},
 			validateErr: "TLS.SDS.CertResource is required if ClusterName is set",
+		},
+		"listener tls sds inherits cluster from gateway": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-sds-inherit-cluster",
+				TLS: GatewayTLSConfig{
+					SDS: &GatewayTLSSDSConfig{ClusterName: "sds-cluster"},
+				},
+				Listeners: []APIGatewayListener{{
+					Name:     "listener",
+					Port:     8443,
+					Protocol: APIGatewayListenerProtocol("http"),
+					TLS: APIGatewayTLSConfiguration{
+						SDS: &GatewayTLSSDSConfig{CertResource: "listener-cert"},
+					},
+				}},
+			},
+			expectUnchanged: true,
+		},
+		"valid gateway-level tls sds default cert": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-sds-gw-default",
+				TLS: GatewayTLSConfig{
+					SDS: &GatewayTLSSDSConfig{ClusterName: "sds-cluster", CertResource: "gw-default-cert"},
+				},
+				Listeners: []APIGatewayListener{{
+					Name:     "listener",
+					Port:     8443,
+					Protocol: APIGatewayListenerProtocol("http"),
+				}},
+			},
+			expectUnchanged: true,
 		},
 		"tls sds cannot be combined with certificates": {
 			entry: &APIGatewayConfigEntry{

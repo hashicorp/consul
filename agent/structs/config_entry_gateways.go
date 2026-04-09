@@ -744,6 +744,10 @@ type APIGatewayConfigEntry struct {
 	// service. This should match the name provided in the service definition.
 	Name string
 
+	// TLS holds default TLS configuration for API gateway listeners. Listener
+	// TLS settings may override these defaults.
+	TLS GatewayTLSConfig
+
 	// Listeners is the set of listener configuration to which an API Gateway
 	// might bind.
 	Listeners []APIGatewayListener
@@ -825,6 +829,12 @@ func (e *APIGatewayConfigEntry) Validate() error {
 	if err := validateConfigEntryMeta(e.Meta); err != nil {
 		return err
 	}
+	if err := validateGatewayTLSConfig(e.TLS); err != nil {
+		return err
+	}
+	if e.TLS.SDS != nil && e.TLS.SDS.ClusterName == "" && e.TLS.SDS.CertResource != "" {
+		return fmt.Errorf("TLS.SDS.ClusterName is required if CertResource is set (gateway)")
+	}
 
 	if len(e.Listeners) == 0 {
 		return fmt.Errorf("api gateway must have at least one listener")
@@ -877,6 +887,8 @@ func (e *APIGatewayConfigEntry) validateListeners() error {
 		InlineCertificate:     true,
 	}
 
+	gwSDSClusterSet := e.TLS.SDS != nil && e.TLS.SDS.ClusterName != ""
+
 	for _, listener := range e.Listeners {
 		if !validProtocols[listener.Protocol] {
 			return fmt.Errorf("unsupported listener protocol %q, must be one of 'tcp', or 'http'", listener.Protocol)
@@ -901,7 +913,7 @@ func (e *APIGatewayConfigEntry) validateListeners() error {
 		}
 		if listener.TLS.SDS != nil {
 			sds := listener.TLS.SDS
-			if sds.ClusterName == "" && sds.CertResource != "" {
+			if sds.ClusterName == "" && sds.CertResource != "" && !gwSDSClusterSet {
 				return fmt.Errorf("TLS.SDS.ClusterName is required if CertResource is set (listener %q)", listener.Name)
 			}
 			if sds.ClusterName != "" && sds.CertResource == "" {

@@ -50,12 +50,17 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 			}
 		}
 
+		effectiveTLSCfg, err := resolveAPIListenerTLSConfig(cfgSnap.APIGateway.TLSConfig, listenerCfg.TLS)
+		if err != nil {
+			return nil, err
+		}
+
 		routeSDSOverrides, err := collectAPIGatewayServiceSDSOverrides(cfgSnap, readyListener)
 		if err != nil {
 			return nil, err
 		}
 
-		isAPIGatewayWithTLS := len(boundListener.Certificates) > 0 || listenerCfg.TLS.SDS != nil || len(routeSDSOverrides) > 0
+		isAPIGatewayWithTLS := len(boundListener.Certificates) > 0 || hasSDSCert(effectiveTLSCfg.SDS) || len(routeSDSOverrides) > 0
 
 		tlsContext, err := makeDownstreamTLSContextFromSnapshotAPIListenerConfig(cfgSnap, listenerCfg)
 		if err != nil {
@@ -128,10 +133,9 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 				}
 
 				// construct SNI filter chains
-				setAPIGatewayTLSConfig(listenerCfg, cfgSnap)
 				l.FilterChains, err = s.makeInlineOverrideFilterChains(
 					cfgSnap,
-					cfgSnap.APIGateway.TLSConfig,
+					*effectiveTLSCfg,
 					routeSDSOverrides,
 					listenerKey.Protocol, listenerFilterOpts{
 						useRDS:              useRDS,
@@ -248,8 +252,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 			sniFilterChains := []*envoy_listener_v3.FilterChain{}
 
 			if isAPIGatewayWithTLS {
-				setAPIGatewayTLSConfig(listenerCfg, cfgSnap)
-				sniFilterChains, err = s.makeInlineOverrideFilterChains(cfgSnap, cfgSnap.APIGateway.TLSConfig, routeSDSOverrides, listenerKey.Protocol, filterOpts, certs)
+				sniFilterChains, err = s.makeInlineOverrideFilterChains(cfgSnap, *effectiveTLSCfg, routeSDSOverrides, listenerKey.Protocol, filterOpts, certs)
 				if err != nil {
 					return nil, err
 				}
@@ -308,7 +311,15 @@ type apiGatewayServiceSDSOverride struct {
 }
 
 func collectAPIGatewayServiceSDSOverrides(cfgSnap *proxycfg.ConfigSnapshot, ready readyListener) ([]apiGatewayServiceSDSOverride, error) {
-	defaultSDS := ready.listenerCfg.TLS.SDS
+	resolvedTLSCfg, err := resolveAPIListenerTLSConfig(cfgSnap.APIGateway.TLSConfig, ready.listenerCfg.TLS)
+	if err != nil {
+		return nil, err
+	}
+
+	var defaultSDS *structs.GatewayTLSSDSConfig
+	if resolvedTLSCfg != nil && resolvedTLSCfg.SDS != nil && resolvedTLSCfg.SDS.ClusterName != "" {
+		defaultSDS = resolvedTLSCfg.SDS
+	}
 
 	switch ready.listenerCfg.Protocol {
 	case structs.ListenerProtocolHTTP:
@@ -333,7 +344,7 @@ func collectAPIGatewayServiceSDSOverrides(cfgSnap *proxycfg.ConfigSnapshot, read
 						effectiveSDS.ClusterName = defaultSDS.ClusterName
 					}
 					if effectiveSDS.ClusterName == "" {
-						return nil, fmt.Errorf("route %q service %q sets TLS.SDS without ClusterName and no listener TLS.SDS.ClusterName is available", route.Name, service.Name)
+						return nil, fmt.Errorf("route %q service %q sets TLS.SDS without ClusterName and no listener or gateway TLS.SDS.ClusterName is available", route.Name, service.Name)
 					}
 
 					key := fmt.Sprintf("%s|%s", effectiveSDS.ClusterName, effectiveSDS.CertResource)
@@ -391,7 +402,7 @@ func collectAPIGatewayServiceSDSOverrides(cfgSnap *proxycfg.ConfigSnapshot, read
 					effectiveSDS.ClusterName = defaultSDS.ClusterName
 				}
 				if effectiveSDS.ClusterName == "" {
-					return nil, fmt.Errorf("route %q service %q sets TLS.SDS without ClusterName and no listener TLS.SDS.ClusterName is available", route.Name, service.Name)
+					return nil, fmt.Errorf("route %q service %q sets TLS.SDS without ClusterName and no listener or gateway TLS.SDS.ClusterName is available", route.Name, service.Name)
 				}
 
 				if selected == nil {
@@ -504,13 +515,13 @@ func makeCommonTLSContextFromSnapshotAPIGatewayListenerConfig(
 ) (*envoy_tls_v3.CommonTlsContext, error) {
 	var tlsContext *envoy_tls_v3.CommonTlsContext
 
-	// API Gateway TLS config is per listener
-	tlsCfg, err := resolveAPIListenerTLSConfig(listenerCfg.TLS)
+	// API Gateway TLS config is resolved from gateway defaults plus listener overrides.
+	tlsCfg, err := resolveAPIListenerTLSConfig(cfgSnap.APIGateway.TLSConfig, listenerCfg.TLS)
 	if err != nil {
 		return nil, err
 	}
 
-	connectTLSEnabled := (!listenerCfg.TLS.IsEmpty())
+	connectTLSEnabled := !isGatewayTLSConfigEmpty(*tlsCfg) || len(listenerCfg.TLS.Certificates) > 0
 
 	if connectTLSEnabled {
 		tlsContext = makeCommonTLSContext(cfgSnap.Leaf(), cfgSnap.RootPEMs(), makeTLSParametersFromGatewayTLSConfig(*tlsCfg))
@@ -519,22 +530,31 @@ func makeCommonTLSContextFromSnapshotAPIGatewayListenerConfig(
 	return tlsContext, nil
 }
 
-func resolveAPIListenerTLSConfig(listenerTLSCfg structs.APIGatewayTLSConfiguration) (*structs.GatewayTLSConfig, error) {
-	var mergedCfg structs.GatewayTLSConfig
+func resolveAPIListenerTLSConfig(gatewayTLSCfg structs.GatewayTLSConfig, listenerTLSCfg structs.APIGatewayTLSConfiguration) (*structs.GatewayTLSConfig, error) {
+	mergedCfg := gatewayTLSCfg
+	if gatewayTLSCfg.SDS != nil {
+		sds := *gatewayTLSCfg.SDS
+		mergedCfg.SDS = &sds
+	}
 
-	if !listenerTLSCfg.IsEmpty() {
-		if listenerTLSCfg.SDS != nil {
-			mergedCfg.SDS = listenerTLSCfg.SDS
+	if listenerTLSCfg.SDS != nil {
+		sds := *listenerTLSCfg.SDS
+		if sds.ClusterName == "" && mergedCfg.SDS != nil {
+			sds.ClusterName = mergedCfg.SDS.ClusterName
 		}
-		if listenerTLSCfg.MinVersion != types.TLSVersionUnspecified {
-			mergedCfg.TLSMinVersion = listenerTLSCfg.MinVersion
+		if sds.CertResource == "" && mergedCfg.SDS != nil {
+			sds.CertResource = mergedCfg.SDS.CertResource
 		}
-		if listenerTLSCfg.MaxVersion != types.TLSVersionUnspecified {
-			mergedCfg.TLSMaxVersion = listenerTLSCfg.MaxVersion
-		}
-		if len(listenerTLSCfg.CipherSuites) != 0 {
-			mergedCfg.CipherSuites = listenerTLSCfg.CipherSuites
-		}
+		mergedCfg.SDS = &sds
+	}
+	if listenerTLSCfg.MinVersion != types.TLSVersionUnspecified {
+		mergedCfg.TLSMinVersion = listenerTLSCfg.MinVersion
+	}
+	if listenerTLSCfg.MaxVersion != types.TLSVersionUnspecified {
+		mergedCfg.TLSMaxVersion = listenerTLSCfg.MaxVersion
+	}
+	if len(listenerTLSCfg.CipherSuites) != 0 {
+		mergedCfg.CipherSuites = listenerTLSCfg.CipherSuites
 	}
 
 	if err := validateListenerTLSConfig(mergedCfg.TLSMinVersion, mergedCfg.CipherSuites); err != nil {
@@ -542,6 +562,14 @@ func resolveAPIListenerTLSConfig(listenerTLSCfg structs.APIGatewayTLSConfigurati
 	}
 
 	return &mergedCfg, nil
+}
+
+func isGatewayTLSConfigEmpty(cfg structs.GatewayTLSConfig) bool {
+	return cfg.SDS == nil && cfg.TLSMinVersion == "" && cfg.TLSMaxVersion == "" && len(cfg.CipherSuites) == 0
+}
+
+func hasSDSCert(sds *structs.GatewayTLSSDSConfig) bool {
+	return sds != nil && sds.CertResource != ""
 }
 
 // when we have multiple certificates on a single listener, we need
@@ -591,7 +619,7 @@ func (s *ResourceGenerator) makeInlineOverrideFilterChains(cfgSnap *proxycfg.Con
 		}
 	}
 
-	if tlsCfg.SDS != nil {
+	if hasSDSCert(tlsCfg.SDS) {
 		for _, override := range serviceSDSOverrides {
 			if len(override.Hosts) == 0 {
 				// A catch-all service override (used by TCP routes) supersedes
@@ -719,37 +747,4 @@ func (s *ResourceGenerator) makeInlineOverrideFilterChains(cfgSnap *proxycfg.Con
 	}
 
 	return chains, nil
-}
-
-// setAPIGatewayTLSConfig updates the TLS configuration for an API gateway
-// by setting TLS parameters from a listener configuration if the existing
-// configuration is empty.
-// Only empty or unset values are updated, preserving any existing specific configurations.
-func setAPIGatewayTLSConfig(listenerCfg structs.APIGatewayListener, cfgSnap *proxycfg.ConfigSnapshot) {
-	// Create a local TLS config based on listener configuration
-	listenerConfig := structs.GatewayTLSConfig{
-		SDS:           listenerCfg.TLS.SDS,
-		TLSMinVersion: listenerCfg.TLS.MinVersion,
-		TLSMaxVersion: listenerCfg.TLS.MaxVersion,
-		CipherSuites:  listenerCfg.TLS.CipherSuites,
-	}
-
-	if cfgSnap.APIGateway.TLSConfig.SDS == nil {
-		cfgSnap.APIGateway.TLSConfig.SDS = listenerConfig.SDS
-	}
-
-	// Check and set TLSMinVersion if empty
-	if cfgSnap.APIGateway.TLSConfig.TLSMinVersion == "" {
-		cfgSnap.APIGateway.TLSConfig.TLSMinVersion = listenerConfig.TLSMinVersion
-	}
-
-	// Check and set TLSMaxVersion if empty
-	if cfgSnap.APIGateway.TLSConfig.TLSMaxVersion == "" {
-		cfgSnap.APIGateway.TLSConfig.TLSMaxVersion = listenerConfig.TLSMaxVersion
-	}
-
-	// Check and set CipherSuites if empty
-	if len(cfgSnap.APIGateway.TLSConfig.CipherSuites) == 0 {
-		cfgSnap.APIGateway.TLSConfig.CipherSuites = listenerConfig.CipherSuites
-	}
 }

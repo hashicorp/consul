@@ -238,6 +238,10 @@ type APIGatewayConfigEntry struct {
 	// service. This should match the name provided in the service definition.
 	Name string
 
+	// TLS holds default TLS configuration for API gateway listeners. Listener
+	// TLS settings may override these defaults.
+	TLS GatewayTLSConfig
+
 	Meta map[string]string `json:",omitempty"`
 
 	// Listeners is the set of listener configuration to which an API Gateway

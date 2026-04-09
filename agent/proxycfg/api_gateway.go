@@ -267,6 +267,7 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 		snap.APIGateway.BoundGatewayConfigLoaded = true
 	case *structs.APIGatewayConfigEntry:
 		snap.APIGateway.GatewayConfig = gwConf
+		snap.APIGateway.TLSConfig = gwConf.TLS
 
 		for _, listener := range gwConf.Listeners {
 			snap.APIGateway.Listeners[listener.Name] = listener

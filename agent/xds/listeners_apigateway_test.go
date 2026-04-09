@@ -653,4 +653,77 @@ func TestCollectAPIGatewayServiceSDSOverrides_TCPRouteRejectsConflictingOverride
 	require.Contains(t, err.Error(), "multiple TCP route TLS.SDS overrides")
 }
 
+func TestCollectAPIGatewayServiceSDSOverrides_TCPRouteInheritsGatewaySDSCluster(t *testing.T) {
+	snap := proxycfg.TestConfigSnapshotAPIGateway(t, "default", nil, func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+		entry.Listeners = []structs.APIGatewayListener{{
+			Name:     "tcp-listener",
+			Protocol: structs.ListenerProtocolTCP,
+			Port:     9000,
+		}}
+		bound.Listeners = []structs.BoundAPIGatewayListener{{
+			Name: "tcp-listener",
+			Routes: []structs.ResourceReference{{
+				Kind: structs.TCPRoute,
+				Name: "tcp-route",
+			}},
+		}}
+	}, []structs.BoundRoute{
+		&structs.TCPRouteConfigEntry{
+			Kind: structs.TCPRoute,
+			Name: "tcp-route",
+			Parents: []structs.ResourceReference{{
+				Kind: structs.APIGateway,
+				Name: "api-gateway",
+			}},
+			Services: []structs.TCPService{{
+				Name: "backend",
+				TLS:  &structs.GatewayServiceTLSConfig{SDS: &structs.GatewayTLSSDSConfig{CertResource: "service-cert"}},
+			}},
+		},
+	}, nil, nil)
+
+	snap.APIGateway.TLSConfig = structs.GatewayTLSConfig{
+		SDS: &structs.GatewayTLSSDSConfig{ClusterName: "gateway-sds-cluster"},
+	}
+
+	overrides, err := collectAPIGatewayServiceSDSOverrides(snap, readyListener{
+		listenerCfg: structs.APIGatewayListener{
+			Name:     "tcp-listener",
+			Protocol: structs.ListenerProtocolTCP,
+		},
+		routeReferences: map[structs.ResourceReference]struct{}{
+			{Kind: structs.TCPRoute, Name: "tcp-route"}: {},
+		},
+	})
+
+	require.NoError(t, err)
+	require.Len(t, overrides, 1)
+	require.Equal(t, "gateway-sds-cluster", overrides[0].SDS.ClusterName)
+	require.Equal(t, "service-cert", overrides[0].SDS.CertResource)
+}
+
+func TestResolveAPIListenerTLSConfig_GatewayAndListenerMerge(t *testing.T) {
+	cfg, err := resolveAPIListenerTLSConfig(
+		structs.GatewayTLSConfig{
+			SDS: &structs.GatewayTLSSDSConfig{
+				ClusterName:  "gateway-cluster",
+				CertResource: "gateway-default-cert",
+			},
+			TLSMinVersion: types.TLSv1_2,
+		},
+		structs.APIGatewayTLSConfiguration{
+			SDS:        &structs.GatewayTLSSDSConfig{CertResource: "listener-cert"},
+			MaxVersion: types.TLSv1_3,
+		},
+	)
+
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+	require.NotNil(t, cfg.SDS)
+	require.Equal(t, "gateway-cluster", cfg.SDS.ClusterName)
+	require.Equal(t, "listener-cert", cfg.SDS.CertResource)
+	require.Equal(t, types.TLSv1_2, cfg.TLSMinVersion)
+	require.Equal(t, types.TLSv1_3, cfg.TLSMaxVersion)
+}
+
 // Made with Bob
