@@ -146,11 +146,13 @@ func (s *handlerMeshGateway) initialize(ctx context.Context) (ConfigSnapshot, er
 	snap.MeshGateway.ServiceResolvers = make(map[structs.ServiceName]*structs.ServiceResolverConfigEntry)
 	snap.MeshGateway.HostnameDatacenters = make(map[string]structs.CheckServiceNodes)
 	snap.MeshGateway.ExportedServicesWithPeers = make(map[structs.ServiceName][]string)
+	snap.MeshGateway.ExportedServicesWithPartitions = make(map[structs.ServiceName][]string)
 	snap.MeshGateway.DiscoveryChain = make(map[structs.ServiceName]*structs.CompiledDiscoveryChain)
 	snap.MeshGateway.WatchedDiscoveryChains = make(map[structs.ServiceName]context.CancelFunc)
 	snap.MeshGateway.WatchedPeeringServices = make(map[string]map[structs.ServiceName]context.CancelFunc)
 	snap.MeshGateway.WatchedPeers = make(map[string]context.CancelFunc)
 	snap.MeshGateway.PeeringServices = make(map[string]map[structs.ServiceName]PeeringServiceValue)
+	snap.MeshGateway.ServicePorts = make(map[structs.ServiceName][]string)
 
 	// there is no need to initialize the map of service resolvers as we
 	// fully rebuild it every time we get updates

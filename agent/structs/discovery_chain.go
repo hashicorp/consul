@@ -59,8 +59,9 @@ type CompiledDiscoveryChain struct {
 	Targets map[string]*DiscoveryTarget `json:",omitempty"`
 
 	// VirtualIPs is a list of virtual IPs associated with the service.
-	AutoVirtualIPs   []string
-	ManualVirtualIPs []string
+	AutoVirtualIPs     []string
+	AutoPortVirtualIPs map[string]string
+	ManualVirtualIPs   []string
 }
 
 func (c *CompiledDiscoveryChain) GetHash() uint64 {

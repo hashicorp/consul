@@ -16,6 +16,8 @@ type UpstreamID struct {
 	Type       string
 	Name       string
 	Datacenter string
+	// DestinationPort is the named port for multiport upstreams.
+	DestinationPort string
 	// If Peer is not empty, Namespace refers to the remote
 	// peer namespace and Partition refers to the local partition
 	Peer string
@@ -24,9 +26,10 @@ type UpstreamID struct {
 
 func NewUpstreamID(u *structs.Upstream) UpstreamID {
 	id := UpstreamID{
-		Type:       u.DestinationType,
-		Name:       u.DestinationName,
-		Datacenter: u.Datacenter,
+		Type:            u.DestinationType,
+		Name:            u.DestinationName,
+		Datacenter:      u.Datacenter,
+		DestinationPort: u.DestinationPort,
 		EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(
 			u.DestinationPartition,
 			u.DestinationNamespace,
@@ -104,7 +107,7 @@ func (u *UpstreamID) normalize() {
 // String encodes the UpstreamID into a string for use in agent cache keys.
 // You can decode it back again using UpstreamIDFromString.
 func (u UpstreamID) String() string {
-	return UpstreamIDString(u.Type, u.Datacenter, u.Name, &u.EnterpriseMeta, u.Peer)
+	return UpstreamIDString(u.Type, u.Datacenter, u.Name, &u.EnterpriseMeta, u.Peer, u.DestinationPort)
 }
 
 func (u UpstreamID) GoString() string {
@@ -112,7 +115,7 @@ func (u UpstreamID) GoString() string {
 }
 
 func UpstreamIDFromString(input string) UpstreamID {
-	typ, dc, name, entMeta, peerName := ParseUpstreamIDString(input)
+	typ, dc, name, entMeta, peerName, destinationPort := ParseUpstreamIDString(input)
 	id := UpstreamID{
 		Type:           typ,
 		Datacenter:     dc,
@@ -126,6 +129,19 @@ func UpstreamIDFromString(input string) UpstreamID {
 
 const upstreamTypePreparedQueryPrefix = structs.UpstreamDestTypePreparedQuery + ":"
 
+func upstreamIDQueryString(dc, peerName, destinationPort string) string {
+	parts := make([]string, 0, 2)
+	if peerName != "" {
+		parts = append(parts, "peer="+peerName)
+	} else if dc != "" {
+		parts = append(parts, "dc="+dc)
+	}
+	if destinationPort != "" {
+		parts = append(parts, "port="+destinationPort)
+	}
+	return strings.Join(parts, "&")
+}
+
 func ParseUpstreamIDString(input string) (typ, dc, name string, meta *acl.EnterpriseMeta, peerName string) {
 	if strings.HasPrefix(input, upstreamTypePreparedQueryPrefix) {
 		typ = structs.UpstreamDestTypePreparedQuery
@@ -135,16 +151,28 @@ func ParseUpstreamIDString(input string) (typ, dc, name string, meta *acl.Enterp
 	before, after, found := strings.Cut(input, "?")
 	input = before
 	if found {
-		if _, peerVal, ok := strings.Cut(after, "peer="); ok {
-			peerName = peerVal
-		} else if _, dcVal, ok2 := strings.Cut(after, "dc="); ok2 {
-			dc = dcVal
+		for _, pair := range strings.Split(after, "&") {
+			if pair == "" {
+				continue
+			}
+			key, val, ok := strings.Cut(pair, "=")
+			if !ok {
+				continue
+			}
+			switch key {
+			case "peer":
+				peerName = val
+			case "dc":
+				dc = val
+			case "port":
+				destinationPort = val
+			}
 		}
 	}
 
 	name, meta = parseInnerUpstreamIDString(input)
 
-	return typ, dc, name, meta, peerName
+	return typ, dc, name, meta, peerName, destinationPort
 }
 
 // EnvoyID returns a string representation that uniquely identifies the
@@ -159,10 +187,9 @@ func (u UpstreamID) EnvoyID() string {
 	name := u.enterpriseIdentifierPrefix() + u.Name
 	typ := u.Type
 
-	if u.Peer != "" {
-		name += "?peer=" + u.Peer
-	} else if u.Datacenter != "" {
-		name += "?dc=" + u.Datacenter
+	query := upstreamIDQueryString(u.Datacenter, u.Peer, u.DestinationPort)
+	if query != "" {
+		name += "?" + query
 	}
 
 	// Service is default type so never prefix it. This is more readable and long
