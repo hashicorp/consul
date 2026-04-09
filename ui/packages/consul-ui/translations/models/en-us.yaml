@@ -3,7 +3,7 @@
 
 auth-method:
   Description: Description
-  Name: Display name
+  DisplayName: Display name
   TokenLocality: Token locality
   TokenNameFormat: Token name format
   Type: Type
