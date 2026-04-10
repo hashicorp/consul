@@ -356,7 +356,7 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 	upstreams := make(map[APIGatewayListenerKey]structs.Upstreams)
 
 	var defaultLimits *structs.UpstreamLimits
-	if snap.APIGateway.GatewayConfig != nil {
+	if snap != nil && snap.APIGateway.GatewayConfig != nil {
 		defaultLimits = snap.APIGateway.GatewayConfig.Defaults
 	}
 
