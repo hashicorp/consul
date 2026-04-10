@@ -64,8 +64,8 @@ type prettyFormatter struct {
 func (f *prettyFormatter) FormatTemplatedPolicy(templatedPolicy api.ACLTemplatedPolicyResponse) (string, error) {
 	var buffer bytes.Buffer
 
-	buffer.WriteString(fmt.Sprintf("Name:            %s\n", templatedPolicy.TemplateName))
-	buffer.WriteString(fmt.Sprintf("Description:     %s\n", templatedPolicy.Description))
+	fmt.Fprintf(&buffer, "Name:            %s\n", templatedPolicy.TemplateName)
+	fmt.Fprintf(&buffer, "Description:     %s\n", templatedPolicy.Description)
 
 	buffer.WriteString("Input variables:")
 	switch templatedPolicy.TemplateName {
@@ -83,9 +83,9 @@ func (f *prettyFormatter) FormatTemplatedPolicy(templatedPolicy api.ACLTemplated
 
 	if f.showMeta {
 		if templatedPolicy.Schema != "" {
-			buffer.WriteString(fmt.Sprintf("Schema:\n%s\n\n", templatedPolicy.Schema))
+			fmt.Fprintf(&buffer, "Schema:\n%s\n\n", templatedPolicy.Schema)
 		}
-		buffer.WriteString(fmt.Sprintf("Raw Template:\n%s\n", templatedPolicy.Template))
+		fmt.Fprintf(&buffer, "Raw Template:\n%s\n", templatedPolicy.Template)
 	}
 
 	return buffer.String(), nil
@@ -114,7 +114,7 @@ func (f *prettyFormatter) FormatTemplatedPolicyList(policies map[string]api.ACLT
 	//ensure the list is consistently sorted by strings
 	sort.Strings(templateNames)
 	for _, name := range templateNames {
-		buffer.WriteString(fmt.Sprintf("%s\n", name))
+		fmt.Fprintf(&buffer, "%s\n", name)
 	}
 
 	return buffer.String(), nil

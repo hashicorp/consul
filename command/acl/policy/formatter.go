@@ -53,22 +53,22 @@ type prettyFormatter struct {
 func (f *prettyFormatter) FormatPolicy(policy *api.ACLPolicy) (string, error) {
 	var buffer bytes.Buffer
 
-	buffer.WriteString(fmt.Sprintf("ID:           %s\n", policy.ID))
-	buffer.WriteString(fmt.Sprintf("Name:         %s\n", policy.Name))
+	fmt.Fprintf(&buffer, "ID:           %s\n", policy.ID)
+	fmt.Fprintf(&buffer, "Name:         %s\n", policy.Name)
 	if policy.Partition != "" {
-		buffer.WriteString(fmt.Sprintf("Partition:    %s\n", policy.Partition))
+		fmt.Fprintf(&buffer, "Partition:    %s\n", policy.Partition)
 	}
 	if policy.Namespace != "" {
-		buffer.WriteString(fmt.Sprintf("Namespace:    %s\n", policy.Namespace))
+		fmt.Fprintf(&buffer, "Namespace:    %s\n", policy.Namespace)
 	}
-	buffer.WriteString(fmt.Sprintf("Description:  %s\n", policy.Description))
-	buffer.WriteString(fmt.Sprintf("Datacenters:  %s\n", strings.Join(policy.Datacenters, ", ")))
+	fmt.Fprintf(&buffer, "Description:  %s\n", policy.Description)
+	fmt.Fprintf(&buffer, "Datacenters:  %s\n", strings.Join(policy.Datacenters, ", "))
 	if f.showMeta {
-		buffer.WriteString(fmt.Sprintf("Hash:         %x\n", policy.Hash))
-		buffer.WriteString(fmt.Sprintf("Create Index: %d\n", policy.CreateIndex))
-		buffer.WriteString(fmt.Sprintf("Modify Index: %d\n", policy.ModifyIndex))
+		fmt.Fprintf(&buffer, "Hash:         %x\n", policy.Hash)
+		fmt.Fprintf(&buffer, "Create Index: %d\n", policy.CreateIndex)
+		fmt.Fprintf(&buffer, "Modify Index: %d\n", policy.ModifyIndex)
 	}
-	buffer.WriteString(fmt.Sprintln("Rules:"))
+	fmt.Fprintln(&buffer, "Rules:")
 	buffer.WriteString(policy.Rules)
 
 	return buffer.String(), nil
@@ -87,20 +87,20 @@ func (f *prettyFormatter) FormatPolicyList(policies []*api.ACLPolicyListEntry) (
 func (f *prettyFormatter) formatPolicyListEntry(policy *api.ACLPolicyListEntry) string {
 	var buffer bytes.Buffer
 
-	buffer.WriteString(fmt.Sprintf("%s:\n", policy.Name))
-	buffer.WriteString(fmt.Sprintf("   ID:           %s\n", policy.ID))
+	fmt.Fprintf(&buffer, "%s:\n", policy.Name)
+	fmt.Fprintf(&buffer, "   ID:           %s\n", policy.ID)
 	if policy.Partition != "" {
-		buffer.WriteString(fmt.Sprintf("   Partition:    %s\n", policy.Partition))
+		fmt.Fprintf(&buffer, "   Partition:    %s\n", policy.Partition)
 	}
 	if policy.Namespace != "" {
-		buffer.WriteString(fmt.Sprintf("   Namespace:    %s\n", policy.Namespace))
+		fmt.Fprintf(&buffer, "   Namespace:    %s\n", policy.Namespace)
 	}
-	buffer.WriteString(fmt.Sprintf("   Description:  %s\n", policy.Description))
-	buffer.WriteString(fmt.Sprintf("   Datacenters:  %s\n", strings.Join(policy.Datacenters, ", ")))
+	fmt.Fprintf(&buffer, "   Description:  %s\n", policy.Description)
+	fmt.Fprintf(&buffer, "   Datacenters:  %s\n", strings.Join(policy.Datacenters, ", "))
 	if f.showMeta {
-		buffer.WriteString(fmt.Sprintf("   Hash:         %x\n", policy.Hash))
-		buffer.WriteString(fmt.Sprintf("   Create Index: %d\n", policy.CreateIndex))
-		buffer.WriteString(fmt.Sprintf("   Modify Index: %d\n", policy.ModifyIndex))
+		fmt.Fprintf(&buffer, "   Hash:         %x\n", policy.Hash)
+		fmt.Fprintf(&buffer, "   Create Index: %d\n", policy.CreateIndex)
+		fmt.Fprintf(&buffer, "   Modify Index: %d\n", policy.ModifyIndex)
 	}
 
 	return buffer.String()

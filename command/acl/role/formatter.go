@@ -53,51 +53,51 @@ type prettyFormatter struct {
 func (f *prettyFormatter) FormatRole(role *api.ACLRole) (string, error) {
 	var buffer bytes.Buffer
 
-	buffer.WriteString(fmt.Sprintf("ID:           %s\n", role.ID))
-	buffer.WriteString(fmt.Sprintf("Name:         %s\n", role.Name))
+	fmt.Fprintf(&buffer, "ID:           %s\n", role.ID)
+	fmt.Fprintf(&buffer, "Name:         %s\n", role.Name)
 	if role.Partition != "" {
-		buffer.WriteString(fmt.Sprintf("Partition:    %s\n", role.Partition))
+		fmt.Fprintf(&buffer, "Partition:    %s\n", role.Partition)
 	}
 	if role.Namespace != "" {
-		buffer.WriteString(fmt.Sprintf("Namespace:    %s\n", role.Namespace))
+		fmt.Fprintf(&buffer, "Namespace:    %s\n", role.Namespace)
 	}
-	buffer.WriteString(fmt.Sprintf("Description:  %s\n", role.Description))
+	fmt.Fprintf(&buffer, "Description:  %s\n", role.Description)
 	if f.showMeta {
-		buffer.WriteString(fmt.Sprintf("Hash:         %x\n", role.Hash))
-		buffer.WriteString(fmt.Sprintf("Create Index: %d\n", role.CreateIndex))
-		buffer.WriteString(fmt.Sprintf("Modify Index: %d\n", role.ModifyIndex))
+		fmt.Fprintf(&buffer, "Hash:         %x\n", role.Hash)
+		fmt.Fprintf(&buffer, "Create Index: %d\n", role.CreateIndex)
+		fmt.Fprintf(&buffer, "Modify Index: %d\n", role.ModifyIndex)
 	}
 	if len(role.Policies) > 0 {
-		buffer.WriteString(fmt.Sprintln("Policies:"))
+		fmt.Fprintln(&buffer, "Policies:")
 		for _, policy := range role.Policies {
-			buffer.WriteString(fmt.Sprintf("   %s - %s\n", policy.ID, policy.Name))
+			fmt.Fprintf(&buffer, "   %s - %s\n", policy.ID, policy.Name)
 		}
 	}
 	if len(role.ServiceIdentities) > 0 {
-		buffer.WriteString(fmt.Sprintln("Service Identities:"))
+		fmt.Fprintln(&buffer, "Service Identities:")
 		for _, svcid := range role.ServiceIdentities {
 			if len(svcid.Datacenters) > 0 {
-				buffer.WriteString(fmt.Sprintf("   %s (Datacenters: %s)\n", svcid.ServiceName, strings.Join(svcid.Datacenters, ", ")))
+				fmt.Fprintf(&buffer, "   %s (Datacenters: %s)\n", svcid.ServiceName, strings.Join(svcid.Datacenters, ", "))
 			} else {
-				buffer.WriteString(fmt.Sprintf("   %s (Datacenters: all)\n", svcid.ServiceName))
+				fmt.Fprintf(&buffer, "   %s (Datacenters: all)\n", svcid.ServiceName)
 			}
 		}
 	}
 	if len(role.NodeIdentities) > 0 {
-		buffer.WriteString(fmt.Sprintln("Node Identities:"))
+		fmt.Fprintln(&buffer, "Node Identities:")
 		for _, nodeid := range role.NodeIdentities {
-			buffer.WriteString(fmt.Sprintf("   %s (Datacenter: %s)\n", nodeid.NodeName, nodeid.Datacenter))
+			fmt.Fprintf(&buffer, "   %s (Datacenter: %s)\n", nodeid.NodeName, nodeid.Datacenter)
 		}
 	}
 	if len(role.TemplatedPolicies) > 0 {
-		buffer.WriteString(fmt.Sprintln("Templated Policies:"))
+		fmt.Fprintln(&buffer, "Templated Policies:")
 		for _, templatedPolicy := range role.TemplatedPolicies {
-			buffer.WriteString(fmt.Sprintf("   %s\n", templatedPolicy.TemplateName))
+			fmt.Fprintf(&buffer, "   %s\n", templatedPolicy.TemplateName)
 			if templatedPolicy.TemplateVariables != nil && templatedPolicy.TemplateVariables.Name != "" {
-				buffer.WriteString(fmt.Sprintf("      Name: %s\n", templatedPolicy.TemplateVariables.Name))
+				fmt.Fprintf(&buffer, "      Name: %s\n", templatedPolicy.TemplateVariables.Name)
 			}
 			if len(templatedPolicy.Datacenters) > 0 {
-				buffer.WriteString(fmt.Sprintf("      Datacenters: %s\n", strings.Join(templatedPolicy.Datacenters, ", ")))
+				fmt.Fprintf(&buffer, "      Datacenters: %s\n", strings.Join(templatedPolicy.Datacenters, ", "))
 			} else {
 				buffer.WriteString("      Datacenters: all\n")
 			}
@@ -120,53 +120,53 @@ func (f *prettyFormatter) FormatRoleList(roles []*api.ACLRole) (string, error) {
 func (f *prettyFormatter) formatRoleListEntry(role *api.ACLRole) string {
 	var buffer bytes.Buffer
 
-	buffer.WriteString(fmt.Sprintf("%s:\n", role.Name))
-	buffer.WriteString(fmt.Sprintf("   ID:           %s\n", role.ID))
+	fmt.Fprintf(&buffer, "%s:\n", role.Name)
+	fmt.Fprintf(&buffer, "   ID:           %s\n", role.ID)
 	if role.Partition != "" {
-		buffer.WriteString(fmt.Sprintf("   Partition:    %s\n", role.Partition))
+		fmt.Fprintf(&buffer, "   Partition:    %s\n", role.Partition)
 	}
 	if role.Namespace != "" {
-		buffer.WriteString(fmt.Sprintf("   Namespace:    %s\n", role.Namespace))
+		fmt.Fprintf(&buffer, "   Namespace:    %s\n", role.Namespace)
 	}
-	buffer.WriteString(fmt.Sprintf("   Description:  %s\n", role.Description))
+	fmt.Fprintf(&buffer, "   Description:  %s\n", role.Description)
 	if f.showMeta {
-		buffer.WriteString(fmt.Sprintf("   Hash:         %x\n", role.Hash))
-		buffer.WriteString(fmt.Sprintf("   Create Index: %d\n", role.CreateIndex))
-		buffer.WriteString(fmt.Sprintf("   Modify Index: %d\n", role.ModifyIndex))
+		fmt.Fprintf(&buffer, "   Hash:         %x\n", role.Hash)
+		fmt.Fprintf(&buffer, "   Create Index: %d\n", role.CreateIndex)
+		fmt.Fprintf(&buffer, "   Modify Index: %d\n", role.ModifyIndex)
 	}
 	if len(role.Policies) > 0 {
-		buffer.WriteString(fmt.Sprintln("   Policies:"))
+		fmt.Fprintln(&buffer, "   Policies:")
 		for _, policy := range role.Policies {
-			buffer.WriteString(fmt.Sprintf("      %s - %s\n", policy.ID, policy.Name))
+			fmt.Fprintf(&buffer, "      %s - %s\n", policy.ID, policy.Name)
 		}
 	}
 	if len(role.ServiceIdentities) > 0 {
-		buffer.WriteString(fmt.Sprintln("   Service Identities:"))
+		fmt.Fprintln(&buffer, "   Service Identities:")
 		for _, svcid := range role.ServiceIdentities {
 			if len(svcid.Datacenters) > 0 {
-				buffer.WriteString(fmt.Sprintf("      %s (Datacenters: %s)\n", svcid.ServiceName, strings.Join(svcid.Datacenters, ", ")))
+				fmt.Fprintf(&buffer, "      %s (Datacenters: %s)\n", svcid.ServiceName, strings.Join(svcid.Datacenters, ", "))
 			} else {
-				buffer.WriteString(fmt.Sprintf("      %s (Datacenters: all)\n", svcid.ServiceName))
+				fmt.Fprintf(&buffer, "      %s (Datacenters: all)\n", svcid.ServiceName)
 			}
 		}
 	}
 
 	if len(role.NodeIdentities) > 0 {
-		buffer.WriteString(fmt.Sprintln("   Node Identities:"))
+		fmt.Fprintln(&buffer, "   Node Identities:")
 		for _, nodeid := range role.NodeIdentities {
-			buffer.WriteString(fmt.Sprintf("      %s (Datacenter: %s)\n", nodeid.NodeName, nodeid.Datacenter))
+			fmt.Fprintf(&buffer, "      %s (Datacenter: %s)\n", nodeid.NodeName, nodeid.Datacenter)
 		}
 	}
 
 	if len(role.TemplatedPolicies) > 0 {
-		buffer.WriteString(fmt.Sprintln("   Templated Policies:"))
+		fmt.Fprintln(&buffer, "   Templated Policies:")
 		for _, templatedPolicy := range role.TemplatedPolicies {
-			buffer.WriteString(fmt.Sprintf("      %s\n", templatedPolicy.TemplateName))
+			fmt.Fprintf(&buffer, "      %s\n", templatedPolicy.TemplateName)
 			if templatedPolicy.TemplateVariables != nil && templatedPolicy.TemplateVariables.Name != "" {
-				buffer.WriteString(fmt.Sprintf("         Name: %s\n", templatedPolicy.TemplateVariables.Name))
+				fmt.Fprintf(&buffer, "         Name: %s\n", templatedPolicy.TemplateVariables.Name)
 			}
 			if len(templatedPolicy.Datacenters) > 0 {
-				buffer.WriteString(fmt.Sprintf("         Datacenters: %s\n", strings.Join(templatedPolicy.Datacenters, ", ")))
+				fmt.Fprintf(&buffer, "         Datacenters: %s\n", strings.Join(templatedPolicy.Datacenters, ", "))
 			} else {
 				buffer.WriteString("         Datacenters: all\n")
 			}
