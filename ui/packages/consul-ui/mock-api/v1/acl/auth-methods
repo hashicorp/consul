@@ -39,7 +39,7 @@ ${i%2 ? `
             "TokenLocality": "${fake.helpers.randomize(['local', 'global', ''])}",
 ` : `
 `}
-            "TokenNameFormat": "${auth_method_type}-${auth_method_name}",
+            "TokenNameFormat": "\${auth_method_type}-\${auth_method_name}",
             "CreateIndex": ${fake.random.number()},
             "ModifyIndex": 10
           }

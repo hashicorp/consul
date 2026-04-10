@@ -105,7 +105,7 @@ SmTjcs+lhMxg4fFY6lBpiEVFiGUjGRR+61R67Lz6U4KJeLNcCm07QwFYKBmpi08g
       "DisplayName": "${fake.hacker.noun()}",
       "MaxTokenTTL": "${fake.random.number({min: 0, max: 60})}m${fake.random.number({min: 0, max: 60})}s",
       "TokenLocality": "${fake.helpers.randomize(['local', 'global', ''])}",
-      "TokenNameFormat": "${auth_method_type}-${auth_method_name}",
+      "TokenNameFormat": "\${auth_method_type}-\${auth_method_name}",
       "NamespaceRules": ${namespaceRules},
       "Config": ${JSON.stringify(config)},
       "CreateIndex": ${fake.random.number()},
