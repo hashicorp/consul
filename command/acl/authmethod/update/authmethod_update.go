@@ -146,7 +146,7 @@ func (c *cmd) init() {
 		&c.tokenNameFormat,
 		"token-name-format",
 		"",
-		"Format used to specify the token name for the auth method. Hashicorp HIL syntax is supported.",
+		"Format used to specify the token name for the auth method. HashiCorp HIL syntax is supported.",
 	)
 	c.initEnterpriseFlags()
 

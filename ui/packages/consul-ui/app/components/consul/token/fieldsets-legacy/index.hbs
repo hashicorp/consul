@@ -17,7 +17,7 @@
   <Hds::Form::TextInput::Field
     class='type-text'
     @value={{@item.Description}}
-    @isInvalid={{@item.error.Name}}
+    @isInvalid={{@item.error.Description}}
     name='description'
     {{on 'input' @onChange}}
     as |F|

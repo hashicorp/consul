@@ -1954,7 +1954,7 @@ func (a *ACL) AuthMethodSet(args *structs.ACLAuthMethodSetRequest, reply *struct
 	if method.TokenNameFormat != "" {
 		_, err := auth.FormatTokenName(method, nil)
 		if err != nil {
-			return fmt.Errorf("Failed to validate token-format-nane: %s", err.Error())
+			return fmt.Errorf("Failed to validate token-format-name: %s", err.Error())
 		}
 	} else {
 		method.TokenNameFormat = structs.DefaultACLAuthMethodTokenNameFormat
