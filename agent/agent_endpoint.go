@@ -28,6 +28,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/debug"
 	"github.com/hashicorp/consul/agent/leafcert"
+	rpcmiddleware "github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/structs"
 	token_store "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
@@ -1860,4 +1861,25 @@ func (s *HTTPHandlers) AgentHost(resp http.ResponseWriter, req *http.Request) (i
 // Retrieves Consul version information.
 func (s *HTTPHandlers) AgentVersion(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	return version.GetBuildInfo(), nil
+}
+
+// InternalRPCMethods returns a list of known net/rpc method names.
+//
+// This is intended for debugging/introspection and is derived from Consul's
+// internal rate-limit mapping list. Requires an operator:read ACL token.
+func (s *HTTPHandlers) InternalRPCMethods(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	var token string
+	s.parseToken(req, &token)
+	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Authorize using the agent's own enterprise meta, not the token.
+	var authzContext acl.AuthorizerContext
+	s.agent.AgentEnterpriseMeta().FillAuthzContext(&authzContext)
+	if err := authz.ToAllowAuthorizer().OperatorReadAllowed(&authzContext); err != nil {
+		return nil, err
+	}
+	return rpcmiddleware.RPCMethodNames(), nil
 }

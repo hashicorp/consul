@@ -107,6 +107,7 @@ func init() {
 	registerEndpoint("/v1/internal/ui/service-topology/", []string{"GET"}, (*HTTPHandlers).UIServiceTopology)
 	registerEndpoint("/v1/internal/acl/authorize", []string{"POST"}, (*HTTPHandlers).ACLAuthorize)
 	registerEndpoint("/v1/internal/service-virtual-ip", []string{"PUT"}, (*HTTPHandlers).AssignManualServiceVIPs)
+	registerEndpoint("/v1/internal/rpc/methods", []string{"GET"}, (*HTTPHandlers).InternalRPCMethods)
 	registerEndpoint("/v1/kv/", []string{"GET", "PUT", "DELETE"}, (*HTTPHandlers).KVSEndpoint)
 	registerEndpoint("/v1/operator/raft/configuration", []string{"GET"}, (*HTTPHandlers).OperatorRaftConfiguration)
 	registerEndpoint("/v1/operator/raft/transfer-leader", []string{"POST"}, (*HTTPHandlers).OperatorRaftTransferLeader)

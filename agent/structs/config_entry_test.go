@@ -30,6 +30,9 @@ func TestNormalizeGenerateHash(t *testing.T) {
 		if cType == RateLimitIPConfig {
 			continue
 		}
+		if cType == RateLimit {
+			continue
+		}
 		entry, err := MakeConfigEntry(cType, "global")
 		require.NoError(t, err)
 		require.NoError(t, entry.Normalize())

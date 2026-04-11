@@ -115,6 +115,44 @@ func TestAgent_Services(t *testing.T) {
 	assert.Equal(t, srv1.Meta, val["mysql"].Meta)
 }
 
+// InternalRPCMethods endpoint returns a list of known net/rpc method names.
+func TestAgent_InternalRPCMethods(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := NewTestAgent(t, TestACLConfig())
+	defer func() { _ = a.Shutdown() }()
+
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	t.Run("no token", func(t *testing.T) {
+		req, _ := http.NewRequest(http.MethodGet, "/v1/internal/rpc/methods", nil)
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+
+		require.Equal(t, http.StatusForbidden, resp.Code)
+	})
+
+	operatorReadToken := testCreateToken(t, a, `operator = "read"`)
+
+	t.Run("operator read token", func(t *testing.T) {
+		req, _ := http.NewRequest(http.MethodGet, "/v1/internal/rpc/methods", nil)
+		req.Header.Add("X-Consul-Token", operatorReadToken)
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+
+		require.Equal(t, http.StatusOK, resp.Code)
+
+		var methods []string
+		require.NoError(t, json.Unmarshal(resp.Body.Bytes(), &methods))
+		require.NotEmpty(t, methods)
+		// Spot-check for a stable, core RPC method.
+		require.Contains(t, methods, "Status.Ping")
+	})
+}
+
 func TestAgent_ServicesFiltered(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")

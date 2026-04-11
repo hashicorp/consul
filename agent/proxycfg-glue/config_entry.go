@@ -77,6 +77,8 @@ func newConfigEntryRequest(req *structs.ConfigEntryQuery, deps ServerDataSourceD
 		topic = pbsubscribe.Topic_BoundAPIGateway
 	case structs.RateLimitIPConfig:
 		topic = pbsubscribe.Topic_IPRateLimit
+	case structs.RateLimit:
+		topic = pbsubscribe.Topic_GlobalRateLimit
 	case structs.JWTProvider:
 		topic = pbsubscribe.Topic_JWTProvider
 	default:

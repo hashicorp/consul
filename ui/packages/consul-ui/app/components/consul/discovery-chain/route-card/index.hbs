@@ -29,7 +29,7 @@
 {{#if (gt @item.Definition.Match.HTTP.Header.length 0) }}
   <section class="match-headers">
     {{!-- template-lint-disable no-duplicate-landmark-elements --}}
-    <header {{tooltip 'Header'}}>
+    <header {{hds-tooltip 'Header' options=(detached-tooltip-options)}}>
       <h4>Headers</h4>
     </header>
     <dl>
@@ -47,7 +47,7 @@
 {{#if (gt @item.Definition.Match.HTTP.QueryParam.length 0) }}
   <section class="match-queryparams">
     {{!-- template-lint-disable no-duplicate-landmark-elements --}}
-    <header {{tooltip 'Query Params'}}>
+    <header {{hds-tooltip 'Query Params' options=(detached-tooltip-options)}}>
       <h4>Query Params</h4>
     </header>
     <dl>

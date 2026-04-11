@@ -3,7 +3,9 @@
 
 package middleware
 
-import "github.com/hashicorp/consul/agent/consul/rate"
+import (
+	"github.com/hashicorp/consul/agent/consul/rate"
+)
 
 // Maps each net/rpc endpoint to a read or write operation type
 // for rate limiting purposes. Please be sure to update this list
@@ -149,4 +151,16 @@ var rpcRateLimitSpecs = map[string]rate.OperationSpec{
 	"Namespace.Delete": {Type: rate.OperationTypeWrite, Category: rate.OperationCategoryPartition},
 	"Namespace.List":   {Type: rate.OperationTypeRead, Category: rate.OperationCategoryPartition},
 	"Namespace.Read":   {Type: rate.OperationTypeRead, Category: rate.OperationCategoryPartition},
+}
+
+// RPCMethodNames returns the set of known net/rpc method names.
+//
+// This is derived from the internal rate-limit mapping list, which is intended
+// to be kept in sync with the net/rpc endpoints Consul supports.
+func RPCMethodNames() []string {
+	out := make([]string, 0, len(rpcRateLimitSpecs))
+	for k := range rpcRateLimitSpecs {
+		out = append(out, k)
+	}
+	return out
 }

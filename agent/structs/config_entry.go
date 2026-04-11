@@ -45,6 +45,7 @@ const (
 	TCPRoute              string = "tcp-route"
 	// TODO: decide if we want to highlight 'ip' keyword in the name of RateLimitIPConfig
 	RateLimitIPConfig string = "control-plane-request-limit"
+	RateLimit         string = "rate-limit"
 	JWTProvider       string = "jwt-provider"
 
 	ProxyConfigGlobal string = "global"
@@ -74,6 +75,7 @@ var AllConfigEntryKinds = []string{
 	FileSystemCertificate,
 	InlineCertificate,
 	RateLimitIPConfig,
+	RateLimit,
 	JWTProvider,
 }
 
