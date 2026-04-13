@@ -287,8 +287,19 @@ func (e *IngressGatewayConfigEntry) validateServiceSDS(lis IngressListener, svc 
 	return nil
 }
 
-func validateGatewayTLSConfig(tlsCfg GatewayTLSConfig) error {
-	return validateTLSConfig(tlsCfg.TLSMinVersion, tlsCfg.TLSMaxVersion, tlsCfg.CipherSuites)
+func validateGatewayTLSConfig(tlsCfg GatewayTLSConfig, inheritedSDSClusterSet bool, scope string) error {
+	if err := validateTLSConfig(tlsCfg.TLSMinVersion, tlsCfg.TLSMaxVersion, tlsCfg.CipherSuites); err != nil {
+		return err
+	}
+
+	if tlsCfg.SDS != nil && tlsCfg.SDS.ClusterName == "" && tlsCfg.SDS.CertResource != "" && !inheritedSDSClusterSet {
+		if scope == "" {
+			return fmt.Errorf("TLS.SDS.ClusterName is required if CertResource is set")
+		}
+		return fmt.Errorf("TLS.SDS.ClusterName is required if CertResource is set (%s)", scope)
+	}
+
+	return nil
 }
 
 func (e *IngressGatewayConfigEntry) Validate() error {
@@ -296,7 +307,7 @@ func (e *IngressGatewayConfigEntry) Validate() error {
 		return err
 	}
 
-	if err := validateGatewayTLSConfig(e.TLS); err != nil {
+	if err := validateGatewayTLSConfig(e.TLS, false, "gateway"); err != nil {
 		return err
 	}
 
@@ -329,7 +340,7 @@ func (e *IngressGatewayConfigEntry) Validate() error {
 		}
 
 		if listener.TLS != nil {
-			if err := validateGatewayTLSConfig(*listener.TLS); err != nil {
+			if err := validateGatewayTLSConfig(*listener.TLS, e.TLS.SDS != nil && e.TLS.SDS.ClusterName != "", fmt.Sprintf("listener on port %d", listener.Port)); err != nil {
 				return err
 			}
 		}
@@ -829,11 +840,8 @@ func (e *APIGatewayConfigEntry) Validate() error {
 	if err := validateConfigEntryMeta(e.Meta); err != nil {
 		return err
 	}
-	if err := validateGatewayTLSConfig(e.TLS); err != nil {
+	if err := validateGatewayTLSConfig(e.TLS, false, "gateway"); err != nil {
 		return err
-	}
-	if e.TLS.SDS != nil && e.TLS.SDS.ClusterName == "" && e.TLS.SDS.CertResource != "" {
-		return fmt.Errorf("TLS.SDS.ClusterName is required if CertResource is set (gateway)")
 	}
 
 	if len(e.Listeners) == 0 {

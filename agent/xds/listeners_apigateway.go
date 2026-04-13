@@ -55,7 +55,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 			return nil, err
 		}
 
-		routeSDSOverrides, err := collectAPIGatewayServiceSDSOverrides(cfgSnap, readyListener)
+		routeSDSOverrides, err := collectAPIGatewayServiceSDSOverridesWithResolvedTLS(cfgSnap, readyListener, effectiveTLSCfg)
 		if err != nil {
 			return nil, err
 		}
@@ -315,6 +315,15 @@ func collectAPIGatewayServiceSDSOverrides(cfgSnap *proxycfg.ConfigSnapshot, read
 	if err != nil {
 		return nil, err
 	}
+
+	return collectAPIGatewayServiceSDSOverridesWithResolvedTLS(cfgSnap, ready, resolvedTLSCfg)
+}
+
+func collectAPIGatewayServiceSDSOverridesWithResolvedTLS(
+	cfgSnap *proxycfg.ConfigSnapshot,
+	ready readyListener,
+	resolvedTLSCfg *structs.GatewayTLSConfig,
+) ([]apiGatewayServiceSDSOverride, error) {
 
 	var defaultSDS *structs.GatewayTLSSDSConfig
 	if resolvedTLSCfg != nil && resolvedTLSCfg.SDS != nil && resolvedTLSCfg.SDS.ClusterName != "" {
