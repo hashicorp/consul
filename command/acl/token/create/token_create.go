@@ -29,6 +29,7 @@ type cmd struct {
 	http  *flags.HTTPFlags
 	help  string
 
+	name                     string
 	accessor                 string
 	secret                   string
 	policyIDs                []string
@@ -49,6 +50,8 @@ type cmd struct {
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.flags.StringVar(&c.name, "name", "", "Create the token with this name."+
+		"If empty and an auth-method token name format is specified, the token name is automatically generated.")
 	c.flags.StringVar(&c.accessor, "accessor", "", "Create the token with this Accessor ID. "+
 		"It must be a UUID. If not specified one will be auto-generated")
 	c.flags.StringVar(&c.secret, "secret", "", "Create the token with this Secret ID. "+
@@ -119,6 +122,7 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	newToken := &api.ACLToken{
+		Name:        c.name,
 		Description: c.description,
 		Local:       c.local,
 		AccessorID:  c.accessor,

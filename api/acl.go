@@ -41,6 +41,7 @@ type ACLTokenRoleLink = ACLLink
 type ACLToken struct {
 	CreateIndex       uint64
 	ModifyIndex       uint64
+	Name              string
 	AccessorID        string
 	SecretID          string
 	Description       string
@@ -88,6 +89,7 @@ type ACLTokenExpanded struct {
 }
 
 type ACLTokenListEntry struct {
+	Name              string
 	CreateIndex       uint64
 	ModifyIndex       uint64
 	AccessorID        string
@@ -313,6 +315,9 @@ type ACLAuthMethod struct {
 	// Partition is the partition the ACLAuthMethod is associated with.
 	// Partitions are a Consul Enterprise feature.
 	Partition string `json:",omitempty"`
+
+	// TokenNameFormat defines the HIL template to use when building the token name
+	TokenNameFormat string `json:",omitempty"`
 }
 
 type ACLTokenFilterOptions struct {

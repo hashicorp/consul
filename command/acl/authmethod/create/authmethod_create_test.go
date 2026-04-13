@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-uuid"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
@@ -120,10 +121,11 @@ func TestAuthMethodCreateCommand(t *testing.T) {
 
 		got := getTestMethod(t, client, name)
 		expect := &api.ACLAuthMethod{
-			Name:        name,
-			Type:        "testing",
-			DisplayName: "display",
-			Description: "desc",
+			Name:            name,
+			Type:            "testing",
+			DisplayName:     "display",
+			Description:     "desc",
+			TokenNameFormat: structs.DefaultACLAuthMethodTokenNameFormat,
 		}
 		require.Equal(t, expect, got)
 	})
@@ -149,11 +151,12 @@ func TestAuthMethodCreateCommand(t *testing.T) {
 
 		got := getTestMethod(t, client, name)
 		expect := &api.ACLAuthMethod{
-			Name:        name,
-			Type:        "testing",
-			DisplayName: "display",
-			Description: "desc",
-			MaxTokenTTL: 5 * time.Minute,
+			Name:            name,
+			Type:            "testing",
+			DisplayName:     "display",
+			Description:     "desc",
+			MaxTokenTTL:     5 * time.Minute,
+			TokenNameFormat: structs.DefaultACLAuthMethodTokenNameFormat,
 		}
 		require.Equal(t, expect, got)
 	})
@@ -179,13 +182,62 @@ func TestAuthMethodCreateCommand(t *testing.T) {
 
 		got := getTestMethod(t, client, name)
 		expect := &api.ACLAuthMethod{
-			Name:          name,
-			Type:          "testing",
-			DisplayName:   "display",
-			Description:   "desc",
-			TokenLocality: "global",
+			Name:            name,
+			Type:            "testing",
+			DisplayName:     "display",
+			Description:     "desc",
+			TokenLocality:   "global",
+			TokenNameFormat: structs.DefaultACLAuthMethodTokenNameFormat,
 		}
 		require.Equal(t, expect, got)
+	})
+
+	t.Run("create testing with token name format", func(t *testing.T) {
+		name := getTestName(t)
+		// Valid HIL syntax using a known variable for testing auth methods
+		tokenFormat := "${auth_method_type}-static-text"
+
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-type=testing",
+			"-name", name,
+			"-token-name-format", tokenFormat,
+		}
+
+		ui := cli.NewMockUi()
+		cmd := New(ui)
+
+		code := cmd.Run(args)
+		require.Equal(t, 0, code, "err: "+ui.ErrorWriter.String())
+
+		got := getTestMethod(t, client, name)
+		require.Equal(t, tokenFormat, got.TokenNameFormat)
+	})
+
+	t.Run("create testing with custom token name format", func(t *testing.T) {
+		name := getTestName(t)
+		// Testing the syntax you found: ${auth_method_type}-{}
+		// Note: Consul validates this on the server side; if 'testing' type
+		// doesn't support {}, this might return 500 depending on the provider.
+		tokenFormat := "${auth_method_type}-{}"
+
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-type=testing",
+			"-name", name,
+			"-token-name-format", tokenFormat,
+		}
+
+		ui := cli.NewMockUi()
+		cmd := New(ui)
+
+		code := cmd.Run(args)
+		require.Equal(t, 0, code, "err: "+ui.ErrorWriter.String())
+
+		got := getTestMethod(t, client, name)
+		require.Equal(t, tokenFormat, got.TokenNameFormat)
 	})
 }
 
@@ -251,10 +303,11 @@ func TestAuthMethodCreateCommand_JSON(t *testing.T) {
 
 		got := getTestMethod(t, client, name)
 		expect := &api.ACLAuthMethod{
-			Name:        name,
-			Type:        "testing",
-			DisplayName: "display",
-			Description: "desc",
+			Name:            name,
+			Type:            "testing",
+			DisplayName:     "display",
+			Description:     "desc",
+			TokenNameFormat: structs.DefaultACLAuthMethodTokenNameFormat,
 		}
 		require.Equal(t, expect, got)
 	})
@@ -284,11 +337,12 @@ func TestAuthMethodCreateCommand_JSON(t *testing.T) {
 
 		got := getTestMethod(t, client, name)
 		expect := &api.ACLAuthMethod{
-			Name:        name,
-			Type:        "testing",
-			DisplayName: "display",
-			Description: "desc",
-			MaxTokenTTL: 5 * time.Minute,
+			Name:            name,
+			Type:            "testing",
+			DisplayName:     "display",
+			Description:     "desc",
+			MaxTokenTTL:     5 * time.Minute,
+			TokenNameFormat: structs.DefaultACLAuthMethodTokenNameFormat,
 		}
 		require.Equal(t, expect, got)
 
@@ -300,12 +354,13 @@ func TestAuthMethodCreateCommand_JSON(t *testing.T) {
 		delete(raw, "Partition")
 
 		require.Equal(t, map[string]interface{}{
-			"Name":        name,
-			"Type":        "testing",
-			"DisplayName": "display",
-			"Description": "desc",
-			"MaxTokenTTL": "5m0s",
-			"Config":      nil,
+			"Name":            name,
+			"Type":            "testing",
+			"DisplayName":     "display",
+			"Description":     "desc",
+			"MaxTokenTTL":     "5m0s",
+			"TokenNameFormat": structs.DefaultACLAuthMethodTokenNameFormat,
+			"Config":          nil,
 		}, raw)
 	})
 
@@ -334,11 +389,12 @@ func TestAuthMethodCreateCommand_JSON(t *testing.T) {
 
 		got := getTestMethod(t, client, name)
 		expect := &api.ACLAuthMethod{
-			Name:          name,
-			Type:          "testing",
-			DisplayName:   "display",
-			Description:   "desc",
-			TokenLocality: "global",
+			Name:            name,
+			Type:            "testing",
+			DisplayName:     "display",
+			Description:     "desc",
+			TokenLocality:   "global",
+			TokenNameFormat: structs.DefaultACLAuthMethodTokenNameFormat,
 		}
 		require.Equal(t, expect, got)
 
@@ -350,13 +406,39 @@ func TestAuthMethodCreateCommand_JSON(t *testing.T) {
 		delete(raw, "Partition")
 
 		require.Equal(t, map[string]interface{}{
-			"Name":          name,
-			"Type":          "testing",
-			"DisplayName":   "display",
-			"Description":   "desc",
-			"TokenLocality": "global",
-			"Config":        nil,
+			"Name":            name,
+			"Type":            "testing",
+			"DisplayName":     "display",
+			"Description":     "desc",
+			"TokenLocality":   "global",
+			"TokenNameFormat": structs.DefaultACLAuthMethodTokenNameFormat,
+			"Config":          nil,
 		}, raw)
+	})
+
+	t.Run("create testing with token name format json", func(t *testing.T) {
+		name := getTestName(t)
+		tokenFormat := "pre-${auth_method_name}-post"
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-type=testing",
+			"-name", name,
+			"-token-name-format", tokenFormat,
+			"-format=json",
+		}
+
+		ui := cli.NewMockUi()
+		cmd := New(ui)
+
+		code := cmd.Run(args)
+		out := ui.OutputWriter.String()
+
+		require.Equal(t, 0, code)
+
+		var raw map[string]interface{}
+		require.NoError(t, json.Unmarshal([]byte(out), &raw))
+		require.Equal(t, tokenFormat, raw["TokenNameFormat"])
 	})
 }
 
@@ -459,8 +541,9 @@ func TestAuthMethodCreateCommand_k8s(t *testing.T) {
 
 		got := getTestMethod(t, client, name)
 		expect := &api.ACLAuthMethod{
-			Name: name,
-			Type: "kubernetes",
+			Name:            name,
+			Type:            "kubernetes",
+			TokenNameFormat: structs.DefaultACLAuthMethodTokenNameFormat,
 			Config: map[string]interface{}{
 				"Host":              "https://foo.internal:8443",
 				"CACert":            ca.RootCert,
@@ -494,8 +577,9 @@ func TestAuthMethodCreateCommand_k8s(t *testing.T) {
 
 		got := getTestMethod(t, client, name)
 		expect := &api.ACLAuthMethod{
-			Name: name,
-			Type: "kubernetes",
+			Name:            name,
+			Type:            "kubernetes",
+			TokenNameFormat: structs.DefaultACLAuthMethodTokenNameFormat,
 			Config: map[string]interface{}{
 				"Host":              "https://foo.internal:8443",
 				"CACert":            ca.RootCert,
