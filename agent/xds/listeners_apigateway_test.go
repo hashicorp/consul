@@ -689,7 +689,7 @@ func TestCollectAPIGatewayServiceSDSOverrides_TCPRouteInheritsGatewaySDSCluster(
 	}
 
 	snap.APIGateway.TLSConfig = structs.GatewayTLSConfig{
-		SDS: &structs.GatewayTLSSDSConfig{ClusterName: "gateway-sds-cluster"},
+		SDS: &structs.GatewayTLSSDSConfig{ClusterName: "gateway-sds-cluster", CertResource: "gateway-default-cert"},
 	}
 
 	overrides, err := collectAPIGatewayServiceSDSOverrides(snap, readyListener{
@@ -730,6 +730,34 @@ func TestResolveAPIListenerTLSConfig_GatewayAndListenerMerge(t *testing.T) {
 	require.Equal(t, "listener-cert", cfg.SDS.CertResource)
 	require.Equal(t, types.TLSv1_2, cfg.TLSMinVersion)
 	require.Equal(t, types.TLSv1_3, cfg.TLSMaxVersion)
+}
+
+func TestResolveAPIListenerTLSConfig_InvalidMergedSDS(t *testing.T) {
+	t.Run("cert resource without cluster name", func(t *testing.T) {
+		cfg, err := resolveAPIListenerTLSConfig(
+			structs.GatewayTLSConfig{},
+			structs.APIGatewayTLSConfiguration{
+				SDS: &structs.GatewayTLSSDSConfig{CertResource: "listener-cert"},
+			},
+		)
+
+		require.Error(t, err)
+		require.Nil(t, cfg)
+		require.Contains(t, err.Error(), "ClusterName is required")
+	})
+
+	t.Run("cluster name without cert resource", func(t *testing.T) {
+		cfg, err := resolveAPIListenerTLSConfig(
+			structs.GatewayTLSConfig{},
+			structs.APIGatewayTLSConfiguration{
+				SDS: &structs.GatewayTLSSDSConfig{ClusterName: "sds-cluster"},
+			},
+		)
+
+		require.Error(t, err)
+		require.Nil(t, cfg)
+		require.Contains(t, err.Error(), "CertResource is required")
+	})
 }
 
 // Made with Bob

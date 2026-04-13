@@ -557,6 +557,17 @@ func resolveAPIListenerTLSConfig(gatewayTLSCfg structs.GatewayTLSConfig, listene
 		mergedCfg.CipherSuites = listenerTLSCfg.CipherSuites
 	}
 
+	if mergedCfg.SDS != nil {
+		hasCluster := mergedCfg.SDS.ClusterName != ""
+		hasCertResource := mergedCfg.SDS.CertResource != ""
+		if hasCertResource && !hasCluster {
+			return nil, fmt.Errorf("invalid TLS.SDS configuration: ClusterName is required when CertResource is set")
+		}
+		if hasCluster && !hasCertResource {
+			return nil, fmt.Errorf("invalid TLS.SDS configuration: CertResource is required when ClusterName is set")
+		}
+	}
+
 	if err := validateListenerTLSConfig(mergedCfg.TLSMinVersion, mergedCfg.CipherSuites); err != nil {
 		return nil, err
 	}
