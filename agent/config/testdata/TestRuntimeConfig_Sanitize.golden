@@ -49,6 +49,7 @@
                     "ModifyIndex": 0
                 },
                 "TokenLocality": "",
+                "TokenNameFormat": "hidden",
                 "Type": ""
             },
             "ClaimAssertions": [],

@@ -54,6 +54,9 @@ const (
 
 	ACLReservedIDPrefix = "00000000-0000-0000-0000-0000000000"
 
+	// DefaultACLAuthMethodTokenNameFormat default token name format
+	DefaultACLAuthMethodTokenNameFormat = "${auth_method_type}-${auth_method_name}"
+
 	aclPolicyGlobalRulesTemplate = `
 acl = "%[1]s"
 agent_prefix "" {
@@ -286,6 +289,10 @@ func (ids ACLNodeIdentities) Deduplicate() ACLNodeIdentities {
 }
 
 type ACLToken struct {
+	// Name shows the name of the token generated from auth method TokenNameFormat.
+	// This is not mandatory to be unique and is not used for lookup purposes.
+	Name string `json:",omitempty"`
+
 	// This is the UUID used for tracking and management purposes
 	AccessorID string
 
@@ -570,6 +577,7 @@ func (t *ACLToken) EstimateSize() int {
 type ACLTokens []*ACLToken
 
 type ACLTokenListStub struct {
+	Name              string
 	AccessorID        string
 	SecretID          string
 	Description       string
@@ -593,6 +601,7 @@ type ACLTokenListStubs []*ACLTokenListStub
 
 func (token *ACLToken) Stub() *ACLTokenListStub {
 	return &ACLTokenListStub{
+		Name:                        token.Name,
 		AccessorID:                  token.AccessorID,
 		SecretID:                    token.SecretID,
 		Description:                 token.Description,
@@ -1156,28 +1165,30 @@ func (rules ACLBindingRules) Sort() {
 
 // Note: this is a subset of ACLAuthMethod's fields
 type ACLAuthMethodListStub struct {
-	Name          string
-	Type          string
-	DisplayName   string        `json:",omitempty"`
-	Description   string        `json:",omitempty"`
-	MaxTokenTTL   time.Duration `json:",omitempty"`
-	TokenLocality string        `json:",omitempty"`
-	CreateIndex   uint64
-	ModifyIndex   uint64
+	Name            string
+	Type            string
+	DisplayName     string        `json:",omitempty"`
+	Description     string        `json:",omitempty"`
+	MaxTokenTTL     time.Duration `json:",omitempty"`
+	TokenLocality   string        `json:",omitempty"`
+	TokenNameFormat string        `json:",omitempty"`
+	CreateIndex     uint64
+	ModifyIndex     uint64
 	acl.EnterpriseMeta
 }
 
 func (p *ACLAuthMethod) Stub() *ACLAuthMethodListStub {
 	return &ACLAuthMethodListStub{
-		Name:           p.Name,
-		Type:           p.Type,
-		DisplayName:    p.DisplayName,
-		Description:    p.Description,
-		MaxTokenTTL:    p.MaxTokenTTL,
-		TokenLocality:  p.TokenLocality,
-		CreateIndex:    p.CreateIndex,
-		ModifyIndex:    p.ModifyIndex,
-		EnterpriseMeta: p.EnterpriseMeta,
+		Name:            p.Name,
+		Type:            p.Type,
+		DisplayName:     p.DisplayName,
+		Description:     p.Description,
+		MaxTokenTTL:     p.MaxTokenTTL,
+		TokenLocality:   p.TokenLocality,
+		TokenNameFormat: p.TokenNameFormat,
+		CreateIndex:     p.CreateIndex,
+		ModifyIndex:     p.ModifyIndex,
+		EnterpriseMeta:  p.EnterpriseMeta,
 	}
 }
 
@@ -1241,6 +1252,9 @@ type ACLAuthMethod struct {
 	// TokenLocality defines the kind of token that this auth method produces.
 	// This can be either 'local' or 'global'. If empty 'local' is assumed.
 	TokenLocality string `json:",omitempty"`
+
+	// TokenNameFormat defines the HIL template to use when building the token name
+	TokenNameFormat string `json:",omitempty"`
 
 	// Configuration is arbitrary configuration for the auth method. This
 	// should only contain primitive values and containers (such as lists and
