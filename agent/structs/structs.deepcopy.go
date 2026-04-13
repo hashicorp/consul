@@ -14,6 +14,10 @@ func (o *APIGatewayListener) DeepCopy() *APIGatewayListener {
 		cp.TLS.Certificates = make([]ResourceReference, len(o.TLS.Certificates))
 		copy(cp.TLS.Certificates, o.TLS.Certificates)
 	}
+	if o.TLS.SDS != nil {
+		cp.TLS.SDS = new(GatewayTLSSDSConfig)
+		*cp.TLS.SDS = *o.TLS.SDS
+	}
 	if o.TLS.CipherSuites != nil {
 		cp.TLS.CipherSuites = make([]types.TLSCipherSuite, len(o.TLS.CipherSuites))
 		copy(cp.TLS.CipherSuites, o.TLS.CipherSuites)
@@ -538,6 +542,9 @@ func (o *HTTPRouteConfigEntry) DeepCopy() *HTTPRouteConfigEntry {
 								}
 							}
 						}
+					}
+					if o.Rules[i2].Services[i4].TLS != nil {
+						cp.Rules[i2].Services[i4].TLS = o.Rules[i2].Services[i4].TLS.DeepCopy()
 					}
 				}
 			}
@@ -1247,6 +1254,11 @@ func (o *TCPRouteConfigEntry) DeepCopy() *TCPRouteConfigEntry {
 	if o.Services != nil {
 		cp.Services = make([]TCPService, len(o.Services))
 		copy(cp.Services, o.Services)
+		for i2 := range o.Services {
+			if o.Services[i2].TLS != nil {
+				cp.Services[i2].TLS = o.Services[i2].TLS.DeepCopy()
+			}
+		}
 	}
 	if o.Meta != nil {
 		cp.Meta = make(map[string]string, len(o.Meta))

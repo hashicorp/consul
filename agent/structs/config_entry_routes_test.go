@@ -61,6 +61,31 @@ func TestTCPRoute(t *testing.T) {
 			},
 			validateErr: "unsupported parent kind",
 		},
+		"tcp service sds missing cert resource": {
+			entry: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "route-sds-one",
+				Services: []TCPService{{
+					Name: "foo",
+					TLS: &GatewayServiceTLSConfig{
+						SDS: &GatewayTLSSDSConfig{ClusterName: "sds-cluster"},
+					},
+				}},
+			},
+			validateErr: "TLS.SDS.CertResource is required",
+		},
+		"tcp service valid sds": {
+			entry: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "route-sds-two",
+				Services: []TCPService{{
+					Name: "foo",
+					TLS: &GatewayServiceTLSConfig{
+						SDS: &GatewayTLSSDSConfig{CertResource: "tcp-cert"},
+					},
+				}},
+			},
+		},
 		"duplicate parents with no listener specified": {
 			entry: &TCPRouteConfigEntry{
 				Kind: TCPRoute,
@@ -204,6 +229,63 @@ func TestHTTPRoute(t *testing.T) {
 				Hostnames: []string{"...not legal"},
 			},
 			validateErr: "host \"...not legal\" must be a valid DNS hostname",
+		},
+		"http service sds requires hostnames": {
+			entry: &HTTPRouteConfigEntry{
+				Kind: HTTPRoute,
+				Name: "route-sds-one",
+				Parents: []ResourceReference{{
+					Name: "gateway",
+				}},
+				Rules: []HTTPRouteRule{{
+					Services: []HTTPService{{
+						Name: "svc",
+						TLS: &GatewayServiceTLSConfig{
+							SDS: &GatewayTLSSDSConfig{CertResource: "svc-cert"},
+						},
+					}},
+				}},
+			},
+			validateErr: "service TLS.SDS requires route hostnames to be set",
+		},
+		"http route can mix sds and non-sds services": {
+			entry: &HTTPRouteConfigEntry{
+				Kind: HTTPRoute,
+				Name: "route-sds-two",
+				Parents: []ResourceReference{{
+					Name: "gateway",
+				}},
+				Hostnames: []string{"api.example.com"},
+				Rules: []HTTPRouteRule{{
+					Services: []HTTPService{
+						{
+							Name: "svc-a",
+							TLS: &GatewayServiceTLSConfig{
+								SDS: &GatewayTLSSDSConfig{CertResource: "svc-a-cert"},
+							},
+						},
+						{Name: "svc-b"},
+					},
+				}},
+			},
+		},
+		"http service valid sds": {
+			entry: &HTTPRouteConfigEntry{
+				Kind: HTTPRoute,
+				Name: "route-sds-three",
+				Parents: []ResourceReference{{
+					Name: "gateway",
+				}},
+				Hostnames: []string{"api.example.com"},
+				Rules: []HTTPRouteRule{{
+					Services: []HTTPService{{
+						Name: "svc",
+						TLS: &GatewayServiceTLSConfig{
+							SDS: &GatewayTLSSDSConfig{CertResource: "svc-cert"},
+						},
+					}},
+				}},
+			},
 		},
 		"rule matches invalid header match type": {
 			entry: &HTTPRouteConfigEntry{
