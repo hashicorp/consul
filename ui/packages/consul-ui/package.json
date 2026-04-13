@@ -200,7 +200,7 @@
     "webpack": "^5.74.0"
   },
   "engines": {
-    "node": "22"
+    "node": "24"
   },
   "ember": {
     "edition": "octane"
