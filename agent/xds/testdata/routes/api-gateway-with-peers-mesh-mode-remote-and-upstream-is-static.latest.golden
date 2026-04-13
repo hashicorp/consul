@@ -1,0 +1,36 @@
+{
+  "nonce": "00000001",
+  "resources": [
+    {
+      "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+      "name": "8080",
+      "virtualHosts": [
+        {
+          "domains": [
+            "*",
+            "*:8080"
+          ],
+          "name": "api-gateway-listener-9b9265b",
+          "routes": [
+            {
+              "match": {
+                "prefix": "/"
+              },
+              "route": {
+                "cluster": "paymentService.default.paymentpeer.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
+                "regexRewrite": {
+                  "pattern": {
+                    "regex": "^/(/?)(.*)"
+                  },
+                  "substitution": "/\\2"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "typeUrl": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+  "versionInfo": "00000001"
+}
