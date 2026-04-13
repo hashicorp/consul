@@ -59,7 +59,7 @@ type prettyFormatter struct {
 func (f *prettyFormatter) FormatToken(token *api.ACLToken) (string, error) {
 	var buffer bytes.Buffer
 
-	fmt.Fprintf(&buffer, "Name:             %s\n", token.Name))
+	fmt.Fprintf(&buffer, "Name:             %s\n", token.Name)
 	fmt.Fprintf(&buffer, "AccessorID:       %s\n", token.AccessorID)
 	fmt.Fprintf(&buffer, "SecretID:         %s\n", token.SecretID)
 
@@ -132,7 +132,7 @@ func (f *prettyFormatter) FormatToken(token *api.ACLToken) (string, error) {
 func (f *prettyFormatter) FormatTokenExpanded(token *api.ACLTokenExpanded) (string, error) {
 	var buffer bytes.Buffer
 
-	fmt.Fprintf(&buffer, "Name:             %s\n", token.Name))
+	fmt.Fprintf(&buffer, "Name:             %s\n", token.Name)
 	fmt.Fprintf(&buffer, "AccessorID:       %s\n", token.AccessorID)
 	fmt.Fprintf(&buffer, "SecretID:         %s\n", token.SecretID)
 
@@ -331,8 +331,7 @@ func (f *prettyFormatter) FormatTokenList(tokens []*api.ACLTokenListEntry) (stri
 
 func (f *prettyFormatter) formatTokenListEntry(token *api.ACLTokenListEntry) string {
 	var buffer bytes.Buffer
-
-	fmt.Fprintf(&buffer,"Name:             %s\n", token.Name))
+	fmt.Fprintf(&buffer, "Name:             %s\n", token.Name)
 	fmt.Fprintf(&buffer, "AccessorID:       %s\n", token.AccessorID)
 	fmt.Fprintf(&buffer, "SecretID:         %s\n", token.SecretID)
 
