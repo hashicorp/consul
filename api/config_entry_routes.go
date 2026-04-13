@@ -54,6 +54,8 @@ func (a *TCPRouteConfigEntry) GetModifyIndex() uint64     { return a.ModifyIndex
 // TCPService is a service reference for a TCPRoute
 type TCPService struct {
 	Name string
+	// TLS allows overriding listener-level TLS certificate settings for this service.
+	TLS *GatewayServiceTLSConfig `json:",omitempty"`
 
 	// Partition is the partition the config entry is associated with.
 	// Partitioning is a Consul Enterprise feature.
@@ -270,6 +272,9 @@ type HTTPService struct {
 	// ResponseFilters is a list of HTTP-based filters used to modify the
 	// response returned from the upstream service
 	ResponseFilters HTTPResponseFilters
+
+	// TLS allows overriding listener-level TLS certificate settings for this service.
+	TLS *GatewayServiceTLSConfig `json:",omitempty"`
 
 	// Partition is the partition the config entry is associated with.
 	// Partitioning is a Consul Enterprise feature.
