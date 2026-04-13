@@ -157,6 +157,48 @@ func TestMakeInlineOverrideFilterChains_NoDuplicateMatchers(t *testing.T) {
 			"File-system certificate filter chain should not have SNI restrictions")
 	}
 }
+
+func TestMakeInlineOverrideFilterChains_TCPServiceSDSCatchAllSupersedesCertificateChains(t *testing.T) {
+	snap := &proxycfg.ConfigSnapshot{}
+	snap.APIGateway.TLSConfig = structs.GatewayTLSConfig{}
+
+	certs := []structs.ConfigEntry{
+		&structs.FileSystemCertificateConfigEntry{
+			Kind:        structs.FileSystemCertificate,
+			Name:        "cert1",
+			Certificate: "/path/to/cert1.pem",
+			PrivateKey:  "/path/to/key1.pem",
+		},
+	}
+
+	overrides := []apiGatewayServiceSDSOverride{{
+		SDS: structs.GatewayTLSSDSConfig{
+			ClusterName:  "sds-cluster",
+			CertResource: "service-cert",
+		},
+	}}
+
+	s := ResourceGenerator{}
+	filterOpts := listenerFilterOpts{
+		protocol:   "tcp",
+		routeName:  "test-route",
+		cluster:    "test-cluster",
+		statPrefix: "test",
+	}
+
+	chains, err := s.makeInlineOverrideFilterChains(
+		snap,
+		snap.APIGateway.TLSConfig,
+		overrides,
+		"tcp",
+		filterOpts,
+		certs,
+	)
+
+	require.NoError(t, err)
+	require.Len(t, chains, 1, "catch-all service SDS override should suppress listener cert chains")
+	require.Nil(t, chains[0].FilterChainMatch, "catch-all override chain should be the only catch-all matcher")
+}
 func TestMakeInlineOverrideFilterChains_EmptyCertificates(t *testing.T) {
 	// Test with no certificates
 	snap := &proxycfg.ConfigSnapshot{}
@@ -689,7 +731,7 @@ func TestCollectAPIGatewayServiceSDSOverrides_TCPRouteInheritsGatewaySDSCluster(
 	}
 
 	snap.APIGateway.TLSConfig = structs.GatewayTLSConfig{
-		SDS: &structs.GatewayTLSSDSConfig{ClusterName: "gateway-sds-cluster", CertResource: "gateway-default-cert"},
+		SDS: &structs.GatewayTLSSDSConfig{ClusterName: "gateway-sds-cluster"},
 	}
 
 	overrides, err := collectAPIGatewayServiceSDSOverrides(snap, readyListener{
@@ -733,6 +775,21 @@ func TestResolveAPIListenerTLSConfig_GatewayAndListenerMerge(t *testing.T) {
 }
 
 func TestResolveAPIListenerTLSConfig_InvalidMergedSDS(t *testing.T) {
+	t.Run("gateway cluster only default is allowed", func(t *testing.T) {
+		cfg, err := resolveAPIListenerTLSConfig(
+			structs.GatewayTLSConfig{
+				SDS: &structs.GatewayTLSSDSConfig{ClusterName: "gateway-sds-cluster"},
+			},
+			structs.APIGatewayTLSConfiguration{},
+		)
+
+		require.NoError(t, err)
+		require.NotNil(t, cfg)
+		require.NotNil(t, cfg.SDS)
+		require.Equal(t, "gateway-sds-cluster", cfg.SDS.ClusterName)
+		require.Empty(t, cfg.SDS.CertResource)
+	})
+
 	t.Run("cert resource without cluster name", func(t *testing.T) {
 		cfg, err := resolveAPIListenerTLSConfig(
 			structs.GatewayTLSConfig{},

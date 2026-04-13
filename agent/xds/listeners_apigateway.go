@@ -563,7 +563,7 @@ func resolveAPIListenerTLSConfig(gatewayTLSCfg structs.GatewayTLSConfig, listene
 		if hasCertResource && !hasCluster {
 			return nil, fmt.Errorf("invalid TLS.SDS configuration: ClusterName is required when CertResource is set")
 		}
-		if hasCluster && !hasCertResource {
+		if listenerTLSCfg.SDS != nil && hasCluster && !hasCertResource {
 			return nil, fmt.Errorf("invalid TLS.SDS configuration: CertResource is required when ClusterName is set")
 		}
 	}
@@ -576,7 +576,7 @@ func resolveAPIListenerTLSConfig(gatewayTLSCfg structs.GatewayTLSConfig, listene
 }
 
 func isGatewayTLSConfigEmpty(cfg structs.GatewayTLSConfig) bool {
-	return cfg.SDS == nil && cfg.TLSMinVersion == "" && cfg.TLSMaxVersion == "" && len(cfg.CipherSuites) == 0
+	return !hasSDSCert(cfg.SDS) && cfg.TLSMinVersion == "" && cfg.TLSMaxVersion == "" && len(cfg.CipherSuites) == 0
 }
 
 func hasSDSCert(sds *structs.GatewayTLSSDSConfig) bool {
@@ -630,15 +630,15 @@ func (s *ResourceGenerator) makeInlineOverrideFilterChains(cfgSnap *proxycfg.Con
 		}
 	}
 
-	if hasSDSCert(tlsCfg.SDS) {
-		for _, override := range serviceSDSOverrides {
-			if len(override.Hosts) == 0 {
-				// A catch-all service override (used by TCP routes) supersedes
-				// the listener default SDS chain on this listener.
-				return chains, nil
-			}
+	for _, override := range serviceSDSOverrides {
+		if len(override.Hosts) == 0 {
+			// A catch-all service override (used by TCP routes) supersedes all
+			// listener default certificate chains for this listener.
+			return chains, nil
 		}
+	}
 
+	if hasSDSCert(tlsCfg.SDS) {
 		if err := constructChain("sds", nil, makeCommonTLSContextFromGatewayTLSConfig(tlsCfg)); err != nil {
 			return nil, err
 		}
