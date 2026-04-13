@@ -310,15 +310,6 @@ type apiGatewayServiceSDSOverride struct {
 	SDS   structs.GatewayTLSSDSConfig
 }
 
-func collectAPIGatewayServiceSDSOverrides(cfgSnap *proxycfg.ConfigSnapshot, ready readyListener) ([]apiGatewayServiceSDSOverride, error) {
-	resolvedTLSCfg, err := resolveAPIListenerTLSConfig(cfgSnap.APIGateway.TLSConfig, ready.listenerCfg.TLS)
-	if err != nil {
-		return nil, err
-	}
-
-	return collectAPIGatewayServiceSDSOverridesWithResolvedTLS(cfgSnap, ready, resolvedTLSCfg)
-}
-
 func collectAPIGatewayServiceSDSOverridesWithResolvedTLS(
 	cfgSnap *proxycfg.ConfigSnapshot,
 	ready readyListener,
