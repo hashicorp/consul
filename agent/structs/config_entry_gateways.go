@@ -287,8 +287,19 @@ func (e *IngressGatewayConfigEntry) validateServiceSDS(lis IngressListener, svc 
 	return nil
 }
 
-func validateGatewayTLSConfig(tlsCfg GatewayTLSConfig) error {
-	return validateTLSConfig(tlsCfg.TLSMinVersion, tlsCfg.TLSMaxVersion, tlsCfg.CipherSuites)
+func validateGatewayTLSConfig(tlsCfg GatewayTLSConfig, inheritedSDSClusterSet bool, scope string) error {
+	if err := validateTLSConfig(tlsCfg.TLSMinVersion, tlsCfg.TLSMaxVersion, tlsCfg.CipherSuites); err != nil {
+		return err
+	}
+
+	if tlsCfg.SDS != nil && tlsCfg.SDS.ClusterName == "" && tlsCfg.SDS.CertResource != "" && !inheritedSDSClusterSet {
+		if scope == "" {
+			return fmt.Errorf("TLS.SDS.ClusterName is required if CertResource is set")
+		}
+		return fmt.Errorf("TLS.SDS.ClusterName is required if CertResource is set (%s)", scope)
+	}
+
+	return nil
 }
 
 func (e *IngressGatewayConfigEntry) Validate() error {
@@ -296,7 +307,7 @@ func (e *IngressGatewayConfigEntry) Validate() error {
 		return err
 	}
 
-	if err := validateGatewayTLSConfig(e.TLS); err != nil {
+	if err := validateGatewayTLSConfig(e.TLS, false, "gateway"); err != nil {
 		return err
 	}
 
@@ -329,7 +340,7 @@ func (e *IngressGatewayConfigEntry) Validate() error {
 		}
 
 		if listener.TLS != nil {
-			if err := validateGatewayTLSConfig(*listener.TLS); err != nil {
+			if err := validateGatewayTLSConfig(*listener.TLS, e.TLS.SDS != nil && e.TLS.SDS.ClusterName != "", fmt.Sprintf("listener on port %d", listener.Port)); err != nil {
 				return err
 			}
 		}
@@ -744,6 +755,10 @@ type APIGatewayConfigEntry struct {
 	// service. This should match the name provided in the service definition.
 	Name string
 
+	// TLS holds default TLS configuration for API gateway listeners. Listener
+	// TLS settings may override these defaults.
+	TLS GatewayTLSConfig
+
 	// Listeners is the set of listener configuration to which an API Gateway
 	// might bind.
 	Listeners []APIGatewayListener
@@ -825,6 +840,9 @@ func (e *APIGatewayConfigEntry) Validate() error {
 	if err := validateConfigEntryMeta(e.Meta); err != nil {
 		return err
 	}
+	if err := validateGatewayTLSConfig(e.TLS, false, "gateway"); err != nil {
+		return err
+	}
 
 	if len(e.Listeners) == 0 {
 		return fmt.Errorf("api gateway must have at least one listener")
@@ -877,6 +895,8 @@ func (e *APIGatewayConfigEntry) validateListeners() error {
 		InlineCertificate:     true,
 	}
 
+	gwSDSClusterSet := e.TLS.SDS != nil && e.TLS.SDS.ClusterName != ""
+
 	for _, listener := range e.Listeners {
 		if !validProtocols[listener.Protocol] {
 			return fmt.Errorf("unsupported listener protocol %q, must be one of 'tcp', or 'http'", listener.Protocol)
@@ -897,6 +917,18 @@ func (e *APIGatewayConfigEntry) validateListeners() error {
 			}
 			if certificate.Name == "" {
 				return fmt.Errorf("certificate reference must have a name")
+			}
+		}
+		if listener.TLS.SDS != nil {
+			sds := listener.TLS.SDS
+			if sds.ClusterName == "" && sds.CertResource != "" && !gwSDSClusterSet {
+				return fmt.Errorf("TLS.SDS.ClusterName is required if CertResource is set (listener %q)", listener.Name)
+			}
+			if sds.ClusterName != "" && sds.CertResource == "" {
+				return fmt.Errorf("TLS.SDS.CertResource is required if ClusterName is set (listener %q)", listener.Name)
+			}
+			if len(listener.TLS.Certificates) > 0 {
+				return fmt.Errorf("listener %q cannot specify both TLS.Certificates and TLS.SDS", listener.Name)
 			}
 		}
 		if err := validateTLSConfig(listener.TLS.MinVersion, listener.TLS.MaxVersion, listener.TLS.CipherSuites); err != nil {
@@ -971,6 +1003,8 @@ type APIGatewayTLSConfiguration struct {
 	// Certificates is a set of references to certificates
 	// that a gateway listener uses for TLS termination.
 	Certificates []ResourceReference
+	// SDS allows configuring TLS certificate from an SDS service.
+	SDS *GatewayTLSSDSConfig `json:",omitempty"`
 	// MaxVersion is the maximum TLS version that the listener
 	// should support.
 	MaxVersion types.TLSVersion
@@ -983,13 +1017,13 @@ type APIGatewayTLSConfiguration struct {
 
 // IsEmpty returns true if all values in the struct are nil or empty.
 func (a *APIGatewayTLSConfiguration) IsEmpty() bool {
-	return len(a.Certificates) == 0 && len(a.MaxVersion) == 0 && len(a.MinVersion) == 0 && len(a.CipherSuites) == 0
+	return len(a.Certificates) == 0 && a.SDS == nil && len(a.MaxVersion) == 0 && len(a.MinVersion) == 0 && len(a.CipherSuites) == 0
 }
 
 func (a *APIGatewayTLSConfiguration) ToGatewayTLSConfig() GatewayTLSConfig {
 	return GatewayTLSConfig{
 		Enabled:       true,
-		SDS:           nil,
+		SDS:           a.SDS,
 		TLSMinVersion: a.MinVersion,
 		TLSMaxVersion: a.MaxVersion,
 		CipherSuites:  a.CipherSuites,
