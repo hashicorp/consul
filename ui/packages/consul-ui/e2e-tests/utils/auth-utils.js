@@ -72,7 +72,7 @@ async function loginWithToken(page, token = process.env.CONSUL_UI_TEST_TOKEN) {
   await secretInput.waitFor({ state: 'visible', timeout: 30000 });
   await secretInput.fill(token);
 
-  await page.getByRole('button', { name: 'Log in' }).last().click();
+  await page.locator('.modal-dialog-modal').getByRole('button', { name: 'Log in' }).click();
 
   // Verify we transition to an authenticated menu state.
   await openAuthMenu(page);

@@ -194,6 +194,7 @@ jobs:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-medium) }}
     continue-on-error: false
     env:
+      CONSUL_IMAGE: hashicorppreview/consul:latest
       CONSUL_NSPACES_ENABLED: 0
     steps:
       - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
@@ -246,130 +247,22 @@ jobs:
       - name: Start Consul API servers (CE)
         working-directory: consul-ui-testing
         timeout-minutes: 2
-        run: |
-          echo "Starting Consul API servers at $(date '+%Y-%m-%d %H:%M:%S')"
-          yarn start hashicorppreview/consul:latest > consul-start.log 2>&1 &
-          echo $! > consul-start.pid
-          echo "consul-ui-testing start PID: $(cat consul-start.pid)"
-          echo "Process table entry for startup command:"
-          ps -fp "$(cat consul-start.pid)" || true
-          sleep 10
-          if ! kill -0 "$(cat consul-start.pid)" 2>/dev/null; then
-            echo "::error::Consul startup process exited within the first 10 seconds"
-            echo "--- consul-start.log ---"
-            tail -n 200 consul-start.log || true
-            echo "--- docker ps -a ---"
-            docker ps -a || true
-            exit 1
-          fi
-          echo "Startup process is still running after 10 seconds"
-          echo "--- Initial consul-start.log (last 100 lines) ---"
-          tail -n 100 consul-start.log || true
-          echo "--- docker compose ps ---"
-          docker compose ps || true
-          echo "--- docker ps -a ---"
-          docker ps -a || true
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/consul_ui_testing_ci.sh" start CE
 
       - name: Wait for Consul peering setup (CE)
         working-directory: consul-ui-testing
         timeout-minutes: 6
-        env:
-          CONSUL_IMAGE: hashicorppreview/consul:latest
-        run: |
-          echo "Waiting up to 5 minutes for Consul peering setup..."
-          last_log_line=0
-          for i in $(seq 1 60); do
-            current_log_line=$(wc -l < consul-start.log 2>/dev/null || echo 0)
-            if [ "$current_log_line" -gt "$last_log_line" ]; then
-              echo "--- New consul-start.log output (lines $((last_log_line + 1))-$current_log_line) ---"
-              sed -n "$((last_log_line + 1)),$current_log_line p" consul-start.log || true
-              last_log_line=$current_log_line
-            fi
-
-            if grep -q "We have successfully setup peering" consul-start.log 2>/dev/null; then
-              echo "Consul peering is ready (after ~$((i * 5))s)"
-              echo "--- docker compose ps at peering completion ---"
-              docker compose ps || true
-              exit 0
-            fi
-
-            if ! kill -0 "$(cat consul-start.pid)" 2>/dev/null; then
-              echo "::error::Consul startup process exited before peering completed"
-              echo "--- Last 300 lines of consul-start.log ---"
-              tail -n 300 consul-start.log
-              echo "--- docker compose ps ---"
-              docker compose ps || true
-              echo "--- docker ps -a ---"
-              docker ps -a || true
-              exit 1
-            fi
-
-            if (( i % 6 == 0 )); then
-              echo "Still waiting... ($((i * 5))s elapsed)"
-              echo "--- docker compose ps ---"
-              docker compose ps || true
-            fi
-            sleep 5
-          done
-
-          echo "::error::Timed out waiting for Consul peering setup (300s)"
-          echo "--- Last 300 lines of consul-start.log ---"
-          tail -n 300 consul-start.log
-          echo "--- docker compose ps ---"
-          docker compose ps || true
-          echo "--- docker ps -a ---"
-          docker ps -a || true
-          exit 1
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/consul_ui_testing_ci.sh" wait-for-peering
 
       - name: Verify Consul API readiness (CE)
         working-directory: consul-ui-testing
         timeout-minutes: 3
-        env:
-          CONSUL_IMAGE: hashicorppreview/consul:latest
-        run: |
-          echo "Verifying Consul API readiness before starting UI..."
-          echo "--- docker compose ps ---"
-          docker compose ps || true
-
-          for i in $(seq 1 12); do
-            primary_leader=$(curl -fsS http://localhost:8500/v1/status/leader || true)
-            secondary_leader=$(curl -fsS http://localhost:8501/v1/status/leader || true)
-
-            if [ -n "$primary_leader" ] && [ -n "$secondary_leader" ] && [ "$primary_leader" != '""' ] && [ "$secondary_leader" != '""' ]; then
-              echo "Primary leader: $primary_leader"
-              echo "Secondary leader: $secondary_leader"
-              exit 0
-            fi
-
-            echo "Consul APIs not ready yet ($((i * 5))s elapsed)"
-            echo "Primary leader response: ${primary_leader:-<empty>}"
-            echo "Secondary leader response: ${secondary_leader:-<empty>}"
-            sleep 5
-          done
-
-          echo "::error::Consul HTTP APIs did not become ready in time"
-          echo "--- docker compose ps ---"
-          docker compose ps || true
-          echo "--- Last 200 lines of consul-start.log ---"
-          tail -n 200 consul-start.log || true
-          exit 1
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/consul_ui_testing_ci.sh" verify-api
 
       - name: Report HashiCups container states (CE)
         working-directory: consul-ui-testing
         timeout-minutes: 2
-        env:
-          CONSUL_IMAGE: hashicorppreview/consul:latest
-        run: |
-          echo "Container states after Consul readiness:"
-          docker ps -a --format 'table {{.Names}}\t{{.Status}}\t{{.Image}}'
-          echo "Exited containers:"
-          docker ps -a --filter status=exited --format '{{.Names}} {{.Status}}' || true
-          for container in product-api public-api payments product-db product-api-secondary public-api-secondary payments-secondary product-db-secondary frontend frontend-secondary; do
-            if docker ps -a --format '{{.Names}}' | grep -qx "$container"; then
-              echo "--- Last 40 log lines for $container ---"
-              docker logs --tail 40 "$container" || true
-            fi
-          done
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/consul_ui_testing_ci.sh" report-containers
 
       - name: Start Consul UI
         working-directory: ui/packages/consul-ui
@@ -381,18 +274,7 @@ jobs:
 
       - name: Wait for UI to be ready
         timeout-minutes: 3
-        run: |
-          echo "Waiting for Consul UI on http://localhost:4200..."
-          for i in $(seq 1 30); do
-            if curl -sf http://localhost:4200 > /dev/null 2>&1; then
-              echo "Consul UI is ready (after ~$((i * 2))s)"
-              exit 0
-            fi
-            echo "Waiting for UI... ($((i * 2))s elapsed)"
-            sleep 2
-          done
-          echo "::error::Timed out waiting for Consul UI (60s)"
-          exit 1
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/consul_ui_testing_ci.sh" wait-for-url http://localhost:4200 "Consul UI"
 
       - name: Run E2E health check
         working-directory: ui/packages/consul-ui
@@ -429,6 +311,8 @@ jobs:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-medium) }}
     continue-on-error: false
     env:
+      CONSUL_IMAGE: hashicorppreview/consul-enterprise:latest
+      CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
       CONSUL_NSPACES_ENABLED: 1
     steps:
       - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
@@ -481,135 +365,22 @@ jobs:
       - name: Start Consul API servers (ENT)
         working-directory: consul-ui-testing
         timeout-minutes: 2
-        run: |
-          echo "Starting Consul API servers at $(date '+%Y-%m-%d %H:%M:%S')"
-          yarn start hashicorppreview/consul-enterprise:latest > consul-start.log 2>&1 &
-          echo $! > consul-start.pid
-          echo "consul-ui-testing start PID: $(cat consul-start.pid)"
-          echo "Process table entry for startup command:"
-          ps -fp "$(cat consul-start.pid)" || true
-          sleep 10
-          if ! kill -0 "$(cat consul-start.pid)" 2>/dev/null; then
-            echo "::error::Consul startup process exited within the first 10 seconds"
-            echo "--- consul-start.log ---"
-            tail -n 200 consul-start.log || true
-            echo "--- docker ps -a ---"
-            docker ps -a || true
-            exit 1
-          fi
-          echo "Startup process is still running after 10 seconds"
-          echo "--- Initial consul-start.log (last 100 lines) ---"
-          tail -n 100 consul-start.log || true
-          echo "--- docker compose ps ---"
-          docker compose ps || true
-          echo "--- docker ps -a ---"
-          docker ps -a || true
-        env:
-          CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/consul_ui_testing_ci.sh" start ENT
 
       - name: Wait for Consul peering setup (ENT)
         working-directory: consul-ui-testing
         timeout-minutes: 6
-        env:
-          CONSUL_IMAGE: hashicorppreview/consul-enterprise:latest
-          CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
-        run: |
-          echo "Waiting up to 5 minutes for Consul peering setup..."
-          last_log_line=0
-          for i in $(seq 1 60); do
-            current_log_line=$(wc -l < consul-start.log 2>/dev/null || echo 0)
-            if [ "$current_log_line" -gt "$last_log_line" ]; then
-              echo "--- New consul-start.log output (lines $((last_log_line + 1))-$current_log_line) ---"
-              sed -n "$((last_log_line + 1)),$current_log_line p" consul-start.log || true
-              last_log_line=$current_log_line
-            fi
-
-            if grep -q "We have successfully setup peering" consul-start.log 2>/dev/null; then
-              echo "Consul peering is ready (after ~$((i * 5))s)"
-              echo "--- docker compose ps at peering completion ---"
-              docker compose ps || true
-              exit 0
-            fi
-
-            if ! kill -0 "$(cat consul-start.pid)" 2>/dev/null; then
-              echo "::error::Consul startup process exited before peering completed"
-              echo "--- Last 300 lines of consul-start.log ---"
-              tail -n 300 consul-start.log
-              echo "--- docker compose ps ---"
-              docker compose ps || true
-              echo "--- docker ps -a ---"
-              docker ps -a || true
-              exit 1
-            fi
-
-            if (( i % 6 == 0 )); then
-              echo "Still waiting... ($((i * 5))s elapsed)"
-              echo "--- docker compose ps ---"
-              docker compose ps || true
-            fi
-            sleep 5
-          done
-
-          echo "::error::Timed out waiting for Consul peering setup (300s)"
-          echo "--- Last 300 lines of consul-start.log ---"
-          tail -n 300 consul-start.log
-          echo "--- docker compose ps ---"
-          docker compose ps || true
-          echo "--- docker ps -a ---"
-          docker ps -a || true
-          exit 1
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/consul_ui_testing_ci.sh" wait-for-peering
 
       - name: Verify Consul API readiness (ENT)
         working-directory: consul-ui-testing
         timeout-minutes: 3
-        env:
-          CONSUL_IMAGE: hashicorppreview/consul-enterprise:latest
-          CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
-        run: |
-          echo "Verifying Consul API readiness before starting UI..."
-          echo "--- docker compose ps ---"
-          docker compose ps || true
-
-          for i in $(seq 1 12); do
-            primary_leader=$(curl -fsS http://localhost:8500/v1/status/leader || true)
-            secondary_leader=$(curl -fsS http://localhost:8501/v1/status/leader || true)
-
-            if [ -n "$primary_leader" ] && [ -n "$secondary_leader" ] && [ "$primary_leader" != '""' ] && [ "$secondary_leader" != '""' ]; then
-              echo "Primary leader: $primary_leader"
-              echo "Secondary leader: $secondary_leader"
-              exit 0
-            fi
-
-            echo "Consul APIs not ready yet ($((i * 5))s elapsed)"
-            echo "Primary leader response: ${primary_leader:-<empty>}"
-            echo "Secondary leader response: ${secondary_leader:-<empty>}"
-            sleep 5
-          done
-
-          echo "::error::Consul HTTP APIs did not become ready in time"
-          echo "--- docker compose ps ---"
-          docker compose ps || true
-          echo "--- Last 200 lines of consul-start.log ---"
-          tail -n 200 consul-start.log || true
-          exit 1
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/consul_ui_testing_ci.sh" verify-api
 
       - name: Report HashiCups container states (ENT)
         working-directory: consul-ui-testing
         timeout-minutes: 2
-        env:
-          CONSUL_IMAGE: hashicorppreview/consul-enterprise:latest
-          CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
-        run: |
-          echo "Container states after Consul readiness:"
-          docker ps -a --format 'table {{.Names}}\t{{.Status}}\t{{.Image}}'
-          echo "Exited containers:"
-          docker ps -a --filter status=exited --format '{{.Names}} {{.Status}}' || true
-          for container in product-api public-api payments product-db product-api-secondary public-api-secondary payments-secondary product-db-secondary frontend frontend-secondary; do
-            if docker ps -a --format '{{.Names}}' | grep -qx "$container"; then
-              echo "--- Last 40 log lines for $container ---"
-              docker logs --tail 40 "$container" || true
-            fi
-          done
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/consul_ui_testing_ci.sh" report-containers
 
       - name: Start Consul UI
         working-directory: ui/packages/consul-ui
@@ -621,18 +392,7 @@ jobs:
 
       - name: Wait for UI to be ready
         timeout-minutes: 3
-        run: |
-          echo "Waiting for Consul UI on http://localhost:4200..."
-          for i in $(seq 1 30); do
-            if curl -sf http://localhost:4200 > /dev/null 2>&1; then
-              echo "Consul UI is ready (after ~$((i * 2))s)"
-              exit 0
-            fi
-            echo "Waiting for UI... ($((i * 2))s elapsed)"
-            sleep 2
-          done
-          echo "::error::Timed out waiting for Consul UI (60s)"
-          exit 1
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/consul_ui_testing_ci.sh" wait-for-url http://localhost:4200 "Consul UI"
 
       - name: Run E2E health check
         working-directory: ui/packages/consul-ui
@@ -683,9 +443,6 @@ jobs:
       - workspace-tests
       - node-tests
       - ember-build-test
-      - ember-build-test-ent
-      - e2e-tests
-      - e2e-tests-ent
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     if: ${{ always() }}
     steps:
