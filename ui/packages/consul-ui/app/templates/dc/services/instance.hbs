@@ -110,7 +110,7 @@
             <ol>
               <li><a href={{href-to 'dc.services' params=(hash peer=undefined)}}>All Services</a></li>
               <li><a
-                  {{tooltip (concat 'Service (' item.Service.Service ')')}}
+                  {{hds-tooltip (concat 'Service (' item.Service.Service ')') options=(detached-tooltip-options)}}
                   data-test-back
                   href={{href-to 'dc.services.show'}}
                 >

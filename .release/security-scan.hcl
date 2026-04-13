@@ -38,7 +38,19 @@ container {
   # periodically cleaned up to remove items that are no longer found by the scanner.
   triage {
     suppress {
-      vulnerabilities = []
+      vulnerabilities = [
+        "CVE-2026-3805",
+        "CVE-2026-3784",
+        "CVE-2026-3783",
+        "CVE-2026-1965",
+        "CVE-2025-14017",
+        "CVE-2025-14524",
+        "CVE-2025-14819",
+        "CVE-2025-30258",
+        "CVE-2026-27171",
+        "GO-2026-4923",
+        "GHSA-6jwv-w5xf-7j27"
+      ]
 
       paths = [
         "internal/tools/proto-gen-rpc-glue/e2e/consul/*",
@@ -46,6 +58,14 @@ container {
         "test/integration/consul-container/*",
         "testing/deployer/*",
         "test-integ/*",
+        // The OSV scanner will trip on several packages that are included in the
+        // the UBI images. This is due to RHEL using the same base version in the
+        // package name for the life of the distro regardless of whether or not
+        // that version has been patched for security. Rather than enumate ever
+        // single CVE that the OSV scanner will find (several tens) we'll ignore
+        // the base UBI packages.
+        "usr/lib/sysimage/rpm/*",
+        "var/lib/rpm/*",
       ]
     }
   }
@@ -79,7 +99,10 @@ binary {
   # periodically cleaned up to remove items that are no longer found by the scanner.
   triage {
     suppress {
-      vulnerabilities = []
+      vulnerabilities = [
+        "GO-2026-4923",
+        "GHSA-6jwv-w5xf-7j27"
+        ]
       
       paths = [
         "internal/tools/proto-gen-rpc-glue/e2e/consul/*",

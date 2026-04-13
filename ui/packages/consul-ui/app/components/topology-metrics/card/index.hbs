@@ -38,10 +38,8 @@
     <div class={{if (not-eq @item.Partition @service.Partition) 'group'}}>
       {{#if (not-eq @item.Partition @service.Partition)}}
       <dl class="partition">
-        <dt>
-          <Tooltip>
-              Admin Partition
-          </Tooltip>
+        <dt {{hds-tooltip "Admin Partition" options=(detached-tooltip-options)}}>
+          Admin Partition
         </dt>
         <dd>
           {{@item.Partition}}
@@ -51,10 +49,8 @@
       <span></span>
       {{#if (or (not-eq @item.Partition @service.Partition) (not-eq @item.Namespace @service.Namespace))}}
       <dl class="nspace">
-        <dt>
-          <Tooltip>
-              Namespace
-          </Tooltip>
+        <dt {{hds-tooltip "Namespace" options=(detached-tooltip-options)}}>
+          Namespace
         </dt>
         <dd>
           {{@item.Namespace}}
@@ -84,10 +80,8 @@
   {{/let}}
 {{else}}
     <dl class="health">
-      <dt>
-        <Tooltip>
-            We are unable to determine the health status of services in remote datacenters.
-        </Tooltip>
+      <dt {{hds-tooltip "We are unable to determine the health status of services in remote datacenters." options=(detached-tooltip-options)}}>
+        Health
       </dt>
       <dd>
         Health

@@ -10,13 +10,9 @@
         <dt>Type</dt>
         <dd>
           {{#if (eq (policy/typeof item) 'policy-management')}}
-            <Tooltip>
-              Global Management Policy
-            </Tooltip>
+            <span {{hds-tooltip "Global Management Policy" options=(detached-tooltip-options)}}></span>
           {{else}}
-            <Tooltip>
-              Global Read-only Policy
-            </Tooltip>
+            <span {{hds-tooltip "Global Read-only Policy" options=(detached-tooltip-options)}}></span>
           {{/if}}
         </dd>
       </dl>
@@ -29,8 +25,8 @@
   </BlockSlot>
   <BlockSlot @name='details'>
     <dl class='datacenter'>
-      <dt>
-        <Tooltip>Datacenters</Tooltip>
+      <dt {{hds-tooltip "Datacenters" options=(detached-tooltip-options)}}>
+        Datacenters
       </dt>
       <dd>
         {{join ', ' (policy/datacenters item)}}

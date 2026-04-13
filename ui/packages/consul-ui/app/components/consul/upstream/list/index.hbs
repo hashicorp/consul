@@ -16,7 +16,7 @@ as |item index|>
         Health
       </dt>
       <dd
-        {{tooltip}}
+        {{hds-tooltip options=(detached-tooltip-options)}}
       >
           {{#if (eq 'critical' item.MeshStatus)}}
             At least one health check on one instance is failing.

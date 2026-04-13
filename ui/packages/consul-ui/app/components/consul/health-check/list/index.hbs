@@ -34,7 +34,7 @@
   {{#if item.Exposed}}
             <em
               data-test-exposed="true"
-              {{tooltip "Expose.checks is set to true, so all registered HTTP and gRPC check paths are exposed through Envoy for the Consul agent."}}
+              {{hds-tooltip "Expose.checks is set to true, so all registered HTTP and gRPC check paths are exposed through Envoy for the Consul agent." options=(detached-tooltip-options)}}
             >Exposed</em>
   {{/if}}
           </dd>
