@@ -38,13 +38,16 @@ async function openAuthMenu(page) {
  * Logs into Consul UI using a token.
  * @param {import('@playwright/test').Page} page - Playwright page object
  * @param {string} token - Consul ACL token (from env or parameter)
+ * @param {string} baseURL - Base URL for the UI (optional, uses page's baseURL if not provided)
  */
-async function loginWithToken(page, token = process.env.CONSUL_UI_TEST_TOKEN) {
+async function loginWithToken(page, token = process.env.CONSUL_UI_TEST_TOKEN, baseURL = null) {
   if (!token) {
     throw new Error('CONSUL_UI_TEST_TOKEN environment variable is not set');
   }
 
-  await page.goto('http://localhost:4200/ui/dc1/services', { waitUntil: 'domcontentloaded' });
+  // Use provided baseURL or get from page context
+  const url = baseURL || page.context()._options.baseURL || 'http://localhost:8500';
+  await page.goto(`${url}/ui/dc1/services`, { waitUntil: 'domcontentloaded' });
   await authMenuLocator(page).waitFor({ state: 'visible', timeout: 30000 });
   await openAuthMenu(page);
 
@@ -83,11 +86,14 @@ async function loginWithToken(page, token = process.env.CONSUL_UI_TEST_TOKEN) {
 /**
  * Checks if user is already logged in.
  * @param {import('@playwright/test').Page} page - Playwright page object
+ * @param {string} baseURL - Base URL for the UI (optional, uses page's baseURL if not provided)
  * @returns {Promise<boolean>}
  */
-async function isLoggedIn(page) {
+async function isLoggedIn(page, baseURL = null) {
   try {
-    await page.goto('http://localhost:4200/ui/dc1/services', { waitUntil: 'domcontentloaded' });
+    // Use provided baseURL or get from page context
+    const url = baseURL || page.context()._options.baseURL || 'http://localhost:8500';
+    await page.goto(`${url}/ui/dc1/services`, { waitUntil: 'domcontentloaded' });
     await authMenuLocator(page).waitFor({ state: 'visible', timeout: 10000 });
     await openAuthMenu(page);
     return await logoutActionLocator(page)

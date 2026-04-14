@@ -50,8 +50,8 @@ module.exports = defineConfig({
 
   // Shared settings for all projects
   use: {
-    // Base URL for navigation
-    baseURL: 'http://localhost:4200',
+    // Base URL for navigation - can be overridden by BASE_URL or PLAYWRIGHT_BASE_URL env var
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || process.env.BASE_URL || 'http://localhost:4200',
 
     // Use saved authentication state
     storageState: 'e2e-tests/auth-state.json',

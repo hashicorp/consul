@@ -12,10 +12,12 @@ const { test, expect } = require('@playwright/test');
  */
 
 test.describe('Access Controls - Tokens - Basic', () => {
-  test('creates a token and opens token details', async ({ page }) => {
+  test('creates a token and opens token details', async ({ page, baseURL }) => {
     const description = `E2E token ${Date.now()}`;
 
-    await page.goto('http://localhost:8501/ui/dc2/services', { waitUntil: 'domcontentloaded' });
+    // Access dc2 on port 8501 (secondary datacenter from consul-ui-testing)
+    const dc2URL = baseURL.replace(':8500', ':8501');
+    await page.goto(`${dc2URL}/ui/dc2/services`, { waitUntil: 'domcontentloaded' });
 
     await page.getByRole('link', { name: 'Tokens' }).click();
     await page.getByRole('link', { name: 'Create' }).click();

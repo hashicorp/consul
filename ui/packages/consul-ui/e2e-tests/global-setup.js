@@ -10,7 +10,8 @@ const { loginWithToken } = require('./utils/auth-utils');
 async function globalSetup(config) {
   console.log('\n🚀 Starting E2E Test Setup...\n');
 
-  const baseURL = config.projects?.[0]?.use?.baseURL || 'http://localhost:4200';
+  const baseURL = config.projects?.[0]?.use?.baseURL || 'http://localhost:8500';
+  console.log(`📍 Using baseURL: ${baseURL}\n`);
 
   console.log('🔍 Checking service health...\n');
 
@@ -40,8 +41,8 @@ async function globalSetup(config) {
   const page = await context.newPage();
 
   try {
-    // Login using the token from environment
-    const authResult = await loginWithToken(page);
+    // Login using the token from environment, passing baseURL
+    const authResult = await loginWithToken(page, process.env.CONSUL_UI_TEST_TOKEN, baseURL);
     if (authResult?.authenticated) {
       console.log('✅ Authentication successful.\n');
     } else {

@@ -276,29 +276,24 @@ jobs:
         timeout-minutes: 2
         run: bash "$GITHUB_WORKSPACE/.github/scripts/consul_ui_testing_ci.sh" report-containers
 
-      - name: Start Consul UI
-        working-directory: ui/packages/consul-ui
-        run: |
-          pnpm run start:consul &
-          echo $! > consul-ui.pid
-        env:
-          CONSUL_HTTP_ADDR: http://localhost:8500
-
-      - name: Wait for UI to be ready
+      - name: Wait for Consul UI to be ready on port 8500
         timeout-minutes: 3
-        run: bash "$GITHUB_WORKSPACE/.github/scripts/consul_ui_testing_ci.sh" wait-for-url http://localhost:4200 "Consul UI"
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/consul_ui_testing_ci.sh" wait-for-url http://localhost:8500/ui "Consul UI on port 8500"
 
-      - name: Run E2E health check
+      - name: Run E2E health check against port 8500
         working-directory: ui/packages/consul-ui
         timeout-minutes: 2
         run: pnpm run test:e2e:health
+        env:
+          PLAYWRIGHT_BASE_URL: http://localhost:8500
 
-      - name: Run basic E2E tests (CE)
+      - name: Run basic E2E tests against port 8500 (CE)
         working-directory: ui/packages/consul-ui
         timeout-minutes: 15
         run: pnpm run test:e2e:basic
         env:
           CI: true
+          PLAYWRIGHT_BASE_URL: http://localhost:8500
           CONSUL_UI_TEST_TOKEN: ${{ secrets.CONSUL_UI_TEST_TOKEN }}
 
       - name: Upload test results
@@ -408,29 +403,24 @@ jobs:
         timeout-minutes: 2
         run: bash "$GITHUB_WORKSPACE/.github/scripts/consul_ui_testing_ci.sh" report-containers
 
-      - name: Start Consul UI
-        working-directory: ui/packages/consul-ui
-        run: |
-          pnpm run start:consul &
-          echo $! > consul-ui.pid
-        env:
-          CONSUL_HTTP_ADDR: http://localhost:8500
-
-      - name: Wait for UI to be ready
+      - name: Wait for Consul UI to be ready on port 8500
         timeout-minutes: 3
-        run: bash "$GITHUB_WORKSPACE/.github/scripts/consul_ui_testing_ci.sh" wait-for-url http://localhost:4200 "Consul UI"
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/consul_ui_testing_ci.sh" wait-for-url http://localhost:8500/ui "Consul UI on port 8500"
 
-      - name: Run E2E health check
+      - name: Run E2E health check against port 8500
         working-directory: ui/packages/consul-ui
         timeout-minutes: 2
         run: pnpm run test:e2e:health
+        env:
+          PLAYWRIGHT_BASE_URL: http://localhost:8500
 
-      - name: Run basic E2E tests (ENT)
+      - name: Run basic E2E tests against port 8500 (ENT)
         working-directory: ui/packages/consul-ui
         timeout-minutes: 15
         run: pnpm run test:e2e:basic
         env:
           CI: true
+          PLAYWRIGHT_BASE_URL: http://localhost:8500
           CONSUL_UI_TEST_TOKEN: ${{ secrets.CONSUL_UI_TEST_TOKEN }}
 
       - name: Upload test results
