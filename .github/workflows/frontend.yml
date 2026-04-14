@@ -213,14 +213,16 @@ jobs:
       - name: Create Consul Docker image from binary
         run: |
           echo "Creating consul:local Docker image..."
-          docker build -t consul:local -f- . <<'EOF'
+          cat > Dockerfile.consul-local <<'EOF'
           FROM alpine:latest
           RUN apk add --no-cache ca-certificates curl
-          COPY ./bin/consul /bin/consul
+          COPY bin/consul /bin/consul
           ENTRYPOINT ["/bin/consul"]
           CMD ["agent", "-dev"]
           EOF
+          docker build -t consul:local -f Dockerfile.consul-local .
           docker images | grep consul
+          rm Dockerfile.consul-local
 
       - name: Install PNPM
         uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
@@ -356,14 +358,16 @@ jobs:
       - name: Create Consul Enterprise Docker image from binary
         run: |
           echo "Creating consul:local Docker image with Enterprise binary..."
-          docker build -t consul:local -f- . <<'EOF'
+          cat > Dockerfile.consul-local <<'EOF'
           FROM alpine:latest
           RUN apk add --no-cache ca-certificates curl
-          COPY ./bin/consul /bin/consul
+          COPY bin/consul /bin/consul
           ENTRYPOINT ["/bin/consul"]
           CMD ["agent", "-dev"]
           EOF
+          docker build -t consul:local -f Dockerfile.consul-local .
           docker images | grep consul
+          rm Dockerfile.consul-local
 
       - name: Install PNPM
         uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
