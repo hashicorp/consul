@@ -89,6 +89,10 @@ func (c *CompiledDiscoveryChain) appendHash(h *customHasher) {
 	addSlice(h, c.AutoVirtualIPs, func(h *customHasher, value string) {
 		h.addString(value)
 	})
+	addSortedStringKeyMap(h, c.AutoPortVirtualIPs, func(h *customHasher, key string, value string) {
+		h.addString(key)
+		h.addString(value)
+	})
 	addSlice(h, c.ManualVirtualIPs, func(h *customHasher, value string) {
 		h.addString(value)
 	})

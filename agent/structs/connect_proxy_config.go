@@ -710,6 +710,7 @@ func (k UpstreamKey) String() string {
 		"[type=%q, name=%q, port=%q, partition=%q, namespace=%q, peer=%q, datacenter=%q]",
 		k.DestinationType,
 		k.DestinationName,
+		k.DestinationPort,
 		k.DestinationPartition,
 		k.DestinationNamespace,
 		k.DestinationPeer,

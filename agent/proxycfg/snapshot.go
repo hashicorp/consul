@@ -528,7 +528,7 @@ type configSnapshotMeshGateway struct {
 func (c *ConfigSnapshot) MeshGatewayValidExportedServices() []structs.ServiceName {
 	out := make([]structs.ServiceName, 0, len(c.MeshGateway.ExportedServicesSlice))
 	for _, svc := range c.MeshGateway.ExportedServicesSlice {
-		if _, ok := c.MeshGateway.ExportedServicesWithPeers[svc]; !ok {
+		if _, ok := c.MeshGateway.ExportedServicesWithPeers[svc]; !ok && !c.MeshGateway.hasEntExportedService(svc) {
 			continue // not possible
 		}
 
@@ -549,6 +549,10 @@ func (c *ConfigSnapshot) MeshGatewayValidExportedServices() []structs.ServiceNam
 		out = append(out, svc)
 	}
 	return out
+}
+
+func (c *ConfigSnapshot) MeshGatewayHasPartitionExport(svc structs.ServiceName) bool {
+	return c.MeshGateway.hasEntPartitionExport(svc)
 }
 
 func (c *ConfigSnapshot) GetMeshGatewayEndpoints(key GatewayKey) structs.CheckServiceNodes {
@@ -602,12 +606,14 @@ func (c *ConfigSnapshot) GetMeshGatewayEndpoints(key GatewayKey) structs.CheckSe
 }
 
 func (c *configSnapshotMeshGateway) IsServiceExported(svc structs.ServiceName) bool {
-	if c == nil || len(c.ExportedServicesWithPeers) == 0 {
+	if c == nil {
 		return false
 	}
 
-	_, ok := c.ExportedServicesWithPeers[svc]
-	return ok
+	if _, ok := c.ExportedServicesWithPeers[svc]; ok {
+		return true
+	}
+	return c.hasEntExportedService(svc)
 }
 
 func (c *configSnapshotMeshGateway) GatewayKeys() []GatewayKey {
@@ -654,7 +660,8 @@ func (c *configSnapshotMeshGateway) isEmpty() bool {
 		len(c.FedStateGateways) == 0 &&
 		len(c.HostnameDatacenters) == 0 &&
 		c.WatchedLocalServers.Len() == 0 &&
-		c.isEmptyPeering()
+		c.isEmptyPeering() &&
+		c.entEmptyPeering()
 }
 
 // isEmptyPeering is a test helper
@@ -1142,6 +1149,12 @@ func (s *ConfigSnapshot) MeshConfig() *structs.MeshConfigEntry {
 	default:
 		return nil
 	}
+}
+
+// IsMultiport returns whether the service is configured with multiple ports.
+// This is true when Ports is specified and non-empty, otherwise false.
+func (s *ConfigSnapshot) IsMultiport() bool {
+	return len(s.Ports) > 0
 }
 
 func (s *ConfigSnapshot) MeshConfigTLSIncoming() *structs.MeshDirectionalTLSConfig {
