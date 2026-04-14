@@ -267,6 +267,7 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 		snap.APIGateway.BoundGatewayConfigLoaded = true
 	case *structs.APIGatewayConfigEntry:
 		snap.APIGateway.GatewayConfig = gwConf
+		snap.APIGateway.TLSConfig = gwConf.TLS
 
 		for _, listener := range gwConf.Listeners {
 			snap.APIGateway.Listeners[listener.Name] = listener
@@ -354,12 +355,18 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 	seenUpstreamIDs := make(upstreamIDSet)
 	upstreams := make(map[APIGatewayListenerKey]structs.Upstreams)
 
+	var defaultLimits *structs.UpstreamLimits
+	if snap != nil && snap.APIGateway.GatewayConfig != nil {
+		defaultLimits = snap.APIGateway.GatewayConfig.Defaults
+	}
+
 	switch route := resp.Entry.(type) {
 	case *structs.HTTPRouteConfigEntry:
 		snap.APIGateway.HTTPRoutes.Set(ref, route)
 
 		for _, rule := range route.Rules {
 			for _, service := range rule.Services {
+				effectiveLimits := apiGatewayEffectiveUpstreamLimits(defaultLimits, service.Limits)
 				for _, listener := range snap.APIGateway.Listeners {
 					shouldBind := false
 					for _, parent := range route.Parents {
@@ -372,6 +379,12 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 						continue
 					}
 
+					upstreamCfg := map[string]interface{}{}
+					structs.UpstreamConfig{
+						Protocol: "http",
+						Limits:   effectiveLimits,
+					}.MergeInto(upstreamCfg)
+
 					upstream := structs.Upstream{
 						DestinationName:      service.Name,
 						DestinationNamespace: service.NamespaceOrDefault(),
@@ -379,9 +392,7 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 						LocalBindPort:        listener.Port,
 						// Pass the protocol that was configured on the listener in order
 						// to force that protocol on the Envoy listener.
-						Config: map[string]interface{}{
-							"protocol": "http",
-						},
+						Config: upstreamCfg,
 					}
 
 					listenerKey := APIGatewayListenerKeyFromListener(listener)
@@ -413,6 +424,7 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 		snap.APIGateway.TCPRoutes.Set(ref, route)
 
 		for _, service := range route.Services {
+			effectiveLimits := apiGatewayEffectiveUpstreamLimits(defaultLimits, service.Limits)
 			upstreamID := NewUpstreamIDFromServiceName(service.ServiceName())
 			seenUpstreamIDs.add(upstreamID)
 
@@ -429,6 +441,12 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 					continue
 				}
 
+				upstreamCfg := map[string]interface{}{}
+				structs.UpstreamConfig{
+					Protocol: "tcp",
+					Limits:   effectiveLimits,
+				}.MergeInto(upstreamCfg)
+
 				upstream := structs.Upstream{
 					DestinationName:      service.Name,
 					DestinationNamespace: service.NamespaceOrDefault(),
@@ -436,9 +454,7 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 					LocalBindPort:        listener.Port,
 					// Pass the protocol that was configured on the ingress listener in order
 					// to force that protocol on the Envoy listener.
-					Config: map[string]interface{}{
-						"protocol": "tcp",
-					},
+					Config: upstreamCfg,
 				}
 
 				listenerKey := APIGatewayListenerKeyFromListener(listener)
@@ -487,6 +503,42 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 	reconcilePeeringWatches(snap.APIGateway.DiscoveryChain, snap.APIGateway.UpstreamConfig, snap.APIGateway.PeeredUpstreams, snap.APIGateway.PeerUpstreamEndpoints, snap.APIGateway.UpstreamPeerTrustBundles)
 
 	return nil
+}
+
+func apiGatewayEffectiveUpstreamLimits(defaults, service *structs.UpstreamLimits) *structs.UpstreamLimits {
+	if defaults == nil && service == nil {
+		return nil
+	}
+
+	effective := &structs.UpstreamLimits{}
+	if defaults != nil {
+		effective = defaults.Clone()
+	}
+	if effective == nil {
+		effective = &structs.UpstreamLimits{}
+	}
+
+	if service != nil {
+		if service.MaxConnections != nil {
+			effective.MaxConnections = intPointer(*service.MaxConnections)
+		}
+		if service.MaxPendingRequests != nil {
+			effective.MaxPendingRequests = intPointer(*service.MaxPendingRequests)
+		}
+		if service.MaxConcurrentRequests != nil {
+			effective.MaxConcurrentRequests = intPointer(*service.MaxConcurrentRequests)
+		}
+	}
+
+	if effective.IsZero() {
+		return nil
+	}
+
+	return effective
+}
+
+func intPointer(v int) *int {
+	return &v
 }
 
 func (h *handlerAPIGateway) recompileDiscoveryChains(snap *ConfigSnapshot) error {

@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-uuid"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
@@ -126,10 +127,11 @@ func TestAuthMethodUpdateCommand(t *testing.T) {
 
 		got := getTestMethod(t, client, name)
 		expect := &api.ACLAuthMethod{
-			Name:        name,
-			Type:        "testing",
-			DisplayName: "updated display",
-			Description: "updated description",
+			Name:            name,
+			Type:            "testing",
+			DisplayName:     "updated display",
+			Description:     "updated description",
+			TokenNameFormat: structs.DefaultACLAuthMethodTokenNameFormat,
 			Config: map[string]interface{}{
 				"SessionID": "foo",
 			},
@@ -157,10 +159,11 @@ func TestAuthMethodUpdateCommand(t *testing.T) {
 
 		got := getTestMethod(t, client, name)
 		expect := &api.ACLAuthMethod{
-			Name:        name,
-			Type:        "testing",
-			DisplayName: "updated display",
-			Description: "updated description",
+			Name:            name,
+			Type:            "testing",
+			DisplayName:     "updated display",
+			Description:     "updated description",
+			TokenNameFormat: structs.DefaultACLAuthMethodTokenNameFormat,
 			Config: map[string]interface{}{
 				"Data": map[string]interface{}{
 					"foo": "bar",
@@ -168,6 +171,28 @@ func TestAuthMethodUpdateCommand(t *testing.T) {
 			},
 		}
 		require.Equal(t, expect, got)
+	})
+
+	t.Run("update token name format", func(t *testing.T) {
+		name := createAuthMethod(t)
+		tokenFormat := "${auth_method_type}-updated"
+
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-name=" + name,
+			"-token-name-format", tokenFormat,
+		}
+
+		ui := cli.NewMockUi()
+		cmd := New(ui)
+
+		code := cmd.Run(args)
+		require.Equal(t, 0, code, "err: "+ui.ErrorWriter.String())
+		require.Empty(t, ui.ErrorWriter.String())
+
+		got := getTestMethod(t, client, name)
+		require.Equal(t, tokenFormat, got.TokenNameFormat)
 	})
 }
 
@@ -252,13 +277,45 @@ func TestAuthMethodUpdateCommand_JSON(t *testing.T) {
 
 		got := getTestMethod(t, client, name)
 		expect := &api.ACLAuthMethod{
-			Name:        name,
-			Type:        "testing",
-			DisplayName: "updated display",
-			Description: "updated description",
-			Config:      map[string]interface{}{},
+			Name:            name,
+			Type:            "testing",
+			DisplayName:     "updated display",
+			Description:     "updated description",
+			TokenNameFormat: structs.DefaultACLAuthMethodTokenNameFormat,
+			Config:          map[string]interface{}{},
 		}
 		require.Equal(t, expect, got)
+	})
+
+	t.Run("update token name format json", func(t *testing.T) {
+		name := createAuthMethod(t)
+		tokenFormat := "${auth_method_type}-{}"
+
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-name=" + name,
+			"-token-name-format", tokenFormat,
+			"-format=json",
+		}
+
+		ui := cli.NewMockUi()
+		cmd := New(ui)
+
+		code := cmd.Run(args)
+		output := ui.OutputWriter.String()
+
+		require.Equal(t, 0, code, "err: "+ui.ErrorWriter.String())
+		require.Empty(t, ui.ErrorWriter.String())
+
+		// Verify the JSON output contains the correct format
+		var jsonOutput map[string]interface{}
+		require.NoError(t, json.Unmarshal([]byte(output), &jsonOutput))
+		require.Equal(t, tokenFormat, jsonOutput["TokenNameFormat"])
+
+		// Verify it actually persisted in the backend
+		got := getTestMethod(t, client, name)
+		require.Equal(t, tokenFormat, got.TokenNameFormat)
 	})
 }
 
@@ -355,10 +412,39 @@ func TestAuthMethodUpdateCommand_noMerge(t *testing.T) {
 
 		got := getTestMethod(t, client, name)
 		expect := &api.ACLAuthMethod{
-			Name:        name,
-			Type:        "testing",
-			DisplayName: "updated display",
-			Description: "updated description",
+			Name:            name,
+			Type:            "testing",
+			DisplayName:     "updated display",
+			Description:     "updated description",
+			TokenNameFormat: structs.DefaultACLAuthMethodTokenNameFormat,
+		}
+		require.Equal(t, expect, got)
+	})
+	t.Run("update token name format with no merge", func(t *testing.T) {
+		name := createAuthMethod(t)
+		tokenFormat := "static-prefix-${auth_method_type}"
+
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-no-merge",
+			"-name=" + name,
+			"-token-name-format", tokenFormat,
+		}
+
+		ui := cli.NewMockUi()
+		cmd := New(ui)
+
+		code := cmd.Run(args)
+		require.Equal(t, 0, code, "err: %s", ui.ErrorWriter.String())
+		require.Empty(t, ui.ErrorWriter.String())
+
+		got := getTestMethod(t, client, name)
+
+		expect := &api.ACLAuthMethod{
+			Name:            name,
+			Type:            "testing",
+			TokenNameFormat: tokenFormat,
 		}
 		require.Equal(t, expect, got)
 	})
@@ -437,10 +523,11 @@ func TestAuthMethodUpdateCommand_k8s(t *testing.T) {
 
 		got := getTestMethod(t, client, name)
 		expect := &api.ACLAuthMethod{
-			Name:        name,
-			Type:        "kubernetes",
-			DisplayName: "updated display",
-			Description: "updated description",
+			Name:            name,
+			Type:            "kubernetes",
+			DisplayName:     "updated display",
+			Description:     "updated description",
+			TokenNameFormat: structs.DefaultACLAuthMethodTokenNameFormat,
 			Config: map[string]interface{}{
 				"Host":              "https://foo-new.internal:8443",
 				"CACert":            ca2.RootCert,

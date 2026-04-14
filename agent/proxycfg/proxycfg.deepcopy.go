@@ -362,6 +362,14 @@ func (o *configSnapshotAPIGateway) DeepCopy() *configSnapshotAPIGateway {
 	if o.GatewayConfig != nil {
 		cp.GatewayConfig = new(structs.APIGatewayConfigEntry)
 		*cp.GatewayConfig = *o.GatewayConfig
+		if o.GatewayConfig.TLS.SDS != nil {
+			cp.GatewayConfig.TLS.SDS = new(structs.GatewayTLSSDSConfig)
+			*cp.GatewayConfig.TLS.SDS = *o.GatewayConfig.TLS.SDS
+		}
+		if o.GatewayConfig.TLS.CipherSuites != nil {
+			cp.GatewayConfig.TLS.CipherSuites = make([]types.TLSCipherSuite, len(o.GatewayConfig.TLS.CipherSuites))
+			copy(cp.GatewayConfig.TLS.CipherSuites, o.GatewayConfig.TLS.CipherSuites)
+		}
 		if o.GatewayConfig.Listeners != nil {
 			cp.GatewayConfig.Listeners = make([]structs.APIGatewayListener, len(o.GatewayConfig.Listeners))
 			copy(cp.GatewayConfig.Listeners, o.GatewayConfig.Listeners)
@@ -370,6 +378,22 @@ func (o *configSnapshotAPIGateway) DeepCopy() *configSnapshotAPIGateway {
 					retV := o.GatewayConfig.Listeners[i4].DeepCopy()
 					cp.GatewayConfig.Listeners[i4] = *retV
 				}
+			}
+		}
+		if o.GatewayConfig.Defaults != nil {
+			cp.GatewayConfig.Defaults = new(structs.UpstreamLimits)
+			*cp.GatewayConfig.Defaults = *o.GatewayConfig.Defaults
+			if o.GatewayConfig.Defaults.MaxConnections != nil {
+				cp.GatewayConfig.Defaults.MaxConnections = new(int)
+				*cp.GatewayConfig.Defaults.MaxConnections = *o.GatewayConfig.Defaults.MaxConnections
+			}
+			if o.GatewayConfig.Defaults.MaxPendingRequests != nil {
+				cp.GatewayConfig.Defaults.MaxPendingRequests = new(int)
+				*cp.GatewayConfig.Defaults.MaxPendingRequests = *o.GatewayConfig.Defaults.MaxPendingRequests
+			}
+			if o.GatewayConfig.Defaults.MaxConcurrentRequests != nil {
+				cp.GatewayConfig.Defaults.MaxConcurrentRequests = new(int)
+				*cp.GatewayConfig.Defaults.MaxConcurrentRequests = *o.GatewayConfig.Defaults.MaxConcurrentRequests
 			}
 		}
 		{

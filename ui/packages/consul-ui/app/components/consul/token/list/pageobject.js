@@ -6,6 +6,7 @@
 export default (collection, clickable, attribute, text, actions) => () => {
   return collection('.consul-token-list [data-test-list-row]', {
     id: attribute('data-test-token', '[data-test-token]'),
+    name: text('[data-test-name]'),
     description: text('[data-test-description]'),
     policy: text('[data-test-policy].policy', { multiple: true }),
     role: text('[data-test-policy].role', { multiple: true }),

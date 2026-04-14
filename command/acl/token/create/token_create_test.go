@@ -33,14 +33,14 @@ func TestTokenCreateCommand_Pretty(t *testing.T) {
 	t.Parallel()
 
 	a := agent.NewTestAgent(t, `
-	primary_datacenter = "dc1"
-	node_name = "test-node"
-	acl {
-		enabled = true
-		tokens {
-			initial_management = "root"
-		}
-	}`)
+    primary_datacenter = "dc1"
+    node_name = "test-node"
+    acl {
+       enabled = true
+       tokens {
+          initial_management = "root"
+       }
+    }`)
 
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -195,19 +195,16 @@ func TestTokenCreateCommand_JSON(t *testing.T) {
 	t.Parallel()
 
 	a := agent.NewTestAgent(t, `
-	primary_datacenter = "dc1"
-	acl {
-		enabled = true
-		tokens {
-			initial_management = "root"
-		}
-	}`)
+    primary_datacenter = "dc1"
+    acl {
+       enabled = true
+       tokens {
+          initial_management = "root"
+       }
+    }`)
 
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
-
-	ui := cli.NewMockUi()
-	cmd := New(ui)
 
 	// Create a policy
 	client := a.Client()
@@ -228,8 +225,10 @@ func TestTokenCreateCommand_JSON(t *testing.T) {
 			"-format=json",
 		}
 
+		ui := cli.NewMockUi()
+		cmd := New(ui)
 		code := cmd.Run(args)
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
 
 		var jsonOutput json.RawMessage

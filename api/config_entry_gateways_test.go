@@ -385,6 +385,9 @@ func TestAPI_ConfigEntries_APIGateway(t *testing.T) {
 			"foo": "bar",
 			"gir": "zim",
 		},
+		Defaults: &UpstreamLimits{
+			MaxConnections: intPointer(123),
+		},
 		Listeners: []APIGatewayListener{listener1},
 	}
 
@@ -432,6 +435,8 @@ func TestAPI_ConfigEntries_APIGateway(t *testing.T) {
 	require.Equal(t, apigw1.Name, readGW.Name)
 	require.Equal(t, apigw1.Meta, readGW.Meta)
 	require.Equal(t, apigw1.Meta, readGW.GetMeta())
+	require.NotNil(t, readGW.Defaults)
+	require.Equal(t, *apigw1.Defaults.MaxConnections, *readGW.Defaults.MaxConnections)
 
 	// update it
 	apigw1.Listeners = []APIGatewayListener{
@@ -494,6 +499,8 @@ func TestAPI_ConfigEntries_APIGateway(t *testing.T) {
 			require.Equal(t, apigw1.Kind, readGW.Kind)
 			require.Equal(t, apigw1.Name, readGW.Name)
 			require.Len(t, readGW.Listeners, 2)
+			require.NotNil(t, readGW.Defaults)
+			require.Equal(t, *apigw1.Defaults.MaxConnections, *readGW.Defaults.MaxConnections)
 
 			require.Equal(t, apigw1.Listeners, readGW.Listeners)
 		case "bar":

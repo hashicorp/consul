@@ -1321,6 +1321,137 @@ func TestAPIGateway_Listeners(t *testing.T) {
 			},
 			validateErr: "certificate reference must have a name",
 		},
+		"tls sds missing cluster name": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-sds-one",
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     8443,
+						Protocol: APIGatewayListenerProtocol("http"),
+						TLS: APIGatewayTLSConfiguration{
+							SDS: &GatewayTLSSDSConfig{CertResource: "gw-default-cert"},
+						},
+					},
+				},
+			},
+			validateErr: "TLS.SDS.ClusterName is required if CertResource is set",
+		},
+		"gateway tls sds missing cluster name": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-sds-gw-one",
+				TLS: GatewayTLSConfig{
+					SDS: &GatewayTLSSDSConfig{CertResource: "gw-default-cert"},
+				},
+				Listeners: []APIGatewayListener{{
+					Name:     "listener",
+					Port:     8443,
+					Protocol: APIGatewayListenerProtocol("http"),
+				}},
+			},
+			validateErr: "TLS.SDS.ClusterName is required if CertResource is set (gateway)",
+		},
+		"tls sds missing cert resource": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-sds-two",
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     8443,
+						Protocol: APIGatewayListenerProtocol("http"),
+						TLS: APIGatewayTLSConfiguration{
+							SDS: &GatewayTLSSDSConfig{ClusterName: "sds-cluster"},
+						},
+					},
+				},
+			},
+			validateErr: "TLS.SDS.CertResource is required if ClusterName is set",
+		},
+		"listener tls sds inherits cluster from gateway": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-sds-inherit-cluster",
+				TLS: GatewayTLSConfig{
+					SDS: &GatewayTLSSDSConfig{ClusterName: "sds-cluster"},
+				},
+				Listeners: []APIGatewayListener{{
+					Name:     "listener",
+					Port:     8443,
+					Protocol: APIGatewayListenerProtocol("http"),
+					TLS: APIGatewayTLSConfiguration{
+						SDS: &GatewayTLSSDSConfig{CertResource: "listener-cert"},
+					},
+				}},
+			},
+			expectUnchanged: true,
+		},
+		"valid gateway-level tls sds default cert": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-sds-gw-default",
+				TLS: GatewayTLSConfig{
+					SDS: &GatewayTLSSDSConfig{ClusterName: "sds-cluster", CertResource: "gw-default-cert"},
+				},
+				Listeners: []APIGatewayListener{{
+					Name:     "listener",
+					Port:     8443,
+					Protocol: APIGatewayListenerProtocol("http"),
+				}},
+			},
+			expectUnchanged: true,
+		},
+		"tls sds cannot be combined with certificates": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-sds-three",
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     8443,
+						Protocol: APIGatewayListenerProtocol("http"),
+						TLS: APIGatewayTLSConfiguration{
+							Certificates: []ResourceReference{{Kind: InlineCertificate, Name: "api-gw-cert"}},
+							SDS:          &GatewayTLSSDSConfig{ClusterName: "sds-cluster", CertResource: "gw-default-cert"},
+						},
+					},
+				},
+			},
+			validateErr: "cannot specify both TLS.Certificates and TLS.SDS",
+		},
+		"valid tls sds": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-sds-four",
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     8443,
+						Protocol: APIGatewayListenerProtocol("http"),
+						TLS: APIGatewayTLSConfiguration{
+							SDS: &GatewayTLSSDSConfig{ClusterName: "sds-cluster", CertResource: "gw-default-cert"},
+						},
+					},
+				},
+			},
+			expected: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-sds-four",
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     8443,
+						Protocol: APIGatewayListenerProtocol("http"),
+						TLS: APIGatewayTLSConfiguration{
+							SDS: &GatewayTLSSDSConfig{ClusterName: "sds-cluster", CertResource: "gw-default-cert"},
+						},
+					},
+				},
+				EnterpriseMeta: *defaultMeta,
+			},
+		},
 		"valid max request headers kb": {
 			entry: &APIGatewayConfigEntry{
 				Kind: "api-gateway",
@@ -1347,6 +1478,123 @@ func TestAPIGateway_Listeners(t *testing.T) {
 				},
 				EnterpriseMeta: *defaultMeta,
 			},
+		},
+		"valid defaults max connections": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-defaults",
+				Defaults: &UpstreamLimits{
+					MaxConnections: intPointer(128),
+				},
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     80,
+						Protocol: APIGatewayListenerProtocol("http"),
+					},
+				},
+			},
+			expected: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-defaults",
+				Defaults: &UpstreamLimits{
+					MaxConnections: intPointer(128),
+				},
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     80,
+						Protocol: APIGatewayListenerProtocol("http"),
+					},
+				},
+				EnterpriseMeta: *defaultMeta,
+			},
+		},
+		"valid defaults all limits": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-defaults-all",
+				Defaults: &UpstreamLimits{
+					MaxConnections:        intPointer(128),
+					MaxPendingRequests:    intPointer(256),
+					MaxConcurrentRequests: intPointer(512),
+				},
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     80,
+						Protocol: APIGatewayListenerProtocol("http"),
+					},
+				},
+			},
+			expected: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-defaults-all",
+				Defaults: &UpstreamLimits{
+					MaxConnections:        intPointer(128),
+					MaxPendingRequests:    intPointer(256),
+					MaxConcurrentRequests: intPointer(512),
+				},
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     80,
+						Protocol: APIGatewayListenerProtocol("http"),
+					},
+				},
+				EnterpriseMeta: *defaultMeta,
+			},
+		},
+		"invalid defaults max connections": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-defaults-invalid",
+				Defaults: &UpstreamLimits{
+					MaxConnections: intPointer(-1),
+				},
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     80,
+						Protocol: APIGatewayListenerProtocol("http"),
+					},
+				},
+			},
+			validateErr: "max connections cannot be negative",
+		},
+		"invalid defaults max pending requests": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-defaults-invalid-pending",
+				Defaults: &UpstreamLimits{
+					MaxPendingRequests: intPointer(-1),
+				},
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     80,
+						Protocol: APIGatewayListenerProtocol("http"),
+					},
+				},
+			},
+			validateErr: "max pending requests cannot be negative",
+		},
+		"invalid defaults max concurrent requests": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-defaults-invalid-concurrent",
+				Defaults: &UpstreamLimits{
+					MaxConcurrentRequests: intPointer(-1),
+				},
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     80,
+						Protocol: APIGatewayListenerProtocol("http"),
+					},
+				},
+			},
+			validateErr: "max concurrent requests cannot be negative",
 		},
 		"zero max request headers kb": {
 			entry: &APIGatewayConfigEntry{

@@ -14,6 +14,10 @@ func (o *APIGatewayListener) DeepCopy() *APIGatewayListener {
 		cp.TLS.Certificates = make([]ResourceReference, len(o.TLS.Certificates))
 		copy(cp.TLS.Certificates, o.TLS.Certificates)
 	}
+	if o.TLS.SDS != nil {
+		cp.TLS.SDS = new(GatewayTLSSDSConfig)
+		*cp.TLS.SDS = *o.TLS.SDS
+	}
 	if o.TLS.CipherSuites != nil {
 		cp.TLS.CipherSuites = make([]types.TLSCipherSuite, len(o.TLS.CipherSuites))
 		copy(cp.TLS.CipherSuites, o.TLS.CipherSuites)
@@ -537,6 +541,25 @@ func (o *HTTPRouteConfigEntry) DeepCopy() *HTTPRouteConfigEntry {
 									cp.Rules[i2].Services[i4].ResponseFilters.Headers[i7].Set[k9] = v9
 								}
 							}
+						}
+					}
+					if o.Rules[i2].Services[i4].TLS != nil {
+						cp.Rules[i2].Services[i4].TLS = o.Rules[i2].Services[i4].TLS.DeepCopy()
+					}
+					if o.Rules[i2].Services[i4].Limits != nil {
+						cp.Rules[i2].Services[i4].Limits = new(UpstreamLimits)
+						*cp.Rules[i2].Services[i4].Limits = *o.Rules[i2].Services[i4].Limits
+						if o.Rules[i2].Services[i4].Limits.MaxConnections != nil {
+							cp.Rules[i2].Services[i4].Limits.MaxConnections = new(int)
+							*cp.Rules[i2].Services[i4].Limits.MaxConnections = *o.Rules[i2].Services[i4].Limits.MaxConnections
+						}
+						if o.Rules[i2].Services[i4].Limits.MaxPendingRequests != nil {
+							cp.Rules[i2].Services[i4].Limits.MaxPendingRequests = new(int)
+							*cp.Rules[i2].Services[i4].Limits.MaxPendingRequests = *o.Rules[i2].Services[i4].Limits.MaxPendingRequests
+						}
+						if o.Rules[i2].Services[i4].Limits.MaxConcurrentRequests != nil {
+							cp.Rules[i2].Services[i4].Limits.MaxConcurrentRequests = new(int)
+							*cp.Rules[i2].Services[i4].Limits.MaxConcurrentRequests = *o.Rules[i2].Services[i4].Limits.MaxConcurrentRequests
 						}
 					}
 				}
@@ -1247,6 +1270,27 @@ func (o *TCPRouteConfigEntry) DeepCopy() *TCPRouteConfigEntry {
 	if o.Services != nil {
 		cp.Services = make([]TCPService, len(o.Services))
 		copy(cp.Services, o.Services)
+		for i2 := range o.Services {
+			if o.Services[i2].TLS != nil {
+				cp.Services[i2].TLS = o.Services[i2].TLS.DeepCopy()
+			}
+			if o.Services[i2].Limits != nil {
+				cp.Services[i2].Limits = new(UpstreamLimits)
+				*cp.Services[i2].Limits = *o.Services[i2].Limits
+				if o.Services[i2].Limits.MaxConnections != nil {
+					cp.Services[i2].Limits.MaxConnections = new(int)
+					*cp.Services[i2].Limits.MaxConnections = *o.Services[i2].Limits.MaxConnections
+				}
+				if o.Services[i2].Limits.MaxPendingRequests != nil {
+					cp.Services[i2].Limits.MaxPendingRequests = new(int)
+					*cp.Services[i2].Limits.MaxPendingRequests = *o.Services[i2].Limits.MaxPendingRequests
+				}
+				if o.Services[i2].Limits.MaxConcurrentRequests != nil {
+					cp.Services[i2].Limits.MaxConcurrentRequests = new(int)
+					*cp.Services[i2].Limits.MaxConcurrentRequests = *o.Services[i2].Limits.MaxConcurrentRequests
+				}
+			}
+		}
 	}
 	if o.Meta != nil {
 		cp.Meta = make(map[string]string, len(o.Meta))
