@@ -3,9 +3,8 @@
 package structs
 
 import (
-	"time"
-
 	"github.com/hashicorp/consul/types"
+	"time"
 )
 
 // DeepCopy generates a deep copy of *APIGatewayListener
@@ -546,6 +545,22 @@ func (o *HTTPRouteConfigEntry) DeepCopy() *HTTPRouteConfigEntry {
 					}
 					if o.Rules[i2].Services[i4].TLS != nil {
 						cp.Rules[i2].Services[i4].TLS = o.Rules[i2].Services[i4].TLS.DeepCopy()
+					}
+					if o.Rules[i2].Services[i4].Limits != nil {
+						cp.Rules[i2].Services[i4].Limits = new(UpstreamLimits)
+						*cp.Rules[i2].Services[i4].Limits = *o.Rules[i2].Services[i4].Limits
+						if o.Rules[i2].Services[i4].Limits.MaxConnections != nil {
+							cp.Rules[i2].Services[i4].Limits.MaxConnections = new(int)
+							*cp.Rules[i2].Services[i4].Limits.MaxConnections = *o.Rules[i2].Services[i4].Limits.MaxConnections
+						}
+						if o.Rules[i2].Services[i4].Limits.MaxPendingRequests != nil {
+							cp.Rules[i2].Services[i4].Limits.MaxPendingRequests = new(int)
+							*cp.Rules[i2].Services[i4].Limits.MaxPendingRequests = *o.Rules[i2].Services[i4].Limits.MaxPendingRequests
+						}
+						if o.Rules[i2].Services[i4].Limits.MaxConcurrentRequests != nil {
+							cp.Rules[i2].Services[i4].Limits.MaxConcurrentRequests = new(int)
+							*cp.Rules[i2].Services[i4].Limits.MaxConcurrentRequests = *o.Rules[i2].Services[i4].Limits.MaxConcurrentRequests
+						}
 					}
 				}
 			}
@@ -1258,6 +1273,22 @@ func (o *TCPRouteConfigEntry) DeepCopy() *TCPRouteConfigEntry {
 		for i2 := range o.Services {
 			if o.Services[i2].TLS != nil {
 				cp.Services[i2].TLS = o.Services[i2].TLS.DeepCopy()
+			}
+			if o.Services[i2].Limits != nil {
+				cp.Services[i2].Limits = new(UpstreamLimits)
+				*cp.Services[i2].Limits = *o.Services[i2].Limits
+				if o.Services[i2].Limits.MaxConnections != nil {
+					cp.Services[i2].Limits.MaxConnections = new(int)
+					*cp.Services[i2].Limits.MaxConnections = *o.Services[i2].Limits.MaxConnections
+				}
+				if o.Services[i2].Limits.MaxPendingRequests != nil {
+					cp.Services[i2].Limits.MaxPendingRequests = new(int)
+					*cp.Services[i2].Limits.MaxPendingRequests = *o.Services[i2].Limits.MaxPendingRequests
+				}
+				if o.Services[i2].Limits.MaxConcurrentRequests != nil {
+					cp.Services[i2].Limits.MaxConcurrentRequests = new(int)
+					*cp.Services[i2].Limits.MaxConcurrentRequests = *o.Services[i2].Limits.MaxConcurrentRequests
+				}
 			}
 		}
 	}
