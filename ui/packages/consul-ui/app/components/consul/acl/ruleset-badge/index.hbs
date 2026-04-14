@@ -1,0 +1,23 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+<span class="consul-acl-ruleset-badge" data-type={{this.type}} aria-label={{this.ariaLabel}} ...attributes>
+  {{#if this.hasIcon}}
+    <Hds::Badge
+      @text={{this.label}}
+      @icon={{this.icon}}
+      @color="neutral"
+      @type="filled"
+      @size="small"
+    />
+  {{else}}
+    <Hds::Badge
+      @text={{this.label}}
+      @color="neutral"
+      @type="filled"
+      @size="small"
+    />
+  {{/if}}
+</span>
