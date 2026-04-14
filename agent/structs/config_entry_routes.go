@@ -252,7 +252,18 @@ func validateHTTPService(service HTTPService, routeHostnames []string) error {
 	if err := validateRouteServiceSDSConfig(service.TLS.SDSOrNil(), true, routeHostnames); err != nil {
 		return err
 	}
-	return validateFilters(service.Filters)
+
+	if err := validateFilters(service.Filters); err != nil {
+		return err
+	}
+
+	if service.Limits != nil {
+		if err := service.Limits.Validate(); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func validateFilters(filter HTTPFilters) error {
@@ -554,6 +565,8 @@ type HTTPService struct {
 
 	// TLS allows overriding listener-level TLS certificate settings for this service.
 	TLS *GatewayServiceTLSConfig `json:",omitempty"`
+	// Limits are upstream circuit-breaker limits applied to this routed service.
+	Limits *UpstreamLimits `json:",omitempty"`
 
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 }
@@ -686,6 +699,22 @@ func (e *TCPRouteConfigEntry) Validate() error {
 		return err
 	}
 
+	for i, service := range e.Services {
+		if err := validateTCPService(service); err != nil {
+			return fmt.Errorf("Service[%d], %w", i, err)
+		}
+	}
+
+	return nil
+}
+
+func validateTCPService(service TCPService) error {
+	if service.Limits != nil {
+		if err := service.Limits.Validate(); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -707,6 +736,8 @@ type TCPService struct {
 
 	// TLS allows overriding listener-level TLS certificate settings for this service.
 	TLS *GatewayServiceTLSConfig `json:",omitempty"`
+	// Limits are upstream circuit-breaker limits applied to this routed service.
+	Limits *UpstreamLimits `json:",omitempty"`
 
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 }

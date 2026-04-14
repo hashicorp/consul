@@ -380,6 +380,22 @@ func (o *configSnapshotAPIGateway) DeepCopy() *configSnapshotAPIGateway {
 				}
 			}
 		}
+		if o.GatewayConfig.Defaults != nil {
+			cp.GatewayConfig.Defaults = new(structs.UpstreamLimits)
+			*cp.GatewayConfig.Defaults = *o.GatewayConfig.Defaults
+			if o.GatewayConfig.Defaults.MaxConnections != nil {
+				cp.GatewayConfig.Defaults.MaxConnections = new(int)
+				*cp.GatewayConfig.Defaults.MaxConnections = *o.GatewayConfig.Defaults.MaxConnections
+			}
+			if o.GatewayConfig.Defaults.MaxPendingRequests != nil {
+				cp.GatewayConfig.Defaults.MaxPendingRequests = new(int)
+				*cp.GatewayConfig.Defaults.MaxPendingRequests = *o.GatewayConfig.Defaults.MaxPendingRequests
+			}
+			if o.GatewayConfig.Defaults.MaxConcurrentRequests != nil {
+				cp.GatewayConfig.Defaults.MaxConcurrentRequests = new(int)
+				*cp.GatewayConfig.Defaults.MaxConcurrentRequests = *o.GatewayConfig.Defaults.MaxConcurrentRequests
+			}
+		}
 		{
 			retV := o.GatewayConfig.Status.DeepCopy()
 			cp.GatewayConfig.Status = *retV

@@ -247,6 +247,9 @@ type APIGatewayConfigEntry struct {
 	// Listeners is the set of listener configuration to which an API Gateway
 	// might bind.
 	Listeners []APIGatewayListener
+
+	// Defaults contains default upstream limits for all route destination services.
+	Defaults *UpstreamLimits `json:",omitempty"`
 	// Status is the asynchronous status which an APIGateway propagates to the user.
 	Status ConfigEntryStatus
 
