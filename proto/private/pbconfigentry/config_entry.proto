@@ -805,7 +805,7 @@ message APIGateway {
   Status Status = 3;
   uint64 Hash = 4;
   GatewayTLSConfig TLS = 5;
-  UpstreamLimits Defaults = 5;
+  UpstreamLimits Defaults = 6;
 }
 
 // mog annotation:
@@ -1157,7 +1157,7 @@ message HTTPService {
   common.EnterpriseMeta EnterpriseMeta = 4;
   HTTPResponseFilters ResponseFilters = 5;
   GatewayServiceTLSConfig TLS = 6;
-  UpstreamLimits Limits = 6;
+  UpstreamLimits Limits = 7;
 }
 
 // mog annotation:
@@ -1184,7 +1184,7 @@ message TCPService {
   // mog: func-to=enterpriseMetaToStructs func-from=enterpriseMetaFromStructs
   common.EnterpriseMeta EnterpriseMeta = 2;
   GatewayServiceTLSConfig TLS = 3;
-  UpstreamLimits Limits = 3;
+  UpstreamLimits Limits = 4;
 }
 
 // mog annotation:

@@ -878,13 +878,13 @@ func HTTPServiceToStructs(s *HTTPService, t *structs.HTTPService) {
 		var x structs.GatewayServiceTLSConfig
 		GatewayServiceTLSConfigToStructs(s.TLS, &x)
 		t.TLS = &x
-		if s.Limits != nil {
-			var x structs.UpstreamLimits
-			UpstreamLimitsToStructs(s.Limits, &x)
-			t.Limits = &x
-		}
-		t.EnterpriseMeta = enterpriseMetaToStructs(s.EnterpriseMeta)
 	}
+	if s.Limits != nil {
+		var x structs.UpstreamLimits
+		UpstreamLimitsToStructs(s.Limits, &x)
+		t.Limits = &x
+	}
+	t.EnterpriseMeta = enterpriseMetaToStructs(s.EnterpriseMeta)
 }
 func HTTPServiceFromStructs(t *structs.HTTPService, s *HTTPService) {
 	if s == nil {
@@ -906,13 +906,13 @@ func HTTPServiceFromStructs(t *structs.HTTPService, s *HTTPService) {
 		var x GatewayServiceTLSConfig
 		GatewayServiceTLSConfigFromStructs(t.TLS, &x)
 		s.TLS = &x
-		if t.Limits != nil {
-			var x UpstreamLimits
-			UpstreamLimitsFromStructs(t.Limits, &x)
-			s.Limits = &x
-		}
-		s.EnterpriseMeta = enterpriseMetaFromStructs(t.EnterpriseMeta)
 	}
+	if t.Limits != nil {
+		var x UpstreamLimits
+		UpstreamLimitsFromStructs(t.Limits, &x)
+		s.Limits = &x
+	}
+	s.EnterpriseMeta = enterpriseMetaFromStructs(t.EnterpriseMeta)
 }
 func HashPolicyToStructs(s *HashPolicy, t *structs.HashPolicy) {
 	if s == nil {
@@ -2647,13 +2647,13 @@ func TCPServiceToStructs(s *TCPService, t *structs.TCPService) {
 		var x structs.GatewayServiceTLSConfig
 		GatewayServiceTLSConfigToStructs(s.TLS, &x)
 		t.TLS = &x
-		if s.Limits != nil {
-			var x structs.UpstreamLimits
-			UpstreamLimitsToStructs(s.Limits, &x)
-			t.Limits = &x
-		}
-		t.EnterpriseMeta = enterpriseMetaToStructs(s.EnterpriseMeta)
 	}
+	if s.Limits != nil {
+		var x structs.UpstreamLimits
+		UpstreamLimitsToStructs(s.Limits, &x)
+		t.Limits = &x
+	}
+	t.EnterpriseMeta = enterpriseMetaToStructs(s.EnterpriseMeta)
 }
 func TCPServiceFromStructs(t *structs.TCPService, s *TCPService) {
 	if s == nil {
@@ -2664,13 +2664,13 @@ func TCPServiceFromStructs(t *structs.TCPService, s *TCPService) {
 		var x GatewayServiceTLSConfig
 		GatewayServiceTLSConfigFromStructs(t.TLS, &x)
 		s.TLS = &x
-		if t.Limits != nil {
-			var x UpstreamLimits
-			UpstreamLimitsFromStructs(t.Limits, &x)
-			s.Limits = &x
-		}
-		s.EnterpriseMeta = enterpriseMetaFromStructs(t.EnterpriseMeta)
 	}
+	if t.Limits != nil {
+		var x UpstreamLimits
+		UpstreamLimitsFromStructs(t.Limits, &x)
+		s.Limits = &x
+	}
+	s.EnterpriseMeta = enterpriseMetaFromStructs(t.EnterpriseMeta)
 }
 func TimeoutFilterToStructs(s *TimeoutFilter, t *structs.TimeoutFilter) {
 	if s == nil {
