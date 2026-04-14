@@ -194,10 +194,33 @@ jobs:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-medium) }}
     continue-on-error: false
     env:
-      CONSUL_IMAGE: hashicorppreview/consul:latest
+      CONSUL_IMAGE: consul:local
       CONSUL_NSPACES_ENABLED: 0
     steps:
       - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+
+      - name: Setup Go
+        uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Build Consul binary (CE)
+        run: |
+          echo "Building Consul binary from source..."
+          make dev
+          ./bin/consul version
+
+      - name: Create Consul Docker image from binary
+        run: |
+          echo "Creating consul:local Docker image..."
+          docker build -t consul:local -f- . <<'EOF'
+          FROM alpine:latest
+          RUN apk add --no-cache ca-certificates curl
+          COPY ./bin/consul /bin/consul
+          ENTRYPOINT ["/bin/consul"]
+          CMD ["agent", "-dev"]
+          EOF
+          docker images | grep consul
 
       - name: Install PNPM
         uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
@@ -244,7 +267,7 @@ jobs:
         working-directory: consul-ui-testing
         run: rm -f .last_consul_version_built
 
-      - name: Start Consul API servers (CE)
+      - name: Start Consul API servers with local binary (CE)
         working-directory: consul-ui-testing
         timeout-minutes: 2
         run: bash "$GITHUB_WORKSPACE/.github/scripts/consul_ui_testing_ci.sh" start CE
@@ -311,11 +334,36 @@ jobs:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-medium) }}
     continue-on-error: false
     env:
-      CONSUL_IMAGE: hashicorppreview/consul-enterprise:latest
+      CONSUL_IMAGE: consul:local
       CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
       CONSUL_NSPACES_ENABLED: 1
     steps:
       - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+
+      - name: Setup Go
+        uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Build Consul Enterprise binary
+        run: |
+          echo "Building Consul Enterprise binary from source..."
+          make dev-build GOARCH=amd64 GOOS=linux
+          ./bin/consul version
+        env:
+          GOTAGS: "consulent"
+
+      - name: Create Consul Enterprise Docker image from binary
+        run: |
+          echo "Creating consul:local Docker image with Enterprise binary..."
+          docker build -t consul:local -f- . <<'EOF'
+          FROM alpine:latest
+          RUN apk add --no-cache ca-certificates curl
+          COPY ./bin/consul /bin/consul
+          ENTRYPOINT ["/bin/consul"]
+          CMD ["agent", "-dev"]
+          EOF
+          docker images | grep consul
 
       - name: Install PNPM
         uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
@@ -362,7 +410,7 @@ jobs:
         working-directory: consul-ui-testing
         run: rm -f .last_consul_version_built
 
-      - name: Start Consul API servers (ENT)
+      - name: Start Consul API servers with local binary (ENT)
         working-directory: consul-ui-testing
         timeout-minutes: 2
         run: bash "$GITHUB_WORKSPACE/.github/scripts/consul_ui_testing_ci.sh" start ENT
