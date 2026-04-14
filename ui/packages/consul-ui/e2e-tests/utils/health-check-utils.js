@@ -47,9 +47,10 @@ function getServices(baseURL = 'http://localhost:8500') {
  */
 async function checkAllServices(baseURL) {
   // Use environment variable if available, otherwise default to 8500
-  const defaultBaseURL = process.env.PLAYWRIGHT_BASE_URL || process.env.BASE_URL || 'http://localhost:8500';
+  const defaultBaseURL =
+    process.env.PLAYWRIGHT_BASE_URL || process.env.BASE_URL || 'http://localhost:8500';
   const effectiveBaseURL = baseURL || defaultBaseURL;
-  
+
   const services = getServices(effectiveBaseURL);
   return await Promise.all(
     services.map(async (s) => ({ ...s, isHealthy: await checkServiceHealth(s.url) }))
