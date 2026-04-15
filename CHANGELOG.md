@@ -17,6 +17,7 @@ IMPROVEMENTS:
 ## 1.22.6 Enterprise (March 23, 2026)
 
 SECURITY:
+
 * security: upgrade envoy version to 1.35.9 and 1.34.13 [[GH-23372](https://github.com/hashicorp/consul/pull/23372)]
 * security: update google.golang.org/grpc to fix CVE-2026-33186 [[GH-23379](https://github.com/hashicorp/consul/pull/23379)]
 * security: upgrade go version to 1.25.8 [[GH-23322](https://github.com/hashicorp/consul/pull/23322)]
@@ -44,6 +45,8 @@ IMPROVEMENTS:
 * ui: Replaced deprecated SideNav component with AppSideNav for improved navigation structure. [[GH-23289](https://github.com/hashicorp/consul/pull/23289)]
 
 ## 1.18.22 Enterprise (March 23, 2026)
+
+Enterprise LTS: Consul Enterprise 1.18 is a Long-Term Support (LTS) release.
 
 SECURITY:
 
