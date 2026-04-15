@@ -19,6 +19,10 @@ import (
 	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
@@ -26,10 +30,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/config"
 	"github.com/hashicorp/consul/agent/xds/response"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/anypb"
-	"google.golang.org/protobuf/types/known/durationpb"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 // routesFromSnapshot returns the xDS API representation of the "routes" in the
@@ -663,6 +663,10 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 	if !skip && upstream != nil {
 		upstreamConfigMap = upstream.Config
 	}
+	destinationPort := ""
+	if upstream != nil {
+		destinationPort = upstream.DestinationPort
+	}
 	rawUpstreamConfig, err := structs.ParseUpstreamConfigNoDefaults(upstreamConfigMap)
 	if err != nil {
 		return nil, err
@@ -691,7 +695,7 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 
 			switch nextNode.Type {
 			case structs.DiscoveryGraphNodeTypeSplitter:
-				ra, agg, err := s.makeRouteActionForSplitterWithFailover(cfgSnap, upstreamsSnapshot, nextNode.Splits, chain, rawUpstreamConfig, forMeshGateway)
+				ra, agg, err := s.makeRouteActionForSplitterWithFailover(cfgSnap, upstreamsSnapshot, nextNode.Splits, chain, rawUpstreamConfig, forMeshGateway, destinationPort)
 				if err != nil {
 					return nil, err
 				}
@@ -699,7 +703,7 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 				isAggregate = agg
 
 			case structs.DiscoveryGraphNodeTypeResolver:
-				ra, ok := s.makeRouteActionForChainCluster(upstreamsSnapshot, nextNode.Resolver.Target, chain, forMeshGateway)
+				ra, ok := s.makeRouteActionForChainCluster(upstreamsSnapshot, nextNode.Resolver.Target, chain, forMeshGateway, destinationPort)
 				if !ok {
 					continue
 				}
@@ -767,7 +771,7 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 		}
 
 	case structs.DiscoveryGraphNodeTypeSplitter:
-		routeAction, err := s.makeRouteActionForSplitter(upstreamsSnapshot, startNode.Splits, chain, forMeshGateway)
+		routeAction, err := s.makeRouteActionForSplitter(upstreamsSnapshot, startNode.Splits, chain, forMeshGateway, destinationPort)
 		if err != nil {
 			return nil, err
 		}
@@ -787,7 +791,7 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 		routes = []*envoy_route_v3.Route{defaultRoute}
 
 	case structs.DiscoveryGraphNodeTypeResolver:
-		routeAction, ok := s.makeRouteActionForChainCluster(upstreamsSnapshot, startNode.Resolver.Target, chain, forMeshGateway)
+		routeAction, ok := s.makeRouteActionForChainCluster(upstreamsSnapshot, startNode.Resolver.Target, chain, forMeshGateway, destinationPort)
 		if !ok {
 			break
 		}
@@ -1052,8 +1056,10 @@ func (s *ResourceGenerator) makeRouteActionForChainCluster(
 	targetID string,
 	chain *structs.CompiledDiscoveryChain,
 	forMeshGateway bool,
+	destinationPort string,
 ) (*envoy_route_v3.Route_Route, bool) {
 	clusterName := s.getTargetClusterName(upstreamsSnapshot, chain, targetID, forMeshGateway)
+	clusterName = destinationPortClusterName(clusterName, destinationPort)
 	if clusterName == "" {
 		return nil, false
 	}
@@ -1075,6 +1081,7 @@ func (s *ResourceGenerator) makeRouteActionForSplitter(
 	splits []*structs.DiscoverySplit,
 	chain *structs.CompiledDiscoveryChain,
 	forMeshGateway bool,
+	destinationPort string,
 ) (*envoy_route_v3.Route_Route, error) {
 	clusters := make([]*envoy_route_v3.WeightedCluster_ClusterWeight, 0, len(splits))
 	for _, split := range splits {
@@ -1086,6 +1093,7 @@ func (s *ResourceGenerator) makeRouteActionForSplitter(
 		targetID := nextNode.Resolver.Target
 
 		clusterName := s.getTargetClusterName(upstreamsSnapshot, chain, targetID, forMeshGateway)
+		clusterName = destinationPortClusterName(clusterName, destinationPort)
 		if clusterName == "" {
 			continue
 		}
@@ -1128,6 +1136,7 @@ func (s *ResourceGenerator) makeRouteActionForSplitterWithFailover(
 	chain *structs.CompiledDiscoveryChain,
 	rawUpstreamConfig structs.UpstreamConfig,
 	forMeshGateway bool,
+	destinationPort string,
 ) (*envoy_route_v3.Route_Route, bool, error) {
 	clusters := make([]*envoy_route_v3.WeightedCluster_ClusterWeight, 0, len(splits))
 	var hasAggregate bool
@@ -1141,7 +1150,7 @@ func (s *ResourceGenerator) makeRouteActionForSplitterWithFailover(
 
 		// Check if this split's resolver has failover (aggregate cluster)
 		upstreamConfig := finalizeUpstreamConfig(rawUpstreamConfig, chain, nextNode.Resolver.ConnectTimeout)
-		mappedTargets, err := s.mapDiscoChainTargets(cfgSnap, chain, nextNode, upstreamConfig, forMeshGateway)
+		mappedTargets, err := s.mapDiscoChainTargets(cfgSnap, chain, nextNode, upstreamConfig, forMeshGateway, destinationPort)
 		if err != nil {
 			s.Logger.Debug("failed to map disco chain targets for split", "error", err)
 		} else if mappedTargets.isAggregateCluster() {
@@ -1151,6 +1160,7 @@ func (s *ResourceGenerator) makeRouteActionForSplitterWithFailover(
 
 		targetID := nextNode.Resolver.Target
 		clusterName := s.getTargetClusterName(upstreamsSnapshot, chain, targetID, forMeshGateway)
+		clusterName = destinationPortClusterName(clusterName, destinationPort)
 		if clusterName == "" {
 			continue
 		}

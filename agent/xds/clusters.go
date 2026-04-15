@@ -86,12 +86,11 @@ func (s *ResourceGenerator) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.C
 	// This sizing is a lower bound.
 	clusters := make([]proto.Message, 0, len(cfgSnap.ConnectProxy.DiscoveryChain)+1)
 
-	// Include the "app" cluster for the public listener
-	appCluster, err := s.makeAppCluster(cfgSnap, xdscommon.LocalAppClusterName, "", cfgSnap.Proxy.LocalServicePort)
+	// Include the "app" cluster(s) for the public listener
+	clusters, err := s.makeProxiedAppClusters(cfgSnap, clusters)
 	if err != nil {
 		return nil, err
 	}
-	clusters = append(clusters, appCluster)
 
 	if cfgSnap.Proxy.Mode == structs.ProxyModeTransparent {
 		passthroughs, err := makePassthroughClusters(cfgSnap, cfgSnap.GetXDSCommonConfig(s.Logger))
@@ -140,7 +139,11 @@ func (s *ResourceGenerator) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.C
 		}
 		cfg := s.getAndModifyUpstreamConfigForPeeredListener(uid, upstream, peerMeta)
 
-		upstreamCluster, err := s.makeUpstreamClusterForPeerService(uid, cfg, peerMeta, cfgSnap)
+		destinationPort := ""
+		if upstream != nil {
+			destinationPort = upstream.DestinationPort
+		}
+		upstreamCluster, err := s.makeUpstreamClusterForPeerService(uid, cfg, peerMeta, cfgSnap, destinationPort)
 		if err != nil {
 			return nil, err
 		}
@@ -729,7 +732,7 @@ func (s *ResourceGenerator) makeGatewayServiceClusters(
 	clusters := make([]proto.Message, 0, len(services))
 
 	for svc := range services {
-		clusterName := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+		baseSNI := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 		resolver, hasResolver := resolvers[svc]
 
 		var loadBalancer *structs.LoadBalancer
@@ -753,19 +756,7 @@ func (s *ResourceGenerator) makeGatewayServiceClusters(
 			isRemote = !cfgSnap.Locality.Matches(services[svc][0].Node.Datacenter, services[svc][0].Node.PartitionOrDefault())
 		}
 
-		opts := clusterOpts{
-			name:              clusterName,
-			hostnameEndpoints: hostnameEndpoints,
-			connectTimeout:    resolver.ConnectTimeout,
-			isRemote:          isRemote,
-			limits:            limits,
-		}
-		cluster := s.makeGatewayCluster(cfgSnap, opts)
-
-		if err := s.injectGatewayServiceAddons(cfgSnap, cluster, svc, loadBalancer); err != nil {
-			return nil, err
-		}
-		clusters = append(clusters, cluster)
+		var err error
 
 		svcConfig, ok := cfgSnap.TerminatingGateway.ServiceConfigs[svc]
 		isHTTP2 := false
@@ -779,10 +770,31 @@ func (s *ResourceGenerator) makeGatewayServiceClusters(
 			isHTTP2 = upstreamCfg.Protocol == "http2" || upstreamCfg.Protocol == "grpc"
 		}
 
-		if isHTTP2 {
-			if err := s.setHttp2ProtocolOptions(cluster); err != nil {
+		var handled bool
+		clusters, handled, err = s.appendEntGatewayServiceClusters(clusters, cfgSnap, svc, baseSNI, hostnameEndpoints, resolver, loadBalancer, limits, isRemote, isHTTP2)
+		if err != nil {
+			return nil, err
+		}
+		if !handled {
+			opts := clusterOpts{
+				name:              baseSNI,
+				hostnameEndpoints: hostnameEndpoints,
+				connectTimeout:    resolver.ConnectTimeout,
+				isRemote:          isRemote,
+				limits:            limits,
+			}
+			cluster := s.makeGatewayCluster(cfgSnap, opts)
+
+			if err := s.injectGatewayServiceAddons(cfgSnap, cluster, svc, loadBalancer); err != nil {
 				return nil, err
 			}
+
+			if isHTTP2 {
+				if err := s.setHttp2ProtocolOptions(cluster); err != nil {
+					return nil, err
+				}
+			}
+			clusters = append(clusters, cluster)
 		}
 
 		// If there is a service-resolver for this service then also setup a cluster for each subset
@@ -1271,6 +1283,7 @@ func (s *ResourceGenerator) makeUpstreamClusterForPeerService(
 	upstreamConfig structs.UpstreamConfig,
 	peerMeta structs.PeeringServiceMeta,
 	cfgSnap *proxycfg.ConfigSnapshot,
+	destinationPort string,
 ) (*envoy_cluster_v3.Cluster, error) {
 	var (
 		c   *envoy_cluster_v3.Cluster
@@ -1298,6 +1311,7 @@ func (s *ResourceGenerator) makeUpstreamClusterForPeerService(
 	}
 
 	clusterName := generatePeeredClusterName(uid, tbs)
+	clusterName = destinationPortClusterName(clusterName, destinationPort)
 
 	outlierDetection := config.ToOutlierDetection(upstreamConfig.PassiveHealthCheck, nil, true)
 	// We can't rely on health checks for services on cluster peers because they
@@ -1374,6 +1388,9 @@ func (s *ResourceGenerator) makeUpstreamClusterForPeerService(
 		rootPEMs,
 		makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSOutgoing()),
 	)
+	if alpnProtocols := destinationPortALPN(destinationPort); len(alpnProtocols) > 0 {
+		commonTLSContext.AlpnProtocols = alpnProtocols
+	}
 	err = injectSANMatcher(commonTLSContext, false, peerMeta.SpiffeID...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to inject SAN matcher rules for cluster %q: %v", clusterName, err)
@@ -1592,7 +1609,11 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 			continue
 		}
 
-		mappedTargets, err := s.mapDiscoChainTargets(cfgSnap, chain, node, upstreamConfig, forMeshGateway)
+		destinationPort := ""
+		if upstream != nil {
+			destinationPort = upstream.DestinationPort
+		}
+		mappedTargets, err := s.mapDiscoChainTargets(cfgSnap, chain, node, upstreamConfig, forMeshGateway, destinationPort)
 		if err != nil {
 			return nil, err
 		}
@@ -1683,16 +1704,23 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 			default:
 				return nil, fmt.Errorf("cannot have more than one target")
 			}
-
-			if targetInfo := groupedTarget.Targets[0]; targetInfo.TLSContext != nil {
-				transportSocket, err := makeUpstreamTLSTransportSocket(targetInfo.TLSContext)
-				if err != nil {
-					return nil, err
-				}
-				c.TransportSocket = transportSocket
+			var handled bool
+			out, handled, err = s.appendEntDiscoveryChainTargetClusters(out, cfgSnap, upstreamsSnapshot, uid, chain, groupedTarget, c, forMeshGateway)
+			if err != nil {
+				return nil, err
 			}
+			if !handled {
 
-			out = append(out, c)
+				if targetInfo := groupedTarget.Targets[0]; targetInfo.TLSContext != nil {
+					transportSocket, err := makeUpstreamTLSTransportSocket(targetInfo.TLSContext)
+					if err != nil {
+						return nil, err
+					}
+					c.TransportSocket = transportSocket
+				}
+
+				out = append(out, c)
+			}
 		}
 	}
 
@@ -1916,6 +1944,9 @@ type clusterOpts struct {
 	addresses []structs.ServiceAddress
 
 	limits *structs.UpstreamLimits
+	// alpnProtocols specifies ALPN protocols for multi-port routing
+	// Used to carry port metadata in TLS handshake
+	alpnProtocols []string
 }
 
 // makeGatewayCluster creates an Envoy cluster for a mesh or terminating gateway
