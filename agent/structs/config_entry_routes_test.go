@@ -27,6 +27,45 @@ func TestTCPRoute(t *testing.T) {
 			},
 			validateErr: "tcp-route currently only supports one service",
 		},
+		"service limits invalid": {
+			entry: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "route-limits",
+				Services: []TCPService{{
+					Name: "foo",
+					Limits: &UpstreamLimits{
+						MaxConnections: intPointer(-1),
+					},
+				}},
+			},
+			validateErr: "Service[0], max connections cannot be negative",
+		},
+		"service pending request limits invalid": {
+			entry: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "route-limits-pending",
+				Services: []TCPService{{
+					Name: "foo",
+					Limits: &UpstreamLimits{
+						MaxPendingRequests: intPointer(-1),
+					},
+				}},
+			},
+			validateErr: "Service[0], max pending requests cannot be negative",
+		},
+		"service concurrent request limits invalid": {
+			entry: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "route-limits-concurrent",
+				Services: []TCPService{{
+					Name: "foo",
+					Limits: &UpstreamLimits{
+						MaxConcurrentRequests: intPointer(-1),
+					},
+				}},
+			},
+			validateErr: "Service[0], max concurrent requests cannot be negative",
+		},
 		"normalize parent kind": {
 			entry: &TCPRouteConfigEntry{
 				Kind: TCPRoute,
@@ -166,6 +205,42 @@ func TestHTTPRoute(t *testing.T) {
 	t.Parallel()
 
 	cases := map[string]configEntryTestcase{
+		"service limits invalid": {
+			entry: &HTTPRouteConfigEntry{
+				Kind: HTTPRoute,
+				Name: "route-limits",
+				Parents: []ResourceReference{{
+					Name: "gateway",
+				}},
+				Rules: []HTTPRouteRule{{
+					Services: []HTTPService{{
+						Name: "svc",
+						Limits: &UpstreamLimits{
+							MaxPendingRequests: intPointer(-1),
+						},
+					}},
+				}},
+			},
+			validateErr: "Rule[0], Service[0], max pending requests cannot be negative",
+		},
+		"service concurrent limits invalid": {
+			entry: &HTTPRouteConfigEntry{
+				Kind: HTTPRoute,
+				Name: "route-limits-concurrent",
+				Parents: []ResourceReference{{
+					Name: "gateway",
+				}},
+				Rules: []HTTPRouteRule{{
+					Services: []HTTPService{{
+						Name: "svc",
+						Limits: &UpstreamLimits{
+							MaxConcurrentRequests: intPointer(-1),
+						},
+					}},
+				}},
+			},
+			validateErr: "Rule[0], Service[0], max concurrent requests cannot be negative",
+		},
 		"normalize parent kind": {
 			entry: &HTTPRouteConfigEntry{
 				Kind: HTTPRoute,

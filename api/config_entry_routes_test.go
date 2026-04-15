@@ -18,6 +18,18 @@ func TestAPI_ConfigEntries_HTTPRoute(t *testing.T) {
 	route1 := &HTTPRouteConfigEntry{
 		Kind: HTTPRoute,
 		Name: "route1",
+		Rules: []HTTPRouteRule{
+			{
+				Services: []HTTPService{
+					{
+						Name: "svc1",
+						Limits: &UpstreamLimits{
+							MaxConnections: intPointer(111),
+						},
+					},
+				},
+			},
+		},
 	}
 
 	route2 := &HTTPRouteConfigEntry{
@@ -50,6 +62,8 @@ func TestAPI_ConfigEntries_HTTPRoute(t *testing.T) {
 	require.Equal(t, route1.Name, readRoute.Name)
 	require.Equal(t, route1.Meta, readRoute.Meta)
 	require.Equal(t, route1.Meta, readRoute.GetMeta())
+	require.NotNil(t, readRoute.Rules[0].Services[0].Limits)
+	require.Equal(t, *route1.Rules[0].Services[0].Limits.MaxConnections, *readRoute.Rules[0].Services[0].Limits.MaxConnections)
 
 	// update it
 	route1.Rules = []HTTPRouteRule{
