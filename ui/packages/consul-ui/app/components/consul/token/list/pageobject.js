@@ -8,9 +8,15 @@ export default (collection, clickable, attribute, text, actions) => () => {
     id: attribute('data-test-token', '[data-test-token]'),
     name: text('[data-test-name]'),
     description: text('[data-test-description]'),
-    policy: text('[data-test-policy][data-type="policy"]', { multiple: true }),
-    role: text('[data-test-policy][data-type="role"]', { multiple: true }),
-    serviceIdentity: text('[data-test-policy][data-type="policy-service-identity"]', { multiple: true }),
+    policy: text('[data-test-policy][data-type="policy"]', {
+      multiple: true,
+    }),
+    role: text('[data-test-policy][data-type="role"]', {
+      multiple: true,
+    }),
+    serviceIdentity: text('[data-test-policy][data-type="policy-service-identity"]', {
+      multiple: true,
+    }),
     token: clickable('a', { at: 0 }),
     ...actions(['edit', 'delete', 'use', 'logout', 'clone']),
   });
