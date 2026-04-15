@@ -25,3 +25,9 @@
 /.node_modules.ember-try/
 /bower.json.ember-try
 /package.json.ember-try
+
+# Ignore e2e test reports
+e2e-tests/reports/
+
+# Ignore e2e test state files
+e2e-tests/auth-state.json
