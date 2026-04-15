@@ -10,7 +10,7 @@ GO_MODULES := $(shell find . -name go.mod -exec dirname {} \; | grep -v "proto-g
 # These version variables can either be a valid string for "go install <module>@<version>"
 # or the string @DEV to imply use what is currently installed locally.
 ###
-GOLANGCI_LINT_VERSION='v2.4.0'
+GOLANGCI_LINT_VERSION='v2.11.4'
 MOCKERY_VERSION='v3.5.2'
 BUF_VERSION='v1.56.0'
 
@@ -18,7 +18,7 @@ PROTOC_GEN_GO_GRPC_VERSION='v1.5.1'
 MOG_VERSION='ee61dbb3714674e897406d364d14c6d2e6b2e89f'
 PROTOC_GO_INJECT_TAG_VERSION='v1.3.0'
 PROTOC_GEN_GO_BINARY_VERSION='v0.1.0'
-DEEP_COPY_VERSION='dc4a8d91ed65656858cd53e6e83bbf7b83d5b7cb'
+DEEP_COPY_VERSION='7cda106f7b4b4e5006f0d663a2f768659809efbc'
 COPYWRITE_TOOL_VERSION='v0.16.4'
 LINT_CONSUL_RETRY_VERSION='v1.4.0'
 # Go imports formatter

@@ -31,10 +31,10 @@ func TestConfigEntries_ListRelatedServices_AndACLs(t *testing.T) {
 	newServiceACL := func(t *testing.T, canRead, canWrite []string) acl.Authorizer {
 		var buf bytes.Buffer
 		for _, s := range canRead {
-			buf.WriteString(fmt.Sprintf("service %q { policy = %q }\n", s, "read"))
+			fmt.Fprintf(&buf, "service %q { policy = %q }\n", s, "read")
 		}
 		for _, s := range canWrite {
-			buf.WriteString(fmt.Sprintf("service %q { policy = %q }\n", s, "write"))
+			fmt.Fprintf(&buf, "service %q { policy = %q }\n", s, "write")
 		}
 
 		policy, err := acl.NewPolicyFromSource(buf.String(), nil, nil)

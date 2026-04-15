@@ -184,7 +184,7 @@ func generateCoreDNSZoneFile(
 	addrs []string,
 ) []byte {
 	var buf bytes.Buffer
-	buf.WriteString(fmt.Sprintf(`
+	fmt.Fprintf(&buf, `
 $TTL 60
 $ORIGIN %[1]s.
 @                   IN	SOA ns.%[1]s. webmaster.%[1]s. (
@@ -196,12 +196,12 @@ $ORIGIN %[1]s.
           )
 @  IN NS ns.%[1]s. ; Name server
 ns IN A  %[2]s     ; self
-`, clusterDNSName, dnsIPAddress))
+`, clusterDNSName, dnsIPAddress)
 
 	for _, addr := range addrs {
-		buf.WriteString(fmt.Sprintf(`
+		fmt.Fprintf(&buf, `
 server IN A %s ; Consul server
-`, addr))
+`, addr)
 	}
 
 	return buf.Bytes()
@@ -212,7 +212,7 @@ func generateCoreDNSVirtualZoneFile(
 	virtualDNSName string,
 ) []byte {
 	var buf bytes.Buffer
-	buf.WriteString(fmt.Sprintf(`
+	fmt.Fprintf(&buf, `
 $TTL 60
 $ORIGIN %[1]s.
 @                   IN	SOA ns.%[1]s. webmaster.%[1]s. (
@@ -224,7 +224,7 @@ $ORIGIN %[1]s.
           )
 @  IN NS ns.%[1]s. ; Name server
 ns IN A  %[2]s     ; self
-`, virtualDNSName, dnsIPAddress))
+`, virtualDNSName, dnsIPAddress)
 
 	return buf.Bytes()
 }
