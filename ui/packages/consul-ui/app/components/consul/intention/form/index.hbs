@@ -17,9 +17,9 @@
   @src={{@src}}
   @onchange={{action this.change}}
   @onsubmit={{action this.onsubmit}}
-as |api|>
+>
 
-    <BlockSlot @name="error" as |after|>
+    <:error as |after err api|>
 {{#if (string-starts-with api.error.detail 'duplicate intention found:')}}
   <Hds::Toast
     @color='critical'
@@ -48,9 +48,9 @@ as |api|>
     </T.Description>
   </Hds::Toast>
   {{/if}}
-    </BlockSlot>
+    </:error>
 
-    <BlockSlot @name="form">
+    <:form as |api|>
 {{#let
   api.data
   (not (can 'write intention' item=api.data))
@@ -215,6 +215,6 @@ as |item readonly|}}
   {{/if}}
 {{/let}}
 
-  </BlockSlot>
+  </:form>
 </DataForm>
 </div>

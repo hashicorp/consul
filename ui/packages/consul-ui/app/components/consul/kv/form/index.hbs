@@ -14,9 +14,8 @@
   @src={{@src}}
   @onchange={{action 'change'}}
   @onsubmit={{action (or @onsubmit this.onsubmit)}}
-  as |api|
 >
-  <BlockSlot @name='content'>
+  <:content as |api|>
     {{#let (cannot 'write kv' item=api.data) as |disabld|}}
       <form onsubmit={{action api.submit}}>
         <fieldset {{disabled (or disabld api.disabled)}}>
@@ -143,5 +142,5 @@
         </Hds::ButtonSet>
       </form>
     {{/let}}
-  </BlockSlot>
+  </:content>
 </DataForm>
