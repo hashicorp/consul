@@ -70,6 +70,9 @@ func (f *prettyFormatter) FormatAuthMethod(method *api.ACLAuthMethod) (string, e
 	if method.TokenLocality != "" {
 		buffer.WriteString(fmt.Sprintf("TokenLocality: %s\n", method.TokenLocality))
 	}
+	if method.TokenNameFormat != "" {
+		buffer.WriteString(fmt.Sprintf("TokenNameFormat: %s\n", method.TokenNameFormat))
+	}
 	if len(method.NamespaceRules) > 0 {
 		buffer.WriteString(fmt.Sprintln("NamespaceRules:"))
 		for _, rule := range method.NamespaceRules {
