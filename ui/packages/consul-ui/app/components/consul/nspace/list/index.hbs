@@ -8,9 +8,8 @@
   ...attributes
   @items={{@items}}
   @linkable="linkable nspace"
-  as |item|
 >
-  <BlockSlot @name="header">
+  <:header as |item|>
     {{#if item.DeletedAt}}
       <p>
         Deleting
@@ -22,8 +21,8 @@
         href={{href-to "dc.nspaces.edit" item.Name}}
       >{{item.Name}}</a>
     {{/if}}
-  </BlockSlot>
-  <BlockSlot @name="details">
+  </:header>
+  <:details as |item|>
     {{#if item.Description}}
       <dl>
         <dt>Description</dt>
@@ -35,8 +34,8 @@
     {{#if (env "CONSUL_ACLS_ENABLED")}}
       <Consul::Token::Ruleset::List @item={{item}} />
     {{/if}}
-  </BlockSlot>
-  <BlockSlot @name="actions" as |Actions|>
+  </:details>
+  <:actions as |item index Actions|>
     {{#if (not item.DeletedAt)}}
       <Actions as |Action|>
         <Action
@@ -78,5 +77,5 @@
         {{/if}}
       </Actions>
     {{/if}}
-  </BlockSlot>
+  </:actions>
 </ListCollection>

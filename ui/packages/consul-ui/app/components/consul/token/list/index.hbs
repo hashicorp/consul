@@ -3,8 +3,8 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-<ListCollection class='consul-token-list' @items={{@items}} as |item|>
-  <BlockSlot @name='header'>
+<ListCollection class='consul-token-list' @items={{@items}}>
+  <:header as |item|>
     {{#if (eq item.AccessorID @token.AccessorID)}}
       <dl rel='me'>
         <dt></dt>
@@ -22,8 +22,8 @@
         {{substr item.AccessorID -8}}
     {{/if}}
     </a>
-  </BlockSlot>
-  <BlockSlot @name='details'>
+  </:header>
+  <:details as |item|>
     <dl>
       <dt>Scope</dt>
       <dd>
@@ -37,8 +37,8 @@
         {{or item.Description item.Name}}
       </dd>
     </dl>
-  </BlockSlot>
-  <BlockSlot @name='actions' as |Actions|>
+  </:details>
+  <:actions as |item index Actions|>
     {{#if item.hasSecretID}}
       <ConsulCopyButton @value={{item.SecretID}} @name={{t 'components.consul.token.secretID'}}>
         {{t 'components.consul.token.secretID'}}
@@ -118,5 +118,5 @@
       {{/if}}
 
     </Actions>
-  </BlockSlot>
+  </:actions>
 </ListCollection>

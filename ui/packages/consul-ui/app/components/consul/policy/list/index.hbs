@@ -3,8 +3,8 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-<ListCollection class='consul-policy-list' @items={{@items}} as |item|>
-  <BlockSlot @name='header'>
+<ListCollection class='consul-policy-list' @items={{@items}}>
+  <:header as |item|>
     {{#if (or (eq (policy/typeof item) 'policy-management') (eq (policy/typeof item) 'read-only'))}}
       <dl class='policy-management'>
         <dt>Type</dt>
@@ -22,8 +22,8 @@
       href={{href-to 'dc.acls.policies.edit' item.ID}}
       class={{if (eq (policy/typeof item) 'policy-management') 'is-management'}}
     >{{item.Name}}</a>
-  </BlockSlot>
-  <BlockSlot @name='details'>
+  </:header>
+  <:details as |item|>
     <dl class='datacenter'>
       <dt {{hds-tooltip "Datacenters" options=(detached-tooltip-options)}}>
         Datacenters
@@ -38,8 +38,8 @@
         {{item.Description}}
       </dd>
     </dl>
-  </BlockSlot>
-  <BlockSlot @name='actions' as |Actions|>
+  </:details>
+  <:actions as |item index Actions|>
     <Actions as |Action|>
       <Action data-test-edit-action @href={{href-to 'dc.acls.policies.edit' item.ID}}>
         <BlockSlot @name='label'>
@@ -69,5 +69,5 @@
         </Action>
       {{/if}}
     </Actions>
-  </BlockSlot>
+  </:actions>
 </ListCollection>
