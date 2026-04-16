@@ -6,9 +6,8 @@
 <ListCollection
   class="consul-lock-session-list"
   ...attributes
-  @items={{@items}}
-as |item index|>
-  <BlockSlot @name="header">
+  @items={{@items}}>
+  <:header as |item index|>
   {{#if item.Name}}
     <span>{{item.Name}}</span>
   {{else}}
@@ -20,8 +19,8 @@ as |item index|>
       />
     </span>
   {{/if}}
-  </BlockSlot>
-  <BlockSlot @name="details">
+  </:header>
+  <:details as |item index|>
     {{#if item.Name}}
     <dl>
       <dt>
@@ -80,8 +79,8 @@ as |item index|>
       </dd>
     </dl>
 {{/let}}
-  </BlockSlot>
-  <BlockSlot @name="actions">
+  </:details>
+  <:actions as |item index|>
     <ConfirmationDialog
       @message="Are you sure you want to invalidate this session?"
     >
@@ -112,5 +111,5 @@ as |item index|>
         </Hds::ButtonSet>
       </BlockSlot>
     </ConfirmationDialog>
-  </BlockSlot>
+  </:actions>
 </ListCollection>

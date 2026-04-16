@@ -8,9 +8,8 @@
   ...attributes
   @items={{@items}}
   @linkable="linkable peers"
-  as |item index|
 >
-  <BlockSlot @name="header">
+  <:header as |item index|>
     {{#if (can "delete peer" item=item)}}
       <a
         data-test-peer={{item.Name}}
@@ -23,8 +22,8 @@
         {{item.Name}}
       </p>
     {{/if}}
-  </BlockSlot>
-  <BlockSlot @name="details">
+  </:header>
+  <:details as |item index|>
     <div class="peers__list__peer-detail">
       <Peerings::Badge @peering={{item}} />
 
@@ -53,8 +52,8 @@
       </div>
 
     </div>
-  </BlockSlot>
-  <BlockSlot @name="actions" as |Actions|>
+  </:details>
+  <:actions as |item index Actions|>
     {{#if (can "delete peer" item=item)}}
 
       <Actions as |Action|>
@@ -95,5 +94,5 @@
         </Action>
       </Actions>
     {{/if}}
-  </BlockSlot>
+  </:actions>
 </ListCollection>
