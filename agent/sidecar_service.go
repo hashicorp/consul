@@ -119,13 +119,7 @@ func sidecarServiceFromNodeService(ns *structs.NodeService, token string) (*stru
 	if sidecar.Proxy.DestinationServiceID == "" {
 		sidecar.Proxy.DestinationServiceID = ns.ID
 	}
-	if len(ns.Ports) > 0 {
-		sidecar.Ports = make(structs.ServicePorts, len(ns.Ports))
-		copy(sidecar.Ports, ns.Ports)
-
-		sidecar.Proxy.LocalServicePorts = make(structs.ServicePorts, len(ns.Ports))
-		copy(sidecar.Proxy.LocalServicePorts, ns.Ports)
-	}
+	copyEnterpriseSidecarServicePorts(sidecar, ns)
 
 	// Fill defaults from NodeService if none of the address components are present.
 	// This really argues for a refactoring to a more generalized 'address' concept.
