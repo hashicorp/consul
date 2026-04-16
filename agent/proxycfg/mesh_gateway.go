@@ -151,6 +151,7 @@ func (s *handlerMeshGateway) initialize(ctx context.Context) (ConfigSnapshot, er
 	snap.MeshGateway.WatchedPeeringServices = make(map[string]map[structs.ServiceName]context.CancelFunc)
 	snap.MeshGateway.WatchedPeers = make(map[string]context.CancelFunc)
 	snap.MeshGateway.PeeringServices = make(map[string]map[structs.ServiceName]PeeringServiceValue)
+	snap.MeshGateway.ServicePorts = make(map[structs.ServiceName][]string)
 
 	// there is no need to initialize the map of service resolvers as we
 	// fully rebuild it every time we get updates
@@ -400,77 +401,8 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u UpdateEvent, sn
 		snap.MeshGateway.ExportedServicesWithPeers = seenServices
 		snap.MeshGateway.ExportedServicesSet = true
 
-		// Decide if we do or do not need our leaf.
-		hasExports := len(snap.MeshGateway.ExportedServicesSlice) > 0
-		if hasExports && snap.MeshGateway.LeafCertWatchCancel == nil {
-			// no watch and we need one
-			ctx, cancel := context.WithCancel(ctx)
-			err := s.dataSources.LeafCertificate.Notify(ctx, &leafcert.ConnectCALeafRequest{
-				Datacenter:     s.source.Datacenter,
-				Token:          s.token,
-				Kind:           structs.ServiceKindMeshGateway,
-				EnterpriseMeta: s.proxyID.EnterpriseMeta,
-			}, leafWatchID, s.ch)
-			if err != nil {
-				cancel()
-				return err
-			}
-			snap.MeshGateway.LeafCertWatchCancel = cancel
-		} else if !hasExports && snap.MeshGateway.LeafCertWatchCancel != nil {
-			// has watch and shouldn't
-			snap.MeshGateway.LeafCertWatchCancel()
-			snap.MeshGateway.LeafCertWatchCancel = nil
-			snap.MeshGateway.Leaf = nil
-		}
-
-		// For each service that we should be exposing, also watch disco chains
-		// in the same manner as an ingress gateway would.
-
-		for _, svc := range snap.MeshGateway.ExportedServicesSlice {
-			if _, ok := snap.MeshGateway.WatchedDiscoveryChains[svc]; ok {
-				continue
-			}
-
-			ctx, cancel := context.WithCancel(ctx)
-			err := s.dataSources.CompiledDiscoveryChain.Notify(ctx, &structs.DiscoveryChainRequest{
-				Datacenter:           s.source.Datacenter,
-				QueryOptions:         structs.QueryOptions{Token: s.token},
-				Name:                 svc.Name,
-				EvaluateInDatacenter: s.source.Datacenter,
-				EvaluateInNamespace:  svc.NamespaceOrDefault(),
-				EvaluateInPartition:  svc.PartitionOrDefault(),
-			}, "discovery-chain:"+svc.String(), s.ch)
-			if err != nil {
-				meshLogger.Error("failed to register watch for discovery chain",
-					"service", svc.String(),
-					"error", err,
-				)
-				cancel()
-				return err
-			}
-
-			snap.MeshGateway.WatchedDiscoveryChains[svc] = cancel
-		}
-
-		// Clean up data from services that were not in the update
-
-		for svc, cancelFn := range snap.MeshGateway.WatchedDiscoveryChains {
-			if _, ok := seenServices[svc]; !ok {
-				cancelFn()
-				delete(snap.MeshGateway.WatchedDiscoveryChains, svc)
-			}
-		}
-
-		// These entries are intentionally handled separately from the
-		// WatchedDiscoveryChains above. There have been situations where a
-		// discovery watch was cancelled, then fired. That update event then
-		// re-populated the DiscoveryChain map entry, which wouldn't get
-		// cleaned up since there was no known watch for it.
-
-		for svc := range snap.MeshGateway.DiscoveryChain {
-			if _, ok := seenServices[svc]; !ok {
-				delete(snap.MeshGateway.DiscoveryChain, svc)
-			}
+		if err := s.refreshMeshGatewayExportedServices(ctx, snap); err != nil {
+			return err
 		}
 
 	case leafWatchID:
@@ -742,8 +674,17 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u UpdateEvent, sn
 
 			if len(resp.Nodes) > 0 {
 				snap.MeshGateway.ServiceGroups[sn] = resp.Nodes
+				// Extract port names from service metadata
+				portNames := parseServicePorts(resp.Nodes)
+				if len(portNames) > 0 {
+					snap.MeshGateway.ServicePorts[sn] = portNames
+				} else {
+					// No ports metadata, clean up any existing port data
+					delete(snap.MeshGateway.ServicePorts, sn)
+				}
 			} else {
 				delete(snap.MeshGateway.ServiceGroups, sn)
+				delete(snap.MeshGateway.ServicePorts, sn)
 			}
 		case strings.HasPrefix(u.CorrelationID, "peering-connect-service:"):
 			resp, ok := u.Result.(*structs.IndexedCheckServiceNodes)
@@ -762,6 +703,14 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u UpdateEvent, sn
 					if _, ok := snap.MeshGateway.PeeringServices[peer]; !ok {
 						snap.MeshGateway.PeeringServices[peer] = make(map[structs.ServiceName]PeeringServiceValue)
 					}
+					// Extract port names from service metadata (same as connect-service handler)
+					portNames := parseServicePorts(resp.Nodes)
+					if len(portNames) > 0 {
+						snap.MeshGateway.ServicePorts[sn] = portNames
+					} else {
+						// No ports metadata, clean up any existing port data
+						delete(snap.MeshGateway.ServicePorts, sn)
+					}
 
 					if eps := hostnameEndpoints(s.logger, GatewayKey{}, resp.Nodes); len(eps) > 0 {
 						snap.MeshGateway.PeeringServices[peer][sn] = PeeringServiceValue{
@@ -775,6 +724,7 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u UpdateEvent, sn
 					}
 				} else if _, ok := snap.MeshGateway.PeeringServices[peer]; ok {
 					delete(snap.MeshGateway.PeeringServices[peer], sn)
+					delete(snap.MeshGateway.ServicePorts, sn)
 				}
 			}
 
@@ -823,6 +773,83 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u UpdateEvent, sn
 	return nil
 }
 
+func (s *handlerMeshGateway) refreshMeshGatewayExportedServices(ctx context.Context, snap *ConfigSnapshot) error {
+	meshLogger := s.logger.Named(logging.MeshGateway)
+
+	allServices := make(map[structs.ServiceName]struct{})
+	for svc := range snap.MeshGateway.ExportedServicesWithPeers {
+		allServices[svc] = struct{}{}
+	}
+	s.addEntExportedServices(allServices, snap)
+
+	exportedServices := maps.SliceOfKeys(allServices)
+	structs.ServiceList(exportedServices).Sort()
+
+	snap.MeshGateway.ExportedServicesSlice = exportedServices
+	snap.MeshGateway.ExportedServicesSet = true
+
+	hasExports := len(exportedServices) > 0
+	if hasExports && snap.MeshGateway.LeafCertWatchCancel == nil {
+		notifyCtx, cancel := context.WithCancel(ctx)
+		err := s.dataSources.LeafCertificate.Notify(notifyCtx, &leafcert.ConnectCALeafRequest{
+			Datacenter:     s.source.Datacenter,
+			Token:          s.token,
+			Kind:           structs.ServiceKindMeshGateway,
+			EnterpriseMeta: s.proxyID.EnterpriseMeta,
+		}, leafWatchID, s.ch)
+		if err != nil {
+			cancel()
+			return err
+		}
+		snap.MeshGateway.LeafCertWatchCancel = cancel
+	} else if !hasExports && snap.MeshGateway.LeafCertWatchCancel != nil {
+		snap.MeshGateway.LeafCertWatchCancel()
+		snap.MeshGateway.LeafCertWatchCancel = nil
+		snap.MeshGateway.Leaf = nil
+	}
+
+	for _, svc := range exportedServices {
+		if _, ok := snap.MeshGateway.WatchedDiscoveryChains[svc]; ok {
+			continue
+		}
+
+		notifyCtx, cancel := context.WithCancel(ctx)
+		err := s.dataSources.CompiledDiscoveryChain.Notify(notifyCtx, &structs.DiscoveryChainRequest{
+			Datacenter:           s.source.Datacenter,
+			QueryOptions:         structs.QueryOptions{Token: s.token},
+			Name:                 svc.Name,
+			EvaluateInDatacenter: s.source.Datacenter,
+			EvaluateInNamespace:  svc.NamespaceOrDefault(),
+			EvaluateInPartition:  svc.PartitionOrDefault(),
+		}, "discovery-chain:"+svc.String(), s.ch)
+		if err != nil {
+			meshLogger.Error("failed to register watch for discovery chain",
+				"service", svc.String(),
+				"error", err,
+			)
+			cancel()
+			return err
+		}
+
+		snap.MeshGateway.WatchedDiscoveryChains[svc] = cancel
+	}
+
+	for svc, cancelFn := range snap.MeshGateway.WatchedDiscoveryChains {
+		if _, ok := allServices[svc]; !ok {
+			cancelFn()
+			delete(snap.MeshGateway.WatchedDiscoveryChains, svc)
+		}
+	}
+
+	for svc := range snap.MeshGateway.DiscoveryChain {
+		if _, ok := allServices[svc]; !ok {
+			delete(snap.MeshGateway.DiscoveryChain, svc)
+		}
+	}
+
+	return nil
+}
+
 func peerHostnamesAndIPs(logger hclog.Logger, peerName string, addresses []string) ([]structs.ServiceAddress, []structs.ServiceAddress) {
 	var (
 		hostnames []structs.ServiceAddress
@@ -858,4 +885,71 @@ func peerHostnamesAndIPs(logger hclog.Logger, peerName string, addresses []strin
 			"peer", peerName)
 	}
 	return hostnames, ips
+}
+
+// parseServicePorts extracts named port information from service instances.
+// It prefers the canonical Service.Ports field and falls back to the legacy
+// service metadata "ports" format used by earlier multiport experiments.
+func parseServicePorts(nodes structs.CheckServiceNodes) []string {
+	var portNames []string
+
+	for _, node := range nodes {
+		if node.Service == nil {
+			continue
+		}
+
+		if len(node.Service.Ports) > 0 {
+			for _, port := range node.Service.Ports {
+				if port.Name == "" {
+					continue
+				}
+				portNames = append(portNames, port.Name)
+			}
+			if len(portNames) > 0 {
+				break
+			}
+		}
+
+		if node.Service.Meta == nil {
+			continue
+		}
+
+		portsStr, ok := node.Service.Meta["ports"]
+		if !ok || portsStr == "" {
+			continue
+		}
+
+		// Parse format: "api:8080,admin:9090,metrics:9102"
+		pairs := strings.Split(portsStr, ",")
+		for _, pair := range pairs {
+			pair = strings.TrimSpace(pair)
+			if pair == "" {
+				continue
+			}
+
+			parts := strings.Split(pair, ":")
+			if len(parts) != 2 {
+				continue
+			}
+
+			portName := strings.TrimSpace(parts[0])
+			portNumStr := strings.TrimSpace(parts[1])
+			if portName == "" || strings.ContainsAny(portName, ".:") {
+				continue
+			}
+
+			portNum, err := strconv.Atoi(portNumStr)
+			if err != nil || portNum <= 0 || portNum > 65535 {
+				continue
+			}
+
+			portNames = append(portNames, portName)
+		}
+
+		if len(portNames) > 0 {
+			break
+		}
+	}
+
+	return portNames
 }

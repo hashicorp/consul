@@ -12,6 +12,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/hashicorp/go-memdb"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/netutil"
@@ -21,7 +23,6 @@ import (
 	"github.com/hashicorp/consul/lib/maps"
 	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-memdb"
 )
 
 const (
@@ -922,6 +923,9 @@ func ensureServiceTxn(tx WriteTxn, idx uint64, node string, preserveIndexes bool
 				svc.TaggedAddresses = make(map[string]structs.ServiceAddress)
 			}
 			svc.TaggedAddresses[structs.TaggedAddressVirtualIP] = structs.ServiceAddress{Address: vip, Port: svc.Port}
+			if err := assignServicePortVirtualIPs(tx, idx, sn, svc); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -994,6 +998,7 @@ func ensureServiceTxn(tx WriteTxn, idx uint64, node string, preserveIndexes bool
 
 // assignServiceVirtualIP assigns a virtual IP to the target service and updates
 // the global virtual IP counter if necessary.
+// It is also used at port+service level virtual ip assignment
 func assignServiceVirtualIP(tx WriteTxn, idx uint64, psn structs.PeeredServiceName) (string, error) {
 	serviceVIP, err := tx.First(tableServiceVirtualIPs, indexID, psn)
 	if err != nil {
@@ -2257,6 +2262,9 @@ func freeServiceVirtualIP(
 	newEntry := FreeVirtualIP{IP: serviceVIP.(ServiceVirtualIP).IP}
 	if err := tx.Insert(tableFreeVirtualIPs, newEntry); err != nil {
 		return fmt.Errorf("failed updating freed virtual IP table: %v", err)
+	}
+	if err := freeServicePortVirtualIPs(tx, q); err != nil {
+		return err
 	}
 
 	if err := updateVirtualIPMaxIndexes(tx, idx, psn.ServiceName.PartitionOrDefault(), psn.Peer); err != nil {

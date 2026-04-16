@@ -18,6 +18,10 @@ func (o *ConfigSnapshot) DeepCopy() *ConfigSnapshot {
 		cp.ServiceLocality = new(structs.Locality)
 		*cp.ServiceLocality = *o.ServiceLocality
 	}
+	if o.Ports != nil {
+		cp.Ports = make([]structs.ServicePort, len(o.Ports))
+		copy(cp.Ports, o.Ports)
+	}
 	if o.ServiceMeta != nil {
 		cp.ServiceMeta = make(map[string]string, len(o.ServiceMeta))
 		for k2, v2 := range o.ServiceMeta {
@@ -713,6 +717,17 @@ func (o *configSnapshotMeshGateway) DeepCopy() *configSnapshotMeshGateway {
 			cp.ExportedServicesWithPeers[k2] = cp_ExportedServicesWithPeers_v2
 		}
 	}
+	if o.ExportedServicesWithPartitions != nil {
+		cp.ExportedServicesWithPartitions = make(map[structs.ServiceName][]string, len(o.ExportedServicesWithPartitions))
+		for k2, v2 := range o.ExportedServicesWithPartitions {
+			var cp_ExportedServicesWithPartitions_v2 []string
+			if v2 != nil {
+				cp_ExportedServicesWithPartitions_v2 = make([]string, len(v2))
+				copy(cp_ExportedServicesWithPartitions_v2, v2)
+			}
+			cp.ExportedServicesWithPartitions[k2] = cp_ExportedServicesWithPartitions_v2
+		}
+	}
 	if o.DiscoveryChain != nil {
 		cp.DiscoveryChain = make(map[structs.ServiceName]*structs.CompiledDiscoveryChain, len(o.DiscoveryChain))
 		for k2, v2 := range o.DiscoveryChain {
@@ -754,6 +769,17 @@ func (o *configSnapshotMeshGateway) DeepCopy() *configSnapshotMeshGateway {
 			if o.PeeringTrustBundles[i2] != nil {
 				cp.PeeringTrustBundles[i2] = o.PeeringTrustBundles[i2].DeepCopy()
 			}
+		}
+	}
+	if o.ServicePorts != nil {
+		cp.ServicePorts = make(map[structs.ServiceName][]string, len(o.ServicePorts))
+		for k2, v2 := range o.ServicePorts {
+			var cp_ServicePorts_v2 []string
+			if v2 != nil {
+				cp_ServicePorts_v2 = make([]string, len(v2))
+				copy(cp_ServicePorts_v2, v2)
+			}
+			cp.ServicePorts[k2] = cp_ServicePorts_v2
 		}
 	}
 	if o.Limits != nil {

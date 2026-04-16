@@ -57,7 +57,14 @@ func (ft discoChainTargets) groupedTargets() ([]discoChainTargetGroup, error) {
 	}
 }
 
-func (s *ResourceGenerator) mapDiscoChainTargets(cfgSnap *proxycfg.ConfigSnapshot, chain *structs.CompiledDiscoveryChain, node *structs.DiscoveryGraphNode, upstreamConfig structs.UpstreamConfig, forMeshGateway bool) (discoChainTargets, error) {
+func (s *ResourceGenerator) mapDiscoChainTargets(
+	cfgSnap *proxycfg.ConfigSnapshot,
+	chain *structs.CompiledDiscoveryChain,
+	node *structs.DiscoveryGraphNode,
+	upstreamConfig structs.UpstreamConfig,
+	forMeshGateway bool,
+	destinationPort string,
+) (discoChainTargets, error) {
 	failoverTargets := discoChainTargets{}
 
 	if node.Resolver == nil {
@@ -70,7 +77,8 @@ func (s *ResourceGenerator) mapDiscoChainTargets(cfgSnap *proxycfg.ConfigSnapsho
 		return discoChainTargets{}, err
 	}
 
-	failoverTargets.baseClusterName = s.getTargetClusterName(upstreamsSnapshot, chain, primaryTargetID, forMeshGateway)
+	baseClusterName := s.getTargetClusterName(upstreamsSnapshot, chain, primaryTargetID, forMeshGateway)
+	failoverTargets.baseClusterName = destinationPortClusterName(baseClusterName, destinationPort)
 
 	tids := []string{primaryTargetID}
 	failover := node.Resolver.Failover
@@ -131,7 +139,9 @@ func (s *ResourceGenerator) mapDiscoChainTargets(cfgSnap *proxycfg.ConfigSnapsho
 			rootPEMs,
 			makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSOutgoing()),
 		)
-
+		if alpnProtocols := destinationPortALPN(destinationPort); len(alpnProtocols) > 0 {
+			commonTLSContext.AlpnProtocols = alpnProtocols
+		}
 		err := injectSANMatcher(commonTLSContext, false, spiffeIDs...)
 		if err != nil {
 			return failoverTargets, fmt.Errorf("failed to inject SAN matcher rules for cluster %q: %v", sni, err)

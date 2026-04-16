@@ -221,3 +221,153 @@ func TestTargetSNI(t *testing.T) {
 			Datacenter:    "foo",
 		}), testTrustDomain2))
 }
+
+func TestClusterNameWithPort(t *testing.T) {
+	tests := []struct {
+		name     string
+		portName string
+		sni      string
+		expected string
+	}{
+		{
+			name:     "empty port name returns sni unchanged",
+			portName: "",
+			sni:      "api.default.dc1.internal.consul",
+			expected: "api.default.dc1.internal.consul",
+		},
+		{
+			name:     "valid port name prefixes sni",
+			portName: "api-port",
+			sni:      "api.default.dc1.internal.consul",
+			expected: "api-port.api.default.dc1.internal.consul",
+		},
+		{
+			name:     "port name with hyphen",
+			portName: "admin-port",
+			sni:      "service.default.dc1.internal.consul",
+			expected: "admin-port.service.default.dc1.internal.consul",
+		},
+		{
+			name:     "port name with underscore",
+			portName: "metrics_port",
+			sni:      "service.default.dc1.internal.consul",
+			expected: "metrics_port.service.default.dc1.internal.consul",
+		},
+		{
+			name:     "port name with period returns sni unchanged",
+			portName: "invalid.port",
+			sni:      "api.default.dc1.internal.consul",
+			expected: "api.default.dc1.internal.consul",
+		},
+		{
+			name:     "numeric port name",
+			portName: "8080",
+			sni:      "api.default.dc1.internal.consul",
+			expected: "8080.api.default.dc1.internal.consul",
+		},
+		{
+			name:     "alphanumeric port name",
+			portName: "port8080",
+			sni:      "api.default.dc1.internal.consul",
+			expected: "port8080.api.default.dc1.internal.consul",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := ClusterNameWithPort(tt.portName, tt.sni)
+			require.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestALPNProtocolForPort(t *testing.T) {
+	tests := []struct {
+		name     string
+		portName string
+		expected string
+	}{
+		{
+			name:     "empty port name returns empty string",
+			portName: "",
+			expected: "",
+		},
+		{
+			name:     "valid port name",
+			portName: "api-port",
+			expected: "consul~api-port",
+		},
+		{
+			name:     "port name with hyphen",
+			portName: "admin-port",
+			expected: "consul~admin-port",
+		},
+		{
+			name:     "port name with underscore",
+			portName: "metrics_port",
+			expected: "consul~metrics_port",
+		},
+		{
+			name:     "numeric port name",
+			portName: "8080",
+			expected: "consul~8080",
+		},
+		{
+			name:     "alphanumeric port name",
+			portName: "port8080",
+			expected: "consul~port8080",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := ALPNProtocolForPort(tt.portName)
+			require.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestALPNRoundTrip(t *testing.T) {
+	tests := []struct {
+		name     string
+		portName string
+	}{
+		{
+			name:     "api-port",
+			portName: "api-port",
+		},
+		{
+			name:     "admin-port",
+			portName: "admin-port",
+		},
+		{
+			name:     "metrics_port",
+			portName: "metrics_port",
+		},
+		{
+			name:     "numeric port",
+			portName: "8080",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			alpn := ALPNProtocolForPort(tt.portName)
+			require.Equal(t, "consul~"+tt.portName, alpn)
+		})
+	}
+}
+
+func TestClusterNameWithPortIntegration(t *testing.T) {
+	// Test integration with ServiceSNI
+	sni := ServiceSNI("api", "", "default", "", "dc1", testTrustDomain1)
+	require.Equal(t, "api.default.dc1."+testTrustDomainSuffix1, sni)
+
+	// Add port prefix
+	clusterName := ClusterNameWithPort("api-port", sni)
+	require.Equal(t, "api-port.api.default.dc1."+testTrustDomainSuffix1, clusterName)
+
+	// Verify backward compatibility (empty port name)
+	clusterNameCompat := ClusterNameWithPort("", sni)
+	require.Equal(t, sni, clusterNameCompat)
+}

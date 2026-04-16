@@ -546,6 +546,7 @@ type Upstream struct {
 	DestinationPartition *string `mapstructure:"destination_partition"`
 	DestinationPeer      *string `mapstructure:"destination_peer"`
 	DestinationName      *string `mapstructure:"destination_name"`
+	DestinationPort      *string `mapstructure:"destination_port"`
 
 	// Datacenter that the service discovery request should be run against. Note
 	// for prepared queries, the actual results might be from a different
