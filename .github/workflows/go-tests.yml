@@ -4,10 +4,8 @@ on:
   pull_request:
     branches-ignore:
       - stable-website
-      - 'docs/**'
       - 'ui/**'
       - 'mktg-**' # Digital Team Terraform-generated branches' prefix
-      - 'backport/docs/**'
       - 'backport/ui/**'
       - 'backport/mktg-**'
   push:
