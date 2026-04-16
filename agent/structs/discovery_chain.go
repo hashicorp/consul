@@ -63,6 +63,36 @@ type CompiledDiscoveryChain struct {
 	ManualVirtualIPs []string
 }
 
+func (c *CompiledDiscoveryChain) GetHash() uint64 {
+	return hashValue(c)
+}
+
+func (c *CompiledDiscoveryChain) appendHash(h *customHasher) {
+	h.addString(c.ServiceName).
+		addString(c.Namespace).
+		addString(c.Partition).
+		addString(c.Datacenter).
+		addString(c.CustomizationHash).
+		addBool(c.Default).
+		addString(c.Protocol).
+		addString(c.StartNode)
+	addSortedStringKeyMap(h, c.ServiceMeta, func(h *customHasher, key string, value string) {
+		h.addString(key)
+		h.addString(value)
+	})
+	addSlice(h, c.EnvoyExtensions, func(h *customHasher, value EnvoyExtension) {
+		h.addUint64(value.getHash())
+	})
+	addSortedStringKeyOptionalValueMap(h, c.Nodes)
+	addSortedStringKeyOptionalValueMap(h, c.Targets)
+	addSlice(h, c.AutoVirtualIPs, func(h *customHasher, value string) {
+		h.addString(value)
+	})
+	addSlice(h, c.ManualVirtualIPs, func(h *customHasher, value string) {
+		h.addString(value)
+	})
+}
+
 // ID returns an ID that encodes the service, namespace, partition, and datacenter.
 // This ID allows us to compare a discovery chain target to the chain upstream itself.
 func (c *CompiledDiscoveryChain) ID() string {
@@ -103,6 +133,19 @@ type DiscoveryGraphNode struct {
 	LoadBalancer *LoadBalancer `json:",omitempty"`
 }
 
+func (c *DiscoveryGraphNode) getHash() uint64 {
+	return hashValue(c)
+}
+
+func (c *DiscoveryGraphNode) appendHash(h *customHasher) {
+	h.addString(c.Type).
+		addString(c.Name)
+	addOptionalValueSlice(h, c.Routes)
+	addOptionalValueSlice(h, c.Splits)
+	addOptionalValue(h, c.Resolver)
+	addOptionalValue(h, c.LoadBalancer)
+}
+
 func (s *DiscoveryGraphNode) IsRouter() bool {
 	return s.Type == DiscoveryGraphNodeTypeRouter
 }
@@ -126,6 +169,18 @@ type DiscoveryResolver struct {
 	RequestTimeout time.Duration      `json:",omitempty"`
 	Target         string             `json:",omitempty"`
 	Failover       *DiscoveryFailover `json:",omitempty"`
+}
+
+func (c *DiscoveryResolver) getHash() uint64 {
+	return hashValue(c)
+}
+
+func (c *DiscoveryResolver) appendHash(h *customHasher) {
+	h.addBool(c.Default).
+		addDuration(c.ConnectTimeout).
+		addDuration(c.RequestTimeout).
+		addString(c.Target)
+	addOptionalValue(h, c.Failover)
 }
 
 func (r *DiscoveryResolver) MarshalJSON() ([]byte, error) {
@@ -170,6 +225,15 @@ type DiscoveryRoute struct {
 	NextNode   string        `json:",omitempty"`
 }
 
+func (d *DiscoveryRoute) getHash() uint64 {
+	return hashValue(d)
+}
+
+func (d *DiscoveryRoute) appendHash(h *customHasher) {
+	addOptionalValue(h, d.Definition)
+	h.addString(d.NextNode)
+}
+
 // compiled form of ServiceSplit
 type DiscoverySplit struct {
 	Definition *ServiceSplit `json:",omitempty"`
@@ -183,6 +247,16 @@ type DiscoverySplit struct {
 	NextNode string  `json:",omitempty"`
 }
 
+func (d *DiscoverySplit) getHash() uint64 {
+	return hashValue(d)
+}
+
+func (d *DiscoverySplit) appendHash(h *customHasher) {
+	addOptionalValue(h, d.Definition)
+	h.addFloat32(d.Weight).
+		addString(d.NextNode)
+}
+
 // compiled form of ServiceResolverFailover
 type DiscoveryFailover struct {
 	Targets []string                       `json:",omitempty"`
@@ -190,9 +264,31 @@ type DiscoveryFailover struct {
 	Regions []string                       `json:",omitempty"`
 }
 
+func (d *DiscoveryFailover) getHash() uint64 {
+	return hashValue(d)
+}
+
+func (d *DiscoveryFailover) appendHash(h *customHasher) {
+	addSlice(h, d.Targets, func(h *customHasher, value string) {
+		h.addString(value)
+	})
+	addOptionalValue(h, d.Policy)
+	addSlice(h, d.Regions, func(h *customHasher, value string) {
+		h.addString(value)
+	})
+}
+
 // compiled form of ServiceResolverPrioritizeByLocality
 type DiscoveryPrioritizeByLocality struct {
 	Mode string `json:",omitempty"`
+}
+
+func (c *DiscoveryPrioritizeByLocality) getHash() uint64 {
+	return hashValue(c)
+}
+
+func (c *DiscoveryPrioritizeByLocality) appendHash(h *customHasher) {
+	h.addString(c.Mode)
 }
 
 func (pbl *ServiceResolverPrioritizeByLocality) ToDiscovery() *DiscoveryPrioritizeByLocality {
@@ -239,6 +335,29 @@ type DiscoveryTarget struct {
 	Name string `json:",omitempty"`
 
 	PrioritizeByLocality *DiscoveryPrioritizeByLocality `json:",omitempty"`
+}
+
+func (c *DiscoveryTarget) getHash() uint64 {
+	return hashValue(c)
+}
+
+func (c *DiscoveryTarget) appendHash(h *customHasher) {
+	h.addString(c.ID).
+		addString(c.Service).
+		addString(c.ServiceSubset).
+		addString(c.Namespace).
+		addString(c.Partition).
+		addString(c.Datacenter).
+		addString(c.Peer)
+	addOptionalValue(h, c.Locality)
+	h.addUint64(c.MeshGateway.getHash()).
+		addUint64(c.Subset.getHash()).
+		addUint64(c.TransparentProxy.getHash()).
+		addDuration(c.ConnectTimeout).
+		addBool(c.External).
+		addString(c.SNI).
+		addString(c.Name)
+	addOptionalValue(h, c.PrioritizeByLocality)
 }
 
 func (t *DiscoveryTarget) MarshalJSON() ([]byte, error) {
