@@ -137,22 +137,22 @@ var _ time.Month
 `)
 	for _, typ := range v.Types {
 		if typ.Annotation.WriteRequest != "" {
-			buf.WriteString(fmt.Sprintf(tmplWriteRequest, typ.Name, typ.Annotation.WriteRequest))
+			fmt.Fprintf(&buf, tmplWriteRequest, typ.Name, typ.Annotation.WriteRequest)
 		}
 		if typ.Annotation.ReadRequest != "" {
-			buf.WriteString(fmt.Sprintf(tmplReadRequest, typ.Name, typ.Annotation.ReadRequest))
+			fmt.Fprintf(&buf, tmplReadRequest, typ.Name, typ.Annotation.ReadRequest)
 		}
 		if typ.Annotation.TargetDatacenter != "" {
-			buf.WriteString(fmt.Sprintf(tmplTargetDatacenter, typ.Name, typ.Annotation.TargetDatacenter))
+			fmt.Fprintf(&buf, tmplTargetDatacenter, typ.Name, typ.Annotation.TargetDatacenter)
 		}
 		if typ.Annotation.QueryOptions != "" {
-			buf.WriteString(fmt.Sprintf(tmplQueryOptions, typ.Name, typ.Annotation.QueryOptions))
+			fmt.Fprintf(&buf, tmplQueryOptions, typ.Name, typ.Annotation.QueryOptions)
 		}
 		if typ.Annotation.QueryMeta != "" {
-			buf.WriteString(fmt.Sprintf(tmplQueryMeta, typ.Name, typ.Annotation.QueryMeta))
+			fmt.Fprintf(&buf, tmplQueryMeta, typ.Name, typ.Annotation.QueryMeta)
 		}
 		if typ.Annotation.Datacenter != "" {
-			buf.WriteString(fmt.Sprintf(tmplDatacenter, typ.Name, typ.Annotation.Datacenter))
+			fmt.Fprintf(&buf, tmplDatacenter, typ.Name, typ.Annotation.Datacenter)
 		}
 	}
 

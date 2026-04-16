@@ -42,15 +42,15 @@ func newPrettyFormatter() Formatter {
 
 func (*prettyFormatter) Format(info *VersionInfo) (string, error) {
 	var buffer bytes.Buffer
-	buffer.WriteString(fmt.Sprintf("Consul v%s\n", info.HumanVersion))
+	fmt.Fprintf(&buffer, "Consul v%s\n", info.HumanVersion)
 	if info.Revision != "" {
-		buffer.WriteString(fmt.Sprintf("Revision %s\n", info.Revision))
+		fmt.Fprintf(&buffer, "Revision %s\n", info.Revision)
 	}
 
-	buffer.WriteString(fmt.Sprintf("Build Date %s\n", info.BuildDate.Format(time.RFC3339)))
+	fmt.Fprintf(&buffer, "Build Date %s\n", info.BuildDate.Format(time.RFC3339))
 
 	if info.FIPS != "" {
-		buffer.WriteString(fmt.Sprintf("FIPS: %s\n", info.FIPS))
+		fmt.Fprintf(&buffer, "FIPS: %s\n", info.FIPS)
 	}
 
 	var supplement string
@@ -58,8 +58,8 @@ func (*prettyFormatter) Format(info *VersionInfo) (string, error) {
 		supplement = fmt.Sprintf(" (agent will automatically use protocol >%d when speaking to compatible agents)",
 			info.RPC.Default)
 	}
-	buffer.WriteString(fmt.Sprintf("Protocol %d spoken by default, understands %d to %d%s\n",
-		info.RPC.Default, info.RPC.Min, info.RPC.Max, supplement))
+	fmt.Fprintf(&buffer, "Protocol %d spoken by default, understands %d to %d%s\n",
+		info.RPC.Default, info.RPC.Min, info.RPC.Max, supplement)
 
 	return buffer.String(), nil
 }
