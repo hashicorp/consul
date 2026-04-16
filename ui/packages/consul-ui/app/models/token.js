@@ -22,6 +22,7 @@ export default class Token extends Model {
   @attr('boolean') Legacy;
   @attr('boolean') Local;
   @attr('string', { defaultValue: () => '' }) Description;
+
   @attr() meta; // {}
 
   @attr({ defaultValue: () => [] }) Policies;
