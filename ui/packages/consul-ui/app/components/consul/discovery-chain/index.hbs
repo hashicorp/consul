@@ -23,8 +23,9 @@
       {{@chain.ServiceName}}
       Router
       <span
-        {{tooltip
+        {{hds-tooltip
           'Use routers to intercept traffic using Layer 7 criteria such as path prefixes or http headers.'
+          options=(detached-tooltip-options)
         }}
       >
       </span>
@@ -46,8 +47,9 @@
     <h2>
       Splitters
       <span
-        {{tooltip
+        {{hds-tooltip
           'Splitters are configured to split incoming requests across different services or subsets of a single service.'
+          options=(detached-tooltip-options)
         }}
       >
       </span>
@@ -69,8 +71,9 @@
     <h2>
       Resolvers
       <span
-        {{tooltip
+        {{hds-tooltip
           'Resolvers are used to define which instances of a service should satisfy discovery requests.'
+          options=(detached-tooltip-options)
         }}
       >
       </span>
@@ -133,9 +136,9 @@
             }}
 
               <path
-                {{tooltip
+                {{hds-tooltip
                   (concat (round (or item.Weight 0) decimals=2) '%')
-                  options=(hash followCursor=true)
+                  options=(detached-tooltip-options followCursor=true)
                 }}
                 tabindex='-1'                
                 id={{concat 'splitter:' splitter.Name '>' item.NextNode}}

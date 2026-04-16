@@ -1,0 +1,3 @@
+```release-note:improvement
+discovery-chain: removes the use of hashstructure_v2 ([github.com/mitchellh/hashstructure/v2] from compiled discovery chain hashing and replaces it with explicit custom hash implementations.
+```

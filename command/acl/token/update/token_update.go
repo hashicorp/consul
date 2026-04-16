@@ -28,6 +28,7 @@ type cmd struct {
 	http  *flags.HTTPFlags
 	help  string
 
+	name                       string
 	tokenAccessorID            string
 	policyIDs                  []string
 	appendPolicyIDs            []string
@@ -60,6 +61,7 @@ type cmd struct {
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.flags.StringVar(&c.name, "name", "", "Update the token name with this value.")
 	c.flags.BoolVar(&c.showMeta, "meta", false, "Indicates that token metadata such "+
 		"as the content hash and raft indices should be shown for each entry")
 	c.flags.StringVar(&c.tokenAccessorID, "accessor-id", "", "The Accessor ID of the token to update. "+
@@ -174,6 +176,10 @@ func (c *cmd) Run(args []string) int {
 		// add another explicit `-remove-description` flag but it feels like an edge
 		// case that's not going to be critical to anyone.
 		t.Description = c.description
+	}
+
+	if c.name != "" {
+		t.Name = c.name
 	}
 
 	hasAppendServiceFields := len(c.appendServiceIdents) > 0

@@ -29,8 +29,9 @@
       <Peerings::Badge @peering={{item}} />
 
       <div
-        {{tooltip
+        {{hds-tooltip
           (t "routes.dc.peers.index.detail.imported.tooltip" name=item.Name)
+          options=(detached-tooltip-options)
         }}
       >
         {{t
@@ -40,8 +41,9 @@
       </div>
 
       <div
-        {{tooltip
+        {{hds-tooltip
           (t "routes.dc.peers.index.detail.exported.tooltip" name=item.Name)
+          options=(detached-tooltip-options)
         }}
       >
         {{t

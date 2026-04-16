@@ -33,7 +33,7 @@
 {{#if (and (not-eq item.Datacenter @dc) (not-eq item.Datacenter ""))}}
         <dl class="datacenter">
           <dt
-            {{tooltip}}
+            {{hds-tooltip options=(detached-tooltip-options)}}
           >
             Datacenter
           </dt>

@@ -8,17 +8,20 @@
     {{#if (eq item.AccessorID @token.AccessorID)}}
       <dl rel='me'>
         <dt></dt>
-        <dd>
-          <Tooltip @position='top-start'>
-            Your token
-          </Tooltip>
+        <dd {{hds-tooltip "Your token" options=(detached-tooltip-options placement="top-start")}}>
         </dd>
       </dl>
     {{/if}}
     <a
       data-test-token={{item.AccessorID}}
       href={{href-to 'dc.acls.tokens.edit' item.AccessorID}}
-    >{{substr item.AccessorID -8}}</a>
+    >
+    {{#if item.Name}}
+        {{truncate item.Name 100}}
+    {{else}}
+        {{substr item.AccessorID -8}}
+    {{/if}}
+    </a>
   </BlockSlot>
   <BlockSlot @name='details'>
     <dl>
