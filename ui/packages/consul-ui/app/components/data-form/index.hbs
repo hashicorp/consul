@@ -48,17 +48,23 @@
 
       {{yield api}}
     {{#if this.hasError}}
-      <BlockSlot @name="error">
-        <YieldSlot @name="error">
+      <BlockSlot @name="error" as |after err|>
+        {{#if (has-block "error")}}
+          {{yield after err api to="error"}}
+        {{else}}
           {{yield api}}
-        </YieldSlot>
+        {{/if}}
       </BlockSlot>
     {{/if}}
 
       <BlockSlot @name="content">
-        <YieldSlot @name="form">
+        {{#if (has-block "form")}}
+          {{yield api to="form"}}
+        {{else if (has-block "content")}}
+          {{yield api to="content"}}
+        {{else}}
           {{yield api}}
-        </YieldSlot>
+        {{/if}}
       </BlockSlot>
 
 {{/let}}
