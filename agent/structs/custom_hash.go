@@ -99,8 +99,21 @@ func addOptionalValue[T interface {
 
 func addSlice[T any](h *customHasher, values []T, addValue func(*customHasher, T)) *customHasher {
 	h.addUint64(uint64(len(values)))
+
+	// Hash each element independently and sort the element hashes so
+	// the final slice hash is stable regardless of input order.
+	elementHashes := make([]uint64, 0, len(values))
 	for _, value := range values {
-		addValue(h, value)
+		elementHasher := newCustomHasher()
+		addValue(elementHasher, value)
+		elementHashes = append(elementHashes, elementHasher.Sum64())
+	}
+	sort.Slice(elementHashes, func(i, j int) bool {
+		return elementHashes[i] < elementHashes[j]
+	})
+
+	for _, elementHash := range elementHashes {
+		h.addUint64(elementHash)
 	}
 	return h
 }
