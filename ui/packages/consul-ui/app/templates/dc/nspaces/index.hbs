@@ -111,20 +111,20 @@ as |route|>
             <EmptyState
               @login={{route.model.app.login.open}}
             >
-              <BlockSlot @name="header">
+              <:header>
                 <h2>
                   {{t 'routes.dc.namespaces.index.empty.header'
                     items=items.length}}
                 </h2>
-              </BlockSlot>
-              <BlockSlot @name="body">
+              </:header>
+              <:body>
                 <p>
                   {{t 'routes.dc.namespaces.index.empty.body'
                     items=items.length
                     canUseACLs=(can 'use acls')}}
                 </p>
-              </BlockSlot>
-              <BlockSlot @name="actions">
+              </:body>
+              <:actions>
                 <li>
                   <Hds::Link::Standalone
                     @text='Documentation on namespaces'
@@ -143,7 +143,7 @@ as |route|>
                     @size='small'
                   />
                 </li>
-              </BlockSlot>
+              </:actions>
             </EmptyState>
           </collection.Empty>
         </DataCollection>

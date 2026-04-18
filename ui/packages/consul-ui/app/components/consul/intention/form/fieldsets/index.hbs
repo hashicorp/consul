@@ -235,17 +235,17 @@
     />
 {{else}}
     <EmptyState>
-      <BlockSlot @name="header">
+      <:header>
         <h3>
           No permissions yet
         </h3>
-      </BlockSlot>
-      <BlockSlot @name="body">
+      </:header>
+      <:body>
         <p>
           Permissions intercept an Intention's traffic using Layer 7 criteria, such as path prefixes and http headers.
         </p>
-      </BlockSlot>
-      <BlockSlot @name="actions">
+      </:body>
+      <:actions>
         <li>
           <Hds::Link::Standalone
             @text='Documentation'
@@ -264,7 +264,7 @@
             @size='small'
           />
         </li>
-      </BlockSlot>
+      </:actions>
     </EmptyState>
 {{/if}}
   </fieldset>

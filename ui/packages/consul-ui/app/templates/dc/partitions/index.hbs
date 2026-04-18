@@ -111,20 +111,20 @@ as |route|>
             <EmptyState
               @login={{route.model.app.login.open}}
             >
-              <BlockSlot @name="header">
+              <:header>
                 <h2>
                   {{t 'routes.dc.partitions.index.empty.header'
                     items=items.length}}
                 </h2>
-              </BlockSlot>
-              <BlockSlot @name="body">
+              </:header>
+              <:body>
                 <p>
                   {{t 'routes.dc.partitions.index.empty.body'
                     items=items.length
                     canUseACLs=(can 'use acls')}}
                 </p>
-              </BlockSlot>
-              <BlockSlot @name="actions">
+              </:body>
+              <:actions>
                 <li class="docs-link">
                   <Action
                     @href="{{env 'CONSUL_DOCS_URL'}}/enterprise/admin-partitions"
@@ -133,7 +133,7 @@ as |route|>
                     Documentation on Admin Partitions
                   </Action>
                 </li>
-              </BlockSlot>
+              </:actions>
             </EmptyState>
           </collection.Empty>
         </DataCollection>

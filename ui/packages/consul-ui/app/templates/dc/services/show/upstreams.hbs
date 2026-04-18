@@ -86,12 +86,12 @@ as |route|>
           </collection.Collection>
           <collection.Empty>
             <EmptyState>
-              <BlockSlot @name="body">
+              <:body>
                 {{t "routes.dc.services.show.upstreams.empty"
                   items=items.length
                   htmlSafe=true
                 }}
-              </BlockSlot>
+              </:body>
             </EmptyState>
           </collection.Empty>
         </DataCollection>
