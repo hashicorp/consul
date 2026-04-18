@@ -13,16 +13,15 @@
     @label="Namespace"
     @ondelete={{fn this.onDelete @item}}
     @onchange={{fn this.onSubmit @item}}
-    as |writer|
   >
-    <BlockSlot @name="removed" as |after|>
+    <:removed as |after|>
       <Consul::Nspace::Notifications
         {{notification after=(action after)}}
         @type="remove"
       />
-    </BlockSlot>
+    </:removed>
 
-    <BlockSlot @name="content">
+    <:content as |writer|>
 
       {{#let
         (not (can "write nspaces"))
@@ -162,6 +161,6 @@
           </StateChart>
         </form>
       {{/let}}
-    </BlockSlot>
+    </:content>
   </DataWriter>
 </div>

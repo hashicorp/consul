@@ -85,17 +85,16 @@ as |route|>
           }}
           @type="partition"
           @label="Partition"
-          @ondelete={{refreshRoute}}
-        as |writer|>
-          <BlockSlot @name="removed" as |after|>
+          @ondelete={{refreshRoute}}>
+          <:removed as |writer after|>
             <Consul::Partition::Notifications 
               {{notification
                 after=(action after)
               }}
               @type="remove"
             />
-          </BlockSlot>
-          <BlockSlot @name="content">
+          </:removed>
+          <:content as |writer|>
         <DataCollection
           @type="nspace"
           @sort={{sort.value}}
@@ -139,7 +138,7 @@ as |route|>
             </EmptyState>
           </collection.Empty>
         </DataCollection>
-    </BlockSlot>
+    </:content>
   </DataWriter>
   {{/let}}
       </:content>

@@ -116,16 +116,15 @@
               }}
               @type="peer"
               @label="Peer"
-              as |writer|
             >
 
-              <BlockSlot @name="removed" as |after|>
+              <:removed as |after|>
                 <Consul::Peer::Notifications
                   {{notification after=(action after)}}
                   @type="remove"
                 />
-              </BlockSlot>
-              <BlockSlot @name="content">
+              </:removed>
+              <:content as |writer|>
 
                 <ModalDialog
                   @aria={{hash label="Regenerate token"}}
@@ -225,7 +224,7 @@
                     </EmptyState>
                   </collection.Empty>
                 </DataCollection>
-              </BlockSlot>
+              </:content>
             </DataWriter>
           </:content>
         </AppView>

@@ -149,9 +149,8 @@ as |sort filters parent items|}}
           }}
           @type="kv"
           @label="key"
-          @ondelete={{refreshRoute}}
-          as |writer|>
-          <BlockSlot @name="content">
+          @ondelete={{refreshRoute}}>
+          <:content as |writer|>
             <DataCollection
               @type="kv"
               @sort={{sort.value}}
@@ -207,7 +206,7 @@ as |sort filters parent items|}}
                 </EmptyState>
               </collection.Empty>
             </DataCollection>
-          </BlockSlot>
+          </:content>
         </DataWriter>
         {{/let}}
       </:content>
