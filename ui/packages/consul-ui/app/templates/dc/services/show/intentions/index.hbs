@@ -14,12 +14,11 @@ as |route|>
         dc=route.params.dc
         slug=route.params.name
       )
-    }}
-  as |api|>
-    <BlockSlot @name="error">
+    }}>
+    <:error as |api|>
       <ErrorState @error={{api.error}} />
-    </BlockSlot>
-    <BlockSlot @name="loaded">
+    </:error>
+    <:loaded as |api|>
   {{#let
 
     (hash
@@ -143,6 +142,6 @@ as |route|>
         {{/let}}
     </div>
   {{/let}}
-    </BlockSlot>
+    </:loaded>
   </DataLoader>
 </Route>

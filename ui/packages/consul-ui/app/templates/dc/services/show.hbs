@@ -15,17 +15,16 @@ as |route|>
           name=route.params.name
           peer=route.params.peer
         )
-      }}
-    as |loader|>
+      }}>
 
-      <BlockSlot @name="error">
+      <:error as |loader|>
         <AppError
           @error={{loader.error}}
           @login={{route.model.app.login.open}}
         />
-      </BlockSlot>
+      </:error>
 
-      <BlockSlot @name="disconnected" as |after|>
+      <:disconnected as |loader after|>
         {{#if (eq loader.error.status "404")}}
           <Hds::Toast
             @color='warning'
@@ -54,9 +53,9 @@ as |route|>
             <T.Description>An error was returned whilst loading this data, refresh to try again.</T.Description>
           </Hds::Toast>
         {{/if}}
-      </BlockSlot>
+      </:disconnected>
 
-      <BlockSlot @name="loaded">
+      <:loaded as |loader|>
 {{#let
   loader.data
   (get loader.data "firstObject")
@@ -214,6 +213,6 @@ as |items item dc|}}
         </AppView>
   {{/let}}
 {{/let}}
-      </BlockSlot>
+      </:loaded>
     </DataLoader>
 </Route>

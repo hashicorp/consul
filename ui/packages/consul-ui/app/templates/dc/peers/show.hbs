@@ -14,14 +14,13 @@
         name=route.params.name
       )
     }}
-    as |loader|
   >
 
-    <BlockSlot @name="error">
+    <:error as |loader|>
       <AppError @error={{loader.error}} @login={{route.model.app.login.open}} />
-    </BlockSlot>
+    </:error>
 
-    <BlockSlot @name="loaded">
+    <:loaded as |loader|>
       {{#let
         route.params.dc
         route.params.partition
@@ -59,6 +58,6 @@
           </:content>
         </AppView>
       {{/let}}
-    </BlockSlot>
+    </:loaded>
   </DataLoader>
 </Route>

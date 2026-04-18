@@ -15,14 +15,13 @@
         peerId=route.model.peer.id
       )
     }}
-    as |api|
   >
 
-    <BlockSlot @name="error">
+    <:error as |api|>
       <AppError @error={{api.error}} @login={{route.model.app.login.open}} />
-    </BlockSlot>
+    </:error>
 
-    <BlockSlot @name="loaded">
+    <:loaded as |api|>
       {{#let
         (hash
           value=(or this.sortBy "Status:asc")
@@ -137,6 +136,6 @@
           </collection.Empty>
         </DataCollection>
       {{/let}}
-    </BlockSlot>
+    </:loaded>
   </DataLoader>
 </Route>

@@ -18,7 +18,7 @@
   @onchange={{action "setData"}}
   @once={{true}}
 >
-  <BlockSlot @name="loaded">
+  <:loaded>
 
     <DataWriter
       @sink={{uri
@@ -89,5 +89,5 @@
       </:content>
     </DataWriter>
 
-  </BlockSlot>
+  </:loaded>
 </DataLoader>

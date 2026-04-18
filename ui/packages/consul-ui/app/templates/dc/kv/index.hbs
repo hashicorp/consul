@@ -24,16 +24,15 @@ as |route|>
         nspace=route.params.nspace
         dc=route.params.dc
         key=(or route.params.key '/')
-      )}}
-    as |loader|>
+      )}}>
 
-    <BlockSlot @name="error">
+    <:error as |loader|>
       <AppError
         @error={{loader.error}}
         @login={{route.model.app.login.open}}
       />
-    </BlockSlot>
-      <BlockSlot @name="disconnected" as |after|>
+    </:error>
+      <:disconnected as |loader after|>
         {{#if (eq loader.error.status "404")}}
           <Hds::Toast
             @color='warning'
@@ -65,9 +64,9 @@ as |route|>
             </T.Description>
           </Hds::Toast>
         {{/if}}
-      </BlockSlot>
+      </:disconnected>
 
-    <BlockSlot @name="loaded">
+    <:loaded as |loader|>
 {{#let
 
   (hash
@@ -212,6 +211,6 @@ as |sort filters parent items|}}
       </:content>
     </AppView>
 {{/let}}
-    </BlockSlot>
+    </:loaded>
   </DataLoader>
 </Route>

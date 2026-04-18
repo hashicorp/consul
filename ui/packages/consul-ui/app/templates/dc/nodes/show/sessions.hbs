@@ -13,16 +13,16 @@ as |route|>
       dc=route.params.dc
       node=route.params.name
     )
-  }} as |api|>
+  }}>
 
-    <BlockSlot @name="error">
+    <:error as |api|>
       <AppError
         @error={{api.error}}
         @login={{route.model.app.login.open}}
       />
-    </BlockSlot>
+    </:error>
 
-    <BlockSlot @name="loaded">
+    <:loaded as |api|>
 {{#let api.data (refresh-route) as |items refreshRoute|}}
     <div class="tab-section">
       <DataWriter
@@ -118,6 +118,6 @@ as |route|>
       </DataWriter>
     </div>
 {{/let}}
-  </BlockSlot>
+  </:loaded>
 </DataLoader>
 </Route>

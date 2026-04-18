@@ -15,17 +15,17 @@ as |route|>
         dc=route.params.dc
         name=route.params.id
       )
-    }}
-  as |loader|>
+    }}>
+  
 
-    <BlockSlot @name="error">
+    <:error as |loader|>
       <AppError
         @error={{loader.error}}
         @login={{route.model.app.login.open}}
       />
-    </BlockSlot>
+    </:error>
 
-    <BlockSlot @name="loaded">
+    <:loaded as |loader|>
 {{#let
   loader.data
 as |items|}}
@@ -53,7 +53,7 @@ as |items|}}
       <BlockSlot @name="body">
         {{t 'routes.dc.acls.auth-methods.show.binding-rules.index.empty.body'
           htmlSafe=true
-        }}
+        }}>
       </BlockSlot>
       <BlockSlot @name="actions">
         <li class="docs-link">
@@ -65,6 +65,6 @@ as |items|}}
   </div>
 {{/let}}
 
-    </BlockSlot>
+    </:loaded>
   </DataLoader>
 </Route>

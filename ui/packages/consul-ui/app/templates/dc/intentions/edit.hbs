@@ -14,17 +14,16 @@ as |route|>
         dc=route.params.dc
         id=(or route.params.intention_id '')
       )
-    }}
-  as |loader|>
+    }}>
 
-    <BlockSlot @name="error">
+    <:error as |loader|>
         <AppError
           @error={{loader.error}}
           @login={{route.model.app.login.open}}
         />
-    </BlockSlot>
+    </:error>
 
-    <BlockSlot @name="loaded">
+    <:loaded as |loader|>
 {{#let
   loader.data
   (not (can "write intention" item=loader.data))
@@ -60,6 +59,6 @@ as |item readOnly|}}
       </:content>
   </AppView>
 {{/let}}
-  </BlockSlot>
+  </:loaded>
 </DataLoader>
 </Route>

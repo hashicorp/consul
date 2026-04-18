@@ -23,17 +23,16 @@ as |parentKey|}}
         dc=route.params.dc
         key=(if (string-ends-with this.routeName 'create') '' route.params.key)
       )
-    }}
-  as |loader|>
+    }}>
 
-    <BlockSlot @name="error">
+    <:error as |loader|>
       <AppError
         @error={{loader.error}}
         @login={{route.model.app.login.open}}
       />
-    </BlockSlot>
+    </:error>
 
-    <BlockSlot @name="loaded">
+    <:loaded as |loader|>
 {{#let
 
   route.params.dc
@@ -139,7 +138,7 @@ as |parts|}}
     </:content>
   </AppView>
 {{/let}}
-    </BlockSlot>
+    </:loaded>
   </DataLoader>
   {{/let}}
 {{/let}}

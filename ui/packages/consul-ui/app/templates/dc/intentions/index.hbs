@@ -13,17 +13,16 @@ as |route|>
         partition=route.params.partition
         nspace=route.params.nspace
         dc=route.params.dc
-      )}}
-    as |api|>
+      )}}>
 
-    <BlockSlot @name="error">
+    <:error as |api|>
       <AppError
         @error={{api.error}}
         @login={{route.model.app.login.open}}
       />
-    </BlockSlot>
+    </:error>
 
-    <BlockSlot @name="loaded">
+    <:loaded as |api|>
   {{#let
 
     (hash
@@ -158,6 +157,6 @@ as |route|>
     </AppView>
 
   {{/let}}
-    </BlockSlot>
+    </:loaded>
   </DataLoader>
 </Route>
