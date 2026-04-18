@@ -14,13 +14,13 @@ as |items|}}
       <TabularCollection
         data-test-addresses
         class="consul-tagged-addresses"
-        @items={{items}} as |taggedAddress index|
+        @items={{items}}
       >
-          <BlockSlot @name="header">
+          <:header>
             <th>Tag</th>
             <th>Address</th>
-          </BlockSlot>
-          <BlockSlot @name="row">
+          </:header>
+          <:row as |taggedAddress index|>
       {{#let (object-at 1 taggedAddress) as |address|}}
             <td>
               {{object-at 0 taggedAddress}}{{#if (and (eq address.Address route.model.item.Address) (eq address.Port route.model.item.Port))}}&nbsp;<em data-test-address-default>(default)</em>{{/if}}
@@ -29,7 +29,7 @@ as |items|}}
               {{address.Address}}:{{address.Port}}
             </td>
       {{/let}}
-          </BlockSlot>
+          </:row>
       </TabularCollection>
     {{else}}
       <p>
