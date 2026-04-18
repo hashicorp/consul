@@ -3,19 +3,19 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-<TabularCollection class='consul-kv-list' ...attributes @items={{@items}} as |item index|>
-  <BlockSlot @name='header'>
+<TabularCollection class='consul-kv-list' ...attributes @items={{@items}}>
+  <:header>
     <th>Name</th>
-  </BlockSlot>
-  <BlockSlot @name='row'>
+  </:header>
+  <:row as |item index|>
     <td data-test-kv={{item.Key}} class={{if item.isFolder 'folder' 'file'}}>
       <a href={{href-to (if item.isFolder 'dc.kv.folder' 'dc.kv.edit') item.Key}}>{{right-trim
           (left-trim item.Key @parent.Key)
           '/'
         }}</a>
     </td>
-  </BlockSlot>
-  <BlockSlot @name='actions' as |index change checked|>
+  </:row>
+  <:actions as |item index change checked|>
     <PopoverMenu
       @expanded={{if (eq checked index) true false}}
       @onchange={{action change index}}
@@ -63,5 +63,5 @@
         {{/if}}
       </BlockSlot>
     </PopoverMenu>
-  </BlockSlot>
+  </:actions>
 </TabularCollection>

@@ -135,21 +135,21 @@ as |modal|>
     <TabularCollection
         data-test-roles
         @rows={{5}}
-        @items={{sort-by 'CreateTime:desc' 'Name:asc' @items}} as |item index|
+        @items={{sort-by 'CreateTime:desc' 'Name:asc' @items}}
     >
-      <BlockSlot @name="header">
+      <:header>
         <th>Name</th>
         <th>Description</th>
-      </BlockSlot>
-      <BlockSlot @name="row">
+      </:header>
+      <:row as |item index|>
         <td>
           <a href={{href-to 'dc.acls.roles.edit' item.ID}}>{{item.Name}}</a>
         </td>
         <td>
           {{item.Description}}
         </td>
-      </BlockSlot>
-      <BlockSlot @name="actions" as |index change checked|>
+      </:row>
+      <:actions as |item index change checked|>
         <PopoverMenu @expanded={{if (eq checked index) true false}} @onchange={{action change index}} @keyboardAccess={{true}} as |components|>
           <BlockSlot @name="trigger">
             More
@@ -183,7 +183,7 @@ as |modal|>
             {{/if}}
           </BlockSlot>
         </PopoverMenu>
-      </BlockSlot>
+      </:actions>
     </TabularCollection>
   </BlockSlot>
 </ChildSelector>

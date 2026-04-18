@@ -8,9 +8,8 @@
   ...attributes
   @items={{@items}}
   @rowHeight={{59}}
-  as |item index|
 >
-  <BlockSlot @name='header'>
+  <:header>
     <th class='source'>Source</th>
     <th class='intent'>Intention Type</th>
     <th class='destination'>Destination</th>
@@ -19,8 +18,8 @@
       <span {{hds-tooltip "Permissions intercept an Intention's traffic using Layer 7 criteria, such as path prefixes and http headers." options=(detached-tooltip-options)}}></span>
     </th>
     <th class='meta'>Status</th>
-  </BlockSlot>
-  <BlockSlot @name='row'>
+  </:header>
+  <:row as |item index|>
     <td class='source' data-test-intention={{item.ID}}>
       <a
         href={{href-to (or @routeName 'dc.intentions.edit') item.ID}}
@@ -81,8 +80,8 @@
         <Consul::ExternalSource @item={{item}} @label='Managed by CRD' />
       {{/if}}
     </td>
-  </BlockSlot>
-  <BlockSlot @name='actions' as |index change checked|>
+  </:row>
+  <:actions as |item index change checked|>
     <PopoverMenu
       @expanded={{if (eq checked index) true false}}
       @onchange={{action change index}}
@@ -162,5 +161,5 @@
         {{/if}}
       </BlockSlot>
     </PopoverMenu>
-  </BlockSlot>
+  </:actions>
 </TabularCollection>
