@@ -176,15 +176,15 @@
                   <collection.Empty>
                     {{! TODO: do we need to check permissions here or will we receive an error automatically? }}
                     <EmptyState @login={{route.model.app.login.open}}>
-                      <BlockSlot @name="header">
+                      <:header>
                         <h2>
                           {{t
                             "routes.dc.peers.index.empty.header"
                             items=items.length
                           }}
                         </h2>
-                      </BlockSlot>
-                      <BlockSlot @name="body">
+                      </:header>
+                      <:body>
                         <p>
                           {{t
                             "routes.dc.peers.index.empty.body"
@@ -194,8 +194,8 @@
                             htmlSafe=true
                           }}
                         </p>
-                      </BlockSlot>
-                      <BlockSlot @name="actions">
+                      </:body>
+                      <:actions>
                         <li>
                           {{! what's the docs for peering?}}
                           <Hds::Link::Standalone
@@ -219,7 +219,7 @@
                             @size='small'
                           />
                         </li>
-                      </BlockSlot>
+                      </:actions>
                     </EmptyState>
                   </collection.Empty>
                 </DataCollection>

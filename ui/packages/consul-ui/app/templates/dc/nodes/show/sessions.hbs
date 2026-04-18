@@ -74,21 +74,21 @@ as |route|>
               <EmptyState
                 @login={{route.model.app.login.open}}
               >
-              <BlockSlot @name="header">
+              <:header>
                 <h2>
                   {{t 'routes.dc.nodes.show.sessions.empty.header'
                     items=items.length
                   }}
                 </h2>
-              </BlockSlot>
-              <BlockSlot @name="body">
+              </:header>
+              <:body>
                 {{t 'routes.dc.nodes.show.sessions.empty.body'
                   canUseACLs=(can "use acls")
                   htmlSafe=true
                 }}
-              </BlockSlot>
+              </:body>
 
-                <BlockSlot @name="actions">
+                <:actions>
                   <li>
                     <Hds::Link::Standalone
                       @text='Documentation on Lock Sessions'
@@ -107,7 +107,7 @@ as |route|>
                       @size='small'
                     />
                   </li>
-                </BlockSlot>
+                </:actions>
 
               </EmptyState>
             </collection.Empty>

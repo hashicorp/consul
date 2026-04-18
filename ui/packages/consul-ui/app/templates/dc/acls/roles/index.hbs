@@ -97,20 +97,20 @@ as |route|>
             <EmptyState
               @login={{route.model.app.login.open}}
             >
-              <BlockSlot @name="header">
+              <:header>
                 <h2>
                   {{t 'routes.dc.acls.roles.index.empty.header'
                     items=items.length
                   }}
                 </h2>
-              </BlockSlot>
-              <BlockSlot @name="body">
+              </:header>
+              <:body>
                 {{t 'routes.dc.acls.roles.index.empty.body'
                   items=items.length
                   htmlSafe=true
                 }}
-              </BlockSlot>
-              <BlockSlot @name="actions">
+              </:body>
+              <:actions>
                 <li>
                   <Hds::Link::Standalone
                     @text='Documentation on roles'
@@ -129,7 +129,7 @@ as |route|>
                     @size='small'
                   />
                 </li>
-              </BlockSlot>
+              </:actions>
             </EmptyState>
           </collection.Empty>
         </DataCollection>
