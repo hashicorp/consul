@@ -33,9 +33,8 @@
       @type={{@type}}
       @label={{@label}}
       @ondelete={{action this.ondelete}}
-      @onchange={{action this.onsubmit}}
-      as |writer|>
-
+      @onchange={{action this.onsubmit}}>
+      <:error as |after err writer|>
 {{#let (hash
   data=this.data
   change=(action "change")
@@ -46,18 +45,39 @@
   delete=(action writer.delete this.data)
 ) as |api|}}
 
-      {{yield api}}
-    {{#if this.hasError}}
-      <BlockSlot @name="error" as |after err|>
-        {{#if (has-block "error")}}
-          {{yield after err api to="error"}}
-        {{else}}
-          {{yield api}}
-        {{/if}}
-      </BlockSlot>
+    {{#if (has-block "error")}}
+      {{yield after err api to="error"}}
+    {{else}}
+      <Hds::Toast
+        @color='critical'
+        {{notification
+          after=(action after)
+        }} as |T|>
+        <T.Title>Error!</T.Title>
+        <T.Description>There was an error saving your {{or @label @type}}.
+          {{#if (and api.error.status api.error.detail)}}
+            <br />{{api.error.status}}: {{api.error.detail}}
+          {{else if api.error.message}}
+            <br />{{api.error.message}}
+          {{/if}}
+        </T.Description>
+      </Hds::Toast>
     {{/if}}
 
-      <BlockSlot @name="content">
+{{/let}}
+      </:error>
+
+      <:content as |writer|>
+{{#let (hash
+  data=this.data
+  change=(action "change")
+  isCreate=this.create
+  error=writer.error
+  disabled=writer.inflight
+  submit=(action writer.persist this.data)
+  delete=(action writer.delete this.data)
+) as |api|}}
+        {{yield api}}
         {{#if (has-block "form")}}
           {{yield api to="form"}}
         {{else if (has-block "content")}}
@@ -65,10 +85,8 @@
         {{else}}
           {{yield api}}
         {{/if}}
-      </BlockSlot>
-
 {{/let}}
-
+      </:content>
     </DataWriter>
 
   </BlockSlot>

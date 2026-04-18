@@ -20,17 +20,16 @@
     @type='session'
     @label='Lock Session'
     @ondelete={{fn (if @ondelete @ondelete @onsubmit) @item}}
-    @onchange={{fn (optional @onsubmit) @item}}
-    as |writer|>
-      <BlockSlot @name="removed" as |after|>
+    @onchange={{fn (optional @onsubmit) @item}}>
+      <:removed as |after|>
         <Consul::LockSession::Notifications
           {{notification
             after=(action after)
           }}
           @type="remove"
         />
-      </BlockSlot>
-      <BlockSlot @name="error" as |after error|>
+      </:removed>
+      <:error as |after error writer|>
         <Consul::LockSession::Notifications
           {{notification
             after=(action after)
@@ -38,8 +37,8 @@
           @type="remove"
           @error={{error}}
         />
-      </BlockSlot>
-      <BlockSlot @name="content">
+      </:error>
+      <:content as |writer|>
         <div
           class="definition-table"
         >
@@ -109,6 +108,6 @@
           </BlockSlot>
         </ConfirmationDialog>
   {{/if}}
-      </BlockSlot>
+      </:content>
     </DataWriter>
 </div>

@@ -77,9 +77,8 @@ as |route|>
             )
           }}
           @type="intention"
-          @ondelete={{refreshRoute}}
-        as |writer|>
-          <BlockSlot @name="content">
+          @ondelete={{refreshRoute}}>
+          <:content as |writer|>
             <DataCollection
               @type="intention"
               @sort={{sort.value}}
@@ -139,7 +138,7 @@ as |route|>
                 </EmptyState>
               </collection.Empty>
             </DataCollection>
-          </BlockSlot>
+          </:content>
         </DataWriter>
         {{/let}}
     </div>

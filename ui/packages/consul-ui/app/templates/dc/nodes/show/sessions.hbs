@@ -35,19 +35,18 @@ as |route|>
         }}
         @type="session"
         @label="Lock Session"
-        @ondelete={{refreshRoute}}
-      as |writer|>
+        @ondelete={{refreshRoute}}>
 
-        <BlockSlot @name="removed" as |after|>
+        <:removed as |after|>
           <Consul::LockSession::Notifications
             {{notification
               after=(action after)
             }}
             @type="remove"
           />
-        </BlockSlot>
+        </:removed>
 
-        <BlockSlot @name="error" as |after error|>
+        <:error as |after error writer |>
           <Consul::LockSession::Notifications
             {{notification
               after=(action after)
@@ -55,9 +54,9 @@ as |route|>
             @type="remove"
             @error={{error}}
           />
-        </BlockSlot>
+        </:error>
 
-        <BlockSlot @name="content">
+        <:content as |writer|>
 
           <DataCollection
             @type="session"
@@ -115,7 +114,7 @@ as |route|>
 
           </DataCollection>
 
-        </BlockSlot>
+        </:content>
       </DataWriter>
     </div>
 {{/let}}
