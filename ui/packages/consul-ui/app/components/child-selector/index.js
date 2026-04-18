@@ -11,9 +11,7 @@ import { A } from '@ember/array';
 
 import { task } from 'ember-concurrency';
 
-import Slotted from 'block-slots';
-
-export default Component.extend(Slotted, {
+export default Component.extend({
   onchange: function () {},
   tagName: '',
 

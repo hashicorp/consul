@@ -15,11 +15,11 @@
   {{fix-code-block-aria}}
   ...attributes
 >
-  {{yield}}
-  <BlockSlot @name='label' data-test-apply-policy>
-    Apply an existing policy
-  </BlockSlot>
-  <BlockSlot @name='create'>
+  <:default>{{yield}}</:default>
+  <:label>
+    <span data-test-apply-policy>Apply an existing policy</span>
+  </:label>
+  <:create >
     {{#yield-slot name='trigger'}}
       {{yield}}
     {{else}}
@@ -74,11 +74,11 @@
         </BlockSlot>
       </ModalDialog>
     {{/yield-slot}}
-  </BlockSlot>
-  <BlockSlot @name='option' as |option|>
+  </:create>
+  <:option as |option|>
     {{option.Name}}
-  </BlockSlot>
-  <BlockSlot @name='set' as |remove|>
+  </:option>
+  <:set as |remove|>
     <TabularDetails
       data-test-policies
       @onchange={{action 'open'}}
@@ -219,5 +219,5 @@
       </:details>
     </TabularDetails>
 
-  </BlockSlot>
+  </:set>
 </ChildSelector>
