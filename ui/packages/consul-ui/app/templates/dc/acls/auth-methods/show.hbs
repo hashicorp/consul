@@ -13,19 +13,17 @@
         dc=route.params.dc
         name=route.params.id
       )
-    }}
-    as |loader|
-  >
+    }}>
 
-    <BlockSlot @name='error'>
+    <:error as |loader|>
       {{#if (eq loader.error.status '401')}}
         <Consul::Acl::Disabled />
       {{else}}
         <AppError @error={{loader.error}} @login={{route.model.app.login.open}} />
       {{/if}}
-    </BlockSlot>
+    </:error>
 
-    <BlockSlot @name='loaded'>
+    <:loaded as |loader|>
       {{#let loader.data as |item|}}
         <AppView>
           <:breadcrumbs>
@@ -78,6 +76,6 @@
           </:content>
         </AppView>
       {{/let}}
-    </BlockSlot>
+    </:loaded>
   </DataLoader>
 </Route>

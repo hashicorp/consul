@@ -7,17 +7,16 @@
   @name={{this.routeName}}
 as |route|>
   <DataLoader
-  @src={{uri 'settings://consul:client'}}
-  as |loader|>
+  @src={{uri 'settings://consul:client'}}>
 
-    <BlockSlot @name="error">
+    <:error as |loader|>
       <AppError
         @error={{loader.error}}
         @login={{route.model.app.login.open}}
       />
-    </BlockSlot>
+    </:error>
 
-    <BlockSlot @name="loaded">
+    <:loaded as |loader|>
 {{#let
   (or loader.data (hash
       blocking=true
@@ -97,6 +96,6 @@ as |item|}}
     </:content>
   </AppView>
 {{/let}}
-  </BlockSlot>
+  </:loaded>
 </DataLoader>
 </Route>

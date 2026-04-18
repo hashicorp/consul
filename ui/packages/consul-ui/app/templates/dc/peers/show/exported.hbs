@@ -14,19 +14,17 @@
         name=route.model.peer.Name
       )
     }}
-    as |api|
   >
-    {{#let
-      (or route.params.partition route.model.user.token.Partition "default")
-      api.data
-      as |partition items|
-    }}
+    <:error as |api|>
+      <AppError @error={{api.error}} @login={{route.model.app.login.open}} />
+    </:error>
 
-      <BlockSlot @name="error">
-        <AppError @error={{api.error}} @login={{route.model.app.login.open}} />
-      </BlockSlot>
-
-      <BlockSlot @name="loaded">
+    <:loaded as |api|>
+      {{#let
+        (or route.params.partition route.model.user.token.Partition "default")
+        api.data
+        as |partition items|
+      }}
         {{#if items.length}}
           <div class="search-bar">
             <form class="filter-bar">
@@ -134,8 +132,8 @@
           </Providers::Dimension>
 
         </Providers::Search>
-      </BlockSlot>
-    {{/let}}
+      {{/let}}
+    </:loaded>
   </DataLoader>
 
 </Route>
