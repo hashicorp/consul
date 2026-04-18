@@ -83,12 +83,11 @@
       data-test-policies
       @onchange={{action 'open'}}
       @items={{sort-by 'CreateTime:desc' 'Name:asc' @items}}
-      as |item index|
     >
-      <BlockSlot @name='header'>
+      <:header>
         <th>Name</th>
-      </BlockSlot>
-      <BlockSlot @name='row'>
+      </:header>
+      <:row as |item index|>
         <td class={{policy/typeof item}}>
           {{#if item.ID}}
             <a href={{href-to 'dc.acls.policies.edit' item.ID}}>{{item.Name}}</a>
@@ -96,8 +95,8 @@
             <a name={{item.Name}}>{{item.Name}}</a>
           {{/if}}
         </td>
-      </BlockSlot>
-      <BlockSlot @name='details'>
+      </:row>
+      <:details as |item index|>
         {{#if (eq item.template '')}}
           <DataSource
             @src={{uri
@@ -217,7 +216,7 @@
             </ConfirmationDialog>
           </div>
         {{/if}}
-      </BlockSlot>
+      </:details>
     </TabularDetails>
 
   </BlockSlot>
