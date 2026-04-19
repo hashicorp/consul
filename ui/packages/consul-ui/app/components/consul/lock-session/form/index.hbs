@@ -80,15 +80,15 @@
         </div>
   {{#if (can 'delete session' item=@item)}}
         <ConfirmationDialog @message="Are you sure you want to invalidate this Lock Session?">
-          <BlockSlot @name="action" as |confirm|>
+          <:action as |confirm|>
             <Hds::Button
               @text='Invalidate Session'
               @color='critical'
               data-test-delete
               {{on 'click' confirm }}
             />
-          </BlockSlot>
-          <BlockSlot @name="dialog" as |execute cancel message|>
+          </:action>
+          <:dialog as |execute cancel message|>
             <p>
               {{message}}
             </p>
@@ -105,7 +105,7 @@
                 {{on 'click' cancel}}
               />
             </Hds::ButtonSet>
-          </BlockSlot>
+          </:dialog>
         </ConfirmationDialog>
   {{/if}}
       </:content>

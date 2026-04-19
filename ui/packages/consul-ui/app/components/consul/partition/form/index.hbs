@@ -112,21 +112,21 @@ as |State Guard ChartAction dispatch state|>
 
 {{#if (and (not (is "new partition" item=item)) (can "delete partition" item=item))}}
       <ConfirmationDialog @message="Are you sure you want to delete this Partition?">
-        <BlockSlot @name="action" as |confirm|>
+        <:action as |confirm|>
           <Hds::Button
             @text='Delete'
             data-test-delete
             @color='critical'
             {{on 'click' confirm}}
           />
-        </BlockSlot>
-        <BlockSlot @name="dialog" as |execute cancel message|>
+        </:action>
+        <:dialog as |execute cancel message|>
           <DeleteConfirmation
             @message={{message}}
             @execute={{queue execute (fn writer.delete item)}}
             @cancel={{cancel}}
           />
-        </BlockSlot>
+        </:dialog>
       </ConfirmationDialog>
 {{/if}}
     </Hds::ButtonSet>
