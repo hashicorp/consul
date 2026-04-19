@@ -183,7 +183,7 @@
             <ConfirmationDialog
               @message='Are you sure you want to remove this policy from this token?'
             >
-              <BlockSlot @name='action' as |confirm|>
+              <:action as |confirm|>
                 <Hds::Button
                   @text='Remove'
                   @color='critical'
@@ -191,8 +191,8 @@
                   {{action confirm}}
                   data-test-delete
                 />
-              </BlockSlot>
-              <BlockSlot @name='dialog' as |execute cancel message|>
+              </:action>
+              <:dialog as |execute cancel message|>
                 <p>
                   {{message}}
                 </p>
@@ -212,7 +212,7 @@
                     data-test-delete
                   />
                 </Hds::ButtonSet>
-              </BlockSlot>
+              </:dialog>
             </ConfirmationDialog>
           </div>
         {{/if}}

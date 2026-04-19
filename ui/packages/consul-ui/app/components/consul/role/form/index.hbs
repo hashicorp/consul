@@ -60,15 +60,15 @@
 
       {{# if (and (not @create) (can "delete role" item=@item) ) }}
         <ConfirmationDialog @message="Are you sure you want to delete this Role?">
-          <BlockSlot @name="action" as |confirm|>
+          <:action as |confirm|>
             <Hds::Button
               @text='Delete'
               @color='critical'
               {{on 'click' confirm}}
               data-test-delete
             />
-          </BlockSlot>
-          <BlockSlot @name="dialog" as |execute cancel message|>
+          </:action>
+          <:dialog as |execute cancel message|>
             {{#if (gt @items.length 0)}}
               <ModalDialog
                 @onclose={{cancel}}
@@ -108,7 +108,7 @@
             {{else}}
               <DeleteConfirmation @message={{message}} @execute={{queue execute (fn @onDelete @item)}} @cancel={{cancel}} />
             {{/if}}
-          </BlockSlot>
+          </:dialog>
         </ConfirmationDialog>
       {{/if}}
     </Hds::ButtonSet>

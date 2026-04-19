@@ -59,15 +59,15 @@ as |dc partition nspace item create|}}
     <Hds::ButtonSet>
     {{#if (not-eq item.AccessorID this.token.AccessorID)}}
         <ConfirmationDialog @message="Are you sure you want to use this ACL token?">
-          <BlockSlot @name="action" as |confirm|>
+          <:action as |confirm|>
             <Hds::Button
               @text='Use'
               @color='secondary'
               data-test-use
               {{ action confirm }}
             />
-          </BlockSlot>
-          <BlockSlot @name="dialog" as |execute cancel message|>
+          </:action>
+          <:dialog as |execute cancel message|>
             <p>
                 {{message}}
             </p>
@@ -84,7 +84,7 @@ as |dc partition nspace item create|}}
                 {{action cancel}}
               />
             </Hds::ButtonSet>
-          </BlockSlot>
+          </:dialog>
         </ConfirmationDialog>
     {{/if}}
     {{#if (can "duplicate token" item=item)}}
