@@ -101,10 +101,8 @@ as |after|}}
   </State>
 
   {{#if (has-block "content")}}
-    {{log 'hello content with block'}}
     {{yield api to="content"}}
   {{else}}
-    {{log 'hello content without block'}}
     {{yield api}}
   {{/if}}
 
