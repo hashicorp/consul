@@ -1,7 +1,7 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
-name: Nightly test-integrations 2.0.x
+name: Nightly test-integrations 1.19.x
 
 on:
   schedule:
@@ -19,8 +19,8 @@ env:
   # strip the hashicorp/ off the front of github.repository for consul
   CONSUL_LATEST_IMAGE_NAME: ${{ endsWith(github.repository, '-enterprise') && github.repository || 'hashicorp/consul' }}
   GOPRIVATE: github.com/hashicorp # Required for enterprise deps
-  BRANCH: "release/2.0.x"
-  BRANCH_NAME: "release-2.0.x"   # Used for naming artifacts
+  BRANCH: "release/1.19.x"
+  BRANCH_NAME: "release-1.19.x"   # Used for naming artifacts
 
 jobs:
   setup:
@@ -43,12 +43,12 @@ jobs:
   get-go-version:
     uses: ./.github/workflows/reusable-get-go-version.yml
     with:
-      ref: release/2.0.x
+      ref: release/1.19.x
 
   get-envoy-versions:
     uses: ./.github/workflows/reusable-get-envoy-versions.yml
     with:
-      ref: release/2.0.x
+      ref: release/1.19.x
 
   dev-build:
     needs:
@@ -59,7 +59,7 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       uploaded-binary-name: 'consul-bin'
-      branch-name: "release/2.0.x"
+      branch-name: "release/1.19.x"
       go-version: ${{ needs.get-go-version.outputs.go-version }}
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
@@ -214,7 +214,7 @@ jobs:
           DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
           DD_ENV: ci
         run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" $TEST_RESULTS_DIR/results.xml
-
+  
   upgrade-integration-test:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
     needs:
@@ -228,7 +228,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        consul-version: ["1.21", "1.22"]
+        consul-version: ["1.15", "1.17", "1.18", "1.19"]
     env:
       CONSUL_LATEST_VERSION: ${{ matrix.consul-version }}
       # ENVOY_VERSION should be the latest version supported by _all_ Consul versions in the
@@ -241,7 +241,7 @@ jobs:
       # matrix.consul-version (i.e. whenever the highest common Envoy version across active
       # Consul versions changes). The minor Envoy version does not necessarily need to be
       # kept current for the purpose of these tests, but the major (1.N) version should be.
-      ENVOY_VERSION: 1.34.7
+      ENVOY_VERSION: 1.27.6
     steps:
       - name: Checkout code
         uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
@@ -364,7 +364,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        consul-version: ["1.21", "1.22"]
+        consul-version: ["1.15", "1.17", "1.18"]
     env:
       CONSUL_LATEST_VERSION: ${{ matrix.consul-version }}
     steps:
@@ -444,7 +444,7 @@ jobs:
         run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" $TEST_RESULTS_DIR/results.xml
 
   test-integrations-success:
-    needs:
+    needs: 
     - setup
     - dev-build
     - generate-envoy-job-matrices
