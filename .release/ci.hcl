@@ -15,6 +15,7 @@ project "consul" {
     release_branches = [
       "main",
       "release/**",
+      "backport/cve_sup",
     ]
   }
 }
