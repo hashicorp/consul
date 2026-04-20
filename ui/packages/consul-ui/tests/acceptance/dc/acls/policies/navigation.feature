@@ -11,5 +11,5 @@ Feature: dc / policies / navigation
     And the title should be "Policies - Consul"
     Then I see 3 policy models
     When I click policy on the policies
-    And I click "[data-test-back]"
+    And I click "[data-test-back] a"
     Then the url should be /dc-1/acls/policies
