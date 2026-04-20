@@ -188,8 +188,7 @@ function deepcopy_install {
           'deep-copy' \
           'github.com/globusdigital/deep-copy' \
           "${deep_copy_version}" \
-          'github.com/globusdigital/deep-copy' \
-          'true'
+          'github.com/globusdigital/deep-copy'
 }
 
 function copywrite_install {
@@ -271,7 +270,6 @@ function install_versioned_tool {
     local module="$2"
     local version="$3"
     local installbase="$4"
-    local usego123="${5:-}"
 
     local should_install=
     local install_reason=
@@ -325,18 +323,8 @@ function install_versioned_tool {
     fi
 
     if [[ -n $should_install ]]; then
-        # deep-copy does not compile with go1.25. https://github.com/globusdigital/deep-copy/issues/45
-        # To work around this we install it with go1.23.
-        # This can be removed when deep-copy supports go1.25.
-        if [[ -n $usego123 ]]; then
-          echo "installing tool (${install_reason}): ${install} with go 1.23"
-          go install golang.org/dl/go1.23.12@latest
-          go1.23.12 download
-          go1.23.12 install "${install}"
-        else
-          echo "installing tool (${install_reason}): ${install}"
-          go install "${install}"
-        fi
+        echo "installing tool (${install_reason}): ${install}"
+        go install "${install}"
     else
         echo "skipping tool: ${install} (installed)"
     fi

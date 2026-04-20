@@ -175,6 +175,23 @@ func TestUpstreamID_String(t *testing.T) {
 			},
 			prefix + "foo?dc=dc2",
 		},
+		"normal explicit destination port": {
+			UpstreamID{
+				Type:            structs.UpstreamDestTypeService,
+				Name:            "foo",
+				DestinationPort: "api-port",
+			},
+			prefix + "foo?port=api-port",
+		},
+		"normal explicit dc with destination port": {
+			UpstreamID{
+				Type:            structs.UpstreamDestTypeService,
+				Name:            "foo",
+				Datacenter:      "dc2",
+				DestinationPort: "api-port",
+			},
+			prefix + "foo?dc=dc2&port=api-port",
+		},
 		"normal with peer": {
 			UpstreamID{
 				Name: "foo",
@@ -244,6 +261,23 @@ func TestUpstreamID_EnvoyID(t *testing.T) {
 				Datacenter: "dc2",
 			},
 			"foo?dc=dc2",
+		},
+		"normal explicit destination port": {
+			UpstreamID{
+				Type:            structs.UpstreamDestTypeService,
+				Name:            "foo",
+				DestinationPort: "admin-port",
+			},
+			"foo?port=admin-port",
+		},
+		"normal explicit dc with destination port": {
+			UpstreamID{
+				Type:            structs.UpstreamDestTypeService,
+				Name:            "foo",
+				Datacenter:      "dc2",
+				DestinationPort: "admin-port",
+			},
+			"foo?dc=dc2&port=admin-port",
 		},
 		"normal with peer": {
 			UpstreamID{

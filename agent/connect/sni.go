@@ -127,3 +127,26 @@ func QuerySNI(service string, datacenter string, trustDomain string) string {
 func TargetSNI(target *structs.DiscoveryTarget, trustDomain string) string {
 	return ServiceSNI(target.Service, target.ServiceSubset, target.Namespace, target.Partition, target.Datacenter, trustDomain)
 }
+
+// ClusterNameWithPort generates port-prefixed cluster names for multi-port services.
+// If portName is empty, returns the SNI unchanged for backward compatibility.
+// Port names cannot contain periods as they are used as separators in SNI.
+func ClusterNameWithPort(portName, sni string) string {
+	if portName == "" {
+		return sni // Backward compatibility: single-port service
+	}
+	if strings.Contains(portName, ".") {
+		return sni // Invalid port name, return unchanged
+	}
+	return fmt.Sprintf("%s.%s", portName, sni)
+}
+
+// ALPNProtocolForPort generates ALPN protocol strings for multi-port routing.
+// Returns empty string for single-port services (backward compatibility).
+// Format: "consul~<portName>" to avoid conflicts with standard ALPN protocols.
+func ALPNProtocolForPort(portName string) string {
+	if portName == "" {
+		return ""
+	}
+	return fmt.Sprintf("consul~%s", portName)
+}

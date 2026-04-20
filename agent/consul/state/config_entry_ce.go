@@ -86,3 +86,8 @@ func readSourceSamenessIntentionsFromConfigEntriesForServiceTxn(
 ) (structs.Intentions, error) {
 	return results, nil
 }
+
+// autoPortVirtualIPsTxn is a no-op in CE, returns empty slice
+func autoPortVirtualIPsTxn(tx ReadTxn, ws memdb.WatchSet, psn structs.PeeredServiceName) (map[string]string, error) {
+	return nil, nil // or return []string{}, nil
+}

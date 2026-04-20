@@ -9,6 +9,8 @@ import (
 	"context"
 
 	"github.com/hashicorp/go-hclog"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 func (s *handlerMeshGateway) initializeEntWatches(_ context.Context) error {
@@ -17,4 +19,9 @@ func (s *handlerMeshGateway) initializeEntWatches(_ context.Context) error {
 
 func (s *handlerMeshGateway) handleEntUpdate(_ hclog.Logger, _ context.Context, _ UpdateEvent, _ *ConfigSnapshot) error {
 	return nil
+}
+
+func (s *handlerMeshGateway) initializeEntMeshGatewaySnapshot(_ *ConfigSnapshot) {}
+
+func (s *handlerMeshGateway) addEntExportedServices(_ map[structs.ServiceName]struct{}, _ *ConfigSnapshot) {
 }

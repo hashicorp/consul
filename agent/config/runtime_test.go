@@ -2949,6 +2949,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 									"upstreams": [
 										{
 											"destination_name": "db",
+											"destination_port": "api-port",
 											"local_bind_port": 7000
 										},
 										{
@@ -2995,6 +2996,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 								upstreams = [
 									{
 										destination_name = "db"
+										destination_port = "api-port"
 										local_bind_port = 7000
 									},
 									{
@@ -3045,6 +3047,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 									structs.Upstream{
 										DestinationType: "service",
 										DestinationName: "db",
+										DestinationPort: "api-port",
 										LocalBindPort:   7000,
 									},
 									structs.Upstream{
@@ -3109,6 +3112,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 									"upstreams": [
 										{
 											"destination_name": "db",
+											"destination_port": "api-port",
 											"local_bind_port": 7000
 										}
 									]
@@ -3150,6 +3154,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 								upstreams = [
 									{
 										destination_name = "db"
+										destination_port = "api-port"
 										local_bind_port = 7000
 									},
 								]
@@ -3195,6 +3200,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 									structs.Upstream{
 										DestinationType: "service",
 										DestinationName: "db",
+										DestinationPort: "api-port",
 										LocalBindPort:   7000,
 									},
 								},

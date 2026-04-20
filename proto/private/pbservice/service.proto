@@ -46,6 +46,10 @@ message ConnectProxyConfig {
   // (DestinationServiceID is set) but otherwise will be ignored.
   // mog: func-to=int func-from=int32
   int32 LocalServicePort = 4;
+  // LocalServicePorts are the named ports of the local service instance for
+  // multiport services. LocalServicePort remains the default port.
+  // mog: func-to=PortsToStructs func-from=NewPortsFromStructs
+  repeated ServicePort LocalServicePorts = 14;
 
   // Config is the arbitrary configuration data provided with the proxy
   // registration.
@@ -105,6 +109,8 @@ message Upstream {
   string DestinationPartition = 12;
   string DestinationPeer = 13;
   string DestinationName = 3;
+  // DestinationPort is the named port on the destination service.
+  string DestinationPort = 14;
 
   // Datacenter that the service discovery request should be run against. Note
   // for prepared queries, the actual results might be from a different

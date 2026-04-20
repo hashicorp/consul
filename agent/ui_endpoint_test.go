@@ -2633,8 +2633,8 @@ func TestUIEndpoint_MetricsProxy(t *testing.T) {
 				BaseURL: backendURL,
 			},
 			path:         endpointPath + "/../../.passwd",
-			wantCode:     http.StatusMovedPermanently,
-			wantContains: "Moved Permanently",
+			wantCode:     http.StatusTemporaryRedirect,
+			wantContains: "Temporary Redirect",
 		},
 		{
 			name: "path traversal with single dot-dot should be cleaned",
@@ -2642,8 +2642,8 @@ func TestUIEndpoint_MetricsProxy(t *testing.T) {
 				BaseURL: backendURL,
 			},
 			path:         endpointPath + "/../ok",
-			wantCode:     http.StatusMovedPermanently,
-			wantContains: "Moved Permanently",
+			wantCode:     http.StatusTemporaryRedirect,
+			wantContains: "Temporary Redirect",
 		},
 		{
 			name: "path traversal with multiple dot-dots should be cleaned",
@@ -2651,8 +2651,8 @@ func TestUIEndpoint_MetricsProxy(t *testing.T) {
 				BaseURL: backendURL,
 			},
 			path:         endpointPath + "/../../ok",
-			wantCode:     http.StatusMovedPermanently,
-			wantContains: "Moved Permanently",
+			wantCode:     http.StatusTemporaryRedirect,
+			wantContains: "Temporary Redirect",
 		},
 		{
 			name: "path traversal with mixed slashes should be cleaned",
@@ -2660,8 +2660,8 @@ func TestUIEndpoint_MetricsProxy(t *testing.T) {
 				BaseURL: backendURL,
 			},
 			path:         endpointPath + "/./../ok",
-			wantCode:     http.StatusMovedPermanently,
-			wantContains: "Moved Permanently",
+			wantCode:     http.StatusTemporaryRedirect,
+			wantContains: "Temporary Redirect",
 		},
 		{
 			name: "path traversal with encoded dots should be handled",
@@ -2678,8 +2678,8 @@ func TestUIEndpoint_MetricsProxy(t *testing.T) {
 				BaseURL: backendURL,
 			},
 			path:         endpointPath + "//ok",
-			wantCode:     http.StatusMovedPermanently,
-			wantContains: "Moved Permanently",
+			wantCode:     http.StatusTemporaryRedirect,
+			wantContains: "Temporary Redirect",
 		},
 		{
 			name: "path with trailing slash should work",
@@ -2705,8 +2705,8 @@ func TestUIEndpoint_MetricsProxy(t *testing.T) {
 				BaseURL: backendURL,
 			},
 			path:         endpointPath + "/subdir/../../../etc/passwd",
-			wantCode:     http.StatusMovedPermanently,
-			wantContains: "Moved Permanently",
+			wantCode:     http.StatusTemporaryRedirect,
+			wantContains: "Temporary Redirect",
 		},
 		{
 			name: "adding auth header",
@@ -2768,7 +2768,7 @@ func TestUIEndpoint_MetricsProxy(t *testing.T) {
 				BaseURL: "http://localhost:9999/metrics",
 			},
 			path:     endpointPath + "/../../evil.com/attack",
-			wantCode: http.StatusMovedPermanently,
+			wantCode: http.StatusTemporaryRedirect,
 		},
 		{
 			name: "targetURL fails prefix check - sibling path escape",
@@ -2776,7 +2776,7 @@ func TestUIEndpoint_MetricsProxy(t *testing.T) {
 				BaseURL: backend.URL + "/secure/metrics",
 			},
 			path:     endpointPath + "/../../../public/data",
-			wantCode: http.StatusMovedPermanently,
+			wantCode: http.StatusTemporaryRedirect,
 		},
 	}
 
@@ -2885,15 +2885,15 @@ func TestUIEndpoint_MetricsProxy_TargetURLValidation(t *testing.T) {
 			name:         "targetURL escapes from baseURL prefix - blocked",
 			baseURL:      backend.URL + "/secure/metrics",
 			requestPath:  endpointPath + "/../../public/data",
-			wantCode:     http.StatusMovedPermanently,
-			wantContains: "Moved Permanently",
+			wantCode:     http.StatusTemporaryRedirect,
+			wantContains: "Temporary Redirect",
 		},
 		{
 			name:         "targetURL attempts sibling directory access - blocked",
 			baseURL:      backend.URL + "/app/metrics",
 			requestPath:  endpointPath + "/../admin/config",
-			wantCode:     http.StatusMovedPermanently,
-			wantContains: "Moved Permanently",
+			wantCode:     http.StatusTemporaryRedirect,
+			wantContains: "Temporary Redirect",
 		},
 		{
 			name:         "targetURL with encoded dots - path.Clean prevents traversal",

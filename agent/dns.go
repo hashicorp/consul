@@ -16,16 +16,16 @@ import (
 	"sync/atomic"
 	"time"
 
-	agentdns "github.com/hashicorp/consul/agent/dns"
-
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-radix"
-	"github.com/hashicorp/go-hclog"
 	"github.com/miekg/dns"
+
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/acl"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/config"
+	agentdns "github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/internal/dnsutil"
@@ -908,12 +908,24 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, cfg *dnsRe
 			return invalid()
 		}
 
+		// queryParts is in reverse label order (innermost first).
+		// For "db.virtual.consul."            → queryParts = ["db"]
+		// For "http.db.virtual.consul."       → queryParts = ["http", "db"]
+		// The last element is always the service name; the optional first
+		// element (when len > 1) is a named port for multiport services.
+		serviceName := queryParts[len(queryParts)-1]
+		var portName string
+		if len(queryParts) >= 2 {
+			portName = queryParts[0]
+		}
+
 		args := structs.ServiceSpecificRequest{
 			// The datacenter of the request is not specified because cross-datacenter virtual IP
 			// queries are not supported. This guard rail is in place because virtual IPs are allocated
 			// within a DC, therefore their uniqueness is not guaranteed globally.
 			PeerName:       locality.peer,
-			ServiceName:    queryParts[len(queryParts)-1],
+			ServiceName:    serviceName,
+			PortName:       portName,
 			EnterpriseMeta: locality.EnterpriseMeta,
 			QueryOptions: structs.QueryOptions{
 				Token: d.coalesceDNSToken(cfg.token),

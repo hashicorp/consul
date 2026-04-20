@@ -143,7 +143,7 @@ func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Re
 		return io.NopCloser(bytes.NewReader([]byte(""))), nil
 
 	default:
-		return nil, fmt.Errorf("unrecognized snapshot op %q", args.Op)
+		return nil, fmt.Errorf("unrecognized snapshot op %d", args.Op)
 	}
 }
 

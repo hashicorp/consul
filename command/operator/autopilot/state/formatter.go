@@ -62,8 +62,8 @@ type mapOutput struct {
 func formatZone(zoneName string, zone *api.AutopilotZone) string {
 	var buffer bytes.Buffer
 
-	buffer.WriteString(fmt.Sprintf("   %s:\n", zoneName))
-	buffer.WriteString(fmt.Sprintf("      Failure Tolerance: %d\n", zone.FailureTolerance))
+	fmt.Fprintf(&buffer, "   %s:\n", zoneName)
+	fmt.Fprintf(&buffer, "      Failure Tolerance: %d\n", zone.FailureTolerance)
 	buffer.WriteString("      Voters:\n")
 	outputStringSlice(&buffer, "         ", zone.Voters)
 	buffer.WriteString("      Servers:\n")
@@ -75,25 +75,25 @@ func formatZone(zoneName string, zone *api.AutopilotZone) string {
 func formatServer(srv *api.AutopilotServer) string {
 	var buffer bytes.Buffer
 
-	buffer.WriteString(fmt.Sprintf("   %s\n", srv.ID))
-	buffer.WriteString(fmt.Sprintf("      Name:            %s\n", srv.Name))
-	buffer.WriteString(fmt.Sprintf("      Address:         %s\n", srv.Address))
-	buffer.WriteString(fmt.Sprintf("      Version:         %s\n", srv.Version))
-	buffer.WriteString(fmt.Sprintf("      Status:          %s\n", srv.Status))
-	buffer.WriteString(fmt.Sprintf("      Node Type:       %s\n", srv.NodeType))
-	buffer.WriteString(fmt.Sprintf("      Node Status:     %s\n", srv.NodeStatus))
-	buffer.WriteString(fmt.Sprintf("      Healthy:         %t\n", srv.Healthy))
-	buffer.WriteString(fmt.Sprintf("      Last Contact:    %s\n", srv.LastContact.String()))
-	buffer.WriteString(fmt.Sprintf("      Last Term:       %d\n", srv.LastTerm))
-	buffer.WriteString(fmt.Sprintf("      Last Index:      %d\n", srv.LastIndex))
+	fmt.Fprintf(&buffer, "   %s\n", srv.ID)
+	fmt.Fprintf(&buffer, "      Name:            %s\n", srv.Name)
+	fmt.Fprintf(&buffer, "      Address:         %s\n", srv.Address)
+	fmt.Fprintf(&buffer, "      Version:         %s\n", srv.Version)
+	fmt.Fprintf(&buffer, "      Status:          %s\n", srv.Status)
+	fmt.Fprintf(&buffer, "      Node Type:       %s\n", srv.NodeType)
+	fmt.Fprintf(&buffer, "      Node Status:     %s\n", srv.NodeStatus)
+	fmt.Fprintf(&buffer, "      Healthy:         %t\n", srv.Healthy)
+	fmt.Fprintf(&buffer, "      Last Contact:    %s\n", srv.LastContact.String())
+	fmt.Fprintf(&buffer, "      Last Term:       %d\n", srv.LastTerm)
+	fmt.Fprintf(&buffer, "      Last Index:      %d\n", srv.LastIndex)
 	if srv.RedundancyZone != "" {
-		buffer.WriteString(fmt.Sprintf("      Redundancy Zone: %s\n", srv.RedundancyZone))
+		fmt.Fprintf(&buffer, "      Redundancy Zone: %s\n", srv.RedundancyZone)
 	}
 	if srv.UpgradeVersion != "" {
-		buffer.WriteString(fmt.Sprintf("      Upgrade Version: %s\n", srv.UpgradeVersion))
+		fmt.Fprintf(&buffer, "      Upgrade Version: %s\n", srv.UpgradeVersion)
 	}
 	if srv.ReadReplica {
-		buffer.WriteString(fmt.Sprintf("      Read Replica:    %t\n", srv.ReadReplica))
+		fmt.Fprintf(&buffer, "      Read Replica:    %t\n", srv.ReadReplica)
 	}
 	if len(srv.Meta) > 0 {
 		buffer.WriteString("      Meta\n")
@@ -118,10 +118,10 @@ func (f *prettyFormatter) FormatState(state *api.AutopilotState) (string, error)
 
 	var buffer bytes.Buffer
 
-	buffer.WriteString(fmt.Sprintf("Healthy:                      %t\n", state.Healthy))
-	buffer.WriteString(fmt.Sprintf("Failure Tolerance:            %d\n", state.FailureTolerance))
-	buffer.WriteString(fmt.Sprintf("Optimistic Failure Tolerance: %d\n", state.OptimisticFailureTolerance))
-	buffer.WriteString(fmt.Sprintf("Leader:                       %s\n", state.Leader))
+	fmt.Fprintf(&buffer, "Healthy:                      %t\n", state.Healthy)
+	fmt.Fprintf(&buffer, "Failure Tolerance:            %d\n", state.FailureTolerance)
+	fmt.Fprintf(&buffer, "Optimistic Failure Tolerance: %d\n", state.OptimisticFailureTolerance)
+	fmt.Fprintf(&buffer, "Leader:                       %s\n", state.Leader)
 	buffer.WriteString("Voters:\n")
 	outputStringSlice(&buffer, "   ", state.Voters)
 
@@ -148,8 +148,8 @@ func (f *prettyFormatter) FormatState(state *api.AutopilotState) (string, error)
 	if state.Upgrade != nil {
 		u := state.Upgrade
 		buffer.WriteString("Upgrade:\n")
-		buffer.WriteString(fmt.Sprintf("   Status:         %s\n", u.Status))
-		buffer.WriteString(fmt.Sprintf("   Target Version: %s\n", u.TargetVersion))
+		fmt.Fprintf(&buffer, "   Status:         %s\n", u.Status)
+		fmt.Fprintf(&buffer, "   Target Version: %s\n", u.TargetVersion)
 		if len(u.TargetVersionVoters) > 0 {
 			buffer.WriteString("   Target Version Voters:\n")
 			outputStringSlice(&buffer, "      ", u.TargetVersionVoters)
