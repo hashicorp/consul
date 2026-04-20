@@ -259,7 +259,7 @@ func (tp *ACLTemplatedPolicy) aclTemplatedPolicyRules(entMeta *acl.EnterpriseMet
 
 	parsedTpl, err := tpl.Parse(tmplCode.Template)
 	if err != nil {
-		return "", fmt.Errorf("an error occured when parsing template structs: %w", err)
+		return "", fmt.Errorf("an error occurred when parsing template structs: %w", err)
 	}
 	var buf bytes.Buffer
 	err = parsedTpl.Execute(&buf, struct {
@@ -272,7 +272,7 @@ func (tp *ACLTemplatedPolicy) aclTemplatedPolicyRules(entMeta *acl.EnterpriseMet
 		ACLTemplatedPolicyVariables: tp.TemplateVariables,
 	})
 	if err != nil {
-		return "", fmt.Errorf("an error occured when executing on templated policy variables: %w", err)
+		return "", fmt.Errorf("an error occurred when executing on templated policy variables: %w", err)
 	}
 
 	return buf.String(), nil
