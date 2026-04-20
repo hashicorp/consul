@@ -89,7 +89,7 @@ html[data-route='dc.services.index'] .consul-service-list ul,
 // %main-decoration ? %main-skin ? %content-skin ?
 // it includes layouts of components, but not layout of itself?
 // %main-components? What about %app-view-content
-main,
+.app-shell__main,
 %modal-window {
   @extend %main-content;
 }
@@ -105,20 +105,21 @@ html:not(.has-partitions) [class*='partition-'] {
   min-height: 100vh;
 }
 
-main {
+.app-shell__main {
   padding: 0 48px;
   position: relative;
   flex: 1;
+  min-width: 0;
 }
-main,
+.app-shell__main,
 #wrapper > footer {
   @extend %content-container;
 }
-html[data-route$='create'] main,
-html[data-route$='edit'] main {
+html[data-route$='create'] .app-shell__main,
+html[data-route$='edit'] .app-shell__main {
   @extend %content-container-restricted;
 }
-html:not([data-route$='index']):not([data-route$='instances']) main {
+html:not([data-route$='index']):not([data-route$='instances']) .app-shell__main {
   margin-bottom: 2em;
 }
 
@@ -137,7 +138,7 @@ html:not([data-route$='index']):not([data-route$='instances']) main {
   margin-bottom: 2em;
 }
 @media #{$--lt-wide-form} {
-  main form [type='reset'] {
+  .app-shell__main form [type='reset'] {
     float: right;
     margin-right: 0 !important;
   }

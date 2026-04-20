@@ -46,15 +46,8 @@ as |dc partition nspace item|}}
   <AppView>
 
     <BlockSlot @name="breadcrumbs">
-      <ol>
-        <li>
-          <Action
-            data-test-back
-            @href={{href-to 'dc.kv.index'}}
-          >
-            Key / Values
-          </Action>
-        </li>
+      <Hds::Breadcrumb>
+        <Hds::Breadcrumb::Item @text="Key / Values" @route="dc.kv.index" @model={{route.params.dc}} data-test-back />
 {{#if (not-eq parentKey separator)}}
 
 {{#let
@@ -66,26 +59,21 @@ as |parts|}}
         {{! if breadcrumb isn't '' then slice of enough of the parentKey }}
         {{! to make the correct href. 'Enough' is the current index plus 1.}}
         {{! We push on a '' here so make sure we get a trailing slash/separator }}
-          <li>
-            <Action
-              {{action breadcrumb}}
-              @href={{href-to 'dc.kv.folder'
-                  (join '/'
-                    (append
-                      (slice 0 (add index 1) parts) ''
-                    )
-                  )
-              }}
-            >
-              {{breadcrumb}}
-            </Action>
-          </li>
+          <Hds::Breadcrumb::Item
+            @text={{breadcrumb}}
+            @route="dc.kv.folder"
+            @model={{join '/'
+                (append
+                  (slice 0 (add index 1) parts) ''
+                )
+            }}
+          />
       {{/if}}
     {{/each}}
 {{/let}}
 
 {{/if}}
-      </ol>
+      </Hds::Breadcrumb>
     </BlockSlot>
 
     <BlockSlot @name="header">

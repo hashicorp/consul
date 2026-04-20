@@ -5,8 +5,10 @@
 
 @import './skin';
 @import './layout';
+
 .app-view {
   @extend %app-view;
+  position: relative;
 }
 
 %app-view > header {
