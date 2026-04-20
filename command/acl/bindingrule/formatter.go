@@ -52,25 +52,25 @@ type prettyFormatter struct {
 func (f *prettyFormatter) FormatBindingRule(rule *api.ACLBindingRule) (string, error) {
 	var buffer bytes.Buffer
 
-	buffer.WriteString(fmt.Sprintf("ID:           %s\n", rule.ID))
+	fmt.Fprintf(&buffer, "ID:           %s\n", rule.ID)
 	if rule.Partition != "" {
-		buffer.WriteString(fmt.Sprintf("Partition:    %s\n", rule.Partition))
+		fmt.Fprintf(&buffer, "Partition:    %s\n", rule.Partition)
 	}
 	if rule.Namespace != "" {
-		buffer.WriteString(fmt.Sprintf("Namespace:    %s\n", rule.Namespace))
+		fmt.Fprintf(&buffer, "Namespace:    %s\n", rule.Namespace)
 	}
-	buffer.WriteString(fmt.Sprintf("AuthMethod:   %s\n", rule.AuthMethod))
-	buffer.WriteString(fmt.Sprintf("Description:  %s\n", rule.Description))
-	buffer.WriteString(fmt.Sprintf("BindType:     %s\n", rule.BindType))
-	buffer.WriteString(fmt.Sprintf("BindName:     %s\n", rule.BindName))
+	fmt.Fprintf(&buffer, "AuthMethod:   %s\n", rule.AuthMethod)
+	fmt.Fprintf(&buffer, "Description:  %s\n", rule.Description)
+	fmt.Fprintf(&buffer, "BindType:     %s\n", rule.BindType)
+	fmt.Fprintf(&buffer, "BindName:     %s\n", rule.BindName)
 	if rule.BindVars != nil && rule.BindVars.Name != "" {
-		buffer.WriteString(fmt.Sprintf("BindVars:     \n     - Name: %s\n", rule.BindVars.Name))
+		fmt.Fprintf(&buffer, "BindVars:     \n     - Name: %s\n", rule.BindVars.Name)
 	}
 
-	buffer.WriteString(fmt.Sprintf("Selector:     %s\n", rule.Selector))
+	fmt.Fprintf(&buffer, "Selector:     %s\n", rule.Selector)
 	if f.showMeta {
-		buffer.WriteString(fmt.Sprintf("Create Index: %d\n", rule.CreateIndex))
-		buffer.WriteString(fmt.Sprintf("Modify Index: %d\n", rule.ModifyIndex))
+		fmt.Fprintf(&buffer, "Create Index: %d\n", rule.CreateIndex)
+		fmt.Fprintf(&buffer, "Modify Index: %d\n", rule.ModifyIndex)
 	}
 
 	return buffer.String(), nil
@@ -89,24 +89,24 @@ func (f *prettyFormatter) FormatBindingRuleList(rules []*api.ACLBindingRule) (st
 func (f *prettyFormatter) formatBindingRuleListEntry(rule *api.ACLBindingRule) string {
 	var buffer bytes.Buffer
 
-	buffer.WriteString(fmt.Sprintf("%s:\n", rule.ID))
+	fmt.Fprintf(&buffer, "%s:\n", rule.ID)
 	if rule.Partition != "" {
-		buffer.WriteString(fmt.Sprintf("   Partition:    %s\n", rule.Partition))
+		fmt.Fprintf(&buffer, "   Partition:    %s\n", rule.Partition)
 	}
 	if rule.Namespace != "" {
-		buffer.WriteString(fmt.Sprintf("   Namespace:    %s\n", rule.Namespace))
+		fmt.Fprintf(&buffer, "   Namespace:    %s\n", rule.Namespace)
 	}
-	buffer.WriteString(fmt.Sprintf("   AuthMethod:   %s\n", rule.AuthMethod))
-	buffer.WriteString(fmt.Sprintf("   Description:  %s\n", rule.Description))
-	buffer.WriteString(fmt.Sprintf("   BindType:     %s\n", rule.BindType))
-	buffer.WriteString(fmt.Sprintf("   BindName:     %s\n", rule.BindName))
+	fmt.Fprintf(&buffer, "   AuthMethod:   %s\n", rule.AuthMethod)
+	fmt.Fprintf(&buffer, "   Description:  %s\n", rule.Description)
+	fmt.Fprintf(&buffer, "   BindType:     %s\n", rule.BindType)
+	fmt.Fprintf(&buffer, "   BindName:     %s\n", rule.BindName)
 	if rule.BindVars != nil && rule.BindVars.Name != "" {
-		buffer.WriteString(fmt.Sprintf("   BindVars:     \n      - Name: %s\n", rule.BindVars.Name))
+		fmt.Fprintf(&buffer, "   BindVars:     \n      - Name: %s\n", rule.BindVars.Name)
 	}
-	buffer.WriteString(fmt.Sprintf("   Selector:     %s\n", rule.Selector))
+	fmt.Fprintf(&buffer, "   Selector:     %s\n", rule.Selector)
 	if f.showMeta {
-		buffer.WriteString(fmt.Sprintf("   Create Index: %d\n", rule.CreateIndex))
-		buffer.WriteString(fmt.Sprintf("   Modify Index: %d\n", rule.ModifyIndex))
+		fmt.Fprintf(&buffer, "   Create Index: %d\n", rule.CreateIndex)
+		fmt.Fprintf(&buffer, "   Modify Index: %d\n", rule.ModifyIndex)
 	}
 
 	return buffer.String()

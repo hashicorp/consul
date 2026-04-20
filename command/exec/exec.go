@@ -693,7 +693,7 @@ func (u *TargetedUI) prefixLines(arrow bool, message string) string {
 	var result bytes.Buffer
 
 	for _, line := range strings.Split(message, "\n") {
-		result.WriteString(fmt.Sprintf("%s %s: %s\n", arrowText, u.Target, line))
+		fmt.Fprintf(&result, "%s %s: %s\n", arrowText, u.Target, line)
 	}
 
 	return strings.TrimRightFunc(result.String(), unicode.IsSpace)

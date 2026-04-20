@@ -58,66 +58,68 @@ type prettyFormatter struct {
 
 func (f *prettyFormatter) FormatToken(token *api.ACLToken) (string, error) {
 	var buffer bytes.Buffer
-	buffer.WriteString(fmt.Sprintf("Name:             %s\n", token.Name))
-	buffer.WriteString(fmt.Sprintf("AccessorID:       %s\n", token.AccessorID))
-	buffer.WriteString(fmt.Sprintf("SecretID:         %s\n", token.SecretID))
+
+	fmt.Fprintf(&buffer, "Name:             %s\n", token.Name)
+	fmt.Fprintf(&buffer, "AccessorID:       %s\n", token.AccessorID)
+	fmt.Fprintf(&buffer, "SecretID:         %s\n", token.SecretID)
+
 	if token.Partition != "" {
-		buffer.WriteString(fmt.Sprintf("Partition:        %s\n", token.Partition))
+		fmt.Fprintf(&buffer, "Partition:        %s\n", token.Partition)
 	}
 	if token.Namespace != "" {
-		buffer.WriteString(fmt.Sprintf("Namespace:        %s\n", token.Namespace))
+		fmt.Fprintf(&buffer, "Namespace:        %s\n", token.Namespace)
 	}
-	buffer.WriteString(fmt.Sprintf("Description:      %s\n", token.Description))
-	buffer.WriteString(fmt.Sprintf("Local:            %t\n", token.Local))
+	fmt.Fprintf(&buffer, "Description:      %s\n", token.Description)
+	fmt.Fprintf(&buffer, "Local:            %t\n", token.Local)
 	if token.AuthMethod != "" {
-		buffer.WriteString(fmt.Sprintf("Auth Method:      %s (Namespace: %s)\n", token.AuthMethod, token.AuthMethodNamespace))
+		fmt.Fprintf(&buffer, "Auth Method:      %s (Namespace: %s)\n", token.AuthMethod, token.AuthMethodNamespace)
 	}
-	buffer.WriteString(fmt.Sprintf("Create Time:      %v\n", token.CreateTime))
+	fmt.Fprintf(&buffer, "Create Time:      %v\n", token.CreateTime)
 	if token.ExpirationTime != nil && !token.ExpirationTime.IsZero() {
-		buffer.WriteString(fmt.Sprintf("Expiration Time:  %v\n", *token.ExpirationTime))
+		fmt.Fprintf(&buffer, "Expiration Time:  %v\n", *token.ExpirationTime)
 	}
 	if f.showMeta {
-		buffer.WriteString(fmt.Sprintf("Hash:             %x\n", token.Hash))
-		buffer.WriteString(fmt.Sprintf("Create Index:     %d\n", token.CreateIndex))
-		buffer.WriteString(fmt.Sprintf("Modify Index:     %d\n", token.ModifyIndex))
+		fmt.Fprintf(&buffer, "Hash:             %x\n", token.Hash)
+		fmt.Fprintf(&buffer, "Create Index:     %d\n", token.CreateIndex)
+		fmt.Fprintf(&buffer, "Modify Index:     %d\n", token.ModifyIndex)
 	}
 	if len(token.Policies) > 0 {
-		buffer.WriteString(fmt.Sprintln("Policies:"))
+		fmt.Fprintln(&buffer, "Policies:")
 		for _, policy := range token.Policies {
-			buffer.WriteString(fmt.Sprintf("   %s - %s\n", policy.ID, policy.Name))
+			fmt.Fprintf(&buffer, "   %s - %s\n", policy.ID, policy.Name)
 		}
 	}
 	if len(token.Roles) > 0 {
-		buffer.WriteString(fmt.Sprintln("Roles:"))
+		fmt.Fprintln(&buffer, "Roles:")
 		for _, role := range token.Roles {
-			buffer.WriteString(fmt.Sprintf("   %s - %s\n", role.ID, role.Name))
+			fmt.Fprintf(&buffer, "   %s - %s\n", role.ID, role.Name)
 		}
 	}
 	if len(token.ServiceIdentities) > 0 {
-		buffer.WriteString(fmt.Sprintln("Service Identities:"))
+		fmt.Fprintln(&buffer, "Service Identities:")
 		for _, svcid := range token.ServiceIdentities {
 			if len(svcid.Datacenters) > 0 {
-				buffer.WriteString(fmt.Sprintf("   %s (Datacenters: %s)\n", svcid.ServiceName, strings.Join(svcid.Datacenters, ", ")))
+				fmt.Fprintf(&buffer, "   %s (Datacenters: %s)\n", svcid.ServiceName, strings.Join(svcid.Datacenters, ", "))
 			} else {
-				buffer.WriteString(fmt.Sprintf("   %s (Datacenters: all)\n", svcid.ServiceName))
+				fmt.Fprintf(&buffer, "   %s (Datacenters: all)\n", svcid.ServiceName)
 			}
 		}
 	}
 	if len(token.NodeIdentities) > 0 {
-		buffer.WriteString(fmt.Sprintln("Node Identities:"))
+		fmt.Fprintln(&buffer, "Node Identities:")
 		for _, nodeid := range token.NodeIdentities {
-			buffer.WriteString(fmt.Sprintf("   %s (Datacenter: %s)\n", nodeid.NodeName, nodeid.Datacenter))
+			fmt.Fprintf(&buffer, "   %s (Datacenter: %s)\n", nodeid.NodeName, nodeid.Datacenter)
 		}
 	}
 	if len(token.TemplatedPolicies) > 0 {
-		buffer.WriteString(fmt.Sprintln("Templated Policies:"))
+		fmt.Fprintln(&buffer, "Templated Policies:")
 		for _, templatedPolicy := range token.TemplatedPolicies {
-			buffer.WriteString(fmt.Sprintf("   %s\n", templatedPolicy.TemplateName))
+			fmt.Fprintf(&buffer, "   %s\n", templatedPolicy.TemplateName)
 			if templatedPolicy.TemplateVariables != nil && templatedPolicy.TemplateVariables.Name != "" {
-				buffer.WriteString(fmt.Sprintf("      Name: %s\n", templatedPolicy.TemplateVariables.Name))
+				fmt.Fprintf(&buffer, "      Name: %s\n", templatedPolicy.TemplateVariables.Name)
 			}
 			if len(templatedPolicy.Datacenters) > 0 {
-				buffer.WriteString(fmt.Sprintf("      Datacenters: %s\n", strings.Join(templatedPolicy.Datacenters, ", ")))
+				fmt.Fprintf(&buffer, "      Datacenters: %s\n", strings.Join(templatedPolicy.Datacenters, ", "))
 			} else {
 				buffer.WriteString("      Datacenters: all\n")
 			}
@@ -129,28 +131,30 @@ func (f *prettyFormatter) FormatToken(token *api.ACLToken) (string, error) {
 
 func (f *prettyFormatter) FormatTokenExpanded(token *api.ACLTokenExpanded) (string, error) {
 	var buffer bytes.Buffer
-	buffer.WriteString(fmt.Sprintf("Name:             %s\n", token.Name))
-	buffer.WriteString(fmt.Sprintf("AccessorID:       %s\n", token.AccessorID))
-	buffer.WriteString(fmt.Sprintf("SecretID:         %s\n", token.SecretID))
+
+	fmt.Fprintf(&buffer, "Name:             %s\n", token.Name)
+	fmt.Fprintf(&buffer, "AccessorID:       %s\n", token.AccessorID)
+	fmt.Fprintf(&buffer, "SecretID:         %s\n", token.SecretID)
+
 	if token.Partition != "" {
-		buffer.WriteString(fmt.Sprintf("Partition:        %s\n", token.Partition))
+		fmt.Fprintf(&buffer, "Partition:        %s\n", token.Partition)
 	}
 	if token.Namespace != "" {
-		buffer.WriteString(fmt.Sprintf("Namespace:        %s\n", token.Namespace))
+		fmt.Fprintf(&buffer, "Namespace:        %s\n", token.Namespace)
 	}
-	buffer.WriteString(fmt.Sprintf("Description:      %s\n", token.Description))
-	buffer.WriteString(fmt.Sprintf("Local:            %t\n", token.Local))
+	fmt.Fprintf(&buffer, "Description:      %s\n", token.Description)
+	fmt.Fprintf(&buffer, "Local:            %t\n", token.Local)
 	if token.AuthMethod != "" {
-		buffer.WriteString(fmt.Sprintf("Auth Method:      %s (Namespace: %s)\n", token.AuthMethod, token.AuthMethodNamespace))
+		fmt.Fprintf(&buffer, "Auth Method:      %s (Namespace: %s)\n", token.AuthMethod, token.AuthMethodNamespace)
 	}
-	buffer.WriteString(fmt.Sprintf("Create Time:      %v\n", token.CreateTime))
+	fmt.Fprintf(&buffer, "Create Time:      %v\n", token.CreateTime)
 	if token.ExpirationTime != nil && !token.ExpirationTime.IsZero() {
-		buffer.WriteString(fmt.Sprintf("Expiration Time:  %v\n", *token.ExpirationTime))
+		fmt.Fprintf(&buffer, "Expiration Time:  %v\n", *token.ExpirationTime)
 	}
 	if f.showMeta {
-		buffer.WriteString(fmt.Sprintf("Hash:             %x\n", token.Hash))
-		buffer.WriteString(fmt.Sprintf("Create Index:     %d\n", token.CreateIndex))
-		buffer.WriteString(fmt.Sprintf("Modify Index:     %d\n", token.ModifyIndex))
+		fmt.Fprintf(&buffer, "Hash:             %x\n", token.Hash)
+		fmt.Fprintf(&buffer, "Create Index:     %d\n", token.CreateIndex)
+		fmt.Fprintf(&buffer, "Modify Index:     %d\n", token.ModifyIndex)
 	}
 
 	policies := make(map[string]api.ACLPolicy)
@@ -163,9 +167,9 @@ func (f *prettyFormatter) FormatTokenExpanded(token *api.ACLTokenExpanded) (stri
 	}
 
 	formatPolicy := func(policy api.ACLPolicy, indent string) {
-		buffer.WriteString(fmt.Sprintf(indent+"Policy Name: %s\n", policy.Name))
-		buffer.WriteString(fmt.Sprintf(indent+WHITESPACE_2+"ID: %s\n", policy.ID))
-		buffer.WriteString(fmt.Sprintf(indent+WHITESPACE_2+"Description: %s\n", policy.Description))
+		fmt.Fprintf(&buffer, indent+"Policy Name: %s\n", policy.Name)
+		fmt.Fprintf(&buffer, indent+WHITESPACE_2+"ID: %s\n", policy.ID)
+		fmt.Fprintf(&buffer, indent+WHITESPACE_2+"Description: %s\n", policy.Description)
 		buffer.WriteString(indent + WHITESPACE_2 + "Rules:\n")
 		buffer.WriteString(indent + WHITESPACE_4)
 		buffer.WriteString(strings.ReplaceAll(policy.Rules, "\n", "\n"+indent+WHITESPACE_4))
@@ -182,9 +186,9 @@ func (f *prettyFormatter) FormatTokenExpanded(token *api.ACLTokenExpanded) (stri
 	entMeta := acl.NewEnterpriseMetaWithPartition(token.Partition, token.Namespace)
 	formatServiceIdentity := func(svcIdentity *api.ACLServiceIdentity, indent string) {
 		if len(svcIdentity.Datacenters) > 0 {
-			buffer.WriteString(fmt.Sprintf(indent+"Name: %s (Datacenters: %s)\n", svcIdentity.ServiceName, strings.Join(svcIdentity.Datacenters, ", ")))
+			fmt.Fprintf(&buffer, indent+"Name: %s (Datacenters: %s)\n", svcIdentity.ServiceName, strings.Join(svcIdentity.Datacenters, ", "))
 		} else {
-			buffer.WriteString(fmt.Sprintf(indent+"Name: %s (Datacenters: all)\n", svcIdentity.ServiceName))
+			fmt.Fprintf(&buffer, indent+"Name: %s (Datacenters: all)\n", svcIdentity.ServiceName)
 		}
 		identity := structs.ACLServiceIdentity{ServiceName: svcIdentity.ServiceName, Datacenters: svcIdentity.Datacenters}
 		policy := identity.SyntheticPolicy(&entMeta)
@@ -198,7 +202,7 @@ func (f *prettyFormatter) FormatTokenExpanded(token *api.ACLTokenExpanded) (stri
 	}
 
 	formatNodeIdentity := func(nodeIdentity *api.ACLNodeIdentity, indent string) {
-		buffer.WriteString(fmt.Sprintf(indent+"Name: %s (Datacenter: %s)\n", nodeIdentity.NodeName, nodeIdentity.Datacenter))
+		fmt.Fprintf(&buffer, indent+"Name: %s (Datacenter: %s)\n", nodeIdentity.NodeName, nodeIdentity.Datacenter)
 		identity := structs.ACLNodeIdentity{NodeName: nodeIdentity.NodeName, Datacenter: nodeIdentity.Datacenter}
 		policy := identity.SyntheticPolicy(&entMeta)
 		displaySyntheticPolicy(policy, &buffer, indent)
@@ -211,7 +215,7 @@ func (f *prettyFormatter) FormatTokenExpanded(token *api.ACLTokenExpanded) (stri
 	}
 
 	formatTemplatedPolicy := func(templatedPolicy *api.ACLTemplatedPolicy, indent string) {
-		buffer.WriteString(fmt.Sprintf(indent+"%s\n", templatedPolicy.TemplateName))
+		fmt.Fprintf(&buffer, indent+"%s\n", templatedPolicy.TemplateName)
 		tp := structs.ACLTemplatedPolicy{
 			TemplateName: templatedPolicy.TemplateName,
 			Datacenters:  templatedPolicy.Datacenters,
@@ -220,10 +224,10 @@ func (f *prettyFormatter) FormatTokenExpanded(token *api.ACLTokenExpanded) (stri
 			tp.TemplateVariables = &structs.ACLTemplatedPolicyVariables{
 				Name: templatedPolicy.TemplateVariables.Name,
 			}
-			buffer.WriteString(fmt.Sprintf(indent+WHITESPACE_2+"Name: %s\n", templatedPolicy.TemplateVariables.Name))
+			fmt.Fprintf(&buffer, indent+WHITESPACE_2+"Name: %s\n", templatedPolicy.TemplateVariables.Name)
 		}
 		if len(templatedPolicy.Datacenters) > 0 {
-			buffer.WriteString(fmt.Sprintf(indent+WHITESPACE_2+"Datacenters: %s\n", strings.Join(templatedPolicy.Datacenters, ", ")))
+			fmt.Fprintf(&buffer, indent+WHITESPACE_2+"Datacenters: %s\n", strings.Join(templatedPolicy.Datacenters, ", "))
 		} else {
 			buffer.WriteString(indent + WHITESPACE_2 + "Datacenters: all\n")
 		}
@@ -239,9 +243,9 @@ func (f *prettyFormatter) FormatTokenExpanded(token *api.ACLTokenExpanded) (stri
 	}
 
 	formatRole := func(role api.ACLRole, indent string) {
-		buffer.WriteString(fmt.Sprintf(indent+"Role Name: %s\n", role.Name))
-		buffer.WriteString(fmt.Sprintf(indent+WHITESPACE_2+"ID: %s\n", role.ID))
-		buffer.WriteString(fmt.Sprintf(indent+WHITESPACE_2+"Description: %s\n", role.Description))
+		fmt.Fprintf(&buffer, indent+"Role Name: %s\n", role.Name)
+		fmt.Fprintf(&buffer, indent+WHITESPACE_2+"ID: %s\n", role.ID)
+		fmt.Fprintf(&buffer, indent+WHITESPACE_2+"Description: %s\n", role.Description)
 
 		if len(role.Policies) > 0 {
 			buffer.WriteString(indent + WHITESPACE_2 + "Policies:\n")
@@ -276,7 +280,7 @@ func (f *prettyFormatter) FormatTokenExpanded(token *api.ACLTokenExpanded) (stri
 
 	if len(token.NamespaceDefaultPolicyIDs) > 0 || len(token.NamespaceDefaultRoleIDs) > 0 {
 		buffer.WriteString("=== Start of Authorizer Layer 1: Token Namespace’s Defaults (Inherited) ===\n")
-		buffer.WriteString(fmt.Sprintf("Description: ACL Roles inherited by all Tokens in Namespace %q\n\n", token.Namespace))
+		fmt.Fprintf(&buffer, "Description: ACL Roles inherited by all Tokens in Namespace %q\n\n", token.Namespace)
 
 		buffer.WriteString("Namespace Policy Defaults:\n")
 		for _, policyID := range token.NamespaceDefaultPolicyIDs {
@@ -293,10 +297,10 @@ func (f *prettyFormatter) FormatTokenExpanded(token *api.ACLTokenExpanded) (stri
 
 	buffer.WriteString("=== Start of Authorizer Layer 2: Agent Configuration Defaults (Inherited) ===\n")
 	buffer.WriteString("Description: Defined at request-time by the agent that resolves the ACL token; other agents may have different configuration defaults\n")
-	buffer.WriteString(fmt.Sprintf("Resolved By Agent: %q\n\n", token.ResolvedByAgent))
-	buffer.WriteString(fmt.Sprintf("Default Policy: %s\n", token.AgentACLDefaultPolicy))
+	fmt.Fprintf(&buffer, "Resolved By Agent: %q\n\n", token.ResolvedByAgent)
+	fmt.Fprintf(&buffer, "Default Policy: %s\n", token.AgentACLDefaultPolicy)
 	buffer.WriteString(WHITESPACE_2 + "Description: Backstop rule used if no preceding layer has a matching rule (refer to default_policy option in agent configuration)\n\n")
-	buffer.WriteString(fmt.Sprintf("Down Policy: %s\n", token.AgentACLDownPolicy))
+	fmt.Fprintf(&buffer, "Down Policy: %s\n", token.AgentACLDownPolicy)
 	buffer.WriteString(WHITESPACE_2 + "Description: Defines what to do if this Token's information cannot be read from the primary_datacenter (refer to down_policy option in agent configuration)\n\n")
 
 	return buffer.String(), nil
@@ -327,67 +331,68 @@ func (f *prettyFormatter) FormatTokenList(tokens []*api.ACLTokenListEntry) (stri
 
 func (f *prettyFormatter) formatTokenListEntry(token *api.ACLTokenListEntry) string {
 	var buffer bytes.Buffer
-	buffer.WriteString(fmt.Sprintf("Name:             %s\n", token.Name))
-	buffer.WriteString(fmt.Sprintf("AccessorID:       %s\n", token.AccessorID))
-	buffer.WriteString(fmt.Sprintf("SecretID:         %s\n", token.SecretID))
+	fmt.Fprintf(&buffer, "Name:             %s\n", token.Name)
+	fmt.Fprintf(&buffer, "AccessorID:       %s\n", token.AccessorID)
+	fmt.Fprintf(&buffer, "SecretID:         %s\n", token.SecretID)
+
 	if token.Partition != "" {
-		buffer.WriteString(fmt.Sprintf("Partition:        %s\n", token.Partition))
+		fmt.Fprintf(&buffer, "Partition:        %s\n", token.Partition)
 	}
 	if token.Namespace != "" {
-		buffer.WriteString(fmt.Sprintf("Namespace:        %s\n", token.Namespace))
+		fmt.Fprintf(&buffer, "Namespace:        %s\n", token.Namespace)
 	}
-	buffer.WriteString(fmt.Sprintf("Description:      %s\n", token.Description))
-	buffer.WriteString(fmt.Sprintf("Local:            %t\n", token.Local))
+	fmt.Fprintf(&buffer, "Description:      %s\n", token.Description)
+	fmt.Fprintf(&buffer, "Local:            %t\n", token.Local)
 	if token.AuthMethod != "" {
-		buffer.WriteString(fmt.Sprintf("Auth Method:      %s (Namespace: %s)\n", token.AuthMethod, token.AuthMethodNamespace))
+		fmt.Fprintf(&buffer, "Auth Method:      %s (Namespace: %s)\n", token.AuthMethod, token.AuthMethodNamespace)
 	}
-	buffer.WriteString(fmt.Sprintf("Create Time:      %v\n", token.CreateTime))
+	fmt.Fprintf(&buffer, "Create Time:      %v\n", token.CreateTime)
 	if token.ExpirationTime != nil && !token.ExpirationTime.IsZero() {
-		buffer.WriteString(fmt.Sprintf("Expiration Time:  %v\n", *token.ExpirationTime))
+		fmt.Fprintf(&buffer, "Expiration Time:  %v\n", *token.ExpirationTime)
 	}
 	if f.showMeta {
-		buffer.WriteString(fmt.Sprintf("Hash:             %x\n", token.Hash))
-		buffer.WriteString(fmt.Sprintf("Create Index:     %d\n", token.CreateIndex))
-		buffer.WriteString(fmt.Sprintf("Modify Index:     %d\n", token.ModifyIndex))
+		fmt.Fprintf(&buffer, "Hash:             %x\n", token.Hash)
+		fmt.Fprintf(&buffer, "Create Index:     %d\n", token.CreateIndex)
+		fmt.Fprintf(&buffer, "Modify Index:     %d\n", token.ModifyIndex)
 	}
 	if len(token.Policies) > 0 {
-		buffer.WriteString(fmt.Sprintln("Policies:"))
+		fmt.Fprintln(&buffer, "Policies:")
 		for _, policy := range token.Policies {
-			buffer.WriteString(fmt.Sprintf("   %s - %s\n", policy.ID, policy.Name))
+			fmt.Fprintf(&buffer, "   %s - %s\n", policy.ID, policy.Name)
 		}
 	}
 	if len(token.Roles) > 0 {
-		buffer.WriteString(fmt.Sprintln("Roles:"))
+		fmt.Fprintln(&buffer, "Roles:")
 		for _, role := range token.Roles {
-			buffer.WriteString(fmt.Sprintf("   %s - %s\n", role.ID, role.Name))
+			fmt.Fprintf(&buffer, "   %s - %s\n", role.ID, role.Name)
 		}
 	}
 	if len(token.ServiceIdentities) > 0 {
-		buffer.WriteString(fmt.Sprintln("Service Identities:"))
+		fmt.Fprintln(&buffer, "Service Identities:")
 		for _, svcid := range token.ServiceIdentities {
 			if len(svcid.Datacenters) > 0 {
-				buffer.WriteString(fmt.Sprintf("   %s (Datacenters: %s)\n", svcid.ServiceName, strings.Join(svcid.Datacenters, ", ")))
+				fmt.Fprintf(&buffer, "   %s (Datacenters: %s)\n", svcid.ServiceName, strings.Join(svcid.Datacenters, ", "))
 			} else {
-				buffer.WriteString(fmt.Sprintf("   %s (Datacenters: all)\n", svcid.ServiceName))
+				fmt.Fprintf(&buffer, "   %s (Datacenters: all)\n", svcid.ServiceName)
 			}
 		}
 	}
 	if len(token.NodeIdentities) > 0 {
-		buffer.WriteString(fmt.Sprintln("Node Identities:"))
+		fmt.Fprintln(&buffer, "Node Identities:")
 		for _, nodeid := range token.NodeIdentities {
-			buffer.WriteString(fmt.Sprintf("   %s (Datacenter: %s)\n", nodeid.NodeName, nodeid.Datacenter))
+			fmt.Fprintf(&buffer, "   %s (Datacenter: %s)\n", nodeid.NodeName, nodeid.Datacenter)
 		}
 	}
 
 	if len(token.TemplatedPolicies) > 0 {
-		buffer.WriteString(fmt.Sprintln("Templated Policies:"))
+		fmt.Fprintln(&buffer, "Templated Policies:")
 		for _, templatedPolicy := range token.TemplatedPolicies {
-			buffer.WriteString(fmt.Sprintf("   %s\n", templatedPolicy.TemplateName))
+			fmt.Fprintf(&buffer, "   %s\n", templatedPolicy.TemplateName)
 			if templatedPolicy.TemplateVariables != nil && templatedPolicy.TemplateVariables.Name != "" {
-				buffer.WriteString(fmt.Sprintf("      Name: %s\n", templatedPolicy.TemplateVariables.Name))
+				fmt.Fprintf(&buffer, "      Name: %s\n", templatedPolicy.TemplateVariables.Name)
 			}
 			if len(templatedPolicy.Datacenters) > 0 {
-				buffer.WriteString(fmt.Sprintf("      Datacenters: %s\n", strings.Join(templatedPolicy.Datacenters, ", ")))
+				fmt.Fprintf(&buffer, "      Datacenters: %s\n", strings.Join(templatedPolicy.Datacenters, ", "))
 			} else {
 				buffer.WriteString("      Datacenters: all\n")
 			}

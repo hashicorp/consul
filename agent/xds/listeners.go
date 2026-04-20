@@ -29,24 +29,23 @@ import (
 	envoy_tcp_proxy_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
-
-	"github.com/hashicorp/consul/agent/netutil"
-	"github.com/hashicorp/consul/agent/xds/config"
-	"github.com/hashicorp/consul/agent/xds/naming"
-	"github.com/hashicorp/consul/agent/xds/platform"
-
-	"github.com/hashicorp/go-hclog"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/accesslogs"
+	"github.com/hashicorp/consul/agent/xds/config"
+	"github.com/hashicorp/consul/agent/xds/naming"
+	"github.com/hashicorp/consul/agent/xds/platform"
 	"github.com/hashicorp/consul/agent/xds/response"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/lib"
@@ -152,6 +151,11 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			continue
 		}
 
+		destinationPort := ""
+		if upstreamCfg != nil {
+			destinationPort = upstreamCfg.DestinationPort
+		}
+
 		cfg := s.getAndModifyUpstreamConfigForListener(uid, upstreamCfg, chain)
 
 		// If escape hatch is present, create a listener from it and move on to the next
@@ -177,6 +181,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			}
 
 			clusterName = s.getTargetClusterName(upstreamsSnapshot, chain, target.ID, false)
+			clusterName = destinationPortClusterName(clusterName, destinationPort)
 			if clusterName == "" {
 				continue
 			}
@@ -202,7 +207,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			}
 
 			opts := makeListenerOpts{
-				name:       uid.EnvoyID(),
+				name:       destinationPortListenerName(uid.EnvoyID(), destinationPort),
 				accessLogs: cfgSnap.Proxy.AccessLogs,
 				direction:  envoy_core_v3.TrafficDirection_OUTBOUND,
 				logger:     s.Logger,
@@ -222,21 +227,6 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		// The rest of this loop is used exclusively for transparent proxies.
 		// Below we create a filter chain per upstream, rather than a listener per upstream
 		// as we do for explicit upstreams above.
-		filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
-			accessLogs:          &cfgSnap.Proxy.AccessLogs,
-			routeName:           uid.EnvoyID(),
-			clusterName:         clusterName,
-			filterName:          filterName,
-			protocol:            cfg.Protocol,
-			useRDS:              useRDS,
-			fetchTimeoutRDS:     cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
-			tracing:             tracing,
-			maxRequestHeadersKb: proxyCfg.MaxRequestHeadersKB,
-		})
-		if err != nil {
-			return nil, err
-		}
-
 		endpoints := cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[uid][chain.ID()]
 		uniqueAddrs := make(map[string]struct{})
 
@@ -280,14 +270,92 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 				"upstream", uid, "ip_count", len(uniqueAddrs))
 		}
 
-		// For every potential address we collected, create the appropriate address prefix to match on.
-		// In this case we are matching on exact addresses, so the prefix is the address itself,
-		// and the prefix length is based on whether it's IPv4 or IPv6.
-		filterChain.FilterChainMatch = makeFilterChainMatchFromAddrs(uniqueAddrs)
+		// Enterprise multiport upstreams create one filter chain per named port.
+		handled, err := s.appendEntTransparentProxyMultiportFilterChains(
+			outboundListener,
+			endpoints,
+			clusterName,
+			filterName,
+			filterChainOpts{
+				accessLogs:          &cfgSnap.Proxy.AccessLogs,
+				routeName:           uid.EnvoyID(),
+				protocol:            cfg.Protocol,
+				useRDS:              useRDS,
+				fetchTimeoutRDS:     cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
+				tracing:             tracing,
+				maxRequestHeadersKb: proxyCfg.MaxRequestHeadersKB,
+			},
+		)
+		if err != nil {
+			return nil, err
+		}
+		if !handled {
+			endpoints := cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[uid][chain.ID()]
+			uniqueAddrs := make(map[string]struct{})
 
-		// Only attach the filter chain if there are addresses to match on
-		if filterChain.FilterChainMatch != nil && len(filterChain.FilterChainMatch.PrefixRanges) > 0 {
-			outboundListener.FilterChains = append(outboundListener.FilterChains, filterChain)
+			if chain.Partition == cfgSnap.ProxyID.PartitionOrDefault() {
+				for _, ip := range chain.AutoVirtualIPs {
+					uniqueAddrs[ip] = struct{}{}
+				}
+				for _, ip := range chain.ManualVirtualIPs {
+					uniqueAddrs[ip] = struct{}{}
+				}
+			}
+
+			// Match on the virtual IP for the upstream service (identified by the chain's ID).
+			// We do not match on all endpoints here since it would lead to load balancing across
+			// all instances when any instance address is dialed.
+			for _, e := range endpoints {
+				if e.Service.Kind == structs.ServiceKind(structs.TerminatingGateway) {
+					key := structs.ServiceGatewayVirtualIPTag(chain.CompoundServiceName())
+
+					if vip := e.Service.TaggedAddresses[key]; vip.Address != "" {
+						uniqueAddrs[vip.Address] = struct{}{}
+					}
+
+					continue
+				}
+				if vip := e.Service.TaggedAddresses[structs.TaggedAddressVirtualIP]; vip.Address != "" {
+					uniqueAddrs[vip.Address] = struct{}{}
+				}
+
+				// The virtualIPTag is used by consul-k8s to store the ClusterIP for a service.
+				// We only match on this virtual IP if the upstream is in the proxy's partition.
+				// This is because the IP is not guaranteed to be unique across k8s clusters.
+				if acl.EqualPartitions(e.Node.PartitionOrDefault(), cfgSnap.ProxyID.PartitionOrDefault()) {
+					if vip := e.Service.TaggedAddresses[naming.VirtualIPTag]; vip.Address != "" {
+						uniqueAddrs[vip.Address] = struct{}{}
+					}
+				}
+			}
+			if len(uniqueAddrs) > 2 {
+				s.Logger.Debug("detected multiple virtual IPs for an upstream, all will be used to match traffic",
+					"upstream", uid, "ip_count", len(uniqueAddrs))
+			}
+			filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
+				accessLogs:          &cfgSnap.Proxy.AccessLogs,
+				routeName:           uid.EnvoyID(),
+				clusterName:         clusterName,
+				filterName:          filterName,
+				protocol:            cfg.Protocol,
+				useRDS:              useRDS,
+				fetchTimeoutRDS:     cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
+				tracing:             tracing,
+				maxRequestHeadersKb: proxyCfg.MaxRequestHeadersKB,
+			})
+			if err != nil {
+				return nil, err
+			}
+
+			// For every potential address we collected, create the appropriate address prefix to match on.
+			// In this case we are matching on exact addresses, so the prefix is the address itself,
+			// and the prefix length is based on whether it's IPv4 or IPv6.
+			filterChain.FilterChainMatch = makeFilterChainMatchFromAddrs(uniqueAddrs)
+
+			// Only attach the filter chain if there are addresses to match on
+			if filterChain.FilterChainMatch != nil && len(filterChain.FilterChainMatch.PrefixRanges) > 0 {
+				outboundListener.FilterChains = append(outboundListener.FilterChains, filterChain)
+			}
 		}
 	}
 	requiresTLSInspector := false
@@ -404,6 +472,9 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		}
 
 		clusterName := generatePeeredClusterName(uid, tbs)
+		if upstreamCfg != nil {
+			clusterName = destinationPortClusterName(clusterName, upstreamCfg.DestinationPort)
+		}
 
 		// Generate the upstream listeners for when they are explicitly set with a local bind port or socket path
 		if upstreamCfg != nil && upstreamCfg.HasLocalPortOrSocket() {
@@ -425,7 +496,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			}
 
 			opts := makeListenerOpts{
-				name:       uid.EnvoyID(),
+				name:       destinationPortListenerName(uid.EnvoyID(), upstreamCfg.DestinationPort),
 				accessLogs: cfgSnap.Proxy.AccessLogs,
 				direction:  envoy_core_v3.TrafficDirection_OUTBOUND,
 				logger:     s.Logger,
@@ -1046,10 +1117,9 @@ func (s *ResourceGenerator) injectConnectFilters(cfgSnap *proxycfg.ConfigSnapsho
 
 	for idx := range listener.FilterChains {
 		// Insert our authz filter before any others
-		listener.FilterChains[idx].Filters =
-			append([]*envoy_listener_v3.Filter{
-				authzFilter,
-			}, listener.FilterChains[idx].Filters...)
+		listener.FilterChains[idx].Filters = append([]*envoy_listener_v3.Filter{
+			authzFilter,
+		}, listener.FilterChains[idx].Filters...)
 	}
 	return nil
 }
@@ -1191,6 +1261,16 @@ func getAlpnProtocols(protocol string) []string {
 	return alpnProtocols
 }
 
+func getConnectTLSAlpnProtocols(cfgSnap *proxycfg.ConfigSnapshot, protocol string) []string {
+	alpnProtocols := getAlpnProtocols(protocol)
+	if cfgSnap != nil && cfgSnap.Kind == structs.ServiceKindConnectProxy && cfgSnap.IsMultiport() {
+		for _, port := range cfgSnap.Ports {
+			alpnProtocols = append(alpnProtocols, portBasedALPN(port.Name)...)
+		}
+	}
+	return alpnProtocols
+}
+
 func createDownstreamTransportSocketForConnectTLS(cfgSnap *proxycfg.ConfigSnapshot, proxyCfg *config.ProxyConfig, peerBundles []*pbpeering.PeeringTrustBundle) (*envoy_core_v3.TransportSocket, error) {
 	switch cfgSnap.Kind {
 	case structs.ServiceKindConnectProxy:
@@ -1208,7 +1288,7 @@ func createDownstreamTransportSocketForConnectTLS(cfgSnap *proxycfg.ConfigSnapsh
 
 	if tlsContext != nil {
 		// Configure alpn protocols on CommonTLSContext
-		tlsContext.AlpnProtocols = getAlpnProtocols(proxyCfg.Protocol)
+		tlsContext.AlpnProtocols = getConnectTLSAlpnProtocols(cfgSnap, proxyCfg.Protocol)
 	}
 
 	// Inject peering trust bundles if this service is exported to peered clusters.
@@ -1440,39 +1520,44 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 		setNormalizationOptions(cfgSnap.MeshConfig().GetHTTPIncomingRequestNormalization(), &filterOpts)
 	}
 
-	// If an inbound connect limit is set, inject a connection limit filter on each chain.
+	// Enterprise multiport sidecars use one public listener chain per named port.
+	handled, err := s.appendEntConnectProxyMultiportFilterChains(l, name, cfgSnap, filterOpts)
+	if err != nil {
+		return nil, err
+	}
+	if !handled {
+		// Single port (legacy) behavior
+
+		filter, err := makeListenerFilter(filterOpts)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(l.FilterChains) > 0 {
+			// The list of FilterChains has already been initialized
+			l.FilterChains[0].Filters = append(l.FilterChains[0].Filters, filter)
+		} else {
+			l.FilterChains = []*envoy_listener_v3.FilterChain{
+				{
+					Filters: []*envoy_listener_v3.Filter{
+						filter,
+					},
+				},
+			}
+		}
+	}
+
+	// Apply connection limit filter to all filter chains uniformly (outside multiport branching)
 	if cfg.MaxInboundConnections > 0 {
 		connectionLimitFilter, err := makeConnectionLimitFilter(cfg.MaxInboundConnections)
 		if err != nil {
 			return nil, err
 		}
-		l.FilterChains = []*envoy_listener_v3.FilterChain{
-			{
-				Filters: []*envoy_listener_v3.Filter{
-					connectionLimitFilter,
-				},
-			},
+		// Prepend connection limit filter to all existing filter chains
+		for i := range l.FilterChains {
+			l.FilterChains[i].Filters = append([]*envoy_listener_v3.Filter{connectionLimitFilter}, l.FilterChains[i].Filters...)
 		}
 	}
-
-	filter, err := makeListenerFilter(filterOpts)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(l.FilterChains) > 0 {
-		// The list of FilterChains has already been initialized
-		l.FilterChains[0].Filters = append(l.FilterChains[0].Filters, filter)
-	} else {
-		l.FilterChains = []*envoy_listener_v3.FilterChain{
-			{
-				Filters: []*envoy_listener_v3.Filter{
-					filter,
-				},
-			},
-		}
-	}
-
 	err = s.finalizePublicListenerFromConfig(l, cfgSnap, useHTTPFilter)
 	if err != nil {
 		return nil, fmt.Errorf("failed to attach Consul filters and TLS context to custom public listener: %v", err)
@@ -1756,7 +1841,7 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 			)
 		}
 
-		var dest = &svcConfig.Destination
+		dest := &svcConfig.Destination
 
 		opts := terminatingGatewayFilterChainOpts{
 			service:          svc,
@@ -2262,6 +2347,16 @@ func (s *ResourceGenerator) makeMeshGatewayPeerFilterChain(
 	}
 
 	var peeredServerNames []string
+	if cfgSnap.MeshGatewayHasPartitionExport(svc) {
+		peeredServerNames = append(peeredServerNames, connect.ServiceSNI(
+			svc.Name,
+			"",
+			svc.NamespaceOrDefault(),
+			svc.PartitionOrDefault(),
+			cfgSnap.Datacenter,
+			cfgSnap.Roots.TrustDomain,
+		))
+	}
 	for _, peerName := range peerNames {
 		peeredSNI := connect.PeeredServiceSNI(
 			svc.Name,

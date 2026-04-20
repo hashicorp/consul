@@ -12,11 +12,12 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+	hashstructure_v2 "github.com/mitchellh/hashstructure/v2"
+
 	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
-	hashstructure_v2 "github.com/mitchellh/hashstructure/v2"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
@@ -1150,6 +1151,15 @@ func (c *Catalog) VirtualIPForService(args *structs.ServiceSpecificRequest, repl
 
 	state := c.srv.fsm.State()
 	psn := structs.PeeredServiceName{Peer: args.PeerName, ServiceName: structs.NewServiceName(args.ServiceName, &args.EnterpriseMeta)}
+
+	vip, handled, err := virtualIPForServicePort(state, psn, args.PortName)
+	if err != nil {
+		return err
+	}
+	if handled {
+		*reply = vip
+		return nil
+	}
 	*reply, err = state.VirtualIPForService(psn)
 	return err
 }

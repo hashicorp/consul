@@ -69,7 +69,7 @@ cd tmp
 
 			// Conditionally generate these in isolation and rename them to
 			// not rely upon the numerical indexing.
-			buf.WriteString(fmt.Sprintf(`
+			fmt.Fprintf(&buf, `
 if [[ ! -f %[1]s || ! -f %[2]s ]]; then
 	rm -f %[3]s %[4]s
 	%[5]s
@@ -79,8 +79,7 @@ fi
 `,
 				"../"+node.TLSCertPrefix+"-key.pem", "../"+node.TLSCertPrefix+".pem",
 				expectPrefix+"-key.pem", expectPrefix+".pem",
-				tlsCertCreateCommand(node),
-			))
+				tlsCertCreateCommand(node))
 		}
 
 		err := s.runner.DockerExec(ctx, []string{

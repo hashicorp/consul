@@ -38,11 +38,11 @@ func (o *oneOfTracker) markFieldAsSet(desc protoreflect.FieldDescriptor) error {
 			name := o.namer.NameField(oneOfFields.Get(i))
 
 			if i == oneOfFields.Len()-1 {
-				builder.WriteString(fmt.Sprintf("%q", name))
+				fmt.Fprintf(&builder, "%q", name)
 			} else if i == oneOfFields.Len()-2 {
-				builder.WriteString(fmt.Sprintf("%q and ", name))
+				fmt.Fprintf(&builder, "%q and ", name)
 			} else {
-				builder.WriteString(fmt.Sprintf("%q, ", name))
+				fmt.Fprintf(&builder, "%q, ", name)
 			}
 		}
 

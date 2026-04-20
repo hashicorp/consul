@@ -105,43 +105,43 @@ func (c *cmd) Run(args []string) int {
 func formatPeering(peering *api.Peering) string {
 	var buffer bytes.Buffer
 
-	buffer.WriteString(fmt.Sprintf("Name:         %s\n", peering.Name))
-	buffer.WriteString(fmt.Sprintf("ID:           %s\n", peering.ID))
+	fmt.Fprintf(&buffer, "Name:         %s\n", peering.Name)
+	fmt.Fprintf(&buffer, "ID:           %s\n", peering.ID)
 	if peering.Partition != "" {
-		buffer.WriteString(fmt.Sprintf("Partition:    %s\n", peering.Partition))
+		fmt.Fprintf(&buffer, "Partition:    %s\n", peering.Partition)
 	}
 	if peering.DeletedAt != nil {
-		buffer.WriteString(fmt.Sprintf("DeletedAt:    %s\n", peering.DeletedAt.Format(time.RFC3339)))
+		fmt.Fprintf(&buffer, "DeletedAt:    %s\n", peering.DeletedAt.Format(time.RFC3339))
 	}
-	buffer.WriteString(fmt.Sprintf("State:        %s\n", peering.State))
+	fmt.Fprintf(&buffer, "State:        %s\n", peering.State)
 	if len(peering.Meta) > 0 {
 		buffer.WriteString("Meta:\n")
 		for k, v := range peering.Meta {
-			buffer.WriteString(fmt.Sprintf("    %s=%s\n", k, v))
+			fmt.Fprintf(&buffer, "    %s=%s\n", k, v)
 		}
 	}
 
 	buffer.WriteString("\n")
-	buffer.WriteString(fmt.Sprintf("Peer ID:               %s\n", peering.PeerID))
-	buffer.WriteString(fmt.Sprintf("Peer Server Name:      %s\n", peering.PeerServerName))
-	buffer.WriteString(fmt.Sprintf("Peer CA Pems:          %d\n", len(peering.PeerCAPems)))
+	fmt.Fprintf(&buffer, "Peer ID:               %s\n", peering.PeerID)
+	fmt.Fprintf(&buffer, "Peer Server Name:      %s\n", peering.PeerServerName)
+	fmt.Fprintf(&buffer, "Peer CA Pems:          %d\n", len(peering.PeerCAPems))
 	if len(peering.PeerServerAddresses) > 0 {
 		buffer.WriteString("Peer Server Addresses:\n")
 		for _, v := range peering.PeerServerAddresses {
-			buffer.WriteString(fmt.Sprintf("    %s", v))
+			fmt.Fprintf(&buffer, "    %s", v)
 		}
 	}
 
 	buffer.WriteString("\n")
-	buffer.WriteString(fmt.Sprintf("Imported Services: %d\n", len(peering.StreamStatus.ImportedServices)))
-	buffer.WriteString(fmt.Sprintf("Exported Services: %d\n", len(peering.StreamStatus.ExportedServices)))
+	fmt.Fprintf(&buffer, "Imported Services: %d\n", len(peering.StreamStatus.ImportedServices))
+	fmt.Fprintf(&buffer, "Exported Services: %d\n", len(peering.StreamStatus.ExportedServices))
 	buffer.WriteString("\n")
-	buffer.WriteString(fmt.Sprintf("Last Heartbeat:    %v\n", peering.StreamStatus.LastHeartbeat))
-	buffer.WriteString(fmt.Sprintf("Last Send:         %v\n", peering.StreamStatus.LastSend))
-	buffer.WriteString(fmt.Sprintf("Last Receive:      %v\n", peering.StreamStatus.LastReceive))
+	fmt.Fprintf(&buffer, "Last Heartbeat:    %v\n", peering.StreamStatus.LastHeartbeat)
+	fmt.Fprintf(&buffer, "Last Send:         %v\n", peering.StreamStatus.LastSend)
+	fmt.Fprintf(&buffer, "Last Receive:      %v\n", peering.StreamStatus.LastReceive)
 	buffer.WriteString("\n")
-	buffer.WriteString(fmt.Sprintf("Create Index: %d\n", peering.CreateIndex))
-	buffer.WriteString(fmt.Sprintf("Modify Index: %d\n", peering.ModifyIndex))
+	fmt.Fprintf(&buffer, "Create Index: %d\n", peering.CreateIndex)
+	fmt.Fprintf(&buffer, "Modify Index: %d\n", peering.ModifyIndex)
 
 	return buffer.String()
 }

@@ -428,7 +428,7 @@ func verifyMonotonicStreamUpdates(ctx context.Context, logger testLogger, client
 	streamHandle, err := client.Subscribe(ctx, req)
 	switch {
 	case errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded):
-		logger.Logf("subscriber %05d: context cancelled before loop")
+		logger.Logf("subscriber: context cancelled before loop")
 		return nil
 	case err != nil:
 		return err

@@ -17,6 +17,7 @@ type DiscoveryChainSet struct {
 	Splitters            map[structs.ServiceID]*structs.ServiceSplitterConfigEntry
 	Resolvers            map[structs.ServiceID]*structs.ServiceResolverConfigEntry
 	Services             map[structs.ServiceID]*structs.ServiceConfigEntry
+	NodeService          *structs.NodeService
 	Peers                map[string]*pbpeering.Peering
 	DefaultSamenessGroup *structs.SamenessGroupConfigEntry
 	SamenessGroups       map[string]*structs.SamenessGroupConfigEntry

@@ -12,10 +12,9 @@ import (
 	"testing"
 	"time"
 
+	fuzz "github.com/google/gofuzz"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	fuzz "github.com/google/gofuzz"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
@@ -1223,6 +1222,26 @@ func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
 				}
 			},
 			"upstreams cannot contain duplicates",
+		},
+		{
+			"connect-proxy: Upstreams same service different destination ports",
+			func(x *NodeService) {
+				x.Proxy.Upstreams = Upstreams{
+					{
+						DestinationType: UpstreamDestTypeService,
+						DestinationName: "foo",
+						DestinationPort: "api-port",
+						LocalBindPort:   5000,
+					},
+					{
+						DestinationType: UpstreamDestTypeService,
+						DestinationName: "foo",
+						DestinationPort: "admin-port",
+						LocalBindPort:   5001,
+					},
+				}
+			},
+			"",
 		},
 		{
 			"connect-proxy: Centrally configured upstreams can have duplicate ip/port",

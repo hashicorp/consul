@@ -1084,9 +1084,9 @@ func checkEnvoyVersionCompatibility(envoyVersion string, unsupportedList []strin
 	if len(unsupportedList) > 0 {
 		for i, s := range unsupportedList {
 			if i == 0 {
-				cs.WriteString(fmt.Sprintf("!= %s", s))
+				fmt.Fprintf(&cs, "!= %s", s)
 			} else {
-				cs.WriteString(fmt.Sprintf(", != %s", s))
+				fmt.Fprintf(&cs, ", != %s", s)
 			}
 		}
 
@@ -1114,7 +1114,7 @@ func checkEnvoyVersionCompatibility(envoyVersion string, unsupportedList []strin
 	maxSupported := fmt.Sprintf("%s.%d", splitS[0], minor)
 
 	cs.Reset()
-	cs.WriteString(fmt.Sprintf(">= %s, < %s", xdscommon.GetMinEnvoyMajorVersion(), maxSupported))
+	fmt.Fprintf(&cs, ">= %s, < %s", xdscommon.GetMinEnvoyMajorVersion(), maxSupported)
 	constraints, err := version.NewConstraint(cs.String())
 	if err != nil {
 		return envoyCompat{}, err
