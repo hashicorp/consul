@@ -3,19 +3,29 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-{{#let (hash main=(concat this.guid '-main') Notification=(component 'app/notification')) as |exported|}}
+{{#let (hash main='hds-main' Notification=(component 'app/notification')) as |exported|}}
 
   <div class='app' ...attributes>
-    <ModalLayer />
-
-    {{yield exported to='sideNav'}}
-    <main id={{concat this.guid '-main'}}>
-      <div class='notifications'>
-        {{yield exported to='notifications'}}
-        <PortalTarget @name='app-notifications' @multiple={{true}} />
-      </div>
-      {{yield exported to='main'}}
-    </main>
+    <Hds::AppFrame
+      @hasHeader={{false}}
+      @hasFooter={{false}}
+      @hasModals={{true}}
+      class='app-shell'
+    as |Frame|>
+      <Frame.Sidebar class='app-shell__sidebar'>
+        {{yield exported to='sideNav'}}
+      </Frame.Sidebar>
+      <Frame.Modals>
+        <ModalLayer />
+      </Frame.Modals>
+      <Frame.Main class='app-shell__main'>
+        <div class='notifications'>
+          {{yield exported to='notifications'}}
+          <PortalTarget @name='app-notifications' @multiple={{true}} />
+        </div>
+        {{yield exported to='main'}}
+      </Frame.Main>
+    </Hds::AppFrame>
   </div>
 
 {{/let}}
