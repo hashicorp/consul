@@ -78,10 +78,10 @@
                   label="Policy in Use"
                 }}
                 >
-                  <BlockSlot @name="header">
+                  <:header>
                     <h2>Policy in Use</h2>
-                  </BlockSlot>
-                  <BlockSlot @name="body">
+                  </:header>
+                  <:body>
                     <p>
                       This Policy is currently in use. If you choose to delete this Policy, it will be removed from the
                       following <strong>{{@items.length}} Tokens</strong>:
@@ -90,8 +90,8 @@
                     <p>
                       This action cannot be undone. {{message}}
                     </p>
-                  </BlockSlot>
-                  <BlockSlot @name="actions" as |close|>
+                  </:body>
+                  <:actions as |close|>
                     <Hds::ButtonSet>
                       <Hds::Button
                         @text='Yes, Delete'
@@ -105,7 +105,7 @@
                         {{on 'click' close}}
                       />
                     </Hds::ButtonSet>
-                  </BlockSlot>
+                  </:actions>
                 </ModalDialog>
               {{else}}
                 <DeleteConfirmation @message={{message}} @execute={{queue execute (fn @onDelete @item)}} @cancel={{cancel}} />

@@ -11,16 +11,18 @@
   @aria={{hash
     label=(if (eq this.state 'role') 'New Role' 'New Policy')
   }}
-as |modal|>
-  <Ref @target={{this}} @name="modal" @value={{modal}} />
-  <BlockSlot @name="header">
+>
+  <:default as |modal|>
+      <Ref @target={{this}} @name="modal" @value={{modal}} />
+  </:default>
+  <:header>
 {{#if (eq this.state 'role')}}
     <h2>New Role</h2>
 {{else}}
     <h2>New Policy</h2>
 {{/if}}
-  </BlockSlot>
-  <BlockSlot @name="body">
+  </:header>
+  <:body>
 
   <input id="{{this.name}}_state_role" type="radio" name="{{this.name}}[state]" value="role" checked={{if (eq this.state 'role') 'checked'}} onchange={{action 'change'}} />
     <RoleForm
@@ -64,8 +66,8 @@ as |modal|>
       @partition={{@partition}}
     />
 
-  </BlockSlot>
-  <BlockSlot @name="actions" as |close|>
+  </:body>
+  <:actions as |close|>
 
     <Hds::ButtonSet>
       {{#if (eq this.state 'role')}}
@@ -101,7 +103,7 @@ as |modal|>
         />
       {{/if}}
     </Hds::ButtonSet>
-  </BlockSlot>
+  </:actions>
 </ModalDialog>
 
 <ChildSelector

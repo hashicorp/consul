@@ -33,7 +33,7 @@
               {{service.Name}}
             {{/if}}
           </SuperSelectWithCreate>
-          
+
         {{#if @create}}
           <em>Search for an existing service, or enter any Service name.</em>
         {{/if}}
@@ -276,35 +276,37 @@
     @aria={{hash
       label="Edit Permission"
     }}
-  as |modal|>
-    <Ref @target={{this}} @name="modal" @value={{modal}} />
-    <BlockSlot @name="header">
+  >
+    <:default as |modal|>
+          <Ref @target={{this}} @name="modal" @value={{modal}} />
+    </:default>
+    <:header>
       <h3>Edit Permission</h3>
-    </BlockSlot>
-    <BlockSlot @name="body">
+    </:header>
+    <:body>
       <Consul::Intention::Permission::Form
         @item={{this.permission}}
         @onsubmit={{action 'add' 'Permissions' @item}}
       as |permissionForm|>
         <Ref @target={{this}} @name="permissionForm" @value={{permissionForm}} />
       </Consul::Intention::Permission::Form>
-    </BlockSlot>
-    <BlockSlot @name="actions">
+    </:body>
+    <:actions as |close|>
       <Hds::ButtonSet>
         <Hds::Button
           @text='Save'
           data-test-intention-permission-submit
           @color='primary'
           disabled={{if (not this.permissionForm.isDirty) 'disabled'}}
-          onclick={{queue (action this.permissionForm.submit) (action modal.close)}}
+          onclick={{queue (action this.permissionForm.submit) (action close)}}
         />
         <Hds::Button
           @text='Cancel'
           @color='secondary'
-          onclick={{queue (action this.permissionForm.reset) (action modal.close)}}
+          onclick={{queue (action this.permissionForm.reset) (action close)}}
         />
       </Hds::ButtonSet>
-    </BlockSlot>
+    </:actions>
   </ModalDialog>
 
 </div>
