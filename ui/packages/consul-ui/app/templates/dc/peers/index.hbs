@@ -66,21 +66,20 @@
             <ModalDialog
               @aria={{hash label="Add peer connection"}}
               class="peer-create-modal"
-              as |modal|
             >
-              <BlockSlot @name="header">
-                {{did-insert-helper (set this "create" modal)}}
+              <:header as |api|>
+                {{did-insert-helper (set this "create" api)}}
                 <h2>
                   Add peer connection
                 </h2>
-              </BlockSlot>
-              <BlockSlot @name="body">
+              </:header>
+              <:body as |api|>
 
-                {{#if modal.opened}}
+                {{#if api.opened}}
                   <Consul::Peer::Form @params={{route.params}} as |form|>
                     <form.Form
                       @onchange={{loader.invalidate}}
-                      @onsubmit={{fn this.redirectToPeerShow modal.close}}
+                      @onsubmit={{fn this.redirectToPeerShow api.close}}
                       as |form|
                     >
                       {{did-insert-helper (set this "form" form)}}
@@ -89,10 +88,10 @@
                   </Consul::Peer::Form>
                 {{/if}}
 
-              </BlockSlot>
-              <BlockSlot @name="actions">
+              </:body>
+              <:actions>
                 <this.form.Actions @onclose={{this.create.close}} />
-              </BlockSlot>
+              </:actions>
             </ModalDialog>
             <Hds::Button
               @color='primary'
@@ -128,15 +127,14 @@
                 <ModalDialog
                   @aria={{hash label="Regenerate token"}}
                   @onclose={{set this "item" undefined}}
-                  as |modal|
                 >
-                  <BlockSlot @name="header">
+                  <:header as |modal|>
                     {{did-insert-helper (set this "regenerate" modal)}}
                     <h2>
                       Regenerate token
                     </h2>
-                  </BlockSlot>
-                  <BlockSlot @name="body">
+                  </:header>
+                  <:body>
                     {{#if this.item}}
                       <Consul::Peer::Form::Generate
                         @item={{this.item}}
@@ -148,12 +146,12 @@
                         <form.Fieldsets />
                       </Consul::Peer::Form::Generate>
                     {{/if}}
-                  </BlockSlot>
-                  <BlockSlot @name="actions">
+                  </:body>
+                  <:actions>
                     <this.regenerateForm.Actions
                       @onclose={{this.regenerate.close}}
                     />
-                  </BlockSlot>
+                  </:actions>
                 </ModalDialog>
 
                 <DataCollection
