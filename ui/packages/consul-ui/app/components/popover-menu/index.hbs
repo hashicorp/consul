@@ -43,25 +43,24 @@ as |api|}}
       </button>
     </ToggleButton>
 
-    <MenuPanel @position={{this.position}} id={{aria.controls}} aria-labelledby={{aria.labelledBy}} aria-expanded={{aria.expanded}} as |menu|>
-      <Ref @target={{this}} @name="menu" @value={{menu}} />
-      <BlockSlot @name="controls">
+    <MenuPanel @position={{this.position}} id={{aria.controls}} aria-labelledby={{aria.labelledBy}} aria-expanded={{aria.expanded}}>
+
+      <:controls as |menu|>
+        <Ref @target={{this}} @name="menu" @value={{menu}} />
         <input type="checkbox" id={{concat 'popover-menu-' this.guid '-'}} />
       {{#each this.submenus as |sub|}}
         <input type="checkbox" id={{concat 'popover-menu-' this.guid '-' sub}} onchange={{menu.change}} />
       {{/each}}
-      </BlockSlot>
-      {{#if this.hasHeader}}
-        <BlockSlot @name="header">
+      </:controls>
+      <:header>
           {{yield components api}}
           {{#yield-slot name="header"}}{{else}}{{/yield-slot}}
-        </BlockSlot>
-      {{/if}}
-      <BlockSlot @name="menu">
+      </:header>
+      <:menu>
         <YieldSlot @name="menu" @params={{block-params (concat "popover-menu-" this.guid "-") keypressClick this.toggle.click}}>
           {{yield components api}}
         </YieldSlot>
-      </BlockSlot>
+      </:menu>
     </MenuPanel>
 
 {{/let}}

@@ -23,10 +23,6 @@ export default Component.extend(Slotted, {
     this.guid = this.dom.guid(this);
     this.submenus = [];
   },
-  willRender: function () {
-    this._super(...arguments);
-    set(this, 'hasHeader', this._isRegistered('header'));
-  },
   actions: {
     addSubmenu: function (name) {
       set(this, 'submenus', this.submenus.concat(name));
