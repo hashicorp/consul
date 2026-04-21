@@ -8,9 +8,8 @@ import { inject as service } from '@ember/service';
 import { next } from '@ember/runloop';
 import { set } from '@ember/object';
 
-import Slotted from 'block-slots';
 
-export default Component.extend(Slotted, {
+export default Component.extend({
   tagName: '',
   dom: service('dom'),
   isConfirmation: false,
