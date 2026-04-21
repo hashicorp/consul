@@ -12,7 +12,7 @@
       <div>
           <div>
               <nav class="app-view-breadcrumbs" aria-label="Breadcrumb" data-test-breadcrumbs>
-                {{#if (has-block 'breadcrumbs')}}
+                {{#if (if (not-eq @showBreadcrumb undefined) @showBreadcrumb (has-block 'breadcrumbs'))}}
                   {{document-attrs class="with-breadcrumbs"}}
                   {{yield to='breadcrumbs'}}
                 {{/if}}
