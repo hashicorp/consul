@@ -59,38 +59,38 @@
       <Actions as |Action|>
         {{#if (and (can "write peer" item=item) item.isDialer)}}
           <Action data-test-regenerate-action {{on "click" (fn @onedit item)}}>
-            <BlockSlot @name="label">
+            <:label>
               Regenerate token
-            </BlockSlot>
+            </:label>
           </Action>
         {{/if}}
         <Action
           data-test-view-action
           @href={{href-to "dc.peers.show" item.Name}}
         >
-          <BlockSlot @name="label">
+          <:label>
             View
-          </BlockSlot>
+          </:label>
         </Action>
         <Action
           data-test-delete-action
           @onclick={{fn @ondelete item}}
           class="dangerous"
         >
-          <BlockSlot @name="label">
+          <:label>
             Delete
-          </BlockSlot>
-          <BlockSlot @name='confirm-header'>
+          </:label>
+          <:confirmHeader>
             Confirm delete
-          </BlockSlot>
-          <BlockSlot @name='confirm-body'>
+          </:confirmHeader>
+          <:confirmBody>
             <p>
               Are you sure you want to delete this peer?
             </p>
-          </BlockSlot>
-          <BlockSlot @name='confirm-footer' as |Params|>
+          </:confirmBody>
+          <:confirmFooter as |Params|>
             <Params.button @text='Delete' {{on 'click' Params.confirmAction}} />
-          </BlockSlot>
+          </:confirmFooter>
         </Action>
       </Actions>
     {{/if}}
