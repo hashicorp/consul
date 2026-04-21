@@ -152,11 +152,11 @@
         </td>
       </:row>
       <:actions as |item index change checked|>
-        <PopoverMenu @expanded={{if (eq checked index) true false}} @onchange={{action change index}} @keyboardAccess={{true}} as |components|>
-          <BlockSlot @name="trigger">
+        <PopoverMenu @expanded={{if (eq checked index) true false}} @onchange={{action change index}} @keyboardAccess={{true}}>
+          <:trigger>
             More
-          </BlockSlot>
-          <BlockSlot @name="menu" as |confirm keypressClick|>
+          </:trigger>
+          <:menu as |components confirm keypressClick|>
               <components.MenuItem @href={{href-to 'dc.acls.roles.edit' item.ID}}>
                 <:label>
                   {{#if (can "edit role" item=item)}}
@@ -183,7 +183,7 @@
                 </:confirmFooter>
               </components.MenuItem>
             {{/if}}
-          </BlockSlot>
+          </:menu>
         </PopoverMenu>
       </:actions>
     </TabularCollection>

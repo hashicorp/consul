@@ -20,12 +20,11 @@
       @expanded={{if (eq checked index) true false}}
       @onchange={{action change index}}
       @keyboardAccess={{true}}
-      as |components api|
     >
-      <BlockSlot @name='trigger'>
+      <:trigger>
         More
-      </BlockSlot>
-      <BlockSlot @name='menu' as |confirm keypressClick|>
+      </:trigger>
+      <:menu as |components api confirm keypressClick|>
         {{#if (can 'write kv' item=item)}}
           <components.MenuItem
             data-test-edit
@@ -61,7 +60,7 @@
             </:label>
           </components.MenuItem>
         {{/if}}
-      </BlockSlot>
+      </:menu>
     </PopoverMenu>
   </:actions>
 </TabularCollection>

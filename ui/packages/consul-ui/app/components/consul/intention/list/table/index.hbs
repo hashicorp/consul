@@ -86,12 +86,11 @@
       @expanded={{if (eq checked index) true false}}
       @onchange={{action change index}}
       @keyboardAccess={{true}}
-      as |components api|
     >
-      <BlockSlot @name='trigger'>
+      <:trigger>
         More
-      </BlockSlot>
-      <BlockSlot @name='menu' as |confirm keypressClick change|>
+      </:trigger>
+      <:menu as |components api confirm keypressClick change|>
         {{#if (can 'write intention' item=item)}}
           <components.MenuItem href={{href-to (or @routeName 'dc.intentions.edit') item.ID}}>
             <:label>
@@ -159,7 +158,7 @@
             </a>
           </li>
         {{/if}}
-      </BlockSlot>
+      </:menu>
     </PopoverMenu>
   </:actions>
 </TabularCollection>
