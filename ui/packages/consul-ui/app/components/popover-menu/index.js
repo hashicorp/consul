@@ -6,10 +6,9 @@
 /*eslint ember/closure-actions: "warn"*/
 import Component from '@ember/component';
 import { inject as service } from '@ember/service';
-import Slotted from 'block-slots';
 import { set } from '@ember/object';
 
-export default Component.extend(Slotted, {
+export default Component.extend({
   tagName: '',
   dom: service('dom'),
   expanded: false,

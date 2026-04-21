@@ -3,7 +3,6 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-{{yield}}
 <div
   class="popover-menu"
   ...attributes
@@ -37,9 +36,7 @@ as |api|}}
     as |toggle|>
       <Ref @target={{this}} @name="toggle" @value={{toggle}} />
       <button type="button" aria-haspopup="menu" onkeydown={{keypress}} onclick={{this.toggle.click}} id={{aria.labelledBy}} aria-controls={{aria.controls}}>
-        <YieldSlot @name="trigger">
-          {{yield components api}}
-        </YieldSlot>
+        {{yield components api to="trigger"}}
       </button>
     </ToggleButton>
 
@@ -53,13 +50,12 @@ as |api|}}
       {{/each}}
       </:controls>
       <:header>
-          {{yield components api}}
-          {{#yield-slot name="header"}}{{else}}{{/yield-slot}}
+        {{#if (has-block "header")}}
+          {{yield components api to="header"}}
+        {{/if}}
       </:header>
       <:menu>
-        <YieldSlot @name="menu" @params={{block-params (concat "popover-menu-" this.guid "-") keypressClick this.toggle.click}}>
-          {{yield components api}}
-        </YieldSlot>
+        {{yield components api (concat "popover-menu-" this.guid "-") keypressClick this.toggle.click to="menu"}}
       </:menu>
     </MenuPanel>
 
