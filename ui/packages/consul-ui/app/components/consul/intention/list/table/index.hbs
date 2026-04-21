@@ -94,23 +94,23 @@
       <BlockSlot @name='menu' as |confirm keypressClick change|>
         {{#if (can 'write intention' item=item)}}
           <components.MenuItem href={{href-to (or @routeName 'dc.intentions.edit') item.ID}}>
-            <BlockSlot @name="label">
+            <:label>
               Edit
-            </BlockSlot>
+            </:label>
           </components.MenuItem>
           <components.MenuItem @onclick={{action @delete item}} class="dangerous" data-test-delete>
-            <BlockSlot @name="label">
+            <:label>
               Delete
-            </BlockSlot>
-            <BlockSlot @name="confirm-header">
+            </:label>
+            <:confirmHeader>
               Confirm Delete
-            </BlockSlot>
-            <BlockSlot @name="confirm-body">
+            </:confirmHeader>
+            <:confirmBody>
               Are you sure you want to delete this intention?
-            </BlockSlot>
-            <BlockSlot @name="confirm-footer" as |Params|>
+            </:confirmBody>
+            <:confirmFooter as |Params|>
               <Params.button @text='Delete' {{on 'click' Params.confirmAction}} />
-            </BlockSlot>
+            </:confirmFooter>
           </components.MenuItem>
 
         {{else if (can 'view CRD intention' item=item)}}

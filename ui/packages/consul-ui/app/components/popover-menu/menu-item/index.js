@@ -7,9 +7,7 @@ import Component from '@ember/component';
 import { inject as service } from '@ember/service';
 import { set } from '@ember/object';
 
-import Slotted from 'block-slots';
-
-export default Component.extend(Slotted, {
+export default Component.extend({
   tagName: '',
   dom: service('dom'),
 
@@ -30,10 +28,6 @@ export default Component.extend(Slotted, {
   didDestroyElement: function () {
     this._super(...arguments);
     this.menu.removeSubmenu(this.guid);
-  },
-  willRender: function () {
-    this._super(...arguments);
-    set(this, 'hasConfirmation', this._isRegistered('confirm-footer'));
   },
 
   actions: {

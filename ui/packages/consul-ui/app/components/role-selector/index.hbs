@@ -158,29 +158,29 @@
           </BlockSlot>
           <BlockSlot @name="menu" as |confirm keypressClick|>
               <components.MenuItem @href={{href-to 'dc.acls.roles.edit' item.ID}}>
-                <BlockSlot @name="label">
+                <:label>
                   {{#if (can "edit role" item=item)}}
                     Edit
                   {{else}}
                     View
                   {{/if}}
-                </BlockSlot>
+                </:label>
               </components.MenuItem>
 
             {{#if (not @disabled)}}
               <components.MenuItem class="dangerous" @onclick={{fn remove item @items}} data-test-delete>
-                <BlockSlot @name="label">
+                <:label>
                   Remove
-                </BlockSlot>
-                <BlockSlot @name="confirm-header">
+                </:label>
+                <:confirmHeader>
                   Confirm Remove
-                </BlockSlot>
-                <BlockSlot @name="confirm-body">
+                </:confirmHeader>
+                <:confirmBody>
                   Are you sure you want to remove this role?
-                </BlockSlot>
-                <BlockSlot @name="confirm-footer" as |Params|>
+                </:confirmBody>
+                <:confirmFooter as |Params|>
                   <Params.button @text='Remove' {{on 'click' Params.confirmAction}} />
-                </BlockSlot>
+                </:confirmFooter>
               </components.MenuItem>
             {{/if}}
           </BlockSlot>

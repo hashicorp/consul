@@ -3,9 +3,8 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-{{yield}}
 <li role='none' ...attributes>
-  {{#if this.hasConfirmation}}
+  {{#if (has-block "confirmFooter")}}
     <button
       type='button'
       role='menuitem'
@@ -13,7 +12,11 @@
       onkeypress={{action 'activateModal' 'formModalActive'}}
       onClick={{action 'activateModal' 'formModalActive'}}
     >
-      <YieldSlot @name='label'>{{yield}}</YieldSlot>
+      {{#if (has-block "label")}}
+        {{yield to="label"}}
+      {{else}}
+        {{yield}}
+      {{/if}}
     </button>
 
     {{#if this.formModalActive}}
@@ -25,31 +28,35 @@
           as |M|
         >
           <M.Header>
-            <YieldSlot @name='confirm-header'>
+            {{#if (has-block "confirmHeader")}}
+              {{yield to="confirmHeader"}}
+            {{else}}
               {{yield}}
-            </YieldSlot>
+            {{/if}}
           </M.Header>
           <M.Body>
             <p class='hds-typography-body-300 hds-foreground-primary'>
-              <YieldSlot @name='confirm-body'>
+              {{#if (has-block "confirmBody")}}
+                {{yield to="confirmBody"}}
+              {{else}}
                 {{yield}}
-              </YieldSlot>
+              {{/if}}
             </p>
           </M.Body>
-                    <M.Footer as |F|>
-            <YieldSlot
-              @name='confirm-footer'
-              @params={{block-params
+          <M.Footer as |F|>
+            {{#if (has-block "confirmFooter")}}
+              {{yield
                 (hash
                   button=(component 'popover-menu/menu-item/critical-button' confirmAction=(queue (action this.menu.clickTrigger) (action this.onclick) F.close))
                   btnAtts=(hash data-test-id='confirm-action')
                   confirmAction=(queue (action this.menu.clickTrigger) (action this.onclick) F.close)
                   close=F.close
                 )
+                to="confirmFooter"
               }}
-            >
+            {{else}}
               {{yield}}
-            </YieldSlot>
+            {{/if}}
           </M.Footer>
         </Hds::Modal>
       {{/in-element}}
@@ -64,9 +71,11 @@
         target={{if external '_blank'}}
         rel={{if external 'noopener noreferrer'}}
       >
-        <YieldSlot @name='label'>
+        {{#if (has-block "label")}}
+          {{yield to="label"}}
+        {{else}}
           {{yield}}
-        </YieldSlot>
+        {{/if}}
       </a>
     {{/let}}
   {{else}}
@@ -78,9 +87,11 @@
         (action (if this.close this.menu.clickTrigger (noop)))
       }}
     >
-      <YieldSlot @name='label'>
+      {{#if (has-block "label")}}
+        {{yield to="label"}}
+      {{else}}
         {{yield}}
-      </YieldSlot>
+      {{/if}}
     </button>
   {{/if}}
 </li>

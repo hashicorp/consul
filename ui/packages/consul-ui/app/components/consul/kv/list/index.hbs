@@ -31,34 +31,34 @@
             data-test-edit
             @href={{href-to (if item.isFolder 'dc.kv.folder' 'dc.kv.edit') item.Key}}
           >
-            <BlockSlot @name='label'>
+            <:label>
               {{if item.isFolder 'View' 'Edit'}}
-            </BlockSlot>
+            </:label>
           </components.MenuItem>
           <components.MenuItem data-test-delete class='dangerous' @onclick={{action @delete item}}>
-            <BlockSlot @name='label'>
+            <:label>
               Delete
-            </BlockSlot>
-            <BlockSlot @name='confirm-header'>
+            </:label>
+            <:confirmHeader>
               Confirm Delete
-            </BlockSlot>
-            <BlockSlot @name='confirm-body'>
+            </:confirmHeader>
+            <:confirmBody>
               <p>
                 Are you sure you want to delete this KV entry?
               </p>
-            </BlockSlot>
-            <BlockSlot @name='confirm-footer' as |Params|>
+            </:confirmBody>
+            <:confirmFooter as |Params|>
               <Params.button @text='Delete' {{on 'click' Params.confirmAction}} />
-            </BlockSlot>
+            </:confirmFooter>
           </components.MenuItem>
         {{else}}
           <components.MenuItem
             data-test-edit
             @href={{href-to (if item.isFolder 'dc.kv.folder' 'dc.kv.edit') item.Key}}
           >
-            <BlockSlot @name='label'>
+            <:label>
               View
-            </BlockSlot>
+            </:label>
           </components.MenuItem>
         {{/if}}
       </BlockSlot>
