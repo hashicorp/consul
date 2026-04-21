@@ -10,7 +10,6 @@ on:
       # Push events on the main branch
       - main
       - release/**
-      - backport/cve_sup
 
 env:
   PKG_NAME: consul
