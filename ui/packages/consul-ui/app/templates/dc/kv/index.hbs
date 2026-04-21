@@ -85,8 +85,7 @@ as |route|>
   loader.data
 
 as |sort filters parent items|}}
-    <AppView>
-    {{#if (not-eq parent.Key '/') }}
+    <AppView @showBreadcrumb={{not-eq parent.Key '/'}}>
       <:breadcrumbs>
         <Hds::Breadcrumb>
           <Hds::Breadcrumb::Item @text="Key / Values" @route="dc.kv" />
@@ -95,7 +94,6 @@ as |sort filters parent items|}}
     {{/each}}
         </Hds::Breadcrumb>
       </:breadcrumbs>
-    {{/if}}
       <:header>
           <h1>
             {{#if (eq parent.Key '/')}}
