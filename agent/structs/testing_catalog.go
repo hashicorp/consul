@@ -176,10 +176,35 @@ func TestNodeServiceMeshGateway(t testing.T) *NodeService {
 }
 
 func TestNodeServiceAPIGateway(t testing.T) *NodeService {
+	entMeta := DefaultEnterpriseMetaInPartition("")
 	return &NodeService{
 		Kind:    ServiceKindAPIGateway,
 		Service: "api-gateway",
 		Address: "1.1.1.1",
+
+		// ---------------------------------------
+		// Adding TestConnectProxyConfig to the proxy field here within TestNodeServiceAPIGateway
+		// to test whether APIGateway is able to handle state changes within ConnectProxyConfig (TestStateChangedAPIGateway).
+		// Please note:
+		// The naming may suggest that ConnectProxyConfig should only be used for ConnectProxy,
+		// but "APIGateway state" uses serviceInstance, which embeds ConnectProxyConfig as part of its state,
+		// so any changes to ConnectProxyConfig will also impact APIGateway, such as change in "mesh gateway mode".
+		//
+		// For example, let's say a user updates the mesh gateway mode of an API gateway,
+		// First NodeService.Proxy will be updated and then proxyCfg manager detects change in config
+		// and it recreates the state for api_gateway which would copy the
+		// NodeService.Proxy.MeshGateway to serviceInstance.proxyCfg.MeshGateway in `newServiceInstanceFromNodeService` (serviceInstance is part of state)
+		// and then proxyCfg manager calls the api_gateway handleUpdates method which would
+		// update the api_gateway upstreams with new meshGateway config.
+		//
+		// Now, this serviceInstance.proxyCfg and NodeService.Proxy
+		// refers to same proxy configuration, which is of type ConnectProxyConfig.
+
+		// So, we need to test it as well.
+		// ---------------------------------------
+
+		Proxy:          TestConnectProxyConfig(t),
+		EnterpriseMeta: *entMeta,
 	}
 }
 
