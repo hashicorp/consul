@@ -22,7 +22,7 @@ test.describe('Overview - Basic Tests', () => {
   test('overview page loads successfully', async ({ page }) => {
     // Verify the page title or main heading
     await expect(page.locator('h1')).toBeVisible();
-    
+
     // Verify we're on the overview page
     await expect(page).toHaveURL(/\/ui\/dc1\/overview/);
   });
@@ -31,7 +31,7 @@ test.describe('Overview - Basic Tests', () => {
     // Verify server fault tolerance section is visible
     const faultToleranceSection = page.locator('text=/Server fault tolerance/i');
     await expect(faultToleranceSection).toBeVisible();
-    
+
     // Verify the server info card container is visible
     const serverInfoSection = page.locator('[data-test-server-info]');
     await expect(serverInfoSection).toBeVisible();
@@ -40,41 +40,43 @@ test.describe('Overview - Basic Tests', () => {
   test('displays server list with at least one server', async ({ page }) => {
     // Wait for server list to load
     // Adjust selector based on actual DOM structure
-    const serverLinks = page.locator('[data-test-server-link]')
+    const serverLinks = page
+      .locator('[data-test-server-link]')
       .or(page.getByRole('link', { name: /voter/i }))
       .or(page.locator('a[href*="/nodes/"]'));
-    
+
     // Verify at least one server is displayed
     await expect(serverLinks.first()).toBeVisible();
-    
+
     // Get count of servers (optional, for logging)
     const serverCount = await serverLinks.count();
     console.log(`Found ${serverCount} server(s) in the list`);
-    
+
     // Verify server count is greater than 0
     expect(serverCount).toBeGreaterThan(0);
   });
 
   test('navigates to node view when clicking on a server', async ({ page }) => {
     // Find the first server link
-    const firstServerLink = page.locator('[data-test-server-link]')
+    const firstServerLink = page
+      .locator('[data-test-server-link]')
       .or(page.getByRole('link', { name: /voter/i }))
       .or(page.locator('a[href*="/nodes/"]'))
       .first();
-    
+
     // Wait for the link to be visible
     await expect(firstServerLink).toBeVisible();
-    
+
     // Get the server name/text before clicking (for verification)
     const serverText = await firstServerLink.textContent();
     console.log(`Clicking on server: ${serverText}`);
-    
+
     // Click on the server link
     await firstServerLink.click();
-    
+
     // Verify navigation to node view page
     await expect(page).toHaveURL(/\/ui\/dc1\/nodes\/.+/);
-    
+
     // Verify we're on a node detail page (URL contains /nodes/)
     const currentUrl = page.url();
     expect(currentUrl).toContain('/nodes/');
@@ -82,50 +84,52 @@ test.describe('Overview - Basic Tests', () => {
 
   test('can navigate back to overview from node view', async ({ page }) => {
     // Click on first server
-    const firstServerLink = page.locator('[data-test-server-link]')
+    const firstServerLink = page
+      .locator('[data-test-server-link]')
       .or(page.getByRole('link', { name: /voter/i }))
       .or(page.locator('a[href*="/nodes/"]'))
       .first();
-    
+
     await firstServerLink.click();
     await expect(page).toHaveURL(/\/ui\/dc1\/nodes\/.+/);
-    
+
     // Navigate back to overview
     const overviewLink = page.getByRole('link', { name: /overview/i });
     await overviewLink.click();
-    
+
     // Verify we're back on overview page
     await expect(page).toHaveURL(/\/ui\/dc1\/overview/);
   });
 
   test('displays multiple servers and can navigate between them', async ({ page }) => {
     // Get all server links
-    const serverLinks = page.locator('[data-test-server-link]')
+    const serverLinks = page
+      .locator('[data-test-server-link]')
       .or(page.getByRole('link', { name: /voter/i }))
       .or(page.locator('a[href*="/nodes/"]'));
-    
+
     const serverCount = await serverLinks.count();
-    
+
     // Skip test if only one server
     if (serverCount < 2) {
       test.skip();
       return;
     }
-    
+
     // Click on first server
     await serverLinks.nth(0).click();
     await expect(page).toHaveURL(/\/ui\/dc1\/nodes\/.+/);
     const firstNodeUrl = page.url();
-    
+
     // Go back to overview
     await page.getByRole('link', { name: /overview/i }).click();
     await expect(page).toHaveURL(/\/ui\/dc1\/overview/);
-    
+
     // Click on second server
     await serverLinks.nth(1).click();
     await expect(page).toHaveURL(/\/ui\/dc1\/nodes\/.+/);
     const secondNodeUrl = page.url();
-    
+
     // Verify we navigated to different nodes
     expect(firstNodeUrl).not.toBe(secondNodeUrl);
   });
@@ -133,25 +137,25 @@ test.describe('Overview - Basic Tests', () => {
   test('displays license information in License tab', async ({ page }) => {
     // Check if License tab exists (it may not be available in all environments)
     const licenseTab = page.getByRole('link', { name: /license/i });
-    
+
     // Skip test if License tab is not available
     const isLicenseTabVisible = await licenseTab.isVisible().catch(() => false);
     if (!isLicenseTabVisible) {
       test.skip();
       return;
     }
-    
+
     // Click on License tab
     await licenseTab.click();
-    
+
     // Verify we're on the license page
     await expect(page).toHaveURL(/\/ui\/dc1\/overview\/license/);
-    
+
     // Verify license information is displayed
     // The page should show license-related content
     const licenseContent = page.locator('text=/license/i').first();
     await expect(licenseContent).toBeVisible();
-    
+
     console.log('License tab loaded successfully');
   });
 
@@ -159,20 +163,20 @@ test.describe('Overview - Basic Tests', () => {
     // Check if License tab exists
     const licenseTab = page.getByRole('link', { name: /license/i });
     const isLicenseTabVisible = await licenseTab.isVisible().catch(() => false);
-    
+
     if (!isLicenseTabVisible) {
       test.skip();
       return;
     }
-    
+
     // Navigate to License tab
     await licenseTab.click();
     await expect(page).toHaveURL(/\/ui\/dc1\/overview\/license/);
-    
+
     // Verify documentation links are present
     // These links typically open in new tabs/windows
     const docLinks = page.getByRole('link', { name: /learn|documentation|docs/i });
-    
+
     // Check if at least one documentation link exists
     const linkCount = await docLinks.count();
     if (linkCount > 0) {
