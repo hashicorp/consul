@@ -1,0 +1,3 @@
+```release-note:security
+Update Go version to the lowest supported version, 1.25.
+```
