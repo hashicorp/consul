@@ -48,6 +48,7 @@ overrides:
   diff@>=5.0.0 <5.2.2: ^5.2.2
   diff@>=6.0.0 <8.0.3: ^8.0.3
   '@xmldom/xmldom@<0.8.12': ^0.8.12
+  follow-redirects@<=1.15.11: '>=1.16.0'
 
 importers:
 
@@ -4432,8 +4433,8 @@ packages:
   focusable-selectors@0.3.1:
     resolution: {integrity: sha512-5JLtr0e1YJIfmnVlpLiG+av07dd0Xkf/KfswsXcei5KmLfdwOysTQsjF058ynXniujb1fvev7nql1x+CkC5ikw==}
 
-  follow-redirects@1.15.6:
-    resolution: {integrity: sha512-wWN62YITEaOpSK584EZXJafH1AGpO8RVgElfkuXbTOrPX4fIfOyEpW/CsiNd8JdYrAoOvafRTOEnvsO++qCqFA==}
+  follow-redirects@1.16.0:
+    resolution: {integrity: sha512-y5rN/uOsadFT/JfYwhxRS5R7Qce+g3zG97+JrtFZlC9klX/W5hD7iiLzScI4nZqUS7DNUdhPgw4xI8W2LuXlUw==}
     engines: {node: '>=4.0'}
     peerDependencies:
       debug: '*'
@@ -13308,7 +13309,7 @@ snapshots:
 
   focusable-selectors@0.3.1: {}
 
-  follow-redirects@1.15.6: {}
+  follow-redirects@1.16.0: {}
 
   for-each@0.3.5:
     dependencies:
@@ -13772,7 +13773,7 @@ snapshots:
   http-proxy@1.18.1:
     dependencies:
       eventemitter3: 4.0.7
-      follow-redirects: 1.15.6
+      follow-redirects: 1.16.0
       requires-port: 1.0.0
     transitivePeerDependencies:
       - debug
