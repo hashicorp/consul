@@ -341,7 +341,7 @@ func getPrometheusDefs(cfg *config.RuntimeConfig, isServer bool) ([]prometheus.G
 		xds.StatsGauges,
 		usagemetrics.Gauges,
 		consul.ReplicationGauges,
-		CertExpirationGauges,
+		certExpirationGauges(cfg.Datacenter, cfg.PartitionOrDefault(), cfg.NodeName),
 		Gauges,
 		raftGauges,
 		serverGauges,

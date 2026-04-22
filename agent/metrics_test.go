@@ -14,11 +14,11 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/rpc/middleware"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
@@ -101,6 +101,31 @@ func assertMetricExistsWithLabels(t *testing.T, respRec *httptest.ResponseRecord
 	if !foundAllLabels {
 		t.Fatalf("Could not verify that all named labels \"%s\" exist for the metric \"%s\" in the /v1/agent/metrics response", strings.Join(labelNames, ", "), metric)
 	}
+}
+
+func assertMetricLineContainsFragments(t require.TestingT, respRec *httptest.ResponseRecorder, metric string, fragments ...string) {
+	require.NotEmpty(t, respRec.Body.String(), "Response body is empty.")
+
+	var candidates []string
+	for _, line := range strings.Split(respRec.Body.String(), "\n") {
+		if len(line) < 1 || line[0] == '#' || !strings.Contains(line, metric) {
+			continue
+		}
+		candidates = append(candidates, line)
+
+		matches := true
+		for _, fragment := range fragments {
+			if !strings.Contains(line, fragment) {
+				matches = false
+				break
+			}
+		}
+		if matches {
+			return
+		}
+	}
+
+	require.Failf(t, "metric line not found", "Could not find metric %q with fragments %q in the /v1/agent/metrics response. Candidate lines: %q", metric, fragments, candidates)
 }
 
 func assertLabelWithValueForMetricExistsNTime(t *testing.T, respRec *httptest.ResponseRecorder, metric string, label string, labelValue string, occurrences int) {
@@ -402,6 +427,8 @@ func TestHTTPHandlers_AgentMetrics_TLSCertExpiry_Prometheus(t *testing.T) {
 				enabled = true
 			}
 		}
+		verify_incoming = true
+		verify_outgoing = true
 		ca_file = "%s"
 		cert_file = "%s"
 		key_file = "%s"
@@ -410,19 +437,22 @@ func TestHTTPHandlers_AgentMetrics_TLSCertExpiry_Prometheus(t *testing.T) {
 	a := StartTestAgent(t, TestAgent{HCL: hcl})
 	defer a.Shutdown()
 
-	// Wait a bit for the certificate monitor to emit metrics
-	time.Sleep(100 * time.Millisecond)
+	retry.Run(t, func(r *retry.R) {
+		respRec := httptest.NewRecorder()
+		recordPromMetrics(r, a, respRec)
 
-	respRec := httptest.NewRecorder()
-	recordPromMetrics(t, a, respRec)
+		assertMetricLineContainsFragments(
+			r,
+			respRec,
+			metricsPrefix+"_agent_tls_cert_expiry",
+			`datacenter="dc1"`,
+			`partition="default"`,
+			`node="`,
+		)
 
-	body := respRec.Body.String()
-	// The metric includes datacenter, partition, and node labels
-	require.Contains(t, body, metricsPrefix+"_agent_tls_cert_expiry{datacenter=")
-	require.Contains(t, body, `partition="default"`)
-	require.Contains(t, body, "node=")
-	// Check that the value is approximately 20 days = 1.728e6 seconds
-	require.Contains(t, body, "1.7")
+		body := respRec.Body.String()
+		require.Contains(r, body, "1.7")
+	})
 }
 
 func TestHTTPHandlers_AgentMetrics_CACertExpiry_Prometheus(t *testing.T) {
@@ -478,6 +508,139 @@ func TestHTTPHandlers_AgentMetrics_CACertExpiry_Prometheus(t *testing.T) {
 		require.Contains(t, out, metricsPrefix+`_mesh_active_signing_ca_expiry{datacenter="dc1"} 3.15`)
 	})
 
+}
+
+func TestHTTPHandlers_AgentMetrics_LeafCertExpiry_Prometheus(t *testing.T) {
+	skipIfShortTesting(t)
+	// This test cannot use t.Parallel() since we modify global state, ie the global metrics instance
+
+	t.Run("leaf metrics are emitted after issuing a leaf cert", func(t *testing.T) {
+		metricsPrefix := getUniqueMetricsPrefix()
+		hcl := fmt.Sprintf(`
+		telemetry = {
+			prometheus_retention_time = "5s",
+			disable_hostname = true
+			metrics_prefix = "%s"
+			certificate = {
+				enabled = true
+			}
+		}
+		connect {
+			enabled = true
+		}
+		`, metricsPrefix)
+
+		a := StartTestAgent(t, TestAgent{HCL: hcl})
+		defer a.Shutdown()
+		testrpc.WaitForLeader(t, a.RPC, "dc1")
+		testrpc.WaitForActiveCARoot(t, a.RPC, "dc1", nil)
+
+		client := a.Client()
+		err := client.Agent().ServiceRegister(&api.AgentServiceRegistration{
+			Name: "web",
+			Port: 8080,
+		})
+		require.NoError(t, err)
+
+		_, _, err = client.Agent().ConnectCALeaf("web", nil)
+		require.NoError(t, err)
+
+		retry.Run(t, func(r *retry.R) {
+			respRec := httptest.NewRecorder()
+			recordPromMetrics(r, a, respRec)
+
+			assertMetricLineContainsFragments(
+				r,
+				respRec,
+				metricsPrefix+"_leaf_certs_cert_expiry",
+				`datacenter="dc1"`,
+				`partition="default"`,
+				`namespace="default"`,
+				`service="web"`,
+				`kind=""`,
+			)
+			assertMetricLineContainsFragments(
+				r,
+				respRec,
+				metricsPrefix+"_leaf_certs_cert_renewal_failure",
+				`datacenter="dc1"`,
+				`partition="default"`,
+				`namespace="default"`,
+				`service="web"`,
+				`kind=""`,
+				" 0",
+			)
+		})
+	})
+
+	t.Run("leaf metrics are emitted for multiple services independently", func(t *testing.T) {
+		metricsPrefix := getUniqueMetricsPrefix()
+		hcl := fmt.Sprintf(`
+		telemetry = {
+			prometheus_retention_time = "5s",
+			disable_hostname = true
+			metrics_prefix = "%s"
+			certificate = {
+				enabled = true
+			}
+		}
+		connect {
+			enabled = true
+		}
+		`, metricsPrefix)
+
+		a := StartTestAgent(t, TestAgent{HCL: hcl})
+		defer a.Shutdown()
+		testrpc.WaitForLeader(t, a.RPC, "dc1")
+		testrpc.WaitForActiveCARoot(t, a.RPC, "dc1", nil)
+
+		client := a.Client()
+		for _, svc := range []struct {
+			name string
+			port int
+		}{
+			{name: "api", port: 9090},
+			{name: "payments", port: 9091},
+		} {
+			err := client.Agent().ServiceRegister(&api.AgentServiceRegistration{
+				Name: svc.name,
+				Port: svc.port,
+			})
+			require.NoError(t, err)
+
+			_, _, err = client.Agent().ConnectCALeaf(svc.name, nil)
+			require.NoError(t, err)
+		}
+
+		retry.Run(t, func(r *retry.R) {
+			respRec := httptest.NewRecorder()
+			recordPromMetrics(r, a, respRec)
+
+			for _, serviceName := range []string{"api", "payments"} {
+				assertMetricLineContainsFragments(
+					r,
+					respRec,
+					metricsPrefix+"_leaf_certs_cert_expiry",
+					`datacenter="dc1"`,
+					`partition="default"`,
+					`namespace="default"`,
+					fmt.Sprintf(`service="%s"`, serviceName),
+					`kind=""`,
+				)
+				assertMetricLineContainsFragments(
+					r,
+					respRec,
+					metricsPrefix+"_leaf_certs_cert_renewal_failure",
+					`datacenter="dc1"`,
+					`partition="default"`,
+					`namespace="default"`,
+					fmt.Sprintf(`service="%s"`, serviceName),
+					`kind=""`,
+					" 0",
+				)
+			}
+		})
+	})
 }
 
 func TestHTTPHandlers_AgentMetrics_WAL_Prometheus(t *testing.T) {

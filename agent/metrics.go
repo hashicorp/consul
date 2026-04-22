@@ -13,25 +13,33 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/tlsutil"
 )
 
-var CertExpirationGauges = []prometheus.GaugeDefinition{
-	{
-		Name: metricsKeyAgentTLSCertExpiry,
-		Help: "Seconds until the agent tls certificate expires. Updated every hour",
-	},
-}
-
 var metricsKeyAgentTLSCertExpiry = []string{"agent", "tls", "cert", "expiry"}
+
+func certExpirationGauges(datacenter, partition, nodeName string) []prometheus.GaugeDefinition {
+	return []prometheus.GaugeDefinition{
+		{
+			Name: metricsKeyAgentTLSCertExpiry,
+			Help: "Seconds until the agent tls certificate expires. Updated every hour",
+			ConstLabels: []metrics.Label{
+				{Name: "datacenter", Value: datacenter},
+				{Name: "partition", Value: acl.PartitionOrDefault(partition)},
+				{Name: "node", Value: nodeName},
+			},
+		},
+	}
+}
 
 // tlsCertExpirationMonitor returns a CertExpirationMonitor which will
 // monitor the expiration of the certificate used for agent TLS.
 func tlsCertExpirationMonitor(c *tlsutil.Configurator, datacenter, partition, nodeName string, criticalDays int, warningDays int, logger hclog.Logger) consul.CertExpirationMonitor {
 	labels := []metrics.Label{
 		{Name: "datacenter", Value: datacenter},
-		{Name: "partition", Value: partition},
+		{Name: "partition", Value: acl.PartitionOrDefault(partition)},
 		{Name: "node", Value: nodeName},
 	}
 	return consul.CertExpirationMonitor{
