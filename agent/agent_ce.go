@@ -7,6 +7,7 @@ package agent
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
@@ -72,3 +73,30 @@ func (*Agent) fillEnterpriseProxyDataSources(*proxycfg.DataSources) {}
 func (a *Agent) writeAuditRPCEvent(_ string, _ string) interface{} {
 	return nil
 }
+
+func validateEnterpriseMeshPortConfig(service *structs.NodeService) error {
+	if service == nil {
+		return nil
+	}
+
+	if len(service.Ports) > 0 {
+		if service.LocallyRegisteredAsSidecar || service.Kind == structs.ServiceKindConnectProxy || service.Connect.SidecarService != nil {
+			return fmt.Errorf("named service ports in the service mesh require Consul Enterprise")
+		}
+	}
+
+	if service.Kind == structs.ServiceKindConnectProxy {
+		if len(service.Proxy.LocalServicePorts) > 0 {
+			return fmt.Errorf("named service ports in the service mesh require Consul Enterprise")
+		}
+		for _, upstream := range service.Proxy.Upstreams {
+			if upstream.DestinationPort != "" {
+				return fmt.Errorf("destination port routing requires Consul Enterprise")
+			}
+		}
+	}
+
+	return nil
+}
+
+func copyEnterpriseSidecarServicePorts(_, _ *structs.NodeService) {}

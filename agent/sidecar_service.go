@@ -119,6 +119,7 @@ func sidecarServiceFromNodeService(ns *structs.NodeService, token string) (*stru
 	if sidecar.Proxy.DestinationServiceID == "" {
 		sidecar.Proxy.DestinationServiceID = ns.ID
 	}
+	copyEnterpriseSidecarServicePorts(sidecar, ns)
 
 	// Fill defaults from NodeService if none of the address components are present.
 	// This really argues for a refactoring to a more generalized 'address' concept.
@@ -135,7 +136,7 @@ func sidecarServiceFromNodeService(ns *structs.NodeService, token string) (*stru
 				}
 			}
 			if sidecar.Proxy.LocalServicePort < 1 {
-				sidecar.Proxy.LocalServicePort = ns.Port
+				sidecar.Proxy.LocalServicePort = ns.DefaultPort()
 			}
 		}
 	}

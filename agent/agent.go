@@ -2668,11 +2668,17 @@ func (a *Agent) validateService(service *structs.NodeService, chkTypes []*struct
 		)
 	}
 
-	if len(service.Ports) > 0 && service.Port != 0 {
+	// for sidecar we are using Ports for multiport related identification and port for default inbound listener both are valid
+	// for multiport service , its sidecar gets port set to the default port which is equivalent to service's port if set
+	// but for non-sidecar services we should not allow both to be set to avoid confusion
+	if !service.LocallyRegisteredAsSidecar && len(service.Ports) > 0 && service.Port != 0 {
 		return fmt.Errorf("Both port and ports cannot be set")
 	}
 
 	if err := service.Ports.Validate(); err != nil {
+		return err
+	}
+	if err := validateEnterpriseMeshPortConfig(service); err != nil {
 		return err
 	}
 

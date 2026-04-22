@@ -200,6 +200,7 @@ type AgentServiceConnectProxyConfig struct {
 	DestinationServiceID   string                  `json:",omitempty"`
 	LocalServiceAddress    string                  `json:",omitempty"`
 	LocalServicePort       int                     `json:",omitempty"`
+	LocalServicePorts      ServicePorts            `json:",omitempty" bexpr:"-"`
 	LocalServiceSocketPath string                  `json:",omitempty"`
 	Mode                   ProxyMode               `json:",omitempty"`
 	TransparentProxy       *TransparentProxyConfig `json:",omitempty"`
@@ -520,6 +521,7 @@ type Upstream struct {
 	DestinationNamespace string           `json:",omitempty"`
 	DestinationPeer      string           `json:",omitempty"`
 	DestinationName      string
+	DestinationPort      string                 `json:",omitempty"`
 	Datacenter           string                 `json:",omitempty"`
 	LocalBindAddress     string                 `json:",omitempty"`
 	LocalBindPort        int                    `json:",omitempty"`

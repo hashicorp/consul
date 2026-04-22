@@ -59,8 +59,9 @@ type CompiledDiscoveryChain struct {
 	Targets map[string]*DiscoveryTarget `json:",omitempty"`
 
 	// VirtualIPs is a list of virtual IPs associated with the service.
-	AutoVirtualIPs   []string
-	ManualVirtualIPs []string
+	AutoVirtualIPs     []string
+	AutoPortVirtualIPs map[string]string
+	ManualVirtualIPs   []string
 }
 
 func (c *CompiledDiscoveryChain) GetHash() uint64 {
@@ -86,6 +87,10 @@ func (c *CompiledDiscoveryChain) appendHash(h *customHasher) {
 	addSortedStringKeyOptionalValueMap(h, c.Nodes)
 	addSortedStringKeyOptionalValueMap(h, c.Targets)
 	addSlice(h, c.AutoVirtualIPs, func(h *customHasher, value string) {
+		h.addString(value)
+	})
+	addSortedStringKeyMap(h, c.AutoPortVirtualIPs, func(h *customHasher, key string, value string) {
+		h.addString(key)
 		h.addString(value)
 	})
 	addSlice(h, c.ManualVirtualIPs, func(h *customHasher, value string) {

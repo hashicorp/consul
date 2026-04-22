@@ -9,15 +9,16 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/go-viper/mapstructure/v2"
+
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/api/watch"
 	"github.com/hashicorp/consul/connect"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
-
-	"github.com/go-viper/mapstructure/v2"
-	"github.com/hashicorp/go-hclog"
 )
 
 const (
@@ -144,8 +145,12 @@ func (uc *UpstreamConfig) String() string {
 	if addr == "" {
 		addr = net.JoinHostPort(uc.LocalBindAddress, strconv.Itoa(uc.LocalBindPort))
 	}
-	return fmt.Sprintf("%s->%s:%s/%s/%s", addr,
+	base := fmt.Sprintf("%s->%s:%s/%s/%s", addr,
 		uc.DestinationType, uc.DestinationPartition, uc.DestinationNamespace, uc.DestinationName)
+	if uc.DestinationPort == "" {
+		return base
+	}
+	return fmt.Sprintf("%s?port=%s", base, uc.DestinationPort)
 }
 
 // UpstreamResolverFuncFromClient returns a closure that captures a consul

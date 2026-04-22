@@ -1511,6 +1511,11 @@ func serviceDiscoveryChainTxn(
 		req.AutoVirtualIPs = []string{assignedIP}
 		req.ManualVirtualIPs = make([]string, len(serviceVIPEntry.ManualIPs))
 		copy(req.ManualVirtualIPs, serviceVIPEntry.ManualIPs)
+		autoPortVIPs, err := autoPortVirtualIPsTxn(tx, ws, psn)
+		if err != nil {
+			return 0, nil, nil, err
+		}
+		req.AutoPortVirtualIPs = autoPortVIPs
 	}
 
 	// Then we compile it into something useful.
