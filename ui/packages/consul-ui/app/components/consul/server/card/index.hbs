@@ -17,7 +17,7 @@
   }}
   ...attributes
 >
-  <a href={{@href}} class="consul-server-card__link">
+  <a href={{@href}} class="consul-server-card__link" data-test-server-link>
 
     {{#if (eq @item.Status 'leader')}}
       <span class="consul-server-card__leader-tile" {{tooltip "Leader"}}>
