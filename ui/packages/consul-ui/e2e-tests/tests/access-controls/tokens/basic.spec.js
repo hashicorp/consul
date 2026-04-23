@@ -98,7 +98,7 @@ test.describe('Access Controls - Tokens - Basic', () => {
 
     // Extract token ID from URL for cleanup
     const url = page.url();
-    const tokenIdMatch = url.match(/\/tokens\/([^\/]+)/);
+    const tokenIdMatch = url.match(/\/tokens\/([^/]+)/);
     if (tokenIdMatch) {
       createdTokenIds.push(tokenIdMatch[1]);
       console.log(`✓ Created token: ${tokenIdMatch[1]}`);
@@ -137,7 +137,7 @@ test.describe('Access Controls - Tokens - Basic', () => {
 
     // Delete the token from the details page
     await page.getByRole('button', { name: 'Delete' }).click();
-    
+
     // Confirm deletion
     await page.getByRole('button', { name: 'Confirm Delete' }).click();
 
@@ -149,5 +149,4 @@ test.describe('Access Controls - Tokens - Basic', () => {
 
     console.log(`✓ Created and deleted token: ${description}`);
   });
-
 });

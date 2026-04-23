@@ -5,7 +5,7 @@
 
 /**
  * Cleanup Script: Delete all E2E test tokens
- * 
+ *
  * This script finds and deletes all tokens with "E2E" in their description.
  * Run with: node ui/packages/consul-ui/e2e-tests/cleanup-e2e-tokens.js
  */
@@ -87,7 +87,7 @@ async function cleanupE2ETokens() {
   console.log('\n🔍 Searching for E2E test tokens...\n');
 
   const tokens = await listTokens();
-  
+
   if (!Array.isArray(tokens)) {
     console.error('❌ Failed to retrieve tokens list');
     return;
