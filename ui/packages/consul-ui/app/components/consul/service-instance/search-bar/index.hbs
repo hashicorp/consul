@@ -101,13 +101,19 @@
         @position='left'
         @onchange={{action @filter.source.change}}
         @multiple={{true}}
-        as |components|
       >
-        <Consul::SourcesSelect
-          @components={{components}}
-          @filter={{@filter}}
-          @sources={{@sources}}
-        />
+        <:selected>
+          <span>
+            {{t 'common.search.source'}}
+          </span>
+        </:selected>
+        <:options as |components|>
+          <Consul::SourcesSelect
+            @components={{components}}
+            @filter={{@filter}}
+            @sources={{@sources}}
+          />
+        </:options>
       </search.Select>
     {{/if}}
   </:filter>
