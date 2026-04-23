@@ -10,8 +10,14 @@ const { loginWithToken } = require('./utils/auth-utils');
 async function globalSetup(config) {
   console.log('\n🚀 Starting E2E Test Setup...\n');
 
-  const baseURL = config.projects?.[0]?.use?.baseURL || 'http://localhost:8500';
-  console.log(`📍 Using baseURL: ${baseURL}\n`);
+  // Get baseURL from config, which already handles CI vs local environment
+  const baseURL =
+    config.projects?.[0]?.use?.baseURL ||
+    config.use?.baseURL ||
+    (process.env.CI ? 'http://localhost:8500' : 'http://localhost:4200');
+
+  console.log(`📍 Using baseURL: ${baseURL}`);
+  console.log(`🌍 Environment: ${process.env.CI ? 'CI (port 8500)' : 'Local (port 4200)'}\n`);
 
   console.log('🔍 Checking service health...\n');
 
