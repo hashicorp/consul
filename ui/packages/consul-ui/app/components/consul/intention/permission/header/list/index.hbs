@@ -22,24 +22,24 @@
   <:actions as |item index Actions|>
     <Actions as |Action|>
       <Action data-test-delete-action @onclick={{action @ondelete item}} class="dangerous">
-        <BlockSlot @name="label">
+        <:label>
           Delete
-        </BlockSlot>
-        <BlockSlot @name="confirmation" as |Confirmation|>
+        </:label>
+        <:confirmation as |Confirmation|>
           <Confirmation class="warning">
-            <BlockSlot @name="header">
+            <:header>
               Confirm delete
-            </BlockSlot>
-            <BlockSlot @name="body">
+            </:header>
+            <:body>
               <p>
                 Are you sure you want to delete this header?
               </p>
-            </BlockSlot>
-            <BlockSlot @name="confirm" as |Confirm|>
+            </:body>
+            <:confirm as |Confirm|>
               <Confirm>Delete</Confirm>
-            </BlockSlot>
+            </:confirm>
           </Confirmation>
-        </BlockSlot>
+        </:confirmation>
       </Action>
     </Actions>
   </:actions>
