@@ -20,6 +20,8 @@ import (
 
 var metricsKeyAgentTLSCertExpiry = []string{"agent", "tls", "cert", "expiry"}
 
+var testCertExpirationMonitorInterval time.Duration
+
 func certExpirationGauges(datacenter, partition, nodeName string) []prometheus.GaugeDefinition {
 	return []prometheus.GaugeDefinition{
 		{
@@ -48,6 +50,7 @@ func tlsCertExpirationMonitor(c *tlsutil.Configurator, datacenter, partition, no
 		Logger:                logger,
 		CriticalThresholdDays: criticalDays,
 		WarningThresholdDays:  warningDays,
+		Interval:              testCertExpirationMonitorInterval,
 		Query: func() (time.Duration, time.Duration, error) {
 			raw := c.Cert()
 			if raw == nil {
