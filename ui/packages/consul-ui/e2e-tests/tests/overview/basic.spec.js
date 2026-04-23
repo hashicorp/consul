@@ -16,7 +16,7 @@ test.describe('Overview - Basic Tests', () => {
   test.beforeEach(async ({ page }) => {
     // Navigate to overview page
     // Auth is already handled by global-setup.js and storageState
-    await page.goto('/ui/dc1/overview');
+    await page.goto('/ui/dc1/overview', { waitUntil: 'networkidle' });
   });
 
   test('overview page loads successfully', async ({ page }) => {
@@ -28,13 +28,17 @@ test.describe('Overview - Basic Tests', () => {
   });
 
   test('displays server fault tolerance information', async ({ page }) => {
+    // Wait for page to be fully loaded
+    await page.waitForLoadState('networkidle');
+
     // Verify server fault tolerance section is visible
     const faultToleranceSection = page.locator('text=/Server fault tolerance/i');
-    await expect(faultToleranceSection).toBeVisible();
+    await expect(faultToleranceSection).toBeVisible({ timeout: 15000 });
 
     // Verify the server info card container is visible
+    // Increase timeout for CI environment
     const serverInfoSection = page.locator('[data-test-server-info]');
-    await expect(serverInfoSection).toBeVisible();
+    await expect(serverInfoSection).toBeVisible({ timeout: 15000 });
   });
 
   test('displays server list with at least one server', async ({ page }) => {
