@@ -31,7 +31,7 @@
       @nspace={{@nspace}}
       @partition={{@partition}}
     >
-      <BlockSlot @name="policy">
+      <:policy>
 
         <PolicySelector
           @source={{this.source}}
@@ -53,7 +53,7 @@
           </BlockSlot>
         </PolicySelector>
 
-      </BlockSlot>
+      </:policy>
     </RoleForm>
 
     <input id="{{this.name}}_state_policy" type="radio" name="{{this.name}}[state]" value="policy" checked={{if (eq this.state 'policy') 'checked'}} onchange={{action 'change'}} />
