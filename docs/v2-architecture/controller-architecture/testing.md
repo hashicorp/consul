@@ -92,7 +92,7 @@ This file is how `go test` knows to execute the tests. These integration tests s
 be executed against an in-memory resource service with the standard controller manager.
 
 ```go
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2024, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package footest
@@ -199,7 +199,7 @@ func VerifyFooV2IntegrationTestResults(t *testing.T, client pbresource.ResourceS
 ### `test_lifecycle_v2.go`
 
 ```go
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2024, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package footest
