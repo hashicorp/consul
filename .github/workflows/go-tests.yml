@@ -27,13 +27,13 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  #conditional-skip:
-  #  uses: ./.github/workflows/reusable-conditional-skip.yml
+  conditional-skip:
+    uses: ./.github/workflows/reusable-conditional-skip.yml
 
   setup:
-   # needs: [conditional-skip]
+    needs: [conditional-skip]
     name: Setup
-    #if: needs.conditional-skip.outputs.skip-ci != 'true'
+    if: needs.conditional-skip.outputs.skip-ci != 'true'
     runs-on: ubuntu-latest
     outputs:
       compute-small: ${{ steps.setup-outputs.outputs.compute-small }}
@@ -518,7 +518,7 @@ jobs:
 
   go-tests-success:
     needs:
-    #- conditional-skip
+    - conditional-skip
     - setup
     - check-codegen
     - check-generated-protobuf
@@ -542,7 +542,7 @@ jobs:
     - go-test-testing-deployer
     # - go-test-s390x
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
-   # if: always() && needs.conditional-skip.outputs.skip-ci != 'true'
+    if: always() && needs.conditional-skip.outputs.skip-ci != 'true'
     steps:
       - name: evaluate upstream job results
         run: |
