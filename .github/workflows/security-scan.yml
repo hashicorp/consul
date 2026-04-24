@@ -14,7 +14,9 @@ on:
     # paths-ignore only works for non-required checks.
     # Jobs that are required for merge must use reusable-conditional-skip.yml.
     paths-ignore:
-      - 'docs/**'
+      - 'docs/config/checklist-adding-config-fields.md'
+      - 'docs/contributing/add-a-changelog-entry.md'
+      - 'docs/contributing/fork-the-project.md'
       - 'grafana/**'
       - '.changelog/**'
 
