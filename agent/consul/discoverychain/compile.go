@@ -8,12 +8,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mitchellh/hashstructure"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
-	"github.com/mitchellh/hashstructure"
 )
 
 type CompileRequest struct {
@@ -45,8 +46,10 @@ type CompileRequest struct {
 
 	// AutoVirtualIPs and ManualVirtualIPs are lists of IPs associated with
 	// the service.
-	AutoVirtualIPs   []string
-	ManualVirtualIPs []string
+	AutoVirtualIPs []string
+	// AutoPortVirtualIPs maps a named service port to its auto-assigned virtual IP.
+	AutoPortVirtualIPs map[string]string
+	ManualVirtualIPs   []string
 }
 
 // Compile assembles a discovery chain in the form of a graph of nodes using
@@ -102,6 +105,7 @@ func Compile(req CompileRequest) (*structs.CompiledDiscoveryChain, error) {
 		overrideConnectTimeout: req.OverrideConnectTimeout,
 		entries:                entries,
 		autoVirtualIPs:         req.AutoVirtualIPs,
+		autoPortVirtualIPs:     req.AutoPortVirtualIPs,
 		manualVirtualIPs:       req.ManualVirtualIPs,
 
 		resolvers:     make(map[structs.ServiceID]*structs.ServiceResolverConfigEntry),
@@ -146,8 +150,9 @@ type compiler struct {
 
 	// autoVirtualIPs and manualVirtualIPs are lists of IPs associated with
 	// the service.
-	autoVirtualIPs   []string
-	manualVirtualIPs []string
+	autoVirtualIPs     []string
+	autoPortVirtualIPs map[string]string
+	manualVirtualIPs   []string
 
 	// resolvers is initially seeded by copying the provided entries.Resolvers
 	// map and default resolvers are added as they are needed.
@@ -342,20 +347,21 @@ func (c *compiler) compile() (*structs.CompiledDiscoveryChain, error) {
 	}
 
 	return &structs.CompiledDiscoveryChain{
-		ServiceName:       c.serviceName,
-		Namespace:         c.evaluateInNamespace,
-		Partition:         c.evaluateInPartition,
-		Datacenter:        c.evaluateInDatacenter,
-		Default:           c.determineIfDefaultChain(),
-		CustomizationHash: customizationHash,
-		Protocol:          c.protocol,
-		ServiceMeta:       c.serviceMeta,
-		EnvoyExtensions:   c.envoyExtensions,
-		StartNode:         c.startNode,
-		Nodes:             c.nodes,
-		Targets:           c.loadedTargets,
-		AutoVirtualIPs:    c.autoVirtualIPs,
-		ManualVirtualIPs:  c.manualVirtualIPs,
+		ServiceName:        c.serviceName,
+		Namespace:          c.evaluateInNamespace,
+		Partition:          c.evaluateInPartition,
+		Datacenter:         c.evaluateInDatacenter,
+		Default:            c.determineIfDefaultChain(),
+		CustomizationHash:  customizationHash,
+		Protocol:           c.protocol,
+		ServiceMeta:        c.serviceMeta,
+		EnvoyExtensions:    c.envoyExtensions,
+		StartNode:          c.startNode,
+		Nodes:              c.nodes,
+		Targets:            c.loadedTargets,
+		AutoVirtualIPs:     c.autoVirtualIPs,
+		AutoPortVirtualIPs: c.autoPortVirtualIPs,
+		ManualVirtualIPs:   c.manualVirtualIPs,
 	}, nil
 }
 

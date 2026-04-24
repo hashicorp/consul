@@ -6638,23 +6638,6 @@ func TestAgent_ServiceRegistration(t *testing.T) {
 			},
 			expectErr: true,
 		},
-		"multi_port_connect_sidecar": {
-			serviceDef: &structs.ServiceDefinition{
-				ID:   "multiport-srv",
-				Name: "multiport-srv",
-				Ports: structs.ServicePorts{
-					{
-						Name:    "http",
-						Port:    port,
-						Default: true,
-					},
-				},
-				Connect: &structs.ServiceConnect{
-					SidecarService: &structs.ServiceDefinition{},
-				},
-			},
-			expectErr: true,
-		},
 	}
 
 	if testing.Short() {

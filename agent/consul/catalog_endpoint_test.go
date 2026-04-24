@@ -19,6 +19,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/internal/gossip/librtt"
@@ -4521,7 +4522,13 @@ func TestCatalog_VirtualIPForService(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
+	// Note: t.Parallel() is not used here because we modify the global netutil.GetAgentBindAddrFunc
+
+	// Mock GetAgentBindAddrFunc to avoid HTTP API call in test environment
+	origGetAgentBindAddrFunc := netutil.GetAgentBindAddrFunc
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("127.0.0.1")
+	defer func() { netutil.GetAgentBindAddrFunc = origGetAgentBindAddrFunc }()
+
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Build = "1.11.0"
 	})
@@ -4553,12 +4560,62 @@ func TestCatalog_VirtualIPForService(t *testing.T) {
 	require.Equal(t, "240.0.0.1", out)
 }
 
+func TestCatalog_VirtualIPForService_PortNameFallsBackToServiceVIP(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	// Note: t.Parallel() is not used here because we modify the global netutil.GetAgentBindAddrFunc
+
+	// Mock GetAgentBindAddrFunc to avoid HTTP API call in test environment
+	origGetAgentBindAddrFunc := netutil.GetAgentBindAddrFunc
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("127.0.0.1")
+	defer func() { netutil.GetAgentBindAddrFunc = origGetAgentBindAddrFunc }()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Build = "1.11.0"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	err := s1.fsm.State().EnsureRegistration(1, &structs.RegisterRequest{
+		Node:    "foo",
+		Address: "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "api",
+			Connect: structs.ServiceConnect{
+				Native: true,
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	args := structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: "api",
+		PortName:    "http",
+	}
+	var out string
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.VirtualIPForService", &args, &out))
+	require.Equal(t, "240.0.0.1", out)
+}
+
 func TestCatalog_VirtualIPForService_ACLDeny(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
+	// Note: t.Parallel() is not used here because we modify the global netutil.GetAgentBindAddrFunc
+
+	// Mock GetAgentBindAddrFunc to avoid HTTP API call in test environment
+	origGetAgentBindAddrFunc := netutil.GetAgentBindAddrFunc
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("127.0.0.1")
+	defer func() { netutil.GetAgentBindAddrFunc = origGetAgentBindAddrFunc }()
+
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true

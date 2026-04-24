@@ -127,6 +127,7 @@ type serviceInstance struct {
 	proxyID         ProxyID
 	address         string
 	port            int
+	ports           structs.ServicePorts
 	meta            map[string]string
 	taggedAddresses map[string]structs.ServiceAddress
 	proxyCfg        structs.ConnectProxyConfig
@@ -225,6 +226,7 @@ func newKindHandler(config stateConfig, s serviceInstance, ch chan UpdateEvent) 
 	case structs.ServiceKindIngressGateway:
 		handler = &handlerIngressGateway{handlerState: h}
 	case structs.ServiceKindAPIGateway:
+		h.logger = config.logger.Named(logging.APIGateway)
 		handler = &handlerAPIGateway{handlerState: h}
 	default:
 		return nil, errors.New("not a connect-proxy, terminating-gateway, mesh-gateway, or ingress-gateway")
@@ -248,6 +250,8 @@ func newServiceInstanceFromNodeService(id ProxyID, ns *structs.NodeService, toke
 	for k, v := range ns.Meta {
 		meta[k] = v
 	}
+	ports := make(structs.ServicePorts, len(ns.Ports))
+	copy(ports, ns.Ports)
 
 	return serviceInstance{
 		kind:            ns.Kind,
@@ -256,6 +260,7 @@ func newServiceInstanceFromNodeService(id ProxyID, ns *structs.NodeService, toke
 		proxyID:         id,
 		address:         ns.Address,
 		port:            ns.Port,
+		ports:           ports,
 		meta:            meta,
 		taggedAddresses: taggedAddresses,
 		proxyCfg:        proxyCfg,
@@ -316,6 +321,7 @@ func newConfigSnapshotFromServiceInstance(s serviceInstance, config stateConfig)
 		ProxyID:               s.proxyID,
 		Address:               s.address,
 		Port:                  s.port,
+		Ports:                 s.ports,
 		ServiceMeta:           s.meta,
 		TaggedAddresses:       s.taggedAddresses,
 		Proxy:                 s.proxyCfg,
@@ -492,6 +498,7 @@ func (s *state) Changed(ns *structs.NodeService, token string) bool {
 	return ns.Kind != i.kind ||
 		i.address != ns.Address ||
 		i.port != ns.Port ||
+		!i.ports.IsSame(ns.Ports) ||
 		!reflect.DeepEqual(i.proxyCfg, proxyCfg) ||
 		i.token != token
 }

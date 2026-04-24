@@ -388,6 +388,11 @@ type PeeringServiceValue struct {
 	UseCDS bool
 }
 
+type ServicePortKey struct {
+	ServiceName structs.ServiceName
+	PortName    string
+}
+
 type configSnapshotMeshGateway struct {
 	// WatchedServices is a map of service name to a cancel function. This cancel
 	// function is tied to the watch of connect enabled services for the given
@@ -456,6 +461,11 @@ type configSnapshotMeshGateway struct {
 	// slice of peers that they are exported to.
 	ExportedServicesWithPeers map[structs.ServiceName][]string
 
+	// ExportedServicesWithPartitions is a map of exported service name to a
+	// sorted slice of partitions that they are exported to within the same
+	// datacenter.
+	ExportedServicesWithPartitions map[structs.ServiceName][]string
+
 	// ExportedServicesSet indicates that the watch on the list of
 	// peer-exported services has completed at least once.
 	ExportedServicesSet bool
@@ -499,6 +509,12 @@ type configSnapshotMeshGateway struct {
 	// bundles has completed at least once.
 	PeeringTrustBundlesSet bool
 
+	// ServicePorts tracks which ports each service exposes.
+	// Maps ServiceName -> []portName
+	// This is populated from service metadata with key "ports" in format "name:number,name:number"
+	// Only port names are stored; port numbers are not needed for mesh gateway routing.
+	ServicePorts map[structs.ServiceName][]string
+
 	// Limits
 	Limits *structs.UpstreamLimits
 }
@@ -512,7 +528,7 @@ type configSnapshotMeshGateway struct {
 func (c *ConfigSnapshot) MeshGatewayValidExportedServices() []structs.ServiceName {
 	out := make([]structs.ServiceName, 0, len(c.MeshGateway.ExportedServicesSlice))
 	for _, svc := range c.MeshGateway.ExportedServicesSlice {
-		if _, ok := c.MeshGateway.ExportedServicesWithPeers[svc]; !ok {
+		if _, ok := c.MeshGateway.ExportedServicesWithPeers[svc]; !ok && !c.MeshGateway.hasEntExportedService(svc) {
 			continue // not possible
 		}
 
@@ -533,6 +549,10 @@ func (c *ConfigSnapshot) MeshGatewayValidExportedServices() []structs.ServiceNam
 		out = append(out, svc)
 	}
 	return out
+}
+
+func (c *ConfigSnapshot) MeshGatewayHasPartitionExport(svc structs.ServiceName) bool {
+	return c.MeshGateway.hasEntPartitionExport(svc)
 }
 
 func (c *ConfigSnapshot) GetMeshGatewayEndpoints(key GatewayKey) structs.CheckServiceNodes {
@@ -586,12 +606,14 @@ func (c *ConfigSnapshot) GetMeshGatewayEndpoints(key GatewayKey) structs.CheckSe
 }
 
 func (c *configSnapshotMeshGateway) IsServiceExported(svc structs.ServiceName) bool {
-	if c == nil || len(c.ExportedServicesWithPeers) == 0 {
+	if c == nil {
 		return false
 	}
 
-	_, ok := c.ExportedServicesWithPeers[svc]
-	return ok
+	if _, ok := c.ExportedServicesWithPeers[svc]; ok {
+		return true
+	}
+	return c.hasEntExportedService(svc)
 }
 
 func (c *configSnapshotMeshGateway) GatewayKeys() []GatewayKey {
@@ -638,7 +660,8 @@ func (c *configSnapshotMeshGateway) isEmpty() bool {
 		len(c.FedStateGateways) == 0 &&
 		len(c.HostnameDatacenters) == 0 &&
 		c.WatchedLocalServers.Len() == 0 &&
-		c.isEmptyPeering()
+		c.isEmptyPeering() &&
+		c.entEmptyPeering()
 }
 
 // isEmptyPeering is a test helper
@@ -946,6 +969,7 @@ type ConfigSnapshot struct {
 	ProxyID               ProxyID
 	Address               string
 	Port                  int
+	Ports                 structs.ServicePorts
 	ServiceMeta           map[string]string
 	TaggedAddresses       map[string]structs.ServiceAddress
 	Proxy                 structs.ConnectProxyConfig
@@ -1125,6 +1149,12 @@ func (s *ConfigSnapshot) MeshConfig() *structs.MeshConfigEntry {
 	default:
 		return nil
 	}
+}
+
+// IsMultiport returns whether the service is configured with multiple ports.
+// This is true when Ports is specified and non-empty, otherwise false.
+func (s *ConfigSnapshot) IsMultiport() bool {
+	return len(s.Ports) > 0
 }
 
 func (s *ConfigSnapshot) MeshConfigTLSIncoming() *structs.MeshDirectionalTLSConfig {

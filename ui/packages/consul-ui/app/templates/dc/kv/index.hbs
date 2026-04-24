@@ -89,12 +89,12 @@ as |sort filters parent items|}}
     <AppView>
     {{#if (not-eq parent.Key '/') }}
       <BlockSlot @name="breadcrumbs">
-        <ol>
-          <li><a href={{href-to 'dc.kv'}}>Key / Values</a></li>
+        <Hds::Breadcrumb>
+          <Hds::Breadcrumb::Item @text="Key / Values" @route="dc.kv" />
     {{#each (slice 0 -2 (split parent.Key '/')) as |breadcrumb index|}}
-          <li><a {{hds-tooltip breadcrumb options=(detached-tooltip-options)}} href={{href-to 'dc.kv.folder' (join '/' (append (slice 0 (add index 1) (split parent.Key '/')) ''))}}>{{breadcrumb}}</a></li>
+          <Hds::Breadcrumb::Item @text={{breadcrumb}} @route="dc.kv.folder" @model={{join '/' (append (slice 0 (add index 1) (split parent.Key '/')) '')}} />
     {{/each}}
-        </ol>
+        </Hds::Breadcrumb>
       </BlockSlot>
     {{/if}}
       <BlockSlot @name="header">

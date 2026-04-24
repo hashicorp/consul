@@ -10,13 +10,11 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-func UpstreamIDString(typ, dc, name string, _ *acl.EnterpriseMeta, peerName string) string {
+func UpstreamIDString(typ, dc, name string, _ *acl.EnterpriseMeta, peerName string, destinationPort string) string {
 	ret := name
 
-	if peerName != "" {
-		ret += "?peer=" + peerName
-	} else if dc != "" {
-		ret += "?dc=" + dc
+	if query := upstreamIDQueryString(dc, peerName, destinationPort); query != "" {
+		ret += "?" + query
 	}
 
 	if typ == "" || typ == structs.UpstreamDestTypeService {

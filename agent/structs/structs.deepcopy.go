@@ -163,6 +163,12 @@ func (o *CompiledDiscoveryChain) DeepCopy() *CompiledDiscoveryChain {
 		cp.AutoVirtualIPs = make([]string, len(o.AutoVirtualIPs))
 		copy(cp.AutoVirtualIPs, o.AutoVirtualIPs)
 	}
+	if o.AutoPortVirtualIPs != nil {
+		cp.AutoPortVirtualIPs = make(map[string]string, len(o.AutoPortVirtualIPs))
+		for k2, v2 := range o.AutoPortVirtualIPs {
+			cp.AutoPortVirtualIPs[k2] = v2
+		}
+	}
 	if o.ManualVirtualIPs != nil {
 		cp.ManualVirtualIPs = make([]string, len(o.ManualVirtualIPs))
 		copy(cp.ManualVirtualIPs, o.ManualVirtualIPs)
@@ -184,6 +190,10 @@ func (o *ConnectProxyConfig) DeepCopy() *ConnectProxyConfig {
 				}
 			}
 		}
+	}
+	if o.LocalServicePorts != nil {
+		cp.LocalServicePorts = make([]ServicePort, len(o.LocalServicePorts))
+		copy(cp.LocalServicePorts, o.LocalServicePorts)
 	}
 	if o.Config != nil {
 		cp.Config = make(map[string]interface{}, len(o.Config))

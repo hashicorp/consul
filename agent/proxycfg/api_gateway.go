@@ -367,6 +367,19 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 		for _, rule := range route.Rules {
 			for _, service := range rule.Services {
 				effectiveLimits := apiGatewayEffectiveUpstreamLimits(defaultLimits, service.Limits)
+
+				// Retrieving the meshGatewayConfig from handlerAPIGateway instance.
+				// `handlerAPIGateway` embeds `handlerState`, which exposes `serviceInstance.proxyCfg`.
+				// serviceInstance.proxyCfg.MeshGateway is replicated from NodeService during state setup/update.
+				// and NodeService populated for all gateway's during service resistration `AgentRegisterService`.
+				//
+				// So, Whenever any change happens in NodeService, proxyCfg manager will recreate
+				// the state where it copies NodeService to serviceInstance and
+				// then calls this api_gateway handleUpdates method.
+				// which will update the Mesh-Gateway config to api_gateway upstreams (below).
+				// h.service = <name of api-gateway>
+				meshGatewayConfig := h.proxyCfg.MeshGateway
+
 				for _, listener := range snap.APIGateway.Listeners {
 					shouldBind := false
 					for _, parent := range route.Parents {
@@ -393,6 +406,11 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 						// Pass the protocol that was configured on the listener in order
 						// to force that protocol on the Envoy listener.
 						Config: upstreamCfg,
+
+						// Propogate the meshGatewayConfig in api gateway upstreams
+						// so that meshGatewayMode can be used in XDS for
+						// endpoints and cluster config generation.
+						MeshGateway: meshGatewayConfig,
 					}
 
 					listenerKey := APIGatewayListenerKeyFromListener(listener)
@@ -425,6 +443,7 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 
 		for _, service := range route.Services {
 			effectiveLimits := apiGatewayEffectiveUpstreamLimits(defaultLimits, service.Limits)
+			meshGatewayConfig := h.proxyCfg.MeshGateway
 			upstreamID := NewUpstreamIDFromServiceName(service.ServiceName())
 			seenUpstreamIDs.add(upstreamID)
 
@@ -454,7 +473,8 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 					LocalBindPort:        listener.Port,
 					// Pass the protocol that was configured on the ingress listener in order
 					// to force that protocol on the Envoy listener.
-					Config: upstreamCfg,
+					Config:      upstreamCfg,
+					MeshGateway: meshGatewayConfig,
 				}
 
 				listenerKey := APIGatewayListenerKeyFromListener(listener)
