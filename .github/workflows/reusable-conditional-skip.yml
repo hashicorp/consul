@@ -46,7 +46,9 @@ jobs:
           files: |
             .github/workflows/reusable-conditional-skip.yml
             **.md
-            docs/**
+            docs/config/checklist-adding-config-fields.md
+            docs/contributing/add-a-changelog-entry.md
+            docs/contributing/fork-the-project.md
             ui/**
             website/**
             grafana/**
