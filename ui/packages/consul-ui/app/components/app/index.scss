@@ -3,9 +3,19 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
+.app .app-shell {
+  flex: 1;
+  min-width: 0;
+}
+
 .app .notifications {
   @extend %app-notifications;
 }
+
+.app .hds-app-frame__modals .modal-dialog {
+  pointer-events: auto;
+}
+
 %app-notifications {
   position: fixed;
   z-index: 100;

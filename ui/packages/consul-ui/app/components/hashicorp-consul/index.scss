@@ -5,7 +5,8 @@
 
 %hashicorp-consul {
   .hds-app-side-nav {
-    height: auto;
+    height: 100%;
+    min-height: 100%;
   }
   .consul-side-nav {
     --token-app-side-nav-wrapper-border-color: var(--token-side-nav-wrapper-border-color);
