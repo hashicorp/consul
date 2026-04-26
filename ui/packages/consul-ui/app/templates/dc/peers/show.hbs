@@ -1,5 +1,5 @@
 {{!
-  Copyright (c) HashiCorp, Inc.
+  Copyright IBM Corp. 2024, 2026
   SPDX-License-Identifier: BUSL-1.1
 }}
 
@@ -31,9 +31,9 @@
       }}
         <AppView>
           <BlockSlot @name="breadcrumbs">
-            <ol>
-              <li><a data-test-back href={{href-to "dc.peers"}}>All Peers</a></li>
-            </ol>
+            <Hds::Breadcrumb>
+              <Hds::Breadcrumb::Item @text="All Peers" @route="dc.peers" @model={{route.params.dc}} data-test-back />
+            </Hds::Breadcrumb>
           </BlockSlot>
           <BlockSlot @name="header">
             <h1>

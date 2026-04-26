@@ -1,5 +1,5 @@
 {{!
-  Copyright (c) HashiCorp, Inc.
+  Copyright IBM Corp. 2024, 2026
   SPDX-License-Identifier: BUSL-1.1
 }}
 
@@ -31,9 +31,9 @@ as |route|>
 as |item|}}
 <AppView>
   <BlockSlot @name="breadcrumbs">
-    <ol>
-        <li><a data-test-back href={{href-to 'dc.services'}}>All Services</a></li>
-    </ol>
+    <Hds::Breadcrumb>
+      <Hds::Breadcrumb::Item @text="All Services" @route="dc.services" @model={{route.params.dc}} data-test-back />
+    </Hds::Breadcrumb>
   </BlockSlot>
   <BlockSlot @name="header">
     <h1>

@@ -1,5 +1,5 @@
 {{!
-  Copyright (c) HashiCorp, Inc.
+  Copyright IBM Corp. 2024, 2026
   SPDX-License-Identifier: BUSL-1.1
 }}
 
@@ -107,16 +107,10 @@
         {{/if}}
         <AppView>
           <BlockSlot @name='breadcrumbs'>
-            <ol>
-              <li><a href={{href-to 'dc.services' params=(hash peer=undefined)}}>All Services</a></li>
-              <li><a
-                  {{hds-tooltip (concat 'Service (' item.Service.Service ')') options=(detached-tooltip-options)}}
-                  data-test-back
-                  href={{href-to 'dc.services.show'}}
-                >
-                  Service ({{item.Service.Service}})
-                </a></li>
-            </ol>
+            <Hds::Breadcrumb>
+              <Breadcrumbs::BackLink @text="All Services" @route="dc.services" @model={{route.params.dc}} @params={{hash peer=undefined}} />
+              <Hds::Breadcrumb::Item @text={{concat "Service (" item.Service.Service ")"}} @route="dc.services.show" data-test-back />
+            </Hds::Breadcrumb>
           </BlockSlot>
           <BlockSlot @name='header'>
             <h1>
