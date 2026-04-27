@@ -2,8 +2,6 @@
 
 SECURITY:
 
-* - security: update google.golang.org/grpc to fix CVE-2026-33186 [[GH-23379](https://github.com/hashicorp/consul/issues/23379)]
-* connect: Upgrade envoy version to 1.37.2 [[GH-23372](https://github.com/hashicorp/consul/issues/23372)]
 * go: Upgrade go version to 1.26 [[GH-23493](https://github.com/hashicorp/consul/issues/23493)]
 * security: Upgrade golang to 1.25.4. [[GH-23029](https://github.com/hashicorp/consul/issues/23029)]
 
@@ -21,15 +19,11 @@ FEATURES:
 IMPROVEMENTS:
 
 * agent: Add eventually-consistent background cache for Enterprise usage metrics, reducing GET /v1/operator/usage latency from O(P*N*K) to O(1) and lowering CPU/memory pressure during high-frequency scraping via a watch-driven maintainer goroutine. [[GH-12387](https://github.com/hashicorp/consul/issues/12387)]
-* acl: Addition of TokenNameFormat field to auth-method and parse the same for token name [[GH-23444](https://github.com/hashicorp/consul/issues/23444)]
-* discovery-chain: removes the use of hashstructure_v2 ([github.com/mitchellh/hashstructure/v2] from compiled discovery chain hashing and replaces it with explicit custom hash implementations. [[GH-23393](https://github.com/hashicorp/consul/issues/23393)]
 * mesh: **(Enterprise Only)** Introduce support for multi-port (named port) services in Consul, including the ability to specify and route traffic using port names, as well as to retrieve virtual IPs for specific service ports. It also enforces that certain advanced multi-port features are only available in Consul Enterprise, and includes new utility functions for cluster naming and ALPN protocol generation. [[GH-12514](https://github.com/hashicorp/consul/issues/12514)]
 * terminating-gateway: Updated the cluster upstream tls to use sds instead of static certs, allowing for dynamic certificate updates without needing to restart the terminating gateway. [[GH-23288](https://github.com/hashicorp/consul/issues/23288)]
-* ui: removed consul docs website related code as it is being maintained in a separate internal repository. [[GH-23398](https://github.com/hashicorp/consul/issues/23398)]
 
 BUG FIXES:
 
-* - api-gateway: fix HTTPRoute PathPrefix routing to preserve the original request path when `replacePrefixMatch` is not configured [[GH-23390](https://github.com/hashicorp/consul/issues/23390)]
 * audit-logging: (Enterprise only) Fixed JSON unmarshall error when array of obj is passed for auditReq body. [[GH-11546](https://github.com/hashicorp/consul/issues/11546)]
 * cli: Enhanced error messages in `consul config write` command to provide actionable guidance when config entries cannot be modified due to references by gateways or routers. [[GH-22921](https://github.com/hashicorp/consul/issues/22921)]
 * xds: Fixed XDS package to generate correct endpoints and cluster configurations for API Gateways when peered, and updated the API Gateway update handler to propogate mesh gateway config to its upstreams. [[GH-23454](https://github.com/hashicorp/consul/issues/23454)]
