@@ -2,30 +2,30 @@
 
 SECURITY:
 
-* connect: Upgrade envoy version to 1.35.8 and other minor releases [[GH-23113](https://github.com/hashicorp/consul/issues/23113)]
-* connect: Upgrade envoy version to 1.37.2 [[GH-23469](https://github.com/hashicorp/consul/issues/23469)]
-* connect: discontinued support for Envoy 1.33.14 as it is archived. [[GH-23209](https://github.com/hashicorp/consul/issues/23209)]
-* go: Upgrade go version to 1.26 [[GH-23493](https://github.com/hashicorp/consul/issues/23493)]
-* security: bump golang.org/x/crypto to fix GO-2025-4134 (CVE-2025-58181 / GHSA-j5w8-q4qc-rx2x), update related golang.org/x/* dependencies, and upgrade Go toolchain pin to 1.25.8. [[GH-23322](https://github.com/hashicorp/consul/issues/23322)]
-* security: upgrade go.opentelemetry.io/otel to 1.42.0 to remediate CVE-2026-24051 (Path Hijacking / Untrusted Search Paths on macOS). [[GH-23387](https://github.com/hashicorp/consul/issues/23387)]
+* connect: Upgrade envoy version to 1.35.8 and other minor releases [[GH-23113](https://github.com/hashicorp/consul/pull/23113)]
+* connect: Upgrade envoy version to 1.37.2 [[GH-23469](https://github.com/hashicorp/consul/pull/23469)]
+* connect: discontinued support for Envoy 1.33.14 as it is archived. [[GH-23209](https://github.com/hashicorp/consul/pull/23209)]
+* go: Upgrade go version to 1.26 [[GH-23493](https://github.com/hashicorp/consul/pull/23493)]
+* security: bump golang.org/x/crypto to fix GO-2025-4134 (CVE-2025-58181 / GHSA-j5w8-q4qc-rx2x), update related golang.org/x/* dependencies, and upgrade Go toolchain pin to 1.25.8. [[GH-23322](https://github.com/hashicorp/consul/pull/23322)]
+* security: upgrade go.opentelemetry.io/otel to 1.42.0 to remediate CVE-2026-24051 (Path Hijacking / Untrusted Search Paths on macOS). [[GH-23387](https://github.com/hashicorp/consul/pull/23387)]
 
 FEATURES:
 
-* Global Rate Limiter: a new "rate-limit" config entry kind that enables dynamic, cluster-wide RPC rate limiting stored in Raft and automatically replicated to all servers. This allows operators to apply or adjust global rate limits at runtime without restarting Consul servers — a critical capability for emergency scenarios where the cluster is under excessive load. [[GH-23274](https://github.com/hashicorp/consul/issues/23274)]
-* api-gateway: Added SDS certificate support for API Gateway listeners, including listener-level default TLS certificates and HTTP/TCP route service TLS SDS overrides. Service overrides inherit the listener SDS cluster when omitted, and gateway validation/xDS generation now rejects conflicting override mappings to keep certificate selection deterministic. [[GH-23354](https://github.com/hashicorp/consul/issues/23354)]
-* api-gateway: add support for gateway-level default upstream limits and route service-level limit overrides for MaxConnections, MaxPendingRequests, and MaxConcurrentRequests. [[GH-23396](https://github.com/hashicorp/consul/issues/23396)]
-* api: Added new API "/v1/internal/rpc/methods" that lists all RPC method names. Requires an operator:read ACL token. This is useful when users want to configure rate limits that exclude specific RPC endpoints. [[GH-23329](https://github.com/hashicorp/consul/issues/23329)]
+* Global Rate Limiter: a new "rate-limit" config entry kind that enables dynamic, cluster-wide RPC rate limiting stored in Raft and automatically replicated to all servers. This allows operators to apply or adjust global rate limits at runtime without restarting Consul servers — a critical capability for emergency scenarios where the cluster is under excessive load. [[GH-23274](https://github.com/hashicorp/consul/pull/23274)]
+* api-gateway: Added SDS certificate support for API Gateway listeners, including listener-level default TLS certificates and HTTP/TCP route service TLS SDS overrides. Service overrides inherit the listener SDS cluster when omitted, and gateway validation/xDS generation now rejects conflicting override mappings to keep certificate selection deterministic. [[GH-23354](https://github.com/hashicorp/consul/pull/23354)]
+* api-gateway: add support for gateway-level default upstream limits and route service-level limit overrides for MaxConnections, MaxPendingRequests, and MaxConcurrentRequests. [[GH-23396](https://github.com/hashicorp/consul/pull/23396)]
+* api: Added new API "/v1/internal/rpc/methods" that lists all RPC method names. Requires an operator:read ACL token. This is useful when users want to configure rate limits that exclude specific RPC endpoints. [[GH-23329](https://github.com/hashicorp/consul/pull/23329)]
 
 IMPROVEMENTS:
 
-* telemetry: Added metric descriptions for ACL, intention, federation state, and runtime metrics to improve Prometheus observability [[GH-23218](https://github.com/hashicorp/consul/issues/23218)]
-* terminating-gateway: Updated the cluster upstream tls to use sds instead of static certs, allowing for dynamic certificate updates without needing to restart the terminating gateway. [[GH-23288](https://github.com/hashicorp/consul/issues/23288)]
+* telemetry: Added metric descriptions for ACL, intention, federation state, and runtime metrics to improve Prometheus observability [[GH-23218](https://github.com/hashicorp/consul/pull/23218)]
+* terminating-gateway: Updated the cluster upstream tls to use sds instead of static certs, allowing for dynamic certificate updates without needing to restart the terminating gateway. [[GH-23288](https://github.com/hashicorp/consul/pull/23288)]
 
 BUG FIXES:
 
-* cli: Enhanced error messages in `consul config write` command to provide actionable guidance when config entries cannot be modified due to references by gateways or routers. [[GH-22921](https://github.com/hashicorp/consul/issues/22921)]
-* http: Adds missing KV key validation for txn endpoint [[GH-23185](https://github.com/hashicorp/consul/issues/23185)]
-* xds: Fixed XDS package to generate correct endpoints and cluster configurations for API Gateways when peered, and updated the API Gateway update handler to propogate mesh gateway config to its upstreams. [[GH-23454](https://github.com/hashicorp/consul/issues/23454)]
+* cli: Enhanced error messages in `consul config write` command to provide actionable guidance when config entries cannot be modified due to references by gateways or routers. [[GH-22921](https://github.com/hashicorp/consul/pull/22921)]
+* http: Adds missing KV key validation for txn endpoint [[GH-23185](https://github.com/hashicorp/consul/pull/23185)]
+* xds: Fixed XDS package to generate correct endpoints and cluster configurations for API Gateways when peered, and updated the API Gateway update handler to propogate mesh gateway config to its upstreams. [[GH-23454](https://github.com/hashicorp/consul/pull/23454)]
 
 ## 1.22.6 (March 23, 2026)
 
