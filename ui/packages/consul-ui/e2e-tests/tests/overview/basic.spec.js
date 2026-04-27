@@ -31,7 +31,7 @@ test.describe('Overview - Basic Tests', () => {
     // TODO: Fix this test - element not found in CI environment
     // The [data-test-server-info] element is not rendering in CI (port 8500)
     // but works locally (port 4200). Needs investigation.
-    
+
     // First wait for the fault tolerance text to appear (this confirms data loaded)
     const faultToleranceSection = page.locator('text=/Server fault tolerance/i');
     await expect(faultToleranceSection).toBeVisible({ timeout: 30000 });
