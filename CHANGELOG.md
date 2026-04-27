@@ -1,31 +1,30 @@
-## 2.0.0-rc1 (April 27, 2026)
+## 2.0.0-rc1 (April 28, 2026)
 
 SECURITY:
 
+* connect: Upgrade envoy version to 1.35.8 and other minor releases [[GH-23113](https://github.com/hashicorp/consul/issues/23113)]
+* connect: Upgrade envoy version to 1.37.2 [[GH-23469](https://github.com/hashicorp/consul/issues/23469)]
+* connect: discontinued support for Envoy 1.33.14 as it is archived. [[GH-23209](https://github.com/hashicorp/consul/issues/23209)]
 * go: Upgrade go version to 1.26 [[GH-23493](https://github.com/hashicorp/consul/issues/23493)]
-* security: Upgrade golang to 1.25.4. [[GH-23029](https://github.com/hashicorp/consul/issues/23029)]
+* security: bump golang.org/x/crypto to fix GO-2025-4134 (CVE-2025-58181 / GHSA-j5w8-q4qc-rx2x), update related golang.org/x/* dependencies, and upgrade Go toolchain pin to 1.25.8. [[GH-23322](https://github.com/hashicorp/consul/issues/23322)]
+* security: upgrade go.opentelemetry.io/otel to 1.42.0 to remediate CVE-2026-24051 (Path Hijacking / Untrusted Search Paths on macOS). [[GH-23387](https://github.com/hashicorp/consul/issues/23387)]
 
 FEATURES:
 
-* Code dependency update to go-licensing/v4 and go-census/v3 inorder to adapt to new licenses of PAO. [[GH-12520](https://github.com/hashicorp/consul/issues/12520)]
 * Global Rate Limiter: a new "rate-limit" config entry kind that enables dynamic, cluster-wide RPC rate limiting stored in Raft and automatically replicated to all servers. This allows operators to apply or adjust global rate limits at runtime without restarting Consul servers — a critical capability for emergency scenarios where the cluster is under excessive load. [[GH-23274](https://github.com/hashicorp/consul/issues/23274)]
 * api-gateway: Added SDS certificate support for API Gateway listeners, including listener-level default TLS certificates and HTTP/TCP route service TLS SDS overrides. Service overrides inherit the listener SDS cluster when omitted, and gateway validation/xDS generation now rejects conflicting override mappings to keep certificate selection deterministic. [[GH-23354](https://github.com/hashicorp/consul/issues/23354)]
 * api-gateway: add support for gateway-level default upstream limits and route service-level limit overrides for MaxConnections, MaxPendingRequests, and MaxConcurrentRequests. [[GH-23396](https://github.com/hashicorp/consul/issues/23396)]
 * api: Added new API "/v1/internal/rpc/methods" that lists all RPC method names. Requires an operator:read ACL token. This is useful when users want to configure rate limits that exclude specific RPC endpoints. [[GH-23329](https://github.com/hashicorp/consul/issues/23329)]
-* ca:  Added new Connect CA provider for Cyberark WIM (connect.ca_provider = "pan-distributed-issuer"), enabling Consul to issue certificates through Cyberark WIM. [[GH-12572](https://github.com/hashicorp/consul/issues/12572)]
-* server: add stable cluster identity and leader-gated global registry sync for service summary publishing. [[GH-12544](https://github.com/hashicorp/consul/issues/12544)]
-* telemetry: Product telemetry for self-managed Consul with anonymous, opt-in usage reporting. [[GH-12358](https://github.com/hashicorp/consul/issues/12358)]
 
 IMPROVEMENTS:
 
-* agent: Add eventually-consistent background cache for Enterprise usage metrics, reducing GET /v1/operator/usage latency from O(P*N*K) to O(1) and lowering CPU/memory pressure during high-frequency scraping via a watch-driven maintainer goroutine. [[GH-12387](https://github.com/hashicorp/consul/issues/12387)]
-* mesh: **(Enterprise Only)** Introduce support for multi-port (named port) services in Consul, including the ability to specify and route traffic using port names, as well as to retrieve virtual IPs for specific service ports. It also enforces that certain advanced multi-port features are only available in Consul Enterprise, and includes new utility functions for cluster naming and ALPN protocol generation. [[GH-12514](https://github.com/hashicorp/consul/issues/12514)]
+* telemetry: Added metric descriptions for ACL, intention, federation state, and runtime metrics to improve Prometheus observability [[GH-23218](https://github.com/hashicorp/consul/issues/23218)]
 * terminating-gateway: Updated the cluster upstream tls to use sds instead of static certs, allowing for dynamic certificate updates without needing to restart the terminating gateway. [[GH-23288](https://github.com/hashicorp/consul/issues/23288)]
 
 BUG FIXES:
 
-* audit-logging: (Enterprise only) Fixed JSON unmarshall error when array of obj is passed for auditReq body. [[GH-11546](https://github.com/hashicorp/consul/issues/11546)]
 * cli: Enhanced error messages in `consul config write` command to provide actionable guidance when config entries cannot be modified due to references by gateways or routers. [[GH-22921](https://github.com/hashicorp/consul/issues/22921)]
+* http: Adds missing KV key validation for txn endpoint [[GH-23185](https://github.com/hashicorp/consul/issues/23185)]
 * xds: Fixed XDS package to generate correct endpoints and cluster configurations for API Gateways when peered, and updated the API Gateway update handler to propogate mesh gateway config to its upstreams. [[GH-23454](https://github.com/hashicorp/consul/issues/23454)]
 
 ## 1.22.6 (March 23, 2026)
