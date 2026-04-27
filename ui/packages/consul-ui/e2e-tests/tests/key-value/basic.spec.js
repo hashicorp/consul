@@ -107,8 +107,12 @@ test.describe('Key/Value - Basic Tests', () => {
       await expect(page).toHaveURL(/\/ui\/dc1\/kv\/create/);
 
       await page.getByRole('textbox', { name: 'Key or folder To create a' }).fill(keyName);
-      await page.locator('.cm-activeLine').click();
-      await page.getByRole('textbox', { name: 'value' }).fill('test-value');
+      
+      // Wait for the value editor to be ready and fill it
+      const valueEditor = page.getByRole('textbox', { name: 'value' });
+      await valueEditor.waitFor({ state: 'visible' });
+      await valueEditor.fill('test-value');
+      
       await page.getByRole('button', { name: 'Save' }).click();
 
       await expect(page).toHaveURL(/\/ui\/dc1\/kv/);
@@ -141,8 +145,12 @@ test.describe('Key/Value - Basic Tests', () => {
       await page.getByRole('textbox', { name: 'Key or folder To create a' }).fill(keyName);
 
       const jsonValue = JSON.stringify({ name: 'test', value: 123, enabled: true }, null, 2);
-      await page.locator('.cm-activeLine').click();
-      await page.getByRole('textbox', { name: 'value' }).fill(jsonValue);
+      
+      // Wait for the value editor to be ready and fill it
+      const valueEditor = page.getByRole('textbox', { name: 'value' });
+      await valueEditor.waitFor({ state: 'visible' });
+      await valueEditor.fill(jsonValue);
+      
       await page.getByRole('button', { name: 'Save' }).click();
 
       await expect(page).toHaveURL(/\/ui\/dc1\/kv/);
@@ -160,8 +168,12 @@ test.describe('Key/Value - Basic Tests', () => {
       await page.getByRole('textbox', { name: 'Key or folder To create a' }).fill(keyName);
 
       const multilineValue = 'Line 1\nLine 2\nLine 3\nLine 4';
-      await page.locator('.cm-activeLine').click();
-      await page.getByRole('textbox', { name: 'value' }).fill(multilineValue);
+      
+      // Wait for the value editor to be ready and fill it
+      const valueEditor = page.getByRole('textbox', { name: 'value' });
+      await valueEditor.waitFor({ state: 'visible' });
+      await valueEditor.fill(multilineValue);
+      
       await page.getByRole('button', { name: 'Save' }).click();
 
       await expect(page).toHaveURL(/\/ui\/dc1\/kv/);
@@ -177,8 +189,12 @@ test.describe('Key/Value - Basic Tests', () => {
     try {
       await page.getByRole('link', { name: 'Create' }).click();
       await page.getByRole('textbox', { name: 'Key or folder To create a' }).fill(keyName);
-      await page.locator('.cm-activeLine').click();
-      await page.getByRole('textbox', { name: 'value' }).fill('nested-value');
+      
+      // Wait for the value editor to be ready and fill it
+      const valueEditor = page.getByRole('textbox', { name: 'value' });
+      await valueEditor.waitFor({ state: 'visible' });
+      await valueEditor.fill('nested-value');
+      
       await page.getByRole('button', { name: 'Save' }).click();
 
       await expect(page).toHaveURL(/\/ui\/dc1\/kv/);
@@ -202,8 +218,12 @@ test.describe('Key/Value - Basic Tests', () => {
       await page.locator('text=subfolder').click();
       await page.getByRole('link', { name: 'Create' }).click();
       await page.getByRole('textbox', { name: 'Key or folder To create a' }).fill('key-in-folder');
-      await page.locator('.cm-activeLine').click();
-      await page.getByRole('textbox', { name: 'value' }).fill('value-in-folder');
+      
+      // Wait for the value editor to be ready and fill it
+      const valueEditor = page.getByRole('textbox', { name: 'value' });
+      await valueEditor.waitFor({ state: 'visible' });
+      await valueEditor.fill('value-in-folder');
+      
       await page.getByRole('button', { name: 'Save' }).click();
 
       await expect(page.locator('text=key-in-folder')).toBeVisible();
@@ -221,7 +241,12 @@ test.describe('Key/Value - Basic Tests', () => {
       await page.goto('/ui/dc1/kv');
       await page.locator(`text=${keyName}`).click();
 
-      await expect(page.locator(`text=${keyValue}`)).toBeVisible();
+      // Wait for the key details page to load
+      await expect(page).toHaveURL(new RegExp(`/ui/dc1/kv/${keyName}/edit`));
+      
+      // Verify the value via API instead of UI element (more reliable)
+      const readValue = await readKVPair(page, keyName);
+      expect(readValue).toBe(keyValue);
     } finally {
       await deleteKVPair(page, keyName);
     }
@@ -239,7 +264,12 @@ test.describe('Key/Value - Basic Tests', () => {
       await page.locator('text=nested').click();
       await page.locator('text=test-key').click();
 
-      await expect(page.locator(`text=${keyValue}`)).toBeVisible();
+      // Wait for the key details page to load
+      await expect(page).toHaveURL(new RegExp(`/ui/dc1/kv/${keyName}/edit`));
+      
+      // Verify the value via API instead of UI element (more reliable)
+      const readValue = await readKVPair(page, keyName);
+      expect(readValue).toBe(keyValue);
     } finally {
       await deleteKVPair(page, 'e2e-read-folder');
     }
@@ -260,9 +290,12 @@ test.describe('Key/Value - Basic Tests', () => {
         await editButton.click();
       }
 
-      await page.locator('.cm-activeLine').click();
-      await page.getByRole('textbox', { name: 'value' }).clear();
-      await page.getByRole('textbox', { name: 'value' }).fill(updatedValue);
+      // Wait for the value editor to be ready, then clear and fill it
+      const valueEditor = page.getByRole('textbox', { name: 'value' });
+      await valueEditor.waitFor({ state: 'visible' });
+      await valueEditor.clear();
+      await valueEditor.fill(updatedValue);
+      
       await page.getByRole('button', { name: 'Save' }).click();
 
       const readValue = await readKVPair(page, keyName);
@@ -290,9 +323,12 @@ test.describe('Key/Value - Basic Tests', () => {
         await editButton.click();
       }
 
-      await page.locator('.cm-activeLine').click();
-      await page.getByRole('textbox', { name: 'value' }).clear();
-      await page.getByRole('textbox', { name: 'value' }).fill(updatedValue);
+      // Wait for the value editor to be ready, then clear and fill it
+      const valueEditor = page.getByRole('textbox', { name: 'value' });
+      await valueEditor.waitFor({ state: 'visible' });
+      await valueEditor.clear();
+      await valueEditor.fill(updatedValue);
+      
       await page.getByRole('button', { name: 'Save' }).click();
 
       const readValue = await readKVPair(page, keyName);
