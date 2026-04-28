@@ -5,8 +5,52 @@
 
 const { test, expect } = require('@playwright/test');
 
+async function logKVFormState(page, label) {
+  const state = await page.evaluate(() => {
+    const textarea = document.querySelector('textarea[name="value"]');
+    const codeToggle = document.querySelector('input[name="json"]');
+    const cmContent = document.querySelector('.cm-content[aria-label="value"]');
+    const activeElement = document.activeElement;
+
+    return {
+      url: window.location.href,
+      readyState: document.readyState,
+      hasTextarea: !!textarea,
+      textareaVisible: !!(
+        textarea &&
+        textarea.offsetParent !== null &&
+        getComputedStyle(textarea).visibility !== 'hidden' &&
+        getComputedStyle(textarea).display !== 'none'
+      ),
+      textareaDisabled:
+        textarea?.hasAttribute('disabled') || textarea?.getAttribute('data-disabled') === 'true' || false,
+      textareaValueLength: textarea?.value?.length ?? null,
+      hasCodeToggle: !!codeToggle,
+      codeToggleChecked: !!codeToggle?.checked,
+      hasCmContent: !!cmContent,
+      cmVisible: !!(
+        cmContent &&
+        cmContent.offsetParent !== null &&
+        getComputedStyle(cmContent).visibility !== 'hidden' &&
+        getComputedStyle(cmContent).display !== 'none'
+      ),
+      cmTextLength: cmContent?.textContent?.length ?? null,
+      activeElementTag: activeElement?.tagName ?? null,
+      activeElementName: activeElement?.getAttribute?.('name') ?? null,
+      activeElementRole: activeElement?.getAttribute?.('role') ?? null,
+      activeElementAriaLabel: activeElement?.getAttribute?.('aria-label') ?? null,
+    };
+  });
+
+  console.log(`[KV DEBUG] ${label}: ${JSON.stringify(state)}`);
+}
+
 function kvValueEditor(page) {
   return page.locator('.cm-content[aria-label="value"]').first();
+}
+
+function kvValueTextarea(page) {
+  return page.locator('textarea[name="value"]').first();
 }
 
 function kvRow(page, text) {
@@ -15,6 +59,7 @@ function kvRow(page, text) {
 
 async function openKVCreate(page) {
   await page.getByRole('link', { name: 'Create' }).click();
+  await logKVFormState(page, 'after openKVCreate click');
   await expect(page).toHaveURL(/\/ui\/dc1\/kv(?:\/.*)?\/create/);
 }
 
@@ -22,6 +67,7 @@ async function openKVKey(page, keyName) {
   const row = kvRow(page, keyName);
   await expect(row).toBeVisible({ timeout: 15000 });
   await row.click();
+  console.log(`[KV DEBUG] clicked key row: ${keyName}, url=${page.url()}`);
 }
 
 async function openNestedKVKey(page, segments, keyName) {
@@ -29,6 +75,7 @@ async function openNestedKVKey(page, segments, keyName) {
     const row = kvRow(page, segment);
     await expect(row).toBeVisible({ timeout: 15000 });
     await row.click();
+    console.log(`[KV DEBUG] clicked nested segment: ${segment}, url=${page.url()}`);
   }
 
   await openKVKey(page, keyName);
@@ -36,18 +83,44 @@ async function openNestedKVKey(page, segments, keyName) {
 
 async function waitForKVEdit(page, keyName) {
   await expect(page).toHaveURL(new RegExp(`/ui/dc1/kv/${keyName}/edit`), { timeout: 15000 });
+  await logKVFormState(page, `after waitForKVEdit ${keyName}`);
 }
 
 async function fillKVValue(page, value, replace = false) {
+  await logKVFormState(page, `before fillKVValue replace=${replace}`);
+
+  const textarea = kvValueTextarea(page);
+  const textareaVisible = await textarea.isVisible().catch(() => false);
+  console.log(`[KV DEBUG] textareaVisible=${textareaVisible}`);
+
+  if (textareaVisible) {
+    if (replace) {
+      await textarea.fill(value);
+    } else {
+      await textarea.click();
+      await textarea.pressSequentially(value);
+    }
+    await logKVFormState(page, `after textarea fill replace=${replace}`);
+    return;
+  }
+
   const editor = kvValueEditor(page);
+  const editorVisible = await editor.isVisible().catch(() => false);
+  console.log(`[KV DEBUG] editorVisible=${editorVisible}`);
+
+  if (!editorVisible) {
+    await logKVFormState(page, 'no visible value control before failing');
+    throw new Error('No visible KV value control found');
+  }
+
   await editor.waitFor({ state: 'visible', timeout: 15000 });
   await editor.click();
-
   await page.keyboard.press(process.platform === 'darwin' ? 'Meta+A' : 'Control+A');
   if (!replace) {
     await page.keyboard.press('Backspace');
   }
   await page.keyboard.insertText(value);
+  await logKVFormState(page, `after code editor fill replace=${replace}`);
 }
 
 /**
