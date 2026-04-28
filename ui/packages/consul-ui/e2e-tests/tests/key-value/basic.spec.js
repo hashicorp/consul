@@ -5,46 +5,49 @@
 
 const { test, expect } = require('@playwright/test');
 
-async function fillKVValue(page, value) {
-  const codeEditor = page.locator('.cm-content, [aria-label="value"]');
-  const textarea = page.locator('textarea[name="value"]');
-
-  if (await codeEditor.first().isVisible().catch(() => false)) {
-    const editor = codeEditor.first();
-    await editor.waitFor({ state: 'visible', timeout: 15000 });
-    await editor.click();
-
-    if (typeof value === 'string' && value.length > 0) {
-      await page.keyboard.press('Meta+A').catch(async () => {
-        await page.keyboard.press('Control+A');
-      });
-      await page.keyboard.insertText(value);
-    }
-
-    return;
-  }
-
-  await textarea.waitFor({ state: 'visible', timeout: 15000 });
-  await textarea.fill(value);
+function kvValueEditor(page) {
+  return page.locator('.cm-content[aria-label="value"]').first();
 }
 
-async function replaceKVValue(page, value) {
-  const codeEditor = page.locator('.cm-content, [aria-label="value"]');
-  const textarea = page.locator('textarea[name="value"]');
+function kvRow(page, text) {
+  return page.locator(`text=${text}`).first();
+}
 
-  if (await codeEditor.first().isVisible().catch(() => false)) {
-    const editor = codeEditor.first();
-    await editor.waitFor({ state: 'visible', timeout: 15000 });
-    await editor.click();
-    await page.keyboard.press('Meta+A').catch(async () => {
-      await page.keyboard.press('Control+A');
-    });
-    await page.keyboard.insertText(value);
-    return;
+async function openKVCreate(page) {
+  await page.getByRole('link', { name: 'Create' }).click();
+  await expect(page).toHaveURL(/\/ui\/dc1\/kv(?:\/.*)?\/create/);
+}
+
+async function openKVKey(page, keyName) {
+  const row = kvRow(page, keyName);
+  await expect(row).toBeVisible({ timeout: 15000 });
+  await row.click();
+}
+
+async function openNestedKVKey(page, segments, keyName) {
+  for (const segment of segments) {
+    const row = kvRow(page, segment);
+    await expect(row).toBeVisible({ timeout: 15000 });
+    await row.click();
   }
 
-  await textarea.waitFor({ state: 'visible', timeout: 15000 });
-  await textarea.fill(value);
+  await openKVKey(page, keyName);
+}
+
+async function waitForKVEdit(page, keyName) {
+  await expect(page).toHaveURL(new RegExp(`/ui/dc1/kv/${keyName}/edit`), { timeout: 15000 });
+}
+
+async function fillKVValue(page, value, replace = false) {
+  const editor = kvValueEditor(page);
+  await editor.waitFor({ state: 'visible', timeout: 15000 });
+  await editor.click();
+
+  await page.keyboard.press(process.platform === 'darwin' ? 'Meta+A' : 'Control+A');
+  if (!replace) {
+    await page.keyboard.press('Backspace');
+  }
+  await page.keyboard.insertText(value);
 }
 
 /**
@@ -114,30 +117,20 @@ async function readKVPair(page, keyName) {
 
 test.describe('Key/Value - Basic Tests', () => {
   test.beforeEach(async ({ page }) => {
-    // Navigate to Key/Value page before each test
     await page.goto('/ui/dc1/kv');
   });
 
   test('should navigate to Key/Value page', async ({ page }) => {
-    // Verify we're on the KV page
     await expect(page).toHaveURL(/\/ui\/dc1\/kv/);
-
-    // Verify the Create button is visible
     await expect(page.getByRole('link', { name: 'Create' })).toBeVisible();
   });
 
   test('should validate required key name field', async ({ page }) => {
-    // Click the Create button
-    await page.getByRole('link', { name: 'Create' }).click();
+    await openKVCreate(page);
 
-    // Verify the Save button is disabled when no key name is entered
     const saveButton = page.getByRole('button', { name: 'Save' });
     await expect(saveButton).toBeDisabled();
-
-    // Enter a key name
     await page.getByRole('textbox', { name: 'Key or folder To create a' }).fill('test-key');
-
-    // Now Save button should be enabled
     await expect(saveButton).toBeEnabled();
   });
 
@@ -145,8 +138,7 @@ test.describe('Key/Value - Basic Tests', () => {
     const keyName = 'e2e-test-key';
 
     try {
-      await page.getByRole('link', { name: 'Create' }).click();
-      await expect(page).toHaveURL(/\/ui\/dc1\/kv\/create/);
+      await openKVCreate(page);
 
       await page.getByRole('textbox', { name: 'Key or folder To create a' }).fill(keyName);
 
@@ -165,7 +157,7 @@ test.describe('Key/Value - Basic Tests', () => {
     const keyName = 'e2e-empty-key';
 
     try {
-      await page.getByRole('link', { name: 'Create' }).click();
+      await openKVCreate(page);
       await page.getByRole('textbox', { name: 'Key or folder To create a' }).fill(keyName);
       await page.getByRole('button', { name: 'Save' }).click();
 
@@ -180,7 +172,7 @@ test.describe('Key/Value - Basic Tests', () => {
     const keyName = 'e2e-key_with.special-chars';
 
     try {
-      await page.getByRole('link', { name: 'Create' }).click();
+      await openKVCreate(page);
       await page.getByRole('textbox', { name: 'Key or folder To create a' }).fill(keyName);
 
       const jsonValue = JSON.stringify({ name: 'test', value: 123, enabled: true }, null, 2);
@@ -200,7 +192,7 @@ test.describe('Key/Value - Basic Tests', () => {
     const keyName = 'e2e-multiline-key';
 
     try {
-      await page.getByRole('link', { name: 'Create' }).click();
+      await openKVCreate(page);
       await page.getByRole('textbox', { name: 'Key or folder To create a' }).fill(keyName);
 
       const multilineValue = 'Line 1\nLine 2\nLine 3\nLine 4';
@@ -220,7 +212,7 @@ test.describe('Key/Value - Basic Tests', () => {
     const keyName = 'e2e-parent/child/grandchild';
 
     try {
-      await page.getByRole('link', { name: 'Create' }).click();
+      await openKVCreate(page);
       await page.getByRole('textbox', { name: 'Key or folder To create a' }).fill(keyName);
 
       await fillKVValue(page, 'nested-value');
@@ -237,16 +229,13 @@ test.describe('Key/Value - Basic Tests', () => {
     const folderPath = 'e2e-folder/subfolder/';
 
     try {
-      // Create folder
-      await page.getByRole('link', { name: 'Create' }).click();
+      await openKVCreate(page);
       await page.getByRole('textbox', { name: 'Key or folder To create a' }).fill(folderPath);
       await page.getByRole('button', { name: 'Save' }).click();
       await expect(page).toHaveURL(/\/ui\/dc1\/kv/);
 
-      // Navigate into folder and create key
-      await page.locator('text=e2e-folder').click();
-      await page.locator('text=subfolder').click();
-      await page.getByRole('link', { name: 'Create' }).click();
+      await openNestedKVKey(page, ['e2e-folder'], 'subfolder');
+      await openKVCreate(page);
       await page.getByRole('textbox', { name: 'Key or folder To create a' }).fill('key-in-folder');
 
       await fillKVValue(page, 'value-in-folder');
@@ -266,12 +255,10 @@ test.describe('Key/Value - Basic Tests', () => {
     try {
       await createKVPair(page, keyName, keyValue);
       await page.goto('/ui/dc1/kv');
-      await page.locator(`text=${keyName}`).click();
+      await openKVKey(page, keyName);
 
-      // Wait for the key details page to load
-      await expect(page).toHaveURL(new RegExp(`/ui/dc1/kv/${keyName}/edit`));
+      await waitForKVEdit(page, keyName);
 
-      // Verify the value via API instead of UI element (more reliable)
       const readValue = await readKVPair(page, keyName);
       expect(readValue).toBe(keyValue);
     } finally {
@@ -286,15 +273,10 @@ test.describe('Key/Value - Basic Tests', () => {
     try {
       await createKVPair(page, keyName, keyValue);
       await page.goto('/ui/dc1/kv');
+      await openNestedKVKey(page, ['e2e-read-folder', 'nested'], 'test-key');
 
-      await page.locator('text=e2e-read-folder').click();
-      await page.locator('text=nested').click();
-      await page.locator('text=test-key').click();
+      await waitForKVEdit(page, keyName);
 
-      // Wait for the key details page to load
-      await expect(page).toHaveURL(new RegExp(`/ui/dc1/kv/${keyName}/edit`));
-
-      // Verify the value via API instead of UI element (more reliable)
       const readValue = await readKVPair(page, keyName);
       expect(readValue).toBe(keyValue);
     } finally {
@@ -310,14 +292,15 @@ test.describe('Key/Value - Basic Tests', () => {
     try {
       await createKVPair(page, keyName, originalValue);
       await page.goto('/ui/dc1/kv');
-      await page.locator(`text=${keyName}`).click();
+      await openKVKey(page, keyName);
 
       const editButton = page.getByRole('button', { name: 'Edit' });
       if (await editButton.isVisible({ timeout: 2000 }).catch(() => false)) {
         await editButton.click();
       }
 
-      await replaceKVValue(page, updatedValue);
+      await waitForKVEdit(page, keyName);
+      await fillKVValue(page, updatedValue, true);
 
       await page.getByRole('button', { name: 'Save' }).click();
 
@@ -337,16 +320,15 @@ test.describe('Key/Value - Basic Tests', () => {
       await createKVPair(page, keyName, originalValue);
       await page.goto('/ui/dc1/kv');
 
-      await page.locator('text=e2e-update-folder').click();
-      await page.locator('text=nested').click();
-      await page.locator('text=update-key').click();
+      await openNestedKVKey(page, ['e2e-update-folder', 'nested'], 'update-key');
 
       const editButton = page.getByRole('button', { name: 'Edit' });
       if (await editButton.isVisible({ timeout: 2000 }).catch(() => false)) {
         await editButton.click();
       }
 
-      await replaceKVValue(page, updatedValue);
+      await waitForKVEdit(page, keyName);
+      await fillKVValue(page, updatedValue, true);
 
       await page.getByRole('button', { name: 'Save' }).click();
 
@@ -363,9 +345,7 @@ test.describe('Key/Value - Basic Tests', () => {
     try {
       await createKVPair(page, keyName, 'value-to-delete');
       await page.goto('/ui/dc1/kv');
-      await expect(page.locator(`text=${keyName}`)).toBeVisible();
-
-      await page.locator(`text=${keyName}`).click();
+      await openKVKey(page, keyName);
       await page.getByRole('button', { name: 'Delete' }).click();
 
       const confirmButton = page.getByRole('button', { name: 'Confirm' });
@@ -374,7 +354,7 @@ test.describe('Key/Value - Basic Tests', () => {
       }
 
       await expect(page).toHaveURL(/\/ui\/dc1\/kv/);
-      await expect(page.locator(`text=${keyName}`)).not.toBeVisible();
+      await expect(kvRow(page, keyName)).not.toBeVisible();
     } catch (error) {
       await deleteKVPair(page, keyName);
       throw error;
@@ -390,13 +370,12 @@ test.describe('Key/Value - Basic Tests', () => {
       await createKVPair(page, anotherKey, 'another-value');
 
       await page.goto('/ui/dc1/kv');
-      await page.locator('text=e2e-delete-folder').click();
-      await page.locator('text=nested').click();
+      await openNestedKVKey(page, ['e2e-delete-folder'], 'nested');
 
-      await expect(page.locator('text=delete-key')).toBeVisible();
-      await expect(page.locator('text=another-key')).toBeVisible();
+      await expect(kvRow(page, 'delete-key')).toBeVisible();
+      await expect(kvRow(page, 'another-key')).toBeVisible();
 
-      await page.locator('text=delete-key').click();
+      await openKVKey(page, 'delete-key');
       await page.getByRole('button', { name: 'Delete' }).click();
 
       const confirmButton = page.getByRole('button', { name: 'Confirm' });
@@ -405,8 +384,8 @@ test.describe('Key/Value - Basic Tests', () => {
       }
 
       await page.waitForURL(/\/ui\/dc1\/kv/, { timeout: 5000 });
-      await expect(page.locator('text=delete-key')).not.toBeVisible();
-      await expect(page.locator('text=another-key')).toBeVisible();
+      await expect(kvRow(page, 'delete-key')).not.toBeVisible();
+      await expect(kvRow(page, 'another-key')).toBeVisible();
     } catch (error) {
       await deleteKVPair(page, 'e2e-delete-folder');
       throw error;
@@ -421,12 +400,12 @@ test.describe('Key/Value - Basic Tests', () => {
     try {
       await createKVPair(page, keyInFolder, 'value1');
       await page.goto('/ui/dc1/kv');
-      await expect(page.locator('text=e2e-delete-entire-folder')).toBeVisible();
+      await expect(kvRow(page, 'e2e-delete-entire-folder')).toBeVisible();
 
       await deleteKVPair(page, 'e2e-delete-entire-folder');
       await page.reload();
 
-      await expect(page.locator('text=e2e-delete-entire-folder')).not.toBeVisible();
+      await expect(kvRow(page, 'e2e-delete-entire-folder')).not.toBeVisible();
     } catch (error) {
       await deleteKVPair(page, 'e2e-delete-entire-folder');
       throw error;
@@ -439,12 +418,12 @@ test.describe('Key/Value - Basic Tests', () => {
     try {
       await createKVPair(page, keyInFolder, 'nested-value');
       await page.goto('/ui/dc1/kv');
-      await expect(page.locator('text=e2e-delete-nested')).toBeVisible();
+      await expect(kvRow(page, 'e2e-delete-nested')).toBeVisible();
 
       await deleteKVPair(page, 'e2e-delete-nested');
       await page.reload();
 
-      await expect(page.locator('text=e2e-delete-nested')).not.toBeVisible();
+      await expect(kvRow(page, 'e2e-delete-nested')).not.toBeVisible();
     } catch (error) {
       await deleteKVPair(page, 'e2e-delete-nested');
       throw error;
