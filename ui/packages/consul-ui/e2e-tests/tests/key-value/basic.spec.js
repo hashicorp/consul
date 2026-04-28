@@ -5,6 +5,48 @@
 
 const { test, expect } = require('@playwright/test');
 
+async function fillKVValue(page, value) {
+  const codeEditor = page.locator('.cm-content, [aria-label="value"]');
+  const textarea = page.locator('textarea[name="value"]');
+
+  if (await codeEditor.first().isVisible().catch(() => false)) {
+    const editor = codeEditor.first();
+    await editor.waitFor({ state: 'visible', timeout: 15000 });
+    await editor.click();
+
+    if (typeof value === 'string' && value.length > 0) {
+      await page.keyboard.press('Meta+A').catch(async () => {
+        await page.keyboard.press('Control+A');
+      });
+      await page.keyboard.insertText(value);
+    }
+
+    return;
+  }
+
+  await textarea.waitFor({ state: 'visible', timeout: 15000 });
+  await textarea.fill(value);
+}
+
+async function replaceKVValue(page, value) {
+  const codeEditor = page.locator('.cm-content, [aria-label="value"]');
+  const textarea = page.locator('textarea[name="value"]');
+
+  if (await codeEditor.first().isVisible().catch(() => false)) {
+    const editor = codeEditor.first();
+    await editor.waitFor({ state: 'visible', timeout: 15000 });
+    await editor.click();
+    await page.keyboard.press('Meta+A').catch(async () => {
+      await page.keyboard.press('Control+A');
+    });
+    await page.keyboard.insertText(value);
+    return;
+  }
+
+  await textarea.waitFor({ state: 'visible', timeout: 15000 });
+  await textarea.fill(value);
+}
+
 /**
  * Key/Value - Basic Tests
  *
@@ -108,11 +150,7 @@ test.describe('Key/Value - Basic Tests', () => {
 
       await page.getByRole('textbox', { name: 'Key or folder To create a' }).fill(keyName);
 
-      // Find and fill the CodeMirror editor
-      const cmContent = page.locator('.cm-content');
-      await cmContent.waitFor({ state: 'visible', timeout: 5000 });
-      await cmContent.click();
-      await cmContent.fill('test-value');
+      await fillKVValue(page, 'test-value');
 
       await page.getByRole('button', { name: 'Save' }).click();
 
@@ -147,11 +185,7 @@ test.describe('Key/Value - Basic Tests', () => {
 
       const jsonValue = JSON.stringify({ name: 'test', value: 123, enabled: true }, null, 2);
 
-      // Find and fill the CodeMirror editor
-      const cmContent = page.locator('.cm-content');
-      await cmContent.waitFor({ state: 'visible', timeout: 5000 });
-      await cmContent.click();
-      await cmContent.fill(jsonValue);
+      await fillKVValue(page, jsonValue);
 
       await page.getByRole('button', { name: 'Save' }).click();
 
@@ -171,11 +205,7 @@ test.describe('Key/Value - Basic Tests', () => {
 
       const multilineValue = 'Line 1\nLine 2\nLine 3\nLine 4';
 
-      // Find and fill the CodeMirror editor
-      const cmContent = page.locator('.cm-content');
-      await cmContent.waitFor({ state: 'visible', timeout: 5000 });
-      await cmContent.click();
-      await cmContent.fill(multilineValue);
+      await fillKVValue(page, multilineValue);
 
       await page.getByRole('button', { name: 'Save' }).click();
 
@@ -193,11 +223,7 @@ test.describe('Key/Value - Basic Tests', () => {
       await page.getByRole('link', { name: 'Create' }).click();
       await page.getByRole('textbox', { name: 'Key or folder To create a' }).fill(keyName);
 
-      // Find and fill the CodeMirror editor
-      const cmContent = page.locator('.cm-content');
-      await cmContent.waitFor({ state: 'visible', timeout: 5000 });
-      await cmContent.click();
-      await cmContent.fill('nested-value');
+      await fillKVValue(page, 'nested-value');
 
       await page.getByRole('button', { name: 'Save' }).click();
 
@@ -223,11 +249,7 @@ test.describe('Key/Value - Basic Tests', () => {
       await page.getByRole('link', { name: 'Create' }).click();
       await page.getByRole('textbox', { name: 'Key or folder To create a' }).fill('key-in-folder');
 
-      // Find and fill the CodeMirror editor
-      const cmContent = page.locator('.cm-content');
-      await cmContent.waitFor({ state: 'visible', timeout: 5000 });
-      await cmContent.click();
-      await cmContent.fill('value-in-folder');
+      await fillKVValue(page, 'value-in-folder');
 
       await page.getByRole('button', { name: 'Save' }).click();
 
@@ -295,13 +317,7 @@ test.describe('Key/Value - Basic Tests', () => {
         await editButton.click();
       }
 
-      // Find and fill the CodeMirror editor
-      const cmContent = page.locator('.cm-content');
-      await cmContent.waitFor({ state: 'visible', timeout: 5000 });
-      await cmContent.click();
-      // Select all and replace
-      await page.keyboard.press('Control+A');
-      await page.keyboard.type(updatedValue);
+      await replaceKVValue(page, updatedValue);
 
       await page.getByRole('button', { name: 'Save' }).click();
 
@@ -330,13 +346,7 @@ test.describe('Key/Value - Basic Tests', () => {
         await editButton.click();
       }
 
-      // Find and fill the CodeMirror editor
-      const cmContent = page.locator('.cm-content');
-      await cmContent.waitFor({ state: 'visible', timeout: 5000 });
-      await cmContent.click();
-      // Select all and replace
-      await page.keyboard.press('Control+A');
-      await page.keyboard.type(updatedValue);
+      await replaceKVValue(page, updatedValue);
 
       await page.getByRole('button', { name: 'Save' }).click();
 
