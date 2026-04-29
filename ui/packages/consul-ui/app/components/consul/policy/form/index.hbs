@@ -11,7 +11,7 @@
     @item={{@item}}
   >
     {{!don't show template selection here, i.e. Service Identity}}
-    <BlockSlot @name="template" />
+    <:template></:template>
   </PolicyForm>
 {{#if (and (not @create) @item @item.ID)}}
     <DataSource
