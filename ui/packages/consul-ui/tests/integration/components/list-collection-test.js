@@ -47,7 +47,7 @@ module('Integration | Component | list collection', function (hooks) {
         <:actions as |item index Actions|>
           <Actions as |Action|>
             <Action>
-              <BlockSlot @name="label">Action</BlockSlot>
+              <:label>Action</:label>
             </Action>
           </Actions>
         </:actions>
