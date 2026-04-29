@@ -7,7 +7,7 @@ import Component from '@ember/component';
 import { set } from '@ember/object';
 
 import chart from './chart.xstate';
-export default Component.extend( {
+export default Component.extend({
   tagName: '',
   onchange: (data) => data,
   init: function () {

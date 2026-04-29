@@ -8,7 +8,6 @@ import { inject as service } from '@ember/service';
 import { next } from '@ember/runloop';
 import { set } from '@ember/object';
 
-
 export default Component.extend({
   tagName: '',
   dom: service('dom'),
