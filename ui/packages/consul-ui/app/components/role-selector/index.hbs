@@ -40,7 +40,7 @@
           @nspace={{@nspace}}
           @items={{this.item.Policies}}
         >
-          <BlockSlot @name="trigger">
+          <:trigger>
             <Hds::Button
               @text='Create new policy'
               @size='small'
@@ -50,7 +50,7 @@
               data-test-create-policy
               {{action 'triggerStateCheckboxChange'}}
             />
-          </BlockSlot>
+          </:trigger>
         </PolicySelector>
 
       </:policy>

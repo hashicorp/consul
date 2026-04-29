@@ -20,8 +20,8 @@
     <span data-test-apply-policy>Apply an existing policy</span>
   </:label>
   <:create >
-    {{#yield-slot name='trigger'}}
-      {{yield}}
+    {{#if (has-block 'trigger')}}
+      {{yield to='trigger'}}
     {{else}}
       <Hds::Button
         @text='Create new policy'
@@ -74,7 +74,7 @@
           </Hds::ButtonSet>
         </:actions>
       </ModalDialog>
-    {{/yield-slot}}
+    {{/if}}
   </:create>
   <:option as |option|>
     {{option.Name}}
