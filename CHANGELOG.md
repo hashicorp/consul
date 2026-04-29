@@ -5,7 +5,7 @@ SECURITY:
 * security: update google.golang.org/grpc to fix CVE-2026-33186 [[GH-23379](https://github.com/hashicorp/consul/issues/23379)]
 * security: upgrade go.opentelemetry.io/otel to 1.42.0 to remediate CVE-2026-24051 (Path Hijacking / Untrusted Search Paths on macOS). [[GH-23387](https://github.com/hashicorp/consul/issues/23387)]
 * test-sds-server: bump github.com/hashicorp/consul to v1.22.5 in integration test module to align with the CVE-2026-2808 fixed release line. [[GH-23437](https://github.com/hashicorp/consul/issues/23437)]
-* ui: **(Enterprise only)** Backport Rollup update to 2.80.0 for release/1.21.x to address CVE-2026-27606 (SECVULN-38912). [[GH-23359](https://github.com/hashicorp/consul/issues/23359)]
+* ui: **(Enterprise only)** Backport Rollup update to 2.80.0 for release/1.21.x to address CVE-2026-27606 (SECVULN-38912).
 
 IMPROVEMENTS:
 
