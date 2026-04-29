@@ -28,10 +28,10 @@ export default Component.extend({
   init: function () {
     this._super(...arguments);
     this._listeners = this.dom.listeners();
-    const form = this.formContainer.form(this.type)
+    const form = this.formContainer.form(this.type);
     setTimeout(() => {
       form.clear({ Datacenter: this.dc, Namespace: this.nspace });
-    }, 0)
+    }, 0);
     set(this, 'form', form);
   },
   willDestroyElement: function () {

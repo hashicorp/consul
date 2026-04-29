@@ -56,7 +56,7 @@ module('Integration | Component | list collection', function (hooks) {
 
     const checkbox = this.element.querySelector('input[type="checkbox"]');
     const row = this.element.querySelector('[data-test-list-row]');
-    console.log('testing',checkbox);
+
     // Test checking - should set z-index and handle footer collision
     checkbox.checked = true;
     await triggerEvent(checkbox, 'change');
