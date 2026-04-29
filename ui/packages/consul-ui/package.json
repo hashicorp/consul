@@ -207,7 +207,6 @@
   },
   "ember-addon": {
     "paths": [
-      "lib/block-slots",
       "lib/colocated-components",
       "lib/commands",
       "lib/startup"

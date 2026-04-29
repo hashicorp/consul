@@ -7,7 +7,6 @@ import { inject as service } from '@ember/service';
 import { computed, set } from '@ember/object';
 import Component from 'ember-collection/components/ember-collection';
 import PercentageColumns from 'ember-collection/layouts/percentage-columns';
-import Slotted from 'block-slots';
 
 const formatItemStyle = PercentageColumns.prototype.formatItemStyle;
 
