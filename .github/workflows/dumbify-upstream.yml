@@ -1,0 +1,92 @@
+name: Weekly Upstream Dumbify
+
+on:
+  schedule:
+    - cron: '0 0 * * 0' # Midnight on Sundays
+  workflow_dispatch: # Allows you to trigger it manually from the Actions tab
+
+jobs:
+  dumbify-process:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Fork
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "Chief Dumbification Officer"
+          git config user.email "bot@dumb-hashicorp.local"
+
+      - name: Fetch and Reset Upstream
+        run: |
+          # Replace the URL below with the specific original repository you are forking
+          git remote add upstream https://github.com/hashicorp/terraform.git
+          git fetch upstream
+          
+          # Force the 'upstream' branch to match the fresh 'smart' code from upstream/main
+          git checkout -B upstream upstream/main
+
+      - name: Dumbify Trademarks
+        run: |
+          # A strict list of HashiCorp trademarked products
+          declare -A trademarks=(
+            ["Terraform"]="Dumb Terraform"
+            ["Consul"]="Dumb Consul"
+            ["Vault"]="Dumb Vault"
+            ["Nomad"]="Dumb Nomad"
+            ["Packer"]="Dumb Packer"
+            ["Vagrant"]="Dumb Vagrant"
+            ["Boundary"]="Dumb Boundary"
+            ["Waypoint"]="Dumb Waypoint"
+            ["HashiCorp"]="Dumb HashiCorp"
+            ["HCP"]="Dumb HCP"
+          )
+
+          for tm in "${!trademarks[@]}"; do
+            replacement=${trademarks[$tm]}
+            echo "Dumbifying trademark: '$tm' -> '$replacement'"
+            
+            # Using \b to match whole words only. 
+            # find ignores the .git directory to prevent repository corruption.
+            find . -type f -not -path '*/.*' -exec sed -i "s/\b$tm\b/$replacement/g" {} +
+          done
+
+      - name: Validate Changes
+        id: validate
+        run: |
+          # Check if any files were actually modified by the dumbify process
+          if [[ -z $(git status -s) ]]; then
+            echo "No changes detected. The codebase is already sufficiently dumb."
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "Changes detected! The following files were dumbified:"
+            git status -s
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit and Force Push
+        # Only run if the validation step detected changes
+        if: steps.validate.outputs.has_changes == 'true'
+        run: |
+          git add .
+          git commit -m "chore: successfully dumbified upstream updates"
+          git push origin upstream --force
+
+      - name: Create Dumbify PR
+        # Only run if the validation step detected changes
+        if: steps.validate.outputs.has_changes == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: upstream
+          base: main
+          title: "Weekly Dumbification: Freshly Degraded Code"
+          body: |
+            This PR takes the latest innovations from upstream and properly 
+            dumbifies them for public consumption. 
+            
+            **Changes included:**
+            - Targeted replacement of HashiCorp trademarks with their Dumb™ counterparts.
+          labels: |
+            dumbified
