@@ -85,8 +85,8 @@ as |route|>
           @type="nspace"
           @label="Namespace"
           @ondelete={{refreshRoute}}>
-          <:removed as |writer after|>
-            <Consul::Nspace::Notifications 
+          <:removed as |after|>
+            <Consul::Nspace::Notifications
               {{notification
                 after=(action after)
               }}
