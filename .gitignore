@@ -1,3 +1,6 @@
+# Local planning notes and private docs (not for version control)
+.private_docs/
+
 *.attr
 *.exe
 *.log

@@ -1,0 +1,144 @@
+// Copyright IBM Corp. 2024, 2026
+// SPDX-License-Identifier: BUSL-1.1
+
+package awsimds
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"io"
+	"net/http"
+	"strings"
+	"time"
+
+	"github.com/hashicorp/go-cleanhttp"
+)
+
+const (
+	tokenTTLHeader = "X-aws-ec2-metadata-token-ttl-seconds"
+	tokenHeader    = "X-aws-ec2-metadata-token"
+	tokenTTL       = "21600"
+)
+
+var ( // use variables so tests can redirect requests to httptest servers
+	tokenEndpoint            = "http://169.254.169.254/latest/api/token"
+	availabilityZoneEndpoint = "http://169.254.169.254/latest/meta-data/placement/availability-zone"
+)
+
+// LookupAvailabilityZone returns the local EC2 availability zone using IMDSv2
+// when possible and falling back to IMDSv1 when token acquisition or tokenized
+// metadata lookup fails.
+func LookupAvailabilityZone(ctx context.Context, client *http.Client) (string, error) {
+	client = defaultClient(client)
+
+	token, errV2 := lookupToken(ctx, client)
+	if errV2 == nil {
+		zone, err := lookupAvailabilityZone(ctx, client, token)
+		if err == nil {
+			return zone, nil
+		}
+		errV2 = err
+	}
+
+	zone, errV1 := lookupAvailabilityZone(ctx, client, "")
+	if errV1 == nil {
+		return zone, nil
+	}
+
+	if errV2 != nil {
+		return "", errors.Join(errV2, errV1)
+	}
+	return "", errV1
+}
+
+func defaultClient(client *http.Client) *http.Client {
+	if client != nil {
+		return client
+	}
+
+	return &http.Client{
+		Transport: &http.Transport{
+			Proxy:                 cleanhttp.DefaultPooledTransport().Proxy,
+			DialContext:           cleanhttp.DefaultPooledTransport().DialContext,
+			ForceAttemptHTTP2:     cleanhttp.DefaultPooledTransport().ForceAttemptHTTP2,
+			MaxIdleConns:          cleanhttp.DefaultPooledTransport().MaxIdleConns,
+			IdleConnTimeout:       cleanhttp.DefaultPooledTransport().IdleConnTimeout,
+			TLSHandshakeTimeout:   cleanhttp.DefaultPooledTransport().TLSHandshakeTimeout,
+			ExpectContinueTimeout: cleanhttp.DefaultPooledTransport().ExpectContinueTimeout,
+			ResponseHeaderTimeout: 2 * time.Second,
+		},
+	}
+}
+
+func lookupToken(ctx context.Context, client *http.Client) (string, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, tokenEndpoint, nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set(tokenTTLHeader, tokenTTL)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("fetching IMDSv2 token: %w", err)
+	}
+	defer resp.Body.Close()
+
+	token, err := readMetadataValue(resp)
+	if err != nil {
+		return "", fmt.Errorf("fetching IMDSv2 token: %w", err)
+	}
+
+	return token, nil
+}
+
+func lookupAvailabilityZone(ctx context.Context, client *http.Client, token string) (string, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, availabilityZoneEndpoint, nil)
+	if err != nil {
+		return "", err
+	}
+	if token != "" {
+		req.Header.Set(tokenHeader, token)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		if token != "" {
+			return "", fmt.Errorf("fetching availability zone with IMDSv2 token: %w", err)
+		}
+		return "", fmt.Errorf("fetching availability zone from IMDSv1: %w", err)
+	}
+	defer resp.Body.Close()
+
+	zone, err := readMetadataValue(resp)
+	if err != nil {
+		if token != "" {
+			return "", fmt.Errorf("fetching availability zone with IMDSv2 token: %w", err)
+		}
+		return "", fmt.Errorf("fetching availability zone from IMDSv1: %w", err)
+	}
+
+	return zone, nil
+}
+
+func readMetadataValue(resp *http.Response) (string, error) {
+	if resp == nil {
+		return "", errors.New("empty response")
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("reading response body: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("unexpected status code %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+	}
+
+	value := strings.TrimSpace(string(body))
+	if value == "" {
+		return "", errors.New("empty response body")
+	}
+
+	return value, nil
+}
