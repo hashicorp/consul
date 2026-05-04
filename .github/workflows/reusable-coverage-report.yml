@@ -105,13 +105,23 @@ jobs:
           # Generate HTML report from main-module profile
           go tool cover -html=main-module-coverage.out -o coverage.html
 
+          # Extract per-sub-module profiles for separate Codecov uploads.
+          # Each sub-module must be uploaded independently so Codecov resolves
+          # file paths against the correct module root, not the main module root.
+          for mod in api sdk envoyextensions troubleshoot; do
+            {
+              echo "mode: set"
+              grep "^github\.com/hashicorp/consul/${mod}/" merged-coverage.out || true
+            } > "${mod}-coverage.out"
+          done
+
       - name: Upload HTML coverage report
         if: steps.merge.outputs.total != 'N/A'
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         with:
           name: coverage-report-html
           path: |
-            merged-coverage.out
+            main-module-coverage.out
             coverage.html
 
       - name: Post PR comment
@@ -124,7 +134,6 @@ jobs:
 
           See the [workflow run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for the full per-package breakdown and downloadable HTML report."
 
-          # Update existing bot comment if present, otherwise create a new one
           gh pr comment ${{ github.event.pull_request.number }} \
             --repo "${{ github.repository }}" \
             --body "$BODY" \
@@ -133,11 +142,49 @@ jobs:
             --repo "${{ github.repository }}" \
             --body "$BODY"
 
-      - name: Upload to Codecov
+      # Upload each module separately so Codecov resolves paths against the
+      # correct module root. A single merged multi-module file confuses Codecov:
+      # it strips the longest matching module prefix, so api/acl.go ends up
+      # looked up as acl.go at the repo root instead of api/acl.go.
+      # Each sub-module profile is moved into its own directory so that
+      # working-directory + stripped path resolves to the correct source file.
+      - name: Prepare per-module coverage files
+        if: steps.merge.outputs.total != 'N/A'
+        run: |
+          for mod in api sdk envoyextensions troubleshoot; do
+            if [ -s "${mod}-coverage.out" ]; then
+              cp "${mod}-coverage.out" "${mod}/coverage-upload.out"
+            fi
+          done
+
+      - name: Upload main module to Codecov
         if: steps.merge.outputs.total != 'N/A'
         uses: codecov/codecov-action@e28ff129e5465c2c0dcc6f003fc735cb6ae0c673 # v4.5.0
         with:
-          files: merged-coverage.out
+          files: main-module-coverage.out
+          flags: main
+          use_oidc: true
+          fail_ci_if_error: false
+          verbose: false
+
+      - name: Upload api module to Codecov
+        if: steps.merge.outputs.total != 'N/A' && hashFiles('api/coverage-upload.out') != ''
+        uses: codecov/codecov-action@e28ff129e5465c2c0dcc6f003fc735cb6ae0c673 # v4.5.0
+        with:
+          files: coverage-upload.out
+          flags: api
+          working-directory: api
+          use_oidc: true
+          fail_ci_if_error: false
+          verbose: false
+
+      - name: Upload sdk module to Codecov
+        if: steps.merge.outputs.total != 'N/A' && hashFiles('sdk/coverage-upload.out') != ''
+        uses: codecov/codecov-action@e28ff129e5465c2c0dcc6f003fc735cb6ae0c673 # v4.5.0
+        with:
+          files: coverage-upload.out
+          flags: sdk
+          working-directory: sdk
           use_oidc: true
           fail_ci_if_error: false
           verbose: false
