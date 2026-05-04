@@ -36,8 +36,20 @@ jobs:
             exit 0
           fi
 
+          # Race test jobs force -covermode=atomic; all others use mode: set.
+          # gocovmerge cannot merge mixed modes, so filter to set-mode profiles only.
+          SET_PROFILES=$(echo "$PROFILES" | xargs grep -l "^mode: set" 2>/dev/null || true)
+          SET_COUNT=$(echo "$SET_PROFILES" | grep -c . || true)
+          echo "Using $SET_COUNT set-mode profiles (atomic/race profiles excluded)"
+
+          if [ "$SET_COUNT" -eq 0 ]; then
+            echo "No set-mode profiles found"
+            echo "total=N/A" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           go install github.com/wadey/gocovmerge@latest
-          echo "$PROFILES" | xargs gocovmerge > merged-coverage.out
+          echo "$SET_PROFILES" | xargs gocovmerge > merged-coverage.out
 
           TOTAL=$(go tool cover -func merged-coverage.out | grep '^total:' | awk '{print $3}')
           echo "Total coverage: $TOTAL"
