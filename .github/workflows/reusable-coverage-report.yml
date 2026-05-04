@@ -51,22 +51,38 @@ jobs:
           go install github.com/wadey/gocovmerge@latest
           echo "$SET_PROFILES" | xargs gocovmerge > merged-coverage.out
 
-          TOTAL=$(go tool cover -func merged-coverage.out | grep '^total:' | awk '{print $3}')
+          # Compute total using awk — no module resolution needed, works across sub-modules.
+          TOTAL=$(awk '
+            /^mode:/ { next }
+            { stmts += $2; if ($3 > 0) covered += $2 }
+            END { if (stmts > 0) printf "%.1f%%", covered/stmts*100; else print "0.0%" }
+          ' merged-coverage.out)
           echo "Total coverage: $TOTAL"
           echo "total=$TOTAL" >> "$GITHUB_OUTPUT"
 
+          # go tool cover needs module resolution, so filter out sub-modules
+          # (api, sdk, envoyextensions, proto-public, troubleshoot, testing/deployer)
+          # which are separate go.mod modules not resolvable from the root module.
+          {
+            grep "^mode:" merged-coverage.out | head -1
+            grep -v "^mode:" merged-coverage.out | grep -v \
+              -e "^github\.com/hashicorp/consul/api/" \
+              -e "^github\.com/hashicorp/consul/sdk/" \
+              -e "^github\.com/hashicorp/consul/envoyextensions/" \
+              -e "^github\.com/hashicorp/consul/proto-public/" \
+              -e "^github\.com/hashicorp/consul/troubleshoot/" \
+              -e "^github\.com/hashicorp/consul/testing/deployer/"
+          } > main-module-coverage.out
+
           # Package-level summary grouped by top-level directory
-          go tool cover -func merged-coverage.out | grep -v '^total:' | \
+          go tool cover -func main-module-coverage.out | grep -v '^total:' | \
             awk -F'\t' '{
-              # Strip module prefix: github.com/hashicorp/consul/X/... -> X
               sub(/^github\.com\/hashicorp\/consul\//, "", $1)
               split($1, parts, "/")
               pkg = parts[1]
               gsub(/:.*/, "", pkg)
-              pct = $3
-              gsub(/%/, "", pct)
-              sum[pkg] += pct
-              n[pkg]++
+              pct = $3; gsub(/%/, "", pct)
+              sum[pkg] += pct; n[pkg]++
             }
             END {
               for (pkg in sum) printf "%-35s %.1f%%\n", pkg, sum[pkg]/n[pkg]
@@ -86,8 +102,8 @@ jobs:
             done < pkg-summary.txt
           } >> "$GITHUB_STEP_SUMMARY"
 
-          # Generate HTML report for artifact upload
-          go tool cover -html=merged-coverage.out -o coverage.html
+          # Generate HTML report from main-module profile
+          go tool cover -html=main-module-coverage.out -o coverage.html
 
       - name: Upload HTML coverage report
         if: steps.merge.outputs.total != 'N/A'
