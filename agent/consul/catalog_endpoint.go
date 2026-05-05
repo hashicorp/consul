@@ -234,12 +234,27 @@ func servicePreApplyValidate(service *structs.NodeService) error {
 }
 
 func serviceACLCheck(service *structs.NodeService, authz resolver.Result, authzCtxFill func(*acl.AuthorizerContext)) error {
+	return serviceACLCheckWithConsulExemption(service, authz, authzCtxFill, true)
+}
+
+func serviceACLCheckNoConsulExemption(service *structs.NodeService, authz resolver.Result, authzCtxFill func(*acl.AuthorizerContext)) error {
+	return serviceACLCheckWithConsulExemption(service, authz, authzCtxFill, false)
+}
+
+func serviceACLCheckWithConsulExemption(
+	service *structs.NodeService,
+	authz resolver.Result,
+	authzCtxFill func(*acl.AuthorizerContext),
+	allowConsulExemption bool,
+) error {
 	var authzContext acl.AuthorizerContext
 	authzCtxFill(&authzContext)
 
-	// Apply the ACL policy if any. The 'consul' service is excluded
-	// since it is managed automatically internally.
-	if service.Service != structs.ConsulServiceName {
+	// The historical servicePreApply path exempted the internal "consul"
+	// service from the early ServiceWriteAllowed check. That exemption must
+	// not be used for public transaction input, because txn mutations are
+	// applied by Service.ID while callers control Service.Service.
+	if !allowConsulExemption || service.Service != structs.ConsulServiceName {
 		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(service.Service, &authzContext); err != nil {
 			return err
 		}

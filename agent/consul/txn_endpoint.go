@@ -200,7 +200,7 @@ func (t *Txn) vetServiceTxnOp(op *structs.TxnServiceOp, authz resolver.Result) e
 			)
 		}
 
-		return serviceACLCheck(service, authz, func(ctx *acl.AuthorizerContext) {
+		return serviceACLCheckNoConsulExemption(service, authz, func(ctx *acl.AuthorizerContext) {
 			op.FillAuthzContext(ctx)
 			existing.FillAuthzContext(ctx)
 		})
@@ -208,7 +208,7 @@ func (t *Txn) vetServiceTxnOp(op *structs.TxnServiceOp, authz resolver.Result) e
 
 	// True create path: no existing service ID was found, so authorize against
 	// the requested service name as before.
-	return serviceACLCheck(service, authz, func(ctx *acl.AuthorizerContext) {
+	return serviceACLCheckNoConsulExemption(service, authz, func(ctx *acl.AuthorizerContext) {
 		op.FillAuthzContext(ctx)
 		service.FillAuthzContext(ctx)
 	})

@@ -1,3 +1,3 @@
 ```release-note:security
-security: Fixed a Consul transaction endpoint authorization bypass where service and check mutations could be authorized using request-provided names while applying changes by ID.
+security: Fixed Consul transaction endpoint authorization bypasses where service and check mutations could be authorized using request-provided names while applying changes by ID, including a bypass using the reserved `consul` service name.
 ```

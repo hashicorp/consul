@@ -1204,3 +1204,186 @@ func TestTxn_Apply_CheckSetAuthorizesResolvedServiceID(t *testing.T) {
 		"victim-svc",
 	)
 }
+
+func TestTxn_Apply_ServiceSet_NoTokenConsulNameDoesNotOverwriteExistingService(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.PrimaryDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	state := s1.fsm.State()
+	require.NoError(t, state.EnsureNode(1, &structs.Node{
+		Node:    "victim-node",
+		Address: "127.0.0.1",
+	}))
+
+	require.NoError(t, state.EnsureService(2, "victim-node", &structs.NodeService{
+		ID:      "victim-id",
+		Service: "victim-service",
+		Address: "127.0.0.1",
+		Port:    9000,
+	}))
+
+	arg := structs.TxnRequest{
+		Datacenter: "dc1",
+		Ops: structs.TxnOps{
+			{
+				Service: &structs.TxnServiceOp{
+					Verb: api.ServiceSet,
+					Node: "victim-node",
+					Service: structs.NodeService{
+						ID:      "victim-id",
+						Service: "consul",
+						Address: "198.51.100.7",
+						Port:    8443,
+					},
+				},
+			},
+		},
+		// Intentionally no token.
+	}
+
+	var txnResp structs.TxnResponse
+	require.NoError(t, s1.RPC(context.Background(), "Txn.Apply", &arg, &txnResp))
+	require.Len(t, txnResp.Errors, 1)
+	require.Contains(t, txnResp.Errors[0].What, "does not match existing service name")
+
+	_, svc, err := state.NodeService(nil, "victim-node", "victim-id", nil, "")
+	require.NoError(t, err)
+	require.NotNil(t, svc)
+	require.Equal(t, "victim-service", svc.Service)
+	require.Equal(t, "127.0.0.1", svc.Address)
+	require.Equal(t, 9000, svc.Port)
+}
+
+func TestTxn_Apply_ServiceDelete_NoTokenConsulNameDoesNotDeleteExistingService(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.PrimaryDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	state := s1.fsm.State()
+	require.NoError(t, state.EnsureNode(1, &structs.Node{
+		Node:    "victim-node",
+		Address: "127.0.0.1",
+	}))
+
+	require.NoError(t, state.EnsureService(2, "victim-node", &structs.NodeService{
+		ID:      "victim-id",
+		Service: "victim-service",
+		Address: "127.0.0.1",
+	}))
+
+	arg := structs.TxnRequest{
+		Datacenter: "dc1",
+		Ops: structs.TxnOps{
+			{
+				Service: &structs.TxnServiceOp{
+					Verb: api.ServiceDelete,
+					Node: "victim-node",
+					Service: structs.NodeService{
+						ID:      "victim-id",
+						Service: "consul",
+					},
+				},
+			},
+		},
+		// Intentionally no token.
+	}
+
+	var txnResp structs.TxnResponse
+	require.NoError(t, s1.RPC(context.Background(), "Txn.Apply", &arg, &txnResp))
+	require.Len(t, txnResp.Errors, 1)
+	require.Contains(t, txnResp.Errors[0].What, "does not match existing service name")
+
+	_, svc, err := state.NodeService(nil, "victim-node", "victim-id", nil, "")
+	require.NoError(t, err)
+	require.NotNil(t, svc)
+	require.Equal(t, "victim-service", svc.Service)
+}
+
+func TestTxn_Apply_ServiceSet_NoTokenCannotWriteConsulService(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.PrimaryDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	state := s1.fsm.State()
+	require.NoError(t, state.EnsureNode(1, &structs.Node{
+		Node:    "victim-node",
+		Address: "127.0.0.1",
+	}))
+
+	require.NoError(t, state.EnsureService(2, "victim-node", &structs.NodeService{
+		ID:      "consul-id",
+		Service: "consul",
+		Address: "127.0.0.1",
+		Port:    8300,
+	}))
+
+	arg := structs.TxnRequest{
+		Datacenter: "dc1",
+		Ops: structs.TxnOps{
+			{
+				Service: &structs.TxnServiceOp{
+					Verb: api.ServiceSet,
+					Node: "victim-node",
+					Service: structs.NodeService{
+						ID:      "consul-id",
+						Service: "consul",
+						Address: "198.51.100.7",
+						Port:    8443,
+					},
+				},
+			},
+		},
+		// Intentionally no token.
+	}
+
+	var txnResp structs.TxnResponse
+	require.NoError(t, s1.RPC(context.Background(), "Txn.Apply", &arg, &txnResp))
+	require.Len(t, txnResp.Errors, 1)
+
+	_, svc, err := state.NodeService(nil, "victim-node", "consul-id", nil, "")
+	require.NoError(t, err)
+	require.NotNil(t, svc)
+	require.Equal(t, "consul", svc.Service)
+	require.Equal(t, "127.0.0.1", svc.Address)
+	require.Equal(t, 8300, svc.Port)
+}
