@@ -142,6 +142,45 @@ jobs:
             --repo "${{ github.repository }}" \
             --body "$BODY"
 
+      - name: Update coverage badge
+        if: github.ref == 'refs/heads/main' && steps.merge.outputs.total != 'N/A'
+        env:
+          TOTAL: ${{ steps.merge.outputs.total }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PCT=$(echo "$TOTAL" | tr -d '%')
+          if awk "BEGIN {exit !($PCT >= 75)}"; then COLOR="brightgreen"
+          elif awk "BEGIN {exit !($PCT >= 60)}"; then COLOR="green"
+          elif awk "BEGIN {exit !($PCT >= 40)}"; then COLOR="yellow"
+          else COLOR="red"
+          fi
+
+          printf '{"schemaVersion":1,"label":"coverage","message":"%s","color":"%s"}\n' \
+            "$TOTAL" "$COLOR" > /tmp/coverage-badge.json
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin \
+            "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
+
+          if git ls-remote --exit-code origin badges >/dev/null 2>&1; then
+            git fetch origin badges:badges --depth=1
+            git worktree add /tmp/badges-wt badges
+          else
+            git worktree add --detach /tmp/badges-wt HEAD
+            git -C /tmp/badges-wt checkout --orphan badges
+            git -C /tmp/badges-wt rm -rf . --quiet 2>/dev/null || true
+          fi
+
+          cp /tmp/coverage-badge.json /tmp/badges-wt/coverage.json
+          git -C /tmp/badges-wt add coverage.json
+          if git -C /tmp/badges-wt diff --staged --quiet; then
+            echo "Badge unchanged, skipping commit"
+          else
+            git -C /tmp/badges-wt commit -m "chore: update coverage badge [skip ci]"
+            git -C /tmp/badges-wt push origin HEAD:badges
+          fi
+
       # Upload each module separately so Codecov resolves paths against the
       # correct module root. A single merged multi-module file confuses Codecov:
       # it strips the longest matching module prefix, so api/acl.go ends up

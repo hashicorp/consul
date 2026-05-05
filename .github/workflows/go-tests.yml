@@ -511,7 +511,7 @@ jobs:
     uses: ./.github/workflows/reusable-coverage-report.yml
     permissions:
       pull-requests: write
-      contents: read
+      contents: write  # required to push coverage badge to badges branch
       id-token: write  # required for OIDC tokenless Codecov upload
     with:
       go-version: ${{ needs.get-go-version.outputs.go-version }}

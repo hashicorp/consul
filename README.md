@@ -6,6 +6,7 @@
 [![License: BUSL-1.1](https://img.shields.io/badge/License-BUSL--1.1-yellow.svg)](LICENSE)
 [![Docker Pulls](https://img.shields.io/docker/pulls/hashicorp/consul.svg)](https://hub.docker.com/r/hashicorp/consul)
 [![Go Report Card](https://goreportcard.com/badge/github.com/hashicorp/consul)](https://goreportcard.com/report/github.com/hashicorp/consul)
+[![coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/hashicorp/consul/badges/coverage.json)](https://github.com/hashicorp/consul/actions/workflows/go-tests.yml)
 
 Consul is a distributed, highly available, and data center aware solution to connect and configure applications across dynamic, distributed infrastructure.
 
