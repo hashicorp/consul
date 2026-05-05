@@ -1071,3 +1071,136 @@ func TestTxn_Validation(t *testing.T) {
 		require.Contains(t, out.Errors[0].Error(), tc.expectedError)
 	}
 }
+
+func TestTxn_Apply_ServiceSetRejectsServiceNameMismatchForExistingID(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.PrimaryDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	state := s1.fsm.State()
+	require.NoError(t, state.EnsureNode(1, &structs.Node{
+		Node:    "test-node",
+		Address: "127.0.0.1",
+	}))
+
+	require.NoError(t, state.EnsureService(2, "test-node", &structs.NodeService{
+		ID:      "shared-id",
+		Service: "victim-svc",
+		Address: "127.0.0.1",
+	}))
+
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	token := createTokenFull(t, codec, testTxnRules)
+
+	arg := structs.TxnRequest{
+		Datacenter: "dc1",
+		Ops: structs.TxnOps{
+			{
+				Service: &structs.TxnServiceOp{
+					Verb: api.ServiceSet,
+					Node: "test-node",
+					Service: structs.NodeService{
+						ID:      "shared-id",
+						Service: "test-svc",
+						Address: "127.0.0.1",
+					},
+				},
+			},
+		},
+		WriteRequest: structs.WriteRequest{
+			Token: token.SecretID,
+		},
+	}
+
+	var out structs.TxnResponse
+	require.NoError(t, s1.RPC(context.Background(), "Txn.Apply", &arg, &out))
+	require.Len(t, out.Errors, 1)
+	require.Equal(t, 0, out.Errors[0].OpIndex)
+	require.Contains(t, out.Errors[0].What, `does not match existing service name`)
+}
+
+func TestTxn_Apply_CheckSetAuthorizesResolvedServiceID(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.PrimaryDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLInitialManagementToken = "root"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	state := s1.fsm.State()
+	require.NoError(t, state.EnsureNode(1, &structs.Node{
+		Node:    "test-node",
+		Address: "127.0.0.1",
+	}))
+
+	require.NoError(t, state.EnsureService(2, "test-node", &structs.NodeService{
+		ID:      "victim-id",
+		Service: "victim-svc",
+		Address: "127.0.0.1",
+	}))
+
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	token := createTokenFull(t, codec, testTxnRules)
+
+	arg := structs.TxnRequest{
+		Datacenter: "dc1",
+		Ops: structs.TxnOps{
+			{
+				Check: &structs.TxnCheckOp{
+					Verb: api.CheckSet,
+					Check: structs.HealthCheck{
+						Node:        "test-node",
+						CheckID:     types.CheckID("victim-check"),
+						Name:        "victim-check",
+						ServiceID:   "victim-id",
+						ServiceName: "test-svc", // spoofed; must not be trusted
+					},
+				},
+			},
+		},
+		WriteRequest: structs.WriteRequest{
+			Token: token.SecretID,
+		},
+	}
+
+	var out structs.TxnResponse
+	require.NoError(t, s1.RPC(context.Background(), "Txn.Apply", &arg, &out))
+	require.Len(t, out.Errors, 1)
+	require.Equal(t, 0, out.Errors[0].OpIndex)
+	acl.RequirePermissionDeniedMessage(
+		t,
+		out.Errors[0].What,
+		token.AccessorID,
+		nil,
+		acl.ResourceService,
+		acl.AccessWrite,
+		"victim-svc",
+	)
+}

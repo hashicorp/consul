@@ -99,7 +99,15 @@ func (t *Txn) preCheck(authorizer resolver.Result, ops structs.TxnOps) structs.T
 			}
 
 			service := &op.Service.Service
-			if err := servicePreApply(service, authorizer, op.Service.FillAuthzContext); err != nil {
+			if err := servicePreApplyValidate(service); err != nil {
+				errors = append(errors, &structs.TxnError{
+					OpIndex: i,
+					What:    err.Error(),
+				})
+				break
+			}
+
+			if err := t.vetServiceTxnOp(op.Service, authorizer); err != nil {
 				errors = append(errors, &structs.TxnError{
 					OpIndex: i,
 					What:    err.Error(),
@@ -121,7 +129,7 @@ func (t *Txn) preCheck(authorizer resolver.Result, ops structs.TxnOps) structs.T
 			checkPreApply(&op.Check.Check)
 
 			// Check that the token has permissions for the given operation.
-			if err := vetCheckTxnOp(op.Check, authorizer); err != nil {
+			if err := t.vetCheckTxnOp(op.Check, authorizer); err != nil {
 				errors = append(errors, &structs.TxnError{
 					OpIndex: i,
 					What:    err.Error(),
@@ -163,22 +171,112 @@ func vetNodeTxnOp(op *structs.TxnNodeOp, authz resolver.Result) error {
 	return nil
 }
 
-// vetCheckTxnOp applies the given ACL policy to a check transaction operation.
-func vetCheckTxnOp(op *structs.TxnCheckOp, authz resolver.Result) error {
-	var authzContext acl.AuthorizerContext
-	op.FillAuthzContext(&authzContext)
+// vetServiceTxnOp applies ACL policy to a service transaction operation.
+//
+// Service txn mutations are applied by Service.ID, so authorization must not be
+// based solely on the request's Service.Service field. If an existing service is
+// found for the requested node/service ID, authorize against the existing service
+// name and reject attempts to provide a different service name for the same ID.
+func (t *Txn) vetServiceTxnOp(op *structs.TxnServiceOp, authz resolver.Result) error {
+	service := &op.Service
 
-	if op.Check.ServiceID == "" {
-		// Node-level check.
-		if err := authz.ToAllowAuthorizer().NodeWriteAllowed(op.Check.Node, &authzContext); err != nil {
-			return err
-		}
-	} else {
-		// Service-level check.
-		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(op.Check.ServiceName, &authzContext); err != nil {
-			return err
-		}
+	_, existing, err := t.srv.fsm.State().NodeService(
+		nil,
+		op.Node,
+		service.ID,
+		&service.EnterpriseMeta,
+		service.PeerName,
+	)
+	if err != nil {
+		return fmt.Errorf("service lookup failed: %v", err)
 	}
+
+	if existing != nil {
+		if service.Service != existing.Service {
+			return fmt.Errorf(
+				"service name does not match existing service name for service ID %q on node %q",
+				service.ID,
+				op.Node,
+			)
+		}
+
+		return serviceACLCheck(service, authz, func(ctx *acl.AuthorizerContext) {
+			op.FillAuthzContext(ctx)
+			existing.FillAuthzContext(ctx)
+		})
+	}
+
+	// True create path: no existing service ID was found, so authorize against
+	// the requested service name as before.
+	return serviceACLCheck(service, authz, func(ctx *acl.AuthorizerContext) {
+		op.FillAuthzContext(ctx)
+		service.FillAuthzContext(ctx)
+	})
+}
+
+// vetCheckTxnOp applies ACL policy to a check transaction operation.
+//
+// Check txn mutations are applied by CheckID. If a check already exists, ACLs
+// must be evaluated against the existing check's real binding from the state
+// store instead of trusting ServiceID or ServiceName supplied in the request.
+func (t *Txn) vetCheckTxnOp(op *structs.TxnCheckOp, authz resolver.Result) error {
+	check := &op.Check
+
+	_, existing, err := t.srv.fsm.State().NodeCheck(
+		check.Node,
+		check.CheckID,
+		&check.EnterpriseMeta,
+		check.PeerName,
+	)
+	if err != nil {
+		return fmt.Errorf("check lookup failed: %v", err)
+	}
+
+	if existing != nil {
+		return t.vetCheckWrite(existing, op, authz)
+	}
+
+	return t.vetCheckWrite(check, op, authz)
+}
+
+func (t *Txn) vetCheckWrite(check *structs.HealthCheck, op *structs.TxnCheckOp, authz resolver.Result) error {
+	var authzContext acl.AuthorizerContext
+
+	if check.ServiceID == "" {
+		// Node-level check.
+		op.FillAuthzContext(&authzContext)
+		check.FillAuthzContext(&authzContext)
+
+		if err := authz.ToAllowAuthorizer().NodeWriteAllowed(check.Node, &authzContext); err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	// Service-level check. Resolve the actual service by ServiceID from the
+	// state store instead of trusting Check.ServiceName from the request.
+	_, service, err := t.srv.fsm.State().NodeService(
+		nil,
+		check.Node,
+		check.ServiceID,
+		&check.EnterpriseMeta,
+		check.PeerName,
+	)
+	if err != nil {
+		return fmt.Errorf("service lookup failed: %v", err)
+	}
+	if service == nil {
+		return fmt.Errorf("Unknown service ID '%s' for check ID '%s'", check.ServiceID, check.CheckID)
+	}
+
+	op.FillAuthzContext(&authzContext)
+	service.FillAuthzContext(&authzContext)
+
+	if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(service.Service, &authzContext); err != nil {
+		return err
+	}
+
 	return nil
 }
 
