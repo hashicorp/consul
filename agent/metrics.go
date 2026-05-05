@@ -22,7 +22,14 @@ var metricsKeyAgentTLSCertExpiry = []string{"agent", "tls", "cert", "expiry"}
 
 var testCertExpirationMonitorInterval time.Duration
 
-func certExpirationGauges(datacenter, partition, nodeName string) []prometheus.GaugeDefinition {
+func tlsCertRole(isServer bool) string {
+	if isServer {
+		return "server"
+	}
+	return "client"
+}
+
+func certExpirationGauges(datacenter, partition, nodeName, role string) []prometheus.GaugeDefinition {
 	return []prometheus.GaugeDefinition{
 		{
 			Name: metricsKeyAgentTLSCertExpiry,
@@ -31,6 +38,7 @@ func certExpirationGauges(datacenter, partition, nodeName string) []prometheus.G
 				{Name: "datacenter", Value: datacenter},
 				{Name: "partition", Value: acl.PartitionOrDefault(partition)},
 				{Name: "node", Value: nodeName},
+				{Name: "role", Value: role},
 			},
 		},
 	}
@@ -38,11 +46,12 @@ func certExpirationGauges(datacenter, partition, nodeName string) []prometheus.G
 
 // tlsCertExpirationMonitor returns a CertExpirationMonitor which will
 // monitor the expiration of the certificate used for agent TLS.
-func tlsCertExpirationMonitor(c *tlsutil.Configurator, datacenter, partition, nodeName string, criticalDays int, warningDays int, logger hclog.Logger) consul.CertExpirationMonitor {
+func tlsCertExpirationMonitor(c *tlsutil.Configurator, datacenter, partition, nodeName, role string, criticalDays int, warningDays int, logger hclog.Logger) consul.CertExpirationMonitor {
 	labels := []metrics.Label{
 		{Name: "datacenter", Value: datacenter},
 		{Name: "partition", Value: acl.PartitionOrDefault(partition)},
 		{Name: "node", Value: nodeName},
+		{Name: "role", Value: role},
 	}
 	return consul.CertExpirationMonitor{
 		Key:                   metricsKeyAgentTLSCertExpiry,

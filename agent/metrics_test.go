@@ -500,6 +500,7 @@ func TestHTTPHandlers_AgentMetrics_TLSCertExpiry_Prometheus(t *testing.T) {
 			`datacenter="dc1"`,
 			`partition="default"`,
 			`node="`,
+			`role="client"`,
 		)
 		assertMetricValueBetween(
 			r,
@@ -523,6 +524,7 @@ func TestHTTPHandlers_AgentMetrics_TLSCertExpiry_Prometheus(t *testing.T) {
 			`datacenter="dc1"`,
 			`partition="default"`,
 			`node="`,
+			`role="client"`,
 		)
 		require.Less(r, secondValue, firstValue)
 		require.GreaterOrEqual(r, firstValue-secondValue, 1.0)

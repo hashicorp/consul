@@ -896,6 +896,7 @@ func (a *Agent) Start(ctx context.Context) error {
 			a.config.Datacenter,
 			a.config.PartitionOrDefault(),
 			a.config.NodeName,
+			tlsCertRole(a.config.ServerMode),
 			a.config.Telemetry.CertificateCriticalThresholdDays,
 			a.config.Telemetry.CertificateWarningThresholdDays,
 			a.logger,

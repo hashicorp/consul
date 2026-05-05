@@ -132,7 +132,7 @@ func Test_CertificateTelemetry(t *testing.T) {
 
 		rootValue := promMetricValue(r, metricsBody, "consul_mesh_active_root_ca_expiry", fmt.Sprintf(`datacenter="%s"`, clusterName))
 		signingValue := promMetricValue(r, metricsBody, "consul_mesh_active_signing_ca_expiry", fmt.Sprintf(`datacenter="%s"`, clusterName))
-		agentTLSValue := promMetricValue(r, metricsBody, "consul_agent_tls_cert_expiry", fmt.Sprintf(`datacenter="%s"`, clusterName), `node="`)
+		agentTLSValue := promMetricValue(r, metricsBody, "consul_agent_tls_cert_expiry", fmt.Sprintf(`datacenter="%s"`, clusterName), `node="`, `role="server"`)
 		leafValue := promMetricValue(r, metricsBody, "consul_leaf_certs_cert_expiry", fmt.Sprintf(`datacenter="%s"`, clusterName), `namespace="default"`, fmt.Sprintf(`service="%s"`, serviceName))
 		renewalFailureValue := promMetricValue(r, metricsBody, "consul_leaf_certs_cert_renewal_failure", fmt.Sprintf(`datacenter="%s"`, clusterName), `namespace="default"`, fmt.Sprintf(`service="%s"`, serviceName))
 		t.Logf("retry step: metric values root=%f signing=%f agent_tls=%f leaf=%f renewal_failure=%f", rootValue, signingValue, agentTLSValue, leafValue, renewalFailureValue)
