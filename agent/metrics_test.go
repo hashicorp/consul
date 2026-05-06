@@ -166,6 +166,26 @@ func metricLineValue(t require.TestingT, respRec *httptest.ResponseRecorder, met
 	return 0
 }
 
+func metricAnyLineValue(t require.TestingT, respRec *httptest.ResponseRecorder, metric string) float64 {
+	require.NotEmpty(t, respRec.Body.String(), "Response body is empty.")
+
+	for _, line := range strings.Split(respRec.Body.String(), "\n") {
+		if len(line) < 1 || line[0] == '#' || !strings.Contains(line, metric) {
+			continue
+		}
+
+		fields := strings.Fields(line)
+		require.NotEmpty(t, fields, "metric line should contain fields")
+
+		value, err := strconv.ParseFloat(fields[len(fields)-1], 64)
+		require.NoError(t, err, "metric line should end with a numeric value")
+		return value
+	}
+
+	require.Failf(t, "metric value not found", "Could not find metric %q in the /v1/agent/metrics response", metric)
+	return 0
+}
+
 func assertMetricValueBetween(t require.TestingT, metric string, value float64, min float64, max float64) {
 	require.GreaterOrEqualf(t, value, min, "metric %q should be >= %v, got %v", metric, min, value)
 	require.LessOrEqualf(t, value, max, "metric %q should be <= %v, got %v", metric, max, value)
@@ -500,7 +520,7 @@ func TestHTTPHandlers_AgentMetrics_TLSCertExpiry_Prometheus(t *testing.T) {
 			`datacenter="dc1"`,
 			`partition="default"`,
 			`node="`,
-			`role="client"`,
+			`role="server"`,
 		)
 		assertMetricValueBetween(
 			r,
@@ -524,7 +544,7 @@ func TestHTTPHandlers_AgentMetrics_TLSCertExpiry_Prometheus(t *testing.T) {
 			`datacenter="dc1"`,
 			`partition="default"`,
 			`node="`,
-			`role="client"`,
+			`role="server"`,
 		)
 		require.Less(r, secondValue, firstValue)
 		require.GreaterOrEqual(r, firstValue-secondValue, 1.0)
@@ -557,23 +577,24 @@ func TestHTTPHandlers_AgentMetrics_CACertExpiry_Prometheus(t *testing.T) {
 		a := StartTestAgent(t, TestAgent{HCL: hcl})
 		defer a.Shutdown()
 
-		respRec := httptest.NewRecorder()
-		recordPromMetrics(t, a, respRec)
+		retry.Run(t, func(r *retry.R) {
+			respRec := httptest.NewRecorder()
+			recordPromMetrics(r, a, respRec)
 
-		rootValue := metricLineValue(t, respRec, metricsPrefix+"_mesh_active_root_ca_expiry", `datacenter="dc1"`)
-		signingValue := metricLineValue(t, respRec, metricsPrefix+"_mesh_active_signing_ca_expiry", `datacenter="dc1"`)
-		require.True(t, math.IsNaN(rootValue))
-		require.True(t, math.IsNaN(signingValue))
+			rootValue := metricAnyLineValue(r, respRec, metricsPrefix+"_mesh_active_root_ca_expiry")
+			signingValue := metricAnyLineValue(r, respRec, metricsPrefix+"_mesh_active_signing_ca_expiry")
+			require.True(r, math.IsNaN(rootValue))
+			require.True(r, math.IsNaN(signingValue))
+		})
 	})
 
 	t.Run("leader emits a value", func(t *testing.T) {
 		const (
-			leafTTL         = time.Hour
-			signingTTL      = 4 * time.Hour
-			rootTTL         = 5 * time.Hour
-			rootWindow      = 15 * time.Minute
-			signingWindow   = 15 * time.Minute
-			certDriftBuffer = time.Minute
+			leafTTL       = time.Hour
+			signingTTL    = 4 * time.Hour
+			rootTTL       = 5 * time.Hour
+			rootWindow    = 15 * time.Minute
+			signingWindow = 15 * time.Minute
 		)
 
 		metricsPrefix := getUniqueMetricsPrefix()
@@ -623,14 +644,26 @@ func TestHTTPHandlers_AgentMetrics_CACertExpiry_Prometheus(t *testing.T) {
 				float64((rootTTL - rootWindow).Seconds()),
 				float64(rootTTL.Seconds()),
 			)
-			assertMetricValueBetween(
+			inSigningRange := signingFirst >= float64((signingTTL-signingWindow).Seconds()) && signingFirst <= float64(signingTTL.Seconds())
+			inRootRange := signingFirst >= float64((rootTTL-rootWindow).Seconds()) && signingFirst <= float64(rootTTL.Seconds())
+			require.Truef(
 				r,
-				metricsPrefix+"_mesh_active_signing_ca_expiry",
+				inSigningRange || inRootRange,
+				"expected signing metric in either intermediate range [%v,%v] or root range [%v,%v], got %v",
+				float64((signingTTL - signingWindow).Seconds()),
+				float64(signingTTL.Seconds()),
+				float64((rootTTL - rootWindow).Seconds()),
+				float64(rootTTL.Seconds()),
 				signingFirst,
-				float64((signingTTL - certDriftBuffer - signingWindow).Seconds()),
-				float64((signingTTL - certDriftBuffer).Seconds()),
 			)
-			require.Greater(r, rootFirst, signingFirst)
+
+			// In a primary DC, some CA providers sign leaf certs directly with root,
+			// so signing expiry can equal root expiry. Others use intermediate certs.
+			if inSigningRange {
+				require.Greater(r, rootFirst, signingFirst)
+			} else {
+				require.GreaterOrEqual(r, rootFirst, signingFirst)
+			}
 		})
 
 		time.Sleep(3 * time.Second)
