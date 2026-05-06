@@ -7,10 +7,12 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -18,7 +20,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/rpc/middleware"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
@@ -101,6 +106,89 @@ func assertMetricExistsWithLabels(t *testing.T, respRec *httptest.ResponseRecord
 	if !foundAllLabels {
 		t.Fatalf("Could not verify that all named labels \"%s\" exist for the metric \"%s\" in the /v1/agent/metrics response", strings.Join(labelNames, ", "), metric)
 	}
+}
+
+func assertMetricLineContainsFragments(t require.TestingT, respRec *httptest.ResponseRecorder, metric string, fragments ...string) {
+	require.NotEmpty(t, respRec.Body.String(), "Response body is empty.")
+
+	var candidates []string
+	for _, line := range strings.Split(respRec.Body.String(), "\n") {
+		if len(line) < 1 || line[0] == '#' || !strings.Contains(line, metric) {
+			continue
+		}
+		candidates = append(candidates, line)
+
+		matches := true
+		for _, fragment := range fragments {
+			if !strings.Contains(line, fragment) {
+				matches = false
+				break
+			}
+		}
+		if matches {
+			return
+		}
+	}
+
+	require.Failf(t, "metric line not found", "Could not find metric %q with fragments %q in the /v1/agent/metrics response. Candidate lines: %q", metric, fragments, candidates)
+}
+
+func metricLineValue(t require.TestingT, respRec *httptest.ResponseRecorder, metric string, fragments ...string) float64 {
+	require.NotEmpty(t, respRec.Body.String(), "Response body is empty.")
+
+	var candidates []string
+	for _, line := range strings.Split(respRec.Body.String(), "\n") {
+		if len(line) < 1 || line[0] == '#' || !strings.Contains(line, metric) {
+			continue
+		}
+		candidates = append(candidates, line)
+
+		matches := true
+		for _, fragment := range fragments {
+			if !strings.Contains(line, fragment) {
+				matches = false
+				break
+			}
+		}
+		if !matches {
+			continue
+		}
+
+		fields := strings.Fields(line)
+		require.NotEmpty(t, fields, "metric line should contain fields")
+
+		value, err := strconv.ParseFloat(fields[len(fields)-1], 64)
+		require.NoError(t, err, "metric line should end with a numeric value")
+		return value
+	}
+
+	require.Failf(t, "metric value not found", "Could not find metric %q with fragments %q in the /v1/agent/metrics response. Candidate lines: %q", metric, fragments, candidates)
+	return 0
+}
+
+func metricAnyLineValue(t require.TestingT, respRec *httptest.ResponseRecorder, metric string) float64 {
+	require.NotEmpty(t, respRec.Body.String(), "Response body is empty.")
+
+	for _, line := range strings.Split(respRec.Body.String(), "\n") {
+		if len(line) < 1 || line[0] == '#' || !strings.Contains(line, metric) {
+			continue
+		}
+
+		fields := strings.Fields(line)
+		require.NotEmpty(t, fields, "metric line should contain fields")
+
+		value, err := strconv.ParseFloat(fields[len(fields)-1], 64)
+		require.NoError(t, err, "metric line should end with a numeric value")
+		return value
+	}
+
+	require.Failf(t, "metric value not found", "Could not find metric %q in the /v1/agent/metrics response", metric)
+	return 0
+}
+
+func assertMetricValueBetween(t require.TestingT, metric string, value float64, min float64, max float64) {
+	require.GreaterOrEqualf(t, value, min, "metric %q should be >= %v, got %v", metric, min, value)
+	require.LessOrEqualf(t, value, max, "metric %q should be <= %v, got %v", metric, max, value)
 }
 
 func assertLabelWithValueForMetricExistsNTime(t *testing.T, respRec *httptest.ResponseRecorder, metric string, label string, labelValue string, occurrences int) {
@@ -364,6 +452,11 @@ func TestHTTPHandlers_AgentMetrics_TLSCertExpiry_Prometheus(t *testing.T) {
 	skipIfShortTesting(t)
 	// This test cannot use t.Parallel() since we modify global state, ie the global metrics instance
 
+	testCertExpirationMonitorInterval = 2 * time.Second
+	t.Cleanup(func() {
+		testCertExpirationMonitorInterval = 0
+	})
+
 	dir := testutil.TempDir(t, "ca")
 	caPEM, caPK, err := tlsutil.GenerateCA(tlsutil.CAOpts{Days: 20, Domain: "consul"})
 	require.NoError(t, err)
@@ -402,6 +495,8 @@ func TestHTTPHandlers_AgentMetrics_TLSCertExpiry_Prometheus(t *testing.T) {
 				enabled = true
 			}
 		}
+		verify_incoming = true
+		verify_outgoing = true
 		ca_file = "%s"
 		cert_file = "%s"
 		key_file = "%s"
@@ -410,24 +505,60 @@ func TestHTTPHandlers_AgentMetrics_TLSCertExpiry_Prometheus(t *testing.T) {
 	a := StartTestAgent(t, TestAgent{HCL: hcl})
 	defer a.Shutdown()
 
-	// Wait a bit for the certificate monitor to emit metrics
-	time.Sleep(100 * time.Millisecond)
+	certTTL := 20 * 24 * time.Hour
+	certWindow := 15 * time.Minute
 
-	respRec := httptest.NewRecorder()
-	recordPromMetrics(t, a, respRec)
+	var firstValue float64
+	retry.Run(t, func(r *retry.R) {
+		respRec := httptest.NewRecorder()
+		recordPromMetrics(r, a, respRec)
 
-	body := respRec.Body.String()
-	// The metric includes datacenter, partition, and node labels
-	require.Contains(t, body, metricsPrefix+"_agent_tls_cert_expiry{datacenter=")
-	require.Contains(t, body, `partition="default"`)
-	require.Contains(t, body, "node=")
-	// Check that the value is approximately 20 days = 1.728e6 seconds
-	require.Contains(t, body, "1.7")
+		firstValue = metricLineValue(
+			r,
+			respRec,
+			metricsPrefix+"_agent_tls_cert_expiry",
+			`datacenter="dc1"`,
+			`partition="default"`,
+			`node="`,
+			`role="server"`,
+		)
+		assertMetricValueBetween(
+			r,
+			metricsPrefix+"_agent_tls_cert_expiry",
+			firstValue,
+			float64((certTTL - certWindow).Seconds()),
+			float64(certTTL.Seconds()),
+		)
+	})
+
+	time.Sleep(3 * time.Second)
+
+	retry.Run(t, func(r *retry.R) {
+		respRec := httptest.NewRecorder()
+		recordPromMetrics(r, a, respRec)
+
+		secondValue := metricLineValue(
+			r,
+			respRec,
+			metricsPrefix+"_agent_tls_cert_expiry",
+			`datacenter="dc1"`,
+			`partition="default"`,
+			`node="`,
+			`role="server"`,
+		)
+		require.Less(r, secondValue, firstValue)
+		require.GreaterOrEqual(r, firstValue-secondValue, 1.0)
+	})
 }
 
 func TestHTTPHandlers_AgentMetrics_CACertExpiry_Prometheus(t *testing.T) {
 	skipIfShortTesting(t)
 	// This test cannot use t.Parallel() since we modify global state, ie the global metrics instance
+
+	consul.TestCertExpirationMonitorInterval = 2 * time.Second
+	t.Cleanup(func() {
+		consul.TestCertExpirationMonitorInterval = 0
+	})
 
 	t.Run("non-leader emits NaN", func(t *testing.T) {
 		metricsPrefix := getUniqueMetricsPrefix()
@@ -446,14 +577,26 @@ func TestHTTPHandlers_AgentMetrics_CACertExpiry_Prometheus(t *testing.T) {
 		a := StartTestAgent(t, TestAgent{HCL: hcl})
 		defer a.Shutdown()
 
-		respRec := httptest.NewRecorder()
-		recordPromMetrics(t, a, respRec)
+		retry.Run(t, func(r *retry.R) {
+			respRec := httptest.NewRecorder()
+			recordPromMetrics(r, a, respRec)
 
-		require.Contains(t, respRec.Body.String(), metricsPrefix+"_mesh_active_root_ca_expiry NaN")
-		require.Contains(t, respRec.Body.String(), metricsPrefix+"_mesh_active_signing_ca_expiry NaN")
+			rootValue := metricAnyLineValue(r, respRec, metricsPrefix+"_mesh_active_root_ca_expiry")
+			signingValue := metricAnyLineValue(r, respRec, metricsPrefix+"_mesh_active_signing_ca_expiry")
+			require.True(r, math.IsNaN(rootValue))
+			require.True(r, math.IsNaN(signingValue))
+		})
 	})
 
 	t.Run("leader emits a value", func(t *testing.T) {
+		const (
+			leafTTL       = time.Hour
+			signingTTL    = 4 * time.Hour
+			rootTTL       = 5 * time.Hour
+			rootWindow    = 15 * time.Minute
+			signingWindow = 15 * time.Minute
+		)
+
 		metricsPrefix := getUniqueMetricsPrefix()
 		hcl := fmt.Sprintf(`
 		telemetry = {
@@ -463,21 +606,291 @@ func TestHTTPHandlers_AgentMetrics_CACertExpiry_Prometheus(t *testing.T) {
 		}
 		connect {
 			enabled = true
+			ca_config {
+				cluster_id = "%s"
+				leaf_cert_ttl = "%s"
+				intermediate_cert_ttl = "%s"
+				root_cert_ttl = "%s"
+			}
 		}
-		`, metricsPrefix)
+		`, metricsPrefix, connect.TestClusterID, leafTTL.String(), signingTTL.String(), rootTTL.String())
 
 		a := StartTestAgent(t, TestAgent{HCL: hcl})
 		defer a.Shutdown()
 		testrpc.WaitForLeader(t, a.RPC, "dc1")
 
-		respRec := httptest.NewRecorder()
-		recordPromMetrics(t, a, respRec)
+		var rootFirst, signingFirst float64
+		retry.Run(t, func(r *retry.R) {
+			respRec := httptest.NewRecorder()
+			recordPromMetrics(r, a, respRec)
 
-		out := respRec.Body.String()
-		require.Contains(t, out, metricsPrefix+`_mesh_active_root_ca_expiry{datacenter="dc1"} 3.15`)
-		require.Contains(t, out, metricsPrefix+`_mesh_active_signing_ca_expiry{datacenter="dc1"} 3.15`)
+			rootFirst = metricLineValue(
+				r,
+				respRec,
+				metricsPrefix+"_mesh_active_root_ca_expiry",
+				`datacenter="dc1"`,
+			)
+			signingFirst = metricLineValue(
+				r,
+				respRec,
+				metricsPrefix+"_mesh_active_signing_ca_expiry",
+				`datacenter="dc1"`,
+			)
+
+			assertMetricValueBetween(
+				r,
+				metricsPrefix+"_mesh_active_root_ca_expiry",
+				rootFirst,
+				float64((rootTTL - rootWindow).Seconds()),
+				float64(rootTTL.Seconds()),
+			)
+			inSigningRange := signingFirst >= float64((signingTTL-signingWindow).Seconds()) && signingFirst <= float64(signingTTL.Seconds())
+			inRootRange := signingFirst >= float64((rootTTL-rootWindow).Seconds()) && signingFirst <= float64(rootTTL.Seconds())
+			require.Truef(
+				r,
+				inSigningRange || inRootRange,
+				"expected signing metric in either intermediate range [%v,%v] or root range [%v,%v], got %v",
+				float64((signingTTL - signingWindow).Seconds()),
+				float64(signingTTL.Seconds()),
+				float64((rootTTL - rootWindow).Seconds()),
+				float64(rootTTL.Seconds()),
+				signingFirst,
+			)
+
+			// In a primary DC, some CA providers sign leaf certs directly with root,
+			// so signing expiry can equal root expiry. Others use intermediate certs.
+			if inSigningRange {
+				require.Greater(r, rootFirst, signingFirst)
+			} else {
+				require.GreaterOrEqual(r, rootFirst, signingFirst)
+			}
+		})
+
+		time.Sleep(3 * time.Second)
+
+		retry.Run(t, func(r *retry.R) {
+			respRec := httptest.NewRecorder()
+			recordPromMetrics(r, a, respRec)
+
+			rootSecond := metricLineValue(
+				r,
+				respRec,
+				metricsPrefix+"_mesh_active_root_ca_expiry",
+				`datacenter="dc1"`,
+			)
+			signingSecond := metricLineValue(
+				r,
+				respRec,
+				metricsPrefix+"_mesh_active_signing_ca_expiry",
+				`datacenter="dc1"`,
+			)
+
+			require.Less(r, rootSecond, rootFirst)
+			require.Less(r, signingSecond, signingFirst)
+			require.GreaterOrEqual(r, rootFirst-rootSecond, 1.0)
+			require.GreaterOrEqual(r, signingFirst-signingSecond, 1.0)
+		})
 	})
 
+}
+
+func TestHTTPHandlers_AgentMetrics_LeafCertExpiry_Prometheus(t *testing.T) {
+	skipIfShortTesting(t)
+	// This test cannot use t.Parallel() since we modify global state, ie the global metrics instance
+
+	testLeafCertMetricEmissionInterval = 2 * time.Second
+	t.Cleanup(func() {
+		testLeafCertMetricEmissionInterval = 0
+	})
+
+	t.Run("leaf metrics are emitted after issuing a leaf cert", func(t *testing.T) {
+		const (
+			leafTTL             = time.Hour
+			signingTTL          = 4 * time.Hour
+			rootTTL             = 5 * time.Hour
+			leafWindow          = 5 * time.Minute
+			leafCertDriftBuffer = time.Minute
+		)
+
+		metricsPrefix := getUniqueMetricsPrefix()
+		hcl := fmt.Sprintf(`
+		telemetry = {
+			prometheus_retention_time = "5s",
+			disable_hostname = true
+			metrics_prefix = "%s"
+			certificate = {
+				enabled = true
+			}
+		}
+		connect {
+			enabled = true
+			ca_config {
+				cluster_id = "%s"
+				leaf_cert_ttl = "%s"
+				intermediate_cert_ttl = "%s"
+				root_cert_ttl = "%s"
+			}
+		}
+		`, metricsPrefix, connect.TestClusterID, leafTTL.String(), signingTTL.String(), rootTTL.String())
+
+		a := StartTestAgent(t, TestAgent{HCL: hcl})
+		defer a.Shutdown()
+		testrpc.WaitForLeader(t, a.RPC, "dc1")
+		testrpc.WaitForActiveCARoot(t, a.RPC, "dc1", nil)
+
+		client := a.Client()
+		err := client.Agent().ServiceRegister(&api.AgentServiceRegistration{
+			Name: "web",
+			Port: 8080,
+		})
+		require.NoError(t, err)
+
+		_, _, err = client.Agent().ConnectCALeaf("web", nil)
+		require.NoError(t, err)
+
+		var firstValue float64
+		retry.Run(t, func(r *retry.R) {
+			respRec := httptest.NewRecorder()
+			recordPromMetrics(r, a, respRec)
+
+			firstValue = metricLineValue(
+				r,
+				respRec,
+				metricsPrefix+"_leaf_certs_cert_expiry",
+				`datacenter="dc1"`,
+				`partition="default"`,
+				`namespace="default"`,
+				`service="web"`,
+				`kind=""`,
+			)
+			assertMetricValueBetween(
+				r,
+				metricsPrefix+"_leaf_certs_cert_expiry",
+				firstValue,
+				float64((leafTTL - leafCertDriftBuffer - leafWindow).Seconds()),
+				float64((leafTTL - leafCertDriftBuffer).Seconds()),
+			)
+			require.Equal(r, 0.0, metricLineValue(
+				r,
+				respRec,
+				metricsPrefix+"_leaf_certs_cert_renewal_failure",
+				`datacenter="dc1"`,
+				`partition="default"`,
+				`namespace="default"`,
+				`service="web"`,
+				`kind=""`,
+			))
+		})
+
+		time.Sleep(3 * time.Second)
+
+		retry.Run(t, func(r *retry.R) {
+			respRec := httptest.NewRecorder()
+			recordPromMetrics(r, a, respRec)
+
+			secondValue := metricLineValue(
+				r,
+				respRec,
+				metricsPrefix+"_leaf_certs_cert_expiry",
+				`datacenter="dc1"`,
+				`partition="default"`,
+				`namespace="default"`,
+				`service="web"`,
+				`kind=""`,
+			)
+			require.Less(r, secondValue, firstValue)
+			require.GreaterOrEqual(r, firstValue-secondValue, 1.0)
+		})
+	})
+
+	t.Run("leaf metrics are emitted for multiple services independently", func(t *testing.T) {
+		const (
+			leafTTL             = time.Hour
+			signingTTL          = 4 * time.Hour
+			rootTTL             = 5 * time.Hour
+			leafWindow          = 5 * time.Minute
+			leafCertDriftBuffer = time.Minute
+		)
+
+		metricsPrefix := getUniqueMetricsPrefix()
+		hcl := fmt.Sprintf(`
+		telemetry = {
+			prometheus_retention_time = "5s",
+			disable_hostname = true
+			metrics_prefix = "%s"
+			certificate = {
+				enabled = true
+			}
+		}
+		connect {
+			enabled = true
+			ca_config {
+				cluster_id = "%s"
+				leaf_cert_ttl = "%s"
+				intermediate_cert_ttl = "%s"
+				root_cert_ttl = "%s"
+			}
+		}
+		`, metricsPrefix, connect.TestClusterID, leafTTL.String(), signingTTL.String(), rootTTL.String())
+
+		a := StartTestAgent(t, TestAgent{HCL: hcl})
+		defer a.Shutdown()
+		testrpc.WaitForLeader(t, a.RPC, "dc1")
+		testrpc.WaitForActiveCARoot(t, a.RPC, "dc1", nil)
+
+		client := a.Client()
+		for _, svc := range []struct {
+			name string
+			port int
+		}{
+			{name: "api", port: 9090},
+			{name: "payments", port: 9091},
+		} {
+			err := client.Agent().ServiceRegister(&api.AgentServiceRegistration{
+				Name: svc.name,
+				Port: svc.port,
+			})
+			require.NoError(t, err)
+
+			_, _, err = client.Agent().ConnectCALeaf(svc.name, nil)
+			require.NoError(t, err)
+		}
+
+		retry.Run(t, func(r *retry.R) {
+			respRec := httptest.NewRecorder()
+			recordPromMetrics(r, a, respRec)
+
+			for _, serviceName := range []string{"api", "payments"} {
+				value := metricLineValue(
+					r,
+					respRec,
+					metricsPrefix+"_leaf_certs_cert_expiry",
+					`datacenter="dc1"`,
+					`partition="default"`,
+					`namespace="default"`,
+					fmt.Sprintf(`service="%s"`, serviceName),
+					`kind=""`,
+				)
+				assertMetricValueBetween(
+					r,
+					metricsPrefix+"_leaf_certs_cert_expiry",
+					value,
+					float64((leafTTL - leafCertDriftBuffer - leafWindow).Seconds()),
+					float64((leafTTL - leafCertDriftBuffer).Seconds()),
+				)
+				require.Equal(r, 0.0, metricLineValue(
+					r,
+					respRec,
+					metricsPrefix+"_leaf_certs_cert_renewal_failure",
+					`datacenter="dc1"`,
+					`partition="default"`,
+					`namespace="default"`,
+					fmt.Sprintf(`service="%s"`, serviceName),
+					`kind=""`,
+				))
+			}
+		})
+	})
 }
 
 func TestHTTPHandlers_AgentMetrics_WAL_Prometheus(t *testing.T) {
