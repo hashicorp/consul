@@ -93,8 +93,23 @@ func Test_CertificateTelemetry(t *testing.T) {
 	require.NotEmpty(t, leaf.PrivateKeyPEM)
 	t.Logf("issued leaf certificate: service=%s valid_after=%s valid_before=%s", serviceName, leaf.ValidAfter.UTC().Format(time.RFC3339), leaf.ValidBefore.UTC().Format(time.RFC3339))
 
+	var (
+		lastActiveRootID        string
+		lastActiveRootNotAfter  string
+		lastConnectRootID       string
+		lastConnectRootNotAfter string
+		lastLeafCertCount       int
+		lastLeafNotAfter        string
+		lastServerNotAfter      string
+		lastRootValue           float64
+		lastSigningValue        float64
+		lastAgentTLSValue       float64
+		lastLeafValue           float64
+		lastRenewalFailure      float64
+	)
+
 	retry.Run(t, func(r *retry.R) {
-		t.Logf("retry step: collecting CA roots and certificate telemetry metrics")
+		logRetryStepf(r, "retry step: collecting CA roots and certificate telemetry metrics")
 
 		agentRoots, _, err := client.Agent().ConnectCARoots(nil)
 		require.NoError(r, err)
@@ -106,7 +121,9 @@ func Test_CertificateTelemetry(t *testing.T) {
 		require.NotNil(r, activeRoot.NotAfter)
 		require.True(r, activeRoot.NotAfter.After(*activeRoot.NotBefore))
 		require.True(r, activeRoot.NotAfter.After(time.Now()))
-		t.Logf("retry step: agent roots loaded active_root_id=%s not_after=%s", agentRoots.ActiveRootID, activeRoot.NotAfter.UTC().Format(time.RFC3339))
+		lastActiveRootID = agentRoots.ActiveRootID
+		lastActiveRootNotAfter = activeRoot.NotAfter.UTC().Format(time.RFC3339)
+		logRetryStepf(r, "retry step: agent roots loaded active_root_id=%s not_after=%s", agentRoots.ActiveRootID, activeRoot.NotAfter.UTC().Format(time.RFC3339))
 
 		connectRoots, _, err := client.Connect().CARoots(nil)
 		require.NoError(r, err)
@@ -118,24 +135,34 @@ func Test_CertificateTelemetry(t *testing.T) {
 		require.NotNil(r, connectActiveRoot.NotAfter)
 		require.True(r, connectActiveRoot.NotAfter.After(*connectActiveRoot.NotBefore))
 		require.True(r, connectActiveRoot.NotAfter.After(time.Now()))
-		t.Logf("retry step: connect roots loaded active_root_id=%s not_after=%s", connectRoots.ActiveRootID, connectActiveRoot.NotAfter.UTC().Format(time.RFC3339))
+		lastConnectRootID = connectRoots.ActiveRootID
+		lastConnectRootNotAfter = connectActiveRoot.NotAfter.UTC().Format(time.RFC3339)
+		logRetryStepf(r, "retry step: connect roots loaded active_root_id=%s not_after=%s", connectRoots.ActiveRootID, connectActiveRoot.NotAfter.UTC().Format(time.RFC3339))
 
 		leafCerts := parsePEMCertificates(r, leaf.CertPEM)
-		t.Logf("retry step: parsed leaf certificate chain cert_count=%d leaf_not_after=%s", len(leafCerts), leafCerts[0].NotAfter.UTC().Format(time.RFC3339))
+		lastLeafCertCount = len(leafCerts)
+		lastLeafNotAfter = leafCerts[0].NotAfter.UTC().Format(time.RFC3339)
+		logRetryStepf(r, "retry step: parsed leaf certificate chain cert_count=%d leaf_not_after=%s", len(leafCerts), leafCerts[0].NotAfter.UTC().Format(time.RFC3339))
 
 		serverCert := copyAndParseServerCert(r, sp, serverNode)
-		t.Logf("retry step: parsed server TLS cert not_after=%s", serverCert.NotAfter.UTC().Format(time.RFC3339))
+		lastServerNotAfter = serverCert.NotAfter.UTC().Format(time.RFC3339)
+		logRetryStepf(r, "retry step: parsed server TLS cert not_after=%s", serverCert.NotAfter.UTC().Format(time.RFC3339))
 
 		metricsBody, err := scrapePrometheusMetrics(httpClient, leaderAddr, managementToken)
 		require.NoError(r, err)
-		t.Logf("retry step: scraped prometheus metrics from leader")
+		logRetryStepf(r, "retry step: scraped prometheus metrics from leader")
 
 		rootValue := promMetricValue(r, metricsBody, "consul_mesh_active_root_ca_expiry", fmt.Sprintf(`datacenter="%s"`, clusterName))
 		signingValue := promMetricValue(r, metricsBody, "consul_mesh_active_signing_ca_expiry", fmt.Sprintf(`datacenter="%s"`, clusterName))
 		agentTLSValue := promMetricValue(r, metricsBody, "consul_agent_tls_cert_expiry", fmt.Sprintf(`datacenter="%s"`, clusterName), `node="`, `role="server"`)
 		leafValue := promMetricValue(r, metricsBody, "consul_leaf_certs_cert_expiry", fmt.Sprintf(`datacenter="%s"`, clusterName), `namespace="default"`, fmt.Sprintf(`service="%s"`, serviceName))
 		renewalFailureValue := promMetricValue(r, metricsBody, "consul_leaf_certs_cert_renewal_failure", fmt.Sprintf(`datacenter="%s"`, clusterName), `namespace="default"`, fmt.Sprintf(`service="%s"`, serviceName))
-		t.Logf("retry step: metric values root=%f signing=%f agent_tls=%f leaf=%f renewal_failure=%f", rootValue, signingValue, agentTLSValue, leafValue, renewalFailureValue)
+		lastRootValue = rootValue
+		lastSigningValue = signingValue
+		lastAgentTLSValue = agentTLSValue
+		lastLeafValue = leafValue
+		lastRenewalFailure = renewalFailureValue
+		logRetryStepf(r, "retry step: metric values root=%f signing=%f agent_tls=%f leaf=%f renewal_failure=%f", rootValue, signingValue, agentTLSValue, leafValue, renewalFailureValue)
 
 		expectedSigningNotAfter := *activeRoot.NotAfter
 		if len(leafCerts) >= 2 {
@@ -152,9 +179,17 @@ func Test_CertificateTelemetry(t *testing.T) {
 		require.GreaterOrEqual(r, rootValue, signingValue)
 		require.Greater(r, signingValue, leafValue)
 		require.Equal(r, float64(0), renewalFailureValue)
-		t.Logf("retry step: all certificate telemetry assertions passed")
+		logRetryStepf(r, "retry step: all certificate telemetry assertions passed")
 	})
+	t.Logf("retry summary: active_root_id=%s active_root_not_after=%s connect_root_id=%s connect_root_not_after=%s", lastActiveRootID, lastActiveRootNotAfter, lastConnectRootID, lastConnectRootNotAfter)
+	t.Logf("retry summary: leaf_chain_count=%d leaf_not_after=%s server_tls_not_after=%s", lastLeafCertCount, lastLeafNotAfter, lastServerNotAfter)
+	t.Logf("retry summary: metric values root=%f signing=%f agent_tls=%f leaf=%f renewal_failure=%f", lastRootValue, lastSigningValue, lastAgentTLSValue, lastLeafValue, lastRenewalFailure)
 	t.Logf("certificate telemetry e2e validation completed successfully")
+}
+
+func logRetryStepf(r *retry.R, format string, args ...any) {
+	r.Logf(format, args...)
+	fmt.Printf("[retry] "+format+"\n", args...)
 }
 
 func scrapePrometheusMetrics(httpClient *http.Client, nodeAddress string, token string) (string, error) {
