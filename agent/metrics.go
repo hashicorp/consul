@@ -13,26 +13,45 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/tlsutil"
 )
 
-var CertExpirationGauges = []prometheus.GaugeDefinition{
-	{
-		Name: metricsKeyAgentTLSCertExpiry,
-		Help: "Seconds until the agent tls certificate expires. Updated every hour",
-	},
+var metricsKeyAgentTLSCertExpiry = []string{"agent", "tls", "cert", "expiry"}
+
+var testCertExpirationMonitorInterval time.Duration
+
+func tlsCertRole(isServer bool) string {
+	if isServer {
+		return "server"
+	}
+	return "client"
 }
 
-var metricsKeyAgentTLSCertExpiry = []string{"agent", "tls", "cert", "expiry"}
+func certExpirationGauges(datacenter, partition, nodeName, role string) []prometheus.GaugeDefinition {
+	return []prometheus.GaugeDefinition{
+		{
+			Name: metricsKeyAgentTLSCertExpiry,
+			Help: "Seconds until the agent tls certificate expires. Updated every hour",
+			ConstLabels: []metrics.Label{
+				{Name: "datacenter", Value: datacenter},
+				{Name: "partition", Value: acl.PartitionOrDefault(partition)},
+				{Name: "node", Value: nodeName},
+				{Name: "role", Value: role},
+			},
+		},
+	}
+}
 
 // tlsCertExpirationMonitor returns a CertExpirationMonitor which will
 // monitor the expiration of the certificate used for agent TLS.
-func tlsCertExpirationMonitor(c *tlsutil.Configurator, datacenter, partition, nodeName string, criticalDays int, warningDays int, logger hclog.Logger) consul.CertExpirationMonitor {
+func tlsCertExpirationMonitor(c *tlsutil.Configurator, datacenter, partition, nodeName, role string, criticalDays int, warningDays int, logger hclog.Logger) consul.CertExpirationMonitor {
 	labels := []metrics.Label{
 		{Name: "datacenter", Value: datacenter},
-		{Name: "partition", Value: partition},
+		{Name: "partition", Value: acl.PartitionOrDefault(partition)},
 		{Name: "node", Value: nodeName},
+		{Name: "role", Value: role},
 	}
 	return consul.CertExpirationMonitor{
 		Key:                   metricsKeyAgentTLSCertExpiry,
@@ -40,6 +59,7 @@ func tlsCertExpirationMonitor(c *tlsutil.Configurator, datacenter, partition, no
 		Logger:                logger,
 		CriticalThresholdDays: criticalDays,
 		WarningThresholdDays:  warningDays,
+		Interval:              testCertExpirationMonitorInterval,
 		Query: func() (time.Duration, time.Duration, error) {
 			raw := c.Cert()
 			if raw == nil {

@@ -23,6 +23,9 @@ import (
 var (
 	metricsKeyMeshRootCAExpiry          = []string{"mesh", "active-root-ca", "expiry"}
 	metricsKeyMeshActiveSigningCAExpiry = []string{"mesh", "active-signing-ca", "expiry"}
+
+	// TestCertExpirationMonitorInterval overrides the default emission cadence in tests.
+	TestCertExpirationMonitorInterval time.Duration
 )
 
 var LeaderCertExpirationGauges = []prometheus.GaugeDefinition{
@@ -38,9 +41,10 @@ var LeaderCertExpirationGauges = []prometheus.GaugeDefinition{
 
 func rootCAExpiryMonitor(s *Server) CertExpirationMonitor {
 	return CertExpirationMonitor{
-		Key:    metricsKeyMeshRootCAExpiry,
-		Labels: []metrics.Label{{Name: "datacenter", Value: s.config.Datacenter}},
-		Logger: s.logger.Named(logging.Connect),
+		Key:      metricsKeyMeshRootCAExpiry,
+		Labels:   []metrics.Label{{Name: "datacenter", Value: s.config.Datacenter}},
+		Logger:   s.logger.Named(logging.Connect),
+		Interval: TestCertExpirationMonitorInterval,
 		Query: func() (time.Duration, time.Duration, error) {
 			return getRootCAExpiry(s)
 		},
@@ -64,9 +68,10 @@ func getRootCAExpiry(s *Server) (time.Duration, time.Duration, error) {
 
 func signingCAExpiryMonitor(s *Server) CertExpirationMonitor {
 	return CertExpirationMonitor{
-		Key:    metricsKeyMeshActiveSigningCAExpiry,
-		Labels: []metrics.Label{{Name: "datacenter", Value: s.config.Datacenter}},
-		Logger: s.logger.Named(logging.Connect),
+		Key:      metricsKeyMeshActiveSigningCAExpiry,
+		Labels:   []metrics.Label{{Name: "datacenter", Value: s.config.Datacenter}},
+		Logger:   s.logger.Named(logging.Connect),
+		Interval: TestCertExpirationMonitorInterval,
 		Query: func() (time.Duration, time.Duration, error) {
 			if s.caManager.isIntermediateUsedToSignLeaf() {
 				return getActiveIntermediateExpiry(s)
@@ -119,6 +124,9 @@ type CertExpirationMonitor struct {
 	// Optional threshold overrides (used when Server is nil, e.g., for agent TLS)
 	CriticalThresholdDays int
 	WarningThresholdDays  int
+
+	// Interval overrides the default emission cadence. This is intended for tests.
+	Interval time.Duration
 }
 
 const certExpirationMonitorInterval = time.Hour
@@ -130,7 +138,12 @@ func (m CertExpirationMonitor) Monitor(ctx context.Context) error {
 		return nil
 	}
 
-	ticker := time.NewTicker(certExpirationMonitorInterval)
+	interval := certExpirationMonitorInterval
+	if m.Interval > 0 {
+		interval = m.Interval
+	}
+
+	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
 	logger := m.Logger.With("metric", strings.Join(m.Key, "."))
