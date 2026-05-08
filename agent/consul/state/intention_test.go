@@ -8,9 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/go-memdb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/netutil"
@@ -2742,4 +2743,68 @@ func TestStore_IntentionTopology_Watches(t *testing.T) {
 		},
 	}
 	require.Equal(t, expect, got)
+}
+
+// TestStore_IntentionTopology_AutoPortVirtualIPs verifies that virtual-IP
+// table entries with synthetic per-port names of the form "<port>.<service>"
+// are normalized back to their base service name when included in the
+// intention topology. Without normalization, the same logical service would
+// appear multiple times (once per port) and/or under a name that does not
+// match any real service registration.
+func TestStore_IntentionTopology_AutoPortVirtualIPs(t *testing.T) {
+	s := testConfigStateStore(t)
+	s.SystemMetadataSet(10, &structs.SystemMetadataEntry{Key: structs.SystemMetadataVirtualIPsEnabled, Value: "true"})
+
+	defaultMeta := *structs.DefaultEnterpriseMetaInDefaultPartition()
+
+	// Insert VIP table entries directly via Restore: a base service entry plus
+	// two synthetic per-port VIP entries for the same logical service ("api"),
+	// and an additional per-port-only entry ("billing") with no base entry.
+	restore := s.Restore()
+	require.NoError(t, restore.ServiceVirtualIP(ServiceVirtualIP{
+		Service: structs.PeeredServiceName{
+			ServiceName: structs.NewServiceName("api", &defaultMeta),
+		},
+		IP:        []byte{0, 0, 0, 1},
+		RaftIndex: structs.RaftIndex{CreateIndex: 11, ModifyIndex: 11},
+	}))
+	require.NoError(t, restore.ServiceVirtualIP(ServiceVirtualIP{
+		Service: structs.PeeredServiceName{
+			ServiceName: structs.NewServiceName("8080.api", &defaultMeta),
+		},
+		IP:        []byte{0, 0, 0, 2},
+		RaftIndex: structs.RaftIndex{CreateIndex: 12, ModifyIndex: 12},
+	}))
+	require.NoError(t, restore.ServiceVirtualIP(ServiceVirtualIP{
+		Service: structs.PeeredServiceName{
+			ServiceName: structs.NewServiceName("9090.api", &defaultMeta),
+		},
+		IP:        []byte{0, 0, 0, 3},
+		RaftIndex: structs.RaftIndex{CreateIndex: 13, ModifyIndex: 13},
+	}))
+	require.NoError(t, restore.ServiceVirtualIP(ServiceVirtualIP{
+		Service: structs.PeeredServiceName{
+			ServiceName: structs.NewServiceName("7070.billing", &defaultMeta),
+		},
+		IP:        []byte{0, 0, 0, 4},
+		RaftIndex: structs.RaftIndex{CreateIndex: 14, ModifyIndex: 14},
+	}))
+	require.NoError(t, restore.Commit())
+
+	target := structs.NewServiceName("web", &defaultMeta)
+
+	// Querying upstreams for "web" with default-allow should include the
+	// VIP-only services. After normalization, "api" must appear exactly once
+	// (collapsing the base + per-port entries) and "billing" must appear under
+	// its base name (not "7070.billing").
+	_, got, err := s.IntentionTopology(nil, target, false /* downstreams */, true /* defaultAllow */, structs.IntentionTargetService)
+	require.NoError(t, err)
+
+	names := make([]string, 0, len(got))
+	for _, sn := range got {
+		names = append(names, sn.Name)
+	}
+	sort.Strings(names)
+
+	require.Equal(t, []string{"api", "billing"}, names)
 }
