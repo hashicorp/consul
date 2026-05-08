@@ -25,6 +25,7 @@
                   }
                 ],
                 "maxRequestHeadersKb": 96,
+                "normalizePath": true,
                 "rds": {
                   "configSource": {
                     "ads": {},
