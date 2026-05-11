@@ -1,0 +1,3 @@
+```release-note:bug
+XDS: Fixes issue with mesh-gateway in remote mode on AWS EKS, as DNS hostnames are assigned to AWS NLBs instead of IPs and envoy's EDS endpoint validation expects address to be an IP. Now EDS load assignment is skipped for non-peer remote mesh gateway targets with hostname based gateways keeping CDS/EDS in sync.
+```
