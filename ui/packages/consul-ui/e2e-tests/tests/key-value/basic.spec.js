@@ -100,11 +100,11 @@ async function fillKVValue(page, value, replace = false) {
   await logKVFormState(page, `before fillKVValue replace=${replace}`);
 
   const codeToggle = kvCodeToggle(page);
-  // count() works regardless of visibility; force:true bypasses CSS-hidden checkbox in prod builds
+  // dispatchEvent bypasses all Playwright actionability checks (incl. display:none in prod builds)
   if ((await codeToggle.count()) > 0) {
     const isCodeMode = await codeToggle.isChecked().catch(() => false);
     if (isCodeMode) {
-      await codeToggle.click({ force: true });
+      await codeToggle.dispatchEvent('click');
       await expect(codeToggle).not.toBeChecked({ timeout: 10000 });
     }
   }
