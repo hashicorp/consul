@@ -1508,6 +1508,7 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 		notGRPC := cfg.Protocol != "grpc"
 		if includeXFCC && notGRPC {
 			filterOpts.forwardClientDetails = true
+			filterOpts.stripForwardClientCertHeader = true
 			filterOpts.forwardClientPolicy = envoy_http_v3.HttpConnectionManager_APPEND_FORWARD
 
 			addMeta, err := parseXFCCToDynamicMetaHTTPFilter()
@@ -2567,6 +2568,7 @@ type listenerFilterOpts struct {
 
 	// HTTP listener filter options
 	forwardClientDetails         bool
+	stripForwardClientCertHeader bool
 	forwardClientPolicy          envoy_http_v3.HttpConnectionManager_ForwardClientCertDetails
 	httpAuthzFilters             []*envoy_http_v3.HttpFilter
 	idleTimeoutMs                *int
@@ -2768,6 +2770,10 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) 
 		// If a path is provided, do not match on a catch-all prefix
 		if opts.routePath != "" {
 			route.Match.PathSpecifier = &envoy_route_v3.RouteMatch_Path{Path: opts.routePath}
+		}
+
+		if opts.stripForwardClientCertHeader {
+			route.RequestHeadersToRemove = append(route.RequestHeadersToRemove, "x-forwarded-client-cert")
 		}
 
 		cfg.RouteSpecifier = &envoy_http_v3.HttpConnectionManager_RouteConfig{
