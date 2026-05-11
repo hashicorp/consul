@@ -11,15 +11,14 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"github.com/hashicorp/consul/testrpc"
-
-	"github.com/stretchr/testify/require"
+	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/testrpc"
 )
 
 func TestConnectCARoots_empty(t *testing.T) {
@@ -69,6 +68,10 @@ func TestConnectCARoots_list(t *testing.T) {
 	for _, r := range value.Roots {
 		assert.Equal(t, "", r.SigningCert)
 		assert.Equal(t, "", r.SigningKey)
+		assert.False(t, r.NotBefore.IsZero())
+		assert.False(t, r.NotAfter.IsZero())
+		assert.True(t, r.NotAfter.After(r.NotBefore))
+		assert.True(t, r.NotAfter.After(time.Now()))
 	}
 }
 

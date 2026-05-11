@@ -187,6 +187,7 @@
                     }
                   }
                 ],
+                "normalizePath": true,
                 "rds": {
                   "configSource": {
                     "ads": {},
@@ -266,6 +267,7 @@
                     }
                   }
                 ],
+                "normalizePath": true,
                 "rds": {
                   "configSource": {
                     "ads": {},
@@ -345,6 +347,7 @@
                     }
                   }
                 ],
+                "normalizePath": true,
                 "rds": {
                   "configSource": {
                     "ads": {},
