@@ -6,6 +6,7 @@ package xds
 import (
 	"errors"
 	"fmt"
+	"net"
 	"net/url"
 	"strconv"
 	"strings"
@@ -1528,6 +1529,21 @@ func finalizeUpstreamConfig(cfg structs.UpstreamConfig, chain *structs.CompiledD
 	return cfg
 }
 
+// gatewayHostnameEndpoints returns the subset of gateway nodes whose WAN address
+// is a hostname rather than an IP address. EDS cannot resolve hostnames (Envoy
+// rejects them as "malformed IP address"), so callers must configure those
+// clusters as LOGICAL_DNS/STRICT_DNS via CDS instead.
+func gatewayHostnameEndpoints(nodes structs.CheckServiceNodes) structs.CheckServiceNodes {
+	var result structs.CheckServiceNodes
+	for _, n := range nodes {
+		_, addr, _ := n.BestAddress(true /* wan/remote */)
+		if addr != "" && net.ParseIP(addr) == nil {
+			result = append(result, n)
+		}
+	}
+	return result
+}
+
 func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 	uid proxycfg.UpstreamID,
 	upstream *structs.Upstream,
@@ -1747,6 +1763,23 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 				}
 			}
 
+			// For non-peer targets routed via a remote mesh gateway, check if the
+			// gateway WAN address is a hostname (e.g., AWS NLB on EKS). EDS cannot
+			// resolve hostname addresses, so we must use LOGICAL_DNS instead.
+			if useEDS && targetUID.Peer == "" && upstreamsSnapshot != nil {
+				target := chain.Targets[targetInfo.TargetID]
+				if target != nil &&
+					target.MeshGateway.Mode == structs.MeshGatewayModeRemote &&
+					!cfgSnap.Locality.Matches(target.Datacenter, target.Partition) {
+					gwKey := proxycfg.GatewayKey{Datacenter: target.Datacenter, Partition: target.Partition}
+					if gwMap, ok := upstreamsSnapshot.WatchedGatewayEndpoints[uid]; ok {
+						if len(gatewayHostnameEndpoints(gwMap[gwKey.String()])) > 0 {
+							useEDS = false
+						}
+					}
+				}
+			}
+
 			if useEDS {
 				c.ClusterDiscoveryType = &envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_EDS}
 				c.EdsClusterConfig = &envoy_cluster_v3.Cluster_EdsClusterConfig{
@@ -1758,13 +1791,37 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 						},
 					},
 				}
-			} else {
+			} else if targetUID.Peer != "" {
 				hostnameEndpoints, ok := upstreamsSnapshot.PeerUpstreamEndpoints.Get(targetUID)
 				if !ok || len(hostnameEndpoints) == 0 {
 					// The upstream snapshot should deliver hostname endpoints soon; skip this cluster until then.
 					s.Logger.Debug("peer hostname endpoints not ready for discovery chain target",
 						"target", targetInfo.TargetID,
 						"upstream", targetUID,
+						"cluster", groupedTarget.ClusterName,
+					)
+					continue
+				}
+				c.EdsClusterConfig = nil
+				configureClusterWithHostnames(
+					s.Logger,
+					c,
+					"", /*TODO: should make configurable ? */
+					hostnameEndpoints,
+					true,  /*isRemote*/
+					false, /*onlyPassing*/
+				)
+			} else {
+				// Non-peer target with a remote mesh gateway whose WAN address is a
+				// hostname (e.g., AWS NLB on EKS). Configure LOGICAL_DNS so that Envoy
+				// resolves the hostname rather than expecting a raw IP from EDS.
+				target := chain.Targets[targetInfo.TargetID]
+				gwKey := proxycfg.GatewayKey{Datacenter: target.Datacenter, Partition: target.Partition}
+				hostnameEndpoints := gatewayHostnameEndpoints(upstreamsSnapshot.WatchedGatewayEndpoints[uid][gwKey.String()])
+				if len(hostnameEndpoints) == 0 {
+					s.Logger.Debug("gateway hostname endpoints not ready for discovery chain target",
+						"target", targetInfo.TargetID,
+						"upstream", uid,
 						"cluster", groupedTarget.ClusterName,
 					)
 					continue
