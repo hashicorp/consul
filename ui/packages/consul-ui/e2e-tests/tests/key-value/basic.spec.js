@@ -7,10 +7,14 @@ const { test, expect } = require('@playwright/test');
 
 async function logKVFormState(page, label) {
   const state = await page.evaluate(() => {
+    const { document, window, getComputedStyle } = globalThis;
     const textarea = document.querySelector('textarea[name="value"]');
     const codeToggle = document.querySelector('input[name="json"]');
     const cmContent = document.querySelector('.cm-content[aria-label="value"]');
     const activeElement = document.activeElement;
+    const textareaDisabled = Boolean(
+      textarea?.hasAttribute('disabled') || textarea?.getAttribute('data-disabled') === 'true'
+    );
 
     return {
       url: window.location.href,
@@ -22,8 +26,7 @@ async function logKVFormState(page, label) {
         getComputedStyle(textarea).visibility !== 'hidden' &&
         getComputedStyle(textarea).display !== 'none'
       ),
-      textareaDisabled:
-        textarea?.hasAttribute('disabled') || textarea?.getAttribute('data-disabled') === 'true' || false,
+      textareaDisabled,
       textareaValueLength: textarea?.value?.length ?? null,
       hasCodeToggle: !!codeToggle,
       codeToggleChecked: !!codeToggle?.checked,
@@ -353,8 +356,7 @@ test.describe('Key/Value - Basic Tests', () => {
 
       await Promise.all([
         page.waitForResponse(
-          (resp) =>
-            resp.url().includes('/v1/kv/') && resp.request().method() === 'PUT'
+          (resp) => resp.url().includes('/v1/kv/') && resp.request().method() === 'PUT'
         ),
         page.getByRole('button', { name: 'Save' }).click(),
       ]);
@@ -387,8 +389,7 @@ test.describe('Key/Value - Basic Tests', () => {
 
       await Promise.all([
         page.waitForResponse(
-          (resp) =>
-            resp.url().includes('/v1/kv/') && resp.request().method() === 'PUT'
+          (resp) => resp.url().includes('/v1/kv/') && resp.request().method() === 'PUT'
         ),
         page.getByRole('button', { name: 'Save' }).click(),
       ]);
