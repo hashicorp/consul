@@ -49,7 +49,17 @@ async function logKVFormState(page, label) {
 }
 
 function kvValueControl(page) {
-  return page.getByRole('textbox', { name: 'value' }).first();
+  return page.locator('textarea[name="value"]').first();
+}
+
+function kvValueEditor(page) {
+  return page
+    .locator('[aria-label="value"], .cm-editor .cm-content, .cm-content[aria-label="value"]')
+    .first();
+}
+
+function kvCodeToggle(page) {
+  return page.getByRole('switch', { name: 'Code' }).first();
 }
 
 function kvRow(page, text) {
@@ -88,18 +98,54 @@ async function waitForKVEdit(page, keyName) {
 async function fillKVValue(page, value, replace = false) {
   await logKVFormState(page, `before fillKVValue replace=${replace}`);
 
-  const valueControl = kvValueControl(page);
-  await expect(valueControl).toBeVisible({ timeout: 15000 });
+  const codeToggle = kvCodeToggle(page);
+  if (await codeToggle.isVisible({ timeout: 5000 }).catch(() => false)) {
+    const isCodeMode = await codeToggle.isChecked().catch(() => false);
+    if (isCodeMode) {
+      await codeToggle.click();
+      await expect(codeToggle).not.toBeChecked({ timeout: 10000 });
+    }
+  }
 
-  if (replace) {
-    await valueControl.fill(value);
-    await logKVFormState(page, `after textbox fill replace=${replace}`);
+  const valueControl = kvValueControl(page);
+  const valueEditor = kvValueEditor(page);
+
+  await expect
+    .poll(
+      async () => {
+        const textareaVisible = await valueControl.isVisible().catch(() => false);
+        const editorVisible = await valueEditor.isVisible().catch(() => false);
+        return textareaVisible || editorVisible;
+      },
+      { timeout: 15000 }
+    )
+    .toBe(true);
+
+  if (await valueControl.isVisible().catch(() => false)) {
+    if (replace) {
+      await valueControl.fill(value);
+      await logKVFormState(page, `after textarea fill replace=${replace}`);
+      return;
+    }
+
+    await valueControl.click();
+    await valueControl.pressSequentially(value);
+    await logKVFormState(page, `after textarea type replace=${replace}`);
     return;
   }
 
-  await valueControl.click();
-  await valueControl.pressSequentially(value);
-  await logKVFormState(page, `after textbox type replace=${replace}`);
+  if (await valueEditor.isVisible().catch(() => false)) {
+    await valueEditor.click();
+    if (replace) {
+      await page.keyboard.press(process.platform === 'darwin' ? 'Meta+A' : 'Control+A');
+    }
+    await page.keyboard.insertText(value);
+    await logKVFormState(page, `after editor type replace=${replace}`);
+    return;
+  }
+
+  await logKVFormState(page, 'no value control visible after wait');
+  throw new Error('No visible KV value control found after wait');
 }
 
 /**
