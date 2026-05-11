@@ -45,12 +45,8 @@ async function logKVFormState(page, label) {
   console.log(`[KV DEBUG] ${label}: ${JSON.stringify(state)}`);
 }
 
-function kvValueEditor(page) {
-  return page.locator('.cm-content[aria-label="value"]').first();
-}
-
-function kvValueTextarea(page) {
-  return page.locator('textarea[name="value"]').first();
+function kvValueControl(page) {
+  return page.getByRole('textbox', { name: 'value' }).first();
 }
 
 function kvRow(page, text) {
@@ -89,38 +85,18 @@ async function waitForKVEdit(page, keyName) {
 async function fillKVValue(page, value, replace = false) {
   await logKVFormState(page, `before fillKVValue replace=${replace}`);
 
-  const textarea = kvValueTextarea(page);
-  const textareaVisible = await textarea.isVisible().catch(() => false);
-  console.log(`[KV DEBUG] textareaVisible=${textareaVisible}`);
+  const valueControl = kvValueControl(page);
+  await expect(valueControl).toBeVisible({ timeout: 15000 });
 
-  if (textareaVisible) {
-    if (replace) {
-      await textarea.fill(value);
-    } else {
-      await textarea.click();
-      await textarea.pressSequentially(value);
-    }
-    await logKVFormState(page, `after textarea fill replace=${replace}`);
+  if (replace) {
+    await valueControl.fill(value);
+    await logKVFormState(page, `after textbox fill replace=${replace}`);
     return;
   }
 
-  const editor = kvValueEditor(page);
-  const editorVisible = await editor.isVisible().catch(() => false);
-  console.log(`[KV DEBUG] editorVisible=${editorVisible}`);
-
-  if (!editorVisible) {
-    await logKVFormState(page, 'no visible value control before failing');
-    throw new Error('No visible KV value control found');
-  }
-
-  await editor.waitFor({ state: 'visible', timeout: 15000 });
-  await editor.click();
-  await page.keyboard.press(process.platform === 'darwin' ? 'Meta+A' : 'Control+A');
-  if (!replace) {
-    await page.keyboard.press('Backspace');
-  }
-  await page.keyboard.insertText(value);
-  await logKVFormState(page, `after code editor fill replace=${replace}`);
+  await valueControl.click();
+  await valueControl.pressSequentially(value);
+  await logKVFormState(page, `after textbox type replace=${replace}`);
 }
 
 /**
@@ -375,7 +351,13 @@ test.describe('Key/Value - Basic Tests', () => {
       await waitForKVEdit(page, keyName);
       await fillKVValue(page, updatedValue, true);
 
-      await page.getByRole('button', { name: 'Save' }).click();
+      await Promise.all([
+        page.waitForResponse(
+          (resp) =>
+            resp.url().includes('/v1/kv/') && resp.request().method() === 'PUT'
+        ),
+        page.getByRole('button', { name: 'Save' }).click(),
+      ]);
 
       const readValue = await readKVPair(page, keyName);
       expect(readValue).toBe(updatedValue);
@@ -403,7 +385,13 @@ test.describe('Key/Value - Basic Tests', () => {
       await waitForKVEdit(page, keyName);
       await fillKVValue(page, updatedValue, true);
 
-      await page.getByRole('button', { name: 'Save' }).click();
+      await Promise.all([
+        page.waitForResponse(
+          (resp) =>
+            resp.url().includes('/v1/kv/') && resp.request().method() === 'PUT'
+        ),
+        page.getByRole('button', { name: 'Save' }).click(),
+      ]);
 
       const readValue = await readKVPair(page, keyName);
       expect(readValue).toBe(updatedValue);
