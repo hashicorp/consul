@@ -59,7 +59,8 @@ function kvValueEditor(page) {
 }
 
 function kvCodeToggle(page) {
-  return page.getByRole('switch', { name: 'Code' }).first();
+  // Use the underlying checkbox directly; it may be visually hidden in production builds
+  return page.locator('input[name="json"]').first();
 }
 
 function kvRow(page, text) {
@@ -99,10 +100,11 @@ async function fillKVValue(page, value, replace = false) {
   await logKVFormState(page, `before fillKVValue replace=${replace}`);
 
   const codeToggle = kvCodeToggle(page);
-  if (await codeToggle.isVisible({ timeout: 5000 }).catch(() => false)) {
+  // count() works regardless of visibility; force:true bypasses CSS-hidden checkbox in prod builds
+  if ((await codeToggle.count()) > 0) {
     const isCodeMode = await codeToggle.isChecked().catch(() => false);
     if (isCodeMode) {
-      await codeToggle.click();
+      await codeToggle.click({ force: true });
       await expect(codeToggle).not.toBeChecked({ timeout: 10000 });
     }
   }
