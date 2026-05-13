@@ -1,0 +1,3 @@
+```release-note:security
+docker: update ubi base image to `ubi9-minimal:9.7`.
+```
