@@ -131,6 +131,56 @@ func TestRun_Stop_Hybrid(t *testing.T) {
 	}
 }
 
+func TestSetCancelFunc_StoppedPlan(t *testing.T) {
+	t.Parallel()
+	plan := mustParse(t, `{"type":"noop"}`)
+	plan.Stop()
+
+	called := false
+	plan.setCancelFunc(func() { called = true })
+
+	if plan.cancelFunc == nil {
+		t.Fatalf("cancelFunc should be set even after stop")
+	}
+	if !called {
+		t.Fatalf("cancel should be called immediately when stopped")
+	}
+}
+
+func TestSetCancelFunc_ConcurrentStop(t *testing.T) {
+	t.Parallel()
+
+	for i := 0; i < 100; i++ {
+		plan := mustParse(t, `{"type":"noop"}`)
+
+		stopDone := make(chan struct{})
+		watchDone := make(chan struct{})
+
+		go func() {
+			defer close(stopDone)
+			plan.Stop()
+		}()
+
+		go func() {
+			defer close(watchDone)
+			plan.setCancelFunc(func() {})
+			plan.cancelFunc()
+		}()
+
+		select {
+		case <-stopDone:
+		case <-time.After(1 * time.Second):
+			t.Fatalf("iteration %d: timed out waiting for stop", i)
+		}
+
+		select {
+		case <-watchDone:
+		case <-time.After(1 * time.Second):
+			t.Fatalf("iteration %d: timed out waiting for watch", i)
+		}
+	}
+}
+
 func TestRunWithClientAndLogger_NilLogger(t *testing.T) {
 	t.Parallel()
 	plan := mustParse(t, `{"type":"noop"}`)

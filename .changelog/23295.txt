@@ -1,0 +1,3 @@
+```release-note:bug
+watch: fix nil pointer panic in setCancelFunc when Stop and RunWithClientAndHclog are called concurrently
+```
