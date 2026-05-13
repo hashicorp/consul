@@ -285,6 +285,70 @@ func TestBinder_ServiceIdentities_NameValidation(t *testing.T) {
 	require.Contains(t, err.Error(), "invalid bind name")
 }
 
+func TestBinder_ServiceIdentities_UppercaseVarError(t *testing.T) {
+	store := testStateStore(t)
+	binder := &Binder{store: store}
+
+	authMethod := &structs.ACLAuthMethod{
+		Name: "test-auth-method",
+		Type: "testing",
+	}
+	require.NoError(t, store.ACLAuthMethodSet(0, authMethod))
+
+	bindingRules := structs.ACLBindingRules{
+		{
+			ID:         generateID(t),
+			Selector:   "",
+			BindType:   structs.BindingRuleBindTypeService,
+			BindName:   "${service_name}",
+			AuthMethod: authMethod.Name,
+		},
+	}
+	require.NoError(t, store.ACLBindingRuleBatchSet(0, bindingRules))
+
+	// When projected vars contain uppercase characters, the binder should
+	// return an actionable error instead of silently lowercasing.
+	_, err := binder.Bind(&structs.ACLAuthMethod{}, &authmethod.Identity{
+		ProjectedVars: map[string]string{
+			"service_name": "MyService",
+		},
+	})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "uppercase characters")
+	require.Contains(t, err.Error(), "MyService")
+}
+
+func TestBinder_NodeIdentities_UppercaseVarError(t *testing.T) {
+	store := testStateStore(t)
+	binder := &Binder{store: store, datacenter: "dc1"}
+
+	authMethod := &structs.ACLAuthMethod{
+		Name: "test-auth-method",
+		Type: "testing",
+	}
+	require.NoError(t, store.ACLAuthMethodSet(0, authMethod))
+
+	bindingRules := structs.ACLBindingRules{
+		{
+			ID:         generateID(t),
+			Selector:   "",
+			BindType:   structs.BindingRuleBindTypeNode,
+			BindName:   "node-${name}",
+			AuthMethod: authMethod.Name,
+		},
+	}
+	require.NoError(t, store.ACLBindingRuleBatchSet(0, bindingRules))
+
+	_, err := binder.Bind(&structs.ACLAuthMethod{}, &authmethod.Identity{
+		ProjectedVars: map[string]string{
+			"name": "MyNode",
+		},
+	})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "uppercase characters")
+	require.Contains(t, err.Error(), "MyNode")
+}
+
 func TestBinder_NodeIdentities_Success(t *testing.T) {
 	store := testStateStore(t)
 	binder := &Binder{store: store, datacenter: "dc1"}
