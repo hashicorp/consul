@@ -116,6 +116,13 @@ import (
 	peergenerate "github.com/hashicorp/consul/command/peering/generate"
 	peerlist "github.com/hashicorp/consul/command/peering/list"
 	peerread "github.com/hashicorp/consul/command/peering/read"
+	"github.com/hashicorp/consul/command/query"
+	querydelete "github.com/hashicorp/consul/command/query/delete"
+	queryexecute "github.com/hashicorp/consul/command/query/execute"
+	queryexplain "github.com/hashicorp/consul/command/query/explain"
+	querylist "github.com/hashicorp/consul/command/query/list"
+	queryread "github.com/hashicorp/consul/command/query/read"
+	querywrite "github.com/hashicorp/consul/command/query/write"
 	"github.com/hashicorp/consul/command/reload"
 	"github.com/hashicorp/consul/command/resource"
 	resourceapply "github.com/hashicorp/consul/command/resource/apply"
@@ -261,6 +268,13 @@ func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 		entry{"peering establish", func(ui cli.Ui) (cli.Command, error) { return peerestablish.New(ui), nil }},
 		entry{"peering list", func(ui cli.Ui) (cli.Command, error) { return peerlist.New(ui), nil }},
 		entry{"peering read", func(ui cli.Ui) (cli.Command, error) { return peerread.New(ui), nil }},
+		entry{"query", func(cli.Ui) (cli.Command, error) { return query.New(ui), nil }},
+		entry{"query delete", func(ui cli.Ui) (cli.Command, error) { return querydelete.New(ui), nil }},
+		entry{"query execute", func(ui cli.Ui) (cli.Command, error) { return queryexecute.New(ui), nil }},
+		entry{"query explain", func(ui cli.Ui) (cli.Command, error) { return queryexplain.New(ui), nil }},
+		entry{"query list", func(ui cli.Ui) (cli.Command, error) { return querylist.New(ui), nil }},
+		entry{"query read", func(ui cli.Ui) (cli.Command, error) { return queryread.New(ui), nil }},
+		entry{"query write", func(ui cli.Ui) (cli.Command, error) { return querywrite.New(ui), nil }},
 		entry{"reload", func(ui cli.Ui) (cli.Command, error) { return reload.New(ui), nil }},
 		entry{"resource", func(cli.Ui) (cli.Command, error) { return resource.New(), nil }},
 		entry{"resource read", func(ui cli.Ui) (cli.Command, error) { return resourceread.New(ui), nil }},
