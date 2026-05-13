@@ -89,6 +89,8 @@
 %route-card > header ul {
   float: right;
   margin-top: -2px;
+  display: flex;
+  flex-wrap: wrap;
 }
 %route-card > header ul li {
   margin-left: 5px;

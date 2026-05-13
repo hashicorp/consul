@@ -10,11 +10,15 @@
           <dt>
             <span
               data-test-external-source={{externalSource}}
-              class="consul-external-source"
+              class="consul-external-source consul-external-source--hds"
               ...attributes
             >
-              <Hds::Icon @name={{icon-mapping externalSource}} class="mr-1.5 w-4 h-4"  />
-              Registered via {{t (concat "common.brand." externalSource)}}
+              <Hds::Badge
+                @text={{if @label @label (concat "Registered via " (t (concat "common.brand." externalSource)))}}
+                @icon={{icon-mapping externalSource}}
+                @color="neutral"
+                @size="small"
+              />
             </span>
           </dt>
           <dd>
@@ -38,15 +42,15 @@
   {{else if externalSource}}
     <span
       data-test-external-source={{externalSource}}
-      class="consul-external-source"
+      class="consul-external-source consul-external-source--hds"
       ...attributes
     >
-      <Hds::Icon @name={{icon-mapping externalSource}} @color="var(--token-color-hashicorp-brand)" class="mr-1.5 h-4 w-4" />
-      {{#if @label}}
-        {{@label}}
-      {{else}}
-        Registered via {{t (concat "common.brand." externalSource)}}
-      {{/if}}
+      <Hds::Badge
+        @text={{if @label @label (concat "Registered via " (t (concat "common.brand." externalSource)))}}
+        @icon={{icon-mapping externalSource}}
+        @color="neutral"
+        @size="small"
+      />
     </span>
   {{/if}}
   {{/let}}

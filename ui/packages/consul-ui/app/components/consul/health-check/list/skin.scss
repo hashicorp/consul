@@ -22,12 +22,9 @@
 %healthcheck-output header > * {
   @extend %display-300-semibold;
 }
-%healthcheck-output dd em {
-  @extend %pill;
-  background-color: var(--token-color-surface-strong);
-  /*TODO: Should this be merged into %pill? */
+%healthcheck-output .consul-health-check-list__exposed-badge {
+  display: inline-flex;
   cursor: default;
-  font-style: normal;
   margin-top: -2px;
   margin-left: 0.5em;
 }

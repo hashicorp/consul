@@ -3,6 +3,6 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-.consul-source {
-  @extend %pill-200, %frame-gray-600, %body-200-regular;
+.consul-source--hds {
+  display: inline-flex;
 }

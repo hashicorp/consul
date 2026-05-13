@@ -1,0 +1,13 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
+.consul-node-list__leader-badge {
+  // Apply Consul brand color to the leader star icon
+  .hds-badge__icon {
+    color: var(--token-color-consul-brand) !important;
+  }
+}
+
+// Made with Bob

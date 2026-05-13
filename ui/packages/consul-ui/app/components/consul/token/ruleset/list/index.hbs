@@ -12,7 +12,11 @@
           </dt>
           <dd>
               {{#each (get policies 'management') as |item|}}
-                <span data-test-policy class={{policy/typeof item}}>{{item.Name}}</span>
+                <Consul::Acl::RulesetBadge
+                  @item={{item}}
+                  @type={{policy/typeof item}}
+                  data-test-policy
+                />
               {{/each}}
           </dd>
         </dl>
@@ -24,7 +28,11 @@
           <dt>Identities</dt>
           <dd>
               {{#each identities as |item|}}
-                <span data-test-policy class={{policy/typeof item}}>{{item.Name}}</span>
+                <Consul::Acl::RulesetBadge
+                  @item={{item}}
+                  @type={{policy/typeof item}}
+                  data-test-policy
+                />
               {{/each}}
           </dd>
         </dl>
@@ -44,7 +52,11 @@
           <dt>Rules</dt>
           <dd>
             {{#each policies as |item|}}
-              <span data-test-policy class={{policy/typeof item}}>{{item.Name}}</span>
+              <Consul::Acl::RulesetBadge
+                @item={{item}}
+                @type={{policy/typeof item}}
+                data-test-policy
+              />
             {{/each}}
           </dd>
         </dl>
