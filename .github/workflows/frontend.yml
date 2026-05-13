@@ -28,74 +28,13 @@ jobs:
         name: Setup outputs
         run: ./.github/scripts/get_runner_classes.sh
 
-  workspace-tests:
+
+  e2e-tests:
     needs: setup
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
-    defaults:
-      run:
-        working-directory: ui
-    steps:
-      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
-
-      - name: Install PNPM
-        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
-        with:
-          run_install: false
-          package_json_file: ui/package.json
-
-      - name: Setup node and pnpm cache
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
-        with:
-          node-version-file: "./ui/package.json"
-          cache: "pnpm"
-          cache-dependency-path: "ui/pnpm-lock.yaml"
-
-      # Install dependencies.
-      - name: install packages
-        working-directory: ui
-        run: make deps
-
-      - run: make test-workspace
-
-  node-tests:
-    needs: setup
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
-    steps:
-      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
-
-      - name: Install PNPM
-        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
-        with:
-          run_install: false
-          package_json_file: ui/package.json
-      
-      - name: Setup node and pnpm cache
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
-        with:
-          node-version-file: "./ui/package.json"
-          cache: "pnpm"
-          cache-dependency-path: "ui/pnpm-lock.yaml"
-
-      # Install dependencies.
-      - name: install packages
-        working-directory: ui
-        run: make deps
-
-      - run: make test-node
-        working-directory: ui/packages/consul-ui
-
-  ember-build-test:
-    needs: setup
-    if: ${{ !endsWith(github.repository, '-enterprise') }}
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-large ) }}
-    strategy:
-      matrix:
-        partition: [1, 2, 3, 4]
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-medium) }}
+    continue-on-error: true
     env:
-      EMBER_TEST_REPORT: test-results/report-ce.xml # outputs test report for CI test summary
-      EMBER_TEST_PARALLEL: true # enables test parallelization with ember-exam
-      CONSUL_NSPACES_ENABLED: 0 # NOTE: this should be 1 in ENT.
-      JOBS: 2 # limit parallelism for broccoli-babel-transpiler
+      CONSUL_NSPACES_ENABLED: 0
     steps:
       - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
 
@@ -111,71 +50,75 @@ jobs:
           node-version-file: "./ui/package.json"
           cache: "pnpm"
           cache-dependency-path: "ui/pnpm-lock.yaml"
-
-      - name: Install Chrome
-        uses: browser-actions/setup-chrome@82b9ce628cc5595478a9ebadc480958a36457dc2 # v1.6.0
 
       - name: Install dependencies
         working-directory: ui
         run: make deps
 
-      - name: Build CI
-        working-directory: ui/packages/consul-ui
-        run: make build-ci
-
-      - name: Ember exam
-        working-directory: ui/packages/consul-ui
-        run: node_modules/.bin/ember exam --split=4 --partition=${{ matrix.partition }} --path dist --silent -r xunit
-
-      - name: Test Coverage CI
-        working-directory: ui/packages/consul-ui
-        run: make test-coverage-ci
-
-  ember-build-test-ent:
-    needs: setup
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-large ) }}
-    strategy:
-      matrix:
-        partition: [1, 2, 3, 4]
-    env:
-      EMBER_TEST_REPORT: test-results/report-ce.xml # outputs test report for CI test summary
-      EMBER_TEST_PARALLEL: true # enables test parallelization with ember-exam
-      CONSUL_NSPACES_ENABLED: 1 # NOTE: this should be 1 in ENT.
-      JOBS: 2 # limit parallelism for broccoli-babel-transpiler
-    steps:
-      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
-
-      - name: Install PNPM
-        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+      - name: Checkout consul-ui-testing repo
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
         with:
-          run_install: false
-          package_json_file: ui/package.json
+          repository: hashicorp/consul-ui-testing
+          path: consul-ui-testing
+          token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
-      - name: Setup node and pnpm cache
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+      - name: Install consul-ui-testing dependencies
+        working-directory: consul-ui-testing
+        run: yarn install
+
+      - name: Install httpie (required by consul-ui-testing)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y httpie
+
+      - name: Skip HashiCups build (use cached version marker)
+        working-directory: consul-ui-testing
+        run: echo "hashicorppreview/consul:latest" > .last_consul_version_built
+
+      - name: Start Consul API servers
+        working-directory: consul-ui-testing
+        run: |
+          echo "Starting Consul API servers at $(date '+%Y-%m-%d %H:%M:%S')"
+          yarn start hashicorppreview/consul:latest
+
+      - name: Start Consul UI
+        working-directory: ui/packages/consul-ui
+        run: |
+          pnpm run start:consul &
+          echo $! > consul-ui.pid
+        env:
+          CONSUL_HTTP_ADDR: http://localhost:8500
+
+      - name: Wait for UI to be ready
+        run: npx wait-on http://localhost:4200 --timeout 60000
+
+      - name: Run E2E health check
+        working-directory: ui/packages/consul-ui
+        run: pnpm run test:e2e:health
+
+      - name: Run basic E2E tests
+        working-directory: ui/packages/consul-ui
+        run: pnpm run test:e2e:basic
+        env:
+          CI: true
+          CONSUL_UI_TEST_TOKEN: ${{ secrets.CONSUL_UI_TEST_TOKEN }}
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         with:
-          node-version-file: "./ui/package.json"
-          cache: "pnpm"
-          cache-dependency-path: "ui/pnpm-lock.yaml"
+          name: e2e-test-results-ce
+          path: ui/packages/consul-ui/e2e-tests/reports/
+          retention-days: 30
 
-      - name: Install Chrome
-        uses: browser-actions/setup-chrome@82b9ce628cc5595478a9ebadc480958a36457dc2 # v1.6.0
+      - name: Upload screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        with:
+          name: e2e-screenshots-ce
+          path: ui/packages/consul-ui/e2e-tests/reports/test-results/
+          retention-days: 7
 
-      - name: Install dependencies
-        working-directory: ui
-        run: make deps
-
-      - name: Build CI
-        working-directory: ui/packages/consul-ui
-        run: make build-ci
-
-      - name: Ember exam
-        working-directory: ui/packages/consul-ui
-        run: node_modules/.bin/ember exam --split=4 --partition=${{ matrix.partition }} --path dist --silent -r xunit
-
-      - name: Test Coverage CI
-        working-directory: ui/packages/consul-ui
-        run: make test-coverage-ci
   # This is job is required for branch protection as a required gihub check
   # because GitHub actions show up as checks at the job level and not the
   # workflow level.  This is currently a feature request:
@@ -193,9 +136,7 @@ jobs:
   frontend-success:
     needs:
       - setup
-      - workspace-tests
-      - node-tests
-      - ember-build-test
+      - e2e-tests
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     if: ${{ always() }}
     steps:
