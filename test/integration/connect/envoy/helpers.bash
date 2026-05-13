@@ -839,8 +839,9 @@ function must_fail_http_request {
 function get_echo_output {
   # Take the JSON response from $output, starting with first line containing only '{'
   # and ending with the next line containing only '}'.
-  # The first sed converts a trailing '}* <some text...>' (curl -v output) to just '}'.
-  local json=$(echo "$output" | sed 's/}\*.*/}/' | sed -n -e '/^{$/,/^}$/{ p; }')
+  # The first sed drops curl verbose lines that start with '*'.
+  # The second sed converts a trailing '}* <some text...>' fragment to just '}'.
+  local json=$(echo "$output" | sed '/^\*/d' | sed 's/}\*.*/}/' | sed -n -e '/^{$/,/^}$/{ p; }')
   echo $json | jq -r '.' || echo "Output did not contain valid JSON: $output" >&3
 }
 

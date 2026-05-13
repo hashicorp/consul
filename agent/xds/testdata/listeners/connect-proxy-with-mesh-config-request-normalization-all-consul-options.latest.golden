@@ -209,6 +209,9 @@
                           "match": {
                             "prefix": "/"
                           },
+                          "requestHeadersToRemove": [
+                            "x-forwarded-client-cert"
+                          ],
                           "route": {
                             "cluster": "local_app"
                           }
