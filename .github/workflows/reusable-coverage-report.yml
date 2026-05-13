@@ -1,0 +1,229 @@
+name: reusable-coverage-report
+
+on:
+  workflow_call:
+    inputs:
+      go-version:
+        required: true
+        type: string
+
+jobs:
+  merge-and-report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+
+      - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+        with:
+          go-version: ${{ inputs.go-version }}
+
+      - name: Download coverage profiles
+        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
+        with:
+          pattern: '*-coverage'
+          path: coverage-artifacts
+
+      - name: Merge coverage profiles
+        id: merge
+        run: |
+          PROFILES=$(find coverage-artifacts -name 'coverage.txt' 2>/dev/null | sort)
+          COUNT=$(echo "$PROFILES" | grep -c . || true)
+          echo "Found $COUNT coverage profile(s)"
+
+          if [ "$COUNT" -eq 0 ]; then
+            echo "No coverage profiles found"
+            echo "total=N/A" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Race test jobs force -covermode=atomic; all others use mode: set.
+          # gocovmerge cannot merge mixed modes, so filter to set-mode profiles only.
+          SET_PROFILES=$(echo "$PROFILES" | xargs grep -l "^mode: set" 2>/dev/null || true)
+          SET_COUNT=$(echo "$SET_PROFILES" | grep -c . || true)
+          echo "Using $SET_COUNT set-mode profiles (atomic/race profiles excluded)"
+
+          if [ "$SET_COUNT" -eq 0 ]; then
+            echo "No set-mode profiles found"
+            echo "total=N/A" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          go install github.com/wadey/gocovmerge@latest
+          echo "$SET_PROFILES" | xargs gocovmerge > merged-coverage.out
+
+          # Compute total using awk — no module resolution needed, works across sub-modules.
+          TOTAL=$(awk '
+            /^mode:/ { next }
+            { stmts += $2; if ($3 > 0) covered += $2 }
+            END { if (stmts > 0) printf "%.1f%%", covered/stmts*100; else print "0.0%" }
+          ' merged-coverage.out)
+          echo "Total coverage: $TOTAL"
+          echo "total=$TOTAL" >> "$GITHUB_OUTPUT"
+
+          # go tool cover needs module resolution, so filter out sub-modules
+          # (api, sdk, envoyextensions, proto-public, troubleshoot, testing/deployer)
+          # which are separate go.mod modules not resolvable from the root module.
+          {
+            grep "^mode:" merged-coverage.out | head -1
+            grep -v "^mode:" merged-coverage.out | grep -v \
+              -e "^github\.com/hashicorp/consul/api/" \
+              -e "^github\.com/hashicorp/consul/sdk/" \
+              -e "^github\.com/hashicorp/consul/envoyextensions/" \
+              -e "^github\.com/hashicorp/consul/proto-public/" \
+              -e "^github\.com/hashicorp/consul/troubleshoot/" \
+              -e "^github\.com/hashicorp/consul/testing/deployer/"
+          } > main-module-coverage.out
+
+          # Package-level summary grouped by top-level directory
+          go tool cover -func main-module-coverage.out | grep -v '^total:' | \
+            awk -F'\t' '{
+              sub(/^github\.com\/hashicorp\/consul\//, "", $1)
+              split($1, parts, "/")
+              pkg = parts[1]
+              gsub(/:.*/, "", pkg)
+              pct = $3; gsub(/%/, "", pct)
+              sum[pkg] += pct; n[pkg]++
+            }
+            END {
+              for (pkg in sum) printf "%-35s %.1f%%\n", pkg, sum[pkg]/n[pkg]
+            }' | sort > pkg-summary.txt
+
+          {
+            echo "## Go Test Coverage"
+            echo ""
+            echo "**Total coverage: $TOTAL**"
+            echo ""
+            echo "| Package | Avg Coverage |"
+            echo "|---------|-------------|"
+            while IFS= read -r line; do
+              pkg=$(echo "$line" | awk '{print $1}')
+              pct=$(echo "$line" | awk '{print $2}')
+              echo "| \`$pkg\` | $pct |"
+            done < pkg-summary.txt
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # Generate HTML report from main-module profile
+          go tool cover -html=main-module-coverage.out -o coverage.html
+
+          # Extract per-sub-module profiles for separate Codecov uploads.
+          # Each sub-module must be uploaded independently so Codecov resolves
+          # file paths against the correct module root, not the main module root.
+          for mod in api sdk envoyextensions troubleshoot; do
+            {
+              echo "mode: set"
+              grep "^github\.com/hashicorp/consul/${mod}/" merged-coverage.out || true
+            } > "${mod}-coverage.out"
+          done
+
+      - name: Upload HTML coverage report
+        if: steps.merge.outputs.total != 'N/A'
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        with:
+          name: coverage-report-html
+          path: |
+            main-module-coverage.out
+            coverage.html
+
+      - name: Post PR comment
+        if: github.event_name == 'pull_request' && steps.merge.outputs.total != 'N/A'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TOTAL: ${{ steps.merge.outputs.total }}
+        run: |
+          BODY="### Go Test Coverage: **${TOTAL}**
+
+          See the [workflow run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for the full per-package breakdown and downloadable HTML report."
+
+          gh pr comment ${{ github.event.pull_request.number }} \
+            --repo "${{ github.repository }}" \
+            --body "$BODY" \
+            --edit-last 2>/dev/null || \
+          gh pr comment ${{ github.event.pull_request.number }} \
+            --repo "${{ github.repository }}" \
+            --body "$BODY"
+
+      - name: Update coverage badge
+        if: github.ref == 'refs/heads/main' && steps.merge.outputs.total != 'N/A'
+        env:
+          TOTAL: ${{ steps.merge.outputs.total }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PCT=$(echo "$TOTAL" | tr -d '%')
+          if awk "BEGIN {exit !($PCT >= 75)}"; then COLOR="brightgreen"
+          elif awk "BEGIN {exit !($PCT >= 60)}"; then COLOR="green"
+          elif awk "BEGIN {exit !($PCT >= 40)}"; then COLOR="yellow"
+          else COLOR="red"
+          fi
+
+          printf '{"schemaVersion":1,"label":"coverage","message":"%s","color":"%s"}\n' \
+            "$TOTAL" "$COLOR" > /tmp/coverage-badge.json
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin \
+            "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
+
+          if git ls-remote --exit-code origin badges >/dev/null 2>&1; then
+            git fetch origin badges:badges --depth=1
+            git worktree add /tmp/badges-wt badges
+          else
+            git worktree add --detach /tmp/badges-wt HEAD
+            git -C /tmp/badges-wt checkout --orphan badges
+            git -C /tmp/badges-wt rm -rf . --quiet 2>/dev/null || true
+          fi
+
+          cp /tmp/coverage-badge.json /tmp/badges-wt/coverage.json
+          git -C /tmp/badges-wt add coverage.json
+          if git -C /tmp/badges-wt diff --staged --quiet; then
+            echo "Badge unchanged, skipping commit"
+          else
+            git -C /tmp/badges-wt commit -m "chore: update coverage badge [skip ci]"
+            git -C /tmp/badges-wt push origin HEAD:badges
+          fi
+
+      # Upload each module separately so Codecov resolves paths against the
+      # correct module root. A single merged multi-module file confuses Codecov:
+      # it strips the longest matching module prefix, so api/acl.go ends up
+      # looked up as acl.go at the repo root instead of api/acl.go.
+      # Each sub-module profile is moved into its own directory so that
+      # working-directory + stripped path resolves to the correct source file.
+      - name: Prepare per-module coverage files
+        if: steps.merge.outputs.total != 'N/A'
+        run: |
+          for mod in api sdk envoyextensions troubleshoot; do
+            if [ -s "${mod}-coverage.out" ]; then
+              cp "${mod}-coverage.out" "${mod}/coverage-upload.out"
+            fi
+          done
+
+      - name: Upload main module to Codecov
+        if: steps.merge.outputs.total != 'N/A'
+        uses: codecov/codecov-action@e28ff129e5465c2c0dcc6f003fc735cb6ae0c673 # v4.5.0
+        with:
+          files: main-module-coverage.out
+          flags: main
+          use_oidc: true
+          fail_ci_if_error: false
+          verbose: false
+
+      - name: Upload api module to Codecov
+        if: steps.merge.outputs.total != 'N/A' && hashFiles('api/coverage-upload.out') != ''
+        uses: codecov/codecov-action@e28ff129e5465c2c0dcc6f003fc735cb6ae0c673 # v4.5.0
+        with:
+          files: coverage-upload.out
+          flags: api
+          working-directory: api
+          use_oidc: true
+          fail_ci_if_error: false
+          verbose: false
+
+      - name: Upload sdk module to Codecov
+        if: steps.merge.outputs.total != 'N/A' && hashFiles('sdk/coverage-upload.out') != ''
+        uses: codecov/codecov-action@e28ff129e5465c2c0dcc6f003fc735cb6ae0c673 # v4.5.0
+        with:
+          files: coverage-upload.out
+          flags: sdk
+          working-directory: sdk
+          use_oidc: true
+          fail_ci_if_error: false
+          verbose: false

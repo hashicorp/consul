@@ -1,5 +1,7 @@
 # Consul API Client
 
+[![coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/hashicorp/consul/badges/coverage.json)](https://github.com/hashicorp/consul/actions/workflows/go-tests.yml)
+
 This package provides the `api` package which provides programmatic access to the full Consul API.
 
 The full documentation is available on [Godoc](https://godoc.org/github.com/hashicorp/consul/api).
