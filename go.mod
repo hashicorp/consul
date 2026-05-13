@@ -8,6 +8,7 @@ replace (
 	github.com/hashicorp/consul/proto-public => ./proto-public
 	github.com/hashicorp/consul/sdk => ./sdk
 	github.com/hashicorp/consul/troubleshoot => ./troubleshoot
+	//test
 )
 
 exclude (
