@@ -22,11 +22,22 @@ jobs:
       compute-medium: ${{ steps.setup-outputs.outputs.compute-medium }}
       compute-large: ${{ steps.setup-outputs.outputs.compute-large }}
       compute-xl: ${{ steps.setup-outputs.outputs.compute-xl }}
+      has-consul-license: ${{ steps.check-consul-license.outputs.has-consul-license }}
     steps:
       - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
       - id: setup-outputs
         name: Setup outputs
         run: ./.github/scripts/get_runner_classes.sh
+      - id: check-consul-license
+        name: Check Consul license availability
+        env:
+          CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
+        run: |
+          if [ -n "$CONSUL_LICENSE" ]; then
+            echo "has-consul-license=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has-consul-license=false" >> "$GITHUB_OUTPUT"
+          fi
 
   workspace-tests:
     needs: setup
@@ -176,6 +187,258 @@ jobs:
       - name: Test Coverage CI
         working-directory: ui/packages/consul-ui
         run: make test-coverage-ci
+
+  e2e-tests:
+    needs: setup
+    if: ${{ !endsWith(github.repository, '-enterprise') }}
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-medium) }}
+    continue-on-error: false
+    env:
+      CONSUL_IMAGE: consul:local
+      CONSUL_NSPACES_ENABLED: 0
+    steps:
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+
+      - name: Setup Go
+        uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Build Consul binary and Docker image (CE)
+        run: |
+          echo "Building Consul binary and creating consul:local Docker image..."
+          make dev-docker
+          docker images | grep consul
+          ./bin/consul version
+
+      - name: Install PNPM
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        with:
+          run_install: false
+          package_json_file: ui/package.json
+
+      - name: Setup node and pnpm cache
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+        with:
+          node-version-file: "./ui/package.json"
+          cache: "pnpm"
+          cache-dependency-path: "ui/pnpm-lock.yaml"
+
+      - name: Install dependencies
+        working-directory: ui
+        run: make deps
+
+      - name: Install Playwright browsers
+        working-directory: ui/packages/consul-ui
+        run: npx playwright install --with-deps chromium
+
+      - name: Checkout consul-ui-testing repo
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+        with:
+          repository: hashicorp/consul-ui-testing
+          path: consul-ui-testing
+          token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+
+      - name: Install consul-ui-testing dependencies
+        working-directory: consul-ui-testing
+        run: yarn install
+
+      - name: Install httpie (required by consul-ui-testing)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y httpie
+
+      - name: Patch consul-ui-testing for CI runners
+        working-directory: consul-ui-testing
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/patch_consul_ui_testing.sh"
+
+      - name: Force HashiCups image rebuild
+        working-directory: consul-ui-testing
+        run: rm -f .last_consul_version_built
+
+      - name: Start Consul API servers with local binary (CE)
+        working-directory: consul-ui-testing
+        timeout-minutes: 2
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/consul_ui_testing_ci.sh" start CE
+
+      - name: Wait for Consul peering setup (CE)
+        working-directory: consul-ui-testing
+        timeout-minutes: 6
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/consul_ui_testing_ci.sh" wait-for-peering
+
+      - name: Verify Consul API readiness (CE)
+        working-directory: consul-ui-testing
+        timeout-minutes: 3
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/consul_ui_testing_ci.sh" verify-api
+
+      - name: Report HashiCups container states (CE)
+        working-directory: consul-ui-testing
+        timeout-minutes: 2
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/consul_ui_testing_ci.sh" report-containers
+
+      - name: Wait for Consul UI to be ready on port 8500
+        timeout-minutes: 3
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/consul_ui_testing_ci.sh" wait-for-url http://localhost:8500/ui "Consul UI on port 8500"
+
+      - name: Run E2E health check against port 8500
+        working-directory: ui/packages/consul-ui
+        timeout-minutes: 2
+        run: pnpm run test:e2e:health
+        env:
+          PLAYWRIGHT_BASE_URL: http://localhost:8500
+
+      - name: Run basic E2E tests against port 8500 (CE)
+        working-directory: ui/packages/consul-ui
+        timeout-minutes: 15
+        run: pnpm run test:e2e:basic
+        env:
+          CI: true
+          PLAYWRIGHT_BASE_URL: http://localhost:8500
+          CONSUL_UI_TEST_TOKEN: ${{ secrets.CONSUL_UI_TEST_TOKEN }}
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        with:
+          name: e2e-test-results-ce
+          path: ui/packages/consul-ui/e2e-tests/reports/
+          retention-days: 30
+
+      - name: Upload screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        with:
+          name: e2e-screenshots-ce
+          path: ui/packages/consul-ui/e2e-tests/reports/test-results/
+          retention-days: 7
+
+  e2e-tests-ent:
+    needs: setup
+    if: ${{ needs.setup.outputs.has-consul-license == 'true' }}
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-medium) }}
+    continue-on-error: false
+    env:
+      CONSUL_IMAGE: consul:local
+      CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
+      CONSUL_NSPACES_ENABLED: 1
+    steps:
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+
+      - name: Setup Go
+        uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Build Consul Enterprise binary and Docker image
+        run: |
+          echo "Building Consul Enterprise binary and creating consul:local Docker image..."
+          make dev-docker
+          docker images | grep consul
+          ./bin/consul version
+        env:
+          GOTAGS: "consulent"
+
+      - name: Install PNPM
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        with:
+          run_install: false
+          package_json_file: ui/package.json
+
+      - name: Setup node and pnpm cache
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+        with:
+          node-version-file: "./ui/package.json"
+          cache: "pnpm"
+          cache-dependency-path: "ui/pnpm-lock.yaml"
+
+      - name: Install dependencies
+        working-directory: ui
+        run: make deps
+
+      - name: Install Playwright browsers
+        working-directory: ui/packages/consul-ui
+        run: npx playwright install --with-deps chromium
+
+      - name: Checkout consul-ui-testing repo
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+        with:
+          repository: hashicorp/consul-ui-testing
+          path: consul-ui-testing
+          token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+
+      - name: Install consul-ui-testing dependencies
+        working-directory: consul-ui-testing
+        run: yarn install
+
+      - name: Install httpie (required by consul-ui-testing)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y httpie
+
+      - name: Patch consul-ui-testing for CI runners
+        working-directory: consul-ui-testing
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/patch_consul_ui_testing.sh"
+
+      - name: Force HashiCups image rebuild
+        working-directory: consul-ui-testing
+        run: rm -f .last_consul_version_built
+
+      - name: Start Consul API servers with local binary (ENT)
+        working-directory: consul-ui-testing
+        timeout-minutes: 2
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/consul_ui_testing_ci.sh" start ENT
+
+      - name: Wait for Consul peering setup (ENT)
+        working-directory: consul-ui-testing
+        timeout-minutes: 6
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/consul_ui_testing_ci.sh" wait-for-peering
+
+      - name: Verify Consul API readiness (ENT)
+        working-directory: consul-ui-testing
+        timeout-minutes: 3
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/consul_ui_testing_ci.sh" verify-api
+
+      - name: Report HashiCups container states (ENT)
+        working-directory: consul-ui-testing
+        timeout-minutes: 2
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/consul_ui_testing_ci.sh" report-containers
+
+      - name: Wait for Consul UI to be ready on port 8500
+        timeout-minutes: 3
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/consul_ui_testing_ci.sh" wait-for-url http://localhost:8500/ui "Consul UI on port 8500"
+
+      - name: Run E2E health check against port 8500
+        working-directory: ui/packages/consul-ui
+        timeout-minutes: 2
+        run: pnpm run test:e2e:health
+        env:
+          PLAYWRIGHT_BASE_URL: http://localhost:8500
+
+      - name: Run basic E2E tests against port 8500 (ENT)
+        working-directory: ui/packages/consul-ui
+        timeout-minutes: 15
+        run: pnpm run test:e2e:basic
+        env:
+          CI: true
+          PLAYWRIGHT_BASE_URL: http://localhost:8500
+          CONSUL_UI_TEST_TOKEN: ${{ secrets.CONSUL_UI_TEST_TOKEN }}
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        with:
+          name: e2e-test-results-ent
+          path: ui/packages/consul-ui/e2e-tests/reports/
+          retention-days: 30
+
+      - name: Upload screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        with:
+          name: e2e-screenshots-ent
+          path: ui/packages/consul-ui/e2e-tests/reports/test-results/
+          retention-days: 7
+
   # This is job is required for branch protection as a required gihub check
   # because GitHub actions show up as checks at the job level and not the
   # workflow level.  This is currently a feature request:

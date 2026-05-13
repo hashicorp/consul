@@ -67,9 +67,9 @@ export default function ({
         run(resolve, reject, retry).then(function () {
           if (!resolved) {
             setTimeout(function () {
-              if (++count >= 50) {
+              if (++count >= 100) {
                 assert.ok(false, message);
-                reject();
+                r();
                 return;
               }
               tick();

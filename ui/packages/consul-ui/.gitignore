@@ -25,3 +25,10 @@
 /.node_modules.ember-try/
 /bower.json.ember-try
 /package.json.ember-try
+
+# Playwright E2E test artifacts
+e2e-tests/reports/
+e2e-tests/.auth/
+.playwright/
+e2e-tests/auth-state.json
+playwright/.cache/
