@@ -13,17 +13,16 @@ as |route|>
         partition=route.params.partition
         nspace=route.params.nspace
         dc=route.params.dc
-      )}}
-    as |api|>
+      )}}>
 
-    <BlockSlot @name="error">
+    <:error as |api|>
       <AppError
         @error={{api.error}}
         @login={{route.model.app.login.open}}
       />
-    </BlockSlot>
+    </:error>
 
-    <BlockSlot @name="loaded">
+    <:loaded as |api|>
   {{#let
 
     (hash
@@ -51,13 +50,13 @@ as |route|>
   as |sort filters items|}}
 
     <AppView>
-      <BlockSlot @name="header">
+      <:header>
           <h1>
             <route.Title @title="Intentions" /> <em>{{format-number items.length}} total</em>
           </h1>
           <label for="toolbar-toggle"></label>
-      </BlockSlot>
-      <BlockSlot @name="actions">
+      </:header>
+      <:actions>
   {{#if (can 'create intentions')}}
     <Hds::Button
       @text='Create'
@@ -65,8 +64,8 @@ as |route|>
       data-test-create
     />
   {{/if}}
-      </BlockSlot>
-      <BlockSlot @name="toolbar">
+      </:actions>
+      <:toolbar>
 
   {{#if (gt items.length 0) }}
         <Consul::Intention::SearchBar
@@ -79,8 +78,8 @@ as |route|>
         />
   {{/if}}
 
-      </BlockSlot>
-      <BlockSlot @name="content">
+      </:toolbar>
+      <:content>
         {{#let (refresh-route) as |refreshRoute|}}
         <DataWriter
           @sink={{uri '/${partition}/${dc}/${nspace}/intention/'
@@ -92,9 +91,8 @@ as |route|>
           }}
           @type="intention"
           @ondelete={{refreshRoute}}
-          @onchange={{refreshRoute}}
-        as |writer|>
-          <BlockSlot @name="content">
+          @onchange={{refreshRoute}}>
+          <:content as |writer|>
             <DataCollection
               @type="intention"
               @sort={{sort.value}}
@@ -115,21 +113,21 @@ as |route|>
                 <EmptyState
                   @login={{route.model.app.login.open}}
                 >
-                  <BlockSlot @name="header">
+                  <:header>
                     <h2>
                       {{t 'routes.dc.intentions.index.empty.header'
                         items=items.length
                       }}
                     </h2>
-                  </BlockSlot>
-                  <BlockSlot @name="body">
+                  </:header>
+                  <:body>
                     {{t 'routes.dc.intentions.index.empty.body'
                       items=items.length
                       canUseACLs=(can "use acls")
                       htmlSafe=true
                     }}
-                  </BlockSlot>
-                  <BlockSlot @name="actions">
+                  </:body>
+                  <:actions>
                     <li>
                       <Hds::Link::Standalone
                         @text='Documentation on intentions'
@@ -148,17 +146,17 @@ as |route|>
                         @size='small'
                       />
                     </li>
-                  </BlockSlot>
+                  </:actions>
                 </EmptyState>
               </collection.Empty>
             </DataCollection>
-          </BlockSlot>
+          </:content>
         </DataWriter>
         {{/let}}
-      </BlockSlot>
+      </:content>
     </AppView>
 
   {{/let}}
-    </BlockSlot>
+    </:loaded>
   </DataLoader>
 </Route>

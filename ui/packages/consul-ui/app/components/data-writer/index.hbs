@@ -41,8 +41,8 @@
 {{#let
   (queue (action dispatch "RESET") (action this.ondelete))
 as |after|}}
-    {{#yield-slot name="removed" params=(block-params after)}}
-      {{yield api}}
+    {{#if (has-block "removed")}}
+      {{yield after to="removed"}}
     {{else}}
       <Hds::Toast
         @color='success'
@@ -52,7 +52,7 @@ as |after|}}
         <T.Title>Success!</T.Title>
         <T.Description>Your {{or @label @type}} has been deleted.</T.Description>
       </Hds::Toast>
-    {{/yield-slot}}
+    {{/if}}
 {{/let}}
   </State>
 
@@ -60,8 +60,8 @@ as |after|}}
 {{#let
   (action this.onchange)
 as |after|}}
-    {{#yield-slot name="persisted" params=(block-params after)}}
-      {{yield api}}
+    {{#if (has-block "persisted")}}
+      {{yield after to="persisted"}}
     {{else}}
       <Hds::Toast
         @color='success'
@@ -71,7 +71,7 @@ as |after|}}
         <T.Title>Success!</T.Title>
         <T.Description>Your {{or @label @type}} has been saved.</T.Description>
       </Hds::Toast>
-    {{/yield-slot}}
+    {{/if}}
 {{/let}}
   </State>
 
@@ -79,8 +79,8 @@ as |after|}}
 {{#let
   (action dispatch "RESET")
 as |after|}}
-    {{#yield-slot name="error" params=(block-params after api.error)}}
-      {{yield api}}
+    {{#if (has-block "error")}}
+      {{yield after api.error api to="error"}}
     {{else}}
       <Hds::Toast
         @color='critical'
@@ -96,13 +96,15 @@ as |after|}}
           {{/if}}
         </T.Description>
       </Hds::Toast>
-    {{/yield-slot}}
+    {{/if}}
 {{/let}}
   </State>
 
-  <YieldSlot @name="content">
+  {{#if (has-block "content")}}
+    {{yield api to="content"}}
+  {{else}}
     {{yield api}}
-  </YieldSlot>
+  {{/if}}
 
 {{/let}}
 </StateChart>

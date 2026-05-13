@@ -5,10 +5,9 @@
 
 import Component from '@ember/component';
 import { set } from '@ember/object';
-import Slotted from 'block-slots';
 import chart from './chart.xstate';
 
-export default Component.extend(Slotted, {
+export default Component.extend({
   tagName: '',
   ondelete: function () {
     return this.onchange(...arguments);

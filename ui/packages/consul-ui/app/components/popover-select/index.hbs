@@ -7,35 +7,41 @@
   class="popover-select"
   ...attributes
   @position={{or @position "left"}}
-  as |components menu|
 >
-  {{yield}}
-  {{#let
-    (component 'popover-select/optgroup' components=components)
-    (component 'popover-select/option'
-      select=this components=components
-      onclick=(pipe
-        (action "click")
-        (if this.multiple (noop) menu.toggle)
+  <:trigger as |components menu|>
+    {{#let
+      (component 'popover-select/optgroup' components=components)
+      (component 'popover-select/option'
+        select=this components=components
+        onclick=(pipe
+          (action "click")
+          (if this.multiple (noop) menu.toggle)
+        )
       )
-    )
-    as |Optgroup Option|
-  }}
-    <BlockSlot @name="trigger">
-      <YieldSlot @name="selected">
-        {{yield (hash
-            Optgroup=Optgroup
-            Option=Option
-        )}}
-      </YieldSlot>
-    </BlockSlot>
-    <BlockSlot @name="menu">
-      <YieldSlot @name="options">
-        {{yield (hash
-            Optgroup=Optgroup
-            Option=Option
-        )}}
-      </YieldSlot>
-    </BlockSlot>
-  {{/let}}
+      as |Optgroup Option|
+    }}
+      {{yield (hash
+          Optgroup=Optgroup
+          Option=Option
+      ) to="selected"}}
+    {{/let}}
+  </:trigger>
+  <:menu as |components menu|>
+    {{#let
+      (component 'popover-select/optgroup' components=components)
+      (component 'popover-select/option'
+        select=this components=components
+        onclick=(pipe
+          (action "click")
+          (if this.multiple (noop) menu.toggle)
+        )
+      )
+      as |Optgroup Option|
+    }}
+      {{yield (hash
+          Optgroup=Optgroup
+          Option=Option
+      ) to="options"}}
+    {{/let}}
+  </:menu>
 </PopoverMenu>

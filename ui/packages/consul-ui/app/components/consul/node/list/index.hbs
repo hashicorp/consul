@@ -5,9 +5,8 @@
 
 <ListCollection
   class="consul-node-list"
-  @items={{@items}}
-as |item index|>
-  <BlockSlot @name="header">
+  @items={{@items}}>
+  <:header as |item index|>
     <dl data-test-status={{item.Status}} class={{item.Status}}>
       <dt>
         Health
@@ -33,8 +32,8 @@ as |item index|>
     <a data-test-node href={{href-to "dc.nodes.show" item.Node params=(hash peer=item.PeerName)}}>
       {{item.Node}}
     </a>
-  </BlockSlot>
-  <BlockSlot @name="details">
+  </:header>
+  <:details as |item index|>
     <Consul::Node::PeerInfo @item={{item}} />
     {{#if (eq item.Address @leader.Address)}}
       <span class="leader" data-test-leader={{@leader.Address}}>Leader</span>
@@ -66,5 +65,5 @@ as |item index|>
           {{/if}}
       </dd>
     </dl>
-  </BlockSlot>
+  </:details>
 </ListCollection>

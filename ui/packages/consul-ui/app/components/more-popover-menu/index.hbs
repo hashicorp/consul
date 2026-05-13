@@ -11,12 +11,12 @@
     @expanded={{@expanded}}
     @onchange={{action @onchange}}
     @keyboardAccess={{true}}
-  as |components api|>
-    <BlockSlot @name="trigger">
+  >
+    <:trigger>
       More
-    </BlockSlot>
-    <BlockSlot @name="menu">
+    </:trigger>
+    <:menu as |components api|>
       {{yield components.MenuItem}}
-    </BlockSlot>
+    </:menu>
   </PopoverMenu>
 </div>

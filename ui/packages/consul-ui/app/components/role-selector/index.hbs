@@ -11,16 +11,18 @@
   @aria={{hash
     label=(if (eq this.state 'role') 'New Role' 'New Policy')
   }}
-as |modal|>
-  <Ref @target={{this}} @name="modal" @value={{modal}} />
-  <BlockSlot @name="header">
+>
+  <:default as |modal|>
+      <Ref @target={{this}} @name="modal" @value={{modal}} />
+  </:default>
+  <:header>
 {{#if (eq this.state 'role')}}
     <h2>New Role</h2>
 {{else}}
     <h2>New Policy</h2>
 {{/if}}
-  </BlockSlot>
-  <BlockSlot @name="body">
+  </:header>
+  <:body>
 
   <input id="{{this.name}}_state_role" type="radio" name="{{this.name}}[state]" value="role" checked={{if (eq this.state 'role') 'checked'}} onchange={{action 'change'}} />
     <RoleForm
@@ -29,7 +31,7 @@ as |modal|>
       @nspace={{@nspace}}
       @partition={{@partition}}
     >
-      <BlockSlot @name="policy">
+      <:policy>
 
         <PolicySelector
           @source={{this.source}}
@@ -38,7 +40,7 @@ as |modal|>
           @nspace={{@nspace}}
           @items={{this.item.Policies}}
         >
-          <BlockSlot @name="trigger">
+          <:trigger>
             <Hds::Button
               @text='Create new policy'
               @size='small'
@@ -48,10 +50,10 @@ as |modal|>
               data-test-create-policy
               {{action 'triggerStateCheckboxChange'}}
             />
-          </BlockSlot>
+          </:trigger>
         </PolicySelector>
 
-      </BlockSlot>
+      </:policy>
     </RoleForm>
 
     <input id="{{this.name}}_state_policy" type="radio" name="{{this.name}}[state]" value="policy" checked={{if (eq this.state 'policy') 'checked'}} onchange={{action 'change'}} />
@@ -64,8 +66,8 @@ as |modal|>
       @partition={{@partition}}
     />
 
-  </BlockSlot>
-  <BlockSlot @name="actions" as |close|>
+  </:body>
+  <:actions as |close|>
 
     <Hds::ButtonSet>
       {{#if (eq this.state 'role')}}
@@ -101,7 +103,7 @@ as |modal|>
         />
       {{/if}}
     </Hds::ButtonSet>
-  </BlockSlot>
+  </:actions>
 </ModalDialog>
 
 <ChildSelector
@@ -114,10 +116,10 @@ as |modal|>
   @placeholder="Search for role"
   @items={{@items}}
 >
-  <BlockSlot @name="label">
+  <:label>
     Apply an existing role
-  </BlockSlot>
-  <BlockSlot @name="create">
+  </:label>
+  <:create>
     <Hds::Button
       @text='Create new role'
       @size='small'
@@ -127,63 +129,63 @@ as |modal|>
       data-test-role-create
       {{on "click" (optional this.modal.open)}}
     />
-  </BlockSlot>
-  <BlockSlot @name="option" as |option|>
+  </:create>
+  <:option as |option|>
     {{option.Name}}
-  </BlockSlot>
-  <BlockSlot @name="set" as |remove|>
+  </:option>
+  <:set as |remove|>
     <TabularCollection
         data-test-roles
         @rows={{5}}
-        @items={{sort-by 'CreateTime:desc' 'Name:asc' @items}} as |item index|
+        @items={{sort-by 'CreateTime:desc' 'Name:asc' @items}}
     >
-      <BlockSlot @name="header">
+      <:header>
         <th>Name</th>
         <th>Description</th>
-      </BlockSlot>
-      <BlockSlot @name="row">
+      </:header>
+      <:row as |item index|>
         <td>
           <a href={{href-to 'dc.acls.roles.edit' item.ID}}>{{item.Name}}</a>
         </td>
         <td>
           {{item.Description}}
         </td>
-      </BlockSlot>
-      <BlockSlot @name="actions" as |index change checked|>
-        <PopoverMenu @expanded={{if (eq checked index) true false}} @onchange={{action change index}} @keyboardAccess={{true}} as |components|>
-          <BlockSlot @name="trigger">
+      </:row>
+      <:actions as |item index change checked|>
+        <PopoverMenu @expanded={{if (eq checked index) true false}} @onchange={{action change index}} @keyboardAccess={{true}}>
+          <:trigger>
             More
-          </BlockSlot>
-          <BlockSlot @name="menu" as |confirm keypressClick|>
+          </:trigger>
+          <:menu as |components confirm keypressClick|>
               <components.MenuItem @href={{href-to 'dc.acls.roles.edit' item.ID}}>
-                <BlockSlot @name="label">
+                <:label>
                   {{#if (can "edit role" item=item)}}
                     Edit
                   {{else}}
                     View
                   {{/if}}
-                </BlockSlot>
+                </:label>
               </components.MenuItem>
 
             {{#if (not @disabled)}}
               <components.MenuItem class="dangerous" @onclick={{fn remove item @items}} data-test-delete>
-                <BlockSlot @name="label">
+                <:label>
                   Remove
-                </BlockSlot>
-                <BlockSlot @name="confirm-header">
+                </:label>
+                <:confirmHeader>
                   Confirm Remove
-                </BlockSlot>
-                <BlockSlot @name="confirm-body">
+                </:confirmHeader>
+                <:confirmBody>
                   Are you sure you want to remove this role?
-                </BlockSlot>
-                <BlockSlot @name="confirm-footer" as |Params|>
+                </:confirmBody>
+                <:confirmFooter as |Params|>
                   <Params.button @text='Remove' {{on 'click' Params.confirmAction}} />
-                </BlockSlot>
+                </:confirmFooter>
               </components.MenuItem>
             {{/if}}
-          </BlockSlot>
+          </:menu>
         </PopoverMenu>
-      </BlockSlot>
+      </:actions>
     </TabularCollection>
-  </BlockSlot>
+  </:set>
 </ChildSelector>

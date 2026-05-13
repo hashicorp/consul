@@ -14,10 +14,9 @@ as |route|>
         dc=route.params.dc
         id=(or route.params.id '')
       )
-    }}
-  as |loader|>
+    }}>
 
-    <BlockSlot @name="error">
+    <:error as |loader|>
       {{#if (eq loader.error.status '401')}}
         <Consul::Acl::Disabled />
       {{else}}
@@ -26,9 +25,9 @@ as |route|>
           @login={{route.model.app.login.open}}
         />
       {{/if}}
-    </BlockSlot>
+    </:error>
 
-    <BlockSlot @name="loaded">
+    <:loaded as |loader|>
 {{#let
 
   route.params.dc
@@ -41,12 +40,12 @@ as |dc partition nspace item create|}}
   <AppView
     @login={{route.model.app.login.open}}
   >
-      <BlockSlot @name="breadcrumbs">
+      <:breadcrumbs>
         <Hds::Breadcrumb>
           <Hds::Breadcrumb::Item @text="All Tokens" @route="dc.acls.tokens" @model={{route.params.dc}} data-test-back />
         </Hds::Breadcrumb>
-      </BlockSlot>
-      <BlockSlot @name="header">
+      </:breadcrumbs>
+      <:header>
           <h1>
     {{#if create}}
               <route.Title @title="New Token" />
@@ -54,21 +53,21 @@ as |dc partition nspace item create|}}
               <route.Title @title="Edit Token" />
     {{/if}}
           </h1>
-      </BlockSlot>
-      <BlockSlot @name="actions">
+      </:header>
+      <:actions>
   {{#if (not create)}}
     <Hds::ButtonSet>
     {{#if (not-eq item.AccessorID this.token.AccessorID)}}
         <ConfirmationDialog @message="Are you sure you want to use this ACL token?">
-          <BlockSlot @name="action" as |confirm|>
+          <:action as |confirm|>
             <Hds::Button
               @text='Use'
               @color='secondary'
               data-test-use
               {{ action confirm }}
             />
-          </BlockSlot>
-          <BlockSlot @name="dialog" as |execute cancel message|>
+          </:action>
+          <:dialog as |execute cancel message|>
             <p>
                 {{message}}
             </p>
@@ -85,7 +84,7 @@ as |dc partition nspace item create|}}
                 {{action cancel}}
               />
             </Hds::ButtonSet>
-          </BlockSlot>
+          </:dialog>
         </ConfirmationDialog>
     {{/if}}
     {{#if (can "duplicate token" item=item)}}
@@ -98,8 +97,8 @@ as |dc partition nspace item create|}}
     {{/if}}
     </Hds::ButtonSet>
   {{/if}}
-      </BlockSlot>
-      <BlockSlot @name="content">
+      </:actions>
+      <:content>
           {{#if (token/is-legacy item)}}
             <Hds::Alert @type='inline' class='mb-6' as |A|>
               <A.Title>Update</A.Title>
@@ -154,9 +153,9 @@ as |dc partition nspace item create|}}
             @onDelete={{fn this.onDelete item}}
             @onChange={{action 'change'}}
           />
-      </BlockSlot>
+      </:content>
   </AppView>
 {{/let}}
-    </BlockSlot>
+    </:loaded>
   </DataLoader>
 </Route>

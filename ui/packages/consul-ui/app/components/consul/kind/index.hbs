@@ -13,7 +13,7 @@
       </dt>
       <dd>
         <MenuPanel @position="left">
-          <BlockSlot @name="header">
+          <:header>
             {{#if (eq @item.Kind 'ingress-gateway')}}
               Ingress gateways enable ingress traffic from services outside the Consul service mesh to services inside the Consul service mesh.
             {{else if (eq @item.Kind 'terminating-gateway')}}
@@ -23,8 +23,8 @@
             {{else}}
               Mesh gateways enable routing of Connect traffic between different Consul datacenters.
             {{/if}}
-          </BlockSlot>
-          <BlockSlot @name="menu">
+          </:header>
+          <:menu>
             <li role="separator">
               {{#if (eq @item.Kind 'ingress-gateway')}}
                   About Ingress gateways
@@ -92,7 +92,7 @@
             </li>
           {{/if}}
       {{/let}}
-          </BlockSlot>
+          </:menu>
         </MenuPanel>
       </dd>
     </dl>

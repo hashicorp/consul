@@ -8,9 +8,9 @@
   class="consul-intention-permission-list{{if (not @onclick) ' readonly'}}"
   @scroll="native"
   @items={{@items}}
-  @partial={{5}}
-as |item|>
-  <BlockSlot @name="details">
+  @showActions={{if @onclick true false}}
+  @partial={{5}}>
+  <:details as |item|>
     <div onclick={{action (optional @onclick) item}}>
       <strong class={{concat 'intent-' item.Action}}>{{capitalize item.Action}}</strong>
 {{#if (gt item.HTTP.Methods.length 0)}}
@@ -46,37 +46,35 @@ as |item|>
         </dl>
 {{/each}}
     </div>
-  </BlockSlot>
-{{#if @onclick}}
-  <BlockSlot @name="actions" as |Actions|>
+  </:details>
+  <:actions as |item index Actions|>
     <Actions as |Action|>
       <Action data-test-edit-action @onclick={{action (optional @onclick) item}} @close={{true}}>
-        <BlockSlot @name="label">
+        <:label>
           Edit
-        </BlockSlot>
+        </:label>
       </Action>
       <Action data-test-delete-action @onclick={{action (optional @ondelete) item}} class="dangerous">
-        <BlockSlot @name="label">
+        <:label>
           Delete
-        </BlockSlot>
-        <BlockSlot @name="confirmation" as |Confirmation|>
+        </:label>
+        <:confirmation as |Confirmation|>
           <Confirmation class="warning">
-            <BlockSlot @name="header">
+            <:header>
               Confirm delete
-            </BlockSlot>
-            <BlockSlot @name="body">
+            </:header>
+            <:body>
               <p>
                 Are you sure you want to delete this permission?
               </p>
-            </BlockSlot>
-            <BlockSlot @name="confirm" as |Confirm|>
+            </:body>
+            <:confirm as |Confirm|>
               <Confirm>Delete</Confirm>
-            </BlockSlot>
+            </:confirm>
           </Confirmation>
-        </BlockSlot>
+        </:confirmation>
       </Action>
     </Actions>
-  </BlockSlot>
-{{/if}}
+  </:actions>
 </ListCollection>
 {{/if}}

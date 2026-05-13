@@ -42,15 +42,15 @@ module('Integration | Component | list collection', function (hooks) {
     document.body.appendChild(footer);
 
     await render(hbs`
-      <ListCollection @items={{this.items}} as |item index Actions|>
-        <BlockSlot @name="header">{{item.name}}</BlockSlot>
-        <BlockSlot @name="actions" as |Actions|>
+      <ListCollection @items={{this.items}}>
+        <:header as |item|>{{item.name}}</:header>
+        <:actions as |item index Actions|>
           <Actions as |Action|>
             <Action>
-              <BlockSlot @name="label">Action</BlockSlot>
+              <:label>Action</:label>
             </Action>
           </Actions>
-        </BlockSlot>
+        </:actions>
       </ListCollection>
     `);
 

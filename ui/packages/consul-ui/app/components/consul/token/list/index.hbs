@@ -3,8 +3,8 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-<ListCollection class='consul-token-list' @items={{@items}} as |item|>
-  <BlockSlot @name='header'>
+<ListCollection class='consul-token-list' @items={{@items}}>
+  <:header as |item|>
     {{#if (eq item.AccessorID @token.AccessorID)}}
       <dl rel='me'>
         <dt></dt>
@@ -22,8 +22,8 @@
         {{substr item.AccessorID -8}}
     {{/if}}
     </a>
-  </BlockSlot>
-  <BlockSlot @name='details'>
+  </:header>
+  <:details as |item|>
     <dl>
       <dt>Scope</dt>
       <dd>
@@ -37,8 +37,8 @@
         {{or item.Description item.Name}}
       </dd>
     </dl>
-  </BlockSlot>
-  <BlockSlot @name='actions' as |Actions|>
+  </:details>
+  <:actions as |item index Actions|>
     {{#if item.hasSecretID}}
       <ConsulCopyButton @value={{item.SecretID}} @name={{t 'components.consul.token.secretID'}}>
         {{t 'components.consul.token.secretID'}}
@@ -46,77 +46,77 @@
     {{/if}}
     <Actions as |Action|>
       <Action data-test-edit-action @href={{href-to 'dc.acls.tokens.edit' item.AccessorID}}>
-        <BlockSlot @name='label'>
+        <:label>
           {{#if (can 'write token' item=item)}}
             Edit
           {{else}}
             View
           {{/if}}
-        </BlockSlot>
+        </:label>
       </Action>
       {{#if (can 'duplicate token' item=item)}}
         <Action data-test-clone-action @onclick={{action @onclone item}}>
-          <BlockSlot @name='label'>
+          <:label>
             Duplicate
-          </BlockSlot>
+          </:label>
         </Action>
       {{/if}}
 
       {{#if (eq item.AccessorID @token.AccessorID)}}
         <Action data-test-logout-action class='dangerous' @onclick={{action @onlogout item}}>
-          <BlockSlot @name='label'>
+          <:label>
             Logout
-          </BlockSlot>
-          <BlockSlot @name='confirm-header'>
+          </:label>
+          <:confirmHeader>
             Confirm logout
-          </BlockSlot>
-          <BlockSlot @name='confirm-body'>
+          </:confirmHeader>
+          <:confirmBody>
             <p>
               Are you sure you want to stop using this ACL token? This will log you out.
             </p>
-          </BlockSlot>
-          <BlockSlot @name='confirm-footer' as |Params|>
+          </:confirmBody>
+          <:confirmFooter as |Params|>
             <Params.button @text='Logout' {{on 'click' Params.confirmAction}} />
-          </BlockSlot>
+          </:confirmFooter>
         </Action>
       {{else}}
         <Action data-test-use-action @onclick={{action @onuse item}}>
-          <BlockSlot @name='label'>
+          <:label>
             Use
-          </BlockSlot>
-          <BlockSlot @name='confirm-header'>
+          </:label>
+          <:confirmHeader>
             Confirm use
-          </BlockSlot>
-          <BlockSlot @name='confirm-body'>
+          </:confirmHeader>
+          <:confirmBody>
             <p>
               Are you sure you want to use this ACL token?
             </p>
-          </BlockSlot>
-          <BlockSlot @name='confirm-footer' as |Params|>
+          </:confirmBody>
+          <:confirmFooter as |Params|>
             <Params.button @text='Use' {{on 'click' Params.confirmAction}} />
-          </BlockSlot>
+          </:confirmFooter>
         </Action>
       {{/if}}
 
       {{#if (can 'delete token' item=item token=@token)}}
         <Action data-test-delete-action @onclick={{action @ondelete item}} class='dangerous'>
-          <BlockSlot @name='label'>
+          <:label>
             Delete
-          </BlockSlot>
-          <BlockSlot @name='confirm-header'>
+          </:label>
+          <:confirmHeader>
             Confirm delete
-          </BlockSlot>
-          <BlockSlot @name='confirm-body'>
+          </:confirmHeader>
+          <:confirmBody>
             <p>
               Are you sure you want to delete this token?
             </p>
-          </BlockSlot>
-          <BlockSlot @name='confirm-footer' as |Params|>
+          </:confirmBody>
+          <:confirmFooter as |Params|>
             <Params.button @text='Delete' {{on 'click' Params.confirmAction}} />
-          </BlockSlot>
+          </:confirmFooter>
         </Action>
       {{/if}}
 
     </Actions>
-  </BlockSlot>
+  </:actions>
 </ListCollection>
