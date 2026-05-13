@@ -3,12 +3,12 @@
 
 blank_issues_enabled: false
 contact_links:
+  - name: Issues with content on developer.hashicorp.com
+    url: https://github.com/hashicorp/web-unified-docs/issues
+    about: Report the issue in the web-unified-docs repository
   - name: Consul Community Support
     url: https://discuss.hashicorp.com/c/consul/29
     about: If you have a question, or are looking for advice, please post on our Discuss forum! The community loves to chime in to help. Happy Coding!
   - name: Consul on Kubernetes GitHub Issues
     url: https://github.com/hashicorp/consul-k8s
     about: Are you submitting an issue or feature enhancement for the Consul Helm chart? Please post in the consul-k8s GitHub Issues.
-  - name: Consul Learn Tracks
-    url: https://learn.hashicorp.com/consul?track=getting-started#getting-started
-    about: Please check out our Learn Guides. These hands on guides deal with many of the tasks common to using Consul
