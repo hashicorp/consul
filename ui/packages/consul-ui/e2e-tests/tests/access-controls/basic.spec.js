@@ -97,7 +97,7 @@ test.describe('Access Controls - Basic', () => {
 
       // 9. Sign out, then sign back in with management token.
       await page.getByLabel('Auth menu').click();
-      await page.getByRole('button', { name: 'Log out'}).click();
+      await page.getByRole('button', { name: 'Log out' }).click();
       await loginWithToken(page, mgmtToken, baseURL);
 
       await tokensPage.goto();

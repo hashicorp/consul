@@ -161,14 +161,13 @@ class TokensPage {
     return this.page.getByRole('button', { name: 'Confirm Delete' });
   }
 
-  get useButton(){
+  get useButton() {
     return this.page.getByRole('button', { name: 'Use' });
   }
 
-  get confirmUseButton(){
+  get confirmUseButton() {
     return this.page.getByRole('button', { name: 'Confirm Use' });
   }
-
 
   async selectFromSuperSelect(label, optionText) {
     const field = await this.page.getByText(label);
@@ -215,7 +214,7 @@ class TokensPage {
    * @param {string} description
    */
   tokenRow(description) {
-    return this.page.getByText(description, { exact : true});
+    return this.page.getByText(description, { exact: true });
   }
 
   /**
