@@ -196,7 +196,7 @@ jobs:
     env:
       CONSUL_IMAGE: consul:local
       CONSUL_NSPACES_ENABLED: 0
-      ENVOY_VERSION: 1.34.14
+      ENVOY_VERSION: 1.35.10
     steps:
       - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
 
@@ -320,6 +320,7 @@ jobs:
       CONSUL_IMAGE: consul:local
       CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
       CONSUL_NSPACES_ENABLED: 1
+      ENVOY_VERSION: 1.35.10
     steps:
       - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
 
