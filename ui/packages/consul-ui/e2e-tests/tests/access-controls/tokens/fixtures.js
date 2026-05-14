@@ -161,6 +161,15 @@ class TokensPage {
     return this.page.getByRole('button', { name: 'Confirm Delete' });
   }
 
+  get useButton(){
+    return this.page.getByRole('button', { name: 'Use' });
+  }
+
+  get confirmUseButton(){
+    return this.page.getByRole('button', { name: 'Confirm Use' });
+  }
+
+
   async selectFromSuperSelect(label, optionText) {
     const field = await this.page.getByText(label);
     await field.waitFor({ state: 'visible', timeout: 30000 });
@@ -206,11 +215,7 @@ class TokensPage {
    * @param {string} description
    */
   tokenRow(description) {
-    return this.page
-      .locator('[data-test-description]')
-      .filter({ hasText: description })
-      .first()
-      .locator('xpath=ancestor::*[contains(@class,"list-collection") or self::li][1]');
+    return this.page.getByText(description, { exact : true});
   }
 
   /**
@@ -228,8 +233,7 @@ class TokensPage {
   async openToken(description) {
     const row = this.tokenRow(description);
     await expect(row).toBeVisible({ timeout: 30000 });
-    const tokenLink = row.locator('[data-test-token]').first();
-    await tokenLink.click();
+    await row.click();
     await expect(this.page).toHaveURL(/\/tokens\//, { timeout: 30000 });
   }
 
@@ -237,24 +241,9 @@ class TokensPage {
     const rowContainer = this.tokenRow(description);
     await expect(rowContainer).toBeVisible({ timeout: 30000 });
 
-    const useAction = rowContainer.locator('[data-test-use-action]').first();
-    if (!(await useAction.isVisible().catch(() => false))) {
-      const moreButton = rowContainer.getByRole('button', { name: /more/i }).first();
-      if (await moreButton.isVisible().catch(() => false)) {
-        await moreButton.click();
-      }
-    }
-
-    if (await useAction.isVisible().catch(() => false)) {
-      await useAction.click();
-      await this.page.getByRole('button', { name: /^Use$/ }).first().click();
-      return;
-    }
-
-    // fallback to open then click use
     await this.openToken(description);
-    await this.page.locator('[data-test-use]').click();
-    await this.page.locator('[data-test-confirm-use]').click();
+    await this.useButton.click();
+    await this.confirmUseButton.click();
   }
 
   /**

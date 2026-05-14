@@ -12,10 +12,10 @@ const { loginWithToken } = require('../../utils/auth-utils');
 const test = mergeTests(policyTest, roleTest, tokenTest);
 
 function managementTokenFromEnv() {
-  return process.env.token || process.env.CONSUL_UI_TEST_TOKEN;
+  return process.env.CONSUL_UI_TEST_TOKEN;
 }
 
-test.describe('Access Controls - Workflows (Fixtures)', () => {
+test.describe('Access Controls - Basic', () => {
   test('policy -> role -> token workflow with permission switch and cleanup', async ({
     page,
     baseURL,
@@ -93,15 +93,15 @@ test.describe('Access Controls - Workflows (Fixtures)', () => {
 
       // 8. Verify we no longer have permission to create tokens.
       await tokensPage.goto();
-      await expect(page.locator('[data-test-create]')).toHaveCount(0);
+      await expect(page.getByRole('link', { name: 'Create' })).toHaveCount(0);
 
       // 9. Sign out, then sign back in with management token.
-      await page.locator('[data-test-auth-menu]').click();
-      await page.locator('[data-test-auth-menu-logout]').click();
+      await page.getByLabel('Auth menu').click();
+      await page.getByRole('button', { name: 'Log out'}).click();
       await loginWithToken(page, mgmtToken, baseURL);
 
       await tokensPage.goto();
-      await expect(page.locator('[data-test-create]')).toBeVisible({ timeout: 30000 });
+      await expect(page.getByRole('link', { name: 'Create' })).toBeVisible({ timeout: 30000 });
 
       // 10. Cleanup in management context.
       await tokenApi.deleteByDescription(tokenDescriptionCurrent);
