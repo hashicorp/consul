@@ -160,7 +160,10 @@ class PoliciesPage {
 
   get rulesEditor() {
     // The rules editor is a CodeMirror / textarea; fall back to textarea if needed.
-    return this.page.locator('[data-test-policy-rules]').or(this.page.locator('textarea[name="rules"]')).first();
+    return this.page
+      .locator('[data-test-policy-rules]')
+      .or(this.page.locator('textarea[name="rules"]'))
+      .first();
   }
 
   get saveButton() {

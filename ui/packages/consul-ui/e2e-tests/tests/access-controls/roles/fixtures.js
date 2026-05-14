@@ -206,7 +206,7 @@ class RolesPage {
     await field.waitFor({ state: 'visible', timeout: 30000 });
     await field.click();
     await field.fill(optionText);
-  
+
     const option = this.page
       .getByRole('option', { name: optionText, exact: true })
       .or(this.page.getByText(optionText, { exact: true }))

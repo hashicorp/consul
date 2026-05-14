@@ -52,7 +52,10 @@ test.describe('Access Controls - Workflows (Fixtures)', () => {
 
       // 3-4. Navigate to Roles and create a role with only that policy.
       await rolesPage.gotoCreate();
-      await rolesPage.fillAndSave(roleName, { description: 'role-initial', policies: [policyName] });
+      await rolesPage.fillAndSave(roleName, {
+        description: 'role-initial',
+        policies: [policyName],
+      });
       await expect(page).toHaveURL(/\/acls\/roles(?:$|\?)/, { timeout: 30000 });
       await rolesPage.waitForRoleInList(roleName);
 
