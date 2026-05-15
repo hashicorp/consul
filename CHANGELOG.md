@@ -1,3 +1,20 @@
+## 2.0.0-rc2 (May 15, 2026)
+
+SECURITY:
+
+* agent: Increased default HTTP server timeouts to prevent breaking long-polling blocking queries. `read_timeout` and `write_timeout` are now set to 15 minutes (up from 30 seconds), while `read_header_timeout` (10s) and `idle_timeout` (120s) still provide protection against Slowloris attacks. All timeouts remain configurable via the `http_config` block. [[GH-23267](https://github.com/hashicorp/consul/issues/23267)]
+* api-gateway, terminating-gateway: Apply HTTP request path normalization on api-gateway and terminating-gateway HTTP listeners to prevent L7 intention RBAC bypass via non-normalized paths (CVE-2024-10005). [[GH-23534](https://github.com/hashicorp/consul/issues/23534)]
+* docker: update ubi base image to `ubi9-minimal:9.7`. [[GH-23553](https://github.com/hashicorp/consul/issues/23553)]
+* security: Fixed Consul transaction endpoint authorization bypasses where service and check mutations could be authorized using request-provided names while applying changes by ID, including a bypass using the reserved `consul` service name. [[GH-12716](https://github.com/hashicorp/consul/issues/12716)]
+
+BUG FIXES:
+
+* XDS: Fixes issue with mesh-gateway in remote mode on AWS EKS, as DNS hostnames are assigned to AWS NLBs instead of IPs and envoy's EDS endpoint validation expects address to be an IP. Now EDS load assignment is skipped for non-peer remote mesh gateway targets with hostname based gateways keeping CDS/EDS in sync. [[GH-23543](https://github.com/hashicorp/consul/issues/23543)]
+* api-gateway: resolve service subsets for routes during API gateway discovery chain synthesis. [[GH-23294](https://github.com/hashicorp/consul/issues/23294)]
+
+## 2.0.0-rc2 (May 15, 2026)
+
+
 ## 1.22.6 (March 23, 2026)
 
 SECURITY:
