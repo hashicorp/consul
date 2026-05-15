@@ -12,9 +12,6 @@ BUG FIXES:
 * XDS: Fixes issue with mesh-gateway in remote mode on AWS EKS, as DNS hostnames are assigned to AWS NLBs instead of IPs and envoy's EDS endpoint validation expects address to be an IP. Now EDS load assignment is skipped for non-peer remote mesh gateway targets with hostname based gateways keeping CDS/EDS in sync. [[GH-23543](https://github.com/hashicorp/consul/issues/23543)]
 * api-gateway: resolve service subsets for routes during API gateway discovery chain synthesis. [[GH-23294](https://github.com/hashicorp/consul/issues/23294)]
 
-## 2.0.0-rc2 (May 15, 2026)
-
-
 ## 1.22.6 (March 23, 2026)
 
 SECURITY:
