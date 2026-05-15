@@ -48,8 +48,27 @@ RUN addgroup consul && \
 
 # Set up certificates, base tools, and Consul.
 # libc6-compat is needed to symlink the shared libraries for ARM builds
+# Upgrade curl to >=8.20.0 from Alpine edge to fix CVE-2026-6429, CVE-2026-4873, CVE-2026-5773,
+# CVE-2026-6253, CVE-2026-6276, CVE-2026-7168, CVE-2026-5545 (fixed in curl 8.20.0).
+# Alpine 3.23 stable does not yet carry the patched version.
 RUN set -eux && \
-    apk add --no-cache --upgrade ca-certificates curl dumb-init gnupg libcap openssl su-exec iputils jq libc6-compat iptables tzdata && \
+    apk add --no-cache --upgrade \
+        ca-certificates \
+        dumb-init \
+        gnupg \
+        gnutls \
+        libcap \
+        openssl \
+        su-exec \
+        iputils \
+        jq \
+        libc6-compat \
+        iptables \
+        tzdata \
+        zlib && \
+    apk add --no-cache --upgrade \
+        --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main \
+        'curl>=8.20.0' && \
     gpg --keyserver keyserver.ubuntu.com --recv-keys C874011F0AB405110D02105534365D9472D7468F && \
     mkdir -p /tmp/build && \
     cd /tmp/build && \
@@ -156,19 +175,26 @@ LABEL org.opencontainers.image.authors="Consul Team <consul@hashicorp.com>" \
 COPY LICENSE /usr/share/doc/$PRODUCT_NAME/LICENSE.txt
 # Set up certificates and base tools.
 # libc6-compat is needed to symlink the shared libraries for ARM builds
+# Upgrade curl to >=8.20.0 from Alpine edge to fix CVE-2026-6429, CVE-2026-4873, CVE-2026-5773,
+# CVE-2026-6253, CVE-2026-6276, CVE-2026-7168, CVE-2026-5545 (fixed in curl 8.20.0).
+# Alpine 3.23 stable does not yet carry the patched version.
 RUN apk add -v --no-cache --upgrade \
 		dumb-init \
 		libc6-compat \
 		iptables \
 		tzdata \
-		curl \
 		ca-certificates \
 		gnupg \
-		iputils \ 
+		gnutls \
+		iputils \
 		libcap \
 		openssl \
 		su-exec \
-		jq 
+		jq \
+		zlib && \
+    apk add --no-cache --upgrade \
+        --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main \
+        'curl>=8.20.0'
 
 # Create a consul user and group first so the IDs get set the same way, even as
 # the rest of this may change over time.
