@@ -39,24 +39,8 @@ container {
   triage {
     suppress {
       vulnerabilities = [
-        "CVE-2025-14524", //Alpine Linux's Security Issue Tracker in curl@8.17.0-r1
-        "CVE-2025-14017", //Alpine Linux's Security Issue Tracker in curl@8.17.0-r1 
-        "CVE-2026-1965", //Alpine Linux's Security Issue Tracker in curl@8.17.0-r1
-        "CVE-2026-3783", //Alpine Linux's Security Issue Tracker in curl@8.17.0-r1
-        "CVE-2026-3784", //Alpine Linux's Security Issue Tracker in curl@8.17.0-r1
-        "CVE-2026-3805", //Alpine Linux's Security Issue Tracker in curl@8.17.0-r1
-        "CVE-2025-14819", //Alpine Linux's Security Issue Tracker in curl@8.17.0-r1
-        "CVE-2026-6429", //Alpine Linux's Security Issue Tracker in curl@8.17.0-r1
-        "CVE-2026-4873", //Alpine Linux's Security Issue Tracker in curl@8.17.0-r1
-        "CVE-2026-5773", //Alpine Linux's Security Issue Tracker in curl@8.17.0-r1
-        "CVE-2026-6253", //Alpine Linux's Security Issue Tracker in curl@8.17.0-r1
-        "CVE-2026-6276", //Alpine Linux's Security Issue Tracker in curl@8.17.0-r1
-        "CVE-2026-7168", //Alpine Linux's Security Issue Tracker in curl@8.17.0-r1
-        "CVE-2026-5545", //Alpine Linux's Security Issue Tracker in curl@8.17.0-r1
         "CVE-2025-30258", //Alpine Linux's Security Issue Tracker in gnupg@2.4.9-r0
-        "CVE-2026-27171", //Alpine Linux's Security Issue Tracker in zlib@1.3.1-r2
         "CVE-2026-41989", //Alpine Linux's Security Issue Tracker in libgcrypt@1.11.2-r0
-
       ]
 
       paths = [
