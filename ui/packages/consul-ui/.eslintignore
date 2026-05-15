@@ -22,3 +22,10 @@ app/utils/dom/event-target/event-target-shim/event.js
 /.node_modules.ember-try/
 /bower.json.ember-try
 /package.json.ember-try
+
+# e2e test
+e2e-tests/reports/
+e2e-tests/.auth/
+.playwright/
+e2e-tests/auth-state.json
+playwright/.cache/

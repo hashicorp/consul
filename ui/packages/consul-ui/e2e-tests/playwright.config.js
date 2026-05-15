@@ -92,6 +92,17 @@ module.exports = defineConfig({
     },
 
     {
+      name: 'all',
+      testMatch: ['**/*.spec.js'],
+      use: {
+        ...devices['Desktop Chrome'],
+      },
+      fullyParallel: false,
+      retries: 1,
+      timeout: 60000, // 60s per test
+    },
+
+    {
       name: 'workflows',
       testMatch: ['**/workflows/**/*.spec.js', '**/workflows.spec.js'],
       use: {
@@ -116,5 +127,3 @@ module.exports = defineConfig({
   //   timeout: 120000,
   // },
 });
-
-// Made with Bob
