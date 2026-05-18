@@ -74,6 +74,12 @@ exports.test = base.test.extend({
             data: { Action: action, Description: description },
           }
         );
+        if (!response.ok()) {
+          const body = await response.text().catch(() => '(no body)');
+          throw new Error(
+            `Failed to create intention ${source} -> ${destination}: HTTP ${response.status()} ${response.statusText()} — ${body}`
+          );
+        }
         console.log(
           `Created intention: ${source} -> ${destination} (status: ${response.status()})`
         );
