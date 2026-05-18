@@ -142,7 +142,7 @@ test.describe('Intentions - View and List', () => {
     intentionApi,
   }) => {
     await intentionApi.create('e2e-list-src', 'e2e-list-dest', { action: 'allow' });
-    await intentionsPage.goto('/ui/dc1/intentions');
+    await intentionsPage.goto('/ui/dc1/intentions', { waitUntil: 'networkidle' });
 
     await expect(
       intentionsPage.locator('[data-test-intention-source="e2e-list-src"]')
@@ -160,7 +160,7 @@ test.describe('Intentions - View and List', () => {
     intentionApi,
   }) => {
     await intentionApi.create('e2e-nav-src', 'e2e-nav-dest', { action: 'allow' });
-    await intentionsPage.goto('/ui/dc1/intentions');
+    await intentionsPage.goto('/ui/dc1/intentions', { waitUntil: 'networkidle' });
 
     await intentionsPage.locator('[data-test-intention-source="e2e-nav-src"]').click();
     // URL is /ui/dc1/intentions/{partition}:{ns}:{source}:{partition}:{ns}:{dest} (no /edit suffix)
@@ -176,7 +176,7 @@ test.describe('Intentions - View and List', () => {
 test.describe('Intentions - Edit', () => {
   test('should edit an intention from allow to deny', async ({ intentionsPage, intentionApi }) => {
     await intentionApi.create('e2e-allow-src', 'e2e-allow-dest', { action: 'allow' });
-    await intentionsPage.goto('/ui/dc1/intentions');
+    await intentionsPage.goto('/ui/dc1/intentions', { waitUntil: 'networkidle' });
 
     // click the source link to open the edit form
     await intentionsPage.locator('[data-test-intention-source="e2e-allow-src"]').click();
@@ -199,7 +199,7 @@ test.describe('Intentions - Edit', () => {
 
   test('should edit an intention from deny to allow', async ({ intentionsPage, intentionApi }) => {
     await intentionApi.create('e2e-deny-src', 'e2e-deny-dest', { action: 'deny' });
-    await intentionsPage.goto('/ui/dc1/intentions');
+    await intentionsPage.goto('/ui/dc1/intentions', { waitUntil: 'networkidle' });
 
     await intentionsPage.locator('[data-test-intention-source="e2e-deny-src"]').click();
     await expect(intentionsPage).toHaveURL(/\/ui\/dc1\/intentions\/[^/]+$/);
@@ -222,7 +222,7 @@ test.describe('Intentions - Edit', () => {
     intentionApi,
   }) => {
     await intentionApi.create('e2e-cancel-src', 'e2e-cancel-dest', { action: 'allow' });
-    await intentionsPage.goto('/ui/dc1/intentions');
+    await intentionsPage.goto('/ui/dc1/intentions', { waitUntil: 'networkidle' });
 
     await intentionsPage.locator('[data-test-intention-source="e2e-cancel-src"]').click();
     await expect(intentionsPage).toHaveURL(/\/ui\/dc1\/intentions\/[^/]+$/);
@@ -244,7 +244,7 @@ test.describe('Intentions - Edit', () => {
 test.describe('Intentions - Delete', () => {
   test('should delete an intention via the row menu', async ({ intentionsPage, intentionApi }) => {
     await intentionApi.create('e2e-del-src', 'e2e-del-dest', { action: 'allow' });
-    await intentionsPage.goto('/ui/dc1/intentions');
+    await intentionsPage.goto('/ui/dc1/intentions', { waitUntil: 'networkidle' });
 
     // open the "More" popup menu for this specific row
     await intentionRow(intentionsPage, 'e2e-del-src').getByText('More').click();
