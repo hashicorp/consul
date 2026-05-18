@@ -27,6 +27,19 @@ exports.test = base.test.extend({
   },
 
   /**
+   * intentionCreatePage
+   * Logs in and navigates directly to the intention create form before handing
+   * the page to the test. Removes the openIntentionCreate() boilerplate from
+   * tests that only need to exercise the create/edit form.
+   */
+  // eslint-disable-next-line no-empty-pattern
+  intentionCreatePage: async ({ page }, use) => {
+    await loginWithToken(page);
+    await page.goto('/ui/dc1/intentions/create');
+    await use(page);
+  },
+
+  /**
    * intentionApi
    * Provides helpers for managing intentions via the Consul HTTP API.
    *
@@ -44,7 +57,7 @@ exports.test = base.test.extend({
    */
   intentionApi: async ({ page }, use) => {
     const token = process.env.CONSUL_UI_TEST_TOKEN;
-    const getBaseURL = () => page.context()._options.baseURL || 'http://localhost:8500';
+    const getBaseURL = () => page.context()._options.baseURL || 'http://localhost:4200';
 
     const tracked = [];
 
@@ -124,3 +137,28 @@ exports.test = base.test.extend({
 });
 
 exports.expect = base.expect;
+
+// ---------------------------------------------------------------------------
+// Shared page-interaction helpers
+// Exported here so multiple spec files can import them without duplication.
+// ---------------------------------------------------------------------------
+
+/**
+ * Find the table row that contains a specific source service name.
+ * Uses CSS :has() which Playwright supports natively.
+ */
+exports.intentionRow = (page, source) =>
+  page.locator(`tr:has([data-test-intention-source="${source}"])`);
+
+/**
+ * Click a combobox identified by its label text, select the nth option,
+ * and return the selected option's trimmed text.
+ */
+exports.selectService = async (page, labelText, nth) => {
+  const combobox = page.locator('label').filter({ hasText: labelText }).getByRole('combobox');
+  await combobox.click();
+  const option = page.getByRole('option').nth(nth);
+  const text = await option.textContent();
+  await option.click();
+  return text?.trim();
+};

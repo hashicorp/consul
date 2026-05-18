@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-const { test, expect } = require('../../fixtures/intentions');
+const { test, expect, intentionRow, selectService } = require('../../fixtures/intentions');
 
 /**
  * Intentions - Basic Tests
@@ -16,158 +16,125 @@ const { test, expect } = require('../../fixtures/intentions');
  *   intentionApi    – API helpers with automatic post-test cleanup
  */
 
-async function openIntentionCreate(page) {
-  await page.getByRole('link', { name: 'Create' }).click();
-  await expect(page).toHaveURL(/\/ui\/dc1\/intentions\/create/);
-}
-
-async function selectService(page, labelText, nth) {
-  const combobox = page.locator('label').filter({ hasText: labelText }).getByRole('combobox');
-  await combobox.click();
-  const option = page.getByRole('option').nth(nth);
-  const text = await option.textContent();
-  await option.click();
-  return text?.trim();
-}
-
 test.describe('Intentions - Basic Tests', () => {
   test('should navigate to Intentions page', async ({ intentionsPage }) => {
     await expect(intentionsPage).toHaveURL(/\/ui\/dc1\/intentions/);
     await expect(intentionsPage.getByRole('link', { name: 'Create' })).toBeVisible();
   });
 
-  test('should validate required fields on create form', async ({ intentionsPage }) => {
-    await openIntentionCreate(intentionsPage);
-
-    await expect(intentionsPage).toHaveURL(/\/ui\/dc1\/intentions\/create/);
+  test('should validate required fields on create form', async ({ intentionCreatePage }) => {
+    await expect(intentionCreatePage).toHaveURL(/\/ui\/dc1\/intentions\/create/);
     await expect(
-      intentionsPage.locator('label').filter({ hasText: 'Source Service *' }).first()
+      intentionCreatePage.locator('label').filter({ hasText: 'Source Service *' }).first()
     ).toBeVisible();
     await expect(
-      intentionsPage.locator('label').filter({ hasText: 'Destination Service *' }).first()
+      intentionCreatePage.locator('label').filter({ hasText: 'Destination Service *' }).first()
     ).toBeVisible();
-    await expect(intentionsPage.getByRole('button', { name: 'Save' })).toBeVisible();
-    await expect(intentionsPage.getByRole('button', { name: 'Cancel' })).toBeVisible();
+    await expect(intentionCreatePage.getByRole('button', { name: 'Save' })).toBeVisible();
+    await expect(intentionCreatePage.getByRole('button', { name: 'Cancel' })).toBeVisible();
   });
 
-  test('should create an intention with description', async ({ intentionsPage, intentionApi }) => {
-    await openIntentionCreate(intentionsPage);
-
-    await intentionsPage
+  test('should create an intention with description', async ({
+    intentionCreatePage,
+    intentionApi,
+  }) => {
+    await intentionCreatePage
       .getByRole('textbox', { name: 'Description (Optional)' })
       .fill('Intention 1');
-    const source = await selectService(intentionsPage, 'Source Service', 1); // nth(1) skips wildcard
-    const dest = await selectService(intentionsPage, 'Destination Service', 2);
+    const source = await selectService(intentionCreatePage, 'Source Service', 1); // nth(1) skips wildcard
+    const dest = await selectService(intentionCreatePage, 'Destination Service', 2);
 
-    await intentionsPage.getByRole('button', { name: 'Save' }).click();
-    await expect(intentionsPage).toHaveURL(/\/ui\/dc1\/intentions$/);
+    await intentionCreatePage.getByRole('button', { name: 'Save' }).click();
+    await expect(intentionCreatePage).toHaveURL(/\/ui\/dc1\/intentions$/);
 
     intentionApi.track(source, dest);
   });
 
-  test('should create an intention with deny action', async ({ intentionsPage, intentionApi }) => {
-    await openIntentionCreate(intentionsPage);
-
-    await intentionsPage
+  test('should create an intention with deny action', async ({
+    intentionCreatePage,
+    intentionApi,
+  }) => {
+    await intentionCreatePage
       .getByRole('textbox', { name: 'Description (Optional)' })
       .fill('Deny intention test');
-    const source = await selectService(intentionsPage, 'Source Service', 1);
-    const dest = await selectService(intentionsPage, 'Destination Service', 2);
+    const source = await selectService(intentionCreatePage, 'Source Service', 1);
+    const dest = await selectService(intentionCreatePage, 'Destination Service', 2);
 
-    await intentionsPage.getByRole('radio', { name: 'Deny' }).click();
-    await intentionsPage.getByRole('button', { name: 'Save' }).click();
-    await expect(intentionsPage).toHaveURL(/\/ui\/dc1\/intentions$/);
+    await intentionCreatePage.getByRole('radio', { name: 'Deny' }).click();
+    await intentionCreatePage.getByRole('button', { name: 'Save' }).click();
+    await expect(intentionCreatePage).toHaveURL(/\/ui\/dc1\/intentions$/);
 
     intentionApi.track(source, dest);
   });
 
   test('should create an intention without description', async ({
-    intentionsPage,
+    intentionCreatePage,
     intentionApi,
   }) => {
-    await openIntentionCreate(intentionsPage);
+    const source = await selectService(intentionCreatePage, 'Source Service', 1);
+    const dest = await selectService(intentionCreatePage, 'Destination Service', 2);
 
-    const source = await selectService(intentionsPage, 'Source Service', 1);
-    const dest = await selectService(intentionsPage, 'Destination Service', 2);
-
-    await intentionsPage.getByRole('button', { name: 'Save' }).click();
-    await expect(intentionsPage).toHaveURL(/\/ui\/dc1\/intentions$/);
+    await intentionCreatePage.getByRole('button', { name: 'Save' }).click();
+    await expect(intentionCreatePage).toHaveURL(/\/ui\/dc1\/intentions$/);
 
     intentionApi.track(source, dest);
   });
 
-  test('should create intention with wildcard source', async ({ intentionsPage, intentionApi }) => {
-    await openIntentionCreate(intentionsPage);
-
-    await intentionsPage
+  test('should create intention with wildcard source', async ({
+    intentionCreatePage,
+    intentionApi,
+  }) => {
+    await intentionCreatePage
       .getByRole('textbox', { name: 'Description (Optional)' })
       .fill('Wildcard source test');
 
-    const sourceCombobox = intentionsPage
+    const sourceCombobox = intentionCreatePage
       .locator('label')
       .filter({ hasText: 'Source Service' })
       .getByRole('combobox');
     await sourceCombobox.click();
-    await intentionsPage.getByRole('option', { name: '* (All Services)' }).click();
+    await intentionCreatePage.getByRole('option', { name: '* (All Services)' }).click();
 
-    const dest = await selectService(intentionsPage, 'Destination Service', 1);
+    const dest = await selectService(intentionCreatePage, 'Destination Service', 1);
 
-    await intentionsPage.getByRole('button', { name: 'Save' }).click();
-    await expect(intentionsPage).toHaveURL(/\/ui\/dc1\/intentions$/);
+    await intentionCreatePage.getByRole('button', { name: 'Save' }).click();
+    await expect(intentionCreatePage).toHaveURL(/\/ui\/dc1\/intentions$/);
 
     intentionApi.track('*', dest);
   });
 
   test('should create intention with wildcard destination', async ({
-    intentionsPage,
+    intentionCreatePage,
     intentionApi,
   }) => {
-    await openIntentionCreate(intentionsPage);
-
-    await intentionsPage
+    await intentionCreatePage
       .getByRole('textbox', { name: 'Description (Optional)' })
       .fill('Wildcard destination test');
 
-    const source = await selectService(intentionsPage, 'Source Service', 1);
+    const source = await selectService(intentionCreatePage, 'Source Service', 1);
 
-    const destCombobox = intentionsPage
+    const destCombobox = intentionCreatePage
       .locator('label')
       .filter({ hasText: 'Destination Service' })
       .getByRole('combobox');
     await destCombobox.click();
-    await intentionsPage.getByRole('option', { name: '* (All Services)' }).click();
+    await intentionCreatePage.getByRole('option', { name: '* (All Services)' }).click();
 
-    await intentionsPage.getByRole('button', { name: 'Save' }).click();
-    await expect(intentionsPage).toHaveURL(/\/ui\/dc1\/intentions$/);
+    await intentionCreatePage.getByRole('button', { name: 'Save' }).click();
+    await expect(intentionCreatePage).toHaveURL(/\/ui\/dc1\/intentions$/);
 
     intentionApi.track(source, '*');
   });
 
-  test('should cancel intention creation', async ({ intentionsPage }) => {
-    await openIntentionCreate(intentionsPage);
-
-    await intentionsPage
+  test('should cancel intention creation', async ({ intentionCreatePage }) => {
+    await intentionCreatePage
       .getByRole('textbox', { name: 'Description (Optional)' })
       .fill('Test description');
-    await intentionsPage.getByRole('button', { name: 'Cancel' }).click();
+    await intentionCreatePage.getByRole('button', { name: 'Cancel' }).click();
 
-    await expect(intentionsPage).toHaveURL(/\/ui\/dc1\/intentions$/);
+    await expect(intentionCreatePage).toHaveURL(/\/ui\/dc1\/intentions$/);
   });
 });
-
-// ---------------------------------------------------------------------------
-// Helpers shared by view/edit/delete blocks
-// ---------------------------------------------------------------------------
-
-/**
- * Find the table row that contains a specific source service name.
- * Uses CSS :has() which Playwright supports natively.
- */
-function intentionRow(page, source) {
-  return page.locator(`tr:has([data-test-intention-source="${source}"])`);
-}
-
-// ---------------------------------------------------------------------------
 
 test.describe('Intentions - View and List', () => {
   test('should display an API-created intention in the list', async ({
