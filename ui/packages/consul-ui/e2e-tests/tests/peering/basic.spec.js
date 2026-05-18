@@ -14,4 +14,3 @@ const { test } = require('@playwright/test');
 test.describe('Peering - Basic Tests', () => {
   // TODO: Add tests here
 });
-
