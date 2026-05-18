@@ -196,6 +196,7 @@ jobs:
     env:
       CONSUL_IMAGE: consul:local
       CONSUL_NSPACES_ENABLED: 0
+      ENVOY_VERSION: 1.35.10
     steps:
       - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
 
@@ -203,13 +204,6 @@ jobs:
         uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
         with:
           go-version-file: 'go.mod'
-
-      - name: Build Consul binary and Docker image (CE)
-        run: |
-          echo "Building Consul binary and creating consul:local Docker image..."
-          make dev-docker
-          docker images | grep consul
-          ./bin/consul version
 
       - name: Install PNPM
         uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
@@ -223,6 +217,14 @@ jobs:
           node-version-file: "./ui/package.json"
           cache: "pnpm"
           cache-dependency-path: "ui/pnpm-lock.yaml"
+
+      - name: Build Consul binary and Docker image (CE)
+        run: |
+          echo "Building Consul binary and creating consul:local Docker image..."
+          make ui-regen
+          make dev-docker
+          docker images | grep consul
+          ./bin/consul version
 
       - name: Install dependencies
         working-directory: ui
@@ -247,10 +249,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y httpie
-
-      - name: Patch consul-ui-testing for CI runners
-        working-directory: consul-ui-testing
-        run: bash "$GITHUB_WORKSPACE/.github/scripts/patch_consul_ui_testing.sh"
 
       - name: Force HashiCups image rebuild
         working-directory: consul-ui-testing
@@ -321,6 +319,7 @@ jobs:
       CONSUL_IMAGE: consul:local
       CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
       CONSUL_NSPACES_ENABLED: 1
+      ENVOY_VERSION: 1.35.10
     steps:
       - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
 
@@ -328,15 +327,6 @@ jobs:
         uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
         with:
           go-version-file: 'go.mod'
-
-      - name: Build Consul Enterprise binary and Docker image
-        run: |
-          echo "Building Consul Enterprise binary and creating consul:local Docker image..."
-          make dev-docker
-          docker images | grep consul
-          ./bin/consul version
-        env:
-          GOTAGS: "consulent"
 
       - name: Install PNPM
         uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
@@ -350,6 +340,14 @@ jobs:
           node-version-file: "./ui/package.json"
           cache: "pnpm"
           cache-dependency-path: "ui/pnpm-lock.yaml"
+
+      - name: Build Consul binary and Docker image (CE)
+        run: |
+          echo "Building Consul binary and creating consul:local Docker image..."
+          make ui-regen
+          make dev-docker
+          docker images | grep consul
+          ./bin/consul version
 
       - name: Install dependencies
         working-directory: ui
