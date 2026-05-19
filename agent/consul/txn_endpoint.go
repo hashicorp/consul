@@ -254,8 +254,12 @@ func (t *Txn) vetCheckWrite(check *structs.HealthCheck, op *structs.TxnCheckOp, 
 		return nil
 	}
 
-	// Service-level check. Resolve the actual service by ServiceID from the
-	// state store instead of trusting Check.ServiceName from the request.
+	// Service-level check. Prefer resolving the actual service by ServiceID
+	// from the state store so we don't trust Check.ServiceName from the
+	// request. However, a check may be written in the same atomic transaction
+	// that creates its service (the service won't yet be visible in the
+	// committed FSM state at preCheck time); in that case fall back to
+	// authorizing against the ServiceName declared on the incoming check.
 	_, service, err := t.srv.fsm.State().NodeService(
 		nil,
 		check.Node,
@@ -266,14 +270,27 @@ func (t *Txn) vetCheckWrite(check *structs.HealthCheck, op *structs.TxnCheckOp, 
 	if err != nil {
 		return fmt.Errorf("service lookup failed: %v", err)
 	}
-	if service == nil {
-		return fmt.Errorf("Unknown service ID '%s' for check ID '%s'", check.ServiceID, check.CheckID)
-	}
 
 	op.FillAuthzContext(&authzContext)
-	service.FillAuthzContext(&authzContext)
 
-	if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(service.Service, &authzContext); err != nil {
+	var serviceName string
+	if service != nil {
+		// Authorize against the real, existing service binding.
+		service.FillAuthzContext(&authzContext)
+		serviceName = service.Service
+	} else {
+		// Service may be created earlier in the same transaction; fall back
+		// to the ServiceName declared on the check op. Require it to be set
+		// so callers can't bypass ACLs by omitting both the existing service
+		// and the declared name.
+		if check.ServiceName == "" {
+			return fmt.Errorf("unknown service ID %q for check ID %q", check.ServiceID, check.CheckID)
+		}
+		check.FillAuthzContext(&authzContext)
+		serviceName = check.ServiceName
+	}
+
+	if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(serviceName, &authzContext); err != nil {
 		return err
 	}
 
