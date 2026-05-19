@@ -4,7 +4,15 @@
 package consul
 
 import (
+	"context"
+	"errors"
+	"sync/atomic"
 	"testing"
+	"time"
+
+	"github.com/armon/go-metrics"
+
+	"github.com/hashicorp/go-hclog"
 )
 
 // TestExpiresSoon was removed as we now use configurable thresholds
@@ -257,5 +265,123 @@ func TestCertificateTelemetry_Disabled(t *testing.T) {
 	// This would be tested in integration tests with actual metric collection
 	if config.CertificateTelemetryEnabled {
 		t.Error("telemetry should be disabled")
+	}
+}
+
+func TestCertExpirationMonitor_RetriesQuicklyAfterQueryFailure(t *testing.T) {
+	oldRetry := certExpirationMonitorRetryInterval
+	certExpirationMonitorRetryInterval = 20 * time.Millisecond
+	t.Cleanup(func() {
+		certExpirationMonitorRetryInterval = oldRetry
+	})
+
+	var calls int32
+	success := make(chan struct{}, 1)
+	m := CertExpirationMonitor{
+		Key:      []string{"test", "cert", "expiry"},
+		Labels:   []metrics.Label{{Name: "datacenter", Value: "dc1"}},
+		Logger:   hclog.NewNullLogger(),
+		Interval: time.Hour,
+		Query: func() (time.Duration, time.Duration, error) {
+			if atomic.AddInt32(&calls, 1) == 1 {
+				return 0, 0, errors.New("not ready")
+			}
+			select {
+			case success <- struct{}{}:
+			default:
+			}
+			return 24 * time.Hour, 23 * time.Hour, nil
+		},
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	done := make(chan error, 1)
+	go func() {
+		done <- m.Monitor(ctx)
+	}()
+
+	select {
+	case <-success:
+		cancel()
+	case <-time.After(2 * time.Second):
+		t.Fatal("monitor did not retry quickly after initial query failure")
+	}
+
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("monitor returned unexpected error: %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("monitor did not exit after cancellation")
+	}
+
+	if got := atomic.LoadInt32(&calls); got < 2 {
+		t.Fatalf("expected at least 2 query attempts, got %d", got)
+	}
+}
+
+func TestCertLogSeverity(t *testing.T) {
+	tests := []struct {
+		name        string
+		untilAfter  time.Duration
+		critical    int
+		warning     int
+		wantLevel   string
+		wantMinDays int
+	}{
+		{
+			name:        "expired_subsecond",
+			untilAfter:  -565 * time.Millisecond,
+			critical:    7,
+			warning:     30,
+			wantLevel:   "expired",
+			wantMinDays: -1,
+		},
+		{
+			name:        "expired_one_hour",
+			untilAfter:  -1 * time.Hour,
+			critical:    7,
+			warning:     30,
+			wantLevel:   "expired",
+			wantMinDays: -1,
+		},
+		{
+			name:        "critical_threshold",
+			untilAfter:  6 * 24 * time.Hour,
+			critical:    7,
+			warning:     30,
+			wantLevel:   "critical",
+			wantMinDays: 6,
+		},
+		{
+			name:        "warning_threshold",
+			untilAfter:  10 * 24 * time.Hour,
+			critical:    7,
+			warning:     30,
+			wantLevel:   "warning",
+			wantMinDays: 10,
+		},
+		{
+			name:        "ok",
+			untilAfter:  60 * 24 * time.Hour,
+			critical:    7,
+			warning:     30,
+			wantLevel:   "ok",
+			wantMinDays: 60,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := certLogSeverity(tt.untilAfter, tt.critical, tt.warning); got != tt.wantLevel {
+				t.Fatalf("expected severity %q, got %q", tt.wantLevel, got)
+			}
+			if got := certDaysRemaining(tt.untilAfter); got < tt.wantMinDays {
+				t.Fatalf("expected days remaining >= %d, got %d", tt.wantMinDays, got)
+			}
+		})
 	}
 }
