@@ -67,14 +67,6 @@ function kvRow(page, text) {
   return page.locator(`text=${text}`).first();
 }
 
-// Returns the [data-test-kv] row whose Key ends with the given segment name.
-// This is more stable than `text=` which can match headings after navigation.
-function kvRowByKey(page, segmentName) {
-  return page
-    .locator(`[data-test-kv$="${segmentName}"], [data-test-kv$="${segmentName}/"]`)
-    .first();
-}
-
 async function openKVCreate(page) {
   await page.getByRole('link', { name: 'Create' }).click();
   await logKVFormState(page, 'after openKVCreate click');
@@ -82,19 +74,17 @@ async function openKVCreate(page) {
 }
 
 async function openKVKey(page, keyName) {
-  const row = kvRowByKey(page, keyName);
+  const row = kvRow(page, keyName);
   await expect(row).toBeVisible({ timeout: 15000 });
-  // Use a longer timeout — the KV list re-renders due to blocking queries which
-  // detaches elements mid-click. The locator re-evaluates on each retry attempt.
-  await row.click({ timeout: 15000 });
+  await row.click();
   console.log(`[KV DEBUG] clicked key row: ${keyName}, url=${page.url()}`);
 }
 
 async function openNestedKVKey(page, segments, keyName) {
   for (const segment of segments) {
-    const row = kvRowByKey(page, segment);
+    const row = kvRow(page, segment);
     await expect(row).toBeVisible({ timeout: 15000 });
-    await row.click({ timeout: 15000 });
+    await row.click();
     console.log(`[KV DEBUG] clicked nested segment: ${segment}, url=${page.url()}`);
   }
 
