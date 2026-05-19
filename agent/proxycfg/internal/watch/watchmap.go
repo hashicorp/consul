@@ -65,6 +65,21 @@ func (m Map[K, V]) InitWatch(key K, cancel func()) {
 	}
 }
 
+// UpdateWatch replaces the cancel function for an existing key, canceling the
+// old context if present, while preserving any stored value. If the key does
+// not exist, it initializes a new entry with the provided cancel function.
+func (m Map[K, V]) UpdateWatch(key K, cancel func()) {
+	if entry, ok := m.M[key]; ok {
+		if entry.cancel != nil {
+			entry.cancel() // cancel the old context
+		}
+		entry.cancel = cancel // swap in new cancel
+		m.M[key] = entry      // stored Val PRESERVED
+	} else {
+		m.M[key] = watchedVal[V]{cancel: cancel}
+	}
+}
+
 // CancelWatch first calls the cancel function
 // associated with the key then deletes the key
 // from the map. No-op if key is not present.
