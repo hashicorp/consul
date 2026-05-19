@@ -743,6 +743,12 @@ message PassiveHealthCheck {
   uint32 MaxEjectionPercent = 4;
   // mog: func-to=structs.DurationPointerFromProto func-from=structs.DurationPointerToProto
   google.protobuf.Duration BaseEjectionTime = 5;
+  // mog: target=EnforcingConsecutiveGatewayFailure func-to=pointerToUint32FromUint32 func-from=uint32FromPointerToUint32
+  uint32 EnforcingConsecutiveGatewayFailure = 6;
+  // mog: target=Consecutive5xx func-to=pointerToUint32FromUint32 func-from=uint32FromPointerToUint32
+  uint32 Consecutive5xx = 7;
+  // mog: target=ConsecutiveGatewayFailure func-to=pointerToUint32FromUint32 func-from=uint32FromPointerToUint32
+  uint32 ConsecutiveGatewayFailure = 8;
 }
 
 // mog annotation:
