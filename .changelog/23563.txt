@@ -1,0 +1,1 @@
+xds: add `Consecutive5xx`, `ConsecutiveGatewayFailure`, and `EnforcingConsecutiveGatewayFailure` fields to `PassiveHealthCheck`, allowing operators to configure Envoy outlier detection thresholds for 5xx responses and gateway failures (502/503/504) on upstreams and ingress gateway defaults.
