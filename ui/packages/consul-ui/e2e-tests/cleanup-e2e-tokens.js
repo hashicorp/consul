@@ -132,5 +132,3 @@ cleanupE2ETokens().catch((error) => {
   console.error('❌ Cleanup script failed:', error);
   process.exit(1);
 });
-
-// Made with Bob
