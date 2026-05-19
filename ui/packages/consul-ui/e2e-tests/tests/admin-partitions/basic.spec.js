@@ -4,6 +4,7 @@
  */
 
 const { test, expect } = require('./fixtures');
+const { isEnterpriseConsul } = require('../../utils/ent-utils');
 
 /**
  * Admin Partitions - Basic Tests
@@ -27,11 +28,11 @@ test.describe('Admin Partitions - Basic', () => {
 
   test('default partition is visible in the list', async ({
     partitionsPage,
-    skipEnt,
     request,
     baseURL,
   }) => {
-    await skipEnt(request, baseURL);
+    const isEnt = await isEnterpriseConsul(request, baseURL);
+    test.skip(!isEnt, 'Partition list rows require Enterprise Consul.');
 
     await partitionsPage.goto();
     await expect(partitionsPage.heading).toBeVisible({ timeout: 15000 });
@@ -43,11 +44,11 @@ test.describe('Admin Partitions - Basic', () => {
 
   test('partition edit page loads from list action', async ({
     partitionsPage,
-    skipEnt,
     request,
     baseURL,
   }) => {
-    await skipEnt(request, baseURL);
+    const isEnt = await isEnterpriseConsul(request, baseURL);
+    test.skip(!isEnt, 'Partition edit form requires Enterprise Consul.');
 
     await partitionsPage.goto();
     await expect(partitionsPage.heading).toBeVisible({ timeout: 15000 });
@@ -62,11 +63,11 @@ test.describe('Admin Partitions - Basic', () => {
 
   test('partition edit page is directly navigable', async ({
     partitionsPage,
-    skipEnt,
     request,
     baseURL,
   }) => {
-    await skipEnt(request, baseURL);
+    const isEnt = await isEnterpriseConsul(request, baseURL);
+    test.skip(!isEnt, 'Partition edit form requires Enterprise Consul.');
 
     await partitionsPage.gotoEdit('default');
 
@@ -76,11 +77,11 @@ test.describe('Admin Partitions - Basic', () => {
 
   test('"All Admin Partitions" breadcrumb navigates back to list', async ({
     partitionsPage,
-    skipEnt,
     request,
     baseURL,
   }) => {
-    await skipEnt(request, baseURL);
+    const isEnt = await isEnterpriseConsul(request, baseURL);
+    test.skip(!isEnt, 'Partition edit form requires Enterprise Consul.');
 
     await partitionsPage.gotoEdit('default');
     await expect(partitionsPage.page).toHaveURL(/\/partitions\/default/, { timeout: 15000 });
