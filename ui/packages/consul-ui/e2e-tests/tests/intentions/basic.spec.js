@@ -41,7 +41,7 @@ test.describe('Intentions - Basic Tests', () => {
     await intentionCreatePage
       .getByRole('textbox', { name: 'Description (Optional)' })
       .fill('Intention 1');
-    const source = await selectService(intentionCreatePage, 'Source Service', 1); // nth(1) skips wildcard
+    const source = await selectService(intentionCreatePage, 'Source Service', 1);
     const dest = await selectService(intentionCreatePage, 'Destination Service', 2);
 
     await intentionCreatePage.getByRole('button', { name: 'Save' }).click();
@@ -145,14 +145,14 @@ test.describe('Intentions - View and List', () => {
     await intentionsPage.goto('/ui/dc1/intentions', { waitUntil: 'networkidle' });
 
     await expect(
-      intentionsPage.locator('[data-test-intention-source="e2e-list-src"]')
+      intentionsPage.locator('td.source a').filter({ hasText: 'e2e-list-src' })
     ).toBeVisible();
     await expect(
-      intentionsPage.locator('[data-test-intention-destination="e2e-list-dest"]')
+      intentionsPage.locator('td.destination').filter({ hasText: 'e2e-list-dest' })
     ).toBeVisible();
     await expect(
-      intentionRow(intentionsPage, 'e2e-list-src').locator('[data-test-intention-action]')
-    ).toHaveAttribute('data-test-intention-action', 'allow');
+      intentionRow(intentionsPage, 'e2e-list-src').locator('td.intent')
+    ).toHaveClass(/intent-allow/);
   });
 
   test('should navigate to edit page when clicking an intention', async ({
@@ -162,7 +162,7 @@ test.describe('Intentions - View and List', () => {
     await intentionApi.create('e2e-nav-src', 'e2e-nav-dest', { action: 'allow' });
     await intentionsPage.goto('/ui/dc1/intentions', { waitUntil: 'networkidle' });
 
-    await intentionsPage.locator('[data-test-intention-source="e2e-nav-src"]').click();
+    await intentionsPage.locator('td.source a').filter({ hasText: 'e2e-nav-src' }).click();
     // URL is /ui/dc1/intentions/{partition}:{ns}:{source}:{partition}:{ns}:{dest} (no /edit suffix)
     await expect(intentionsPage).toHaveURL(/\/ui\/dc1\/intentions\/[^/]+$/);
     // edit page should show source and destination
@@ -179,7 +179,7 @@ test.describe('Intentions - Edit', () => {
     await intentionsPage.goto('/ui/dc1/intentions', { waitUntil: 'networkidle' });
 
     // click the source link to open the edit form
-    await intentionsPage.locator('[data-test-intention-source="e2e-allow-src"]').click();
+    await intentionsPage.locator('td.source a').filter({ hasText: 'e2e-allow-src' }).click();
     await expect(intentionsPage).toHaveURL(/\/ui\/dc1\/intentions\/[^/]+$/);
 
     // Use the RadioCard's value-{intent} class (unique to the main form fieldset)
@@ -188,9 +188,10 @@ test.describe('Intentions - Edit', () => {
     await expect(intentionsPage).toHaveURL(/\/ui\/dc1\/intentions$/);
 
     // verify the list reflects the new action
+    // td.intent has class intent-deny/intent-allow (preserved in production builds)
     await expect(
-      intentionRow(intentionsPage, 'e2e-allow-src').locator('[data-test-intention-action]')
-    ).toHaveAttribute('data-test-intention-action', 'deny');
+      intentionRow(intentionsPage, 'e2e-allow-src').locator('td.intent')
+    ).toHaveClass(/intent-deny/);
 
     // also verify via the API
     const updated = await intentionApi.get('e2e-allow-src', 'e2e-allow-dest');
@@ -201,7 +202,7 @@ test.describe('Intentions - Edit', () => {
     await intentionApi.create('e2e-deny-src', 'e2e-deny-dest', { action: 'deny' });
     await intentionsPage.goto('/ui/dc1/intentions', { waitUntil: 'networkidle' });
 
-    await intentionsPage.locator('[data-test-intention-source="e2e-deny-src"]').click();
+    await intentionsPage.locator('td.source a').filter({ hasText: 'e2e-deny-src' }).click();
     await expect(intentionsPage).toHaveURL(/\/ui\/dc1\/intentions\/[^/]+$/);
 
     // The RadioCard adds class="value-{intent}" which is unique to the main form fieldset
@@ -210,8 +211,8 @@ test.describe('Intentions - Edit', () => {
     await expect(intentionsPage).toHaveURL(/\/ui\/dc1\/intentions$/);
 
     await expect(
-      intentionRow(intentionsPage, 'e2e-deny-src').locator('[data-test-intention-action]')
-    ).toHaveAttribute('data-test-intention-action', 'allow');
+      intentionRow(intentionsPage, 'e2e-deny-src').locator('td.intent')
+    ).toHaveClass(/intent-allow/);
 
     const updated = await intentionApi.get('e2e-deny-src', 'e2e-deny-dest');
     expect(updated?.Action).toBe('allow');
@@ -224,7 +225,7 @@ test.describe('Intentions - Edit', () => {
     await intentionApi.create('e2e-cancel-src', 'e2e-cancel-dest', { action: 'allow' });
     await intentionsPage.goto('/ui/dc1/intentions', { waitUntil: 'networkidle' });
 
-    await intentionsPage.locator('[data-test-intention-source="e2e-cancel-src"]').click();
+    await intentionsPage.locator('td.source a').filter({ hasText: 'e2e-cancel-src' }).click();
     await expect(intentionsPage).toHaveURL(/\/ui\/dc1\/intentions\/[^/]+$/);
 
     // change the radio but then cancel (use value-{intent} class to avoid ambiguity)
@@ -234,8 +235,8 @@ test.describe('Intentions - Edit', () => {
 
     // action should remain allow
     await expect(
-      intentionRow(intentionsPage, 'e2e-cancel-src').locator('[data-test-intention-action]')
-    ).toHaveAttribute('data-test-intention-action', 'allow');
+      intentionRow(intentionsPage, 'e2e-cancel-src').locator('td.intent')
+    ).toHaveClass(/intent-allow/);
   });
 });
 
@@ -250,18 +251,19 @@ test.describe('Intentions - Delete', () => {
     await intentionRow(intentionsPage, 'e2e-del-src').getByText('More').click();
 
     // click the Delete button inside the row's dangerous menu item
-    // (scope to row avoids strict-mode violation — all rows render [data-test-delete] in the DOM)
+    // (.dangerous class is preserved in production builds; data-test-delete is stripped)
     await intentionRow(intentionsPage, 'e2e-del-src')
-      .locator('[data-test-delete] [role="menuitem"]')
+      .locator('.dangerous [role="menuitem"]')
       .click();
 
-    // the MenuItem teleports an Hds::Modal to <body> — wait for it, then confirm
+    // the MenuItem teleports an Hds::Modal with id='confirm-modal' (real id, not data-test)
     await expect(intentionsPage.locator('#confirm-modal')).toBeVisible({ timeout: 5000 });
-    await intentionsPage.locator('[data-test-id="confirm-action"]').click();
+    // confirm button text is "Delete" (data-test-id='confirm-action' is stripped in production)
+    await intentionsPage.locator('#confirm-modal').getByRole('button', { name: 'Delete' }).click();
 
     // row should disappear from the list
     await expect(
-      intentionsPage.locator('[data-test-intention-source="e2e-del-src"]')
+      intentionsPage.locator('td.source a').filter({ hasText: 'e2e-del-src' })
     ).not.toBeVisible({ timeout: 10000 });
 
     // verify via API that it is truly gone

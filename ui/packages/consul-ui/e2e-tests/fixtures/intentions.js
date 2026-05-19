@@ -4,6 +4,7 @@
  */
 
 const base = require('@playwright/test');
+const { expect } = base;
 const { loginWithToken } = require('../utils/auth-utils');
 
 /**
@@ -151,14 +152,19 @@ exports.expect = base.expect;
 
 /**
  * Find the table row that contains a specific source service name.
- * Uses CSS :has() which Playwright supports natively.
+ * Uses td.source class (preserved in production builds; data-test-* attrs are stripped).
  */
 exports.intentionRow = (page, source) =>
-  page.locator(`tr:has([data-test-intention-source="${source}"])`);
+  page
+    .locator('tr')
+    .filter({ has: page.locator('td.source a').filter({ hasText: source }) });
 
 /**
  * Click a combobox identified by its label text, select the nth option,
  * and return the selected option's trimmed text.
+ *
+ * Also sets the associated Namespace combobox to 'default' when a specific
+ * service is chosen (Consul rejects "exact name + wildcard namespace").
  */
 exports.selectService = async (page, labelText, nth) => {
   const combobox = page.locator('label').filter({ hasText: labelText }).getByRole('combobox');
@@ -166,5 +172,21 @@ exports.selectService = async (page, labelText, nth) => {
   const option = page.getByRole('option').nth(nth);
   const text = await option.textContent();
   await option.click();
-  return text?.trim();
+  const trimmed = text?.trim();
+
+  // If a specific service name was chosen (not wildcard), also pick 'default'
+  // namespace to avoid "exact value cannot follow wildcard namespace" error.
+  if (trimmed && trimmed !== '* (All Services)') {
+    const nsLabel = labelText.replace('Service', 'Namespace');
+    const nsCombobox = page.locator('label').filter({ hasText: nsLabel }).getByRole('combobox');
+    if (await nsCombobox.count() > 0) {
+      await nsCombobox.click();
+      const defaultOpt = page.getByRole('option').filter({ hasText: 'default' }).first();
+      if (await defaultOpt.count() > 0) {
+        await defaultOpt.click();
+      }
+    }
+  }
+
+  return trimmed;
 };
