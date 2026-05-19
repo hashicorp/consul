@@ -17,7 +17,7 @@ const { isEnterpriseConsul } = require('../../utils/ent-utils');
  * To restrict to ENT only: set CONSUL_ENT_ONLY=true in the environment.
  */
 
-test.describe('Admin Partitions - Basic', () => {
+test.describe('Admin Partitions - Basic', { tag: '@ent' }, () => {
   test('admin partitions list page loads', async ({ partitionsPage, skipEnt, request, baseURL }) => {
     await skipEnt(request, baseURL);
 

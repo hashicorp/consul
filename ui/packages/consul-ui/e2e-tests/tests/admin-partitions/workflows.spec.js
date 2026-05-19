@@ -17,7 +17,7 @@ const { isEnterpriseConsul } = require('../../utils/ent-utils');
  * To restrict to ENT only: set CONSUL_ENT_ONLY=true in the environment.
  */
 
-test.describe('Admin Partitions - Workflows', () => {
+test.describe('Admin Partitions - Workflows', { tag: '@ent' }, () => {
   /**
    * Covers the full user journey: start at services → open partition selector
    * → click "View all partitions" footer link → arrive at the partitions list.
