@@ -97,7 +97,9 @@ test.describe('Intentions - Basic Tests', () => {
 
     const dest = await selectService(intentionCreatePage, 'Destination Service', 1);
 
-    await intentionCreatePage.getByRole('button', { name: 'Save' }).click();
+    const saveButton = intentionCreatePage.getByRole('button', { name: 'Save' });
+    await expect(saveButton).toBeEnabled({ timeout: 10000 });
+    await saveButton.click();
     await expect(intentionCreatePage).toHaveURL(/\/ui\/dc1\/intentions$/);
 
     intentionApi.track('*', dest);
@@ -120,7 +122,9 @@ test.describe('Intentions - Basic Tests', () => {
     await destCombobox.click();
     await intentionCreatePage.getByRole('option', { name: '* (All Services)' }).click();
 
-    await intentionCreatePage.getByRole('button', { name: 'Save' }).click();
+    const saveButton = intentionCreatePage.getByRole('button', { name: 'Save' });
+    await expect(saveButton).toBeEnabled({ timeout: 10000 });
+    await saveButton.click();
     await expect(intentionCreatePage).toHaveURL(/\/ui\/dc1\/intentions$/);
 
     intentionApi.track(source, '*');
