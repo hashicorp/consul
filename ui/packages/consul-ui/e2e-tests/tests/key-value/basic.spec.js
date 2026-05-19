@@ -70,7 +70,9 @@ function kvRow(page, text) {
 // Returns the [data-test-kv] row whose Key ends with the given segment name.
 // This is more stable than `text=` which can match headings after navigation.
 function kvRowByKey(page, segmentName) {
-  return page.locator(`[data-test-kv$="${segmentName}"], [data-test-kv$="${segmentName}/"]`).first();
+  return page
+    .locator(`[data-test-kv$="${segmentName}"], [data-test-kv$="${segmentName}/"]`)
+    .first();
 }
 
 async function openKVCreate(page) {

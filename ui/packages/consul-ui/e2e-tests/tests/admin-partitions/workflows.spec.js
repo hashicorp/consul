@@ -58,7 +58,10 @@ test.describe('Admin Partitions - Workflows', { tag: '@ent' }, () => {
     baseURL,
   }) => {
     const isEnt = await isEnterpriseConsul(request, baseURL);
-    test.skip(!isEnt, 'Partition updates (PUT /v1/partition/:name) return 403 on CE. Requires Enterprise Consul.');
+    test.skip(
+      !isEnt,
+      'Partition updates (PUT /v1/partition/:name) return 403 on CE. Requires Enterprise Consul.'
+    );
 
     const newDescription = `E2E test description – ${Date.now()}`;
 

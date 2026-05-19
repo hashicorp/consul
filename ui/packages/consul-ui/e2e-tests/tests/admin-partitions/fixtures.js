@@ -205,10 +205,9 @@ class PartitionsPage {
   async openEditViaMoreMenu(partitionName) {
     await this.moreButtonForPartition(partitionName).click();
     await this.page.getByRole('menuitem', { name: 'Edit' }).click();
-    await expect(this.page).toHaveURL(
-      new RegExp(`/partitions/${partitionName}`),
-      { timeout: 15000 }
-    );
+    await expect(this.page).toHaveURL(new RegExp(`/partitions/${partitionName}`), {
+      timeout: 15000,
+    });
   }
 
   /**

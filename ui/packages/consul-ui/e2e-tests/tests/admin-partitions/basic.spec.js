@@ -18,7 +18,12 @@ const { isEnterpriseConsul } = require('../../utils/ent-utils');
  */
 
 test.describe('Admin Partitions - Basic', { tag: '@ent' }, () => {
-  test('admin partitions list page loads', async ({ partitionsPage, skipEnt, request, baseURL }) => {
+  test('admin partitions list page loads', async ({
+    partitionsPage,
+    skipEnt,
+    request,
+    baseURL,
+  }) => {
     await skipEnt(request, baseURL);
 
     await partitionsPage.goto();
@@ -26,11 +31,7 @@ test.describe('Admin Partitions - Basic', { tag: '@ent' }, () => {
     await expect(partitionsPage.heading).toBeVisible({ timeout: 15000 });
   });
 
-  test('default partition is visible in the list', async ({
-    partitionsPage,
-    request,
-    baseURL,
-  }) => {
+  test('default partition is visible in the list', async ({ partitionsPage, request, baseURL }) => {
     const isEnt = await isEnterpriseConsul(request, baseURL);
     test.skip(!isEnt, 'Partition list rows require Enterprise Consul.');
 
