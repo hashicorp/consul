@@ -150,9 +150,9 @@ test.describe('Intentions - View and List', () => {
     await expect(
       intentionsPage.locator('td.destination').filter({ hasText: 'e2e-list-dest' })
     ).toBeVisible();
-    await expect(
-      intentionRow(intentionsPage, 'e2e-list-src').locator('td.intent')
-    ).toHaveClass(/intent-allow/);
+    await expect(intentionRow(intentionsPage, 'e2e-list-src').locator('td.intent')).toHaveClass(
+      /intent-allow/
+    );
   });
 
   test('should navigate to edit page when clicking an intention', async ({
@@ -189,9 +189,9 @@ test.describe('Intentions - Edit', () => {
 
     // verify the list reflects the new action
     // td.intent has class intent-deny/intent-allow (preserved in production builds)
-    await expect(
-      intentionRow(intentionsPage, 'e2e-allow-src').locator('td.intent')
-    ).toHaveClass(/intent-deny/);
+    await expect(intentionRow(intentionsPage, 'e2e-allow-src').locator('td.intent')).toHaveClass(
+      /intent-deny/
+    );
 
     // also verify via the API
     const updated = await intentionApi.get('e2e-allow-src', 'e2e-allow-dest');
@@ -210,9 +210,9 @@ test.describe('Intentions - Edit', () => {
     await intentionsPage.getByRole('button', { name: 'Save' }).click();
     await expect(intentionsPage).toHaveURL(/\/ui\/dc1\/intentions$/);
 
-    await expect(
-      intentionRow(intentionsPage, 'e2e-deny-src').locator('td.intent')
-    ).toHaveClass(/intent-allow/);
+    await expect(intentionRow(intentionsPage, 'e2e-deny-src').locator('td.intent')).toHaveClass(
+      /intent-allow/
+    );
 
     const updated = await intentionApi.get('e2e-deny-src', 'e2e-deny-dest');
     expect(updated?.Action).toBe('allow');
@@ -234,9 +234,9 @@ test.describe('Intentions - Edit', () => {
     await expect(intentionsPage).toHaveURL(/\/ui\/dc1\/intentions$/);
 
     // action should remain allow
-    await expect(
-      intentionRow(intentionsPage, 'e2e-cancel-src').locator('td.intent')
-    ).toHaveClass(/intent-allow/);
+    await expect(intentionRow(intentionsPage, 'e2e-cancel-src').locator('td.intent')).toHaveClass(
+      /intent-allow/
+    );
   });
 });
 

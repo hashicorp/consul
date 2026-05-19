@@ -4,7 +4,6 @@
  */
 
 const base = require('@playwright/test');
-const { expect } = base;
 const { loginWithToken } = require('../utils/auth-utils');
 
 /**
@@ -155,9 +154,7 @@ exports.expect = base.expect;
  * Uses td.source class (preserved in production builds; data-test-* attrs are stripped).
  */
 exports.intentionRow = (page, source) =>
-  page
-    .locator('tr')
-    .filter({ has: page.locator('td.source a').filter({ hasText: source }) });
+  page.locator('tr').filter({ has: page.locator('td.source a').filter({ hasText: source }) });
 
 /**
  * Click a combobox identified by its label text, select the nth option,
@@ -179,10 +176,10 @@ exports.selectService = async (page, labelText, nth) => {
   if (trimmed && trimmed !== '* (All Services)') {
     const nsLabel = labelText.replace('Service', 'Namespace');
     const nsCombobox = page.locator('label').filter({ hasText: nsLabel }).getByRole('combobox');
-    if (await nsCombobox.count() > 0) {
+    if ((await nsCombobox.count()) > 0) {
       await nsCombobox.click();
       const defaultOpt = page.getByRole('option').filter({ hasText: 'default' }).first();
-      if (await defaultOpt.count() > 0) {
+      if ((await defaultOpt.count()) > 0) {
         await defaultOpt.click();
       }
     }
