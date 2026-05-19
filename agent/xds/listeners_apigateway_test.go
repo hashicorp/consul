@@ -833,4 +833,171 @@ func TestResolveAPIListenerTLSConfig_InvalidMergedSDS(t *testing.T) {
 	})
 }
 
+// TestGetReadyListeners_SkipsUnloadedHTTPRoute reproduces the Xapo
+// scenario: an HTTPRoute is present in the BoundListener and has
+// Upstreams populated, but its stored config entry has been wiped
+// (HTTPRoutes.Get returns false). Before the fix, getReadyListeners
+// included this routeRef and routesForAPIGateway returned
+// `missing route for routeRef …`, terminating the ADS stream.
+// With the fix, the routeRef must be silently excluded.
+func TestGetReadyListeners_SkipsUnloadedHTTPRoute(t *testing.T) {
+	loadedRoute := &structs.HTTPRouteConfigEntry{
+		Kind: structs.HTTPRoute,
+		Name: "loaded-route",
+		Parents: []structs.ResourceReference{{
+			Kind: structs.APIGateway,
+			Name: "api-gateway",
+		}},
+		Rules: []structs.HTTPRouteRule{{
+			Services: []structs.HTTPService{{Name: "loaded-svc"}},
+		}},
+	}
+	wipedRoute := &structs.HTTPRouteConfigEntry{
+		Kind: structs.HTTPRoute,
+		Name: "wiped-route",
+		Parents: []structs.ResourceReference{{
+			Kind: structs.APIGateway,
+			Name: "api-gateway",
+		}},
+		Rules: []structs.HTTPRouteRule{{
+			Services: []structs.HTTPService{{Name: "wiped-svc"}},
+		}},
+	}
+	loadedRef := structs.ResourceReference{Kind: structs.HTTPRoute, Name: "loaded-route"}
+	wipedRef := structs.ResourceReference{Kind: structs.HTTPRoute, Name: "wiped-route"}
+
+	snap := proxycfg.TestConfigSnapshotAPIGateway(t, "default", nil, func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+		entry.Listeners = []structs.APIGatewayListener{{
+			Name:     "http-listener",
+			Protocol: structs.ListenerProtocolHTTP,
+			Port:     8080,
+		}}
+		bound.Listeners = []structs.BoundAPIGatewayListener{{
+			Name:   "http-listener",
+			Routes: []structs.ResourceReference{loadedRef, wipedRef},
+		}}
+	}, []structs.BoundRoute{loadedRoute, wipedRoute}, nil, nil)
+	require.NotNil(t, snap)
+
+	// Sanity: both routes are loaded and have upstreams after snapshot
+	// construction.
+	_, ok := snap.APIGateway.HTTPRoutes.Get(loadedRef)
+	require.True(t, ok)
+	_, ok = snap.APIGateway.HTTPRoutes.Get(wipedRef)
+	require.True(t, ok)
+	require.Contains(t, snap.APIGateway.Upstreams, loadedRef)
+	require.Contains(t, snap.APIGateway.Upstreams, wipedRef)
+
+	// Simulate handleGatewayConfigUpdate's old InitWatch behavior wiping
+	// the stored route entry while leaving Upstreams populated.
+	snap.APIGateway.HTTPRoutes.InitWatch(wipedRef, nil)
+	_, ok = snap.APIGateway.HTTPRoutes.Get(wipedRef)
+	require.False(t, ok, "wipedRoute's value must be cleared to reproduce the bug condition")
+	require.Contains(t, snap.APIGateway.Upstreams, wipedRef, "upstreams stick around after value is wiped")
+
+	ready := getReadyListeners(snap)
+	require.Len(t, ready, 1, "exactly one ready listener expected")
+	rl, ok := ready["http-listener"]
+	require.True(t, ok)
+
+	_, hasLoaded := rl.routeReferences[loadedRef]
+	require.True(t, hasLoaded, "loaded route must appear in readyListener")
+	_, hasWiped := rl.routeReferences[wipedRef]
+	require.False(t, hasWiped, "wiped route must be skipped to avoid ADS-killing error")
+}
+
+// TestGetReadyListeners_SkipsUnloadedTCPRoute mirrors the HTTP test for
+// the TCPRoutes map: a single TCP route is loaded into the snapshot and
+// then its stored value is wiped to simulate the InitWatch race. The
+// guard must exclude it from readyListeners.
+func TestGetReadyListeners_SkipsUnloadedTCPRoute(t *testing.T) {
+	tcpRoute := &structs.TCPRouteConfigEntry{
+		Kind: structs.TCPRoute,
+		Name: "tcp-route",
+		Parents: []structs.ResourceReference{{
+			Kind: structs.APIGateway,
+			Name: "api-gateway",
+		}},
+		Services: []structs.TCPService{{Name: "tcp-backend"}},
+	}
+	routeRef := structs.ResourceReference{Kind: structs.TCPRoute, Name: "tcp-route"}
+
+	snap := proxycfg.TestConfigSnapshotAPIGateway(t, "default", nil, func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+		entry.Listeners = []structs.APIGatewayListener{{
+			Name:     "tcp-listener",
+			Protocol: structs.ListenerProtocolTCP,
+			Port:     9000,
+		}}
+		bound.Listeners = []structs.BoundAPIGatewayListener{{
+			Name:   "tcp-listener",
+			Routes: []structs.ResourceReference{routeRef},
+		}}
+	}, []structs.BoundRoute{tcpRoute}, nil, nil)
+	require.NotNil(t, snap)
+
+	// Sanity: route is fully loaded after snapshot construction.
+	readyBefore := getReadyListeners(snap)
+	require.Contains(t, readyBefore, "tcp-listener")
+	require.Contains(t, readyBefore["tcp-listener"].routeReferences, routeRef)
+
+	// Wipe the stored value to reproduce the bug condition.
+	snap.APIGateway.TCPRoutes.InitWatch(routeRef, nil)
+	_, ok := snap.APIGateway.TCPRoutes.Get(routeRef)
+	require.False(t, ok, "stored TCPRoute value must be cleared to reproduce the bug")
+
+	readyAfter := getReadyListeners(snap)
+	if rl, present := readyAfter["tcp-listener"]; present {
+		require.NotContains(t, rl.routeReferences, routeRef,
+			"wiped TCP route must be excluded from readyListeners")
+	}
+}
+
+// TestGetReadyListeners_IncludesAllLoadedRoutes confirms that when every
+// route is fully loaded the new guard does not over-filter.
+func TestGetReadyListeners_IncludesAllLoadedRoutes(t *testing.T) {
+	r1 := &structs.HTTPRouteConfigEntry{
+		Kind: structs.HTTPRoute,
+		Name: "r1",
+		Parents: []structs.ResourceReference{{
+			Kind: structs.APIGateway,
+			Name: "api-gateway",
+		}},
+		Rules: []structs.HTTPRouteRule{{
+			Services: []structs.HTTPService{{Name: "svc1"}},
+		}},
+	}
+	r2 := &structs.HTTPRouteConfigEntry{
+		Kind: structs.HTTPRoute,
+		Name: "r2",
+		Parents: []structs.ResourceReference{{
+			Kind: structs.APIGateway,
+			Name: "api-gateway",
+		}},
+		Rules: []structs.HTTPRouteRule{{
+			Services: []structs.HTTPService{{Name: "svc2"}},
+		}},
+	}
+	ref1 := structs.ResourceReference{Kind: structs.HTTPRoute, Name: "r1"}
+	ref2 := structs.ResourceReference{Kind: structs.HTTPRoute, Name: "r2"}
+
+	snap := proxycfg.TestConfigSnapshotAPIGateway(t, "default", nil, func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+		entry.Listeners = []structs.APIGatewayListener{{
+			Name:     "http-listener",
+			Protocol: structs.ListenerProtocolHTTP,
+			Port:     8080,
+		}}
+		bound.Listeners = []structs.BoundAPIGatewayListener{{
+			Name:   "http-listener",
+			Routes: []structs.ResourceReference{ref1, ref2},
+		}}
+	}, []structs.BoundRoute{r1, r2}, nil, nil)
+	require.NotNil(t, snap)
+
+	ready := getReadyListeners(snap)
+	require.Len(t, ready, 1)
+	rl := ready["http-listener"]
+	require.Contains(t, rl.routeReferences, ref1)
+	require.Contains(t, rl.routeReferences, ref2)
+}
+
 // Made with Bob
