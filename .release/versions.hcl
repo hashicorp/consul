@@ -12,7 +12,6 @@ active_versions {
   version "1.21" {
     lts       = true
   }
-  version "1.20" {}
   version "1.18" {
     lts       = true
   }
