@@ -43,6 +43,7 @@
     "test:view": "ember test --server --test-port=${EMBER_TEST_PORT:-7357}",
     "test:e2e": "playwright test --config=e2e-tests/playwright.config.js",
     "test:e2e:basic": "playwright test --config=e2e-tests/playwright.config.js --project=basic",
+    "test:e2e:basic:ce": "playwright test --config=e2e-tests/playwright.config.js --project=basic --grep-invert @ent",
     "test:e2e:workflows": "playwright test --config=e2e-tests/playwright.config.js --project=workflows",
     "test:e2e:headed": "playwright test --config=e2e-tests/playwright.config.js --headed",
     "test:e2e:ui": "playwright test --config=e2e-tests/playwright.config.js --ui",

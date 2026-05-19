@@ -288,7 +288,7 @@ jobs:
       - name: Run basic E2E tests against port 8500 (CE)
         working-directory: ui/packages/consul-ui
         timeout-minutes: 15
-        run: pnpm run test:e2e:basic
+        run: pnpm run test:e2e:basic:ce
         env:
           CI: true
           PLAYWRIGHT_BASE_URL: http://localhost:8500

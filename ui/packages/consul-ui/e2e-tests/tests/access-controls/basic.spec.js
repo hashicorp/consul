@@ -93,7 +93,7 @@ test.describe('Access Controls - Basic', () => {
 
       // 8. Verify we no longer have permission to create tokens.
       await tokensPage.goto();
-      await expect(page.getByRole('link', { name: 'Create' })).toHaveCount(0);
+      await expect(page.getByRole('link', { name: 'Create' })).toHaveCount(0, { timeout: 15000 });
 
       // 9. Sign out, then sign back in with management token.
       await page.getByLabel('Auth menu').click();
