@@ -64,7 +64,9 @@ function kvCodeToggle(page) {
 }
 
 function kvRow(page, text) {
-  return page.locator(`text=${text}`).first();
+  // Target the <a> link element directly to avoid matching the responsive <h1>
+  // card view, which can detach from the DOM mid-click during re-renders.
+  return page.getByRole('link', { name: text }).first();
 }
 
 async function openKVCreate(page) {
