@@ -1684,11 +1684,14 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 						Upstream: wildcard,
 						Config: map[string]interface{}{
 							"passive_health_check": map[string]interface{}{
-								"Interval":                int64(10),
-								"MaxFailures":             int64(2),
-								"EnforcingConsecutive5xx": int64(60),
-								"MaxEjectionPercent":      int64(61),
-								"BaseEjectionTime":        uint64(62 * time.Second),
+								"Interval":                           int64(10),
+								"MaxFailures":                        int64(2),
+								"EnforcingConsecutive5xx":            int64(60),
+								"EnforcingConsecutiveGatewayFailure": interface{}(nil),
+								"Consecutive5xx":                     interface{}(nil),
+								"ConsecutiveGatewayFailure":          interface{}(nil),
+								"MaxEjectionPercent":                 int64(61),
+								"BaseEjectionTime":                   uint64(62 * time.Second),
 							},
 							"mesh_gateway": map[string]interface{}{
 								"Mode": "none",
@@ -1700,11 +1703,14 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 						Upstream: mysql,
 						Config: map[string]interface{}{
 							"passive_health_check": map[string]interface{}{
-								"Interval":                int64(10),
-								"MaxFailures":             int64(2),
-								"EnforcingConsecutive5xx": int64(60),
-								"MaxEjectionPercent":      int64(61),
-								"BaseEjectionTime":        uint64(62 * time.Second),
+								"Interval":                           int64(10),
+								"MaxFailures":                        int64(2),
+								"EnforcingConsecutive5xx":            int64(60),
+								"EnforcingConsecutiveGatewayFailure": interface{}(nil),
+								"Consecutive5xx":                     interface{}(nil),
+								"ConsecutiveGatewayFailure":          interface{}(nil),
+								"MaxEjectionPercent":                 int64(61),
+								"BaseEjectionTime":                   uint64(62 * time.Second),
 							},
 							"mesh_gateway": map[string]interface{}{
 								"Mode": "local",

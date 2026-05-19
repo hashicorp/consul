@@ -1919,6 +1919,9 @@ func PassiveHealthCheckToStructs(s *PassiveHealthCheck, t *structs.PassiveHealth
 	t.Interval = structs.DurationFromProto(s.Interval)
 	t.MaxFailures = s.MaxFailures
 	t.EnforcingConsecutive5xx = pointerToUint32FromUint32(s.EnforcingConsecutive5Xx)
+	t.EnforcingConsecutiveGatewayFailure = pointerToUint32FromUint32(s.EnforcingConsecutiveGatewayFailure)
+	t.Consecutive5xx = pointerToUint32FromUint32(s.Consecutive5Xx)
+	t.ConsecutiveGatewayFailure = pointerToUint32FromUint32(s.ConsecutiveGatewayFailure)
 	t.MaxEjectionPercent = pointerToUint32FromUint32(s.MaxEjectionPercent)
 	t.BaseEjectionTime = structs.DurationPointerFromProto(s.BaseEjectionTime)
 }
@@ -1929,6 +1932,9 @@ func PassiveHealthCheckFromStructs(t *structs.PassiveHealthCheck, s *PassiveHeal
 	s.Interval = structs.DurationToProto(t.Interval)
 	s.MaxFailures = t.MaxFailures
 	s.EnforcingConsecutive5Xx = uint32FromPointerToUint32(t.EnforcingConsecutive5xx)
+	s.EnforcingConsecutiveGatewayFailure = uint32FromPointerToUint32(t.EnforcingConsecutiveGatewayFailure)
+	s.Consecutive5Xx = uint32FromPointerToUint32(t.Consecutive5xx)
+	s.ConsecutiveGatewayFailure = uint32FromPointerToUint32(t.ConsecutiveGatewayFailure)
 	s.MaxEjectionPercent = uint32FromPointerToUint32(t.MaxEjectionPercent)
 	s.BaseEjectionTime = structs.DurationPointerToProto(t.BaseEjectionTime)
 }
