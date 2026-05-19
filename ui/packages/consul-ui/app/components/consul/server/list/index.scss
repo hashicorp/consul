@@ -3,17 +3,11 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-%consul-server-list ul {
+.consul-server-list ul {
   display: grid;
   grid-template-columns: repeat(4, minmax(215px, 25%));
   gap: 12px;
-}
-
-.consul-server-list {
-  @extend %consul-server-list;
-}
-
-%consul-server-list a:hover div {
-  box-shadow: var(--token-elevation-overlay-box-shadow);
-  --tone-border: var(--token-color-foreground-faint);
+  list-style: none;
+  padding: 0;
+  margin: 0;
 }

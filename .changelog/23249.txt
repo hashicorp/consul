@@ -1,0 +1,3 @@
+```release-note:security
+security: Fixed arbitrary file read vulnerability in Vault CA provider authentication methods (Kubernetes, JWT, and AppRole) by implementing OS-level path traversal protection using `os.OpenRoot()` to restrict file access to standard secret directories. This resolves the CVE-2026-2808
+```

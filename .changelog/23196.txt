@@ -1,0 +1,3 @@
+```release-note:security
+Added debounce behavior to enforce a minimum interval between expensive federation-state anti-entropy sync operations.
+```

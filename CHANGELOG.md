@@ -1,15 +1,58 @@
-## 1.22.4 (February 18, 2026)
+## 1.22.7 (April 21, 2026)
+
+SECURITY:
+
+* security: update google.golang.org/grpc to fix CVE-2026-33186 [[GH-23379](https://github.com/hashicorp/consul/issues/23379)]
+* security: upgrade go.opentelemetry.io/otel to 1.42.0 to remediate CVE-2026-24051 (Path Hijacking / Untrusted Search Paths on macOS). [[GH-23387](https://github.com/hashicorp/consul/issues/23387)]
+* test-sds-server: bump github.com/hashicorp/consul to v1.22.5 in integration test module to align with the CVE-2026-2808 fixed release line. [[GH-23437](https://github.com/hashicorp/consul/issues/23437)]
+* ui: **(Enterprise only)** Backport Rollup update to 2.80.0 for release/1.21.x to address CVE-2026-27606 (SECVULN-38912).
+
+IMPROVEMENTS:
+
+* acl: Addition of TokenNameFormat field to auth-method and parse the same for token name [[GH-23444](https://github.com/hashicorp/consul/issues/23444)]
+* discovery-chain: removes the use of hashstructure_v2 ([github.com/mitchellh/hashstructure/v2] from compiled discovery chain hashing and replaces it with explicit custom hash implementations. [[GH-23393](https://github.com/hashicorp/consul/issues/23393)]
+* ui: removed consul docs website related code as it is being maintained in a separate internal repository. [[GH-23398](https://github.com/hashicorp/consul/issues/23398)]
+
+BUG FIXES:
+
+* api-gateway: fix HTTPRoute PathPrefix routing to preserve the original request path when `replacePrefixMatch` is not configured [[GH-23390](https://github.com/hashicorp/consul/issues/23390)]
+
+## 1.22.6 (March 23, 2026)
+
+SECURITY:
+
+* security: upgrade envoy version to 1.35.9 and 1.34.13 [[GH-23372](https://github.com/hashicorp/consul/pull/23372)]
+* security: update google.golang.org/grpc to fix CVE-2026-33186 [[GH-23379](https://github.com/hashicorp/consul/pull/23379)]
+* security: upgrade go version to 1.25.8 [[GH-23322](https://github.com/hashicorp/consul/pull/23322)]
+* security: bump golang.org/x/* dependencies to align with consul-enterprise and address security vulnerabilities. [[GH-23322](https://github.com/hashicorp/consul/pull/23322)]
+
+IMPROVEMENTS:
+
+* api-gateway: Add support to disable traffic with weight 0 in services for HTTPRoute backends, allowing explicit zero-weight backends to be excluded from traffic. [[GH-23216](https://github.com/hashicorp/consul/pull/23216)]
+* ui: Fixed Consul UI to work in non-secure environments by enabling Ember Data's UUID polyfill for crypto.randomUUID. [[GH-23341](https://github.com/hashicorp/consul/pull/23341)]
+* ui: Fixed Consul UI services page navigation by ensuring route transitions trigger the expected model hook behavior after Ember upgrade. [[GH-23271](https://github.com/hashicorp/consul/pull/23271)]
+* ui: Replaced deprecated SideNav component with AppSideNav for improved navigation structure. [[GH-23289](https://github.com/hashicorp/consul/pull/23289)]
+
+## 1.22.5 (February 26, 2026)
 
 SECURITY:
 * security: upgrade go version to 1.25.7 [[GH-23204](https://github.com/hashicorp/consul/issues/23204)]
 * dockerfile: the Consul build Go base image to `alpine3.23` [[GH-23194](https://github.com/hashicorp/consul/issues/23194)]
 * connect: Migrate to aws-sdk-go-v2 from aws-sdk-go (v1). Also updated consul-awsauth and go-secure-stdlib/awsutil dependencies to their v2 versions. [[GH-23109](https://github.com/hashicorp/consul/issues/23109)]
 * security: Configure HTTP server timeouts to prevent Slowloris denial-of-service attacks on agent HTTP endpoints and pprof endpoints. [[GH-22739](https://github.com/hashicorp/consul/issues/22739)]
+* security: Patched Vault CA provider to prevent arbitrary file reads via Kubernetes, JWT, and AppRole methods. [[GH-23249](https://github.com/hashicorp/consul/pull/23249)]
+* security: Introduced debounce timing for synchronization operations within federationStateAntiEntropySync. [[GH-23196](https://github.com/hashicorp/consul/pull/23196)]
 
 IMPROVEMENTS:
 * api-gateway: Fixed "duplicate matcher" errors in Envoy when using multiple file-system certificates on a single TLS listener. The certificates are now consolidated into a single filter chain, allowing Envoy to select the correct one. [[GH-23212](https://github.com/hashicorp/consul/issues/23212)]
 * agent: Fix vault provider failure when signing intermediate CA with isCA=true in CSR [[GH-23202](https://github.com/hashicorp/consul/issues/23202)]
 * cli: Added `--aws-iam-endpoint` flag to `consul login` command for AWS IAM auth method to support custom IAM endpoint configuration [[GH-23109](https://github.com/hashicorp/consul/issues/23109)]
+* docs: Refreshed the security documentation to include the new HTTP server timeout defaults and relevant configuration options. [[GH-23246](https://github.com/hashicorp/consul/pull/23246)]
+* api: Cancel context check for watches cache fetch to stop execution when manager deregisters the watch. [[GH-23157](https://github.com/hashicorp/consul/issues/23157)]
+
+## 1.22.4
+
+**WITHDRAWN** - This release has been retracted from public distribution due to critical issues. Please use 1.22.5 or remain on 1.22.3.
 
 ## 1.22.3 (January 23, 2026)
 

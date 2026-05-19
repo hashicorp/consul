@@ -43,7 +43,7 @@
             @href={{item.href}}
           >
             {{#if item.tooltip}}
-              <span {{tooltip item.tooltip}}>{{item.label}}</span>
+              <span {{hds-tooltip item.tooltip options=(detached-tooltip-options)}}>{{item.label}}</span>
             {{else}}
               {{item.label}}
             {{/if}}

@@ -1,0 +1,3 @@
+```release-note:bug
+http: Adds missing KV key validation for txn endpoint
+```

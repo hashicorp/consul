@@ -5,7 +5,6 @@ package ca
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/hashicorp/consul/agent/structs"
@@ -36,12 +35,25 @@ func NewJwtAuthClient(authMethod *structs.VaultAuthMethod) (*VaultAuthClient, er
 	return authClient, nil
 }
 
+// JwtLoginDataGen generates the login data for the JWT auth method
 func JwtLoginDataGen(authMethod *structs.VaultAuthMethod) (map[string]any, error) {
 	params := authMethod.Params
 	role := params["role"].(string)
 
 	tokenPath := params["path"].(string)
-	rawToken, err := os.ReadFile(tokenPath)
+
+	// Define allowed base directories for JWT credentials
+	allowedDirs := []string{
+		"/var/run/secrets/kubernetes.io/serviceaccount",
+		"/var/run/secrets/vault",
+		"/run/secrets/vault",
+		"/var/run/secrets",
+		"/run/secrets",
+	}
+
+	// Securely read the JWT file using os.OpenRoot to prevent path traversal attacks
+	rawToken, err := readVaultCredentialFileSecurely(tokenPath, allowedDirs)
+
 	if err != nil {
 		return nil, err
 	}

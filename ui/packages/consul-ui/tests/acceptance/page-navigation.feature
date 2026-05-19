@@ -38,7 +38,7 @@ Feature: page-navigation
     When I click [Item] on the [Model]
     Then the url should be [URL]
     Then a GET request was made to "[Endpoint]"
-    And I click "[data-test-back]"
+    And I click "[data-test-back] a"
     Then the url should be [Back]
   Where:
     -------------------------------------------------------------------------------------------------------------------------------------
@@ -111,7 +111,7 @@ Feature: page-navigation
     ---
     When I click create
     Then the url should be [URL]
-    And I click "[data-test-back]"
+    And I click "[data-test-back] a"
     Then the url should be [Back]
   Where:
     ---------------------------------------------------------------------------

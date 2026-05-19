@@ -6,7 +6,6 @@ package ca
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/hashicorp/consul/agent/structs"
@@ -37,6 +36,7 @@ func NewAppRoleAuthClient(authMethod *structs.VaultAuthMethod) (*VaultAuthClient
 	return authClient, nil
 }
 
+// ArLoginDataGen generates the login data for the AppRole auth method
 func ArLoginDataGen(authMethod *structs.VaultAuthMethod) (map[string]any, error) {
 	// don't need to check for legacy params as this func isn't used in that case
 	params := authMethod.Params
@@ -52,12 +52,25 @@ func ArLoginDataGen(authMethod *structs.VaultAuthMethod) (map[string]any, error)
 	var err error
 	var rawRoleID, rawSecretID []byte
 	data := make(map[string]any)
-	if rawRoleID, err = os.ReadFile(roleIdFilePath); err != nil {
+
+	// Define allowed base directories for AppRole credentials
+	allowedDirs := []string{
+		"/var/run/secrets/vault",
+		"/run/secrets/vault",
+		"/var/run/secrets",
+		"/run/secrets",
+	}
+
+	// Securely read the role_id file using os.OpenRoot to prevent path traversal attacks
+	if rawRoleID, err = readVaultCredentialFileSecurely(roleIdFilePath, allowedDirs); err != nil {
 		return nil, err
 	}
-	data["role_id"] = string(rawRoleID)
+	// Trim whitespace for consistency with secret_id handling
+	data["role_id"] = strings.TrimSpace(string(rawRoleID))
+
 	if hasSecret {
-		switch rawSecretID, err = os.ReadFile(secretIdFilePath); {
+		// Securely read the secret_id file using os.OpenRoot to prevent path traversal attacks
+		switch rawSecretID, err = readVaultCredentialFileSecurely(secretIdFilePath, allowedDirs); {
 		case err != nil:
 			return nil, err
 		case len(bytes.TrimSpace(rawSecretID)) > 0:

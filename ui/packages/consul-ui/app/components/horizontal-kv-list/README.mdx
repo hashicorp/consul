@@ -14,8 +14,8 @@ The keys can be configured to be either, visible, invisible, or with an icon.
 - **Invisible Title Configuration:** Don't add a `class` attribute at all, i.e. by default
   the title is not shown.
 
-If you are providing an icon, you should also use the `{{tooltip}}` modifier
-to provide a textual tooltip for the icon. Using the `{{tooltip}}` modifier
+If you are providing an icon, you should also use the `{{hds-tooltip}}` modifier
+to provide a textual tooltip for the icon. Using the `{{hds-tooltip}}` modifier
 with no arguments will make it use the text/DOM content of the DOM element it
 is attached to, see below for a full usage example.
 
@@ -35,7 +35,7 @@ to the left or right of the value.
     </dd>
 {{#if true}}
     <dt
-      {{tooltip}}
+      {{hds-tooltip}}
       class="lock-delay"
     >
       Lock Delay
@@ -43,7 +43,7 @@ to the left or right of the value.
     <dd>10ms</dd>
 {{/if}}
     <dt
-      {{tooltip}}
+      {{hds-tooltip}}
       class="ttl"
     >
       TTL
@@ -81,7 +81,7 @@ to the left or right of the value.
     <dd>service-0</dd>
   </dl><dl>
     <dt
-      {{tooltip}}
+      {{hds-tooltip}}
       class="lock-delay"
     >
       Lock Delay
@@ -89,7 +89,7 @@ to the left or right of the value.
     <dd>10ms</dd>
   </dl><dl>
     <dt
-      {{tooltip}}
+      {{hds-tooltip}}
       class="ttl"
     >
       TTL
@@ -133,7 +133,7 @@ to the left or right of the value.
   </dl>
   <dl>
     <dt
-      {{tooltip}}
+      {{hds-tooltip}}
       class="lock-delay"
     >
       Lock Delay
@@ -141,7 +141,7 @@ to the left or right of the value.
     <dd>10ms</dd>
   </dl><dl>
     <dt
-      {{tooltip}}
+      {{hds-tooltip}}
       class="ttl"
     >
       TTL

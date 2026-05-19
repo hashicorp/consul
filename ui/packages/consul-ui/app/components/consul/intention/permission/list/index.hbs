@@ -15,10 +15,8 @@ as |item|>
       <strong class={{concat 'intent-' item.Action}}>{{capitalize item.Action}}</strong>
 {{#if (gt item.HTTP.Methods.length 0)}}
         <dl class="permission-methods">
-          <dt>
-            <Tooltip>
-              Methods
-            </Tooltip>
+          <dt {{hds-tooltip "Methods" options=(detached-tooltip-options)}}>
+            Methods
           </dt>
           <dd>
 {{#each item.HTTP.Methods as |item|}}
@@ -29,10 +27,8 @@ as |item|>
 {{/if}}
 {{#if item.HTTP.Path}}
         <dl class="permission-path">
-          <dt>
-            <Tooltip>
-              {{item.HTTP.PathType}}
-            </Tooltip>
+          <dt {{hds-tooltip item.HTTP.PathType options=(detached-tooltip-options)}}>
+            {{item.HTTP.PathType}}
           </dt>
           <dd>
             {{item.HTTP.Path}}
@@ -41,10 +37,8 @@ as |item|>
 {{/if}}
 {{#each item.HTTP.Header as |item|}}
         <dl class="permission-header">
-          <dt>
-            <Tooltip>
-              Header
-            </Tooltip>
+          <dt {{hds-tooltip "Header" options=(detached-tooltip-options)}}>
+            Header
           </dt>
           <dd>
             {{item.Name}} {{route-match item}}

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/go-jose/go-jose/v3/jwt"
+	"github.com/hashicorp/consul/agent/consul/auth"
 	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
 
@@ -5006,6 +5007,19 @@ func TestACLEndpoint_Login_with_MaxTokenTTL(t *testing.T) {
 	got.SecretID = ""
 	got.Hash = nil
 
+	fp, err := auth.ParseTokenName(
+		method,
+		map[string]string{
+			"auth_method_type": method.Type,
+			"auth_method_name": method.Name,
+		},
+		false,
+	)
+	require.NoError(t, err)
+
+	require.True(t, strings.HasPrefix(got.Name, fp))
+
+	got.Name = ""
 	defaultEntMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
 	expect := &structs.ACLToken{
 		AuthMethod:     method.Name,
@@ -5113,6 +5127,19 @@ func TestACLEndpoint_Login_with_TokenLocality(t *testing.T) {
 			got.AccessorID = ""
 			got.SecretID = ""
 			got.Hash = nil
+			fp, err := auth.ParseTokenName(
+				method,
+				map[string]string{
+					"auth_method_type": method.Type,
+					"auth_method_name": method.Name,
+				},
+				false,
+			)
+			require.NoError(t, err)
+
+			require.True(t, strings.HasPrefix(got.Name, fp))
+
+			got.Name = ""
 
 			defaultEntMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
 			expect := &structs.ACLToken{

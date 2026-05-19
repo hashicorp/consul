@@ -60,6 +60,14 @@
 .consul-service-instance-list .detail {
   overflow-x: visible !important;
 }
+.consul-service-list .mesh,
+.consul-service-instance-list .mesh {
+  gap: 8px;
+}
+.consul-service-list .mesh dt + dd,
+.consul-service-instance-list .mesh dt + dd {
+  margin-left: 0;
+}
 .consul-intention-permission-list > ul {
   border-top: 1px solid var(--token-color-surface-interactive-active);
 }

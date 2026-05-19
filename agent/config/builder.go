@@ -849,13 +849,14 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		BuildDate: timeValWithDefault(c.BuildDate, time.Date(1970, 1, 00, 00, 00, 01, 0, time.UTC)),
 
 		// consul configuration
-		ConsulCoordinateUpdateBatchSize:  intVal(c.Consul.Coordinate.UpdateBatchSize),
-		ConsulCoordinateUpdateMaxBatches: intVal(c.Consul.Coordinate.UpdateMaxBatches),
-		ConsulCoordinateUpdatePeriod:     b.durationVal("consul.coordinate.update_period", c.Consul.Coordinate.UpdatePeriod),
-		ConsulRaftElectionTimeout:        consulRaftElectionTimeout,
-		ConsulRaftHeartbeatTimeout:       consulRaftHeartbeatTimeout,
-		ConsulRaftLeaderLeaseTimeout:     consulRaftLeaderLeaseTimeout,
-		ConsulServerHealthInterval:       b.durationVal("consul.server.health_interval", c.Consul.Server.HealthInterval),
+		ConsulCoordinateUpdateBatchSize:        intVal(c.Consul.Coordinate.UpdateBatchSize),
+		ConsulCoordinateUpdateMaxBatches:       intVal(c.Consul.Coordinate.UpdateMaxBatches),
+		ConsulCoordinateUpdatePeriod:           b.durationVal("consul.coordinate.update_period", c.Consul.Coordinate.UpdatePeriod),
+		ConsulRaftElectionTimeout:              consulRaftElectionTimeout,
+		ConsulRaftHeartbeatTimeout:             consulRaftHeartbeatTimeout,
+		ConsulRaftLeaderLeaseTimeout:           consulRaftLeaderLeaseTimeout,
+		ConsulServerHealthInterval:             b.durationVal("consul.server.health_interval", c.Consul.Server.HealthInterval),
+		FederationStateAntiEntropySyncInterval: b.durationVal("federation_state_anti_entropy_sync_interval", c.FederationStateAntiEntropySyncInterval),
 
 		// gossip configuration
 		GossipLANGossipInterval: b.durationVal("gossip_lan..gossip_interval", c.GossipLAN.GossipInterval),
@@ -943,9 +944,9 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		HTTPResponseHeaders:   c.HTTPConfig.ResponseHeaders,
 		AllowWriteHTTPFrom:    b.cidrsVal("allow_write_http_from", c.HTTPConfig.AllowWriteHTTPFrom),
 		HTTPUseCache:          boolValWithDefault(c.HTTPConfig.UseCache, true),
-		HTTPReadTimeout:       b.durationValWithDefaultMin("http_config.read_timeout", c.HTTPConfig.ReadTimeout, 30*time.Second, 1*time.Second),
+		HTTPReadTimeout:       b.durationValWithDefaultMin("http_config.read_timeout", c.HTTPConfig.ReadTimeout, 15*time.Minute, 1*time.Second),
 		HTTPReadHeaderTimeout: b.durationValWithDefaultMin("http_config.read_header_timeout", c.HTTPConfig.ReadHeaderTimeout, 10*time.Second, 1*time.Second),
-		HTTPWriteTimeout:      b.durationValWithDefaultMin("http_config.write_timeout", c.HTTPConfig.WriteTimeout, 30*time.Second, 1*time.Second),
+		HTTPWriteTimeout:      b.durationValWithDefaultMin("http_config.write_timeout", c.HTTPConfig.WriteTimeout, 15*time.Minute, 1*time.Second),
 		HTTPIdleTimeout:       b.durationValWithDefaultMin("http_config.idle_timeout", c.HTTPConfig.IdleTimeout, 120*time.Second, 10*time.Second),
 
 		// Telemetry

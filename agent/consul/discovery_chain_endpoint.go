@@ -9,7 +9,6 @@ import (
 
 	metrics "github.com/armon/go-metrics"
 	memdb "github.com/hashicorp/go-memdb"
-	hashstructure_v2 "github.com/mitchellh/hashstructure/v2"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
@@ -77,10 +76,7 @@ func (c *DiscoveryChain) Get(args *structs.DiscoveryChainRequest, reply *structs
 			// Generate a hash of the config entry content driving this
 			// response. Use it to determine if the response is identical to a
 			// prior wakeup.
-			newHash, err := hashstructure_v2.Hash(chain, hashstructure_v2.FormatV2, nil)
-			if err != nil {
-				return fmt.Errorf("error hashing reply for spurious wakeup suppression: %w", err)
-			}
+			newHash := chain.GetHash()
 
 			if ranOnce && priorHash == newHash {
 				priorHash = newHash

@@ -20,13 +20,13 @@
       <div class="flex items-center">
         {{#if @peering.LastHeartbeat}}
           {{#let (smart-date-format @peering.LastHeartbeat) as |smartDate|}}
-            <FlightIcon
+            <Hds::Icon
               @name="activity"
               @color="var(--token-color-foreground-faint)"
               class="mr-0.5"
             />
             {{#if smartDate.isNearDate}}
-              <span {{tooltip smartDate.friendly}}>{{smartDate.relative}}</span>
+              <span {{hds-tooltip smartDate.friendly options=(detached-tooltip-options)}}>{{smartDate.relative}}</span>
             {{else}}
               <span>{{smartDate.friendly}}</span>
             {{/if}}
@@ -44,7 +44,7 @@
         {{#if @peering.LastReceive}}
           {{#let (smart-date-format @peering.LastReceive) as |smartDate|}}
             {{#if smartDate.isNearDate}}
-              <span {{tooltip smartDate.friendly}}>{{smartDate.relative}}</span>
+              <span {{hds-tooltip smartDate.friendly options=(detached-tooltip-options)}}>{{smartDate.relative}}</span>
             {{else}}
               <span>{{smartDate.friendly}}</span>
             {{/if}}
@@ -62,7 +62,7 @@
         {{#if @peering.LastSend}}
           {{#let (smart-date-format @peering.LastSend) as |smartDate|}}
             {{#if smartDate.isNearDate}}
-              <span {{tooltip smartDate.friendly}}>{{smartDate.relative}}</span>
+              <span {{hds-tooltip smartDate.friendly options=(detached-tooltip-options)}}>{{smartDate.relative}}</span>
             {{else}}
               <span>{{smartDate.friendly}}</span>
             {{/if}}

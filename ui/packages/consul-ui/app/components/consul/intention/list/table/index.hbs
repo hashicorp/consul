@@ -16,10 +16,7 @@
     <th class='destination'>Destination</th>
     <th class='permissions'>
       Permissions
-      <span>
-        <Tooltip>Permissions intercept an Intention's traffic using Layer 7 criteria, such as path
-          prefixes and http headers.</Tooltip>
-      </span>
+      <span {{hds-tooltip "Permissions intercept an Intention's traffic using Layer 7 criteria, such as path prefixes and http headers." options=(detached-tooltip-options)}}></span>
     </th>
     <th class='meta'>Status</th>
   </BlockSlot>
@@ -123,7 +120,7 @@
               <InformedAction>
                 <:header>
                   <span class='flex flex-nowrap items-center'>
-                    <FlightIcon @name='kubernetes-color' class='mr-1.5' />
+                    <Hds::Icon @name="kubernetes-color" @size="16" class="mr-2.5" />
                     Managed by CRD
                   </span>
                 </:header>

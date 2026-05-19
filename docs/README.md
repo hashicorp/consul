@@ -61,7 +61,6 @@ contain other important source related to Consul.
   monitor Consul.
 
 [ui]: https://github.com/hashicorp/consul/tree/main/ui
-[website]: https://github.com/hashicorp/consul/tree/main/website
 [.github]: https://github.com/hashicorp/consul/tree/main/.github
 [.changelog]: https://github.com/hashicorp/consul/tree/main/.changelog
 [hashicorp/go-changelog]: https://github.com/hashicorp/go-changelog

@@ -64,7 +64,6 @@
 @import 'consul-ui/components/icon-definition';
 @import 'consul-ui/components/inline-code';
 @import 'consul-ui/components/overlay';
-@import 'consul-ui/components/tooltip';
 @import 'consul-ui/components/modal-dialog';
 @import 'consul-ui/components/list-collection';
 @import 'consul-ui/components/filter-bar';
@@ -89,6 +88,7 @@
 @import 'consul-ui/components/consul/intention';
 @import 'consul-ui/components/consul/lock-session/list';
 @import 'consul-ui/components/consul/lock-session/form';
+@import 'consul-ui/components/consul/kv/form';
 @import 'consul-ui/components/consul/server/list';
 @import 'consul-ui/components/consul/server/card';
 @import 'consul-ui/components/consul/auth-method';

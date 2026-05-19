@@ -14,7 +14,7 @@
 {{#if @item.Failover}}
       <dl class="failover">
         <dt
-          {{tooltip (concat @item.Failover.Type ' failover')}}
+          {{hds-tooltip (concat @item.Failover.Type ' failover') options=(detached-tooltip-options)}}
         >
           {{concat @item.Failover.Type ' failover'}}
         </dt>
@@ -41,7 +41,7 @@
     {{#if child.Redirect}}
           <dl class="redirect">
             <dt
-              {{tooltip (concat child.Redirect ' redirect')}}
+              {{hds-tooltip (concat child.Redirect ' redirect') options=(detached-tooltip-options)}}
             >
               {{child.Redirect}} redirect
             </dt>
@@ -52,7 +52,7 @@
           {{#if child.Failover}}
             <dl class="failover">
               <dt
-                {{tooltip (concat child.Failover.Type ' failover')}}
+                {{hds-tooltip (concat child.Failover.Type ' failover') options=(detached-tooltip-options)}}
               >
                 {{child.Failover.Type}} failover
               </dt>
@@ -71,7 +71,7 @@
           {{child.Name}}
           <dl class="failover">
             <dt
-              {{tooltip (concat child.Failover.Type ' failover')}}
+              {{hds-tooltip (concat child.Failover.Type ' failover') options=(detached-tooltip-options)}}
             >
               {{concat child.Failover.Type ' failover'}}
             </dt>

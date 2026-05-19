@@ -34,7 +34,7 @@ Some common values are:
   if no more specific `<code area>` applies
 - `http`: related to the HTTP API interface and its endpoints
 - `dns`: related to DNS functionality
-- `ui`: any change related to the built-in Consul UI (`website/` folder)
+- `ui`: any change related to the built-in Consul UI (`ui/` folder)
 
 Look in the [`.changelog/`](../.changelog) folder for examples of existing changelog entries.
 

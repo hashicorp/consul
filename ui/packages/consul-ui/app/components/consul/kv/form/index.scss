@@ -1,0 +1,11 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
+.consul-kv-value-editor {
+	.hds-code-editor__editor {
+		max-height: 80vh;
+		overflow: auto;
+	}
+}

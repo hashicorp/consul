@@ -12,10 +12,8 @@
 as |item|>
   <BlockSlot @name="details">
     <dl>
-      <dt>
-        <Tooltip>
-          Header
-        </Tooltip>
+      <dt {{hds-tooltip "Header" options=(detached-tooltip-options)}}>
+        Header
       </dt>
       <dd>
         {{item.Name}} {{route-match item}}
