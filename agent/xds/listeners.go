@@ -2040,6 +2040,8 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.
 			// This assumes that we have a client cert (mTLS) (implied by the context of this function)
 			opts.forwardClientPolicy = envoy_http_v3.HttpConnectionManager_APPEND_FORWARD
 		}
+		// Apply path normalization options to prevent L7 intention RBAC bypass (CVE-2024-10005)
+		setNormalizationOptions(cfgSnap.MeshConfig().GetHTTPIncomingRequestNormalization(), &opts)
 	}
 
 	filter, err := makeListenerFilter(opts)

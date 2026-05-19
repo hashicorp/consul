@@ -96,6 +96,8 @@ func (r *LazyNetRPC) RPC(ctx context.Context, method string, args any, reply any
 
 type ConfigLoader func(source config.Source) (config.LoadResult, error)
 
+var testLeafCertMetricEmissionInterval time.Duration
+
 func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hclog.InterceptLogger) (BaseDeps, error) {
 	d := BaseDeps{}
 	result, err := configLoader(nil)
@@ -172,6 +174,7 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 		RootsReader: leafcert.NewCachedRootsReader(d.Cache, cfg.Datacenter),
 		Config: leafcert.Config{
 			TestOverrideCAChangeInitialDelay:          cfg.ConnectTestCALeafRootChangeSpread,
+			TestOverrideMetricEmissionInterval:        testLeafCertMetricEmissionInterval,
 			CertificateTelemetryCriticalThresholdDays: cfg.Telemetry.CertificateCriticalThresholdDays,
 			CertificateTelemetryWarningThresholdDays:  cfg.Telemetry.CertificateWarningThresholdDays,
 		},
@@ -341,7 +344,7 @@ func getPrometheusDefs(cfg *config.RuntimeConfig, isServer bool) ([]prometheus.G
 		xds.StatsGauges,
 		usagemetrics.Gauges,
 		consul.ReplicationGauges,
-		CertExpirationGauges,
+		certExpirationGauges(cfg.Datacenter, cfg.PartitionOrDefault(), cfg.NodeName, tlsCertRole(isServer)),
 		Gauges,
 		raftGauges,
 		serverGauges,

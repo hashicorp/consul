@@ -75,6 +75,9 @@ type Config struct {
 	// Certificate telemetry thresholds for determining log severity
 	CertificateTelemetryCriticalThresholdDays int
 	CertificateTelemetryWarningThresholdDays  int
+
+	// TestOverrideMetricEmissionInterval overrides the periodic metric re-emission cadence in tests.
+	TestOverrideMetricEmissionInterval time.Duration
 }
 
 func (c Config) withDefaults() Config {
@@ -576,7 +579,12 @@ func (m *Manager) runExpiryLoop() {
 // emitCertMetrics periodically re-emits certificate expiry and failure metrics
 // This ensures metrics persist across agent restarts and remain visible to Prometheus
 func (m *Manager) emitCertMetrics() {
-	ticker := time.NewTicker(5 * time.Minute)
+	interval := 5 * time.Minute
+	if m.config.TestOverrideMetricEmissionInterval > 0 {
+		interval = m.config.TestOverrideMetricEmissionInterval
+	}
+
+	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
 	emitMetrics := func() {

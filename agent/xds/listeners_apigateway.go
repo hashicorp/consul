@@ -247,6 +247,9 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 				maxRequestHeadersKb: maxRequestHeadersKb,
 			}
 
+			// Apply path normalization options to prevent L7 intention RBAC bypass (CVE-2024-10005)
+			setNormalizationOptions(cfgSnap.MeshConfig().GetHTTPIncomingRequestNormalization(), &filterOpts)
+
 			// Generate any filter chains needed for services with custom TLS certs
 			// via SDS.
 			sniFilterChains := []*envoy_listener_v3.FilterChain{}

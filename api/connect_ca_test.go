@@ -55,6 +55,11 @@ func TestAPI_ConnectCARoots_list(t *testing.T) {
 		if list.TrustDomain != "11111111-2222-3333-4444-555555555555.consul" {
 			r.Fatalf("expected fixed trust domain got '%s'", list.TrustDomain)
 		}
+		root := list.Roots[0]
+		require.NotNil(r, root.NotBefore)
+		require.NotNil(r, root.NotAfter)
+		require.True(r, root.NotAfter.After(*root.NotBefore))
+		require.True(r, root.NotAfter.After(time.Now()))
 	})
 
 }

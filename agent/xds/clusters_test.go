@@ -963,6 +963,43 @@ func TestMergeAPIGatewayUpstreamLimits(t *testing.T) {
 	require.Equal(t, 50, *merged.MaxConcurrentRequests)
 }
 
+func TestMergeAPIGatewayUpstreamLimits_ZeroValuesOmitted(t *testing.T) {
+	t.Parallel()
+
+	merged := mergeAPIGatewayUpstreamLimits(
+		&structs.UpstreamLimits{
+			MaxConnections:        intPointer(0),
+			MaxPendingRequests:    intPointer(4),
+			MaxConcurrentRequests: intPointer(0),
+		},
+		&structs.UpstreamLimits{
+			MaxPendingRequests:    intPointer(3),
+			MaxConcurrentRequests: intPointer(2),
+		},
+	)
+
+	require.NotNil(t, merged)
+	require.Nil(t, merged.MaxConnections)
+	require.NotNil(t, merged.MaxPendingRequests)
+	require.Equal(t, 3, *merged.MaxPendingRequests)
+	require.NotNil(t, merged.MaxConcurrentRequests)
+	require.Equal(t, 2, *merged.MaxConcurrentRequests)
+
+	merged = mergeAPIGatewayUpstreamLimits(
+		&structs.UpstreamLimits{MaxConnections: intPointer(0)},
+		nil,
+	)
+	require.NotNil(t, merged)
+	require.Nil(t, merged.MaxConnections)
+
+	merged = mergeAPIGatewayUpstreamLimits(
+		nil,
+		&structs.UpstreamLimits{MaxConnections: intPointer(0)},
+	)
+	require.NotNil(t, merged)
+	require.Nil(t, merged.MaxConnections)
+}
+
 func TestMergedAPIGatewayUpstreamConfig(t *testing.T) {
 	t.Parallel()
 
