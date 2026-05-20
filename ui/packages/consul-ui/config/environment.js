@@ -105,7 +105,6 @@ module.exports = function (environment, $ = process.env) {
     CONSUL_DOCS_URL: 'https://developer.hashicorp.com/consul/docs',
     CONSUL_DOCS_LEARN_URL: 'https://learn.hashicorp.com',
     CONSUL_DOCS_API_URL: 'https://developer.hashicorp.com/consul/api-docs',
-    CONSUL_DOCS_DEVELOPER_URL: 'https://developer.hashicorp.com/consul/docs',
     CONSUL_COPYRIGHT_URL: 'https://www.hashicorp.com',
   });
   switch (true) {
