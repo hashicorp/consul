@@ -256,8 +256,8 @@ const file_annotations_ratelimit_ratelimit_proto_rawDesc = "" +
 	"\x12\x1f\n" +
 	"\x1bOPERATION_CATEGORY_RESOURCE\x10\v\x12\"\n" +
 	"\x1eOPERATION_CATEGORY_CONFIGENTRY\x10\f:^\n" +
-	"\x04spec\x12\x1e.google.protobuf.MethodOptions\x18\xec@ \x01(\v2).hashicorp.consul.internal.ratelimit.SpecR\x04specB\xa9\x02\n" +
-	"'com.hashicorp.consul.internal.ratelimitB\x0eRatelimitProtoP\x01Z>github.com/hashicorp/consul/proto-public/annotations/ratelimit\xa2\x02\x04HCIR\xaa\x02#Hashicorp.Consul.Internal.Ratelimit\xca\x02#Hashicorp\\Consul\\Internal\\Ratelimit\xe2\x02/Hashicorp\\Consul\\Internal\\Ratelimit\\GPBMetadata\xea\x02&Hashicorp::Consul::Internal::Ratelimitb\x06proto3"
+	"\x04spec\x12\x1e.google.protobuf.MethodOptions\x18\xec@ \x01(\v2).hashicorp.consul.internal.ratelimit.SpecR\x04specB\xac\x02\n" +
+	"'com.hashicorp.consul.internal.ratelimitB\x0eRatelimitProtoP\x01ZAgithub.com/hashicorp/consul/proto-public/v2/annotations/ratelimit\xa2\x02\x04HCIR\xaa\x02#Hashicorp.Consul.Internal.Ratelimit\xca\x02#Hashicorp\\Consul\\Internal\\Ratelimit\xe2\x02/Hashicorp\\Consul\\Internal\\Ratelimit\\GPBMetadata\xea\x02&Hashicorp::Consul::Internal::Ratelimitb\x06proto3"
 
 var (
 	file_annotations_ratelimit_ratelimit_proto_rawDescOnce sync.Once

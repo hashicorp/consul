@@ -10,7 +10,7 @@
 package multiclusterv2
 
 import (
-	_ "github.com/hashicorp/consul/proto-public/pbresource"
+	_ "github.com/hashicorp/consul/proto-public/v2/pbresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -84,8 +84,8 @@ const file_pbmulticluster_v2_exported_services_proto_rawDesc = "" +
 	")pbmulticluster/v2/exported_services.proto\x12 hashicorp.consul.multicluster.v2\x1a2pbmulticluster/v2/exported_services_consumer.proto\x1a\x1cpbresource/annotations.proto\"\x90\x01\n" +
 	"\x10ExportedServices\x12\x1a\n" +
 	"\bservices\x18\x01 \x03(\tR\bservices\x12X\n" +
-	"\tconsumers\x18\x02 \x03(\v2:.hashicorp.consul.multicluster.v2.ExportedServicesConsumerR\tconsumers:\x06\xa2\x93\x04\x02\b\x03B\xab\x02\n" +
-	"$com.hashicorp.consul.multicluster.v2B\x15ExportedServicesProtoP\x01ZIgithub.com/hashicorp/consul/proto-public/pbmulticluster/v2;multiclusterv2\xa2\x02\x03HCM\xaa\x02 Hashicorp.Consul.Multicluster.V2\xca\x02 Hashicorp\\Consul\\Multicluster\\V2\xe2\x02,Hashicorp\\Consul\\Multicluster\\V2\\GPBMetadata\xea\x02#Hashicorp::Consul::Multicluster::V2b\x06proto3"
+	"\tconsumers\x18\x02 \x03(\v2:.hashicorp.consul.multicluster.v2.ExportedServicesConsumerR\tconsumers:\x06\xa2\x93\x04\x02\b\x03B\xae\x02\n" +
+	"$com.hashicorp.consul.multicluster.v2B\x15ExportedServicesProtoP\x01ZLgithub.com/hashicorp/consul/proto-public/v2/pbmulticluster/v2;multiclusterv2\xa2\x02\x03HCM\xaa\x02 Hashicorp.Consul.Multicluster.V2\xca\x02 Hashicorp\\Consul\\Multicluster\\V2\xe2\x02,Hashicorp\\Consul\\Multicluster\\V2\\GPBMetadata\xea\x02#Hashicorp::Consul::Multicluster::V2b\x06proto3"
 
 var (
 	file_pbmulticluster_v2_exported_services_proto_rawDescOnce sync.Once

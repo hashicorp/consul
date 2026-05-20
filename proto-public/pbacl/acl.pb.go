@@ -10,7 +10,7 @@
 package pbacl
 
 import (
-	_ "github.com/hashicorp/consul/proto-public/annotations/ratelimit"
+	_ "github.com/hashicorp/consul/proto-public/v2/annotations/ratelimit"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -343,8 +343,8 @@ const file_pbacl_acl_proto_rawDesc = "" +
 	"\n" +
 	"ACLService\x12Z\n" +
 	"\x05Login\x12\".hashicorp.consul.acl.LoginRequest\x1a#.hashicorp.consul.acl.LoginResponse\"\b\xe2\x86\x04\x04\b\x03\x10\x01\x12]\n" +
-	"\x06Logout\x12#.hashicorp.consul.acl.LogoutRequest\x1a$.hashicorp.consul.acl.LogoutResponse\"\b\xe2\x86\x04\x04\b\x03\x10\x01B\xc6\x01\n" +
-	"\x18com.hashicorp.consul.aclB\bAclProtoP\x01Z.github.com/hashicorp/consul/proto-public/pbacl\xa2\x02\x03HCA\xaa\x02\x14Hashicorp.Consul.Acl\xca\x02\x14Hashicorp\\Consul\\Acl\xe2\x02 Hashicorp\\Consul\\Acl\\GPBMetadata\xea\x02\x16Hashicorp::Consul::Aclb\x06proto3"
+	"\x06Logout\x12#.hashicorp.consul.acl.LogoutRequest\x1a$.hashicorp.consul.acl.LogoutResponse\"\b\xe2\x86\x04\x04\b\x03\x10\x01B\xc9\x01\n" +
+	"\x18com.hashicorp.consul.aclB\bAclProtoP\x01Z1github.com/hashicorp/consul/proto-public/v2/pbacl\xa2\x02\x03HCA\xaa\x02\x14Hashicorp.Consul.Acl\xca\x02\x14Hashicorp\\Consul\\Acl\xe2\x02 Hashicorp\\Consul\\Acl\\GPBMetadata\xea\x02\x16Hashicorp::Consul::Aclb\x06proto3"
 
 var (
 	file_pbacl_acl_proto_rawDescOnce sync.Once

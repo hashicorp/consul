@@ -12,7 +12,7 @@
 package pbdataplane
 
 import (
-	_ "github.com/hashicorp/consul/proto-public/annotations/ratelimit"
+	_ "github.com/hashicorp/consul/proto-public/v2/annotations/ratelimit"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	structpb "google.golang.org/protobuf/types/known/structpb"
@@ -575,8 +575,8 @@ const file_pbdataplane_dataplane_proto_rawDesc = "" +
 	"\x18SERVICE_KIND_API_GATEWAY\x10\x062\xe2\x02\n" +
 	"\x10DataplaneService\x12\xae\x01\n" +
 	"\x1dGetSupportedDataplaneFeatures\x12@.hashicorp.consul.dataplane.GetSupportedDataplaneFeaturesRequest\x1aA.hashicorp.consul.dataplane.GetSupportedDataplaneFeaturesResponse\"\b\xe2\x86\x04\x04\b\x02\x10\a\x12\x9c\x01\n" +
-	"\x17GetEnvoyBootstrapParams\x12:.hashicorp.consul.dataplane.GetEnvoyBootstrapParamsRequest\x1a;.hashicorp.consul.dataplane.GetEnvoyBootstrapParamsResponse\"\b\xe2\x86\x04\x04\b\x02\x10\aB\xf0\x01\n" +
-	"\x1ecom.hashicorp.consul.dataplaneB\x0eDataplaneProtoP\x01Z4github.com/hashicorp/consul/proto-public/pbdataplane\xa2\x02\x03HCD\xaa\x02\x1aHashicorp.Consul.Dataplane\xca\x02\x1aHashicorp\\Consul\\Dataplane\xe2\x02&Hashicorp\\Consul\\Dataplane\\GPBMetadata\xea\x02\x1cHashicorp::Consul::Dataplaneb\x06proto3"
+	"\x17GetEnvoyBootstrapParams\x12:.hashicorp.consul.dataplane.GetEnvoyBootstrapParamsRequest\x1a;.hashicorp.consul.dataplane.GetEnvoyBootstrapParamsResponse\"\b\xe2\x86\x04\x04\b\x02\x10\aB\xf3\x01\n" +
+	"\x1ecom.hashicorp.consul.dataplaneB\x0eDataplaneProtoP\x01Z7github.com/hashicorp/consul/proto-public/v2/pbdataplane\xa2\x02\x03HCD\xaa\x02\x1aHashicorp.Consul.Dataplane\xca\x02\x1aHashicorp\\Consul\\Dataplane\xe2\x02&Hashicorp\\Consul\\Dataplane\\GPBMetadata\xea\x02\x1cHashicorp::Consul::Dataplaneb\x06proto3"
 
 var (
 	file_pbdataplane_dataplane_proto_rawDescOnce sync.Once

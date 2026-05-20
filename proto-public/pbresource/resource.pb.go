@@ -12,7 +12,7 @@
 package pbresource
 
 import (
-	_ "github.com/hashicorp/consul/proto-public/annotations/ratelimit"
+	_ "github.com/hashicorp/consul/proto-public/v2/annotations/ratelimit"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	anypb "google.golang.org/protobuf/types/known/anypb"
@@ -1802,8 +1802,8 @@ const file_pbresource_resource_proto_rawDesc = "" +
 	"\vListByOwner\x12-.hashicorp.consul.resource.ListByOwnerRequest\x1a..hashicorp.consul.resource.ListByOwnerResponse\"\b\xe2\x86\x04\x04\b\x02\x10\v\x12g\n" +
 	"\x06Delete\x12(.hashicorp.consul.resource.DeleteRequest\x1a).hashicorp.consul.resource.DeleteResponse\"\b\xe2\x86\x04\x04\b\x03\x10\v\x12k\n" +
 	"\tWatchList\x12+.hashicorp.consul.resource.WatchListRequest\x1a%.hashicorp.consul.resource.WatchEvent\"\b\xe2\x86\x04\x04\b\x02\x10\v0\x01\x12\x88\x01\n" +
-	"\x11MutateAndValidate\x123.hashicorp.consul.resource.MutateAndValidateRequest\x1a4.hashicorp.consul.resource.MutateAndValidateResponse\"\b\xe2\x86\x04\x04\b\x02\x10\vB\xe9\x01\n" +
-	"\x1dcom.hashicorp.consul.resourceB\rResourceProtoP\x01Z3github.com/hashicorp/consul/proto-public/pbresource\xa2\x02\x03HCR\xaa\x02\x19Hashicorp.Consul.Resource\xca\x02\x19Hashicorp\\Consul\\Resource\xe2\x02%Hashicorp\\Consul\\Resource\\GPBMetadata\xea\x02\x1bHashicorp::Consul::Resourceb\x06proto3"
+	"\x11MutateAndValidate\x123.hashicorp.consul.resource.MutateAndValidateRequest\x1a4.hashicorp.consul.resource.MutateAndValidateResponse\"\b\xe2\x86\x04\x04\b\x02\x10\vB\xec\x01\n" +
+	"\x1dcom.hashicorp.consul.resourceB\rResourceProtoP\x01Z6github.com/hashicorp/consul/proto-public/v2/pbresource\xa2\x02\x03HCR\xaa\x02\x19Hashicorp.Consul.Resource\xca\x02\x19Hashicorp\\Consul\\Resource\xe2\x02%Hashicorp\\Consul\\Resource\\GPBMetadata\xea\x02\x1bHashicorp::Consul::Resourceb\x06proto3"
 
 var (
 	file_pbresource_resource_proto_rawDescOnce sync.Once

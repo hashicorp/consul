@@ -160,8 +160,8 @@ const file_pbresource_annotations_proto_rawDesc = "" +
 	"\rSCOPE_CLUSTER\x10\x01\x12\x13\n" +
 	"\x0fSCOPE_PARTITION\x10\x02\x12\x13\n" +
 	"\x0fSCOPE_NAMESPACE\x10\x03:a\n" +
-	"\x04spec\x12\x1f.google.protobuf.MessageOptions\x18\xb4B \x01(\v2+.hashicorp.consul.resource.ResourceTypeSpecR\x04specB\xec\x01\n" +
-	"\x1dcom.hashicorp.consul.resourceB\x10AnnotationsProtoP\x01Z3github.com/hashicorp/consul/proto-public/pbresource\xa2\x02\x03HCR\xaa\x02\x19Hashicorp.Consul.Resource\xca\x02\x19Hashicorp\\Consul\\Resource\xe2\x02%Hashicorp\\Consul\\Resource\\GPBMetadata\xea\x02\x1bHashicorp::Consul::Resourceb\x06proto3"
+	"\x04spec\x12\x1f.google.protobuf.MessageOptions\x18\xb4B \x01(\v2+.hashicorp.consul.resource.ResourceTypeSpecR\x04specB\xef\x01\n" +
+	"\x1dcom.hashicorp.consul.resourceB\x10AnnotationsProtoP\x01Z6github.com/hashicorp/consul/proto-public/v2/pbresource\xa2\x02\x03HCR\xaa\x02\x19Hashicorp.Consul.Resource\xca\x02\x19Hashicorp\\Consul\\Resource\xe2\x02%Hashicorp\\Consul\\Resource\\GPBMetadata\xea\x02\x1bHashicorp::Consul::Resourceb\x06proto3"
 
 var (
 	file_pbresource_annotations_proto_rawDescOnce sync.Once

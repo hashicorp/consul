@@ -10,7 +10,7 @@
 package pbconnectca
 
 import (
-	_ "github.com/hashicorp/consul/proto-public/annotations/ratelimit"
+	_ "github.com/hashicorp/consul/proto-public/v2/annotations/ratelimit"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -373,8 +373,8 @@ const file_pbconnectca_ca_proto_rawDesc = "" +
 	"\x10ConnectCAService\x12w\n" +
 	"\n" +
 	"WatchRoots\x12-.hashicorp.consul.connectca.WatchRootsRequest\x1a..hashicorp.consul.connectca.WatchRootsResponse\"\b\xe2\x86\x04\x04\b\x02\x10\x030\x01\x12c\n" +
-	"\x04Sign\x12'.hashicorp.consul.connectca.SignRequest\x1a(.hashicorp.consul.connectca.SignResponse\"\b\xe2\x86\x04\x04\b\x03\x10\x03B\xe9\x01\n" +
-	"\x1ecom.hashicorp.consul.connectcaB\aCaProtoP\x01Z4github.com/hashicorp/consul/proto-public/pbconnectca\xa2\x02\x03HCC\xaa\x02\x1aHashicorp.Consul.Connectca\xca\x02\x1aHashicorp\\Consul\\Connectca\xe2\x02&Hashicorp\\Consul\\Connectca\\GPBMetadata\xea\x02\x1cHashicorp::Consul::Connectcab\x06proto3"
+	"\x04Sign\x12'.hashicorp.consul.connectca.SignRequest\x1a(.hashicorp.consul.connectca.SignResponse\"\b\xe2\x86\x04\x04\b\x03\x10\x03B\xec\x01\n" +
+	"\x1ecom.hashicorp.consul.connectcaB\aCaProtoP\x01Z7github.com/hashicorp/consul/proto-public/v2/pbconnectca\xa2\x02\x03HCC\xaa\x02\x1aHashicorp.Consul.Connectca\xca\x02\x1aHashicorp\\Consul\\Connectca\xe2\x02&Hashicorp\\Consul\\Connectca\\GPBMetadata\xea\x02\x1cHashicorp::Consul::Connectcab\x06proto3"
 
 var (
 	file_pbconnectca_ca_proto_rawDescOnce sync.Once
