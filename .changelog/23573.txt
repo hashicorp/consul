@@ -1,4 +1,4 @@
-```release-note:security
-test-integ: upgrade testcontainers-go v0.22.0->v0.40.0 and docker/docker v24.0.5->v28.5.1 to eliminate CVE-2025-31133, CVE-2025-52565, and CVE-2025-52881 (HIGH severity container escape vulnerabilities in opencontainers/runc). The runc Go package dependency is removed entirely as docker v27+ no longer imports it.
+```release-note:improvement
+test-integ: upgrade testcontainers-go (v0.22.0->v0.40.0) and docker/docker (v24.0.5->v28.5.1) in the integration test module. This removes opencontainers/runc as a Go dependency of the test framework. These are test infrastructure dependencies only and have no impact on the consul binary or any consul deployment.
 ```
 
