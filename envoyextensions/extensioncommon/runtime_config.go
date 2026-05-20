@@ -3,7 +3,7 @@
 
 package extensioncommon
 
-import "github.com/hashicorp/consul/api"
+import "github.com/hashicorp/consul/api/v2"
 
 // UpstreamData has the SNI, EnvoyID, and OutgoingProxyKind of the upstream services for the local proxy and this data
 // is used to choose which Envoy resources to patch.
