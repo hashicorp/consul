@@ -5,11 +5,13 @@ package ports
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/stretchr/testify/require"
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/sdk/v2/testutil"
 )
 
 func TestTroubleShootCustom_Ports(t *testing.T) {

@@ -1,23 +1,17 @@
-module github.com/hashicorp/consul/troubleshoot
+module github.com/hashicorp/consul/troubleshoot/v2
 
 go 1.26
 
-replace (
-	github.com/hashicorp/consul/api => ../api
-	github.com/hashicorp/consul/envoyextensions => ../envoyextensions
-	github.com/hashicorp/consul/proto-public => ../proto-public
-	github.com/hashicorp/consul/sdk => ../sdk
-)
+// replace (
+// 	github.com/hashicorp/consul/api/v2 => ../api
+// 	github.com/hashicorp/consul/envoyextensions/v2 => ../envoyextensions
+// 	github.com/hashicorp/consul/proto-public/v2 => ../proto-public
+// 	github.com/hashicorp/consul/sdk/v2 => ../sdk
+// )
 
 exclude (
 	github.com/hashicorp/go-msgpack v1.1.5 // has breaking changes and must be avoided
 	github.com/hashicorp/go-msgpack v1.1.6 // contains retractions but same as v1.1.5
-)
-
-retract (
-	v0.6.4 // tag was mutated
-	v0.6.2 // tag has incorrect line of deps
-	v0.6.1 // tag has incorrect line of deps
 )
 
 require (
@@ -26,9 +20,9 @@ require (
 	github.com/envoyproxy/go-control-plane/envoy v1.36.0
 	github.com/envoyproxy/go-control-plane/ratelimit v0.1.0
 	github.com/envoyproxy/go-control-plane/xdsmatcher v0.13.4
-	github.com/hashicorp/consul/api v1.34.2
-	github.com/hashicorp/consul/envoyextensions v0.10.2
-	github.com/hashicorp/consul/sdk v0.18.1
+	github.com/hashicorp/consul/api/v2 v2.0.0
+	github.com/hashicorp/consul/envoyextensions/v2 v2.0.0
+	github.com/hashicorp/consul/sdk/v2 v2.0.0
 	github.com/stretchr/testify v1.11.1
 	google.golang.org/protobuf v1.36.11
 )
