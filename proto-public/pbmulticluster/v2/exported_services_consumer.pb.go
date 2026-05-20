@@ -134,8 +134,8 @@ const file_pbmulticluster_v2_exported_services_consumer_proto_rawDesc = "" +
 	"\x04peer\x18\x01 \x01(\tH\x00R\x04peer\x12\x1e\n" +
 	"\tpartition\x18\x02 \x01(\tH\x00R\tpartition\x12'\n" +
 	"\x0esameness_group\x18\x03 \x01(\tH\x00R\rsamenessGroupB\x12\n" +
-	"\x10consumer_tenancyB\xb3\x02\n" +
-	"$com.hashicorp.consul.multicluster.v2B\x1dExportedServicesConsumerProtoP\x01ZIgithub.com/hashicorp/consul/proto-public/pbmulticluster/v2;multiclusterv2\xa2\x02\x03HCM\xaa\x02 Hashicorp.Consul.Multicluster.V2\xca\x02 Hashicorp\\Consul\\Multicluster\\V2\xe2\x02,Hashicorp\\Consul\\Multicluster\\V2\\GPBMetadata\xea\x02#Hashicorp::Consul::Multicluster::V2b\x06proto3"
+	"\x10consumer_tenancyB\xb6\x02\n" +
+	"$com.hashicorp.consul.multicluster.v2B\x1dExportedServicesConsumerProtoP\x01ZLgithub.com/hashicorp/consul/proto-public/v2/pbmulticluster/v2;multiclusterv2\xa2\x02\x03HCM\xaa\x02 Hashicorp.Consul.Multicluster.V2\xca\x02 Hashicorp\\Consul\\Multicluster\\V2\xe2\x02,Hashicorp\\Consul\\Multicluster\\V2\\GPBMetadata\xea\x02#Hashicorp::Consul::Multicluster::V2b\x06proto3"
 
 var (
 	file_pbmulticluster_v2_exported_services_consumer_proto_rawDescOnce sync.Once

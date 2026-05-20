@@ -10,7 +10,7 @@
 package multiclusterv2
 
 import (
-	pbresource "github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/v2/pbresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -219,8 +219,8 @@ const file_pbmulticluster_v2_computed_exported_services_proto_rawDesc = "" +
 	"\x1fComputedExportedServiceConsumer\x12\x14\n" +
 	"\x04peer\x18\x03 \x01(\tH\x00R\x04peer\x12\x1e\n" +
 	"\tpartition\x18\x04 \x01(\tH\x00R\tpartitionB\t\n" +
-	"\atenancyB\xb3\x02\n" +
-	"$com.hashicorp.consul.multicluster.v2B\x1dComputedExportedServicesProtoP\x01ZIgithub.com/hashicorp/consul/proto-public/pbmulticluster/v2;multiclusterv2\xa2\x02\x03HCM\xaa\x02 Hashicorp.Consul.Multicluster.V2\xca\x02 Hashicorp\\Consul\\Multicluster\\V2\xe2\x02,Hashicorp\\Consul\\Multicluster\\V2\\GPBMetadata\xea\x02#Hashicorp::Consul::Multicluster::V2b\x06proto3"
+	"\atenancyB\xb6\x02\n" +
+	"$com.hashicorp.consul.multicluster.v2B\x1dComputedExportedServicesProtoP\x01ZLgithub.com/hashicorp/consul/proto-public/v2/pbmulticluster/v2;multiclusterv2\xa2\x02\x03HCM\xaa\x02 Hashicorp.Consul.Multicluster.V2\xca\x02 Hashicorp\\Consul\\Multicluster\\V2\xe2\x02,Hashicorp\\Consul\\Multicluster\\V2\\GPBMetadata\xea\x02#Hashicorp::Consul::Multicluster::V2b\x06proto3"
 
 var (
 	file_pbmulticluster_v2_computed_exported_services_proto_rawDescOnce sync.Once

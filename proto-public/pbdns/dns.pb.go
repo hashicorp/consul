@@ -10,7 +10,7 @@
 package pbdns
 
 import (
-	_ "github.com/hashicorp/consul/proto-public/annotations/ratelimit"
+	_ "github.com/hashicorp/consul/proto-public/v2/annotations/ratelimit"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -189,8 +189,8 @@ const file_pbdns_dns_proto_rawDesc = "" +
 	"\fPROTOCOL_UDP\x10\x022h\n" +
 	"\n" +
 	"DNSService\x12Z\n" +
-	"\x05Query\x12\".hashicorp.consul.dns.QueryRequest\x1a#.hashicorp.consul.dns.QueryResponse\"\b\xe2\x86\x04\x04\b\x02\x10\bB\xc6\x01\n" +
-	"\x18com.hashicorp.consul.dnsB\bDnsProtoP\x01Z.github.com/hashicorp/consul/proto-public/pbdns\xa2\x02\x03HCD\xaa\x02\x14Hashicorp.Consul.Dns\xca\x02\x14Hashicorp\\Consul\\Dns\xe2\x02 Hashicorp\\Consul\\Dns\\GPBMetadata\xea\x02\x16Hashicorp::Consul::Dnsb\x06proto3"
+	"\x05Query\x12\".hashicorp.consul.dns.QueryRequest\x1a#.hashicorp.consul.dns.QueryResponse\"\b\xe2\x86\x04\x04\b\x02\x10\bB\xc9\x01\n" +
+	"\x18com.hashicorp.consul.dnsB\bDnsProtoP\x01Z1github.com/hashicorp/consul/proto-public/v2/pbdns\xa2\x02\x03HCD\xaa\x02\x14Hashicorp.Consul.Dns\xca\x02\x14Hashicorp\\Consul\\Dns\xe2\x02 Hashicorp\\Consul\\Dns\\GPBMetadata\xea\x02\x16Hashicorp::Consul::Dnsb\x06proto3"
 
 var (
 	file_pbdns_dns_proto_rawDescOnce sync.Once
