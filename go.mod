@@ -39,7 +39,7 @@ require (
 	github.com/fullstorydev/grpchan v1.1.1
 	github.com/go-jose/go-jose/v3 v3.0.5
 	github.com/go-viper/mapstructure/v2 v2.4.0
-	github.com/golang-jwt/jwt/v5 v5.2.2
+	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/go-cmp v0.7.0
 	github.com/google/gofuzz v1.2.0
 	github.com/google/pprof v0.0.0-20210720184732-4bb14d4b1be1
