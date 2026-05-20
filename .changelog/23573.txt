@@ -1,0 +1,4 @@
+```release-note:improvement
+test-integ: upgrade testcontainers-go (v0.22.0->v0.40.0) and docker/docker (v24.0.5->v28.5.1) in the integration test module. This removes opencontainers/runc as a Go dependency of the test framework. These are test infrastructure dependencies only and have no impact on the consul binary or any consul deployment.
+```
+
