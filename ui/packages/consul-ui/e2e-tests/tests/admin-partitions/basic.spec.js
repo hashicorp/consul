@@ -13,18 +13,13 @@ const { isEnterpriseConsul } = require('../../utils/ent-utils');
  * Run on every PR.
  *
  * NOTE: Admin Partitions is an Enterprise-only feature.
- * These tests currently run on CE + ENT for development purposes.
- * To restrict to ENT only: set CONSUL_ENT_ONLY=true in the environment.
+ * These tests are skipped automatically on Community Edition.
  */
 
 test.describe('Admin Partitions - Basic', { tag: '@ent' }, () => {
-  test('admin partitions list page loads', async ({
-    partitionsPage,
-    skipEnt,
-    request,
-    baseURL,
-  }) => {
-    await skipEnt(request, baseURL);
+  test('admin partitions list page loads', async ({ partitionsPage, request, baseURL }) => {
+    const isEnt = await isEnterpriseConsul(request, baseURL);
+    test.skip(!isEnt, 'Admin Partitions is an Enterprise-only feature.');
 
     await partitionsPage.goto();
 

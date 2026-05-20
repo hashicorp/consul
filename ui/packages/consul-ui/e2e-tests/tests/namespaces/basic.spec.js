@@ -17,8 +17,9 @@ const { isEnterpriseConsul } = require('../../utils/ent-utils');
  */
 
 test.describe('Namespaces - Basic', { tag: '@ent' }, () => {
-  test('namespaces list page loads', async ({ namespacesPage, skipEnt, request, baseURL }) => {
-    await skipEnt(request, baseURL);
+  test('namespaces list page loads', async ({ namespacesPage, request, baseURL }) => {
+    const isEnt = await isEnterpriseConsul(request, baseURL);
+    test.skip(!isEnt, 'Namespaces is an Enterprise-only feature.');
 
     await namespacesPage.goto();
 

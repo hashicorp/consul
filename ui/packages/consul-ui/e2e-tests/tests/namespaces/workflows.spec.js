@@ -24,11 +24,11 @@ test.describe('Namespaces - Workflows', { tag: '@ent' }, () => {
   test('navigate to namespaces via namespace selector', async ({
     page,
     namespacesPage,
-    skipEnt,
     request,
     baseURL,
   }) => {
-    await skipEnt(request, baseURL);
+    const isEnt = await isEnterpriseConsul(request, baseURL);
+    test.skip(!isEnt, 'Namespaces is an Enterprise-only feature.');
 
     await page.goto(`${baseURL}/ui/dc1/services`, { waitUntil: 'domcontentloaded' });
 
@@ -236,11 +236,11 @@ test.describe('Namespaces - Workflows', { tag: '@ent' }, () => {
    */
   test('cancel namespace edit discards changes and returns to list', async ({
     namespacesPage,
-    skipEnt,
     request,
     baseURL,
   }) => {
-    await skipEnt(request, baseURL);
+    const isEnt = await isEnterpriseConsul(request, baseURL);
+    test.skip(!isEnt, 'Namespaces is an Enterprise-only feature.');
 
     await namespacesPage.gotoEdit('default');
     await expect(namespacesPage.page).toHaveURL(/\/namespaces\/default/, { timeout: 15000 });
