@@ -39,6 +39,8 @@ container {
   triage {
     suppress {
       vulnerabilities = [
+        "CVE-2025-30258", //Alpine Linux's Security Issue Tracker in gnupg@2.4.9-r0
+        "CVE-2026-41989", //Alpine Linux's Security Issue Tracker in libgcrypt@1.11.2-r0
       ]
 
       paths = [
