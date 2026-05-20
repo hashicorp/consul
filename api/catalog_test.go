@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/sdk/v2/testutil"
+	"github.com/hashicorp/consul/sdk/v2/testutil/retry"
 )
 
 func TestAPI_CatalogDatacenters(t *testing.T) {

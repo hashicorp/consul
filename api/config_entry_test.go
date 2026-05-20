@@ -10,7 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/v2/testutil"
 )
 
 func TestAPI_ConfigEntries(t *testing.T) {

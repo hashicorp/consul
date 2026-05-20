@@ -1,21 +1,13 @@
-module github.com/hashicorp/consul/api
+module github.com/hashicorp/consul/api/v2
 
 go 1.26
 
-replace github.com/hashicorp/consul/sdk => ../sdk
-
-retract (
-	v1.31.1 // checksum mismatch with tag
-	v1.29.5 // cut from incorrect branch
-	v1.28.0 // tag was mutated
-	v1.27.1 // tag was mutated
-	v1.21.2 // tag was mutated
-)
+// replace github.com/hashicorp/consul/sdk/v2 => ../sdk
 
 require (
 	github.com/go-viper/mapstructure/v2 v2.4.0
 	github.com/google/go-cmp v0.7.0
-	github.com/hashicorp/consul/sdk v0.18.1
+	github.com/hashicorp/consul/sdk/v2 v2.0.0
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-hclog v1.5.0
 	github.com/hashicorp/go-multierror v1.1.1

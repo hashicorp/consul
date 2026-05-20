@@ -9,8 +9,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/sdk/v2/testutil"
+	"github.com/hashicorp/consul/sdk/v2/testutil/retry"
 )
 
 func TestAPI_ConnectCARoots_empty(t *testing.T) {
