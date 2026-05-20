@@ -6,8 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/sdk/v2/testutil"
 )
 
 func TestAPI_ConfigEntries_JWTProvider(t *testing.T) {

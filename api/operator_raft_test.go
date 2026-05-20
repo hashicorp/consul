@@ -6,7 +6,7 @@ package api
 import (
 	"testing"
 
-	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/v2/testutil"
 )
 
 func TestAPI_OperatorRaftGetConfiguration(t *testing.T) {

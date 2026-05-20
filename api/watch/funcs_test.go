@@ -20,10 +20,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/api/watch"
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/api/v2"
+	"github.com/hashicorp/consul/api/v2/watch"
+	"github.com/hashicorp/consul/sdk/v2/testutil"
 )
 
 func makeClient(t *testing.T) (*api.Client, *testutil.TestServer) {

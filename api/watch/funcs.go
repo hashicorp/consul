@@ -7,7 +7,7 @@ import (
 	"context"
 	"fmt"
 
-	consulapi "github.com/hashicorp/consul/api"
+	consulapi "github.com/hashicorp/consul/api/v2"
 )
 
 // watchFactory is a function that can create a new WatchFunc

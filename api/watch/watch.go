@@ -12,8 +12,10 @@ import (
 	"time"
 
 	"github.com/go-viper/mapstructure/v2"
-	consulapi "github.com/hashicorp/consul/api"
+
 	"github.com/hashicorp/go-hclog"
+
+	consulapi "github.com/hashicorp/consul/api/v2"
 )
 
 const DefaultTimeout = 10 * time.Second
