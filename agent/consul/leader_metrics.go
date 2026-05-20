@@ -26,6 +26,11 @@ var (
 
 	// TestCertExpirationMonitorInterval overrides the default emission cadence in tests.
 	TestCertExpirationMonitorInterval time.Duration
+
+	// certExpirationMonitorRetryInterval is used when metric emission fails (for example
+	// when cert state is not yet initialized during startup). In that case we retry faster
+	// than the normal hourly interval.
+	certExpirationMonitorRetryInterval = 10 * time.Second
 )
 
 var LeaderCertExpirationGauges = []prometheus.GaugeDefinition{
@@ -131,6 +136,27 @@ type CertExpirationMonitor struct {
 
 const certExpirationMonitorInterval = time.Hour
 
+func certDaysRemaining(untilAfter time.Duration) int {
+	return int(math.Floor(untilAfter.Hours() / 24))
+}
+
+func certLogSeverity(untilAfter time.Duration, criticalDays, warningDays int) string {
+	if untilAfter <= 0 {
+		return "expired"
+	}
+
+	criticalThreshold := time.Duration(criticalDays) * 24 * time.Hour
+	warningThreshold := time.Duration(warningDays) * 24 * time.Hour
+	switch {
+	case untilAfter <= criticalThreshold:
+		return "critical"
+	case untilAfter <= warningThreshold:
+		return "warning"
+	default:
+		return "ok"
+	}
+}
+
 func (m CertExpirationMonitor) Monitor(ctx context.Context) error {
 
 	// Check if certificate telemetry is enabled (only for server-based monitors)
@@ -142,20 +168,22 @@ func (m CertExpirationMonitor) Monitor(ctx context.Context) error {
 	if m.Interval > 0 {
 		interval = m.Interval
 	}
-
-	ticker := time.NewTicker(interval)
-	defer ticker.Stop()
+	retryInterval := certExpirationMonitorRetryInterval
+	if interval < retryInterval {
+		retryInterval = interval
+	}
 
 	logger := m.Logger.With("metric", strings.Join(m.Key, "."))
 
-	emitMetric := func() {
+	emitMetric := func() bool {
 		_, untilAfter, err := m.Query()
 		if err != nil {
 			logger.Warn("failed to emit certificate expiry metric", "error", err)
-			return
+			metrics.SetGaugeWithLabels(m.Key, float32(math.NaN()), m.Labels)
+			return false
 		}
 
-		daysRemaining := int(untilAfter.Hours() / 24)
+		daysRemaining := certDaysRemaining(untilAfter)
 
 		// Get thresholds from Server config or use provided values
 		var criticalDays, warningDays int
@@ -209,19 +237,29 @@ func (m CertExpirationMonitor) Monitor(ctx context.Context) error {
 		}
 
 		// Log based on threshold severity with detailed context
-		if daysRemaining <= criticalDays {
+		switch certLogSeverity(untilAfter, criticalDays, warningDays) {
+		case "expired":
+			logger.Error("certificate has expired", logFields...)
+		case "critical":
 			logger.Error("certificate expiring soon", logFields...)
-		} else if daysRemaining <= warningDays {
+		case "warning":
 			logger.Warn("certificate expiring soon", logFields...)
 		}
 
 		expiry := untilAfter / time.Second
 		metrics.SetGaugeWithLabels(m.Key, float32(expiry), m.Labels)
+		return true
 	}
 
 	// emit the metric immediately so that if a cert was just updated the
 	// new metric will be updated to the new expiration time.
-	emitMetric()
+	nextInterval := interval
+	if !emitMetric() {
+		nextInterval = retryInterval
+	}
+
+	timer := time.NewTimer(nextInterval)
+	defer timer.Stop()
 
 	for {
 		select {
@@ -230,8 +268,12 @@ func (m CertExpirationMonitor) Monitor(ctx context.Context) error {
 			// metric from a non-leader, it does not get a stale value.
 			metrics.SetGaugeWithLabels(m.Key, float32(math.NaN()), m.Labels)
 			return nil
-		case <-ticker.C:
-			emitMetric()
+		case <-timer.C:
+			nextInterval = interval
+			if !emitMetric() {
+				nextInterval = retryInterval
+			}
+			timer.Reset(nextInterval)
 		}
 	}
 }
