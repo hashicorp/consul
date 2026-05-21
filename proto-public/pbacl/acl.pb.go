@@ -10,13 +10,12 @@
 package pbacl
 
 import (
-	"reflect"
-	"sync"
-	"unsafe"
-
 	_ "github.com/hashicorp/consul/proto-public/v2/annotations/ratelimit"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	reflect "reflect"
+	sync "sync"
+	unsafe "unsafe"
 )
 
 const (
