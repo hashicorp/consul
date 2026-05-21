@@ -12,7 +12,7 @@ import (
 	"golang.org/x/exp/maps"
 
 	"github.com/hashicorp/consul/internal/resource"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/proto-public/v2/pbresource"
 )
 
 func (m *Manager) ValidateDependencies(registrations []resource.Registration) error {

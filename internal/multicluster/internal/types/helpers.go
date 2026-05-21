@@ -7,8 +7,8 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/consul/internal/resource"
-	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbmulticluster "github.com/hashicorp/consul/proto-public/v2/pbmulticluster/v2"
+	"github.com/hashicorp/consul/proto-public/v2/pbresource"
 	"github.com/hashicorp/go-multierror"
 )
 

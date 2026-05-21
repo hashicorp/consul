@@ -37,9 +37,9 @@ import (
 	"github.com/hashicorp/consul/proto/private/pbservice"
 	"github.com/hashicorp/consul/proto/private/pbstatus"
 	"github.com/hashicorp/consul/proto/private/prototest"
-	"github.com/hashicorp/consul/sdk/freeport"
-	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/sdk/v2/freeport"
+	"github.com/hashicorp/consul/sdk/v2/testutil"
+	"github.com/hashicorp/consul/sdk/v2/testutil/retry"
 	"github.com/hashicorp/consul/types"
 )
 

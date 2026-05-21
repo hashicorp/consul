@@ -15,8 +15,8 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
+	"github.com/hashicorp/consul/api/v2"
+	"github.com/hashicorp/consul/envoyextensions/v2/extensioncommon"
 )
 
 type propertyOverride struct {

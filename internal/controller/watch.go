@@ -8,7 +8,7 @@ import (
 
 	"github.com/hashicorp/consul/internal/controller/cache/index"
 	"github.com/hashicorp/consul/internal/resource"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/proto-public/v2/pbresource"
 )
 
 type watch struct {

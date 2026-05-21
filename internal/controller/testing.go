@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/internal/controller/cache"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/proto-public/v2/pbresource"
 )
 
 // TestController is most useful when writing unit tests for a controller where

@@ -17,7 +17,7 @@ import (
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/v2"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/types"

@@ -11,7 +11,7 @@ import (
 	"github.com/mitchellh/cli"
 
 	"github.com/hashicorp/consul/agent"
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/v2"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/intention"
 )

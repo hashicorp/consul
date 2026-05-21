@@ -6,7 +6,7 @@ package proxycfg
 import (
 	"time"
 
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/v2"
 
 	"github.com/mitchellh/go-testing-interface"
 

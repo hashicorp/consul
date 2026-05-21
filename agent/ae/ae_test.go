@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/v2/testutil"
 )
 
 func TestAE_scaleFactor(t *testing.T) {

@@ -13,13 +13,13 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib/testhelpers"
 	"github.com/hashicorp/consul/proto/private/pboperator"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/sdk/v2/testutil/retry"
 	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/stretchr/testify/require"
 	gogrpc "google.golang.org/grpc"
 
-	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/v2/testutil"
 	"github.com/hashicorp/consul/testrpc"
 )
 

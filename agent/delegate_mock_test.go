@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/gossip/librtt"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/proto-public/v2/pbresource"
 )
 
 type delegateMock struct {

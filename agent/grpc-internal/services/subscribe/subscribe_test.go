@@ -28,12 +28,12 @@ import (
 	"github.com/hashicorp/consul/agent/consul/stream"
 	grpc "github.com/hashicorp/consul/agent/grpc-internal"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/v2"
 	"github.com/hashicorp/consul/proto/private/pbcommon"
 	"github.com/hashicorp/consul/proto/private/pbservice"
 	"github.com/hashicorp/consul/proto/private/pbsubscribe"
 	"github.com/hashicorp/consul/proto/private/prototest"
-	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/v2/testutil"
 	"github.com/hashicorp/consul/types"
 )
 

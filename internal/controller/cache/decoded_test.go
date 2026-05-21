@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/consul/internal/controller/cache/cachemock"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/proto-public/v2/pbresource"
 	pbdemo "github.com/hashicorp/consul/proto/private/pbdemo/v2"
 	"github.com/hashicorp/consul/proto/private/prototest"
 )

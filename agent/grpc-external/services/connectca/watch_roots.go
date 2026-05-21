@@ -20,7 +20,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/stream"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto-public/pbconnectca"
+	"github.com/hashicorp/consul/proto-public/v2/pbconnectca"
 )
 
 // WatchRoots provides a stream on which you can receive the list of active

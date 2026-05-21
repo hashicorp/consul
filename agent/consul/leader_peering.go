@@ -28,7 +28,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/grpc-external/services/peerstream"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/v2"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/proto/private/pbcommon"
 	"github.com/hashicorp/consul/proto/private/pbpeering"

@@ -8,14 +8,15 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"github.com/testcontainers/testcontainers-go"
 	"testing"
 	"time"
+
+	"github.com/testcontainers/testcontainers-go"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/v2"
 
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"

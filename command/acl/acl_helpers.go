@@ -10,7 +10,7 @@ import (
 	"github.com/go-viper/mapstructure/v2"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/v2"
 	"github.com/hashicorp/consul/command/helpers"
 	"github.com/hashicorp/hcl"
 )

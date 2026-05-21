@@ -27,9 +27,9 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/response"
 	"github.com/hashicorp/consul/agent/xds/testcommon"
-	"github.com/hashicorp/consul/envoyextensions/xdscommon"
+	"github.com/hashicorp/consul/envoyextensions/v2/xdscommon"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
-	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/v2/testutil"
 	"github.com/hashicorp/consul/types"
 )
 

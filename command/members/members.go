@@ -16,7 +16,7 @@ import (
 	"github.com/ryanuber/columnize"
 
 	"github.com/hashicorp/consul/acl"
-	consulapi "github.com/hashicorp/consul/api"
+	consulapi "github.com/hashicorp/consul/api/v2"
 	"github.com/hashicorp/consul/command/flags"
 )
 

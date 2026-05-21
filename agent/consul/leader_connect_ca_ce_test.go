@@ -6,10 +6,11 @@
 package consul
 
 import (
-	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/sdk/v2/testutil"
+	"github.com/stretchr/testify/require"
 )
 
 func TestValidateSupportedIdentityScopesForServiceInCertificate(t *testing.T) {

@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/v2"
 )
 
 // ParseIntentionTarget parses a target of the form <partition>/<namespace>/<name> and returns

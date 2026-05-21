@@ -20,8 +20,8 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/response"
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/envoyextensions/xdscommon"
+	"github.com/hashicorp/consul/api/v2"
+	"github.com/hashicorp/consul/envoyextensions/v2/xdscommon"
 )
 
 const (

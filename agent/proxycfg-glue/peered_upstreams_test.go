@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/v2/testutil"
 )
 
 func registerService(t *testing.T, index uint64, peerName, serviceName, nodeName string, store *state.Store) {

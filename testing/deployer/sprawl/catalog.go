@@ -14,8 +14,8 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/api/v2"
+	"github.com/hashicorp/consul/proto-public/v2/pbresource"
 	"github.com/hashicorp/consul/testing/deployer/topology"
 	"github.com/hashicorp/consul/testing/deployer/util"
 )

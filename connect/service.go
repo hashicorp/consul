@@ -12,8 +12,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/api/watch"
+	"github.com/hashicorp/consul/api/v2"
+	"github.com/hashicorp/consul/api/v2/watch"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/go-hclog"
 	"golang.org/x/net/http2"

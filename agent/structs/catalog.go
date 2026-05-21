@@ -5,7 +5,7 @@ package structs
 
 import (
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/v2"
 	"github.com/hashicorp/consul/types"
 )
 

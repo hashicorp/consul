@@ -16,7 +16,7 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/private/pbservice"
-	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/v2/testutil"
 )
 
 func TestSubscriptionState_Events(t *testing.T) {

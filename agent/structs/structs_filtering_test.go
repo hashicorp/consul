@@ -18,7 +18,7 @@ import (
 
 	"github.com/hashicorp/go-bexpr"
 
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/v2"
 )
 
 var dumpFieldConfig = flag.Bool("dump-field-config", false, "generate field config dump file")

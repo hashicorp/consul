@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/proto/private/pbconfigentry"
-	"github.com/hashicorp/consul/sdk/freeport"
+	"github.com/hashicorp/consul/sdk/v2/freeport"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/stretchr/testify/require"
 	gogrpc "google.golang.org/grpc"

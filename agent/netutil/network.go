@@ -8,7 +8,7 @@ import (
 	"net"
 	"net/netip"
 
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/v2"
 )
 
 // IPStackRequestDTO contains either a client or config for making requests

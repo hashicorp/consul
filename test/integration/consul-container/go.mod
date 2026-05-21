@@ -11,9 +11,9 @@ require (
 	github.com/go-jose/go-jose/v3 v3.0.5
 	github.com/go-viper/mapstructure/v2 v2.4.0
 	github.com/hashicorp/consul v1.16.1
-	github.com/hashicorp/consul/api v1.34.2
-	github.com/hashicorp/consul/envoyextensions v0.10.2
-	github.com/hashicorp/consul/sdk v0.18.1
+	github.com/hashicorp/consul/api/v2 v2.0.0
+	github.com/hashicorp/consul/envoyextensions/v2 v2.0.0
+	github.com/hashicorp/consul/sdk/v2 v2.0.0
 	github.com/hashicorp/consul/testing/deployer v0.0.0-20230811171106-4a0afb5d1373
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-multierror v1.1.1
@@ -60,7 +60,8 @@ require (
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/consul-server-connection-manager v0.1.12 // indirect
-	github.com/hashicorp/consul/proto-public v0.8.1 // indirect
+	github.com/hashicorp/consul/proto-public v0.6.4 // indirect
+	github.com/hashicorp/consul/proto-public/v2 v2.0.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-hclog v1.6.3 // indirect
 	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect
@@ -110,9 +111,9 @@ require (
 
 replace (
 	github.com/hashicorp/consul => ../../..
-	github.com/hashicorp/consul/api => ../../../api
-	github.com/hashicorp/consul/envoyextensions => ../../../envoyextensions
-	github.com/hashicorp/consul/proto-public => ../../../proto-public
-	github.com/hashicorp/consul/sdk => ../../../sdk
+	github.com/hashicorp/consul/api/v2 => ../../../api
+	github.com/hashicorp/consul/envoyextensions/v2 => ../../../envoyextensions
+	github.com/hashicorp/consul/proto-public/v2 => ../../../proto-public
+	github.com/hashicorp/consul/sdk/v2 => ../../../sdk
 	github.com/hashicorp/consul/testing/deployer => ../../../testing/deployer
 )

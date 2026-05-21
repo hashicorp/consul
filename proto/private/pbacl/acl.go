@@ -4,7 +4,7 @@
 package pbacl
 
 import (
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/v2"
 )
 
 func (a *ACLLink) ToAPI() api.ACLLink {

@@ -33,8 +33,8 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/configfetcher"
 	"github.com/hashicorp/consul/agent/xds/extensionruntime"
-	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
-	"github.com/hashicorp/consul/envoyextensions/xdscommon"
+	"github.com/hashicorp/consul/envoyextensions/v2/extensioncommon"
+	"github.com/hashicorp/consul/envoyextensions/v2/xdscommon"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/version"
 )

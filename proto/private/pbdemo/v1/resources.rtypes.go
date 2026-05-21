@@ -3,7 +3,7 @@
 package demov1
 
 import (
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/proto-public/v2/pbresource"
 )
 
 const (

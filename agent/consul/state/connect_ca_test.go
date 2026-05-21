@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/proto/private/prototest"
-	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/v2/testutil"
 
 	"github.com/hashicorp/go-memdb"
 	"github.com/stretchr/testify/assert"

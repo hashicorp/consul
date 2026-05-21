@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	external "github.com/hashicorp/consul/agent/grpc-external"
-	"github.com/hashicorp/consul/proto-public/pbdataplane"
+	"github.com/hashicorp/consul/proto-public/v2/pbdataplane"
 	"github.com/hashicorp/consul/version"
 )
 

@@ -21,7 +21,7 @@ import (
 	"github.com/hashicorp/consul/command/helpers"
 	"github.com/hashicorp/consul/command/resource/client"
 	"github.com/hashicorp/consul/internal/resourcehcl"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/proto-public/v2/pbresource"
 )
 
 const JSON_INDENT = "  "

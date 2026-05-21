@@ -3,7 +3,7 @@
 
 package resourcetest
 
-import "github.com/hashicorp/consul/sdk/testutil"
+import "github.com/hashicorp/consul/sdk/v2/testutil"
 
 // T represents the subset of testing.T methods that will be used
 // by the various functionality in this package

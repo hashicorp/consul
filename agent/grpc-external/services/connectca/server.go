@@ -17,7 +17,7 @@ import (
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto-public/pbconnectca"
+	"github.com/hashicorp/consul/proto-public/v2/pbconnectca"
 )
 
 type Server struct {

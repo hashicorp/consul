@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/v2"
 )
 
 // ResourceReference is a reference to a ConfigEntry

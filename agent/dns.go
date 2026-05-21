@@ -27,7 +27,7 @@ import (
 	"github.com/hashicorp/consul/agent/config"
 	agentdns "github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/v2"
 	"github.com/hashicorp/consul/internal/dnsutil"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"

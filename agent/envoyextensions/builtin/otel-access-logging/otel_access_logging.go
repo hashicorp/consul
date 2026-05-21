@@ -13,8 +13,8 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
-	"github.com/hashicorp/consul/api"
-	ext_cmn "github.com/hashicorp/consul/envoyextensions/extensioncommon"
+	"github.com/hashicorp/consul/api/v2"
+	ext_cmn "github.com/hashicorp/consul/envoyextensions/v2/extensioncommon"
 	"github.com/hashicorp/go-multierror"
 	v1 "go.opentelemetry.io/proto/otlp/common/v1"
 )

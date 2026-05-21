@@ -6,9 +6,8 @@ package extensioncommon
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/hashicorp/consul/api/v2"
+	"github.com/stretchr/testify/require"
 )
 
 func makeTestRuntimeConfig() RuntimeConfig {

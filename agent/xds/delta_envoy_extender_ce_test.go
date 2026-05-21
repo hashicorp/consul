@@ -28,10 +28,10 @@ import (
 	"github.com/hashicorp/consul/agent/xds/extensionruntime"
 	"github.com/hashicorp/consul/agent/xds/response"
 	"github.com/hashicorp/consul/agent/xds/testcommon"
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
-	"github.com/hashicorp/consul/envoyextensions/xdscommon"
-	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/api/v2"
+	"github.com/hashicorp/consul/envoyextensions/v2/extensioncommon"
+	"github.com/hashicorp/consul/envoyextensions/v2/xdscommon"
+	"github.com/hashicorp/consul/sdk/v2/testutil"
 	"github.com/hashicorp/consul/version"
 )
 

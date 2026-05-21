@@ -10,8 +10,8 @@ import (
 	envoy_http_wasm_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/wasm/v3"
 	envoy_wasm_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/wasm/v3"
 
-	"github.com/hashicorp/consul/api"
-	cmn "github.com/hashicorp/consul/envoyextensions/extensioncommon"
+	"github.com/hashicorp/consul/api/v2"
+	cmn "github.com/hashicorp/consul/envoyextensions/v2/extensioncommon"
 )
 
 // wasm is a built-in Envoy extension that can patch filter chains to insert Wasm plugins.

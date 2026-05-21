@@ -11,7 +11,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
-	"github.com/hashicorp/consul/proto-public/pbdataplane"
+	"github.com/hashicorp/consul/proto-public/v2/pbdataplane"
 )
 
 func testClient(t *testing.T, server *Server) pbdataplane.DataplaneServiceClient {

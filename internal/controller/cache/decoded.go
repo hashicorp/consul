@@ -7,7 +7,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/internal/resource"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/proto-public/v2/pbresource"
 )
 
 // Get retrieves a single resource from the specified index that matches the provided args.

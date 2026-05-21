@@ -8,8 +8,8 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/sdk/v2/testutil"
+	"github.com/hashicorp/consul/sdk/v2/testutil/retry"
 	"github.com/stretchr/testify/require"
 )
 

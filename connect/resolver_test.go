@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/netutil"
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/v2"
 	"github.com/stretchr/testify/require"
 )
 

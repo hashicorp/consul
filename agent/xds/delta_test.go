@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/envoyextensions/xdscommon"
+	"github.com/hashicorp/consul/envoyextensions/v2/xdscommon"
 
 	"github.com/armon/go-metrics"
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
@@ -23,10 +23,10 @@ import (
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
-	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/api/v2"
+	"github.com/hashicorp/consul/envoyextensions/v2/extensioncommon"
+	"github.com/hashicorp/consul/sdk/v2/testutil"
+	"github.com/hashicorp/consul/sdk/v2/testutil/retry"
 	"github.com/hashicorp/consul/version"
 	"github.com/hashicorp/go-hclog"
 	goversion "github.com/hashicorp/go-version"

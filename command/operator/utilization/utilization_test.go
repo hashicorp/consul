@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/v2"
 	"github.com/hashicorp/consul/version"
 	mcli "github.com/mitchellh/cli"
 )

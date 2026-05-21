@@ -14,7 +14,7 @@ import (
 	gogrpc "google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/proto/private/pbconfigentry"
-	"github.com/hashicorp/consul/sdk/freeport"
+	"github.com/hashicorp/consul/sdk/v2/freeport"
 	"github.com/hashicorp/consul/testrpc"
 )
 

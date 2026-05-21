@@ -5,10 +5,11 @@ package state
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/api"
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/hashicorp/consul/api/v2"
 
 	"github.com/hashicorp/go-memdb"
 

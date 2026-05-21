@@ -5,7 +5,7 @@ package types
 
 import (
 	"github.com/hashicorp/consul/internal/resource"
-	v2 "github.com/hashicorp/consul/proto-public/pbmulticluster/v2"
+	v2 "github.com/hashicorp/consul/proto-public/v2/pbmulticluster/v2"
 )
 
 type (

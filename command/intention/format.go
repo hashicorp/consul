@@ -4,7 +4,7 @@
 package intention
 
 import (
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/v2"
 )
 
 // FormatSource returns the namespace/name format for the source. This is

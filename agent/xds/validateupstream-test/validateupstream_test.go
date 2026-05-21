@@ -11,9 +11,9 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/agent/xds/testcommon"
-	"github.com/hashicorp/consul/envoyextensions/xdscommon"
-	"github.com/hashicorp/consul/sdk/testutil"
-	troubleshoot "github.com/hashicorp/consul/troubleshoot/proxy"
+	"github.com/hashicorp/consul/envoyextensions/v2/xdscommon"
+	"github.com/hashicorp/consul/sdk/v2/testutil"
+	troubleshoot "github.com/hashicorp/consul/troubleshoot/v2/proxy"
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 )

@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/v2"
 )
 
 func makeExtAuthzEnvoyExtension(svc string, opts ...string) []structs.EnvoyExtension {

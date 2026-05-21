@@ -16,7 +16,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
-	"github.com/hashicorp/consul/proto-public/pbserverdiscovery"
+	"github.com/hashicorp/consul/proto-public/v2/pbserverdiscovery"
 )
 
 type mockSnapshotHandler struct {

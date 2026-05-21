@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/proto-public/v2/pbresource"
 	pbdemov1 "github.com/hashicorp/consul/proto/private/pbdemo/v1"
 	demov2 "github.com/hashicorp/consul/proto/private/pbdemo/v2"
 )

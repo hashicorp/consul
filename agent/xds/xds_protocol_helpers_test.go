@@ -38,8 +38,8 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/response"
-	"github.com/hashicorp/consul/envoyextensions/xdscommon"
-	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/envoyextensions/v2/xdscommon"
+	"github.com/hashicorp/consul/sdk/v2/testutil"
 )
 
 // NOTE: this file is a collection of test helper functions for testing xDS

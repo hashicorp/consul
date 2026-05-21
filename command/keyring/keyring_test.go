@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent"
-	consulapi "github.com/hashicorp/consul/api"
+	consulapi "github.com/hashicorp/consul/api/v2"
 )
 
 func TestKeyringCommand_noTabs(t *testing.T) {

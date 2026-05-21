@@ -16,8 +16,8 @@ import (
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
-	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/proto-public/v2/pbresource"
+	"github.com/hashicorp/consul/sdk/v2/testutil"
 )
 
 func TestReconcile_ResourceWithNoChildren(t *testing.T) {

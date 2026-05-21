@@ -19,8 +19,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/sdk/freeport"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/sdk/v2/freeport"
+	"github.com/hashicorp/consul/sdk/v2/testutil/retry"
 )
 
 // KeyTestCases is a list of the important CA key types that we should test

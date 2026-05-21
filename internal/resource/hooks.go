@@ -5,7 +5,7 @@ package resource
 
 import (
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/proto-public/v2/pbresource"
 	"google.golang.org/protobuf/proto"
 )
 

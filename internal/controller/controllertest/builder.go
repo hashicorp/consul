@@ -8,8 +8,8 @@ import (
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
-	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/proto-public/v2/pbresource"
+	"github.com/hashicorp/consul/sdk/v2/testutil"
 )
 
 type Builder struct {

@@ -47,11 +47,11 @@ import (
 	"github.com/hashicorp/consul/agent/xds/naming"
 	"github.com/hashicorp/consul/agent/xds/platform"
 	"github.com/hashicorp/consul/agent/xds/response"
-	"github.com/hashicorp/consul/envoyextensions/xdscommon"
+	"github.com/hashicorp/consul/envoyextensions/v2/xdscommon"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
-	"github.com/hashicorp/consul/sdk/iptables"
+	"github.com/hashicorp/consul/sdk/v2/iptables"
 	"github.com/hashicorp/consul/types"
 )
 

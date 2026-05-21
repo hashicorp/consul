@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/agent"
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/v2"
 	"github.com/hashicorp/consul/testrpc"
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/mitchellh/cli"

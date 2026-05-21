@@ -7,7 +7,7 @@ package mockpbserverdiscovery
 import (
 	"context"
 
-	"github.com/hashicorp/consul/proto-public/pbserverdiscovery"
+	"github.com/hashicorp/consul/proto-public/v2/pbserverdiscovery"
 	mock "github.com/stretchr/testify/mock"
 	"google.golang.org/grpc"
 )

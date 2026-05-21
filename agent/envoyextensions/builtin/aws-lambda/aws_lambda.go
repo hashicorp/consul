@@ -21,8 +21,8 @@ import (
 	pstruct "google.golang.org/protobuf/types/known/structpb"
 
 	"github.com/hashicorp/consul/agent/netutil"
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
+	"github.com/hashicorp/consul/api/v2"
+	"github.com/hashicorp/consul/envoyextensions/v2/extensioncommon"
 	"github.com/hashicorp/go-multierror"
 )
 

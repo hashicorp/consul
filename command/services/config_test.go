@@ -11,7 +11,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/v2"
 )
 
 // This test ensures that dev mode doesn't register services by default.

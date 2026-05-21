@@ -20,7 +20,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/auth"
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto-public/pbacl"
+	"github.com/hashicorp/consul/proto-public/v2/pbacl"
 )
 
 func TestServer_Logout_Success(t *testing.T) {

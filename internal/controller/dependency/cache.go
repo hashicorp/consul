@@ -9,7 +9,7 @@ import (
 
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/proto-public/v2/pbresource"
 )
 
 // CacheIDModifier is used to alter the Resource ID of the various Cache*

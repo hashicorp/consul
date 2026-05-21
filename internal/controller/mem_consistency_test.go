@@ -5,10 +5,11 @@ package controller
 
 import (
 	"context"
-	mockpbresource "github.com/hashicorp/consul/grpcmocks/proto-public/pbresource"
 	"sync"
 	"testing"
 	"time"
+
+	mockpbresource "github.com/hashicorp/consul/grpcmocks/proto-public/pbresource"
 
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -17,9 +18,9 @@ import (
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/internal/storage"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/proto-public/v2/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
-	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/v2/testutil"
 )
 
 var (

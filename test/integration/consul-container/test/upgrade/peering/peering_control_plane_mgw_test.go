@@ -10,7 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/v2"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 	libtopology "github.com/hashicorp/consul/test/integration/consul-container/libs/topology"

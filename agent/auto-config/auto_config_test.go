@@ -28,8 +28,8 @@ import (
 	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/consul/proto/private/pbautoconf"
 	"github.com/hashicorp/consul/proto/private/pbconfig"
-	"github.com/hashicorp/consul/sdk/testutil"
-	testretry "github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/sdk/v2/testutil"
+	testretry "github.com/hashicorp/consul/sdk/v2/testutil/retry"
 )
 
 type configLoader struct {

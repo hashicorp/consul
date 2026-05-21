@@ -15,8 +15,8 @@ import (
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage/inmem"
-	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/proto-public/v2/pbresource"
+	"github.com/hashicorp/consul/sdk/v2/testutil"
 )
 
 // NewResourceServiceBuilder is the preferred way to configure and run

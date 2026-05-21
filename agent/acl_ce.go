@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/serf/serf"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/v2"
 )
 
 func serfMemberFillAuthzContext(m *serf.Member, ctx *acl.AuthorizerContext) {

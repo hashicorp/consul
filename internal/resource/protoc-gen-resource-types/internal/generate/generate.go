@@ -11,7 +11,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/internal/resource"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/proto-public/v2/pbresource"
 )
 
 func Generate(gp *protogen.Plugin) error {
@@ -133,7 +133,7 @@ var (
 package {{.PackageName}}
 
 import (	
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/proto-public/v2/pbresource"
 )
 
 const (

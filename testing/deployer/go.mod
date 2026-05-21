@@ -6,9 +6,9 @@ require (
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/google/go-cmp v0.7.0
 	github.com/hashicorp/consul-server-connection-manager v0.1.12
-	github.com/hashicorp/consul/api v1.34.2
-	github.com/hashicorp/consul/proto-public v0.8.1
-	github.com/hashicorp/consul/sdk v0.18.1
+	github.com/hashicorp/consul/api/v2 v2.0.0
+	github.com/hashicorp/consul/proto-public/v2 v2.0.0
+	github.com/hashicorp/consul/sdk/v2 v2.0.0
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-hclog v1.5.0
 	github.com/hashicorp/go-multierror v1.1.1
@@ -35,6 +35,7 @@ require (
 	github.com/fatih/color v1.16.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
+	github.com/hashicorp/consul/proto-public v0.6.4 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect
 	github.com/hashicorp/go-metrics v0.5.4 // indirect
@@ -67,7 +68,7 @@ require (
 )
 
 replace (
-	github.com/hashicorp/consul/api => ../../api
-	github.com/hashicorp/consul/proto-public => ../../proto-public
-	github.com/hashicorp/consul/sdk => ../../sdk
+	github.com/hashicorp/consul/api/v2 => ../../api
+	github.com/hashicorp/consul/proto-public/v2 => ../../proto-public
+	github.com/hashicorp/consul/sdk/v2 => ../../sdk
 )

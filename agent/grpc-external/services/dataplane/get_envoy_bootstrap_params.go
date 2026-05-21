@@ -21,7 +21,7 @@ import (
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/accesslogs"
-	"github.com/hashicorp/consul/proto-public/pbdataplane"
+	"github.com/hashicorp/consul/proto-public/v2/pbdataplane"
 )
 
 func (s *Server) GetEnvoyBootstrapParams(ctx context.Context, req *pbdataplane.GetEnvoyBootstrapParamsRequest) (*pbdataplane.GetEnvoyBootstrapParamsResponse, error) {

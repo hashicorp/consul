@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/sdk/v2/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/stretchr/testify/require"
 )

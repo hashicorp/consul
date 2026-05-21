@@ -6,8 +6,9 @@ package ports
 import (
 	"flag"
 	"fmt"
-	"github.com/hashicorp/consul/troubleshoot/ports"
 	"os"
+
+	"github.com/hashicorp/consul/troubleshoot/v2/ports"
 
 	"github.com/hashicorp/consul/command/cli"
 	"github.com/hashicorp/consul/command/flags"

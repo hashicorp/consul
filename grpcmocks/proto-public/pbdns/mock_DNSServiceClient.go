@@ -7,7 +7,7 @@ package mockpbdns
 import (
 	"context"
 
-	"github.com/hashicorp/consul/proto-public/pbdns"
+	"github.com/hashicorp/consul/proto-public/v2/pbdns"
 	mock "github.com/stretchr/testify/mock"
 	"google.golang.org/grpc"
 )

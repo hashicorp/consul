@@ -16,7 +16,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
-	"github.com/hashicorp/consul/proto-public/pbdns"
+	"github.com/hashicorp/consul/proto-public/v2/pbdns"
 )
 
 var txtRR = []string{"Hello world"}

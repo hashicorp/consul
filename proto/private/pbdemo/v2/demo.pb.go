@@ -13,12 +13,13 @@
 package demov2
 
 import (
-	pbresource "github.com/hashicorp/consul/proto-public/pbresource"
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
+
+	pbresource "github.com/hashicorp/consul/proto-public/v2/pbresource"
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (

@@ -12,8 +12,8 @@ import (
 
 	"github.com/hashicorp/consul/agent/mock"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/api/v2"
+	"github.com/hashicorp/consul/sdk/v2/testutil"
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/svc"
 )

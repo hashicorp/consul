@@ -8,7 +8,7 @@ package gateways
 import (
 	"testing"
 
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/v2"
 )
 
 func getOrCreateNamespace(_ *testing.T, _ *api.Client) string {

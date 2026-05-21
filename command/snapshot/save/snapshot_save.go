@@ -6,15 +6,16 @@ package save
 import (
 	"flag"
 	"fmt"
-	"golang.org/x/exp/slices"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"golang.org/x/exp/slices"
+
 	"github.com/mitchellh/cli"
 	"github.com/rboyer/safeio"
 
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/v2"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/snapshot"
 )

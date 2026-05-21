@@ -12,7 +12,7 @@ import (
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/command/resource/apply-grpc"
-	"github.com/hashicorp/consul/sdk/freeport"
+	"github.com/hashicorp/consul/sdk/v2/freeport"
 	"github.com/hashicorp/consul/testrpc"
 )
 

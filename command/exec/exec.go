@@ -17,7 +17,7 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/v2"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/mitchellh/cli"
 )

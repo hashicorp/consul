@@ -11,7 +11,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/v2/testutil"
 	"github.com/stretchr/testify/require"
 )
 

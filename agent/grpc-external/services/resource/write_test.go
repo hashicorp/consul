@@ -18,7 +18,7 @@ import (
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/proto-public/v2/pbresource"
 	pbdemov1 "github.com/hashicorp/consul/proto/private/pbdemo/v1"
 	pbdemov2 "github.com/hashicorp/consul/proto/private/pbdemo/v2"
 	"github.com/hashicorp/consul/proto/private/prototest"

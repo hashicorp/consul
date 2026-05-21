@@ -48,7 +48,7 @@ import (
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/hashicorp/consul/proto-public/annotations/ratelimit"
+	"github.com/hashicorp/consul/proto-public/v2/annotations/ratelimit"
 )
 
 const (

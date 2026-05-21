@@ -10,7 +10,7 @@ import (
 
 	"github.com/hashicorp/consul/internal/controller/cache/indexers/indexersmock"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/proto-public/v2/pbresource"
 	pbdemo "github.com/hashicorp/consul/proto/private/pbdemo/v1"
 	pbdemov2 "github.com/hashicorp/consul/proto/private/pbdemo/v2"
 	"github.com/hashicorp/consul/proto/private/prototest"

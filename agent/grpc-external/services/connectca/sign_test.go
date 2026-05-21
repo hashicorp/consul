@@ -21,7 +21,7 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto-public/pbconnectca"
+	"github.com/hashicorp/consul/proto-public/v2/pbconnectca"
 )
 
 func TestSign_ConnectDisabled(t *testing.T) {

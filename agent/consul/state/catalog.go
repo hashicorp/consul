@@ -18,7 +18,7 @@ import (
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/v2"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/maps"
 	"github.com/hashicorp/consul/lib/stringslice"

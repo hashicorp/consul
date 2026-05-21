@@ -22,9 +22,9 @@ import (
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto-public/pbserverdiscovery"
+	"github.com/hashicorp/consul/proto-public/v2/pbserverdiscovery"
 	"github.com/hashicorp/consul/proto/private/prototest"
-	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/v2/testutil"
 )
 
 const testACLToken = "eb61f1ed-65a4-4da6-8d3d-0564bd16c965"

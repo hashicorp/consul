@@ -17,7 +17,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/sdk/freeport"
+	"github.com/hashicorp/consul/sdk/v2/freeport"
 	"github.com/hashicorp/consul/testrpc"
 )
 

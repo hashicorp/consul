@@ -10,14 +10,15 @@
 package pbpeering
 
 import (
-	_ "github.com/hashicorp/consul/proto-public/annotations/ratelimit"
+	reflect "reflect"
+	sync "sync"
+	unsafe "unsafe"
+
+	_ "github.com/hashicorp/consul/proto-public/v2/annotations/ratelimit"
 	pbcommon "github.com/hashicorp/consul/proto/private/pbcommon"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
-	reflect "reflect"
-	sync "sync"
-	unsafe "unsafe"
 )
 
 const (
@@ -294,7 +295,7 @@ func (x *PeeringSecrets) GetStream() *PeeringSecrets_Stream {
 //
 // mog annotation:
 //
-// target=github.com/hashicorp/consul/api.Peering
+// target=github.com/hashicorp/consul/api/v2.Peering
 // output=peering.gen.go
 // name=API
 type Peering struct {
@@ -482,7 +483,7 @@ func (x *Peering) GetManualServerAddresses() []string {
 
 // mog annotation:
 //
-// target=github.com/hashicorp/consul/api.PeeringRemoteInfo
+// target=github.com/hashicorp/consul/api/v2.PeeringRemoteInfo
 // output=peering.gen.go
 // name=API
 type RemoteInfo struct {
@@ -1636,7 +1637,7 @@ func (*PeeringTrustBundleDeleteResponse) Descriptor() ([]byte, []int) {
 
 // mog annotation:
 //
-// target=github.com/hashicorp/consul/api.PeeringGenerateTokenRequest
+// target=github.com/hashicorp/consul/api/v2.PeeringGenerateTokenRequest
 // output=peering.gen.go
 // name=API
 type GenerateTokenRequest struct {
@@ -1715,7 +1716,7 @@ func (x *GenerateTokenRequest) GetServerExternalAddresses() []string {
 
 // mog annotation:
 //
-// target=github.com/hashicorp/consul/api.PeeringGenerateTokenResponse
+// target=github.com/hashicorp/consul/api/v2.PeeringGenerateTokenResponse
 // output=peering.gen.go
 // name=API
 type GenerateTokenResponse struct {
@@ -1766,7 +1767,7 @@ func (x *GenerateTokenResponse) GetPeeringToken() string {
 
 // mog annotation:
 //
-// target=github.com/hashicorp/consul/api.PeeringEstablishRequest
+// target=github.com/hashicorp/consul/api/v2.PeeringEstablishRequest
 // output=peering.gen.go
 // name=API
 type EstablishRequest struct {
@@ -1843,7 +1844,7 @@ func (x *EstablishRequest) GetMeta() map[string]string {
 
 // mog annotation:
 //
-// target=github.com/hashicorp/consul/api.PeeringEstablishResponse
+// target=github.com/hashicorp/consul/api/v2.PeeringEstablishResponse
 // output=peering.gen.go
 // name=API
 type EstablishResponse struct {

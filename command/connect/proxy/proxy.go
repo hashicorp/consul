@@ -20,7 +20,7 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/v2"
 	"github.com/hashicorp/consul/command/flags"
 	proxyImpl "github.com/hashicorp/consul/connect/proxy"
 	"github.com/hashicorp/consul/logging"

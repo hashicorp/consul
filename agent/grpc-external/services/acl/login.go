@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/auth"
 	external "github.com/hashicorp/consul/agent/grpc-external"
-	"github.com/hashicorp/consul/proto-public/pbacl"
+	"github.com/hashicorp/consul/proto-public/v2/pbacl"
 )
 
 // Login exchanges the presented bearer token for a Consul ACL token using a

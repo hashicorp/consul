@@ -11,7 +11,7 @@ import (
 
 	"github.com/hashicorp/consul/command/cli"
 	"github.com/hashicorp/consul/command/flags"
-	troubleshoot "github.com/hashicorp/consul/troubleshoot/proxy"
+	troubleshoot "github.com/hashicorp/consul/troubleshoot/v2/proxy"
 )
 
 func New(ui cli.Ui) *cmd {

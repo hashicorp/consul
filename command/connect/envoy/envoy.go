@@ -26,10 +26,10 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/agent/xds/accesslogs"
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/v2"
 	proxyCmd "github.com/hashicorp/consul/command/connect/proxy"
 	"github.com/hashicorp/consul/command/flags"
-	"github.com/hashicorp/consul/envoyextensions/xdscommon"
+	"github.com/hashicorp/consul/envoyextensions/v2/xdscommon"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/tlsutil"
 )

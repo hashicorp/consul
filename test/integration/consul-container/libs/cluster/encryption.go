@@ -8,10 +8,11 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"io"
 	"path/filepath"
 	"testing"
+
+	"github.com/hashicorp/consul/sdk/v2/testutil/retry"
 
 	"github.com/hashicorp/go-uuid"
 	"github.com/pkg/errors"

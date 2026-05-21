@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/hashicorp/consul/agent/netutil"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -17,6 +16,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/consul/agent/netutil"
+
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -24,9 +25,9 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/xds"
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/envoyextensions/xdscommon"
-	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/api/v2"
+	"github.com/hashicorp/consul/envoyextensions/v2/xdscommon"
+	"github.com/hashicorp/consul/sdk/v2/testutil"
 )
 
 var update = flag.Bool("update", false, "update golden files")

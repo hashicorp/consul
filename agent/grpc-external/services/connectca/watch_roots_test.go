@@ -23,8 +23,8 @@ import (
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto-public/pbconnectca"
-	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/proto-public/v2/pbconnectca"
+	"github.com/hashicorp/consul/sdk/v2/testutil"
 )
 
 const testACLToken = "acl-token"

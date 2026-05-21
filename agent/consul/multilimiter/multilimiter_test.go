@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/sdk/v2/testutil/retry"
 	radix "github.com/hashicorp/go-immutable-radix"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"

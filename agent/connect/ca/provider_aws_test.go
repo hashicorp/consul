@@ -18,7 +18,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/v2/testutil"
 )
 
 // skipIfAWSNotConfigured skips the test unless ENABLE_AWS_PCA_TESTS=true.

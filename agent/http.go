@@ -38,7 +38,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/uiserver"
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/v2"
 	resourcehttp "github.com/hashicorp/consul/internal/resource/http"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"

@@ -5,7 +5,7 @@
 
 package authmethodcreate
 
-import "github.com/hashicorp/consul/api"
+import "github.com/hashicorp/consul/api/v2"
 
 type enterpriseCmd struct {
 }

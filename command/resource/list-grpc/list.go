@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/resource"
 	"github.com/hashicorp/consul/command/resource/client"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/proto-public/v2/pbresource"
 )
 
 func New(ui cli.Ui) *cmd {

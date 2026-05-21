@@ -15,8 +15,8 @@ import (
 	otelaccesslogging "github.com/hashicorp/consul/agent/envoyextensions/builtin/otel-access-logging"
 	propertyoverride "github.com/hashicorp/consul/agent/envoyextensions/builtin/property-override"
 	"github.com/hashicorp/consul/agent/envoyextensions/builtin/wasm"
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
+	"github.com/hashicorp/consul/api/v2"
+	"github.com/hashicorp/consul/envoyextensions/v2/extensioncommon"
 )
 
 type extensionConstructor func(api.EnvoyExtension) (extensioncommon.EnvoyExtender, error)

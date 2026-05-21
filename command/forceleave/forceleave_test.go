@@ -11,7 +11,7 @@ import (
 	"github.com/mitchellh/cli"
 
 	"github.com/hashicorp/consul/agent"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/sdk/v2/testutil/retry"
 )
 
 func TestForceLeaveCommand_noTabs(t *testing.T) {

@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/consul/internal/controller/cache"
 	"github.com/hashicorp/consul/internal/controller/cache/index"
 	"github.com/hashicorp/consul/internal/resource"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/proto-public/v2/pbresource"
 )
 
 // DependencyMapper is called when a dependency watched via WithWatch is changed

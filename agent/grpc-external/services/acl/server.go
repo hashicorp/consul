@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto-public/pbacl"
+	"github.com/hashicorp/consul/proto-public/v2/pbacl"
 )
 
 type Config struct {

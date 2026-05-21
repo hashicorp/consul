@@ -17,7 +17,7 @@ import (
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/v2"
 )
 
 var KVSummaries = []prometheus.SummaryDefinition{

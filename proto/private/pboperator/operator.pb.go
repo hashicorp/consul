@@ -10,12 +10,13 @@
 package pboperator
 
 import (
-	_ "github.com/hashicorp/consul/proto-public/annotations/ratelimit"
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
+
+	_ "github.com/hashicorp/consul/proto-public/v2/annotations/ratelimit"
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -71,7 +72,7 @@ func (x *TransferLeaderRequest) GetID() string {
 
 // mog annotation:
 //
-// target=github.com/hashicorp/consul/api.TransferLeaderResponse
+// target=github.com/hashicorp/consul/api/v2.TransferLeaderResponse
 // output=operator.gen.go
 // name=API
 type TransferLeaderResponse struct {

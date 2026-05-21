@@ -16,7 +16,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 
-	pbacl "github.com/hashicorp/consul/proto-public/pbacl"
+	pbacl "github.com/hashicorp/consul/proto-public/v2/pbacl"
 
 	"github.com/hashicorp/go-hclog"
 

@@ -19,7 +19,7 @@ import (
 	goretry "github.com/avast/retry-go"
 	dockercontainer "github.com/docker/docker/api/types/container"
 	"github.com/docker/go-connections/nat"
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/v2"
 	"github.com/hashicorp/go-multierror"
 	"github.com/otiai10/copy"
 	"github.com/pkg/errors"

@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/v2"
 )
 
 // QueryOptions are used to parameterize a query

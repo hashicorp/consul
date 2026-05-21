@@ -13,8 +13,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/proto-public/v2/pbresource"
+	"github.com/hashicorp/consul/sdk/v2/testutil"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-multierror"
 	"github.com/stretchr/testify/require"

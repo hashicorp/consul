@@ -9,9 +9,12 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/api/v2"
+	"github.com/hashicorp/consul/sdk/v2/testutil/retry"
 	"github.com/stretchr/testify/require"
+
+	"testing"
+	"time"
 
 	"github.com/go-jose/go-jose/v3/jwt"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
@@ -20,8 +23,6 @@ import (
 	libtopology "github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 	libutils "github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"github.com/hashicorp/go-cleanhttp"
-	"testing"
-	"time"
 )
 
 // TestJWTAuthConnectService summary:

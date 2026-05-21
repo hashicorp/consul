@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/raft"
 
 	"github.com/hashicorp/consul/agent/metadata"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/sdk/v2/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
 )

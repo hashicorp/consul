@@ -15,9 +15,9 @@ import (
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/structs"
 	tokenStore "github.com/hashicorp/consul/agent/token"
-	"github.com/hashicorp/consul/proto-public/pbacl"
-	"github.com/hashicorp/consul/proto-public/pbconnectca"
-	"github.com/hashicorp/consul/proto-public/pbserverdiscovery"
+	"github.com/hashicorp/consul/proto-public/v2/pbacl"
+	"github.com/hashicorp/consul/proto-public/v2/pbconnectca"
+	"github.com/hashicorp/consul/proto-public/v2/pbserverdiscovery"
 )
 
 func TestGRPCIntegration_ConnectCA_Sign(t *testing.T) {

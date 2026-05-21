@@ -21,7 +21,7 @@ import (
 	"github.com/hashicorp/consul/internal/protoutil"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/proto-public/v2/pbresource"
 )
 
 // Runtime contains the dependencies required by reconcilers.

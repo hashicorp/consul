@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/consul/stream"
-	"github.com/hashicorp/consul/proto-public/pbserverdiscovery"
+	"github.com/hashicorp/consul/proto-public/v2/pbserverdiscovery"
 )
 
 type Server struct {

@@ -3,11 +3,11 @@ module github.com/hashicorp/consul
 go 1.26
 
 replace (
-	github.com/hashicorp/consul/api => ./api
-	github.com/hashicorp/consul/envoyextensions => ./envoyextensions
-	github.com/hashicorp/consul/proto-public => ./proto-public
-	github.com/hashicorp/consul/sdk => ./sdk
-	github.com/hashicorp/consul/troubleshoot => ./troubleshoot
+	github.com/hashicorp/consul/api/v2 => ./api
+	github.com/hashicorp/consul/envoyextensions/v2 => ./envoyextensions
+	github.com/hashicorp/consul/proto-public/v2 => ./proto-public
+	github.com/hashicorp/consul/sdk/v2 => ./sdk
+	github.com/hashicorp/consul/troubleshoot/v2 => ./troubleshoot
 )
 
 exclude (
@@ -49,11 +49,11 @@ require (
 	github.com/hashicorp/cap v0.10.0
 	github.com/hashicorp/consul-awsauth v0.0.0-20260217094118-6b9b26380433
 	github.com/hashicorp/consul-net-rpc v0.0.0-20221205195236-156cfab66a69
-	github.com/hashicorp/consul/api v1.34.2
-	github.com/hashicorp/consul/envoyextensions v0.10.2
-	github.com/hashicorp/consul/proto-public v0.8.1
-	github.com/hashicorp/consul/sdk v0.18.1
-	github.com/hashicorp/consul/troubleshoot v0.9.2
+	github.com/hashicorp/consul/api/v2 v2.0.0
+	github.com/hashicorp/consul/envoyextensions/v2 v2.0.0
+	github.com/hashicorp/consul/proto-public/v2 v2.0.0
+	github.com/hashicorp/consul/sdk/v2 v2.0.0
+	github.com/hashicorp/consul/troubleshoot/v2 v2.0.0
 	github.com/hashicorp/go-bexpr v0.1.2
 	github.com/hashicorp/go-checkpoint v0.5.0
 	github.com/hashicorp/go-cleanhttp v0.5.2

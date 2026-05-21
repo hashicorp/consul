@@ -17,7 +17,7 @@ import (
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
 
-	"github.com/hashicorp/consul/proto-public/pbdns"
+	"github.com/hashicorp/consul/proto-public/v2/pbdns"
 )
 
 type LocalAddr struct {

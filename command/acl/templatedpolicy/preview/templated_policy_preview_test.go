@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/agent"
-	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/v2/testutil"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/assert"

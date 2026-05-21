@@ -11,7 +11,7 @@ import (
 
 	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/go-viper/mapstructure/v2"
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/v2"
 	"github.com/hashicorp/consul/lib/decode"
 	"github.com/hashicorp/hcl"
 	"github.com/testcontainers/testcontainers-go"
