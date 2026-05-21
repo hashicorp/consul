@@ -1,0 +1,12 @@
+```release-note:security
+docker: Upgrade `curl` to >= 8.20.0 from Alpine edge in the container image to address
+[CVE-2026-6429](https://www.cve.org/CVERecord?id=CVE-2026-6429),
+[CVE-2026-4873](https://www.cve.org/CVERecord?id=CVE-2026-4873),
+[CVE-2026-5773](https://www.cve.org/CVERecord?id=CVE-2026-5773),
+[CVE-2026-6253](https://www.cve.org/CVERecord?id=CVE-2026-6253),
+[CVE-2026-6276](https://www.cve.org/CVERecord?id=CVE-2026-6276),
+[CVE-2026-7168](https://www.cve.org/CVERecord?id=CVE-2026-7168),
+[CVE-2026-5545](https://www.cve.org/CVERecord?id=CVE-2026-5545).
+Alpine 3.23 stable does not yet carry the patched version.
+```
+
