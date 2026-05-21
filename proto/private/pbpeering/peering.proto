@@ -191,7 +191,7 @@ message PeeringSecrets {
 //
 // mog annotation:
 //
-// target=github.com/hashicorp/consul/api.Peering
+// target=github.com/hashicorp/consul/api/v2.Peering
 // output=peering.gen.go
 // name=API
 message Peering {
@@ -257,7 +257,7 @@ message Peering {
 
 // mog annotation:
 //
-// target=github.com/hashicorp/consul/api.PeeringRemoteInfo
+// target=github.com/hashicorp/consul/api/v2.PeeringRemoteInfo
 // output=peering.gen.go
 // name=API
 message RemoteInfo {
@@ -408,7 +408,7 @@ message PeeringTrustBundleDeleteResponse {}
 
 // mog annotation:
 //
-// target=github.com/hashicorp/consul/api.PeeringGenerateTokenRequest
+// target=github.com/hashicorp/consul/api/v2.PeeringGenerateTokenRequest
 // output=peering.gen.go
 // name=API
 message GenerateTokenRequest {
@@ -429,7 +429,7 @@ message GenerateTokenRequest {
 
 // mog annotation:
 //
-// target=github.com/hashicorp/consul/api.PeeringGenerateTokenResponse
+// target=github.com/hashicorp/consul/api/v2.PeeringGenerateTokenResponse
 // output=peering.gen.go
 // name=API
 message GenerateTokenResponse {
@@ -440,7 +440,7 @@ message GenerateTokenResponse {
 
 // mog annotation:
 //
-// target=github.com/hashicorp/consul/api.PeeringEstablishRequest
+// target=github.com/hashicorp/consul/api/v2.PeeringEstablishRequest
 // output=peering.gen.go
 // name=API
 message EstablishRequest {
@@ -459,7 +459,7 @@ message EstablishRequest {
 
 // mog annotation:
 //
-// target=github.com/hashicorp/consul/api.PeeringEstablishResponse
+// target=github.com/hashicorp/consul/api/v2.PeeringEstablishResponse
 // output=peering.gen.go
 // name=API
 message EstablishResponse {}
