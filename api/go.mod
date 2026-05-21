@@ -2,7 +2,7 @@ module github.com/hashicorp/consul/api/v2
 
 go 1.26
 
-// replace github.com/hashicorp/consul/sdk/v2 => ../sdk
+replace github.com/hashicorp/consul/sdk/v2 => ../sdk
 
 require (
 	github.com/go-viper/mapstructure/v2 v2.4.0
