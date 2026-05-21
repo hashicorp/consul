@@ -198,7 +198,7 @@ const file_pbserverdiscovery_serverdiscovery_proto_rawDesc = "" +
 	"\aversion\x18\x03 \x01(\tR\aversion2\xa4\x01\n" +
 	"\x16ServerDiscoveryService\x12\x89\x01\n" +
 	"\fWatchServers\x125.hashicorp.consul.serverdiscovery.WatchServersRequest\x1a6.hashicorp.consul.serverdiscovery.WatchServersResponse\"\b\xe2\x86\x04\x04\b\x02\x10\x060\x01B\x9d\x02\n" +
-	"$com.hashicorp.consul.serverdiscoveryB\x14ServerdiscoveryProtoP\x01Z=github.com/hashicorp/consul/proto-public/v2/v2/pbserverdiscovery\xa2\x02\x03HCS\xaa\x02 Hashicorp.Consul.Serverdiscovery\xca\x02 Hashicorp\\Consul\\Serverdiscovery\xe2\x02,Hashicorp\\Consul\\Serverdiscovery\\GPBMetadata\xea\x02\"Hashicorp::Consul::Serverdiscoveryb\x06proto3"
+	"$com.hashicorp.consul.serverdiscoveryB\x14ServerdiscoveryProtoP\x01Z=github.com/hashicorp/consul/proto-public/v2/pbserverdiscovery\xa2\x02\x03HCS\xaa\x02 Hashicorp.Consul.Serverdiscovery\xca\x02 Hashicorp\\Consul\\Serverdiscovery\xe2\x02,Hashicorp\\Consul\\Serverdiscovery\\GPBMetadata\xea\x02\"Hashicorp::Consul::Serverdiscoveryb\x06proto3"
 
 var (
 	file_pbserverdiscovery_serverdiscovery_proto_rawDescOnce sync.Once
