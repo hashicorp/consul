@@ -2,11 +2,11 @@ module github.com/hashicorp/consul/envoyextensions/v2
 
 go 1.26
 
-// replace (
-// 	github.com/hashicorp/consul/api/v2 => ../api
-// 	github.com/hashicorp/consul/proto-public/v2 => ../proto-public
-// 	github.com/hashicorp/consul/sdk/v2 => ../sdk
-// )
+replace (
+	github.com/hashicorp/consul/api/v2 => ../api
+	github.com/hashicorp/consul/proto-public/v2 => ../proto-public
+	github.com/hashicorp/consul/sdk/v2 => ../sdk
+)
 
 require (
 	github.com/envoyproxy/go-control-plane v0.14.0
