@@ -46,7 +46,7 @@ require (
 	github.com/google/tcpproxy v0.0.0-20180808230851-dfa16c61dad2
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/hashi-derek/grpc-proxy v0.0.0-20231207191910-191266484d75
-	github.com/hashicorp/cap v0.10.0
+	github.com/hashicorp/cap v0.13.0
 	github.com/hashicorp/consul-awsauth v0.0.0-20260217094118-6b9b26380433
 	github.com/hashicorp/consul-net-rpc v0.0.0-20221205195236-156cfab66a69
 	github.com/hashicorp/consul/api v1.34.3
