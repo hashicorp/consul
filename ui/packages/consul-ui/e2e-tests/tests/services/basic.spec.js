@@ -18,9 +18,18 @@ test.describe('Services - Basic Tests', () => {
     await servicesPage.gotoList();
 
     // Verify all services are present. (consul is there by default)
-    const expectedServices = ['consul', 'product-db', 'product-api', 'payments', 'public-api', 'frontend'];
+    const expectedServices = [
+      'consul',
+      'product-db',
+      'product-api',
+      'payments',
+      'public-api',
+      'frontend',
+    ];
     for (const s of expectedServices) {
-      await expect(servicesPage.page.getByRole('link', { name: s, exact: true }).first()).toBeVisible();
+      await expect(
+        servicesPage.page.getByRole('link', { name: s, exact: true }).first()
+      ).toBeVisible();
     }
 
     const verifyServiceFlow = async (serviceName, expectedUpstreams = []) => {
@@ -34,24 +43,36 @@ test.describe('Services - Basic Tests', () => {
       // Verify upstreams in topology
       for (const upstream of expectedUpstreams) {
         await expect(
-          servicesPage.page.locator('#upstream-container .topology-metrics-card').filter({ hasText: upstream }).first()
+          servicesPage.page
+            .locator('#upstream-container .topology-metrics-card')
+            .filter({ hasText: upstream })
+            .first()
         ).toBeVisible();
       }
 
       await servicesPage.clickTab('Instances');
 
       // Navigate to service instances from instances tab
-      const firstInstanceLink = servicesPage.page.locator('.consul-service-instance-list li').nth(1).locator('a').first();
+      const firstInstanceLink = servicesPage.page
+        .locator('.consul-service-instance-list li')
+        .nth(1)
+        .locator('a')
+        .first();
       await expect(firstInstanceLink).toBeVisible();
       await firstInstanceLink.click();
 
       // Verify we landed on instance details
-      await expect(servicesPage.page.locator('.title').filter({ hasText: serviceName }).first()).toBeVisible();
+      await expect(
+        servicesPage.page.locator('.title').filter({ hasText: serviceName }).first()
+      ).toBeVisible();
 
       if (expectedUpstreams.length > 0) {
         await servicesPage.clickTab('Upstreams');
         for (const upstream of expectedUpstreams) {
-          const upstreamLink = servicesPage.page.locator('.consul-upstream-instance-list li').filter({ hasText: upstream }).first();
+          const upstreamLink = servicesPage.page
+            .locator('.consul-upstream-instance-list li')
+            .filter({ hasText: upstream })
+            .first();
           await expect(upstreamLink).toBeVisible();
         }
       }

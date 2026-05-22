@@ -25,7 +25,7 @@ exports.test = base.test.extend({
       },
       async clickInstance(instanceText) {
         await page.getByRole('link', { name: instanceText }).first().click();
-      }
+      },
     };
 
     await use({ page, ...ui });
@@ -45,7 +45,9 @@ exports.test = base.test.extend({
         if (!response.ok()) {
           const body = await response.text().catch(() => '(no body)');
           throw new Error(
-            `Failed to register ${serviceDef.Name}: HTTP ${response.status()} ${response.statusText()} — ${body}`
+            `Failed to register ${
+              serviceDef.Name
+            }: HTTP ${response.status()} ${response.statusText()} — ${body}`
           );
         }
         const serviceID = serviceDef.ID || serviceDef.Name;
