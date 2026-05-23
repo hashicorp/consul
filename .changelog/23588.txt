@@ -1,0 +1,3 @@
+```release-note:security
+security: Update to UBI base image to 9.8 for fixing [[CVE_2026-2100](https://access.redhat.com/security/cve/cve-2026-2100)]
+```
