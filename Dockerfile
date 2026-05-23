@@ -244,7 +244,7 @@ CMD ["agent", "-dev", "-client", "0.0.0.0"]
 
 # Red Hat UBI-based image
 # This target is used to build a Consul image for use on OpenShift.
-FROM registry.access.redhat.com/ubi9-minimal:9.7 as ubi
+FROM registry.access.redhat.com/ubi9-minimal:9.8 as ubi
 
 ARG PRODUCT_VERSION
 ARG PRODUCT_REVISION
