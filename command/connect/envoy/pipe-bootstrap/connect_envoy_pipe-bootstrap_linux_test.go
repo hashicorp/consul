@@ -36,13 +36,13 @@ func TestRun_WriteErrorDoesNotLeakDescriptor(t *testing.T) {
 	if _, err := stdinW.WriteString("bootstrap-payload"); err != nil {
 		t.Fatal(err)
 	}
-	stdinW.Close()
+	_ = stdinW.Close()
 
 	origStdin := os.Stdin
 	os.Stdin = stdinR
 	t.Cleanup(func() {
 		os.Stdin = origStdin
-		stdinR.Close()
+		_ = stdinR.Close()
 	})
 
 	// Baseline is taken after stdinR replaces os.Stdin, so its descriptor is

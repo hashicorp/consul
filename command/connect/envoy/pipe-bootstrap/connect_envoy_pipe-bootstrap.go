@@ -64,7 +64,7 @@ func (c *cmd) Run(args []string) int {
 
 	if _, err := buf.WriteTo(f); err != nil {
 		c.UI.Error(err.Error())
-		f.Close()
+		_ = f.Close()
 		return 1
 	}
 
