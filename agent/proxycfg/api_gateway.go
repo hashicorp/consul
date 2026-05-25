@@ -6,6 +6,7 @@ package proxycfg
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/leafcert"
@@ -20,6 +21,11 @@ var _ kindHandler = (*handlerAPIGateway)(nil)
 // changes related to an api-gateway.
 type handlerAPIGateway struct {
 	handlerState
+	// chainMutex protects concurrent access to discovery chain recompilation
+	// This is critical when multiple API Gateway replicas start simultaneously
+	// and process route updates concurrently, preventing race conditions that
+	// can cause Envoy segmentation faults due to incomplete xDS configuration.
+	chainMutex sync.RWMutex
 }
 
 // initialize sets up the initial watches needed based on the api-gateway registration
@@ -137,7 +143,9 @@ func (h *handlerAPIGateway) handleUpdate(ctx context.Context, u UpdateEvent, sna
 		}
 
 	default:
-		if err := (*handlerUpstreams)(h).handleUpdateUpstreams(ctx, u, snap); err != nil {
+		// Create a handlerUpstreams with the same handlerState to handle upstream updates
+		upstreamHandler := &handlerUpstreams{handlerState: h.handlerState}
+		if err := upstreamHandler.handleUpdateUpstreams(ctx, u, snap); err != nil {
 			return err
 		}
 	}
@@ -562,6 +570,12 @@ func intPointer(v int) *int {
 }
 
 func (h *handlerAPIGateway) recompileDiscoveryChains(snap *ConfigSnapshot) error {
+	// Lock to prevent concurrent modifications to discovery chains when multiple
+	// API Gateway replicas process route updates simultaneously. This prevents
+	// race conditions that can cause incomplete xDS configuration and Envoy segfaults.
+	h.chainMutex.Lock()
+	defer h.chainMutex.Unlock()
+
 	synthesizedChains := map[UpstreamID]*structs.CompiledDiscoveryChain{}
 
 	for name, listener := range snap.APIGateway.Listeners {
