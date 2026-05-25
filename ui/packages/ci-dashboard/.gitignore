@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.DS_Store
+.vite/
+
+# Data files dropped here by CI – never commit real results to source control
+# public/data/*.json is intentionally committed — it is the dashboard data source.

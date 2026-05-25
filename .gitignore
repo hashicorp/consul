@@ -70,3 +70,6 @@ terraform.rc
 consul-k8s/
 .vercel
 vendor/
+
+# Leftover output from the Python CI aggregation script — not part of source
+/rc_aggregated_results.json

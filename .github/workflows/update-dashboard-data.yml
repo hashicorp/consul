@@ -1,0 +1,77 @@
+# Downloads a fresh aggregated_ci_results.json from a URL you provide,
+# commits it to main, builds the dashboard, and uploads it as a
+# downloadable Actions artifact — no external hosting required.
+#
+# How to use:
+#   1. Upload your JSON file anywhere publicly reachable
+#      (GitHub Gist raw URL, S3 presigned URL, any direct download link)
+#   2. Go to Actions → "Update Dashboard Data & Deploy"
+#   3. Click "Run workflow", paste the URL, click Run
+#   4. Download the "ci-dashboard" artifact from the run summary
+#   5. Unzip → python3 -m http.server 8080  →  open http://localhost:8080
+
+name: Update Dashboard Data & Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      data_url:
+        description: 'Direct download URL for aggregated_ci_results.json'
+        required: true
+
+permissions:
+  contents: write   # needed to commit the JSON back to main
+
+jobs:
+  update-and-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Download data file
+        run: |
+          curl -fsSL "${{ inputs.data_url }}" \
+            -o ui/packages/ci-dashboard/public/data/aggregated_ci_results.json
+          # Basic sanity check — must be valid JSON
+          node -e "JSON.parse(require('fs').readFileSync(
+            'ui/packages/ci-dashboard/public/data/aggregated_ci_results.json','utf8'
+          )); console.log('JSON valid')"
+
+      - name: Commit updated data to main
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add ui/packages/ci-dashboard/public/data/aggregated_ci_results.json
+          git diff --cached --quiet || \
+            git commit -m "chore: update CI dashboard data [skip ci]"
+          git push origin main
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '10'
+
+      - name: Install dependencies
+        working-directory: ui/packages/ci-dashboard
+        run: pnpm install --frozen-lockfile
+
+      - name: Build dashboard
+        working-directory: ui/packages/ci-dashboard
+        run: pnpm build
+
+      - name: Upload dashboard artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-dashboard
+          path: ui/packages/ci-dashboard/dist
+          retention-days: 30
+
