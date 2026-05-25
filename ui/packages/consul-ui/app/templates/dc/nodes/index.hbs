@@ -40,7 +40,7 @@
               change=(action (mut this.searchproperty) value='target.selectedItems')
               default=this._searchProperties
             )
-            version=(hash 
+            version=(hash
               value=(if this.version (split this.version ',') undefined)
               change=(action (mut this.version) value='target.selectedItems')
             )
@@ -102,7 +102,7 @@
                         <li>
                           <Hds::Button
                             @text={{t 'routes.dc.nodes.index.empty.documentation'}}
-                            @href='{{env "CONSUL_DOCS_DEVELOPER_URL"}}/agent'
+                            @href='{{env "CONSUL_DOCS_URL"}}/agent'
                             @color='tertiary'
                             @icon='docs-link'
                             @iconPosition='trailing'

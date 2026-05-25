@@ -1097,13 +1097,10 @@ func mergedAPIGatewayUpstreamConfig(configMap map[string]interface{}, limits *st
 
 func mergeAPIGatewayUpstreamLimits(existing, incoming *structs.UpstreamLimits) *structs.UpstreamLimits {
 	if existing == nil {
-		if incoming == nil {
-			return nil
-		}
-		return incoming.Clone()
+		return normalizeAPIGatewayUpstreamLimits(incoming)
 	}
 	if incoming == nil {
-		return existing.Clone()
+		return normalizeAPIGatewayUpstreamLimits(existing)
 	}
 
 	return &structs.UpstreamLimits{
@@ -1115,13 +1112,10 @@ func mergeAPIGatewayUpstreamLimits(existing, incoming *structs.UpstreamLimits) *
 
 func mergeAPIGatewayLimitValue(existing, incoming *int) *int {
 	if existing == nil {
-		if incoming == nil {
-			return nil
-		}
-		return intPointerCopy(incoming)
+		return positiveIntPointerCopy(incoming)
 	}
 	if incoming == nil {
-		return intPointerCopy(existing)
+		return positiveIntPointerCopy(existing)
 	}
 
 	e := *existing
@@ -1141,8 +1135,7 @@ func mergeAPIGatewayLimitValue(existing, incoming *int) *int {
 		return intPointerCopy(incoming)
 	}
 
-	zero := 0
-	return &zero
+	return nil
 }
 
 func intPointerCopy(v *int) *int {
@@ -1151,6 +1144,25 @@ func intPointerCopy(v *int) *int {
 	}
 	v2 := *v
 	return &v2
+}
+
+func positiveIntPointerCopy(v *int) *int {
+	if v == nil || *v <= 0 {
+		return nil
+	}
+	return intPointerCopy(v)
+}
+
+func normalizeAPIGatewayUpstreamLimits(limits *structs.UpstreamLimits) *structs.UpstreamLimits {
+	if limits == nil {
+		return nil
+	}
+
+	return &structs.UpstreamLimits{
+		MaxConnections:        positiveIntPointerCopy(limits.MaxConnections),
+		MaxPendingRequests:    positiveIntPointerCopy(limits.MaxPendingRequests),
+		MaxConcurrentRequests: positiveIntPointerCopy(limits.MaxConcurrentRequests),
+	}
 }
 
 func (s *ResourceGenerator) configIngressUpstreamCluster(c *envoy_cluster_v3.Cluster, cfgSnap *proxycfg.ConfigSnapshot, listenerKey proxycfg.IngressListenerKey, u *structs.Upstream) {
@@ -2351,17 +2363,25 @@ func makeThresholdsIfNeeded(limits *structs.UpstreamLimits) []*envoy_cluster_v3.
 	}
 
 	threshold := &envoy_cluster_v3.CircuitBreakers_Thresholds{}
+	hasLimit := false
 
 	// Likewise, make sure to not set any threshold values on the zero-value in
 	// order to rely on Envoy defaults
 	if limits.MaxConnections != nil {
 		threshold.MaxConnections = response.MakeUint32Value(*limits.MaxConnections)
+		hasLimit = true
 	}
 	if limits.MaxPendingRequests != nil {
 		threshold.MaxPendingRequests = response.MakeUint32Value(*limits.MaxPendingRequests)
+		hasLimit = true
 	}
 	if limits.MaxConcurrentRequests != nil {
 		threshold.MaxRequests = response.MakeUint32Value(*limits.MaxConcurrentRequests)
+		hasLimit = true
+	}
+
+	if !hasLimit {
+		return nil
 	}
 
 	return []*envoy_cluster_v3.CircuitBreakers_Thresholds{threshold}

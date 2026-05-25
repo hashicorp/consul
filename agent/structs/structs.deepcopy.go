@@ -682,6 +682,18 @@ func (o *IngressListener) DeepCopy() *IngressListener {
 					cp.Services[i2].PassiveHealthCheck.EnforcingConsecutive5xx = new(uint32)
 					*cp.Services[i2].PassiveHealthCheck.EnforcingConsecutive5xx = *o.Services[i2].PassiveHealthCheck.EnforcingConsecutive5xx
 				}
+				if o.Services[i2].PassiveHealthCheck.EnforcingConsecutiveGatewayFailure != nil {
+					cp.Services[i2].PassiveHealthCheck.EnforcingConsecutiveGatewayFailure = new(uint32)
+					*cp.Services[i2].PassiveHealthCheck.EnforcingConsecutiveGatewayFailure = *o.Services[i2].PassiveHealthCheck.EnforcingConsecutiveGatewayFailure
+				}
+				if o.Services[i2].PassiveHealthCheck.Consecutive5xx != nil {
+					cp.Services[i2].PassiveHealthCheck.Consecutive5xx = new(uint32)
+					*cp.Services[i2].PassiveHealthCheck.Consecutive5xx = *o.Services[i2].PassiveHealthCheck.Consecutive5xx
+				}
+				if o.Services[i2].PassiveHealthCheck.ConsecutiveGatewayFailure != nil {
+					cp.Services[i2].PassiveHealthCheck.ConsecutiveGatewayFailure = new(uint32)
+					*cp.Services[i2].PassiveHealthCheck.ConsecutiveGatewayFailure = *o.Services[i2].PassiveHealthCheck.ConsecutiveGatewayFailure
+				}
 				if o.Services[i2].PassiveHealthCheck.MaxEjectionPercent != nil {
 					cp.Services[i2].PassiveHealthCheck.MaxEjectionPercent = new(uint32)
 					*cp.Services[i2].PassiveHealthCheck.MaxEjectionPercent = *o.Services[i2].PassiveHealthCheck.MaxEjectionPercent
@@ -1364,6 +1376,18 @@ func (o *UpstreamConfiguration) DeepCopy() *UpstreamConfiguration {
 						cp.Overrides[i2].PassiveHealthCheck.EnforcingConsecutive5xx = new(uint32)
 						*cp.Overrides[i2].PassiveHealthCheck.EnforcingConsecutive5xx = *o.Overrides[i2].PassiveHealthCheck.EnforcingConsecutive5xx
 					}
+					if o.Overrides[i2].PassiveHealthCheck.EnforcingConsecutiveGatewayFailure != nil {
+						cp.Overrides[i2].PassiveHealthCheck.EnforcingConsecutiveGatewayFailure = new(uint32)
+						*cp.Overrides[i2].PassiveHealthCheck.EnforcingConsecutiveGatewayFailure = *o.Overrides[i2].PassiveHealthCheck.EnforcingConsecutiveGatewayFailure
+					}
+					if o.Overrides[i2].PassiveHealthCheck.Consecutive5xx != nil {
+						cp.Overrides[i2].PassiveHealthCheck.Consecutive5xx = new(uint32)
+						*cp.Overrides[i2].PassiveHealthCheck.Consecutive5xx = *o.Overrides[i2].PassiveHealthCheck.Consecutive5xx
+					}
+					if o.Overrides[i2].PassiveHealthCheck.ConsecutiveGatewayFailure != nil {
+						cp.Overrides[i2].PassiveHealthCheck.ConsecutiveGatewayFailure = new(uint32)
+						*cp.Overrides[i2].PassiveHealthCheck.ConsecutiveGatewayFailure = *o.Overrides[i2].PassiveHealthCheck.ConsecutiveGatewayFailure
+					}
 					if o.Overrides[i2].PassiveHealthCheck.MaxEjectionPercent != nil {
 						cp.Overrides[i2].PassiveHealthCheck.MaxEjectionPercent = new(uint32)
 						*cp.Overrides[i2].PassiveHealthCheck.MaxEjectionPercent = *o.Overrides[i2].PassiveHealthCheck.MaxEjectionPercent
@@ -1401,6 +1425,18 @@ func (o *UpstreamConfiguration) DeepCopy() *UpstreamConfiguration {
 			if o.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx != nil {
 				cp.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx = new(uint32)
 				*cp.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx = *o.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx
+			}
+			if o.Defaults.PassiveHealthCheck.EnforcingConsecutiveGatewayFailure != nil {
+				cp.Defaults.PassiveHealthCheck.EnforcingConsecutiveGatewayFailure = new(uint32)
+				*cp.Defaults.PassiveHealthCheck.EnforcingConsecutiveGatewayFailure = *o.Defaults.PassiveHealthCheck.EnforcingConsecutiveGatewayFailure
+			}
+			if o.Defaults.PassiveHealthCheck.Consecutive5xx != nil {
+				cp.Defaults.PassiveHealthCheck.Consecutive5xx = new(uint32)
+				*cp.Defaults.PassiveHealthCheck.Consecutive5xx = *o.Defaults.PassiveHealthCheck.Consecutive5xx
+			}
+			if o.Defaults.PassiveHealthCheck.ConsecutiveGatewayFailure != nil {
+				cp.Defaults.PassiveHealthCheck.ConsecutiveGatewayFailure = new(uint32)
+				*cp.Defaults.PassiveHealthCheck.ConsecutiveGatewayFailure = *o.Defaults.PassiveHealthCheck.ConsecutiveGatewayFailure
 			}
 			if o.Defaults.PassiveHealthCheck.MaxEjectionPercent != nil {
 				cp.Defaults.PassiveHealthCheck.MaxEjectionPercent = new(uint32)

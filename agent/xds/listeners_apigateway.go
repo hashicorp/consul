@@ -454,6 +454,16 @@ func getReadyListeners(cfgSnap *proxycfg.ConfigSnapshot) map[string]readyListene
 		// For each route bound to the listener
 		boundListener := cfgSnap.APIGateway.BoundListeners[l.Name]
 		for _, routeRef := range boundListener.Routes {
+			switch routeRef.Kind {
+			case structs.HTTPRoute:
+				if _, ok := cfgSnap.APIGateway.HTTPRoutes.Get(routeRef); !ok {
+					continue
+				}
+			case structs.TCPRoute:
+				if _, ok := cfgSnap.APIGateway.TCPRoutes.Get(routeRef); !ok {
+					continue
+				}
+			}
 			// Get all upstreams for the route
 			routeUpstreams, ok := cfgSnap.APIGateway.Upstreams[routeRef]
 			if !ok {
