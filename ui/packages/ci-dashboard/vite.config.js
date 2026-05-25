@@ -1,3 +1,8 @@
+/**
+ * Copyright IBM Corp. 2024, 2026
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 import { defineConfig } from 'vite';
 
 // Base is './' so the built dist/ works whether served from root or a subdirectory

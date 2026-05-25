@@ -1,3 +1,8 @@
+/**
+ * Copyright IBM Corp. 2024, 2026
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 import { escapeHtml, statusBadge, typeBadge } from '../utils/format.js';
 
 function rateClass(rate) {

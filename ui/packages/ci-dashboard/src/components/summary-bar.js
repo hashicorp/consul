@@ -1,3 +1,8 @@
+/**
+ * Copyright IBM Corp. 2024, 2026
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 export function renderSummaryBar(summary) {
   const rate = (summary.pass_rate ?? 0).toFixed(1);
   const rateNum = summary.pass_rate ?? 0;

@@ -1,3 +1,8 @@
+/**
+ * Copyright IBM Corp. 2024, 2026
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 import './app.css';
 import { renderHeader } from './components/header.js';
 import { renderSummaryBar } from './components/summary-bar.js';
