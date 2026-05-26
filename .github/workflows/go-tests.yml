@@ -497,6 +497,20 @@ jobs:
       consul-license: ${{secrets.CONSUL_LICENSE}}
       datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
 
+  coverage-report:
+    needs:
+    - get-go-version
+    - go-test-ce
+    if: ${{ !cancelled() && needs.go-test-ce.result != 'skipped' }}
+    uses: ./.github/workflows/reusable-coverage-report.yml
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
+    with:
+      go-version: ${{ needs.get-go-version.outputs.go-version }}
+      pr-number: ${{ github.event.pull_request.number != 0 && toJson(github.event.pull_request.number) || '' }}
+
   noop:
     runs-on: ubuntu-latest
     steps:
@@ -541,6 +555,7 @@ jobs:
     - go-test-32bit
     - go-test-testing-deployer
     # - go-test-s390x
+    - coverage-report
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     if: always() && needs.conditional-skip.outputs.skip-ci != 'true'
     steps:
