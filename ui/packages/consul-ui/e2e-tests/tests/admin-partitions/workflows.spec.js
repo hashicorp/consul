@@ -27,11 +27,11 @@ test.describe('Admin Partitions - Workflows', { tag: '@ent' }, () => {
   test('navigate to admin partitions via partition selector', async ({
     page,
     partitionsPage,
-    skipEnt,
     request,
     baseURL,
   }) => {
-    await skipEnt(request, baseURL);
+    const isEnt = await isEnterpriseConsul(request, baseURL);
+    test.skip(!isEnt, 'Admin Partitions is an Enterprise-only feature.');
 
     await page.goto(`${baseURL}/ui/dc1/services`, { waitUntil: 'domcontentloaded' });
 
@@ -97,11 +97,11 @@ test.describe('Admin Partitions - Workflows', { tag: '@ent' }, () => {
    */
   test('cancel partition edit discards changes and returns to list', async ({
     partitionsPage,
-    skipEnt,
     request,
     baseURL,
   }) => {
-    await skipEnt(request, baseURL);
+    const isEnt = await isEnterpriseConsul(request, baseURL);
+    test.skip(!isEnt, 'Admin Partitions is an Enterprise-only feature.');
 
     await partitionsPage.gotoEdit('default');
     await expect(partitionsPage.page).toHaveURL(/\/partitions\/default/, { timeout: 15000 });
@@ -123,11 +123,11 @@ test.describe('Admin Partitions - Workflows', { tag: '@ent' }, () => {
    */
   test('search bar filters the partition list', async ({
     partitionsPage,
-    skipEnt,
     request,
     baseURL,
   }) => {
-    await skipEnt(request, baseURL);
+    const isEnt = await isEnterpriseConsul(request, baseURL);
+    test.skip(!isEnt, 'Admin Partitions is an Enterprise-only feature.');
 
     await partitionsPage.goto();
     await expect(partitionsPage.heading).toBeVisible({ timeout: 15000 });
@@ -152,11 +152,11 @@ test.describe('Admin Partitions - Workflows', { tag: '@ent' }, () => {
    */
   test('search across scope toggle works on partition list', async ({
     partitionsPage,
-    skipEnt,
     request,
     baseURL,
   }) => {
-    await skipEnt(request, baseURL);
+    const isEnt = await isEnterpriseConsul(request, baseURL);
+    test.skip(!isEnt, 'Admin Partitions is an Enterprise-only feature.');
 
     await partitionsPage.goto();
     await expect(partitionsPage.heading).toBeVisible({ timeout: 15000 });
