@@ -106,6 +106,22 @@ jobs:
 
           go tool cover -html=merged-coverage.out -o coverage.html
 
+      - name: Save coverage data for PR comment
+        if: inputs.pr-number != '' && steps.coverage.outputs.total != 'N/A'
+        run: |
+          mkdir -p coverage-comment-data
+          echo "${{ inputs.pr-number }}" > coverage-comment-data/pr-number.txt
+          echo "${{ steps.coverage.outputs.total }}" > coverage-comment-data/coverage-total.txt
+          echo "${{ github.run_id }}" > coverage-comment-data/run-id.txt
+
+      - name: Upload coverage comment data
+        if: inputs.pr-number != '' && steps.coverage.outputs.total != 'N/A'
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        with:
+          name: coverage-comment-data
+          path: coverage-comment-data/
+          retention-days: 1
+
       - name: Post PR comment
         if: inputs.pr-number != '' && steps.coverage.outputs.total != 'N/A' && github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name
         continue-on-error: true
