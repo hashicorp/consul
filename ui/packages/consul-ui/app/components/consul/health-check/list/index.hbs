@@ -32,10 +32,18 @@
           <dd data-health-check-type>
             {{item.Type}}
   {{#if item.Exposed}}
-            <em
+            <span
+              class="consul-health-check-list__exposed-badge"
               data-test-exposed="true"
               {{hds-tooltip "Expose.checks is set to true, so all registered HTTP and gRPC check paths are exposed through Envoy for the Consul agent." options=(detached-tooltip-options)}}
-            >Exposed</em>
+            >
+              <Hds::Badge
+                @text="Exposed"
+                @color="neutral"
+                @type="filled"
+                @size="small"
+              />
+            </span>
   {{/if}}
           </dd>
         </dl>
