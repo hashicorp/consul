@@ -11,6 +11,11 @@
   }
 }
 
+.consul-auth-method-type--hds {
+  display: inline-flex;
+  align-items: center;
+}
+
 // View
 .consul-auth-method-view {
   margin-bottom: 32px;
