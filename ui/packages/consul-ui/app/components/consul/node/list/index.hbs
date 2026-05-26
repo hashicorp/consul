@@ -37,7 +37,15 @@ as |item index|>
   <BlockSlot @name="details">
     <Consul::Node::PeerInfo @item={{item}} />
     {{#if (eq item.Address @leader.Address)}}
-      <span class="leader" data-test-leader={{@leader.Address}}>Leader</span>
+      <span class="consul-node-list__leader-badge" data-test-leader={{@leader.Address}}>
+        <Hds::Badge
+          @text="Leader"
+          @icon="star-fill"
+          @color="neutral"
+          @type="filled"
+          @size="small"
+        />
+      </span>
     {{/if}}
     <span>
       {{format-number item.MeshServiceInstances.length}} {{pluralize item.MeshServiceInstances.length 'Service' without-count=true}}
