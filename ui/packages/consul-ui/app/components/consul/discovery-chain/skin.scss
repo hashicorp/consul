@@ -8,8 +8,8 @@
 /* the styling there almost 100% uses our CSS vars */
 /* defined in our CSS files, but be sure to */
 /* take a look in the discovery-chain.hbs */
-%route-card > header ul li {
-  @extend %pill-500, %frame-gray-900;
+%route-card > header ul li .route-card__method-badge {
+  display: inline-flex;
 }
 %discovery-chain-tween {
   transition-duration: 0.1s;
