@@ -13,7 +13,16 @@
 {{#if (gt @item.Definition.Match.HTTP.Methods.length 0) }}
     <ul class="match-methods">
       {{#each @item.Definition.Match.HTTP.Methods as |item|}}
-        <li>{{item}}</li>
+        <li>
+          <span class="route-card__method-badge">
+            <Hds::Badge
+              @text={{item}}
+              @color="neutral"
+              @type="filled"
+              @size="small"
+            />
+          </span>
+        </li>
       {{/each}}
     </ul>
 {{/if}}
