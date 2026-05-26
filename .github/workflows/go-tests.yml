@@ -16,6 +16,8 @@ on:
 
 permissions:
   contents: read
+  pull-requests: write
+  id-token: write
 
 env:
   TEST_RESULTS: /tmp/test-results

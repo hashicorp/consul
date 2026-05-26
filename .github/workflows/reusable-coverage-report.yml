@@ -107,7 +107,7 @@ jobs:
           go tool cover -html=merged-coverage.out -o coverage.html
 
       - name: Post PR comment
-        if: inputs.pr-number != '' && steps.coverage.outputs.total != 'N/A' && github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name
+        if: inputs.pr-number != '' && steps.coverage.outputs.total != 'N/A'
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
