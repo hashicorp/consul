@@ -8,17 +8,8 @@
   td.destination {
     @extend %tbody-th;
   }
-  td strong {
-    @extend %pill-700;
-  }
-  td.intent-allow strong {
-    @extend %pill-allow;
-  }
-  td.intent-deny strong {
-    @extend %pill-deny;
-  }
-  td.intent- strong {
-    @extend %pill-l7;
+  td .consul-intention-action-badge {
+    display: inline-flex;
   }
   td.permissions {
     @extend %body-100-regular;

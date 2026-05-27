@@ -12,7 +12,7 @@
 as |item|>
   <BlockSlot @name="details">
     <div onclick={{action (optional @onclick) item}}>
-      <strong class={{concat 'intent-' item.Action}}>{{capitalize item.Action}}</strong>
+      <Consul::Intention::Action @action={{item.Action}} @label={{capitalize (or item.Action 'App aware')}} />
 {{#if (gt item.HTTP.Methods.length 0)}}
         <dl class="permission-methods">
           <dt {{hds-tooltip "Methods" options=(detached-tooltip-options)}}>
