@@ -13,6 +13,60 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestStructs_ACLAuthMethod_GetClaimMappings(t *testing.T) {
+	t.Run("nil config", func(t *testing.T) {
+		m := &ACLAuthMethod{
+			Config: nil,
+		}
+		require.Nil(t, m.GetClaimMappings())
+	})
+
+	t.Run("nil ClaimMappings key", func(t *testing.T) {
+		m := &ACLAuthMethod{
+			Config: map[string]interface{}{
+				"OtherKey": "value",
+			},
+		}
+		require.Nil(t, m.GetClaimMappings())
+	})
+
+	t.Run("ClaimMappings wrong type", func(t *testing.T) {
+		m := &ACLAuthMethod{
+			Config: map[string]interface{}{
+				"ClaimMappings": "not-a-map",
+			},
+		}
+		require.Nil(t, m.GetClaimMappings())
+	})
+
+	t.Run("valid ClaimMappings", func(t *testing.T) {
+		m := &ACLAuthMethod{
+			Config: map[string]interface{}{
+				"ClaimMappings": map[string]interface{}{
+					"/oid":   "name",
+					"/email": "email",
+				},
+			},
+		}
+		result := m.GetClaimMappings()
+		require.Equal(t, map[string]string{
+			"/oid":   "name",
+			"/email": "email",
+		}, result)
+	})
+
+	t.Run("empty ClaimMappings", func(t *testing.T) {
+		m := &ACLAuthMethod{
+			Config: map[string]interface{}{
+				"ClaimMappings": map[string]interface{}{},
+			},
+		}
+		result := m.GetClaimMappings()
+		require.Equal(t, map[string]string{}, result)
+	})
+}
+
+
 func TestStructs_ACLToken_PolicyIDs(t *testing.T) {
 
 	t.Run("Basic", func(t *testing.T) {

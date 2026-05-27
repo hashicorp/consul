@@ -15,12 +15,12 @@ type MockLogin struct {
 }
 
 // TokenForVerifiedIdentity provides a mock function with given fields: identity, authMethod, description
-func (_m *MockLogin) TokenForVerifiedIdentity(identity *authmethod.Identity, authMethod *structs.ACLAuthMethod, description string) (*structs.ACLToken, error) {
-	ret := _m.Called(identity, authMethod, description)
+func (_m *MockLogin) TokenForVerifiedIdentity(identity *authmethod.Identity, authMethod *structs.ACLAuthMethod, name, description string) (*structs.ACLToken, error) {
+	ret := _m.Called(identity, authMethod, name, description)
 
 	var r0 *structs.ACLToken
-	if rf, ok := ret.Get(0).(func(*authmethod.Identity, *structs.ACLAuthMethod, string) *structs.ACLToken); ok {
-		r0 = rf(identity, authMethod, description)
+	if rf, ok := ret.Get(0).(func(*authmethod.Identity, *structs.ACLAuthMethod,string, string) *structs.ACLToken); ok {
+		r0 = rf(identity, authMethod, name, description)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*structs.ACLToken)
@@ -28,8 +28,8 @@ func (_m *MockLogin) TokenForVerifiedIdentity(identity *authmethod.Identity, aut
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(*authmethod.Identity, *structs.ACLAuthMethod, string) error); ok {
-		r1 = rf(identity, authMethod, description)
+	if rf, ok := ret.Get(1).(func(*authmethod.Identity, *structs.ACLAuthMethod,string, string) error); ok {
+		r1 = rf(identity, authMethod, name, description)
 	} else {
 		r1 = ret.Error(1)
 	}
