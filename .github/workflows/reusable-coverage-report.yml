@@ -37,6 +37,7 @@ jobs:
         with:
           pattern: '*-coverage'
           path: coverage-artifacts
+          merge-multiple: false
 
       - name: Compute coverage
         id: coverage
@@ -123,21 +124,15 @@ jobs:
           retention-days: 1
 
       - name: Post PR comment
-        if: inputs.pr-number != '' && steps.coverage.outputs.total != 'N/A' && github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name
+        if: inputs.pr-number != '' && steps.coverage.outputs.total != 'N/A'
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
           TOTAL: ${{ steps.coverage.outputs.total }}
         run: |
           MARKER="<!-- coverage-report-comment -->"
-          BODY=$(cat <<EOF
-          ${MARKER}
-
-          ### Go Test Coverage: **${TOTAL}**
-
-          See the [workflow run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for the full per-package breakdown and downloadable HTML report.
-          EOF
-          )
+          BODY=$(printf '%s\n\n### Go Test Coverage: **%s**\n\nSee the [workflow run](https://github.com/%s/actions/runs/%s) for the full per-package breakdown and downloadable HTML report.' \
+            "$MARKER" "$TOTAL" "${{ github.repository }}" "${{ github.run_id }}")
 
           COMMENT_ID=$(gh api --paginate \
             "repos/${{ github.repository }}/issues/${{ inputs.pr-number }}/comments" \
@@ -150,9 +145,10 @@ jobs:
               "repos/${{ github.repository }}/issues/comments/${COMMENT_ID}" \
               -f body="$BODY"
           else
-            gh pr comment ${{ inputs.pr-number }} \
-              --repo "${{ github.repository }}" \
-              --body "$BODY"
+            gh api \
+              --method POST \
+              "repos/${{ github.repository }}/issues/${{ inputs.pr-number }}/comments" \
+              -f body="$BODY"
           fi
 
       - name: Upload HTML coverage report
