@@ -1125,9 +1125,19 @@ func (s *ResourceGenerator) injectConnectFilters(cfgSnap *proxycfg.ConfigSnapsho
 }
 
 const (
-	httpConnectionManagerOldName = "envoy.http_connection_manager"
-	httpConnectionManagerNewName = "envoy.filters.network.http_connection_manager"
+	httpConnectionManagerOldName  = "envoy.http_connection_manager"
+	httpConnectionManagerNewName  = "envoy.filters.network.http_connection_manager"
+	forwardedClientCertHeaderName = "x-forwarded-client-cert"
 )
+
+func stripForwardClientCertHeaderFromRoute(route *envoy_route_v3.Route) {
+	for _, header := range route.RequestHeadersToRemove {
+		if strings.EqualFold(header, forwardedClientCertHeaderName) {
+			return
+		}
+	}
+	route.RequestHeadersToRemove = append(route.RequestHeadersToRemove, forwardedClientCertHeaderName)
+}
 
 func extractRdsResourceNames(listener *envoy_listener_v3.Listener) ([]string, error) {
 	var found []string
@@ -2775,7 +2785,7 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) 
 		}
 
 		if opts.stripForwardClientCertHeader {
-			route.RequestHeadersToRemove = append(route.RequestHeadersToRemove, "x-forwarded-client-cert")
+			stripForwardClientCertHeaderFromRoute(route)
 		}
 
 		cfg.RouteSpecifier = &envoy_http_v3.HttpConnectionManager_RouteConfig{

@@ -842,7 +842,7 @@ function get_echo_output {
   # The first sed drops curl verbose lines that start with '*'.
   # The second sed converts a trailing '}* <some text...>' fragment to just '}'.
   local json=$(echo "$output" | sed '/^\*/d' | sed 's/}\*.*/}/' | sed -n -e '/^{$/,/^}$/{ p; }')
-  echo $json | jq -r '.' || echo "Output did not contain valid JSON: $output" >&3
+  printf '%s\n' "$json" | jq -r '.' || echo "Output did not contain valid JSON: $output" >&3
 }
 
 # Gets the value of the raw request path from the echo service response.
