@@ -46,7 +46,7 @@
       </a>
     </td>
     <td class='intent intent-{{slugify item.Action}}' data-test-intention-action={{item.Action}}>
-      <strong>{{capitalize (or item.Action 'App aware')}}</strong>
+      <Consul::Intention::Action @action={{item.Action}} @label={{capitalize (or item.Action 'App aware')}} />
     </td>
     <td class='destination' data-test-intention-destination={{item.DestinationName}}>
       <span>
