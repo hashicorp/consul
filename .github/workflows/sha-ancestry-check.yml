@@ -1,0 +1,304 @@
+###############################################################################
+# sha-ancestry-check.yml
+#
+# Generic SHA ancestry validation workflow.
+#
+# This workflow is INTENTIONALLY DECOUPLED from any ENT/CE relationship and
+# can be dropped into any repository — including ones with no enterprise
+# counterpart — to enforce commit-history integrity.
+#
+# Two independent jobs handle the two distinct push scenarios:
+#
+#   ┌─────────────────────────────────────────────────────────────────────────┐
+#   │  Job 1 — branch-ancestry  (push to a branch)                            │
+#   │                                                                         │
+#   │  Verifies that the push preserves a linear, non-force-pushed history    │
+#   │  on the target branch.  Specifically, it asserts:                       │
+#   │                                                                         │
+#   │      github.event.before  is an ancestor of  github.sha                │
+#   │                                                                         │
+#   │  This guarantees that protection checks executed on earlier commits     │
+#   │  (e.g., ENT file checks on a PR) cannot be bypassed by force-pushing   │
+#   │  "clean" commits on top of contaminated history.                        │
+#   └─────────────────────────────────────────────────────────────────────────┘
+#
+#   ┌─────────────────────────────────────────────────────────────────────────┐
+#   │  Job 2 — tag-ancestry  (tag push)                                       │
+#   │                                                                         │
+#   │  Verifies that the tagged commit is reachable from the repository's     │
+#   │  approved branch for that version:                                      │
+#   │    • Tags matching vMAJOR.MINOR.*  → release/MAJOR.MINOR.x branch      │
+#   │    • All other tags               → the PROTECTED_BRANCH (main)        │
+#   │                                                                         │
+#   │  This ensures release tags are only attached to commits in the approved │
+#   │  CE history, never to commits introduced from an ENT branch or from an  │
+#   │  out-of-band rebase.                                                    │
+#   └─────────────────────────────────────────────────────────────────────────┘
+#
+# Relationship to ent-protection.yml:
+#   • ent-protection.yml  — checks WHAT is in the code (files, content markers)
+#   • sha-ancestry-check.yml — checks WHERE the commits came from (history)
+#   These are complementary; run them both for maximum integrity.
+#
+# Copying to another repository:
+#   No modifications are required for a repo with no ENT pair.
+#   Adjust PROTECTED_BRANCH if the default branch is not "main".
+#
+# ┌─────────────────────────────────────────────────────────────────────────┐
+# │  Threat Model                                                           │
+# ├─────────────────────────────────────────────────────────────────────────┤
+# │                                                                         │
+# │  WHAT THIS WORKFLOW CATCHES                                             │
+# │  ─────────────────────────────────────────────────────────────────────  │
+# │  1. Force-push bypass (branch-ancestry job)                             │
+# │     An attacker who passes ent-protection.yml on commit A, then         │
+# │     force-pushes a rewritten history (with ENT code re-introduced at    │
+# │     commit A') cannot merge A' into a protected branch — the            │
+# │     merge-base --is-ancestor check will fail and block the push.        │
+# │                                                                         │
+# │  2. New-branch import of foreign commits (branch-ancestry job)          │
+# │     A branch seeded with an ENT SHA that shares zero common ancestry    │
+# │     with origin/main is rejected outright. This catches wholesale       │
+# │     import of commits from a completely unrelated repository.           │
+# │     Limitation: if the ENT repo was historically forked from CE (the    │
+# │     normal case for consul-enterprise), shared ancestry will exist and  │
+# │     this sub-check will pass. The file/content checks in                │
+# │     ent-protection.yml remain the correct layer for that scenario.      │
+# │                                                                         │
+# │  3. Tag attached to a non-CE commit (tag-ancestry job)                  │
+# │     A release tag pushed against a commit that isn't reachable from     │
+# │     the approved CE branch is blocked.  Prevents ENT builds from being  │
+# │     accidentally or maliciously tagged as CE releases.                  │
+# │                                                                         │
+# │  WHAT THIS WORKFLOW DOES NOT CATCH                                      │
+# │  ─────────────────────────────────────────────────────────────────────  │
+# │  • ENT file paths or build-tag content in individual files.             │
+# │    → Handled by ent-protection.yml (ent-file-check / ent-content-check) │
+# │  • ENT content smuggled through linear, non-force-pushed history where  │
+# │    the ENT repo shares a common ancestor with CE (forked repos).        │
+# │    → Also handled by ent-protection.yml on each push/PR.               │
+# │  • Dependabot branches (explicitly excluded): Dependabot legitimately    │
+# │    force-pushes when rebasing; this would generate false positives. Its  │
+# │    version-bump commits also cannot import ENT code.                      │
+# └─────────────────────────────────────────────────────────────────────────┘
+###############################################################################
+
+name: SHA Ancestry Check
+
+on:
+  push:
+    # Branch pushes — verify history is linear (no force-push bypass).
+    # Runs on ALL branches, not just protected ones:
+    #   • On protected branches (main, release/**): a failed check surfaces
+    #     in the PR that produced this push and blocks future merges.
+    #   • On feature branches: detects force-pushes that could obscure
+    #     earlier ENT-protection failures; fires a Slack alert for rapid
+    #     remediation and ensures the branch can never merge while tainted.
+    branches-ignore:
+      - 'dependabot/**'  # Dependabot legitimately force-pushes when rebasing/updating
+                         # its version-bump branches. Excluding them prevents false-positive
+                         # non-linear-history alerts from clogging the Slack channel.
+    # Tag pushes — verify tagged commit is reachable from an approved branch.
+    # '*' covers all tag formats (v-prefixed semver, rc, alpha, nightly, etc.)
+    tags:
+      - '*'
+
+permissions:
+  contents: read
+
+env:
+  # The primary protected branch. Release tags not matching a version pattern
+  # are validated against this branch.
+  PROTECTED_BRANCH: main
+  # Regex that identifies protected branches for Slack alert scoping.
+  PROTECTED_BRANCH_REGEX: '^(main|release/.+)$'
+  # Hoist the secret into env so it can be referenced from step conditionals.
+  SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+jobs:
+  # ───────────────────────────────────────────────────────────────────────────
+  # Job 1: Branch push — assert that before → after is forward-only
+  # ───────────────────────────────────────────────────────────────────────────
+  branch-ancestry:
+    name: Verify Branch Ancestry (Push)
+    runs-on: ubuntu-latest
+    # Only run when a branch (not a tag) was pushed
+    if: github.ref_type == 'branch'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          # Full history is required for git merge-base
+          fetch-depth: 0
+
+      - name: Verify before → after is a forward-only (non-force-pushed) history
+        env:
+          BEFORE: ${{ github.event.before }}
+          AFTER:  ${{ github.sha }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          ZERO="0000000000000000000000000000000000000000"
+
+          # A before SHA of all-zeros signals a newly created branch.
+          # Forward-linearity (before → after) cannot be checked because there
+          # is no prior branch tip. However we can still detect wholesale
+          # import of foreign commits: if the pushed HEAD shares zero common
+          # ancestry with origin/PROTECTED_BRANCH, the commits originated
+          # entirely outside this repository.
+          #
+          # Limitation: if the ENT repo was forked from CE (the normal case
+          # for consul-enterprise), shared ancestry will exist and this gate
+          # will pass. In that scenario ent-protection.yml (file + content
+          # checks) is the correct layer to catch ENT-specific code.
+          if [[ "$BEFORE" == "$ZERO" ]]; then
+            echo "New branch '${BRANCH}' — verifying pushed commits share CE ancestry ..."
+            git fetch origin "${PROTECTED_BRANCH}" 2>/dev/null || true
+            MERGE_BASE=$(git merge-base "${AFTER}" "origin/${PROTECTED_BRANCH}" 2>/dev/null || true)
+            if [[ -z "${MERGE_BASE}" ]]; then
+              echo "::error::New branch '${BRANCH}' HEAD commit ${AFTER} shares NO"
+              echo "::error::common ancestor with origin/${PROTECTED_BRANCH}."
+              echo "::error::Commits with zero CE ancestry were likely imported wholesale"
+              echo "::error::from an unrelated external repository (e.g., consul-enterprise)."
+              echo "::error::Delete this branch immediately and investigate."
+              exit 1
+            fi
+            echo "New branch ancestry OK: ${AFTER:0:7} shares CE history at ${MERGE_BASE:0:7}."
+            exit 0
+          fi
+
+          echo "Branch : ${BRANCH}"
+          echo "Before : ${BEFORE}"
+          echo "After  : ${AFTER}"
+          echo ""
+          echo "Verifying that ${BEFORE} is an ancestor of ${AFTER} ..."
+
+          # git merge-base --is-ancestor A B
+          #   exits 0  if A is an ancestor of B  (A ← … ← B, linear history)
+          #   exits 1  if A is NOT an ancestor of B (force-push / rebase detected)
+          if ! git merge-base --is-ancestor "$BEFORE" "$AFTER"; then
+            echo "::error::Non-linear history detected on branch '${BRANCH}'."
+            echo "::error::${BEFORE} is not an ancestor of ${AFTER}."
+            echo "::error::This indicates a force-push or rebase that rewrote shared history."
+            echo "::error::Force-pushing shared branches can bypass earlier protection checks"
+            echo "::error::(e.g., the ENT file/content checks that ran on the original PR)."
+            echo "::error::If this push is intentional and reviewed, contact the release team"
+            echo "::error::for a manual bypass via a CODEOWNERS-approved override."
+            exit 1
+          fi
+
+          echo "Branch ancestry check passed: history from ${BEFORE} to ${AFTER} is linear."
+          echo "is_linear=true" >> "$GITHUB_ENV"
+
+      # ─── Slack alert for non-protected branch force-push ──────────────────
+      # A force-push on a feature branch could be used to overwrite a commit
+      # that failed the ENT protection check, making ENT code appear clean.
+      # Alert immediately so the branch can be deleted before a new PR is opened.
+      - name: Alert Slack on non-protected branch force-push
+        if: failure() && !startsWith(github.ref_name, 'release/') && github.ref_name != 'main' && env.SLACK_WEBHOOK_URL != ''
+        env:
+          BRANCH: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
+          BEFORE: ${{ github.event.before }}
+          AFTER:  ${{ github.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          PAYLOAD=$(cat <<EOF
+          {
+            "text": ":rotating_light: *Force-push detected on non-protected branch in CE repo*",
+            "blocks": [
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": ":rotating_light: *Force-push / non-linear history on <${{ github.repository }}>*\nBranch: *${BRANCH}*  |  Actor: *${ACTOR}*\nBefore: \`${BEFORE:0:7}\`  After: \`${AFTER:0:7}\`\n\nThis may be an attempt to bypass ENT protection checks.\n<${RUN_URL}|View CI run> — Consider deleting this branch immediately."
+                }
+              }
+            ]
+          }
+          EOF
+          )
+          curl -fsSL -X POST -H 'Content-type: application/json' \
+            --data "$PAYLOAD" \
+            "$SLACK_WEBHOOK_URL"
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Job 2: Tag push — assert the tagged commit is on an approved branch
+  # ───────────────────────────────────────────────────────────────────────────
+  tag-ancestry:
+    name: Verify Tag Ancestry (Tag Push)
+    runs-on: ubuntu-latest
+    # Only run when a tag was pushed
+    if: github.ref_type == 'tag'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      # ─── Derive the expected approved branch from the tag name ─────────────
+      # Convention:
+      #   v1.19.2       → release/1.19.x
+      #   v1.19.2-rc1   → release/1.19.x
+      #   v1.19.2-alpha1 → release/1.19.x
+      #   vX.Y.Z+ent    → release/X.Y.x  (just in case an ENT tag is pushed)
+      #   anything else → main (PROTECTED_BRANCH)
+      - name: Derive approved branch for this tag
+        id: approved-branch
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          if [[ "$TAG" =~ ^v([0-9]+)\.([0-9]+)\. ]]; then
+            MAJOR="${BASH_REMATCH[1]}"
+            MINOR="${BASH_REMATCH[2]}"
+            RELEASE_BRANCH="release/${MAJOR}.${MINOR}.x"
+            echo "Tag '${TAG}' maps to release branch: ${RELEASE_BRANCH}"
+            echo "branch=${RELEASE_BRANCH}" >> "$GITHUB_OUTPUT"
+          else
+            echo "Tag '${TAG}' does not match vMAJOR.MINOR.* — using protected branch: ${PROTECTED_BRANCH}"
+            echo "branch=${PROTECTED_BRANCH}" >> "$GITHUB_OUTPUT"
+          fi
+
+      # ─── Verify the tagged commit is contained in the approved branch ──────
+      - name: Verify tagged commit is reachable from the approved branch
+        env:
+          TAGGED_SHA:      ${{ github.sha }}
+          TAG:             ${{ github.ref_name }}
+          APPROVED_BRANCH: ${{ steps.approved-branch.outputs.branch }}
+        run: |
+          echo "Tag            : ${TAG}"
+          echo "Tagged SHA     : ${TAGGED_SHA}"
+          echo "Approved branch: ${APPROVED_BRANCH}"
+          echo ""
+
+          # Attempt to fetch the approved branch; fall back to PROTECTED_BRANCH
+          # if the release branch does not yet exist (e.g., very first release).
+          if ! git fetch origin "${APPROVED_BRANCH}" 2>/dev/null; then
+            echo "::warning::Branch '${APPROVED_BRANCH}' not found in origin."
+            echo "::warning::Falling back to '${PROTECTED_BRANCH}'."
+            APPROVED_BRANCH="${PROTECTED_BRANCH}"
+            git fetch origin "${APPROVED_BRANCH}"
+          fi
+
+          echo "Checking whether '${TAGGED_SHA}' is contained in origin/${APPROVED_BRANCH} ..."
+
+          # git branch -r --contains <sha> lists every remote-tracking branch
+          # that has <sha> in its ancestry.  If the approved branch is listed,
+          # the tag is legitimate.
+          if git branch -r --contains "${TAGGED_SHA}" \
+               | grep -qE "(^|[[:space:]])origin/${APPROVED_BRANCH}$"; then
+            echo "Tag ancestry check passed: ${TAGGED_SHA} is on branch 'origin/${APPROVED_BRANCH}'."
+            exit 0
+          fi
+
+          # Provide a clear, actionable error message.
+          CONTAINING_BRANCHES=$(git branch -r --contains "${TAGGED_SHA}" | xargs || echo "(none)")
+          echo "::error::Tag '${TAG}' points to commit ${TAGGED_SHA} which is NOT"
+          echo "::error::reachable from the approved branch 'origin/${APPROVED_BRANCH}'."
+          echo "::error::Branches that DO contain this commit: ${CONTAINING_BRANCHES}"
+          echo "::error::Release tags must only be created from commits on the approved"
+          echo "::error::release branch (${APPROVED_BRANCH}) or the main branch."
+          echo "::error::This may indicate the tag was created from an ENT branch, a"
+          echo "::error::detached HEAD, or a branch that was never merged into CE."
+          exit 1
