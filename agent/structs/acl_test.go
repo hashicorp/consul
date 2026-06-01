@@ -66,7 +66,6 @@ func TestStructs_ACLAuthMethod_GetClaimMappings(t *testing.T) {
 	})
 }
 
-
 func TestStructs_ACLToken_PolicyIDs(t *testing.T) {
 
 	t.Run("Basic", func(t *testing.T) {

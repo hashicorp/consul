@@ -35,7 +35,7 @@ func TestServer_Login_Success(t *testing.T) {
 		Return(identity, nil)
 
 	token := &structs.ACLToken{
-		Name: "token-name",
+		Name:       "token-name",
 		AccessorID: "accessor-id",
 		SecretID:   "secret-id",
 	}
