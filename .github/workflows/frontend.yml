@@ -218,14 +218,6 @@ jobs:
           cache: "pnpm"
           cache-dependency-path: "ui/pnpm-lock.yaml"
 
-      - name: Build Consul binary and Docker image (CE)
-        run: |
-          echo "Building Consul binary and creating consul:local Docker image..."
-          make ui-regen
-          make dev-docker
-          docker images | grep consul
-          ./bin/consul version
-
       - name: Install dependencies
         working-directory: ui
         run: make deps
@@ -242,14 +234,18 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-chromium-${{ steps.playwright-version.outputs.version }}
 
-      - name: Install Playwright OS dependencies
-        run: npx playwright install-deps chromium
-        working-directory: ui/packages/consul-ui
-
       - name: Install Playwright browsers
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         working-directory: ui/packages/consul-ui
-        run: npx playwright install chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Build Consul binary and Docker image (CE)
+        run: |
+          echo "Building Consul binary and creating consul:local Docker image..."
+          make ui-regen
+          make dev-docker
+          docker images | grep consul
+          ./bin/consul version
 
       - name: Checkout consul-ui-testing repo
         uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
@@ -358,14 +354,6 @@ jobs:
           cache: "pnpm"
           cache-dependency-path: "ui/pnpm-lock.yaml"
 
-      - name: Build Consul binary and Docker image (CE)
-        run: |
-          echo "Building Consul binary and creating consul:local Docker image..."
-          make ui-regen
-          make dev-docker
-          docker images | grep consul
-          ./bin/consul version
-
       - name: Install dependencies
         working-directory: ui
         run: make deps
@@ -382,14 +370,18 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-chromium-${{ steps.playwright-version.outputs.version }}
 
-      - name: Install Playwright OS dependencies
-        run: npx playwright install-deps chromium
-        working-directory: ui/packages/consul-ui
-
       - name: Install Playwright browsers
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         working-directory: ui/packages/consul-ui
-        run: npx playwright install chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Build Consul binary and Docker image (CE)
+        run: |
+          echo "Building Consul binary and creating consul:local Docker image..."
+          make ui-regen
+          make dev-docker
+          docker images | grep consul
+          ./bin/consul version
 
       - name: Checkout consul-ui-testing repo
         uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
