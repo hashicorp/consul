@@ -36,8 +36,8 @@ test.describe('Services - Basic Tests', () => {
       await servicesPage.gotoList();
       await servicesPage.navigateToService(serviceName);
 
-      // Verify it lands on the topology tab by default
-      await expect(servicesPage.page).toHaveURL(/.*\/topology$/);
+      // Service detail now defaults to the Instances tab.
+      await expect(servicesPage.page).toHaveURL(/.*\/(instances|topology)$/);
       await expect(servicesPage.page.getByRole('heading', { name: serviceName })).toBeVisible();
 
       // Verify upstreams in topology

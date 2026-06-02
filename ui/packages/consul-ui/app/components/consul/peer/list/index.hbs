@@ -11,18 +11,12 @@
   as |item index|
 >
   <BlockSlot @name="header">
-    {{#if (can "delete peer" item=item)}}
-      <a
-        data-test-peer={{item.Name}}
-        href={{href-to "dc.peers.show" item.Name}}
-      >
-        {{item.Name}}
-      </a>
-    {{else}}
-      <p data-test-peer={{item.Name}}>
-        {{item.Name}}
-      </p>
-    {{/if}}
+    <a
+      data-test-peer={{item.Name}}
+      href={{href-to "dc.peers.show" item.Name}}
+    >
+      {{item.Name}}
+    </a>
   </BlockSlot>
   <BlockSlot @name="details">
     <div class="peers__list__peer-detail">
