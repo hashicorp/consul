@@ -234,10 +234,15 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-chromium-${{ steps.playwright-version.outputs.version }}
 
+      - name: Install Playwright system dependencies
+        working-directory: ui/packages/consul-ui
+        run: sudo npx playwright install-deps chromium
+
       - name: Install Playwright browsers
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         working-directory: ui/packages/consul-ui
-        run: npx playwright install --with-deps chromium
+        timeout-minutes: 5
+        run: npx playwright install chromium
 
       - name: Build Consul binary and Docker image (CE)
         run: |
@@ -370,10 +375,15 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-chromium-${{ steps.playwright-version.outputs.version }}
 
+      - name: Install Playwright system dependencies
+        working-directory: ui/packages/consul-ui
+        run: sudo npx playwright install-deps chromium
+
       - name: Install Playwright browsers
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         working-directory: ui/packages/consul-ui
-        run: npx playwright install --with-deps chromium
+        timeout-minutes: 5
+        run: npx playwright install chromium
 
       - name: Build Consul binary and Docker image (CE)
         run: |
