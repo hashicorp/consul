@@ -230,9 +230,26 @@ jobs:
         working-directory: ui
         run: make deps
 
-      - name: Install Playwright browsers
+      - name: Get Playwright version
+        id: playwright-version
         working-directory: ui/packages/consul-ui
-        run: npx playwright install --with-deps chromium
+        run: echo "version=$(node -e "console.log(require('./node_modules/@playwright/test/package.json').version)")" >> $GITHUB_OUTPUT
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ steps.playwright-version.outputs.version }}
+
+      - name: Install Playwright OS dependencies
+        run: npx playwright install-deps chromium
+        working-directory: ui/packages/consul-ui
+
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        working-directory: ui/packages/consul-ui
+        run: npx playwright install chromium
 
       - name: Checkout consul-ui-testing repo
         uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
@@ -353,9 +370,26 @@ jobs:
         working-directory: ui
         run: make deps
 
-      - name: Install Playwright browsers
+      - name: Get Playwright version
+        id: playwright-version
         working-directory: ui/packages/consul-ui
-        run: npx playwright install --with-deps chromium
+        run: echo "version=$(node -e "console.log(require('./node_modules/@playwright/test/package.json').version)")" >> $GITHUB_OUTPUT
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ steps.playwright-version.outputs.version }}
+
+      - name: Install Playwright OS dependencies
+        run: npx playwright install-deps chromium
+        working-directory: ui/packages/consul-ui
+
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        working-directory: ui/packages/consul-ui
+        run: npx playwright install chromium
 
       - name: Checkout consul-ui-testing repo
         uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
