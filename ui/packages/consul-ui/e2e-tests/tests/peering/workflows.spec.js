@@ -254,8 +254,7 @@ test.describe('Peering - Workflows', () => {
     // Poll until the imported service propagates (config change takes a moment).
     // Use a combined selector that works in both dev builds (data-test-service-name
     // present) and the production binary UI at port 8501 (attribute stripped).
-    const serviceNameSel =
-      '[data-test-service-name], .consul-service-list a[href*="/services/"]';
+    const serviceNameSel = '[data-test-service-name], .consul-service-list a[href*="/services/"]';
 
     await expect(async () => {
       await peerPeeringsPage.goto();

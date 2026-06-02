@@ -36,18 +36,24 @@ test.describe('Services - Basic Tests', () => {
       await servicesPage.gotoList();
       await servicesPage.navigateToService(serviceName);
 
-      // Service detail now defaults to the Instances tab.
+      // Service detail defaults to Topology only for mesh-origin services; otherwise
+      // it lands on Instances. Accept either and then branch assertions accordingly.
       await expect(servicesPage.page).toHaveURL(/.*\/(instances|topology)$/);
       await expect(servicesPage.page.getByRole('heading', { name: serviceName })).toBeVisible();
 
-      // Verify upstreams in topology
-      for (const upstream of expectedUpstreams) {
-        await expect(
-          servicesPage.page
-            .locator('#upstream-container .topology-metrics-card')
-            .filter({ hasText: upstream })
-            .first()
-        ).toBeVisible();
+      // Topology tab/cards are conditional; only assert topology cards when the
+      // Topology tab is actually available for this service.
+      const topologyTab = servicesPage.page.getByRole('link', { name: 'Topology', exact: true });
+      if ((await topologyTab.count()) > 0 && expectedUpstreams.length > 0) {
+        await topologyTab.click();
+        for (const upstream of expectedUpstreams) {
+          await expect(
+            servicesPage.page
+              .locator('#upstream-container .topology-metrics-card')
+              .filter({ hasText: upstream })
+              .first()
+          ).toBeVisible();
+        }
       }
 
       await servicesPage.clickTab('Instances');

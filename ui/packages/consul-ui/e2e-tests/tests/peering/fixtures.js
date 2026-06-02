@@ -120,10 +120,9 @@ class PeeringApiHelper {
    */
   async addPeerToExportedServices(peerName) {
     // Read current exported-services config entry (may not exist).
-    const readRes = await this.request.get(
-      `${this.baseURL}/v1/config/exported-services/default`,
-      { headers: this.headers }
-    );
+    const readRes = await this.request.get(`${this.baseURL}/v1/config/exported-services/default`, {
+      headers: this.headers,
+    });
 
     if (readRes.ok()) {
       this._savedExportedServices = await readRes.json();
