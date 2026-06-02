@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2024, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package agent
@@ -6865,6 +6865,10 @@ func TestAgentConnectCARoots_list(t *testing.T) {
 	for _, r := range value.Roots {
 		assert.Equal(t, "", r.SigningCert)
 		assert.Equal(t, "", r.SigningKey)
+		assert.False(t, r.NotBefore.IsZero())
+		assert.False(t, r.NotAfter.IsZero())
+		assert.True(t, r.NotAfter.After(r.NotBefore))
+		assert.True(t, r.NotAfter.After(time.Now()))
 	}
 
 	assert.Equal(t, "MISS", resp.Header().Get("X-Cache"))

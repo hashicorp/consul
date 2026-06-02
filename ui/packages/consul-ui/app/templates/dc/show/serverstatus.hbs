@@ -90,8 +90,8 @@ as |item|}}
                 {{compute (fn route.t 'tolerance.immediate.body')}}
               </p>
               <div class="server-failure-tolerance__value" aria-live="polite">
-                <span class="hds-typography-display-300 hds-font-weight-semibold">
-                  {{item.FailureTolerance}}
+                <span class="server-failure-tolerance__badge-count">
+                  <Hds::BadgeCount @text={{item.FailureTolerance}} @size="large" @type="filled" @color="neutral" />
                 </span>
               </div>
             </section>
@@ -106,23 +106,23 @@ as |item|}}
                 <h3>
                   {{compute (fn route.t 'tolerance.optimistic.header')}}
                   <span
-                    {{tooltip 'With > 30 seconds between server failures, Consul can restore the Immediate Fault Tolerance by replacing failed active voters with healthy back-up voters when using redundancy zones.'}}
+                    {{hds-tooltip 'With > 30 seconds between server failures, Consul can restore the Immediate Fault Tolerance by replacing failed active voters with healthy back-up voters when using redundancy zones.' options=(detached-tooltip-options)}}
                   >
                   </span>
                 </h3>
               </header>
-              <dl
-                class={{class-map
-                  (array 'warning' (eq item.OptimisticFailureTolerance 0))
-                }}
-              >
-                <dt>
-                  {{compute (fn route.t 'tolerance.optimistic.body')}}
-                </dt>
-                <dd>
-                  {{item.OptimisticFailureTolerance}}
-                </dd>
-              </dl>
+              <p>
+                {{compute (fn route.t 'tolerance.optimistic.body')}}
+              </p>
+              <div class="server-failure-tolerance__status-badge">
+                <Hds::Badge
+                  @text={{item.OptimisticFailureTolerance}}
+                  @icon={{if (eq item.OptimisticFailureTolerance 0) "alert-circle" "check"}}
+                  @color={{if (eq item.OptimisticFailureTolerance 0) "warning" "success"}}
+                  @type="filled"
+                  @size="small"
+                />
+              </div>
 
             </section>
               {{/if}}

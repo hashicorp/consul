@@ -1,6 +1,6 @@
 module github.com/hashicorp/consul/troubleshoot
 
-go 1.25.8
+go 1.26
 
 replace (
 	github.com/hashicorp/consul/api => ../api
@@ -26,9 +26,9 @@ require (
 	github.com/envoyproxy/go-control-plane/envoy v1.36.0
 	github.com/envoyproxy/go-control-plane/ratelimit v0.1.0
 	github.com/envoyproxy/go-control-plane/xdsmatcher v0.13.4
-	github.com/hashicorp/consul/api v1.33.4
-	github.com/hashicorp/consul/envoyextensions v0.9.4
-	github.com/hashicorp/consul/sdk v0.17.2
+	github.com/hashicorp/consul/api v1.34.3
+	github.com/hashicorp/consul/envoyextensions v0.10.3
+	github.com/hashicorp/consul/sdk v0.18.1
 	github.com/stretchr/testify v1.11.1
 	google.golang.org/protobuf v1.36.11
 )

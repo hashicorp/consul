@@ -1,12 +1,14 @@
 /**
- * Copyright (c) HashiCorp, Inc.
+ * Copyright IBM Corp. 2024, 2026
  * SPDX-License-Identifier: BUSL-1.1
  */
 
 @import './skin';
 @import './layout';
+
 .app-view {
   @extend %app-view;
+  position: relative;
 }
 
 %app-view > header {

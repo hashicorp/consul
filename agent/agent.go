@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2024, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package agent
@@ -890,12 +890,18 @@ func (a *Agent) Start(ctx context.Context) error {
 		go a.retryJoinWAN()
 	}
 
-	if a.config.Telemetry.CertificateEnabled && a.tlsConfigurator.Cert() != nil {
+	shouldMonitorAgentTLS := a.config.Telemetry.CertificateEnabled &&
+		(a.tlsConfigurator.Cert() != nil ||
+			a.config.AutoEncryptTLS ||
+			a.config.TLS.InternalRPC.CertFile != "" ||
+			a.config.TLS.InternalRPC.KeyFile != "")
+	if shouldMonitorAgentTLS {
 		m := tlsCertExpirationMonitor(
 			a.tlsConfigurator,
 			a.config.Datacenter,
 			a.config.PartitionOrDefault(),
 			a.config.NodeName,
+			tlsCertRole(a.config.ServerMode),
 			a.config.Telemetry.CertificateCriticalThresholdDays,
 			a.config.Telemetry.CertificateWarningThresholdDays,
 			a.logger,
@@ -2668,11 +2674,17 @@ func (a *Agent) validateService(service *structs.NodeService, chkTypes []*struct
 		)
 	}
 
-	if len(service.Ports) > 0 && service.Port != 0 {
+	// for sidecar we are using Ports for multiport related identification and port for default inbound listener both are valid
+	// for multiport service , its sidecar gets port set to the default port which is equivalent to service's port if set
+	// but for non-sidecar services we should not allow both to be set to avoid confusion
+	if !service.LocallyRegisteredAsSidecar && len(service.Ports) > 0 && service.Port != 0 {
 		return fmt.Errorf("Both port and ports cannot be set")
 	}
 
 	if err := service.Ports.Validate(); err != nil {
+		return err
+	}
+	if err := validateEnterpriseMeshPortConfig(service); err != nil {
 		return err
 	}
 

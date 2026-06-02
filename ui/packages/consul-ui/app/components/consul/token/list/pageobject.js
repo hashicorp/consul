@@ -1,15 +1,22 @@
 /**
- * Copyright (c) HashiCorp, Inc.
+ * Copyright IBM Corp. 2024, 2026
  * SPDX-License-Identifier: BUSL-1.1
  */
 
 export default (collection, clickable, attribute, text, actions) => () => {
   return collection('.consul-token-list [data-test-list-row]', {
     id: attribute('data-test-token', '[data-test-token]'),
+    name: text('[data-test-name]'),
     description: text('[data-test-description]'),
-    policy: text('[data-test-policy].policy', { multiple: true }),
-    role: text('[data-test-policy].role', { multiple: true }),
-    serviceIdentity: text('[data-test-policy].policy-service-identity', { multiple: true }),
+    policy: text('[data-test-policy][data-type="policy"]', {
+      multiple: true,
+    }),
+    role: text('[data-test-policy][data-type="role"]', {
+      multiple: true,
+    }),
+    serviceIdentity: text('[data-test-policy][data-type="policy-service-identity"]', {
+      multiple: true,
+    }),
     token: clickable('a', { at: 0 }),
     ...actions(['edit', 'delete', 'use', 'logout', 'clone']),
   });

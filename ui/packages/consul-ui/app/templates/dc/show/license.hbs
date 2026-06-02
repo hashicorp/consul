@@ -130,7 +130,7 @@ as |item|}}
               />
               <Hds::Link::Standalone
                 @text={{compute (fn route.t 'documentation.links.applying-new-license.text')}}
-                @href='{{concat (env 'CONSUL_DOCS_URL') (compute (fn route.t 'documentation.links.applying-new-license.link'))}}'
+                @href='{{concat (env 'CONSUL_HOME_URL') (compute (fn route.t 'documentation.links.applying-new-license.link'))}}'
                 @icon='docs-link'
                 @iconPosition='trailing'
               />

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2024, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package proxycfgglue
@@ -81,6 +81,8 @@ func newConfigEntryRequest(req *structs.ConfigEntryQuery, deps ServerDataSourceD
 		topic = pbsubscribe.Topic_GlobalRateLimit
 	case structs.JWTProvider:
 		topic = pbsubscribe.Topic_JWTProvider
+	case structs.ExportedServices:
+		topic = pbsubscribe.Topic_ExportedServices
 	default:
 		return nil, fmt.Errorf("cannot map config entry kind: %q to a topic", req.Kind)
 	}

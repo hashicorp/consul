@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2024, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package agent
@@ -6634,23 +6634,6 @@ func TestAgent_ServiceRegistration(t *testing.T) {
 				},
 				Connect: &structs.ServiceConnect{
 					Native: true,
-				},
-			},
-			expectErr: true,
-		},
-		"multi_port_connect_sidecar": {
-			serviceDef: &structs.ServiceDefinition{
-				ID:   "multiport-srv",
-				Name: "multiport-srv",
-				Ports: structs.ServicePorts{
-					{
-						Name:    "http",
-						Port:    port,
-						Default: true,
-					},
-				},
-				Connect: &structs.ServiceConnect{
-					SidecarService: &structs.ServiceDefinition{},
 				},
 			},
 			expectErr: true,

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2024, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package structs
@@ -12,10 +12,11 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/hashicorp/go-bexpr"
 	"github.com/mitchellh/pointerstructure"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/go-bexpr"
 
 	"github.com/hashicorp/consul/api"
 )
@@ -231,6 +232,11 @@ var expectedFieldConfigUpstreams bexpr.FieldConfigurations = bexpr.FieldConfigur
 	},
 	"DestinationName": &bexpr.FieldConfiguration{
 		StructFieldName:     "DestinationName",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
+	},
+	"DestinationPort": &bexpr.FieldConfiguration{
+		StructFieldName:     "DestinationPort",
 		CoerceFn:            bexpr.CoerceString,
 		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},

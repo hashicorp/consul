@@ -14,6 +14,10 @@ func (o *APIGatewayListener) DeepCopy() *APIGatewayListener {
 		cp.TLS.Certificates = make([]ResourceReference, len(o.TLS.Certificates))
 		copy(cp.TLS.Certificates, o.TLS.Certificates)
 	}
+	if o.TLS.SDS != nil {
+		cp.TLS.SDS = new(GatewayTLSSDSConfig)
+		*cp.TLS.SDS = *o.TLS.SDS
+	}
 	if o.TLS.CipherSuites != nil {
 		cp.TLS.CipherSuites = make([]types.TLSCipherSuite, len(o.TLS.CipherSuites))
 		copy(cp.TLS.CipherSuites, o.TLS.CipherSuites)
@@ -159,6 +163,12 @@ func (o *CompiledDiscoveryChain) DeepCopy() *CompiledDiscoveryChain {
 		cp.AutoVirtualIPs = make([]string, len(o.AutoVirtualIPs))
 		copy(cp.AutoVirtualIPs, o.AutoVirtualIPs)
 	}
+	if o.AutoPortVirtualIPs != nil {
+		cp.AutoPortVirtualIPs = make(map[string]string, len(o.AutoPortVirtualIPs))
+		for k2, v2 := range o.AutoPortVirtualIPs {
+			cp.AutoPortVirtualIPs[k2] = v2
+		}
+	}
 	if o.ManualVirtualIPs != nil {
 		cp.ManualVirtualIPs = make([]string, len(o.ManualVirtualIPs))
 		copy(cp.ManualVirtualIPs, o.ManualVirtualIPs)
@@ -180,6 +190,10 @@ func (o *ConnectProxyConfig) DeepCopy() *ConnectProxyConfig {
 				}
 			}
 		}
+	}
+	if o.LocalServicePorts != nil {
+		cp.LocalServicePorts = make([]ServicePort, len(o.LocalServicePorts))
+		copy(cp.LocalServicePorts, o.LocalServicePorts)
 	}
 	if o.Config != nil {
 		cp.Config = make(map[string]interface{}, len(o.Config))
@@ -539,6 +553,25 @@ func (o *HTTPRouteConfigEntry) DeepCopy() *HTTPRouteConfigEntry {
 							}
 						}
 					}
+					if o.Rules[i2].Services[i4].TLS != nil {
+						cp.Rules[i2].Services[i4].TLS = o.Rules[i2].Services[i4].TLS.DeepCopy()
+					}
+					if o.Rules[i2].Services[i4].Limits != nil {
+						cp.Rules[i2].Services[i4].Limits = new(UpstreamLimits)
+						*cp.Rules[i2].Services[i4].Limits = *o.Rules[i2].Services[i4].Limits
+						if o.Rules[i2].Services[i4].Limits.MaxConnections != nil {
+							cp.Rules[i2].Services[i4].Limits.MaxConnections = new(int)
+							*cp.Rules[i2].Services[i4].Limits.MaxConnections = *o.Rules[i2].Services[i4].Limits.MaxConnections
+						}
+						if o.Rules[i2].Services[i4].Limits.MaxPendingRequests != nil {
+							cp.Rules[i2].Services[i4].Limits.MaxPendingRequests = new(int)
+							*cp.Rules[i2].Services[i4].Limits.MaxPendingRequests = *o.Rules[i2].Services[i4].Limits.MaxPendingRequests
+						}
+						if o.Rules[i2].Services[i4].Limits.MaxConcurrentRequests != nil {
+							cp.Rules[i2].Services[i4].Limits.MaxConcurrentRequests = new(int)
+							*cp.Rules[i2].Services[i4].Limits.MaxConcurrentRequests = *o.Rules[i2].Services[i4].Limits.MaxConcurrentRequests
+						}
+					}
 				}
 			}
 		}
@@ -648,6 +681,18 @@ func (o *IngressListener) DeepCopy() *IngressListener {
 				if o.Services[i2].PassiveHealthCheck.EnforcingConsecutive5xx != nil {
 					cp.Services[i2].PassiveHealthCheck.EnforcingConsecutive5xx = new(uint32)
 					*cp.Services[i2].PassiveHealthCheck.EnforcingConsecutive5xx = *o.Services[i2].PassiveHealthCheck.EnforcingConsecutive5xx
+				}
+				if o.Services[i2].PassiveHealthCheck.EnforcingConsecutiveGatewayFailure != nil {
+					cp.Services[i2].PassiveHealthCheck.EnforcingConsecutiveGatewayFailure = new(uint32)
+					*cp.Services[i2].PassiveHealthCheck.EnforcingConsecutiveGatewayFailure = *o.Services[i2].PassiveHealthCheck.EnforcingConsecutiveGatewayFailure
+				}
+				if o.Services[i2].PassiveHealthCheck.Consecutive5xx != nil {
+					cp.Services[i2].PassiveHealthCheck.Consecutive5xx = new(uint32)
+					*cp.Services[i2].PassiveHealthCheck.Consecutive5xx = *o.Services[i2].PassiveHealthCheck.Consecutive5xx
+				}
+				if o.Services[i2].PassiveHealthCheck.ConsecutiveGatewayFailure != nil {
+					cp.Services[i2].PassiveHealthCheck.ConsecutiveGatewayFailure = new(uint32)
+					*cp.Services[i2].PassiveHealthCheck.ConsecutiveGatewayFailure = *o.Services[i2].PassiveHealthCheck.ConsecutiveGatewayFailure
 				}
 				if o.Services[i2].PassiveHealthCheck.MaxEjectionPercent != nil {
 					cp.Services[i2].PassiveHealthCheck.MaxEjectionPercent = new(uint32)
@@ -1247,6 +1292,27 @@ func (o *TCPRouteConfigEntry) DeepCopy() *TCPRouteConfigEntry {
 	if o.Services != nil {
 		cp.Services = make([]TCPService, len(o.Services))
 		copy(cp.Services, o.Services)
+		for i2 := range o.Services {
+			if o.Services[i2].TLS != nil {
+				cp.Services[i2].TLS = o.Services[i2].TLS.DeepCopy()
+			}
+			if o.Services[i2].Limits != nil {
+				cp.Services[i2].Limits = new(UpstreamLimits)
+				*cp.Services[i2].Limits = *o.Services[i2].Limits
+				if o.Services[i2].Limits.MaxConnections != nil {
+					cp.Services[i2].Limits.MaxConnections = new(int)
+					*cp.Services[i2].Limits.MaxConnections = *o.Services[i2].Limits.MaxConnections
+				}
+				if o.Services[i2].Limits.MaxPendingRequests != nil {
+					cp.Services[i2].Limits.MaxPendingRequests = new(int)
+					*cp.Services[i2].Limits.MaxPendingRequests = *o.Services[i2].Limits.MaxPendingRequests
+				}
+				if o.Services[i2].Limits.MaxConcurrentRequests != nil {
+					cp.Services[i2].Limits.MaxConcurrentRequests = new(int)
+					*cp.Services[i2].Limits.MaxConcurrentRequests = *o.Services[i2].Limits.MaxConcurrentRequests
+				}
+			}
+		}
 	}
 	if o.Meta != nil {
 		cp.Meta = make(map[string]string, len(o.Meta))
@@ -1310,6 +1376,18 @@ func (o *UpstreamConfiguration) DeepCopy() *UpstreamConfiguration {
 						cp.Overrides[i2].PassiveHealthCheck.EnforcingConsecutive5xx = new(uint32)
 						*cp.Overrides[i2].PassiveHealthCheck.EnforcingConsecutive5xx = *o.Overrides[i2].PassiveHealthCheck.EnforcingConsecutive5xx
 					}
+					if o.Overrides[i2].PassiveHealthCheck.EnforcingConsecutiveGatewayFailure != nil {
+						cp.Overrides[i2].PassiveHealthCheck.EnforcingConsecutiveGatewayFailure = new(uint32)
+						*cp.Overrides[i2].PassiveHealthCheck.EnforcingConsecutiveGatewayFailure = *o.Overrides[i2].PassiveHealthCheck.EnforcingConsecutiveGatewayFailure
+					}
+					if o.Overrides[i2].PassiveHealthCheck.Consecutive5xx != nil {
+						cp.Overrides[i2].PassiveHealthCheck.Consecutive5xx = new(uint32)
+						*cp.Overrides[i2].PassiveHealthCheck.Consecutive5xx = *o.Overrides[i2].PassiveHealthCheck.Consecutive5xx
+					}
+					if o.Overrides[i2].PassiveHealthCheck.ConsecutiveGatewayFailure != nil {
+						cp.Overrides[i2].PassiveHealthCheck.ConsecutiveGatewayFailure = new(uint32)
+						*cp.Overrides[i2].PassiveHealthCheck.ConsecutiveGatewayFailure = *o.Overrides[i2].PassiveHealthCheck.ConsecutiveGatewayFailure
+					}
 					if o.Overrides[i2].PassiveHealthCheck.MaxEjectionPercent != nil {
 						cp.Overrides[i2].PassiveHealthCheck.MaxEjectionPercent = new(uint32)
 						*cp.Overrides[i2].PassiveHealthCheck.MaxEjectionPercent = *o.Overrides[i2].PassiveHealthCheck.MaxEjectionPercent
@@ -1347,6 +1425,18 @@ func (o *UpstreamConfiguration) DeepCopy() *UpstreamConfiguration {
 			if o.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx != nil {
 				cp.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx = new(uint32)
 				*cp.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx = *o.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx
+			}
+			if o.Defaults.PassiveHealthCheck.EnforcingConsecutiveGatewayFailure != nil {
+				cp.Defaults.PassiveHealthCheck.EnforcingConsecutiveGatewayFailure = new(uint32)
+				*cp.Defaults.PassiveHealthCheck.EnforcingConsecutiveGatewayFailure = *o.Defaults.PassiveHealthCheck.EnforcingConsecutiveGatewayFailure
+			}
+			if o.Defaults.PassiveHealthCheck.Consecutive5xx != nil {
+				cp.Defaults.PassiveHealthCheck.Consecutive5xx = new(uint32)
+				*cp.Defaults.PassiveHealthCheck.Consecutive5xx = *o.Defaults.PassiveHealthCheck.Consecutive5xx
+			}
+			if o.Defaults.PassiveHealthCheck.ConsecutiveGatewayFailure != nil {
+				cp.Defaults.PassiveHealthCheck.ConsecutiveGatewayFailure = new(uint32)
+				*cp.Defaults.PassiveHealthCheck.ConsecutiveGatewayFailure = *o.Defaults.PassiveHealthCheck.ConsecutiveGatewayFailure
 			}
 			if o.Defaults.PassiveHealthCheck.MaxEjectionPercent != nil {
 				cp.Defaults.PassiveHealthCheck.MaxEjectionPercent = new(uint32)

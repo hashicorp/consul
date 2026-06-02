@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2024, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package state
@@ -1511,6 +1511,11 @@ func serviceDiscoveryChainTxn(
 		req.AutoVirtualIPs = []string{assignedIP}
 		req.ManualVirtualIPs = make([]string, len(serviceVIPEntry.ManualIPs))
 		copy(req.ManualVirtualIPs, serviceVIPEntry.ManualIPs)
+		autoPortVIPs, err := autoPortVirtualIPsTxn(tx, ws, psn)
+		if err != nil {
+			return 0, nil, nil, err
+		}
+		req.AutoPortVirtualIPs = autoPortVIPs
 	}
 
 	// Then we compile it into something useful.

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2024, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package xds
@@ -939,4 +939,104 @@ func TestInjectGatewayDestinationAddons_NonTerminatingGatewayKindDoesNothing(t *
 
 	require.NoError(t, err)
 	require.Nil(t, c.TransportSocket)
+}
+
+func TestMergeAPIGatewayUpstreamLimits(t *testing.T) {
+	t.Parallel()
+
+	merged := mergeAPIGatewayUpstreamLimits(
+		&structs.UpstreamLimits{
+			MaxConnections:        intPointer(200),
+			MaxPendingRequests:    intPointer(0),
+			MaxConcurrentRequests: intPointer(50),
+		},
+		&structs.UpstreamLimits{
+			MaxConnections:        intPointer(100),
+			MaxPendingRequests:    intPointer(500),
+			MaxConcurrentRequests: intPointer(0),
+		},
+	)
+
+	require.NotNil(t, merged)
+	require.Equal(t, 100, *merged.MaxConnections)
+	require.Equal(t, 500, *merged.MaxPendingRequests)
+	require.Equal(t, 50, *merged.MaxConcurrentRequests)
+}
+
+func TestMergeAPIGatewayUpstreamLimits_ZeroValuesOmitted(t *testing.T) {
+	t.Parallel()
+
+	merged := mergeAPIGatewayUpstreamLimits(
+		&structs.UpstreamLimits{
+			MaxConnections:        intPointer(0),
+			MaxPendingRequests:    intPointer(4),
+			MaxConcurrentRequests: intPointer(0),
+		},
+		&structs.UpstreamLimits{
+			MaxPendingRequests:    intPointer(3),
+			MaxConcurrentRequests: intPointer(2),
+		},
+	)
+
+	require.NotNil(t, merged)
+	require.Nil(t, merged.MaxConnections)
+	require.NotNil(t, merged.MaxPendingRequests)
+	require.Equal(t, 3, *merged.MaxPendingRequests)
+	require.NotNil(t, merged.MaxConcurrentRequests)
+	require.Equal(t, 2, *merged.MaxConcurrentRequests)
+
+	merged = mergeAPIGatewayUpstreamLimits(
+		&structs.UpstreamLimits{MaxConnections: intPointer(0)},
+		nil,
+	)
+	require.NotNil(t, merged)
+	require.Nil(t, merged.MaxConnections)
+
+	merged = mergeAPIGatewayUpstreamLimits(
+		nil,
+		&structs.UpstreamLimits{MaxConnections: intPointer(0)},
+	)
+	require.NotNil(t, merged)
+	require.Nil(t, merged.MaxConnections)
+}
+
+func TestMergedAPIGatewayUpstreamConfig(t *testing.T) {
+	t.Parallel()
+
+	original := map[string]interface{}{
+		"protocol": "http",
+		"custom":   "value",
+	}
+	limits := &structs.UpstreamLimits{MaxConnections: intPointer(321)}
+
+	merged := mergedAPIGatewayUpstreamConfig(original, limits)
+
+	require.Equal(t, "value", merged["custom"])
+
+	cfg, err := structs.ParseUpstreamConfigNoDefaults(merged)
+	require.NoError(t, err)
+	require.NotNil(t, cfg.Limits)
+	require.Equal(t, 321, *cfg.Limits.MaxConnections)
+}
+
+func TestMakeThresholdsIfNeeded_APIGatewayAllLimits(t *testing.T) {
+	t.Parallel()
+
+	thresholds := makeThresholdsIfNeeded(&structs.UpstreamLimits{
+		MaxConnections:        intPointer(11),
+		MaxPendingRequests:    intPointer(22),
+		MaxConcurrentRequests: intPointer(33),
+	})
+
+	require.Len(t, thresholds, 1)
+	require.NotNil(t, thresholds[0].MaxConnections)
+	require.NotNil(t, thresholds[0].MaxPendingRequests)
+	require.NotNil(t, thresholds[0].MaxRequests)
+	require.Equal(t, uint32(11), thresholds[0].MaxConnections.GetValue())
+	require.Equal(t, uint32(22), thresholds[0].MaxPendingRequests.GetValue())
+	require.Equal(t, uint32(33), thresholds[0].MaxRequests.GetValue())
+}
+
+func intPointer(v int) *int {
+	return &v
 }

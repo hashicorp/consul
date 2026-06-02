@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2024, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 //go:build !consulent
@@ -113,6 +113,14 @@ func catalogUpdateNodeExtinctionIndex(tx WriteTxn, idx uint64, _ *acl.Enterprise
 	return nil
 }
 
+func assignServicePortVirtualIPs(_ WriteTxn, _ uint64, _ structs.ServiceName, _ *structs.NodeService) error {
+	return nil
+}
+
+func freeServicePortVirtualIPs(_ WriteTxn, _ Query) error {
+	return nil
+}
+
 func catalogInsertNode(tx WriteTxn, node *structs.Node) error {
 	// ensure that the Partition is always clear within the state store in CE
 	node.Partition = ""
@@ -137,6 +145,10 @@ func catalogInsertNode(tx WriteTxn, node *structs.Node) error {
 	}
 
 	return nil
+}
+
+func (s *Store) VirtualIPForServicePort(_ structs.PeeredServiceName, _ string) (string, error) {
+	return "", nil
 }
 
 func catalogInsertService(tx WriteTxn, svc *structs.ServiceNode) error {

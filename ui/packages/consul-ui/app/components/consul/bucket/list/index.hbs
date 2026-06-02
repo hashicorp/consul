@@ -6,7 +6,7 @@
 {{#if this.itemsToDisplay.length}}
   <dl class="consul-bucket-list">
     {{#each this.itemsToDisplay as |item|}}
-      <dt class={{item.type}} {{tooltip}}>
+      <dt class={{item.type}} {{hds-tooltip options=(detached-tooltip-options)}}>
         {{item.label}}
       </dt>
       <dd data-test-bucket-item={{item.type}}>

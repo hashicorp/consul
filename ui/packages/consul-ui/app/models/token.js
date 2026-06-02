@@ -1,5 +1,5 @@
 /**
- * Copyright (c) HashiCorp, Inc.
+ * Copyright IBM Corp. 2024, 2026
  * SPDX-License-Identifier: BUSL-1.1
  */
 
@@ -22,6 +22,7 @@ export default class Token extends Model {
   @attr('boolean') Legacy;
   @attr('boolean') Local;
   @attr('string', { defaultValue: () => '' }) Description;
+
   @attr() meta; // {}
 
   @attr({ defaultValue: () => [] }) Policies;

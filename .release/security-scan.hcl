@@ -1,4 +1,4 @@
-# Copyright (c) HashiCorp, Inc.
+# Copyright IBM Corp. 2024, 2026
 # SPDX-License-Identifier: BUSL-1.1
 
 # These scan results are run as part of CRT workflows.
@@ -38,7 +38,10 @@ container {
   # periodically cleaned up to remove items that are no longer found by the scanner.
   triage {
     suppress {
-      vulnerabilities = []
+      vulnerabilities = [
+        "CVE-2025-30258", //Alpine Linux's Security Issue Tracker in gnupg@2.4.9-r0
+        "CVE-2026-41989", //Alpine Linux's Security Issue Tracker in libgcrypt@1.11.2-r0
+      ]
 
       paths = [
         "internal/tools/proto-gen-rpc-glue/e2e/consul/*",
@@ -87,7 +90,8 @@ binary {
   # periodically cleaned up to remove items that are no longer found by the scanner.
   triage {
     suppress {
-      vulnerabilities = []
+      vulnerabilities = [
+        ]
       
       paths = [
         "internal/tools/proto-gen-rpc-glue/e2e/consul/*",

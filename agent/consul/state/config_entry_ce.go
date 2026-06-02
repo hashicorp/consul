@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2024, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 //go:build !consulent
@@ -85,4 +85,9 @@ func readSourceSamenessIntentionsFromConfigEntriesForServiceTxn(
 	targetType structs.IntentionTargetType,
 ) (structs.Intentions, error) {
 	return results, nil
+}
+
+// autoPortVirtualIPsTxn is a no-op in CE, returns empty slice
+func autoPortVirtualIPsTxn(tx ReadTxn, ws memdb.WatchSet, psn structs.PeeredServiceName) (map[string]string, error) {
+	return nil, nil // or return []string{}, nil
 }

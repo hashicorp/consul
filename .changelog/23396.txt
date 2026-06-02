@@ -1,0 +1,3 @@
+```release-note:feature
+api-gateway: add support for gateway-level default upstream limits and route service-level limit overrides for MaxConnections, MaxPendingRequests, and MaxConcurrentRequests.
+```

@@ -75,9 +75,15 @@ as |item tomography|}}
             />
           </BlockSlot>
           <BlockSlot @name="breadcrumbs">
-              <ol>
-                  <li><a data-test-back href={{href-to 'dc.nodes' params=(hash peer=undefined)}}>All Nodes</a></li>
-              </ol>
+            <Hds::Breadcrumb>
+              <Breadcrumbs::BackLink
+                @model={{route.params.dc}}
+                @params={{hash peer=undefined}}
+                @route="dc.nodes"
+                @text="All Nodes"
+                data-test-back
+              />
+            </Hds::Breadcrumb>
           </BlockSlot>
           <BlockSlot @name="header">
               <h1>

@@ -1,0 +1,3 @@
+```release-note:feature
+api-gateway: Added SDS certificate support for API Gateway listeners, including listener-level default TLS certificates and HTTP/TCP route service TLS SDS overrides. Service overrides inherit the listener SDS cluster when omitted, and gateway validation/xDS generation now rejects conflicting override mappings to keep certificate selection deterministic.
+```

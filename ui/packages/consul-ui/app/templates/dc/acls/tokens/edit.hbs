@@ -42,9 +42,9 @@ as |dc partition nspace item create|}}
     @login={{route.model.app.login.open}}
   >
       <BlockSlot @name="breadcrumbs">
-          <ol>
-              <li><a data-test-back href={{href-to 'dc.acls.tokens'}}>All Tokens</a></li>
-          </ol>
+        <Hds::Breadcrumb>
+          <Hds::Breadcrumb::Item @text="All Tokens" @route="dc.acls.tokens" @model={{route.params.dc}} data-test-back />
+        </Hds::Breadcrumb>
       </BlockSlot>
       <BlockSlot @name="header">
           <h1>
@@ -105,7 +105,7 @@ as |dc partition nspace item create|}}
               <A.Title>Update</A.Title>
               <A.Description>We have upgraded our ACL system by allowing you to create reusable policies which you can then apply to tokens. Don't worry, even though this token was written in the old style, it is still valid. However, we do recommend upgrading your old tokens to the new style.</A.Description>
               <A.Link::Standalone @text='Learn more'
-                                  @href="{{env 'CONSUL_DOCS_URL'}}/guides/acl-migrate-tokens.html"
+                                  @href="{{env 'CONSUL_HOME_URL'}}/consul/tutorials/archive/access-control-token-migration"
                                   @icon='docs-link'
                                   @iconPosition='trailing' />
             </Hds::Alert>

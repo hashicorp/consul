@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2024, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package proxycfg
@@ -212,6 +212,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 				ProxyID:         ProxyID{ServiceID: webProxy.CompoundServiceID()},
 				Address:         webProxy.Address,
 				Port:            webProxy.Port,
+				Ports:           structs.ServicePorts{},
 				Proxy:           mustCopyProxyConfig(t, webProxy),
 				ServiceMeta:     webProxy.Meta,
 				TaggedAddresses: make(map[string]structs.ServiceAddress),
@@ -275,6 +276,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 				ProxyID:         ProxyID{ServiceID: webProxy.CompoundServiceID()},
 				Address:         webProxy.Address,
 				Port:            webProxy.Port,
+				Ports:           structs.ServicePorts{},
 				Proxy:           mustCopyProxyConfig(t, webProxy),
 				ServiceMeta:     webProxy.Meta,
 				TaggedAddresses: make(map[string]structs.ServiceAddress),

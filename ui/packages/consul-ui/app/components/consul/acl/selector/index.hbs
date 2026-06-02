@@ -7,7 +7,7 @@
   {{#if (can "use acls")}}
     <SNL.Title>{{t "components.hashicorp-consul.side-nav.acls.title"}}</SNL.Title>
   {{else}}
-    <SNL.Title {{tooltip (t "components.hashicorp-consul.side-nav.acls.tooltip")}}>
+    <SNL.Title {{hds-tooltip (t "components.hashicorp-consul.side-nav.acls.tooltip") options=(detached-tooltip-options)}}>
       {{t "components.hashicorp-consul.side-nav.acls.title"}}
     </SNL.Title>
   {{/if}}

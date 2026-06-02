@@ -1,5 +1,5 @@
 /**
- * Copyright (c) HashiCorp, Inc.
+ * Copyright IBM Corp. 2024, 2026
  * SPDX-License-Identifier: BUSL-1.1
  */
 
@@ -19,6 +19,7 @@ export default class AuthMethod extends Model {
   @attr('string', { defaultValue: () => '' }) Description;
   @attr('string', { defaultValue: () => '' }) DisplayName;
   @attr('string', { defaultValue: () => 'local' }) TokenLocality;
+  @attr('string', { defaultValue: () => '' }) TokenNameFormat;
   @attr('string') Type;
   @attr() NamespaceRules;
   get MethodName() {

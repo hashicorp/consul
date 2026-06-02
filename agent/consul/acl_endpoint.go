@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2024, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package consul
@@ -1949,6 +1949,15 @@ func (a *ACL) AuthMethodSet(args *structs.ACLAuthMethodSetRequest, reply *struct
 			return fmt.Errorf("MaxTokenTTL %s cannot be less than %s",
 				method.MaxTokenTTL, a.srv.config.ACLTokenMinExpirationTTL)
 		}
+	}
+
+	if method.TokenNameFormat != "" {
+		_, err := auth.FormatTokenName(method, nil)
+		if err != nil {
+			return fmt.Errorf("Failed to validate token-format-name: %s", err.Error())
+		}
+	} else {
+		method.TokenNameFormat = structs.DefaultACLAuthMethodTokenNameFormat
 	}
 
 	switch method.TokenLocality {

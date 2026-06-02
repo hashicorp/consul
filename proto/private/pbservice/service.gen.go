@@ -35,6 +35,7 @@ func ConnectProxyConfigToStructs(s *ConnectProxyConfig, t *structs.ConnectProxyC
 	t.DestinationServiceID = s.DestinationServiceID
 	t.LocalServiceAddress = s.LocalServiceAddress
 	t.LocalServicePort = int(s.LocalServicePort)
+	t.LocalServicePorts = PortsToStructs(s.LocalServicePorts)
 	t.LocalServiceSocketPath = s.LocalServiceSocketPath
 	t.Mode = structs.ProxyMode(s.Mode)
 	t.Config = ProtobufTypesStructToMapStringInterface(s.Config)
@@ -61,6 +62,7 @@ func ConnectProxyConfigFromStructs(t *structs.ConnectProxyConfig, s *ConnectProx
 	s.DestinationServiceID = t.DestinationServiceID
 	s.LocalServiceAddress = t.LocalServiceAddress
 	s.LocalServicePort = int32(t.LocalServicePort)
+	s.LocalServicePorts = NewPortsFromStructs(t.LocalServicePorts)
 	s.LocalServiceSocketPath = t.LocalServiceSocketPath
 	s.Mode = string(t.Mode)
 	s.Config = MapStringInterfaceToProtobufTypesStruct(t.Config)
@@ -265,6 +267,7 @@ func UpstreamToStructs(s *Upstream, t *structs.Upstream) {
 	t.DestinationPartition = s.DestinationPartition
 	t.DestinationPeer = s.DestinationPeer
 	t.DestinationName = s.DestinationName
+	t.DestinationPort = s.DestinationPort
 	t.Datacenter = s.Datacenter
 	t.LocalBindAddress = s.LocalBindAddress
 	t.LocalBindPort = int(s.LocalBindPort)
@@ -285,6 +288,7 @@ func UpstreamFromStructs(t *structs.Upstream, s *Upstream) {
 	s.DestinationPartition = t.DestinationPartition
 	s.DestinationPeer = t.DestinationPeer
 	s.DestinationName = t.DestinationName
+	s.DestinationPort = t.DestinationPort
 	s.Datacenter = t.Datacenter
 	s.LocalBindAddress = t.LocalBindAddress
 	s.LocalBindPort = int32(t.LocalBindPort)

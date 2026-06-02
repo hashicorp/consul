@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2024, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 // The snapshot endpoint is a special non-RPC endpoint that supports streaming
@@ -143,7 +143,7 @@ func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Re
 		return io.NopCloser(bytes.NewReader([]byte(""))), nil
 
 	default:
-		return nil, fmt.Errorf("unrecognized snapshot op %q", args.Op)
+		return nil, fmt.Errorf("unrecognized snapshot op %d", args.Op)
 	}
 }
 

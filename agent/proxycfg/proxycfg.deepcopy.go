@@ -18,6 +18,10 @@ func (o *ConfigSnapshot) DeepCopy() *ConfigSnapshot {
 		cp.ServiceLocality = new(structs.Locality)
 		*cp.ServiceLocality = *o.ServiceLocality
 	}
+	if o.Ports != nil {
+		cp.Ports = make([]structs.ServicePort, len(o.Ports))
+		copy(cp.Ports, o.Ports)
+	}
 	if o.ServiceMeta != nil {
 		cp.ServiceMeta = make(map[string]string, len(o.ServiceMeta))
 		for k2, v2 := range o.ServiceMeta {
@@ -362,6 +366,14 @@ func (o *configSnapshotAPIGateway) DeepCopy() *configSnapshotAPIGateway {
 	if o.GatewayConfig != nil {
 		cp.GatewayConfig = new(structs.APIGatewayConfigEntry)
 		*cp.GatewayConfig = *o.GatewayConfig
+		if o.GatewayConfig.TLS.SDS != nil {
+			cp.GatewayConfig.TLS.SDS = new(structs.GatewayTLSSDSConfig)
+			*cp.GatewayConfig.TLS.SDS = *o.GatewayConfig.TLS.SDS
+		}
+		if o.GatewayConfig.TLS.CipherSuites != nil {
+			cp.GatewayConfig.TLS.CipherSuites = make([]types.TLSCipherSuite, len(o.GatewayConfig.TLS.CipherSuites))
+			copy(cp.GatewayConfig.TLS.CipherSuites, o.GatewayConfig.TLS.CipherSuites)
+		}
 		if o.GatewayConfig.Listeners != nil {
 			cp.GatewayConfig.Listeners = make([]structs.APIGatewayListener, len(o.GatewayConfig.Listeners))
 			copy(cp.GatewayConfig.Listeners, o.GatewayConfig.Listeners)
@@ -370,6 +382,22 @@ func (o *configSnapshotAPIGateway) DeepCopy() *configSnapshotAPIGateway {
 					retV := o.GatewayConfig.Listeners[i4].DeepCopy()
 					cp.GatewayConfig.Listeners[i4] = *retV
 				}
+			}
+		}
+		if o.GatewayConfig.Defaults != nil {
+			cp.GatewayConfig.Defaults = new(structs.UpstreamLimits)
+			*cp.GatewayConfig.Defaults = *o.GatewayConfig.Defaults
+			if o.GatewayConfig.Defaults.MaxConnections != nil {
+				cp.GatewayConfig.Defaults.MaxConnections = new(int)
+				*cp.GatewayConfig.Defaults.MaxConnections = *o.GatewayConfig.Defaults.MaxConnections
+			}
+			if o.GatewayConfig.Defaults.MaxPendingRequests != nil {
+				cp.GatewayConfig.Defaults.MaxPendingRequests = new(int)
+				*cp.GatewayConfig.Defaults.MaxPendingRequests = *o.GatewayConfig.Defaults.MaxPendingRequests
+			}
+			if o.GatewayConfig.Defaults.MaxConcurrentRequests != nil {
+				cp.GatewayConfig.Defaults.MaxConcurrentRequests = new(int)
+				*cp.GatewayConfig.Defaults.MaxConcurrentRequests = *o.GatewayConfig.Defaults.MaxConcurrentRequests
 			}
 		}
 		{
@@ -567,6 +595,18 @@ func (o *configSnapshotIngressGateway) DeepCopy() *configSnapshotIngressGateway 
 			cp.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx = new(uint32)
 			*cp.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx = *o.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx
 		}
+		if o.Defaults.PassiveHealthCheck.EnforcingConsecutiveGatewayFailure != nil {
+			cp.Defaults.PassiveHealthCheck.EnforcingConsecutiveGatewayFailure = new(uint32)
+			*cp.Defaults.PassiveHealthCheck.EnforcingConsecutiveGatewayFailure = *o.Defaults.PassiveHealthCheck.EnforcingConsecutiveGatewayFailure
+		}
+		if o.Defaults.PassiveHealthCheck.Consecutive5xx != nil {
+			cp.Defaults.PassiveHealthCheck.Consecutive5xx = new(uint32)
+			*cp.Defaults.PassiveHealthCheck.Consecutive5xx = *o.Defaults.PassiveHealthCheck.Consecutive5xx
+		}
+		if o.Defaults.PassiveHealthCheck.ConsecutiveGatewayFailure != nil {
+			cp.Defaults.PassiveHealthCheck.ConsecutiveGatewayFailure = new(uint32)
+			*cp.Defaults.PassiveHealthCheck.ConsecutiveGatewayFailure = *o.Defaults.PassiveHealthCheck.ConsecutiveGatewayFailure
+		}
 		if o.Defaults.PassiveHealthCheck.MaxEjectionPercent != nil {
 			cp.Defaults.PassiveHealthCheck.MaxEjectionPercent = new(uint32)
 			*cp.Defaults.PassiveHealthCheck.MaxEjectionPercent = *o.Defaults.PassiveHealthCheck.MaxEjectionPercent
@@ -689,6 +729,17 @@ func (o *configSnapshotMeshGateway) DeepCopy() *configSnapshotMeshGateway {
 			cp.ExportedServicesWithPeers[k2] = cp_ExportedServicesWithPeers_v2
 		}
 	}
+	if o.ExportedServicesWithPartitions != nil {
+		cp.ExportedServicesWithPartitions = make(map[structs.ServiceName][]string, len(o.ExportedServicesWithPartitions))
+		for k2, v2 := range o.ExportedServicesWithPartitions {
+			var cp_ExportedServicesWithPartitions_v2 []string
+			if v2 != nil {
+				cp_ExportedServicesWithPartitions_v2 = make([]string, len(v2))
+				copy(cp_ExportedServicesWithPartitions_v2, v2)
+			}
+			cp.ExportedServicesWithPartitions[k2] = cp_ExportedServicesWithPartitions_v2
+		}
+	}
 	if o.DiscoveryChain != nil {
 		cp.DiscoveryChain = make(map[structs.ServiceName]*structs.CompiledDiscoveryChain, len(o.DiscoveryChain))
 		for k2, v2 := range o.DiscoveryChain {
@@ -730,6 +781,17 @@ func (o *configSnapshotMeshGateway) DeepCopy() *configSnapshotMeshGateway {
 			if o.PeeringTrustBundles[i2] != nil {
 				cp.PeeringTrustBundles[i2] = o.PeeringTrustBundles[i2].DeepCopy()
 			}
+		}
+	}
+	if o.ServicePorts != nil {
+		cp.ServicePorts = make(map[structs.ServiceName][]string, len(o.ServicePorts))
+		for k2, v2 := range o.ServicePorts {
+			var cp_ServicePorts_v2 []string
+			if v2 != nil {
+				cp_ServicePorts_v2 = make([]string, len(v2))
+				copy(cp_ServicePorts_v2, v2)
+			}
+			cp.ServicePorts[k2] = cp_ServicePorts_v2
 		}
 	}
 	if o.Limits != nil {
