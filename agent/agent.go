@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2024, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package agent
@@ -890,12 +890,18 @@ func (a *Agent) Start(ctx context.Context) error {
 		go a.retryJoinWAN()
 	}
 
-	if a.config.Telemetry.CertificateEnabled && a.tlsConfigurator.Cert() != nil {
+	shouldMonitorAgentTLS := a.config.Telemetry.CertificateEnabled &&
+		(a.tlsConfigurator.Cert() != nil ||
+			a.config.AutoEncryptTLS ||
+			a.config.TLS.InternalRPC.CertFile != "" ||
+			a.config.TLS.InternalRPC.KeyFile != "")
+	if shouldMonitorAgentTLS {
 		m := tlsCertExpirationMonitor(
 			a.tlsConfigurator,
 			a.config.Datacenter,
 			a.config.PartitionOrDefault(),
 			a.config.NodeName,
+			tlsCertRole(a.config.ServerMode),
 			a.config.Telemetry.CertificateCriticalThresholdDays,
 			a.config.Telemetry.CertificateWarningThresholdDays,
 			a.logger,

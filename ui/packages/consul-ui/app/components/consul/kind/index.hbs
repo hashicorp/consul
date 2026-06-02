@@ -7,8 +7,13 @@
   {{#if @withInfo}}
     <dl class="tooltip-panel">
       <dt>
-        <span data-test-kind={{@item.Kind}} class="consul-kind">
-          {{this.Name}}
+        <span data-test-kind={{@item.Kind}} class="consul-kind consul-kind--hds">
+          <Hds::Badge
+            @text={{this.Name}}
+            @icon="gateway"
+            @color="neutral"
+            @size="small"
+          />
         </span>
       </dt>
       <dd>
@@ -97,8 +102,13 @@
       </dd>
     </dl>
   {{else}}
-    <span data-test-kind={{@item.Kind}} class="consul-kind">
-      {{this.Name}}
+    <span data-test-kind={{@item.Kind}} class="consul-kind consul-kind--hds">
+      <Hds::Badge
+        @text={{this.Name}}
+        @icon="gateway"
+        @color="neutral"
+        @size="small"
+      />
     </span>
   {{/if}}
 {{/if}}

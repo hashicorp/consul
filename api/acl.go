@@ -41,7 +41,7 @@ type ACLTokenRoleLink = ACLLink
 type ACLToken struct {
 	CreateIndex       uint64
 	ModifyIndex       uint64
-	Name              string
+	Name              string `json:",omitempty"`
 	AccessorID        string
 	SecretID          string
 	Description       string
@@ -89,7 +89,7 @@ type ACLTokenExpanded struct {
 }
 
 type ACLTokenListEntry struct {
-	Name              string
+	Name              string `json:",omitempty"`
 	CreateIndex       uint64
 	ModifyIndex       uint64
 	AccessorID        string

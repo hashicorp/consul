@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2024, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package config
@@ -8,9 +8,8 @@ import (
 	"time"
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
-	"google.golang.org/protobuf/types/known/durationpb"
-
 	"github.com/go-viper/mapstructure/v2"
+	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/hashicorp/consul/agent/structs"
@@ -215,13 +214,22 @@ func ToOutlierDetection(p *structs.PassiveHealthCheck, override *structs.Passive
 			od.Consecutive_5Xx = &wrapperspb.UInt32Value{Value: p.MaxFailures}
 		}
 
-		if p.EnforcingConsecutive5xx != nil {
+		if p.Consecutive5xx != nil && *p.Consecutive5xx != 0 {
+			od.Consecutive_5Xx = &wrapperspb.UInt32Value{Value: *p.Consecutive5xx}
+		}
+
+		if p.ConsecutiveGatewayFailure != nil && *p.ConsecutiveGatewayFailure != 0 {
+			od.ConsecutiveGatewayFailure = &wrapperspb.UInt32Value{Value: *p.ConsecutiveGatewayFailure}
+		}
+
+		if p.EnforcingConsecutive5xx != nil && (*p.EnforcingConsecutive5xx != 0 || allowZero) {
 			// NOTE: EnforcingConsecutive5xx must be greater than 0 for ingress-gateway
-			if *p.EnforcingConsecutive5xx != 0 {
-				od.EnforcingConsecutive_5Xx = &wrapperspb.UInt32Value{Value: *p.EnforcingConsecutive5xx}
-			} else if allowZero {
-				od.EnforcingConsecutive_5Xx = &wrapperspb.UInt32Value{Value: *p.EnforcingConsecutive5xx}
-			}
+			od.EnforcingConsecutive_5Xx = &wrapperspb.UInt32Value{Value: *p.EnforcingConsecutive5xx}
+		}
+
+		if p.EnforcingConsecutiveGatewayFailure != nil && (*p.EnforcingConsecutiveGatewayFailure != 0 || allowZero) {
+			// NOTE: EnforcingConsecutiveGatewayFailure must be greater than 0 for ingress-gateway
+			od.EnforcingConsecutiveGatewayFailure = &wrapperspb.UInt32Value{Value: *p.EnforcingConsecutiveGatewayFailure}
 		}
 
 		if p.MaxEjectionPercent != nil {
@@ -244,11 +252,24 @@ func ToOutlierDetection(p *structs.PassiveHealthCheck, override *structs.Passive
 		od.Consecutive_5Xx = &wrapperspb.UInt32Value{Value: override.MaxFailures}
 	}
 
-	if override.EnforcingConsecutive5xx != nil {
+	if override.Consecutive5xx != nil && *override.Consecutive5xx != 0 {
+		od.Consecutive_5Xx = &wrapperspb.UInt32Value{Value: *override.Consecutive5xx}
+	}
+
+	if override.ConsecutiveGatewayFailure != nil && *override.ConsecutiveGatewayFailure != 0 {
+		od.ConsecutiveGatewayFailure = &wrapperspb.UInt32Value{Value: *override.ConsecutiveGatewayFailure}
+	}
+
+	if override.EnforcingConsecutive5xx != nil && *override.EnforcingConsecutive5xx != 0 {
 		// NOTE: EnforcingConsecutive5xx must be great than 0 for ingress-gateway
-		if *override.EnforcingConsecutive5xx != 0 {
-			od.EnforcingConsecutive_5Xx = &wrapperspb.UInt32Value{Value: *override.EnforcingConsecutive5xx}
-		}
+		od.EnforcingConsecutive_5Xx = &wrapperspb.UInt32Value{Value: *override.EnforcingConsecutive5xx}
+		// Because only ingress gateways have overrides and they cannot have a value of 0, there is no allowZero
+		// override case to handle
+	}
+
+	if override.EnforcingConsecutiveGatewayFailure != nil && *override.EnforcingConsecutiveGatewayFailure != 0 {
+		// NOTE: EnforcingConsecutiveGatewayFailure must be greater than 0 for ingress-gateway
+		od.EnforcingConsecutiveGatewayFailure = &wrapperspb.UInt32Value{Value: *override.EnforcingConsecutiveGatewayFailure}
 		// Because only ingress gateways have overrides and they cannot have a value of 0, there is no allowZero
 		// override case to handle
 	}

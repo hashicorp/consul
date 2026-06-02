@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2024, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package structs
@@ -577,7 +577,7 @@ func (t *ACLToken) EstimateSize() int {
 type ACLTokens []*ACLToken
 
 type ACLTokenListStub struct {
-	Name              string
+	Name              string `json:",omitempty"`
 	AccessorID        string
 	SecretID          string
 	Description       string
@@ -1165,7 +1165,7 @@ func (rules ACLBindingRules) Sort() {
 
 // Note: this is a subset of ACLAuthMethod's fields
 type ACLAuthMethodListStub struct {
-	Name            string
+	Name            string `json:",omitempty"`
 	Type            string
 	DisplayName     string        `json:",omitempty"`
 	Description     string        `json:",omitempty"`

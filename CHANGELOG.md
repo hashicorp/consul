@@ -1,3 +1,228 @@
+# 2.0.0 (May 22, 2026)
+
+SECURITY:
+
+* connect: Upgrade envoy version to 1.37.2 and newer versions [[GH-23469](https://github.com/hashicorp/consul/pull/23469)]
+* go: Upgrade go version to 1.26 [[GH-23493](https://github.com/hashicorp/consul/pull/23493)]
+* agent: Increased default HTTP server timeouts to prevent breaking long-polling blocking queries. `read_timeout` and `write_timeout` are now set to 15 minutes (up from 30 seconds), while `read_header_timeout` (10s) and `idle_timeout` (120s) still provide protection against Slowloris attacks. All timeouts remain configurable via the `http_config` block. [[GH-23267](https://github.com/hashicorp/consul/issues/23267)]
+* api-gateway, terminating-gateway: Apply HTTP request path normalization on api-gateway and terminating-gateway HTTP listeners to prevent L7 intention RBAC bypass via non-normalized paths (CVE-2024-10005). [[GH-23534](https://github.com/hashicorp/consul/issues/23534)]
+* docker: update ubi base image to `ubi9-minimal:9.7`. [[GH-23553](https://github.com/hashicorp/consul/issues/23553)]
+* docker: Upgrade `curl` to >= 8.20.0 from Alpine edge in the container image to address
+[CVE-2026-6429](https://www.cve.org/CVERecord?id=CVE-2026-6429),
+[CVE-2026-4873](https://www.cve.org/CVERecord?id=CVE-2026-4873),
+[CVE-2026-5773](https://www.cve.org/CVERecord?id=CVE-2026-5773),
+[CVE-2026-6253](https://www.cve.org/CVERecord?id=CVE-2026-6253),
+[CVE-2026-6276](https://www.cve.org/CVERecord?id=CVE-2026-6276),
+[CVE-2026-7168](https://www.cve.org/CVERecord?id=CVE-2026-7168),
+[CVE-2026-5545](https://www.cve.org/CVERecord?id=CVE-2026-5545).
+Alpine 3.23 stable does not yet carry the patched version. [[GH-23750](https://github.com/hashicorp/consul/issues/23750)]
+* docker: Update to UBI base image to 9.8 for fixing [[CVE_2026-2100](https://access.redhat.com/security/cve/cve-2026-2100)] [[GH-23588](https://github.com/hashicorp/consul/issues/23588)]
+
+FEATURES:
+
+* **(Enterprise Only)** update to go-licensing/v4 and go-census/v3 inorder to adapt to new licenses of PAO.
+* Global Rate Limiter: **(Enterprise Only)** a new "rate-limit" config entry kind that enables dynamic, cluster-wide RPC rate limiting stored in Raft and automatically replicated to all servers. This allows operators to apply or adjust global rate limits at runtime without restarting Consul servers — a critical capability for emergency scenarios where the cluster is under excessive load.
+* api-gateway: Added SDS certificate support for API Gateway listeners, including listener-level default TLS certificates and HTTP/TCP route service TLS SDS overrides. Service overrides inherit the listener SDS cluster when omitted, and gateway validation/xDS generation now rejects conflicting override mappings to keep certificate selection deterministic. [[GH-23354](https://github.com/hashicorp/consul/pull/23354)]
+* api-gateway: add support for gateway-level default upstream limits and route service-level limit overrides for MaxConnections, MaxPendingRequests, and MaxConcurrentRequests. [[GH-23396](https://github.com/hashicorp/consul/pull/23396)]
+* api: Added new API "/v1/internal/rpc/methods" that lists all RPC method names. Requires an operator:read ACL token. This is useful when users want to configure rate limits that exclude specific RPC endpoints. [[GH-23329](https://github.com/hashicorp/consul/pull/23329)]
+* ca: **(Enterprise Only)** Added new Connect CA provider for Cyberark WIM (connect.ca_provider = "pan-distributed-issuer"), enabling Consul to issue certificates through Cyberark WIM.
+* server: **(Enterprise Only)** add stable cluster identity and leader-gated global registry sync for service summary publishing.
+* telemetry: **(Enterprise Only)** Product telemetry for self-managed Consul with anonymous, opt-in usage reporting.
+* mesh: **(Enterprise Only)** Introduce support for multi-port (named port) services in Consul, including the ability to specify and route traffic using port names, as well as to retrieve virtual IPs for specific service ports. It also enforces that certain advanced multi-port features are only available in Consul Enterprise, and includes new utility functions for cluster naming and ALPN protocol generation.
+
+IMPROVEMENTS:
+
+* agent: **(Enterprise Only)** Add eventually-consistent background cache for Enterprise usage metrics, reducing GET /v1/operator/usage latency from O(P*N*K) to O(1) and lowering CPU/memory pressure during high-frequency scraping via a watch-driven maintainer goroutine.
+* mesh: **(Enterprise Only)** Introduce support for multi-port (named port) services in Consul, including the ability to specify and route traffic using port names, as well as to retrieve virtual IPs for specific service ports. It also enforces that certain advanced multi-port features are only available in Consul Enterprise, and includes new utility functions for cluster naming and ALPN protocol generation.
+* terminating-gateway: Updated the cluster upstream tls to use sds instead of static certs, allowing for dynamic certificate updates without needing to restart the terminating gateway. [[GH-23288](https://github.com/hashicorp/consul/pull/23288)]
+* telemetry: Add certificate expiry monitoring with Prometheus metrics (labeled with datacenter/partition/namespace), structured logging with configurable severity thresholds, and enhanced Connect CA API to include NotAfter field for root and intermediate certificates. [[GH-23147](https://github.com/hashicorp/consul/pull/23147)]
+* deps: Upgrade `github.com/hashicorp/vault/sdk` from v0.7.0 to v0.25.1 and `github.com/hashicorp/vault/api` from v1.12.2 to v1.16.0. [[GH-23574](https://github.com/hashicorp/consul/issues/23574)]
+* test-integ: upgrade testcontainers-go (v0.22.0->v0.40.0) and docker/docker (v24.0.5->v28.5.1) in the integration test module. This removes opencontainers/runc as a Go dependency of the test framework. These are test infrastructure dependencies only and have no impact on the consul binary or any consul deployment. [[GH-23573](https://github.com/hashicorp/consul/issues/23573)]
+* xds: **(Enterprise Only)** add `Consecutive5xx`, `ConsecutiveGatewayFailure`, and `EnforcingConsecutiveGatewayFailure` fields to `PassiveHealthCheck`, allowing operators to configure Envoy outlier detection thresholds for 5xx responses and gateway failures (502/503/504) on upstreams defaults.
+
+BUG FIXES:
+
+* audit-logging: **(Enterprise Only)** Fixed JSON unmarshall error when array of obj is passed for auditReq body.
+* cli: Enhanced error messages in `consul config write` command to provide actionable guidance when config entries cannot be modified due to references by gateways or routers. [[GH-22921](https://github.com/hashicorp/consul/pull/22921)]
+* xds: Fixed XDS package to generate correct endpoints and cluster configurations for API Gateways when peered, and updated the API Gateway update handler to propogate mesh gateway config to its upstreams. [[GH-23454](https://github.com/hashicorp/consul/pull/23454)]
+* XDS: Fixes issue with mesh-gateway in remote mode on AWS EKS, as DNS hostnames are assigned to AWS NLBs instead of IPs and envoy's EDS endpoint validation expects address to be an IP. Now EDS load assignment is skipped for non-peer remote mesh gateway targets with hostname based gateways keeping CDS/EDS in sync. [[GH-23543](https://github.com/hashicorp/consul/issues/23543)]
+* api-gateway: resolve service subsets for routes during API gateway discovery chain synthesis. [[GH-23294](https://github.com/hashicorp/consul/issues/23294)]
+* ui: Fix broken documentation links [[GH-23578](https://github.com/hashicorp/consul/issues/23578)]
+
+## 2.0.0 Enterprise (May 22, 2026)
+
+SECURITY:
+
+* connect: Upgrade envoy version to 1.37.2 and newer versions [[GH-23469](https://github.com/hashicorp/consul/pull/23469)]
+* go: Upgrade go version to 1.26 [[GH-23493](https://github.com/hashicorp/consul/pull/23493)]
+* agent: Increased default HTTP server timeouts to prevent breaking long-polling blocking queries. `read_timeout` and `write_timeout` are now set to 15 minutes (up from 30 seconds), while `read_header_timeout` (10s) and `idle_timeout` (120s) still provide protection against Slowloris attacks. All timeouts remain configurable via the `http_config` block. [[GH-23267](https://github.com/hashicorp/consul/issues/23267)]
+* api-gateway, terminating-gateway: Apply HTTP request path normalization on api-gateway and terminating-gateway HTTP listeners to prevent L7 intention RBAC bypass via non-normalized paths (CVE-2024-10005). [[GH-23534](https://github.com/hashicorp/consul/issues/23534)]
+* docker: update ubi base image to `ubi9-minimal:9.7`. [[GH-23553](https://github.com/hashicorp/consul/issues/23553)]
+* docker: Upgrade `curl` to >= 8.20.0 from Alpine edge in the container image to address
+[CVE-2026-6429](https://www.cve.org/CVERecord?id=CVE-2026-6429),
+[CVE-2026-4873](https://www.cve.org/CVERecord?id=CVE-2026-4873),
+[CVE-2026-5773](https://www.cve.org/CVERecord?id=CVE-2026-5773),
+[CVE-2026-6253](https://www.cve.org/CVERecord?id=CVE-2026-6253),
+[CVE-2026-6276](https://www.cve.org/CVERecord?id=CVE-2026-6276),
+[CVE-2026-7168](https://www.cve.org/CVERecord?id=CVE-2026-7168),
+[CVE-2026-5545](https://www.cve.org/CVERecord?id=CVE-2026-5545).
+Alpine 3.23 stable does not yet carry the patched version. [[GH-23750](https://github.com/hashicorp/consul/issues/23750)]
+* docker: Update to UBI base image to 9.8 for fixing [[CVE_2026-2100](https://access.redhat.com/security/cve/cve-2026-2100)] [[GH-23588](https://github.com/hashicorp/consul/issues/23588)]
+
+FEATURES:
+
+* **(Enterprise Only)** update to go-licensing/v4 and go-census/v3 inorder to adapt to new licenses of PAO.
+* Global Rate Limiter: **(Enterprise Only)** a new "rate-limit" config entry kind that enables dynamic, cluster-wide RPC rate limiting stored in Raft and automatically replicated to all servers. This allows operators to apply or adjust global rate limits at runtime without restarting Consul servers — a critical capability for emergency scenarios where the cluster is under excessive load.
+* api-gateway: Added SDS certificate support for API Gateway listeners, including listener-level default TLS certificates and HTTP/TCP route service TLS SDS overrides. Service overrides inherit the listener SDS cluster when omitted, and gateway validation/xDS generation now rejects conflicting override mappings to keep certificate selection deterministic. [[GH-23354](https://github.com/hashicorp/consul/pull/23354)]
+* api-gateway: add support for gateway-level default upstream limits and route service-level limit overrides for MaxConnections, MaxPendingRequests, and MaxConcurrentRequests. [[GH-23396](https://github.com/hashicorp/consul/pull/23396)]
+* api: Added new API "/v1/internal/rpc/methods" that lists all RPC method names. Requires an operator:read ACL token. This is useful when users want to configure rate limits that exclude specific RPC endpoints. [[GH-23329](https://github.com/hashicorp/consul/pull/23329)]
+* ca: **(Enterprise Only)** Added new Connect CA provider for Cyberark WIM (connect.ca_provider = "pan-distributed-issuer"), enabling Consul to issue certificates through Cyberark WIM.
+* server: **(Enterprise Only)** add stable cluster identity and leader-gated global registry sync for service summary publishing.
+* telemetry: **(Enterprise Only)** Product telemetry for self-managed Consul with anonymous, opt-in usage reporting.
+* mesh: **(Enterprise Only)** Introduce support for multi-port (named port) services in Consul, including the ability to specify and route traffic using port names, as well as to retrieve virtual IPs for specific service ports. It also enforces that certain advanced multi-port features are only available in Consul Enterprise, and includes new utility functions for cluster naming and ALPN protocol generation.
+
+IMPROVEMENTS:
+
+* agent: **(Enterprise Only)** Add eventually-consistent background cache for Enterprise usage metrics, reducing GET /v1/operator/usage latency from O(P*N*K) to O(1) and lowering CPU/memory pressure during high-frequency scraping via a watch-driven maintainer goroutine.
+* mesh: **(Enterprise Only)** Introduce support for multi-port (named port) services in Consul, including the ability to specify and route traffic using port names, as well as to retrieve virtual IPs for specific service ports. It also enforces that certain advanced multi-port features are only available in Consul Enterprise, and includes new utility functions for cluster naming and ALPN protocol generation.
+* terminating-gateway: Updated the cluster upstream tls to use sds instead of static certs, allowing for dynamic certificate updates without needing to restart the terminating gateway. [[GH-23288](https://github.com/hashicorp/consul/pull/23288)]
+* telemetry: Add certificate expiry monitoring with Prometheus metrics (labeled with datacenter/partition/namespace), structured logging with configurable severity thresholds, and enhanced Connect CA API to include NotAfter field for root and intermediate certificates. [[GH-23147](https://github.com/hashicorp/consul/pull/23147)]
+* deps: Upgrade `github.com/hashicorp/vault/sdk` from v0.7.0 to v0.25.1 and `github.com/hashicorp/vault/api` from v1.12.2 to v1.16.0. [[GH-23574](https://github.com/hashicorp/consul/issues/23574)]
+* test-integ: upgrade testcontainers-go (v0.22.0->v0.40.0) and docker/docker (v24.0.5->v28.5.1) in the integration test module. This removes opencontainers/runc as a Go dependency of the test framework. These are test infrastructure dependencies only and have no impact on the consul binary or any consul deployment. [[GH-23573](https://github.com/hashicorp/consul/issues/23573)]
+* xds: **(Enterprise Only)** add `Consecutive5xx`, `ConsecutiveGatewayFailure`, and `EnforcingConsecutiveGatewayFailure` fields to `PassiveHealthCheck`, allowing operators to configure Envoy outlier detection thresholds for 5xx responses and gateway failures (502/503/504) on upstreams defaults.
+
+BUG FIXES:
+
+* audit-logging: **(Enterprise Only)** Fixed JSON unmarshall error when array of obj is passed for auditReq body.
+* cli: Enhanced error messages in `consul config write` command to provide actionable guidance when config entries cannot be modified due to references by gateways or routers. [[GH-22921](https://github.com/hashicorp/consul/pull/22921)]
+* xds: Fixed XDS package to generate correct endpoints and cluster configurations for API Gateways when peered, and updated the API Gateway update handler to propogate mesh gateway config to its upstreams. [[GH-23454](https://github.com/hashicorp/consul/pull/23454)]
+* XDS: Fixes issue with mesh-gateway in remote mode on AWS EKS, as DNS hostnames are assigned to AWS NLBs instead of IPs and envoy's EDS endpoint validation expects address to be an IP. Now EDS load assignment is skipped for non-peer remote mesh gateway targets with hostname based gateways keeping CDS/EDS in sync. [[GH-23543](https://github.com/hashicorp/consul/issues/23543)]
+* api-gateway: resolve service subsets for routes during API gateway discovery chain synthesis. [[GH-23294](https://github.com/hashicorp/consul/issues/23294)]
+* ui: Fix broken documentation links [[GH-23578](https://github.com/hashicorp/consul/issues/23578)]
+
+## 1.22.8 Enterprise (May 21, 2026)
+
+SECURITY:
+
+* api-gateway, terminating-gateway: Apply HTTP request path normalization on api-gateway and terminating-gateway HTTP listeners to prevent L7 intention RBAC bypass via non-normalized paths (CVE-2024-10005). [[GH-23534](https://github.com/hashicorp/consul/issues/23534)]
+* docker: Upgrade `curl` to >= 8.20.0 from Alpine edge in the container image to address
+[CVE-2026-6429](https://www.cve.org/CVERecord?id=CVE-2026-6429),
+[CVE-2026-4873](https://www.cve.org/CVERecord?id=CVE-2026-4873),
+[CVE-2026-5773](https://www.cve.org/CVERecord?id=CVE-2026-5773),
+[CVE-2026-6253](https://www.cve.org/CVERecord?id=CVE-2026-6253),
+[CVE-2026-6276](https://www.cve.org/CVERecord?id=CVE-2026-6276),
+[CVE-2026-7168](https://www.cve.org/CVERecord?id=CVE-2026-7168),
+[CVE-2026-5545](https://www.cve.org/CVERecord?id=CVE-2026-5545).
+Alpine 3.23 stable does not yet carry the patched version. [[GH-23570](https://github.com/hashicorp/consul/issues/23570)]
+* security: Fixed Consul transaction endpoint authorization bypasses where service and check mutations could be authorized using request-provided names while applying changes by ID, including a bypass using the reserved `consul` service name. [[GH-12716](https://github.com/hashicorp/consul/issues/12716)]
+* security: Update to UBI base image to 9.8 for fixing [[CVE_2026-2100](https://access.redhat.com/security/cve/cve-2026-2100)] [[GH-23588](https://github.com/hashicorp/consul/issues/23588)]
+
+IMPROVEMENTS:
+
+* upgrade go version to v1.25.10.
+* deps: Upgrade `github.com/hashicorp/vault/sdk` from v0.7.0 to v0.25.1 and `github.com/hashicorp/vault/api` from v1.12.2 to v1.16.0. [[GH-23574](https://github.com/hashicorp/consul/issues/23574)]
+* test-integ: upgrade testcontainers-go (v0.22.0->v0.40.0) and docker/docker (v24.0.5->v28.5.1) in the integration test module. This removes opencontainers/runc as a Go dependency of the test framework. These are test infrastructure dependencies only and have no impact on the consul binary or any consul deployment. [[GH-23573](https://github.com/hashicorp/consul/issues/23573)]
+* xds: (Enterprise Only) add Consecutive5xx, ConsecutiveGatewayFailure, and EnforcingConsecutiveGatewayFailure fields to PassiveHealthCheck, allowing operators to configure Envoy outlier detection thresholds for 5xx responses and gateway failures (502/503/504) on upstreams defaults.
+
+BUG FIXES:
+
+* http: Adds missing KV key validation for txn endpoint [[GH-23185](https://github.com/hashicorp/consul/issues/23185)]
+* ui: Fix broken documentation links [[GH-23578](https://github.com/hashicorp/consul/issues/23578)]
+* xds: Fixed XDS package to generate correct endpoints and cluster configurations for API Gateways when peered, and updated the API Gateway update handler to propogate mesh gateway config to its upstreams. [[GH-23454](https://github.com/hashicorp/consul/issues/23454)]
+
+
+## 1.21.14 Enterprise (May 21, 2026)
+
+SECURITY:
+
+* api-gateway, terminating-gateway: Apply HTTP request path normalization on api-gateway and terminating-gateway HTTP listeners to prevent L7 intention RBAC bypass via non-normalized paths (CVE-2024-10005). [[GH-23534](https://github.com/hashicorp/consul/issues/23534)]
+* docker: Upgrade `curl` to >= 8.20.0 from Alpine edge in the container image to address
+[CVE-2026-6429](https://www.cve.org/CVERecord?id=CVE-2026-6429),
+[CVE-2026-4873](https://www.cve.org/CVERecord?id=CVE-2026-4873),
+[CVE-2026-5773](https://www.cve.org/CVERecord?id=CVE-2026-5773),
+[CVE-2026-6253](https://www.cve.org/CVERecord?id=CVE-2026-6253),
+[CVE-2026-6276](https://www.cve.org/CVERecord?id=CVE-2026-6276),
+[CVE-2026-7168](https://www.cve.org/CVERecord?id=CVE-2026-7168),
+[CVE-2026-5545](https://www.cve.org/CVERecord?id=CVE-2026-5545).
+Alpine 3.23 stable does not yet carry the patched version. [[GH-23570](https://github.com/hashicorp/consul/issues/23570)]
+* docker: update ubi base image to `ubi9-minimal:9.7`. [[GH-23553](https://github.com/hashicorp/consul/issues/23553)]
+* security: Fixed Consul transaction endpoint authorization bypasses where service and check mutations could be authorized using request-provided names while applying changes by ID, including a bypass using the reserved `consul` service name. [[GH-12716](https://github.com/hashicorp/consul/issues/12716)]
+* security: Update to UBI base image to 9.8 for fixing [[CVE_2026-2100](https://access.redhat.com/security/cve/cve-2026-2100)] [[GH-23588](https://github.com/hashicorp/consul/issues/23588)]
+
+IMPROVEMENTS:
+
+* upgrade go version to v1.25.10. [[GH-12817](https://github.com/hashicorp/consul/issues/12817)]
+* deps: Upgrade `github.com/hashicorp/vault/sdk` from v0.7.0 to v0.25.1 and `github.com/hashicorp/vault/api` from v1.12.2 to v1.16.0. [[GH-23574](https://github.com/hashicorp/consul/issues/23574)]
+* test-integ: upgrade testcontainers-go (v0.22.0->v0.40.0) and docker/docker (v24.0.5->v28.5.1) in the integration test module. This removes opencontainers/runc as a Go dependency of the test framework. These are test infrastructure dependencies only and have no impact on the consul binary or any consul deployment. [[GH-23573](https://github.com/hashicorp/consul/issues/23573)]
+
+BUG FIXES:
+
+* http: Adds missing KV key validation for txn endpoint [[GH-23185](https://github.com/hashicorp/consul/issues/23185)]
+* ui: Fix broken documentation links [[GH-23578](https://github.com/hashicorp/consul/issues/23578)]
+* xds: Fixed XDS package to generate correct endpoints and cluster configurations for API Gateways when peered, and updated the API Gateway update handler to propogate mesh gateway config to its upstreams. [[GH-23454](https://github.com/hashicorp/consul/issues/23454)]
+
+
+## 1.22.7 (April 21, 2026)
+
+SECURITY:
+
+* security: update google.golang.org/grpc to fix CVE-2026-33186 [[GH-23379](https://github.com/hashicorp/consul/issues/23379)]
+* security: upgrade go.opentelemetry.io/otel to 1.42.0 to remediate CVE-2026-24051 (Path Hijacking / Untrusted Search Paths on macOS). [[GH-23387](https://github.com/hashicorp/consul/issues/23387)]
+* test-sds-server: bump github.com/hashicorp/consul to v1.22.5 in integration test module to align with the CVE-2026-2808 fixed release line. [[GH-23437](https://github.com/hashicorp/consul/issues/23437)]
+* ui: **(Enterprise only)** Backport Rollup update to 2.80.0 for release/1.21.x to address CVE-2026-27606 (SECVULN-38912).
+
+IMPROVEMENTS:
+
+* acl: Addition of TokenNameFormat field to auth-method and parse the same for token name [[GH-23444](https://github.com/hashicorp/consul/issues/23444)]
+* discovery-chain: removes the use of hashstructure_v2 ([github.com/mitchellh/hashstructure/v2] from compiled discovery chain hashing and replaces it with explicit custom hash implementations. [[GH-23393](https://github.com/hashicorp/consul/issues/23393)]
+* ui: removed consul docs website related code as it is being maintained in a separate internal repository. [[GH-23398](https://github.com/hashicorp/consul/issues/23398)]
+
+BUG FIXES:
+
+* api-gateway: fix HTTPRoute PathPrefix routing to preserve the original request path when `replacePrefixMatch` is not configured [[GH-23390](https://github.com/hashicorp/consul/issues/23390)]
+
+## 1.22.7 Enterprise (April 21, 2026)
+
+SECURITY:
+
+* security: update google.golang.org/grpc to fix CVE-2026-33186 [[GH-23379](https://github.com/hashicorp/consul/issues/23379)]
+* security: upgrade go version to 1.25.8
+* connect: Upgrade envoy version to 1.35.10 and 1.34.14 [[GH-12602](https://github.com/hashicorp/consul/issues/12602)]
+* security(ui): backport Rollup fix to 2.80.0 in release/1.22.x to address CVE-2026-27606 (SECVULN-38912). [[GH-23359](https://github.com/hashicorp/consul/issues/23359)]
+* security: upgrade go.opentelemetry.io/otel to 1.42.0 to remediate CVE-2026-24051 (Path Hijacking / Untrusted Search Paths on macOS). [[GH-23387](https://github.com/hashicorp/consul/issues/23387)]
+* test-sds-server: bump github.com/hashicorp/consul to v1.22.5 in integration test module to align with the CVE-2026-2808 fixed release line. [[GH-23437](https://github.com/hashicorp/consul/issues/23437)]
+
+IMPROVEMENTS:
+
+* acl: Addition of TokenNameFormat field to auth-method and parse the same for token name [[GH-23444](https://github.com/hashicorp/consul/issues/23444)]
+* discovery-chain: removes the use of hashstructure_v2 ([github.com/mitchellh/hashstructure/v2] from compiled discovery chain hashing and replaces it with explicit custom hash implementations. [[GH-23393](https://github.com/hashicorp/consul/issues/23393)]
+* ui: removed consul docs website related code as it is being maintained in a separate internal repository. [[GH-23398](https://github.com/hashicorp/consul/issues/23398)]
+
+BUG FIXES:
+
+* api-gateway: fix HTTPRoute PathPrefix routing to preserve the original request path when `replacePrefixMatch` is not configured [[GH-23390](https://github.com/hashicorp/consul/issues/23390)]
+
+## 1.21.13 Enterprise (April 21, 2026)
+
+SECURITY:
+
+* security: update google.golang.org/grpc to fix CVE-2026-33186 [[GH-23379](https://github.com/hashicorp/consul/issues/23379)]
+* security: upgrade go.opentelemetry.io/otel to 1.42.0 to remediate CVE-2026-24051 (Path Hijacking / Untrusted Search Paths on macOS). [[GH-23387](https://github.com/hashicorp/consul/issues/23387)]
+* test-sds-server: bump github.com/hashicorp/consul to v1.22.5 in integration test module to align with the CVE-2026-2808 fixed release line. [[GH-23437](https://github.com/hashicorp/consul/issues/23437)]
+* security: upgrade go version to 1.25.9
+* ui: **(Enterprise only)** Backport Rollup update to 2.80.0 for release/1.21.x to address CVE-2026-27606 (SECVULN-38912). [[GH-23359](https://github.com/hashicorp/consul/issues/23359)]
+
+IMPROVEMENTS:
+
+* acl: Addition of TokenNameFormat field to auth-method and parse the same for token name [[GH-23444](https://github.com/hashicorp/consul/issues/23444)]
+* discovery-chain: removes the use of hashstructure_v2 ([github.com/mitchellh/hashstructure/v2] from compiled discovery chain hashing and replaces it with explicit custom hash implementations. [[GH-23393](https://github.com/hashicorp/consul/issues/23393)]
+* ui: removed consul docs website related code as it is being maintained in a separate internal repository. [[GH-23398](https://github.com/hashicorp/consul/issues/23398)]
+
+BUG FIXES:
+
+* api-gateway: fix HTTPRoute PathPrefix routing to preserve the original request path when `replacePrefixMatch` is not configured [[GH-23390](https://github.com/hashicorp/consul/issues/23390)]
+
+
 ## 1.22.6 (March 23, 2026)
 
 SECURITY:
