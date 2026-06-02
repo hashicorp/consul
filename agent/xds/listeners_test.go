@@ -487,6 +487,54 @@ func Test_makeHTTPFilter_maxRequestHeadersKb(t *testing.T) {
 	}
 }
 
+func Test_makeHTTPFilter_stripForwardClientCertHeader(t *testing.T) {
+	tests := map[string]struct {
+		stripHeader bool
+		wantRemoved bool
+	}{
+		"disabled": {
+			stripHeader: false,
+			wantRemoved: false,
+		},
+		"enabled": {
+			stripHeader: true,
+			wantRemoved: true,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			opts := listenerFilterOpts{
+				protocol:                     "http",
+				filterName:                   "test",
+				routeName:                    "test",
+				cluster:                      "test",
+				forwardClientDetails:         true,
+				stripForwardClientCertHeader: tc.stripHeader,
+			}
+
+			filter, err := makeHTTPFilter(opts)
+			require.NoError(t, err)
+
+			var httpConnMgr envoy_http_v3.HttpConnectionManager
+			err = filter.GetTypedConfig().UnmarshalTo(&httpConnMgr)
+			require.NoError(t, err)
+
+			routeConfig := httpConnMgr.GetRouteConfig()
+			require.NotNil(t, routeConfig)
+			require.Len(t, routeConfig.VirtualHosts, 1)
+			require.Len(t, routeConfig.VirtualHosts[0].Routes, 1)
+
+			headers := routeConfig.VirtualHosts[0].Routes[0].GetRequestHeadersToRemove()
+			if tc.wantRemoved {
+				require.Contains(t, headers, "x-forwarded-client-cert")
+			} else {
+				require.NotContains(t, headers, "x-forwarded-client-cert")
+			}
+		})
+	}
+}
+
 func Test_makeUpstreamFilterChain_maxRequestHeadersKb(t *testing.T) {
 	tests := map[string]struct {
 		maxRequestHeadersKb *uint32
