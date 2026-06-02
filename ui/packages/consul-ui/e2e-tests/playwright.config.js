@@ -59,6 +59,11 @@ module.exports = defineConfig({
       process.env.BASE_URL ||
       (process.env.CI ? 'http://localhost:8500' : 'http://localhost:4200'),
 
+    // Base URL for the second Consul instance used in peering workflow tests.
+    // Both local dev and CI use port 8501 for the peer agent.
+    // Override with PLAYWRIGHT_PEER_URL if your setup differs.
+    peerBaseURL: process.env.PLAYWRIGHT_PEER_URL || 'http://localhost:8501',
+
     // Use saved authentication state
     storageState: 'e2e-tests/auth-state.json',
 

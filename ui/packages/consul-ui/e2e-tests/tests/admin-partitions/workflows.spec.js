@@ -121,11 +121,7 @@ test.describe('Admin Partitions - Workflows', { tag: '@ent' }, () => {
    * Verifies that matching rows remain visible and that clearing the search
    * restores all results.
    */
-  test('search bar filters the partition list', async ({
-    partitionsPage,
-    request,
-    baseURL,
-  }) => {
+  test('search bar filters the partition list', async ({ partitionsPage, request, baseURL }) => {
     const isEnt = await isEnterpriseConsul(request, baseURL);
     test.skip(!isEnt, 'Admin Partitions is an Enterprise-only feature.');
 
