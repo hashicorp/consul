@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -1951,8 +1952,10 @@ func (a *ACL) AuthMethodSet(args *structs.ACLAuthMethodSetRequest, reply *struct
 		}
 	}
 
+	method.TokenNameFormat = strings.Trim(method.TokenNameFormat, " ")
 	if method.TokenNameFormat != "" {
-		_, err := auth.FormatTokenName(method, nil)
+		claims := method.GetClaimMappings()
+		_, err := auth.FormatTokenName(method, claims, true)
 		if err != nil {
 			return fmt.Errorf("Failed to validate token-format-name: %s", err.Error())
 		}
@@ -2143,12 +2146,17 @@ func (a *ACL) Login(args *structs.ACLLoginRequest, reply *structs.ACLToken) erro
 		return err
 	}
 
+	name, err := auth.FormatTokenName(authMethod, verifiedIdentity.ProjectedVars, false)
+	if err != nil {
+		return err
+	}
+
 	description, err := auth.BuildTokenDescription("token created via login", args.Auth.Meta)
 	if err != nil {
 		return err
 	}
 
-	token, err := a.srv.aclLogin().TokenForVerifiedIdentity(verifiedIdentity, authMethod, description)
+	token, err := a.srv.aclLogin().TokenForVerifiedIdentity(verifiedIdentity, authMethod, name, description)
 	if err == nil {
 		*reply = *token
 	}
