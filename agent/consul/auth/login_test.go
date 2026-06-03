@@ -67,7 +67,7 @@ func TestFormatTokenName(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil auth method", func(t *testing.T) {
-		name, err := FormatTokenName(nil, nil)
+		name, err := FormatTokenName(nil, nil, false)
 		require.NoError(t, err)
 		require.Empty(t, name)
 	})
@@ -77,7 +77,7 @@ func TestFormatTokenName(t *testing.T) {
 			Name: "test-method",
 			Type: "testing",
 		}
-		name, err := FormatTokenName(authMethod, nil)
+		name, err := FormatTokenName(authMethod, nil, false)
 		require.NoError(t, err)
 		require.Empty(t, name)
 	})
@@ -89,7 +89,7 @@ func TestFormatTokenName(t *testing.T) {
 			TokenNameFormat: "${auth_method_type}-${auth_method_name}",
 		}
 
-		name, err := FormatTokenName(authMethod, nil)
+		name, err := FormatTokenName(authMethod, nil, false)
 		require.NoError(t, err)
 
 		// Expect the interpolated prefix followed by a random uint64 suffix
@@ -97,22 +97,44 @@ func TestFormatTokenName(t *testing.T) {
 		require.NotEqual(t, "kubernetes-k8s-dev-", name) // Ensure suffix exists
 	})
 
-	t.Run("valid format with claims", func(t *testing.T) {
+	t.Run("valid format with claims addValueToClaimsKey false", func(t *testing.T) {
 		authMethod := &structs.ACLAuthMethod{
 			Name:            "jwt-prod",
 			Type:            "jwt",
 			TokenNameFormat: "${auth_method_name}-${value.app}-${value.env}",
 		}
+		// When addValueToClaimsKey=false, claims keys go directly into valueMap,
+		// so they must already include the "value." prefix (as ProjectedVars does).
 		claims := map[string]string{
-			"app": "frontend",
-			"env": "production",
+			"value.app": "frontend",
+			"value.env": "production",
 		}
 
-		name, err := FormatTokenName(authMethod, claims)
+		name, err := FormatTokenName(authMethod, claims, false)
 		require.NoError(t, err)
 
 		require.True(t, strings.HasPrefix(name, "jwt-prod-frontend-production-"))
 	})
+
+	t.Run("valid format with claims addValueToClaimsKey true", func(t *testing.T) {
+		authMethod := &structs.ACLAuthMethod{
+			Name:            "jwt-prod",
+			Type:            "jwt",
+			TokenNameFormat: "${auth_method_name}-${value.app}-${value.env}",
+		}
+		// When addValueToClaimsKey=true, prefix="value." is added and k is set to v,
+		// so valueMap["value."+v] = v. The claims map here is {claimPath: mappedName}.
+		claims := map[string]string{
+			"app_claim": "app",
+			"env_claim": "env",
+		}
+
+		name, err := FormatTokenName(authMethod, claims, true)
+		require.NoError(t, err)
+
+		require.True(t, strings.HasPrefix(name, "jwt-prod-app-env-"))
+	})
+
 	t.Run("static token name format (no interpolation)", func(t *testing.T) {
 		authMethod := &structs.ACLAuthMethod{
 			Name:            "static-method",
@@ -120,7 +142,7 @@ func TestFormatTokenName(t *testing.T) {
 			TokenNameFormat: "my-hardcoded-prefix",
 		}
 
-		name, err := FormatTokenName(authMethod, nil)
+		name, err := FormatTokenName(authMethod, nil, false)
 		require.NoError(t, err)
 
 		// Expect the literal string followed by a random uint64 suffix
@@ -137,7 +159,7 @@ func TestFormatTokenName(t *testing.T) {
 		}
 
 		// Passing nil claims means "value.namespace" won't exist in the valueMap
-		name, err := FormatTokenName(authMethod, nil)
+		name, err := FormatTokenName(authMethod, nil, false)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "unknown variable accessed: value.namespace")
 		require.Empty(t, name)
@@ -151,7 +173,7 @@ func TestFormatTokenName(t *testing.T) {
 			TokenNameFormat: "${random_unsupported_var}",
 		}
 
-		name, err := FormatTokenName(authMethod, nil)
+		name, err := FormatTokenName(authMethod, nil, false)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "unknown variable accessed: random_unsupported_var")
 		require.Empty(t, name)
