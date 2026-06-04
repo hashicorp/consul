@@ -9,7 +9,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/armon/go-metrics"
+	"github.com/hashicorp/go-metrics"
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"

@@ -11,7 +11,7 @@ import (
 
 	"github.com/hashicorp/consul/logging"
 
-	"github.com/armon/go-metrics"
+	"github.com/hashicorp/go-metrics"
 	"github.com/hashicorp/go-multierror"
 	"github.com/stretchr/testify/require"
 )
