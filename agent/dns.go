@@ -16,8 +16,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/go-metrics"
 	"github.com/armon/go-radix"
+	"github.com/hashicorp/go-metrics"
 	"github.com/miekg/dns"
 
 	"github.com/hashicorp/go-hclog"

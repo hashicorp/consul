@@ -11,9 +11,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-metrics"
 	"github.com/hashicorp/go-metrics/prometheus"
-	"github.com/hashicorp/go-hclog"
 	"golang.org/x/sync/singleflight"
 	"golang.org/x/time/rate"
 

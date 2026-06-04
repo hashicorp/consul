@@ -186,7 +186,7 @@ func addSerfMetricsLabels(conf *serf.Config, wan bool, segment string, partition
 		networkMetric.Value = "lan"
 	}
 
-	conf.MetricLabels = append(conf.MetricLabels, metricscompat.Label(networkMetric))
+	conf.MetricLabels = append(conf.MetricLabels, networkMetric)
 }
 
 func (s *Server) updateReportingConfig(config ReloadableConfig) {
