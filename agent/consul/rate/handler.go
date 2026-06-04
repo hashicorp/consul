@@ -14,7 +14,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/metadata"
 
-	"github.com/armon/go-metrics"
+	"github.com/hashicorp/go-metrics"
 	"github.com/hashicorp/go-hclog"
 	"golang.org/x/time/rate"
 

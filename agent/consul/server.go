@@ -18,7 +18,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/armon/go-metrics"
+	"github.com/hashicorp/go-metrics"
 	"github.com/fullstorydev/grpchan/inprocgrpc"
 	"go.etcd.io/bbolt"
 	"golang.org/x/time/rate"

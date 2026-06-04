@@ -3,7 +3,7 @@
 
 package rate
 
-import "github.com/armon/go-metrics/prometheus"
+import "github.com/hashicorp/go-metrics/prometheus"
 
 var Counters = []prometheus.CounterDefinition{
 	{
