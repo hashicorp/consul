@@ -6,6 +6,7 @@ on:
 permissions:
   issues: write
   contents: write
+  pull-requests: read
 jobs:
   stale_branches:
     runs-on: ubuntu-latest
