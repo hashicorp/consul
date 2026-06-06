@@ -497,6 +497,25 @@ jobs:
       consul-license: ${{secrets.CONSUL_LICENSE}}
       datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
 
+  coverage-report:
+    needs:
+      - conditional-skip
+      - get-go-version
+      - go-test-ce
+      - go-test-api
+      - go-test-sdk
+      - go-test-envoyextensions
+      - go-test-troubleshoot
+      - go-test-testing-deployer
+    if: always() && needs.conditional-skip.outputs.skip-ci != 'true'
+    uses: ./.github/workflows/reusable-coverage-report.yml
+    permissions:
+      pull-requests: write
+      contents: write  # required to push coverage badge to badges branch
+      id-token: write  # required for OIDC tokenless Codecov upload
+    with:
+      go-version: ${{ needs.get-go-version.outputs.go-version }}
+
   noop:
     runs-on: ubuntu-latest
     steps:
@@ -540,6 +559,7 @@ jobs:
     - go-test-sdk
     - go-test-32bit
     - go-test-testing-deployer
+    - coverage-report
     # - go-test-s390x
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     if: always() && needs.conditional-skip.outputs.skip-ci != 'true'

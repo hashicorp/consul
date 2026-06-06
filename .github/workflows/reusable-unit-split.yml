@@ -182,6 +182,13 @@ jobs:
         with:
           name: ${{ steps.generate-matrix-id.outputs.matrix-run-id }}-jsonfile
           path: /tmp/jsonfile
+      - name: Upload coverage profile
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        with:
+          name: ${{ steps.generate-matrix-id.outputs.matrix-run-id }}-coverage
+          path: coverage.txt
+          if-no-files-found: ignore
       - name: "Re-run fails report"
         if: ${{ !cancelled() }}
         run: |
