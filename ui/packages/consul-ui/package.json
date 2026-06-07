@@ -88,7 +88,7 @@
     "@hashicorp/ember-cli-api-double": "^4.0.0",
     "@html-next/vertical-collection": "^4.0.0",
     "@lit/reactive-element": "^1.2.1",
-    "@playwright/test": "^1.58.2",
+    "@playwright/test": "^1.60.0",
     "@xstate/fsm": "^2.1.0",
     "a11y-dialog": "^6.0.1",
     "autoprefixer": "^10.4.8",
