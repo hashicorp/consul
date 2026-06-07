@@ -365,10 +365,8 @@ class PeeringsPage {
  *  - peerPeeringsPage — PeeringsPage page-object for the peer instance
  */
 const test = base.extend({
-  // eslint-disable-next-line no-empty-pattern
-  peerBaseURL: async ({}, use) => {
-    await use(process.env.PLAYWRIGHT_PEER_URL || 'http://localhost:8501');
-  },
+  // Option fixture so playwright.config.js can override it via `use.peerBaseURL`.
+  peerBaseURL: [process.env.PLAYWRIGHT_PEER_URL || 'http://localhost:8501', { option: true }],
 
   /**
    * A separate browser page navigating against the second Consul instance.
