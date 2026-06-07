@@ -69,7 +69,8 @@ test.describe('Access Controls - Basic', () => {
       await policiesPage.goto();
       await policiesPage.openPolicy(policyName);
       await policiesPage.editAndSave({ description: 'policy-updated' });
-      await page.reload({ waitUntil: 'domcontentloaded' });
+      await policiesPage.waitForPolicyInList(policyName);
+      await policiesPage.openPolicy(policyName);
       await expect(policiesPage.descriptionInput).toHaveValue('policy-updated');
 
       await rolesPage.goto();

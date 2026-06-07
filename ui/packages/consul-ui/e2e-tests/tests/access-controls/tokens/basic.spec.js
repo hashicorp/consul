@@ -65,7 +65,7 @@ test.describe('Access Controls - Tokens - Basic', () => {
 
     // Verify token details are visible
     await expect(page.getByText('AccessorID')).toBeVisible();
-    await expect(page.getByText('Token', { exact: true })).toBeVisible();
+    await expect(page.locator('dt').getByText('Token', { exact: true })).toBeVisible();
   });
 
   test('should delete a token', async ({ page }) => {

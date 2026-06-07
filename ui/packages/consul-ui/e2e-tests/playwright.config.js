@@ -26,11 +26,12 @@ module.exports = defineConfig({
   // Fail the build on CI if you accidentally left test.only in the source code
   forbidOnly: !!process.env.CI,
 
-  // Retry on CI only
-  retries: process.env.CI ? 2 : 0,
+  // Retry on CI; allow 1 retry locally too to reduce noise from timing flakes
+  retries: process.env.CI ? 2 : 1,
 
-  // Opt out of parallel tests on CI
-  workers: process.env.CI ? 1 : undefined,
+  // Limit workers to 1 everywhere — tests share a single Consul instance and
+  // will race/corrupt each other's ACL/KV/peering state if run in parallel.
+  workers: 1,
 
   // Reporter to use
   reporter: process.env.CI
