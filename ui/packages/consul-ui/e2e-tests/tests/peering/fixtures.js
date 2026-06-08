@@ -144,11 +144,28 @@ class PeeringApiHelper {
         })),
       };
     } else {
-      // No existing services — export everything to this peer.
+      // No existing exported-services entry — discover real services from the
+      // catalog and export them. The Consul API rejects wildcard (*) service
+      // names in exported-services config entries, so we must enumerate.
+      const catalogRes = await this.request.get(`${this.baseURL}/v1/catalog/services`, {
+        headers: this.headers,
+      });
+      const serviceMap = catalogRes.ok() ? await catalogRes.json() : {};
+      // Exclude the built-in 'consul' service which cannot be exported.
+      const serviceNames = Object.keys(serviceMap).filter((n) => n !== 'consul');
+
+      if (serviceNames.length === 0) {
+        console.warn('Warning: no exportable services found in catalog; skipping exported-services update');
+        return;
+      }
+
       config = {
         Kind: 'exported-services',
         Name: 'default',
-        Services: [{ Name: '*', Consumers: [{ Peer: peerName }] }],
+        Services: serviceNames.map((name) => ({
+          Name: name,
+          Consumers: [{ Peer: peerName }],
+        })),
       };
     }
 
