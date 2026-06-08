@@ -155,7 +155,9 @@ class PeeringApiHelper {
       const serviceNames = Object.keys(serviceMap).filter((n) => n !== 'consul');
 
       if (serviceNames.length === 0) {
-        console.warn('Warning: no exportable services found in catalog; skipping exported-services update');
+        console.warn(
+          'Warning: no exportable services found in catalog; skipping exported-services update'
+        );
         return;
       }
 
@@ -383,6 +385,7 @@ class PeeringsPage {
  */
 const test = base.extend({
   // Option fixture so playwright.config.js can override it via `use.peerBaseURL`.
+  // eslint-disable-next-line ember/avoid-leaking-state-in-ember-objects
   peerBaseURL: [process.env.PLAYWRIGHT_PEER_URL || 'http://localhost:8501', { option: true }],
 
   /**
