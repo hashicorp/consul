@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="20">
+  <linearGradient id="s" x2="0" y2="100%">
+    <stop offset="0" stop-color="#bbb" stop-opacity=".1"/>
+    <stop offset="1" stop-opacity=".1"/>
+  </linearGradient>
+  <rect rx="3" width="120" height="20" fill="#555"/>
+  <rect rx="3" x="62" width="58" height="20" fill="yellow"/>
+  <rect x="62" width="4" height="20" fill="yellow"/>
+  <rect rx="3" width="120" height="20" fill="url(#s)"/>
+  <g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11">
+    <text x="32" y="15" fill="#010101" fill-opacity=".3">coverage</text>
+    <text x="32" y="14">coverage</text>
+    <text x="90" y="15" fill="#010101" fill-opacity=".3">63.2%</text>
+    <text x="90" y="14">63.2%</text>
+  </g>
+</svg>
