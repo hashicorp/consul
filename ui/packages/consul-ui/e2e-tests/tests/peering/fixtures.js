@@ -130,19 +130,15 @@ class PeeringApiHelper {
       this._savedExportedServices = null; // no pre-existing entry
     }
 
-    let config;
+    let services;
     if (this._savedExportedServices?.Services?.length > 0) {
       // Add our test peer as an additional consumer on each existing service.
-      config = {
-        Kind: 'exported-services',
-        Name: this._savedExportedServices.Name || 'default',
-        Partition: this._savedExportedServices.Partition || 'default',
-        Services: this._savedExportedServices.Services.map((svc) => ({
-          Name: svc.Name,
-          Namespace: svc.Namespace,
-          Consumers: [...(svc.Consumers || []), { Peer: peerName }],
-        })),
-      };
+      // Do NOT forward the Namespace field — CE rejects empty-string namespaces
+      // (which is what the consul-ui-testing environment returns in API responses).
+      services = this._savedExportedServices.Services.map((svc) => ({
+        Name: svc.Name,
+        Consumers: [...(svc.Consumers || []), { Peer: peerName }],
+      }));
     } else {
       // No existing exported-services entry — discover real services from the
       // catalog and export them. The Consul API rejects wildcard (*) service
@@ -155,28 +151,32 @@ class PeeringApiHelper {
       const serviceNames = Object.keys(serviceMap).filter((n) => n !== 'consul');
 
       if (serviceNames.length === 0) {
-        console.warn(
-          'Warning: no exportable services found in catalog; skipping exported-services update'
+        throw new Error(
+          'No exportable services found in catalog; cannot set up exported-services config'
         );
-        return;
       }
 
-      config = {
-        Kind: 'exported-services',
-        Name: 'default',
-        Services: serviceNames.map((name) => ({
-          Name: name,
-          Consumers: [{ Peer: peerName }],
-        })),
-      };
+      services = serviceNames.map((name) => ({
+        Name: name,
+        Consumers: [{ Peer: peerName }],
+      }));
     }
+
+    const config = {
+      Kind: 'exported-services',
+      Name: this._savedExportedServices?.Name || 'default',
+      Services: services,
+    };
 
     const writeRes = await this.request.put(`${this.baseURL}/v1/config`, {
       headers: this.headers,
       data: config,
     });
     if (!writeRes.ok()) {
-      console.warn(`Warning: failed to update exported-services config (${writeRes.status()})`);
+      const errBody = await writeRes.text().catch(() => '(unreadable)');
+      throw new Error(
+        `Failed to update exported-services config (${writeRes.status()}): ${errBody}`
+      );
     }
   }
 
