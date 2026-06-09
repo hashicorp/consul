@@ -667,7 +667,6 @@ func (h *handlerAPIGateway) generateAPIGatewayDNSSANs(snap *ConfigSnapshot) []st
 		namespaces[structs.IntentionDefaultNamespace] = struct{}{}
 	}
 
-	// TODO(partitions): How should these be updated for partitions?
 	for ns := range namespaces {
 		// The default namespace is special cased in DNS resolution, so special
 		// case it here.
