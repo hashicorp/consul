@@ -24,7 +24,7 @@ overrides:
   on-headers@<1.1.0: '>=1.1.0'
   tmp@<=0.2.3: '>=0.2.4'
   rollup@<2.80.0: '>=2.80.0'
-  qs: '>=6.14.2'
+  qs: '>=6.15.2'
   underscore: '>=1.13.8'
   immutable: '>=5.1.5'
   serialize-javascript@<=7.0.4: '>=7.0.5'
@@ -32,6 +32,7 @@ overrides:
   handlebars@<4.7.9: '>=4.7.9'
   yaml@>=2.0.0 <2.8.3: '>=2.8.3'
   picomatch@<2.3.2: ^2.3.2
+  brace-expansion@>=5.0.0 <5.0.6: ^5.0.6
   brace-expansion@>=2.0.0 <2.0.3: ^2.0.3
   brace-expansion@<1.1.13: ^1.1.13
   ajv@<6.14.0: ^6.14.0
@@ -53,10 +54,7 @@ overrides:
   postcss@<8.5.10: '>=8.5.10'
   fast-uri@<=3.1.1: ^3.1.2
   '@babel/plugin-transform-modules-systemjs@>=7.12.0 <=7.29.3': ^7.29.4
-  brace-expansion@>=5.0.0 <5.0.6: '>=5.0.6'
-  ws@>=8.0.0 <8.20.1: '>=8.20.1'
-  qs@>=6.11.1 <=6.15.1: '>=6.15.2'
-  tmp@<0.2.6: '>=0.2.6'
+  ws@<8.20.1: '>=8.20.1'
 
 importers:
 
@@ -152,6 +150,9 @@ importers:
       '@lit/reactive-element':
         specifier: ^1.2.1
         version: 1.6.3
+      '@playwright/test':
+        specifier: ^1.60.0
+        version: 1.60.0
       '@xstate/fsm':
         specifier: ^2.1.0
         version: 2.1.0
@@ -324,8 +325,8 @@ importers:
         specifier: ^0.8.8
         version: 0.8.8
       ember-exam:
-        specifier: ^10.0.0
-        version: 10.0.0(@glint/template@1.5.2)(ember-qunit@9.0.4(@ember/test-helpers@5.4.1(@babel/core@7.28.5)(@glint/template@1.5.2))(@glint/template@1.5.2)(qunit@2.24.2))(ember-source@5.12.0(@glimmer/component@1.1.2(@babel/core@7.28.5))(@glint/template@1.5.2)(rsvp@4.8.5)(webpack@5.105.4))(qunit@2.24.2)(webpack@5.105.4)
+        specifier: ^10.1.0
+        version: 10.1.0(@glint/template@1.5.2)(ember-qunit@9.0.4(@ember/test-helpers@5.4.1(@babel/core@7.28.5)(@glint/template@1.5.2))(@glint/template@1.5.2)(qunit@2.24.2))(ember-source@5.12.0(@glimmer/component@1.1.2(@babel/core@7.28.5))(@glint/template@1.5.2)(rsvp@4.8.5)(webpack@5.105.4))(qunit@2.24.2)(webpack@5.105.4)
       ember-inflector:
         specifier: ^6.0.0
         version: 6.0.0(@babel/core@7.28.5)
@@ -1935,6 +1936,11 @@ packages:
   '@pkgjs/parseargs@0.11.0':
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
     engines: {node: '>=14'}
+
+  '@playwright/test@1.60.0':
+    resolution: {integrity: sha512-O71yZIbAh/PxDMNGns37GHBIfrVkEVyn+AXyIa5dOTfb4/xNvRWV+Vv/NMbNCtODB/pO7vLlF2OTmMVLhmr7Ag==}
+    engines: {node: '>=18'}
+    hasBin: true
 
   '@pnpm/constants@7.1.1':
     resolution: {integrity: sha512-31pZqMtjwV+Vaq7MaPrT1EoDFSYwye3dp6BiHIGRJmVThCQwySRKM7hCvqqI94epNkqFAAYoWrNynWoRYosGdw==}
@@ -3786,8 +3792,8 @@ packages:
     resolution: {integrity: sha512-3slTltQV5ke53t3YVP2GYoswsQ6y+lhuVzKmt09tbEx91DapG8I/xa8W5OA0StvcQlavL3/vHrz/vCQEFs8bBA==}
     engines: {node: 14.* || 16.* || >= 18}
 
-  ember-exam@10.0.0:
-    resolution: {integrity: sha512-0pCrLqcUgni7QUYqu2xKWX0ikiR0xdvX8DWDdhokZwrvxV17gsTNb7uXqZd1OsBbfAZsqbm/0Wv34pc6yXklGw==}
+  ember-exam@10.1.0:
+    resolution: {integrity: sha512-6jUftmu2zpmLZ35PCsZDbdsAXTm2GjCGT3SjRX+BkUr2yKYpbD9B2R7hqCUnqOOTkdp2lzhBcGZ+KwwLLdH7eg==}
     engines: {node: '>= 18'}
     peerDependencies:
       ember-qunit: '*'
@@ -4557,6 +4563,11 @@ packages:
 
   fs.realpath@1.0.0:
     resolution: {integrity: sha512-OO0pH2lK6a0hZnAdau5ItzHPI6pUlvI7jMVnxUQRtw4owF2wk8lOSabtGDCTP4Ggrg2MbGnWO9X8K1t4+fGMDw==}
+
+  fsevents@2.3.2:
+    resolution: {integrity: sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==}
+    engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
+    os: [darwin]
 
   fsevents@2.3.3:
     resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
@@ -6126,6 +6137,16 @@ packages:
     resolution: {integrity: sha512-nDywThFk1i4BQK4twPQ6TA4RT8bDY96yeuCVBWL3ePARCiEKDRSrNGbFIgUJpLp+XeIR65v8ra7WuJOFUBtkMA==}
     engines: {node: '>=8'}
 
+  playwright-core@1.60.0:
+    resolution: {integrity: sha512-9bW6zvX/m0lEbgTKJ6YppOKx8H3VOPBMOCFh2irXFOT4BbHgrx5hPjwJYLT40Lu+4qtD36qKc/Hn56StUW57IA==}
+    engines: {node: '>=18'}
+    hasBin: true
+
+  playwright@1.60.0:
+    resolution: {integrity: sha512-hheHdokM8cdqCb0lcE3s+zT4t4W+vvjpGxsZlDnikarzx8tSzMebh3UiFtgqwFwnTnjYQcsyMF8ei2mCO/tpeA==}
+    engines: {node: '>=18'}
+    hasBin: true
+
   portfinder@1.0.32:
     resolution: {integrity: sha512-on2ZJVVDXRADWE6jnQaX0ioEylzgBpQk8r55NE4wjXW1ZxO+BgDlY6DXwj20i0V8eB4SenDQ00WEaxfiIQPcxg==}
     engines: {node: '>= 0.12.0'}
@@ -7058,8 +7079,8 @@ packages:
   tippy.js@6.3.7:
     resolution: {integrity: sha512-E1d3oP2emgJ9dRQZdf3Kkn0qJgI6ZLpyS5z6ZkY1DF3kaQaBsGZsndEpHwx+eC+tYM41HaSNvNtLx8tU57FzTQ==}
 
-  tmp@0.2.7:
-    resolution: {integrity: sha512-e0votIpp4Uo2AJYSzVHV6xCcawuiez3DzqDAbrTc3YxBkplN6e+dM13ZeIcZnDg/QpSuU2zfZ3rzwY8ukEnaXw==}
+  tmp@0.2.5:
+    resolution: {integrity: sha512-voyz6MApa1rQGUxT3E+BK7/ROe8itEx7vD8/HEvt4xwXucvQ5G5oeEiHkmHZJuBO21RpOf+YYm9MOivj709jow==}
     engines: {node: '>=14.14'}
 
   tmpl@1.0.5:
@@ -7439,8 +7460,8 @@ packages:
   write-file-atomic@3.0.3:
     resolution: {integrity: sha512-AvHcyZ5JnSfq3ioSyjrBkH9yW4m7Ayk8/9My/DD9onKeu/94fwrMocemO2QAJFAlnnDN+ZDS+ZjAR5ua1/PV/Q==}
 
-  ws@8.21.0:
-    resolution: {integrity: sha512-Vsp28b7DRcimFQvrqu2Wek3z1iYxDCWqHYB8Qsnk/S4RfaCQzPGPyBNuVjJV3cd6UiKtUtp6sNM77gWvzcCH+g==}
+  ws@8.20.1:
+    resolution: {integrity: sha512-It4dO0K5v//JtTXuPkfEOaI3uUN87iYPnqo/ZzqCoG3g8uhA66QUMs/SrM0YK7/NAu+r4LMh/9dq2A7k+rHs+w==}
     engines: {node: '>=10.0.0'}
     peerDependencies:
       bufferutil: ^4.0.1
@@ -9710,6 +9731,10 @@ snapshots:
   '@pkgjs/parseargs@0.11.0':
     optional: true
 
+  '@playwright/test@1.60.0':
+    dependencies:
+      playwright: 1.60.0
+
   '@pnpm/constants@7.1.1': {}
 
   '@pnpm/error@5.0.3':
@@ -10831,7 +10856,7 @@ snapshots:
       resolve-path: 1.4.0
       rimraf: 3.0.2
       sane: 4.1.0
-      tmp: 0.2.7
+      tmp: 0.2.5
       tree-sync: 2.1.0
       underscore.string: 3.3.6
       watch-detector: 1.0.2
@@ -10901,7 +10926,7 @@ snapshots:
 
   can-symlink@1.0.0:
     dependencies:
-      tmp: 0.2.7
+      tmp: 0.2.5
 
   caniuse-lite@1.0.30001737: {}
 
@@ -12227,12 +12252,12 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  ember-exam@10.0.0(@glint/template@1.5.2)(ember-qunit@9.0.4(@ember/test-helpers@5.4.1(@babel/core@7.28.5)(@glint/template@1.5.2))(@glint/template@1.5.2)(qunit@2.24.2))(ember-source@5.12.0(@glimmer/component@1.1.2(@babel/core@7.28.5))(@glint/template@1.5.2)(rsvp@4.8.5)(webpack@5.105.4))(qunit@2.24.2)(webpack@5.105.4):
+  ember-exam@10.1.0(@glint/template@1.5.2)(ember-qunit@9.0.4(@ember/test-helpers@5.4.1(@babel/core@7.28.5)(@glint/template@1.5.2))(@glint/template@1.5.2)(qunit@2.24.2))(ember-source@5.12.0(@glimmer/component@1.1.2(@babel/core@7.28.5))(@glint/template@1.5.2)(rsvp@4.8.5)(webpack@5.105.4))(qunit@2.24.2)(webpack@5.105.4):
     dependencies:
       '@babel/core': 7.28.5
       chalk: 5.6.2
       cli-table3: 0.6.5
-      debug: 4.4.1
+      debug: 4.4.3
       ember-auto-import: 2.11.1(@glint/template@1.5.2)(webpack@5.105.4)
       ember-cli-babel: 8.2.0(@babel/core@7.28.5)
       ember-qunit: 9.0.4(@ember/test-helpers@5.4.1(@babel/core@7.28.5)(@glint/template@1.5.2))(@glint/template@1.5.2)(qunit@2.24.2)
@@ -12677,7 +12702,7 @@ snapshots:
       globby: 11.1.0
       ora: 5.4.1
       slash: 3.0.0
-      tmp: 0.2.7
+      tmp: 0.2.5
       workerpool: 6.5.1
     transitivePeerDependencies:
       - supports-color
@@ -12764,7 +12789,7 @@ snapshots:
       cors: 2.8.5
       debug: 4.3.7
       engine.io-parser: 5.2.2
-      ws: 8.21.0
+      ws: 8.20.1
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -13200,7 +13225,7 @@ snapshots:
     dependencies:
       chardet: 0.7.0
       iconv-lite: 0.4.24
-      tmp: 0.2.7
+      tmp: 0.2.5
 
   extract-stack@2.0.0: {}
 
@@ -13370,12 +13395,12 @@ snapshots:
   fixturify-project@1.10.0:
     dependencies:
       fixturify: 1.3.0
-      tmp: 0.2.7
+      tmp: 0.2.5
 
   fixturify-project@2.1.1:
     dependencies:
       fixturify: 2.1.1
-      tmp: 0.2.7
+      tmp: 0.2.5
       type-fest: 0.11.0
 
   fixturify@1.3.0:
@@ -13522,6 +13547,9 @@ snapshots:
       - supports-color
 
   fs.realpath@1.0.0: {}
+
+  fsevents@2.3.2:
+    optional: true
 
   fsevents@2.3.3:
     optional: true
@@ -15202,6 +15230,14 @@ snapshots:
     dependencies:
       find-up: 3.0.0
 
+  playwright-core@1.60.0: {}
+
+  playwright@1.60.0:
+    dependencies:
+      playwright-core: 1.60.0
+    optionalDependencies:
+      fsevents: 2.3.2
+
   portfinder@1.0.32:
     dependencies:
       async: 2.6.4
@@ -15914,7 +15950,7 @@ snapshots:
   socket.io-adapter@2.5.5:
     dependencies:
       debug: 4.3.7
-      ws: 8.21.0
+      ws: 8.20.1
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -16290,7 +16326,7 @@ snapshots:
       spawn-args: 0.2.0
       styled_string: 0.0.1
       tap-parser: 7.0.0
-      tmp: 0.2.7
+      tmp: 0.2.5
     transitivePeerDependencies:
       - arc-templates
       - atpl
@@ -16385,7 +16421,7 @@ snapshots:
     dependencies:
       '@popperjs/core': 2.11.8
 
-  tmp@0.2.7: {}
+  tmp@0.2.5: {}
 
   tmpl@1.0.5: {}
 
@@ -16722,7 +16758,7 @@ snapshots:
     dependencies:
       heimdalljs-logger: 0.1.10
       silent-error: 1.1.1
-      tmp: 0.2.7
+      tmp: 0.2.5
     transitivePeerDependencies:
       - supports-color
 
@@ -16865,7 +16901,7 @@ snapshots:
       signal-exit: 3.0.7
       typedarray-to-buffer: 3.1.5
 
-  ws@8.21.0: {}
+  ws@8.20.1: {}
 
   xdg-basedir@4.0.0: {}
 
@@ -16889,3 +16925,4 @@ snapshots:
   yoctocolors-cjs@2.1.3: {}
 
   zwitch@1.0.5: {}
+  

@@ -1,0 +1,72 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: BUSL-1.1
+
+# Posts a PR comment with the coverage total once go-tests completes.
+# Runs via workflow_run so it has base-repo write permissions even for fork PRs.
+
+name: coverage-comment
+
+on:
+  workflow_run:
+    workflows: ["go-tests"]
+    types: [completed]
+
+permissions:
+  pull-requests: write
+  actions: read
+  contents: read
+
+jobs:
+  comment:
+    runs-on: ubuntu-latest
+    if: >
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion != 'skipped' &&
+      github.event.workflow_run.conclusion != 'cancelled'
+    steps:
+      - name: Download coverage comment data
+        id: download
+        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
+        continue-on-error: true
+        with:
+          name: coverage-comment-data
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          path: coverage-data
+
+      - name: Post or update PR comment
+        if: steps.download.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          PR_NUMBER=$(cat coverage-data/pr-number.txt 2>/dev/null || echo "")
+          TOTAL=$(cat coverage-data/coverage-total.txt 2>/dev/null || echo "")
+          RUN_ID=$(cat coverage-data/run-id.txt 2>/dev/null || echo "${{ github.event.workflow_run.id }}")
+
+          if [ -z "$PR_NUMBER" ] || [ -z "$TOTAL" ] || [ "$TOTAL" = "N/A" ]; then
+            echo "No PR number or coverage data, skipping"
+            exit 0
+          fi
+
+          MARKER="<!-- coverage-report-comment -->"
+          BODY=$(printf '%s\n\n### Go Test Coverage: **%s**\n\nSee the [workflow run](https://github.com/%s/actions/runs/%s) for the full per-package breakdown and downloadable HTML report.' \
+            "$MARKER" "$TOTAL" "$GH_REPO" "$RUN_ID")
+
+          COMMENT_ID=$(gh api --paginate \
+            "repos/${GH_REPO}/issues/${PR_NUMBER}/comments" \
+            --jq '.[] | select(.user.login == "github-actions[bot]" and (.body // "" | contains("<!-- coverage-report-comment -->"))) | .id' \
+            | tail -n1)
+
+          if [ -n "$COMMENT_ID" ]; then
+            gh api \
+              --method PATCH \
+              "repos/${GH_REPO}/issues/comments/${COMMENT_ID}" \
+              -f body="$BODY"
+          else
+            gh api \
+              --method POST \
+              "repos/${GH_REPO}/issues/${PR_NUMBER}/comments" \
+              -f body="$BODY"
+          fi
