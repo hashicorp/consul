@@ -23,9 +23,11 @@ export default class I18nService extends IntlService {
   // that occurs when HDS components try to add translations during rendering
   addTranslations(locale, translations) {
     // Schedule translation additions to happen after render
-    scheduleOnce('afterRender', this, () => {
-      super.addTranslations(locale, translations);
-    });
+    scheduleOnce('afterRender', this, this._deferredAddTranslations, locale, translations);
+  }
+
+  _deferredAddTranslations(locale, translations) {
+    super.addTranslations(locale, translations);
   }
 
   formatMessage(value, formatOptions, ...rest) {

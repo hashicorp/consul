@@ -5,7 +5,7 @@
 
 export function initialize(appInstance) {
   const intl = appInstance.lookup('service:intl');
-  
+
   // Pre-load HDS translations to avoid updating intl during render
   // This prevents the "Assertion Failed: You attempted to update `_intls`" error
   // that occurs when HDS components try to add translations during rendering
@@ -17,9 +17,8 @@ export function initialize(appInstance) {
       // by accessing the locale which forces initialization
       intl.locale;
     }
-  } catch (e) {
+  } catch {
     // Silently fail if there's an issue - translations will load normally
-    console.warn('HDS translations pre-load warning:', e);
   }
 }
 
