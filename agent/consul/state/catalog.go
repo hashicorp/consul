@@ -1301,6 +1301,20 @@ func terminatingGatewayVirtualIPsSupported(tx ReadTxn, ws memdb.WatchSet) (bool,
 	return entry.Value != "", nil
 }
 
+// apiGatewayDNSEnabled reports whether the cluster-wide flag that enables API
+// gateway DNS auto-registration has been set by the leader.
+func apiGatewayDNSEnabled(tx ReadTxn) (bool, error) {
+	_, entry, err := systemMetadataGetTxn(tx, nil, structs.SystemMetadataAPIGatewayDNSEnabled)
+	if err != nil {
+		return false, fmt.Errorf("failed system metadata lookup: %s", err)
+	}
+	if entry == nil {
+		return false, nil
+	}
+
+	return entry.Value != "", nil
+}
+
 // Services returns all services along with a list of associated tags.
 func (s *Store) Services(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta, peerName string, joinServiceNodes bool) (uint64, structs.ServiceNodes, error) {
 	tx := s.db.Txn(false)
@@ -2924,6 +2938,44 @@ func (s *Store) CheckIngressServiceNodes(ws memdb.WatchSet, serviceName string, 
 	return maxIdx, results, nil
 }
 
+// CheckAPIGatewayServiceNodes returns the health check nodes for the API gateways
+// that front the given service. It mirrors CheckIngressServiceNodes but filters on
+// the API gateway service kind, powering DNS resolution for services exposed via
+// an API gateway.
+func (s *Store) CheckAPIGatewayServiceNodes(ws memdb.WatchSet, serviceName string, entMeta *acl.EnterpriseMeta) (uint64, structs.CheckServiceNodes, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	maxIdx, nodes, err := serviceGatewayNodes(tx, ws, serviceName, structs.ServiceKindAPIGateway, entMeta, structs.DefaultPeerKeyword)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed gateway nodes lookup: %v", err)
+	}
+
+	// Watch for index changes to the gateway nodes
+	idx, chans := maxIndexAndWatchChsForServiceNodes(tx, nodes, false)
+	for _, ch := range chans {
+		ws.Add(ch)
+	}
+	maxIdx = lib.MaxUint64(maxIdx, idx)
+
+	// De-dup services to lookup
+	names := make(map[structs.ServiceName]struct{})
+	for _, n := range nodes {
+		names[n.CompoundServiceName().ServiceName] = struct{}{}
+	}
+
+	var results structs.CheckServiceNodes
+	for sn := range names {
+		idx, n, err := checkServiceNodesTxn(tx, ws, sn.Name, false, &sn.EnterpriseMeta, structs.DefaultPeerKeyword)
+		if err != nil {
+			return 0, nil, err
+		}
+		maxIdx = lib.MaxUint64(maxIdx, idx)
+		results = append(results, n...)
+	}
+	return maxIdx, results, nil
+}
+
 func (s *Store) checkServiceNodes(ws memdb.WatchSet, serviceName string, connect bool, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.CheckServiceNodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
@@ -3612,6 +3664,8 @@ func updateGatewayServices(tx WriteTxn, idx uint64, conf structs.ConfigEntry, en
 		noChange, gatewayServices, err = ingressConfigGatewayServices(tx, gateway, conf, entMeta)
 	case structs.TerminatingGateway:
 		noChange, gatewayServices, err = terminatingConfigGatewayServices(tx, gateway, conf, entMeta)
+	case structs.APIGateway, structs.BoundAPIGateway:
+		noChange, gatewayServices, err = apiGatewayConfigGatewayServices(tx, gateway, conf, entMeta)
 	default:
 		return fmt.Errorf("config entry kind %q does not need gateway-services", conf.GetKind())
 	}
@@ -3808,6 +3862,246 @@ func ingressConfigGatewayServices(
 		}
 	}
 	return false, gatewayServices, nil
+}
+
+// apiGatewayConfigGatewayServices constructs a list of GatewayService structs
+// for insertion into the memdb table, specific to API gateways. Unlike ingress
+// gateways, the set of services fronted by an API gateway is not declared in the
+// api-gateway config entry; it is resolved from the http-route / tcp-route config
+// entries that bind to the gateway, which the API gateway controller materializes
+// into the bound-api-gateway config entry. To build the gateway<->service mapping
+// we therefore need BOTH entries:
+//   - the api-gateway entry provides each listener's Port/Protocol/Hostname
+//   - the bound-api-gateway entry provides which routes bound to each listener
+//   - the route entries provide the target services (and custom hostnames)
+//
+// This function is invoked on writes to either entry; whichever one triggered the
+// update is provided as conf, and the other is read from the store. The boolean
+// returned indicates that there are no changes necessary to the memdb table.
+func apiGatewayConfigGatewayServices(
+	tx ReadTxn,
+	gateway structs.ServiceName,
+	conf structs.ConfigEntry,
+	entMeta *acl.EnterpriseMeta,
+) (bool, structs.GatewayServices, error) {
+	// Gate behavior on the cluster-wide feature flag. Until every server in the
+	// datacenter supports API gateway DNS (the leader sets this flag once that is
+	// true), we must NOT materialize mappings, otherwise mixed-version servers
+	// would diverge: new servers would create rows while old servers would not.
+	// Returning "no change" here is safe because the leader re-applies all bound
+	// gateways to backfill mappings at the moment it enables the flag.
+	enabled, err := apiGatewayDNSEnabled(tx)
+	if err != nil {
+		return false, nil, err
+	}
+	if !enabled {
+		return true, nil, nil
+	}
+
+	var apiGwConf *structs.APIGatewayConfigEntry
+	var boundConf *structs.BoundAPIGatewayConfigEntry
+
+	switch e := conf.(type) {
+	case *structs.APIGatewayConfigEntry:
+		apiGwConf = e
+		_, c, err := configEntryTxn(tx, nil, structs.BoundAPIGateway, conf.GetName(), entMeta)
+		if err != nil {
+			return false, nil, fmt.Errorf("failed to get bound-api-gateway config entry: %v", err)
+		}
+		if c != nil {
+			boundConf, _ = c.(*structs.BoundAPIGatewayConfigEntry)
+		}
+	case *structs.BoundAPIGatewayConfigEntry:
+		boundConf = e
+		_, c, err := configEntryTxn(tx, nil, structs.APIGateway, conf.GetName(), entMeta)
+		if err != nil {
+			return false, nil, fmt.Errorf("failed to get api-gateway config entry: %v", err)
+		}
+		if c != nil {
+			apiGwConf, _ = c.(*structs.APIGatewayConfigEntry)
+		}
+	default:
+		return false, nil, fmt.Errorf("unexpected config entry type: %T", conf)
+	}
+
+	// Build the desired set of gateway-service mappings. If either entry is missing
+	// (e.g. the api-gateway exists but no routes have bound yet, or vice versa) we
+	// fall through with an empty set, which truncates any stale mappings.
+	var gatewayServices structs.GatewayServices
+	if apiGwConf != nil && boundConf != nil {
+		// Index api-gateway listeners by name for port/protocol/hostname lookup.
+		listenersByName := make(map[string]structs.APIGatewayListener, len(apiGwConf.Listeners))
+		for _, l := range apiGwConf.Listeners {
+			listenersByName[l.Name] = l
+		}
+
+		// De-duplicate by (service, port) since a service may be targeted by
+		// multiple routes or bound on multiple listeners. We merge the hosts.
+		type svcKey struct {
+			name structs.ServiceName
+			port int
+		}
+		seen := make(map[svcKey]*structs.GatewayService)
+
+		for _, boundListener := range boundConf.Listeners {
+			listener, ok := listenersByName[boundListener.Name]
+			if !ok {
+				// Bound listener with no matching api-gateway listener; skip.
+				continue
+			}
+
+			protocol := string(listener.Protocol)
+
+			// Listener-level hostname (if any, and not the wildcard) acts as a
+			// default host for routed services.
+			var listenerHosts []string
+			if listener.Hostname != "" {
+				listenerHosts = []string{listener.Hostname}
+			}
+
+			for _, routeRef := range boundListener.Routes {
+				services, routeHosts, err := apiGatewayRouteServices(tx, routeRef, entMeta)
+				if err != nil {
+					return false, nil, err
+				}
+
+				hosts := routeHosts
+				if len(hosts) == 0 {
+					hosts = listenerHosts
+				}
+
+				for _, svc := range services {
+					key := svcKey{name: svc, port: listener.Port}
+					if existing, ok := seen[key]; ok {
+						existing.Hosts = mergeStringSlices(existing.Hosts, hosts)
+						continue
+					}
+					mapping := &structs.GatewayService{
+						Gateway:     gateway,
+						Service:     svc,
+						GatewayKind: structs.ServiceKindAPIGateway,
+						Port:        listener.Port,
+						Protocol:    protocol,
+						Hosts:       append([]string(nil), hosts...),
+					}
+					seen[key] = mapping
+					gatewayServices = append(gatewayServices, mapping)
+				}
+			}
+		}
+	}
+
+	// Skip the update if the freshly computed mappings are identical to what's
+	// already stored, to avoid needless index churn and watch fan-out.
+	existing, err := gatewayServicesForGateway(tx, gateway)
+	if err != nil {
+		return false, nil, err
+	}
+	if gatewayServicesEqual(existing, gatewayServices) {
+		return true, nil, nil
+	}
+
+	return false, gatewayServices, nil
+}
+
+// apiGatewayRouteServices reads a bound route reference (http-route or tcp-route)
+// and returns the set of target services along with any custom hostnames declared
+// on the route (http-routes only).
+func apiGatewayRouteServices(
+	tx ReadTxn,
+	routeRef structs.ResourceReference,
+	entMeta *acl.EnterpriseMeta,
+) ([]structs.ServiceName, []string, error) {
+	routeEntMeta := routeRef.EnterpriseMeta
+	if routeEntMeta.PartitionOrDefault() == "" && routeEntMeta.NamespaceOrDefault() == "" {
+		routeEntMeta = *entMeta
+	}
+
+	_, c, err := configEntryTxn(tx, nil, routeRef.Kind, routeRef.Name, &routeEntMeta)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get %s %q: %v", routeRef.Kind, routeRef.Name, err)
+	}
+	if c == nil {
+		return nil, nil, nil
+	}
+
+	var services []structs.ServiceName
+	var hosts []string
+
+	switch route := c.(type) {
+	case *structs.HTTPRouteConfigEntry:
+		hosts = route.Hostnames
+		for _, svc := range route.GetServices() {
+			services = append(services, svc.ServiceName())
+		}
+	case *structs.TCPRouteConfigEntry:
+		for _, svc := range route.GetServices() {
+			services = append(services, svc.ServiceName())
+		}
+	default:
+		// Unknown/unsupported route kind; nothing to map.
+		return nil, nil, nil
+	}
+
+	return services, hosts, nil
+}
+
+// gatewayServicesForGateway returns the gateway-service mappings currently stored
+// for the given gateway.
+func gatewayServicesForGateway(tx ReadTxn, gateway structs.ServiceName) (structs.GatewayServices, error) {
+	iter, err := tx.Get(tableGatewayServices, indexGateway, gateway)
+	if err != nil {
+		return nil, fmt.Errorf("failed gateway services lookup: %v", err)
+	}
+	var out structs.GatewayServices
+	for obj := iter.Next(); obj != nil; obj = iter.Next() {
+		out = append(out, obj.(*structs.GatewayService))
+	}
+	return out, nil
+}
+
+// gatewayServicesEqual reports whether two sets of gateway-service mappings are
+// equivalent, ignoring ordering.
+func gatewayServicesEqual(a, b structs.GatewayServices) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	matched := make([]bool, len(b))
+	for _, ga := range a {
+		found := false
+		for i, gb := range b {
+			if matched[i] {
+				continue
+			}
+			if ga.IsSame(gb) {
+				matched[i] = true
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
+}
+
+// mergeStringSlices appends entries from extra into base that are not already
+// present, preserving order.
+func mergeStringSlices(base, extra []string) []string {
+	for _, s := range extra {
+		exists := false
+		for _, b := range base {
+			if b == s {
+				exists = true
+				break
+			}
+		}
+		if !exists {
+			base = append(base, s)
+		}
+	}
+	return base
 }
 
 // terminatingConfigGatewayServices constructs a list of GatewayService structs

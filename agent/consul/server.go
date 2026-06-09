@@ -138,6 +138,7 @@ const (
 	intermediateCertRenewWatchRoutineName = "intermediate cert renew watch"
 	backgroundCAInitializationRoutineName = "CA initialization"
 	virtualIPCheckRoutineName             = "virtual IP version check"
+	apiGatewayDNSCheckRoutineName         = "api gateway DNS version check"
 	peeringStreamsRoutineName             = "streaming peering resources"
 	peeringDeletionRoutineName            = "peering deferred deletion"
 	peeringStreamsMetricsRoutineName      = "metrics for streaming peering resources"

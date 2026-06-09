@@ -634,6 +634,7 @@ func (h *handlerAPIGateway) watchIngressLeafCert(ctx context.Context, snap *Conf
 		Datacenter:     h.source.Datacenter,
 		Token:          h.token,
 		Service:        h.service,
+		DNSSAN:         h.generateAPIGatewayDNSSANs(snap),
 		EnterpriseMeta: h.proxyID.EnterpriseMeta,
 	}, leafWatchID, h.ch)
 	if err != nil {
@@ -643,4 +644,66 @@ func (h *handlerAPIGateway) watchIngressLeafCert(ctx context.Context, snap *Conf
 	snap.APIGateway.LeafCertWatchCancel = cancel
 
 	return nil
+}
+
+// generateAPIGatewayDNSSANs returns the set of DNS Subject Alternative Names that
+// should be present on the API gateway's leaf certificate. This mirrors the
+// ingress gateway behavior (generateIngressDNSSANs) so that services exposed via
+// an API gateway can be reached over TLS using the auto-registered
+// "<service>.api-gateway.<domain>" DNS names, in addition to any explicit
+// hostnames configured on listeners or bound routes.
+func (h *handlerAPIGateway) generateAPIGatewayDNSSANs(snap *ConfigSnapshot) []string {
+	var dnsNames []string
+
+	namespaces := make(map[string]struct{})
+	for _, upstreams := range snap.APIGateway.Upstreams.toUpstreams() {
+		for _, u := range upstreams {
+			namespaces[u.DestinationNamespace] = struct{}{}
+		}
+	}
+	// Ensure the default-namespace wildcard SAN is always present, even before any
+	// routes have bound, so the common case works without re-issuing the cert.
+	if len(namespaces) == 0 {
+		namespaces[structs.IntentionDefaultNamespace] = struct{}{}
+	}
+
+	// TODO(partitions): How should these be updated for partitions?
+	for ns := range namespaces {
+		// The default namespace is special cased in DNS resolution, so special
+		// case it here.
+		if ns == structs.IntentionDefaultNamespace {
+			ns = ""
+		} else {
+			ns = ns + "."
+		}
+
+		dnsNames = append(dnsNames, fmt.Sprintf("*.api-gateway.%s%s", ns, h.dnsConfig.Domain))
+		dnsNames = append(dnsNames, fmt.Sprintf("*.api-gateway.%s%s.%s", ns, h.source.Datacenter, h.dnsConfig.Domain))
+		if h.dnsConfig.AltDomain != "" {
+			dnsNames = append(dnsNames, fmt.Sprintf("*.api-gateway.%s%s", ns, h.dnsConfig.AltDomain))
+			dnsNames = append(dnsNames, fmt.Sprintf("*.api-gateway.%s%s.%s", ns, h.source.Datacenter, h.dnsConfig.AltDomain))
+		}
+	}
+
+	// Add explicit hostnames declared on listeners and bound HTTP routes.
+	hostSet := make(map[string]struct{})
+	for _, listener := range snap.APIGateway.Listeners {
+		if listener.Hostname != "" {
+			hostSet[listener.Hostname] = struct{}{}
+		}
+	}
+	snap.APIGateway.HTTPRoutes.ForEachKey(func(ref structs.ResourceReference) bool {
+		route, ok := snap.APIGateway.HTTPRoutes.Get(ref)
+		if ok && route != nil {
+			for _, hostname := range route.Hostnames {
+				hostSet[hostname] = struct{}{}
+			}
+		}
+		return true
+	})
+	for host := range hostSet {
+		dnsNames = append(dnsNames, host)
+	}
+
+	return dnsNames
 }
