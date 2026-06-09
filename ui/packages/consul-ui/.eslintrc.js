@@ -84,6 +84,19 @@ module.exports = {
       }),
     },
     {
+      files: ['e2e-tests/**/*.js'],
+      parserOptions: {
+        sourceType: 'script',
+      },
+      env: {
+        browser: false,
+        node: true,
+      },
+      rules: {
+        'no-console': 'off',
+      },
+    },
+    {
       // Test files:
       files: ['tests/**/*-test.{js,ts}'],
       extends: ['plugin:qunit/recommended'],
