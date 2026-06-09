@@ -29,6 +29,41 @@
       display: flex;
       align-items: center;
       gap: 0.5rem;
+
+      // Make header dropdown toggle buttons dark to match side nav.
+      // Only target the toggle elements, not the dropdown list items, otherwise
+      // the menu item text inherits the light side-nav color and becomes
+      // invisible against the dropdown's light surface.
+      .hds-dropdown-toggle-icon,
+      .hds-dropdown-toggle-button {
+        background-color: var(--token-app-side-nav-color-surface-primary) !important;
+        border-color: var(--token-app-side-nav-wrapper-border-color) !important;
+        color: var(--token-app-side-nav-color-foreground-primary) !important;
+
+        // Icon colors
+        .hds-icon,
+        svg {
+          color: var(--token-app-side-nav-color-foreground-primary) !important;
+        }
+
+        // Remove blue focus/active styles
+        &:hover,
+        &:focus,
+        &:focus-visible,
+        &:active,
+        &[aria-expanded="true"] {
+          background-color: var(--token-app-side-nav-color-surface-interactive-hover) !important;
+          border-color: var(--token-app-side-nav-wrapper-border-color) !important;
+          color: var(--token-app-side-nav-color-foreground-strong) !important;
+          box-shadow: none !important;
+          outline: none !important;
+
+          .hds-icon,
+          svg {
+            color: var(--token-app-side-nav-color-foreground-strong) !important;
+          }
+        }
+      }
     }
 
     .consul-side-nav__home-link {

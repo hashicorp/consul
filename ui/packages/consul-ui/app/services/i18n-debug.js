@@ -5,6 +5,7 @@
 
 import I18nService, { formatOptionsSymbol } from 'consul-ui/services/i18n';
 import ucfirst from 'consul-ui/utils/ucfirst';
+import { scheduleOnce } from '@ember/runloop';
 
 import faker from 'faker';
 
@@ -13,6 +14,15 @@ import faker from 'faker';
 const translator = (cb) => (item) => !['<', '>', '='].includes(item) ? cb(item) : item;
 
 export default class DebugI18nService extends I18nService {
+  // Override addTranslations to defer updates outside of render cycle
+  addTranslations(locale, translations) {
+    // Schedule translation additions to happen after render to avoid
+    // "Assertion Failed: You attempted to update `_intls`" error
+    scheduleOnce('afterRender', this, () => {
+      super.addTranslations(locale, translations);
+    });
+  }
+
   formatMessage(value, formatOptions) {
     const text = super.formatMessage(...arguments);
     let locale = this.env.var('CONSUL_INTL_LOCALE');
