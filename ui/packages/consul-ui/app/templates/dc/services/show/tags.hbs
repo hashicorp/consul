@@ -12,16 +12,16 @@ as |route|>
         <TagList @item={{hash Tags=tags}} />
     {{else}}
         <EmptyState>
-          <BlockSlot @name="header">
+          <:header>
             <h2>
               {{t 'routes.dc.services.show.tags.empty.header'}}
             </h2>
-          </BlockSlot>
-          <BlockSlot @name="body">
+          </:header>
+          <:body>
             {{t 'routes.dc.services.show.tags.empty.body'
               htmlSafe=true
             }}
-          </BlockSlot>
+          </:body>
         </EmptyState>
     {{/if}}
   {{/let}}
