@@ -23,17 +23,16 @@ as |parentKey|}}
         dc=route.params.dc
         key=(if (string-ends-with this.routeName 'create') '' route.params.key)
       )
-    }}
-  as |loader|>
+    }}>
 
-    <BlockSlot @name="error">
+    <:error as |loader|>
       <AppError
         @error={{loader.error}}
         @login={{route.model.app.login.open}}
       />
-    </BlockSlot>
+    </:error>
 
-    <BlockSlot @name="loaded">
+    <:loaded as |loader|>
 {{#let
 
   route.params.dc
@@ -45,7 +44,7 @@ as |dc partition nspace item|}}
 
   <AppView>
 
-    <BlockSlot @name="breadcrumbs">
+    <:breadcrumbs>
       <Hds::Breadcrumb>
         <Hds::Breadcrumb::Item @text="Key / Values" @route="dc.kv.index" @model={{route.params.dc}} data-test-back />
 {{#if (not-eq parentKey separator)}}
@@ -74,9 +73,9 @@ as |parts|}}
 
 {{/if}}
       </Hds::Breadcrumb>
-    </BlockSlot>
+    </:breadcrumbs>
 
-    <BlockSlot @name="header">
+    <:header>
         <h1 data-test-kv-key={{item.Key}}>
 {{#if (and item.Key (not-eq item.Key parentKey))}}
           <route.Title @title="Edit Key / Value" @render={{false}} />
@@ -85,9 +84,9 @@ as |parts|}}
           <route.Title @title="New Key / Value" @render={{true}} />
 {{/if}}
         </h1>
-    </BlockSlot>
+    </:header>
 
-    <BlockSlot @name="content">
+    <:content>
 
 {{! if a KV has a session `Session` will always be populated despite any specific session permissions }}
 {{#if item.Session}}
@@ -136,10 +135,10 @@ as |parts|}}
   {{/if}}
 {{/if}}
 
-    </BlockSlot>
+    </:content>
   </AppView>
 {{/let}}
-    </BlockSlot>
+    </:loaded>
   </DataLoader>
   {{/let}}
 {{/let}}

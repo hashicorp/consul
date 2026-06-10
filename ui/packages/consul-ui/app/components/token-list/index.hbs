@@ -9,26 +9,28 @@
       data-test-tokens
       class="token-list"
       @rows={{5}}
-      @items={{sort-by 'AccessorID:asc' @items}} as |item index|
+      @items={{sort-by 'AccessorID:asc' @items}}
   >
-  {{#if @caption}}
-    <BlockSlot @name="caption">{{@caption}}</BlockSlot>
-  {{/if}}
-      <BlockSlot @name="header">
-          <th>AccessorID</th>
-          <th>Scope</th>
-          <th>Description</th>
-      </BlockSlot>
-      <BlockSlot @name="row">
-          <td data-test-token={{item.AccessorID}}>
-            <a href={{href-to 'dc.acls.tokens.edit' item.AccessorID}} target={{or @target ''}}>{{truncate item.AccessorID 8 false}}</a>
-          </td>
-          <td>
-            {{if item.Local 'local' 'global'}}
-          </td>
-          <td>
-            <p>{{item.Description}}</p>
-          </td>
-      </BlockSlot>
+    <:caption>
+      {{#if @caption}}
+        {{@caption}}
+      {{/if}}
+    </:caption>
+    <:header>
+        <th>AccessorID</th>
+        <th>Scope</th>
+        <th>Description</th>
+    </:header>
+    <:row as |item index|>
+        <td data-test-token={{item.AccessorID}}>
+          <a href={{href-to 'dc.acls.tokens.edit' item.AccessorID}} target={{or @target ''}}>{{truncate item.AccessorID 8 false}}</a>
+        </td>
+        <td>
+          {{if item.Local 'local' 'global'}}
+        </td>
+        <td>
+          <p>{{item.Description}}</p>
+        </td>
+    </:row>
   </TabularCollection>
 {{/if}}
