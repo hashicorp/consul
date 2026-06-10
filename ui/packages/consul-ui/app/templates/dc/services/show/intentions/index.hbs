@@ -14,12 +14,11 @@ as |route|>
         dc=route.params.dc
         slug=route.params.name
       )
-    }}
-  as |api|>
-    <BlockSlot @name="error">
+    }}>
+    <:error as |api|>
       <ErrorState @error={{api.error}} />
-    </BlockSlot>
-    <BlockSlot @name="loaded">
+    </:error>
+    <:loaded as |api|>
   {{#let
 
     (hash
@@ -77,9 +76,8 @@ as |route|>
             )
           }}
           @type="intention"
-          @ondelete={{refreshRoute}}
-        as |writer|>
-          <BlockSlot @name="content">
+          @ondelete={{refreshRoute}}>
+          <:content as |writer|>
             <DataCollection
               @type="intention"
               @sort={{sort.value}}
@@ -102,21 +100,21 @@ as |route|>
                 <EmptyState
                   @login={{route.model.app.login.open}}
                 >
-                  <BlockSlot @name="header">
+                  <:header>
                     <h2>
                       {{t 'routes.dc.services.show.intentions.index.empty.header'
                         items=items.length
                       }}
                     </h2>
-                  </BlockSlot>
-                  <BlockSlot @name="body">
+                  </:header>
+                  <:body>
                     {{t 'routes.dc.services.show.intentions.index.empty.body'
                       items=items.length
                       canUseACLs=(can 'use acls')
                       htmlSafe=true
                     }}
-                  </BlockSlot>
-                  <BlockSlot @name="actions">
+                  </:body>
+                  <:actions>
                     <li>
                       <Hds::Link::Standalone
                         @text='Documentation on intentions'
@@ -135,15 +133,15 @@ as |route|>
                         @size='small'
                       />
                     </li>
-                  </BlockSlot>
+                  </:actions>
                 </EmptyState>
               </collection.Empty>
             </DataCollection>
-          </BlockSlot>
+          </:content>
         </DataWriter>
         {{/let}}
     </div>
   {{/let}}
-    </BlockSlot>
+    </:loaded>
   </DataLoader>
 </Route>

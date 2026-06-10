@@ -23,16 +23,15 @@ as |route|>
         name=route.params.name
         peer=route.params.peer
       )
-    }}
-  as |loader|>
-    <BlockSlot @name="error">
+    }}>
+    <:error as |loader|>
       <AppError
         @error={{loader.error}}
         @login={{route.model.app.login.open}}
       />
-    </BlockSlot>
+    </:error>
 
-    <BlockSlot @name="disconnected" as |after|>
+    <:disconnected as |loader after|>
       {{#if (eq loader.error.status "404")}}
         <Hds::Toast
           @color='warning'
@@ -61,21 +60,21 @@ as |route|>
           <T.Description>An error was returned whilst loading this data, refresh to try again.</T.Description>
         </Hds::Toast>
       {{/if}}
-    </BlockSlot>
-    <BlockSlot @name="loaded">
+    </:disconnected>
+    <:loaded as |loader|>
 {{#let
   loader.data
   tomography.data
 as |item tomography|}}
       <AppView>
-          <BlockSlot @name="notification" as |status type|>
+          <:notification as |status type|>
             <Consul::LockSession::Notifications
               @type={{type}}
               @status={{status}}
             />
-          </BlockSlot>
-          <BlockSlot @name="breadcrumbs">
-            <Hds::Breadcrumb>
+          </:notification>
+          <:breadcrumbs>
+              <Hds::Breadcrumb>
               <Breadcrumbs::BackLink
                 @model={{route.params.dc}}
                 @params={{hash peer=undefined}}
@@ -84,15 +83,15 @@ as |item tomography|}}
                 data-test-back
               />
             </Hds::Breadcrumb>
-          </BlockSlot>
-          <BlockSlot @name="header">
+          </:breadcrumbs>
+          <:header>
               <h1>
                 <route.Title @title={{item.Node}} />
               </h1>
               <label for="toolbar-toggle"></label>
               <Consul::Peer::Info @item={{item}} />
-          </BlockSlot>
-          <BlockSlot @name="nav">
+          </:header>
+          <:nav>
             <TabNav @items={{
               compact
                 (array
@@ -127,11 +126,11 @@ as |item tomography|}}
                   )
                 )
             }}/>
-          </BlockSlot>
-          <BlockSlot @name="actions">
+          </:nav>
+          <:actions>
             <ConsulCopyButton @value={{format-ipaddr item.Address}} @name="Address">{{format-ipaddr item.Address}}</ConsulCopyButton>
-          </BlockSlot>
-          <BlockSlot @name="content">
+          </:actions>
+          <:content>
             <Outlet
               @name={{this.routeName}}
               @model={{assign
@@ -143,10 +142,10 @@ as |item tomography|}}
             as |o|>
               {{outlet}}
             </Outlet>
-          </BlockSlot>
+          </:content>
       </AppView>
 {{/let}}
-    </BlockSlot>
+    </:loaded>
   </DataLoader>
   </DataSource>
 </Route>

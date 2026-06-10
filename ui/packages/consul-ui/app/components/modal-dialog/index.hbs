@@ -3,28 +3,21 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-{{#let (hash
-  labelledby=(dom-guid)
-) as |aria|}}
-  <Portal @target="modal">
-    {{yield}}
+{{#let (hash labelledby=(dom-guid)) as |aria|}}
+  {{#let (hash open=(action 'open') close=(action 'close') opened=this.isOpen aria=aria) as |api|}}
+  <Portal @target='modal'>
+    {{yield api}}
     <div
-      class="modal-dialog"
-      aria-hidden="true"
+      class='modal-dialog'
+      aria-hidden='true'
       ...attributes
-      {{did-insert (action "connect")}}
-      {{will-destroy (action "disconnect")}}
+      {{did-insert (action 'connect')}}
+      {{will-destroy (action 'disconnect')}}
     >
-      <div tabindex="-1" data-a11y-dialog-hide></div>
-      <div
-        class="modal-dialog-modal"
-        role="dialog"
-        aria-label={{@aria.label}}
-      >
-        <div
-          role="document"
-        >
-          <header class="modal-dialog-header">
+      <div tabindex='-1' data-a11y-dialog-hide></div>
+      <div class='modal-dialog-modal' role='dialog' aria-label={{@aria.label}}>
+        <div role='document'>
+          <header class='modal-dialog-header'>
             <Hds::Button
               data-a11y-dialog-hide
               @text='Close dialog'
@@ -33,37 +26,29 @@
               @size='small'
               @isIconOnly={{true}}
             />
-            <YieldSlot @name="header">
-              {{yield (hash
-                open=(action "open")
-                close=(action "close")
-                opened=this.isOpen
-                aria=aria
-              )}}
-            </YieldSlot>
+            {{#if (has-block 'header')}}
+              {{yield api to='header'}}
+            {{else}}
+              {{yield api}}
+            {{/if}}
           </header>
-          <div class="modal-dialog-body">
-            <YieldSlot @name="body">
-              {{yield (hash
-                open=(action "open")
-                close=(action "close")
-                opened=this.isOpen
-                aria=aria
-              )}}
-            </YieldSlot>
+          <div class='modal-dialog-body'>
+            {{#if (has-block 'body')}}
+              {{yield api to='body'}}
+            {{else}}
+              {{yield api}}
+            {{/if}}
           </div>
-          <div class="modal-dialog-footer">
-            <YieldSlot @name="actions" @params={{block-params (action "close")}}>
-              {{yield (hash
-                open=(action "open")
-                close=(action "close")
-                opened=this.isOpen
-                aria=aria
-              )}}
-            </YieldSlot>
+          <div class='modal-dialog-footer'>
+            {{#if (has-block 'actions')}}
+              {{yield (action 'close') to='actions'}}
+            {{else}}
+              {{yield api}}
+            {{/if}}
           </div>
         </div>
       </div>
     </div>
   </Portal>
+  {{/let}}
 {{/let}}
