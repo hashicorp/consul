@@ -13,17 +13,16 @@ as |route|>
         partition=route.params.partition
         nspace=route.params.nspace
         dc=route.params.dc
-      )}}
-    as |loader|>
+      )}}>
 
-    <BlockSlot @name="error">
+    <:error as |loader|>
       <AppError
         @error={{loader.error}}
         @login={{route.model.app.login.open}}
       />
-    </BlockSlot>
+    </:error>
 
-    <BlockSlot @name="loaded">
+    <:loaded as |loader|>
   {{#let
 
     (hash
@@ -47,12 +46,12 @@ as |route|>
   as |sort filters items|}}
 
     <AppView>
-      <BlockSlot @name="header">
+      <:header>
         <h1>
           <route.Title @title="Namespaces" />
         </h1>
-      </BlockSlot>
-      <BlockSlot @name="actions">
+      </:header>
+      <:actions>
   {{#if (can "create nspaces")}}
     <Hds::Button
       @text='Create'
@@ -60,8 +59,8 @@ as |route|>
       data-test-create
     />
   {{/if}}
-      </BlockSlot>
-      <BlockSlot @name="toolbar">
+      </:actions>
+      <:toolbar>
       {{#if (gt items.length 0)}}
         <Consul::Nspace::SearchBar
           @search={{this.search}}
@@ -72,8 +71,8 @@ as |route|>
           @filter={{filters}}
         />
       {{/if}}
-      </BlockSlot>
-      <BlockSlot @name="content">
+      </:toolbar>
+      <:content>
         {{#let (refresh-route) as |refreshRoute|}}
         <DataWriter
           @sink={{uri '/${partition}/${dc}/${nspace}/nspace/'
@@ -85,17 +84,16 @@ as |route|>
           }}
           @type="nspace"
           @label="Namespace"
-          @ondelete={{refreshRoute}}
-        as |writer|>
-          <BlockSlot @name="removed" as |after|>
-            <Consul::Nspace::Notifications 
+          @ondelete={{refreshRoute}}>
+          <:removed as |after|>
+            <Consul::Nspace::Notifications
               {{notification
                 after=(action after)
               }}
               @type="remove"
             />
-          </BlockSlot>
-          <BlockSlot @name="content">
+          </:removed>
+          <:content as |writer|>
         <DataCollection
           @type="nspace"
           @sort={{sort.value}}
@@ -113,20 +111,20 @@ as |route|>
             <EmptyState
               @login={{route.model.app.login.open}}
             >
-              <BlockSlot @name="header">
+              <:header>
                 <h2>
                   {{t 'routes.dc.namespaces.index.empty.header'
                     items=items.length}}
                 </h2>
-              </BlockSlot>
-              <BlockSlot @name="body">
+              </:header>
+              <:body>
                 <p>
                   {{t 'routes.dc.namespaces.index.empty.body'
                     items=items.length
                     canUseACLs=(can 'use acls')}}
                 </p>
-              </BlockSlot>
-              <BlockSlot @name="actions">
+              </:body>
+              <:actions>
                 <li>
                   <Hds::Link::Standalone
                     @text='Documentation on namespaces'
@@ -145,16 +143,16 @@ as |route|>
                     @size='small'
                   />
                 </li>
-              </BlockSlot>
+              </:actions>
             </EmptyState>
           </collection.Empty>
         </DataCollection>
-    </BlockSlot>
+    </:content>
   </DataWriter>
   {{/let}}
-      </BlockSlot>
+      </:content>
     </AppView>
   {{/let}}
-    </BlockSlot>
+    </:loaded>
   </DataLoader>
 </Route>

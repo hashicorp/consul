@@ -4,22 +4,22 @@
 }}
 
 <AppView>
-  <BlockSlot @name="header">
+  <:header>
     <h1>
       Tokens
     </h1>
-  </BlockSlot>
-  <BlockSlot @name="content">
+  </:header>
+  <:content>
     <EmptyState data-test-acls-disabled>
-      <BlockSlot @name="header">
+      <:header>
         <h2>Welcome to ACLs</h2>
-      </BlockSlot>
-      <BlockSlot @name="body">
+      </:header>
+      <:body>
         <p>
           ACLs are not enabled in this Consul cluster. We strongly encourage the use of ACLs in production environments for the best security practices.
         </p>
-      </BlockSlot>
-      <BlockSlot @name="actions">
+      </:body>
+      <:actions>
         <li>
           <Hds::Link::Standalone
             @text='Read the documentation'
@@ -38,8 +38,8 @@
             @size='small'
           />
         </li>
-      </BlockSlot>
+      </:actions>
     </EmptyState>
-  </BlockSlot>
+  </:content>
 </AppView>
 
