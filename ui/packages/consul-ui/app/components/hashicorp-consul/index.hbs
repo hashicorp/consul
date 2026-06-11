@@ -91,18 +91,21 @@
             <dd.Interactive
               @href={{env 'CONSUL_DOCS_URL'}}
               @isHrefExternal={{true}}
-              @text={{t "components.hashicorp-consul.side-nav.support-menu.docs"}}
-            />
+            >
+              {{t "components.hashicorp-consul.side-nav.support-menu.docs"}}
+            </dd.Interactive>
             <dd.Interactive
               @href={{concat (env 'CONSUL_DOCS_LEARN_URL') '/consul'}}
               @isHrefExternal={{true}}
-              @text={{t "components.hashicorp-consul.side-nav.support-menu.tutorials"}}
-            />
+            >
+              {{t "components.hashicorp-consul.side-nav.support-menu.tutorials"}}
+            </dd.Interactive>
             <dd.Interactive
               @href={{env 'CONSUL_REPO_ISSUES_URL'}}
               @isHrefExternal={{true}}
-              @text={{t "components.hashicorp-consul.side-nav.support-menu.feedback"}}
-            />
+            >
+              {{t "components.hashicorp-consul.side-nav.support-menu.feedback"}}
+            </dd.Interactive>
           </Hds::Dropdown>
 
           <Consul::Token::Selector
