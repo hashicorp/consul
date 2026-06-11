@@ -11,9 +11,7 @@ import { A } from '@ember/array';
 
 import { task } from 'ember-concurrency';
 
-import Slotted from 'block-slots';
-
-export default Component.extend(Slotted, {
+export default Component.extend({
   onchange: function () {},
   tagName: '',
 
@@ -30,8 +28,11 @@ export default Component.extend(Slotted, {
   init: function () {
     this._super(...arguments);
     this._listeners = this.dom.listeners();
-    set(this, 'form', this.formContainer.form(this.type));
-    this.form.clear({ Datacenter: this.dc, Namespace: this.nspace });
+    const form = this.formContainer.form(this.type);
+    setTimeout(() => {
+      form.clear({ Datacenter: this.dc, Namespace: this.nspace });
+    }, 0);
+    set(this, 'form', form);
   },
   willDestroyElement: function () {
     this._super(...arguments);
