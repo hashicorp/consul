@@ -20,20 +20,17 @@
 # │  Protected branches: main, release/**                                  │
 # └─────────────────────────────────────────────────────────────────────────┘
 #
-# Two complementary checks run:
+# Two complementary checks run in this public CE repository:
 #
 #   ┌─────────────────────────────────────────────────────────────────────────┐
 #   │  Job 1 — ent-file-check  (pull_request, all branches)                   │
 #   │                                                                         │
-#   │  Fetches the latest file trees from CE main and ENT main, computes the  │
-#   │  set of files that exist ONLY in ENT (not in CE), and fails if any of   │
-#   │  those paths overlap with the files changed by the PR in CE. It also    │
-#   │  rejects forbidden ENT-style paths such as `*_ent.go`,                  │
+#   │  Rejects forbidden ENT-style paths such as `*_ent.go`,                  │
 #   │  `*_ent_test.go`, `*_enterprise.go`, `ent/`, and `enterprise/`.         │
 #   │                                                                         │
-#   │  • Fully dynamic — no manually maintained exclusion lists.              │
-#   │  • Adapts automatically as both repos evolve.                           │
-#   │  • Extensible: set ENT_REPO env/var to apply to any CE/ENT pair.       │
+#   │  This job is intentionally secretless. It does NOT query the private    │
+#   │  ENT repository from CE CI. Live repo-tree comparison runs on the ENT   │
+#   │  side of the trust boundary.                                            │
 #   └─────────────────────────────────────────────────────────────────────────┘
 #
 #   ┌─────────────────────────────────────────────────────────────────────────┐
@@ -42,7 +39,7 @@
 #   │  Scans every changed source / config file in the PR for well-known ENT  │
 #   │  content markers:                                                       │
 #   │    • Go build constraints  (//go:build consulent / enterprise)          │
-#   │    • IBM copyright headers (ENT-owned files in consul)     │
+#   │    • IBM copyright headers (ENT-owned files in crt-core-helloworld)     │
 #   │    • ENT-only Go imports   (go-licensing)                               │
 #   │    • CI metadata           (VERSION_METADATA: "ent", +ent suffix)       │
 #   │    • Explicit ENT repo references in source                             │
@@ -56,11 +53,10 @@
 #   Slack message to SLACK_WEBHOOK_URL identifying the branch, actor, and
 #   offending files so the team can act immediately.
 #
-# Extending to another product pair (consul / consul-enterprise):
-#   1. Copy this file to the CE repo's .github/workflows/ directory.
-#   2. Update ENT_REPO below to the ENT repo slug.
-#   3. Optionally set ENT_MARKER_PATTERNS_FILE in the relevant job to supply
-#      product-specific content-marker patterns.
+# Private-side repo-tree comparison:
+#   Private repo-tree comparison now runs in the ENT repository, where
+#   private repo metadata and credentials already belong. This CE workflow
+#   enforces only secretless path and content markers.
 #
 # SHA ancestry validation lives in a separate workflow (sha-ancestry-check.yml)
 # because ancestry checks are generic and apply to repos with no ENT pair.
@@ -83,20 +79,16 @@ permissions:
   contents: read
 
 env:
-  # The CE repo is always the current repository.
-  CE_REPO: ${{ github.repository }}
-  # The comparison is always against the latest main branch in both repos.
-  CE_MAIN_REF: main
-  # Update this value when adapting this workflow to another product pair.
-  ENT_REPO: hashicorp/consul-enterprise
-  ENT_MAIN_REF: main
   # Protected branches where a failed check hard-blocks merging.
   # Used to decide whether to fire a Slack alert on violations.
   PROTECTED_BRANCH_REGEX: '^(main|release/.+)$'
 
 jobs:
   # ───────────────────────────────────────────────────────────────────────────
-  # Job 1: Detect ENT-exclusive file paths and verify none are being added
+  # Job 1: Detect forbidden ENT-style file paths in the CE changeset.
+  #
+  # This public CE workflow deliberately avoids any lookup into the private
+  # ENT repository. The private repo-tree overlap audit runs in the ENT repo.
   # ───────────────────────────────────────────────────────────────────────────
   ent-file-check:
     name: Check for ENT-Exclusive Files
@@ -127,23 +119,6 @@ jobs:
           echo "PR file count: $(wc -l < /tmp/pr-files.txt)"
           cat /tmp/pr-files.txt || true
 
-      # ─── Compute the ENT-exclusive file list from CE main vs ENT main ────
-      - name: Detect ENT-exclusive file paths
-        id: ent-files
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN_TEMP }}
-        run: |
-          chmod +x .github/scripts/detect-ent-only-files.sh
-
-          .github/scripts/detect-ent-only-files.sh \
-            --ce-repo  "${{ env.CE_REPO }}" \
-            --ent-repo "${{ env.ENT_REPO }}" \
-            --ce-ref   "${{ env.CE_MAIN_REF }}" \
-            --ent-ref  "${{ env.ENT_MAIN_REF }}" \
-            > /tmp/ent-only-files.txt
-
-          echo "ENT-exclusive file count: $(wc -l < /tmp/ent-only-files.txt)"
-
       # ─── Determine whether this is a protected branch ──────────────────────
       - name: Classify branch protection level
         id: branch-type
@@ -161,39 +136,29 @@ jobs:
             echo "Branch '${BRANCH}' is NOT protected — detection+alert mode."
           fi
 
-      # ─── Cross-reference PR files against ENT-exclusive file list ─────────
-      - name: Fail if PR overlaps with ENT-exclusive files
+      # ─── Reject forbidden ENT-style paths in CE ───────────────────────────
+      - name: Fail if PR introduces forbidden ENT-style paths
         id: violation-check
         run: |
-          overlap_violations=$(comm -12 \
-            <(sort /tmp/pr-files.txt) \
-            <(sort /tmp/ent-only-files.txt) \
-          )
+          chmod +x .github/scripts/check-forbidden-ent-paths.sh
 
-          forbidden_path_violations=$(grep -E \
-            '(^|/)[^/]+_ent(_test)?\.go$|(^|/)[^/]+_enterprise\.go$|(^|/)(enterprise|ent)/' \
-            /tmp/pr-files.txt \
-            || true)
-
-          violations=$(printf '%s\n%s\n' "$overlap_violations" "$forbidden_path_violations" \
-            | sed '/^$/d' \
-            | sort -u)
-
-          if [[ -n "$violations" ]]; then
-            echo "::error::The following PR file(s) are ENT-only and must not appear in the CE repository:"
+          if ! violations=$(.github/scripts/check-forbidden-ent-paths.sh /tmp/pr-files.txt); then
+            echo "::error::The following PR file(s) match forbidden ENT-style path conventions and must not appear in the CE repository:"
             while IFS= read -r f; do
+              [[ -z "$f" ]] && continue
               echo "::error::  ${f}"
             done <<< "$violations"
             echo ""
-            echo "These paths either overlap with ENT-exclusive paths or match forbidden ENT naming conventions."
+            echo "These paths match forbidden ENT naming conventions enforced directly in CE."
+            echo "Private repo-tree overlap detection runs separately in the ENT repository."
             echo "If you believe a file should be promoted to CE, open a discussion with the release team."
             # Write violations to a file so the Slack step can read them
             echo "$violations" > /tmp/ent-violations.txt
             exit 1
           fi
 
-          echo "ENT file check passed: PR file scope contains no ENT-exclusive or forbidden ENT-style paths."
-          touch /tmp/ent-violations.txt  # empty — no violations
+          : > /tmp/ent-violations.txt
+          echo "ENT file check passed: PR file scope contains no forbidden ENT-style paths."
 
       # ─── Slack alert for non-protected branch violations ──────────────────
       # Fires only when: (a) a violation was detected AND (b) the push/PR is
@@ -218,7 +183,7 @@ jobs:
                 "type": "section",
                 "text": {
                   "type": "mrkdwn",
-                    "text": ":warning: *PR file scope overlaps with ENT-exclusive paths in <${{ github.repository }}>*\nBranch: *${BRANCH}*  |  Actor: *${ACTOR}*  |  Event: *${EVENT}*\n\nViolations:\n${VIOLATIONS}\n\n<${RUN_URL}|View CI run> — Please remove ENT-only paths from this PR."
+                    "text": ":warning: *Forbidden ENT-style paths detected in <${{ github.repository }}>*\nBranch: *${BRANCH}*  |  Actor: *${ACTOR}*  |  Event: *${EVENT}*\n\nViolations:\n${VIOLATIONS}\n\n<${RUN_URL}|View CI run> — Please remove ENT-style paths from this PR."
                 }
               }
             ]

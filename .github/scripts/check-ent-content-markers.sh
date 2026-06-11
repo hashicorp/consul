@@ -9,7 +9,7 @@
 #
 # The default marker patterns cover:
 #   - Go enterprise build constraints  (consul: //go:build consulent)
-#   - IBM copyright headers            (consul ENT-owned files)
+#   - IBM copyright headers            (crt-core-helloworld ENT-owned files)
 #   - ENT-only Go package imports      (go-licensing, etc.)
 #   - ENT CI / build metadata          (VERSION_METADATA: "ent", +ent suffix)
 #   - Explicit enterprise-repo references in source code
@@ -57,7 +57,7 @@ fi
 #   consulent / enterprise go:build  — Go build constraints that gate ENT code
 #   Copyright IBM Corp.              — IBM copyright present in ENT-owned Go files
 #   go-licensing import              — HashiCorp enterprise licensing package
-#   consul-enterprise   — Direct reference to the ENT repo in source
+#   crt-core-helloworld-enterprise   — Direct reference to the ENT repo in source
 #   consul-enterprise                — Direct reference to consul ENT in source
 #   VERSION_METADATA.*ent            — YAML/HCL CI metadata that sets ENT suffix
 #   \+ent in version strings         — +ent version suffix in HCL/YAML config
@@ -69,7 +69,7 @@ declare -a DEFAULT_PATTERNS=(
   '// \+build consulent'
   '// \+build enterprise'
 
-  # IBM copyright — present in ENT-owned files for consul
+  # IBM copyright — present in ENT-owned files for crt-core-helloworld
   'Copyright IBM Corp\.'
 
   # ENT-only Go package imports
@@ -78,7 +78,7 @@ declare -a DEFAULT_PATTERNS=(
   # Explicit reference to the enterprise repository in source / configs
   # (does NOT match metadata files that are intentionally about ENT — those
   #  live in .release/ and are excluded via EXCLUDE_PATHS below)
-  'consul-enterprise'
+  'crt-core-helloworld-enterprise'
 
   # consul-enterprise reference inside Go / shell source
   'consul-enterprise'
@@ -105,7 +105,7 @@ declare -a EXCLUDE_PATHS=(
   # marker strings as pattern literals, comments, and documentation.
   # Scanning them produces false positives; exclude the whole group.
   '.github/scripts/check-ent-content-markers.sh'
-  '.github/scripts/detect-ent-only-files.sh'
+  '.github/scripts/test-ent-checks.sh'
   '.github/workflows/ent-protection.yml'
   '.github/workflows/sha-ancestry-check.yml'
 )
