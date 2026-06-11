@@ -69,14 +69,16 @@
             "settings"
             params=(hash nspace=undefined partition=undefined)
           }}
-          @text={{t "components.hashicorp-consul.side-nav.user-menu.settings"}}
           @isHrefExternal={{false}}
-        />
+        >
+          {{t "components.hashicorp-consul.side-nav.user-menu.settings"}}
+        </dd.Interactive>
         <dd.Interactive
-          @text={{t "components.hashicorp-consul.side-nav.user-menu.log-in"}}
           data-test-auth-menu-login
           {{on "click" (optional this.modal.open)}}
-        />
+        >
+          {{t "components.hashicorp-consul.side-nav.user-menu.log-in"}}
+        </dd.Interactive>
       </Hds::Dropdown>
     </:unauthorized>
     <:authorized as |authDialog|>
@@ -139,14 +141,16 @@
             "settings"
             params=(hash nspace=undefined partition=undefined)
           }}
-          @text={{t "components.hashicorp-consul.side-nav.user-menu.settings"}}
           @isHrefExternal={{false}}
-        />
+        >
+          {{t "components.hashicorp-consul.side-nav.user-menu.settings"}}
+        </dd.Interactive>
         <dd.Interactive
-          @text={{t "components.hashicorp-consul.side-nav.user-menu.log-out"}}
           data-test-auth-menu-logout
           {{on "click" (optional authDialog.logout)}}
-        />
+        >
+          {{t "components.hashicorp-consul.side-nav.user-menu.log-out"}}
+        </dd.Interactive>
       </Hds::Dropdown>
     </:authorized>
   </AuthDialog>
@@ -159,8 +163,9 @@
         "settings"
         params=(hash nspace=undefined partition=undefined)
       }}
-      @text={{t "components.hashicorp-consul.side-nav.user-menu.settings"}}
       @isHrefExternal={{false}}
-    />
+    >
+      {{t "components.hashicorp-consul.side-nav.user-menu.settings"}}
+    </dd.Interactive>
   </Hds::Dropdown>
 {{/if}}
