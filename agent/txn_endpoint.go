@@ -5,8 +5,10 @@ package agent
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -63,6 +65,36 @@ func isWrite(op api.KVOp) bool {
 	return false
 }
 
+// TxnOp wraps api.TxnOp to implement robust JSON unmarshaling
+// with dynamic string coercion for tokens that might slip in as numeric literals.
+type TxnOp struct {
+	api.TxnOp
+	Token string `json:"-"`
+}
+
+// TxnOps is a list of transaction operations.
+type TxnOps []*TxnOp
+
+// Custom Unmarshaler helper to handle dynamic string coercion safely
+func (o *TxnOp) UnmarshalJSON(data []byte) error {
+	type Alias TxnOp
+	aux := &struct {
+		Token json.Number `json:"Token"`
+		*Alias
+	}{
+		Alias: (*Alias)(o),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+
+	// Safely extract the exact literal string form without float64 precision drift
+	if aux.Token != "" {
+		o.Token = aux.Token.String()
+	}
+	return nil
+}
+
 // convertOps takes the incoming body in API format and converts it to the
 // internal RPC format. This returns a count of the number of write ops, and
 // a boolean, that if false means an error response has been generated and
@@ -98,7 +130,7 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 		}
 	}
 
-	var ops api.TxnOps
+	var ops TxnOps
 	req.Body = http.MaxBytesReader(resp, req.Body, maxTxnLen)
 	if err := decodeBody(req.Body, &ops); err != nil {
 		if err.Error() == "http: request body too large" {
