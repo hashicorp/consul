@@ -61,6 +61,12 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Error(err.Error())
 		return 1
 	}
+	// Ensure the file descriptor is closed on all exit paths to avoid leaks.
+	defer func() {
+		if cerr := f.Close(); cerr != nil {
+			c.UI.Error(cerr.Error())
+		}
+	}()
 
 	if _, err := buf.WriteTo(f); err != nil {
 		c.UI.Error(err.Error())
