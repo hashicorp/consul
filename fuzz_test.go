@@ -4,7 +4,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: MPL-2.0
 
-package consul_test
+package consul
 
 import (
 	"testing"
