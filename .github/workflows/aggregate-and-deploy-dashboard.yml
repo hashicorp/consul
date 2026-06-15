@@ -1,0 +1,61 @@
+# Builds the CI dashboard static site from the committed JSON data file
+# and uploads the result as a downloadable Actions artifact.
+#
+# The aggregated_ci_results.json must be committed at:
+#   ui/packages/ci-dashboard/public/data/aggregated_ci_results.json
+#
+# To view the dashboard locally after downloading:
+#   1. Download the artifact zip from the Actions run summary
+#   2. Unzip it
+#   3. python3 -m http.server 8080   (or: npx serve .)
+#   4. Open http://localhost:8080
+
+name: Deploy CI Dashboard
+
+on:
+  workflow_dispatch:
+
+  push:
+    branches: [main]
+    paths:
+      - 'ui/packages/ci-dashboard/src/**'
+      - 'ui/packages/ci-dashboard/index.html'
+      - 'ui/packages/ci-dashboard/public/data/aggregated_ci_results.json'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '10'
+
+      - name: Install dependencies
+        working-directory: ui/packages/ci-dashboard
+        run: pnpm install --frozen-lockfile
+
+      - name: Build dashboard
+        working-directory: ui/packages/ci-dashboard
+        run: pnpm build
+
+      - name: Upload dashboard artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-dashboard
+          path: ui/packages/ci-dashboard/dist
+          retention-days: 30
+
+

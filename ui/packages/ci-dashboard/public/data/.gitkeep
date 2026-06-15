@@ -1,0 +1,3 @@
+# CI drops aggregated_ci_results.json here at build time.
+# This directory is intentionally empty in source control.
+# See .gitignore — *.json files in this folder are excluded.
