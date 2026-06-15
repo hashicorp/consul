@@ -18,23 +18,23 @@ as |modal|>
   <!-- Save a reference to the modal component so we can call its methods -->
   {{did-insert (set this 'modal' modal)}}
 
-  <BlockSlot @name="header">
+  <:header>
     <h2>
       Modal Header
     </h2>
-  </BlockSlot>
-  <BlockSlot @name="body">
+  </:header>
+  <:body>
     <p>
       Modal body
     </p>
-  </BlockSlot>
-  <BlockSlot @name="actions">
+  </:body>
+  <:actions>
     <button type="button"
       {{on "click" modal.close}}
     >
       Close modal
     </button>
-  </BlockSlot>
+  </:actions>
 </ModalDialog>
 
 <button

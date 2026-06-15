@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/armon/go-metrics"
-	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/go-metrics"
+	"github.com/hashicorp/go-metrics/prometheus"
 	hashstructure_v2 "github.com/mitchellh/hashstructure/v2"
 
 	"github.com/hashicorp/go-bexpr"
@@ -195,18 +195,26 @@ func nodePreApply(nodeName, nodeID string) error {
 }
 
 func servicePreApply(service *structs.NodeService, authz resolver.Result, authzCtxFill func(*acl.AuthorizerContext)) error {
+	if err := servicePreApplyValidate(service); err != nil {
+		return err
+	}
+	return serviceACLCheck(service, authz, authzCtxFill)
+}
+
+func servicePreApplyValidate(service *structs.NodeService) error {
 	// Validate the service. This is in addition to the below since
 	// the above just hasn't been moved over yet. We should move it over
 	// in time.
 	if err := service.Validate(); err != nil {
 		return err
 	}
+
 	// Check if service name and service ID are empty.
 	if service.ID == "" && service.Service == "" {
 		return fmt.Errorf("service name (Service.Service) is required; both Service ID (Service.ID) and Service Name cannot be empty")
 	}
 
-	// If no service id, but service name, use default
+	// If no service id, but service name, use default.
 	if service.ID == "" && service.Service != "" {
 		service.ID = service.Service
 	}
@@ -222,21 +230,37 @@ func servicePreApply(service *structs.NodeService, authz resolver.Result, authzC
 		return fmt.Errorf("Invalid service address")
 	}
 
+	return nil
+}
+
+func serviceACLCheck(service *structs.NodeService, authz resolver.Result, authzCtxFill func(*acl.AuthorizerContext)) error {
+	return serviceACLCheckWithConsulExemption(service, authz, authzCtxFill, true)
+}
+
+func serviceACLCheckNoConsulExemption(service *structs.NodeService, authz resolver.Result, authzCtxFill func(*acl.AuthorizerContext)) error {
+	return serviceACLCheckWithConsulExemption(service, authz, authzCtxFill, false)
+}
+
+func serviceACLCheckWithConsulExemption(
+	service *structs.NodeService,
+	authz resolver.Result,
+	authzCtxFill func(*acl.AuthorizerContext),
+	allowConsulExemption bool,
+) error {
 	var authzContext acl.AuthorizerContext
 	authzCtxFill(&authzContext)
 
-	// Apply the ACL policy if any. The 'consul' service is excluded
-	// since it is managed automatically internally (that behavior
-	// is going away after version 0.8). We check this same policy
-	// later if version 0.8 is enabled, so we can eventually just
-	// delete this and do all the ACL checks down there.
-	if service.Service != structs.ConsulServiceName {
+	// The historical servicePreApply path exempted the internal "consul"
+	// service from the early ServiceWriteAllowed check. That exemption must
+	// not be used for public transaction input, because txn mutations are
+	// applied by Service.ID while callers control Service.Service.
+	if !allowConsulExemption || service.Service != structs.ConsulServiceName {
 		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(service.Service, &authzContext); err != nil {
 			return err
 		}
 	}
 
-	// Proxies must have write permission on their destination
+	// Proxies must have write permission on their destination.
 	if service.Kind == structs.ServiceKindConnectProxy {
 		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(service.Proxy.DestinationServiceName, &authzContext); err != nil {
 			return err

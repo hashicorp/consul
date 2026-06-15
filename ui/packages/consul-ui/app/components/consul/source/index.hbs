@@ -5,16 +5,21 @@
 
 <dl class="tooltip-panel">
   <dt>
-    <span data-test-consul-source class="consul-source">
-      {{@source}}
+    <span data-test-consul-source class="consul-source--hds">
+      <Hds::Badge
+        @text={{@source}}
+        @color="neutral"
+        @type="filled"
+        @size="small"
+      />
     </span>
   </dt>
   <dd>
     <MenuPanel @position="left">
-      <BlockSlot @name="header">
+      <:header>
         {{t "components.consul.source.header"}}
-      </BlockSlot>
-      <BlockSlot @name="menu">
+      </:header>
+      <:menu>
         <li role="separator">
           {{t "components.consul.source.menu-title"}}
         </li>
@@ -23,7 +28,7 @@
             {{t "components.consul.source.links.documentation"}}
           </a>
         </li>
-      </BlockSlot>
+      </:menu>
     </MenuPanel>
   </dd>
 </dl>

@@ -824,6 +824,22 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 				continue // skip the cluster if we're still populating the snapshot
 			}
 
+			// For non-peer targets routed via a remote mesh gateway whose WAN address
+			// is a hostname (e.g., AWS NLB on EKS), the cluster is configured as
+			// LOGICAL_DNS (via CDS). EDS is not used for such clusters, so skip
+			// generating the load assignment to keep CDS/EDS in sync.
+			if !forMeshGateway {
+				target := chain.Targets[ti.TargetID]
+				if target != nil &&
+					target.MeshGateway.Mode == structs.MeshGatewayModeRemote &&
+					!gatewayKey.Matches(target.Datacenter, target.Partition) {
+					gwKey := proxycfg.GatewayKey{Datacenter: target.Datacenter, Partition: target.Partition}
+					if len(gatewayHostnameEndpoints(gatewayEndpoints[gwKey.String()])) > 0 {
+						continue // cluster uses LOGICAL_DNS; endpoints provided via CDS
+					}
+				}
+			}
+
 			la := makeLoadAssignment(
 				s.Logger,
 				cfgSnap,

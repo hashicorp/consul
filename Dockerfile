@@ -16,7 +16,7 @@
 # Official docker image that includes binaries from releases.hashicorp.com. This
 # downloads the release from releases.hashicorp.com and therefore requires that
 # the release is published before building the Docker image.
-FROM docker.mirror.hashicorp.services/alpine:3.23 as official
+FROM docker.mirror.hashicorp.services/alpine:3.23 AS official
 
 # This is the release of Consul to pull in.
 ARG VERSION
@@ -48,8 +48,27 @@ RUN addgroup consul && \
 
 # Set up certificates, base tools, and Consul.
 # libc6-compat is needed to symlink the shared libraries for ARM builds
+# Upgrade curl to >=8.20.0 from Alpine edge to fix CVE-2026-6429, CVE-2026-4873, CVE-2026-5773,
+# CVE-2026-6253, CVE-2026-6276, CVE-2026-7168, CVE-2026-5545 (fixed in curl 8.20.0).
+# Alpine 3.23 stable does not yet carry the patched version.
 RUN set -eux && \
-    apk add --no-cache --upgrade ca-certificates curl dumb-init gnupg libcap openssl su-exec iputils jq libc6-compat iptables tzdata && \
+    apk add --no-cache --upgrade \
+            ca-certificates \
+            dumb-init \
+            gnupg \
+            gnutls \
+            libcap \
+            openssl \
+            su-exec \
+            iputils \
+            jq \
+            libc6-compat \
+            iptables \
+            tzdata \
+            zlib && \
+    apk add --no-cache --upgrade \
+        --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main \
+        'curl>=8.20.0' && \
     gpg --keyserver keyserver.ubuntu.com --recv-keys C874011F0AB405110D02105534365D9472D7468F && \
     mkdir -p /tmp/build && \
     cd /tmp/build && \
@@ -81,13 +100,11 @@ RUN set -eux && \
 # The /consul/data dir is used by Consul to store state. The agent will be started
 # with /consul/config as the configuration directory so you can add additional
 # config files in that location.
-RUN mkdir -p /consul/data && \
-    mkdir -p /consul/config && \
-    chown -R consul:consul /consul
-
-# set up nsswitch.conf for Go's "netgo" implementation which is used by Consul,
+# Also set up nsswitch.conf for Go's "netgo" implementation which is used by Consul,
 # otherwise DNS supercedes the container's hosts file, which we don't want.
-RUN test -e /etc/nsswitch.conf || echo 'hosts: files dns' > /etc/nsswitch.conf
+RUN mkdir -p /consul/data /consul/config && \
+    chown -R consul:consul /consul && \
+    { test -e /etc/nsswitch.conf || echo 'hosts: files dns' > /etc/nsswitch.conf; }
 
 # Expose the consul data directory as a volume since there's mutable state in there.
 VOLUME /consul/data
@@ -119,7 +136,7 @@ CMD ["agent", "-dev", "-client", "0.0.0.0"]
 
 # Production docker image that uses CI built binaries.
 # Remember, this image cannot be built locally.
-FROM docker.mirror.hashicorp.services/alpine:3.23 as default
+FROM docker.mirror.hashicorp.services/alpine:3.23 AS default
 
 ARG PRODUCT_VERSION
 ARG BIN_NAME
@@ -156,19 +173,26 @@ LABEL org.opencontainers.image.authors="Consul Team <consul@hashicorp.com>" \
 COPY LICENSE /usr/share/doc/$PRODUCT_NAME/LICENSE.txt
 # Set up certificates and base tools.
 # libc6-compat is needed to symlink the shared libraries for ARM builds
+# Upgrade curl to >=8.20.0 from Alpine edge to fix CVE-2026-6429, CVE-2026-4873, CVE-2026-5773,
+# CVE-2026-6253, CVE-2026-6276, CVE-2026-7168, CVE-2026-5545 (fixed in curl 8.20.0).
+# Alpine 3.23 stable does not yet carry the patched version.
 RUN apk add -v --no-cache --upgrade \
 		dumb-init \
 		libc6-compat \
 		iptables \
 		tzdata \
-		curl \
 		ca-certificates \
 		gnupg \
-		iputils \ 
+		gnutls \
+		iputils \
 		libcap \
 		openssl \
 		su-exec \
-		jq 
+		jq \
+		zlib && \
+    apk add --no-cache --upgrade \
+        --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main \
+        'curl>=8.20.0'
 
 # Create a consul user and group first so the IDs get set the same way, even as
 # the rest of this may change over time.
@@ -176,14 +200,12 @@ RUN addgroup $BIN_NAME && \
     adduser -S -G $BIN_NAME $BIN_NAME
 COPY dist/$TARGETOS/$TARGETARCH/$BIN_NAME /bin/
 
-
-RUN mkdir -p /consul/data && \
-    mkdir -p /consul/config && \
-    chown -R consul:consul /consul
-
-# Set up nsswitch.conf for Go's "netgo" implementation which is used by Consul,
-# otherwise DNS supercedes the container's hosts file, which we don't want.
-RUN test -e /etc/nsswitch.conf || echo 'hosts: files dns' > /etc/nsswitch.conf
+# Set up the data and config directories, and nsswitch.conf for Go's "netgo"
+# implementation which is used by Consul, otherwise DNS supercedes the
+# container's hosts file, which we don't want.
+RUN mkdir -p /consul/data /consul/config && \
+    chown -R consul:consul /consul && \
+    { test -e /etc/nsswitch.conf || echo 'hosts: files dns' > /etc/nsswitch.conf; }
 
 # Expose the consul data directory as a volume since there's mutable state in there.
 VOLUME /consul/data
@@ -217,7 +239,7 @@ CMD ["agent", "-dev", "-client", "0.0.0.0"]
 
 # Red Hat UBI-based image
 # This target is used to build a Consul image for use on OpenShift.
-FROM registry.access.redhat.com/ubi9-minimal:9.6 as ubi
+FROM registry.access.redhat.com/ubi9-minimal:9.8 AS ubi
 
 ARG PRODUCT_VERSION
 ARG PRODUCT_REVISION
@@ -291,14 +313,12 @@ COPY dist/$TARGETOS/$TARGETARCH/$BIN_NAME /bin/
 # config files in that location.
 # In addition, change the group of the /consul directory to 0 since OpenShift
 # will always execute the container with group 0.
-RUN mkdir -p /consul/data && \
-    mkdir -p /consul/config && \
-    chown -R consul /consul && \
-    chgrp -R 0 /consul && chmod -R g+rwX /consul
-
-# set up nsswitch.conf for Go's "netgo" implementation which is used by Consul,
+# Also set up nsswitch.conf for Go's "netgo" implementation which is used by Consul,
 # otherwise DNS supercedes the container's hosts file, which we don't want.
-RUN test -e /etc/nsswitch.conf || echo 'hosts: files dns' > /etc/nsswitch.conf
+RUN mkdir -p /consul/data /consul/config && \
+    chown -R consul /consul && \
+    chgrp -R 0 /consul && chmod -R g+rwX /consul && \
+    { test -e /etc/nsswitch.conf || echo 'hosts: files dns' > /etc/nsswitch.conf; }
 
 # Expose the consul data directory as a volume since there's mutable state in there.
 VOLUME /consul/data

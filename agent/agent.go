@@ -22,8 +22,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/armon/go-metrics"
-	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/go-metrics"
+	"github.com/hashicorp/go-metrics/prometheus"
 	"github.com/rboyer/safeio"
 	"golang.org/x/net/http2"
 	"google.golang.org/grpc"
@@ -890,12 +890,18 @@ func (a *Agent) Start(ctx context.Context) error {
 		go a.retryJoinWAN()
 	}
 
-	if a.config.Telemetry.CertificateEnabled && a.tlsConfigurator.Cert() != nil {
+	shouldMonitorAgentTLS := a.config.Telemetry.CertificateEnabled &&
+		(a.tlsConfigurator.Cert() != nil ||
+			a.config.AutoEncryptTLS ||
+			a.config.TLS.InternalRPC.CertFile != "" ||
+			a.config.TLS.InternalRPC.KeyFile != "")
+	if shouldMonitorAgentTLS {
 		m := tlsCertExpirationMonitor(
 			a.tlsConfigurator,
 			a.config.Datacenter,
 			a.config.PartitionOrDefault(),
 			a.config.NodeName,
+			tlsCertRole(a.config.ServerMode),
 			a.config.Telemetry.CertificateCriticalThresholdDays,
 			a.config.Telemetry.CertificateWarningThresholdDays,
 			a.logger,

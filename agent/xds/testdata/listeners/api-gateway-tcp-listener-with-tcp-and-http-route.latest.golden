@@ -24,6 +24,7 @@
                     }
                   }
                 ],
+                "normalizePath": true,
                 "rds": {
                   "configSource": {
                     "ads": {},

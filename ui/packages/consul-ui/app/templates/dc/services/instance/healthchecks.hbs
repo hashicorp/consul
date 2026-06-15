@@ -72,13 +72,13 @@
           </collection.Collection>
           <collection.Empty>
             <EmptyState>
-              <BlockSlot @name='body'>
+              <:body>
                 {{t
                   'routes.dc.services.instance.healthchecks.empty'
                   items=items.length
                   htmlSafe=true
                 }}
-              </BlockSlot>
+              </:body>
             </EmptyState>
           </collection.Empty>
         </DataCollection>

@@ -766,6 +766,10 @@ func (s *Sprawl) dumpContainerLogs(ctx context.Context, containerName, outputRoo
 	return nil
 }
 
+func (s *Sprawl) CopyFileFromContainer(ctx context.Context, containerName, sourcePath, destPath string) error {
+	return s.runner.DockerExec(ctx, []string{"cp", containerName + ":" + sourcePath, destPath}, nil, nil)
+}
+
 func (s *Sprawl) GetFileFromContainer(ctx context.Context, containerName string, filePath string) error {
-	return s.runner.DockerExec(ctx, []string{"cp", containerName + ":" + filePath, filePath}, nil, nil)
+	return s.CopyFileFromContainer(ctx, containerName, filePath, filePath)
 }

@@ -247,6 +247,9 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 				maxRequestHeadersKb: maxRequestHeadersKb,
 			}
 
+			// Apply path normalization options to prevent L7 intention RBAC bypass (CVE-2024-10005)
+			setNormalizationOptions(cfgSnap.MeshConfig().GetHTTPIncomingRequestNormalization(), &filterOpts)
+
 			// Generate any filter chains needed for services with custom TLS certs
 			// via SDS.
 			sniFilterChains := []*envoy_listener_v3.FilterChain{}
@@ -451,6 +454,16 @@ func getReadyListeners(cfgSnap *proxycfg.ConfigSnapshot) map[string]readyListene
 		// For each route bound to the listener
 		boundListener := cfgSnap.APIGateway.BoundListeners[l.Name]
 		for _, routeRef := range boundListener.Routes {
+			switch routeRef.Kind {
+			case structs.HTTPRoute:
+				if _, ok := cfgSnap.APIGateway.HTTPRoutes.Get(routeRef); !ok {
+					continue
+				}
+			case structs.TCPRoute:
+				if _, ok := cfgSnap.APIGateway.TCPRoutes.Get(routeRef); !ok {
+					continue
+				}
+			}
 			// Get all upstreams for the route
 			routeUpstreams, ok := cfgSnap.APIGateway.Upstreams[routeRef]
 			if !ok {
