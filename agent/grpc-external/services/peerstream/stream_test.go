@@ -6,6 +6,7 @@ package peerstream
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -825,6 +826,67 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 			require.True(r, ok)
 			require.Equal(r, expect, status)
 		})
+	})
+}
+
+func TestStreamResources_Server_SendErrorFromAckDisconnectsStream(t *testing.T) {
+	it := incrementalTime{
+		base: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+	}
+
+	srv, store := newTestServer(t, nil)
+	srv.Tracker.setClock(it.Now)
+
+	p := writePeeringToBeDialed(t, store, 1, "my-peer")
+	require.Empty(t, p.PeerID, "should be empty if being dialed")
+
+	// Set the initial roots and CA configuration.
+	_, _ = writeInitialRootsAndCA(t, store)
+
+	client := makeClient(t, srv, testPeerID)
+	client.DrainStream(t)
+
+	retry.Run(t, func(r *retry.R) {
+		status, ok := srv.StreamStatus(testPeerID)
+		require.True(r, ok)
+		require.True(r, status.Connected)
+	})
+
+	// Simulate the gRPC transport closing while the server is trying to ACK a
+	// resource response from the peer. This used to be swallowed by the ACK
+	// goroutine, leaving the old stream marked connected forever. New stream
+	// attempts then failed with "there is an active stream for the given PeerID",
+	// and the old stream's submatview materializers kept piling up.
+	transportErr := errors.New("transport is closing")
+	client.ReplicationStream.SetSendErr(transportErr)
+
+	resp := &pbpeerstream.ReplicationMessage{
+		Payload: &pbpeerstream.ReplicationMessage_Response_{
+			Response: &pbpeerstream.ReplicationMessage_Response{
+				ResourceURL: pbpeerstream.TypeURLExportedService,
+				ResourceID:  "api",
+				Nonce:       "21",
+				Operation:   pbpeerstream.Operation_OPERATION_UPSERT,
+				Resource:    makeAnyPB(t, &pbpeerstream.ExportedService{}),
+			},
+		},
+	}
+	require.NoError(t, client.Send(resp))
+
+	select {
+	case err := <-client.ErrCh:
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "error sending to stream: transport is closing")
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for stream handler to return send error")
+	}
+
+	retry.Run(t, func(r *retry.R) {
+		status, ok := srv.StreamStatus(testPeerID)
+		require.True(r, ok)
+		require.False(r, status.Connected)
+		require.NotNil(r, status.DisconnectTime)
+		require.Equal(r, "error sending to stream: transport is closing", status.DisconnectErrorMessage)
 	})
 }
 
