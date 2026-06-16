@@ -1,3 +1,8 @@
+/**
+ * Copyright IBM Corp. 2024, 2026
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 import IntlService from 'ember-intl/services/intl';
 import { inject as service } from '@ember/service';
 import { scheduleOnce } from '@ember/runloop';
