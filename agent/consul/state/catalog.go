@@ -872,6 +872,13 @@ func ensureServiceTxn(tx WriteTxn, idx uint64, node string, preserveIndexes bool
 	if svc.PeerName == "" {
 		// Do not associate non-typical services with gateways or consul services
 		if svc.Kind == structs.ServiceKindTypical && svc.Service != "consul" {
+			// Reject registration if a service-defaults Destination already claims
+			// this name. A terminating gateway cannot treat the same name as both a
+			// registered service and an external destination; allowing both produces
+			// two conflicting SNI filter chains and breaks mTLS routing.
+			if err = checkServiceDefaultsDestinationClashOnRegister(tx, svc.Service, &svc.EnterpriseMeta); err != nil {
+				return err
+			}
 			// Check if this service is covered by a gateway's wildcard specifier, we force the service kind to a gateway-service here as that take precedence
 			sn := structs.NewServiceName(svc.Service, &svc.EnterpriseMeta)
 			if err = checkGatewayWildcardsAndUpdate(tx, idx, &sn, svc, structs.GatewayServiceKindService); err != nil {
@@ -3858,6 +3865,35 @@ func terminatingConfigGatewayServices(
 		gatewayServices = append(gatewayServices, mapping)
 	}
 	return false, gatewayServices, nil
+}
+
+// checkServiceDefaultsDestinationClashOnRegister rejects registering a catalog
+// service when a service-defaults config entry with a Destination block already
+// exists for the same name. This is the registration-path counterpart to the
+// config-entry validation in checkServiceDefaultsDestinationClash: together they
+// prevent a terminating gateway from ever classifying the same name as both a
+// registered service (GatewayServiceKindService) and an external destination
+// (GatewayServiceKindDestination), which would emit two conflicting SNI filter
+// chains and break mTLS routing through the gateway.
+func checkServiceDefaultsDestinationClashOnRegister(tx ReadTxn, name string, entMeta *acl.EnterpriseMeta) error {
+	_, entry, err := configEntryTxn(tx, nil, structs.ServiceDefaults, name, entMeta)
+	if err != nil {
+		return fmt.Errorf("failed to retrieve service-defaults config for %q: %w", name, err)
+	}
+	if entry == nil {
+		return nil
+	}
+	sd, ok := entry.(*structs.ServiceConfigEntry)
+	if !ok {
+		return fmt.Errorf("invalid config entry type %T", entry)
+	}
+	if sd.Destination != nil {
+		return fmt.Errorf("cannot register service %q: a service-defaults config entry with a "+
+			"Destination already exists for that name. A terminating gateway cannot treat the same "+
+			"name as both a registered service and an external destination. Remove the Destination "+
+			"block or register the service under a different name.", name)
+	}
+	return nil
 }
 
 func GatewayServiceKind(tx ReadTxn, name string, entMeta *acl.EnterpriseMeta) (structs.GatewayServiceKind, error) {

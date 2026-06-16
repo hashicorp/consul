@@ -619,6 +619,9 @@ func validateProposedConfigEntryInGraph(
 			if err := checkMutualTLSMode(tx, kindName, newSD.MutualTLSMode, existingMode); err != nil {
 				return err
 			}
+			if err := checkServiceDefaultsDestinationClash(tx, kindName, newSD); err != nil {
+				return err
+			}
 		}
 	case structs.ServiceRouter:
 	case structs.ServiceSplitter:
@@ -868,6 +871,41 @@ func checkGatewayClash(tx ReadTxn, kindName configentry.KindName, otherKind stri
 	if entry != nil {
 		return fmt.Errorf("cannot create a %q config entry with name %q, "+
 			"a %q config entry with that name already exists", kindName.Kind, kindName.Name, otherKind)
+	}
+	return nil
+}
+
+// checkServiceDefaultsDestinationClash prevents creating or updating a
+// service-defaults config entry that declares a Destination block when a
+// service of the same name is already registered in the catalog.
+//
+// A terminating gateway classifies each linked service as either a "service"
+// (catalog-backed, GatewayServiceKindService) or a "destination" (external
+// endpoint declared via a service-defaults Destination block,
+// GatewayServiceKindDestination). These two classifications are mutually
+// exclusive: the gateway builds a distinct SNI filter chain for each kind, so
+// allowing the same name to be both produces two conflicting filter chains for
+// the same service and breaks mTLS routing through the gateway. Rejecting the
+// write here surfaces the conflict to the operator instead of silently
+// resolving it.
+func checkServiceDefaultsDestinationClash(tx ReadTxn, kindName configentry.KindName, newSD *structs.ServiceConfigEntry) error {
+	if newSD.Destination == nil {
+		return nil
+	}
+
+	svc, err := tx.First(tableServices, indexService, Query{
+		Value:          kindName.Name,
+		EnterpriseMeta: kindName.EnterpriseMeta,
+	})
+	if err != nil {
+		return fmt.Errorf("failed service lookup for %q: %w", kindName.Name, err)
+	}
+	if svc != nil {
+		return fmt.Errorf("cannot create a %q config entry with a Destination for %q: "+
+			"a service with that name is already registered in the catalog. A terminating "+
+			"gateway cannot treat the same name as both a registered service and an external "+
+			"destination. Deregister the service or remove the Destination block.",
+			structs.ServiceDefaults, kindName.Name)
 	}
 	return nil
 }
