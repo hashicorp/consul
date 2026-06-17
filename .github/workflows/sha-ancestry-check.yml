@@ -92,7 +92,8 @@ on:
     #   • On protected branches (main, release/**): a failed check surfaces
     #     in the PR that produced this push and blocks future merges.
     #   • On feature branches: detects force-pushes that could obscure
-    #     earlier ENT-protection failures; fires a Slack alert for rapid
+    #     earlier ENT-protection failures; fires a Slack alert to 
+    #     #feed-consul-hygiene-alerts (id: C0BB6F78VB4) for rapid
     #     remediation and ensures the branch can never merge while tainted.
     branches-ignore:
       - 'dependabot/**'  # Dependabot legitimately force-pushes when rebasing/updating
@@ -193,7 +194,8 @@ jobs:
       # ─── Slack alert for non-protected branch force-push ──────────────────
       # A force-push on a feature branch could be used to overwrite a commit
       # that failed the ENT protection check, making ENT code appear clean.
-      # Alert immediately so the branch can be deleted before a new PR is opened.
+      # Alert immediately to to #feed-consul-hygiene-alerts (id: C0BB6F78VB4)
+      # so the branch can be deleted before a new PR is opened.
       - name: Alert Slack on non-protected branch force-push
         if: failure() && !startsWith(github.ref_name, 'release/') && github.ref_name != 'main' && env.SLACK_WEBHOOK_URL != ''
         env:

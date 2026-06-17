@@ -39,7 +39,7 @@
 #   │  Scans every changed source / config file in the PR for well-known ENT  │
 #   │  content markers:                                                       │
 #   │    • Go build constraints  (//go:build consulent / enterprise)          │
-#   │    • IBM copyright headers (ENT-owned files in crt-core-helloworld)     │
+#   │    • IBM copyright headers (ENT-owned files in consul)     │
 #   │    • ENT-only Go imports   (go-licensing)                               │
 #   │    • CI metadata           (VERSION_METADATA: "ent", +ent suffix)       │
 #   │    • Explicit ENT repo references in source                             │
@@ -50,8 +50,8 @@
 #
 # Slack alerting:
 #   When a violation is detected on a non-protected branch, both jobs post a
-#   Slack message to SLACK_WEBHOOK_URL identifying the branch, actor, and
-#   offending files so the team can act immediately.
+#   Slack message to #feed-consul-hygiene-alerts (id: C0BB6F78VB4) identifying 
+#   the branch, actor, and offending files so the team can act immediately.
 #
 # Private-side repo-tree comparison:
 #   Private repo-tree comparison now runs in the ENT repository, where
@@ -160,7 +160,7 @@ jobs:
           : > /tmp/ent-violations.txt
           echo "ENT file check passed: PR file scope contains no forbidden ENT-style paths."
 
-      # ─── Slack alert for non-protected branch violations ──────────────────
+      # ─── Slack alert for non-protected branch violations to #feed-consul-hygiene-alerts (id: C0BB6F78VB4) ──────────────────
       # Fires only when: (a) a violation was detected AND (b) the push/PR is
       # targeting a non-protected branch. On protected branches the merge-block
       # is the primary signal; the Slack alert avoids double-noise.
@@ -251,7 +251,7 @@ jobs:
             2>&1 | tee /tmp/content-scan-output.txt
           exit ${PIPESTATUS[0]}
 
-      # ─── Slack alert for non-protected branch violations ──────────────────
+      # ─── Slack alert for non-protected branch violations to #feed-consul-hygiene-alerts (id: C0BB6F78VB4) ──────────────────
       - name: Alert Slack on non-protected branch violation
         if: failure() && steps.branch-type.outputs.protected == 'false'
         env:
