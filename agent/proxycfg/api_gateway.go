@@ -7,10 +7,12 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
 )
 
@@ -155,6 +157,108 @@ func (h *handlerAPIGateway) handleRootCAUpdate(u UpdateEvent, snap *ConfigSnapsh
 	return nil
 }
 
+// extProcParsedArgs is a minimal, case-insensitive view of the builtin/ext-proc
+// extension arguments. It is decoded with mapstructure exactly like the extension
+// (agent/envoyextensions/builtin/ext-proc), so the service name / protocol resolved
+// here always matches what the extension resolves — whether the arguments arrived as
+// HCL PascalCase (consul config write) or Kubernetes CRD camelCase (consul-k8s).
+type extProcParsedArgs struct {
+	Config struct {
+		GrpcService *extProcParsedService
+		HttpService *extProcParsedService
+	}
+}
+
+type extProcParsedService struct {
+	Target struct {
+		Service struct {
+			Name string
+		}
+	}
+}
+
+func parseExtProcArgs(args map[string]any) extProcParsedArgs {
+	var parsed extProcParsedArgs
+	// Ignore the error: a malformed args map simply yields empty values, which the
+	// callers treat as "no service target".
+	_ = mapstructure.Decode(args, &parsed)
+	return parsed
+}
+
+func (a extProcParsedArgs) service() *extProcParsedService {
+	switch {
+	case a.Config.GrpcService != nil:
+		return a.Config.GrpcService
+	case a.Config.HttpService != nil:
+		return a.Config.HttpService
+	default:
+		return nil
+	}
+}
+
+// extProcServiceName extracts the processor's Consul service name from the
+// builtin/ext-proc extension arguments. Returns "" for URI-mode targets.
+func extProcServiceName(args map[string]any) string {
+	if svc := parseExtProcArgs(args).service(); svc != nil {
+		return svc.Target.Service.Name
+	}
+	return ""
+}
+
+// extProcChainProtocol returns the discovery-chain protocol to use for the ext-proc
+// upstream: "grpc" for GrpcService (so the rendered cluster is HTTP/2, which gRPC
+// requires), otherwise "http".
+func extProcChainProtocol(args map[string]any) string {
+	if parseExtProcArgs(args).Config.GrpcService != nil {
+		return "grpc"
+	}
+	return "http"
+}
+
+// Conceptual: in handlerAPIGateway, after gateway config is loaded.
+func (h *handlerAPIGateway) watchExtProcServices(ctx context.Context, snap *ConfigSnapshot) error {
+	for _, ext := range h.proxyCfg.EnvoyExtensions {
+		if ext.Name != api.BuiltinExtProcExtension {
+			continue
+		}
+		svcName := extProcServiceName(ext.Arguments)
+		if svcName == "" {
+			continue // URI mode needs no Consul watch
+		}
+
+		sn := structs.NewServiceName(svcName, &h.proxyID.EnterpriseMeta)
+		uid := NewUpstreamIDFromServiceName(sn)
+
+		// IMPORTANT: also record it in UpstreamsSet, otherwise the cleanup loop
+		// in handleRouteConfigUpdate will cancel this watch on the next route update.
+		set := make(upstreamIDSet)
+		set.add(uid)
+
+		ref := structs.ResourceReference{
+			Kind:           structs.APIGateway,
+			Name:           h.service,
+			SectionName:    "ext-proc/" + svcName, // unique per ext-proc service
+			EnterpriseMeta: h.proxyID.EnterpriseMeta,
+		}
+		snap.APIGateway.UpstreamsSet.set(ref, set)
+
+		opts := discoveryChainWatchOpts{
+			id:         uid,
+			name:       svcName,
+			namespace:  sn.NamespaceOrDefault(),
+			partition:  sn.PartitionOrDefault(),
+			datacenter: h.source.Datacenter,
+		}
+		opts.cfg.Protocol = extProcChainProtocol(ext.Arguments) // was hardcoded "http"
+
+		handler := &handlerUpstreams{handlerState: h.handlerState}
+		if err := handler.watchDiscoveryChain(ctx, snap, opts); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // handleGatewayConfigUpdate responds to changes in the watched config entries for a gateway.
 // Once the base api-gateway config entry has been seen, we store the list of listeners and
 // then subscribe to the corresponding bound-api-gateway config entry. We use the bound-api-gateway
@@ -282,6 +386,10 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 		}
 	default:
 		return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
+	}
+
+	if err := h.watchExtProcServices(ctx, snap); err != nil {
+		return err
 	}
 
 	return h.watchIngressLeafCert(ctx, snap)

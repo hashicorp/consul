@@ -1070,7 +1070,47 @@ func (s *ResourceGenerator) clustersFromSnapshotAPIGateway(cfgSnap *proxycfg.Con
 		}
 	}
 
+	extProcClusters, err := s.makeExtProcUpstreamClusters(cfgSnap, createdClusters)
+	if err != nil {
+		return nil, err
+	}
+	clusters = append(clusters, extProcClusters...)
+
 	clusters = append(clusters, makeAPIGatewayJWKClusters(s.Logger, cfgSnap)...)
+	return clusters, nil
+}
+
+// makeExtProcUpstreamClusters builds EDS + mTLS upstream clusters for services
+// referenced by builtin/ext-proc extensions that are not already rendered as route
+// backends, so the ext_proc filter can reuse the standard mesh cluster (endpoints at
+// :20000, SPIFFE-validated mTLS) instead of a synthesized plain cluster.
+func (s *ResourceGenerator) makeExtProcUpstreamClusters(
+	cfgSnap *proxycfg.ConfigSnapshot,
+	createdClusters map[proxycfg.UpstreamID]bool,
+) ([]proto.Message, error) {
+	var clusters []proto.Message
+	for _, uid := range extProcUpstreamIDs(cfgSnap) {
+		if createdClusters[uid] {
+			continue
+		}
+		chain, ok := cfgSnap.APIGateway.DiscoveryChain[uid]
+		if !ok {
+			continue // watchExtProcServices hasn't resolved the chain yet
+		}
+		upstream := &structs.Upstream{
+			DestinationName:      uid.Name,
+			DestinationNamespace: uid.NamespaceOrDefault(),
+			DestinationPartition: uid.PartitionOrDefault(),
+		}
+		upstreamClusters, err := s.makeUpstreamClustersForDiscoveryChain(uid, upstream, chain, cfgSnap, false)
+		if err != nil {
+			return nil, err
+		}
+		for _, cluster := range upstreamClusters {
+			clusters = append(clusters, cluster)
+		}
+		createdClusters[uid] = true
+	}
 	return clusters, nil
 }
 

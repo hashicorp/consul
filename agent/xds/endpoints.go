@@ -11,6 +11,7 @@ import (
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
+	"github.com/go-viper/mapstructure/v2"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/go-bexpr"
@@ -578,7 +579,95 @@ func (s *ResourceGenerator) endpointsFromSnapshotAPIGateway(cfgSnap *proxycfg.Co
 			createdClusters[uid] = struct{}{}
 		}
 	}
+
+	// Render endpoints for ext-proc service backends not attached to a route, so the
+	// EDS clusters built in clustersFromSnapshotAPIGateway resolve to the real mesh
+	// endpoints (:20000).
+	for _, uid := range extProcUpstreamIDs(cfgSnap) {
+		if _, ok := createdClusters[uid]; ok {
+			continue
+		}
+		chain, ok := cfgSnap.APIGateway.DiscoveryChain[uid]
+		if !ok {
+			continue // watchExtProcServices hasn't resolved the chain yet
+		}
+		upstream := &structs.Upstream{
+			DestinationName:      uid.Name,
+			DestinationNamespace: uid.NamespaceOrDefault(),
+			DestinationPartition: uid.PartitionOrDefault(),
+		}
+		endpoints, err := s.endpointsFromDiscoveryChain(
+			uid,
+			chain,
+			cfgSnap,
+			cfgSnap.Locality,
+			upstream,
+			cfgSnap.APIGateway.WatchedUpstreamEndpoints[uid],
+			cfgSnap.APIGateway.WatchedGatewayEndpoints[uid],
+			false,
+		)
+		if err != nil {
+			return nil, err
+		}
+		resources = append(resources, endpoints...)
+		createdClusters[uid] = struct{}{}
+	}
+
 	return resources, nil
+}
+
+// extProcUpstreamIDs returns the UpstreamIDs of the Consul services referenced by
+// builtin/ext-proc extensions on the gateway (Service mode only). These services may
+// not be attached to any route, so we render their mesh clusters and endpoints
+// explicitly to let the ext_proc filter reuse the standard :20000 + mTLS path.
+func extProcUpstreamIDs(cfgSnap *proxycfg.ConfigSnapshot) []proxycfg.UpstreamID {
+	var ids []proxycfg.UpstreamID
+	seen := make(map[proxycfg.UpstreamID]struct{})
+	for _, ext := range cfgSnap.Proxy.EnvoyExtensions {
+		if ext.Name != api.BuiltinExtProcExtension {
+			continue
+		}
+		svcName := extProcServiceName(ext.Arguments) // was cfg["Service"].(string)
+		if svcName == "" {
+			continue
+		}
+		sn := structs.NewServiceName(svcName, &cfgSnap.ProxyID.EnterpriseMeta)
+		uid := proxycfg.NewUpstreamIDFromServiceName(sn)
+		if _, dup := seen[uid]; dup {
+			continue
+		}
+		seen[uid] = struct{}{}
+		ids = append(ids, uid)
+	}
+	return ids
+}
+
+type extProcParsedArgs struct {
+	Config struct {
+		GrpcService *extProcParsedService
+		HttpService *extProcParsedService
+	}
+}
+
+type extProcParsedService struct {
+	Target struct {
+		Service struct {
+			Name string
+		}
+	}
+}
+
+func extProcServiceName(args map[string]any) string {
+	var parsed extProcParsedArgs
+	_ = mapstructure.Decode(args, &parsed)
+	switch {
+	case parsed.Config.GrpcService != nil:
+		return parsed.Config.GrpcService.Target.Service.Name
+	case parsed.Config.HttpService != nil:
+		return parsed.Config.HttpService.Target.Service.Name
+	default:
+		return ""
+	}
 }
 
 // used in clusters.go

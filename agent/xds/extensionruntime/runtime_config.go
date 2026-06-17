@@ -131,7 +131,67 @@ func GetRuntimeConfigurations(cfgSnap *proxycfg.ConfigSnapshot) map[api.Compound
 		}
 	case structs.ServiceKindAPIGateway:
 		kind = api.ServiceKindAPIGateway
-		// For API Gateway, we need to handle the gateway itself
+		// Populate upstream data for API Gateway so extensions can resolve service
+		// targets from runtime data instead of DNS hostnames.
+		outgoingKindByService := make(map[api.CompoundServiceName]api.ServiceKind)
+		vipForService := make(map[api.CompoundServiceName]string)
+
+		for uid, upstreamData := range cfgSnap.APIGateway.WatchedUpstreamEndpoints {
+			sn := upstreamIDToCompoundServiceName(uid)
+
+			for _, serviceNodes := range upstreamData {
+				for _, serviceNode := range serviceNodes {
+					if serviceNode.Service == nil {
+						continue
+					}
+
+					if vip := serviceNode.Service.TaggedAddresses[structs.TaggedAddressVirtualIP].Address; vip != "" {
+						if _, ok := vipForService[sn]; !ok {
+							vipForService[sn] = vip
+						}
+					}
+
+					switch serviceNode.Service.Kind {
+					case structs.ServiceKindTypical:
+					default:
+						outgoingKindByService[sn] = api.ServiceKind(serviceNode.Service.Kind)
+					}
+					break
+				}
+			}
+		}
+		for uid, chain := range cfgSnap.APIGateway.DiscoveryChain {
+			compoundServiceName := upstreamIDToCompoundServiceName(uid)
+			extensionsMap[compoundServiceName] = convertEnvoyExtensions(chain.EnvoyExtensions)
+
+			primarySNI := connect.ServiceSNI(uid.Name, "", uid.NamespaceOrDefault(), uid.PartitionOrDefault(), cfgSnap.Datacenter, trustDomain)
+			clusterName := primarySNI
+			if chain.CustomizationHash != "" {
+				clusterName = chain.CustomizationHash + "~" + primarySNI
+			}
+
+			snis := make(map[string]struct{})
+			snis[primarySNI] = struct{}{}
+			for _, target := range chain.Targets {
+				if target.SNI != "" {
+					snis[target.SNI] = struct{}{}
+				}
+			}
+
+			outgoingKind, ok := outgoingKindByService[compoundServiceName]
+			if !ok {
+				outgoingKind = api.ServiceKindConnectProxy
+			}
+
+			upstreamMap[compoundServiceName] = &extensioncommon.UpstreamData{
+				PrimarySNI:        clusterName,
+				SNIs:              snis,
+				VIP:               vipForService[compoundServiceName],
+				EnvoyID:           uid.EnvoyID(),
+				OutgoingProxyKind: outgoingKind,
+			}
+		}
+
 		localSvc := api.CompoundServiceName{
 			Name:      cfgSnap.Service,
 			Namespace: cfgSnap.ProxyID.NamespaceOrDefault(),

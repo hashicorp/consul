@@ -6,6 +6,7 @@ package envoyextensions
 import (
 	"fmt"
 
+	extproc "github.com/hashicorp/consul/agent/envoyextensions/builtin/ext-proc"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-version"
 
@@ -28,6 +29,7 @@ var extensionConstructors = map[string]extensionConstructor{
 	api.BuiltinPropertyOverrideExtension:  propertyoverride.Constructor,
 	api.BuiltinWasmExtension:              wasm.Constructor,
 	api.BuiltinExtAuthzExtension:          extauthz.Constructor,
+	api.BuiltinExtProcExtension:           extproc.Constructor,
 }
 
 // ConstructExtension attempts to lookup and build an extension from the registry with the
