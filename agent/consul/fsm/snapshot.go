@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/armon/go-metrics"
-	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/go-metrics"
+	"github.com/hashicorp/go-metrics/prometheus"
 	"github.com/hashicorp/go-raftchunking"
 	"github.com/hashicorp/raft"
 
