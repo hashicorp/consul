@@ -6,7 +6,7 @@ package hoststats
 import (
 	"time"
 
-	"github.com/hashicorp/go-metrics"
+	"github.com/armon/go-metrics"
 )
 
 var hostStatsCollectionInterval = 10 * time.Second

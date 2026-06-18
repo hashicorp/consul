@@ -20,7 +20,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/go-metrics/prometheus"
+	"github.com/armon/go-metrics/prometheus"
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/go-bexpr"

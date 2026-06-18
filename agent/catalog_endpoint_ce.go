@@ -5,7 +5,7 @@
 
 package agent
 
-import "github.com/hashicorp/go-metrics"
+import "github.com/armon/go-metrics"
 
 func (s *HTTPHandlers) nodeMetricsLabels() []metrics.Label {
 	return []metrics.Label{{Name: "node", Value: s.nodeName()}}

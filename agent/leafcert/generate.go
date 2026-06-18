@@ -10,7 +10,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/hashicorp/go-metrics"
+	"github.com/armon/go-metrics"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"

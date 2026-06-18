@@ -14,8 +14,8 @@ import (
 
 	"github.com/hashicorp/consul/agent/metadata"
 
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-metrics"
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/agent/consul/multilimiter"

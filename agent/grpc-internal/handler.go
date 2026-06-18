@@ -8,7 +8,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/hashicorp/go-metrics"
+	"github.com/armon/go-metrics"
 
 	agentmiddleware "github.com/hashicorp/consul/agent/grpc-middleware"
 
