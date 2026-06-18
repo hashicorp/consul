@@ -24,9 +24,9 @@ func TestSprawl(t *testing.T) {
 		Images: topology.Images{
 			// TODO NOT HARDCODE
 			// ConsulEnterprise: "consul-dev:latest",
-			ConsulCE:         "hashicorppreview/consul:1.20-dev",
-			ConsulEnterprise: "hashicorppreview/consul-enterprise:1.20-dev",
-			Dataplane:        "hashicorppreview/consul-dataplane:1.6-dev",
+			ConsulCE:         "hashicorppreview/consul:2.0.0-dev",
+			ConsulEnterprise: "hashicorppreview/consul-enterprise:2.0.0-dev",
+			Dataplane:        "hashicorppreview/consul-dataplane:2.0.0-dev",
 		},
 		Networks: []*topology.Network{
 			{Name: "dc1"},
