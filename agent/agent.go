@@ -22,8 +22,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/go-metrics"
-	"github.com/hashicorp/go-metrics/prometheus"
+	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/rboyer/safeio"
 	"golang.org/x/net/http2"
 	"google.golang.org/grpc"

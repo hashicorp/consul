@@ -18,7 +18,7 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/hashicorp/go-metrics"
+	"github.com/armon/go-metrics"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/go-hclog"

@@ -12,8 +12,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/go-metrics"
-	"github.com/hashicorp/go-metrics/prometheus"
+	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 	"google.golang.org/grpc/grpclog"
 
 	"github.com/hashicorp/go-hclog"

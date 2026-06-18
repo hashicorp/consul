@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/hashicorp/go-metrics"
+	"github.com/armon/go-metrics"
 	hashstructure_v2 "github.com/mitchellh/hashstructure/v2"
 
 	"github.com/hashicorp/consul/acl"

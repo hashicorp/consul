@@ -57,7 +57,7 @@ func TestValidateExtensions(t *testing.T) {
 				ConsulVersion: "bad",
 			}},
 			expectErrs: []string{
-				"invalid EnvoyExtensions[0].ConsulVersion: malformed constraint: bad",
+				"invalid EnvoyExtensions[0].ConsulVersion: Malformed constraint: bad",
 			},
 		},
 		"invalid envoy version constraint": {
@@ -69,7 +69,7 @@ func TestValidateExtensions(t *testing.T) {
 				EnvoyVersion: "bad",
 			}},
 			expectErrs: []string{
-				"invalid EnvoyExtensions[0].EnvoyVersion: malformed constraint: bad",
+				"invalid EnvoyExtensions[0].EnvoyVersion: Malformed constraint: bad",
 			},
 		},
 	}

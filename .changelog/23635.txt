@@ -1,3 +1,0 @@
-```release-note:improvement
-deps: Migrate `armon/go-metrics` to `hashicorp/go-metrics` and update Go dependencies across all modules
-```

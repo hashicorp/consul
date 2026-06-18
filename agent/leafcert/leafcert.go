@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/go-metrics"
+	"github.com/armon/go-metrics"
 	"golang.org/x/sync/singleflight"
 	"golang.org/x/time/rate"
 
