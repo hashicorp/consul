@@ -1,4 +1,3 @@
 ```release-note:improvement
-connect: update supported envoy versions to 1.38.0, 1.37.2, 1.36.6, 1.35.10 
-connect: update supported nomad and vault versions to latest (nomad v2.0.2, v1.11.3, v1.10.5; vault 2.0.1, 1.21.4, 1.19.5)
+connect: update support for nomad and vault version to v2.0.3
 ```
