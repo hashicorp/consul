@@ -1125,9 +1125,19 @@ func (s *ResourceGenerator) injectConnectFilters(cfgSnap *proxycfg.ConfigSnapsho
 }
 
 const (
-	httpConnectionManagerOldName = "envoy.http_connection_manager"
-	httpConnectionManagerNewName = "envoy.filters.network.http_connection_manager"
+	httpConnectionManagerOldName  = "envoy.http_connection_manager"
+	httpConnectionManagerNewName  = "envoy.filters.network.http_connection_manager"
+	forwardedClientCertHeaderName = "x-forwarded-client-cert"
 )
+
+func stripForwardClientCertHeaderFromRoute(route *envoy_route_v3.Route) {
+	for _, header := range route.RequestHeadersToRemove {
+		if strings.EqualFold(header, forwardedClientCertHeaderName) {
+			return
+		}
+	}
+	route.RequestHeadersToRemove = append(route.RequestHeadersToRemove, forwardedClientCertHeaderName)
+}
 
 func extractRdsResourceNames(listener *envoy_listener_v3.Listener) ([]string, error) {
 	var found []string
@@ -1508,6 +1518,7 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 		notGRPC := cfg.Protocol != "grpc"
 		if includeXFCC && notGRPC {
 			filterOpts.forwardClientDetails = true
+			filterOpts.stripForwardClientCertHeader = true
 			filterOpts.forwardClientPolicy = envoy_http_v3.HttpConnectionManager_APPEND_FORWARD
 
 			addMeta, err := parseXFCCToDynamicMetaHTTPFilter()
@@ -2569,6 +2580,7 @@ type listenerFilterOpts struct {
 
 	// HTTP listener filter options
 	forwardClientDetails         bool
+	stripForwardClientCertHeader bool
 	forwardClientPolicy          envoy_http_v3.HttpConnectionManager_ForwardClientCertDetails
 	httpAuthzFilters             []*envoy_http_v3.HttpFilter
 	idleTimeoutMs                *int
@@ -2770,6 +2782,10 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) 
 		// If a path is provided, do not match on a catch-all prefix
 		if opts.routePath != "" {
 			route.Match.PathSpecifier = &envoy_route_v3.RouteMatch_Path{Path: opts.routePath}
+		}
+
+		if opts.stripForwardClientCertHeader {
+			stripForwardClientCertHeaderFromRoute(route)
 		}
 
 		cfg.RouteSpecifier = &envoy_http_v3.HttpConnectionManager_RouteConfig{

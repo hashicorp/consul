@@ -21,7 +21,7 @@ env:
   TEST_RESULTS_DIR: /tmp/test-results
   TEST_RESULTS_ARTIFACT_NAME: test-results
   CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
-  GOTAGS: ${{ endsWith(github.repository, '-enterprise') && 'consulent' || '' }}
+  GOTAGS: ${{ endsWith(github.repository, '-enterprise') && 'consulent hashicorpmetrics' || 'hashicorpmetrics' }}
   GOTESTSUM_VERSION: "1.12.3"
   CONSUL_BINARY_UPLOAD_NAME: consul-bin
   # strip the hashicorp/ off the front of github.repository for consul
@@ -411,7 +411,7 @@ jobs:
   #   env:
   #     ENVOY_VERSION: ${{ needs.get-envoy-versions.outputs.max-envoy-version }}
   #     #TODO don't harcode this image name
-  #     CONSUL_DATAPLANE_IMAGE: "docker.mirror.hashicorp.services/hashicorppreview/consul-dataplane:1.6-dev-ubi"
+  #     CONSUL_DATAPLANE_IMAGE: "docker.mirror.hashicorp.services/hashicorppreview/consul-dataplane:2.0.0-dev-ubi"
   #   steps:
   #     - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
   #     # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
@@ -528,7 +528,7 @@ jobs:
       fail-fast: false
     env:
       # TODO @sarah.alsmiller Don't hardcode this version value
-      DEPLOYER_CONSUL_DATAPLANE_IMAGE: "docker.mirror.hashicorp.services/hashicorppreview/consul-dataplane:1.6-dev"
+      DEPLOYER_CONSUL_DATAPLANE_IMAGE: "docker.mirror.hashicorp.services/hashicorppreview/consul-dataplane:2.0.0-dev"
     steps:
       - name: Checkout code
         uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4

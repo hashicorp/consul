@@ -3,72 +3,79 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-<Route
-  @name={{this.routeName}}
-as |route|>
-  <DataLoader @src={{
-    uri '/${partition}/${nspace}/${dc}/auth-method/${name}'
+<Route @name={{this.routeName}} as |route|>
+  <DataLoader
+    @src={{uri
+      '/${partition}/${nspace}/${dc}/auth-method/${name}'
       (hash
         partition=route.params.partition
         nspace=route.params.nspace
         dc=route.params.dc
         name=route.params.id
       )
-    }}
-  as |loader|>
+    }}>
 
-    <BlockSlot @name="error">
+    <:error as |loader|>
       {{#if (eq loader.error.status '401')}}
         <Consul::Acl::Disabled />
       {{else}}
-        <AppError
-          @error={{loader.error}}
-          @login={{route.model.app.login.open}}
-        />
+        <AppError @error={{loader.error}} @login={{route.model.app.login.open}} />
       {{/if}}
-    </BlockSlot>
+    </:error>
 
-    <BlockSlot @name="loaded">
-{{#let
-  loader.data
-as |item|}}
-  <AppView>
-      <BlockSlot @name="breadcrumbs">
-        <Hds::Breadcrumb>
-          <Hds::Breadcrumb::Item @text="All Auth Methods" @route="dc.acls.auth-methods" @model={{route.params.dc}} data-test-back />
-        </Hds::Breadcrumb>
-      </BlockSlot>
-      <BlockSlot @name="header">
-        <h1>
-          <route.Title @title={{item.Name}} />
-        </h1>
-        <Consul::AuthMethod::Type @item={{item}} />
-      </BlockSlot>
-      <BlockSlot @name="nav">
-        <TabNav @items={{
-          compact
-            (array
-              (hash label="General info" href=(href-to "dc.acls.auth-methods.show.auth-method") selected=(is-href "dc.acls.auth-methods.show.auth-method"))
-        (if (can "use nspaces")
-              (hash label="Namespace rules" href=(href-to "dc.acls.auth-methods.show.nspace-rules") selected=(is-href "dc.acls.auth-methods.show.nspace-rules"))
-        '')
-              (hash label="Binding rules" href=(href-to "dc.acls.auth-methods.show.binding-rules") selected=(is-href "dc.acls.auth-methods.show.binding-rules"))
-            )
-          }}
-        />
-      </BlockSlot>
-      <BlockSlot @name="content">
-        <Outlet
-          @name={{this.routeName}}
-          @model={{hash
-            item=item
-          }}
-        as |o|>
-          {{outlet}}
-        </Outlet>
-      </BlockSlot>
-  </AppView>
-{{/let}}
-    </BlockSlot>
+    <:loaded as |loader|>
+      {{#let loader.data as |item|}}
+        <AppView>
+          <:breadcrumbs>
+            <Hds::Breadcrumb>
+              <Hds::Breadcrumb::Item
+                @text='All Auth Methods'
+                @route='dc.acls.auth-methods'
+                @model={{route.params.dc}}
+                data-test-back
+              />
+            </Hds::Breadcrumb>
+          </:breadcrumbs>
+          <:header>
+            <h1>
+              <route.Title @title={{item.Name}} />
+            </h1>
+            <Consul::AuthMethod::Type @item={{item}} />
+          </:header>
+          <:nav>
+            <TabNav
+              @items={{compact
+                (array
+                  (hash
+                    label='General info'
+                    href=(href-to 'dc.acls.auth-methods.show.auth-method')
+                    selected=(is-href 'dc.acls.auth-methods.show.auth-method')
+                  )
+                  (if
+                    (can 'use nspaces')
+                    (hash
+                      label='Namespace rules'
+                      href=(href-to 'dc.acls.auth-methods.show.nspace-rules')
+                      selected=(is-href 'dc.acls.auth-methods.show.nspace-rules')
+                    )
+                    ''
+                  )
+                  (hash
+                    label='Binding rules'
+                    href=(href-to 'dc.acls.auth-methods.show.binding-rules')
+                    selected=(is-href 'dc.acls.auth-methods.show.binding-rules')
+                  )
+                )
+              }}
+            />
+          </:nav>
+          <:content>
+            <Outlet @name={{this.routeName}} @model={{hash item=item}} as |o|>
+              {{outlet}}
+            </Outlet>
+          </:content>
+        </AppView>
+      {{/let}}
+    </:loaded>
   </DataLoader>
 </Route>

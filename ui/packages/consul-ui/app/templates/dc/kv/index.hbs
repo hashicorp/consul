@@ -24,16 +24,15 @@ as |route|>
         nspace=route.params.nspace
         dc=route.params.dc
         key=(or route.params.key '/')
-      )}}
-    as |loader|>
+      )}}>
 
-    <BlockSlot @name="error">
+    <:error as |loader|>
       <AppError
         @error={{loader.error}}
         @login={{route.model.app.login.open}}
       />
-    </BlockSlot>
-      <BlockSlot @name="disconnected" as |after|>
+    </:error>
+      <:disconnected as |loader after|>
         {{#if (eq loader.error.status "404")}}
           <Hds::Toast
             @color='warning'
@@ -65,9 +64,9 @@ as |route|>
             </T.Description>
           </Hds::Toast>
         {{/if}}
-      </BlockSlot>
+      </:disconnected>
 
-    <BlockSlot @name="loaded">
+    <:loaded as |loader|>
 {{#let
 
   (hash
@@ -86,18 +85,16 @@ as |route|>
   loader.data
 
 as |sort filters parent items|}}
-    <AppView>
-    {{#if (not-eq parent.Key '/') }}
-      <BlockSlot @name="breadcrumbs">
+    <AppView @showBreadcrumb={{not-eq parent.Key '/'}}>
+      <:breadcrumbs>
         <Hds::Breadcrumb>
           <Hds::Breadcrumb::Item @text="Key / Values" @route="dc.kv" />
     {{#each (slice 0 -2 (split parent.Key '/')) as |breadcrumb index|}}
           <Hds::Breadcrumb::Item @text={{breadcrumb}} @route="dc.kv.folder" @model={{join '/' (append (slice 0 (add index 1) (split parent.Key '/')) '')}} />
     {{/each}}
         </Hds::Breadcrumb>
-      </BlockSlot>
-    {{/if}}
-      <BlockSlot @name="header">
+      </:breadcrumbs>
+      <:header>
           <h1>
             {{#if (eq parent.Key '/')}}
               <route.Title @title="Key / Value" />
@@ -106,8 +103,8 @@ as |sort filters parent items|}}
             {{/if}}
           </h1>
           <label for="toolbar-toggle"></label>
-      </BlockSlot>
-      <BlockSlot @name="toolbar">
+      </:header>
+      <:toolbar>
     {{#if (gt items.length 0) }}
         <Consul::Kv::SearchBar
           @search={{this.search}}
@@ -118,8 +115,8 @@ as |sort filters parent items|}}
           @filter={{filters}}
         />
     {{/if}}
-      </BlockSlot>
-      <BlockSlot @name="actions">
+      </:toolbar>
+      <:actions>
 {{#if (can 'create kvs')}}
     {{#if (and parent.Key (not-eq parent.Key '/')) }}
       <Hds::Button
@@ -136,8 +133,8 @@ as |sort filters parent items|}}
       />
     {{/if}}
 {{/if}}
-      </BlockSlot>
-      <BlockSlot @name="content">
+      </:actions>
+      <:content>
         {{#let (refresh-route) as |refreshRoute|}}
         <DataWriter
           @sink={{uri '/${partition}/${nspace}/${dc}/kv/'
@@ -149,9 +146,8 @@ as |sort filters parent items|}}
           }}
           @type="kv"
           @label="key"
-          @ondelete={{refreshRoute}}
-          as |writer|>
-          <BlockSlot @name="content">
+          @ondelete={{refreshRoute}}>
+          <:content as |writer|>
             <DataCollection
               @type="kv"
               @sort={{sort.value}}
@@ -170,21 +166,21 @@ as |sort filters parent items|}}
                 <EmptyState
                   @login={{route.model.app.login.open}}
                 >
-                  <BlockSlot @name="header">
+                  <:header>
                     <h2>
                       {{t 'routes.dc.kv.index.empty.header'
                         items=items.length
                       }}
                     </h2>
-                  </BlockSlot>
-                  <BlockSlot @name="body">
+                  </:header>
+                  <:body>
                     {{t 'routes.dc.kv.index.empty.body'
                       items=items.length
                       canUseACLs=(can "use acls")
                       htmlSafe=true
                     }}
-                  </BlockSlot>
-                  <BlockSlot @name="actions">
+                  </:body>
+                  <:actions>
                     <li>
                       <Hds::Link::Standalone
                         @text='Documentation on K/V'
@@ -203,16 +199,16 @@ as |sort filters parent items|}}
                         @size='small'
                       />
                     </li>
-                  </BlockSlot>
+                  </:actions>
                 </EmptyState>
               </collection.Empty>
             </DataCollection>
-          </BlockSlot>
+          </:content>
         </DataWriter>
         {{/let}}
-      </BlockSlot>
+      </:content>
     </AppView>
 {{/let}}
-    </BlockSlot>
+    </:loaded>
   </DataLoader>
 </Route>

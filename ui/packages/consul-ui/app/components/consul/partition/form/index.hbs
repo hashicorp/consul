@@ -19,21 +19,20 @@
       @type='partition'
       @label='Partition'
       @ondelete={{fn (if @ondelete @ondelete @onsubmit) @item}}
-      @onchange={{fn (optional @onsubmit) @item}}
-      as |writer|>
-    <BlockSlot @name="removed" as |after|>
-      <Consul::Partition::Notifications 
+      @onchange={{fn (optional @onsubmit) @item}}>
+    <:removed as |after|>
+      <Consul::Partition::Notifications
         {{notification
           after=(action after)
         }}
         @type="remove"
       />
-    </BlockSlot>
+    </:removed>
 
-    <BlockSlot @name="content">
+    <:content as |writer|>
 
-{{#let 
-  
+{{#let
+
   (not (can "write partition"))
 
   @item
@@ -58,7 +57,7 @@ as |readOnly item Name Description|}}
   {{disabled readOnly}}
 >
 
-<StateChart 
+<StateChart
   @src={{state-chart 'validate'}}
 as |State Guard ChartAction dispatch state|>
 
@@ -113,21 +112,21 @@ as |State Guard ChartAction dispatch state|>
 
 {{#if (and (not (is "new partition" item=item)) (can "delete partition" item=item))}}
       <ConfirmationDialog @message="Are you sure you want to delete this Partition?">
-        <BlockSlot @name="action" as |confirm|>
+        <:action as |confirm|>
           <Hds::Button
             @text='Delete'
             data-test-delete
             @color='critical'
             {{on 'click' confirm}}
           />
-        </BlockSlot>
-        <BlockSlot @name="dialog" as |execute cancel message|>
+        </:action>
+        <:dialog as |execute cancel message|>
           <DeleteConfirmation
             @message={{message}}
             @execute={{queue execute (fn writer.delete item)}}
             @cancel={{cancel}}
           />
-        </BlockSlot>
+        </:dialog>
       </ConfirmationDialog>
 {{/if}}
     </Hds::ButtonSet>
@@ -137,6 +136,6 @@ as |State Guard ChartAction dispatch state|>
 </form>
 
 {{/let}}
-  </BlockSlot>
+  </:content>
 </DataWriter>
 </div>

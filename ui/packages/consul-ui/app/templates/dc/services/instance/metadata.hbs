@@ -16,11 +16,11 @@ as |item|}}
         <TagList @item={{item}} />
       {{else}}
         <EmptyState>
-          <BlockSlot @name="body">
+          <:body>
             <p>
               There are no tags.
             </p>
-          </BlockSlot>
+          </:body>
         </EmptyState>
       {{/if}}
       </section>
@@ -30,11 +30,11 @@ as |item|}}
         <Consul::Metadata::List @items={{entries item.Meta}} />
       {{else}}
         <EmptyState>
-          <BlockSlot @name="body">
+          <:body>
             <p>
               This instance has no metadata.
             </p>
-          </BlockSlot>
+          </:body>
         </EmptyState>
       {{/if}}
       </section>
