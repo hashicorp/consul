@@ -843,7 +843,7 @@ func uintPointer(i uint32) *uint32 {
 }
 
 // TestFinalizePublicListenerFromConfig_PropagatesInjectionErrors is a regression
-// test for SECVULN-41454. Previously finalizePublicListenerFromConfig swallowed
+// test. Previously finalizePublicListenerFromConfig swallowed
 // errors from the L4 intention (RBAC) and mTLS injection steps by returning nil.
 // That allowed an insecure public listener (no mTLS and/or no intention
 // enforcement) to be served while the caller's error check was dead code. The
