@@ -50,14 +50,13 @@ as |key value|}}
           @position="right"
           @onchange={{action @filter.searchproperty.change}}
           @multiple={{true}}
-          @required={{true}}
-        as |components|>
-          <BlockSlot @name="selected">
+          @required={{true}}>
+          <:selected>
             <span>
               {{t "common.search.searchproperty"}}
             </span>
-          </BlockSlot>
-          <BlockSlot @name="options">
+          </:selected>
+        <:options as |components|>
     {{#let components.Optgroup components.Option as |Optgroup Option|}}
             {{#each @filter.searchproperty.default as |prop|}}
               <Option @value={{prop}} @selected={{includes prop @filter.searchproperty.value}}>
@@ -65,8 +64,8 @@ as |key value|}}
               </Option>
             {{/each}}
     {{/let}}
-          </BlockSlot>
-        </search.Select>
+          </:options>
+      </search.Select>
   {{/if}}
       </search.Search>
     </:search>
@@ -75,14 +74,13 @@ as |key value|}}
         class="type-access"
         @position="left"
         @onchange={{action @filter.access.change}}
-        @multiple={{true}}
-      as |components|>
-        <BlockSlot @name="selected">
+        @multiple={{true}}>
+        <:selected>
           <span>
             {{t "components.consul.intention.search-bar.access.name"}}
           </span>
-        </BlockSlot>
-        <BlockSlot @name="options">
+        </:selected>
+        <:options as |components|>
   {{#let components.Optgroup components.Option as |Optgroup Option|}}
     {{#each (array "allow" "deny" "") as |item|}}
           <Option class={{concat 'value-' item}} @value={{or item 'app-aware'}} @selected={{includes (or item 'app-aware') @filter.access.value}}>
@@ -90,7 +88,7 @@ as |key value|}}
           </Option>
     {{/each}}
   {{/let}}
-        </BlockSlot>
+        </:options>
       </search.Select>
     </:filter>
     <:sort as |search|>
@@ -100,9 +98,8 @@ as |key value|}}
         @position="right"
         @onchange={{action @sort.change}}
         @multiple={{false}}
-        @required={{true}}
-      as |components|>
-        <BlockSlot @name="selected">
+        @required={{true}}>
+        <:selected>
           <span>
             {{#let (from-entries (array
                   (array "Action:asc" (t "components.consul.intention.search-bar.sort.access.asc"))
@@ -119,8 +116,8 @@ as |key value|}}
               {{get selectable @sort.value}}
             {{/let}}
           </span>
-        </BlockSlot>
-        <BlockSlot @name="options">
+        </:selected>
+        <:options as |components|>
   {{#let components.Optgroup components.Option as |Optgroup Option|}}
         <Optgroup @label={{t "components.consul.intention.search-bar.sort.access.name"}}>
           <Option @value="Action:asc" @selected={{eq "Action:asc" @sort.value}}>{{t "components.consul.intention.search-bar.sort.access.asc"}}</Option>
@@ -139,7 +136,7 @@ as |key value|}}
           <Option @value="Precedence:desc" @selected={{eq "Precedence:desc" @sort.value}}>{{t "common.sort.numeric.desc"}}</Option>
         </Optgroup>
   {{/let}}
-        </BlockSlot>
+        </:options>
       </search.Select>
     </:sort>
 </SearchBar>

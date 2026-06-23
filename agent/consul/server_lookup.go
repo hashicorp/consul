@@ -32,11 +32,45 @@ func (sl *ServerLookup) AddServer(server *metadata.Server) {
 	sl.idToServer[raft.ServerID(server.ID)] = server
 }
 
+// RemoveServer removes the entries for the given server from both the
+// address- and ID-keyed indexes, but only if the currently-tracked entry
+// at each key still refers to the same generation of the peer.
+//
+// The keys (IP:port and Raft NodeID) are not unique across time: the same
+// IP:port can host different generations of a peer (rename, wipe and
+// rejoin, address reuse), and the same NodeID can move to a different
+// IP:port (relocation). When two generations share a key, an unguarded
+// delete for the older generation can blank out the entry that AddServer
+// installed for the live generation, and any subsequent RPC that hits
+// getLeader() then returns structs.ErrLeaderNotTracked until a later
+// member event happens to resync the lookup — see
+// TestServerLookup_HostnameRenameRace.
+//
+// "Same generation" is identified by the full (ID, Name, Addr) tuple,
+// which is the minimal set of fields that distinguishes the three known
+// collision modes:
+//
+//   - rename:        same ID and Addr,   different Name.
+//   - relocation:    same ID and Name,   different Addr.
+//   - address reuse: different ID,       different Name.
 func (sl *ServerLookup) RemoveServer(server *metadata.Server) {
 	sl.lock.Lock()
 	defer sl.lock.Unlock()
-	delete(sl.addressToServer, raft.ServerAddress(server.Addr.String()))
-	delete(sl.idToServer, raft.ServerID(server.ID))
+	addr := raft.ServerAddress(server.Addr.String())
+	id := raft.ServerID(server.ID)
+	if cur, ok := sl.addressToServer[addr]; ok && sameGeneration(cur, server) {
+		delete(sl.addressToServer, addr)
+	}
+	if cur, ok := sl.idToServer[id]; ok && sameGeneration(cur, server) {
+		delete(sl.idToServer, id)
+	}
+}
+
+// sameGeneration reports whether two metadata.Server values refer to the
+// same generation of a Consul peer. Equality is defined as identical
+// (ID, Name, Addr) — see RemoveServer for why.
+func sameGeneration(a, b *metadata.Server) bool {
+	return a.ID == b.ID && a.Name == b.Name && a.Addr.String() == b.Addr.String()
 }
 
 // Implements the ServerAddressProvider interface
