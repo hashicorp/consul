@@ -29,12 +29,20 @@ import (
 
 const LocalExtProcClusterName = "local_ext_proc"
 
+// extProcFilterName is the canonical Envoy HTTP filter name and the default used
+// when FilterName is not set.
+const extProcFilterName = "envoy.filters.http.ext_proc"
+
 // extProc is the top-level extension struct decoded from HCL Arguments.
 type extProc struct {
 	ext_cmn.BasicExtensionAdapter
 
-	ProxyType     api.ServiceKind
-	ListenerType  string
+	ProxyType    api.ServiceKind
+	ListenerType string
+	// FilterName is the unique Envoy HTTP filter name for this ext_proc instance.
+	// Set a distinct value per extension to run multiple ext_proc filters on the
+	// same listener. Defaults to "envoy.filters.http.ext_proc".
+	FilterName    string
 	InsertOptions ext_cmn.InsertOptions
 	Config        extProcConfig
 }
@@ -57,6 +65,16 @@ type extProcConfig struct {
 	// RouteCacheAction controls Envoy's route cache handling: "DEFAULT", "CLEAR",
 	// or "RETAIN". Only effective in gRPC mode.
 	RouteCacheAction string
+
+	// EnableRoutes restricts ext_proc to only the routes whose match path equals
+	// one of these values; ext_proc is disabled on all other routes. Mutually
+	// exclusive with DisableRoutes. Empty means apply to all routes.
+	EnableRoutes []string
+
+	// DisableRoutes disables ext_proc on the routes whose match path equals one of
+	// these values; all other routes keep ext_proc enabled. Mutually exclusive
+	// with EnableRoutes.
+	DisableRoutes []string
 
 	// parsed
 	failureModeAllow bool
@@ -207,7 +225,15 @@ func newExtProc(ext api.EnvoyExtension) (*extProc, error) {
 }
 
 func (p *extProc) fromArguments(args map[string]any) error {
-	if err := mapstructure.Decode(args, p); err != nil {
+
+	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		WeaklyTypedInput: true,
+		Result:           p,
+	})
+	if err != nil {
+		return err
+	}
+	if err := decoder.Decode(args); err != nil {
 		return err
 	}
 	p.normalize()
@@ -220,6 +246,9 @@ func (p *extProc) normalize() {
 	}
 	if p.ListenerType == "" {
 		p.ListenerType = "inbound"
+	}
+	if p.FilterName == "" {
+		p.FilterName = extProcFilterName
 	}
 	p.Config.normalize()
 }
@@ -296,6 +325,11 @@ func (c *extProcConfig) validate() error {
 	default:
 		resultErr = multierror.Append(resultErr, fmt.Errorf(
 			`invalid Config.RouteCacheAction %q, expected "DEFAULT", "CLEAR", or "RETAIN"`, c.RouteCacheAction))
+	}
+
+	if len(c.EnableRoutes) > 0 && len(c.DisableRoutes) > 0 {
+		resultErr = multierror.Append(resultErr, fmt.Errorf(
+			"only one of Config.EnableRoutes or Config.DisableRoutes may be set"))
 	}
 
 	return resultErr
@@ -498,6 +532,11 @@ func (p *extProc) PatchFilters(cfg *ext_cmn.RuntimeConfig, filters []*envoy_list
 		RouteCacheAction: p.Config.routeCacheAction,
 	}
 
+	// Disambiguate stats when multiple ext_proc filters share a listener.
+	if p.FilterName != extProcFilterName {
+		filterCfg.StatPrefix = p.FilterName
+	}
+
 	if p.Config.isGRPC() {
 		grpcSvc, err := p.Config.envoyGrpcService(cfg)
 		if err != nil {
@@ -512,19 +551,33 @@ func (p *extProc) PatchFilters(cfg *ext_cmn.RuntimeConfig, filters []*envoy_list
 		filterCfg.HttpService = httpSvc
 	}
 
-	httpFilter, err := ext_cmn.MakeEnvoyHTTPFilter("envoy.filters.http.ext_proc", filterCfg)
+	httpFilter, err := ext_cmn.MakeEnvoyHTTPFilter(p.FilterName, filterCfg)
 	if err != nil {
 		return filters, err
 	}
 	return ext_cmn.InsertHTTPFilter(filters, httpFilter, p.InsertOptions)
 }
 
-// PatchRoutes disables ext-proc on routes matching the processor's own HTTP path
-// (HTTP mode only) to avoid recursion.
+// PatchRoutes scopes ext_proc to specific routes via per-route overrides:
+//   - The processor's own HTTP path (HTTP mode) is always disabled to avoid recursion.
+//   - If Config.EnableRoutes is set, ext_proc is disabled on every route that does
+//     not match one of those paths (allowlist).
+//   - If Config.DisableRoutes is set, ext_proc is disabled on every route that
+//     matches one of those paths (denylist).
+//
+// EnableRoutes and DisableRoutes are mutually exclusive (enforced in validate).
 func (p *extProc) PatchRoutes(_ *ext_cmn.RuntimeConfig, routes ext_cmn.RouteMap) (ext_cmn.RouteMap, error) {
-	if !p.Config.isHTTP() || p.Config.HttpService.Path == "" {
+	bypassPath := ""
+	if p.Config.isHTTP() {
+		bypassPath = p.Config.HttpService.Path
+	}
+	enable := p.Config.EnableRoutes
+	disable := p.Config.DisableRoutes
+
+	if bypassPath == "" && len(enable) == 0 && len(disable) == 0 {
 		return routes, nil
 	}
+
 	disablePerRouteAny, err := anypb.New(&envoy_http_ext_proc_v3.ExtProcPerRoute{
 		Override: &envoy_http_ext_proc_v3.ExtProcPerRoute_Disabled{Disabled: true},
 	})
@@ -534,17 +587,37 @@ func (p *extProc) PatchRoutes(_ *ext_cmn.RuntimeConfig, routes ext_cmn.RouteMap)
 	for _, rc := range routes {
 		for _, vh := range rc.GetVirtualHosts() {
 			for _, r := range vh.GetRoutes() {
-				if !routeMatchTargetsBypassPath(r.GetMatch(), p.Config.HttpService.Path) {
+				match := r.GetMatch()
+				var shouldDisable bool
+				switch {
+				case bypassPath != "" && routeMatchTargetsBypassPath(match, bypassPath):
+					shouldDisable = true
+				case len(enable) > 0:
+					shouldDisable = !routeMatchesAny(match, enable)
+				case len(disable) > 0:
+					shouldDisable = routeMatchesAny(match, disable)
+				}
+				if !shouldDisable {
 					continue
 				}
 				if r.TypedPerFilterConfig == nil {
 					r.TypedPerFilterConfig = make(map[string]*anypb.Any)
 				}
-				r.TypedPerFilterConfig["envoy.filters.http.ext_proc"] = disablePerRouteAny
+				r.TypedPerFilterConfig[p.FilterName] = disablePerRouteAny
 			}
 		}
 	}
 	return routes, nil
+}
+
+// routeMatchesAny reports whether the route match targets any of the given paths.
+func routeMatchesAny(match *envoy_route_v3.RouteMatch, routes []string) bool {
+	for _, route := range routes {
+		if routeMatchTargetsBypassPath(match, route) {
+			return true
+		}
+	}
+	return false
 }
 
 func routeMatchTargetsBypassPath(match *envoy_route_v3.RouteMatch, route string) bool {

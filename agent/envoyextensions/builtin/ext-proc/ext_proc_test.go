@@ -870,6 +870,81 @@ func TestPatchRoutes(t *testing.T) {
 		require.NoError(t, err)
 		require.Nil(t, r.TypedPerFilterConfig)
 	})
+
+	t.Run("EnableRoutes disables non-matching routes", func(t *testing.T) {
+		ext, err := newExtProc(api.EnvoyExtension{
+			Name: api.BuiltinExtProcExtension,
+			Arguments: map[string]any{
+				"ProxyType": "connect-proxy",
+				"Config": map[string]any{
+					"GrpcService": map[string]any{
+						"Target": map[string]any{"URI": "localhost:9191"},
+					},
+					"EnableRoutes": []any{"/checkout"},
+				},
+			},
+		})
+		require.NoError(t, err)
+		enabled := &envoy_route_v3.Route{
+			Match: &envoy_route_v3.RouteMatch{PathSpecifier: &envoy_route_v3.RouteMatch_Path{Path: "/checkout"}},
+		}
+		disabled := &envoy_route_v3.Route{
+			Match: &envoy_route_v3.RouteMatch{PathSpecifier: &envoy_route_v3.RouteMatch_Path{Path: "/other"}},
+		}
+		rc := &envoy_route_v3.RouteConfiguration{
+			VirtualHosts: []*envoy_route_v3.VirtualHost{{Routes: []*envoy_route_v3.Route{enabled, disabled}}},
+		}
+		_, err = ext.PatchRoutes(&ext_cmn.RuntimeConfig{}, ext_cmn.RouteMap{"r": rc})
+		require.NoError(t, err)
+		require.Nil(t, enabled.TypedPerFilterConfig)
+		require.Contains(t, disabled.TypedPerFilterConfig, "envoy.filters.http.ext_proc")
+	})
+
+	t.Run("DisableRoutes disables matching routes", func(t *testing.T) {
+		ext, err := newExtProc(api.EnvoyExtension{
+			Name: api.BuiltinExtProcExtension,
+			Arguments: map[string]any{
+				"ProxyType": "connect-proxy",
+				"Config": map[string]any{
+					"GrpcService": map[string]any{
+						"Target": map[string]any{"URI": "localhost:9191"},
+					},
+					"DisableRoutes": []any{"/admin"},
+				},
+			},
+		})
+		require.NoError(t, err)
+		disabled := &envoy_route_v3.Route{
+			Match: &envoy_route_v3.RouteMatch{PathSpecifier: &envoy_route_v3.RouteMatch_Path{Path: "/admin"}},
+		}
+		enabled := &envoy_route_v3.Route{
+			Match: &envoy_route_v3.RouteMatch{PathSpecifier: &envoy_route_v3.RouteMatch_Path{Path: "/other"}},
+		}
+		rc := &envoy_route_v3.RouteConfiguration{
+			VirtualHosts: []*envoy_route_v3.VirtualHost{{Routes: []*envoy_route_v3.Route{disabled, enabled}}},
+		}
+		_, err = ext.PatchRoutes(&ext_cmn.RuntimeConfig{}, ext_cmn.RouteMap{"r": rc})
+		require.NoError(t, err)
+		require.Contains(t, disabled.TypedPerFilterConfig, "envoy.filters.http.ext_proc")
+		require.Nil(t, enabled.TypedPerFilterConfig)
+	})
+
+	t.Run("EnableRoutes and DisableRoutes are mutually exclusive", func(t *testing.T) {
+		_, err := newExtProc(api.EnvoyExtension{
+			Name: api.BuiltinExtProcExtension,
+			Arguments: map[string]any{
+				"ProxyType": "connect-proxy",
+				"Config": map[string]any{
+					"GrpcService": map[string]any{
+						"Target": map[string]any{"URI": "localhost:9191"},
+					},
+					"EnableRoutes":  []any{"/checkout"},
+					"DisableRoutes": []any{"/admin"},
+				},
+			},
+		})
+		require.ErrorContains(t, err, "only one of Config.EnableRoutes or Config.DisableRoutes may be set")
+	})
 }
 
 func TestRouteMatchTargetsBypassPath(t *testing.T) {
