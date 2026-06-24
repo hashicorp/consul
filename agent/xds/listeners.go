@@ -1647,19 +1647,23 @@ func makePermissiveFilterChain(cfgSnap *proxycfg.ConfigSnapshot, opts listenerFi
 	return chain, nil
 }
 
-// finalizePublicListenerFromConfig is used for best-effort injection of Consul filter-chains onto listeners.
-// This include L4 authorization filters and TLS context.
+// finalizePublicListenerFromConfig injects the Consul filter-chains onto the public listener.
+// This includes L4 authorization (intention enforcement) filters and the mTLS context.
+// These are security-critical: if either injection fails we must return the error so the
+// caller drops the listener rather than serving an unauthenticated/unauthorized one.
 func (s *ResourceGenerator) finalizePublicListenerFromConfig(l *envoy_listener_v3.Listener, cfgSnap *proxycfg.ConfigSnapshot, useHTTPFilter bool) error {
 	if !useHTTPFilter {
-		// Best-effort injection of L4 intentions
+		// Inject the L4 intention (RBAC) network filter. Failing to do so would
+		// allow traffic to bypass intention enforcement, so surface the error.
 		if err := s.injectConnectFilters(cfgSnap, l); err != nil {
-			return nil
+			return err
 		}
 	}
 
-	// Always apply TLS certificates
+	// Always apply TLS certificates. Failing to do so would expose a public
+	// listener without mTLS, so surface the error instead of swallowing it.
 	if err := s.injectConnectTLSForPublicListener(cfgSnap, l); err != nil {
-		return nil
+		return err
 	}
 
 	return nil
