@@ -76,6 +76,7 @@ enum Kind {
   KindJWTProvider = 12;
   KindExportedServices = 13;
   KindFileSystemCertificate = 14;
+  KindAIGateway = 15;
 }
 
 message ConfigEntry {
@@ -100,6 +101,7 @@ message ConfigEntry {
     JWTProvider JWTProvider = 16;
     ExportedServices ExportedServices = 17;
     FileSystemCertificate FileSystemCertificate = 18;
+    AIGateway AIGateway = 19;
   }
 }
 
@@ -1438,4 +1440,119 @@ message ExportedServicesConsumer {
   string Partition = 1;
   string Peer = 2;
   string SamenessGroup = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.AIGatewayConfigEntry
+// output=config_entry.gen.go
+// name=Structs
+// ignore-fields=Name,Kind,RaftIndex,EnterpriseMeta
+message AIGateway {
+  AIGatewayProcessor Processor = 1;
+  repeated string ApplyTo = 2;
+  AIGatewayRouting Routing = 3;
+  map<string, string> Meta = 4;
+  uint64 Hash = 5;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.AIGatewayProcessor
+// output=config_entry.gen.go
+// name=Structs
+message AIGatewayProcessor {
+  string UDSPath = 1;
+  string FailureMode = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.AIGatewayRouting
+// output=config_entry.gen.go
+// name=Structs
+// ignore-fields=ComplianceMap,Budget,Cache,Mirror
+message AIGatewayRouting {
+  repeated AIGatewayMatchRule MatchRules = 1;
+  repeated string FallbackChain = 2;
+  AIGatewayRetry Retry = 3;
+  AIGatewayTimeout Timeout = 4;
+  AIGatewayScoring Scoring = 5;
+  string ConfigValidation = 6;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.AIGatewayMatchRule
+// output=config_entry.gen.go
+// name=Structs
+message AIGatewayMatchRule {
+  AIGatewayMatch When = 1;
+  repeated string RequireCapabilities = 2;
+  repeated string Candidates = 3;
+  repeated string FallbackChain = 4;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.AIGatewayMatch
+// output=config_entry.gen.go
+// name=Structs
+message AIGatewayMatch {
+  string Path = 1;
+  repeated string BodyHas = 2;
+  AIGatewayIdentityMatch Identity = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.AIGatewayIdentityMatch
+// output=config_entry.gen.go
+// name=Structs
+message AIGatewayIdentityMatch {
+  string Service = 1;
+  string Partition = 2;
+  string Namespace = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.AIGatewayRetry
+// output=config_entry.gen.go
+// name=Structs
+message AIGatewayRetry {
+  // mog: func-to=int func-from=int32
+  int32 MaxAttempts = 1;
+  repeated string RetryOn = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.AIGatewayTimeout
+// output=config_entry.gen.go
+// name=Structs
+message AIGatewayTimeout {
+  string Connect = 1;
+  string Request = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.AIGatewayScoring
+// output=config_entry.gen.go
+// name=Structs
+message AIGatewayScoring {
+  repeated string Scorers = 1;
+  repeated AIGatewayWeightedTarget WeightedSplit = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.AIGatewayWeightedTarget
+// output=config_entry.gen.go
+// name=Structs
+message AIGatewayWeightedTarget {
+  string Cluster = 1;
+  // mog: func-to=int func-from=int32
+  int32 Weight = 2;
 }

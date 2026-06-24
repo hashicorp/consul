@@ -85,6 +85,8 @@ const (
 	Topic_FileSystemCertificate Topic = 18
 	// GlobalRateLimit topic contains events for changes to global rate limits.
 	Topic_GlobalRateLimit Topic = 19
+	// AIGateway topic contains events for changes to ai-gateway config entries.
+	Topic_AIGateway Topic = 20
 )
 
 // Enum value maps for Topic.
@@ -110,6 +112,7 @@ var (
 		17: "ExportedServices",
 		18: "FileSystemCertificate",
 		19: "GlobalRateLimit",
+		20: "AIGateway",
 	}
 	Topic_value = map[string]int32{
 		"Unknown":               0,
@@ -132,6 +135,7 @@ var (
 		"ExportedServices":      17,
 		"FileSystemCertificate": 18,
 		"GlobalRateLimit":       19,
+		"AIGateway":             20,
 	}
 )
 
@@ -956,7 +960,7 @@ const file_private_pbsubscribe_subscribe_proto_rawDesc = "" +
 	"\x02Op\x18\x01 \x01(\x0e2\x14.subscribe.CatalogOpR\x02Op\x12\x12\n" +
 	"\x04Name\x18\x02 \x01(\tR\x04Name\x12X\n" +
 	"\x0eEnterpriseMeta\x18\x03 \x01(\v20.hashicorp.consul.internal.common.EnterpriseMetaR\x0eEnterpriseMeta\x12\x1a\n" +
-	"\bPeerName\x18\x04 \x01(\tR\bPeerName*\x8b\x03\n" +
+	"\bPeerName\x18\x04 \x01(\tR\bPeerName*\x9a\x03\n" +
 	"\x05Topic\x12\v\n" +
 	"\aUnknown\x10\x00\x12\x11\n" +
 	"\rServiceHealth\x10\x01\x12\x18\n" +
@@ -980,7 +984,8 @@ const file_private_pbsubscribe_subscribe_proto_rawDesc = "" +
 	"\vJWTProvider\x10\x10\x12\x14\n" +
 	"\x10ExportedServices\x10\x11\x12\x19\n" +
 	"\x15FileSystemCertificate\x10\x12\x12\x13\n" +
-	"\x0fGlobalRateLimit\x10\x13*)\n" +
+	"\x0fGlobalRateLimit\x10\x13\x12\r\n" +
+	"\tAIGateway\x10\x14*)\n" +
 	"\tCatalogOp\x12\f\n" +
 	"\bRegister\x10\x00\x12\x0e\n" +
 	"\n" +

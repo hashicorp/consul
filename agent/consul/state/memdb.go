@@ -215,6 +215,7 @@ var (
 	EventTopicSamenessGroup         = pbsubscribe.Topic_SamenessGroup
 	EventTopicJWTProvider           = pbsubscribe.Topic_JWTProvider
 	EventTopicExportedServices      = pbsubscribe.Topic_ExportedServices
+	EventTopicAIGateway             = pbsubscribe.Topic_AIGateway
 )
 
 func processDBChanges(tx ReadTxn, changes Changes) ([]stream.Event, error) {

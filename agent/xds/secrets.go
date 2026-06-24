@@ -30,7 +30,8 @@ func (s *ResourceGenerator) secretsFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot
 		return s.secretsFromSnapshotTerminatingGateway(cfgSnap), nil
 	case structs.ServiceKindConnectProxy,
 		structs.ServiceKindMeshGateway,
-		structs.ServiceKindIngressGateway:
+		structs.ServiceKindIngressGateway,
+		structs.ServiceKindInferenceGateway:
 		return nil, nil
 	default:
 		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
