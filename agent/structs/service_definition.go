@@ -32,6 +32,11 @@ type ServiceDefinition struct {
 	EnableTagOverride bool
 	Locality          *Locality
 
+	// AI, when set, marks this service's role in the Agent Gateway (Inference
+	// plane). A service registered with AI.Role == "ai-model" is discovered by
+	// inference gateways as a routable model upstream.
+	AI *AIConfig
+
 	// Proxy is the configuration set for Kind = connect-proxy. It is mandatory in
 	// that case and an error to be set for any other kind. This config is part of
 	// a proxy service definition. ProxyConfig may be a more natural name here, but
@@ -83,6 +88,7 @@ func (s *ServiceDefinition) NodeService() *NodeService {
 		EnableTagOverride: s.EnableTagOverride,
 		EnterpriseMeta:    s.EnterpriseMeta,
 		Locality:          s.Locality,
+		AI:                s.AI,
 	}
 	ns.Normalize()
 

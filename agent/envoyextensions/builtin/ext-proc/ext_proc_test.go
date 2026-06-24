@@ -102,7 +102,7 @@ func TestConstructor(t *testing.T) {
 					},
 				},
 			},
-			errMsg: `exactly one of Target.Service or Target.URI must be set`,
+			errMsg: `exactly one of Target.Service, Target.URI, or Target.Path must be set`,
 		},
 		"uri and service target": {
 			args: map[string]any{
@@ -116,7 +116,7 @@ func TestConstructor(t *testing.T) {
 					},
 				},
 			},
-			errMsg: `exactly one of Target.Service or Target.URI must be set`,
+			errMsg: `exactly one of Target.Service, Target.URI, or Target.Path must be set`,
 		},
 		"invalid target uri": {
 			args: map[string]any{
@@ -187,6 +187,52 @@ func TestConstructor(t *testing.T) {
 					},
 				},
 			},
+		},
+		"valid grpc uds target on inference-gateway": {
+			args: map[string]any{
+				"ProxyType": "inference-gateway",
+				"Config": map[string]any{
+					"GrpcService": map[string]any{
+						"Target": map[string]any{"Path": "/run/consul/ext_proc.sock"},
+					},
+				},
+			},
+		},
+		"uds and uri target": {
+			args: map[string]any{
+				"ProxyType": "inference-gateway",
+				"Config": map[string]any{
+					"GrpcService": map[string]any{
+						"Target": map[string]any{
+							"Path": "/run/consul/ext_proc.sock",
+							"URI":  "127.0.0.1:9191",
+						},
+					},
+				},
+			},
+			errMsg: `exactly one of Target.Service, Target.URI, or Target.Path must be set`,
+		},
+		"relative uds path": {
+			args: map[string]any{
+				"ProxyType": "inference-gateway",
+				"Config": map[string]any{
+					"GrpcService": map[string]any{
+						"Target": map[string]any{"Path": "run/ext_proc.sock"},
+					},
+				},
+			},
+			errMsg: `must be an absolute Unix socket path`,
+		},
+		"unsupported proxy type": {
+			args: map[string]any{
+				"ProxyType": "mesh-gateway",
+				"Config": map[string]any{
+					"GrpcService": map[string]any{
+						"Target": map[string]any{"URI": "localhost:9191"},
+					},
+				},
+			},
+			errMsg: `unsupported ProxyType "mesh-gateway"`,
 		},
 		"valid camelCase args": {
 			args: map[string]any{
@@ -561,6 +607,30 @@ func TestConfig_toEnvoyCluster(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, cluster)
 		require.NotNil(t, cluster.DnsLookupFamily)
+	})
+
+	t.Run("uds path builds static pipe cluster", func(t *testing.T) {
+		const sock = "/run/consul/ext_proc.sock"
+		ext, err := newExtProc(api.EnvoyExtension{
+			Name: api.BuiltinExtProcExtension,
+			Arguments: map[string]any{
+				"ProxyType": "inference-gateway",
+				"Config": map[string]any{
+					"GrpcService": map[string]any{
+						"Target": map[string]any{"Path": sock},
+					},
+				},
+			},
+		})
+		require.NoError(t, err)
+		cluster, err := ext.Config.toEnvoyCluster(&ext_cmn.RuntimeConfig{})
+		require.NoError(t, err)
+		require.NotNil(t, cluster)
+		require.Equal(t, LocalExtProcClusterName, cluster.Name)
+		// STATIC discovery: DNS lookup family stays the default for a pipe address.
+		require.Zero(t, cluster.DnsLookupFamily)
+		ep := cluster.LoadAssignment.Endpoints[0].LbEndpoints[0].GetEndpoint()
+		require.Equal(t, sock, ep.GetAddress().GetPipe().GetPath())
 	})
 }
 

@@ -106,10 +106,12 @@ const (
 var defaultEnvoyVersion = xdscommon.EnvoyVersions[0]
 
 var supportedGateways = map[string]api.ServiceKind{
-	"api":         api.ServiceKindAPIGateway,
-	"mesh":        api.ServiceKindMeshGateway,
-	"terminating": api.ServiceKindTerminatingGateway,
-	"ingress":     api.ServiceKindIngressGateway,
+	"api":               api.ServiceKindAPIGateway,
+	"mesh":              api.ServiceKindMeshGateway,
+	"terminating":       api.ServiceKindTerminatingGateway,
+	"ingress":           api.ServiceKindIngressGateway,
+	"inference":         api.ServiceKindInferenceGateway,
+	"inference-gateway": api.ServiceKindInferenceGateway,
 }
 
 func (c *cmd) init() {
@@ -126,7 +128,7 @@ func (c *cmd) init() {
 		"Configure Envoy as a Mesh Gateway.")
 
 	c.flags.StringVar(&c.gateway, "gateway", "",
-		"The type of gateway to register. One of: terminating, ingress, or mesh")
+		"The type of gateway to register. One of: api, terminating, ingress, mesh, or inference")
 
 	c.flags.StringVar(&c.sidecarFor, "sidecar-for", os.Getenv("CONNECT_SIDECAR_FOR"),
 		"The ID of a service instance on the local agent that this proxy should "+
@@ -346,7 +348,7 @@ func (c *cmd) run(args []string) int {
 	if c.gateway != "" {
 		kind, ok := supportedGateways[c.gateway]
 		if !ok {
-			c.UI.Error("Gateway must be one of: api, terminating, mesh, or ingress")
+			c.UI.Error("Gateway must be one of: api, terminating, mesh, ingress, or inference")
 			return 1
 		}
 		c.gatewayKind = kind

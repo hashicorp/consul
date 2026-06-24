@@ -51,6 +51,11 @@ func NodeServiceToStructs(s *NodeService, t *structs.NodeService) {
 	t.Weights = WeightsPtrToStructs(s.Weights)
 	t.EnableTagOverride = s.EnableTagOverride
 	t.Locality = LocalityToStructs(s.Locality)
+	if s.AI != nil {
+		var x structs.AIConfig
+		AIConfigToStructs(s.AI, &x)
+		t.AI = &x
+	}
 	if s.Proxy != nil {
 		ConnectProxyConfigToStructs(s.Proxy, &t.Proxy)
 	}
@@ -79,6 +84,11 @@ func NodeServiceFromStructs(t *structs.NodeService, s *NodeService) {
 	s.Weights = NewWeightsPtrFromStructs(t.Weights)
 	s.EnableTagOverride = t.EnableTagOverride
 	s.Locality = LocalityFromStructs(t.Locality)
+	if t.AI != nil {
+		var x AIConfig
+		AIConfigFromStructs(t.AI, &x)
+		s.AI = &x
+	}
 	{
 		var x ConnectProxyConfig
 		ConnectProxyConfigFromStructs(&t.Proxy, &x)
