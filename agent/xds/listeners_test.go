@@ -9,6 +9,7 @@ import (
 	"text/template"
 
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	"github.com/hashicorp/go-hclog"
 	testinf "github.com/mitchellh/go-testing-interface"
@@ -839,4 +840,43 @@ func Test_makeMeshGatewayPeerFilterChain_maxRequestHeadersKb(t *testing.T) {
 // Helper function for uint32 pointers
 func uintPointer(i uint32) *uint32 {
 	return &i
+}
+
+// TestFinalizePublicListenerFromConfig_PropagatesInjectionErrors is a regression
+// test. Previously finalizePublicListenerFromConfig swallowed
+// errors from the L4 intention (RBAC) and mTLS injection steps by returning nil.
+// That allowed an insecure public listener (no mTLS and/or no intention
+// enforcement) to be served while the caller's error check was dead code. The
+// function must instead surface the error so the caller drops the listener.
+func TestFinalizePublicListenerFromConfig_PropagatesInjectionErrors(t *testing.T) {
+	roots, _ := proxycfg.TestCerts(t)
+
+	// A snapshot whose Kind is neither a connect proxy nor a mesh gateway makes
+	// injectConnectTLSForPublicListener (via createDownstreamTransportSocketForConnectTLS)
+	// fail deterministically, so we can assert the error is propagated.
+	newSnap := func() *proxycfg.ConfigSnapshot {
+		return &proxycfg.ConfigSnapshot{
+			Kind:  structs.ServiceKindTerminatingGateway,
+			Roots: roots,
+		}
+	}
+
+	newListener := func() *envoy_listener_v3.Listener {
+		return &envoy_listener_v3.Listener{
+			Name:         "public_listener",
+			FilterChains: []*envoy_listener_v3.FilterChain{{}},
+		}
+	}
+
+	s := &ResourceGenerator{Logger: hclog.NewNullLogger()}
+
+	t.Run("mTLS injection failure is surfaced (HTTP filter path)", func(t *testing.T) {
+		err := s.finalizePublicListenerFromConfig(newListener(), newSnap(), true)
+		require.Error(t, err, "mTLS injection error must not be swallowed")
+	})
+
+	t.Run("injection failure is surfaced (L4 filter path)", func(t *testing.T) {
+		err := s.finalizePublicListenerFromConfig(newListener(), newSnap(), false)
+		require.Error(t, err, "injection error must not be swallowed")
+	})
 }
