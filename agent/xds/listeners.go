@@ -69,6 +69,8 @@ func (s *ResourceGenerator) listenersFromSnapshot(cfgSnap *proxycfg.ConfigSnapsh
 		structs.ServiceKindIngressGateway,
 		structs.ServiceKindAPIGateway:
 		return s.listenersFromSnapshotGateway(cfgSnap)
+	case structs.ServiceKindInferenceGateway:
+		return s.listenersFromSnapshotInferenceGateway(cfgSnap)
 	default:
 		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
 	}

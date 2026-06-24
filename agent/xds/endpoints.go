@@ -46,6 +46,8 @@ func (s *ResourceGenerator) endpointsFromSnapshot(cfgSnap *proxycfg.ConfigSnapsh
 		return s.endpointsFromSnapshotIngressGateway(cfgSnap)
 	case structs.ServiceKindAPIGateway:
 		return s.endpointsFromSnapshotAPIGateway(cfgSnap)
+	case structs.ServiceKindInferenceGateway:
+		return s.endpointsFromSnapshotInferenceGateway(cfgSnap)
 	default:
 		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
 	}
