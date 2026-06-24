@@ -996,6 +996,9 @@ type ConfigSnapshot struct {
 	// api-gateway specific
 	APIGateway configSnapshotAPIGateway
 
+	// inference-gateway specific
+	InferenceGateway configSnapshotInferenceGateway
+
 	// computedFields exists as a place to store relatively expensive
 	// computed data (such as parsed opaque maps) rather than parsing it
 	// multiple times during xDS generation. All data in this should be
@@ -1051,6 +1054,11 @@ func (s *ConfigSnapshot) Valid() bool {
 		return s.Roots != nil &&
 			s.APIGateway.valid() &&
 			s.APIGateway.MeshConfigSet
+
+	case structs.ServiceKindInferenceGateway:
+		return s.Roots != nil &&
+			s.InferenceGateway.Leaf != nil &&
+			s.InferenceGateway.valid()
 	default:
 		return false
 	}
@@ -1094,6 +1102,8 @@ func (s *ConfigSnapshot) Clone() *ConfigSnapshot {
 		// only api-gateway
 		// snap.APIGateway.LeafCertWatchCancel = nil
 		// snap.APIGateway.
+	case structs.ServiceKindInferenceGateway:
+		snap.InferenceGateway.WatchedModels = nil
 	}
 
 	return snap
@@ -1109,6 +1119,8 @@ func (s *ConfigSnapshot) Leaf() *structs.IssuedCert {
 		return s.APIGateway.Leaf
 	case structs.ServiceKindMeshGateway:
 		return s.MeshGateway.Leaf
+	case structs.ServiceKindInferenceGateway:
+		return s.InferenceGateway.Leaf
 	default:
 		return nil
 	}
