@@ -57,7 +57,7 @@ jobs:
           if [ -z "$PATCH" ] || [ "$PATCH" = "N/A" ]; then
             PATCH_LINE="**Patch coverage:** N/A (no coverable Go lines changed)"
           else
-            PATCH_LINE="**Patch coverage:** ${PATCH} (${PATCH_COVD}/${PATCH_COVB} changed lines covered, required ≥ 90%)"
+            PATCH_LINE="**Patch coverage:** ${PATCH} (${PATCH_COVD}/${PATCH_COVB} changed lines covered)"
           fi
           BODY=$(printf '%s\n\n### Go Test Coverage: **%s**\n\n%s\n\nSee the [workflow run](https://github.com/%s/actions/runs/%s) for the full per-package breakdown and downloadable HTML report.' \
             "$MARKER" "$TOTAL" "$PATCH_LINE" "$GH_REPO" "$RUN_ID")

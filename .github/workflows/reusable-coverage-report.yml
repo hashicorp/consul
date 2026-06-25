@@ -156,13 +156,29 @@ jobs:
           #    (mocks/.pb.go/vendor removed), so changed lines in excluded or
           #    non-covered modules simply never intersect a block and are
           #    ignored as non-coverable.
+          #
+          # This is a merge gate, so it must fail closed: we do NOT swallow
+          # gh/API errors, and a coverable .go file whose diff the API cannot
+          # return (.patch == null, e.g. a single file's diff is too large)
+          # is flagged as NULLPATCH so we can fail rather than silently
+          # undercount changed lines and let the gate pass.
           gh api --paginate "repos/${REPO}/pulls/${PR}/files" \
             --jq '.[]
                   | select(.filename | test("\\.go$"))
                   | select(.filename | test("_test\\.go$") | not)
                   | select(.filename | test("\\.pb\\.go$") | not)
                   | select(.filename | test("(^|/)mocks/|(^|/)mock_") | not)
-                  | "FILE\t\(.filename)\n\(.patch // "")"' > /tmp/pr-patches.txt || true
+                  | if .patch == null
+                    then "NULLPATCH\t\(.filename)"
+                    else "FILE\t\(.filename)\n\(.patch)"
+                    end' > /tmp/pr-patches.txt
+
+          if grep -q '^NULLPATCH\t' /tmp/pr-patches.txt; then
+            echo "::error::Cannot compute patch coverage: the GitHub API returned no diff (patch == null) for changed Go file(s):"
+            grep '^NULLPATCH\t' /tmp/pr-patches.txt | cut -f2 | sed 's/^/  - /'
+            echo "This usually means a single file's diff is too large for the API to render. Split the change so coverage can be measured."
+            exit 1
+          fi
 
           awk -v module="$MODULE" '
             /^FILE\t/ { file=$2; next }
@@ -170,6 +186,7 @@ jobs:
               # @@ -a,b +c,d @@  -> new-file hunk starts at line c
               plus=$3; sub(/^\+/, "", plus); split(plus, a, ","); newline=a[1]; next
             }
+            /^\\/ { next }                          # e.g. "\ No newline at end of file": not a real line
             {
               if (file=="") next
               ch=substr($0,1,1)
@@ -249,7 +266,7 @@ jobs:
           if [ -z "${PATCH:-}" ] || [ "${PATCH:-N/A}" = "N/A" ]; then
             PATCH_LINE="**Patch coverage:** N/A (no coverable Go lines changed)"
           else
-            PATCH_LINE="**Patch coverage:** ${PATCH} (${PATCH_COVD}/${PATCH_COVB} changed lines covered, required ≥ 90%)"
+            PATCH_LINE="**Patch coverage:** ${PATCH} (${PATCH_COVD}/${PATCH_COVB} changed lines covered)"
           fi
           BODY=$(printf '%s\n\n### Go Test Coverage: **%s**\n\n%s\n\nSee the [workflow run](https://github.com/%s/actions/runs/%s) for the full per-package breakdown and downloadable HTML report.' \
             "$MARKER" "$TOTAL" "$PATCH_LINE" "${{ github.repository }}" "${{ github.run_id }}")
