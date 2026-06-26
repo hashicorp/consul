@@ -16,6 +16,7 @@
               "name": "envoy.filters.network.http_connection_manager",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
+                "forwardClientCertDetails": "APPEND_FORWARD",
                 "httpFilters": [
                   {
                     "name": "envoy.filters.http.ext_proc",
@@ -49,6 +50,13 @@
                     "resourceApiVersion": "V3"
                   },
                   "routeConfigName": "inference-gateway"
+                },
+                "setCurrentClientCertDetails": {
+                  "cert": true,
+                  "chain": true,
+                  "dns": true,
+                  "subject": true,
+                  "uri": true
                 },
                 "statPrefix": "inference-gateway",
                 "tracing": {
