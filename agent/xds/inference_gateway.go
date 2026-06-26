@@ -79,6 +79,12 @@ func (s *ResourceGenerator) listenersFromSnapshotInferenceGateway(cfgSnap *proxy
 		accessLogs:       &cfgSnap.Proxy.AccessLogs,
 		logger:           s.Logger,
 		httpAuthzFilters: []*envoy_http_v3.HttpFilter{extProcFilter},
+		// Forward the downstream client cert details (including the URI SAN /
+		// SPIFFE id) into the x-forwarded-client-cert header so the co-located
+		// policy processor can extract the caller's identity for routing. This
+		// mirrors the connect-proxy public listener (APPEND_FORWARD + Uri:true).
+		forwardClientDetails: true,
+		forwardClientPolicy:  envoy_http_v3.HttpConnectionManager_APPEND_FORWARD,
 	}
 	filter, err := makeListenerFilter(filterOpts)
 	if err != nil {
