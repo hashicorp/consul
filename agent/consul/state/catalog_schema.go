@@ -268,6 +268,13 @@ func connectNameFromServiceNode(sn *structs.ServiceNode) (string, bool) {
 		// For native, this service supports Connect directly
 		return sn.ServiceName, true
 
+	case sn.ServiceKind == structs.ServiceKindInferenceGateway:
+		// An inference gateway terminates inbound mesh mTLS on its own listener
+		// bearing its own SPIFFE leaf (svc/<gateway-name>), so mesh services dial
+		// it as a connect upstream by its own service name, like a connect-native
+		// service.
+		return sn.ServiceName, true
+
 	default:
 		// Doesn't support Connect at all
 		return "", false
