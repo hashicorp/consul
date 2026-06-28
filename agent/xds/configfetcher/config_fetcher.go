@@ -7,4 +7,5 @@ package configfetcher
 // for the xDS server to fetch agent config, currently only one field is fetched
 type ConfigFetcher interface {
 	AdvertiseAddrLAN() string
+	DNSRecursors() []string
 }

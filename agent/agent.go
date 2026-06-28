@@ -3451,6 +3451,21 @@ func (a *Agent) AdvertiseAddrLAN() string {
 	return a.config.AdvertiseAddrLAN.String()
 }
 
+// DNSRecursors returns the configured DNS recursors from the agent config.
+func (a *Agent) DNSRecursors() []string {
+	resolved := make([]string, 0, len(a.config.DNSRecursors))
+	for _, r := range a.config.DNSRecursors {
+		addr, err := recursorAddr(r)
+		if err != nil {
+			a.logger.Warn("Skipping invalid DNS recursor for Envoy egress listener",
+				"recursor", r, "error", err)
+			continue
+		}
+		resolved = append(resolved, addr)
+	}
+	return resolved
+}
+
 func (a *Agent) cancelCheckMonitors(checkID structs.CheckID) {
 	// Stop any monitors
 	delete(a.checkReapAfter, checkID)
