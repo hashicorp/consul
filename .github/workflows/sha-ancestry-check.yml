@@ -95,6 +95,12 @@ on:
     #     earlier ENT-protection failures; fires a Slack alert to 
     #     #feed-consul-hygiene-alerts (id: C0BB6F78VB4) for rapid
     #     remediation and ensures the branch can never merge while tainted.
+    # TODO: Narrow this scope to avoid unnecessary scans on throw-away/test
+    #       branches. The workflow currently triggers on EVERY branch push,
+    #       which wastes CI minutes and can generate noise. Add branch
+    #       ignore patterns (e.g. 'test/**', 'tmp/**', '*-wip', 'sandbox/**')
+    #       or switch to an explicit `branches:` allow-list scoped to
+    #       main + release/** + feature/** once naming conventions are agreed.
     branches-ignore:
       - 'dependabot/**'  # Dependabot legitimately force-pushes when rebasing/updating
                          # its version-bump branches. Excluding them prevents false-positive
@@ -111,8 +117,6 @@ env:
   # The primary protected branch. Release tags not matching a version pattern
   # are validated against this branch.
   PROTECTED_BRANCH: main
-  # Regex that identifies protected branches for Slack alert scoping.
-  PROTECTED_BRANCH_REGEX: '^(main|release/.+)$'
   # Hoist the secret into env so it can be referenced from step conditionals.
   SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
@@ -128,7 +132,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           # Full history is required for git merge-base
           fetch-depth: 0
@@ -189,7 +193,6 @@ jobs:
           fi
 
           echo "Branch ancestry check passed: history from ${BEFORE} to ${AFTER} is linear."
-          echo "is_linear=true" >> "$GITHUB_ENV"
 
       # ─── Slack alert for non-protected branch force-push ──────────────────
       # A force-push on a feature branch could be used to overwrite a commit
@@ -203,6 +206,7 @@ jobs:
           ACTOR: ${{ github.actor }}
           BEFORE: ${{ github.event.before }}
           AFTER:  ${{ github.sha }}
+          REPO: ${{ github.repository }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           PAYLOAD=$(cat <<EOF
@@ -213,7 +217,7 @@ jobs:
                 "type": "section",
                 "text": {
                   "type": "mrkdwn",
-                  "text": ":rotating_light: *Force-push / non-linear history on <${{ github.repository }}>*\nBranch: *${BRANCH}*  |  Actor: *${ACTOR}*\nBefore: \`${BEFORE:0:7}\`  After: \`${AFTER:0:7}\`\n\nThis may be an attempt to bypass ENT protection checks.\n<${RUN_URL}|View CI run> — Consider deleting this branch immediately."
+                  "text": ":rotating_light: *Force-push / non-linear history on <${REPO}>*\nBranch: *${BRANCH}*  |  Actor: *${ACTOR}*\nBefore: \`${BEFORE:0:7}\`  After: \`${AFTER:0:7}\`\n\nThis may be an attempt to bypass ENT protection checks.\n<${RUN_URL}|View CI run> — Consider deleting this branch immediately."
                 }
               }
             ]
@@ -235,7 +239,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0
 
