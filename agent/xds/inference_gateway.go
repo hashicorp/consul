@@ -108,8 +108,12 @@ func (s *ResourceGenerator) listenersFromSnapshotInferenceGateway(cfgSnap *proxy
 }
 
 // makeInferenceExtProcHTTPFilter builds the ext_proc HTTP filter that streams to
-// the co-located policy processor: buffered request body (full transform),
-// streamed response body (token metering pass-through).
+// the co-located policy processor. The request body and the response body both
+// default to BUFFERED so the processor transforms a full request and normalizes a
+// non-streamed provider response in one pass. AllowModeOverride lets the processor
+// flip the response body to STREAMED per-response for server-sent-event responses,
+// so streamed completions pass through chunk by chunk while the processor meters
+// the stream.
 func makeInferenceExtProcHTTPFilter(cfg *structs.AIGatewayConfigEntry) (*envoy_http_v3.HttpFilter, error) {
 	failureModeAllow := cfg != nil && cfg.Processor.FailureMode == structs.AIGatewayFailureModeOpen
 
@@ -121,12 +125,13 @@ func makeInferenceExtProcHTTPFilter(cfg *structs.AIGatewayConfigEntry) (*envoy_h
 				},
 			},
 		},
-		FailureModeAllow: failureModeAllow,
+		FailureModeAllow:  failureModeAllow,
+		AllowModeOverride: true,
 		ProcessingMode: &envoy_http_ext_proc_v3.ProcessingMode{
 			RequestHeaderMode:   envoy_http_ext_proc_v3.ProcessingMode_SEND,
 			RequestBodyMode:     envoy_http_ext_proc_v3.ProcessingMode_BUFFERED,
 			ResponseHeaderMode:  envoy_http_ext_proc_v3.ProcessingMode_SEND,
-			ResponseBodyMode:    envoy_http_ext_proc_v3.ProcessingMode_STREAMED,
+			ResponseBodyMode:    envoy_http_ext_proc_v3.ProcessingMode_BUFFERED,
 			RequestTrailerMode:  envoy_http_ext_proc_v3.ProcessingMode_SKIP,
 			ResponseTrailerMode: envoy_http_ext_proc_v3.ProcessingMode_SKIP,
 		},
