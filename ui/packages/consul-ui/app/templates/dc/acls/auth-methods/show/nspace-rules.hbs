@@ -17,21 +17,21 @@ as |item|}}
     <Consul::AuthMethod::NspaceList @items={{item.NamespaceRules}} />
   {{else}}
     <EmptyState>
-      <BlockSlot @name="header">
+      <:header>
         <h2>
           {{compute (fn route.t 'empty.header')}}
         </h2>
-      </BlockSlot>
-      <BlockSlot @name="body">
+      </:header>
+      <:body>
         {{compute (fn route.t 'empty.body' (hash
           htmlSafe=true
         ))}}
-      </BlockSlot>
-      <BlockSlot @name="actions">
+      </:body>
+      <:actions>
         <li class="docs-link">
           <a href="{{env 'CONSUL_DOCS_API_URL'}}/acl/auth-methods#namespacerules" rel="noopener noreferrer" target="_blank">Read the documentation</a>
         </li>
-      </BlockSlot>
+      </:actions>
     </EmptyState>
   {{/if}}
   </div>

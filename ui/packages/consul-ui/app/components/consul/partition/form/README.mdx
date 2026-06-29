@@ -11,7 +11,7 @@
     )
   }}
 as |loader|>
-  <BlockSlot @name="loaded">
+  <:loaded>
     <Consul::Partition::Form
       @item={{loader.data}}
       @dc={{'dc-1'}}
@@ -19,6 +19,6 @@ as |loader|>
       @partition={{'partition'}}
       @onsubmit={{noop}}
     />
-  </BlockSlot>
+  </:loaded>
 </DataLoader>
 ```

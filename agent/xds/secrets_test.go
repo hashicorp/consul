@@ -242,7 +242,10 @@ func TestSecretsFromSnapshotTerminatingGateway_SecretNamesUsesServiceName(t *tes
 
 func TestMakeUpstreamTLSContext_SecretNamesMatchServiceName(t *testing.T) {
 	mapping := structs.GatewayService{
-		Service: structs.NewServiceName("payments", structs.DefaultEnterpriseMetaInDefaultPartition()),
+		Service:  structs.NewServiceName("payments", structs.DefaultEnterpriseMetaInDefaultPartition()),
+		CAFile:   "ca.pem",
+		CertFile: "cert.pem",
+		KeyFile:  "key.pem",
 	}
 
 	ctx := makeUpstreamTLSContext(mapping)
@@ -258,7 +261,10 @@ func TestMakeUpstreamTLSContext_SecretNamesMatchServiceName(t *testing.T) {
 
 func TestMakeUpstreamTLSContext_UsesSDS(t *testing.T) {
 	mapping := structs.GatewayService{
-		Service: structs.NewServiceName("web", structs.DefaultEnterpriseMetaInDefaultPartition()),
+		Service:  structs.NewServiceName("web", structs.DefaultEnterpriseMetaInDefaultPartition()),
+		CAFile:   "ca.pem",
+		CertFile: "cert.pem",
+		KeyFile:  "key.pem",
 	}
 
 	ctx := makeUpstreamTLSContext(mapping)
@@ -306,7 +312,10 @@ func TestMakeUpstreamTLSContext_DifferentServiceNames(t *testing.T) {
 		tt := tt
 		t.Run(name, func(t *testing.T) {
 			mapping := structs.GatewayService{
-				Service: structs.NewServiceName(tt.serviceName, structs.DefaultEnterpriseMetaInDefaultPartition()),
+				Service:  structs.NewServiceName(tt.serviceName, structs.DefaultEnterpriseMetaInDefaultPartition()),
+				CAFile:   "ca.pem",
+				CertFile: "cert.pem",
+				KeyFile:  "key.pem",
 			}
 
 			ctx := makeUpstreamTLSContext(mapping)
@@ -318,16 +327,84 @@ func TestMakeUpstreamTLSContext_DifferentServiceNames(t *testing.T) {
 	}
 }
 
-func TestMakeUpstreamTLSContext_AlwaysHasBothCertAndValidationConfig(t *testing.T) {
+func TestMakeUpstreamTLSContext_OneWayTLS_NoCertSDSConfig(t *testing.T) {
 	mapping := structs.GatewayService{
 		Service: structs.NewServiceName("cache", structs.DefaultEnterpriseMetaInDefaultPartition()),
+		CAFile:  "ca.pem",
 	}
 
 	ctx := makeUpstreamTLSContext(mapping)
 
 	require.NotNil(t, ctx)
-	require.Len(t, ctx.TlsCertificateSdsSecretConfigs, 1, "should always have a cert SDS config")
-	require.NotNil(t, ctx.ValidationContextType, "should always have a validation context")
+	require.Empty(t, ctx.TlsCertificateSdsSecretConfigs, "one-way TLS must not request a client cert SDS secret")
+	require.NotNil(t, ctx.ValidationContextType, "CA validation context must still be present")
+}
+
+func TestMakeUpstreamTLSContext_MTLS_HasBothCertAndValidationSDSConfig(t *testing.T) {
+	mapping := structs.GatewayService{
+		Service:  structs.NewServiceName("cache", structs.DefaultEnterpriseMetaInDefaultPartition()),
+		CAFile:   "ca.pem",
+		CertFile: "cert.pem",
+		KeyFile:  "key.pem",
+	}
+
+	ctx := makeUpstreamTLSContext(mapping)
+
+	require.NotNil(t, ctx)
+	require.Len(t, ctx.TlsCertificateSdsSecretConfigs, 1, "mTLS must request a client cert SDS secret")
+	require.NotNil(t, ctx.ValidationContextType, "CA validation context must be present for mTLS")
+}
+
+func TestMakeUpstreamTLSContext_NoFilesConfigured(t *testing.T) {
+	mapping := structs.GatewayService{
+		Service: structs.NewServiceName("db", structs.DefaultEnterpriseMetaInDefaultPartition()),
+	}
+
+	ctx := makeUpstreamTLSContext(mapping)
+
+	require.NotNil(t, ctx)
+	require.Empty(t, ctx.TlsCertificateSdsSecretConfigs)
+	require.NotNil(t, ctx.ValidationContextType)
+}
+
+func TestMakeUpstreamTLSContext_CertFileOnlyNoCertSDSConfig(t *testing.T) {
+	mapping := structs.GatewayService{
+		Service:  structs.NewServiceName("db", structs.DefaultEnterpriseMetaInDefaultPartition()),
+		CAFile:   "ca.pem",
+		CertFile: "cert.pem",
+	}
+
+	ctx := makeUpstreamTLSContext(mapping)
+
+	require.NotNil(t, ctx)
+	require.Empty(t, ctx.TlsCertificateSdsSecretConfigs, "cert SDS must be absent when KeyFile is missing")
+}
+
+func TestMakeUpstreamTLSContext_KeyFileOnlyNoCertSDSConfig(t *testing.T) {
+	mapping := structs.GatewayService{
+		Service: structs.NewServiceName("db", structs.DefaultEnterpriseMetaInDefaultPartition()),
+		CAFile:  "ca.pem",
+		KeyFile: "key.pem",
+	}
+
+	ctx := makeUpstreamTLSContext(mapping)
+
+	require.NotNil(t, ctx)
+	require.Empty(t, ctx.TlsCertificateSdsSecretConfigs, "cert SDS must be absent when CertFile is missing")
+}
+
+func TestMakeUpstreamTLSContext_CertAndKeyWithoutCAFile(t *testing.T) {
+	mapping := structs.GatewayService{
+		Service:  structs.NewServiceName("db", structs.DefaultEnterpriseMetaInDefaultPartition()),
+		CertFile: "cert.pem",
+		KeyFile:  "key.pem",
+	}
+
+	ctx := makeUpstreamTLSContext(mapping)
+
+	require.NotNil(t, ctx)
+	require.Len(t, ctx.TlsCertificateSdsSecretConfigs, 1, "cert SDS must be present when CertFile and KeyFile are both set")
+	require.NotNil(t, ctx.ValidationContextType)
 }
 
 func TestSecretsFromSnapshot_NonTerminatingGatewayKindsReturnNil(t *testing.T) {

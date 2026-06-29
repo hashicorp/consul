@@ -779,6 +779,24 @@ func TestInjectGatewayServiceAddons_TerminatingGateway_TLSContextUsesSDS(t *test
 	require.Equal(t, envoy_core_v3.ApiVersion_V3, certSDS.SdsConfig.ResourceApiVersion)
 }
 
+func TestInjectGatewayServiceAddons_TerminatingGateway_OneWayTLS_NoCertSDSConfig(t *testing.T) {
+	s := &ResourceGenerator{Logger: hclog.NewNullLogger()}
+	svc := structs.NewServiceName("db", structs.DefaultEnterpriseMetaInDefaultPartition())
+	snap := proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, nil)
+	snap.TerminatingGateway.GatewayServices = map[structs.ServiceName]structs.GatewayService{
+		svc: {Service: svc, CAFile: "ca.pem"},
+	}
+
+	c := &envoy_cluster_v3.Cluster{Name: "db"}
+	err := s.injectGatewayServiceAddons(snap, c, svc, &structs.LoadBalancer{})
+
+	require.NoError(t, err)
+	upstreamTLS := &envoy_tls_v3.UpstreamTlsContext{}
+	err = c.TransportSocket.GetTypedConfig().UnmarshalTo(upstreamTLS)
+	require.NoError(t, err)
+	require.Empty(t, upstreamTLS.CommonTlsContext.TlsCertificateSdsSecretConfigs, "one-way TLS must not request a client cert SDS secret")
+}
+
 func TestInjectGatewayServiceAddons_TerminatingGateway_ServiceNotInMap(t *testing.T) {
 	s := &ResourceGenerator{Logger: hclog.NewNullLogger()}
 	svc := structs.NewServiceName("unknown", structs.DefaultEnterpriseMetaInDefaultPartition())
@@ -891,7 +909,7 @@ func TestInjectGatewayDestinationAddons_TerminatingGateway_TLSContextUsesSDS(t *
 	svc := structs.NewServiceName("cache", structs.DefaultEnterpriseMetaInDefaultPartition())
 	snap := proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, nil)
 	snap.TerminatingGateway.DestinationServices = map[structs.ServiceName]structs.GatewayService{
-		svc: {Service: svc, CAFile: "ca.pem"},
+		svc: {Service: svc, CAFile: "ca.pem", CertFile: "cert.pem", KeyFile: "key.pem"},
 	}
 
 	c := &envoy_cluster_v3.Cluster{Name: "cache"}
@@ -914,6 +932,24 @@ func TestInjectGatewayDestinationAddons_TerminatingGateway_TLSContextUsesSDS(t *
 	require.Equal(t, "cache-ca", sdsCACfg.ValidationContextSdsSecretConfig.Name)
 	_, caUsesADS := sdsCACfg.ValidationContextSdsSecretConfig.SdsConfig.ConfigSourceSpecifier.(*envoy_core_v3.ConfigSource_Ads)
 	require.True(t, caUsesADS)
+}
+
+func TestInjectGatewayDestinationAddons_TerminatingGateway_OneWayTLS_NoCertSDSConfig(t *testing.T) {
+	s := &ResourceGenerator{Logger: hclog.NewNullLogger()}
+	svc := structs.NewServiceName("db", structs.DefaultEnterpriseMetaInDefaultPartition())
+	snap := proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, nil)
+	snap.TerminatingGateway.DestinationServices = map[structs.ServiceName]structs.GatewayService{
+		svc: {Service: svc, CAFile: "ca.pem"},
+	}
+
+	c := &envoy_cluster_v3.Cluster{Name: "db"}
+	err := s.injectGatewayDestinationAddons(snap, c, svc)
+
+	require.NoError(t, err)
+	upstreamTLS := &envoy_tls_v3.UpstreamTlsContext{}
+	err = c.TransportSocket.GetTypedConfig().UnmarshalTo(upstreamTLS)
+	require.NoError(t, err)
+	require.Empty(t, upstreamTLS.CommonTlsContext.TlsCertificateSdsSecretConfigs, "one-way TLS must not request a client cert SDS secret")
 }
 
 func TestInjectGatewayDestinationAddons_TerminatingGateway_DestinationNotInMap(t *testing.T) {
