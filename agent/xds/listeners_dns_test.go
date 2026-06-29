@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/proxycfg"
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 func TestMakeVirtualDNSDomains(t *testing.T) {
@@ -122,4 +123,89 @@ func TestMakeEgressDNSListener(t *testing.T) {
 	}
 	require.Equal(t, uint32(53), got["8.8.8.8"])
 	require.Equal(t, uint32(5353), got["1.1.1.1"])
+}
+
+func TestVirtualFQDNsForUpstream(t *testing.T) {
+	snap := &proxycfg.ConfigSnapshot{Datacenter: "dc1"}
+
+	t.Run("empty name returns nil", func(t *testing.T) {
+		require.Nil(t, virtualFQDNsForUpstream(snap, proxycfg.UpstreamID{}))
+	})
+
+	t.Run("uses upstream datacenter when set", func(t *testing.T) {
+		uid := proxycfg.NewUpstreamIDFromServiceName(structs.NewServiceName("db", nil))
+		uid.Datacenter = "dc2"
+
+		fqdns := virtualFQDNsForUpstream(snap, uid)
+		require.Equal(t, []string{
+			"db.virtual.consul",
+			"db.virtual.default.ns.default.ap.dc2.dc.consul",
+		}, fqdns)
+	})
+
+	t.Run("falls back to snapshot datacenter", func(t *testing.T) {
+		uid := proxycfg.NewUpstreamIDFromServiceName(structs.NewServiceName("web", nil))
+
+		fqdns := virtualFQDNsForUpstream(snap, uid)
+		require.Equal(t, []string{
+			"web.virtual.consul",
+			"web.virtual.default.ns.default.ap.dc1.dc.consul",
+		}, fqdns)
+	})
+
+	t.Run("no datacenter yields only short form", func(t *testing.T) {
+		uid := proxycfg.NewUpstreamIDFromServiceName(structs.NewServiceName("cache", nil))
+
+		fqdns := virtualFQDNsForUpstream(&proxycfg.ConfigSnapshot{}, uid)
+		require.Equal(t, []string{"cache.virtual.consul"}, fqdns)
+	})
+}
+
+func TestMakeRecursorAddresses(t *testing.T) {
+	t.Run("nil and empty input", func(t *testing.T) {
+		require.Nil(t, makeRecursorAddresses(nil))
+		require.Empty(t, makeRecursorAddresses([]string{"", ""}))
+	})
+
+	t.Run("defaults port and preserves explicit port", func(t *testing.T) {
+		addrs := makeRecursorAddresses([]string{"8.8.8.8", "1.1.1.1:5353"})
+		require.Len(t, addrs, 2)
+
+		got := make(map[string]uint32)
+		for _, a := range addrs {
+			sa := a.GetSocketAddress()
+			require.Equal(t, envoy_core_v3.SocketAddress_UDP, sa.GetProtocol())
+			got[sa.GetAddress()] = sa.GetPortValue()
+		}
+		require.Equal(t, uint32(53), got["8.8.8.8"])
+		require.Equal(t, uint32(5353), got["1.1.1.1"])
+	})
+
+	t.Run("skips non-IP entries", func(t *testing.T) {
+		addrs := makeRecursorAddresses([]string{"not-an-ip", "example.com:53", "9.9.9.9"})
+		require.Len(t, addrs, 1)
+		require.Equal(t, "9.9.9.9", addrs[0].GetSocketAddress().GetAddress())
+	})
+}
+
+func TestMakeInlineDNSListenerNoDomains(t *testing.T) {
+	s := &ResourceGenerator{Logger: hclog.NewNullLogger()}
+
+	// A snapshot with no upstreams yields no virtual domains, so no listener.
+	msg, err := s.makeInlineDNSListener(&proxycfg.ConfigSnapshot{})
+	require.NoError(t, err)
+	require.Nil(t, msg)
+}
+
+func TestListenerNamesForDNS(t *testing.T) {
+	require.Equal(t, "virtual_dns:127.0.0.1:8653", listenerNameForVirtualDNS())
+	require.Equal(t, "egress_dns:127.0.0.1:8654", listenerNameForEgressDNS())
+}
+
+func TestMakeUDPAddress(t *testing.T) {
+	addr := makeUDPAddress("127.0.0.1", 8653)
+	sa := addr.GetSocketAddress()
+	require.Equal(t, envoy_core_v3.SocketAddress_UDP, sa.GetProtocol())
+	require.Equal(t, "127.0.0.1", sa.GetAddress())
+	require.Equal(t, uint32(8653), sa.GetPortValue())
 }
