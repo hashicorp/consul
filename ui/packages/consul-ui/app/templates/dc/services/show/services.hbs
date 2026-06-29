@@ -14,16 +14,16 @@ as |route|>
         dc=route.params.dc
         name=route.params.name
       )
-  }} as |loader|>
+  }}>
 
-    <BlockSlot @name="error">
+    <:error as |loader|>
       <AppError
         @error={{loader.error}}
         @login={{route.model.app.login.open}}
       />
-    </BlockSlot>
+    </:error>
 
-    <BlockSlot @name="loaded">
+    <:loaded as |loader|>
   <div class="tab-section">
   {{#let
 
@@ -81,17 +81,17 @@ as |route|>
         </collection.Collection>
         <collection.Empty>
           <EmptyState>
-            <BlockSlot @name="body">
+            <:body>
               {{t "routes.dc.services.show.services.empty"
                 items=items.length
                 htmlSafe=true
               }}
-            </BlockSlot>
+            </:body>
           </EmptyState>
         </collection.Empty>
       </DataCollection>
   {{/let}}
   </div>
-    </BlockSlot>
+    </:loaded>
   </DataLoader>
 </Route>

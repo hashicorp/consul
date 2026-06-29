@@ -136,15 +136,6 @@
         "typedConfig": {
           "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
           "commonTlsContext": {
-            "tlsCertificateSdsSecretConfigs": [
-              {
-                "name": "web-cert",
-                "sdsConfig": {
-                  "ads": {},
-                  "resourceApiVersion": "V3"
-                }
-              }
-            ],
             "validationContextSdsSecretConfig": {
               "name": "web-ca",
               "sdsConfig": {
@@ -178,15 +169,6 @@
         "typedConfig": {
           "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
           "commonTlsContext": {
-            "tlsCertificateSdsSecretConfigs": [
-              {
-                "name": "web-cert",
-                "sdsConfig": {
-                  "ads": {},
-                  "resourceApiVersion": "V3"
-                }
-              }
-            ],
             "validationContextSdsSecretConfig": {
               "name": "web-ca",
               "sdsConfig": {
@@ -220,15 +202,6 @@
         "typedConfig": {
           "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
           "commonTlsContext": {
-            "tlsCertificateSdsSecretConfigs": [
-              {
-                "name": "web-cert",
-                "sdsConfig": {
-                  "ads": {},
-                  "resourceApiVersion": "V3"
-                }
-              }
-            ],
             "validationContextSdsSecretConfig": {
               "name": "web-ca",
               "sdsConfig": {

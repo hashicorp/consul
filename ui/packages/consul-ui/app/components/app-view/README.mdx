@@ -23,22 +23,22 @@ breadcrumbs and back again.
 
   <AppView>
 
-    <BlockSlot @name="header">
+    <:header>
       <h1>
         Main title <em>{{format-number "100000"}} total {{pluralize 100000 "thing" without-count=true}} in this page</em>
       </h1>
-    </BlockSlot>
-    <BlockSlot @name="content">
+    </:header>
+    <:content>
 
       <EmptyState>
-        <BlockSlot @name="body">
+        <:body>
           <p>
             Nothing to see here
           </p>
-        </BlockSlot>
+        </:content>
       </EmptyState>
 
-    </BlockSlot>
+    </:body>
   </AppView>
 
   <figcaption>Basic list-like view</figcaption>
@@ -48,36 +48,36 @@ breadcrumbs and back again.
 <figure>
 
   <AppView>
-    <BlockSlot @name="breadcrumbs">
+    <:breadcrumbs>
       <ol>
         <li><a href="">Hansel</a></li>
         <li><a href="">Gretel</a></li>
       </ol>
-    </BlockSlot>
+    </:breadcrumbs>
 
-    <BlockSlot @name="header">
+    <:header>
       <h1>
         Scary witch's gingerbread house <em>(run away quick!)</em>
       </h1>
-    </BlockSlot>
+    </:header>
 
-    <BlockSlot @name="actions">
+    <:actions>
       <Action
         {{on "click" (noop)}}
       >
         Run away!
       </Action>
-    </BlockSlot>
+    </:actions>
 
-    <BlockSlot @name="content">
+    <:content>
       <EmptyState>
-        <BlockSlot @name="body">
+        <:body>
           <p>
             Double, double toil and trouble
           </p>
-        </BlockSlot>
+        </:content>
       </EmptyState>
-    </BlockSlot>
+    </:body>
   </AppView>
 
   <figcaption>Basic detail-like view</figcaption>

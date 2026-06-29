@@ -4,7 +4,7 @@ go 1.26
 
 require (
 	github.com/envoyproxy/go-control-plane v0.14.0
-	github.com/envoyproxy/go-control-plane/envoy v1.36.0
+	github.com/envoyproxy/go-control-plane/envoy v1.37.0
 	github.com/hashicorp/consul v1.22.5
 	github.com/hashicorp/go-hclog v1.6.3
 	google.golang.org/grpc v1.79.3

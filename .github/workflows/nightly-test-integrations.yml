@@ -13,7 +13,7 @@ env:
   TEST_RESULTS_DIR: /tmp/test-results
   TEST_RESULTS_ARTIFACT_NAME: test-results
   CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
-  GOTAGS: ${{ endsWith(github.repository, '-enterprise') && 'consulent' || '' }}
+  GOTAGS: ${{ endsWith(github.repository, '-enterprise') && 'consulent hashicorpmetrics' || 'hashicorpmetrics' }}
   GOTESTSUM_VERSION: "1.12.3"
   CONSUL_BINARY_UPLOAD_NAME: consul-bin
   # strip the hashicorp/ off the front of github.repository for consul
@@ -204,7 +204,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        consul-version: ["1.17", "1.18", "1.19"]
+        consul-version: ["2.0"]
     env:
       CONSUL_LATEST_VERSION: ${{ matrix.consul-version }}
       # ENVOY_VERSION should be the latest version supported by _all_ Consul versions in the
@@ -339,7 +339,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        consul-version: [ "1.17", "1.18"]
+        consul-version: ["2.0"]
     env:
       CONSUL_LATEST_VERSION: ${{ matrix.consul-version }}
     steps:
