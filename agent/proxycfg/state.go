@@ -41,6 +41,8 @@ const (
 	gatewayServicesWatchID             = "gateway-services"
 	gatewayConfigWatchID               = "gateway-config"
 	apiGatewayConfigWatchID            = "api-gateway-config"
+	aiGatewayConfigWatchID             = "ai-gateway-config"
+	inferenceModelServiceIDPrefix      = "inference-model-service:"
 	boundGatewayConfigWatchID          = "bound-gateway-config"
 	fileSystemCertificateConfigWatchID = "file-system-certificate-config"
 	inlineCertificateConfigWatchID     = "inline-certificate-config"
@@ -228,8 +230,11 @@ func newKindHandler(config stateConfig, s serviceInstance, ch chan UpdateEvent) 
 	case structs.ServiceKindAPIGateway:
 		h.logger = config.logger.Named(logging.APIGateway)
 		handler = &handlerAPIGateway{handlerState: h}
+	case structs.ServiceKindInferenceGateway:
+		h.logger = config.logger.Named(logging.InferenceGateway)
+		handler = &handlerInferenceGateway{handlerState: h}
 	default:
-		return nil, errors.New("not a connect-proxy, terminating-gateway, mesh-gateway, or ingress-gateway")
+		return nil, errors.New("not a connect-proxy, terminating-gateway, mesh-gateway, ingress-gateway, api-gateway, or inference-gateway")
 	}
 
 	return handler, nil

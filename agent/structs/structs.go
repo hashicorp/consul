@@ -1099,6 +1099,7 @@ type ServiceNode struct {
 	ServiceProxy             ConnectProxyConfig
 	ServiceConnect           ServiceConnect
 	ServiceLocality          *Locality `bexpr:"-"`
+	ServiceAI                *AIConfig `bexpr:"-"`
 
 	// If not empty, PeerName represents the peer that this ServiceNode was imported from.
 	PeerName string `json:",omitempty"`
@@ -1159,6 +1160,7 @@ func (s *ServiceNode) PartialClone() *ServiceNode {
 		ServiceProxy:             s.ServiceProxy,
 		ServiceConnect:           s.ServiceConnect,
 		ServiceLocality:          s.ServiceLocality,
+		ServiceAI:                s.ServiceAI,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,
 			ModifyIndex: s.ModifyIndex,
@@ -1188,6 +1190,7 @@ func (s *ServiceNode) ToNodeService() *NodeService {
 		PeerName:          s.PeerName,
 		EnterpriseMeta:    s.EnterpriseMeta,
 		Locality:          s.ServiceLocality,
+		AI:                s.ServiceAI,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,
 			ModifyIndex: s.ModifyIndex,
@@ -1256,7 +1259,8 @@ func (k ServiceKind) IsProxy() bool {
 		ServiceKindMeshGateway,
 		ServiceKindTerminatingGateway,
 		ServiceKindIngressGateway,
-		ServiceKindAPIGateway:
+		ServiceKindAPIGateway,
+		ServiceKindInferenceGateway:
 		return true
 	}
 	return false
@@ -1292,6 +1296,14 @@ const (
 	// This service allows external traffic to enter the mesh based on
 	// centralized configuration.
 	ServiceKindAPIGateway ServiceKind = "api-gateway"
+
+	// ServiceKindInferenceGateway is an Inference Gateway for the Agent Gateway
+	// (Inference plane). It accepts agent (A2LLM) traffic over mesh mTLS,
+	// enforces SPIFFE identity + intentions on inbound like a terminating
+	// gateway, runs an ext_proc filter over a loopback/UDS socket to a
+	// co-located policy processor, and dispatches to LLM providers via a
+	// terminating gateway. Routing is defined in the ai-gateway config entry.
+	ServiceKindInferenceGateway ServiceKind = "inference-gateway"
 
 	// ServiceKindDestination is a Destination  for the Consul Service Mesh feature.
 	// This service allows external traffic to exit the mesh through a terminating gateway
@@ -1394,6 +1406,21 @@ func (a ServiceAddress) ToAPIServiceAddress() api.ServiceAddress {
 
 const SidecarProxySuffix = "-sidecar-proxy"
 
+// AIRoleModel is the AIConfig.Role value marking a service as an LLM model
+// target that inference gateways may route to.
+const AIRoleModel = "ai-model"
+
+// AIConfig describes the AI/inference role a service plays in the Agent Gateway
+// (Inference plane). It is the discriminator the inference gateway uses to
+// discover model upstreams; routing labels (provider, tier, capabilities) ride
+// in the service's catalog Meta, not here.
+type AIConfig struct {
+	// Role identifies the AI role of this service. The only meaningful value
+	// today is "ai-model" (AIRoleModel), marking the service as a routable LLM
+	// model target. The field is extensible for future roles.
+	Role string `json:",omitempty"`
+}
+
 // NodeService is a service provided by a node
 type NodeService struct {
 	// Kind is the kind of service this is. Different kinds of services may
@@ -1413,6 +1440,12 @@ type NodeService struct {
 	Weights           *Weights
 	EnableTagOverride bool
 	Locality          *Locality `json:",omitempty" bexpr:"-"`
+
+	// AI, when set, marks this service's role in the Agent Gateway (Inference
+	// plane). A service registered with AI.Role == "ai-model" is discovered by
+	// inference gateways as a routable model upstream; its catalog Meta carries
+	// the routing labels (provider, tier, capabilities).
+	AI *AIConfig `json:",omitempty" bexpr:"-"`
 
 	// Proxy is the configuration set for Kind = connect-proxy. It is mandatory in
 	// that case and an error to be set for any other kind. This config is part of
@@ -1595,7 +1628,8 @@ func (s *NodeService) IsGateway() bool {
 	return s.Kind == ServiceKindMeshGateway ||
 		s.Kind == ServiceKindTerminatingGateway ||
 		s.Kind == ServiceKindIngressGateway ||
-		s.Kind == ServiceKindAPIGateway
+		s.Kind == ServiceKindAPIGateway ||
+		s.Kind == ServiceKindInferenceGateway
 }
 
 // Validate validates the node service configuration.
@@ -1836,6 +1870,7 @@ func (s *NodeService) IsSame(other *NodeService) bool {
 		!reflect.DeepEqual(s.Weights, other.Weights) ||
 		!reflect.DeepEqual(s.Meta, other.Meta) ||
 		!reflect.DeepEqual(s.Locality, other.Locality) ||
+		!reflect.DeepEqual(s.AI, other.AI) ||
 		s.EnableTagOverride != other.EnableTagOverride ||
 		s.Kind != other.Kind ||
 		!reflect.DeepEqual(s.Proxy, other.Proxy) ||
@@ -1876,6 +1911,7 @@ func (s *ServiceNode) IsSameService(other *ServiceNode) bool {
 		s.ServiceEnableTagOverride != other.ServiceEnableTagOverride ||
 		!reflect.DeepEqual(s.ServiceProxy, other.ServiceProxy) ||
 		!reflect.DeepEqual(s.ServiceConnect, other.ServiceConnect) ||
+		!reflect.DeepEqual(s.ServiceAI, other.ServiceAI) ||
 		!s.IsSame(&other.EnterpriseMeta) {
 		return false
 	}
@@ -1914,6 +1950,7 @@ func (s *NodeService) ToServiceNode(node string) *ServiceNode {
 		ServiceProxy:             s.Proxy,
 		ServiceConnect:           s.Connect,
 		ServiceLocality:          s.Locality,
+		ServiceAI:                s.AI,
 		EnterpriseMeta:           s.EnterpriseMeta,
 		PeerName:                 s.PeerName,
 		RaftIndex: RaftIndex{
@@ -3303,6 +3340,16 @@ func (l *Locality) ToAPI() *api.Locality {
 	return &api.Locality{
 		Region: l.Region,
 		Zone:   l.Zone,
+	}
+}
+
+func (a *AIConfig) ToAPI() *api.AIConfig {
+	if a == nil {
+		return nil
+	}
+
+	return &api.AIConfig{
+		Role: a.Role,
 	}
 }
 

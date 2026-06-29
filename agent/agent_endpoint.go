@@ -340,6 +340,7 @@ func buildAgentService(s *structs.NodeService, dc string) api.AgentService {
 		Weights:           weights,
 		Datacenter:        dc,
 		Locality:          s.Locality.ToAPI(),
+		AI:                s.AI.ToAPI(),
 	}
 
 	if as.Tags == nil {

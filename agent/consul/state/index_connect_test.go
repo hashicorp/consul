@@ -43,6 +43,15 @@ func TestConnectNameFromServiceNode(t *testing.T) {
 			expectedOk: true,
 			expected:   "fOo",
 		},
+		{
+			name: "inference gateway",
+			input: structs.ServiceNode{
+				ServiceKind: structs.ServiceKindInferenceGateway,
+				ServiceName: "inFerence-gateway",
+			},
+			expectedOk: true,
+			expected:   "inFerence-gateway",
+		},
 	}
 
 	for _, tc := range cases {

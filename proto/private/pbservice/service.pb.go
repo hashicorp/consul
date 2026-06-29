@@ -953,7 +953,9 @@ type ServiceDefinition struct {
 	Locality *pbcommon.Locality `protobuf:"bytes,19,opt,name=Locality,proto3" json:"Locality,omitempty"`
 	// Ports is a list of ports that the service exposes.
 	// mog: func-to=PortsToStructs func-from=NewPortsFromStructs
-	Ports         []*ServicePort `protobuf:"bytes,20,rep,name=Ports,proto3" json:"Ports,omitempty"`
+	Ports []*ServicePort `protobuf:"bytes,20,rep,name=Ports,proto3" json:"Ports,omitempty"`
+	// AI marks the service's role in the Agent Gateway (Inference plane).
+	AI            *AIConfig `protobuf:"bytes,21,opt,name=AI,proto3" json:"AI,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1121,6 +1123,64 @@ func (x *ServiceDefinition) GetPorts() []*ServicePort {
 	return nil
 }
 
+func (x *ServiceDefinition) GetAI() *AIConfig {
+	if x != nil {
+		return x.AI
+	}
+	return nil
+}
+
+// AIConfig marks a service's role in the Agent Gateway (Inference plane).
+//
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.AIConfig
+// output=service.gen.go
+// name=Structs
+type AIConfig struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Role          string                 `protobuf:"bytes,1,opt,name=Role,proto3" json:"Role,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AIConfig) Reset() {
+	*x = AIConfig{}
+	mi := &file_private_pbservice_service_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AIConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AIConfig) ProtoMessage() {}
+
+func (x *AIConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_private_pbservice_service_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AIConfig.ProtoReflect.Descriptor instead.
+func (*AIConfig) Descriptor() ([]byte, []int) {
+	return file_private_pbservice_service_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *AIConfig) GetRole() string {
+	if x != nil {
+		return x.Role
+	}
+	return ""
+}
+
 // ServicePort contains the port information for a service.
 // mog annotation:
 //
@@ -1142,7 +1202,7 @@ type ServicePort struct {
 
 func (x *ServicePort) Reset() {
 	*x = ServicePort{}
-	mi := &file_private_pbservice_service_proto_msgTypes[10]
+	mi := &file_private_pbservice_service_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1154,7 +1214,7 @@ func (x *ServicePort) String() string {
 func (*ServicePort) ProtoMessage() {}
 
 func (x *ServicePort) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbservice_service_proto_msgTypes[10]
+	mi := &file_private_pbservice_service_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1167,7 +1227,7 @@ func (x *ServicePort) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ServicePort.ProtoReflect.Descriptor instead.
 func (*ServicePort) Descriptor() ([]byte, []int) {
-	return file_private_pbservice_service_proto_rawDescGZIP(), []int{10}
+	return file_private_pbservice_service_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *ServicePort) GetPort() int32 {
@@ -1203,7 +1263,7 @@ type ServiceAddress struct {
 
 func (x *ServiceAddress) Reset() {
 	*x = ServiceAddress{}
-	mi := &file_private_pbservice_service_proto_msgTypes[11]
+	mi := &file_private_pbservice_service_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1215,7 +1275,7 @@ func (x *ServiceAddress) String() string {
 func (*ServiceAddress) ProtoMessage() {}
 
 func (x *ServiceAddress) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbservice_service_proto_msgTypes[11]
+	mi := &file_private_pbservice_service_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1228,7 +1288,7 @@ func (x *ServiceAddress) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ServiceAddress.ProtoReflect.Descriptor instead.
 func (*ServiceAddress) Descriptor() ([]byte, []int) {
-	return file_private_pbservice_service_proto_rawDescGZIP(), []int{11}
+	return file_private_pbservice_service_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *ServiceAddress) GetAddress() string {
@@ -1258,7 +1318,7 @@ type Weights struct {
 
 func (x *Weights) Reset() {
 	*x = Weights{}
-	mi := &file_private_pbservice_service_proto_msgTypes[12]
+	mi := &file_private_pbservice_service_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1270,7 +1330,7 @@ func (x *Weights) String() string {
 func (*Weights) ProtoMessage() {}
 
 func (x *Weights) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbservice_service_proto_msgTypes[12]
+	mi := &file_private_pbservice_service_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1283,7 +1343,7 @@ func (x *Weights) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Weights.ProtoReflect.Descriptor instead.
 func (*Weights) Descriptor() ([]byte, []int) {
-	return file_private_pbservice_service_proto_rawDescGZIP(), []int{12}
+	return file_private_pbservice_service_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *Weights) GetPassing() int32 {
@@ -1374,7 +1434,7 @@ const file_private_pbservice_service_proto_rawDesc = "" +
 	"JSONFormat\x12\x1e\n" +
 	"\n" +
 	"TextFormat\x18\x06 \x01(\tR\n" +
-	"TextFormat\"\xbc\t\n" +
+	"TextFormat\"\xf9\t\n" +
 	"\x11ServiceDefinition\x12\x12\n" +
 	"\x04Kind\x18\x01 \x01(\tR\x04Kind\x12\x0e\n" +
 	"\x02ID\x18\x02 \x01(\tR\x02ID\x12\x12\n" +
@@ -1397,13 +1457,16 @@ const file_private_pbservice_service_proto_rawDesc = "" +
 	"\x0eEnterpriseMeta\x18\x11 \x01(\v20.hashicorp.consul.internal.common.EnterpriseMetaR\x0eEnterpriseMeta\x12K\n" +
 	"\aConnect\x18\x0f \x01(\v21.hashicorp.consul.internal.service.ServiceConnectR\aConnect\x12F\n" +
 	"\bLocality\x18\x13 \x01(\v2*.hashicorp.consul.internal.common.LocalityR\bLocality\x12D\n" +
-	"\x05Ports\x18\x14 \x03(\v2..hashicorp.consul.internal.service.ServicePortR\x05Ports\x1au\n" +
+	"\x05Ports\x18\x14 \x03(\v2..hashicorp.consul.internal.service.ServicePortR\x05Ports\x12;\n" +
+	"\x02AI\x18\x15 \x01(\v2+.hashicorp.consul.internal.service.AIConfigR\x02AI\x1au\n" +
 	"\x14TaggedAddressesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12G\n" +
 	"\x05value\x18\x02 \x01(\v21.hashicorp.consul.internal.service.ServiceAddressR\x05value:\x028\x01\x1a7\n" +
 	"\tMetaEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"O\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x1e\n" +
+	"\bAIConfig\x12\x12\n" +
+	"\x04Role\x18\x01 \x01(\tR\x04Role\"O\n" +
 	"\vServicePort\x12\x12\n" +
 	"\x04Port\x18\x01 \x01(\x05R\x04Port\x12\x12\n" +
 	"\x04Name\x18\x02 \x01(\tR\x04Name\x12\x18\n" +
@@ -1428,7 +1491,7 @@ func file_private_pbservice_service_proto_rawDescGZIP() []byte {
 	return file_private_pbservice_service_proto_rawDescData
 }
 
-var file_private_pbservice_service_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
+var file_private_pbservice_service_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
 var file_private_pbservice_service_proto_goTypes = []any{
 	(*ConnectProxyConfig)(nil),      // 0: hashicorp.consul.internal.service.ConnectProxyConfig
 	(*Upstream)(nil),                // 1: hashicorp.consul.internal.service.Upstream
@@ -1440,47 +1503,49 @@ var file_private_pbservice_service_proto_goTypes = []any{
 	(*TransparentProxyConfig)(nil),  // 7: hashicorp.consul.internal.service.TransparentProxyConfig
 	(*AccessLogsConfig)(nil),        // 8: hashicorp.consul.internal.service.AccessLogsConfig
 	(*ServiceDefinition)(nil),       // 9: hashicorp.consul.internal.service.ServiceDefinition
-	(*ServicePort)(nil),             // 10: hashicorp.consul.internal.service.ServicePort
-	(*ServiceAddress)(nil),          // 11: hashicorp.consul.internal.service.ServiceAddress
-	(*Weights)(nil),                 // 12: hashicorp.consul.internal.service.Weights
-	nil,                             // 13: hashicorp.consul.internal.service.ServiceDefinition.TaggedAddressesEntry
-	nil,                             // 14: hashicorp.consul.internal.service.ServiceDefinition.MetaEntry
-	(*structpb.Struct)(nil),         // 15: google.protobuf.Struct
-	(*pbcommon.EnvoyExtension)(nil), // 16: hashicorp.consul.internal.common.EnvoyExtension
-	(*CheckType)(nil),               // 17: hashicorp.consul.internal.service.CheckType
-	(*pbcommon.EnterpriseMeta)(nil), // 18: hashicorp.consul.internal.common.EnterpriseMeta
-	(*pbcommon.Locality)(nil),       // 19: hashicorp.consul.internal.common.Locality
+	(*AIConfig)(nil),                // 10: hashicorp.consul.internal.service.AIConfig
+	(*ServicePort)(nil),             // 11: hashicorp.consul.internal.service.ServicePort
+	(*ServiceAddress)(nil),          // 12: hashicorp.consul.internal.service.ServiceAddress
+	(*Weights)(nil),                 // 13: hashicorp.consul.internal.service.Weights
+	nil,                             // 14: hashicorp.consul.internal.service.ServiceDefinition.TaggedAddressesEntry
+	nil,                             // 15: hashicorp.consul.internal.service.ServiceDefinition.MetaEntry
+	(*structpb.Struct)(nil),         // 16: google.protobuf.Struct
+	(*pbcommon.EnvoyExtension)(nil), // 17: hashicorp.consul.internal.common.EnvoyExtension
+	(*CheckType)(nil),               // 18: hashicorp.consul.internal.service.CheckType
+	(*pbcommon.EnterpriseMeta)(nil), // 19: hashicorp.consul.internal.common.EnterpriseMeta
+	(*pbcommon.Locality)(nil),       // 20: hashicorp.consul.internal.common.Locality
 }
 var file_private_pbservice_service_proto_depIdxs = []int32{
-	10, // 0: hashicorp.consul.internal.service.ConnectProxyConfig.LocalServicePorts:type_name -> hashicorp.consul.internal.service.ServicePort
-	15, // 1: hashicorp.consul.internal.service.ConnectProxyConfig.Config:type_name -> google.protobuf.Struct
+	11, // 0: hashicorp.consul.internal.service.ConnectProxyConfig.LocalServicePorts:type_name -> hashicorp.consul.internal.service.ServicePort
+	16, // 1: hashicorp.consul.internal.service.ConnectProxyConfig.Config:type_name -> google.protobuf.Struct
 	1,  // 2: hashicorp.consul.internal.service.ConnectProxyConfig.Upstreams:type_name -> hashicorp.consul.internal.service.Upstream
 	6,  // 3: hashicorp.consul.internal.service.ConnectProxyConfig.MeshGateway:type_name -> hashicorp.consul.internal.service.MeshGatewayConfig
 	4,  // 4: hashicorp.consul.internal.service.ConnectProxyConfig.Expose:type_name -> hashicorp.consul.internal.service.ExposeConfig
 	7,  // 5: hashicorp.consul.internal.service.ConnectProxyConfig.TransparentProxy:type_name -> hashicorp.consul.internal.service.TransparentProxyConfig
-	16, // 6: hashicorp.consul.internal.service.ConnectProxyConfig.EnvoyExtensions:type_name -> hashicorp.consul.internal.common.EnvoyExtension
+	17, // 6: hashicorp.consul.internal.service.ConnectProxyConfig.EnvoyExtensions:type_name -> hashicorp.consul.internal.common.EnvoyExtension
 	8,  // 7: hashicorp.consul.internal.service.ConnectProxyConfig.AccessLogs:type_name -> hashicorp.consul.internal.service.AccessLogsConfig
-	15, // 8: hashicorp.consul.internal.service.Upstream.Config:type_name -> google.protobuf.Struct
+	16, // 8: hashicorp.consul.internal.service.Upstream.Config:type_name -> google.protobuf.Struct
 	6,  // 9: hashicorp.consul.internal.service.Upstream.MeshGateway:type_name -> hashicorp.consul.internal.service.MeshGatewayConfig
 	9,  // 10: hashicorp.consul.internal.service.ServiceConnect.SidecarService:type_name -> hashicorp.consul.internal.service.ServiceDefinition
 	3,  // 11: hashicorp.consul.internal.service.ServiceConnect.PeerMeta:type_name -> hashicorp.consul.internal.service.PeeringServiceMeta
 	5,  // 12: hashicorp.consul.internal.service.ExposeConfig.Paths:type_name -> hashicorp.consul.internal.service.ExposePath
-	13, // 13: hashicorp.consul.internal.service.ServiceDefinition.TaggedAddresses:type_name -> hashicorp.consul.internal.service.ServiceDefinition.TaggedAddressesEntry
-	14, // 14: hashicorp.consul.internal.service.ServiceDefinition.Meta:type_name -> hashicorp.consul.internal.service.ServiceDefinition.MetaEntry
-	17, // 15: hashicorp.consul.internal.service.ServiceDefinition.Check:type_name -> hashicorp.consul.internal.service.CheckType
-	17, // 16: hashicorp.consul.internal.service.ServiceDefinition.Checks:type_name -> hashicorp.consul.internal.service.CheckType
-	12, // 17: hashicorp.consul.internal.service.ServiceDefinition.Weights:type_name -> hashicorp.consul.internal.service.Weights
+	14, // 13: hashicorp.consul.internal.service.ServiceDefinition.TaggedAddresses:type_name -> hashicorp.consul.internal.service.ServiceDefinition.TaggedAddressesEntry
+	15, // 14: hashicorp.consul.internal.service.ServiceDefinition.Meta:type_name -> hashicorp.consul.internal.service.ServiceDefinition.MetaEntry
+	18, // 15: hashicorp.consul.internal.service.ServiceDefinition.Check:type_name -> hashicorp.consul.internal.service.CheckType
+	18, // 16: hashicorp.consul.internal.service.ServiceDefinition.Checks:type_name -> hashicorp.consul.internal.service.CheckType
+	13, // 17: hashicorp.consul.internal.service.ServiceDefinition.Weights:type_name -> hashicorp.consul.internal.service.Weights
 	0,  // 18: hashicorp.consul.internal.service.ServiceDefinition.Proxy:type_name -> hashicorp.consul.internal.service.ConnectProxyConfig
-	18, // 19: hashicorp.consul.internal.service.ServiceDefinition.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	19, // 19: hashicorp.consul.internal.service.ServiceDefinition.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
 	2,  // 20: hashicorp.consul.internal.service.ServiceDefinition.Connect:type_name -> hashicorp.consul.internal.service.ServiceConnect
-	19, // 21: hashicorp.consul.internal.service.ServiceDefinition.Locality:type_name -> hashicorp.consul.internal.common.Locality
-	10, // 22: hashicorp.consul.internal.service.ServiceDefinition.Ports:type_name -> hashicorp.consul.internal.service.ServicePort
-	11, // 23: hashicorp.consul.internal.service.ServiceDefinition.TaggedAddressesEntry.value:type_name -> hashicorp.consul.internal.service.ServiceAddress
-	24, // [24:24] is the sub-list for method output_type
-	24, // [24:24] is the sub-list for method input_type
-	24, // [24:24] is the sub-list for extension type_name
-	24, // [24:24] is the sub-list for extension extendee
-	0,  // [0:24] is the sub-list for field type_name
+	20, // 21: hashicorp.consul.internal.service.ServiceDefinition.Locality:type_name -> hashicorp.consul.internal.common.Locality
+	11, // 22: hashicorp.consul.internal.service.ServiceDefinition.Ports:type_name -> hashicorp.consul.internal.service.ServicePort
+	10, // 23: hashicorp.consul.internal.service.ServiceDefinition.AI:type_name -> hashicorp.consul.internal.service.AIConfig
+	12, // 24: hashicorp.consul.internal.service.ServiceDefinition.TaggedAddressesEntry.value:type_name -> hashicorp.consul.internal.service.ServiceAddress
+	25, // [25:25] is the sub-list for method output_type
+	25, // [25:25] is the sub-list for method input_type
+	25, // [25:25] is the sub-list for extension type_name
+	25, // [25:25] is the sub-list for extension extendee
+	0,  // [0:25] is the sub-list for field type_name
 }
 
 func init() { file_private_pbservice_service_proto_init() }
@@ -1495,7 +1560,7 @@ func file_private_pbservice_service_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_private_pbservice_service_proto_rawDesc), len(file_private_pbservice_service_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   15,
+			NumMessages:   16,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -46,6 +46,14 @@ const (
 	// This service will ingress connections based of configuration defined in
 	// the api-gateway config entry.
 	ServiceKindAPIGateway ServiceKind = "api-gateway"
+
+	// ServiceKindInferenceGateway is an Inference Gateway for the Agent Gateway
+	// (Inference plane). It accepts agent (A2LLM) traffic over mesh mTLS,
+	// enforces SPIFFE identity + intentions on inbound like a terminating
+	// gateway, runs an ext_proc filter over a loopback/UDS socket to a
+	// co-located policy processor, and dispatches to LLM providers via a
+	// terminating gateway. Routing is defined in the ai-gateway config entry.
+	ServiceKindInferenceGateway ServiceKind = "inference-gateway"
 )
 
 // UpstreamDestType is the type of upstream discovery mechanism.
@@ -167,6 +175,17 @@ type AgentService struct {
 	// Datacenter is only ever returned and is ignored if presented.
 	Datacenter string    `json:",omitempty" bexpr:"-" hash:"ignore"`
 	Locality   *Locality `json:",omitempty" bexpr:"-" hash:"ignore"`
+	// AI, when set, marks this service's role in the Agent Gateway (Inference
+	// plane). A service registered with AI.Role == "ai-model" is discovered by
+	// inference gateways as a routable model upstream.
+	AI *AIConfig `json:",omitempty" bexpr:"-" hash:"ignore"`
+}
+
+// AIConfig marks a service's role in the Agent Gateway (Inference plane). A
+// service registered with Role == "ai-model" is a routable LLM model target;
+// routing labels (provider, tier, capabilities) ride in the service's Meta.
+type AIConfig struct {
+	Role string `json:",omitempty"`
 }
 
 func (a AgentService) DefaultPort() int {
@@ -368,6 +387,7 @@ type AgentServiceRegistration struct {
 	Namespace         string                          `json:",omitempty" bexpr:"-" hash:"ignore"`
 	Partition         string                          `json:",omitempty" bexpr:"-" hash:"ignore"`
 	Locality          *Locality                       `json:",omitempty" bexpr:"-" hash:"ignore"`
+	AI                *AIConfig                       `json:",omitempty" bexpr:"-" hash:"ignore"`
 }
 
 func (a *AgentServiceRegistration) IsConnectEnabled() bool {

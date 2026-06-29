@@ -115,6 +115,9 @@ enum Topic {
 
   // GlobalRateLimit topic contains events for changes to global rate limits.
   GlobalRateLimit = 19;
+
+  // AIGateway topic contains events for changes to ai-gateway config entries.
+  AIGateway = 20;
 }
 
 message NamedSubject {

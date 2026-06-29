@@ -652,6 +652,7 @@ func validateProposedConfigEntryInGraph(
 	case structs.TCPRoute:
 	case structs.RateLimitIPConfig:
 	case structs.RateLimit:
+	case structs.AIGateway:
 	case structs.JWTProvider:
 		if newEntry == nil && existingEntry != nil {
 			err := validateJWTProviderIsReferenced(tx, kindName, existingEntry)

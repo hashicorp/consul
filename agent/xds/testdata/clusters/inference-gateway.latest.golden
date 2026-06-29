@@ -1,0 +1,52 @@
+{
+  "nonce": "00000001",
+  "resources": [
+    {
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "connectTimeout": "5s",
+      "loadAssignment": {
+        "clusterName": "local_ext_proc",
+        "endpoints": [
+          {
+            "lbEndpoints": [
+              {
+                "endpoint": {
+                  "address": {
+                    "pipe": {
+                      "path": "/run/consul/ext_proc.sock"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "name": "local_ext_proc",
+      "type": "STATIC",
+      "typedExtensionProtocolOptions": {
+        "envoy.extensions.upstreams.http.v3.HttpProtocolOptions": {
+          "@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
+          "explicitHttpConfig": {
+            "http2ProtocolOptions": {}
+          }
+        }
+      }
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "connectTimeout": "5s",
+      "edsClusterConfig": {
+        "edsConfig": {
+          "ads": {},
+          "resourceApiVersion": "V3"
+        }
+      },
+      "name": "openai-gpt4",
+      "outlierDetection": {},
+      "type": "EDS"
+    }
+  ],
+  "typeUrl": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+  "versionInfo": "00000001"
+}

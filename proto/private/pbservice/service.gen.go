@@ -4,6 +4,18 @@ package pbservice
 
 import "github.com/hashicorp/consul/agent/structs"
 
+func AIConfigToStructs(s *AIConfig, t *structs.AIConfig) {
+	if s == nil {
+		return
+	}
+	t.Role = s.Role
+}
+func AIConfigFromStructs(t *structs.AIConfig, s *AIConfig) {
+	if s == nil {
+		return
+	}
+	s.Role = t.Role
+}
 func AccessLogsConfigToStructs(s *AccessLogsConfig, t *structs.AccessLogsConfig) {
 	if s == nil {
 		return
@@ -196,6 +208,11 @@ func ServiceDefinitionToStructs(s *ServiceDefinition, t *structs.ServiceDefiniti
 	t.Token = s.Token
 	t.EnableTagOverride = s.EnableTagOverride
 	t.Locality = LocalityToStructs(s.Locality)
+	if s.AI != nil {
+		var x structs.AIConfig
+		AIConfigToStructs(s.AI, &x)
+		t.AI = &x
+	}
 	t.Proxy = ConnectProxyConfigPtrToStructs(s.Proxy)
 	t.EnterpriseMeta = EnterpriseMetaToStructs(s.EnterpriseMeta)
 	t.Connect = ServiceConnectPtrToStructs(s.Connect)
@@ -224,6 +241,11 @@ func ServiceDefinitionFromStructs(t *structs.ServiceDefinition, s *ServiceDefini
 	s.Token = t.Token
 	s.EnableTagOverride = t.EnableTagOverride
 	s.Locality = LocalityFromStructs(t.Locality)
+	if t.AI != nil {
+		var x AIConfig
+		AIConfigFromStructs(t.AI, &x)
+		s.AI = &x
+	}
 	s.Proxy = NewConnectProxyConfigPtrFromStructs(t.Proxy)
 	s.EnterpriseMeta = NewEnterpriseMetaFromStructs(t.EnterpriseMeta)
 	s.Connect = NewServiceConnectPtrFromStructs(t.Connect)

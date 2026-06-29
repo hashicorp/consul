@@ -31,6 +31,7 @@ var configEntryKindToTopic = map[string]stream.Topic{
 	structs.SamenessGroup:         EventTopicSamenessGroup,
 	structs.JWTProvider:           EventTopicJWTProvider,
 	structs.ExportedServices:      EventTopicExportedServices,
+	structs.AIGateway:             EventTopicAIGateway,
 }
 
 // EventSubjectConfigEntry is a stream.Subject used to route and receive events
@@ -193,6 +194,12 @@ func (s *Store) JWTProviderSnapshot(req stream.SubscribeRequest, buf stream.Snap
 // exported-services config entries.
 func (s *Store) ExportedServicesSnapshot(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 	return s.configEntrySnapshot(structs.ExportedServices, req, buf)
+}
+
+// AIGatewaySnapshot is a stream.SnapshotFunc that returns a snapshot of
+// ai-gateway config entries.
+func (s *Store) AIGatewaySnapshot(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+	return s.configEntrySnapshot(structs.AIGateway, req, buf)
 }
 
 func (s *Store) configEntrySnapshot(kind string, req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {

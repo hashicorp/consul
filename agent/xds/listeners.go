@@ -69,6 +69,8 @@ func (s *ResourceGenerator) listenersFromSnapshot(cfgSnap *proxycfg.ConfigSnapsh
 		structs.ServiceKindIngressGateway,
 		structs.ServiceKindAPIGateway:
 		return s.listenersFromSnapshotGateway(cfgSnap)
+	case structs.ServiceKindInferenceGateway:
+		return s.listenersFromSnapshotInferenceGateway(cfgSnap)
 	default:
 		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
 	}
@@ -1285,6 +1287,7 @@ func createDownstreamTransportSocketForConnectTLS(cfgSnap *proxycfg.ConfigSnapsh
 	switch cfgSnap.Kind {
 	case structs.ServiceKindConnectProxy:
 	case structs.ServiceKindMeshGateway:
+	case structs.ServiceKindInferenceGateway:
 	default:
 		return nil, fmt.Errorf("cannot inject peering trust bundles for kind %q", cfgSnap.Kind)
 	}
