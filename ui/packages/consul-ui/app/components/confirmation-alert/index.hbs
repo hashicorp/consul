@@ -3,28 +3,37 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-{{yield}}
 <InformedAction
   class="confirmation-alert warning"
   ...attributes
 >
   <:header>
-    <YieldSlot @name="header">{{yield}}</YieldSlot>
+    {{#if (has-block "header")}}
+      {{yield to="header"}}
+    {{else}}
+      {{yield}}
+    {{/if}}
   </:header>
   <:body>
-    <YieldSlot @name="body">{{yield}}</YieldSlot>
+    {{#if (has-block "body")}}
+      {{yield to="body"}}
+    {{else}}
+      {{yield}}
+    {{/if}}
   </:body>
   <:actions as |Actions|>
     <Actions.Action class="dangerous">
-      <YieldSlot @name="confirm" @params={{
-          block-params (component 'action'
+      {{#if (has-block "confirm")}}
+        {{yield 
+          (component 'action'
             onclick=(action @onclick)
             tabindex="-1"
           )
+          to="confirm"
         }}
-      >
+      {{else}}
         {{yield}}
-      </YieldSlot>
+      {{/if}}
     </Actions.Action>
     <Actions.Action>
       <Action @for={{@name}}>
