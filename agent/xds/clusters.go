@@ -1071,6 +1071,17 @@ func (s *ResourceGenerator) clustersFromSnapshotAPIGateway(cfgSnap *proxycfg.Con
 	}
 
 	clusters = append(clusters, makeAPIGatewayJWKClusters(s.Logger, cfgSnap)...)
+
+	// Emit mTLS clusters for builtin/ext-authz mesh (Service) targets. These are
+	// referenced only by the ext_authz filter (never routed), so they are not
+	// covered by the readyListener.upstreams loop above. This is an
+	// enterprise-only behaviour; the CE build provides a no-op stub.
+	extAuthzClusters, err := s.makeAPIGatewayExtAuthzClusters(cfgSnap, createdClusters)
+	if err != nil {
+		return nil, err
+	}
+	clusters = append(clusters, extAuthzClusters...)
+
 	return clusters, nil
 }
 

@@ -24,6 +24,7 @@ func APIGatewayToStructs(s *APIGateway, t *structs.APIGatewayConfigEntry) {
 		UpstreamLimitsToStructs(s.Defaults, &x)
 		t.Defaults = &x
 	}
+	t.ExtAuthz = gwExtAuthzToStructs(s.ExtAuthz)
 	if s.Status != nil {
 		StatusToStructs(s.Status, &t.Status)
 	}
@@ -54,6 +55,7 @@ func APIGatewayFromStructs(t *structs.APIGatewayConfigEntry, s *APIGateway) {
 		UpstreamLimitsFromStructs(t.Defaults, &x)
 		s.Defaults = &x
 	}
+	s.ExtAuthz = gwExtAuthzFromStructs(t.ExtAuthz)
 	{
 		var x Status
 		StatusFromStructs(&t.Status, &x)
@@ -546,6 +548,7 @@ func HTTPFiltersToStructs(s *HTTPFilters, t *structs.HTTPFilters) {
 		t.TimeoutFilter = &x
 	}
 	t.JWT = routeJWTFilterToStructs(s.JWT)
+	t.ExtAuthz = routeExtAuthzFilterToStructs(s.ExtAuthz)
 }
 func HTTPFiltersFromStructs(t *structs.HTTPFilters, s *HTTPFilters) {
 	if s == nil {
@@ -577,6 +580,7 @@ func HTTPFiltersFromStructs(t *structs.HTTPFilters, s *HTTPFilters) {
 		s.TimeoutFilter = &x
 	}
 	s.JWT = routeJWTFilterFromStructs(t.JWT)
+	s.ExtAuthz = routeExtAuthzFilterFromStructs(t.ExtAuthz)
 }
 func HTTPHeaderFilterToStructs(s *HTTPHeaderFilter, t *structs.HTTPHeaderFilter) {
 	if s == nil {
