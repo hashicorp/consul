@@ -1,3 +1,0 @@
-```release-note:none
-api-gateway: internal plumbing and CE placeholders for enterprise-only external authorization (ext_authz) support on the API Gateway. No user-facing change in CE.
-```
