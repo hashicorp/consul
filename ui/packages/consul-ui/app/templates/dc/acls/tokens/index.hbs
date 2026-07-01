@@ -60,6 +60,7 @@ as |route|>
         <h1>
           <route.Title @title="Tokens" />
         </h1>
+        <label for="toolbar-toggle"></label>
       </:header>
       <:actions>
   {{#if (can "create tokens")}}
@@ -72,14 +73,24 @@ as |route|>
       </:actions>
       <:toolbar>
     {{#if (gt items.length 0)}}
-        <Consul::Token::SearchBar
+        <Consul::Token::Toolbar
           @search={{this.search}}
           @onsearch={{action (mut this.search) value="target.value"}}
-
-          @sort={{sort}}
-
           @filter={{filters}}
-        />
+        >
+          <:quickFilters>
+          {{! TODO: migrate this sort control to the new toolbar/table later }}
+          <Hds::Dropdown class="consul-token-toolbar-row__sort" @listPosition="bottom-right" @preserveContentInDom={{true}} data-test-sort-control as |dd|>
+            <dd.ToggleButton
+              @text={{if (eq sort.value "CreateTime:asc") (t "common.sort.age.asc") (t "common.sort.age.desc")}}
+              @color="secondary"
+              data-test-sort-toggle
+            />
+            <dd.Interactive data-test-sort-option {{on "click" (fn sort.change (hash target=(hash selected="CreateTime:desc")))}}>{{t "common.sort.age.desc"}}</dd.Interactive>
+            <dd.Interactive data-test-sort-option {{on "click" (fn sort.change (hash target=(hash selected="CreateTime:asc")))}}>{{t "common.sort.age.asc"}}</dd.Interactive>
+          </Hds::Dropdown>
+          </:quickFilters>
+        </Consul::Token::Toolbar>
     {{/if}}
       </:toolbar>
       <:content>

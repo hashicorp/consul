@@ -3,71 +3,79 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-<ListCollection class='consul-policy-list' @items={{@items}}>
-  <:header as |item|>
-    {{#if (or (eq (policy/typeof item) 'policy-management') (eq (policy/typeof item) 'read-only'))}}
-      <dl class='policy-management'>
-        <dt>Type</dt>
-        <dd>
+<div class="consul-policy-list" ...attributes>
+  <Consul::DataTable
+    @items={{@items}}
+    @columns={{this.columns}}
+    @ariaLabel="Policies"
+  >
+    <:row as |item B|>
+      {{! ---- Policy name ---- }}
+      <B.Td>
+        <span class="consul-policy-list__name">
           {{#if (eq (policy/typeof item) 'policy-management')}}
-            <span {{hds-tooltip "Global Management Policy" options=(detached-tooltip-options)}}></span>
-          {{else}}
-            <span {{hds-tooltip "Global Read-only Policy" options=(detached-tooltip-options)}}></span>
+            <span
+              class="consul-policy-list__type"
+              {{hds-tooltip "Global Management Policy" options=(detached-tooltip-options placement="top-start")}}
+            ></span>
+          {{else if (eq (policy/typeof item) 'read-only')}}
+            <span
+              class="consul-policy-list__type"
+              {{hds-tooltip "Global Read-only Policy" options=(detached-tooltip-options placement="top-start")}}
+            ></span>
           {{/if}}
-        </dd>
-      </dl>
-    {{/if}}
-    <a
-      data-test-policy={{item.Name}}
-      href={{href-to 'dc.acls.policies.edit' item.ID}}
-      class={{if (eq (policy/typeof item) 'policy-management') 'is-management'}}
-    >{{item.Name}}</a>
-  </:header>
-  <:details as |item|>
-    <dl class='datacenter'>
-      <dt {{hds-tooltip "Datacenters" options=(detached-tooltip-options)}}>
-        Datacenters
-      </dt>
-      <dd>
-        {{join ', ' (policy/datacenters item)}}
-      </dd>
-    </dl>
-    <dl class='description'>
-      <dt>Description</dt>
-      <dd data-test-description>
-        {{item.Description}}
-      </dd>
-    </dl>
-  </:details>
-  <:actions as |item index Actions|>
-    <Actions as |Action|>
-      <Action data-test-edit-action @href={{href-to 'dc.acls.policies.edit' item.ID}}>
-        <:label>
-          {{#if (can 'write policy' item=item)}}
-            Edit
-          {{else}}
-            View
+          <a
+            data-test-policy={{item.Name}}
+            href={{href-to 'dc.acls.policies.edit' item.ID}}
+            class={{if (eq (policy/typeof item) 'policy-management') 'is-management'}}
+          >{{item.Name}}</a>
+        </span>
+      </B.Td>
+
+      {{! ---- Datacenters ---- }}
+      <B.Td>{{join ', ' (policy/datacenters item)}}</B.Td>
+
+      {{! ---- Description ---- }}
+      <B.Td>
+        <em class="consul-policy-list__description" data-test-description>
+          {{item.Description}}
+        </em>
+      </B.Td>
+
+      {{! ---- Actions ---- }}
+      <B.Td @align="right">
+        <Hds::Dropdown @listPosition="bottom-right" class="consul-policy-list__actions" as |dd|>
+          <dd.ToggleIcon
+            @icon="more-horizontal"
+            @text="Open actions menu"
+            @hasChevron={{false}}
+            @size="small"
+            data-test-actions-menu
+          />
+          <dd.Interactive @route='dc.acls.policies.edit' @model={{item.ID}} data-test-edit>
+            {{#if (can 'write policy' item=item)}}Edit{{else}}View{{/if}}
+          </dd.Interactive>
+          {{#if (can 'delete policy' item=item)}}
+            <dd.Separator />
+            <dd.Interactive @color="critical" @icon="trash" data-test-delete {{on 'click' (fn this.confirmDelete item)}}>Delete</dd.Interactive>
           {{/if}}
-        </:label>
-      </Action>
-      {{#if (can 'delete policy' item=item)}}
-        <Action data-test-delete-action @onclick={{action @ondelete item}} class='dangerous'>
-          <:label>
-            Delete
-          </:label>
-          <:confirmHeader>
-            Confirm delete
-          </:confirmHeader>
-          <:confirmBody>
-            <p>
-              Are you sure you want to delete this policy?
-            </p>
-          </:confirmBody>
-          <:confirmFooter as |Params|>
-            <Params.button @text='Delete' />
-          </:confirmFooter>
-        </Action>
-      {{/if}}
-    </Actions>
-  </:actions>
-</ListCollection>
+        </Hds::Dropdown>
+      </B.Td>
+    </:row>
+  </Consul::DataTable>
+
+  {{#if this.itemToDelete}}
+    <Hds::Modal id="confirm-modal" @color="warning" @onClose={{this.cancelDelete}} as |M|>
+      <M.Header @icon="alert-triangle">Confirm delete</M.Header>
+      <M.Body>
+        <p>Are you sure you want to delete this policy?</p>
+      </M.Body>
+      <M.Footer as |F|>
+        <Hds::ButtonSet>
+          <Hds::Button @text="Delete" @color="critical" data-test-id="confirm-action" {{on 'click' this.invokeDelete}} />
+          <Hds::Button @text="Cancel" @color="secondary" {{on 'click' F.close}} />
+        </Hds::ButtonSet>
+      </M.Footer>
+    </Hds::Modal>
+  {{/if}}
+</div>

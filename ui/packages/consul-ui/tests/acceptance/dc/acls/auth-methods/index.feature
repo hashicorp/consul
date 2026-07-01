@@ -28,21 +28,12 @@ Feature: dc / acls / auth-methods / index: ACL Auth Methods List
     ---
     Then the url should be /dc-1/acls/auth-methods
     Then I see 3 authMethod models
-    Then I fill in with yaml
-    ---
-    s: kube
-    ---
+    Then I type "kube" into "input[type=search]"
     And I see 1 authMethod model
     And I see 1 authMethod model with the name "minikube"
-    Then I fill in with yaml
-    ---
-    s: agent
-    ---
+    Then I type "agent" into "input[type=search]"
     And I see 1 authMethod model
     And I see 1 authMethod model with the name "agent"
-    Then I fill in with yaml
-    ---
-    s: ode
-    ---
+    Then I type "ode" into "input[type=search]"
     And I see 1 authMethod model
     And I see 1 authMethod model with the name "mininode"
