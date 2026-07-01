@@ -1,0 +1,3 @@
+```release-note:improvement
+api-gateway: add `ExtAuthz` configuration to the api-gateway config entry and `ExtAuthz` filter to http-route rules, enabling external authorization (ext_authz) enforcement in front of API Gateway routes. Enforcement is an enterprise-only capability and is a no-op in CE.
+```
