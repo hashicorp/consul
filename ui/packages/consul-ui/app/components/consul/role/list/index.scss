@@ -1,0 +1,90 @@
+/**
+ * Copyright IBM Corp. 2024, 2026
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
+.consul-role-list {
+  margin-top: 16px;
+
+  /* Keep multi-word column headers on a single line. */
+  .hds-table__th {
+    white-space: nowrap;
+  }
+
+  /* Let the Description column (2nd) absorb all the surplus width so the
+     trailing Actions column collapses to just the menu button. This table has
+     no naturally wide column, so without an explicit stretch column the spare
+     width would be spread across every column — including Actions, leaving a
+     large empty gap before the menu button. */
+  .hds-table__th:nth-child(2),
+  .hds-table__td:nth-child(2) {
+    width: 100%;
+  }
+
+  /* Wrap long values (including unbreakable ones with no spaces, e.g. a role
+     name or description with no whitespace) onto multiple lines instead of
+     forcing the column endlessly wider. The trailing Actions column is excluded
+     so its menu button stays on one line. */
+  .hds-table__td:not(:last-child) {
+    overflow-wrap: anywhere;
+  }
+
+  /* The legacy `%table` rules (app/components/table/index.scss, reached because
+     `.app-shell__main` @extends `%main-content`, whose `table` descendants
+     extend `%table`) force every body cell's child to
+     `white-space: nowrap; overflow: hidden; text-overflow: ellipsis`. Because
+     the HDS table reuses native <table>/<td> markup, those rules apply here and
+     truncate the cell content with an ellipsis. Override them on the content
+     columns so the text wraps to the next line and is shown in full (no clip,
+     no ellipsis). The extra class selectors raise specificity above the legacy
+     rule. The trailing Actions column is left untouched so its menu button
+     stays on one line. */
+  .hds-table__tbody .hds-table__td:not(:last-child) > * {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+
+  /* Actions is the last column: shrink it to just fit the menu button so the
+     remaining width goes to the content columns. */
+  .hds-table__th:last-child,
+  .hds-table__td:last-child {
+    width: 1%;
+    white-space: nowrap;
+  }
+}
+
+.consul-role-list__name {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-weight: var(--token-typography-font-weight-semibold);
+
+  /* allow the flex container (and its link) to shrink below the name's
+     intrinsic width so a long, unbreakable name wraps instead of stretching
+     the column. */
+  min-width: 0;
+
+  a {
+    font-weight: var(--token-typography-font-weight-semibold);
+    overflow-wrap: anywhere;
+    min-width: 0;
+  }
+}
+
+.consul-role-list__description {
+  display: block;
+  color: var(--token-color-foreground-faint);
+  font-style: normal;
+}
+
+.consul-role-list__actions {
+  display: inline-flex;
+
+  /* Suppress the blue focus ring around the toggle on mouse click; keep it for
+     keyboard navigation. */
+  .hds-dropdown-toggle-icon:focus:not(:focus-visible) {
+    box-shadow: none;
+  }
+}

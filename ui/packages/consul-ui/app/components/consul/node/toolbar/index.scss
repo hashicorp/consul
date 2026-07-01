@@ -1,0 +1,15 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
+.consul-node-toolbar {
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+}
+
+/* The nodes index uses the HDS Filter Bar for its toolbar, so drop the default
+   header underline above it to avoid a doubled-up separator. */
+html[data-route='dc.nodes.index'] .app-view > header .title {
+  border-bottom: none;
+}

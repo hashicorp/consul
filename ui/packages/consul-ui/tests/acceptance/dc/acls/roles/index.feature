@@ -37,21 +37,12 @@ Feature: dc / acls / roles / index: ACL Roles List
     ---
     Then the url should be /dc-1/acls/roles
     Then I see 3 role models
-    Then I fill in with yaml
-    ---
-    s: Description
-    ---
+    Then I type "Description" into "input[type=search]"
     And I see 1 role model
     And I see 1 role model with the description "Description Search"
-    Then I fill in with yaml
-    ---
-    s: Policy-Search
-    ---
+    Then I type "Policy-Search" into "input[type=search]"
     And I see 1 role model
     And I see 1 role model with the policy "Policy-Search"
-    Then I fill in with yaml
-    ---
-    s: Si-Search
-    ---
+    Then I type "Si-Search" into "input[type=search]"
     And I see 1 role model
     And I see 1 role model with the serviceIdentity "Si-Search"

@@ -66,25 +66,18 @@ as |sort filters items partition nspace|}}
   <AppView>
     <:header>
         <h1>
-          <route.Title @title="Services" /> <em>{{format-number items.length}} total</em>
+          <route.Title @title="Services" />
         </h1>
         <label for="toolbar-toggle"></label>
     </:header>
     <:toolbar>
 {{#if (gt items.length 0) }}
   {{#let (collection items) as |items|}}
-        <Consul::Service::SearchBar
+        <Consul::Service::Toolbar
           @sources={{get items 'ExternalSources'}}
-          @partitions={{get items 'Partitions'}}
-          @partition={{partition}}
-
           @search={{this.search}}
           @onsearch={{action (mut this.search) value="target.value"}}
-
-          @sort={{sort}}
-
           @filter={{filters}}
-
         />
   {{/let}}
 {{/if}}
@@ -98,12 +91,11 @@ as |sort filters items partition nspace|}}
         @items={{items}}
       as |collection|>
         <collection.Collection>
-          <Consul::Service::List
+          <Consul::Service::Table
             @items={{collection.items}}
             @partition={{partition}}
             @nspace={{nspace}}
-          >
-          </Consul::Service::List>
+          />
         </collection.Collection>
         <collection.Empty>
             <EmptyState

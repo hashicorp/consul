@@ -58,13 +58,10 @@
 
         {{#if (gt items.length 0)}}
           {{#let (collection items) as |items|}}
-            <Consul::Service::SearchBar
+            <Consul::Service::Toolbar
               @sources={{get items "ExternalSources"}}
-              @partitions={{get items "Partitions"}}
-              @partition={{partition}}
               @search={{this.search}}
               @onsearch={{action (mut this.search) value="target.value"}}
-              @sort={{sort}}
               @filter={{filters}}
               @peer={{route.model.peer}}
             />
@@ -79,7 +76,7 @@
           as |collection|
         >
           <collection.Collection>
-            <Consul::Service::List
+            <Consul::Service::Table
               @items={{collection.items}}
               @partition={{partition}}
               @nspace={{nspace}}

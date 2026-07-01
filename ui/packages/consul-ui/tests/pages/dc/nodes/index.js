@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-export default function (visitable, text, clickable, attribute, collection, popoverSelect) {
+export default function (visitable, text, clickable, attribute, collection) {
   const node = {
     name: text('[data-test-node]'),
     leader: attribute('data-test-leader', '[data-test-leader]'),
@@ -12,8 +12,15 @@ export default function (visitable, text, clickable, attribute, collection, popo
   };
   return {
     visit: visitable('/:dc/nodes'),
-    nodes: collection('.consul-node-list [data-test-list-row]', node),
+    nodes: collection('.consul-node-table tbody tr', node),
     home: clickable('[data-test-home]', { at: 0 }),
-    sort: popoverSelect('[data-test-sort-control]'),
+    sort: {
+      name: clickable(
+        '.consul-node-table thead th:nth-child(1) button.hds-table__th-button--sort'
+      ),
+      health: clickable(
+        '.consul-node-table thead th:nth-child(2) button.hds-table__th-button--sort'
+      ),
+    },
   };
 }

@@ -22,6 +22,9 @@ ui:
   enterprisefeature: Enterprise feature
 consul:
   name: Name
+  node: Node
+  address: Address
+  meta: Meta
   passing: Passing
   warning: Warning
   critical: Critical
@@ -42,6 +45,9 @@ consul:
   service-name: Service Name
   node-name: Node Name
   accessorid: AccessorID
+  description: Description
+  role: Role
+  policy: Policy
   datacenter: Datacenter
   localbindaddress: Local Bind Address
   localbindport: Local Bind Port

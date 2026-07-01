@@ -1,0 +1,61 @@
+/**
+ * Copyright IBM Corp. 2024, 2026
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
+.consul-auth-method-list {
+  margin-top: 16px;
+
+  /* Keep multi-word column headers on a single line. */
+  .hds-table__th {
+    white-space: nowrap;
+  }
+
+  /* Let the Name column (1st) absorb all the surplus width so the remaining
+     columns (external source, internal name, max TTL) collapse to their
+     content width instead of the spare width being spread evenly. */
+  .hds-table__th:nth-child(1),
+  .hds-table__td:nth-child(1) {
+    width: 100%;
+  }
+
+  /* Wrap long values (including unbreakable ones with no spaces, e.g. a long
+     display or internal name) onto multiple lines instead of forcing the
+     column endlessly wider. */
+  .hds-table__td {
+    overflow-wrap: anywhere;
+  }
+
+  /* The legacy `%table` rules (app/components/table/index.scss, reached because
+     `.app-shell__main` @extends `%main-content`, whose `table` descendants
+     extend `%table`) force every body cell's child to
+     `white-space: nowrap; overflow: hidden; text-overflow: ellipsis`. Because
+     the HDS table reuses native <table>/<td> markup, those rules apply here and
+     truncate the cell content with an ellipsis. Override them so the text wraps
+     to the next line and is shown in full (no clip, no ellipsis). The extra
+     class selectors raise specificity above the legacy rule. */
+  .hds-table__tbody .hds-table__td > * {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+}
+
+.consul-auth-method-list__name {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-weight: var(--token-typography-font-weight-semibold);
+
+  /* allow the flex container (and its link) to shrink below the name's
+     intrinsic width so a long, unbreakable name wraps instead of stretching
+     the column. */
+  min-width: 0;
+
+  a {
+    font-weight: var(--token-typography-font-weight-semibold);
+    overflow-wrap: anywhere;
+    min-width: 0;
+  }
+}
