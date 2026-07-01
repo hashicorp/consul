@@ -35,4 +35,5 @@ Feature: dc / services / list
     ---
     Then the url should be /dc-1/services
 
-    Then I see 1 service model with the peer "billing-app"
+    Then I see 1 service model
+    And I see 1 service model with the name "Service-0"

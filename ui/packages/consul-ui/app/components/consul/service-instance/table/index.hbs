@@ -1,0 +1,138 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+<div class="consul-service-instance-table" ...attributes>
+  <Consul::DataTable
+    @items={{@items}}
+    @columns={{this.columns}}
+    @ariaLabel="Service instances"
+  >
+    <:row as |item B|>
+      {{! ---- Instance name ---- }}
+      <B.Td>
+        <span class="consul-service-instance-table__name">
+          {{#if (eq @routeName "dc.services.show")}}
+            <a
+              data-test-service-name
+              href={{href-to @routeName item.Service.Service params=(this.linkParams item)}}
+            >
+              {{item.Service.ID}}
+            </a>
+          {{else}}
+            <a
+              data-test-service-name
+              href={{href-to
+                @routeName
+                item.Service.Service
+                item.Node.Node
+                (or item.Service.ID item.Service.Service)
+                params=(this.linkParams item)
+              }}
+            >
+              {{item.Service.ID}}
+            </a>
+          {{/if}}
+          {{#if (gt item.Service.Tags.length 0)}}
+            <Hds::RichTooltip class="consul-service-instance-table__tags" as |RT|>
+              <RT.Toggle
+                class="consul-service-instance-table__tags-toggle"
+                @isInline={{true}}
+                aria-label="Show tags"
+                data-test-service-tags
+              >
+                <Hds::Icon @name="tag" @isInline={{true}} />
+              </RT.Toggle>
+              <RT.Bubble @placement="top">
+                <div class="consul-service-instance-table__tags-tooltip">
+                  <Hds::Text::Body
+                    @tag="p"
+                    @size="200"
+                    @weight="semibold"
+                    class="consul-service-instance-table__tags-tooltip-title"
+                  >
+                    Tags:
+                  </Hds::Text::Body>
+                  <div
+                    class="consul-service-instance-table__tags-tooltip-list"
+                    data-test-tags
+                  >
+                    {{#each item.Service.Tags as |tag|}}
+                      <Hds::Tag @text={{tag}} />
+                    {{/each}}
+                  </div>
+                </div>
+              </RT.Bubble>
+            </Hds::RichTooltip>
+          {{/if}}
+        </span>
+      </B.Td>
+
+      {{! ---- Service health ---- }}
+      <B.Td>
+        <Consul::InstanceChecks
+          @type="service"
+          @items={{this.serviceChecks item}}
+        />
+      </B.Td>
+
+      {{! ---- Node health (non-node view only) ---- }}
+      {{#unless this.isNodeView}}
+        <B.Td>
+          {{#unless item.Node.Meta.synthetic-node}}
+            <Consul::InstanceChecks
+              @type="node"
+              @items={{this.nodeChecks item}}
+              data-test-node-health-checks
+            />
+          {{/unless}}
+        </B.Td>
+      {{/unless}}
+
+      {{! ---- Service mesh ---- }}
+      <B.Td>
+        {{#if (get this.proxyLookup item.Service.ID)}}
+          <span class="consul-service-instance-table__mesh" data-test-mesh>
+            <span class="consul-service-instance-table__mesh-icon" aria-hidden="true"></span>
+            <span>in service mesh with proxy</span>
+          </span>
+        {{/if}}
+      </B.Td>
+
+      {{! ---- Node (non-node view only) ---- }}
+      {{#unless this.isNodeView}}
+        <B.Td>
+          {{#unless item.Node.Meta.synthetic-node}}
+            <a
+              data-test-node-name
+              href={{href-to "dc.nodes.show" item.Node.Node}}
+            >{{item.Node.Node}}</a>
+          {{/unless}}
+        </B.Td>
+      {{/unless}}
+
+      {{! ---- Address ---- }}
+      <B.Td>
+        {{#if item.Service.Port}}
+          <span class="consul-service-instance-table__address" data-test-address>
+            {{#if (not-eq item.Service.Address '')}}
+              {{format-ipaddr item.Service.Address}}:{{item.Service.Port}}
+            {{else}}
+              {{format-ipaddr item.Node.Address}}:{{item.Service.Port}}
+            {{/if}}
+          </span>
+        {{else if item.Service.SocketPath}}
+          <span class="consul-service-instance-table__socket" data-test-socket>
+            {{item.Service.SocketPath}}
+          </span>
+        {{/if}}
+      </B.Td>
+
+      {{! ---- External source ---- }}
+      <B.Td>
+        <Consul::ExternalSource @item={{item.Service}} />
+      </B.Td>
+    </:row>
+  </Consul::DataTable>
+</div>

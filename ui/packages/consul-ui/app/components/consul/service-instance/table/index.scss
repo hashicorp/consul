@@ -1,0 +1,92 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
+.consul-service-instance-table {
+  .consul-service-instance-table__name {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+
+    a {
+      font-weight: var(--token-typography-font-weight-semibold);
+    }
+  }
+
+  .consul-service-instance-table__tags {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .consul-service-instance-table__tags-toggle {
+    /* The legacy global `*::before { background-color: var(--icon-color) }`
+       rule (app/styles/base/icons/base-keyframes.scss) collides with HDS, which
+       sets `--icon-color` on the RichTooltip toggle, painting the toggle's
+       focus-ring `::before` pseudo with a dark fill. Clear it; HDS only needs
+       the `::before` for its box-shadow focus ring. */
+    &::before {
+      background-color: transparent;
+    }
+
+    .hds-icon {
+      color: var(--token-color-foreground-faint);
+    }
+
+    &:hover .hds-icon,
+    &:focus .hds-icon,
+    &:active .hds-icon {
+      color: var(--token-color-foreground-action);
+    }
+  }
+
+  .consul-service-instance-table__tags-tooltip {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .consul-service-instance-table__tags-tooltip-title {
+    color: var(--token-color-foreground-strong);
+  }
+
+  .consul-service-instance-table__tags-tooltip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .consul-service-instance-table__mesh {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* render the dedicated Consul `mesh` glyph (a CSS-mask icon, not an HDS
+     Flight icon) to match the icon the legacy instance list used */
+  .consul-service-instance-table__mesh-icon {
+    display: inline-flex;
+    color: var(--token-color-foreground-faint);
+  }
+  .consul-service-instance-table__mesh-icon::before {
+    @extend %with-mesh-mask, %as-pseudo;
+  }
+
+  /* The legacy `%table th span::after` rule injects a stray info-circle icon
+     after every <span> inside an HDS <th>. Suppress it for this table's
+     headers (same fix as the services table). */
+  .hds-table__thead .hds-table__th span::after {
+    content: none;
+    display: none;
+    margin: 0;
+  }
+
+  /* Consul::InstanceChecks renders a <dl> with an iconless <dt> label; hide the
+     label so only the humanized status text shows in the health columns. */
+  .consul-instance-checks dt {
+    display: none;
+  }
+  .consul-instance-checks dd {
+    margin-left: 0;
+  }
+}

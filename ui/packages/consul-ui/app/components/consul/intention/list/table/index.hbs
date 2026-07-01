@@ -3,162 +3,103 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-<TabularCollection
-  class='consul-intention-list-table'
-  ...attributes
-  @items={{@items}}
-  @rowHeight={{59}}
->
-  <:header>
-    <th class='source'>Source</th>
-    <th class='intent'>Intention Type</th>
-    <th class='destination'>Destination</th>
-    <th class='permissions'>
-      Permissions
-      <span {{hds-tooltip "Permissions intercept an Intention's traffic using Layer 7 criteria, such as path prefixes and http headers." options=(detached-tooltip-options)}}></span>
-    </th>
-    <th class='meta'>Status</th>
-  </:header>
-  <:row as |item index|>
-    <td class='source' data-test-intention={{item.ID}}>
-      <a
-        href={{href-to (or @routeName 'dc.intentions.edit') item.ID}}
-        data-test-intention-source={{item.SourceName}}
-      >
-        {{#if (eq item.SourceName '*')}}
-          All Services (*)
-        {{else}}
-          {{item.SourceName}}
-        {{/if}}
-        {{! TODO: slugify }}
-        <em class='consul-intention-list-table__meta-info'>
+<div class="consul-intention-list-table" ...attributes>
+  <Consul::DataTable
+    @items={{@items}}
+    @columns={{this.columns}}
+    @initialSortBy="action"
+    @ariaLabel="Intentions"
+  >
+    <:row as |item B|>
+      <B.Td>
+        <span class="consul-intention-list-table__name" data-test-intention={{item.ID}}>
+          <a
+            href={{href-to (or @routeName 'dc.intentions.edit') item.ID}}
+            data-test-intention-source={{item.SourceName}}
+          >
+            {{#if (eq item.SourceName '*')}}All Services (*){{else}}{{item.SourceName}}{{/if}}
+          </a>
+        </span>
+        <em class="consul-intention-list-table__meta-info">
           <Consul::Bucket::List
             @item={{hash
               Namespace=item.SourceNS
               Partition=item.SourcePartition
               PeerName=item.SourcePeer
             }}
-            @nspace='-'
-            @partition='-'
+            @nspace="-"
+            @partition="-"
           />
         </em>
-      </a>
-    </td>
-    <td class='intent intent-{{slugify item.Action}}' data-test-intention-action={{item.Action}}>
-      <Consul::Intention::Action @action={{item.Action}} @label={{capitalize (or item.Action 'App aware')}} />
-    </td>
-    <td class='destination' data-test-intention-destination={{item.DestinationName}}>
-      <span>
-        {{#if (eq item.DestinationName '*')}}
-          All Services (*)
-        {{else}}
-          {{item.DestinationName}}
-        {{/if}}
+      </B.Td>
+      <B.Td data-test-intention-action={{item.Action}}>
+        <Consul::Intention::Action @action={{item.Action}} @label={{capitalize (or item.Action 'App aware')}} />
+      </B.Td>
+      <B.Td>
+        <span class="consul-intention-list-table__name" data-test-intention-destination={{item.DestinationName}}>
+          {{#if (eq item.DestinationName '*')}}All Services (*){{else}}{{item.DestinationName}}{{/if}}
+        </span>
         {{#if (or (can 'use nspaces') (can 'use partitions'))}}
-          {{! TODO: slugify }}
-          <em>
-            <span class={{concat 'partition-' (or item.DestinationPartition 'default')}}>{{or
-                item.DestinationPartition
-                'default'
-              }}</span>
+          <em class="consul-intention-list-table__meta-info">
+            <span class={{concat 'partition-' (or item.DestinationPartition 'default')}}>{{or item.DestinationPartition 'default'}}</span>
             /
-            <span class={{concat 'nspace-' (or item.DestinationNS 'default')}}>{{or
-                item.DestinationNS
-                'default'
-              }}</span>
+            <span class={{concat 'nspace-' (or item.DestinationNS 'default')}}>{{or item.DestinationNS 'default'}}</span>
           </em>
         {{/if}}
-      </span>
-    </td>
-    <td class='permissions'>
-      {{#if (gt item.Permissions.length 0)}}
-        <span>{{pluralize item.Permissions.length 'Permission'}}</span>
-      {{/if}}
-    </td>
-    <td class='meta'>
-      {{#if item.IsManagedByCRD}}
-        <Consul::ExternalSource @item={{item}} @label='Managed by CRD' />
-      {{/if}}
-    </td>
-  </:row>
-  <:actions as |item index change checked|>
-    <PopoverMenu
-      @expanded={{if (eq checked index) true false}}
-      @onchange={{action change index}}
-      @keyboardAccess={{true}}
-    >
-      <:trigger>
-        More
-      </:trigger>
-      <:menu as |components api confirm keypressClick change|>
-        {{#if (can 'write intention' item=item)}}
-          <components.MenuItem href={{href-to (or @routeName 'dc.intentions.edit') item.ID}}>
-            <:label>
-              Edit
-            </:label>
-          </components.MenuItem>
-          <components.MenuItem @onclick={{action @delete item}} class="dangerous" data-test-delete>
-            <:label>
-              Delete
-            </:label>
-            <:confirmHeader>
-              Confirm Delete
-            </:confirmHeader>
-            <:confirmBody>
-              Are you sure you want to delete this intention?
-            </:confirmBody>
-            <:confirmFooter as |Params|>
-              <Params.button @text='Delete' {{on 'click' Params.confirmAction}} />
-            </:confirmFooter>
-          </components.MenuItem>
-
-        {{else if (can 'view CRD intention' item=item)}}
-          <li role='none'>
-            <div role='menu'>
-              <InformedAction>
-                <:header>
-                  <span class='flex flex-nowrap items-center'>
-                    <Hds::Icon @name="kubernetes-color" @size="16" class="mr-2.5" />
-                    Managed by CRD
-                  </span>
-                </:header>
-                <:body>
-                  <p>
-                    This intention is being managed through an Intention Custom Resource in your
-                    Kubernetes cluster. It is view only in the UI.
-                  </p>
-                </:body>
-                <:actions as |Actions|>
-                  <Actions.Action>
-                    <Action
-                      tabindex='-1'
-                      class='action'
-                      @href={{href-to (or @routeName 'dc.intentions.edit') item.ID}}
-                    >
-                      View
-                    </Action>
-                  </Actions.Action>
-                  <Actions.Action>
-                    <Action @onclick={{action change}}>
-                      Cancel
-                    </Action>
-                  </Actions.Action>
-                </:actions>
-              </InformedAction>
-            </div>
-          </li>
-        {{else}}
-          <li role='none'>
-            <a
-              role='menuitem'
-              tabindex='-1'
-              href={{href-to (or @routeName 'dc.intentions.edit') item.ID}}
-            >
-              View
-            </a>
-          </li>
+      </B.Td>
+      <B.Td>
+        {{#if (gt item.Permissions.length 0)}}
+          <span>{{pluralize item.Permissions.length 'Permission'}}</span>
         {{/if}}
-      </:menu>
-    </PopoverMenu>
-  </:actions>
-</TabularCollection>
+      </B.Td>
+      <B.Td>
+        {{#if item.IsManagedByCRD}}
+          <span {{hds-tooltip "This intention is being managed through an Intention Custom Resource in your Kubernetes cluster. It is view only in the UI."}}>
+            <Consul::ExternalSource @item={{item}} @label='Managed by CRD' />
+          </span>
+        {{/if}}
+      </B.Td>
+      <B.Td @align="right">
+        <Hds::Dropdown @listPosition="bottom-right" class="consul-intention-list-table__actions" as |dd|>
+          <dd.ToggleIcon
+            @icon="more-horizontal"
+            @text="Open actions menu"
+            @hasChevron={{false}}
+            @size="small"
+            data-test-actions-menu
+          />
+          {{#if (can 'write intention' item=item)}}
+            <dd.Interactive @route={{or @routeName 'dc.intentions.edit'}} @model={{item.ID}}>
+              Edit
+            </dd.Interactive>
+            <dd.Separator />
+            <dd.Interactive @color="critical" @icon="trash" data-test-delete {{on 'click' (fn this.confirmDelete item)}}>
+              Delete
+            </dd.Interactive>
+          {{else}}
+            <dd.Interactive @route={{or @routeName 'dc.intentions.edit'}} @model={{item.ID}}>
+              View
+            </dd.Interactive>
+          {{/if}}
+        </Hds::Dropdown>
+      </B.Td>
+    </:row>
+  </Consul::DataTable>
+
+  {{#if this.itemToDelete}}
+    <Hds::Modal id="confirm-modal" @color="warning" @onClose={{this.cancelDelete}} as |M|>
+      <M.Header @icon="alert-triangle">
+        Confirm Delete
+      </M.Header>
+      <M.Body>
+        <p>Are you sure you want to delete this intention?</p>
+      </M.Body>
+      <M.Footer as |F|>
+        <Hds::ButtonSet>
+          <Hds::Button @text="Delete" @color="critical" data-test-id="confirm-action" {{on 'click' this.invokeDelete}} />
+          <Hds::Button @text="Cancel" @color="secondary" {{on 'click' F.close}} />
+        </Hds::ButtonSet>
+      </M.Footer>
+    </Hds::Modal>
+  {{/if}}
+</div>

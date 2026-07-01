@@ -54,16 +54,14 @@
               <:header>
                 <h1>
                   <route.Title @title='Nodes' />
-                  <em>{{format-number items.length}} total</em>
                 </h1>
                 <label for='toolbar-toggle'></label>
               </:header>
               <:toolbar>
                 {{#if (gt filtered.length 0)}}
-                  <Consul::Node::SearchBar
+                  <Consul::Node::Toolbar
                     @search={{this.search}}
                     @onsearch={{action (mut this.search) value='target.value'}}
-                    @sort={{sort}}
                     @filter={{filters}}
                     @versions={{versions}}
                   />
@@ -80,7 +78,7 @@
                   as |collection|
                 >
                   <collection.Collection>
-                    <Consul::Node::List @items={{collection.items}} @leader={{leader}} />
+                    <Consul::Node::Table @items={{collection.items}} @leader={{leader}} />
                   </collection.Collection>
                   <collection.Empty>
                     <EmptyState @login={{route.model.app.login.open}}>

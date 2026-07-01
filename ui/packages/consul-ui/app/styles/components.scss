@@ -13,6 +13,13 @@
 @import 'consul-ui/components/card';
 @import 'consul-ui/components/checkbox-group';
 @import 'consul-ui/components/composite-row';
+@import 'consul-ui/components/consul/data-table';
+@import 'consul-ui/components/consul/list-toolbar';
+@import 'consul-ui/components/consul/service/table';
+@import 'consul-ui/components/consul/service/toolbar';
+@import 'consul-ui/components/consul/service-instance/table';
+@import 'consul-ui/components/consul/service-instance/toolbar';
+@import 'consul-ui/components/consul/intention/toolbar';
 @import 'consul-ui/components/confirmation-dialog';
 @import 'consul-ui/components/consul-copy-button';
 @import 'consul-ui/components/definition-table';
@@ -89,11 +96,20 @@
 @import 'consul-ui/components/consul/lock-session/list';
 @import 'consul-ui/components/consul/lock-session/form';
 @import 'consul-ui/components/consul/kv/form';
-@import 'consul-ui/components/consul/node/list';
+@import 'consul-ui/components/consul/node/table';
+@import 'consul-ui/components/consul/node/toolbar';
 @import 'consul-ui/components/consul/server/list';
 @import 'consul-ui/components/consul/server/card';
 @import 'consul-ui/components/consul/auth-method';
+@import 'consul-ui/components/consul/auth-method/list';
+@import 'consul-ui/components/consul/auth-method/toolbar';
 @import 'consul-ui/components/consul/token/ruleset/list';
+@import 'consul-ui/components/consul/token/list';
+@import 'consul-ui/components/consul/token/toolbar';
+@import 'consul-ui/components/consul/policy/list';
+@import 'consul-ui/components/consul/policy/toolbar';
+@import 'consul-ui/components/consul/role/list';
+@import 'consul-ui/components/consul/role/toolbar';
 @import 'consul-ui/components/consul/acl/ruleset-badge';
 
 @import 'consul-ui/components/role-selector';

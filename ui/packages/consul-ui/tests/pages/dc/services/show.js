@@ -35,7 +35,7 @@ export default function (
       'tags',
     ]),
     // TODO: These need to somehow move to subpages
-    instances: collection('.consul-service-instance-list > ul > li:not(:first-child)', {
+    instances: collection('.consul-service-instance-table tbody tr', {
       address: text('[data-test-address]'),
       externalSource: attribute('data-test-external-source', '[data-test-external-source]'),
       instance: clickable('a', { at: 0 }),

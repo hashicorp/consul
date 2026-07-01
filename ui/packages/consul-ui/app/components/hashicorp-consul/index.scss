@@ -184,8 +184,11 @@
     .hds-app-side-nav__wrapper-body {
       display: flex;
       flex-direction: column;
-      overflow-y: unset;
-      overflow-x: unset;
+      /* allow the nav body to scroll independently of the main content; without
+         min-height:0 a flex column item won't shrink below its content height */
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
     }
 
     [data-test-footer] {

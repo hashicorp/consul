@@ -1,0 +1,23 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
+.consul-service-toolbar {
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+}
+
+/* The services index uses the HDS Filter Bar for its toolbar, so drop the
+   default header underline above it to avoid a doubled-up separator. */
+html[data-route='dc.services.index'] .app-view > header .title {
+  border-bottom: none;
+}
+
+/* On the peer detail "Imported Services" tab the toolbar is rendered directly
+   in the tab content, right beneath the tab-nav separator (rather than in the
+   AppView :toolbar slot). Add the same spacing tabs use after the tab bar so
+   it doesn't hug the separator above it. */
+html[data-route='dc.peers.show.imported'] .consul-service-toolbar {
+  margin-top: 1.25em;
+}

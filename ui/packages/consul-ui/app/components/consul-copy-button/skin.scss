@@ -25,3 +25,14 @@
 %copy-button:active {
   --icon-color: var(--token-color-surface-interactive-active);
 }
+
+/* on a successful copy, swap the clipboard glyph for a green check so there's
+   an immediate, obvious confirmation that the value was copied (in addition to
+   the success tooltip) */
+%copy-button.is-copied::before {
+  --icon-name: icon-check-plain;
+  --icon-color: var(--token-color-foreground-success);
+}
+%copy-button.is-copied:hover::before {
+  --icon-color: var(--token-color-foreground-success);
+}

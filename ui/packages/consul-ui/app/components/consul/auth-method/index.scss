@@ -4,13 +4,6 @@
  */
 
 // List
-.consul-auth-method-list ul {
-  .locality::before {
-    @extend %with-public-default-mask, %as-pseudo;
-    margin-right: 4px;
-  }
-}
-
 .consul-auth-method-type--hds {
   display: inline-flex;
   align-items: center;

@@ -69,28 +69,16 @@ Feature: dc / acls / tokens / index: ACL Token List
     ---
     Then the url should be /dc-1/acls/tokens
     Then I see 4 token models
-    Then I fill in with yaml
-    ---
-    s: Description
-    ---
+    Then I type "Description" into "input[type=search]"
     And I see 1 token model
     And I see 1 token model with the description "Description Search"
-    Then I fill in with yaml
-    ---
-    s: Policy-Search
-    ---
+    Then I type "Policy-Search" into "input[type=search]"
     And I see 1 token model
     And I see 1 token model with the policy "Policy-Search"
-    Then I fill in with yaml
-    ---
-    s: Role-Search
-    ---
+    Then I type "Role-Search" into "input[type=search]"
     And I see 1 token model
     And I see 1 token model with the role "Role-Search"
-    Then I fill in with yaml
-    ---
-    s: Si-Search
-    ---
+    Then I type "Si-Search" into "input[type=search]"
     And I see 1 token model
     And I see 1 token model with the serviceIdentity "Si-Search"
   Scenario: I see the legacy message if I have one legacy token
