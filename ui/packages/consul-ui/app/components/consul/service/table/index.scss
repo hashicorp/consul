@@ -1,0 +1,94 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
+.consul-service-table {
+  .consul-service-table__name {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+
+    a {
+      font-weight: var(--token-typography-font-weight-semibold);
+    }
+  }
+
+  .consul-bucket-list {
+    display: flex;
+    gap: 4px;
+    margin-top: 4px;
+  }
+
+  .consul-service-table__tags {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .consul-service-table__tags-toggle {
+    /* The legacy global `*::before { background-color: var(--icon-color) }`
+       rule (app/styles/base/icons/base-keyframes.scss) collides with HDS, which
+       sets `--icon-color` on the RichTooltip toggle. That paints the toggle's
+       focus-ring `::before` pseudo with a dark fill (the stray black square).
+       Clear it; HDS only needs the `::before` for its box-shadow focus ring. */
+    &::before {
+      background-color: transparent;
+    }
+
+    .hds-icon {
+      color: var(--token-color-foreground-faint);
+    }
+
+    &:hover .hds-icon,
+    &:focus .hds-icon,
+    &:active .hds-icon {
+      color: var(--token-color-foreground-action);
+    }
+  }
+
+  .consul-service-table__tags-tooltip {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .consul-service-table__tags-tooltip-title {
+    color: var(--token-color-foreground-strong);
+  }
+
+  .consul-service-table__tags-tooltip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .consul-service-table__health,
+  .consul-service-table__mesh {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* render the dedicated Consul `mesh` glyph (a CSS-mask icon, not an HDS
+     Flight icon) to match the icon the legacy service list used */
+  .consul-service-table__mesh-icon {
+    display: inline-flex;
+    color: var(--token-color-foreground-faint);
+  }
+  .consul-service-table__mesh-icon::before {
+    @extend %with-mesh-mask, %as-pseudo;
+  }
+
+  .consul-service-table__type {
+    display: inline-flex;
+    flex-direction: column;
+
+    strong {
+      font-weight: var(--token-typography-font-weight-semibold);
+    }
+
+    small {
+      color: var(--token-color-foreground-faint);
+    }
+  }
+}

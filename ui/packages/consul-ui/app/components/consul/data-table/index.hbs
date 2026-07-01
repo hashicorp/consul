@@ -1,0 +1,78 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+{{!
+  Generic, presentational table built on the HDS Table
+  (https://helios.hashicorp.design/components/table). Column headers (and their
+  sortability) come from @columns; each row's cells are provided by the caller
+  via the :row block, which yields the row `item` and the HDS body API `B` so
+  cells can be rendered with arbitrary content (links, icons, tooltips, ...).
+
+  Sorting and pagination are client-side and operate purely on the in-memory
+  @items array, so they have no effect on how the data is loaded.
+}}
+<div class="consul-data-table" data-link-column={{this.linkColumn}} ...attributes>
+  {{! Wrap the table in a horizontally scrollable container so that when the
+      combined column widths exceed the available space (many columns and/or
+      long, unbreakable cell values like addresses) the table scrolls within
+      its container instead of overflowing the page. The fade overlays at each
+      edge are toggled (via data attributes) based on the real scroll position
+      so the user can see there is more content to scroll towards. }}
+  <div
+    class="consul-data-table__viewport"
+    data-can-scroll-left={{this.canScrollLeft}}
+    data-can-scroll-right={{this.canScrollRight}}
+  >
+    <div
+      class="consul-data-table__scroll"
+      {{did-insert this.setupScrollIndicators}}
+      {{will-destroy this.teardownScrollIndicators}}
+      {{on "scroll" this.updateScrollIndicators}}
+    >
+      <Hds::Table
+        @density={{or @density "medium"}}
+        @valign={{or @valign "middle"}}
+        aria-label={{@ariaLabel}}
+      >
+        <:head as |H|>
+          <H.Tr>
+            {{#each this.columns as |column|}}
+              {{#if column.sortKey}}
+                <H.ThSort
+                  @align={{column.align}}
+                  @width={{column.width}}
+                  @sortOrder={{if (eq this.sortBy column.sortKey) this.sortOrder}}
+                  @onClickSort={{fn this.setSortBy column.sortKey}}
+                >{{column.label}}{{#if column.tooltip}}<span {{hds-tooltip column.tooltip options=(detached-tooltip-options)}}><Hds::Icon @name="info" @size="16" @isInline={{true}} /></span>{{/if}}</H.ThSort>
+              {{else}}
+                <H.Th @align={{column.align}} @width={{column.width}}>{{column.label}}{{#if column.tooltip}}<span {{hds-tooltip column.tooltip options=(detached-tooltip-options)}}><Hds::Icon @name="info" @size="16" @isInline={{true}} /></span>{{/if}}</H.Th>
+              {{/if}}
+            {{/each}}
+          </H.Tr>
+        </:head>
+        <:body as |B|>
+          {{#each this.paginatedItems as |item|}}
+            <B.Tr data-test-tabular-row>
+              {{yield item B to="row"}}
+            </B.Tr>
+          {{/each}}
+        </:body>
+      </Hds::Table>
+    </div>
+    <div class="consul-data-table__fade consul-data-table__fade--left" aria-hidden="true"></div>
+    <div class="consul-data-table__fade consul-data-table__fade--right" aria-hidden="true"></div>
+  </div>
+
+  {{! Pagination is always rendered so the table layout stays consistent. }}
+  <Hds::Pagination::Numbered
+    class="consul-data-table__pagination"
+    @totalItems={{this.totalItems}}
+    @currentPage={{this.page}}
+    @currentPageSize={{this.pageSize}}
+    @pageSizes={{this.pageSizes}}
+    @onPageChange={{this.onPageChange}}
+    @onPageSizeChange={{this.onPageSizeChange}}
+  />
+</div>

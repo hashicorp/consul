@@ -1,0 +1,43 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
+.consul-intention-toolbar {
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+
+  .consul-intention-toolbar__access {
+    flex: 0 0 auto;
+  }
+
+  /* the precedence sorter sits at the right end of the toolbar row */
+  .consul-intention-toolbar__sort {
+    flex: 0 0 auto;
+    margin-left: auto;
+
+    .hds-dropdown-toggle-button {
+      min-height: 2.25rem;
+    }
+  }
+
+  /* Colour the intention-type quick filters by their action, so they read as
+     Allow (success/green), Deny (critical/red) and App aware (neutral) rather
+     than a flat grey row. */
+  .consul-intention-toolbar__access-button[data-test-access-filter='allow'] .hds-icon {
+    color: var(--token-color-foreground-success);
+  }
+  .consul-intention-toolbar__access-button[data-test-access-filter='deny'] .hds-icon {
+    color: var(--token-color-foreground-critical);
+  }
+  .consul-intention-toolbar__access-button[data-test-access-filter='app-aware'] .hds-icon {
+    color: var(--token-color-foreground-faint);
+  }
+}
+
+/* The intentions index uses the HDS Filter Bar for its toolbar, so drop the
+   default header underline above it to avoid a doubled-up separator
+   (consistent with the services / nodes index pages). */
+html[data-route='dc.intentions.index'] .app-view > header .title {
+  border-bottom: none;
+}

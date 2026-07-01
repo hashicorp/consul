@@ -13,18 +13,21 @@
   >
 {{#let (fn dispatch 'SUCCESS') (fn dispatch 'ERROR') (fn dispatch 'RESET') as |success error reset|}}
     <button
-      {{with-copyable @value success=success error=error}}
+      {{with-copyable @value success=(fn this.flash success reset) error=(fn this.flash error reset)}}
       aria-label={{t 'components.consul-copy-button.title' name=@name}}
       type="button"
-      class="copy-btn"
+      class="copy-btn {{if (state-matches state 'success') 'is-copied'}}"
       {{hds-tooltip
-        (if (state-matches state 'success') (t 'components.consul-copy-button.success' name=@name) (t 'components.consul-copy-button.error'))
-        options=(detached-tooltip-options
-          trigger='manual'
-          showOnCreate=(not (state-matches state 'idle'))
-          delay=(array 0 3000)
-          onHidden=reset
+        (if
+          (state-matches state 'success')
+          (t 'components.consul-copy-button.success')
+          (if
+            (state-matches state 'error')
+            (t 'components.consul-copy-button.error')
+            (t 'components.consul-copy-button.copy')
+          )
         )
+        options=(detached-tooltip-options trigger='mouseenter focus' hideOnClick=false)
       }}
     >
       {{~yield~}}

@@ -1,0 +1,92 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+{{!
+  Generic toolbar built on the HDS Filter Bar
+  (https://helios.hashicorp.design/components/filter-bar). Each FilterGroup is
+  rendered from the @filterGroups config, the applied state is mirrored back
+  via @filters (see `appliedFilters`) and user changes are pushed into the data
+  layer through @onFilter (see `onFilter`).
+
+  Optional built-ins: a "Search across" dropdown bound to
+  @filter.searchproperty, and a :quickFilters block for page-specific extras
+  (e.g. quick-filter buttons) which yields { isSelected, toggleFilterValue,
+  setFilterValues }.
+}}
+<div class="consul-list-toolbar" ...attributes>
+  <div class="consul-list-toolbar__controls">
+    <Hds::FilterBar
+      class="consul-list-toolbar__filter-bar"
+      @filters={{this.appliedFilters}}
+      @onFilter={{this.onFilter}}
+      @hasSearch={{true}}
+      @searchPlaceholder={{this.searchPlaceholder}}
+      {{did-insert this.setupFilterBar}}
+      as |F|
+    >
+      {{!
+        Only render the Filters dropdown when the page actually configures
+        filter groups; pages with no categorical filters (e.g. roles) would
+        otherwise show an empty "Filters" button.
+      }}
+      {{#if this.filterGroups.length}}
+        <F.FiltersDropdown as |D|>
+          {{#each this.filterGroups as |group|}}
+            {{#if group.options.length}}
+              <D.FilterGroup
+                @key={{group.key}}
+                @text={{group.text}}
+                @type={{or group.type "multi-select"}}
+                @searchEnabled={{group.searchEnabled}}
+                as |FG|
+              >
+                {{#each group.options as |option|}}
+                  <FG.Checkbox @value={{option.value}} @label={{option.label}} />
+                {{/each}}
+              </D.FilterGroup>
+            {{/if}}
+          {{/each}}
+        </F.FiltersDropdown>
+      {{/if}}
+    </Hds::FilterBar>
+
+    {{!
+      "Search across" scope selector: controls which properties of each record
+      the free-text search matches against. It mirrors the `searchproperty`
+      query param and does not filter the list on its own.
+    }}
+    {{#if this.hasSearchAcross}}
+      <Hds::Dropdown
+        class="consul-list-toolbar__search-across"
+        @listPosition="bottom-left"
+        as |dd|
+      >
+        <dd.ToggleButton
+          @text={{t "common.search.searchproperty"}}
+          @color="secondary"
+          @size="medium"
+        />
+        {{#each this.searchProperty.default as |prop|}}
+          <dd.Checkbox
+            checked={{this.isSearchProperty prop}}
+            data-test-search-property={{prop}}
+            {{on "change" (fn this.toggleSearchProperty prop)}}
+          >
+            {{t (concat "common.consul." (lowercase prop))}}
+          </dd.Checkbox>
+        {{/each}}
+      </Hds::Dropdown>
+    {{/if}}
+
+    {{yield
+      (hash
+        isSelected=this.isSelected
+        toggleFilterValue=this.toggleFilterValue
+        setFilterValues=this.setFilterValues
+      )
+      to="quickFilters"
+    }}
+  </div>
+</div>

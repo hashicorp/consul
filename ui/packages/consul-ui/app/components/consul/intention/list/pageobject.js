@@ -13,9 +13,9 @@ export default (collection, clickable, attribute, isPresent, deletable) =>
       ),
       action: attribute('data-test-intention-action', '[data-test-intention-action]'),
       intention: clickable('a'),
-      actions: clickable('label'),
+      actions: clickable('[data-test-actions-menu]'),
       ...deletable(),
-      delete: clickable('[data-test-delete] [role="menuitem"]'),
+      delete: clickable('[data-test-delete]'),
       confirmInlineDelete: clickable("#confirm-modal [data-test-id='confirm-action']", {
         resetScope: true,
         testContainer: 'body', // modal is rendered in the body

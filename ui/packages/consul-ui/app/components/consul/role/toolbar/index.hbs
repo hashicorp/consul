@@ -1,0 +1,49 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+{{!
+  Roles-index toolbar. All the Filter Bar wiring (search, "Search across"
+  dropdown, stay-expanded behaviour) lives in the generic Consul::ListToolbar.
+  Roles have no categorical filter groups, so this component only supplies the
+  Name/age sort dropdown (mirroring the policies and tokens index sorters).
+}}
+<Consul::ListToolbar
+  class="consul-role-toolbar"
+  ...attributes
+  @filter={{@filter}}
+  @search={{@search}}
+  @onsearch={{@onsearch}}
+  @searchPlaceholder="Search"
+>
+  <:quickFilters>
+    {{#if @sort}}
+      <Hds::Dropdown
+        class="consul-role-toolbar__sort"
+        @listPosition="bottom-right"
+        @preserveContentInDom={{true}}
+        data-test-sort-control
+        as |dd|
+      >
+        <dd.ToggleButton
+          @text={{get
+            (from-entries (array
+              (array "Name:asc" (t "common.sort.alpha.asc"))
+              (array "Name:desc" (t "common.sort.alpha.desc"))
+              (array "CreateIndex:desc" (t "common.sort.age.desc"))
+              (array "CreateIndex:asc" (t "common.sort.age.asc"))
+            ))
+            @sort.value
+          }}
+          @color="secondary"
+          data-test-sort-toggle
+        />
+        <dd.Interactive data-test-sort-option {{on "click" (fn @sort.change (hash target=(hash selected="Name:asc")))}}>{{t "common.sort.alpha.asc"}}</dd.Interactive>
+        <dd.Interactive data-test-sort-option {{on "click" (fn @sort.change (hash target=(hash selected="Name:desc")))}}>{{t "common.sort.alpha.desc"}}</dd.Interactive>
+        <dd.Interactive data-test-sort-option {{on "click" (fn @sort.change (hash target=(hash selected="CreateIndex:desc")))}}>{{t "common.sort.age.desc"}}</dd.Interactive>
+        <dd.Interactive data-test-sort-option {{on "click" (fn @sort.change (hash target=(hash selected="CreateIndex:asc")))}}>{{t "common.sort.age.asc"}}</dd.Interactive>
+      </Hds::Dropdown>
+    {{/if}}
+  </:quickFilters>
+</Consul::ListToolbar>

@@ -1,0 +1,84 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+<div class="consul-node-table" ...attributes>
+  <Consul::DataTable
+    @items={{@items}}
+    @columns={{this.columns}}
+    @ariaLabel="Nodes"
+  >
+    <:row as |item B|>
+      {{! ---- Node name ---- }}
+      <B.Td>
+        <span class="consul-node-table__name">
+          <a data-test-node href={{href-to "dc.nodes.show" item.Node params=(hash peer=item.PeerName)}}>
+            {{item.Node}}
+          </a>
+          <Consul::Node::PeerInfo @item={{item}} />
+          {{#if (eq item.Address @leader.Address)}}
+            <span class="consul-node-table__leader-badge" data-test-leader={{@leader.Address}}>
+              <Hds::Badge
+                @text="Leader"
+                @icon="star-fill"
+                @color="neutral"
+                @type="filled"
+                @size="small"
+              />
+            </span>
+          {{/if}}
+        </span>
+      </B.Td>
+
+      {{! ---- Health ---- }}
+      <B.Td>
+        <span
+          class="consul-node-table__health"
+          {{hds-tooltip (this.healthTooltip item.Status) options=(detached-tooltip-options)}}
+          data-test-status={{item.Status}}
+        >
+          {{#if (eq item.Status "passing")}}
+            <Hds::Icon @name="check-circle-fill" @color="var(--token-color-foreground-success)" @isInline={{true}} />
+            <span>Passing</span>
+          {{else if (eq item.Status "warning")}}
+            <Hds::Icon @name="alert-triangle-fill" @color="var(--token-color-foreground-warning)" @isInline={{true}} />
+            <span>Warning</span>
+          {{else if (eq item.Status "critical")}}
+            <Hds::Icon @name="x-circle-fill" @color="var(--token-color-foreground-critical)" @isInline={{true}} />
+            <span>Critical</span>
+          {{else}}
+            <Hds::Icon @name="help" @color="var(--token-color-foreground-faint)" @isInline={{true}} />
+            <span>No health checks</span>
+          {{/if}}
+        </span>
+      </B.Td>
+
+      {{! ---- Address ---- }}
+      <B.Td>
+        <span class="consul-node-table__address" data-test-node-address>
+          <ConsulCopyButton @value={{item.Address}} @name="Address" />
+          {{format-ipaddr item.Address}}
+        </span>
+      </B.Td>
+
+      {{! ---- Version ---- }}
+      <B.Td>
+        {{#if item.Version}}
+          <span class="consul-node-table__version" data-test-node-version>
+            <Hds::Icon @name="consul-color" @isInline={{true}} />
+            <span>v{{item.Version}}</span>
+          </span>
+        {{/if}}
+      </B.Td>
+
+      {{! ---- Services ---- }}
+      <B.Td>
+        <span data-test-node-services>
+          {{format-number item.MeshServiceInstances.length}}
+          {{pluralize item.MeshServiceInstances.length "service" without-count=true}}
+        </span>
+      </B.Td>
+    </:row>
+  </Consul::DataTable>
+</div>

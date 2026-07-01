@@ -9,22 +9,27 @@ export default function (
   text,
   attribute,
   present,
-  collection,
-  popoverSelect
+  collection
 ) {
   const service = {
     name: text('[data-test-service-name]'),
     service: clickable('a'),
     externalSource: attribute('data-test-external-source', '[data-test-external-source]'),
-    kind: attribute('data-test-kind', '[data-test-kind]'),
-    peer: text('[data-test-bucket-item="peer"]'),
+    kind: text('.consul-service-table__type strong'),
     mesh: present('[data-test-mesh]'),
     associatedServiceCount: present('[data-test-associated-service-count]'),
   };
   return {
     visit: visitable('/:dc/services'),
-    services: collection('.consul-service-list > ul > li:not(:first-child)', service),
+    services: collection('.consul-service-table tbody tr', service),
     home: clickable('[data-test-home]'),
-    sort: popoverSelect('[data-test-sort-control]'),
+    sort: {
+      name: clickable(
+        '.consul-service-table thead th:nth-child(1) button.hds-table__th-button--sort'
+      ),
+      health: clickable(
+        '.consul-service-table thead th:nth-child(2) button.hds-table__th-button--sort'
+      ),
+    },
   };
 }

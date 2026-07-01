@@ -30,7 +30,7 @@ test.describe('Nodes - Basic Tests', () => {
     // 3. Navigate to Service instances tab, verify it has 1 instance present.
     await nodesFixture.openServiceInstancesTab();
     await expect(page).toHaveURL(/.*\/service-instances$/);
-    await expect(page.locator('.consul-service-instance-list ul > li:has(.header)')).toHaveCount(1);
+    await expect(page.locator('.consul-service-instance-table tbody tr')).toHaveCount(1);
 
     // 4. Navigate to Lock Sessions, verify there are no Lock sessions and it shows a default page.
     await nodesFixture.openLockSessionsTab();
