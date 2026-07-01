@@ -69,9 +69,6 @@ declare -a DEFAULT_PATTERNS=(
   '// \+build consulent'
   '// \+build enterprise'
 
-  # IBM copyright — present in ENT-owned files for crt-core-helloworld
-  'Copyright IBM Corp\.'
-
   # ENT-only Go package imports
   '"github\.com/hashicorp/go-licensing'
 
@@ -105,7 +102,6 @@ declare -a EXCLUDE_PATHS=(
   # marker strings as pattern literals, comments, and documentation.
   # Scanning them produces false positives; exclude the whole group.
   '.github/scripts/check-ent-content-markers.sh'
-  '.github/scripts/test-ent-checks.sh'
   '.github/workflows/ent-protection.yml'
   '.github/workflows/sha-ancestry-check.yml'
 )

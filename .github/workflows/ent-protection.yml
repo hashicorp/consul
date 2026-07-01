@@ -93,6 +93,13 @@ jobs:
   ent-file-check:
     name: Check for ENT-Exclusive Files
     runs-on: ubuntu-latest
+    # Skip Dependabot PRs (version bumps only) and limit scanning to authors
+    # who could have ENT access: HashiCorp org members (MEMBER) and invited
+    # collaborators (COLLABORATOR).
+    if: >-
+      github.actor != 'dependabot[bot]' &&
+      (github.event.pull_request.author_association == 'MEMBER' ||
+       github.event.pull_request.author_association == 'COLLABORATOR')
     steps:
       - name: Checkout CE repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -174,7 +181,7 @@ jobs:
           EVENT: ${{ github.event_name }}
         run: |
           [ -z "$SLACK_WEBHOOK_URL" ] && exit 0
-          VIOLATIONS=$(cat /tmp/ent-violations.txt 2>/dev/null | head -10 | sed 's/^/• /' | tr '\n' '\n' || echo "(see CI log)")
+          VIOLATIONS=$(cat /tmp/ent-violations.txt 2>/dev/null | head -10 | sed 's/^/• /' | sed ':a;N;$!ba;s/\n/\\n/g' || echo "(see CI log)")
           PAYLOAD=$(cat <<EOF
           {
             "text": ":warning: *ENT code detected in CE repo (non-protected branch)*",
@@ -204,7 +211,12 @@ jobs:
   ent-content-check:
     name: Check for ENT Content Markers
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
+    # Skip Dependabot PRs and limit to MEMBER/COLLABORATOR author
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.actor != 'dependabot[bot]' &&
+      (github.event.pull_request.author_association == 'MEMBER' ||
+       github.event.pull_request.author_association == 'COLLABORATOR')
     steps:
       - name: Checkout CE repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
