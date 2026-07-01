@@ -94,11 +94,12 @@ jobs:
     name: Check for ENT-Exclusive Files
     runs-on: ubuntu-latest
     # Skip Dependabot PRs (version bumps only) and limit scanning to authors
-    # who could have ENT access: HashiCorp org members (MEMBER) and invited
-    # collaborators (COLLABORATOR).
+    # who could have ENT access: repository owners (OWNER), HashiCorp org
+    # members (MEMBER), and invited collaborators (COLLABORATOR).
     if: >-
       github.actor != 'dependabot[bot]' &&
-      (github.event.pull_request.author_association == 'MEMBER' ||
+      (github.event.pull_request.author_association == 'OWNER' ||
+       github.event.pull_request.author_association == 'MEMBER' ||
        github.event.pull_request.author_association == 'COLLABORATOR')
     steps:
       - name: Checkout CE repository
@@ -211,11 +212,12 @@ jobs:
   ent-content-check:
     name: Check for ENT Content Markers
     runs-on: ubuntu-latest
-    # Skip Dependabot PRs and limit to MEMBER/COLLABORATOR author
+    # Skip Dependabot PRs and limit to OWNER/MEMBER/COLLABORATOR author
     if: >-
       github.event_name == 'pull_request' &&
       github.actor != 'dependabot[bot]' &&
-      (github.event.pull_request.author_association == 'MEMBER' ||
+      (github.event.pull_request.author_association == 'OWNER' ||
+       github.event.pull_request.author_association == 'MEMBER' ||
        github.event.pull_request.author_association == 'COLLABORATOR')
     steps:
       - name: Checkout CE repository

@@ -9,7 +9,6 @@
 #
 # The default marker patterns cover:
 #   - Go enterprise build constraints  (consul: //go:build consulent)
-#   - IBM copyright headers            (crt-core-helloworld ENT-owned files)
 #   - ENT-only Go package imports      (go-licensing, etc.)
 #   - ENT CI / build metadata          (VERSION_METADATA: "ent", +ent suffix)
 #   - Explicit enterprise-repo references in source code
@@ -55,7 +54,6 @@ fi
 #
 # Pattern rationale:
 #   consulent / enterprise go:build  — Go build constraints that gate ENT code
-#   Copyright IBM Corp.              — IBM copyright present in ENT-owned Go files
 #   go-licensing import              — HashiCorp enterprise licensing package
 #   crt-core-helloworld-enterprise   — Direct reference to the ENT repo in source
 #   consul-enterprise                — Direct reference to consul ENT in source
