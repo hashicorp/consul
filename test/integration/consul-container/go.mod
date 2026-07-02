@@ -20,7 +20,7 @@ require (
 	github.com/hashicorp/go-uuid v1.0.3
 	github.com/hashicorp/go-version v1.9.0
 	github.com/hashicorp/hcl v1.0.1-vault-7
-	github.com/hashicorp/serf v0.10.2
+	github.com/hashicorp/serf v0.10.3
 	github.com/itchyny/gojq v0.12.12
 	github.com/mitchellh/copystructure v1.2.0
 	github.com/otiai10/copy v1.10.0

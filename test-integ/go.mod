@@ -74,7 +74,7 @@ require (
 	github.com/hashicorp/hcl v1.0.1-vault-7 // indirect
 	github.com/hashicorp/hcl/v2 v2.24.0 // indirect
 	github.com/hashicorp/memberlist v0.6.0 // indirect
-	github.com/hashicorp/serf v0.10.2 // indirect
+	github.com/hashicorp/serf v0.10.3 // indirect
 	github.com/itchyny/timefmt-go v0.1.5 // indirect
 	github.com/klauspost/compress v1.18.6 // indirect
 	github.com/lufia/plan9stats v0.0.0-20220913051719-115f729f3c8c // indirect
