@@ -21,7 +21,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-rootcerts v1.0.2
 	github.com/hashicorp/go-uuid v1.0.3
-	github.com/hashicorp/serf v0.10.1
+	github.com/hashicorp/serf v0.10.3
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/exp v0.0.0-20260218203240-3dfff04db8fa
 )
@@ -37,7 +37,7 @@ require (
 	github.com/hashicorp/go-sockaddr v1.0.2 // indirect
 	github.com/hashicorp/go-version v1.9.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
-	github.com/hashicorp/memberlist v0.5.0 // indirect
+	github.com/hashicorp/memberlist v0.6.0 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/mattn/go-colorable v0.1.15 // indirect
 	github.com/mattn/go-isatty v0.0.22 // indirect
