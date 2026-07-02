@@ -107,9 +107,19 @@ func (a *extAuthz) PatchFilters(cfg *ext_cmn.RuntimeConfig, filters []*envoy_lis
 // manager of an API Gateway listener filter chain. Filter chains that are not managed
 // by an HTTP connection manager (e.g. TCPRoute listeners) are skipped without error.
 func (a *extAuthz) patchAPIGatewayFilters(cfg *ext_cmn.RuntimeConfig, filters []*envoy_listener_v3.Filter) ([]*envoy_listener_v3.Filter, error) {
-	if _, _, err := ext_cmn.GetHTTPConnectionManager(filters...); err != nil {
+	hasHCM := false
+	for _, f := range filters {
+		if f.GetName() == "envoy.filters.network.http_connection_manager" {
+			hasHCM = true
+			break
+		}
+	}
+	if !hasHCM {
 		// No HTTP connection manager on this filter chain; nothing to patch.
 		return filters, nil
+	}
+	if _, _, err := ext_cmn.GetHTTPConnectionManager(filters...); err != nil {
+		return filters, err
 	}
 
 	a.configureInsertOptions("http")
