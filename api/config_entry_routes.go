@@ -210,7 +210,7 @@ type HTTPFilters struct {
 	ExtProc       []ExtProcFilter
 }
 
-// ExtProcFiltes provides per-route control of a builtin/ext-proc attachment.
+// ExtProcFilter provides per-route control of a builtin/ext-proc attachment.
 type ExtProcFilter struct {
 	StatPrefix string            `json:",omitempty"`
 	Mode       string            `json:",omitempty"`
