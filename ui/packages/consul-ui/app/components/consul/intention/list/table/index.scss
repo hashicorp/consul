@@ -3,11 +3,47 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
+.consul-intention-list-table {
+  /* Give the table room to breathe below the CRD notice / toolbar above it. */
+  margin-top: 16px;
+
+  /* Keep multi-word column headers (e.g. "Intention type") on a single line so
+     the header row doesn't grow taller than the rest. */
+  .hds-table__th {
+    white-space: nowrap;
+  }
+}
+
 .consul-intention-list-table__meta-info {
   display: flex;
+
+  /* Match the services list: the Bucket::List icon needs a small gap from its
+     label, otherwise the glyph sits flush against the bucket name. */
+  .consul-bucket-list {
+    display: flex;
+    gap: 4px;
+  }
 
   .consul-intention-list-table__meta-info__peer {
     display: flex;
     align-items: center;
+  }
+}
+
+.consul-intention-list-table__name {
+  font-weight: var(--token-typography-font-weight-semibold);
+
+  a {
+    font-weight: var(--token-typography-font-weight-semibold);
+  }
+}
+
+.consul-intention-list-table__actions {
+  display: inline-flex;
+
+  /* Suppress the blue focus ring around the toggle when it's clicked with a
+     mouse, while preserving it for keyboard navigation (focus-visible). */
+  .hds-dropdown-toggle-icon:focus:not(:focus-visible) {
+    box-shadow: none;
   }
 }

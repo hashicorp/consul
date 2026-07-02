@@ -52,7 +52,7 @@ as |route|>
     <AppView>
       <:header>
           <h1>
-            <route.Title @title="Intentions" /> <em>{{format-number items.length}} total</em>
+            <route.Title @title="Intentions" />
           </h1>
           <label for="toolbar-toggle"></label>
       </:header>
@@ -68,13 +68,11 @@ as |route|>
       <:toolbar>
 
   {{#if (gt items.length 0) }}
-        <Consul::Intention::SearchBar
+        <Consul::Intention::Toolbar
           @search={{this.search}}
           @onsearch={{action (mut this.search) value="target.value"}}
-
-          @sort={{sort}}
-
           @filter={{filters}}
+          @sort={{sort}}
         />
   {{/if}}
 

@@ -1,0 +1,153 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+<div class="consul-service-table" ...attributes>
+  <Consul::DataTable
+    @items={{@items}}
+    @columns={{this.columns}}
+    @ariaLabel="Services"
+  >
+    <:row as |item B|>
+        {{! ---- Service name ---- }}
+        <B.Td>
+          <span class="consul-service-table__name">
+            {{#if (gt item.InstanceCount 0)}}
+              <a
+                data-test-service-name
+                href={{href-to "dc.services.show.index" item.Name params=(this.linkParams item)}}
+              >
+                {{item.Name}}
+              </a>
+            {{else}}
+              <span data-test-service-name>{{item.Name}}</span>
+            {{/if}}
+            {{#if (gt item.Tags.length 0)}}
+              <Hds::RichTooltip class="consul-service-table__tags" as |RT|>
+                <RT.Toggle
+                  class="consul-service-table__tags-toggle"
+                  @isInline={{true}}
+                  aria-label="Show tags"
+                  data-test-service-tags
+                >
+                  <Hds::Icon @name="tag" @isInline={{true}} />
+                </RT.Toggle>
+                <RT.Bubble @placement="top">
+                  <div class="consul-service-table__tags-tooltip">
+                    <Hds::Text::Body
+                      @tag="p"
+                      @size="200"
+                      @weight="semibold"
+                      class="consul-service-table__tags-tooltip-title"
+                    >
+                      Tags:
+                    </Hds::Text::Body>
+                    <div class="consul-service-table__tags-tooltip-list">
+                      {{#each item.Tags as |tag|}}
+                        <Hds::Tag @text={{tag}} />
+                      {{/each}}
+                    </div>
+                  </div>
+                </RT.Bubble>
+              </Hds::RichTooltip>
+            {{/if}}
+          </span>
+          {{! On the peer "imported services" detail page we deliberately hide
+              the partition/namespace/peer buckets (mirrors the legacy
+              Consul::Service::List behaviour, which hid them unless in peer
+              detail). }}
+          {{#unless @isPeerDetail}}
+            <Consul::Bucket::List
+              @item={{item}}
+              @nspace={{@nspace}}
+              @partition={{@partition}}
+            />
+          {{/unless}}
+        </B.Td>
+
+        {{! ---- Health ---- }}
+        <B.Td>
+          <span
+            class="consul-service-table__health"
+            {{hds-tooltip item.healthTooltipText options=(detached-tooltip-options)}}
+            data-test-service-health={{item.MeshStatus}}
+          >
+            {{#if (eq item.MeshStatus "passing")}}
+              <Hds::Icon @name="check-circle-fill" @color="var(--token-color-foreground-success)" @isInline={{true}} />
+              <span>Healthy</span>
+            {{else if (eq item.MeshStatus "warning")}}
+              <Hds::Icon @name="alert-triangle-fill" @color="var(--token-color-foreground-warning)" @isInline={{true}} />
+              <span>Warning</span>
+            {{else if (eq item.MeshStatus "critical")}}
+              <Hds::Icon @name="x-circle-fill" @color="var(--token-color-foreground-critical)" @isInline={{true}} />
+              <span>Not-healthy</span>
+            {{else if (eq item.MeshStatus "empty")}}
+              <Hds::Icon @name="minus-circle" @color="var(--token-color-foreground-faint)" @isInline={{true}} />
+              <span>No health checks</span>
+            {{else}}
+              <Hds::Icon @name="help" @color="var(--token-color-foreground-faint)" @isInline={{true}} />
+              <span>Unknown</span>
+            {{/if}}
+          </span>
+        </B.Td>
+
+        {{! ---- Service mesh ---- }}
+        <B.Td>
+          {{#if (or item.ConnectedWithProxy item.ConnectedWithGateway)}}
+            <span class="consul-service-table__mesh" data-test-mesh>
+              <span class="consul-service-table__mesh-icon" aria-hidden="true"></span>
+              {{#if (and item.ConnectedWithProxy item.ConnectedWithGateway)}}
+                <span>in service mesh with proxy and gateway</span>
+              {{else if item.ConnectedWithProxy}}
+                <span>in service mesh with proxy</span>
+              {{else}}
+                <span>in service mesh with gateway</span>
+              {{/if}}
+            </span>
+          {{/if}}
+        </B.Td>
+
+        {{! ---- Service type ---- }}
+        <B.Td>
+          <span class="consul-service-table__type">
+            {{#if item.Kind}}
+              <strong>
+                {{#if (eq item.Kind "terminating-gateway")}}Terminating gateway
+                {{~else if (eq item.Kind "ingress-gateway")}}Ingress gateway
+                {{~else if (eq item.Kind "api-gateway")}}API gateway
+                {{~else if (eq item.Kind "mesh-gateway")}}Mesh gateway
+                {{~else}}{{item.Kind}}{{/if}}
+              </strong>
+              {{#if (eq item.Kind "terminating-gateway")}}
+                <small data-test-associated-service-count>
+                  {{format-number item.GatewayConfig.AssociatedServiceCount}}
+                  {{pluralize item.GatewayConfig.AssociatedServiceCount "linked service" without-count=true}}
+                </small>
+              {{else if (eq item.Kind "ingress-gateway")}}
+                <small data-test-associated-service-count>
+                  {{format-number item.GatewayConfig.AssociatedServiceCount}}
+                  {{pluralize item.GatewayConfig.AssociatedServiceCount "upstream" without-count=true}}
+                </small>
+              {{else}}
+                <small>
+                  {{format-number item.InstanceCount}}
+                  {{pluralize item.InstanceCount "instance" without-count=true}}
+                </small>
+              {{/if}}
+            {{else}}
+              <small>
+                {{format-number item.InstanceCount}}
+                {{pluralize item.InstanceCount "instance" without-count=true}}
+              </small>
+            {{/if}}
+          </span>
+        </B.Td>
+
+        {{! ---- External Source ---- }}
+        <B.Td>
+          <Consul::ExternalSource @item={{item}} />
+        </B.Td>
+    </:row>
+  </Consul::DataTable>
+</div>
