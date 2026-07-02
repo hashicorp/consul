@@ -6,11 +6,14 @@ package proxycfg
 import (
 	"context"
 	"fmt"
+	"sort"
+	"strings"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
 )
 
@@ -214,14 +217,21 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 				seenRefs[ref] = struct{}{}
 
 				if ref.Kind == structs.FileSystemCertificate {
-					snap.APIGateway.FileSystemCertificates.InitWatch(ref, cancel)
+					// Use UpdateWatch (not InitWatch) so that a previously
+					// fetched certificate value is preserved when the gateway
+					// reconciles again. InitWatch wipes the stored value on every
+					// call, which—when multiple certificates are attached—leaves
+					// the snapshot without any certs and collapses all custom SNI
+					// filter chains down to the Connect leaf catch-all. This is
+					// the certificate analogue of the route fix in #23562.
+					snap.APIGateway.FileSystemCertificates.UpdateWatch(ref, cancel)
 
 					err := h.subscribeToConfigEntry(ctx, ref.Kind, ref.Name, ref.EnterpriseMeta, fileSystemCertificateConfigWatchID)
 					if err != nil {
 						return err
 					}
 				} else {
-					snap.APIGateway.InlineCertificates.InitWatch(ref, cancel)
+					snap.APIGateway.InlineCertificates.UpdateWatch(ref, cancel)
 
 					err := h.subscribeToConfigEntry(ctx, ref.Kind, ref.Name, ref.EnterpriseMeta, inlineCertificateConfigWatchID)
 					if err != nil {
@@ -522,6 +532,16 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 	}
 	reconcilePeeringWatches(snap.APIGateway.DiscoveryChain, snap.APIGateway.UpstreamConfig, snap.APIGateway.PeeredUpstreams, snap.APIGateway.PeerUpstreamEndpoints, snap.APIGateway.UpstreamPeerTrustBundles)
 
+	// Route hostnames contribute DNS SANs to the gateway's leaf certificate, but
+	// routes are loaded after the gateway config has settled (the leaf watch is
+	// first established from handleGatewayConfigUpdate before routes arrive).
+	// Re-evaluate the leaf cert watch here so newly-seen route hostnames are
+	// reflected in the issued certificate. watchIngressLeafCert is a no-op when
+	// the computed SAN set is unchanged.
+	if err := h.watchIngressLeafCert(ctx, snap); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -625,6 +645,17 @@ func (h *handlerAPIGateway) watchIngressLeafCert(ctx context.Context, snap *Conf
 		return nil
 	}
 
+	// Compute the desired DNS SANs for the leaf cert. If a watch is already
+	// established with an identical (sorted) SAN set, there's nothing to do —
+	// re-establishing it would needlessly churn the certificate. This guard lets
+	// us safely call watchIngressLeafCert from both gateway-config and route
+	// updates (route hostnames contribute SANs but arrive after the gateway
+	// config has settled).
+	dnsSANs := h.generateAPIGatewayDNSSANs(snap)
+	if snap.APIGateway.LeafCertWatchCancel != nil && stringslice.Equal(snap.APIGateway.LeafCertDNSSANs, dnsSANs) {
+		return nil
+	}
+
 	// Watch the leaf cert
 	if snap.APIGateway.LeafCertWatchCancel != nil {
 		snap.APIGateway.LeafCertWatchCancel()
@@ -634,6 +665,7 @@ func (h *handlerAPIGateway) watchIngressLeafCert(ctx context.Context, snap *Conf
 		Datacenter:     h.source.Datacenter,
 		Token:          h.token,
 		Service:        h.service,
+		DNSSAN:         dnsSANs,
 		EnterpriseMeta: h.proxyID.EnterpriseMeta,
 	}, leafWatchID, h.ch)
 	if err != nil {
@@ -641,6 +673,80 @@ func (h *handlerAPIGateway) watchIngressLeafCert(ctx context.Context, snap *Conf
 		return err
 	}
 	snap.APIGateway.LeafCertWatchCancel = cancel
+	snap.APIGateway.LeafCertDNSSANs = dnsSANs
 
 	return nil
+}
+
+// generateAPIGatewayDNSSANs returns the set of DNS Subject Alternative Names that
+// should be present on the API gateway's leaf certificate. This mirrors the
+// ingress gateway behavior (generateIngressDNSSANs) so that services exposed via
+// an API gateway can be reached over TLS using the auto-registered
+// "<service>.api-gateway.<domain>" DNS names, in addition to any explicit
+// hostnames configured on listeners or bound routes.
+func (h *handlerAPIGateway) generateAPIGatewayDNSSANs(snap *ConfigSnapshot) []string {
+	var dnsNames []string
+
+	namespaces := make(map[string]struct{})
+	for _, upstreams := range snap.APIGateway.Upstreams.toUpstreams() {
+		for _, u := range upstreams {
+			namespaces[u.DestinationNamespace] = struct{}{}
+		}
+	}
+	// Ensure the default-namespace wildcard SAN is always present, even before any
+	// routes have bound, so the common case works without re-issuing the cert.
+	if len(namespaces) == 0 {
+		namespaces[structs.IntentionDefaultNamespace] = struct{}{}
+	}
+
+	// The configured DNS domain may be stored in FQDN form with a trailing dot
+	// (e.g. "consul."). A trailing dot in a certificate DNS SAN is rejected by
+	// strict TLS verifiers (e.g. macOS Secure Transport: "unsupported or invalid
+	// name syntax"), so trim it to emit valid wildcard SANs like
+	// "*.api-gateway.consul".
+	domain := strings.TrimSuffix(h.dnsConfig.Domain, ".")
+	altDomain := strings.TrimSuffix(h.dnsConfig.AltDomain, ".")
+
+	for ns := range namespaces {
+		// The default namespace is special cased in DNS resolution, so special
+		// case it here.
+		if ns == structs.IntentionDefaultNamespace {
+			ns = ""
+		} else {
+			ns = ns + "."
+		}
+
+		dnsNames = append(dnsNames, fmt.Sprintf("*.api-gateway.%s%s", ns, domain))
+		dnsNames = append(dnsNames, fmt.Sprintf("*.api-gateway.%s%s.%s", ns, h.source.Datacenter, domain))
+		if altDomain != "" {
+			dnsNames = append(dnsNames, fmt.Sprintf("*.api-gateway.%s%s", ns, altDomain))
+			dnsNames = append(dnsNames, fmt.Sprintf("*.api-gateway.%s%s.%s", ns, h.source.Datacenter, altDomain))
+		}
+	}
+
+	// Add explicit hostnames declared on listeners and bound HTTP routes.
+	hostSet := make(map[string]struct{})
+	for _, listener := range snap.APIGateway.Listeners {
+		if listener.Hostname != "" {
+			hostSet[listener.Hostname] = struct{}{}
+		}
+	}
+	snap.APIGateway.HTTPRoutes.ForEachKey(func(ref structs.ResourceReference) bool {
+		route, ok := snap.APIGateway.HTTPRoutes.Get(ref)
+		if ok && route != nil {
+			for _, hostname := range route.Hostnames {
+				hostSet[hostname] = struct{}{}
+			}
+		}
+		return true
+	})
+	for host := range hostSet {
+		dnsNames = append(dnsNames, host)
+	}
+
+	// Sort for deterministic output so the leaf-cert request hashes stably and
+	// the watch-change guard in watchIngressLeafCert can compare SAN sets.
+	sort.Strings(dnsNames)
+
+	return dnsNames
 }

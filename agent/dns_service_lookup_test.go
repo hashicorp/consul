@@ -14,6 +14,7 @@ import (
 	"github.com/miekg/dns"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -670,6 +671,125 @@ func TestDNS_IngressServiceLookup(t *testing.T) {
 			require.Equal(t, question, cnameRec.Hdr.Name)
 			require.Equal(t, uint32(0), cnameRec.Hdr.Ttl)
 			require.Equal(t, "127.0.0.1", cnameRec.A.String())
+		})
+	}
+}
+
+// TestDNS_APIGatewayServiceLookup verifies that a service fronted by an API
+// gateway resolves at "<service>.api-gateway.consul" to the gateway node, the
+// API gateway analog of TestDNS_IngressServiceLookup.
+//
+// Unlike the ingress test (which lets the config-entry write inline-populate the
+// gateway-services table), the API gateway mapping is normally materialized by
+// the API gateway controller from the bound-api-gateway entry. To keep this test
+// deterministic and independent of controller timing, the required state — the
+// cluster-wide feature flag, the gateway service instance, and the
+// api-gateway/http-route/bound-api-gateway config entries — is written directly
+// to the server's state store.
+func TestDNS_APIGatewayServiceLookup(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	server, ok := a.delegate.(*consul.Server)
+	require.True(t, ok)
+	store := server.FSM().State()
+
+	// Monotonically increasing index for direct state-store writes. The exact
+	// values need not align with the live server's Raft index: indexUpdateMaxTxn
+	// never lowers a table's max index, and DNS reads are non-blocking and return
+	// the current table contents regardless.
+	var idx uint64
+	next := func() uint64 { idx++; return idx }
+
+	// Enable the cluster-wide API gateway DNS feature flag directly instead of
+	// waiting for the leader's version-check routine, so the gateway-services
+	// mappings are materialized deterministically.
+	require.NoError(t, store.SystemMetadataSet(next(), &structs.SystemMetadataEntry{
+		Key:   structs.SystemMetadataAPIGatewayDNSEnabled,
+		Value: "true",
+	}))
+
+	// Register a node hosting the API gateway service instance. Its node address
+	// is what DNS returns for the fronted service.
+	require.NoError(t, store.EnsureNode(next(), &structs.Node{
+		Node:    "apigw-node",
+		Address: "127.0.0.1",
+	}))
+	require.NoError(t, store.EnsureService(next(), "apigw-node", &structs.NodeService{
+		Kind:    structs.ServiceKindAPIGateway,
+		ID:      "api-gw",
+		Service: "api-gw",
+		Port:    8443,
+	}))
+
+	// Default the mesh protocol to http so the http-route is valid.
+	require.NoError(t, store.EnsureConfigEntry(next(), &structs.ProxyConfigEntry{
+		Kind:   structs.ProxyDefaults,
+		Name:   structs.ProxyConfigGlobal,
+		Config: map[string]interface{}{"protocol": "http"},
+	}))
+
+	// api-gateway config entry: listeners only (no inline service list).
+	require.NoError(t, store.EnsureConfigEntry(next(), &structs.APIGatewayConfigEntry{
+		Kind: structs.APIGateway,
+		Name: "api-gw",
+		Listeners: []structs.APIGatewayListener{
+			{Name: "http-listener", Port: 8443, Protocol: structs.ListenerProtocolHTTP},
+		},
+	}))
+
+	// http-route binding the "web" service to the gateway.
+	require.NoError(t, store.EnsureConfigEntry(next(), &structs.HTTPRouteConfigEntry{
+		Kind:    structs.HTTPRoute,
+		Name:    "web-route",
+		Parents: []structs.ResourceReference{{Kind: structs.APIGateway, Name: "api-gw"}},
+		Rules: []structs.HTTPRouteRule{
+			{Services: []structs.HTTPService{{Name: "web"}}},
+		},
+	}))
+
+	// bound-api-gateway is normally materialized by the API gateway controller;
+	// we write it directly so the gateway<->service mapping (and therefore DNS)
+	// is available deterministically, without depending on controller timing.
+	require.NoError(t, store.EnsureConfigEntry(next(), &structs.BoundAPIGatewayConfigEntry{
+		Kind: structs.BoundAPIGateway,
+		Name: "api-gw",
+		Listeners: []structs.BoundAPIGatewayListener{
+			{
+				Name:   "http-listener",
+				Routes: []structs.ResourceReference{{Kind: structs.HTTPRoute, Name: "web-route"}},
+			},
+		},
+	}))
+
+	// The fronted service should now resolve to the gateway node's address.
+	questions := []string{
+		"web.api-gateway.consul.",
+		"web.api-gateway.dc1.consul.",
+	}
+	for _, question := range questions {
+		t.Run(question, func(t *testing.T) {
+			// retry to tolerate the API gateway controller idempotently
+			// re-reconciling the bound-api-gateway entry we wrote directly.
+			retry.Run(t, func(r *retry.R) {
+				m := new(dns.Msg)
+				m.SetQuestion(question, dns.TypeA)
+
+				c := new(dns.Client)
+				in, _, err := c.Exchange(m, a.DNSAddr())
+				require.NoError(r, err)
+				require.Len(r, in.Answer, 1)
+
+				aRec, ok := in.Answer[0].(*dns.A)
+				require.True(r, ok)
+				require.Equal(r, question, aRec.Hdr.Name)
+				require.Equal(r, "127.0.0.1", aRec.A.String())
+			})
 		})
 	}
 }

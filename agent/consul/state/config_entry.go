@@ -410,11 +410,14 @@ func deleteConfigEntryTxn(tx WriteTxn, idx uint64, kind, name string, entMeta *a
 		return nil
 	}
 
-	// If the config entry is for terminating or ingress gateways we delete entries from the memdb table
-	// that associates gateways <-> services.
+	// If the config entry is for terminating, ingress, or API gateways we delete
+	// entries from the memdb table that associates gateways <-> services. For API
+	// gateways both the api-gateway and bound-api-gateway entries share the gateway
+	// name, so removing either one clears the mapping.
 	sn := structs.NewServiceName(name, entMeta)
 
-	if kind == structs.TerminatingGateway || kind == structs.IngressGateway {
+	if kind == structs.TerminatingGateway || kind == structs.IngressGateway ||
+		kind == structs.APIGateway || kind == structs.BoundAPIGateway {
 		if _, err := tx.DeleteAll(tableGatewayServices, indexGateway, sn); err != nil {
 			return fmt.Errorf("failed to truncate gateway services table: %v", err)
 		}
@@ -489,10 +492,17 @@ func insertConfigEntryWithTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry)
 		return fmt.Errorf("cannot insert nil config entry")
 	}
 
-	// If the config entry is for a terminating or ingress gateway we update the memdb table
-	// that associates gateways <-> services.
+	// If the config entry is for a terminating, ingress, or API gateway we update
+	// the memdb table that associates gateways <-> services.
+	//
+	// For API gateways the service list is not contained in the api-gateway config
+	// entry itself; it is resolved from the routes that bind to the gateway and is
+	// materialized in the bound-api-gateway config entry. We therefore update the
+	// mapping on writes to EITHER the api-gateway entry (listener ports/hostnames
+	// change) or the bound-api-gateway entry (route<->service bindings change).
 	kind := conf.GetKind()
-	if kind == structs.TerminatingGateway || kind == structs.IngressGateway {
+	if kind == structs.TerminatingGateway || kind == structs.IngressGateway ||
+		kind == structs.APIGateway || kind == structs.BoundAPIGateway {
 		err := updateGatewayServices(tx, idx, conf, conf.GetEnterpriseMeta())
 		if err != nil {
 			return fmt.Errorf("failed to associate services to gateway: %v", err)

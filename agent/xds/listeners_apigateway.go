@@ -49,6 +49,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 				}
 			}
 		}
+		s.Logger.Trace("collected api gateway listener certificates", "boundCertRefs", len(boundListener.Certificates), "resolvedCerts", len(certs))
 
 		effectiveTLSCfg, err := resolveAPIListenerTLSConfig(cfgSnap.APIGateway.TLSConfig, listenerCfg.TLS)
 		if err != nil {
@@ -274,7 +275,19 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 
 			// See if there are other services that didn't have specific SNI-matching
 			// filter chains. If so add a default filterchain to serve them.
-			if len(sniFilterChains) < len(readyListener.upstreams) && !isAPIGatewayWithTLS {
+			//
+			// Historically the default chain was only added when the listener had no
+			// custom certificates (!isAPIGatewayWithTLS). When the operator opts into
+			// Connect-managed TLS via `TLS { Enabled = true }`, we additionally add a
+			// leaf-backed catch-all chain so hosts without a dedicated certificate
+			// (e.g. the auto-registered "<svc>.api-gateway.<domain>" names) terminate
+			// on the gateway's Connect leaf. We skip it when a catch-all chain already
+			// exists (e.g. gateway-level SDS) to avoid Envoy "duplicate matcher" errors.
+			addDefaultChain := len(sniFilterChains) < len(readyListener.upstreams) && !isAPIGatewayWithTLS
+			if effectiveTLSCfg.Enabled && tlsContext != nil && !hasCatchAllFilterChain(sniFilterChains) {
+				addDefaultChain = true
+			}
+			if addDefaultChain {
 				defaultFilter, err := makeListenerFilter(filterOpts)
 				if err != nil {
 					return nil, err
@@ -534,7 +547,17 @@ func makeCommonTLSContextFromSnapshotAPIGatewayListenerConfig(
 		return nil, err
 	}
 
-	connectTLSEnabled := !isGatewayTLSConfigEmpty(*tlsCfg) || len(listenerCfg.TLS.Certificates) > 0
+	// connectTLSEnabled is true when the operator wants the gateway to terminate
+	// downstream TLS using a Connect-managed leaf certificate. This mirrors the
+	// ingress gateway behavior (makeCommonTLSContextFromSnapshotListenerConfig):
+	//   - tlsCfg.Enabled: the operator opted in via `TLS { Enabled = true }` on
+	//     the api-gateway config entry (zero-touch HTTPS, no custom cert needed).
+	//   - !isGatewayTLSConfigEmpty: TLS parameters (min/max version, ciphers, SDS)
+	//     were supplied, which also implies TLS should be served.
+	//   - len(Certificates) > 0: inline/file-system certs are attached.
+	// The Enabled clause is additive: existing gateways that never set Enabled
+	// keep their exact prior behavior.
+	connectTLSEnabled := tlsCfg.Enabled || !isGatewayTLSConfigEmpty(*tlsCfg) || len(listenerCfg.TLS.Certificates) > 0
 
 	if connectTLSEnabled {
 		tlsContext = makeCommonTLSContext(cfgSnap.Leaf(), cfgSnap.RootPEMs(), makeTLSParametersFromGatewayTLSConfig(*tlsCfg))
@@ -594,6 +617,19 @@ func isGatewayTLSConfigEmpty(cfg structs.GatewayTLSConfig) bool {
 
 func hasSDSCert(sds *structs.GatewayTLSSDSConfig) bool {
 	return sds != nil && sds.CertResource != ""
+}
+
+// hasCatchAllFilterChain reports whether any of the provided filter chains is a
+// catch-all (no SNI ServerNames match). This is used to avoid appending a second
+// catch-all (leaf) filter chain when one already exists — e.g. a gateway-level
+// SDS chain — which would otherwise produce an Envoy "duplicate matcher" error.
+func hasCatchAllFilterChain(chains []*envoy_listener_v3.FilterChain) bool {
+	for _, c := range chains {
+		if c.FilterChainMatch == nil || len(c.FilterChainMatch.ServerNames) == 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // when we have multiple certificates on a single listener, we need
@@ -722,7 +758,18 @@ func (s *ResourceGenerator) makeInlineOverrideFilterChains(cfgSnap *proxycfg.Con
 			if err != nil {
 				return nil, fmt.Errorf("unable to parse hosts from x509 certificate: %v", hosts)
 			}
+			// Deduplicate the hosts within a single certificate first. A
+			// certificate commonly repeats its CommonName in the SAN list, and
+			// Hosts() returns CN + SANs, so the same host can appear twice for
+			// one cert. Without this dedupe the host would be falsely flagged as
+			// "overlapping" (a self-collision), causing its SNI filter chain to
+			// be skipped and the cert to silently never be served.
+			seen := map[string]struct{}{}
 			for _, host := range hosts {
+				if _, ok := seen[host]; ok {
+					continue
+				}
+				seen[host] = struct{}{}
 				if _, ok := allCertHosts[host]; ok {
 					overlappingHosts[host] = struct{}{}
 				}
@@ -741,10 +788,16 @@ func (s *ResourceGenerator) makeInlineOverrideFilterChains(cfgSnap *proxycfg.Con
 				return nil, fmt.Errorf("unable to parse hosts from x509 certificate: %v", hosts)
 			}
 			// filter out any overlapping hosts so we don't have collisions in our filter chains
+			seen := map[string]struct{}{}
 			for _, host := range certHosts {
-				if _, ok := overlappingHosts[host]; !ok {
-					hosts = append(hosts, host)
+				if _, ok := overlappingHosts[host]; ok {
+					continue
 				}
+				if _, ok := seen[host]; ok {
+					continue
+				}
+				seen[host] = struct{}{}
+				hosts = append(hosts, host)
 			}
 
 			if len(hosts) == 0 {
