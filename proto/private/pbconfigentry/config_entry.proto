@@ -1090,6 +1090,49 @@ message HTTPFilters {
   TimeoutFilter TimeoutFilter = 4;
   // mog: func-to=routeJWTFilterToStructs func-from=routeJWTFilterFromStructs
   JWTFilter JWT = 5;
+  repeated ExtProcFilter ExtProc = 6;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ExtProcFilter
+// output=config_entry.gen.go
+// name=Structs
+message ExtProcFilter {
+  string StatPrefix = 1;
+  string Mode = 2;
+  ExtProcOverrides Overrides = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ExtProcOverrides
+// output=config_entry.gen.go
+// name=Structs
+message ExtProcOverrides {
+  ExtProcProcessing Processing = 1;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ExtProcProcessing
+// output=config_entry.gen.go
+// name=Structs
+message ExtProcProcessing {
+  ExtProcProcessingDirection Request = 1;
+  ExtProcProcessingDirection Response = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ExtProcProcessingDirection
+// output=config_entry.gen.go
+// name=Structs
+message ExtProcProcessingDirection {
+  string HeadersMode = 1;
+  string BodyMode = 2;
+  string TrailersMode = 3;
+  int64 MaxBodyBytes = 4;
 }
 
 // mog annotation:

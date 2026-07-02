@@ -500,6 +500,35 @@ type HTTPFilters struct {
 	RetryFilter   *RetryFilter
 	TimeoutFilter *TimeoutFilter
 	JWT           *JWTFilter
+	ExtProc       []ExtProcFilter
+}
+
+// ExtProcFilter provides per-route control of a builtin/ext-proc attachment.
+type ExtProcFilter struct {
+	StatPrefix string            `json:",omitempty"`
+	Mode       string            `json:",omitempty"`
+	Overrides  *ExtProcOverrides `json:",omitempty"`
+}
+
+// ExtProcOverrides carries per-route overrides applied when Mode is "override".
+type ExtProcOverrides struct {
+	Processing *ExtProcProcessing `json:",omitempty"`
+	// MessageTimeout   string             `json:",omitempty"`
+	// FailureModeAllow *bool              `json:",omitempty"`
+}
+
+// ExtProcProcessing configures request and response processing modes.
+type ExtProcProcessing struct {
+	Request  *ExtProcProcessingDirection `json:",omitempty"`
+	Response *ExtProcProcessingDirection `json:",omitempty"`
+}
+
+// ExtProcProcessingDirection configures processing modes for one direction.
+type ExtProcProcessingDirection struct {
+	HeadersMode  string `json:",omitempty"`
+	BodyMode     string `json:",omitempty"`
+	TrailersMode string `json:",omitempty"`
+	MaxBodyBytes int64  `json:",omitempty"`
 }
 
 // HTTPResponseFilters specifies a list of filters used to modify the
