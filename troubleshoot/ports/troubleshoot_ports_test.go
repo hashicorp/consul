@@ -5,12 +5,27 @@ package ports
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/stretchr/testify/require"
+	"net"
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/stretchr/testify/require"
 )
+
+// getFreePort binds to :0 on loopback to obtain a port the OS guarantees is
+// free at the moment of the call, then immediately closes the listener so the
+// port is available to use. Using OS-allocated ports avoids collisions with
+// well-known ports (e.g. 8888) that may already be bound on CI runners.
+func getFreePort(t *testing.T) int {
+	t.Helper()
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err, "getFreePort: failed to bind")
+	port := l.Addr().(*net.TCPAddr).Port
+	require.NoError(t, l.Close(), "getFreePort: failed to close listener")
+	return port
+}
 
 func TestTroubleShootCustom_Ports(t *testing.T) {
 	// Create a test Consul server
@@ -43,11 +58,19 @@ func TestTroubleShootCustom_Ports(t *testing.T) {
 }
 
 func TestTroubleShootCustom_Ports_Not_Reachable(t *testing.T) {
-	results := TroubleShootCustomPorts("127.0.0.1", strings.Join([]string{"8777", "8888"}, ","))
+	// Use OS-allocated ports that are guaranteed free rather than hardcoded
+	// values like 8888 which may already be bound on the CI runner.
+	port1 := getFreePort(t)
+	port2 := getFreePort(t)
+
+	results := TroubleShootCustomPorts("127.0.0.1", strings.Join([]string{
+		strconv.Itoa(port1),
+		strconv.Itoa(port2),
+	}, ","))
 
 	expectedResults := []string{
-		"TCP: Port 8777 on 127.0.0.1 is closed, unreachable, or the connection timed out.\n",
-		"TCP: Port 8888 on 127.0.0.1 is closed, unreachable, or the connection timed out.\n",
+		fmt.Sprintf("TCP: Port %d on 127.0.0.1 is closed, unreachable, or the connection timed out.\n", port1),
+		fmt.Sprintf("TCP: Port %d on 127.0.0.1 is closed, unreachable, or the connection timed out.\n", port2),
 	}
 	for _, res := range expectedResults {
 		require.Contains(t, results, res)

@@ -588,6 +588,16 @@ func (msg *APIGateway) UnmarshalBinary(b []byte) error {
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
+func (msg *APIGatewayExtAuthz) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *APIGatewayExtAuthz) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
 func (msg *Status) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }
@@ -794,6 +804,16 @@ func (msg *HTTPFilters) MarshalBinary() ([]byte, error) {
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
 func (msg *HTTPFilters) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *HTTPRouteExtAuthzFilter) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *HTTPRouteExtAuthzFilter) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
 
