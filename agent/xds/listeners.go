@@ -742,6 +742,37 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		resources = append(resources, l)
 	}
 
+	// Configure the inline virtual DNS listener. When enabled, this builds a
+	// dns_filter listener with an inline FQDN->VIP table from catalog data and
+	// binds it on 127.0.0.1:8653. It is part of the LDS resources so it is
+	// recomputed and re-pushed whenever upstream VIPs change.
+	dnsListener, err := s.makeInlineDNSListener(cfgSnap)
+	if err != nil {
+		return nil, err
+	}
+	if dnsListener != nil {
+		resources = append(resources, dnsListener)
+	}
+
+	// Configure the egress recursor DNS listener. When recursors are configured,
+	// this builds a dns_filter listener that forwards non-Consul queries to the
+	// configured upstream recursors via the c-ares resolver and binds it on
+	// 127.0.0.1:8654. It is part of the LDS resources so it is recomputed and
+	// re-pushed whenever the recursor configuration changes.
+	var dnsRecursors []string
+	if s.CfgFetcher != nil {
+		dnsRecursors = s.CfgFetcher.DNSRecursors()
+	}
+	if len(dnsRecursors) > 0 {
+		egressDNSListener, err := s.makeEgressDNSListener(dnsRecursors)
+		if err != nil {
+			return nil, err
+		}
+		if egressDNSListener != nil {
+			resources = append(resources, egressDNSListener)
+		}
+	}
+
 	return resources, nil
 }
 

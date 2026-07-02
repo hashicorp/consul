@@ -178,6 +178,10 @@ func (f configFetcherFunc) AdvertiseAddrLAN() string {
 	return f()
 }
 
+func (f configFetcherFunc) DNSRecursors() []string {
+	return nil
+}
+
 func TestResolveListenerSDSConfig(t *testing.T) {
 	type testCase struct {
 		name    string
