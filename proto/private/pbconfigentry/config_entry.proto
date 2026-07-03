@@ -812,6 +812,12 @@ message APIGateway {
   uint64 Hash = 4;
   GatewayTLSConfig TLS = 5;
   UpstreamLimits Defaults = 6;
+  // mog: func-to=gwExtAuthzToStructs func-from=gwExtAuthzFromStructs
+  APIGatewayExtAuthz ExtAuthz = 7;
+}
+
+message APIGatewayExtAuthz {
+  bool Enabled = 1;
 }
 
 // mog annotation:
@@ -1090,6 +1096,12 @@ message HTTPFilters {
   TimeoutFilter TimeoutFilter = 4;
   // mog: func-to=routeJWTFilterToStructs func-from=routeJWTFilterFromStructs
   JWTFilter JWT = 5;
+  // mog: func-to=routeExtAuthzFilterToStructs func-from=routeExtAuthzFilterFromStructs
+  HTTPRouteExtAuthzFilter ExtAuthz = 6;
+}
+
+message HTTPRouteExtAuthzFilter {
+  bool Enabled = 1;
 }
 
 // mog annotation:
