@@ -1147,7 +1147,6 @@ message HTTPRouteExtAuthzFilter {
   bool Enabled = 1;
 }
 
-
 // mog annotation:
 //
 // target=github.com/hashicorp/consul/agent/structs.HTTPResponseFilters
