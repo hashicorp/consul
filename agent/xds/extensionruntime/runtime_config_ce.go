@@ -12,8 +12,8 @@ import (
 )
 
 // appendAPIGatewayUpstreams is a no-op in CE. Surfacing an API Gateway's
-// compiled discovery chains as builtin/ext-authz or builtin/ext-proc upstream targets (so an
-// ext-authz extension can resolve a mesh Service's cluster/SNI) is an
+// compiled discovery chains as builtin/ext-authz or builtin/ext-proc upstream targets (so a
+// builtin/ext-authz or builtin/ext-proc extension can resolve a mesh Service's cluster/SNI) is an
 // enterprise-only feature; the enterprise build provides the real implementation.
 func appendAPIGatewayUpstreams(
 	_ *proxycfg.ConfigSnapshot,
