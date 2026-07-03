@@ -208,6 +208,13 @@ type HTTPFilters struct {
 	TimeoutFilter *TimeoutFilter
 	JWT           *JWTFilter
 	ExtProc       []ExtProcFilter
+	// ExtAuthz controls the ext_authz HTTP filter behaviour for routes on an
+	// API Gateway that has a builtin/ext-authz EnvoyExtension applied. When set,
+	// it overrides the gateway-wide ExtAuthz toggle for the matched route:
+	// Enabled=true forces the ext_authz check to run, Enabled=false skips it.
+	// When nil, the route inherits the gateway-wide default. Exclusions are
+	// controlled exclusively at the http-route level.
+	ExtAuthz *HTTPRouteExtAuthzFilter
 }
 
 // ExtProcFiltes provides per-route control of a builtin/ext-proc attachment.
@@ -236,6 +243,16 @@ type ExtProcProcessingDirection struct {
 	BodyMode     string `json:",omitempty"`
 	TrailersMode string `json:",omitempty"`
 	MaxBodyBytes int64  `json:",omitempty"`
+}
+
+// HTTPRouteExtAuthzFilter controls ext_authz filter behaviour at the
+// individual http-route rule level.
+type HTTPRouteExtAuthzFilter struct {
+	// Enabled controls whether Envoy runs the ext_authz check for requests
+	// matched by this rule. Enabled=true force-enables the check (overriding a
+	// disabled gateway toggle); Enabled=false force-skips it. This takes
+	// precedence over the gateway-wide ExtAuthz toggle.
+	Enabled bool
 }
 
 // HTTPResponseFilters specifies a list of filters used to modify a

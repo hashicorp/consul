@@ -501,6 +501,17 @@ type HTTPFilters struct {
 	TimeoutFilter *TimeoutFilter
 	JWT           *JWTFilter
 	ExtProc       []ExtProcFilter
+	// ExtAuthz controls the ext_authz HTTP filter behaviour for routes on an
+	// API Gateway that has a builtin/ext-authz EnvoyExtension applied. When set,
+	// it overrides the gateway-wide ExtAuthz toggle for the matched route:
+	// Enabled=true forces the ext_authz check to run, Enabled=false skips it.
+	// When nil, the route inherits the gateway-wide default. Exclusions are
+	// controlled exclusively at the http-route level.
+	//
+	// HTTPRouteExtAuthzFilter is an enterprise-only type: it is an empty struct in
+	// CE and carries its fields only in the enterprise build (see
+	// config_entry_apigw_extauthz_{ce,ent}.go).
+	ExtAuthz *HTTPRouteExtAuthzFilter
 }
 
 // ExtProcFilter provides per-route control of a builtin/ext-proc attachment.

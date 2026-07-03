@@ -5,6 +5,7 @@ package extauthz
 
 import (
 	"fmt"
+	"net"
 	"strconv"
 	"strings"
 	"time"
@@ -50,6 +51,36 @@ type extAuthzConfig struct {
 	StatPrefix                 string
 	WithRequestBody            *BufferSettings
 
+	// FailureModeAllow, when set, explicitly controls the ext_authz filter's
+	// failure-mode behavior and overrides the default that is otherwise derived
+	// from the extension's Required flag (failureModeAllow = !Required).
+	//   - true  -> requests are ALLOWED when the authorization service is
+	//              unreachable or returns an error (fail open).
+	//   - false -> such requests are DENIED (fail closed).
+	// When nil (omitted) the Required-derived default is used.
+	FailureModeAllow *bool
+
+	// AllowedHeaders restricts which client request headers are forwarded to the
+	// external authorization service in the check request. It maps to the
+	// filter-level Envoy field ext_authz.allowed_headers and therefore applies to
+	// BOTH the gRPC and HTTP transports.
+	//
+	// When unset, Envoy keeps its default behavior: ALL client request headers are
+	// sent to a gRPC authorization server, whereas only a small default set is sent
+	// to an HTTP authorization server (plus any HttpService.AuthorizationRequest
+	// .AllowedHeaders). This field is the only way to restrict the request headers
+	// sent to a gRPC authorization server.
+	AllowedHeaders ListStringMatcher
+	// DisallowedHeaders explicitly prevents the listed client request headers from
+	// being forwarded to the external authorization service. It maps to the
+	// filter-level Envoy field ext_authz.disallowed_headers and takes precedence
+	// over AllowedHeaders when a header matches both.
+	DisallowedHeaders ListStringMatcher
+
+	// proxyKind is set by extAuthz.normalize() and controls validation rules that
+	// differ between proxy kinds (e.g. URI host restrictions).
+	proxyKind api.ServiceKind
+
 	failureModeAllow bool
 }
 
@@ -87,12 +118,41 @@ func (c *extAuthzConfig) validate() error {
 		resultErr = multierror.Append(resultErr, fmt.Errorf("failed to validate Config.%s: %w", field, err))
 	}
 
+	// For connect-proxy sidecars the ext_authz backend must be on the local host
+	// because the sidecar and the authz service share the same network namespace.
+	// For API Gateway proxies the backend can be any network-reachable host (e.g. a
+	// separate container), so the localhost restriction is not applied.
+	if c.proxyKind != api.ServiceKindAPIGateway {
+		var target *Target
+		if c.isHTTP() && c.HttpService != nil {
+			target = c.HttpService.Target
+		} else if c.isGRPC() && c.GrpcService != nil {
+			target = c.GrpcService.Target
+		}
+		if target != nil && target.isURI() && target.host != "" {
+			switch target.host {
+			case localhost, localhostIPv4, localhostIPv6:
+			default:
+				resultErr = multierror.Append(resultErr,
+					fmt.Errorf("invalid host for Target.URI %q: expected %q, %q, or %q (use ProxyType %q to allow remote hosts)",
+						target.URI, localhost, localhostIPv4, localhostIPv6, api.ServiceKindAPIGateway))
+			}
+		}
+	}
+
 	if c.StatusOnError != nil {
 		if _, ok := envoy_type_v3.StatusCode_name[int32(*c.StatusOnError)]; !ok {
 			resultErr = multierror.Append(resultErr, fmt.Errorf("failed to validate Config.StatusOnError:"+
 				"status code %d is not supported by Envoy, please refer to the Envoy documentation for supported status codes",
 				*c.StatusOnError))
 		}
+	}
+
+	if err := c.AllowedHeaders.validate(); err != nil {
+		resultErr = multierror.Append(resultErr, fmt.Errorf("failed to validate Config.AllowedHeaders: %w", err))
+	}
+	if err := c.DisallowedHeaders.validate(); err != nil {
+		resultErr = multierror.Append(resultErr, fmt.Errorf("failed to validate Config.DisallowedHeaders: %w", err))
 	}
 
 	return resultErr
@@ -117,7 +177,7 @@ func (c extAuthzConfig) envoyGrpcService(cfg *cmn.RuntimeConfig) (*envoy_core_v3
 				Authority:   c.GrpcService.Authority,
 			},
 		},
-		Timeout:         target.timeoutDurationPB(),
+		Timeout:         c.GrpcService.timeoutDurationPB(),
 		InitialMetadata: initialMetadata,
 	}, nil
 }
@@ -132,7 +192,7 @@ func (c extAuthzConfig) envoyHttpService(cfg *cmn.RuntimeConfig) (*envoy_http_ex
 		ServerUri: &envoy_core_v3.HttpUri{
 			Uri:              clusterName, // not used by Envoy, set to cluster
 			HttpUpstreamType: &envoy_core_v3.HttpUri_Cluster{Cluster: clusterName},
-			Timeout:          c.HttpService.Target.timeoutDurationPB(),
+			Timeout:          c.HttpService.timeoutDurationPB(),
 		},
 		PathPrefix:            c.HttpService.PathPrefix,
 		AuthorizationRequest:  c.HttpService.AuthorizationRequest.toEnvoy(),
@@ -172,10 +232,13 @@ func (c extAuthzConfig) isHTTP() bool {
 // a new cluster so this method returns nil.
 func (c *extAuthzConfig) toEnvoyCluster(_ *cmn.RuntimeConfig) (*envoy_cluster_v3.Cluster, error) {
 	var target *Target
+	var connectTimeout *durationpb.Duration
 	if c.isHTTP() {
 		target = c.HttpService.Target
+		connectTimeout = c.HttpService.timeoutDurationPB()
 	} else {
 		target = c.GrpcService.Target
+		connectTimeout = c.GrpcService.timeoutDurationPB()
 	}
 
 	// If the target is an upstream we do not need to create a cluster. We will use the cluster of the upstream.
@@ -189,8 +252,10 @@ func (c *extAuthzConfig) toEnvoyCluster(_ *cmn.RuntimeConfig) (*envoy_cluster_v3
 	}
 
 	clusterType := &envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_STATIC}
-	if host == localhost {
-		// If the host is "localhost" use a STRICT_DNS cluster type to perform DNS lookup.
+	if net.ParseIP(host) == nil {
+		// host is a DNS name (including "localhost" and container names like "oauth2-proxy").
+		// Use STRICT_DNS so Envoy resolves it at runtime instead of treating it as a
+		// literal IP. STATIC is used only for bare IP addresses.
 		clusterType = &envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_STRICT_DNS}
 	}
 
@@ -215,7 +280,7 @@ func (c *extAuthzConfig) toEnvoyCluster(_ *cmn.RuntimeConfig) (*envoy_cluster_v3
 	return &envoy_cluster_v3.Cluster{
 		Name:                 LocalExtAuthzClusterName,
 		ClusterDiscoveryType: clusterType,
-		ConnectTimeout:       target.timeoutDurationPB(),
+		ConnectTimeout:       connectTimeout,
 		LoadAssignment: &envoy_endpoint_v3.ClusterLoadAssignment{
 			ClusterName: LocalExtAuthzClusterName,
 			Endpoints: []*envoy_endpoint_v3.LocalityLbEndpoints{
@@ -276,6 +341,16 @@ func (c extAuthzConfig) toEnvoyHttpFilter(cfg *cmn.RuntimeConfig) (*envoy_http_v
 		extAuthzFilter.StatusOnError = &envoy_type_v3.HttpStatus{
 			Code: envoy_type_v3.StatusCode(*c.StatusOnError),
 		}
+	}
+
+	// AllowedHeaders / DisallowedHeaders are filter-level controls that apply to
+	// both the gRPC and HTTP transports. toEnvoy() returns nil for an empty list,
+	// preserving Envoy's default header-forwarding behavior when unset.
+	if ah := c.AllowedHeaders.toEnvoy(); ah != nil {
+		extAuthzFilter.AllowedHeaders = ah
+	}
+	if dh := c.DisallowedHeaders.toEnvoy(); dh != nil {
+		extAuthzFilter.DisallowedHeaders = dh
 	}
 
 	return cmn.MakeEnvoyHTTPFilter("envoy.filters.http.ext_authz", extAuthzFilter)
@@ -421,6 +496,12 @@ type GrpcService struct {
 	Target          *Target
 	Authority       string
 	InitialMetadata []*HeaderValue
+	// Timeout sets the per-request timeout for calls to the gRPC authorization
+	// service, expressed as a Go duration string (e.g. "2s"). When set it takes
+	// precedence over Target.Timeout; when empty the Target.Timeout is used.
+	Timeout string
+
+	timeout *time.Duration
 }
 
 func (v *GrpcService) normalize() {
@@ -442,7 +523,27 @@ func (v *GrpcService) validate() error {
 	if err := v.Target.validate(); err != nil {
 		resultErr = multierror.Append(resultErr, err)
 	}
+	if v.Timeout != "" {
+		if d, err := time.ParseDuration(v.Timeout); err == nil {
+			v.timeout = &d
+		} else {
+			resultErr = multierror.Append(resultErr, fmt.Errorf("failed to parse GrpcService.Timeout %q as a duration: %w", v.Timeout, err))
+		}
+	}
 	return resultErr
+}
+
+// timeoutDurationPB returns the effective per-request timeout as a
+// *durationpb.Duration. The service-level Timeout takes precedence over
+// Target.Timeout; nil is returned when neither is set.
+func (v *GrpcService) timeoutDurationPB() *durationpb.Duration {
+	if v == nil {
+		return nil
+	}
+	if v.timeout != nil {
+		return durationpb.New(*v.timeout)
+	}
+	return v.Target.timeoutDurationPB()
 }
 
 type HeaderValue struct {
@@ -462,6 +563,12 @@ type HttpService struct {
 	PathPrefix            string
 	AuthorizationRequest  *AuthorizationRequest
 	AuthorizationResponse *AuthorizationResponse
+	// Timeout sets the per-request timeout for calls to the HTTP authorization
+	// service, expressed as a Go duration string (e.g. "2s"). When set it takes
+	// precedence over Target.Timeout; when empty the Target.Timeout is used.
+	Timeout string
+
+	timeout *time.Duration
 }
 
 func (v *HttpService) normalize() {
@@ -485,7 +592,27 @@ func (v *HttpService) validate() error {
 			resultErr = multierror.Append(resultErr, err)
 		}
 	}
+	if v.Timeout != "" {
+		if d, err := time.ParseDuration(v.Timeout); err == nil {
+			v.timeout = &d
+		} else {
+			resultErr = multierror.Append(resultErr, fmt.Errorf("failed to parse HttpService.Timeout %q as a duration: %w", v.Timeout, err))
+		}
+	}
 	return resultErr
+}
+
+// timeoutDurationPB returns the effective per-request timeout as a
+// *durationpb.Duration. The service-level Timeout takes precedence over
+// Target.Timeout; nil is returned when neither is set.
+func (v *HttpService) timeoutDurationPB() *durationpb.Duration {
+	if v == nil {
+		return nil
+	}
+	if v.timeout != nil {
+		return durationpb.New(*v.timeout)
+	}
+	return v.Target.timeoutDurationPB()
 }
 
 type ListStringMatcher []*StringMatcher
@@ -654,16 +781,11 @@ func (t *Target) validate() error {
 
 	if t.isURI() {
 		t.host, t.port, err = parseAddr(t.URI)
-		if err == nil {
-			switch t.host {
-			case localhost, localhostIPv4, localhostIPv6:
-			default:
-				resultErr = multierror.Append(resultErr,
-					fmt.Errorf("invalid host for Target.URI %q: expected %q, %q, or %q", t.URI, localhost, localhostIPv4, localhostIPv6))
-			}
-		} else {
+		if err != nil {
 			resultErr = multierror.Append(resultErr, fmt.Errorf("invalid format for Target.URI %q: expected host:port", t.URI))
 		}
+		// Localhost-only enforcement for connect-proxy is done in extAuthzConfig.validate()
+		// where the proxy kind is available. Target.validate() only checks format here.
 	}
 
 	if t.Timeout != "" {
