@@ -440,6 +440,98 @@ func ExposePathFromStructs(t *structs.ExposePath, s *ExposePath) {
 	s.Protocol = t.Protocol
 	s.ParsedFromCheck = t.ParsedFromCheck
 }
+func ExtProcFilterToStructs(s *ExtProcFilter, t *structs.ExtProcFilter) {
+	if s == nil {
+		return
+	}
+	t.StatPrefix = s.StatPrefix
+	t.Mode = s.Mode
+	if s.Overrides != nil {
+		var x structs.ExtProcOverrides
+		ExtProcOverridesToStructs(s.Overrides, &x)
+		t.Overrides = &x
+	}
+}
+func ExtProcFilterFromStructs(t *structs.ExtProcFilter, s *ExtProcFilter) {
+	if s == nil {
+		return
+	}
+	s.StatPrefix = t.StatPrefix
+	s.Mode = t.Mode
+	if t.Overrides != nil {
+		var x ExtProcOverrides
+		ExtProcOverridesFromStructs(t.Overrides, &x)
+		s.Overrides = &x
+	}
+}
+func ExtProcOverridesToStructs(s *ExtProcOverrides, t *structs.ExtProcOverrides) {
+	if s == nil {
+		return
+	}
+	if s.Processing != nil {
+		var x structs.ExtProcProcessing
+		ExtProcProcessingToStructs(s.Processing, &x)
+		t.Processing = &x
+	}
+}
+func ExtProcOverridesFromStructs(t *structs.ExtProcOverrides, s *ExtProcOverrides) {
+	if s == nil {
+		return
+	}
+	if t.Processing != nil {
+		var x ExtProcProcessing
+		ExtProcProcessingFromStructs(t.Processing, &x)
+		s.Processing = &x
+	}
+}
+func ExtProcProcessingToStructs(s *ExtProcProcessing, t *structs.ExtProcProcessing) {
+	if s == nil {
+		return
+	}
+	if s.Request != nil {
+		var x structs.ExtProcProcessingDirection
+		ExtProcProcessingDirectionToStructs(s.Request, &x)
+		t.Request = &x
+	}
+	if s.Response != nil {
+		var x structs.ExtProcProcessingDirection
+		ExtProcProcessingDirectionToStructs(s.Response, &x)
+		t.Response = &x
+	}
+}
+func ExtProcProcessingFromStructs(t *structs.ExtProcProcessing, s *ExtProcProcessing) {
+	if s == nil {
+		return
+	}
+	if t.Request != nil {
+		var x ExtProcProcessingDirection
+		ExtProcProcessingDirectionFromStructs(t.Request, &x)
+		s.Request = &x
+	}
+	if t.Response != nil {
+		var x ExtProcProcessingDirection
+		ExtProcProcessingDirectionFromStructs(t.Response, &x)
+		s.Response = &x
+	}
+}
+func ExtProcProcessingDirectionToStructs(s *ExtProcProcessingDirection, t *structs.ExtProcProcessingDirection) {
+	if s == nil {
+		return
+	}
+	t.HeadersMode = s.HeadersMode
+	t.BodyMode = s.BodyMode
+	t.TrailersMode = s.TrailersMode
+	t.MaxBodyBytes = s.MaxBodyBytes
+}
+func ExtProcProcessingDirectionFromStructs(t *structs.ExtProcProcessingDirection, s *ExtProcProcessingDirection) {
+	if s == nil {
+		return
+	}
+	s.HeadersMode = t.HeadersMode
+	s.BodyMode = t.BodyMode
+	s.TrailersMode = t.TrailersMode
+	s.MaxBodyBytes = t.MaxBodyBytes
+}
 func FileSystemCertificateToStructs(s *FileSystemCertificate, t *structs.FileSystemCertificateConfigEntry) {
 	if s == nil {
 		return
@@ -548,6 +640,14 @@ func HTTPFiltersToStructs(s *HTTPFilters, t *structs.HTTPFilters) {
 		t.TimeoutFilter = &x
 	}
 	t.JWT = routeJWTFilterToStructs(s.JWT)
+	{
+		t.ExtProc = make([]structs.ExtProcFilter, len(s.ExtProc))
+		for i := range s.ExtProc {
+			if s.ExtProc[i] != nil {
+				ExtProcFilterToStructs(s.ExtProc[i], &t.ExtProc[i])
+			}
+		}
+	}
 	t.ExtAuthz = routeExtAuthzFilterToStructs(s.ExtAuthz)
 }
 func HTTPFiltersFromStructs(t *structs.HTTPFilters, s *HTTPFilters) {
@@ -580,6 +680,16 @@ func HTTPFiltersFromStructs(t *structs.HTTPFilters, s *HTTPFilters) {
 		s.TimeoutFilter = &x
 	}
 	s.JWT = routeJWTFilterFromStructs(t.JWT)
+	{
+		s.ExtProc = make([]*ExtProcFilter, len(t.ExtProc))
+		for i := range t.ExtProc {
+			{
+				var x ExtProcFilter
+				ExtProcFilterFromStructs(&t.ExtProc[i], &x)
+				s.ExtProc[i] = &x
+			}
+		}
+	}
 	s.ExtAuthz = routeExtAuthzFilterFromStructs(t.ExtAuthz)
 }
 func HTTPHeaderFilterToStructs(s *HTTPHeaderFilter, t *structs.HTTPHeaderFilter) {

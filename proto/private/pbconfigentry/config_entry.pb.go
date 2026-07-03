@@ -6639,6 +6639,7 @@ type HTTPFilters struct {
 	JWT *JWTFilter `protobuf:"bytes,5,opt,name=JWT,proto3" json:"JWT,omitempty"`
 	// mog: func-to=routeExtAuthzFilterToStructs func-from=routeExtAuthzFilterFromStructs
 	ExtAuthz      *HTTPRouteExtAuthzFilter `protobuf:"bytes,6,opt,name=ExtAuthz,proto3" json:"ExtAuthz,omitempty"`
+	ExtProc       []*ExtProcFilter         `protobuf:"bytes,7,rep,name=ExtProc,proto3" json:"ExtProc,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -6715,6 +6716,257 @@ func (x *HTTPFilters) GetExtAuthz() *HTTPRouteExtAuthzFilter {
 	return nil
 }
 
+func (x *HTTPFilters) GetExtProc() []*ExtProcFilter {
+	if x != nil {
+		return x.ExtProc
+	}
+	return nil
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ExtProcFilter
+// output=config_entry.gen.go
+// name=Structs
+type ExtProcFilter struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	StatPrefix    string                 `protobuf:"bytes,1,opt,name=StatPrefix,proto3" json:"StatPrefix,omitempty"`
+	Mode          string                 `protobuf:"bytes,2,opt,name=Mode,proto3" json:"Mode,omitempty"`
+	Overrides     *ExtProcOverrides      `protobuf:"bytes,3,opt,name=Overrides,proto3" json:"Overrides,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ExtProcFilter) Reset() {
+	*x = ExtProcFilter{}
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[80]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExtProcFilter) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExtProcFilter) ProtoMessage() {}
+
+func (x *ExtProcFilter) ProtoReflect() protoreflect.Message {
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[80]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExtProcFilter.ProtoReflect.Descriptor instead.
+func (*ExtProcFilter) Descriptor() ([]byte, []int) {
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{80}
+}
+
+func (x *ExtProcFilter) GetStatPrefix() string {
+	if x != nil {
+		return x.StatPrefix
+	}
+	return ""
+}
+
+func (x *ExtProcFilter) GetMode() string {
+	if x != nil {
+		return x.Mode
+	}
+	return ""
+}
+
+func (x *ExtProcFilter) GetOverrides() *ExtProcOverrides {
+	if x != nil {
+		return x.Overrides
+	}
+	return nil
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ExtProcOverrides
+// output=config_entry.gen.go
+// name=Structs
+type ExtProcOverrides struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Processing    *ExtProcProcessing     `protobuf:"bytes,1,opt,name=Processing,proto3" json:"Processing,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ExtProcOverrides) Reset() {
+	*x = ExtProcOverrides{}
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[81]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExtProcOverrides) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExtProcOverrides) ProtoMessage() {}
+
+func (x *ExtProcOverrides) ProtoReflect() protoreflect.Message {
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[81]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExtProcOverrides.ProtoReflect.Descriptor instead.
+func (*ExtProcOverrides) Descriptor() ([]byte, []int) {
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{81}
+}
+
+func (x *ExtProcOverrides) GetProcessing() *ExtProcProcessing {
+	if x != nil {
+		return x.Processing
+	}
+	return nil
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ExtProcProcessing
+// output=config_entry.gen.go
+// name=Structs
+type ExtProcProcessing struct {
+	state         protoimpl.MessageState      `protogen:"open.v1"`
+	Request       *ExtProcProcessingDirection `protobuf:"bytes,1,opt,name=Request,proto3" json:"Request,omitempty"`
+	Response      *ExtProcProcessingDirection `protobuf:"bytes,2,opt,name=Response,proto3" json:"Response,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ExtProcProcessing) Reset() {
+	*x = ExtProcProcessing{}
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[82]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExtProcProcessing) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExtProcProcessing) ProtoMessage() {}
+
+func (x *ExtProcProcessing) ProtoReflect() protoreflect.Message {
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[82]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExtProcProcessing.ProtoReflect.Descriptor instead.
+func (*ExtProcProcessing) Descriptor() ([]byte, []int) {
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{82}
+}
+
+func (x *ExtProcProcessing) GetRequest() *ExtProcProcessingDirection {
+	if x != nil {
+		return x.Request
+	}
+	return nil
+}
+
+func (x *ExtProcProcessing) GetResponse() *ExtProcProcessingDirection {
+	if x != nil {
+		return x.Response
+	}
+	return nil
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ExtProcProcessingDirection
+// output=config_entry.gen.go
+// name=Structs
+type ExtProcProcessingDirection struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	HeadersMode   string                 `protobuf:"bytes,1,opt,name=HeadersMode,proto3" json:"HeadersMode,omitempty"`
+	BodyMode      string                 `protobuf:"bytes,2,opt,name=BodyMode,proto3" json:"BodyMode,omitempty"`
+	TrailersMode  string                 `protobuf:"bytes,3,opt,name=TrailersMode,proto3" json:"TrailersMode,omitempty"`
+	MaxBodyBytes  int64                  `protobuf:"varint,4,opt,name=MaxBodyBytes,proto3" json:"MaxBodyBytes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ExtProcProcessingDirection) Reset() {
+	*x = ExtProcProcessingDirection{}
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[83]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExtProcProcessingDirection) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExtProcProcessingDirection) ProtoMessage() {}
+
+func (x *ExtProcProcessingDirection) ProtoReflect() protoreflect.Message {
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[83]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExtProcProcessingDirection.ProtoReflect.Descriptor instead.
+func (*ExtProcProcessingDirection) Descriptor() ([]byte, []int) {
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{83}
+}
+
+func (x *ExtProcProcessingDirection) GetHeadersMode() string {
+	if x != nil {
+		return x.HeadersMode
+	}
+	return ""
+}
+
+func (x *ExtProcProcessingDirection) GetBodyMode() string {
+	if x != nil {
+		return x.BodyMode
+	}
+	return ""
+}
+
+func (x *ExtProcProcessingDirection) GetTrailersMode() string {
+	if x != nil {
+		return x.TrailersMode
+	}
+	return ""
+}
+
+func (x *ExtProcProcessingDirection) GetMaxBodyBytes() int64 {
+	if x != nil {
+		return x.MaxBodyBytes
+	}
+	return 0
+}
+
 type HTTPRouteExtAuthzFilter struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Enabled       bool                   `protobuf:"varint,1,opt,name=Enabled,proto3" json:"Enabled,omitempty"`
@@ -6724,7 +6976,7 @@ type HTTPRouteExtAuthzFilter struct {
 
 func (x *HTTPRouteExtAuthzFilter) Reset() {
 	*x = HTTPRouteExtAuthzFilter{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[80]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[84]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6736,7 +6988,7 @@ func (x *HTTPRouteExtAuthzFilter) String() string {
 func (*HTTPRouteExtAuthzFilter) ProtoMessage() {}
 
 func (x *HTTPRouteExtAuthzFilter) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[80]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[84]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6749,7 +7001,7 @@ func (x *HTTPRouteExtAuthzFilter) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HTTPRouteExtAuthzFilter.ProtoReflect.Descriptor instead.
 func (*HTTPRouteExtAuthzFilter) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{80}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{84}
 }
 
 func (x *HTTPRouteExtAuthzFilter) GetEnabled() bool {
@@ -6773,7 +7025,7 @@ type HTTPResponseFilters struct {
 
 func (x *HTTPResponseFilters) Reset() {
 	*x = HTTPResponseFilters{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[81]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[85]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6785,7 +7037,7 @@ func (x *HTTPResponseFilters) String() string {
 func (*HTTPResponseFilters) ProtoMessage() {}
 
 func (x *HTTPResponseFilters) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[81]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[85]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6798,7 +7050,7 @@ func (x *HTTPResponseFilters) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HTTPResponseFilters.ProtoReflect.Descriptor instead.
 func (*HTTPResponseFilters) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{81}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{85}
 }
 
 func (x *HTTPResponseFilters) GetHeaders() []*HTTPHeaderFilter {
@@ -6822,7 +7074,7 @@ type URLRewrite struct {
 
 func (x *URLRewrite) Reset() {
 	*x = URLRewrite{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[82]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[86]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6834,7 +7086,7 @@ func (x *URLRewrite) String() string {
 func (*URLRewrite) ProtoMessage() {}
 
 func (x *URLRewrite) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[82]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[86]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6847,7 +7099,7 @@ func (x *URLRewrite) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use URLRewrite.ProtoReflect.Descriptor instead.
 func (*URLRewrite) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{82}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{86}
 }
 
 func (x *URLRewrite) GetPath() string {
@@ -6874,7 +7126,7 @@ type RetryFilter struct {
 
 func (x *RetryFilter) Reset() {
 	*x = RetryFilter{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[83]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[87]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6886,7 +7138,7 @@ func (x *RetryFilter) String() string {
 func (*RetryFilter) ProtoMessage() {}
 
 func (x *RetryFilter) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[83]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[87]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6899,7 +7151,7 @@ func (x *RetryFilter) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RetryFilter.ProtoReflect.Descriptor instead.
 func (*RetryFilter) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{83}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{87}
 }
 
 func (x *RetryFilter) GetNumRetries() uint32 {
@@ -6947,7 +7199,7 @@ type TimeoutFilter struct {
 
 func (x *TimeoutFilter) Reset() {
 	*x = TimeoutFilter{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[84]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[88]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6959,7 +7211,7 @@ func (x *TimeoutFilter) String() string {
 func (*TimeoutFilter) ProtoMessage() {}
 
 func (x *TimeoutFilter) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[84]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[88]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6972,7 +7224,7 @@ func (x *TimeoutFilter) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TimeoutFilter.ProtoReflect.Descriptor instead.
 func (*TimeoutFilter) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{84}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{88}
 }
 
 func (x *TimeoutFilter) GetRequestTimeout() *durationpb.Duration {
@@ -6998,7 +7250,7 @@ type JWTFilter struct {
 
 func (x *JWTFilter) Reset() {
 	*x = JWTFilter{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[85]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[89]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7010,7 +7262,7 @@ func (x *JWTFilter) String() string {
 func (*JWTFilter) ProtoMessage() {}
 
 func (x *JWTFilter) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[85]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[89]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7023,7 +7275,7 @@ func (x *JWTFilter) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JWTFilter.ProtoReflect.Descriptor instead.
 func (*JWTFilter) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{85}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{89}
 }
 
 func (x *JWTFilter) GetProviders() []*APIGatewayJWTProvider {
@@ -7049,7 +7301,7 @@ type HTTPHeaderFilter struct {
 
 func (x *HTTPHeaderFilter) Reset() {
 	*x = HTTPHeaderFilter{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[86]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[90]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7061,7 +7313,7 @@ func (x *HTTPHeaderFilter) String() string {
 func (*HTTPHeaderFilter) ProtoMessage() {}
 
 func (x *HTTPHeaderFilter) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[86]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[90]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7074,7 +7326,7 @@ func (x *HTTPHeaderFilter) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HTTPHeaderFilter.ProtoReflect.Descriptor instead.
 func (*HTTPHeaderFilter) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{86}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{90}
 }
 
 func (x *HTTPHeaderFilter) GetAdd() map[string]string {
@@ -7120,7 +7372,7 @@ type HTTPService struct {
 
 func (x *HTTPService) Reset() {
 	*x = HTTPService{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[87]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[91]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7132,7 +7384,7 @@ func (x *HTTPService) String() string {
 func (*HTTPService) ProtoMessage() {}
 
 func (x *HTTPService) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[87]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[91]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7145,7 +7397,7 @@ func (x *HTTPService) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HTTPService.ProtoReflect.Descriptor instead.
 func (*HTTPService) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{87}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{91}
 }
 
 func (x *HTTPService) GetName() string {
@@ -7216,7 +7468,7 @@ type TCPRoute struct {
 
 func (x *TCPRoute) Reset() {
 	*x = TCPRoute{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[88]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[92]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7228,7 +7480,7 @@ func (x *TCPRoute) String() string {
 func (*TCPRoute) ProtoMessage() {}
 
 func (x *TCPRoute) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[88]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[92]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7241,7 +7493,7 @@ func (x *TCPRoute) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TCPRoute.ProtoReflect.Descriptor instead.
 func (*TCPRoute) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{88}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{92}
 }
 
 func (x *TCPRoute) GetMeta() map[string]string {
@@ -7297,7 +7549,7 @@ type TCPService struct {
 
 func (x *TCPService) Reset() {
 	*x = TCPService{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[89]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[93]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7309,7 +7561,7 @@ func (x *TCPService) String() string {
 func (*TCPService) ProtoMessage() {}
 
 func (x *TCPService) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[89]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[93]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7322,7 +7574,7 @@ func (x *TCPService) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TCPService.ProtoReflect.Descriptor instead.
 func (*TCPService) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{89}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{93}
 }
 
 func (x *TCPService) GetName() string {
@@ -7375,7 +7627,7 @@ type SamenessGroup struct {
 
 func (x *SamenessGroup) Reset() {
 	*x = SamenessGroup{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[90]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[94]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7387,7 +7639,7 @@ func (x *SamenessGroup) String() string {
 func (*SamenessGroup) ProtoMessage() {}
 
 func (x *SamenessGroup) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[90]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[94]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7400,7 +7652,7 @@ func (x *SamenessGroup) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SamenessGroup.ProtoReflect.Descriptor instead.
 func (*SamenessGroup) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{90}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{94}
 }
 
 func (x *SamenessGroup) GetName() string {
@@ -7467,7 +7719,7 @@ type SamenessGroupMember struct {
 
 func (x *SamenessGroupMember) Reset() {
 	*x = SamenessGroupMember{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[91]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[95]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7479,7 +7731,7 @@ func (x *SamenessGroupMember) String() string {
 func (*SamenessGroupMember) ProtoMessage() {}
 
 func (x *SamenessGroupMember) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[91]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[95]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7492,7 +7744,7 @@ func (x *SamenessGroupMember) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SamenessGroupMember.ProtoReflect.Descriptor instead.
 func (*SamenessGroupMember) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{91}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{95}
 }
 
 func (x *SamenessGroupMember) GetPartition() string {
@@ -7533,7 +7785,7 @@ type JWTProvider struct {
 
 func (x *JWTProvider) Reset() {
 	*x = JWTProvider{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[92]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[96]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7545,7 +7797,7 @@ func (x *JWTProvider) String() string {
 func (*JWTProvider) ProtoMessage() {}
 
 func (x *JWTProvider) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[92]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[96]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7558,7 +7810,7 @@ func (x *JWTProvider) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JWTProvider.ProtoReflect.Descriptor instead.
 func (*JWTProvider) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{92}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{96}
 }
 
 func (x *JWTProvider) GetJSONWebKeySet() *JSONWebKeySet {
@@ -7639,7 +7891,7 @@ type JSONWebKeySet struct {
 
 func (x *JSONWebKeySet) Reset() {
 	*x = JSONWebKeySet{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[93]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[97]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7651,7 +7903,7 @@ func (x *JSONWebKeySet) String() string {
 func (*JSONWebKeySet) ProtoMessage() {}
 
 func (x *JSONWebKeySet) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[93]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[97]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7664,7 +7916,7 @@ func (x *JSONWebKeySet) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JSONWebKeySet.ProtoReflect.Descriptor instead.
 func (*JSONWebKeySet) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{93}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{97}
 }
 
 func (x *JSONWebKeySet) GetLocal() *LocalJWKS {
@@ -7696,7 +7948,7 @@ type LocalJWKS struct {
 
 func (x *LocalJWKS) Reset() {
 	*x = LocalJWKS{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[94]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[98]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7708,7 +7960,7 @@ func (x *LocalJWKS) String() string {
 func (*LocalJWKS) ProtoMessage() {}
 
 func (x *LocalJWKS) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[94]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[98]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7721,7 +7973,7 @@ func (x *LocalJWKS) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalJWKS.ProtoReflect.Descriptor instead.
 func (*LocalJWKS) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{94}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{98}
 }
 
 func (x *LocalJWKS) GetJWKS() string {
@@ -7760,7 +8012,7 @@ type RemoteJWKS struct {
 
 func (x *RemoteJWKS) Reset() {
 	*x = RemoteJWKS{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[95]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[99]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7772,7 +8024,7 @@ func (x *RemoteJWKS) String() string {
 func (*RemoteJWKS) ProtoMessage() {}
 
 func (x *RemoteJWKS) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[95]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[99]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7785,7 +8037,7 @@ func (x *RemoteJWKS) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoteJWKS.ProtoReflect.Descriptor instead.
 func (*RemoteJWKS) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{95}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{99}
 }
 
 func (x *RemoteJWKS) GetURI() string {
@@ -7854,7 +8106,7 @@ type JWKSCluster struct {
 
 func (x *JWKSCluster) Reset() {
 	*x = JWKSCluster{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[96]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[100]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7866,7 +8118,7 @@ func (x *JWKSCluster) String() string {
 func (*JWKSCluster) ProtoMessage() {}
 
 func (x *JWKSCluster) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[96]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[100]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7879,7 +8131,7 @@ func (x *JWKSCluster) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JWKSCluster.ProtoReflect.Descriptor instead.
 func (*JWKSCluster) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{96}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{100}
 }
 
 func (x *JWKSCluster) GetDiscoveryType() string {
@@ -7918,7 +8170,7 @@ type JWKSTLSCertificate struct {
 
 func (x *JWKSTLSCertificate) Reset() {
 	*x = JWKSTLSCertificate{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[97]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[101]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7930,7 +8182,7 @@ func (x *JWKSTLSCertificate) String() string {
 func (*JWKSTLSCertificate) ProtoMessage() {}
 
 func (x *JWKSTLSCertificate) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[97]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[101]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7943,7 +8195,7 @@ func (x *JWKSTLSCertificate) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JWKSTLSCertificate.ProtoReflect.Descriptor instead.
 func (*JWKSTLSCertificate) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{97}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{101}
 }
 
 func (x *JWKSTLSCertificate) GetCaCertificateProviderInstance() *JWKSTLSCertProviderInstance {
@@ -7975,7 +8227,7 @@ type JWKSTLSCertProviderInstance struct {
 
 func (x *JWKSTLSCertProviderInstance) Reset() {
 	*x = JWKSTLSCertProviderInstance{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[98]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[102]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7987,7 +8239,7 @@ func (x *JWKSTLSCertProviderInstance) String() string {
 func (*JWKSTLSCertProviderInstance) ProtoMessage() {}
 
 func (x *JWKSTLSCertProviderInstance) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[98]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[102]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8000,7 +8252,7 @@ func (x *JWKSTLSCertProviderInstance) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JWKSTLSCertProviderInstance.ProtoReflect.Descriptor instead.
 func (*JWKSTLSCertProviderInstance) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{98}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{102}
 }
 
 func (x *JWKSTLSCertProviderInstance) GetInstanceName() string {
@@ -8034,7 +8286,7 @@ type JWKSTLSCertTrustedCA struct {
 
 func (x *JWKSTLSCertTrustedCA) Reset() {
 	*x = JWKSTLSCertTrustedCA{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[99]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[103]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8046,7 +8298,7 @@ func (x *JWKSTLSCertTrustedCA) String() string {
 func (*JWKSTLSCertTrustedCA) ProtoMessage() {}
 
 func (x *JWKSTLSCertTrustedCA) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[99]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[103]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8059,7 +8311,7 @@ func (x *JWKSTLSCertTrustedCA) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JWKSTLSCertTrustedCA.ProtoReflect.Descriptor instead.
 func (*JWKSTLSCertTrustedCA) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{99}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{103}
 }
 
 func (x *JWKSTLSCertTrustedCA) GetFilename() string {
@@ -8106,7 +8358,7 @@ type JWKSRetryPolicy struct {
 
 func (x *JWKSRetryPolicy) Reset() {
 	*x = JWKSRetryPolicy{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[100]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[104]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8118,7 +8370,7 @@ func (x *JWKSRetryPolicy) String() string {
 func (*JWKSRetryPolicy) ProtoMessage() {}
 
 func (x *JWKSRetryPolicy) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[100]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[104]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8131,7 +8383,7 @@ func (x *JWKSRetryPolicy) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JWKSRetryPolicy.ProtoReflect.Descriptor instead.
 func (*JWKSRetryPolicy) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{100}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{104}
 }
 
 func (x *JWKSRetryPolicy) GetNumRetries() int32 {
@@ -8165,7 +8417,7 @@ type RetryPolicyBackOff struct {
 
 func (x *RetryPolicyBackOff) Reset() {
 	*x = RetryPolicyBackOff{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[101]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[105]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8177,7 +8429,7 @@ func (x *RetryPolicyBackOff) String() string {
 func (*RetryPolicyBackOff) ProtoMessage() {}
 
 func (x *RetryPolicyBackOff) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[101]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[105]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8190,7 +8442,7 @@ func (x *RetryPolicyBackOff) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RetryPolicyBackOff.ProtoReflect.Descriptor instead.
 func (*RetryPolicyBackOff) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{101}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{105}
 }
 
 func (x *RetryPolicyBackOff) GetBaseInterval() *durationpb.Duration {
@@ -8223,7 +8475,7 @@ type JWTLocation struct {
 
 func (x *JWTLocation) Reset() {
 	*x = JWTLocation{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[102]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[106]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8235,7 +8487,7 @@ func (x *JWTLocation) String() string {
 func (*JWTLocation) ProtoMessage() {}
 
 func (x *JWTLocation) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[102]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[106]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8248,7 +8500,7 @@ func (x *JWTLocation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JWTLocation.ProtoReflect.Descriptor instead.
 func (*JWTLocation) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{102}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{106}
 }
 
 func (x *JWTLocation) GetHeader() *JWTLocationHeader {
@@ -8288,7 +8540,7 @@ type JWTLocationHeader struct {
 
 func (x *JWTLocationHeader) Reset() {
 	*x = JWTLocationHeader{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[103]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[107]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8300,7 +8552,7 @@ func (x *JWTLocationHeader) String() string {
 func (*JWTLocationHeader) ProtoMessage() {}
 
 func (x *JWTLocationHeader) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[103]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[107]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8313,7 +8565,7 @@ func (x *JWTLocationHeader) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JWTLocationHeader.ProtoReflect.Descriptor instead.
 func (*JWTLocationHeader) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{103}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{107}
 }
 
 func (x *JWTLocationHeader) GetName() string {
@@ -8351,7 +8603,7 @@ type JWTLocationQueryParam struct {
 
 func (x *JWTLocationQueryParam) Reset() {
 	*x = JWTLocationQueryParam{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[104]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[108]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8363,7 +8615,7 @@ func (x *JWTLocationQueryParam) String() string {
 func (*JWTLocationQueryParam) ProtoMessage() {}
 
 func (x *JWTLocationQueryParam) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[104]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[108]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8376,7 +8628,7 @@ func (x *JWTLocationQueryParam) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JWTLocationQueryParam.ProtoReflect.Descriptor instead.
 func (*JWTLocationQueryParam) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{104}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{108}
 }
 
 func (x *JWTLocationQueryParam) GetName() string {
@@ -8400,7 +8652,7 @@ type JWTLocationCookie struct {
 
 func (x *JWTLocationCookie) Reset() {
 	*x = JWTLocationCookie{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[105]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[109]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8412,7 +8664,7 @@ func (x *JWTLocationCookie) String() string {
 func (*JWTLocationCookie) ProtoMessage() {}
 
 func (x *JWTLocationCookie) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[105]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[109]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8425,7 +8677,7 @@ func (x *JWTLocationCookie) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JWTLocationCookie.ProtoReflect.Descriptor instead.
 func (*JWTLocationCookie) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{105}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{109}
 }
 
 func (x *JWTLocationCookie) GetName() string {
@@ -8450,7 +8702,7 @@ type JWTForwardingConfig struct {
 
 func (x *JWTForwardingConfig) Reset() {
 	*x = JWTForwardingConfig{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[106]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[110]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8462,7 +8714,7 @@ func (x *JWTForwardingConfig) String() string {
 func (*JWTForwardingConfig) ProtoMessage() {}
 
 func (x *JWTForwardingConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[106]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[110]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8475,7 +8727,7 @@ func (x *JWTForwardingConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JWTForwardingConfig.ProtoReflect.Descriptor instead.
 func (*JWTForwardingConfig) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{106}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{110}
 }
 
 func (x *JWTForwardingConfig) GetHeaderName() string {
@@ -8507,7 +8759,7 @@ type JWTCacheConfig struct {
 
 func (x *JWTCacheConfig) Reset() {
 	*x = JWTCacheConfig{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[107]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[111]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8519,7 +8771,7 @@ func (x *JWTCacheConfig) String() string {
 func (*JWTCacheConfig) ProtoMessage() {}
 
 func (x *JWTCacheConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[107]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[111]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8532,7 +8784,7 @@ func (x *JWTCacheConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JWTCacheConfig.ProtoReflect.Descriptor instead.
 func (*JWTCacheConfig) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{107}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{111}
 }
 
 func (x *JWTCacheConfig) GetSize() int32 {
@@ -8562,7 +8814,7 @@ type ExportedServices struct {
 
 func (x *ExportedServices) Reset() {
 	*x = ExportedServices{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[108]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[112]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8574,7 +8826,7 @@ func (x *ExportedServices) String() string {
 func (*ExportedServices) ProtoMessage() {}
 
 func (x *ExportedServices) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[108]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[112]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8587,7 +8839,7 @@ func (x *ExportedServices) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExportedServices.ProtoReflect.Descriptor instead.
 func (*ExportedServices) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{108}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{112}
 }
 
 func (x *ExportedServices) GetName() string {
@@ -8641,7 +8893,7 @@ type ExportedServicesService struct {
 
 func (x *ExportedServicesService) Reset() {
 	*x = ExportedServicesService{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[109]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[113]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8653,7 +8905,7 @@ func (x *ExportedServicesService) String() string {
 func (*ExportedServicesService) ProtoMessage() {}
 
 func (x *ExportedServicesService) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[109]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[113]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8666,7 +8918,7 @@ func (x *ExportedServicesService) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExportedServicesService.ProtoReflect.Descriptor instead.
 func (*ExportedServicesService) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{109}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{113}
 }
 
 func (x *ExportedServicesService) GetName() string {
@@ -8706,7 +8958,7 @@ type ExportedServicesConsumer struct {
 
 func (x *ExportedServicesConsumer) Reset() {
 	*x = ExportedServicesConsumer{}
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[110]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[114]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8718,7 +8970,7 @@ func (x *ExportedServicesConsumer) String() string {
 func (*ExportedServicesConsumer) ProtoMessage() {}
 
 func (x *ExportedServicesConsumer) ProtoReflect() protoreflect.Message {
-	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[110]
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[114]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8731,7 +8983,7 @@ func (x *ExportedServicesConsumer) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExportedServicesConsumer.ProtoReflect.Descriptor instead.
 func (*ExportedServicesConsumer) Descriptor() ([]byte, []int) {
-	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{110}
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{114}
 }
 
 func (x *ExportedServicesConsumer) GetPartition() string {
@@ -9256,7 +9508,7 @@ const file_private_pbconfigentry_config_entry_proto_rawDesc = "" +
 	"\x0eHTTPQueryMatch\x12O\n" +
 	"\x05Match\x18\x01 \x01(\x0e29.hashicorp.consul.internal.configentry.HTTPQueryMatchTypeR\x05Match\x12\x12\n" +
 	"\x04Name\x18\x02 \x01(\tR\x04Name\x12\x14\n" +
-	"\x05Value\x18\x03 \x01(\tR\x05Value\"\x85\x04\n" +
+	"\x05Value\x18\x03 \x01(\tR\x05Value\"\xd5\x04\n" +
 	"\vHTTPFilters\x12Q\n" +
 	"\aHeaders\x18\x01 \x03(\v27.hashicorp.consul.internal.configentry.HTTPHeaderFilterR\aHeaders\x12Q\n" +
 	"\n" +
@@ -9265,7 +9517,26 @@ const file_private_pbconfigentry_config_entry_proto_rawDesc = "" +
 	"\vRetryFilter\x18\x03 \x01(\v22.hashicorp.consul.internal.configentry.RetryFilterR\vRetryFilter\x12Z\n" +
 	"\rTimeoutFilter\x18\x04 \x01(\v24.hashicorp.consul.internal.configentry.TimeoutFilterR\rTimeoutFilter\x12B\n" +
 	"\x03JWT\x18\x05 \x01(\v20.hashicorp.consul.internal.configentry.JWTFilterR\x03JWT\x12Z\n" +
-	"\bExtAuthz\x18\x06 \x01(\v2>.hashicorp.consul.internal.configentry.HTTPRouteExtAuthzFilterR\bExtAuthz\"3\n" +
+	"\bExtAuthz\x18\x06 \x01(\v2>.hashicorp.consul.internal.configentry.HTTPRouteExtAuthzFilterR\bExtAuthz\x12N\n" +
+	"\aExtProc\x18\a \x03(\v24.hashicorp.consul.internal.configentry.ExtProcFilterR\aExtProc\"\x9a\x01\n" +
+	"\rExtProcFilter\x12\x1e\n" +
+	"\n" +
+	"StatPrefix\x18\x01 \x01(\tR\n" +
+	"StatPrefix\x12\x12\n" +
+	"\x04Mode\x18\x02 \x01(\tR\x04Mode\x12U\n" +
+	"\tOverrides\x18\x03 \x01(\v27.hashicorp.consul.internal.configentry.ExtProcOverridesR\tOverrides\"l\n" +
+	"\x10ExtProcOverrides\x12X\n" +
+	"\n" +
+	"Processing\x18\x01 \x01(\v28.hashicorp.consul.internal.configentry.ExtProcProcessingR\n" +
+	"Processing\"\xcf\x01\n" +
+	"\x11ExtProcProcessing\x12[\n" +
+	"\aRequest\x18\x01 \x01(\v2A.hashicorp.consul.internal.configentry.ExtProcProcessingDirectionR\aRequest\x12]\n" +
+	"\bResponse\x18\x02 \x01(\v2A.hashicorp.consul.internal.configentry.ExtProcProcessingDirectionR\bResponse\"\xa2\x01\n" +
+	"\x1aExtProcProcessingDirection\x12 \n" +
+	"\vHeadersMode\x18\x01 \x01(\tR\vHeadersMode\x12\x1a\n" +
+	"\bBodyMode\x18\x02 \x01(\tR\bBodyMode\x12\"\n" +
+	"\fTrailersMode\x18\x03 \x01(\tR\fTrailersMode\x12\"\n" +
+	"\fMaxBodyBytes\x18\x04 \x01(\x03R\fMaxBodyBytes\"3\n" +
 	"\x17HTTPRouteExtAuthzFilter\x12\x18\n" +
 	"\aEnabled\x18\x01 \x01(\bR\aEnabled\"h\n" +
 	"\x13HTTPResponseFilters\x12Q\n" +
@@ -9515,7 +9786,7 @@ func file_private_pbconfigentry_config_entry_proto_rawDescGZIP() []byte {
 }
 
 var file_private_pbconfigentry_config_entry_proto_enumTypes = make([]protoimpl.EnumInfo, 13)
-var file_private_pbconfigentry_config_entry_proto_msgTypes = make([]protoimpl.MessageInfo, 134)
+var file_private_pbconfigentry_config_entry_proto_msgTypes = make([]protoimpl.MessageInfo, 138)
 var file_private_pbconfigentry_config_entry_proto_goTypes = []any{
 	(Kind)(0),                                   // 0: hashicorp.consul.internal.configentry.Kind
 	(PathWithEscapedSlashesAction)(0),           // 1: hashicorp.consul.internal.configentry.PathWithEscapedSlashesAction
@@ -9610,75 +9881,79 @@ var file_private_pbconfigentry_config_entry_proto_goTypes = []any{
 	(*HTTPPathMatch)(nil),                       // 90: hashicorp.consul.internal.configentry.HTTPPathMatch
 	(*HTTPQueryMatch)(nil),                      // 91: hashicorp.consul.internal.configentry.HTTPQueryMatch
 	(*HTTPFilters)(nil),                         // 92: hashicorp.consul.internal.configentry.HTTPFilters
-	(*HTTPRouteExtAuthzFilter)(nil),             // 93: hashicorp.consul.internal.configentry.HTTPRouteExtAuthzFilter
-	(*HTTPResponseFilters)(nil),                 // 94: hashicorp.consul.internal.configentry.HTTPResponseFilters
-	(*URLRewrite)(nil),                          // 95: hashicorp.consul.internal.configentry.URLRewrite
-	(*RetryFilter)(nil),                         // 96: hashicorp.consul.internal.configentry.RetryFilter
-	(*TimeoutFilter)(nil),                       // 97: hashicorp.consul.internal.configentry.TimeoutFilter
-	(*JWTFilter)(nil),                           // 98: hashicorp.consul.internal.configentry.JWTFilter
-	(*HTTPHeaderFilter)(nil),                    // 99: hashicorp.consul.internal.configentry.HTTPHeaderFilter
-	(*HTTPService)(nil),                         // 100: hashicorp.consul.internal.configentry.HTTPService
-	(*TCPRoute)(nil),                            // 101: hashicorp.consul.internal.configentry.TCPRoute
-	(*TCPService)(nil),                          // 102: hashicorp.consul.internal.configentry.TCPService
-	(*SamenessGroup)(nil),                       // 103: hashicorp.consul.internal.configentry.SamenessGroup
-	(*SamenessGroupMember)(nil),                 // 104: hashicorp.consul.internal.configentry.SamenessGroupMember
-	(*JWTProvider)(nil),                         // 105: hashicorp.consul.internal.configentry.JWTProvider
-	(*JSONWebKeySet)(nil),                       // 106: hashicorp.consul.internal.configentry.JSONWebKeySet
-	(*LocalJWKS)(nil),                           // 107: hashicorp.consul.internal.configentry.LocalJWKS
-	(*RemoteJWKS)(nil),                          // 108: hashicorp.consul.internal.configentry.RemoteJWKS
-	(*JWKSCluster)(nil),                         // 109: hashicorp.consul.internal.configentry.JWKSCluster
-	(*JWKSTLSCertificate)(nil),                  // 110: hashicorp.consul.internal.configentry.JWKSTLSCertificate
-	(*JWKSTLSCertProviderInstance)(nil),         // 111: hashicorp.consul.internal.configentry.JWKSTLSCertProviderInstance
-	(*JWKSTLSCertTrustedCA)(nil),                // 112: hashicorp.consul.internal.configentry.JWKSTLSCertTrustedCA
-	(*JWKSRetryPolicy)(nil),                     // 113: hashicorp.consul.internal.configentry.JWKSRetryPolicy
-	(*RetryPolicyBackOff)(nil),                  // 114: hashicorp.consul.internal.configentry.RetryPolicyBackOff
-	(*JWTLocation)(nil),                         // 115: hashicorp.consul.internal.configentry.JWTLocation
-	(*JWTLocationHeader)(nil),                   // 116: hashicorp.consul.internal.configentry.JWTLocationHeader
-	(*JWTLocationQueryParam)(nil),               // 117: hashicorp.consul.internal.configentry.JWTLocationQueryParam
-	(*JWTLocationCookie)(nil),                   // 118: hashicorp.consul.internal.configentry.JWTLocationCookie
-	(*JWTForwardingConfig)(nil),                 // 119: hashicorp.consul.internal.configentry.JWTForwardingConfig
-	(*JWTCacheConfig)(nil),                      // 120: hashicorp.consul.internal.configentry.JWTCacheConfig
-	(*ExportedServices)(nil),                    // 121: hashicorp.consul.internal.configentry.ExportedServices
-	(*ExportedServicesService)(nil),             // 122: hashicorp.consul.internal.configentry.ExportedServicesService
-	(*ExportedServicesConsumer)(nil),            // 123: hashicorp.consul.internal.configentry.ExportedServicesConsumer
-	nil,                                         // 124: hashicorp.consul.internal.configentry.MeshConfig.MetaEntry
-	nil,                                         // 125: hashicorp.consul.internal.configentry.ServiceResolver.SubsetsEntry
-	nil,                                         // 126: hashicorp.consul.internal.configentry.ServiceResolver.FailoverEntry
-	nil,                                         // 127: hashicorp.consul.internal.configentry.ServiceResolver.MetaEntry
-	nil,                                         // 128: hashicorp.consul.internal.configentry.IngressGateway.MetaEntry
-	nil,                                         // 129: hashicorp.consul.internal.configentry.IngressService.MetaEntry
-	nil,                                         // 130: hashicorp.consul.internal.configentry.HTTPHeaderModifiers.AddEntry
-	nil,                                         // 131: hashicorp.consul.internal.configentry.HTTPHeaderModifiers.SetEntry
-	nil,                                         // 132: hashicorp.consul.internal.configentry.ServiceIntentions.MetaEntry
-	nil,                                         // 133: hashicorp.consul.internal.configentry.SourceIntention.LegacyMetaEntry
-	nil,                                         // 134: hashicorp.consul.internal.configentry.ServiceDefaults.MetaEntry
-	nil,                                         // 135: hashicorp.consul.internal.configentry.APIGateway.MetaEntry
-	nil,                                         // 136: hashicorp.consul.internal.configentry.BoundAPIGateway.MetaEntry
-	nil,                                         // 137: hashicorp.consul.internal.configentry.BoundAPIGateway.ServicesEntry
-	nil,                                         // 138: hashicorp.consul.internal.configentry.FileSystemCertificate.MetaEntry
-	nil,                                         // 139: hashicorp.consul.internal.configentry.InlineCertificate.MetaEntry
-	nil,                                         // 140: hashicorp.consul.internal.configentry.HTTPRoute.MetaEntry
-	nil,                                         // 141: hashicorp.consul.internal.configentry.HTTPHeaderFilter.AddEntry
-	nil,                                         // 142: hashicorp.consul.internal.configentry.HTTPHeaderFilter.SetEntry
-	nil,                                         // 143: hashicorp.consul.internal.configentry.TCPRoute.MetaEntry
-	nil,                                         // 144: hashicorp.consul.internal.configentry.SamenessGroup.MetaEntry
-	nil,                                         // 145: hashicorp.consul.internal.configentry.JWTProvider.MetaEntry
-	nil,                                         // 146: hashicorp.consul.internal.configentry.ExportedServices.MetaEntry
-	(*pbcommon.EnterpriseMeta)(nil),             // 147: hashicorp.consul.internal.common.EnterpriseMeta
-	(*pbcommon.RaftIndex)(nil),                  // 148: hashicorp.consul.internal.common.RaftIndex
-	(*durationpb.Duration)(nil),                 // 149: google.protobuf.Duration
-	(*timestamppb.Timestamp)(nil),               // 150: google.protobuf.Timestamp
-	(*pbcommon.EnvoyExtension)(nil),             // 151: hashicorp.consul.internal.common.EnvoyExtension
+	(*ExtProcFilter)(nil),                       // 93: hashicorp.consul.internal.configentry.ExtProcFilter
+	(*ExtProcOverrides)(nil),                    // 94: hashicorp.consul.internal.configentry.ExtProcOverrides
+	(*ExtProcProcessing)(nil),                   // 95: hashicorp.consul.internal.configentry.ExtProcProcessing
+	(*ExtProcProcessingDirection)(nil),          // 96: hashicorp.consul.internal.configentry.ExtProcProcessingDirection
+	(*HTTPRouteExtAuthzFilter)(nil),             // 97: hashicorp.consul.internal.configentry.HTTPRouteExtAuthzFilter
+	(*HTTPResponseFilters)(nil),                 // 98: hashicorp.consul.internal.configentry.HTTPResponseFilters
+	(*URLRewrite)(nil),                          // 99: hashicorp.consul.internal.configentry.URLRewrite
+	(*RetryFilter)(nil),                         // 100: hashicorp.consul.internal.configentry.RetryFilter
+	(*TimeoutFilter)(nil),                       // 101: hashicorp.consul.internal.configentry.TimeoutFilter
+	(*JWTFilter)(nil),                           // 102: hashicorp.consul.internal.configentry.JWTFilter
+	(*HTTPHeaderFilter)(nil),                    // 103: hashicorp.consul.internal.configentry.HTTPHeaderFilter
+	(*HTTPService)(nil),                         // 104: hashicorp.consul.internal.configentry.HTTPService
+	(*TCPRoute)(nil),                            // 105: hashicorp.consul.internal.configentry.TCPRoute
+	(*TCPService)(nil),                          // 106: hashicorp.consul.internal.configentry.TCPService
+	(*SamenessGroup)(nil),                       // 107: hashicorp.consul.internal.configentry.SamenessGroup
+	(*SamenessGroupMember)(nil),                 // 108: hashicorp.consul.internal.configentry.SamenessGroupMember
+	(*JWTProvider)(nil),                         // 109: hashicorp.consul.internal.configentry.JWTProvider
+	(*JSONWebKeySet)(nil),                       // 110: hashicorp.consul.internal.configentry.JSONWebKeySet
+	(*LocalJWKS)(nil),                           // 111: hashicorp.consul.internal.configentry.LocalJWKS
+	(*RemoteJWKS)(nil),                          // 112: hashicorp.consul.internal.configentry.RemoteJWKS
+	(*JWKSCluster)(nil),                         // 113: hashicorp.consul.internal.configentry.JWKSCluster
+	(*JWKSTLSCertificate)(nil),                  // 114: hashicorp.consul.internal.configentry.JWKSTLSCertificate
+	(*JWKSTLSCertProviderInstance)(nil),         // 115: hashicorp.consul.internal.configentry.JWKSTLSCertProviderInstance
+	(*JWKSTLSCertTrustedCA)(nil),                // 116: hashicorp.consul.internal.configentry.JWKSTLSCertTrustedCA
+	(*JWKSRetryPolicy)(nil),                     // 117: hashicorp.consul.internal.configentry.JWKSRetryPolicy
+	(*RetryPolicyBackOff)(nil),                  // 118: hashicorp.consul.internal.configentry.RetryPolicyBackOff
+	(*JWTLocation)(nil),                         // 119: hashicorp.consul.internal.configentry.JWTLocation
+	(*JWTLocationHeader)(nil),                   // 120: hashicorp.consul.internal.configentry.JWTLocationHeader
+	(*JWTLocationQueryParam)(nil),               // 121: hashicorp.consul.internal.configentry.JWTLocationQueryParam
+	(*JWTLocationCookie)(nil),                   // 122: hashicorp.consul.internal.configentry.JWTLocationCookie
+	(*JWTForwardingConfig)(nil),                 // 123: hashicorp.consul.internal.configentry.JWTForwardingConfig
+	(*JWTCacheConfig)(nil),                      // 124: hashicorp.consul.internal.configentry.JWTCacheConfig
+	(*ExportedServices)(nil),                    // 125: hashicorp.consul.internal.configentry.ExportedServices
+	(*ExportedServicesService)(nil),             // 126: hashicorp.consul.internal.configentry.ExportedServicesService
+	(*ExportedServicesConsumer)(nil),            // 127: hashicorp.consul.internal.configentry.ExportedServicesConsumer
+	nil,                                         // 128: hashicorp.consul.internal.configentry.MeshConfig.MetaEntry
+	nil,                                         // 129: hashicorp.consul.internal.configentry.ServiceResolver.SubsetsEntry
+	nil,                                         // 130: hashicorp.consul.internal.configentry.ServiceResolver.FailoverEntry
+	nil,                                         // 131: hashicorp.consul.internal.configentry.ServiceResolver.MetaEntry
+	nil,                                         // 132: hashicorp.consul.internal.configentry.IngressGateway.MetaEntry
+	nil,                                         // 133: hashicorp.consul.internal.configentry.IngressService.MetaEntry
+	nil,                                         // 134: hashicorp.consul.internal.configentry.HTTPHeaderModifiers.AddEntry
+	nil,                                         // 135: hashicorp.consul.internal.configentry.HTTPHeaderModifiers.SetEntry
+	nil,                                         // 136: hashicorp.consul.internal.configentry.ServiceIntentions.MetaEntry
+	nil,                                         // 137: hashicorp.consul.internal.configentry.SourceIntention.LegacyMetaEntry
+	nil,                                         // 138: hashicorp.consul.internal.configentry.ServiceDefaults.MetaEntry
+	nil,                                         // 139: hashicorp.consul.internal.configentry.APIGateway.MetaEntry
+	nil,                                         // 140: hashicorp.consul.internal.configentry.BoundAPIGateway.MetaEntry
+	nil,                                         // 141: hashicorp.consul.internal.configentry.BoundAPIGateway.ServicesEntry
+	nil,                                         // 142: hashicorp.consul.internal.configentry.FileSystemCertificate.MetaEntry
+	nil,                                         // 143: hashicorp.consul.internal.configentry.InlineCertificate.MetaEntry
+	nil,                                         // 144: hashicorp.consul.internal.configentry.HTTPRoute.MetaEntry
+	nil,                                         // 145: hashicorp.consul.internal.configentry.HTTPHeaderFilter.AddEntry
+	nil,                                         // 146: hashicorp.consul.internal.configentry.HTTPHeaderFilter.SetEntry
+	nil,                                         // 147: hashicorp.consul.internal.configentry.TCPRoute.MetaEntry
+	nil,                                         // 148: hashicorp.consul.internal.configentry.SamenessGroup.MetaEntry
+	nil,                                         // 149: hashicorp.consul.internal.configentry.JWTProvider.MetaEntry
+	nil,                                         // 150: hashicorp.consul.internal.configentry.ExportedServices.MetaEntry
+	(*pbcommon.EnterpriseMeta)(nil),             // 151: hashicorp.consul.internal.common.EnterpriseMeta
+	(*pbcommon.RaftIndex)(nil),                  // 152: hashicorp.consul.internal.common.RaftIndex
+	(*durationpb.Duration)(nil),                 // 153: google.protobuf.Duration
+	(*timestamppb.Timestamp)(nil),               // 154: google.protobuf.Timestamp
+	(*pbcommon.EnvoyExtension)(nil),             // 155: hashicorp.consul.internal.common.EnvoyExtension
 }
 var file_private_pbconfigentry_config_entry_proto_depIdxs = []int32{
 	15,  // 0: hashicorp.consul.internal.configentry.GetResolvedExportedServicesResponse.services:type_name -> hashicorp.consul.internal.configentry.ResolvedExportedService
-	147, // 1: hashicorp.consul.internal.configentry.ResolvedExportedService.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	151, // 1: hashicorp.consul.internal.configentry.ResolvedExportedService.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
 	16,  // 2: hashicorp.consul.internal.configentry.ResolvedExportedService.Consumers:type_name -> hashicorp.consul.internal.configentry.Consumers
 	19,  // 3: hashicorp.consul.internal.configentry.GetImportedServicesResponse.Services:type_name -> hashicorp.consul.internal.configentry.ImportedService
-	147, // 4: hashicorp.consul.internal.configentry.ImportedService.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	151, // 4: hashicorp.consul.internal.configentry.ImportedService.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
 	0,   // 5: hashicorp.consul.internal.configentry.ConfigEntry.Kind:type_name -> hashicorp.consul.internal.configentry.Kind
-	147, // 6: hashicorp.consul.internal.configentry.ConfigEntry.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
-	148, // 7: hashicorp.consul.internal.configentry.ConfigEntry.RaftIndex:type_name -> hashicorp.consul.internal.common.RaftIndex
+	151, // 6: hashicorp.consul.internal.configentry.ConfigEntry.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	152, // 7: hashicorp.consul.internal.configentry.ConfigEntry.RaftIndex:type_name -> hashicorp.consul.internal.common.RaftIndex
 	21,  // 8: hashicorp.consul.internal.configentry.ConfigEntry.MeshConfig:type_name -> hashicorp.consul.internal.configentry.MeshConfig
 	29,  // 9: hashicorp.consul.internal.configentry.ConfigEntry.ServiceResolver:type_name -> hashicorp.consul.internal.configentry.ServiceResolver
 	41,  // 10: hashicorp.consul.internal.configentry.ConfigEntry.IngressGateway:type_name -> hashicorp.consul.internal.configentry.IngressGateway
@@ -9686,17 +9961,17 @@ var file_private_pbconfigentry_config_entry_proto_depIdxs = []int32{
 	57,  // 12: hashicorp.consul.internal.configentry.ConfigEntry.ServiceDefaults:type_name -> hashicorp.consul.internal.configentry.ServiceDefaults
 	70,  // 13: hashicorp.consul.internal.configentry.ConfigEntry.APIGateway:type_name -> hashicorp.consul.internal.configentry.APIGateway
 	81,  // 14: hashicorp.consul.internal.configentry.ConfigEntry.BoundAPIGateway:type_name -> hashicorp.consul.internal.configentry.BoundAPIGateway
-	101, // 15: hashicorp.consul.internal.configentry.ConfigEntry.TCPRoute:type_name -> hashicorp.consul.internal.configentry.TCPRoute
+	105, // 15: hashicorp.consul.internal.configentry.ConfigEntry.TCPRoute:type_name -> hashicorp.consul.internal.configentry.TCPRoute
 	86,  // 16: hashicorp.consul.internal.configentry.ConfigEntry.HTTPRoute:type_name -> hashicorp.consul.internal.configentry.HTTPRoute
 	85,  // 17: hashicorp.consul.internal.configentry.ConfigEntry.InlineCertificate:type_name -> hashicorp.consul.internal.configentry.InlineCertificate
-	103, // 18: hashicorp.consul.internal.configentry.ConfigEntry.SamenessGroup:type_name -> hashicorp.consul.internal.configentry.SamenessGroup
-	105, // 19: hashicorp.consul.internal.configentry.ConfigEntry.JWTProvider:type_name -> hashicorp.consul.internal.configentry.JWTProvider
-	121, // 20: hashicorp.consul.internal.configentry.ConfigEntry.ExportedServices:type_name -> hashicorp.consul.internal.configentry.ExportedServices
+	107, // 18: hashicorp.consul.internal.configentry.ConfigEntry.SamenessGroup:type_name -> hashicorp.consul.internal.configentry.SamenessGroup
+	109, // 19: hashicorp.consul.internal.configentry.ConfigEntry.JWTProvider:type_name -> hashicorp.consul.internal.configentry.JWTProvider
+	125, // 20: hashicorp.consul.internal.configentry.ConfigEntry.ExportedServices:type_name -> hashicorp.consul.internal.configentry.ExportedServices
 	84,  // 21: hashicorp.consul.internal.configentry.ConfigEntry.FileSystemCertificate:type_name -> hashicorp.consul.internal.configentry.FileSystemCertificate
 	22,  // 22: hashicorp.consul.internal.configentry.MeshConfig.TransparentProxy:type_name -> hashicorp.consul.internal.configentry.TransparentProxyMeshConfig
 	23,  // 23: hashicorp.consul.internal.configentry.MeshConfig.TLS:type_name -> hashicorp.consul.internal.configentry.MeshTLSConfig
 	25,  // 24: hashicorp.consul.internal.configentry.MeshConfig.HTTP:type_name -> hashicorp.consul.internal.configentry.MeshHTTPConfig
-	124, // 25: hashicorp.consul.internal.configentry.MeshConfig.Meta:type_name -> hashicorp.consul.internal.configentry.MeshConfig.MetaEntry
+	128, // 25: hashicorp.consul.internal.configentry.MeshConfig.Meta:type_name -> hashicorp.consul.internal.configentry.MeshConfig.MetaEntry
 	27,  // 26: hashicorp.consul.internal.configentry.MeshConfig.Peering:type_name -> hashicorp.consul.internal.configentry.PeeringMeshConfig
 	24,  // 27: hashicorp.consul.internal.configentry.MeshTLSConfig.Incoming:type_name -> hashicorp.consul.internal.configentry.MeshDirectionalTLSConfig
 	24,  // 28: hashicorp.consul.internal.configentry.MeshTLSConfig.Outgoing:type_name -> hashicorp.consul.internal.configentry.MeshDirectionalTLSConfig
@@ -9704,13 +9979,13 @@ var file_private_pbconfigentry_config_entry_proto_depIdxs = []int32{
 	28,  // 30: hashicorp.consul.internal.configentry.MeshDirectionalHTTPConfig.RequestNormalization:type_name -> hashicorp.consul.internal.configentry.RequestNormalizationMeshConfig
 	1,   // 31: hashicorp.consul.internal.configentry.RequestNormalizationMeshConfig.PathWithEscapedSlashesAction:type_name -> hashicorp.consul.internal.configentry.PathWithEscapedSlashesAction
 	2,   // 32: hashicorp.consul.internal.configentry.RequestNormalizationMeshConfig.HeadersWithUnderscoresAction:type_name -> hashicorp.consul.internal.configentry.HeadersWithUnderscoresAction
-	125, // 33: hashicorp.consul.internal.configentry.ServiceResolver.Subsets:type_name -> hashicorp.consul.internal.configentry.ServiceResolver.SubsetsEntry
+	129, // 33: hashicorp.consul.internal.configentry.ServiceResolver.Subsets:type_name -> hashicorp.consul.internal.configentry.ServiceResolver.SubsetsEntry
 	31,  // 34: hashicorp.consul.internal.configentry.ServiceResolver.Redirect:type_name -> hashicorp.consul.internal.configentry.ServiceResolverRedirect
-	126, // 35: hashicorp.consul.internal.configentry.ServiceResolver.Failover:type_name -> hashicorp.consul.internal.configentry.ServiceResolver.FailoverEntry
-	149, // 36: hashicorp.consul.internal.configentry.ServiceResolver.ConnectTimeout:type_name -> google.protobuf.Duration
+	130, // 35: hashicorp.consul.internal.configentry.ServiceResolver.Failover:type_name -> hashicorp.consul.internal.configentry.ServiceResolver.FailoverEntry
+	153, // 36: hashicorp.consul.internal.configentry.ServiceResolver.ConnectTimeout:type_name -> google.protobuf.Duration
 	36,  // 37: hashicorp.consul.internal.configentry.ServiceResolver.LoadBalancer:type_name -> hashicorp.consul.internal.configentry.LoadBalancer
-	127, // 38: hashicorp.consul.internal.configentry.ServiceResolver.Meta:type_name -> hashicorp.consul.internal.configentry.ServiceResolver.MetaEntry
-	149, // 39: hashicorp.consul.internal.configentry.ServiceResolver.RequestTimeout:type_name -> google.protobuf.Duration
+	131, // 38: hashicorp.consul.internal.configentry.ServiceResolver.Meta:type_name -> hashicorp.consul.internal.configentry.ServiceResolver.MetaEntry
+	153, // 39: hashicorp.consul.internal.configentry.ServiceResolver.RequestTimeout:type_name -> google.protobuf.Duration
 	34,  // 40: hashicorp.consul.internal.configentry.ServiceResolver.PrioritizeByLocality:type_name -> hashicorp.consul.internal.configentry.ServiceResolverPrioritizeByLocality
 	35,  // 41: hashicorp.consul.internal.configentry.ServiceResolverFailover.Targets:type_name -> hashicorp.consul.internal.configentry.ServiceResolverFailoverTarget
 	33,  // 42: hashicorp.consul.internal.configentry.ServiceResolverFailover.Policy:type_name -> hashicorp.consul.internal.configentry.ServiceResolverFailoverPolicy
@@ -9718,10 +9993,10 @@ var file_private_pbconfigentry_config_entry_proto_depIdxs = []int32{
 	38,  // 44: hashicorp.consul.internal.configentry.LoadBalancer.LeastRequestConfig:type_name -> hashicorp.consul.internal.configentry.LeastRequestConfig
 	39,  // 45: hashicorp.consul.internal.configentry.LoadBalancer.HashPolicies:type_name -> hashicorp.consul.internal.configentry.HashPolicy
 	40,  // 46: hashicorp.consul.internal.configentry.HashPolicy.CookieConfig:type_name -> hashicorp.consul.internal.configentry.CookieConfig
-	149, // 47: hashicorp.consul.internal.configentry.CookieConfig.TTL:type_name -> google.protobuf.Duration
+	153, // 47: hashicorp.consul.internal.configentry.CookieConfig.TTL:type_name -> google.protobuf.Duration
 	43,  // 48: hashicorp.consul.internal.configentry.IngressGateway.TLS:type_name -> hashicorp.consul.internal.configentry.GatewayTLSConfig
 	45,  // 49: hashicorp.consul.internal.configentry.IngressGateway.Listeners:type_name -> hashicorp.consul.internal.configentry.IngressListener
-	128, // 50: hashicorp.consul.internal.configentry.IngressGateway.Meta:type_name -> hashicorp.consul.internal.configentry.IngressGateway.MetaEntry
+	132, // 50: hashicorp.consul.internal.configentry.IngressGateway.Meta:type_name -> hashicorp.consul.internal.configentry.IngressGateway.MetaEntry
 	42,  // 51: hashicorp.consul.internal.configentry.IngressGateway.Defaults:type_name -> hashicorp.consul.internal.configentry.IngressServiceConfig
 	65,  // 52: hashicorp.consul.internal.configentry.IngressServiceConfig.PassiveHealthCheck:type_name -> hashicorp.consul.internal.configentry.PassiveHealthCheck
 	44,  // 53: hashicorp.consul.internal.configentry.GatewayTLSConfig.SDS:type_name -> hashicorp.consul.internal.configentry.GatewayTLSSDSConfig
@@ -9730,24 +10005,24 @@ var file_private_pbconfigentry_config_entry_proto_depIdxs = []int32{
 	47,  // 56: hashicorp.consul.internal.configentry.IngressService.TLS:type_name -> hashicorp.consul.internal.configentry.GatewayServiceTLSConfig
 	48,  // 57: hashicorp.consul.internal.configentry.IngressService.RequestHeaders:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderModifiers
 	48,  // 58: hashicorp.consul.internal.configentry.IngressService.ResponseHeaders:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderModifiers
-	129, // 59: hashicorp.consul.internal.configentry.IngressService.Meta:type_name -> hashicorp.consul.internal.configentry.IngressService.MetaEntry
-	147, // 60: hashicorp.consul.internal.configentry.IngressService.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	133, // 59: hashicorp.consul.internal.configentry.IngressService.Meta:type_name -> hashicorp.consul.internal.configentry.IngressService.MetaEntry
+	151, // 60: hashicorp.consul.internal.configentry.IngressService.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
 	65,  // 61: hashicorp.consul.internal.configentry.IngressService.PassiveHealthCheck:type_name -> hashicorp.consul.internal.configentry.PassiveHealthCheck
 	44,  // 62: hashicorp.consul.internal.configentry.GatewayServiceTLSConfig.SDS:type_name -> hashicorp.consul.internal.configentry.GatewayTLSSDSConfig
-	130, // 63: hashicorp.consul.internal.configentry.HTTPHeaderModifiers.Add:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderModifiers.AddEntry
-	131, // 64: hashicorp.consul.internal.configentry.HTTPHeaderModifiers.Set:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderModifiers.SetEntry
+	134, // 63: hashicorp.consul.internal.configentry.HTTPHeaderModifiers.Add:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderModifiers.AddEntry
+	135, // 64: hashicorp.consul.internal.configentry.HTTPHeaderModifiers.Set:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderModifiers.SetEntry
 	53,  // 65: hashicorp.consul.internal.configentry.ServiceIntentions.Sources:type_name -> hashicorp.consul.internal.configentry.SourceIntention
-	132, // 66: hashicorp.consul.internal.configentry.ServiceIntentions.Meta:type_name -> hashicorp.consul.internal.configentry.ServiceIntentions.MetaEntry
+	136, // 66: hashicorp.consul.internal.configentry.ServiceIntentions.Meta:type_name -> hashicorp.consul.internal.configentry.ServiceIntentions.MetaEntry
 	50,  // 67: hashicorp.consul.internal.configentry.ServiceIntentions.JWT:type_name -> hashicorp.consul.internal.configentry.IntentionJWTRequirement
 	51,  // 68: hashicorp.consul.internal.configentry.IntentionJWTRequirement.Providers:type_name -> hashicorp.consul.internal.configentry.IntentionJWTProvider
 	52,  // 69: hashicorp.consul.internal.configentry.IntentionJWTProvider.VerifyClaims:type_name -> hashicorp.consul.internal.configentry.IntentionJWTClaimVerification
 	3,   // 70: hashicorp.consul.internal.configentry.SourceIntention.Action:type_name -> hashicorp.consul.internal.configentry.IntentionAction
 	54,  // 71: hashicorp.consul.internal.configentry.SourceIntention.Permissions:type_name -> hashicorp.consul.internal.configentry.IntentionPermission
 	4,   // 72: hashicorp.consul.internal.configentry.SourceIntention.Type:type_name -> hashicorp.consul.internal.configentry.IntentionSourceType
-	133, // 73: hashicorp.consul.internal.configentry.SourceIntention.LegacyMeta:type_name -> hashicorp.consul.internal.configentry.SourceIntention.LegacyMetaEntry
-	150, // 74: hashicorp.consul.internal.configentry.SourceIntention.LegacyCreateTime:type_name -> google.protobuf.Timestamp
-	150, // 75: hashicorp.consul.internal.configentry.SourceIntention.LegacyUpdateTime:type_name -> google.protobuf.Timestamp
-	147, // 76: hashicorp.consul.internal.configentry.SourceIntention.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	137, // 73: hashicorp.consul.internal.configentry.SourceIntention.LegacyMeta:type_name -> hashicorp.consul.internal.configentry.SourceIntention.LegacyMetaEntry
+	154, // 74: hashicorp.consul.internal.configentry.SourceIntention.LegacyCreateTime:type_name -> google.protobuf.Timestamp
+	154, // 75: hashicorp.consul.internal.configentry.SourceIntention.LegacyUpdateTime:type_name -> google.protobuf.Timestamp
+	151, // 76: hashicorp.consul.internal.configentry.SourceIntention.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
 	3,   // 77: hashicorp.consul.internal.configentry.IntentionPermission.Action:type_name -> hashicorp.consul.internal.configentry.IntentionAction
 	55,  // 78: hashicorp.consul.internal.configentry.IntentionPermission.HTTP:type_name -> hashicorp.consul.internal.configentry.IntentionHTTPPermission
 	50,  // 79: hashicorp.consul.internal.configentry.IntentionPermission.JWT:type_name -> hashicorp.consul.internal.configentry.IntentionJWTRequirement
@@ -9759,22 +10034,22 @@ var file_private_pbconfigentry_config_entry_proto_depIdxs = []int32{
 	62,  // 85: hashicorp.consul.internal.configentry.ServiceDefaults.UpstreamConfig:type_name -> hashicorp.consul.internal.configentry.UpstreamConfiguration
 	66,  // 86: hashicorp.consul.internal.configentry.ServiceDefaults.Destination:type_name -> hashicorp.consul.internal.configentry.DestinationConfig
 	67,  // 87: hashicorp.consul.internal.configentry.ServiceDefaults.RateLimits:type_name -> hashicorp.consul.internal.configentry.RateLimits
-	134, // 88: hashicorp.consul.internal.configentry.ServiceDefaults.Meta:type_name -> hashicorp.consul.internal.configentry.ServiceDefaults.MetaEntry
-	151, // 89: hashicorp.consul.internal.configentry.ServiceDefaults.EnvoyExtensions:type_name -> hashicorp.consul.internal.common.EnvoyExtension
+	138, // 88: hashicorp.consul.internal.configentry.ServiceDefaults.Meta:type_name -> hashicorp.consul.internal.configentry.ServiceDefaults.MetaEntry
+	155, // 89: hashicorp.consul.internal.configentry.ServiceDefaults.EnvoyExtensions:type_name -> hashicorp.consul.internal.common.EnvoyExtension
 	6,   // 90: hashicorp.consul.internal.configentry.ServiceDefaults.MutualTLSMode:type_name -> hashicorp.consul.internal.configentry.MutualTLSMode
 	7,   // 91: hashicorp.consul.internal.configentry.MeshGatewayConfig.Mode:type_name -> hashicorp.consul.internal.configentry.MeshGatewayMode
 	61,  // 92: hashicorp.consul.internal.configentry.ExposeConfig.Paths:type_name -> hashicorp.consul.internal.configentry.ExposePath
 	63,  // 93: hashicorp.consul.internal.configentry.UpstreamConfiguration.Overrides:type_name -> hashicorp.consul.internal.configentry.UpstreamConfig
 	63,  // 94: hashicorp.consul.internal.configentry.UpstreamConfiguration.Defaults:type_name -> hashicorp.consul.internal.configentry.UpstreamConfig
-	147, // 95: hashicorp.consul.internal.configentry.UpstreamConfig.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	151, // 95: hashicorp.consul.internal.configentry.UpstreamConfig.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
 	64,  // 96: hashicorp.consul.internal.configentry.UpstreamConfig.Limits:type_name -> hashicorp.consul.internal.configentry.UpstreamLimits
 	65,  // 97: hashicorp.consul.internal.configentry.UpstreamConfig.PassiveHealthCheck:type_name -> hashicorp.consul.internal.configentry.PassiveHealthCheck
 	59,  // 98: hashicorp.consul.internal.configentry.UpstreamConfig.MeshGateway:type_name -> hashicorp.consul.internal.configentry.MeshGatewayConfig
-	149, // 99: hashicorp.consul.internal.configentry.PassiveHealthCheck.Interval:type_name -> google.protobuf.Duration
-	149, // 100: hashicorp.consul.internal.configentry.PassiveHealthCheck.BaseEjectionTime:type_name -> google.protobuf.Duration
+	153, // 99: hashicorp.consul.internal.configentry.PassiveHealthCheck.Interval:type_name -> google.protobuf.Duration
+	153, // 100: hashicorp.consul.internal.configentry.PassiveHealthCheck.BaseEjectionTime:type_name -> google.protobuf.Duration
 	68,  // 101: hashicorp.consul.internal.configentry.RateLimits.InstanceLevel:type_name -> hashicorp.consul.internal.configentry.InstanceLevelRateLimits
 	69,  // 102: hashicorp.consul.internal.configentry.InstanceLevelRateLimits.Routes:type_name -> hashicorp.consul.internal.configentry.InstanceLevelRouteRateLimits
-	135, // 103: hashicorp.consul.internal.configentry.APIGateway.Meta:type_name -> hashicorp.consul.internal.configentry.APIGateway.MetaEntry
+	139, // 103: hashicorp.consul.internal.configentry.APIGateway.Meta:type_name -> hashicorp.consul.internal.configentry.APIGateway.MetaEntry
 	74,  // 104: hashicorp.consul.internal.configentry.APIGateway.Listeners:type_name -> hashicorp.consul.internal.configentry.APIGatewayListener
 	72,  // 105: hashicorp.consul.internal.configentry.APIGateway.Status:type_name -> hashicorp.consul.internal.configentry.Status
 	43,  // 106: hashicorp.consul.internal.configentry.APIGateway.TLS:type_name -> hashicorp.consul.internal.configentry.GatewayTLSConfig
@@ -9782,7 +10057,7 @@ var file_private_pbconfigentry_config_entry_proto_depIdxs = []int32{
 	71,  // 108: hashicorp.consul.internal.configentry.APIGateway.ExtAuthz:type_name -> hashicorp.consul.internal.configentry.APIGatewayExtAuthz
 	73,  // 109: hashicorp.consul.internal.configentry.Status.Conditions:type_name -> hashicorp.consul.internal.configentry.Condition
 	80,  // 110: hashicorp.consul.internal.configentry.Condition.Resource:type_name -> hashicorp.consul.internal.configentry.ResourceReference
-	150, // 111: hashicorp.consul.internal.configentry.Condition.LastTransitionTime:type_name -> google.protobuf.Timestamp
+	154, // 111: hashicorp.consul.internal.configentry.Condition.LastTransitionTime:type_name -> google.protobuf.Timestamp
 	8,   // 112: hashicorp.consul.internal.configentry.APIGatewayListener.Protocol:type_name -> hashicorp.consul.internal.configentry.APIGatewayListenerProtocol
 	75,  // 113: hashicorp.consul.internal.configentry.APIGatewayListener.TLS:type_name -> hashicorp.consul.internal.configentry.APIGatewayTLSConfiguration
 	76,  // 114: hashicorp.consul.internal.configentry.APIGatewayListener.Override:type_name -> hashicorp.consul.internal.configentry.APIGatewayPolicy
@@ -9792,23 +10067,23 @@ var file_private_pbconfigentry_config_entry_proto_depIdxs = []int32{
 	77,  // 118: hashicorp.consul.internal.configentry.APIGatewayPolicy.JWT:type_name -> hashicorp.consul.internal.configentry.APIGatewayJWTRequirement
 	78,  // 119: hashicorp.consul.internal.configentry.APIGatewayJWTRequirement.Providers:type_name -> hashicorp.consul.internal.configentry.APIGatewayJWTProvider
 	79,  // 120: hashicorp.consul.internal.configentry.APIGatewayJWTProvider.VerifyClaims:type_name -> hashicorp.consul.internal.configentry.APIGatewayJWTClaimVerification
-	147, // 121: hashicorp.consul.internal.configentry.ResourceReference.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
-	136, // 122: hashicorp.consul.internal.configentry.BoundAPIGateway.Meta:type_name -> hashicorp.consul.internal.configentry.BoundAPIGateway.MetaEntry
+	151, // 121: hashicorp.consul.internal.configentry.ResourceReference.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	140, // 122: hashicorp.consul.internal.configentry.BoundAPIGateway.Meta:type_name -> hashicorp.consul.internal.configentry.BoundAPIGateway.MetaEntry
 	83,  // 123: hashicorp.consul.internal.configentry.BoundAPIGateway.Listeners:type_name -> hashicorp.consul.internal.configentry.BoundAPIGatewayListener
-	137, // 124: hashicorp.consul.internal.configentry.BoundAPIGateway.Services:type_name -> hashicorp.consul.internal.configentry.BoundAPIGateway.ServicesEntry
+	141, // 124: hashicorp.consul.internal.configentry.BoundAPIGateway.Services:type_name -> hashicorp.consul.internal.configentry.BoundAPIGateway.ServicesEntry
 	80,  // 125: hashicorp.consul.internal.configentry.ListOfResourceReference.Ref:type_name -> hashicorp.consul.internal.configentry.ResourceReference
 	80,  // 126: hashicorp.consul.internal.configentry.BoundAPIGatewayListener.Certificates:type_name -> hashicorp.consul.internal.configentry.ResourceReference
 	80,  // 127: hashicorp.consul.internal.configentry.BoundAPIGatewayListener.Routes:type_name -> hashicorp.consul.internal.configentry.ResourceReference
-	138, // 128: hashicorp.consul.internal.configentry.FileSystemCertificate.Meta:type_name -> hashicorp.consul.internal.configentry.FileSystemCertificate.MetaEntry
-	139, // 129: hashicorp.consul.internal.configentry.InlineCertificate.Meta:type_name -> hashicorp.consul.internal.configentry.InlineCertificate.MetaEntry
-	140, // 130: hashicorp.consul.internal.configentry.HTTPRoute.Meta:type_name -> hashicorp.consul.internal.configentry.HTTPRoute.MetaEntry
+	142, // 128: hashicorp.consul.internal.configentry.FileSystemCertificate.Meta:type_name -> hashicorp.consul.internal.configentry.FileSystemCertificate.MetaEntry
+	143, // 129: hashicorp.consul.internal.configentry.InlineCertificate.Meta:type_name -> hashicorp.consul.internal.configentry.InlineCertificate.MetaEntry
+	144, // 130: hashicorp.consul.internal.configentry.HTTPRoute.Meta:type_name -> hashicorp.consul.internal.configentry.HTTPRoute.MetaEntry
 	80,  // 131: hashicorp.consul.internal.configentry.HTTPRoute.Parents:type_name -> hashicorp.consul.internal.configentry.ResourceReference
 	87,  // 132: hashicorp.consul.internal.configentry.HTTPRoute.Rules:type_name -> hashicorp.consul.internal.configentry.HTTPRouteRule
 	72,  // 133: hashicorp.consul.internal.configentry.HTTPRoute.Status:type_name -> hashicorp.consul.internal.configentry.Status
 	92,  // 134: hashicorp.consul.internal.configentry.HTTPRouteRule.Filters:type_name -> hashicorp.consul.internal.configentry.HTTPFilters
 	88,  // 135: hashicorp.consul.internal.configentry.HTTPRouteRule.Matches:type_name -> hashicorp.consul.internal.configentry.HTTPMatch
-	100, // 136: hashicorp.consul.internal.configentry.HTTPRouteRule.Services:type_name -> hashicorp.consul.internal.configentry.HTTPService
-	94,  // 137: hashicorp.consul.internal.configentry.HTTPRouteRule.ResponseFilters:type_name -> hashicorp.consul.internal.configentry.HTTPResponseFilters
+	104, // 136: hashicorp.consul.internal.configentry.HTTPRouteRule.Services:type_name -> hashicorp.consul.internal.configentry.HTTPService
+	98,  // 137: hashicorp.consul.internal.configentry.HTTPRouteRule.ResponseFilters:type_name -> hashicorp.consul.internal.configentry.HTTPResponseFilters
 	89,  // 138: hashicorp.consul.internal.configentry.HTTPMatch.Headers:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderMatch
 	9,   // 139: hashicorp.consul.internal.configentry.HTTPMatch.Method:type_name -> hashicorp.consul.internal.configentry.HTTPMatchMethod
 	90,  // 140: hashicorp.consul.internal.configentry.HTTPMatch.Path:type_name -> hashicorp.consul.internal.configentry.HTTPPathMatch
@@ -9816,69 +10091,74 @@ var file_private_pbconfigentry_config_entry_proto_depIdxs = []int32{
 	10,  // 142: hashicorp.consul.internal.configentry.HTTPHeaderMatch.Match:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderMatchType
 	11,  // 143: hashicorp.consul.internal.configentry.HTTPPathMatch.Match:type_name -> hashicorp.consul.internal.configentry.HTTPPathMatchType
 	12,  // 144: hashicorp.consul.internal.configentry.HTTPQueryMatch.Match:type_name -> hashicorp.consul.internal.configentry.HTTPQueryMatchType
-	99,  // 145: hashicorp.consul.internal.configentry.HTTPFilters.Headers:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderFilter
-	95,  // 146: hashicorp.consul.internal.configentry.HTTPFilters.URLRewrite:type_name -> hashicorp.consul.internal.configentry.URLRewrite
-	96,  // 147: hashicorp.consul.internal.configentry.HTTPFilters.RetryFilter:type_name -> hashicorp.consul.internal.configentry.RetryFilter
-	97,  // 148: hashicorp.consul.internal.configentry.HTTPFilters.TimeoutFilter:type_name -> hashicorp.consul.internal.configentry.TimeoutFilter
-	98,  // 149: hashicorp.consul.internal.configentry.HTTPFilters.JWT:type_name -> hashicorp.consul.internal.configentry.JWTFilter
-	93,  // 150: hashicorp.consul.internal.configentry.HTTPFilters.ExtAuthz:type_name -> hashicorp.consul.internal.configentry.HTTPRouteExtAuthzFilter
-	99,  // 151: hashicorp.consul.internal.configentry.HTTPResponseFilters.Headers:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderFilter
-	149, // 152: hashicorp.consul.internal.configentry.TimeoutFilter.RequestTimeout:type_name -> google.protobuf.Duration
-	149, // 153: hashicorp.consul.internal.configentry.TimeoutFilter.IdleTimeout:type_name -> google.protobuf.Duration
-	78,  // 154: hashicorp.consul.internal.configentry.JWTFilter.Providers:type_name -> hashicorp.consul.internal.configentry.APIGatewayJWTProvider
-	141, // 155: hashicorp.consul.internal.configentry.HTTPHeaderFilter.Add:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderFilter.AddEntry
-	142, // 156: hashicorp.consul.internal.configentry.HTTPHeaderFilter.Set:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderFilter.SetEntry
-	92,  // 157: hashicorp.consul.internal.configentry.HTTPService.Filters:type_name -> hashicorp.consul.internal.configentry.HTTPFilters
-	147, // 158: hashicorp.consul.internal.configentry.HTTPService.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
-	94,  // 159: hashicorp.consul.internal.configentry.HTTPService.ResponseFilters:type_name -> hashicorp.consul.internal.configentry.HTTPResponseFilters
-	47,  // 160: hashicorp.consul.internal.configentry.HTTPService.TLS:type_name -> hashicorp.consul.internal.configentry.GatewayServiceTLSConfig
-	64,  // 161: hashicorp.consul.internal.configentry.HTTPService.Limits:type_name -> hashicorp.consul.internal.configentry.UpstreamLimits
-	143, // 162: hashicorp.consul.internal.configentry.TCPRoute.Meta:type_name -> hashicorp.consul.internal.configentry.TCPRoute.MetaEntry
-	80,  // 163: hashicorp.consul.internal.configentry.TCPRoute.Parents:type_name -> hashicorp.consul.internal.configentry.ResourceReference
-	102, // 164: hashicorp.consul.internal.configentry.TCPRoute.Services:type_name -> hashicorp.consul.internal.configentry.TCPService
-	72,  // 165: hashicorp.consul.internal.configentry.TCPRoute.Status:type_name -> hashicorp.consul.internal.configentry.Status
-	147, // 166: hashicorp.consul.internal.configentry.TCPService.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
-	47,  // 167: hashicorp.consul.internal.configentry.TCPService.TLS:type_name -> hashicorp.consul.internal.configentry.GatewayServiceTLSConfig
-	64,  // 168: hashicorp.consul.internal.configentry.TCPService.Limits:type_name -> hashicorp.consul.internal.configentry.UpstreamLimits
-	104, // 169: hashicorp.consul.internal.configentry.SamenessGroup.Members:type_name -> hashicorp.consul.internal.configentry.SamenessGroupMember
-	144, // 170: hashicorp.consul.internal.configentry.SamenessGroup.Meta:type_name -> hashicorp.consul.internal.configentry.SamenessGroup.MetaEntry
-	147, // 171: hashicorp.consul.internal.configentry.SamenessGroup.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
-	106, // 172: hashicorp.consul.internal.configentry.JWTProvider.JSONWebKeySet:type_name -> hashicorp.consul.internal.configentry.JSONWebKeySet
-	115, // 173: hashicorp.consul.internal.configentry.JWTProvider.Locations:type_name -> hashicorp.consul.internal.configentry.JWTLocation
-	119, // 174: hashicorp.consul.internal.configentry.JWTProvider.Forwarding:type_name -> hashicorp.consul.internal.configentry.JWTForwardingConfig
-	120, // 175: hashicorp.consul.internal.configentry.JWTProvider.CacheConfig:type_name -> hashicorp.consul.internal.configentry.JWTCacheConfig
-	145, // 176: hashicorp.consul.internal.configentry.JWTProvider.Meta:type_name -> hashicorp.consul.internal.configentry.JWTProvider.MetaEntry
-	107, // 177: hashicorp.consul.internal.configentry.JSONWebKeySet.Local:type_name -> hashicorp.consul.internal.configentry.LocalJWKS
-	108, // 178: hashicorp.consul.internal.configentry.JSONWebKeySet.Remote:type_name -> hashicorp.consul.internal.configentry.RemoteJWKS
-	149, // 179: hashicorp.consul.internal.configentry.RemoteJWKS.CacheDuration:type_name -> google.protobuf.Duration
-	113, // 180: hashicorp.consul.internal.configentry.RemoteJWKS.RetryPolicy:type_name -> hashicorp.consul.internal.configentry.JWKSRetryPolicy
-	109, // 181: hashicorp.consul.internal.configentry.RemoteJWKS.JWKSCluster:type_name -> hashicorp.consul.internal.configentry.JWKSCluster
-	110, // 182: hashicorp.consul.internal.configentry.JWKSCluster.TLSCertificates:type_name -> hashicorp.consul.internal.configentry.JWKSTLSCertificate
-	149, // 183: hashicorp.consul.internal.configentry.JWKSCluster.ConnectTimeout:type_name -> google.protobuf.Duration
-	111, // 184: hashicorp.consul.internal.configentry.JWKSTLSCertificate.CaCertificateProviderInstance:type_name -> hashicorp.consul.internal.configentry.JWKSTLSCertProviderInstance
-	112, // 185: hashicorp.consul.internal.configentry.JWKSTLSCertificate.TrustedCA:type_name -> hashicorp.consul.internal.configentry.JWKSTLSCertTrustedCA
-	114, // 186: hashicorp.consul.internal.configentry.JWKSRetryPolicy.RetryPolicyBackOff:type_name -> hashicorp.consul.internal.configentry.RetryPolicyBackOff
-	149, // 187: hashicorp.consul.internal.configentry.RetryPolicyBackOff.BaseInterval:type_name -> google.protobuf.Duration
-	149, // 188: hashicorp.consul.internal.configentry.RetryPolicyBackOff.MaxInterval:type_name -> google.protobuf.Duration
-	116, // 189: hashicorp.consul.internal.configentry.JWTLocation.Header:type_name -> hashicorp.consul.internal.configentry.JWTLocationHeader
-	117, // 190: hashicorp.consul.internal.configentry.JWTLocation.QueryParam:type_name -> hashicorp.consul.internal.configentry.JWTLocationQueryParam
-	118, // 191: hashicorp.consul.internal.configentry.JWTLocation.Cookie:type_name -> hashicorp.consul.internal.configentry.JWTLocationCookie
-	147, // 192: hashicorp.consul.internal.configentry.ExportedServices.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
-	146, // 193: hashicorp.consul.internal.configentry.ExportedServices.Meta:type_name -> hashicorp.consul.internal.configentry.ExportedServices.MetaEntry
-	122, // 194: hashicorp.consul.internal.configentry.ExportedServices.Services:type_name -> hashicorp.consul.internal.configentry.ExportedServicesService
-	123, // 195: hashicorp.consul.internal.configentry.ExportedServicesService.Consumers:type_name -> hashicorp.consul.internal.configentry.ExportedServicesConsumer
-	30,  // 196: hashicorp.consul.internal.configentry.ServiceResolver.SubsetsEntry.value:type_name -> hashicorp.consul.internal.configentry.ServiceResolverSubset
-	32,  // 197: hashicorp.consul.internal.configentry.ServiceResolver.FailoverEntry.value:type_name -> hashicorp.consul.internal.configentry.ServiceResolverFailover
-	82,  // 198: hashicorp.consul.internal.configentry.BoundAPIGateway.ServicesEntry.value:type_name -> hashicorp.consul.internal.configentry.ListOfResourceReference
-	13,  // 199: hashicorp.consul.internal.configentry.ConfigEntryService.GetResolvedExportedServices:input_type -> hashicorp.consul.internal.configentry.GetResolvedExportedServicesRequest
-	17,  // 200: hashicorp.consul.internal.configentry.ConfigEntryService.GetImportedServices:input_type -> hashicorp.consul.internal.configentry.GetImportedServicesRequest
-	14,  // 201: hashicorp.consul.internal.configentry.ConfigEntryService.GetResolvedExportedServices:output_type -> hashicorp.consul.internal.configentry.GetResolvedExportedServicesResponse
-	18,  // 202: hashicorp.consul.internal.configentry.ConfigEntryService.GetImportedServices:output_type -> hashicorp.consul.internal.configentry.GetImportedServicesResponse
-	201, // [201:203] is the sub-list for method output_type
-	199, // [199:201] is the sub-list for method input_type
-	199, // [199:199] is the sub-list for extension type_name
-	199, // [199:199] is the sub-list for extension extendee
-	0,   // [0:199] is the sub-list for field type_name
+	103, // 145: hashicorp.consul.internal.configentry.HTTPFilters.Headers:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderFilter
+	99,  // 146: hashicorp.consul.internal.configentry.HTTPFilters.URLRewrite:type_name -> hashicorp.consul.internal.configentry.URLRewrite
+	100, // 147: hashicorp.consul.internal.configentry.HTTPFilters.RetryFilter:type_name -> hashicorp.consul.internal.configentry.RetryFilter
+	101, // 148: hashicorp.consul.internal.configentry.HTTPFilters.TimeoutFilter:type_name -> hashicorp.consul.internal.configentry.TimeoutFilter
+	102, // 149: hashicorp.consul.internal.configentry.HTTPFilters.JWT:type_name -> hashicorp.consul.internal.configentry.JWTFilter
+	97,  // 150: hashicorp.consul.internal.configentry.HTTPFilters.ExtAuthz:type_name -> hashicorp.consul.internal.configentry.HTTPRouteExtAuthzFilter
+	93,  // 151: hashicorp.consul.internal.configentry.HTTPFilters.ExtProc:type_name -> hashicorp.consul.internal.configentry.ExtProcFilter
+	94,  // 152: hashicorp.consul.internal.configentry.ExtProcFilter.Overrides:type_name -> hashicorp.consul.internal.configentry.ExtProcOverrides
+	95,  // 153: hashicorp.consul.internal.configentry.ExtProcOverrides.Processing:type_name -> hashicorp.consul.internal.configentry.ExtProcProcessing
+	96,  // 154: hashicorp.consul.internal.configentry.ExtProcProcessing.Request:type_name -> hashicorp.consul.internal.configentry.ExtProcProcessingDirection
+	96,  // 155: hashicorp.consul.internal.configentry.ExtProcProcessing.Response:type_name -> hashicorp.consul.internal.configentry.ExtProcProcessingDirection
+	103, // 156: hashicorp.consul.internal.configentry.HTTPResponseFilters.Headers:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderFilter
+	153, // 157: hashicorp.consul.internal.configentry.TimeoutFilter.RequestTimeout:type_name -> google.protobuf.Duration
+	153, // 158: hashicorp.consul.internal.configentry.TimeoutFilter.IdleTimeout:type_name -> google.protobuf.Duration
+	78,  // 159: hashicorp.consul.internal.configentry.JWTFilter.Providers:type_name -> hashicorp.consul.internal.configentry.APIGatewayJWTProvider
+	145, // 160: hashicorp.consul.internal.configentry.HTTPHeaderFilter.Add:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderFilter.AddEntry
+	146, // 161: hashicorp.consul.internal.configentry.HTTPHeaderFilter.Set:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderFilter.SetEntry
+	92,  // 162: hashicorp.consul.internal.configentry.HTTPService.Filters:type_name -> hashicorp.consul.internal.configentry.HTTPFilters
+	151, // 163: hashicorp.consul.internal.configentry.HTTPService.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	98,  // 164: hashicorp.consul.internal.configentry.HTTPService.ResponseFilters:type_name -> hashicorp.consul.internal.configentry.HTTPResponseFilters
+	47,  // 165: hashicorp.consul.internal.configentry.HTTPService.TLS:type_name -> hashicorp.consul.internal.configentry.GatewayServiceTLSConfig
+	64,  // 166: hashicorp.consul.internal.configentry.HTTPService.Limits:type_name -> hashicorp.consul.internal.configentry.UpstreamLimits
+	147, // 167: hashicorp.consul.internal.configentry.TCPRoute.Meta:type_name -> hashicorp.consul.internal.configentry.TCPRoute.MetaEntry
+	80,  // 168: hashicorp.consul.internal.configentry.TCPRoute.Parents:type_name -> hashicorp.consul.internal.configentry.ResourceReference
+	106, // 169: hashicorp.consul.internal.configentry.TCPRoute.Services:type_name -> hashicorp.consul.internal.configentry.TCPService
+	72,  // 170: hashicorp.consul.internal.configentry.TCPRoute.Status:type_name -> hashicorp.consul.internal.configentry.Status
+	151, // 171: hashicorp.consul.internal.configentry.TCPService.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	47,  // 172: hashicorp.consul.internal.configentry.TCPService.TLS:type_name -> hashicorp.consul.internal.configentry.GatewayServiceTLSConfig
+	64,  // 173: hashicorp.consul.internal.configentry.TCPService.Limits:type_name -> hashicorp.consul.internal.configentry.UpstreamLimits
+	108, // 174: hashicorp.consul.internal.configentry.SamenessGroup.Members:type_name -> hashicorp.consul.internal.configentry.SamenessGroupMember
+	148, // 175: hashicorp.consul.internal.configentry.SamenessGroup.Meta:type_name -> hashicorp.consul.internal.configentry.SamenessGroup.MetaEntry
+	151, // 176: hashicorp.consul.internal.configentry.SamenessGroup.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	110, // 177: hashicorp.consul.internal.configentry.JWTProvider.JSONWebKeySet:type_name -> hashicorp.consul.internal.configentry.JSONWebKeySet
+	119, // 178: hashicorp.consul.internal.configentry.JWTProvider.Locations:type_name -> hashicorp.consul.internal.configentry.JWTLocation
+	123, // 179: hashicorp.consul.internal.configentry.JWTProvider.Forwarding:type_name -> hashicorp.consul.internal.configentry.JWTForwardingConfig
+	124, // 180: hashicorp.consul.internal.configentry.JWTProvider.CacheConfig:type_name -> hashicorp.consul.internal.configentry.JWTCacheConfig
+	149, // 181: hashicorp.consul.internal.configentry.JWTProvider.Meta:type_name -> hashicorp.consul.internal.configentry.JWTProvider.MetaEntry
+	111, // 182: hashicorp.consul.internal.configentry.JSONWebKeySet.Local:type_name -> hashicorp.consul.internal.configentry.LocalJWKS
+	112, // 183: hashicorp.consul.internal.configentry.JSONWebKeySet.Remote:type_name -> hashicorp.consul.internal.configentry.RemoteJWKS
+	153, // 184: hashicorp.consul.internal.configentry.RemoteJWKS.CacheDuration:type_name -> google.protobuf.Duration
+	117, // 185: hashicorp.consul.internal.configentry.RemoteJWKS.RetryPolicy:type_name -> hashicorp.consul.internal.configentry.JWKSRetryPolicy
+	113, // 186: hashicorp.consul.internal.configentry.RemoteJWKS.JWKSCluster:type_name -> hashicorp.consul.internal.configentry.JWKSCluster
+	114, // 187: hashicorp.consul.internal.configentry.JWKSCluster.TLSCertificates:type_name -> hashicorp.consul.internal.configentry.JWKSTLSCertificate
+	153, // 188: hashicorp.consul.internal.configentry.JWKSCluster.ConnectTimeout:type_name -> google.protobuf.Duration
+	115, // 189: hashicorp.consul.internal.configentry.JWKSTLSCertificate.CaCertificateProviderInstance:type_name -> hashicorp.consul.internal.configentry.JWKSTLSCertProviderInstance
+	116, // 190: hashicorp.consul.internal.configentry.JWKSTLSCertificate.TrustedCA:type_name -> hashicorp.consul.internal.configentry.JWKSTLSCertTrustedCA
+	118, // 191: hashicorp.consul.internal.configentry.JWKSRetryPolicy.RetryPolicyBackOff:type_name -> hashicorp.consul.internal.configentry.RetryPolicyBackOff
+	153, // 192: hashicorp.consul.internal.configentry.RetryPolicyBackOff.BaseInterval:type_name -> google.protobuf.Duration
+	153, // 193: hashicorp.consul.internal.configentry.RetryPolicyBackOff.MaxInterval:type_name -> google.protobuf.Duration
+	120, // 194: hashicorp.consul.internal.configentry.JWTLocation.Header:type_name -> hashicorp.consul.internal.configentry.JWTLocationHeader
+	121, // 195: hashicorp.consul.internal.configentry.JWTLocation.QueryParam:type_name -> hashicorp.consul.internal.configentry.JWTLocationQueryParam
+	122, // 196: hashicorp.consul.internal.configentry.JWTLocation.Cookie:type_name -> hashicorp.consul.internal.configentry.JWTLocationCookie
+	151, // 197: hashicorp.consul.internal.configentry.ExportedServices.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	150, // 198: hashicorp.consul.internal.configentry.ExportedServices.Meta:type_name -> hashicorp.consul.internal.configentry.ExportedServices.MetaEntry
+	126, // 199: hashicorp.consul.internal.configentry.ExportedServices.Services:type_name -> hashicorp.consul.internal.configentry.ExportedServicesService
+	127, // 200: hashicorp.consul.internal.configentry.ExportedServicesService.Consumers:type_name -> hashicorp.consul.internal.configentry.ExportedServicesConsumer
+	30,  // 201: hashicorp.consul.internal.configentry.ServiceResolver.SubsetsEntry.value:type_name -> hashicorp.consul.internal.configentry.ServiceResolverSubset
+	32,  // 202: hashicorp.consul.internal.configentry.ServiceResolver.FailoverEntry.value:type_name -> hashicorp.consul.internal.configentry.ServiceResolverFailover
+	82,  // 203: hashicorp.consul.internal.configentry.BoundAPIGateway.ServicesEntry.value:type_name -> hashicorp.consul.internal.configentry.ListOfResourceReference
+	13,  // 204: hashicorp.consul.internal.configentry.ConfigEntryService.GetResolvedExportedServices:input_type -> hashicorp.consul.internal.configentry.GetResolvedExportedServicesRequest
+	17,  // 205: hashicorp.consul.internal.configentry.ConfigEntryService.GetImportedServices:input_type -> hashicorp.consul.internal.configentry.GetImportedServicesRequest
+	14,  // 206: hashicorp.consul.internal.configentry.ConfigEntryService.GetResolvedExportedServices:output_type -> hashicorp.consul.internal.configentry.GetResolvedExportedServicesResponse
+	18,  // 207: hashicorp.consul.internal.configentry.ConfigEntryService.GetImportedServices:output_type -> hashicorp.consul.internal.configentry.GetImportedServicesResponse
+	206, // [206:208] is the sub-list for method output_type
+	204, // [204:206] is the sub-list for method input_type
+	204, // [204:204] is the sub-list for extension type_name
+	204, // [204:204] is the sub-list for extension extendee
+	0,   // [0:204] is the sub-list for field type_name
 }
 
 func init() { file_private_pbconfigentry_config_entry_proto_init() }
@@ -9910,7 +10190,7 @@ func file_private_pbconfigentry_config_entry_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_private_pbconfigentry_config_entry_proto_rawDesc), len(file_private_pbconfigentry_config_entry_proto_rawDesc)),
 			NumEnums:      13,
-			NumMessages:   134,
+			NumMessages:   138,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

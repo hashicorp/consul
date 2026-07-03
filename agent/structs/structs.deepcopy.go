@@ -446,6 +446,28 @@ func (o *HTTPRouteConfigEntry) DeepCopy() *HTTPRouteConfigEntry {
 			if o.Rules[i2].Filters.JWT != nil {
 				cp.Rules[i2].Filters.JWT = o.Rules[i2].Filters.JWT.DeepCopy()
 			}
+			if o.Rules[i2].Filters.ExtProc != nil {
+				cp.Rules[i2].Filters.ExtProc = make([]ExtProcFilter, len(o.Rules[i2].Filters.ExtProc))
+				copy(cp.Rules[i2].Filters.ExtProc, o.Rules[i2].Filters.ExtProc)
+				for i5 := range o.Rules[i2].Filters.ExtProc {
+					if o.Rules[i2].Filters.ExtProc[i5].Overrides != nil {
+						cp.Rules[i2].Filters.ExtProc[i5].Overrides = new(ExtProcOverrides)
+						*cp.Rules[i2].Filters.ExtProc[i5].Overrides = *o.Rules[i2].Filters.ExtProc[i5].Overrides
+						if o.Rules[i2].Filters.ExtProc[i5].Overrides.Processing != nil {
+							cp.Rules[i2].Filters.ExtProc[i5].Overrides.Processing = new(ExtProcProcessing)
+							*cp.Rules[i2].Filters.ExtProc[i5].Overrides.Processing = *o.Rules[i2].Filters.ExtProc[i5].Overrides.Processing
+							if o.Rules[i2].Filters.ExtProc[i5].Overrides.Processing.Request != nil {
+								cp.Rules[i2].Filters.ExtProc[i5].Overrides.Processing.Request = new(ExtProcProcessingDirection)
+								*cp.Rules[i2].Filters.ExtProc[i5].Overrides.Processing.Request = *o.Rules[i2].Filters.ExtProc[i5].Overrides.Processing.Request
+							}
+							if o.Rules[i2].Filters.ExtProc[i5].Overrides.Processing.Response != nil {
+								cp.Rules[i2].Filters.ExtProc[i5].Overrides.Processing.Response = new(ExtProcProcessingDirection)
+								*cp.Rules[i2].Filters.ExtProc[i5].Overrides.Processing.Response = *o.Rules[i2].Filters.ExtProc[i5].Overrides.Processing.Response
+							}
+						}
+					}
+				}
+			}
 			if o.Rules[i2].Filters.ExtAuthz != nil {
 				cp.Rules[i2].Filters.ExtAuthz = new(HTTPRouteExtAuthzFilter)
 				*cp.Rules[i2].Filters.ExtAuthz = *o.Rules[i2].Filters.ExtAuthz
@@ -534,6 +556,28 @@ func (o *HTTPRouteConfigEntry) DeepCopy() *HTTPRouteConfigEntry {
 					}
 					if o.Rules[i2].Services[i4].Filters.JWT != nil {
 						cp.Rules[i2].Services[i4].Filters.JWT = o.Rules[i2].Services[i4].Filters.JWT.DeepCopy()
+					}
+					if o.Rules[i2].Services[i4].Filters.ExtProc != nil {
+						cp.Rules[i2].Services[i4].Filters.ExtProc = make([]ExtProcFilter, len(o.Rules[i2].Services[i4].Filters.ExtProc))
+						copy(cp.Rules[i2].Services[i4].Filters.ExtProc, o.Rules[i2].Services[i4].Filters.ExtProc)
+						for i7 := range o.Rules[i2].Services[i4].Filters.ExtProc {
+							if o.Rules[i2].Services[i4].Filters.ExtProc[i7].Overrides != nil {
+								cp.Rules[i2].Services[i4].Filters.ExtProc[i7].Overrides = new(ExtProcOverrides)
+								*cp.Rules[i2].Services[i4].Filters.ExtProc[i7].Overrides = *o.Rules[i2].Services[i4].Filters.ExtProc[i7].Overrides
+								if o.Rules[i2].Services[i4].Filters.ExtProc[i7].Overrides.Processing != nil {
+									cp.Rules[i2].Services[i4].Filters.ExtProc[i7].Overrides.Processing = new(ExtProcProcessing)
+									*cp.Rules[i2].Services[i4].Filters.ExtProc[i7].Overrides.Processing = *o.Rules[i2].Services[i4].Filters.ExtProc[i7].Overrides.Processing
+									if o.Rules[i2].Services[i4].Filters.ExtProc[i7].Overrides.Processing.Request != nil {
+										cp.Rules[i2].Services[i4].Filters.ExtProc[i7].Overrides.Processing.Request = new(ExtProcProcessingDirection)
+										*cp.Rules[i2].Services[i4].Filters.ExtProc[i7].Overrides.Processing.Request = *o.Rules[i2].Services[i4].Filters.ExtProc[i7].Overrides.Processing.Request
+									}
+									if o.Rules[i2].Services[i4].Filters.ExtProc[i7].Overrides.Processing.Response != nil {
+										cp.Rules[i2].Services[i4].Filters.ExtProc[i7].Overrides.Processing.Response = new(ExtProcProcessingDirection)
+										*cp.Rules[i2].Services[i4].Filters.ExtProc[i7].Overrides.Processing.Response = *o.Rules[i2].Services[i4].Filters.ExtProc[i7].Overrides.Processing.Response
+									}
+								}
+							}
+						}
 					}
 					if o.Rules[i2].Services[i4].Filters.ExtAuthz != nil {
 						cp.Rules[i2].Services[i4].Filters.ExtAuthz = new(HTTPRouteExtAuthzFilter)
