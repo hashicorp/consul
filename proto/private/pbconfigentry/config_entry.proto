@@ -1096,9 +1096,9 @@ message HTTPFilters {
   TimeoutFilter TimeoutFilter = 4;
   // mog: func-to=routeJWTFilterToStructs func-from=routeJWTFilterFromStructs
   JWTFilter JWT = 5;
-  repeated ExtProcFilter ExtProc = 6;
   // mog: func-to=routeExtAuthzFilterToStructs func-from=routeExtAuthzFilterFromStructs
-  HTTPRouteExtAuthzFilter ExtAuthz = 7;
+  HTTPRouteExtAuthzFilter ExtAuthz = 6;
+  repeated ExtProcFilter ExtProc = 7;
 }
 
 // mog annotation:

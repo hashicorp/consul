@@ -6636,10 +6636,10 @@ type HTTPFilters struct {
 	RetryFilter   *RetryFilter           `protobuf:"bytes,3,opt,name=RetryFilter,proto3" json:"RetryFilter,omitempty"`
 	TimeoutFilter *TimeoutFilter         `protobuf:"bytes,4,opt,name=TimeoutFilter,proto3" json:"TimeoutFilter,omitempty"`
 	// mog: func-to=routeJWTFilterToStructs func-from=routeJWTFilterFromStructs
-	JWT     *JWTFilter       `protobuf:"bytes,5,opt,name=JWT,proto3" json:"JWT,omitempty"`
-	ExtProc []*ExtProcFilter `protobuf:"bytes,6,rep,name=ExtProc,proto3" json:"ExtProc,omitempty"`
+	JWT *JWTFilter `protobuf:"bytes,5,opt,name=JWT,proto3" json:"JWT,omitempty"`
 	// mog: func-to=routeExtAuthzFilterToStructs func-from=routeExtAuthzFilterFromStructs
-	ExtAuthz      *HTTPRouteExtAuthzFilter `protobuf:"bytes,7,opt,name=ExtAuthz,proto3" json:"ExtAuthz,omitempty"`
+	ExtAuthz      *HTTPRouteExtAuthzFilter `protobuf:"bytes,6,opt,name=ExtAuthz,proto3" json:"ExtAuthz,omitempty"`
+	ExtProc       []*ExtProcFilter         `protobuf:"bytes,7,rep,name=ExtProc,proto3" json:"ExtProc,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -6709,16 +6709,16 @@ func (x *HTTPFilters) GetJWT() *JWTFilter {
 	return nil
 }
 
-func (x *HTTPFilters) GetExtProc() []*ExtProcFilter {
+func (x *HTTPFilters) GetExtAuthz() *HTTPRouteExtAuthzFilter {
 	if x != nil {
-		return x.ExtProc
+		return x.ExtAuthz
 	}
 	return nil
 }
 
-func (x *HTTPFilters) GetExtAuthz() *HTTPRouteExtAuthzFilter {
+func (x *HTTPFilters) GetExtProc() []*ExtProcFilter {
 	if x != nil {
-		return x.ExtAuthz
+		return x.ExtProc
 	}
 	return nil
 }
@@ -9516,9 +9516,9 @@ const file_private_pbconfigentry_config_entry_proto_rawDesc = "" +
 	"URLRewrite\x12T\n" +
 	"\vRetryFilter\x18\x03 \x01(\v22.hashicorp.consul.internal.configentry.RetryFilterR\vRetryFilter\x12Z\n" +
 	"\rTimeoutFilter\x18\x04 \x01(\v24.hashicorp.consul.internal.configentry.TimeoutFilterR\rTimeoutFilter\x12B\n" +
-	"\x03JWT\x18\x05 \x01(\v20.hashicorp.consul.internal.configentry.JWTFilterR\x03JWT\x12N\n" +
-	"\aExtProc\x18\x06 \x03(\v24.hashicorp.consul.internal.configentry.ExtProcFilterR\aExtProc\x12Z\n" +
-	"\bExtAuthz\x18\a \x01(\v2>.hashicorp.consul.internal.configentry.HTTPRouteExtAuthzFilterR\bExtAuthz\"\x9a\x01\n" +
+	"\x03JWT\x18\x05 \x01(\v20.hashicorp.consul.internal.configentry.JWTFilterR\x03JWT\x12Z\n" +
+	"\bExtAuthz\x18\x06 \x01(\v2>.hashicorp.consul.internal.configentry.HTTPRouteExtAuthzFilterR\bExtAuthz\x12N\n" +
+	"\aExtProc\x18\a \x03(\v24.hashicorp.consul.internal.configentry.ExtProcFilterR\aExtProc\"\x9a\x01\n" +
 	"\rExtProcFilter\x12\x1e\n" +
 	"\n" +
 	"StatPrefix\x18\x01 \x01(\tR\n" +
@@ -10096,8 +10096,8 @@ var file_private_pbconfigentry_config_entry_proto_depIdxs = []int32{
 	100, // 147: hashicorp.consul.internal.configentry.HTTPFilters.RetryFilter:type_name -> hashicorp.consul.internal.configentry.RetryFilter
 	101, // 148: hashicorp.consul.internal.configentry.HTTPFilters.TimeoutFilter:type_name -> hashicorp.consul.internal.configentry.TimeoutFilter
 	102, // 149: hashicorp.consul.internal.configentry.HTTPFilters.JWT:type_name -> hashicorp.consul.internal.configentry.JWTFilter
-	93,  // 150: hashicorp.consul.internal.configentry.HTTPFilters.ExtProc:type_name -> hashicorp.consul.internal.configentry.ExtProcFilter
-	97,  // 151: hashicorp.consul.internal.configentry.HTTPFilters.ExtAuthz:type_name -> hashicorp.consul.internal.configentry.HTTPRouteExtAuthzFilter
+	97,  // 150: hashicorp.consul.internal.configentry.HTTPFilters.ExtAuthz:type_name -> hashicorp.consul.internal.configentry.HTTPRouteExtAuthzFilter
+	93,  // 151: hashicorp.consul.internal.configentry.HTTPFilters.ExtProc:type_name -> hashicorp.consul.internal.configentry.ExtProcFilter
 	94,  // 152: hashicorp.consul.internal.configentry.ExtProcFilter.Overrides:type_name -> hashicorp.consul.internal.configentry.ExtProcOverrides
 	95,  // 153: hashicorp.consul.internal.configentry.ExtProcOverrides.Processing:type_name -> hashicorp.consul.internal.configentry.ExtProcProcessing
 	96,  // 154: hashicorp.consul.internal.configentry.ExtProcProcessing.Request:type_name -> hashicorp.consul.internal.configentry.ExtProcProcessingDirection
