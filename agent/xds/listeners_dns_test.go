@@ -32,7 +32,7 @@ func TestMakeVirtualDNSDomains(t *testing.T) {
 	// The "google" upstream advertises both the consul-k8s "virtual" ClusterIP
 	// (10.0.0.1) and the Consul-allocated virtual IP (240.0.0.1). Both are
 	// collected and sorted for stable output.
-	require.Equal(t, []string{"10.0.0.1", "240.0.0.1"}, got["google.virtual.consul"])
+	require.Equal(t, []string{"10.0.0.1", "240.0.0.1"}, got["google.virtual.default.ns.default.ap.dc1.dc.consul"])
 
 	// Domains are sorted by FQDN to keep LDS output stable.
 	for i := 1; i < len(domains); i++ {
@@ -129,7 +129,7 @@ func TestVirtualFQDNsForUpstream(t *testing.T) {
 	snap := &proxycfg.ConfigSnapshot{Datacenter: "dc1"}
 
 	t.Run("empty name returns nil", func(t *testing.T) {
-		require.Nil(t, virtualFQDNsForUpstream(snap, proxycfg.UpstreamID{}))
+		require.Equal(t, "", virtualFQDNsForUpstream(snap, proxycfg.UpstreamID{}))
 	})
 
 	t.Run("uses upstream datacenter when set", func(t *testing.T) {
@@ -137,27 +137,21 @@ func TestVirtualFQDNsForUpstream(t *testing.T) {
 		uid.Datacenter = "dc2"
 
 		fqdns := virtualFQDNsForUpstream(snap, uid)
-		require.Equal(t, []string{
-			"db.virtual.consul",
-			"db.virtual.default.ns.default.ap.dc2.dc.consul",
-		}, fqdns)
+		require.Equal(t, "db.virtual.default.ns.default.ap.dc2.dc.consul", fqdns)
 	})
 
 	t.Run("falls back to snapshot datacenter", func(t *testing.T) {
 		uid := proxycfg.NewUpstreamIDFromServiceName(structs.NewServiceName("web", nil))
 
 		fqdns := virtualFQDNsForUpstream(snap, uid)
-		require.Equal(t, []string{
-			"web.virtual.consul",
-			"web.virtual.default.ns.default.ap.dc1.dc.consul",
-		}, fqdns)
+		require.Equal(t, "web.virtual.default.ns.default.ap.dc1.dc.consul", fqdns)
 	})
 
-	t.Run("no datacenter yields only short form", func(t *testing.T) {
+	t.Run("no datacenter keeps expanded form with empty dc segment", func(t *testing.T) {
 		uid := proxycfg.NewUpstreamIDFromServiceName(structs.NewServiceName("cache", nil))
 
 		fqdns := virtualFQDNsForUpstream(&proxycfg.ConfigSnapshot{}, uid)
-		require.Equal(t, []string{"cache.virtual.consul"}, fqdns)
+		require.Equal(t, "cache.virtual.default.ns.default.ap..dc.consul", fqdns)
 	})
 }
 
