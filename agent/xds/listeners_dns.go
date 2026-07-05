@@ -135,8 +135,8 @@ func makeVirtualDNSDomains(cfgSnap *proxycfg.ConfigSnapshot) []*envoy_dns_table_
 
 	// Upstreams discovered via discovery chains (explicit and transparent-proxy).
 	for uid, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
-		fqdns := virtualFQDNsForUpstream(cfgSnap, uid)
-		if len(fqdns) == 0 {
+		fqdn := virtualFQDNsForUpstream(cfgSnap, uid)
+		if fqdn == "" {
 			continue
 		}
 
@@ -148,14 +148,10 @@ func makeVirtualDNSDomains(cfgSnap *proxycfg.ConfigSnapshot) []*envoy_dns_table_
 		// won't intercept, causing traffic to bypass the proxy.
 		if chain.Partition == cfgSnap.ProxyID.PartitionOrDefault() {
 			for _, ip := range chain.AutoVirtualIPs {
-				for _, fqdn := range fqdns {
-					addEntry(fqdn, ip)
-				}
+				addEntry(fqdn, ip)
 			}
 			for _, ip := range chain.ManualVirtualIPs {
-				for _, fqdn := range fqdns {
-					addEntry(fqdn, ip)
-				}
+				addEntry(fqdn, ip)
 			}
 		}
 
@@ -164,25 +160,21 @@ func makeVirtualDNSDomains(cfgSnap *proxycfg.ConfigSnapshot) []*envoy_dns_table_
 		nodes := cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[uid][chain.ID()]
 		gatewayVIPTag := structs.ServiceGatewayVirtualIPTag(chain.CompoundServiceName())
 		for _, addr := range virtualIPsForNodes(cfgSnap, nodes, gatewayVIPTag) {
-			for _, fqdn := range fqdns {
-				addEntry(fqdn, addr)
-			}
+			addEntry(fqdn, addr)
 		}
 	}
 
 	// Upstreams reached through a peer.
 	cfgSnap.ConnectProxy.PeerUpstreamEndpoints.ForEachKey(func(uid proxycfg.UpstreamID) bool {
-		fqdns := virtualFQDNsForUpstream(cfgSnap, uid)
-		if len(fqdns) == 0 {
+		fqdn := virtualFQDNsForUpstream(cfgSnap, uid)
+		if fqdn == "" {
 			return true
 		}
 		if nodes, ok := cfgSnap.ConnectProxy.PeerUpstreamEndpoints.Get(uid); ok {
 			// Upstreams reached through a peer are never terminating gateways, so no
 			// gateway VIP tag applies here.
 			for _, addr := range virtualIPsForNodes(cfgSnap, nodes, "") {
-				for _, fqdn := range fqdns {
-					addEntry(fqdn, addr)
-				}
+				addEntry(fqdn, addr)
 			}
 		}
 		return true
@@ -269,9 +261,9 @@ func virtualIPsForNodes(cfgSnap *proxycfg.ConfigSnapshot, nodes structs.CheckSer
 // Both forms are advertised so resolution succeeds regardless of which form the
 // client queries, including cross-partition upstreams where the expanded form
 // encodes the upstream's own (non-local) partition.
-func virtualFQDNsForUpstream(cfgSnap *proxycfg.ConfigSnapshot, uid proxycfg.UpstreamID) []string {
+func virtualFQDNsForUpstream(cfgSnap *proxycfg.ConfigSnapshot, uid proxycfg.UpstreamID) string {
 	if uid.Name == "" {
-		return nil
+		return ""
 	}
 
 	dc := uid.Datacenter
@@ -279,18 +271,13 @@ func virtualFQDNsForUpstream(cfgSnap *proxycfg.ConfigSnapshot, uid proxycfg.Upst
 		dc = cfgSnap.Datacenter
 	}
 
-	fqdns := []string{uid.Name + virtualDNSSuffix}
+	expanded := uid.Name +
+		".virtual." + uid.NamespaceOrDefault() +
+		".ns." + uid.PartitionOrDefault() +
+		".ap." + dc +
+		".dc.consul"
 
-	if dc != "" {
-		expanded := uid.Name +
-			".virtual." + uid.NamespaceOrDefault() +
-			".ns." + uid.PartitionOrDefault() +
-			".ap." + dc +
-			".dc.consul"
-		fqdns = append(fqdns, expanded)
-	}
-
-	return fqdns
+	return expanded
 }
 
 // listenerNameForVirtualDNS returns the stable Envoy listener name for the inline DNS listener.
