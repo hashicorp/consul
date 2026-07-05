@@ -249,25 +249,18 @@ func virtualIPsForNodes(cfgSnap *proxycfg.ConfigSnapshot, nodes structs.CheckSer
 	return addrs
 }
 
-// virtualFQDNsForUpstream returns the virtual DNS names for an upstream service.
+// virtualFQDNsForUpstream returns the fully-expanded virtual DNS name for an upstream service.
 //
-// It returns both the short form (e.g. "db.virtual.consul") and the fully-expanded
-// form that includes the upstream's namespace, partition and datacenter
-// (e.g. "db.virtual.default.ns.partition-vms.ap.dc1.dc.consul"), matching the
-// template:
+// The returned name includes the upstream's namespace, partition and datacenter, matching:
 //
 //	<Service-Name>.virtual.<Namespace>.ns.<Admin-Partition>.ap.<Datacenter>.dc.consul
-//
-// Both forms are advertised so resolution succeeds regardless of which form the
-// client queries, including cross-partition upstreams where the expanded form
-// encodes the upstream's own (non-local) partition.
 func virtualFQDNsForUpstream(cfgSnap *proxycfg.ConfigSnapshot, uid proxycfg.UpstreamID) string {
 	if uid.Name == "" {
 		return ""
 	}
 
 	dc := uid.Datacenter
-	if dc == "" {
+	if dc == "" && cfgSnap != nil && cfgSnap.Datacenter != "" {
 		dc = cfgSnap.Datacenter
 	}
 
