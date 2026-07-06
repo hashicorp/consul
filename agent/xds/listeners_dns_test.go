@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -41,8 +42,16 @@ func TestMakeVirtualDNSDomains(t *testing.T) {
 }
 
 func TestMakeInlineDNSListener(t *testing.T) {
+	origGetAgentBindAddrFunc := netutil.GetAgentBindAddrFunc
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
+	t.Cleanup(func() {
+		netutil.GetAgentBindAddrFunc = origGetAgentBindAddrFunc
+	})
+
 	snap := proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t, nil)
 	s := &ResourceGenerator{Logger: hclog.NewNullLogger()}
+	loopbackAddr, err := loopbackListenerAddress()
+	require.NoError(t, err)
 
 	msg, err := s.makeInlineDNSListener(snap)
 	require.NoError(t, err)
@@ -51,10 +60,10 @@ func TestMakeInlineDNSListener(t *testing.T) {
 	l, ok := msg.(*envoy_listener_v3.Listener)
 	require.True(t, ok)
 
-	// Bound to 127.0.0.1:8653 over UDP.
+	// Bound to loopback:8653 over UDP.
 	sa := l.GetAddress().GetSocketAddress()
 	require.NotNil(t, sa)
-	require.Equal(t, "127.0.0.1", sa.GetAddress())
+	require.Equal(t, loopbackAddr, sa.GetAddress())
 	require.Equal(t, uint32(virtualDNSListenerPort), sa.GetPortValue())
 	require.Equal(t, envoy_core_v3.SocketAddress_UDP, sa.GetProtocol())
 
@@ -73,7 +82,15 @@ func TestMakeInlineDNSListener(t *testing.T) {
 }
 
 func TestMakeEgressDNSListener(t *testing.T) {
+	origGetAgentBindAddrFunc := netutil.GetAgentBindAddrFunc
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
+	t.Cleanup(func() {
+		netutil.GetAgentBindAddrFunc = origGetAgentBindAddrFunc
+	})
+
 	s := &ResourceGenerator{Logger: hclog.NewNullLogger()}
+	loopbackAddr, err := loopbackListenerAddress()
+	require.NoError(t, err)
 
 	// No recursors configured -> no listener.
 	msg, err := s.makeEgressDNSListener(nil)
@@ -88,10 +105,10 @@ func TestMakeEgressDNSListener(t *testing.T) {
 	l, ok := msg.(*envoy_listener_v3.Listener)
 	require.True(t, ok)
 
-	// Bound to 127.0.0.1:8654 over UDP.
+	// Bound to loopback:8654 over UDP.
 	sa := l.GetAddress().GetSocketAddress()
 	require.NotNil(t, sa)
-	require.Equal(t, "127.0.0.1", sa.GetAddress())
+	require.Equal(t, loopbackAddr, sa.GetAddress())
 	require.Equal(t, uint32(egressDNSListenerPort), sa.GetPortValue())
 	require.Equal(t, envoy_core_v3.SocketAddress_UDP, sa.GetProtocol())
 
@@ -192,8 +209,10 @@ func TestMakeInlineDNSListenerNoDomains(t *testing.T) {
 }
 
 func TestListenerNamesForDNS(t *testing.T) {
-	require.Equal(t, "virtual_dns:127.0.0.1:8653", listenerNameForVirtualDNS())
-	require.Equal(t, "egress_dns:127.0.0.1:8654", listenerNameForEgressDNS())
+	require.Equal(t, "virtual_dns:127.0.0.1:8653", listenerNameForVirtualDNS("127.0.0.1"))
+	require.Equal(t, "virtual_dns:[::1]:8653", listenerNameForVirtualDNS("::1"))
+	require.Equal(t, "egress_dns:127.0.0.1:8654", listenerNameForEgressDNS("127.0.0.1"))
+	require.Equal(t, "egress_dns:[::1]:8654", listenerNameForEgressDNS("::1"))
 }
 
 func TestMakeUDPAddress(t *testing.T) {

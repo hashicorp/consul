@@ -19,6 +19,7 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/naming"
@@ -27,9 +28,6 @@ import (
 const (
 	// virtualDNSListenerName is the base name for the inline virtual DNS listener.
 	virtualDNSListenerName = "virtual_dns"
-
-	// virtualDNSListenerAddr is the loopback address the inline DNS listener binds to.
-	virtualDNSListenerAddr = "127.0.0.1"
 
 	// virtualDNSListenerPort is the UDP port the inline DNS listener binds to.
 	// Envoy resolves virtual service FQDNs locally from the inline table.
@@ -80,6 +78,11 @@ func (s *ResourceGenerator) makeInlineDNSListener(cfgSnap *proxycfg.ConfigSnapsh
 		return nil, nil
 	}
 
+	loopbackAddr, err := loopbackListenerAddress()
+	if err != nil {
+		return nil, err
+	}
+
 	dnsFilterCfg := &envoy_dns_filter_v3.DnsFilterConfig{
 		StatPrefix: virtualDNSStatPrefix,
 		ServerConfig: &envoy_dns_filter_v3.DnsFilterConfig_ServerContextConfig{
@@ -97,8 +100,8 @@ func (s *ResourceGenerator) makeInlineDNSListener(cfgSnap *proxycfg.ConfigSnapsh
 	}
 
 	l := &envoy_listener_v3.Listener{
-		Name:             listenerNameForVirtualDNS(),
-		Address:          makeUDPAddress(virtualDNSListenerAddr, virtualDNSListenerPort),
+		Name:             listenerNameForVirtualDNS(loopbackAddr),
+		Address:          makeUDPAddress(loopbackAddr, virtualDNSListenerPort),
 		TrafficDirection: envoy_core_v3.TrafficDirection_OUTBOUND,
 		// The dns_filter is a UDP listener filter, so the listener must declare a
 		// UDP listener config in addition to binding a UDP socket.
@@ -274,8 +277,8 @@ func virtualFQDNsForUpstream(cfgSnap *proxycfg.ConfigSnapshot, uid proxycfg.Upst
 }
 
 // listenerNameForVirtualDNS returns the stable Envoy listener name for the inline DNS listener.
-func listenerNameForVirtualDNS() string {
-	return virtualDNSListenerName + ":" + net.JoinHostPort(virtualDNSListenerAddr, strconv.Itoa(virtualDNSListenerPort))
+func listenerNameForVirtualDNS(bindAddr string) string {
+	return virtualDNSListenerName + ":" + net.JoinHostPort(bindAddr, strconv.Itoa(virtualDNSListenerPort))
 }
 
 // makeEgressDNSListener builds the egress recursor DNS UDP listener for a connect
@@ -293,6 +296,11 @@ func (s *ResourceGenerator) makeEgressDNSListener(recursors []string) (proto.Mes
 	resolvers := makeRecursorAddresses(recursors)
 	if len(resolvers) == 0 {
 		return nil, nil
+	}
+
+	loopbackAddr, err := loopbackListenerAddress()
+	if err != nil {
+		return nil, err
 	}
 
 	caresCfg := &envoy_cares_v3.CaresDnsResolverConfig{
@@ -329,8 +337,8 @@ func (s *ResourceGenerator) makeEgressDNSListener(recursors []string) (proto.Mes
 	}
 
 	l := &envoy_listener_v3.Listener{
-		Name:              listenerNameForEgressDNS(),
-		Address:           makeUDPAddress(virtualDNSListenerAddr, egressDNSListenerPort),
+		Name:              listenerNameForEgressDNS(loopbackAddr),
+		Address:           makeUDPAddress(loopbackAddr, egressDNSListenerPort),
 		TrafficDirection:  envoy_core_v3.TrafficDirection_OUTBOUND,
 		UdpListenerConfig: &envoy_listener_v3.UdpListenerConfig{},
 		ListenerFilters:   []*envoy_listener_v3.ListenerFilter{dnsFilter},
@@ -373,8 +381,19 @@ func makeRecursorAddresses(recursors []string) []*envoy_core_v3.Address {
 }
 
 // listenerNameForEgressDNS returns the stable Envoy listener name for the egress DNS listener.
-func listenerNameForEgressDNS() string {
-	return egressDNSListenerName + ":" + net.JoinHostPort(virtualDNSListenerAddr, strconv.Itoa(egressDNSListenerPort))
+func listenerNameForEgressDNS(bindAddr string) string {
+	return egressDNSListenerName + ":" + net.JoinHostPort(bindAddr, strconv.Itoa(egressDNSListenerPort))
+}
+
+func loopbackListenerAddress() (string, error) {
+	ds, err := netutil.IsDualStack(nil, true)
+	if err != nil {
+		return "", err
+	}
+	if ds {
+		return "::1", nil
+	}
+	return "127.0.0.1", nil
 }
 
 // makeUDPAddress builds an Envoy UDP socket address.
