@@ -48,9 +48,6 @@ RUN addgroup consul && \
 
 # Set up certificates, base tools, and Consul.
 # libc6-compat is needed to symlink the shared libraries for ARM builds
-# Upgrade curl to >=8.20.0 from Alpine edge to fix CVE-2026-6429, CVE-2026-4873, CVE-2026-5773,
-# CVE-2026-6253, CVE-2026-6276, CVE-2026-7168, CVE-2026-5545 (fixed in curl 8.20.0).
-# Alpine 3.23 stable does not yet carry the patched version.
 RUN set -eux && \
     apk add --no-cache --upgrade \
             ca-certificates \
@@ -170,9 +167,6 @@ LABEL org.opencontainers.image.authors="Consul Team <consul@hashicorp.com>" \
 COPY LICENSE /usr/share/doc/$PRODUCT_NAME/LICENSE.txt
 # Set up certificates and base tools.
 # libc6-compat is needed to symlink the shared libraries for ARM builds
-# Upgrade curl to >=8.20.0 from Alpine edge to fix CVE-2026-6429, CVE-2026-4873, CVE-2026-5773,
-# CVE-2026-6253, CVE-2026-6276, CVE-2026-7168, CVE-2026-5545 (fixed in curl 8.20.0).
-# Alpine 3.23 stable does not yet carry the patched version.
 RUN apk add -v --no-cache --upgrade \
 		dumb-init \
 		libc6-compat \
