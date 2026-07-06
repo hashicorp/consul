@@ -138,31 +138,24 @@ func makeVirtualDNSDomains(cfgSnap *proxycfg.ConfigSnapshot) []*envoy_dns_table_
 
 	// Upstreams discovered via discovery chains (explicit and transparent-proxy).
 	for uid, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
+		// A discovery chain being present in the snapshot does not guarantee this
+		// proxy should route to it: the chain can linger for a service whose
+		// intention was removed, or be pulled in by a wildcard/implicit watch.
+		// GetUpstream is the authoritative point-in-time check ("is this an
+		// explicit or implicit upstream right now?"). We must apply the same skip
+		// guard the tproxy filter-chain builder uses in listeners.go, otherwise we
+		// would advertise a VIP that has no intercepting filter chain, letting
+		// traffic bypass the proxy.
+		if _, skip := cfgSnap.ConnectProxy.GetUpstream(uid, &cfgSnap.ProxyID.EnterpriseMeta); skip {
+			continue
+		}
+
 		fqdn := virtualFQDNsForUpstream(cfgSnap, uid)
 		if fqdn == "" {
 			continue
 		}
 
-		// Auto-assigned and manually-configured virtual IPs for the upstream service.
-		// Only advertise these when the upstream chain is in the proxy's own partition,
-		// mirroring the transparent-proxy filter-chain match logic in listeners.go. The
-		// tproxy listener only intercepts these VIPs for same-partition upstreams, so
-		// advertising them for other partitions would hand clients addresses that Envoy
-		// won't intercept, causing traffic to bypass the proxy.
-		if chain.Partition == cfgSnap.ProxyID.PartitionOrDefault() {
-			for _, ip := range chain.AutoVirtualIPs {
-				addEntry(fqdn, ip)
-			}
-			for _, ip := range chain.ManualVirtualIPs {
-				addEntry(fqdn, ip)
-			}
-		}
-
-		// Match only on the virtual IP for the upstream service, identified by the
-		// chain's primary target, to avoid pulling in addresses of other targets.
-		nodes := cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[uid][chain.ID()]
-		gatewayVIPTag := structs.ServiceGatewayVirtualIPTag(chain.CompoundServiceName())
-		for _, addr := range virtualIPsForNodes(cfgSnap, nodes, gatewayVIPTag) {
+		for _, addr := range virtualIPsForChain(cfgSnap, uid, chain) {
 			addEntry(fqdn, addr)
 		}
 	}
@@ -209,6 +202,43 @@ func makeVirtualDNSDomains(cfgSnap *proxycfg.ConfigSnapshot) []*envoy_dns_table_
 	})
 
 	return domains
+}
+
+// virtualIPsForChain collects the virtual IP addresses to advertise for an
+// upstream reached via a discovery chain. It mirrors the transparent-proxy
+// filter-chain match logic in listeners.go so the DNS table and the tproxy
+// listener stay in lockstep: divergence would either advertise a VIP with no
+// intercepting filter chain (silent bypass) or omit a VIP the tproxy matches.
+//
+// The set is the union of:
+//   - the chain's auto-assigned and manually-configured virtual IPs, but only
+//     when the chain is in the proxy's own partition (the tproxy listener only
+//     intercepts these for same-partition upstreams); and
+//   - the virtual IP of the upstream service itself, identified by the chain's
+//     primary target, to avoid pulling in addresses of other discovery targets.
+func virtualIPsForChain(cfgSnap *proxycfg.ConfigSnapshot, uid proxycfg.UpstreamID, chain *structs.CompiledDiscoveryChain) []string {
+	uniqueAddrs := make(map[string]struct{})
+
+	if chain.Partition == cfgSnap.ProxyID.PartitionOrDefault() {
+		for _, ip := range chain.AutoVirtualIPs {
+			uniqueAddrs[ip] = struct{}{}
+		}
+		for _, ip := range chain.ManualVirtualIPs {
+			uniqueAddrs[ip] = struct{}{}
+		}
+	}
+
+	nodes := cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[uid][chain.ID()]
+	gatewayVIPTag := structs.ServiceGatewayVirtualIPTag(chain.CompoundServiceName())
+	for _, addr := range virtualIPsForNodes(cfgSnap, nodes, gatewayVIPTag) {
+		uniqueAddrs[addr] = struct{}{}
+	}
+
+	addrs := make([]string, 0, len(uniqueAddrs))
+	for addr := range uniqueAddrs {
+		addrs = append(addrs, addr)
+	}
+	return addrs
 }
 
 // virtualIPsForNodes extracts the unique virtual IP addresses advertised by the

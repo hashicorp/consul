@@ -41,6 +41,61 @@ func TestMakeVirtualDNSDomains(t *testing.T) {
 	}
 }
 
+func TestMakeVirtualDNSDomains_SkipsCrossPartitionConfiguredVIPs(t *testing.T) {
+	snap := proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t, nil)
+
+	uid := proxycfg.NewUpstreamIDFromServiceName(structs.NewServiceName("cross-partition", nil))
+
+	snap.ConnectProxy.DiscoveryChain[uid] = &structs.CompiledDiscoveryChain{
+		ServiceName:      uid.Name,
+		Namespace:        uid.NamespaceOrDefault(),
+		Partition:        "other",
+		Datacenter:       snap.Datacenter,
+		AutoVirtualIPs:   []string{"240.20.20.20"},
+		ManualVirtualIPs: []string{"10.20.20.20"},
+	}
+
+	domains := makeVirtualDNSDomains(snap)
+	fqdn := virtualFQDNsForUpstream(snap, uid)
+
+	for _, d := range domains {
+		require.NotEqual(t, fqdn, d.Name)
+		require.NotContains(t, d.GetEndpoint().GetAddressList().GetAddress(), "240.20.20.20")
+		require.NotContains(t, d.GetEndpoint().GetAddressList().GetAddress(), "10.20.20.20")
+	}
+}
+
+func TestMakeVirtualDNSDomains_SkipsUnknownUpstream(t *testing.T) {
+	snap := proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t, nil)
+
+	// A discovery chain in the proxy's own partition but which is neither an
+	// explicit nor an implicit (intention-allowed) upstream. GetUpstream reports
+	// skip=true for it, so the tproxy listener builds no filter chain to
+	// intercept its VIP. The DNS table must skip it too, otherwise it would
+	// advertise a VIP that Envoy never intercepts.
+	uid := proxycfg.NewUpstreamIDFromServiceName(structs.NewServiceName("not-an-upstream", nil))
+
+	snap.ConnectProxy.DiscoveryChain[uid] = &structs.CompiledDiscoveryChain{
+		ServiceName:      uid.Name,
+		Namespace:        uid.NamespaceOrDefault(),
+		Partition:        snap.ProxyID.PartitionOrDefault(),
+		Datacenter:       snap.Datacenter,
+		AutoVirtualIPs:   []string{"240.30.30.30"},
+		ManualVirtualIPs: []string{"10.30.30.30"},
+	}
+	// Ensure it is not treated as an implicit upstream.
+	delete(snap.ConnectProxy.IntentionUpstreams, uid)
+
+	domains := makeVirtualDNSDomains(snap)
+	fqdn := virtualFQDNsForUpstream(snap, uid)
+
+	for _, d := range domains {
+		require.NotEqual(t, fqdn, d.Name)
+		require.NotContains(t, d.GetEndpoint().GetAddressList().GetAddress(), "240.30.30.30")
+		require.NotContains(t, d.GetEndpoint().GetAddressList().GetAddress(), "10.30.30.30")
+	}
+}
+
 func TestMakeInlineDNSListener(t *testing.T) {
 	origGetAgentBindAddrFunc := netutil.GetAgentBindAddrFunc
 	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
