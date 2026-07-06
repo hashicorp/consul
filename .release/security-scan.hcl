@@ -39,8 +39,11 @@ container {
   triage {
     suppress {
       vulnerabilities = [
-        "CVE-2025-30258", //Alpine Linux's Security Issue Tracker in gnupg@2.4.9-r0
-        "CVE-2026-41989", //Alpine Linux's Security Issue Tracker in libgcrypt@1.11.2-r0
+        "CVE-2025-30258", //Alpine Linux's Security Issue Tracker in gnupg@2.4.9-r0:
+        // 2.4.x is the stable version of gnupg and the latest is 2.4.9 which is not affected by the vulnerability 
+        // according to NVD - CVE-2025-30258, but our scanner is still flagging it. Hence suppressing it for now.
+        // Impact: gpg is only used in official docker build target but is uninstalled 
+        // just after verifying the signature of the Consul binary. This CVE is not exploitable in this context.
       ]
 
       paths = [
