@@ -62,7 +62,8 @@ RUN set -eux && \
             libc6-compat \
             iptables \
             tzdata \
-            zlib && \
+            zlib \
+            curl && \
     gpg --keyserver keyserver.ubuntu.com --recv-keys C874011F0AB405110D02105534365D9472D7468F && \
     mkdir -p /tmp/build && \
     cd /tmp/build && \
@@ -180,7 +181,8 @@ RUN apk add -v --no-cache --upgrade \
 		openssl \
 		su-exec \
 		jq \
-		zlib
+		zlib \
+        curl
 
 # Create a consul user and group first so the IDs get set the same way, even as
 # the rest of this may change over time.
