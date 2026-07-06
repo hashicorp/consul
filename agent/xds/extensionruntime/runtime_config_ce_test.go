@@ -289,16 +289,16 @@ func TestGetRuntimeConfigurations_ConnectProxy(t *testing.T) {
 	}
 }
 
-// TestAppendAPIGatewayExtAuthzUpstreams_NoopInCE verifies that surfacing an API
-// Gateway's discovery chains as builtin/ext-authz upstream targets is a no-op in
+// TestAppendAPIGatewayUpstreams_NoopInCE verifies that surfacing an API
+// Gateway's discovery chains as builtin/ext-authz or builtin/ext-proc upstream targets is a no-op in
 // CE: it must not add any upstreams or extensions to the provided maps. This is
 // an enterprise-only feature; the enterprise build provides the real
 // implementation.
-func TestAppendAPIGatewayExtAuthzUpstreams_NoopInCE(t *testing.T) {
+func TestAppendAPIGatewayUpstreams_NoopInCE(t *testing.T) {
 	upstreamMap := map[api.CompoundServiceName]*extensioncommon.UpstreamData{}
 	extensionsMap := map[api.CompoundServiceName][]api.EnvoyExtension{}
 
-	appendAPIGatewayExtAuthzUpstreams(nil, upstreamMap, extensionsMap, "trustdomain.consul")
+	appendAPIGatewayUpstreams(nil, upstreamMap, extensionsMap, "trustdomain.consul")
 
 	require.Empty(t, upstreamMap)
 	require.Empty(t, extensionsMap)

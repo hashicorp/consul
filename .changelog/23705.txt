@@ -1,0 +1,3 @@
+```release-note:feature
+config-entry: (Enterprise only) Addition of External Processor (ext_proc) Envoy Extension support to api-gateway and connect-proxy
+```
