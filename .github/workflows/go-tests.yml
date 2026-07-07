@@ -540,7 +540,20 @@ jobs:
 
           # No coverable Go lines changed (docs/test-only, or only modules
           # without coverage data) -> nothing to gate.
-          if [ -z "${PATCH}" ] || [ "${PATCH}" = "N/A" ]; then
+          # Fail closed: an empty PATCH means the reusable workflow could not
+          # compute patch coverage (no coverage profile produced, so the patch
+          # step was skipped). Don't let the gate pass unevaluated.
+          if [ -z "${PATCH}" ]; then
+            echo "::error::Patch coverage was not computed (no coverage profile produced). Failing closed."
+            {
+              echo "### ❌ Coverage gate failed"
+              echo ""
+              echo "Patch coverage could not be computed because no coverage profile was produced (unit tests may not have run or emitted coverage)."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+          if [ "${PATCH}" = "N/A" ]; then
             echo "::notice::No coverable Go lines changed in this PR; patch-coverage gate skipped."
             {
               echo "### ✅ Coverage gate passed"
