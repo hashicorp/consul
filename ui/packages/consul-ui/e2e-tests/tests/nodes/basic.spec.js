@@ -13,7 +13,7 @@ test.describe('Nodes - Basic Tests', () => {
 
     // 1. Navigate to nodes page, verify there are 8 nodes present.
     await nodesFixture.gotoNodesPage();
-    await expect(page.locator('.consul-node-list ul > li:has(.header)')).toHaveCount(8);
+    await expect(page.locator('.consul-node-table tbody tr')).toHaveCount(8);
 
     // 2. Navigate to frontend-0 node instance.
     await nodesFixture.gotoNodeInstance('frontend-0');
