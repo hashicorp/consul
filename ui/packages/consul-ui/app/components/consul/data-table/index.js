@@ -108,6 +108,13 @@ export default class ConsulDataTable extends Component {
     return this.items.length;
   }
 
+  // Pagination is on by default. Callers that render a non-paginated view (for
+  // example a hierarchical tree, where paging would split a parent from its
+  // children) can opt out with `@paginated={{false}}`.
+  get paginated() {
+    return this.args.paginated !== false;
+  }
+
   get sortedItems() {
     const items = this.items;
     const valueFor = this.sortValueFns[this.sortBy];
@@ -125,6 +132,9 @@ export default class ConsulDataTable extends Component {
   }
 
   get paginatedItems() {
+    if (!this.paginated) {
+      return this.sortedItems;
+    }
     const start = (this.page - 1) * this.pageSize;
     return this.sortedItems.slice(start, start + this.pageSize);
   }

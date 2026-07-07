@@ -65,14 +65,17 @@
     <div class="consul-data-table__fade consul-data-table__fade--right" aria-hidden="true"></div>
   </div>
 
-  {{! Pagination is always rendered so the table layout stays consistent. }}
-  <Hds::Pagination::Numbered
-    class="consul-data-table__pagination"
-    @totalItems={{this.totalItems}}
-    @currentPage={{this.page}}
-    @currentPageSize={{this.pageSize}}
-    @pageSizes={{this.pageSizes}}
-    @onPageChange={{this.onPageChange}}
-    @onPageSizeChange={{this.onPageSizeChange}}
-  />
+  {{!-- Pagination is always rendered so the table layout stays consistent, unless
+      the caller opts out (e.g. a tree view) via @paginated={{false}}. --}}
+  {{#if this.paginated}}
+    <Hds::Pagination::Numbered
+      class="consul-data-table__pagination"
+      @totalItems={{this.totalItems}}
+      @currentPage={{this.page}}
+      @currentPageSize={{this.pageSize}}
+      @pageSizes={{this.pageSizes}}
+      @onPageChange={{this.onPageChange}}
+      @onPageSizeChange={{this.onPageSizeChange}}
+    />
+  {{/if}}
 </div>
