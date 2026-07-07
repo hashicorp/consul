@@ -3,64 +3,112 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-<TabularCollection class='consul-kv-list' ...attributes @items={{@items}}>
-  <:header>
-    <th>Name</th>
-  </:header>
-  <:row as |item index|>
-    <td data-test-kv={{item.Key}} class={{if item.isFolder 'folder' 'file'}}>
-      <a href={{href-to (if item.isFolder 'dc.kv.folder' 'dc.kv.edit') item.Key}}>{{right-trim
-          (left-trim item.Key @parent.Key)
-          '/'
-        }}</a>
-    </td>
-  </:row>
-  <:actions as |item index change checked|>
-    <PopoverMenu
-      @expanded={{if (eq checked index) true false}}
-      @onchange={{action change index}}
-      @keyboardAccess={{true}}
-    >
-      <:trigger>
-        More
-      </:trigger>
-      <:menu as |components api confirm keypressClick|>
-        {{#if (can 'write kv' item=item)}}
-          <components.MenuItem
-            data-test-edit
-            @href={{href-to (if item.isFolder 'dc.kv.folder' 'dc.kv.edit') item.Key}}
-          >
-            <:label>
-              {{if item.isFolder 'View' 'Edit'}}
-            </:label>
-          </components.MenuItem>
-          <components.MenuItem data-test-delete class='dangerous' @onclick={{action @delete item}}>
-            <:label>
-              Delete
-            </:label>
-            <:confirmHeader>
-              Confirm Delete
-            </:confirmHeader>
-            <:confirmBody>
-              <p>
-                Are you sure you want to delete this KV entry?
-              </p>
-            </:confirmBody>
-            <:confirmFooter as |Params|>
-              <Params.button @text='Delete' {{on 'click' Params.confirmAction}} />
-            </:confirmFooter>
-          </components.MenuItem>
-        {{else}}
-          <components.MenuItem
-            data-test-edit
-            @href={{href-to (if item.isFolder 'dc.kv.folder' 'dc.kv.edit') item.Key}}
-          >
-            <:label>
-              View
-            </:label>
-          </components.MenuItem>
-        {{/if}}
-      </:menu>
-    </PopoverMenu>
-  </:actions>
-</TabularCollection>
+<div class="consul-kv-list" ...attributes>
+  <Consul::DataTable
+    @items={{this.rows}}
+    @columns={{this.columns}}
+    @paginated={{false}}
+    @ariaLabel="Key / Values"
+  >
+    <:row as |row B|>
+      {{! ---- Key name (tree cell: indentation + chevron + icon + name) ---- }}
+      <B.Td>
+        <span class="consul-kv-list__cell" style={{row.indentStyle}}>
+          {{#if row.isFolder}}
+            <button
+              type="button"
+              class="consul-kv-list__toggle"
+              aria-label={{if row.expanded "Collapse folder" "Expand folder"}}
+              aria-expanded={{if row.expanded "true" "false"}}
+              data-test-kv-toggle
+              {{on "click" (fn this.toggle row.node)}}
+            >
+              <Hds::Icon @name={{if row.expanded "chevron-down" "chevron-right"}} @size="16" @isInline={{true}} />
+            </button>
+            <Hds::Icon class="consul-kv-list__icon" @name="folder" @size="16" @isInline={{true}} />
+            <a
+              class="consul-kv-list__name"
+              data-test-kv={{row.node.Key}}
+              data-test-name
+              href={{href-to "dc.kv.folder" row.node.Key}}
+            >{{row.name}}</a>
+          {{else}}
+            <span class="consul-kv-list__toggle-spacer" aria-hidden="true"></span>
+            <Hds::Icon class="consul-kv-list__icon" @name="key" @size="16" @isInline={{true}} />
+            <a
+              class="consul-kv-list__name"
+              data-test-kv={{row.node.Key}}
+              data-test-name
+              href={{href-to "dc.kv.edit" row.node.Key}}
+            >{{row.name}}</a>
+          {{/if}}
+        </span>
+      </B.Td>
+
+      {{! ---- Actions ---- }}
+      <B.Td @align="right">
+        <Hds::Dropdown @listPosition="bottom-right" class="consul-kv-list__actions" as |dd|>
+          <dd.ToggleIcon
+            @icon="more-horizontal"
+            @text="Open actions menu"
+            @hasChevron={{false}}
+            @size="small"
+            data-test-actions-menu
+          />
+          {{#if (can "write kv" item=row.node)}}
+            <dd.Interactive
+              @route={{if row.isFolder "dc.kv.folder" "dc.kv.edit"}}
+              @model={{row.node.Key}}
+              data-test-edit
+            >{{if row.isFolder "View" "Edit"}}</dd.Interactive>
+            <dd.Separator />
+            <dd.Interactive
+              @color="critical"
+              @icon="trash"
+              data-test-delete
+              {{on "click" (fn this.confirmDelete row.node)}}
+            >Delete</dd.Interactive>
+          {{else}}
+            <dd.Interactive
+              @route={{if row.isFolder "dc.kv.folder" "dc.kv.edit"}}
+              @model={{row.node.Key}}
+              data-test-edit
+            >View</dd.Interactive>
+          {{/if}}
+        </Hds::Dropdown>
+      </B.Td>
+    </:row>
+  </Consul::DataTable>
+
+  {{! Live subscription for each expanded folder's children. Rendering these
+      outside the table keeps the DOM valid (no nested <tr>) while the loaded
+      children are spliced into the visible rows by the component. }}
+  {{#each this.expandedFolders as |key|}}
+    <DataSource
+      @src={{uri '/${partition}/${nspace}/${dc}/kvs/${key}'
+        (hash
+          partition=@partition
+          nspace=@nspace
+          dc=@dc
+          key=key
+        )
+      }}
+      @onchange={{fn this.setChildren key}}
+    />
+  {{/each}}
+
+  {{#if this.itemToDelete}}
+    <Hds::Modal id="confirm-modal" @color="warning" @onClose={{this.cancelDelete}} as |M|>
+      <M.Header @icon="alert-triangle">Confirm Delete</M.Header>
+      <M.Body>
+        <p>Are you sure you want to delete this KV entry?</p>
+      </M.Body>
+      <M.Footer as |F|>
+        <Hds::ButtonSet>
+          <Hds::Button @text="Delete" @color="critical" data-test-id="confirm-action" {{on "click" this.invokeDelete}} />
+          <Hds::Button @text="Cancel" @color="secondary" {{on "click" F.close}} />
+        </Hds::ButtonSet>
+      </M.Footer>
+    </Hds::Modal>
+  {{/if}}
+</div>

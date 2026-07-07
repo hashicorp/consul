@@ -1,0 +1,58 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
+.consul-kv-list {
+  margin-top: 16px;
+
+  /* The tree cell: chevron, type icon and name laid out on one line, with the
+     per-depth indentation applied via an inline padding-inline-start. */
+  .consul-kv-list__cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  /* Expand/collapse control for folder rows. */
+  .consul-kv-list__toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--token-color-foreground-faint);
+    cursor: pointer;
+  }
+
+  .consul-kv-list__toggle:hover {
+    color: var(--token-color-foreground-strong);
+  }
+
+  /* Keeps key (leaf) rows aligned with folder rows that have a chevron. */
+  .consul-kv-list__toggle-spacer {
+    display: inline-block;
+    flex: 0 0 auto;
+    width: 20px;
+    height: 20px;
+  }
+
+  .consul-kv-list__icon {
+    flex: 0 0 auto;
+    color: var(--token-color-foreground-faint);
+  }
+
+  .consul-kv-list__name {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .consul-kv-list__actions {
+    display: inline-flex;
+  }
+}
