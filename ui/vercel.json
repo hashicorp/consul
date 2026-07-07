@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "github": { "silent": true },
-  "installCommand": "pnpm install",
+  "installCommand": "corepack enable && corepack prepare pnpm@10.16.1 --activate && pnpm install",
   "buildCommand": "make dist-vercel",
   "outputDirectory": "dist",
   "redirects": [{ "source": "/", "destination": "/ui/" }],
