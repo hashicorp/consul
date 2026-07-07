@@ -87,7 +87,14 @@ as |route|>
 as |sort filters parent items|}}
     <AppView @showBreadcrumb={{not-eq parent.Key '/'}}>
       <:breadcrumbs>
-        <Hds::Breadcrumb>
+{{#let (join '/' (append (slice 0 -2 (split parent.Key '/')) '')) as |parentFolder|}}
+  {{#if (eq parentFolder '')}}
+        <Breadcrumbs::BackButton @route="dc.kv" />
+  {{else}}
+        <Breadcrumbs::BackButton @route="dc.kv.folder" @model={{parentFolder}} />
+  {{/if}}
+{{/let}}
+        <Hds::Breadcrumb class="has-back-button">
           <Hds::Breadcrumb::Item @text="Key / Values" @route="dc.kv" />
     {{#each (slice 0 -2 (split parent.Key '/')) as |breadcrumb index|}}
           <Hds::Breadcrumb::Item @text={{breadcrumb}} @route="dc.kv.folder" @model={{join '/' (append (slice 0 (add index 1) (split parent.Key '/')) '')}} />
