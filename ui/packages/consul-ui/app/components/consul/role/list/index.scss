@@ -55,9 +55,9 @@
 }
 
 .consul-role-list__name {
-  display: inline-flex;
-  align-items: center;
-  flex-wrap: wrap;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   gap: 6px;
   font-weight: var(--token-typography-font-weight-semibold);
 

@@ -45,7 +45,12 @@ as |dc partition nspace item|}}
   <AppView>
 
     <:breadcrumbs>
-      <Hds::Breadcrumb>
+{{#if (eq parentKey separator)}}
+      <Breadcrumbs::BackButton @route="dc.kv.index" @model={{route.params.dc}} />
+{{else}}
+      <Breadcrumbs::BackButton @route="dc.kv.folder" @model={{parentKey}} />
+{{/if}}
+      <Hds::Breadcrumb class="has-back-button">
         <Hds::Breadcrumb::Item @text="Key / Values" @route="dc.kv.index" @model={{route.params.dc}} data-test-back />
 {{#if (not-eq parentKey separator)}}
 
