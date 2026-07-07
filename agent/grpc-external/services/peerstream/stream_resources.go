@@ -19,6 +19,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/connect"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/structs"
@@ -365,10 +366,18 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) (uint64, bool, 
 	)
 	subCh := mgr.subscribe(streamReq.Stream.Context(), streamReq.LocalID, streamReq.PeerName, streamReq.Partition)
 
+	// sendReq wraps a message queued for the sender goroutine. sent is optional;
+	// when non-nil the sender delivers the result of Stream.Send on it, allowing
+	// callers to wait until the message has actually been written to the stream.
+	type sendReq struct {
+		msg  *pbpeerstream.ReplicationMessage
+		sent chan error
+	}
+
 	// sendCh is used to queue messages to be sent to the stream.
 	// We buffer this to prevent the main loop from blocking on sends, which could lead to deadlocks
 	// if the peer is also blocked sending to us.
-	sendCh := make(chan *pbpeerstream.ReplicationMessage, 64)
+	sendCh := make(chan sendReq, 64)
 	// sendErrCh is used to report errors from the sender goroutine.
 	sendErrCh := make(chan error, 1)
 
@@ -378,15 +387,15 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) (uint64, bool, 
 	go func() {
 		for {
 			select {
-			case msg := <-sendCh:
-				logTraceSend(logger, msg)
-				err := streamReq.Stream.Send(msg)
+			case req := <-sendCh:
+				logTraceSend(logger, req.msg)
+				err := streamReq.Stream.Send(req.msg)
 
 				// We only track send successes and errors for response types because this is meant to track
 				// resources, not request/ack messages.
-				if msg.GetResponse() != nil {
+				if req.msg.GetResponse() != nil {
 					if err != nil {
-						if id := msg.GetResponse().GetResourceID(); id != "" {
+						if id := req.msg.GetResponse().GetResourceID(); id != "" {
 							logger.Error("failed to send resource", "resourceID", id, "error", err)
 							status.TrackSendError(err.Error())
 						} else {
@@ -395,6 +404,10 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) (uint64, bool, 
 					} else {
 						status.TrackSendSuccess()
 					}
+				}
+
+				if req.sent != nil {
+					req.sent <- err
 				}
 
 				if err != nil {
@@ -419,8 +432,36 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) (uint64, bool, 
 		}
 
 		select {
-		case sendCh <- msg:
+		case sendCh <- sendReq{msg: msg}:
 			return nil
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-handleStreamCtx.Done():
+			return handleStreamCtx.Err()
+		}
+	}
+
+	// streamSendSync queues msg like streamSend but waits until the sender
+	// goroutine has written it to the stream. Use this for messages that must
+	// reach the peer before the handler returns and tears the stream down,
+	// e.g. the Terminated message on peering deletion.
+	streamSendSync := func(ctx context.Context, msg *pbpeerstream.ReplicationMessage) error {
+		if err := handleStreamCtx.Err(); err != nil {
+			return err
+		}
+
+		sent := make(chan error, 1)
+		select {
+		case sendCh <- sendReq{msg: msg, sent: sent}:
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-handleStreamCtx.Done():
+			return handleStreamCtx.Err()
+		}
+
+		select {
+		case err := <-sent:
+			return err
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-handleStreamCtx.Done():
@@ -510,8 +551,23 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) (uint64, bool, 
 	// The nonce is used to correlate response/(ack|nack) pairs.
 	var nonce uint64
 
+	// pendingUpdateMsg holds a replication message that is waiting to be sent to sendCh.
+	// This is used to implement backpressure on subCh.
+	var pendingUpdateMsg *pbpeerstream.ReplicationMessage
+
 	// The main loop that processes sends and receives.
 	for {
+		// Determine if we should be reading from subCh or writing to sendCh
+		var subChSelect <-chan cache.UpdateEvent
+		if pendingUpdateMsg == nil {
+			subChSelect = subCh
+		}
+
+		var sendChSelect chan<- sendReq
+		if pendingUpdateMsg != nil {
+			sendChSelect = sendCh
+		}
+
 		select {
 		// When the doneCh is closed that means that the peering was deleted locally.
 		case <-status.Done():
@@ -522,7 +578,10 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) (uint64, bool, 
 					Terminated: &pbpeerstream.ReplicationMessage_Terminated{},
 				},
 			}
-			if err := streamSend(incomingHeartbeatCtx, term); err != nil {
+			// The Terminated message must actually reach the peer before this
+			// handler returns and tears down the stream, otherwise the peer
+			// never learns the peering was deleted and stays PENDING forever.
+			if err := streamSendSync(incomingHeartbeatCtx, term); err != nil {
 				// Nolint directive needed due to bug in govet that doesn't see that the cancel
 				// func of the incomingHeartbeatTimer _does_ get called.
 				//nolint:govet
@@ -705,7 +764,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) (uint64, bool, 
 					context.WithTimeout(context.Background(), s.incomingHeartbeatTimeout)
 			}
 
-		case update := <-subCh:
+		case update := <-subChSelect:
 			var resp *pbpeerstream.ReplicationMessage_Response
 			switch {
 			case strings.HasPrefix(update.CorrelationID, subExportedServiceList):
@@ -750,11 +809,10 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) (uint64, bool, 
 			nonce++
 			resp.Nonce = fmt.Sprintf("%08x", nonce)
 
-			replResp := makeReplicationResponse(resp)
-			if err := streamSend(incomingHeartbeatCtx, replResp); err != nil {
-				// note: govet warns of context leak but it is cleaned up in a defer
-				return gen, true, fmt.Errorf("failed to push data for %q: %w", update.CorrelationID, err)
-			}
+			pendingUpdateMsg = makeReplicationResponse(resp)
+
+		case sendChSelect <- sendReq{msg: pendingUpdateMsg}:
+			pendingUpdateMsg = nil
 		}
 	}
 }
