@@ -135,14 +135,24 @@ export default class ConsulServiceInstanceTable extends Component {
 
   // Mirrors the link param logic from Consul::Service::Table so that
   // cross-partition / cross-namespace / peered links keep working.
+  //
+  // The active partition/nspace args can be undefined (e.g. CE routes have no
+  // partition segment), while item.Partition/Namespace default to 'default', so
+  // both sides are normalized before comparing. Without this, the default case
+  // would wrongly append partition/nspace params and produce a broken link.
   linkParams = (item) => {
     const hash = {};
 
-    if (item.Partition && this.args.partition !== item.Partition) {
-      hash.partition = item.Partition;
-      hash.nspace = item.Namespace;
-    } else if (item.Namespace && this.args.nspace !== item.Namespace) {
-      hash.nspace = item.Namespace;
+    const argPartition = this.args.partition || 'default';
+    const argNspace = this.args.nspace || 'default';
+    const itemPartition = item.Partition || 'default';
+    const itemNspace = item.Namespace || 'default';
+
+    if (argPartition !== itemPartition) {
+      hash.partition = itemPartition;
+      hash.nspace = itemNspace;
+    } else if (argNspace !== itemNspace) {
+      hash.nspace = itemNspace;
     }
 
     if (item.Service?.PeerName) {
