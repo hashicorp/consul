@@ -1,6 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "public": true,
   "github": { "silent": true },
   "installCommand": "pnpm install",
   "buildCommand": "make dist-vercel",
