@@ -173,9 +173,9 @@ jobs:
                     else "FILE\t\(.filename)\n\(.patch)"
                     end' > /tmp/pr-patches.txt
 
-          if grep -q '^NULLPATCH\t' /tmp/pr-patches.txt; then
+          if grep -q '^NULLPATCH' /tmp/pr-patches.txt; then
             echo "::error::Cannot compute patch coverage: the GitHub API returned no diff (patch == null) for changed Go file(s):"
-            grep '^NULLPATCH\t' /tmp/pr-patches.txt | cut -f2 | sed 's/^/  - /'
+            grep '^NULLPATCH' /tmp/pr-patches.txt | cut -f2 | sed 's/^/  - /'
             echo "This usually means a single file's diff is too large for the API to render. Split the change so coverage can be measured."
             exit 1
           fi
