@@ -1,0 +1,23 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
+.consul-kv-toolbar {
+  /* the sorter sits at the right end of the toolbar row */
+  .consul-kv-toolbar__sort {
+    flex: 0 0 auto;
+    margin-left: auto;
+
+    .hds-dropdown-toggle-button {
+      min-height: 2.25rem;
+    }
+  }
+}
+
+/* The KV index uses the HDS Filter Bar for its toolbar, so drop the default
+   header underline above it to avoid a doubled-up separator. */
+html[data-route='dc.kv.index'] .app-view > header .title,
+html[data-route='dc.kv.folder'] .app-view > header .title {
+  border-bottom: none;
+}

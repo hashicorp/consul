@@ -1,0 +1,52 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+{{!
+  KV-index toolbar. All the Filter Bar wiring (filter groups, applied tags,
+  search, "Search across" dropdown, stay-expanded behaviour) lives in the
+  generic Consul::ListToolbar; this component only supplies the Type filter
+  config and the Name / Type sort dropdown. The four sort options are kept in
+  the same order / values as the legacy KV search bar so the sorting behaviour
+  stays valid.
+}}
+<Consul::ListToolbar
+  class="consul-kv-toolbar"
+  ...attributes
+  @filter={{@filter}}
+  @search={{@search}}
+  @onsearch={{@onsearch}}
+  @filterGroups={{this.filterGroups}}
+  @searchPlaceholder="Search"
+>
+  <:quickFilters>
+    {{#if @sort}}
+      <Hds::Dropdown
+        class="consul-kv-toolbar__sort"
+        @listPosition="bottom-right"
+        @preserveContentInDom={{true}}
+        data-test-sort-control
+        as |dd|
+      >
+        <dd.ToggleButton
+          @text={{get
+            (from-entries (array
+              (array "Key:asc" (t "common.sort.alpha.asc"))
+              (array "Key:desc" (t "common.sort.alpha.desc"))
+              (array "Kind:asc" (t "components.consul.kv.search-bar.sort.kind.asc"))
+              (array "Kind:desc" (t "components.consul.kv.search-bar.sort.kind.desc"))
+            ))
+            @sort.value
+          }}
+          @color="secondary"
+          data-test-sort-toggle
+        />
+        <dd.Interactive data-test-sort-option {{on "click" (fn @sort.change (hash target=(hash selected="Key:asc")))}}>{{t "common.sort.alpha.asc"}}</dd.Interactive>
+        <dd.Interactive data-test-sort-option {{on "click" (fn @sort.change (hash target=(hash selected="Key:desc")))}}>{{t "common.sort.alpha.desc"}}</dd.Interactive>
+        <dd.Interactive data-test-sort-option {{on "click" (fn @sort.change (hash target=(hash selected="Kind:asc")))}}>{{t "components.consul.kv.search-bar.sort.kind.asc"}}</dd.Interactive>
+        <dd.Interactive data-test-sort-option {{on "click" (fn @sort.change (hash target=(hash selected="Kind:desc")))}}>{{t "components.consul.kv.search-bar.sort.kind.desc"}}</dd.Interactive>
+      </Hds::Dropdown>
+    {{/if}}
+  </:quickFilters>
+</Consul::ListToolbar>

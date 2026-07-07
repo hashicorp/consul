@@ -81,10 +81,4 @@
 
 .consul-role-list__actions {
   display: inline-flex;
-
-  /* Suppress the blue focus ring around the toggle on mouse click; keep it for
-     keyboard navigation. */
-  .hds-dropdown-toggle-icon:focus:not(:focus-visible) {
-    box-shadow: none;
-  }
 }

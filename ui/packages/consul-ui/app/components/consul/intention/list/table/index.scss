@@ -40,10 +40,4 @@
 
 .consul-intention-list-table__actions {
   display: inline-flex;
-
-  /* Suppress the blue focus ring around the toggle when it's clicked with a
-     mouse, while preserving it for keyboard navigation (focus-visible). */
-  .hds-dropdown-toggle-icon:focus:not(:focus-visible) {
-    box-shadow: none;
-  }
 }

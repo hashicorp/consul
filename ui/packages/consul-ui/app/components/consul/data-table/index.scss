@@ -161,6 +161,20 @@
     }
   }
 
+  /* Actions-column "…" dropdown toggle. HDS draws a blue focus ring on the
+     toggle via the button's own border-color plus a ::before overlay border.
+     After a mouse click the button keeps focus while its menu is open, so the
+     ring lingers. Suppress it for pointer interaction while preserving it for
+     keyboard navigation (:focus-visible) for accessibility. */
+  .hds-table__td .hds-dropdown-toggle-icon:focus:not(:focus-visible) {
+    border-color: var(--token-color-border-strong);
+    box-shadow: none;
+
+    &::before {
+      border-color: transparent;
+    }
+  }
+
   .consul-data-table__pagination {
     margin-top: 16px;
   }
