@@ -511,7 +511,7 @@ jobs:
       id-token: write
     with:
       go-version: ${{ needs.get-go-version.outputs.go-version }}
-      pr-number: ${{ github.event.pull_request.number != 0 && toJson(github.event.pull_request.number) || '' }}
+      pr-number: ${{ github.event_name == 'pull_request' && toJson(github.event.pull_request.number) || '' }}
 
   coverage-gate:
     name: coverage-gate
