@@ -44,6 +44,21 @@ container {
         // according to NVD - CVE-2025-30258, but our scanner is still flagging it. Hence suppressing it for now.
         // Impact: gpg is only used in official docker build target but is uninstalled 
         // just after verifying the signature of the Consul binary. This CVE is not exploitable in this context.
+        "ALPINE-CVE-2021-42376", // False positive in Alpine Linux's busybox@1.37.0-r31
+        // The scanner is flagging this CVE for busybox@1.37.0-r31, but according to NVD - CVE-2021-42376,
+        // this version is not affected by the vulnerability. Hence suppressing it for now.
+        // Similarly below are list of false positive CVE's flagged by the scanner for Alpine Linux's curl@8.21.0-r0:
+        "ALPINE-CVE-2021-22897",
+        "ALPINE-CVE-2025-15224",
+        "ALPINE-CVE-2025-13034",
+        "ALPINE-CVE-2025-15079",
+        // Below are list of false positive CVE's flagged by the scanner for Alpine Linux's openssl@3.5.7-r0:
+        "ALPINE-CVE-2023-0466",
+        "ALPINE-CVE-2022-20683",
+        "ALPINE-CVE-2023-4807",
+        "ALPINE-CVE-2022-1292",
+        // All the above false positives must be discussed with security team and removed from the list once they are fixed in the scanner.
+
       ]
 
       paths = [
