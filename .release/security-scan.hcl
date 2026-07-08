@@ -57,6 +57,7 @@ container {
         "ALPINE-CVE-2022-20683",
         "ALPINE-CVE-2023-4807",
         "ALPINE-CVE-2022-1292",
+        "ALPINE-CVE-2022-2068",
         // All the above false positives must be discussed with security team and removed from the list once they are fixed in the scanner.
 
       ]
