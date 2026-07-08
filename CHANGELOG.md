@@ -20,6 +20,57 @@ BUG FIXES:
 
 * xds: only emit the client cert SDS block when both CertFile and KeyFile are set. [[GH-23679](https://github.com/hashicorp/consul/issues/23679)]
 
+
+## 2.0.2 Enterprise (July 7, 2026)
+SECURITY:
+
+* Upgrade alpine base image version to 3.24 to address [CVE-2026-41989], [ALPINE-CVE-2026-2100]. [[GH-23711](https://github.com/hashicorp/consul/issues/23711)]
+* dependency: Upgrade Serf and Memberlist to use the latest versions. [[GH-23704](https://github.com/hashicorp/consul/issues/23704)]
+* xds: Return errors when injecting the L4 intention (RBAC) filter or the mTLS transport socket onto an inbound public listener, so the listener is not served without intention enforcement or mTLS. [[GH-23686](https://github.com/hashicorp/consul/issues/23686)]
+
+FEATURES:
+
+* config-entry(api-gateway): (Enterprise only) Add ExtAuthzFilter to HTTPRoute Filters and gateway-wide ExtAuthz toggle to the api-gateway config entry [[GH-12976](https://github.com/hashicorp/consul/issues/12976)]
+* config-entry: (Enterprise only) Addition of External Processor (ext_proc) Envoy Extension support to api-gateway and connect-proxy [[GH-23705](https://github.com/hashicorp/consul/issues/23705)]
+
+IMPROVEMENTS:
+
+* ci: update GitHub Actions that were using deprecated node20 to node24. [[GH-23687](https://github.com/hashicorp/consul/issues/23687)]
+* connect: **(Enterprise Only)** update compatibility tests to use enterprise versions of Vault and Nomad at latest patch releases (Nomad ENT v1.8.21+ent, v1.9.13+ent, v1.10.13+ent, v1.11.7+ent, v2.0.3+ent; Vault ENT 1.18.15+ent, 1.19.19+ent, 1.20.13+ent, 1.21.8+ent, 2.0.3+ent)
+* deps: Migrate `armon/go-metrics` to `hashicorp/go-metrics` and update Go dependencies across all modules [[GH-23635](https://github.com/hashicorp/consul/issues/23635)]
+
+BUG FIXES:
+
+* xds: only emit the client cert SDS block when both CertFile and KeyFile are set. [[GH-13030](https://github.com/hashicorp/consul/issues/13030)]
+
+
+## 1.22.10 Enterprise (July 7, 2026)
+SECURITY:
+
+* Upgrade alpine base image version to 3.24 to address [CVE-2026-41989], [ALPINE-CVE-2026-2100]. [[GH-23711](https://github.com/hashicorp/consul/issues/23711)]
+* dependency: Upgrade Serf and Memberlist to use the latest versions. [[GH-23704](https://github.com/hashicorp/consul/issues/23704)]
+* xds: Return errors when injecting the L4 intention (RBAC) filter or the mTLS transport socket onto an inbound public listener, so the listener is not served without intention enforcement or mTLS. [[GH-23686](https://github.com/hashicorp/consul/issues/23686)]
+
+IMPROVEMENTS:
+
+* ci: update GitHub Actions that were using deprecated node20 to node24. [[GH-23687](https://github.com/hashicorp/consul/issues/23687)]
+* connect: **(Enterprise Only)** update compatibility tests to use enterprise versions of Vault and Nomad at latest patch releases (Nomad ENT v1.8.21+ent, v1.9.13+ent, v1.10.13+ent, v1.11.7+ent, v2.0.3+ent; Vault ENT 1.18.15+ent, 1.19.19+ent, 1.20.13+ent, 1.21.8+ent, 2.0.3+ent)
+* deps: Migrate `armon/go-metrics` to `hashicorp/go-metrics` and update Go dependencies across all modules [[GH-23635](https://github.com/hashicorp/consul/issues/23635)]
+
+## 1.21.16 Enterprise (July 7, 2026)
+SECURITY:
+
+* Upgrade alpine base image version to 3.24 to address [CVE-2026-41989], [ALPINE-CVE-2026-2100]. [[GH-23711](https://github.com/hashicorp/consul/issues/23711)]
+* dependency: Upgrade Serf and Memberlist to use the latest versions. [[GH-23704](https://github.com/hashicorp/consul/issues/23704)]
+* xds: Return errors when injecting the L4 intention (RBAC) filter or the mTLS transport socket onto an inbound public listener, so the listener is not served without intention enforcement or mTLS. [[GH-23686](https://github.com/hashicorp/consul/issues/23686)]
+
+IMPROVEMENTS:
+
+* ci: update GitHub Actions that were using deprecated node20 to node24. [[GH-23687](https://github.com/hashicorp/consul/issues/23687)]
+* connect: **(Enterprise Only)** update compatibility tests to use enterprise versions of Vault and Nomad at latest patch releases (Nomad ENT v1.8.21+ent, v1.9.13+ent, v1.10.13+ent, v1.11.7+ent, v2.0.3+ent; Vault ENT 1.18.15+ent, 1.19.19+ent, 1.20.13+ent, 1.21.8+ent, 2.0.3+ent)
+* deps: Migrate `armon/go-metrics` to `hashicorp/go-metrics` and update Go dependencies across all modules [[GH-23635](https://github.com/hashicorp/consul/issues/23635)]
+
+
 # 2.0.1 (June 18, 2026)
 
 SECURITY:
