@@ -30,8 +30,8 @@ SECURITY:
 
 FEATURES:
 
-* config-entry(api-gateway): (Enterprise only) Add ExtAuthzFilter to HTTPRoute Filters and gateway-wide ExtAuthz toggle to the api-gateway config entry [[GH-12976](https://github.com/hashicorp/consul/issues/12976)]
-* config-entry: (Enterprise only) Addition of External Processor (ext_proc) Envoy Extension support to api-gateway and connect-proxy [[GH-23705](https://github.com/hashicorp/consul/issues/23705)]
+* config-entry(api-gateway): (Enterprise only) Add ExtAuthzFilter to HTTPRoute Filters and gateway-wide ExtAuthz toggle to the api-gateway config entry
+* config-entry: (Enterprise only) Addition of External Processor (ext_proc) Envoy Extension support to api-gateway and connect-proxy
 
 IMPROVEMENTS:
 
@@ -41,7 +41,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
-* xds: only emit the client cert SDS block when both CertFile and KeyFile are set. [[GH-13030](https://github.com/hashicorp/consul/issues/13030)]
+* xds: only emit the client cert SDS block when both CertFile and KeyFile are set. [[GH-23679](https://github.com/hashicorp/consul/issues/23679)]
 
 
 ## 1.22.10 Enterprise (July 7, 2026)
