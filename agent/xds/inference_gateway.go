@@ -38,8 +38,29 @@ const (
 	// the resolved model cluster; the gateway routes on it.
 	inferenceClusterHeader = "x-ai-cluster"
 
+	// inferenceSpecializationHeader is the caller-supplied header naming a
+	// required capability. Consul renders a native header-match route per
+	// discovered model capability, so selection happens in Envoy without the
+	// policy processor emitting a cluster.
+	inferenceSpecializationHeader = "x-inference-specialization"
+
+	// inferenceCapabilitiesLabel is the model catalog meta key whose value is the
+	// capability a model advertises (matched against inferenceSpecializationHeader).
+	inferenceCapabilitiesLabel = "capabilities"
+
+	// inferenceModelFamilyLabel is the model catalog meta key naming the concrete
+	// upstream model. The processor stamps it onto a request whose model is "auto".
+	inferenceModelFamilyLabel = "model_family"
+
+	// inferenceModelAPILabel is the model catalog meta key naming the wire/adapter
+	// dialect the terminating gateway exposes for this model (e.g. "openai",
+	// "gemini"). It is deliberately distinct from the vendor: a model may be a
+	// Google model reached through an OpenAI-compatible endpoint.
+	inferenceModelAPILabel = "model_api"
+
 	// inferenceListenerMetadataNamespace is the FilterMetadata key carrying the
-	// discovered model catalog for the policy processor.
+	// discovered model catalog for the policy processor. It is also the route
+	// metadata namespace for a capability route's per-model routing facts.
 	inferenceListenerMetadataNamespace = "consul.ai"
 )
 
@@ -135,6 +156,13 @@ func makeInferenceExtProcHTTPFilter(cfg *structs.AIGatewayConfigEntry) (*envoy_h
 			RequestTrailerMode:  envoy_http_ext_proc_v3.ProcessingMode_SKIP,
 			ResponseTrailerMode: envoy_http_ext_proc_v3.ProcessingMode_SKIP,
 		},
+		// Forward the selected route's metadata to the processor. On a native
+		// capability route this carries the model's `consul.ai` routing facts (the
+		// concrete model + wire adapter), so the processor can run the full pipeline
+		// pinned to them without re-deriving the capability. Route header mutations
+		// would not reach the processor — it runs before the router — but request
+		// attributes are evaluated against the already-resolved route.
+		RequestAttributes: []string{"xds.route_metadata"},
 	}
 	return makeEnvoyHTTPFilter("envoy.filters.http.ext_proc", extProc)
 }
@@ -173,6 +201,25 @@ func makeInferenceListenerMetadata(models map[structs.ServiceName]*proxycfg.Infe
 			inferenceListenerMetadataNamespace: {
 				Fields: map[string]*structpb.Value{
 					"models": structpb.NewListValue(&structpb.ListValue{Values: modelValues}),
+				},
+			},
+		},
+	}
+}
+
+// makeCapabilityRouteMetadata renders the routing facts the policy processor needs
+// for a natively-selected model — the concrete model name to stamp and the wire
+// adapter to transform/normalize with — into route FilterMetadata under
+// "consul.ai". The processor receives this as the ext_proc xds.route_metadata
+// request attribute, so it pins the pipeline to the model Envoy selected without
+// ever having to see or map the capability header itself.
+func makeCapabilityRouteMetadata(m *proxycfg.InferenceGatewayModel) *envoy_core_v3.Metadata {
+	return &envoy_core_v3.Metadata{
+		FilterMetadata: map[string]*structpb.Struct{
+			inferenceListenerMetadataNamespace: {
+				Fields: map[string]*structpb.Value{
+					"model":   structpb.NewStringValue(m.Labels[inferenceModelFamilyLabel]),
+					"adapter": structpb.NewStringValue(m.Labels[inferenceModelAPILabel]),
 				},
 			},
 		},
@@ -290,6 +337,36 @@ func (s *ResourceGenerator) routesForInferenceGateway(cfgSnap *proxycfg.ConfigSn
 		})
 	}
 
+	// Capability routes: match the caller's x-inference-specialization header
+	// against each model's `capabilities` catalog meta and route to that model's
+	// cluster natively — the policy processor plays no part in selection. These
+	// come after the explicit x-ai-cluster routes and before the catch-all.
+	for _, cap := range sortedCapabilities(ig.Models) {
+		sn := capabilityModel(ig.Models, cap)
+		vh.Routes = append(vh.Routes, &envoy_route_v3.Route{
+			Match: &envoy_route_v3.RouteMatch{
+				PathSpecifier: &envoy_route_v3.RouteMatch_Prefix{Prefix: "/"},
+				Headers: []*envoy_route_v3.HeaderMatcher{{
+					Name: inferenceSpecializationHeader,
+					HeaderMatchSpecifier: &envoy_route_v3.HeaderMatcher_StringMatch{
+						StringMatch: &envoy_matcher_v3.StringMatcher{
+							MatchPattern: &envoy_matcher_v3.StringMatcher_Exact{Exact: cap},
+						},
+					},
+				}},
+			},
+			// Carry the selected model's routing facts as route metadata; the
+			// processor reads them via the xds.route_metadata request attribute and
+			// runs the full pipeline pinned to them (see makeInferenceExtProcHTTPFilter).
+			Metadata: makeCapabilityRouteMetadata(ig.Models[sn]),
+			Action: &envoy_route_v3.Route_Route{
+				Route: &envoy_route_v3.RouteAction{
+					ClusterSpecifier: &envoy_route_v3.RouteAction_Cluster{Cluster: sn.Name},
+				},
+			},
+		})
+	}
+
 	// Default catch-all: route to the first configured fallback cluster if one
 	// exists, otherwise return 503 so misrouted requests fail closed.
 	if def := defaultInferenceCluster(ig.GatewayConfig, ig.Models); def != "" {
@@ -329,6 +406,35 @@ func defaultInferenceCluster(cfg *structs.AIGatewayConfigEntry, models map[struc
 		}
 	}
 	return ""
+}
+
+// sortedCapabilities returns the distinct `capabilities` meta values advertised
+// by the discovered models, in deterministic order.
+func sortedCapabilities(models map[structs.ServiceName]*proxycfg.InferenceGatewayModel) []string {
+	seen := make(map[string]struct{})
+	for _, m := range models {
+		if cap := m.Labels[inferenceCapabilitiesLabel]; cap != "" {
+			seen[cap] = struct{}{}
+		}
+	}
+	caps := make([]string, 0, len(seen))
+	for cap := range seen {
+		caps = append(caps, cap)
+	}
+	sort.Strings(caps)
+	return caps
+}
+
+// capabilityModel returns the model chosen to serve a capability. When more than
+// one model advertises it, the first by sorted service name wins (multi-member
+// pools / failover are out of scope for the demo).
+func capabilityModel(models map[structs.ServiceName]*proxycfg.InferenceGatewayModel, cap string) structs.ServiceName {
+	for _, sn := range sortedModelNames(models) {
+		if models[sn].Labels[inferenceCapabilitiesLabel] == cap {
+			return sn
+		}
+	}
+	return structs.ServiceName{}
 }
 
 func sortedModelNames(models map[structs.ServiceName]*proxycfg.InferenceGatewayModel) []structs.ServiceName {

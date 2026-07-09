@@ -35,7 +35,10 @@
                         "responseBodyMode": "BUFFERED",
                         "responseHeaderMode": "SEND",
                         "responseTrailerMode": "SKIP"
-                      }
+                      },
+                      "requestAttributes": [
+                        "xds.route_metadata"
+                      ]
                     }
                   },
                   {
