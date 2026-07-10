@@ -21,9 +21,10 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/hashicorp/go-metrics/prometheus"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
+
+	"github.com/hashicorp/go-metrics/prometheus"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
@@ -2623,11 +2624,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 		json: []string{
 			`{ "service": { "name": "a", "port": 80 } }`,
-			`{ "service": { "name": "b", "port": 90, "meta": {"my": "value"}, "weights": {"passing": 13} } }`,
+			`{ "service": { "name": "b", "port": 90, "meta": {"my": "value"}, "weights": {"passing": 13}, "priority": 0 } }`,
 		},
 		hcl: []string{
 			`service = { name = "a" port = 80 }`,
-			`service = { name = "b" port = 90 meta={my="value"}, weights={passing=13}}`,
+			`service = { name = "b" port = 90 meta={my="value"}, weights={passing=13}, priority=0}`,
 		},
 		expected: func(rt *RuntimeConfig) {
 			rt.Services = []*structs.ServiceDefinition{
@@ -2647,10 +2648,24 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 						Passing: 13,
 						Warning: 1,
 					},
+					Priority: intPtr(0),
 				},
 			}
 			rt.DataDir = dataDir
 		},
+	})
+	run(t, testCase{
+		desc: "service priority out of range",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{
+			`{ "service": { "name": "a", "port": 80, "priority": 65536 } }`,
+		},
+		hcl: []string{
+			`service = { name = "a" port = 80 priority = 65536 }`,
+		},
+		expectedErr: `Invalid priority definition for service a: DNS SRV Priority must be between 0 and 65535`,
 	})
 	run(t, testCase{
 		desc: "service with wrong meta: too long key",
@@ -6743,12 +6758,13 @@ func TestLoad_FullConfig(t *testing.T) {
 		ServerPort:              3757,
 		Services: []*structs.ServiceDefinition{
 			{
-				ID:      "wI1dzxS4",
-				Name:    "7IszXMQ1",
-				Tags:    []string{"0Zwg8l6v", "zebELdN5"},
-				Address: "9RhqPSPB",
-				Token:   "myjKJkWH",
-				Port:    72219,
+				ID:       "wI1dzxS4",
+				Name:     "7IszXMQ1",
+				Tags:     []string{"0Zwg8l6v", "zebELdN5"},
+				Address:  "9RhqPSPB",
+				Token:    "myjKJkWH",
+				Port:     72219,
+				Priority: intPtr(32767),
 				Weights: &structs.Weights{
 					Passing: 1,
 					Warning: 1,

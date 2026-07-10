@@ -929,10 +929,12 @@ func TestAPI_AgentService(t *testing.T) {
 
 	agent := c.Agent()
 
+	priority := 0
 	reg := &AgentServiceRegistration{
-		Name: "foo",
-		Tags: []string{"bar", "baz"},
-		Port: 8000,
+		Name:     "foo",
+		Tags:     []string{"bar", "baz"},
+		Port:     8000,
+		Priority: &priority,
 		Checks: AgentServiceChecks{
 			&AgentServiceCheck{
 				TTL: "15s",
@@ -951,8 +953,9 @@ func TestAPI_AgentService(t *testing.T) {
 		ID:          "foo",
 		Service:     "foo",
 		Tags:        []string{"bar", "baz"},
-		ContentHash: "c4bb6737c185ed93",
+		ContentHash: "9cd014f837990abf",
 		Port:        8000,
+		Priority:    &priority,
 		Weights: AgentWeights{
 			Passing: 1,
 			Warning: 1,

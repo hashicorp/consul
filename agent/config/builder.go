@@ -1830,6 +1830,9 @@ func (b *builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 	if err := structs.ValidateWeights(serviceWeights); err != nil {
 		b.err = multierror.Append(b.err, fmt.Errorf("Invalid weight definition for service %s: %s", stringVal(v.Name), err))
 	}
+	if err := structs.ValidateServicePriority(v.Priority); err != nil {
+		b.err = multierror.Append(b.err, fmt.Errorf("Invalid priority definition for service %s: %s", stringVal(v.Name), err))
+	}
 
 	if (v.Port != nil || v.Address != nil) && (v.SocketPath != nil) {
 		b.err = multierror.Append(b.err,
@@ -1851,6 +1854,7 @@ func (b *builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 		Token:             stringVal(v.Token),
 		EnableTagOverride: boolVal(v.EnableTagOverride),
 		Weights:           serviceWeights,
+		Priority:          v.Priority,
 		Checks:            checks,
 		Proxy:             b.serviceProxyVal(v.Proxy),
 		Connect:           b.serviceConnectVal(v.Connect),

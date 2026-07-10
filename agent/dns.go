@@ -17,10 +17,10 @@ import (
 	"time"
 
 	"github.com/armon/go-radix"
-	"github.com/hashicorp/go-metrics"
 	"github.com/miekg/dns"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-metrics"
 
 	"github.com/hashicorp/consul/acl"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
@@ -1813,6 +1813,13 @@ func findWeight(node structs.CheckServiceNode) int {
 	}
 }
 
+func findPriority(node structs.CheckServiceNode) uint16 {
+	if node.Service.Priority == nil {
+		return 1
+	}
+	return uint16(*node.Service.Priority)
+}
+
 func (d *DNSServer) encodeIPAsFqdn(questionName string, serviceNode structs.CheckServiceNode, ip net.IP) string {
 	ipv4 := ip.To4()
 	respDomain := d.getResponseDomain(questionName)
@@ -1926,7 +1933,7 @@ func (d *DNSServer) makeRecordFromServiceNode(lookup serviceLookup, serviceNode 
 					Class:  dns.ClassINET,
 					Ttl:    uint32(ttl / time.Second),
 				},
-				Priority: 1,
+				Priority: findPriority(serviceNode),
 				Weight:   uint16(findWeight(serviceNode)),
 				Port:     uint16(d.agent.TranslateServicePort(lookup.Datacenter, port, serviceNode.Service.TaggedAddresses)),
 				Target:   nodeFQDN,
@@ -1961,7 +1968,7 @@ func (d *DNSServer) makeRecordFromIP(lookup serviceLookup, addr net.IP, serviceN
 					Class:  dns.ClassINET,
 					Ttl:    uint32(ttl / time.Second),
 				},
-				Priority: 1,
+				Priority: findPriority(serviceNode),
 				Weight:   uint16(findWeight(serviceNode)),
 				Port:     uint16(d.agent.TranslateServicePort(lookup.Datacenter, port, serviceNode.Service.TaggedAddresses)),
 				Target:   ipFQDN,
@@ -2010,7 +2017,7 @@ MORE_REC:
 					Class:  dns.ClassINET,
 					Ttl:    uint32(ttl / time.Second),
 				},
-				Priority: 1,
+				Priority: findPriority(serviceNode),
 				Weight:   uint16(findWeight(serviceNode)),
 				Port:     uint16(d.agent.TranslateServicePort(lookup.Datacenter, port, serviceNode.Service.TaggedAddresses)),
 				Target:   dns.Fqdn(fqdn),

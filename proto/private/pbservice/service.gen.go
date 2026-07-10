@@ -193,6 +193,7 @@ func ServiceDefinitionToStructs(s *ServiceDefinition, t *structs.ServiceDefiniti
 	}
 	t.Checks = CheckTypesToStructs(s.Checks)
 	t.Weights = WeightsPtrToStructs(s.Weights)
+	t.Priority = Int32PtrToIntPtr(s.Priority)
 	t.Token = s.Token
 	t.EnableTagOverride = s.EnableTagOverride
 	t.Locality = LocalityToStructs(s.Locality)
@@ -221,6 +222,7 @@ func ServiceDefinitionFromStructs(t *structs.ServiceDefinition, s *ServiceDefini
 	}
 	s.Checks = NewCheckTypesFromStructs(t.Checks)
 	s.Weights = NewWeightsPtrFromStructs(t.Weights)
+	s.Priority = IntPtrToInt32Ptr(t.Priority)
 	s.Token = t.Token
 	s.EnableTagOverride = t.EnableTagOverride
 	s.Locality = LocalityFromStructs(t.Locality)
