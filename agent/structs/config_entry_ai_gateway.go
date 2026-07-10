@@ -51,6 +51,12 @@ type AIGatewayConfigEntry struct {
 	// Routing holds the request-matching and dispatch rules.
 	Routing AIGatewayRouting
 
+	// Policy holds cross-cutting request/response policy the co-located processor
+	// enforces (PII detection/redaction, audit). Consul does not act on it — it is
+	// stored and returned verbatim so the processor reads the same entry it renders
+	// Envoy from, keeping one source of truth.
+	Policy *AIGatewayPolicy `json:",omitempty"`
+
 	Meta               map[string]string `json:",omitempty"`
 	Hash               uint64            `json:",omitempty" hash:"ignore"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
@@ -149,6 +155,61 @@ type AIGatewayScoring struct {
 type AIGatewayWeightedTarget struct {
 	Cluster string
 	Weight  int
+}
+
+// AIGatewayPolicy mirrors the policy processor's Policy block so the PII and audit
+// configuration round-trips through Consul to the processor. Field names match the
+// processor's config structs (which decode this entry's JSON by Go field name), so
+// Consul stores and returns them unchanged.
+type AIGatewayPolicy struct {
+	// PII configures per-detector PII detection and redaction.
+	PII *AIGatewayPII `json:",omitempty"`
+
+	// AuditLevel is the Stage 7 audit verbosity: full | sampling | off.
+	AuditLevel string `json:",omitempty"`
+}
+
+// AIGatewayPII configures per-detector PII detection and redaction for the
+// processor. Consul does not interpret these fields; it carries them to the
+// processor verbatim.
+type AIGatewayPII struct {
+	// Scope selects which bodies the detectors' actions apply to: request |
+	// response | both.
+	Scope string `json:",omitempty"`
+
+	// DefaultAction applies to any detector that does not set its own Action:
+	// placeholder | mask | block | off.
+	DefaultAction string `json:",omitempty"`
+
+	// StreamHoldbackBytes is the trailing content the streaming response redactor
+	// withholds so PII split across chunk boundaries is caught before release.
+	StreamHoldbackBytes int `json:",omitempty"`
+
+	// Mask parameterizes the "mask" action.
+	Mask *AIGatewayPIIMask `json:",omitempty"`
+
+	// Detectors are the PII rules to run.
+	Detectors []AIGatewayPIIDetector `json:",omitempty"`
+}
+
+// AIGatewayPIIMask parameterizes the "mask" redaction action.
+type AIGatewayPIIMask struct {
+	// Char replaces each redacted alphanumeric character (default "*").
+	Char string `json:",omitempty"`
+	// KeepLast leaves the trailing KeepLast characters visible.
+	KeepLast int `json:",omitempty"`
+}
+
+// AIGatewayPIIDetector is one PII rule: a named built-in or a custom Regex, with
+// an Action that overrides the policy's DefaultAction.
+type AIGatewayPIIDetector struct {
+	// Name selects a built-in detector (ssn, credit_card, api_key, email) or names
+	// a custom one.
+	Name string `json:",omitempty"`
+	// Regex is a custom RE2 pattern; empty selects the built-in of Name.
+	Regex string `json:",omitempty"`
+	// Action is placeholder | mask | block | off.
+	Action string `json:",omitempty"`
 }
 
 func (e *AIGatewayConfigEntry) GetKind() string                        { return AIGateway }
