@@ -21,13 +21,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/go-metrics"
 	"github.com/mitchellh/hashstructure"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-metrics"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/serf/serf"
 
@@ -8624,6 +8624,51 @@ func TestAgent_RegisterService_MultiPort(t *testing.T) {
 			if !svc.Ports.IsSame(tc.args.Ports) {
 				t.Fatalf("Ports do not match. Expected: %v, got: %v", tc.args.Ports, svc.Ports)
 			}
+		})
+	}
+}
+
+func TestAgent_RegisterService_Priority(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	testCases := []struct {
+		name               string
+		priority           int
+		expectedStatusCode int
+	}{
+		{name: "valid-priority", priority: 10, expectedStatusCode: http.StatusOK},
+		{name: "invalid-priority", priority: 65536, expectedStatusCode: http.StatusBadRequest},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			args := &structs.ServiceDefinition{
+				ID:       tc.name,
+				Name:     tc.name,
+				Port:     8080,
+				Priority: &tc.priority,
+			}
+			req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
+			resp := httptest.NewRecorder()
+			a.srv.h.ServeHTTP(resp, req)
+
+			require.Equal(t, tc.expectedStatusCode, resp.Code)
+			svc := a.State.Service(structs.NewServiceID(tc.name, nil))
+			if tc.expectedStatusCode == http.StatusBadRequest {
+				require.Nil(t, svc)
+				require.Contains(t, resp.Body.String(), "Invalid Priority")
+				return
+			}
+
+			require.NotNil(t, svc)
+			require.NotNil(t, svc.Priority)
+			require.Equal(t, tc.priority, *svc.Priority)
 		})
 	}
 }

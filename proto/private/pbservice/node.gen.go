@@ -49,6 +49,7 @@ func NodeServiceToStructs(s *NodeService, t *structs.NodeService) {
 	t.Ports = PortsToStructs(s.Ports)
 	t.SocketPath = s.SocketPath
 	t.Weights = WeightsPtrToStructs(s.Weights)
+	t.Priority = Int32PtrToIntPtr(s.Priority)
 	t.EnableTagOverride = s.EnableTagOverride
 	t.Locality = LocalityToStructs(s.Locality)
 	if s.Proxy != nil {
@@ -77,6 +78,7 @@ func NodeServiceFromStructs(t *structs.NodeService, s *NodeService) {
 	s.Ports = NewPortsFromStructs(t.Ports)
 	s.SocketPath = t.SocketPath
 	s.Weights = NewWeightsPtrFromStructs(t.Weights)
+	s.Priority = IntPtrToInt32Ptr(t.Priority)
 	s.EnableTagOverride = t.EnableTagOverride
 	s.Locality = LocalityFromStructs(t.Locality)
 	{

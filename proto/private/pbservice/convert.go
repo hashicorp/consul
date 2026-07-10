@@ -130,6 +130,22 @@ func NewWeightsPtrFromStructs(t *structs.Weights) *Weights {
 	return &s
 }
 
+func Int32PtrToIntPtr(v *int32) *int {
+	if v == nil {
+		return nil
+	}
+	result := int(*v)
+	return &result
+}
+
+func IntPtrToInt32Ptr(v *int) *int32 {
+	if v == nil {
+		return nil
+	}
+	result := int32(*v)
+	return &result
+}
+
 // TODO: handle this with mog
 func MapStringServiceAddressToStructs(s map[string]*ServiceAddress) map[string]structs.ServiceAddress {
 	t := make(map[string]structs.ServiceAddress, len(s))

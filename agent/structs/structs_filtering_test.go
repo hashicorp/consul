@@ -478,6 +478,11 @@ var expectedFieldConfigNodeService bexpr.FieldConfigurations = bexpr.FieldConfig
 		StructFieldName: "Weights",
 		SubFields:       expectedFieldConfigWeights,
 	},
+	"Priority": &bexpr.FieldConfiguration{
+		StructFieldName:     "Priority",
+		CoerceFn:            bexpr.CoerceInt,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+	},
 	"EnableTagOverride": &bexpr.FieldConfiguration{
 		StructFieldName:     "EnableTagOverride",
 		CoerceFn:            bexpr.CoerceBool,
@@ -581,6 +586,11 @@ var expectedFieldConfigServiceNode bexpr.FieldConfigurations = bexpr.FieldConfig
 	"ServiceWeights": &bexpr.FieldConfiguration{
 		StructFieldName: "ServiceWeights",
 		SubFields:       expectedFieldConfigWeights,
+	},
+	"ServicePriority": &bexpr.FieldConfiguration{
+		StructFieldName:     "ServicePriority",
+		CoerceFn:            bexpr.CoerceInt,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
 	},
 	"ServiceEnableTagOverride": &bexpr.FieldConfiguration{
 		StructFieldName:     "ServiceEnableTagOverride",

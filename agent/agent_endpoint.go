@@ -338,6 +338,7 @@ func buildAgentService(s *structs.NodeService, dc string) api.AgentService {
 		CreateIndex:       s.CreateIndex,
 		ModifyIndex:       s.ModifyIndex,
 		Weights:           weights,
+		Priority:          s.Priority,
 		Datacenter:        dc,
 		Locality:          s.Locality.ToAPI(),
 	}
@@ -1223,6 +1224,9 @@ func (s *HTTPHandlers) AgentRegisterService(resp http.ResponseWriter, req *http.
 		if err := structs.ValidateWeights(ns.Weights); err != nil {
 			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Invalid Weights: %v", err)}
 		}
+	}
+	if err := structs.ValidateServicePriority(ns.Priority); err != nil {
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Invalid Priority: %v", err)}
 	}
 	if err := structs.ValidateServiceMetadata(ns.Kind, ns.Meta, false); err != nil {
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Invalid Service Meta: %v", err)}

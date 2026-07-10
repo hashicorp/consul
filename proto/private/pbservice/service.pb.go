@@ -929,9 +929,11 @@ type ServiceDefinition struct {
 	// mog: func-to=CheckTypesToStructs func-from=NewCheckTypesFromStructs
 	Checks []*CheckType `protobuf:"bytes,9,rep,name=Checks,proto3" json:"Checks,omitempty"`
 	// mog: func-to=WeightsPtrToStructs func-from=NewWeightsPtrFromStructs
-	Weights           *Weights `protobuf:"bytes,10,opt,name=Weights,proto3" json:"Weights,omitempty"`
-	Token             string   `protobuf:"bytes,11,opt,name=Token,proto3" json:"Token,omitempty"`
-	EnableTagOverride bool     `protobuf:"varint,12,opt,name=EnableTagOverride,proto3" json:"EnableTagOverride,omitempty"`
+	Weights *Weights `protobuf:"bytes,10,opt,name=Weights,proto3" json:"Weights,omitempty"`
+	// mog: func-to=Int32PtrToIntPtr func-from=IntPtrToInt32Ptr
+	Priority          *int32 `protobuf:"varint,21,opt,name=Priority,proto3,oneof" json:"Priority,omitempty"`
+	Token             string `protobuf:"bytes,11,opt,name=Token,proto3" json:"Token,omitempty"`
+	EnableTagOverride bool   `protobuf:"varint,12,opt,name=EnableTagOverride,proto3" json:"EnableTagOverride,omitempty"`
 	// Proxy is the configuration set for Kind = connect-proxy. It is mandatory in
 	// that case and an error to be set for any other kind. This config is part of
 	// a proxy service definition and is distinct from but shares some fields with
@@ -1070,6 +1072,13 @@ func (x *ServiceDefinition) GetWeights() *Weights {
 		return x.Weights
 	}
 	return nil
+}
+
+func (x *ServiceDefinition) GetPriority() int32 {
+	if x != nil && x.Priority != nil {
+		return *x.Priority
+	}
+	return 0
 }
 
 func (x *ServiceDefinition) GetToken() string {
@@ -1374,7 +1383,7 @@ const file_private_pbservice_service_proto_rawDesc = "" +
 	"JSONFormat\x12\x1e\n" +
 	"\n" +
 	"TextFormat\x18\x06 \x01(\tR\n" +
-	"TextFormat\"\xbc\t\n" +
+	"TextFormat\"\xea\t\n" +
 	"\x11ServiceDefinition\x12\x12\n" +
 	"\x04Kind\x18\x01 \x01(\tR\x04Kind\x12\x0e\n" +
 	"\x02ID\x18\x02 \x01(\tR\x02ID\x12\x12\n" +
@@ -1390,7 +1399,8 @@ const file_private_pbservice_service_proto_rawDesc = "" +
 	"\x05Check\x18\b \x01(\v2,.hashicorp.consul.internal.service.CheckTypeR\x05Check\x12D\n" +
 	"\x06Checks\x18\t \x03(\v2,.hashicorp.consul.internal.service.CheckTypeR\x06Checks\x12D\n" +
 	"\aWeights\x18\n" +
-	" \x01(\v2*.hashicorp.consul.internal.service.WeightsR\aWeights\x12\x14\n" +
+	" \x01(\v2*.hashicorp.consul.internal.service.WeightsR\aWeights\x12\x1f\n" +
+	"\bPriority\x18\x15 \x01(\x05H\x00R\bPriority\x88\x01\x01\x12\x14\n" +
 	"\x05Token\x18\v \x01(\tR\x05Token\x12,\n" +
 	"\x11EnableTagOverride\x18\f \x01(\bR\x11EnableTagOverride\x12K\n" +
 	"\x05Proxy\x18\x0e \x01(\v25.hashicorp.consul.internal.service.ConnectProxyConfigR\x05Proxy\x12X\n" +
@@ -1403,7 +1413,8 @@ const file_private_pbservice_service_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\v21.hashicorp.consul.internal.service.ServiceAddressR\x05value:\x028\x01\x1a7\n" +
 	"\tMetaEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"O\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\v\n" +
+	"\t_Priority\"O\n" +
 	"\vServicePort\x12\x12\n" +
 	"\x04Port\x18\x01 \x01(\x05R\x04Port\x12\x12\n" +
 	"\x04Name\x18\x02 \x01(\tR\x04Name\x12\x18\n" +
@@ -1489,6 +1500,7 @@ func file_private_pbservice_service_proto_init() {
 		return
 	}
 	file_private_pbservice_healthcheck_proto_init()
+	file_private_pbservice_service_proto_msgTypes[9].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
