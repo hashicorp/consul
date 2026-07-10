@@ -5,6 +5,7 @@ package xds
 
 import (
 	"sort"
+	"strings"
 	"time"
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
@@ -13,6 +14,7 @@ import (
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_http_ext_proc_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/ext_proc/v3"
+	envoy_upstream_codec_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/upstream_codec/v3"
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	envoy_upstreams_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
 	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
@@ -34,9 +36,11 @@ const (
 	// co-located policy processor over the loopback/UDS socket.
 	inferenceExtProcClusterName = "local_ext_proc"
 
-	// inferenceClusterHeader is the header the policy processor sets to select
-	// the resolved model cluster; the gateway routes on it.
-	inferenceClusterHeader = "x-ai-cluster"
+	// inferenceModelHeader is the header the downstream (pre-route) ext_proc phase
+	// promotes the request body's model onto; the gateway routes on it (model →
+	// backend cluster) so Envoy owns cluster selection. The upstream (post-route)
+	// ext_proc phase then transforms to the selected backend's native schema.
+	inferenceModelHeader = "x-ai-model"
 
 	// inferenceSpecializationHeader is the caller-supplied header naming a
 	// required capability. Consul renders a native header-match route per
@@ -128,14 +132,47 @@ func (s *ResourceGenerator) listenersFromSnapshotInferenceGateway(cfgSnap *proxy
 	return []proto.Message{l}, nil
 }
 
-// makeInferenceExtProcHTTPFilter builds the ext_proc HTTP filter that streams to
-// the co-located policy processor. The request body and the response body both
-// default to BUFFERED so the processor transforms a full request and normalizes a
-// non-streamed provider response in one pass. AllowModeOverride lets the processor
-// flip the response body to STREAMED per-response for server-sent-event responses,
-// so streamed completions pass through chunk by chunk while the processor meters
-// the stream.
+// makeInferenceExtProcHTTPFilter builds the DOWNSTREAM (pre-route) ext_proc HTTP
+// filter on the HCM chain. It streams the request to the co-located policy
+// processor, which resolves the caller's identity, enforces request PII on the
+// canonical body, and promotes the body model to x-ai-model so Envoy routes on it.
+// The request body is BUFFERED so the processor sees the whole canonical body. The
+// response is not processed here — the upstream (post-route) filter owns response
+// transform, PII, and metering — so response processing is skipped, and no cluster
+// metadata is requested (the downstream phase runs before a backend is selected).
 func makeInferenceExtProcHTTPFilter(cfg *structs.AIGatewayConfigEntry) (*envoy_http_v3.HttpFilter, error) {
+	failureModeAllow := cfg != nil && cfg.Processor.FailureMode == structs.AIGatewayFailureModeOpen
+
+	extProc := &envoy_http_ext_proc_v3.ExternalProcessor{
+		GrpcService: &envoy_core_v3.GrpcService{
+			TargetSpecifier: &envoy_core_v3.GrpcService_EnvoyGrpc_{
+				EnvoyGrpc: &envoy_core_v3.GrpcService_EnvoyGrpc{
+					ClusterName: inferenceExtProcClusterName,
+				},
+			},
+		},
+		FailureModeAllow: failureModeAllow,
+		ProcessingMode: &envoy_http_ext_proc_v3.ProcessingMode{
+			RequestHeaderMode:   envoy_http_ext_proc_v3.ProcessingMode_SEND,
+			RequestBodyMode:     envoy_http_ext_proc_v3.ProcessingMode_BUFFERED,
+			ResponseHeaderMode:  envoy_http_ext_proc_v3.ProcessingMode_SKIP,
+			ResponseBodyMode:    envoy_http_ext_proc_v3.ProcessingMode_NONE,
+			RequestTrailerMode:  envoy_http_ext_proc_v3.ProcessingMode_SKIP,
+			ResponseTrailerMode: envoy_http_ext_proc_v3.ProcessingMode_SKIP,
+		},
+	}
+	return makeEnvoyHTTPFilter("envoy.filters.http.ext_proc", extProc)
+}
+
+// makeInferenceUpstreamExtProcHTTPFilter builds the UPSTREAM (post-route) ext_proc
+// HTTP filter attached to each backend model cluster. It streams to the same
+// processor over the same UDS, but runs after Envoy selected the backend, so it
+// receives the chosen cluster's metadata (adapter + model) and name via request
+// attributes. The processor uses that to transform the canonical request into the
+// backend's native schema and to normalize/meter the response. Request and response
+// bodies are BUFFERED for full-body transform; AllowModeOverride lets the processor
+// flip the response to STREAMED per-response for server-sent-event completions.
+func makeInferenceUpstreamExtProcHTTPFilter(cfg *structs.AIGatewayConfigEntry) (*envoy_http_v3.HttpFilter, error) {
 	failureModeAllow := cfg != nil && cfg.Processor.FailureMode == structs.AIGatewayFailureModeOpen
 
 	extProc := &envoy_http_ext_proc_v3.ExternalProcessor{
@@ -156,15 +193,20 @@ func makeInferenceExtProcHTTPFilter(cfg *structs.AIGatewayConfigEntry) (*envoy_h
 			RequestTrailerMode:  envoy_http_ext_proc_v3.ProcessingMode_SKIP,
 			ResponseTrailerMode: envoy_http_ext_proc_v3.ProcessingMode_SKIP,
 		},
-		// Forward the selected route's metadata to the processor. On a native
-		// capability route this carries the model's `consul.ai` routing facts (the
-		// concrete model + wire adapter), so the processor can run the full pipeline
-		// pinned to them without re-deriving the capability. Route header mutations
-		// would not reach the processor — it runs before the router — but request
-		// attributes are evaluated against the already-resolved route.
-		RequestAttributes: []string{"xds.route_metadata"},
+		// The selected backend cluster's consul.ai metadata (adapter + model) names
+		// the transform, and the cluster name attributes the metered usage. Both are
+		// evaluated against the post-route selection, which the downstream phase
+		// cannot see; this is why the transform must run as an upstream filter.
+		RequestAttributes: []string{"xds.cluster_metadata", "xds.cluster_name"},
 	}
 	return makeEnvoyHTTPFilter("envoy.filters.http.ext_proc", extProc)
+}
+
+// makeInferenceUpstreamCodecHTTPFilter builds the terminal upstream_codec filter.
+// An upstream HTTP filter chain must end in the codec (it replaces the router,
+// which does not run in the upstream chain), so it follows the ext_proc filter.
+func makeInferenceUpstreamCodecHTTPFilter() (*envoy_http_v3.HttpFilter, error) {
+	return makeEnvoyHTTPFilter("envoy.filters.http.upstream_codec", &envoy_upstream_codec_v3.UpstreamCodec{})
 }
 
 // makeInferenceListenerMetadata renders the discovered model catalog (names,
@@ -207,13 +249,13 @@ func makeInferenceListenerMetadata(models map[structs.ServiceName]*proxycfg.Infe
 	}
 }
 
-// makeCapabilityRouteMetadata renders the routing facts the policy processor needs
-// for a natively-selected model — the concrete model name to stamp and the wire
-// adapter to transform/normalize with — into route FilterMetadata under
-// "consul.ai". The processor receives this as the ext_proc xds.route_metadata
-// request attribute, so it pins the pipeline to the model Envoy selected without
-// ever having to see or map the capability header itself.
-func makeCapabilityRouteMetadata(m *proxycfg.InferenceGatewayModel) *envoy_core_v3.Metadata {
+// makeInferenceClusterMetadata renders a backend model cluster's routing facts —
+// the wire adapter to transform/normalize with and the concrete model to stamp —
+// into cluster FilterMetadata under "consul.ai". The upstream ext_proc filter
+// receives this as the xds.cluster_metadata request attribute once Envoy selects
+// the cluster, so the processor learns which adapter to transform with without
+// ever routing itself.
+func makeInferenceClusterMetadata(m *proxycfg.InferenceGatewayModel) *envoy_core_v3.Metadata {
 	return &envoy_core_v3.Metadata{
 		FilterMetadata: map[string]*structpb.Struct{
 			inferenceListenerMetadataNamespace: {
@@ -227,7 +269,10 @@ func makeCapabilityRouteMetadata(m *proxycfg.InferenceGatewayModel) *envoy_core_
 }
 
 // clustersFromSnapshotInferenceGateway builds the local ext_proc cluster (UDS)
-// and an EDS cluster per discovered model upstream.
+// and an EDS cluster per discovered model upstream. Each model cluster carries its
+// consul.ai metadata (adapter + model) and an upstream HTTP filter chain
+// (ext_proc → upstream_codec) so the processor transforms to the backend's native
+// schema after Envoy routes to it.
 func (s *ResourceGenerator) clustersFromSnapshotInferenceGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	ig := &cfgSnap.InferenceGateway
 
@@ -237,11 +282,50 @@ func (s *ResourceGenerator) clustersFromSnapshotInferenceGateway(cfgSnap *proxyc
 		res = append(res, makeInferenceExtProcCluster(ig.GatewayConfig.Processor.UDSPath))
 	}
 
+	upstreamOpts, err := makeInferenceUpstreamHTTPOptions(ig.GatewayConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	for _, sn := range sortedModelNames(ig.Models) {
-		res = append(res, s.makeGatewayCluster(cfgSnap, clusterOpts{name: sn.Name}))
+		cluster := s.makeGatewayCluster(cfgSnap, clusterOpts{name: sn.Name})
+		cluster.Metadata = makeInferenceClusterMetadata(ig.Models[sn])
+		cluster.TypedExtensionProtocolOptions = map[string]*anypb.Any{
+			"envoy.extensions.upstreams.http.v3.HttpProtocolOptions": upstreamOpts,
+		}
+		res = append(res, cluster)
 	}
 
 	return res, nil
+}
+
+// makeInferenceUpstreamHTTPOptions builds the HttpProtocolOptions attached to each
+// backend model cluster: an explicit HTTP/1.1 upstream with the upstream HTTP
+// filter chain ext_proc → upstream_codec. The ext_proc filter runs the provider
+// transform post-route; the terminal upstream_codec encodes the request onto the
+// upstream connection (it replaces the router, which does not run upstream). The
+// options are identical across model clusters, so they are built once and shared.
+func makeInferenceUpstreamHTTPOptions(cfg *structs.AIGatewayConfigEntry) (*anypb.Any, error) {
+	extProc, err := makeInferenceUpstreamExtProcHTTPFilter(cfg)
+	if err != nil {
+		return nil, err
+	}
+	codec, err := makeInferenceUpstreamCodecHTTPFilter()
+	if err != nil {
+		return nil, err
+	}
+
+	opts := &envoy_upstreams_http_v3.HttpProtocolOptions{
+		UpstreamProtocolOptions: &envoy_upstreams_http_v3.HttpProtocolOptions_ExplicitHttpConfig_{
+			ExplicitHttpConfig: &envoy_upstreams_http_v3.HttpProtocolOptions_ExplicitHttpConfig{
+				ProtocolConfig: &envoy_upstreams_http_v3.HttpProtocolOptions_ExplicitHttpConfig_HttpProtocolOptions{
+					HttpProtocolOptions: &envoy_core_v3.Http1ProtocolOptions{},
+				},
+			},
+		},
+		HttpFilters: []*envoy_http_v3.HttpFilter{extProc, codec},
+	}
+	return anypb.New(opts)
 }
 
 // makeInferenceExtProcCluster builds a STATIC HTTP/2 cluster pointing at the
@@ -305,9 +389,11 @@ func (s *ResourceGenerator) endpointsFromSnapshotInferenceGateway(cfgSnap *proxy
 	return res, nil
 }
 
-// routesForInferenceGateway builds the RDS route config: the processor sets the
-// x-ai-cluster header to the resolved model and the gateway routes on it, with
-// the routing policy's default fallback as the catch-all.
+// routesForInferenceGateway builds the RDS route config: the downstream ext_proc
+// phase promotes the request body's model to x-ai-model, and the gateway routes
+// that model to the serving backend cluster, with the routing policy's default
+// fallback as the catch-all. The upstream ext_proc filter on the selected cluster
+// then transforms to that backend's native schema.
 func (s *ResourceGenerator) routesForInferenceGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	ig := &cfgSnap.InferenceGateway
 
@@ -316,16 +402,18 @@ func (s *ResourceGenerator) routesForInferenceGateway(cfgSnap *proxycfg.ConfigSn
 		Domains: []string{"*"},
 	}
 
+	// Model routes: match the x-ai-model header (the body model the downstream
+	// phase promoted) against each model's `model_family` catalog meta and route to
+	// that model's cluster. A trailing "*" in model_family is a prefix match
+	// (e.g. "gpt-4*"); a model without model_family falls back to its service name.
 	for _, sn := range sortedModelNames(ig.Models) {
 		vh.Routes = append(vh.Routes, &envoy_route_v3.Route{
 			Match: &envoy_route_v3.RouteMatch{
 				PathSpecifier: &envoy_route_v3.RouteMatch_Prefix{Prefix: "/"},
 				Headers: []*envoy_route_v3.HeaderMatcher{{
-					Name: inferenceClusterHeader,
+					Name: inferenceModelHeader,
 					HeaderMatchSpecifier: &envoy_route_v3.HeaderMatcher_StringMatch{
-						StringMatch: &envoy_matcher_v3.StringMatcher{
-							MatchPattern: &envoy_matcher_v3.StringMatcher_Exact{Exact: sn.Name},
-						},
+						StringMatch: inferenceModelMatcher(ig.Models[sn], sn),
 					},
 				}},
 			},
@@ -339,8 +427,9 @@ func (s *ResourceGenerator) routesForInferenceGateway(cfgSnap *proxycfg.ConfigSn
 
 	// Capability routes: match the caller's x-inference-specialization header
 	// against each model's `capabilities` catalog meta and route to that model's
-	// cluster natively — the policy processor plays no part in selection. These
-	// come after the explicit x-ai-cluster routes and before the catch-all.
+	// cluster. Selection is Envoy's; the upstream ext_proc filter on the cluster
+	// reads that cluster's consul.ai metadata to transform. These come after the
+	// x-ai-model routes and before the catch-all.
 	for _, cap := range sortedCapabilities(ig.Models) {
 		sn := capabilityModel(ig.Models, cap)
 		vh.Routes = append(vh.Routes, &envoy_route_v3.Route{
@@ -355,10 +444,6 @@ func (s *ResourceGenerator) routesForInferenceGateway(cfgSnap *proxycfg.ConfigSn
 					},
 				}},
 			},
-			// Carry the selected model's routing facts as route metadata; the
-			// processor reads them via the xds.route_metadata request attribute and
-			// runs the full pipeline pinned to them (see makeInferenceExtProcHTTPFilter).
-			Metadata: makeCapabilityRouteMetadata(ig.Models[sn]),
 			Action: &envoy_route_v3.Route_Route{
 				Route: &envoy_route_v3.RouteAction{
 					ClusterSpecifier: &envoy_route_v3.RouteAction_Cluster{Cluster: sn.Name},
@@ -406,6 +491,28 @@ func defaultInferenceCluster(cfg *structs.AIGatewayConfigEntry, models map[struc
 		}
 	}
 	return ""
+}
+
+// inferenceModelMatcher builds the x-ai-model header matcher for a model route. It
+// matches the model's `model_family` catalog meta: a trailing "*" is a prefix
+// match (e.g. "gpt-4*" serves gpt-4, gpt-4o, ...), otherwise an exact match. A
+// model without model_family falls back to an exact match on its service name so
+// it stays reachable.
+func inferenceModelMatcher(m *proxycfg.InferenceGatewayModel, sn structs.ServiceName) *envoy_matcher_v3.StringMatcher {
+	family := m.Labels[inferenceModelFamilyLabel]
+	if family == "" {
+		return &envoy_matcher_v3.StringMatcher{
+			MatchPattern: &envoy_matcher_v3.StringMatcher_Exact{Exact: sn.Name},
+		}
+	}
+	if strings.HasSuffix(family, "*") {
+		return &envoy_matcher_v3.StringMatcher{
+			MatchPattern: &envoy_matcher_v3.StringMatcher_Prefix{Prefix: strings.TrimSuffix(family, "*")},
+		}
+	}
+	return &envoy_matcher_v3.StringMatcher{
+		MatchPattern: &envoy_matcher_v3.StringMatcher_Exact{Exact: family},
+	}
 }
 
 // sortedCapabilities returns the distinct `capabilities` meta values advertised

@@ -15,7 +15,7 @@
               "match": {
                 "headers": [
                   {
-                    "name": "x-ai-cluster",
+                    "name": "x-ai-model",
                     "stringMatch": {
                       "exact": "openai-gpt4"
                     }

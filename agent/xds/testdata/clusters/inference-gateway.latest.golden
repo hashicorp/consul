@@ -42,9 +42,57 @@
           "resourceApiVersion": "V3"
         }
       },
+      "metadata": {
+        "filterMetadata": {
+          "consul.ai": {
+            "adapter": "",
+            "model": ""
+          }
+        }
+      },
       "name": "openai-gpt4",
       "outlierDetection": {},
-      "type": "EDS"
+      "type": "EDS",
+      "typedExtensionProtocolOptions": {
+        "envoy.extensions.upstreams.http.v3.HttpProtocolOptions": {
+          "@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
+          "explicitHttpConfig": {
+            "httpProtocolOptions": {}
+          },
+          "httpFilters": [
+            {
+              "name": "envoy.filters.http.ext_proc",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.extensions.filters.http.ext_proc.v3.ExternalProcessor",
+                "allowModeOverride": true,
+                "grpcService": {
+                  "envoyGrpc": {
+                    "clusterName": "local_ext_proc"
+                  }
+                },
+                "processingMode": {
+                  "requestBodyMode": "BUFFERED",
+                  "requestHeaderMode": "SEND",
+                  "requestTrailerMode": "SKIP",
+                  "responseBodyMode": "BUFFERED",
+                  "responseHeaderMode": "SEND",
+                  "responseTrailerMode": "SKIP"
+                },
+                "requestAttributes": [
+                  "xds.cluster_metadata",
+                  "xds.cluster_name"
+                ]
+              }
+            },
+            {
+              "name": "envoy.filters.http.upstream_codec",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.extensions.filters.http.upstream_codec.v3.UpstreamCodec"
+              }
+            }
+          ]
+        }
+      }
     }
   ],
   "typeUrl": "type.googleapis.com/envoy.config.cluster.v3.Cluster",

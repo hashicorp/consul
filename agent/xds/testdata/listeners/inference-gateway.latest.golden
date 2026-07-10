@@ -22,7 +22,6 @@
                     "name": "envoy.filters.http.ext_proc",
                     "typedConfig": {
                       "@type": "type.googleapis.com/envoy.extensions.filters.http.ext_proc.v3.ExternalProcessor",
-                      "allowModeOverride": true,
                       "grpcService": {
                         "envoyGrpc": {
                           "clusterName": "local_ext_proc"
@@ -32,13 +31,9 @@
                         "requestBodyMode": "BUFFERED",
                         "requestHeaderMode": "SEND",
                         "requestTrailerMode": "SKIP",
-                        "responseBodyMode": "BUFFERED",
-                        "responseHeaderMode": "SEND",
+                        "responseHeaderMode": "SKIP",
                         "responseTrailerMode": "SKIP"
-                      },
-                      "requestAttributes": [
-                        "xds.route_metadata"
-                      ]
+                      }
                     }
                   },
                   {
