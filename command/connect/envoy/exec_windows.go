@@ -74,6 +74,32 @@ func startProc(binary string, args []string) (p *os.Process, err error) {
 	return nil, err
 }
 
+// execInferenceGateway launches the co-located policy processor with the rendered
+// Envoy bootstrap instead of Envoy directly; the processor launches Envoy and runs
+// the ext_proc server, supervising both. See the unix implementation for detail.
+func execInferenceGateway(extProcBin, envoyBinary string, procArgs []string, bootstrapJSON []byte) error {
+	binary, err := exec.LookPath(extProcBin)
+	if err != nil {
+		return fmt.Errorf("couldn't find inference gateway processor %q: %w", extProcBin, err)
+	}
+
+	pipeFile, err := makeBootstrapPipe(bootstrapJSON)
+	if err != nil {
+		os.RemoveAll(pipeFile)
+		return err
+	}
+
+	args := []string{binary, "--envoy-config", pipeFile, "--envoy-bin", envoyBinary}
+	args = append(args, procArgs...)
+
+	if proc, err := startProc(binary, args); err == nil {
+		proc.Wait()
+	} else {
+		return errors.New("Failed to exec inference gateway processor: " + err.Error())
+	}
+	return nil
+}
+
 func execEnvoy(binary string, prefixArgs, suffixArgs []string, bootstrapJSON []byte) error {
 	tempFile, err := makeBootstrapPipe(bootstrapJSON)
 	if err != nil {

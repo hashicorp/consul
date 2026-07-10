@@ -8,3 +8,7 @@ package envoy
 func execEnvoy(binary string, prefixArgs, suffixArgs []string, bootstrapJson []byte) error {
 	return errUnsupportedOS
 }
+
+func execInferenceGateway(extProcBin, envoyBinary string, procArgs []string, bootstrapJSON []byte) error {
+	return errUnsupportedOS
+}

@@ -66,6 +66,34 @@ func makeBootstrapPipe(bootstrapJSON []byte) (string, error) {
 	return pipeFile, nil
 }
 
+// execInferenceGateway hands the rendered Envoy bootstrap to the co-located policy
+// processor instead of exec'ing Envoy directly. The processor launches Envoy from
+// that bootstrap (over the same pipe) and runs the ext_proc server, supervising
+// both — so the inference gateway is one process tree and one failure unit. It
+// exec's the processor, replacing this command, mirroring execEnvoy.
+func execInferenceGateway(extProcBin, envoyBinary string, procArgs []string, bootstrapJSON []byte) error {
+	binary, err := exec.LookPath(extProcBin)
+	if err != nil {
+		return fmt.Errorf("couldn't find inference gateway processor %q: %w", extProcBin, err)
+	}
+
+	pipeFile, err := makeBootstrapPipe(bootstrapJSON)
+	if err != nil {
+		os.RemoveAll(pipeFile)
+		return err
+	}
+	// Like execEnvoy, we don't defer cleanup: we are about to Exec, so the child
+	// pipe-writer cleans up the FIFO once Envoy opens it.
+
+	args := []string{binary, "--envoy-config", pipeFile, "--envoy-bin", envoyBinary}
+	args = append(args, procArgs...)
+
+	if err := unix.Exec(binary, args, os.Environ()); err != nil {
+		return errors.New("Failed to exec inference gateway processor: " + err.Error())
+	}
+	return nil
+}
+
 func execEnvoy(binary string, prefixArgs, suffixArgs []string, bootstrapJSON []byte) error {
 	pipeFile, err := makeBootstrapPipe(bootstrapJSON)
 	if err != nil {

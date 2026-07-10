@@ -89,6 +89,10 @@ type cmd struct {
 	gatewaySvcName string
 	gatewayKind    api.ServiceKind
 
+	// inference-gateway co-launch
+	extProcBin         string
+	extProcConfigEntry string
+
 	dialFunc func(network string, address string) (net.Conn, error)
 
 	//checks if the consul agent is configured to use both IPv4 and IPv6 addresses.
@@ -199,6 +203,17 @@ func (c *cmd) init() {
 
 	c.flags.StringVar(&c.gatewaySvcName, "service", "",
 		"Service name to use for the registration")
+
+	c.flags.StringVar(&c.extProcBin, "ext-proc-bin", "consul-inference-gateway",
+		"For an inference gateway: the co-located policy processor binary. Instead of "+
+			"exec'ing Envoy directly, Consul exec's this binary with the rendered "+
+			"bootstrap; the processor launches Envoy and runs the ext_proc server, "+
+			"supervising both as one process tree.")
+
+	c.flags.StringVar(&c.extProcConfigEntry, "ext-proc-config-entry", "",
+		"For an inference gateway: the ai-gateway config entry name the co-located "+
+			"processor loads (for its PII policy and to derive the ext_proc socket). "+
+			"Defaults to -service.")
 
 	c.flags.BoolVar(&c.exposeServers, "expose-servers", false,
 		"Expose the servers for WAN federation via this mesh gateway")
@@ -497,8 +512,17 @@ func (c *cmd) run(args []string) int {
 		}
 	}
 
-	c.logger.Debug("Executing envoy binary")
-	err = execEnvoy(binary, nil, args, bootstrapJson)
+	if c.gatewayKind == api.ServiceKindInferenceGateway {
+		// The inference gateway runs Envoy and the co-located policy processor as one
+		// process tree: instead of exec'ing Envoy directly, exec the processor with
+		// the rendered bootstrap so it launches Envoy and serves ext_proc, supervising
+		// both. This keeps one failure unit and one command for the operator.
+		c.logger.Debug("Executing inference gateway processor")
+		err = execInferenceGateway(c.extProcBin, binary, c.inferenceProcArgs(), bootstrapJson)
+	} else {
+		c.logger.Debug("Executing envoy binary")
+		err = execEnvoy(binary, nil, args, bootstrapJson)
+	}
 	if err == errUnsupportedOS {
 		c.UI.Error("Directly running Envoy is only supported on linux and macOS " +
 			"since envoy itself doesn't build on other platforms currently.")
@@ -511,6 +535,25 @@ func (c *cmd) run(args []string) int {
 	}
 
 	return 0
+}
+
+// inferenceProcArgs builds the extra arguments passed to the co-located policy
+// processor: which ai-gateway config entry to load (for its PII policy and to
+// derive the ext_proc socket) and how to reach the Consul agent to fetch it. The
+// entry name defaults to the gateway service name.
+func (c *cmd) inferenceProcArgs() []string {
+	entry := c.extProcConfigEntry
+	if entry == "" {
+		entry = c.gatewaySvcName
+	}
+	args := []string{"--config-entry", entry}
+	if addr := c.http.Addr(); addr != "" {
+		args = append(args, "--consul-http-addr", addr)
+	}
+	if token := c.http.Token(); token != "" {
+		args = append(args, "--consul-token", token)
+	}
+	return args
 }
 
 func (c *cmd) proxyRegistration(svcForSidecar *api.AgentService) (*api.AgentServiceRegistration, error) {
