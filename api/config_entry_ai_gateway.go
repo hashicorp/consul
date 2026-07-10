@@ -24,6 +24,10 @@ type AIGatewayConfigEntry struct {
 	// Routing holds the request-matching and dispatch rules.
 	Routing AIGatewayRouting
 
+	// Policy holds cross-cutting request/response policy (PII, audit) the
+	// co-located processor enforces. Consul carries it verbatim to the processor.
+	Policy *AIGatewayPolicy `json:",omitempty"`
+
 	// Partition is the partition the config entry is associated with.
 	// Partitioning is a Consul Enterprise feature.
 	Partition string `json:",omitempty"`
@@ -111,6 +115,37 @@ type AIGatewayScoring struct {
 type AIGatewayWeightedTarget struct {
 	Cluster string
 	Weight  int
+}
+
+// AIGatewayPolicy mirrors the policy processor's Policy block so the PII and audit
+// configuration round-trips through Consul to the processor.
+type AIGatewayPolicy struct {
+	PII        *AIGatewayPII `json:",omitempty"`
+	AuditLevel string        `json:",omitempty"`
+}
+
+// AIGatewayPII configures per-detector PII detection and redaction for the
+// processor. Consul carries these fields verbatim.
+type AIGatewayPII struct {
+	Scope               string                 `json:",omitempty"`
+	DefaultAction       string                 `json:",omitempty"`
+	StreamHoldbackBytes int                    `json:",omitempty"`
+	Mask                *AIGatewayPIIMask      `json:",omitempty"`
+	Detectors           []AIGatewayPIIDetector `json:",omitempty"`
+}
+
+// AIGatewayPIIMask parameterizes the "mask" redaction action.
+type AIGatewayPIIMask struct {
+	Char     string `json:",omitempty"`
+	KeepLast int    `json:",omitempty"`
+}
+
+// AIGatewayPIIDetector is one PII rule: a named built-in or a custom Regex, with
+// an Action that overrides the policy's DefaultAction.
+type AIGatewayPIIDetector struct {
+	Name   string `json:",omitempty"`
+	Regex  string `json:",omitempty"`
+	Action string `json:",omitempty"`
 }
 
 func (e *AIGatewayConfigEntry) GetKind() string            { return e.Kind }
