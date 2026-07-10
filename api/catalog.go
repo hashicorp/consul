@@ -47,6 +47,7 @@ type CatalogService struct {
 	ServiceMeta              map[string]string
 	ServicePort              int
 	ServiceWeights           Weights
+	ServicePriority          *int `json:",omitempty"`
 	ServiceEnableTagOverride bool
 	ServiceProxy             *AgentServiceConnectProxyConfig
 	ServiceLocality          *Locality `json:",omitempty"`

@@ -191,6 +191,7 @@ func TestStructs_RegisterRequest_ChangesNode(t *testing.T) {
 
 // testServiceNode gives a fully filled out ServiceNode instance.
 func testServiceNode(t *testing.T) *ServiceNode {
+	priority := 10
 	return &ServiceNode{
 		ID:         types.NodeID("40e4a748-2192-161a-0510-9bf59fe950b5"),
 		Node:       "node1",
@@ -217,7 +218,8 @@ func testServiceNode(t *testing.T) *ServiceNode {
 				Port:    80,
 			},
 		},
-		ServicePort: 8080,
+		ServicePort:     8080,
+		ServicePriority: &priority,
 		ServicePorts: ServicePorts{
 			{
 				Name:    "http",
@@ -477,6 +479,13 @@ func TestStructs_ServiceNode_IsSameService(t *testing.T) {
 			},
 		},
 		{
+			name: "ServicePriority",
+			setup: func(sn *ServiceNode) {
+				priority := 20
+				sn.ServicePriority = &priority
+			},
+		},
+		{
 			name: "ServiceProxy",
 			setup: func(sn *ServiceNode) {
 				sn.ServiceProxy = ConnectProxyConfig{}
@@ -595,6 +604,12 @@ func TestStructs_ServiceNode_PartialClone(t *testing.T) {
 		t.Fatalf("clone wasn't independent of the original for Meta")
 	}
 	sn.ServiceWeights.Passing = oldPassingWeight
+	oldPriority := *clone.ServicePriority
+	*sn.ServicePriority = 1000
+	if reflect.DeepEqual(sn, clone) {
+		t.Fatalf("clone wasn't independent of the original for Priority")
+	}
+	*sn.ServicePriority = oldPriority
 	sn.ServiceMeta["new_meta"] = "new_value"
 	if reflect.DeepEqual(sn, clone) {
 		t.Fatalf("clone wasn't independent of the original for Meta")
@@ -1550,6 +1565,7 @@ func TestStructs_NodeService_ConnectNativeEmptyPortError(t *testing.T) {
 }
 
 func TestStructs_NodeService_IsSame(t *testing.T) {
+	nsPriority, otherPriority := 10, 10
 	ns := &NodeService{
 		ID:      "node1",
 		Service: "theservice",
@@ -1587,7 +1603,8 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 				"foo": "bar",
 			},
 		},
-		Weights: &Weights{Passing: 1, Warning: 1},
+		Weights:  &Weights{Passing: 1, Warning: 1},
+		Priority: &nsPriority,
 	}
 	if !ns.IsSame(ns) {
 		t.Fatalf("should be equal to itself")
@@ -1631,7 +1648,8 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 				"foo": "bar",
 			},
 		},
-		Weights: &Weights{Passing: 1, Warning: 1},
+		Weights:  &Weights{Passing: 1, Warning: 1},
+		Priority: &otherPriority,
 		RaftIndex: RaftIndex{
 			CreateIndex: 1,
 			ModifyIndex: 2,
@@ -1664,6 +1682,7 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 	check(func() { other.Tags = []string{"foo"} }, func() { other.Tags = []string{"foo", "bar"} })
 	check(func() { other.Address = "XXX" }, func() { other.Address = "127.0.0.1" })
 	check(func() { other.Port = 9999 }, func() { other.Port = 1234 })
+	check(func() { *other.Priority = 20 }, func() { *other.Priority = 10 })
 	check(func() { other.Meta["meta2"] = "wrongValue" }, func() { other.Meta["meta2"] = "value2" })
 	check(func() { other.EnableTagOverride = false }, func() { other.EnableTagOverride = true })
 	check(func() { other.Kind = ServiceKindConnectProxy }, func() { other.Kind = "" })
@@ -3435,4 +3454,27 @@ func TestServicePorts_GetPortWithName(t *testing.T) {
 	p, ok = ports.GetPortWithName("other")
 	require.False(t, ok)
 	require.Equal(t, 0, p)
+}
+
+func TestStructs_NodeService_ValidatePriority(t *testing.T) {
+	zero, maximum, negative, overMaximum := 0, 65535, -1, 65536
+	for name, tc := range map[string]struct {
+		priority *int
+		wantErr  bool
+	}{
+		"unset":        {priority: nil},
+		"zero":         {priority: &zero},
+		"maximum":      {priority: &maximum},
+		"negative":     {priority: &negative, wantErr: true},
+		"over maximum": {priority: &overMaximum, wantErr: true},
+	} {
+		t.Run(name, func(t *testing.T) {
+			err := (&NodeService{Priority: tc.priority}).ValidateForAgent()
+			if tc.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+		})
+	}
 }

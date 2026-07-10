@@ -13,9 +13,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/raft"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/raft"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -714,7 +715,8 @@ func TestTxnEndpoint_NodeService(t *testing.T) {
 		  	"Node": "%s",
 		  	"Service": {
 				"Service": "test",
-				"Port": 4444
+				"Port": 4444,
+				"Priority": 0
 		  	}
 		}
 	},
@@ -773,13 +775,15 @@ func TestTxnEndpoint_NodeService(t *testing.T) {
 	require.Equal(t, 3, len(txnResp.Results))
 
 	index := txnResp.Results[0].Service.ModifyIndex
+	priority := 0
 	expected := structs.TxnResponse{
 		Results: structs.TxnResults{
 			&structs.TxnResult{
 				Service: &structs.NodeService{
-					Service: "test",
-					ID:      "test",
-					Port:    4444,
+					Service:  "test",
+					ID:       "test",
+					Port:     4444,
+					Priority: &priority,
 					Weights: &structs.Weights{
 						Passing: 1,
 						Warning: 1,

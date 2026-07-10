@@ -415,6 +415,7 @@ type ServiceDefinition struct {
 	Checks            []CheckDefinition         `mapstructure:"checks"`
 	Token             *string                   `mapstructure:"token"`
 	Weights           *ServiceWeights           `mapstructure:"weights"`
+	Priority          *int                      `mapstructure:"priority"`
 	EnableTagOverride *bool                     `mapstructure:"enable_tag_override"`
 	Proxy             *ServiceProxy             `mapstructure:"proxy"`
 	Connect           *ServiceConnect           `mapstructure:"connect"`
