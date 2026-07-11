@@ -133,6 +133,14 @@ func ConfigEntryToStructs(s *ConfigEntry) structs.ConfigEntry {
 		pbcommon.RaftIndexToStructs(s.RaftIndex, &target.RaftIndex)
 		pbcommon.EnterpriseMetaToStructs(s.EnterpriseMeta, &target.EnterpriseMeta)
 		return &target
+	case Kind_KindAIGateway:
+		var target structs.AIGatewayConfigEntry
+		target.Name = s.Name
+
+		AIGatewayToStructs(s.GetAIGateway(), &target)
+		pbcommon.RaftIndexToStructs(s.RaftIndex, &target.RaftIndex)
+		pbcommon.EnterpriseMetaToStructs(s.EnterpriseMeta, &target.EnterpriseMeta)
+		return &target
 	default:
 		panic(fmt.Sprintf("unable to convert ConfigEntry of kind %s to structs", s.Kind))
 	}
@@ -259,6 +267,14 @@ func ConfigEntryFromStructs(s structs.ConfigEntry) *ConfigEntry {
 		configEntry.Kind = Kind_KindExportedServices
 		configEntry.Entry = &ConfigEntry_ExportedServices{
 			ExportedServices: &es,
+		}
+	case *structs.AIGatewayConfigEntry:
+		var aigw AIGateway
+		AIGatewayFromStructs(v, &aigw)
+
+		configEntry.Kind = Kind_KindAIGateway
+		configEntry.Entry = &ConfigEntry_AIGateway{
+			AIGateway: &aigw,
 		}
 	default:
 		panic(fmt.Sprintf("unable to convert %T to proto", s))

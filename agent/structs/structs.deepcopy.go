@@ -955,6 +955,10 @@ func (o *NodeService) DeepCopy() *NodeService {
 		cp.Locality = new(Locality)
 		*cp.Locality = *o.Locality
 	}
+	if o.AI != nil {
+		cp.AI = new(AIConfig)
+		*cp.AI = *o.AI
+	}
 	{
 		retV := o.Proxy.DeepCopy()
 		cp.Proxy = *retV
@@ -1140,6 +1144,10 @@ func (o *ServiceDefinition) DeepCopy() *ServiceDefinition {
 	if o.Locality != nil {
 		cp.Locality = new(Locality)
 		*cp.Locality = *o.Locality
+	}
+	if o.AI != nil {
+		cp.AI = new(AIConfig)
+		*cp.AI = *o.AI
 	}
 	if o.Proxy != nil {
 		cp.Proxy = o.Proxy.DeepCopy()

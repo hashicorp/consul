@@ -83,6 +83,8 @@ func newConfigEntryRequest(req *structs.ConfigEntryQuery, deps ServerDataSourceD
 		topic = pbsubscribe.Topic_JWTProvider
 	case structs.ExportedServices:
 		topic = pbsubscribe.Topic_ExportedServices
+	case structs.AIGateway:
+		topic = pbsubscribe.Topic_AIGateway
 	default:
 		return nil, fmt.Errorf("cannot map config entry kind: %q to a topic", req.Kind)
 	}

@@ -141,6 +141,44 @@ type generateConfigTestCase struct {
 // encapsulate all the argument and default handling code which is where most of
 // the logic is. We also allow generating golden files but only for cases that
 // pass the test of having their template args generated as expected.
+func TestInferenceProcArgs(t *testing.T) {
+	newCmd := func() *cmd {
+		ui := cli.NewMockUi()
+		c := New(ui)
+		c.init()
+		return c
+	}
+
+	t.Run("config entry defaults to the service name", func(t *testing.T) {
+		c := newCmd()
+		c.gatewaySvcName = "travel-inference-gateway"
+		require.Equal(t, []string{"--config-entry", "travel-inference-gateway"}, c.inferenceProcArgs())
+	})
+
+	t.Run("explicit config entry wins", func(t *testing.T) {
+		c := newCmd()
+		c.gatewaySvcName = "travel-inference-gateway"
+		c.extProcConfigEntry = "shared-ai-policy"
+		require.Equal(t, []string{"--config-entry", "shared-ai-policy"}, c.inferenceProcArgs())
+	})
+
+	t.Run("consul address, token, and log level are forwarded", func(t *testing.T) {
+		c := newCmd()
+		require.NoError(t, c.flags.Parse([]string{
+			"-service", "gw",
+			"-http-addr", "127.0.0.1:8501",
+			"-token", "secret",
+			"-ext-proc-log-level", "debug",
+		}))
+		require.Equal(t, []string{
+			"--config-entry", "gw",
+			"--consul-http-addr", "127.0.0.1:8501",
+			"--consul-token", "secret",
+			"--log-level", "debug",
+		}, c.inferenceProcArgs())
+	})
+}
+
 func TestGenerateConfig(t *testing.T) {
 
 	b, err := os.ReadFile("../../../test/ca/root.cer")

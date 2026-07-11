@@ -155,6 +155,12 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name: "inference-gateway",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotInferenceGateway(t, nil, nil)
+			},
+		},
+		{
 			name:   "telemetry-collector",
 			create: proxycfg.TestConfigSnapshotTelemetryCollector,
 		},

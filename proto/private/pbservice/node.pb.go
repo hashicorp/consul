@@ -335,7 +335,9 @@ type NodeService struct {
 	// mog: func-to=LocalityToStructs func-from=LocalityFromStructs
 	Locality *pbcommon.Locality `protobuf:"bytes,19,opt,name=Locality,proto3" json:"Locality,omitempty"`
 	// mog: func-to=PortsToStructs func-from=NewPortsFromStructs
-	Ports         []*ServicePort `protobuf:"bytes,20,rep,name=Ports,proto3" json:"Ports,omitempty"`
+	Ports []*ServicePort `protobuf:"bytes,20,rep,name=Ports,proto3" json:"Ports,omitempty"`
+	// AI marks the service's role in the Agent Gateway (Inference plane).
+	AI            *AIConfig `protobuf:"bytes,21,opt,name=AI,proto3" json:"AI,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -503,6 +505,13 @@ func (x *NodeService) GetPorts() []*ServicePort {
 	return nil
 }
 
+func (x *NodeService) GetAI() *AIConfig {
+	if x != nil {
+		return x.AI
+	}
+	return nil
+}
+
 var File_private_pbservice_node_proto protoreflect.FileDescriptor
 
 const file_private_pbservice_node_proto_rawDesc = "" +
@@ -534,7 +543,7 @@ const file_private_pbservice_node_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a7\n" +
 	"\tMetaEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xb7\t\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xf4\t\n" +
 	"\vNodeService\x12\x12\n" +
 	"\x04Kind\x18\x01 \x01(\tR\x04Kind\x12\x0e\n" +
 	"\x02ID\x18\x02 \x01(\tR\x02ID\x12\x18\n" +
@@ -556,7 +565,8 @@ const file_private_pbservice_node_proto_rawDesc = "" +
 	"\bPeerName\x18\x12 \x01(\tR\bPeerName\x12I\n" +
 	"\tRaftIndex\x18\x0e \x01(\v2+.hashicorp.consul.internal.common.RaftIndexR\tRaftIndex\x12F\n" +
 	"\bLocality\x18\x13 \x01(\v2*.hashicorp.consul.internal.common.LocalityR\bLocality\x12D\n" +
-	"\x05Ports\x18\x14 \x03(\v2..hashicorp.consul.internal.service.ServicePortR\x05Ports\x1au\n" +
+	"\x05Ports\x18\x14 \x03(\v2..hashicorp.consul.internal.service.ServicePortR\x05Ports\x12;\n" +
+	"\x02AI\x18\x15 \x01(\v2+.hashicorp.consul.internal.service.AIConfigR\x02AI\x1au\n" +
 	"\x14TaggedAddressesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12G\n" +
 	"\x05value\x18\x02 \x01(\v21.hashicorp.consul.internal.service.ServiceAddressR\x05value:\x028\x01\x1a7\n" +
@@ -595,7 +605,8 @@ var file_private_pbservice_node_proto_goTypes = []any{
 	(*ServiceConnect)(nil),           // 13: hashicorp.consul.internal.service.ServiceConnect
 	(*pbcommon.EnterpriseMeta)(nil),  // 14: hashicorp.consul.internal.common.EnterpriseMeta
 	(*ServicePort)(nil),              // 15: hashicorp.consul.internal.service.ServicePort
-	(*ServiceAddress)(nil),           // 16: hashicorp.consul.internal.service.ServiceAddress
+	(*AIConfig)(nil),                 // 16: hashicorp.consul.internal.service.AIConfig
+	(*ServiceAddress)(nil),           // 17: hashicorp.consul.internal.service.ServiceAddress
 }
 var file_private_pbservice_node_proto_depIdxs = []int32{
 	1,  // 0: hashicorp.consul.internal.service.IndexedCheckServiceNodes.Nodes:type_name -> hashicorp.consul.internal.service.CheckServiceNode
@@ -615,12 +626,13 @@ var file_private_pbservice_node_proto_depIdxs = []int32{
 	9,  // 14: hashicorp.consul.internal.service.NodeService.RaftIndex:type_name -> hashicorp.consul.internal.common.RaftIndex
 	10, // 15: hashicorp.consul.internal.service.NodeService.Locality:type_name -> hashicorp.consul.internal.common.Locality
 	15, // 16: hashicorp.consul.internal.service.NodeService.Ports:type_name -> hashicorp.consul.internal.service.ServicePort
-	16, // 17: hashicorp.consul.internal.service.NodeService.TaggedAddressesEntry.value:type_name -> hashicorp.consul.internal.service.ServiceAddress
-	18, // [18:18] is the sub-list for method output_type
-	18, // [18:18] is the sub-list for method input_type
-	18, // [18:18] is the sub-list for extension type_name
-	18, // [18:18] is the sub-list for extension extendee
-	0,  // [0:18] is the sub-list for field type_name
+	16, // 17: hashicorp.consul.internal.service.NodeService.AI:type_name -> hashicorp.consul.internal.service.AIConfig
+	17, // 18: hashicorp.consul.internal.service.NodeService.TaggedAddressesEntry.value:type_name -> hashicorp.consul.internal.service.ServiceAddress
+	19, // [19:19] is the sub-list for method output_type
+	19, // [19:19] is the sub-list for method input_type
+	19, // [19:19] is the sub-list for extension type_name
+	19, // [19:19] is the sub-list for extension extendee
+	0,  // [0:19] is the sub-list for field type_name
 }
 
 func init() { file_private_pbservice_node_proto_init() }

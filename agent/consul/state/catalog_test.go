@@ -4665,6 +4665,39 @@ func TestStateStore_CheckConnectServiceNodes(t *testing.T) {
 	}
 }
 
+func TestStateStore_CheckConnectServiceNodes_InferenceGateway(t *testing.T) {
+	s := testStateStore(t)
+
+	// An inference gateway terminates inbound mesh mTLS on its own listener
+	// bearing its own SPIFFE leaf, so it must be resolvable as a connect
+	// upstream by its own service name (like a connect-native service).
+	ws := memdb.NewWatchSet()
+	idx, nodes, err := s.CheckConnectServiceNodes(ws, "inference-gateway", nil, "")
+	assert.Nil(t, err)
+	assert.Equal(t, uint64(0), idx)
+	assert.Len(t, nodes, 0)
+
+	assert.Nil(t, s.EnsureNode(10, &structs.Node{Node: "foo", Address: "127.0.0.1"}))
+	assert.Nil(t, s.EnsureService(11, "foo", &structs.NodeService{
+		Kind:    structs.ServiceKindInferenceGateway,
+		ID:      "inference-gateway",
+		Service: "inference-gateway",
+		Port:    8443,
+	}))
+	testRegisterCheck(t, s, 12, "foo", "inference-gateway", "check1", api.HealthPassing)
+	assert.True(t, watchFired(ws))
+
+	// The gateway should now resolve as a connect-capable destination by name.
+	ws = memdb.NewWatchSet()
+	idx, nodes, err = s.CheckConnectServiceNodes(ws, "inference-gateway", nil, "")
+	assert.Nil(t, err)
+	assert.Equal(t, uint64(12), idx)
+	assert.Len(t, nodes, 1)
+	assert.Equal(t, structs.ServiceKindInferenceGateway, nodes[0].Service.Kind)
+	assert.Equal(t, "inference-gateway", nodes[0].Service.Service)
+	assert.Equal(t, 8443, nodes[0].Service.Port)
+}
+
 func TestStateStore_CheckConnectServiceNodes_Gateways(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")

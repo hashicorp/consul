@@ -452,6 +452,11 @@ func (c *FSM) registerStreamSnapshotHandlers() {
 		return c.State().ExportedServicesSnapshot(req, buf)
 	}, true)
 	panicIfErr(err)
+
+	err = c.deps.Publisher.RegisterHandler(state.EventTopicAIGateway, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+		return c.State().AIGatewaySnapshot(req, buf)
+	}, true)
+	panicIfErr(err)
 }
 
 func panicIfErr(err error) {

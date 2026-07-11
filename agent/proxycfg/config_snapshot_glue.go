@@ -41,7 +41,7 @@ func (s *ConfigSnapshot) Authorize(authz acl.Authorizer) error {
 		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(s.Proxy.DestinationServiceName, &authzContext); err != nil {
 			return status.Error(codes.PermissionDenied, err.Error())
 		}
-	case structs.ServiceKindMeshGateway, structs.ServiceKindTerminatingGateway, structs.ServiceKindIngressGateway, structs.ServiceKindAPIGateway:
+	case structs.ServiceKindMeshGateway, structs.ServiceKindTerminatingGateway, structs.ServiceKindIngressGateway, structs.ServiceKindAPIGateway, structs.ServiceKindInferenceGateway:
 		s.ProxyID.FillAuthzContext(&authzContext)
 		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(s.Service, &authzContext); err != nil {
 			return status.Error(codes.PermissionDenied, err.Error())
@@ -63,6 +63,8 @@ func (s *ConfigSnapshot) LoggerName() string {
 		return logging.MeshGateway
 	case structs.ServiceKindIngressGateway:
 		return logging.IngressGateway
+	case structs.ServiceKindInferenceGateway:
+		return logging.InferenceGateway
 	}
 
 	return ""

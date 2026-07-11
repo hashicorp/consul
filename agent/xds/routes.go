@@ -50,6 +50,8 @@ func (s *ResourceGenerator) routesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot)
 		return s.routesForTerminatingGateway(cfgSnap)
 	case structs.ServiceKindMeshGateway:
 		return s.routesForMeshGateway(cfgSnap)
+	case structs.ServiceKindInferenceGateway:
+		return s.routesForInferenceGateway(cfgSnap)
 	default:
 		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
 	}

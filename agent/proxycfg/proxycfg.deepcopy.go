@@ -152,6 +152,138 @@ func (o *ConfigSnapshot) DeepCopy() *ConfigSnapshot {
 		retV := o.APIGateway.DeepCopy()
 		cp.APIGateway = *retV
 	}
+	if o.InferenceGateway.Leaf != nil {
+		cp.InferenceGateway.Leaf = new(structs.IssuedCert)
+		*cp.InferenceGateway.Leaf = *o.InferenceGateway.Leaf
+	}
+	if o.InferenceGateway.MeshConfig != nil {
+		cp.InferenceGateway.MeshConfig = o.InferenceGateway.MeshConfig.DeepCopy()
+	}
+	if o.InferenceGateway.GatewayConfig != nil {
+		cp.InferenceGateway.GatewayConfig = new(structs.AIGatewayConfigEntry)
+		*cp.InferenceGateway.GatewayConfig = *o.InferenceGateway.GatewayConfig
+		if o.InferenceGateway.GatewayConfig.ApplyTo != nil {
+			cp.InferenceGateway.GatewayConfig.ApplyTo = make([]string, len(o.InferenceGateway.GatewayConfig.ApplyTo))
+			copy(cp.InferenceGateway.GatewayConfig.ApplyTo, o.InferenceGateway.GatewayConfig.ApplyTo)
+		}
+		if o.InferenceGateway.GatewayConfig.Routing.MatchRules != nil {
+			cp.InferenceGateway.GatewayConfig.Routing.MatchRules = make([]structs.AIGatewayMatchRule, len(o.InferenceGateway.GatewayConfig.Routing.MatchRules))
+			copy(cp.InferenceGateway.GatewayConfig.Routing.MatchRules, o.InferenceGateway.GatewayConfig.Routing.MatchRules)
+			for i6 := range o.InferenceGateway.GatewayConfig.Routing.MatchRules {
+				if o.InferenceGateway.GatewayConfig.Routing.MatchRules[i6].When.BodyHas != nil {
+					cp.InferenceGateway.GatewayConfig.Routing.MatchRules[i6].When.BodyHas = make([]string, len(o.InferenceGateway.GatewayConfig.Routing.MatchRules[i6].When.BodyHas))
+					copy(cp.InferenceGateway.GatewayConfig.Routing.MatchRules[i6].When.BodyHas, o.InferenceGateway.GatewayConfig.Routing.MatchRules[i6].When.BodyHas)
+				}
+				if o.InferenceGateway.GatewayConfig.Routing.MatchRules[i6].When.Identity != nil {
+					cp.InferenceGateway.GatewayConfig.Routing.MatchRules[i6].When.Identity = new(structs.AIGatewayIdentityMatch)
+					*cp.InferenceGateway.GatewayConfig.Routing.MatchRules[i6].When.Identity = *o.InferenceGateway.GatewayConfig.Routing.MatchRules[i6].When.Identity
+				}
+				if o.InferenceGateway.GatewayConfig.Routing.MatchRules[i6].RequireCapabilities != nil {
+					cp.InferenceGateway.GatewayConfig.Routing.MatchRules[i6].RequireCapabilities = make([]string, len(o.InferenceGateway.GatewayConfig.Routing.MatchRules[i6].RequireCapabilities))
+					copy(cp.InferenceGateway.GatewayConfig.Routing.MatchRules[i6].RequireCapabilities, o.InferenceGateway.GatewayConfig.Routing.MatchRules[i6].RequireCapabilities)
+				}
+				if o.InferenceGateway.GatewayConfig.Routing.MatchRules[i6].Candidates != nil {
+					cp.InferenceGateway.GatewayConfig.Routing.MatchRules[i6].Candidates = make([]string, len(o.InferenceGateway.GatewayConfig.Routing.MatchRules[i6].Candidates))
+					copy(cp.InferenceGateway.GatewayConfig.Routing.MatchRules[i6].Candidates, o.InferenceGateway.GatewayConfig.Routing.MatchRules[i6].Candidates)
+				}
+				if o.InferenceGateway.GatewayConfig.Routing.MatchRules[i6].FallbackChain != nil {
+					cp.InferenceGateway.GatewayConfig.Routing.MatchRules[i6].FallbackChain = make([]string, len(o.InferenceGateway.GatewayConfig.Routing.MatchRules[i6].FallbackChain))
+					copy(cp.InferenceGateway.GatewayConfig.Routing.MatchRules[i6].FallbackChain, o.InferenceGateway.GatewayConfig.Routing.MatchRules[i6].FallbackChain)
+				}
+			}
+		}
+		if o.InferenceGateway.GatewayConfig.Routing.ComplianceMap != nil {
+			cp.InferenceGateway.GatewayConfig.Routing.ComplianceMap = make(map[string]structs.AIGatewayCompliance, len(o.InferenceGateway.GatewayConfig.Routing.ComplianceMap))
+			for k6, v6 := range o.InferenceGateway.GatewayConfig.Routing.ComplianceMap {
+				var cp_InferenceGateway_GatewayConfig_Routing_ComplianceMap_v6 structs.AIGatewayCompliance
+				if v6.AllowedRegions != nil {
+					cp_InferenceGateway_GatewayConfig_Routing_ComplianceMap_v6.AllowedRegions = make([]string, len(v6.AllowedRegions))
+					copy(cp_InferenceGateway_GatewayConfig_Routing_ComplianceMap_v6.AllowedRegions, v6.AllowedRegions)
+				}
+				if v6.AllowedClusters != nil {
+					cp_InferenceGateway_GatewayConfig_Routing_ComplianceMap_v6.AllowedClusters = make([]string, len(v6.AllowedClusters))
+					copy(cp_InferenceGateway_GatewayConfig_Routing_ComplianceMap_v6.AllowedClusters, v6.AllowedClusters)
+				}
+				cp.InferenceGateway.GatewayConfig.Routing.ComplianceMap[k6] = cp_InferenceGateway_GatewayConfig_Routing_ComplianceMap_v6
+			}
+		}
+		if o.InferenceGateway.GatewayConfig.Routing.FallbackChain != nil {
+			cp.InferenceGateway.GatewayConfig.Routing.FallbackChain = make([]string, len(o.InferenceGateway.GatewayConfig.Routing.FallbackChain))
+			copy(cp.InferenceGateway.GatewayConfig.Routing.FallbackChain, o.InferenceGateway.GatewayConfig.Routing.FallbackChain)
+		}
+		if o.InferenceGateway.GatewayConfig.Routing.Retry != nil {
+			cp.InferenceGateway.GatewayConfig.Routing.Retry = new(structs.AIGatewayRetry)
+			*cp.InferenceGateway.GatewayConfig.Routing.Retry = *o.InferenceGateway.GatewayConfig.Routing.Retry
+			if o.InferenceGateway.GatewayConfig.Routing.Retry.RetryOn != nil {
+				cp.InferenceGateway.GatewayConfig.Routing.Retry.RetryOn = make([]string, len(o.InferenceGateway.GatewayConfig.Routing.Retry.RetryOn))
+				copy(cp.InferenceGateway.GatewayConfig.Routing.Retry.RetryOn, o.InferenceGateway.GatewayConfig.Routing.Retry.RetryOn)
+			}
+		}
+		if o.InferenceGateway.GatewayConfig.Routing.Timeout != nil {
+			cp.InferenceGateway.GatewayConfig.Routing.Timeout = new(structs.AIGatewayTimeout)
+			*cp.InferenceGateway.GatewayConfig.Routing.Timeout = *o.InferenceGateway.GatewayConfig.Routing.Timeout
+		}
+		if o.InferenceGateway.GatewayConfig.Routing.Scoring != nil {
+			cp.InferenceGateway.GatewayConfig.Routing.Scoring = new(structs.AIGatewayScoring)
+			*cp.InferenceGateway.GatewayConfig.Routing.Scoring = *o.InferenceGateway.GatewayConfig.Routing.Scoring
+			if o.InferenceGateway.GatewayConfig.Routing.Scoring.Scorers != nil {
+				cp.InferenceGateway.GatewayConfig.Routing.Scoring.Scorers = make([]string, len(o.InferenceGateway.GatewayConfig.Routing.Scoring.Scorers))
+				copy(cp.InferenceGateway.GatewayConfig.Routing.Scoring.Scorers, o.InferenceGateway.GatewayConfig.Routing.Scoring.Scorers)
+			}
+			if o.InferenceGateway.GatewayConfig.Routing.Scoring.WeightedSplit != nil {
+				cp.InferenceGateway.GatewayConfig.Routing.Scoring.WeightedSplit = make([]structs.AIGatewayWeightedTarget, len(o.InferenceGateway.GatewayConfig.Routing.Scoring.WeightedSplit))
+				copy(cp.InferenceGateway.GatewayConfig.Routing.Scoring.WeightedSplit, o.InferenceGateway.GatewayConfig.Routing.Scoring.WeightedSplit)
+			}
+		}
+		if o.InferenceGateway.GatewayConfig.Routing.Budget != nil {
+			cp.InferenceGateway.GatewayConfig.Routing.Budget = make(map[string]interface{}, len(o.InferenceGateway.GatewayConfig.Routing.Budget))
+			for k6, v6 := range o.InferenceGateway.GatewayConfig.Routing.Budget {
+				cp.InferenceGateway.GatewayConfig.Routing.Budget[k6] = v6
+			}
+		}
+		if o.InferenceGateway.GatewayConfig.Routing.Cache != nil {
+			cp.InferenceGateway.GatewayConfig.Routing.Cache = make(map[string]interface{}, len(o.InferenceGateway.GatewayConfig.Routing.Cache))
+			for k6, v6 := range o.InferenceGateway.GatewayConfig.Routing.Cache {
+				cp.InferenceGateway.GatewayConfig.Routing.Cache[k6] = v6
+			}
+		}
+		if o.InferenceGateway.GatewayConfig.Routing.Mirror != nil {
+			cp.InferenceGateway.GatewayConfig.Routing.Mirror = make(map[string]interface{}, len(o.InferenceGateway.GatewayConfig.Routing.Mirror))
+			for k6, v6 := range o.InferenceGateway.GatewayConfig.Routing.Mirror {
+				cp.InferenceGateway.GatewayConfig.Routing.Mirror[k6] = v6
+			}
+		}
+		if o.InferenceGateway.GatewayConfig.Meta != nil {
+			cp.InferenceGateway.GatewayConfig.Meta = make(map[string]string, len(o.InferenceGateway.GatewayConfig.Meta))
+			for k5, v5 := range o.InferenceGateway.GatewayConfig.Meta {
+				cp.InferenceGateway.GatewayConfig.Meta[k5] = v5
+			}
+		}
+	}
+	if o.InferenceGateway.WatchedModels != nil {
+		cp.InferenceGateway.WatchedModels = make(map[structs.ServiceName]context.CancelFunc, len(o.InferenceGateway.WatchedModels))
+		for k3, v3 := range o.InferenceGateway.WatchedModels {
+			cp.InferenceGateway.WatchedModels[k3] = v3
+		}
+	}
+	if o.InferenceGateway.Models != nil {
+		cp.InferenceGateway.Models = make(map[structs.ServiceName]*InferenceGatewayModel, len(o.InferenceGateway.Models))
+		for k3, v3 := range o.InferenceGateway.Models {
+			var cp_InferenceGateway_Models_v3 *InferenceGatewayModel
+			if v3 != nil {
+				cp_InferenceGateway_Models_v3 = new(InferenceGatewayModel)
+				*cp_InferenceGateway_Models_v3 = *v3
+				if v3.Labels != nil {
+					cp_InferenceGateway_Models_v3.Labels = make(map[string]string, len(v3.Labels))
+					for k6, v6 := range v3.Labels {
+						cp_InferenceGateway_Models_v3.Labels[k6] = v6
+					}
+				}
+				cp_InferenceGateway_Models_v3.Nodes = v3.Nodes.DeepCopy()
+			}
+			cp.InferenceGateway.Models[k3] = cp_InferenceGateway_Models_v3
+		}
+	}
 	if o.computedFields.xdsCommonConfig != nil {
 		cp.computedFields.xdsCommonConfig = new(config.XDSCommonConfig)
 		*cp.computedFields.xdsCommonConfig = *o.computedFields.xdsCommonConfig

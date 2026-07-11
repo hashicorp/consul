@@ -134,11 +134,18 @@ func (s *HttpService) validate() error {
 	return resultErr
 }
 
-// Target identifies the processor backend: either a Consul service (reuses the
-// upstream/mesh cluster) or a direct host:port URI (synthesizes a local cluster).
+// Target identifies the processor backend: a Consul service (reuses the
+// upstream/mesh cluster), a direct host:port URI (synthesizes a local TCP
+// cluster), or a Unix domain socket Path (synthesizes a local loopback/UDS
+// cluster). Exactly one must be set. The Path form is the loopback transport
+// used by the inference gateway to reach its co-located policy processor.
 type Target struct {
 	Service api.CompoundServiceName
 	URI     string
+	// Path is an absolute filesystem path to a Unix domain socket the processor
+	// listens on. When set, Envoy reaches the processor over a loopback/UDS
+	// "pipe" address rather than TCP. Mutually exclusive with Service and URI.
+	Path    string
 	Timeout string
 
 	timeout *time.Duration
@@ -148,6 +155,7 @@ type Target struct {
 
 func (t Target) isService() bool { return t.Service.Name != "" }
 func (t Target) isURI() bool     { return t.URI != "" }
+func (t Target) isUDS() bool     { return t.Path != "" }
 
 func (t *Target) normalize() {
 	if t == nil {
@@ -169,13 +177,22 @@ func (t *Target) validate() error {
 	if t == nil {
 		return resultErr
 	}
-	if t.isURI() == t.isService() {
-		resultErr = multierror.Append(resultErr, fmt.Errorf("exactly one of Target.Service or Target.URI must be set"))
+	set := 0
+	for _, isSet := range []bool{t.isService(), t.isURI(), t.isUDS()} {
+		if isSet {
+			set++
+		}
+	}
+	if set != 1 {
+		resultErr = multierror.Append(resultErr, fmt.Errorf("exactly one of Target.Service, Target.URI, or Target.Path must be set"))
 	}
 	if t.isURI() {
 		if t.host, t.port, err = parseAddr(t.URI); err != nil {
 			resultErr = multierror.Append(resultErr, fmt.Errorf("invalid Target.URI %q: %w", t.URI, err))
 		}
+	}
+	if t.isUDS() && !strings.HasPrefix(t.Path, "/") {
+		resultErr = multierror.Append(resultErr, fmt.Errorf("Target.Path %q must be an absolute Unix socket path", t.Path))
 	}
 	if t.Timeout != "" {
 		if d, perr := time.ParseDuration(t.Timeout); perr == nil {
@@ -278,10 +295,12 @@ func (c *extProcConfig) target() *Target {
 
 func (p *extProc) validate() error {
 	var resultErr error
-	if p.ProxyType != api.ServiceKindAPIGateway && p.ProxyType != api.ServiceKindConnectProxy {
+	switch p.ProxyType {
+	case api.ServiceKindAPIGateway, api.ServiceKindConnectProxy, api.ServiceKindInferenceGateway:
+	default:
 		resultErr = multierror.Append(resultErr, fmt.Errorf(
-			"unsupported ProxyType %q, only %q or %q is supported",
-			p.ProxyType, api.ServiceKindAPIGateway, api.ServiceKindConnectProxy))
+			"unsupported ProxyType %q, only %q, %q, or %q is supported",
+			p.ProxyType, api.ServiceKindAPIGateway, api.ServiceKindConnectProxy, api.ServiceKindInferenceGateway))
 	}
 	if p.ListenerType != "inbound" && p.ListenerType != "outbound" {
 		resultErr = multierror.Append(resultErr, fmt.Errorf(
@@ -388,19 +407,43 @@ func (c *extProcConfig) envoyHttpService(cfg *ext_cmn.RuntimeConfig) (*envoy_htt
 	}, nil
 }
 
-// toEnvoyCluster builds a local cluster for URI targets only. Service targets reuse
-// the existing upstream/mesh cluster (returns nil). gRPC URI clusters use HTTP/2.
+// toEnvoyCluster builds a local cluster for URI and UDS (Path) targets. Service
+// targets reuse the existing upstream/mesh cluster (returns nil). gRPC clusters
+// use HTTP/2. UDS targets resolve to a STATIC cluster with a "pipe" address.
 func (c *extProcConfig) toEnvoyCluster(_ *ext_cmn.RuntimeConfig) (*envoy_cluster_v3.Cluster, error) {
 	t := c.target()
 	if t == nil || t.isService() {
 		return nil, nil
 	}
 
-	host, port := t.host, t.port
-	isDNS := net.ParseIP(host) == nil
+	// Resolve the endpoint address and cluster discovery type. UDS targets use a
+	// STATIC cluster pointing at a pipe address; URI targets use STATIC for IPs
+	// and STRICT_DNS for hostnames.
+	var endpointAddr *envoy_core_v3.Address
 	clusterType := &envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_STATIC}
-	if isDNS {
-		clusterType = &envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_STRICT_DNS}
+	isDNS := false
+	if t.isUDS() {
+		endpointAddr = &envoy_core_v3.Address{
+			Address: &envoy_core_v3.Address_Pipe{
+				Pipe: &envoy_core_v3.Pipe{Path: t.Path},
+			},
+		}
+	} else {
+		host, port := t.host, t.port
+		isDNS = net.ParseIP(host) == nil
+		if isDNS {
+			clusterType = &envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_STRICT_DNS}
+		}
+		endpointAddr = &envoy_core_v3.Address{
+			Address: &envoy_core_v3.Address_SocketAddress{
+				SocketAddress: &envoy_core_v3.SocketAddress{
+					Address: host,
+					PortSpecifier: &envoy_core_v3.SocketAddress_PortValue{
+						PortValue: uint32(port),
+					},
+				},
+			},
+		}
 	}
 
 	var httpProtoOpts *envoy_upstreams_http_v3.HttpProtocolOptions
@@ -441,16 +484,7 @@ func (c *extProcConfig) toEnvoyCluster(_ *ext_cmn.RuntimeConfig) (*envoy_cluster
 				LbEndpoints: []*envoy_endpoint_v3.LbEndpoint{{
 					HostIdentifier: &envoy_endpoint_v3.LbEndpoint_Endpoint{
 						Endpoint: &envoy_endpoint_v3.Endpoint{
-							Address: &envoy_core_v3.Address{
-								Address: &envoy_core_v3.Address_SocketAddress{
-									SocketAddress: &envoy_core_v3.SocketAddress{
-										Address: host,
-										PortSpecifier: &envoy_core_v3.SocketAddress_PortValue{
-											PortValue: uint32(port),
-										},
-									},
-								},
-							},
+							Address: endpointAddr,
 						},
 					},
 				}},
@@ -471,7 +505,8 @@ func (p *extProc) CanApply(cfg *ext_cmn.RuntimeConfig) bool {
 }
 
 func (p *extProc) matchesListenerDirection(isInboundListener bool) bool {
-	if p.ProxyType == api.ServiceKindAPIGateway {
+	// Gateways own a single listener, so the filter always applies there.
+	if p.ProxyType == api.ServiceKindAPIGateway || p.ProxyType == api.ServiceKindInferenceGateway {
 		return true
 	}
 	return (!isInboundListener && p.ListenerType == "outbound") || (isInboundListener && p.ListenerType == "inbound")

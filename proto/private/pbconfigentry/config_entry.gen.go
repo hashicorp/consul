@@ -4,6 +4,250 @@ package pbconfigentry
 
 import "github.com/hashicorp/consul/agent/structs"
 
+func AIGatewayToStructs(s *AIGateway, t *structs.AIGatewayConfigEntry) {
+	if s == nil {
+		return
+	}
+	if s.Processor != nil {
+		AIGatewayProcessorToStructs(s.Processor, &t.Processor)
+	}
+	t.ApplyTo = s.ApplyTo
+	if s.Routing != nil {
+		AIGatewayRoutingToStructs(s.Routing, &t.Routing)
+	}
+	t.Meta = s.Meta
+	t.Hash = s.Hash
+}
+func AIGatewayFromStructs(t *structs.AIGatewayConfigEntry, s *AIGateway) {
+	if s == nil {
+		return
+	}
+	{
+		var x AIGatewayProcessor
+		AIGatewayProcessorFromStructs(&t.Processor, &x)
+		s.Processor = &x
+	}
+	s.ApplyTo = t.ApplyTo
+	{
+		var x AIGatewayRouting
+		AIGatewayRoutingFromStructs(&t.Routing, &x)
+		s.Routing = &x
+	}
+	s.Meta = t.Meta
+	s.Hash = t.Hash
+}
+func AIGatewayIdentityMatchToStructs(s *AIGatewayIdentityMatch, t *structs.AIGatewayIdentityMatch) {
+	if s == nil {
+		return
+	}
+	t.Service = s.Service
+	t.Partition = s.Partition
+	t.Namespace = s.Namespace
+}
+func AIGatewayIdentityMatchFromStructs(t *structs.AIGatewayIdentityMatch, s *AIGatewayIdentityMatch) {
+	if s == nil {
+		return
+	}
+	s.Service = t.Service
+	s.Partition = t.Partition
+	s.Namespace = t.Namespace
+}
+func AIGatewayMatchToStructs(s *AIGatewayMatch, t *structs.AIGatewayMatch) {
+	if s == nil {
+		return
+	}
+	t.Path = s.Path
+	t.BodyHas = s.BodyHas
+	if s.Identity != nil {
+		var x structs.AIGatewayIdentityMatch
+		AIGatewayIdentityMatchToStructs(s.Identity, &x)
+		t.Identity = &x
+	}
+}
+func AIGatewayMatchFromStructs(t *structs.AIGatewayMatch, s *AIGatewayMatch) {
+	if s == nil {
+		return
+	}
+	s.Path = t.Path
+	s.BodyHas = t.BodyHas
+	if t.Identity != nil {
+		var x AIGatewayIdentityMatch
+		AIGatewayIdentityMatchFromStructs(t.Identity, &x)
+		s.Identity = &x
+	}
+}
+func AIGatewayMatchRuleToStructs(s *AIGatewayMatchRule, t *structs.AIGatewayMatchRule) {
+	if s == nil {
+		return
+	}
+	if s.When != nil {
+		AIGatewayMatchToStructs(s.When, &t.When)
+	}
+	t.RequireCapabilities = s.RequireCapabilities
+	t.Candidates = s.Candidates
+	t.FallbackChain = s.FallbackChain
+}
+func AIGatewayMatchRuleFromStructs(t *structs.AIGatewayMatchRule, s *AIGatewayMatchRule) {
+	if s == nil {
+		return
+	}
+	{
+		var x AIGatewayMatch
+		AIGatewayMatchFromStructs(&t.When, &x)
+		s.When = &x
+	}
+	s.RequireCapabilities = t.RequireCapabilities
+	s.Candidates = t.Candidates
+	s.FallbackChain = t.FallbackChain
+}
+func AIGatewayProcessorToStructs(s *AIGatewayProcessor, t *structs.AIGatewayProcessor) {
+	if s == nil {
+		return
+	}
+	t.UDSPath = s.UDSPath
+	t.FailureMode = s.FailureMode
+}
+func AIGatewayProcessorFromStructs(t *structs.AIGatewayProcessor, s *AIGatewayProcessor) {
+	if s == nil {
+		return
+	}
+	s.UDSPath = t.UDSPath
+	s.FailureMode = t.FailureMode
+}
+func AIGatewayRetryToStructs(s *AIGatewayRetry, t *structs.AIGatewayRetry) {
+	if s == nil {
+		return
+	}
+	t.MaxAttempts = int(s.MaxAttempts)
+	t.RetryOn = s.RetryOn
+}
+func AIGatewayRetryFromStructs(t *structs.AIGatewayRetry, s *AIGatewayRetry) {
+	if s == nil {
+		return
+	}
+	s.MaxAttempts = int32(t.MaxAttempts)
+	s.RetryOn = t.RetryOn
+}
+func AIGatewayRoutingToStructs(s *AIGatewayRouting, t *structs.AIGatewayRouting) {
+	if s == nil {
+		return
+	}
+	{
+		t.MatchRules = make([]structs.AIGatewayMatchRule, len(s.MatchRules))
+		for i := range s.MatchRules {
+			if s.MatchRules[i] != nil {
+				AIGatewayMatchRuleToStructs(s.MatchRules[i], &t.MatchRules[i])
+			}
+		}
+	}
+	t.FallbackChain = s.FallbackChain
+	if s.Retry != nil {
+		var x structs.AIGatewayRetry
+		AIGatewayRetryToStructs(s.Retry, &x)
+		t.Retry = &x
+	}
+	if s.Timeout != nil {
+		var x structs.AIGatewayTimeout
+		AIGatewayTimeoutToStructs(s.Timeout, &x)
+		t.Timeout = &x
+	}
+	if s.Scoring != nil {
+		var x structs.AIGatewayScoring
+		AIGatewayScoringToStructs(s.Scoring, &x)
+		t.Scoring = &x
+	}
+	t.ConfigValidation = s.ConfigValidation
+}
+func AIGatewayRoutingFromStructs(t *structs.AIGatewayRouting, s *AIGatewayRouting) {
+	if s == nil {
+		return
+	}
+	{
+		s.MatchRules = make([]*AIGatewayMatchRule, len(t.MatchRules))
+		for i := range t.MatchRules {
+			{
+				var x AIGatewayMatchRule
+				AIGatewayMatchRuleFromStructs(&t.MatchRules[i], &x)
+				s.MatchRules[i] = &x
+			}
+		}
+	}
+	s.FallbackChain = t.FallbackChain
+	if t.Retry != nil {
+		var x AIGatewayRetry
+		AIGatewayRetryFromStructs(t.Retry, &x)
+		s.Retry = &x
+	}
+	if t.Timeout != nil {
+		var x AIGatewayTimeout
+		AIGatewayTimeoutFromStructs(t.Timeout, &x)
+		s.Timeout = &x
+	}
+	if t.Scoring != nil {
+		var x AIGatewayScoring
+		AIGatewayScoringFromStructs(t.Scoring, &x)
+		s.Scoring = &x
+	}
+	s.ConfigValidation = t.ConfigValidation
+}
+func AIGatewayScoringToStructs(s *AIGatewayScoring, t *structs.AIGatewayScoring) {
+	if s == nil {
+		return
+	}
+	t.Scorers = s.Scorers
+	{
+		t.WeightedSplit = make([]structs.AIGatewayWeightedTarget, len(s.WeightedSplit))
+		for i := range s.WeightedSplit {
+			if s.WeightedSplit[i] != nil {
+				AIGatewayWeightedTargetToStructs(s.WeightedSplit[i], &t.WeightedSplit[i])
+			}
+		}
+	}
+}
+func AIGatewayScoringFromStructs(t *structs.AIGatewayScoring, s *AIGatewayScoring) {
+	if s == nil {
+		return
+	}
+	s.Scorers = t.Scorers
+	{
+		s.WeightedSplit = make([]*AIGatewayWeightedTarget, len(t.WeightedSplit))
+		for i := range t.WeightedSplit {
+			{
+				var x AIGatewayWeightedTarget
+				AIGatewayWeightedTargetFromStructs(&t.WeightedSplit[i], &x)
+				s.WeightedSplit[i] = &x
+			}
+		}
+	}
+}
+func AIGatewayTimeoutToStructs(s *AIGatewayTimeout, t *structs.AIGatewayTimeout) {
+	if s == nil {
+		return
+	}
+	t.Connect = s.Connect
+	t.Request = s.Request
+}
+func AIGatewayTimeoutFromStructs(t *structs.AIGatewayTimeout, s *AIGatewayTimeout) {
+	if s == nil {
+		return
+	}
+	s.Connect = t.Connect
+	s.Request = t.Request
+}
+func AIGatewayWeightedTargetToStructs(s *AIGatewayWeightedTarget, t *structs.AIGatewayWeightedTarget) {
+	if s == nil {
+		return
+	}
+	t.Cluster = s.Cluster
+	t.Weight = int(s.Weight)
+}
+func AIGatewayWeightedTargetFromStructs(t *structs.AIGatewayWeightedTarget, s *AIGatewayWeightedTarget) {
+	if s == nil {
+		return
+	}
+	s.Cluster = t.Cluster
+	s.Weight = int32(t.Weight)
+}
 func APIGatewayToStructs(s *APIGateway, t *structs.APIGatewayConfigEntry) {
 	if s == nil {
 		return
