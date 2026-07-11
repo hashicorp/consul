@@ -162,17 +162,19 @@ func TestInferenceProcArgs(t *testing.T) {
 		require.Equal(t, []string{"--config-entry", "shared-ai-policy"}, c.inferenceProcArgs())
 	})
 
-	t.Run("consul address and token are forwarded", func(t *testing.T) {
+	t.Run("consul address, token, and log level are forwarded", func(t *testing.T) {
 		c := newCmd()
 		require.NoError(t, c.flags.Parse([]string{
 			"-service", "gw",
 			"-http-addr", "127.0.0.1:8501",
 			"-token", "secret",
+			"-ext-proc-log-level", "debug",
 		}))
 		require.Equal(t, []string{
 			"--config-entry", "gw",
 			"--consul-http-addr", "127.0.0.1:8501",
 			"--consul-token", "secret",
+			"--log-level", "debug",
 		}, c.inferenceProcArgs())
 	})
 }

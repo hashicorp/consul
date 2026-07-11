@@ -92,6 +92,7 @@ type cmd struct {
 	// inference-gateway co-launch
 	extProcBin         string
 	extProcConfigEntry string
+	extProcLogLevel    string
 
 	dialFunc func(network string, address string) (net.Conn, error)
 
@@ -214,6 +215,10 @@ func (c *cmd) init() {
 		"For an inference gateway: the ai-gateway config entry name the co-located "+
 			"processor loads (for its PII policy and to derive the ext_proc socket). "+
 			"Defaults to -service.")
+
+	c.flags.StringVar(&c.extProcLogLevel, "ext-proc-log-level", "",
+		"For an inference gateway: --log-level for the co-located processor "+
+			"(debug|info|warn|error). Empty uses the processor's own default.")
 
 	c.flags.BoolVar(&c.exposeServers, "expose-servers", false,
 		"Expose the servers for WAN federation via this mesh gateway")
@@ -552,6 +557,9 @@ func (c *cmd) inferenceProcArgs() []string {
 	}
 	if token := c.http.Token(); token != "" {
 		args = append(args, "--consul-token", token)
+	}
+	if c.extProcLogLevel != "" {
+		args = append(args, "--log-level", c.extProcLogLevel)
 	}
 	return args
 }
