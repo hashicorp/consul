@@ -1,0 +1,3 @@
+```release-note:bug
+agent: Log the deprecated token query parameter warning only once per agent lifetime instead of on every request, and avoid logging the raw token in debug-level content-type logs.
+```
