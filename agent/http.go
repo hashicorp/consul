@@ -16,6 +16,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -97,6 +98,11 @@ type HTTPHandlers struct {
 	configReloaders []ConfigReloader
 	h               http.Handler
 	metricsProxyCfg atomic.Value
+
+	// tokenQueryParamWarningOnce ensures the deprecation warning for using the
+	// token query parameter is only logged once per agent lifetime, to avoid
+	// flooding the logs when clients repeatedly authenticate via query param.
+	tokenQueryParamWarningOnce sync.Once
 
 	// proxyTransport is used by UIMetricsProxy to keep
 	// a managed pool of connections.
@@ -357,14 +363,14 @@ func ensureContentTypeHeader(next http.Handler, logger hclog.Logger) http.Handle
 		contentType := api.GetContentType(req)
 
 		if req != nil {
-			logger.Debug("warning: request content-type is not supported", "request-path", req.URL)
+			logger.Debug("warning: request content-type is not supported", "request-path", req.URL.Path)
 			req.Header.Set(contentTypeHeader, contentType)
 		}
 
 		if resp != nil {
 			respContentType := resp.Header().Get(contentTypeHeader)
 			if respContentType == "" || respContentType != contentType {
-				logger.Debug("warning: response content-type header not explicitly set.", "request-path", req.URL)
+				logger.Debug("warning: response content-type header not explicitly set.", "request-path", req.URL.Path)
 				resp.Header().Set(contentTypeHeader, contentType)
 			}
 		}
@@ -428,9 +434,14 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 				}
 				logURL = strings.ReplaceAll(logURL, token, "<hidden>")
 			}
-			httpLogger.Warn("This request used the token query parameter "+
-				"which is deprecated and will be removed in a future Consul version",
-				"logUrl", logURL)
+			// Only log the deprecation warning once per agent lifetime to avoid
+			// flooding the logs for clients that authenticate via the token
+			// query parameter on every request.
+			s.tokenQueryParamWarningOnce.Do(func() {
+				httpLogger.Warn("This request used the token query parameter "+
+					"which is deprecated and will be removed in a future Consul version",
+					"logUrl", logURL)
+			})
 		}
 		logURL = aclEndpointRE.ReplaceAllString(logURL, "$1<hidden>$4")
 
