@@ -1,0 +1,3 @@
+```release-note:bug
+acl: client agents now re-verify stale "ACL not found" token reads with a consistent read before treating them as final, preventing valid workload tokens from getting stuck in persistent Connect/xDS ACL failures.
+```
