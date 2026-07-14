@@ -43,7 +43,7 @@ jobs:
       compute-large: ${{ steps.setup-outputs.outputs.compute-large }}
       compute-xl: ${{ steps.setup-outputs.outputs.compute-xl }}
     steps:
-    - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
     - id: setup-outputs
       name: Setup outputs
       run: ./.github/scripts/get_runner_classes.sh
@@ -69,12 +69,12 @@ jobs:
     - get-go-version
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-medium) }}
     steps:
-    - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
     # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
     - name: Setup Git
       if: ${{ endsWith(github.repository, '-enterprise') }}
       run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-    - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+    - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
       with:
         go-version: ${{ needs.get-go-version.outputs.go-version }}
     - run: make proto-tools
@@ -95,12 +95,12 @@ jobs:
      - get-go-version
      runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
      steps:
-     - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+     - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
      # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
      - name: Setup Git
        if: ${{ endsWith(github.repository, '-enterprise') }}
        run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-     - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+     - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
        with:
          go-version: ${{ needs.get-go-version.outputs.go-version }}
      - run: make --always-make codegen
@@ -116,12 +116,12 @@ jobs:
     - get-go-version
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
     steps:
-    - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
     # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
     - name: Setup Git
       if: ${{ endsWith(github.repository, '-enterprise') }}
       run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-    - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+    - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
       with:
         go-version: ${{ needs.get-go-version.outputs.go-version }}
     - run: go install github.com/reillywatson/enumcover/cmd/enumcover@master && enumcover ./...
@@ -132,11 +132,11 @@ jobs:
     - get-go-version
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     steps:
-    - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
     # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
     - name: Setup Git
       run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-    - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+    - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
       with:
         go-version: ${{ needs.get-go-version.outputs.go-version }}
     - run: make lint-container-test-deps
@@ -147,12 +147,12 @@ jobs:
     - get-go-version
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     steps:
-    - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
     # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
     - name: Setup Git
       if: ${{ endsWith(github.repository, '-enterprise') }}
       run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-    - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+    - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
       with:
         go-version: ${{ needs.get-go-version.outputs.go-version }}
     - run: make lint-consul-retry
@@ -258,7 +258,7 @@ jobs:
       runner-count: 6
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
-      go-tags: ""
+      go-tags: "hashicorpmetrics"
       go-version: ${{ needs.get-go-version.outputs.go-version }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
@@ -280,7 +280,7 @@ jobs:
       runner-count: 6
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
-      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev hashicorpmetrics' || 'hashicorpmetrics' }}"
       go-version: ${{ needs.get-go-version.outputs.go-version }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
@@ -302,7 +302,7 @@ jobs:
       package-names-command: "go list ./... | grep -E -v '^github.com/hashicorp/consul/agent(/consul|/local|/routine-leak-checker)?$' | grep -E -v '^github.com/hashicorp/consul(/command|/connect|/snapshot)'"
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
-      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev hashicorpmetrics' || 'hashicorpmetrics' }}"
       go-version: ${{ needs.get-go-version.outputs.go-version }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
@@ -324,7 +324,7 @@ jobs:
       go-test-flags: "-short"
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
-      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev hashicorpmetrics' || 'hashicorpmetrics' }}"
       go-version: ${{ needs.get-go-version.outputs.go-version }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
@@ -347,7 +347,7 @@ jobs:
   #     go-test-flags: -short"
   #     runs-on: ${{ needs.setup.outputs.compute-large }}
   #     repository-name: ${{ github.repository }}
-  #     go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
+  #     go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev hashicorpmetrics' || 'hashicorpmetrics' }}"
   #     go-version: ${{ needs.get-go-version.outputs.go-version }}
   #   permissions:
   #     id-token: write # NOTE: this permission is explicitly required for Vault auth.
@@ -367,7 +367,7 @@ jobs:
       directory: envoyextensions
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
-      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev hashicorpmetrics' || 'hashicorpmetrics' }}"
       go-version: ${{ needs.get-go-version.outputs.go-version }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
@@ -387,7 +387,7 @@ jobs:
       directory: troubleshoot
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
-      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev hashicorpmetrics' || 'hashicorpmetrics' }}"
       go-version: ${{ needs.get-go-version.outputs.go-version }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
@@ -408,7 +408,7 @@ jobs:
       directory: api
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
-      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev hashicorpmetrics' || 'hashicorpmetrics' }}"
       go-version: ${{ needs.get-go-version.outputs.go-version-previous }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
@@ -428,7 +428,7 @@ jobs:
       directory: api
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
-      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev hashicorpmetrics' || 'hashicorpmetrics' }}"
       go-version: ${{ needs.get-go-version.outputs.go-version }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
@@ -449,7 +449,7 @@ jobs:
       directory: sdk
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
-      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev hashicorpmetrics' || 'hashicorpmetrics' }}"
       go-version: ${{ needs.get-go-version.outputs.go-version-previous }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
@@ -469,7 +469,7 @@ jobs:
       directory: sdk
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
-      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev hashicorpmetrics' || 'hashicorpmetrics' }}"
       go-version: ${{ needs.get-go-version.outputs.go-version }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
@@ -489,7 +489,7 @@ jobs:
       directory: testing/deployer
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
-      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev hashicorpmetrics' || 'hashicorpmetrics' }}"
       go-version: ${{ needs.get-go-version.outputs.go-version }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.

@@ -400,6 +400,10 @@ func (o *configSnapshotAPIGateway) DeepCopy() *configSnapshotAPIGateway {
 				*cp.GatewayConfig.Defaults.MaxConcurrentRequests = *o.GatewayConfig.Defaults.MaxConcurrentRequests
 			}
 		}
+		if o.GatewayConfig.ExtAuthz != nil {
+			cp.GatewayConfig.ExtAuthz = new(structs.APIGatewayExtAuthz)
+			*cp.GatewayConfig.ExtAuthz = *o.GatewayConfig.ExtAuthz
+		}
 		{
 			retV := o.GatewayConfig.Status.DeepCopy()
 			cp.GatewayConfig.Status = *retV

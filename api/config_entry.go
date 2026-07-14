@@ -43,6 +43,7 @@ const (
 const (
 	BuiltinAWSLambdaExtension         string = "builtin/aws/lambda"
 	BuiltinExtAuthzExtension          string = "builtin/ext-authz"
+	BuiltinExtProcExtension           string = "builtin/ext-proc"
 	BuiltinLuaExtension               string = "builtin/lua"
 	BuiltinOTELAccessLoggingExtension string = "builtin/otel-access-logging"
 	BuiltinPropertyOverrideExtension  string = "builtin/property-override"

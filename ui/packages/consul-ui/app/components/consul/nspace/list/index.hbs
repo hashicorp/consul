@@ -8,9 +8,8 @@
   ...attributes
   @items={{@items}}
   @linkable="linkable nspace"
-  as |item|
 >
-  <BlockSlot @name="header">
+  <:header as |item|>
     {{#if item.DeletedAt}}
       <p>
         Deleting
@@ -22,8 +21,8 @@
         href={{href-to "dc.nspaces.edit" item.Name}}
       >{{item.Name}}</a>
     {{/if}}
-  </BlockSlot>
-  <BlockSlot @name="details">
+  </:header>
+  <:details as |item|>
     {{#if item.Description}}
       <dl>
         <dt>Description</dt>
@@ -35,21 +34,21 @@
     {{#if (env "CONSUL_ACLS_ENABLED")}}
       <Consul::Token::Ruleset::List @item={{item}} />
     {{/if}}
-  </BlockSlot>
-  <BlockSlot @name="actions" as |Actions|>
+  </:details>
+  <:actions as |item index Actions|>
     {{#if (not item.DeletedAt)}}
       <Actions as |Action|>
         <Action
           data-test-edit-action
           @href={{href-to "dc.nspaces.edit" item.Name}}
         >
-          <BlockSlot @name="label">
+          <:label>
             {{#if (can "write nspace" item=item)}}
               Edit
             {{else}}
               View
             {{/if}}
-          </BlockSlot>
+          </:label>
         </Action>
         {{#if (can "delete nspace" item=item)}}
           <Action
@@ -57,26 +56,26 @@
             @onclick={{action @ondelete item}}
             class="dangerous"
           >
-            <BlockSlot @name="label">
+            <:label>
               Delete
-            </BlockSlot>
-            <BlockSlot @name="confirm-header">
+            </:label>
+            <:confirmHeader>
               Confirm delete
-            </BlockSlot>
-            <BlockSlot @name="confirm-body">
+            </:confirmHeader>
+            <:confirmBody>
               <p>
                 Are you sure you want to delete this namespace?
               </p>
-            </BlockSlot>
-            <BlockSlot @name="confirm-footer" as |Params|>
+            </:confirmBody>
+            <:confirmFooter as |Params|>
               <Params.button
                 @text="Delete"
                 {{on "click" Params.confirmAction}}
               />
-            </BlockSlot>
+            </:confirmFooter>
           </Action>
         {{/if}}
       </Actions>
     {{/if}}
-  </BlockSlot>
+  </:actions>
 </ListCollection>

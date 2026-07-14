@@ -84,6 +84,14 @@ func (h *handlerAPIGateway) initialize(ctx context.Context) (ConfigSnapshot, err
 	snap.APIGateway.WatchedUpstreams = make(map[UpstreamID]map[string]context.CancelFunc)
 	snap.APIGateway.WatchedUpstreamEndpoints = make(map[UpstreamID]map[string]structs.CheckServiceNodes)
 
+	// Watch discovery chains for any builtin/ext-authz mesh (Service) targets
+	// declared on the gateway's EnvoyExtensions so their mTLS clusters/endpoints
+	// can be generated even though they are referenced only by the ext_authz
+	// filter and never as a route target.
+	if err := h.watchExtAuthzMeshTargets(ctx, &snap); err != nil {
+		return snap, err
+	}
+
 	return snap, nil
 }
 

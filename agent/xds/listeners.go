@@ -1647,19 +1647,23 @@ func makePermissiveFilterChain(cfgSnap *proxycfg.ConfigSnapshot, opts listenerFi
 	return chain, nil
 }
 
-// finalizePublicListenerFromConfig is used for best-effort injection of Consul filter-chains onto listeners.
-// This include L4 authorization filters and TLS context.
+// finalizePublicListenerFromConfig injects the Consul filter-chains onto the public listener.
+// This includes L4 authorization (intention enforcement) filters and the mTLS context.
+// These are security-critical: if either injection fails we must return the error so the
+// caller drops the listener rather than serving an unauthenticated/unauthorized one.
 func (s *ResourceGenerator) finalizePublicListenerFromConfig(l *envoy_listener_v3.Listener, cfgSnap *proxycfg.ConfigSnapshot, useHTTPFilter bool) error {
 	if !useHTTPFilter {
-		// Best-effort injection of L4 intentions
+		// Inject the L4 intention (RBAC) network filter. Failing to do so would
+		// allow traffic to bypass intention enforcement, so surface the error.
 		if err := s.injectConnectFilters(cfgSnap, l); err != nil {
-			return nil
+			return err
 		}
 	}
 
-	// Always apply TLS certificates
+	// Always apply TLS certificates. Failing to do so would expose a public
+	// listener without mTLS, so surface the error instead of swallowing it.
 	if err := s.injectConnectTLSForPublicListener(cfgSnap, l); err != nil {
-		return nil
+		return err
 	}
 
 	return nil
@@ -2966,21 +2970,7 @@ func makeTransportSocket(name string, config proto.Message) (*envoy_core_v3.Tran
 }
 
 func makeUpstreamTLSContext(mapping structs.GatewayService) *envoy_tls_v3.CommonTlsContext {
-	return &envoy_tls_v3.CommonTlsContext{
-		// This is the CRITICAL change for dynamic rotation.
-		// It tells Envoy: "Ask SDS for a secret named <service-name>".
-		TlsCertificateSdsSecretConfigs: []*envoy_tls_v3.SdsSecretConfig{
-			{
-				Name: mapping.Service.Name + "-cert",
-				SdsConfig: &envoy_core_v3.ConfigSource{
-					ConfigSourceSpecifier: &envoy_core_v3.ConfigSource_Ads{
-						Ads: &envoy_core_v3.AggregatedConfigSource{},
-					},
-					ResourceApiVersion: envoy_core_v3.ApiVersion_V3,
-				},
-			},
-		},
-
+	ctx := &envoy_tls_v3.CommonTlsContext{
 		ValidationContextType: &envoy_tls_v3.CommonTlsContext_ValidationContextSdsSecretConfig{
 			ValidationContextSdsSecretConfig: &envoy_tls_v3.SdsSecretConfig{
 				Name: mapping.Service.Name + "-ca",
@@ -2993,6 +2983,26 @@ func makeUpstreamTLSContext(mapping structs.GatewayService) *envoy_tls_v3.Common
 			},
 		},
 	}
+
+	// Only request a client certificate via SDS when mTLS is configured (both
+	// CertFile and KeyFile must be set). When only CAFile is set, Envoy must
+	// not be told to fetch a client-cert secret that will never be served,
+	// which would leave the cluster in a permanent "warming" state.
+	if mapping.CertFile != "" && mapping.KeyFile != "" {
+		ctx.TlsCertificateSdsSecretConfigs = []*envoy_tls_v3.SdsSecretConfig{
+			{
+				Name: mapping.Service.Name + "-cert",
+				SdsConfig: &envoy_core_v3.ConfigSource{
+					ConfigSourceSpecifier: &envoy_core_v3.ConfigSource_Ads{
+						Ads: &envoy_core_v3.AggregatedConfigSource{},
+					},
+					ResourceApiVersion: envoy_core_v3.ApiVersion_V3,
+				},
+			},
+		}
+	}
+
+	return ctx
 }
 
 func makeCommonTLSContextFromFiles(caFile, certFile, keyFile string) *envoy_tls_v3.CommonTlsContext {
