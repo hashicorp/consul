@@ -380,13 +380,34 @@ func (r *ACLResolver) Close() {
 }
 
 func (r *ACLResolver) fetchAndCacheIdentityFromToken(token string, cached *structs.IdentityCacheEntry) (structs.ACLIdentity, error) {
+	// Resolve using a stale read first for performance.
+	identity, err := r.readIdentityFromToken(token, cached, true)
+
+	// A stale read can incorrectly return "ACL not found" if a follower has
+	// not yet caught up on ACL replication (for example, after a new workload
+	// identity token is created). Treating this transient result as
+	// authoritative poisons downstream caches, leaving clients stuck with
+	// "ACL not found" for a valid token. Before returning not found, retry
+	// with a consistent (leader) read.
+	if acl.IsErrNotFound(err) {
+		identity, err = r.readIdentityFromToken(token, cached, false)
+	}
+
+	return identity, err
+}
+
+// readIdentityFromToken performs a single ACL.TokenRead RPC to resolve the
+// identity for a token. If allowStale is true, the read may be served by a
+// follower; otherwise, it performs a consistent read from the leader.
+func (r *ACLResolver) readIdentityFromToken(token string, cached *structs.IdentityCacheEntry, allowStale bool) (structs.ACLIdentity, error) {
 	req := structs.ACLTokenGetRequest{
 		Datacenter:  r.backend.ACLDatacenter(),
 		TokenID:     token,
 		TokenIDType: structs.ACLTokenSecret,
 		QueryOptions: structs.QueryOptions{
-			Token:      token,
-			AllowStale: true,
+			Token:             token,
+			AllowStale:        allowStale,
+			RequireConsistent: !allowStale,
 		},
 	}
 
