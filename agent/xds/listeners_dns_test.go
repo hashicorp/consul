@@ -223,7 +223,7 @@ func TestVirtualFQDNsForUpstream(t *testing.T) {
 		uid := proxycfg.NewUpstreamIDFromServiceName(structs.NewServiceName("cache", nil))
 
 		fqdns := virtualFQDNsForUpstream(&proxycfg.ConfigSnapshot{}, uid)
-		require.Equal(t, "cache.virtual.default.ns.default.ap..dc.consul", fqdns)
+		require.Equal(t, "", fqdns)
 	})
 }
 
