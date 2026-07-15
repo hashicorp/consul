@@ -63,8 +63,8 @@ const (
 
 // makeInlineDNSListener builds the inline virtual DNS UDP listener for a connect
 // proxy. It contains a dns_filter configured with an inline DNS table mapping
-// each upstream's virtual FQDN (e.g. "db.virtual.consul") to its virtual IP(s),
-// built from the catalog data in the config snapshot.
+// each upstream's virtual FQDN (e.g. "db.virtual.default.ns.default.ap.dc1.dc.consul")
+// to its virtual IP(s), built from the catalog data in the config snapshot.
 //
 // The listener is part of the LDS resources for the proxy, so it is recomputed
 // and re-pushed automatically whenever the snapshot changes (e.g. when an
@@ -296,6 +296,12 @@ func virtualFQDNsForUpstream(cfgSnap *proxycfg.ConfigSnapshot, uid proxycfg.Upst
 	if dc == "" && cfgSnap != nil && cfgSnap.Datacenter != "" {
 		dc = cfgSnap.Datacenter
 	}
+	if dc == "" {
+		// Without a datacenter the FQDN would contain an empty label
+		// (e.g. "...ap..dc.consul"), which is not a valid DNS name. Skip
+		// advertising the domain rather than emitting a malformed one.
+		return ""
+	}
 
 	expanded := uid.Name +
 		".virtual." + uid.NamespaceOrDefault() +
@@ -398,9 +404,14 @@ func makeRecursorAddresses(recursors []string) []*envoy_core_v3.Address {
 		}
 		host, port := r, egressDNSDefaultRecursorPort
 		if h, p, err := net.SplitHostPort(r); err == nil {
-			if parsed, perr := strconv.Atoi(p); perr == nil {
-				host, port = h, parsed
+			parsed, perr := strconv.Atoi(p)
+			if perr != nil {
+				continue
 			}
+			host, port = h, parsed
+		}
+		if port <= 0 || port > 65535 {
+			continue
 		}
 		if net.ParseIP(host) == nil {
 			continue
