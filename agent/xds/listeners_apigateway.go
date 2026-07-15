@@ -325,7 +325,7 @@ func collectAPIGatewayServiceSDSOverridesWithResolvedTLS(
 	}
 
 	switch ready.listenerCfg.Protocol {
-	case structs.ListenerProtocolHTTP:
+	case structs.ListenerProtocolHTTP, structs.ListenerProtocolHTTP2, structs.ListenerProtocolGRPC:
 		byKey := make(map[string]*apiGatewayServiceSDSOverride)
 		hostToKey := make(map[string]string)
 

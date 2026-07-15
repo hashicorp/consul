@@ -388,6 +388,14 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 				// h.service = <name of api-gateway>
 				meshGatewayConfig := h.proxyCfg.MeshGateway
 
+				// chainProtocol is the protocol used to compile the discovery chain
+				// for this service. It is derived from the HTTP-like listener(s) the
+				// route binds to so that http2/grpc listeners keep the gateway ->
+				// service hop on HTTP/2 end-to-end (instead of downgrading to
+				// HTTP/1.1) and so the chain protocol matches the synthesized chain
+				// used for route generation (avoiding a cluster-name mismatch).
+				chainProtocol := string(structs.ListenerProtocolHTTP)
+
 				for _, listener := range snap.APIGateway.Listeners {
 					shouldBind := false
 					for _, parent := range route.Parents {
@@ -400,9 +408,17 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 						continue
 					}
 
+					// Use the listener's protocol (http, http2, or grpc) for the
+					// upstream so the gateway -> service hop matches the listener.
+					listenerProtocol := string(listener.Protocol)
+					if !structs.IsProtocolHTTPLike(listenerProtocol) {
+						listenerProtocol = string(structs.ListenerProtocolHTTP)
+					}
+					chainProtocol = listenerProtocol
+
 					upstreamCfg := map[string]interface{}{}
 					structs.UpstreamConfig{
-						Protocol: "http",
+						Protocol: listenerProtocol,
 						Limits:   effectiveLimits,
 					}.MergeInto(upstreamCfg)
 
@@ -436,8 +452,9 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 					datacenter: h.source.Datacenter,
 				}
 				// Ensure discovery chain compilation is HTTP-like for HTTPRoutes so service
-				// routers/splitters are included when present.
-				watchOpts.cfg.Protocol = string(route.GetProtocol())
+				// routers/splitters are included when present. For http2/grpc listeners
+				// this keeps the upstream hop on HTTP/2 end-to-end.
+				watchOpts.cfg.Protocol = chainProtocol
 
 				handler := &handlerUpstreams{handlerState: h.handlerState}
 				if err := handler.watchDiscoveryChain(ctx, snap, watchOpts); err != nil {

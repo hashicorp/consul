@@ -1237,6 +1237,55 @@ func TestAPIGateway_Listeners(t *testing.T) {
 			},
 			validateErr: "unsupported listener protocol",
 		},
+		"valid http2 protocol": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-http2",
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     9081,
+						Hostname: "host.one",
+						Protocol: ListenerProtocolHTTP2,
+					},
+				},
+			},
+			expectUnchanged: true,
+		},
+		"valid grpc protocol": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-grpc",
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     9080,
+						Hostname: "host.one",
+						Protocol: ListenerProtocolGRPC,
+					},
+				},
+			},
+			expectUnchanged: true,
+		},
+		"http and http2 listeners merge on the same port": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-http-http2-merge",
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener-http",
+						Port:     80,
+						Protocol: ListenerProtocolHTTP,
+					},
+					{
+						Name:     "listener-http2",
+						Port:     80,
+						Protocol: ListenerProtocolHTTP2,
+					},
+				},
+			},
+			validateErr: "cannot be merged",
+		},
 		"hostname in unsupported protocol": {
 			entry: &APIGatewayConfigEntry{
 				Kind: "api-gateway",
@@ -2116,6 +2165,35 @@ func Test_ServiceRouteReferences_RemoveRouteRef(t *testing.T) {
 			tc.subject.RemoveRouteRef(tc.routeRef)
 
 			require.Equal(t, tc.subject, tc.expectedRefs)
+		})
+	}
+}
+
+func TestAPIGatewayListenerProtocolsCompatible(t *testing.T) {
+	cases := map[string]struct {
+		a        APIGatewayListenerProtocol
+		b        APIGatewayListenerProtocol
+		expected bool
+	}{
+		"http with http":   {ListenerProtocolHTTP, ListenerProtocolHTTP, true},
+		"http with http2":  {ListenerProtocolHTTP, ListenerProtocolHTTP2, true},
+		"http with grpc":   {ListenerProtocolHTTP, ListenerProtocolGRPC, true},
+		"http2 with http":  {ListenerProtocolHTTP2, ListenerProtocolHTTP, true},
+		"http2 with http2": {ListenerProtocolHTTP2, ListenerProtocolHTTP2, true},
+		"http2 with grpc":  {ListenerProtocolHTTP2, ListenerProtocolGRPC, true},
+		"grpc with http":   {ListenerProtocolGRPC, ListenerProtocolHTTP, true},
+		"grpc with http2":  {ListenerProtocolGRPC, ListenerProtocolHTTP2, true},
+		"grpc with grpc":   {ListenerProtocolGRPC, ListenerProtocolGRPC, true},
+		"tcp with tcp":     {ListenerProtocolTCP, ListenerProtocolTCP, true},
+		"tcp with http":    {ListenerProtocolTCP, ListenerProtocolHTTP, false},
+		"http with tcp":    {ListenerProtocolHTTP, ListenerProtocolTCP, false},
+		"grpc with tcp":    {ListenerProtocolGRPC, ListenerProtocolTCP, false},
+		"tcp with grpc":    {ListenerProtocolTCP, ListenerProtocolGRPC, false},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			require.Equal(t, tc.expected, APIGatewayListenerProtocolsCompatible(tc.a, tc.b))
 		})
 	}
 }

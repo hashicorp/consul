@@ -490,6 +490,136 @@ func TestBindRoutesToGateways(t *testing.T) {
 			},
 			expectedReferenceErrors: map[structs.ResourceReference]error{},
 		},
+		"HTTP Route binds to an http2 listener": {
+			gateways: []*gatewayMeta{
+				{
+					BoundGateway: &structs.BoundAPIGatewayConfigEntry{
+						Name: "Gateway",
+						Listeners: []structs.BoundAPIGatewayListener{
+							{
+								Name: "Listener",
+							},
+						},
+					},
+					Gateway: &structs.APIGatewayConfigEntry{
+						Name: "Gateway",
+						Listeners: []structs.APIGatewayListener{
+							{
+								Name:     "Listener",
+								Protocol: structs.ListenerProtocolHTTP2,
+							},
+						},
+						Status: structs.Status{
+							Conditions: []structs.Condition{
+								gatewayAccepted(),
+							},
+						},
+					},
+				},
+			},
+			routes: []structs.BoundRoute{
+				&structs.HTTPRouteConfigEntry{
+					Kind: structs.HTTPRoute,
+					Name: "HTTP Route",
+					Parents: []structs.ResourceReference{
+						{
+							Name:        "Gateway",
+							Kind:        structs.APIGateway,
+							SectionName: "Listener",
+						},
+					},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							routeAccepted(),
+						},
+					},
+				},
+			},
+			expectedBoundAPIGateways: []*structs.BoundAPIGatewayConfigEntry{
+				{
+					Name: "Gateway",
+					Listeners: []structs.BoundAPIGatewayListener{
+						{
+							Name: "Listener",
+							Routes: []structs.ResourceReference{
+								{
+									Name:        "HTTP Route",
+									Kind:        structs.HTTPRoute,
+									SectionName: "",
+								},
+							},
+						},
+					},
+					Services: make(structs.ServiceRouteReferences),
+				},
+			},
+			expectedReferenceErrors: map[structs.ResourceReference]error{},
+		},
+		"HTTP Route binds to a grpc listener": {
+			gateways: []*gatewayMeta{
+				{
+					BoundGateway: &structs.BoundAPIGatewayConfigEntry{
+						Name: "Gateway",
+						Listeners: []structs.BoundAPIGatewayListener{
+							{
+								Name: "Listener",
+							},
+						},
+					},
+					Gateway: &structs.APIGatewayConfigEntry{
+						Name: "Gateway",
+						Listeners: []structs.APIGatewayListener{
+							{
+								Name:     "Listener",
+								Protocol: structs.ListenerProtocolGRPC,
+							},
+						},
+						Status: structs.Status{
+							Conditions: []structs.Condition{
+								gatewayAccepted(),
+							},
+						},
+					},
+				},
+			},
+			routes: []structs.BoundRoute{
+				&structs.HTTPRouteConfigEntry{
+					Kind: structs.HTTPRoute,
+					Name: "HTTP Route",
+					Parents: []structs.ResourceReference{
+						{
+							Name:        "Gateway",
+							Kind:        structs.APIGateway,
+							SectionName: "Listener",
+						},
+					},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							routeAccepted(),
+						},
+					},
+				},
+			},
+			expectedBoundAPIGateways: []*structs.BoundAPIGatewayConfigEntry{
+				{
+					Name: "Gateway",
+					Listeners: []structs.BoundAPIGatewayListener{
+						{
+							Name: "Listener",
+							Routes: []structs.ResourceReference{
+								{
+									Name:        "HTTP Route",
+									Kind:        structs.HTTPRoute,
+									SectionName: "",
+								},
+							},
+						},
+					},
+					Services: make(structs.ServiceRouteReferences),
+				},
+			},
+			expectedReferenceErrors: map[structs.ResourceReference]error{},
+		},
 		"TCP Route unbinds from gateway": {
 			gateways: []*gatewayMeta{
 				{

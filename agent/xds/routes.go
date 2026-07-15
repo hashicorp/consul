@@ -467,7 +467,7 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 			continue
 		}
 		// Do not create any route configuration for TCP listeners
-		if readyListener.listenerCfg.Protocol != structs.ListenerProtocolHTTP {
+		if !structs.IsProtocolHTTPLike(string(readyListener.listenerCfg.Protocol)) {
 			continue
 		}
 

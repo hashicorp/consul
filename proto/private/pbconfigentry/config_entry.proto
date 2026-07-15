@@ -847,6 +847,8 @@ message Condition {
 enum APIGatewayListenerProtocol {
   ListenerProtocolHTTP = 0;
   ListenerProtocolTCP = 1;
+  ListenerProtocolHTTP2 = 2;
+  ListenerProtocolGRPC = 3;
 }
 
 // mog annotation:

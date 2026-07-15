@@ -477,7 +477,7 @@ func (r *apiGatewayReconciler) reconcileRoute(_ context.Context, req controller.
 			continue
 		}
 
-		if chain.Protocol != string(route.GetProtocol()) {
+		if !structs.APIGatewayListenerProtocolsCompatible(structs.APIGatewayListenerProtocol(chain.Protocol), route.GetProtocol()) {
 			updater.SetCondition(routeInvalidDiscoveryChain(errInvalidProtocol))
 			continue
 		}
@@ -772,7 +772,7 @@ func (g *gatewayMeta) bindRoute(listener *structs.APIGatewayListener, bound *str
 		}
 	}
 
-	if listener.Protocol == route.GetProtocol() && bound.BindRoute(structs.ResourceReference{
+	if structs.APIGatewayListenerProtocolsCompatible(listener.Protocol, route.GetProtocol()) && bound.BindRoute(structs.ResourceReference{
 		Kind:           route.GetKind(),
 		Name:           route.GetName(),
 		EnterpriseMeta: *route.GetEnterpriseMeta(),
