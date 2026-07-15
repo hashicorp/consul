@@ -1098,10 +1098,19 @@ func mergedAPIGatewayUpstreamConfig(configMap map[string]interface{}, limits *st
 	cfg, err := structs.ParseUpstreamConfigNoDefaults(configMap)
 	if err != nil {
 		merged["limits"] = limits
+		if limits.PassiveHealthCheck != nil {
+			merged["passive_health_check"] = limits.PassiveHealthCheck
+		}
 		return merged
 	}
 
 	cfg.Limits = limits
+	// Surface the passive health check at the top level of the upstream config so
+	// that makeUpstreamClustersForDiscoveryChain maps it into Envoy outlier
+	// detection (it reads cfg.PassiveHealthCheck, not cfg.Limits.PassiveHealthCheck).
+	if limits.PassiveHealthCheck != nil {
+		cfg.PassiveHealthCheck = limits.PassiveHealthCheck
+	}
 	cfg.MergeInto(merged)
 	return merged
 }
@@ -1118,7 +1127,19 @@ func mergeAPIGatewayUpstreamLimits(existing, incoming *structs.UpstreamLimits) *
 		MaxConnections:        mergeAPIGatewayLimitValue(existing.MaxConnections, incoming.MaxConnections),
 		MaxPendingRequests:    mergeAPIGatewayLimitValue(existing.MaxPendingRequests, incoming.MaxPendingRequests),
 		MaxConcurrentRequests: mergeAPIGatewayLimitValue(existing.MaxConcurrentRequests, incoming.MaxConcurrentRequests),
+		PassiveHealthCheck:    mergeAPIGatewayPassiveHealthCheck(existing.PassiveHealthCheck, incoming.PassiveHealthCheck),
 	}
+}
+
+// mergeAPIGatewayPassiveHealthCheck merges two passive health check configs.
+// Unlike the numeric limits there is no "more restrictive" value to prefer, so
+// the first non-nil config (existing before incoming) wins to keep the result
+// deterministic across listeners fronting the same service.
+func mergeAPIGatewayPassiveHealthCheck(existing, incoming *structs.PassiveHealthCheck) *structs.PassiveHealthCheck {
+	if existing != nil {
+		return existing.Clone()
+	}
+	return incoming.Clone()
 }
 
 func mergeAPIGatewayLimitValue(existing, incoming *int) *int {
@@ -1173,6 +1194,7 @@ func normalizeAPIGatewayUpstreamLimits(limits *structs.UpstreamLimits) *structs.
 		MaxConnections:        positiveIntPointerCopy(limits.MaxConnections),
 		MaxPendingRequests:    positiveIntPointerCopy(limits.MaxPendingRequests),
 		MaxConcurrentRequests: positiveIntPointerCopy(limits.MaxConcurrentRequests),
+		PassiveHealthCheck:    limits.PassiveHealthCheck.Clone(),
 	}
 }
 

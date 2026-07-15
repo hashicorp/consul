@@ -399,6 +399,9 @@ func (o *configSnapshotAPIGateway) DeepCopy() *configSnapshotAPIGateway {
 				cp.GatewayConfig.Defaults.MaxConcurrentRequests = new(int)
 				*cp.GatewayConfig.Defaults.MaxConcurrentRequests = *o.GatewayConfig.Defaults.MaxConcurrentRequests
 			}
+			if o.GatewayConfig.Defaults.PassiveHealthCheck != nil {
+				cp.GatewayConfig.Defaults.PassiveHealthCheck = o.GatewayConfig.Defaults.PassiveHealthCheck.Clone()
+			}
 		}
 		if o.GatewayConfig.ExtAuthz != nil {
 			cp.GatewayConfig.ExtAuthz = new(structs.APIGatewayExtAuthz)

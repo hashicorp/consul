@@ -13,6 +13,7 @@ import (
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	"github.com/hashicorp/consul/agent/xds/config"
 	"github.com/hashicorp/go-hclog"
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
@@ -1071,6 +1072,100 @@ func TestMakeThresholdsIfNeeded_APIGatewayAllLimits(t *testing.T) {
 	require.Equal(t, uint32(11), thresholds[0].MaxConnections.GetValue())
 	require.Equal(t, uint32(22), thresholds[0].MaxPendingRequests.GetValue())
 	require.Equal(t, uint32(33), thresholds[0].MaxRequests.GetValue())
+}
+
+func TestMergeAPIGatewayUpstreamLimits_PassiveHealthCheckPreserved(t *testing.T) {
+	t.Parallel()
+
+	phc := &structs.PassiveHealthCheck{Interval: 5 * time.Second, MaxFailures: 3}
+
+	// existing carries the health check; incoming does not -> preserved.
+	merged := mergeAPIGatewayUpstreamLimits(
+		&structs.UpstreamLimits{MaxConnections: intPointer(10), PassiveHealthCheck: phc},
+		&structs.UpstreamLimits{MaxConnections: intPointer(5)},
+	)
+	require.NotNil(t, merged)
+	require.NotNil(t, merged.PassiveHealthCheck)
+	require.Equal(t, 5*time.Second, merged.PassiveHealthCheck.Interval)
+	require.Equal(t, uint32(3), merged.PassiveHealthCheck.MaxFailures)
+
+	// The merged value must be a clone, not an alias.
+	phc.MaxFailures = 99
+	require.Equal(t, uint32(3), merged.PassiveHealthCheck.MaxFailures)
+
+	// incoming carries the health check; existing does not -> preserved.
+	merged = mergeAPIGatewayUpstreamLimits(
+		&structs.UpstreamLimits{MaxConnections: intPointer(10)},
+		&structs.UpstreamLimits{PassiveHealthCheck: &structs.PassiveHealthCheck{MaxFailures: 7}},
+	)
+	require.NotNil(t, merged)
+	require.NotNil(t, merged.PassiveHealthCheck)
+	require.Equal(t, uint32(7), merged.PassiveHealthCheck.MaxFailures)
+}
+
+func TestMergedAPIGatewayUpstreamConfig_PassiveHealthCheckSurfaced(t *testing.T) {
+	t.Parallel()
+
+	original := map[string]interface{}{"protocol": "http"}
+	limits := &structs.UpstreamLimits{
+		MaxConnections:     intPointer(321),
+		PassiveHealthCheck: &structs.PassiveHealthCheck{Interval: 7 * time.Second, MaxFailures: 4},
+	}
+
+	merged := mergedAPIGatewayUpstreamConfig(original, limits)
+
+	// The passive health check must be surfaced at the top level so that
+	// makeUpstreamClustersForDiscoveryChain maps it into Envoy outlier detection.
+	cfg, err := structs.ParseUpstreamConfigNoDefaults(merged)
+	require.NoError(t, err)
+	require.NotNil(t, cfg.Limits)
+	require.Equal(t, 321, *cfg.Limits.MaxConnections)
+	require.NotNil(t, cfg.PassiveHealthCheck)
+	require.Equal(t, 7*time.Second, cfg.PassiveHealthCheck.Interval)
+	require.Equal(t, uint32(4), cfg.PassiveHealthCheck.MaxFailures)
+
+	// And that health check must produce a non-empty Envoy outlier detection.
+	od := config.ToOutlierDetection(cfg.PassiveHealthCheck, nil, true)
+	require.NotNil(t, od)
+	require.Equal(t, uint32(4), od.Consecutive_5Xx.GetValue())
+}
+
+// TestAPIGatewayPassiveHealthCheckDataPath exercises the full proxycfg -> xDS
+// data path: proxycfg serializes an UpstreamConfig whose Limits carries a
+// PassiveHealthCheck into the upstream config map (nesting it under "limits"),
+// then xDS parses it back, merges across listeners, and surfaces it so the
+// discovery-chain cluster builder maps it into Envoy outlier detection.
+func TestAPIGatewayPassiveHealthCheckDataPath(t *testing.T) {
+	t.Parallel()
+
+	// proxycfg side: effective limits (gateway default merged with service) are
+	// written into the upstream config via UpstreamConfig.MergeInto.
+	effective := &structs.UpstreamLimits{
+		MaxConnections:     intPointer(25),
+		PassiveHealthCheck: &structs.PassiveHealthCheck{Interval: 9 * time.Second, MaxFailures: 6},
+	}
+	upstreamCfg := map[string]interface{}{}
+	structs.UpstreamConfig{Protocol: "http", Limits: effective}.MergeInto(upstreamCfg)
+
+	// xDS side: parse the per-listener config, merge across listeners, surface.
+	parsed, err := structs.ParseUpstreamConfigNoDefaults(upstreamCfg)
+	require.NoError(t, err)
+	require.NotNil(t, parsed.Limits)
+	require.NotNil(t, parsed.Limits.PassiveHealthCheck, "nested passive health check must survive proxycfg serialization")
+
+	mergedLimits := mergeAPIGatewayUpstreamLimits(nil, parsed.Limits)
+	merged := mergedAPIGatewayUpstreamConfig(upstreamCfg, mergedLimits)
+
+	cfg, err := structs.ParseUpstreamConfigNoDefaults(merged)
+	require.NoError(t, err)
+	require.NotNil(t, cfg.PassiveHealthCheck)
+	require.Equal(t, 9*time.Second, cfg.PassiveHealthCheck.Interval)
+	require.Equal(t, uint32(6), cfg.PassiveHealthCheck.MaxFailures)
+
+	// Final cluster mapping produces outlier detection + circuit breakers.
+	require.NotNil(t, makeThresholdsIfNeeded(cfg.Limits))
+	od := config.ToOutlierDetection(cfg.PassiveHealthCheck, nil, true)
+	require.Equal(t, uint32(6), od.Consecutive_5Xx.GetValue())
 }
 
 func intPointer(v int) *int {
