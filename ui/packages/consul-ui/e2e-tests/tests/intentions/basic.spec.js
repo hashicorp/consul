@@ -149,10 +149,14 @@ test.describe('Intentions - View and List', () => {
     await intentionsPage.goto('/ui/dc1/intentions', { waitUntil: 'networkidle' });
 
     await expect(
-      intentionsPage.locator('.consul-intention-list-table__name a').filter({ hasText: 'e2e-list-src' })
+      intentionsPage
+        .locator('.consul-intention-list-table__name a')
+        .filter({ hasText: 'e2e-list-src' })
     ).toBeVisible();
     await expect(
-      intentionsPage.locator('.consul-intention-list-table__name').filter({ hasText: 'e2e-list-dest' })
+      intentionsPage
+        .locator('.consul-intention-list-table__name')
+        .filter({ hasText: 'e2e-list-dest' })
     ).toBeVisible();
     // The action is rendered as an Hds::Badge ("Allow"/"Deny") inside .consul-intention-action-badge
     await expect(
@@ -279,7 +283,9 @@ test.describe('Intentions - Delete', () => {
 
     // row should disappear from the list
     await expect(
-      intentionsPage.locator('.consul-intention-list-table__name a').filter({ hasText: 'e2e-del-src' })
+      intentionsPage
+        .locator('.consul-intention-list-table__name a')
+        .filter({ hasText: 'e2e-del-src' })
     ).not.toBeVisible({ timeout: 10000 });
 
     // verify via API that it is truly gone

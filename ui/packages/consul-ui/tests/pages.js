@@ -119,12 +119,7 @@ const consulNspaceList = consulNspaceListFactory(
 );
 const consulPeerList = consulPeerListFactory(collection, isPresent, attribute, morePopoverMenu);
 const consulKvList = consulKvListFactory(collection, clickable, attribute, deletable);
-const consulTokenList = consulTokenListFactory(
-  collection,
-  clickable,
-  attribute,
-  text
-);
+const consulTokenList = consulTokenListFactory(collection, clickable, attribute, text);
 const consulRoleList = consulRoleListFactory(
   collection,
   clickable,
@@ -218,7 +213,9 @@ export default {
   token: create(
     token(visitable, submitable, deletable, cancelable, clickable, policySelector, roleSelector)
   ),
-  authMethods: create(authMethods(visitable, creatable, consulAuthMethodList, clickable, collection)),
+  authMethods: create(
+    authMethods(visitable, creatable, consulAuthMethodList, clickable, collection)
+  ),
   intentions: create(
     intentions(visitable, creatable, clickable, consulIntentionList, popoverSelect)
   ),
