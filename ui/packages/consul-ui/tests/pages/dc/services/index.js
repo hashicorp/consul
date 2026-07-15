@@ -3,14 +3,7 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-export default function (
-  visitable,
-  clickable,
-  text,
-  attribute,
-  present,
-  collection
-) {
+export default function (visitable, clickable, text, attribute, present, collection) {
   const service = {
     name: text('[data-test-service-name]'),
     service: clickable('a'),
