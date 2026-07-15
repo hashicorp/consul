@@ -14,8 +14,7 @@ const COLUMNS = [
   { label: 'Internal name' },
   {
     label: 'Max time to live',
-    tooltip:
-      'Maximum Time to Live: the maximum life of any token created by this auth method',
+    tooltip: 'Maximum Time to Live: the maximum life of any token created by this auth method',
   },
 ];
 

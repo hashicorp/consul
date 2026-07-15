@@ -15,9 +15,7 @@ export default function (visitable, text, clickable, attribute, collection) {
     nodes: collection('.consul-node-table tbody tr', node),
     home: clickable('[data-test-home]', { at: 0 }),
     sort: {
-      name: clickable(
-        '.consul-node-table thead th:nth-child(1) button.hds-table__th-button--sort'
-      ),
+      name: clickable('.consul-node-table thead th:nth-child(1) button.hds-table__th-button--sort'),
       health: clickable(
         '.consul-node-table thead th:nth-child(2) button.hds-table__th-button--sort'
       ),
