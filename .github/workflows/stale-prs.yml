@@ -16,12 +16,12 @@ jobs:
         with:
           days-before-stale: -1
           days-before-close: -1
-          days-before-pr-stale: 60
-          days-before-pr-close: 30
+          days-before-pr-stale: 90
+          days-before-pr-close: 60
           stale-pr-message: This pull request has been automatically flagged
-            for inactivity because it has not been acted upon in the last 60
+            for inactivity because it has not been acted upon in the last 90
             days. It will be closed if no new activity occurs in the next
-            30 days. Please feel free to re-open to resurrect the change if
+            60 days. Please feel free to re-open to resurrect the change if
             you feel this has happened by mistake. Thank you for your
             contributions.
           close-pr-message: Closing due to inactivity. If you feel this was a
