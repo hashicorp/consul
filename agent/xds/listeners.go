@@ -2446,6 +2446,8 @@ type listenerFilterOpts struct {
 	useRDS                       bool
 	fetchTimeoutRDS              *durationpb.Duration
 	maxRequestHeadersKb          *uint32
+	suppressEnvoyHeaders         bool
+	serverHeaderName             string
 }
 
 func makeListenerFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) {
@@ -2555,6 +2557,21 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) 
 		UpgradeConfigs: []*envoy_http_v3.HttpConnectionManager_UpgradeConfig{
 			{UpgradeType: "websocket"},
 		},
+	}
+
+	if opts.suppressEnvoyHeaders {
+		// PASS_THROUGH prevents Envoy from injecting "server: envoy" into responses.
+		// OVERWRITE (the default) replaces/adds "server: envoy" on every response,
+		// which cannot be undone by route-level response_headers_to_remove or Lua
+		// filters because those run before the codec adds the header.
+		// suppressEnvoyHeaders takes precedence over serverHeaderName.
+		cfg.ServerHeaderTransformation = envoy_http_v3.HttpConnectionManager_PASS_THROUGH
+	} else if opts.serverHeaderName != "" {
+		// OVERWRITE with a custom server_name replaces "server: envoy" with the
+		// configured value on every response — both Envoy-generated (4xx/5xx) and
+		// proxied upstream responses.
+		cfg.ServerName = opts.serverHeaderName
+		cfg.ServerHeaderTransformation = envoy_http_v3.HttpConnectionManager_OVERWRITE
 	}
 
 	if opts.tracing != nil {
