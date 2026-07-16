@@ -12,16 +12,16 @@ jobs:
     permissions:
       pull-requests: write
     steps:
-      - uses: actions/stale@eb5cf3af3ac0a1aa4c9c45633dd1ae542a27a899 # v10.3.0
+      - uses: actions/stale@1e223db275d687790206a7acac4d1a11bd6fe629 # v10.4.0
         with:
           days-before-stale: -1
           days-before-close: -1
-          days-before-pr-stale: 60
-          days-before-pr-close: 30
+          days-before-pr-stale: 90
+          days-before-pr-close: 60
           stale-pr-message: This pull request has been automatically flagged
-            for inactivity because it has not been acted upon in the last 60
+            for inactivity because it has not been acted upon in the last 90
             days. It will be closed if no new activity occurs in the next
-            30 days. Please feel free to re-open to resurrect the change if
+            60 days. Please feel free to re-open to resurrect the change if
             you feel this has happened by mistake. Thank you for your
             contributions.
           close-pr-message: Closing due to inactivity. If you feel this was a
