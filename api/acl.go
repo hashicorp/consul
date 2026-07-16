@@ -72,6 +72,13 @@ type ACLToken struct {
 	// AuthMethodNamespace is the namespace the token's AuthMethod is associated with.
 	// Namespacing is a Consul Enterprise feature.
 	AuthMethodNamespace string `json:",omitempty"`
+
+	// IDPLogoutURL is a response-only field returned by the OIDC login callback
+	// when the auth method has IdP (front-channel) logout enabled. It contains
+	// the provider's RP-initiated logout URL (its end_session_endpoint with an
+	// id_token_hint) that the client opens in a browser during `consul logout`
+	// to terminate the IdP session. It is never persisted server-side.
+	IDPLogoutURL string `json:",omitempty"`
 }
 
 type ACLTokenExpanded struct {
