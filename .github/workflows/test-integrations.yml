@@ -48,7 +48,7 @@ jobs:
       compute-xl: ${{ steps.runners.outputs.compute-xl }}
       enterprise: ${{ steps.runners.outputs.enterprise }}
     steps:
-      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - id: runners
         run: .github/scripts/get_runner_classes.sh
 
@@ -81,22 +81,26 @@ jobs:
       contents: read
     strategy:
       matrix:
-        nomad-version: ['v1.10.0', 'v1.9.7', 'v1.8.4']
+        nomad-version: ['v2.0.3']
     steps:
       - name: Checkout Nomad
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           repository: hashicorp/nomad
           ref: ${{ matrix.nomad-version }}
 
       - name: Install Go
-        uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
         with:
           # Do not explicitly set Go version here, as it should depend on what Nomad declares.
           go-version-file: 'go.mod'
+      # setup-go v6 writes GOTOOLCHAIN=local to $GITHUB_ENV; restore auto so go can
+      # upgrade the toolchain when a tool (e.g. gotestsum) requires a newer version.
+      - name: Restore GOTOOLCHAIN=auto
+        run: echo "GOTOOLCHAIN=auto" >> "$GITHUB_ENV"
 
       - name: Fetch Consul binary
-        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: '${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
           path: ./bin
@@ -164,22 +168,26 @@ jobs:
       contents: read
     strategy:
       matrix:
-        vault-version: ["1.18.5", "1.19.2", "1.20.4", "1.21.0"]
+        vault-version: ["2.0.3"]
     env:
       VAULT_BINARY_VERSION: ${{ matrix.vault-version }}
     steps:
-      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
       - name: Setup Git
         if: ${{ endsWith(github.repository, '-enterprise') }}
         run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
 
-      - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
         with:
           # We use the current Consul Go version here since Vault is installed as a binary
           # and tests are run from the Consul repo.
           go-version: ${{ needs.get-go-version.outputs.go-version }}
+      # setup-go v6 writes GOTOOLCHAIN=local to $GITHUB_ENV; restore auto so go can
+      # upgrade the toolchain when a tool requires a newer version.
+      - name: Restore GOTOOLCHAIN=auto
+        run: echo "GOTOOLCHAIN=auto" >> "$GITHUB_ENV"
 
       - name: Install Vault
         run: |
@@ -260,7 +268,7 @@ jobs:
     outputs:
       envoy-matrix: ${{ steps.set-matrix.outputs.envoy-matrix }}
     steps:
-      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - name: Generate Envoy Job Matrix
         id: set-matrix
         env:
@@ -308,13 +316,17 @@ jobs:
       XDS_TARGET: ${{ matrix.xds-target }}
       AWS_LAMBDA_REGION: us-west-2
     steps:
-      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
-      - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
         with:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
+      # setup-go v6 writes GOTOOLCHAIN=local to $GITHUB_ENV; restore auto so go can
+      # upgrade the toolchain when a tool requires a newer version.
+      - name: Restore GOTOOLCHAIN=auto
+        run: echo "GOTOOLCHAIN=auto" >> "$GITHUB_ENV"
 
       - name: fetch binary
-        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: '${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
           path: ./bin
@@ -361,7 +373,7 @@ jobs:
 
       - name: Upload failure logs
         if: ${{ failure() && steps.envoy-integration-tests.conclusion == 'failure' }}
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: envoy-${{ matrix.envoy-version }}-logs-${{ env.artifact_id }}
           path: test/integration/connect/envoy/workdir/logs/
@@ -413,12 +425,12 @@ jobs:
   #     #TODO don't harcode this image name
   #     CONSUL_DATAPLANE_IMAGE: "docker.mirror.hashicorp.services/hashicorppreview/consul-dataplane:1.6-dev-ubi"
   #   steps:
-  #     - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+  #     - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
   #     # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
   #     - name: Setup Git
   #       if: ${{ endsWith(github.repository, '-enterprise') }}
   #       run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-  #     - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+  #     - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
   #       with:
   #         go-version: ${{ needs.get-go-version.outputs.go-version }}
   #     - run: go env
@@ -427,7 +439,7 @@ jobs:
   #         docker version
   #         docker info
   #     - name: fetch binary
-  #       uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
+  #       uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
   #       with:
   #         name: '${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
   #         path: .
@@ -531,14 +543,18 @@ jobs:
       DEPLOYER_CONSUL_DATAPLANE_IMAGE: "docker.mirror.hashicorp.services/hashicorppreview/consul-dataplane:1.6-dev"
     steps:
       - name: Checkout code
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
       - name: Setup Git
         if: ${{ endsWith(github.repository, '-enterprise') }}
         run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-      - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
         with:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
+      # setup-go v6 writes GOTOOLCHAIN=local to $GITHUB_ENV; restore auto so go can
+      # upgrade the toolchain when a tool requires a newer version.
+      - name: Restore GOTOOLCHAIN=auto
+        run: echo "GOTOOLCHAIN=auto" >> "$GITHUB_ENV"
       - run: go env
       - name: Build image
         run: make test-deployer-setup

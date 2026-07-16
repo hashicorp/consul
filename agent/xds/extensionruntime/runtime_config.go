@@ -131,6 +131,13 @@ func GetRuntimeConfigurations(cfgSnap *proxycfg.ConfigSnapshot) map[api.Compound
 		}
 	case structs.ServiceKindAPIGateway:
 		kind = api.ServiceKindAPIGateway
+
+		// Surface the gateway's compiled discovery chains as builtin/ext-authz or builtin/ext-proc upstream
+		// targets so a builtin/ext-authz or builtin/ext-proc extension that targets a mesh Service can
+		// resolve its cluster (SNI). This is an enterprise-only behaviour; the CE
+		// build provides a no-op stub.
+		appendAPIGatewayUpstreams(cfgSnap, upstreamMap, extensionsMap, trustDomain)
+
 		// For API Gateway, we need to handle the gateway itself
 		localSvc := api.CompoundServiceName{
 			Name:      cfgSnap.Service,
