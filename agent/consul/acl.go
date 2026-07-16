@@ -402,27 +402,10 @@ func (r *ACLResolver) clearTokenNotFound(token string) {
 }
 
 func (r *ACLResolver) isTokenNotFoundCached(token string) bool {
-	now := time.Now()
-
 	r.tokenNotFoundCacheLock.RLock()
 	expiresAt, ok := r.tokenNotFoundCache[token]
 	r.tokenNotFoundCacheLock.RUnlock()
-	if !ok {
-		return false
-	}
-
-	if now.Before(expiresAt) {
-		return true
-	}
-
-	// Opportunistically reap expired entries on access.
-	r.tokenNotFoundCacheLock.Lock()
-	if current, ok := r.tokenNotFoundCache[token]; ok && !now.Before(current) {
-		delete(r.tokenNotFoundCache, token)
-	}
-	r.tokenNotFoundCacheLock.Unlock()
-
-	return false
+	return ok && time.Now().Before(expiresAt)
 }
 
 func (r *ACLResolver) fetchAndCacheIdentityFromToken(token string, cached *structs.IdentityCacheEntry) (structs.ACLIdentity, error) {
