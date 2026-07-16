@@ -181,10 +181,17 @@ const idpLogoutSuffix = ".oidc-logout"
 // the token sink file with owner-only permissions. It is a no-op when the auth
 // method did not return a logout URL or when no token sink file is configured.
 func (c *cmd) writeLogoutSinkFromToken(tok *api.ACLToken) {
-	if tok.IDPLogoutURL == "" || c.tokenSinkFile == "" {
+	if c.tokenSinkFile == "" {
 		return
 	}
 	logoutSinkFile := c.tokenSinkFile + idpLogoutSuffix
+	if tok.IDPLogoutURL == "" {
+		// This token has no IdP logout URL. Remove any stale sidecar left by a
+		// previous OIDC login so a later `consul logout` does not open an
+		// outdated or unrelated IdP logout URL after destroying this token.
+		_ = os.Remove(logoutSinkFile)
+		return
+	}
 	if err := file.WriteAtomicWithPerms(logoutSinkFile, []byte(tok.IDPLogoutURL), 0o755, 0o600); err != nil {
 		c.UI.Warn(fmt.Sprintf("Error writing IdP logout URL to file sink: %s", err))
 	}

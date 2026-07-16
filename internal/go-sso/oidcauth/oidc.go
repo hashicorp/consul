@@ -87,7 +87,7 @@ func (a *Authenticator) ClaimsFromAuthCodeWithIDToken(ctx context.Context, state
 
 func (a *Authenticator) claimsFromAuthCode(ctx context.Context, stateParam, code string) (*Claims, interface{}, string, error) {
 	if a.config.authType() != authOIDCFlow {
-		return nil, nil, "", fmt.Errorf("ClaimsFromAuthCode is incompatible with type %q", TypeJWT)
+		return nil, nil, "", fmt.Errorf("auth code claims are incompatible with type %q", TypeJWT)
 	}
 
 	// TODO(sso): this could be because we ACTUALLY are getting OIDC error responses and
@@ -126,7 +126,7 @@ func (a *Authenticator) claimsFromAuthCode(ctx context.Context, stateParam, code
 
 	if !tokens.Valid() {
 		return nil, nil, "", &TokenVerificationFailedError{
-			Err: err,
+			Err: errors.New("oidc: token exchange returned an invalid or expired token"),
 		}
 	}
 

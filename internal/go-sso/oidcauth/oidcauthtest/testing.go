@@ -201,17 +201,19 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 
 		reply := struct {
-			Issuer           string `json:"issuer"`
-			AuthEndpoint     string `json:"authorization_endpoint"`
-			TokenEndpoint    string `json:"token_endpoint"`
-			JWKSURI          string `json:"jwks_uri"`
-			UserinfoEndpoint string `json:"userinfo_endpoint,omitempty"`
+			Issuer             string `json:"issuer"`
+			AuthEndpoint       string `json:"authorization_endpoint"`
+			TokenEndpoint      string `json:"token_endpoint"`
+			JWKSURI            string `json:"jwks_uri"`
+			UserinfoEndpoint   string `json:"userinfo_endpoint,omitempty"`
+			EndSessionEndpoint string `json:"end_session_endpoint,omitempty"`
 		}{
-			Issuer:           s.Addr(),
-			AuthEndpoint:     s.Addr() + "/auth",
-			TokenEndpoint:    s.Addr() + "/token",
-			JWKSURI:          s.Addr() + "/certs",
-			UserinfoEndpoint: s.Addr() + "/userinfo",
+			Issuer:             s.Addr(),
+			AuthEndpoint:       s.Addr() + "/auth",
+			TokenEndpoint:      s.Addr() + "/token",
+			JWKSURI:            s.Addr() + "/certs",
+			UserinfoEndpoint:   s.Addr() + "/userinfo",
+			EndSessionEndpoint: s.Addr() + "/logout",
 		}
 		if s.disableUserInfo {
 			reply.UserinfoEndpoint = ""

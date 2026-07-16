@@ -6,6 +6,7 @@ package logout
 import (
 	"flag"
 	"fmt"
+	"net/url"
 	"os"
 	"os/exec"
 	"runtime"
@@ -98,23 +99,48 @@ func (c *cmd) maybeIDPLogout() {
 	}
 }
 
-// openURL opens the specified URL in the user's default browser.
-func openURL(url string) error {
-	var name string
-	var args []string
-
-	switch runtime.GOOS {
-	case "windows":
-		name = "cmd.exe"
-		args = []string{"/c", "start"}
-		url = strings.ReplaceAll(url, "&", "^&")
-	case "darwin":
-		name = "open"
-	default: // "linux", "freebsd", "openbsd", "netbsd"
-		name = "xdg-open"
+// openURL opens the specified URL in the user's default browser. It is a
+// package variable so tests can stub browser launching. Only well-formed
+// http(s) URLs are opened; anything else is rejected so that a tampered sidecar
+// file cannot pass shell/command metacharacters to the operating system.
+var openURL = func(rawURL string) error {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return fmt.Errorf("invalid logout URL: %w", err)
 	}
-	args = append(args, url)
-	return exec.Command(name, args...).Start()
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return fmt.Errorf("refusing to open logout URL with non-http(s) scheme %q", u.Scheme)
+	}
+
+	switch {
+	case runtime.GOOS == "windows":
+		// Invoke the URL protocol handler directly rather than via
+		// "cmd.exe /c start" so the URL is never parsed by the command
+		// interpreter (avoids command injection through metacharacters).
+		return exec.Command("rundll32", "url.dll,FileProtocolHandler", rawURL).Start()
+	case isWSL():
+		// Under WSL defer to the Windows shell. The empty title argument keeps
+		// "start" from interpreting the URL as the window title.
+		return exec.Command("cmd.exe", "/c", "start", "", rawURL).Start()
+	case runtime.GOOS == "darwin":
+		return exec.Command("open", rawURL).Start()
+	default: // "linux", "freebsd", "openbsd", "netbsd"
+		return exec.Command("xdg-open", rawURL).Start()
+	}
+}
+
+// isWSL reports whether the process is running under Windows Subsystem for
+// Linux, where the default browser must be launched via the Windows shell.
+func isWSL() bool {
+	if runtime.GOOS != "linux" {
+		return false
+	}
+	data, err := os.ReadFile("/proc/version")
+	if err != nil {
+		return false
+	}
+	v := strings.ToLower(string(data))
+	return strings.Contains(v, "microsoft") || strings.Contains(v, "wsl")
 }
 
 func (c *cmd) Synopsis() string {
