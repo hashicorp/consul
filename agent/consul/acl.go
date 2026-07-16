@@ -71,6 +71,10 @@ const (
 	// Maximum number of re-resolution requests to be made if the token is modified between
 	// resolving the token and resolving its roles that would remove one of its roles.
 	tokenRoleResolutionMaxRetries = 5
+
+	// aclTokenNotFoundCacheTTL is how long a leader-confirmed not-found token is
+	// cached to avoid repeated remote lookups.
+	aclTokenNotFoundCacheTTL = 5 * time.Second
 )
 
 // missingIdentity is used to return some identity in the event that the real identity cannot be ascertained
@@ -297,6 +301,11 @@ type ACLResolver struct {
 	// disabledLock synchronizes access to disabledUntil
 	disabledLock sync.RWMutex
 
+	// tokenNotFoundCache holds short-lived, leader-confirmed not-found tokens to
+	// avoid amplifying leader load on repeated invalid tokens.
+	tokenNotFoundCache     map[string]time.Time
+	tokenNotFoundCacheLock sync.RWMutex
+
 	agentRecoveryAuthz acl.Authorizer
 }
 
@@ -368,6 +377,7 @@ func NewACLResolver(config *ACLResolverConfig) (*ACLResolver, error) {
 		backend:            config.Backend,
 		aclConf:            config.ACLConfig,
 		cache:              cache,
+		tokenNotFoundCache: make(map[string]time.Time),
 		disableDuration:    config.DisableDuration,
 		down:               down,
 		tokens:             config.Tokens,
@@ -379,26 +389,64 @@ func (r *ACLResolver) Close() {
 	r.aclConf.Close()
 }
 
+func (r *ACLResolver) cacheTokenNotFound(token string) {
+	r.tokenNotFoundCacheLock.Lock()
+	r.tokenNotFoundCache[token] = time.Now().Add(aclTokenNotFoundCacheTTL)
+	r.tokenNotFoundCacheLock.Unlock()
+}
+
+func (r *ACLResolver) clearTokenNotFound(token string) {
+	r.tokenNotFoundCacheLock.Lock()
+	delete(r.tokenNotFoundCache, token)
+	r.tokenNotFoundCacheLock.Unlock()
+}
+
+func (r *ACLResolver) isTokenNotFoundCached(token string) bool {
+	now := time.Now()
+
+	r.tokenNotFoundCacheLock.RLock()
+	expiresAt, ok := r.tokenNotFoundCache[token]
+	r.tokenNotFoundCacheLock.RUnlock()
+	if !ok {
+		return false
+	}
+
+	if now.Before(expiresAt) {
+		return true
+	}
+
+	// Opportunistically reap expired entries on access.
+	r.tokenNotFoundCacheLock.Lock()
+	if current, ok := r.tokenNotFoundCache[token]; ok && !now.Before(current) {
+		delete(r.tokenNotFoundCache, token)
+	}
+	r.tokenNotFoundCacheLock.Unlock()
+
+	return false
+}
+
 func (r *ACLResolver) fetchAndCacheIdentityFromToken(token string, cached *structs.IdentityCacheEntry) (structs.ACLIdentity, error) {
 	// Resolve using a stale read first for performance.
 	identity, err := r.readIdentityFromToken(token, cached, true)
 
-	// A stale read can incorrectly return "ACL not found" if a follower has
-	// not yet caught up on ACL replication (for example, after a new workload
-	// identity token is created). Treating this transient result as
-	// authoritative poisons downstream caches, leaving clients stuck with
-	// "ACL not found" for a valid token. Before returning not found, retry
-	// with a consistent (leader) read.
+	// A stale read may report "not found" only because the answering follower is
+	// behind on ACL replication. Re-verify with a consistent (leader) read before
+	// treating the token as truly missing.
 	if acl.IsErrNotFound(err) {
 		identity, err = r.readIdentityFromToken(token, cached, false)
+		if acl.IsErrNotFound(err) {
+			r.cacheTokenNotFound(token)
+		} else if err == nil {
+			r.clearTokenNotFound(token)
+		}
 	}
 
 	return identity, err
 }
 
-// readIdentityFromToken performs a single ACL.TokenRead RPC to resolve the
-// identity for a token. If allowStale is true, the read may be served by a
-// follower; otherwise, it performs a consistent read from the leader.
+// readIdentityFromToken resolves a token secret via a single ACL.TokenRead RPC
+// and updates the identity cache. allowStale permits follower reads; otherwise a
+// consistent leader read is required.
 func (r *ACLResolver) readIdentityFromToken(token string, cached *structs.IdentityCacheEntry, allowStale bool) (structs.ACLIdentity, error) {
 	req := structs.ACLTokenGetRequest{
 		Datacenter:  r.backend.ACLDatacenter(),
@@ -450,7 +498,15 @@ func (r *ACLResolver) readIdentityFromToken(token string, cached *structs.Identi
 func (r *ACLResolver) resolveIdentityFromToken(token string) (structs.ACLIdentity, error) {
 	// Attempt to resolve locally first (local results are not cached)
 	if done, identity, err := r.backend.ResolveIdentityFromToken(token); done {
+		if err == nil && identity != nil {
+			r.clearTokenNotFound(token)
+		}
 		return identity, err
+	}
+
+	if r.isTokenNotFoundCached(token) {
+		metrics.IncrCounter([]string{"acl", "token", "cache_hit"}, 1)
+		return nil, acl.ErrNotFound
 	}
 
 	// Check the cache before making any RPC requests
