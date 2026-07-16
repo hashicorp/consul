@@ -488,7 +488,6 @@ func (r *ACLResolver) resolveIdentityFromToken(token string) (structs.ACLIdentit
 	}
 
 	if r.isTokenNotFoundCached(token) {
-		metrics.IncrCounter([]string{"acl", "token", "cache_hit"}, 1)
 		return nil, acl.ErrNotFound
 	}
 
