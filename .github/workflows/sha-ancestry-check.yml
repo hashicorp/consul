@@ -182,9 +182,38 @@ jobs:
           #   exits 0  if A is an ancestor of B  (A ← … ← B, linear history)
           #   exits 1  if A is NOT an ancestor of B (force-push / rebase detected)
           if ! git merge-base --is-ancestor "$BEFORE" "$AFTER"; then
+            echo "Force-push / non-linear history detected — checking if this is a legitimate rebase onto ${PROTECTED_BRANCH} ..."
+            git fetch origin "${PROTECTED_BRANCH}" 2>/dev/null || true
+
+            # Compute where each branch tip sits relative to the protected branch.
+            # A rebase onto a newer main moves the merge-base forward; a history-
+            # smuggling attempt typically produces a new HEAD with no CE ancestry at all.
+            MB_BEFORE=$(git merge-base "$BEFORE" "origin/${PROTECTED_BRANCH}" 2>/dev/null || true)
+            MB_AFTER=$(git  merge-base "$AFTER"  "origin/${PROTECTED_BRANCH}" 2>/dev/null || true)
+
+            if [[ -z "$MB_AFTER" ]]; then
+              echo "::error::Non-linear history detected on branch '${BRANCH}'."
+              echo "::error::The new HEAD (${AFTER}) shares NO ancestry with origin/${PROTECTED_BRANCH}."
+              echo "::error::This looks like a wholesale import of foreign commits, not a rebase onto main."
+              echo "::error::Delete this branch immediately and investigate."
+              exit 1
+            fi
+
+            # A legitimate rebase onto a newer (or equal) main keeps MB_AFTER ≥ MB_BEFORE.
+            # ENT content checks (ent-protection.yml) re-run on every push, including
+            # force-pushes, so they remain the authoritative gate for detecting ENT code
+            # in the rebased history.
+            if [[ -n "$MB_BEFORE" ]] && git merge-base --is-ancestor "$MB_BEFORE" "$MB_AFTER"; then
+              echo "::notice::Force-push on '${BRANCH}' classified as a legitimate rebase onto CE history."
+              echo "::notice::  merge-base before rebase : ${MB_BEFORE:0:7}"
+              echo "::notice::  merge-base after rebase  : ${MB_AFTER:0:7}"
+              echo "::notice::ENT content checks will re-run on the new commits."
+              exit 0
+            fi
+
             echo "::error::Non-linear history detected on branch '${BRANCH}'."
-            echo "::error::${BEFORE} is not an ancestor of ${AFTER}."
-            echo "::error::This indicates a force-push or rebase that rewrote shared history."
+            echo "::error::${BEFORE} is not an ancestor of ${AFTER}, and the rebase did not move"
+            echo "::error::the branch forward on origin/${PROTECTED_BRANCH} history."
             echo "::error::Force-pushing shared branches can bypass earlier protection checks"
             echo "::error::(e.g., the ENT file/content checks that ran on the original PR)."
             echo "::error::If this push is intentional and reviewed, contact the release team"
