@@ -1425,8 +1425,7 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 
 		meshConfig := cfgSnap.MeshConfig()
 		includeXFCC := meshConfig == nil || meshConfig.HTTP == nil || !meshConfig.HTTP.SanitizeXForwardedClientCert
-		notGRPC := cfg.Protocol != "grpc"
-		if includeXFCC && notGRPC {
+		if includeXFCC {
 			filterOpts.forwardClientDetails = true
 			filterOpts.forwardClientPolicy = envoy_http_v3.HttpConnectionManager_APPEND_FORWARD
 
