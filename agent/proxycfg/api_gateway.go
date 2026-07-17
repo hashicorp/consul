@@ -695,16 +695,27 @@ func (h *handlerAPIGateway) watchIngressLeafCert(ctx context.Context, snap *Conf
 func (h *handlerAPIGateway) generateAPIGatewayDNSSANs(snap *ConfigSnapshot) []string {
 	var dnsNames []string
 
-	namespaces := make(map[string]struct{})
+	// Collect the tenancy (namespace + partition) of every fronted upstream so
+	// the leaf cert carries a wildcard SAN scoped to each tenancy. This mirrors
+	// the tagged-subdomain grammar Consul uses for DNS resolution. In Community
+	// Edition the partition is always the default and is omitted, so the emitted
+	// SANs are byte-identical to the pre-partition behavior; on Enterprise a
+	// non-default partition contributes the partition-scoped wildcard the RFC
+	// requires (e.g. "*.api-gateway.<namespace>.<partition>.<domain>").
+	type tenancy struct {
+		namespace string
+		partition string
+	}
+	tenancies := make(map[tenancy]struct{})
 	for _, upstreams := range snap.APIGateway.Upstreams.toUpstreams() {
 		for _, u := range upstreams {
-			namespaces[u.DestinationNamespace] = struct{}{}
+			tenancies[tenancy{namespace: u.DestinationNamespace, partition: u.DestinationPartition}] = struct{}{}
 		}
 	}
-	// Ensure the default-namespace wildcard SAN is always present, even before any
+	// Ensure the default-tenancy wildcard SAN is always present, even before any
 	// routes have bound, so the common case works without re-issuing the cert.
-	if len(namespaces) == 0 {
-		namespaces[structs.IntentionDefaultNamespace] = struct{}{}
+	if len(tenancies) == 0 {
+		tenancies[tenancy{namespace: structs.IntentionDefaultNamespace}] = struct{}{}
 	}
 
 	// The configured DNS domain may be stored in FQDN form with a trailing dot
@@ -715,20 +726,25 @@ func (h *handlerAPIGateway) generateAPIGatewayDNSSANs(snap *ConfigSnapshot) []st
 	domain := strings.TrimSuffix(h.dnsConfig.Domain, ".")
 	altDomain := strings.TrimSuffix(h.dnsConfig.AltDomain, ".")
 
-	for ns := range namespaces {
-		// The default namespace is special cased in DNS resolution, so special
-		// case it here.
-		if ns == structs.IntentionDefaultNamespace {
-			ns = ""
-		} else {
-			ns = ns + "."
+	for t := range tenancies {
+		// Build the tenancy label prefix "<namespace>.<partition>." following
+		// Consul's tagged-subdomain grammar (partition is the broader scope, so
+		// it sits closer to the domain). The default namespace and default
+		// partition are special cased in DNS resolution, so omit them here to
+		// keep the wildcard SANs identical to the pre-partition behavior.
+		prefix := ""
+		if t.partition != "" && !acl.IsDefaultPartition(t.partition) {
+			prefix = t.partition + "."
+		}
+		if t.namespace != "" && t.namespace != structs.IntentionDefaultNamespace {
+			prefix = t.namespace + "." + prefix
 		}
 
-		dnsNames = append(dnsNames, fmt.Sprintf("*.api-gateway.%s%s", ns, domain))
-		dnsNames = append(dnsNames, fmt.Sprintf("*.api-gateway.%s%s.%s", ns, h.source.Datacenter, domain))
+		dnsNames = append(dnsNames, fmt.Sprintf("*.api-gateway.%s%s", prefix, domain))
+		dnsNames = append(dnsNames, fmt.Sprintf("*.api-gateway.%s%s.%s", prefix, h.source.Datacenter, domain))
 		if altDomain != "" {
-			dnsNames = append(dnsNames, fmt.Sprintf("*.api-gateway.%s%s", ns, altDomain))
-			dnsNames = append(dnsNames, fmt.Sprintf("*.api-gateway.%s%s.%s", ns, h.source.Datacenter, altDomain))
+			dnsNames = append(dnsNames, fmt.Sprintf("*.api-gateway.%s%s", prefix, altDomain))
+			dnsNames = append(dnsNames, fmt.Sprintf("*.api-gateway.%s%s.%s", prefix, h.source.Datacenter, altDomain))
 		}
 	}
 
