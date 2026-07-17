@@ -69,10 +69,10 @@ manually in the running UI if needed.
 
 | Metric | Count |
 | --- | --- |
-| Feature files remaining (yadda) | 123 |
-| Scenarios remaining (yadda) | 285 |
-| Feature files migrated | 6 |
-| Scenarios migrated | 8 |
+| Feature files remaining (yadda) | 117 |
+| Scenarios remaining (yadda) | 277 |
+| Feature files migrated | 12 |
+| Scenarios migrated | 16 |
 
 ## Completed
 
@@ -84,6 +84,12 @@ manually in the running UI if needed.
 | `components/text-input.feature` | Text-input component behaves correctly (KV create page enables submit once filled). | 1 | [tests/acceptance/components/text-input-test.js](tests/acceptance/components/text-input-test.js) |
 | `settings/show.feature` | Settings page shows Blocking Queries; `CONSUL_UI_DISABLE_REALTIME` hides them. `@notNamespaceable` (CE-only, as before). | 2 | [tests/acceptance/settings/show-test.js](tests/acceptance/settings/show-test.js) |
 | `settings/update.feature` | Saving settings with no input typed. Carried the feature-level `@ignore`, preserved as a skipped test. | 1 | [tests/acceptance/settings/update-test.js](tests/acceptance/settings/update-test.js) |
+| `dc/error.feature` | Recovering from a datacenter 500 error: error status shown, then switching dc via the nav recovers and lists services. | 1 | [tests/acceptance/dc/error-test.js](tests/acceptance/dc/error-test.js) |
+| `dc/forwarding.feature` | Arriving at a dc with only the dc in the URL redirects to its services overview. `@notNamespaceable` (CE-only, as before). | 1 | [tests/acceptance/dc/forwarding-test.js](tests/acceptance/dc/forwarding-test.js) |
+| `dc/index.feature` | Datacenters index lands on the services page. Carried the scenario `@ignore`, preserved as a skipped test. | 1 | [tests/acceptance/dc/index-test.js](tests/acceptance/dc/index-test.js) |
+| `dc/list.feature` | Generic model listing pages render (nodes/kv/tokens/policies). | 1 (4 rows) | [tests/acceptance/dc/list-test.js](tests/acceptance/dc/list-test.js) |
+| `dc/list-blocking.feature` | Listing pages live-update via blocking queries when Consul changes externally. Second scenario carried a FIXME `@ignore`, preserved as a skipped test. | 2 | [tests/acceptance/dc/list-blocking-test.js](tests/acceptance/dc/list-blocking-test.js) |
+| `dc/routing-config.feature` | View a routing config (no 404, correct title) and its source pill. | 2 | [tests/acceptance/dc/routing-config-test.js](tests/acceptance/dc/routing-config-test.js) |
 
 ## Remaining features
 
@@ -127,9 +133,6 @@ manually in the running UI if needed.
 | [dc/acls/tokens/sorting.feature](tests/acceptance/dc/acls/tokens/sorting.feature) | Sorting the tokens list. | 1 | ☐ Not migrated |  |
 | [dc/acls/tokens/update.feature](tests/acceptance/dc/acls/tokens/update.feature) | Update a token (name); error handling; no Namespace when disabled. | 3 | ☐ Not migrated |  |
 | [dc/acls/tokens/use.feature](tests/acceptance/dc/acls/tokens/use.feature) | Switch to (use) an ACL token from the list and detail pages. | 2 | ☐ Not migrated |  |
-| [dc/error.feature](tests/acceptance/dc/error.feature) | Recovering from a datacenter 500 error. | 1 | ☐ Not migrated |  |
-| [dc/forwarding.feature](tests/acceptance/dc/forwarding.feature) | Datacenter index forwards to the right page when no other URL info is present. | 1 | ☐ Not migrated |  |
-| [dc/index.feature](tests/acceptance/dc/index.feature) | Datacenters index lands on the services page. | 1 | ☐ Not migrated |  |
 | [dc/intentions/delete.feature](tests/acceptance/dc/intentions/delete.feature) | Delete intentions from list/detail incl. error and duplicate-intention error. | 4 | ☐ Not migrated |  |
 | [dc/intentions/filtered-select.feature](tests/acceptance/dc/intentions/filtered-select.feature) | Service select dropdowns show services but exclude proxy services; handles same-name services in different namespaces. | 2 | ☐ Not migrated |  |
 | [dc/intentions/form-select.feature](tests/acceptance/dc/intentions/form-select.feature) | Type into the autocomplete and select a custom/future service. | 1 | ☐ Not migrated |  |
@@ -148,8 +151,6 @@ manually in the running UI if needed.
 | [dc/kvs/sessions/invalidate.feature](tests/acceptance/dc/kvs/sessions/invalidate.feature) | Invalidate a lock session attached to a KV incl. error. | 2 | ☐ Not migrated |  |
 | [dc/kvs/trailing-slash.feature](tests/acceptance/dc/kvs/trailing-slash.feature) | KV folder view resolves with and without a trailing slash. | 2 | ☐ Not migrated |  |
 | [dc/kvs/update.feature](tests/acceptance/dc/kvs/update.feature) | Update KV values incl. whitespace/empty/newline values and error handling. | 7 | ☐ Not migrated |  |
-| [dc/list-blocking.feature](tests/acceptance/dc/list-blocking.feature) | Listing/detail pages live-update via blocking queries when Consul changes externally. | 2 | ☐ Not migrated |  |
-| [dc/list.feature](tests/acceptance/dc/list.feature) | Generic model listing pages render. | 1 | ☐ Not migrated |  |
 | [dc/nodes/empty-ids.feature](tests/acceptance/dc/nodes/empty-ids.feature) | Node list handles nodes that arrive with no ID. | 1 | ☐ Not migrated |  |
 | [dc/nodes/index.feature](tests/acceptance/dc/nodes/index.feature) | Nodes list: unhealthy node/service checks, synthetic nodes hidden, leader indicator, search, empty state. | 7 | ☐ Not migrated |  |
 | [dc/nodes/navigation.feature](tests/acceptance/dc/nodes/navigation.feature) | Navigate into a node from the list and back. | 1 | ☐ Not migrated |  |
@@ -172,7 +173,6 @@ manually in the running UI if needed.
 | [dc/peers/index.feature](tests/acceptance/dc/peers/index.feature) | Peers list: view, sort, search, and empty states (ACLs on/off). | 5 | ☐ Not migrated |  |
 | [dc/peers/regenerate.feature](tests/acceptance/dc/peers/regenerate.feature) | Regenerate a peering token. | 2 | ☐ Not migrated |  |
 | [dc/peers/show.feature](tests/acceptance/dc/peers/show.feature) | Peer detail tabs: dialer/receiver, imported/exported services (empty & populated), addresses. | 8 | ☐ Not migrated |  |
-| [dc/routing-config.feature](tests/acceptance/dc/routing-config.feature) | View a routing config and its source pill. | 2 | ☐ Not migrated |  |
 | [dc/services/dc-switch.feature](tests/acceptance/dc/services/dc-switch.feature) | Services list reflects a datacenter switch. | 1 | ☐ Not migrated |  |
 | [dc/services/error.feature](tests/acceptance/dc/services/error.feature) | Service page error / not-found handling. | 2 | ☐ Not migrated |  |
 | [dc/services/index.feature](tests/acceptance/dc/services/index.feature) | Services list: services, gateways, mesh state, associated-service counts, empty states. | 6 | ☐ Not migrated |  |
