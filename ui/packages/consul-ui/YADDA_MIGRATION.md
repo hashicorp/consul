@@ -69,10 +69,10 @@ manually in the running UI if needed.
 
 | Metric | Count |
 | --- | --- |
-| Feature files remaining (yadda) | 125 |
-| Scenarios remaining (yadda) | 288 |
-| Feature files migrated | 4 |
-| Scenarios migrated | 5 |
+| Feature files remaining (yadda) | 123 |
+| Scenarios remaining (yadda) | 285 |
+| Feature files migrated | 6 |
+| Scenarios migrated | 8 |
 
 ## Completed
 
@@ -82,6 +82,8 @@ manually in the running UI if needed.
 | `components/copy-button.feature` | Copy-to-clipboard button copies the expected value when clicked. Carried the feature-level `@ignore`, preserved as a skipped test. | 1 | [tests/acceptance/components/copy-button-test.js](tests/acceptance/components/copy-button-test.js) |
 | `components/kv-filter.feature` | Free-text filter on the KV list narrows results by the typed text. | 1 (2 rows) | [tests/acceptance/components/kv-filter-test.js](tests/acceptance/components/kv-filter-test.js) |
 | `components/text-input.feature` | Text-input component behaves correctly (KV create page enables submit once filled). | 1 | [tests/acceptance/components/text-input-test.js](tests/acceptance/components/text-input-test.js) |
+| `settings/show.feature` | Settings page shows Blocking Queries; `CONSUL_UI_DISABLE_REALTIME` hides them. `@notNamespaceable` (CE-only, as before). | 2 | [tests/acceptance/settings/show-test.js](tests/acceptance/settings/show-test.js) |
+| `settings/update.feature` | Saving settings with no input typed. Carried the feature-level `@ignore`, preserved as a skipped test. | 1 | [tests/acceptance/settings/update-test.js](tests/acceptance/settings/update-test.js) |
 
 ## Remaining features
 
@@ -207,8 +209,6 @@ manually in the running UI if needed.
 | [login.feature](tests/acceptance/login.feature) | Logging in via an ACL token and via SSO. | 2 | ☐ Not migrated |  |
 | [navigation-links.feature](tests/acceptance/navigation-links.feature) | Main-navigation link visibility (e.g. no KV read access, empty-state login button). | 2 | ☐ Not migrated |  |
 | [page-navigation.feature](tests/acceptance/page-navigation.feature) | Navigation across pages routes correctly and calls the expected API endpoints; cancel/create flows. | 10 | ☐ Not migrated |  |
-| [settings/show.feature](tests/acceptance/settings/show.feature) | Settings page shows Blocking Queries; CONSUL_UI_DISABLE_REALTIME hides them. | 2 | ☐ Not migrated |  |
-| [settings/update.feature](tests/acceptance/settings/update.feature) | Saving settings with no input typed. | 1 | ☐ Not migrated |  |
 | [startup.feature](tests/acceptance/startup.feature) | App boots when loading index.html into a browser. | 1 | ☐ Not migrated |  |
 | [submit-blank.feature](tests/acceptance/submit-blank.feature) | Blank create forms keep the submit button disabled. | 2 | ☐ Not migrated |  |
 | [token-header.feature](tests/acceptance/token-header.feature) | API requests send the Consul token header after a token is set. | 2 | ☐ Not migrated |  |
