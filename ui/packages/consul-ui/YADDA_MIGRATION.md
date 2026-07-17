@@ -69,25 +69,25 @@ manually in the running UI if needed.
 
 | Metric | Count |
 | --- | --- |
-| Feature files remaining (yadda) | 128 |
-| Scenarios remaining (yadda) | 291 |
-| Feature files migrated | 1 |
-| Scenarios migrated | 2 |
+| Feature files remaining (yadda) | 125 |
+| Scenarios remaining (yadda) | 288 |
+| Feature files migrated | 4 |
+| Scenarios migrated | 5 |
 
 ## Completed
 
 | Feature (was) | Description | Scenarios | Native test |
 | --- | --- | --- | --- |
 | `dc/intentions/create.feature` | Create an intention from the intentions form (source/destination, deny action) and assert the PUT payload; namespaces on and off. | 2 | [tests/acceptance/dc/intentions/create-test.js](tests/acceptance/dc/intentions/create-test.js) |
+| `components/copy-button.feature` | Copy-to-clipboard button copies the expected value when clicked. Carried the feature-level `@ignore`, preserved as a skipped test. | 1 | [tests/acceptance/components/copy-button-test.js](tests/acceptance/components/copy-button-test.js) |
+| `components/kv-filter.feature` | Free-text filter on the KV list narrows results by the typed text. | 1 (2 rows) | [tests/acceptance/components/kv-filter-test.js](tests/acceptance/components/kv-filter-test.js) |
+| `components/text-input.feature` | Text-input component behaves correctly (KV create page enables submit once filled). | 1 | [tests/acceptance/components/text-input-test.js](tests/acceptance/components/text-input-test.js) |
 
 ## Remaining features
 
 | Feature file | Description | Scenarios | Status | Native test |
 | --- | --- | --- | --- | --- |
 | [api-prefix.feature](tests/acceptance/api-prefix.feature) | UI honours a configured API path prefix when making requests. | 1 | ☐ Not migrated |  |
-| [components/copy-button.feature](tests/acceptance/components/copy-button.feature) | Copy-to-clipboard button copies the expected value when clicked. | 1 | ☐ Not migrated |  |
-| [components/kv-filter.feature](tests/acceptance/components/kv-filter.feature) | Free-text filter on the KV list narrows results by the typed text. | 1 | ☐ Not migrated |  |
-| [components/text-input.feature](tests/acceptance/components/text-input.feature) | Text-input component behaves correctly (e.g. on the KV page). | 1 | ☐ Not migrated |  |
 | [dc/acls/access.feature](tests/acceptance/dc/acls/access.feature) | ACLs access page behaviour when ACLs are disabled. | 1 | ☐ Not migrated |  |
 | [dc/acls/auth-methods/index.feature](tests/acceptance/dc/acls/auth-methods/index.feature) | Auth-methods list renders and is searchable. | 2 | ☐ Not migrated |  |
 | [dc/acls/auth-methods/navigation.feature](tests/acceptance/dc/acls/auth-methods/navigation.feature) | Navigate into an auth-method from the list and back. | 1 | ☐ Not migrated |  |

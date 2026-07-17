@@ -156,6 +156,18 @@ export function visit(name, params = {}, { nspace } = {}) {
   return page.visit(data);
 }
 
+/**
+ * Prefix a URL with the active namespace, matching the yadda url dictionary
+ * (which rewrites `the url should be /dc-1/kv` to `/~team-1/dc-1/kv` when a
+ * namespace is set). Returns `url` unchanged under CE / no namespace.
+ */
+export function nspaceURL(nspace, url) {
+  if (nspace !== '' && typeof nspace !== 'undefined') {
+    return `/~${nspace}${url}`;
+  }
+  return url;
+}
+
 /** The most recently visited page object (for `.submit()`, `.fillIn()`, ...). */
 export function page() {
   return currentPage;
@@ -232,4 +244,12 @@ export function requestNotMade(assert, method, url) {
   const requests = lastNthRequest(null, method);
   const made = requests.some((item) => item.method === method && item.url === url);
   assert.notOk(made, `Did not expect a ${method} request to ${url}`);
+}
+
+/**
+ * The value copied to the clipboard, as recorded by the test clipboard stub
+ * (equivalent to the yadda `I copied "..."` step, which reads localStorage).
+ */
+export function clipboard() {
+  return window.localStorage.getItem('clipboard');
 }
