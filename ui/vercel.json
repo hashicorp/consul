@@ -1,6 +1,9 @@
 {
-  "public": true,
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "github": { "silent": true },
+  "installCommand": "pnpm install --no-frozen-lockfile",
+  "buildCommand": "make dist-vercel",
+  "outputDirectory": "dist",
   "redirects": [{ "source": "/", "destination": "/ui/" }],
   "rewrites": [{ "source": "/ui/(.*)", "destination": "/ui/index.html" }]
 }
