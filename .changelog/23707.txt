@@ -1,0 +1,3 @@
+```release-note:improvement
+ui: Migrate list pages (key/value, peers, auth methods, services, nodes, service instances, intentions, and access control) to the new HashiCorp Design System (HDS) UI. Improves A11y.
+```
