@@ -387,6 +387,11 @@
                 as: 'filter',
                 replace: true,
               },
+              kv: 'kv',
+              creating: {
+                as: 'create',
+                replace: true,
+              },
             },
           },
         },
@@ -394,23 +399,19 @@
           _options: {
             template: '../index',
             path: '/*key',
-          },
-        },
-        edit: {
-          _options: { path: '/*key/edit' },
-        },
-        create: {
-          _options: {
-            template: '../edit',
-            path: '/*key/create',
-            abilities: ['create kvs'],
-          },
-        },
-        'root-create': {
-          _options: {
-            template: '../edit',
-            path: '/create',
-            abilities: ['create kvs'],
+            queryParams: {
+              sortBy: 'sort',
+              kind: 'kind',
+              search: {
+                as: 'filter',
+                replace: true,
+              },
+              kv: 'kv',
+              creating: {
+                as: 'create',
+                replace: true,
+              },
+            },
           },
         },
       },

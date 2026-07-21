@@ -4,5 +4,39 @@
  */
 
 .consul-lock-session-form {
-  overflow: hidden;
+  /* NB: not `overflow: hidden` -- the card below draws its edge as an outset
+     1px box-shadow ring, which a clipping ancestor reduces to corner ticks. */
+  min-width: 0;
+}
+
+.consul-lock-session-form__card {
+  padding: 20px;
+}
+
+.consul-lock-session-form__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+
+  h2 {
+    margin: 0;
+  }
+}
+
+.consul-lock-session-form__card .definition-table > dl {
+  /* the card supplies the trailing space, so drop the placeholder's own */
+  margin-bottom: 0;
+  align-items: baseline;
+}
+
+/* The Node value is a tertiary button whose padding would otherwise indent it
+   past the other values in the column. */
+.consul-lock-session-form__card .definition-table dd > .hds-button {
+  margin-left: calc(var(--token-button-padding-horizontal-small, 8px) * -1);
+}
+
+.consul-lock-session-form__confirm {
+  margin-top: 20px;
 }

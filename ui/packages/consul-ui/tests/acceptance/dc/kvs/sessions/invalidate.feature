@@ -14,19 +14,19 @@ Feature: dc / kvs / sessions / invalidate: Invalidate Lock Sessions
       dc: datacenter
       kv: key
     ---
-    Then the url should be /datacenter/kv/key/edit
+    Then the url should be /datacenter/kv?kv=key
 
   Scenario: Invalidating the lock session
     And I click delete on the session
     And I click confirmDelete on the session
     Then a PUT request was made to "/v1/session/destroy/ee52203d-989f-4f7a-ab5a-2bef004164ca?dc=datacenter&ns=@!namespace"
-    Then the url should be /datacenter/kv/key/edit
+    Then the url should be /datacenter/kv
     And "[data-notification]" has the "hds-toast" class
     And "[data-notification]" has the "hds-alert--color-success" class
   Scenario: Invalidating a lock session and receiving an error
     Given the url "/v1/session/destroy/ee52203d-989f-4f7a-ab5a-2bef004164ca?dc=datacenter&ns=@namespace" responds with a 500 status
     And I click delete on the session
     And I click confirmDelete on the session
-    Then the url should be /datacenter/kv/key/edit
+    Then the url should be /datacenter/kv?kv=key
     And "[data-notification]" has the "hds-toast" class
     And "[data-notification]" has the "hds-alert--color-critical" class

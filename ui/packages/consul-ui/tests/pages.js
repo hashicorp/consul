@@ -51,7 +51,7 @@ import consulPolicyListFactory from 'consul-ui/components/consul/policy/list/pag
 import consulAuthMethodListFactory from 'consul-ui/components/consul/auth-method/list/pageobject';
 import consulIntentionListFactory from 'consul-ui/components/consul/intention/list/pageobject';
 import consulNspaceListFactory from 'consul-ui/components/consul/nspace/list/pageobject';
-import consulPeerListFactory from 'consul-ui/components/consul/peer/list/test-support';
+import consulPeerListFactory from 'consul-ui/components/consul/peer/list/pageobject';
 import consulKvListFactory from 'consul-ui/components/consul/kv/list/pageobject';
 
 // pages
@@ -117,7 +117,7 @@ const consulNspaceList = consulNspaceListFactory(
   text,
   morePopoverMenu
 );
-const consulPeerList = consulPeerListFactory(collection, isPresent, attribute, morePopoverMenu);
+const consulPeerList = consulPeerListFactory(collection, clickable, attribute);
 const consulKvList = consulKvListFactory(collection, clickable, attribute, deletable);
 const consulTokenList = consulTokenListFactory(collection, clickable, attribute, text);
 const consulRoleList = consulRoleListFactory(
@@ -200,8 +200,8 @@ export default {
       consulHealthCheckList
     )
   ),
-  kvs: create(kvs(visitable, creatable, consulKvList)),
-  kv: create(kv(visitable, attribute, isPresent, submitable, deletable, cancelable, clickable)),
+  kvs: create(kvs(visitable, creatable, consulKvList, submitable, deletable, cancelable)),
+  kv: create(kv(visitable, attribute, isPresent, submitable, deletable, cancelable, consulKvList)),
   acls: create(acls(visitable, deletable, creatable, clickable, attribute, collection)),
   acl: create(acl(visitable, submitable, deletable, cancelable, clickable)),
   policies: create(policies(visitable, creatable, consulPolicyList, clickable, collection)),
@@ -235,7 +235,7 @@ export default {
   nspace: create(
     nspace(visitable, submitable, deletable, cancelable, policySelector, roleSelector)
   ),
-  peers: create(peers(visitable, creatable, consulPeerList, popoverSelect)),
+  peers: create(peers(visitable, creatable, consulPeerList, clickable)),
   peer: create(peersShow(visitable)),
   settings: create(settings(visitable, submitable, isPresent)),
   routingConfig: create(routingConfig(visitable, text)),

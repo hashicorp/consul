@@ -11,6 +11,7 @@ export default (collection, clickable, attribute, deletable) => () => {
     ...deletable(),
     actions: clickable('[data-test-actions-menu]'),
     edit: clickable('[data-test-edit]'),
+    createInFolder: clickable('[data-test-create-in-folder]'),
     delete: clickable('[data-test-delete]'),
     confirmInlineDelete: clickable("#confirm-modal [data-test-id='confirm-action']", {
       resetScope: true,

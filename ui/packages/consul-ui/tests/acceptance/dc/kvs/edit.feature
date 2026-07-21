@@ -11,7 +11,7 @@ Feature: dc / kvs / edit: KV Viewing
       dc: datacenter
       kv: "@key"
     ---
-    Then the url should be /datacenter/kv/%40key/edit
+    Then the url should be /datacenter/kv?kv=%40key
     And I see Key on the kv like "@key"
   Scenario: Viewing a Session attached to a KV
     Given 1 datacenter model with the value "datacenter"
@@ -25,7 +25,7 @@ Feature: dc / kvs / edit: KV Viewing
       dc: datacenter
       kv: key
     ---
-    Then the url should be /datacenter/kv/key/edit
+    Then the url should be /datacenter/kv?kv=key
     And I see ID on the session like "session-id"
   Scenario: Viewing a Session attached to a KV
     Given 1 datacenter model with the value "datacenter"
@@ -59,7 +59,7 @@ Feature: dc / kvs / edit: KV Viewing
       dc: datacenter
       kv: key
     ---
-    Then the url should be /datacenter/kv/key/edit
+    Then the url should be /datacenter/kv?kv=key
     And I don't see create
     And I don't see ID on the session
     And I see warning on the session
@@ -80,7 +80,7 @@ Feature: dc / kvs / edit: KV Viewing
       dc: datacenter
       kv: key
     ---
-    Then the url should be /datacenter/kv/key/edit
+    Then the url should be /datacenter/kv?kv=key
     And I see status on the error like "403"
     And a GET request wasn't made to "/v1/kv/key?dc=datacenter"
   # Make sure we can view KVs that have similar names to sections in the UI
@@ -95,7 +95,7 @@ Feature: dc / kvs / edit: KV Viewing
       dc: datacenter
       kv: [Page]
     ---
-    Then the url should be /datacenter/kv/[Page]/edit
+    Then the url should be /datacenter/kv?kv=[Page]
   Where:
     --------------
     | Page       |

@@ -5,11 +5,13 @@
 
 import tabgroup from 'consul-ui/components/tab-nav/pageobject';
 
-export default function (visitable, creatable, items, popoverSelect) {
+export default function (visitable, creatable, items, clickable) {
   return creatable({
     visit: visitable('/:dc/peers'),
     peers: items(),
-    sort: popoverSelect('[data-test-sort-control]'),
+    sort: {
+      name: clickable('.consul-peer-list thead th:nth-child(1) button.hds-table__th-button--sort'),
+    },
     tabs: tabgroup('tab', ['imported-services', 'exported-services', 'server-addresses']),
   });
 }
