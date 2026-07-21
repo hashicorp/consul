@@ -39,75 +39,98 @@
         />
       </:error>
       <:content as |writer|>
-        <div
-          class="definition-table"
+        <Hds::Card::Container
+          class="consul-lock-session-form__card"
+          @level='base'
+          @hasBorder={{true}}
         >
-          <dl>
-  {{#if @item.Name}}
-            <dt>Name</dt>
-            <dd>{{@item.Name}}</dd>
+          {{! Title and Invalidate share a row so the action reads as belonging }}
+          {{! to this session rather than to the flyout as a whole. }}
+          <header class="consul-lock-session-form__header">
+            <h2>
+              <Action
+                rel="help"
+                @href={{concat (env 'CONSUL_DOCS_URL') '/automate/session#session-design'}}
+                @external={{true}}
+              >
+                Lock Session
+              </Action>
+            </h2>
+  {{#if (and (can 'delete session' item=@item) (not this.isConfirming))}}
+            <Hds::Button
+              @text='Invalidate Session'
+              @color='critical'
+              @size='small'
+              data-test-delete
+              {{on 'click' this.confirmInvalidate}}
+            />
   {{/if}}
-            <dt>ID</dt>
-            <dd>{{@item.ID}}</dd>
-            <dt>Node</dt>
-            <dd>
-              <Hds::Button
-                @text={{@item.Node}}
-                @icon='git-commit'
-                @href={{href-to 'dc.nodes.show' @item.Node}}
-                @isHrefExternal={{false}}
-                @size='small'
-                @color='tertiary'
-              />
-            </dd>
-            <dt>Delay</dt>
-            <dd>{{duration-from @item.LockDelay}}</dd>
-            <dt>TTL</dt>
-            <dd>{{or @item.TTL '-'}}</dd>
-            <dt>Behavior</dt>
-            <dd>{{@item.Behavior}}</dd>
+          </header>
+
+          <div class="definition-table">
+            <dl>
+  {{#if @item.Name}}
+              <dt>Name</dt>
+              <dd>{{@item.Name}}</dd>
+  {{/if}}
+              <dt>ID</dt>
+              <dd>{{@item.ID}}</dd>
+              <dt>Node</dt>
+              <dd>
+                <Hds::Button
+                  @text={{@item.Node}}
+                  @icon='git-commit'
+                  @href={{href-to 'dc.nodes.show' @item.Node}}
+                  @isHrefExternal={{false}}
+                  @size='small'
+                  @color='tertiary'
+                />
+              </dd>
+              <dt>Delay</dt>
+              <dd>{{duration-from @item.LockDelay}}</dd>
+              <dt>TTL</dt>
+              <dd>{{or @item.TTL '-'}}</dd>
+              <dt>Behavior</dt>
+              <dd>{{@item.Behavior}}</dd>
   {{#let @item.checks as |checks|}}
-            <dt>Health Checks</dt>
-            <dd>
+              <dt>Health Checks</dt>
+              <dd>
     {{#if (gt checks.length 0)}}
                 {{ join ', ' checks}}
     {{else}}
                 -
     {{/if}}
-            </dd>
+              </dd>
   {{/let}}
-          </dl>
-        </div>
-  {{#if (can 'delete session' item=@item)}}
-        <ConfirmationDialog @message="Are you sure you want to invalidate this Lock Session?">
-          <:action as |confirm|>
-            <Hds::Button
-              @text='Invalidate Session'
+            </dl>
+          </div>
+
+  {{! Inline confirmation -- deliberately NOT a nested modal. Hds::Flyout and }}
+  {{! Hds::Modal are both native <dialog>s with their own focus-traps; tearing }}
+  {{! down a modal nested inside the flyout cascades into deactivating the }}
+  {{! flyout's trap and closes the whole flyout. }}
+  {{#if this.isConfirming}}
+          <Hds::Alert
+            @type='inline'
+            @color='warning'
+            class='consul-lock-session-form__confirm'
+            as |A|
+          >
+            <A.Title>Are you sure you want to invalidate this Lock Session?</A.Title>
+            <A.Button
+              @text='Confirm Invalidation'
               @color='critical'
               data-test-delete
-              {{on 'click' confirm }}
+              {{on 'click' (queue this.cancelInvalidate (fn writer.delete @item))}}
             />
-          </:action>
-          <:dialog as |execute cancel message|>
-            <p>
-              {{message}}
-            </p>
-            <Hds::ButtonSet>
-              <Hds::Button
-                @text='Confirm Invalidation'
-                @color='critical'
-                data-test-delete
-                {{on 'click' (queue execute (fn writer.delete @item))}}
-              />
-              <Hds::Button
-                @text='Cancel'
-                @color='secondary'
-                {{on 'click' cancel}}
-              />
-            </Hds::ButtonSet>
-          </:dialog>
-        </ConfirmationDialog>
+            <A.Button
+              @text='Cancel'
+              @color='secondary'
+              {{on 'click' this.cancelInvalidate}}
+            />
+          </Hds::Alert>
   {{/if}}
+        </Hds::Card::Container>
       </:content>
     </DataWriter>
 </div>

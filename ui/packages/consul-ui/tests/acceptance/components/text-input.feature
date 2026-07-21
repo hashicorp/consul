@@ -6,8 +6,9 @@ Feature: components / text-input: Text input
     When I visit the kv page for yaml
     ---
       dc: dc-1
+      create: /
     ---
-    Then the url should be /dc-1/kv/create
+    And pause for 200
     # Turn the Code Editor off so we can fill the value easier
     And I click "[name=json]"
     Then I fill in with json

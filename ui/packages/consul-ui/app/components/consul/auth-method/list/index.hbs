@@ -17,6 +17,7 @@
             data-test-auth-method
             data-test-name
             href={{href-to "dc.acls.auth-methods.show" item.Name}}
+            {{hds-tooltip item.MethodName options=(detached-tooltip-options)}}
           >{{item.MethodName}}</a>
           {{! Preserve the legacy "creates global tokens" indicator (which the
               old list showed only for global-locality methods) as a compact

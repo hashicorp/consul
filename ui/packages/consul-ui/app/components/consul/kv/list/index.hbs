@@ -26,21 +26,23 @@
               <Hds::Icon @name={{if row.expanded "chevron-down" "chevron-right"}} @size="16" @isInline={{true}} />
             </button>
             <Hds::Icon class="consul-kv-list__icon" @name="folder" @size="16" @isInline={{true}} />
-            <a
+            <button
+              type="button"
               class="consul-kv-list__name"
               data-test-kv={{row.node.Key}}
               data-test-name
-              href={{href-to "dc.kv.folder" row.node.Key}}
-            >{{row.name}}</a>
+              {{on "click" (fn this.toggle row.node)}}
+            >{{row.name}}</button>
           {{else}}
             <span class="consul-kv-list__toggle-spacer" aria-hidden="true"></span>
             <Hds::Icon class="consul-kv-list__icon" @name="key" @size="16" @isInline={{true}} />
-            <a
+            <button
+              type="button"
               class="consul-kv-list__name"
               data-test-kv={{row.node.Key}}
               data-test-name
-              href={{href-to "dc.kv.edit" row.node.Key}}
-            >{{row.name}}</a>
+              {{on "click" (fn @onSelect row.node.Key)}}
+            >{{row.name}}</button>
           {{/if}}
         </span>
       </B.Td>
@@ -56,11 +58,25 @@
             data-test-actions-menu
           />
           {{#if (can "write kv" item=row.node)}}
-            <dd.Interactive
-              @route={{if row.isFolder "dc.kv.folder" "dc.kv.edit"}}
-              @model={{row.node.Key}}
-              data-test-edit
-            >{{if row.isFolder "View" "Edit"}}</dd.Interactive>
+            {{#if row.isFolder}}
+              <dd.Interactive
+                data-test-edit
+                {{on "click" (fn this.toggle row.node)}}
+              >View</dd.Interactive>
+            {{else}}
+              <dd.Interactive
+                data-test-edit
+                {{on "click" (fn @onSelect row.node.Key)}}
+              >Edit</dd.Interactive>
+            {{/if}}
+            {{#if row.isFolder}}
+              {{#if (can "create kvs")}}
+                <dd.Interactive
+                  data-test-create-in-folder
+                  {{on "click" (fn @onCreate row.node.Key)}}
+                >Create</dd.Interactive>
+              {{/if}}
+            {{/if}}
             <dd.Separator />
             <dd.Interactive
               @color="critical"
@@ -69,11 +85,17 @@
               {{on "click" (fn this.confirmDelete row.node)}}
             >Delete</dd.Interactive>
           {{else}}
-            <dd.Interactive
-              @route={{if row.isFolder "dc.kv.folder" "dc.kv.edit"}}
-              @model={{row.node.Key}}
-              data-test-edit
-            >View</dd.Interactive>
+            {{#if row.isFolder}}
+              <dd.Interactive
+                data-test-edit
+                {{on "click" (fn this.toggle row.node)}}
+              >View</dd.Interactive>
+            {{else}}
+              <dd.Interactive
+                data-test-edit
+                {{on "click" (fn @onSelect row.node.Key)}}
+              >View</dd.Interactive>
+            {{/if}}
           {{/if}}
         </Hds::Dropdown>
       </B.Td>

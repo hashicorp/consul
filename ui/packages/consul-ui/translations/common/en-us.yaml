@@ -22,6 +22,7 @@ ui:
   enterprisefeature: Enterprise feature
 consul:
   name: Name
+  id: ID
   node: Node
   address: Address
   meta: Meta
