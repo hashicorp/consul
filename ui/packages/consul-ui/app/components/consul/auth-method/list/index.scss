@@ -18,44 +18,29 @@
   .hds-table__td:nth-child(1) {
     width: 100%;
   }
-
-  /* Wrap long values (including unbreakable ones with no spaces, e.g. a long
-     display or internal name) onto multiple lines instead of forcing the
-     column endlessly wider. */
-  .hds-table__td {
-    overflow-wrap: anywhere;
-  }
-
-  /* The legacy `%table` rules (app/components/table/index.scss, reached because
-     `.app-shell__main` @extends `%main-content`, whose `table` descendants
-     extend `%table`) force every body cell's child to
-     `white-space: nowrap; overflow: hidden; text-overflow: ellipsis`. Because
-     the HDS table reuses native <table>/<td> markup, those rules apply here and
-     truncate the cell content with an ellipsis. Override them so the text wraps
-     to the next line and is shown in full (no clip, no ellipsis). The extra
-     class selectors raise specificity above the legacy rule. */
-  .hds-table__tbody .hds-table__td > * {
-    white-space: normal;
-    overflow: visible;
-    text-overflow: clip;
-  }
 }
 
 .consul-auth-method-list__name {
   display: inline-flex;
   align-items: center;
-  flex-wrap: wrap;
   gap: 6px;
   font-weight: var(--token-typography-font-weight-semibold);
-
-  /* allow the flex container (and its link) to shrink below the name's
-     intrinsic width so a long, unbreakable name wraps instead of stretching
-     the column. */
   min-width: 0;
 
   a {
     font-weight: var(--token-typography-font-weight-semibold);
-    overflow-wrap: anywhere;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     min-width: 0;
+
+    /* Table auto-layout sizes columns from unbreakable content width and
+       ignores overflow/min-width, so truncating needs a concrete cap. */
+    max-width: 640px;
+  }
+
+  /* Keep the "Global tokens" badge at full size; only the name truncates. */
+  a + span {
+    flex-shrink: 0;
   }
 }

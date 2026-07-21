@@ -22,10 +22,6 @@
     <:loaded as |loader|>
       {{#let
         (hash
-          value=(or this.sortBy "State:asc")
-          change=(action (mut this.sortBy) value="target.selected")
-        )
-        (hash
           state=(hash
             value=(if this.state (split this.state ",") undefined)
             change=(action (mut this.state) value="target.selectedItems")
@@ -41,7 +37,7 @@
           )
         )
         loader.data
-        as |sort filters items|
+        as |filters items|
       }}
         <AppView>
           <:header>
@@ -52,10 +48,9 @@
           <:toolbar>
 
             {{#if (gt items.length 0)}}
-              <Consul::Peer::SearchBar
+              <Consul::Peer::Toolbar
                 @search={{this.search}}
                 @onsearch={{action (mut this.search) value="target.value"}}
-                @sort={{sort}}
                 @filter={{filters}}
               />
             {{/if}}
@@ -156,7 +151,6 @@
 
                 <DataCollection
                   @type="peer"
-                  @sort={{sort.value}}
                   @filters={{filters}}
                   @search={{this.search}}
                   @items={{items}}

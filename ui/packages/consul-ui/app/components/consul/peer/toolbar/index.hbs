@@ -1,0 +1,16 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+{{! Search/filter wiring lives in Consul::ListToolbar; sorting lives on the }}
+{{! table's column headers, so this only supplies the Status filter group. }}
+<Consul::ListToolbar
+  class="consul-peer-toolbar"
+  ...attributes
+  @filter={{@filter}}
+  @search={{@search}}
+  @onsearch={{@onsearch}}
+  @filterGroups={{this.filterGroups}}
+  @searchPlaceholder="Search"
+/>

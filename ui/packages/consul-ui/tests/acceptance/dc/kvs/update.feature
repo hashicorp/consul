@@ -13,7 +13,7 @@ Feature: dc / kvs / update: KV Update
       dc: datacenter
       kv: "[Name]"
     ---
-    Then the url should be /datacenter/kv/[EncodedName]/edit
+    Then the url should be /datacenter/kv?kv=[QueryEncodedName]
     And the title should be "Edit Key / Value - Consul"
     # Turn the Code Editor off so we can fill the value easier
     And I click "[name=json]"
@@ -26,14 +26,14 @@ Feature: dc / kvs / update: KV Update
     And "[data-notification]" has the "hds-toast" class
     And "[data-notification]" has the "hds-alert--color-success" class
   Where:
-      ---------------------------------------------------------
-      | Name            | EncodedName          | Value        |
-      | key             | key                  | value        |
-      | #key            | %23key               | value        |
-      | key-name        | key-name             | a value      |
-      | key name        | key%20name           | a value      |
-      | folder/key-name | folder/key-name      | a value      |
-      ---------------------------------------------------------
+      -----------------------------------------------------------------------------
+      | Name            | EncodedName          | QueryEncodedName    | Value      |
+      | key             | key                  | key                 | value      |
+      | #key            | %23key               | %23key              | value      |
+      | key-name        | key-name             | key-name            | a value    |
+      | key name        | key%20name           | key%20name          | a value    |
+      | folder/key-name | folder/key-name      | folder%2Fkey-name   | a value    |
+      -----------------------------------------------------------------------------
   Scenario: Update to a key change value to '   '
     And 1 kv model from yaml
     ---
@@ -45,7 +45,7 @@ Feature: dc / kvs / update: KV Update
       dc: datacenter
       kv: key
     ---
-    Then the url should be /datacenter/kv/key/edit
+    Then the url should be /datacenter/kv?kv=key
     # Turn the Code Editor off so we can fill the value easier
     And I click "[name=json]"
     Then I fill in with yaml
@@ -69,7 +69,7 @@ Feature: dc / kvs / update: KV Update
       dc: datacenter
       kv: key
     ---
-    Then the url should be /datacenter/kv/key/edit
+    Then the url should be /datacenter/kv?kv=key
     # Turn the Code Editor off so we can fill the value easier
     And I click "[name=json]"
     Then I fill in with yaml
@@ -93,7 +93,7 @@ Feature: dc / kvs / update: KV Update
       dc: datacenter
       kv: key
     ---
-    Then the url should be /datacenter/kv/key/edit
+    Then the url should be /datacenter/kv?kv=key
     And I submit
     Then a PUT request was made to "/v1/kv/key?dc=datacenter&ns=@!namespace&flags=12" with no body
     Then the url should be /datacenter/kv
@@ -105,11 +105,11 @@ Feature: dc / kvs / update: KV Update
       dc: datacenter
       kv: key
     ---
-    Then the url should be /datacenter/kv/key/edit
+    Then the url should be /datacenter/kv?kv=key
 
     Given the url "/v1/kv/key" responds with a 500 status
     And I submit
-    Then the url should be /datacenter/kv/key/edit
+    Then the url should be /datacenter/kv?kv=key
     And "[data-notification]" has the "hds-toast" class
     And "[data-notification]" has the "hds-alert--color-critical" class
 @ignore

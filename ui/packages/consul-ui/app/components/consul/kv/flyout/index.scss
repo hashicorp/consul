@@ -1,0 +1,18 @@
+/**
+ * Copyright IBM Corp. 2024, 2026
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
+.consul-kv-flyout-value-editor {
+	.hds-code-editor__editor {
+		max-height: 50vh;
+		overflow: auto;
+	}
+}
+
+.consul-kv-flyout__body {
+	/* the legacy %form-element bottom margin would stack on the flex gap */
+	label.type-text {
+		margin-bottom: 0;
+	}
+}
