@@ -64,15 +64,26 @@ function kvCodeToggle(page) {
 }
 
 function kvRow(page, text) {
-  // Target the <a> link element directly to avoid matching the responsive <h1>
-  // card view, which can detach from the DOM mid-click during re-renders.
-  return page.getByRole('link', { name: text }).first();
+  // Key/folder names are <button>s in the new table UI, not links.
+  return page.getByRole('button', { name: text, exact: true }).first();
 }
 
 async function openKVCreate(page) {
-  await page.getByRole('link', { name: 'Create' }).click();
+  await page.getByRole('button', { name: 'Create', exact: true }).click();
   await logKVFormState(page, 'after openKVCreate click');
-  await expect(page).toHaveURL(/\/ui\/dc1\/kv(?:\/.*)?\/create/);
+  // Create opens a flyout (query-param driven), not a /create route.
+  await expect(page.getByRole('textbox', { name: 'Key or folder To create a' })).toBeVisible();
+}
+
+// The toolbar Create targets the route parent, so creating inside an
+// inline-expanded folder must go through that folder row's actions menu.
+async function openKVCreateInFolder(page, folderName) {
+  const row = page.locator('tr', {
+    has: page.getByRole('button', { name: folderName, exact: true }),
+  });
+  await row.getByRole('button', { name: 'Open actions menu' }).click();
+  await page.locator('[data-test-create-in-folder]').first().click();
+  await expect(page.getByRole('textbox', { name: 'Key or folder To create a' })).toBeVisible();
 }
 
 async function openKVKey(page, keyName) {
@@ -94,7 +105,8 @@ async function openNestedKVKey(page, segments, keyName) {
 }
 
 async function waitForKVEdit(page, keyName) {
-  await expect(page).toHaveURL(new RegExp(`/ui/dc1/kv/${keyName}/edit`), { timeout: 15000 });
+  // Editing opens a flyout (no /edit route); wait for it to render.
+  await expect(page.locator('[data-test-kv-key]').first()).toBeVisible({ timeout: 15000 });
   await logKVFormState(page, `after waitForKVEdit ${keyName}`);
 }
 
@@ -224,7 +236,7 @@ test.describe('Key/Value - Basic Tests', () => {
 
   test('should navigate to Key/Value page', async ({ page }) => {
     await expect(page).toHaveURL(/\/ui\/dc1\/kv/);
-    await expect(page.getByRole('link', { name: 'Create' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Create', exact: true })).toBeVisible();
   });
 
   test('should validate required key name field', async ({ page }) => {
@@ -336,8 +348,9 @@ test.describe('Key/Value - Basic Tests', () => {
       await page.getByRole('button', { name: 'Save' }).click();
       await expect(page).toHaveURL(/\/ui\/dc1\/kv/);
 
-      await openNestedKVKey(page, ['e2e-folder'], 'subfolder');
-      await openKVCreate(page);
+      // Folders expand inline; create inside the subfolder via its row menu.
+      await kvRow(page, 'e2e-folder').click();
+      await openKVCreateInFolder(page, 'subfolder');
       await page.getByRole('textbox', { name: 'Key or folder To create a' }).fill('key-in-folder');
 
       await fillKVValue(page, 'value-in-folder');
@@ -458,7 +471,8 @@ test.describe('Key/Value - Basic Tests', () => {
       await createKVPair(page, keyName, 'value-to-delete');
       await page.goto('/ui/dc1/kv');
       await openKVKey(page, keyName);
-      await page.getByRole('button', { name: 'Delete' }).click();
+      // exact: true so a key name containing "delete" isn't matched too.
+      await page.getByRole('button', { name: 'Delete', exact: true }).click();
 
       const confirmButton = page.getByRole('button', { name: 'Confirm' });
       if (await confirmButton.isVisible({ timeout: 2000 }).catch(() => false)) {
@@ -488,7 +502,8 @@ test.describe('Key/Value - Basic Tests', () => {
       await expect(kvRow(page, 'another-key')).toBeVisible();
 
       await openKVKey(page, 'delete-key');
-      await page.getByRole('button', { name: 'Delete' }).click();
+      // exact: true so a key name containing "delete" isn't matched too.
+      await page.getByRole('button', { name: 'Delete', exact: true }).click();
 
       const confirmButton = page.getByRole('button', { name: 'Confirm' });
       if (await confirmButton.isVisible({ timeout: 2000 }).catch(() => false)) {
