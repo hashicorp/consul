@@ -2845,6 +2845,31 @@ func TestCheckEnvoyVersionCompatibility(t *testing.T) {
 	}
 }
 
+func TestInferenceGatewayEnvoyVersionOK(t *testing.T) {
+	tests := []struct {
+		version string
+		wantErr bool
+	}{
+		{"1.38.2", false}, // exactly the floor
+		{"1.38.3", false}, // patch above the floor
+		{"1.39.0", false}, // minor above
+		{"1.38.1", true},  // one patch below the floor
+		{"1.37.4", true},  // supported by Consul, but too old for the inference gateway
+		{"1.36.8", true},
+		{"1.abc.3", true}, // unparseable
+	}
+	for _, tc := range tests {
+		t.Run(tc.version, func(t *testing.T) {
+			err := inferenceGatewayEnvoyVersionOK(tc.version)
+			if tc.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
 func addNPatchVersion(s string, n int) string {
 	splitS := strings.Split(s, ".")
 	minor, _ := strconv.Atoi(splitS[2])

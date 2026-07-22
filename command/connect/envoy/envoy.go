@@ -518,6 +518,17 @@ func (c *cmd) run(args []string) int {
 	}
 
 	if c.gatewayKind == api.ServiceKindInferenceGateway {
+		// The inference gateway needs a higher Envoy floor than ordinary proxies
+		// (>= 1.38.2) for cross-provider fallback; enforce it before launch so a
+		// too-old binary fails fast instead of crashing on the first failover. The
+		// -ignore-envoy-compatibility escape hatch bypasses this too.
+		if !c.ignoreEnvoyCompatibility {
+			if err := checkInferenceGatewayEnvoyMinimum(binary); err != nil {
+				c.UI.Error(err.Error())
+				return 1
+			}
+		}
+
 		// The inference gateway runs Envoy and the co-located policy processor as one
 		// process tree: instead of exec'ing Envoy directly, exec the processor with
 		// the rendered bootstrap so it launches Envoy and serves ext_proc, supervising
@@ -1122,6 +1133,42 @@ Usage: consul connect envoy [options] [-- pass-through options]
 type envoyCompat struct {
 	isCompatible        bool
 	versionIncompatible string
+}
+
+// inferenceGatewayMinEnvoyVersion is the lowest Envoy the inference gateway
+// supports. Its cross-provider fallback drives ext_proc response processing across
+// an Envoy priority-failover retry, which crashes Envoy before 1.38.2 (an upstream
+// bug). This floor is specific to the inference-gateway kind: stock Consul still
+// supports older Envoy for ordinary proxies, so it is enforced at launch here
+// rather than via the global xdscommon.UnsupportedEnvoyVersions list.
+const inferenceGatewayMinEnvoyVersion = "1.38.2"
+
+// checkInferenceGatewayEnvoyMinimum returns an error if the resolved Envoy binary
+// is older than inferenceGatewayMinEnvoyVersion, so a too-old binary is a fast,
+// legible startup failure instead of a mid-request crash on the first failover.
+func checkInferenceGatewayEnvoyMinimum(binary string) error {
+	raw, err := execEnvoyVersion(binary)
+	if err != nil {
+		return fmt.Errorf("couldn't get envoy version for the inference gateway minimum-version check: %w", err)
+	}
+	return inferenceGatewayEnvoyVersionOK(raw)
+}
+
+// inferenceGatewayEnvoyVersionOK is the pure version check: nil if raw (an "X.Y.Z"
+// string) is >= inferenceGatewayMinEnvoyVersion, else a descriptive error.
+func inferenceGatewayEnvoyVersionOK(raw string) error {
+	got, err := version.NewVersion(raw)
+	if err != nil {
+		return fmt.Errorf("couldn't parse envoy version %q: %w", raw, err)
+	}
+	min := version.Must(version.NewVersion(inferenceGatewayMinEnvoyVersion))
+	if got.LessThan(min) {
+		return fmt.Errorf("the inference gateway requires Envoy >= %s (found %s): cross-provider "+
+			"fallback drives ext_proc response processing across a retry, which crashes earlier "+
+			"versions. Install a newer Envoy or point -envoy-binary at one (bypass with "+
+			"-ignore-envoy-compatibility).", inferenceGatewayMinEnvoyVersion, got.String())
+	}
+	return nil
 }
 
 func checkEnvoyVersionCompatibility(envoyVersion string, unsupportedList []string) (envoyCompat, error) {
