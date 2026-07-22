@@ -1,0 +1,3 @@
+```release-note:bug
+xds: Addition of XFCC headers to GPRC request similar to HTTP request for connect-proxy inbound listener
+```
