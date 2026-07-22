@@ -43,6 +43,7 @@ const (
 	apiGatewayConfigWatchID            = "api-gateway-config"
 	aiGatewayConfigWatchID             = "ai-gateway-config"
 	inferenceModelServiceIDPrefix      = "inference-model-service:"
+	inferenceStateStoreWatchID         = "inference-state-store"
 	boundGatewayConfigWatchID          = "bound-gateway-config"
 	fileSystemCertificateConfigWatchID = "file-system-certificate-config"
 	inlineCertificateConfigWatchID     = "inline-certificate-config"

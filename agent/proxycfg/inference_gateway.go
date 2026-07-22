@@ -74,6 +74,22 @@ func (s *handlerInferenceGateway) initialize(ctx context.Context) (ConfigSnapsho
 		return snap, err
 	}
 
+	// Discover model upstreams from intentions: the set of services this gateway
+	// is intention-allowed to reach. This is the same data source connect_proxy
+	// uses for transparent-proxy discovery, so "catalog ∩ intentions" is baked in
+	// — registering a model plus a `gateway → model = allow` intention makes it
+	// discoverable with no routing-policy change.
+	err = s.dataSources.IntentionUpstreams.Notify(ctx, &structs.ServiceSpecificRequest{
+		Datacenter:     s.source.Datacenter,
+		QueryOptions:   structs.QueryOptions{Token: s.token},
+		ServiceName:    s.service,
+		EnterpriseMeta: s.proxyID.EnterpriseMeta,
+	}, intentionUpstreamsID, s.ch)
+	if err != nil {
+		s.logger.Error("failed to register watch for intention upstreams", "error", err)
+		return snap, err
+	}
+
 	snap.InferenceGateway.WatchedModels = make(map[structs.ServiceName]context.CancelFunc)
 	snap.InferenceGateway.Models = make(map[structs.ServiceName]*InferenceGatewayModel)
 	return snap, nil
@@ -130,6 +146,26 @@ func (s *handlerInferenceGateway) handleUpdate(ctx context.Context, u UpdateEven
 			snap.InferenceGateway.GatewayConfig = nil
 		}
 		snap.InferenceGateway.GatewayConfigSet = true
+		if err := s.reconcileStoreWatch(ctx, snap); err != nil {
+			return err
+		}
+		return s.reconcileModelWatches(ctx, snap)
+
+	case u.CorrelationID == inferenceStateStoreWatchID:
+		resp, ok := u.Result.(*structs.IndexedCheckServiceNodes)
+		if !ok {
+			return fmt.Errorf("invalid type for response: %T", u.Result)
+		}
+		// The store is a plain Connect upstream — record its endpoints directly,
+		// bypassing the ai.role model filter in updateModel.
+		snap.InferenceGateway.StateStoreNodes = resp.Nodes
+
+	case u.CorrelationID == intentionUpstreamsID:
+		resp, ok := u.Result.(*structs.IndexedServiceList)
+		if !ok {
+			return fmt.Errorf("invalid type for response: %T", u.Result)
+		}
+		snap.InferenceGateway.DiscoveredUpstreams = resp.Services
 		return s.reconcileModelWatches(ctx, snap)
 
 	case strings.HasPrefix(u.CorrelationID, inferenceModelServiceIDPrefix):
@@ -147,11 +183,15 @@ func (s *handlerInferenceGateway) handleUpdate(ctx context.Context, u UpdateEven
 	return nil
 }
 
-// reconcileModelWatches starts health watches for every candidate model service
-// named by the routing policy and cancels watches for any that are no longer
-// referenced.
+// reconcileModelWatches starts health watches for every intention-discovered
+// upstream and cancels watches for any that are no longer discoverable. The
+// discovery source is intention-inferred upstreams (catalog ∩ intentions), not
+// the routing policy; updateModel then drops any that are not ai-model services.
 func (s *handlerInferenceGateway) reconcileModelWatches(ctx context.Context, snap *ConfigSnapshot) error {
-	desired := candidateModelServices(snap.InferenceGateway.GatewayConfig, s.proxyID.EnterpriseMeta)
+	desired := make(map[structs.ServiceName]struct{}, len(snap.InferenceGateway.DiscoveredUpstreams))
+	for _, sn := range snap.InferenceGateway.DiscoveredUpstreams {
+		desired[sn] = struct{}{}
+	}
 
 	// Start watches for newly referenced candidates.
 	for sn := range desired {
@@ -188,6 +228,58 @@ func (s *handlerInferenceGateway) reconcileModelWatches(ctx context.Context, sna
 		}
 	}
 
+	return nil
+}
+
+// reconcileStoreWatch keeps a single Connect health watch aligned with the bound
+// entry's StateStore.Service. The counter store is a Connect mesh service reached
+// over mTLS (intention-gated), so — unlike the terminating-gateway model upstreams
+// — we watch its sidecar-proxy endpoints (Connect: true). A changed or removed
+// StateStore cancels the stale watch and clears its endpoints.
+func (s *handlerInferenceGateway) reconcileStoreWatch(ctx context.Context, snap *ConfigSnapshot) error {
+	ig := &snap.InferenceGateway
+
+	var desired structs.ServiceName
+	if cfg := ig.GatewayConfig; cfg != nil && cfg.StateStore != nil && cfg.StateStore.Service != "" {
+		desired = structs.NewServiceName(cfg.StateStore.Service, &s.proxyID.EnterpriseMeta)
+	}
+
+	// Already watching exactly the desired store (or both are empty): nothing to do.
+	if ig.StateStoreService == desired {
+		return nil
+	}
+
+	// Tear down a stale watch (store removed, or the service name changed).
+	if ig.StateStoreCancel != nil {
+		s.logger.Debug("canceling watch for state store service", "service", ig.StateStoreService.String())
+		ig.StateStoreCancel()
+		ig.StateStoreCancel = nil
+	}
+	ig.StateStoreService = structs.ServiceName{}
+	ig.StateStoreNodes = nil
+
+	if desired.Name == "" {
+		return nil
+	}
+
+	wctx, cancel := context.WithCancel(ctx)
+	err := s.dataSources.Health.Notify(wctx, &structs.ServiceSpecificRequest{
+		Datacenter:     s.source.Datacenter,
+		QueryOptions:   structs.QueryOptions{Token: s.token},
+		ServiceName:    desired.Name,
+		EnterpriseMeta: desired.EnterpriseMeta,
+		// The counter store is a Connect mesh service reached over mTLS, so we want
+		// its sidecar-proxy endpoints (intention-gated), not the bare service.
+		Connect: true,
+	}, inferenceStateStoreWatchID, s.ch)
+	if err != nil {
+		s.logger.Error("failed to register watch for state store service",
+			"service", desired.String(), "error", err)
+		cancel()
+		return err
+	}
+	ig.StateStoreCancel = cancel
+	ig.StateStoreService = desired
 	return nil
 }
 

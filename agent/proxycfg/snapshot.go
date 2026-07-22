@@ -1104,6 +1104,7 @@ func (s *ConfigSnapshot) Clone() *ConfigSnapshot {
 		// snap.APIGateway.
 	case structs.ServiceKindInferenceGateway:
 		snap.InferenceGateway.WatchedModels = nil
+		snap.InferenceGateway.StateStoreCancel = nil
 	}
 
 	return snap
@@ -1158,6 +1159,8 @@ func (s *ConfigSnapshot) MeshConfig() *structs.MeshConfigEntry {
 		return s.TerminatingGateway.MeshConfig
 	case structs.ServiceKindMeshGateway:
 		return s.MeshGateway.MeshConfig
+	case structs.ServiceKindInferenceGateway:
+		return s.InferenceGateway.MeshConfig
 	default:
 		return nil
 	}

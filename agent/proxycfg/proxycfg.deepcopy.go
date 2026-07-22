@@ -260,6 +260,10 @@ func (o *ConfigSnapshot) DeepCopy() *ConfigSnapshot {
 			}
 		}
 	}
+	if o.InferenceGateway.DiscoveredUpstreams != nil {
+		cp.InferenceGateway.DiscoveredUpstreams = make(structs.ServiceList, len(o.InferenceGateway.DiscoveredUpstreams))
+		copy(cp.InferenceGateway.DiscoveredUpstreams, o.InferenceGateway.DiscoveredUpstreams)
+	}
 	if o.InferenceGateway.WatchedModels != nil {
 		cp.InferenceGateway.WatchedModels = make(map[structs.ServiceName]context.CancelFunc, len(o.InferenceGateway.WatchedModels))
 		for k3, v3 := range o.InferenceGateway.WatchedModels {
