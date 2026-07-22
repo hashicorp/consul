@@ -60,12 +60,14 @@
                     </Hds::CodeBlock>
                   {{else}}
                     <Hds::CodeEditor
+                      class='consul-kv-value-editor'
                       @name='Value'
                       @readonly={{or disabld api.disabled}}
                       @value={{atob api.data.Value}}
                       @onInput={{action api.change 'value'}}
                       @language='yaml'
                       @ariaLabel='value'
+                      @hasLineWrapping={{true}}
                       @hasCopyButton={{true}}
                       @isStandalone={{false}}
                       as |CE|

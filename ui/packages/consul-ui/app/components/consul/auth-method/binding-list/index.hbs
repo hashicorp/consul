@@ -9,21 +9,26 @@
     <dt class="type">{{t "models.binding-rule.BindType"}}</dt>
     <dd>
       {{@item.BindType}}
-      <span>
-        {{#if (eq @item.BindType 'service')}}
-        <Tooltip>
-          {{t "components.consul.auth-method.binding-list.bind-type.service"}}
-        </Tooltip>
-        {{else if (eq @item.BindType 'node')}}
-        <Tooltip>
-          {{t "components.consul.auth-method.binding-list.bind-type.node"}}
-        </Tooltip>
-        {{else if (eq @item.BindType 'role')}}
-        <Tooltip>
-           {{t "components.consul.auth-method.binding-list.bind-type.role"}}
-        </Tooltip>
+      {{#let
+        (if
+          (eq @item.BindType 'service')
+          (t "components.consul.auth-method.binding-list.bind-type.service")
+          (if
+            (eq @item.BindType 'node')
+            (t "components.consul.auth-method.binding-list.bind-type.node")
+            (if
+              (eq @item.BindType 'role')
+              (t "components.consul.auth-method.binding-list.bind-type.role")
+              ''
+            )
+          )
+        )
+        as |bindTypeTooltip|
+      }}
+        {{#if bindTypeTooltip}}
+          <span {{hds-tooltip bindTypeTooltip options=(detached-tooltip-options)}}></span>
         {{/if}}
-      </span>
+      {{/let}}
     </dd>
     <dt>{{t "models.binding-rule.Selector"}}</dt>
     <dd><code>{{@item.Selector}}</code></dd>

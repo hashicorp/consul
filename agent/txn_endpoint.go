@@ -134,6 +134,15 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 	for _, in := range ops {
 		switch {
 		case in.KV != nil:
+
+			// Validate the key
+			if err := validateKVKey(in.KV.Key); err != nil {
+				return nil, 0, HTTPError{
+					StatusCode: http.StatusBadRequest,
+					Reason:     fmt.Sprintf("Invalid key in transaction: %v", err),
+				}
+			}
+
 			size := len(in.KV.Value)
 			if int64(size) > kvMaxValueSize {
 				return nil, 0, HTTPError{

@@ -1,0 +1,3 @@
+```release-note:bug
+ui: Fixes [GH-23082](https://github.com/hashicorp/consul/issues/23082)
+```

@@ -50,6 +50,7 @@ export default class TokenAdapter extends Adapter {
       PUT /v1/acl/token?${params}
 
       ${{
+        Name: serialized.Name,
         Description: serialized.Description,
         Policies: serialized.Policies,
         Roles: serialized.Roles,
@@ -84,6 +85,7 @@ export default class TokenAdapter extends Adapter {
       PUT /v1/acl/token/${data[SLUG_KEY]}?${params}
 
       ${{
+        Name: serialized.Name,
         Description: serialized.Description,
         AccessorID: serialized.AccessorID,
         Policies: serialized.Policies,

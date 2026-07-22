@@ -6,12 +6,14 @@ package auth
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"strings"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib/template"
 )
 
 // Login wraps the process of creating an ACLToken from the identity verified
@@ -39,7 +41,13 @@ func (l *Login) TokenForVerifiedIdentity(identity *authmethod.Identity, authMeth
 		return nil, acl.ErrPermissionDenied
 	}
 
+	name, err := FormatTokenName(authMethod, nil)
+	if err != nil {
+		return nil, err
+	}
+
 	token := &structs.ACLToken{
+		Name:              name,
 		Description:       description,
 		Local:             authMethod.TokenLocality != "global", // TokenWriter prevents the creation of global tokens in secondary datacenters.
 		AuthMethod:        authMethod.Name,
@@ -79,4 +87,34 @@ func BuildTokenDescription(prefix string, meta map[string]string) (string, error
 		return "", err
 	}
 	return fmt.Sprintf("%s: %s", prefix, d), nil
+}
+
+func FormatTokenName(authMethod *structs.ACLAuthMethod, claims map[string]string) (string, error) {
+
+	if authMethod == nil || authMethod.TokenNameFormat == "" {
+		return "", nil
+	}
+
+	valueMap := map[string]string{
+		"auth_method_type": authMethod.Type,
+		"auth_method_name": authMethod.Name,
+	}
+
+	for k, v := range claims {
+		valueMap["value."+k] = v
+	}
+
+	return ParseTokenName(authMethod, valueMap, true)
+}
+
+func ParseTokenName(authMethod *structs.ACLAuthMethod, valueMap map[string]string, suffixRandomInt bool) (string, error) {
+
+	name, err := template.InterpolateHIL(authMethod.TokenNameFormat, valueMap, false)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate ACL token name: %w", err)
+	}
+	if suffixRandomInt {
+		name = fmt.Sprintf("%s-%d", name, rand.Uint64())
+	}
+	return name, nil
 }

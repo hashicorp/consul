@@ -25,10 +25,12 @@ type subscriptionState struct {
 	// partition is immutable
 	partition string
 
-	// plain data
+	// exportList stores the central state list of latest exported-service-list services to the peer
 	exportList *structs.ExportedServiceList
 
 	watchedServices map[structs.ServiceName]context.CancelFunc
+
+	// connectServices stores latest map of synthetic discovery chain replies.
 	connectServices map[structs.ServiceName]structs.ExportedDiscoveryChainInfo
 
 	// eventVersions is a duplicate event suppression system keyed by the "id"

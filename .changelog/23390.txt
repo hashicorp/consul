@@ -1,0 +1,3 @@
+```release-note:bug
+- api-gateway: fix HTTPRoute PathPrefix routing to preserve the original request path when `replacePrefixMatch` is not configured
+```

@@ -15,6 +15,10 @@
     <em>Local tokens get set in the Raft store of the local DC and do not ever get transmitted to the primary DC or replicated to any other DC.</em>
   </div>
 {{/if}}
+  <label class="type-text">
+    <span>Name</span>
+    <input type="text" name="Name" value={{@item.Name}} oninput={{@onChange}} />
+  </label>
   <label class="type-text validate-optional">
     <span>Description (Optional)</span>
     <textarea name="Description" oninput={{@onChange}}>{{@item.Description}}</textarea>

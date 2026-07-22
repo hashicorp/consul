@@ -5,8 +5,6 @@ package xds
 
 import (
 	"context"
-	"fmt"
-	"regexp"
 	"sort"
 	"sync"
 	"testing"
@@ -26,7 +24,6 @@ import (
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	envoy_upstreams_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
-	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 	"github.com/mitchellh/copystructure"
 	"github.com/stretchr/testify/require"
@@ -37,6 +34,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
+	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/response"
@@ -191,6 +189,8 @@ func newTestServerDeltaScenario(
 ) *testServerScenario {
 	mgr := newTestManager()
 	envoy := NewTestEnvoy(t, proxyID, token)
+	origGetAgentBindAddrFunc := netutil.GetAgentBindAddrFunc
+	netutil.GetAgentBindAddrFunc = netutil.GetMockGetAgentBindAddrFunc("0.0.0.0")
 
 	sink := metrics.NewInmemSink(1*time.Minute, 1*time.Minute)
 	cfg := metrics.DefaultConfig("consul.xds.test")
@@ -200,6 +200,7 @@ func newTestServerDeltaScenario(
 
 	t.Cleanup(func() {
 		envoy.Close()
+		netutil.GetAgentBindAddrFunc = origGetAgentBindAddrFunc
 		sink := &metrics.BlackholeSink{}
 		metrics.NewGlobal(cfg, sink)
 	})
@@ -813,12 +814,6 @@ func makeTestRoute(t *testing.T, fixtureName string) *envoy_route_v3.RouteConfig
 								Route: &envoy_route_v3.RouteAction{
 									ClusterSpecifier: &envoy_route_v3.RouteAction_Cluster{
 										Cluster: "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-									},
-									RegexRewrite: &envoy_matcher_v3.RegexMatchAndSubstitute{
-										Pattern: &envoy_matcher_v3.RegexMatcher{
-											Regex: fmt.Sprintf(`^%s(/?)(.*)`, regexp.QuoteMeta("/")),
-										},
-										Substitution: `/\2`,
 									},
 								},
 							},

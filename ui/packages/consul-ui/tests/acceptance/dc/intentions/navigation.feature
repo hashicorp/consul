@@ -29,7 +29,7 @@ Feature: dc / intentions / navigation
     ---
     When I click intention on the intentionList.intentions component
     Then a GET request was made to "/v1/internal/ui/services?dc=dc-1&ns=*"
-    And I click "[data-test-back]"
+    And I click "[data-test-back] a"
     Then the url should be /dc-1/intentions
   Scenario: Clicking the create button and back again
     When I visit the intentions page for yaml
@@ -41,5 +41,5 @@ Feature: dc / intentions / navigation
     Then I see 3 intention models on the intentionList component
     When I click create
     Then the url should be /dc-1/intentions/create
-    And I click "[data-test-back]"
+    And I click "[data-test-back] a"
     Then the url should be /dc-1/intentions

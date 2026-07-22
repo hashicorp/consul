@@ -6,7 +6,15 @@
 .consul-kind {
   @extend %pill-200, %frame-gray-600, %body-200-regular;
 }
+.consul-kind--hds {
+  all: unset;
+  display: inline-flex;
+  border: none !important;
+}
 .consul-kind::before {
   @extend %with-gateway-mask, %as-pseudo;
   --icon-size: icon-300;
+}
+.consul-kind--hds::before {
+  content: none;
 }

@@ -44,9 +44,9 @@ as |dc partition nspace id item create|}}
     @login={{route.model.app.login.open}}
     >
       <BlockSlot @name="breadcrumbs">
-          <ol>
-              <li><a data-test-back href={{href-to 'dc.acls.policies'}}>All Policies</a></li>
-          </ol>
+        <Hds::Breadcrumb>
+          <Hds::Breadcrumb::Item @text="All Policies" @route="dc.acls.policies" @model={{route.params.dc}} data-test-back />
+        </Hds::Breadcrumb>
       </BlockSlot>
       <BlockSlot @name="header">
           <h1>

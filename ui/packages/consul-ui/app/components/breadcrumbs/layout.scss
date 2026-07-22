@@ -6,6 +6,7 @@
 %breadcrumbs {
   display: grid;
   grid-auto-flow: column;
+  justify-content: start;
   white-space: nowrap;
   overflow: hidden;
 }

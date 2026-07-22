@@ -40,13 +40,13 @@ func TestTokenUpdateCommand(t *testing.T) {
 	t.Parallel()
 
 	a := agent.NewTestAgent(t, `
-	primary_datacenter = "dc1"
-	acl {
-		enabled = true
-		tokens {
-			initial_management = "root"
-		}
-	}`)
+    primary_datacenter = "dc1"
+    acl {
+       enabled = true
+       tokens {
+          initial_management = "root"
+       }
+    }`)
 
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -72,6 +72,20 @@ func TestTokenUpdateCommand(t *testing.T) {
 		require.NoError(t, json.Unmarshal(ui.OutputWriter.Bytes(), &token))
 		return &token
 	}
+
+	t.Run("token-name", func(t *testing.T) {
+		token := create_token(t, client, &api.ACLToken{Description: "test token", Name: "old-name"}, &api.WriteOptions{Token: "root"})
+
+		responseToken := run(t, []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-accessor-id=" + token.AccessorID,
+			"-token=root",
+			"-name=new-name",
+		})
+
+		require.Equal(t, "new-name", responseToken.Name)
+		require.Equal(t, "test token", responseToken.Description) // ensures we didn't overwrite the description
+	})
 
 	// update with node identity
 	t.Run("node-identity", func(t *testing.T) {
@@ -142,6 +156,7 @@ func TestTokenUpdateCommand(t *testing.T) {
 		require.Equal(t, api.ACLTemplatedPolicyNodeName, responseToken.TemplatedPolicies[0].TemplateName)
 		require.Equal(t, "web", responseToken.TemplatedPolicies[0].TemplateVariables.Name)
 	})
+
 	t.Run("append-templated-policy", func(t *testing.T) {
 		templatedPolicy := &api.ACLTemplatedPolicy{TemplateName: api.ACLTemplatedPolicyServiceName, TemplateVariables: &api.ACLTemplatedPolicyVariables{Name: "api"}}
 		token := create_token(
@@ -165,6 +180,7 @@ func TestTokenUpdateCommand(t *testing.T) {
 		require.ElementsMatch(t, responseToken.TemplatedPolicies,
 			[]*api.ACLTemplatedPolicy{templatedPolicy, {TemplateName: api.ACLTemplatedPolicyNodeName, TemplateVariables: &api.ACLTemplatedPolicyVariables{Name: "web"}}})
 	})
+
 	// update with policy by name
 	t.Run("policy-name", func(t *testing.T) {
 		token := create_token(t, client, &api.ACLToken{Description: "test"}, &api.WriteOptions{Token: "root"})
@@ -234,13 +250,13 @@ func TestTokenUpdateCommandWithAppend(t *testing.T) {
 	t.Parallel()
 
 	a := agent.NewTestAgent(t, `
-	primary_datacenter = "dc1"
-	acl {
-		enabled = true
-		tokens {
-			initial_management = "root"
-		}
-	}`)
+    primary_datacenter = "dc1"
+    acl {
+       enabled = true
+       tokens {
+          initial_management = "root"
+       }
+    }`)
 
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -363,13 +379,13 @@ func TestTokenUpdateCommand_JSON(t *testing.T) {
 	t.Parallel()
 
 	a := agent.NewTestAgent(t, `
-	primary_datacenter = "dc1"
-	acl {
-		enabled = true
-		tokens {
-			initial_management = "root"
-		}
-	}`)
+    primary_datacenter = "dc1"
+    acl {
+       enabled = true
+       tokens {
+          initial_management = "root"
+       }
+    }`)
 
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")

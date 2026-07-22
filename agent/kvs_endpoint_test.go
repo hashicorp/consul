@@ -697,11 +697,13 @@ func TestValidateKVKey(t *testing.T) {
 		{"valid key with dots in middle", "con..fig", false},
 		{"valid URL encoded key", "foo/bar/baz%2Fqux", false},
 		{"valid URL encoded key 2", "foo/bar%2Fbaz%2Fqux", false},
-		{"valid key with leading slash", "/foo/bar", false},
 		{"valid key with + in name", "foo+bar/baz", false},
 		// Invalid
 		{"empty key", "", true},
+		{"leading slash", "/foo/bar", true},
+		{"leading slash simple", "/foo", true},
 		{"trailing space", "foo ", true},
+		{"leading space", " foo", true},
 		{"malicious key with path traversal", "../../etc/passwd", true},
 		{"malicious key with path traversal from current directory", "./../../etc/passwd", true},
 		{"malicious key with path traversal with URL encoded /", "..%2F..%2Fetc%2Fpasswd", true},
@@ -828,7 +830,7 @@ func TestKVSEndpoint_KeyConstruction_TrailingSlashes(t *testing.T) {
 			name:          "only slashes",
 			urlPath:       "/v1/kv////",
 			expectedKey:   "/",
-			shouldSucceed: true,
+			shouldSucceed: false,
 			description:   "Only slashes should be cleaned to single slash",
 		},
 

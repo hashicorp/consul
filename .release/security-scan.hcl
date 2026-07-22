@@ -32,20 +32,29 @@ container {
 		}
 	}
 
-	# Triage items that are _safe_ to ignore here. Note that this list should be
-	# periodically cleaned up to remove items that are no longer found by the scanner.
-	triage {
-		suppress {
-			vulnerabilities = []
-			paths = [
-				"internal/tools/proto-gen-rpc-glue/e2e/consul/*",
-				"test/integration/connect/envoy/test-sds-server/*",
-				"test/integration/consul-container/*",
-				"testing/deployer/*",
-				"test-integ/*",
-			]
-		}
-	}
+  # Triage items that are _safe_ to ignore here. Note that this list should be
+  # periodically cleaned up to remove items that are no longer found by the scanner.
+  triage {
+    suppress {
+      vulnerabilities = []
+
+      paths = [
+        "internal/tools/proto-gen-rpc-glue/e2e/consul/*",
+        "test/integration/connect/envoy/test-sds-server/*",
+        "test/integration/consul-container/*",
+        "testing/deployer/*",
+        "test-integ/*",
+        // The OSV scanner will trip on several packages that are included in the
+        // the UBI images. This is due to RHEL using the same base version in the
+        // package name for the life of the distro regardless of whether or not
+        // that version has been patched for security. Rather than enumate ever
+        // single CVE that the OSV scanner will find (several tens) we'll ignore
+        // the base UBI packages.
+        "usr/lib/sysimage/rpm/*",
+        "var/lib/rpm/*",
+      ]
+    }
+  }
 }
 
 binary {

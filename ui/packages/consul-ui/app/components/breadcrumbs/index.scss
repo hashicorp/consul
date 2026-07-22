@@ -5,19 +5,42 @@
 
 @import './skin';
 @import './layout';
-main header nav:first-child {
+
+/* Breadcrumb container positioning */
+.app-view-breadcrumbs {
   position: absolute;
-  top: 12px;
+  top: -38px;
+  left: 0;
+  right: 0;
+  margin-bottom: 0;
 }
-main header nav:first-child ol {
-  @extend %breadcrumbs;
+
+@media #{$--lt-spacious-page-header} {
+  .app-view-breadcrumbs {
+    top: -32px;
+  }
 }
-%breadcrumbs li a {
-  @extend %crumbs;
+
+/* HDS Breadcrumb styling */
+.app-view-breadcrumbs .hds-breadcrumb .hds-breadcrumb__link {
+  color: var(--token-color-foreground-faint);
+  text-decoration: none;
+
+  &,
+  .hds-breadcrumb__text {
+    font-size: 0.875rem;
+  }
+
+  &:hover {
+    color: var(--token-color-foreground-action);
+    text-decoration: underline;
+  }
 }
-%breadcrumbs li:not(:first-child) a {
-  @extend %breadcrumb;
-}
-%breadcrumbs li:first-child a {
-  @extend %breadcrumb-milestone;
+
+/* Chevron icon before first breadcrumb item */
+.app-view-breadcrumbs .hds-breadcrumb .hds-breadcrumb__item:first-child .hds-breadcrumb__link::before {
+  @extend %with-chevron-left-mask, %as-pseudo;
+  background-color: var(--token-color-foreground-faint);
+  margin-right: 4px;
+  display: inline-block;
 }
