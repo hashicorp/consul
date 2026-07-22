@@ -4,7 +4,9 @@
 package xds
 
 import (
+	"encoding/json"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -16,15 +18,20 @@ import (
 	envoy_http_ext_proc_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/ext_proc/v3"
 	envoy_upstream_codec_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/upstream_codec/v3"
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
+	envoy_retry_host_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/retry/host/previous_hosts/v3"
+	envoy_retry_priority_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/retry/priority/previous_priorities/v3"
 	envoy_upstreams_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
 	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/structpb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/xds/response"
 )
 
 const (
@@ -36,21 +43,46 @@ const (
 	// co-located policy processor over the loopback/UDS socket.
 	inferenceExtProcClusterName = "local_ext_proc"
 
-	// inferenceModelHeader is the header the downstream (pre-route) ext_proc phase
-	// promotes the request body's model onto; the gateway routes on it (model →
-	// backend cluster) so Envoy owns cluster selection. The upstream (post-route)
-	// ext_proc phase then transforms to the selected backend's native schema.
-	inferenceModelHeader = "x-ai-model"
+	// inferenceStateStoreListenerName is the outbound TCP listener the processor
+	// dials on 127.0.0.1:StateStore.LocalBindPort to reach the rate-limit counter
+	// store; Envoy proxies it over mTLS (intention-gated) to the store mesh service.
+	inferenceStateStoreListenerName = "inference-state-store"
+
+	// inferenceRateLimitMetadataNamespace is the listener FilterMetadata key
+	// carrying the rate-limit policy for the policy processor. It is a DISTINCT
+	// namespace from the model catalog (inferenceListenerMetadataNamespace): the
+	// processor reads it off the xds.listener_metadata request attribute, hashes it,
+	// and recompiles its limiter policy on change — decoupled from model discovery.
+	inferenceRateLimitMetadataNamespace = "consul.ai.ratelimit"
+
+	// inferenceListenerMetadataAttribute is the ext_proc request attribute carrying
+	// the inbound listener's metadata (a text-format core.Metadata string). The
+	// downstream filter forwards it so the processor can read the rate-limit policy
+	// from the consul.ai.ratelimit namespace pre-route. Static listener metadata is
+	// not dynamic metadata, so this attribute — not metadata_context — is its channel.
+	inferenceListenerMetadataAttribute = "xds.listener_metadata"
 
 	// inferenceSpecializationHeader is the caller-supplied header naming a
 	// required capability. Consul renders a native header-match route per
-	// discovered model capability, so selection happens in Envoy without the
-	// policy processor emitting a cluster.
+	// discovered capability, so selection happens in Envoy without the policy
+	// processor emitting a cluster. Capability selection is the sole routing
+	// dimension: there are no model-name routes (a concrete model name is
+	// provider-specific and must not silently fail over to another provider).
 	inferenceSpecializationHeader = "x-inference-specialization"
 
 	// inferenceCapabilitiesLabel is the model catalog meta key whose value is the
-	// capability a model advertises (matched against inferenceSpecializationHeader).
+	// comma-separated SET of capabilities a model advertises (matched against
+	// inferenceSpecializationHeader). A capability with two or more members renders
+	// as a priority pool; membership order comes from inferencePriorityLabelPrefix.
 	inferenceCapabilitiesLabel = "capabilities"
+
+	// inferencePriorityLabelPrefix is the prefix of the per-capability rank meta key
+	// ("priority_<capability>"). It carries the model's standing on the (capability,
+	// model) edge: lower = higher priority (tier 0 = primary); equal ranks share a
+	// tier (active/active); a missing rank sorts last. This is edge-scoped so one
+	// model can be primary for one capability and a backup for another. Underscore
+	// (not dot) because Consul service-meta keys disallow dots.
+	inferencePriorityLabelPrefix = "priority_"
 
 	// inferenceModelFamilyLabel is the model catalog meta key naming the concrete
 	// upstream model. The processor stamps it onto a request whose model is "auto".
@@ -66,7 +98,38 @@ const (
 	// discovered model catalog for the policy processor. It is also the route
 	// metadata namespace for a capability route's per-model routing facts.
 	inferenceListenerMetadataNamespace = "consul.ai"
+
+	// inferencePoolClusterPrefix is the name prefix of the per-capability "pool"
+	// cluster rendered for a capability with two or more discovered members: one
+	// priority tier per rank group, each endpoint carrying that member's consul.ai
+	// {model, adapter} metadata. The capability route targets it with a retry policy,
+	// so a retriable failure fails over to the next tier — a different provider — and
+	// the upstream ext_proc filter transforms for whichever endpoint Envoy selected.
+	// This is the Envoy AI Gateway pattern (per-endpoint backend metadata); an
+	// aggregate cluster cannot be used because Envoy does not run a member cluster's
+	// upstream HTTP filters when routing through the aggregate, so the transform would
+	// be skipped.
+	inferencePoolClusterPrefix = "inference-pool-"
 )
+
+// inferencePoolClusterName is the pool cluster name for a capability.
+func inferencePoolClusterName(capability string) string {
+	return inferencePoolClusterPrefix + sanitizeInferencePoolName(capability)
+}
+
+// sanitizeInferencePoolName maps a capability to an Envoy-safe cluster-name suffix
+// (lower-case alphanumerics and '-'; other runes become '-').
+func sanitizeInferencePoolName(capability string) string {
+	var b strings.Builder
+	for _, r := range strings.ToLower(capability) {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-' {
+			b.WriteRune(r)
+		} else {
+			b.WriteRune('-')
+		}
+	}
+	return b.String()
+}
 
 // listenersFromSnapshotInferenceGateway builds the inference gateway's single
 // inbound listener: mesh mTLS + SPIFFE on the downstream (so the calling agent's
@@ -119,9 +182,16 @@ func (s *ResourceGenerator) listenersFromSnapshotInferenceGateway(cfgSnap *proxy
 		Filters: []*envoy_listener_v3.Filter{filter},
 	}}
 
-	// Surface the discovered model catalog to the processor via listener metadata.
-	if md := makeInferenceListenerMetadata(ig.Models); md != nil {
-		l.Metadata = md
+	// Surface the discovered model catalog and (separately) the rate-limit policy
+	// to the processor via listener metadata — distinct FilterMetadata namespaces.
+	l.Metadata = makeInferenceListenerMetadata(ig.Models)
+	if rlMD := makeInferenceRateLimitFilterMetadata(ig.GatewayConfig); rlMD != nil {
+		if l.Metadata == nil {
+			l.Metadata = &envoy_core_v3.Metadata{FilterMetadata: map[string]*structpb.Struct{}}
+		}
+		for k, v := range rlMD {
+			l.Metadata.FilterMetadata[k] = v
+		}
 	}
 
 	// Attach the mesh mTLS downstream context (RequireClientCertificate + SPIFFE).
@@ -129,7 +199,93 @@ func (s *ResourceGenerator) listenersFromSnapshotInferenceGateway(cfgSnap *proxy
 		return nil, err
 	}
 
-	return []proto.Message{l}, nil
+	out := []proto.Message{l}
+
+	// When a rate-limit StateStore is bound, add the outbound TCP listener the
+	// processor dials locally; Envoy proxies it over mTLS to the store mesh service.
+	storeListener, err := s.makeInferenceStateStoreListener(cfgSnap)
+	if err != nil {
+		return nil, err
+	}
+	if storeListener != nil {
+		out = append(out, storeListener)
+	}
+
+	return out, nil
+}
+
+// makeInferenceStateStoreListener builds the outbound TCP listener the processor
+// dials on 127.0.0.1:StateStore.LocalBindPort to reach the rate-limit counter
+// store. A tcp_proxy forwards to the store's mesh-upstream cluster (mTLS applied
+// on the cluster's transport socket). Returns nil when no StateStore with a bind
+// port is bound.
+func (s *ResourceGenerator) makeInferenceStateStoreListener(cfgSnap *proxycfg.ConfigSnapshot) (*envoy_listener_v3.Listener, error) {
+	ig := &cfgSnap.InferenceGateway
+	sn := ig.StateStoreService
+	if sn.Name == "" || ig.GatewayConfig == nil || ig.GatewayConfig.StateStore == nil {
+		return nil, nil
+	}
+	port := ig.GatewayConfig.StateStore.LocalBindPort
+	if port == 0 {
+		return nil, nil
+	}
+
+	l := makeListener(makeListenerOpts{
+		name:       inferenceStateStoreListenerName,
+		accessLogs: cfgSnap.Proxy.AccessLogs,
+		addr:       "127.0.0.1",
+		port:       port,
+		direction:  envoy_core_v3.TrafficDirection_OUTBOUND,
+		logger:     s.Logger,
+	})
+
+	filter, err := makeTCPProxyFilter(listenerFilterOpts{
+		accessLogs: &cfgSnap.Proxy.AccessLogs,
+		cluster:    inferenceStateStoreSNI(cfgSnap, sn),
+		filterName: inferenceStateStoreListenerName,
+		statPrefix: "upstream.",
+		logger:     s.Logger,
+	})
+	if err != nil {
+		return nil, err
+	}
+	l.FilterChains = []*envoy_listener_v3.FilterChain{{
+		Filters: []*envoy_listener_v3.Filter{filter},
+	}}
+	return l, nil
+}
+
+// makeInferenceRateLimitFilterMetadata renders the bound entry's RateLimit policy
+// into a consul.ai.ratelimit FilterMetadata namespace for the processor. The
+// policy is carried as a JSON string ("policy") — the same interchange the
+// processor already decodes the config entry from, so the full nested block rides
+// along without a hand-written struct mirror — plus the store's local bind port so
+// the processor knows which loopback port to dial. Returns nil when the entry
+// declares no RateLimit block.
+func makeInferenceRateLimitFilterMetadata(cfg *structs.AIGatewayConfigEntry) map[string]*structpb.Struct {
+	if cfg == nil || cfg.RateLimit == nil {
+		return nil
+	}
+	policyJSON, err := json.Marshal(cfg.RateLimit)
+	if err != nil {
+		return nil
+	}
+	fields := map[string]*structpb.Value{
+		"policy": structpb.NewStringValue(string(policyJSON)),
+	}
+	if cfg.StateStore != nil && cfg.StateStore.LocalBindPort != 0 {
+		fields["store_local_bind_port"] = structpb.NewNumberValue(float64(cfg.StateStore.LocalBindPort))
+	}
+	return map[string]*structpb.Struct{
+		inferenceRateLimitMetadataNamespace: {Fields: fields},
+	}
+}
+
+// inferenceStateStoreSNI is the store mesh-upstream cluster/SNI name, following the
+// standard Connect-upstream convention so its EDS load assignment (same name) and
+// SAN validation line up.
+func inferenceStateStoreSNI(cfgSnap *proxycfg.ConfigSnapshot, sn structs.ServiceName) string {
+	return connect.ServiceSNI(sn.Name, "", sn.NamespaceOrDefault(), sn.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 }
 
 // makeInferenceExtProcHTTPFilter builds the DOWNSTREAM (pre-route) ext_proc HTTP
@@ -160,8 +316,28 @@ func makeInferenceExtProcHTTPFilter(cfg *structs.AIGatewayConfigEntry) (*envoy_h
 			RequestTrailerMode:  envoy_http_ext_proc_v3.ProcessingMode_SKIP,
 			ResponseTrailerMode: envoy_http_ext_proc_v3.ProcessingMode_SKIP,
 		},
+		// Forward the inbound listener's metadata (which carries the rate-limit policy
+		// under consul.ai.ratelimit) to the processor via the xds.listener_metadata
+		// request attribute, so the downstream CHECK phase compiles its limiter from
+		// live config with no side fetch. Requested only when the entry declares a
+		// RateLimit block; the attribute is a text-format core.Metadata string, read
+		// the same way as xds.cluster_metadata on the upstream filter. Static listener
+		// metadata is NOT dynamic metadata, so metadata_context/forwarding_namespaces
+		// cannot carry it — the request attribute is the correct channel.
+		RequestAttributes: rateLimitRequestAttributes(cfg),
 	}
 	return makeEnvoyHTTPFilter("envoy.filters.http.ext_proc", extProc)
+}
+
+// rateLimitRequestAttributes asks ext_proc to forward the inbound listener's
+// metadata (xds.listener_metadata) so the processor can read the consul.ai.ratelimit
+// policy off it. Returns nil when the entry declares no RateLimit block, so the
+// filter is byte-identical to before for non-rate-limited gateways.
+func rateLimitRequestAttributes(cfg *structs.AIGatewayConfigEntry) []string {
+	if cfg == nil || cfg.RateLimit == nil {
+		return nil
+	}
+	return []string{inferenceListenerMetadataAttribute}
 }
 
 // makeInferenceUpstreamExtProcHTTPFilter builds the UPSTREAM (post-route) ext_proc
@@ -193,11 +369,15 @@ func makeInferenceUpstreamExtProcHTTPFilter(cfg *structs.AIGatewayConfigEntry) (
 			RequestTrailerMode:  envoy_http_ext_proc_v3.ProcessingMode_SKIP,
 			ResponseTrailerMode: envoy_http_ext_proc_v3.ProcessingMode_SKIP,
 		},
-		// The selected backend cluster's consul.ai metadata (adapter + model) names
-		// the transform, and the cluster name attributes the metered usage. Both are
+		// The selected backend's consul.ai metadata (adapter + model) names the
+		// transform, and the cluster name attributes the metered usage. Both are
 		// evaluated against the post-route selection, which the downstream phase
-		// cannot see; this is why the transform must run as an upstream filter.
-		RequestAttributes: []string{"xds.cluster_metadata", "xds.cluster_name"},
+		// cannot see; this is why the transform must run as an upstream filter. A
+		// single-backend cluster carries the metadata on the cluster; a fallback pool
+		// carries it on the selected ENDPOINT (each priority tier is a different
+		// provider), so upstream_host_metadata is requested too and the processor
+		// falls back to it when the cluster metadata is absent.
+		RequestAttributes: []string{"xds.cluster_metadata", "xds.cluster_name", "xds.upstream_host_metadata"},
 	}
 	return makeEnvoyHTTPFilter("envoy.filters.http.ext_proc", extProc)
 }
@@ -282,6 +462,15 @@ func (s *ResourceGenerator) clustersFromSnapshotInferenceGateway(cfgSnap *proxyc
 		res = append(res, makeInferenceExtProcCluster(ig.GatewayConfig.Processor.UDSPath))
 	}
 
+	// The rate-limit counter store, reached as a Connect mesh upstream (mTLS).
+	if sn := ig.StateStoreService; sn.Name != "" {
+		storeCluster, err := s.makeInferenceStateStoreCluster(cfgSnap, sn)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, storeCluster)
+	}
+
 	upstreamOpts, err := makeInferenceUpstreamHTTPOptions(ig.GatewayConfig)
 	if err != nil {
 		return nil, err
@@ -294,6 +483,20 @@ func (s *ResourceGenerator) clustersFromSnapshotInferenceGateway(cfgSnap *proxyc
 			"envoy.extensions.upstreams.http.v3.HttpProtocolOptions": upstreamOpts,
 		}
 		res = append(res, cluster)
+	}
+
+	// Render one pool cluster per capability that has two or more discovered
+	// members. It carries the same upstream ext_proc chain but NO cluster-level
+	// consul.ai metadata: the adapter/model live on each endpoint (per priority
+	// tier), so the processor resolves them from the selected host's metadata.
+	for _, capability := range sortedCapabilities(ig.Models) {
+		if tiers := capabilityTiers(ig.Models, capability); tierMemberCount(tiers) >= 2 {
+			pool := s.makeGatewayCluster(cfgSnap, clusterOpts{name: inferencePoolClusterName(capability)})
+			pool.TypedExtensionProtocolOptions = map[string]*anypb.Any{
+				"envoy.extensions.upstreams.http.v3.HttpProtocolOptions": upstreamOpts,
+			}
+			res = append(res, pool)
+		}
 	}
 
 	return res, nil
@@ -368,12 +571,52 @@ func makeInferenceExtProcCluster(path string) *envoy_cluster_v3.Cluster {
 	}
 }
 
+// makeInferenceStateStoreCluster builds the mesh-upstream EDS cluster for the
+// rate-limit counter store. Unlike the terminating-gateway model clusters this is
+// a Connect upstream: a plain TCP cluster whose transport socket carries the
+// gateway's client cert and validates the store's SPIFFE SAN, so the loopback
+// listener → store hop is mTLS and intention-gated. Endpoints arrive via EDS.
+func (s *ResourceGenerator) makeInferenceStateStoreCluster(cfgSnap *proxycfg.ConfigSnapshot, sn structs.ServiceName) (*envoy_cluster_v3.Cluster, error) {
+	sni := inferenceStateStoreSNI(cfgSnap, sn)
+	transportSocket, err := makeMTLSTransportSocket(cfgSnap, proxycfg.NewUpstreamIDFromServiceName(sn), sni)
+	if err != nil {
+		return nil, err
+	}
+	return &envoy_cluster_v3.Cluster{
+		Name:                 sni,
+		ConnectTimeout:       durationpb.New(5 * time.Second),
+		ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_EDS},
+		EdsClusterConfig: &envoy_cluster_v3.Cluster_EdsClusterConfig{
+			EdsConfig: &envoy_core_v3.ConfigSource{
+				InitialFetchTimeout: cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
+				ResourceApiVersion:  envoy_core_v3.ApiVersion_V3,
+				ConfigSourceSpecifier: &envoy_core_v3.ConfigSource_Ads{
+					Ads: &envoy_core_v3.AggregatedConfigSource{},
+				},
+			},
+		},
+		TransportSocket: transportSocket,
+	}, nil
+}
+
 // endpointsFromSnapshotInferenceGateway builds the EDS load assignments for the
-// discovered model upstreams.
+// discovered model upstreams and (when bound) the rate-limit counter store.
 func (s *ResourceGenerator) endpointsFromSnapshotInferenceGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	ig := &cfgSnap.InferenceGateway
 
-	res := make([]proto.Message, 0, len(ig.Models))
+	res := make([]proto.Message, 0, len(ig.Models)+1)
+
+	if sn := ig.StateStoreService; sn.Name != "" && len(ig.StateStoreNodes) > 0 {
+		res = append(res, makeLoadAssignment(
+			s.Logger,
+			cfgSnap,
+			inferenceStateStoreSNI(cfgSnap, sn),
+			nil,
+			[]loadAssignmentEndpointGroup{{Endpoints: ig.StateStoreNodes}},
+			cfgSnap.Locality,
+		))
+	}
+
 	for _, sn := range sortedModelNames(ig.Models) {
 		m := ig.Models[sn]
 		la := makeLoadAssignment(
@@ -386,14 +629,25 @@ func (s *ResourceGenerator) endpointsFromSnapshotInferenceGateway(cfgSnap *proxy
 		)
 		res = append(res, la)
 	}
+
+	// Each capability pool's load assignment: one priority tier per rank group with
+	// per-endpoint provider metadata (see makeInferencePoolLoadAssignment).
+	for _, capability := range sortedCapabilities(ig.Models) {
+		if tiers := capabilityTiers(ig.Models, capability); tierMemberCount(tiers) >= 2 {
+			res = append(res, makeInferencePoolLoadAssignment(inferencePoolClusterName(capability), ig.Models, tiers))
+		}
+	}
 	return res, nil
 }
 
-// routesForInferenceGateway builds the RDS route config: the downstream ext_proc
-// phase promotes the request body's model to x-ai-model, and the gateway routes
-// that model to the serving backend cluster, with the routing policy's default
-// fallback as the catch-all. The upstream ext_proc filter on the selected cluster
-// then transforms to that backend's native schema.
+// routesForInferenceGateway builds the RDS route config. Selection is by capability
+// only: the caller's x-inference-specialization header is matched against each
+// discovered capability. A capability with one member routes directly to that
+// model's cluster; a capability with two or more members routes to its priority
+// pool cluster with a retry policy, so a retriable failure fails over to the next
+// tier (a different provider). The upstream ext_proc filter on the selected
+// cluster/endpoint then transforms to that backend's native schema. A request with
+// no matching capability hits the catch-all and fails closed (503).
 func (s *ResourceGenerator) routesForInferenceGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	ig := &cfgSnap.InferenceGateway
 
@@ -402,36 +656,25 @@ func (s *ResourceGenerator) routesForInferenceGateway(cfgSnap *proxycfg.ConfigSn
 		Domains: []string{"*"},
 	}
 
-	// Model routes: match the x-ai-model header (the body model the downstream
-	// phase promoted) against each model's `model_family` catalog meta and route to
-	// that model's cluster. A trailing "*" in model_family is a prefix match
-	// (e.g. "gpt-4*"); a model without model_family falls back to its service name.
-	for _, sn := range sortedModelNames(ig.Models) {
-		vh.Routes = append(vh.Routes, &envoy_route_v3.Route{
-			Match: &envoy_route_v3.RouteMatch{
-				PathSpecifier: &envoy_route_v3.RouteMatch_Prefix{Prefix: "/"},
-				Headers: []*envoy_route_v3.HeaderMatcher{{
-					Name: inferenceModelHeader,
-					HeaderMatchSpecifier: &envoy_route_v3.HeaderMatcher_StringMatch{
-						StringMatch: inferenceModelMatcher(ig.Models[sn], sn),
-					},
-				}},
-			},
-			Action: &envoy_route_v3.Route_Route{
-				Route: &envoy_route_v3.RouteAction{
-					ClusterSpecifier: &envoy_route_v3.RouteAction_Cluster{Cluster: sn.Name},
-				},
-			},
-		})
-	}
+	fallback := inferenceFallbackConfig(ig.GatewayConfig)
+	for _, capability := range sortedCapabilities(ig.Models) {
+		tiers := capabilityTiers(ig.Models, capability)
+		if tierMemberCount(tiers) == 0 {
+			continue
+		}
 
-	// Capability routes: match the caller's x-inference-specialization header
-	// against each model's `capabilities` catalog meta and route to that model's
-	// cluster. Selection is Envoy's; the upstream ext_proc filter on the cluster
-	// reads that cluster's consul.ai metadata to transform. These come after the
-	// x-ai-model routes and before the catch-all.
-	for _, cap := range sortedCapabilities(ig.Models) {
-		sn := capabilityModel(ig.Models, cap)
+		action := &envoy_route_v3.RouteAction{}
+		if tierMemberCount(tiers) == 1 {
+			// Single member: route directly to the model's own cluster (its
+			// cluster-level consul.ai metadata drives the upstream transform).
+			action.ClusterSpecifier = &envoy_route_v3.RouteAction_Cluster{Cluster: tiers[0][0].Name}
+		} else {
+			// Two or more members: route to the capability's priority pool with the
+			// failover retry policy. len(tiers) is the number of priority tiers.
+			action.ClusterSpecifier = &envoy_route_v3.RouteAction_Cluster{Cluster: inferencePoolClusterName(capability)}
+			action.RetryPolicy = inferenceFallbackRetryPolicy(len(tiers), fallback)
+		}
+
 		vh.Routes = append(vh.Routes, &envoy_route_v3.Route{
 			Match: &envoy_route_v3.RouteMatch{
 				PathSpecifier: &envoy_route_v3.RouteMatch_Prefix{Prefix: "/"},
@@ -439,38 +682,22 @@ func (s *ResourceGenerator) routesForInferenceGateway(cfgSnap *proxycfg.ConfigSn
 					Name: inferenceSpecializationHeader,
 					HeaderMatchSpecifier: &envoy_route_v3.HeaderMatcher_StringMatch{
 						StringMatch: &envoy_matcher_v3.StringMatcher{
-							MatchPattern: &envoy_matcher_v3.StringMatcher_Exact{Exact: cap},
+							MatchPattern: &envoy_matcher_v3.StringMatcher_Exact{Exact: capability},
 						},
 					},
 				}},
 			},
-			Action: &envoy_route_v3.Route_Route{
-				Route: &envoy_route_v3.RouteAction{
-					ClusterSpecifier: &envoy_route_v3.RouteAction_Cluster{Cluster: sn.Name},
-				},
-			},
+			Action: &envoy_route_v3.Route_Route{Route: action},
 		})
 	}
 
-	// Default catch-all: route to the first configured fallback cluster if one
-	// exists, otherwise return 503 so misrouted requests fail closed.
-	if def := defaultInferenceCluster(ig.GatewayConfig, ig.Models); def != "" {
-		vh.Routes = append(vh.Routes, &envoy_route_v3.Route{
-			Match: &envoy_route_v3.RouteMatch{PathSpecifier: &envoy_route_v3.RouteMatch_Prefix{Prefix: "/"}},
-			Action: &envoy_route_v3.Route_Route{
-				Route: &envoy_route_v3.RouteAction{
-					ClusterSpecifier: &envoy_route_v3.RouteAction_Cluster{Cluster: def},
-				},
-			},
-		})
-	} else {
-		vh.Routes = append(vh.Routes, &envoy_route_v3.Route{
-			Match: &envoy_route_v3.RouteMatch{PathSpecifier: &envoy_route_v3.RouteMatch_Prefix{Prefix: "/"}},
-			Action: &envoy_route_v3.Route_DirectResponse{
-				DirectResponse: &envoy_route_v3.DirectResponseAction{Status: 503},
-			},
-		})
-	}
+	// Catch-all: no matching capability -> 503, fail closed.
+	vh.Routes = append(vh.Routes, &envoy_route_v3.Route{
+		Match: &envoy_route_v3.RouteMatch{PathSpecifier: &envoy_route_v3.RouteMatch_Prefix{Prefix: "/"}},
+		Action: &envoy_route_v3.Route_DirectResponse{
+			DirectResponse: &envoy_route_v3.DirectResponseAction{Status: 503},
+		},
+	})
 
 	return []proto.Message{&envoy_route_v3.RouteConfiguration{
 		Name:         inferenceGatewayListenerName,
@@ -478,70 +705,242 @@ func (s *ResourceGenerator) routesForInferenceGateway(cfgSnap *proxycfg.ConfigSn
 	}}, nil
 }
 
-// defaultInferenceCluster returns the default fallback cluster for the routing
-// policy, if one is both configured and a discovered model.
-func defaultInferenceCluster(cfg *structs.AIGatewayConfigEntry, models map[structs.ServiceName]*proxycfg.InferenceGatewayModel) string {
-	if cfg == nil {
-		return ""
+// modelCapabilities returns the model's advertised capability set (the
+// comma-separated `capabilities` meta, trimmed; empty entries dropped).
+func modelCapabilities(m *proxycfg.InferenceGatewayModel) []string {
+	raw := m.Labels[inferenceCapabilitiesLabel]
+	if raw == "" {
+		return nil
 	}
-	for _, name := range cfg.Routing.FallbackChain {
-		sn := structs.NewServiceName(name, &cfg.EnterpriseMeta)
-		if _, ok := models[sn]; ok {
-			return name
+	var caps []string
+	for _, c := range strings.Split(raw, ",") {
+		if c = strings.TrimSpace(c); c != "" {
+			caps = append(caps, c)
 		}
 	}
-	return ""
+	return caps
 }
 
-// inferenceModelMatcher builds the x-ai-model header matcher for a model route. It
-// matches the model's `model_family` catalog meta: a trailing "*" is a prefix
-// match (e.g. "gpt-4*" serves gpt-4, gpt-4o, ...), otherwise an exact match. A
-// model without model_family falls back to an exact match on its service name so
-// it stays reachable.
-func inferenceModelMatcher(m *proxycfg.InferenceGatewayModel, sn structs.ServiceName) *envoy_matcher_v3.StringMatcher {
-	family := m.Labels[inferenceModelFamilyLabel]
-	if family == "" {
-		return &envoy_matcher_v3.StringMatcher{
-			MatchPattern: &envoy_matcher_v3.StringMatcher_Exact{Exact: sn.Name},
+// modelHasCapability reports whether the model advertises the capability.
+func modelHasCapability(m *proxycfg.InferenceGatewayModel, capability string) bool {
+	for _, c := range modelCapabilities(m) {
+		if c == capability {
+			return true
 		}
 	}
-	if strings.HasSuffix(family, "*") {
-		return &envoy_matcher_v3.StringMatcher{
-			MatchPattern: &envoy_matcher_v3.StringMatcher_Prefix{Prefix: strings.TrimSuffix(family, "*")},
-		}
-	}
-	return &envoy_matcher_v3.StringMatcher{
-		MatchPattern: &envoy_matcher_v3.StringMatcher_Exact{Exact: family},
-	}
+	return false
 }
 
-// sortedCapabilities returns the distinct `capabilities` meta values advertised
-// by the discovered models, in deterministic order.
+// modelPriority returns the model's rank on the (capability, model) edge from the
+// `priority.<capability>` meta, and whether it was set. Lower = higher priority.
+func modelPriority(m *proxycfg.InferenceGatewayModel, capability string) (int, bool) {
+	v, ok := m.Labels[inferencePriorityLabelPrefix+capability]
+	if !ok {
+		return 0, false
+	}
+	n, err := strconv.Atoi(strings.TrimSpace(v))
+	if err != nil {
+		return 0, false
+	}
+	return n, true
+}
+
+// sortedCapabilities returns the distinct capabilities advertised across the
+// discovered models (capabilities is a set), in deterministic order.
 func sortedCapabilities(models map[structs.ServiceName]*proxycfg.InferenceGatewayModel) []string {
 	seen := make(map[string]struct{})
 	for _, m := range models {
-		if cap := m.Labels[inferenceCapabilitiesLabel]; cap != "" {
-			seen[cap] = struct{}{}
+		for _, c := range modelCapabilities(m) {
+			seen[c] = struct{}{}
 		}
 	}
 	caps := make([]string, 0, len(seen))
-	for cap := range seen {
-		caps = append(caps, cap)
+	for c := range seen {
+		caps = append(caps, c)
 	}
 	sort.Strings(caps)
 	return caps
 }
 
-// capabilityModel returns the model chosen to serve a capability. When more than
-// one model advertises it, the first by sorted service name wins (multi-member
-// pools / failover are out of scope for the demo).
-func capabilityModel(models map[structs.ServiceName]*proxycfg.InferenceGatewayModel, cap string) structs.ServiceName {
+// capabilityTiers groups the discovered models advertising `capability` into
+// priority tiers. Models are ordered by their priority.<capability> rank (a missing
+// rank sorts last); models sharing a rank form one tier (active/active, load
+// balanced), and each distinct rank is a lower-priority failover tier. tiers[0] is
+// the primary tier. A model can be primary for one capability and a backup for
+// another because the rank is read per capability.
+func capabilityTiers(models map[structs.ServiceName]*proxycfg.InferenceGatewayModel, capability string) [][]structs.ServiceName {
+	type ranked struct {
+		sn   structs.ServiceName
+		rank int
+		set  bool
+	}
+	var members []ranked
 	for _, sn := range sortedModelNames(models) {
-		if models[sn].Labels[inferenceCapabilitiesLabel] == cap {
-			return sn
+		if !modelHasCapability(models[sn], capability) {
+			continue
+		}
+		rank, set := modelPriority(models[sn], capability)
+		members = append(members, ranked{sn: sn, rank: rank, set: set})
+	}
+	if len(members) == 0 {
+		return nil
+	}
+	sort.SliceStable(members, func(i, j int) bool {
+		a, b := members[i], members[j]
+		if a.set != b.set {
+			return a.set // ranked before unranked
+		}
+		if a.set && a.rank != b.rank {
+			return a.rank < b.rank
+		}
+		return a.sn.String() < b.sn.String()
+	})
+
+	sameTier := func(a, b ranked) bool {
+		return a.set == b.set && (!a.set || a.rank == b.rank)
+	}
+	var tiers [][]structs.ServiceName
+	for i, m := range members {
+		if i == 0 || !sameTier(members[i-1], m) {
+			tiers = append(tiers, nil)
+		}
+		tiers[len(tiers)-1] = append(tiers[len(tiers)-1], m.sn)
+	}
+	return tiers
+}
+
+// tierMemberCount is the total number of members across all tiers.
+func tierMemberCount(tiers [][]structs.ServiceName) int {
+	n := 0
+	for _, t := range tiers {
+		n += len(t)
+	}
+	return n
+}
+
+// makeInferencePoolLoadAssignment builds a capability pool's endpoints: one Envoy
+// priority tier per rank group (tier i → priority i), each endpoint tagged with its
+// member's consul.ai {model, adapter} so the upstream ext_proc filter (reading
+// xds.upstream_host_metadata) transforms for whichever provider Envoy selected.
+// Normal traffic goes to priority 0; the route's retry policy (previous_priorities)
+// moves a retried request onto the next tier.
+func makeInferencePoolLoadAssignment(clusterName string, models map[structs.ServiceName]*proxycfg.InferenceGatewayModel, tiers [][]structs.ServiceName) *envoy_endpoint_v3.ClusterLoadAssignment {
+	cla := &envoy_endpoint_v3.ClusterLoadAssignment{
+		ClusterName: clusterName,
+		Endpoints:   make([]*envoy_endpoint_v3.LocalityLbEndpoints, 0, len(tiers)),
+	}
+	for i, tier := range tiers {
+		var es []*envoy_endpoint_v3.LbEndpoint
+		for _, sn := range tier {
+			m := models[sn]
+			md := makeInferenceClusterMetadata(m)
+			for _, ep := range m.Nodes {
+				_, addr, port := ep.BestAddress(false)
+				healthStatus, weight := calculateEndpointHealthAndWeight(ep, false)
+				es = append(es, &envoy_endpoint_v3.LbEndpoint{
+					HostIdentifier: &envoy_endpoint_v3.LbEndpoint_Endpoint{
+						Endpoint: &envoy_endpoint_v3.Endpoint{Address: response.MakeAddress(addr, port)},
+					},
+					HealthStatus:        healthStatus,
+					LoadBalancingWeight: response.MakeUint32Value(weight),
+					Metadata:            md,
+				})
+			}
+		}
+		cla.Endpoints = append(cla.Endpoints, &envoy_endpoint_v3.LocalityLbEndpoints{
+			Priority:    uint32(i),
+			LbEndpoints: es,
+		})
+	}
+	return cla
+}
+
+// inferenceFallbackConfig returns the entry's fallback behavior block, or nil.
+func inferenceFallbackConfig(cfg *structs.AIGatewayConfigEntry) *structs.AIGatewayFallback {
+	if cfg == nil {
+		return nil
+	}
+	return cfg.Routing.Fallback
+}
+
+// inferenceFallbackRetryPolicy builds the route retry policy that drives failover
+// across a capability pool's priority tiers. A retriable upstream response is
+// retried; the previous_priorities predicate excludes already-tried priorities
+// (moving the retry to the next provider tier) and previous_hosts excludes
+// already-tried hosts — so 401 is safe to retry (it lands on a different provider).
+// numTiers-1 retries let a request walk every tier once, capped by MaxTiers.
+// Behavior (retriable conditions, tier cap, per-try timeout) comes from the entry's
+// Routing.Fallback block; an absent block uses the built-in defaults.
+func inferenceFallbackRetryPolicy(numTiers int, fb *structs.AIGatewayFallback) *envoy_route_v3.RetryPolicy {
+	retryOn, codes := inferenceRetryOn(fb)
+
+	numRetries := numTiers - 1
+	if fb != nil && fb.MaxTiers > 0 && fb.MaxTiers-1 < numRetries {
+		numRetries = fb.MaxTiers - 1
+	}
+	if numRetries < 0 {
+		numRetries = 0
+	}
+
+	prevPriorities, _ := anypb.New(&envoy_retry_priority_v3.PreviousPrioritiesConfig{UpdateFrequency: 1})
+	prevHosts, _ := anypb.New(&envoy_retry_host_v3.PreviousHostsPredicate{})
+	rp := &envoy_route_v3.RetryPolicy{
+		RetryOn:                       retryOn,
+		RetriableStatusCodes:          codes,
+		NumRetries:                    wrapperspb.UInt32(uint32(numRetries)),
+		HostSelectionRetryMaxAttempts: 5,
+		RetryHostPredicate: []*envoy_route_v3.RetryPolicy_RetryHostPredicate{{
+			Name:       "envoy.retry_host_predicates.previous_hosts",
+			ConfigType: &envoy_route_v3.RetryPolicy_RetryHostPredicate_TypedConfig{TypedConfig: prevHosts},
+		}},
+		RetryPriority: &envoy_route_v3.RetryPolicy_RetryPriority{
+			Name:       "envoy.retry_priorities.previous_priorities",
+			ConfigType: &envoy_route_v3.RetryPolicy_RetryPriority_TypedConfig{TypedConfig: prevPriorities},
+		},
+	}
+	if fb != nil && fb.PerTryTimeout != "" {
+		if d, err := time.ParseDuration(fb.PerTryTimeout); err == nil {
+			rp.PerTryTimeout = durationpb.New(d)
 		}
 	}
-	return structs.ServiceName{}
+	return rp
+}
+
+// inferenceRetryOn translates the Fallback.RetryOn tokens into Envoy's retry_on
+// string plus explicit retriable status codes. Numeric tokens ("401") become status
+// codes (and imply "retriable-status-codes"); named tokens ("5xx", "reset",
+// "connect-failure") pass through. An absent/empty block uses the default set.
+func inferenceRetryOn(fb *structs.AIGatewayFallback) (string, []uint32) {
+	if fb == nil || len(fb.RetryOn) == 0 {
+		return "retriable-status-codes,5xx,reset,connect-failure", []uint32{401}
+	}
+	var tokens []string
+	var codes []uint32
+	hasCodes := false
+	for _, t := range fb.RetryOn {
+		if t = strings.TrimSpace(t); t == "" {
+			continue
+		}
+		if n, err := strconv.Atoi(t); err == nil {
+			codes = append(codes, uint32(n))
+			hasCodes = true
+			continue
+		}
+		tokens = append(tokens, t)
+	}
+	if hasCodes {
+		found := false
+		for _, t := range tokens {
+			if t == "retriable-status-codes" {
+				found = true
+				break
+			}
+		}
+		if !found {
+			tokens = append([]string{"retriable-status-codes"}, tokens...)
+		}
+	}
+	return strings.Join(tokens, ","), codes
 }
 
 func sortedModelNames(models map[structs.ServiceName]*proxycfg.InferenceGatewayModel) []structs.ServiceName {

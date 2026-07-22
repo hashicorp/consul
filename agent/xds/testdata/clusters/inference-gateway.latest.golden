@@ -80,7 +80,8 @@
                 },
                 "requestAttributes": [
                   "xds.cluster_metadata",
-                  "xds.cluster_name"
+                  "xds.cluster_name",
+                  "xds.upstream_host_metadata"
                 ]
               }
             },

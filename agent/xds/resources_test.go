@@ -161,6 +161,12 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name: "inference-gateway-ratelimit",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotInferenceGatewayRateLimit(t, nil, nil)
+			},
+		},
+		{
 			name:   "telemetry-collector",
 			create: proxycfg.TestConfigSnapshotTelemetryCollector,
 		},
