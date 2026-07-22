@@ -120,6 +120,123 @@ func TestAIGatewayConfigEntry_PolicyRoundTrip(t *testing.T) {
 	assertPolicy(t, &back)
 }
 
+// TestAIGatewayConfigEntry_RateLimitRoundTrip verifies the RateLimit + StateStore
+// blocks decode from a written config entry and round-trip through JSON unchanged —
+// the same verbatim-storage path Policy uses (no proto/mog codegen involved), which
+// is how the co-located processor reads limits back over the HTTP config-entry API.
+func TestAIGatewayConfigEntry_RateLimitRoundTrip(t *testing.T) {
+	raw := map[string]interface{}{
+		"Kind": AIGateway,
+		"Name": "travel-inference-gateway",
+		"StateStore": map[string]interface{}{
+			"Service":       "valkey",
+			"LocalBindPort": 6379,
+		},
+		"RateLimit": map[string]interface{}{
+			"Enabled":                  true,
+			"Enforcement":              "deny",
+			"CountMode":                "total",
+			"DegradeMode":              "fail_closed",
+			"Dimensions":  []interface{}{"agent", "tier", "global", "model"},
+			"Default": map[string]interface{}{
+				"Requests": map[string]interface{}{"Count": 60},
+				"Tokens":   map[string]interface{}{"Count": 10000},
+			},
+			"Global": map[string]interface{}{
+				"Requests": map[string]interface{}{"Count": 20000},
+				"Tokens":   map[string]interface{}{"Count": 1000000},
+			},
+			"TierLimits": []interface{}{
+				map[string]interface{}{"Tier": "standard", "Requests": map[string]interface{}{"Count": 100}, "Tokens": map[string]interface{}{"Count": 20000, "Unit": "day"}, "MaxCompletionTokensCap": 4096},
+			},
+			"ModelLimits": []interface{}{
+				map[string]interface{}{"Model": "gpt-4o", "Requests": map[string]interface{}{"Count": 30}, "Tokens": map[string]interface{}{"Count": 8000}},
+			},
+			"TierBindings": []interface{}{
+				map[string]interface{}{"Tier": "standard", "Partition": "default"},
+			},
+		},
+	}
+
+	decoded, err := DecodeConfigEntry(raw)
+	require.NoError(t, err, "unrecognized RateLimit/StateStore keys would fail decode")
+	entry, ok := decoded.(*AIGatewayConfigEntry)
+	require.True(t, ok)
+
+	assertRL := func(t *testing.T, e *AIGatewayConfigEntry) {
+		t.Helper()
+		require.NotNil(t, e.StateStore)
+		require.Equal(t, "valkey", e.StateStore.Service)
+		require.Equal(t, 6379, e.StateStore.LocalBindPort)
+		require.NotNil(t, e.RateLimit)
+		require.True(t, e.RateLimit.Enabled)
+		require.Equal(t, "deny", e.RateLimit.Enforcement)
+		require.Equal(t, []string{"agent", "tier", "global", "model"}, e.RateLimit.Dimensions)
+		require.NotNil(t, e.RateLimit.Default)
+		require.Equal(t, &AIGatewayLimit{Count: 10000}, e.RateLimit.Default.Tokens)
+		require.NotNil(t, e.RateLimit.Global)
+		require.Equal(t, &AIGatewayLimit{Count: 1000000}, e.RateLimit.Global.Tokens)
+		require.Equal(t, []AIGatewayTierLimit{{Tier: "standard", Requests: &AIGatewayLimit{Count: 100}, Tokens: &AIGatewayLimit{Count: 20000, Unit: "day"}, MaxCompletionTokensCap: 4096}}, e.RateLimit.TierLimits)
+		require.Equal(t, []AIGatewayModelLimit{{Model: "gpt-4o", Requests: &AIGatewayLimit{Count: 30}, Tokens: &AIGatewayLimit{Count: 8000}}}, e.RateLimit.ModelLimits)
+		require.Equal(t, []AIGatewayTierBinding{{Tier: "standard", Partition: "default"}}, e.RateLimit.TierBindings)
+	}
+
+	assertRL(t, entry)
+	require.NoError(t, entry.Normalize())
+	require.NoError(t, entry.Validate())
+
+	encoded, err := json.Marshal(entry)
+	require.NoError(t, err)
+	var back AIGatewayConfigEntry
+	require.NoError(t, json.Unmarshal(encoded, &back))
+	assertRL(t, &back)
+}
+
+// TestAIGatewayConfigEntry_ValidateRateLimit exercises the write-time gate on the
+// RateLimit policy and its backing StateStore.
+func TestAIGatewayConfigEntry_ValidateRateLimit(t *testing.T) {
+	base := func() *AIGatewayConfigEntry {
+		return &AIGatewayConfigEntry{
+			Name:       "gw",
+			StateStore: &AIGatewayStateStore{Service: "valkey", LocalBindPort: 6379},
+			RateLimit: &AIGatewayRateLimit{
+				Enabled:      true,
+				Enforcement:  "deny",
+				Dimensions:   []string{"tier", "global"},
+				TierLimits:   []AIGatewayTierLimit{{Tier: "standard", Requests: &AIGatewayLimit{Count: 100}}},
+				TierBindings: []AIGatewayTierBinding{{Tier: "standard", Partition: "default"}},
+			},
+		}
+	}
+	cases := map[string]struct {
+		mutate func(*AIGatewayConfigEntry)
+		errMsg string
+	}{
+		"valid":            {mutate: func(e *AIGatewayConfigEntry) {}},
+		"disabled skips":   {mutate: func(e *AIGatewayConfigEntry) { e.RateLimit.Enabled = false; e.StateStore = nil }},
+		"bad enforcement":  {mutate: func(e *AIGatewayConfigEntry) { e.RateLimit.Enforcement = "throttle" }, errMsg: "RateLimit.Enforcement"},
+		"strict rejected":  {mutate: func(e *AIGatewayConfigEntry) { e.RateLimit.Mode = "strict" }, errMsg: "not implemented"},
+		"bad dimension":    {mutate: func(e *AIGatewayConfigEntry) { e.RateLimit.Dimensions = []string{"provider"} }, errMsg: "unsupported dimension"},
+		"dup tier":         {mutate: func(e *AIGatewayConfigEntry) { e.RateLimit.TierLimits = append(e.RateLimit.TierLimits, AIGatewayTierLimit{Tier: "standard"}) }, errMsg: "declared more than once"},
+		"binding no tier":  {mutate: func(e *AIGatewayConfigEntry) { e.RateLimit.TierBindings[0].Tier = "gold" }, errMsg: "references a tier with no TierLimit"},
+		"bad unit":         {mutate: func(e *AIGatewayConfigEntry) { e.RateLimit.TierLimits[0].Tokens = &AIGatewayLimit{Count: 10, Unit: "week"} }, errMsg: "invalid Unit"},
+		"missing store":    {mutate: func(e *AIGatewayConfigEntry) { e.StateStore = nil }, errMsg: "requires a StateStore"},
+		"bad bind port":    {mutate: func(e *AIGatewayConfigEntry) { e.StateStore.LocalBindPort = 0 }, errMsg: "LocalBindPort"},
+	}
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			e := base()
+			c.mutate(e)
+			err := e.Validate()
+			if c.errMsg == "" {
+				require.NoError(t, err)
+			} else {
+				require.ErrorContains(t, err, c.errMsg)
+			}
+		})
+	}
+}
+
 // TestAIGatewayConfigEntry_NoPolicyOmitted verifies an entry without a Policy
 // block marshals it away (omitempty) so existing entries are byte-identical.
 func TestAIGatewayConfigEntry_NoPolicyOmitted(t *testing.T) {

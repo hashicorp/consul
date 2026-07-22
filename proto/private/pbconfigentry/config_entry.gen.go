@@ -15,6 +15,16 @@ func AIGatewayToStructs(s *AIGateway, t *structs.AIGatewayConfigEntry) {
 	if s.Routing != nil {
 		AIGatewayRoutingToStructs(s.Routing, &t.Routing)
 	}
+	if s.RateLimit != nil {
+		var x structs.AIGatewayRateLimit
+		AIGatewayRateLimitToStructs(s.RateLimit, &x)
+		t.RateLimit = &x
+	}
+	if s.StateStore != nil {
+		var x structs.AIGatewayStateStore
+		AIGatewayStateStoreToStructs(s.StateStore, &x)
+		t.StateStore = &x
+	}
 	t.Meta = s.Meta
 	t.Hash = s.Hash
 }
@@ -32,6 +42,16 @@ func AIGatewayFromStructs(t *structs.AIGatewayConfigEntry, s *AIGateway) {
 		var x AIGatewayRouting
 		AIGatewayRoutingFromStructs(&t.Routing, &x)
 		s.Routing = &x
+	}
+	if t.RateLimit != nil {
+		var x AIGatewayRateLimit
+		AIGatewayRateLimitFromStructs(t.RateLimit, &x)
+		s.RateLimit = &x
+	}
+	if t.StateStore != nil {
+		var x AIGatewayStateStore
+		AIGatewayStateStoreFromStructs(t.StateStore, &x)
+		s.StateStore = &x
 	}
 	s.Meta = t.Meta
 	s.Hash = t.Hash
@@ -51,6 +71,50 @@ func AIGatewayIdentityMatchFromStructs(t *structs.AIGatewayIdentityMatch, s *AIG
 	s.Service = t.Service
 	s.Partition = t.Partition
 	s.Namespace = t.Namespace
+}
+func AIGatewayLimitToStructs(s *AIGatewayLimit, t *structs.AIGatewayLimit) {
+	if s == nil {
+		return
+	}
+	t.Count = int(s.Count)
+	t.Unit = s.Unit
+}
+func AIGatewayLimitFromStructs(t *structs.AIGatewayLimit, s *AIGatewayLimit) {
+	if s == nil {
+		return
+	}
+	s.Count = int32(t.Count)
+	s.Unit = t.Unit
+}
+func AIGatewayLimitPairToStructs(s *AIGatewayLimitPair, t *structs.AIGatewayLimitPair) {
+	if s == nil {
+		return
+	}
+	if s.Requests != nil {
+		var x structs.AIGatewayLimit
+		AIGatewayLimitToStructs(s.Requests, &x)
+		t.Requests = &x
+	}
+	if s.Tokens != nil {
+		var x structs.AIGatewayLimit
+		AIGatewayLimitToStructs(s.Tokens, &x)
+		t.Tokens = &x
+	}
+}
+func AIGatewayLimitPairFromStructs(t *structs.AIGatewayLimitPair, s *AIGatewayLimitPair) {
+	if s == nil {
+		return
+	}
+	if t.Requests != nil {
+		var x AIGatewayLimit
+		AIGatewayLimitFromStructs(t.Requests, &x)
+		s.Requests = &x
+	}
+	if t.Tokens != nil {
+		var x AIGatewayLimit
+		AIGatewayLimitFromStructs(t.Tokens, &x)
+		s.Tokens = &x
+	}
 }
 func AIGatewayMatchToStructs(s *AIGatewayMatch, t *structs.AIGatewayMatch) {
 	if s == nil {
@@ -100,6 +164,38 @@ func AIGatewayMatchRuleFromStructs(t *structs.AIGatewayMatchRule, s *AIGatewayMa
 	s.Candidates = t.Candidates
 	s.FallbackChain = t.FallbackChain
 }
+func AIGatewayModelLimitToStructs(s *AIGatewayModelLimit, t *structs.AIGatewayModelLimit) {
+	if s == nil {
+		return
+	}
+	t.Model = s.Model
+	if s.Requests != nil {
+		var x structs.AIGatewayLimit
+		AIGatewayLimitToStructs(s.Requests, &x)
+		t.Requests = &x
+	}
+	if s.Tokens != nil {
+		var x structs.AIGatewayLimit
+		AIGatewayLimitToStructs(s.Tokens, &x)
+		t.Tokens = &x
+	}
+}
+func AIGatewayModelLimitFromStructs(t *structs.AIGatewayModelLimit, s *AIGatewayModelLimit) {
+	if s == nil {
+		return
+	}
+	s.Model = t.Model
+	if t.Requests != nil {
+		var x AIGatewayLimit
+		AIGatewayLimitFromStructs(t.Requests, &x)
+		s.Requests = &x
+	}
+	if t.Tokens != nil {
+		var x AIGatewayLimit
+		AIGatewayLimitFromStructs(t.Tokens, &x)
+		s.Tokens = &x
+	}
+}
 func AIGatewayProcessorToStructs(s *AIGatewayProcessor, t *structs.AIGatewayProcessor) {
 	if s == nil {
 		return
@@ -113,6 +209,102 @@ func AIGatewayProcessorFromStructs(t *structs.AIGatewayProcessor, s *AIGatewayPr
 	}
 	s.UDSPath = t.UDSPath
 	s.FailureMode = t.FailureMode
+}
+func AIGatewayRateLimitToStructs(s *AIGatewayRateLimit, t *structs.AIGatewayRateLimit) {
+	if s == nil {
+		return
+	}
+	t.Enabled = s.Enabled
+	t.Enforcement = s.Enforcement
+	t.Mode = s.Mode
+	t.CountMode = s.CountMode
+	t.Dimensions = s.Dimensions
+	t.DegradeMode = s.DegradeMode
+	if s.Default != nil {
+		var x structs.AIGatewayLimitPair
+		AIGatewayLimitPairToStructs(s.Default, &x)
+		t.Default = &x
+	}
+	if s.Global != nil {
+		var x structs.AIGatewayLimitPair
+		AIGatewayLimitPairToStructs(s.Global, &x)
+		t.Global = &x
+	}
+	{
+		t.TierLimits = make([]structs.AIGatewayTierLimit, len(s.TierLimits))
+		for i := range s.TierLimits {
+			if s.TierLimits[i] != nil {
+				AIGatewayTierLimitToStructs(s.TierLimits[i], &t.TierLimits[i])
+			}
+		}
+	}
+	{
+		t.ModelLimits = make([]structs.AIGatewayModelLimit, len(s.ModelLimits))
+		for i := range s.ModelLimits {
+			if s.ModelLimits[i] != nil {
+				AIGatewayModelLimitToStructs(s.ModelLimits[i], &t.ModelLimits[i])
+			}
+		}
+	}
+	{
+		t.TierBindings = make([]structs.AIGatewayTierBinding, len(s.TierBindings))
+		for i := range s.TierBindings {
+			if s.TierBindings[i] != nil {
+				AIGatewayTierBindingToStructs(s.TierBindings[i], &t.TierBindings[i])
+			}
+		}
+	}
+}
+func AIGatewayRateLimitFromStructs(t *structs.AIGatewayRateLimit, s *AIGatewayRateLimit) {
+	if s == nil {
+		return
+	}
+	s.Enabled = t.Enabled
+	s.Enforcement = t.Enforcement
+	s.Mode = t.Mode
+	s.CountMode = t.CountMode
+	s.Dimensions = t.Dimensions
+	s.DegradeMode = t.DegradeMode
+	if t.Default != nil {
+		var x AIGatewayLimitPair
+		AIGatewayLimitPairFromStructs(t.Default, &x)
+		s.Default = &x
+	}
+	if t.Global != nil {
+		var x AIGatewayLimitPair
+		AIGatewayLimitPairFromStructs(t.Global, &x)
+		s.Global = &x
+	}
+	{
+		s.TierLimits = make([]*AIGatewayTierLimit, len(t.TierLimits))
+		for i := range t.TierLimits {
+			{
+				var x AIGatewayTierLimit
+				AIGatewayTierLimitFromStructs(&t.TierLimits[i], &x)
+				s.TierLimits[i] = &x
+			}
+		}
+	}
+	{
+		s.ModelLimits = make([]*AIGatewayModelLimit, len(t.ModelLimits))
+		for i := range t.ModelLimits {
+			{
+				var x AIGatewayModelLimit
+				AIGatewayModelLimitFromStructs(&t.ModelLimits[i], &x)
+				s.ModelLimits[i] = &x
+			}
+		}
+	}
+	{
+		s.TierBindings = make([]*AIGatewayTierBinding, len(t.TierBindings))
+		for i := range t.TierBindings {
+			{
+				var x AIGatewayTierBinding
+				AIGatewayTierBindingFromStructs(&t.TierBindings[i], &x)
+				s.TierBindings[i] = &x
+			}
+		}
+	}
 }
 func AIGatewayRetryToStructs(s *AIGatewayRetry, t *structs.AIGatewayRetry) {
 	if s == nil {
@@ -219,6 +411,72 @@ func AIGatewayScoringFromStructs(t *structs.AIGatewayScoring, s *AIGatewayScorin
 			}
 		}
 	}
+}
+func AIGatewayStateStoreToStructs(s *AIGatewayStateStore, t *structs.AIGatewayStateStore) {
+	if s == nil {
+		return
+	}
+	t.Service = s.Service
+	t.LocalBindPort = int(s.LocalBindPort)
+}
+func AIGatewayStateStoreFromStructs(t *structs.AIGatewayStateStore, s *AIGatewayStateStore) {
+	if s == nil {
+		return
+	}
+	s.Service = t.Service
+	s.LocalBindPort = int32(t.LocalBindPort)
+}
+func AIGatewayTierBindingToStructs(s *AIGatewayTierBinding, t *structs.AIGatewayTierBinding) {
+	if s == nil {
+		return
+	}
+	t.Tier = s.Tier
+	t.SPIFFEIDs = s.SPIFFEIDs
+	t.Partition = s.Partition
+	t.Namespace = s.Namespace
+}
+func AIGatewayTierBindingFromStructs(t *structs.AIGatewayTierBinding, s *AIGatewayTierBinding) {
+	if s == nil {
+		return
+	}
+	s.Tier = t.Tier
+	s.SPIFFEIDs = t.SPIFFEIDs
+	s.Partition = t.Partition
+	s.Namespace = t.Namespace
+}
+func AIGatewayTierLimitToStructs(s *AIGatewayTierLimit, t *structs.AIGatewayTierLimit) {
+	if s == nil {
+		return
+	}
+	t.Tier = s.Tier
+	if s.Requests != nil {
+		var x structs.AIGatewayLimit
+		AIGatewayLimitToStructs(s.Requests, &x)
+		t.Requests = &x
+	}
+	if s.Tokens != nil {
+		var x structs.AIGatewayLimit
+		AIGatewayLimitToStructs(s.Tokens, &x)
+		t.Tokens = &x
+	}
+	t.MaxCompletionTokensCap = int(s.MaxCompletionTokensCap)
+}
+func AIGatewayTierLimitFromStructs(t *structs.AIGatewayTierLimit, s *AIGatewayTierLimit) {
+	if s == nil {
+		return
+	}
+	s.Tier = t.Tier
+	if t.Requests != nil {
+		var x AIGatewayLimit
+		AIGatewayLimitFromStructs(t.Requests, &x)
+		s.Requests = &x
+	}
+	if t.Tokens != nil {
+		var x AIGatewayLimit
+		AIGatewayLimitFromStructs(t.Tokens, &x)
+		s.Tokens = &x
+	}
+	s.MaxCompletionTokensCap = int32(t.MaxCompletionTokensCap)
 }
 func AIGatewayTimeoutToStructs(s *AIGatewayTimeout, t *structs.AIGatewayTimeout) {
 	if s == nil {

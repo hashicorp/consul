@@ -8673,7 +8673,7 @@ func (x *ExportedServicesConsumer) GetSamenessGroup() string {
 // target=github.com/hashicorp/consul/agent/structs.AIGatewayConfigEntry
 // output=config_entry.gen.go
 // name=Structs
-// ignore-fields=Name,Kind,RaftIndex,EnterpriseMeta
+// ignore-fields=Name,Kind,RaftIndex,EnterpriseMeta,Policy
 type AIGateway struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Processor     *AIGatewayProcessor    `protobuf:"bytes,1,opt,name=Processor,proto3" json:"Processor,omitempty"`
@@ -8681,6 +8681,8 @@ type AIGateway struct {
 	Routing       *AIGatewayRouting      `protobuf:"bytes,3,opt,name=Routing,proto3" json:"Routing,omitempty"`
 	Meta          map[string]string      `protobuf:"bytes,4,rep,name=Meta,proto3" json:"Meta,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	Hash          uint64                 `protobuf:"varint,5,opt,name=Hash,proto3" json:"Hash,omitempty"`
+	RateLimit     *AIGatewayRateLimit    `protobuf:"bytes,6,opt,name=RateLimit,proto3" json:"RateLimit,omitempty"`
+	StateStore    *AIGatewayStateStore   `protobuf:"bytes,7,opt,name=StateStore,proto3" json:"StateStore,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -8750,6 +8752,20 @@ func (x *AIGateway) GetHash() uint64 {
 	return 0
 }
 
+func (x *AIGateway) GetRateLimit() *AIGatewayRateLimit {
+	if x != nil {
+		return x.RateLimit
+	}
+	return nil
+}
+
+func (x *AIGateway) GetStateStore() *AIGatewayStateStore {
+	if x != nil {
+		return x.StateStore
+	}
+	return nil
+}
+
 // mog annotation:
 //
 // target=github.com/hashicorp/consul/agent/structs.AIGatewayProcessor
@@ -8812,7 +8828,7 @@ func (x *AIGatewayProcessor) GetFailureMode() string {
 // target=github.com/hashicorp/consul/agent/structs.AIGatewayRouting
 // output=config_entry.gen.go
 // name=Structs
-// ignore-fields=ComplianceMap,Budget,Cache,Mirror
+// ignore-fields=ComplianceMap,Budget,Cache,Mirror,Fallback
 type AIGatewayRouting struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
 	MatchRules       []*AIGatewayMatchRule  `protobuf:"bytes,1,rep,name=MatchRules,proto3" json:"MatchRules,omitempty"`
@@ -9328,6 +9344,520 @@ func (x *AIGatewayWeightedTarget) GetWeight() int32 {
 		return x.Weight
 	}
 	return 0
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.AIGatewayStateStore
+// output=config_entry.gen.go
+// name=Structs
+type AIGatewayStateStore struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Service string                 `protobuf:"bytes,1,opt,name=Service,proto3" json:"Service,omitempty"`
+	// mog: func-to=int func-from=int32
+	LocalBindPort int32 `protobuf:"varint,2,opt,name=LocalBindPort,proto3" json:"LocalBindPort,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AIGatewayStateStore) Reset() {
+	*x = AIGatewayStateStore{}
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[119]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AIGatewayStateStore) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AIGatewayStateStore) ProtoMessage() {}
+
+func (x *AIGatewayStateStore) ProtoReflect() protoreflect.Message {
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[119]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AIGatewayStateStore.ProtoReflect.Descriptor instead.
+func (*AIGatewayStateStore) Descriptor() ([]byte, []int) {
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{119}
+}
+
+func (x *AIGatewayStateStore) GetService() string {
+	if x != nil {
+		return x.Service
+	}
+	return ""
+}
+
+func (x *AIGatewayStateStore) GetLocalBindPort() int32 {
+	if x != nil {
+		return x.LocalBindPort
+	}
+	return 0
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.AIGatewayRateLimit
+// output=config_entry.gen.go
+// name=Structs
+type AIGatewayRateLimit struct {
+	state         protoimpl.MessageState  `protogen:"open.v1"`
+	Enabled       bool                    `protobuf:"varint,1,opt,name=Enabled,proto3" json:"Enabled,omitempty"`
+	Enforcement   string                  `protobuf:"bytes,2,opt,name=Enforcement,proto3" json:"Enforcement,omitempty"`
+	Mode          string                  `protobuf:"bytes,3,opt,name=Mode,proto3" json:"Mode,omitempty"`
+	CountMode     string                  `protobuf:"bytes,4,opt,name=CountMode,proto3" json:"CountMode,omitempty"`
+	Dimensions    []string                `protobuf:"bytes,5,rep,name=Dimensions,proto3" json:"Dimensions,omitempty"`
+	DegradeMode   string                  `protobuf:"bytes,6,opt,name=DegradeMode,proto3" json:"DegradeMode,omitempty"`
+	Default       *AIGatewayLimitPair     `protobuf:"bytes,7,opt,name=Default,proto3" json:"Default,omitempty"`
+	Global        *AIGatewayLimitPair     `protobuf:"bytes,8,opt,name=Global,proto3" json:"Global,omitempty"`
+	TierLimits    []*AIGatewayTierLimit   `protobuf:"bytes,9,rep,name=TierLimits,proto3" json:"TierLimits,omitempty"`
+	ModelLimits   []*AIGatewayModelLimit  `protobuf:"bytes,10,rep,name=ModelLimits,proto3" json:"ModelLimits,omitempty"`
+	TierBindings  []*AIGatewayTierBinding `protobuf:"bytes,11,rep,name=TierBindings,proto3" json:"TierBindings,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AIGatewayRateLimit) Reset() {
+	*x = AIGatewayRateLimit{}
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[120]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AIGatewayRateLimit) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AIGatewayRateLimit) ProtoMessage() {}
+
+func (x *AIGatewayRateLimit) ProtoReflect() protoreflect.Message {
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[120]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AIGatewayRateLimit.ProtoReflect.Descriptor instead.
+func (*AIGatewayRateLimit) Descriptor() ([]byte, []int) {
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{120}
+}
+
+func (x *AIGatewayRateLimit) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
+func (x *AIGatewayRateLimit) GetEnforcement() string {
+	if x != nil {
+		return x.Enforcement
+	}
+	return ""
+}
+
+func (x *AIGatewayRateLimit) GetMode() string {
+	if x != nil {
+		return x.Mode
+	}
+	return ""
+}
+
+func (x *AIGatewayRateLimit) GetCountMode() string {
+	if x != nil {
+		return x.CountMode
+	}
+	return ""
+}
+
+func (x *AIGatewayRateLimit) GetDimensions() []string {
+	if x != nil {
+		return x.Dimensions
+	}
+	return nil
+}
+
+func (x *AIGatewayRateLimit) GetDegradeMode() string {
+	if x != nil {
+		return x.DegradeMode
+	}
+	return ""
+}
+
+func (x *AIGatewayRateLimit) GetDefault() *AIGatewayLimitPair {
+	if x != nil {
+		return x.Default
+	}
+	return nil
+}
+
+func (x *AIGatewayRateLimit) GetGlobal() *AIGatewayLimitPair {
+	if x != nil {
+		return x.Global
+	}
+	return nil
+}
+
+func (x *AIGatewayRateLimit) GetTierLimits() []*AIGatewayTierLimit {
+	if x != nil {
+		return x.TierLimits
+	}
+	return nil
+}
+
+func (x *AIGatewayRateLimit) GetModelLimits() []*AIGatewayModelLimit {
+	if x != nil {
+		return x.ModelLimits
+	}
+	return nil
+}
+
+func (x *AIGatewayRateLimit) GetTierBindings() []*AIGatewayTierBinding {
+	if x != nil {
+		return x.TierBindings
+	}
+	return nil
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.AIGatewayLimit
+// output=config_entry.gen.go
+// name=Structs
+type AIGatewayLimit struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// mog: func-to=int func-from=int32
+	Count         int32  `protobuf:"varint,1,opt,name=Count,proto3" json:"Count,omitempty"`
+	Unit          string `protobuf:"bytes,2,opt,name=Unit,proto3" json:"Unit,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AIGatewayLimit) Reset() {
+	*x = AIGatewayLimit{}
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[121]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AIGatewayLimit) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AIGatewayLimit) ProtoMessage() {}
+
+func (x *AIGatewayLimit) ProtoReflect() protoreflect.Message {
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[121]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AIGatewayLimit.ProtoReflect.Descriptor instead.
+func (*AIGatewayLimit) Descriptor() ([]byte, []int) {
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{121}
+}
+
+func (x *AIGatewayLimit) GetCount() int32 {
+	if x != nil {
+		return x.Count
+	}
+	return 0
+}
+
+func (x *AIGatewayLimit) GetUnit() string {
+	if x != nil {
+		return x.Unit
+	}
+	return ""
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.AIGatewayLimitPair
+// output=config_entry.gen.go
+// name=Structs
+type AIGatewayLimitPair struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Requests      *AIGatewayLimit        `protobuf:"bytes,1,opt,name=Requests,proto3" json:"Requests,omitempty"`
+	Tokens        *AIGatewayLimit        `protobuf:"bytes,2,opt,name=Tokens,proto3" json:"Tokens,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AIGatewayLimitPair) Reset() {
+	*x = AIGatewayLimitPair{}
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[122]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AIGatewayLimitPair) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AIGatewayLimitPair) ProtoMessage() {}
+
+func (x *AIGatewayLimitPair) ProtoReflect() protoreflect.Message {
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[122]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AIGatewayLimitPair.ProtoReflect.Descriptor instead.
+func (*AIGatewayLimitPair) Descriptor() ([]byte, []int) {
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{122}
+}
+
+func (x *AIGatewayLimitPair) GetRequests() *AIGatewayLimit {
+	if x != nil {
+		return x.Requests
+	}
+	return nil
+}
+
+func (x *AIGatewayLimitPair) GetTokens() *AIGatewayLimit {
+	if x != nil {
+		return x.Tokens
+	}
+	return nil
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.AIGatewayTierLimit
+// output=config_entry.gen.go
+// name=Structs
+type AIGatewayTierLimit struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Tier     string                 `protobuf:"bytes,1,opt,name=Tier,proto3" json:"Tier,omitempty"`
+	Requests *AIGatewayLimit        `protobuf:"bytes,2,opt,name=Requests,proto3" json:"Requests,omitempty"`
+	Tokens   *AIGatewayLimit        `protobuf:"bytes,3,opt,name=Tokens,proto3" json:"Tokens,omitempty"`
+	// mog: func-to=int func-from=int32
+	MaxCompletionTokensCap int32 `protobuf:"varint,4,opt,name=MaxCompletionTokensCap,proto3" json:"MaxCompletionTokensCap,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *AIGatewayTierLimit) Reset() {
+	*x = AIGatewayTierLimit{}
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[123]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AIGatewayTierLimit) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AIGatewayTierLimit) ProtoMessage() {}
+
+func (x *AIGatewayTierLimit) ProtoReflect() protoreflect.Message {
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[123]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AIGatewayTierLimit.ProtoReflect.Descriptor instead.
+func (*AIGatewayTierLimit) Descriptor() ([]byte, []int) {
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{123}
+}
+
+func (x *AIGatewayTierLimit) GetTier() string {
+	if x != nil {
+		return x.Tier
+	}
+	return ""
+}
+
+func (x *AIGatewayTierLimit) GetRequests() *AIGatewayLimit {
+	if x != nil {
+		return x.Requests
+	}
+	return nil
+}
+
+func (x *AIGatewayTierLimit) GetTokens() *AIGatewayLimit {
+	if x != nil {
+		return x.Tokens
+	}
+	return nil
+}
+
+func (x *AIGatewayTierLimit) GetMaxCompletionTokensCap() int32 {
+	if x != nil {
+		return x.MaxCompletionTokensCap
+	}
+	return 0
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.AIGatewayModelLimit
+// output=config_entry.gen.go
+// name=Structs
+type AIGatewayModelLimit struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Model         string                 `protobuf:"bytes,1,opt,name=Model,proto3" json:"Model,omitempty"`
+	Requests      *AIGatewayLimit        `protobuf:"bytes,2,opt,name=Requests,proto3" json:"Requests,omitempty"`
+	Tokens        *AIGatewayLimit        `protobuf:"bytes,3,opt,name=Tokens,proto3" json:"Tokens,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AIGatewayModelLimit) Reset() {
+	*x = AIGatewayModelLimit{}
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[124]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AIGatewayModelLimit) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AIGatewayModelLimit) ProtoMessage() {}
+
+func (x *AIGatewayModelLimit) ProtoReflect() protoreflect.Message {
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[124]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AIGatewayModelLimit.ProtoReflect.Descriptor instead.
+func (*AIGatewayModelLimit) Descriptor() ([]byte, []int) {
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{124}
+}
+
+func (x *AIGatewayModelLimit) GetModel() string {
+	if x != nil {
+		return x.Model
+	}
+	return ""
+}
+
+func (x *AIGatewayModelLimit) GetRequests() *AIGatewayLimit {
+	if x != nil {
+		return x.Requests
+	}
+	return nil
+}
+
+func (x *AIGatewayModelLimit) GetTokens() *AIGatewayLimit {
+	if x != nil {
+		return x.Tokens
+	}
+	return nil
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.AIGatewayTierBinding
+// output=config_entry.gen.go
+// name=Structs
+type AIGatewayTierBinding struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Tier          string                 `protobuf:"bytes,1,opt,name=Tier,proto3" json:"Tier,omitempty"`
+	SPIFFEIDs     []string               `protobuf:"bytes,2,rep,name=SPIFFEIDs,proto3" json:"SPIFFEIDs,omitempty"`
+	Partition     string                 `protobuf:"bytes,3,opt,name=Partition,proto3" json:"Partition,omitempty"`
+	Namespace     string                 `protobuf:"bytes,4,opt,name=Namespace,proto3" json:"Namespace,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AIGatewayTierBinding) Reset() {
+	*x = AIGatewayTierBinding{}
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[125]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AIGatewayTierBinding) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AIGatewayTierBinding) ProtoMessage() {}
+
+func (x *AIGatewayTierBinding) ProtoReflect() protoreflect.Message {
+	mi := &file_private_pbconfigentry_config_entry_proto_msgTypes[125]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AIGatewayTierBinding.ProtoReflect.Descriptor instead.
+func (*AIGatewayTierBinding) Descriptor() ([]byte, []int) {
+	return file_private_pbconfigentry_config_entry_proto_rawDescGZIP(), []int{125}
+}
+
+func (x *AIGatewayTierBinding) GetTier() string {
+	if x != nil {
+		return x.Tier
+	}
+	return ""
+}
+
+func (x *AIGatewayTierBinding) GetSPIFFEIDs() []string {
+	if x != nil {
+		return x.SPIFFEIDs
+	}
+	return nil
+}
+
+func (x *AIGatewayTierBinding) GetPartition() string {
+	if x != nil {
+		return x.Partition
+	}
+	return ""
+}
+
+func (x *AIGatewayTierBinding) GetNamespace() string {
+	if x != nil {
+		return x.Namespace
+	}
+	return ""
 }
 
 var File_private_pbconfigentry_config_entry_proto protoreflect.FileDescriptor
@@ -9992,13 +10522,17 @@ const file_private_pbconfigentry_config_entry_proto_rawDesc = "" +
 	"\x18ExportedServicesConsumer\x12\x1c\n" +
 	"\tPartition\x18\x01 \x01(\tR\tPartition\x12\x12\n" +
 	"\x04Peer\x18\x02 \x01(\tR\x04Peer\x12$\n" +
-	"\rSamenessGroup\x18\x03 \x01(\tR\rSamenessGroup\"\xee\x02\n" +
+	"\rSamenessGroup\x18\x03 \x01(\tR\rSamenessGroup\"\xa3\x04\n" +
 	"\tAIGateway\x12W\n" +
 	"\tProcessor\x18\x01 \x01(\v29.hashicorp.consul.internal.configentry.AIGatewayProcessorR\tProcessor\x12\x18\n" +
 	"\aApplyTo\x18\x02 \x03(\tR\aApplyTo\x12Q\n" +
 	"\aRouting\x18\x03 \x01(\v27.hashicorp.consul.internal.configentry.AIGatewayRoutingR\aRouting\x12N\n" +
 	"\x04Meta\x18\x04 \x03(\v2:.hashicorp.consul.internal.configentry.AIGateway.MetaEntryR\x04Meta\x12\x12\n" +
-	"\x04Hash\x18\x05 \x01(\x04R\x04Hash\x1a7\n" +
+	"\x04Hash\x18\x05 \x01(\x04R\x04Hash\x12W\n" +
+	"\tRateLimit\x18\x06 \x01(\v29.hashicorp.consul.internal.configentry.AIGatewayRateLimitR\tRateLimit\x12Z\n" +
+	"\n" +
+	"StateStore\x18\a \x01(\v2:.hashicorp.consul.internal.configentry.AIGatewayStateStoreR\n" +
+	"StateStore\x1a7\n" +
 	"\tMetaEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"P\n" +
@@ -10040,7 +10574,47 @@ const file_private_pbconfigentry_config_entry_proto_rawDesc = "" +
 	"\rWeightedSplit\x18\x02 \x03(\v2>.hashicorp.consul.internal.configentry.AIGatewayWeightedTargetR\rWeightedSplit\"K\n" +
 	"\x17AIGatewayWeightedTarget\x12\x18\n" +
 	"\aCluster\x18\x01 \x01(\tR\aCluster\x12\x16\n" +
-	"\x06Weight\x18\x02 \x01(\x05R\x06Weight*\xf5\x02\n" +
+	"\x06Weight\x18\x02 \x01(\x05R\x06Weight\"U\n" +
+	"\x13AIGatewayStateStore\x12\x18\n" +
+	"\aService\x18\x01 \x01(\tR\aService\x12$\n" +
+	"\rLocalBindPort\x18\x02 \x01(\x05R\rLocalBindPort\"\x86\x05\n" +
+	"\x12AIGatewayRateLimit\x12\x18\n" +
+	"\aEnabled\x18\x01 \x01(\bR\aEnabled\x12 \n" +
+	"\vEnforcement\x18\x02 \x01(\tR\vEnforcement\x12\x12\n" +
+	"\x04Mode\x18\x03 \x01(\tR\x04Mode\x12\x1c\n" +
+	"\tCountMode\x18\x04 \x01(\tR\tCountMode\x12\x1e\n" +
+	"\n" +
+	"Dimensions\x18\x05 \x03(\tR\n" +
+	"Dimensions\x12 \n" +
+	"\vDegradeMode\x18\x06 \x01(\tR\vDegradeMode\x12S\n" +
+	"\aDefault\x18\a \x01(\v29.hashicorp.consul.internal.configentry.AIGatewayLimitPairR\aDefault\x12Q\n" +
+	"\x06Global\x18\b \x01(\v29.hashicorp.consul.internal.configentry.AIGatewayLimitPairR\x06Global\x12Y\n" +
+	"\n" +
+	"TierLimits\x18\t \x03(\v29.hashicorp.consul.internal.configentry.AIGatewayTierLimitR\n" +
+	"TierLimits\x12\\\n" +
+	"\vModelLimits\x18\n" +
+	" \x03(\v2:.hashicorp.consul.internal.configentry.AIGatewayModelLimitR\vModelLimits\x12_\n" +
+	"\fTierBindings\x18\v \x03(\v2;.hashicorp.consul.internal.configentry.AIGatewayTierBindingR\fTierBindings\":\n" +
+	"\x0eAIGatewayLimit\x12\x14\n" +
+	"\x05Count\x18\x01 \x01(\x05R\x05Count\x12\x12\n" +
+	"\x04Unit\x18\x02 \x01(\tR\x04Unit\"\xb6\x01\n" +
+	"\x12AIGatewayLimitPair\x12Q\n" +
+	"\bRequests\x18\x01 \x01(\v25.hashicorp.consul.internal.configentry.AIGatewayLimitR\bRequests\x12M\n" +
+	"\x06Tokens\x18\x02 \x01(\v25.hashicorp.consul.internal.configentry.AIGatewayLimitR\x06Tokens\"\x82\x02\n" +
+	"\x12AIGatewayTierLimit\x12\x12\n" +
+	"\x04Tier\x18\x01 \x01(\tR\x04Tier\x12Q\n" +
+	"\bRequests\x18\x02 \x01(\v25.hashicorp.consul.internal.configentry.AIGatewayLimitR\bRequests\x12M\n" +
+	"\x06Tokens\x18\x03 \x01(\v25.hashicorp.consul.internal.configentry.AIGatewayLimitR\x06Tokens\x126\n" +
+	"\x16MaxCompletionTokensCap\x18\x04 \x01(\x05R\x16MaxCompletionTokensCap\"\xcd\x01\n" +
+	"\x13AIGatewayModelLimit\x12\x14\n" +
+	"\x05Model\x18\x01 \x01(\tR\x05Model\x12Q\n" +
+	"\bRequests\x18\x02 \x01(\v25.hashicorp.consul.internal.configentry.AIGatewayLimitR\bRequests\x12M\n" +
+	"\x06Tokens\x18\x03 \x01(\v25.hashicorp.consul.internal.configentry.AIGatewayLimitR\x06Tokens\"\x84\x01\n" +
+	"\x14AIGatewayTierBinding\x12\x12\n" +
+	"\x04Tier\x18\x01 \x01(\tR\x04Tier\x12\x1c\n" +
+	"\tSPIFFEIDs\x18\x02 \x03(\tR\tSPIFFEIDs\x12\x1c\n" +
+	"\tPartition\x18\x03 \x01(\tR\tPartition\x12\x1c\n" +
+	"\tNamespace\x18\x04 \x01(\tR\tNamespace*\xf5\x02\n" +
 	"\x04Kind\x12\x0f\n" +
 	"\vKindUnknown\x10\x00\x12\x12\n" +
 	"\x0eKindMeshConfig\x10\x01\x12\x17\n" +
@@ -10134,7 +10708,7 @@ func file_private_pbconfigentry_config_entry_proto_rawDescGZIP() []byte {
 }
 
 var file_private_pbconfigentry_config_entry_proto_enumTypes = make([]protoimpl.EnumInfo, 13)
-var file_private_pbconfigentry_config_entry_proto_msgTypes = make([]protoimpl.MessageInfo, 143)
+var file_private_pbconfigentry_config_entry_proto_msgTypes = make([]protoimpl.MessageInfo, 150)
 var file_private_pbconfigentry_config_entry_proto_goTypes = []any{
 	(Kind)(0),                                   // 0: hashicorp.consul.internal.configentry.Kind
 	(PathWithEscapedSlashesAction)(0),           // 1: hashicorp.consul.internal.configentry.PathWithEscapedSlashesAction
@@ -10268,45 +10842,52 @@ var file_private_pbconfigentry_config_entry_proto_goTypes = []any{
 	(*AIGatewayTimeout)(nil),                    // 129: hashicorp.consul.internal.configentry.AIGatewayTimeout
 	(*AIGatewayScoring)(nil),                    // 130: hashicorp.consul.internal.configentry.AIGatewayScoring
 	(*AIGatewayWeightedTarget)(nil),             // 131: hashicorp.consul.internal.configentry.AIGatewayWeightedTarget
-	nil,                                         // 132: hashicorp.consul.internal.configentry.MeshConfig.MetaEntry
-	nil,                                         // 133: hashicorp.consul.internal.configentry.ServiceResolver.SubsetsEntry
-	nil,                                         // 134: hashicorp.consul.internal.configentry.ServiceResolver.FailoverEntry
-	nil,                                         // 135: hashicorp.consul.internal.configentry.ServiceResolver.MetaEntry
-	nil,                                         // 136: hashicorp.consul.internal.configentry.IngressGateway.MetaEntry
-	nil,                                         // 137: hashicorp.consul.internal.configentry.IngressService.MetaEntry
-	nil,                                         // 138: hashicorp.consul.internal.configentry.HTTPHeaderModifiers.AddEntry
-	nil,                                         // 139: hashicorp.consul.internal.configentry.HTTPHeaderModifiers.SetEntry
-	nil,                                         // 140: hashicorp.consul.internal.configentry.ServiceIntentions.MetaEntry
-	nil,                                         // 141: hashicorp.consul.internal.configentry.SourceIntention.LegacyMetaEntry
-	nil,                                         // 142: hashicorp.consul.internal.configentry.ServiceDefaults.MetaEntry
-	nil,                                         // 143: hashicorp.consul.internal.configentry.APIGateway.MetaEntry
-	nil,                                         // 144: hashicorp.consul.internal.configentry.BoundAPIGateway.MetaEntry
-	nil,                                         // 145: hashicorp.consul.internal.configentry.BoundAPIGateway.ServicesEntry
-	nil,                                         // 146: hashicorp.consul.internal.configentry.FileSystemCertificate.MetaEntry
-	nil,                                         // 147: hashicorp.consul.internal.configentry.InlineCertificate.MetaEntry
-	nil,                                         // 148: hashicorp.consul.internal.configentry.HTTPRoute.MetaEntry
-	nil,                                         // 149: hashicorp.consul.internal.configentry.HTTPHeaderFilter.AddEntry
-	nil,                                         // 150: hashicorp.consul.internal.configentry.HTTPHeaderFilter.SetEntry
-	nil,                                         // 151: hashicorp.consul.internal.configentry.TCPRoute.MetaEntry
-	nil,                                         // 152: hashicorp.consul.internal.configentry.SamenessGroup.MetaEntry
-	nil,                                         // 153: hashicorp.consul.internal.configentry.JWTProvider.MetaEntry
-	nil,                                         // 154: hashicorp.consul.internal.configentry.ExportedServices.MetaEntry
-	nil,                                         // 155: hashicorp.consul.internal.configentry.AIGateway.MetaEntry
-	(*pbcommon.EnterpriseMeta)(nil),             // 156: hashicorp.consul.internal.common.EnterpriseMeta
-	(*pbcommon.RaftIndex)(nil),                  // 157: hashicorp.consul.internal.common.RaftIndex
-	(*durationpb.Duration)(nil),                 // 158: google.protobuf.Duration
-	(*timestamppb.Timestamp)(nil),               // 159: google.protobuf.Timestamp
-	(*pbcommon.EnvoyExtension)(nil),             // 160: hashicorp.consul.internal.common.EnvoyExtension
+	(*AIGatewayStateStore)(nil),                 // 132: hashicorp.consul.internal.configentry.AIGatewayStateStore
+	(*AIGatewayRateLimit)(nil),                  // 133: hashicorp.consul.internal.configentry.AIGatewayRateLimit
+	(*AIGatewayLimit)(nil),                      // 134: hashicorp.consul.internal.configentry.AIGatewayLimit
+	(*AIGatewayLimitPair)(nil),                  // 135: hashicorp.consul.internal.configentry.AIGatewayLimitPair
+	(*AIGatewayTierLimit)(nil),                  // 136: hashicorp.consul.internal.configentry.AIGatewayTierLimit
+	(*AIGatewayModelLimit)(nil),                 // 137: hashicorp.consul.internal.configentry.AIGatewayModelLimit
+	(*AIGatewayTierBinding)(nil),                // 138: hashicorp.consul.internal.configentry.AIGatewayTierBinding
+	nil,                                         // 139: hashicorp.consul.internal.configentry.MeshConfig.MetaEntry
+	nil,                                         // 140: hashicorp.consul.internal.configentry.ServiceResolver.SubsetsEntry
+	nil,                                         // 141: hashicorp.consul.internal.configentry.ServiceResolver.FailoverEntry
+	nil,                                         // 142: hashicorp.consul.internal.configentry.ServiceResolver.MetaEntry
+	nil,                                         // 143: hashicorp.consul.internal.configentry.IngressGateway.MetaEntry
+	nil,                                         // 144: hashicorp.consul.internal.configentry.IngressService.MetaEntry
+	nil,                                         // 145: hashicorp.consul.internal.configentry.HTTPHeaderModifiers.AddEntry
+	nil,                                         // 146: hashicorp.consul.internal.configentry.HTTPHeaderModifiers.SetEntry
+	nil,                                         // 147: hashicorp.consul.internal.configentry.ServiceIntentions.MetaEntry
+	nil,                                         // 148: hashicorp.consul.internal.configentry.SourceIntention.LegacyMetaEntry
+	nil,                                         // 149: hashicorp.consul.internal.configentry.ServiceDefaults.MetaEntry
+	nil,                                         // 150: hashicorp.consul.internal.configentry.APIGateway.MetaEntry
+	nil,                                         // 151: hashicorp.consul.internal.configentry.BoundAPIGateway.MetaEntry
+	nil,                                         // 152: hashicorp.consul.internal.configentry.BoundAPIGateway.ServicesEntry
+	nil,                                         // 153: hashicorp.consul.internal.configentry.FileSystemCertificate.MetaEntry
+	nil,                                         // 154: hashicorp.consul.internal.configentry.InlineCertificate.MetaEntry
+	nil,                                         // 155: hashicorp.consul.internal.configentry.HTTPRoute.MetaEntry
+	nil,                                         // 156: hashicorp.consul.internal.configentry.HTTPHeaderFilter.AddEntry
+	nil,                                         // 157: hashicorp.consul.internal.configentry.HTTPHeaderFilter.SetEntry
+	nil,                                         // 158: hashicorp.consul.internal.configentry.TCPRoute.MetaEntry
+	nil,                                         // 159: hashicorp.consul.internal.configentry.SamenessGroup.MetaEntry
+	nil,                                         // 160: hashicorp.consul.internal.configentry.JWTProvider.MetaEntry
+	nil,                                         // 161: hashicorp.consul.internal.configentry.ExportedServices.MetaEntry
+	nil,                                         // 162: hashicorp.consul.internal.configentry.AIGateway.MetaEntry
+	(*pbcommon.EnterpriseMeta)(nil),             // 163: hashicorp.consul.internal.common.EnterpriseMeta
+	(*pbcommon.RaftIndex)(nil),                  // 164: hashicorp.consul.internal.common.RaftIndex
+	(*durationpb.Duration)(nil),                 // 165: google.protobuf.Duration
+	(*timestamppb.Timestamp)(nil),               // 166: google.protobuf.Timestamp
+	(*pbcommon.EnvoyExtension)(nil),             // 167: hashicorp.consul.internal.common.EnvoyExtension
 }
 var file_private_pbconfigentry_config_entry_proto_depIdxs = []int32{
 	15,  // 0: hashicorp.consul.internal.configentry.GetResolvedExportedServicesResponse.services:type_name -> hashicorp.consul.internal.configentry.ResolvedExportedService
-	156, // 1: hashicorp.consul.internal.configentry.ResolvedExportedService.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	163, // 1: hashicorp.consul.internal.configentry.ResolvedExportedService.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
 	16,  // 2: hashicorp.consul.internal.configentry.ResolvedExportedService.Consumers:type_name -> hashicorp.consul.internal.configentry.Consumers
 	19,  // 3: hashicorp.consul.internal.configentry.GetImportedServicesResponse.Services:type_name -> hashicorp.consul.internal.configentry.ImportedService
-	156, // 4: hashicorp.consul.internal.configentry.ImportedService.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	163, // 4: hashicorp.consul.internal.configentry.ImportedService.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
 	0,   // 5: hashicorp.consul.internal.configentry.ConfigEntry.Kind:type_name -> hashicorp.consul.internal.configentry.Kind
-	156, // 6: hashicorp.consul.internal.configentry.ConfigEntry.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
-	157, // 7: hashicorp.consul.internal.configentry.ConfigEntry.RaftIndex:type_name -> hashicorp.consul.internal.common.RaftIndex
+	163, // 6: hashicorp.consul.internal.configentry.ConfigEntry.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	164, // 7: hashicorp.consul.internal.configentry.ConfigEntry.RaftIndex:type_name -> hashicorp.consul.internal.common.RaftIndex
 	21,  // 8: hashicorp.consul.internal.configentry.ConfigEntry.MeshConfig:type_name -> hashicorp.consul.internal.configentry.MeshConfig
 	29,  // 9: hashicorp.consul.internal.configentry.ConfigEntry.ServiceResolver:type_name -> hashicorp.consul.internal.configentry.ServiceResolver
 	41,  // 10: hashicorp.consul.internal.configentry.ConfigEntry.IngressGateway:type_name -> hashicorp.consul.internal.configentry.IngressGateway
@@ -10325,7 +10906,7 @@ var file_private_pbconfigentry_config_entry_proto_depIdxs = []int32{
 	22,  // 23: hashicorp.consul.internal.configentry.MeshConfig.TransparentProxy:type_name -> hashicorp.consul.internal.configentry.TransparentProxyMeshConfig
 	23,  // 24: hashicorp.consul.internal.configentry.MeshConfig.TLS:type_name -> hashicorp.consul.internal.configentry.MeshTLSConfig
 	25,  // 25: hashicorp.consul.internal.configentry.MeshConfig.HTTP:type_name -> hashicorp.consul.internal.configentry.MeshHTTPConfig
-	132, // 26: hashicorp.consul.internal.configentry.MeshConfig.Meta:type_name -> hashicorp.consul.internal.configentry.MeshConfig.MetaEntry
+	139, // 26: hashicorp.consul.internal.configentry.MeshConfig.Meta:type_name -> hashicorp.consul.internal.configentry.MeshConfig.MetaEntry
 	27,  // 27: hashicorp.consul.internal.configentry.MeshConfig.Peering:type_name -> hashicorp.consul.internal.configentry.PeeringMeshConfig
 	24,  // 28: hashicorp.consul.internal.configentry.MeshTLSConfig.Incoming:type_name -> hashicorp.consul.internal.configentry.MeshDirectionalTLSConfig
 	24,  // 29: hashicorp.consul.internal.configentry.MeshTLSConfig.Outgoing:type_name -> hashicorp.consul.internal.configentry.MeshDirectionalTLSConfig
@@ -10333,13 +10914,13 @@ var file_private_pbconfigentry_config_entry_proto_depIdxs = []int32{
 	28,  // 31: hashicorp.consul.internal.configentry.MeshDirectionalHTTPConfig.RequestNormalization:type_name -> hashicorp.consul.internal.configentry.RequestNormalizationMeshConfig
 	1,   // 32: hashicorp.consul.internal.configentry.RequestNormalizationMeshConfig.PathWithEscapedSlashesAction:type_name -> hashicorp.consul.internal.configentry.PathWithEscapedSlashesAction
 	2,   // 33: hashicorp.consul.internal.configentry.RequestNormalizationMeshConfig.HeadersWithUnderscoresAction:type_name -> hashicorp.consul.internal.configentry.HeadersWithUnderscoresAction
-	133, // 34: hashicorp.consul.internal.configentry.ServiceResolver.Subsets:type_name -> hashicorp.consul.internal.configentry.ServiceResolver.SubsetsEntry
+	140, // 34: hashicorp.consul.internal.configentry.ServiceResolver.Subsets:type_name -> hashicorp.consul.internal.configentry.ServiceResolver.SubsetsEntry
 	31,  // 35: hashicorp.consul.internal.configentry.ServiceResolver.Redirect:type_name -> hashicorp.consul.internal.configentry.ServiceResolverRedirect
-	134, // 36: hashicorp.consul.internal.configentry.ServiceResolver.Failover:type_name -> hashicorp.consul.internal.configentry.ServiceResolver.FailoverEntry
-	158, // 37: hashicorp.consul.internal.configentry.ServiceResolver.ConnectTimeout:type_name -> google.protobuf.Duration
+	141, // 36: hashicorp.consul.internal.configentry.ServiceResolver.Failover:type_name -> hashicorp.consul.internal.configentry.ServiceResolver.FailoverEntry
+	165, // 37: hashicorp.consul.internal.configentry.ServiceResolver.ConnectTimeout:type_name -> google.protobuf.Duration
 	36,  // 38: hashicorp.consul.internal.configentry.ServiceResolver.LoadBalancer:type_name -> hashicorp.consul.internal.configentry.LoadBalancer
-	135, // 39: hashicorp.consul.internal.configentry.ServiceResolver.Meta:type_name -> hashicorp.consul.internal.configentry.ServiceResolver.MetaEntry
-	158, // 40: hashicorp.consul.internal.configentry.ServiceResolver.RequestTimeout:type_name -> google.protobuf.Duration
+	142, // 39: hashicorp.consul.internal.configentry.ServiceResolver.Meta:type_name -> hashicorp.consul.internal.configentry.ServiceResolver.MetaEntry
+	165, // 40: hashicorp.consul.internal.configentry.ServiceResolver.RequestTimeout:type_name -> google.protobuf.Duration
 	34,  // 41: hashicorp.consul.internal.configentry.ServiceResolver.PrioritizeByLocality:type_name -> hashicorp.consul.internal.configentry.ServiceResolverPrioritizeByLocality
 	35,  // 42: hashicorp.consul.internal.configentry.ServiceResolverFailover.Targets:type_name -> hashicorp.consul.internal.configentry.ServiceResolverFailoverTarget
 	33,  // 43: hashicorp.consul.internal.configentry.ServiceResolverFailover.Policy:type_name -> hashicorp.consul.internal.configentry.ServiceResolverFailoverPolicy
@@ -10347,10 +10928,10 @@ var file_private_pbconfigentry_config_entry_proto_depIdxs = []int32{
 	38,  // 45: hashicorp.consul.internal.configentry.LoadBalancer.LeastRequestConfig:type_name -> hashicorp.consul.internal.configentry.LeastRequestConfig
 	39,  // 46: hashicorp.consul.internal.configentry.LoadBalancer.HashPolicies:type_name -> hashicorp.consul.internal.configentry.HashPolicy
 	40,  // 47: hashicorp.consul.internal.configentry.HashPolicy.CookieConfig:type_name -> hashicorp.consul.internal.configentry.CookieConfig
-	158, // 48: hashicorp.consul.internal.configentry.CookieConfig.TTL:type_name -> google.protobuf.Duration
+	165, // 48: hashicorp.consul.internal.configentry.CookieConfig.TTL:type_name -> google.protobuf.Duration
 	43,  // 49: hashicorp.consul.internal.configentry.IngressGateway.TLS:type_name -> hashicorp.consul.internal.configentry.GatewayTLSConfig
 	45,  // 50: hashicorp.consul.internal.configentry.IngressGateway.Listeners:type_name -> hashicorp.consul.internal.configentry.IngressListener
-	136, // 51: hashicorp.consul.internal.configentry.IngressGateway.Meta:type_name -> hashicorp.consul.internal.configentry.IngressGateway.MetaEntry
+	143, // 51: hashicorp.consul.internal.configentry.IngressGateway.Meta:type_name -> hashicorp.consul.internal.configentry.IngressGateway.MetaEntry
 	42,  // 52: hashicorp.consul.internal.configentry.IngressGateway.Defaults:type_name -> hashicorp.consul.internal.configentry.IngressServiceConfig
 	65,  // 53: hashicorp.consul.internal.configentry.IngressServiceConfig.PassiveHealthCheck:type_name -> hashicorp.consul.internal.configentry.PassiveHealthCheck
 	44,  // 54: hashicorp.consul.internal.configentry.GatewayTLSConfig.SDS:type_name -> hashicorp.consul.internal.configentry.GatewayTLSSDSConfig
@@ -10359,24 +10940,24 @@ var file_private_pbconfigentry_config_entry_proto_depIdxs = []int32{
 	47,  // 57: hashicorp.consul.internal.configentry.IngressService.TLS:type_name -> hashicorp.consul.internal.configentry.GatewayServiceTLSConfig
 	48,  // 58: hashicorp.consul.internal.configentry.IngressService.RequestHeaders:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderModifiers
 	48,  // 59: hashicorp.consul.internal.configentry.IngressService.ResponseHeaders:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderModifiers
-	137, // 60: hashicorp.consul.internal.configentry.IngressService.Meta:type_name -> hashicorp.consul.internal.configentry.IngressService.MetaEntry
-	156, // 61: hashicorp.consul.internal.configentry.IngressService.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	144, // 60: hashicorp.consul.internal.configentry.IngressService.Meta:type_name -> hashicorp.consul.internal.configentry.IngressService.MetaEntry
+	163, // 61: hashicorp.consul.internal.configentry.IngressService.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
 	65,  // 62: hashicorp.consul.internal.configentry.IngressService.PassiveHealthCheck:type_name -> hashicorp.consul.internal.configentry.PassiveHealthCheck
 	44,  // 63: hashicorp.consul.internal.configentry.GatewayServiceTLSConfig.SDS:type_name -> hashicorp.consul.internal.configentry.GatewayTLSSDSConfig
-	138, // 64: hashicorp.consul.internal.configentry.HTTPHeaderModifiers.Add:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderModifiers.AddEntry
-	139, // 65: hashicorp.consul.internal.configentry.HTTPHeaderModifiers.Set:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderModifiers.SetEntry
+	145, // 64: hashicorp.consul.internal.configentry.HTTPHeaderModifiers.Add:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderModifiers.AddEntry
+	146, // 65: hashicorp.consul.internal.configentry.HTTPHeaderModifiers.Set:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderModifiers.SetEntry
 	53,  // 66: hashicorp.consul.internal.configentry.ServiceIntentions.Sources:type_name -> hashicorp.consul.internal.configentry.SourceIntention
-	140, // 67: hashicorp.consul.internal.configentry.ServiceIntentions.Meta:type_name -> hashicorp.consul.internal.configentry.ServiceIntentions.MetaEntry
+	147, // 67: hashicorp.consul.internal.configentry.ServiceIntentions.Meta:type_name -> hashicorp.consul.internal.configentry.ServiceIntentions.MetaEntry
 	50,  // 68: hashicorp.consul.internal.configentry.ServiceIntentions.JWT:type_name -> hashicorp.consul.internal.configentry.IntentionJWTRequirement
 	51,  // 69: hashicorp.consul.internal.configentry.IntentionJWTRequirement.Providers:type_name -> hashicorp.consul.internal.configentry.IntentionJWTProvider
 	52,  // 70: hashicorp.consul.internal.configentry.IntentionJWTProvider.VerifyClaims:type_name -> hashicorp.consul.internal.configentry.IntentionJWTClaimVerification
 	3,   // 71: hashicorp.consul.internal.configentry.SourceIntention.Action:type_name -> hashicorp.consul.internal.configentry.IntentionAction
 	54,  // 72: hashicorp.consul.internal.configentry.SourceIntention.Permissions:type_name -> hashicorp.consul.internal.configentry.IntentionPermission
 	4,   // 73: hashicorp.consul.internal.configentry.SourceIntention.Type:type_name -> hashicorp.consul.internal.configentry.IntentionSourceType
-	141, // 74: hashicorp.consul.internal.configentry.SourceIntention.LegacyMeta:type_name -> hashicorp.consul.internal.configentry.SourceIntention.LegacyMetaEntry
-	159, // 75: hashicorp.consul.internal.configentry.SourceIntention.LegacyCreateTime:type_name -> google.protobuf.Timestamp
-	159, // 76: hashicorp.consul.internal.configentry.SourceIntention.LegacyUpdateTime:type_name -> google.protobuf.Timestamp
-	156, // 77: hashicorp.consul.internal.configentry.SourceIntention.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	148, // 74: hashicorp.consul.internal.configentry.SourceIntention.LegacyMeta:type_name -> hashicorp.consul.internal.configentry.SourceIntention.LegacyMetaEntry
+	166, // 75: hashicorp.consul.internal.configentry.SourceIntention.LegacyCreateTime:type_name -> google.protobuf.Timestamp
+	166, // 76: hashicorp.consul.internal.configentry.SourceIntention.LegacyUpdateTime:type_name -> google.protobuf.Timestamp
+	163, // 77: hashicorp.consul.internal.configentry.SourceIntention.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
 	3,   // 78: hashicorp.consul.internal.configentry.IntentionPermission.Action:type_name -> hashicorp.consul.internal.configentry.IntentionAction
 	55,  // 79: hashicorp.consul.internal.configentry.IntentionPermission.HTTP:type_name -> hashicorp.consul.internal.configentry.IntentionHTTPPermission
 	50,  // 80: hashicorp.consul.internal.configentry.IntentionPermission.JWT:type_name -> hashicorp.consul.internal.configentry.IntentionJWTRequirement
@@ -10388,29 +10969,29 @@ var file_private_pbconfigentry_config_entry_proto_depIdxs = []int32{
 	62,  // 86: hashicorp.consul.internal.configentry.ServiceDefaults.UpstreamConfig:type_name -> hashicorp.consul.internal.configentry.UpstreamConfiguration
 	66,  // 87: hashicorp.consul.internal.configentry.ServiceDefaults.Destination:type_name -> hashicorp.consul.internal.configentry.DestinationConfig
 	67,  // 88: hashicorp.consul.internal.configentry.ServiceDefaults.RateLimits:type_name -> hashicorp.consul.internal.configentry.RateLimits
-	142, // 89: hashicorp.consul.internal.configentry.ServiceDefaults.Meta:type_name -> hashicorp.consul.internal.configentry.ServiceDefaults.MetaEntry
-	160, // 90: hashicorp.consul.internal.configentry.ServiceDefaults.EnvoyExtensions:type_name -> hashicorp.consul.internal.common.EnvoyExtension
+	149, // 89: hashicorp.consul.internal.configentry.ServiceDefaults.Meta:type_name -> hashicorp.consul.internal.configentry.ServiceDefaults.MetaEntry
+	167, // 90: hashicorp.consul.internal.configentry.ServiceDefaults.EnvoyExtensions:type_name -> hashicorp.consul.internal.common.EnvoyExtension
 	6,   // 91: hashicorp.consul.internal.configentry.ServiceDefaults.MutualTLSMode:type_name -> hashicorp.consul.internal.configentry.MutualTLSMode
 	7,   // 92: hashicorp.consul.internal.configentry.MeshGatewayConfig.Mode:type_name -> hashicorp.consul.internal.configentry.MeshGatewayMode
 	61,  // 93: hashicorp.consul.internal.configentry.ExposeConfig.Paths:type_name -> hashicorp.consul.internal.configentry.ExposePath
 	63,  // 94: hashicorp.consul.internal.configentry.UpstreamConfiguration.Overrides:type_name -> hashicorp.consul.internal.configentry.UpstreamConfig
 	63,  // 95: hashicorp.consul.internal.configentry.UpstreamConfiguration.Defaults:type_name -> hashicorp.consul.internal.configentry.UpstreamConfig
-	156, // 96: hashicorp.consul.internal.configentry.UpstreamConfig.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	163, // 96: hashicorp.consul.internal.configentry.UpstreamConfig.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
 	64,  // 97: hashicorp.consul.internal.configentry.UpstreamConfig.Limits:type_name -> hashicorp.consul.internal.configentry.UpstreamLimits
 	65,  // 98: hashicorp.consul.internal.configentry.UpstreamConfig.PassiveHealthCheck:type_name -> hashicorp.consul.internal.configentry.PassiveHealthCheck
 	59,  // 99: hashicorp.consul.internal.configentry.UpstreamConfig.MeshGateway:type_name -> hashicorp.consul.internal.configentry.MeshGatewayConfig
-	158, // 100: hashicorp.consul.internal.configentry.PassiveHealthCheck.Interval:type_name -> google.protobuf.Duration
-	158, // 101: hashicorp.consul.internal.configentry.PassiveHealthCheck.BaseEjectionTime:type_name -> google.protobuf.Duration
+	165, // 100: hashicorp.consul.internal.configentry.PassiveHealthCheck.Interval:type_name -> google.protobuf.Duration
+	165, // 101: hashicorp.consul.internal.configentry.PassiveHealthCheck.BaseEjectionTime:type_name -> google.protobuf.Duration
 	68,  // 102: hashicorp.consul.internal.configentry.RateLimits.InstanceLevel:type_name -> hashicorp.consul.internal.configentry.InstanceLevelRateLimits
 	69,  // 103: hashicorp.consul.internal.configentry.InstanceLevelRateLimits.Routes:type_name -> hashicorp.consul.internal.configentry.InstanceLevelRouteRateLimits
-	143, // 104: hashicorp.consul.internal.configentry.APIGateway.Meta:type_name -> hashicorp.consul.internal.configentry.APIGateway.MetaEntry
+	150, // 104: hashicorp.consul.internal.configentry.APIGateway.Meta:type_name -> hashicorp.consul.internal.configentry.APIGateway.MetaEntry
 	73,  // 105: hashicorp.consul.internal.configentry.APIGateway.Listeners:type_name -> hashicorp.consul.internal.configentry.APIGatewayListener
 	71,  // 106: hashicorp.consul.internal.configentry.APIGateway.Status:type_name -> hashicorp.consul.internal.configentry.Status
 	43,  // 107: hashicorp.consul.internal.configentry.APIGateway.TLS:type_name -> hashicorp.consul.internal.configentry.GatewayTLSConfig
 	64,  // 108: hashicorp.consul.internal.configentry.APIGateway.Defaults:type_name -> hashicorp.consul.internal.configentry.UpstreamLimits
 	72,  // 109: hashicorp.consul.internal.configentry.Status.Conditions:type_name -> hashicorp.consul.internal.configentry.Condition
 	79,  // 110: hashicorp.consul.internal.configentry.Condition.Resource:type_name -> hashicorp.consul.internal.configentry.ResourceReference
-	159, // 111: hashicorp.consul.internal.configentry.Condition.LastTransitionTime:type_name -> google.protobuf.Timestamp
+	166, // 111: hashicorp.consul.internal.configentry.Condition.LastTransitionTime:type_name -> google.protobuf.Timestamp
 	8,   // 112: hashicorp.consul.internal.configentry.APIGatewayListener.Protocol:type_name -> hashicorp.consul.internal.configentry.APIGatewayListenerProtocol
 	74,  // 113: hashicorp.consul.internal.configentry.APIGatewayListener.TLS:type_name -> hashicorp.consul.internal.configentry.APIGatewayTLSConfiguration
 	75,  // 114: hashicorp.consul.internal.configentry.APIGatewayListener.Override:type_name -> hashicorp.consul.internal.configentry.APIGatewayPolicy
@@ -10420,16 +11001,16 @@ var file_private_pbconfigentry_config_entry_proto_depIdxs = []int32{
 	76,  // 118: hashicorp.consul.internal.configentry.APIGatewayPolicy.JWT:type_name -> hashicorp.consul.internal.configentry.APIGatewayJWTRequirement
 	77,  // 119: hashicorp.consul.internal.configentry.APIGatewayJWTRequirement.Providers:type_name -> hashicorp.consul.internal.configentry.APIGatewayJWTProvider
 	78,  // 120: hashicorp.consul.internal.configentry.APIGatewayJWTProvider.VerifyClaims:type_name -> hashicorp.consul.internal.configentry.APIGatewayJWTClaimVerification
-	156, // 121: hashicorp.consul.internal.configentry.ResourceReference.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
-	144, // 122: hashicorp.consul.internal.configentry.BoundAPIGateway.Meta:type_name -> hashicorp.consul.internal.configentry.BoundAPIGateway.MetaEntry
+	163, // 121: hashicorp.consul.internal.configentry.ResourceReference.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	151, // 122: hashicorp.consul.internal.configentry.BoundAPIGateway.Meta:type_name -> hashicorp.consul.internal.configentry.BoundAPIGateway.MetaEntry
 	82,  // 123: hashicorp.consul.internal.configentry.BoundAPIGateway.Listeners:type_name -> hashicorp.consul.internal.configentry.BoundAPIGatewayListener
-	145, // 124: hashicorp.consul.internal.configentry.BoundAPIGateway.Services:type_name -> hashicorp.consul.internal.configentry.BoundAPIGateway.ServicesEntry
+	152, // 124: hashicorp.consul.internal.configentry.BoundAPIGateway.Services:type_name -> hashicorp.consul.internal.configentry.BoundAPIGateway.ServicesEntry
 	79,  // 125: hashicorp.consul.internal.configentry.ListOfResourceReference.Ref:type_name -> hashicorp.consul.internal.configentry.ResourceReference
 	79,  // 126: hashicorp.consul.internal.configentry.BoundAPIGatewayListener.Certificates:type_name -> hashicorp.consul.internal.configentry.ResourceReference
 	79,  // 127: hashicorp.consul.internal.configentry.BoundAPIGatewayListener.Routes:type_name -> hashicorp.consul.internal.configentry.ResourceReference
-	146, // 128: hashicorp.consul.internal.configentry.FileSystemCertificate.Meta:type_name -> hashicorp.consul.internal.configentry.FileSystemCertificate.MetaEntry
-	147, // 129: hashicorp.consul.internal.configentry.InlineCertificate.Meta:type_name -> hashicorp.consul.internal.configentry.InlineCertificate.MetaEntry
-	148, // 130: hashicorp.consul.internal.configentry.HTTPRoute.Meta:type_name -> hashicorp.consul.internal.configentry.HTTPRoute.MetaEntry
+	153, // 128: hashicorp.consul.internal.configentry.FileSystemCertificate.Meta:type_name -> hashicorp.consul.internal.configentry.FileSystemCertificate.MetaEntry
+	154, // 129: hashicorp.consul.internal.configentry.InlineCertificate.Meta:type_name -> hashicorp.consul.internal.configentry.InlineCertificate.MetaEntry
+	155, // 130: hashicorp.consul.internal.configentry.HTTPRoute.Meta:type_name -> hashicorp.consul.internal.configentry.HTTPRoute.MetaEntry
 	79,  // 131: hashicorp.consul.internal.configentry.HTTPRoute.Parents:type_name -> hashicorp.consul.internal.configentry.ResourceReference
 	86,  // 132: hashicorp.consul.internal.configentry.HTTPRoute.Rules:type_name -> hashicorp.consul.internal.configentry.HTTPRouteRule
 	71,  // 133: hashicorp.consul.internal.configentry.HTTPRoute.Status:type_name -> hashicorp.consul.internal.configentry.Status
@@ -10450,72 +11031,85 @@ var file_private_pbconfigentry_config_entry_proto_depIdxs = []int32{
 	95,  // 148: hashicorp.consul.internal.configentry.HTTPFilters.TimeoutFilter:type_name -> hashicorp.consul.internal.configentry.TimeoutFilter
 	96,  // 149: hashicorp.consul.internal.configentry.HTTPFilters.JWT:type_name -> hashicorp.consul.internal.configentry.JWTFilter
 	97,  // 150: hashicorp.consul.internal.configentry.HTTPResponseFilters.Headers:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderFilter
-	158, // 151: hashicorp.consul.internal.configentry.TimeoutFilter.RequestTimeout:type_name -> google.protobuf.Duration
-	158, // 152: hashicorp.consul.internal.configentry.TimeoutFilter.IdleTimeout:type_name -> google.protobuf.Duration
+	165, // 151: hashicorp.consul.internal.configentry.TimeoutFilter.RequestTimeout:type_name -> google.protobuf.Duration
+	165, // 152: hashicorp.consul.internal.configentry.TimeoutFilter.IdleTimeout:type_name -> google.protobuf.Duration
 	77,  // 153: hashicorp.consul.internal.configentry.JWTFilter.Providers:type_name -> hashicorp.consul.internal.configentry.APIGatewayJWTProvider
-	149, // 154: hashicorp.consul.internal.configentry.HTTPHeaderFilter.Add:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderFilter.AddEntry
-	150, // 155: hashicorp.consul.internal.configentry.HTTPHeaderFilter.Set:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderFilter.SetEntry
+	156, // 154: hashicorp.consul.internal.configentry.HTTPHeaderFilter.Add:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderFilter.AddEntry
+	157, // 155: hashicorp.consul.internal.configentry.HTTPHeaderFilter.Set:type_name -> hashicorp.consul.internal.configentry.HTTPHeaderFilter.SetEntry
 	91,  // 156: hashicorp.consul.internal.configentry.HTTPService.Filters:type_name -> hashicorp.consul.internal.configentry.HTTPFilters
-	156, // 157: hashicorp.consul.internal.configentry.HTTPService.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	163, // 157: hashicorp.consul.internal.configentry.HTTPService.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
 	92,  // 158: hashicorp.consul.internal.configentry.HTTPService.ResponseFilters:type_name -> hashicorp.consul.internal.configentry.HTTPResponseFilters
 	47,  // 159: hashicorp.consul.internal.configentry.HTTPService.TLS:type_name -> hashicorp.consul.internal.configentry.GatewayServiceTLSConfig
 	64,  // 160: hashicorp.consul.internal.configentry.HTTPService.Limits:type_name -> hashicorp.consul.internal.configentry.UpstreamLimits
-	151, // 161: hashicorp.consul.internal.configentry.TCPRoute.Meta:type_name -> hashicorp.consul.internal.configentry.TCPRoute.MetaEntry
+	158, // 161: hashicorp.consul.internal.configentry.TCPRoute.Meta:type_name -> hashicorp.consul.internal.configentry.TCPRoute.MetaEntry
 	79,  // 162: hashicorp.consul.internal.configentry.TCPRoute.Parents:type_name -> hashicorp.consul.internal.configentry.ResourceReference
 	100, // 163: hashicorp.consul.internal.configentry.TCPRoute.Services:type_name -> hashicorp.consul.internal.configentry.TCPService
 	71,  // 164: hashicorp.consul.internal.configentry.TCPRoute.Status:type_name -> hashicorp.consul.internal.configentry.Status
-	156, // 165: hashicorp.consul.internal.configentry.TCPService.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	163, // 165: hashicorp.consul.internal.configentry.TCPService.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
 	47,  // 166: hashicorp.consul.internal.configentry.TCPService.TLS:type_name -> hashicorp.consul.internal.configentry.GatewayServiceTLSConfig
 	64,  // 167: hashicorp.consul.internal.configentry.TCPService.Limits:type_name -> hashicorp.consul.internal.configentry.UpstreamLimits
 	102, // 168: hashicorp.consul.internal.configentry.SamenessGroup.Members:type_name -> hashicorp.consul.internal.configentry.SamenessGroupMember
-	152, // 169: hashicorp.consul.internal.configentry.SamenessGroup.Meta:type_name -> hashicorp.consul.internal.configentry.SamenessGroup.MetaEntry
-	156, // 170: hashicorp.consul.internal.configentry.SamenessGroup.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	159, // 169: hashicorp.consul.internal.configentry.SamenessGroup.Meta:type_name -> hashicorp.consul.internal.configentry.SamenessGroup.MetaEntry
+	163, // 170: hashicorp.consul.internal.configentry.SamenessGroup.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
 	104, // 171: hashicorp.consul.internal.configentry.JWTProvider.JSONWebKeySet:type_name -> hashicorp.consul.internal.configentry.JSONWebKeySet
 	113, // 172: hashicorp.consul.internal.configentry.JWTProvider.Locations:type_name -> hashicorp.consul.internal.configentry.JWTLocation
 	117, // 173: hashicorp.consul.internal.configentry.JWTProvider.Forwarding:type_name -> hashicorp.consul.internal.configentry.JWTForwardingConfig
 	118, // 174: hashicorp.consul.internal.configentry.JWTProvider.CacheConfig:type_name -> hashicorp.consul.internal.configentry.JWTCacheConfig
-	153, // 175: hashicorp.consul.internal.configentry.JWTProvider.Meta:type_name -> hashicorp.consul.internal.configentry.JWTProvider.MetaEntry
+	160, // 175: hashicorp.consul.internal.configentry.JWTProvider.Meta:type_name -> hashicorp.consul.internal.configentry.JWTProvider.MetaEntry
 	105, // 176: hashicorp.consul.internal.configentry.JSONWebKeySet.Local:type_name -> hashicorp.consul.internal.configentry.LocalJWKS
 	106, // 177: hashicorp.consul.internal.configentry.JSONWebKeySet.Remote:type_name -> hashicorp.consul.internal.configentry.RemoteJWKS
-	158, // 178: hashicorp.consul.internal.configentry.RemoteJWKS.CacheDuration:type_name -> google.protobuf.Duration
+	165, // 178: hashicorp.consul.internal.configentry.RemoteJWKS.CacheDuration:type_name -> google.protobuf.Duration
 	111, // 179: hashicorp.consul.internal.configentry.RemoteJWKS.RetryPolicy:type_name -> hashicorp.consul.internal.configentry.JWKSRetryPolicy
 	107, // 180: hashicorp.consul.internal.configentry.RemoteJWKS.JWKSCluster:type_name -> hashicorp.consul.internal.configentry.JWKSCluster
 	108, // 181: hashicorp.consul.internal.configentry.JWKSCluster.TLSCertificates:type_name -> hashicorp.consul.internal.configentry.JWKSTLSCertificate
-	158, // 182: hashicorp.consul.internal.configentry.JWKSCluster.ConnectTimeout:type_name -> google.protobuf.Duration
+	165, // 182: hashicorp.consul.internal.configentry.JWKSCluster.ConnectTimeout:type_name -> google.protobuf.Duration
 	109, // 183: hashicorp.consul.internal.configentry.JWKSTLSCertificate.CaCertificateProviderInstance:type_name -> hashicorp.consul.internal.configentry.JWKSTLSCertProviderInstance
 	110, // 184: hashicorp.consul.internal.configentry.JWKSTLSCertificate.TrustedCA:type_name -> hashicorp.consul.internal.configentry.JWKSTLSCertTrustedCA
 	112, // 185: hashicorp.consul.internal.configentry.JWKSRetryPolicy.RetryPolicyBackOff:type_name -> hashicorp.consul.internal.configentry.RetryPolicyBackOff
-	158, // 186: hashicorp.consul.internal.configentry.RetryPolicyBackOff.BaseInterval:type_name -> google.protobuf.Duration
-	158, // 187: hashicorp.consul.internal.configentry.RetryPolicyBackOff.MaxInterval:type_name -> google.protobuf.Duration
+	165, // 186: hashicorp.consul.internal.configentry.RetryPolicyBackOff.BaseInterval:type_name -> google.protobuf.Duration
+	165, // 187: hashicorp.consul.internal.configentry.RetryPolicyBackOff.MaxInterval:type_name -> google.protobuf.Duration
 	114, // 188: hashicorp.consul.internal.configentry.JWTLocation.Header:type_name -> hashicorp.consul.internal.configentry.JWTLocationHeader
 	115, // 189: hashicorp.consul.internal.configentry.JWTLocation.QueryParam:type_name -> hashicorp.consul.internal.configentry.JWTLocationQueryParam
 	116, // 190: hashicorp.consul.internal.configentry.JWTLocation.Cookie:type_name -> hashicorp.consul.internal.configentry.JWTLocationCookie
-	156, // 191: hashicorp.consul.internal.configentry.ExportedServices.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
-	154, // 192: hashicorp.consul.internal.configentry.ExportedServices.Meta:type_name -> hashicorp.consul.internal.configentry.ExportedServices.MetaEntry
+	163, // 191: hashicorp.consul.internal.configentry.ExportedServices.EnterpriseMeta:type_name -> hashicorp.consul.internal.common.EnterpriseMeta
+	161, // 192: hashicorp.consul.internal.configentry.ExportedServices.Meta:type_name -> hashicorp.consul.internal.configentry.ExportedServices.MetaEntry
 	120, // 193: hashicorp.consul.internal.configentry.ExportedServices.Services:type_name -> hashicorp.consul.internal.configentry.ExportedServicesService
 	121, // 194: hashicorp.consul.internal.configentry.ExportedServicesService.Consumers:type_name -> hashicorp.consul.internal.configentry.ExportedServicesConsumer
 	123, // 195: hashicorp.consul.internal.configentry.AIGateway.Processor:type_name -> hashicorp.consul.internal.configentry.AIGatewayProcessor
 	124, // 196: hashicorp.consul.internal.configentry.AIGateway.Routing:type_name -> hashicorp.consul.internal.configentry.AIGatewayRouting
-	155, // 197: hashicorp.consul.internal.configentry.AIGateway.Meta:type_name -> hashicorp.consul.internal.configentry.AIGateway.MetaEntry
-	125, // 198: hashicorp.consul.internal.configentry.AIGatewayRouting.MatchRules:type_name -> hashicorp.consul.internal.configentry.AIGatewayMatchRule
-	128, // 199: hashicorp.consul.internal.configentry.AIGatewayRouting.Retry:type_name -> hashicorp.consul.internal.configentry.AIGatewayRetry
-	129, // 200: hashicorp.consul.internal.configentry.AIGatewayRouting.Timeout:type_name -> hashicorp.consul.internal.configentry.AIGatewayTimeout
-	130, // 201: hashicorp.consul.internal.configentry.AIGatewayRouting.Scoring:type_name -> hashicorp.consul.internal.configentry.AIGatewayScoring
-	126, // 202: hashicorp.consul.internal.configentry.AIGatewayMatchRule.When:type_name -> hashicorp.consul.internal.configentry.AIGatewayMatch
-	127, // 203: hashicorp.consul.internal.configentry.AIGatewayMatch.Identity:type_name -> hashicorp.consul.internal.configentry.AIGatewayIdentityMatch
-	131, // 204: hashicorp.consul.internal.configentry.AIGatewayScoring.WeightedSplit:type_name -> hashicorp.consul.internal.configentry.AIGatewayWeightedTarget
-	30,  // 205: hashicorp.consul.internal.configentry.ServiceResolver.SubsetsEntry.value:type_name -> hashicorp.consul.internal.configentry.ServiceResolverSubset
-	32,  // 206: hashicorp.consul.internal.configentry.ServiceResolver.FailoverEntry.value:type_name -> hashicorp.consul.internal.configentry.ServiceResolverFailover
-	81,  // 207: hashicorp.consul.internal.configentry.BoundAPIGateway.ServicesEntry.value:type_name -> hashicorp.consul.internal.configentry.ListOfResourceReference
-	13,  // 208: hashicorp.consul.internal.configentry.ConfigEntryService.GetResolvedExportedServices:input_type -> hashicorp.consul.internal.configentry.GetResolvedExportedServicesRequest
-	17,  // 209: hashicorp.consul.internal.configentry.ConfigEntryService.GetImportedServices:input_type -> hashicorp.consul.internal.configentry.GetImportedServicesRequest
-	14,  // 210: hashicorp.consul.internal.configentry.ConfigEntryService.GetResolvedExportedServices:output_type -> hashicorp.consul.internal.configentry.GetResolvedExportedServicesResponse
-	18,  // 211: hashicorp.consul.internal.configentry.ConfigEntryService.GetImportedServices:output_type -> hashicorp.consul.internal.configentry.GetImportedServicesResponse
-	210, // [210:212] is the sub-list for method output_type
-	208, // [208:210] is the sub-list for method input_type
-	208, // [208:208] is the sub-list for extension type_name
-	208, // [208:208] is the sub-list for extension extendee
-	0,   // [0:208] is the sub-list for field type_name
+	162, // 197: hashicorp.consul.internal.configentry.AIGateway.Meta:type_name -> hashicorp.consul.internal.configentry.AIGateway.MetaEntry
+	133, // 198: hashicorp.consul.internal.configentry.AIGateway.RateLimit:type_name -> hashicorp.consul.internal.configentry.AIGatewayRateLimit
+	132, // 199: hashicorp.consul.internal.configentry.AIGateway.StateStore:type_name -> hashicorp.consul.internal.configentry.AIGatewayStateStore
+	125, // 200: hashicorp.consul.internal.configentry.AIGatewayRouting.MatchRules:type_name -> hashicorp.consul.internal.configentry.AIGatewayMatchRule
+	128, // 201: hashicorp.consul.internal.configentry.AIGatewayRouting.Retry:type_name -> hashicorp.consul.internal.configentry.AIGatewayRetry
+	129, // 202: hashicorp.consul.internal.configentry.AIGatewayRouting.Timeout:type_name -> hashicorp.consul.internal.configentry.AIGatewayTimeout
+	130, // 203: hashicorp.consul.internal.configentry.AIGatewayRouting.Scoring:type_name -> hashicorp.consul.internal.configentry.AIGatewayScoring
+	126, // 204: hashicorp.consul.internal.configentry.AIGatewayMatchRule.When:type_name -> hashicorp.consul.internal.configentry.AIGatewayMatch
+	127, // 205: hashicorp.consul.internal.configentry.AIGatewayMatch.Identity:type_name -> hashicorp.consul.internal.configentry.AIGatewayIdentityMatch
+	131, // 206: hashicorp.consul.internal.configentry.AIGatewayScoring.WeightedSplit:type_name -> hashicorp.consul.internal.configentry.AIGatewayWeightedTarget
+	135, // 207: hashicorp.consul.internal.configentry.AIGatewayRateLimit.Default:type_name -> hashicorp.consul.internal.configentry.AIGatewayLimitPair
+	135, // 208: hashicorp.consul.internal.configentry.AIGatewayRateLimit.Global:type_name -> hashicorp.consul.internal.configentry.AIGatewayLimitPair
+	136, // 209: hashicorp.consul.internal.configentry.AIGatewayRateLimit.TierLimits:type_name -> hashicorp.consul.internal.configentry.AIGatewayTierLimit
+	137, // 210: hashicorp.consul.internal.configentry.AIGatewayRateLimit.ModelLimits:type_name -> hashicorp.consul.internal.configentry.AIGatewayModelLimit
+	138, // 211: hashicorp.consul.internal.configentry.AIGatewayRateLimit.TierBindings:type_name -> hashicorp.consul.internal.configentry.AIGatewayTierBinding
+	134, // 212: hashicorp.consul.internal.configentry.AIGatewayLimitPair.Requests:type_name -> hashicorp.consul.internal.configentry.AIGatewayLimit
+	134, // 213: hashicorp.consul.internal.configentry.AIGatewayLimitPair.Tokens:type_name -> hashicorp.consul.internal.configentry.AIGatewayLimit
+	134, // 214: hashicorp.consul.internal.configentry.AIGatewayTierLimit.Requests:type_name -> hashicorp.consul.internal.configentry.AIGatewayLimit
+	134, // 215: hashicorp.consul.internal.configentry.AIGatewayTierLimit.Tokens:type_name -> hashicorp.consul.internal.configentry.AIGatewayLimit
+	134, // 216: hashicorp.consul.internal.configentry.AIGatewayModelLimit.Requests:type_name -> hashicorp.consul.internal.configentry.AIGatewayLimit
+	134, // 217: hashicorp.consul.internal.configentry.AIGatewayModelLimit.Tokens:type_name -> hashicorp.consul.internal.configentry.AIGatewayLimit
+	30,  // 218: hashicorp.consul.internal.configentry.ServiceResolver.SubsetsEntry.value:type_name -> hashicorp.consul.internal.configentry.ServiceResolverSubset
+	32,  // 219: hashicorp.consul.internal.configentry.ServiceResolver.FailoverEntry.value:type_name -> hashicorp.consul.internal.configentry.ServiceResolverFailover
+	81,  // 220: hashicorp.consul.internal.configentry.BoundAPIGateway.ServicesEntry.value:type_name -> hashicorp.consul.internal.configentry.ListOfResourceReference
+	13,  // 221: hashicorp.consul.internal.configentry.ConfigEntryService.GetResolvedExportedServices:input_type -> hashicorp.consul.internal.configentry.GetResolvedExportedServicesRequest
+	17,  // 222: hashicorp.consul.internal.configentry.ConfigEntryService.GetImportedServices:input_type -> hashicorp.consul.internal.configentry.GetImportedServicesRequest
+	14,  // 223: hashicorp.consul.internal.configentry.ConfigEntryService.GetResolvedExportedServices:output_type -> hashicorp.consul.internal.configentry.GetResolvedExportedServicesResponse
+	18,  // 224: hashicorp.consul.internal.configentry.ConfigEntryService.GetImportedServices:output_type -> hashicorp.consul.internal.configentry.GetImportedServicesResponse
+	223, // [223:225] is the sub-list for method output_type
+	221, // [221:223] is the sub-list for method input_type
+	221, // [221:221] is the sub-list for extension type_name
+	221, // [221:221] is the sub-list for extension extendee
+	0,   // [0:221] is the sub-list for field type_name
 }
 
 func init() { file_private_pbconfigentry_config_entry_proto_init() }
@@ -10548,7 +11142,7 @@ func file_private_pbconfigentry_config_entry_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_private_pbconfigentry_config_entry_proto_rawDesc), len(file_private_pbconfigentry_config_entry_proto_rawDesc)),
 			NumEnums:      13,
-			NumMessages:   143,
+			NumMessages:   150,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

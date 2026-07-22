@@ -57,6 +57,17 @@ type AIGatewayConfigEntry struct {
 	// Envoy from, keeping one source of truth.
 	Policy *AIGatewayPolicy `json:",omitempty"`
 
+	// RateLimit is the token-aware rate-limit policy the co-located processor
+	// enforces. Like Policy, Consul stores and returns it verbatim; it is keyed only
+	// on trusted sources (SPIFFE identity, config-derived tier, request-body model).
+	RateLimit *AIGatewayRateLimit `json:",omitempty"`
+
+	// StateStore locates the shared rate-limit counter as a Consul mesh service.
+	// Consul renders it into the gateway's Envoy as an mTLS, intention-gated outbound
+	// TCP upstream on LocalBindPort; the processor speaks plain RESP to that local
+	// port. Store failover is handled by Envoy (EDS), so the port is stable.
+	StateStore *AIGatewayStateStore `json:",omitempty"`
+
 	Meta               map[string]string `json:",omitempty"`
 	Hash               uint64            `json:",omitempty" hash:"ignore"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
@@ -83,9 +94,15 @@ type AIGatewayRouting struct {
 	// ComplianceMap AND-filters a match rule's candidates by compliance class.
 	ComplianceMap map[string]AIGatewayCompliance `json:",omitempty"`
 
-	// FallbackChain is the default priority-ordered cluster list used when a
-	// match rule does not specify its own.
+	// Deprecated: fallback membership + order now come from the catalog (each
+	// model's `capabilities` set + `priority.<capability>` meta, gated by
+	// intentions). Retained for backward compatibility; unused by rendering.
 	FallbackChain []string `json:",omitempty"`
+
+	// Fallback tunes cross-provider failover behavior for capability pools (a
+	// capability with two or more discovered members). Membership and per-tier
+	// order are NOT here — they come from the catalog.
+	Fallback *AIGatewayFallback `json:",omitempty"`
 
 	// Retry and Timeout are the default reliability directives Envoy enforces.
 	Retry   *AIGatewayRetry   `json:",omitempty"`
@@ -137,6 +154,20 @@ type AIGatewayCompliance struct {
 type AIGatewayRetry struct {
 	MaxAttempts int      `json:",omitempty"`
 	RetryOn     []string `json:",omitempty"`
+}
+
+// AIGatewayFallback is the gateway-wide cross-provider failover behavior applied to
+// any capability pool. It tunes only HOW Envoy fails a request over across a pool's
+// priority tiers; membership and per-tier order come from the catalog (each model's
+// capabilities set + priority.<capability> meta). An empty block uses defaults.
+type AIGatewayFallback struct {
+	// RetryOn lists retriable conditions: HTTP status tokens ("401", "5xx") and
+	// Envoy reset triggers ("reset", "connect-failure"). Empty uses the defaults.
+	RetryOn []string `json:",omitempty"`
+	// MaxTiers caps how many priority tiers one request may walk. 0 = all tiers.
+	MaxTiers int `json:",omitempty"`
+	// PerTryTimeout bounds each tier attempt (e.g. "30s").
+	PerTryTimeout string `json:",omitempty"`
 }
 
 // AIGatewayTimeout is the Envoy timeout directive.
@@ -210,6 +241,97 @@ type AIGatewayPIIDetector struct {
 	Regex string `json:",omitempty"`
 	// Action is placeholder | mask | block | off.
 	Action string `json:",omitempty"`
+}
+
+// AIGatewayStateStore locates the rate-limit counter as a Consul mesh service.
+// Consul renders an mTLS, intention-gated outbound TCP listener on LocalBindPort
+// that proxies to Service; the co-located processor speaks plain RESP to
+// 127.0.0.1:LocalBindPort. Distinct from the processor-facing RateLimit policy:
+// this drives Envoy rendering (proxycfg/xDS), RateLimit drives the processor.
+type AIGatewayStateStore struct {
+	// Service is the Consul mesh service name of the counter (e.g. "valkey").
+	Service string `json:",omitempty"`
+
+	// LocalBindPort is the loopback port the gateway's Envoy binds and the processor
+	// dials. Store endpoints/failover are resolved by Envoy (EDS), so it is stable.
+	LocalBindPort int `json:",omitempty"`
+}
+
+// AIGatewayRateLimit mirrors the processor's RateLimit block so the token-aware
+// limit policy round-trips through Consul to the processor. Field names match the
+// processor's config structs (which decode this entry's JSON by Go field name), so
+// Consul stores and returns them unchanged. Each budget is a {Count, Unit} pair;
+// Unit is second|minute|hour|day (default minute) and its own sliding window is
+// derived from it, so requests and tokens can carry independent horizons.
+type AIGatewayRateLimit struct {
+	Enabled     bool   `json:",omitempty"`
+	Enforcement string `json:",omitempty"` // deny (default) | shadow
+	Mode        string `json:",omitempty"` // soft (V1, default) | strict (V2, rejected)
+	CountMode   string `json:",omitempty"` // total (default) | input | output
+
+	// Dimensions is the enforced subset of {agent, tier, global, model}. An empty
+	// list defaults (processor-side) to [tier, global].
+	Dimensions []string `json:",omitempty"`
+
+	// DegradeMode is the StateStore-outage posture: fail_closed (default, 503) or
+	// fail_open_unlimited (admit, loud audit).
+	DegradeMode string `json:",omitempty"`
+
+	// Default is the per-agent (SVID) budget for identities matching no tier.
+	Default *AIGatewayLimitPair `json:",omitempty"`
+
+	// Global is the gateway-wide backstop (aggregate provider-account guard).
+	Global *AIGatewayLimitPair `json:",omitempty"`
+
+	// TierLimits are per-tier allocations keyed by the SPIFFE-derived tier.
+	TierLimits []AIGatewayTierLimit `json:",omitempty"`
+
+	// ModelLimits are optional per-model caps keyed by the request-body model.
+	ModelLimits []AIGatewayModelLimit `json:",omitempty"`
+
+	// TierBindings map a trusted identity selector to a named tier. Never
+	// header-derived.
+	TierBindings []AIGatewayTierBinding `json:",omitempty"`
+}
+
+// AIGatewayLimit is a single {Count, Unit} budget: Count events per one Unit-wide
+// sliding window. Unit is second|minute|hour|day (default minute); day is a
+// rolling 24h window, not a calendar day.
+type AIGatewayLimit struct {
+	Count int    `json:",omitempty"`
+	Unit  string `json:",omitempty"` // second | minute | hour | day (default minute)
+}
+
+// AIGatewayLimitPair carries a dimension's two independent budgets: a
+// request-count limit and a token limit. Used by Default and Global.
+type AIGatewayLimitPair struct {
+	Requests *AIGatewayLimit `json:",omitempty"`
+	Tokens   *AIGatewayLimit `json:",omitempty"`
+}
+
+// AIGatewayTierLimit is a per-tier allocation keyed by the SPIFFE-derived tier.
+type AIGatewayTierLimit struct {
+	Tier                   string          `json:",omitempty"`
+	Requests               *AIGatewayLimit `json:",omitempty"`
+	Tokens                 *AIGatewayLimit `json:",omitempty"`
+	MaxCompletionTokensCap int             `json:",omitempty"`
+}
+
+// AIGatewayModelLimit is a per-model cap keyed by the request-body model.
+type AIGatewayModelLimit struct {
+	Model    string          `json:",omitempty"`
+	Requests *AIGatewayLimit `json:",omitempty"`
+	Tokens   *AIGatewayLimit `json:",omitempty"`
+}
+
+// AIGatewayTierBinding maps a trusted identity selector to a named tier. Selectors
+// are evaluated most-specific first (exact SPIFFE URI > partition+namespace >
+// partition-only); an identity matching none falls to the Default* limits.
+type AIGatewayTierBinding struct {
+	Tier      string   `json:",omitempty"`
+	SPIFFEIDs []string `json:",omitempty"`
+	Partition string   `json:",omitempty"`
+	Namespace string   `json:",omitempty"`
 }
 
 func (e *AIGatewayConfigEntry) GetKind() string                        { return AIGateway }
@@ -308,7 +430,141 @@ func (e *AIGatewayConfigEntry) Validate() error {
 			strings.Join(shadows, "; "))
 	}
 
+	if err := e.validateRateLimit(); err != nil {
+		return err
+	}
+
 	return nil
+}
+
+// validateRateLimit gates the rate-limit policy and its backing StateStore. It is
+// the authoritative write-time check; the processor re-validates as defense in
+// depth. Keeping it here means bad limits are rejected at `consul config write`.
+func (e *AIGatewayConfigEntry) validateRateLimit() error {
+	// A StateStore may be declared independently; sanity-check its port whenever set.
+	if e.StateStore != nil && e.StateStore.LocalBindPort != 0 &&
+		(e.StateStore.LocalBindPort < 1 || e.StateStore.LocalBindPort > 65535) {
+		return fmt.Errorf("StateStore.LocalBindPort %d is out of range (1-65535)", e.StateStore.LocalBindPort)
+	}
+
+	rl := e.RateLimit
+	if rl == nil || !rl.Enabled {
+		return nil
+	}
+
+	switch rl.Enforcement {
+	case "", "deny", "shadow":
+	default:
+		return fmt.Errorf("RateLimit.Enforcement %q must be \"deny\" or \"shadow\"", rl.Enforcement)
+	}
+	switch rl.Mode {
+	case "", "soft":
+	case "strict":
+		return fmt.Errorf("RateLimit.Mode \"strict\" is not implemented (use \"soft\")")
+	default:
+		return fmt.Errorf("RateLimit.Mode %q must be \"soft\"", rl.Mode)
+	}
+	switch rl.CountMode {
+	case "", "total", "input", "output":
+	default:
+		return fmt.Errorf("RateLimit.CountMode %q must be total|input|output", rl.CountMode)
+	}
+	switch rl.DegradeMode {
+	case "", "fail_closed", "fail_open_unlimited":
+	default:
+		return fmt.Errorf("RateLimit.DegradeMode %q must be fail_closed|fail_open_unlimited", rl.DegradeMode)
+	}
+
+	validDim := map[string]bool{"agent": true, "tier": true, "global": true, "model": true}
+	for _, d := range rl.Dimensions {
+		if !validDim[d] {
+			return fmt.Errorf("RateLimit.Dimensions contains unsupported dimension %q (agent|tier|global|model)", d)
+		}
+	}
+
+	if err := validateAIGatewayLimitPair("Default", rl.Default); err != nil {
+		return err
+	}
+	if err := validateAIGatewayLimitPair("Global", rl.Global); err != nil {
+		return err
+	}
+
+	declaredTiers := make(map[string]bool, len(rl.TierLimits))
+	for _, tl := range rl.TierLimits {
+		if tl.Tier == "" {
+			return fmt.Errorf("RateLimit.TierLimit requires a tier name")
+		}
+		if declaredTiers[tl.Tier] {
+			return fmt.Errorf("RateLimit.TierLimit %q is declared more than once", tl.Tier)
+		}
+		if err := validateAIGatewayLimitUnit(fmt.Sprintf("TierLimit %q.Requests", tl.Tier), tl.Requests); err != nil {
+			return err
+		}
+		if err := validateAIGatewayLimitUnit(fmt.Sprintf("TierLimit %q.Tokens", tl.Tier), tl.Tokens); err != nil {
+			return err
+		}
+		declaredTiers[tl.Tier] = true
+	}
+	seenModel := make(map[string]bool, len(rl.ModelLimits))
+	for _, ml := range rl.ModelLimits {
+		if ml.Model == "" {
+			return fmt.Errorf("RateLimit.ModelLimit requires a model name")
+		}
+		if seenModel[ml.Model] {
+			return fmt.Errorf("RateLimit.ModelLimit %q is declared more than once", ml.Model)
+		}
+		if err := validateAIGatewayLimitUnit(fmt.Sprintf("ModelLimit %q.Requests", ml.Model), ml.Requests); err != nil {
+			return err
+		}
+		if err := validateAIGatewayLimitUnit(fmt.Sprintf("ModelLimit %q.Tokens", ml.Model), ml.Tokens); err != nil {
+			return err
+		}
+		seenModel[ml.Model] = true
+	}
+	for _, tb := range rl.TierBindings {
+		if tb.Tier == "" {
+			return fmt.Errorf("RateLimit.TierBinding requires a tier name")
+		}
+		if !declaredTiers[tb.Tier] {
+			return fmt.Errorf("RateLimit.TierBinding %q references a tier with no TierLimit", tb.Tier)
+		}
+	}
+
+	// The counter store must be reachable: StateStore both renders the mesh upstream
+	// and carries the LocalBindPort the processor dials (the cross-field invariant).
+	if e.StateStore == nil || e.StateStore.Service == "" {
+		return fmt.Errorf("RateLimit.Enabled requires a StateStore with a Service name")
+	}
+	if e.StateStore.LocalBindPort < 1 || e.StateStore.LocalBindPort > 65535 {
+		return fmt.Errorf("RateLimit.Enabled requires StateStore.LocalBindPort in range (1-65535)")
+	}
+
+	return nil
+}
+
+// validateAIGatewayLimitPair validates the {Requests, Tokens} specs of a Default
+// or Global block. A nil pair is valid (the dimension is simply absent).
+func validateAIGatewayLimitPair(name string, p *AIGatewayLimitPair) error {
+	if p == nil {
+		return nil
+	}
+	if err := validateAIGatewayLimitUnit(name+".Requests", p.Requests); err != nil {
+		return err
+	}
+	return validateAIGatewayLimitUnit(name+".Tokens", p.Tokens)
+}
+
+// validateAIGatewayLimitUnit checks that a limit's Unit, when set, is one of the
+// known windows. An empty Unit is valid (the processor defaults it to minute).
+func validateAIGatewayLimitUnit(name string, l *AIGatewayLimit) error {
+	if l == nil || l.Unit == "" {
+		return nil
+	}
+	switch l.Unit {
+	case "second", "minute", "hour", "day":
+		return nil
+	}
+	return fmt.Errorf("RateLimit %s has invalid Unit %q (second|minute|hour|day)", name, l.Unit)
 }
 
 // shadowedMatchRules returns human-readable descriptions of (shadowing,

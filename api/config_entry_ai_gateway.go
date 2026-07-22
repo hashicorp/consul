@@ -28,6 +28,16 @@ type AIGatewayConfigEntry struct {
 	// co-located processor enforces. Consul carries it verbatim to the processor.
 	Policy *AIGatewayPolicy `json:",omitempty"`
 
+	// RateLimit is the token-aware rate-limit policy the co-located processor
+	// enforces. Consul carries it verbatim to the processor and renders it into the
+	// gateway's Envoy (listener metadata) for hot-reload.
+	RateLimit *AIGatewayRateLimit `json:",omitempty"`
+
+	// StateStore locates the shared rate-limit counter as a Consul mesh service.
+	// Consul renders it into the gateway's Envoy as an mTLS, intention-gated outbound
+	// TCP upstream on LocalBindPort.
+	StateStore *AIGatewayStateStore `json:",omitempty"`
+
 	// Partition is the partition the config entry is associated with.
 	// Partitioning is a Consul Enterprise feature.
 	Partition string `json:",omitempty"`
@@ -53,16 +63,31 @@ type AIGatewayProcessor struct {
 
 // AIGatewayRouting holds the request-routing configuration.
 type AIGatewayRouting struct {
-	MatchRules       []AIGatewayMatchRule           `json:",omitempty"`
-	ComplianceMap    map[string]AIGatewayCompliance `json:",omitempty"`
-	FallbackChain    []string                       `json:",omitempty"`
-	Retry            *AIGatewayRetry                `json:",omitempty"`
-	Timeout          *AIGatewayTimeout              `json:",omitempty"`
-	Scoring          *AIGatewayScoring              `json:",omitempty"`
-	ConfigValidation string                         `json:",omitempty"`
-	Budget           map[string]interface{}         `json:",omitempty"`
-	Cache            map[string]interface{}         `json:",omitempty"`
-	Mirror           map[string]interface{}         `json:",omitempty"`
+	MatchRules    []AIGatewayMatchRule           `json:",omitempty"`
+	ComplianceMap map[string]AIGatewayCompliance `json:",omitempty"`
+	// Deprecated: fallback membership + order now come from the catalog (each
+	// model's capabilities set + priority.<capability> meta). Retained for
+	// backward compatibility; unused by rendering.
+	FallbackChain []string `json:",omitempty"`
+	// Fallback tunes cross-provider failover behavior for capability pools.
+	Fallback         *AIGatewayFallback     `json:",omitempty"`
+	Retry            *AIGatewayRetry        `json:",omitempty"`
+	Timeout          *AIGatewayTimeout      `json:",omitempty"`
+	Scoring          *AIGatewayScoring      `json:",omitempty"`
+	ConfigValidation string                 `json:",omitempty"`
+	Budget           map[string]interface{} `json:",omitempty"`
+	Cache            map[string]interface{} `json:",omitempty"`
+	Mirror           map[string]interface{} `json:",omitempty"`
+}
+
+// AIGatewayFallback is the gateway-wide cross-provider failover behavior applied to
+// any capability pool (a capability with two or more discovered members). Membership
+// and per-tier order are NOT here — they come from the catalog (each model's
+// capabilities set + priority.<capability> meta). An omitted block uses defaults.
+type AIGatewayFallback struct {
+	RetryOn       []string `json:",omitempty"`
+	MaxTiers      int      `json:",omitempty"`
+	PerTryTimeout string   `json:",omitempty"`
 }
 
 // AIGatewayMatchRule selects candidate clusters for matching requests.
@@ -146,6 +171,64 @@ type AIGatewayPIIDetector struct {
 	Name   string `json:",omitempty"`
 	Regex  string `json:",omitempty"`
 	Action string `json:",omitempty"`
+}
+
+// AIGatewayStateStore locates the rate-limit counter as a Consul mesh service.
+type AIGatewayStateStore struct {
+	Service       string `json:",omitempty"`
+	LocalBindPort int    `json:",omitempty"`
+}
+
+// AIGatewayRateLimit mirrors the processor's RateLimit block so the token-aware
+// limit policy round-trips through Consul to the processor. Each budget is a
+// {Count, Unit} pair; Unit is second|minute|hour|day (default minute).
+type AIGatewayRateLimit struct {
+	Enabled      bool                   `json:",omitempty"`
+	Enforcement  string                 `json:",omitempty"`
+	Mode         string                 `json:",omitempty"`
+	CountMode    string                 `json:",omitempty"`
+	Dimensions   []string               `json:",omitempty"`
+	DegradeMode  string                 `json:",omitempty"`
+	Default      *AIGatewayLimitPair    `json:",omitempty"`
+	Global       *AIGatewayLimitPair    `json:",omitempty"`
+	TierLimits   []AIGatewayTierLimit   `json:",omitempty"`
+	ModelLimits  []AIGatewayModelLimit  `json:",omitempty"`
+	TierBindings []AIGatewayTierBinding `json:",omitempty"`
+}
+
+// AIGatewayLimit is a single {Count, Unit} budget.
+type AIGatewayLimit struct {
+	Count int    `json:",omitempty"`
+	Unit  string `json:",omitempty"`
+}
+
+// AIGatewayLimitPair carries a dimension's request-count and token budgets.
+type AIGatewayLimitPair struct {
+	Requests *AIGatewayLimit `json:",omitempty"`
+	Tokens   *AIGatewayLimit `json:",omitempty"`
+}
+
+// AIGatewayTierLimit is a per-tier allocation keyed by the SPIFFE-derived tier.
+type AIGatewayTierLimit struct {
+	Tier                   string          `json:",omitempty"`
+	Requests               *AIGatewayLimit `json:",omitempty"`
+	Tokens                 *AIGatewayLimit `json:",omitempty"`
+	MaxCompletionTokensCap int             `json:",omitempty"`
+}
+
+// AIGatewayModelLimit is a per-model cap keyed by the request-body model.
+type AIGatewayModelLimit struct {
+	Model    string          `json:",omitempty"`
+	Requests *AIGatewayLimit `json:",omitempty"`
+	Tokens   *AIGatewayLimit `json:",omitempty"`
+}
+
+// AIGatewayTierBinding maps a trusted identity selector to a named tier.
+type AIGatewayTierBinding struct {
+	Tier      string   `json:",omitempty"`
+	SPIFFEIDs []string `json:",omitempty"`
+	Partition string   `json:",omitempty"`
+	Namespace string   `json:",omitempty"`
 }
 
 func (e *AIGatewayConfigEntry) GetKind() string            { return e.Kind }

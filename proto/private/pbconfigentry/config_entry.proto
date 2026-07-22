@@ -1447,13 +1447,15 @@ message ExportedServicesConsumer {
 // target=github.com/hashicorp/consul/agent/structs.AIGatewayConfigEntry
 // output=config_entry.gen.go
 // name=Structs
-// ignore-fields=Name,Kind,RaftIndex,EnterpriseMeta
+// ignore-fields=Name,Kind,RaftIndex,EnterpriseMeta,Policy
 message AIGateway {
   AIGatewayProcessor Processor = 1;
   repeated string ApplyTo = 2;
   AIGatewayRouting Routing = 3;
   map<string, string> Meta = 4;
   uint64 Hash = 5;
+  AIGatewayRateLimit RateLimit = 6;
+  AIGatewayStateStore StateStore = 7;
 }
 
 // mog annotation:
@@ -1471,7 +1473,7 @@ message AIGatewayProcessor {
 // target=github.com/hashicorp/consul/agent/structs.AIGatewayRouting
 // output=config_entry.gen.go
 // name=Structs
-// ignore-fields=ComplianceMap,Budget,Cache,Mirror
+// ignore-fields=ComplianceMap,Budget,Cache,Mirror,Fallback
 message AIGatewayRouting {
   repeated AIGatewayMatchRule MatchRules = 1;
   repeated string FallbackChain = 2;
@@ -1555,4 +1557,91 @@ message AIGatewayWeightedTarget {
   string Cluster = 1;
   // mog: func-to=int func-from=int32
   int32 Weight = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.AIGatewayStateStore
+// output=config_entry.gen.go
+// name=Structs
+message AIGatewayStateStore {
+  string Service = 1;
+  // mog: func-to=int func-from=int32
+  int32 LocalBindPort = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.AIGatewayRateLimit
+// output=config_entry.gen.go
+// name=Structs
+message AIGatewayRateLimit {
+  bool Enabled = 1;
+  string Enforcement = 2;
+  string Mode = 3;
+  string CountMode = 4;
+  repeated string Dimensions = 5;
+  string DegradeMode = 6;
+  AIGatewayLimitPair Default = 7;
+  AIGatewayLimitPair Global = 8;
+  repeated AIGatewayTierLimit TierLimits = 9;
+  repeated AIGatewayModelLimit ModelLimits = 10;
+  repeated AIGatewayTierBinding TierBindings = 11;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.AIGatewayLimit
+// output=config_entry.gen.go
+// name=Structs
+message AIGatewayLimit {
+  // mog: func-to=int func-from=int32
+  int32 Count = 1;
+  string Unit = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.AIGatewayLimitPair
+// output=config_entry.gen.go
+// name=Structs
+message AIGatewayLimitPair {
+  AIGatewayLimit Requests = 1;
+  AIGatewayLimit Tokens = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.AIGatewayTierLimit
+// output=config_entry.gen.go
+// name=Structs
+message AIGatewayTierLimit {
+  string Tier = 1;
+  AIGatewayLimit Requests = 2;
+  AIGatewayLimit Tokens = 3;
+  // mog: func-to=int func-from=int32
+  int32 MaxCompletionTokensCap = 4;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.AIGatewayModelLimit
+// output=config_entry.gen.go
+// name=Structs
+message AIGatewayModelLimit {
+  string Model = 1;
+  AIGatewayLimit Requests = 2;
+  AIGatewayLimit Tokens = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.AIGatewayTierBinding
+// output=config_entry.gen.go
+// name=Structs
+message AIGatewayTierBinding {
+  string Tier = 1;
+  repeated string SPIFFEIDs = 2;
+  string Partition = 3;
+  string Namespace = 4;
 }
