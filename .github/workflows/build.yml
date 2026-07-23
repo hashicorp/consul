@@ -203,7 +203,6 @@ jobs:
     needs:
       - set-product-version
       - get-go-version
-    if: ${{ endsWith(github.repository, '-enterprise') }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
