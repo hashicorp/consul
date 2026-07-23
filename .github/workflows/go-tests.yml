@@ -196,7 +196,6 @@ jobs:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
   dev-build-s390x:
-    if: ${{ endsWith(github.repository, '-enterprise') }}
     needs:
     - setup
     - get-go-version
