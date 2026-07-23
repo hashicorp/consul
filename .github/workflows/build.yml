@@ -350,6 +350,7 @@ jobs:
     needs:
       - set-product-version
       - build
+      - build-s390x
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -367,23 +368,23 @@ jobs:
     name: Verify ${{ matrix.arch }} linux binary
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        if: ${{ endsWith(github.repository, '-enterprise') || matrix.arch != 's390x' }}
+      #  if: ${{ endsWith(github.repository, '-enterprise') || matrix.arch != 's390x' }}
 
       - name: Download ${{ matrix.arch  }} zip
-        if: ${{ endsWith(github.repository, '-enterprise') || matrix.arch != 's390x' }}
+      #  if: ${{ endsWith(github.repository, '-enterprise') || matrix.arch != 's390x' }}
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: ${{ env.zip_name }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@68827325e0b33c7199eb31dd4e31fbe9023e06e3 # v3.0.0
-        if: ${{ matrix.arch == 'arm' || matrix.arch == 'arm64' }}
+        if: ${{ matrix.arch == 'arm' || matrix.arch == 'arm64' || matrix.arch == 's390x' }}
         with:
           # this should be a comma-separated string as opposed to an array
-          platforms: arm,arm64
+          platforms: arm,arm64,s390x
 
       - name: Run verification for ${{ matrix.arch }} binary
-        if: ${{ endsWith(github.repository, '-enterprise') || matrix.arch != 's390x' }}
+       # if: ${{ endsWith(github.repository, '-enterprise') || matrix.arch != 's390x' }}
         run: .github/scripts/verify_artifact.sh ${{ env.zip_name }} v${{ env.version }}
 
   verify-linux-packages-deb:
@@ -398,6 +399,7 @@ jobs:
           - { arch: "armhf" }
           - { arch: "amd64" }
           - { arch: "arm64" }
+          -
       # fail-fast: true
     env:
       version: ${{ needs.set-product-version.outputs.product-version }}
