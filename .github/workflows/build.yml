@@ -4,6 +4,9 @@
 name: build
 
 on:
+  pull_request:
+    branches:
+      - main
   push:
     # Sequence of patterns matched against refs/heads
     branches:
@@ -272,6 +275,7 @@ jobs:
           - { arch: "arm" }
           - { arch: "amd64" }
           - { arch: "arm64" }
+          - { arch: "s390x" }
     env:
       repo: ${{github.event.repository.name}}
       version: ${{needs.set-product-version.outputs.product-version}}
@@ -354,6 +358,7 @@ jobs:
           - { arch: "arm" }
           - { arch: "amd64" }
           - { arch: "arm64" }
+          - { arch: "s390x" }
       fail-fast: true
     env:
       version: ${{ needs.set-product-version.outputs.product-version }}
