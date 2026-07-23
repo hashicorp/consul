@@ -1,0 +1,3 @@
+```release-note:bug
+serf: Fix WAN flood-join to ignore non-alive destination members (leaving/left/failed), allowing rejoined servers to heal back to alive in WAN membership.
+```
