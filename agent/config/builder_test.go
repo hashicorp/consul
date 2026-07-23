@@ -383,13 +383,15 @@ func TestBuilder_ServiceVal_MultiError(t *testing.T) {
 		Checks: []CheckDefinition{
 			{Interval: strPtr("bad-interval")},
 		},
-		Weights: &ServiceWeights{Passing: intPtr(-1)},
+		Weights:  &ServiceWeights{Passing: intPtr(-1)},
+		Priority: intPtr(-1),
 	})
 	require.Error(t, b.err)
-	require.Contains(t, b.err.Error(), "4 errors")
+	require.Contains(t, b.err.Error(), "5 errors")
 	require.Contains(t, b.err.Error(), "bad-interval")
 	require.Contains(t, b.err.Error(), "Key cannot be blank")
 	require.Contains(t, b.err.Error(), "Invalid weight")
+	require.Contains(t, b.err.Error(), "Invalid priority")
 	require.Contains(t, b.err.Error(), "cannot have both socket path")
 }
 

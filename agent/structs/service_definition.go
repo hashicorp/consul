@@ -28,6 +28,7 @@ type ServiceDefinition struct {
 	Check             CheckType
 	Checks            CheckTypes
 	Weights           *Weights
+	Priority          *int `json:",omitempty"`
 	Token             string
 	EnableTagOverride bool
 	Locality          *Locality
@@ -80,6 +81,7 @@ func (s *ServiceDefinition) NodeService() *NodeService {
 		Ports:             s.Ports,
 		SocketPath:        s.SocketPath,
 		Weights:           s.Weights,
+		Priority:          s.Priority,
 		EnableTagOverride: s.EnableTagOverride,
 		EnterpriseMeta:    s.EnterpriseMeta,
 		Locality:          s.Locality,

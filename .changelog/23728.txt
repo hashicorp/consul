@@ -1,0 +1,3 @@
+```release-note:feature
+dns: Add configurable per-service priority to DNS SRV responses.
+```

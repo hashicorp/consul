@@ -296,6 +296,8 @@ message ServiceDefinition {
   repeated CheckType Checks = 9;
   // mog: func-to=WeightsPtrToStructs func-from=NewWeightsPtrFromStructs
   Weights Weights = 10;
+  // mog: func-to=Int32PtrToIntPtr func-from=IntPtrToInt32Ptr
+  optional int32 Priority = 21;
   string Token = 11;
   bool EnableTagOverride = 12;
 

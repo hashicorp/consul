@@ -529,6 +529,7 @@ services = [
         address = "9RhqPSPB"
         token = "myjKJkWH"
         port = 72219
+        priority = 32767
         enable_tag_override = true
         check = {
             id = "qmfeO5if"

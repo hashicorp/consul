@@ -152,6 +152,7 @@ type AgentService struct {
 	SocketPath        string                    `json:",omitempty"`
 	TaggedAddresses   map[string]ServiceAddress `json:",omitempty"`
 	Weights           AgentWeights
+	Priority          *int `json:",omitempty"`
 	EnableTagOverride bool
 	CreateIndex       uint64                          `json:",omitempty" bexpr:"-"`
 	ModifyIndex       uint64                          `json:",omitempty" bexpr:"-"`
@@ -361,6 +362,7 @@ type AgentServiceRegistration struct {
 	EnableTagOverride bool                      `json:",omitempty"`
 	Meta              map[string]string         `json:",omitempty"`
 	Weights           *AgentWeights             `json:",omitempty"`
+	Priority          *int                      `json:",omitempty"`
 	Check             *AgentServiceCheck
 	Checks            AgentServiceChecks
 	Proxy             *AgentServiceConnectProxyConfig `json:",omitempty"`
