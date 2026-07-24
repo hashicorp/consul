@@ -15,7 +15,7 @@ require (
 	github.com/rboyer/blankspace v0.2.1
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/net v0.56.0
-	google.golang.org/grpc v1.80.0
+	google.golang.org/grpc v1.82.1
 )
 
 require (
