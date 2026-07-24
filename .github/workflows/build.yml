@@ -399,7 +399,6 @@ jobs:
           - { arch: "armhf" }
           - { arch: "amd64" }
           - { arch: "arm64" }
-          -
       # fail-fast: true
     env:
       version: ${{ needs.set-product-version.outputs.product-version }}
