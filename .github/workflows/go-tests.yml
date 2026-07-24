@@ -342,7 +342,7 @@ jobs:
     with:
       uploaded-binary-name: 'consul-bin-s390x'
       directory: .
-      go-test-flags: -short"
+      go-test-flags: "-short"
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev hashicorpmetrics' || 'hashicorpmetrics' }}"
