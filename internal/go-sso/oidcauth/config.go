@@ -116,6 +116,22 @@ type Config struct {
 	// Valid only if Type=oidc
 	VerboseOIDCLogging bool
 
+	// IDPLogout, when true, enables RP-initiated (front-channel) logout at the
+	// provider's end_session_endpoint when a token created by this auth method
+	// is deleted via `consul logout`. Defaults to false (disabled), which
+	// preserves the existing behavior of only deleting the Consul token.
+	//
+	// Valid only if Type=oidc
+	IDPLogout bool
+
+	// OIDCPostLogoutRedirectURIs is the list of allowed post_logout_redirect_uri
+	// values that the provider may redirect the user back to after an
+	// RP-initiated logout. When empty no post_logout_redirect_uri is sent and
+	// the provider displays its own post-logout page.
+	//
+	// Valid only if Type=oidc
+	OIDCPostLogoutRedirectURIs []string
+
 	// -------
 	// just for type=jwt
 	// -------

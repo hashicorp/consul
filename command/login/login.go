@@ -156,12 +156,45 @@ func (c *cmd) bearerTokenLogin() int {
 		return 1
 	}
 
+	// When the auth method has IdP (front-channel) logout enabled, the login
+	// response carries the provider's RP-initiated logout URL. Persist it next
+	// to the token sink so `consul logout` can terminate the IdP session. This
+	// is a no-op when the field is empty (e.g. IdP logout disabled or the auth
+	// method type does not support it).
+	c.writeLogoutSinkFromToken(tok)
+
 	return 0
 }
 
 func (c *cmd) writeToSink(tok *api.ACLToken) error {
 	payload := []byte(tok.SecretID)
 	return file.WriteAtomicWithPerms(c.tokenSinkFile, payload, 0o755, 0o600)
+}
+
+// idpLogoutSuffix is appended to the token sink file path to derive the path of
+// the companion file that stores the OIDC RP-initiated (front-channel) logout
+// URL. `consul logout` looks for this file next to its token file.
+const idpLogoutSuffix = ".oidc-logout"
+
+// writeLogoutSinkFromToken persists the provider's RP-initiated logout URL
+// (returned by the OIDC login callback when IdP logout is enabled) alongside
+// the token sink file with owner-only permissions. It is a no-op when the auth
+// method did not return a logout URL or when no token sink file is configured.
+func (c *cmd) writeLogoutSinkFromToken(tok *api.ACLToken) {
+	if c.tokenSinkFile == "" {
+		return
+	}
+	logoutSinkFile := c.tokenSinkFile + idpLogoutSuffix
+	if tok.IDPLogoutURL == "" {
+		// This token has no IdP logout URL. Remove any stale sidecar left by a
+		// previous OIDC login so a later `consul logout` does not open an
+		// outdated or unrelated IdP logout URL after destroying this token.
+		_ = os.Remove(logoutSinkFile)
+		return
+	}
+	if err := file.WriteAtomicWithPerms(logoutSinkFile, []byte(tok.IDPLogoutURL), 0o755, 0o600); err != nil {
+		c.UI.Warn(fmt.Sprintf("Error writing IdP logout URL to file sink: %s", err))
+	}
 }
 
 func (c *cmd) Synopsis() string {

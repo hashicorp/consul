@@ -70,21 +70,37 @@ func (a *Authenticator) GetAuthCodeURL(ctx context.Context, redirectURI string, 
 //
 // Requires the authenticator's config type be set to 'oidc'.
 func (a *Authenticator) ClaimsFromAuthCode(ctx context.Context, stateParam, code string) (*Claims, interface{}, error) {
+	claims, payload, _, err := a.claimsFromAuthCode(ctx, stateParam, code)
+	return claims, payload, err
+}
+
+// ClaimsFromAuthCodeWithIDToken behaves exactly like ClaimsFromAuthCode but
+// additionally returns the raw OIDC id_token string obtained during the code
+// exchange. Callers may persist this value to later supply it as the
+// id_token_hint parameter for RP-initiated (front-channel) logout at the
+// provider's end_session_endpoint.
+//
+// Requires the authenticator's config type be set to 'oidc'.
+func (a *Authenticator) ClaimsFromAuthCodeWithIDToken(ctx context.Context, stateParam, code string) (*Claims, interface{}, string, error) {
+	return a.claimsFromAuthCode(ctx, stateParam, code)
+}
+
+func (a *Authenticator) claimsFromAuthCode(ctx context.Context, stateParam, code string) (*Claims, interface{}, string, error) {
 	if a.config.authType() != authOIDCFlow {
-		return nil, nil, fmt.Errorf("ClaimsFromAuthCode is incompatible with type %q", TypeJWT)
+		return nil, nil, "", fmt.Errorf("auth code claims are incompatible with type %q", TypeJWT)
 	}
 
 	// TODO(sso): this could be because we ACTUALLY are getting OIDC error responses and
 	// should handle them elsewhere!
 	if code == "" {
-		return nil, nil, &ProviderLoginFailedError{
+		return nil, nil, "", &ProviderLoginFailedError{
 			Err: fmt.Errorf("OAuth code parameter not provided"),
 		}
 	}
 
 	state := a.verifyOIDCState(stateParam)
 	if state == nil {
-		return nil, nil, &ProviderLoginFailedError{
+		return nil, nil, "", &ProviderLoginFailedError{
 			Err: fmt.Errorf("Expired or missing OAuth state."),
 		}
 	}
@@ -92,7 +108,7 @@ func (a *Authenticator) ClaimsFromAuthCode(ctx context.Context, stateParam, code
 	// Use the stored request object from the initial authorization request
 	if state.request == nil {
 		a.logger.Error("Request object not found in state", "stateParam", stateParam)
-		return nil, nil, &ProviderLoginFailedError{
+		return nil, nil, "", &ProviderLoginFailedError{
 			Err: fmt.Errorf("missing request object in OAuth state"),
 		}
 	}
@@ -103,18 +119,24 @@ func (a *Authenticator) ClaimsFromAuthCode(ctx context.Context, stateParam, code
 
 	tokens, err := provider.Exchange(ctx, state.request, stateParam, code)
 	if err != nil {
-		return nil, nil, &ProviderLoginFailedError{
+		return nil, nil, "", &ProviderLoginFailedError{
 			Err: fmt.Errorf("Error exchanging oidc code: %w", err),
 		}
 	}
 
 	if !tokens.Valid() {
-		return nil, nil, &TokenVerificationFailedError{
-			Err: err,
+		return nil, nil, "", &TokenVerificationFailedError{
+			Err: errors.New("oidc: token exchange returned an invalid or expired token"),
 		}
 	}
 
 	idToken := tokens.IDToken()
+
+	// Capture the raw id_token string so callers can later use it as an
+	// id_token_hint for RP-initiated (front-channel) logout. Note: we must
+	// use an explicit string() conversion here because IDToken.String() and
+	// IDToken.MarshalJSON() deliberately redact the value.
+	rawIDToken := string(idToken)
 
 	if a.config.VerboseOIDCLogging && a.logger != nil {
 		a.logger.Debug("OIDC provider response", "ID token", idToken)
@@ -122,13 +144,13 @@ func (a *Authenticator) ClaimsFromAuthCode(ctx context.Context, stateParam, code
 
 	var allClaims map[string]any
 	if err := idToken.Claims(&allClaims); err != nil {
-		return nil, nil, &TokenVerificationFailedError{
+		return nil, nil, "", &TokenVerificationFailedError{
 			Err: err,
 		}
 	}
 
 	if allClaims["nonce"] != state.nonce { // TODO(sso): does this need a cast?
-		return nil, nil, &TokenVerificationFailedError{
+		return nil, nil, "", &TokenVerificationFailedError{
 			Err: errors.New("Invalid ID token nonce."),
 		}
 	}
@@ -159,7 +181,7 @@ func (a *Authenticator) ClaimsFromAuthCode(ctx context.Context, stateParam, code
 
 	c, err := a.extractClaims(allClaims)
 	if err != nil {
-		return nil, nil, &TokenVerificationFailedError{
+		return nil, nil, "", &TokenVerificationFailedError{
 			Err: err,
 		}
 	}
@@ -168,7 +190,32 @@ func (a *Authenticator) ClaimsFromAuthCode(ctx context.Context, stateParam, code
 		a.logger.Debug("OIDC provider response", "extracted_claims", c)
 	}
 
-	return c, state.payload, nil
+	return c, state.payload, rawIDToken, nil
+}
+
+// GetEndSessionEndpoint returns the provider's RP-initiated logout endpoint
+// (end_session_endpoint) as advertised in its OIDC discovery document, or an
+// empty string if the provider does not advertise one. The discovery document
+// is already fetched and cached by the underlying provider during
+// initialization, so this call does not perform an additional network
+// round-trip.
+//
+// Requires the authenticator's config type be set to 'oidc'.
+func (a *Authenticator) GetEndSessionEndpoint() (string, error) {
+	if a.config.authType() != authOIDCFlow {
+		return "", fmt.Errorf("GetEndSessionEndpoint is incompatible with type %q", TypeJWT)
+	}
+	if a.capProvider == nil {
+		return "", fmt.Errorf("OIDC provider is not initialized")
+	}
+
+	var discovery struct {
+		EndSessionEndpoint string `json:"end_session_endpoint"`
+	}
+	if err := a.capProvider.Claims(&discovery); err != nil {
+		return "", fmt.Errorf("error reading OIDC discovery document: %w", err)
+	}
+	return discovery.EndSessionEndpoint, nil
 }
 
 // ProviderLoginFailedError is an error type sometimes returned from
