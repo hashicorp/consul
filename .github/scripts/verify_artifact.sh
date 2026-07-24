@@ -234,6 +234,18 @@ function verify_zip {
       fi
       ;;
 
+    *_linux_s390x.zip)
+      docker run \
+        --platform=linux/s390x \
+        -v $(pwd):/workdir \
+        -v ${SCRIPT_DIR}:/scripts \
+        -w /workdir  \
+      s390x/debian \
+      /scripts/verify_bin.sh \
+      ./consul \
+      "${expect_version}"
+      ;;
+
     *)
       echo "${artifact_path} did not match known patterns for zips"
       exit 1
