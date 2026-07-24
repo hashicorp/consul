@@ -30,6 +30,10 @@ func (s *mockCfgFetcher) AdvertiseAddrLAN() string {
 	return s.addressLan
 }
 
+func (s *mockCfgFetcher) DNSRecursors() []string {
+	return nil
+}
+
 func uint32ptr(i uint32) *uint32 {
 	return &i
 }
