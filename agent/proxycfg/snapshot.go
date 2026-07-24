@@ -772,6 +772,12 @@ type configSnapshotAPIGateway struct {
 	// leaf cert watch with different parameters.
 	LeafCertWatchCancel context.CancelFunc
 
+	// LeafCertDNSSANs is the sorted set of DNS Subject Alternative Names most
+	// recently requested for the gateway's leaf certificate. It is used to avoid
+	// re-establishing the leaf cert watch when the computed SANs have not changed
+	// (e.g. on unrelated route updates), preventing needless cert churn.
+	LeafCertDNSSANs []string
+
 	// Listeners is the original listener config from the api-gateway config
 	// entry to save us trying to pass fields through Upstreams
 	Listeners map[string]structs.APIGatewayListener

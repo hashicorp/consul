@@ -33,6 +33,14 @@ const (
 	SystemMetadataIntentionFormatLegacyValue   = "legacy"
 	SystemMetadataVirtualIPsEnabled            = "virtual-ips"
 	SystemMetadataTermGatewayVirtualIPsEnabled = "virtual-ips-term-gateway"
+
+	// SystemMetadataAPIGatewayDNSEnabled is set once all servers in the datacenter
+	// support API gateway DNS auto-registration. Until it is set, the state store
+	// does not materialize api-gateway gateway-services mappings, which keeps
+	// behavior identical to older servers during a rolling upgrade (avoiding FSM
+	// divergence between mixed-version servers). When the leader sets this flag it
+	// also backfills mappings for any pre-existing API gateways.
+	SystemMetadataAPIGatewayDNSEnabled = "api-gateway-dns"
 )
 
 type SystemMetadataEntry struct {

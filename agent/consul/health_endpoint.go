@@ -220,6 +220,8 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 		f = h.serviceNodesTagFilter
 	case args.Ingress:
 		f = h.serviceNodesIngress
+	case args.APIGateway:
+		f = h.serviceNodesAPIGateway
 	default:
 		f = h.serviceNodesDefault
 	}
@@ -236,9 +238,9 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 		return err
 	}
 
-	// If we're doing a connect or ingress query, we need read access to the service
-	// we're trying to find proxies for, so check that.
-	if args.Connect || args.Ingress {
+	// If we're doing a connect, ingress, or API gateway query, we need read access
+	// to the service we're trying to find proxies for, so check that.
+	if args.Connect || args.Ingress || args.APIGateway {
 		if authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
@@ -361,6 +363,9 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 		if args.Ingress {
 			key = "ingress"
 		}
+		if args.APIGateway {
+			key = "api-gateway"
+		}
 
 		metrics.IncrCounterWithLabels([]string{"health", key, "query"}, 1,
 			[]metrics.Label{{Name: "service", Value: args.ServiceName}})
@@ -398,6 +403,10 @@ func (h *Health) serviceNodesConnect(ws memdb.WatchSet, s *state.Store, args *st
 
 func (h *Health) serviceNodesIngress(ws memdb.WatchSet, s *state.Store, args *structs.ServiceSpecificRequest) (uint64, structs.CheckServiceNodes, error) {
 	return s.CheckIngressServiceNodes(ws, args.ServiceName, &args.EnterpriseMeta)
+}
+
+func (h *Health) serviceNodesAPIGateway(ws memdb.WatchSet, s *state.Store, args *structs.ServiceSpecificRequest) (uint64, structs.CheckServiceNodes, error) {
+	return s.CheckAPIGatewayServiceNodes(ws, args.ServiceName, &args.EnterpriseMeta)
 }
 
 func (h *Health) serviceNodesTagFilter(ws memdb.WatchSet, s *state.Store, args *structs.ServiceSpecificRequest) (uint64, structs.CheckServiceNodes, error) {
