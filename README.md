@@ -39,7 +39,7 @@ Consul provides several key features:
   for storing configuration parameters and application metadata.
 
 Consul runs on Linux, macOS, FreeBSD, Solaris, and Windows and includes an
-optional [browser based UI](https://demo.consul.io). A commercial version
+optional browser based UI. A commercial version
 called [Consul Enterprise](https://developer.hashicorp.com/consul/docs/enterprise) is also
 available.
 
