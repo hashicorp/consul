@@ -783,6 +783,106 @@ func TestACLResolver_ResolveRootACL(t *testing.T) {
 	})
 }
 
+// TestACLResolver_StaleNotFoundReverifiedConsistently ensures a stale "ACL not
+// found" (e.g. from a follower behind on replication) is re-verified with a
+// consistent (leader) read instead of being treated as authoritative, so valid
+// tokens don't get stuck returning "ACL not found".
+func TestACLResolver_StaleNotFoundReverifiedConsistently(t *testing.T) {
+	t.Parallel()
+
+	var staleReads, consistentReads int32
+	delegate := &ACLResolverTestDelegate{
+		enabled:       true,
+		datacenter:    "dc1",
+		localTokens:   false,
+		localPolicies: true,
+		localRoles:    true,
+		tokenReadFn: func(args *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
+			if args.AllowStale && !args.RequireConsistent {
+				// Simulate a follower behind on ACL replication returning a
+				// false negative for a token that actually exists.
+				atomic.AddInt32(&staleReads, 1)
+				return acl.ErrNotFound
+			}
+			// Consistent (leader) read resolves the token correctly.
+			atomic.AddInt32(&consistentReads, 1)
+			_, token, err := testIdentityForToken(args.TokenID)
+			if token != nil {
+				reply.Token = token.(*structs.ACLToken)
+			}
+			return err
+		},
+	}
+	r := newTestACLResolver(t, delegate, nil)
+
+	authz, err := r.ResolveToken("found")
+	require.NoError(t, err)
+	require.NotNil(t, authz)
+
+	require.Equal(t, int32(1), atomic.LoadInt32(&staleReads), "stale read should have been attempted first")
+	require.Equal(t, int32(1), atomic.LoadInt32(&consistentReads), "consistent read should re-verify the stale not-found")
+
+	// The valid identity must be cached so downstream caches are not poisoned.
+	cacheVal := r.cache.GetIdentityWithSecretToken("found")
+	require.NotNil(t, cacheVal)
+	require.NotNil(t, cacheVal.Identity)
+}
+
+// TestACLResolver_ConsistentNotFoundIsCachedShortly ensures a genuinely absent
+// token (not found on both stale and consistent reads) is reported as not found
+// and cached briefly, so repeated invalid tokens don't amplify leader reads.
+func TestACLResolver_ConsistentNotFoundIsCachedShortly(t *testing.T) {
+	t.Parallel()
+
+	var staleReads, consistentReads int32
+	delegate := &ACLResolverTestDelegate{
+		enabled:       true,
+		datacenter:    "dc1",
+		localTokens:   false,
+		localPolicies: true,
+		localRoles:    true,
+		tokenReadFn: func(args *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
+			if args.AllowStale && !args.RequireConsistent {
+				atomic.AddInt32(&staleReads, 1)
+			} else {
+				atomic.AddInt32(&consistentReads, 1)
+			}
+			return acl.ErrNotFound
+		},
+	}
+	r := newTestACLResolver(t, delegate, nil)
+
+	// First resolution: stale read reports not-found, so the resolver re-verifies
+	// with a consistent (leader) read, which also confirms not-found.
+	_, err := r.ResolveToken("invalid-token")
+	require.Error(t, err)
+	require.True(t, acl.IsErrNotFound(err))
+	require.Equal(t, int32(1), atomic.LoadInt32(&staleReads), "stale read should have been attempted first")
+	require.Equal(t, int32(1), atomic.LoadInt32(&consistentReads), "consistent read should confirm the not-found")
+
+	// A genuinely missing token must not be stored in the identity cache.
+	require.Nil(t, r.cache.GetIdentityWithSecretToken("invalid-token"))
+
+	// Second resolution within the short window is served by the not-found cache,
+	// avoiding any extra stale or consistent leader reads.
+	_, err = r.ResolveToken("invalid-token")
+	require.Error(t, err)
+	require.True(t, acl.IsErrNotFound(err))
+	require.Equal(t, int32(1), atomic.LoadInt32(&staleReads))
+	require.Equal(t, int32(1), atomic.LoadInt32(&consistentReads))
+
+	// Simulate cache expiry and ensure the next request performs remote resolution again.
+	r.tokenNotFoundCacheLock.Lock()
+	r.tokenNotFoundCache["invalid-token"] = time.Now().Add(-1 * time.Second)
+	r.tokenNotFoundCacheLock.Unlock()
+
+	_, err = r.ResolveToken("invalid-token")
+	require.Error(t, err)
+	require.True(t, acl.IsErrNotFound(err))
+	require.Equal(t, int32(2), atomic.LoadInt32(&staleReads))
+	require.Equal(t, int32(2), atomic.LoadInt32(&consistentReads))
+}
+
 func TestACLResolver_DownPolicy(t *testing.T) {
 	requireIdentityCached := func(t *testing.T, r *ACLResolver, secretID string, present bool, msg string) {
 		t.Helper()
