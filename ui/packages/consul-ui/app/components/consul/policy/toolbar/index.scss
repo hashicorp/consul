@@ -1,0 +1,22 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
+.consul-policy-toolbar {
+  /* the sorter sits at the right end of the toolbar row */
+  .consul-policy-toolbar__sort {
+    flex: 0 0 auto;
+    margin-left: auto;
+
+    .hds-dropdown-toggle-button {
+      min-height: 2.25rem;
+    }
+  }
+}
+
+/* The policies index uses the HDS Filter Bar for its toolbar, so drop the
+   default header underline above it to avoid a doubled-up separator. */
+html[data-route='dc.acls.policies.index'] .app-view > header .title {
+  border-bottom: none;
+}

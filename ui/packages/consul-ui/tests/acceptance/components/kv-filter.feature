@@ -12,10 +12,7 @@ Feature: components / kv-filter
       dc: dc-1
     ---
     Then the url should be [Url]
-    Then I fill in with yaml
-    ---
-    s: [Text]
-    ---
+    Then I type "[Text]" into "input[type=search]"
     And I see 1 [Model] model with the name "[Text]"
 
   Where:

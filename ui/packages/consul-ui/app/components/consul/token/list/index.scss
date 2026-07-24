@@ -1,0 +1,58 @@
+/**
+ * Copyright IBM Corp. 2024, 2026
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
+.consul-token-list {
+  margin-top: 16px;
+
+  /* Keep multi-word column headers on a single line. */
+  .hds-table__th {
+    white-space: nowrap;
+  }
+
+  /* Actions is the last column: shrink it to just fit the menu button so the
+     remaining width goes to the content columns. */
+  .hds-table__th:last-child,
+  .hds-table__td:last-child {
+    width: 1%;
+    white-space: nowrap;
+  }
+}
+
+.consul-token-list__name {
+  display: inline-flex;
+  align-items: center;
+  font-weight: var(--token-typography-font-weight-semibold);
+
+  a {
+    font-weight: var(--token-typography-font-weight-semibold);
+  }
+}
+
+/* "Your token" indicator: a small check-circle before the name, matching the
+   legacy [rel='me'] marker. */
+.consul-token-list__me::before {
+  @extend %with-check-circle-fill-mask, %as-pseudo;
+
+  color: var(--token-color-foreground-action);
+  margin-right: 4px;
+}
+
+.consul-token-list__description {
+  display: block;
+  color: var(--token-color-foreground-faint);
+  font-style: normal;
+}
+
+/* The copy button extends %button, which adds ~2.2em of horizontal padding and
+   a 100px min-width. Strip it so the SecretID link aligns with the other cells. */
+.consul-token-list .copy-button button {
+  min-width: 0;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.consul-token-list__actions {
+  display: inline-flex;
+}

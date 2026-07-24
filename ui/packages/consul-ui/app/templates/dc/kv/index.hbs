@@ -6,6 +6,16 @@
 <Route
   @name={{this.routeName}}
 as |route|>
+{{! The Consul::Kv::Flyout (open via the kv/creating query params) sets its own }}
+{{! title while it's open -- suppress this one then so they don't both stack, }}
+{{! since unlike a route transition, the list here never actually unmounts. }}
+{{#unless (or this.kv this.creating)}}
+{{#if (eq (or route.params.key '/') '/')}}
+  {{page-title "Key / Value"}}
+{{else}}
+  {{page-title (take 1 (drop 1 (reverse (split (or route.params.key '/') '/'))))}}
+{{/if}}
+{{/unless}}
   <DataSource
     @src={{uri '/${partition}/${nspace}/${dc}/kv/${key}'
       (hash
@@ -85,129 +95,42 @@ as |route|>
   loader.data
 
 as |sort filters parent items|}}
-    <AppView @showBreadcrumb={{not-eq parent.Key '/'}}>
-      <:breadcrumbs>
-        <Hds::Breadcrumb>
-          <Hds::Breadcrumb::Item @text="Key / Values" @route="dc.kv" />
-    {{#each (slice 0 -2 (split parent.Key '/')) as |breadcrumb index|}}
-          <Hds::Breadcrumb::Item @text={{breadcrumb}} @route="dc.kv.folder" @model={{join '/' (append (slice 0 (add index 1) (split parent.Key '/')) '')}} />
-    {{/each}}
-        </Hds::Breadcrumb>
-      </:breadcrumbs>
-      <:header>
-          <h1>
-            {{#if (eq parent.Key '/')}}
-              <route.Title @title="Key / Value" />
-            {{else}}
-              <route.Title @title={{take 1 (drop 1 (reverse (split parent.Key '/')))}} />
-            {{/if}}
-          </h1>
-          <label for="toolbar-toggle"></label>
-      </:header>
-      <:toolbar>
-    {{#if (gt items.length 0) }}
-        <Consul::Kv::SearchBar
-          @search={{this.search}}
-          @onsearch={{action (mut this.search) value="target.value"}}
+    <Consul::Kv::Browser
+      @dc={{route.params.dc}}
+      @nspace={{route.params.nspace}}
+      @partition={{route.params.partition}}
+      @parent={{parent}}
+      @items={{items}}
+      @sort={{sort}}
+      @filters={{filters}}
+      @search={{this.search}}
+      @onsearch={{action (mut this.search) value="target.value"}}
+      @login={{route.model.app.login.open}}
+      @onSelect={{mut this.kv}}
+      @onCreate={{mut this.creating}}
+    />
 
-          @sort={{sort}}
-
-          @filter={{filters}}
-        />
-    {{/if}}
-      </:toolbar>
-      <:actions>
-{{#if (can 'create kvs')}}
-    {{#if (and parent.Key (not-eq parent.Key '/')) }}
-      <Hds::Button
-        @text='Create'
-        @isHrefExternal={{false}}
-        @href="{{href-to 'dc.kv.create' parent.Key}}"
-        data-test-create
-      />
-    {{else}}
-      <Hds::Button
-        @text='Create'
-        @route='dc.kv.root-create'
-        data-test-create
-      />
-    {{/if}}
+{{#if (or this.kv (and this.creating (can 'create kvs')))}}
+{{#let
+  (if this.creating
+    this.creating
+    (concat (join '/' (slice 0 -1 (split (or this.kv '') '/'))) '/')
+  )
+as |flyoutParent|}}
+    {{! Re-fetch the list (not a route refresh -- that would race with the query }}
+    {{! param reset below and re-add ?create/?kv) so a just created/edited key }}
+    {{! shows immediately, since the blocking query won't re-poll on its own. }}
+    <Consul::Kv::Flyout
+      @isCreate={{if this.creating true false}}
+      @selected={{this.kv}}
+      @dc={{route.params.dc}}
+      @nspace={{route.params.nspace}}
+      @partition={{route.params.partition}}
+      @parent={{flyoutParent}}
+      @onsubmit={{queue (fn (mut this.kv) undefined) (fn (mut this.creating) undefined) loader.invalidate}}
+    />
+{{/let}}
 {{/if}}
-      </:actions>
-      <:content>
-        {{#let (refresh-route) as |refreshRoute|}}
-        <DataWriter
-          @sink={{uri '/${partition}/${nspace}/${dc}/kv/'
-            (hash
-              partition=route.params.partition
-              nspace=route.params.nspace
-              dc=route.params.dc
-            )
-          }}
-          @type="kv"
-          @label="key"
-          @ondelete={{refreshRoute}}>
-          <:content as |writer|>
-            <DataCollection
-              @type="kv"
-              @sort={{sort.value}}
-              @filters={{filters}}
-              @search={{this.search}}
-              @items={{items}}
-            as |collection|>
-              <collection.Collection>
-                <Consul::Kv::List
-                  @items={{collection.items}}
-                  @parent={{parent}}
-                  @delete={{writer.delete}}
-                />
-              </collection.Collection>
-              <collection.Empty>
-                <EmptyState
-                  @login={{route.model.app.login.open}}
-                >
-                  <:header>
-                    <h2>
-                      {{t 'routes.dc.kv.index.empty.header'
-                        items=items.length
-                      }}
-                    </h2>
-                  </:header>
-                  <:body>
-                    {{t 'routes.dc.kv.index.empty.body'
-                      items=items.length
-                      canUseACLs=(can "use acls")
-                      htmlSafe=true
-                    }}
-                  </:body>
-                  <:actions>
-                    <li>
-                      <Hds::Link::Standalone
-                        @text='Documentation on K/V'
-                        @href="{{env 'CONSUL_DOCS_URL'}}/automate/kv"
-                        @icon='docs-link'
-                        @iconPosition='trailing'
-                        @size='small'
-                      />
-                    </li>
-                    <li>
-                      <Hds::Link::Standalone
-                        @text='Take the tutorial'
-                        @href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/getting-started/kv"
-                        @icon='learn-link'
-                        @iconPosition='trailing'
-                        @size='small'
-                      />
-                    </li>
-                  </:actions>
-                </EmptyState>
-              </collection.Empty>
-            </DataCollection>
-          </:content>
-        </DataWriter>
-        {{/let}}
-      </:content>
-    </AppView>
 {{/let}}
     </:loaded>
   </DataLoader>

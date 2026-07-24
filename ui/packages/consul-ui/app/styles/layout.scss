@@ -5,6 +5,29 @@
 
 @import 'layouts/index';
 
+/* Move the HDS dialog scroll-lock from <body> to <html>.
+
+   Hds::Flyout/Hds::Modal lock scrolling with inline `overflow: hidden` on
+   <body>. That only propagates to the viewport while the root element's
+   overflow is `visible`, and base/reset/system.scss overrides it -- so instead
+   <body> becomes a scroll container at scrollTop 0, and the `position: sticky`
+   `.hds-app-frame__sidebar` re-anchors to it and jumps up by the current scroll
+   offset. Locking the real scrolling element leaves that scrollport alone. */
+$hds-dialog-open: 'dialog.hds-dialog-primitive__wrapper[open]';
+
+html {
+  /* reserve the scrollbar so the lock below doesn't shift the page sideways */
+  scrollbar-gutter: stable;
+}
+html:has(#{$hds-dialog-open}) {
+  overflow-y: hidden;
+}
+/* author `!important` outranks HDS's inline style */
+body:has(#{$hds-dialog-open}) {
+  overflow: visible !important;
+}
+/**/
+
 /* position main app-view when there are/aren't breadcrumbs */
 .app-view {
   margin-top: 50px;
@@ -76,7 +99,6 @@ html[data-route$='edit'] .app-view > header + div > *:first-child {
 html[data-route='dc.services.index'] .consul-service-list ul,
 .consul-nspace-list ul,
 .consul-service-instance-list ul,
-.consul-node-list ul,
 .consul-role-list ul,
 .consul-policy-list ul,
 .consul-token-list ul,

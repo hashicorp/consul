@@ -3,36 +3,51 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-<ListCollection
-  class="consul-auth-method-list"
-  @items={{@items}}
->
-  <:header as |item|>
-  {{#if (not-eq item.DisplayName '')}}
-    <a data-test-auth-method href={{href-to "dc.acls.auth-methods.show" item.Name}}>
-      {{item.DisplayName}}
-    </a>
-  {{else}}
-    <a data-test-auth-method href={{href-to "dc.acls.auth-methods.show" item.Name}}>
-      {{item.Name}}
-    </a>
-  {{/if}}
-  </:header>
-  <:details as |item|>
-    <Consul::AuthMethod::Type @item={{item}} />
-  {{#if (not-eq item.DisplayName '')}}
-    <span data-test-display-name>{{item.Name}}</span>
-  {{/if}}
-  {{#if (eq item.TokenLocality 'global')}}
-    <span class="locality">creates global tokens</span>
-  {{/if}}
-  {{#if item.MaxTokenTTL}}
-    <dl class="ttl">
-      <dt {{hds-tooltip "Maximum Time to Live: the maximum life of any token created by this auth method" options=(detached-tooltip-options)}}>
-        Maximum Time to Live
-      </dt>
-      <dd>{{item.MaxTokenTTL}}</dd>
-    </dl>
-  {{/if}}
-  </:details>
-</ListCollection>
+<div class="consul-auth-method-list" ...attributes>
+  <Consul::DataTable
+    @items={{@items}}
+    @columns={{this.columns}}
+    @ariaLabel="Auth Methods"
+  >
+    <:row as |item B|>
+      {{! ---- Name (DisplayName, or Name when no DisplayName) ---- }}
+      <B.Td>
+        <span class="consul-auth-method-list__name">
+          <a
+            data-test-auth-method
+            data-test-name
+            href={{href-to "dc.acls.auth-methods.show" item.Name}}
+            {{hds-tooltip item.MethodName options=(detached-tooltip-options)}}
+          >{{item.MethodName}}</a>
+          {{! Preserve the legacy "creates global tokens" indicator (which the
+              old list showed only for global-locality methods) as a compact
+              badge next to the name. }}
+          {{#if (eq item.TokenLocality 'global')}}
+            <span {{hds-tooltip "Creates global tokens" options=(detached-tooltip-options)}}>
+              <Hds::Badge @text="Global tokens" @color="highlight" @size="small" data-test-locality-global />
+            </span>
+          {{/if}}
+        </span>
+      </B.Td>
+
+      {{! ---- External source (type badge + icon) ---- }}
+      <B.Td>
+        <Consul::AuthMethod::Type @item={{item}} />
+      </B.Td>
+
+      {{! ---- Internal name (only shown when a DisplayName is set) ---- }}
+      <B.Td>
+        {{#if (not-eq item.DisplayName '')}}
+          <span data-test-display-name>{{item.Name}}</span>
+        {{/if}}
+      </B.Td>
+
+      {{! ---- Max time to live (only when set) ---- }}
+      <B.Td>
+        {{#if item.MaxTokenTTL}}
+          <span data-test-max-ttl>{{item.MaxTokenTTLFormatted}}</span>
+        {{/if}}
+      </B.Td>
+    </:row>
+  </Consul::DataTable>
+</div>

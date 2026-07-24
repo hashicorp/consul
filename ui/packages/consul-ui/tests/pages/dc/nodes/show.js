@@ -25,9 +25,8 @@ export default function (
       'metadata',
     ]),
     healthChecks: alias('tabs.healthChecksTab.healthChecks'),
-    services: collection('.consul-service-instance-list > ul > li:not(:first-child)', {
+    services: collection('.consul-service-instance-table tbody tr', {
       name: text('[data-test-service-name]'),
-      port: attribute('data-test-service-port', '[data-test-service-port]'),
       externalSource: attribute('data-test-external-source', '[data-test-external-source]'),
     }),
     sessions: collection('.consul-lock-session-list [data-test-list-row]', {

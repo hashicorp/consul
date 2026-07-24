@@ -51,7 +51,7 @@ import consulPolicyListFactory from 'consul-ui/components/consul/policy/list/pag
 import consulAuthMethodListFactory from 'consul-ui/components/consul/auth-method/list/pageobject';
 import consulIntentionListFactory from 'consul-ui/components/consul/intention/list/pageobject';
 import consulNspaceListFactory from 'consul-ui/components/consul/nspace/list/pageobject';
-import consulPeerListFactory from 'consul-ui/components/consul/peer/list/test-support';
+import consulPeerListFactory from 'consul-ui/components/consul/peer/list/pageobject';
 import consulKvListFactory from 'consul-ui/components/consul/kv/list/pageobject';
 
 // pages
@@ -117,15 +117,9 @@ const consulNspaceList = consulNspaceListFactory(
   text,
   morePopoverMenu
 );
-const consulPeerList = consulPeerListFactory(collection, isPresent, attribute, morePopoverMenu);
+const consulPeerList = consulPeerListFactory(collection, clickable, attribute);
 const consulKvList = consulKvListFactory(collection, clickable, attribute, deletable);
-const consulTokenList = consulTokenListFactory(
-  collection,
-  clickable,
-  attribute,
-  text,
-  morePopoverMenu
-);
+const consulTokenList = consulTokenListFactory(collection, clickable, attribute, text);
 const consulRoleList = consulRoleListFactory(
   collection,
   clickable,
@@ -206,20 +200,22 @@ export default {
       consulHealthCheckList
     )
   ),
-  kvs: create(kvs(visitable, creatable, consulKvList)),
-  kv: create(kv(visitable, attribute, isPresent, submitable, deletable, cancelable, clickable)),
+  kvs: create(kvs(visitable, creatable, consulKvList, submitable, deletable, cancelable)),
+  kv: create(kv(visitable, attribute, isPresent, submitable, deletable, cancelable, consulKvList)),
   acls: create(acls(visitable, deletable, creatable, clickable, attribute, collection)),
   acl: create(acl(visitable, submitable, deletable, cancelable, clickable)),
-  policies: create(policies(visitable, creatable, consulPolicyList, popoverSelect)),
+  policies: create(policies(visitable, creatable, consulPolicyList, clickable, collection)),
   policy: create(policy(visitable, submitable, deletable, cancelable, clickable, tokenList)),
-  roles: create(roles(visitable, creatable, consulRoleList, popoverSelect)),
+  roles: create(roles(visitable, creatable, consulRoleList, clickable, collection)),
   // TODO: This needs a policyList
   role: create(role(visitable, submitable, deletable, cancelable, policySelector, tokenList)),
-  tokens: create(tokens(visitable, creatable, text, consulTokenList, popoverSelect)),
+  tokens: create(tokens(visitable, creatable, text, consulTokenList, clickable, collection)),
   token: create(
     token(visitable, submitable, deletable, cancelable, clickable, policySelector, roleSelector)
   ),
-  authMethods: create(authMethods(visitable, creatable, consulAuthMethodList, popoverSelect)),
+  authMethods: create(
+    authMethods(visitable, creatable, consulAuthMethodList, clickable, collection)
+  ),
   intentions: create(
     intentions(visitable, creatable, clickable, consulIntentionList, popoverSelect)
   ),
@@ -239,7 +235,7 @@ export default {
   nspace: create(
     nspace(visitable, submitable, deletable, cancelable, policySelector, roleSelector)
   ),
-  peers: create(peers(visitable, creatable, consulPeerList, popoverSelect)),
+  peers: create(peers(visitable, creatable, consulPeerList, clickable)),
   peer: create(peersShow(visitable)),
   settings: create(settings(visitable, submitable, isPresent)),
   routingConfig: create(routingConfig(visitable, text)),

@@ -169,7 +169,7 @@ Feature: dc / services / show: Show Service
       - "node-2"
     ---
     And I see nodeChecks on the instances
-  Scenario: Given instances share the same external source, only show it at the top
+  Scenario: Given instances share the same external source, it is shown on every instance row
     Given 1 datacenter model with the value "dc1"
     And 3 node models
     And 1 service model from yaml
@@ -219,7 +219,12 @@ Feature: dc / services / show: Show Service
     ---
     And I click instances on the tabs
     Then I see externalSource like "kubernetes"
-    And I don't see externalSource on the instances
+    And I see externalSource on the instances vertically like yaml
+    ---
+      - "kubernetes"
+      - "kubernetes"
+      - "kubernetes"
+    ---
   Scenario: Given one agentless instance, it should not show node health checks or node name
     Given 1 datacenter model with the value "dc1"
     And 1 node models
