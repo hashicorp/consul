@@ -511,7 +511,79 @@ jobs:
       id-token: write
     with:
       go-version: ${{ needs.get-go-version.outputs.go-version }}
-      pr-number: ${{ github.event.pull_request.number != 0 && toJson(github.event.pull_request.number) || '' }}
+      pr-number: ${{ github.event_name == 'pull_request' && toJson(github.event.pull_request.number) || '' }}
+
+  coverage-gate:
+    name: coverage-gate
+    needs: [coverage-report]
+    # Patch coverage measures the lines a PR adds/modifies, so it only applies
+    # to pull requests. Pushes to main run coverage-report for the badge but
+    # have no "patch" to evaluate. Only gate when the report succeeded.
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && needs.coverage-report.result == 'success' }}
+    runs-on: ubuntu-latest
+    env:
+      # Minimum required coverage of the lines a PR adds/modifies (patch
+      # coverage). New/changed code must be at least this well tested.
+      PATCH_THRESHOLD: "90"
+    steps:
+      - name: Enforce patch coverage threshold
+        env:
+          PATCH: ${{ needs.coverage-report.outputs.patch }}
+          COVERED: ${{ needs.coverage-report.outputs.patch_covered }}
+          COVERABLE: ${{ needs.coverage-report.outputs.patch_coverable }}
+        run: |
+          set -euo pipefail
+
+          echo "Patch coverage:     ${PATCH:-<empty>}"
+          echo "Required threshold: ${PATCH_THRESHOLD}%"
+          echo "Changed lines:      ${COVERED:-0}/${COVERABLE:-0} covered"
+
+          # No coverable Go lines changed (docs/test-only, or only modules
+          # without coverage data) -> nothing to gate.
+          # Fail closed: an empty PATCH means the reusable workflow could not
+          # compute patch coverage (no coverage profile produced, so the patch
+          # step was skipped). Don't let the gate pass unevaluated.
+          if [ -z "${PATCH}" ]; then
+            echo "::error::Patch coverage was not computed (no coverage profile produced). Failing closed."
+            {
+              echo "### ❌ Coverage gate failed"
+              echo ""
+              echo "Patch coverage could not be computed because no coverage profile was produced (unit tests may not have run or emitted coverage)."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+          if [ "${PATCH}" = "N/A" ]; then
+            echo "::notice::No coverable Go lines changed in this PR; patch-coverage gate skipped."
+            {
+              echo "### ✅ Coverage gate passed"
+              echo ""
+              echo "No coverable Go lines changed in this PR, so there is nothing to gate."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          PCT="${PATCH%\%}"
+
+          if awk "BEGIN { exit !(${PCT} >= ${PATCH_THRESHOLD}) }"; then
+            echo "::notice::Patch coverage ${PATCH} meets the ${PATCH_THRESHOLD}% threshold."
+            {
+              echo "### ✅ Coverage gate passed"
+              echo ""
+              echo "Patch coverage **${PATCH}** (${COVERED}/${COVERABLE} changed lines) ≥ required **${PATCH_THRESHOLD}%**."
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::error::Patch coverage ${PATCH} is below the required ${PATCH_THRESHOLD}% threshold."
+            {
+              echo "### ❌ Coverage gate failed"
+              echo ""
+              echo "Patch coverage **${PATCH}** (${COVERED}/${COVERABLE} changed lines) is below the required **${PATCH_THRESHOLD}%** threshold."
+              echo ""
+              echo "The lines this PR adds or modifies are not sufficiently covered by tests."
+              echo "Add tests for the new/changed code, or adjust \`PATCH_THRESHOLD\` in \`.github/workflows/go-tests.yml\` (with reviewer sign-off)."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
 
   noop:
     runs-on: ubuntu-latest
@@ -558,6 +630,7 @@ jobs:
     - go-test-testing-deployer
     # - go-test-s390x
     - coverage-report
+    - coverage-gate
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     if: always() && needs.conditional-skip.outputs.skip-ci != 'true'
     steps:
