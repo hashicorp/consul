@@ -812,6 +812,12 @@ message APIGateway {
   uint64 Hash = 4;
   GatewayTLSConfig TLS = 5;
   UpstreamLimits Defaults = 6;
+  // mog: func-to=gwExtAuthzToStructs func-from=gwExtAuthzFromStructs
+  APIGatewayExtAuthz ExtAuthz = 7;
+}
+
+message APIGatewayExtAuthz {
+  bool Enabled = 1;
 }
 
 // mog annotation:
@@ -1090,6 +1096,55 @@ message HTTPFilters {
   TimeoutFilter TimeoutFilter = 4;
   // mog: func-to=routeJWTFilterToStructs func-from=routeJWTFilterFromStructs
   JWTFilter JWT = 5;
+  // mog: func-to=routeExtAuthzFilterToStructs func-from=routeExtAuthzFilterFromStructs
+  HTTPRouteExtAuthzFilter ExtAuthz = 6;
+  repeated ExtProcFilter ExtProc = 7;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ExtProcFilter
+// output=config_entry.gen.go
+// name=Structs
+message ExtProcFilter {
+  string StatPrefix = 1;
+  string Mode = 2;
+  ExtProcOverrides Overrides = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ExtProcOverrides
+// output=config_entry.gen.go
+// name=Structs
+message ExtProcOverrides {
+  ExtProcProcessing Processing = 1;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ExtProcProcessing
+// output=config_entry.gen.go
+// name=Structs
+message ExtProcProcessing {
+  ExtProcProcessingDirection Request = 1;
+  ExtProcProcessingDirection Response = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ExtProcProcessingDirection
+// output=config_entry.gen.go
+// name=Structs
+message ExtProcProcessingDirection {
+  string HeadersMode = 1;
+  string BodyMode = 2;
+  string TrailersMode = 3;
+  int64 MaxBodyBytes = 4;
+}
+
+message HTTPRouteExtAuthzFilter {
+  bool Enabled = 1;
 }
 
 // mog annotation:

@@ -43,7 +43,8 @@ func Constructor(ext api.EnvoyExtension) (ext_cmn.EnvoyExtender, error) {
 
 // CanApply indicates if the ext-authz extension can be applied to the given extension runtime configuration.
 func (a *extAuthz) CanApply(config *ext_cmn.RuntimeConfig) bool {
-	return config.Kind == api.ServiceKindConnectProxy
+	return config.Kind == api.ServiceKindConnectProxy ||
+		(apiGatewayExtAuthzSupported() && config.Kind == api.ServiceKindAPIGateway)
 }
 
 // PatchClusters modifies the cluster resources for the ext-authz extension.
@@ -69,6 +70,14 @@ func (a *extAuthz) matchesListenerDirection(isInboundListener bool) bool {
 
 // PatchFilters inserts an ext-authz filter into the list of network filters or the filter chain of the HTTP connection manager.
 func (a *extAuthz) PatchFilters(cfg *ext_cmn.RuntimeConfig, filters []*envoy_listener_v3.Filter, isInboundListener bool) ([]*envoy_listener_v3.Filter, error) {
+	// On an API Gateway the ext_authz filter is applied to the gateway's HTTP
+	// listeners. Gateway listeners are not the sidecar "public_listener" and so are
+	// not classified as inbound; we therefore bypass the inbound/outbound direction
+	// check that applies to sidecar proxies. This path is enterprise-only.
+	if apiGatewayExtAuthzSupported() && cfg.Kind == api.ServiceKindAPIGateway {
+		return a.patchAPIGatewayFilters(cfg, filters)
+	}
+
 	// The ext_authz extension only patches filters for inbound listeners.
 	if !a.matchesListenerDirection(isInboundListener) {
 		return filters, nil
@@ -94,6 +103,33 @@ func (a *extAuthz) PatchFilters(cfg *ext_cmn.RuntimeConfig, filters []*envoy_lis
 	}
 }
 
+// patchAPIGatewayFilters inserts the ext_authz HTTP filter into the HTTP connection
+// manager of an API Gateway listener filter chain. Filter chains that are not managed
+// by an HTTP connection manager (e.g. TCPRoute listeners) are skipped without error.
+func (a *extAuthz) patchAPIGatewayFilters(cfg *ext_cmn.RuntimeConfig, filters []*envoy_listener_v3.Filter) ([]*envoy_listener_v3.Filter, error) {
+	hasHCM := false
+	for _, f := range filters {
+		if f.GetName() == "envoy.filters.network.http_connection_manager" {
+			hasHCM = true
+			break
+		}
+	}
+	if !hasHCM {
+		// No HTTP connection manager on this filter chain; nothing to patch.
+		return filters, nil
+	}
+	if _, _, err := ext_cmn.GetHTTPConnectionManager(filters...); err != nil {
+		return filters, err
+	}
+
+	a.configureInsertOptions("http")
+	extAuthzFilter, err := a.Config.toEnvoyHttpFilter(cfg)
+	if err != nil {
+		return filters, err
+	}
+	return ext_cmn.InsertHTTPFilter(filters, extAuthzFilter, a.InsertOptions)
+}
+
 func newExtAuthz(ext api.EnvoyExtension) (*extAuthz, error) {
 	auth := &extAuthz{}
 	if ext.Name != api.BuiltinExtAuthzExtension {
@@ -102,8 +138,13 @@ func newExtAuthz(ext api.EnvoyExtension) (*extAuthz, error) {
 	if err := auth.fromArguments(ext.Arguments); err != nil {
 		return auth, err
 	}
-	// The filter's failure mode is always configured based on whether or not the extension is required.
+	// By default the filter's failure mode derives from whether the extension is
+	// required (required => fail closed). An explicit Config.FailureModeAllow, if
+	// set, takes precedence and overrides that default.
 	auth.Config.failureModeAllow = !ext.Required
+	if auth.Config.FailureModeAllow != nil {
+		auth.Config.failureModeAllow = *auth.Config.FailureModeAllow
+	}
 	return auth, nil
 }
 
@@ -141,14 +182,25 @@ func (a *extAuthz) normalize() {
 	}
 
 	a.Config.normalize()
+	// Propagate the resolved proxy kind so extAuthzConfig.validate() can apply
+	// kind-specific rules (e.g. URI host restrictions differ between sidecar and gateway).
+	a.Config.proxyKind = a.ProxyType
 }
 
 func (a *extAuthz) validate() error {
 	var resultErr error
-	if a.ProxyType != api.ServiceKindConnectProxy {
-		resultErr = multierror.Append(resultErr, fmt.Errorf("unsupported ProxyType %q, only %q is supported",
-			a.ProxyType,
-			api.ServiceKindConnectProxy))
+	switch {
+	case a.ProxyType == api.ServiceKindConnectProxy:
+	case a.ProxyType == api.ServiceKindAPIGateway && apiGatewayExtAuthzSupported():
+	default:
+		// The set of supported proxy types depends on the build: API Gateway
+		// support for ext-authz is enterprise-only.
+		supported := fmt.Sprintf("%q", api.ServiceKindConnectProxy)
+		if apiGatewayExtAuthzSupported() {
+			supported = fmt.Sprintf("%q or %q", api.ServiceKindConnectProxy, api.ServiceKindAPIGateway)
+		}
+		resultErr = multierror.Append(resultErr, fmt.Errorf("unsupported ProxyType %q, supported values are %s",
+			a.ProxyType, supported))
 	}
 
 	if a.ListenerType != "inbound" && a.ListenerType != "outbound" {

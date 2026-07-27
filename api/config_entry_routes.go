@@ -207,6 +207,52 @@ type HTTPFilters struct {
 	RetryFilter   *RetryFilter
 	TimeoutFilter *TimeoutFilter
 	JWT           *JWTFilter
+	ExtProc       []ExtProcFilter
+	// ExtAuthz controls the ext_authz HTTP filter behaviour for routes on an
+	// API Gateway that has a builtin/ext-authz EnvoyExtension applied. When set,
+	// it overrides the gateway-wide ExtAuthz toggle for the matched route:
+	// Enabled=true forces the ext_authz check to run, Enabled=false skips it.
+	// When nil, the route inherits the gateway-wide default. Exclusions are
+	// controlled exclusively at the http-route level.
+	ExtAuthz *HTTPRouteExtAuthzFilter
+}
+
+// ExtProcFilter provides per-route control of a builtin/ext-proc attachment.
+type ExtProcFilter struct {
+	StatPrefix string            `json:",omitempty"`
+	Mode       string            `json:",omitempty"`
+	Overrides  *ExtProcOverrides `json:",omitempty"`
+}
+
+// ExtProcOverrides carries per-route overrides applied when Mode is "override".
+type ExtProcOverrides struct {
+	Processing *ExtProcProcessing `json:",omitempty"`
+	// MessageTimeout   string             `json:",omitempty"`
+	// FailureModeAllow *bool              `json:",omitempty"`
+}
+
+// ExtProcProcessing configures request and response processing modes.
+type ExtProcProcessing struct {
+	Request  *ExtProcProcessingDirection `json:",omitempty"`
+	Response *ExtProcProcessingDirection `json:",omitempty"`
+}
+
+// ExtProcProcessingDirection configures processing modes for one direction.
+type ExtProcProcessingDirection struct {
+	HeadersMode  string `json:",omitempty"`
+	BodyMode     string `json:",omitempty"`
+	TrailersMode string `json:",omitempty"`
+	MaxBodyBytes int64  `json:",omitempty"`
+}
+
+// HTTPRouteExtAuthzFilter controls ext_authz filter behaviour at the
+// individual http-route rule level.
+type HTTPRouteExtAuthzFilter struct {
+	// Enabled controls whether Envoy runs the ext_authz check for requests
+	// matched by this rule. Enabled=true force-enables the check (overriding a
+	// disabled gateway toggle); Enabled=false force-skips it. This takes
+	// precedence over the gateway-wide ExtAuthz toggle.
+	Enabled bool
 }
 
 // HTTPResponseFilters specifies a list of filters used to modify a

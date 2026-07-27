@@ -766,6 +766,18 @@ type APIGatewayConfigEntry struct {
 	// Defaults contains default upstream limits for all route destination services.
 	Defaults *UpstreamLimits `json:",omitempty"`
 
+	// ExtAuthz is the gateway-wide external authorization toggle. It controls the
+	// default ext_authz posture for every endpoint behind this gateway when the
+	// builtin/ext-authz EnvoyExtension is applied via service-defaults. When nil
+	// (omitted) ext_authz is enabled by default; when set with Enabled=false the
+	// filter defaults to disabled and routes must opt in individually. Per-route
+	// http-route ExtAuthz filters take precedence over this toggle.
+	//
+	// APIGatewayExtAuthz is an enterprise-only type: it is an empty struct in CE
+	// and carries its fields only in the enterprise build (see
+	// config_entry_apigw_extauthz_{ce,ent}.go).
+	ExtAuthz *APIGatewayExtAuthz `json:",omitempty"`
+
 	// Status is the asynchronous status which an APIGateway propagates to the user.
 	Status Status
 
