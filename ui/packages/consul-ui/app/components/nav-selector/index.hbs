@@ -8,14 +8,17 @@
     {{yield (hash Data=(component 'nav-selector/generic'))}}
     <Hds::Dropdown
       @listPosition='bottom-left'
-      @width='15.5rem'
-      class='hds-side-nav__dropdown'
       @isInline={{true}}
+      @preserveContentInDom={{true}}
+      @matchToggleWidth={{true}}
+      class='hds-side-nav__dropdown'
       ...attributes
       as |DD|
     >
       <DD.ToggleButton
         class='consul-side-nav__selector-toggle'
+        @color='secondary'
+        @isFullWidth={{true}}
         @icon={{@icon}}
         @text={{get @item @key}}
         disabled={{eq @disabled true}}
