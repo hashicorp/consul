@@ -262,6 +262,48 @@ jobs:
             cp LICENSE $TARGET_DIR/LICENSE.txt
             go build -ldflags="$GOLDFLAGS" -o "$BIN_PATH" -trimpath -buildvcs=false
 
+      - name: Copy license file
+        if: ${{ !endsWith(github.repository, '-enterprise') }}
+        env:
+          LICENSE_DIR: ".release/linux/package/usr/share/doc/${{ env.PKG_NAME }}"
+        run: |
+          mkdir -p "$LICENSE_DIR"
+          cp LICENSE "$LICENSE_DIR/LICENSE.txt"
+
+      - name: Package
+        uses: hashicorp/actions-packaging-linux@v1
+        with:
+          name: ${{ github.event.repository.name }}
+          description: "Consul is a distributed, highly available, and data center aware solution to connect and configure applications across dynamic, distributed infrastructure. "
+          arch: ${{ matrix.goarch }}
+          version: ${{ needs.set-product-version.outputs.product-version }}
+          maintainer: "HashiCorp"
+          homepage: "https://github.com/hashicorp/consul"
+          license: "BSL-1.1"
+          binary: "dist/${{ env.PKG_NAME }}"
+          deb_depends: "openssl"
+          rpm_depends: "openssl"
+          config_dir: ".release/linux/package"
+          preinstall: ".release/linux/preinstall"
+          postinstall: ".release/linux/postinstall"
+          preremove: ".release/linux/preremove"
+          postremove: ".release/linux/postremove"
+
+      - name: Set Package Names
+        run: |
+          echo "RPM_PACKAGE=$(basename out/*.rpm)" >> $GITHUB_ENV
+          echo "DEB_PACKAGE=$(basename out/*.deb)" >> $GITHUB_ENV
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ env.RPM_PACKAGE }}
+          path: out/${{ env.RPM_PACKAGE }}
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ env.DEB_PACKAGE }}
+          path: out/${{ env.DEB_PACKAGE }}
+
   build-docker:
     name: Docker ${{ matrix.arch }} build
     needs:
@@ -392,6 +434,7 @@ jobs:
   verify-linux-packages-deb:
     needs:
       - build
+      - build-s390x
       - set-product-version
     runs-on: ubuntu-latest
     strategy:
@@ -434,6 +477,7 @@ jobs:
   verify-linux-packages-rpm:
     needs:
       - build
+      - build-s390x
       - set-product-version
     runs-on: ubuntu-latest
     strategy:
