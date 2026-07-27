@@ -4,6 +4,13 @@
  */
 
 %hashicorp-consul {
+  /* Make the Consul logo in the AppHeader white to contrast against the
+     dark header surface. The monochrome 'consul' icon uses currentColor,
+     so we set color on the home-link element. */
+  .hds-app-header__home-link {
+    color: #ffffff;
+  }
+
   .hds-app-side-nav {
     height: 100%;
     min-height: 100%;
