@@ -8,179 +8,8 @@
     height: 100%;
     min-height: 100%;
   }
+
   .consul-side-nav {
-    --token-app-side-nav-wrapper-border-color: #656a76;
-    --token-app-side-nav-color-foreground-primary: #dedfe3;
-    --token-app-side-nav-color-foreground-strong: #ffffff;
-    --token-app-side-nav-color-foreground-faint: #8c909c;
-    --token-app-side-nav-color-surface-primary: #0c0c0e;
-    --token-app-side-nav-color-surface-interactive-hover: #3b3d45;
-    --token-app-side-nav-color-surface-interactive-active: #656a76;
-
-    .consul-side-nav__header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.5rem;
-      padding: 0.5rem var(--token-app-side-nav-body-list-item-padding-horizontal);
-    }
-
-    .consul-side-nav__header-actions {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-
-      // Make header dropdown toggle buttons dark to match side nav.
-      // Only target the toggle elements, not the dropdown list items, otherwise
-      // the menu item text inherits the light side-nav color and becomes
-      // invisible against the dropdown's light surface.
-      .hds-dropdown-toggle-icon,
-      .hds-dropdown-toggle-button {
-        background-color: var(--token-app-side-nav-color-surface-primary) !important;
-        border-color: var(--token-app-side-nav-wrapper-border-color) !important;
-        color: var(--token-app-side-nav-color-foreground-primary) !important;
-
-        // Icon colors
-        .hds-icon,
-        svg {
-          color: var(--token-app-side-nav-color-foreground-primary) !important;
-        }
-
-        // Remove blue focus/active styles
-        &:hover,
-        &:focus,
-        &:focus-visible,
-        &:active,
-        &[aria-expanded="true"] {
-          background-color: var(--token-app-side-nav-color-surface-interactive-hover) !important;
-          border-color: var(--token-app-side-nav-wrapper-border-color) !important;
-          color: var(--token-app-side-nav-color-foreground-strong) !important;
-          box-shadow: none !important;
-          outline: none !important;
-
-          .hds-icon,
-          svg {
-            color: var(--token-app-side-nav-color-foreground-strong) !important;
-          }
-        }
-      }
-    }
-
-    .consul-side-nav__home-link {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: var(--token-app-side-nav-header-home-link-logo-size);
-      height: var(--token-app-side-nav-header-home-link-logo-size);
-      padding: var(--token-app-side-nav-header-home-link-padding);
-      border-radius: var(--token-app-side-nav-body-list-item-border-radius);
-      flex: none;
-    }
-
-    .consul-side-nav__home-link .hds-icon {
-      width: 100%;
-      height: 100%;
-    }
-
-    .hds-app-side-nav__list-item-text,
-    .hds-app-side-nav__list-item-icon-leading,
-    .hds-app-side-nav__list-item-icon-trailing {
-      color: var(--token-app-side-nav-color-foreground-primary);
-    }
-
-    .hds-app-side-nav__list-item-link:hover .hds-app-side-nav__list-item-text,
-    .hds-app-side-nav__list-item-link:hover .hds-app-side-nav__list-item-icon-leading,
-    .hds-app-side-nav__list-item-link:hover .hds-app-side-nav__list-item-icon-trailing {
-      color: var(--token-app-side-nav-color-foreground-strong);
-    }
-
-    .hds-app-side-nav__list-item-link.active .hds-app-side-nav__list-item-text,
-    .hds-app-side-nav__list-item-link.active .hds-app-side-nav__list-item-icon-leading,
-    .hds-app-side-nav__list-item-link.active .hds-app-side-nav__list-item-icon-trailing,
-    .hds-app-side-nav__list-item-link.active:hover:focus .hds-app-side-nav__list-item-text,
-    .hds-app-side-nav__list-item-link.active:hover:focus .hds-app-side-nav__list-item-icon-leading,
-    .hds-app-side-nav__list-item-link.active:hover:focus .hds-app-side-nav__list-item-icon-trailing {
-      color: var(--token-color-foreground-strong);
-    }
-
-    .hds-app-side-nav__list-title {
-      font-weight: 700;
-    }
-
-    li.consul-disabled-nav {
-      width: 100%;
-      min-height: var(--token-app-side-nav-body-list-item-height);
-      padding: var(--token-app-side-nav-body-list-item-padding-vertical)
-        var(--token-app-side-nav-body-list-item-padding-horizontal);
-      color: var(--token-color-foreground-faint);
-    }
-
-    li.consul-side-nav__selector {
-      // Target the HDS Dropdown ToggleButton
-      .hds-dropdown-toggle-button,
-      .consul-side-nav__selector-toggle,
-      button.consul-side-nav__selector-toggle {
-        min-width: 15.5rem;
-        background-color: transparent;
-        border-color: var(--token-app-side-nav-wrapper-border-color);
-        border-width: 1px;
-        border-style: solid;
-
-        &:disabled {
-          color: var(--token-color-foreground-faint);
-          border-color: var(--token-color-border-primary);
-
-          &:hover {
-            background-color: transparent;
-          }
-        }
-
-        // Remove ALL blue focus/active/hover styles and borders
-        &,
-        &:hover,
-        &:focus,
-        &:focus-visible,
-        &:focus-within,
-        &:active,
-        &[aria-expanded="true"],
-        &[aria-expanded="true"]:hover,
-        &[aria-expanded="true"]:focus,
-        &[aria-expanded="true"]:focus-visible {
-          background-color: transparent !important;
-          border-color: var(--token-app-side-nav-wrapper-border-color) !important;
-          border-width: 1px !important;
-          box-shadow: none !important;
-          outline: none !important;
-          outline-width: 0 !important;
-          outline-offset: 0 !important;
-        }
-
-        // Dark hover state only
-        &:hover:not(:disabled) {
-          background-color: var(--token-app-side-nav-color-surface-interactive-hover) !important;
-        }
-      }
-
-      // Also target the dropdown wrapper to remove any blue borders
-      .hds-dropdown {
-        .hds-dropdown-toggle-button,
-        button {
-          &:focus,
-          &:focus-visible,
-          &[aria-expanded="true"] {
-            border-color: var(--token-app-side-nav-wrapper-border-color) !important;
-            box-shadow: none !important;
-            outline: none !important;
-          }
-        }
-      }
-
-      .hds-dropdown__content {
-        min-width: 15.5rem;
-        max-height: 500px;
-      }
-    }
-
     .hds-app-side-nav__wrapper-body {
       display: flex;
       flex-direction: column;
@@ -191,9 +20,12 @@
       overflow-x: hidden;
     }
 
-    [data-test-footer] {
-      margin-top: auto;
-      padding-top: 1rem;
+    li.consul-disabled-nav {
+      width: 100%;
+      min-height: var(--token-app-side-nav-body-list-item-height);
+      padding: var(--token-app-side-nav-body-list-item-padding-vertical)
+        var(--token-app-side-nav-body-list-item-padding-horizontal);
+      color: var(--token-color-foreground-faint);
     }
 
     li.consul-side-nav__datacenter {
@@ -207,14 +39,10 @@
       margin-bottom: 1.5rem;
     }
 
-    .consul-datacenter-selector__dc-name {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      .consul-datacenter-selector__badges {
-        display: flex;
-        gap: 0.25rem;
-      }
+    /* @isInline makes the HDS Dropdown wrapper display:inline-block;
+       override to block so @isFullWidth on the toggle can fill the li */
+    .hds-side-nav__dropdown {
+      display: block;
     }
 
     .consul-side-nav__selector-title {
@@ -223,6 +51,22 @@
 
     .consul-side-nav__selector-description {
       padding-top: 0.5rem;
+    }
+
+    .consul-datacenter-selector__dc-name {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+
+      .consul-datacenter-selector__badges {
+        display: flex;
+        gap: 0.25rem;
+      }
+    }
+
+    [data-test-footer] {
+      margin-top: auto;
+      padding-top: 1rem;
     }
   }
 }
