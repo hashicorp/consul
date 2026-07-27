@@ -267,6 +267,7 @@ jobs:
     needs:
       - set-product-version
       - build
+      - build-s390x
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -313,6 +314,7 @@ jobs:
     needs:
       - set-product-version
       - build
+      - build-s390x
     runs-on: ubuntu-latest
     env:
       repo: ${{github.event.repository.name}}
@@ -399,6 +401,7 @@ jobs:
           - { arch: "armhf" }
           - { arch: "amd64" }
           - { arch: "arm64" }
+          - { arch: "s390x" }
       # fail-fast: true
     env:
       version: ${{ needs.set-product-version.outputs.product-version }}
@@ -438,6 +441,7 @@ jobs:
         include:
           - { arch: "i386" }
           - { arch: "x86_64" }
+          - { arch: "s390x" }
         # TODO(eculver): re-enable when there is a smaller verification container available
         # - { arch: "armv7hl" }
         # - { arch: "aarch64" }
