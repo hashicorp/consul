@@ -138,7 +138,7 @@ function verify_deb {
       ;;
     *_s390x.deb)
       docker_platform="linux/s390x"
-      docker_image="s390x/debian:bullseye"
+      docker_image="s390x/debian:bookworm"
       ;;
     *)
       echo "${artifact_path} did not match known patterns for debs"
