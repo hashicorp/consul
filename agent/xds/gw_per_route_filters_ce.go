@@ -16,6 +16,9 @@ type perRouteFilterBuilder struct {
 	providerMap map[string]*structs.JWTProviderConfigEntry
 	listener    *structs.APIGatewayListener
 	route       *structs.HTTPRouteConfigEntry
+	// gatewayExtAuthzEnabled is unused in CE (per-route ext_authz/JWT filters are
+	// an enterprise feature) but kept so the struct literal in routes.go matches.
+	gatewayExtAuthzEnabled bool
 }
 
 func (p perRouteFilterBuilder) buildTypedPerFilterConfig(match *envoy_route_v3.RouteMatch, routeAction *envoy_route_v3.Route_Route) (map[string]*anypb.Any, error) {

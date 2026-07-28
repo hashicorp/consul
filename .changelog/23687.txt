@@ -1,0 +1,3 @@
+```release-note:improvement
+ci: upgrade GitHub Actions that used the deprecated Node 20 runtime to Node 24, and restore GOTOOLCHAIN=auto after setup-go so backward-compatibility and integration test lanes resolve the correct Go toolchain.
+```
