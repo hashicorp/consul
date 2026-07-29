@@ -367,6 +367,42 @@ func TestConfigValidate(t *testing.T) {
 			},
 			expectErr: "ListClaimMappings contains multiple mappings for key",
 		},
+		"post-logout redirect URI: valid https": {
+			config: Config{
+				Type:                TypeOIDC,
+				OIDCDiscoveryURL:    srv.Addr(),
+				OIDCDiscoveryCACert: srv.CACert(),
+				OIDCClientID:        "abc",
+				OIDCClientSecret:    "def",
+				AllowedRedirectURIs: []string{"http://foo.test"},
+				OIDCPostLogoutRedirectURIs: []string{"https://app.example.com/signed-out"},
+			},
+			expectAuthType: authOIDCFlow,
+		},
+		"post-logout redirect URI: rejects http (non-https)": {
+			config: Config{
+				Type:                TypeOIDC,
+				OIDCDiscoveryURL:    srv.Addr(),
+				OIDCDiscoveryCACert: srv.CACert(),
+				OIDCClientID:        "abc",
+				OIDCClientSecret:    "def",
+				AllowedRedirectURIs: []string{"http://foo.test"},
+				OIDCPostLogoutRedirectURIs: []string{"http://app.example.com/signed-out"},
+			},
+			expectErr: "must use https",
+		},
+		"post-logout redirect URI: rejects invalid URL": {
+			config: Config{
+				Type:                TypeOIDC,
+				OIDCDiscoveryURL:    srv.Addr(),
+				OIDCDiscoveryCACert: srv.CACert(),
+				OIDCClientID:        "abc",
+				OIDCClientSecret:    "def",
+				AllowedRedirectURIs: []string{"http://foo.test"},
+				OIDCPostLogoutRedirectURIs: []string{"%%%%"},
+			},
+			expectErr: "is not a valid URL",
+		},
 	}
 
 	jwtCases := map[string]testcase{
@@ -448,6 +484,14 @@ func TestConfigValidate(t *testing.T) {
 				Type:                 TypeJWT,
 				JWTValidationPubKeys: []string{testJWTPubKey},
 				VerboseOIDCLogging:   true,
+			},
+			expectErr: "must not be set for type",
+		},
+		"incompatible with OIDCPostLogoutRedirectURIs": {
+			config: Config{
+				Type:                       TypeJWT,
+				JWTValidationPubKeys:       []string{testJWTPubKey},
+				OIDCPostLogoutRedirectURIs: []string{"https://example.com/out"},
 			},
 			expectErr: "must not be set for type",
 		},
