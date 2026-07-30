@@ -49,10 +49,7 @@
       "handlebars@<4.7.9": ">=4.7.9",
       "yaml@>=2.0.0 <2.8.3": ">=2.8.3",
       "picomatch@<2.3.2": "^2.3.2",
-      "brace-expansion@>=5.0.0 <5.0.8": "^5.0.8",
-      "brace-expansion@5.0.6": "5.0.8",
-      "brace-expansion@>=2.0.0 <2.1.2": "^2.1.2",
-      "brace-expansion@<1.1.16": "^1.1.16",
+      "brace-expansion": "^5.0.8",
       "ajv@<6.14.0": "^6.14.0",
       "ajv@>=7.0.0-alpha.0 <8.18.0": "^8.18.0",
       "lodash@>=4.0.0 <=4.17.22": "^4.18.0",
@@ -81,7 +78,8 @@
       "@ember/test-waiters": "3.1.0"
     },
     "patchedDependencies": {
-      "js-yaml@4.3.0": "patches/js-yaml@4.3.0.patch"
+      "js-yaml@4.3.0": "patches/js-yaml@4.3.0.patch",
+      "brace-expansion@5.0.8": "patches/brace-expansion@5.0.8.patch"
     }
   }
 }
