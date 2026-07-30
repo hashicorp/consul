@@ -1,6 +1,6 @@
 module github.com/hashicorp/consul
 
-go 1.26
+go 1.26.1
 
 replace (
 	github.com/hashicorp/consul/api => ./api
@@ -83,7 +83,7 @@ require (
 	github.com/hashicorp/raft-boltdb/v2 v2.3.1
 	github.com/hashicorp/raft-wal v0.4.2
 	github.com/hashicorp/serf v0.10.4
-	github.com/hashicorp/vault-plugin-auth-alicloud v0.22.0
+	github.com/hashicorp/vault-plugin-auth-alicloud v0.23.1
 	github.com/hashicorp/vault/api v1.23.0
 	github.com/hashicorp/vault/api/auth/gcp v0.12.0
 	github.com/hashicorp/vault/sdk v0.25.1
