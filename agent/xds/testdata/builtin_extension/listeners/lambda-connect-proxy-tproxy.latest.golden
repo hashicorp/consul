@@ -227,11 +227,6 @@
             "@type": "type.googleapis.com/envoy.extensions.filters.udp.dns_filter.v3.DnsFilterConfig",
             "serverConfig": {
               "inlineDnsTable": {
-                "knownSuffixes": [
-                  {
-                    "exact": "consul"
-                  }
-                ],
                 "virtualDomains": [
                   {
                     "endpoint": {
