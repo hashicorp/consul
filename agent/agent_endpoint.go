@@ -953,8 +953,19 @@ type checkUpdate struct {
 // AgentCheckUpdate is a PUT-based alternative to the GET-based Pass/Warn/Fail
 // APIs.
 func (s *HTTPHandlers) AgentCheckUpdate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Limit the request body to prevent an unauthenticated caller from retaining
+	// unbounded heap inside the JSON decoder before ACL authorization occurs
+	// (SECVULN-50418). The cap is CheckOutputMaxSize plus a small overhead for
+	// the JSON envelope. http.MaxBytesReader covers chunked bodies that carry no
+	// Content-Length header.
+	maxBody := int64(s.agent.config.CheckOutputMaxSize) + 512
+	req.Body = http.MaxBytesReader(resp, req.Body, maxBody)
+
 	var update checkUpdate
 	if err := decodeBody(req.Body, &update); err != nil {
+		if err.Error() == "http: request body too large" {
+			return nil, HTTPError{StatusCode: http.StatusRequestEntityTooLarge, Reason: fmt.Sprintf("Request body too large, max size: %d bytes", maxBody)}
+		}
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Request decode failed: %v", err)}
 	}
 
