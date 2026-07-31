@@ -436,9 +436,8 @@ func (r *ACLResolver) readIdentityFromToken(token string, cached *structs.Identi
 		TokenID:     token,
 		TokenIDType: structs.ACLTokenSecret,
 		QueryOptions: structs.QueryOptions{
-			Token:             token,
-			AllowStale:        allowStale,
-			RequireConsistent: !allowStale,
+			Token:      token,
+			AllowStale: allowStale,
 		},
 	}
 
