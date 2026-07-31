@@ -23,7 +23,8 @@ import (
 )
 
 type mockCfgFetcher struct {
-	addressLan string
+	addressLan   string
+	dnsRecursors []string
 }
 
 func (s *mockCfgFetcher) AdvertiseAddrLAN() string {
@@ -31,7 +32,7 @@ func (s *mockCfgFetcher) AdvertiseAddrLAN() string {
 }
 
 func (s *mockCfgFetcher) DNSRecursors() []string {
-	return nil
+	return s.dnsRecursors
 }
 
 func uint32ptr(i uint32) *uint32 {

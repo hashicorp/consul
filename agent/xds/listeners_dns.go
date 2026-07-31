@@ -40,9 +40,6 @@ const (
 	// both the inline virtual DNS listener and the egress recursor DNS listener.
 	dnsFilterName = "envoy.filters.udp.dns_filter"
 
-	// virtualDNSSuffix is the DNS suffix used for virtual service addresses.
-	virtualDNSSuffix = ".virtual.consul"
-
 	// egressDNSListenerName is the base name for the egress recursor DNS listener.
 	egressDNSListenerName = "egress_dns"
 

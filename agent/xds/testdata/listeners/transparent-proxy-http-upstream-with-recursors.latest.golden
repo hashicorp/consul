@@ -31,6 +31,57 @@
       "address": {
         "socketAddress": {
           "address": "127.0.0.1",
+          "portValue": 8654,
+          "protocol": "UDP"
+        }
+      },
+      "listenerFilters": [
+        {
+          "name": "envoy.filters.udp.dns_filter",
+          "typedConfig": {
+            "@type": "type.googleapis.com/envoy.extensions.filters.udp.dns_filter.v3.DnsFilterConfig",
+            "clientConfig": {
+              "maxPendingLookups": "256",
+              "resolverTimeout": "2s",
+              "typedDnsResolverConfig": {
+                "name": "envoy.network.dns_resolver.cares",
+                "typedConfig": {
+                  "@type": "type.googleapis.com/envoy.extensions.network.dns_resolver.cares.v3.CaresDnsResolverConfig",
+                  "resolvers": [
+                    {
+                      "socketAddress": {
+                        "address": "8.8.8.8",
+                        "portValue": 53,
+                        "protocol": "UDP"
+                      }
+                    },
+                    {
+                      "socketAddress": {
+                        "address": "1.1.1.1",
+                        "portValue": 5353,
+                        "protocol": "UDP"
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            "serverConfig": {
+              "inlineDnsTable": {}
+            },
+            "statPrefix": "consul_egress_dns"
+          }
+        }
+      ],
+      "name": "egress_dns:127.0.0.1:8654",
+      "trafficDirection": "OUTBOUND",
+      "udpListenerConfig": {}
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
+      "address": {
+        "socketAddress": {
+          "address": "127.0.0.1",
           "portValue": 15001
         }
       },
@@ -67,14 +118,6 @@
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
                 "httpFilters": [
                   {
-                    "name": "envoy.filters.http.aws_lambda",
-                    "typedConfig": {
-                      "@type": "type.googleapis.com/envoy.extensions.filters.http.aws_lambda.v3.Config",
-                      "arn": "arn:aws:lambda:us-east-1:111111111111:function:lambda-1234",
-                      "payloadPassthrough": true
-                    }
-                  },
-                  {
                     "name": "envoy.filters.http.router",
                     "typedConfig": {
                       "@type": "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
@@ -103,7 +146,6 @@
                   ]
                 },
                 "statPrefix": "upstream.google.default.default.dc1",
-                "stripAnyHostPort": true,
                 "tracing": {
                   "randomSampling": {}
                 },
@@ -227,11 +269,6 @@
             "@type": "type.googleapis.com/envoy.extensions.filters.udp.dns_filter.v3.DnsFilterConfig",
             "serverConfig": {
               "inlineDnsTable": {
-                "knownSuffixes": [
-                  {
-                    "exact": "consul"
-                  }
-                ],
                 "virtualDomains": [
                   {
                     "endpoint": {

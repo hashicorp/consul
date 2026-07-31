@@ -356,6 +356,21 @@ func getConnectProxyTransparentProxyGoldenTestCases() []goldenTestCase {
 			},
 		},
 		{
+			// Exercises the egress recursor DNS listener (:8654) path.  The
+			// listener is only emitted when CfgFetcher.DNSRecursors() returns a
+			// non-empty list, so without this case a regression in that wiring
+			// (e.g. the CfgFetcher guard or wrong port) would go undetected.
+			name: "transparent-proxy-http-upstream-with-recursors",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t, nil)
+			},
+			generatorSetup: func(s *ResourceGenerator) {
+				s.CfgFetcher = &mockCfgFetcher{
+					dnsRecursors: []string{"8.8.8.8", "1.1.1.1:5353"},
+				}
+			},
+		},
+		{
 			name:   "transparent-proxy-with-resolver-redirect-upstream",
 			create: proxycfg.TestConfigSnapshotTransparentProxyResolverRedirectUpstream,
 		},
