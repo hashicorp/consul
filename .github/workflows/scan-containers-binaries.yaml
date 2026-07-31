@@ -31,9 +31,6 @@ name: Scan Binaries and Containers
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - shashank/release-enhancements
 
 # Only allow one run of this workflow per ref at a time.
 concurrency:
