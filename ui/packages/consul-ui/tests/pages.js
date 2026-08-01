@@ -118,7 +118,7 @@ const consulNspaceList = consulNspaceListFactory(
   morePopoverMenu
 );
 const consulPeerList = consulPeerListFactory(collection, clickable, attribute);
-const consulKvList = consulKvListFactory(collection, clickable, attribute, deletable);
+const consulKvList = consulKvListFactory(collection, clickable, attribute);
 const consulTokenList = consulTokenListFactory(collection, clickable, attribute, text);
 const consulRoleList = consulRoleListFactory(
   collection,
@@ -200,8 +200,8 @@ export default {
       consulHealthCheckList
     )
   ),
-  kvs: create(kvs(visitable, creatable, consulKvList, submitable, deletable, cancelable)),
-  kv: create(kv(visitable, attribute, isPresent, submitable, deletable, cancelable, consulKvList)),
+  kvs: create(kvs(visitable, creatable, consulKvList)),
+  kv: create(kv(visitable, attribute, isPresent, submitable, deletable, clickable)),
   acls: create(acls(visitable, deletable, creatable, clickable, attribute, collection)),
   acl: create(acl(visitable, submitable, deletable, cancelable, clickable)),
   policies: create(policies(visitable, creatable, consulPolicyList, clickable, collection)),

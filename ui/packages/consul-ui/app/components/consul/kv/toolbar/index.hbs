@@ -3,14 +3,7 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-{{!
-  KV-index toolbar. All the Filter Bar wiring (filter groups, applied tags,
-  search, "Search across" dropdown, stay-expanded behaviour) lives in the
-  generic Consul::ListToolbar; this component only supplies the Type filter
-  config and the Name / Type sort dropdown. The four sort options are kept in
-  the same order / values as the legacy KV search bar so the sorting behaviour
-  stays valid.
-}}
+{{! the sort options keep the order and values of the legacy KV search bar }}
 <Consul::ListToolbar
   class="consul-kv-toolbar"
   ...attributes

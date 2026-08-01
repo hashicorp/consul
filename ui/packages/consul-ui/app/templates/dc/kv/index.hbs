@@ -6,16 +6,9 @@
 <Route
   @name={{this.routeName}}
 as |route|>
-{{! The Consul::Kv::Flyout (open via the kv/creating query params) sets its own }}
-{{! title while it's open -- suppress this one then so they don't both stack, }}
-{{! since unlike a route transition, the list here never actually unmounts. }}
-{{#unless (or this.kv this.creating)}}
-{{#if (eq (or route.params.key '/') '/')}}
-  {{page-title "Key / Value"}}
-{{else}}
-  {{page-title (take 1 (drop 1 (reverse (split (or route.params.key '/') '/'))))}}
-{{/if}}
-{{/unless}}
+{{! titled from the route params rather than the fetched parent below, so it }}
+{{! can't lag a transition behind the round-trip }}
+  {{page-title (or (key-name route.params.key) 'Key / Value')}}
   <DataSource
     @src={{uri '/${partition}/${nspace}/${dc}/kv/${key}'
       (hash
@@ -106,31 +99,7 @@ as |sort filters parent items|}}
       @search={{this.search}}
       @onsearch={{action (mut this.search) value="target.value"}}
       @login={{route.model.app.login.open}}
-      @onSelect={{mut this.kv}}
-      @onCreate={{mut this.creating}}
     />
-
-{{#if (or this.kv (and this.creating (can 'create kvs')))}}
-{{#let
-  (if this.creating
-    this.creating
-    (concat (join '/' (slice 0 -1 (split (or this.kv '') '/'))) '/')
-  )
-as |flyoutParent|}}
-    {{! Re-fetch the list (not a route refresh -- that would race with the query }}
-    {{! param reset below and re-add ?create/?kv) so a just created/edited key }}
-    {{! shows immediately, since the blocking query won't re-poll on its own. }}
-    <Consul::Kv::Flyout
-      @isCreate={{if this.creating true false}}
-      @selected={{this.kv}}
-      @dc={{route.params.dc}}
-      @nspace={{route.params.nspace}}
-      @partition={{route.params.partition}}
-      @parent={{flyoutParent}}
-      @onsubmit={{queue (fn (mut this.kv) undefined) (fn (mut this.creating) undefined) loader.invalidate}}
-    />
-{{/let}}
-{{/if}}
 {{/let}}
     </:loaded>
   </DataLoader>

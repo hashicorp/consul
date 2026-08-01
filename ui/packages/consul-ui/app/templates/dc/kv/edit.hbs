@@ -1,0 +1,112 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+<Route
+  @name={{this.routeName}}
+as |route|>
+
+{{#let
+  '/'
+as |separator|}}
+
+{{#let
+  (concat (join separator (slice 0 -1 (split route.params.key separator))) separator)
+as |parentKey|}}
+
+  <DataLoader
+    @src={{uri '/${partition}/${nspace}/${dc}/kv/${key}'
+      (hash
+        partition=route.params.partition
+        nspace=route.params.nspace
+        dc=route.params.dc
+        key=(if (string-ends-with this.routeName 'create') '' route.params.key)
+      )
+    }}>
+
+    <:error as |loader|>
+      <AppError
+        @error={{loader.error}}
+        @login={{route.model.app.login.open}}
+      />
+    </:error>
+
+    <:loaded as |loader|>
+{{#let loader.data as |item|}}
+
+  <AppView>
+
+    <:breadcrumbs>
+{{! one crumb back to the listing -- folders are expanded in place there, so }}
+{{! they name where this key lives rather than linking anywhere themselves }}
+      <Hds::Breadcrumb>
+        <Hds::Breadcrumb::Item
+          @text={{if (eq parentKey separator)
+            'Key/Values'
+            (concat 'Key/Values / ' (join ' / ' (slice 0 -1 (split parentKey separator))))
+          }}
+          @route="dc.kv"
+          data-test-back
+        />
+      </Hds::Breadcrumb>
+    </:breadcrumbs>
+
+    <:header>
+        <h1 data-test-kv-key={{item.Key}}>
+{{#if (and item.Key (not-eq item.Key parentKey))}}
+          <route.Title @title="Edit Key / Value" @render={{false}} />
+          {{left-trim item.Key parentKey}}
+{{else}}
+          <route.Title @title="New Key / Value" @render={{true}} />
+{{/if}}
+        </h1>
+    </:header>
+
+    <:content>
+
+{{! if a KV has a session `Session` will always be populated despite any specific session permissions }}
+{{#if item.Session}}
+    <Consul::LockSession::Notifications @type="kv" />
+{{/if}}
+
+      <Consul::Kv::Form
+        @item={{item}}
+        @dc={{route.params.dc}}
+        @nspace={{route.params.nspace}}
+        @partition={{route.params.partition}}
+        @onsubmit={{transition-to 'dc.kv.index'}}
+        @parent={{parentKey}}
+      />
+
+{{! `session` is slightly different to `item.Session` as we only have `session` }}
+{{! if you have `session:read perms` whereas you can get the sessions ID from }}
+{{! `item.Session` without any session perms }}
+{{#if item.Session}}
+      <DataSource
+        @src={{uri '/${partition}/${nspace}/${dc}/sessions/for-key/${id}'
+            (hash
+              partition=route.params.partition
+              nspace=route.params.nspace
+              dc=route.params.dc
+              id=item.Session
+            )
+        }}
+        @onchange={{action (mut this.session) value="data"}}
+      />
+  {{#if this.session.ID}}
+      <Consul::LockSession::Form
+        @item={{this.session}}
+        @ondelete={{loader.invalidate}}
+      />
+  {{/if}}
+{{/if}}
+
+    </:content>
+  </AppView>
+{{/let}}
+    </:loaded>
+  </DataLoader>
+  {{/let}}
+{{/let}}
+</Route>

@@ -46,28 +46,3 @@
   margin-right: 4px;
   display: inline-block;
 }
-
-/* When a standalone back button is present, it owns the chevron so the first */
-/* breadcrumb item should not render its own decorative chevron. */
-.app-view-breadcrumbs .hds-breadcrumb.has-back-button .hds-breadcrumb__item:first-child .hds-breadcrumb__link::before {
-  content: none;
-}
-
-/* Standalone back button that navigates to the previous page */
-.app-view-breadcrumbs .breadcrumb-back-button {
-  display: inline-flex;
-  align-items: center;
-  padding: 0;
-  margin-right: 4px;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  color: var(--token-color-foreground-faint);
-}
-.app-view-breadcrumbs .breadcrumb-back-button::before {
-  @extend %with-chevron-left-mask, %as-pseudo;
-  display: inline-block;
-}
-.app-view-breadcrumbs .breadcrumb-back-button:hover {
-  color: var(--token-color-foreground-action);
-}

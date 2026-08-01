@@ -387,11 +387,6 @@
                 as: 'filter',
                 replace: true,
               },
-              kv: 'kv',
-              creating: {
-                as: 'create',
-                replace: true,
-              },
             },
           },
         },
@@ -406,12 +401,24 @@
                 as: 'filter',
                 replace: true,
               },
-              kv: 'kv',
-              creating: {
-                as: 'create',
-                replace: true,
-              },
             },
+          },
+        },
+        edit: {
+          _options: { path: '/*key/edit' },
+        },
+        create: {
+          _options: {
+            template: '../edit',
+            path: '/*key/create',
+            abilities: ['create kvs'],
+          },
+        },
+        'root-create': {
+          _options: {
+            template: '../edit',
+            path: '/create',
+            abilities: ['create kvs'],
           },
         },
       },

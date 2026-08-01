@@ -7,7 +7,7 @@
 
 /* Move the HDS dialog scroll-lock from <body> to <html>.
 
-   Hds::Flyout/Hds::Modal lock scrolling with inline `overflow: hidden` on
+   Hds::Modal locks scrolling with inline `overflow: hidden` on
    <body>. That only propagates to the viewport while the root element's
    overflow is `visible`, and base/reset/system.scss overrides it -- so instead
    <body> becomes a scroll container at scrollTop 0, and the `position: sticky`

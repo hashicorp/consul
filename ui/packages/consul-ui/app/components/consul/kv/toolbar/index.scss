@@ -14,10 +14,3 @@
     }
   }
 }
-
-/* The KV index uses the HDS Filter Bar for its toolbar, so drop the default
-   header underline above it to avoid a doubled-up separator. */
-html[data-route='dc.kv.index'] .app-view > header .title,
-html[data-route='dc.kv.folder'] .app-view > header .title {
-  border-bottom: none;
-}

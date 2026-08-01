@@ -34,6 +34,22 @@
       @label={{@label}}
       @ondelete={{action this.ondelete}}
       @onchange={{action this.onsubmit}}>
+      {{! passed through so a form can word its own success toast }}
+      <:persisted as |after|>
+    {{#if (has-block "persisted")}}
+      {{yield after to="persisted"}}
+    {{else}}
+      <Hds::Toast
+        @color='success'
+        {{notification
+          after=(action after)
+        }} as |T|>
+        <T.Title>Success!</T.Title>
+        <T.Description>Your {{or @label @type}} has been saved.</T.Description>
+      </Hds::Toast>
+    {{/if}}
+      </:persisted>
+
       <:error as |after err writer|>
 {{#let (hash
   data=this.data

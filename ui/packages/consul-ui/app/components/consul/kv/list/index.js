@@ -6,45 +6,59 @@
 import Component from '@glimmer/component';
 import { tracked } from '@glimmer/tracking';
 import { action } from '@ember/object';
+import { inject as service } from '@ember/service';
 import { htmlSafe } from '@ember/template';
+import keyName from 'consul-ui/utils/keyName';
 
-// Column definitions for the KV table. KV is a hierarchical tree, so it is not
-// client-sortable at the column level (sorting stays in the toolbar) and it is
-// rendered without pagination (paging would split a parent folder from its
-// children). Cell rendering lives in the template's :row block.
+// KV is a tree, so sorting stays in the toolbar rather than the column headers.
 const COLUMNS = [
   { label: 'Key name', width: '100%' },
   { label: 'Actions', align: 'right', width: '80px' },
 ];
 
-// Horizontal indentation (px) applied per level of nesting in the tree.
+// Indentation (px) per level of nesting.
 const INDENT_STEP = 20;
 
-/**
- * Consul::Kv::List
- *
- * KV specific configuration for the generic Consul::DataTable, rendered as an
- * inline expand/collapse tree. The top-level rows are the already
- * fetched/filtered/searched `@items` (the current folder's immediate children);
- * expanding a folder lazily loads *its* children via a `<DataSource>` and
- * splices them into the visible rows at the next depth. Navigation into a
- * folder and delete are preserved through the per-row actions menu.
- */
+const PAGE_SIZES = [10, 30, 50, 100];
+
 export default class ConsulKvList extends Component {
+  @service('sort') sortService;
+
   columns = COLUMNS;
+  pageSizes = PAGE_SIZES;
 
   // Keys of the folders that are currently expanded.
   @tracked expandedKeys = new Set();
 
-  // Loaded children keyed by folder Key: { [folderKey]: Kv[] }. Populated by
-  // the per-folder <DataSource> as data arrives / live-updates.
+  // Loaded children keyed by folder Key, populated by the per-folder
+  // <DataSource> as data arrives.
   @tracked childrenByKey = {};
 
   // Holds the pending KV entry while its delete confirmation modal is open.
   @tracked itemToDelete = null;
 
-  // The flattened list of currently-visible rows (roots plus the loaded
-  // children of any expanded folder), each wrapped with its tree metadata.
+  @tracked page = 1;
+  @tracked pageSize = PAGE_SIZES[0];
+
+  // Paging counts the entries of the folder being listed, never the children an
+  // expanded folder pulls in: those render within their parent's page.
+  get totalItems() {
+    return (this.args.items || []).length;
+  }
+
+  // Clamped rather than reset, so filtering down to fewer pages while on a
+  // later one lands on the last page instead of on nothing.
+  get currentPage() {
+    return Math.min(this.page, Math.max(1, Math.ceil(this.totalItems / this.pageSize)));
+  }
+
+  get pagedItems() {
+    const start = (this.currentPage - 1) * this.pageSize;
+    return (this.args.items || []).slice(start, start + this.pageSize);
+  }
+
+  // This page's entries plus the loaded children of any expanded folder,
+  // flattened with their tree metadata.
   get rows() {
     const build = (nodes, depth) => {
       const out = [];
@@ -59,12 +73,26 @@ export default class ConsulKvList extends Component {
           indentStyle: htmlSafe(`padding-inline-start:${depth * INDENT_STEP}px`),
         });
         if (expanded) {
-          out.push(...build(this.childrenByKey[node.Key], depth + 1));
+          out.push(...build(this.sortChildren(this.childrenByKey[node.Key]), depth + 1));
         }
       });
       return out;
     };
-    return build(this.args.items, 0);
+    return build(this.pagedItems, 0);
+  }
+
+  // A folder's children arrive from their own request in the API's order, so
+  // they are sorted the same way the toolbar sorts the entries above them.
+  sortChildren(children = []) {
+    // e.g. 'Kind:asc'; the comparator falls back to the first sortable property
+    const [definition] = this.sortService.comparator('kv')(this.args.sort);
+    const [property, direction] = definition.split(':');
+    const order = direction === 'desc' ? -1 : 1;
+    const compare = (a, b) => (a > b ? 1 : a < b ? -1 : 0);
+    return [...children].sort((a, b) => {
+      // entries of the same Kind stay alphabetical, as they are at the level above
+      return compare(a[property], b[property]) * order || compare(a.Key, b.Key);
+    });
   }
 
   // The folder keys whose children need a live <DataSource> subscription.
@@ -72,12 +100,12 @@ export default class ConsulKvList extends Component {
     return Array.from(this.expandedKeys);
   }
 
-  // The last non-empty path segment of a Key, e.g. "a/b/c" -> "c" and the
-  // folder "a/b/" -> "b". Mirrors the legacy display, which trimmed the parent
-  // prefix and any trailing slash.
+  get itemToDeleteName() {
+    return this.displayName(this.itemToDelete?.Key);
+  }
+
   displayName(key) {
-    const parts = (key || '').split('/').filter(Boolean);
-    return parts[parts.length - 1] || key;
+    return keyName(key) || key;
   }
 
   @action
@@ -89,6 +117,17 @@ export default class ConsulKvList extends Component {
       next.add(node.Key);
     }
     this.expandedKeys = next;
+  }
+
+  @action
+  onPageChange(page) {
+    this.page = page;
+  }
+
+  @action
+  onPageSizeChange(size) {
+    this.pageSize = size;
+    this.page = 1;
   }
 
   @action

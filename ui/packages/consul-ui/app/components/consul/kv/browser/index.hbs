@@ -3,28 +3,31 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-{{! Folders expand inline and keys open a flyout, so this never navigates away }}
-{{! from the index route. `dc.kv.folder` survives only for deep-link entry into }}
-{{! a nested key, and the back button below is its only way back to the root. }}
-{{! The caller sets the document title, from route params rather than the }}
-{{! fetched @parent, so it can't lag a transition behind the round-trip. }}
+{{! Folders expand inline, so `dc.kv.folder` is only entered by deep-linking }}
+{{! into one -- the crumb below leads back out to the root listing. }}
 
 <AppView @showBreadcrumb={{not-eq @parent.Key '/'}}>
   <:breadcrumbs>
-    <Breadcrumbs::BackButton @route="dc.kv" />
+    <Hds::Breadcrumb>
+  {{! the last two segments are this folder -- the heading below -- and the '' }}
+  {{! after its trailing slash }}
+  {{#let (slice 0 -2 (split @parent.Key '/')) as |ancestors|}}
+      <Hds::Breadcrumb::Item
+        @text={{if ancestors.length
+          (concat 'Key/Values / ' (join ' / ' ancestors))
+          'Key/Values'
+        }}
+        @route="dc.kv"
+      />
+  {{/let}}
+    </Hds::Breadcrumb>
   </:breadcrumbs>
   <:header>
-      <h1>
-{{#if (eq @parent.Key '/')}}
-        Key / Value
-{{else}}
-        {{take 1 (drop 1 (reverse (split @parent.Key '/')))}}
-{{/if}}
-      </h1>
+      <h1>{{or (key-name @parent.Key) 'Key / Value'}}</h1>
       <label for="toolbar-toggle"></label>
   </:header>
   <:toolbar>
-{{#if (gt @items.length 0) }}
+{{#if (gt @items.length 0)}}
     <Consul::Kv::Toolbar
       @search={{@search}}
       @onsearch={{@onsearch}}
@@ -35,11 +38,19 @@
   </:toolbar>
   <:actions>
 {{#if (can 'create kvs')}}
+  {{! both hrefs are built whichever we use, so the key is defaulted for the }}
+  {{! one that takes it -- the root has no folder segment and its own route }}
+  {{#let (or @parent.Key '/') as |parentKey|}}
   <Hds::Button
     @text='Create'
+    @isHrefExternal={{false}}
+    @href={{if (key-name parentKey)
+      (href-to 'dc.kv.create' parentKey)
+      (href-to 'dc.kv.root-create')
+    }}
     data-test-create
-    {{on 'click' (fn @onCreate (or @parent.Key '/'))}}
   />
+  {{/let}}
 {{/if}}
   </:actions>
   <:content>
@@ -66,12 +77,11 @@
           <collection.Collection>
             <Consul::Kv::List
               @items={{collection.items}}
+              @sort={{@sort.value}}
               @delete={{writer.delete}}
               @dc={{@dc}}
               @nspace={{@nspace}}
               @partition={{@partition}}
-              @onSelect={{@onSelect}}
-              @onCreate={{@onCreate}}
             />
           </collection.Collection>
           <collection.Empty>
