@@ -1,0 +1,169 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+<DataForm
+  @dc={{@dc}}
+  @nspace={{@nspace}}
+  @partition={{@partition}}
+  @type='kv'
+  @label='key'
+  @item={{@item}}
+  @onchange={{action this.change}}
+  @onsubmit={{action @onsubmit}}
+>
+  <:persisted as |after|>
+    <Hds::Toast @color='success' {{notification after=(action after)}} as |T|>
+      <T.Title>Success</T.Title>
+      <T.Description>
+        Your item has been saved successfully{{if this.folder (concat ' in ' this.folder)}}.
+      </T.Description>
+    </Hds::Toast>
+  </:persisted>
+
+  <:error as |after err api|>
+    <Hds::Toast @color='critical' {{notification after=(action after)}} as |T|>
+      {{#if this.isDeleting}}
+        <T.Title>Key deletion failed</T.Title>
+        <T.Description>Your key could not be deleted. Please try again.</T.Description>
+      {{else}}
+        <T.Title>{{if api.isCreate 'Key creation failed' 'Key update failed'}}</T.Title>
+        <T.Description>Your key could not be saved. Please try again.</T.Description>
+      {{/if}}
+    </Hds::Toast>
+  </:error>
+
+  <:content as |api|>
+    {{#let (cannot 'write kv' item=api.data) as |readOnly|}}
+    {{#let (or readOnly api.disabled) as |isDisabled|}}
+      <form onsubmit={{fn this.submit api}}>
+        <fieldset {{disabled isDisabled}}>
+          {{#if api.isCreate}}
+            <div class='consul-kv-form__key'>
+              <Hds::Form::TextInput::Field
+                name='additional'
+                data-test-kv-key
+                @value={{left-trim api.data.Key @parent}}
+                @isInvalid={{if api.data.error.Key true false}}
+                {{on 'input' api.change}}
+                as |F|
+              >
+                <F.Label>Key or Folder</F.Label>
+                <F.HelperText>To create a folder, end a key with /</F.HelperText>
+                {{#if api.data.error.Key}}
+                  <F.Error>{{api.data.error.Key.validation}}</F.Error>
+                {{/if}}
+              </Hds::Form::TextInput::Field>
+            </div>
+          {{/if}}
+          {{! a folder has no value of its own, so only ask for one for a key }}
+          {{#if (or (eq (left-trim api.data.Key @parent) '') (not-eq (last api.data.Key) '/'))}}
+            <Hds::Layout::Flex @direction='column' @gap='8' as |LF|>
+              {{! sits directly above the editor it switches }}
+              <LF.Item style='align-self: flex-end;'>
+                <Hds::Form::Toggle::Field
+                  name='json'
+                  checked={{if this.json 'checked'}}
+                  {{on 'change' api.change}}
+                  as |F|
+                >
+                  <F.Label>Code</F.Label>
+                </Hds::Form::Toggle::Field>
+              </LF.Item>
+              <label for='' class='type-text consul-kv-form__value{{if api.data.error.Value " has-error"}}'>
+                {{#if this.json}}
+                  {{#if isDisabled}}
+                    <Hds::CodeBlock
+                      @language='bash'
+                      @value={{atob api.data.Value}}
+                      @ariaLabel='value'
+                      as |CB|
+                    >
+                      <CB.Title @tag='h2'>Value</CB.Title>
+                    </Hds::CodeBlock>
+                  {{else}}
+                    <Hds::CodeEditor
+                      class='consul-kv-form__editor'
+                      @name='Value'
+                      @readonly={{isDisabled}}
+                      @value={{atob api.data.Value}}
+                      @onInput={{action api.change 'value'}}
+                      @language='yaml'
+                      @ariaLabel='value'
+                      @hasLineWrapping={{true}}
+                      @hasCopyButton={{true}}
+                      as |CE|
+                    >
+                      <CE.Title @tag='h2'>Value</CE.Title>
+                    </Hds::CodeEditor>
+                  {{/if}}
+                {{else}}
+                  <span>Value</span>
+                  <textarea
+                    {{disabled isDisabled}}
+                    name='value'
+                    oninput={{action api.change}}
+                  >{{atob api.data.Value}}</textarea>
+                {{/if}}
+              </label>
+            </Hds::Layout::Flex>
+          {{/if}}
+        </fieldset>
+        <div class='consul-kv-form__actions'>
+          <Hds::ButtonSet>
+            {{#unless readOnly}}
+              {{! a new key starts pristine and has nothing to save yet }}
+              <Hds::Button
+                @text='Save'
+                type='submit'
+                disabled={{or
+                  (and api.isCreate api.data.isPristine)
+                  api.data.isInvalid
+                  api.disabled
+                }}
+              />
+            {{/unless}}
+            <Hds::Button
+              @text='Cancel'
+              @color='secondary'
+              type='reset'
+              disabled={{api.disabled}}
+              {{on 'click' (fn @onsubmit api.data)}}
+            />
+          </Hds::ButtonSet>
+          {{#unless (or api.isCreate readOnly)}}
+            <Hds::Button
+              @text='Delete'
+              @color='critical'
+              data-test-delete
+              disabled={{api.disabled}}
+              {{on 'click' this.confirmDelete}}
+            />
+          {{/unless}}
+        </div>
+      </form>
+
+      {{#if this.isConfirmingDelete}}
+        <Hds::Modal id='confirm-modal' @color='critical' @onClose={{this.cancelDelete}} as |M|>
+          <M.Header @icon='alert-diamond'>Delete this key?</M.Header>
+          <M.Body>
+            <p>Are you sure you want to delete <strong>{{this.name}}</strong>?</p>
+          </M.Body>
+          <M.Footer as |F|>
+            <Hds::ButtonSet>
+              <Hds::Button
+                @text='Delete'
+                @color='critical'
+                data-test-id='confirm-action'
+                {{on 'click' (fn this.delete api)}}
+              />
+              <Hds::Button @text='Cancel' @color='secondary' {{on 'click' F.close}} />
+            </Hds::ButtonSet>
+          </M.Footer>
+        </Hds::Modal>
+      {{/if}}
+    {{/let}}
+    {{/let}}
+  </:content>
+</DataForm>

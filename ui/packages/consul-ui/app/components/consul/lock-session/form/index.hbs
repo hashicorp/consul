@@ -39,34 +39,21 @@
         />
       </:error>
       <:content as |writer|>
+        {{! the trailing link renders as the info icon help links are given app wide }}
+        <h2 class="consul-lock-session-form__title">
+          Lock Session<Action
+            rel="help"
+            aria-label="Lock Session documentation"
+            @href={{concat (env 'CONSUL_DOCS_URL') '/automate/session#session-design'}}
+            @external={{true}}
+          />
+        </h2>
+
         <Hds::Card::Container
           class="consul-lock-session-form__card"
           @level='base'
           @hasBorder={{true}}
         >
-          {{! Title and Invalidate share a row so the action reads as belonging }}
-          {{! to this session rather than to the flyout as a whole. }}
-          <header class="consul-lock-session-form__header">
-            <h2>
-              <Action
-                rel="help"
-                @href={{concat (env 'CONSUL_DOCS_URL') '/automate/session#session-design'}}
-                @external={{true}}
-              >
-                Lock Session
-              </Action>
-            </h2>
-  {{#if (and (can 'delete session' item=@item) (not this.isConfirming))}}
-            <Hds::Button
-              @text='Invalidate Session'
-              @color='critical'
-              @size='small'
-              data-test-delete
-              {{on 'click' this.confirmInvalidate}}
-            />
-  {{/if}}
-          </header>
-
           <div class="definition-table">
             <dl>
   {{#if @item.Name}}
@@ -105,32 +92,43 @@
             </dl>
           </div>
 
-  {{! Inline confirmation -- deliberately NOT a nested modal. Hds::Flyout and }}
-  {{! Hds::Modal are both native <dialog>s with their own focus-traps; tearing }}
-  {{! down a modal nested inside the flyout cascades into deactivating the }}
-  {{! flyout's trap and closes the whole flyout. }}
-  {{#if this.isConfirming}}
-          <Hds::Alert
-            @type='inline'
-            @color='warning'
-            class='consul-lock-session-form__confirm'
-            as |A|
-          >
-            <A.Title>Are you sure you want to invalidate this Lock Session?</A.Title>
-            <A.Button
-              @text='Confirm Invalidation'
-              @color='critical'
-              data-test-delete
-              {{on 'click' (queue this.cancelInvalidate (fn writer.delete @item))}}
-            />
-            <A.Button
-              @text='Cancel'
-              @color='secondary'
-              {{on 'click' this.cancelInvalidate}}
-            />
-          </Hds::Alert>
-  {{/if}}
         </Hds::Card::Container>
+
+  {{#if (can 'delete session' item=@item)}}
+        <div class="consul-lock-session-form__actions">
+          <Hds::Button
+            @text='Invalidate Session'
+            @color='critical'
+            data-test-delete
+            {{on 'click' this.confirmInvalidate}}
+          />
+        </div>
+
+    {{#if this.isConfirming}}
+        <Hds::Modal
+          id='confirm-invalidate-modal'
+          @color='critical'
+          @onClose={{this.cancelInvalidate}}
+          as |M|
+        >
+          <M.Header @icon='alert-diamond'>Invalidate Session</M.Header>
+          <M.Body>
+            <p>Are you sure you want to invalidate this Lock Session?</p>
+          </M.Body>
+          <M.Footer as |F|>
+            <Hds::ButtonSet>
+              <Hds::Button
+                @text='Confirm Invalidation'
+                @color='critical'
+                data-test-id='confirm-action'
+                {{on 'click' (queue this.cancelInvalidate (fn writer.delete @item))}}
+              />
+              <Hds::Button @text='Cancel' @color='secondary' {{on 'click' F.close}} />
+            </Hds::ButtonSet>
+          </M.Footer>
+        </Hds::Modal>
+    {{/if}}
+  {{/if}}
       </:content>
     </DataWriter>
 </div>

@@ -11,7 +11,7 @@
     @ariaLabel="Key / Values"
   >
     <:row as |row B|>
-      {{! ---- Key name (tree cell: indentation + chevron + icon + name) ---- }}
+      {{! ---- Key name ---- }}
       <B.Td>
         <span class="consul-kv-list__cell" style={{row.indentStyle}}>
           {{#if row.isFolder}}
@@ -36,46 +36,45 @@
           {{else}}
             <span class="consul-kv-list__toggle-spacer" aria-hidden="true"></span>
             <Hds::Icon class="consul-kv-list__icon" @name="key" @size="16" @isInline={{true}} />
-            <button
-              type="button"
+            <a
               class="consul-kv-list__name"
+              href={{href-to 'dc.kv.edit' row.node.Key}}
               data-test-kv={{row.node.Key}}
               data-test-name
-              {{on "click" (fn @onSelect row.node.Key)}}
-            >{{row.name}}</button>
+            >{{row.name}}</a>
           {{/if}}
         </span>
       </B.Td>
 
       {{! ---- Actions ---- }}
       <B.Td @align="right">
-        <Hds::Dropdown @listPosition="bottom-right" class="consul-kv-list__actions" as |dd|>
-          <dd.ToggleIcon
-            @icon="more-horizontal"
-            @text="Open actions menu"
-            @hasChevron={{false}}
-            @size="small"
-            data-test-actions-menu
-          />
-          {{#if (can "write kv" item=row.node)}}
-            {{#if row.isFolder}}
-              <dd.Interactive
-                data-test-edit
-                {{on "click" (fn this.toggle row.node)}}
-              >View</dd.Interactive>
-            {{else}}
-              <dd.Interactive
-                data-test-edit
-                {{on "click" (fn @onSelect row.node.Key)}}
-              >Edit</dd.Interactive>
-            {{/if}}
+        {{! folders are opened by their row and keys by their name, so the menu
+            only ever holds the actions that need write access }}
+        {{#if (can "write kv" item=row.node)}}
+          <Hds::Dropdown @listPosition="bottom-right" class="consul-kv-list__actions" as |dd|>
+            <dd.ToggleIcon
+              @icon="more-horizontal"
+              @text="Open actions menu"
+              @hasChevron={{false}}
+              @size="small"
+              data-test-actions-menu
+            />
             {{#if row.isFolder}}
               {{#if (can "create kvs")}}
                 <dd.Interactive
+                  @icon="plus"
+                  @href={{href-to 'dc.kv.create' row.node.Key}}
+                  @isHrefExternal={{false}}
                   data-test-create-in-folder
-                  {{on "click" (fn @onCreate row.node.Key)}}
                 >Create</dd.Interactive>
               {{/if}}
+            {{else}}
+              <dd.Interactive
+                @icon="edit"
+                @href={{href-to 'dc.kv.edit' row.node.Key}}
+                @isHrefExternal={{false}}
+                data-test-edit
+              >Edit</dd.Interactive>
             {{/if}}
             <dd.Separator />
             <dd.Interactive
@@ -84,27 +83,26 @@
               data-test-delete
               {{on "click" (fn this.confirmDelete row.node)}}
             >Delete</dd.Interactive>
-          {{else}}
-            {{#if row.isFolder}}
-              <dd.Interactive
-                data-test-edit
-                {{on "click" (fn this.toggle row.node)}}
-              >View</dd.Interactive>
-            {{else}}
-              <dd.Interactive
-                data-test-edit
-                {{on "click" (fn @onSelect row.node.Key)}}
-              >View</dd.Interactive>
-            {{/if}}
-          {{/if}}
-        </Hds::Dropdown>
+          </Hds::Dropdown>
+        {{/if}}
       </B.Td>
     </:row>
   </Consul::DataTable>
 
-  {{! Live subscription for each expanded folder's children. Rendering these
-      outside the table keeps the DOM valid (no nested <tr>) while the loaded
-      children are spliced into the visible rows by the component. }}
+  {{! The table is unpaginated -- paging its rows would split a folder from its
+      children -- so this pages the entries the folder itself holds. }}
+  <Hds::Pagination::Numbered
+    class="consul-kv-list__pagination"
+    @totalItems={{this.totalItems}}
+    @currentPage={{this.currentPage}}
+    @currentPageSize={{this.pageSize}}
+    @pageSizes={{this.pageSizes}}
+    @onPageChange={{this.onPageChange}}
+    @onPageSizeChange={{this.onPageSizeChange}}
+  />
+
+  {{! Live subscription for each expanded folder's children, rendered outside
+      the table to keep the DOM valid (no nested <tr>). }}
   {{#each this.expandedFolders as |key|}}
     <DataSource
       @src={{uri '/${partition}/${nspace}/${dc}/kvs/${key}'
@@ -120,10 +118,12 @@
   {{/each}}
 
   {{#if this.itemToDelete}}
-    <Hds::Modal id="confirm-modal" @color="warning" @onClose={{this.cancelDelete}} as |M|>
-      <M.Header @icon="alert-triangle">Confirm Delete</M.Header>
+    <Hds::Modal id="confirm-modal" @color="critical" @onClose={{this.cancelDelete}} as |M|>
+      <M.Header @icon="alert-diamond">
+        {{if this.itemToDelete.isFolder "Delete this folder?" "Delete this key?"}}
+      </M.Header>
       <M.Body>
-        <p>Are you sure you want to delete this KV entry?</p>
+        <p>Are you sure you want to delete <strong>{{this.itemToDeleteName}}</strong>?</p>
       </M.Body>
       <M.Footer as |F|>
         <Hds::ButtonSet>

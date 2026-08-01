@@ -8,12 +8,10 @@ Feature: submit-blank
     When I visit the [Model] page for yaml
     ---
       dc: datacenter
-      create: /
     ---
-    And pause for 200
-    Then the url should be /datacenter/[Slug]?create=%2F
+    Then the url should be /datacenter/[Slug]/create
     Then I don't see submitIsEnabled
-    Then the url should be /datacenter/[Slug]?create=%2F
+    Then the url should be /datacenter/[Slug]/create
   Where:
     --------------------------
     | Model     | Slug       |

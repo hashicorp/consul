@@ -13,16 +13,28 @@
   padding: 20px;
 }
 
-.consul-lock-session-form__header {
+.consul-lock-session-form__title {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  gap: 6px;
   margin-bottom: 16px;
 
-  h2 {
-    margin: 0;
+  /* the help link is just the info icon here, so centre it on the heading
+     rather than leaving it on the text's baseline offsets */
+  a[rel*='help'] {
+    display: inline-flex;
+    align-items: center;
+
+    &::after {
+      margin: 0;
+    }
   }
+}
+
+.consul-lock-session-form__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
 }
 
 .consul-lock-session-form__card .definition-table > dl {
@@ -35,8 +47,4 @@
    past the other values in the column. */
 .consul-lock-session-form__card .definition-table dd > .hds-button {
   margin-left: calc(var(--token-button-padding-horizontal-small, 8px) * -1);
-}
-
-.consul-lock-session-form__confirm {
-  margin-top: 20px;
 }

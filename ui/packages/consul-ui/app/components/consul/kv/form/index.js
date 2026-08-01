@@ -7,18 +7,46 @@ import Component from '@glimmer/component';
 import { tracked } from '@glimmer/tracking';
 import { action, set } from '@ember/object';
 import { inject as service } from '@ember/service';
+import keyName from 'consul-ui/utils/keyName';
 
-export default class ConsulKvFlyoutComponent extends Component {
+export default class ConsulKvFormComponent extends Component {
   @service('btoa') encoder;
 
-  formId = 'consul-kv-flyout-form';
-
   @tracked json = true;
-  @tracked session = null;
+  @tracked isConfirmingDelete = false;
+  // which of the two failure toasts to word, since a save and a delete both
+  // land in the writer's single error state
+  @tracked isDeleting = false;
+
+  get folder() {
+    return keyName(this.args.parent);
+  }
+
+  get name() {
+    return keyName(this.args.item?.Key);
+  }
 
   @action
-  setSession(event) {
-    this.session = event.data;
+  submit(api, e) {
+    this.isDeleting = false;
+    return api.submit(e);
+  }
+
+  @action
+  confirmDelete() {
+    this.isConfirmingDelete = true;
+  }
+
+  @action
+  cancelDelete() {
+    this.isConfirmingDelete = false;
+  }
+
+  @action
+  delete(api) {
+    this.isConfirmingDelete = false;
+    this.isDeleting = true;
+    return api.delete();
   }
 
   @action
@@ -38,11 +66,6 @@ export default class ConsulKvFlyoutComponent extends Component {
           set(item, 'Key', `${parent !== '/' ? parent : ''}${target.value}`);
           break;
         case 'json':
-          // TODO: Potentially save whether json has been clicked to the model,
-          // setting this.json = true here will force the form to always default to code=on
-          // even if the user has selected code=off on another KV
-          // ideally we would save the value per KV, but I'd like to not do that on the model
-          // a this.json = valueFromSomeStorageJustForThisKV would be added here
           this.json = !this.json;
           break;
         default:

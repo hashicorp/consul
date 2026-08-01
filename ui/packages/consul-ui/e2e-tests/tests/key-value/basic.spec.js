@@ -64,14 +64,17 @@ function kvCodeToggle(page) {
 }
 
 function kvRow(page, text) {
-  // Key/folder names are <button>s in the new table UI, not links.
-  return page.getByRole('button', { name: text, exact: true }).first();
+  // Folder names toggle inline (a <button>), key names link to their edit page.
+  return page
+    .getByRole('button', { name: text, exact: true })
+    .or(page.getByRole('link', { name: text, exact: true }))
+    .first();
 }
 
 async function openKVCreate(page) {
-  await page.getByRole('button', { name: 'Create', exact: true }).click();
+  await page.getByRole('link', { name: 'Create' }).click();
   await logKVFormState(page, 'after openKVCreate click');
-  // Create opens a flyout (query-param driven), not a /create route.
+  await expect(page).toHaveURL(/\/ui\/dc1\/kv(?:\/.*)?\/create/);
   await expect(page.getByRole('textbox', { name: 'Key or folder To create a' })).toBeVisible();
 }
 
@@ -105,8 +108,7 @@ async function openNestedKVKey(page, segments, keyName) {
 }
 
 async function waitForKVEdit(page, keyName) {
-  // Editing opens a flyout (no /edit route); wait for it to render.
-  await expect(page.locator('[data-test-kv-key]').first()).toBeVisible({ timeout: 15000 });
+  await expect(page).toHaveURL(new RegExp(`/ui/dc1/kv/${keyName}/edit`), { timeout: 15000 });
   await logKVFormState(page, `after waitForKVEdit ${keyName}`);
 }
 
@@ -236,7 +238,7 @@ test.describe('Key/Value - Basic Tests', () => {
 
   test('should navigate to Key/Value page', async ({ page }) => {
     await expect(page).toHaveURL(/\/ui\/dc1\/kv/);
-    await expect(page.getByRole('button', { name: 'Create', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Create' })).toBeVisible();
   });
 
   test('should validate required key name field', async ({ page }) => {
