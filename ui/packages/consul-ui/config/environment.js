@@ -87,10 +87,10 @@ module.exports = function (environment, $ = process.env) {
     // The following variables are runtime variables that are overwritten when
     // the go binary serves the index.html page
     operatorConfig: {
-      ACLsEnabled: true,
+      ACLsEnabled: false,
       NamespacesEnabled: false,
       SSOEnabled: false,
-      PeeringEnabled: true,
+      PeeringEnabled: false,
       PartitionsEnabled: false,
       HCPEnabled: false,
       LocalDatacenter: env('CONSUL_DATACENTER_LOCAL', 'dc1'),
