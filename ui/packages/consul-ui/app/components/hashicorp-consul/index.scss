@@ -11,6 +11,18 @@
     color: #ffffff;
   }
 
+  /* HDS's 32px icon wrapper leaves 8px of slack beside the 16px glyph while the
+     chevron gets 2px before the border. Shrink the wrapper to its glyph and pad
+     the button evenly; 9px preserves the original 56x36 footprint. */
+  .hds-app-header__utility-actions .hds-dropdown-toggle-icon {
+    padding: 9px;
+
+    .hds-dropdown-toggle-icon__wrapper {
+      width: 16px;
+      height: 16px;
+    }
+  }
+
   .hds-app-side-nav {
     height: 100%;
     min-height: 100%;
