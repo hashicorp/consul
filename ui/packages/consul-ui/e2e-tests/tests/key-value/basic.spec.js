@@ -75,7 +75,7 @@ async function openKVCreate(page) {
   await page.getByRole('link', { name: 'Create' }).click();
   await logKVFormState(page, 'after openKVCreate click');
   await expect(page).toHaveURL(/\/ui\/dc1\/kv(?:\/.*)?\/create/);
-  await expect(page.getByRole('textbox', { name: 'Key or folder To create a' })).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'Key or Folder' })).toBeVisible();
 }
 
 // The toolbar Create targets the route parent, so creating inside an
@@ -86,7 +86,7 @@ async function openKVCreateInFolder(page, folderName) {
   });
   await row.getByRole('button', { name: 'Open actions menu' }).click();
   await page.locator('[data-test-create-in-folder]').first().click();
-  await expect(page.getByRole('textbox', { name: 'Key or folder To create a' })).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'Key or Folder' })).toBeVisible();
 }
 
 async function openKVKey(page, keyName) {
@@ -96,15 +96,30 @@ async function openKVKey(page, keyName) {
   console.log(`[KV DEBUG] clicked key row: ${keyName}, url=${page.url()}`);
 }
 
-async function openNestedKVKey(page, segments, keyName) {
+// Folders expand inline rather than navigating, so each segment has to be
+// expanded before its children exist in the DOM.
+async function expandKVFolders(page, segments) {
   for (const segment of segments) {
     const row = kvRow(page, segment);
     await expect(row).toBeVisible({ timeout: 15000 });
     await row.click();
-    console.log(`[KV DEBUG] clicked nested segment: ${segment}, url=${page.url()}`);
+    console.log(`[KV DEBUG] expanded folder: ${segment}, url=${page.url()}`);
   }
+}
 
+async function openNestedKVKey(page, segments, keyName) {
+  await expandKVFolders(page, segments);
   await openKVKey(page, keyName);
+}
+
+// Both the edit form's Delete button and the confirmation modal's are labelled
+// "Delete", so the modal is targeted by its test id to stay unambiguous.
+async function deleteOpenKVKey(page) {
+  await page.locator('[data-test-delete]').first().click();
+  await expect(page.locator('#confirm-modal')).toBeVisible({ timeout: 10000 });
+  await page.locator('[data-test-id="confirm-action"]').click();
+  // Deleting returns to the KV root with every folder collapsed again.
+  await expect(page).toHaveURL(/\/ui\/dc1\/kv\/?$/, { timeout: 15000 });
 }
 
 async function waitForKVEdit(page, keyName) {
@@ -173,7 +188,6 @@ async function fillKVValue(page, value, replace = false) {
  * Run on every PR
  */
 
-// Helper function to delete a KV pair via API
 async function deleteKVPair(page, keyName) {
   const token = process.env.CONSUL_UI_TEST_TOKEN;
   const baseURL = page.context()._options.baseURL || 'http://localhost:4200';
@@ -190,7 +204,6 @@ async function deleteKVPair(page, keyName) {
   }
 }
 
-// Helper function to create a KV pair via API
 async function createKVPair(page, keyName, value = '') {
   const token = process.env.CONSUL_UI_TEST_TOKEN;
   const baseURL = page.context()._options.baseURL || 'http://localhost:4200';
@@ -210,7 +223,6 @@ async function createKVPair(page, keyName, value = '') {
   }
 }
 
-// Helper function to read a KV pair via API
 async function readKVPair(page, keyName) {
   const token = process.env.CONSUL_UI_TEST_TOKEN;
   const baseURL = page.context()._options.baseURL || 'http://localhost:4200';
@@ -246,7 +258,7 @@ test.describe('Key/Value - Basic Tests', () => {
 
     const saveButton = page.getByRole('button', { name: 'Save' });
     await expect(saveButton).toBeDisabled();
-    await page.getByRole('textbox', { name: 'Key or folder To create a' }).fill('test-key');
+    await page.getByRole('textbox', { name: 'Key or Folder' }).fill('test-key');
     await expect(saveButton).toBeEnabled();
   });
 
@@ -256,7 +268,7 @@ test.describe('Key/Value - Basic Tests', () => {
     try {
       await openKVCreate(page);
 
-      await page.getByRole('textbox', { name: 'Key or folder To create a' }).fill(keyName);
+      await page.getByRole('textbox', { name: 'Key or Folder' }).fill(keyName);
 
       await fillKVValue(page, 'test-value');
 
@@ -274,7 +286,7 @@ test.describe('Key/Value - Basic Tests', () => {
 
     try {
       await openKVCreate(page);
-      await page.getByRole('textbox', { name: 'Key or folder To create a' }).fill(keyName);
+      await page.getByRole('textbox', { name: 'Key or Folder' }).fill(keyName);
       await page.getByRole('button', { name: 'Save' }).click();
 
       await expect(page).toHaveURL(/\/ui\/dc1\/kv/);
@@ -289,7 +301,7 @@ test.describe('Key/Value - Basic Tests', () => {
 
     try {
       await openKVCreate(page);
-      await page.getByRole('textbox', { name: 'Key or folder To create a' }).fill(keyName);
+      await page.getByRole('textbox', { name: 'Key or Folder' }).fill(keyName);
 
       const jsonValue = JSON.stringify({ name: 'test', value: 123, enabled: true }, null, 2);
 
@@ -309,7 +321,7 @@ test.describe('Key/Value - Basic Tests', () => {
 
     try {
       await openKVCreate(page);
-      await page.getByRole('textbox', { name: 'Key or folder To create a' }).fill(keyName);
+      await page.getByRole('textbox', { name: 'Key or Folder' }).fill(keyName);
 
       const multilineValue = 'Line 1\nLine 2\nLine 3\nLine 4';
 
@@ -329,7 +341,7 @@ test.describe('Key/Value - Basic Tests', () => {
 
     try {
       await openKVCreate(page);
-      await page.getByRole('textbox', { name: 'Key or folder To create a' }).fill(keyName);
+      await page.getByRole('textbox', { name: 'Key or Folder' }).fill(keyName);
 
       await fillKVValue(page, 'nested-value');
 
@@ -346,14 +358,13 @@ test.describe('Key/Value - Basic Tests', () => {
 
     try {
       await openKVCreate(page);
-      await page.getByRole('textbox', { name: 'Key or folder To create a' }).fill(folderPath);
+      await page.getByRole('textbox', { name: 'Key or Folder' }).fill(folderPath);
       await page.getByRole('button', { name: 'Save' }).click();
       await expect(page).toHaveURL(/\/ui\/dc1\/kv/);
 
-      // Folders expand inline; create inside the subfolder via its row menu.
       await kvRow(page, 'e2e-folder').click();
       await openKVCreateInFolder(page, 'subfolder');
-      await page.getByRole('textbox', { name: 'Key or folder To create a' }).fill('key-in-folder');
+      await page.getByRole('textbox', { name: 'Key or Folder' }).fill('key-in-folder');
 
       await fillKVValue(page, 'value-in-folder');
 
@@ -473,19 +484,11 @@ test.describe('Key/Value - Basic Tests', () => {
       await createKVPair(page, keyName, 'value-to-delete');
       await page.goto('/ui/dc1/kv');
       await openKVKey(page, keyName);
-      // exact: true so a key name containing "delete" isn't matched too.
-      await page.getByRole('button', { name: 'Delete', exact: true }).click();
+      await deleteOpenKVKey(page);
 
-      const confirmButton = page.getByRole('button', { name: 'Confirm' });
-      if (await confirmButton.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await confirmButton.click();
-      }
-
-      await expect(page).toHaveURL(/\/ui\/dc1\/kv/);
       await expect(kvRow(page, keyName)).not.toBeVisible();
-    } catch (error) {
+    } finally {
       await deleteKVPair(page, keyName);
-      throw error;
     }
   });
 
@@ -498,26 +501,17 @@ test.describe('Key/Value - Basic Tests', () => {
       await createKVPair(page, anotherKey, 'another-value');
 
       await page.goto('/ui/dc1/kv');
-      await openNestedKVKey(page, ['e2e-delete-folder'], 'nested');
+      await expandKVFolders(page, ['e2e-delete-folder', 'nested']);
 
       await expect(kvRow(page, 'delete-key')).toBeVisible();
       await expect(kvRow(page, 'another-key')).toBeVisible();
 
       await openKVKey(page, 'delete-key');
-      // exact: true so a key name containing "delete" isn't matched too.
-      await page.getByRole('button', { name: 'Delete', exact: true }).click();
+      await deleteOpenKVKey(page);
 
-      const confirmButton = page.getByRole('button', { name: 'Confirm' });
-      if (await confirmButton.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await confirmButton.click();
-      }
-
-      await page.waitForURL(/\/ui\/dc1\/kv/, { timeout: 5000 });
+      await expandKVFolders(page, ['e2e-delete-folder', 'nested']);
       await expect(kvRow(page, 'delete-key')).not.toBeVisible();
       await expect(kvRow(page, 'another-key')).toBeVisible();
-    } catch (error) {
-      await deleteKVPair(page, 'e2e-delete-folder');
-      throw error;
     } finally {
       await deleteKVPair(page, 'e2e-delete-folder');
     }
