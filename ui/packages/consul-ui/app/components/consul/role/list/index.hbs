@@ -39,7 +39,12 @@
             @size="small"
             data-test-actions-menu
           />
-          <dd.Interactive @route='dc.acls.roles.edit' @model={{item.ID}} data-test-edit>
+          <dd.Interactive
+            @icon={{if (can 'write role' item=item) 'edit' 'eye'}}
+            @route='dc.acls.roles.edit'
+            @model={{item.ID}}
+            data-test-edit
+          >
             {{#if (can 'write role' item=item)}}Edit{{else}}View{{/if}}
           </dd.Interactive>
           {{#if (can 'delete role' item=item)}}

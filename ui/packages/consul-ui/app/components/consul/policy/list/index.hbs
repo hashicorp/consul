@@ -52,7 +52,12 @@
             @size="small"
             data-test-actions-menu
           />
-          <dd.Interactive @route='dc.acls.policies.edit' @model={{item.ID}} data-test-edit>
+          <dd.Interactive
+            @icon={{if (can 'write policy' item=item) 'edit' 'eye'}}
+            @route='dc.acls.policies.edit'
+            @model={{item.ID}}
+            data-test-edit
+          >
             {{#if (can 'write policy' item=item)}}Edit{{else}}View{{/if}}
           </dd.Interactive>
           {{#if (can 'delete policy' item=item)}}
