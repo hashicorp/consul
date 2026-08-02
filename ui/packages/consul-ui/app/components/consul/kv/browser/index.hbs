@@ -6,7 +6,10 @@
 {{! Folders expand inline, so `dc.kv.folder` is only entered by deep-linking }}
 {{! into one -- the crumb below leads back out to the root listing. }}
 
-<AppView @showBreadcrumb={{not-eq @parent.Key '/'}}>
+{{! `parent` arrives from its own DataSource, so it is briefly undefined while }}
+{{! the listing renders -- guard on it, or `not-eq undefined '/'` is true and }}
+{{! the crumb flashes in before the real key lands. }}
+<AppView @showBreadcrumb={{if @parent.Key (not-eq @parent.Key '/') false}}>
   <:breadcrumbs>
     <Hds::Breadcrumb>
   {{! the last two segments are this folder -- the heading below -- and the '' }}

@@ -23,62 +23,34 @@ section[data-route='dc.show.serverstatus'] {
   @extend %display-300-semibold;
 }
 
-%server-failure-tolerance {
-  @extend %panel;
-  box-shadow: none;
-  padding: var(--padding-y) var(--padding-x);
-  max-width: 770px;
-  display: flex;
-  flex-wrap: wrap;
-}
 %server-failure-tolerance > header {
-  width: 100%;
   display: flex;
-  flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  padding-bottom: 0.5rem; /* 8px */
+  gap: 1rem; /* 16px */
   margin-bottom: 1rem; /* 16px */
-  border-bottom: var(--decor-border-100);
-  border-color: var(--tone-border);
 }
 
-%server-failure-tolerance header em {
-  @extend %pill-200;
-  @extend %body-100-regular;
-  background-color: var(--token-color-surface-interactive-active);
-
-  text-transform: uppercase;
-  font-style: normal;
+%server-failure-tolerance .server-failure-tolerance__cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem; /* 24px */
 }
-%server-failure-tolerance > section {
-  width: 50%;
-}
-%server-failure-tolerance > section,
-%server-failure-tolerance dl {
+%server-failure-tolerance .server-failure-tolerance__card {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
+  gap: 1rem; /* 16px */
+  padding: 1.5rem; /* 24px */
 }
-%server-failure-tolerance dl {
-  flex-grow: 1;
-  justify-content: space-between;
+%server-failure-tolerance .server-failure-tolerance__card h3 {
+  @extend %display-400-bold;
 }
-%server-failure-tolerance dd {
-  display: flex;
-  align-items: center;
+%server-failure-tolerance .server-failure-tolerance__card p {
+  @extend %body-200-regular;
+  color: var(--token-color-foreground-primary);
 }
-%server-failure-tolerance section:first-of-type dl {
-  padding-right: 1.5rem; /* 24px */
-}
-%server-failure-tolerance dt {
-  @extend %body-100-regular;
-  color: var(--token-color-foreground-faint);
-}
-%server-failure-tolerance dd {
-  @extend %display-300-semibold;
-  color: var(--token-color-hashicorp-brand);
-}
-%server-failure-tolerance .optimistic-tolerance header span::before {
+%server-failure-tolerance .optimistic-tolerance h3 span::before {
   --icon-name: icon-info;
   --icon-size: icon-300;
   --icon-color: var(--token-color-foreground-faint);
@@ -86,28 +58,15 @@ section[data-route='dc.show.serverstatus'] {
   content: '';
 }
 
-%server-failure-tolerance .server-failure-tolerance__badge-count,
-%server-failure-tolerance .server-failure-tolerance__status-badge {
-  display: inline-flex;
-}
-
-%server-failure-tolerance .optimistic-tolerance p {
-  @extend %body-100-regular;
-  color: var(--token-color-foreground-faint);
-}
-
-%serverstatus-route section:not([class*='-tolerance']) h2 {
+%serverstatus-route section h2 {
   margin-top: 1.5rem; /* 24px */
   margin-bottom: 1.5rem; /* 24px */
 }
-%serverstatus-route section:not([class*='-tolerance']) header {
+%serverstatus-route section header {
   margin-top: 18px;
   margin-bottom: 18px;
 }
 
-%redundancy-zones h3 {
-  @extend %display-300-semibold;
-}
 %redundancy-zone header {
   display: flow-root;
 }

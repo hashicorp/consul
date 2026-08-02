@@ -114,7 +114,7 @@ as |item|}}
                 {{compute (fn route.t 'documentation.title')}}
               </h3>
             </header>
-            <div class="flex gap-1.5 flex-col">
+            <div class="license-learn-more__links">
               <Hds::Link::Standalone
                 @text={{compute (fn route.t 'documentation.links.license-expiration.text')}}
                 @href='{{concat (env 'CONSUL_DOCS_URL') (compute (fn route.t 'documentation.links.license-expiration.link'))}}'

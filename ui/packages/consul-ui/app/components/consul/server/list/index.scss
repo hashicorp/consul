@@ -11,3 +11,11 @@
   padding: 0;
   margin: 0;
 }
+.consul-server-list li {
+  display: flex;
+}
+/* so every card fills its cell and all cards in a row end up the same height */
+.consul-server-list li > * {
+  flex: 1;
+  min-width: 0;
+}
