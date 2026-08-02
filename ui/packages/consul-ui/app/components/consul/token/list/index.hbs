@@ -59,16 +59,21 @@
             @size="small"
             data-test-actions-menu
           />
-          <dd.Interactive @route='dc.acls.tokens.edit' @model={{item.AccessorID}} data-test-edit>
+          <dd.Interactive
+            @icon={{if (can 'write token' item=item) 'edit' 'eye'}}
+            @route='dc.acls.tokens.edit'
+            @model={{item.AccessorID}}
+            data-test-edit
+          >
             {{#if (can 'write token' item=item)}}Edit{{else}}View{{/if}}
           </dd.Interactive>
           {{#if (can 'duplicate token' item=item)}}
-            <dd.Interactive data-test-clone {{on 'click' (fn @onclone item)}}>Duplicate</dd.Interactive>
+            <dd.Interactive @icon="duplicate" data-test-clone {{on 'click' (fn @onclone item)}}>Duplicate</dd.Interactive>
           {{/if}}
           {{#if (eq item.AccessorID @token.AccessorID)}}
-            <dd.Interactive @color="critical" data-test-logout {{on 'click' (fn this.confirm 'logout' item)}}>Logout</dd.Interactive>
+            <dd.Interactive @color="critical" @icon="sign-out" data-test-logout {{on 'click' (fn this.confirm 'logout' item)}}>Logout</dd.Interactive>
           {{else}}
-            <dd.Interactive data-test-use {{on 'click' (fn this.confirm 'use' item)}}>Use</dd.Interactive>
+            <dd.Interactive @icon="sign-in" data-test-use {{on 'click' (fn this.confirm 'use' item)}}>Use</dd.Interactive>
           {{/if}}
           {{#if (can 'delete token' item=item token=@token)}}
             <dd.Separator />

@@ -67,11 +67,11 @@
               data-test-actions-menu
             />
             {{#if (and (can "write peer" item=item) item.isDialer)}}
-              <dd.Interactive data-test-regenerate {{on "click" (fn @onedit item)}}>
+              <dd.Interactive @icon="reload" data-test-regenerate {{on "click" (fn @onedit item)}}>
                 Regenerate token
               </dd.Interactive>
             {{/if}}
-            <dd.Interactive @route="dc.peers.show" @model={{item.Name}} data-test-view>
+            <dd.Interactive @icon="eye" @route="dc.peers.show" @model={{item.Name}} data-test-view>
               View
             </dd.Interactive>
             <dd.Separator />
