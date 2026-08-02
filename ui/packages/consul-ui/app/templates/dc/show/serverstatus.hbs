@@ -60,48 +60,52 @@ as |route|>
 as |item|}}
       <div class="tab-section">
 
-          <Hds::Card::Container
-            @hasBorder={{true}}
-            @level="base"
+          <div
             class="server-failure-tolerance"
             aria-labelledby="server-fault-tolerance-title"
             role="region"
             data-test-server-info
           >
             <header class="server-failure-tolerance__header" aria-label="Tolerance">
-              <h2 id="server-fault-tolerance-title" class="hds-typography-display-300 hds-font-weight-semibold">
+              <h2 id="server-fault-tolerance-title">
                 {{compute (fn route.t 'tolerance.header')}}
               </h2>
               <Hds::Link::Standalone
-                @icon='docs-link'
+                @icon='arrow-right'
                 @iconPosition='trailing'
                 @text={{compute (fn route.t 'tolerance.link-text')}}
                 @href='{{concat (env 'CONSUL_DOCS_URL') (compute (fn route.t 'tolerance.link'))}}'
                 aria-label="Learn how to improve fault tolerance"
               />
             </header>
-            <hr class="server-failure-tolerance__divider" aria-hidden="true" />
-            <section class="server-failure-tolerance__content" aria-label="Immediate Fault Tolerance">
-              <h3 class="hds-typography-display-200 hds-font-weight-semibold">
-                {{compute (fn route.t 'tolerance.immediate.header')}}
-              </h3>
-              <p class="hds-typography-body-100 hds-font-weight-regular">
-                {{compute (fn route.t 'tolerance.immediate.body')}}
-              </p>
-              <div class="server-failure-tolerance__value" aria-live="polite">
-                <span class="server-failure-tolerance__badge-count">
+
+            <div class="server-failure-tolerance__cards">
+              <Hds::Card::Container
+                @hasBorder={{true}}
+                @level="base"
+                class="server-failure-tolerance__card"
+                role="group"
+                aria-label="Immediate Fault Tolerance"
+              >
+                <h3>
+                  {{compute (fn route.t 'tolerance.immediate.header')}}
+                </h3>
+                <p>
+                  {{compute (fn route.t 'tolerance.immediate.body')}}
+                </p>
+                <div class="server-failure-tolerance__value" aria-live="polite">
                   <Hds::BadgeCount @text={{item.FailureTolerance}} @size="large" @type="filled" @color="neutral" />
-                </span>
-              </div>
-            </section>
+                </div>
+              </Hds::Card::Container>
 
               {{#if (can 'read zones')}}
-            <section
-              class={{class-map
-                (array 'optimistic-tolerance')
-              }}
-            >
-              <header aria-label="Optimistic Fault Tolerance">
+              <Hds::Card::Container
+                @hasBorder={{true}}
+                @level="base"
+                class="server-failure-tolerance__card optimistic-tolerance"
+                role="group"
+                aria-label="Optimistic Fault Tolerance"
+              >
                 <h3>
                   {{compute (fn route.t 'tolerance.optimistic.header')}}
                   <span
@@ -109,23 +113,22 @@ as |item|}}
                   >
                   </span>
                 </h3>
-              </header>
-              <p>
-                {{compute (fn route.t 'tolerance.optimistic.body')}}
-              </p>
-              <div class="server-failure-tolerance__status-badge">
-                <Hds::Badge
-                  @text={{item.OptimisticFailureTolerance}}
-                  @icon={{if (eq item.OptimisticFailureTolerance 0) "alert-circle" "check"}}
-                  @color={{if (eq item.OptimisticFailureTolerance 0) "warning" "success"}}
-                  @type="filled"
-                  @size="small"
-                />
-              </div>
-
-            </section>
+                <p>
+                  {{compute (fn route.t 'tolerance.optimistic.body')}}
+                </p>
+                <div class="server-failure-tolerance__value" aria-live="polite">
+                  <Hds::Badge
+                    @text={{item.OptimisticFailureTolerance}}
+                    @icon={{if (eq item.OptimisticFailureTolerance 0) "alert-circle" "check"}}
+                    @color={{if (eq item.OptimisticFailureTolerance 0) "warning" "success"}}
+                    @type="filled"
+                    @size="large"
+                  />
+                </div>
+              </Hds::Card::Container>
               {{/if}}
-          </Hds::Card::Container>
+            </div>
+          </div>
 
     {{#if (gt item.RedundancyZones.length 0)}}
           <section
