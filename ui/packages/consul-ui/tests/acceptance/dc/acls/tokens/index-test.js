@@ -47,7 +47,9 @@ module('Acceptance | dc / acls / tokens / index: ACL Token List', function (hook
     await visit('tokens', { dc: 'dc-1' }, { nspace });
 
     assert.equal(currentURL(), nspaceURL(nspace, '/dc-1/acls/tokens'));
-    assert.dom('[data-test-create]').doesNotExist('create button is not shown without write access');
+    assert
+      .dom('[data-test-create]')
+      .doesNotExist('create button is not shown without write access');
   });
 
   nspaceScenario('Searching the tokens', async function (assert, nspace) {
@@ -125,43 +127,35 @@ module('Acceptance | dc / acls / tokens / index: ACL Token List', function (hook
       );
   });
 
-  nspaceScenario('I see the legacy message if I have one legacy token', async function (
-    assert,
-    nspace
-  ) {
-    api.server.createList('dc', 1, 'dc-1');
-    api.server.createList('token', 3, [
-      { Legacy: true },
-      { Legacy: false },
-      { Legacy: false },
-    ]);
+  nspaceScenario(
+    'I see the legacy message if I have one legacy token',
+    async function (assert, nspace) {
+      api.server.createList('dc', 1, 'dc-1');
+      api.server.createList('token', 3, [{ Legacy: true }, { Legacy: false }, { Legacy: false }]);
 
-    await visit('tokens', { dc: 'dc-1' }, { nspace });
+      await visit('tokens', { dc: 'dc-1' }, { nspace });
 
-    assert.equal(currentURL(), nspaceURL(nspace, '/dc-1/acls/tokens'));
-    assert.dom('[data-test-notification-update]').exists('shows the legacy update notice');
-    assert.equal(page().tokens.length, 3, 'shows 3 tokens');
-  });
+      assert.equal(currentURL(), nspaceURL(nspace, '/dc-1/acls/tokens'));
+      assert.dom('[data-test-notification-update]').exists('shows the legacy update notice');
+      assert.equal(page().tokens.length, 3, 'shows 3 tokens');
+    }
+  );
 
-  nspaceScenario("I don't see the legacy message if I have no legacy tokens", async function (
-    assert,
-    nspace
-  ) {
-    api.server.createList('dc', 1, 'dc-1');
-    api.server.createList('token', 3, [
-      { Legacy: false },
-      { Legacy: false },
-      { Legacy: false },
-    ]);
+  nspaceScenario(
+    "I don't see the legacy message if I have no legacy tokens",
+    async function (assert, nspace) {
+      api.server.createList('dc', 1, 'dc-1');
+      api.server.createList('token', 3, [{ Legacy: false }, { Legacy: false }, { Legacy: false }]);
 
-    await visit('tokens', { dc: 'dc-1' }, { nspace });
+      await visit('tokens', { dc: 'dc-1' }, { nspace });
 
-    assert.equal(currentURL(), nspaceURL(nspace, '/dc-1/acls/tokens'));
-    assert
-      .dom('[data-test-notification-update]')
-      .doesNotExist('does not show the legacy update notice');
-    assert.equal(page().tokens.length, 3, 'shows 3 tokens');
-  });
+      assert.equal(currentURL(), nspaceURL(nspace, '/dc-1/acls/tokens'));
+      assert
+        .dom('[data-test-notification-update]')
+        .doesNotExist('does not show the legacy update notice');
+      assert.equal(page().tokens.length, 3, 'shows 3 tokens');
+    }
+  );
 
   // Placeholder — sorting scenarios live in dc/acls/tokens/sorting.feature (not migrated yet).
   skip('sorting scenarios are covered in dc/acls/tokens/sorting.feature', function () {});
