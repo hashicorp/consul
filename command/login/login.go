@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
+	"github.com/hashicorp/consul/command/loginutil"
 	"github.com/hashicorp/consul/lib/file"
 	"github.com/mitchellh/cli"
 )
@@ -171,11 +172,6 @@ func (c *cmd) writeToSink(tok *api.ACLToken) error {
 	return file.WriteAtomicWithPerms(c.tokenSinkFile, payload, 0o755, 0o600)
 }
 
-// idpLogoutSuffix is appended to the token sink file path to derive the path of
-// the companion file that stores the OIDC RP-initiated (front-channel) logout
-// URL. `consul logout` looks for this file next to its token file.
-const idpLogoutSuffix = ".oidc-logout"
-
 // writeLogoutSinkFromToken persists the provider's RP-initiated logout URL
 // (returned by the OIDC login callback when IdP logout is enabled) alongside
 // the token sink file with owner-only permissions. It is a no-op when the auth
@@ -184,7 +180,7 @@ func (c *cmd) writeLogoutSinkFromToken(tok *api.ACLToken) {
 	if c.tokenSinkFile == "" {
 		return
 	}
-	logoutSinkFile := c.tokenSinkFile + idpLogoutSuffix
+	logoutSinkFile := c.tokenSinkFile + loginutil.IDPLogoutSuffix
 	if tok.IDPLogoutURL == "" {
 		// This token has no IdP logout URL. Remove any stale sidecar left by a
 		// previous OIDC login so a later `consul logout` does not open an

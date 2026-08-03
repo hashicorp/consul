@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/consul/command/flags"
+	"github.com/hashicorp/consul/command/loginutil"
 	"github.com/mitchellh/cli"
 )
 
@@ -68,17 +69,13 @@ func (c *cmd) Run(args []string) int {
 	return 0
 }
 
-// idpLogoutSuffix is appended to the token file path to locate the companion
-// file written by `consul login` that stores the OIDC RP-initiated logout URL.
-const idpLogoutSuffix = ".oidc-logout"
-
 func (c *cmd) maybeIDPLogout() {
 	tokenFile := c.http.TokenFile()
 	if tokenFile == "" {
 		return
 	}
 
-	sinkPath := tokenFile + idpLogoutSuffix
+	sinkPath := tokenFile + loginutil.IDPLogoutSuffix
 	data, err := os.ReadFile(sinkPath)
 	if err != nil {
 		return // no sidecar -> plain logout, as before

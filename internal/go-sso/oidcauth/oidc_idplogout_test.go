@@ -60,3 +60,13 @@ func TestOIDC_GetEndSessionEndpoint(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, srv.Addr()+"/logout", endpoint)
 }
+
+// TestOIDC_GetEndSessionEndpoint_TypeMismatch ensures GetEndSessionEndpoint
+// returns an error when called on a JWT-type authenticator.
+func TestOIDC_GetEndSessionEndpoint_TypeMismatch(t *testing.T) {
+	oa, _ := setupForJWT(t, authJWKS, nil)
+
+	_, err := oa.GetEndSessionEndpoint()
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "incompatible with type")
+}

@@ -1,0 +1,3 @@
+```release-note:feature
+acl: Add OIDC RP-initiated (front-channel) IdP logout so that `consul logout` terminates the identity provider session for tokens created via an `oidc` auth method. Activates automatically when the IdP advertises an `end_session_endpoint` in its OIDC discovery document.
+```
