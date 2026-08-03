@@ -81,11 +81,20 @@ async function openKVCreate(page) {
 // The toolbar Create targets the route parent, so creating inside an
 // inline-expanded folder must go through that folder row's actions menu.
 async function openKVCreateInFolder(page, folderName) {
-  const row = page.locator('tr', {
+  // Folder rows render the name as a <button> (folders expand inline).
+  // Filter the row by a button whose text exactly matches folderName.
+  const row = page.locator('tr').filter({
     has: page.getByRole('button', { name: folderName, exact: true }),
   });
-  await row.getByRole('button', { name: 'Open actions menu' }).click();
-  await page.locator('[data-test-create-in-folder]').first().click();
+  await expect(row).toBeVisible({ timeout: 15000 });
+  // The actions toggle has aria-label "Open actions menu".
+  await row.getByLabel('Open actions menu').click();
+  // data-test-create-in-folder is an <a> that navigates to dc.kv.create.
+  const createLink = page.locator('[data-test-create-in-folder]').first();
+  await expect(createLink).toBeVisible({ timeout: 10000 });
+  await createLink.click();
+  // Wait for navigation to the create route to complete.
+  await expect(page).toHaveURL(/\/ui\/dc1\/kv(?:\/.*)?\/create/, { timeout: 15000 });
   await expect(page.getByRole('textbox', { name: 'Key or Folder' })).toBeVisible();
 }
 
@@ -114,8 +123,18 @@ async function openNestedKVKey(page, segments, keyName) {
 
 // Both the edit form's Delete button and the confirmation modal's are labelled
 // "Delete", so the modal is targeted by its test id to stay unambiguous.
+// Wait for /edit URL to confirm the route + data have loaded before looking for
+// the delete button (it is hidden on create routes via {{#unless api.isCreate}}).
 async function deleteOpenKVKey(page) {
-  await page.locator('[data-test-delete]').first().click();
+  await expect(page).toHaveURL(/\/edit$/, { timeout: 15000 });
+  // Wait for the Save button — confirms form data has loaded and api.isCreate=false,
+  // which is the condition that makes the Delete button visible.
+  await expect(page.getByRole('button', { name: 'Save' })).toBeVisible({ timeout: 15000 });
+  // The form's Delete button is distinct from the modal's Delete button;
+  // use getByRole scoped to the form actions area.
+  const deleteBtn = page.getByRole('button', { name: 'Delete' }).first();
+  await expect(deleteBtn).toBeVisible({ timeout: 10000 });
+  await deleteBtn.click();
   await expect(page.locator('#confirm-modal')).toBeVisible({ timeout: 10000 });
   await page.locator('[data-test-id="confirm-action"]').click();
   // Deleting returns to the KV root with every folder collapsed again.
@@ -363,6 +382,8 @@ test.describe('Key/Value - Basic Tests', () => {
       await expect(page).toHaveURL(/\/ui\/dc1\/kv/);
 
       await kvRow(page, 'e2e-folder').click();
+      // Folder expands inline — wait for the subfolder row to appear in the table.
+      await expect(page.getByRole('button', { name: 'subfolder', exact: true })).toBeVisible({ timeout: 15000 });
       await openKVCreateInFolder(page, 'subfolder');
       await page.getByRole('textbox', { name: 'Key or Folder' }).fill('key-in-folder');
 
