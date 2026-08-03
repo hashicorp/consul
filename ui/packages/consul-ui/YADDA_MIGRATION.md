@@ -69,10 +69,10 @@ manually in the running UI if needed.
 
 | Metric | Count |
 | --- | --- |
-| Feature files remaining (yadda) | 117 |
-| Scenarios remaining (yadda) | 277 |
-| Feature files migrated | 12 |
-| Scenarios migrated | 16 |
+| Feature files remaining (yadda) | 113 |
+| Scenarios remaining (yadda) | 265 |
+| Feature files migrated | 16 |
+| Scenarios migrated | 28 |
 
 ## Completed
 
@@ -90,6 +90,10 @@ manually in the running UI if needed.
 | `dc/list.feature` | Generic model listing pages render (nodes/kv/tokens/policies). | 1 (4 rows) | [tests/acceptance/dc/list-test.js](tests/acceptance/dc/list-test.js) |
 | `dc/list-blocking.feature` | Listing pages live-update via blocking queries when Consul changes externally. Second scenario carried a FIXME `@ignore`, preserved as a skipped test. | 2 | [tests/acceptance/dc/list-blocking-test.js](tests/acceptance/dc/list-blocking-test.js) |
 | `dc/routing-config.feature` | View a routing config (no 404, correct title) and its source pill. | 2 | [tests/acceptance/dc/routing-config-test.js](tests/acceptance/dc/routing-config-test.js) |
+| `dc/acls/auth-methods/index.feature` | Auth-methods list renders and is searchable (3 search terms). | 2 | [tests/acceptance/dc/acls/auth-methods/index-test.js](tests/acceptance/dc/acls/auth-methods/index-test.js) |
+| `dc/acls/policies/index.feature` | Policies list renders and is searchable. | 2 | [tests/acceptance/dc/acls/policies/index-test.js](tests/acceptance/dc/acls/policies/index-test.js) |
+| `dc/acls/roles/index.feature` | Roles list renders and is searchable (description, policy name, service identity). | 2 | [tests/acceptance/dc/acls/roles/index-test.js](tests/acceptance/dc/acls/roles/index-test.js) |
+| `dc/acls/tokens/index.feature` | Token list: view, no-write access, search (description/policy/role/SI), legacy notice. | 5 | [tests/acceptance/dc/acls/tokens/index-test.js](tests/acceptance/dc/acls/tokens/index-test.js) |
 
 ## Remaining features
 
@@ -97,7 +101,6 @@ manually in the running UI if needed.
 | --- | --- | --- | --- | --- |
 | [api-prefix.feature](tests/acceptance/api-prefix.feature) | UI honours a configured API path prefix when making requests. | 1 | ☐ Not migrated |  |
 | [dc/acls/access.feature](tests/acceptance/dc/acls/access.feature) | ACLs access page behaviour when ACLs are disabled. | 1 | ☐ Not migrated |  |
-| [dc/acls/auth-methods/index.feature](tests/acceptance/dc/acls/auth-methods/index.feature) | Auth-methods list renders and is searchable. | 2 | ☐ Not migrated |  |
 | [dc/acls/auth-methods/navigation.feature](tests/acceptance/dc/acls/auth-methods/navigation.feature) | Navigate into an auth-method from the list and back. | 1 | ☐ Not migrated |  |
 | [dc/acls/auth-methods/sorting.feature](tests/acceptance/dc/acls/auth-methods/sorting.feature) | Sorting the auth-methods list. | 1 | ☐ Not migrated |  |
 | [dc/acls/index.feature](tests/acceptance/dc/acls/index.feature) | ACL index page forwards/redirects to the correct sub-page. | 1 | ☐ Not migrated |  |
@@ -109,7 +112,6 @@ manually in the running UI if needed.
 | [dc/acls/policies/as-many/reset.feature](tests/acceptance/dc/acls/policies/as-many/reset.feature) | The attached-policy sub-form resets correctly. | 1 | ☐ Not migrated |  |
 | [dc/acls/policies/create.feature](tests/acceptance/dc/acls/policies/create.feature) | Create an ACL policy; no Namespace sent when namespaces are disabled. | 3 | ☐ Not migrated |  |
 | [dc/acls/policies/delete.feature](tests/acceptance/dc/acls/policies/delete.feature) | Delete a policy from the list and detail pages, incl. error handling. | 3 | ☐ Not migrated |  |
-| [dc/acls/policies/index.feature](tests/acceptance/dc/acls/policies/index.feature) | Policies list renders and is searchable; global-management can't be deleted. | 3 | ☐ Not migrated |  |
 | [dc/acls/policies/navigation.feature](tests/acceptance/dc/acls/policies/navigation.feature) | Navigate into a policy from the list and back. | 1 | ☐ Not migrated |  |
 | [dc/acls/policies/sorting.feature](tests/acceptance/dc/acls/policies/sorting.feature) | Sorting the policies list. | 1 | ☐ Not migrated |  |
 | [dc/acls/policies/update.feature](tests/acceptance/dc/acls/policies/update.feature) | Update a policy (name/rules/description); error handling; no Namespace when disabled. | 3 | ☐ Not migrated |  |
@@ -120,14 +122,12 @@ manually in the running UI if needed.
 | [dc/acls/roles/as-many/list.feature](tests/acceptance/dc/acls/roles/as-many/list.feature) | List the roles attached to a token. | 1 | ☐ Not migrated |  |
 | [dc/acls/roles/as-many/remove.feature](tests/acceptance/dc/acls/roles/as-many/remove.feature) | Remove attached roles from a token. | 1 | ☐ Not migrated |  |
 | [dc/acls/roles/create.feature](tests/acceptance/dc/acls/roles/create.feature) | Create an ACL role; no Namespace sent when namespaces are disabled. | 3 | ☐ Not migrated |  |
-| [dc/acls/roles/index.feature](tests/acceptance/dc/acls/roles/index.feature) | Roles list renders and is searchable. | 2 | ☐ Not migrated |  |
 | [dc/acls/roles/navigation.feature](tests/acceptance/dc/acls/roles/navigation.feature) | Navigate into a role from the list and back. | 1 | ☐ Not migrated |  |
 | [dc/acls/roles/sorting.feature](tests/acceptance/dc/acls/roles/sorting.feature) | Sorting the roles list. | 1 | ☐ Not migrated |  |
 | [dc/acls/roles/update.feature](tests/acceptance/dc/acls/roles/update.feature) | Update a role (name/rules/description); error handling; no Namespace when disabled. | 3 | ☐ Not migrated |  |
 | [dc/acls/tokens/anonymous-no-delete.feature](tests/acceptance/dc/acls/tokens/anonymous-no-delete.feature) | The anonymous token exposes no delete buttons on list or detail pages. | 2 | ☐ Not migrated |  |
 | [dc/acls/tokens/clone.feature](tests/acceptance/dc/acls/tokens/clone.feature) | Clone an ACL token from the list and detail pages. | 2 | ☐ Not migrated |  |
 | [dc/acls/tokens/create.feature](tests/acceptance/dc/acls/tokens/create.feature) | Create an ACL token; no Namespace sent when namespaces are disabled. | 3 | ☐ Not migrated |  |
-| [dc/acls/tokens/index.feature](tests/acceptance/dc/acls/tokens/index.feature) | Token list: view, no-write access, search, and legacy-token message. | 5 | ☐ Not migrated |  |
 | [dc/acls/tokens/navigation.feature](tests/acceptance/dc/acls/tokens/navigation.feature) | Navigate into a token from the list and back. | 1 | ☐ Not migrated |  |
 | [dc/acls/tokens/own-no-delete.feature](tests/acceptance/dc/acls/tokens/own-no-delete.feature) | Your currently-used token exposes no delete button. | 1 | ☐ Not migrated |  |
 | [dc/acls/tokens/sorting.feature](tests/acceptance/dc/acls/tokens/sorting.feature) | Sorting the tokens list. | 1 | ☐ Not migrated |  |
