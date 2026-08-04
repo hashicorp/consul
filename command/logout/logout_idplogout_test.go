@@ -9,9 +9,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/hashicorp/consul/command/loginutil"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/command/loginutil"
 )
 
 func TestMaybeIDPLogout(t *testing.T) {

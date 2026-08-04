@@ -11,8 +11,8 @@ import (
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/command/loginutil"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/command/loginutil"
 )
 
 func TestWriteLogoutSinkFromToken(t *testing.T) {
