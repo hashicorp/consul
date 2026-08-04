@@ -3537,13 +3537,12 @@ func TestAgent_UpdateCheck(t *testing.T) {
 	})
 
 	t.Run("oversized body returns 413", func(t *testing.T) {
-		// maxChecksSize=256, so the body cap is 256+512=768 bytes.
-		// Send a body larger than that to verify HTTP 413 is returned before
-		// ACL authorization, closing the unauthenticated heap-growth path
-		// described in SECVULN-50418.
+		// Send a body larger than maxAgentRequestBodyBytes (512 KiB) to verify
+		// HTTP 413 is returned before ACL authorization, closing the
+		// unauthenticated heap-growth path described in SECVULN-50418.
 		oversized := checkUpdate{
 			Status: api.HealthPassing,
-			Output: strings.Repeat("A", maxChecksSize+600),
+			Output: strings.Repeat("A", maxAgentRequestBodyBytes+1),
 		}
 		req, _ := http.NewRequest("PUT", "/v1/agent/check/update/test", jsonReader(oversized))
 		resp := httptest.NewRecorder()

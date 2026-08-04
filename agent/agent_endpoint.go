@@ -817,7 +817,11 @@ func (s *HTTPHandlers) AgentRegisterCheck(resp http.ResponseWriter, req *http.Re
 		return nil, err
 	}
 
+	req.Body = http.MaxBytesReader(resp, req.Body, maxAgentRequestBodyBytes)
 	if err := decodeBody(req.Body, &args); err != nil {
+		if err.Error() == "http: request body too large" {
+			return nil, HTTPError{StatusCode: http.StatusRequestEntityTooLarge, Reason: fmt.Sprintf("Request body too large, max size: %d bytes", maxAgentRequestBodyBytes)}
+		}
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Request decode failed: %v", err)}
 	}
 
@@ -937,6 +941,13 @@ func (s *HTTPHandlers) AgentCheckFail(resp http.ResponseWriter, req *http.Reques
 	return s.agentCheckUpdate(resp, req, checkID, api.HealthCritical, note)
 }
 
+// maxAgentRequestBodyBytes is the upper bound applied to JSON request bodies
+// on agent HTTP endpoints that decode the body before ACL authorization.
+// 512 KiB is well above any legitimate check or service registration payload
+// while preventing an unauthenticated caller from retaining large heap buffers
+// inside the JSON decoder (SECVULN-50418).
+const maxAgentRequestBodyBytes = 512 * 1024
+
 // checkUpdate is the payload for a PUT to AgentCheckUpdate.
 type checkUpdate struct {
 	// Status us one of the api.Health* states, "passing", "warning", or
@@ -955,16 +966,16 @@ type checkUpdate struct {
 func (s *HTTPHandlers) AgentCheckUpdate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Limit the request body to prevent an unauthenticated caller from retaining
 	// unbounded heap inside the JSON decoder before ACL authorization occurs
-	// (SECVULN-50418). The cap is CheckOutputMaxSize plus a small overhead for
-	// the JSON envelope. http.MaxBytesReader covers chunked bodies that carry no
-	// Content-Length header.
-	maxBody := int64(s.agent.config.CheckOutputMaxSize) + 512
-	req.Body = http.MaxBytesReader(resp, req.Body, maxBody)
+	// (SECVULN-50418). http.MaxBytesReader covers chunked bodies that carry no
+	// Content-Length header. Note: check output truncation to CheckOutputMaxSize
+	// happens downstream in updateTTLCheck; the body cap here is intentionally
+	// larger to allow callers to send up to maxAgentRequestBodyBytes.
+	req.Body = http.MaxBytesReader(resp, req.Body, maxAgentRequestBodyBytes)
 
 	var update checkUpdate
 	if err := decodeBody(req.Body, &update); err != nil {
 		if err.Error() == "http: request body too large" {
-			return nil, HTTPError{StatusCode: http.StatusRequestEntityTooLarge, Reason: fmt.Sprintf("Request body too large, max size: %d bytes", maxBody)}
+			return nil, HTTPError{StatusCode: http.StatusRequestEntityTooLarge, Reason: fmt.Sprintf("Request body too large, max size: %d bytes", maxAgentRequestBodyBytes)}
 		}
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Request decode failed: %v", err)}
 	}
@@ -1193,7 +1204,11 @@ func (s *HTTPHandlers) AgentRegisterService(resp http.ResponseWriter, req *http.
 		return nil, err
 	}
 
+	req.Body = http.MaxBytesReader(resp, req.Body, maxAgentRequestBodyBytes)
 	if err := decodeBody(req.Body, &args); err != nil {
+		if err.Error() == "http: request body too large" {
+			return nil, HTTPError{StatusCode: http.StatusRequestEntityTooLarge, Reason: fmt.Sprintf("Request body too large, max size: %d bytes", maxAgentRequestBodyBytes)}
+		}
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Request decode failed: %v", err)}
 	}
 
@@ -1715,7 +1730,11 @@ func (s *HTTPHandlers) AgentConnectAuthorize(resp http.ResponseWriter, req *http
 		return nil, err
 	}
 
+	req.Body = http.MaxBytesReader(resp, req.Body, maxAgentRequestBodyBytes)
 	if err := decodeBody(req.Body, &authReq); err != nil {
+		if err.Error() == "http: request body too large" {
+			return nil, HTTPError{StatusCode: http.StatusRequestEntityTooLarge, Reason: fmt.Sprintf("Request body too large, max size: %d bytes", maxAgentRequestBodyBytes)}
+		}
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Request decode failed: %v", err)}
 	}
 
