@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"strings"
 )
 
 const (
@@ -25,6 +26,12 @@ const (
 
 	// DNSChain is the chain to redirect outbound DNS traffic to Consul DNS.
 	DNSChain = "CONSUL_DNS_REDIRECT"
+
+	// consulNATOutputChain is the nftables base chain hooked into the output path.
+	consulNATOutputChain = "CONSUL_NAT_OUTPUT"
+
+	// consulNATPreRoutingChain is the nftables base chain hooked into the prerouting path.
+	consulNATPreRoutingChain = "CONSUL_NAT_PREROUTING"
 
 	DefaultTProxyOutboundPort = 15001
 )
@@ -125,36 +132,30 @@ func verifyDualStackConfig(cfg Config, dualStack bool) error {
 	return nil
 }
 
-// Setup will set up iptables interception and redirection rules
+// Setup will set up nftables interception and redirection rules
 // based on the configuration provided in cfg.
+// The inet address family is used so that a single rule set covers both
+// IPv4 and IPv6 traffic — no separate ip6tables pass is required.
 func Setup(cfg Config, dualStack bool) error {
 
 	if err := verifyDualStackConfig(cfg, dualStack); err != nil {
 		return err
 	}
 
-	if err := SetupWithAdditionalRules(cfg, nil, dualStack); err != nil {
-		return err
-	}
-
-	// If dual-stack is enabled, set up ip6tables rules as well.
-	if dualStack {
-		if err := SetupWithAdditionalRulesIPv6(cfg, nil, dualStack); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return SetupWithAdditionalRules(cfg, nil, dualStack)
 }
 
-// SetupWithAdditionalRules will set up iptables interception and redirection rules
+// SetupWithAdditionalRules will set up nftables interception and redirection rules
 // based on the configuration provided in cfg. The additionalRulesFn will be applied
 // after the normal set of rules. This implementation was inspired by
 // https://github.com/openservicemesh/osm/blob/650a1a1dcf081ae90825f3b5dba6f30a0e532725/pkg/injector/iptables.go
+//
+// The nftables inet family is used so a single rule set covers both IPv4 and IPv6;
+// there is no longer a need for a separate ip6tables pass.
 func SetupWithAdditionalRules(cfg Config, additionalRulesFn AdditionalRulesFn, dualStack bool) error {
 
 	if cfg.IptablesProvider == nil {
-		cfg.IptablesProvider = &iptablesExecutor{cfg: cfg}
+		cfg.IptablesProvider = &nftablesExecutor{cfg: cfg}
 	} else {
 		cfg.IptablesProvider.ClearAllRules()
 	}
@@ -169,192 +170,153 @@ func SetupWithAdditionalRules(cfg Config, additionalRulesFn AdditionalRulesFn, d
 		cfg.ProxyOutboundPort = DefaultTProxyOutboundPort
 	}
 
-	// Create chains we will use for redirection.
+	// Create the inet nat table. The inet family processes both IPv4 and IPv6.
+	cfg.IptablesProvider.AddRule("nft", "add", "table", "inet", "nat")
+
+	// Create regular (non-hook) chains used for traffic redirection.
 	chains := []string{ProxyInboundChain, ProxyInboundRedirectChain, ProxyOutputChain, ProxyOutputRedirectChain, DNSChain}
 	for _, chain := range chains {
-		cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-N", chain)
-	}
-	// Configure outbound rules.
-	{
-		// Redirects outbound TCP traffic hitting PROXY_REDIRECT chain to Envoy's outbound listener port.
-		cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", ProxyOutputRedirectChain, "-p", "tcp", "-j", "REDIRECT", "--to-port", strconv.Itoa(cfg.ProxyOutboundPort))
-
-		if !dualStack {
-			// The DNS rules are applied before the rules that directs all TCP traffic, so that the traffic going to port 53 goes through this rule first.
-			if cfg.ConsulDNSIP != "" && cfg.ConsulDNSPort == 0 {
-				// Traffic in the DNSChain is directed to the Consul DNS Service IP.
-				cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", DNSChain, "-p", "udp", "--dport", "53", "-j", "DNAT", "--to-destination", cfg.ConsulDNSIP)
-				cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", DNSChain, "-p", "tcp", "--dport", "53", "-j", "DNAT", "--to-destination", cfg.ConsulDNSIP)
-
-				// For outbound TCP and UDP traffic going to port 53 (DNS), jump to the DNSChain.
-				cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", "OUTPUT", "-p", "udp", "--dport", "53", "-j", DNSChain)
-				cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", "OUTPUT", "-p", "tcp", "--dport", "53", "-j", DNSChain)
-			} else if cfg.ConsulDNSPort != 0 {
-				consulDNSIP := "127.0.0.1"
-				if cfg.ConsulDNSIP != "" {
-					consulDNSIP = cfg.ConsulDNSIP
-				}
-				consulDNSHostPort := net.JoinHostPort(consulDNSIP, strconv.Itoa(cfg.ConsulDNSPort))
-				// Traffic in the DNSChain is directed to the Consul DNS Service IP.
-				cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", DNSChain, "-p", "udp", "-d", consulDNSIP, "--dport", "53", "-j", "DNAT", "--to-destination", consulDNSHostPort)
-				cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", DNSChain, "-p", "tcp", "-d", consulDNSIP, "--dport", "53", "-j", "DNAT", "--to-destination", consulDNSHostPort)
-
-				// For outbound TCP and UDP traffic going to port 53 (DNS), jump to the DNSChain. Only redirect traffic that's going to consul's DNS IP.
-				cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", "OUTPUT", "-p", "udp", "-d", consulDNSIP, "--dport", "53", "-j", DNSChain)
-				cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", "OUTPUT", "-p", "tcp", "-d", consulDNSIP, "--dport", "53", "-j", DNSChain)
-			}
-		}
-
-		// For outbound TCP traffic jump from OUTPUT chain to PROXY_OUTPUT chain.
-		cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", "OUTPUT", "-p", "tcp", "-j", ProxyOutputChain)
-
-		// Don't redirect proxy traffic back to itself, return it to the next chain for processing.
-		cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", ProxyOutputChain, "-m", "owner", "--uid-owner", cfg.ProxyUserID, "-j", "RETURN")
-
-		// Skip localhost traffic, doesn't need to be routed via the proxy.
-		cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", ProxyOutputChain, "-d", "127.0.0.1/32", "-j", "RETURN")
-
-		// Redirect remaining outbound traffic to Envoy.
-		cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", ProxyOutputChain, "-j", ProxyOutputRedirectChain)
-
-		// We are using "insert" (-I) instead of "append" (-A) so the provided rules take precedence over default ones.
-		for _, outboundPort := range cfg.ExcludeOutboundPorts {
-			cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-I", ProxyOutputChain, "-p", "tcp", "--dport", outboundPort, "-j", "RETURN")
-		}
-
-		for _, outboundIP := range cfg.ExcludeOutboundCIDRs {
-			cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-I", ProxyOutputChain, "-d", outboundIP, "-j", "RETURN")
-		}
-
-		for _, uid := range cfg.ExcludeUIDs {
-			cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-I", ProxyOutputChain, "-m", "owner", "--uid-owner", uid, "-j", "RETURN")
-		}
+		cfg.IptablesProvider.AddRule("nft", "add", "chain", "inet", "nat", chain)
 	}
 
-	// Configure inbound rules.
-	{
-		// Redirects inbound TCP traffic hitting the PROXY_IN_REDIRECT chain to Envoy's inbound listener port.
-		cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", ProxyInboundRedirectChain, "-p", "tcp", "-j", "REDIRECT", "--to-port", strconv.Itoa(cfg.ProxyInboundPort))
-
-		// For inbound traffic jump from PREROUTING chain to PROXY_INBOUND chain.
-		cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", "PREROUTING", "-p", "tcp", "-j", ProxyInboundChain)
-
-		// Redirect remaining inbound traffic to Envoy.
-		cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", ProxyInboundChain, "-p", "tcp", "-j", ProxyInboundRedirectChain)
-
-		for _, inboundPort := range cfg.ExcludeInboundPorts {
-			cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-I", ProxyInboundChain, "-p", "tcp", "--dport", inboundPort, "-j", "RETURN")
-		}
-	}
-
-	// Call function to add any additional rules passed on by the caller
-	if additionalRulesFn != nil {
-		additionalRulesFn(cfg.IptablesProvider)
-	}
-	return cfg.IptablesProvider.ApplyRules("iptables")
-}
-
-func SetupWithAdditionalRulesIPv6(cfg Config, additionalRulesFn AdditionalRulesFn, dualStack bool) error {
-
-	if cfg.IptablesProvider == nil {
-		cfg.IptablesProvider = &iptablesExecutor{cfg: cfg}
-	} else {
-		cfg.IptablesProvider.ClearAllRules()
-	}
-
-	err := validateConfig(cfg)
-	if err != nil {
-		return err
-	}
-
-	// Set the default outbound port if it's not already set.
-	if cfg.ProxyOutboundPort == 0 {
-		cfg.ProxyOutboundPort = DefaultTProxyOutboundPort
-	}
-
-	// Create chains we will use for redirection.
-	chains := []string{ProxyInboundChain, ProxyInboundRedirectChain, ProxyOutputChain, ProxyOutputRedirectChain, DNSChain}
-	for _, chain := range chains {
-		cfg.IptablesProvider.AddRule("ip6tables", "-t", "nat", "-N", chain)
-	}
+	// Create base chains that hook into the kernel packet-processing pipeline,
+	// replacing the built-in PREROUTING and OUTPUT chains used by iptables.
+	cfg.IptablesProvider.AddRule("nft", "add", "chain", "inet", "nat", consulNATOutputChain,
+		"{ type nat hook output priority -100 ; }")
+	cfg.IptablesProvider.AddRule("nft", "add", "chain", "inet", "nat", consulNATPreRoutingChain,
+		"{ type nat hook prerouting priority -100 ; }")
 
 	// Configure outbound rules.
 	{
-		// Redirects outbound TCP traffic hitting PROXY_REDIRECT chain to Envoy's outbound listener port.
-		cfg.IptablesProvider.AddRule("ip6tables", "-t", "nat", "-A", ProxyOutputRedirectChain, "-p", "tcp", "-j", "REDIRECT", "--to-port", strconv.Itoa(cfg.ProxyOutboundPort))
+		// Redirect all TCP traffic hitting PROXY_REDIRECT chain to Envoy's outbound listener.
+		cfg.IptablesProvider.AddRule("nft", "add", "rule", "inet", "nat", ProxyOutputRedirectChain,
+			"meta", "l4proto", "tcp", "redirect", "to", ":"+strconv.Itoa(cfg.ProxyOutboundPort))
 
-		// The DNS rules are applied before the rules that directs all TCP traffic, so that the traffic going to port 53 goes through this rule first.
+		// DNS redirection rules. With the inet family these cover both IPv4 and IPv6;
+		// the !dualStack guard that existed for iptables is no longer needed.
 		if cfg.ConsulDNSIP != "" && cfg.ConsulDNSPort == 0 {
-			// Traffic in the DNSChain is directed to the Consul DNS Service IP.
-			cfg.IptablesProvider.AddRule("ip6tables", "-t", "nat", "-A", DNSChain, "-p", "udp", "--dport", "53", "-j", "DNAT", "--to-destination", cfg.ConsulDNSIP)
-			cfg.IptablesProvider.AddRule("ip6tables", "-t", "nat", "-A", DNSChain, "-p", "tcp", "--dport", "53", "-j", "DNAT", "--to-destination", cfg.ConsulDNSIP)
+			// In the inet address family, dnat requires an explicit ip/ip6 keyword
+			// alongside the destination address to identify the protocol family.
+			dnsIPKw := ipFamilyKeyword(cfg.ConsulDNSIP)
+			// Direct all DNS traffic in the DNS chain to the Consul DNS Service IP.
+			cfg.IptablesProvider.AddRule("nft", "add", "rule", "inet", "nat", DNSChain,
+				"udp", "dport", "53", "dnat", dnsIPKw, "to", cfg.ConsulDNSIP)
+			cfg.IptablesProvider.AddRule("nft", "add", "rule", "inet", "nat", DNSChain,
+				"tcp", "dport", "53", "dnat", dnsIPKw, "to", cfg.ConsulDNSIP)
 
-			// For outbound TCP and UDP traffic going to port 53 (DNS), jump to the DNSChain.
-			cfg.IptablesProvider.AddRule("ip6tables", "-t", "nat", "-A", "OUTPUT", "-p", "udp", "--dport", "53", "-j", DNSChain)
-			cfg.IptablesProvider.AddRule("ip6tables", "-t", "nat", "-A", "OUTPUT", "-p", "tcp", "--dport", "53", "-j", DNSChain)
+			// Jump outbound port-53 traffic into the DNS chain.
+			cfg.IptablesProvider.AddRule("nft", "add", "rule", "inet", "nat", consulNATOutputChain,
+				"udp", "dport", "53", "jump", DNSChain)
+			cfg.IptablesProvider.AddRule("nft", "add", "rule", "inet", "nat", consulNATOutputChain,
+				"tcp", "dport", "53", "jump", DNSChain)
 		} else if cfg.ConsulDNSPort != 0 {
-			consulDNSIP := "::1"
+			// Determine the DNS IP and IP-family keyword for address matching.
+			consulDNSIP := "127.0.0.1"
+			if dualStack {
+				consulDNSIP = "::1"
+			}
 			if cfg.ConsulDNSIP != "" {
 				consulDNSIP = cfg.ConsulDNSIP
 			}
-
+			dnsIPKw := ipFamilyKeyword(consulDNSIP)
 			consulDNSHostPort := net.JoinHostPort(consulDNSIP, strconv.Itoa(cfg.ConsulDNSPort))
-			// Traffic in the DNSChain is directed to the Consul DNS Service IP.
-			cfg.IptablesProvider.AddRule("ip6tables", "-t", "nat", "-A", DNSChain, "-p", "udp", "-d", consulDNSIP, "--dport", "53", "-j", "DNAT", "--to-destination", consulDNSHostPort)
-			cfg.IptablesProvider.AddRule("ip6tables", "-t", "nat", "-A", DNSChain, "-p", "tcp", "-d", consulDNSIP, "--dport", "53", "-j", "DNAT", "--to-destination", consulDNSHostPort)
 
-			// For outbound TCP and UDP traffic going to port 53 (DNS), jump to the DNSChain. Only redirect traffic that's going to consul's DNS IP.
-			cfg.IptablesProvider.AddRule("ip6tables", "-t", "nat", "-A", "OUTPUT", "-p", "udp", "-d", consulDNSIP, "--dport", "53", "-j", DNSChain)
-			cfg.IptablesProvider.AddRule("ip6tables", "-t", "nat", "-A", "OUTPUT", "-p", "tcp", "-d", consulDNSIP, "--dport", "53", "-j", DNSChain)
+			// Direct DNS traffic destined for the Consul DNS IP to the right port.
+			cfg.IptablesProvider.AddRule("nft", "add", "rule", "inet", "nat", DNSChain,
+				dnsIPKw, "daddr", consulDNSIP, "udp", "dport", "53", "dnat", "to", consulDNSHostPort)
+			cfg.IptablesProvider.AddRule("nft", "add", "rule", "inet", "nat", DNSChain,
+				dnsIPKw, "daddr", consulDNSIP, "tcp", "dport", "53", "dnat", "to", consulDNSHostPort)
+
+			// Jump outbound port-53 traffic destined for the Consul DNS IP into the DNS chain.
+			cfg.IptablesProvider.AddRule("nft", "add", "rule", "inet", "nat", consulNATOutputChain,
+				dnsIPKw, "daddr", consulDNSIP, "udp", "dport", "53", "jump", DNSChain)
+			cfg.IptablesProvider.AddRule("nft", "add", "rule", "inet", "nat", consulNATOutputChain,
+				dnsIPKw, "daddr", consulDNSIP, "tcp", "dport", "53", "jump", DNSChain)
 		}
 
-		// For outbound TCP traffic jump from OUTPUT chain to PROXY_OUTPUT chain.
-		cfg.IptablesProvider.AddRule("ip6tables", "-t", "nat", "-A", "OUTPUT", "-p", "tcp", "-j", ProxyOutputChain)
+		// Jump all outbound TCP traffic from the output hook into PROXY_OUTPUT.
+		cfg.IptablesProvider.AddRule("nft", "add", "rule", "inet", "nat", consulNATOutputChain,
+			"meta", "l4proto", "tcp", "jump", ProxyOutputChain)
 
-		// Don't redirect proxy traffic back to itself, return it to the next chain for processing.
-		cfg.IptablesProvider.AddRule("ip6tables", "-t", "nat", "-A", ProxyOutputChain, "-m", "owner", "--uid-owner", cfg.ProxyUserID, "-j", "RETURN")
+		// Don't redirect the proxy's own traffic back to itself.
+		cfg.IptablesProvider.AddRule("nft", "add", "rule", "inet", "nat", ProxyOutputChain,
+			"skuid", cfg.ProxyUserID, "return")
 
-		// Skip localhost traffic, doesn't need to be routed via the proxy.
-		cfg.IptablesProvider.AddRule("ip6tables", "-t", "nat", "-A", ProxyOutputChain, "-d", "::1/128", "-j", "RETURN")
+		// Skip localhost traffic (IPv4 and IPv6) — it doesn't need proxy routing.
+		cfg.IptablesProvider.AddRule("nft", "add", "rule", "inet", "nat", ProxyOutputChain,
+			"ip", "daddr", "127.0.0.1/32", "return")
+		cfg.IptablesProvider.AddRule("nft", "add", "rule", "inet", "nat", ProxyOutputChain,
+			"ip6", "daddr", "::1/128", "return")
 
-		// Redirect remaining outbound traffic to Envoy.
-		cfg.IptablesProvider.AddRule("ip6tables", "-t", "nat", "-A", ProxyOutputChain, "-j", ProxyOutputRedirectChain)
+		// Redirect all remaining outbound traffic to Envoy.
+		cfg.IptablesProvider.AddRule("nft", "add", "rule", "inet", "nat", ProxyOutputChain,
+			"jump", ProxyOutputRedirectChain)
 
-		// We are using "insert" (-I) instead of "append" (-A) so the provided rules take precedence over default ones.
+		// insert (prepend) rules so they take precedence over the defaults above.
 		for _, outboundPort := range cfg.ExcludeOutboundPorts {
-			cfg.IptablesProvider.AddRule("ip6tables", "-t", "nat", "-I", ProxyOutputChain, "-p", "tcp", "--dport", outboundPort, "-j", "RETURN")
+			cfg.IptablesProvider.AddRule("nft", "insert", "rule", "inet", "nat", ProxyOutputChain,
+				"tcp", "dport", outboundPort, "return")
 		}
 
-		for _, outboundIP := range cfg.ExcludeOutboundCIDRs {
-			cfg.IptablesProvider.AddRule("ip6tables", "-t", "nat", "-I", ProxyOutputChain, "-d", outboundIP, "-j", "RETURN")
+		for _, outboundCIDR := range cfg.ExcludeOutboundCIDRs {
+			cfg.IptablesProvider.AddRule("nft", "insert", "rule", "inet", "nat", ProxyOutputChain,
+				ipFamilyKeyword(outboundCIDR), "daddr", outboundCIDR, "return")
 		}
 
 		for _, uid := range cfg.ExcludeUIDs {
-			cfg.IptablesProvider.AddRule("ip6tables", "-t", "nat", "-I", ProxyOutputChain, "-m", "owner", "--uid-owner", uid, "-j", "RETURN")
+			cfg.IptablesProvider.AddRule("nft", "insert", "rule", "inet", "nat", ProxyOutputChain,
+				"skuid", uid, "return")
 		}
 	}
 
 	// Configure inbound rules.
 	{
-		// Redirects inbound TCP traffic hitting the PROXY_IN_REDIRECT chain to Envoy's inbound listener port.
-		cfg.IptablesProvider.AddRule("ip6tables", "-t", "nat", "-A", ProxyInboundRedirectChain, "-p", "tcp", "-j", "REDIRECT", "--to-port", strconv.Itoa(cfg.ProxyInboundPort))
+		// Redirect all TCP traffic in PROXY_IN_REDIRECT to Envoy's inbound listener.
+		cfg.IptablesProvider.AddRule("nft", "add", "rule", "inet", "nat", ProxyInboundRedirectChain,
+			"meta", "l4proto", "tcp", "redirect", "to", ":"+strconv.Itoa(cfg.ProxyInboundPort))
 
-		// For inbound traffic jump from PREROUTING chain to PROXY_INBOUND chain.
-		cfg.IptablesProvider.AddRule("ip6tables", "-t", "nat", "-A", "PREROUTING", "-p", "tcp", "-j", ProxyInboundChain)
+		// Jump inbound TCP traffic from the prerouting hook into PROXY_INBOUND.
+		cfg.IptablesProvider.AddRule("nft", "add", "rule", "inet", "nat", consulNATPreRoutingChain,
+			"meta", "l4proto", "tcp", "jump", ProxyInboundChain)
 
 		// Redirect remaining inbound traffic to Envoy.
-		cfg.IptablesProvider.AddRule("ip6tables", "-t", "nat", "-A", ProxyInboundChain, "-p", "tcp", "-j", ProxyInboundRedirectChain)
+		cfg.IptablesProvider.AddRule("nft", "add", "rule", "inet", "nat", ProxyInboundChain,
+			"meta", "l4proto", "tcp", "jump", ProxyInboundRedirectChain)
 
 		for _, inboundPort := range cfg.ExcludeInboundPorts {
-			cfg.IptablesProvider.AddRule("ip6tables", "-t", "nat", "-I", ProxyInboundChain, "-p", "tcp", "--dport", inboundPort, "-j", "RETURN")
+			cfg.IptablesProvider.AddRule("nft", "insert", "rule", "inet", "nat", ProxyInboundChain,
+				"tcp", "dport", inboundPort, "return")
 		}
 	}
 
-	// Call function to add any additional rules passed on by the caller
+	// Call function to add any additional rules passed on by the caller.
 	if additionalRulesFn != nil {
 		additionalRulesFn(cfg.IptablesProvider)
 	}
-	return cfg.IptablesProvider.ApplyRules("ip6tables")
+	return cfg.IptablesProvider.ApplyRules("nft")
+}
+
+// SetupWithAdditionalRulesIPv6 is a no-op. With nftables the inet address
+// family handles both IPv4 and IPv6 in a single SetupWithAdditionalRules call,
+// so a separate IPv6 pass is no longer required.
+//
+// Deprecated: callers that previously invoked this for dual-stack support will
+// receive full dual-stack coverage automatically from SetupWithAdditionalRules.
+func SetupWithAdditionalRulesIPv6(_ Config, _ AdditionalRulesFn, _ bool) error {
+	return nil
+}
+
+// ipFamilyKeyword returns "ip" for IPv4 addresses/CIDRs and "ip6" for IPv6.
+// It accepts plain IP addresses ("1.2.3.4") and CIDR notation ("1.2.3.4/24").
+func ipFamilyKeyword(cidrOrIP string) string {
+	ipStr := cidrOrIP
+	if i := strings.IndexByte(cidrOrIP, '/'); i >= 0 {
+		ipStr = cidrOrIP[:i]
+	}
+	if ip := net.ParseIP(ipStr); ip != nil && ip.To4() != nil {
+		return "ip"
+	}
+	return "ip6"
 }
 
 func validateConfig(cfg Config) error {
