@@ -474,12 +474,31 @@ func (c *CAManager) newProvider(conf *structs.CAConfiguration) (ca.Provider, err
 
 // primaryInitialize runs the initialization logic for a root CA. It should only
 // be called while the state lock is held by setting the state to non-ready.
+// injectTokenDirs stamps the immutable startup TokenDirs value from serverConf
+// into a copy of rawConfig, overwriting any value an API caller may have placed
+// there. The original map is never mutated; a shallow copy is returned.
+//
+// This must be called for every ProviderConfig.RawConfig that will be passed to
+// provider.Configure so that an operator:write caller cannot use the
+// ConnectCA.ConfigurationSet API to widen the Vault credential-file allowlist
+// after the agent has started (SECVULN-44970).
+func (c *CAManager) injectTokenDirs(rawConfig map[string]interface{}) map[string]interface{} {
+	out := make(map[string]interface{}, len(rawConfig)+1)
+	for k, v := range rawConfig {
+		if k != "TokenDirs" {
+			out[k] = v
+		}
+	}
+	out["TokenDirs"] = c.serverConf.TokenDirs
+	return out
+}
+
 func (c *CAManager) primaryInitialize(provider ca.Provider, conf *structs.CAConfiguration) error {
 	pCfg := ca.ProviderConfig{
 		ClusterID:  conf.ClusterID,
 		Datacenter: c.serverConf.Datacenter,
 		IsPrimary:  true,
-		RawConfig:  conf.Config,
+		RawConfig:  c.injectTokenDirs(conf.Config),
 		State:      conf.State,
 	}
 	if err := provider.Configure(pCfg); err != nil {
@@ -817,13 +836,22 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 		Datacenter: c.serverConf.Datacenter,
 		// This endpoint can be called in a secondary DC too so set this correctly.
 		IsPrimary: c.serverConf.Datacenter == c.serverConf.PrimaryDatacenter,
-		RawConfig: args.Config.Config,
+		// injectTokenDirs overwrites any TokenDirs value the API caller may have
+		// supplied in args.Config.Config with the immutable startup value from
+		// serverConf, preventing privilege escalation via operator:write.
+		RawConfig: c.injectTokenDirs(args.Config.Config),
 		State:     args.Config.State,
 	}
 
 	if args.Config.Provider == config.Provider {
 		if validator, ok := newProvider.(ValidateConfigUpdater); ok {
-			if err := validator.ValidateConfigUpdate(prevConfig.Config, args.Config.Config); err != nil {
+			// Inject the immutable TokenDirs into both raw configs before
+			// validation so an operator:write caller cannot widen the allowlist
+			// by supplying a crafted TokenDirs in args.Config.Config.
+			if err := validator.ValidateConfigUpdate(
+				c.injectTokenDirs(prevConfig.Config),
+				c.injectTokenDirs(args.Config.Config),
+			); err != nil {
 				return fmt.Errorf("new configuration is incompatible with previous configuration: %w", err)
 			}
 		}
@@ -834,7 +862,9 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 	}
 
 	cleanupNewProvider := func() {
-		if err := newProvider.Cleanup(args.Config.Provider != config.Provider, args.Config.Config); err != nil {
+		// Inject immutable TokenDirs so Cleanup → ParseVaultCAConfig cannot
+		// read an attacker-controlled allowlist from the API-supplied config.
+		if err := newProvider.Cleanup(args.Config.Provider != config.Provider, c.injectTokenDirs(args.Config.Config)); err != nil {
 			c.logger.Warn("failed to clean up CA provider while handling startup failure", "provider", newProvider, "error", err)
 		}
 	}
@@ -1029,7 +1059,9 @@ func (c *CAManager) primaryUpdateRootCA(newProvider ca.Provider, args *structs.C
 	// and call teardown on the old provider
 	c.setCAProvider(newProvider, newActiveRoot)
 
-	if err := oldProvider.Cleanup(args.Config.Provider != config.Provider, args.Config.Config); err != nil {
+	// Inject immutable TokenDirs so Cleanup → ParseVaultCAConfig cannot
+	// read an attacker-controlled allowlist from the API-supplied config.
+	if err := oldProvider.Cleanup(args.Config.Provider != config.Provider, c.injectTokenDirs(args.Config.Config)); err != nil {
 		c.logger.Warn("failed to clean up old provider", "provider", config.Provider, "error", err)
 	}
 
@@ -1348,7 +1380,7 @@ func (c *CAManager) secondaryInitializeProvider(provider ca.Provider, roots stru
 		ClusterID:  clusterID,
 		Datacenter: c.serverConf.Datacenter,
 		IsPrimary:  false,
-		RawConfig:  conf.Config,
+		RawConfig:  c.injectTokenDirs(conf.Config),
 		State:      conf.State,
 	}
 	if err := provider.Configure(pCfg); err != nil {
