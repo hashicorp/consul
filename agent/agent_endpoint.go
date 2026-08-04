@@ -5,6 +5,7 @@ package agent
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -819,7 +820,8 @@ func (s *HTTPHandlers) AgentRegisterCheck(resp http.ResponseWriter, req *http.Re
 
 	req.Body = http.MaxBytesReader(resp, req.Body, maxAgentRequestBodyBytes)
 	if err := decodeBody(req.Body, &args); err != nil {
-		if err.Error() == "http: request body too large" {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) || strings.Contains(err.Error(), "request body too large") {
 			return nil, HTTPError{StatusCode: http.StatusRequestEntityTooLarge, Reason: fmt.Sprintf("Request body too large, max size: %d bytes", maxAgentRequestBodyBytes)}
 		}
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Request decode failed: %v", err)}
@@ -974,7 +976,8 @@ func (s *HTTPHandlers) AgentCheckUpdate(resp http.ResponseWriter, req *http.Requ
 
 	var update checkUpdate
 	if err := decodeBody(req.Body, &update); err != nil {
-		if err.Error() == "http: request body too large" {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) || strings.Contains(err.Error(), "request body too large") {
 			return nil, HTTPError{StatusCode: http.StatusRequestEntityTooLarge, Reason: fmt.Sprintf("Request body too large, max size: %d bytes", maxAgentRequestBodyBytes)}
 		}
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Request decode failed: %v", err)}
@@ -1206,7 +1209,8 @@ func (s *HTTPHandlers) AgentRegisterService(resp http.ResponseWriter, req *http.
 
 	req.Body = http.MaxBytesReader(resp, req.Body, maxAgentRequestBodyBytes)
 	if err := decodeBody(req.Body, &args); err != nil {
-		if err.Error() == "http: request body too large" {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) || strings.Contains(err.Error(), "request body too large") {
 			return nil, HTTPError{StatusCode: http.StatusRequestEntityTooLarge, Reason: fmt.Sprintf("Request body too large, max size: %d bytes", maxAgentRequestBodyBytes)}
 		}
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Request decode failed: %v", err)}
@@ -1732,7 +1736,8 @@ func (s *HTTPHandlers) AgentConnectAuthorize(resp http.ResponseWriter, req *http
 
 	req.Body = http.MaxBytesReader(resp, req.Body, maxAgentRequestBodyBytes)
 	if err := decodeBody(req.Body, &authReq); err != nil {
-		if err.Error() == "http: request body too large" {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) || strings.Contains(err.Error(), "request body too large") {
 			return nil, HTTPError{StatusCode: http.StatusRequestEntityTooLarge, Reason: fmt.Sprintf("Request body too large, max size: %d bytes", maxAgentRequestBodyBytes)}
 		}
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Request decode failed: %v", err)}
