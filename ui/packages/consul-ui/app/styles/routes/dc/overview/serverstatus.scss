@@ -6,7 +6,8 @@
 section[data-route='dc.show.serverstatus'] {
   @extend %serverstatus-route;
 }
-%serverstatus-route .server-failure-tolerance {
+%serverstatus-route .server-failure-tolerance,
+.server-failure-tolerance {
   @extend %server-failure-tolerance;
 }
 %serverstatus-route .redundancy-zones {
@@ -19,7 +20,8 @@ section[data-route='dc.show.serverstatus'] {
 /**/
 
 %serverstatus-route h2,
-%serverstatus-route h3 {
+%serverstatus-route h3,
+.server-failure-tolerance > header > h2 {
   @extend %display-300-semibold;
 }
 
@@ -58,11 +60,13 @@ section[data-route='dc.show.serverstatus'] {
   content: '';
 }
 
-%serverstatus-route section h2 {
+%serverstatus-route section h2,
+.server-failure-tolerance ~ section h2 {
   margin-top: 1.5rem; /* 24px */
   margin-bottom: 1.5rem; /* 24px */
 }
-%serverstatus-route section header {
+%serverstatus-route section header,
+.server-failure-tolerance ~ section header {
   margin-top: 18px;
   margin-bottom: 18px;
 }
