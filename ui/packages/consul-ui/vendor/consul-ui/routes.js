@@ -622,7 +622,7 @@
         },
       },
       'routing-config': {
-        _options: { path: '/routing-config/:name', breadcrumb: { label: 'Routing Config', parent: 'dc.services.show' } },
+        _options: { path: '/routing-config/:name', breadcrumb: { label: 'Routing Config', parent: 'dc.services' } },
       },
     },
     index: {

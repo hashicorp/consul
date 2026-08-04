@@ -284,7 +284,7 @@ const ROUTES = {
     'routing-config': {
       _options: {
         path: '/routing-config/:name',
-        breadcrumb: { label: 'name', parent: 'dc.services' },
+        breadcrumb: { label: 'Routing Config', parent: 'dc.services' },
       },
     },
     peers: {
