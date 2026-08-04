@@ -25,21 +25,21 @@
           _options: {
             path: '/server-status',
             abilities: ['read servers'],
-            breadcrumb: { label: 'Server Status', parent: 'dc.show' },
+            breadcrumb: { label: 'Overview' },
           },
         },
         cataloghealth: {
           _options: {
             path: '/catalog-health',
             abilities: ['access overview'],
-            breadcrumb: { label: 'Catalog Health', parent: 'dc.show' },
+            breadcrumb: { label: 'Overview' },
           },
         },
         license: {
           _options: {
             path: '/license',
             abilities: ['read license'],
-            breadcrumb: { label: 'License', parent: 'dc.show' },
+            breadcrumb: { label: 'Overview' },
           },
         },
       },
@@ -108,6 +108,7 @@
                     replace: true,
                   },
                 },
+                breadcrumb: { label: 'Intentions', parent: 'dc.services.show' },
               },
             },
             edit: {
@@ -453,13 +454,19 @@
         _options: {
           path: '/acls',
           abilities: ['access acls'],
-          breadcrumb: { label: 'ACLs' },
+          breadcrumb: { show: false },
         },
         policies: {
           _options: {
             path: '/policies',
             abilities: ['read policies'],
-            breadcrumb: { label: 'Policies', parent: 'dc.acls' },
+            breadcrumb: { label: 'Policies' },
+          },
+          index: {
+            _options: {
+              path: '/',
+              breadcrumb: { label: 'Policies' },
+            },
           },
           edit: {
             _options: { path: '/:id', breadcrumb: { label: 'id', parent: 'dc.acls.policies' } },
@@ -476,7 +483,13 @@
           _options: {
             path: '/roles',
             abilities: ['read roles'],
-            breadcrumb: { label: 'Roles', parent: 'dc.acls' },
+            breadcrumb: { label: 'Roles' },
+          },
+          index: {
+            _options: {
+              path: '/',
+              breadcrumb: { label: 'Roles' },
+            },
           },
           edit: {
             _options: { path: '/:id', breadcrumb: { label: 'id', parent: 'dc.acls.roles' } },
@@ -493,7 +506,13 @@
           _options: {
             path: '/tokens',
             abilities: ['access acls', 'read tokens'],
-            breadcrumb: { label: 'Tokens', parent: 'dc.acls' },
+            breadcrumb: { label: 'Tokens' },
+          },
+          index: {
+            _options: {
+              path: '/',
+              breadcrumb: { label: 'Tokens' },
+            },
           },
           edit: {
             _options: { path: '/:id', breadcrumb: { label: 'id', parent: 'dc.acls.tokens' } },
@@ -510,7 +529,13 @@
           _options: {
             path: '/auth-methods',
             abilities: ['read auth-methods'],
-            breadcrumb: { label: 'Auth Methods', parent: 'dc.acls' },
+            breadcrumb: { label: 'Auth Methods' },
+          },
+          index: {
+            _options: {
+              path: '/',
+              breadcrumb: { label: 'Auth Methods' },
+            },
           },
           show: {
             _options: { path: '/:id', breadcrumb: { label: 'id', parent: 'dc.acls.auth-methods' } },
@@ -597,7 +622,7 @@
         },
       },
       'routing-config': {
-        _options: { path: '/routing-config/:name', breadcrumb: { label: 'name', parent: 'dc.services' } },
+        _options: { path: '/routing-config/:name', breadcrumb: { label: 'Routing Config', parent: 'dc.services.show' } },
       },
     },
     index: {

@@ -29,11 +29,6 @@ as |route|>
   (not (can "write intention" item=loader.data))
 as |item readOnly|}}
   <AppView>
-      <:breadcrumbs>
-        <Hds::Breadcrumb>
-          <Hds::Breadcrumb::Item @text="All Intentions" @route="dc.intentions" @model={{route.params.dc}} data-test-back />
-        </Hds::Breadcrumb>
-      </:breadcrumbs>
       <:header>
           <h1>
   {{#if (not readOnly)}}

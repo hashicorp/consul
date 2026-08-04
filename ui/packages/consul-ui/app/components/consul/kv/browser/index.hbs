@@ -3,28 +3,7 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-{{! Folders expand inline, so `dc.kv.folder` is only entered by deep-linking }}
-{{! into one -- the crumb below leads back out to the root listing. }}
-
-{{! `parent` arrives from its own DataSource, so it is briefly undefined while }}
-{{! the listing renders -- guard on it, or `not-eq undefined '/'` is true and }}
-{{! the crumb flashes in before the real key lands. }}
-<AppView @showBreadcrumb={{if @parent.Key (not-eq @parent.Key '/') false}}>
-  <:breadcrumbs>
-    <Hds::Breadcrumb>
-  {{! the last two segments are this folder -- the heading below -- and the '' }}
-  {{! after its trailing slash }}
-  {{#let (slice 0 -2 (split @parent.Key '/')) as |ancestors|}}
-      <Hds::Breadcrumb::Item
-        @text={{if ancestors.length
-          (concat 'Key/Values / ' (join ' / ' ancestors))
-          'Key/Values'
-        }}
-        @route="dc.kv"
-      />
-  {{/let}}
-    </Hds::Breadcrumb>
-  </:breadcrumbs>
+<AppView>
   <:header>
       <h1>{{or (key-name @parent.Key) 'Key / Value'}}</h1>
       <label for="toolbar-toggle"></label>
