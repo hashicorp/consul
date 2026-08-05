@@ -103,36 +103,36 @@ const ROUTES = {
       instance: {
         _options: {
           path: '/:name/instances/:node/:id',
-          breadcrumb: { label: 'Instance', parent: 'dc.services.show' },
+          breadcrumb: { show: false },
         },
         healthchecks: {
           _options: {
             path: '/health-checks',
-            breadcrumb: { label: 'Health Checks', parent: 'dc.services.instance' },
+            breadcrumb: { label: 'Health Checks', parent: 'dc.services.show.instances' },
           },
         },
         upstreams: {
           _options: {
             path: '/upstreams',
-            breadcrumb: { label: 'Upstreams', parent: 'dc.services.instance' },
+            breadcrumb: { label: 'Upstreams', parent: 'dc.services.show.instances' },
           },
         },
         exposedpaths: {
           _options: {
             path: '/exposed-paths',
-            breadcrumb: { label: 'Exposed Paths', parent: 'dc.services.instance' },
+            breadcrumb: { label: 'Exposed Paths', parent: 'dc.services.show.instances' },
           },
         },
         addresses: {
           _options: {
             path: '/addresses',
-            breadcrumb: { label: 'Addresses', parent: 'dc.services.instance' },
+            breadcrumb: { label: 'Addresses', parent: 'dc.services.show.instances' },
           },
         },
         metadata: {
           _options: {
             path: '/metadata',
-            breadcrumb: { label: 'Metadata', parent: 'dc.services.instance' },
+            breadcrumb: { label: 'Metadata', parent: 'dc.services.show.instances' },
           },
         },
       },
@@ -585,6 +585,8 @@ module('Unit | Service | breadcrumbs', function (hooks) {
       { route: 'dc.services', params: { dc: 'dc-1' } },
       { route: 'dc.services.show', params: { dc: 'dc-1', name: 'web' } },
       { route: 'dc.services.show.instances', params: { dc: 'dc-1', name: 'web' } },
+      // dc.services.instance has show:false — computeBreadcrumbs returns [] so nothing to check
+      { route: 'dc.services.instance.healthchecks', params: { dc: 'dc-1', name: 'web', node: 'node-1', id: 'svc-1' } },
       { route: 'dc.nodes', params: { dc: 'dc-1' } },
       { route: 'dc.nodes.show', params: { dc: 'dc-1', name: 'node-01' } },
       { route: 'dc.acls', params: { dc: 'dc-1' } },
@@ -632,6 +634,46 @@ module('Unit | Service | breadcrumbs', function (hooks) {
     const items = svc.computeBreadcrumbs('dc.nspaces.edit', { dc: 'dc-1', name: 'ns-prod' });
     const labels = items.map((i) => i.label);
     assert.deepEqual(labels, ['Namespaces', 'ns-prod']);
+  });
+
+  // ─── Instance sub-tab chains ──────────────────────────────────────────────
+
+  test('dc.services.instance has show:false — shouldShowBreadcrumbs returns false', function (assert) {
+    const svc = this.owner.lookup('service:breadcrumbs');
+    assert.false(svc.shouldShowBreadcrumbs('dc.services.instance'), 'breadcrumbs hidden for redirect route');
+  });
+
+  test('dc.services.instance.healthchecks → [Services, web, Instances, Health Checks]', function (assert) {
+    const svc = this.owner.lookup('service:breadcrumbs');
+    const params = { dc: 'dc-1', name: 'web', node: 'node-1', id: 'svc-1' };
+    const items = svc.computeBreadcrumbs('dc.services.instance.healthchecks', params);
+    assert.strictEqual(items.length, 4, 'four crumbs — Services / service-name / Instances / tab');
+    assert.deepEqual(items.map((i) => i.label), ['Services', 'web', 'Instances', 'Health Checks']);
+    assert.strictEqual(items[2].route, 'dc.services.show.instances', '"Instances" crumb links to list tab');
+    assert.true(items[2].isClickable, '"Instances" crumb is clickable');
+    assert.true(items[3].isCurrent, 'tab crumb is current');
+  });
+
+  test('all instance sub-tabs produce [Services, name, Instances, <Tab>] with list tab as parent', function (assert) {
+    const svc = this.owner.lookup('service:breadcrumbs');
+    const params = { dc: 'dc-1', name: 'web', node: 'node-1', id: 'svc-1' };
+    const subTabs = [
+      { route: 'dc.services.instance.healthchecks', label: 'Health Checks' },
+      { route: 'dc.services.instance.upstreams',    label: 'Upstreams' },
+      { route: 'dc.services.instance.exposedpaths', label: 'Exposed Paths' },
+      { route: 'dc.services.instance.addresses',    label: 'Addresses' },
+      { route: 'dc.services.instance.metadata',     label: 'Metadata' },
+    ];
+    for (const { route, label } of subTabs) {
+      const items = svc.computeBreadcrumbs(route, params);
+      assert.strictEqual(items.length, 4, `${route} → 4 crumbs`);
+      assert.strictEqual(items[0].label, 'Services',  `${route} → root`);
+      assert.strictEqual(items[1].label, 'web',       `${route} → service name`);
+      assert.strictEqual(items[2].label, 'Instances', `${route} → list crumb`);
+      assert.strictEqual(items[2].route, 'dc.services.show.instances', `${route} → list tab route`);
+      assert.strictEqual(items[3].label, label,       `${route} → current tab`);
+      assert.true(items[3].isCurrent,                 `${route} → last item is current`);
+    }
   });
 
   // ─── TASK-2: all parent references resolve to existing routes ─────────────
