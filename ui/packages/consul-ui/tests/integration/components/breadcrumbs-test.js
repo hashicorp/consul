@@ -12,15 +12,25 @@ import hbs from 'htmlbars-inline-precompile';
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Build a minimal BreadcrumbItem array for testing. */
+/** Build a minimal BreadcrumbItem array for testing.
+ *
+ * Ancestor items use `href` (not `route`) so HdsInteractive renders a plain
+ * <a href="..."> rather than a <LinkTo>.  In an integration test there is no
+ * live router, so <LinkTo> produces an empty href and crashes when clicked.
+ */
 function makeItems(labels) {
-  return labels.map((label, i) => ({
-    label,
-    route: `dc.${label.toLowerCase()}`,
-    params: { dc: 'dc-1' },
-    isCurrent: i === labels.length - 1,
-    isClickable: i !== labels.length - 1,
-  }));
+  return labels.map((label, i) => {
+    const isCurrent = i === labels.length - 1;
+    return {
+      label,
+      // Use a plain href for clickable ancestors so tests don't need a live router.
+      href: isCurrent ? undefined : `/dc-1/${label.toLowerCase()}`,
+      route: undefined,
+      params: { dc: 'dc-1' },
+      isCurrent,
+      isClickable: !isCurrent,
+    };
+  });
 }
 
 module('Integration | Component | breadcrumbs', function (hooks) {
