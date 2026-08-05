@@ -69,10 +69,10 @@ manually in the running UI if needed.
 
 | Metric | Count |
 | --- | --- |
-| Feature files remaining (yadda) | 113 |
-| Scenarios remaining (yadda) | 265 |
-| Feature files migrated | 16 |
-| Scenarios migrated | 28 |
+| Feature files remaining (yadda) | 104 |
+| Scenarios remaining (yadda) | 256 |
+| Feature files migrated | 25 |
+| Scenarios migrated | 37 |
 
 ## Completed
 
@@ -94,6 +94,15 @@ manually in the running UI if needed.
 | `dc/acls/policies/index.feature` | Policies list renders and is searchable. | 2 | [tests/acceptance/dc/acls/policies/index-test.js](tests/acceptance/dc/acls/policies/index-test.js) |
 | `dc/acls/roles/index.feature` | Roles list renders and is searchable (description, policy name, service identity). | 2 | [tests/acceptance/dc/acls/roles/index-test.js](tests/acceptance/dc/acls/roles/index-test.js) |
 | `dc/acls/tokens/index.feature` | Token list: view, no-write access, search (description/policy/role/SI), legacy notice. | 5 | [tests/acceptance/dc/acls/tokens/index-test.js](tests/acceptance/dc/acls/tokens/index-test.js) |
+| `dc/acls/auth-methods/navigation.feature` | Navigate into an auth-method from the list and back via breadcrumb. `@notNamespaceable`. | 1 | [tests/acceptance/dc/acls/auth-methods/navigation-test.js](tests/acceptance/dc/acls/auth-methods/navigation-test.js) |
+| `dc/acls/policies/navigation.feature` | Navigate into a policy from the list and back via breadcrumb. `@notNamespaceable`. | 1 | [tests/acceptance/dc/acls/policies/navigation-test.js](tests/acceptance/dc/acls/policies/navigation-test.js) |
+| `dc/acls/roles/navigation.feature` | Navigate into a role from the list and back via breadcrumb. `@notNamespaceable`. | 1 | [tests/acceptance/dc/acls/roles/navigation-test.js](tests/acceptance/dc/acls/roles/navigation-test.js) |
+| `dc/acls/tokens/navigation.feature` | Navigate into a token from the list and back via breadcrumb. `@notNamespaceable`. | 1 | [tests/acceptance/dc/acls/tokens/navigation-test.js](tests/acceptance/dc/acls/tokens/navigation-test.js) |
+| `dc/intentions/navigation.feature` | Navigate into an intention and to the create form and back via breadcrumb. `@notNamespaceable`. | 2 | [tests/acceptance/dc/intentions/navigation-test.js](tests/acceptance/dc/intentions/navigation-test.js) |
+| `dc/nodes/navigation.feature` | Navigate into a node from the list and back via breadcrumb. `@notNamespaceable`. | 1 | [tests/acceptance/dc/nodes/navigation-test.js](tests/acceptance/dc/nodes/navigation-test.js) |
+| `dc/services/navigation.feature` | Navigate into a (peered) service from the list and back via breadcrumb. `@notNamespaceable`. | 2 | [tests/acceptance/dc/services/navigation-test.js](tests/acceptance/dc/services/navigation-test.js) |
+| `dc/services/instances/navigation.feature` | Navigate into a service instance from the instances tab and back via breadcrumb. `@notNamespaceable`. | 1 | [tests/acceptance/dc/services/instances/navigation-test.js](tests/acceptance/dc/services/instances/navigation-test.js) |
+| `page-navigation.feature` *(partial)* | Cancel/create flows for intentions, tokens, and policies; create scenarios migrated. Remaining page-load routing scenarios left in the original feature with `@ignore` stubs. | 3 (create/cancel) | [tests/acceptance/page-navigation-create-test.js](tests/acceptance/page-navigation-create-test.js) |
 
 ## Remaining features
 
@@ -101,7 +110,7 @@ manually in the running UI if needed.
 | --- | --- | --- | --- | --- |
 | [api-prefix.feature](tests/acceptance/api-prefix.feature) | UI honours a configured API path prefix when making requests. | 1 | ☐ Not migrated |  |
 | [dc/acls/access.feature](tests/acceptance/dc/acls/access.feature) | ACLs access page behaviour when ACLs are disabled. | 1 | ☐ Not migrated |  |
-| [dc/acls/auth-methods/navigation.feature](tests/acceptance/dc/acls/auth-methods/navigation.feature) | Navigate into an auth-method from the list and back. | 1 | ☐ Not migrated |  |
+| ~~`dc/acls/auth-methods/navigation.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [navigation-test.js](tests/acceptance/dc/acls/auth-methods/navigation-test.js) |
 | [dc/acls/auth-methods/sorting.feature](tests/acceptance/dc/acls/auth-methods/sorting.feature) | Sorting the auth-methods list. | 1 | ☐ Not migrated |  |
 | [dc/acls/index.feature](tests/acceptance/dc/acls/index.feature) | ACL index page forwards/redirects to the correct sub-page. | 1 | ☐ Not migrated |  |
 | [dc/acls/policies/as-many/add-existing.feature](tests/acceptance/dc/acls/policies/as-many/add-existing.feature) | Attach an existing policy as a child of a token/role. | 1 | ☐ Not migrated |  |
@@ -112,7 +121,7 @@ manually in the running UI if needed.
 | [dc/acls/policies/as-many/reset.feature](tests/acceptance/dc/acls/policies/as-many/reset.feature) | The attached-policy sub-form resets correctly. | 1 | ☐ Not migrated |  |
 | [dc/acls/policies/create.feature](tests/acceptance/dc/acls/policies/create.feature) | Create an ACL policy; no Namespace sent when namespaces are disabled. | 3 | ☐ Not migrated |  |
 | [dc/acls/policies/delete.feature](tests/acceptance/dc/acls/policies/delete.feature) | Delete a policy from the list and detail pages, incl. error handling. | 3 | ☐ Not migrated |  |
-| [dc/acls/policies/navigation.feature](tests/acceptance/dc/acls/policies/navigation.feature) | Navigate into a policy from the list and back. | 1 | ☐ Not migrated |  |
+| ~~`dc/acls/policies/navigation.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [navigation-test.js](tests/acceptance/dc/acls/policies/navigation-test.js) |
 | [dc/acls/policies/sorting.feature](tests/acceptance/dc/acls/policies/sorting.feature) | Sorting the policies list. | 1 | ☐ Not migrated |  |
 | [dc/acls/policies/update.feature](tests/acceptance/dc/acls/policies/update.feature) | Update a policy (name/rules/description); error handling; no Namespace when disabled. | 3 | ☐ Not migrated |  |
 | [dc/acls/policies/view-management.feature](tests/acceptance/dc/acls/policies/view-management.feature) | The built-in management policy is shown read-only. | 1 | ☐ Not migrated |  |
@@ -122,13 +131,13 @@ manually in the running UI if needed.
 | [dc/acls/roles/as-many/list.feature](tests/acceptance/dc/acls/roles/as-many/list.feature) | List the roles attached to a token. | 1 | ☐ Not migrated |  |
 | [dc/acls/roles/as-many/remove.feature](tests/acceptance/dc/acls/roles/as-many/remove.feature) | Remove attached roles from a token. | 1 | ☐ Not migrated |  |
 | [dc/acls/roles/create.feature](tests/acceptance/dc/acls/roles/create.feature) | Create an ACL role; no Namespace sent when namespaces are disabled. | 3 | ☐ Not migrated |  |
-| [dc/acls/roles/navigation.feature](tests/acceptance/dc/acls/roles/navigation.feature) | Navigate into a role from the list and back. | 1 | ☐ Not migrated |  |
+| ~~`dc/acls/roles/navigation.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [navigation-test.js](tests/acceptance/dc/acls/roles/navigation-test.js) |
 | [dc/acls/roles/sorting.feature](tests/acceptance/dc/acls/roles/sorting.feature) | Sorting the roles list. | 1 | ☐ Not migrated |  |
 | [dc/acls/roles/update.feature](tests/acceptance/dc/acls/roles/update.feature) | Update a role (name/rules/description); error handling; no Namespace when disabled. | 3 | ☐ Not migrated |  |
 | [dc/acls/tokens/anonymous-no-delete.feature](tests/acceptance/dc/acls/tokens/anonymous-no-delete.feature) | The anonymous token exposes no delete buttons on list or detail pages. | 2 | ☐ Not migrated |  |
 | [dc/acls/tokens/clone.feature](tests/acceptance/dc/acls/tokens/clone.feature) | Clone an ACL token from the list and detail pages. | 2 | ☐ Not migrated |  |
 | [dc/acls/tokens/create.feature](tests/acceptance/dc/acls/tokens/create.feature) | Create an ACL token; no Namespace sent when namespaces are disabled. | 3 | ☐ Not migrated |  |
-| [dc/acls/tokens/navigation.feature](tests/acceptance/dc/acls/tokens/navigation.feature) | Navigate into a token from the list and back. | 1 | ☐ Not migrated |  |
+| ~~`dc/acls/tokens/navigation.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [navigation-test.js](tests/acceptance/dc/acls/tokens/navigation-test.js) |
 | [dc/acls/tokens/own-no-delete.feature](tests/acceptance/dc/acls/tokens/own-no-delete.feature) | Your currently-used token exposes no delete button. | 1 | ☐ Not migrated |  |
 | [dc/acls/tokens/sorting.feature](tests/acceptance/dc/acls/tokens/sorting.feature) | Sorting the tokens list. | 1 | ☐ Not migrated |  |
 | [dc/acls/tokens/update.feature](tests/acceptance/dc/acls/tokens/update.feature) | Update a token (name); error handling; no Namespace when disabled. | 3 | ☐ Not migrated |  |
@@ -137,7 +146,7 @@ manually in the running UI if needed.
 | [dc/intentions/filtered-select.feature](tests/acceptance/dc/intentions/filtered-select.feature) | Service select dropdowns show services but exclude proxy services; handles same-name services in different namespaces. | 2 | ☐ Not migrated |  |
 | [dc/intentions/form-select.feature](tests/acceptance/dc/intentions/form-select.feature) | Type into the autocomplete and select a custom/future service. | 1 | ☐ Not migrated |  |
 | [dc/intentions/index.feature](tests/acceptance/dc/intentions/index.feature) | Intentions list: view, no-write access, live updates, with/without CRDs, empty states. | 7 | ☐ Not migrated |  |
-| [dc/intentions/navigation.feature](tests/acceptance/dc/intentions/navigation.feature) | Navigate into an intention and to the create form, and back. | 2 | ☐ Not migrated |  |
+| ~~`dc/intentions/navigation.feature`~~ | *(deleted — migrated above)* | 2 | ✅ Migrated | [navigation-test.js](tests/acceptance/dc/intentions/navigation-test.js) |
 | [dc/intentions/permissions/create.feature](tests/acceptance/dc/intentions/permissions/create.feature) | Create an intention with L7 permissions. | 1 | ☐ Not migrated |  |
 | [dc/intentions/permissions/warn.feature](tests/acceptance/dc/intentions/permissions/warn.feature) | Warning shown when adding permissions to an intention. | 1 | ☐ Not migrated |  |
 | [dc/intentions/read-only.feature](tests/acceptance/dc/intentions/read-only.feature) | Viewing a read-only intention. | 1 | ☐ Not migrated |  |
@@ -153,7 +162,7 @@ manually in the running UI if needed.
 | [dc/kvs/update.feature](tests/acceptance/dc/kvs/update.feature) | Update KV values incl. whitespace/empty/newline values and error handling. | 7 | ☐ Not migrated |  |
 | [dc/nodes/empty-ids.feature](tests/acceptance/dc/nodes/empty-ids.feature) | Node list handles nodes that arrive with no ID. | 1 | ☐ Not migrated |  |
 | [dc/nodes/index.feature](tests/acceptance/dc/nodes/index.feature) | Nodes list: unhealthy node/service checks, synthetic nodes hidden, leader indicator, search, empty state. | 7 | ☐ Not migrated |  |
-| [dc/nodes/navigation.feature](tests/acceptance/dc/nodes/navigation.feature) | Navigate into a node from the list and back. | 1 | ☐ Not migrated |  |
+| ~~`dc/nodes/navigation.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [navigation-test.js](tests/acceptance/dc/nodes/navigation-test.js) |
 | [dc/nodes/no-leader.feature](tests/acceptance/dc/nodes/no-leader.feature) | Behaviour when no leader has been elected. | 1 | ☐ Not migrated |  |
 | [dc/nodes/services/list.feature](tests/acceptance/dc/nodes/services/list.feature) | Node → Services tab listing. | 1 | ☐ Not migrated |  |
 | [dc/nodes/sessions/invalidate.feature](tests/acceptance/dc/nodes/sessions/invalidate.feature) | Invalidate a lock session on a node incl. error. | 2 | ☐ Not migrated |  |
@@ -180,12 +189,12 @@ manually in the running UI if needed.
 | [dc/services/instances/exposed-paths.feature](tests/acceptance/dc/services/instances/exposed-paths.feature) | Exposed Paths tab shown only when the instance has a proxy. | 2 | ☐ Not migrated |  |
 | [dc/services/instances/gateway.feature](tests/acceptance/dc/services/instances/gateway.feature) | Gateway service-instance detail page. | 1 | ☐ Not migrated |  |
 | [dc/services/instances/health-checks.feature](tests/acceptance/dc/services/instances/health-checks.feature) | Instance serf checks pass/fail; node health-check visibility on agentless vs non-agentless. | 4 | ☐ Not migrated |  |
-| [dc/services/instances/navigation.feature](tests/acceptance/dc/services/instances/navigation.feature) | Navigate into a service instance from the list and back. | 1 | ☐ Not migrated |  |
+| ~~`dc/services/instances/navigation.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [navigation-test.js](tests/acceptance/dc/services/instances/navigation-test.js) |
 | [dc/services/instances/show.feature](tests/acceptance/dc/services/instances/show.feature) | Service-instance detail: proxy presence, deregister warning while blocking, synthetic node. | 4 | ☐ Not migrated |  |
 | [dc/services/instances/upstreams.feature](tests/acceptance/dc/services/instances/upstreams.feature) | Upstreams tab shown only when the instance has a proxy. | 2 | ☐ Not migrated |  |
 | [dc/services/list-blocking.feature](tests/acceptance/dc/services/list-blocking.feature) | Service listing live-updates via blocking queries. | 1 | ☐ Not migrated |  |
 | [dc/services/list.feature](tests/acceptance/dc/services/list.feature) | Listing services incl. peered services. | 2 | ☐ Not migrated |  |
-| [dc/services/navigation.feature](tests/acceptance/dc/services/navigation.feature) | Navigate into a (peered) service from the list and back. | 2 | ☐ Not migrated |  |
+| ~~`dc/services/navigation.feature`~~ | *(deleted — migrated above)* | 2 | ✅ Migrated | [navigation-test.js](tests/acceptance/dc/services/navigation-test.js) |
 | [dc/services/show-routing.feature](tests/acceptance/dc/services/show-routing.feature) | Routing tab display; hidden/no error when connect is disabled. | 2 | ☐ Not migrated |  |
 | [dc/services/show-with-slashes.feature](tests/acceptance/dc/services/show-with-slashes.feature) | A service with slashes in its name lists and opens correctly. | 1 | ☐ Not migrated |  |
 | [dc/services/show.feature](tests/acceptance/dc/services/show.feature) | Service detail: external-source logos, tags, instance nodes, dashboard template, access removal. | 10 | ☐ Not migrated |  |
@@ -208,7 +217,7 @@ manually in the running UI if needed.
 | [login-errors.feature](tests/acceptance/login-errors.feature) | Login 500-error handling (non-legacy-token case). | 1 | ☐ Not migrated |  |
 | [login.feature](tests/acceptance/login.feature) | Logging in via an ACL token and via SSO. | 2 | ☐ Not migrated |  |
 | [navigation-links.feature](tests/acceptance/navigation-links.feature) | Main-navigation link visibility (e.g. no KV read access, empty-state login button). | 2 | ☐ Not migrated |  |
-| [page-navigation.feature](tests/acceptance/page-navigation.feature) | Navigation across pages routes correctly and calls the expected API endpoints; cancel/create flows. | 10 | ☐ Not migrated |  |
+| [page-navigation.feature](tests/acceptance/page-navigation.feature) | Navigation across pages routes correctly; cancel/create flows (create scenarios migrated; routing scenarios remain with `@ignore`). | 10 | 🔄 In progress | [page-navigation-create-test.js](tests/acceptance/page-navigation-create-test.js) |
 | [startup.feature](tests/acceptance/startup.feature) | App boots when loading index.html into a browser. | 1 | ☐ Not migrated |  |
 | [submit-blank.feature](tests/acceptance/submit-blank.feature) | Blank create forms keep the submit button disabled. | 2 | ☐ Not migrated |  |
 | [token-header.feature](tests/acceptance/token-header.feature) | API requests send the Consul token header after a token is set. | 2 | ☐ Not migrated |  |

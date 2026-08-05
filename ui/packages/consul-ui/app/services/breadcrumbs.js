@@ -55,7 +55,7 @@ export default class BreadcrumbsService extends Service {
     // intermediate key returns null cleanly (Ember's `get()` is designed for
     // observable objects and can produce unexpected results on plain JSON).
     const parts = routeName.split('.');
-    let node = routes;
+    let node = this._routeTree();
     for (const part of parts) {
       if (node == null || typeof node !== 'object') return null;
       node = node[part];
@@ -92,9 +92,12 @@ export default class BreadcrumbsService extends Service {
       items.unshift({
         label: this._resolveLabel(config.label, routeParams),
         route: current,
-        // NOTE: every item intentionally shares the same routeParams reference.
-        // The full params object is passed so that link-to helpers have all URL
-        // segments available.  Consumers should not diff params between items.
+        // `models` is the ordered array of dynamic-segment values for this
+        // route extracted from path segments (e.g. ['dc-1'] for dc.nodes,
+        // ['dc-1', 'web'] for dc.services.show).  Used by the template to
+        // pass explicit models to href-to, avoiding the fsm-with-optional
+        // location inheriting extra optional segments (partition/nspace/peer).
+        models: this._modelsFor(current, routeParams),
         params: routeParams,
         isCurrent: false,
         isClickable: true,
@@ -114,6 +117,53 @@ export default class BreadcrumbsService extends Service {
   }
 
   // ─── Private helpers ──────────────────────────────────────────────────────
+
+  /**
+   * Returns the ordered array of dynamic-segment values for `routeName` by
+   * walking the route tree and extracting `:param` tokens from each node's
+   * `path` option in order from root → leaf.
+   *
+   * Example: `_modelsFor('dc.services.show', { dc: 'dc-1', name: 'web' })`
+   *   → `['dc-1', 'web']`
+   *
+   * Uses `_routeTree()` (overridable in tests) so the same fixture that
+   * patches `getBreadcrumbConfig` also covers `_modelsFor` automatically.
+   *
+   * @param {string} routeName
+   * @param {Object} routeParams
+   * @returns {Array}
+   */
+  _modelsFor(routeName, routeParams) {
+    const parts = routeName.split('.');
+    let node = this._routeTree();
+    const models = [];
+
+    for (const part of parts) {
+      if (node == null || typeof node !== 'object') break;
+      node = node[part];
+      const path = node?._options?.path ?? '';
+      // Extract all `:paramName` tokens from the path segment.
+      for (const match of path.matchAll(/:([^/]+)/g)) {
+        const key = match[1];
+        if (Object.prototype.hasOwnProperty.call(routeParams, key)) {
+          models.push(routeParams[key]);
+        }
+      }
+    }
+
+    return models;
+  }
+
+  /**
+   * Returns the root route tree.  Extracted so tests can override it by
+   * setting `service._testRoutes` — the same mechanism used for
+   * `getBreadcrumbConfig`.
+   *
+   * @returns {Object}
+   */
+  _routeTree() {
+    return this._testRoutes ?? routes;
+  }
 
   /**
    * If `label` matches a key in `routeParams` return its value;

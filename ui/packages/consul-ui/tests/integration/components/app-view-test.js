@@ -14,14 +14,20 @@ import hbs from 'htmlbars-inline-precompile';
 const STUB_ITEMS = [
   {
     label: 'Services',
-    route: 'dc.services',
+    // Use href (not route) so breadcrumb-href helper is bypassed in integration
+    // tests where no live router location is available.
+    href: '/dc-1/services',
+    route: undefined,
+    models: [],
     params: { dc: 'dc-1' },
     isCurrent: false,
     isClickable: true,
   },
   {
     label: 'web',
-    route: 'dc.services.show',
+    href: undefined,
+    route: undefined,
+    models: [],
     params: { dc: 'dc-1' },
     isCurrent: true,
     isClickable: false,
@@ -70,8 +76,13 @@ module('Integration | Component | app view', function (hooks) {
     routletService.paramsFor = () => ({ dc: 'dc-1' });
 
     // Stub the router service so currentRouteName is predictable.
+    // currentRouteName is a read-only computed alias on RouterService — use
+    // Object.defineProperty to override it in tests.
     const routerService = this.owner.lookup('service:router');
-    routerService.currentRouteName = 'dc.services.show';
+    Object.defineProperty(routerService, 'currentRouteName', {
+      get: () => 'dc.services.show',
+      configurable: true,
+    });
 
     await render(hbs`<AppView />`);
 
@@ -87,7 +98,10 @@ module('Integration | Component | app view', function (hooks) {
     breadcrumbsService.computeBreadcrumbs = () => STUB_ITEMS;
 
     const routerService = this.owner.lookup('service:router');
-    routerService.currentRouteName = 'dc.services.show';
+    Object.defineProperty(routerService, 'currentRouteName', {
+      get: () => 'dc.services.show',
+      configurable: true,
+    });
 
     await render(hbs`<AppView @showBreadcrumb={{false}} />`);
 
@@ -104,7 +118,10 @@ module('Integration | Component | app view', function (hooks) {
     breadcrumbsService.shouldShowBreadcrumbs = () => false;
 
     const routerService = this.owner.lookup('service:router');
-    routerService.currentRouteName = 'dc.hidden';
+    Object.defineProperty(routerService, 'currentRouteName', {
+      get: () => 'dc.hidden',
+      configurable: true,
+    });
 
     await render(hbs`<AppView />`);
 

@@ -16,7 +16,7 @@
       {{else}}
         <Hds::Breadcrumb::Item
           @text={{item.label}}
-          @route={{item.route}}
+          @href={{if item.href item.href (breadcrumb-href item.route item.models)}}
           data-test-breadcrumb-item
         />
       {{/if}}
