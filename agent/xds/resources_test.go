@@ -1874,6 +1874,102 @@ func getAPIGatewayGoldenTestCases(t *testing.T) []goldenTestCase {
 				}, nil, nil)
 			},
 		},
+		{
+			// Route-only circuit breakers: no gateway Defaults at all.
+			// The service Limits on the route are the sole source of all three
+			// numeric fields, so the cluster must carry exactly those thresholds
+			// with no values inherited from an absent gateway default.
+			name: "api-gateway-with-route-only-limits",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotAPIGateway(t, "default", nil, func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+					// No Defaults — gateway does not set any upstream limits.
+					entry.Listeners = []structs.APIGatewayListener{
+						{
+							Name:     "http-listener",
+							Protocol: structs.ListenerProtocolHTTP,
+							Port:     8080,
+						},
+					}
+					bound.Listeners = []structs.BoundAPIGatewayListener{
+						{
+							Name: "http-listener",
+							Routes: []structs.ResourceReference{
+								{Name: "http-route", Kind: structs.HTTPRoute},
+							},
+						},
+					}
+				}, []structs.BoundRoute{
+					&structs.HTTPRouteConfigEntry{
+						Kind: structs.HTTPRoute,
+						Name: "http-route",
+						Parents: []structs.ResourceReference{
+							{Kind: structs.APIGateway, Name: "api-gateway"},
+						},
+						Rules: []structs.HTTPRouteRule{
+							{
+								Services: []structs.HTTPService{{
+									Name: "payments",
+									Limits: &structs.UpstreamLimits{
+										MaxConnections:        intPointer(20),
+										MaxPendingRequests:    intPointer(40),
+										MaxConcurrentRequests: intPointer(80),
+									},
+								}},
+							},
+						},
+					},
+				}, nil, nil)
+			},
+		},
+		{
+			// Route-only passive health check: no gateway Defaults at all.
+			// The PassiveHealthCheck on the route service Limits is the sole
+			// source; the cluster must carry a fully-populated outlier_detection
+			// with no values inherited from an absent gateway default.
+			name: "api-gateway-with-route-only-passive-health-check",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotAPIGateway(t, "default", nil, func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+					// No Defaults — gateway does not set any upstream limits.
+					entry.Listeners = []structs.APIGatewayListener{
+						{
+							Name:     "http-listener",
+							Protocol: structs.ListenerProtocolHTTP,
+							Port:     8080,
+						},
+					}
+					bound.Listeners = []structs.BoundAPIGatewayListener{
+						{
+							Name: "http-listener",
+							Routes: []structs.ResourceReference{
+								{Name: "http-route", Kind: structs.HTTPRoute},
+							},
+						},
+					}
+				}, []structs.BoundRoute{
+					&structs.HTTPRouteConfigEntry{
+						Kind: structs.HTTPRoute,
+						Name: "http-route",
+						Parents: []structs.ResourceReference{
+							{Kind: structs.APIGateway, Name: "api-gateway"},
+						},
+						Rules: []structs.HTTPRouteRule{
+							{
+								Services: []structs.HTTPService{{
+									Name: "payments",
+									Limits: &structs.UpstreamLimits{
+										MaxConnections: intPointer(30),
+										PassiveHealthCheck: &structs.PassiveHealthCheck{
+											Interval:    5 * time.Second,
+											MaxFailures: 3,
+										},
+									},
+								}},
+							},
+						},
+					},
+				}, nil, nil)
+			},
+		},
 	}
 }
 
