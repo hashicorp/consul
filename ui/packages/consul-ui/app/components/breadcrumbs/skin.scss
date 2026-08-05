@@ -3,6 +3,10 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
+/* WCAG 2.2 AA: --token-color-foreground-faint on the page background must    */
+/* meet a 4.5:1 contrast ratio for normal text.  If the design token changes, */
+/* verify contrast using the HDS Accessibility Figma plugin or Colour Contrast */
+/* Analyser before shipping.                                                    */
 %crumbs {
   color: var(--token-color-foreground-faint);
   text-decoration: none;

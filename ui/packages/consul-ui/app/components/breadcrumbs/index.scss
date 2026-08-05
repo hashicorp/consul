@@ -48,9 +48,9 @@
 }
 
 /* Mobile collapse: on narrow viewports hide intermediate breadcrumb items,   */
-/* keeping only the first (root) and last (current) visible.  Items are hidden */
-/* via `visibility: hidden` + `width: 0` so they remain in the DOM/a11y tree   */
-/* but cannot be reached by keyboard (tab order follows visual presence).       */
+/* keeping only the first (root) and last (current) visible.  `display: none` */
+/* fully removes items from both the visual and the tab/keyboard order, so     */
+/* hidden intermediate crumbs are not reachable by keyboard.                   */
 @media (max-width: 768px) {
   .app-view-breadcrumbs .hds-breadcrumb .hds-breadcrumb__item {
     display: none;
