@@ -1738,6 +1738,142 @@ func getAPIGatewayGoldenTestCases(t *testing.T) []goldenTestCase {
 				}, nil, nil)
 			},
 		},
+		{
+			name: "api-gateway-with-http-route-upstream-limits",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotAPIGateway(t, "default", nil, func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+					entry.Defaults = &structs.UpstreamLimits{
+						MaxConnections:        intPointer(50),
+						MaxPendingRequests:    intPointer(100),
+						MaxConcurrentRequests: intPointer(200),
+					}
+					entry.Listeners = []structs.APIGatewayListener{
+						{
+							Name:     "http-listener",
+							Protocol: structs.ListenerProtocolHTTP,
+							Port:     8080,
+						},
+					}
+					bound.Listeners = []structs.BoundAPIGatewayListener{
+						{
+							Name: "http-listener",
+							Routes: []structs.ResourceReference{
+								{Name: "http-route", Kind: structs.HTTPRoute},
+							},
+						},
+					}
+				}, []structs.BoundRoute{
+					&structs.HTTPRouteConfigEntry{
+						Kind: structs.HTTPRoute,
+						Name: "http-route",
+						Parents: []structs.ResourceReference{
+							{Kind: structs.APIGateway, Name: "api-gateway"},
+						},
+						Rules: []structs.HTTPRouteRule{
+							{
+								// Override only MaxConnections; the gateway defaults for
+								// MaxPendingRequests and MaxConcurrentRequests are inherited.
+								Services: []structs.HTTPService{{
+									Name: "backend",
+									Limits: &structs.UpstreamLimits{
+										MaxConnections: intPointer(20),
+									},
+								}},
+							},
+						},
+					},
+				}, nil, nil)
+			},
+		},
+		{
+			name: "api-gateway-with-tcp-route-upstream-limits",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotAPIGateway(t, "default", nil, func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+					entry.Defaults = &structs.UpstreamLimits{
+						MaxConnections:        intPointer(50),
+						MaxPendingRequests:    intPointer(100),
+						MaxConcurrentRequests: intPointer(200),
+					}
+					entry.Listeners = []structs.APIGatewayListener{
+						{
+							Name:     "tcp-listener",
+							Protocol: structs.ListenerProtocolTCP,
+							Port:     8080,
+						},
+					}
+					bound.Listeners = []structs.BoundAPIGatewayListener{
+						{
+							Name: "tcp-listener",
+							Routes: []structs.ResourceReference{
+								{Name: "tcp-route", Kind: structs.TCPRoute},
+							},
+						},
+					}
+				}, []structs.BoundRoute{
+					&structs.TCPRouteConfigEntry{
+						Kind: structs.TCPRoute,
+						Name: "tcp-route",
+						Parents: []structs.ResourceReference{
+							{Kind: structs.APIGateway, Name: "api-gateway"},
+						},
+						Services: []structs.TCPService{{Name: "tcp-backend"}},
+					},
+				}, nil, nil)
+			},
+		},
+		{
+			name: "api-gateway-with-upstream-passive-health-check",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotAPIGateway(t, "default", nil, func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+					entry.Defaults = &structs.UpstreamLimits{
+						MaxConnections: intPointer(50),
+						PassiveHealthCheck: &structs.PassiveHealthCheck{
+							Interval:    10 * time.Second,
+							MaxFailures: 5,
+						},
+					}
+					entry.Listeners = []structs.APIGatewayListener{
+						{
+							Name:     "http-listener",
+							Protocol: structs.ListenerProtocolHTTP,
+							Port:     8080,
+						},
+					}
+					bound.Listeners = []structs.BoundAPIGatewayListener{
+						{
+							Name: "http-listener",
+							Routes: []structs.ResourceReference{
+								{Name: "http-route", Kind: structs.HTTPRoute},
+							},
+						},
+					}
+				}, []structs.BoundRoute{
+					&structs.HTTPRouteConfigEntry{
+						Kind: structs.HTTPRoute,
+						Name: "http-route",
+						Parents: []structs.ResourceReference{
+							{Kind: structs.APIGateway, Name: "api-gateway"},
+						},
+						Rules: []structs.HTTPRouteRule{
+							{
+								// Per-service override: change MaxConnections and PassiveHealthCheck.
+								// Interval/MaxFailures are replaced as a whole (not merged sub-field by sub-field).
+								Services: []structs.HTTPService{{
+									Name: "backend",
+									Limits: &structs.UpstreamLimits{
+										MaxConnections: intPointer(20),
+										PassiveHealthCheck: &structs.PassiveHealthCheck{
+											Interval:    5 * time.Second,
+											MaxFailures: 3,
+										},
+									},
+								}},
+							},
+						},
+					},
+				}, nil, nil)
+			},
+		},
 	}
 }
 
