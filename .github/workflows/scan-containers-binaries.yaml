@@ -52,7 +52,6 @@ jobs:
   #    and the scan jobs download them.
   build:
     uses: ./.github/workflows/build.yml
-    secrets: inherit
 
   # 2. Resolve the Go toolchain version the scanner uses for go_modules analysis.
   get-go-version:
@@ -97,6 +96,12 @@ jobs:
         if: always()
         shell: bash
         run: cat results.sarif | jq
+
+      - name: Upload SARIF file
+        if: always()
+        uses: github/codeql-action/upload-sarif@9e3211c9a3b9311dfe05da2ed48eea3386f042dd # v4.37.6
+        with:
+          sarif_file: results.sarif
 
       - name: Upload SARIF artifact
         if: always()
@@ -262,6 +267,12 @@ jobs:
         shell: bash
         run: cat results.sarif | jq
 
+      - name: Upload SARIF file
+        if: always()
+        uses: github/codeql-action/upload-sarif@9e3211c9a3b9311dfe05da2ed48eea3386f042dd # v4.37.6
+        with:
+          sarif_file: results.sarif
+
       - name: Upload SARIF artifact
         if: always()
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
@@ -274,7 +285,7 @@ jobs:
   #    loads exactly one image into the local daemon and scans it.
   scan-containers:
     name: Scan ${{ matrix.artifact }}
-    needs: [discover-artifacts]
+    needs: [discover-artifacts, get-go-version]
     runs-on: ubuntu-latest
     # Needs the PRODSEC_SCANNER_READ_ONLY secret, so skip on forks.
     if: github.repository == 'hashicorp/consul' && needs.discover-artifacts.outputs.images != '[]'
@@ -286,6 +297,11 @@ jobs:
       # Checkout gives the workspace a .git directory.
       - name: Checkout
         uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+
+      - name: Set up Go
+        uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5.0.1
+        with:
+          go-version: ${{ needs.get-go-version.outputs.go-version }}
 
       # Download just this matrix entry's image tarball.
       - name: Download image artifact
@@ -393,6 +409,12 @@ jobs:
         if: always()
         shell: bash
         run: cat results.sarif | jq
+
+      - name: Upload SARIF file
+        if: always()
+        uses: github/codeql-action/upload-sarif@9e3211c9a3b9311dfe05da2ed48eea3386f042dd # v4.37.6
+        with:
+          sarif_file: results.sarif
 
       - name: Upload SARIF artifact
         if: always()
