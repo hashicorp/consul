@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/google/tcpproxy"
-	"github.com/hashicorp/go-metrics"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
@@ -26,6 +25,7 @@ import (
 
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-metrics"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
@@ -1276,6 +1276,146 @@ func TestServer_Leave(t *testing.T) {
 	retry.Run(t, func(r *retry.R) {
 		r.Check(wantPeers(s1, 1))
 		r.Check(wantPeers(s2, 1))
+	})
+}
+
+func TestServer_WANFlood_RejoinAfterGracefulLeave(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Bootstrap = true
+		c.NodeName = "server1"
+		c.Datacenter = "dc1"
+		c.SerfFloodInterval = 100 * time.Millisecond
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.Bootstrap = false
+		c.NodeName = "server2"
+		c.Datacenter = "dc1"
+		c.SerfFloodInterval = 100 * time.Millisecond
+	})
+	defer os.RemoveAll(dir2)
+
+	joinLAN(t, s2, s1)
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	wanNodeName := "server2.dc1"
+	wanStatus := func(s *Server, name string) (string, bool) {
+		for _, m := range s.WANMembers() {
+			if m.Name == name {
+				return m.Status.String(), true
+			}
+		}
+		return "", false
+	}
+
+	retry.Run(t, func(r *retry.R) {
+		status, ok := wanStatus(s1, wanNodeName)
+		require.True(r, ok, "expected WAN member to exist")
+		require.Equal(r, "alive", status)
+	})
+
+	require.NoError(t, s2.Leave())
+	s2.Shutdown()
+
+	retry.Run(t, func(r *retry.R) {
+		status, ok := wanStatus(s1, wanNodeName)
+		require.True(r, ok, "expected stale WAN member to remain visible")
+		require.NotEqual(r, "alive", status)
+	})
+
+	dir3, s2Rejoined := testServerWithConfig(t, func(c *Config) {
+		c.Bootstrap = false
+		c.NodeName = "server2"
+		c.Datacenter = "dc1"
+		c.SerfFloodInterval = 100 * time.Millisecond
+	})
+	defer os.RemoveAll(dir3)
+	defer s2Rejoined.Shutdown()
+
+	joinLAN(t, s2Rejoined, s1)
+
+	retry.Run(t, func(r *retry.R) {
+		status, ok := wanStatus(s1, wanNodeName)
+		require.True(r, ok, "expected WAN member to exist after rejoin")
+		require.Equal(r, "alive", status, "WAN member should heal back to alive after rejoin")
+	})
+}
+
+func TestServer_WANFlood_RejoinAfterFailure(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Bootstrap = true
+		c.NodeName = "server1"
+		c.Datacenter = "dc1"
+		c.SerfFloodInterval = 100 * time.Millisecond
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.Bootstrap = false
+		c.NodeName = "server2"
+		c.Datacenter = "dc1"
+		c.SerfFloodInterval = 100 * time.Millisecond
+	})
+	defer os.RemoveAll(dir2)
+
+	joinLAN(t, s2, s1)
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	wanNodeName := "server2.dc1"
+	wanStatus := func(s *Server, name string) (string, bool) {
+		for _, m := range s.WANMembers() {
+			if m.Name == name {
+				return m.Status.String(), true
+			}
+		}
+		return "", false
+	}
+
+	retry.Run(t, func(r *retry.R) {
+		status, ok := wanStatus(s1, wanNodeName)
+		require.True(r, ok, "expected WAN member to exist")
+		require.Equal(r, "alive", status)
+	})
+
+	// Abrupt shutdown to trigger failed/non-alive transitions.
+	s2.Shutdown()
+
+	retry.Run(t, func(r *retry.R) {
+		status, ok := wanStatus(s1, wanNodeName)
+		require.True(r, ok, "expected stale WAN member to remain visible")
+		require.NotEqual(r, "alive", status)
+	})
+
+	dir3, s2Rejoined := testServerWithConfig(t, func(c *Config) {
+		c.Bootstrap = false
+		c.NodeName = "server2"
+		c.Datacenter = "dc1"
+		c.SerfFloodInterval = 100 * time.Millisecond
+	})
+	defer os.RemoveAll(dir3)
+	defer s2Rejoined.Shutdown()
+
+	joinLAN(t, s2Rejoined, s1)
+
+	retry.Run(t, func(r *retry.R) {
+		status, ok := wanStatus(s1, wanNodeName)
+		require.True(r, ok, "expected WAN member to exist after rejoin")
+		require.Equal(r, "alive", status, "WAN member should heal back to alive after rejoin")
 	})
 }
 
