@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/consul/agent/netutil"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
-	"github.com/hashicorp/consul/sdk/iptables"
+	nftables "github.com/hashicorp/consul/sdk/nftables"
 	"github.com/mitchellh/cli"
 )
 
@@ -64,7 +64,7 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.proxyUID, "proxy-uid", "", "The user ID of the proxy to exclude from traffic redirection.")
 	c.flags.StringVar(&c.proxyID, "proxy-id", "", "The service ID of the proxy service registered with Consul.")
 	c.flags.IntVar(&c.proxyInboundPort, "proxy-inbound-port", 0, "The inbound port that the proxy is listening on.")
-	c.flags.IntVar(&c.proxyOutboundPort, "proxy-outbound-port", iptables.DefaultTProxyOutboundPort,
+	c.flags.IntVar(&c.proxyOutboundPort, "proxy-outbound-port", nftables.DefaultTProxyOutboundPort,
 		"The outbound port that the proxy is listening on. When not provided, 15001 is used by default.")
 	c.flags.Var((*flags.AppendSliceValue)(&c.excludeInboundPorts), "exclude-inbound-port",
 		"Inbound port to exclude from traffic redirection. May be provided multiple times.")
@@ -99,7 +99,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	if c.proxyID != "" && (c.proxyInboundPort != 0 || c.proxyOutboundPort != iptables.DefaultTProxyOutboundPort) {
+	if c.proxyID != "" && (c.proxyInboundPort != 0 || c.proxyOutboundPort != nftables.DefaultTProxyOutboundPort) {
 		c.UI.Error("-proxy-inbound-port or -proxy-outbound-port cannot be provided together with -proxy-id. " +
 			"Proxy's inbound and outbound ports are retrieved from the proxy's configuration instead.")
 		return 1
@@ -122,7 +122,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	err = iptables.Setup(cfg, ds)
+	err = nftables.Setup(cfg, ds)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error setting up traffic redirection rules: %s", err.Error()))
 		return 1
@@ -149,9 +149,9 @@ type trafficRedirectProxyConfig struct {
 	StatsBindAddr      string `mapstructure:"envoy_stats_bind_addr"`
 }
 
-// generateConfigFromFlags generates iptables.Config based on command flags.
-func (c *cmd) generateConfigFromFlags() (iptables.Config, error) {
-	cfg := iptables.Config{
+// generateConfigFromFlags generates nftables.Config based on command flags.
+func (c *cmd) generateConfigFromFlags() (nftables.Config, error) {
+	cfg := nftables.Config{
 		ConsulDNSIP:       c.consulDNSIP,
 		ConsulDNSPort:     c.consulDNSPort,
 		ProxyUserID:       c.proxyUID,
@@ -167,7 +167,7 @@ func (c *cmd) generateConfigFromFlags() (iptables.Config, error) {
 		if c.client == nil {
 			c.client, err = c.http.APIClient()
 			if err != nil {
-				return iptables.Config{}, fmt.Errorf("error creating Consul API client: %s", err)
+				return nftables.Config{}, fmt.Errorf("error creating Consul API client: %s", err)
 			}
 		}
 
@@ -175,7 +175,7 @@ func (c *cmd) generateConfigFromFlags() (iptables.Config, error) {
 		if c.nodeName == "" {
 			svc, _, err = c.client.Agent().Service(c.proxyID, nil)
 			if err != nil {
-				return iptables.Config{}, fmt.Errorf("failed to fetch proxy service from Consul Agent: %s", err)
+				return nftables.Config{}, fmt.Errorf("failed to fetch proxy service from Consul Agent: %s", err)
 			}
 		} else {
 			svcList, _, err := c.client.Catalog().NodeServiceList(c.nodeName, &api.QueryOptions{
@@ -183,26 +183,26 @@ func (c *cmd) generateConfigFromFlags() (iptables.Config, error) {
 				MergeCentralConfig: true,
 			})
 			if err != nil {
-				return iptables.Config{}, fmt.Errorf("failed to fetch proxy service from Consul: %s", err)
+				return nftables.Config{}, fmt.Errorf("failed to fetch proxy service from Consul: %s", err)
 			}
 			if len(svcList.Services) < 1 {
-				return iptables.Config{}, fmt.Errorf("proxy service with ID %q not found", c.proxyID)
+				return nftables.Config{}, fmt.Errorf("proxy service with ID %q not found", c.proxyID)
 			}
 			if len(svcList.Services) > 1 {
-				return iptables.Config{}, fmt.Errorf("expected to find only one proxy service with ID %q, but more were found", c.proxyID)
+				return nftables.Config{}, fmt.Errorf("expected to find only one proxy service with ID %q, but more were found", c.proxyID)
 			}
 			svc = svcList.Services[0]
 		}
 
 		if svc.Proxy == nil {
-			return iptables.Config{}, fmt.Errorf("service %s is not a proxy service", c.proxyID)
+			return nftables.Config{}, fmt.Errorf("service %s is not a proxy service", c.proxyID)
 		}
 
 		// Decode proxy's opaque config so that we can use it later to configure
 		// traffic redirection with nft.
 		var trCfg trafficRedirectProxyConfig
 		if err := mapstructure.WeakDecode(svc.Proxy.Config, &trCfg); err != nil {
-			return iptables.Config{}, fmt.Errorf("failed parsing Proxy.Config: %s", err)
+			return nftables.Config{}, fmt.Errorf("failed parsing Proxy.Config: %s", err)
 		}
 
 		// Set the proxy's inbound port.
@@ -212,7 +212,7 @@ func (c *cmd) generateConfigFromFlags() (iptables.Config, error) {
 		}
 
 		// Set the proxy's outbound port.
-		cfg.ProxyOutboundPort = iptables.DefaultTProxyOutboundPort
+		cfg.ProxyOutboundPort = nftables.DefaultTProxyOutboundPort
 		if svc.Proxy.TransparentProxy != nil && svc.Proxy.TransparentProxy.OutboundListenerPort != 0 {
 			cfg.ProxyOutboundPort = svc.Proxy.TransparentProxy.OutboundListenerPort
 		}
@@ -221,7 +221,7 @@ func (c *cmd) generateConfigFromFlags() (iptables.Config, error) {
 		if trCfg.PrometheusBindAddr != "" {
 			_, port, err := net.SplitHostPort(trCfg.PrometheusBindAddr)
 			if err != nil {
-				return iptables.Config{}, fmt.Errorf("failed parsing host and port from envoy_prometheus_bind_addr: %s", err)
+				return nftables.Config{}, fmt.Errorf("failed parsing host and port from envoy_prometheus_bind_addr: %s", err)
 			}
 
 			cfg.ExcludeInboundPorts = append(cfg.ExcludeInboundPorts, port)
@@ -231,7 +231,7 @@ func (c *cmd) generateConfigFromFlags() (iptables.Config, error) {
 		if trCfg.StatsBindAddr != "" {
 			_, port, err := net.SplitHostPort(trCfg.StatsBindAddr)
 			if err != nil {
-				return iptables.Config{}, fmt.Errorf("failed parsing host and port from envoy_stats_bind_addr: %s", err)
+				return nftables.Config{}, fmt.Errorf("failed parsing host and port from envoy_stats_bind_addr: %s", err)
 			}
 
 			cfg.ExcludeInboundPorts = append(cfg.ExcludeInboundPorts, port)
@@ -249,7 +249,7 @@ func (c *cmd) generateConfigFromFlags() (iptables.Config, error) {
 			// Get the health checks of the destination service.
 			checks, err := c.client.Agent().ChecksWithFilter(fmt.Sprintf("ServiceName == %q", svc.Proxy.DestinationServiceName))
 			if err != nil {
-				return iptables.Config{}, err
+				return nftables.Config{}, err
 			}
 
 			for _, check := range checks {

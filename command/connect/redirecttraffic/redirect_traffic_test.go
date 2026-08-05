@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/iptables"
+	nftables "github.com/hashicorp/consul/sdk/nftables"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -70,7 +70,7 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 		name           string
 		command        func() cmd
 		consulServices []api.AgentServiceRegistration
-		expCfg         iptables.Config
+		expCfg         nftables.Config
 		expError       string
 	}{
 		{
@@ -94,10 +94,10 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 					},
 				},
 			},
-			expCfg: iptables.Config{
+			expCfg: nftables.Config{
 				ProxyUserID:       "1234",
 				ProxyInboundPort:  20000,
-				ProxyOutboundPort: iptables.DefaultTProxyOutboundPort,
+				ProxyOutboundPort: nftables.DefaultTProxyOutboundPort,
 			},
 		},
 		{
@@ -124,10 +124,10 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 					},
 				},
 			},
-			expCfg: iptables.Config{
+			expCfg: nftables.Config{
 				ProxyUserID:       "1234",
 				ProxyInboundPort:  21000,
-				ProxyOutboundPort: iptables.DefaultTProxyOutboundPort,
+				ProxyOutboundPort: nftables.DefaultTProxyOutboundPort,
 			},
 		},
 		{
@@ -153,12 +153,12 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 					},
 				},
 			},
-			expCfg: iptables.Config{
+			expCfg: nftables.Config{
 				ConsulDNSIP:       "10.0.34.16",
 				ConsulDNSPort:     8600,
 				ProxyUserID:       "1234",
 				ProxyInboundPort:  20000,
-				ProxyOutboundPort: iptables.DefaultTProxyOutboundPort,
+				ProxyOutboundPort: nftables.DefaultTProxyOutboundPort,
 			},
 		},
 		{
@@ -184,12 +184,12 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 					},
 				},
 			},
-			expCfg: iptables.Config{
+			expCfg: nftables.Config{
 				ConsulDNSIP:       "89ac:297d:b795:8c15:8cf4:a99a:49a1:6512",
 				ConsulDNSPort:     8600,
 				ProxyUserID:       "1234",
 				ProxyInboundPort:  20000,
-				ProxyOutboundPort: iptables.DefaultTProxyOutboundPort,
+				ProxyOutboundPort: nftables.DefaultTProxyOutboundPort,
 			},
 		},
 		{
@@ -215,12 +215,12 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 					},
 				},
 			},
-			expCfg: iptables.Config{
+			expCfg: nftables.Config{
 				ConsulDNSIP:       "::",
 				ConsulDNSPort:     8600,
 				ProxyUserID:       "1234",
 				ProxyInboundPort:  20000,
-				ProxyOutboundPort: iptables.DefaultTProxyOutboundPort,
+				ProxyOutboundPort: nftables.DefaultTProxyOutboundPort,
 			},
 		},
 		{
@@ -246,12 +246,12 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 					},
 				},
 			},
-			expCfg: iptables.Config{
+			expCfg: nftables.Config{
 				ConsulDNSIP:       "::1",
 				ConsulDNSPort:     8600,
 				ProxyUserID:       "1234",
 				ProxyInboundPort:  20000,
-				ProxyOutboundPort: iptables.DefaultTProxyOutboundPort,
+				ProxyOutboundPort: nftables.DefaultTProxyOutboundPort,
 			},
 		},
 		{
@@ -278,10 +278,10 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 					},
 				},
 			},
-			expCfg: iptables.Config{
+			expCfg: nftables.Config{
 				ProxyUserID:       "1234",
 				ProxyInboundPort:  21000,
-				ProxyOutboundPort: iptables.DefaultTProxyOutboundPort,
+				ProxyOutboundPort: nftables.DefaultTProxyOutboundPort,
 			},
 		},
 		{
@@ -334,7 +334,7 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 					},
 				},
 			},
-			expCfg: iptables.Config{
+			expCfg: nftables.Config{
 				ProxyUserID:       "1234",
 				ProxyInboundPort:  20000,
 				ProxyOutboundPort: 21000,
@@ -379,10 +379,10 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 				c.proxyInboundPort = 15000
 				return c
 			},
-			expCfg: iptables.Config{
+			expCfg: nftables.Config{
 				ProxyUserID:       "1234",
 				ProxyInboundPort:  15000,
-				ProxyOutboundPort: iptables.DefaultTProxyOutboundPort,
+				ProxyOutboundPort: nftables.DefaultTProxyOutboundPort,
 			},
 		},
 		{
@@ -395,7 +395,7 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 				c.proxyOutboundPort = 16000
 				return c
 			},
-			expCfg: iptables.Config{
+			expCfg: nftables.Config{
 				ProxyUserID:       "1234",
 				ProxyInboundPort:  15000,
 				ProxyOutboundPort: 16000,
@@ -411,7 +411,7 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 				c.excludeInboundPorts = []string{"8080", "21000"}
 				return c
 			},
-			expCfg: iptables.Config{
+			expCfg: nftables.Config{
 				ProxyUserID:         "1234",
 				ProxyInboundPort:    15000,
 				ProxyOutboundPort:   15001,
@@ -428,7 +428,7 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 				c.excludeOutboundPorts = []string{"8080", "21000"}
 				return c
 			},
-			expCfg: iptables.Config{
+			expCfg: nftables.Config{
 				ProxyUserID:          "1234",
 				ProxyInboundPort:     15000,
 				ProxyOutboundPort:    15001,
@@ -445,7 +445,7 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 				c.excludeOutboundCIDRs = []string{"1.1.1.1", "2.2.2.2/24"}
 				return c
 			},
-			expCfg: iptables.Config{
+			expCfg: nftables.Config{
 				ProxyUserID:          "1234",
 				ProxyInboundPort:     15000,
 				ProxyOutboundPort:    15001,
@@ -462,7 +462,7 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 				c.excludeUIDs = []string{"2345", "3456"}
 				return c
 			},
-			expCfg: iptables.Config{
+			expCfg: nftables.Config{
 				ProxyUserID:       "1234",
 				ProxyInboundPort:  15000,
 				ProxyOutboundPort: 15001,
@@ -493,10 +493,10 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 					},
 				},
 			},
-			expCfg: iptables.Config{
+			expCfg: nftables.Config{
 				ProxyUserID:         "1234",
 				ProxyInboundPort:    20000,
-				ProxyOutboundPort:   iptables.DefaultTProxyOutboundPort,
+				ProxyOutboundPort:   nftables.DefaultTProxyOutboundPort,
 				ExcludeInboundPorts: []string{"9000"},
 			},
 		},
@@ -550,10 +550,10 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 					},
 				},
 			},
-			expCfg: iptables.Config{
+			expCfg: nftables.Config{
 				ProxyUserID:         "1234",
 				ProxyInboundPort:    20000,
-				ProxyOutboundPort:   iptables.DefaultTProxyOutboundPort,
+				ProxyOutboundPort:   nftables.DefaultTProxyOutboundPort,
 				ExcludeInboundPorts: []string{"8000"},
 			},
 		},
@@ -613,10 +613,10 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 					},
 				},
 			},
-			expCfg: iptables.Config{
+			expCfg: nftables.Config{
 				ProxyUserID:         "1234",
 				ProxyInboundPort:    20000,
-				ProxyOutboundPort:   iptables.DefaultTProxyOutboundPort,
+				ProxyOutboundPort:   nftables.DefaultTProxyOutboundPort,
 				ExcludeInboundPorts: []string{"23000"},
 			},
 		},
@@ -663,10 +663,10 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 					},
 				},
 			},
-			expCfg: iptables.Config{
+			expCfg: nftables.Config{
 				ProxyUserID:         "1234",
 				ProxyInboundPort:    20000,
-				ProxyOutboundPort:   iptables.DefaultTProxyOutboundPort,
+				ProxyOutboundPort:   nftables.DefaultTProxyOutboundPort,
 				ExcludeInboundPorts: []string{"21500", "21501"},
 			},
 		},
@@ -714,10 +714,10 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 					},
 				},
 			},
-			expCfg: iptables.Config{
+			expCfg: nftables.Config{
 				ProxyUserID:       "1234",
 				ProxyInboundPort:  20000,
-				ProxyOutboundPort: iptables.DefaultTProxyOutboundPort,
+				ProxyOutboundPort: nftables.DefaultTProxyOutboundPort,
 				//ExcludeInboundPorts: []string{"21500", "21501"},
 			},
 		},
@@ -743,10 +743,10 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 					},
 				},
 			},
-			expCfg: iptables.Config{
+			expCfg: nftables.Config{
 				ProxyUserID:       "1234",
 				ProxyInboundPort:  20000,
-				ProxyOutboundPort: iptables.DefaultTProxyOutboundPort,
+				ProxyOutboundPort: nftables.DefaultTProxyOutboundPort,
 			},
 		},
 		{

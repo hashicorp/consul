@@ -51,7 +51,7 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
-	"github.com/hashicorp/consul/sdk/iptables"
+	nftables "github.com/hashicorp/consul/sdk/nftables"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -91,7 +91,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 	var outboundListener *envoy_listener_v3.Listener
 
 	if cfgSnap.Proxy.Mode == structs.ProxyModeTransparent {
-		port := iptables.DefaultTProxyOutboundPort
+		port := nftables.DefaultTProxyOutboundPort
 		if cfgSnap.Proxy.TransparentProxy.OutboundListenerPort != 0 {
 			port = cfgSnap.Proxy.TransparentProxy.OutboundListenerPort
 		}
@@ -124,7 +124,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 
 		outboundListener.ListenerFilters = []*envoy_listener_v3.ListenerFilter{
 			// The original_dst filter is a listener filter that recovers the original destination
-			// address before the iptables redirection. This filter is needed for transparent
+			// address before the nftables redirection. This filter is needed for transparent
 			// proxies because they route to upstreams using filter chains that match on the
 			// destination IP address. If the filter is not present, no chain will match.
 			originalDstFilter,
@@ -1589,7 +1589,7 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 		} else {
 			l.FilterChains = append(l.FilterChains, chain)
 
-			// With tproxy, the REDIRECT iptables target rewrites the destination ip/port
+			// With tproxy, the REDIRECT nftables target rewrites the destination ip/port
 			// to the proxy ip/port (e.g. 127.0.0.1:20000) for incoming packets.
 			// We need the original_dst filter to recover the original destination address.
 			originalDstFilter, err := makeEnvoyListenerFilter("envoy.filters.listener.original_dst", &envoy_original_dst_v3.OriginalDst{})
