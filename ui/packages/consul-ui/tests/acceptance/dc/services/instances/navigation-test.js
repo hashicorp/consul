@@ -15,7 +15,6 @@ import {
   visit,
   page,
   currentURL,
-  nspaceURL,
 } from 'consul-ui/tests/helpers/acceptance';
 
 module(
