@@ -172,7 +172,7 @@
           _options: {
             path: '/:name/instances/:node/:id',
             redirect: './healthchecks',
-            breadcrumb: { label: 'Instance', parent: 'dc.services.show' },
+            breadcrumb: { show: false },
           },
           healthchecks: {
             _options: {
@@ -190,7 +190,7 @@
                   replace: true,
                 },
               },
-              breadcrumb: { label: 'Health Checks', parent: 'dc.services.instance' },
+              breadcrumb: { label: 'Health Checks', parent: 'dc.services.show.instances' },
             },
           },
           upstreams: {
@@ -207,17 +207,17 @@
                   empty: [['DestinationName', 'LocalBindAddress', 'LocalBindPort']],
                 },
               },
-              breadcrumb: { label: 'Upstreams', parent: 'dc.services.instance' },
+              breadcrumb: { label: 'Upstreams', parent: 'dc.services.show.instances' },
             },
           },
           exposedpaths: {
-            _options: { path: '/exposed-paths', breadcrumb: { label: 'Exposed Paths', parent: 'dc.services.instance' } },
+            _options: { path: '/exposed-paths', breadcrumb: { label: 'Exposed Paths', parent: 'dc.services.show.instances' } },
           },
           addresses: {
-            _options: { path: '/addresses', breadcrumb: { label: 'Addresses', parent: 'dc.services.instance' } },
+            _options: { path: '/addresses', breadcrumb: { label: 'Addresses', parent: 'dc.services.show.instances' } },
           },
           metadata: {
-            _options: { path: '/metadata', breadcrumb: { label: 'Metadata', parent: 'dc.services.instance' } },
+            _options: { path: '/metadata', breadcrumb: { label: 'Metadata', parent: 'dc.services.show.instances' } },
           },
         },
         notfound: {
