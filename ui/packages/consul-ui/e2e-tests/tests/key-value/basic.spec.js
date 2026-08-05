@@ -383,7 +383,9 @@ test.describe('Key/Value - Basic Tests', () => {
 
       await kvRow(page, 'e2e-folder').click();
       // Folder expands inline — wait for the subfolder row to appear in the table.
-      await expect(page.getByRole('button', { name: 'subfolder', exact: true })).toBeVisible({ timeout: 15000 });
+      await expect(page.getByRole('button', { name: 'subfolder', exact: true })).toBeVisible({
+        timeout: 15000,
+      });
       await openKVCreateInFolder(page, 'subfolder');
       await page.getByRole('textbox', { name: 'Key or Folder' }).fill('key-in-folder');
 
