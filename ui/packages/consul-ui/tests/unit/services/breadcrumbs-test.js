@@ -188,12 +188,12 @@ const ROUTES = {
     acls: {
       _options: {
         path: '/acls',
-        breadcrumb: { label: 'ACLs' },
+        breadcrumb: { show: false },
       },
       tokens: {
         _options: {
           path: '/tokens',
-          breadcrumb: { label: 'Tokens', parent: 'dc.acls' },
+          breadcrumb: { label: 'Tokens' },
         },
         edit: {
           _options: {
@@ -201,17 +201,41 @@ const ROUTES = {
             breadcrumb: { label: 'id', parent: 'dc.acls.tokens' },
           },
         },
+        create: {
+          _options: {
+            path: '/create',
+            breadcrumb: { label: 'Create', parent: 'dc.acls.tokens' },
+          },
+        },
       },
       policies: {
         _options: {
           path: '/policies',
-          breadcrumb: { label: 'Policies', parent: 'dc.acls' },
+          breadcrumb: { label: 'Policies' },
+        },
+        edit: {
+          _options: {
+            path: '/:id',
+            breadcrumb: { label: 'id', parent: 'dc.acls.policies' },
+          },
+        },
+        create: {
+          _options: {
+            path: '/create',
+            breadcrumb: { label: 'Create', parent: 'dc.acls.policies' },
+          },
         },
       },
       roles: {
         _options: {
           path: '/roles',
-          breadcrumb: { label: 'Roles', parent: 'dc.acls' },
+          breadcrumb: { label: 'Roles' },
+        },
+        create: {
+          _options: {
+            path: '/create',
+            breadcrumb: { label: 'Create', parent: 'dc.acls.roles' },
+          },
         },
       },
       'auth-methods': {
@@ -260,24 +284,6 @@ const ROUTES = {
         _options: {
           path: '/:name',
           breadcrumb: { label: 'name', parent: 'dc.partitions' },
-        },
-      },
-    },
-    nspaces: {
-      _options: {
-        path: '/namespaces',
-        breadcrumb: { label: 'Namespaces' },
-      },
-      index: {
-        _options: {
-          path: '/',
-          breadcrumb: { label: 'Namespaces' },
-        },
-      },
-      edit: {
-        _options: {
-          path: '/:name',
-          breadcrumb: { label: 'name', parent: 'dc.nspaces' },
         },
       },
     },
@@ -332,6 +338,30 @@ const ROUTES = {
         _options: {
           path: '/create',
           breadcrumb: { label: 'Create', parent: 'dc.intentions' },
+        },
+      },
+    },
+    nspaces: {
+      _options: {
+        path: '/namespaces',
+        breadcrumb: { label: 'Namespaces' },
+      },
+      index: {
+        _options: {
+          path: '/',
+          breadcrumb: { label: 'Namespaces' },
+        },
+      },
+      edit: {
+        _options: {
+          path: '/:name',
+          breadcrumb: { label: 'name', parent: 'dc.nspaces' },
+        },
+      },
+      create: {
+        _options: {
+          path: '/create',
+          breadcrumb: { label: 'Create', parent: 'dc.nspaces' },
         },
       },
     },
@@ -561,7 +591,7 @@ module('Unit | Service | breadcrumbs', function (hooks) {
       { route: 'dc.show', params: { dc: 'dc-1' } },
       { route: 'dc.services', params: { dc: 'dc-1' } },
       { route: 'dc.nodes', params: { dc: 'dc-1' } },
-      { route: 'dc.acls', params: { dc: 'dc-1' } },
+      // dc.acls has show:false — computeBreadcrumbs returns [] so excluded here
       { route: 'dc.partitions', params: { dc: 'dc-1' } },
       { route: 'dc.nspaces', params: { dc: 'dc-1' } },
       { route: 'dc.peers', params: { dc: 'dc-1' } },
@@ -586,10 +616,13 @@ module('Unit | Service | breadcrumbs', function (hooks) {
       { route: 'dc.services.show', params: { dc: 'dc-1', name: 'web' } },
       { route: 'dc.services.show.instances', params: { dc: 'dc-1', name: 'web' } },
       // dc.services.instance has show:false — computeBreadcrumbs returns [] so nothing to check
-      { route: 'dc.services.instance.healthchecks', params: { dc: 'dc-1', name: 'web', node: 'node-1', id: 'svc-1' } },
+      {
+        route: 'dc.services.instance.healthchecks',
+        params: { dc: 'dc-1', name: 'web', node: 'node-1', id: 'svc-1' },
+      },
       { route: 'dc.nodes', params: { dc: 'dc-1' } },
       { route: 'dc.nodes.show', params: { dc: 'dc-1', name: 'node-01' } },
-      { route: 'dc.acls', params: { dc: 'dc-1' } },
+      // dc.acls has show:false — computeBreadcrumbs returns [] so no labels to check
       { route: 'dc.acls.tokens', params: { dc: 'dc-1' } },
       { route: 'dc.acls.tokens.edit', params: { dc: 'dc-1', id: 'tok-1' } },
       { route: 'dc.partitions', params: { dc: 'dc-1' } },
@@ -613,13 +646,15 @@ module('Unit | Service | breadcrumbs', function (hooks) {
     }
   });
 
-  // ─── ACL 3-level chain (TASK-6) ───────────────────────────────────────────
+  // ─── ACL 2-level chain (TASK-6) ───────────────────────────────────────────
+  // Production: dc.acls has breadcrumb: { show: false }, so the walk stops at
+  // dc.acls.tokens (no parent) → chain is [Tokens, <id>] only.
 
-  test('dc.acls.tokens.edit → [ACLs, Tokens, token-id]', function (assert) {
+  test('dc.acls.tokens.edit → [Tokens, token-id]', function (assert) {
     const svc = this.owner.lookup('service:breadcrumbs');
     const items = svc.computeBreadcrumbs('dc.acls.tokens.edit', { dc: 'dc-1', id: 'tok-abc' });
     const labels = items.map((i) => i.label);
-    assert.deepEqual(labels, ['ACLs', 'Tokens', 'tok-abc']);
+    assert.deepEqual(labels, ['Tokens', 'tok-abc']);
   });
 
   test('dc.partitions.edit → [Admin Partitions, name]', function (assert) {
@@ -640,7 +675,10 @@ module('Unit | Service | breadcrumbs', function (hooks) {
 
   test('dc.services.instance has show:false — shouldShowBreadcrumbs returns false', function (assert) {
     const svc = this.owner.lookup('service:breadcrumbs');
-    assert.false(svc.shouldShowBreadcrumbs('dc.services.instance'), 'breadcrumbs hidden for redirect route');
+    assert.false(
+      svc.shouldShowBreadcrumbs('dc.services.instance'),
+      'breadcrumbs hidden for redirect route'
+    );
   });
 
   test('dc.services.instance.healthchecks → [Services, web, Instances, Health Checks]', function (assert) {
@@ -648,8 +686,15 @@ module('Unit | Service | breadcrumbs', function (hooks) {
     const params = { dc: 'dc-1', name: 'web', node: 'node-1', id: 'svc-1' };
     const items = svc.computeBreadcrumbs('dc.services.instance.healthchecks', params);
     assert.strictEqual(items.length, 4, 'four crumbs — Services / service-name / Instances / tab');
-    assert.deepEqual(items.map((i) => i.label), ['Services', 'web', 'Instances', 'Health Checks']);
-    assert.strictEqual(items[2].route, 'dc.services.show.instances', '"Instances" crumb links to list tab');
+    assert.deepEqual(
+      items.map((i) => i.label),
+      ['Services', 'web', 'Instances', 'Health Checks']
+    );
+    assert.strictEqual(
+      items[2].route,
+      'dc.services.show.instances',
+      '"Instances" crumb links to list tab'
+    );
     assert.true(items[2].isClickable, '"Instances" crumb is clickable');
     assert.true(items[3].isCurrent, 'tab crumb is current');
   });
@@ -659,20 +704,20 @@ module('Unit | Service | breadcrumbs', function (hooks) {
     const params = { dc: 'dc-1', name: 'web', node: 'node-1', id: 'svc-1' };
     const subTabs = [
       { route: 'dc.services.instance.healthchecks', label: 'Health Checks' },
-      { route: 'dc.services.instance.upstreams',    label: 'Upstreams' },
+      { route: 'dc.services.instance.upstreams', label: 'Upstreams' },
       { route: 'dc.services.instance.exposedpaths', label: 'Exposed Paths' },
-      { route: 'dc.services.instance.addresses',    label: 'Addresses' },
-      { route: 'dc.services.instance.metadata',     label: 'Metadata' },
+      { route: 'dc.services.instance.addresses', label: 'Addresses' },
+      { route: 'dc.services.instance.metadata', label: 'Metadata' },
     ];
     for (const { route, label } of subTabs) {
       const items = svc.computeBreadcrumbs(route, params);
       assert.strictEqual(items.length, 4, `${route} → 4 crumbs`);
-      assert.strictEqual(items[0].label, 'Services',  `${route} → root`);
-      assert.strictEqual(items[1].label, 'web',       `${route} → service name`);
+      assert.strictEqual(items[0].label, 'Services', `${route} → root`);
+      assert.strictEqual(items[1].label, 'web', `${route} → service name`);
       assert.strictEqual(items[2].label, 'Instances', `${route} → list crumb`);
       assert.strictEqual(items[2].route, 'dc.services.show.instances', `${route} → list tab route`);
-      assert.strictEqual(items[3].label, label,       `${route} → current tab`);
-      assert.true(items[3].isCurrent,                 `${route} → last item is current`);
+      assert.strictEqual(items[3].label, label, `${route} → current tab`);
+      assert.true(items[3].isCurrent, `${route} → last item is current`);
     }
   });
 
@@ -738,5 +783,177 @@ module('Unit | Service | breadcrumbs', function (hooks) {
     }
     const elapsed = performance.now() - start;
     assert.ok(elapsed < 50, `1 000 calls completed in ${elapsed.toFixed(1)} ms (< 50 ms required)`);
+  });
+
+  // ─── C: Dynamic labels — param value, not literal key name ───────────────
+  //
+  // Routes that declare `breadcrumb: { label: 'name' }` or `{ label: 'id' }`
+  // must resolve the *value* of the matching URL param rather than
+  // returning the literal string "name" / "id".  These are pure unit tests
+  // against _resolveLabel() via computeBreadcrumbs() — no live app needed.
+
+  test('C: service detail current crumb is the service name, not "name"', function (assert) {
+    const svc = this.owner.lookup('service:breadcrumbs');
+    const items = svc.computeBreadcrumbs('dc.services.show', { dc: 'dc-1', name: 'my-service' });
+    const current = items[items.length - 1];
+    assert.strictEqual(current.label, 'my-service', 'resolves to param value');
+    assert.notStrictEqual(current.label, 'name', 'does not return literal key "name"');
+  });
+
+  test('C: node detail current crumb is the node name, not "name"', function (assert) {
+    const svc = this.owner.lookup('service:breadcrumbs');
+    const items = svc.computeBreadcrumbs('dc.nodes.show', { dc: 'dc-1', name: 'node-01' });
+    const current = items[items.length - 1];
+    assert.strictEqual(current.label, 'node-01');
+    assert.notStrictEqual(current.label, 'name');
+  });
+
+  test('C: token detail current crumb is the token id, not "id"', function (assert) {
+    const svc = this.owner.lookup('service:breadcrumbs');
+    const items = svc.computeBreadcrumbs('dc.acls.tokens.edit', {
+      dc: 'dc-1',
+      id: 'tok-abc-123',
+    });
+    const current = items[items.length - 1];
+    assert.strictEqual(current.label, 'tok-abc-123');
+    assert.notStrictEqual(current.label, 'id');
+  });
+
+  test('C: policy detail current crumb is the policy id, not "id"', function (assert) {
+    const svc = this.owner.lookup('service:breadcrumbs');
+    const items = svc.computeBreadcrumbs('dc.acls.policies.edit', {
+      dc: 'dc-1',
+      id: 'pol-xyz-789',
+    });
+    const current = items[items.length - 1];
+    assert.strictEqual(current.label, 'pol-xyz-789');
+    assert.notStrictEqual(current.label, 'id');
+  });
+
+  test('C: peer detail current crumb is the peer name, not "name"', function (assert) {
+    const svc = this.owner.lookup('service:breadcrumbs');
+    const items = svc.computeBreadcrumbs('dc.peers.show', { dc: 'dc-1', name: 'peer-west' });
+    const current = items[items.length - 1];
+    assert.strictEqual(current.label, 'peer-west');
+    assert.notStrictEqual(current.label, 'name');
+  });
+
+  // ─── G: Create page crumb shape — "Create" label, 2-crumb chain ──────────
+  //
+  // Routes with `{ label: 'Create', parent: '...' }` must produce exactly
+  // 2 items, with the last carrying isCurrent=true, isClickable=false, and
+  // the literal label "Create".  The ancestor crumb must be the list page.
+
+  test('G: intentions create → [Intentions, Create] (current, non-clickable)', function (assert) {
+    const svc = this.owner.lookup('service:breadcrumbs');
+    const items = svc.computeBreadcrumbs('dc.intentions.create', { dc: 'dc-1' });
+    assert.strictEqual(items.length, 2, '2 items');
+    assert.strictEqual(items[0].label, 'Intentions');
+    assert.strictEqual(items[1].label, 'Create');
+    assert.true(items[1].isCurrent, 'last item is current');
+    assert.false(items[1].isClickable, 'last item is non-clickable');
+  });
+
+  test('G: tokens create → [Tokens, Create]', function (assert) {
+    const svc = this.owner.lookup('service:breadcrumbs');
+    const items = svc.computeBreadcrumbs('dc.acls.tokens.create', { dc: 'dc-1' });
+    assert.strictEqual(items.length, 2);
+    assert.strictEqual(items[0].label, 'Tokens');
+    assert.strictEqual(items[1].label, 'Create');
+    assert.true(items[1].isCurrent);
+    assert.false(items[1].isClickable);
+  });
+
+  test('G: policies create → [Policies, Create]', function (assert) {
+    const svc = this.owner.lookup('service:breadcrumbs');
+    const items = svc.computeBreadcrumbs('dc.acls.policies.create', { dc: 'dc-1' });
+    assert.strictEqual(items.length, 2);
+    assert.strictEqual(items[0].label, 'Policies');
+    assert.strictEqual(items[1].label, 'Create');
+    assert.true(items[1].isCurrent);
+    assert.false(items[1].isClickable);
+  });
+
+  test('G: roles create → [Roles, Create]', function (assert) {
+    const svc = this.owner.lookup('service:breadcrumbs');
+    const items = svc.computeBreadcrumbs('dc.acls.roles.create', { dc: 'dc-1' });
+    assert.strictEqual(items.length, 2);
+    assert.strictEqual(items[0].label, 'Roles');
+    assert.strictEqual(items[1].label, 'Create');
+    assert.true(items[1].isCurrent);
+    assert.false(items[1].isClickable);
+  });
+
+  test('G: nspaces create → [Namespaces, Create]', function (assert) {
+    const svc = this.owner.lookup('service:breadcrumbs');
+    const items = svc.computeBreadcrumbs('dc.nspaces.create', { dc: 'dc-1' });
+    assert.strictEqual(items.length, 2);
+    assert.strictEqual(items[0].label, 'Namespaces');
+    assert.strictEqual(items[1].label, 'Create');
+    assert.true(items[1].isCurrent);
+    assert.false(items[1].isClickable);
+  });
+
+  // ─── H1: _modelsFor includes the dc param so ancestor hrefs carry /dc-X/ ─
+  //
+  // BreadcrumbsService._modelsFor() extracts `:param` tokens from each path
+  // segment.  The `dc` param comes from `/:dc` at the root `dc` node. A
+  // regression here would silently produce model arrays without the dc value,
+  // causing `breadcrumb-href` to generate hrefs missing the datacenter segment.
+
+  test('H1: _modelsFor for dc.services includes the dc value as the first model', function (assert) {
+    const svc = this.owner.lookup('service:breadcrumbs');
+    svc._testRoutes = ROUTES;
+    const models = svc._modelsFor('dc.services', { dc: 'dc-1' });
+    assert.deepEqual(models, ['dc-1'], '_modelsFor returns [dc] for dc.services');
+  });
+
+  test('H1: _modelsFor for dc.services.show includes [dc, name]', function (assert) {
+    const svc = this.owner.lookup('service:breadcrumbs');
+    svc._testRoutes = ROUTES;
+    const models = svc._modelsFor('dc.services.show', { dc: 'dc-1', name: 'web' });
+    assert.deepEqual(models, ['dc-1', 'web']);
+  });
+
+  test('H1: _modelsFor for dc.nodes includes the dc value', function (assert) {
+    const svc = this.owner.lookup('service:breadcrumbs');
+    svc._testRoutes = ROUTES;
+    const models = svc._modelsFor('dc.nodes', { dc: 'dc-1' });
+    assert.deepEqual(models, ['dc-1']);
+  });
+
+  test('H1: computeBreadcrumbs ancestor item for dc.services.show carries dc in its models array', function (assert) {
+    const svc = this.owner.lookup('service:breadcrumbs');
+    const items = svc.computeBreadcrumbs('dc.services.show', { dc: 'dc-1', name: 'web' });
+    // items[0] is the Services list crumb — its models must include 'dc-1'
+    assert.ok(
+      items[0].models.includes('dc-1'),
+      `ancestor models = ${JSON.stringify(items[0].models)}`
+    );
+  });
+
+  // ─── H3: routing-config chain — Services → Routing Config ────────────────
+  //
+  // dc.routing-config declares { label: 'Routing Config', parent: 'dc.services' }.
+  // computeBreadcrumbs must return exactly [Services, Routing Config].
+
+  test('H3: routing-config → [Services, Routing Config]', function (assert) {
+    const svc = this.owner.lookup('service:breadcrumbs');
+    const items = svc.computeBreadcrumbs('dc.routing-config', { dc: 'dc1', name: 'virtual-1' });
+    assert.strictEqual(items.length, 2, '2 crumbs');
+    assert.strictEqual(items[0].label, 'Services', 'root crumb is Services');
+    assert.strictEqual(items[1].label, 'Routing Config', 'current crumb is Routing Config');
+    assert.true(items[1].isCurrent);
+    assert.false(items[1].isClickable);
+    assert.strictEqual(items[0].route, 'dc.services', 'ancestor points at services route');
+  });
+
+  test('H3: routing-config ancestor models include the dc value', function (assert) {
+    const svc = this.owner.lookup('service:breadcrumbs');
+    const items = svc.computeBreadcrumbs('dc.routing-config', { dc: 'dc1', name: 'virtual-1' });
+    assert.ok(
+      items[0].models.includes('dc1'),
+      `Services ancestor models = ${JSON.stringify(items[0].models)}`
+    );
   });
 });
