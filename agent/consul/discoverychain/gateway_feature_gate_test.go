@@ -12,13 +12,13 @@ import (
 )
 
 // TestSynthesizeHTTPRouteDiscoveryChain_UpstreamRoutingComposition validates the
-// #12706 behavior at the synthesizeHTTPRouteDiscoveryChain level — the
+// #23294 behavior at the synthesizeHTTPRouteDiscoveryChain level — the
 // function that builds the intermediate ServiceRouterConfigEntry before full
 // chain compilation.
 //
 // This is the correct level to test because:
 //   - disabled (legacy): routes have no HTTP match and no service subset.
-//   - enabled  (#12706): routes carry the HTTPRoute path match merged with
+//   - enabled  (#23294): routes carry the HTTPRoute path match merged with
 //     the service-router rule, and the canary subset is preserved.
 //
 // Full chain compilation is not exercised here because it requires a resolver
@@ -41,7 +41,7 @@ func TestSynthesizeHTTPRouteDiscoveryChain_UpstreamRoutingComposition(t *testing
 	}
 
 	// serviceRouters carries a canary subset rule for "backend", as would
-	// be extracted from a compiled discovery chain by #12706's
+	// be extracted from a compiled discovery chain by #23294's
 	// serviceRouterRulesFromChains.
 	serviceRouters := map[structs.ServiceName][]*structs.ServiceRoute{
 		structs.NewServiceName("backend", nil): {{
@@ -54,7 +54,7 @@ func TestSynthesizeHTTPRouteDiscoveryChain_UpstreamRoutingComposition(t *testing
 		require.Len(t, router.Routes, 1)
 		// Legacy: the HTTPRoute match is passed through directly — no service-router
 		// rules are composed.  The route is NOT a catch-all; it mirrors the
-		// HTTPRoute path match exactly as the pre-#12706 code did.
+		// HTTPRoute path match exactly as the pre-#23294 code did.
 		require.NotNil(t, router.Routes[0].Match,
 			"disabled: HTTPRoute match must be passed through")
 		require.Equal(t, "/api", router.Routes[0].Match.HTTP.PathPrefix,
@@ -64,15 +64,15 @@ func TestSynthesizeHTTPRouteDiscoveryChain_UpstreamRoutingComposition(t *testing
 			"disabled: canary subset must not appear in destination")
 	})
 
-	t.Run("enabled: path match + canary subset composed (#12706 shape)", func(t *testing.T) {
+	t.Run("enabled: path match + canary subset composed (#23294 shape)", func(t *testing.T) {
 		_, router, _, _ := synthesizeHTTPRouteDiscoveryChain(route, serviceRouters, true)
 		require.Len(t, router.Routes, 1)
-		// #12706: route carries the HTTPRoute path match.
+		// #23294: route carries the HTTPRoute path match.
 		require.NotNil(t, router.Routes[0].Match,
 			"enabled: route must carry an HTTP match")
 		require.Equal(t, "/api", router.Routes[0].Match.HTTP.PathPrefix,
 			"enabled: path prefix must equal the HTTPRoute match value")
-		// #12706: service-router canary subset is merged into the destination.
+		// #23294: service-router canary subset is merged into the destination.
 		require.Equal(t, "canary", router.Routes[0].Destination.ServiceSubset,
 			"enabled: canary subset from service-router must be preserved")
 	})

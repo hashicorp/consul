@@ -19,6 +19,49 @@ import (
 	"github.com/hashicorp/consul/tlsutil"
 )
 
+// featureGateDedup deduplicates feature-gate watch updates using a dirty flag
+// and sync.Cond, preventing redundant notifications from saturating state channels.
+type featureGateDedup struct {
+	cond  *sync.Cond
+	dirty bool
+}
+
+// newFeatureGateDedup creates a new dedup struct.
+func newFeatureGateDedup() *featureGateDedup {
+	return &featureGateDedup{
+		cond: sync.NewCond(&sync.Mutex{}),
+	}
+}
+
+// signal marks a feature-gate update as pending. It returns true if this is a new
+// (non-duplicate) update, false if a previous update has not yet been consumed.
+func (d *featureGateDedup) signal() bool {
+	d.cond.L.Lock()
+	defer d.cond.L.Unlock()
+	if d.dirty {
+		return false
+	}
+	d.dirty = true
+	d.cond.Signal()
+	return true
+}
+
+// wait blocks until a feature-gate update is signaled, then clears the dirty flag.
+func (d *featureGateDedup) wait(ctx context.Context) bool {
+	d.cond.L.Lock()
+	defer d.cond.L.Unlock()
+	for !d.dirty {
+		select {
+		case <-ctx.Done():
+			return false
+		default:
+		}
+		d.cond.Wait()
+	}
+	d.dirty = false
+	return true
+}
+
 // ProxyID is a handle on a proxy service instance being tracked by Manager.
 type ProxyID struct {
 	structs.ServiceID
@@ -62,12 +105,13 @@ type Manager struct {
 
 	rateLimiter *rate.Limiter
 
-	mu         sync.Mutex
-	proxies    map[ProxyID]*state
-	watchers   map[ProxyID]map[uint64]chan *ConfigSnapshot
-	maxWatchID uint64
-	doneCh     chan struct{}
-	closeOnce  sync.Once
+	mu               sync.Mutex
+	proxies          map[ProxyID]*state
+	watchers         map[ProxyID]map[uint64]chan *ConfigSnapshot
+	maxWatchID       uint64
+	doneCh           chan struct{}
+	closeOnce        sync.Once
+	featureGateDedup *featureGateDedup
 }
 
 // ManagerConfig holds the required external dependencies for a Manager
@@ -119,11 +163,12 @@ func NewManager(cfg ManagerConfig) (*Manager, error) {
 	}
 
 	m := &Manager{
-		ManagerConfig: cfg,
-		proxies:       make(map[ProxyID]*state),
-		watchers:      make(map[ProxyID]map[uint64]chan *ConfigSnapshot),
-		rateLimiter:   rate.NewLimiter(cfg.UpdateRateLimit, 1),
-		doneCh:        make(chan struct{}),
+		ManagerConfig:    cfg,
+		proxies:          make(map[ProxyID]*state),
+		watchers:         make(map[ProxyID]map[uint64]chan *ConfigSnapshot),
+		rateLimiter:      rate.NewLimiter(cfg.UpdateRateLimit, 1),
+		doneCh:           make(chan struct{}),
+		featureGateDedup: newFeatureGateDedup(),
 	}
 	if cfg.FeatureGate != nil {
 		go m.watchFeatureGates()
@@ -226,6 +271,7 @@ func (m *Manager) register(id ProxyID, ns *structs.NodeService, source ProxySour
 }
 
 func (m *Manager) watchFeatureGates() {
+	go m.featureGateRefresher()
 	for {
 		watch := m.FeatureGate.Watch()
 		select {
@@ -235,8 +281,17 @@ func (m *Manager) watchFeatureGates() {
 			if m.Logger != nil {
 				m.Logger.Debug("feature-gate store updated, refreshing catalog API Gateway snapshots")
 			}
-			m.refreshFeatureGates()
+			m.featureGateDedup.signal()
 		}
+	}
+}
+
+// featureGateRefresher waits for feature-gate update signals and batches them
+// to prevent redundant state channel deliveries when updates arrive faster than
+// they can be consumed.
+func (m *Manager) featureGateRefresher() {
+	for m.featureGateDedup.wait(context.Background()) {
+		m.refreshFeatureGates()
 	}
 }
 
@@ -258,9 +313,21 @@ func (m *Manager) refreshFeatureGates() {
 	for _, state := range states {
 		select {
 		case <-state.doneCh:
-		case state.ch <- UpdateEvent{CorrelationID: featureGateWatchID}:
+			continue
+		default:
+		}
+		event := UpdateEvent{CorrelationID: featureGateWatchID}
+		select {
+		case <-state.doneCh:
+			continue
+		case state.ch <- event:
 			if m.Logger != nil {
 				m.Logger.Debug("feature-gate refresh: sent update event", "proxy_id", state.serviceInstance.proxyID)
+			}
+		default:
+			// Channel is full; dedup ensures we'll retry on the next publish.
+			if m.Logger != nil {
+				m.Logger.Debug("feature-gate refresh: channel full, will retry on next publish", "proxy_id", state.serviceInstance.proxyID)
 			}
 		}
 	}

@@ -42,6 +42,37 @@ func TestStore(t *testing.T) {
 	require.False(t, store.Enabled(APIGatewayUpstreamRouting))
 }
 
+func TestStore_Reset(t *testing.T) {
+	var store Store
+
+	store.Reset()
+	require.False(t, store.Enabled(APIGatewayUpstreamRouting), "reset on uninitialised store must remain fail-closed")
+
+	require.True(t, store.Publish(Snapshot{
+		StatusIndex: 5,
+		Features:    map[string]bool{APIGatewayUpstreamRouting.String(): true},
+	}))
+	require.True(t, store.Enabled(APIGatewayUpstreamRouting))
+
+	watch := store.Watch()
+
+	store.Reset()
+
+	require.False(t, store.Enabled(APIGatewayUpstreamRouting), "reset must clear the snapshot and fail-close")
+
+	select {
+	case <-watch:
+	default:
+		t.Fatal("Reset must notify watchers")
+	}
+
+	require.True(t, store.Publish(Snapshot{
+		StatusIndex: 3,
+		Features:    map[string]bool{APIGatewayUpstreamRouting.String(): true},
+	}), "Publish after Reset must succeed even with a lower StatusIndex")
+	require.True(t, store.Enabled(APIGatewayUpstreamRouting))
+}
+
 func TestStore_Watch(t *testing.T) {
 	store := &Store{}
 	watch := store.Watch()

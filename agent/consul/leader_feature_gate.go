@@ -195,6 +195,13 @@ func (s *Server) runFeatureGateCache(ctx context.Context) {
 					"features", features,
 				)
 			}
+		} else {
+			// The current FSM state store has no committed feature-gate status yet
+			// (new store after a snapshot restore, or a fresh pre-bootstrap cluster).
+			// Reset to an uninitialized, fail-closed state so that a stale snapshot
+			// from a previous generation cannot continue returning true for features
+			// that have not been confirmed by the authoritative FSM.
+			s.featureGateStore.Reset()
 		}
 
 		if err := ws.WatchCtx(ctx); err != nil {

@@ -13,7 +13,7 @@ import "github.com/hashicorp/go-version"
 // production release that contains both:
 //
 //	(a) the feature-gate Raft framework (FeatureGateRequestType + snapshot decode), and
-//	(b) the guarded #12706 behavior in gateway_httproute.go.
+//	(b) the guarded #23294 behavior in gateway_httproute.go.
 //
 // MinVersion must equal an already-published release tag, not a dev build.
 // Using a dev version means the minimum-version floor will never be satisfied
