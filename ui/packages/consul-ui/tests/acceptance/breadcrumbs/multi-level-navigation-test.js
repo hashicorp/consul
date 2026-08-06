@@ -91,6 +91,11 @@ module('Acceptance | breadcrumbs / multi-level-navigation', function (hooks) {
   );
 
   // ── 3-level chain: Auth Methods → <id> → Auth Method ────────────────────
+  // dc.acls.auth-methods.show.index always redirects to the 'auth-method'
+  // child route (see app/routes/dc/acls/auth-methods/show/index.js), so
+  // clicking into a row from the list always lands on the 'auth-method'
+  // sub-tab.  The crumb chain is always 3 levels deep:
+  //   Auth Methods → <id> → Auth Method  (current)
 
   nspaceScenario(
     'Scenario: Auth-method sub-tab → click auth-method detail crumb → lands on auth-method detail',
@@ -101,31 +106,17 @@ module('Acceptance | breadcrumbs / multi-level-navigation', function (hooks) {
       await visit('authMethods', { dc: 'dc-1' }, { nspace });
       await page().authMethods.objectAt(0).authMethod();
 
-      // Navigate to the Auth Method sub-tab to get a 3-crumb chain.
-      const subTabLink = document.querySelector('[data-test-tab-nav] a[href*="auth-method"]');
-      if (subTabLink) {
-        await click(subTabLink);
-        assert.dom('[data-test-breadcrumb-item]').exists({ count: 3 }, '3 crumbs rendered');
+      // The show/index route immediately redirects to /auth-method, so we
+      // always land on the 3-crumb chain — no conditional needed.
+      assert.dom('[data-test-breadcrumb-item]').exists({ count: 3 }, '3 crumbs rendered');
 
-        // Click the 2nd crumb (auth-method detail) → should stay on detail, not go back to list.
-        await click('[data-test-breadcrumb-item]:nth-child(2) a');
-        assert.ok(
-          currentURL().includes('/dc-1/acls/auth-methods/'),
-          `Expected auth-method detail URL, got ${currentURL()}`
-        );
-        assert.notOk(
-          currentURL().endsWith('/auth-method'),
-          'URL no longer on the auth-method sub-tab'
-        );
-      } else {
-        // Sub-tab link not present (e.g. CE without that sub-tab) — verify 2-crumb chain instead.
-        assert.dom('[data-test-breadcrumb-item]').exists({ count: 2 }, '2 crumbs on detail page');
-        await click('[data-test-breadcrumb-item]:first-child a');
-        assert.ok(
-          currentURL().includes('/dc-1/acls/auth-methods'),
-          `Expected auth-methods list URL, got ${currentURL()}`
-        );
-      }
+      // Click the 2nd crumb (<id>) → the show/index redirect fires again and
+      // settles on /<id>/auth-method, so the URL must match that exact shape.
+      await click('[data-test-breadcrumb-item]:nth-child(2) a');
+      assert.ok(
+        currentURL().match(/\/dc-1\/acls\/auth-methods\/[^/]+\/auth-method$/),
+        `Expected URL matching /dc-1/acls/auth-methods/<id>/auth-method, got ${currentURL()}`
+      );
     },
     { notNamespaceable: true }
   );
@@ -154,6 +145,11 @@ module('Acceptance | breadcrumbs / multi-level-navigation', function (hooks) {
   );
 
   // ── 3-level chain: Peers → <name> → Imported Services ───────────────────
+  // dc.peers.show.index always redirects to dc.peers.show.imported
+  // (see app/controllers/dc/peers/show/index.js → transitionToImported).
+  // visit('peer', ...) therefore always lands on /imported-services and the
+  // crumb chain is always 3 levels deep:
+  //   Peers → <name> → Imported Services  (current)
 
   nspaceScenario(
     'Scenario: Peer imported-services tab → click peer name crumb → lands on peer detail',
@@ -163,34 +159,17 @@ module('Acceptance | breadcrumbs / multi-level-navigation', function (hooks) {
 
       await visit('peer', { dc: 'dc-1', peer: 'peer-0' }, { nspace });
 
-      // Navigate to the Imported Services sub-tab.
-      const importedLink = document.querySelector(
-        '[data-test-tab-nav] a[href*="imported-services"]'
+      // The show/index redirect always fires, so we always land on
+      // /imported-services — no conditional needed.
+      assert.dom('[data-test-breadcrumb-item]').exists({ count: 3 }, '3 crumbs rendered');
+
+      // Click the 2nd crumb (<name>) → the show/index redirect fires again
+      // and settles on /<name>/imported-services.
+      await click('[data-test-breadcrumb-item]:nth-child(2) a');
+      assert.ok(
+        currentURL().match(/\/dc-1\/peers\/[^/]+\/imported-services$/),
+        `Expected URL matching /dc-1/peers/<name>/imported-services, got ${currentURL()}`
       );
-      if (importedLink) {
-        await click(importedLink);
-
-        assert.dom('[data-test-breadcrumb-item]').exists({ count: 3 }, '3 crumbs rendered');
-
-        // Click the 2nd crumb (peer detail) → should land on peer show, not the list.
-        await click('[data-test-breadcrumb-item]:nth-child(2) a');
-        assert.ok(
-          currentURL().includes('/dc-1/peers/peer-0'),
-          `Expected peer detail URL, got ${currentURL()}`
-        );
-        assert.notOk(
-          currentURL().endsWith('/imported-services'),
-          'URL no longer on imported-services sub-tab'
-        );
-      } else {
-        // Sub-tab not present — fall back to verifying 2-crumb chain.
-        assert.dom('[data-test-breadcrumb-item]').exists({ count: 2 }, '2 crumbs on detail page');
-        await click('[data-test-breadcrumb-item]:first-child a');
-        assert.ok(
-          currentURL().includes('/dc-1/peers'),
-          `Expected peers list URL, got ${currentURL()}`
-        );
-      }
     },
     { notNamespaceable: true }
   );
