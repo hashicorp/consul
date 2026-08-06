@@ -912,7 +912,7 @@ func TestBuilder_FeatureGatesBootstrap(t *testing.T) {
 
 	t.Run("client rejects bootstrap", func(t *testing.T) {
 		devMode := false
-		_, err := Load(LoadOpts{
+		opts := LoadOpts{
 			DevMode: &devMode,
 			HCL: []string{`
 				server = false
@@ -921,7 +921,9 @@ func TestBuilder_FeatureGatesBootstrap(t *testing.T) {
 					bootstrap = { "api-gateway-upstream-routing" = true }
 				}
 			`},
-		})
+		}
+		patchLoadOptsShims(&opts)
+		_, err := Load(opts)
 		require.ErrorContains(t, err, "feature_gates.bootstrap requires server = true")
 	})
 
