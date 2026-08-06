@@ -22,8 +22,8 @@ const (
 	ReasonOperatorEnabled   Reason = "operator-enabled"
 	ReasonOperatorDisabled  Reason = "operator-disabled"
 	// Eligibility reasons: emitted when the cluster does not yet qualify.
-	ReasonBelowMinimumVersion  Reason = "below-minimum-version"
-	ReasonNoServerVersionData  Reason = "no-server-version-data"
+	ReasonBelowMinimumVersion Reason = "below-minimum-version"
+	ReasonNoServerVersionData Reason = "no-server-version-data"
 
 	// Deprecated aliases kept so existing callers that compare against the old
 	// values continue to compile. New code should use the named constants above.
