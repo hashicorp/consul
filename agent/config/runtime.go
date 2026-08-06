@@ -1578,6 +1578,10 @@ type RuntimeConfig struct {
 	// List of experiments to enable
 	Experiments []string
 
+	// FeatureGatesBootstrap is server-only intent used to create the first
+	// Raft-backed feature-gate policy. It is never a local runtime override.
+	FeatureGatesBootstrap map[string]bool
+
 	EnterpriseRuntimeConfig
 }
 

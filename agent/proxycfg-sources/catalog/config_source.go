@@ -19,7 +19,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-const source proxycfg.ProxySource = "catalog"
+const source proxycfg.ProxySource = proxycfg.ProxySourceCatalog
 
 // ConfigSource wraps a proxycfg.Manager to register services with it, from the
 // catalog, when they are requested by the xDS server.
@@ -52,9 +52,16 @@ func NewConfigSource(cfg Config) *ConfigSource {
 // Watch wraps the underlying proxycfg.Manager and dynamically registers
 // services from the catalog with it when requested by the xDS server.
 func (m *ConfigSource) Watch(serviceID structs.ServiceID, nodeName string, token string) (<-chan *proxycfg.ConfigSnapshot, limiter.SessionTerminatedChan, proxycfg.SrcTerminatedChan, context.CancelFunc, error) {
+	m.Logger.Debug("catalog ConfigSource.Watch called",
+		"service_id", serviceID.String(),
+		"node_name", nodeName,
+		"local_node", m.NodeName,
+		"is_local", nodeName == m.NodeName,
+	)
 	// If the service is registered to the local agent, use the LocalConfigSource
 	// rather than trying to configure it from the catalog.
 	if nodeName == m.NodeName && m.LocalState.ServiceExists(serviceID) {
+		m.Logger.Debug("catalog ConfigSource.Watch: routing to LocalConfigSource", "service_id", serviceID.String())
 		return m.LocalConfigSource.Watch(serviceID, nodeName, token)
 	}
 

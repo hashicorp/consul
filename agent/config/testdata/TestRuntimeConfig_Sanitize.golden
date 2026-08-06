@@ -201,6 +201,7 @@
     "Experiments": [],
     "ExposeMaxPort": 0,
     "ExposeMinPort": 0,
+    "FeatureGatesBootstrap": {},
     "GRPCAddrs": [],
     "GRPCKeepaliveInterval": "0s",
     "GRPCKeepaliveTimeout": "0s",
