@@ -57,23 +57,31 @@ module('Acceptance | breadcrumbs / edge-cases', function (hooks) {
       await visit('services', { dc: 'dc1' }, { nspace });
 
       // Navigate into the service (the page object encodes the name).
+      // This lands on dc.services.show.instances (the default child route),
+      // so the breadcrumb trail is: Services → <service-name> → Instances.
+      // [data-test-breadcrumb-current] therefore shows "Instances".
       await page().services.objectAt(0).service();
 
-      // Crumb label must show the decoded service name, not the URL-encoded form.
-      const currentText = document
-        .querySelector('[data-test-breadcrumb-current]')
-        ?.textContent?.trim();
+      // The service-name crumb is the last *non-current* (ancestor) crumb.
+      // Query all non-current items and take the last one.
+      const ancestorItems = document.querySelectorAll(
+        '[data-test-breadcrumb-item]:not([data-test-breadcrumb-current])'
+      );
+      const serviceNameCrumb = ancestorItems[ancestorItems.length - 1];
+      const serviceNameText = serviceNameCrumb?.textContent?.trim();
+
       assert.ok(
-        currentText && !currentText.includes('%2F'),
-        `current crumb is decoded, got "${currentText}"`
+        serviceNameText && !serviceNameText.includes('%2F'),
+        `service-name crumb is decoded, got "${serviceNameText}"`
       );
       assert.ok(
-        (currentText && currentText.includes('hashicorp')) || currentText?.includes('service-0'),
-        `current crumb contains part of the service name, got "${currentText}"`
+        (serviceNameText && serviceNameText.includes('hashicorp')) ||
+          serviceNameText?.includes('service-0'),
+        `service-name crumb contains part of the service name, got "${serviceNameText}"`
       );
 
-      // Ancestor crumb link must navigate back to the services list without throwing.
-      const ancestorLink = document.querySelector('[data-test-breadcrumb-item]:first-child a');
+      // The first ancestor crumb ("Services") must navigate back to the list.
+      const ancestorLink = ancestorItems[0]?.querySelector('a');
       assert.ok(ancestorLink, 'ancestor crumb has a link');
 
       let threw = false;
