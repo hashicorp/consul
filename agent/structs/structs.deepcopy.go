@@ -1476,6 +1476,34 @@ func (o *UpstreamConfiguration) DeepCopy() *UpstreamConfiguration {
 						cp.Overrides[i2].Limits.MaxConcurrentRequests = new(int)
 						*cp.Overrides[i2].Limits.MaxConcurrentRequests = *o.Overrides[i2].Limits.MaxConcurrentRequests
 					}
+					if o.Overrides[i2].Limits.PassiveHealthCheck != nil {
+						cp.Overrides[i2].Limits.PassiveHealthCheck = new(PassiveHealthCheck)
+						*cp.Overrides[i2].Limits.PassiveHealthCheck = *o.Overrides[i2].Limits.PassiveHealthCheck
+						if o.Overrides[i2].Limits.PassiveHealthCheck.EnforcingConsecutive5xx != nil {
+							cp.Overrides[i2].Limits.PassiveHealthCheck.EnforcingConsecutive5xx = new(uint32)
+							*cp.Overrides[i2].Limits.PassiveHealthCheck.EnforcingConsecutive5xx = *o.Overrides[i2].Limits.PassiveHealthCheck.EnforcingConsecutive5xx
+						}
+						if o.Overrides[i2].Limits.PassiveHealthCheck.EnforcingConsecutiveGatewayFailure != nil {
+							cp.Overrides[i2].Limits.PassiveHealthCheck.EnforcingConsecutiveGatewayFailure = new(uint32)
+							*cp.Overrides[i2].Limits.PassiveHealthCheck.EnforcingConsecutiveGatewayFailure = *o.Overrides[i2].Limits.PassiveHealthCheck.EnforcingConsecutiveGatewayFailure
+						}
+						if o.Overrides[i2].Limits.PassiveHealthCheck.Consecutive5xx != nil {
+							cp.Overrides[i2].Limits.PassiveHealthCheck.Consecutive5xx = new(uint32)
+							*cp.Overrides[i2].Limits.PassiveHealthCheck.Consecutive5xx = *o.Overrides[i2].Limits.PassiveHealthCheck.Consecutive5xx
+						}
+						if o.Overrides[i2].Limits.PassiveHealthCheck.ConsecutiveGatewayFailure != nil {
+							cp.Overrides[i2].Limits.PassiveHealthCheck.ConsecutiveGatewayFailure = new(uint32)
+							*cp.Overrides[i2].Limits.PassiveHealthCheck.ConsecutiveGatewayFailure = *o.Overrides[i2].Limits.PassiveHealthCheck.ConsecutiveGatewayFailure
+						}
+						if o.Overrides[i2].Limits.PassiveHealthCheck.MaxEjectionPercent != nil {
+							cp.Overrides[i2].Limits.PassiveHealthCheck.MaxEjectionPercent = new(uint32)
+							*cp.Overrides[i2].Limits.PassiveHealthCheck.MaxEjectionPercent = *o.Overrides[i2].Limits.PassiveHealthCheck.MaxEjectionPercent
+						}
+						if o.Overrides[i2].Limits.PassiveHealthCheck.BaseEjectionTime != nil {
+							cp.Overrides[i2].Limits.PassiveHealthCheck.BaseEjectionTime = new(time.Duration)
+							*cp.Overrides[i2].Limits.PassiveHealthCheck.BaseEjectionTime = *o.Overrides[i2].Limits.PassiveHealthCheck.BaseEjectionTime
+						}
+					}
 				}
 				if o.Overrides[i2].PassiveHealthCheck != nil {
 					cp.Overrides[i2].PassiveHealthCheck = new(PassiveHealthCheck)
@@ -1525,6 +1553,34 @@ func (o *UpstreamConfiguration) DeepCopy() *UpstreamConfiguration {
 			if o.Defaults.Limits.MaxConcurrentRequests != nil {
 				cp.Defaults.Limits.MaxConcurrentRequests = new(int)
 				*cp.Defaults.Limits.MaxConcurrentRequests = *o.Defaults.Limits.MaxConcurrentRequests
+			}
+			if o.Defaults.Limits.PassiveHealthCheck != nil {
+				cp.Defaults.Limits.PassiveHealthCheck = new(PassiveHealthCheck)
+				*cp.Defaults.Limits.PassiveHealthCheck = *o.Defaults.Limits.PassiveHealthCheck
+				if o.Defaults.Limits.PassiveHealthCheck.EnforcingConsecutive5xx != nil {
+					cp.Defaults.Limits.PassiveHealthCheck.EnforcingConsecutive5xx = new(uint32)
+					*cp.Defaults.Limits.PassiveHealthCheck.EnforcingConsecutive5xx = *o.Defaults.Limits.PassiveHealthCheck.EnforcingConsecutive5xx
+				}
+				if o.Defaults.Limits.PassiveHealthCheck.EnforcingConsecutiveGatewayFailure != nil {
+					cp.Defaults.Limits.PassiveHealthCheck.EnforcingConsecutiveGatewayFailure = new(uint32)
+					*cp.Defaults.Limits.PassiveHealthCheck.EnforcingConsecutiveGatewayFailure = *o.Defaults.Limits.PassiveHealthCheck.EnforcingConsecutiveGatewayFailure
+				}
+				if o.Defaults.Limits.PassiveHealthCheck.Consecutive5xx != nil {
+					cp.Defaults.Limits.PassiveHealthCheck.Consecutive5xx = new(uint32)
+					*cp.Defaults.Limits.PassiveHealthCheck.Consecutive5xx = *o.Defaults.Limits.PassiveHealthCheck.Consecutive5xx
+				}
+				if o.Defaults.Limits.PassiveHealthCheck.ConsecutiveGatewayFailure != nil {
+					cp.Defaults.Limits.PassiveHealthCheck.ConsecutiveGatewayFailure = new(uint32)
+					*cp.Defaults.Limits.PassiveHealthCheck.ConsecutiveGatewayFailure = *o.Defaults.Limits.PassiveHealthCheck.ConsecutiveGatewayFailure
+				}
+				if o.Defaults.Limits.PassiveHealthCheck.MaxEjectionPercent != nil {
+					cp.Defaults.Limits.PassiveHealthCheck.MaxEjectionPercent = new(uint32)
+					*cp.Defaults.Limits.PassiveHealthCheck.MaxEjectionPercent = *o.Defaults.Limits.PassiveHealthCheck.MaxEjectionPercent
+				}
+				if o.Defaults.Limits.PassiveHealthCheck.BaseEjectionTime != nil {
+					cp.Defaults.Limits.PassiveHealthCheck.BaseEjectionTime = new(time.Duration)
+					*cp.Defaults.Limits.PassiveHealthCheck.BaseEjectionTime = *o.Defaults.Limits.PassiveHealthCheck.BaseEjectionTime
+				}
 			}
 		}
 		if o.Defaults.PassiveHealthCheck != nil {
