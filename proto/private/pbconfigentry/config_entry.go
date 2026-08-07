@@ -510,6 +510,10 @@ func apiGatewayProtocolFromStructs(a structs.APIGatewayListenerProtocol) APIGate
 		return APIGatewayListenerProtocol_ListenerProtocolHTTP
 	case structs.ListenerProtocolTCP:
 		return APIGatewayListenerProtocol_ListenerProtocolTCP
+	case structs.ListenerProtocolHTTP2:
+		return APIGatewayListenerProtocol_ListenerProtocolHTTP2
+	case structs.ListenerProtocolGRPC:
+		return APIGatewayListenerProtocol_ListenerProtocolGRPC
 	default:
 		return APIGatewayListenerProtocol_ListenerProtocolHTTP
 	}
@@ -521,6 +525,10 @@ func apiGatewayProtocolToStructs(a APIGatewayListenerProtocol) structs.APIGatewa
 		return structs.ListenerProtocolHTTP
 	case APIGatewayListenerProtocol_ListenerProtocolTCP:
 		return structs.ListenerProtocolTCP
+	case APIGatewayListenerProtocol_ListenerProtocolHTTP2:
+		return structs.ListenerProtocolHTTP2
+	case APIGatewayListenerProtocol_ListenerProtocolGRPC:
+		return structs.ListenerProtocolGRPC
 	default:
 		return structs.ListenerProtocolHTTP
 	}

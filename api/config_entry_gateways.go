@@ -228,6 +228,24 @@ func (g *TerminatingGatewayConfigEntry) GetMeta() map[string]string { return g.M
 func (g *TerminatingGatewayConfigEntry) GetCreateIndex() uint64     { return g.CreateIndex }
 func (g *TerminatingGatewayConfigEntry) GetModifyIndex() uint64     { return g.ModifyIndex }
 
+// APIGatewayListenerProtocol is the protocol that an APIGateway listener uses.
+type APIGatewayListenerProtocol = string
+
+const (
+	// APIGatewayListenerProtocolHTTP configures an HTTP/1.1 listener.
+	APIGatewayListenerProtocolHTTP APIGatewayListenerProtocol = "http"
+	// APIGatewayListenerProtocolHTTP2 configures an HTTP/2 listener. The
+	// downstream connection manager uses the HTTP/2 codec and advertises h2
+	// via ALPN; the upstream cluster also negotiates HTTP/2 end-to-end.
+	APIGatewayListenerProtocolHTTP2 APIGatewayListenerProtocol = "http2"
+	// APIGatewayListenerProtocolGRPC configures a gRPC listener. It is
+	// identical to http2 at the transport level; Consul routes gRPC traffic
+	// using standard HTTP/2 path-based matching (/package.Service/Method).
+	APIGatewayListenerProtocolGRPC APIGatewayListenerProtocol = "grpc"
+	// APIGatewayListenerProtocolTCP configures a plain TCP listener.
+	APIGatewayListenerProtocolTCP APIGatewayListenerProtocol = "tcp"
+)
+
 // APIGatewayConfigEntry manages the configuration for an API gateway
 // with the given name.
 type APIGatewayConfigEntry struct {
@@ -308,8 +326,10 @@ type APIGatewayListener struct {
 	Hostname string
 	// Port is the port at which this listener should bind.
 	Port int
-	// Protocol is the protocol that a listener should use, it must
-	// either be "http" or "tcp"
+	// Protocol is the protocol that a listener should use. Valid values are
+	// APIGatewayListenerProtocolHTTP ("http"), APIGatewayListenerProtocolHTTP2
+	// ("http2"), APIGatewayListenerProtocolGRPC ("grpc"), and
+	// APIGatewayListenerProtocolTCP ("tcp").
 	Protocol string
 	// TLS is the TLS settings for the listener.
 	TLS APIGatewayTLSConfiguration
