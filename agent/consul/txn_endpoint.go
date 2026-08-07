@@ -5,6 +5,7 @@ package consul
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
@@ -79,7 +80,7 @@ func (t *Txn) preCheck(authorizer resolver.Result, ops structs.TxnOps) structs.T
 			}
 
 			// Check that the token has permissions for the given operation.
-			if err := vetNodeTxnOp(op.Node, authorizer); err != nil {
+			if err := t.vetNodeTxnOp(op.Node, authorizer); err != nil {
 				errors = append(errors, &structs.TxnError{
 					OpIndex: i,
 					What:    err.Error(),
@@ -276,16 +277,6 @@ func (t *Txn) vetServiceTxnTarget(op *structs.TxnServiceOp, authz resolver.Resul
 		)
 	}
 
-	return nil
-}
-
-func vetCheckTxnRequest(op *structs.TxnCheckOp, authz resolver.Result) error {
-	var authzContext acl.AuthorizerContext
-	op.FillAuthzContext(&authzContext)
-
-	if err := authz.ToAllowAuthorizer().NodeWriteAllowed(op.Node.Node, &authzContext); err != nil {
-		return err
-	}
 	return nil
 }
 
