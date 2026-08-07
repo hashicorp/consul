@@ -42,6 +42,8 @@ permissions:
   # Required for the discover-artifacts job to list this run's artifacts, and
   # for the scan jobs to download them, via the GitHub Actions API.
   actions: read
+  # Required by github/codeql-action/upload-sarif to upload SARIF results
+  security-events: write
 
 jobs:
   # 1. Build every artifact for the triggering branch's latest commit. build.yml
