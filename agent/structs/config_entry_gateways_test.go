@@ -1286,6 +1286,63 @@ func TestAPIGateway_Listeners(t *testing.T) {
 			},
 			validateErr: "cannot be merged",
 		},
+		"http and grpc listeners merge on the same port": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-http-grpc-merge",
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener-http",
+						Port:     80,
+						Protocol: ListenerProtocolHTTP,
+					},
+					{
+						Name:     "listener-grpc",
+						Port:     80,
+						Protocol: ListenerProtocolGRPC,
+					},
+				},
+			},
+			validateErr: "cannot be merged",
+		},
+		"http2 and grpc listeners merge on the same port": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-http2-grpc-merge",
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener-http2",
+						Port:     80,
+						Protocol: ListenerProtocolHTTP2,
+					},
+					{
+						Name:     "listener-grpc",
+						Port:     80,
+						Protocol: ListenerProtocolGRPC,
+					},
+				},
+			},
+			validateErr: "cannot be merged",
+		},
+		"tcp and http listeners merge on the same port": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-tcp-http-merge",
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener-tcp",
+						Port:     80,
+						Protocol: ListenerProtocolTCP,
+					},
+					{
+						Name:     "listener-http",
+						Port:     80,
+						Protocol: ListenerProtocolHTTP,
+					},
+				},
+			},
+			validateErr: "cannot be merged",
+		},
 		"hostname in unsupported protocol": {
 			entry: &APIGatewayConfigEntry{
 				Kind: "api-gateway",

@@ -414,7 +414,9 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 					if !structs.IsProtocolHTTPLike(listenerProtocol) {
 						listenerProtocol = string(structs.ListenerProtocolHTTP)
 					}
-					chainProtocol = listenerProtocol
+					if listenerProtocol != string(structs.ListenerProtocolHTTP) || chainProtocol == string(structs.ListenerProtocolHTTP) {
+						chainProtocol = listenerProtocol
+					}
 
 					upstreamCfg := map[string]interface{}{}
 					structs.UpstreamConfig{
