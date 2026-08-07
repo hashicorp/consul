@@ -1615,19 +1615,33 @@ func (s *HTTPHandlers) AgentConnectCARoots(resp http.ResponseWriter, req *http.R
 		return nil, nil
 	}
 
-	raw, m, err := s.agent.cache.Get(req.Context(), cachetype.ConnectCARootName, &args)
-	if err != nil {
-		return nil, err
-	}
-	defer setCacheMeta(resp, &m)
+	// Only use the agent cache when HTTP query caching is enabled. Otherwise a
+	// remote caller could bypass the operator's http_config.use_cache = false
+	// setting and force unbounded cache growth by varying the request token
+	// (which is incorporated into the cache key). When caching is disabled we
+	// issue the request directly via RPC instead.
+	var reply *structs.IndexedCARoots
+	if s.agent.config.HTTPUseCache {
+		raw, m, err := s.agent.cache.Get(req.Context(), cachetype.ConnectCARootName, &args)
+		if err != nil {
+			return nil, err
+		}
+		defer setCacheMeta(resp, &m)
 
-	// Add cache hit
-
-	reply, ok := raw.(*structs.IndexedCARoots)
-	if !ok {
-		// This should never happen, but we want to protect against panics
-		return nil, fmt.Errorf("internal error: response type not correct")
+		r, ok := raw.(*structs.IndexedCARoots)
+		if !ok {
+			// This should never happen, but we want to protect against panics
+			return nil, fmt.Errorf("internal error: response type not correct")
+		}
+		reply = r
+	} else {
+		var out structs.IndexedCARoots
+		if err := s.agent.RPC(req.Context(), "ConnectCA.Roots", &args, &out); err != nil {
+			return nil, err
+		}
+		reply = &out
 	}
+
 	defer setMeta(resp, &reply.QueryMeta)
 
 	return *reply, nil
@@ -1766,15 +1780,32 @@ func (s *HTTPHandlers) AgentConnectAuthorize(resp http.ResponseWriter, req *http
 		QueryOptions: structs.QueryOptions{Token: token},
 	}
 
-	raw, meta, err := s.agent.cache.Get(req.Context(), cachetype.IntentionMatchName, args)
-	if err != nil {
-		return nil, fmt.Errorf("failed getting intention match: %w", err)
+	// Only use the agent cache when HTTP query caching is enabled. Otherwise a
+	// caller could bypass the operator's http_config.use_cache = false setting
+	// and drive unbounded intention-match cache growth by varying the request
+	// Target (which is hashed into the cache key). When caching is disabled we
+	// issue the intention match directly via RPC instead.
+	var reply *structs.IndexedIntentionMatches
+	if s.agent.config.HTTPUseCache {
+		raw, meta, err := s.agent.cache.Get(req.Context(), cachetype.IntentionMatchName, args)
+		if err != nil {
+			return nil, fmt.Errorf("failed getting intention match: %w", err)
+		}
+		defer setCacheMeta(resp, &meta)
+
+		r, ok := raw.(*structs.IndexedIntentionMatches)
+		if !ok {
+			return nil, fmt.Errorf("internal error: response type not correct")
+		}
+		reply = r
+	} else {
+		var out structs.IndexedIntentionMatches
+		if err := s.agent.RPC(req.Context(), "Intention.Match", args, &out); err != nil {
+			return nil, fmt.Errorf("failed getting intention match: %w", err)
+		}
+		reply = &out
 	}
 
-	reply, ok := raw.(*structs.IndexedIntentionMatches)
-	if !ok {
-		return nil, fmt.Errorf("internal error: response type not correct")
-	}
 	if len(reply.Matches) != 1 {
 		return nil, fmt.Errorf("Internal error loading matches")
 	}
@@ -1813,8 +1844,6 @@ func (s *HTTPHandlers) AgentConnectAuthorize(resp http.ResponseWriter, req *http
 		//nolint:staticcheck
 		authorized = authz.IntentionDefaultAllow(nil) == acl.Allow
 	}
-
-	setCacheMeta(resp, &meta)
 
 	return &connectAuthorizeResp{
 		Authorized: authorized,
