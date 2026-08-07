@@ -810,7 +810,7 @@ DOMAIN_LOOP:
 		switch routeRef.Kind {
 		case structs.HTTPRoute:
 			route, ok := c.HTTPRoutes.Get(routeRef)
-			if !ok || listener.Protocol != structs.ListenerProtocolHTTP {
+			if !ok || !structs.IsProtocolHTTPLike(string(listener.Protocol)) {
 				continue
 			}
 			synthesizer.AddHTTPRoute(*route)

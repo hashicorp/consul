@@ -6,6 +6,7 @@ package xds
 import (
 	"bytes"
 	"path/filepath"
+	"strings"
 	"testing"
 	"text/template"
 	"time"
@@ -21,6 +22,8 @@ import (
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/xds/testcommon"
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 type mockCfgFetcher struct {
@@ -1170,4 +1173,74 @@ func TestAPIGatewayPassiveHealthCheckDataPath(t *testing.T) {
 
 func intPointer(v int) *int {
 	return &v
+}
+
+// TestClustersFromSnapshotAPIGateway_HTTP2UpstreamDefault verifies that when an
+// API Gateway listener protocol is http2 or grpc, the upstream cluster is
+// rendered with http2_protocol_options even when the service-defaults Protocol
+// is not explicitly set (RFC-0002, Open Question #1 resolution: listener wins).
+func TestClustersFromSnapshotAPIGateway_HTTP2UpstreamDefault(t *testing.T) {
+	for _, listenerProtocol := range []structs.APIGatewayListenerProtocol{
+		structs.ListenerProtocolHTTP2,
+		structs.ListenerProtocolGRPC,
+	} {
+		listenerProtocol := listenerProtocol
+		t.Run(string(listenerProtocol), func(t *testing.T) {
+			snap := proxycfg.TestConfigSnapshotAPIGateway(t, "default", nil,
+				func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+					entry.Listeners = []structs.APIGatewayListener{
+						{
+							Name:     "listener",
+							Protocol: listenerProtocol,
+							Port:     8080,
+						},
+					}
+					bound.Listeners = []structs.BoundAPIGatewayListener{
+						{
+							Name: "listener",
+							Routes: []structs.ResourceReference{
+								{Name: "http-route", Kind: structs.HTTPRoute},
+							},
+						},
+					}
+				},
+				[]structs.BoundRoute{
+					&structs.HTTPRouteConfigEntry{
+						Name: "http-route",
+						Kind: structs.HTTPRoute,
+						Parents: []structs.ResourceReference{
+							{Kind: structs.APIGateway, Name: "api-gateway"},
+						},
+						Rules: []structs.HTTPRouteRule{
+							{Services: []structs.HTTPService{{Name: "http-service"}}},
+						},
+					},
+				},
+				nil, nil,
+				// Note: no service-defaults entry — service Protocol is intentionally unset
+			)
+			testcommon.SetupTLSRootsAndLeaf(t, snap)
+
+			g := NewResourceGenerator(testutil.Logger(t), nil, false)
+			clusters, err := g.clustersFromSnapshotAPIGateway(snap)
+			require.NoError(t, err)
+
+			// Find the upstream cluster for http-service
+			var upstreamCluster *envoy_cluster_v3.Cluster
+			for _, msg := range clusters {
+				c, ok := msg.(*envoy_cluster_v3.Cluster)
+				if ok && strings.Contains(c.Name, "http-service") {
+					upstreamCluster = c
+					break
+				}
+			}
+			require.NotNil(t, upstreamCluster, "expected upstream cluster for http-service")
+
+			// The cluster must carry http2_protocol_options because the listener
+			// protocol is http2/grpc, even though no service-defaults Protocol is set.
+			opts := upstreamCluster.GetTypedExtensionProtocolOptions()
+			require.NotEmpty(t, opts,
+				"upstream cluster should have typedExtensionProtocolOptions for %s listener", listenerProtocol)
+		})
+	}
 }

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -43,6 +44,28 @@ func httpServiceDefault(entry structs.ConfigEntry, meta map[string]string) *stru
 		Meta:           meta,
 		EnterpriseMeta: *entry.GetEnterpriseMeta(),
 	}
+}
+
+// appendComposedHTTPDefault ensures a synthetic http service-defaults exists for
+// a composed service-router destination that may target a service other than the
+// one referenced directly by the HTTPRoute. Without it, the synthesized gateway
+// discovery chain would resolve an entry-less destination's protocol as tcp — the
+// synthetic entry set intentionally omits proxy-defaults, so the proxy-defaults
+// protocol fallback that the real (on-demand) compiler applies is unavailable
+// here — producing a spurious "uses inconsistent protocols" error against the
+// http gateway chain. Reachability through an http gateway listener already
+// implies the destination is http, matching how directly-referenced destinations
+// are handled above.
+func appendComposedHTTPDefault(defaults []*structs.ServiceConfigEntry, dest *structs.ServiceRouteDestination) []*structs.ServiceConfigEntry {
+	if dest == nil || dest.Service == "" {
+		return defaults
+	}
+	return append(defaults, &structs.ServiceConfigEntry{
+		Kind:           structs.ServiceDefaults,
+		Name:           dest.Service,
+		Protocol:       "http",
+		EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(dest.Partition, dest.Namespace),
+	})
 }
 
 func synthesizeHTTPRouteDiscoveryChain(route structs.HTTPRouteConfigEntry, serviceRouters map[structs.ServiceName][]*structs.ServiceRoute) (structs.IngressService, *structs.ServiceRouterConfigEntry, []*structs.ServiceSplitterConfigEntry, []*structs.ServiceConfigEntry) {
@@ -151,6 +174,17 @@ func httpRouteToDiscoveryChain(route structs.HTTPRouteConfigEntry, serviceRouter
 							continue
 						}
 						mergedDest := mergeServiceRouteDestination(&destination, svcRoute.Destination)
+
+						// A composed service-router route may target a service other
+						// than the one referenced directly by the HTTPRoute (the
+						// backend router can route/redirect elsewhere). Ensure a
+						// synthetic service-defaults exists for that destination so
+						// the synthesized gateway chain resolves it as http rather
+						// than falling through to the tcp default: the synthetic
+						// entry set intentionally carries no proxy-defaults, so an
+						// entry-less destination would otherwise be recorded as tcp
+						// and fail the http chain with "inconsistent protocols".
+						defaults = appendComposedHTTPDefault(defaults, mergedDest)
 						router.Routes = append(router.Routes, structs.ServiceRoute{
 							Match:       mergedMatch,
 							Destination: mergedDest,
