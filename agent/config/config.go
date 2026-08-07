@@ -187,11 +187,11 @@ type Config struct {
 	EncryptKey                       *string               `mapstructure:"encrypt" json:"encrypt,omitempty"`
 	EncryptVerifyIncoming            *bool                 `mapstructure:"encrypt_verify_incoming" json:"encrypt_verify_incoming,omitempty"`
 	EncryptVerifyOutgoing            *bool                 `mapstructure:"encrypt_verify_outgoing" json:"encrypt_verify_outgoing,omitempty"`
-	Experiments                      []string              `mapstructure:"experiments" json:"experiments,omitempty"`
-	GossipLAN                        GossipLANConfig       `mapstructure:"gossip_lan" json:"-"`
-	GossipWAN                        GossipWANConfig       `mapstructure:"gossip_wan" json:"-"`
-	GlobalRegistry                   *GlobalRegistryConfig `mapstructure:"global_registry" json:"-"`
-	HTTPConfig                       HTTPConfig            `mapstructure:"http_config" json:"-"`
+	Experiments                            []string            `mapstructure:"experiments" json:"experiments,omitempty"`
+	FederationStateAntiEntropySyncInterval *string             `mapstructure:"federation_state_anti_entropy_sync_interval" json:"federation_state_anti_entropy_sync_interval,omitempty"`
+	GossipLAN                              GossipLANConfig     `mapstructure:"gossip_lan" json:"-"`
+	GossipWAN                              GossipWANConfig     `mapstructure:"gossip_wan" json:"-"`
+	HTTPConfig                             HTTPConfig          `mapstructure:"http_config" json:"-"`
 	LeaveOnTerm                      *bool                 `mapstructure:"leave_on_terminate" json:"leave_on_terminate,omitempty"`
 	LicensePath                      *string               `mapstructure:"license_path" json:"license_path,omitempty"`
 	Limits                           Limits                `mapstructure:"limits" json:"-"`
