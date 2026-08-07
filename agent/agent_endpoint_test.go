@@ -6934,6 +6934,90 @@ func TestAgentConnectCARoots_list(t *testing.T) {
 	}
 }
 
+// TestAgentConnectCARoots_cacheDisabled verifies that when an operator sets
+// http_config { use_cache = false }, GET /v1/agent/connect/ca/roots bypasses
+// the agent cache entirely. Each request with a unique token must produce no
+// X-Cache header, proving the cache path was never entered and the token-based
+// cache-key fanout attack (SECVULN-50292) is closed.
+func TestAgentConnectCARoots_cacheDisabled(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	a := NewTestAgent(t, `
+		peering { enabled = false }
+		http_config { use_cache = false }
+	`)
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	for i := 0; i < 5; i++ {
+		req, _ := http.NewRequest("GET",
+			fmt.Sprintf("/v1/agent/connect/ca/roots?token=unique-%d", i), nil)
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, http.StatusOK, resp.Code)
+		// No X-Cache header must appear — the cache must not be touched at all.
+		assert.Empty(t, resp.Header().Get("X-Cache"),
+			"expected no cache interaction when use_cache=false (token=%d)", i)
+	}
+}
+
+// TestAgentConnectAuthorize_cacheDisabled verifies that when an operator sets
+// http_config { use_cache = false }, POST /v1/agent/connect/authorize bypasses
+// the agent cache entirely. Each request with a unique token must produce no
+// X-Cache header, proving the token-based cache-key fanout attack
+// (SECVULN-50293) is closed.
+func TestAgentConnectAuthorize_cacheDisabled(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	a := NewTestAgent(t, `http_config { use_cache = false }`)
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	target := "db"
+
+	// Create an intention so the authorize endpoint returns 200 rather than an
+	// error, letting us inspect response headers cleanly.
+	var ixnId string
+	{
+		ixnReq := structs.IntentionRequest{
+			Datacenter: "dc1",
+			Op:         structs.IntentionOpCreate,
+			Intention:  structs.TestIntention(t),
+		}
+		ixnReq.Intention.SourceNS = structs.IntentionDefaultNamespace
+		ixnReq.Intention.SourceName = "web"
+		ixnReq.Intention.DestinationNS = structs.IntentionDefaultNamespace
+		ixnReq.Intention.DestinationName = target
+		ixnReq.Intention.Action = structs.IntentionActionAllow
+		require.Nil(t, a.RPC(context.Background(), "Intention.Apply", &ixnReq, &ixnId))
+	}
+
+	args := &structs.ConnectAuthorizeRequest{
+		Target:        target,
+		ClientCertURI: connect.TestSpiffeIDService(t, "web").URI().String(),
+	}
+
+	for i := 0; i < 5; i++ {
+		req, _ := http.NewRequest("POST",
+			fmt.Sprintf("/v1/agent/connect/authorize?token=unique-%d", i),
+			jsonReader(args))
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, http.StatusOK, resp.Code)
+		// No X-Cache header must appear — the cache must not be touched at all.
+		assert.Empty(t, resp.Header().Get("X-Cache"),
+			"expected no cache interaction when use_cache=false (token=%d)", i)
+	}
+}
+
 func TestAgentConnectCALeafCert_aclDefaultDeny(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
