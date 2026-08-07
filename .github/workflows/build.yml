@@ -310,7 +310,7 @@ jobs:
     needs:
       - set-product-version
       - build
-      - build-s390x
+   #   - build-s390x
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -357,7 +357,7 @@ jobs:
     needs:
       - set-product-version
       - build
-      - build-s390x
+    #  - build-s390x
     runs-on: ubuntu-latest
     env:
       repo: ${{github.event.repository.name}}
@@ -395,7 +395,7 @@ jobs:
     needs:
       - set-product-version
       - build
-      - build-s390x
+  #    - build-s390x
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -435,7 +435,7 @@ jobs:
   verify-linux-packages-deb:
     needs:
       - build
-      - build-s390x
+   #   - build-s390x
       - set-product-version
     runs-on: ubuntu-latest
     strategy:
@@ -478,7 +478,7 @@ jobs:
   verify-linux-packages-rpm:
     needs:
       - build
-      - build-s390x
+    #  - build-s390x
       - set-product-version
     runs-on: ubuntu-latest
     strategy:
