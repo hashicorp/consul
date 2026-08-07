@@ -19,47 +19,34 @@ import (
 	"github.com/hashicorp/consul/tlsutil"
 )
 
-// featureGateDedup deduplicates feature-gate watch updates using a dirty flag
-// and sync.Cond, preventing redundant notifications from saturating state channels.
+// featureGateDedup coalesces repeated feature-gate updates while allowing the
+// refresher to exit cleanly when the manager is closed.
 type featureGateDedup struct {
-	cond  *sync.Cond
-	dirty bool
+	ch chan struct{}
 }
 
 // newFeatureGateDedup creates a new dedup struct.
 func newFeatureGateDedup() *featureGateDedup {
-	return &featureGateDedup{
-		cond: sync.NewCond(&sync.Mutex{}),
+	return &featureGateDedup{ch: make(chan struct{}, 1)}
+}
+
+// signal marks a feature-gate update as pending. If a refresh is already
+// pending, this is a no-op.
+func (d *featureGateDedup) signal() {
+	select {
+	case d.ch <- struct{}{}:
+	default:
 	}
 }
 
-// signal marks a feature-gate update as pending. It returns true if this is a new
-// (non-duplicate) update, false if a previous update has not yet been consumed.
-func (d *featureGateDedup) signal() bool {
-	d.cond.L.Lock()
-	defer d.cond.L.Unlock()
-	if d.dirty {
+// wait blocks until a feature-gate update is signaled or the manager is closed.
+func (d *featureGateDedup) wait(stopCh <-chan struct{}) bool {
+	select {
+	case <-stopCh:
 		return false
+	case <-d.ch:
+		return true
 	}
-	d.dirty = true
-	d.cond.Signal()
-	return true
-}
-
-// wait blocks until a feature-gate update is signaled, then clears the dirty flag.
-func (d *featureGateDedup) wait(ctx context.Context) bool {
-	d.cond.L.Lock()
-	defer d.cond.L.Unlock()
-	for !d.dirty {
-		select {
-		case <-ctx.Done():
-			return false
-		default:
-		}
-		d.cond.Wait()
-	}
-	d.dirty = false
-	return true
 }
 
 // ProxyID is a handle on a proxy service instance being tracked by Manager.
@@ -290,7 +277,7 @@ func (m *Manager) watchFeatureGates() {
 // to prevent redundant state channel deliveries when updates arrive faster than
 // they can be consumed.
 func (m *Manager) featureGateRefresher() {
-	for m.featureGateDedup.wait(context.Background()) {
+	for m.featureGateDedup.wait(m.doneCh) {
 		m.refreshFeatureGates()
 	}
 }
@@ -300,9 +287,9 @@ func (m *Manager) featureGateRefresher() {
 func (m *Manager) refreshFeatureGates() {
 	m.mu.Lock()
 	states := make([]*state, 0)
-	for _, state := range m.proxies {
-		if state.source == ProxySourceCatalog && state.serviceInstance.kind == structs.ServiceKindAPIGateway {
-			states = append(states, state)
+	for _, proxyState := range m.proxies {
+		if proxyState.source == ProxySourceCatalog && proxyState.serviceInstance.kind == structs.ServiceKindAPIGateway {
+			states = append(states, proxyState)
 		}
 	}
 	m.mu.Unlock()
@@ -310,27 +297,38 @@ func (m *Manager) refreshFeatureGates() {
 	if m.Logger != nil {
 		m.Logger.Debug("feature-gate refresh: dispatching to API Gateway states", "count", len(states))
 	}
-	for _, state := range states {
-		select {
-		case <-state.doneCh:
-			continue
-		default:
+	event := UpdateEvent{CorrelationID: featureGateWatchID}
+	for _, proxyState := range states {
+		m.enqueueFeatureGateUpdate(proxyState, event)
+	}
+}
+
+func (m *Manager) enqueueFeatureGateUpdate(state *state, event UpdateEvent) {
+	select {
+	case <-m.doneCh:
+		return
+	case <-state.doneCh:
+		return
+	case state.ch <- event:
+		if m.Logger != nil {
+			m.Logger.Debug("feature-gate refresh: sent update event", "proxy_id", state.serviceInstance.proxyID)
 		}
-		event := UpdateEvent{CorrelationID: featureGateWatchID}
+		return
+	default:
+	}
+
+	go func() {
 		select {
+		case <-m.doneCh:
+			return
 		case <-state.doneCh:
-			continue
+			return
 		case state.ch <- event:
 			if m.Logger != nil {
 				m.Logger.Debug("feature-gate refresh: sent update event", "proxy_id", state.serviceInstance.proxyID)
 			}
-		default:
-			// Channel is full; dedup ensures we'll retry on the next publish.
-			if m.Logger != nil {
-				m.Logger.Debug("feature-gate refresh: channel full, will retry on next publish", "proxy_id", state.serviceInstance.proxyID)
-			}
 		}
-	}
+	}()
 }
 
 // Deregister the given proxy service, but only if it was registered by the same

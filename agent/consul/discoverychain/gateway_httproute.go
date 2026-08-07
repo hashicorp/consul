@@ -175,6 +175,17 @@ func httpRouteToDiscoveryChain(route structs.HTTPRouteConfigEntry, serviceRouter
 								continue
 							}
 							mergedDest := mergeServiceRouteDestination(&destination, svcRoute.Destination)
+
+							// A composed service-router route may target a service other
+							// than the one referenced directly by the HTTPRoute (the
+							// backend router can route/redirect elsewhere). Ensure a
+							// synthetic service-defaults exists for that destination so
+							// the synthesized gateway chain resolves it as http rather
+							// than falling through to the tcp default: the synthetic
+							// entry set intentionally carries no proxy-defaults, so an
+							// entry-less destination would otherwise be recorded as tcp
+							// and fail the http chain with "inconsistent protocols".
+							defaults = appendComposedHTTPDefault(defaults, mergedDest)
 							router.Routes = append(router.Routes, structs.ServiceRoute{
 								Match:       mergedMatch,
 								Destination: mergedDest,

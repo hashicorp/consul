@@ -231,10 +231,11 @@ func TestWatchFeatureGates_RapidPublishDoesNotBlock(t *testing.T) {
 	close(m.doneCh)
 }
 
-// TestWatchFeatureGates_ChannelFullSkipsWithoutDraining verifies that when the
-// proxy state channel is full, refreshFeatureGates silently skips without
-// draining or discarding any events.
-func TestWatchFeatureGates_ChannelFullSkipsWithoutDraining(t *testing.T) {
+// TestWatchFeatureGates_ChannelFullEventuallyDelivers verifies that when the
+// proxy state channel is full, a feature-gate invalidation is not lost. The
+// existing important event remains first, and the feature-gate update is
+// delivered after it without another publish.
+func TestWatchFeatureGates_ChannelFullEventuallyDelivers(t *testing.T) {
 	store := &featuregate.Store{}
 	gateway := &state{
 		source:          ProxySourceCatalog,
@@ -254,18 +255,78 @@ func TestWatchFeatureGates_ChannelFullSkipsWithoutDraining(t *testing.T) {
 	go m.watchFeatureGates()
 	time.Sleep(10 * time.Millisecond)
 
-	// Fill the buffered channel with an important event
 	important := UpdateEvent{CorrelationID: "important-watch"}
 	gateway.ch <- important
 
-	// Publish: dedup.signal() marks update pending, but refreshFeatureGates
-	// skips silently because channel is full. The important event is untouched.
 	require.True(t, store.Publish(featuregate.Snapshot{StatusIndex: 1}))
-	time.Sleep(50 * time.Millisecond)
 
-	// Verify the important event is still in the channel (not drained)
-	event := <-gateway.ch
-	require.Equal(t, "important-watch", event.CorrelationID, "important event should not be discarded")
+	select {
+	case event := <-gateway.ch:
+		require.Equal(t, "important-watch", event.CorrelationID, "important event should not be discarded")
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for important event")
+	}
+
+	var featureGateEvent UpdateEvent
+	require.Eventually(t, func() bool {
+		select {
+		case event := <-gateway.ch:
+			featureGateEvent = event
+			return true
+		default:
+			return false
+		}
+	}, 2*time.Second, 10*time.Millisecond)
+	require.Equal(t, featureGateWatchID, featureGateEvent.CorrelationID)
 
 	close(m.doneCh)
+}
+
+func TestWatchFeatureGates_ShutdownStopsWatcherAndRefresher(t *testing.T) {
+	store := &featuregate.Store{}
+	gateway := &state{
+		source:          ProxySourceCatalog,
+		serviceInstance: serviceInstance{kind: structs.ServiceKindAPIGateway},
+		ch:              make(chan UpdateEvent, 1),
+		doneCh:          make(chan struct{}),
+	}
+	watcherManager := &Manager{
+		ManagerConfig: ManagerConfig{FeatureGate: store},
+		proxies: map[ProxyID]*state{
+			{NodeName: "catalog-gateway"}: gateway,
+		},
+		doneCh:           make(chan struct{}),
+		featureGateDedup: newFeatureGateDedup(),
+	}
+
+	watchDone := make(chan struct{})
+	go func() {
+		watcherManager.watchFeatureGates()
+		close(watchDone)
+	}()
+
+	refresherManager := &Manager{
+		doneCh:           make(chan struct{}),
+		featureGateDedup: newFeatureGateDedup(),
+	}
+	refresherDone := make(chan struct{})
+	go func() {
+		refresherManager.featureGateRefresher()
+		close(refresherDone)
+	}()
+
+	close(watcherManager.doneCh)
+	close(refresherManager.doneCh)
+
+	select {
+	case <-watchDone:
+	case <-time.After(2 * time.Second):
+		t.Fatal("watchFeatureGates did not exit after close")
+	}
+
+	select {
+	case <-refresherDone:
+	case <-time.After(2 * time.Second):
+		t.Fatal("featureGateRefresher did not exit after close")
+	}
 }
