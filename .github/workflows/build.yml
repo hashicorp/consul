@@ -98,6 +98,7 @@ jobs:
           - { goos: "linux", goarch: "amd64" }
           - { goos: "linux", goarch: "arm" }
           - { goos: "linux", goarch: "arm64" }
+          - { goos: "linux", goarch: "s390x" }
           - { goos: "darwin", goarch: "amd64" }
           - { goos: "darwin", goarch: "arm64" }
           - { goos: "freebsd", goarch: "386" }
@@ -202,107 +203,107 @@ jobs:
           name: ${{ env.DEB_PACKAGE }}
           path: out/${{ env.DEB_PACKAGE }}
 
-  build-s390x:
-    needs:
-      - set-product-version
-      - get-go-version
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - { goos: "linux", goarch: "s390x" }
-      fail-fast: true
+  # build-s390x:
+  #   needs:
+  #     - set-product-version
+  #     - get-go-version
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     matrix:
+  #       include:
+  #         - { goos: "linux", goarch: "s390x" }
+  #     fail-fast: true
 
-    name: Go ${{ needs.get-go-version.outputs.go-version }} ${{ matrix.goos }} ${{ matrix.goarch }} build
-    steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+  #   name: Go ${{ needs.get-go-version.outputs.go-version }} ${{ matrix.goos }} ${{ matrix.goarch }} build
+  #   steps:
+  #     - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
-      - name: Install PNPM
-        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
-        with:
-          run_install: false
-          package_json_file: ui/package.json
+  #     - name: Install PNPM
+  #       uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+  #       with:
+  #         run_install: false
+  #         package_json_file: ui/package.json
 
-      - name: Setup with node and pnpm
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
-        with:
-          node-version: "24"
-          cache: "pnpm"
-          cache-dependency-path: "ui/pnpm-lock.yaml"
+  #     - name: Setup with node and pnpm
+  #       uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+  #       with:
+  #         node-version: "24"
+  #         cache: "pnpm"
+  #         cache-dependency-path: "ui/pnpm-lock.yaml"
 
-      - name: Build UI
-        run: |
-          CONSUL_VERSION=${{ needs.set-product-version.outputs.product-version }}
-          CONSUL_DATE=${{ needs.set-product-version.outputs.product-date }}
-          CONSUL_BINARY_TYPE=${CONSUL_BINARY_TYPE}
-          CONSUL_COPYRIGHT_YEAR=$(git show -s --format=%cd --date=format:%Y HEAD)
-          echo "consul_version is ${CONSUL_VERSION}"
-          echo "consul_date is ${CONSUL_DATE}"
-          echo "consul binary type is ${CONSUL_BINARY_TYPE}"
-          echo "consul copyright year is ${CONSUL_COPYRIGHT_YEAR}"
-          cd ui && make && cd ..
-          rm -rf agent/uiserver/dist
-          mv ui/packages/consul-ui/dist agent/uiserver/
-      - name: Go Build
-        env:
-          PRODUCT_VERSION: ${{ needs.set-product-version.outputs.product-version }}
-          PRERELEASE_VERSION: ${{ needs.set-product-version.outputs.pre-version }}
-          CGO_ENABLED: "0"
-          GOLDFLAGS: "${{needs.set-product-version.outputs.shared-ldflags}}"
-        uses: hashicorp/actions-go-build@b9e2cfba3013adccdc112b01cba922d83c78fac5 # v1.1.1
-        with:
-          product_name: ${{ env.PKG_NAME }}
-          product_version: ${{ needs.set-product-version.outputs.product-version }}
-          go_version: ${{ needs.get-go-version.outputs.go-version }}
-          os: ${{ matrix.goos }}
-          arch: ${{ matrix.goarch }}
-          reproducible: nope
-          clean: false
-          instructions: |-
-            cp LICENSE $TARGET_DIR/LICENSE.txt
-            go build -ldflags="$GOLDFLAGS" -o "$BIN_PATH" -trimpath -buildvcs=false
+  #     - name: Build UI
+  #       run: |
+  #         CONSUL_VERSION=${{ needs.set-product-version.outputs.product-version }}
+  #         CONSUL_DATE=${{ needs.set-product-version.outputs.product-date }}
+  #         CONSUL_BINARY_TYPE=${CONSUL_BINARY_TYPE}
+  #         CONSUL_COPYRIGHT_YEAR=$(git show -s --format=%cd --date=format:%Y HEAD)
+  #         echo "consul_version is ${CONSUL_VERSION}"
+  #         echo "consul_date is ${CONSUL_DATE}"
+  #         echo "consul binary type is ${CONSUL_BINARY_TYPE}"
+  #         echo "consul copyright year is ${CONSUL_COPYRIGHT_YEAR}"
+  #         cd ui && make && cd ..
+  #         rm -rf agent/uiserver/dist
+  #         mv ui/packages/consul-ui/dist agent/uiserver/
+  #     - name: Go Build
+  #       env:
+  #         PRODUCT_VERSION: ${{ needs.set-product-version.outputs.product-version }}
+  #         PRERELEASE_VERSION: ${{ needs.set-product-version.outputs.pre-version }}
+  #         CGO_ENABLED: "0"
+  #         GOLDFLAGS: "${{needs.set-product-version.outputs.shared-ldflags}}"
+  #       uses: hashicorp/actions-go-build@b9e2cfba3013adccdc112b01cba922d83c78fac5 # v1.1.1
+  #       with:
+  #         product_name: ${{ env.PKG_NAME }}
+  #         product_version: ${{ needs.set-product-version.outputs.product-version }}
+  #         go_version: ${{ needs.get-go-version.outputs.go-version }}
+  #         os: ${{ matrix.goos }}
+  #         arch: ${{ matrix.goarch }}
+  #         reproducible: nope
+  #         clean: false
+  #         instructions: |-
+  #           cp LICENSE $TARGET_DIR/LICENSE.txt
+  #           go build -ldflags="$GOLDFLAGS" -o "$BIN_PATH" -trimpath -buildvcs=false
 
-      - name: Copy license file
-        if: ${{ !endsWith(github.repository, '-enterprise') }}
-        env:
-          LICENSE_DIR: ".release/linux/package/usr/share/doc/${{ env.PKG_NAME }}"
-        run: |
-          mkdir -p "$LICENSE_DIR"
-          cp LICENSE "$LICENSE_DIR/LICENSE.txt"
+  #     - name: Copy license file
+  #       if: ${{ !endsWith(github.repository, '-enterprise') }}
+  #       env:
+  #         LICENSE_DIR: ".release/linux/package/usr/share/doc/${{ env.PKG_NAME }}"
+  #       run: |
+  #         mkdir -p "$LICENSE_DIR"
+  #         cp LICENSE "$LICENSE_DIR/LICENSE.txt"
 
-      - name: Package
-        uses: hashicorp/actions-packaging-linux@v1
-        with:
-          name: ${{ github.event.repository.name }}
-          description: "Consul is a distributed, highly available, and data center aware solution to connect and configure applications across dynamic, distributed infrastructure. "
-          arch: ${{ matrix.goarch }}
-          version: ${{ needs.set-product-version.outputs.product-version }}
-          maintainer: "HashiCorp"
-          homepage: "https://github.com/hashicorp/consul"
-          license: "BSL-1.1"
-          binary: "dist/${{ env.PKG_NAME }}"
-          deb_depends: "openssl"
-          rpm_depends: "openssl"
-          config_dir: ".release/linux/package"
-          preinstall: ".release/linux/preinstall"
-          postinstall: ".release/linux/postinstall"
-          preremove: ".release/linux/preremove"
-          postremove: ".release/linux/postremove"
+  #     - name: Package
+  #       uses: hashicorp/actions-packaging-linux@v1
+  #       with:
+  #         name: ${{ github.event.repository.name }}
+  #         description: "Consul is a distributed, highly available, and data center aware solution to connect and configure applications across dynamic, distributed infrastructure. "
+  #         arch: ${{ matrix.goarch }}
+  #         version: ${{ needs.set-product-version.outputs.product-version }}
+  #         maintainer: "HashiCorp"
+  #         homepage: "https://github.com/hashicorp/consul"
+  #         license: "BSL-1.1"
+  #         binary: "dist/${{ env.PKG_NAME }}"
+  #         deb_depends: "openssl"
+  #         rpm_depends: "openssl"
+  #         config_dir: ".release/linux/package"
+  #         preinstall: ".release/linux/preinstall"
+  #         postinstall: ".release/linux/postinstall"
+  #         preremove: ".release/linux/preremove"
+  #         postremove: ".release/linux/postremove"
 
-      - name: Set Package Names
-        run: |
-          echo "RPM_PACKAGE=$(basename out/*.rpm)" >> $GITHUB_ENV
-          echo "DEB_PACKAGE=$(basename out/*.deb)" >> $GITHUB_ENV
+  #     - name: Set Package Names
+  #       run: |
+  #         echo "RPM_PACKAGE=$(basename out/*.rpm)" >> $GITHUB_ENV
+  #         echo "DEB_PACKAGE=$(basename out/*.deb)" >> $GITHUB_ENV
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: ${{ env.RPM_PACKAGE }}
-          path: out/${{ env.RPM_PACKAGE }}
+  #     - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+  #       with:
+  #         name: ${{ env.RPM_PACKAGE }}
+  #         path: out/${{ env.RPM_PACKAGE }}
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: ${{ env.DEB_PACKAGE }}
-          path: out/${{ env.DEB_PACKAGE }}
+  #     - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+  #       with:
+  #         name: ${{ env.DEB_PACKAGE }}
+  #         path: out/${{ env.DEB_PACKAGE }}
 
   build-docker:
     name: Docker ${{ matrix.arch }} build
