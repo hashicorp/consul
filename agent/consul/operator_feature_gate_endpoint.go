@@ -134,6 +134,9 @@ func (op *Operator) populateFeatureGateSetResponse(reply *structs.FeatureGateSet
 	if err != nil {
 		return err
 	}
+	if len(features) == 0 {
+		return fmt.Errorf("feature gate response was empty")
+	}
 	reply.Applied = applied
 	reply.Feature = features[0]
 	return nil

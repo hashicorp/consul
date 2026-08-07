@@ -159,6 +159,8 @@ func resolveFeatureGateStatus(registry featuregate.Registry, policy *structs.Fea
 }
 
 func featureGateStatusesEqual(current, candidate *structs.FeatureGateStatus) bool {
+	// The Raft indexes are intentionally ignored here because the reconciler only
+	// cares whether the resolved feature set is semantically unchanged.
 	return current != nil && candidate != nil &&
 		current.PolicyIndex == candidate.PolicyIndex &&
 		current.RegistryDigest == candidate.RegistryDigest &&
@@ -168,14 +170,14 @@ func featureGateStatusesEqual(current, candidate *structs.FeatureGateStatus) boo
 // runFeatureGateCache runs on every server. It reads only committed local FSM
 // state and atomically publishes complete final generations.
 func (s *Server) runFeatureGateCache(ctx context.Context) {
-	for {
+	retryLoopBackoff(ctx, func() error {
 		stateStore := s.fsm.State()
 		ws := memdb.NewWatchSet()
 		ws.Add(stateStore.AbandonCh())
 		_, _, status, err := stateStore.FeatureGatePolicyAndStatus(ws)
 		if err != nil {
 			s.logger.Error("failed to watch committed feature-gate status", "error", err)
-			return
+			return err
 		}
 		if status != nil {
 			features := make(map[string]bool, len(status.Features))
@@ -205,9 +207,15 @@ func (s *Server) runFeatureGateCache(ctx context.Context) {
 		}
 
 		if err := ws.WatchCtx(ctx); err != nil {
-			return
+			if ctx.Err() != nil {
+				return nil
+			}
+			return err
 		}
-	}
+		return nil
+	}, func(err error) {
+		s.logger.Error("feature-gate cache watch failed, retrying", "error", err)
+	})
 }
 
 // bootstrapMismatch describes one divergence between local bootstrap config and
