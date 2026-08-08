@@ -41,31 +41,31 @@
 
       <dd.Title @text={{t "common.consul.status"}} />
       <dd.Interactive
-        data-test-sort-option
+        data-test-sort-option="Status:asc"
         {{on "click" (fn @sort.change (hash target=(hash selected="Status:asc")))}}
       >{{t "common.sort.status.asc"}}</dd.Interactive>
       <dd.Interactive
-        data-test-sort-option
+        data-test-sort-option="Status:desc"
         {{on "click" (fn @sort.change (hash target=(hash selected="Status:desc")))}}
       >{{t "common.sort.status.desc"}}</dd.Interactive>
 
       <dd.Title @text={{t "components.consul.health-check.search-bar.sort.name.name"}} />
       <dd.Interactive
-        data-test-sort-option
+        data-test-sort-option="Name:asc"
         {{on "click" (fn @sort.change (hash target=(hash selected="Name:asc")))}}
       >{{t "common.sort.alpha.asc"}}</dd.Interactive>
       <dd.Interactive
-        data-test-sort-option
+        data-test-sort-option="Name:desc"
         {{on "click" (fn @sort.change (hash target=(hash selected="Name:desc")))}}
       >{{t "common.sort.alpha.desc"}}</dd.Interactive>
 
       <dd.Title @text={{t "components.consul.health-check.search-bar.sort.kind.name"}} />
       <dd.Interactive
-        data-test-sort-option
+        data-test-sort-option="Kind:asc"
         {{on "click" (fn @sort.change (hash target=(hash selected="Kind:asc")))}}
       >{{t "components.consul.health-check.search-bar.sort.kind.asc"}}</dd.Interactive>
       <dd.Interactive
-        data-test-sort-option
+        data-test-sort-option="Kind:desc"
         {{on "click" (fn @sort.change (hash target=(hash selected="Kind:desc")))}}
       >{{t "components.consul.health-check.search-bar.sort.kind.desc"}}</dd.Interactive>
     </Hds::Dropdown>
