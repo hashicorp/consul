@@ -10,25 +10,19 @@
         (component 'tag-list' item=@item)
       }}
     {{else}}
-<dl
+<Hds::Card::Container
+  @level="mid"
+  @hasBorder={{true}}
+  @overflow="hidden"
   class="tag-list"
   ...attributes
 >
-  <dt
-    {{hds-tooltip options=(detached-tooltip-options)}}
-  >
-    {{t "components.tag-list.title"
-      default=(array
-        "common.consul.tags"
-      )
-    }}
-  </dt>
-  <dd data-test-tags>
+  <div class="tag-list__tags" data-test-tags>
     {{#each tags as |item|}}
-      <span>{{item}}</span>
+      <Hds::Tag @text={{item}} />
     {{/each}}
-  </dd>
-</dl>
+  </div>
+</Hds::Card::Container>
     {{/if}}
   {{/if}}
 {{/let}}

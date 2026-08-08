@@ -75,7 +75,7 @@ export default function (
     }),
   };
   page.tabs.tagsTab = {
-    tags: collection('.tag-list dd > span', {
+    tags: collection('.tag-list .hds-tag', {
       name: text(),
     }),
   };
