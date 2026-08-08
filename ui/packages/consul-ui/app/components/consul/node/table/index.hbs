@@ -104,13 +104,7 @@
 
     {{! ---- Services ---- }}
     <B.Td>
-      <Hds::Badge
-        @text={{format-number item.MeshServiceInstances.length}}
-        @color="neutral"
-        @type="outlined"
-        @size="small"
-        data-test-node-services
-      />
+      <span data-test-node-services>{{format-number item.MeshServiceInstances.length}}</span>
     </B.Td>
   </:row>
 </Consul::DataTable>
