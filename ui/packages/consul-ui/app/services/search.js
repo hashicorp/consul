@@ -21,6 +21,7 @@ import policy from 'consul-ui/search/predicates/policy';
 import authMethod from 'consul-ui/search/predicates/auth-method';
 import nspace from 'consul-ui/search/predicates/nspace';
 import peer from 'consul-ui/search/predicates/peer';
+import session from 'consul-ui/search/predicates/session';
 
 const predicates = {
   intention: intention,
@@ -37,6 +38,7 @@ const predicates = {
   policy: policy,
   nspace: nspace,
   peer: peer,
+  session: session,
 };
 
 export default class SearchService extends Service {

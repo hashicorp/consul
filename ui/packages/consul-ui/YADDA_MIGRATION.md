@@ -69,10 +69,10 @@ manually in the running UI if needed.
 
 | Metric | Count |
 | --- | --- |
-| Feature files remaining (yadda) | 103 |
-| Scenarios remaining (yadda) | 254 |
-| Feature files migrated | 26 |
-| Scenarios migrated | 37 |
+| Feature files remaining (yadda) | 101 |
+| Scenarios remaining (yadda) | 248 |
+| Feature files migrated | 28 |
+| Scenarios migrated | 43 |
 
 ## Completed
 
@@ -104,6 +104,8 @@ manually in the running UI if needed.
 | `dc/services/instances/navigation.feature` | Navigate into a service instance from the instances tab and back via breadcrumb. `@notNamespaceable`. | 1 | [tests/acceptance/dc/services/instances/navigation-test.js](tests/acceptance/dc/services/instances/navigation-test.js) |
 | `page-navigation.feature` *(partial)* | Cancel/create flows for intentions, tokens, and policies; create scenarios migrated. Remaining page-load routing scenarios left in the original feature with `@ignore` stubs. | 3 (create/cancel) | [tests/acceptance/page-navigation-create-test.js](tests/acceptance/page-navigation-create-test.js) |
 | `dc/nodes/show/health-checks.feature` | Node serf health check passing/failing display. Also adds a regression scenario for the "Check type" sort (Service to Node / Node to Service ordering must match the option labels). | 2 (+1 new) | [tests/acceptance/dc/nodes/show/health-checks-test.js](tests/acceptance/dc/nodes/show/health-checks-test.js) |
+| `dc/nodes/sessions/list.feature` | Node lock-sessions HDS table: string TTLs, nanosecond LockDelay rendering, and ACL enabled/disabled empty states. | 4 | [tests/acceptance/dc/nodes/sessions/list-test.js](tests/acceptance/dc/nodes/sessions/list-test.js) |
+| `dc/nodes/sessions/invalidate.feature` | Invalidate a lock session via the HDS confirmation Modal (success + forced-500 error toast). | 2 | [tests/acceptance/dc/nodes/sessions/invalidate-test.js](tests/acceptance/dc/nodes/sessions/invalidate-test.js) |
 
 ## Remaining features
 
@@ -166,8 +168,8 @@ manually in the running UI if needed.
 | ~~`dc/nodes/navigation.feature`~~ | *(deleted — migrated above)* | 1 | ✅ Migrated | [navigation-test.js](tests/acceptance/dc/nodes/navigation-test.js) |
 | [dc/nodes/no-leader.feature](tests/acceptance/dc/nodes/no-leader.feature) | Behaviour when no leader has been elected. | 1 | ☐ Not migrated |  |
 | [dc/nodes/services/list.feature](tests/acceptance/dc/nodes/services/list.feature) | Node → Services tab listing. | 1 | ☐ Not migrated |  |
-| [dc/nodes/sessions/invalidate.feature](tests/acceptance/dc/nodes/sessions/invalidate.feature) | Invalidate a lock session on a node incl. error. | 2 | ☐ Not migrated |  |
-| [dc/nodes/sessions/list.feature](tests/acceptance/dc/nodes/sessions/list.feature) | Node lock-sessions list: string TTLs, nanosecond LockDelay, ACL enabled/disabled empty states. | 4 | ☐ Not migrated |  |
+| ~~`dc/nodes/sessions/invalidate.feature`~~ | *(deleted — migrated above)* | 2 | ✅ Migrated | [invalidate-test.js](tests/acceptance/dc/nodes/sessions/invalidate-test.js) |
+| ~~`dc/nodes/sessions/list.feature`~~ | *(deleted — migrated above)* | 4 | ✅ Migrated | [list-test.js](tests/acceptance/dc/nodes/sessions/list-test.js) |
 | [dc/nodes/show.feature](tests/acceptance/dc/nodes/show.feature) | Node detail: tab visibility/selection, deregister warning while blocking, RTT display. | 5 | ☐ Not migrated |  |
 | ~~`dc/nodes/show/health-checks.feature`~~ | *(deleted — migrated above)* | 2 | ✅ Migrated | [health-checks-test.js](tests/acceptance/dc/nodes/show/health-checks-test.js) |
 | [dc/nodes/sorting.feature](tests/acceptance/dc/nodes/sorting.feature) | Sorting the nodes list. | 1 | ☐ Not migrated |  |

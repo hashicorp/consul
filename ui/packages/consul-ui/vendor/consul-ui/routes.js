@@ -293,7 +293,22 @@
             _options: { path: '/metadata', breadcrumb: { label: 'Metadata', parent: 'dc.nodes.show' } },
           },
           sessions: {
-            _options: { path: '/lock-sessions', breadcrumb: { label: 'Lock Sessions', parent: 'dc.nodes.show' } },
+            _options: {
+              path: '/lock-sessions',
+              queryParams: {
+                sortBy: 'sort',
+                behavior: 'behavior',
+                searchproperty: {
+                  as: 'searchproperty',
+                  empty: [['Name', 'ID']],
+                },
+                search: {
+                  as: 'filter',
+                  replace: true,
+                },
+              },
+              breadcrumb: { label: 'Lock Sessions', parent: 'dc.nodes.show' },
+            },
           },
         },
       },
