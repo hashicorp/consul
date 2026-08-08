@@ -71,24 +71,23 @@ module('Acceptance | dc / nodes / sessions / list', function (hooks) {
     }
   );
 
-  nspaceScenario(
-    'Scenario: Given 0 sessions with ACLs enabled',
-    async function (assert, nspace) {
-      api.server.createList('dc', 1, 'dc1');
-      api.server.createList('node', 1, { ID: 'node-0' });
-      api.server.createList('session', 0);
+  nspaceScenario('Scenario: Given 0 sessions with ACLs enabled', async function (assert, nspace) {
+    api.server.createList('dc', 1, 'dc1');
+    api.server.createList('node', 1, { ID: 'node-0' });
+    api.server.createList('session', 0);
 
-      await visitSessions(nspace);
+    await visitSessions(nspace);
 
-      assert
-        .dom('.empty-state p')
-        .includesText(
-          'you may not have key:read or session:read permissions',
-          'the empty state mentions the ACL permissions when ACLs are enabled'
-        );
-      assert.dom('[data-test-empty-state-login]').exists('the login CTA is shown when ACLs are enabled');
-    }
-  );
+    assert
+      .dom('.empty-state p')
+      .includesText(
+        'you may not have key:read or session:read permissions',
+        'the empty state mentions the ACL permissions when ACLs are enabled'
+      );
+    assert
+      .dom('[data-test-empty-state-login]')
+      .exists('the login CTA is shown when ACLs are enabled');
+  });
 
   nspaceScenario(
     'Scenario: Given 0 sessions with ACLs disabled',
