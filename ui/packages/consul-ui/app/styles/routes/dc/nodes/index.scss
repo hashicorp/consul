@@ -6,3 +6,49 @@
 html[data-route^='dc.nodes.show.metadata'] table tr {
   cursor: default;
 }
+
+/* Round Trip Time tab — HDS card: stats and radial graph side by side.
+   Scoped to the RTT route so the legacy %definition-table styles are untouched. */
+html[data-route^='dc.nodes.show.rtt'] {
+  .consul-node-rtt {
+    display: flex;
+    gap: 64px;
+    align-items: flex-start;
+    padding: 24px;
+  }
+  .consul-node-rtt__stats {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin: 0;
+  }
+  .consul-node-rtt__stat {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    margin: 0;
+  }
+  .consul-node-rtt__stat dt,
+  .consul-node-rtt__stat dd {
+    margin: 0;
+    color: var(--token-color-foreground-strong);
+    font-size: var(--token-typography-body-300-font-size);
+    line-height: var(--token-typography-body-300-line-height);
+  }
+  .consul-node-rtt__stat dt {
+    flex: 0 0 120px;
+    width: 120px;
+    font-weight: var(--token-typography-font-weight-semibold);
+  }
+  .consul-node-rtt__stat dd {
+    font-weight: var(--token-typography-font-weight-regular);
+    white-space: nowrap;
+  }
+  /* Vertical divider between the stats column and the graph. */
+  .consul-node-rtt__divider {
+    align-self: stretch;
+    flex: 0 0 1px;
+    width: 1px;
+    background-color: var(--token-color-border-primary);
+  }
+}
