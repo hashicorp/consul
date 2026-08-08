@@ -1,0 +1,74 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+{{!
+  Node-detail Health-checks-tab toolbar. All the Filter Bar wiring (filter
+  groups, applied tags, search, stay-expanded behaviour) lives in the generic
+  Consul::ListToolbar; this component supplies the health-check filter config
+  (Health status / Kind / Type) and, since this tab has no health quick-filter
+  buttons, uses its :quickFilters slot for the grouped sort dropdown instead.
+}}
+<Consul::ListToolbar
+  class="consul-health-check-toolbar"
+  ...attributes
+  @filter={{@filter}}
+  @search={{@search}}
+  @onsearch={{@onsearch}}
+  @filterGroups={{this.filterGroups}}
+  @searchPlaceholder={{t "common.search.search"}}
+>
+  <:quickFilters>
+{{#if @sort}}
+    {{!
+      Sort dropdown, grouped by Health status / Check name / Check type,
+      mirroring the single-group Precedence sort in Consul::Intention::Toolbar
+      and the tokens-index sort dropdown.
+    }}
+    <Hds::Dropdown
+      class="consul-health-check-toolbar__sort"
+      @listPosition="bottom-right"
+      @preserveContentInDom={{true}}
+      data-test-sort-control
+      as |dd|
+    >
+      <dd.ToggleButton
+        @text={{this.sortLabel}}
+        @color="secondary"
+        data-test-sort-toggle
+      />
+
+      <dd.Title @text={{t "common.consul.status"}} />
+      <dd.Interactive
+        data-test-sort-option
+        {{on "click" (fn @sort.change (hash target=(hash selected="Status:asc")))}}
+      >{{t "common.sort.status.asc"}}</dd.Interactive>
+      <dd.Interactive
+        data-test-sort-option
+        {{on "click" (fn @sort.change (hash target=(hash selected="Status:desc")))}}
+      >{{t "common.sort.status.desc"}}</dd.Interactive>
+
+      <dd.Title @text={{t "components.consul.health-check.search-bar.sort.name.name"}} />
+      <dd.Interactive
+        data-test-sort-option
+        {{on "click" (fn @sort.change (hash target=(hash selected="Name:asc")))}}
+      >{{t "common.sort.alpha.asc"}}</dd.Interactive>
+      <dd.Interactive
+        data-test-sort-option
+        {{on "click" (fn @sort.change (hash target=(hash selected="Name:desc")))}}
+      >{{t "common.sort.alpha.desc"}}</dd.Interactive>
+
+      <dd.Title @text={{t "components.consul.health-check.search-bar.sort.kind.name"}} />
+      <dd.Interactive
+        data-test-sort-option
+        {{on "click" (fn @sort.change (hash target=(hash selected="Kind:asc")))}}
+      >{{t "components.consul.health-check.search-bar.sort.kind.asc"}}</dd.Interactive>
+      <dd.Interactive
+        data-test-sort-option
+        {{on "click" (fn @sort.change (hash target=(hash selected="Kind:desc")))}}
+      >{{t "components.consul.health-check.search-bar.sort.kind.desc"}}</dd.Interactive>
+    </Hds::Dropdown>
+{{/if}}
+  </:quickFilters>
+</Consul::ListToolbar>

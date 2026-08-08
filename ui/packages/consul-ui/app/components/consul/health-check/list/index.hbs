@@ -11,20 +11,29 @@
 {{#each @items as |item|}}
     <li class={{concat 'health-check-output ' item.Status}}>
       <div>
-        <header>
-          <h2>{{item.Name}}</h2>
-        </header>
+        <div class="health-check-output__title">
+          <span class="health-check-output__name">{{item.Name}}</span>
+{{#if (eq item.Status "passing")}}
+          <Hds::Badge @text="Passing" @icon="check" @color="success" @type="filled" @size="small" data-test-health-check-status={{item.Status}} />
+{{else if (eq item.Status "warning")}}
+          <Hds::Badge @text="Warning" @icon="alert-triangle" @color="warning" @type="filled" @size="small" data-test-health-check-status={{item.Status}} />
+{{else if (eq item.Status "critical")}}
+          <Hds::Badge @text="Critical" @icon="x" @color="critical" @type="filled" @size="small" data-test-health-check-status={{item.Status}} />
+{{else}}
+          <Hds::Badge @text={{item.Status}} @color="neutral" @type="outlined" @size="small" data-test-health-check-status={{item.Status}} />
+{{/if}}
+        </div>
         <dl>
         {{#if (eq item.Kind "node")}}
-          <dt>NodeName</dt>
+          <dt>Node name</dt>
           <dd>{{item.Node}}</dd>
         {{else}}
-          <dt>ServiceName</dt>
+          <dt>Service name</dt>
           <dd>{{item.ServiceName}}</dd>
         {{/if}}
         </dl>
         <dl>
-          <dt>CheckID</dt>
+          <dt>Check ID</dt>
           <dd>{{or item.CheckID '-'}}</dd>
         </dl>
         <dl>
@@ -54,8 +63,8 @@
         <dl>
           <dt>Output</dt>
           <dd>
-              <pre><code>{{item.Output}}</code></pre>
               <ConsulCopyButton @value={{item.Output}} @name="output" />
+              <pre><code>{{item.Output}}</code></pre>
           </dd>
         </dl>
       </div>
