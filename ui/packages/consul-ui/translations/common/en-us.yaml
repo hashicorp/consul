@@ -25,6 +25,7 @@ consul:
   id: ID
   node: Node
   address: Address
+  port: Port
   meta: Meta
   passing: Passing
   warning: Warning
@@ -33,6 +34,10 @@ consul:
   not-registered: Not Registered
   empty: No checks
   tags: Tags
+  checkid: Check ID
+  notes: Notes
+  output: Output
+  servicetags: Service Tags
   service: Service
   gateway: Gateway
   mesh: Mesh
