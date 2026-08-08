@@ -41,25 +41,47 @@
 
     {{! ---- Health ---- }}
     <B.Td>
-      <span
-        class="consul-node-table__health"
-        {{hds-tooltip (this.healthTooltip item.Status) options=(detached-tooltip-options)}}
-        data-test-status={{item.Status}}
-      >
-        {{#if (eq item.Status "passing")}}
-          <Hds::Icon @name="check-circle-fill" @color="var(--token-color-foreground-success)" @isInline={{true}} />
-          <span>Passing</span>
-        {{else if (eq item.Status "warning")}}
-          <Hds::Icon @name="alert-triangle-fill" @color="var(--token-color-foreground-warning)" @isInline={{true}} />
-          <span>Warning</span>
-        {{else if (eq item.Status "critical")}}
-          <Hds::Icon @name="x-circle-fill" @color="var(--token-color-foreground-critical)" @isInline={{true}} />
-          <span>Critical</span>
-        {{else}}
-          <Hds::Icon @name="help" @color="var(--token-color-foreground-faint)" @isInline={{true}} />
-          <span>No health checks</span>
-        {{/if}}
-      </span>
+      {{#if (eq item.Status "passing")}}
+        <Hds::Badge
+          @text="Passing"
+          @icon="check"
+          @color="success"
+          @type="filled"
+          @size="small"
+          {{hds-tooltip (this.healthTooltip item.Status) options=(detached-tooltip-options)}}
+          data-test-status={{item.Status}}
+        />
+      {{else if (eq item.Status "warning")}}
+        <Hds::Badge
+          @text="Warning"
+          @icon="alert-triangle"
+          @color="warning"
+          @type="filled"
+          @size="small"
+          {{hds-tooltip (this.healthTooltip item.Status) options=(detached-tooltip-options)}}
+          data-test-status={{item.Status}}
+        />
+      {{else if (eq item.Status "critical")}}
+        <Hds::Badge
+          @text="Critical"
+          @icon="x"
+          @color="critical"
+          @type="filled"
+          @size="small"
+          {{hds-tooltip (this.healthTooltip item.Status) options=(detached-tooltip-options)}}
+          data-test-status={{item.Status}}
+        />
+      {{else}}
+        <Hds::Badge
+          @text="No health checks"
+          @icon="help"
+          @color="neutral"
+          @type="outlined"
+          @size="small"
+          {{hds-tooltip (this.healthTooltip item.Status) options=(detached-tooltip-options)}}
+          data-test-status={{item.Status}}
+        />
+      {{/if}}
     </B.Td>
 
     {{! ---- Address ---- }}
