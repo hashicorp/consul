@@ -29,7 +29,7 @@ export default function (
       name: text('[data-test-service-name]'),
       externalSource: attribute('data-test-external-source', '[data-test-external-source]'),
     }),
-    metadata: collection('.consul-metadata-list [data-test-tabular-row]', {}),
+    metadata: collection('.consul-metadata-list [data-test-metadata-key]', {}),
   };
   page.tabs.healthChecksTab = {
     criticalSerfNotice: present('[data-test-critical-serf-notice]'),
