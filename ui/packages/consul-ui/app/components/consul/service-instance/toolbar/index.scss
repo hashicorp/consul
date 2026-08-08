@@ -3,7 +3,19 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
+/* The toolbar is a standalone element rendered directly above the table card.
+   Card chrome on three sides; bottom border removed so the toolbar and table
+   merge into one visual unit. */
 .consul-service-instance-toolbar {
-  padding-bottom: 16px;
-  margin-bottom: 16px;
+  padding: 8px;
+  background-color: var(--token-color-surface-faint);
+  border: 1px solid var(--token-color-border-faint);
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+}
+
+/* Separator between the controls row and the applied-filters area below. */
+.consul-service-instance-toolbar .hds-filter-bar__actions {
+  border-bottom: 1px solid var(--token-color-border-faint);
+  padding-bottom: 8px;
 }
