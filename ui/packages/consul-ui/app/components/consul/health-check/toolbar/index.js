@@ -25,13 +25,17 @@ const SORT_LABEL_KEYS = {
 /**
  * Consul::HealthCheck::Toolbar
  *
- * Node-detail Health-checks-tab specific configuration for the generic
- * `Consul::ListToolbar`. It supplies the concrete filter groups (Health
- * status / Kind / Type) but owns no Filter Bar wiring itself — that all lives
- * in the generic toolbar. The sort control (grouped by Health status / Check
- * name / Check type) is rendered directly in this component's `:quickFilters`
- * block since, unlike the other migrated toolbars, there are no health
- * quick-filter buttons on this tab.
+ * Health-checks-tab specific configuration for the generic `Consul::ListToolbar`,
+ * used by both the node detail and the service-instance detail Health-checks
+ * tabs. It supplies the concrete filter groups (Health status / Kind / Type)
+ * but owns no Filter Bar wiring itself — that all lives in the generic toolbar.
+ * The sort control (grouped by Health status / Check name / Check type) is
+ * rendered directly in this component's `:quickFilters` block since, unlike the
+ * other migrated toolbars, there are no health quick-filter buttons on this tab.
+ *
+ * The Kind filter is only available on pages that wire up a `kind` filter (the
+ * node tab); the service-instance tab doesn't, so that group is omitted there —
+ * mirroring the `{{#if @filter.kind}}` guard the old search bar used.
  */
 export default class ConsulHealthCheckToolbar extends Component {
   @service intl;
@@ -40,7 +44,7 @@ export default class ConsulHealthCheckToolbar extends Component {
   // pulled from the same translation keys the old health-check search-bar
   // used, so no new copy is introduced.
   get filterGroups() {
-    return [
+    const groups = [
       {
         key: 'status',
         text: this.intl.t('common.consul.status'),
@@ -49,23 +53,31 @@ export default class ConsulHealthCheckToolbar extends Component {
           label: this.intl.t(`common.consul.${value}`),
         })),
       },
-      {
+    ];
+
+    // Only offer the Kind filter when the page provides a `kind` filter to
+    // drive it (node tab). The service-instance tab has no `kind` query param.
+    if (this.args.filter?.kind) {
+      groups.push({
         key: 'kind',
         text: this.intl.t('components.consul.health-check.search-bar.kind.name'),
         options: KINDS.map((value) => ({
           value,
           label: this.intl.t(`components.consul.health-check.search-bar.kind.options.${value}`),
         })),
-      },
-      {
-        key: 'check',
-        text: this.intl.t('components.consul.health-check.search-bar.check.name'),
-        options: CHECK_TYPES.map((value) => ({
-          value,
-          label: this.intl.t(`components.consul.health-check.search-bar.check.options.${value}`),
-        })),
-      },
-    ];
+      });
+    }
+
+    groups.push({
+      key: 'check',
+      text: this.intl.t('components.consul.health-check.search-bar.check.name'),
+      options: CHECK_TYPES.map((value) => ({
+        value,
+        label: this.intl.t(`components.consul.health-check.search-bar.check.options.${value}`),
+      })),
+    });
+
+    return groups;
   }
 
   // Label shown on the sort dropdown's toggle button for the currently
