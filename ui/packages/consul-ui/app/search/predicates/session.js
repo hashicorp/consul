@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-html[data-route^='dc.nodes.show.metadata'] table tr {
-  cursor: default;
-}
+export default {
+  Name: (item) => item.Name,
+  ID: (item) => item.ID,
+};

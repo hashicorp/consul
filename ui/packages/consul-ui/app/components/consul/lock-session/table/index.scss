@@ -1,0 +1,37 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
+/* When the toolbar lives above the table card (as a sibling, not inside it),
+   square off the card's top corners so the two elements form one visual unit. */
+.consul-lock-session-toolbar + .consul-lock-session-table .consul-data-table__card {
+  border-radius: 0 0 6px 6px;
+}
+
+.consul-lock-session-table {
+  .consul-lock-session-table__name {
+    font-weight: var(--token-typography-font-weight-semibold);
+  }
+
+  .consul-lock-session-table__id {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* Consul returns the behaviour lowercase (`release` / `delete`); present it
+     capitalised to match the design. */
+  .consul-lock-session-table__behavior {
+    text-transform: capitalize;
+  }
+
+  /* The Checks column is fixed-width (see the column definition); let its
+     comma-separated list wrap onto multiple lines rather than widen the column
+     or force a horizontal scroll. */
+  .consul-lock-session-table__checks {
+    display: inline-block;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}

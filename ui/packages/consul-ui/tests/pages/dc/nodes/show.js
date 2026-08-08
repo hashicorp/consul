@@ -29,12 +29,6 @@ export default function (
       name: text('[data-test-service-name]'),
       externalSource: attribute('data-test-external-source', '[data-test-external-source]'),
     }),
-    sessions: collection('.consul-lock-session-list [data-test-list-row]', {
-      TTL: attribute('data-test-session-ttl', '[data-test-session-ttl]'),
-      delay: text('[data-test-session-delay]'),
-      actions: clickable('label'),
-      ...deletable(),
-    }),
     metadata: collection('.consul-metadata-list [data-test-tabular-row]', {}),
   };
   page.tabs.healthChecksTab = {
