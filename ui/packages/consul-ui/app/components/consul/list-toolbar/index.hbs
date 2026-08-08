@@ -15,78 +15,104 @@
   (e.g. quick-filter buttons) which yields { isSelected, toggleFilterValue,
   setFilterValues }.
 }}
-<div class="consul-list-toolbar" ...attributes>
-  <div class="consul-list-toolbar__controls">
-    <Hds::FilterBar
-      class="consul-list-toolbar__filter-bar"
-      @filters={{this.appliedFilters}}
-      @onFilter={{this.onFilter}}
-      @hasSearch={{true}}
-      @searchPlaceholder={{this.searchPlaceholder}}
-      {{did-insert this.setupFilterBar}}
-      as |F|
-    >
-      {{!
-        Only render the Filters dropdown when the page actually configures
-        filter groups; pages with no categorical filters (e.g. roles) would
-        otherwise show an empty "Filters" button.
-      }}
-      {{#if this.filterGroups.length}}
-        <F.FiltersDropdown as |D|>
-          {{#each this.filterGroups as |group|}}
-            {{#if group.options.length}}
-              <D.FilterGroup
-                @key={{group.key}}
-                @text={{group.text}}
-                @type={{or group.type "multi-select"}}
-                @searchEnabled={{group.searchEnabled}}
-                as |FG|
-              >
-                {{#each group.options as |option|}}
-                  <FG.Checkbox @value={{option.value}} @label={{option.label}} />
-                {{/each}}
-              </D.FilterGroup>
-            {{/if}}
-          {{/each}}
-        </F.FiltersDropdown>
-      {{/if}}
-    </Hds::FilterBar>
+{{!
+  The entire toolbar is a single Hds::FilterBar so that the "No filters
+  applied" / applied-filter tags row (which the FilterBar renders internally
+  in hds-filter-bar__applied-filters-list) spans the full width of ALL
+  controls — Filters button, search input, Search Across dropdown AND the
+  health quick-filter buttons.
 
+  The FilterBar yields an `ActionsGeneric` slot
+  (hds-filter-bar__actions__right) that sits on the right-hand side of the
+  top controls row. We place both the "Search Across" dropdown and the
+  page-specific :quickFilters block (health buttons) there, so they live
+  inside the single FilterBar and the applied-filters area beneath them
+  covers the full bar.
+}}
+<div class="consul-list-toolbar" ...attributes>
+  <Hds::FilterBar
+    class="consul-list-toolbar__filter-bar"
+    @filters={{this.appliedFilters}}
+    @onFilter={{this.onFilter}}
+    @hasSearch={{true}}
+    @searchPlaceholder={{this.searchPlaceholder}}
+    {{did-insert this.setupFilterBar}}
+    as |F|
+  >
     {{!
-      "Search across" scope selector: controls which properties of each record
-      the free-text search matches against. It mirrors the `searchproperty`
-      query param and does not filter the list on its own.
+      Only render the Filters dropdown when the page actually configures
+      filter groups; pages with no categorical filters (e.g. roles) would
+      otherwise show an empty "Filters" button.
     }}
-    {{#if this.hasSearchAcross}}
-      <Hds::Dropdown
-        class="consul-list-toolbar__search-across"
-        @listPosition="bottom-left"
-        as |dd|
-      >
-        <dd.ToggleButton
-          @text={{t "common.search.searchproperty"}}
-          @color="secondary"
-          @size="medium"
-        />
-        {{#each this.searchProperty.default as |prop|}}
-          <dd.Checkbox
-            checked={{this.isSearchProperty prop}}
-            data-test-search-property={{prop}}
-            {{on "change" (fn this.toggleSearchProperty prop)}}
-          >
-            {{t (concat "common.consul." (lowercase prop))}}
-          </dd.Checkbox>
+    {{#if this.filterGroups.length}}
+      <F.FiltersDropdown as |D|>
+        {{#each this.filterGroups as |group|}}
+          {{#if group.options.length}}
+            <D.FilterGroup
+              @key={{group.key}}
+              @text={{group.text}}
+              @type={{or group.type "multi-select"}}
+              @searchEnabled={{group.searchEnabled}}
+              as |FG|
+            >
+              {{#each group.options as |option|}}
+                <FG.Checkbox @value={{option.value}} @label={{option.label}} />
+              {{/each}}
+            </D.FilterGroup>
+          {{/if}}
         {{/each}}
-      </Hds::Dropdown>
+      </F.FiltersDropdown>
     {{/if}}
 
-    {{yield
-      (hash
-        isSelected=this.isSelected
-        toggleFilterValue=this.toggleFilterValue
-        setFilterValues=this.setFilterValues
-      )
-      to="quickFilters"
+    {{!
+      Right-side actions slot: "Search Across" dropdown and page-specific
+      quick filters (e.g. health buttons) both go here so they are inside
+      the FilterBar and the applied-filters row spans the full bar width.
     }}
-  </div>
+    {{!
+      ActionsGeneric renders into hds-filter-bar__actions__right, which is a
+      flex row that already stretches to fill remaining bar width (see SCSS).
+      The inner wrapper uses space-between so Search Across sits at the left
+      edge of that region and the quick filters sit at the right edge.
+    }}
+    <F.ActionsGeneric>
+      <div class="consul-list-toolbar__actions-inner">
+        {{!
+          "Search across" scope selector: controls which properties of each
+          record the free-text search matches against.
+        }}
+        {{#if this.hasSearchAcross}}
+          <Hds::Dropdown
+            class="consul-list-toolbar__search-across"
+            @listPosition="bottom-left"
+            as |dd|
+          >
+            <dd.ToggleButton
+              @text={{t "common.search.searchproperty"}}
+              @color="secondary"
+              @size="medium"
+            />
+            {{#each this.searchProperty.default as |prop|}}
+              <dd.Checkbox
+                checked={{this.isSearchProperty prop}}
+                data-test-search-property={{prop}}
+                {{on "change" (fn this.toggleSearchProperty prop)}}
+              >
+                {{t (concat "common.consul." (lowercase prop))}}
+              </dd.Checkbox>
+            {{/each}}
+          </Hds::Dropdown>
+        {{/if}}
+
+        {{yield
+          (hash
+            isSelected=this.isSelected
+            toggleFilterValue=this.toggleFilterValue
+            setFilterValues=this.setFilterValues
+          )
+          to="quickFilters"
+        }}
+      </div>
+    </F.ActionsGeneric>
+  </Hds::FilterBar>
 </div>

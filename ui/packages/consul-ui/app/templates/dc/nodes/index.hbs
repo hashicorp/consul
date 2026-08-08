@@ -57,7 +57,11 @@
                 </h1>
                 <label for='toolbar-toggle'></label>
               </:header>
-              <:toolbar>
+              <:content>
+                <Consul::Node::AgentlessNotice @items={{items}} @filteredItems={{filtered}} @postfix={{concat route.params.partition route.params.dc}} />
+                {{! Toolbar is rendered outside DataCollection so it persists
+                    when filters/search reduce the visible rows to zero. It only
+                    appears when there are actual nodes in the catalog. }}
                 {{#if (gt filtered.length 0)}}
                   <Consul::Node::Toolbar
                     @search={{this.search}}
@@ -66,9 +70,6 @@
                     @versions={{versions}}
                   />
                 {{/if}}
-              </:toolbar>
-              <:content>
-                <Consul::Node::AgentlessNotice @items={{items}} @filteredItems={{filtered}} @postfix={{concat route.params.partition route.params.dc}} />
                 <DataCollection
                   @type='node'
                   @sort={{sort.value}}
@@ -78,7 +79,15 @@
                   as |collection|
                 >
                   <collection.Collection>
-                    <Consul::Node::Table @items={{collection.items}} @leader={{leader}} />
+                    <Consul::Node::Table
+                      @items={{collection.items}}
+                      @leader={{leader}}
+                      @card={{true}}
+                      @search={{this.search}}
+                      @onsearch={{action (mut this.search) value='target.value'}}
+                      @filter={{filters}}
+                      @versions={{versions}}
+                    />
                   </collection.Collection>
                   <collection.Empty>
                     <EmptyState @login={{route.model.app.login.open}}>

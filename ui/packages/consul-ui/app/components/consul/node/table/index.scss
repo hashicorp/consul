@@ -3,6 +3,12 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
+/* When the toolbar lives above the table card (as a sibling, not inside it),
+   square off the card's top corners so the two elements form one visual unit. */
+.consul-node-toolbar + .consul-node-table .consul-data-table__card {
+  border-radius: 0 0 6px 6px;
+}
+
 .consul-node-table {
   .consul-node-table__name {
     display: inline-flex;
