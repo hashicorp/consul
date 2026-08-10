@@ -141,6 +141,7 @@ jobs:
           PRERELEASE_VERSION: ${{ needs.set-product-version.outputs.pre-version }}
           CGO_ENABLED: "0"
           GOLDFLAGS: "${{needs.set-product-version.outputs.shared-ldflags}}"
+          GOTAGS: ${{ endsWith(github.repository, '-enterprise') && 'consulent hashicorpmetrics' || 'hashicorpmetrics' }}
         uses: hashicorp/actions-go-build@b9e2cfba3013adccdc112b01cba922d83c78fac5 # v1.1.1
         with:
           product_name: ${{ env.PKG_NAME }}
@@ -152,7 +153,8 @@ jobs:
           clean: false
           instructions: |-
             cp LICENSE $TARGET_DIR/LICENSE.txt
-            go build -ldflags="$GOLDFLAGS" -o "$BIN_PATH" -trimpath -buildvcs=false
+            go build -ldflags="$GOLDFLAGS" -tags="$GOTAGS" -o "$BIN_PATH" -trimpath -buildvcs=false
+            go version -m "$BIN_PATH" | grep -q 'build.*-tags=.*hashicorpmetrics'
 
       - name: Copy license file
         if: ${{ !endsWith(github.repository, '-enterprise') }}
@@ -248,6 +250,7 @@ jobs:
           PRERELEASE_VERSION: ${{ needs.set-product-version.outputs.pre-version }}
           CGO_ENABLED: "0"
           GOLDFLAGS: "${{needs.set-product-version.outputs.shared-ldflags}}"
+          GOTAGS: ${{ endsWith(github.repository, '-enterprise') && 'consulent hashicorpmetrics' || 'hashicorpmetrics' }}
         uses: hashicorp/actions-go-build@b9e2cfba3013adccdc112b01cba922d83c78fac5 # v1.1.1
         with:
           product_name: ${{ env.PKG_NAME }}
@@ -259,7 +262,8 @@ jobs:
           clean: false
           instructions: |-
             cp LICENSE $TARGET_DIR/LICENSE.txt
-            go build -ldflags="$GOLDFLAGS" -o "$BIN_PATH" -trimpath -buildvcs=false
+            go build -ldflags="$GOLDFLAGS" -tags="$GOTAGS" -o "$BIN_PATH" -trimpath -buildvcs=false
+            go version -m "$BIN_PATH" | grep -q 'build.*-tags=.*hashicorpmetrics'
 
   build-docker:
     name: Docker ${{ matrix.arch }} build
