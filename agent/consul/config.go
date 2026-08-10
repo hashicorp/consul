@@ -454,6 +454,14 @@ type Config struct {
 	// bootstrapping.
 	CAConfig *structs.CAConfiguration
 
+	// TokenDirs is the startup-only allowlist of directories from which Vault
+	// auth-method credential files (JWT, AppRole role_id/secret_id, Kubernetes
+	// service-account token) may be read. It is set once from RuntimeConfig at
+	// agent startup and is intentionally not writable via the Connect CA API,
+	// so that an operator:write caller cannot widen the allowlist after the
+	// agent has started.
+	TokenDirs string
+
 	// ConfigEntryBootstrap contains a list of ConfigEntries to ensure are created
 	// If entries of the same Kind/Name exist already these will not update them.
 	ConfigEntryBootstrap []structs.ConfigEntry

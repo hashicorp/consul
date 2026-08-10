@@ -459,8 +459,10 @@ func (MeshGatewayMode) EnumDescriptor() ([]byte, []int) {
 type APIGatewayListenerProtocol int32
 
 const (
-	APIGatewayListenerProtocol_ListenerProtocolHTTP APIGatewayListenerProtocol = 0
-	APIGatewayListenerProtocol_ListenerProtocolTCP  APIGatewayListenerProtocol = 1
+	APIGatewayListenerProtocol_ListenerProtocolHTTP  APIGatewayListenerProtocol = 0
+	APIGatewayListenerProtocol_ListenerProtocolTCP   APIGatewayListenerProtocol = 1
+	APIGatewayListenerProtocol_ListenerProtocolHTTP2 APIGatewayListenerProtocol = 2
+	APIGatewayListenerProtocol_ListenerProtocolGRPC  APIGatewayListenerProtocol = 3
 )
 
 // Enum value maps for APIGatewayListenerProtocol.
@@ -468,10 +470,14 @@ var (
 	APIGatewayListenerProtocol_name = map[int32]string{
 		0: "ListenerProtocolHTTP",
 		1: "ListenerProtocolTCP",
+		2: "ListenerProtocolHTTP2",
+		3: "ListenerProtocolGRPC",
 	}
 	APIGatewayListenerProtocol_value = map[string]int32{
-		"ListenerProtocolHTTP": 0,
-		"ListenerProtocolTCP":  1,
+		"ListenerProtocolHTTP":  0,
+		"ListenerProtocolTCP":   1,
+		"ListenerProtocolHTTP2": 2,
+		"ListenerProtocolGRPC":  3,
 	}
 )
 
@@ -9739,10 +9745,12 @@ const file_private_pbconfigentry_config_entry_proto_rawDesc = "" +
 	"\x16MeshGatewayModeDefault\x10\x00\x12\x17\n" +
 	"\x13MeshGatewayModeNone\x10\x01\x12\x18\n" +
 	"\x14MeshGatewayModeLocal\x10\x02\x12\x19\n" +
-	"\x15MeshGatewayModeRemote\x10\x03*O\n" +
+	"\x15MeshGatewayModeRemote\x10\x03*\x84\x01\n" +
 	"\x1aAPIGatewayListenerProtocol\x12\x18\n" +
 	"\x14ListenerProtocolHTTP\x10\x00\x12\x17\n" +
-	"\x13ListenerProtocolTCP\x10\x01*\x92\x02\n" +
+	"\x13ListenerProtocolTCP\x10\x01\x12\x19\n" +
+	"\x15ListenerProtocolHTTP2\x10\x02\x12\x18\n" +
+	"\x14ListenerProtocolGRPC\x10\x03*\x92\x02\n" +
 	"\x0fHTTPMatchMethod\x12\x16\n" +
 	"\x12HTTPMatchMethodAll\x10\x00\x12\x1a\n" +
 	"\x16HTTPMatchMethodConnect\x10\x01\x12\x19\n" +

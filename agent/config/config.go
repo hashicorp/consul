@@ -164,6 +164,7 @@ type Config struct {
 	DNSAltDomain                           *string             `mapstructure:"alt_domain" json:"alt_domain,omitempty"`
 	DNSRecursors                           []string            `mapstructure:"recursors" json:"recursors,omitempty"`
 	DataDir                                *string             `mapstructure:"data_dir" json:"data_dir,omitempty"`
+	TokenDirs                              *string             `mapstructure:"token_dirs" json:"token_dirs,omitempty"`
 	Datacenter                             *string             `mapstructure:"datacenter" json:"datacenter,omitempty"`
 	DefaultQueryTime                       *string             `mapstructure:"default_query_time" json:"default_query_time,omitempty"`
 	DefaultIntentionPolicy                 *string             `mapstructure:"default_intention_policy" json:"default_intention_policy,omitempty"`
@@ -781,6 +782,7 @@ type RequestLimits struct {
 type Limits struct {
 	HTTPMaxConnsPerClient *int          `mapstructure:"http_max_conns_per_client"`
 	HTTPSHandshakeTimeout *string       `mapstructure:"https_handshake_timeout"`
+	GRPCMaxConnsPerClient *int          `mapstructure:"grpc_max_conns_per_client"`
 	RequestLimits         RequestLimits `mapstructure:"request_limits"`
 	RPCClientTimeout      *string       `mapstructure:"rpc_client_timeout"`
 	RPCHandshakeTimeout   *string       `mapstructure:"rpc_handshake_timeout"`

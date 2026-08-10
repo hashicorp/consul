@@ -405,6 +405,10 @@ type Agent struct {
 	// IP.
 	httpConnLimiter connlimit.Limiter
 
+	// grpcConnLimiter is used to limit connections to the external gRPC server
+	// (the "grpc" and "grpc_tls" ports) by client IP.
+	grpcConnLimiter connlimit.Limiter
+
 	// configReloaders are subcomponents that need to be notified on a reload so
 	// they can update their internal state.
 	configReloaders []ConfigReloader
@@ -864,6 +868,11 @@ func (a *Agent) Start(ctx context.Context) error {
 		MaxConnsPerClientIP: a.config.HTTPMaxConnsPerClient,
 	})
 
+	// Configure the external gRPC connection limiter.
+	a.grpcConnLimiter.SetConfig(connlimit.Config{
+		MaxConnsPerClientIP: a.config.GRPCMaxConnsPerClient,
+	})
+
 	// Create listeners and unstarted servers; see comment on listenHTTP why
 	// we are doing this.
 	servers, err := a.listenHTTP()
@@ -1001,7 +1010,13 @@ func (a *Agent) listenAndServeGRPC(server *consul.Server) error {
 			return err
 		}
 		for i := range ln {
-			ln[i] = middleware.LabelledListener{Listener: ln[i], Protocol: protocol}
+			// Enforce a per-client-IP connection limit before the connection is
+			// handed to the gRPC server. The limiter wraps the raw listener so
+			// that LabelledListener remains the outermost wrapper (its
+			// LabelledConn is required by the gRPC transport credentials for
+			// protocol detection).
+			limited := middleware.NewConnLimitListener(ln[i], &a.grpcConnLimiter, a.logger)
+			ln[i] = middleware.LabelledListener{Listener: limited, Protocol: protocol}
 			listeners = append(listeners, ln[i])
 		}
 
@@ -1576,6 +1591,13 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 
 		cfg.CAConfig = ca
 	}
+
+	// TokenDirs must be carried in the consul.Config field, not inside the
+	// mutable CAConfig.Config map. Storing it in the map means an
+	// operator:write API caller can overwrite it via ConnectCA.ConfigurationSet
+	// and bypass the file-read allowlist restriction (SECVULN-44970).
+	cfg.TokenDirs = runtimeCfg.TokenDirs
+
 	cfg.ConnectVirtualIPCIDRv4 = runtimeCfg.ConnectVirtualIPCIDRv4
 	cfg.ConnectVirtualIPCIDRv6 = runtimeCfg.ConnectVirtualIPCIDRv6
 
@@ -4331,6 +4353,10 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 
 	a.httpConnLimiter.SetConfig(connlimit.Config{
 		MaxConnsPerClientIP: newCfg.HTTPMaxConnsPerClient,
+	})
+
+	a.grpcConnLimiter.SetConfig(connlimit.Config{
+		MaxConnsPerClientIP: newCfg.GRPCMaxConnsPerClient,
 	})
 
 	for _, s := range a.dnsServers {

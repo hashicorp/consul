@@ -570,6 +570,12 @@ type RuntimeConfig struct {
 	// flag: -data-dir string
 	DataDir string
 
+	// TokenDirs is the path to the directory where the token is stored.
+	//
+	// hcl: token_dirs = string
+	// flag: -token-dirs string
+	TokenDirs string
+
 	// DefaultIntentionPolicy is used to define a default intention action for all
 	// sources and destinations. Possible values are "allow", "deny", or "" (blank).
 	// For compatibility, falls back to ACLResolverSettings.ACLDefaultPolicy (which
@@ -801,6 +807,14 @@ type RuntimeConfig struct {
 	//
 	// hcl: limits{ http_max_conns_per_client = 200 }
 	HTTPMaxConnsPerClient int
+
+	// GRPCMaxConnsPerClient limits the number of concurrent TCP connections the
+	// external gRPC server (the "grpc" and "grpc_tls" ports) will accept from any
+	// single source IP address. This bounds resource consumption from clients
+	// that open connections but never complete the gRPC/TLS handshake.
+	//
+	// hcl: limits{ grpc_max_conns_per_client = 100 }
+	GRPCMaxConnsPerClient int
 
 	// HTTPMaxHeaderBytes controls the maximum number of bytes the
 	// server will read parsing the request header's keys and

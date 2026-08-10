@@ -1,0 +1,13 @@
+```release-note:security
+agent: Fixed an unauthenticated denial-of-service vulnerability where
+`PUT /v1/agent/check/update/:id`, `PUT /v1/agent/check/register`,
+`PUT /v1/agent/service/register`, and `POST /v1/agent/connect/authorize`
+decoded unbounded JSON request bodies before resolving the caller's ACL
+token. An unauthenticated caller could retain multiple large JSON decoder
+buffers concurrently inside the Consul process before each request was
+rejected with HTTP 403, causing attacker-controlled heap growth. All four
+endpoints now cap the request body at 512 KiB before any decoding occurs,
+returning HTTP 413 for oversized bodies. This limit applies to chunked
+transfer encoding as well as declared `Content-Length`.
+(SECVULN-50418)
+```

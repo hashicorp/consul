@@ -993,6 +993,17 @@ func ParseVaultCAConfig(raw map[string]interface{}, isPrimary bool) (*structs.Va
 		return nil, err
 	}
 
+	// TokenDirs is injected into raw by CAManager.injectTokenDirs before
+	// Configure is called, so the value here always reflects the immutable
+	// server startup configuration rather than anything an API caller supplied.
+	if config.AuthMethod != nil {
+		if config.AuthMethod.Params == nil {
+			config.AuthMethod.Params = make(map[string]interface{})
+		}
+		if v, ok := raw["TokenDirs"]; ok && v != nil {
+			config.AuthMethod.Params["TokenDirs"] = v
+		}
+	}
 	return &config, nil
 }
 

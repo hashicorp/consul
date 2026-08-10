@@ -881,6 +881,8 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	// build runtime config
 	//
 	dataDir := stringVal(c.DataDir)
+	tokenDirs := stringVal(c.TokenDirs)
+
 	rt = RuntimeConfig{
 		// non-user configurable values
 		AEInterval:                 b.durationVal("ae_interval", c.AEInterval),
@@ -1075,6 +1077,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		ExposeMinPort:                          exposeMinPort,
 		ExposeMaxPort:                          exposeMaxPort,
 		DataDir:                                dataDir,
+		TokenDirs:                              tokenDirs,
 		Datacenter:                             datacenter,
 		DefaultQueryTime:                       b.durationVal("default_query_time", c.DefaultQueryTime),
 		DefaultIntentionPolicy:                 stringVal(c.DefaultIntentionPolicy),
@@ -1104,6 +1107,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		GRPCKeepaliveTimeout:       b.durationValWithDefaultMin("performance.grpc_keepalive_timeout", c.Performance.GRPCKeepaliveTimeout, 20*time.Second, time.Second),
 		HTTPMaxConnsPerClient:      intVal(c.Limits.HTTPMaxConnsPerClient),
 		HTTPSHandshakeTimeout:      b.durationVal("limits.https_handshake_timeout", c.Limits.HTTPSHandshakeTimeout),
+		GRPCMaxConnsPerClient:      intVal(c.Limits.GRPCMaxConnsPerClient),
 		KVMaxValueSize:             uint64Val(c.Limits.KVMaxValueSize),
 		LeaveDrainTime:             b.durationVal("performance.leave_drain_time", c.Performance.LeaveDrainTime),
 		LeaveOnTerm:                leaveOnTerm,
@@ -1360,6 +1364,27 @@ func (b *builder) validate(rt RuntimeConfig) error {
 			return fmt.Errorf("Error getting info on data_dir: %s", err)
 		case err == nil && !fi.IsDir():
 			return fmt.Errorf("data_dir %q is not a directory", rt.DataDir)
+		}
+	}
+
+	if !rt.DevMode {
+		if rt.TokenDirs != "" {
+			// TokenDirs supports a comma-separated list of directories (matching
+			// the runtime split performed by the Vault auth modules). Validate
+			// each entry individually.
+			for _, dir := range strings.Split(rt.TokenDirs, ",") {
+				dir = strings.TrimSpace(dir)
+				if dir == "" {
+					continue
+				}
+				fi, err := os.Stat(dir)
+				switch {
+				case err != nil && !os.IsNotExist(err):
+					return fmt.Errorf("Error getting info on token_dirs: %s", err)
+				case err == nil && !fi.IsDir():
+					return fmt.Errorf("token_dirs %q is not a directory", dir)
+				}
+			}
 		}
 	}
 
@@ -1631,6 +1656,10 @@ func (b *builder) validate(rt RuntimeConfig) error {
 	}
 
 	if err := checkLimitsFromMaxConnsPerClient(rt.HTTPMaxConnsPerClient); err != nil {
+		return err
+	}
+
+	if err := checkLimitsFromMaxConnsPerClient(rt.GRPCMaxConnsPerClient); err != nil {
 		return err
 	}
 
