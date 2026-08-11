@@ -194,6 +194,10 @@ func TestReconcileFeatureGates_InitialBootstrapFromConfig(t *testing.T) {
 		setting, ok := policy.Settings[featureName]
 		return ok && setting.Enabled && setting.Source == structs.FeatureGateSourceBootstrap
 	}, 5*time.Second, 50*time.Millisecond, "bootstrap config should be reflected in committed policy")
+
+	frameworkVersion, err := s.GetSystemMetadata(structs.SystemMetadataFeatureGatesVersionKey)
+	require.NoError(t, err)
+	require.Equal(t, structs.SystemMetadataFeatureGatesVersionValue, frameworkVersion)
 }
 
 // ---------------------------------------------------------------------------

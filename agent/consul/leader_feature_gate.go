@@ -21,8 +21,6 @@ const (
 	featureGateReconciliationInterval    = 10 * time.Second
 )
 
-var minimumFeatureGateFrameworkVersion = version.Must(version.NewVersion("2.1.0"))
-
 func (s *Server) startFeatureGateReconciliation(ctx context.Context) {
 	s.leaderRoutineManager.Start(ctx, featureGateReconciliationRoutineName, s.runFeatureGateReconciliation)
 }
@@ -49,10 +47,11 @@ func (s *Server) runFeatureGateReconciliation(ctx context.Context) error {
 }
 
 func (s *Server) reconcileFeatureGates() error {
-	frameworkReady, serversFound := ServersInDCMeetMinimumVersion(s, s.config.Datacenter, minimumFeatureGateFrameworkVersion)
-	if !frameworkReady || !serversFound {
-		// Older servers cannot decode this Raft command. Do not create even an
-		// all-disabled policy until the framework floor is satisfied.
+	frameworkReady, err := s.ensureFeatureGateFrameworkVersion()
+	if err != nil {
+		return err
+	}
+	if !frameworkReady {
 		return nil
 	}
 
@@ -107,6 +106,40 @@ func (s *Server) reconcileFeatureGates() error {
 		return nil
 	}
 	return nil
+}
+
+// ensureFeatureGateFrameworkVersion durably activates the feature-gate wire
+// and storage schema before the leader emits its first FeatureGate Raft
+// command. Once written, the SystemMetadata marker is authoritative and avoids
+// re-deriving cluster capability from transient membership on every reconcile.
+func (s *Server) ensureFeatureGateFrameworkVersion() (bool, error) {
+	activated, err := s.GetSystemMetadata(structs.SystemMetadataFeatureGatesVersionKey)
+	if err != nil {
+		return false, fmt.Errorf("read feature-gate framework version: %w", err)
+	}
+
+	required := version.Must(version.NewVersion(structs.SystemMetadataFeatureGatesVersionValue))
+	if activated != "" {
+		active, err := version.NewVersion(activated)
+		if err != nil {
+			return false, fmt.Errorf("invalid feature-gate framework version %q in system metadata: %w", activated, err)
+		}
+		if active.GreaterThanOrEqual(required) {
+			return true, nil
+		}
+	}
+
+	meetsMinimum, serversFound := ServersInDCMeetMinimumVersion(s, s.config.Datacenter, required)
+	if !meetsMinimum || !serversFound {
+		// Older servers cannot decode the FeatureGate Raft command. Do not
+		// create even an all-disabled policy until the framework floor is met.
+		return false, nil
+	}
+
+	if err := s.SetSystemMetadataKey(structs.SystemMetadataFeatureGatesVersionKey, required.String()); err != nil {
+		return false, fmt.Errorf("persist feature-gate framework version: %w", err)
+	}
+	return true, nil
 }
 
 type minimumVersionCheck func(*version.Version) (bool, bool)

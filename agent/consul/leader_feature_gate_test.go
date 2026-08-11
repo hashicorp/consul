@@ -8,11 +8,49 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-version"
 
+	"github.com/hashicorp/consul/agent/consul/fsm"
+	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/featuregate"
 	"github.com/hashicorp/consul/agent/structs"
 )
+
+func TestEnsureFeatureGateFrameworkVersion_UsesPersistedSystemMetadata(t *testing.T) {
+	for name, tc := range map[string]struct {
+		value       string
+		expectReady bool
+		expectError bool
+	}{
+		"required version": {value: structs.SystemMetadataFeatureGatesVersionValue, expectReady: true},
+		"newer version":    {value: "2.2.0", expectReady: true},
+		"invalid version":  {value: "not-a-version", expectError: true},
+	} {
+		t.Run(name, func(t *testing.T) {
+			store := state.NewStateStore(nil)
+			require.NoError(t, store.SystemMetadataSet(1, &structs.SystemMetadataEntry{
+				Key:   structs.SystemMetadataFeatureGatesVersionKey,
+				Value: tc.value,
+			}))
+			serverFSM := fsm.NewFromDeps(fsm.Deps{
+				Logger:         hclog.NewNullLogger(),
+				NewStateStore:  func() *state.Store { return store },
+				StorageBackend: fsm.NullStorageBackend,
+			})
+			server := &Server{fsm: serverFSM}
+
+			ready, err := server.ensureFeatureGateFrameworkVersion()
+			if tc.expectError {
+				require.Error(t, err)
+				require.False(t, ready)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tc.expectReady, ready)
+		})
+	}
+}
 
 func TestResolveFeatureGateStatus(t *testing.T) {
 	policy := &structs.FeatureGatePolicy{
