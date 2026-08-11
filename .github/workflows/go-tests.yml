@@ -503,6 +503,10 @@ jobs:
     needs:
     - get-go-version
     - go-test-ce
+    - go-test-envoyextensions
+    - go-test-troubleshoot
+    - go-test-api
+    - go-test-sdk
     if: ${{ !cancelled() && needs.go-test-ce.result != 'skipped' }}
     uses: ./.github/workflows/reusable-coverage-report.yml
     permissions:
