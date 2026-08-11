@@ -168,8 +168,10 @@ jobs:
                   | select(.filename | test("_test\\.go$") | not)
                   | select(.filename | test("\\.pb\\.go$") | not)
                   | select(.filename | test("(^|/)mocks/|(^|/)mock_") | not)
-                  | if .patch == null
+                  | if (.patch == null and .changes > 0)
                     then "NULLPATCH\t\(.filename)"
+                    elif (.patch == null)
+                    then empty
                     else "FILE\t\(.filename)\n\(.patch)"
                     end' > /tmp/pr-patches.txt
 

@@ -573,7 +573,7 @@ jobs:
 
           PCT="${PATCH%\%}"
 
-          if awk "BEGIN { exit !(${PCT} >= ${PATCH_THRESHOLD}) }"; then
+          if awk -v pct="${PCT}" -v threshold="${PATCH_THRESHOLD}" 'BEGIN { exit !(pct >= threshold) }'; then
             echo "::notice::Patch coverage ${PATCH} meets the ${PATCH_THRESHOLD}% threshold."
             {
               echo "### ✅ Coverage gate passed"
