@@ -46,6 +46,19 @@ func K8sLoginDataGen(authMethod *structs.VaultAuthMethod) (map[string]any, error
 		"/run/secrets/kubernetes.io/serviceaccount",
 	}
 
+	if tokenDirs, ok := params["TokenDirs"].(string); ok {
+
+		var dirs []string
+		for _, d := range strings.Split(tokenDirs, ",") {
+			if d = strings.TrimSpace(d); d != "" {
+				dirs = append(dirs, d)
+			}
+		}
+		if len(dirs) > 0 {
+			allowedDirs = dirs
+		}
+	}
+
 	// Securely read the JWT file using os.OpenRoot to prevent path traversal attacks
 	rawToken, err := readVaultCredentialFileSecurely(tokenPath, allowedDirs)
 	if err != nil {
