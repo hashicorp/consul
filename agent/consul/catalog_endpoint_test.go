@@ -2868,6 +2868,67 @@ func TestCatalog_Register_FailedCase1(t *testing.T) {
 	}
 }
 
+func TestCatalog_NodeServices_DefaultPort(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Register node with a multi-port service (Port: 0, Ports with Default: true)
+	if err := s1.fsm.State().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if err := s1.fsm.State().EnsureService(2, "foo", &structs.NodeService{
+		ID:      "api-1",
+		Service: "api",
+		Port:    0,
+		Ports: structs.ServicePorts{
+			{
+				Name:    "http",
+				Port:    8080,
+				Default: true,
+			},
+		},
+	}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// NodeServices
+	{
+		args := structs.NodeSpecificRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+		}
+		var out structs.IndexedNodeServices
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &args, &out))
+		require.NotNil(t, out.NodeServices)
+		require.Contains(t, out.NodeServices.Services, "api-1")
+		require.Equal(t, 8080, out.NodeServices.Services["api-1"].Port)
+	}
+
+	// NodeServiceList
+	{
+		args := structs.NodeSpecificRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+		}
+		var out structs.IndexedNodeServiceList
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.NodeServiceList", &args, &out))
+		require.NotNil(t, out.NodeServices)
+		require.Len(t, out.NodeServices.Services, 1)
+		require.Equal(t, 8080, out.NodeServices.Services[0].Port)
+	}
+}
+
 func testACLFilterServer(t *testing.T) (dir, token string, srv *Server, codec rpc.ClientCodec) {
 	dir, srv = testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
