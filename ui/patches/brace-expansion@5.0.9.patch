@@ -1,0 +1,13 @@
+diff --git a/dist/commonjs/index.js b/dist/commonjs/index.js
+index be9df86be09c7655787a65c55ae6da01858894c3..b2468881976f2d7cf0000b3076e6f6d92fe9fbd8 100644
+--- a/dist/commonjs/index.js
++++ b/dist/commonjs/index.js
+@@ -30,6 +30,8 @@ exports.EXPANSION_MAX = 100_000;
+ // realistic expansion (100k results hitting `EXPANSION_MAX` measure ~1M
+ // characters) so legitimate input is unaffected.
+ exports.EXPANSION_MAX_LENGTH = 4_000_000;
++// minimatch <9 calls the required module directly; v5 only exports named `expand`.
++module.exports = Object.assign(expand, exports);
+ function numeric(str) {
+     return !isNaN(str) ? parseInt(str, 10) : str.charCodeAt(0);
+ }
