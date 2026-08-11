@@ -369,6 +369,7 @@ jobs:
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev hashicorpmetrics' || 'hashicorpmetrics' }}"
       go-version: ${{ needs.get-go-version.outputs.go-version }}
+      upload-coverage: true
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
@@ -389,6 +390,7 @@ jobs:
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev hashicorpmetrics' || 'hashicorpmetrics' }}"
       go-version: ${{ needs.get-go-version.outputs.go-version }}
+      upload-coverage: true
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
@@ -430,6 +432,7 @@ jobs:
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev hashicorpmetrics' || 'hashicorpmetrics' }}"
       go-version: ${{ needs.get-go-version.outputs.go-version }}
+      upload-coverage: true
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
@@ -471,6 +474,7 @@ jobs:
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev hashicorpmetrics' || 'hashicorpmetrics' }}"
       go-version: ${{ needs.get-go-version.outputs.go-version }}
+      upload-coverage: true
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read

@@ -36,6 +36,14 @@ on:
       go-version:
         required: true
         type: string
+      upload-coverage:
+        description: >-
+          When true, upload a *-coverage artifact containing coverage.txt so
+          the coverage-report job can merge it. Set to false for jobs that use
+          -race (mode:atomic) or are duplicates (backwards-compat, 32-bit).
+        required: false
+        type: boolean
+        default: false
     secrets:
       elevated-github-token:
         required: true
@@ -159,7 +167,7 @@ jobs:
           name: ${{ steps.generate-run-id.outputs.run-id }}-jsonfile
           path: /tmp/jsonfile
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && inputs.upload-coverage }}
         with:
           name: ${{ steps.generate-run-id.outputs.run-id }}-coverage
           path: ${{inputs.directory}}/coverage.txt
