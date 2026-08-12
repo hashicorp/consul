@@ -7,20 +7,19 @@ package iptables
 
 import "errors"
 
-// iptablesExecutor implements IptablesProvider and errors out on any non-linux OS.
-type iptablesExecutor struct {
+// nftablesExecutor implements Provider and errors out on any non-linux OS.
+type nftablesExecutor struct {
 	cfg Config
 }
 
-func (i *iptablesExecutor) AddRule(_ string, _ ...string) {}
+func (n *nftablesExecutor) AddRule(_ string, _ ...string) {}
 
-func (i *iptablesExecutor) ApplyRules(string) error {
-	return errors.New("applying traffic redirection rules with 'iptables' is not supported on this operating system; only linux OS is supported")
+func (n *nftablesExecutor) ApplyRules(string) error {
+	return errors.New("applying traffic redirection rules with 'nft' is not supported on this operating system; only linux OS is supported")
 }
 
-func (i *iptablesExecutor) Rules() []string {
+func (n *nftablesExecutor) Rules() []string {
 	return nil
 }
 
-func (i *iptablesExecutor) ClearAllRules() {
-}
+func (n *nftablesExecutor) ClearAllRules() {}
