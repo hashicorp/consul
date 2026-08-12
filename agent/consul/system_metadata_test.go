@@ -6,6 +6,7 @@ package consul
 import (
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -40,13 +41,19 @@ func TestLeader_SystemMetadata_CRUD(t *testing.T) {
 	filterEntries := func(entries []*structs.SystemMetadataEntry) []*structs.SystemMetadataEntry {
 		var filtered []*structs.SystemMetadataEntry
 		for _, entry := range entries {
-			if entry.Key == reporting.SystemMetadataReportingProcessID {
+			switch entry.Key {
+			case reporting.SystemMetadataReportingProcessID,
+				structs.SystemMetadataFeatureGatesVersionKey:
 				continue
 			}
 			filtered = append(filtered, entry)
 		}
 		return filtered
 	}
+	require.Eventually(t, func() bool {
+		value, err := srv.GetSystemMetadata(structs.SystemMetadataFeatureGatesVersionKey)
+		return err == nil && value == structs.SystemMetadataFeatureGatesVersionValue
+	}, 5*time.Second, 25*time.Millisecond, "feature-gate framework version should be persisted")
 
 	// Initially has no user-managed entries
 	_, entries, err := state.SystemMetadataList(nil)
