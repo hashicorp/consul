@@ -107,6 +107,47 @@ jobs:
 
           go tool cover -html=merged-coverage.out -o coverage.html
 
+      - name: Upload pkg-summary artifact
+        # Upload pkg-summary.txt so the regression gate job can download it.
+        # Must run before the "Update coverage badge" step, which switches the
+        # working tree to the badges branch and wipes all untracked files.
+        if: steps.coverage.outputs.total != 'N/A'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: pkg-summary
+          path: pkg-summary.txt
+          if-no-files-found: ignore
+
+      - name: Commit coverage baseline to main
+        # On every merge to main, commit the updated pkg-summary.txt as the
+        # authoritative per-package baseline for the regression gate.
+        # PRs compare their per-package averages against this file to detect
+        # regressions before they can be merged.
+        # Must run before the "Update coverage badge" step, which switches the
+        # working tree to the badges branch (destroying pkg-summary.txt).
+        if: github.ref == 'refs/heads/main' && steps.coverage.outputs.total != 'N/A'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin \
+            "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
+
+          # Pull latest main to avoid conflicts with concurrent commits.
+          git fetch origin main --depth=1
+          git pull --ff-only origin main
+
+          mkdir -p .github
+          cp pkg-summary.txt .github/coverage-baseline.txt
+          git add .github/coverage-baseline.txt
+          if git diff --staged --quiet; then
+            echo "Coverage baseline unchanged, skipping commit"
+          else
+            git commit -m "ci: update coverage baseline [skip ci]"
+            git push origin HEAD:main
+          fi
+
       - name: Save coverage data for PR comment
         if: inputs.pr-number != '' && steps.coverage.outputs.total != 'N/A'
         run: |
