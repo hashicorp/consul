@@ -5,11 +5,13 @@ package proxycfg
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/featuregate"
 	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
@@ -28,6 +30,7 @@ type handlerAPIGateway struct {
 // initialize sets up the initial watches needed based on the api-gateway registration
 func (h *handlerAPIGateway) initialize(ctx context.Context) (ConfigSnapshot, error) {
 	snap := newConfigSnapshotFromServiceInstance(h.serviceInstance, h.stateConfig)
+	snap.APIGateway.ComposeUpstreamRouting = h.composeUpstreamRoutingEnabled()
 
 	// Watch for root changes
 	err := h.dataSources.CARoots.Notify(ctx, &structs.DCSpecificRequest{
@@ -146,6 +149,18 @@ func (h *handlerAPIGateway) handleUpdate(ctx context.Context, u UpdateEvent, sna
 		if err != nil {
 			return err
 		}
+	case featureGateWatchID:
+		enabled := h.composeUpstreamRoutingEnabled()
+		if snap.APIGateway.ComposeUpstreamRouting == enabled {
+			return nil
+		}
+		h.logger.Debug("feature-gate changed: rebuilding API Gateway discovery chain watches",
+			"compose_upstream_routing", enabled,
+		)
+		snap.APIGateway.ComposeUpstreamRouting = enabled
+		if err := h.refreshRouteDiscoveryChainWatches(ctx, snap); err != nil {
+			return err
+		}
 
 	default:
 		if err := (*handlerUpstreams)(h).handleUpdateUpstreams(ctx, u, snap); err != nil {
@@ -154,6 +169,51 @@ func (h *handlerAPIGateway) handleUpdate(ctx context.Context, u UpdateEvent, sna
 	}
 
 	return h.recompileDiscoveryChains(snap)
+}
+
+// refreshRouteDiscoveryChainWatches reissues existing route watches after the
+// effective gate changes. The protocol override is part of the discovery-chain
+// request key, so merely rebuilding a snapshot would leave the old compiled
+// chains in place. HTTP routes are processed first so a service referenced by
+// both HTTP and TCP routes receives the HTTP override when composition is on.
+// Route refreshes are bulkheaded: one broken route is reported but does not
+// prevent independent routes from restoring their watches.
+func (h *handlerAPIGateway) refreshRouteDiscoveryChainWatches(ctx context.Context, snap *ConfigSnapshot) error {
+	for upstreamID, cancel := range snap.APIGateway.WatchedDiscoveryChains {
+		cancel()
+		delete(snap.APIGateway.WatchedDiscoveryChains, upstreamID)
+	}
+
+	var errs []error
+	refresh := func(entry structs.ConfigEntry) {
+		if err := h.handleRouteConfigUpdate(ctx, UpdateEvent{
+			CorrelationID: routeConfigWatchID,
+			Result:        &structs.ConfigEntryResponse{Entry: entry},
+		}, snap); err != nil {
+			errs = append(errs, fmt.Errorf("failed to refresh %s route %q: %w", entry.GetKind(), entry.GetName(), err))
+		}
+	}
+	snap.APIGateway.HTTPRoutes.ForEachKey(func(ref structs.ResourceReference) bool {
+		route, ok := snap.APIGateway.HTTPRoutes.Get(ref)
+		if !ok || route == nil {
+			return true
+		}
+		refresh(route)
+		return true
+	})
+	snap.APIGateway.TCPRoutes.ForEachKey(func(ref structs.ResourceReference) bool {
+		route, ok := snap.APIGateway.TCPRoutes.Get(ref)
+		if !ok || route == nil {
+			return true
+		}
+		refresh(route)
+		return true
+	})
+	return errors.Join(errs...)
+}
+
+func (h *handlerAPIGateway) composeUpstreamRoutingEnabled() bool {
+	return h.agentless && h.featureGate != nil && h.featureGate.Enabled(featuregate.APIGatewayUpstreamRouting)
 }
 
 // handleRootCAUpdate responds to changes in the watched root CA for a gateway
@@ -465,7 +525,8 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 				}
 				// Ensure discovery chain compilation is HTTP-like for HTTPRoutes so service
 				// routers/splitters are included when present. For http2/grpc listeners
-				// this keeps the upstream hop on HTTP/2 end-to-end.
+				// this keeps the upstream hop on HTTP/2 end-to-end. The feature gate is
+				// applied separately when the gateway discovery chain is synthesized.
 				watchOpts.cfg.Protocol = chainProtocol
 
 				handler := &handlerUpstreams{handlerState: h.handlerState}
@@ -526,7 +587,9 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 				datacenter: h.source.Datacenter,
 			}
 			// Ensure discovery chain compilation matches the route protocol.
-			watchOpts.cfg.Protocol = string(route.GetProtocol())
+			if snap.APIGateway.ComposeUpstreamRouting {
+				watchOpts.cfg.Protocol = string(route.GetProtocol())
+			}
 
 			handler := &handlerUpstreams{handlerState: h.handlerState}
 			if err := handler.watchDiscoveryChain(ctx, snap, watchOpts); err != nil {

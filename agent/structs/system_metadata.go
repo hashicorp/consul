@@ -41,6 +41,11 @@ const (
 	// divergence between mixed-version servers). When the leader sets this flag it
 	// also backfills mappings for any pre-existing API gateways.
 	SystemMetadataAPIGatewayDNSEnabled = "api-gateway-dns"
+	// SystemMetadataFeatureGatesVersionKey records the feature-gate framework
+	// schema version that the cluster has permanently activated. The value is a
+	// Consul version, allowing a future framework revision to advance the marker.
+	SystemMetadataFeatureGatesVersionKey   = "feature-gates-version"
+	SystemMetadataFeatureGatesVersionValue = "2.1.0"
 )
 
 type SystemMetadataEntry struct {
