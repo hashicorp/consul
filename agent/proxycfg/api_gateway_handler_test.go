@@ -25,6 +25,12 @@ import (
 	"github.com/hashicorp/consul/proto/private/pbpeering"
 )
 
+type compiledDiscoveryChainNotifyFunc func(context.Context, *structs.DiscoveryChainRequest, string, chan<- UpdateEvent) error
+
+func (f compiledDiscoveryChainNotifyFunc) Notify(ctx context.Context, req *structs.DiscoveryChainRequest, correlationID string, ch chan<- UpdateEvent) error {
+	return f(ctx, req, correlationID, ch)
+}
+
 // newAgentlessGatewayHandler creates a handlerAPIGateway configured as
 // agentless with the supplied Gate.
 func newAgentlessGatewayHandler(gate featuregate.Gate) *handlerAPIGateway {
@@ -218,6 +224,76 @@ func TestRefreshRouteDiscoveryChainWatches_CancelsAllExistingWatches(t *testing.
 	require.Equal(t, 3, cancelCount, "all three chain watches should be cancelled")
 	require.Empty(t, snap.APIGateway.WatchedDiscoveryChains,
 		"WatchedDiscoveryChains should be cleared after refresh")
+}
+
+func TestHandlerAPIGateway_HandleUpdate_BulkheadsRouteRefreshErrors(t *testing.T) {
+	store := &featuregate.Store{}
+	require.True(t, store.Publish(featuregate.Snapshot{
+		StatusIndex: 1,
+		Features: map[string]bool{
+			featuregate.APIGatewayUpstreamRouting.String(): true,
+		},
+	}))
+	handler := newAgentlessGatewayHandler(store)
+	handler.kind = structs.ServiceKindAPIGateway
+	handler.source = &structs.QuerySource{Datacenter: "dc1"}
+
+	attempted := make(map[string]int)
+	handler.dataSources.CompiledDiscoveryChain = compiledDiscoveryChainNotifyFunc(func(_ context.Context, req *structs.DiscoveryChainRequest, _ string, _ chan<- UpdateEvent) error {
+		attempted[req.Name]++
+		if req.Name == "bad-http" || req.Name == "bad-tcp" {
+			return fmt.Errorf("refusing watch for %s", req.Name)
+		}
+		return nil
+	})
+
+	snap := minimalAPIGatewaySnap()
+	httpRoutes := []*structs.HTTPRouteConfigEntry{
+		{
+			Name:  "bad-http-route",
+			Rules: []structs.HTTPRouteRule{{Services: []structs.HTTPService{{Name: "bad-http"}}}},
+		},
+		{
+			Name:  "good-http-route",
+			Rules: []structs.HTTPRouteRule{{Services: []structs.HTTPService{{Name: "good-http"}}}},
+		},
+	}
+	for _, route := range httpRoutes {
+		ref := structs.ResourceReference{Kind: structs.HTTPRoute, Name: route.Name}
+		snap.APIGateway.HTTPRoutes.InitWatch(ref, nil)
+		require.True(t, snap.APIGateway.HTTPRoutes.Set(ref, route))
+	}
+	tcpRoutes := []*structs.TCPRouteConfigEntry{
+		{Name: "bad-tcp-route", Services: []structs.TCPService{{Name: "bad-tcp"}}},
+		{Name: "good-tcp-route", Services: []structs.TCPService{{Name: "good-tcp"}}},
+	}
+	for _, route := range tcpRoutes {
+		ref := structs.ResourceReference{Kind: structs.TCPRoute, Name: route.Name}
+		snap.APIGateway.TCPRoutes.InitWatch(ref, nil)
+		require.True(t, snap.APIGateway.TCPRoutes.Set(ref, route))
+	}
+
+	cancelled := make(map[string]bool)
+	for _, name := range []string{"bad-http", "good-http", "bad-tcp", "good-tcp"} {
+		name := name
+		upstreamID := NewUpstreamIDFromServiceName(structs.NewServiceName(name, nil))
+		snap.APIGateway.WatchedDiscoveryChains[upstreamID] = func() { cancelled[name] = true }
+	}
+
+	err := handler.handleUpdate(context.Background(), UpdateEvent{CorrelationID: featureGateWatchID}, snap)
+	require.Error(t, err, "attempted watches: %#v", attempted)
+	require.True(t, snap.APIGateway.ComposeUpstreamRouting)
+	require.ErrorContains(t, err, "refusing watch for bad-http")
+	require.ErrorContains(t, err, "refusing watch for bad-tcp")
+	require.Len(t, attempted, 4, "every route should be attempted despite independent failures")
+	for _, name := range []string{"bad-http", "good-http", "bad-tcp", "good-tcp"} {
+		require.Equal(t, 1, attempted[name], "unexpected refresh count for %s", name)
+		require.True(t, cancelled[name], "old watch for %s should be cancelled", name)
+	}
+	require.NotContains(t, snap.APIGateway.WatchedDiscoveryChains, NewUpstreamIDFromServiceName(structs.NewServiceName("bad-http", nil)))
+	require.NotContains(t, snap.APIGateway.WatchedDiscoveryChains, NewUpstreamIDFromServiceName(structs.NewServiceName("bad-tcp", nil)))
+	require.Contains(t, snap.APIGateway.WatchedDiscoveryChains, NewUpstreamIDFromServiceName(structs.NewServiceName("good-http", nil)))
+	require.Contains(t, snap.APIGateway.WatchedDiscoveryChains, NewUpstreamIDFromServiceName(structs.NewServiceName("good-tcp", nil)))
 }
 
 // ---------------------------------------------------------------------------

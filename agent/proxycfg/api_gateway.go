@@ -5,6 +5,7 @@ package proxycfg
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/hashicorp/consul/acl"
@@ -172,34 +173,40 @@ func (h *handlerAPIGateway) handleUpdate(ctx context.Context, u UpdateEvent, sna
 // request key, so merely rebuilding a snapshot would leave the old compiled
 // chains in place. HTTP routes are processed first so a service referenced by
 // both HTTP and TCP routes receives the HTTP override when composition is on.
+// Route refreshes are bulkheaded: one broken route is reported but does not
+// prevent independent routes from restoring their watches.
 func (h *handlerAPIGateway) refreshRouteDiscoveryChainWatches(ctx context.Context, snap *ConfigSnapshot) error {
 	for upstreamID, cancel := range snap.APIGateway.WatchedDiscoveryChains {
 		cancel()
 		delete(snap.APIGateway.WatchedDiscoveryChains, upstreamID)
 	}
 
-	refresh := func(entry structs.ConfigEntry) error {
-		return h.handleRouteConfigUpdate(ctx, UpdateEvent{
+	var errs []error
+	refresh := func(entry structs.ConfigEntry) {
+		if err := h.handleRouteConfigUpdate(ctx, UpdateEvent{
 			CorrelationID: routeConfigWatchID,
 			Result:        &structs.ConfigEntryResponse{Entry: entry},
-		}, snap)
+		}, snap); err != nil {
+			errs = append(errs, fmt.Errorf("failed to refresh %s route %q: %w", entry.GetKind(), entry.GetName(), err))
+		}
 	}
-	if err := snap.APIGateway.HTTPRoutes.ForEachKeyE(func(ref structs.ResourceReference) error {
+	snap.APIGateway.HTTPRoutes.ForEachKey(func(ref structs.ResourceReference) bool {
 		route, ok := snap.APIGateway.HTTPRoutes.Get(ref)
 		if !ok || route == nil {
-			return nil
+			return true
 		}
-		return refresh(route)
-	}); err != nil {
-		return err
-	}
-	return snap.APIGateway.TCPRoutes.ForEachKeyE(func(ref structs.ResourceReference) error {
+		refresh(route)
+		return true
+	})
+	snap.APIGateway.TCPRoutes.ForEachKey(func(ref structs.ResourceReference) bool {
 		route, ok := snap.APIGateway.TCPRoutes.Get(ref)
 		if !ok || route == nil {
-			return nil
+			return true
 		}
-		return refresh(route)
+		refresh(route)
+		return true
 	})
+	return errors.Join(errs...)
 }
 
 func (h *handlerAPIGateway) composeUpstreamRoutingEnabled() bool {
