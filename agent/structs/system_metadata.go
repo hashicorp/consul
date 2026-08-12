@@ -33,6 +33,12 @@ const (
 	SystemMetadataIntentionFormatLegacyValue   = "legacy"
 	SystemMetadataVirtualIPsEnabled            = "virtual-ips"
 	SystemMetadataTermGatewayVirtualIPsEnabled = "virtual-ips-term-gateway"
+
+	// SystemMetadataFeatureGatesVersionKey records the feature-gate framework
+	// schema version that the cluster has permanently activated. The value is a
+	// Consul version, allowing a future framework revision to advance the marker.
+	SystemMetadataFeatureGatesVersionKey   = "feature-gates-version"
+	SystemMetadataFeatureGatesVersionValue = "2.1.0"
 )
 
 type SystemMetadataEntry struct {

@@ -25,6 +25,8 @@ func newDBSchema() *memdb.DBSchema {
 		configTableSchema,
 		coordinatesTableSchema,
 		federationStateTableSchema,
+		featureGatePolicyTableSchema,
+		featureGateStatusTableSchema,
 		freeVirtualIPTableSchema,
 		gatewayServicesTableSchema,
 		indexTableSchema,

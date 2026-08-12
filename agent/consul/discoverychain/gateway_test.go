@@ -1114,7 +1114,7 @@ func TestSynthesizeHTTPRouteDiscoveryChain_ComposedDestinationProtocol(t *testin
 		}},
 	}
 
-	_, router, _, defaults := synthesizeHTTPRouteDiscoveryChain(route, serviceRouters)
+	_, router, _, defaults := synthesizeHTTPRouteDiscoveryChain(route, serviceRouters, true)
 
 	// The composition must have produced a route to service-b.
 	var composedToB bool

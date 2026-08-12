@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
+	"github.com/hashicorp/consul/agent/featuregate"
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/logging"
@@ -58,6 +59,7 @@ const (
 	upstreamPeerWatchIDPrefix          = "upstream-peer:"
 	exportedServiceListWatchID         = "exported-service-list"
 	meshConfigEntryID                  = "mesh"
+	featureGateWatchID                 = "feature-gate"
 	DestinationConfigEntryID           = "destination:"
 	DestinationGatewayID               = "dest-gateway:"
 	svcChecksWatchIDPrefix             = cachetype.ServiceHTTPChecksName + ":"
@@ -72,6 +74,8 @@ type stateConfig struct {
 	dnsConfig             DNSConfig
 	serverSNIFn           ServerSNIFunc
 	intentionDefaultAllow bool
+	featureGate           featuregate.Gate
+	agentless             bool
 }
 
 // state holds all the state needed to maintain the config for a registered

@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/consul/agent/checks"
 	consulrate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/consul/reporting"
+	"github.com/hashicorp/consul/agent/featuregate"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/gossip/libserf"
 	"github.com/hashicorp/consul/tlsutil"
@@ -392,6 +393,14 @@ type Config struct {
 	// bootstrapping.
 	AutopilotConfig *structs.AutopilotConfig
 
+	// FeatureGatesBootstrap is used only when creating the first cluster-wide
+	// feature-gate policy. Committed Raft state always takes precedence.
+	FeatureGatesBootstrap map[string]bool
+
+	// FeatureGateRegistry supplies compiled definitions. CE and Enterprise use
+	// the same interface and append edition-specific registrations at init.
+	FeatureGateRegistry featuregate.Registry
+
 	// ServerHealthInterval is the frequency with which the health of the
 	// servers in the cluster will be updated.
 	ServerHealthInterval time.Duration
@@ -598,6 +607,7 @@ func DefaultConfig() *Config {
 			MaxTrailingLogs:         250,
 			ServerStabilizationTime: 10 * time.Second,
 		},
+		FeatureGateRegistry: featuregate.DefaultRegistry(),
 
 		CAConfig: &structs.CAConfiguration{
 			Provider: "consul",
