@@ -1265,3 +1265,136 @@ func TestGatewaySynthesis_ProxyDefaultsFallback_StateFaithful(t *testing.T) {
 		require.NotEmpty(t, chains)
 	})
 }
+
+func TestHTTPRouteMatchToServiceRouteHTTPMatch_Invert(t *testing.T) {
+	t.Parallel()
+
+	cases := map[string]struct {
+		input    structs.HTTPMatch
+		expected structs.ServiceRouteHTTPMatch
+	}{
+		"present with invert": {
+			input: structs.HTTPMatch{
+				Headers: []structs.HTTPHeaderMatch{{
+					Match:  structs.HTTPHeaderMatchPresent,
+					Name:   "X-Canary",
+					Invert: true,
+				}},
+			},
+			expected: structs.ServiceRouteHTTPMatch{
+				Header: []structs.ServiceRouteHTTPMatchHeader{{
+					Name:    "X-Canary",
+					Present: true,
+					Invert:  true,
+				}},
+			},
+		},
+		"exact with invert": {
+			input: structs.HTTPMatch{
+				Headers: []structs.HTTPHeaderMatch{{
+					Match:  structs.HTTPHeaderMatchExact,
+					Name:   "X-Version",
+					Value:  "v2",
+					Invert: true,
+				}},
+			},
+			expected: structs.ServiceRouteHTTPMatch{
+				Header: []structs.ServiceRouteHTTPMatchHeader{{
+					Name:   "X-Version",
+					Exact:  "v2",
+					Invert: true,
+				}},
+			},
+		},
+		"prefix with invert": {
+			input: structs.HTTPMatch{
+				Headers: []structs.HTTPHeaderMatch{{
+					Match:  structs.HTTPHeaderMatchPrefix,
+					Name:   "X-Env",
+					Value:  "prod",
+					Invert: true,
+				}},
+			},
+			expected: structs.ServiceRouteHTTPMatch{
+				Header: []structs.ServiceRouteHTTPMatchHeader{{
+					Name:   "X-Env",
+					Prefix: "prod",
+					Invert: true,
+				}},
+			},
+		},
+		"suffix with invert": {
+			input: structs.HTTPMatch{
+				Headers: []structs.HTTPHeaderMatch{{
+					Match:  structs.HTTPHeaderMatchSuffix,
+					Name:   "X-Env",
+					Value:  "-beta",
+					Invert: true,
+				}},
+			},
+			expected: structs.ServiceRouteHTTPMatch{
+				Header: []structs.ServiceRouteHTTPMatchHeader{{
+					Name:   "X-Env",
+					Suffix: "-beta",
+					Invert: true,
+				}},
+			},
+		},
+		"regex with invert": {
+			input: structs.HTTPMatch{
+				Headers: []structs.HTTPHeaderMatch{{
+					Match:  structs.HTTPHeaderMatchRegularExpression,
+					Name:   "X-Id",
+					Value:  "^test-.*",
+					Invert: true,
+				}},
+			},
+			expected: structs.ServiceRouteHTTPMatch{
+				Header: []structs.ServiceRouteHTTPMatchHeader{{
+					Name:   "X-Id",
+					Regex:  "^test-.*",
+					Invert: true,
+				}},
+			},
+		},
+		"invert false is not set": {
+			input: structs.HTTPMatch{
+				Headers: []structs.HTTPHeaderMatch{{
+					Match:  structs.HTTPHeaderMatchPresent,
+					Name:   "X-Canary",
+					Invert: false,
+				}},
+			},
+			expected: structs.ServiceRouteHTTPMatch{
+				Header: []structs.ServiceRouteHTTPMatchHeader{{
+					Name:    "X-Canary",
+					Present: true,
+					Invert:  false,
+				}},
+			},
+		},
+		"multiple headers — mixed invert": {
+			input: structs.HTTPMatch{
+				Headers: []structs.HTTPHeaderMatch{
+					{Match: structs.HTTPHeaderMatchPresent, Name: "X-Canary", Invert: true},
+					{Match: structs.HTTPHeaderMatchExact, Name: "X-Version", Value: "v2", Invert: false},
+				},
+			},
+			expected: structs.ServiceRouteHTTPMatch{
+				Header: []structs.ServiceRouteHTTPMatchHeader{
+					{Name: "X-Canary", Present: true, Invert: true},
+					{Name: "X-Version", Exact: "v2", Invert: false},
+				},
+			},
+		},
+	}
+
+	for name, tc := range cases {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			got := httpRouteMatchToServiceRouteHTTPMatch(tc.input)
+			require.Equal(t, tc.expected, *got)
+		})
+	}
+}

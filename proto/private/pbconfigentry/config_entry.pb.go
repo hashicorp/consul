@@ -6451,6 +6451,7 @@ type HTTPHeaderMatch struct {
 	Match         HTTPHeaderMatchType `protobuf:"varint,1,opt,name=Match,proto3,enum=hashicorp.consul.internal.configentry.HTTPHeaderMatchType" json:"Match,omitempty"`
 	Name          string              `protobuf:"bytes,2,opt,name=Name,proto3" json:"Name,omitempty"`
 	Value         string              `protobuf:"bytes,3,opt,name=Value,proto3" json:"Value,omitempty"`
+	Invert        bool                `protobuf:"varint,4,opt,name=Invert,proto3" json:"Invert,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -6504,6 +6505,13 @@ func (x *HTTPHeaderMatch) GetValue() string {
 		return x.Value
 	}
 	return ""
+}
+
+func (x *HTTPHeaderMatch) GetInvert() bool {
+	if x != nil {
+		return x.Invert
+	}
+	return false
 }
 
 // mog annotation:

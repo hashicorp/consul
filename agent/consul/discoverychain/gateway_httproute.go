@@ -673,28 +673,33 @@ func httpRouteMatchToServiceRouteHTTPMatch(match structs.HTTPMatch) *structs.Ser
 		switch header.Match {
 		case structs.HTTPHeaderMatchExact:
 			consulMatch.Header = append(consulMatch.Header, structs.ServiceRouteHTTPMatchHeader{
-				Name:  header.Name,
-				Exact: header.Value,
+				Name:   header.Name,
+				Exact:  header.Value,
+				Invert: header.Invert,
 			})
 		case structs.HTTPHeaderMatchPrefix:
 			consulMatch.Header = append(consulMatch.Header, structs.ServiceRouteHTTPMatchHeader{
 				Name:   header.Name,
 				Prefix: header.Value,
+				Invert: header.Invert,
 			})
 		case structs.HTTPHeaderMatchSuffix:
 			consulMatch.Header = append(consulMatch.Header, structs.ServiceRouteHTTPMatchHeader{
 				Name:   header.Name,
 				Suffix: header.Value,
+				Invert: header.Invert,
 			})
 		case structs.HTTPHeaderMatchPresent:
 			consulMatch.Header = append(consulMatch.Header, structs.ServiceRouteHTTPMatchHeader{
 				Name:    header.Name,
 				Present: true,
+				Invert:  header.Invert,
 			})
 		case structs.HTTPHeaderMatchRegularExpression:
 			consulMatch.Header = append(consulMatch.Header, structs.ServiceRouteHTTPMatchHeader{
-				Name:  header.Name,
-				Regex: header.Value,
+				Name:   header.Name,
+				Regex:  header.Value,
+				Invert: header.Invert,
 			})
 		}
 	}
