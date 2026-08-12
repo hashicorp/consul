@@ -189,6 +189,7 @@ type Config struct {
 	EncryptVerifyOutgoing                  *bool               `mapstructure:"encrypt_verify_outgoing" json:"encrypt_verify_outgoing,omitempty"`
 	Experiments                            []string            `mapstructure:"experiments" json:"experiments,omitempty"`
 	FederationStateAntiEntropySyncInterval *string             `mapstructure:"federation_state_anti_entropy_sync_interval" json:"federation_state_anti_entropy_sync_interval,omitempty"`
+	FeatureGates                           FeatureGates        `mapstructure:"feature_gates" json:"feature_gates,omitempty"`
 	GossipLAN                              GossipLANConfig     `mapstructure:"gossip_lan" json:"-"`
 	GossipWAN                              GossipWANConfig     `mapstructure:"gossip_wan" json:"-"`
 	HTTPConfig                             HTTPConfig          `mapstructure:"http_config" json:"-"`
@@ -380,6 +381,13 @@ type Autopilot struct {
 	RedundancyZoneTag *string `mapstructure:"redundancy_zone_tag"`
 	// Enterprise Only
 	UpgradeVersionTag *string `mapstructure:"upgrade_version_tag"`
+}
+
+// FeatureGates configures one-time bootstrap intent for dynamic feature gates.
+// Once a Raft policy exists these values are diagnostic only and cannot
+// override cluster state.
+type FeatureGates struct {
+	Bootstrap map[string]bool `mapstructure:"bootstrap" json:"bootstrap,omitempty"`
 }
 
 // ServiceWeights defines the registration of weights used in DNS for a Service

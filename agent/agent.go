@@ -22,8 +22,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/go-metrics"
-	"github.com/hashicorp/go-metrics/prometheus"
 	"github.com/rboyer/safeio"
 	"golang.org/x/net/http2"
 	"google.golang.org/grpc"
@@ -32,6 +30,8 @@ import (
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-metrics"
+	"github.com/hashicorp/go-metrics/prometheus"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
@@ -46,6 +46,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul"
 	rpcRate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/consul/servercert"
+	"github.com/hashicorp/consul/agent/featuregate"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	grpcDNS "github.com/hashicorp/consul/agent/grpc-external/services/dns"
 	middleware "github.com/hashicorp/consul/agent/grpc-middleware"
@@ -787,6 +788,11 @@ func (a *Agent) Start(ctx context.Context) error {
 		return fmt.Errorf("unexpected ACL default policy value of %q", a.config.ACLResolverSettings.ACLDefaultPolicy)
 	}
 
+	var featureGateStore featuregate.WatchableGate
+	if consulServer != nil {
+		featureGateStore = consulServer.FeatureGateStore()
+	}
+
 	// If DefaultIntentionPolicy is defined, it should override
 	// the values inherited from ACLDefaultPolicy.
 	switch a.config.DefaultIntentionPolicy {
@@ -816,6 +822,7 @@ func (a *Agent) Start(ctx context.Context) error {
 		TLSConfigurator:       a.tlsConfigurator,
 		IntentionDefaultAllow: intentionDefaultAllow,
 		UpdateRateLimit:       a.config.XDSUpdateRateLimit,
+		FeatureGate:           featureGateStore,
 	})
 	if err != nil {
 		return err
@@ -1515,6 +1522,7 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	cfg.AutopilotConfig.RedundancyZoneTag = runtimeCfg.AutopilotRedundancyZoneTag
 	cfg.AutopilotConfig.DisableUpgradeMigration = runtimeCfg.AutopilotDisableUpgradeMigration
 	cfg.AutopilotConfig.UpgradeVersionTag = runtimeCfg.AutopilotUpgradeVersionTag
+	cfg.FeatureGatesBootstrap = runtimeCfg.FeatureGatesBootstrap
 
 	// make sure the advertise address is always set
 	if cfg.RPCAdvertise == nil {

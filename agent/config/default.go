@@ -214,6 +214,9 @@ func DevSource() Source {
 			grpc = 8502
 		}
 		experiments = []
+		feature_gates = {
+			bootstrap = {}
+		}
 	`,
 	}
 }
