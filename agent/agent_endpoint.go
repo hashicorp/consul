@@ -947,7 +947,7 @@ func (s *HTTPHandlers) AgentCheckFail(resp http.ResponseWriter, req *http.Reques
 // on agent HTTP endpoints that decode the body before ACL authorization.
 // 512 KiB is well above any legitimate check or service registration payload
 // while preventing an unauthenticated caller from retaining large heap buffers
-// inside the JSON decoder (SECVULN-50418).
+// inside the JSON decoder before ACL authorization occurs.
 const maxAgentRequestBodyBytes = 512 * 1024
 
 // checkUpdate is the payload for a PUT to AgentCheckUpdate.
@@ -968,7 +968,7 @@ type checkUpdate struct {
 func (s *HTTPHandlers) AgentCheckUpdate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Limit the request body to prevent an unauthenticated caller from retaining
 	// unbounded heap inside the JSON decoder before ACL authorization occurs
-	// (SECVULN-50418). http.MaxBytesReader covers chunked bodies that carry no
+	// http.MaxBytesReader covers chunked bodies that carry no
 	// Content-Length header. Note: check output truncation to CheckOutputMaxSize
 	// happens downstream in updateTTLCheck; the body cap here is intentionally
 	// larger to allow callers to send up to maxAgentRequestBodyBytes.

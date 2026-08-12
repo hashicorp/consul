@@ -102,6 +102,10 @@ import (
 	operautoget "github.com/hashicorp/consul/command/operator/autopilot/get"
 	operautoset "github.com/hashicorp/consul/command/operator/autopilot/set"
 	operautostate "github.com/hashicorp/consul/command/operator/autopilot/state"
+	operfeature "github.com/hashicorp/consul/command/operator/feature"
+	operfeatureget "github.com/hashicorp/consul/command/operator/feature/get"
+	operfeaturelist "github.com/hashicorp/consul/command/operator/feature/list"
+	operfeatureset "github.com/hashicorp/consul/command/operator/feature/set"
 	operraft "github.com/hashicorp/consul/command/operator/raft"
 	operraftlist "github.com/hashicorp/consul/command/operator/raft/listpeers"
 	operraftremove "github.com/hashicorp/consul/command/operator/raft/removepeer"
@@ -247,6 +251,10 @@ func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 		entry{"operator autopilot get-config", func(ui cli.Ui) (cli.Command, error) { return operautoget.New(ui), nil }},
 		entry{"operator autopilot set-config", func(ui cli.Ui) (cli.Command, error) { return operautoset.New(ui), nil }},
 		entry{"operator autopilot state", func(ui cli.Ui) (cli.Command, error) { return operautostate.New(ui), nil }},
+		entry{"operator feature", func(cli.Ui) (cli.Command, error) { return operfeature.New(), nil }},
+		entry{"operator feature get", func(ui cli.Ui) (cli.Command, error) { return operfeatureget.New(ui), nil }},
+		entry{"operator feature list", func(ui cli.Ui) (cli.Command, error) { return operfeaturelist.New(ui), nil }},
+		entry{"operator feature set", func(ui cli.Ui) (cli.Command, error) { return operfeatureset.New(ui), nil }},
 		entry{"operator raft", func(cli.Ui) (cli.Command, error) { return operraft.New(), nil }},
 		entry{"operator raft list-peers", func(ui cli.Ui) (cli.Command, error) { return operraftlist.New(ui), nil }},
 		entry{"operator raft remove-peer", func(ui cli.Ui) (cli.Command, error) { return operraftremove.New(ui), nil }},
