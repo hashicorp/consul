@@ -1,7 +1,7 @@
 # Copyright IBM Corp. 2024, 2026
 # SPDX-License-Identifier: BUSL-1.1
 
-FROM golang:latest
+FROM golang:1.26.5
 
 WORKDIR /go/src
 COPY ./ .

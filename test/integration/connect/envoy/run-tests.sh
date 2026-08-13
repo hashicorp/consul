@@ -21,6 +21,12 @@ if [[ -z "${ENVOY_VERSION:-}" ]]; then
 fi
 export ENVOY_VERSION
 
+# ENVOY_UID optionally sets the user ID Envoy containers run as.
+# On ARM64 hosts (e.g. Apple Silicon) running amd64 Envoy images under Rosetta
+# emulation the default non-root uid can cause socket bind failures.  Set
+# ENVOY_UID=0 to run Envoy as root and avoid those spurious errors locally.
+ENVOY_UID=${ENVOY_UID:-}
+
 export DOCKER_BUILDKIT=1
 # Always run tests on amd64 because that's what the CI environment uses.
 export DOCKER_DEFAULT_PLATFORM="linux/amd64"
@@ -45,6 +51,14 @@ function command_error {
 trap 'command_error $? "${BASH_COMMAND}" "${LINENO}" "${FUNCNAME[0]:-main}" "${BASH_SOURCE[0]}:${BASH_LINENO[0]}"' ERR
 
 readonly WORKDIR_SNIPPET='-v envoy_workdir:/workdir'
+
+# Build a --user flag snippet from ENVOY_UID when set; otherwise empty so
+# existing CI behaviour (no --user flag) is completely unchanged.
+function envoy_user_snippet {
+  if [[ -n "${ENVOY_UID:-}" ]]; then
+    echo "--user ${ENVOY_UID}"
+  fi
+}
 
 function network_snippet {
     local DC="$1"
@@ -152,11 +166,16 @@ function start_consul {
   # 8500/8502 are for consul
   # 9411 is for zipkin which shares the network with consul
   # 16686 is for jaeger ui which also shares the network with consul
+  # Use random host-side ports (127.0.0.1:: notation) so the test suite works
+  # even when ports 8500/8502/9411/16686 are already in use on the host (e.g.
+  # by Docker Desktop gvproxy or a locally running Consul agent).  All
+  # inter-container traffic goes through the envoy-tests Docker network and
+  # never touches these host-mapped ports, so the actual numbers don't matter.
   ports=(
-    '-p=8500:8500'
-    '-p=8502:8502'
-    '-p=9411:9411'
-    '-p=16686:16686'
+    '-p=127.0.0.1::8500'
+    '-p=127.0.0.1::8502'
+    '-p=127.0.0.1::9411'
+    '-p=127.0.0.1::16686'
   )
   case "$DC" in
     secondary)
@@ -737,6 +756,7 @@ function common_run_container_sidecar_proxy {
   # sure how this happens but may be due to unix socket being in some shared
   # location?
   docker run --sysctl net.ipv6.conf.all.disable_ipv6=1 -d --name $(container_name_prev) \
+    $(envoy_user_snippet) \
     $WORKDIR_SNIPPET \
     $(network_snippet $CLUSTER) \
     $(aws_snippet) \
@@ -825,6 +845,7 @@ function common_run_container_gateway {
   # sure how this happens but may be due to unix socket being in some shared
   # location?
   docker run --sysctl net.ipv6.conf.all.disable_ipv6=1 -d --name $(container_name_prev) \
+    $(envoy_user_snippet) \
     $WORKDIR_SNIPPET \
     $(network_snippet $DC) \
     $(aws_snippet) \
