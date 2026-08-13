@@ -295,15 +295,14 @@ func SetupWithAdditionalRules(cfg Config, additionalRulesFn AdditionalRulesFn, d
 	return cfg.NftablesProvider.ApplyRules("nft")
 }
 
-// SetupWithAdditionalRulesIPv6 is a no-op. With nftables the inet address
-// family handles both IPv4 and IPv6 in a single SetupWithAdditionalRules call,
-// so a separate IPv6 pass is no longer required.
-//
-// Deprecated: callers that previously invoked this for dual-stack support will
-// receive full dual-stack coverage automatically from SetupWithAdditionalRules.
-func SetupWithAdditionalRulesIPv6(_ Config, _ AdditionalRulesFn, _ bool) error {
-	return nil
-}
+// SetupWithAdditionalRulesIPv6 was previously called internally by Setup() to apply
+// ip6tables rules for dual-stack pods. With nftables the inet address family covers
+// both IPv4 and IPv6 in a single SetupWithAdditionalRules call, making a separate
+// IPv6 pass unnecessary. The function is retained here (commented out) as a reference
+// for when consul-enterprise is migrated from iptables to nftables.
+// func SetupWithAdditionalRulesIPv6(_ Config, _ AdditionalRulesFn, _ bool) error {
+// 	return nil
+// }
 
 // ipFamilyKeyword returns "ip" for IPv4 addresses/CIDRs and "ip6" for IPv6.
 // It accepts plain IP addresses ("1.2.3.4") and CIDR notation ("1.2.3.4/24").
