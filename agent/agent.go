@@ -1595,7 +1595,7 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	// TokenDirs must be carried in the consul.Config field, not inside the
 	// mutable CAConfig.Config map. Storing it in the map means an
 	// operator:write API caller can overwrite it via ConnectCA.ConfigurationSet
-	// and bypass the file-read allowlist restriction (SECVULN-44970).
+	// and bypass the file-read allowlist restriction.
 	cfg.TokenDirs = runtimeCfg.TokenDirs
 
 	cfg.ConnectVirtualIPCIDRv4 = runtimeCfg.ConnectVirtualIPCIDRv4
