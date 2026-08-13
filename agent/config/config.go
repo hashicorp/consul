@@ -164,6 +164,7 @@ type Config struct {
 	DNSAltDomain                           *string             `mapstructure:"alt_domain" json:"alt_domain,omitempty"`
 	DNSRecursors                           []string            `mapstructure:"recursors" json:"recursors,omitempty"`
 	DataDir                                *string             `mapstructure:"data_dir" json:"data_dir,omitempty"`
+	TokenDirs                              *string             `mapstructure:"token_dirs" json:"token_dirs,omitempty"`
 	Datacenter                             *string             `mapstructure:"datacenter" json:"datacenter,omitempty"`
 	DefaultQueryTime                       *string             `mapstructure:"default_query_time" json:"default_query_time,omitempty"`
 	DefaultIntentionPolicy                 *string             `mapstructure:"default_intention_policy" json:"default_intention_policy,omitempty"`
@@ -188,6 +189,7 @@ type Config struct {
 	EncryptVerifyOutgoing                  *bool               `mapstructure:"encrypt_verify_outgoing" json:"encrypt_verify_outgoing,omitempty"`
 	Experiments                            []string            `mapstructure:"experiments" json:"experiments,omitempty"`
 	FederationStateAntiEntropySyncInterval *string             `mapstructure:"federation_state_anti_entropy_sync_interval" json:"federation_state_anti_entropy_sync_interval,omitempty"`
+	FeatureGates                           FeatureGates        `mapstructure:"feature_gates" json:"feature_gates,omitempty"`
 	GossipLAN                              GossipLANConfig     `mapstructure:"gossip_lan" json:"-"`
 	GossipWAN                              GossipWANConfig     `mapstructure:"gossip_wan" json:"-"`
 	HTTPConfig                             HTTPConfig          `mapstructure:"http_config" json:"-"`
@@ -379,6 +381,13 @@ type Autopilot struct {
 	RedundancyZoneTag *string `mapstructure:"redundancy_zone_tag"`
 	// Enterprise Only
 	UpgradeVersionTag *string `mapstructure:"upgrade_version_tag"`
+}
+
+// FeatureGates configures one-time bootstrap intent for dynamic feature gates.
+// Once a Raft policy exists these values are diagnostic only and cannot
+// override cluster state.
+type FeatureGates struct {
+	Bootstrap map[string]bool `mapstructure:"bootstrap" json:"bootstrap,omitempty"`
 }
 
 // ServiceWeights defines the registration of weights used in DNS for a Service
@@ -773,6 +782,7 @@ type RequestLimits struct {
 type Limits struct {
 	HTTPMaxConnsPerClient *int          `mapstructure:"http_max_conns_per_client"`
 	HTTPSHandshakeTimeout *string       `mapstructure:"https_handshake_timeout"`
+	GRPCMaxConnsPerClient *int          `mapstructure:"grpc_max_conns_per_client"`
 	RequestLimits         RequestLimits `mapstructure:"request_limits"`
 	RPCClientTimeout      *string       `mapstructure:"rpc_client_timeout"`
 	RPCHandshakeTimeout   *string       `mapstructure:"rpc_handshake_timeout"`

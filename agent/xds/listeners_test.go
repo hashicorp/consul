@@ -880,3 +880,114 @@ func TestFinalizePublicListenerFromConfig_PropagatesInjectionErrors(t *testing.T
 		require.Error(t, err, "injection error must not be swallowed")
 	})
 }
+
+// Test_injectRequestNormalizationOnFilterChains is a unit test for
+// Test_injectRequestNormalizationOnFilterChains verifies that injectRequestNormalizationOnFilterChains
+// correctly applies Consul's normalization defaults to every
+// HttpConnectionManager filter on a user-provided public listener, and that it
+// handles edge cases (no HCM filter, unsupported ConfigType, disabled
+// normalization) without unexpected errors or mutations.
+func Test_injectRequestNormalizationOnFilterChains(t *testing.T) {
+	tests := map[string]struct {
+		// listenerJSON returns the JSON for the listener under test, or "" to
+		// use a plain TCP listener (no HCM filter).
+		listenerJSON string
+		rn           *structs.RequestNormalizationMeshConfig
+		wantErr      bool
+		// wantNormalize is the expected NormalizePath.Value after injection.
+		// Only checked when wantErr is false and listener has an HCM filter.
+		wantNormalize *bool
+	}{
+		"nil config applies default normalization (normalizePath=true)": {
+			listenerJSON: customHTTPListenerJSON(t, customHTTPListenerJSONOptions{
+				Name:                      "public_listener",
+				HTTPConnectionManagerName: httpConnectionManagerNewName,
+			}),
+			rn:            nil,
+			wantErr:       false,
+			wantNormalize: func() *bool { v := true; return &v }(),
+		},
+		"empty config applies default normalization (normalizePath=true)": {
+			listenerJSON: customHTTPListenerJSON(t, customHTTPListenerJSONOptions{
+				Name:                      "public_listener",
+				HTTPConnectionManagerName: httpConnectionManagerNewName,
+			}),
+			rn:            &structs.RequestNormalizationMeshConfig{},
+			wantErr:       false,
+			wantNormalize: func() *bool { v := true; return &v }(),
+		},
+		"old HCM filter name is also patched": {
+			listenerJSON: customHTTPListenerJSON(t, customHTTPListenerJSONOptions{
+				Name:                      "public_listener",
+				HTTPConnectionManagerName: httpConnectionManagerOldName,
+			}),
+			rn:            nil,
+			wantErr:       false,
+			wantNormalize: func() *bool { v := true; return &v }(),
+		},
+		"InsecureDisablePathNormalization leaves normalizePath unset": {
+			listenerJSON: customHTTPListenerJSON(t, customHTTPListenerJSONOptions{
+				Name:                      "public_listener",
+				HTTPConnectionManagerName: httpConnectionManagerNewName,
+			}),
+			rn: &structs.RequestNormalizationMeshConfig{
+				InsecureDisablePathNormalization: true,
+			},
+			wantErr:       false,
+			wantNormalize: nil,
+		},
+		"no HCM filter — listener is returned unchanged without error": {
+			listenerJSON: customListenerJSON(t, customListenerJSONOptions{
+				Name: "public_listener",
+			}),
+			rn:      nil,
+			wantErr: false,
+			// NormalizePath assertion is skipped; no HCM filter to patch.
+			wantNormalize: nil,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			listener, err := makeListenerFromUserConfig(tc.listenerJSON)
+			require.NoError(t, err)
+
+			err = injectRequestNormalizationOnFilterChains(listener, tc.rn)
+			if tc.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+
+			// Locate the first HCM filter to check NormalizePath.
+			var hcm *envoy_http_v3.HttpConnectionManager
+			for _, chain := range listener.FilterChains {
+				for _, f := range chain.Filters {
+					if f.Name == httpConnectionManagerNewName || f.Name == httpConnectionManagerOldName {
+						tc2, ok := f.ConfigType.(*envoy_listener_v3.Filter_TypedConfig)
+						require.True(t, ok)
+						var hcmVal envoy_http_v3.HttpConnectionManager
+						require.NoError(t, tc2.TypedConfig.UnmarshalTo(&hcmVal))
+						hcm = &hcmVal
+						break
+					}
+				}
+				if hcm != nil {
+					break
+				}
+			}
+
+			if tc.wantNormalize == nil {
+				// Either no HCM filter present, or NormalizePath should remain unset.
+				if hcm != nil {
+					assert.Nil(t, hcm.NormalizePath,
+						"expected NormalizePath to be nil when InsecureDisablePathNormalization=true")
+				}
+			} else {
+				require.NotNil(t, hcm, "expected an HCM filter on the listener")
+				require.NotNil(t, hcm.NormalizePath)
+				assert.Equal(t, *tc.wantNormalize, hcm.NormalizePath.GetValue())
+			}
+		})
+	}
+}

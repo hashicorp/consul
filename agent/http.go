@@ -357,14 +357,14 @@ func ensureContentTypeHeader(next http.Handler, logger hclog.Logger) http.Handle
 		contentType := api.GetContentType(req)
 
 		if req != nil {
-			logger.Debug("warning: request content-type is not supported", "request-path", req.URL)
+			logger.Debug("warning: request content-type is not supported", "request-path", req.URL.Path)
 			req.Header.Set(contentTypeHeader, contentType)
 		}
 
 		if resp != nil {
 			respContentType := resp.Header().Get(contentTypeHeader)
 			if respContentType == "" || respContentType != contentType {
-				logger.Debug("warning: response content-type header not explicitly set.", "request-path", req.URL)
+				logger.Debug("warning: response content-type header not explicitly set.", "request-path", req.URL.Path)
 				resp.Header().Set(contentTypeHeader, contentType)
 			}
 		}

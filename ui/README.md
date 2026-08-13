@@ -54,6 +54,9 @@ List of available project commands.  `pnpm run <command-name>`
 | doc:toc             | Re-builds the ToC for this README. |
 | compliance:licenses | Checks that all dependencies have CE-compatible licenses. |
 
+For Vercel preview deployments, the workspace-level configuration lives in
+`./vercel.json`.
+
 ## Contributing
 
 ### Building ToC

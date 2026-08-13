@@ -101,6 +101,7 @@ func DefaultSource() Source {
 		limits = {
 			http_max_conns_per_client = 200
 			https_handshake_timeout = "5s"
+			grpc_max_conns_per_client = 100
 			request_limits = {
 				mode = "disabled"
 				read_rate = -1
@@ -213,6 +214,9 @@ func DevSource() Source {
 			grpc = 8502
 		}
 		experiments = []
+		feature_gates = {
+			bootstrap = {}
+		}
 	`,
 	}
 }
