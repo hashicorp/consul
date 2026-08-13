@@ -712,19 +712,20 @@ func TestSetup_IPv4_Dualstack(t *testing.T) {
 	}
 }
 
-// TestSetup_IPv6 verifies that SetupWithAdditionalRulesIPv6 is a no-op.
-// With nftables inet family, IPv6 is handled automatically by SetupWithAdditionalRules.
-func TestSetup_IPv6(t *testing.T) {
-	cfg := Config{
-		ProxyUserID:      "123",
-		ProxyInboundPort: 20000,
-		NftablesProvider: &fakeNftablesProvider{},
-	}
-	err := SetupWithAdditionalRulesIPv6(cfg, nil, true)
-	require.NoError(t, err)
-	require.Empty(t, cfg.NftablesProvider.Rules(),
-		"SetupWithAdditionalRulesIPv6 should be a no-op: inet family in SetupWithAdditionalRules covers IPv6")
-}
+// TestSetup_IPv6 is commented out because SetupWithAdditionalRulesIPv6 is commented out.
+// With nftables the inet family handles both IPv4 and IPv6 in a single SetupWithAdditionalRules
+// call, so a separate IPv6 pass is no longer required.
+// func TestSetup_IPv6(t *testing.T) {
+// 	cfg := Config{
+// 		ProxyUserID:      "123",
+// 		ProxyInboundPort: 20000,
+// 		NftablesProvider: &fakeNftablesProvider{},
+// 	}
+// 	err := SetupWithAdditionalRulesIPv6(cfg, nil, true)
+// 	require.NoError(t, err)
+// 	require.Empty(t, cfg.NftablesProvider.Rules(),
+// 		"SetupWithAdditionalRulesIPv6 should be a no-op: inet family in SetupWithAdditionalRules covers IPv6")
+// }
 
 func TestVerifyDualStackConfig(t *testing.T) {
 	// Define various test cases to cover all branches of the function.
