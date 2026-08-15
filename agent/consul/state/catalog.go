@@ -39,7 +39,7 @@ const (
 	// minUUIDLookupLen is used as a minimum length of a node name required before
 	// we test to see if the name is actually a UUID and perform an ID-based node
 	// lookup.
-	minUUIDLookupLen = 2
+	minUUIDLookupLen = 8
 )
 
 var (
