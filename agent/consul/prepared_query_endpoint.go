@@ -489,6 +489,7 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 		}
 	}
 
+	populateLegacyCheckServiceNodePorts(reply.Nodes)
 	return nil
 }
 
@@ -539,6 +540,7 @@ func (p *PreparedQuery) ExecuteRemote(args *structs.PreparedQueryExecuteRemoteRe
 		reply.Nodes = reply.Nodes[:args.Limit]
 	}
 
+	populateLegacyCheckServiceNodePorts(reply.Nodes)
 	return nil
 }
 

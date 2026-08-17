@@ -10,13 +10,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/go-metrics"
-	"github.com/hashicorp/go-metrics/prometheus"
 	hashstructure_v2 "github.com/mitchellh/hashstructure/v2"
 
 	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-metrics"
+	"github.com/hashicorp/go-metrics/prometheus"
 	"github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/consul/acl"
@@ -876,6 +876,7 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 				return err
 			}
 			reply.ServiceNodes = raw.(structs.ServiceNodes)
+			populateLegacyServiceNodePorts(reply.ServiceNodes)
 
 			return c.srv.sortNodesByDistanceFrom(args.Source, reply.ServiceNodes)
 		})
@@ -972,6 +973,9 @@ func (c *Catalog) NodeServices(args *structs.NodeSpecificRequest, reply *structs
 					return err
 				}
 				reply.NodeServices.Services = raw.(map[string]*structs.NodeService)
+				for _, service := range reply.NodeServices.Services {
+					populateLegacyNodeServicePort(service)
+				}
 			}
 
 			return nil
@@ -1083,6 +1087,9 @@ func (c *Catalog) NodeServiceList(args *structs.NodeSpecificRequest, reply *stru
 				return err
 			}
 			reply.NodeServices.Services = raw.([]*structs.NodeService)
+			for _, service := range reply.NodeServices.Services {
+				populateLegacyNodeServicePort(service)
+			}
 
 			return nil
 		})

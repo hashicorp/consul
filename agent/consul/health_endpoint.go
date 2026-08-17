@@ -7,16 +7,17 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/hashicorp/go-metrics"
 	hashstructure_v2 "github.com/mitchellh/hashstructure/v2"
+
+	"github.com/hashicorp/go-bexpr"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-metrics"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/go-bexpr"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-memdb"
 )
 
 // Health endpoint is used to query the health information
@@ -347,6 +348,7 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 				thisReply.Index = sgIdx
 			}
 
+			populateLegacyCheckServiceNodePorts(thisReply.Nodes)
 			*reply = thisReply
 			return nil
 		})

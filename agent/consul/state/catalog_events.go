@@ -63,12 +63,23 @@ func (e EventPayloadCheckServiceNode) Subject() stream.Subject {
 }
 
 func (e EventPayloadCheckServiceNode) ToSubscriptionEvent(idx uint64) *pbsubscribe.Event {
+	value := e.Value
+	if value != nil && value.Service != nil && value.Service.Port == 0 && len(value.Service.Ports) > 0 {
+		// Populate the legacy scalar port at the subscription RPC boundary. Older
+		// agents do not decode NodeService.Ports from subscription responses.
+		valueCopy := *value
+		serviceCopy := *value.Service
+		serviceCopy.Port = serviceCopy.DefaultPort()
+		valueCopy.Service = &serviceCopy
+		value = &valueCopy
+	}
+
 	return &pbsubscribe.Event{
 		Index: idx,
 		Payload: &pbsubscribe.Event_ServiceHealth{
 			ServiceHealth: &pbsubscribe.ServiceHealthUpdate{
 				Op:               e.Op,
-				CheckServiceNode: pbservice.NewCheckServiceNodeFromStructs(e.Value),
+				CheckServiceNode: pbservice.NewCheckServiceNodeFromStructs(value),
 			},
 		},
 	}
