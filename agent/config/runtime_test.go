@@ -73,6 +73,21 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 	}
 	dataDir := testutil.TempDir(t, "config")
 
+	// tlsFixtureDir holds real (empty-content) files and directories for
+	// test cases that set TLS cert/key/ca paths, now that config
+	// validation checks those paths actually exist on disk.
+	tlsFixtureDir := testutil.TempDir(t, "tls-fixtures")
+	writeTLSFixtureFile := func(name string) string {
+		p := filepath.Join(tlsFixtureDir, name)
+		require.NoError(t, os.WriteFile(p, []byte("test"), 0600))
+		return p
+	}
+	writeTLSFixtureDir := func(name string) string {
+		p := filepath.Join(tlsFixtureDir, name)
+		require.NoError(t, os.MkdirAll(p, 0755))
+		return p
+	}
+
 	run := func(t *testing.T, tc testCase) {
 		t.Helper()
 		if len(tc.json) == 0 && len(tc.hcl) == 0 {
@@ -5212,13 +5227,14 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			}`},
 		expectedErr: `auto_config.authorization.static.claim_assertion "values.node == ${node}" is invalid: Selector "values" is not valid`,
 	})
+	autoConfigAuthorizerOkCertFile := writeTLSFixtureFile("auto-config-authorizer-ok-cert")
 	run(t, testCase{
 		desc: "auto config authorizer ok",
 		args: []string{
 			`-data-dir=` + dataDir,
 			`-server`,
 		},
-		hcl: []string{`
+		hcl: []string{fmt.Sprintf(`
 				auto_config {
 					authorization {
 						enabled = true
@@ -5235,11 +5251,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 				}
 				tls {
 					internal_rpc {
-						cert_file = "foo"
+						cert_file = %q
 					}
 				}
-			`},
-		json: []string{`
+			`, autoConfigAuthorizerOkCertFile)},
+		json: []string{fmt.Sprintf(`
 			{
 				"auto_config": {
 					"authorization": {
@@ -5257,10 +5273,10 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 				},
 				"tls": {
 					"internal_rpc": {
-						"cert_file": "foo"
+						"cert_file": %q
 					}
 				}
-			}`},
+			}`, autoConfigAuthorizerOkCertFile)},
 		expected: func(rt *RuntimeConfig) {
 			rt.AutoConfig.Authorizer.Enabled = true
 			rt.AutoConfig.Authorizer.AuthMethod.Config["ClaimMappings"] = map[string]string{
@@ -5273,7 +5289,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.ServerMode = true
 			rt.TLS.ServerMode = true
 			rt.SkipLeaveOnInt = true
-			rt.TLS.InternalRPC.CertFile = "foo"
+			rt.TLS.InternalRPC.CertFile = autoConfigAuthorizerOkCertFile
 			rt.RPCConfig.EnableStreaming = true
 			rt.GRPCTLSPort = 8503
 			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
@@ -5642,32 +5658,37 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expectedErr: "advertise_reconnect_timeout can only be used on a client",
 	})
 
+	defaultCAFile := writeTLSFixtureFile("default_ca_file")
+	defaultCAPath := writeTLSFixtureDir("default_ca_path")
+	defaultCertFile := writeTLSFixtureFile("default_cert_file")
+	internalRPCCAFile := writeTLSFixtureFile("internal_rpc_ca_file")
+	httpsCertFile := writeTLSFixtureFile("https_cert_file")
 	run(t, testCase{
 		desc: "TLS defaults and overrides",
 		args: []string{
 			`-data-dir=` + dataDir,
 		},
-		hcl: []string{`
+		hcl: []string{fmt.Sprintf(`
 			ports {
 				https = 4321
 			}
 
 			tls {
 				defaults {
-					ca_file = "default_ca_file"
-					ca_path = "default_ca_path"
-					cert_file = "default_cert_file"
+					ca_file = %q
+					ca_path = %q
+					cert_file = %q
 					tls_min_version = "TLSv1_2"
 					tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256"
 					verify_incoming = true
 				}
 
 				internal_rpc {
-					ca_file = "internal_rpc_ca_file"
+					ca_file = %q
 				}
 
 				https {
-					cert_file = "https_cert_file"
+					cert_file = %q
 					tls_min_version = "TLSv1_3"
 				}
 
@@ -5676,26 +5697,26 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA"
 				}
 			}
-		`},
-		json: []string{`
+		`, defaultCAFile, defaultCAPath, defaultCertFile, internalRPCCAFile, httpsCertFile)},
+		json: []string{fmt.Sprintf(`
 			{
 				"ports": {
 					"https": 4321
 				},
 				"tls": {
 					"defaults": {
-						"ca_file": "default_ca_file",
-						"ca_path": "default_ca_path",
-						"cert_file": "default_cert_file",
+						"ca_file": %q,
+						"ca_path": %q,
+						"cert_file": %q,
 						"tls_min_version": "TLSv1_2",
 						"tls_cipher_suites": "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256",
 						"verify_incoming": true
 					},
 					"internal_rpc": {
-						"ca_file": "internal_rpc_ca_file"
+						"ca_file": %q
 					},
 					"https": {
-						"cert_file": "https_cert_file",
+						"cert_file": %q,
 						"tls_min_version": "TLSv1_3"
 					},
 					"grpc": {
@@ -5704,7 +5725,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					}
 				}
 			}
-		`},
+		`, defaultCAFile, defaultCAPath, defaultCertFile, internalRPCCAFile, httpsCertFile)},
 		expected: func(rt *RuntimeConfig) {
 			rt.DataDir = dataDir
 
@@ -5714,22 +5735,22 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.TLS.Domain = "consul."
 			rt.TLS.NodeName = "thehostname"
 
-			rt.TLS.InternalRPC.CAFile = "internal_rpc_ca_file"
-			rt.TLS.InternalRPC.CAPath = "default_ca_path"
-			rt.TLS.InternalRPC.CertFile = "default_cert_file"
+			rt.TLS.InternalRPC.CAFile = internalRPCCAFile
+			rt.TLS.InternalRPC.CAPath = defaultCAPath
+			rt.TLS.InternalRPC.CertFile = defaultCertFile
 			rt.TLS.InternalRPC.TLSMinVersion = "TLSv1_2"
 			rt.TLS.InternalRPC.CipherSuites = []types.TLSCipherSuite{types.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256}
 			rt.TLS.InternalRPC.VerifyIncoming = true
 
-			rt.TLS.HTTPS.CAFile = "default_ca_file"
-			rt.TLS.HTTPS.CAPath = "default_ca_path"
-			rt.TLS.HTTPS.CertFile = "https_cert_file"
+			rt.TLS.HTTPS.CAFile = defaultCAFile
+			rt.TLS.HTTPS.CAPath = defaultCAPath
+			rt.TLS.HTTPS.CertFile = httpsCertFile
 			rt.TLS.HTTPS.TLSMinVersion = "TLSv1_3"
 			rt.TLS.HTTPS.VerifyIncoming = true
 
-			rt.TLS.GRPC.CAFile = "default_ca_file"
-			rt.TLS.GRPC.CAPath = "default_ca_path"
-			rt.TLS.GRPC.CertFile = "default_cert_file"
+			rt.TLS.GRPC.CAFile = defaultCAFile
+			rt.TLS.GRPC.CAPath = defaultCAPath
+			rt.TLS.GRPC.CertFile = defaultCertFile
 			rt.TLS.GRPC.TLSMinVersion = "TLSv1_2"
 			rt.TLS.GRPC.CipherSuites = []types.TLSCipherSuite{types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA}
 			rt.TLS.GRPC.VerifyIncoming = false
@@ -7118,10 +7139,10 @@ func TestLoad_FullConfig(t *testing.T) {
 		TLS: tlsutil.Config{
 			InternalRPC: tlsutil.ProtocolConfig{
 				VerifyIncoming:       true,
-				CAFile:               "mKl19Utl",
-				CAPath:               "lOp1nhPa",
-				CertFile:             "dfJ4oPln",
-				KeyFile:              "aL1Knkpo",
+				CAFile:               "testdata/full-config.hcl",
+				CAPath:               "testdata",
+				CertFile:             "testdata/full-config.hcl",
+				KeyFile:              "testdata/full-config.hcl",
 				TLSMinVersion:        types.TLSv1_1,
 				CipherSuites:         []types.TLSCipherSuite{types.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256, types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA},
 				VerifyOutgoing:       true,
@@ -7129,10 +7150,10 @@ func TestLoad_FullConfig(t *testing.T) {
 			},
 			GRPC: tlsutil.ProtocolConfig{
 				VerifyIncoming: true,
-				CAFile:         "lOp1nhJk",
-				CAPath:         "fLponKpl",
-				CertFile:       "a674klPn",
-				KeyFile:        "1y4prKjl",
+				CAFile:         "testdata/full-config.hcl",
+				CAPath:         "testdata",
+				CertFile:       "testdata/full-config.hcl",
+				KeyFile:        "testdata/full-config.hcl",
 				TLSMinVersion:  types.TLSv1_0,
 				CipherSuites:   []types.TLSCipherSuite{types.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256, types.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA},
 				VerifyOutgoing: false,
@@ -7140,10 +7161,10 @@ func TestLoad_FullConfig(t *testing.T) {
 			},
 			HTTPS: tlsutil.ProtocolConfig{
 				VerifyIncoming: true,
-				CAFile:         "7Yu1PolM",
-				CAPath:         "nu4PlHzn",
-				CertFile:       "1yrhPlMk",
-				KeyFile:        "1bHapOkL",
+				CAFile:         "testdata/full-config.hcl",
+				CAPath:         "testdata",
+				CertFile:       "testdata/full-config.hcl",
+				KeyFile:        "testdata/full-config.hcl",
 				TLSMinVersion:  types.TLSv1_3,
 				VerifyOutgoing: true,
 			},
