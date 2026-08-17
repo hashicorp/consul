@@ -10,6 +10,9 @@
     @initialSortBy="action"
     @ariaLabel="Intentions"
   >
+    <:toolbar>
+      {{yield to="toolbar"}}
+    </:toolbar>
     <:row as |item B|>
       <B.Td>
         <span class="consul-intention-list-table__name" data-test-intention={{item.ID}}>
@@ -87,8 +90,8 @@
   </Consul::DataTable>
 
   {{#if this.itemToDelete}}
-    <Hds::Modal id="confirm-modal" @color="warning" @onClose={{this.cancelDelete}} as |M|>
-      <M.Header @icon="alert-triangle">
+    <Hds::Modal id="confirm-modal" @color="critical" @onClose={{this.cancelDelete}} as |M|>
+      <M.Header @icon="alert-diamond">
         Confirm Delete
       </M.Header>
       <M.Body>

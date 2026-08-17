@@ -54,7 +54,6 @@ as |route|>
           <h1>
             <route.Title @title="Intentions" />
           </h1>
-          <label for="toolbar-toggle"></label>
       </:header>
       <:actions>
   {{#if (can 'create intentions')}}
@@ -65,18 +64,6 @@ as |route|>
     />
   {{/if}}
       </:actions>
-      <:toolbar>
-
-  {{#if (gt items.length 0) }}
-        <Consul::Intention::Toolbar
-          @search={{this.search}}
-          @onsearch={{action (mut this.search) value="target.value"}}
-          @filter={{filters}}
-          @sort={{sort}}
-        />
-  {{/if}}
-
-      </:toolbar>
       <:content>
         {{#let (refresh-route) as |refreshRoute|}}
         <DataWriter
@@ -91,63 +78,81 @@ as |route|>
           @ondelete={{refreshRoute}}
           @onchange={{refreshRoute}}>
           <:content as |writer|>
-            <DataCollection
-              @type="intention"
-              @sort={{sort.value}}
-              @filters={{filters}}
-              @search={{this.search}}
+            {{! CRD alert renders above the card when intentions are CRD-managed }}
+            <Consul::Intention::List
               @items={{items}}
-            as |collection|>
-              <collection.Collection>
-                <Consul::Intention::List
-                  @items={{collection.items}}
-                  @delete={{writer.delete}}
-                as |list|>
-                    <list.CustomResourceNotice />
-                    <list.Table />
-                </Consul::Intention::List>
-              </collection.Collection>
-              <collection.Empty>
-                <EmptyState
-                  @login={{route.model.app.login.open}}
-                >
-                  <:header>
-                    <h2>
-                      {{t 'routes.dc.intentions.index.empty.header'
+              @delete={{writer.delete}}
+            as |list|>
+              {{#if list.isManagedByCRDs}}
+                <Consul::Intention::Notice::CustomResource />
+              {{/if}}
+              <DataCollection
+                @type="intention"
+                @sort={{sort.value}}
+                @filters={{filters}}
+                @search={{this.search}}
+                @items={{items}}
+              as |collection|>
+                <collection.Collection>
+                  <Consul::Intention::List::Table
+                    @items={{collection.items}}
+                    @delete={{writer.delete}}
+                  >
+                    {{! Toolbar lives inside the card, above the table }}
+                    <:toolbar>
+                      {{#if (gt items.length 0)}}
+                        <Consul::Intention::Toolbar
+                          @search={{this.search}}
+                          @onsearch={{action (mut this.search) value="target.value"}}
+                          @filter={{filters}}
+                          @sort={{sort}}
+                        />
+                      {{/if}}
+                    </:toolbar>
+                  </Consul::Intention::List::Table>
+                </collection.Collection>
+                <collection.Empty>
+                  <EmptyState
+                    @login={{route.model.app.login.open}}
+                  >
+                    <:header>
+                      <h2>
+                        {{t 'routes.dc.intentions.index.empty.header'
+                          items=items.length
+                        }}
+                      </h2>
+                    </:header>
+                    <:body>
+                      {{t 'routes.dc.intentions.index.empty.body'
                         items=items.length
+                        canUseACLs=(can "use acls")
+                        htmlSafe=true
                       }}
-                    </h2>
-                  </:header>
-                  <:body>
-                    {{t 'routes.dc.intentions.index.empty.body'
-                      items=items.length
-                      canUseACLs=(can "use acls")
-                      htmlSafe=true
-                    }}
-                  </:body>
-                  <:actions>
-                    <li>
-                      <Hds::Link::Standalone
-                        @text='Documentation on intentions'
-                        @href="{{env 'CONSUL_DOCS_URL'}}/commands/intention"
-                        @icon='docs-link'
-                        @iconPosition='trailing'
-                        @size='small'
-                      />
-                    </li>
-                    <li>
-                      <Hds::Link::Standalone
-                        @text='Take the tutorial'
-                        @href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/getting-started/connect"
-                        @icon='learn-link'
-                        @iconPosition='trailing'
-                        @size='small'
-                      />
-                    </li>
-                  </:actions>
-                </EmptyState>
-              </collection.Empty>
-            </DataCollection>
+                    </:body>
+                    <:actions>
+                      <li>
+                        <Hds::Link::Standalone
+                          @text='Documentation on intentions'
+                          @href="{{env 'CONSUL_DOCS_URL'}}/commands/intention"
+                          @icon='docs-link'
+                          @iconPosition='trailing'
+                          @size='small'
+                        />
+                      </li>
+                      <li>
+                        <Hds::Link::Standalone
+                          @text='Take the tutorial'
+                          @href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/getting-started/connect"
+                          @icon='learn-link'
+                          @iconPosition='trailing'
+                          @size='small'
+                        />
+                      </li>
+                    </:actions>
+                  </EmptyState>
+                </collection.Empty>
+              </DataCollection>
+            </Consul::Intention::List>
           </:content>
         </DataWriter>
         {{/let}}
