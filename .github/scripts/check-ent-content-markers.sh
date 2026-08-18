@@ -103,10 +103,9 @@ declare -a EXCLUDE_PATHS=(
   '.github/workflows/ent-protection.yml'
   '.github/workflows/sha-ancestry-check.yml'
 
-  # The Jira-ID check scripts and workflow contain the Jira ID regex pattern
-  # as a literal string; scanning them produces false positives.
+  # check-jira-ids.sh contains the Jira ID regex pattern as a literal string;
+  # scanning it produces false positives.
   '.github/scripts/check-jira-ids.sh'
-  '.github/workflows/jira-id-check.yml'
 )
 
 # ─────────────────────────────────────────────────────────────────────────────
