@@ -4,21 +4,84 @@
  */
 
 .consul-intention-fieldsets {
+  // Outer disabled fieldset is the main flex column — 24px between each section
+  // (Figma Frame 1000002920: flex-col gap-[24px])
+  > fieldset {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  [role='group'] {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .consul-intention-fieldset-card {
+    background: var(--token-color-surface-primary);
+    border: 1px solid var(--token-color-border-primary);
+    border-radius: 6px;
+    padding: 24px 16px;
+
+    // Each SuperSelectWithCreate must fill the full card width
+    .super-select-with-create {
+      width: 100%;
+    }
+
+    // Remove default fieldset chrome so only the card styles apply
+    fieldset {
+      border: none;
+      padding: 0;
+      margin: 0;
+      min-width: 0;
+      width: 100%;
+      // 24px gap between the three select fields (Figma: Frame 1000002948/49 gap-[24px])
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    // Style the legend as a section heading matching Figma's 24px "Source"/"Destination" labels
+    // float + width clears it into normal flow so the fieldset gap takes over below it
+    legend {
+      @extend %display-300-semibold;
+      float: left;
+      width: 100%;
+      // 8px below legend before first field (Figma: card header gap-[8px])
+      margin-bottom: 8px;
+    }
+  }
   [role='radiogroup'] {
     overflow: visible !important;
     display: grid;
-    grid-gap: 12px;
-    grid-template-columns: repeat(auto-fit, minmax(270px, auto));
+    grid-gap: 16px;
+    // 3 equal columns to match Figma's single-row radio card layout
+    grid-template-columns: repeat(3, 1fr);
   }
   .radio-card {
-    @extend %radio-card-with-icon;
+    @extend %radio-card;
   }
-  .radio-card header > * {
-    display: inline;
+  // Permissions content container — bordered card matching Figma node 3463:98595
+  // border: 1px solid var(--token-color-border-primary), radius: 6px, padding: 16px
+  .permissions-content {
+    width: 100%;
+    border: 1px solid var(--token-color-border-primary);
+    border-radius: 6px;
+    padding: 16px;
+    background: var(--token-color-surface-primary);
   }
-  .permissions > button {
-    @extend %anchor, %body-100-regular;
-    float: right;
+
+  // Permissions section header: "Permissions" heading on the left,
+  // "Add permission" button on the right (Figma: justify-between flex row)
+  .permissions-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+
+    h2 {
+      @extend %display-300-semibold;
+      margin: 0;
+    }
   }
 }
 .consul-intention-permission-modal [role='dialog'] {
