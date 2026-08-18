@@ -21,73 +21,86 @@
     )}}
 
     <fieldset>
-      <div>
-        <group.Element
-          @name="HeaderType"
-          @type="select"
-        as |el|>
-          <el.Label>Header type</el.Label>
-          <Hds::Form::SuperSelect::Single::Field
-            @options={{this.headerTypes}}
-            @selected={{this.headerType}}
-            @onChange={{action 'change' 'HeaderType' this.changeset}}
-            @label="Header type"
-            @listboxAriaLabel="Header type options"
-            id="header-type-select"
-          as |F|>
-            <F.Options>{{get this.headerLabels F.options}}</F.Options>
-          </Hds::Form::SuperSelect::Single::Field>
-        </group.Element>
+      <div class="header-row">
+        {{! Header type }}
+        <div class="header-col">
+          <span class="header-col-label">Header type</span>
+          <group.Element
+            @name="HeaderType"
+            @type="select"
+          as |el|>
+            <Hds::Form::SuperSelect::Single::Field
+              @options={{this.headerTypes}}
+              @selected={{this.headerType}}
+              @onChange={{action 'change' 'HeaderType' this.changeset}}
+              @label="Header type"
+              @listboxAriaLabel="Header type options"
+              id="header-type-select"
+            as |F|>
+              <F.Options>{{get this.headerLabels F.options}}</F.Options>
+            </Hds::Form::SuperSelect::Single::Field>
+          </group.Element>
+        </div>
 
-
-        <group.Element
-          @name="Name"
-          @error={{changeset-get this.changeset 'error.Name'}}
-        as |el|>
-          <el.Label>Header name</el.Label>
-          <el.Text
-            @value={{changeset-get this.changeset 'Name'}}
-            oninput={{action 'change' 'Name' this.changeset}}
-          />
-          <State @state={{el.state}} @matches="error">
-            <el.Error>
-              {{changeset-get this.changeset 'error.Name.validation'}}
-            </el.Error>
-          </State>
-        </group.Element>
+        {{! Header name }}
+        <div class="header-col">
+          <span class="header-col-label">Header name</span>
+          <group.Element
+            @name="Name"
+            @error={{changeset-get this.changeset 'error.Name'}}
+          as |el|>
+            <el.Text
+              placeholder="Enter header name"
+              @value={{changeset-get this.changeset 'Name'}}
+              oninput={{action 'change' 'Name' this.changeset}}
+            />
+            <State @state={{el.state}} @matches="error">
+              <el.Error>
+                {{changeset-get this.changeset 'error.Name.validation'}}
+              </el.Error>
+            </State>
+          </group.Element>
+        </div>
 
   {{#if this.shouldShowValueField}}
-        <group.Element
-          @name="Value"
-          @error={{changeset-get this.changeset 'error.Value'}}
-        as |el|>
-          <el.Label>Header {{lowercase (get this.headerLabels this.headerType)}}</el.Label>
-          <el.Text
-            @value={{changeset-get this.changeset 'Value'}}
-            oninput={{action 'change' 'Value' this.changeset}}
-          />
-          <State @state={{el.state}} @matches="error">
-            <el.Error>
-              {{changeset-get this.changeset 'error.Value.validation'}}
-            </el.Error>
-          </State>
-        </group.Element>
+        {{! Header information (value) }}
+        <div class="header-col">
+          <span class="header-col-label">Header information</span>
+          <group.Element
+            @name="Value"
+            @error={{changeset-get this.changeset 'error.Value'}}
+          as |el|>
+            <el.Text
+              placeholder="Enter header information"
+              @value={{changeset-get this.changeset 'Value'}}
+              oninput={{action 'change' 'Value' this.changeset}}
+            />
+            <State @state={{el.state}} @matches="error">
+              <el.Error>
+                {{changeset-get this.changeset 'error.Value.validation'}}
+              </el.Error>
+            </State>
+          </group.Element>
+        </div>
+  {{else}}
+        {{! Spacer so the delete icon stays in column 4 when value field is hidden }}
+        <div class="header-col header-col--spacer"></div>
   {{/if}}
+
+        {{! Delete placeholder — keeps grid column 4 aligned to inputs }}
+        <div class="header-col header-col--action"></div>
+
+      </div>{{! /.header-row }}
 
   {{#if this.shouldShowIgnoreCaseField}}
-        <group.Element
-          @name="IgnoreCase"
-          @error={{changeset-get this.changeset 'error.IgnoreCase'}}
-        as |el|>
-          <el.Label>Ignore Case</el.Label>
-          <el.Checkbox
-            checked={{if (changeset-get this.changeset 'IgnoreCase') 'checked'}}
-            onchange={{action 'change' 'IgnoreCase' this.changeset}}
-          />
-        </group.Element>
+      <Hds::Form::Checkbox::Field
+        @name="IgnoreCase"
+        checked={{if (changeset-get this.changeset 'IgnoreCase') true false}}
+        {{on "change" (action 'change' 'IgnoreCase' this.changeset)}}
+      as |F|>
+        <F.Label>Case sensitive</F.Label>
+      </Hds::Form::Checkbox::Field>
   {{/if}}
-
-      </div>
     </fieldset>
   </FormGroup>
 </div>

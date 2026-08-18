@@ -4,13 +4,26 @@
  */
 
 import Component from '@ember/component';
+import { set } from '@ember/object';
 
 export default Component.extend({
   tagName: '',
-  shouldShowPermissionForm: false,
+  isPermissionModalOpen: false,
 
-  openModal() {
-    this.modal?.open();
+  openModal(permission) {
+    if (permission !== undefined) {
+      set(this, 'permission', permission);
+    }
+    set(this, 'isPermissionModalOpen', true);
+  },
+
+  closeModal() {
+    set(this, 'isPermissionModalOpen', false);
+    set(this, 'permission', undefined);
+  },
+
+  setPermission(permission) {
+    set(this, 'permission', permission);
   },
 
   actions: {

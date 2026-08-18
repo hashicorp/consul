@@ -220,7 +220,7 @@
         @color='tertiary'
         @icon='plus'
         data-test-create-permission
-        {{on "click" (action this.openModal)}}
+        {{on "click" (action this.openModal undefined)}}
       />
     </div>
     <div class="permissions-content">
@@ -228,7 +228,7 @@
       <Consul::Intention::Notice::Permissions />
       <Consul::Intention::Permission::List
         @items={{@item.Permissions}}
-        @onclick={{queue (action (mut this.permission)) (action this.openModal)}}
+        @onclick={{queue (action this.setPermission) (action this.openModal)}}
         @ondelete={{action 'delete' 'Permissions' @item}}
       />
 {{else}}
@@ -269,43 +269,41 @@
   </fieldset>
 {{/if}}
 
-  <ModalDialog
+{{#if this.isPermissionModalOpen}}
+  <Hds::Modal
     class="consul-intention-permission-modal"
-    @onclose={{action (mut this.permission) undefined}}
-    @aria={{hash
-      label="Edit Permission"
-    }}
+    @onClose={{action this.closeModal}}
+    @size="large"
+    as |M|
   >
-    <:default as |modal|>
-          <Ref @target={{this}} @name="modal" @value={{modal}} />
-    </:default>
-    <:header>
-      <h3>Edit Permission</h3>
-    </:header>
-    <:body>
+    <M.Header>
+      Add permission
+    </M.Header>
+    <M.Body>
       <Consul::Intention::Permission::Form
         @item={{this.permission}}
         @onsubmit={{action 'add' 'Permissions' @item}}
       as |permissionForm|>
         <Ref @target={{this}} @name="permissionForm" @value={{permissionForm}} />
       </Consul::Intention::Permission::Form>
-    </:body>
-    <:actions as |close|>
+    </M.Body>
+    <M.Footer as |F|>
       <Hds::ButtonSet>
         <Hds::Button
           @text='Save'
           data-test-intention-permission-submit
           @color='primary'
           disabled={{if (not this.permissionForm.isDirty) 'disabled'}}
-          onclick={{queue (action this.permissionForm.submit) (action close)}}
+          {{on 'click' (queue (action this.permissionForm.submit) F.close)}}
         />
         <Hds::Button
           @text='Cancel'
           @color='secondary'
-          onclick={{queue (action this.permissionForm.reset) (action close)}}
+          {{on 'click' (queue (action this.permissionForm.reset) F.close)}}
         />
       </Hds::ButtonSet>
-    </:actions>
-  </ModalDialog>
+    </M.Footer>
+  </Hds::Modal>
+{{/if}}
 
 </div>
