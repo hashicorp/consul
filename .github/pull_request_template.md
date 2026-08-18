@@ -20,7 +20,7 @@ Include any links here that might be helpful for people reviewing your PR (Ticke
 
 Please be mindful not to leak any customer or confidential information. HashiCorp employees may want to use our internal URL shortener to obfuscate links.
 
-**HashiCorp employees:** do not include internal Jira ticket IDs (e.g. CCT-123, NET-456) anywhere in this PR description or in changed source files. Internal ticket references are not meaningful to the community and are automatically detected and blocked by CI. Use public GitHub issue links instead.
+**HashiCorp employees:** do not include internal Jira ticket IDs anywhere in this PR description or in changed source files. Internal ticket references are not meaningful to the community and are automatically detected and blocked by CI. Use public GitHub issue links instead.
 
 -->
 
