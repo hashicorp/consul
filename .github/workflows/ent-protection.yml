@@ -50,7 +50,7 @@
 #   │                                                                         │
 #   │  Step B — Internal Jira IDs                                             │
 #   │    Scans the PR description and the added lines of each changed file    │
-#   │    for internal Jira ticket IDs (e.g. CCT-123, NET-456).               │
+#   │    for internal Jira ticket IDs.               │
 #   │    Re-runs on the `edited` PR event so description corrections are also │
 #   │    validated after the initial `opened` check.                          │
 #   │                                                                         │
